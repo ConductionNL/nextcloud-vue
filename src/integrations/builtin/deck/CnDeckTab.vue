@@ -164,7 +164,7 @@ import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnDeckCardCreate from '../../../components/CnDeckCardCreate/CnDeckCardCreate.vue'
 import CnDeckCardPicker from '../../../components/CnDeckCardPicker/CnDeckCardPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /** Maximum assignee avatars shown before collapsing the rest into a +N overflow badge. */
 const MAX_VISIBLE_ASSIGNEES = 3
@@ -291,7 +291,7 @@ export default {
 		async onLinkPick(payload) {
 			this.pickerOpen = false
 			try {
-				const response = await fetch(this.deckEndpoint(), {
+				const response = await fetch(prefixUrl(this.deckEndpoint()), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -313,7 +313,7 @@ export default {
 		async onCreatePick(payload) {
 			this.createOpen = false
 			try {
-				const response = await fetch(`${this.deckEndpoint()}/new`, {
+				const response = await fetch(prefixUrl(`${this.deckEndpoint()}/new`), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -536,7 +536,7 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.baseUrl()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []

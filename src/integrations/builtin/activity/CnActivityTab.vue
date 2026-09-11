@@ -160,7 +160,7 @@ import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue
 import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import CalendarClockOutline from 'vue-material-design-icons/CalendarClockOutline.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 const DEFAULT_PAGE_SIZE = 25
 const SECONDS_PER_DAY = 86400
@@ -480,8 +480,8 @@ export default {
 		async fetchDropdowns() {
 			try {
 				const [typesRes, actorsRes] = await Promise.all([
-					fetch(this.dropdownUrl('types'), { headers: buildHeaders() }),
-					fetch(this.dropdownUrl('actors'), { headers: buildHeaders() }),
+					fetch(prefixUrl(this.dropdownUrl('types')), { headers: buildHeaders() }),
+					fetch(prefixUrl(this.dropdownUrl('actors')), { headers: buildHeaders() }),
 				])
 				if (typesRes.ok) {
 					const data = await typesRes.json()
@@ -511,7 +511,7 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(`${this.baseUrl()}?${this.buildQuery()}`, { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(`${this.baseUrl()}?${this.buildQuery()}`), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []

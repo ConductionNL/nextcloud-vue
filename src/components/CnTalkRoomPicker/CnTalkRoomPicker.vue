@@ -96,7 +96,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 export default {
 	name: 'CnTalkRoomPicker',
@@ -168,7 +168,7 @@ export default {
 			this.error = ''
 			try {
 				const params = this.search ? `?search=${encodeURIComponent(this.search)}` : ''
-				const response = await fetch(`${this.apiBase}/integrations/talk/rooms${params}`, {
+				const response = await fetch(prefixUrl(`${this.apiBase}/integrations/talk/rooms${params}`), {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {

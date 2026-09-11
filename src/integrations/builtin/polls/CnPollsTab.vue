@@ -175,7 +175,7 @@ import Poll from 'vue-material-design-icons/Poll.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnPollCreate from '../../../components/CnPollCreate/CnPollCreate.vue'
 import CnPollPicker from '../../../components/CnPollPicker/CnPollPicker.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
 /**
@@ -274,7 +274,7 @@ export default {
 		async onLinkPick(payload) {
 			this.pickerOpen = false
 			try {
-				const response = await fetch(this.pollsEndpoint(), {
+				const response = await fetch(prefixUrl(this.pollsEndpoint()), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -296,7 +296,7 @@ export default {
 		async onCreatePick(payload) {
 			this.createOpen = false
 			try {
-				const response = await fetch(`${this.pollsEndpoint()}/new`, {
+				const response = await fetch(prefixUrl(`${this.pollsEndpoint()}/new`), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -319,7 +319,7 @@ export default {
 				return
 			}
 			try {
-				const response = await fetch(`${this.pollsEndpoint()}/${pollId}`, {
+				const response = await fetch(prefixUrl(`${this.pollsEndpoint()}/${pollId}`), {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})
@@ -468,7 +468,7 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.baseUrl()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []

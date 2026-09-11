@@ -33,7 +33,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import Tag from 'vue-material-design-icons/Tag.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 /**
  * CnTagsCard — compact tags widget rendered by the integration
@@ -105,7 +105,7 @@ export default {
 			this.loading = true
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags`),
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {

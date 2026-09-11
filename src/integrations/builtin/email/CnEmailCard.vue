@@ -65,7 +65,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcLoadingIcon } from '@nextcloud/vue'
 import Email from 'vue-material-design-icons/Email.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * CnEmailCard — compact widget for the `email` integration leaf.
@@ -189,7 +189,7 @@ export default {
 			try {
 				const params = new URLSearchParams({ _limit: String(this.effectiveMax) })
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/email?${params.toString()}`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/email?${params.toString()}`),
 					{ headers: buildHeaders() },
 				)
 				if (response.ok === true) {

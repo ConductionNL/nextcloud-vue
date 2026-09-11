@@ -116,7 +116,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import FileDocumentMultiple from 'vue-material-design-icons/FileDocumentMultiple.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 export default {
 	name: 'CnXwikiPagePicker',
@@ -243,7 +243,7 @@ export default {
 			this.degradedCause = ''
 			try {
 				const query = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : ''
-				const response = await fetch(`${this.apiBase}/integrations/xwiki/available${query}`, {
+				const response = await fetch(prefixUrl(`${this.apiBase}/integrations/xwiki/available${query}`), {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {

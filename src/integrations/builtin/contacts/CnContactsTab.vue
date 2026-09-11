@@ -173,7 +173,7 @@ import Phone from 'vue-material-design-icons/Phone.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnContactPicker from '../../../components/CnContactPicker/CnContactPicker.vue'
 import CnContactCreate from '../../../components/CnContactCreate/CnContactCreate.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * Normalised role keys for grouping. Free-text vCard roles are
@@ -412,7 +412,7 @@ export default {
 			this.loading = true
 			this.error = null
 			try {
-				const response = await fetch(this.baseUrl, { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.baseUrl), { headers: buildHeaders() })
 				if (!response.ok) {
 					this.error = `${response.status} ${response.statusText}`
 					this.contacts = []
@@ -462,7 +462,7 @@ export default {
 			if (!contact?.contactUid) return
 			try {
 				const url = `${this.baseUrl}/${encodeURIComponent(contact.contactUid)}`
-				await fetch(url, { method: 'DELETE', headers: buildHeaders() })
+				await fetch(prefixUrl(url), { method: 'DELETE', headers: buildHeaders() })
 				this.contacts = this.contactsArray.filter((c) => c.id !== contact.id)
 			} catch (err) {
 				console.error('CnContactsTab: Failed to unlink contact', err)
@@ -479,7 +479,7 @@ export default {
 		 */
 		async onPickerLink(payload) {
 			try {
-				const response = await fetch(this.baseUrl, {
+				const response = await fetch(prefixUrl(this.baseUrl), {
 					method: 'POST',
 					headers: {
 						...buildHeaders(),
@@ -509,7 +509,7 @@ export default {
 		async onCreateSubmit(payload) {
 			this.createLoading = true
 			try {
-				const response = await fetch(`${this.baseUrl}/new`, {
+				const response = await fetch(prefixUrl(`${this.baseUrl}/new`), {
 					method: 'POST',
 					headers: {
 						...buildHeaders(),

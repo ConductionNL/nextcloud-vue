@@ -3,12 +3,29 @@
  * Unless the given path already contains `/index.php`.
  *
  * Nextcloud can be hosted with or without index.php in the URL. API calls must
- * use the same prefix as the page, otherwise the request is rejected.
+ * use the same prefix as the page, otherwise the request is rejected. On an
+ * instance WITHOUT pretty URLs (no `htaccess.RewriteBase`, no mod_rewrite) the
+ * bare `/apps/<app>/api/...` form is not routed at all and answers 404 — which
+ * is why every app-relative API path has to pass through here.
+ *
+ * The function is **idempotent** and **inert on anything that is not an
+ * app-relative path**. That matters because this is a wrapper applied at
+ * hundreds of call sites: a value that turns out to be an absolute URL
+ * (`https://…`, `//host/…`), a protocol-ish string, or an already-prefixed
+ * path must come back untouched rather than being mangled into
+ * `/index.phphttps://…`. A path that does not start with `/` is likewise left
+ * alone — it is relative to the current document, and prefixing it would
+ * change what it resolves against.
  *
  * @param {string} path URL path (e.g. '/apps/openregister/api/objects')
  * @return {string} Path with optional /index.php prefix
  */
 export function prefixUrl(path) {
+	if (typeof path !== 'string' || path === '') return path
+	// Absolute URL, protocol-relative URL, or any scheme (data:, blob:, mailto:).
+	if (/^[a-z][a-z0-9+.-]*:/i.test(path) || path.startsWith('//')) return path
+	// Only app-absolute paths are ours to prefix.
+	if (!path.startsWith('/')) return path
 	if (path.startsWith('/index.php')) return path
 	if (typeof window !== 'undefined' && window.location.pathname.includes('/index.php')) {
 		return `/index.php${path}`

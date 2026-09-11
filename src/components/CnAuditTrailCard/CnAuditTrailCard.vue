@@ -43,7 +43,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import History from 'vue-material-design-icons/History.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 /**
  * CnAuditTrailCard — compact audit-trail widget rendered by the
@@ -127,7 +127,7 @@ export default {
 			try {
 				const params = new URLSearchParams({ limit: String(this.maxDisplay) })
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trail?${params.toString()}`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trail?${params.toString()}`),
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {

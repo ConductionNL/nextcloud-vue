@@ -176,7 +176,7 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnXwikiPageCreate from '../../../components/CnXwikiPageCreate/CnXwikiPageCreate.vue'
 import CnXwikiPagePicker from '../../../components/CnXwikiPagePicker/CnXwikiPagePicker.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 const EXCERPT_MAX_CHARS = 140
 
@@ -324,7 +324,7 @@ export default {
 		async onLinkPick(payload) {
 			this.pickerOpen = false
 			try {
-				const response = await fetch(this.xwikiEndpoint(), {
+				const response = await fetch(prefixUrl(this.xwikiEndpoint()), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -341,7 +341,7 @@ export default {
 		async onCreatePick(payload) {
 			this.createOpen = false
 			try {
-				const response = await fetch(`${this.xwikiEndpoint()}/new`, {
+				const response = await fetch(prefixUrl(`${this.xwikiEndpoint()}/new`), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -361,7 +361,7 @@ export default {
 				return
 			}
 			try {
-				const response = await fetch(`${this.xwikiEndpoint()}/${encodeURIComponent(ref)}`, {
+				const response = await fetch(prefixUrl(`${this.xwikiEndpoint()}/${encodeURIComponent(ref)}`), {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})
@@ -489,7 +489,7 @@ export default {
 			this.loading = true
 			this.bannerKind = 'none'
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.baseUrl()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []

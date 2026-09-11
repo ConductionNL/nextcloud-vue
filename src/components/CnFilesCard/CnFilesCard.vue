@@ -54,7 +54,7 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { safeHref } from '../../utils/safeHref.js'
 
 /**
@@ -161,7 +161,7 @@ export default {
 			try {
 				const params = new URLSearchParams({ limit: String(this.maxDisplay), _page: '1' })
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files?${params.toString()}`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files?${params.toString()}`),
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {

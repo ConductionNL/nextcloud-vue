@@ -159,7 +159,7 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 import CnFormCreate from './CnFormCreate.vue'
 import CnFormPicker from './CnFormPicker.vue'
 
@@ -423,7 +423,7 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.baseUrl()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					this.rawRows = this.unwrapList(data)
@@ -468,7 +468,7 @@ export default {
 		async onLinkSelected(payload) {
 			if (!payload || !payload.formId) return
 			try {
-				const response = await fetch(this.baseUrl(), {
+				const response = await fetch(prefixUrl(this.baseUrl()), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -489,7 +489,7 @@ export default {
 			this.creating = true
 			this.createError = ''
 			try {
-				const response = await fetch(`${this.baseUrl()}/new`, {
+				const response = await fetch(prefixUrl(`${this.baseUrl()}/new`), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -517,7 +517,7 @@ export default {
 		async unlink(form) {
 			if (!form?.id) return
 			try {
-				const response = await fetch(`${this.baseUrl()}/${encodeURIComponent(form.id)}`, {
+				const response = await fetch(prefixUrl(`${this.baseUrl()}/${encodeURIComponent(form.id)}`), {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})

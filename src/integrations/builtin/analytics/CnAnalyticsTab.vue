@@ -170,7 +170,7 @@ import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnAnalyticsReportCreate from '../../../components/CnAnalyticsReportCreate/CnAnalyticsReportCreate.vue'
 import CnAnalyticsReportPicker from '../../../components/CnAnalyticsReportPicker/CnAnalyticsReportPicker.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * CnAnalyticsTab — bespoke dataset list for the `analytics` integration.
@@ -439,7 +439,7 @@ export default {
 		async onLinkPick(payload) {
 			this.pickerOpen = false
 			try {
-				const response = await fetch(this.analyticsEndpoint(), {
+				const response = await fetch(prefixUrl(this.analyticsEndpoint()), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -461,7 +461,7 @@ export default {
 		async onCreatePick(payload) {
 			this.createOpen = false
 			try {
-				const response = await fetch(`${this.analyticsEndpoint()}/new`, {
+				const response = await fetch(prefixUrl(`${this.analyticsEndpoint()}/new`), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -484,7 +484,7 @@ export default {
 				return
 			}
 			try {
-				const response = await fetch(`${this.analyticsEndpoint()}/${reportId}`, {
+				const response = await fetch(prefixUrl(`${this.analyticsEndpoint()}/${reportId}`), {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})
@@ -514,7 +514,7 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(this.analyticsEndpoint(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.analyticsEndpoint()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					this.reports = data.results || data.items || (Array.isArray(data) ? data : []) || []

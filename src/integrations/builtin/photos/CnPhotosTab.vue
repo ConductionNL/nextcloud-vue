@@ -150,7 +150,7 @@ import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnPhotoAlbumCreate from '../../../components/CnPhotoAlbumCreate/CnPhotoAlbumCreate.vue'
 import CnPhotoAlbumPicker from '../../../components/CnPhotoAlbumPicker/CnPhotoAlbumPicker.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * CnPhotosTab — bespoke album grid for the `photos` integration.
@@ -319,7 +319,7 @@ export default {
 		async onLinkPick(payload) {
 			this.pickerOpen = false
 			try {
-				const response = await fetch(this.photosEndpoint(), {
+				const response = await fetch(prefixUrl(this.photosEndpoint()), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -341,7 +341,7 @@ export default {
 		async onCreatePick(payload) {
 			this.createOpen = false
 			try {
-				const response = await fetch(`${this.photosEndpoint()}/new`, {
+				const response = await fetch(prefixUrl(`${this.photosEndpoint()}/new`), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -364,7 +364,7 @@ export default {
 				return
 			}
 			try {
-				const response = await fetch(`${this.photosEndpoint()}/${albumId}`, {
+				const response = await fetch(prefixUrl(`${this.photosEndpoint()}/${albumId}`), {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})
@@ -394,7 +394,7 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(this.photosEndpoint(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.photosEndpoint()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					this.albums = data.results || data.items || (Array.isArray(data) ? data : []) || []

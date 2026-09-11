@@ -62,7 +62,7 @@ import { NcButton, NcTextField, NcLoadingIcon } from '@nextcloud/vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Close from 'vue-material-design-icons/Close.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 export default {
 	name: 'CnTagsTab',
@@ -114,7 +114,7 @@ export default {
 			this.loading = true
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags`),
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {
@@ -130,7 +130,7 @@ export default {
 		async fetchAvailableTags() {
 			if (!this.register || !this.schema) return
 			try {
-				const response = await fetch(`${this.apiBase}/tags`, { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(`${this.apiBase}/tags`), { headers: buildHeaders() })
 				if (response.ok) {
 					this.availableTags = await response.json()
 				}
@@ -162,7 +162,7 @@ export default {
 			this.showSuggestions = false
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags`),
 					{
 						method: 'POST',
 						headers: buildHeaders(),
@@ -185,7 +185,7 @@ export default {
 			if (!this.register || !this.schema) return
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags/${encodeURIComponent(tagName)}`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags/${encodeURIComponent(tagName)}`),
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
 				if (response.ok) {
