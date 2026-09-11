@@ -287,7 +287,7 @@ export default {
 		/** Text shown while importing */
 		loadingText: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Importing data — this may take a moment for large files...'),
+			default: () => t('nextcloud-vue', 'Importing data — this may take a moment for large files…'),
 		},
 
 		/** Heading rendered above the per-sheet results table. */

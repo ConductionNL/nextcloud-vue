@@ -75,7 +75,7 @@ describe('real-render smoke sweep', () => {
 
 	it.each(components)('%s mounts and renders clean', async (name, Component) => {
 		const { ok, messages, threw, empty } = await mountOnce(name, Component)
-		const isKnown = Object.prototype.hasOwnProperty.call(known, name)
+		const isKnown = Object.hasOwn(known, name)
 
 		if (empty) {
 			renderedEmpty.push(name)

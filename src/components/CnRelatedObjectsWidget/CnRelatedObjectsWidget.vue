@@ -205,7 +205,7 @@
 				</NcButton>
 				<NcActions v-else
 					:menuName="t('nextcloud-vue', 'Add')"
-					type="secondary"
+					variant="secondary"
 					:forceMenu="true">
 					<template #icon>
 						<Plus :size="20" />
@@ -787,7 +787,7 @@ export default {
 
 		/** Placeholder shown in the body while the first fetch is in flight. */
 		loadingLabel() {
-			return t('nextcloud-vue', 'Loading …')
+			return t('nextcloud-vue', 'Loading …')
 		},
 
 		/** The currently active group, defaulting to the first visible one. */

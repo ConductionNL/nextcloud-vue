@@ -769,7 +769,7 @@ export default {
 			if (!type) {
 				return null
 			}
-			if (Object.prototype.hasOwnProperty.call(BUILTIN_SETTINGS_WIDGETS, type)) {
+			if (Object.hasOwn(BUILTIN_SETTINGS_WIDGETS, type)) {
 				const builtin = BUILTIN_SETTINGS_WIDGETS[type]
 				if (builtin === COMPONENT_DISCRIMINATOR) {
 					// REQ-MSO-6: discriminator — look up `componentName`.

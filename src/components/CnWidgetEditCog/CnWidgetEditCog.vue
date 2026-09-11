@@ -8,7 +8,7 @@
 		:aria-label="menuLabel"
 		:forceMenu="true"
 		placement="bottom-end"
-		type="tertiary"
+		variant="tertiary"
 		class="cn-widget-edit-cog"
 		data-testid="cn-widget-edit-cog"
 		@click.stop>

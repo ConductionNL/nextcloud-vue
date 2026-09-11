@@ -255,7 +255,7 @@ export default {
 				if (!filterKey(key)) {
 					continue
 				}
-				if (!Object.prototype.hasOwnProperty.call(obj, key)) {
+				if (!Object.hasOwn(obj, key)) {
 					missing.push([key, this.defaultForProperty(prop)])
 				}
 			}
@@ -513,7 +513,7 @@ export default {
 
 		getPropertyValidationState(key, value) {
 			const prop = this.schema?.properties?.[key]
-			const existsInObject = this.item ? Object.prototype.hasOwnProperty.call(this.item, key) : false
+			const existsInObject = this.item ? Object.hasOwn(this.item, key) : false
 			if (!prop) {
 				return 'warning'
 			}

@@ -168,7 +168,7 @@ describe('CnIndexPage — self-fetch mode: @workspace.<key> filter tokens', () =
 		await new Promise((resolve) => setTimeout(resolve))
 		expect(mockStore.fetchCollection).toHaveBeenCalled()
 		const params = mockStore.fetchCollection.mock.calls[0][1] || {}
-		expect(Object.prototype.hasOwnProperty.call(params, 'administrationId')).toBe(false)
+		expect(Object.hasOwn(params, 'administrationId')).toBe(false)
 	})
 
 	it('DROPS the token when cnWorkspaceContext is provided but the key is unset', async () => {
@@ -180,7 +180,7 @@ describe('CnIndexPage — self-fetch mode: @workspace.<key> filter tokens', () =
 		)
 		await new Promise((resolve) => setTimeout(resolve))
 		const params = mockStore.fetchCollection.mock.calls[0][1] || {}
-		expect(Object.prototype.hasOwnProperty.call(params, 'administrationId')).toBe(false)
+		expect(Object.hasOwn(params, 'administrationId')).toBe(false)
 	})
 
 	it('re-fetches reactively when the workspace ctx changes — no reload required', async () => {
@@ -193,7 +193,7 @@ describe('CnIndexPage — self-fetch mode: @workspace.<key> filter tokens', () =
 		await new Promise((resolve) => setTimeout(resolve))
 		expect(mockStore.fetchCollection).toHaveBeenCalledTimes(1)
 		let params = mockStore.fetchCollection.mock.calls[0][1] || {}
-		expect(Object.prototype.hasOwnProperty.call(params, 'administrationId')).toBe(false)
+		expect(Object.hasOwn(params, 'administrationId')).toBe(false)
 
 		// The administration switcher writes into the SAME ref (see hrmq's
 		// App.vue / AdministrationSwitcher.vue) — mutate it here the same way.

@@ -58,7 +58,7 @@
 					<NcButton
 						v-else
 						:key="page"
-						:type="page === currentPage ? 'primary' : 'secondary'"
+						:variant="page === currentPage ? 'primary' : 'secondary'"
 						:disabled="page === currentPage"
 						@click="changePage(page)">
 						{{ page }}

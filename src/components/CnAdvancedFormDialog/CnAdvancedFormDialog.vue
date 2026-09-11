@@ -407,7 +407,7 @@ export default {
 				if (!filterKey(key)) {
 					continue
 				}
-				if (!Object.prototype.hasOwnProperty.call(obj, key)) {
+				if (!Object.hasOwn(obj, key)) {
 					let def
 					switch (prop.type) {
 						case 'string': def = prop.const ?? ''; break

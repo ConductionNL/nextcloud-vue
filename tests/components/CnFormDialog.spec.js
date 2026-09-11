@@ -805,8 +805,8 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 			expect(wrapper.vm.formData.arguments).toEqual({ a: 1 })
 			wrapper.vm.updateField('jobClass', 'PingAction')
 			await wrapper.vm.$nextTick()
-			expect(Object.prototype.hasOwnProperty.call(wrapper.vm.formData, 'arguments')).toBe(false)
-			expect(Object.prototype.hasOwnProperty.call(wrapper.vm.formData, 'syncId')).toBe(false)
+			expect(Object.hasOwn(wrapper.vm.formData, 'arguments')).toBe(false)
+			expect(Object.hasOwn(wrapper.vm.formData, 'syncId')).toBe(false)
 		})
 
 		it('skips hidden required fields in requiredFieldsFilled', () => {

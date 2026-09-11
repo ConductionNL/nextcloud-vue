@@ -212,5 +212,5 @@ export function hasRegistryIcon(name) {
 	if (name.startsWith('icon-')) {
 		return false
 	}
-	return Object.prototype.hasOwnProperty.call(DASHBOARD_ICONS, name)
+	return Object.hasOwn(DASHBOARD_ICONS, name)
 }

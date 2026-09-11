@@ -89,7 +89,7 @@
 						size="small"
 						class="cn-polls-tab__status" />
 					<NcButton
-						type="tertiary-no-background"
+						variant="tertiary-no-background"
 						:aria-label="t('nextcloud-vue', 'Unlink poll')"
 						class="cn-polls-tab__unlink"
 						@click="unlinkPoll(poll)">

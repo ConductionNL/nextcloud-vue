@@ -3226,7 +3226,7 @@ export default {
 				return
 			}
 			const own = (entry.props && typeof entry.props === 'object') ? entry.props : {}
-			if (Object.prototype.hasOwnProperty.call(own, 'selectedIds')) {
+			if (Object.hasOwn(own, 'selectedIds')) {
 				// eslint-disable-next-line no-console
 				console.warn(`CnIndexPage: bulkActions[].id "${entry.id}" declares its own "selectedIds" prop, which shadows the live selection; the modal will not see what the user selected.`)
 			}
@@ -3727,7 +3727,7 @@ export default {
 			if (!obj || !path) {
 				return undefined
 			}
-			if (Object.prototype.hasOwnProperty.call(obj, path)) {
+			if (Object.hasOwn(obj, path)) {
 				return obj[path]
 			}
 			return path.split('.').reduce((acc, seg) => (acc == null ? undefined : acc[seg]), obj)

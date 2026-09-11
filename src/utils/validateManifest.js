@@ -2039,13 +2039,13 @@ function validateMenuItemVisibleIf(visibleIf, path, errors) {
 		const predicate = visibleIf[key]
 		if (predicate !== null && typeof predicate === 'object') {
 			if (
-				Object.prototype.hasOwnProperty.call(predicate, 'in')
+				Object.hasOwn(predicate, 'in')
 				&& !Array.isArray(predicate.in)
 			) {
 				errors.push(`${path}/${key}/in: "in" operator value must be an array`)
 			}
 			if (
-				Object.prototype.hasOwnProperty.call(predicate, 'notIn')
+				Object.hasOwn(predicate, 'notIn')
 				&& !Array.isArray(predicate.notIn)
 			) {
 				errors.push(`${path}/${key}/notIn: "notIn" operator value must be an array`)

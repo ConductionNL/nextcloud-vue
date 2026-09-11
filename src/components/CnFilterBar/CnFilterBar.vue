@@ -119,7 +119,7 @@ export default {
 		/** Search input placeholder text */
 		searchPlaceholder: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Search...'),
+			default: () => t('nextcloud-vue', 'Search…'),
 		},
 
 		/** Whether to show the "Clear all" button */

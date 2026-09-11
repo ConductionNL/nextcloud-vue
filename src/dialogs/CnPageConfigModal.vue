@@ -31,7 +31,7 @@
 			<div class="cn-page-config__tabs">
 				<NcButton v-for="tab in tabs"
 					:key="tab.id"
-					:type="activeTab === tab.id ? 'primary' : 'tertiary'"
+					:variant="activeTab === tab.id ? 'primary' : 'tertiary'"
 					@click="activeTab = tab.id">
 					{{ tab.label }}
 				</NcButton>
@@ -296,7 +296,7 @@
 							placeholder="https://…"
 							@update:modelValue="(v) => setConfig('documentationUrl', v)" />
 						<p class="cn-field__hint">
-							{{ t('nextcloud-vue', 'Adds a documentation link to the … menu.') }}
+							{{ t('nextcloud-vue', 'Adds a documentation link to the … menu.') }}
 						</p>
 					</div>
 					<div class="cn-field">
@@ -517,7 +517,7 @@
 						placeholder="1"
 						@update:modelValue="(v) => setNumber('inlineActionCount', v)" />
 					<p class="cn-field__hint">
-						{{ t('nextcloud-vue', 'How many row actions show as buttons before the rest collapse into a … menu.') }}
+						{{ t('nextcloud-vue', 'How many row actions show as buttons before the rest collapse into a … menu.') }}
 					</p>
 				</div>
 			</div>
@@ -646,9 +646,9 @@ const JSON_FIELDS = [
 	{ key: 'filter', label: 'Base filter', placeholder: '{ "status": "active" }', hint: 'A filter always applied to the query (visitors cannot remove it).' },
 	{ key: 'includeFields', label: 'Form fields — include', placeholder: '["title", "status"]', hint: 'Whitelist of properties shown in the create/edit form.' },
 	{ key: 'excludeFields', label: 'Form fields — exclude', placeholder: '["createdAt"]', hint: 'Properties hidden from the create/edit form.' },
-	{ key: 'fieldOverrides', label: 'Form field overrides', placeholder: '{ "status": { "label": "State" } }', hint: 'Per-field tweaks (label, widget, …) keyed by property name.' },
+	{ key: 'fieldOverrides', label: 'Form field overrides', placeholder: '{ "status": { "label": "State" } }', hint: 'Per-field tweaks (label, widget, …) keyed by property name.' },
 	{ key: 'exportFormats', label: 'Export formats', placeholder: '["csv", "json"]', hint: 'File formats offered in the export dialog.' },
-	{ key: 'importOptions', label: 'Import options', placeholder: '{ "formats": ["csv"] }', hint: 'Configuration for the import dialog (accepted formats, …).' },
+	{ key: 'importOptions', label: 'Import options', placeholder: '{ "formats": ["csv"] }', hint: 'Configuration for the import dialog (accepted formats, …).' },
 ]
 
 /**
@@ -1027,7 +1027,7 @@ export default {
 		 */
 		boolVal(key) {
 			const cfg = (this.page && this.page.config) || {}
-			if (Object.prototype.hasOwnProperty.call(cfg, key)) {
+			if (Object.hasOwn(cfg, key)) {
 				return !!cfg[key]
 			}
 			return BOOL_DEFAULTS[key] === true

@@ -203,7 +203,7 @@ describe('packaging — the tarball is not the source tree', () => {
 		expect(hasEntry('package/package.json')).toBe(true)
 	})
 
-	it('CONTROL: …and no to one that certainly is not', () => {
+	it('CONTROL: …and no to one that certainly is not', () => {
 		// A matcher that answers "yes" to everything would sail through every
 		// assertion below and re-ship the exact bug this file guards.
 		expect(hasEntry('package/eslint/this-file-does-not-exist.js')).toBe(false)
@@ -365,7 +365,7 @@ describe('packaging — no CommonJS require() survives in dist/esm', () => {
 		expect(requireCallsIn('const y = require ("b")')).toHaveLength(1)
 	})
 
-	it('CONTROL: …and reports none for a module that has no such call', () => {
+	it('CONTROL: …and reports none for a module that has no such call', () => {
 		// A detector that answered "yes" to everything would fail the sweep for
 		// the wrong reason; one that answered "no" to everything would pass it
 		// for the wrong reason. Both are covered.

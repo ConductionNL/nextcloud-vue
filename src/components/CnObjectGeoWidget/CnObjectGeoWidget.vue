@@ -267,7 +267,7 @@ export default {
 		basemap: {
 			type: String,
 			default: 'standard',
-			validator: (v) => Object.prototype.hasOwnProperty.call(BASEMAPS, v),
+			validator: (v) => Object.hasOwn(BASEMAPS, v),
 		},
 
 		/** Offer a base-map switcher so users can change the background themselves. */

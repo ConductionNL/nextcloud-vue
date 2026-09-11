@@ -197,7 +197,7 @@
 					<NcButton
 						:aria-label="cnTranslate('Close')"
 						:title="cnTranslate('Close')"
-						type="tertiary"
+						variant="tertiary"
 						data-testid="cn-ai-panel-close"
 						@click="onClose">
 						<template #icon>
@@ -260,14 +260,14 @@
 						</p>
 						<div class="cn-ai-approval__actions">
 							<NcButton
-								type="primary"
+								variant="primary"
 								:disabled="resolvingApprovalId === approval.id"
 								:data-testid="'cn-ai-approval-allow-' + approval.id"
 								@click="onApprovalDecision(approval, 'granted')">
 								{{ cnTranslate('Allow') }}
 							</NcButton>
 							<NcButton
-								type="tertiary"
+								variant="tertiary"
 								:disabled="resolvingApprovalId === approval.id"
 								:data-testid="'cn-ai-approval-deny-' + approval.id"
 								@click="onApprovalDecision(approval, 'refused')">

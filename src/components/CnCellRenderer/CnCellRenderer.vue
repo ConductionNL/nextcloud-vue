@@ -438,7 +438,7 @@ export default {
 			const map = wp.routeMap
 			if (typeof wp.routeField === 'string' && wp.routeField !== '' && map && typeof map === 'object') {
 				const key = this.row ? this.row[wp.routeField] : undefined
-				if (key !== undefined && key !== null && Object.prototype.hasOwnProperty.call(map, String(key))) {
+				if (key !== undefined && key !== null && Object.hasOwn(map, String(key))) {
 					const mapped = map[String(key)]
 					if (typeof mapped === 'string' && mapped !== '') {
 						return mapped

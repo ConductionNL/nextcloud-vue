@@ -48,7 +48,7 @@
 							<NcPopover v-if="filter.description" popupRole="dialog">
 								<template #trigger>
 									<NcButton
-										type="tertiary-no-background"
+										variant="tertiary-no-background"
 										:aria-label="filter.label + ' info'"
 										class="cn-index-sidebar__info-btn">
 										<template #icon>
@@ -286,7 +286,7 @@ export default {
 		/** Search input placeholder */
 		searchPlaceholder: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Type to search...'),
+			default: () => t('nextcloud-vue', 'Type to search…'),
 		},
 
 		/** Search tab label */

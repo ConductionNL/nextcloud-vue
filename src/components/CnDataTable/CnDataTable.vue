@@ -480,7 +480,7 @@ export default {
 		/** Text shown while loading */
 		loadingText: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Loading...'),
+			default: () => t('nextcloud-vue', 'Loading…'),
 		},
 
 		/**

@@ -1828,7 +1828,7 @@ export default {
 			const props = (this.currentSchema && this.currentSchema.properties) || {}
 			const out = {}
 			for (const [k, v] of Object.entries(q)) {
-				if (Object.prototype.hasOwnProperty.call(props, k)) {
+				if (Object.hasOwn(props, k)) {
 					out[k] = v
 				}
 			}

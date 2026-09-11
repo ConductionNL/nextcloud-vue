@@ -1255,15 +1255,15 @@ export default {
 			}
 			const newKeys = new Set(newFields.map((f) => f.key))
 			for (const oldField of oldFields) {
-				if (!newKeys.has(oldField.key) && Object.prototype.hasOwnProperty.call(this.formData, oldField.key)) {
+				if (!newKeys.has(oldField.key) && Object.hasOwn(this.formData, oldField.key)) {
 					delete this.formData[oldField.key]
-					if (Object.prototype.hasOwnProperty.call(this.errors, oldField.key)) {
+					if (Object.hasOwn(this.errors, oldField.key)) {
 						delete this.errors[oldField.key]
 					}
-					if (Object.prototype.hasOwnProperty.call(this.jsonErrors, oldField.key)) {
+					if (Object.hasOwn(this.jsonErrors, oldField.key)) {
 						delete this.jsonErrors[oldField.key]
 					}
-					if (Object.prototype.hasOwnProperty.call(this.jsonDrafts, oldField.key)) {
+					if (Object.hasOwn(this.jsonDrafts, oldField.key)) {
 						delete this.jsonDrafts[oldField.key]
 					}
 				}

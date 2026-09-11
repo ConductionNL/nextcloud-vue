@@ -457,7 +457,7 @@ export default {
 		 * @return {boolean}
 		 */
 		isPending(card) {
-			return Object.prototype.hasOwnProperty.call(this.pendingMoves, this.cardKey(card))
+			return Object.hasOwn(this.pendingMoves, this.cardKey(card))
 		},
 
 		/**

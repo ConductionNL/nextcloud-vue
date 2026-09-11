@@ -169,7 +169,7 @@ function deepEqual(a, b) {
 	if (aKeys.length !== bKeys.length) {
 		return false
 	}
-	return aKeys.every((k) => Object.prototype.hasOwnProperty.call(b, k) && deepEqual(a[k], b[k]))
+	return aKeys.every((k) => Object.hasOwn(b, k) && deepEqual(a[k], b[k]))
 }
 
 function clone(value) {

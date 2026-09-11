@@ -40,10 +40,10 @@ function renameDataSourceKeys(page) {
 			return w
 		}
 
-		const hasBareSource = Object.prototype.hasOwnProperty.call(w, 'source')
+		const hasBareSource = Object.hasOwn(w, 'source')
 		const hasContentSource = w.content && typeof w.content === 'object'
 			&& !Array.isArray(w.content)
-			&& Object.prototype.hasOwnProperty.call(w.content, 'source')
+			&& Object.hasOwn(w.content, 'source')
 
 		if (!hasBareSource && !hasContentSource) {
 			return w

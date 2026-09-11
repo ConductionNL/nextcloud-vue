@@ -37,7 +37,7 @@
 				<slot name="actions" />
 				<NcButton
 					v-if="allowEdit"
-					:type="isEditing ? 'primary' : 'secondary'"
+					:variant="isEditing ? 'primary' : 'secondary'"
 					@click="toggleEdit">
 					<template #icon>
 						<Pencil v-if="!isEditing" :size="20" />

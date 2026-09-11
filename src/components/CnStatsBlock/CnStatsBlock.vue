@@ -180,7 +180,7 @@ export default {
 		/** Text shown while loading */
 		loadingLabel: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Loading...'),
+			default: () => t('nextcloud-vue', 'Loading…'),
 		},
 
 		/** Text shown when count is 0 */

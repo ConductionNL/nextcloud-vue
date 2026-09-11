@@ -231,7 +231,7 @@ export function interpolateTokens(input, context) {
 		return input
 	}
 	return input.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (m, key) => {
-		if (context && Object.prototype.hasOwnProperty.call(context, key) && context[key] != null) {
+		if (context && Object.hasOwn(context, key) && context[key] != null) {
 			return String(context[key])
 		}
 		return m

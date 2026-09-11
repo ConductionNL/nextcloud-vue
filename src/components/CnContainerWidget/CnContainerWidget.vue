@@ -135,7 +135,7 @@ export default {
 		 */
 		paddingToken() {
 			const value = this.content?.padding
-			if (typeof value === 'string' && Object.prototype.hasOwnProperty.call(PADDING_TOKENS, value)) {
+			if (typeof value === 'string' && Object.hasOwn(PADDING_TOKENS, value)) {
 				return value
 			}
 			return 'medium'

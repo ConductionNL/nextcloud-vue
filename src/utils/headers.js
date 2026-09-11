@@ -60,7 +60,7 @@ export function buildHeaders(opts = 'application/json') {
 		contentType = null
 	} else if (opts && typeof opts === 'object') {
 		// Options-object signature
-		if (Object.prototype.hasOwnProperty.call(opts, 'contentType')) {
+		if (Object.hasOwn(opts, 'contentType')) {
 			contentType = opts.contentType
 		}
 		if (typeof opts.organisationUuid === 'string' && opts.organisationUuid.length > 0) {

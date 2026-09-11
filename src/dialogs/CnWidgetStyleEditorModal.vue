@@ -102,7 +102,7 @@
 		<template #actions>
 			<NcButton
 				v-if="deletable"
-				type="error"
+				variant="error"
 				data-testid="cn-widget-style-delete"
 				@click="onDelete">
 				{{ t('nextcloud-vue', 'Delete') }}

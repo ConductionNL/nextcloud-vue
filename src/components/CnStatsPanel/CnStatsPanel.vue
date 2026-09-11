@@ -252,7 +252,7 @@ export default {
 		/** Label shown during loading state */
 		loadingLabel: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Loading...'),
+			default: () => t('nextcloud-vue', 'Loading…'),
 		},
 
 		/** Default text shown when a section has no items. Can be overridden per section via `section.emptyLabel`. */

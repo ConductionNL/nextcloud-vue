@@ -237,12 +237,12 @@
 						<div
 							v-if="field.widget !== 'checkbox'"
 							class="cn-object-data-widget__editor-actions">
-							<NcButton type="tertiary-no-background" @click="commitEdit">
+							<NcButton variant="tertiary-no-background" @click="commitEdit">
 								<template #icon>
 									<Check :size="20" />
 								</template>
 							</NcButton>
-							<NcButton type="tertiary-no-background" @click="cancelEdit">
+							<NcButton variant="tertiary-no-background" @click="cancelEdit">
 								<template #icon>
 									<Close :size="20" />
 								</template>

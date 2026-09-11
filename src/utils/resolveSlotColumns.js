@@ -36,7 +36,7 @@ export function defaultSlotColumns(slotName) {
 	if (!slotName) {
 		return 12
 	}
-	if (Object.prototype.hasOwnProperty.call(SLOT_COLUMNS_DEFAULTS, slotName)) {
+	if (Object.hasOwn(SLOT_COLUMNS_DEFAULTS, slotName)) {
 		return SLOT_COLUMNS_DEFAULTS[slotName]
 	}
 	if (/^tab:/.test(slotName) || /^section:/.test(slotName)) {

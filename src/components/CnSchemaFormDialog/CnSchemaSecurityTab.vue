@@ -13,7 +13,7 @@
 
 		<div v-if="loadingGroups" class="cn-schema-form__loading-groups">
 			<NcLoadingIcon :size="20" />
-			<span>{{ t('nextcloud-vue', 'Loading user groups...') }}</span>
+			<span>{{ t('nextcloud-vue', 'Loading user groups…') }}</span>
 		</div>
 
 		<div v-else class="cn-schema-form__rbac-table-container">

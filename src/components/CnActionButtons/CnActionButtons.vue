@@ -20,7 +20,7 @@
 				<NcButton
 					v-if="entry.type === 'toggle'"
 					:key="entry.id"
-					:type="toggleState[entry.id] ? 'primary' : 'secondary'"
+					:variant="toggleState[entry.id] ? 'primary' : 'secondary'"
 					:disabled="Boolean(togglePending[entry.id])"
 					:data-testid="`cn-action-toggle-${entry.id}`"
 					:aria-pressed="String(Boolean(toggleState[entry.id]))"

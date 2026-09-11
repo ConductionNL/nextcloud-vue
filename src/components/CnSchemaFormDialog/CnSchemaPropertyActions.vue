@@ -480,7 +480,7 @@
 				:options="getAvailableGroupsForProperty()"
 				:inputLabel="t('nextcloud-vue', 'Group')"
 				:label="t('nextcloud-vue', 'Add group permission')"
-				:placeholder="t('nextcloud-vue', 'Select group...')" />
+				:placeholder="t('nextcloud-vue', 'Select group…')" />
 
 			<template v-if="propertyNewPermissionGroup">
 				<NcActionCaption :name="t('nextcloud-vue', 'Select permissions:')" />
@@ -516,7 +516,7 @@
 			</template>
 		</template>
 		<template v-else>
-			<NcActionCaption :name="t('nextcloud-vue', 'Loading groups...')" />
+			<NcActionCaption :name="t('nextcloud-vue', 'Loading groups…')" />
 		</template>
 	</NcActions>
 </template>

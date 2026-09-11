@@ -50,7 +50,7 @@
 				</div>
 				<NcButton
 					v-if="allowUnlink"
-					type="tertiary-no-background"
+					variant="tertiary-no-background"
 					:aria-label="unlinkLabel"
 					:disabled="unlinkingKey === rowKey(row)"
 					@click="unlink(row)">

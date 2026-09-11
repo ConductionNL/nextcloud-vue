@@ -146,7 +146,7 @@ export function extractViewState(view) {
 		return state
 	}
 	// Full view object (has a `query` key) or a raw query blob itself.
-	const query = (Object.prototype.hasOwnProperty.call(view, 'query')) ? view.query : view
+	const query = (Object.hasOwn(view, 'query')) ? view.query : view
 	if (!query || typeof query !== 'object' || Array.isArray(query)) {
 		return state
 	}

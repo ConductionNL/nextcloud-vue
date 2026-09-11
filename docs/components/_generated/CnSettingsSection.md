@@ -9,7 +9,7 @@
 | `detailedDescription` | `string`  |          | `''`                                               | Detailed description shown in a separate block below the title                                |
 | `docUrl`              | `string`  |          | `''`                                               | Documentation URL (shows info icon next to title)                                             |
 | `loading`             | `boolean` |          | `false`                                            | Whether the section is in a loading state                                                     |
-| `loadingMessage`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'Loading...')`        | Message shown during loading                                                                  |
+| `loadingMessage`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'Loading…')`          | Message shown during loading                                                                  |
 | `error`               | `boolean` |          | `false`                                            | Whether the section is in an error state                                                      |
 | `errorMessage`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'An error occurred')` | Message shown when in error state                                                             |
 | `onRetry`             | `func`    |          | `null`                                             | Callback function for retry button (shown in error state). If null, no retry button is shown. |

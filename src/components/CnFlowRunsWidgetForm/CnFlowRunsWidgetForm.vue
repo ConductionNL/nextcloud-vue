@@ -15,24 +15,24 @@
 		<div class="cn-flow-runs-form__row2">
 			<NcTextField
 				type="number"
-				:value="String(limit)"
+				:model-value="String(limit)"
 				:label="t('nextcloud-vue', 'Rows to show')"
 				@update:value="updateField('limit', Number($event))" />
 			<NcTextField
 				type="number"
-				:value="String(pollSeconds)"
+				:model-value="String(pollSeconds)"
 				:label="t('nextcloud-vue', 'Refresh every (seconds, 0 = off)')"
 				@update:value="updateField('pollSeconds', Number($event))" />
 		</div>
 
 		<NcTextField
-			:value="rowRoute"
+			:model-value="rowRoute"
 			:label="t('nextcloud-vue', 'Open route on row click (optional)')"
 			placeholder="GraphDetail"
 			@update:value="updateField('rowRoute', $event)" />
 
 		<NcTextField
-			:value="runRoute"
+			:model-value="runRoute"
 			:label="t('nextcloud-vue', 'Open route on run click (optional, receives the run id)')"
 			placeholder="RunDetail"
 			@update:value="updateField('runRoute', $event)" />
@@ -41,13 +41,13 @@
 		     @objectId binds the current object, so a manifest never hardcodes
 		     a uuid. Empty keeps the org-wide dashboard behaviour. -->
 		<NcTextField
-			:value="subject"
+			:model-value="subject"
 			:label="t('nextcloud-vue', 'Subject object (uuid or @objectId, optional)')"
 			placeholder="@objectId"
 			@update:value="updateField('subject', $event)" />
 
 		<NcTextField
-			:value="emptyText"
+			:model-value="emptyText"
 			:label="t('nextcloud-vue', 'Text when nothing is running')"
 			placeholder="No flows are running"
 			@update:value="updateField('emptyText', $event)" />

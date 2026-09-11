@@ -1876,7 +1876,7 @@ export default {
 				const order = []
 				const acc = {}
 				labels.forEach((lab, i) => {
-					if (!Object.prototype.hasOwnProperty.call(acc, lab)) {
+					if (!Object.hasOwn(acc, lab)) {
 						acc[lab] = { value: 0, key: rawKeys[i] }
 						order.push(lab)
 					}

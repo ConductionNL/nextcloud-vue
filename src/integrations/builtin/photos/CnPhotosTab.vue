@@ -115,7 +115,7 @@
 					</div>
 				</a>
 				<NcButton
-					type="tertiary-no-background"
+					variant="tertiary-no-background"
 					:aria-label="t('nextcloud-vue', 'Unlink album')"
 					class="cn-photos-tab__unlink"
 					@click="unlinkAlbum(album)">

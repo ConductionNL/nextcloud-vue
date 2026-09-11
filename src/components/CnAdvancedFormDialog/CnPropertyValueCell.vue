@@ -81,7 +81,7 @@
 						@click.stop="openObjectArrayItem(idx)">
 						<span class="cn-advanced-form-dialog__object-array-chip-label">{{ objectArrayItemLabel(item, idx) }}</span>
 						<NcButton
-							type="tertiary-no-background"
+							variant="tertiary-no-background"
 							:aria-label="t('nextcloud-vue', 'Remove item')"
 							:title="t('nextcloud-vue', 'Remove item')"
 							class="cn-advanced-form-dialog__object-array-chip-remove"

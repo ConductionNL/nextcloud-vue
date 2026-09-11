@@ -66,7 +66,7 @@ export function registerDashboardWidget(type, entry) {
 	if (typeof type !== 'string' || type === '') {
 		return
 	}
-	const isOverride = Object.prototype.hasOwnProperty.call(dashboardWidgetRegistry, type)
+	const isOverride = Object.hasOwn(dashboardWidgetRegistry, type)
 	if (isOverride && typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
 		// eslint-disable-next-line no-console
 		console.warn(`[dashboardWidgetRegistry] widget type "${type}" is already registered — overriding the previous entry (last-registration-wins).`)

@@ -58,7 +58,7 @@
 					<NcLoadingIcon
 						v-if="loading"
 						:size="20"
-						:name="t('nextcloud-vue', 'Loading …')" />
+						:name="t('nextcloud-vue', 'Loading …')" />
 				</template>
 				{{ confirmLabel }}
 			</NcButton>

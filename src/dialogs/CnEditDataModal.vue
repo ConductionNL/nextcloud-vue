@@ -38,7 +38,7 @@
 					<NcButton variant="tertiary" :disabled="busy" @click="cancelCascade">
 						{{ t('nextcloud-vue', 'Cancel') }}
 					</NcButton>
-					<NcButton type="error" :disabled="busy" @click="confirmCascade">
+					<NcButton variant="error" :disabled="busy" @click="confirmCascade">
 						{{ cascadeConfirmLabel }}
 					</NcButton>
 				</div>
@@ -66,7 +66,7 @@
 					<NcButton variant="tertiary" :disabled="busy" @click="cancelBreaking">
 						{{ t('nextcloud-vue', 'Back to editing') }}
 					</NcButton>
-					<NcButton type="warning" :disabled="busy" @click="confirmBreaking">
+					<NcButton variant="warning" :disabled="busy" @click="confirmBreaking">
 						{{ t('nextcloud-vue', 'Save anyway') }}
 					</NcButton>
 				</div>

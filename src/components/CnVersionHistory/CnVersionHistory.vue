@@ -149,8 +149,8 @@ import { buildHeaders } from '../../utils/index.js'
  * @return {FieldDiffRow} The classified row.
  */
 function classifyField(key, oldState, newState) {
-	const oldMissing = Object.prototype.hasOwnProperty.call(oldState, key) === false
-	const newMissing = Object.prototype.hasOwnProperty.call(newState, key) === false
+	const oldMissing = Object.hasOwn(oldState, key) === false
+	const newMissing = Object.hasOwn(newState, key) === false
 	const oldValue = oldState[key]
 	const newValue = newState[key]
 

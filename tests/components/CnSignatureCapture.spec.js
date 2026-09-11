@@ -56,9 +56,9 @@ describe('CnSignatureCapture', () => {
 	})
 
 	it('renders the affirmation checkbox when affirmation prop is set', () => {
-		const wrapper = mount(CnSignatureCapture, { propsData: { affirmation: 'I declare …' } })
+		const wrapper = mount(CnSignatureCapture, { propsData: { affirmation: 'I declare …' } })
 		expect(wrapper.findAll('input[type="checkbox"]').length).toBe(1)
-		expect(wrapper.text()).toContain('I declare …')
+		expect(wrapper.text()).toContain('I declare …')
 	})
 
 	it('hides the affirmation checkbox when prop is empty', () => {

@@ -15,7 +15,7 @@
 			<span class="cn-flow-index__count">
 				{{ n('nextcloud-vue', 'Showing %n flow', 'Showing %n flows', store.flows.length) }}
 			</span>
-			<NcButton type="primary" @click="$emit('create')">
+			<NcButton variant="primary" @click="$emit('create')">
 				{{ t('nextcloud-vue', 'New flow') }}
 			</NcButton>
 		</div>

@@ -3232,7 +3232,7 @@ export default {
 
 				const requiredFields = REGISTRY_KIND_REQUIRED_FIELDS[kind]
 				for (const field of requiredFields) {
-					if (!Object.prototype.hasOwnProperty.call(entry, field)) {
+					if (!Object.hasOwn(entry, field)) {
 						// eslint-disable-next-line no-console
 						console.warn(`[CnAppRoot] Registry entry "${key}" (kind: "${kind}") is missing required metadata field "${field}".`)
 					}

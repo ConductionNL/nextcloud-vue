@@ -62,7 +62,7 @@
 					</p>
 					<NcButton
 						v-if="canDeleteNote(note)"
-						type="tertiary-no-background"
+						variant="tertiary-no-background"
 						class="cn-notes-card__delete-btn"
 						:aria-label="deleteLabel"
 						@click="confirmDelete(note)">
@@ -191,7 +191,7 @@ export default {
 		/** Label for the submit button that creates a new note. */
 		addNoteLabel: { type: String, default: () => t('nextcloud-vue', 'Add note') },
 		/** Placeholder shown inside the new-note textarea before any input. */
-		addNotePlaceholder: { type: String, default: () => t('nextcloud-vue', 'Write a note...') },
+		addNotePlaceholder: { type: String, default: () => t('nextcloud-vue', 'Write a note…') },
 		/** Empty-state text shown when the object has zero notes. */
 		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
 		/** Label for the "Show all" button rendered when the note list is truncated. */

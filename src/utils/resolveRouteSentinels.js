@@ -89,7 +89,7 @@ export function resolveRouteSentinels(value, params, pageId = '<unknown>') {
 			return value
 		}
 		const param = match[1]
-		if (Object.prototype.hasOwnProperty.call(safeParams, param)) {
+		if (Object.hasOwn(safeParams, param)) {
 			return safeParams[param]
 		}
 		const dedupKey = `${pageId}::${value}`

@@ -185,7 +185,7 @@ export default {
 		/** Resolved icon-size key (default `medium`). */
 		iconSize() {
 			const declared = this.content?.iconSize
-			return Object.prototype.hasOwnProperty.call(SIZE_PX, declared) ? declared : 'medium'
+			return Object.hasOwn(SIZE_PX, declared) ? declared : 'medium'
 		},
 
 		/** The pixel size for the active icon-size key. */
@@ -196,7 +196,7 @@ export default {
 		/** Resolved icon-shape key (default `rounded`). */
 		iconShape() {
 			const declared = this.content?.iconShape
-			return Object.prototype.hasOwnProperty.call(SHAPE_RADIUS, declared) ? declared : 'rounded'
+			return Object.hasOwn(SHAPE_RADIUS, declared) ? declared : 'rounded'
 		},
 
 		/** The CSS border-radius for the active shape. */

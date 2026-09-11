@@ -151,7 +151,7 @@ export default {
 		/** Message shown during loading */
 		loadingMessage: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Loading...'),
+			default: () => t('nextcloud-vue', 'Loading…'),
 		},
 
 		/** Whether the section is in an error state */

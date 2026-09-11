@@ -54,7 +54,7 @@
 			     told no, and pressing it on a snapshot would have written the
 			     snapshot over the live flow. The store refuses the snapshot case
 			     outright; this is the half that says so before the click. -->
-			<NcButton type="primary"
+			<NcButton variant="primary"
 				:disabled="store.saving || !store.flow.name || store.graphLocked"
 				:title="saveDisabledReason"
 				data-testid="flow-save-button"
@@ -74,7 +74,7 @@
 				</template>
 				{{ t('nextcloud-vue', 'Run') }}
 			</NcButton>
-			<NcButton type="tertiary"
+			<NcButton variant="tertiary"
 				:disabled="store.checking || !store.nodes.length"
 				@click="store.check()">
 				<template #icon>
@@ -83,7 +83,7 @@
 				</template>
 				{{ t('nextcloud-vue', 'Check') }}
 			</NcButton>
-			<NcButton type="tertiary"
+			<NcButton variant="tertiary"
 				:disabled="!store.nodes.length"
 				:aria-label="t('nextcloud-vue', 'Arrange steps automatically')"
 				:title="t('nextcloud-vue', 'Arrange steps automatically')"
@@ -95,7 +95,7 @@
 			<!-- Undo has a BUTTON as well as Ctrl+Z. A shortcut nobody is told
 			     about is a feature only its author has: the affordance is what
 			     tells a user the canvas is safe to experiment on. -->
-			<NcButton type="tertiary"
+			<NcButton variant="tertiary"
 				:disabled="!store.canUndo"
 				:aria-label="t('nextcloud-vue', 'Undo the last change')"
 				:title="t('nextcloud-vue', 'Undo the last change')"
@@ -105,7 +105,7 @@
 				</template>
 			</NcButton>
 			<div class="cn-flow-detail__toolbar-group">
-				<NcButton type="tertiary"
+				<NcButton variant="tertiary"
 					:disabled="zoom <= minZoom"
 					:aria-label="t('nextcloud-vue', 'Zoom out')"
 					@click="zoomBy(-0.1)">
@@ -113,12 +113,12 @@
 						<Minus :size="20" />
 					</template>
 				</NcButton>
-				<NcButton type="tertiary"
+				<NcButton variant="tertiary"
 					:aria-label="t('nextcloud-vue', 'Reset zoom')"
 					@click="zoom = 1">
 					{{ Math.round(zoom * 100) }}%
 				</NcButton>
-				<NcButton type="tertiary"
+				<NcButton variant="tertiary"
 					:disabled="zoom >= maxZoom"
 					:aria-label="t('nextcloud-vue', 'Zoom in')"
 					@click="zoomBy(0.1)">
@@ -130,7 +130,7 @@
 
 			<!-- The way back to a closed sidebar has to live OUTSIDE it. -->
 			<NcButton v-if="!store.sidebarOpen"
-				type="tertiary"
+				variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Show the flow controls')"
 				:title="t('nextcloud-vue', 'Show the flow controls')"
 				@click="store.sidebarOpen = true">

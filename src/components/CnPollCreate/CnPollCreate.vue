@@ -82,7 +82,7 @@
 							class="cn-poll-create__option-input"
 							@update:modelValue="onOptionChange(index, $event)" />
 						<NcButton
-							type="tertiary-no-background"
+							variant="tertiary-no-background"
 							:aria-label="t('nextcloud-vue', 'Remove option')"
 							:disabled="options.length <= 2"
 							@click="removeOption(index)">

@@ -118,7 +118,7 @@ export function resolveProviderAvailability(provider, deps) {
 
 	// 2. OCS capability providers map.
 	const providers = readCapabilityProviders(d.getCapabilities)
-	if (providers !== null && Object.prototype.hasOwnProperty.call(providers, provider.id)) {
+	if (providers !== null && Object.hasOwn(providers, provider.id)) {
 		const entry = providers[provider.id]
 		if (entry !== null && typeof entry === 'object' && typeof entry.available === 'boolean') {
 			return {

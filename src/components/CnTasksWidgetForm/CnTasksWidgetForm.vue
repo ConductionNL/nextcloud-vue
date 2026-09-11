@@ -23,24 +23,24 @@
 		<div class="cn-tasks-form__row2">
 			<NcTextField
 				type="number"
-				:value="String(limit)"
+				:model-value="String(limit)"
 				:label="t('nextcloud-vue', 'Rows to show')"
 				@update:value="updateField('limit', Number($event))" />
 			<NcTextField
 				type="number"
-				:value="String(pollSeconds)"
+				:model-value="String(pollSeconds)"
 				:label="t('nextcloud-vue', 'Refresh every (seconds, 0 = off)')"
 				@update:value="updateField('pollSeconds', Number($event))" />
 		</div>
 
 		<NcTextField
-			:value="rowRoute"
+			:model-value="rowRoute"
 			:label="t('nextcloud-vue', 'Open route on row click (optional, receives the task id)')"
 			placeholder="TaskDetail"
 			@update:value="updateField('rowRoute', $event)" />
 
 		<NcTextField
-			:value="emptyText"
+			:model-value="emptyText"
 			:label="t('nextcloud-vue', 'Text when the inbox is empty')"
 			placeholder="No open tasks"
 			@update:value="updateField('emptyText', $event)" />
