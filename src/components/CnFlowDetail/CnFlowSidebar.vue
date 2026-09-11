@@ -115,7 +115,12 @@
 			swapped the panel while leaving the canvas painted with that run's
 			badges, so the graph and the sidebar described different things.
 		-->
-		<CnRunDetailSidebar v-if="inRunView" />
+		<!--
+			`embedded` travels: inside a dialog there is no NcAppSidebar to
+			register a tab with, so the run's panels render as plain blocks
+			under a strip of their own rather than injecting into nothing.
+		-->
+		<CnRunDetailSidebar v-if="inRunView" :embedded="embedded" />
 
 		<!--
 			THE SIDEBAR IS THE FLOW'S RUNS. The palette moved to a modal off the
@@ -290,10 +295,16 @@ export default {
 		/**
 		 * Whether the sidebar is showing a RUN rather than the flow.
 		 *
-		 * @return {boolean} True while a run is open.
+		 * 🔑 THE STORE'S GETTER, WHICH ALSO COUNTS A RUN BEING OPENED. Reading
+		 * `inspectedRunUuid` alone meant the sidebar stayed on the flow for the
+		 * length of the load, so a visitor following a run link was told to
+		 * "save the flow first" on a flow that had run many times, while the
+		 * canvas beside it had already entered run view.
+		 *
+		 * @return {boolean} True while a run is open or being opened.
 		 */
 		inRunView() {
-			return Boolean(this.store.inspectedRunUuid)
+			return this.store.inRunView
 		},
 
 		/**
