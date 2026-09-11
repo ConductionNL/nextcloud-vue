@@ -20,7 +20,6 @@ jest.mock('../../src/composables/aiLocalDictation.js', () => ({
 	})),
 }))
 
-// eslint-disable-next-line n/no-missing-require -- ESM-only package; jest resolves it via moduleNameMapper (tests/__mocks__/nextcloud-axios.js)
 const axios = require('@nextcloud/axios').default
 const { createLocalDictation } = require('../../src/composables/aiLocalDictation.js')
 const CnAiInput = require('../../src/components/CnAiCompanion/CnAiInput.vue').default

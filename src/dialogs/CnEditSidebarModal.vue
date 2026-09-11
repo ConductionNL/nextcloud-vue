@@ -120,7 +120,6 @@ export default {
 			if (!this.page.config || typeof this.page.config !== 'object') { this.page.config = {} }
 			const cfg = this.page.config
 			if (typeof cfg.sidebar !== 'object' || cfg.sidebar === null) {
-				// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 				cfg.sidebar = typeof cfg.sidebar === 'boolean' ? { show: cfg.sidebar } : {}
 			}
 			return cfg.sidebar
@@ -155,7 +154,6 @@ export default {
 		editableTabs() {
 			const s = this.sidebar
 			if (!s) { return [] }
-			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 			if (!Array.isArray(s.tabs)) { s.tabs = [] }
 			return s.tabs
 		},
@@ -164,7 +162,6 @@ export default {
 		hiddenTabs() {
 			const s = this.sidebar
 			if (!s) { return [] }
-			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 			if (!Array.isArray(s.hiddenTabs)) { s.hiddenTabs = [] }
 			return s.hiddenTabs
 		},

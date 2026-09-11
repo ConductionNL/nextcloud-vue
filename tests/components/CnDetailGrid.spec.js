@@ -106,7 +106,6 @@ describe('CnDetailGrid — an item that carries a link', () => {
 		// safeHref answers '#' for an unsafe scheme. Rendering that '#' would
 		// give the reader something that looks clickable and is not, so the
 		// item falls back to plain text and keeps its value visible.
-		// eslint-disable-next-line no-script-url
 		const { wrapper, link } = linkFor({ label: 'Folder', value: 'payload', href: 'javascript:alert(1)' })
 		expect(link.exists()).toBe(false)
 		expect(wrapper.text()).toContain('payload')

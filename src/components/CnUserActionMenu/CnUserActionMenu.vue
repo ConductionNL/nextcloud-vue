@@ -225,7 +225,6 @@ export default {
 
 			// Try @nextcloud/capabilities first (synchronous, from initial state)
 			try {
-				// eslint-disable-next-line n/no-missing-import
 				const { getCapabilities } = await import('@nextcloud/capabilities')
 				const caps = getCapabilities()
 				if (caps) {
@@ -368,7 +367,6 @@ export default {
 
 		showActionError(message) {
 			try {
-				// eslint-disable-next-line n/no-missing-import
 				import('@nextcloud/dialogs').then(({ showError }) => {
 					showError(message)
 				})

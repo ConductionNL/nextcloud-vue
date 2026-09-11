@@ -82,7 +82,6 @@ describe('folderColorTint', () => {
 	it('derives the tint from the SAME theme hex at the given alpha', () => {
 		const blue = FOLDER_COLORS.find((c) => c.key === 'blue')
 		const int = parseInt(blue.dark.slice(1), 16)
-		/* eslint-disable no-bitwise */
 		const expected = `rgba(${(int >> 16) & 0xff}, ${(int >> 8) & 0xff}, ${int & 0xff}, 0.15)`
 		/* eslint-enable no-bitwise */
 		expect(folderColorTint('blue', 'dark')).toBe(expected)

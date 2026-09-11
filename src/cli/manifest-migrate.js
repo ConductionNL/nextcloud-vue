@@ -56,7 +56,6 @@ function detectSchemaVersion(manifest) {
  * @return {Function} validateManifestV2
  */
 function loadValidator() {
-	// eslint-disable-next-line n/no-missing-require
 	const { validateManifestV2 } = require('./validateV2.cjs')
 	return validateManifestV2
 }

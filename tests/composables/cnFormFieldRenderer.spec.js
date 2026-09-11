@@ -251,7 +251,6 @@ describe('cnRenderFormField — NcTextArea resolution', () => {
 		jest.resetModules()
 		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		try {
-			// eslint-disable-next-line n/global-require
 			const { cnRenderFormField: fresh } = require('@/composables/cnFormFieldRenderer.js')
 			const out = fresh({
 				field: { key: 'comment', type: 'string', widget: 'textarea', label: 'Comment' },

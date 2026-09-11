@@ -195,7 +195,6 @@ export function folderColorTint(value, theme, alpha = 0.15) {
 	const match = /^#([0-9a-f]{6})$/i.exec(hex)
 	if (!match) { return null }
 	const int = parseInt(match[1], 16)
-	/* eslint-disable no-bitwise */
 	const r = (int >> 16) & 0xff
 	const g = (int >> 8) & 0xff
 	const b = int & 0xff

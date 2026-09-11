@@ -50,7 +50,6 @@ export function objectTableContentToProps(content) {
 	// unusable value has to be dropped rather than forwarded and warned about.
 	const hasLimit = Number.isFinite(limit) && limit > 0
 	if (c.source && typeof c.source === 'object') {
-		// eslint-disable-next-line no-unused-vars
 		const { limit: _limit, ...v2 } = c
 		return hasLimit ? { ...v2, limit } : { ...v2 }
 	}

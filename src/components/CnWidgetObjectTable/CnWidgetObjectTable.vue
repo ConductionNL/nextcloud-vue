@@ -613,7 +613,6 @@ export default {
 		 * @return {object}
 		 */
 		innerProps() {
-			// eslint-disable-next-line no-unused-vars
 			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowClass, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {

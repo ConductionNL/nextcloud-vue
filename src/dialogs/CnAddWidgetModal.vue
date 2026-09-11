@@ -373,7 +373,6 @@ export default {
 		 */
 		validationErrors() {
 			// touch the tick so Vue tracks it as a dependency
-			// eslint-disable-next-line no-unused-expressions
 			this.validationTick
 			return this.form.validate(this.$refs.activeSubForm)
 		},
@@ -397,7 +396,6 @@ export default {
 		 */
 		isDirty() {
 			// touch the tick so content edits re-run this computed
-			// eslint-disable-next-line no-unused-expressions
 			this.validationTick
 			return this.currentSnapshot() !== this.initialSnapshot
 		},

@@ -726,7 +726,6 @@ export default {
 					// nextcloud-vue/dist/` in downstream apps (which would fail with
 					// "Module not found"). The runtime catch handles the case where the
 					// dep genuinely isn't installed.
-					// eslint-disable-next-line import/no-unresolved
 					await import(/* webpackIgnore: true */ 'leaflet.markercluster')
 					if (typeof L.markerClusterGroup === 'function') {
 						this.clusterGroup = L.markerClusterGroup()

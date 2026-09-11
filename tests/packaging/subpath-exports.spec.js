@@ -190,7 +190,6 @@ function hasEntry(name) {
  * @return {string[]} Exported names.
  */
 function exportsOf(relative) {
-	// eslint-disable-next-line n/global-require
 	const loaded = require(path.join(packageRoot, relative))
 	return Object.keys(loaded)
 }
@@ -549,7 +548,6 @@ describe('packaging — every redistributed dependency is under an OSI licence',
 		// Named explicitly, because the sweep above only sees the version that
 		// happens to be installed. This is the assertion a future `npm update`
 		// has to get past.
-		// eslint-disable-next-line n/no-extraneous-require
 		const semver = require('semver')
 		const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'))
 		const range = pkg.dependencies['vue3-apexcharts']
@@ -570,7 +568,6 @@ describe('packaging — every redistributed dependency is under an OSI licence',
 		// Core relicensed at 5.x. `^4.x` cannot reach it; assert both the range
 		// and what actually resolved, since either alone can be wrong.
 		const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'))
-		// eslint-disable-next-line n/no-extraneous-require
 		const semver = require('semver')
 		expect(semver.satisfies('5.0.0', pkg.dependencies.apexcharts)).toBe(false)
 		const core = JSON.parse(fs.readFileSync(path.join(REPO, 'node_modules', 'apexcharts', 'package.json'), 'utf8'))

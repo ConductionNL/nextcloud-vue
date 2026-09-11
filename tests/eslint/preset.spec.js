@@ -43,7 +43,6 @@ const FIXTURES = path.join(__dirname, '..', 'fixtures', 'eslint-preset')
  * @return {Function} The flat-config ESLint class.
  */
 function resolveFlatESLint() {
-	// eslint-disable-next-line n/no-missing-require
 	const risky = require('eslint/use-at-your-own-risk')
 	return risky.FlatESLint || require('eslint').ESLint
 }

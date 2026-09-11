@@ -28,7 +28,6 @@ import { test, expect } from '@playwright/test'
 // Playwright transpiles these specs to CJS, so `require` is available and
 // `import.meta` is not. Resolving the real installed axe-core keeps the spec
 // running the same engine version as the jest a11y lane.
-// eslint-disable-next-line no-undef
 const AXE_PATH = require.resolve('axe-core')
 
 /**

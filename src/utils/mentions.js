@@ -46,7 +46,6 @@ export function parseMentions(text) {
 	MENTION_REGEX.lastIndex = 0
 
 	let match
-	// eslint-disable-next-line no-cond-assign
 	while ((match = MENTION_REGEX.exec(text)) !== null) {
 		if (match.index > lastIndex) {
 			segments.push({ type: 'text', value: text.slice(lastIndex, match.index) })

@@ -41,14 +41,13 @@ jest.mock('../../src/store/useObjectStore.js', () => ({
 	},
 }))
 
-/* eslint-disable import/first -- these imports sit BELOW the jest.mock() above
+/* These imports sit BELOW the jest.mock() above
    on purpose: the mock documents the "no active pinia" branch these specs
    exercise, and keeping the two adjacent is what makes that readable. */
 import axios from '@nextcloud/axios'
 import { shallowMount } from '@vue/test-utils'
 
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
-/* eslint-enable import/first */
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 

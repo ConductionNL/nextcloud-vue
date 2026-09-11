@@ -53,7 +53,6 @@ let mockAxiosGet = jest.fn()
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: (...a) => mockAxiosGet(...a) } }))
 jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: (path) => path }))
 
-// eslint-disable-next-line import/first
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0))

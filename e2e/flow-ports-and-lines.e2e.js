@@ -488,7 +488,6 @@ test.describe('flow editor — accessibility', () => {
 			// it: the state a half-built flow spends most of its life in, and the
 			// one with the most colour and the most `title` / `aria-label` on
 			// elements that are not controls.
-			// eslint-disable-next-line
 			const axePath = require.resolve('axe-core')
 
 			await seed(page)
@@ -497,7 +496,6 @@ test.describe('flow editor — accessibility', () => {
 
 			await page.addScriptTag({ path: axePath })
 			const result = await page.evaluate(async () => {
-				// eslint-disable-next-line
 				return await window.axe.run(document.querySelector('[data-testid="flow-box"]'))
 			})
 

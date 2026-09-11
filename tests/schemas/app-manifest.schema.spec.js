@@ -871,7 +871,6 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 	})
 
 	describe('manifest-sidebar-show.json fixture', () => {
-		// eslint-disable-next-line global-require
 		const fixture = require('../fixtures/manifest-sidebar-show.json')
 
 		it('passes validateManifest end-to-end', () => {

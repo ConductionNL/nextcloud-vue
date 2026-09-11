@@ -17,7 +17,6 @@ jest.mock('../../src/store/index.js', () => ({
 	useObjectStore: () => mockStore,
 }))
 
-// eslint-disable-next-line import/first
 import CnResourceSelect from '../../src/components/CnResourceSelect/CnResourceSelect.vue'
 
 describe('CnResourceSelect', () => {

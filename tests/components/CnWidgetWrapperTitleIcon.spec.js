@@ -89,7 +89,6 @@ describe('CnWidgetWrapper — icon/title spacing', () => {
 		const w = mountWrapper({ titleIconPosition: 'left' }, { slots: iconSlot })
 		const icon = w.find('.cn-widget-wrapper__title-icon').element
 		const title = w.find('.cn-widget-wrapper__title').element
-		// eslint-disable-next-line no-bitwise
 		expect(icon.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 	})
 

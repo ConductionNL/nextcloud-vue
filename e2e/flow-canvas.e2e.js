@@ -353,7 +353,6 @@ test.describe('flow canvas — keyboard only', () => {
 
 test.describe('flow canvas — accessibility', () => {
 	test('axe finds no violations, in light and dark', async ({ page }) => {
-		// eslint-disable-next-line
 		const axePath = require.resolve('axe-core')
 
 		for (const theme of ['light', 'dark']) {
@@ -363,7 +362,6 @@ test.describe('flow canvas — accessibility', () => {
 
 			await page.addScriptTag({ path: axePath })
 			const result = await page.evaluate(async () => {
-				// eslint-disable-next-line
 				return await window.axe.run(document.querySelector('[data-testid="canvas-box"]'))
 			})
 

@@ -19,9 +19,7 @@ jest.mock('../../src/utils/userAutocomplete.js', () => ({
 }))
 
 // Import AFTER the mock is registered.
-// eslint-disable-next-line import/first
 import { searchNextcloudUsers, resolveNextcloudUser } from '../../src/utils/userAutocomplete.js'
-// eslint-disable-next-line import/first
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0))

@@ -459,9 +459,7 @@ describe('CnDashboardPage — per-widget configure cog (ADR-041)', () => {
 })
 
 describe('CnDashboardPage — card-fit registry widgets', () => {
-	// eslint-disable-next-line global-require
 	const { registerDashboardWidget } = require('@/components/CnWidgetGrid/dashboardWidgetRegistry.js')
-	// eslint-disable-next-line global-require
 	const { h } = require('vue')
 	// Render functions (not `template:` strings) so they mount under the
 	// runtime-only Vue build the dynamic `<component :is>` uses.

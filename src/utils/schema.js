@@ -833,7 +833,6 @@ function validateStringFormat(format, value) {
 		// Reject obviously non-URL inputs (whitespace, missing dots / authority).
 		if (/\s/.test(value)) { return 'Value must be a valid URL.' }
 		try {
-			/* eslint-disable-next-line no-new */
 			new URL(value)
 			return null
 		} catch {

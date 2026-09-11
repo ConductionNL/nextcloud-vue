@@ -29,7 +29,6 @@ jest.mock('@nextcloud/axios', () => ({
 }))
 
 const { fetchEventSource } = require('@microsoft/fetch-event-source')
-// eslint-disable-next-line n/no-missing-require -- ESM-only package; jest resolves it via moduleNameMapper (tests/__mocks__/nextcloud-axios.js)
 const axios = require('@nextcloud/axios').default
 const { useAiChatStream } = require('../../src/composables/useAiChatStream.js')
 

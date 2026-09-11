@@ -30,7 +30,6 @@ jest.mock('@nextcloud/event-bus', () => ({
 	unsubscribe: jest.fn(),
 }))
 
-// eslint-disable-next-line import/first
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 
 const CHANNEL = 'cn:page:refresh'

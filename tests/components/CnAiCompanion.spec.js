@@ -24,7 +24,6 @@ jest.mock('@microsoft/fetch-event-source', () => ({
 	fetchEventSource: jest.fn(),
 }))
 
-// eslint-disable-next-line n/no-missing-require -- ESM-only package; jest resolves it via moduleNameMapper (tests/__mocks__/nextcloud-axios.js)
 const axios = require('@nextcloud/axios').default
 const CnAiCompanion = require('../../src/components/CnAiCompanion/CnAiCompanion.vue').default
 

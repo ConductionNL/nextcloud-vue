@@ -105,7 +105,6 @@ describe('CnRelatedObjectsWidget — agreement with the integration registry', (
 	 * widget section that deep-links to it.
 	 */
 	it('draws a section with the icon its integration uses', () => {
-		// eslint-disable-next-line
 		const { builtinIntegrations } = require('../../src/integrations/builtin/index.js')
 		const registry = new Map(builtinIntegrations.map((entry) => [entry.id, entry.icon]))
 
@@ -148,7 +147,6 @@ describe('CnRelatedObjectsWidget — agreement with the integration registry', (
 	 * tells that apart from a tab the user has not installed.
 	 */
 	it('deep-links every section at an integration that exists', () => {
-		// eslint-disable-next-line
 		const { builtinIntegrations } = require('../../src/integrations/builtin/index.js')
 		const known = new Set(builtinIntegrations.map((entry) => entry.id))
 

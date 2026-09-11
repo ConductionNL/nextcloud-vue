@@ -2132,7 +2132,6 @@ export default {
 			// useManifestEditor.enter() observes them in place, so a cache
 			// built pre-edit would stay frozen for in-place pushes (Add widget
 			// on a detail page / grid ejection). See CnDashboardPage.hasWidgets.
-			// eslint-disable-next-line no-unused-expressions
 			this.editingBody
 			if (this.hasGridLayout) { return this.layout }
 			if (this.shouldRenderAutoBody) { return this.autoBodyLayout || [] }

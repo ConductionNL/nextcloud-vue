@@ -145,7 +145,6 @@ export default {
 			this.working.walkthrough.tours = []
 		}
 		if (this.working.walkthrough.tours.length === 0) {
-			// eslint-disable-next-line vue/no-mutating-props
 			this.working.walkthrough.tours.push({ id: 'getting-started', title: '', trigger: 'first-visit', steps: [] })
 		}
 		if (!Array.isArray(this.working.walkthrough.tours[0].steps)) {

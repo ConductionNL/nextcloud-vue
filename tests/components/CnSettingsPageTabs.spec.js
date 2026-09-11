@@ -38,7 +38,6 @@ jest.mock('@/components/CnVersionInfoCard/CnVersionInfoCard.vue', () => ({
 		render() {
 			// `jest.mock` factories are hoisted above the imports, so the
 			// module-scope `h` import is out of scope here — require it inline.
-			// eslint-disable-next-line global-require
 			const { h } = require('vue')
 			return h('div', {
 				class: 'cn-version-info-card-stub',
@@ -55,7 +54,6 @@ jest.mock('@/components/CnRegisterMapping/CnRegisterMapping.vue', () => ({
 		props: ['name', 'groups', 'configuration', 'showReimportButton'],
 		render() {
 			// Hoisted factory — require `h` inline (see the mock above).
-			// eslint-disable-next-line global-require
 			const { h } = require('vue')
 			return h('div', {
 				class: 'cn-register-mapping-stub',
@@ -95,12 +93,10 @@ describe('CnSettingsPage — tabs orchestration (REQ-MSO-*)', () => {
 
 	beforeEach(() => {
 		originalWarn = console.warn
-		// eslint-disable-next-line no-console
 		console.warn = jest.fn()
 	})
 
 	afterEach(() => {
-		// eslint-disable-next-line no-console
 		console.warn = originalWarn
 		jest.clearAllMocks()
 	})
@@ -240,7 +236,6 @@ describe('CnSettingsPage — tabs orchestration (REQ-MSO-*)', () => {
 			stubs,
 		})
 		expect(mount2).not.toThrow()
-		// eslint-disable-next-line no-console
 		expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('NotRegistered'))
 	})
 
@@ -261,7 +256,6 @@ describe('CnSettingsPage — tabs orchestration (REQ-MSO-*)', () => {
 		})
 		// No widget rendered, but the page didn't throw.
 		expect(wrapper.exists()).toBe(true)
-		// eslint-disable-next-line no-console
 		expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('componentName'))
 	})
 

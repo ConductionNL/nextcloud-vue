@@ -150,7 +150,7 @@ export default {
 		menu() {
 			if (this.working && !Array.isArray(this.working.menu)) {
 				// The working manifest is ours to mutate by design — never the base.
-				// eslint-disable-next-line vue/no-mutating-props, vue/no-side-effects-in-computed-properties
+				// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 				this.working.menu = []
 			}
 			return this.working ? this.working.menu : []

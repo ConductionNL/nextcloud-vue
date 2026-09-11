@@ -332,7 +332,6 @@ export default {
 
 		showError(message) {
 			try {
-				// eslint-disable-next-line n/no-missing-import
 				import('@nextcloud/dialogs').then(({ showError }) => {
 					showError(message)
 				})

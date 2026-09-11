@@ -5,7 +5,6 @@
 //
 // The file is regenerated on every `npm run build` and `npm test`
 // via the `build:validators` script, and is gitignored.
-// eslint-disable-next-line import/no-unresolved
 import _compiledValidateV2 from './validateManifestV2.compiled.js'
 // Shared slot→columns resolution so the validator's grid bound matches the
 // renderer (CnWidgetGrid) exactly. A mismatch would let a manifest pass
@@ -585,7 +584,6 @@ export function validateManifestV2(manifest) {
 					}
 					if (typeof validation.pattern === 'string') {
 						try {
-							// eslint-disable-next-line no-new
 							new RegExp(validation.pattern)
 						} catch (e) {
 							errors.push(`${fieldPath}/validation/pattern: "${validation.pattern}" does not compile as a regular expression (${e.message})`)

@@ -53,7 +53,6 @@ describe('singleton externals', () => {
 			// by npm and can nest under our own node_modules, so the bare specifier
 			// the dist emits resolves to OUR copy and there is still no singleton.
 			// dompurify and marked were in exactly that state.
-			// eslint-disable-next-line
 			const pkg = require('../../package.json')
 
 			for (const name of SINGLETON_PACKAGES) {

@@ -416,7 +416,7 @@ export default {
 		// `value` is intentionally unused — kept in the signature for callers
 		// that already pass it (slot consumers, the cell, the row click
 		// handler). Editability is now driven by the persisted `item`.
-		// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		isPropertyEditable(key, value) {
 			const prop = this.schema?.properties?.[key]
 			if (!prop) { return true }

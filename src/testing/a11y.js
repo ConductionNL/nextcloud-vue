@@ -229,7 +229,6 @@ export async function expectAccessible(target, options = {}) {
 	// helper without having installed axe-core themselves.
 	let axe
 	try {
-		// eslint-disable-next-line global-require
 		axe = require('axe-core')
 	} catch (err) {
 		throw new Error('expectAccessible() requires the "axe-core" package. Add it to your '
