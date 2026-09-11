@@ -20,7 +20,7 @@ Non-blocking by design — the row still opens. Whether an edit is allowed is th
 
 | Situation | Colour | Icon | Accessible name |
 |-----------|--------|------|-----------------|
-| Locked by someone else | warning | `LockAlertOutline` | "Locked by {user}" |
+| Locked by someone else | warning | `LockAlertOutline` | `Locked by {user}` |
 | Locked by you | neutral | `LockOutline` | "Locked by you" |
 | Not locked, or lock expired | — | — | nothing is rendered |
 
