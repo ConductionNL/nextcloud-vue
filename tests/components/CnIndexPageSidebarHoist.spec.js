@@ -10,6 +10,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { reactive } from 'vue'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 import CnIndexSidebar from '../../src/components/CnIndexSidebar/CnIndexSidebar.vue'
 
@@ -80,6 +81,38 @@ describe('CnIndexPage — sidebar hoist', () => {
 			wrapper.setProps({ searchValue: 'bar' })
 			await wrapper.vm.$nextTick()
 			expect(holder.value.props.searchValue).toBe('bar')
+		})
+
+		// The manifest editors mutate `config.sidebar` in place, so the prop
+		// reference never changes. Neither `hoistedSidebarProps` (which carries
+		// none of the gate) nor `shouldRenderInlineSidebar` (false in both
+		// states under a host) moves, so nothing re-published and the panel only
+		// caught up on a page reload.
+		it('republishes when the gate is toggled in place, without a reload', async () => {
+			// reactive(): in the app `config.sidebar` lives inside the reactive
+			// manifest, so an in-place edit is tracked. A plain object is not.
+			const sidebar = reactive({ enabled: true, show: true })
+			const { wrapper, holder } = mountWithHost({ sidebar })
+			expect(holder.value).not.toBeNull()
+
+			sidebar.show = false
+			await wrapper.vm.$nextTick()
+			expect(holder.value).toBeNull()
+
+			sidebar.show = true
+			await wrapper.vm.$nextTick()
+			expect(holder.value).not.toBeNull()
+		})
+
+		it('republishes when `enabled` is toggled in place', async () => {
+			const sidebar = reactive({ enabled: false })
+			const { wrapper, holder } = mountWithHost({ sidebar })
+			expect(holder.value).toBeNull()
+
+			sidebar.enabled = true
+			await wrapper.vm.$nextTick()
+			expect(holder.value).not.toBeNull()
+			expect(holder.value.component).toBe(CnIndexSidebar)
 		})
 
 		it('listeners re-emit events on the CnIndexPage instance', () => {

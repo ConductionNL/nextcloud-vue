@@ -15,7 +15,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { toRaw } from 'vue'
+import { reactive, toRaw } from 'vue'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
 function makeState() {
@@ -378,6 +378,42 @@ describe('CnDetailPage — sidebar Object form + show flag', () => {
 			})
 			expect(state.active).toBe(false)
 			expect(state.tabs).toBeUndefined()
+		})
+
+		// The manifest editors mutate `page.config.sidebar` IN PLACE, so the
+		// reference CnPageRenderer forwards never changes. With a shallow
+		// watcher no sync ran, and switching the sidebar off in
+		// CnEditSidebarModal did nothing until the page was reloaded.
+		it('reacts to show being toggled IN PLACE, without a new prop reference', async () => {
+			const state = makeState()
+			// reactive(): in the app this object lives inside the reactive
+			// manifest, so an in-place edit is tracked. A plain object is not.
+			const sidebar = reactive({ register: 'r', schema: 's' })
+			const wrapper = mountDetailPage({
+				title: 'Lead', sidebar, objectType: 'lead', objectId: '1',
+			}, state)
+			expect(state.active).toBe(true)
+
+			sidebar.show = false
+			await wrapper.vm.$nextTick()
+			expect(state.active).toBe(false)
+
+			sidebar.show = true
+			await wrapper.vm.$nextTick()
+			expect(state.active).toBe(true)
+		})
+
+		it('reacts to enabled being toggled in place', async () => {
+			const state = makeState()
+			const sidebar = reactive({ enabled: false, register: 'r', schema: 's' })
+			const wrapper = mountDetailPage({
+				title: 'Lead', sidebar, objectType: 'lead', objectId: '1',
+			}, state)
+			expect(state.active).toBe(false)
+
+			sidebar.enabled = true
+			await wrapper.vm.$nextTick()
+			expect(state.active).toBe(true)
 		})
 	})
 

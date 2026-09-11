@@ -2917,6 +2917,16 @@ export default {
 			this.publishHoistedSidebar()
 		},
 
+		// The gate itself, which neither watcher above catches: under a
+		// CnAppRoot host `shouldRenderInlineSidebar` is false in BOTH states,
+		// and `hoistedSidebarProps` carries none of `enabled` / `show`. So
+		// toggling the sidebar on or off in CnEditSidebarModal — which mutates
+		// `config.sidebar` in place — left the hoisted panel exactly as it was
+		// until the page was reloaded.
+		hasSidebar() {
+			this.publishHoistedSidebar()
+		},
+
 		// Re-push AI context when relevant props change
 		register() { this.pushAiContext() },
 		schema() { this.pushAiContext() },

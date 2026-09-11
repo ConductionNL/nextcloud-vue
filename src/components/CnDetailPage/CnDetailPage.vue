@@ -2341,8 +2341,15 @@ export default {
 			}
 		},
 
+		// Deep, like `sidebarTabs` / `sidebarProps` below: the manifest editors
+		// mutate `page.config.sidebar` IN PLACE, so the reference CnPageRenderer
+		// forwards never changes. A shallow watcher missed every such edit —
+		// switching the sidebar off in CnEditSidebarModal did nothing until the
+		// page was reloaded. assignSidebarState() only writes keys that actually
+		// changed, so the extra calls cost a comparison.
 		sidebar: {
 			immediate: true,
+			deep: true,
 			handler() { this.syncSidebarState() },
 		},
 
