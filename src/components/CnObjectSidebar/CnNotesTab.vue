@@ -186,6 +186,7 @@ export default {
 					this.resolveMentionNames()
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnNotesTab: Failed to fetch notes', err)
 			} finally {
 				this.loading = false
@@ -314,6 +315,7 @@ export default {
 				this.newNoteText = ''
 				await this.fetchNotes()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnNotesTab: Failed to add note', err)
 			} finally {
 				this.saving = false
@@ -351,6 +353,7 @@ export default {
 				this.newNoteText = ''
 				await this.fetchNotes()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnNotesTab: Failed to update note', err)
 			} finally {
 				this.saving = false
@@ -369,6 +372,7 @@ export default {
 				)
 				this.notes = this.notes.filter((n) => n.id !== note.id)
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnNotesTab: Failed to delete note', err)
 			}
 		},

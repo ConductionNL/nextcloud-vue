@@ -1540,6 +1540,7 @@ export default {
 		async loadViaStore() {
 			if (!legacyWarned) {
 				legacyWarned = true
+				// eslint-disable-next-line no-console
 				console.warn('[CnRelatedObjectsWidget] The store-action list path is deprecated; pass an object with `@self` (or register/schema props) to use the tabbed self-fetch path.')
 			}
 

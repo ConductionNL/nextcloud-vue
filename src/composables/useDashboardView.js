@@ -141,6 +141,7 @@ export function useDashboardView(options = {}) {
 				type: 'nc-widget',
 			}))
 		} catch (error) {
+			// eslint-disable-next-line no-console
 			console.error('[useDashboardView] Failed to load NC widgets:', error)
 			ncWidgets.value = []
 		}
@@ -175,6 +176,7 @@ export function useDashboardView(options = {}) {
 			// Apply visibility filtering after all data is loaded
 			await applyVisibilityFilter()
 		} catch (error) {
+			// eslint-disable-next-line no-console
 			console.error('[useDashboardView] Init failed:', error)
 			layout.value = [...opts.defaultLayout]
 		} finally {
@@ -195,6 +197,7 @@ export function useDashboardView(options = {}) {
 			try {
 				await opts.saveLayout(newLayout)
 			} catch (error) {
+				// eslint-disable-next-line no-console
 				console.error('[useDashboardView] Failed to save layout:', error)
 			} finally {
 				saving.value = false

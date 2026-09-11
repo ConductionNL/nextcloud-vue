@@ -481,6 +481,7 @@ export default {
 				this.updateField('backgroundImageUrl', resolvedUrl)
 			} catch (err) {
 				this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload image')
+				// eslint-disable-next-line no-console
 				console.error('Header image upload failed:', err)
 				throw err
 			} finally {

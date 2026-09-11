@@ -907,6 +907,7 @@ export default {
 				this.groupIcons[group.key] = Array.isArray(icons) ? icons : []
 			} catch (error) {
 				this.groupError[group.key] = t('nextcloud-vue', 'Could not load this icon set.')
+				// eslint-disable-next-line no-console
 				console.error('Icon set "' + group.key + '" failed to load:', error)
 			} finally {
 				this.groupLoading[group.key] = false
@@ -1229,6 +1230,7 @@ export default {
 					this.$emit('pick')
 				} catch (err) {
 					this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload icon')
+					// eslint-disable-next-line no-console
 					console.error('Icon upload failed:', err)
 				} finally {
 					this.uploading = false

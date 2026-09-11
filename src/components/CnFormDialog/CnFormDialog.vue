@@ -1409,6 +1409,7 @@ export default {
 				}
 				return empty
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error(`CnFormDialog: semantic reference resolve failed for "${uri}":`, err)
 				return empty
 			}
@@ -2251,6 +2252,7 @@ export default {
 					}
 					obj = await store.fetchObject(slug, String(source))
 				} catch (err) {
+					// eslint-disable-next-line no-console
 					console.error(`CnFormDialog: template fill fetch failed for "${field.key}":`, err)
 					return
 				}
@@ -2423,6 +2425,7 @@ export default {
 					}
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnFormDialog: could not load the fields for this selection:', err)
 			}
 			// A slower earlier fetch must not overwrite a later selection's
@@ -2515,6 +2518,7 @@ export default {
 			} catch (err) {
 				// A prefill that fails leaves the person typing the values
 				// themselves, which is exactly where they were before.
+				// eslint-disable-next-line no-console
 				console.error('CnFormDialog: could not prefill from this selection:', err)
 				return
 			}
@@ -2607,6 +2611,7 @@ export default {
 				}
 				return options
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error(`CnFormDialog: reference fetch failed for field "${field.key}":`, err)
 				return []
 			}
@@ -2638,6 +2643,7 @@ export default {
 					this.referenceLabels = { ...this.referenceLabels, [obj.id]: this.displayLabel(obj) }
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error(`CnFormDialog: reference label resolve failed for "${uuid}":`, err)
 			}
 		},
@@ -2713,6 +2719,7 @@ export default {
 				}
 				state.options = Array.isArray(results) ? results : []
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error(`CnFormDialog: async enum error for field "${field.key}":`, err)
 				state.options = []
 			} finally {

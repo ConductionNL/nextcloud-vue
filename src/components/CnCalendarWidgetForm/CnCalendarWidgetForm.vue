@@ -267,6 +267,7 @@ export default {
 				const list = await this.calendarsFetcher()
 				this.availableCalendars = Array.isArray(list) ? list.filter((c) => c && c.key) : []
 			} catch (e) {
+				// eslint-disable-next-line no-console
 				console.error('CnCalendarWidgetForm: failed to fetch calendars', e)
 			} finally {
 				this.loadingCalendars = false

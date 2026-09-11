@@ -264,6 +264,7 @@ export default {
 					this.total = data.total || this.tasks.length
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTasksTab: Failed to fetch tasks', err)
 			} finally {
 				this.loading = false
@@ -300,6 +301,7 @@ export default {
 					}))
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTasksTab: Failed to fetch users', err)
 			}
 		},
@@ -328,6 +330,7 @@ export default {
 				this.clearForm()
 				await this.fetchTasks()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTasksTab: Failed to add task', err)
 			} finally {
 				this.saving = false
@@ -376,6 +379,7 @@ export default {
 				this.clearForm()
 				await this.fetchTasks()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTasksTab: Failed to update task', err)
 			} finally {
 				this.saving = false
@@ -401,6 +405,7 @@ export default {
 				)
 				await this.fetchTasks()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTasksTab: Failed to toggle task', err)
 			}
 		},
@@ -417,6 +422,7 @@ export default {
 				)
 				await this.fetchTasks()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTasksTab: Failed to complete task', err)
 			}
 		},
@@ -429,6 +435,7 @@ export default {
 				)
 				this.tasks = this.tasks.filter((t) => t.id !== task.id)
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTasksTab: Failed to delete task', err)
 			}
 		},

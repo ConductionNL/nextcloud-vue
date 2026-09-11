@@ -679,6 +679,7 @@ export const useFlowStore = defineStore('cnFlow', {
 			} catch (error) {
 				// Surfaced, not swallowed: an empty list with no trace of why is
 				// indistinguishable from "this instance has no flows".
+				// eslint-disable-next-line no-console
 				console.error('cn-flow: could not load flows', error)
 				this.flows = []
 				this.error = error
@@ -749,6 +750,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				// the not-found state right after this, and that is what the
 				// canvas renders; throwing here would take out the whole page for
 				// a flow that simply is not there any more.
+				// eslint-disable-next-line no-console
 				console.error('cn-flow: could not resolve flow by id', id, error)
 			}
 		},
@@ -759,6 +761,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				const response = await axios.get(generateUrl('/apps/openregister/api/flow/node-catalog'))
 				this.nodeCatalog = response.data?.results || []
 			} catch (error) {
+				// eslint-disable-next-line no-console
 				console.error('cn-flow: could not load the node catalogue', error)
 				this.nodeCatalog = []
 			} finally {
@@ -771,6 +774,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				const response = await axios.get(generateUrl('/apps/openregister/api/flow/event-catalog'))
 				this.eventCatalog = response.data?.results || []
 			} catch (error) {
+				// eslint-disable-next-line no-console
 				console.error('cn-flow: could not load the event catalogue', error)
 				this.eventCatalog = []
 			}
@@ -1587,6 +1591,7 @@ export const useFlowStore = defineStore('cnFlow', {
 					return this.checkResult
 				}
 
+				// eslint-disable-next-line no-console
 				console.error('cn-flow: could not check the flow', error)
 				this.error = error
 				return null
@@ -1655,6 +1660,7 @@ export const useFlowStore = defineStore('cnFlow', {
 					return null
 				}
 
+				// eslint-disable-next-line no-console
 				console.error('cn-flow: could not save the flow', error)
 				this.error = error
 				return null
@@ -1705,6 +1711,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				// 🔑 A PREVIEW THAT FAILS MUST NOT BLOCK THE PUBLISH. It is a
 				// courtesy, and an instance whose route is older than this
 				// build would otherwise lose the ability to publish at all.
+				// eslint-disable-next-line no-console
 				console.error('cn-flow: could not preview the next version', error)
 				this.publishPreview = null
 				return null
@@ -1796,6 +1803,7 @@ export const useFlowStore = defineStore('cnFlow', {
 					return null
 				}
 
+				// eslint-disable-next-line no-console
 				console.error(`cn-flow: could not ${action} the flow`, error)
 				this.error = error
 				return null
@@ -1819,6 +1827,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				const response = await axios.get(generateUrl(`/apps/openregister/api/flows/${this.flow.id}/versions`))
 				this.versions = response.data?.results || []
 			} catch (error) {
+				// eslint-disable-next-line no-console
 				console.error('cn-flow: could not read the flow versions', error)
 				this.versions = []
 			}
@@ -1932,6 +1941,7 @@ export const useFlowStore = defineStore('cnFlow', {
 
 				return run
 			} catch (error) {
+				// eslint-disable-next-line no-console
 				console.error('cn-flow: could not run the flow', error)
 				this.error = error
 				return null
@@ -2065,6 +2075,7 @@ export const useFlowStore = defineStore('cnFlow', {
 					}
 				}
 			} catch (error) {
+				// eslint-disable-next-line no-console
 				console.error('cn-flow: could not read the watched run', error)
 
 				// A missing run will not come back; anything else (a blip, a
@@ -2139,6 +2150,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				})
 				this.runs = response.data?.results || []
 			} catch (error) {
+				// eslint-disable-next-line no-console
 				console.error('cn-flow: could not load run history', error)
 				this.runs = []
 			}
@@ -2165,6 +2177,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				// authority on which version of the flow it executed.
 				version = response.data?.flowVersion ?? null
 			} catch (error) {
+				// eslint-disable-next-line no-console
 				console.error('cn-flow: could not load the run steps', error)
 				this.steps = []
 			}
@@ -2253,6 +2266,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				// arrives here by a different route.
 				this.applyRenderLayout()
 			} catch (error) {
+				// eslint-disable-next-line no-console
 				console.error('cn-flow: could not read the graph this run executed', error)
 				this.runGraphNotice = { version: number, reason: 'unreadable' }
 			}
@@ -2327,6 +2341,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				const rows = response.data?.results || []
 				this.runTasks = rows.filter((task) => String(task?.runUuid || '') === String(runUuid))
 			} catch (error) {
+				// eslint-disable-next-line no-console
 				console.error('cn-flow: could not load the tasks this run raised', error)
 				this.runTasks = []
 			}
@@ -2351,6 +2366,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				const response = await axios.get(generateUrl(`/apps/openregister/api/flow-runs/${runUuid}/objects`))
 				this.runObjects = response.data?.nodes || []
 			} catch (error) {
+				// eslint-disable-next-line no-console
 				console.error('cn-flow: could not load the objects this run touched', error)
 				this.runObjects = []
 			}

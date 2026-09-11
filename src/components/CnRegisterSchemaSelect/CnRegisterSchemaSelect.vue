@@ -148,6 +148,7 @@ export default {
 						.map((s) => ({ slug: s.slug || String(s.id), title: s.title || s.slug || String(s.id) })),
 				}))
 			} catch (e) {
+				// eslint-disable-next-line no-console
 				console.error('CnRegisterSchemaSelect: failed to fetch registers', e)
 			} finally {
 				this.loading = false

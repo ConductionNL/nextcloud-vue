@@ -346,6 +346,7 @@ export function resolveIndexSource(name) {
 
 	const factory = indexSources[key]
 	if (typeof factory !== 'function') {
+		// eslint-disable-next-line no-console
 		console.warn(`[CnIndexPage] Unknown index source "${key}" — known sources: ${Object.keys(indexSources).join(', ')}. The list will be empty.`)
 		return null
 	}

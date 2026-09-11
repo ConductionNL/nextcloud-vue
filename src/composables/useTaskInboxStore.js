@@ -100,6 +100,7 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 				this.error = error?.message || String(error)
 				this.tasks = []
 				this.total = 0
+				// eslint-disable-next-line no-console
 				console.error('[useTaskInboxStore] Loading the task inbox failed', error)
 			} finally {
 				this.loading = false

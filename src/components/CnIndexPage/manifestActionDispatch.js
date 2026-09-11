@@ -82,6 +82,7 @@ export function resolveActionHandler(action, ctx) {
 	if (type === 'navigate') {
 		const target = action.target
 		if (typeof target !== 'string' || target.length === 0) {
+			// eslint-disable-next-line no-console
 			console.warn(`[CnIndexPage] action "${action.id}" declares type:"navigate" `
 				+ 'but target is missing; falling back to @action-only.')
 			return null
@@ -95,6 +96,7 @@ export function resolveActionHandler(action, ctx) {
 	if (type === 'open-page') {
 		const target = action.target
 		if (typeof target !== 'string' || target.length === 0) {
+			// eslint-disable-next-line no-console
 			console.warn(`[CnIndexPage] action "${action.id}" declares type:"open-page" `
 				+ 'but target is missing; falling back to @action-only.')
 			return null
@@ -103,6 +105,7 @@ export function resolveActionHandler(action, ctx) {
 	}
 
 	if (type === 'open-modal') {
+		// eslint-disable-next-line no-console
 		console.warn(`[CnIndexPage] action "${action.id}" type:"open-modal" is not `
 			+ 'supported for index-page actions; falling back to @action-only.')
 		return null
@@ -117,6 +120,7 @@ export function resolveActionHandler(action, ctx) {
 	if (name === 'navigate') {
 		const route = action.route
 		if (typeof route !== 'string' || route.length === 0) {
+			// eslint-disable-next-line no-console
 			console.warn(`[CnIndexPage] action "${action.id}" declares handler:"navigate" `
 				+ 'but route is missing; falling back to @action-only.')
 			return null
@@ -133,6 +137,7 @@ export function resolveActionHandler(action, ctx) {
 				if (resolved) {
 					params[key] = value
 				} else {
+					// eslint-disable-next-line no-console
 					console.warn(`[CnIndexPage] action "${action.id}" param "${key}" references `
 						+ `"${declared}" but the row carries no such field; dropping the param`
 						+ (key === 'id' ? ' ("id" falls back to the row id).' : '.'))
@@ -154,6 +159,7 @@ export function resolveActionHandler(action, ctx) {
 		return (row) => fn({ actionId: action.id, item: row })
 	}
 	if (fn !== undefined) {
+		// eslint-disable-next-line no-console
 		console.warn(`[CnIndexPage] action.handler "${name}" resolved to a non-function in `
 			+ 'customComponents — components belong to slot overrides; falling '
 			+ 'back to @action-only.')

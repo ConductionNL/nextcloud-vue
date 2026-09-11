@@ -2769,6 +2769,7 @@ export default {
 					declared.push(dispatchAction(a, ctx))
 					continue
 				}
+				// eslint-disable-next-line no-console
 				console.warn(`[CnIndexPage] Ignoring action ${JSON.stringify(a)}: actions must be objects with an id and a label. To show a built-in action use the showViewAction / showEditAction / showCopyAction / showDeleteAction props.`)
 			}
 			return [...declared, ...this.defaultActions]
@@ -2935,6 +2936,7 @@ export default {
 			}
 			const resolved = this.effectiveCustomComponents[this.cardComponent]
 			if (!resolved) {
+				// eslint-disable-next-line no-console
 				console.warn(`[CnIndexPage] cardComponent "${this.cardComponent}" not found in customComponents registry. Falling back to CnObjectCard.`)
 				return null
 			}
@@ -2954,6 +2956,7 @@ export default {
 			}
 			const resolved = this.effectiveCustomComponents[this.listComponent]
 			if (!resolved) {
+				// eslint-disable-next-line no-console
 				console.warn(`[CnIndexPage] listComponent "${this.listComponent}" not found in customComponents registry. Falling back to CnObjectRow.`)
 				return null
 			}
@@ -3456,6 +3459,7 @@ export default {
 					.filter((f) => f.id !== null && f.id !== undefined)
 					.sort((a, b) => String(a.name).localeCompare(String(b.name)))
 			} catch (e) {
+				// eslint-disable-next-line no-console
 				console.error('[CnIndexPage] failed to load folder register', e)
 				this.folderRegisterList = []
 			}
@@ -4191,6 +4195,7 @@ export default {
 			}
 			if (this.store) {
 				if (!this.objectType) {
+					// eslint-disable-next-line no-console
 					console.warn('[CnIndexPage] store prop is set but objectType is missing. Cannot save to store.')
 					return
 				}

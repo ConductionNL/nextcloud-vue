@@ -123,6 +123,7 @@ export default {
 					this.tags = await response.json()
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTagsTab: Failed to fetch tags', err)
 			} finally {
 				this.loading = false
@@ -139,6 +140,7 @@ export default {
 					this.availableTags = await response.json()
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTagsTab: Failed to fetch available tags', err)
 			}
 		},
@@ -179,6 +181,7 @@ export default {
 				this.newTagName = ''
 				this.fetchAvailableTags()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTagsTab: Failed to add tag', err)
 			} finally {
 				this.saving = false
@@ -198,6 +201,7 @@ export default {
 					this.tags = await response.json()
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTagsTab: Failed to remove tag', err)
 			}
 		},

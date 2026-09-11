@@ -93,6 +93,7 @@ export function useSubResource(store, endpoint, options = {}) {
 				// is already exposed via `error`; only genuine faults are logged,
 				// with the status and an unwrapped payload.
 				if (response.status !== 404) {
+					// eslint-disable-next-line no-console
 					console.error(
 						`Error fetching ${endpoint} for ${type}/${objectId}: `
 						+ `${response.status} ${response.statusText}`,
@@ -123,6 +124,7 @@ export function useSubResource(store, endpoint, options = {}) {
 				: { status: null, message: err.message, details: null, isValidation: false, fields: null, toString() {
 						return this.message
 					} }
+			// eslint-disable-next-line no-console
 			console.error(`Error fetching ${endpoint} for ${type}/${objectId}:`, err)
 			return []
 		} finally {

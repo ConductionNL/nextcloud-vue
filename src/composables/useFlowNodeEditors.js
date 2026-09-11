@@ -31,6 +31,7 @@ const editors = new Map()
  */
 export function registerFlowNodeEditor(nodeId, component) {
 	if (editors.has(nodeId)) {
+		// eslint-disable-next-line no-console
 		console.warn(`registerFlowNodeEditor: replacing the editor for "${nodeId}"`)
 	}
 

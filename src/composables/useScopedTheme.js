@@ -130,6 +130,7 @@ export function useScopedTheme(opts = {}) {
 	const doc = opts.doc || (typeof document !== 'undefined' ? document : null)
 	const warn = opts.warn || ((m) => {
 		try {
+			// eslint-disable-next-line no-console
 			console.warn(m)
 		} catch { /* noop */ }
 	})
