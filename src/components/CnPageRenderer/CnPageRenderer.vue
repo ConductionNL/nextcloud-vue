@@ -1121,6 +1121,7 @@ export default {
 				if (typeof fn === 'function') {
 					normalizedConfig = { ...rest, createOverride: fn }
 				} else {
+					// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 					console.warn(`[CnPageRenderer] config.createOverride "${name}" did not resolve to a registered function; dropping it.`)
 					normalizedConfig = rest
 				}

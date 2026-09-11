@@ -281,6 +281,7 @@ export default {
 				const data = await response.json()
 				this.contacts = this.unwrapList(data)
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnContactsCard: Failed to fetch contacts', err)
 				this.error = String(err?.message || err)
 				this.contacts = []

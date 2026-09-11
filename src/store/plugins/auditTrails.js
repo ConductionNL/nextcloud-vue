@@ -125,6 +125,7 @@ export function auditTrailsPlugin(options = {}) {
 
 					if (!response.ok) {
 						this.globalAuditTrailsError = await parseResponseError(response, 'audit trails')
+						// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 						console.error('Error fetching global audit trails:', this.globalAuditTrailsError)
 						return []
 					}
@@ -146,6 +147,7 @@ export function auditTrailsPlugin(options = {}) {
 					this.globalAuditTrailsError = error.name === 'TypeError'
 						? networkError(error)
 						: genericError(error)
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('Error fetching global audit trails:', error)
 					return []
 				} finally {
@@ -172,6 +174,7 @@ export function auditTrailsPlugin(options = {}) {
 
 					if (!response.ok) {
 						this.auditTrailStatisticsError = await parseResponseError(response, 'audit trail statistics')
+						// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 						console.error('Error fetching audit trail statistics:', this.auditTrailStatisticsError)
 						return { ...EMPTY_STATISTICS }
 					}
@@ -183,6 +186,7 @@ export function auditTrailsPlugin(options = {}) {
 					this.auditTrailStatisticsError = error.name === 'TypeError'
 						? networkError(error)
 						: genericError(error)
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('Error fetching audit trail statistics:', error)
 					return { ...EMPTY_STATISTICS }
 				} finally {
@@ -210,6 +214,7 @@ export function auditTrailsPlugin(options = {}) {
 
 					if (!response.ok) {
 						this.globalAuditTrailsError = await parseResponseError(response, 'audit trail')
+						// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 						console.error(`Error deleting audit trail ${id}:`, this.globalAuditTrailsError)
 						return false
 					}
@@ -225,6 +230,7 @@ export function auditTrailsPlugin(options = {}) {
 					this.globalAuditTrailsError = error.name === 'TypeError'
 						? networkError(error)
 						: genericError(error)
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error(`Error deleting audit trail ${id}:`, error)
 					return false
 				} finally {
@@ -257,6 +263,7 @@ export function auditTrailsPlugin(options = {}) {
 
 					if (!response.ok) {
 						this.globalAuditTrailsError = await parseResponseError(response, 'audit trails')
+						// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 						console.error('Error deleting audit trails:', this.globalAuditTrailsError)
 						return false
 					}
@@ -275,6 +282,7 @@ export function auditTrailsPlugin(options = {}) {
 					this.globalAuditTrailsError = error.name === 'TypeError'
 						? networkError(error)
 						: genericError(error)
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('Error deleting audit trails:', error)
 					return false
 				} finally {

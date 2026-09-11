@@ -907,6 +907,7 @@ export default {
 				const parsedValue = JSON.parse(value)
 				this.schema.properties[key].default = parsedValue
 			} catch (e) {
+				// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 				console.warn('Invalid JSON for default value:', e.message)
 			}
 		},

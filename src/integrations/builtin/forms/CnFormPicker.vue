@@ -309,6 +309,7 @@ export default {
 				const data = await response.json()
 				this.forms = this.unwrapList(data)
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnFormPicker: Failed to fetch forms', err)
 				this.error = String(err?.message || err)
 				this.forms = []

@@ -263,6 +263,7 @@ export function searchPlugin() {
 				}
 
 				if (!register || !schema) {
+					// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 					console.warn('[searchPlugin] refetchSearchCollection called without register/schema in searchParams')
 					return []
 				}
@@ -301,6 +302,7 @@ export function searchPlugin() {
 					}
 
 					if (!response.ok) {
+						// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 						console.error('[searchPlugin] Failed to fetch search collection:', response.status)
 						return []
 					}
@@ -328,6 +330,7 @@ export function searchPlugin() {
 
 					return results
 				} catch (error) {
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('[searchPlugin] Error fetching search collection:', error)
 					return []
 				} finally {

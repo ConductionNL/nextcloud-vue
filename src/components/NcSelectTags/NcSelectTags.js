@@ -76,6 +76,7 @@ export default {
 		// producing a wasted PROPFIND and a misleading "Loading systemtags
 		// failed" console error. We can't suppress the parent hook, so warn.
 		if (this.fetchTags === true && process.env.NODE_ENV !== 'production') {
+			// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 			console.warn('[NcSelectTags] `fetchTags` is unnecessary on this override and re-triggers upstream\'s broken systemtags parser (a harmless but logged "Loading systemtags failed" error). Remove the prop: system tags are fetched automatically when no `:options` are provided.')
 		}
 

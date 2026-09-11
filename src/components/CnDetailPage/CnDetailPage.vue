@@ -1917,6 +1917,7 @@ export default {
 				// always have Pinia active, so this branch only protects
 				// stand-alone test mounts.
 
+				// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 				console.warn('[CnDetailPage] useObjectStore() unavailable; schema-driven mode disabled.', err)
 				return null
 			}
@@ -2755,6 +2756,7 @@ export default {
 				}
 				await Promise.all(tasks)
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnDetailPage] schema-driven fetch failed:', err)
 			}
 		},
@@ -2795,6 +2797,7 @@ export default {
 					await store.fetchSchema(type)
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnDetailPage] create-mode schema fetch failed:', err)
 			}
 		},
@@ -3617,6 +3620,7 @@ export default {
 				const overlap = ['title', 'subtitle', 'register', 'schema', 'hiddenTabs', 'tabs']
 					.filter((field) => objectForm[field] !== undefined && props[field] !== undefined)
 				if (overlap.length > 0) {
+					// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 					console.warn(`[CnDetailPage] :sidebar (Object) and :sidebarProps both set ${overlap.join(', ')}; the :sidebar values win. Move all fields to :sidebar to silence this warning.`)
 					this.__sidebarConflictWarned = true
 				}
@@ -3641,6 +3645,7 @@ export default {
 			}
 			this.__sidebarBooleanWarned = true
 
+			// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 			console.warn('[CnDetailPage] :sidebar=Boolean is deprecated; pass an Object — see docs/components/cn-detail-page.md for the new shape.')
 		},
 	},

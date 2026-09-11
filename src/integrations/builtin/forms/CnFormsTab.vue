@@ -444,6 +444,7 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not load forms.')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnFormsTab] failed to fetch forms', err)
 				this.rawRows = []
 				this.error = t('nextcloud-vue', 'Could not load forms.')
@@ -485,12 +486,14 @@ export default {
 					body: JSON.stringify(payload),
 				})
 				if (!response.ok) {
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('[CnFormsTab] link failed', response.status, response.statusText)
 					return
 				}
 				this.showPicker = false
 				await this.fetchForms()
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnFormsTab] link error', err)
 			}
 		},
@@ -515,6 +518,7 @@ export default {
 				this.showCreate = false
 				await this.fetchForms()
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnFormsTab] create error', err)
 				this.createError = String(err?.message || err)
 			} finally {
@@ -537,11 +541,13 @@ export default {
 					headers: buildHeaders(),
 				})
 				if (!response.ok) {
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('[CnFormsTab] unlink failed', response.status, response.statusText)
 					return
 				}
 				this.rawRows = this.rawRows.filter((r) => String(r.id ?? r.formId ?? '') !== String(form.id))
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnFormsTab] unlink error', err)
 			}
 		},

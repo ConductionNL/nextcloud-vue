@@ -701,6 +701,7 @@ export default {
 					this.isCopied = false
 				}, 2000)
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('Failed to copy text:', err)
 			}
 		},

@@ -431,6 +431,7 @@ export default {
 				// object reach `groupedContacts` (Phase A / D-1 bug).
 				this.contacts = this.unwrapList(data)
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnContactsTab: Failed to fetch contacts', err)
 				this.error = String(err?.message || err)
 				this.contacts = []
@@ -472,6 +473,7 @@ export default {
 				await fetch(url, { method: 'DELETE', headers: buildHeaders() })
 				this.contacts = this.contactsArray.filter((c) => c.id !== contact.id)
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnContactsTab: Failed to unlink contact', err)
 			}
 		},
@@ -495,12 +497,14 @@ export default {
 					body: JSON.stringify(payload),
 				})
 				if (!response.ok) {
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('CnContactsTab: Failed to link picked contact', response.status)
 					return
 				}
 				this.showLinkDialog = false
 				await this.fetchContacts()
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnContactsTab: Failed to link picked contact', err)
 			}
 		},
@@ -525,12 +529,14 @@ export default {
 					body: JSON.stringify(payload),
 				})
 				if (!response.ok) {
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('CnContactsTab: Failed to create+link contact', response.status)
 					return
 				}
 				this.showCreateDialog = false
 				await this.fetchContacts()
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnContactsTab: Failed to create+link contact', err)
 			} finally {
 				this.createLoading = false

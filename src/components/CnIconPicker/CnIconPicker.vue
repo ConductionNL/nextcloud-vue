@@ -813,6 +813,7 @@ export default {
 					this.emitValue(response.url)
 				} catch (err) {
 					this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload icon')
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('Icon upload failed:', err)
 				} finally {
 					this.uploading = false

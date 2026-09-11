@@ -162,6 +162,7 @@ export function logsPlugin(options = {}) {
 				after(() => {
 					if (store.item?.id !== null && store.item?.id !== undefined) {
 						store.refreshLogs().catch((error) => {
+							// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 							console.error('logsPlugin: auto-refresh failed:', error)
 						})
 					} else {

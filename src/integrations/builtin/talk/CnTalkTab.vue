@@ -410,6 +410,7 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not link the room.')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnTalkTab] link room failed', err)
 				this.error = t('nextcloud-vue', 'Could not link the room.')
 			}
@@ -429,6 +430,7 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not create the room.')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnTalkTab] create room failed', err)
 				this.error = t('nextcloud-vue', 'Could not create the room.')
 			}
@@ -450,6 +452,7 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not unlink the room.')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnTalkTab] unlink room failed', err)
 				this.error = t('nextcloud-vue', 'Could not unlink the room.')
 			}
@@ -476,6 +479,7 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not load conversations.')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnTalkTab] failed to fetch rooms', err)
 				this.rooms = []
 				this.error = t('nextcloud-vue', 'Could not load conversations.')
