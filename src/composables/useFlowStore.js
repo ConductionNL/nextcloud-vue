@@ -257,10 +257,37 @@ export const useFlowStore = defineStore('cnFlow', {
 		replayUuid: null,
 		replayToken: 0,
 
+		// The flow LIST request, and nothing else. Read the comment below before
+		// reaching for it as "the editor is loading": it is not.
 		loading: false,
 		saving: false,
 		running: false,
 		checking: false,
+
+		// 🔴 WHAT `loading` DOES NOT COVER, AND WHY A SECOND FLAG EXISTS.
+		//
+		// `loading` is set around `GET /api/flows` alone. The editor's arrival is
+		// up to three requests deep: the list, then the run named by `?run=`,
+		// then the stored graph that run executed. The canvas rendered
+		// "No steps yet" through all of it, because `nodes.length === 0` is true
+		// for a flow that has not arrived yet.
+		//
+		// An empty state that means "still fetching" is indistinguishable from
+		// one that means "this flow has no steps", and only the second is an
+		// answer. So `bootstrapping` spans the WHOLE arrival: the surface about
+		// to make those requests raises it before the first one, and lowers it
+		// when the last has settled.
+		bootstrapping: false,
+
+		// The run the URL named, from before it has been fetched.
+		//
+		// `inspectedRunUuid` is only set once `inspectRun()` runs, and that is
+		// behind the flow load, so a visitor arriving on `/flows/x?run=y` saw
+		// the full flow editor first and the run view a moment later, complete
+		// with Add a step, Save and a sidebar telling them to save the flow.
+		// The URL had already said a run was being viewed, so this records that
+		// fact synchronously and `inRunView` reads both.
+		openingRunUuid: null,
 
 		// The engine's verdict on the unsaved canvas, from `check()`. Cleared
 		// by any edit that could change it, so a stale "looks runnable" never
@@ -365,6 +392,34 @@ export const useFlowStore = defineStore('cnFlow', {
 		 */
 		graphLocked: (state) => state.viewingVersion !== null
 			|| ['published', 'deprecated'].includes(state.flow.lifecycleStatus),
+
+		/**
+		 * Whether the surfaces are showing a RUN rather than the flow.
+		 *
+		 * 🔑 TWO SOURCES, AND THE EARLY ONE IS THE POINT. `inspectedRunUuid` is
+		 * the run that has been read; `openingRunUuid` is the run the URL named,
+		 * known before anything is fetched. Reading only the first meant the
+		 * editor spent the whole load in flow-edit mode with the address bar
+		 * already saying otherwise, so the reader was offered Add a step, Save
+		 * and Run on a page that was about to become read-only.
+		 *
+		 * @param {object} state The store state.
+		 * @return {boolean} True while a run is open or being opened.
+		 */
+		inRunView: (state) => Boolean(state.inspectedRunUuid) || state.openingRunUuid !== null,
+
+		/**
+		 * Whether the canvas is still waiting for the graph it is going to show.
+		 *
+		 * The one flag a canvas should ask, rather than assembling it from
+		 * `loading` plus two run flags at every call site: any of the three
+		 * requests behind the first paint being in the air means the graph on
+		 * screen is not yet an answer.
+		 *
+		 * @param {object} state The store state.
+		 * @return {boolean} True while the graph is still being fetched.
+		 */
+		canvasLoading: (state) => state.bootstrapping === true || state.openingRunUuid !== null,
 
 		/**
 		 * Whether there is anything to undo. Drives the toolbar's disabled state.
@@ -629,6 +684,68 @@ export const useFlowStore = defineStore('cnFlow', {
 	},
 
 	actions: {
+		/**
+		 * Declare that the editor is opening, before the first request goes out.
+		 *
+		 * 🔴 CALLED FROM `created()`, NOT FROM `load()`, AND THAT IS THE FIX.
+		 * A flag raised inside `load()` is raised one tick too late: Vue renders
+		 * the component before `mounted()` runs, so the first paint had
+		 * `bootstrapping === false` with nothing loaded, the exact frame that
+		 * showed the editor's toolbar over "No steps yet". The surface that is
+		 * about to load says so before it renders.
+		 *
+		 * @param {string|null} runUuid The run the URL named, if it named one.
+		 * @return {void}
+		 */
+		beginBootstrap(runUuid = null) {
+			this.bootstrapping = true
+			this.openingRunUuid = runUuid || null
+		},
+
+		/**
+		 * The arrival has settled: the flow, and the run if there was one, are
+		 * as loaded as they are going to get.
+		 *
+		 * Lowers both flags. A failed load lands here too, via a `finally` at
+		 * the call site, because a canvas stuck saying "loading" forever is a
+		 * worse lie than the one this replaced.
+		 *
+		 * @return {void}
+		 */
+		endBootstrap() {
+			this.bootstrapping = false
+			this.openingRunUuid = null
+		},
+
+		/**
+		 * Enter run view for a run that has not been read yet.
+		 *
+		 * Separate from `beginBootstrap` because a run can also be opened on a
+		 * flow that is already on the canvas: `?run=` changing on the same route
+		 * reuses the component, so there is no fresh arrival to hang it on.
+		 *
+		 * @param {string} runUuid The run being opened.
+		 * @return {void}
+		 */
+		beginOpeningRun(runUuid) {
+			if (!runUuid) {
+				return
+			}
+
+			this.openingRunUuid = runUuid
+		},
+
+		/**
+		 * The run has been read, or the attempt failed. Either way it is no
+		 * longer being opened, and `inspectedRunUuid` is what holds run view
+		 * from here on.
+		 *
+		 * @return {void}
+		 */
+		endOpeningRun() {
+			this.openingRunUuid = null
+		},
+
 		/**
 		 * Load the flows this surface is scoped to, plus both catalogues.
 		 *
@@ -2276,6 +2393,10 @@ export const useFlowStore = defineStore('cnFlow', {
 		 */
 		closeRun() {
 			this.inspectedRunUuid = null
+			// The other half of run view. Leaving it set would keep every
+			// surface in run view after the reader asked to go back to the flow,
+			// and the canvas would keep saying the run was still opening.
+			this.openingRunUuid = null
 			this.steps = []
 			this.runObjects = []
 			this.runTasks = []
