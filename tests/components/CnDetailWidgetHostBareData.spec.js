@@ -53,6 +53,30 @@ describe('CnDetailWidgetHost — a data widget in a tab panel', () => {
 		expect(data.props('chromeless')).toBe(true)
 	})
 
+	it('asks it to drop the overflow menu too, because the tab strip has one', () => {
+		// The first version of this fix took the title, the border and the
+		// padding and stopped there, and the panel still carried a 59px band
+		// with a divider rule whose only content was an Actions menu sitting
+		// about eight pixels from the tab strip's own. Removing three quarters
+		// of a nested card still reads as a nested card.
+		//
+		// Nothing is lost by it: a cell opens its editor when clicked, Save and
+		// Discard appear the moment there is an edit to commit, and the full
+		// edit dialog is on the page header.
+		const data = mountHost('bare').findComponent(CnObjectDataWidget)
+		expect(data.props('showActions')).toBe(false)
+	})
+
+	it('renders no header band at all in a bare panel', () => {
+		const wrapper = mountHost('bare')
+		expect(wrapper.find('.cn-widget-wrapper__header').exists()).toBe(false)
+	})
+
+	it('keeps the overflow menu on a grid surface', () => {
+		const data = mountHost('card').findComponent(CnObjectDataWidget)
+		expect(data.props('showActions')).toBe(true)
+	})
+
 	it('renders no title row in the panel', () => {
 		const wrapper = mountHost('bare')
 		// The rendered DOM, not just the props: a component that accepted the
@@ -188,6 +212,31 @@ describe('CnWidgetWrapper — header without a title', () => {
 			propsData: { title: 'Data', showTitle: false, showActions: false },
 		})
 		expect(wrapper.find('.cn-widget-wrapper__header').exists()).toBe(false)
+	})
+
+	it('ignores a slot that is provided but renders nothing', () => {
+		// The condition used to read `Boolean($slots.actions)`, which is true for
+		// a template the caller filled conditionally and left empty. That is the
+		// normal state of `CnObjectDataWidget`: Save and Discard are v-if on an
+		// unsaved edit, so a panel nobody was editing grew a header for controls
+		// that were not there.
+		const wrapper = mount(CnWidgetWrapper, {
+			propsData: { title: 'Data', showTitle: false, showActions: false },
+			slots: { actions: '<!-- v-if:false -->' },
+		})
+		expect(wrapper.find('.cn-widget-wrapper__header').exists()).toBe(false)
+	})
+
+	it('keeps the Save button even when the overflow menu is switched off', () => {
+		// `showActions` used to gate the whole actions group, slot included, so a
+		// caller who only wanted the menu gone lost the button that commits an
+		// inline edit. The two are now separate conditions.
+		const wrapper = mount(CnWidgetWrapper, {
+			propsData: { title: 'Data', showTitle: false, showActions: false },
+			slots: { actions: '<button data-testid="save">Save</button>' },
+		})
+		expect(wrapper.find('[data-testid="save"]').exists()).toBe(true)
+		expect(wrapper.find('.cn-widget-wrapper__header').exists()).toBe(true)
 	})
 
 	it('renders the title row normally when asked for one', () => {
