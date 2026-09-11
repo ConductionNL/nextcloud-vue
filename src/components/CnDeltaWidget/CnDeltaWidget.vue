@@ -47,22 +47,23 @@
 </template>
 
 <script>
+import { NcLoadingIcon } from '@nextcloud/vue'
+import { inject, ref } from 'vue'
+import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
+import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
+import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
+import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
+import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
+import widgetLink from '../../mixins/widgetLink.js'
+import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
+import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { dropOptionalUnresolved, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+
 // The canonical KPI card, shared with CnStatWidget and CnStatsBlock.
 // Imported here so the tile is styled even when the consuming app pulls in
 // components individually rather than through css/index.css.
 import '../../css/kpi-card.css'
-import { inject, ref } from 'vue'
-import { NcLoadingIcon } from '@nextcloud/vue'
-import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
-import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
-import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
-import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
-import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
-import { dropOptionalUnresolved, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
-import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
-import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
-import widgetLink from '../../mixins/widgetLink.js'
-import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 
 /**
  * CnDeltaWidget — an abstract comparison / delta KPI tile.

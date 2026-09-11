@@ -75,7 +75,7 @@
 
 <script>
 import { NcActionButton, NcActions } from '@nextcloud/vue'
-import { CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, clearContextMenuPositionDom } from '../../composables/useContextMenu.js'
+import { clearContextMenuPositionDom, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR } from '../../composables/useContextMenu.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**

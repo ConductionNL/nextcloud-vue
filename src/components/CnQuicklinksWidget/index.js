@@ -6,8 +6,8 @@
  * into the shared dashboardWidgetRegistry at module load.
  */
 
-import CnQuicklinksWidget from './CnQuicklinksWidget.vue'
 import CnQuicklinksWidgetForm from '../CnQuicklinksWidgetForm/CnQuicklinksWidgetForm.vue'
+import CnQuicklinksWidget from './CnQuicklinksWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('quicklinks', {

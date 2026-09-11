@@ -174,11 +174,11 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcTextField,
-	NcTextArea,
-	NcNoteCard,
 	NcCheckboxRadioSwitch,
+	NcNoteCard,
 	NcSelect,
+	NcTextArea,
+	NcTextField,
 } from '@nextcloud/vue'
 
 /**

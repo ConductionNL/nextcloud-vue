@@ -93,13 +93,13 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcEmptyContent } from '@nextcloud/vue'
-import CnIcon from '../CnIcon/CnIcon.vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
-import { CnActionsMenu } from '../CnActionsMenu/index.js'
-import CnTabs from '../CnTabs/CnTabs.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTab from '../CnTabs/CnTab.vue'
-import { widgetTitleOf } from '../../utils/widgetDispatch.js'
+import CnTabs from '../CnTabs/CnTabs.vue'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
+import { widgetTitleOf } from '../../utils/widgetDispatch.js'
+import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
 /**
  * CnTabsWidget — a widget that holds other widgets, one per tab.

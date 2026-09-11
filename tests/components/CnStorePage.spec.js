@@ -14,7 +14,6 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import { showSuccess } from '@nextcloud/dialogs'
 import { flushPromises, mount } from '@vue/test-utils'
-
 import CnStorePage from '../../src/components/CnStorePage/CnStorePage.vue'
 
 jest.mock('@nextcloud/auth', () => ({

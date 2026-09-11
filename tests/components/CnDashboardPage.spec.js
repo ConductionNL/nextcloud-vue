@@ -210,9 +210,9 @@ describe('CnDashboardPage — chart widget dispatcher', () => {
 })
 
 describe('CnDashboardPage — integration widget dispatcher', () => {
+	const { h } = require('vue')
 	// CnDashboardPage's setup() consumes the default registry singleton.
 	const { integrations } = require('@/integrations/registry.js')
-	const { h } = require('vue')
 
 	const IntegrationWidget = {
 		name: 'IntegrationWidget',
@@ -459,8 +459,8 @@ describe('CnDashboardPage — per-widget configure cog (ADR-041)', () => {
 })
 
 describe('CnDashboardPage — card-fit registry widgets', () => {
-	const { registerDashboardWidget } = require('@/components/CnWidgetGrid/dashboardWidgetRegistry.js')
 	const { h } = require('vue')
+	const { registerDashboardWidget } = require('@/components/CnWidgetGrid/dashboardWidgetRegistry.js')
 	// Render functions (not `template:` strings) so they mount under the
 	// runtime-only Vue build the dynamic `<component :is>` uses.
 	const CardRenderer = { name: 'CardRenderer', props: ['content'], render() { return h('div', { class: 'card-renderer-stub' }) } }

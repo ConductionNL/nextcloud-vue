@@ -267,11 +267,11 @@
 import { translate as t } from '@nextcloud/l10n'
 import Cancel from 'vue-material-design-icons/Cancel.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
-import { findIconByValue } from './iconCatalogue.js'
-import { fuzzyFilter } from './fuzzy.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
 import { nextUid } from '../../utils/uid.js'
 import { isCustomIconUrl } from '../CnIconPicker/dashboardIcons.js'
+import { fuzzyFilter } from './fuzzy.js'
+import { findIconByValue } from './iconCatalogue.js'
 
 /**
  * CnIconBrowserPanel — the always-open picker panel used by

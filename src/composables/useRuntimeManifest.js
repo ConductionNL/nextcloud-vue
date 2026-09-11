@@ -19,9 +19,9 @@
  * Spec: REQ-MVR-001 (manifest-v2-renderer) / ADR-036 Decision 8 + Amendment
  */
 
-import { ref } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { ref } from 'vue'
 import { mergeManifestDelta } from '../utils/mergeManifestDelta.js'
 
 /**

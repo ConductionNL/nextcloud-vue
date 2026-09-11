@@ -5,8 +5,8 @@
 
 import { mount } from '@vue/test-utils'
 import CnCommandPalette from '@/components/CnCommandPalette/CnCommandPalette.vue'
-import { useCommandPalette } from '@/composables/useCommandPalette.js'
 import { createCommandRegistry } from '@/commandPalette/registry.js'
+import { useCommandPalette } from '@/composables/useCommandPalette.js'
 
 const manifest = {
 	menu: [

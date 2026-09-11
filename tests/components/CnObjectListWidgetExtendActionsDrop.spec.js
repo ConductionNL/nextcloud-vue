@@ -14,7 +14,7 @@
  * matters is on the OUTGOING PARAMS, not on anything the component renders.
  */
 
-import { shallowMount, flushPromises } from '@vue/test-utils'
+import { flushPromises, shallowMount } from '@vue/test-utils'
 
 // `mock`-prefixed so jest's hoisted factory may close over it.
 const mockGet = jest.fn()

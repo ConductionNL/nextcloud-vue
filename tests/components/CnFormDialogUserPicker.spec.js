@@ -18,9 +18,9 @@ jest.mock('../../src/utils/userAutocomplete.js', () => ({
 	resolveNextcloudUser: jest.fn().mockResolvedValue({ id: 'henk', label: 'Henk Bakker' }),
 }))
 
-// Import AFTER the mock is registered.
-import { searchNextcloudUsers, resolveNextcloudUser } from '../../src/utils/userAutocomplete.js'
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
+// Import AFTER the mock is registered.
+import { resolveNextcloudUser, searchNextcloudUsers } from '../../src/utils/userAutocomplete.js'
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0))
 

@@ -5,19 +5,19 @@
 
 'use strict'
 
-const { mergeDashboardWidgetsAndLayout } = require('./transforms/mergeDashboardWidgetsAndLayout')
-const { liftSidebarTabWidgets } = require('./transforms/liftSidebarTabWidgets')
+const { runConvergence } = require('./convergence')
+const { createReportBuilder } = require('./reportBuilder')
+const { addExplicitActionTypes } = require('./transforms/addExplicitActionTypes')
+const { carryForwardVerbatimFields } = require('./transforms/carryForwardVerbatimFields')
+const { dropUnrenderableActions } = require('./transforms/dropUnrenderableActions')
 const { flattenSettingsSectionWidgets } = require('./transforms/flattenSettingsSectionWidgets')
 const { flattenSettingsTabs } = require('./transforms/flattenSettingsTabs')
-const { migrateCardComponent } = require('./transforms/migrateCardComponent')
-const { addExplicitActionTypes } = require('./transforms/addExplicitActionTypes')
-const { dropUnrenderableActions } = require('./transforms/dropUnrenderableActions')
-const { carryForwardVerbatimFields } = require('./transforms/carryForwardVerbatimFields')
 const { handleCustomPages } = require('./transforms/handleCustomPages')
+const { liftSidebarTabWidgets } = require('./transforms/liftSidebarTabWidgets')
+const { mergeDashboardWidgetsAndLayout } = require('./transforms/mergeDashboardWidgetsAndLayout')
+const { migrateCardComponent } = require('./transforms/migrateCardComponent')
 const { migrateCustomComponents } = require('./transforms/migrateCustomComponents')
 const { updateSchemaField } = require('./transforms/updateSchemaField')
-const { createReportBuilder } = require('./reportBuilder')
-const { runConvergence } = require('./convergence')
 
 /**
  * Run the full v1 → v2 transformation pipeline on a manifest object.

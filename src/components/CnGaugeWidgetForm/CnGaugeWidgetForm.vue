@@ -112,13 +112,13 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
+import { NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
-import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
+import { filterToRows, rowsToFilter } from '../CnFilterRowsEditor/filterRows.js'
 
 const DEFAULT_CONTENT = Object.freeze({
 	label: '',

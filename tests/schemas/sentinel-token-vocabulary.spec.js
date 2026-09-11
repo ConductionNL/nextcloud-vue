@@ -14,8 +14,8 @@
  */
 
 import schema from '../../src/schemas/app-manifest-v2.schema.json'
-import { validateManifestV2 } from '../../src/utils/validateManifest.js'
 import { SENTINEL_TOKEN_PATTERNS } from '../../src/utils/sentinelTokens.js'
+import { validateManifestV2 } from '../../src/utils/validateManifest.js'
 
 const DEF_FOR_CONTEXT = {
 	filter: 'sentinelFilterToken',

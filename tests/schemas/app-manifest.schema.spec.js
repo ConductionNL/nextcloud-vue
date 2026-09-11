@@ -13,11 +13,11 @@
  */
 
 import schema from '../../src/schemas/app-manifest.schema.json'
-import valid from '../fixtures/manifest-valid.json'
-import invalid from '../fixtures/manifest-invalid.json'
+import { validateManifest } from '../../src/utils/validateManifest.js'
 import allTypes from '../fixtures/manifest-all-types.json'
 import invalidTypeConfig from '../fixtures/manifest-invalid-type-config.json'
-import { validateManifest } from '../../src/utils/validateManifest.js'
+import invalid from '../fixtures/manifest-invalid.json'
+import valid from '../fixtures/manifest-valid.json'
 
 describe('app-manifest.schema.json (metadata)', () => {
 	it('declares JSON Schema draft 2020-12', () => {

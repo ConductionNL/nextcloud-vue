@@ -118,7 +118,7 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 
 /**
  * CnWizardDialog — Multi-step modal with per-step slots,

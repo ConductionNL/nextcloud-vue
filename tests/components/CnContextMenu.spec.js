@@ -1,6 +1,6 @@
+import { mount } from '@vue/test-utils'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { mount } from '@vue/test-utils'
 import CnContextMenu from '@/components/CnContextMenu/CnContextMenu.vue'
 import { CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR } from '@/composables/useContextMenu.js'
 

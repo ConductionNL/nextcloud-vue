@@ -51,9 +51,9 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
 import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
-import axios from '@nextcloud/axios'
 
 /**
  * Pattern for `openregister://widget/<schemaSlug>/<widgetSlug>`.

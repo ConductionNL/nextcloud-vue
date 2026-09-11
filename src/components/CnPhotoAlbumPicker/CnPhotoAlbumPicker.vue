@@ -96,7 +96,7 @@
  *
  * @see ADR-019 (pluggable integrations) and ADR-022 (sidebar tabs)
  */
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import ImageMultiple from 'vue-material-design-icons/ImageMultiple.vue'
 import { buildHeaders } from '../../utils/index.js'

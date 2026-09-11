@@ -3,9 +3,9 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
  */
 
-import { defineStore } from 'pinia'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { defineStore } from 'pinia'
 
 /**
  * The OpenRegister inbox read behind the `tasks` entity source.

@@ -217,8 +217,8 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
 	NcCheckboxRadioSwitch,
@@ -227,11 +227,11 @@ import {
 	NcTextField,
 } from '@nextcloud/vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
+import CnRegisterMapping from '../CnRegisterMapping/CnRegisterMapping.vue'
+import CnVersionInfoCard from '../CnVersionInfoCard/CnVersionInfoCard.vue'
+import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnSettingsCard } from '../CnSettingsCard/index.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
-import { CnPageHeader } from '../CnPageHeader/index.js'
-import CnVersionInfoCard from '../CnVersionInfoCard/CnVersionInfoCard.vue'
-import CnRegisterMapping from '../CnRegisterMapping/CnRegisterMapping.vue'
 import CnSettingsWidgetMount from './CnSettingsWidgetMount.js'
 
 /**

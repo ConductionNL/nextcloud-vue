@@ -63,7 +63,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcTextField, NcTextArea, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcTextArea, NcTextField } from '@nextcloud/vue'
 import { fieldsFromSchema } from '../utils/schema.js'
 
 /**

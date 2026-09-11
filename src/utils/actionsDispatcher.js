@@ -43,6 +43,8 @@
 
 import { emit } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
+import { parseDispositionFilename, triggerBlobDownload } from '../components/CnIndexPage/selfModeIO.js'
+import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
 import {
 	dropOptionalUnresolved,
 	dropOptionalUnresolvedDeep,
@@ -51,8 +53,6 @@ import {
 	resolveDeepTokens,
 	resolveFilterTokens,
 } from './resolveFilterTokens.js'
-import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
-import { parseDispositionFilename, triggerBlobDownload } from '../components/CnIndexPage/selfModeIO.js'
 
 /** Event-bus channel the page-level Refresh signal broadcasts on (Wave 2). */
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'

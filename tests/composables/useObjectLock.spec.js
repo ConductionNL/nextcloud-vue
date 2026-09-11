@@ -18,14 +18,13 @@ jest.mock('@nextcloud/auth', () => ({
 
 const axios = require('@nextcloud/axios').default
 const auth = require('@nextcloud/auth')
+const { mount } = require('@vue/test-utils')
+const { defineComponent, h } = require('vue')
 const {
 	useObjectLock,
 	LockConflictError,
 	PermissionError,
 } = require('../../src/composables/useObjectLock.js')
-
-const { defineComponent, h } = require('vue')
-const { mount } = require('@vue/test-utils')
 
 function makeStore(initialLocked = null) {
 	return {

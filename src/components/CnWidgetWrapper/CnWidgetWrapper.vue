@@ -155,8 +155,8 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import { slotRenders } from '../../utils/slotContent.js'
+import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
 /**
  * CnWidgetWrapper — Widget container with header, content, and footer.

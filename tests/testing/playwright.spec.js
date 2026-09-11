@@ -16,29 +16,28 @@
  * fabricated Vue 3 vnode tree.
  */
 
+import { WALKTHROUGH_SEEN_STORAGE_PREFIX } from '../../src/composables/useWalkthrough.js'
 import {
-	SUPPORT_DIALOG_STORAGE_PREFIX,
-	WALKTHROUGH_STORAGE_PREFIX,
+	appDialog,
 	CHROME_DIALOG_SELECTORS,
+	dismissFirstVisitOverlays,
+	dismissSupportDialog,
+	dismissWalkthrough,
+	findMounted,
 	FIRST_RUN_WIZARD_ROUTE,
-	NO_USER_SESSION,
 	GUEST_SURFACE,
 	guestSurfaceStatus,
+	mountedComponentNames,
+	mountedComponents,
+	NO_USER_SESSION,
+	readComponentProp,
+	retireFirstRunWizard,
+	seedFirstVisitOverlaysSeen,
 	seedSupportDialogSeen,
 	seedWalkthroughSeen,
-	seedFirstVisitOverlaysSeen,
-	dismissWalkthrough,
-	dismissSupportDialog,
-	dismissFirstVisitOverlays,
-	appDialog,
-	retireFirstRunWizard,
-	mountedComponents,
-	mountedComponentNames,
-	findMounted,
-	readComponentProp,
+	SUPPORT_DIALOG_STORAGE_PREFIX,
+	WALKTHROUGH_STORAGE_PREFIX,
 } from '../../testing/playwright.js'
-
-import { WALKTHROUGH_SEEN_STORAGE_PREFIX } from '../../src/composables/useWalkthrough.js'
 
 /**
  * The PRISTINE `Storage` accessors, captured at module load — before any test

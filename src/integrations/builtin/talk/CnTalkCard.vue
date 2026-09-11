@@ -107,7 +107,7 @@
 </template>
 
 <script>
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcCounterBubble, NcLoadingIcon } from '@nextcloud/vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'

@@ -110,11 +110,11 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcListItem, NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
-import Upload from 'vue-material-design-icons/Upload.vue'
+import { NcActionButton, NcButton, NcCheckboxRadioSwitch, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
 import { buildHeaders } from '../../utils/index.js'
 import { safeHref } from '../../utils/safeHref.js'
 

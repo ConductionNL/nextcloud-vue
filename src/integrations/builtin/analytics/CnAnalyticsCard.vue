@@ -114,7 +114,7 @@
 </template>
 
 <script>
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import ChartBar from 'vue-material-design-icons/ChartBar.vue'
 import ChartLine from 'vue-material-design-icons/ChartLine.vue'

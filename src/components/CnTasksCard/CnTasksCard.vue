@@ -89,11 +89,10 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
-import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
 import CheckboxBlankOutline from 'vue-material-design-icons/CheckboxBlankOutline.vue'
-import ProgressClock from 'vue-material-design-icons/ProgressClock.vue'
+import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
 import CloseCircleOutline from 'vue-material-design-icons/CloseCircleOutline.vue'
-
+import ProgressClock from 'vue-material-design-icons/ProgressClock.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import CnUserActionMenu from '../CnUserActionMenu/CnUserActionMenu.vue'
 import { buildHeaders } from '../../utils/index.js'

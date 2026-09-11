@@ -98,8 +98,8 @@ import {
 	NcTextArea,
 	NcTextField,
 } from '@nextcloud/vue'
-import CnJsonViewer from '../components/CnJsonViewer/CnJsonViewer.vue'
 import CnFileField from '../components/CnFileField/CnFileField.vue'
+import CnJsonViewer from '../components/CnJsonViewer/CnJsonViewer.vue'
 
 /**
  * Whether the installed `@nextcloud/vue` actually provided `NcTextArea`.

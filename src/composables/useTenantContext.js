@@ -27,7 +27,7 @@
  * Options-API mixin in `src/mixins/tenantContext.js`.
  */
 
-import { ref, inject, provide } from 'vue'
+import { inject, provide, ref } from 'vue'
 
 /** Injection key used by both `provideTenantContext` and `useTenantContext`. */
 export const TENANT_CONTEXT_KEY = Symbol('cn:tenantContext')

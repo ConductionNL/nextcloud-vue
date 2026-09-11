@@ -83,9 +83,9 @@
 </template>
 
 <script>
-import draggable from 'vuedraggable'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon, NcEmptyContent } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import draggable from 'vuedraggable'
 import ViewColumn from 'vue-material-design-icons/ViewColumn.vue'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 

@@ -1,8 +1,8 @@
-import { ref, shallowRef } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
+import { ref, shallowRef } from 'vue'
 import { mergeManifestDelta } from '../utils/mergeManifestDelta.js'
+import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
 
 /**
  * Lazily import the manifest validator. The validator plus its compiled Ajv

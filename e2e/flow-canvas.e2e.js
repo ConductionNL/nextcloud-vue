@@ -23,7 +23,7 @@
 // keyboard regression without noticing, so `keyboard only` below uses NO
 // pointer events at all.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const CANVAS = '/?canvas=1'
 const READONLY = '/?canvas=1&readonly=1'

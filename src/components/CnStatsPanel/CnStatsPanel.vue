@@ -143,16 +143,17 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
+import { NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { CnIcon } from '../CnIcon/index.js'
+import { CnKpiGrid } from '../CnKpiGrid/index.js'
+import { CnProgressBar } from '../CnProgressBar/index.js'
+import { CnStatsBlock } from '../CnStatsBlock/index.js'
+
 // The canonical KPI scale (`--cn-kpi-*`) lives in one stylesheet. Imported
 // here as well as from css/index.css so the tokens resolve even when the
 // consuming app pulls in components individually.
 import '../../css/kpi-card.css'
-import { translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon, NcListItem } from '@nextcloud/vue'
-import { CnStatsBlock } from '../CnStatsBlock/index.js'
-import { CnKpiGrid } from '../CnKpiGrid/index.js'
-import { CnIcon } from '../CnIcon/index.js'
-import { CnProgressBar } from '../CnProgressBar/index.js'
 
 /**
  * CnStatsPanel — Configurable statistics panel with sections of stat blocks and list items.

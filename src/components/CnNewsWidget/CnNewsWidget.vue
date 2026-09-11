@@ -73,9 +73,9 @@
 </template>
 
 <script>
-import DOMPurify from 'dompurify'
-import { translate as t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
+import DOMPurify from 'dompurify'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 
 const ALLOWED_LAYOUTS = ['list', 'grid', 'carousel']

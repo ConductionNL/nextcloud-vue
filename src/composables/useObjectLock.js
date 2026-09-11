@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Conduction B.V.
 
-import { computed, unref, onMounted, onBeforeUnmount } from 'vue'
-import { tryOnScopeDispose } from '@vueuse/core'
+import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { getCurrentUser } from '@nextcloud/auth'
+import { tryOnScopeDispose } from '@vueuse/core'
+import { computed, onBeforeUnmount, onMounted, unref } from 'vue'
 
 /**
  * Thrown when an `acquire()` POST returns 409 (Conflict) or 423

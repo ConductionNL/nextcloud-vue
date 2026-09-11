@@ -200,9 +200,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import CnDashboardIcon from './CnDashboardIcon.vue'
-import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import Cancel from 'vue-material-design-icons/Cancel.vue'
+import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
+import CnDashboardIcon from './CnDashboardIcon.vue'
 import { DASHBOARD_ICONS, isCustomIconUrl } from './dashboardIcons.js'
 import { dedupeCatalogue } from './iconCatalogues.js'
 

@@ -79,12 +79,12 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcTextField, NcSelect, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import Plus from 'vue-material-design-icons/Plus.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
-import ArrowUp from 'vue-material-design-icons/ArrowUp.vue'
+import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
 import ArrowDown from 'vue-material-design-icons/ArrowDown.vue'
+import ArrowUp from 'vue-material-design-icons/ArrowUp.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 const ACTION_TYPES = ['open-page', 'navigate', 'open-modal', 'handler']

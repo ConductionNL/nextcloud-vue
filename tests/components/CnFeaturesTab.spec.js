@@ -9,7 +9,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnFeaturesTab from '../../src/components/CnFeaturesTab/CnFeaturesTab.vue'
 
 const mountOpts = {

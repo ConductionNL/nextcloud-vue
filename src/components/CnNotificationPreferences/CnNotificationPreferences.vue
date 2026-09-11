@@ -48,6 +48,9 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 /**
  * CnNotificationPreferences
  *
@@ -77,11 +80,8 @@
  * than guessed into the wrong app.
  */
 import { NcAppSettingsSection, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
-import axios from '@nextcloud/axios'
-import BellOutline from 'vue-material-design-icons/BellOutline.vue'
 import BellOffOutline from 'vue-material-design-icons/BellOffOutline.vue'
+import BellOutline from 'vue-material-design-icons/BellOutline.vue'
 
 const PREFS_PATH = '/apps/openregister/api/notification-preferences'
 

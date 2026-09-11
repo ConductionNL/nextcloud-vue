@@ -26,7 +26,6 @@ jest.mock('../../src/utils/index.js', () => ({
 }))
 
 import { mount } from '@vue/test-utils'
-
 import CnIntegrationCard from '../../src/components/CnIntegrationCard/CnIntegrationCard.vue'
 
 const flush = () => new Promise((r) => setTimeout(r, 0))

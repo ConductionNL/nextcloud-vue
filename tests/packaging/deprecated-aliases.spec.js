@@ -28,8 +28,8 @@
  */
 
 describe('deprecated aliases kept for consumers', () => {
-	const composables = require('../../src/composables/index.js')
 	const components = require('../../src/components/index.js')
+	const composables = require('../../src/composables/index.js')
 
 	it.each([
 		['useBuildiqEditAvailability', 'useOpenBuildEditAvailability'],

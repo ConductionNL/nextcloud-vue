@@ -119,7 +119,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcButton, NcListItem, NcLoadingIcon, NcSelect, NcDateTimePickerNative } from '@nextcloud/vue'
+import { NcButton, NcDateTimePickerNative, NcListItem, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import History from 'vue-material-design-icons/History.vue'
 import { buildHeaders } from '../../utils/index.js'
 

@@ -1,6 +1,6 @@
-import { ref, computed, onMounted } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
+import { computed, onMounted, ref } from 'vue'
 import { filterWidgetsByVisibility } from '../utils/widgetVisibility.js'
 
 /**

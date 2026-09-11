@@ -13,7 +13,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnFormDialog from '@/components/CnFormDialog/CnFormDialog.vue'
 
 const stubs = {

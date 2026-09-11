@@ -107,8 +107,8 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import CnPageHeader from '../CnPageHeader/CnPageHeader.vue'
 import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
+import CnPageHeader from '../CnPageHeader/CnPageHeader.vue'
 
 /**
  * CnMapPage — manifest `type: "map"` renderer.

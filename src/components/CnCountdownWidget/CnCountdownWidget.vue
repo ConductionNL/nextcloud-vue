@@ -24,8 +24,8 @@
 </template>
 
 <script>
-import { inject } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
+import { inject } from 'vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { getByPath } from '../../composables/useEndpointSource.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'

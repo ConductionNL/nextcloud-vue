@@ -99,14 +99,14 @@
 </template>
 
 <script>
-import { NcButton, NcTextField, NcSelect, NcPopover } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
-import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
+import { NcButton, NcPopover, NcSelect, NcTextField } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import DragVertical from 'vue-material-design-icons/DragVertical.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
 
 /**
  * CnMenuTreeRow — one editable menu-item row for CnMenuTreeNode (ADR-041).

@@ -85,12 +85,12 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcDialog,
 	NcButton,
-	NcTextField,
-	NcTextArea,
-	NcLoadingIcon,
 	NcDateTimePickerNative,
+	NcDialog,
+	NcLoadingIcon,
+	NcTextArea,
+	NcTextField,
 } from '@nextcloud/vue'
 import { buildHeaders } from '../../utils/index.js'
 

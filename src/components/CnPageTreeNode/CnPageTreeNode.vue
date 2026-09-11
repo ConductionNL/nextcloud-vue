@@ -43,8 +43,8 @@
 </template>
 
 <script>
-import draggable from 'vuedraggable'
 import { translate as t } from '@nextcloud/l10n'
+import draggable from 'vuedraggable'
 import CnPageTreeRow from './CnPageTreeRow.vue'
 
 // Stable per-page-object render keys, independent of the mutable `id`. Keyed by

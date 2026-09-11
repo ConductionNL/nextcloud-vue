@@ -2,21 +2,21 @@
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 
 import { mount } from '@vue/test-utils'
-import CnIconPicker from '../../src/components/CnIconPicker/CnIconPicker.vue'
-import CnDashboardIcon from '../../src/components/CnIconPicker/CnDashboardIcon.vue'
-import CnIcon from '../../src/components/CnIcon/CnIcon.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
+import CnIcon from '../../src/components/CnIcon/CnIcon.vue'
+import CnDashboardIcon from '../../src/components/CnIconPicker/CnDashboardIcon.vue'
+import CnIconPicker from '../../src/components/CnIconPicker/CnIconPicker.vue'
 import {
+	DASHBOARD_ICONS,
+	DEFAULT_ICON,
 	getIconComponent,
 	isCustomIconUrl,
-	DEFAULT_ICON,
-	DASHBOARD_ICONS,
 } from '../../src/components/CnIconPicker/dashboardIcons.js'
 import {
-	fromMdiJs,
-	fromFontAwesome,
-	fromOpenGemeenten,
 	dedupeCatalogue,
+	fromFontAwesome,
+	fromMdiJs,
+	fromOpenGemeenten,
 } from '../../src/components/CnIconPicker/iconCatalogues.js'
 
 const mocks = { t: (_app, s) => s }

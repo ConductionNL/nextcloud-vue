@@ -51,8 +51,8 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
-import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
+import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import { buildHeaders } from '../../utils/index.js'
 import { safeHref } from '../../utils/safeHref.js'

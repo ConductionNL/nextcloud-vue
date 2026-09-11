@@ -54,12 +54,12 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActions, NcActionButton } from '@nextcloud/vue'
-import TuneVariant from 'vue-material-design-icons/TuneVariant.vue'
+import { NcActionButton, NcActions } from '@nextcloud/vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
-import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
-import Import from 'vue-material-design-icons/Import.vue'
 import Export from 'vue-material-design-icons/Export.vue'
+import Import from 'vue-material-design-icons/Import.vue'
+import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import TuneVariant from 'vue-material-design-icons/TuneVariant.vue'
 
 /**
  * CnMassActionBar — Mass action dropdown button for selected items.

@@ -25,7 +25,7 @@
  * @module utils/diffManifest
  */
 
-import { KEYED_ARRAYS, DELTA_REMOVE } from './mergeManifestDelta.js'
+import { DELTA_REMOVE, KEYED_ARRAYS } from './mergeManifestDelta.js'
 
 /**
  * Compute the minimal delta from `base` to `edited`.

@@ -13,7 +13,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnFeaturesAndRoadmapView from '../../src/components/CnFeaturesAndRoadmapView/CnFeaturesAndRoadmapView.vue'
 
 const stubs = {

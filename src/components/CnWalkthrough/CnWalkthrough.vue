@@ -96,9 +96,9 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
-import Close from 'vue-material-design-icons/Close.vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import { useWalkthrough } from '../../composables/useWalkthrough.js'
 
 /**

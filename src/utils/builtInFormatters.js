@@ -1,4 +1,4 @@
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { safeCurrencyCode } from './formatMetric.js'
 
 /**

@@ -50,8 +50,8 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 import { RELATED_GROUPS } from '../CnRelatedObjectsWidget/relatedGroups.js'
 
 const DEFAULT_CONTENT = Object.freeze({

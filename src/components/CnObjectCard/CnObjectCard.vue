@@ -67,10 +67,10 @@
 
 <script>
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
+import { formatValue } from '../../utils/schema.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { CnLockIndicator } from '../CnLockIndicator/index.js'
-import { formatValue } from '../../utils/schema.js'
-import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 
 /**
  * CnObjectCard — Schema-configuration-driven card for object display.

@@ -14,8 +14,8 @@
  * and fails for a screen-reader user — so axe scans both modes.
  */
 
-const { mountAttached } = require('./support/mountAttached.js')
 const { expectAccessible } = require('../../src/testing/a11y.js')
+const { mountAttached } = require('./support/mountAttached.js')
 const CnDashboardGrid = require('../../src/components/CnDashboardGrid/CnDashboardGrid.vue').default
 
 const layout = [

@@ -67,10 +67,10 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcEmptyContent, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 export default {

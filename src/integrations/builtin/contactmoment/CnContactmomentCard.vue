@@ -56,8 +56,8 @@
 </template>
 
 <script>
-import { NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcLoadingIcon } from '@nextcloud/vue'
 import PhoneOutline from 'vue-material-design-icons/PhoneOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 

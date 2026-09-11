@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  */
-import { resolveFilterValue, resolveFilterTokens, hasUnresolvedTokens, isOptionalUnresolved, dropOptionalUnresolved } from '../../src/utils/resolveFilterTokens.js'
+import { dropOptionalUnresolved, hasUnresolvedTokens, isOptionalUnresolved, resolveFilterTokens, resolveFilterValue } from '../../src/utils/resolveFilterTokens.js'
 
 describe('resolveFilterTokens', () => {
 	it('passes through non-token values', () => {

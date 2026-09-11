@@ -64,8 +64,8 @@
 </template>
 
 <script>
-import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
+import { provide, ref, watch } from 'vue'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import CnSectionBoundary from './CnSectionBoundary.js'
 

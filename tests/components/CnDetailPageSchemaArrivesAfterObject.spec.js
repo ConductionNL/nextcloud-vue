@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 
+import { mount } from '@vue/test-utils'
 /**
  * The auto-body is materialized ONCE, when the OBJECT resolves — and it drops
  * the Data widget when no schema is known at that moment:
@@ -38,7 +39,6 @@
  * a longer timeout — which would only have waited longer for the same empty page.
  */
 import { reactive } from 'vue'
-import { mount } from '@vue/test-utils'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
 /** A store whose object is present but whose schema has NOT arrived yet. */

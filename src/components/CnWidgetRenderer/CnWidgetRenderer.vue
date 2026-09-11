@@ -43,10 +43,10 @@
 </template>
 
 <script>
-import { NcDashboardWidget, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
+import { NcDashboardWidget, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 
 /**
  * CnWidgetRenderer — Renders Nextcloud Dashboard API widgets.

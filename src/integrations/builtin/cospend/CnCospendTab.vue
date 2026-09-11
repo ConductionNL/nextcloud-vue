@@ -168,9 +168,9 @@ import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import LinkOff from 'vue-material-design-icons/LinkOff.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnCospendCreate from '../../../components/CnCospendCreate/CnCospendCreate.vue'
 import CnCospendPicker from '../../../components/CnCospendPicker/CnCospendPicker.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**

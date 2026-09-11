@@ -68,14 +68,14 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
-import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
-import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
-import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
+import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
+import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
+import { filterToRows, rowsToFilter } from '../CnFilterRowsEditor/filterRows.js'
 
 const DEFAULT_CONTENT = Object.freeze({
 	title: '',

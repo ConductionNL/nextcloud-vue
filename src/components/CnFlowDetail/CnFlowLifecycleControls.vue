@@ -63,8 +63,8 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { useFlowStore } from '../../composables/useFlowStore.js'
 import CnFlowHealthDot from './CnFlowHealthDot.vue'
+import { useFlowStore } from '../../composables/useFlowStore.js'
 
 export default {
 	name: 'CnFlowLifecycleControls',

@@ -41,8 +41,8 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcSelect, NcTextField } from '@nextcloud/vue'
-import { useFlowStore } from '../composables/useFlowStore.js'
 import { EDGE_LINE_TYPES } from '../composables/useFlowEdgeStyles.js'
+import { useFlowStore } from '../composables/useFlowStore.js'
 
 /**
  * CnFlowEdgeEditModal — edit one connection between two steps.

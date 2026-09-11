@@ -167,10 +167,10 @@ import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue
 import Close from 'vue-material-design-icons/Close.vue'
 import Email from 'vue-material-design-icons/Email.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
-import { buildHeaders } from '../../utils/index.js'
 // prefixUrl lives in headers.js and is NOT re-exported by the utils barrel;
 // src/utils/visibleWhen.js imports it the same way.
 import { prefixUrl } from '../../utils/headers.js'
+import { buildHeaders } from '../../utils/index.js'
 
 /** Core permission bits. PERMISSION_SHARE (16) is deliberately never sent. */
 const PERMISSION_READ = 1

@@ -5,11 +5,11 @@
 
 'use strict'
 
+const { createReportBuilder } = require('./reportBuilder')
 const { convergeTypedWidgets } = require('./transforms/convergeTypedWidgets')
-const { renameDataSourceKeys } = require('./transforms/renameDataSourceKeys')
 const { normalizeSidebarShapes } = require('./transforms/normalizeSidebarShapes')
 const { promoteCustomDashboard } = require('./transforms/promoteCustomDashboard')
-const { createReportBuilder } = require('./reportBuilder')
+const { renameDataSourceKeys } = require('./transforms/renameDataSourceKeys')
 
 /**
  * Run the widget-dialect convergence pass over a manifest.

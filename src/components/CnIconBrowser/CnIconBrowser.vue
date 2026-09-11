@@ -94,12 +94,12 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcPopover } from '@nextcloud/vue'
 import CnIconBrowserPanel from './CnIconBrowserPanel.vue'
-import { findIconByValue } from './iconCatalogue.js'
+import { nlDesignIconGroups } from '../../icons/nlDesignGroups.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
 import { nextUid } from '../../utils/uid.js'
-import { isCustomIconUrl, DASHBOARD_ICONS } from '../CnIconPicker/dashboardIcons.js'
+import { DASHBOARD_ICONS, isCustomIconUrl } from '../CnIconPicker/dashboardIcons.js'
 import { DASHBOARD_ICONS as WIDGET_ICONS } from '../CnWidgetGrid/widgetIcons.js'
-import { nlDesignIconGroups } from '../../icons/nlDesignGroups.js'
+import { findIconByValue } from './iconCatalogue.js'
 
 /**
  * Curated fallback catalogue, built from the library's always-present

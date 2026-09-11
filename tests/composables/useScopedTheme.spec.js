@@ -7,7 +7,7 @@
  *
  * Spec: scoped-theme-applier (REQ-STA-1, REQ-STA-2).
  */
-import { useScopedTheme, rewriteRootScope, clearScopedThemeCache, SCOPE_ATTR } from '../../src/composables/useScopedTheme.js'
+import { clearScopedThemeCache, rewriteRootScope, SCOPE_ATTR, useScopedTheme } from '../../src/composables/useScopedTheme.js'
 
 /*
  * `generateFilePath` needs Nextcloud's `OC.appswebroots` to put `/apps/<id>/`

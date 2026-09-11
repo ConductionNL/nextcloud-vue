@@ -9,8 +9,8 @@
  */
 
 import * as ncVue from '@nextcloud/vue'
-import { cnRenderFormField, NC_TEXT_AREA_AVAILABLE } from '@/composables/cnFormFieldRenderer.js'
 import CnFileField from '@/components/CnFileField/CnFileField.vue'
+import { cnRenderFormField, NC_TEXT_AREA_AVAILABLE } from '@/composables/cnFormFieldRenderer.js'
 
 describe('cnRenderFormField', () => {
 	let warnSpy

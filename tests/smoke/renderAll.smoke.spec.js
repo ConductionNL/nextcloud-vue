@@ -45,10 +45,9 @@
 
 const fs = require('fs')
 const path = require('path')
-const { mountOnce, componentExports } = require('./support/sweep.js')
-const realNc = require('../support/realNextcloudVue.js')
-
 const barrel = require('../../src/index.js')
+const realNc = require('../support/realNextcloudVue.js')
+const { mountOnce, componentExports } = require('./support/sweep.js')
 const components = componentExports(barrel)
 
 const BASELINE_PATH = path.join(__dirname, '.smoke-baseline.json')

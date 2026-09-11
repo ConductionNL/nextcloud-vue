@@ -98,10 +98,10 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
-import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
 import AccountGroupOutline from 'vue-material-design-icons/AccountGroupOutline.vue'
-import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
 import Earth from 'vue-material-design-icons/Earth.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import Share from 'vue-material-design-icons/Share.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'

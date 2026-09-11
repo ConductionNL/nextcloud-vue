@@ -4,14 +4,13 @@
  * Spec: openspec/changes/multi-tenancy-context — REQ-MT-1..5.
  */
 
-import { defineComponent, h, provide } from 'vue'
 import { mount } from '@vue/test-utils'
-
+import { defineComponent, h, provide } from 'vue'
 import {
 	createTenantContext,
 	provideTenantContext,
-	useTenantContext,
 	TENANT_CONTEXT_KEY,
+	useTenantContext,
 } from '../../src/composables/useTenantContext.js'
 
 describe('useTenantContext', () => {

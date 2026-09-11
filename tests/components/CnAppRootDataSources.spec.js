@@ -1,3 +1,4 @@
+import { mount } from '@vue/test-utils'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -12,7 +13,6 @@
 // `toRaw` unwraps the reactive Proxy so the identity assertions still prove the
 // holder exposes the very object it was given (see useRuntimeManifest.spec.js).
 import { reactive, toRaw } from 'vue'
-import { mount } from '@vue/test-utils'
 import CnPageTreeRow from '../../src/components/CnPageTreeNode/CnPageTreeRow.vue'
 
 const Stub = (name, props = []) => ({ name, props, template: '<div><slot /><slot name="trigger" :attrs="{}" /></div>' })

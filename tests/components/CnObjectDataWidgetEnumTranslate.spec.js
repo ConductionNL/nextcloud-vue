@@ -12,7 +12,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnObjectDataWidget from '@/components/CnObjectDataWidget/CnObjectDataWidget.vue'
 
 const schema = {

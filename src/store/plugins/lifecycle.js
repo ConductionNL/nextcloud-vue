@@ -1,6 +1,6 @@
 // `buildHeaders` is reached via `this._buildHeaders()` so lifecycle
 // transitions inherit the active tenant UUID (multi-tenancy-context).
-import { parseResponseError, networkError } from '../../utils/errors.js'
+import { networkError, parseResponseError } from '../../utils/errors.js'
 
 /**
  * Lifecycle plugin for the object store.

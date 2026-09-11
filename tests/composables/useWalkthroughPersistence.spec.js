@@ -9,14 +9,14 @@
  */
 
 import {
-	useWalkthrough,
 	__resetWalkthroughCacheForTests,
 	loadWalkthroughSeenVersion,
+	normaliseSeenVersion,
 	persistWalkthroughSeenVersion,
 	readLocalWalkthroughSeenVersion,
-	normaliseSeenVersion,
-	walkthroughPreferenceUrl,
+	useWalkthrough,
 	WALKTHROUGH_SEEN_STORAGE_PREFIX,
+	walkthroughPreferenceUrl,
 } from '@/composables/useWalkthrough.js'
 
 /**

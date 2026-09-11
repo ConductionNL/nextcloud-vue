@@ -237,11 +237,9 @@ import CnLeafMountHost from '../CnLeafMountHost/CnLeafMountHost.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
-import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
-import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
-import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import {
 	isCardWidgetDef,
 	isContentOnlyWidgetDef,
@@ -253,6 +251,8 @@ import {
 	widgetContentOf,
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
+import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
 /**
  * CnDetailWidgetHost — renders ONE detail-page widget definition.

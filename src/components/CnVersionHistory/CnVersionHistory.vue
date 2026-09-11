@@ -120,13 +120,13 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcLoadingIcon, NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
-import FileCompare from 'vue-material-design-icons/FileCompare.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import Compare from 'vue-material-design-icons/Compare.vue'
+import FileCompare from 'vue-material-design-icons/FileCompare.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
-import { buildHeaders } from '../../utils/index.js'
-import { computeObjectDiff } from '../../utils/computeObjectDiff.js'
 import { foldAuditTrailEntries } from '../../utils/auditTrailDiff.js'
+import { computeObjectDiff } from '../../utils/computeObjectDiff.js'
+import { buildHeaders } from '../../utils/index.js'
 
 /**
  * A single row rendered in the top-level diff table.

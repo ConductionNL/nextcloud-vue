@@ -40,7 +40,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcBreadcrumbs, NcBreadcrumb } from '@nextcloud/vue'
+import { NcBreadcrumb, NcBreadcrumbs } from '@nextcloud/vue'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**

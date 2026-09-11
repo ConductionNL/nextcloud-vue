@@ -44,8 +44,8 @@ jest.mock('@nextcloud/auth', () => ({
 	getCurrentUser: () => mockUid,
 }))
 
-import { mount } from '@vue/test-utils'
 import { showError } from '@nextcloud/dialogs'
+import { mount } from '@vue/test-utils'
 
 const CnTasksWidget = require('../../src/components/CnTasksWidget/CnTasksWidget.vue').default
 

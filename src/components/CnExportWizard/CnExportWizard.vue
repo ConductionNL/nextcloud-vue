@@ -119,7 +119,7 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcSelect, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import ExportIcon from 'vue-material-design-icons/Export.vue'
 
 /**

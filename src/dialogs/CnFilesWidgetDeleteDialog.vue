@@ -30,7 +30,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton } from '@nextcloud/vue'
+import { NcButton, NcDialog } from '@nextcloud/vue'
 
 export default {
 	name: 'CnFilesWidgetDeleteDialog',

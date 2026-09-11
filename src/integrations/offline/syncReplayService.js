@@ -20,7 +20,7 @@
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { getDb } from './offlineDb.js'
-import { orderForReplay, nextState } from './syncQueueEngine.js'
+import { nextState, orderForReplay } from './syncQueueEngine.js'
 
 /**
  * Build the OR object-collection URL for a register/schema.

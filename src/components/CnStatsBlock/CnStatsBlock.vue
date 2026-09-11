@@ -77,6 +77,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
+
 // The canonical KPI look, shared with CnStatWidget. Imported here so the
 // card is styled even when the consuming app has not pulled in the
 // library's global css/index.css.

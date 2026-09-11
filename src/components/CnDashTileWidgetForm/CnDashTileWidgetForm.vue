@@ -63,11 +63,11 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcTextField, NcSelect } from '@nextcloud/vue'
-import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
-import { isCustomIconUrl } from '../CnWidgetGrid/widgetIcons.js'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import { isSvgPath } from '../../utils/iconUtils.js'
+import { isCustomIconUrl } from '../CnWidgetGrid/widgetIcons.js'
 
 const DEFAULT_CONTENT = Object.freeze({
 	title: '',

@@ -142,9 +142,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcNoteCard, NcSelect, NcTextField, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
-import CnWizardDialog from '../CnWizardDialog/CnWizardDialog.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnChoiceCards from '../CnChoiceCards/CnChoiceCards.vue'
+import CnWizardDialog from '../CnWizardDialog/CnWizardDialog.vue'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
 

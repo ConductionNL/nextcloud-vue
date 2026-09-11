@@ -128,11 +128,11 @@
 </template>
 
 <script>
-import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
+import { useVueFlow, VueFlow } from '@vue-flow/core'
 import { MiniMap } from '@vue-flow/minimap'
-import CnFlowNode from './CnFlowNode.vue'
 import CnFlowEdge from './CnFlowEdge.vue'
+import CnFlowNode from './CnFlowNode.vue'
 
 /**
  * A graph canvas built on Vue Flow — the library n8n runs.

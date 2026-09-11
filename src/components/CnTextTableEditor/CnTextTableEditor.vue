@@ -123,17 +123,17 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import {
-	emptyTable,
-	addRow,
 	addColumn,
-	deleteRow,
+	addRow,
 	deleteColumn,
-	mergeCells,
-	splitCell,
-	setHeaderRow,
-	setColumnAlignment,
-	setCellText,
+	deleteRow,
+	emptyTable,
 	isPlaceholderCell,
+	mergeCells,
+	setCellText,
+	setColumnAlignment,
+	setHeaderRow,
+	splitCell,
 	validateTable,
 } from '../../utils/textTable.js'
 

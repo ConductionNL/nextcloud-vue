@@ -6,7 +6,6 @@
 
 import { mount } from '@vue/test-utils'
 import { defineComponent, h } from 'vue'
-
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 import { provideTenantContext } from '../../src/composables/useTenantContext.js'
 

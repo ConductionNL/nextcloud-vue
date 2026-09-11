@@ -1,3 +1,4 @@
+import axios from '@nextcloud/axios'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -7,8 +8,6 @@
  * add/edit/remove + register-linking via the OpenRegister API.
  */
 import { mount } from '@vue/test-utils'
-
-import axios from '@nextcloud/axios'
 import CnEditDataModal, { invalidateDataCache } from '../../src/dialogs/CnEditDataModal.vue'
 
 jest.mock('@nextcloud/router', () => ({ generateUrl: (p) => p }))

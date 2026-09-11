@@ -46,8 +46,8 @@
 </template>
 
 <script>
-import CnIcon from '../CnIcon/CnIcon.vue'
 import { NcSelect } from '@nextcloud/vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 
 /**
  * CnQuickFilterBar — quick-filter control rendered above a `type:"index"`

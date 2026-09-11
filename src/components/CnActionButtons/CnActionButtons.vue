@@ -92,20 +92,20 @@
 </template>
 
 <script>
-import { inject } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
-import { CnIcon } from '../CnIcon/index.js'
+import { inject } from 'vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
-import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
-import { CnFormDialog } from '../CnFormDialog/index.js'
-import { valueRecordsFor, valueArrayFor, usesArrayValues } from '../../utils/dynamicProperties.js'
-import { dispatchAction, resolveObjectOpType, buildOnSuccessRoute, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
-import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
-import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
+import { buildOnSuccessRoute, dispatchAction, resolveCreateOverrideHandler, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { usesArrayValues, valueArrayFor, valueRecordsFor } from '../../utils/dynamicProperties.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
+import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
+import { CnFormDialog } from '../CnFormDialog/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 
 /**
  * CnActionButtons — declarative header-actions surface (#91 Wave 3).

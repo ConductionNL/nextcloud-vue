@@ -58,10 +58,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcTextField, NcLoadingIcon } from '@nextcloud/vue'
-import TagOutline from 'vue-material-design-icons/TagOutline.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import { buildHeaders } from '../../utils/index.js'
 
 export default {

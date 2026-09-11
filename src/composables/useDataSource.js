@@ -2,8 +2,8 @@
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 
 import { computed, getCurrentInstance, inject, isRef, ref } from 'vue'
-import { useGraphQL, selectByPath } from './useGraphQL.js'
 import { useBrokeredCall } from './useBrokeredCall.js'
+import { selectByPath, useGraphQL } from './useGraphQL.js'
 
 /**
  * GraphQL `TimeInterval` enum values, kept in sync with OR's

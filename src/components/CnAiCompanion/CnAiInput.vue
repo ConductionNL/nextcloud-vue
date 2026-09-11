@@ -203,25 +203,25 @@
 </template>
 
 <script>
-import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
-import Send from 'vue-material-design-icons/Send.vue'
-import Paperclip from 'vue-material-design-icons/Paperclip.vue'
+import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
-import Microphone from 'vue-material-design-icons/Microphone.vue'
 import Headset from 'vue-material-design-icons/Headset.vue'
 import HeadsetOff from 'vue-material-design-icons/HeadsetOff.vue'
+import Microphone from 'vue-material-design-icons/Microphone.vue'
 import MicrophoneOutline from 'vue-material-design-icons/MicrophoneOutline.vue'
-import { DEFAULT_CHAT_APP_ID, attachmentsUrl, speechTranscriptionsUrl } from '../../composables/aiChatConfig.js'
+import Paperclip from 'vue-material-design-icons/Paperclip.vue'
+import Send from 'vue-material-design-icons/Send.vue'
+import { attachmentsUrl, DEFAULT_CHAT_APP_ID, speechTranscriptionsUrl } from '../../composables/aiChatConfig.js'
+import { createLocalDictation } from '../../composables/aiLocalDictation.js'
 import {
-	SPEECH_AUTO,
-	SPEECH_LOCAL,
-	SPEECH_OFF,
 	browserRecognitionUsable,
 	browserRecordingUsable,
 	resolveDictationEngine,
+	SPEECH_AUTO,
+	SPEECH_LOCAL,
+	SPEECH_OFF,
 } from '../../composables/aiSpeechPolicy.js'
-import { createLocalDictation } from '../../composables/aiLocalDictation.js'
 
 /** How long a dictation failure stays on screen, in ms. */
 const DICTATION_ERROR_TIMEOUT = 6000

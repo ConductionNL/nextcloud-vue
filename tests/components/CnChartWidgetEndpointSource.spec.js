@@ -23,7 +23,6 @@ jest.mock('@nextcloud/router', () => ({
 import axios from '@nextcloud/axios'
 import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
-
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
 import { invalidateEndpointSourceCache } from '../../src/composables/useEndpointSource.js'
 

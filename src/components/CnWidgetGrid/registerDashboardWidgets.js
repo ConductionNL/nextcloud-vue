@@ -15,6 +15,28 @@
  * @module components/CnWidgetGrid/registerDashboardWidgets
  */
 
+import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
+import CnChartWidgetForm from '../CnChartWidgetForm/CnChartWidgetForm.vue'
+import CnCountdownWidget from '../CnCountdownWidget/CnCountdownWidget.vue'
+import CnCountdownWidgetForm from '../CnCountdownWidgetForm/CnCountdownWidgetForm.vue'
+import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
+import CnMapWidgetForm from '../CnMapWidgetForm/CnMapWidgetForm.vue'
+import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
+import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
+import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
+import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
+import CnStatsBlockWidgetForm from '../CnStatsBlockWidgetForm/CnStatsBlockWidgetForm.vue'
+import CnTabsWidget from '../CnTabsWidget/CnTabsWidget.vue'
+import CnTabsWidgetForm from '../CnTabsWidgetForm/CnTabsWidgetForm.vue'
+// Typed widgets registered with an explicit renderer + config FORM. chart /
+// stats-block render through CnDashboardPage's own isChart()/isStatsBlock()
+// branches and `related` through CnDetailPage's isRelatedWidget() branch — the
+// registry entry exists so the cog editor + Add-widget picker get a form (and,
+// for `related`, the detail-page surface). `table` aliases the object-list
+// renderer/form for legacy manifests using type:'table'.
+import { registerDashboardWidget } from './dashboardWidgetRegistry.js'
+
 import '../CnLabelWidget/index.js'
 import '../CnTextWidget/index.js'
 import '../CnImageWidget/index.js'
@@ -46,28 +68,6 @@ import '../CnKbSearchWidget/index.js'
 import '../CnInteractionFormWidget/index.js'
 import '../CnBannerWidget/index.js'
 import '../CnWorkspaceFilterWidget/index.js'
-
-// Typed widgets registered with an explicit renderer + config FORM. chart /
-// stats-block render through CnDashboardPage's own isChart()/isStatsBlock()
-// branches and `related` through CnDetailPage's isRelatedWidget() branch — the
-// registry entry exists so the cog editor + Add-widget picker get a form (and,
-// for `related`, the detail-page surface). `table` aliases the object-list
-// renderer/form for legacy manifests using type:'table'.
-import { registerDashboardWidget } from './dashboardWidgetRegistry.js'
-import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
-import CnChartWidgetForm from '../CnChartWidgetForm/CnChartWidgetForm.vue'
-import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
-import CnStatsBlockWidgetForm from '../CnStatsBlockWidgetForm/CnStatsBlockWidgetForm.vue'
-import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
-import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
-import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
-import CnMapWidgetForm from '../CnMapWidgetForm/CnMapWidgetForm.vue'
-import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
-import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
-import CnTabsWidget from '../CnTabsWidget/CnTabsWidget.vue'
-import CnTabsWidgetForm from '../CnTabsWidgetForm/CnTabsWidgetForm.vue'
-import CnCountdownWidget from '../CnCountdownWidget/CnCountdownWidget.vue'
-import CnCountdownWidgetForm from '../CnCountdownWidgetForm/CnCountdownWidgetForm.vue'
 
 registerDashboardWidget('chart', {
 	renderer: CnChartWidget,

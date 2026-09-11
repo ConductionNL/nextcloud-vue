@@ -33,7 +33,6 @@ jest.mock('@nextcloud/router', () => ({
 import axios from '@nextcloud/axios'
 import { shallowMount } from '@vue/test-utils'
 import { ref } from 'vue'
-
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))

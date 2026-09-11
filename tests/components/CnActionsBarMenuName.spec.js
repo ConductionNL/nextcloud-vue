@@ -12,7 +12,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnActionsBar from '@/components/CnActionsBar/CnActionsBar.vue'
 
 const stubs = {

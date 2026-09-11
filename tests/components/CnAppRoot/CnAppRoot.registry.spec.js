@@ -20,8 +20,8 @@ jest.mock('@nextcloud/capabilities', () => ({
 }))
 
 const CnAppRoot = require('../../../src/components/CnAppRoot/CnAppRoot.vue').default
-const { RegistryKindError } = require('../../../src/errors/RegistryKindError.js')
 const { __resetAppStatusCacheForTests } = require('../../../src/composables/useAppStatus.js')
+const { RegistryKindError } = require('../../../src/errors/RegistryKindError.js')
 
 const baseManifest = {
 	version: '1.0.0',

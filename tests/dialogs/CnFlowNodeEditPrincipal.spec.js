@@ -16,8 +16,8 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { useFlowStore } from '../../src/composables/useFlowStore.js'
 import CnFlowNodeEditModal from '../../src/dialogs/CnFlowNodeEditModal.vue'
+import { useFlowStore } from '../../src/composables/useFlowStore.js'
 
 let mockRows = []
 

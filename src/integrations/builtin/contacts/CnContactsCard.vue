@@ -109,7 +109,6 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcLoadingIcon } from '@nextcloud/vue'
 import AccountMultiple from 'vue-material-design-icons/AccountMultiple.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
-
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
 

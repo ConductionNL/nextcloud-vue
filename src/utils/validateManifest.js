@@ -1,3 +1,11 @@
+// Single source of truth for "which widget keys does the library render
+// itself?", bound to the runtime registries by
+// tests/utils/libraryWidgetKeys.spec.js so the two cannot drift apart again.
+import { LIBRARY_WIDGET_KEYS } from './libraryWidgetKeys.js'
+// Shared slot→columns resolution so the validator's grid bound matches the
+// renderer (CnWidgetGrid) exactly. A mismatch would let a manifest pass
+// validation yet clip at render time.
+import { resolveSlotColumns } from './resolveSlotColumns.js'
 // The standalone validator is pre-compiled at build time by
 // scripts/build-validators.js. It does NOT use new Function() at
 // runtime, which is required because Nextcloud's CSP blocks unsafe-eval
@@ -6,14 +14,6 @@
 // The file is regenerated on every `npm run build` and `npm test`
 // via the `build:validators` script, and is gitignored.
 import _compiledValidateV2 from './validateManifestV2.compiled.js'
-// Shared slot→columns resolution so the validator's grid bound matches the
-// renderer (CnWidgetGrid) exactly. A mismatch would let a manifest pass
-// validation yet clip at render time.
-import { resolveSlotColumns } from './resolveSlotColumns.js'
-// Single source of truth for "which widget keys does the library render
-// itself?", bound to the runtime registries by
-// tests/utils/libraryWidgetKeys.spec.js so the two cannot drift apart again.
-import { LIBRARY_WIDGET_KEYS } from './libraryWidgetKeys.js'
 
 // CJS/ESM interop: compiled file exports default via module.exports.default
 // in some bundlers. Unwrap when present.

@@ -79,15 +79,15 @@
 </template>
 
 <script>
-import { inject, ref } from 'vue'
-import { NcActions, NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
-import { translate as t } from '@nextcloud/l10n'
-import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
 import { getCurrentUser } from '@nextcloud/auth'
+import axios from '@nextcloud/axios'
 import { showError } from '@nextcloud/dialogs'
-import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
+import { NcActionButton, NcActions, NcLoadingIcon } from '@nextcloud/vue'
+import { inject, ref } from 'vue'
 import { taskDeepLink, taskDueLabel } from '../../composables/indexSources.js'
+import { useEndpointSource } from '../../composables/useEndpointSource.js'
 
 /**
  * The OpenRegister inbox read (openregister flow-task-entity). One endpoint

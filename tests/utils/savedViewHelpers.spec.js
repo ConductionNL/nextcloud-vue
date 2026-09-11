@@ -7,10 +7,10 @@
  */
 
 import {
-	extractViewStateFromRouteQuery,
 	buildRouteQueryFromViewState,
 	buildViewCreatePayload,
 	extractViewState,
+	extractViewStateFromRouteQuery,
 	isOwnView,
 } from '../../src/utils/savedViewHelpers.js'
 

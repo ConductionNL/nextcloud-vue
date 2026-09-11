@@ -67,11 +67,11 @@
 </template>
 
 <script>
-import { NcDialog, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
+import { NcDialog, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import CnAiHistoryList from '../components/CnAiCompanion/CnAiHistoryList.vue'
-import { DEFAULT_CHAT_APP_ID, conversationsUrl, normalizeConversation } from '../composables/aiChatConfig.js'
+import { conversationsUrl, DEFAULT_CHAT_APP_ID, normalizeConversation } from '../composables/aiChatConfig.js'
 
 export default {
 	name: 'CnAiHistoryDialog',

@@ -12,7 +12,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(() => ({})),

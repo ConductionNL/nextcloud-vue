@@ -177,16 +177,16 @@
 </template>
 
 <script>
-import { NcButton, NcTextField, NcSelect, NcNoteCard } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import DragVertical from 'vue-material-design-icons/DragVertical.vue'
-import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import FormatListBulletedSquare from 'vue-material-design-icons/FormatListBulletedSquare.vue'
-import TextBoxOutline from 'vue-material-design-icons/TextBoxOutline.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
+import TextBoxOutline from 'vue-material-design-icons/TextBoxOutline.vue'
+import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 
 // The renderer's closed page-type enum (CnPageRenderer dispatches on these).
 const PAGE_TYPES = [

@@ -64,7 +64,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcTextField, NcSelect, NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
 
 /**

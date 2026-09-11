@@ -32,10 +32,10 @@
 
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
-import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
-import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import widgetLink from '../../mixins/widgetLink.js'
+import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 
 /**
  * CnGaugeWidget — an abstract utilization / progress-to-target gauge.

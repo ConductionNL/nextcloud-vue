@@ -123,10 +123,10 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcTextField, NcSelect, NcColorPicker, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import { getWidgetTypeEntry } from '../components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { NcButton, NcCheckboxRadioSwitch, NcColorPicker, NcDialog, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
+import { getWidgetTypeEntry } from '../components/CnWidgetGrid/dashboardWidgetRegistry.js'
 
 // Hardcoded @mdi/js icon path strings (matching CnNoteCard's precedent) to
 // avoid pulling @mdi/js into this library's dependency tree and bundle.

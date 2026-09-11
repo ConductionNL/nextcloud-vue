@@ -22,8 +22,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnEmailTab from './email/CnEmailTab.vue'
 import CnEmailCard from './email/CnEmailCard.vue'
+import CnEmailTab from './email/CnEmailTab.vue'
 
 /**
  * `email` integration descriptor.

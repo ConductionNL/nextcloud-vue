@@ -19,8 +19,8 @@
 const { program } = require('commander')
 const fs = require('fs')
 const path = require('path')
-const { runPipeline } = require('./pipeline')
 const { runConvergence } = require('./convergence')
+const { runPipeline } = require('./pipeline')
 
 /**
  * The v2 schema URL suffix used for detection.

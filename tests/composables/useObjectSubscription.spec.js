@@ -6,7 +6,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { ref, defineComponent, h } from 'vue'
+import { defineComponent, h, ref } from 'vue'
 import { useObjectSubscription } from '../../src/composables/useObjectSubscription.js'
 
 function makeStore() {

@@ -15,7 +15,6 @@
  */
 
 import DOMPurify from 'dompurify'
-
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../src/utils/safeMarkdownDompurifyConfig.js'
 
 const sanitize = (input) => DOMPurify.sanitize(input, SAFE_MARKDOWN_DOMPURIFY_CONFIG)

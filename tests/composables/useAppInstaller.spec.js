@@ -47,11 +47,11 @@ jest.mock('@nextcloud/password-confirmation', () => ({
 }))
 
 const axios = require('@nextcloud/axios').default
-const { generateOcsUrl, generateUrl } = require('@nextcloud/router')
 const {
 	addPasswordConfirmationInterceptors,
 	confirmPassword,
 } = require('@nextcloud/password-confirmation')
+const { generateOcsUrl, generateUrl } = require('@nextcloud/router')
 const { useAppInstaller } = require('../../src/composables/useAppInstaller.js')
 
 const OCS_URL = '/ocs/v2.php/apps/appstore/api/v1/apps/enable'

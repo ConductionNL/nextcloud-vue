@@ -102,12 +102,12 @@
 </template>
 
 <script>
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcDialog } from '@nextcloud/vue'
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
 import CnIcon from '../CnIcon/CnIcon.vue'
-import { useCommandPalette } from '../../composables/useCommandPalette.js'
-import { rankCommandPaletteItems, groupRankedResultsBySection } from '../../utils/commandPaletteRanking.js'
 import { createRecencyTracker } from '../../commandPalette/recency.js'
+import { useCommandPalette } from '../../composables/useCommandPalette.js'
+import { groupRankedResultsBySection, rankCommandPaletteItems } from '../../utils/commandPaletteRanking.js'
 
 let domIdCounter = 0
 

@@ -104,12 +104,12 @@
 </template>
 
 <script>
-import { NcTextField, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
+import { NcButton, NcEmptyContent, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
-import { DEFAULT_CHAT_APP_ID, conversationUrl } from '../../composables/aiChatConfig.js'
+import { conversationUrl, DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 
 export default {
 	name: 'CnAiHistoryList',

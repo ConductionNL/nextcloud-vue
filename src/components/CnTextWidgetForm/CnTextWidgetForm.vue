@@ -102,11 +102,11 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnTextTableEditor from '../CnTextTableEditor/CnTextTableEditor.vue'
-import CnMarkdownEditor from '../CnMarkdownEditor/CnMarkdownEditor.vue'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
+import CnMarkdownEditor from '../CnMarkdownEditor/CnMarkdownEditor.vue'
+import CnTextTableEditor from '../CnTextTableEditor/CnTextTableEditor.vue'
 import { emptyTable, validateTable } from '../../utils/textTable.js'
 
 const DEFAULT_CONTENT = Object.freeze({

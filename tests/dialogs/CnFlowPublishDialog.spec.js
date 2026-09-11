@@ -15,8 +15,8 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { useFlowStore } from '../../src/composables/useFlowStore.js'
 import CnFlowPublishDialog from '../../src/dialogs/CnFlowPublishDialog.vue'
+import { useFlowStore } from '../../src/composables/useFlowStore.js'
 
 const preview = {
 	verdict: 'major',

@@ -9,9 +9,8 @@
  */
 
 import { createPinia, setActivePinia } from 'pinia'
-
-import { createObjectStore } from '../../src/store/useObjectStore.js'
 import { auditTrailsPlugin } from '../../src/store/plugins/auditTrails.js'
+import { createObjectStore } from '../../src/store/useObjectStore.js'
 
 // jsdom defaults `OC.requestToken` to undefined; make it deterministic
 global.OC = { requestToken: 'token-test' }

@@ -1,4 +1,4 @@
-import { resolveFilterTokens, dropOptionalUnresolved } from './resolveFilterTokens.js'
+import { dropOptionalUnresolved, resolveFilterTokens } from './resolveFilterTokens.js'
 
 /**
  * Resolve a page base/quick filter map at fetch time.

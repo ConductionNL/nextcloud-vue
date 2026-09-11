@@ -133,7 +133,6 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClipboardText from 'vue-material-design-icons/ClipboardText.vue'
-
 import { buildHeaders } from '../../../utils/index.js'
 
 /**

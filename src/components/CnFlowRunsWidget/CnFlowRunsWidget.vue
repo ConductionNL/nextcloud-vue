@@ -91,12 +91,12 @@
 </template>
 
 <script>
-import { computed, inject, ref } from 'vue'
-import { NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcLoadingIcon } from '@nextcloud/vue'
+import { computed, inject, ref } from 'vue'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
-import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 
 /**
  * The OpenRegister endpoint that lists the caller's live flow runs.

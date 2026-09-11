@@ -88,8 +88,8 @@
 </template>
 
 <script>
-import { Comment, Fragment, Text } from 'vue'
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, getSmoothStepPath, getStraightPath } from '@vue-flow/core'
+import { Comment, Fragment, Text } from 'vue'
 import { DEFAULT_EDGE_LINE_TYPE } from '../../composables/useFlowEdgeStyles.js'
 
 /**

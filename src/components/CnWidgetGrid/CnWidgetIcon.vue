@@ -38,8 +38,8 @@
 
 <script>
 import CnIcon from '../CnIcon/CnIcon.vue'
-import { hasRegistryIcon, getIconComponent, isCustomIconUrl } from './widgetIcons.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
+import { getIconComponent, hasRegistryIcon, isCustomIconUrl } from './widgetIcons.js'
 
 /**
  * CnWidgetIcon — resolves a widget icon field following the

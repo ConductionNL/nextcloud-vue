@@ -118,19 +118,19 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
-import { loadState } from '@nextcloud/initial-state'
-import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
-import { showSuccess, showError } from '@nextcloud/dialogs'
+import { showError, showSuccess } from '@nextcloud/dialogs'
+import { loadState } from '@nextcloud/initial-state'
+import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
-import Refresh from 'vue-material-design-icons/Refresh.vue'
 import AutoFix from 'vue-material-design-icons/AutoFix.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
-import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import { buildFeatureRequestUrl } from '../../utils/forge.js'
+import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
 
 /**
  * CnAdminSettingsShell — the canonical chrome for a Conduction app's Nextcloud

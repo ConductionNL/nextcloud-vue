@@ -148,7 +148,7 @@
 </template>
 
 <script>
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import AccountCircleOutline from 'vue-material-design-icons/AccountCircleOutline.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'

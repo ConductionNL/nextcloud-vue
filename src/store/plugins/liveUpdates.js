@@ -79,8 +79,8 @@
 // permanently null, and auto-cleanup on scope dispose silently never happened —
 // subscriptions leaked with no warning anywhere.
 import { tryOnScopeDispose as _tryOnScopeDispose } from '@vueuse/core'
+import { buildCollectionKey, buildObjectKey } from '../liveUpdates/eventKeys.js'
 import { getLiveUpdates } from '../liveUpdates/transport.js'
-import { buildObjectKey, buildCollectionKey } from '../liveUpdates/eventKeys.js'
 
 /**
  * Compute a stable cache key for dedup of fetchCollection calls.

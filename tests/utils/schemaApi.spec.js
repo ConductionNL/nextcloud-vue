@@ -11,9 +11,9 @@
  * contract itself, so both consumers inherit the same behaviour.
  */
 import {
-	saveSchema,
 	deleteSchema,
 	describeSchemaChange,
+	saveSchema,
 	SchemaBreakingChangeError,
 	SchemaHasObjectsError,
 } from '../../src/utils/schemaApi.js'

@@ -42,8 +42,8 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnPageTreeNode from '../components/CnPageTreeNode/CnPageTreeNode.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'

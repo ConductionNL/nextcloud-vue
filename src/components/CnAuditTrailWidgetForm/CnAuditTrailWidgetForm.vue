@@ -21,8 +21,8 @@
 </template>
 
 <script>
-import { NcTextField } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcTextField } from '@nextcloud/vue'
 
 /**
  * CnAuditTrailWidgetForm — the config sub-form for an `audit-trail` widget.

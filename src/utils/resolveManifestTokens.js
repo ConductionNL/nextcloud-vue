@@ -34,9 +34,9 @@
  * @module utils/resolveManifestTokens
  */
 
+import { isOptionalUnresolved, resolveFilterValue } from './resolveFilterTokens.js'
 import resolveRouteSentinels from './resolveRouteSentinels.js'
-import { resolveFilterValue, isOptionalUnresolved } from './resolveFilterTokens.js'
-import { SENTINEL_CONTEXTS, contextOf, matchDeprecation, looksLikeSentinel } from './sentinelTokens.js'
+import { contextOf, looksLikeSentinel, matchDeprecation, SENTINEL_CONTEXTS } from './sentinelTokens.js'
 
 /**
  * Dispatch table: canonical context → the resolver that owns it. Documentation

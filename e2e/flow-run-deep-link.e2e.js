@@ -23,7 +23,7 @@
 //  - @e2e the flow that opens has that run inspected, not merely open
 //  - @e2e a row with no run uuid still opens the flow, with no empty ?run=
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const HARNESS = '/?runlink=1'
 

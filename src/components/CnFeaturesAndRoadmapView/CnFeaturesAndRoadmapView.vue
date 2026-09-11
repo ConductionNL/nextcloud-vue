@@ -104,10 +104,9 @@ import FormatListBulleted from 'vue-material-design-icons/FormatListBulleted.vue
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import RoadVariant from 'vue-material-design-icons/RoadVariant.vue'
-
+import CnFeaturesAndRoadmapSidebar from '../CnFeaturesAndRoadmapSidebar/CnFeaturesAndRoadmapSidebar.vue'
 import CnFeaturesTab from '../CnFeaturesTab/CnFeaturesTab.vue'
 import CnRoadmapTab from '../CnRoadmapTab/CnRoadmapTab.vue'
-import CnFeaturesAndRoadmapSidebar from '../CnFeaturesAndRoadmapSidebar/CnFeaturesAndRoadmapSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import { buildFeatureRequestUrl, DEFAULT_FORGE } from '../../utils/forge.js'
 

@@ -48,8 +48,8 @@
 </template>
 
 <script>
-import { NcSelect, NcTextField } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 
 const DEFAULT_CONTENT = Object.freeze({
 	scope: 'assigned',

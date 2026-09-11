@@ -48,9 +48,9 @@
 </template>
 
 <script>
+import { Chrome as ChromeColorPicker } from '@ckpack/vue-color'
 import { translate as t } from '@nextcloud/l10n'
 import { NcPopover } from '@nextcloud/vue'
-import { Chrome as ChromeColorPicker } from '@ckpack/vue-color'
 import Close from 'vue-material-design-icons/Close.vue'
 
 /**

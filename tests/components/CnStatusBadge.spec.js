@@ -10,7 +10,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnStatusBadge from '@/components/CnStatusBadge/CnStatusBadge.vue'
 
 const colorMap = { submitted: 'warning', approved: 'success' }

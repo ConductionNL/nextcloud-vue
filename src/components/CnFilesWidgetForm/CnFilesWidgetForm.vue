@@ -89,14 +89,15 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcButton } from '@nextcloud/vue'
+import { FilePickerClosed, getFilePickerBuilder, showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
-import { getFilePickerBuilder, showError, FilePickerClosed } from '@nextcloud/dialogs'
+import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
+import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
+
 // The native file-picker modal ships its chrome styles here; without this the
 // spawned picker renders unstyled. Rules are scoped to the picker/dialog
 // classes, so this adds no app-wide restyling.
 import '@nextcloud/dialogs/style.css'
-import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 
 const VIEW_MODES = Object.freeze(['list', 'grid', 'tree'])
 const SORT_FIELDS = Object.freeze(['name', 'modified', 'size', 'type'])

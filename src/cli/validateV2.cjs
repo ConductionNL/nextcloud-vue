@@ -15,8 +15,8 @@
 
 'use strict'
 
-const Ajv = require('ajv/dist/2020.js')
 const addFormats = require('ajv-formats')
+const Ajv = require('ajv/dist/2020.js')
 const v2Schema = require('../../src/schemas/app-manifest-v2.schema.json')
 
 const ajvV2 = new Ajv({ useDefaults: true, allErrors: true, strict: false })

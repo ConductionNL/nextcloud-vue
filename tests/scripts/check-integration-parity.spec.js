@@ -14,10 +14,10 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import {
-	collectServerDescriptors,
 	collectJsRegistrations,
 	collectJsRegistrationSites,
 	collectLibraryRegistrations,
+	collectServerDescriptors,
 	crossReferenceServerLeaves,
 	reportCrossRef,
 } from '../../scripts/check-integration-parity.js'

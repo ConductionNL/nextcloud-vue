@@ -59,10 +59,10 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcCounterBubble } from '@nextcloud/vue'
-import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
-import { CnIcon } from '../CnIcon/index.js'
-import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { passesContextPredicates } from '../../utils/visibleIfContext.js'
+import { CnIcon } from '../CnIcon/index.js'
+import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
 /**
  * CnNavCardGrid — built-in v2 widget rendering a grid of navigation-link

@@ -24,7 +24,7 @@
 // would have been a silent no-op — it is already the default. Checking the built
 // bundle is what caught it, so this spec asserts behaviour rather than props.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const HARNESS = '/?selz=1'
 

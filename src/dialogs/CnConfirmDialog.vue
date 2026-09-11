@@ -68,7 +68,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 
 /**
  * CnConfirmDialog — generic, verb-agnostic confirmation dialog.

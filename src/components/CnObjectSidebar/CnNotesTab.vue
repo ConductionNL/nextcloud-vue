@@ -89,13 +89,13 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcListItem, NcActionButton, NcLoadingIcon, NcRichContenteditable } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcListItem, NcLoadingIcon, NcRichContenteditable } from '@nextcloud/vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
-import Send from 'vue-material-design-icons/Send.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Send from 'vue-material-design-icons/Send.vue'
 import { buildHeaders } from '../../utils/index.js'
-import { parseMentions, extractMentionedIds } from '../../utils/mentions.js'
+import { extractMentionedIds, parseMentions } from '../../utils/mentions.js'
 import { searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 
 export default {

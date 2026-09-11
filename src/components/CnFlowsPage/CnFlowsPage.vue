@@ -26,8 +26,8 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton } from '@nextcloud/vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnIndexPage from '../CnIndexPage/CnIndexPage.vue'

@@ -37,10 +37,10 @@
 </template>
 
 <script>
-import { NcActions, NcActionButton } from '@nextcloud/vue'
+import { NcActionButton, NcActions } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
 
 /**
  * CnWidgetEditCog — the single per-widget edit affordance for editable

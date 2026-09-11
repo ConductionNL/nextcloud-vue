@@ -103,14 +103,14 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
-import { NcActions, NcActionButton, NcActionLink, NcLoadingIcon } from '@nextcloud/vue'
 import { emit as emitOnBus } from '@nextcloud/event-bus'
-import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
-import Refresh from 'vue-material-design-icons/Refresh.vue'
-import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
+import { translate as t } from '@nextcloud/l10n'
+import { NcActionButton, NcActionLink, NcActions, NcLoadingIcon } from '@nextcloud/vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import BugOutline from 'vue-material-design-icons/BugOutline.vue'
+import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
+import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
 import { buildBugReportUrl, buildFeatureRequestUrl, DEFAULT_FORGE } from '../../utils/forge.js'
 
 /**

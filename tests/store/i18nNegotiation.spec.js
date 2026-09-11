@@ -12,9 +12,8 @@
  */
 
 import { createPinia, setActivePinia } from 'pinia'
-
-import { createObjectStore } from '../../src/store/useObjectStore.js'
 import { auditTrailsPlugin } from '../../src/store/plugins/auditTrails.js'
+import { createObjectStore } from '../../src/store/useObjectStore.js'
 
 global.OC = { requestToken: 'token-test' }
 

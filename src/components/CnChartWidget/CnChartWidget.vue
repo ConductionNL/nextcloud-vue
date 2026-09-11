@@ -67,17 +67,17 @@
 </template>
 
 <script>
-import { inject, ref } from 'vue'
-import { translate as t, getLanguage } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { getLanguage, translate as t } from '@nextcloud/l10n'
+import { inject, ref } from 'vue'
 import VueApexCharts from 'vue3-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
-import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
-import { safeCurrencyCode } from '../../utils/formatMetric.js'
+import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { safeCurrencyCode } from '../../utils/formatMetric.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 /**
  * Nice-ceiling ladder. Deliberately fine-grained: a coarse one (1 / 2 / 5 / 10)

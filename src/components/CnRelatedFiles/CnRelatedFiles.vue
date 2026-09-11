@@ -78,7 +78,7 @@
 </template>
 
 <script>
-import { getFilePickerBuilder, FilePickerType } from '@nextcloud/dialogs'
+import { FilePickerType, getFilePickerBuilder } from '@nextcloud/dialogs'
 
 /**
  * CnRelatedFiles — a widget for RELATING existing Nextcloud files to an

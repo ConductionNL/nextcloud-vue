@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
-import CnRowActions from '@/components/CnRowActions/CnRowActions.vue'
 import CnIcon from '@/components/CnIcon/CnIcon.vue'
+import CnRowActions from '@/components/CnRowActions/CnRowActions.vue'
 
 const baseActions = [
 	{ label: 'Edit', handler: jest.fn() },

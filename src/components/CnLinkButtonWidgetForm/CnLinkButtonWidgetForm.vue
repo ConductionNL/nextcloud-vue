@@ -177,10 +177,10 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 
 const ACTION_TYPES = Object.freeze({
 	EXTERNAL: 'external',

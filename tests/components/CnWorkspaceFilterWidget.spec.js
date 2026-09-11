@@ -23,8 +23,8 @@ jest.mock('../../src/composables/useEndpointSource.js', () => ({
 }))
 
 import axios from '@nextcloud/axios'
-import { ref } from 'vue'
 import { mount } from '@vue/test-utils'
+import { ref } from 'vue'
 import CnWorkspaceFilterWidget from '../../src/components/CnWorkspaceFilterWidget/CnWorkspaceFilterWidget.vue'
 import { fetchEndpointSource } from '../../src/composables/useEndpointSource.js'
 

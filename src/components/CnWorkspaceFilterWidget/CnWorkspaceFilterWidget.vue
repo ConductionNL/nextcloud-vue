@@ -52,9 +52,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 /**
  * CnWorkspaceFilterWidget — a dashboard choice-list that writes the selected

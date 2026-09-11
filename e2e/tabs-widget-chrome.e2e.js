@@ -25,7 +25,7 @@
 // regression fails. Asserting `padding: 0` would only assert that my own fix is
 // still written the way I wrote it.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const URL = '/?tabswidget=1'
 

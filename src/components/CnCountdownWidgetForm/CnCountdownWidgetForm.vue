@@ -49,8 +49,8 @@
 </template>
 
 <script>
-import { NcCheckboxRadioSwitch, NcTextField } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcCheckboxRadioSwitch, NcTextField } from '@nextcloud/vue'
 
 /**
  * CnCountdownWidgetForm — the config sub-form for a `countdown` widget

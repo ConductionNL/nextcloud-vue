@@ -1,5 +1,5 @@
-import axios from '@nextcloud/axios'
 import { getCurrentUser } from '@nextcloud/auth'
+import axios from '@nextcloud/axios'
 import { generateRemoteUrl } from '@nextcloud/router'
 
 /**

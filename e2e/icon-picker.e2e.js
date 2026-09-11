@@ -6,7 +6,7 @@
 //   fallback, Multi-source icon selection, Custom SVG authoring, Icon placement,
 //   Backward-compatible additions.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
 	await page.goto('/')

@@ -101,9 +101,9 @@ import {
 	NcEmptyContent,
 	NcLoadingIcon,
 } from '@nextcloud/vue'
-import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
-import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 

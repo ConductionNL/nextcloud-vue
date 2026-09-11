@@ -172,10 +172,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcCheckboxRadioSwitch } from '@nextcloud/vue'
-import Upload from 'vue-material-design-icons/Upload.vue'
-import ImportIcon from 'vue-material-design-icons/Import.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import ImportIcon from 'vue-material-design-icons/Import.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
 
 /**
  * CnMassImportDialog — File import dialog with options and results summary.

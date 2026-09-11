@@ -20,7 +20,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { isReactive, h, toRaw } from 'vue'
+import { h, isReactive, toRaw } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({ getCapabilities: jest.fn(() => ({})) }))
 const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')

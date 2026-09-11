@@ -1,11 +1,11 @@
-import { toRaw } from 'vue'
 import { defineStore } from 'pinia'
-import { buildHeaders, buildQueryString, prefixUrl, capitalize } from '../utils/headers.js'
-import { parseResponseError, networkError, genericError } from '../utils/errors.js'
-import { extractId } from '../utils/id.js'
+import { toRaw } from 'vue'
 import { discardResponseBody } from '../utils/discardResponseBody.js'
+import { genericError, networkError, parseResponseError } from '../utils/errors.js'
 import { normalizeFacets } from '../utils/facets.js'
-import { mergePluginState, mergePluginGetters, mergePluginActions } from './pluginMerge.js'
+import { buildHeaders, buildQueryString, capitalize, prefixUrl } from '../utils/headers.js'
+import { extractId } from '../utils/id.js'
+import { mergePluginActions, mergePluginGetters, mergePluginState } from './pluginMerge.js'
 import { liveUpdatesPlugin } from './plugins/liveUpdates.js'
 
 /**

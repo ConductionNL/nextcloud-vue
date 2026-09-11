@@ -22,7 +22,6 @@ const {
 	placeLooseNodes,
 	readNodePoint,
 } = require('../flowGraphLayout.js')
-
 const caseFlow = require('./__fixtures__/case-behandeling-flow.json')
 
 /**

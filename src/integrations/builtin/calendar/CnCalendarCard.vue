@@ -102,9 +102,8 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import Calendar from 'vue-material-design-icons/Calendar.vue'
-import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
 import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
-
+import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders } from '../../../utils/index.js'
 

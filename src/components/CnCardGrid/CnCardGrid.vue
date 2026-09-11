@@ -49,7 +49,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon, NcEmptyContent } from '@nextcloud/vue'
+import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import ViewGrid from 'vue-material-design-icons/ViewGrid.vue'
 import { CnObjectCard } from '../CnObjectCard/index.js'
 

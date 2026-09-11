@@ -11,7 +11,6 @@
 
 import axios from '@nextcloud/axios'
 import { shallowMount } from '@vue/test-utils'
-
 import CnWidgetObjectTable from '../../../src/components/CnWidgetObjectTable/CnWidgetObjectTable.vue'
 import { invalidateEndpointSourceCache } from '../../../src/composables/useEndpointSource.js'
 

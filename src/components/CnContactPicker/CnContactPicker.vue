@@ -119,7 +119,6 @@ import {
 } from '@nextcloud/vue'
 import AccountSearchOutline from 'vue-material-design-icons/AccountSearchOutline.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
-
 import { buildHeaders } from '../../utils/index.js'
 
 /**

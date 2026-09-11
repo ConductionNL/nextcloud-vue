@@ -21,7 +21,7 @@
 // the store does to the document. This file asserts that those decisions become
 // the thing a user can see and click.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const EDITOR = '/?flow=1'
 const CANVAS = '/?canvas=1'

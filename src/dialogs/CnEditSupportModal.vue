@@ -125,10 +125,10 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import Upload from 'vue-material-design-icons/Upload.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 /** The four built-in buttons, in display order, with their shell defaults. */

@@ -81,15 +81,15 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcButton } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
-import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
-import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
+import { filterToRows, rowsToFilter } from '../CnFilterRowsEditor/filterRows.js'
 
 const DEFAULT_CONTENT = Object.freeze({
 	register: '',

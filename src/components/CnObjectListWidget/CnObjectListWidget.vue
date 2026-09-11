@@ -126,16 +126,16 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { translate as t } from '@nextcloud/l10n'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
-import { CnRowActions } from '../CnRowActions/index.js'
-import { translate as t } from '@nextcloud/l10n'
-import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
-import { objectFieldValue } from '../../utils/objectName.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { objectFieldValue } from '../../utils/objectName.js'
+import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { CnRowActions } from '../CnRowActions/index.js'
 
 /**
  * Event-bus channel a page-level refresh is announced on. The page's Actions

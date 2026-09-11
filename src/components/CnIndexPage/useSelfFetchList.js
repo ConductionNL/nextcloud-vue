@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useListView } from '../../composables/index.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { useObjectStore } from '../../store/index.js'

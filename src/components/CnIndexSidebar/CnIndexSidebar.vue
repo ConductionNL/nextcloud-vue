@@ -164,16 +164,16 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcAppSidebar, NcAppSidebarTab, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcPopover, NcButton } from '@nextcloud/vue'
-import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
-import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
+import { NcAppSidebar, NcAppSidebarTab, NcButton, NcCheckboxRadioSwitch, NcPopover, NcSelect, NcTextField } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
-import { CnIcon } from '../CnIcon/index.js'
-import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
-import { facetOptionLabel } from '../../utils/facets.js'
+import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
+import { facetOptionLabel } from '../../utils/facets.js'
+import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
+import { CnIcon } from '../CnIcon/index.js'
 
 /**
  * CnIndexSidebar — Reusable NcAppSidebar wrapper with Search + Columns tabs.

@@ -12,9 +12,9 @@
 
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
-import CnObjectSidebar from '../../src/components/CnObjectSidebar/CnObjectSidebar.vue'
 import CnObjectDataWidget from '../../src/components/CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectMetadataWidget from '../../src/components/CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
+import CnObjectSidebar from '../../src/components/CnObjectSidebar/CnObjectSidebar.vue'
 import CnWidgetObjectTable from '../../src/components/CnWidgetObjectTable/CnWidgetObjectTable.vue'
 
 const baseProps = {

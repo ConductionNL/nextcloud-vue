@@ -67,8 +67,8 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 
 const VIEW_MODES = Object.freeze(['summary', 'trend', 'top-vendors', 'top-categories'])
 const PERIODS = Object.freeze(['month', 'quarter', 'ytd', 'fy'])

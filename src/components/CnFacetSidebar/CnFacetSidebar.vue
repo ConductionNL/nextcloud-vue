@@ -61,9 +61,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcSelect, NcTextField, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
-import { filtersFromSchema } from '../../utils/schema.js'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
 import { facetOptionLabel } from '../../utils/facets.js'
+import { filtersFromSchema } from '../../utils/schema.js'
 
 /**
  * CnFacetSidebar — Auto-generated faceted search sidebar from schema properties.

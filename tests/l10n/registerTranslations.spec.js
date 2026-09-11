@@ -13,10 +13,10 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  */
 
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { mount } from '@vue/test-utils'
-import { pluralEntries, registerTranslations } from '../../src/l10n/index.js'
 import CnObjectMetadataWidget from '../../src/components/CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
+import { pluralEntries, registerTranslations } from '../../src/l10n/index.js'
 
 /**
  * Register the library's bundle as a reader of the given language would.

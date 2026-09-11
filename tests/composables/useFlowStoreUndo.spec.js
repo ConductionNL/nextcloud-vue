@@ -12,7 +12,7 @@
 // nothing. Each has a control, because "the flow changed" is true of an undo
 // that restored the wrong snapshot just as much as the right one.
 
-import { setActivePinia, createPinia } from 'pinia'
+import { createPinia, setActivePinia } from 'pinia'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
 
 /**

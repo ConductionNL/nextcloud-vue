@@ -263,20 +263,20 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { NcActions, NcActionButton, NcActionInput, NcButton, NcEmptyContent } from '@nextcloud/vue'
-import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
-import { CnIcon } from '../CnIcon/index.js'
-import { buildHeaders } from '../../utils/headers.js'
+import { NcActionButton, NcActionInput, NcActions, NcButton, NcEmptyContent } from '@nextcloud/vue'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import FileTreeOutline from 'vue-material-design-icons/FileTreeOutline.vue'
+import Paperclip from 'vue-material-design-icons/Paperclip.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { registerIntegrationIcons } from '../../integrations/icons.js'
 import { useObjectStore } from '../../store/index.js'
-import FileTreeOutline from 'vue-material-design-icons/FileTreeOutline.vue'
-import Paperclip from 'vue-material-design-icons/Paperclip.vue'
-import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { buildHeaders } from '../../utils/headers.js'
+import { CnIcon } from '../CnIcon/index.js'
+import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
 // ⚠️ THIS WIDGET RENDERS INTEGRATION ICONS AND DID NOT REGISTER THEM.
 //

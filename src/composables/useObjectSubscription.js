@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Conduction B.V.
 
-import { ref, watch, isRef, onMounted, onBeforeUnmount } from 'vue'
 import { tryOnScopeDispose } from '@vueuse/core'
+import { isRef, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 /**
  * useObjectSubscription — auto-managed live-update subscription.

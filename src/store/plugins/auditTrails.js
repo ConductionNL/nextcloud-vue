@@ -1,8 +1,8 @@
-import { createSubResourcePlugin, emptyPaginated } from '../createSubResourcePlugin.js'
-import { buildQueryString } from '../../utils/headers.js'
 // `buildHeaders` is reached via `this._buildHeaders()` so tenant
 // scoping (multi-tenancy-context) survives every audit-trail fetch.
-import { parseResponseError, networkError, genericError } from '../../utils/errors.js'
+import { genericError, networkError, parseResponseError } from '../../utils/errors.js'
+import { buildQueryString } from '../../utils/headers.js'
+import { createSubResourcePlugin, emptyPaginated } from '../createSubResourcePlugin.js'
 
 /**
  * Audit trails plugin for the object store.

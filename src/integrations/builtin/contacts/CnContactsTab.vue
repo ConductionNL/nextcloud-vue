@@ -161,18 +161,17 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import AccountPlus from 'vue-material-design-icons/AccountPlus.vue'
 import AccountMultipleOutline from 'vue-material-design-icons/AccountMultipleOutline.vue'
+import AccountPlus from 'vue-material-design-icons/AccountPlus.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Email from 'vue-material-design-icons/Email.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import OfficeBuildingOutline from 'vue-material-design-icons/OfficeBuildingOutline.vue'
 import Phone from 'vue-material-design-icons/Phone.vue'
-
-import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import CnContactPicker from '../../../components/CnContactPicker/CnContactPicker.vue'
 import CnContactCreate from '../../../components/CnContactCreate/CnContactCreate.vue'
+import CnContactPicker from '../../../components/CnContactPicker/CnContactPicker.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**

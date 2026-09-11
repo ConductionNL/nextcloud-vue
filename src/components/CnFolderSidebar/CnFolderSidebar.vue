@@ -50,10 +50,10 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
-import FolderPlusOutline from 'vue-material-design-icons/FolderPlusOutline.vue'
 import AllInclusive from 'vue-material-design-icons/AllInclusive.vue'
-import { CnIcon } from '../CnIcon/index.js'
+import FolderPlusOutline from 'vue-material-design-icons/FolderPlusOutline.vue'
 import { CnFolderTree } from '../CnFolderTree/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 import { fetchWebdavFolderTree } from './webdavFolders.js'
 
 /**

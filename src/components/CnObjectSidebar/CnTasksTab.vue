@@ -128,14 +128,14 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcTextField, NcListItem, NcActionButton, NcLoadingIcon, NcDateTimePickerNative, NcSelect } from '@nextcloud/vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
+import { NcActionButton, NcButton, NcDateTimePickerNative, NcListItem, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
+import CheckboxBlankOutline from 'vue-material-design-icons/CheckboxBlankOutline.vue'
+import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
-import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
-import CheckboxBlankOutline from 'vue-material-design-icons/CheckboxBlankOutline.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import { buildHeaders } from '../../utils/index.js'
 
 export default {

@@ -13,8 +13,8 @@
  * (disabled + loading icon driven solely by `:refreshing`).
  */
 
-import { mount } from '@vue/test-utils'
 import { emit as emitOnBus } from '@nextcloud/event-bus'
+import { mount } from '@vue/test-utils'
 import CnActionsMenu from '../../src/components/CnActionsMenu/CnActionsMenu.vue'
 
 jest.mock('@nextcloud/event-bus', () => ({

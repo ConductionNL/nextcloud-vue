@@ -6,8 +6,8 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
-import CnHeaderWidget from './CnHeaderWidget.vue'
 import CnHeaderWidgetForm from '../CnHeaderWidgetForm/CnHeaderWidgetForm.vue'
+import CnHeaderWidget from './CnHeaderWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('header', {

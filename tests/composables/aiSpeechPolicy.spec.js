@@ -8,14 +8,14 @@
  */
 
 import {
-	SPEECH_AUTO,
-	SPEECH_BROWSER,
-	SPEECH_LOCAL,
-	SPEECH_OFF,
 	DEFAULT_SILENCE_TIMEOUT,
 	normalizeAgentSpeechPolicy,
 	resolveDictationEngine,
 	resolveSpeakingEngine,
+	SPEECH_AUTO,
+	SPEECH_BROWSER,
+	SPEECH_LOCAL,
+	SPEECH_OFF,
 } from '../../src/composables/aiSpeechPolicy.js'
 
 describe('normalizeAgentSpeechPolicy', () => {

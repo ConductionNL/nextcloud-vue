@@ -307,34 +307,34 @@
 </template>
 
 <script>
-import { NcActions, NcActionButton, NcActionCaption, NcActionCheckbox, NcActionSeparator, NcButton, NcEmptyContent } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
-import Plus from 'vue-material-design-icons/Plus.vue'
-import History from 'vue-material-design-icons/History.vue'
-import Creation from 'vue-material-design-icons/Creation.vue'
-import Close from 'vue-material-design-icons/Close.vue'
+import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcActionSeparator, NcButton, NcEmptyContent } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
-import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
+import Creation from 'vue-material-design-icons/Creation.vue'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
-import CnAiMessageList from './CnAiMessageList.vue'
-import CnAiInput from './CnAiInput.vue'
-import CnAiHistoryList from './CnAiHistoryList.vue'
+import History from 'vue-material-design-icons/History.vue'
+import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDashboardIcon from '../CnIconPicker/CnDashboardIcon.vue'
+import CnAiHistoryList from './CnAiHistoryList.vue'
+import CnAiInput from './CnAiInput.vue'
+import CnAiMessageList from './CnAiMessageList.vue'
 import {
-	DEFAULT_CHAT_APP_ID,
 	agentsUrl,
 	conversationsUrl,
+	DEFAULT_CHAT_APP_ID,
 	normalizeConversation,
 	speechCapabilitiesUrl,
 	speechSynthesisUrl,
 } from '../../composables/aiChatConfig.js'
 import {
-	SPEECH_LOCAL,
-	SPEECH_OFF,
 	browserSynthesisUsable,
 	normalizeAgentSpeechPolicy,
 	resolveSpeakingEngine,
+	SPEECH_LOCAL,
+	SPEECH_OFF,
 } from '../../composables/aiSpeechPolicy.js'
 
 /**

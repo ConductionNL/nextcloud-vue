@@ -60,9 +60,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcSettingsSection, NcLoadingIcon, NcButton } from '@nextcloud/vue'
-import Refresh from 'vue-material-design-icons/Refresh.vue'
+import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
 
 /**
  * CnSettingsSection - Admin settings section wrapper with consistent layout.

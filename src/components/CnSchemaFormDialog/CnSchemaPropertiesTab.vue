@@ -111,14 +111,13 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcTextField, NcSelect } from '@nextcloud/vue'
-import { CnDataTable } from '../CnDataTable/index.js'
-import { CnNoteCard } from '../CnNoteCard/index.js'
-import CnSchemaPropertyActions from './CnSchemaPropertyActions.vue'
-
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import AlertOutline from 'vue-material-design-icons/AlertOutline.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import CnSchemaPropertyActions from './CnSchemaPropertyActions.vue'
+import { CnDataTable } from '../CnDataTable/index.js'
+import { CnNoteCard } from '../CnNoteCard/index.js'
 
 /**
  * CnSchemaPropertiesTab — Properties table tab for CnSchemaFormDialog.

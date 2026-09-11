@@ -53,8 +53,8 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 
 const DEFAULT_CONTENT = Object.freeze({

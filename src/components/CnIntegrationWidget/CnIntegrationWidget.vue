@@ -186,11 +186,11 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcEmptyContent } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnIntegrationWidgetEmpty from './CnIntegrationWidgetEmpty.vue'
-import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
-import { isAppInstalled } from '../../utils/appInstalled.js'
-import { resolveProviderAvailability } from './availability.js'
 import { registerIntegrationIcons } from '../../integrations/icons.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import { CnActionsMenu } from '../CnActionsMenu/index.js'
+import { resolveProviderAvailability } from './availability.js'
 
 // Ensure every descriptor's MDI icon resolves through CnIcon regardless
 // of what the host app registered at bootstrap — otherwise tabs fall

@@ -26,8 +26,8 @@
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
-import { integrations } from '../../src/integrations/registry.js'
 import { LIB_INTEGRATION_COMPONENTS } from '../../src/integrations/libComponents.js'
+import { integrations } from '../../src/integrations/registry.js'
 
 /**
  * A leaf as it renders when it belongs to another bundle's Vue.

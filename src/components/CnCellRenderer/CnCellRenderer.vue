@@ -131,11 +131,11 @@
 <script>
 import { NcDateTime } from '@nextcloud/vue'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
+import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
+import { safeCurrencyCode } from '../../utils/formatMetric.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { formatValue } from '../../utils/schema.js'
-import { safeCurrencyCode } from '../../utils/formatMetric.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
-import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 
 /**
  * Module-level set of column keys already warned about for a

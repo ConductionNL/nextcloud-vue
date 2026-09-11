@@ -4,9 +4,9 @@
  */
 
 import {
-	placeNewWidget,
-	getDashboardColumnOpts,
 	DEFAULT_GRID_BREAKPOINTS,
+	getDashboardColumnOpts,
+	placeNewWidget,
 } from '../../src/utils/dashboardPlacement.js'
 
 describe('placeNewWidget', () => {

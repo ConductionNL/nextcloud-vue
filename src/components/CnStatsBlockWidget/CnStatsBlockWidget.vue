@@ -54,14 +54,15 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
+import { useDataSource } from '../../composables/useDataSource.js'
+import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+
 // The canonical KPI scale (`--cn-kpi-*`) lives in one stylesheet. Imported
 // here as well as from css/index.css so the tokens resolve even when the
 // consuming app pulls in components individually.
 import '../../css/kpi-card.css'
-import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
-import { useDataSource } from '../../composables/useDataSource.js'
-import { resolveFilterTokens, dropOptionalUnresolved, hasUnresolvedTokens } from '../../utils/resolveFilterTokens.js'
 
 /**
  * Event-bus channel the PAGE-level Refresh action broadcasts on

@@ -26,6 +26,7 @@
 
 import { mount } from '@vue/test-utils'
 import CnDashboardPage from '@/components/CnDashboardPage/CnDashboardPage.vue'
+
 // The widget types self-register into the shared registry on import. Without
 // these, `stat` / `delta` resolve to no renderer and the page falls through to
 // its unknown-widget branch, which would make every assertion below vacuous.

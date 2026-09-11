@@ -237,22 +237,22 @@
 </template>
 
 <script>
-import { ref } from 'vue'
-import { NcEmptyContent } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
+import { NcEmptyContent } from '@nextcloud/vue'
+import { ref } from 'vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
-import { defaultPageTypes } from './pageTypes.js'
-import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
-import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
-import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
 import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
-import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
-import { dispatchAction, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
-import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
-import { useObjectStore } from '../../store/index.js'
-import { isAppInstalled } from '../../utils/appInstalled.js'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
+import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
+import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import { useObjectStore } from '../../store/index.js'
+import { dispatchAction, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
+import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
+import { defaultPageTypes } from './pageTypes.js'
 
 /** Recognised fixed slot names for v2 manifests. */
 const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'modal'])

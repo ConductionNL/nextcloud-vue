@@ -42,7 +42,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcTextField, NcSelect } from '@nextcloud/vue'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 
 const PADDING_VALUES = Object.freeze(['none', 'small', 'medium', 'large'])

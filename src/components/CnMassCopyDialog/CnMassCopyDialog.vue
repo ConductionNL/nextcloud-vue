@@ -81,9 +81,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
-import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 
 /**
  * CnMassCopyDialog — Two-phase mass copy confirmation dialog.

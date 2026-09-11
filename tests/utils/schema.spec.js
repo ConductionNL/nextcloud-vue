@@ -1,4 +1,4 @@
-import { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, splitDescription } from '@/utils/schema.js'
+import { columnsFromSchema, fieldsFromSchema, filtersFromSchema, formatValue, splitDescription } from '@/utils/schema.js'
 
 // ---------- Test schema fixtures ----------
 

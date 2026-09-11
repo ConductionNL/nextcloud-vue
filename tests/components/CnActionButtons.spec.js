@@ -10,13 +10,13 @@
  * actionsDispatcherW3.spec.js).
  */
 
-import { ref } from 'vue'
 import { mount } from '@vue/test-utils'
+import { ref } from 'vue'
 import CnActionButtons from '../../src/components/CnActionButtons/CnActionButtons.vue'
-import { dispatchAction, resolveObjectOpType } from '../../src/utils/actionsDispatcher.js'
 import { fetchEndpointSource } from '../../src/composables/useEndpointSource.js'
-import { evaluateVisibleWhen } from '../../src/utils/visibleWhen.js'
 import { useObjectStore } from '../../src/store/useObjectStore.js'
+import { dispatchAction, resolveObjectOpType } from '../../src/utils/actionsDispatcher.js'
+import { evaluateVisibleWhen } from '../../src/utils/visibleWhen.js'
 
 jest.mock('../../src/utils/actionsDispatcher.js', () => {
 	// Keep the real route-builder helper (buildOnSuccessRoute) so the

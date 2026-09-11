@@ -103,9 +103,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { safeHref } from '../../utils/safeHref.js'
-import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { safeHref } from '../../utils/safeHref.js'
 
 /**
  * CnDetailGrid — Data-driven label-value grid for detail/info sections.

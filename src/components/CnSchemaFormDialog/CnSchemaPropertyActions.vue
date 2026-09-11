@@ -524,19 +524,18 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcActions,
 	NcActionButton,
+	NcActionCaption,
 	NcActionCheckbox,
 	NcActionInput,
-	NcActionCaption,
+	NcActions,
 	NcActionSeparator,
 	NcActionText,
 } from '@nextcloud/vue'
-
-import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
-import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 
 /**
  * CnSchemaPropertyActions — NcActions dropdown for a single schema property.

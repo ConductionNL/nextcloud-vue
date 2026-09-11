@@ -167,9 +167,9 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import TableIcon from 'vue-material-design-icons/Table.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
-import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnAnalyticsReportCreate from '../../../components/CnAnalyticsReportCreate/CnAnalyticsReportCreate.vue'
 import CnAnalyticsReportPicker from '../../../components/CnAnalyticsReportPicker/CnAnalyticsReportPicker.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**

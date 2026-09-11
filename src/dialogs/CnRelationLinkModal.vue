@@ -39,7 +39,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon, NcDialog } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcLoadingIcon } from '@nextcloud/vue'
 import CnResourceSelect from '../components/CnResourceSelect/CnResourceSelect.vue'
 import { useObjectStore } from '../store/index.js'
 

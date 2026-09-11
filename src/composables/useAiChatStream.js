@@ -28,16 +28,16 @@
  * `openregister` during its compat window) without touching this file.
  */
 
-import { reactive } from 'vue'
-import axios from '@nextcloud/axios'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
-import { useAiContext } from './useAiContext.js'
+import axios from '@nextcloud/axios'
+import { reactive } from 'vue'
 import {
-	DEFAULT_CHAT_APP_ID,
-	chatStreamUrl,
 	chatSendUrl,
+	chatStreamUrl,
 	conversationMessagesUrl,
+	DEFAULT_CHAT_APP_ID,
 } from './aiChatConfig.js'
+import { useAiContext } from './useAiContext.js'
 
 /**
  * Factory that creates and returns a reactive AI chat stream state object.

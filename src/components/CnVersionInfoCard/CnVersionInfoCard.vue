@@ -71,10 +71,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { CnSettingsSection } from '../CnSettingsSection/index.js'
-import { NcLoadingIcon, NcButton } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Update from 'vue-material-design-icons/Update.vue'
+import { CnSettingsSection } from '../CnSettingsSection/index.js'
 
 /**
  * CnVersionInfoCard - App version information card for admin settings pages.

@@ -95,16 +95,16 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-// Aliased: the methods below are also called parseGeoPoint/finitePoint (kept for
-// backwards compatibility), and an unaliased call inside them would read like recursion.
-import { parseGeoPoint as parseGeoPointUtil, finitePoint as finitePointUtil } from '../../utils/geo.js'
 import { NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
 import MapMarkerOff from 'vue-material-design-icons/MapMarkerOff.vue'
-import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
+// Aliased: the methods below are also called parseGeoPoint/finitePoint (kept for
+// backwards compatibility), and an unaliased call inside them would read like recursion.
+import { finitePoint as finitePointUtil, parseGeoPoint as parseGeoPointUtil } from '../../utils/geo.js'
 import { buildHeaders } from '../../utils/headers.js'
+import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
 /** Default map centre when the object has no location yet (Netherlands). */
 const DEFAULT_CENTER = Object.freeze([52.132633, 5.291266])

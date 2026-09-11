@@ -15,9 +15,9 @@
  */
 
 import { createPinia, setActivePinia } from 'pinia'
-import { createObjectStore } from '../../../src/store/useObjectStore.js'
-import { liveUpdatesPlugin } from '../../../src/store/plugins/liveUpdates.js'
 import { resetLiveUpdates } from '../../../src/store/liveUpdates/transport.js'
+import { liveUpdatesPlugin } from '../../../src/store/plugins/liveUpdates.js'
+import { createObjectStore } from '../../../src/store/useObjectStore.js'
 
 // --- Mocks ---
 

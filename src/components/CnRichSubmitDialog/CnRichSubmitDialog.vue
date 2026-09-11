@@ -105,7 +105,7 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 
 /**
  * CnRichSubmitDialog — Single-screen rich-submit modal with reason

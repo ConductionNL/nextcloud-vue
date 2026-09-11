@@ -197,9 +197,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import CnMenuTreeNode from './CnMenuTreeNode.vue'
 import CnMenuItemIcon from './CnMenuItemIcon.vue'
-import { isActiveItem, computeActivePath } from './menuActive.js'
+import CnMenuTreeNode from './CnMenuTreeNode.vue'
+import { computeActivePath, isActiveItem } from './menuActive.js'
 
 const VALID_STYLES = ['dropdown', 'megamenu', 'tree']
 const VALID_ORIENTATIONS = ['horizontal', 'vertical']

@@ -59,9 +59,9 @@
 
 <script>
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
-import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 
 /**
  * CnObjectRow — Compact single-line list row for object display.

@@ -110,8 +110,8 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
 
 const DEFAULT_CONTENT = Object.freeze({

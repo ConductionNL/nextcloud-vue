@@ -58,7 +58,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcTextField } from '@nextcloud/vue'
-import { BUILT_IN_KB_PROVIDERS, resolveKbProvider, normaliseKbResults } from '../../utils/kbSearchProviders.js'
+import { BUILT_IN_KB_PROVIDERS, normaliseKbResults, resolveKbProvider } from '../../utils/kbSearchProviders.js'
 
 /**
  * CnKbSearchWidget — a summary-driven knowledge-base search widget.

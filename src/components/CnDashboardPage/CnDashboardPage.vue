@@ -671,44 +671,44 @@
 </template>
 
 <script>
-import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcActions,
 	NcActionButton,
 	NcActionInput,
+	NcActions,
 	NcActionSeparator,
 	NcButton,
 	NcEmptyContent,
 	NcLoadingIcon,
 	NcSelect,
 } from '@nextcloud/vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
+import { provide, ref, watch } from 'vue'
+import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
-import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
-import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import Download from 'vue-material-design-icons/Download.vue'
-import { isAppInstalled } from '../../utils/appInstalled.js'
-import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
-import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
-import { BUILT_IN_WIDGETS } from '../CnWidgetGrid/builtInWidgets.js'
-import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
-import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
-import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
-import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
-import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
-import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
-import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
-import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
-import CnBodySections from '../CnBodySections/CnBodySections.vue'
-import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
-import { CnActionsMenu } from '../CnActionsMenu/index.js'
-import { CnActionButtons } from '../CnActionButtons/index.js'
-import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
-import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
+import CnBodySections from '../CnBodySections/CnBodySections.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
+import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
+import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
+import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
+import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
+import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
+import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
+import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
+import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
+import { CnActionButtons } from '../CnActionButtons/index.js'
+import { CnActionsMenu } from '../CnActionsMenu/index.js'
+import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
+import { BUILT_IN_WIDGETS } from '../CnWidgetGrid/builtInWidgets.js'
+import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']

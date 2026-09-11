@@ -19,11 +19,9 @@
  * @jest-environment node
  */
 
+const pluginVue = require('eslint-plugin-vue')
 const fs = require('fs')
 const path = require('path')
-
-const pluginVue = require('eslint-plugin-vue')
-
 const {
 	conductionVue3,
 	conductionVue3Fixes,

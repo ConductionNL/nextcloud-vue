@@ -67,6 +67,12 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
+import DOMPurify from 'dompurify'
+import { objectToGeoFeature } from '../../utils/geo.js'
+import { objectDisplayName } from '../../utils/objectName.js'
+import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
+
 // Leaflet's own stylesheet positions the map panes, tiles the tile
 // images, and places the zoom/attribution controls. The JS is lazy-loaded
 // in mounted(), but the CSS must be present whenever this widget renders —
@@ -74,11 +80,6 @@
 // Import it here so the widget is self-styling for every consumer rather
 // than relying on another component (e.g. a location picker) to pull it in.
 import 'leaflet/dist/leaflet.css'
-import { translate as t } from '@nextcloud/l10n'
-import DOMPurify from 'dompurify'
-import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
-import { objectToGeoFeature } from '../../utils/geo.js'
-import { objectDisplayName } from '../../utils/objectName.js'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
 

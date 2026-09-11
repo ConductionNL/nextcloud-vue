@@ -26,9 +26,9 @@
  * @module composables/useSupportDialog
  */
 
-import { ref } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { ref } from 'vue'
 
 const STORAGE_KEY_PREFIX = 'cn-support-dialog-shown:'
 const DEFAULT_PREFERENCE_KEY = 'support-dialog-seen'

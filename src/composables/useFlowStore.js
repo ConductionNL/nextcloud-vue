@@ -22,11 +22,11 @@
 //      the run reporting success. Nothing here may reintroduce a second
 //      vocabulary.
 
-import { defineStore } from 'pinia'
-import { DEFAULT_EDGE_LINE_TYPE } from './useFlowEdgeStyles.js'
-import { layoutFlowNodes, needsFullLayout, placeLooseNodes } from './flowGraphLayout.js'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { defineStore } from 'pinia'
+import { layoutFlowNodes, needsFullLayout, placeLooseNodes } from './flowGraphLayout.js'
+import { DEFAULT_EDGE_LINE_TYPE } from './useFlowEdgeStyles.js'
 
 /**
  * A blank flow definition.

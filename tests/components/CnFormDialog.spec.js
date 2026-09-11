@@ -702,8 +702,8 @@ describe('CnFormDialog', () => {
 })
 
 describe('CnFormDialog — referenceType (pluggable integration registry)', () => {
-	const { integrations } = require('@/integrations/registry.js')
 	const { h } = require('vue')
+	const { integrations } = require('@/integrations/registry.js')
 
 	const ContactEntityWidget = {
 		name: 'ContactEntityWidget',

@@ -384,23 +384,23 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcActionButton } from '@nextcloud/vue'
-import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
-import { CnIcon } from '../CnIcon/index.js'
-import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
-import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
-import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
+import { generateUrl } from '@nextcloud/router'
+import { NcActionButton, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
+import Check from 'vue-material-design-icons/Check.vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
-import Check from 'vue-material-design-icons/Check.vue'
-import Close from 'vue-material-design-icons/Close.vue'
-import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
-import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
+import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import { useObjectStore } from '../../store/index.js'
+import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
+import { CnIcon } from '../CnIcon/index.js'
+import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
+import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
 /**
  * CnObjectDataWidget — Schema-driven editable data grid widget.

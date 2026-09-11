@@ -558,8 +558,8 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 

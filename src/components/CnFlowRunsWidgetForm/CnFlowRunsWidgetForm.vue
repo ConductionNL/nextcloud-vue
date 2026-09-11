@@ -55,8 +55,8 @@
 </template>
 
 <script>
-import { NcTextField } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcTextField } from '@nextcloud/vue'
 
 const DEFAULT_CONTENT = Object.freeze({
 	limit: 6,

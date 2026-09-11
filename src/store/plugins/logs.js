@@ -1,7 +1,7 @@
-import { buildQueryString } from '../../utils/headers.js'
 // `buildHeaders` is reached via `this._buildHeaders()` so logs fetches
 // inherit the active tenant UUID (multi-tenancy-context).
-import { parseResponseError, networkError, genericError } from '../../utils/errors.js'
+import { genericError, networkError, parseResponseError } from '../../utils/errors.js'
+import { buildQueryString } from '../../utils/headers.js'
 
 /**
  * Logs sub-resource plugin for createCrudStore.

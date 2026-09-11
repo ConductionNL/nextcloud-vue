@@ -151,15 +151,15 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
-import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
-import CalendarOutline from 'vue-material-design-icons/CalendarOutline.vue'
-import Timeline from 'vue-material-design-icons/Timeline.vue'
-import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
+import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import CalendarClockOutline from 'vue-material-design-icons/CalendarClockOutline.vue'
+import CalendarOutline from 'vue-material-design-icons/CalendarOutline.vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
+import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
-import CalendarClockOutline from 'vue-material-design-icons/CalendarClockOutline.vue'
+import Timeline from 'vue-material-design-icons/Timeline.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 const DEFAULT_PAGE_SIZE = 25

@@ -438,27 +438,27 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
-import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
-import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
+import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
-import { fieldsFromSchema } from '../../utils/schema.js'
-import { searchNextcloudUsers, resolveNextcloudUser } from '../../utils/userAutocomplete.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
-import { shouldShow } from '../../utils/fieldCondition.js'
-import { objectDisplayName } from '../../utils/objectName.js'
 import {
-	extendsFormDeclarations,
 	definitionQueryParams,
+	DYNAMIC_KEY_PREFIX,
+	extendsFormDeclarations,
 	prefillDeclarations,
 	prefillValues,
 	propertiesFromDefinitions,
 	splitDynamicFormData,
-	DYNAMIC_KEY_PREFIX,
 } from '../../utils/dynamicProperties.js'
-import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
+import { shouldShow } from '../../utils/fieldCondition.js'
+import { objectDisplayName } from '../../utils/objectName.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { fieldsFromSchema } from '../../utils/schema.js'
+import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 
 /**
  * Widgets that take the full width of a two-column form.

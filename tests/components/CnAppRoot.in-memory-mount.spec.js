@@ -35,8 +35,8 @@ jest.mock('@nextcloud/router', () => ({
 const { getCapabilities } = require('@nextcloud/capabilities')
 const axios = require('@nextcloud/axios').default
 const { generateUrl } = require('@nextcloud/router')
-const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
 const { useAppManifest } = require('../../src/composables/useAppManifest.js')
+const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
 const CnAppRoot = require('../../src/components/CnAppRoot/CnAppRoot.vue').default
 
 const fixtureManifest = {

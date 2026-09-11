@@ -25,8 +25,8 @@
 </template>
 
 <script>
-import { getIconComponent, isCustomIconUrl } from './dashboardIcons.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
+import { getIconComponent, isCustomIconUrl } from './dashboardIcons.js'
 
 /**
  * CnDashboardIcon — renders an icon for any value following the dashboard

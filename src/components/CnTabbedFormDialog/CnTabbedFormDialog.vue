@@ -127,12 +127,11 @@
 import { translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
+	NcCheckboxRadioSwitch,
 	NcDialog,
 	NcLoadingIcon,
 	NcNoteCard,
-	NcCheckboxRadioSwitch,
 } from '@nextcloud/vue'
-
 import Cancel from 'vue-material-design-icons/Cancel.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'

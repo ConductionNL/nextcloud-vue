@@ -23,10 +23,9 @@ jest.mock('../../src/utils/fetchAggregate.js', () => ({
 
 import axios from '@nextcloud/axios'
 import { mount } from '@vue/test-utils'
-
 import CnDeltaWidget from '../../src/components/CnDeltaWidget/CnDeltaWidget.vue'
-import { fetchAggregateValue } from '../../src/utils/fetchAggregate.js'
 import { invalidateEndpointSourceCache } from '../../src/composables/useEndpointSource.js'
+import { fetchAggregateValue } from '../../src/utils/fetchAggregate.js'
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 

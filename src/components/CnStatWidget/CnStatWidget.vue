@@ -93,19 +93,20 @@
 </template>
 
 <script>
-import { inject, ref } from 'vue'
 import { NcLoadingIcon } from '@nextcloud/vue'
-import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
+import { inject, ref } from 'vue'
 import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
 import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
+import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
-import { resolveFilterTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
-import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
+import widgetLink from '../../mixins/widgetLink.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
-import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
-import widgetLink from '../../mixins/widgetLink.js'
+import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+
 // The canonical KPI look lives in one shared stylesheet, imported by BOTH
 // this component and CnStatsBlock, so the two cannot drift apart again.
 // Importing it here also means the look arrives without the consuming app

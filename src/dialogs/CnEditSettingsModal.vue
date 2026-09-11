@@ -115,10 +115,10 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcEmptyContent, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnMenuTreeNode from '../components/CnMenuTreeNode/CnMenuTreeNode.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 

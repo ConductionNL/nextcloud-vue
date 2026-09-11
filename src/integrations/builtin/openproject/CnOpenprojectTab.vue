@@ -222,9 +222,9 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import RhombusOutline from 'vue-material-design-icons/RhombusOutline.vue'
 import StarFourPointsOutline from 'vue-material-design-icons/StarFourPointsOutline.vue'
-import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnOpenProjectCreate from '../../../components/CnOpenProjectCreate/CnOpenProjectCreate.vue'
 import CnOpenProjectPicker from '../../../components/CnOpenProjectPicker/CnOpenProjectPicker.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**

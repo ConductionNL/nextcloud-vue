@@ -255,12 +255,12 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
-import axios from '@nextcloud/axios'
 
 const CREDENTIALS_PATH = '/apps/openregister/api/credentials'
 const PROVIDERS_PATH = '/apps/openregister/api/credentials/providers'

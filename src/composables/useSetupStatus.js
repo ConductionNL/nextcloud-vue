@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: EUPL-1.2
  */
 
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 
 /**
  * Per-`appId` cache of setup-status results. The Vue refs are stored so all

@@ -44,10 +44,9 @@
  * @module utils/visibleWhen
  */
 
+import { isAppInstalled } from './appInstalled.js'
 import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
 import { resolveFilterTokens } from './resolveFilterTokens.js'
-
-import { isAppInstalled } from './appInstalled.js'
 
 /** Supported visibleWhen comparison operators. */
 export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte']

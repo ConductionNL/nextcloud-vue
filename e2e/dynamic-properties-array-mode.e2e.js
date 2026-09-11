@@ -17,7 +17,7 @@
 // precisely a silent one: answers collected, form closed, nothing saved, no
 // error. Reading the real request is the only assertion that fails on that.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const URL = '/?arr=1'
 

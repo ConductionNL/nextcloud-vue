@@ -135,21 +135,21 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon, NcEmptyContent } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import ClipboardCheckOutline from 'vue-material-design-icons/ClipboardCheckOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
+import { checklistProgress, classifyGps, syncIndicator, validateChecklistAnswers } from '../../offline/fieldCollectionHelpers.js'
 import {
-	storePlanning,
-	getPlannedItems,
-	getCachedObject,
-	getPlanningMeta,
-	enqueueMutation,
 	countPending,
+	enqueueMutation,
+	getCachedObject,
+	getPlannedItems,
+	getPlanningMeta,
 	resolveDeviceId,
+	storePlanning,
 } from '../../offline/offlineDb.js'
 import { fetchPlanning, fetchReferences } from '../../offline/planningFetch.js'
 import { drainQueue } from '../../offline/syncReplayService.js'
-import { syncIndicator, validateChecklistAnswers, checklistProgress, classifyGps } from '../../offline/fieldCollectionHelpers.js'
 import { DEFAULT_FIELD_INSPECTION_CONFIG } from '../field-inspection.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']

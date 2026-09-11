@@ -101,6 +101,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import { nextUid } from '../../utils/uid.js'
+
 import '../../css/form-widget.css'
 
 /**

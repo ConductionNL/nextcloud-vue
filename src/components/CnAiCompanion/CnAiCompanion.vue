@@ -62,10 +62,10 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { useAiChatStream } from '../../composables/useAiChatStream.js'
-import { DEFAULT_CHAT_APP_ID, chatHealthUrl } from '../../composables/aiChatConfig.js'
-import CnAiFloatingButton from './CnAiFloatingButton.vue'
 import CnAiChatPanel from './CnAiChatPanel.vue'
+import CnAiFloatingButton from './CnAiFloatingButton.vue'
+import { chatHealthUrl, DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
+import { useAiChatStream } from '../../composables/useAiChatStream.js'
 
 const HEALTH_TIMEOUT = 5000
 

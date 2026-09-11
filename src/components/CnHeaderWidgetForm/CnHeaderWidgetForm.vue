@@ -161,10 +161,10 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcButton } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
-import { extractTransportUrl, readFileAsDataUrl, embedAsDataUrl, warnUploadFnDeprecated } from '../../utils/widgetUpload.js'
+import { embedAsDataUrl, extractTransportUrl, readFileAsDataUrl, warnUploadFnDeprecated } from '../../utils/widgetUpload.js'
 
 const ALLOWED_OVERLAY_MODES = ['none', 'tint', 'gradient-bottom']
 const ALLOWED_HEIGHTS = ['small', 'medium', 'large', 'xlarge']

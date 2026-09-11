@@ -37,7 +37,7 @@
  * That is the gap these tests close.
  */
 
-import { SINGLETON_PACKAGES, isSingletonExternal } from '../../rollup.singleton-externals.mjs'
+import { isSingletonExternal, SINGLETON_PACKAGES } from '../../rollup.singleton-externals.mjs'
 
 describe('singleton externals', () => {
 	describe('the list itself', () => {

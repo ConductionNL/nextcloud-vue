@@ -79,10 +79,10 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcButton } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
-import { extractTransportUrl, readFileAsDataUrl, embedAsDataUrl, warnUploadFnDeprecated } from '../../utils/widgetUpload.js'
+import { embedAsDataUrl, extractTransportUrl, readFileAsDataUrl, warnUploadFnDeprecated } from '../../utils/widgetUpload.js'
 
 const ALLOWED_FITS = Object.freeze(['cover', 'contain', 'fill', 'none'])
 

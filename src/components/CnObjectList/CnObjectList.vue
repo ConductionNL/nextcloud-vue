@@ -65,7 +65,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon, NcEmptyContent } from '@nextcloud/vue'
+import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import FormatListBulletedSquare from 'vue-material-design-icons/FormatListBulletedSquare.vue'
 import { CnObjectRow } from '../CnObjectRow/index.js'
 

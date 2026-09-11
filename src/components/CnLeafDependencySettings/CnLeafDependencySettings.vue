@@ -84,12 +84,12 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
-import PuzzleOutline from 'vue-material-design-icons/PuzzleOutline.vue'
 import CheckCircleOutline from 'vue-material-design-icons/CheckCircleOutline.vue'
 import Download from 'vue-material-design-icons/Download.vue'
+import PuzzleOutline from 'vue-material-design-icons/PuzzleOutline.vue'
 import CnSettingsSection from '../CnSettingsSection/CnSettingsSection.vue'
-import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
+import { useAppStatus } from '../../composables/useAppStatus.js'
 
 /**
  * CnLeafDependencySettings — admin-settings section for an app's leaf

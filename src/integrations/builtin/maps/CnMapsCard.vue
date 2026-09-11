@@ -121,7 +121,7 @@
 </template>
 
 <script>
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import MapMarker from 'vue-material-design-icons/MapMarker.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'

@@ -2,8 +2,8 @@
  * Unit tests for migrateCardComponent, addExplicitActionTypes, migrateCustomComponents.
  */
 
-import { migrateCardComponent } from '../../../src/cli/transforms/migrateCardComponent.js'
 import { addExplicitActionTypes } from '../../../src/cli/transforms/addExplicitActionTypes.js'
+import { migrateCardComponent } from '../../../src/cli/transforms/migrateCardComponent.js'
 import { migrateCustomComponents } from '../../../src/cli/transforms/migrateCustomComponents.js'
 
 // --- migrateCardComponent ---

@@ -46,7 +46,6 @@ jest.mock('../../src/store/useObjectStore.js', () => ({
    exercise, and keeping the two adjacent is what makes that readable. */
 import axios from '@nextcloud/axios'
 import { shallowMount } from '@vue/test-utils'
-
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))

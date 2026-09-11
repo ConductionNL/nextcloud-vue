@@ -64,9 +64,9 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
 import { Marked } from 'marked'
-import { translate as t } from '@nextcloud/l10n'
 import { isPlaceholderCell } from '../../utils/textTable.js'
 
 // Per-module `Marked` instance so configuration is scoped here and does NOT

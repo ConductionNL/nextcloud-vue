@@ -26,9 +26,9 @@
 </template>
 
 <script>
+import { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
 import { NcButton } from '@nextcloud/vue'
 import CodeMirror from 'vue-codemirror6'
-import { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
 
 export default {
 	name: 'CnDataTab',

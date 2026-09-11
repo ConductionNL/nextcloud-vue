@@ -26,8 +26,8 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 
 /**
  * CnBannerWidgetForm — the config sub-form for a `banner` widget.

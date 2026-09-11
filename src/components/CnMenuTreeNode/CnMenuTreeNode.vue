@@ -40,8 +40,8 @@
 </template>
 
 <script>
-import draggable from 'vuedraggable'
 import { translate as t } from '@nextcloud/l10n'
+import draggable from 'vuedraggable'
 import CnMenuTreeRow from './CnMenuTreeRow.vue'
 
 /**

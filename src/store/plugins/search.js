@@ -1,5 +1,5 @@
-import { buildQueryString, prefixUrl } from '../../utils/headers.js'
 import { normalizeFacets } from '../../utils/facets.js'
+import { buildQueryString, prefixUrl } from '../../utils/headers.js'
 // `buildHeaders` is reached via `this._buildHeaders()` so cross-schema
 // search fetches inherit the active tenant UUID (multi-tenancy-context).
 

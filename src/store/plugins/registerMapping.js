@@ -1,5 +1,5 @@
-import { prefixUrl } from '../../utils/headers.js'
 import { discardResponseBody } from '../../utils/discardResponseBody.js'
+import { prefixUrl } from '../../utils/headers.js'
 // `buildHeaders` is reached via `this._buildHeaders()` so registerMapping
 // fetches inherit the active tenant UUID (multi-tenancy-context).
 

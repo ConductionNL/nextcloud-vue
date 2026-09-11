@@ -23,8 +23,8 @@
  * @module utils/widgetDispatch
  */
 
-import { getWidgetTypeEntry } from '../components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { BUILT_IN_WIDGETS } from '../components/CnWidgetGrid/builtInWidgets.js'
+import { getWidgetTypeEntry } from '../components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { canonicalWidgetType } from './widgetTypeAliases.js'
 
 /**

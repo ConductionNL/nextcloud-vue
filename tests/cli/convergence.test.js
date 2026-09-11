@@ -10,9 +10,8 @@
 
 import { runConvergence } from '../../src/cli/convergence.js'
 import { validateManifestV2 } from '../../src/utils/validateManifest.js'
-
-import zaaMixed from '../fixtures/dialect-manifests/zaakafhandelapp-mixed.json'
 import petMixed from '../fixtures/dialect-manifests/petstore-mixed.json'
+import zaaMixed from '../fixtures/dialect-manifests/zaakafhandelapp-mixed.json'
 
 /**
  * Assert a converged manifest carries exactly one widget dialect: no page has a

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 
-import { ref, watch, isRef } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { isRef, ref, watch } from 'vue'
 import { selectByPath } from './useGraphQL.js'
 
 /**

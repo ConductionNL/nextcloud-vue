@@ -70,15 +70,14 @@
  * Spec: features-roadmap-component — Requirement "RoadmapTab".
  */
 import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
 import { translate as t } from '@nextcloud/l10n'
-import { NcEmptyContent, NcLoadingIcon, NcButton } from '@nextcloud/vue'
+import { generateUrl } from '@nextcloud/router'
+import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import KeyOutline from 'vue-material-design-icons/KeyOutline.vue'
 import RoadVariant from 'vue-material-design-icons/RoadVariant.vue'
-
 import CnRoadmapItem from '../CnRoadmapItem/CnRoadmapItem.vue'
 
 export default {

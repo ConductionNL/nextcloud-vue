@@ -79,10 +79,10 @@
 </template>
 
 <script>
-import { NcTextField, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
+import { NcCheckboxRadioSwitch, NcTextField } from '@nextcloud/vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 
 // The Netherlands, roughly — a sane default centre for a Dutch-government library.
 // autoFit is on by default, so this only shows before any object is plotted.

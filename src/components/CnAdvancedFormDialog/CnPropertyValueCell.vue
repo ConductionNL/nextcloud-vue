@@ -170,22 +170,22 @@
 </template>
 
 <script>
-import { defineAsyncComponent } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcTextField,
-	NcTextArea,
-	NcCheckboxRadioSwitch,
-	NcSelect,
 	NcButton,
+	NcCheckboxRadioSwitch,
 	NcDateTimePicker,
+	NcSelect,
+	NcTextArea,
+	NcTextField,
 } from '@nextcloud/vue'
+import { defineAsyncComponent } from 'vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import Close from 'vue-material-design-icons/Close.vue'
-import { formatValue, validateValue } from '../../utils/schema.js'
-import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
+import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
+import { formatValue, validateValue } from '../../utils/schema.js'
 
 const SUPPORTED_WIDGETS = ['text', 'number', 'boolean', 'datetime', 'textarea', 'array', 'select', 'object', 'objectArray', 'color']
 

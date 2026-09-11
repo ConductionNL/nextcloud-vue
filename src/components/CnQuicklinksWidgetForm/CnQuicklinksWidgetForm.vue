@@ -164,10 +164,10 @@
 </template>
 
 <script>
-import { NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import { NcSelect } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import { sanitiseUrl, validateUrl } from '../../utils/widgetUrl.js'
 
 const DEFAULT_CONTENT = Object.freeze({

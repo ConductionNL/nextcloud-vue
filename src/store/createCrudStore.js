@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
-import { buildHeaders, prefixUrl } from '../utils/headers.js'
 import { parseResponseError } from '../utils/errors.js'
-import { mergePluginState, mergePluginGetters, mergePluginActions } from './pluginMerge.js'
+import { buildHeaders, prefixUrl } from '../utils/headers.js'
+import { mergePluginActions, mergePluginGetters, mergePluginState } from './pluginMerge.js'
 
 /**
  * Default fields stripped from items before POST/PUT.

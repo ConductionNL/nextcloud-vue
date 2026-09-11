@@ -18,7 +18,7 @@
 // OpenRegister is stubbed at the network layer, so the real dialog runs against real
 // HTTP responses.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const REGISTER = {
 	id: 2466,

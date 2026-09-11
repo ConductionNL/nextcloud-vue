@@ -187,20 +187,18 @@ import {
 	NcButton,
 	NcTextField,
 } from '@nextcloud/vue'
-
-import CnTabbedFormDialog from '../CnTabbedFormDialog/CnTabbedFormDialog.vue'
-import CnSchemaPropertiesTab from './CnSchemaPropertiesTab.vue'
-import CnSchemaConfigurationTab from './CnSchemaConfigurationTab.vue'
-import CnSchemaSecurityTab from './CnSchemaSecurityTab.vue'
-
-import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
-import Check from 'vue-material-design-icons/Check.vue'
-import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import CallSplit from 'vue-material-design-icons/CallSplit.vue'
-import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
+import Check from 'vue-material-design-icons/Check.vue'
 import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
+import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
+import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import DeleteSweep from 'vue-material-design-icons/DeleteSweep.vue'
+import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
+import CnTabbedFormDialog from '../CnTabbedFormDialog/CnTabbedFormDialog.vue'
+import CnSchemaConfigurationTab from './CnSchemaConfigurationTab.vue'
+import CnSchemaPropertiesTab from './CnSchemaPropertiesTab.vue'
+import CnSchemaSecurityTab from './CnSchemaSecurityTab.vue'
 
 /**
  * CnSchemaFormDialog — Generic JSON Schema editor dialog.

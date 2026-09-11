@@ -8,9 +8,9 @@
  */
 
 import { spawnSync } from 'child_process'
-import path from 'path'
 import fs from 'fs'
 import os from 'os'
+import path from 'path'
 
 const CLI = path.resolve(__dirname, '../../src/cli/manifest-migrate.js')
 const V1_MANIFEST = path.resolve(__dirname, '../fixtures/v1-manifests/decidesk-v1.json')

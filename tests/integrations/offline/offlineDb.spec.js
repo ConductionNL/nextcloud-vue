@@ -6,20 +6,27 @@
  * runs in a Node/jsdom environment.
  */
 
+/* eslint-disable perfectionist/sort-imports -- `fake-indexeddb/auto` is a
+   POLYFILL and has to run before the module under test imports Dexie. The
+   rule groups side-effect imports last, which moved it to the bottom and left
+   Dexie with no indexedDB: three specs here then failed with an EMPTY error,
+   which is what a store that never opened looks like. */
 import 'fake-indexeddb/auto'
+
 import Dexie from 'dexie'
 import {
-	__setDexie,
 	__resetDbForTests,
+	__setDexie,
 	cacheKey,
-	storePlanning,
-	getPlannedItems,
-	getCachedObject,
-	getPlanningMeta,
-	enqueueMutation,
 	countPending,
+	enqueueMutation,
+	getCachedObject,
+	getPlannedItems,
+	getPlanningMeta,
 	resolveDeviceId,
+	storePlanning,
 } from '../../../src/integrations/offline/offlineDb.js'
+/* eslint-enable perfectionist/sort-imports */
 
 describe('offlineDb', () => {
 	beforeEach(() => {

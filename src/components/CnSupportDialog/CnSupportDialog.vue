@@ -122,13 +122,12 @@
  * sidebar container).
  */
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton } from '@nextcloud/vue'
+import { NcButton, NcDialog } from '@nextcloud/vue'
+import BriefcaseOutline from 'vue-material-design-icons/BriefcaseOutline.vue'
 import HandHeart from 'vue-material-design-icons/HandHeart.vue'
 import HeartOutline from 'vue-material-design-icons/HeartOutline.vue'
 import Star from 'vue-material-design-icons/Star.vue'
-import BriefcaseOutline from 'vue-material-design-icons/BriefcaseOutline.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
-
 import { ensureCaveatFontFace } from './assets/caveatFontFace.js'
 import { DEFAULT_FOUNDER_AVATAR } from './assets/founderAvatar.js'
 

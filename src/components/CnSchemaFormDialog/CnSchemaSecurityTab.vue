@@ -285,13 +285,12 @@ import {
 	NcLoadingIcon,
 	NcSelect,
 } from '@nextcloud/vue'
-import CnNoteCard from '../CnNoteCard/CnNoteCard.vue'
-
-import Plus from 'vue-material-design-icons/Plus.vue'
-import Close from 'vue-material-design-icons/Close.vue'
-import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import Close from 'vue-material-design-icons/Close.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import CnNoteCard from '../CnNoteCard/CnNoteCard.vue'
 
 /**
  * CnSchemaSecurityTab — RBAC permissions table + conditional access rules tab for CnSchemaFormDialog.

@@ -16,7 +16,7 @@
 // event, never that activation actually happened. Only a real browser can
 // measure the real claim.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
 	await page.goto('/?navcards=1')

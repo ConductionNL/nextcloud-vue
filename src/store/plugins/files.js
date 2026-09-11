@@ -1,8 +1,8 @@
-import { createSubResourcePlugin } from '../createSubResourcePlugin.js'
 // `buildHeaders` is no longer imported directly — every fetch goes
 // through `this._buildHeaders()` so the active tenant UUID (when set)
 // is stamped on every outbound request (multi-tenancy-context).
-import { parseResponseError, networkError } from '../../utils/errors.js'
+import { networkError, parseResponseError } from '../../utils/errors.js'
+import { createSubResourcePlugin } from '../createSubResourcePlugin.js'
 
 /**
  * Files plugin for the object store.

@@ -9,12 +9,12 @@
  */
 
 import {
+	buildBugReportUrl,
+	buildFeatureRequestUrl,
 	DEFAULT_FORGE,
 	FORGE_DEFAULT_BASE_URLS,
-	resolveForge,
 	forgeDisplayName,
-	buildFeatureRequestUrl,
-	buildBugReportUrl,
+	resolveForge,
 } from '../../src/utils/forge.js'
 
 const payload = {

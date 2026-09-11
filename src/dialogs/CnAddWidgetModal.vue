@@ -110,15 +110,14 @@
 </template>
 
 <script>
-import { computed, provide } from 'vue'
-import { NcDialog, NcButton, NcTextField, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-
-import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcTextField } from '@nextcloud/vue'
+import { computed, provide } from 'vue'
 import CnColorPicker from '../components/CnColorPicker/CnColorPicker.vue'
+import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
 import {
-	listWidgetTypes,
 	getWidgetTypeEntry,
+	listWidgetTypes,
 } from '../components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { useWidgetForm } from '../composables/useWidgetForm.js'
 

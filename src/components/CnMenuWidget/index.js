@@ -6,8 +6,8 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
-import CnMenuWidget from './CnMenuWidget.vue'
 import CnMenuWidgetForm from '../CnMenuWidgetForm/CnMenuWidgetForm.vue'
+import CnMenuWidget from './CnMenuWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('menu', {

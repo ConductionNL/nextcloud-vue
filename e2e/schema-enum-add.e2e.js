@@ -12,7 +12,7 @@
 // A jsdom unit test can't: this repo's jest setup stubs @nextcloud/vue, so the
 // NcActionInput <form>/submit wiring that this bug lives in isn't present there.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 /**
  * Type a value into the enum field and click its arrow until the chip appears.

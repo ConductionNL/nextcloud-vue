@@ -15,7 +15,7 @@
 // z-index must be strictly GREATER than the parent's. Asserting only "it looks right"
 // would pass on a lucky DOM order and guard nothing.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const REGISTER = { id: 1, slug: 'harness-register', title: 'Harness register', schemas: [10] }
 const SCHEMA = { id: 10, slug: 'hello-message', title: 'Hello Message', properties: { greeting: { type: 'string' } } }

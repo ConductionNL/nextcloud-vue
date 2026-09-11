@@ -1,9 +1,9 @@
 import { toRaw } from 'vue'
-import { buildQueryString, capitalize } from '../utils/headers.js'
 // `buildHeaders` is reached via `this._buildHeaders()` (declared on
 // the base object store) so sub-resource fetches inherit the active
 // tenant UUID (multi-tenancy-context).
-import { parseResponseError, networkError } from '../utils/errors.js'
+import { networkError, parseResponseError } from '../utils/errors.js'
+import { buildQueryString, capitalize } from '../utils/headers.js'
 
 /**
  * Standard empty paginated response shape used by all sub-resource plugins.

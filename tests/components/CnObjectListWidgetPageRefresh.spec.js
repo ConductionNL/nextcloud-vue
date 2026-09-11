@@ -15,7 +15,7 @@
  * burst it invites: one write must not become a queue of overlapping reads.
  */
 
-import { shallowMount, flushPromises } from '@vue/test-utils'
+import { flushPromises, shallowMount } from '@vue/test-utils'
 
 // `mock`-prefixed so jest's hoisted factory may close over them.
 const mockGet = jest.fn()

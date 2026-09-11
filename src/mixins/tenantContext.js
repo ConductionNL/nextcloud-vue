@@ -17,7 +17,7 @@
  * single-tenant app never crashes.
  */
 
-import { TENANT_CONTEXT_KEY, createTenantContext } from '../composables/useTenantContext.js'
+import { createTenantContext, TENANT_CONTEXT_KEY } from '../composables/useTenantContext.js'
 
 let _fallbackContext = null
 

@@ -99,13 +99,11 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcPopover, NcActionButton, NcAvatar } from '@nextcloud/vue'
-
-import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
+import { NcActionButton, NcAvatar, NcPopover } from '@nextcloud/vue'
+import CalendarOutline from 'vue-material-design-icons/CalendarOutline.vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
 import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
-import CalendarOutline from 'vue-material-design-icons/CalendarOutline.vue'
-
+import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
 import { buildHeaders } from '../../utils/index.js'
 
 // Module-level capabilities cache (shared across all instances, fetched once per session)

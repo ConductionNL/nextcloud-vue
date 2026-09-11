@@ -241,16 +241,17 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon, NcCheckboxRadioSwitch } from '@nextcloud/vue'
-import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
-import { CnCellRenderer } from '../CnCellRenderer/index.js'
-import { CnLockIndicator } from '../CnLockIndicator/index.js'
-import { CnIcon } from '../CnIcon/index.js'
-import { columnsFromSchema } from '../../utils/schema.js'
+import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
+import { NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
+import { columnsFromSchema } from '../../utils/schema.js'
+import { CnCellRenderer } from '../CnCellRenderer/index.js'
+import { CnIcon } from '../CnIcon/index.js'
+import { CnLockIndicator } from '../CnLockIndicator/index.js'
+
 // CnDataTable has no scoped styles of its own — its entire look lives in the
 // shared table stylesheet. Import it here so the table is styled even when the
 // consuming app does not pull in the library's global css/index.css.

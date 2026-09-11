@@ -34,8 +34,8 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import CnFormWidgetBase from '../CnFormWidgetBase/CnFormWidgetBase.vue'
+import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { useObjectStore } from '../../store/index.js'
 
 /**

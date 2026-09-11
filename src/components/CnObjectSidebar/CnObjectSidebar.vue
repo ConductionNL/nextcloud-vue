@@ -206,29 +206,26 @@
 </template>
 
 <script>
-import { inject, provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcAppSidebar, NcAppSidebarTab } from '@nextcloud/vue'
-
-import Paperclip from 'vue-material-design-icons/Paperclip.vue'
-import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
-import TagOutline from 'vue-material-design-icons/TagOutline.vue'
+import { inject, provide, ref, watch } from 'vue'
 import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
+import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
 import History from 'vue-material-design-icons/History.vue'
-import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
-import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
-
+import Paperclip from 'vue-material-design-icons/Paperclip.vue'
+import TagOutline from 'vue-material-design-icons/TagOutline.vue'
+import CnWidgetObjectTable from '../CnWidgetObjectTable/CnWidgetObjectTable.vue'
+import CnAuditTrailTab from './CnAuditTrailTab.vue'
 import CnFilesTab from './CnFilesTab.vue'
 import CnNotesTab from './CnNotesTab.vue'
 import CnTagsTab from './CnTagsTab.vue'
 import CnTasksTab from './CnTasksTab.vue'
-import CnAuditTrailTab from './CnAuditTrailTab.vue'
-
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import { CnObjectDataWidget } from '../CnObjectDataWidget/index.js'
 import { CnObjectMetadataWidget } from '../CnObjectMetadataWidget/index.js'
-import CnWidgetObjectTable from '../CnWidgetObjectTable/CnWidgetObjectTable.vue'
 
 /**
  * Built-in widget registry used by the open-enum `tabs` prop.

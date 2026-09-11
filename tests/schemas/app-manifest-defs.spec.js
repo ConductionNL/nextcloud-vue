@@ -24,23 +24,21 @@
  */
 
 import schema from '../../src/schemas/app-manifest.schema.json'
-
-import columnValid from '../fixtures/def-column-valid.json'
-import columnInvalid from '../fixtures/def-column-invalid.json'
-import actionValid from '../fixtures/def-action-valid.json'
-import actionInvalid from '../fixtures/def-action-invalid.json'
-import widgetDefValid from '../fixtures/def-widgetDef-valid.json'
-import widgetDefInvalid from '../fixtures/def-widgetDef-invalid.json'
-import layoutItemValid from '../fixtures/def-layoutItem-valid.json'
-import layoutItemInvalid from '../fixtures/def-layoutItem-invalid.json'
-import formFieldValid from '../fixtures/def-formField-valid.json'
-import formFieldInvalid from '../fixtures/def-formField-invalid.json'
-import sidebarSectionValid from '../fixtures/def-sidebarSection-valid.json'
-import sidebarSectionInvalid from '../fixtures/def-sidebarSection-invalid.json'
-import sidebarTabValid from '../fixtures/def-sidebarTab-valid.json'
-import sidebarTabInvalid from '../fixtures/def-sidebarTab-invalid.json'
-
 import { validateManifest } from '../../src/utils/validateManifest.js'
+import actionInvalid from '../fixtures/def-action-invalid.json'
+import actionValid from '../fixtures/def-action-valid.json'
+import columnInvalid from '../fixtures/def-column-invalid.json'
+import columnValid from '../fixtures/def-column-valid.json'
+import formFieldInvalid from '../fixtures/def-formField-invalid.json'
+import formFieldValid from '../fixtures/def-formField-valid.json'
+import layoutItemInvalid from '../fixtures/def-layoutItem-invalid.json'
+import layoutItemValid from '../fixtures/def-layoutItem-valid.json'
+import sidebarSectionInvalid from '../fixtures/def-sidebarSection-invalid.json'
+import sidebarSectionValid from '../fixtures/def-sidebarSection-valid.json'
+import sidebarTabInvalid from '../fixtures/def-sidebarTab-invalid.json'
+import sidebarTabValid from '../fixtures/def-sidebarTab-valid.json'
+import widgetDefInvalid from '../fixtures/def-widgetDef-invalid.json'
+import widgetDefValid from '../fixtures/def-widgetDef-valid.json'
 import valid from '../fixtures/manifest-valid.json'
 
 /**

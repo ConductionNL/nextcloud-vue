@@ -23,7 +23,7 @@
 // asserting that my own fix is still written the way I wrote it; asserting the
 // rule means any other correct fix also passes, and a regression fails.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 // Playwright transpiles these specs to CJS, so `require` is available and
 // `import.meta` is not. Resolving the real installed axe-core keeps the spec

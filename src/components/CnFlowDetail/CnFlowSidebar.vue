@@ -200,9 +200,9 @@ import Publish from 'vue-material-design-icons/Publish.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import CnFlowPublishDialog from '../../dialogs/CnFlowPublishDialog.vue'
 import CnFlowSettingsModal from '../../dialogs/CnFlowSettingsModal.vue'
-import { useFlowStore } from '../../composables/useFlowStore.js'
 import CnFlowLifecycleControls from './CnFlowLifecycleControls.vue'
 import CnRunDetailSidebar from './CnRunDetailSidebar.vue'
+import { useFlowStore } from '../../composables/useFlowStore.js'
 
 export default {
 	name: 'CnFlowSidebar',

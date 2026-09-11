@@ -71,7 +71,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActions, NcActionButton, NcActionCaption, NcActionSeparator } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActions, NcActionSeparator } from '@nextcloud/vue'
 import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'

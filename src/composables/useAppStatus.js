@@ -1,5 +1,5 @@
-import { ref } from 'vue'
 import { getCapabilities } from '@nextcloud/capabilities'
+import { ref } from 'vue'
 
 /**
  * Per-`appId` cache of status results. Populated lazily on first call.

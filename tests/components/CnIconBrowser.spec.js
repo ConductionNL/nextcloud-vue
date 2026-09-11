@@ -5,12 +5,12 @@ import { mount } from '@vue/test-utils'
 import { h } from 'vue'
 import CnIconBrowser from '../../src/components/CnIconBrowser/CnIconBrowser.vue'
 import CnIconBrowserPanel from '../../src/components/CnIconBrowser/CnIconBrowserPanel.vue'
+import { fuzzyFilter, fuzzyScore, normalizeQuery } from '../../src/components/CnIconBrowser/fuzzy.js'
 import {
+	findIconByValue,
 	mdiCatalogue,
 	vmdiCatalogue,
-	findIconByValue,
 } from '../../src/components/CnIconBrowser/iconCatalogue.js'
-import { fuzzyScore, fuzzyFilter, normalizeQuery } from '../../src/components/CnIconBrowser/fuzzy.js'
 
 const mocks = { t: (_app, s, params) => (params ? s.replace(/\{(\w+)\}/g, (_, k) => params[k]) : s) }
 

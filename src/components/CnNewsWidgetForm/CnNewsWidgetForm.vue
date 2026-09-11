@@ -97,7 +97,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 
 const ALLOWED_LAYOUTS = Object.freeze(['list', 'grid', 'carousel'])
 

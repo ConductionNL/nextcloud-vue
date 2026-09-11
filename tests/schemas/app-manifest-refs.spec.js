@@ -18,11 +18,10 @@
 
 import schema from '../../src/schemas/app-manifest.schema.json'
 import { validateManifest } from '../../src/utils/validateManifest.js'
-
-import valid from '../fixtures/manifest-valid.json'
 import allTypes from '../fixtures/manifest-all-types.json'
 import settingsRich from '../fixtures/manifest-settings-rich.json'
 import sidebarShow from '../fixtures/manifest-sidebar-show.json'
+import valid from '../fixtures/manifest-valid.json'
 
 /**
  * Resolve a JSON-Pointer fragment of the form "#/$defs/foo" against

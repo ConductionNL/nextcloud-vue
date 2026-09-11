@@ -6,10 +6,10 @@
  */
 
 import {
-	OR_OBJECT_PREFIX,
-	OR_COLLECTION_PREFIX,
-	buildObjectKey,
 	buildCollectionKey,
+	buildObjectKey,
+	OR_COLLECTION_PREFIX,
+	OR_OBJECT_PREFIX,
 } from '../../../src/store/liveUpdates/eventKeys.js'
 
 describe('eventKeys', () => {

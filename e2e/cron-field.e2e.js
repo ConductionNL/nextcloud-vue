@@ -9,7 +9,7 @@
 // preset it matches. A unit test can check either direction against a stub; only
 // a real render proves they stay in step through actual NcSelect interaction.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const CRON = '/?cron=1'
 

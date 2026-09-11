@@ -135,7 +135,7 @@
 </template>
 
 <script>
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import Alert from 'vue-material-design-icons/Alert.vue'
 import AlertDecagram from 'vue-material-design-icons/AlertDecagram.vue'

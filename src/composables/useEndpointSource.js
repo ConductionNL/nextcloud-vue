@@ -46,8 +46,8 @@
  * @module composables/useEndpointSource
  */
 
-import { computed, getCurrentScope, onScopeDispose, ref, unref, watch } from 'vue'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { computed, getCurrentScope, onScopeDispose, ref, unref, watch } from 'vue'
 import {
 	dropOptionalUnresolved,
 	hasUnresolvedTokens,

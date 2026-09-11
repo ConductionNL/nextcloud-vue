@@ -1,3 +1,4 @@
+import axios from '@nextcloud/axios'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
  * SPDX-License-Identifier: EUPL-1.2
@@ -16,7 +17,6 @@
  * replays a step animates the same hop twice.
  */
 import { createPinia, setActivePinia } from 'pinia'
-import axios from '@nextcloud/axios'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
 
 jest.mock('@nextcloud/axios', () => ({

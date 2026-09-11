@@ -77,20 +77,20 @@
 </template>
 
 <script>
-import { inject, ref } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
-import CnDataTable from '../CnDataTable/CnDataTable.vue'
-import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
-import { CnRowActions } from '../CnRowActions/index.js'
-import { CnIcon } from '../CnIcon/index.js'
+import { inject, ref } from 'vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
-import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
-import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
-import { readVisibleWhenPath, compareVisibleWhen } from '../../utils/visibleWhen.js'
+import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
-import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
+import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { compareVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
+import { CnIcon } from '../CnIcon/index.js'
+import { CnRowActions } from '../CnRowActions/index.js'
+import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 // Chrome-less pass-through used when `hideWrapper` is set (see hostShell.js
 // for why it lives in its own module).
 import { CnWidgetHostShell } from './hostShell.js'

@@ -224,22 +224,22 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcButton,
-	NcActions,
 	NcActionButton,
+	NcActions,
+	NcButton,
 	NcLoadingIcon,
 } from '@nextcloud/vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import LinkVariantOff from 'vue-material-design-icons/LinkVariantOff.vue'
-import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import MapMarkerOutline from 'vue-material-design-icons/MapMarkerOutline.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
-import { buildHeaders } from '../../../utils/index.js'
-import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import CnCalendarEventPicker from '../../../components/CnCalendarEventPicker/CnCalendarEventPicker.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnCalendarEventCreate from '../../../components/CnCalendarEventCreate/CnCalendarEventCreate.vue'
+import CnCalendarEventPicker from '../../../components/CnCalendarEventPicker/CnCalendarEventPicker.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
+import { buildHeaders } from '../../../utils/index.js'
 
 const MAX_AVATARS = 3
 

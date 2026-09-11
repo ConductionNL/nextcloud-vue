@@ -73,7 +73,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 import { detectVideoSource, normalizeEmbedUrl } from '../CnVideoWidget/videoUrlParser.js'
 
 const VALID_ASPECT_RATIOS = ['16:9', '4:3', '1:1', '9:16']

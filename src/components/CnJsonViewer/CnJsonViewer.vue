@@ -34,12 +34,12 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
-import CodeMirror from 'vue-codemirror6'
-import { githubLight, githubDark } from '@uiw/codemirror-theme-github'
+import { html as htmlLang } from '@codemirror/lang-html'
 import { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
 import { xml as xmlLang } from '@codemirror/lang-xml'
-import { html as htmlLang } from '@codemirror/lang-html'
+import { NcButton } from '@nextcloud/vue'
+import { githubDark, githubLight } from '@uiw/codemirror-theme-github'
+import CodeMirror from 'vue-codemirror6'
 import { getTheme } from '../../utils/getTheme.js'
 
 /**

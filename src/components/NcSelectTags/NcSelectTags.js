@@ -26,7 +26,6 @@
  */
 
 import { NcSelectTags as UpstreamNcSelectTags } from '@nextcloud/vue'
-
 import { searchSystemTags } from './searchSystemTags.js'
 
 export default {

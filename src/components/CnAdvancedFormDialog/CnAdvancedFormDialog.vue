@@ -155,18 +155,18 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcDialog,
 	NcButton,
-	NcNoteCard,
+	NcDialog,
 	NcLoadingIcon,
+	NcNoteCard,
 } from '@nextcloud/vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
-import { fieldsFromSchema } from '../../utils/schema.js'
-import CnPropertiesTab from './CnPropertiesTab.vue'
-import CnMetadataTab from './CnMetadataTab.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDataTab from './CnDataTab.vue'
+import CnMetadataTab from './CnMetadataTab.vue'
+import CnPropertiesTab from './CnPropertiesTab.vue'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
+import { fieldsFromSchema } from '../../utils/schema.js'
 
 /** Schema types for which we have built-in inline editing support in the properties table. */
 const EDITABLE_SUPPORTED_TYPES = ['string', 'number', 'integer', 'boolean', 'array', 'object']

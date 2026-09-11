@@ -17,7 +17,7 @@
  *  - @e2e claiming the pooled task posts the claim and refreshes the list
  *  - @e2e the refused claim surfaces the server's message
  */
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 /**
  * One task row as the flow-tasks read returns it.

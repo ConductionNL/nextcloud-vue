@@ -9,7 +9,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnTranslatedBadge from '../CnTranslatedBadge.vue'
 
 describe('CnTranslatedBadge', () => {

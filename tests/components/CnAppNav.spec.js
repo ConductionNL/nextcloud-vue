@@ -20,7 +20,6 @@ jest.mock('@nextcloud/capabilities', () => ({
 }))
 
 const { getCapabilities } = require('@nextcloud/capabilities')
-
 // Import the cache-reset helper so each test starts with a clean slate.
 const { __resetAppInstalledCacheForTests } = require('../../src/utils/appInstalled.js')
 

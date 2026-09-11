@@ -12,15 +12,14 @@
  */
 import fs from 'fs'
 import path from 'path'
-
 import {
+	conceptForIcon,
+	getSemanticIconComponent,
+	SEMANTIC_ICON_COMPONENTS,
+	SEMANTIC_ICON_TIERS,
 	SEMANTIC_ICONS,
 	SEMANTIC_ICONS_TIER_A,
 	SEMANTIC_ICONS_TIER_B,
-	SEMANTIC_ICON_TIERS,
-	SEMANTIC_ICON_COMPONENTS,
-	conceptForIcon,
-	getSemanticIconComponent,
 } from '../../src/components/CnIcon/semanticIcons.js'
 
 // jest transpiles this spec to CommonJS, so __dirname is provided natively.

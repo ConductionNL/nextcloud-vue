@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: EUPL-1.2
  */
 
-import { ref, computed } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { computed, ref } from 'vue'
 
 /**
  * Per-`appId` cache so all consumers of one app share a single walkthrough

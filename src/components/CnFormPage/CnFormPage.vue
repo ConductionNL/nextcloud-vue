@@ -232,14 +232,14 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import Send from 'vue-material-design-icons/Send.vue'
-import { CnPageHeader } from '../CnPageHeader/index.js'
 import { cnRenderFormField } from '../../composables/cnFormFieldRenderer.js'
-import { evaluateVisibleWhen, evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import { validateFieldValue } from '../../utils/formValidation.js'
+import { evaluateVisibleWhen, evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
+import { CnPageHeader } from '../CnPageHeader/index.js'
 
 const ALLOWED_METHODS = ['POST', 'PUT', 'PATCH']
 

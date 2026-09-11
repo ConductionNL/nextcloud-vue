@@ -214,24 +214,24 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon } from '@nextcloud/vue'
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
-import Plus from 'vue-material-design-icons/Plus.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
+import { NcButton, NcDialog, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnSchemaFormDialog from '../components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
-import { buildHeaders } from '../utils/headers.js'
 import { parseAxiosError } from '../utils/errors.js'
+import { buildHeaders } from '../utils/headers.js'
 // The OpenRegister schema API contract lives in one place so this dialog and
 // OpenRegister's own editor cannot drift on what a 409 means.
 import {
-	saveSchema,
 	deleteSchema,
 	describeSchemaChange,
+	saveSchema,
 	SchemaBreakingChangeError,
 	SchemaHasObjectsError,
 } from '../utils/schemaApi.js'

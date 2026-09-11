@@ -37,16 +37,15 @@ jest.mock('@nextcloud/event-bus', () => ({
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { ref } from 'vue'
-
 import {
-	useEndpointSource,
-	fetchEndpointSource,
-	resolveEndpointRequest,
-	interpolateUrlTokens,
 	endpointCacheKey,
-	invalidateEndpointSourceCache,
+	fetchEndpointSource,
 	getByPath,
+	interpolateUrlTokens,
+	invalidateEndpointSourceCache,
 	MIN_FORCED_LOADING_MS,
+	resolveEndpointRequest,
+	useEndpointSource,
 } from '../../src/composables/useEndpointSource.js'
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))

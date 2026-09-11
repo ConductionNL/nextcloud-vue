@@ -20,8 +20,8 @@ jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: tr
 jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
 
 import { mount } from '@vue/test-utils'
-import CnLockedBanner from '@/components/CnLockedBanner/CnLockedBanner.vue'
 import CnDashboardPage from '@/components/CnDashboardPage/CnDashboardPage.vue'
+import CnLockedBanner from '@/components/CnLockedBanner/CnLockedBanner.vue'
 
 describe('CnLockedBanner — prop default factory must not read `this`', () => {
 	it('mounts without an explicit `message` and interpolates `lockedBy`', () => {

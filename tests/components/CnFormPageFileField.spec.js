@@ -12,8 +12,8 @@ jest.mock('@nextcloud/axios', () => ({
 	default: { post: jest.fn(), put: jest.fn(), patch: jest.fn() },
 }))
 
-import { mount } from '@vue/test-utils'
 import axios from '@nextcloud/axios'
+import { mount } from '@vue/test-utils'
 import CnFormPage from '@/components/CnFormPage/CnFormPage.vue'
 import { readFileAsDataUrl } from '@/utils/widgetUpload.js'
 

@@ -1,4 +1,3 @@
-import { ref } from 'vue'
 // Namespace import + explicit default-unwrap: @nextcloud/axios stays external, so
 // a consumer that resolves its ESM build makes `require('@nextcloud/axios')` a
 // namespace `{default: axiosInstance, …}`. A plain `import axios from …` compiles
@@ -6,12 +5,14 @@ import { ref } from 'vue'
 // → `addPasswordConfirmationInterceptors(axios)` crashes ("reading 'request'").
 // Unwrap the default ourselves so it works under either resolution.
 import * as axiosModule from '@nextcloud/axios'
-import { generateOcsUrl, generateUrl } from '@nextcloud/router'
 import {
 	addPasswordConfirmationInterceptors,
 	confirmPassword,
 	PwdConfirmationMode,
 } from '@nextcloud/password-confirmation'
+import { generateOcsUrl, generateUrl } from '@nextcloud/router'
+import { ref } from 'vue'
+
 import '@nextcloud/password-confirmation/style.css'
 // password-confirmation renders its prompt via @nextcloud/dialogs'
 // `spawnDialog`, and this composable also fires `showSuccess`/`showError`

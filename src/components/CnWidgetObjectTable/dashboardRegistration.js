@@ -18,8 +18,8 @@
  */
 
 import { h } from 'vue'
-import CnWidgetObjectTable from './CnWidgetObjectTable.vue'
 import CnObjectListWidgetForm from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
+import CnWidgetObjectTable from './CnWidgetObjectTable.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 /**

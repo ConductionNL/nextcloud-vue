@@ -181,8 +181,8 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton, NcDialog, NcSelect, NcTextField } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 
 let titleIdCounter = 0

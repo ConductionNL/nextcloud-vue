@@ -65,13 +65,13 @@
 </template>
 
 <script>
-import { BUILT_IN_WIDGETS } from './builtInWidgets.js'
-import { dashboardWidgetRegistry, getWidgetTypeEntry } from './dashboardWidgetRegistry.js'
-import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import CnUnknownWidget from './CnUnknownWidget.vue'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
-import { resolveSlotColumns } from '../../utils/resolveSlotColumns.js'
 import { initGridStack, readGridGeometry } from '../../utils/gridStack.js'
+import { resolveSlotColumns } from '../../utils/resolveSlotColumns.js'
+import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
+import { BUILT_IN_WIDGETS } from './builtInWidgets.js'
+import { dashboardWidgetRegistry, getWidgetTypeEntry } from './dashboardWidgetRegistry.js'
 
 // Per-slot column counts and slot→columns resolution now live in
 // src/utils/resolveSlotColumns.js (shared with validateManifest so the grid
