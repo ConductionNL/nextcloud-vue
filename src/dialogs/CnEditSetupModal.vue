@@ -41,14 +41,14 @@
 							:clearable="false"
 							:reduce="o => o.id"
 							label="label"
-							:input-label="t('nextcloud-vue', 'Step type')" />
+							:inputLabel="t('nextcloud-vue', 'Step type')" />
 					</label>
 					<NcTextArea v-model="step.body"
 						:label="t('nextcloud-vue', 'Body')" />
 					<NcTextField v-if="step.type === 'config-fields'"
 						:label="t('nextcloud-vue', 'Fields to ask for (comma-separated keys, e.g. store_name, contact_email)')"
-						:model-value="configKeysText(step)"
-						@update:model-value="(v) => setConfigKeys(step, v)" />
+						:modelValue="configKeysText(step)"
+						@update:modelValue="(v) => setConfigKeys(step, v)" />
 					<NcCheckboxRadioSwitch v-model="step.required">
 						{{ t('nextcloud-vue', 'Required (must be completed to enter the app)') }}
 					</NcCheckboxRadioSwitch>

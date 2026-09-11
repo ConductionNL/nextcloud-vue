@@ -57,7 +57,7 @@
   and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
 -->
 <template>
-	<NcContent :app-name="appDisplayName || (manifest && manifest.name) || appId" :data-nldesign-theme-scope="appId" data-testid="cn-app-root">
+	<NcContent :appName="appDisplayName || (manifest && manifest.name) || appId" :data-nldesign-theme-scope="appId" data-testid="cn-app-root">
 		<!-- Phase 0a: capabilities check in flight -->
 		<template v-if="capabilitiesLoading">
 			<div class="cn-app-root__capabilities-loading" data-testid="cn-app-root-capabilities-loading">
@@ -77,7 +77,7 @@
 		  to its public landing page). See REQ-OR-4.
 		-->
 		<template v-else-if="missingApps.length > 0">
-			<slot name="or-missing" :missing-apps="missingApps">
+			<slot name="or-missing" :missingApps="missingApps">
 				<div class="cn-app-root__or-missing">
 					<NcEmptyContent
 						:name="orMissingTitle"
@@ -151,7 +151,7 @@
 			<slot name="dependency-missing" :dependencies="unresolvedHardDependencies">
 				<CnDependencyMissing
 					:dependencies="unresolvedHardDependencies"
-					:app-name="appId" />
+					:appName="appId" />
 			</slot>
 		</template>
 
@@ -168,10 +168,10 @@
 			<slot name="setup" :steps="manifest.setup.steps" :status="setupState">
 				<div class="cn-app-root__setup">
 					<CnSetupWizard
-						:app-id="appId"
+						:appId="appId"
 						:steps="manifest.setup.steps"
 						:cancellable="false"
-						:completed-step-ids="setupCompletedStepIds"
+						:completedStepIds="setupCompletedStepIds"
 						@complete="onSetupComplete" />
 				</div>
 			</slot>
@@ -201,14 +201,14 @@
 			<slot name="menu"
 				:manifest="menuManifest"
 				:permissions="permissions"
-				:is-owner="isOwner"
-				:is-admin="isAdmin"
-				:app-id="appId">
+				:isOwner="isOwner"
+				:isAdmin="isAdmin"
+				:appId="appId">
 				<CnAppNav :manifest="menuManifest"
 					:permissions="permissions"
-					:is-owner="isOwner"
-					:is-admin="isAdmin"
-					:app-id="appId" />
+					:isOwner="isOwner"
+					:isAdmin="isAdmin"
+					:appId="appId" />
 			</slot>
 			<NcAppContent>
 				<!--
@@ -387,16 +387,16 @@
 				v-if="shouldAutoMountObjectSidebar"
 				:open="effectiveObjectSidebarState.open === true"
 				:tabs="effectiveObjectSidebarState.tabs"
-				:object-type="effectiveObjectSidebarState.objectType"
-				:object-id="effectiveObjectSidebarState.objectId"
-				:object-data="effectiveObjectSidebarState.object"
-				:object-schema="effectiveObjectSidebarState.schemaObject"
+				:objectType="effectiveObjectSidebarState.objectType"
+				:objectId="effectiveObjectSidebarState.objectId"
+				:objectData="effectiveObjectSidebarState.object"
+				:objectSchema="effectiveObjectSidebarState.schemaObject"
 				:register="effectiveObjectSidebarState.register"
 				:schema="effectiveObjectSidebarState.schema"
 				:title="effectiveObjectSidebarState.title"
 				:subtitle="effectiveObjectSidebarState.subtitle"
-				:hidden-tabs="effectiveObjectSidebarState.hiddenTabs"
-				:requested-tab="effectiveObjectSidebarState.requestedTab"
+				:hiddenTabs="effectiveObjectSidebarState.hiddenTabs"
+				:requestedTab="effectiveObjectSidebarState.requestedTab"
 				@update:open="effectiveObjectSidebarState.open = $event" />
 
 			<!--
@@ -407,7 +407,7 @@
 			  Gating (health probe, pageKind overrides) happens inside the
 			  component; app opt-in is via the `aiCompanion` prop (default off).
 			-->
-			<CnAiCompanion v-if="aiCompanion" :chat-app-id="chatAppId" />
+			<CnAiCompanion v-if="aiCompanion" :chatAppId="chatAppId" />
 
 			<!--
 			  Non-gating setup wizard (REQ-SETUP-NV-012 optional path). Shown
@@ -417,10 +417,10 @@
 			-->
 			<div v-if="setupWizardOpen" class="cn-app-root__setup-optional">
 				<CnSetupWizard
-					:app-id="appId"
+					:appId="appId"
 					:steps="manifest.setup.steps"
 					:cancellable="true"
-					:completed-step-ids="setupCompletedStepIds"
+					:completedStepIds="setupCompletedStepIds"
 					@complete="onSetupComplete"
 					@close="dismissSetupWizard" />
 			</div>
@@ -438,7 +438,7 @@
 				v-if="cnCommandPaletteVisible"
 				:manifest="manifest"
 				:router="$router"
-				:app-id="appId"
+				:appId="appId"
 				v-bind="cnCommandPaletteOverrides" />
 
 			<!--
@@ -451,10 +451,10 @@
 			-->
 			<CnSupportDialog
 				v-if="cnSupportVisible"
-				:app-name="cnSupportAppName"
-				:app-slug="appId"
-				:app-store-url="cnSupportAppStoreUrl"
-				:feature-request-url="cnSupportFeatureRequestUrl"
+				:appName="cnSupportAppName"
+				:appSlug="appId"
+				:appStoreUrl="cnSupportAppStoreUrl"
+				:featureRequestUrl="cnSupportFeatureRequestUrl"
 				v-bind="cnSupportOverrides"
 				@close="cnSupportHide" />
 			<!--
@@ -483,11 +483,11 @@
 			<slot v-if="walkthroughEnabled && walkthroughSeenResolved && cnSupportVisible !== true"
 				name="walkthrough"
 				:manifest="manifest"
-				:seen-version="walkthroughSeenVersion">
+				:seenVersion="walkthroughSeenVersion">
 				<CnWalkthrough
-					:app-id="appId"
+					:appId="appId"
 					:manifest="manifest"
-					:seen-version="walkthroughSeenVersion"
+					:seenVersion="walkthroughSeenVersion"
 					:resume="walkthroughResume"
 					:translate="translate"
 					@complete="onWalkthroughComplete"
@@ -503,7 +503,7 @@
 			-->
 			<NcAppSettingsDialog
 				:open="userSettingsOpen"
-				:show-navigation="true"
+				:showNavigation="true"
 				:name="resolvedUserSettingsTitle"
 				@update:open="userSettingsOpen = $event">
 				<!-- @slot user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to the notification-preferences pane when omitted. -->
@@ -521,9 +521,9 @@
 						:name="translate('Credentials')">
 						<CnCredentials
 							scope="personal"
-							:app-id="appId"
-							:app-name="appDisplayName || (manifest && manifest.name) || appId"
-							:app-credentials="(manifest && manifest.credentials) || []" />
+							:appId="appId"
+							:appName="appDisplayName || (manifest && manifest.name) || appId"
+							:appCredentials="(manifest && manifest.credentials) || []" />
 					</NcAppSettingsSection>
 					<!--
 						Self-service walkthrough replay (ADR-043). Only mounts

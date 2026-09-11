@@ -37,7 +37,7 @@
 			<CnJsonViewer
 				:value="contentText"
 				:language="language"
-				:read-only="true"
+				:readOnly="true"
 				data-testid="doc-viewer" />
 		</div>
 

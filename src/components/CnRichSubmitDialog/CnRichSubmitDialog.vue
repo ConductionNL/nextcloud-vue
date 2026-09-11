@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:no-close="loading"
+		:noClose="loading"
 		data-testid="cn-modal"
 		data-testid-modal="cn-rich-submit-dialog"
 		@closing="onClose">

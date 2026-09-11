@@ -7,8 +7,8 @@
 		<!-- Selection checkbox -->
 		<div v-if="selectable" class="cn-object-row__checkbox" @click.stop>
 			<NcCheckboxRadioSwitch
-				:model-value="selected"
-				@update:model-value="$emit('select', object)" />
+				:modelValue="selected"
+				@update:modelValue="$emit('select', object)" />
 		</div>
 
 		<!-- Leading icon / image — omitted entirely when nothing is configured
@@ -20,7 +20,7 @@
 				<img
 					v-if="imageUrl"
 					:src="imageUrl"
-					:alt="''"
+					alt=""
 					width="24"
 					height="24"
 					class="cn-object-row__image">
@@ -43,7 +43,7 @@
 					v-if="badgeLabel"
 					:label="badgeLabel"
 					:variant="badgeVariant"
-					:color-map="badgeColorMap"
+					:colorMap="badgeColorMap"
 					size="small" />
 			</slot>
 		</span>

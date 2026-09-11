@@ -10,14 +10,14 @@
 		</h4>
 
 		<NcSelect
-			:model-value="selectedOptions"
+			:modelValue="selectedOptions"
 			:options="widgetOptions"
 			:multiple="true"
-			:close-on-select="false"
+			:closeOnSelect="false"
 			label="label"
-			:input-label="t('nextcloud-vue', 'Widgets to show as tabs')"
+			:inputLabel="t('nextcloud-vue', 'Widgets to show as tabs')"
 			:placeholder="t('nextcloud-vue', 'Pick the widgets')"
-			@update:model-value="onWidgetsInput" />
+			@update:modelValue="onWidgetsInput" />
 		<p class="cn-tabs-form__hint">
 			{{ t('nextcloud-vue', 'Each widget becomes one tab, in the order you pick them. They lose their own header here: the tab carries the title.') }}
 		</p>
@@ -34,18 +34,18 @@
 				:key="tab.widgetId + '-' + index"
 				class="cn-tabs-form__row">
 				<NcTextField
-					:model-value="tab.label || ''"
+					:modelValue="tab.label || ''"
 					:label="widgetLabel(tab.widgetId)"
 					:placeholder="widgetLabel(tab.widgetId)"
-					@update:model-value="updateLabel(index, $event)" />
+					@update:modelValue="updateLabel(index, $event)" />
 			</div>
 		</template>
 
 		<NcTextField
-			:model-value="ariaLabel"
+			:modelValue="ariaLabel"
 			:label="t('nextcloud-vue', 'Accessible name for the tab strip')"
 			:placeholder="t('nextcloud-vue', 'Details')"
-			@update:model-value="updateField('ariaLabel', $event)" />
+			@update:modelValue="updateField('ariaLabel', $event)" />
 		<p class="cn-tabs-form__hint">
 			{{ t('nextcloud-vue', 'Screen readers announce this when focus enters the tabs.') }}
 		</p>

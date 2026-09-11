@@ -6,9 +6,9 @@
 <template>
 	<div class="cn-menu-form">
 		<NcSelect
-			:model-value="style"
+			:modelValue="style"
 			:options="styleOptions"
-			:input-label="t('nextcloud-vue', 'Menu Style')"
+			:inputLabel="t('nextcloud-vue', 'Menu Style')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
@@ -16,18 +16,18 @@
 
 		<NcSelect
 			v-if="style !== 'tree'"
-			:model-value="orientation"
+			:modelValue="orientation"
 			:options="orientationOptions"
-			:input-label="t('nextcloud-vue', 'Orientation')"
+			:inputLabel="t('nextcloud-vue', 'Orientation')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('orientation', $event)" />
 
 		<NcSelect
-			:model-value="activeItemHighlight"
+			:modelValue="activeItemHighlight"
 			:options="highlightOptions"
-			:input-label="t('nextcloud-vue', 'Active Item Highlight')"
+			:inputLabel="t('nextcloud-vue', 'Active Item Highlight')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
@@ -59,10 +59,10 @@
 				:item="item"
 				:depth="1"
 				:path="[idx]"
-				:show-icons="showIcons"
-				@update-item="onUpdateItem"
-				@remove-item="onRemoveItem"
-				@add-child="onAddChild" />
+				:showIcons="showIcons"
+				@updateItem="onUpdateItem"
+				@removeItem="onRemoveItem"
+				@addChild="onAddChild" />
 			<button
 				type="button"
 				class="cn-menu-form__add-top"

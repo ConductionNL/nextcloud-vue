@@ -88,7 +88,7 @@
 					:class="rowClass(row)"
 					:href="rowUrl(row)"
 					target="_blank"
-					:force-display-actions="true">
+					:forceDisplayActions="true">
 					<template #icon>
 						<span class="cn-cospend-tab__row-icon" :class="iconClass(row)">
 							<CashMultiple v-if="rowType(row) === 'bill'" :size="20" />
@@ -119,7 +119,7 @@
 					<template #actions>
 						<NcActionButton
 							v-if="entryIdOf(row)"
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="unlinkEntry(row)">
 							<template #icon>
 								<LinkOff :size="20" />
@@ -146,13 +146,13 @@
 
 		<CnCospendPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 
 		<CnCospendCreate
 			v-if="createOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="createOpen = false"
 			@create="onCreatePick" />
 	</div>

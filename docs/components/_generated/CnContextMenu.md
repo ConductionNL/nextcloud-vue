@@ -21,7 +21,7 @@
 
 ### Slots
 
-| Name                   | Bindings                               | Description                                                  |
-| ---------------------- | -------------------------------------- | ------------------------------------------------------------ |
-| `default`              | —                                      | default                                                      |
-| `panel:${activePanel}` | `name`, `back`, `close`, `target-item` | panel:&lt;name&gt; Free-form custom panel content shown when |
+| Name                   | Bindings                              | Description                                                  |
+| ---------------------- | ------------------------------------- | ------------------------------------------------------------ |
+| `default`              | —                                     | default                                                      |
+| `panel:${activePanel}` | `name`, `back`, `close`, `targetItem` | panel:&lt;name&gt; Free-form custom panel content shown when |

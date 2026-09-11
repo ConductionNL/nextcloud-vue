@@ -25,7 +25,7 @@
 			v-model:shown="isOpen"
 			:trigger="triggerElements"
 			placement="bottom-start"
-			@after-hide="onClose">
+			@afterHide="onClose">
 			<div
 				class="cn-user-action-menu__popover"
 				role="menu"
@@ -35,9 +35,9 @@
 				<div class="cn-user-action-menu__header">
 					<NcAvatar
 						:user="userId"
-						:display-name="displayName"
+						:displayName="displayName"
 						:size="36"
-						:show-user-status="false" />
+						:showUserStatus="false" />
 					<div class="cn-user-action-menu__user-info">
 						<span class="cn-user-action-menu__display-name">{{ displayName }}</span>
 						<span v-if="userEmail" class="cn-user-action-menu__email">{{ userEmail }}</span>

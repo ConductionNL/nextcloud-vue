@@ -10,10 +10,10 @@
 		</h4>
 
 		<NcTextField
-			:model-value="label"
+			:modelValue="label"
 			:label="t('nextcloud-vue', 'Label')"
 			placeholder="Revenue (MTD)"
-			@update:model-value="updateField('label', $event)" />
+			@update:modelValue="updateField('label', $event)" />
 
 		<div class="cn-delta-form__row2">
 			<CnRegisterSchemaSelect
@@ -25,11 +25,11 @@
 
 		<div class="cn-delta-form__row2">
 			<NcSelect
-				:model-value="metric"
+				:modelValue="metric"
 				:options="metricOptions"
-				:input-label="t('nextcloud-vue', 'Aggregation')"
+				:inputLabel="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@update:model-value="updateField('metric', $event)" />
+				@update:modelValue="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric !== 'count'"
 				:value="field"
@@ -55,25 +55,25 @@
 
 		<div class="cn-delta-form__row2">
 			<NcSelect
-				:model-value="goodDirection"
+				:modelValue="goodDirection"
 				:options="directionOptions"
-				:input-label="t('nextcloud-vue', 'Good direction')"
+				:inputLabel="t('nextcloud-vue', 'Good direction')"
 				:clearable="false"
-				@update:model-value="updateField('goodDirection', $event)" />
+				@update:modelValue="updateField('goodDirection', $event)" />
 			<NcSelect
-				:model-value="formatStyle"
+				:modelValue="formatStyle"
 				:options="formatOptions"
-				:input-label="t('nextcloud-vue', 'Number format')"
+				:inputLabel="t('nextcloud-vue', 'Number format')"
 				:clearable="false"
-				@update:model-value="updateField('formatStyle', $event)" />
+				@update:modelValue="updateField('formatStyle', $event)" />
 		</div>
 
 		<div class="cn-delta-form__row2">
 			<NcTextField
 				type="number"
-				:model-value="String(decimals)"
+				:modelValue="String(decimals)"
 				:label="t('nextcloud-vue', 'Decimals')"
-				@update:model-value="updateField('decimals', Number($event))" />
+				@update:modelValue="updateField('decimals', Number($event))" />
 			<CnIconBrowser
 				:value="icon"
 				:label="t('nextcloud-vue', 'Icon')"

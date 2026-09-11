@@ -45,8 +45,8 @@
 			     boundary so a throwing section degrades inline. -->
 			<CnSectionBoundary
 				v-if="entry.component"
-				:section-id="entry.id"
-				:error-label="errorLabel">
+				:sectionId="entry.id"
+				:errorLabel="errorLabel">
 				<component
 					:is="entry.component"
 					v-bind="entry.props"

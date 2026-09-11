@@ -11,12 +11,12 @@
 		:rows="rows || []"
 		:columns="columns"
 		:register="register"
-		:schema-id="schemaId"
+		:schemaId="schemaId"
 		:limit="limit"
-		:view-all-route="viewAllRoute"
-		:view-all-label="viewAllLabel"
-		:row-click-route="rowClickRoute"
-		:empty-text="emptyText"
+		:viewAllRoute="viewAllRoute"
+		:viewAllLabel="viewAllLabel"
+		:rowClickRoute="rowClickRoute"
+		:emptyText="emptyText"
 		:borderless="borderless" />
 </template>
 

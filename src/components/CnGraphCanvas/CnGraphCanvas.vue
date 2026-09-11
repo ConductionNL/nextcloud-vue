@@ -7,21 +7,21 @@
 		<VueFlow
 			:nodes="nodes"
 			:edges="edges"
-			:min-zoom="minZoom"
-			:max-zoom="maxZoom"
-			:fit-view-on-init="fitView"
-			:snap-to-grid="snapToGrid"
-			:snap-grid="snapGrid"
-			:nodes-draggable="interactive"
-			:nodes-connectable="interactive"
-			:elements-selectable="interactive"
-			:connection-mode="connectionMode"
-			@nodes-change="onNodesChange"
-			@edges-change="onEdgesChange"
+			:minZoom="minZoom"
+			:maxZoom="maxZoom"
+			:fitViewOnInit="fitView"
+			:snapToGrid="snapToGrid"
+			:snapGrid="snapGrid"
+			:nodesDraggable="interactive"
+			:nodesConnectable="interactive"
+			:elementsSelectable="interactive"
+			:connectionMode="connectionMode"
+			@nodesChange="onNodesChange"
+			@edgesChange="onEdgesChange"
 			@connect="onConnect"
-			@node-click="onNodeClick"
-			@edge-click="onEdgeClick"
-			@pane-click="onPaneClick">
+			@nodeClick="onNodeClick"
+			@edgeClick="onEdgeClick"
+			@paneClick="onPaneClick">
 			<!-- Per-type node components, Vue Flow's convention. A host that
 			     registers `type: 'trigger'` gets `#node-trigger`; anything
 			     unregistered falls back to CnFlowNode, which carries the
@@ -63,12 +63,12 @@
 			<template #edge-default="edgeProps">
 				<CnFlowEdge
 					v-bind="edgeProps"
-					:line-type="edgeProps.data && edgeProps.data.lineType"
+					:lineType="edgeProps.data && edgeProps.data.lineType"
 					:animated="!(edgeProps.data && edgeProps.data.animated === false)"
 					:label-aria-label="edgeProps.data && edgeProps.data.labelAriaLabel"
-					@label-move="onEdgeLabelMove"
-					@label-click="onEdgeLabelClick"
-					@label-context="onEdgeLabelContext">
+					@labelMove="onEdgeLabelMove"
+					@labelClick="onEdgeLabelClick"
+					@labelContext="onEdgeLabelContext">
 					<template #label="slotProps">
 						<!-- @slot edge-label The chrome of a connection's
 						     label. Receives `{ edge }` with the edge's `id`,

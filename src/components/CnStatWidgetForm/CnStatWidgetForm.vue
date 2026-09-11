@@ -19,11 +19,11 @@
 		</div>
 
 		<NcSelect
-			:model-value="kind"
+			:modelValue="kind"
 			:options="kindOptions"
-			:input-label="t('nextcloud-vue', 'Source type')"
+			:inputLabel="t('nextcloud-vue', 'Source type')"
 			:clearable="false"
-			@update:model-value="updateField('kind', $event)">
+			@update:modelValue="updateField('kind', $event)">
 			<template #option="{ label: id }">
 				{{ kindLabel(id) }}
 			</template>
@@ -35,11 +35,11 @@
 		<!-- Aggregate / Ratio share metric + field. Weighted uses field × weight. -->
 		<div v-if="kind !== 'weighted'" class="cn-stat-widget-form__row2">
 			<NcSelect
-				:model-value="metric"
+				:modelValue="metric"
 				:options="metricOptions"
-				:input-label="t('nextcloud-vue', 'Aggregation')"
+				:inputLabel="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@update:model-value="updateField('metric', $event)" />
+				@update:modelValue="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric && metric !== 'count'"
 				:value="field"
@@ -62,21 +62,21 @@
 				placeholder="probability"
 				@update="updateWeighted('weightField', $event)" />
 			<NcTextField
-				:model-value="String(weighted.divisor)"
+				:modelValue="String(weighted.divisor)"
 				type="number"
 				:label="t('nextcloud-vue', 'Weight divisor')"
 				placeholder="100"
-				@update:model-value="updateWeighted('divisor', Number($event) || 1)" />
+				@update:modelValue="updateWeighted('divisor', Number($event) || 1)" />
 		</div>
 
 		<!-- Aggregate + Weighted use one filter; Ratio + Computed use two parts. -->
 		<template v-if="kind === 'ratio' || kind === 'computed'">
 			<NcTextField
 				v-if="kind === 'computed'"
-				:model-value="formula"
+				:modelValue="formula"
 				:label="t('nextcloud-vue', 'Formula (A, B)')"
 				placeholder="A/B*100"
-				@update:model-value="updateField('formula', $event)" />
+				@update:modelValue="updateField('formula', $event)" />
 			<label class="cn-stat-widget-form__sublabel">{{ kind === 'computed' ? t('nextcloud-vue', 'Part A') : t('nextcloud-vue', 'Numerator (the part)') }}</label>
 			<CnFilterRowsEditor :value="numeratorRows" :fields="availableFields" @input="onRows('numeratorRows', $event)" />
 			<label class="cn-stat-widget-form__sublabel">{{ kind === 'computed' ? t('nextcloud-vue', 'Part B') : t('nextcloud-vue', 'Denominator (the whole)') }}</label>
@@ -93,10 +93,10 @@
 		</h4>
 
 		<NcTextField
-			:model-value="label"
+			:modelValue="label"
 			:label="t('nextcloud-vue', 'Label')"
 			placeholder="Revenue"
-			@update:model-value="updateField('label', $event)" />
+			@update:modelValue="updateField('label', $event)" />
 
 		<CnIconBrowser
 			:value="icon"
@@ -104,10 +104,10 @@
 			@input="updateField('icon', $event)" />
 
 		<NcTextField
-			:model-value="caption"
+			:modelValue="caption"
 			:label="t('nextcloud-vue', 'Caption (optional)')"
 			:placeholder="t('nextcloud-vue', 'vs previous period')"
-			@update:model-value="updateField('caption', $event)" />
+			@update:modelValue="updateField('caption', $event)" />
 
 		<div class="cn-stat-widget-form__row2">
 			<label class="cn-stat-widget-form__color-label">
@@ -135,22 +135,22 @@
 
 		<div class="cn-stat-widget-form__row2">
 			<NcSelect
-				:model-value="format.style"
+				:modelValue="format.style"
 				:options="styleOptions"
-				:input-label="t('nextcloud-vue', 'Style')"
+				:inputLabel="t('nextcloud-vue', 'Style')"
 				:clearable="false"
-				@update:model-value="updateFormat('style', $event)" />
+				@update:modelValue="updateFormat('style', $event)" />
 			<NcTextField
 				v-if="format.style === 'currency'"
-				:model-value="format.currency"
+				:modelValue="format.currency"
 				:label="t('nextcloud-vue', 'Currency')"
 				placeholder="EUR"
-				@update:model-value="updateFormat('currency', $event)" />
+				@update:modelValue="updateFormat('currency', $event)" />
 			<NcTextField
-				:model-value="String(format.decimals)"
+				:modelValue="String(format.decimals)"
 				type="number"
 				:label="t('nextcloud-vue', 'Decimals')"
-				@update:model-value="updateFormat('decimals', Number($event) || 0)" />
+				@update:modelValue="updateFormat('decimals', Number($event) || 0)" />
 		</div>
 	</div>
 </template>

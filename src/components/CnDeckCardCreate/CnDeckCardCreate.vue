@@ -34,7 +34,7 @@
 			<NcSelect
 				v-model="selectedBoard"
 				:label="t('nextcloud-vue', 'Board')"
-				:input-label="t('nextcloud-vue', 'Board')"
+				:inputLabel="t('nextcloud-vue', 'Board')"
 				:options="boardOptions"
 				:loading="loadingBoards"
 				:disabled="loadingBoards"
@@ -45,7 +45,7 @@
 			<NcSelect
 				v-model="selectedStack"
 				:label="t('nextcloud-vue', 'Stack')"
-				:input-label="t('nextcloud-vue', 'Stack')"
+				:inputLabel="t('nextcloud-vue', 'Stack')"
 				:options="stackOptions"
 				:loading="loadingStacks"
 				:disabled="!selectedBoard || loadingStacks"

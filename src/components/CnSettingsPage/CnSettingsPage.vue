@@ -47,7 +47,7 @@
 				:title="title"
 				:description="description"
 				:icon="icon"
-				:visually-hidden="!showTitle" />
+				:visuallyHidden="!showTitle" />
 		</slot>
 
 		<!-- Actions slot for save / discard / reset overrides -->
@@ -99,7 +99,7 @@
 				v-if="sectionBodyKind(section) === 'fields'"
 				:name="resolveLabel(section.title)"
 				:description="resolveLabel(section.description)"
-				:doc-url="section.docUrl || ''">
+				:docUrl="section.docUrl || ''">
 				<div class="cn-settings-page__fields">
 					<div
 						v-for="field in section.fields"
@@ -110,36 +110,36 @@
 							:name="`field-${field.key}`"
 							:field="field"
 							:value="formData[field.key]"
-							:on-input="(v) => updateField(field.key, v)">
+							:onInput="(v) => updateField(field.key, v)">
 							<NcCheckboxRadioSwitch
 								v-if="field.type === 'boolean'"
-								:model-value="!!formData[field.key]"
-								@update:model-value="updateField(field.key, $event)">
+								:modelValue="!!formData[field.key]"
+								@update:modelValue="updateField(field.key, $event)">
 								{{ resolveLabel(field.label) }}
 							</NcCheckboxRadioSwitch>
 							<NcTextField
 								v-else-if="field.type === 'number'"
 								:label="resolveLabel(field.label)"
 								type="number"
-								:model-value="String(fieldValue(field.key, ''))"
-								@update:model-value="updateField(field.key, $event === '' ? null : Number($event))" />
+								:modelValue="String(fieldValue(field.key, ''))"
+								@update:modelValue="updateField(field.key, $event === '' ? null : Number($event))" />
 							<NcTextField
 								v-else-if="field.type === 'password'"
 								:label="resolveLabel(field.label)"
 								type="password"
-								:model-value="fieldValue(field.key, '')"
-								@update:model-value="updateField(field.key, $event)" />
+								:modelValue="fieldValue(field.key, '')"
+								@update:modelValue="updateField(field.key, $event)" />
 							<NcSelect
 								v-else-if="field.type === 'enum' && Array.isArray(field.options)"
-								:model-value="selectedOption(field)"
+								:modelValue="selectedOption(field)"
 								:options="field.options"
-								:input-label="resolveLabel(field.label)"
-								@update:model-value="updateField(field.key, optionValue($event))" />
+								:inputLabel="resolveLabel(field.label)"
+								@update:modelValue="updateField(field.key, optionValue($event))" />
 							<NcTextField
 								v-else
 								:label="resolveLabel(field.label)"
-								:model-value="fieldValue(field.key, '')"
-								@update:model-value="updateField(field.key, $event)" />
+								:modelValue="fieldValue(field.key, '')"
+								@update:modelValue="updateField(field.key, $event)" />
 						</slot>
 						<small
 							v-if="field.help"
@@ -164,11 +164,11 @@
 			<CnSettingsWidgetMount
 				v-else-if="sectionBodyKind(section) === 'component' && resolveSectionComponent(section)"
 				:component="resolveSectionComponent(section)"
-				:component-props="section.props || {}"
-				:widget-type="section.component"
-				:section-index="sectionIndex"
-				:widget-index="0"
-				@widget-event="onWidgetEvent" />
+				:componentProps="section.props || {}"
+				:widgetType="section.component"
+				:sectionIndex="sectionIndex"
+				:widgetIndex="0"
+				@widgetEvent="onWidgetEvent" />
 
 			<!-- Body: ordered list of widgets. Each widget is its own
 				 mounted component with v-bind props + bubbled events
@@ -180,11 +180,11 @@
 					v-for="entry in resolvedWidgetEntries(section, sectionIndex)"
 					:key="entry.key"
 					:component="entry.component"
-					:component-props="entry.props"
-					:widget-type="entry.widgetType"
-					:section-index="sectionIndex"
-					:widget-index="entry.widgetIndex"
-					@widget-event="onWidgetEvent" />
+					:componentProps="entry.props"
+					:widgetType="entry.widgetType"
+					:sectionIndex="sectionIndex"
+					:widgetIndex="entry.widgetIndex"
+					@widgetEvent="onWidgetEvent" />
 			</template>
 		</CnSettingsCard>
 

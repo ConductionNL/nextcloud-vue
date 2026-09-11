@@ -37,7 +37,7 @@
 				:title="title"
 				:description="description"
 				:icon="icon"
-				:visually-hidden="!showTitle" />
+				:visuallyHidden="!showTitle" />
 		</slot>
 
 		<div v-if="$slots.actions" class="cn-logs-page__actions">
@@ -82,14 +82,14 @@
 					:schema="tableSchema"
 					:columns="resolvedColumns"
 					:rows="rows"
-					:row-key="rowKey"
-					:fixed-layout="fixedLayout"
-					:sort-key="effectiveSortKey"
-					:sort-order="effectiveSortOrder"
-					:sort-keys="effectiveSortKeys"
-					:empty-text="emptyText"
+					:rowKey="rowKey"
+					:fixedLayout="fixedLayout"
+					:sortKey="effectiveSortKey"
+					:sortOrder="effectiveSortOrder"
+					:sortKeys="effectiveSortKeys"
+					:emptyText="emptyText"
 					@sort="onSort"
-					@row-click="onRowClick">
+					@rowClick="onRowClick">
 					<template
 						v-for="col in slotColumns"
 						#[`column-${col}`]="{ row, value }">
@@ -108,12 +108,12 @@
 				<CnPagination
 					v-if="paginationState && paginationState.pages > 1"
 					class="cn-logs-page__pagination"
-					:current-page="paginationState.page || 1"
-					:total-pages="paginationState.pages || 1"
-					:total-items="paginationState.total || 0"
-					:current-page-size="paginationState.limit || 20"
-					@page-changed="onPageChange"
-					@page-size-changed="onPageSizeChange" />
+					:currentPage="paginationState.page || 1"
+					:totalPages="paginationState.pages || 1"
+					:totalItems="paginationState.total || 0"
+					:currentPageSize="paginationState.limit || 20"
+					@pageChanged="onPageChange"
+					@pageSizeChanged="onPageSizeChange" />
 			</template>
 
 			<div v-if="error" class="cn-logs-page__error">

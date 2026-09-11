@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:no-close="loading"
+		:noClose="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -27,12 +27,12 @@
 			<div class="cn-copy__pattern">
 				<label for="cn-copy-pattern">{{ patternLabel }}</label>
 				<NcSelect
-					input-id="cn-copy-pattern"
-					:label-outside="true"
+					inputId="cn-copy-pattern"
+					:labelOutside="true"
 					:options="patternOptions"
-					:model-value="selectedPattern"
+					:modelValue="selectedPattern"
 					:clearable="false"
-					@update:model-value="selectedPattern = $event" />
+					@update:modelValue="selectedPattern = $event" />
 			</div>
 
 			<div class="cn-copy__preview">

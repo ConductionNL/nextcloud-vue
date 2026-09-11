@@ -43,12 +43,12 @@
 								:key="index"
 								:title="item.title"
 								:count="item.count"
-								:count-label="item.countLabel"
+								:countLabel="item.countLabel"
 								:variant="item.variant || 'default'"
 								:icon="isComponentIcon(item.icon) ? item.icon : null"
-								:icon-size="item.iconSize || 24"
+								:iconSize="item.iconSize || 24"
 								:horizontal="item.horizontal !== undefined ? item.horizontal : true"
-								:show-zero-count="item.showZeroCount !== undefined ? item.showZeroCount : true"
+								:showZeroCount="item.showZeroCount !== undefined ? item.showZeroCount : true"
 								:breakdown="item.breakdown || null"
 								:route="item.route || null"
 								:clickable="item.clickable || false"
@@ -63,19 +63,19 @@
 						<!-- Grid layout -->
 						<CnKpiGrid
 							v-else-if="section.layout === 'grid'"
-							grid-class="remove-margin"
+							gridClass="remove-margin"
 							:columns="section.columns || 2">
 							<CnStatsBlock
 								v-for="(item, index) in section.items"
 								:key="index"
 								:title="item.title"
 								:count="item.count"
-								:count-label="item.countLabel"
+								:countLabel="item.countLabel"
 								:variant="item.variant || 'default'"
 								:icon="isComponentIcon(item.icon) ? item.icon : null"
-								:icon-size="item.iconSize || 24"
+								:iconSize="item.iconSize || 24"
 								:horizontal="item.horizontal !== undefined ? item.horizontal : false"
-								:show-zero-count="item.showZeroCount !== undefined ? item.showZeroCount : true"
+								:showZeroCount="item.showZeroCount !== undefined ? item.showZeroCount : true"
 								:breakdown="item.breakdown || null"
 								:route="item.route || null"
 								:clickable="item.clickable || false"
@@ -95,9 +95,9 @@
 						<CnProgressBar
 							:items="section.items"
 							:variant="section.variant || 'primary'"
-							:bar-height="section.barHeight || 8"
+							:barHeight="section.barHeight || 8"
 							:rounded="section.rounded !== undefined ? section.rounded : true"
-							:show-percentage="section.showPercentage || false" />
+							:showPercentage="section.showPercentage || false" />
 					</slot>
 				</template>
 

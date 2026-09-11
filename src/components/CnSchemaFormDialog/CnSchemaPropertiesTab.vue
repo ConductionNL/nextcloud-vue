@@ -6,12 +6,12 @@
 		<CnDataTable
 			:columns="tableColumns"
 			:rows="propertyRows"
-			row-key="_id"
+			rowKey="_id"
 			:selectable="false"
-			:row-class="getRowClass"
-			:cell-class="getCellClass"
-			:empty-text="t('nextcloud-vue', 'No properties found. Click &quot;Add property&quot; to create one.')"
-			@row-click="onRowClick">
+			:rowClass="getRowClass"
+			:cellClass="getCellClass"
+			:emptyText="t('nextcloud-vue', 'No properties found. Click &quot;Add property&quot; to create one.')"
+			@rowClick="onRowClick">
 			<template #actions-header>
 				<NcButton
 					variant="primary"
@@ -32,9 +32,9 @@
 						:title="t('nextcloud-vue', 'Property has been modified. Changes will only take effect after the schema is saved.')" />
 					<NcTextField
 						ref="propertyNameInput"
-						:model-value="row._key"
+						:modelValue="row._key"
 						:label="t('nextcloud-vue', '(technical) Property name')"
-						@update:model-value="onPropertyKeyUpdate(row._key, $event)"
+						@update:modelValue="onPropertyKeyUpdate(row._key, $event)"
 						@click.stop />
 				</div>
 				<div v-else class="cn-schema-form__name-display-container">
@@ -81,7 +81,7 @@
 					v-if="selectedProperty === row._key"
 					v-model="schema.properties[row._key].type"
 					:options="typeOptionsForSelect"
-					:input-label="t('nextcloud-vue', 'Property type')"
+					:inputLabel="t('nextcloud-vue', 'Property type')"
 					@click.stop />
 				<span v-else>{{ row.type }}</span>
 			</template>
@@ -89,18 +89,18 @@
 			<template #row-actions="{ row }">
 				<CnSchemaPropertyActions
 					v-if="!row._inherited"
-					:property-key="row._key"
+					:propertyKey="row._key"
 					:property="schema.properties[row._key]"
-					:schema-item="schema"
-					:original-properties="originalProperties"
-					:available-schemas="availableSchemas"
-					:available-registers="availableRegisters"
-					:available-tags-options="availableTagsOptions"
-					:user-groups="userGroups"
-					:sorted-user-groups="sortedUserGroups"
-					:loading-groups="loadingGroups"
-					@copy-property="$emit('copy-property', $event)"
-					@delete-property="$emit('delete-property', $event)" />
+					:schemaItem="schema"
+					:originalProperties="originalProperties"
+					:availableSchemas="availableSchemas"
+					:availableRegisters="availableRegisters"
+					:availableTagsOptions="availableTagsOptions"
+					:userGroups="userGroups"
+					:sortedUserGroups="sortedUserGroups"
+					:loadingGroups="loadingGroups"
+					@copyProperty="$emit('copy-property', $event)"
+					@deleteProperty="$emit('delete-property', $event)" />
 			</template>
 		</CnDataTable>
 	</div>

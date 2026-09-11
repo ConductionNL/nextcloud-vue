@@ -97,7 +97,7 @@
 				:bold="true"
 				:href="reportUrl(report)"
 				target="_blank"
-				:force-display-actions="true">
+				:forceDisplayActions="true">
 				<template #icon>
 					<span class="cn-analytics-tab__row-icon">
 						<component :is="reportIcon(report)" :size="22" />
@@ -124,13 +124,13 @@
 					</span>
 				</template>
 				<template #actions>
-					<NcActionButton :close-after-click="true" @click="openReport(report)">
+					<NcActionButton :closeAfterClick="true" @click="openReport(report)">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
 						{{ t('nextcloud-vue', 'Open in Analytics') }}
 					</NcActionButton>
-					<NcActionButton :close-after-click="true" @click="unlinkReport(report)">
+					<NcActionButton :closeAfterClick="true" @click="unlinkReport(report)">
 						<template #icon>
 							<LinkOff :size="20" />
 						</template>
@@ -142,7 +142,7 @@
 
 		<CnAnalyticsReportPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 

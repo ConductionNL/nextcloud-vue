@@ -24,10 +24,10 @@
 					:key="entry.id"
 					class="cn-version-history__row">
 					<NcCheckboxRadioSwitch
-						:model-value="isSelected(entry.id)"
+						:modelValue="isSelected(entry.id)"
 						:disabled="isSelected(entry.id) === false && selectedIds.length >= 2"
 						:aria-label="selectForCompareLabel"
-						@update:model-value="toggleSelected(entry.id, $event)" />
+						@update:modelValue="toggleSelected(entry.id, $event)" />
 					<button class="cn-version-history__row-main" type="button" @click="openSingleDiff(entry)">
 						<span class="cn-version-history__version">{{ entry.version || fallbackVersionLabel }}</span>
 						<span class="cn-version-history__action">{{ entry.action || '' }}</span>
@@ -60,7 +60,7 @@
 				<NcButton variant="tertiary" @click="closeDiff">
 					{{ backLabel }}
 				</NcButton>
-				<NcCheckboxRadioSwitch :model-value="showAllFields" @update:model-value="showAllFields = $event">
+				<NcCheckboxRadioSwitch :modelValue="showAllFields" @update:modelValue="showAllFields = $event">
 					{{ showAllFieldsLabel }}
 				</NcCheckboxRadioSwitch>
 			</div>

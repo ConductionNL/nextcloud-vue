@@ -70,7 +70,7 @@
 				:key="file.id"
 				:name="file.name || file.title"
 				:bold="false"
-				:force-display-actions="true">
+				:forceDisplayActions="true">
 				<template #icon>
 					<FileOutline :size="32" />
 				</template>

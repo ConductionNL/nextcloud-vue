@@ -99,7 +99,7 @@
 				:name="pointName(point)"
 				:href="pointUrl(point)"
 				target="_blank"
-				:force-display-actions="true">
+				:forceDisplayActions="true">
 				<template #icon>
 					<span class="cn-maps-tab__pin" aria-hidden="true">
 						<MapMarker :size="22" class="cn-maps-tab__pin-icon" />
@@ -139,13 +139,13 @@
 					</span>
 				</template>
 				<template #actions>
-					<NcActionButton :close-after-click="true" @click="openPoint(point)">
+					<NcActionButton :closeAfterClick="true" @click="openPoint(point)">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
 						{{ openOnMapLabel }}
 					</NcActionButton>
-					<NcActionButton :close-after-click="true" @click="unlinkPoint(point)">
+					<NcActionButton :closeAfterClick="true" @click="unlinkPoint(point)">
 						<template #icon>
 							<LinkOff :size="20" />
 						</template>
@@ -157,7 +157,7 @@
 
 		<CnMapPoiPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 

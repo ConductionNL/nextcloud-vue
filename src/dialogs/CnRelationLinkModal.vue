@@ -13,10 +13,10 @@
 			<CnResourceSelect
 				:register="register"
 				:schema="schema"
-				:label-field="labelField"
-				:allow-create="allowCreate"
-				:model-value="selectedId"
-				:input-label="selectLabel"
+				:labelField="labelField"
+				:allowCreate="allowCreate"
+				:modelValue="selectedId"
+				:inputLabel="selectLabel"
 				@update:modelValue="selectedId = $event" />
 			<p v-if="error" class="cn-relation-link__error" data-testid="cn-relation-link-error">
 				{{ error }}

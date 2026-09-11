@@ -2,9 +2,9 @@
 	<CnSettingsSection
 		:name="title"
 		:description="description"
-		:doc-url="docUrl"
+		:docUrl="docUrl"
 		:loading="loading"
-		loading-message="Loading version information...">
+		loadingMessage="Loading version information...">
 		<!-- Actions slot -->
 		<template #actions>
 			<!-- Update Button -->

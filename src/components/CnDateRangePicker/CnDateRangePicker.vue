@@ -18,19 +18,19 @@
 	<div class="cn-date-range-picker" data-testid="cn-date-range-picker">
 		<NcSelect
 			class="cn-date-range-picker__preset"
-			:model-value="selectedPresetOption"
+			:modelValue="selectedPresetOption"
 			:options="presetOptions"
 			:disabled="disabled"
 			:clearable="false"
 			:searchable="false"
 			:aria-label="presetLabel"
-			:input-label="presetLabel"
+			:inputLabel="presetLabel"
 			label="label"
 			data-testid="cn-date-range-picker-preset"
-			@update:model-value="onPresetInput" />
+			@update:modelValue="onPresetInput" />
 		<NcDateTimePicker
 			class="cn-date-range-picker__from"
-			:model-value="fromDate"
+			:modelValue="fromDate"
 			:disabled="disabled"
 			:format="dateFormat"
 			:aria-label="fromLabel"
@@ -40,7 +40,7 @@
 		<span class="cn-date-range-picker__separator" aria-hidden="true">→</span>
 		<NcDateTimePicker
 			class="cn-date-range-picker__to"
-			:model-value="toDate"
+			:modelValue="toDate"
 			:disabled="disabled"
 			:format="dateFormat"
 			:aria-label="toLabel"

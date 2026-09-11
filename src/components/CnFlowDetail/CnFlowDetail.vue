@@ -167,18 +167,18 @@
 		<CnGraphCanvas
 			:nodes="canvasNodes"
 			:edges="canvasEdgesWithRunState"
-			:min-zoom="minZoom"
-			:max-zoom="maxZoom"
-			@node-select="onNodeSelect"
-			@edge-select="onEdgeSelect"
-			@edge-label-click="onEdgeLabelClick"
-			@edge-label-context="onEdgeLabelContext"
-			@edge-label-move="onEdgeLabelMove"
-			@canvas-click="onCanvasClick"
-			@nodes-change="onNodesChange"
-			@node-remove="store.removeNode($event)"
+			:minZoom="minZoom"
+			:maxZoom="maxZoom"
+			@nodeSelect="onNodeSelect"
+			@edgeSelect="onEdgeSelect"
+			@edgeLabelClick="onEdgeLabelClick"
+			@edgeLabelContext="onEdgeLabelContext"
+			@edgeLabelMove="onEdgeLabelMove"
+			@canvasClick="onCanvasClick"
+			@nodesChange="onNodesChange"
+			@nodeRemove="store.removeNode($event)"
 			@connect="store.connect($event)"
-			@canvas-drop="onCanvasDrop">
+			@canvasDrop="onCanvasDrop">
 			<!-- The step's own chrome. `node.data` carries the flow node, because
 			     Vue Flow's `type` selects a COMPONENT while the flow's own type
 			     is domain data — conflating the two would make every new step
@@ -233,7 +233,7 @@
 		<CnContextMenu
 			v-model:open="nodeMenuOpen"
 			:actions="nodeMenuActions"
-			:target-item="nodeMenuTarget"
+			:targetItem="nodeMenuTarget"
 			@close="closeNodeMenu" />
 
 		<!-- The line's own actions, at the line. A connection was the one thing
@@ -243,7 +243,7 @@
 		<CnContextMenu
 			v-model:open="edgeMenuOpen"
 			:actions="edgeMenuActions"
-			:target-item="edgeMenuTarget"
+			:targetItem="edgeMenuTarget"
 			@close="closeEdgeMenu" />
 
 		<CnFlowEdgeEditModal v-if="store.editingEdge !== null" />

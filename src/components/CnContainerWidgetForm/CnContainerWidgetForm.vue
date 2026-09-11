@@ -24,19 +24,19 @@
 		</label>
 
 		<NcSelect
-			:model-value="padding"
+			:modelValue="padding"
 			:options="paddingOptions"
-			:input-label="t('nextcloud-vue', 'Padding')"
+			:inputLabel="t('nextcloud-vue', 'Padding')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('padding', $event)" />
 
 		<NcTextField
-			:model-value="title"
+			:modelValue="title"
 			:label="t('nextcloud-vue', 'Title (optional)')"
 			:placeholder="t('nextcloud-vue', 'Title (optional)')"
-			@update:model-value="updateField('title', $event)" />
+			@update:modelValue="updateField('title', $event)" />
 	</div>
 </template>
 

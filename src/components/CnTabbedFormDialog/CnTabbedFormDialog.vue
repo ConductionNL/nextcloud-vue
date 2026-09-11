@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="resolvedTitle"
 		:size="size"
-		:no-close="loading"
+		:noClose="loading"
 		@closing="$emit('close')">
 		<!-- Result phase (standard mode, not create-another) -->
 		<div v-if="result !== null && !createAnother"
@@ -51,7 +51,7 @@
 							:aria-selected="activeTab === idx"
 							:aria-controls="'cn-tab-panel-' + tab.id"
 							:disabled="tab.disabled"
-							:class="['cn-tabbed-form-dialog__tab-button', { 'is-active': activeTab === idx }]"
+							class="cn-tabbed-form-dialog__tab-button" :class="[{ 'is-active': activeTab === idx }]"
 							@click="onTabClick(idx)">
 							<component :is="tab.icon" v-if="tab.icon" :size="16" />
 							<span>{{ tab.title }}</span>
@@ -86,7 +86,7 @@
 			<!-- Extra actions before Cancel -->
 			<slot name="actions-left"
 				:loading="loading"
-				:is-create-mode="isCreateMode"
+				:isCreateMode="isCreateMode"
 				:result="result" />
 
 			<!-- Cancel / Close button -->
@@ -100,7 +100,7 @@
 			<!-- Extra actions after primary -->
 			<slot name="actions-right"
 				:loading="loading"
-				:is-create-mode="isCreateMode"
+				:isCreateMode="isCreateMode"
 				:result="result" />
 
 			<!-- Primary action button (Save / Create) -->

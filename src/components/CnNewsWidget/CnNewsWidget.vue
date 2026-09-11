@@ -34,7 +34,7 @@
 						v-if="showThumbnails && item.thumbnailUrl"
 						class="cn-news-widget__thumb"
 						:src="item.thumbnailUrl"
-						:alt="''">
+						alt="">
 					<div class="cn-news-widget__body">
 						<h4 class="cn-news-widget__title">{{ item.title }}</h4>
 						<p
@@ -52,7 +52,7 @@
 						v-if="showThumbnails && item.thumbnailUrl"
 						class="cn-news-widget__thumb"
 						:src="item.thumbnailUrl"
-						:alt="''">
+						alt="">
 					<div class="cn-news-widget__body">
 						<h4 class="cn-news-widget__title">
 							{{ item.title }}

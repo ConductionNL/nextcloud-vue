@@ -13,8 +13,8 @@
 		@end="flatten">
 		<li v-for="node in tree" :key="nodeKey(node.ref)" class="cn-page-tree__node">
 			<CnPageTreeRow :page="node.ref"
-				:can-add-child="maxDepth > 0"
-				@add-child="addChild(node)"
+				:canAddChild="maxDepth > 0"
+				@addChild="addChild(node)"
 				@rename="(id) => renamePage(node.ref, id)"
 				@navigate="bubbleNavigate"
 				@remove="removeNode(node, null)" />
@@ -32,7 +32,7 @@
 				@end="flatten">
 				<li v-for="child in node.children" :key="nodeKey(child.ref)" class="cn-page-tree__node">
 					<CnPageTreeRow :page="child.ref"
-						:can-add-child="false"
+						:canAddChild="false"
 						@rename="(id) => renamePage(child.ref, id)"
 						@navigate="bubbleNavigate"
 						@remove="removeNode(child, node)" />

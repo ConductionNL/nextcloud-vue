@@ -4,16 +4,16 @@
 	<CnWizardDialog
 		ref="wizard"
 		:steps="wizardSteps"
-		:dialog-title="dialogTitle"
-		:submit-label="submitLabel"
-		:cancel-label="cancelLabel"
-		:next-label="nextLabel"
-		:back-label="backLabel"
-		:success-text="successText"
+		:dialogTitle="dialogTitle"
+		:submitLabel="submitLabel"
+		:cancelLabel="cancelLabel"
+		:nextLabel="nextLabel"
+		:backLabel="backLabel"
+		:successText="successText"
 		:validate="validateStep"
 		:cancellable="cancellable"
-		:initial-step="initialStepId"
-		@step-change="onStepChange"
+		:initialStep="initialStepId"
+		@stepChange="onStepChange"
 		@submit="onSubmit"
 		@close="onClose">
 		<!-- This `<template v-for>` defines dynamic SLOTS, not a rendered list.
@@ -32,8 +32,8 @@
 					:name="stepSlot(step)"
 					v-bind="scope"
 					:step="step"
-					:run-action="() => runAction(step)"
-					:save-config="(patch) => saveConfig(patch)" />
+					:runAction="() => runAction(step)"
+					:saveConfig="(patch) => saveConfig(patch)" />
 
 				<!-- info -->
 				<template v-else-if="step.type === 'info'">
@@ -54,17 +54,17 @@
 						:multiple="step.multiple === true"
 						:disabled="isChoiceDisabled(step)"
 						:loading="isOptionsLoading(step)"
-						:model-value="cardModel(step)"
-						@update:model-value="(v) => onChoice(step, v)" />
+						:modelValue="cardModel(step)"
+						@update:modelValue="(v) => onChoice(step, v)" />
 					<NcSelect
 						v-else
-						:input-label="stepTitle(step)"
+						:inputLabel="stepTitle(step)"
 						:options="optionsFor(step)"
 						:multiple="step.multiple === true"
 						:disabled="isChoiceDisabled(step)"
 						label="label"
-						:model-value="choiceModel[step.id]"
-						@update:model-value="(v) => onChoice(step, v)" />
+						:modelValue="choiceModel[step.id]"
+						@update:modelValue="(v) => onChoice(step, v)" />
 					<NcNoteCard v-if="isChoiceDisabled(step)" type="warning">
 						{{ dependsOnHint(step) }}
 					</NcNoteCard>
@@ -78,22 +78,22 @@
 						class="cn-setup-field">
 						<NcCheckboxRadioSwitch
 							v-if="field.widget === 'checkbox'"
-							:model-value="!!configModel[field.key]"
-							@update:model-value="(v) => configModel[field.key] = v">
+							:modelValue="!!configModel[field.key]"
+							@update:modelValue="(v) => configModel[field.key] = v">
 							{{ field.label }}
 						</NcCheckboxRadioSwitch>
 						<NcSelect
 							v-else-if="field.widget === 'select'"
-							:input-label="field.label"
+							:inputLabel="field.label"
 							:options="field.enum || []"
-							:model-value="configModel[field.key]"
-							@update:model-value="(v) => configModel[field.key] = v" />
+							:modelValue="configModel[field.key]"
+							@update:modelValue="(v) => configModel[field.key] = v" />
 						<NcTextField
 							v-else
 							:label="field.label"
 							:type="field.widget === 'number' ? 'number' : 'text'"
-							:model-value="configModel[field.key] != null ? String(configModel[field.key]) : ''"
-							@update:model-value="(v) => configModel[field.key] = v" />
+							:modelValue="configModel[field.key] != null ? String(configModel[field.key]) : ''"
+							@update:modelValue="(v) => configModel[field.key] = v" />
 					</div>
 				</template>
 

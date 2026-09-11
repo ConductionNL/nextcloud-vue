@@ -80,28 +80,28 @@
 						<td class="cn-advanced-form-dialog__table-col-expanded cn-advanced-form-dialog__value-cell">
 							<slot
 								name="value-cell"
-								:property-key="key"
+								:propertyKey="key"
 								:value="value"
-								:resolved-value="resolvedValue(key, value)"
-								:is-editing="selectedProperty === key"
-								:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
-								:display-name="getPropertyDisplayName(key)"
-								:schema-prop="schema && schema.properties && schema.properties[key]"
-								:editability-warning="getPropertyEditabilityWarning(key, resolvedValue(key, value))"
-								:on-update="(v) => onPropertyValueUpdate(key, v)">
+								:resolvedValue="resolvedValue(key, value)"
+								:isEditing="selectedProperty === key"
+								:isEditable="isPropertyEditable(key, resolvedValue(key, value))"
+								:displayName="getPropertyDisplayName(key)"
+								:schemaProp="schema && schema.properties && schema.properties[key]"
+								:editabilityWarning="getPropertyEditabilityWarning(key, resolvedValue(key, value))"
+								:onUpdate="(v) => onPropertyValueUpdate(key, v)">
 								<CnPropertyValueCell
 									:ref="'cell-' + key"
-									:property-key="key"
+									:propertyKey="key"
 									:schema="schema"
 									:value="resolvedValue(key, value)"
-									:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
-									:is-editing="selectedProperty === key"
-									:display-name="getPropertyDisplayName(key)"
-									:editability-warning="getPropertyEditabilityWarning(key, resolvedValue(key, value))"
+									:isEditable="isPropertyEditable(key, resolvedValue(key, value))"
+									:isEditing="selectedProperty === key"
+									:displayName="getPropertyDisplayName(key)"
+									:editabilityWarning="getPropertyEditabilityWarning(key, resolvedValue(key, value))"
 									:widget="(propertyOverrides[key] && propertyOverrides[key].widget) || null"
-									:select-options="(propertyOverrides[key] && propertyOverrides[key].selectOptions) || null"
-									:select-multiple="propertyOverrides[key] ? propertyOverrides[key].selectMultiple !== false : true"
-									:textarea-rows="(propertyOverrides[key] && propertyOverrides[key].textareaRows) || 4"
+									:selectOptions="(propertyOverrides[key] && propertyOverrides[key].selectOptions) || null"
+									:selectMultiple="propertyOverrides[key] ? propertyOverrides[key].selectMultiple !== false : true"
+									:textareaRows="(propertyOverrides[key] && propertyOverrides[key].textareaRows) || 4"
 									@update:value="onPropertyValueUpdate(key, $event)" />
 							</slot>
 						</td>
@@ -111,11 +111,11 @@
 							@click.stop>
 							<slot
 								name="row-actions"
-								:property-key="key"
+								:propertyKey="key"
 								:value="value"
-								:resolved-value="resolvedValue(key, value)"
-								:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
-								:is-schema-property="!!(schema && schema.properties && Object.prototype.hasOwnProperty.call(schema.properties, key))" />
+								:resolvedValue="resolvedValue(key, value)"
+								:isEditable="isPropertyEditable(key, resolvedValue(key, value))"
+								:isSchemaProperty="!!(schema && schema.properties && Object.prototype.hasOwnProperty.call(schema.properties, key))" />
 						</td>
 					</tr>
 				</tbody>

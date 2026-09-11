@@ -26,17 +26,17 @@
 		     overrides the name that label provides. -->
 		<NcSelect
 			v-if="!fetchError"
-			:model-value="selectedOption"
+			:modelValue="selectedOption"
 			:options="options"
 			:loading="loading"
 			:disabled="loading || options.length === 0"
 			:clearable="false"
-			:close-on-select="true"
+			:closeOnSelect="true"
 			label="label"
-			:input-label="cnTranslate('Agent')"
+			:inputLabel="cnTranslate('Agent')"
 			:placeholder="pickerPlaceholder"
 			data-testid="cn-ai-agent-picker-select"
-			@update:model-value="onInput" />
+			@update:modelValue="onInput" />
 		<p v-else class="cn-ai-agent-picker__error" data-testid="cn-ai-agent-picker-error">
 			{{ cnTranslate('Could not load agents — you can still send a message.') }}
 		</p>

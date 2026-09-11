@@ -8,11 +8,11 @@
 		class="cn-video-widget"
 		:style="wrapperStyle">
 		<div v-if="!hasSource" class="cn-video-widget__placeholder">
-			<VideoIcon :size="48" :fill-color="placeholderColor" />
+			<VideoIcon :size="48" :fillColor="placeholderColor" />
 			<span class="cn-video-widget__placeholder-label">{{ t('nextcloud-vue', 'No video URL configured') }}</span>
 		</div>
 		<div v-else-if="hasError" class="cn-video-widget__placeholder">
-			<VideoIcon :size="48" :fill-color="placeholderColor" />
+			<VideoIcon :size="48" :fillColor="placeholderColor" />
 			<span class="cn-video-widget__placeholder-label">{{ errorMessage }}</span>
 		</div>
 		<div

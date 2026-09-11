@@ -141,7 +141,7 @@
 					:name="`field-${field.key}`"
 					:field="field"
 					:value="formData[field.key]"
-					:on-input="(v) => updateField(field.key, v)"
+					:onInput="(v) => updateField(field.key, v)"
 					:error="fieldErrors[field.key] || null">
 					<component
 						:is="resolveFieldRender(field).tag"

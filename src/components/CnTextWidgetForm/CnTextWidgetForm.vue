@@ -6,18 +6,18 @@
 <template>
 	<div class="cn-text-widget-form">
 		<NcSelect
-			:model-value="modeOption"
+			:modelValue="modeOption"
 			:options="modeOptions"
-			:input-label="t('nextcloud-vue', 'Content type')"
+			:inputLabel="t('nextcloud-vue', 'Content type')"
 			:clearable="false"
 			label="label"
-			@update:model-value="onModeChange" />
+			@update:modelValue="onModeChange" />
 
 		<template v-if="!tableMode">
 			<NcSelect
-				:model-value="contentMode"
+				:modelValue="contentMode"
 				:options="contentModeOptions"
-				:input-label="t('nextcloud-vue', 'Mode')"
+				:inputLabel="t('nextcloud-vue', 'Mode')"
 				:clearable="false"
 				:reduce="option => option.value"
 				label="label"
@@ -41,7 +41,7 @@
 					:value="text"
 					mode="edit"
 					:rows="6"
-					hide-mode-switch
+					hideModeSwitch
 					:aria-label="t('nextcloud-vue', 'Text')"
 					:placeholder="modePlaceholder"
 					@input="updateField('text', $event)" />
@@ -61,10 +61,10 @@
 			     emphasis and alignment, so these would be misleading. -->
 			<NcTextField
 				v-if="contentMode !== 'markdown'"
-				:model-value="fontSize"
+				:modelValue="fontSize"
 				:label="t('nextcloud-vue', 'Font size')"
 				placeholder="14px"
-				@update:model-value="updateField('fontSize', $event)" />
+				@update:modelValue="updateField('fontSize', $event)" />
 
 			<label v-if="contentMode !== 'markdown'" class="cn-text-widget-form__color-label">
 				{{ t('nextcloud-vue', 'Text color') }}
@@ -86,11 +86,11 @@
 
 			<NcSelect
 				v-if="contentMode !== 'markdown'"
-				:model-value="textAlign"
+				:modelValue="textAlign"
 				:options="textAlignOptions"
-				:input-label="t('nextcloud-vue', 'Alignment')"
+				:inputLabel="t('nextcloud-vue', 'Alignment')"
 				:clearable="false"
-				@update:model-value="updateField('textAlign', $event)" />
+				@update:modelValue="updateField('textAlign', $event)" />
 		</template>
 
 		<template v-else>

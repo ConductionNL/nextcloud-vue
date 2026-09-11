@@ -10,39 +10,39 @@
 		</h4>
 
 		<NcTextField
-			:model-value="content.label || ''"
+			:modelValue="content.label || ''"
 			:label="t('nextcloud-vue', 'Title')"
 			:placeholder="t('nextcloud-vue', 'Time left')"
-			@update:model-value="updateField('label', $event)" />
+			@update:modelValue="updateField('label', $event)" />
 
 		<NcTextField
-			:model-value="content.field || ''"
+			:modelValue="content.field || ''"
 			:label="t('nextcloud-vue', 'Date property')"
 			placeholder="deadline"
-			@update:model-value="updateField('field', $event)" />
+			@update:modelValue="updateField('field', $event)" />
 		<p class="cn-countdown-form__hint">
 			{{ t('nextcloud-vue', 'The property on this record holding the date to count down to.') }}
 		</p>
 
 		<NcTextField
-			:model-value="warnValue"
+			:modelValue="warnValue"
 			type="number"
 			:label="t('nextcloud-vue', 'Warn when this many days are left')"
-			@update:model-value="updateThreshold('warn', $event)" />
+			@update:modelValue="updateThreshold('warn', $event)" />
 
 		<NcTextField
-			:model-value="dangerValue"
+			:modelValue="dangerValue"
 			type="number"
 			:label="t('nextcloud-vue', 'Alert when this many days are left')"
-			@update:model-value="updateThreshold('danger', $event)" />
+			@update:modelValue="updateThreshold('danger', $event)" />
 		<p class="cn-countdown-form__hint">
 			{{ t('nextcloud-vue', 'Leave both empty to keep the tile one colour. A date in the past always shows as overdue.') }}
 		</p>
 
 		<NcCheckboxRadioSwitch
-			:model-value="content.showDate !== false"
+			:modelValue="content.showDate !== false"
 			type="switch"
-			@update:model-value="updateField('showDate', $event)">
+			@update:modelValue="updateField('showDate', $event)">
 			{{ t('nextcloud-vue', 'Show the date under the countdown') }}
 		</NcCheckboxRadioSwitch>
 	</div>

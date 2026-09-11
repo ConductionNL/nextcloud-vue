@@ -11,7 +11,7 @@
 		:open="open"
 		:name="t('nextcloud-vue', 'Delete file')"
 		size="small"
-		:close-on-click-outside="true"
+		:closeOnClickOutside="true"
 		@update:open="$emit('update:open', $event)">
 		<p class="cn-files-widget-delete-dialog__message">
 			{{ t('nextcloud-vue', 'Are you sure you want to delete {name}?', { name: fileName }) }}

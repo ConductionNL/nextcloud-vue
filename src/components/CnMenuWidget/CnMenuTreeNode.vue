@@ -44,12 +44,12 @@
 				:key="`tree-child-${idx}`"
 				:item="child"
 				:depth="depth + 1"
-				:show-icons="showIcons"
-				:expanded-by-default="expandedByDefault"
-				:active-path="activePath"
-				:active-leaf-key="activeLeafKey"
-				:current-key="`${currentKey}.${idx}`"
-				:active-highlight="activeHighlight"
+				:showIcons="showIcons"
+				:expandedByDefault="expandedByDefault"
+				:activePath="activePath"
+				:activeLeafKey="activeLeafKey"
+				:currentKey="`${currentKey}.${idx}`"
+				:activeHighlight="activeHighlight"
 				@navigate="$emit('navigate', $event)" />
 		</ul>
 	</li>

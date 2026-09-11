@@ -99,7 +99,7 @@
 					<NcActions
 						:aria-label="cnTranslate('Session settings')"
 						:title="cnTranslate('Session settings')"
-						:force-menu="true"
+						:forceMenu="true"
 						data-testid="cn-ai-panel-settings">
 						<template #icon>
 							<Cog :size="18" />
@@ -114,10 +114,10 @@
 					  offered here even where the microphone cannot be.
 					-->
 						<NcActionCheckbox
-							:model-value="speakReplies"
+							:modelValue="speakReplies"
 							:disabled="speechSynthesisSupported === false"
 							data-testid="cn-ai-panel-speak-toggle"
-							@update:model-value="onSpeakRepliesToggled">
+							@update:modelValue="onSpeakRepliesToggled">
 							{{ speechSynthesisSupported
 								? cnTranslate('Read replies aloud')
 								: cnTranslate('Read replies aloud (not supported here)') }}
@@ -127,7 +127,7 @@
 						<NcActionButton
 							v-for="agent in visibleAgentOptions"
 							:key="agent.id"
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="onAgentSelected(agent.id)">
 							<template #icon>
 								<Check v-if="agent.id === selectedAgentUuid" :size="20" />
@@ -143,7 +143,7 @@
 					-->
 						<NcActionButton
 							v-if="hiddenAgentCount > 0"
-							:close-after-click="false"
+							:closeAfterClick="false"
 							data-testid="cn-ai-panel-all-agents"
 							@click="showAllAgents = true">
 							<template #icon>
@@ -159,14 +159,14 @@
 					<NcActions
 						:aria-label="cnTranslate('Sessions')"
 						:title="cnTranslate('Sessions')"
-						:force-menu="true"
+						:forceMenu="true"
 						data-testid="cn-ai-panel-sessions">
 						<template #icon>
 							<History :size="18" />
 						</template>
 						<NcActionButton
 							:disabled="isOnNewChatScreen"
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="onNewChat">
 							<template #icon>
 								<Plus :size="20" />
@@ -177,7 +177,7 @@
 						<NcActionButton
 							v-for="conversation in recentConversations"
 							:key="conversation.uuid"
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="onConversationSelect(conversation.uuid)">
 							<template #icon>
 								<MessageTextOutline :size="20" />
@@ -185,7 +185,7 @@
 							{{ conversationLabel(conversation) }}
 						</NcActionButton>
 						<NcActionButton
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="activeView = 'history'">
 							<template #icon>
 								<History :size="20" />
@@ -211,8 +211,8 @@
 				<div class="cn-ai-chat-window__messages">
 					<CnAiMessageList
 						:messages="streamState.messages"
-						:current-text="streamState.currentText"
-						:is-streaming="streamState.isStreaming">
+						:currentText="streamState.currentText"
+						:isStreaming="streamState.isStreaming">
 						<template #empty>
 							<div class="cn-ai-chat-window__start" data-testid="cn-ai-chat-tab-start">
 								<NcEmptyContent :name="agentLabel">
@@ -281,13 +281,13 @@
 					<CnAiInput
 						ref="input"
 						:disabled="streamState.isStreaming"
-						:chat-app-id="chatAppId"
-						:speech-input-engine="speechPolicy.inputEngine"
-						:dictation-silence-timeout="speechPolicy.silenceTimeout"
-						:local-speech-available="localSpeechAvailable"
-						:conversation-enabled="speechPolicy.conversationEnabled"
+						:chatAppId="chatAppId"
+						:speechInputEngine="speechPolicy.inputEngine"
+						:dictationSilenceTimeout="speechPolicy.silenceTimeout"
+						:localSpeechAvailable="localSpeechAvailable"
+						:conversationEnabled="speechPolicy.conversationEnabled"
 						@send="onSend"
-						@conversation-state="onConversationTurn" />
+						@conversationState="onConversationTurn" />
 				</div>
 			</div>
 
@@ -295,9 +295,9 @@
 				<CnAiHistoryList
 					:conversations="conversations"
 					:loading="conversationsLoading"
-					:fetch-error="conversationsFetchError"
-					:active-conversation-uuid="activeConversationUuid"
-					:chat-app-id="chatAppId"
+					:fetchError="conversationsFetchError"
+					:activeConversationUuid="activeConversationUuid"
+					:chatAppId="chatAppId"
 					:searchable="true"
 					@select="onConversationSelect"
 					@renamed="onConversationRenamed" />

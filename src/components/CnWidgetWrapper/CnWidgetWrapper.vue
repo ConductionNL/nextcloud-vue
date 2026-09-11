@@ -72,26 +72,26 @@
 				<slot name="actions" />
 				<CnActionsMenu
 					v-if="showActions"
-					:show-refresh="effectiveShowRefresh"
-					:show-request-feature="effectiveShowRequestFeature"
-					:show-report-bug="showReportBug"
-					:show-documentation="showDocumentation"
-					:documentation-url="documentationUrl"
-					:docs-anchor="docsAnchor"
-					:report-bug-url="reportBugUrl"
-					:documentation-label="documentationLabel"
-					:refresh-label="refreshLabel"
-					:request-feature-label="requestFeatureLabel"
-					:actions-menu-label="actionsMenuLabel"
+					:showRefresh="effectiveShowRefresh"
+					:showRequestFeature="effectiveShowRequestFeature"
+					:showReportBug="showReportBug"
+					:showDocumentation="showDocumentation"
+					:documentationUrl="documentationUrl"
+					:docsAnchor="docsAnchor"
+					:reportBugUrl="reportBugUrl"
+					:documentationLabel="documentationLabel"
+					:refreshLabel="refreshLabel"
+					:requestFeatureLabel="requestFeatureLabel"
+					:actionsMenuLabel="actionsMenuLabel"
 					:refreshing="refreshing"
-					:widget-id="resolvedWidgetId"
+					:widgetId="resolvedWidgetId"
 					:title="displayTitle"
 					:surface="`widget:${resolvedWidgetId}`"
-					:spec-ref="specRef"
-					refresh-channel="cn:widget:refresh"
-					testid-base="cn-widget-wrapper"
+					:specRef="specRef"
+					refreshChannel="cn:widget:refresh"
+					testidBase="cn-widget-wrapper"
 					@refresh="onActionsRefresh"
-					@request-feature="onActionsRequestFeature">
+					@requestFeature="onActionsRequestFeature">
 					<!-- @slot action-items Additional NcActionButton-family
 					     items rendered inside the overflow menu, after the
 					     built-in Refresh / Documentation / Request-a-feature

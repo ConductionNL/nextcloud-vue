@@ -54,25 +54,25 @@
 				     Separate from the per-widget menus. `docs-anchor` deep-links
 				     the docs item to THIS page's section. -->
 				<CnActionsMenu
-					:show-refresh="showRefresh"
-					:show-request-feature="showRequestFeature"
-					:show-report-bug="showReportBug"
-					:show-documentation="showDocumentation"
-					:documentation-url="documentationUrl"
-					:docs-anchor="resolvedPageId"
-					:documentation-label="documentationLabel"
-					:refresh-label="refreshLabel"
-					:request-feature-label="requestFeatureLabel"
-					:actions-menu-label="actionsMenuLabel"
+					:showRefresh="showRefresh"
+					:showRequestFeature="showRequestFeature"
+					:showReportBug="showReportBug"
+					:showDocumentation="showDocumentation"
+					:documentationUrl="documentationUrl"
+					:docsAnchor="resolvedPageId"
+					:documentationLabel="documentationLabel"
+					:refreshLabel="refreshLabel"
+					:requestFeatureLabel="requestFeatureLabel"
+					:actionsMenuLabel="actionsMenuLabel"
 					:refreshing="refreshing"
-					:widget-id="resolvedPageId"
+					:widgetId="resolvedPageId"
 					:title="title"
 					:surface="`dashboard:${resolvedPageId}`"
-					:spec-ref="specRef"
-					refresh-channel="cn:page:refresh"
-					testid-base="cn-dashboard-page"
+					:specRef="specRef"
+					refreshChannel="cn:page:refresh"
+					testidBase="cn-dashboard-page"
 					@refresh="onActionsRefresh"
-					@request-feature="onActionsRequestFeature">
+					@requestFeature="onActionsRequestFeature">
 					<!-- @slot action-items Additional NcActionButton-family
 					     items appended inside the page-level overflow menu,
 					     after Refresh / Documentation / Request a feature. -->
@@ -125,7 +125,7 @@
 				</button>
 				<NcActions
 					v-if="hasCustomPreset"
-					:force-menu="true"
+					:forceMenu="true"
 					container="body"
 					class="cn-dashboard-page__date-pill-custom"
 					data-testid="cn-dashboard-page-date-pill-custom">
@@ -138,16 +138,16 @@
 					</template>
 					<NcActionInput
 						type="datetime-local"
-						is-native-picker
-						:model-value="toPickerDate(currentRange && currentRange.from)"
+						isNativePicker
+						:modelValue="toPickerDate(currentRange && currentRange.from)"
 						:label="t('nextcloud-vue', 'From')"
-						@update:model-value="onChipDateInput('from', $event)" />
+						@update:modelValue="onChipDateInput('from', $event)" />
 					<NcActionInput
 						type="datetime-local"
-						is-native-picker
-						:model-value="toPickerDate(currentRange && currentRange.to)"
+						isNativePicker
+						:modelValue="toPickerDate(currentRange && currentRange.to)"
 						:label="t('nextcloud-vue', 'To')"
-						@update:model-value="onChipDateInput('to', $event)" />
+						@update:modelValue="onChipDateInput('to', $event)" />
 				</NcActions>
 			</div>
 			<!-- Default (picker) mode: the original select + two date inputs. -->
@@ -172,13 +172,13 @@
 				class="cn-dashboard-page__page-filter">
 				<span v-if="pf.label" class="cn-dashboard-page__page-filter-label">{{ pf.label }}</span>
 				<NcSelect
-					:model-value="selectedPageFilterOption(pf)"
+					:modelValue="selectedPageFilterOption(pf)"
 					:options="pf.options || []"
 					:clearable="false"
-					:input-label="pf.label || pf.key"
+					:inputLabel="pf.label || pf.key"
 					label="label"
 					:data-testid="'cn-page-filter-' + pf.key"
-					@update:model-value="onPageFilterChange(pf, $event)" />
+					@update:modelValue="onPageFilterChange(pf, $event)" />
 			</label>
 		</div>
 
@@ -229,7 +229,7 @@
 			<CnWidgetRefItem
 				v-for="(item, idx) in widgetRefItems"
 				:key="item.ref + '-' + idx"
-				:ref-uri="item.ref"
+				:refUri="item.ref"
 				class="cn-dashboard-page__content-item" />
 		</div>
 
@@ -249,9 +249,9 @@
 			:layout="displayLayout"
 			:editable="gridEditable"
 			:columns="columns"
-			:cell-height="cellHeight"
+			:cellHeight="cellHeight"
 			:margin="gridMargin"
-			@layout-change="onLayoutChange">
+			@layoutChange="onLayoutChange">
 			<template #widget="{ item }">
 				<!-- In-app edit overlay (ADR-041): a single launchpad-style
 				     configure cog opens the per-widget style/config editor,
@@ -274,7 +274,7 @@
 				<CnWidgetWrapper
 					v-if="missingRequiredApp(item)"
 					:title="getWidgetTitle(item)"
-					:show-title="widgetShowTitle(item)">
+					:showTitle="widgetShowTitle(item)">
 					<NcEmptyContent
 						:name="installAppLabel(missingRequiredApp(item))"
 						:description="t('nextcloud-vue', 'This widget shows data from another app that isn\'t installed yet.')"
@@ -308,24 +308,24 @@
 				     does nothing. -->
 				<template v-else-if="hasWidgetSlot(item.widgetId)">
 					<CnWidgetWrapper
-						:widget-id="item.widgetId"
+						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
-						:icon-url="getWidgetIconUrl(item)"
-						:icon-class="getWidgetIconClass(item)"
-						:show-title="widgetShowTitle(item)"
+						:iconUrl="getWidgetIconUrl(item)"
+						:iconClass="getWidgetIconClass(item)"
+						:showTitle="widgetShowTitle(item)"
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}"
-						:title-icon-position="getWidgetTitleIconPosition(item)"
-						:title-icon-color="getWidgetTitleIconColor(item)"
-						:title-icon-variant="getWidgetTitleIconVariant(item)"
-						:show-refresh="getWidgetShowRefresh(item)"
-						:show-actions="widgetShowActions(item)"
-						:documentation-url="getWidgetDocumentationUrl(item)"
-						:docs-anchor="getWidgetDocsAnchor(item)"
+						:styleConfig="item.styleConfig || {}"
+						:titleIconPosition="getWidgetTitleIconPosition(item)"
+						:titleIconColor="getWidgetTitleIconColor(item)"
+						:titleIconVariant="getWidgetTitleIconVariant(item)"
+						:showRefresh="getWidgetShowRefresh(item)"
+						:showActions="widgetShowActions(item)"
+						:documentationUrl="getWidgetDocumentationUrl(item)"
+						:docsAnchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
-						@request-feature="onWidgetRequestFeature(item)">
+						@requestFeature="onWidgetRequestFeature(item)">
 						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
 						<template v-if="$slots['widget-' + item.widgetId + '-title-icon']" #title-icon>
 							<slot :name="'widget-' + item.widgetId + '-title-icon'" :item="item" :widget="getWidgetDef(item.widgetId)" />
@@ -344,7 +344,7 @@
 						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
 							<NcActions
 								v-model:open="openChipPicker[item.widgetId]"
-								:force-menu="true"
+								:forceMenu="true"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -356,7 +356,7 @@
 								<NcActionButton
 									v-for="preset in effectivePresets"
 									:key="preset.id"
-									:close-after-click="true"
+									:closeAfterClick="true"
 									@click="onChipPresetPick(preset, item)">
 									<template #icon>
 										<CalendarRange v-if="currentRange.preset === preset.id" :size="16" />
@@ -367,16 +367,16 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									is-native-picker
-									:model-value="toPickerDate(currentRange.from)"
+									isNativePicker
+									:modelValue="toPickerDate(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
-									@update:model-value="onChipDateInput('from', $event)" />
+									@update:modelValue="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									is-native-picker
-									:model-value="toPickerDate(currentRange.to)"
+									isNativePicker
+									:modelValue="toPickerDate(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
-									@update:model-value="onChipDateInput('to', $event)" />
+									@update:modelValue="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
 						<!-- @slot widget-{widgetId} Per-widget body content (e.g. `#widget-my-work`). Apps inject custom widget rendering here. Scope: `{ item, widget }`. -->
@@ -387,28 +387,28 @@
 				<!-- Chart widget — manifest-driven apexcharts mount -->
 				<template v-else-if="isChart(item)">
 					<CnWidgetWrapper
-						:widget-id="item.widgetId"
+						:widgetId="item.widgetId"
 						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
-						:icon-url="getWidgetIconUrl(item)"
-						:icon-class="getWidgetIconClass(item)"
-						:show-title="widgetShowTitle(item)"
+						:iconUrl="getWidgetIconUrl(item)"
+						:iconClass="getWidgetIconClass(item)"
+						:showTitle="widgetShowTitle(item)"
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}"
-						:title-icon-position="getWidgetTitleIconPosition(item)"
-						:title-icon-color="getWidgetTitleIconColor(item)"
-						:title-icon-variant="getWidgetTitleIconVariant(item)"
-						:show-refresh="getWidgetShowRefresh(item)"
-						:documentation-url="getWidgetDocumentationUrl(item)"
-						:docs-anchor="getWidgetDocsAnchor(item)"
+						:styleConfig="item.styleConfig || {}"
+						:titleIconPosition="getWidgetTitleIconPosition(item)"
+						:titleIconColor="getWidgetTitleIconColor(item)"
+						:titleIconVariant="getWidgetTitleIconVariant(item)"
+						:showRefresh="getWidgetShowRefresh(item)"
+						:documentationUrl="getWidgetDocumentationUrl(item)"
+						:docsAnchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
-						@request-feature="onWidgetRequestFeature(item)">
+						@requestFeature="onWidgetRequestFeature(item)">
 						<template v-if="dateRangeEnabled && (item.dateChip === true || formatChartDateRange(item))" #title-meta>
 							<NcActions
 								v-model:open="openChipPicker[item.widgetId]"
-								:force-menu="true"
+								:forceMenu="true"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -420,7 +420,7 @@
 								<NcActionButton
 									v-for="preset in effectivePresets"
 									:key="preset.id"
-									:close-after-click="true"
+									:closeAfterClick="true"
 									@click="onChipPresetPick(preset, item)">
 									<template #icon>
 										<CalendarRange v-if="currentRange.preset === preset.id" :size="16" />
@@ -431,21 +431,21 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									is-native-picker
-									:model-value="toPickerDate(currentRange.from)"
+									isNativePicker
+									:modelValue="toPickerDate(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
-									@update:model-value="onChipDateInput('from', $event)" />
+									@update:modelValue="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									is-native-picker
-									:model-value="toPickerDate(currentRange.to)"
+									isNativePicker
+									:modelValue="toPickerDate(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
-									@update:model-value="onChipDateInput('to', $event)" />
+									@update:modelValue="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
 						<CnChartWidget
 							v-bind="getChartProps(item)"
-							:widget-id="item.widgetId"
+							:widgetId="item.widgetId"
 							:data-source="getWidgetDataSource(item)" />
 					</CnWidgetWrapper>
 				</template>
@@ -464,21 +464,21 @@
 				     headerless, so only CnStatsBlock's own title renders. -->
 				<template v-else-if="isStatsBlock(item)">
 					<CnWidgetWrapper
-						:widget-id="item.widgetId"
+						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
-						:icon-url="getWidgetIconUrl(item)"
-						:icon-class="getWidgetIconClass(item)"
-						:show-title="widgetShowTitle(item)"
-						:show-actions="widgetShowActions(item)"
+						:iconUrl="getWidgetIconUrl(item)"
+						:iconClass="getWidgetIconClass(item)"
+						:showTitle="widgetShowTitle(item)"
+						:showActions="widgetShowActions(item)"
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}"
-						:documentation-url="getWidgetDocumentationUrl(item)"
-						:docs-anchor="getWidgetDocsAnchor(item)"
+						:styleConfig="item.styleConfig || {}"
+						:documentationUrl="getWidgetDocumentationUrl(item)"
+						:docsAnchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
-						@request-feature="onWidgetRequestFeature(item)">
+						@requestFeature="onWidgetRequestFeature(item)">
 						<CnStatsBlockWidget
 							v-bind="getStatsBlockProps(item)"
 							:title="getWidgetTitle(item)"
@@ -490,30 +490,30 @@
 				     integration registry (AD-19 surface fallback). -->
 				<template v-else-if="isIntegration(item)">
 					<CnWidgetWrapper
-						:widget-id="item.widgetId"
+						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
-						:icon-url="getWidgetIconUrl(item)"
-						:icon-class="getWidgetIconClass(item)"
-						:show-title="widgetShowTitle(item)"
+						:iconUrl="getWidgetIconUrl(item)"
+						:iconClass="getWidgetIconClass(item)"
+						:showTitle="widgetShowTitle(item)"
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}"
-						:title-icon-position="getWidgetTitleIconPosition(item)"
-						:title-icon-color="getWidgetTitleIconColor(item)"
-						:title-icon-variant="getWidgetTitleIconVariant(item)"
-						:show-refresh="getWidgetShowRefresh(item)"
-						:documentation-url="getWidgetDocumentationUrl(item)"
-						:docs-anchor="getWidgetDocsAnchor(item)"
+						:styleConfig="item.styleConfig || {}"
+						:titleIconPosition="getWidgetTitleIconPosition(item)"
+						:titleIconColor="getWidgetTitleIconColor(item)"
+						:titleIconVariant="getWidgetTitleIconVariant(item)"
+						:showRefresh="getWidgetShowRefresh(item)"
+						:documentationUrl="getWidgetDocumentationUrl(item)"
+						:docsAnchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
-						@request-feature="onWidgetRequestFeature(item)">
+						@requestFeature="onWidgetRequestFeature(item)">
 						<!-- Mount-mode integration leaf (openregister#2127):
 						     rendered through CnLeafMountHost so a cross-Vue-major
 						     leaf mounts its own framework into a bare element. -->
 						<CnLeafMountHost
 							v-if="isMountIntegration(item)"
 							:provider="integrationProviderFor(item)"
-							:mount-props="getIntegrationMountProps(item)" />
+							:mountProps="getIntegrationMountProps(item)" />
 						<component
 							:is="resolveIntegrationWidget(item)"
 							v-else-if="resolveIntegrationWidget(item)"
@@ -527,21 +527,21 @@
 				<!-- NC Dashboard API widget -->
 				<template v-else-if="isNcWidget(item)">
 					<CnWidgetWrapper
-						:widget-id="item.widgetId"
+						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
-						:icon-url="getWidgetIconUrl(item)"
-						:icon-class="getWidgetIconClass(item)"
-						:show-title="widgetShowTitle(item)"
+						:iconUrl="getWidgetIconUrl(item)"
+						:iconClass="getWidgetIconClass(item)"
+						:showTitle="widgetShowTitle(item)"
 						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}"
-						:show-refresh="getWidgetShowRefresh(item)"
-						:documentation-url="getWidgetDocumentationUrl(item)"
-						:docs-anchor="getWidgetDocsAnchor(item)"
+						:styleConfig="item.styleConfig || {}"
+						:showRefresh="getWidgetShowRefresh(item)"
+						:documentationUrl="getWidgetDocumentationUrl(item)"
+						:docsAnchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
-						@request-feature="onWidgetRequestFeature(item)">
+						@requestFeature="onWidgetRequestFeature(item)">
 						<CnWidgetRenderer
 							:widget="getWidgetDef(item.widgetId)"
-							:unavailable-text="unavailableLabel" />
+							:unavailableText="unavailableLabel" />
 					</CnWidgetWrapper>
 				</template>
 
@@ -550,23 +550,23 @@
 				     this is how catalog widgets added via "Add widget…" appear. -->
 				<template v-else-if="registryRenderer(item)">
 					<CnWidgetWrapper
-						:widget-id="item.widgetId"
+						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
-						:show-title="widgetShowTitle(item)"
-						:show-actions="widgetShowActions(item)"
-						:show-refresh="getWidgetShowRefresh(item)"
+						:showTitle="widgetShowTitle(item)"
+						:showActions="widgetShowActions(item)"
+						:showRefresh="getWidgetShowRefresh(item)"
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
-						:title-icon-position="getWidgetTitleIconPosition(item)"
-						:title-icon-color="getWidgetTitleIconColor(item)"
-						:title-icon-variant="getWidgetTitleIconVariant(item)"
+						:titleIconPosition="getWidgetTitleIconPosition(item)"
+						:titleIconColor="getWidgetTitleIconColor(item)"
+						:titleIconVariant="getWidgetTitleIconVariant(item)"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}"
-						:documentation-url="getWidgetDocumentationUrl(item)"
-						:docs-anchor="getWidgetDocsAnchor(item)"
+						:styleConfig="item.styleConfig || {}"
+						:documentationUrl="getWidgetDocumentationUrl(item)"
+						:docsAnchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
-						@request-feature="onWidgetRequestFeature(item)">
+						@requestFeature="onWidgetRequestFeature(item)">
 						<!-- Opt-in per-widget date chip (`layout[].dateChip: true`) for
 						     registered card widgets (stat / gauge / delta). Same popover
 						     and SHARED dashboard range as the custom-widget chip above; it
@@ -576,7 +576,7 @@
 						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
 							<NcActions
 								v-model:open="openChipPicker[item.widgetId]"
-								:force-menu="true"
+								:forceMenu="true"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -588,7 +588,7 @@
 								<NcActionButton
 									v-for="preset in effectivePresets"
 									:key="preset.id"
-									:close-after-click="true"
+									:closeAfterClick="true"
 									@click="onChipPresetPick(preset, item)">
 									<template #icon>
 										<CalendarRange v-if="currentRange && currentRange.preset === preset.id" :size="16" />
@@ -599,16 +599,16 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									is-native-picker
-									:model-value="toPickerDate(currentRange && currentRange.from)"
+									isNativePicker
+									:modelValue="toPickerDate(currentRange && currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
-									@update:model-value="onChipDateInput('from', $event)" />
+									@update:modelValue="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									is-native-picker
-									:model-value="toPickerDate(currentRange && currentRange.to)"
+									isNativePicker
+									:modelValue="toPickerDate(currentRange && currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
-									@update:model-value="onChipDateInput('to', $event)" />
+									@update:modelValue="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
 						<!-- `widget-id` reaches the renderer's own refresh
@@ -617,7 +617,7 @@
 						     broadcasts with the same id. -->
 						<component
 							:is="registryRenderer(item)"
-							:widget-id="item.widgetId"
+							:widgetId="item.widgetId"
 							:content="registryWidgetBindings(item)"
 							v-bind="registryWidgetBindings(item)" />
 					</CnWidgetWrapper>
@@ -627,8 +627,8 @@
 				<CnWidgetWrapper
 					v-else
 					:title="getWidgetTitle(item)"
-					:show-title="widgetShowTitle(item)"
-					:show-refresh="false">
+					:showTitle="widgetShowTitle(item)"
+					:showRefresh="false">
 					<div class="cn-dashboard-page__unknown">
 						{{ unavailableLabel }}
 					</div>

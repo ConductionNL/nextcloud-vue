@@ -29,9 +29,9 @@
 				<div class="cn-notif-prefs__grid">
 					<div v-for="entry in group.items" :key="entry.key" class="cn-notif-prefs__card">
 						<NcCheckboxRadioSwitch type="switch"
-							:model-value="entry.enabled"
+							:modelValue="entry.enabled"
 							:disabled="entry.saving"
-							@update:model-value="onToggle(entry, $event)">
+							@update:modelValue="onToggle(entry, $event)">
 							{{ notificationLabel(entry.notification) }}
 						</NcCheckboxRadioSwitch>
 						<NcButton v-if="entry.source === 'user-override'"

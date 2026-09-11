@@ -1,7 +1,7 @@
 <template>
 	<NcActions
 		v-if="count > 0"
-		:menu-name="menuLabel"
+		:menuName="menuLabel"
 		:inline="0">
 		<template #icon>
 			<TuneVariant :size="20" />
@@ -48,7 +48,7 @@
 		</NcActionButton>
 
 		<!-- @slot actions Additional app-specific mass-action buttons. Slot scope: `{ count, selectedIds }`. -->
-		<slot name="actions" :count="count" :selected-ids="selectedIds" />
+		<slot name="actions" :count="count" :selectedIds="selectedIds" />
 	</NcActions>
 </template>
 

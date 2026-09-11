@@ -26,9 +26,9 @@
 					:rows="dashRows"
 					:columns="['name']"
 					borderless
-					:total-row-count="dashRows.length"
-					:view-all-route="{ name: 'anything' }"
-					view-all-label="View all"
+					:totalRowCount="dashRows.length"
+					:viewAllRoute="{ name: 'anything' }"
+					viewAllLabel="View all"
 					:limit="5" />
 			</div>
 		</template>
@@ -59,10 +59,10 @@
 				<CnGraphCanvas
 					:nodes="canvasNodes"
 					:edges="canvasEdges"
-					:read-only="canvasReadOnly"
-					:show-mini-map="true"
-					@nodes-change="canvasChanges.push($event)"
-					@node-remove="onCanvasNodeRemove"
+					:readOnly="canvasReadOnly"
+					:showMiniMap="true"
+					@nodesChange="canvasChanges.push($event)"
+					@nodeRemove="onCanvasNodeRemove"
 					@connect="canvasConnections.push($event)" />
 			</div>
 			<pre data-testid="canvas-connections">{{ JSON.stringify(canvasConnections) }}</pre>
@@ -129,7 +129,7 @@
 		<template v-else-if="showRunLink">
 			<h2>Run deep link</h2>
 			<div class="runlink-widget" data-testid="runlink-widget">
-				<CnFlowRunsWidget :content="runLinkContent" widget-id="runs" />
+				<CnFlowRunsWidget :content="runLinkContent" widgetId="runs" />
 			</div>
 			<div class="runlink-page" data-testid="runlink-page">
 				<RouterView />
@@ -139,7 +139,7 @@
 		<template v-else-if="showTabsWidget">
 			<h2>Tabs widget</h2>
 			<div class="tw-box" data-testid="tw-widget">
-				<CnTabsWidget :content="twContent" :available-widgets="twWidgets" />
+				<CnTabsWidget :content="twContent" :availableWidgets="twWidgets" />
 			</div>
 		</template>
 
@@ -173,11 +173,11 @@
 			<div class="tw-box" data-testid="bd-widget">
 				<CnTabsWidget
 					:content="bdContent"
-					:available-widgets="bdWidgets"
-					object-id="case-1"
-					:object-data="bdObject"
-					object-type="case"
-					:schema-object="bdSchema"
+					:availableWidgets="bdWidgets"
+					objectId="case-1"
+					:objectData="bdObject"
+					objectType="case"
+					:schemaObject="bdSchema"
 					register="dossiq"
 					schema="case" />
 			</div>
@@ -211,7 +211,7 @@
 			<CnDashboardPage
 				:widgets="chipWidgets"
 				:layout="chipLayout"
-				:date-range="chipDateRange"
+				:dateRange="chipDateRange"
 				title="Chip harness">
 				<template #widget-chip-widget>
 					<p data-testid="chip-widget-body">
@@ -225,7 +225,7 @@
 		     doesn't block the icon/markdown sections). -->
 		<template v-else-if="showWalkthrough">
 			<h2>Walkthrough</h2>
-			<CnWalkthrough app-id="harness" :manifest="wtManifest" seen-version="" />
+			<CnWalkthrough appId="harness" :manifest="wtManifest" seenVersion="" />
 		</template>
 
 		<!--
@@ -248,10 +248,10 @@
 			<h2>Schema editor — add enum value</h2>
 			<CnSchemaFormDialog
 				:item="spaSchema"
-				dialog-title="New schema"
-				:available-registers="[]"
-				:available-schemas="[]"
-				:show-delete="false"
+				dialogTitle="New schema"
+				:availableRegisters="[]"
+				:availableSchemas="[]"
+				:showDelete="false"
 				@confirm="() => {}"
 				@close="() => {}" />
 		</template>
@@ -273,7 +273,7 @@
 			<NcDialog name="Select in dialog" :open="true">
 				<div style="min-height: 220px;">
 					<NcSelect v-model="selZValue"
-						input-label="Pick a fruit"
+						inputLabel="Pick a fruit"
 						:options="selZOptions" />
 				</div>
 			</NcDialog>
@@ -290,10 +290,10 @@
 			<h2>Schema editor — schema reference</h2>
 			<CnSchemaFormDialog
 				:item="srefSchema"
-				dialog-title="New schema"
-				:available-registers="srefRegisters"
-				:available-schemas="srefSchemas"
-				:show-delete="false"
+				dialogTitle="New schema"
+				:availableRegisters="srefRegisters"
+				:availableSchemas="srefSchemas"
+				:showDelete="false"
 				@confirm="() => {}"
 				@close="() => {}" />
 		</template>
@@ -345,9 +345,9 @@
 		</template>
 		<template v-else-if="showTasksIndex">
 			<CnIndexPage
-				entity-source="tasks"
+				entitySource="tasks"
 				title="Tasks"
-				:show-refresh="false" />
+				:showRefresh="false" />
 		</template>
 
 		<!-- CnFormDialog schema-driven widget:'icon' (gated behind ?fd=1). -->
@@ -411,9 +411,9 @@
 				:schema="twoColSchema"
 				:objects="[]"
 				:loading="false"
-				:show-refresh="false"
-				form-size="large"
-				:form-columns="2" />
+				:showRefresh="false"
+				formSize="large"
+				:formColumns="2" />
 		</template>
 
 		<template v-else-if="showFormDialog">
@@ -435,8 +435,8 @@
 			<CnFormPage
 				:fields="flFields"
 				:steps="flSteps"
-				submit-handler="echoSubmit"
-				:custom-components="flCustomComponents"
+				submitHandler="echoSubmit"
+				:customComponents="flCustomComponents"
 				mode="public" />
 			<pre data-testid="fl-result">{{ flResult ? JSON.stringify(flResult) : 'none' }}</pre>
 		</template>
@@ -448,7 +448,7 @@
 					v-model="icon"
 					v-model:placement="placement"
 					searchable
-					allow-custom-svg
+					allowCustomSvg
 					clearable
 					:sources="sources"
 					:catalogues="catalogues" />

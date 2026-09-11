@@ -36,13 +36,13 @@
 				<CnCard
 					class="cn-choice-cards__card"
 					:title="option.label"
-					title-tag="span"
+					titleTag="span"
 					:description="option.description"
 					:stats="option.stats || []"
 					:tags="option.tags || []"
 					:active="isSelected(option)"
-					active-variant="primary"
-					:description-lines="descriptionLines">
+					activeVariant="primary"
+					:descriptionLines="descriptionLines">
 					<template v-if="option.icon" #icon>
 						<CnIcon :name="option.icon" :size="20" />
 					</template>

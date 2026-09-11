@@ -66,10 +66,10 @@
 			<CnConfirmDialog
 				v-if="confirmAction"
 				ref="confirmDialog"
-				:dialog-title="confirmAction.label"
+				:dialogTitle="confirmAction.label"
 				:message="confirmMessage"
 				:variant="confirmAction.op === 'delete' ? 'error' : 'primary'"
-				:confirm-label="confirmAction.label"
+				:confirmLabel="confirmAction.label"
 				@confirm="onConfirmConfirmed"
 				@close="closeConfirm" />
 		</div>

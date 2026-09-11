@@ -81,7 +81,7 @@
 				:bold="false"
 				:href="formUrl(form)"
 				target="_blank"
-				:force-display-actions="true">
+				:forceDisplayActions="true">
 				<template #icon>
 					<ClipboardText :size="40" class="cn-forms-tab__row-icon" />
 				</template>
@@ -100,7 +100,7 @@
 							v-if="expiresAtMs(form) !== null"
 							class="cn-forms-tab__expiry"
 							:timestamp="expiresAtMs(form)"
-							:relative-time="'short'" />
+							relativeTime="short" />
 					</div>
 				</template>
 				<template v-if="submissionCount(form) > 0" #indicator>
@@ -111,7 +111,7 @@
 					</NcCounterBubble>
 				</template>
 				<template #actions>
-					<NcActionButton :close-after-click="true" @click="openForm(form)">
+					<NcActionButton :closeAfterClick="true" @click="openForm(form)">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
@@ -119,7 +119,7 @@
 					</NcActionButton>
 					<NcActionButton
 						class="cn-forms-tab__unlink"
-						:close-after-click="true"
+						:closeAfterClick="true"
 						@click="unlink(form)">
 						<template #icon>
 							<Close :size="20" />
@@ -132,17 +132,17 @@
 
 		<CnFormPicker
 			v-if="showPicker"
-			:object-id="objectId"
+			:objectId="objectId"
 			:register="register"
 			:schema="schema"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@link="onLinkSelected"
 			@close="showPicker = false" />
 
 		<CnFormCreate
 			v-if="showCreate"
 			:submitting="creating"
-			:submit-error="createError"
+			:submitError="createError"
 			@create="onCreateSubmit"
 			@close="onCreateClose" />
 	</div>

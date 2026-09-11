@@ -28,7 +28,7 @@
 				<img
 					v-if="coverUrl(entity)"
 					:src="coverUrl(entity)"
-					:alt="''"
+					alt=""
 					class="cn-photos-card__chip-cover"
 					@error="onCoverError(entity)">
 				<ImageIcon v-else :size="14" />
@@ -60,7 +60,7 @@
 						<img
 							v-if="coverUrl(firstAlbum)"
 							:src="coverUrl(firstAlbum)"
-							:alt="''"
+							alt=""
 							class="cn-photos-card__headline-cover-img"
 							@error="onCoverError(firstAlbum)">
 						<ImageMultiple v-else :size="18" />
@@ -103,7 +103,7 @@
 						<img
 							v-if="coverUrl(album)"
 							:src="coverUrl(album)"
-							:alt="''"
+							alt=""
 							class="cn-photos-card__tile-cover-img"
 							loading="lazy"
 							@error="onCoverError(album)">

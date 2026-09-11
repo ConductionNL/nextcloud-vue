@@ -117,7 +117,7 @@
 					</div>
 
 					<!-- Row actions -->
-					<NcActions :force-menu="true" class="cn-calendar-tab__actions">
+					<NcActions :forceMenu="true" class="cn-calendar-tab__actions">
 						<NcActionButton :disabled="rowBusyKey === rowKey(ev)" @click="unlink(ev)">
 							<template #icon>
 								<LinkVariantOff :size="20" />
@@ -184,7 +184,7 @@
 						</div>
 					</div>
 
-					<NcActions :force-menu="true" class="cn-calendar-tab__actions">
+					<NcActions :forceMenu="true" class="cn-calendar-tab__actions">
 						<NcActionButton :disabled="rowBusyKey === rowKey(ev)" @click="unlink(ev)">
 							<template #icon>
 								<LinkVariantOff :size="20" />
@@ -205,7 +205,7 @@
 		<!-- Picker modal (Tier-2 link existing flow) -->
 		<CnCalendarEventPicker
 			v-if="showPicker"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@link="onPickerLink"
 			@close="closePicker" />
 
@@ -214,8 +214,8 @@
 			v-if="showCreate"
 			:register="register"
 			:schema="schema"
-			:object-id="objectId"
-			:api-base="apiBase"
+			:objectId="objectId"
+			:apiBase="apiBase"
 			@created="onEventCreated"
 			@close="closeCreate" />
 	</div>

@@ -33,7 +33,7 @@
 				v-model="collective"
 				:options="collectiveOptions"
 				:placeholder="t('nextcloud-vue', 'Select a collective')"
-				:input-label="t('nextcloud-vue', 'Collective')"
+				:inputLabel="t('nextcloud-vue', 'Collective')"
 				label="label"
 				class="cn-collective-page-create__collective"
 				required />

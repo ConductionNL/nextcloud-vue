@@ -6,16 +6,16 @@
 		<NcSettingsSection
 			:name="resolvedTitle"
 			:description="resolvedDescription"
-			:doc-url="docUrl" />
+			:docUrl="docUrl" />
 
 		<!-- Version information card (version, up-to-date check, re-import, support footer) -->
 		<CnVersionInfoCard
 			v-if="showVersionCard"
-			:app-name="appName"
-			:app-version="resolvedVersion"
-			:configured-version="resolvedConfiguredVersion"
-			:is-up-to-date="resolvedIsUpToDate"
-			:show-update-button="showUpdateButton"
+			:appName="appName"
+			:appVersion="resolvedVersion"
+			:configuredVersion="resolvedConfiguredVersion"
+			:isUpToDate="resolvedIsUpToDate"
+			:showUpdateButton="showUpdateButton"
 			:updating="updating"
 			:title="versionTitle"
 			:description="resolvedVersionDescription"
@@ -99,9 +99,9 @@
 		<CnCredentials
 			v-if="showOrganisationCredentials"
 			scope="organisation"
-			:app-id="appId"
-			:app-name="appName"
-			:app-credentials="appCredentials"
+			:appId="appId"
+			:appName="appName"
+			:appCredentials="appCredentials"
 			data-testid="cn-admin-organisation-credentials" />
 
 		<!-- @slot default The app's own settings sections, rendered below the version card. -->
@@ -110,7 +110,7 @@
 		<!-- First-time setup wizard, opened from the admin page (ADR-042). -->
 		<CnSetupWizard
 			v-if="showSetup && setupWizardOpen"
-			:app-id="appId"
+			:appId="appId"
 			:steps="setupSteps"
 			@complete="setupWizardOpen = false"
 			@close="setupWizardOpen = false" />

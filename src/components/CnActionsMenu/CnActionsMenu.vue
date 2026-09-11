@@ -22,9 +22,9 @@
 	     vue-frag <Fragment>) so NcActions stays in its host's flex/grid flow. -->
 	<template v-if="hasOverflowMenu">
 		<NcActions
-			:force-menu="true"
-			:force-name="true"
-			:menu-name="actionsMenuLabel"
+			:forceMenu="true"
+			:forceName="true"
+			:menuName="actionsMenuLabel"
 			:data-testid="`${testidBase}-actions`">
 			<template #icon>
 				<DotsHorizontal :size="20" />
@@ -33,7 +33,7 @@
 				v-if="showRefresh"
 				:data-testid="`${testidBase}-action-refresh`"
 				:disabled="refreshing"
-				:close-after-click="true"
+				:closeAfterClick="true"
 				@click="onRefreshClick">
 				<template #icon>
 					<NcLoadingIcon v-if="refreshing" :size="20" />
@@ -62,7 +62,7 @@
 			<NcActionButton
 				v-if="showRequestFeature"
 				:data-testid="`${testidBase}-action-request-feature`"
-				:close-after-click="true"
+				:closeAfterClick="true"
 				@click="onRequestFeatureClick">
 				<template #icon>
 					<LightbulbOutline :size="20" />
@@ -75,7 +75,7 @@
 				target="_blank"
 				rel="noopener noreferrer"
 				:data-testid="`${testidBase}-action-report-bug`"
-				:close-after-click="true">
+				:closeAfterClick="true">
 				<template #icon>
 					<BugOutline :size="20" />
 				</template>
@@ -87,7 +87,7 @@
 				target="_blank"
 				rel="noopener noreferrer"
 				:data-testid="`${testidBase}-action-documentation`"
-				:close-after-click="true">
+				:closeAfterClick="true">
 				<template #icon>
 					<BookOpenVariant :size="20" />
 				</template>

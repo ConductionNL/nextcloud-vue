@@ -6,17 +6,17 @@
 <template>
 	<NcSelect
 		v-if="options.length"
-		:model-value="value"
+		:modelValue="value"
 		:options="options"
-		:input-label="label"
+		:inputLabel="label"
 		:clearable="clearable"
-		@update:model-value="$emit('update', $event || '')" />
+		@update:modelValue="$emit('update', $event || '')" />
 	<NcTextField
 		v-else
-		:model-value="value"
+		:modelValue="value"
 		:label="label"
 		:placeholder="placeholder"
-		@update:model-value="$emit('update', $event)" />
+		@update:modelValue="$emit('update', $event)" />
 </template>
 
 <script>

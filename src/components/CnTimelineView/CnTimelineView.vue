@@ -35,7 +35,7 @@
 						<!-- @slot event Per-event body. Scope: { event,
 						     formattedTime }. Replaces the default
 						     time + title + description layout. -->
-						<slot name="event" :event="evt" :formatted-time="formatTimeRange(evt)">
+						<slot name="event" :event="evt" :formattedTime="formatTimeRange(evt)">
 							<span class="cn-timeline-view__event-time">{{ formatTimeRange(evt) }}</span>
 							<span class="cn-timeline-view__event-title">{{ evt.title || untitledLabel }}</span>
 							<small v-if="evt.location" class="cn-timeline-view__event-location">{{ evt.location }}</small>

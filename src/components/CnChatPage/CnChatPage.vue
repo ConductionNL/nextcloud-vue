@@ -28,7 +28,7 @@
 				:title="title"
 				:description="description"
 				:icon="icon"
-				:visually-hidden="!showTitle" />
+				:visuallyHidden="!showTitle" />
 		</slot>
 
 		<!-- Actions slot -->
@@ -42,8 +42,8 @@
 		     re-reading the manifest. -->
 		<slot
 			name="conversation"
-			:conversation-source="conversationSource"
-			:post-url="postUrl"
+			:conversationSource="conversationSource"
+			:postUrl="postUrl"
 			:schema="schema">
 			<iframe
 				v-if="safeSrc"

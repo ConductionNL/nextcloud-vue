@@ -23,7 +23,7 @@
 				-->
 				<slot name="section-action" :collection="col" :index="i" />
 			</div>
-			<CnObjectListWidget :content="contentFor(col)" @row-click="(row) => onRowClick(col, row, i)" />
+			<CnObjectListWidget :content="contentFor(col)" @rowClick="(row) => onRowClick(col, row, i)" />
 		</section>
 	</div>
 </template>

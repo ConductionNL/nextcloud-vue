@@ -118,7 +118,7 @@
 					:icon="cssIconClass(item)"
 					:active="isActive(item)"
 					:pinned="Boolean(item.pinned)"
-					:allow-collapse="visibleChildren(item).length > 0"
+					:allowCollapse="visibleChildren(item).length > 0"
 					:open="isItemOpen(item)"
 					:data-testid="`cn-nav-entry-${item.id}`"
 					:data-cn-route="item.route"

@@ -32,12 +32,12 @@
 				:key="`tree-${idx}`"
 				:item="item"
 				:depth="1"
-				:show-icons="showIcons"
-				:expanded-by-default="expandedByDefault"
-				:active-path="activePath"
-				:active-leaf-key="activeLeafKey"
-				:current-key="`${idx}`"
-				:active-highlight="activeItemHighlight"
+				:showIcons="showIcons"
+				:expandedByDefault="expandedByDefault"
+				:activePath="activePath"
+				:activeLeafKey="activeLeafKey"
+				:currentKey="`${idx}`"
+				:activeHighlight="activeItemHighlight"
 				@navigate="onNavigate" />
 		</ul>
 

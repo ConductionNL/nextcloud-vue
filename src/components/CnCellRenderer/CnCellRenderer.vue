@@ -15,7 +15,7 @@
 			<CnStatusBadge v-if="hasValue"
 				:label="String(formattedValue)"
 				:variant="badgeVariant"
-				:color-map="badgeColorMap" />
+				:colorMap="badgeColorMap" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -28,7 +28,7 @@
 				:value="value"
 				:register="(widgetProps && widgetProps.register) || ''"
 				:schema="(widgetProps && widgetProps.schema) || ''"
-				:label-field="(widgetProps && widgetProps.labelField) || 'name'" />
+				:labelField="(widgetProps && widgetProps.labelField) || 'name'" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -108,8 +108,8 @@
 		<template v-else-if="isEnum">
 			<CnStatusBadge v-if="value"
 				:label="enumLabel"
-				:color-key="String(value)"
-				:color-map="enumColorMap" />
+				:colorKey="String(value)"
+				:colorMap="enumColorMap" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 

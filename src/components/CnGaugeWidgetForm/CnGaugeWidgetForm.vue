@@ -10,10 +10,10 @@
 		</h4>
 
 		<NcTextField
-			:model-value="label"
+			:modelValue="label"
 			:label="t('nextcloud-vue', 'Label')"
 			placeholder="Pipeline coverage"
-			@update:model-value="updateField('label', $event)" />
+			@update:modelValue="updateField('label', $event)" />
 
 		<div class="cn-gauge-form__row2">
 			<CnRegisterSchemaSelect
@@ -25,11 +25,11 @@
 
 		<div class="cn-gauge-form__row2">
 			<NcSelect
-				:model-value="metric"
+				:modelValue="metric"
 				:options="metricOptions"
-				:input-label="t('nextcloud-vue', 'Aggregation')"
+				:inputLabel="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@update:model-value="updateField('metric', $event)" />
+				@update:modelValue="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric !== 'count'"
 				:value="field"
@@ -47,27 +47,27 @@
 
 		<div class="cn-gauge-form__row2">
 			<NcSelect
-				:model-value="targetKind"
+				:modelValue="targetKind"
 				:options="targetKindOptions"
-				:input-label="t('nextcloud-vue', 'Target type')"
+				:inputLabel="t('nextcloud-vue', 'Target type')"
 				:clearable="false"
-				@update:model-value="updateField('targetKind', $event)" />
+				@update:modelValue="updateField('targetKind', $event)" />
 			<NcTextField
 				v-if="targetKind === 'static'"
 				type="number"
-				:model-value="String(targetValue)"
+				:modelValue="String(targetValue)"
 				:label="t('nextcloud-vue', 'Target value')"
 				placeholder="500000"
-				@update:model-value="updateField('targetValue', Number($event))" />
+				@update:modelValue="updateField('targetValue', Number($event))" />
 		</div>
 
 		<div v-if="targetKind === 'aggregate'" class="cn-gauge-form__row2">
 			<NcSelect
-				:model-value="targetMetric"
+				:modelValue="targetMetric"
 				:options="metricOptions"
-				:input-label="t('nextcloud-vue', 'Target aggregation')"
+				:inputLabel="t('nextcloud-vue', 'Target aggregation')"
 				:clearable="false"
-				@update:model-value="updateField('targetMetric', $event)" />
+				@update:modelValue="updateField('targetMetric', $event)" />
 			<CnFieldPicker
 				v-if="targetMetric !== 'count'"
 				:value="targetField"
@@ -84,29 +84,29 @@
 		<div class="cn-gauge-form__row2">
 			<NcTextField
 				type="number"
-				:model-value="String(warn)"
+				:modelValue="String(warn)"
 				:label="t('nextcloud-vue', 'Warning at %')"
-				@update:model-value="updateField('warn', Number($event))" />
+				@update:modelValue="updateField('warn', Number($event))" />
 			<NcTextField
 				type="number"
-				:model-value="String(danger)"
+				:modelValue="String(danger)"
 				:label="t('nextcloud-vue', 'Danger at %')"
-				@update:model-value="updateField('danger', Number($event))" />
+				@update:modelValue="updateField('danger', Number($event))" />
 		</div>
 
 		<div class="cn-gauge-form__row2">
 			<NcCheckboxRadioSwitch
-				:model-value="invert"
+				:modelValue="invert"
 				type="switch"
-				@update:model-value="updateField('invert', $event)">
+				@update:modelValue="updateField('invert', $event)">
 				{{ t('nextcloud-vue', 'Low is bad (invert colours)') }}
 			</NcCheckboxRadioSwitch>
 			<NcSelect
-				:model-value="formatStyle"
+				:modelValue="formatStyle"
 				:options="formatOptions"
-				:input-label="t('nextcloud-vue', 'Number format')"
+				:inputLabel="t('nextcloud-vue', 'Number format')"
 				:clearable="false"
-				@update:model-value="updateField('formatStyle', $event)" />
+				@update:modelValue="updateField('formatStyle', $event)" />
 		</div>
 	</div>
 </template>

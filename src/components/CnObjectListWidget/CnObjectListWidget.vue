@@ -51,9 +51,9 @@
 					:columns="resolvedColumns"
 					:rows="visibleRows"
 					:loading="loading"
-					:empty-text="emptyText"
+					:emptyText="emptyText"
 					borderless
-					@row-click="onRowClick">
+					@rowClick="onRowClick">
 					<!-- Declarative per-row actions (`content.rowActions`).
 					     CnDataTable only paints the trailing actions column
 					     when this slot is supplied, so a widget without
@@ -81,12 +81,12 @@
 				v-if="showPager"
 				compact
 				class="cn-object-list-widget__pager"
-				:current-page="page"
-				:total-pages="totalPages"
-				:total-items="total"
-				:current-page-size="pageSize"
-				:min-items-to-show="0"
-				@page-changed="onPageChange" />
+				:currentPage="page"
+				:totalPages="totalPages"
+				:totalItems="total"
+				:currentPageSize="pageSize"
+				:minItemsToShow="0"
+				@pageChanged="onPageChange" />
 			<button
 				v-if="hiddenCount > 0 && content.viewAllRoute"
 				type="button"
@@ -117,9 +117,9 @@
 			:item="null"
 			:size="formSize"
 			:columns="formColumns"
-			:include-fields="formIncludeFields"
-			:exclude-fields="formExcludeFields"
-			:field-overrides="formFieldOverrides"
+			:includeFields="formIncludeFields"
+			:excludeFields="formExcludeFields"
+			:fieldOverrides="formFieldOverrides"
 			@confirm="onCreateConfirm"
 			@close="showCreate = false" />
 	</div>

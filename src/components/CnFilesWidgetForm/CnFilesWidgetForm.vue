@@ -31,18 +31,18 @@
 		</div>
 
 		<NcSelect
-			:model-value="viewMode"
+			:modelValue="viewMode"
 			:options="viewModeOptions"
-			:input-label="t('nextcloud-vue', 'View mode')"
+			:inputLabel="t('nextcloud-vue', 'View mode')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('viewMode', $event)" />
 
 		<NcSelect
-			:model-value="sortBy"
+			:modelValue="sortBy"
 			:options="sortByOptions"
-			:input-label="t('nextcloud-vue', 'Sort by')"
+			:inputLabel="t('nextcloud-vue', 'Sort by')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
@@ -65,10 +65,10 @@
 		</label>
 
 		<NcTextField
-			:model-value="mimeTypeFilterString"
+			:modelValue="mimeTypeFilterString"
 			:label="t('nextcloud-vue', 'MIME type filter (comma separated)')"
 			:placeholder="t('nextcloud-vue', 'e.g. image/*, application/pdf')"
-			@update:model-value="updateMimeFilter" />
+			@update:modelValue="updateMimeFilter" />
 
 		<label class="cn-files-widget-form__toggle">
 			<input

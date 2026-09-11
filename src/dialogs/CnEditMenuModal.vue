@@ -10,7 +10,7 @@
 <template>
 	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit menu')" @closing="$emit('close')">
 		<CnMenuTreeNode :list="menu"
-			:max-depth="1"
+			:maxDepth="1"
 			:pages="pageOptions" />
 
 		<template #actions>

@@ -8,9 +8,9 @@
 		v-if="resolvedRegister && resolvedSchema && resolvedObjectId"
 		:register="resolvedRegister"
 		:schema="resolvedSchema"
-		:object-id="resolvedObjectId"
+		:objectId="resolvedObjectId"
 		:title="resolvedTitle"
-		:max-display="resolvedMaxDisplay" />
+		:maxDisplay="resolvedMaxDisplay" />
 </template>
 
 <script>

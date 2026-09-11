@@ -34,10 +34,10 @@
 		<NcTextField v-if="editing === 'label'"
 			ref="labelField"
 			class="cn-menu-tree__inline-field"
-			:model-value="item.label || ''"
+			:modelValue="item.label || ''"
 			:label="t('nextcloud-vue', 'Label')"
-			:label-outside="true"
-			@update:model-value="setLabel"
+			:labelOutside="true"
+			@update:modelValue="setLabel"
 			@keydown.enter="stopEdit"
 			@blur="stopEdit" />
 		<button v-else
@@ -51,13 +51,13 @@
 		<!-- Target page: click to change inline. -->
 		<NcSelect v-if="editing === 'page'"
 			class="cn-menu-tree__inline-select"
-			:model-value="selectedPage"
+			:modelValue="selectedPage"
 			:options="pages"
-			:input-label="t('nextcloud-vue', 'Page')"
+			:inputLabel="t('nextcloud-vue', 'Page')"
 			label="label"
 			:clearable="true"
 			:placeholder="pages.length ? t('nextcloud-vue', 'Pick a page') : t('nextcloud-vue', 'No pages')"
-			@update:model-value="onPage"
+			@update:modelValue="onPage"
 			@close="stopEdit" />
 		<button v-else
 			type="button"
@@ -67,7 +67,7 @@
 		</button>
 
 		<!-- Cog → actions popover (add sub-item + delete). -->
-		<NcPopover v-model:shown="popoverOpen" :focus-trap="false">
+		<NcPopover v-model:shown="popoverOpen" :focusTrap="false">
 			<template #trigger="{ attrs }">
 				<NcButton v-bind="attrs"
 					variant="tertiary"

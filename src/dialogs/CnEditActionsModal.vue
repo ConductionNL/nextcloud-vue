@@ -18,20 +18,20 @@
 						<NcTextField
 							v-model="action.label"
 							:label="t('nextcloud-vue', 'Label')"
-							:label-visible="true" />
+							:labelVisible="true" />
 						<NcTextField
 							v-model="action.icon"
 							:label="t('nextcloud-vue', 'Icon')"
-							:label-visible="true" />
+							:labelVisible="true" />
 						<NcSelect
 							v-model="action.type"
 							:options="actionTypes"
-							:input-label="t('nextcloud-vue', 'Type')"
+							:inputLabel="t('nextcloud-vue', 'Type')"
 							:clearable="false" />
 						<NcTextField
 							v-model="action.target"
 							:label="targetLabel(action)"
-							:label-visible="true" />
+							:labelVisible="true" />
 					</div>
 					<div class="cn-edit-actions__row-actions">
 						<NcButton variant="tertiary"

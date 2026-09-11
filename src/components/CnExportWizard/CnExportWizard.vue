@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:no-close="loading"
+		:noClose="loading"
 		data-testid="cn-modal"
 		data-testid-modal="cn-export-wizard"
 		@closing="onClose">
@@ -52,9 +52,9 @@
 			<div v-if="scopes.includes('regulation')" class="cn-export-wizard__field">
 				<label :for="fieldIdFor('regulation')">{{ labelOr('regulation', regulationLabel) }}</label>
 				<NcSelect v-if="regulations.length > 0"
-					:input-id="fieldIdFor('regulation')"
+					:inputId="fieldIdFor('regulation')"
 					:options="regulations"
-					:model-value="formData.regulation"
+					:modelValue="formData.regulation"
 					:clearable="false"
 					@update:modelValue="formData.regulation = $event" />
 				<input v-else
@@ -76,21 +76,21 @@
 			<!-- Format. -->
 			<div v-if="formats.length > 0" class="cn-export-wizard__field">
 				<label :for="fieldIdFor('format')">{{ labelOr('format', formatLabel) }}</label>
-				<NcSelect :input-id="fieldIdFor('format')"
+				<NcSelect :inputId="fieldIdFor('format')"
 					:options="formats"
-					:model-value="formData.format"
+					:modelValue="formData.format"
 					:clearable="false"
-					@update:model-value="formData.format = $event" />
+					@update:modelValue="formData.format = $event" />
 			</div>
 
 			<!-- Delivery channel. -->
 			<div v-if="deliveries.length > 0" class="cn-export-wizard__field">
 				<label :for="fieldIdFor('delivery')">{{ labelOr('delivery', deliveryLabel) }}</label>
-				<NcSelect :input-id="fieldIdFor('delivery')"
+				<NcSelect :inputId="fieldIdFor('delivery')"
 					:options="deliveries"
-					:model-value="formData.delivery"
+					:modelValue="formData.delivery"
 					:clearable="false"
-					@update:model-value="formData.delivery = $event" />
+					@update:modelValue="formData.delivery = $event" />
 				<input v-if="formData.delivery === 'email'"
 					:id="fieldIdFor('emailRecipient')"
 					v-model="formData.emailRecipient"

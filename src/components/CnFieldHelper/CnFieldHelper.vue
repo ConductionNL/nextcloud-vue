@@ -10,8 +10,8 @@
 			v-if="!error && more"
 			v-model:shown="open"
 			:triggers="[]"
-			popup-role="dialog"
-			popover-base-class="cn-field-helper__popper">
+			popupRole="dialog"
+			popoverBaseClass="cn-field-helper__popper">
 			<template #trigger>
 				<button
 					type="button"

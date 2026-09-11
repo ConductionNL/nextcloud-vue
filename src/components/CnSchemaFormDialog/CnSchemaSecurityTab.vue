@@ -34,40 +34,40 @@
 							<span class="cn-schema-form__group-badge cn-schema-form__public">public</span>
 							<small>{{ t('nextcloud-vue', 'Unauthenticated users') }}</small>
 						</td>
-						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('public', 'create')" @update:model-value="updateGroupPermission('public', 'create', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('public', 'read')" @update:model-value="updateGroupPermission('public', 'read', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('public', 'update')" @update:model-value="updateGroupPermission('public', 'update', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('public', 'delete')" @update:model-value="updateGroupPermission('public', 'delete', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="hasGroupPermission('public', 'create')" @update:modelValue="updateGroupPermission('public', 'create', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="hasGroupPermission('public', 'read')" @update:modelValue="updateGroupPermission('public', 'read', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="hasGroupPermission('public', 'update')" @update:modelValue="updateGroupPermission('public', 'update', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="hasGroupPermission('public', 'delete')" @update:modelValue="updateGroupPermission('public', 'delete', $event)" /></td>
 					</tr>
 					<tr class="cn-schema-form__user-row">
 						<td class="cn-schema-form__group-name">
 							<span class="cn-schema-form__group-badge cn-schema-form__user">authenticated</span>
 							<small>{{ t('nextcloud-vue', 'Authenticated users') }}</small>
 						</td>
-						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('authenticated', 'create')" @update:model-value="updateGroupPermission('authenticated', 'create', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('authenticated', 'read')" @update:model-value="updateGroupPermission('authenticated', 'read', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('authenticated', 'update')" @update:model-value="updateGroupPermission('authenticated', 'update', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('authenticated', 'delete')" @update:model-value="updateGroupPermission('authenticated', 'delete', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="hasGroupPermission('authenticated', 'create')" @update:modelValue="updateGroupPermission('authenticated', 'create', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="hasGroupPermission('authenticated', 'read')" @update:modelValue="updateGroupPermission('authenticated', 'read', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="hasGroupPermission('authenticated', 'update')" @update:modelValue="updateGroupPermission('authenticated', 'update', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="hasGroupPermission('authenticated', 'delete')" @update:modelValue="updateGroupPermission('authenticated', 'delete', $event)" /></td>
 					</tr>
 					<tr v-for="group in sortedUserGroups" :key="group.id">
 						<td class="cn-schema-form__group-name">
 							<span class="cn-schema-form__group-badge">{{ group.displayname || group.id }}</span>
 							<small v-if="group.displayname && group.displayname !== group.id">{{ group.id }}</small>
 						</td>
-						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission(group.id, 'create')" @update:model-value="updateGroupPermission(group.id, 'create', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission(group.id, 'read')" @update:model-value="updateGroupPermission(group.id, 'read', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission(group.id, 'update')" @update:model-value="updateGroupPermission(group.id, 'update', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission(group.id, 'delete')" @update:model-value="updateGroupPermission(group.id, 'delete', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="hasGroupPermission(group.id, 'create')" @update:modelValue="updateGroupPermission(group.id, 'create', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="hasGroupPermission(group.id, 'read')" @update:modelValue="updateGroupPermission(group.id, 'read', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="hasGroupPermission(group.id, 'update')" @update:modelValue="updateGroupPermission(group.id, 'update', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="hasGroupPermission(group.id, 'delete')" @update:modelValue="updateGroupPermission(group.id, 'delete', $event)" /></td>
 					</tr>
 					<tr class="cn-schema-form__admin-row">
 						<td class="cn-schema-form__group-name">
 							<span class="cn-schema-form__group-badge cn-schema-form__admin">admin</span>
 							<small>{{ t('nextcloud-vue', 'Always has full access') }}</small>
 						</td>
-						<td><NcCheckboxRadioSwitch :model-value="true" :disabled="true" /></td>
-						<td><NcCheckboxRadioSwitch :model-value="true" :disabled="true" /></td>
-						<td><NcCheckboxRadioSwitch :model-value="true" :disabled="true" /></td>
-						<td><NcCheckboxRadioSwitch :model-value="true" :disabled="true" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="true" :disabled="true" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="true" :disabled="true" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="true" :disabled="true" /></td>
+						<td><NcCheckboxRadioSwitch :modelValue="true" :disabled="true" /></td>
 					</tr>
 				</tbody>
 			</table>
@@ -141,11 +141,11 @@
 							</span>
 							<div class="cn-schema-form__cond-rule-group-select">
 								<NcSelect
-									:model-value="getGroupOption(rule.group)"
+									:modelValue="getGroupOption(rule.group)"
 									:options="allGroupOptions"
 									:clearable="false"
 									:aria-label-combobox="t('nextcloud-vue', 'Group')"
-									@update:model-value="setRuleGroup(action, originalIndex, $event)" />
+									@update:modelValue="setRuleGroup(action, originalIndex, $event)" />
 							</div>
 							<NcButton variant="error"
 								@click="removeConditionalRule(action, originalIndex)">
@@ -205,7 +205,7 @@
 										v-model="newCondition.propertyOption"
 										:options="availablePropertyOptions(action, ruleIdx)"
 										:clearable="false"
-										:input-label="t('nextcloud-vue', 'Property')"
+										:inputLabel="t('nextcloud-vue', 'Property')"
 										:placeholder="t('nextcloud-vue', 'Select property')" />
 								</div>
 								<div class="cn-schema-form__cond-add-field">
@@ -213,7 +213,7 @@
 										v-model="newCondition.operatorOption"
 										:options="operatorOptions"
 										:clearable="false"
-										:input-label="t('nextcloud-vue', 'Operator')" />
+										:inputLabel="t('nextcloud-vue', 'Operator')" />
 								</div>
 								<div class="cn-schema-form__cond-add-field">
 									<NcSelect
@@ -221,15 +221,15 @@
 										v-model="newCondition.existsOption"
 										:options="existsOptions"
 										:clearable="false"
-										:input-label="t('nextcloud-vue', 'Value')" />
+										:inputLabel="t('nextcloud-vue', 'Value')" />
 									<NcSelect
 										v-else
 										v-model="newCondition.valueOption"
 										:options="specialValueOptions"
 										:clearable="true"
-										:input-label="t('nextcloud-vue', 'Value')"
+										:inputLabel="t('nextcloud-vue', 'Value')"
 										:placeholder="t('nextcloud-vue', 'Select or type…')"
-										@update:model-value="onValueOptionChange" />
+										@update:modelValue="onValueOptionChange" />
 								</div>
 							</div>
 							<!-- Custom value appears below the three selects, never displaces them -->
@@ -264,8 +264,8 @@
 				<!-- Inherit-from-public toggle -->
 				<div class="cn-schema-form__inherit-from-public">
 					<NcCheckboxRadioSwitch
-						:model-value="inheritFromPublic"
-						@update:model-value="setInheritFromPublic">
+						:modelValue="inheritFromPublic"
+						@update:modelValue="setInheritFromPublic">
 						{{ t('nextcloud-vue', 'Authenticated users inherit `public` group rights') }}
 					</NcCheckboxRadioSwitch>
 					<p class="cn-schema-form__inherit-from-public-description">

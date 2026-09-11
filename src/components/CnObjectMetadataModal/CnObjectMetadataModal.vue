@@ -19,7 +19,7 @@
 		@update:open="onUpdateOpen">
 		<CnObjectMetadataWidget
 			title=""
-			:object-data="objectData"
+			:objectData="objectData"
 			:include="include"
 			:exclude="exclude" />
 	</NcDialog>

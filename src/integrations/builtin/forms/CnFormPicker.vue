@@ -27,18 +27,18 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:no-close="submitting"
+		:noClose="submitting"
 		data-testid="cn-modal"
 		data-testid-modal="cn-form-picker"
 		@closing="$emit('close')">
 		<div class="cn-form-picker">
 			<NcTextField
-				:model-value="search"
+				:modelValue="search"
 				:label="searchPlaceholder"
 				:placeholder="searchPlaceholder"
-				:show-trailing-button="false"
+				:showTrailingButton="false"
 				class="cn-form-picker__search"
-				@update:model-value="search = $event" />
+				@update:modelValue="search = $event" />
 
 			<NcLoadingIcon v-if="loading" />
 

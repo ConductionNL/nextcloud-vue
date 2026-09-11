@@ -121,10 +121,10 @@
 
 						<!-- Personal: only toggle THIS app in/out of the credential. -->
 						<div v-if="scope === 'personal'" class="cn-credentials__item-toggle">
-							<NcCheckboxRadioSwitch :model-value="appAllowed(cred)"
+							<NcCheckboxRadioSwitch :modelValue="appAllowed(cred)"
 								:disabled="cred.saving"
 								type="switch"
-								@update:model-value="toggleThisApp(cred, $event)">
+								@update:modelValue="toggleThisApp(cred, $event)">
 								{{ t('nextcloud-vue', '{app} may use this credential', { app: appDisplayName }) }}
 							</NcCheckboxRadioSwitch>
 							<p v-if="otherApps(cred).length" class="cn-credentials__also muted">
@@ -136,14 +136,14 @@
 						<NcSelect v-else
 							class="cn-credentials__item-apps"
 							:options="appOptions"
-							:model-value="cred.allowedApps"
+							:modelValue="cred.allowedApps"
 							:multiple="true"
 							:taggable="true"
-							:close-on-select="false"
+							:closeOnSelect="false"
 							:disabled="cred.saving"
-							:input-label="t('nextcloud-vue', 'Allowed apps')"
+							:inputLabel="t('nextcloud-vue', 'Allowed apps')"
 							:placeholder="t('nextcloud-vue', 'No app may use this credential yet')"
-							@update:model-value="onAllowedAppsChange(cred, $event)" />
+							@update:modelValue="onAllowedAppsChange(cred, $event)" />
 					</li>
 				</ul>
 			</section>
@@ -209,14 +209,14 @@
 						<form class="cn-credentials__form" @submit.prevent="onCreate">
 							<NcTextField v-model="form.name"
 								:label="t('nextcloud-vue', 'Name')"
-								:helper-text="t('nextcloud-vue', 'A label to recognise this credential later.')"
+								:helperText="t('nextcloud-vue', 'A label to recognise this credential later.')"
 								:disabled="saving"
 								required />
 
 							<NcTextField v-model="form.secret"
 								type="password"
 								:label="activeMeta.secretLabel || t('nextcloud-vue', 'Secret')"
-								:helper-text="t('nextcloud-vue', 'Sent to OpenRegister and stored in Keepiq. It is never shown again.')"
+								:helperText="t('nextcloud-vue', 'Sent to OpenRegister and stored in Keepiq. It is never shown again.')"
 								:disabled="saving"
 								autocomplete="new-password"
 								required />
@@ -224,14 +224,14 @@
 							<!-- Organisation add: admin also chooses the allowed apps up-front. -->
 							<NcSelect v-if="scope === 'organisation'"
 								:options="appOptions"
-								:model-value="form.allowedApps"
+								:modelValue="form.allowedApps"
 								:multiple="true"
 								:taggable="true"
-								:close-on-select="false"
+								:closeOnSelect="false"
 								:disabled="saving"
-								:input-label="t('nextcloud-vue', 'Allowed apps')"
+								:inputLabel="t('nextcloud-vue', 'Allowed apps')"
 								:placeholder="t('nextcloud-vue', 'Choose which apps may use it')"
-								@update:model-value="form.allowedApps = normaliseApps($event)" />
+								@update:modelValue="form.allowedApps = normaliseApps($event)" />
 							<p v-else class="cn-credentials__muted cn-credentials__addnote">
 								{{ t('nextcloud-vue', '{app} will be allowed to use this credential. You can change that afterwards.', { app: appDisplayName }) }}
 							</p>

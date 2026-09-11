@@ -4,9 +4,9 @@
 -->
 <template>
 	<NcSelect
-		:input-id="inputId"
-		:input-label="inputLabel"
-		:model-value="selectedOption"
+		:inputId="inputId"
+		:inputLabel="inputLabel"
+		:modelValue="selectedOption"
 		:options="displayOptions"
 		:loading="loading"
 		:clearable="clearable"
@@ -15,7 +15,7 @@
 		:filterable="false"
 		label="label"
 		@search="onSearch"
-		@update:model-value="onInput">
+		@update:modelValue="onInput">
 		<template #option="{ label: optLabel, __create }">
 			<span v-if="__create" class="cn-resource-select__create">
 				<Plus :size="16" />

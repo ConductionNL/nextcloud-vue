@@ -35,7 +35,7 @@
 		     draws the pointer affordance; the keyboard path is `r` + arrows in
 		     onKeydown below, because the resizer itself is pointer-only and the
 		     canvas this replaces could be resized from the keyboard. -->
-		<NodeResizer v-if="resizable" :min-width="80" :min-height="40" />
+		<NodeResizer v-if="resizable" :minWidth="80" :minHeight="40" />
 
 		<!-- WHERE A LINE ENTERS AND WHERE IT LEAVES, SAID BY THE PORT ITSELF.
 

@@ -33,14 +33,14 @@
 
 ### Slots
 
-| Name                                        | Bindings                                          | Description                                                                                                                        |
-| ------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `form`                                      | `fields`, `form-data`, `errors`, `update-field`   | form Replace the entire auto-generated form.                                                                                       |
-| `before-fields`                             | —                                                 | before-fields Content above the first auto-generated field. Use it for introductory text or an input the schema does not describe. |
-| `'field-' + field.key`                      | `name`, `field`, `value`, `error`, `update-field` | field-\{key\} Replace one auto-generated field with your own control.                                                              |
-| `'field-' + field.key + '-option'`          | `name`                                            | field-\{key\}-option Render one dropdown option for a select, multiselect or tags field.                                           |
-| `'field-' + field.key + '-selected-option'` | `name`                                            | field-\{key\}-selected-option Render the chosen option of a select, multiselect or tags field.                                     |
-| `after-fields`                              | —                                                 | after-fields Content below the last auto-generated field.                                                                          |
+| Name                                        | Bindings                                         | Description                                                                                                                        |
+| ------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `form`                                      | `fields`, `formData`, `errors`, `updateField`    | form Replace the entire auto-generated form.                                                                                       |
+| `before-fields`                             | —                                                | before-fields Content above the first auto-generated field. Use it for introductory text or an input the schema does not describe. |
+| `'field-' + field.key`                      | `name`, `field`, `value`, `error`, `updateField` | field-\{key\} Replace one auto-generated field with your own control.                                                              |
+| `'field-' + field.key + '-option'`          | `name`                                           | field-\{key\}-option Render one dropdown option for a select, multiselect or tags field.                                           |
+| `'field-' + field.key + '-selected-option'` | `name`                                           | field-\{key\}-selected-option Render the chosen option of a select, multiselect or tags field.                                     |
+| `after-fields`                              | —                                                | after-fields Content below the last auto-generated field.                                                                          |
 
 ### Methods
 

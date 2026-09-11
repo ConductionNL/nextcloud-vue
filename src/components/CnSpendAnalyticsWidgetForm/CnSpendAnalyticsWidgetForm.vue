@@ -6,43 +6,43 @@
 <template>
 	<div class="cn-spend-analytics-widget-form">
 		<NcSelect
-			:model-value="viewMode"
+			:modelValue="viewMode"
 			:options="viewModeOptions"
-			:input-label="t('nextcloud-vue', 'View mode')"
+			:inputLabel="t('nextcloud-vue', 'View mode')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('viewMode', $event)" />
 
 		<NcSelect
-			:model-value="period"
+			:modelValue="period"
 			:options="periodOptions"
-			:input-label="t('nextcloud-vue', 'Period')"
+			:inputLabel="t('nextcloud-vue', 'Period')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('period', $event)" />
 
 		<NcTextField
-			:model-value="categoryIdsString"
+			:modelValue="categoryIdsString"
 			:label="t('nextcloud-vue', 'Category filter (comma separated CPV / category ids)')"
 			:placeholder="t('nextcloud-vue', 'e.g. 30190000, 48000000')"
-			@update:model-value="updateListField('categoryIds', $event)" />
+			@update:modelValue="updateListField('categoryIds', $event)" />
 
 		<NcTextField
-			:model-value="departmentIdsString"
+			:modelValue="departmentIdsString"
 			:label="t('nextcloud-vue', 'Department filter (comma separated cost-centre ids)')"
-			@update:model-value="updateListField('departmentIds', $event)" />
+			@update:modelValue="updateListField('departmentIds', $event)" />
 
 		<NcTextField
-			:model-value="vendorIdsString"
+			:modelValue="vendorIdsString"
 			:label="t('nextcloud-vue', 'Vendor filter (comma separated supplier ids)')"
-			@update:model-value="updateListField('vendorIds', $event)" />
+			@update:modelValue="updateListField('vendorIds', $event)" />
 
 		<NcSelect
-			:model-value="drillThroughTarget"
+			:modelValue="drillThroughTarget"
 			:options="drillThroughOptions"
-			:input-label="t('nextcloud-vue', 'Drill-through behaviour')"
+			:inputLabel="t('nextcloud-vue', 'Drill-through behaviour')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"

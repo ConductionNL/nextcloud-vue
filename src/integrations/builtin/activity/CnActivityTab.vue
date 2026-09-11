@@ -97,7 +97,7 @@
 						:name="subjectFor(entry)"
 						:bold="false"
 						:compact="true"
-						:force-display-actions="false">
+						:forceDisplayActions="false">
 						<template #name>
 							<span class="cn-activity-tab__subject">{{ subjectFor(entry) }}</span>
 						</template>
@@ -105,11 +105,11 @@
 							<span class="cn-activity-tab__avatar-wrap">
 								<NcAvatar
 									:user="avatarUser(entry)"
-									:display-name="actorFor(entry)"
+									:displayName="actorFor(entry)"
 									:size="36"
-									:disable-menu="true"
-									:disable-tooltip="true"
-									:show-user-status="false" />
+									:disableMenu="true"
+									:disableTooltip="true"
+									:showUserStatus="false" />
 								<span class="cn-activity-tab__type-badge" :class="typeBadgeClass(entry)">
 									<component :is="iconFor(entry)" :size="12" />
 								</span>
@@ -124,7 +124,7 @@
 							<NcDateTime
 								class="cn-activity-tab__time"
 								:timestamp="timestampMillis(entry)"
-								:relative-time="'short'" />
+								relativeTime="short" />
 						</template>
 						<template v-else #details>
 							<span class="cn-activity-tab__time">{{ relativeTime(entry) }}</span>

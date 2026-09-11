@@ -95,11 +95,11 @@
 					<span class="cn-integration-widget__header-label">{{ singleProvider.label }}</span>
 					<div class="cn-integration-widget__header-actions">
 						<CnActionsMenu
-							:documentation-url="documentationUrl"
-							:widget-id="resolvedWidgetId"
+							:documentationUrl="documentationUrl"
+							:widgetId="resolvedWidgetId"
 							:title="singleProvider.label"
 							:surface="`widget:${resolvedWidgetId}`"
-							testid-base="cn-integration-widget" />
+							testidBase="cn-integration-widget" />
 					</div>
 				</header>
 				<div class="cn-integration-widget__panel">
@@ -152,11 +152,11 @@
 					</div>
 					<div class="cn-integration-widget__header-actions">
 						<CnActionsMenu
-							:documentation-url="documentationUrl"
-							:widget-id="resolvedWidgetId"
+							:documentationUrl="documentationUrl"
+							:widgetId="resolvedWidgetId"
 							:title="headerTitle"
 							:surface="`widget:${resolvedWidgetId}`"
-							testid-base="cn-integration-widget" />
+							testidBase="cn-integration-widget" />
 					</div>
 				</div>
 

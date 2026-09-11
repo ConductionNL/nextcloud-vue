@@ -12,8 +12,8 @@
 	<CnContactmomentCard
 		class="cn-contactmoment-tab"
 		chromeless
-		:object-id="objectId"
-		:entity-type="entityType"
+		:objectId="objectId"
+		:entityType="entityType"
 		:schema="schema"
 		:limit="limit"
 		surface="detail-page" />

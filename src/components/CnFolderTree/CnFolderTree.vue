@@ -14,7 +14,7 @@
 			<CnFolderTree
 				v-if="folder.children && folder.children.length"
 				:folders="folder.children"
-				:selected-id="selectedId"
+				:selectedId="selectedId"
 				class="cn-folder-tree__children"
 				@select="select" />
 		</li>

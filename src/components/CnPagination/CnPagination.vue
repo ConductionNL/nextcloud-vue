@@ -83,12 +83,12 @@
 		<div v-if="!compact" class="cn-pagination__page-size">
 			<label :for="pageSizeId">{{ itemsPerPageLabel }}</label>
 			<NcSelect
-				:input-id="pageSizeId"
+				:inputId="pageSizeId"
 				class="cn-pagination__page-size-select"
-				:model-value="currentPageSizeOption"
+				:modelValue="currentPageSizeOption"
 				:options="pageSizeOptions"
 				:clearable="false"
-				:input-label="itemsPerPageLabel"
+				:inputLabel="itemsPerPageLabel"
 				@option:selected="changePageSize" />
 		</div>
 	</div>

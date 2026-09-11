@@ -80,10 +80,10 @@
 					:class="{ 'cn-talk-card__row--unread': hasUnread(room) }">
 					<div class="cn-talk-card__row-icon">
 						<NcAvatar
-							:display-name="roomTitle(room)"
+							:displayName="roomTitle(room)"
 							:size="32"
-							:is-no-user="true"
-							:show-user-status="false" />
+							:isNoUser="true"
+							:showUserStatus="false" />
 						<NcCounterBubble
 							v-if="hasUnread(room)"
 							class="cn-talk-card__badge"

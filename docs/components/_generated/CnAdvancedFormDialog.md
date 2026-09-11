@@ -32,12 +32,12 @@
 
 ### Slots
 
-| Name                        | Bindings                                                                                                                                                                          | Description |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `form`                      | `form-data`, `update-field`, `object-properties`, `json-data`, `update-json`, `is-valid-json`                                                                                     |             |
-| `register-schema-selection` | —                                                                                                                                                                                 |             |
-| `tab-properties`            | `form-data`, `update-field`, `object-properties`, `selected-property`, `get-property-display-name`, `get-property-validation-class`, `is-property-editable`, `validation-display` |             |
-| `tab-metadata`              | `item`, `form-data`                                                                                                                                                               |             |
-| `tab-data`                  | `json-data`, `update-json`, `is-valid`, `format-json`                                                                                                                             |             |
-| `actions-left`              | —                                                                                                                                                                                 |             |
-| `actions-right`             | —                                                                                                                                                                                 |             |
+| Name                        | Bindings                                                                                                                                                             | Description |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `form`                      | `formData`, `updateField`, `objectProperties`, `jsonData`, `updateJson`, `isValidJson`                                                                               |             |
+| `register-schema-selection` | —                                                                                                                                                                    |             |
+| `tab-properties`            | `formData`, `updateField`, `objectProperties`, `selectedProperty`, `getPropertyDisplayName`, `getPropertyValidationClass`, `isPropertyEditable`, `validationDisplay` |             |
+| `tab-metadata`              | `item`, `formData`                                                                                                                                                   |             |
+| `tab-data`                  | `jsonData`, `updateJson`, `isValid`, `formatJson`                                                                                                                    |             |
+| `actions-left`              | —                                                                                                                                                                    |             |
+| `actions-right`             | —                                                                                                                                                                    |             |

@@ -102,7 +102,7 @@
 				:bold="true"
 				:href="pageHref(page)"
 				:target="pageHref(page) ? '_blank' : undefined"
-				:force-display-actions="true">
+				:forceDisplayActions="true">
 				<template #icon>
 					<span class="cn-xwiki-tab__row-icon">
 						<FileDocumentOutline :size="22" />
@@ -117,7 +117,7 @@
 							v-if="modifiedMs(page) !== null"
 							class="cn-xwiki-tab__date"
 							:timestamp="modifiedMs(page)"
-							:relative-time="'short'" />
+							relativeTime="short" />
 					</span>
 				</template>
 				<template v-if="excerpt(page)" #extra>
@@ -127,7 +127,7 @@
 					<NcActionButton
 						v-if="pageHref(page)"
 						class="cn-xwiki-tab__open"
-						:close-after-click="true"
+						:closeAfterClick="true"
 						@click="openPage(page)">
 						<template #icon>
 							<OpenInNew :size="20" />
@@ -136,7 +136,7 @@
 					</NcActionButton>
 					<NcActionButton
 						class="cn-xwiki-tab__unlink"
-						:close-after-click="true"
+						:closeAfterClick="true"
 						@click="unlinkPage(page)">
 						<template #icon>
 							<LinkOff :size="20" />
@@ -149,16 +149,16 @@
 
 		<CnXwikiPagePicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
-			:open-connector-sources-url="openConnectorSourcesUrl"
+			:apiBase="apiBase"
+			:openConnectorSourcesUrl="openConnectorSourcesUrl"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 
 		<CnXwikiPageCreate
 			v-if="createOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			:unavailable="banner.kind === 'unconfigured'"
-			:open-connector-sources-url="openConnectorSourcesUrl"
+			:openConnectorSourcesUrl="openConnectorSourcesUrl"
 			@close="createOpen = false"
 			@create="onCreatePick" />
 	</div>

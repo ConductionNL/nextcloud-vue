@@ -38,7 +38,7 @@
 				v-model="currency"
 				:options="currencyOptions"
 				:placeholder="t('nextcloud-vue', 'Select a currency')"
-				:input-label="t('nextcloud-vue', 'Currency')"
+				:inputLabel="t('nextcloud-vue', 'Currency')"
 				label="label"
 				class="cn-cospend-create__currency" />
 		</form>

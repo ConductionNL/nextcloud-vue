@@ -7,18 +7,18 @@
 	<div class="cn-quicklinks-widget-form">
 		<div class="cn-quicklinks-widget-form__settings">
 			<NcSelect
-				:model-value="iconSize"
+				:modelValue="iconSize"
 				:options="iconSizeOptions"
-				:input-label="t('nextcloud-vue', 'Icon size')"
+				:inputLabel="t('nextcloud-vue', 'Icon size')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
 				@update:modelValue="updateOption('iconSize', $event)" />
 
 			<NcSelect
-				:model-value="iconShape"
+				:modelValue="iconShape"
 				:options="iconShapeOptions"
-				:input-label="t('nextcloud-vue', 'Icon shape')"
+				:inputLabel="t('nextcloud-vue', 'Icon shape')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
@@ -33,9 +33,9 @@
 			</label>
 
 			<NcSelect
-				:model-value="labelPosition"
+				:modelValue="labelPosition"
 				:options="labelPositionOptions"
-				:input-label="t('nextcloud-vue', 'Label position')"
+				:inputLabel="t('nextcloud-vue', 'Label position')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
@@ -43,27 +43,27 @@
 				@update:modelValue="updateOption('labelPosition', $event)" />
 
 			<NcSelect
-				:model-value="columns"
+				:modelValue="columns"
 				:options="columnsOptions"
-				:input-label="t('nextcloud-vue', 'Columns')"
+				:inputLabel="t('nextcloud-vue', 'Columns')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
 				@update:modelValue="updateOption('columns', $event)" />
 
 			<NcSelect
-				:model-value="tileBackgroundStyle"
+				:modelValue="tileBackgroundStyle"
 				:options="tileBackgroundOptions"
-				:input-label="t('nextcloud-vue', 'Tile background')"
+				:inputLabel="t('nextcloud-vue', 'Tile background')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
 				@update:modelValue="updateOption('tileBackgroundStyle', $event)" />
 
 			<NcSelect
-				:model-value="hoverEffect"
+				:modelValue="hoverEffect"
 				:options="hoverEffectOptions"
-				:input-label="t('nextcloud-vue', 'Hover effect')"
+				:inputLabel="t('nextcloud-vue', 'Hover effect')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
@@ -102,7 +102,7 @@
 								type="text"
 								class="cn-quicklinks-widget-form__input"
 								:class="{ 'cn-quicklinks-widget-form__input--invalid': !isLinkUrlValid(link) }"
-								:placeholder="'https://...'"
+								placeholder="https://..."
 								@input="onContentChange">
 							<small
 								v-if="!isLinkUrlValid(link)"
@@ -113,7 +113,7 @@
 						<td>
 							<CnIconBrowser
 								:value="link.icon"
-								allow-url
+								allowUrl
 								@input="(v) => { link.icon = v; onContentChange() }" />
 						</td>
 						<td v-if="showColorColumn">

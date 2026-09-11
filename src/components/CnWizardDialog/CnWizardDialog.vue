@@ -3,7 +3,7 @@
 		:name="dialogTitle"
 		size="large"
 		:open="dialogOpen"
-		:no-close="loading || !cancellable"
+		:noClose="loading || !cancellable"
 		data-testid="cn-modal"
 		data-testid-modal="cn-wizard-dialog"
 		@update:open="dialogOpen = $event"
@@ -69,15 +69,15 @@
 					:name="'step-' + currentStep.id"
 					:next="next"
 					:back="back"
-					:jump-to="jumpTo"
+					:jumpTo="jumpTo"
 					:submit="submit"
-					:current-step="currentStep"
-					:step-index="currentIndex"
-					:total-steps="steps.length"
-					:step-data="stepData"
-					:set-step-data="setStepData"
-					:is-first="isFirst"
-					:is-last="isLast" />
+					:currentStep="currentStep"
+					:stepIndex="currentIndex"
+					:totalSteps="steps.length"
+					:stepData="stepData"
+					:setStepData="setStepData"
+					:isFirst="isFirst"
+					:isLast="isLast" />
 			</div>
 		</div>
 

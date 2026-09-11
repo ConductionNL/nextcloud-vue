@@ -11,17 +11,17 @@
 				{{ endpoints }}
 			</p>
 
-			<NcTextField :model-value="draft.title"
+			<NcTextField :modelValue="draft.title"
 				:label="t('nextcloud-vue', 'Label')"
-				:helper-text="t('nextcloud-vue', 'Shown on the line. A branch reads better named — “approved”, “over budget” — than as an unlabelled arrow.')"
-				@update:model-value="draft.title = $event" />
+				:helperText="t('nextcloud-vue', 'Shown on the line. A branch reads better named — “approved”, “over budget” — than as an unlabelled arrow.')"
+				@update:modelValue="draft.title = $event" />
 
-			<NcSelect :model-value="selectedStyle"
+			<NcSelect :modelValue="selectedStyle"
 				:options="styleOptions"
 				label="label"
-				:input-label="t('nextcloud-vue', 'Line style')"
+				:inputLabel="t('nextcloud-vue', 'Line style')"
 				:clearable="false"
-				@update:model-value="onStylePicked" />
+				@update:modelValue="onStylePicked" />
 		</div>
 
 		<template #actions>

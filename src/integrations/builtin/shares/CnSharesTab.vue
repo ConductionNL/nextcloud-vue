@@ -71,7 +71,7 @@
 						class="cn-shares-tab__row"
 						:name="shareTarget(share)"
 						:bold="true"
-						:force-display-actions="true">
+						:forceDisplayActions="true">
 						<template #icon>
 							<span class="cn-shares-tab__avatar" :aria-hidden="true">
 								<component :is="iconFor(shareType(share))" :size="20" />
@@ -105,20 +105,20 @@
 								<ClockOutline :size="13" />
 								<NcDateTime
 									:timestamp="shareExpiryMs(share)"
-									:relative-time="'short'" />
+									relativeTime="short" />
 							</span>
 						</template>
 						<template #actions>
 							<NcActionButton
 								v-if="canRevoke(share)"
-								:close-after-click="true"
+								:closeAfterClick="true"
 								@click="revoke(share)">
 								<template #icon>
 									<CloseCircleOutline :size="20" />
 								</template>
 								{{ revokeLabel }}
 							</NcActionButton>
-							<NcActionButton :close-after-click="true" @click="openFilesApp">
+							<NcActionButton :closeAfterClick="true" @click="openFilesApp">
 								<template #icon>
 									<FolderOutline :size="20" />
 								</template>
@@ -141,11 +141,11 @@
 		<CnShareCreate
 			v-if="showCreate"
 			:files="shareableFiles"
-			:files-loading="filesLoading"
+			:filesLoading="filesLoading"
 			:principals="principals"
-			:principals-loading="principalsLoading"
+			:principalsLoading="principalsLoading"
 			@close="showCreate = false"
-			@search-principals="searchPrincipals"
+			@searchPrincipals="searchPrincipals"
 			@create="createShare" />
 	</div>
 </template>

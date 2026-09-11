@@ -31,8 +31,8 @@
 
 ### Slots
 
-| Name                 | Bindings                             | Description |
-| -------------------- | ------------------------------------ | ----------- |
-| `header`             | `title`, `description`, `icon`       |             |
-| `actions`            | —                                    |             |
-| `field-${field.key}` | `name`, `field`, `value`, `on-input` |             |
+| Name                 | Bindings                            | Description |
+| -------------------- | ----------------------------------- | ----------- |
+| `header`             | `title`, `description`, `icon`      |             |
+| `actions`            | —                                   |             |
+| `field-${field.key}` | `name`, `field`, `value`, `onInput` |             |

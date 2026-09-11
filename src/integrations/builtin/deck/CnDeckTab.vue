@@ -122,12 +122,12 @@
 									:key="assigneeKey(assignee)"
 									class="cn-deck-tab__avatar"
 									:size="24"
-									:display-name="assigneeName(assignee)"
+									:displayName="assigneeName(assignee)"
 									:user="assigneeSeed(assignee)"
-									:is-no-user="true"
-									:disable-menu="true"
-									:disable-tooltip="false"
-									:show-user-status="false" />
+									:isNoUser="true"
+									:disableMenu="true"
+									:disableTooltip="false"
+									:showUserStatus="false" />
 								<span
 									v-if="assigneeOverflow(card) > 0"
 									class="cn-deck-tab__avatar-overflow"
@@ -141,13 +141,13 @@
 
 		<CnDeckCardPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 
 		<CnDeckCardCreate
 			v-if="createOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="createOpen = false"
 			@create="onCreatePick" />
 	</div>

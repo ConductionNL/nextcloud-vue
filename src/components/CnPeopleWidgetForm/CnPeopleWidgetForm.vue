@@ -6,18 +6,18 @@
 <template>
 	<div class="cn-people-widget-form">
 		<NcSelect
-			:model-value="layout"
+			:modelValue="layout"
 			:options="layoutOptions"
-			:input-label="t('nextcloud-vue', 'Layout')"
+			:inputLabel="t('nextcloud-vue', 'Layout')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('layout', $event)" />
 
 		<NcSelect
-			:model-value="sortBy"
+			:modelValue="sortBy"
 			:options="sortByOptions"
-			:input-label="t('nextcloud-vue', 'Sort by')"
+			:inputLabel="t('nextcloud-vue', 'Sort by')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"

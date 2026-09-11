@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="resolvedTitle"
 		:size="size"
-		:no-close="loading"
+		:noClose="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -39,9 +39,9 @@
 				v-if="$slots.form"
 				name="form"
 				:fields="resolvedFields"
-				:form-data="formData"
+				:formData="formData"
 				:errors="errors"
-				:update-field="updateField" />
+				:updateField="updateField" />
 
 			<!-- Auto-generated form -->
 			<template v-else>
@@ -70,7 +70,7 @@
 						:field="field"
 						:value="formData[field.key]"
 						:error="errors[field.key]"
-						:update-field="updateField" />
+						:updateField="updateField" />
 
 					<!-- referenceType (AD-18): render the integration's
 					     single-entity widget instead of a plain input. -->
@@ -93,8 +93,8 @@
 						:title="semanticUnavailableText(field)">
 						<NcTextField
 							:label="field.label + (field.required ? ' *' : '')"
-							:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
-							:helper-text="isSemanticLoading(field) ? '' : semanticUnavailableText(field)"
+							:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
+							:helperText="isSemanticLoading(field) ? '' : semanticUnavailableText(field)"
 							:disabled="true"
 							:loading="isSemanticLoading(field)"
 							:placeholder="field.description" />
@@ -108,12 +108,12 @@
 						<template v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'">
 							<NcTextField
 								:label="field.label + (field.required ? ' *' : '')"
-								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
 								:error="!!errors[field.key]"
 								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
 								:disabled="field.readOnly"
 								:placeholder="field.description"
-								@update:model-value="value => updateField(field.key, value)" />
+								@update:modelValue="value => updateField(field.key, value)" />
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
@@ -124,12 +124,12 @@
 						<template v-else-if="field.widget === 'number'">
 							<NcTextField
 								:label="field.label + (field.required ? ' *' : '')"
-								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
 								:error="!!errors[field.key]"
 								type="number"
 								:disabled="field.readOnly"
 								:placeholder="field.description"
-								@update:model-value="value => updateField(field.key, value !== '' ? Number(value) : null)" />
+								@update:modelValue="value => updateField(field.key, value !== '' ? Number(value) : null)" />
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
@@ -164,12 +164,12 @@
 							v-else-if="isReferenceField(field) && field.allowCreate"
 							class="cn-form-dialog__select-wrapper">
 							<CnResourceSelect
-								:input-id="'cn-form-' + field.key"
-								:input-label="field.label + (field.required ? ' *' : '')"
+								:inputId="'cn-form-' + field.key"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
 								:register="referenceRegister(field)"
 								:schema="field.reference.schema"
-								:label-field="referenceLabelField(field)"
-								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:labelField="referenceLabelField(field)"
+								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
 								:clearable="!field.required"
 								@update:modelValue="value => onReferenceSelected(field, value)"
 								@create="obj => onReferenceCreated(field, obj)" />
@@ -183,10 +183,10 @@
 						     renders a switch mapping off→enum[0], on→last enum value. -->
 						<NcCheckboxRadioSwitch
 							v-else-if="field.widget === 'switch'"
-							:model-value="isSwitchOn(field)"
+							:modelValue="isSwitchOn(field)"
 							:disabled="field.readOnly"
 							type="switch"
-							@update:model-value="value => updateField(field.key, switchValueFor(field, value))">
+							@update:modelValue="value => updateField(field.key, switchValueFor(field, value))">
 							{{ field.label }}{{ field.required ? ' *' : '' }}
 						</NcCheckboxRadioSwitch>
 
@@ -198,16 +198,16 @@
 						     shares the multiselect branch below. -->
 						<div v-else-if="field.widget === 'select' || field.widget === 'user'" class="cn-form-dialog__select-wrapper">
 							<NcSelect
-								:input-id="'cn-form-' + field.key"
-								:input-label="field.label + (field.required ? ' *' : '')"
+								:inputId="'cn-form-' + field.key"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
 								:options="getEffectiveOptions(field)"
-								:model-value="getEffectiveSelectedOption(field)"
+								:modelValue="getEffectiveSelectedOption(field)"
 								:clearable="!field.required"
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
 								:filterable="!isAsyncEnum(field)"
-								:user-select="isUserField(field)"
-								@update:model-value="onEffectiveSelectChange(field, $event)"
+								:userSelect="isUserField(field)"
+								@update:modelValue="onEffectiveSelectChange(field, $event)"
 								@search="isAsyncEnum(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
 									v-if="$slots['field-' + field.key + '-option']"
@@ -233,17 +233,17 @@
 						<!-- Multiselect (array enum items / $ref array / Nextcloud users, supports async function) -->
 						<div v-else-if="field.widget === 'multiselect' || field.widget === 'user-multiselect'" class="cn-form-dialog__select-wrapper">
 							<NcSelect
-								:input-id="'cn-form-' + field.key"
-								:input-label="field.label + (field.required ? ' *' : '')"
+								:inputId="'cn-form-' + field.key"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
 								:options="getEffectiveArrayOptions(field)"
-								:model-value="getEffectiveSelectedArrayOptions(field)"
+								:modelValue="getEffectiveSelectedArrayOptions(field)"
 								:multiple="true"
-								:keep-open="true"
+								:keepOpen="true"
 								:clearable="true"
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
 								:filterable="!isAsyncItemsEnum(field)"
-								@update:model-value="onEffectiveMultiSelectChange(field, $event)"
+								@update:modelValue="onEffectiveMultiSelectChange(field, $event)"
 								@search="isAsyncItemsEnum(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
 									v-if="$slots['field-' + field.key + '-option']"
@@ -266,18 +266,18 @@
 						<div v-else-if="field.widget === 'tags'" class="cn-form-dialog__select-wrapper">
 							<!-- TODO: restore `:options` to `asyncState[field.key]?.options` once on Vue 3 (buble doesn't support optional chaining) -->
 							<NcSelect
-								:input-id="'cn-form-' + field.key"
-								:input-label="field.label + (field.required ? ' *' : '')"
-								:model-value="formData[field.key] || []"
+								:inputId="'cn-form-' + field.key"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:modelValue="formData[field.key] || []"
 								:options="isFieldAsync(field) ? ((asyncState[field.key] && asyncState[field.key].options) || []) : []"
 								:multiple="true"
-								:keep-open="true"
+								:keepOpen="true"
 								:taggable="true"
 								:clearable="true"
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
 								:filterable="!isFieldAsync(field)"
-								@update:model-value="updateField(field.key, $event)"
+								@update:modelValue="updateField(field.key, $event)"
 								@search="isFieldAsync(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
 									v-if="$slots['field-' + field.key + '-option']"
@@ -299,10 +299,10 @@
 						<!-- Checkbox / Switch (boolean) -->
 						<NcCheckboxRadioSwitch
 							v-else-if="field.widget === 'checkbox'"
-							:model-value="!!formData[field.key]"
+							:modelValue="!!formData[field.key]"
 							:disabled="field.readOnly"
 							type="switch"
-							@update:model-value="value => updateField(field.key, value)">
+							@update:modelValue="value => updateField(field.key, value)">
 							{{ field.label }}{{ field.required ? ' *' : '' }}
 						</NcCheckboxRadioSwitch>
 
@@ -318,10 +318,10 @@
 								:id="'cn-form-' + field.key"
 								:type="field.widget === 'datetime' ? 'datetime-local' : 'date'"
 								:label="field.label"
-								:hide-label="true"
-								:model-value="dateValueFor(field)"
+								:hideLabel="true"
+								:modelValue="dateValueFor(field)"
 								:disabled="field.readOnly"
-								@update:model-value="date => onDateFieldInput(field, date)" />
+								@update:modelValue="date => onDateFieldInput(field, date)" />
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
@@ -336,8 +336,8 @@
 							<CnJsonViewer
 								:value="jsonStringFor(field)"
 								language="json"
-								:read-only="field.readOnly"
-								:error-text="jsonErrors[field.key] || ''"
+								:readOnly="field.readOnly"
+								:errorText="jsonErrors[field.key] || ''"
 								@update:value="value => onJsonFieldInput(field, value)" />
 							<CnFieldHelper
 								:text="field.description"
@@ -353,7 +353,7 @@
 							<CnJsonViewer
 								:value="formData[field.key] != null ? String(formData[field.key]) : ''"
 								:language="field.language || 'auto'"
-								:read-only="field.readOnly"
+								:readOnly="field.readOnly"
 								@update:value="value => updateField(field.key, value)" />
 							<CnFieldHelper
 								:text="field.description"
@@ -371,7 +371,7 @@
 								:value="formData[field.key] != null ? String(formData[field.key]) : null"
 								:sources="field.iconSources || ['mdi']"
 								:catalogues="field.catalogues || {}"
-								:allow-custom-svg="!!field.allowCustomSvg"
+								:allowCustomSvg="!!field.allowCustomSvg"
 								:clearable="!field.required"
 								@input="value => updateField(field.key, value)" />
 							<CnFieldHelper
@@ -384,11 +384,11 @@
 						<template v-else>
 							<NcTextField
 								:label="field.label + (field.required ? ' *' : '')"
-								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
 								:error="!!errors[field.key]"
 								:disabled="field.readOnly"
 								:placeholder="field.description"
-								@update:model-value="value => updateField(field.key, value)" />
+								@update:modelValue="value => updateField(field.key, value)" />
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"

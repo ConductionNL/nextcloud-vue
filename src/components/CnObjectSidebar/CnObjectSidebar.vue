@@ -43,7 +43,7 @@
 					v-if="isMountProvider(provider)"
 					:provider="provider"
 					:active="activeTab === provider.id"
-					:mount-props="sidebarMountProps" />
+					:mountProps="sidebarMountProps" />
 				<component
 					:is="resolveRegistryTab(provider)"
 					v-else
@@ -68,12 +68,12 @@
 				<template #icon>
 					<Paperclip :size="20" />
 				</template>
-				<slot name="tab-files" :object-id="objectId" :object-type="objectType">
+				<slot name="tab-files" :objectId="objectId" :objectType="objectType">
 					<CnFilesTab
-						:object-id="objectId"
+						:objectId="objectId"
 						:register="register"
 						:schema="schema"
-						:api-base="apiBase" />
+						:apiBase="apiBase" />
 				</slot>
 			</NcAppSidebarTab>
 
@@ -87,15 +87,15 @@
 				<template #icon>
 					<CommentTextOutline :size="20" />
 				</template>
-				<slot name="tab-notes" :object-id="objectId" :object-type="objectType">
+				<slot name="tab-notes" :objectId="objectId" :objectType="objectType">
 					<!-- The `mention` passthrough is the notification hook: apps
 					     mounting the full sidebar receive the mentioned user ids
 					     and dispatch NC notifications from their own backend. -->
 					<CnNotesTab
-						:object-id="objectId"
+						:objectId="objectId"
 						:register="register"
 						:schema="schema"
-						:api-base="apiBase"
+						:apiBase="apiBase"
 						@mention="$emit('mention', $event)" />
 				</slot>
 			</NcAppSidebarTab>
@@ -110,12 +110,12 @@
 				<template #icon>
 					<TagOutline :size="20" />
 				</template>
-				<slot name="tab-tags" :object-id="objectId" :object-type="objectType">
+				<slot name="tab-tags" :objectId="objectId" :objectType="objectType">
 					<CnTagsTab
-						:object-id="objectId"
+						:objectId="objectId"
 						:register="register"
 						:schema="schema"
-						:api-base="apiBase" />
+						:apiBase="apiBase" />
 				</slot>
 			</NcAppSidebarTab>
 
@@ -129,12 +129,12 @@
 				<template #icon>
 					<CheckboxMarkedOutline :size="20" />
 				</template>
-				<slot name="tab-tasks" :object-id="objectId" :object-type="objectType">
+				<slot name="tab-tasks" :objectId="objectId" :objectType="objectType">
 					<CnTasksTab
-						:object-id="objectId"
+						:objectId="objectId"
 						:register="register"
 						:schema="schema"
-						:api-base="apiBase" />
+						:apiBase="apiBase" />
 				</slot>
 			</NcAppSidebarTab>
 
@@ -148,12 +148,12 @@
 				<template #icon>
 					<History :size="20" />
 				</template>
-				<slot name="tab-audit-trail" :object-id="objectId" :object-type="objectType">
+				<slot name="tab-audit-trail" :objectId="objectId" :objectType="objectType">
 					<CnAuditTrailTab
-						:object-id="objectId"
+						:objectId="objectId"
 						:register="register"
 						:schema="schema"
-						:api-base="apiBase" />
+						:apiBase="apiBase" />
 				</slot>
 			</NcAppSidebarTab>
 

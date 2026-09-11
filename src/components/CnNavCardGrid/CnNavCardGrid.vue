@@ -20,8 +20,8 @@
 <template>
 	<CnWidgetWrapper
 		:title="title"
-		:widget-id="widgetId"
-		:documentation-url="documentationUrl"
+		:widgetId="widgetId"
+		:documentationUrl="documentationUrl"
 		flush>
 		<div class="cn-nav-card-grid">
 			<component

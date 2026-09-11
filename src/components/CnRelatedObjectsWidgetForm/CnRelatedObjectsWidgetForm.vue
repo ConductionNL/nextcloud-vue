@@ -10,27 +10,27 @@
 		</h4>
 
 		<NcTextField
-			:model-value="title"
+			:modelValue="title"
 			:label="t('nextcloud-vue', 'Title')"
 			placeholder="Related"
-			@update:model-value="updateField('title', $event)" />
+			@update:modelValue="updateField('title', $event)" />
 
 		<NcSelect
-			:model-value="selectedOptions"
+			:modelValue="selectedOptions"
 			:options="groupOptions"
 			:multiple="true"
-			:close-on-select="false"
-			:input-label="t('nextcloud-vue', 'Relations to show')"
+			:closeOnSelect="false"
+			:inputLabel="t('nextcloud-vue', 'Relations to show')"
 			:placeholder="t('nextcloud-vue', 'All relations')"
-			@update:model-value="onGroupsInput" />
+			@update:modelValue="onGroupsInput" />
 		<p class="cn-related-form__hint">
 			{{ t('nextcloud-vue', 'Leave empty to show every relation that has items. Empty groups are always hidden.') }}
 		</p>
 
 		<NcCheckboxRadioSwitch
-			:model-value="hideSingleTabTitle"
+			:modelValue="hideSingleTabTitle"
 			type="switch"
-			@update:model-value="updateField('hideSingleTabTitle', $event)">
+			@update:modelValue="updateField('hideSingleTabTitle', $event)">
 			{{ t('nextcloud-vue', 'Hide the tab bar when only one relation is shown') }}
 		</NcCheckboxRadioSwitch>
 		<p class="cn-related-form__hint">
@@ -38,9 +38,9 @@
 		</p>
 
 		<NcCheckboxRadioSwitch
-			:model-value="showTotalCount"
+			:modelValue="showTotalCount"
 			type="switch"
-			@update:model-value="updateField('showTotalCount', $event)">
+			@update:modelValue="updateField('showTotalCount', $event)">
 			{{ t('nextcloud-vue', 'Show a total count next to the title') }}
 		</NcCheckboxRadioSwitch>
 		<p class="cn-related-form__hint">

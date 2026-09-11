@@ -24,7 +24,7 @@
 	<NcDialog
 		:name="title"
 		size="normal"
-		:no-close="loading"
+		:noClose="loading"
 		data-testid="cn-modal"
 		data-testid-modal="cn-contact-picker"
 		@closing="onClose">
@@ -32,10 +32,10 @@
 			<NcTextField
 				v-model="query"
 				:label="searchLabel"
-				:input-label="searchLabel"
+				:inputLabel="searchLabel"
 				:placeholder="searchPlaceholder"
 				class="cn-contact-picker__search"
-				@update:model-value="onSearch" />
+				@update:modelValue="onSearch" />
 
 			<NcLoadingIcon v-if="loading" class="cn-contact-picker__loading" />
 
@@ -81,12 +81,12 @@
 			<div class="cn-contact-picker__role">
 				<label for="cn-contact-picker-role">{{ roleLabel }}</label>
 				<NcSelect
-					input-id="cn-contact-picker-role"
+					inputId="cn-contact-picker-role"
 					:options="roleOptions"
-					:model-value="role"
+					:modelValue="role"
 					:clearable="true"
-					:input-label="roleLabel"
-					@update:model-value="role = $event" />
+					:inputLabel="roleLabel"
+					@update:modelValue="role = $event" />
 			</div>
 		</div>
 

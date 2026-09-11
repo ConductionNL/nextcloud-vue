@@ -27,10 +27,10 @@
 <template>
 	<CnWidgetWrapper
 		:title="title"
-		:show-title="!bare"
+		:showTitle="!bare"
 		:borderless="bare"
-		:widget-id="widgetId || objectType"
-		:documentation-url="documentationUrl"
+		:widgetId="widgetId || objectType"
+		:documentationUrl="documentationUrl"
 		:refreshing="loading"
 		flush>
 		<!-- Total beside the card title. Carries the count that the tab strip
@@ -48,7 +48,7 @@
 						type="button"
 						role="tab"
 						:aria-selected="String(group.key === activeKey)"
-						:class="['cn-related-objects-widget__tab', { 'cn-related-objects-widget__tab--active': group.key === activeKey }]"
+						class="cn-related-objects-widget__tab" :class="[{ 'cn-related-objects-widget__tab--active': group.key === activeKey }]"
 						@click="activeKey = group.key">
 						<CnIcon :name="group.icon" :size="18" class="cn-related-objects-widget__tab-icon" />
 						<span class="cn-related-objects-widget__tab-label">{{ group.label }}</span>
@@ -204,13 +204,13 @@
 					{{ uploading ? t('nextcloud-vue', 'Uploading…') : addLabelFor(soleAddable) }}
 				</NcButton>
 				<NcActions v-else
-					:menu-name="t('nextcloud-vue', 'Add')"
+					:menuName="t('nextcloud-vue', 'Add')"
 					type="secondary"
-					:force-menu="true">
+					:forceMenu="true">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
-					<NcActionButton v-if="groupAllowed('files')" :close-after-click="true" @click="openFilePicker">
+					<NcActionButton v-if="groupAllowed('files')" :closeAfterClick="true" @click="openFilePicker">
 						<template #icon>
 							<Paperclip :size="20" />
 						</template>
@@ -225,9 +225,9 @@
 						draft stayed empty and Add note submitted nothing.
 					-->
 					<NcActionInput v-if="groupAllowed('notes')"
-						:model-value="noteDraft"
+						:modelValue="noteDraft"
 						:label="t('nextcloud-vue', 'Add note')"
-						@update:model-value="noteDraft = $event"
+						@update:modelValue="noteDraft = $event"
 						@submit="onAddNote">
 						<template #icon>
 							<CnIcon name="CommentTextOutline" :size="20" />
@@ -236,7 +236,7 @@
 					</NcActionInput>
 					<NcActionButton v-for="group in emitAddableGroups"
 						:key="`add-${group.key}`"
-						:close-after-click="true"
+						:closeAfterClick="true"
 						@click="onAddGroup(group.key)">
 						<template #icon>
 							<CnIcon :name="group.icon" :size="20" />

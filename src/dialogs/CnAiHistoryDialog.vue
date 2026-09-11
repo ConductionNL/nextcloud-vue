@@ -25,7 +25,7 @@
 	<NcDialog
 		:open="open"
 		:name="cnTranslate('History')"
-		:close-on-click-outside="true"
+		:closeOnClickOutside="true"
 		@update:open="$emit('update:open', $event)">
 		<template #default>
 			<!-- Loading state -->
@@ -55,9 +55,9 @@
 				<CnAiHistoryList
 					:conversations="conversations"
 					:loading="false"
-					:fetch-error="false"
-					:active-conversation-uuid="activeConversationUuid"
-					:chat-app-id="chatAppId"
+					:fetchError="false"
+					:activeConversationUuid="activeConversationUuid"
+					:chatAppId="chatAppId"
 					:searchable="true"
 					@select="selectConversation"
 					@renamed="onRenamed" />

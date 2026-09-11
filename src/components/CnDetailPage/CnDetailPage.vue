@@ -41,7 +41,7 @@
 				:title="title"
 				:description="description"
 				:icon="icon"
-				:icon-size="iconSize">
+				:iconSize="iconSize">
 				<div class="cn-detail-page__header-left">
 					<!--
 						@slot icon
@@ -100,7 +100,7 @@
 				     transitions apply. -->
 				<CnLifecycleActions
 					v-if="lifecycleActions && (objectId || currentObject)"
-					:object-id="objectId"
+					:objectId="objectId"
 					:object="currentObject"
 					:config="lifecycleActions"
 					:schema="currentSchema"
@@ -141,9 +141,9 @@
 				<slot
 					name="actions"
 					:object="resolvedObject"
-					:object-id="objectId"
+					:objectId="objectId"
 					:schema="currentSchema"
-					:object-type="resolvedObjectType"
+					:objectType="resolvedObjectType"
 					:store="effectiveObjectStore" />
 				<!-- Record edit (ADR-062): the detail page's own way to change the
 				     record it is showing. Without it a `type:"detail"` page is
@@ -169,21 +169,21 @@
 				<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
 				<CnBuildiqEditButton />
 				<CnActionsMenu
-					:show-refresh="effectiveHeaderShowRefresh"
+					:showRefresh="effectiveHeaderShowRefresh"
 					:refreshing="effectiveRefreshing"
-					:show-request-feature="showRequestFeature"
-					:show-report-bug="showReportBug"
-					:show-documentation="showDocumentation"
-					:documentation-url="documentationUrl"
-					:docs-anchor="resolvedPageId"
-					:documentation-label="documentationLabel || undefined"
-					:widget-id="resolvedPageId"
+					:showRequestFeature="showRequestFeature"
+					:showReportBug="showReportBug"
+					:showDocumentation="showDocumentation"
+					:documentationUrl="documentationUrl"
+					:docsAnchor="resolvedPageId"
+					:documentationLabel="documentationLabel || undefined"
+					:widgetId="resolvedPageId"
 					:title="title"
 					:surface="`detail:${resolvedPageId}`"
-					refresh-channel="cn:page:refresh"
-					testid-base="cn-detail-page"
+					refreshChannel="cn:page:refresh"
+					testidBase="cn-detail-page"
 					@refresh="onHeaderRefresh"
-					@request-feature="onHeaderRequestFeature">
+					@requestFeature="onHeaderRequestFeature">
 					<template v-if="menuHeaderActions.length" #primary-items>
 						<NcActionButton
 							v-for="entry in menuHeaderActions"
@@ -191,7 +191,7 @@
 							:data-testid="entry.testid"
 							:disabled="entry.disabled"
 							:aria-pressed="entry.pressed === null ? null : String(entry.pressed)"
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="entry.run()">
 							<template v-if="entry.iconName || entry.iconClass" #icon>
 								<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
@@ -213,9 +213,9 @@
 		     neutral notice plus Unlock for your own. -->
 		<CnLockedBanner
 			v-if="lockState && lockState.locked.value"
-			:locked-by="lockState.lockedBy.value"
-			:locked-by-me="lockState.lockedByMe.value"
-			:expires-at="lockState.expiresAt.value"
+			:lockedBy="lockState.lockedBy.value"
+			:lockedByMe="lockState.lockedByMe.value"
+			:expiresAt="lockState.expiresAt.value"
 			:unlocking="releasingLock"
 			@unlock="onReleaseLock" />
 
@@ -298,8 +298,8 @@
 					name="before-body"
 					:object="resolvedObject"
 					:schema="currentSchema"
-					:object-type="resolvedObjectType"
-					:object-id="objectId"
+					:objectType="resolvedObjectType"
+					:objectId="objectId"
 					:store="effectiveObjectStore" />
 			</div>
 
@@ -332,7 +332,7 @@
 				:editable="editingBody"
 				:columns="12"
 				class="cn-detail-page__grid"
-				@layout-change="onBodyLayoutChange">
+				@layoutChange="onBodyLayoutChange">
 				<template #widget="{ item }">
 					<div
 						class="cn-detail-page__grid-item"
@@ -406,30 +406,30 @@
 							:name="`widget-${item.widgetId}`"
 							:item="item"
 							:widget="findWidget(item)"
-							:object-id="objectId"
+							:objectId="objectId"
 							:object="resolvedObject"
-							:object-data="resolvedObject"
-							:object-type="resolvedObjectType"
+							:objectData="resolvedObject"
+							:objectType="resolvedObjectType"
 							:register="register"
 							:schema="schema">
 							<CnDetailWidgetHost
 								:widget="findWidget(item)"
 								chrome="card"
-								:show-card-title="showCardTitle(item)"
-								:object-id="objectId"
+								:showCardTitle="showCardTitle(item)"
+								:objectId="objectId"
 								:object="currentObject"
-								:object-type="resolvedObjectType"
-								:schema-object="currentSchema"
+								:objectType="resolvedObjectType"
+								:schemaObject="currentSchema"
 								:register="register"
 								:schema="schema"
 								:store="effectiveObjectStore"
 								:surface="surface"
-								:integration-context="effectiveIntegrationContext"
-								:hide-empty="hideEmpty"
-								:cn-registry="cnRegistry"
-								:available-widgets="bodyGridWidgets"
-								@geo-saved="onGeoSaved"
-								@open-integration="onAutoBodyOpenIntegration" />
+								:integrationContext="effectiveIntegrationContext"
+								:hideEmpty="hideEmpty"
+								:cnRegistry="cnRegistry"
+								:availableWidgets="bodyGridWidgets"
+								@geoSaved="onGeoSaved"
+								@openIntegration="onAutoBodyOpenIntegration" />
 						</slot>
 					</div>
 				</template>
@@ -531,7 +531,7 @@
 				<CnRelatedCollections
 					v-if="relatedCollections && relatedCollections.length > 0"
 					:collections="relatedCollections"
-					@row-click="onRelatedRowClick" />
+					@rowClick="onRelatedRowClick" />
 			</div>
 
 			<!-- Declarative in-body sections, `placement: "after-related"` —
@@ -611,7 +611,7 @@
 				:schema="currentSchema"
 				:item="createPrefill"
 				:register="register"
-				:dialog-title="title || undefined"
+				:dialogTitle="title || undefined"
 				:size="formSize"
 				:columns="formColumns"
 				@confirm="onCreateFormConfirm"
@@ -632,7 +632,7 @@
 				:schema="currentSchema"
 				:item="currentObject"
 				:register="register"
-				:dialog-title="editActionLabel"
+				:dialogTitle="editActionLabel"
 				:size="formSize"
 				:columns="formColumns"
 				@confirm="onEditFormConfirm"
@@ -644,14 +644,14 @@
 		<CnRelationLinkModal
 			v-if="activeRelationLink"
 			:title="activeRelationLink.title || undefined"
-			:select-label="activeRelationLink.selectLabel || undefined"
+			:selectLabel="activeRelationLink.selectLabel || undefined"
 			:register="activeRelationLink.register"
 			:schema="activeRelationLink.schema"
-			:label-field="activeRelationLink.labelField || 'name'"
-			:allow-create="activeRelationLink.allowCreate === true"
-			:current-type="resolvedObjectType"
-			:current-object="currentObject || {}"
-			:fk-field="activeRelationLink.fkField"
+			:labelField="activeRelationLink.labelField || 'name'"
+			:allowCreate="activeRelationLink.allowCreate === true"
+			:currentType="resolvedObjectType"
+			:currentObject="currentObject || {}"
+			:fkField="activeRelationLink.fkField"
 			@linked="onRelationLinked"
 			@close="activeRelationLink = null" />
 	</div>

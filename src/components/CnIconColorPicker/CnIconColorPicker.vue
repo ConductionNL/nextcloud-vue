@@ -14,7 +14,7 @@
 				:is="previewIcon"
 				v-if="previewIcon"
 				:size="28"
-				:fill-color="previewColor" />
+				:fillColor="previewColor" />
 		</div>
 
 		<div class="cn-icon-color-picker__section">
@@ -62,10 +62,10 @@
 				{{ tr('Icon') }}
 			</span>
 			<NcTextField
-				:model-value="query"
+				:modelValue="query"
 				:label="tr('Search icons')"
 				data-testid="cn-icon-color-picker-search"
-				@update:model-value="query = $event">
+				@update:modelValue="query = $event">
 				<Magnify :size="16" />
 			</NcTextField>
 			<div

@@ -6,11 +6,11 @@
 <template>
 	<div class="cn-calendar-widget-form">
 		<NcSelect
-			:model-value="viewMode"
+			:modelValue="viewMode"
 			:options="viewModeOptions"
-			:input-label="t('nextcloud-vue', 'View mode')"
+			:inputLabel="t('nextcloud-vue', 'View mode')"
 			:clearable="false"
-			@update:model-value="updateField('viewMode', $event)" />
+			@update:modelValue="updateField('viewMode', $event)" />
 
 		<!-- Calendar picker (when the consuming app provides a fetcher); falls
 		     back to free-text principal entry otherwise. -->
@@ -18,15 +18,15 @@
 			<span class="cn-calendar-widget-form__label">{{ t('nextcloud-vue', 'Calendars') }}</span>
 			<NcSelect
 				v-if="hasCalendarPicker"
-				:model-value="selectedCalendarOptions"
+				:modelValue="selectedCalendarOptions"
 				:options="calendarOptions"
 				:multiple="true"
-				:close-on-select="false"
+				:closeOnSelect="false"
 				:loading="loadingCalendars"
-				:input-label="t('nextcloud-vue', 'Calendars')"
+				:inputLabel="t('nextcloud-vue', 'Calendars')"
 				:placeholder="t('nextcloud-vue', 'Select calendars…')"
 				label="label"
-				@update:model-value="onCalendarsChange" />
+				@update:modelValue="onCalendarsChange" />
 			<textarea
 				v-else
 				class="cn-calendar-widget-form__textarea"
@@ -47,14 +47,14 @@
 		</label>
 
 		<NcTextField
-			:model-value="String(daysAhead)"
+			:modelValue="String(daysAhead)"
 			:label="t('nextcloud-vue', 'Days ahead')"
 			placeholder="14"
-			@update:model-value="updateNumber('daysAhead', $event)" />
+			@update:modelValue="updateNumber('daysAhead', $event)" />
 
 		<NcCheckboxRadioSwitch
-			:model-value="colorByCalendar"
-			@update:model-value="updateField('colorByCalendar', $event)">
+			:modelValue="colorByCalendar"
+			@update:modelValue="updateField('colorByCalendar', $event)">
 			{{ t('nextcloud-vue', 'Color by calendar') }}
 		</NcCheckboxRadioSwitch>
 	</div>

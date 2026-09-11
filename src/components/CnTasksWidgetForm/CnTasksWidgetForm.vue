@@ -13,12 +13,12 @@
 		</p>
 
 		<NcSelect
-			:model-value="scopeOption"
+			:modelValue="scopeOption"
 			:options="scopeOptions"
-			:input-label="t('nextcloud-vue', 'Scope')"
+			:inputLabel="t('nextcloud-vue', 'Scope')"
 			label="label"
 			:clearable="false"
-			@update:model-value="onScopePick" />
+			@update:modelValue="onScopePick" />
 
 		<div class="cn-tasks-form__row2">
 			<NcTextField

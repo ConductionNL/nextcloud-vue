@@ -4,8 +4,8 @@
 			v-if="!activePanel"
 			ref="actions"
 			v-model:open="internalOpen"
-			:manual-open="true"
-			:force-menu="true"
+			:manualOpen="true"
+			:forceMenu="true"
 			class="cn-context-menu"
 			container="body"
 			data-testid="cn-context-menu"
@@ -19,7 +19,7 @@
 				:disabled="resolveDisabled(action)"
 				:class="{ 'cn-row-action--destructive': action.destructive }"
 				:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
-				close-after-click
+				closeAfterClick
 				@click="onAction(action)">
 				<template v-if="action.icon" #icon>
 					<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
@@ -67,7 +67,7 @@
 					:name="`panel:${activePanel}`"
 					:back="back"
 					:close="onClose"
-					:target-item="targetItem" />
+					:targetItem="targetItem" />
 			</div>
 		</template>
 	</div>

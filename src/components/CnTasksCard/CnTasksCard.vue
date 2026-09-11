@@ -50,8 +50,8 @@
 							<span v-if="hasAssignee(task)" class="cn-tasks-card__assignee">
 								<CnUserActionMenu
 									v-if="!isCurrentUser(task.assignee)"
-									:user-id="task.assignee"
-									:display-name="task.assignee">
+									:userId="task.assignee"
+									:displayName="task.assignee">
 									<span class="cn-tasks-card__assignee-name">{{ task.assignee }}</span>
 								</CnUserActionMenu>
 								<span v-else class="cn-tasks-card__assignee-name cn-tasks-card__assignee-name--self">

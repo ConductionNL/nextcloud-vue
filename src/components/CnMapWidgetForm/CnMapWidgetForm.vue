@@ -42,26 +42,26 @@
 		</label>
 
 		<NcTextField
-			:model-value="height"
+			:modelValue="height"
 			:label="t('nextcloud-vue', 'Height')"
-			:label-visible="true"
+			:labelVisible="true"
 			placeholder="400px"
-			@update:model-value="height = $event" />
+			@update:modelValue="height = $event" />
 
 		<div class="cn-map-widget-form__row">
 			<NcTextField
-				:model-value="String(center[0])"
+				:modelValue="String(center[0])"
 				type="number"
 				:label="t('nextcloud-vue', 'Centre latitude')"
-				:label-visible="true"
-				@update:model-value="onCentre(0, $event)" />
+				:labelVisible="true"
+				@update:modelValue="onCentre(0, $event)" />
 
 			<NcTextField
-				:model-value="String(center[1])"
+				:modelValue="String(center[1])"
 				type="number"
 				:label="t('nextcloud-vue', 'Centre longitude')"
-				:label-visible="true"
-				@update:model-value="onCentre(1, $event)" />
+				:labelVisible="true"
+				@update:modelValue="onCentre(1, $event)" />
 		</div>
 
 		<NcCheckboxRadioSwitch v-model="centerMarker" type="switch">

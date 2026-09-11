@@ -16,31 +16,31 @@
 				class="cn-transition-input__field"
 				:data-testid="`cn-transition-input-${field.key}`">
 				<NcCheckboxRadioSwitch v-if="field.widget === 'checkbox'"
-					:model-value="values[field.key] === true"
+					:modelValue="values[field.key] === true"
 					type="switch"
-					@update:model-value="setValue(field.key, $event === true)">
+					@update:modelValue="setValue(field.key, $event === true)">
 					{{ requiredLabel(field) }}
 				</NcCheckboxRadioSwitch>
 
 				<NcTextArea v-else-if="field.widget === 'textarea'"
-					:model-value="String(values[field.key] ?? '')"
+					:modelValue="String(values[field.key] ?? '')"
 					:label="requiredLabel(field)"
-					:helper-text="field.description || ''"
+					:helperText="field.description || ''"
 					rows="4"
-					@update:model-value="setValue(field.key, $event)" />
+					@update:modelValue="setValue(field.key, $event)" />
 
 				<NcTextField v-else-if="field.widget === 'number'"
-					:model-value="String(values[field.key] ?? '')"
+					:modelValue="String(values[field.key] ?? '')"
 					type="number"
 					:label="requiredLabel(field)"
-					:helper-text="field.description || ''"
-					@update:model-value="setValue(field.key, $event)" />
+					:helperText="field.description || ''"
+					@update:modelValue="setValue(field.key, $event)" />
 
 				<NcTextField v-else
-					:model-value="String(values[field.key] ?? '')"
+					:modelValue="String(values[field.key] ?? '')"
 					:label="requiredLabel(field)"
-					:helper-text="field.description || ''"
-					@update:model-value="setValue(field.key, $event)" />
+					:helperText="field.description || ''"
+					@update:modelValue="setValue(field.key, $event)" />
 			</div>
 		</div>
 

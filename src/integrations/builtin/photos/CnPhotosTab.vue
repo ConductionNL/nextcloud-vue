@@ -128,7 +128,7 @@
 
 		<CnPhotoAlbumPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 

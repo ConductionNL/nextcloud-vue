@@ -42,15 +42,15 @@
 			v-if="hasSidebar"
 			name="sidebar"
 			:tree="tree"
-			:on-click="onTreeClick">
+			:onClick="onTreeClick">
 			<nav class="cn-wiki-page__sidebar">
 				<ul class="cn-wiki-page__tree">
 					<CnWikiTreeNode
 						v-for="node in tree"
 						:key="treeKey(node)"
 						:node="node"
-						:title-field="effectiveSidebarTitleField"
-						:tree-field="treeField"
+						:titleField="effectiveSidebarTitleField"
+						:treeField="treeField"
 						@click="onTreeClick" />
 				</ul>
 			</nav>

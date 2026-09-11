@@ -16,13 +16,13 @@
 		<!-- Select style -->
 		<NcSelect
 			v-else-if="style === 'select'"
-			:model-value="selectedOption"
+			:modelValue="selectedOption"
 			:options="displayOptions"
 			:clearable="false"
-			:input-label="label || writeKey"
+			:inputLabel="label || writeKey"
 			label="label"
 			data-testid="cn-workspace-filter-select"
-			@update:model-value="onSelect" />
+			@update:modelValue="onSelect" />
 
 		<!-- Radio-list style (default) -->
 		<ul v-else
@@ -36,10 +36,10 @@
 				<NcCheckboxRadioSwitch
 					type="radio"
 					:name="radioGroupName"
-					:model-value="isActive(option) ? String(option.value) : ''"
+					:modelValue="isActive(option) ? String(option.value) : ''"
 					:value="String(option.value)"
 					:data-testid="`cn-workspace-filter-option-${option.value}`"
-					@update:model-value="onRadioPick(option)">
+					@update:modelValue="onRadioPick(option)">
 					<span class="cn-workspace-filter-widget__option-label">{{ option.label }}</span>
 					<span
 						v-if="showCounts && option.count !== undefined && option.count !== null"

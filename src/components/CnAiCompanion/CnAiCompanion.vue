@@ -48,15 +48,15 @@
 		<CnAiChatPanel
 			ref="panel"
 			:visible="isPanelOpen"
-			:stream-state="stream.state"
-			:chat-app-id="chatAppId"
+			:streamState="stream.state"
+			:chatAppId="chatAppId"
 			:context="context"
 			:position="position"
-			:fab-ref="$refs.fabButton"
+			:fabRef="$refs.fabButton"
 			@close="closePanel"
 			@send="onSend"
-			@new-thread="onNewThread"
-			@load-conversation="onLoadConversation" />
+			@newThread="onNewThread"
+			@loadConversation="onLoadConversation" />
 	</div>
 </template>
 

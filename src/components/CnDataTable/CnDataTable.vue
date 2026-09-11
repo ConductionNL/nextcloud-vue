@@ -72,10 +72,10 @@
 						<!-- Checkbox column -->
 						<th v-if="selectable" class="cn-table-col--checkbox">
 							<NcCheckboxRadioSwitch
-								:model-value="allSelected"
+								:modelValue="allSelected"
 								:indeterminate="someSelected && !allSelected"
 								:aria-label="selectAllLabel"
-								@update:model-value="toggleSelectAll" />
+								@update:modelValue="toggleSelectAll" />
 						</th>
 
 						<!-- Leading icon column (header is intentionally blank) -->
@@ -147,9 +147,9 @@
 						<!-- Checkbox -->
 						<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
 							<NcCheckboxRadioSwitch
-								:model-value="isSelected(row)"
+								:modelValue="isSelected(row)"
 								:aria-label="selectRowLabel"
-								@update:model-value="toggleSelect(row)" />
+								@update:modelValue="toggleSelect(row)" />
 						</td>
 
 						<!-- Leading icon -->
@@ -186,17 +186,17 @@
 									:value="cellValue(row, col)"
 									:property="columnProperty(col)"
 									:formatter="col.formatter || null"
-									:formatter-options="col.formatterOptions || null"
+									:formatterOptions="col.formatterOptions || null"
 									:widget="col.widget || null"
-									:widget-props="col.widgetProps || undefined"
+									:widgetProps="col.widgetProps || undefined"
 									:format="columnFormat(col)"
 									:row="row"
-									:row-key="rowKey" />
+									:rowKey="rowKey" />
 							</slot>
 						</td>
 
 						<!-- Row actions -->
-						<td v-if="$slots['row-actions']" :class="['cn-table-col--actions', cellClass ? cellClass(row, { key: 'actions' }) : '']" @click.stop>
+						<td v-if="$slots['row-actions']" class="cn-table-col--actions" :class="[cellClass ? cellClass(row, { key: 'actions' }) : '']" @click.stop>
 							<!-- @slot Per-row actions menu (e.g. a CnRowActions), scoped with { row }. Supplying it adds the trailing actions column. -->
 							<slot name="row-actions" :row="row" />
 						</td>

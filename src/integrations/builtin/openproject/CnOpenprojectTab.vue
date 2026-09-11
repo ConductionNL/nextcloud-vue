@@ -115,7 +115,7 @@
 				:bold="true"
 				:href="wpUrl(wp)"
 				target="_blank"
-				:force-display-actions="true">
+				:forceDisplayActions="true">
 				<!-- Type indicator: a coloured square chip echoing OpenProject's
 				     type colour-coding (Task / Bug / Feature / Milestone). -->
 				<template #icon>
@@ -166,19 +166,19 @@
 							v-if="wpAssignee(wp)"
 							class="cn-openproject-tab__assignee"
 							:size="24"
-							:display-name="wpAssignee(wp)"
+							:displayName="wpAssignee(wp)"
 							:user="assigneeSeed(wp)"
-							:is-no-user="true"
-							:disable-menu="true"
-							:disable-tooltip="false"
-							:show-user-status="false"
+							:isNoUser="true"
+							:disableMenu="true"
+							:disableTooltip="false"
+							:showUserStatus="false"
 							:title="assigneeTitle(wp)" />
 					</span>
 				</template>
 				<template #actions>
 					<NcActionButton
 						class="cn-openproject-tab__unlink"
-						:close-after-click="true"
+						:closeAfterClick="true"
 						@click="unlinkWorkPackage(wp)">
 						<template #icon>
 							<LinkOff :size="20" />
@@ -191,15 +191,15 @@
 
 		<CnOpenProjectPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
-			:openconnector-url="openconnectorUrl"
+			:apiBase="apiBase"
+			:openconnectorUrl="openconnectorUrl"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 
 		<CnOpenProjectCreate
 			v-if="createOpen"
-			:api-base="apiBase"
-			:openconnector-url="openconnectorUrl"
+			:apiBase="apiBase"
+			:openconnectorUrl="openconnectorUrl"
 			@close="createOpen = false"
 			@create="onCreatePick" />
 	</div>

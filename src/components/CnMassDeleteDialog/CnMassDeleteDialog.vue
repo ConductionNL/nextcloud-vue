@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:no-close="loading"
+		:noClose="loading"
 		@closing="$emit('close')">
 		<!-- Review phase -->
 		<div v-if="result === null"

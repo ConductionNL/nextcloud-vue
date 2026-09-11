@@ -72,7 +72,7 @@
 				:href="opUrl(op)"
 				target="_blank"
 				:bold="true"
-				:force-display-actions="isAdmin">
+				:forceDisplayActions="isAdmin">
 				<template #icon>
 					<span class="cn-flow-tab__avatar" :class="enabledClass(op)" :aria-hidden="true">
 						<SitemapOutline :size="20" />
@@ -106,7 +106,7 @@
 						class="cn-flow-tab__unlink"
 						:aria-label="t('nextcloud-vue', 'Unlink automation')"
 						data-testid="cn-flow-tab-unlink"
-						:close-after-click="true"
+						:closeAfterClick="true"
 						@click="confirmUnlink(op)">
 						<template #icon>
 							<Close :size="20" />
@@ -119,8 +119,8 @@
 
 		<CnFlowOperationPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
-			:flow-settings-url="flowSettingsUrl"
+			:apiBase="apiBase"
+			:flowSettingsUrl="flowSettingsUrl"
 			@close="pickerOpen = false"
 			@link="onLink" />
 	</div>

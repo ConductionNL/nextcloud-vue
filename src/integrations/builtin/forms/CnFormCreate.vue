@@ -22,30 +22,30 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:no-close="submitting"
+		:noClose="submitting"
 		data-testid="cn-modal"
 		data-testid-modal="cn-form-create"
 		@closing="$emit('close')">
 		<div class="cn-form-create">
 			<NcTextField
-				:model-value="title"
+				:modelValue="title"
 				:label="titleLabel"
 				:placeholder="titlePlaceholder"
-				:show-trailing-button="false"
+				:showTrailingButton="false"
 				:required="true"
 				:error="titleError !== ''"
-				:helper-text="titleError"
+				:helperText="titleError"
 				class="cn-form-create__field"
 				data-testid="cn-form-create-title"
-				@update:model-value="onTitleChange" />
+				@update:modelValue="onTitleChange" />
 			<NcTextArea
-				:model-value="description"
+				:modelValue="description"
 				:label="descriptionLabel"
 				:placeholder="descriptionPlaceholder"
 				class="cn-form-create__field"
 				rows="3"
 				data-testid="cn-form-create-description"
-				@update:model-value="description = $event" />
+				@update:modelValue="description = $event" />
 
 			<!-- TODO(v2): Starter question set. Out of scope for Tier-2 v1 —
 			     spec carries this as a follow-up; surfacing here so the

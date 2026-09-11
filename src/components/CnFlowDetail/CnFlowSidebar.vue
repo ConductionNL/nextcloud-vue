@@ -81,7 +81,7 @@
 				:key="action.id"
 				:data-testid="action.testid"
 				:disabled="action.disabled"
-				:close-after-click="true"
+				:closeAfterClick="true"
 				@click="action.run()">
 				<template #icon>
 					<component :is="action.icon" :size="20" />
@@ -97,7 +97,7 @@
 					:key="action.id"
 					:data-testid="action.testid"
 					:disabled="action.disabled"
-					:close-after-click="true"
+					:closeAfterClick="true"
 					@click="action.run()">
 					<template #icon>
 						<component :is="action.icon" :size="20" />

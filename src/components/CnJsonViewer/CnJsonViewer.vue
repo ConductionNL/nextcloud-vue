@@ -6,7 +6,7 @@
 -->
 <template>
 	<div class="cn-json-viewer">
-		<div :class="['cn-json-viewer__codemirror', isDark ? 'cn-json-viewer__codemirror--dark' : 'cn-json-viewer__codemirror--light']">
+		<div class="cn-json-viewer__codemirror" :class="[isDark ? 'cn-json-viewer__codemirror--dark' : 'cn-json-viewer__codemirror--light']">
 			<CodeMirror
 				v-model="localValue"
 				:basic="true"
@@ -16,7 +16,7 @@
 				:linter="linterExtension"
 				:lang="langExtension"
 				:extensions="editorExtensions"
-				:tab-size="2"
+				:tabSize="2"
 				:style="{ height }" />
 			<NcButton
 				v-if="!readOnly && resolvedLanguage === 'json'"

@@ -26,8 +26,8 @@
 			:placeholder="t('nextcloud-vue', 'Support {appName}', { appName: appName })" />
 		<NcTextArea class="cn-edit-support__field"
 			:label="t('nextcloud-vue', 'Body (one paragraph per line, blank for the default note)')"
-			:model-value="bodyText"
-			@update:model-value="setBody" />
+			:modelValue="bodyText"
+			@update:modelValue="setBody" />
 
 		<h3 class="cn-edit-support__section">
 			{{ t('nextcloud-vue', 'Signature') }}
@@ -104,7 +104,7 @@
 						:clearable="false"
 						:reduce="o => o.id"
 						label="label"
-						:input-label="t('nextcloud-vue', 'Button style')" />
+						:inputLabel="t('nextcloud-vue', 'Button style')" />
 				</label>
 				<NcTextField v-model="buttonFor(def.id).icon"
 					:label="t('nextcloud-vue', 'Icon (PascalCase MDI name)')"

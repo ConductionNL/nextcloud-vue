@@ -4,9 +4,9 @@
 -->
 <template>
 	<NcActions
-		:force-menu="true"
-		:force-name="true"
-		:menu-name="menuLabel"
+		:forceMenu="true"
+		:forceName="true"
+		:menuName="menuLabel"
 		data-testid="cn-saved-views-control"
 		:aria-label="menuLabel">
 		<template #icon>

@@ -16,7 +16,7 @@
 -->
 <template>
 	<div
-		:class="['cn-stats-block-widget', iconClass, { 'cn-stats-block-widget--multi': hasEntries }]">
+		class="cn-stats-block-widget" :class="[iconClass, { 'cn-stats-block-widget--multi': hasEntries }]">
 		<!-- Multi-entry mode: one KPI per entry, all inside this widget card.
 		     An entry with hideWhenZero whose resolved count is 0 is omitted. -->
 		<template v-if="hasEntries">
@@ -25,10 +25,10 @@
 				:key="view.key"
 				:title="view.entry.title || ''"
 				:count="view.count"
-				:count-label="view.entry.countLabel || ''"
+				:countLabel="view.entry.countLabel || ''"
 				:loading="view.loading"
 				:variant="view.entry.variant || 'default'"
-				:show-zero-count="showZeroCount"
+				:showZeroCount="showZeroCount"
 				:horizontal="horizontal"
 				:vertical="vertical"
 				:filled="filled"
@@ -41,10 +41,10 @@
 			v-else
 			:title="title"
 			:count="resolvedCount"
-			:count-label="countLabel"
+			:countLabel="countLabel"
 			:loading="loading"
 			:variant="variant"
-			:show-zero-count="showZeroCount"
+			:showZeroCount="showZeroCount"
 			:horizontal="horizontal"
 			:vertical="vertical"
 			:filled="filled"

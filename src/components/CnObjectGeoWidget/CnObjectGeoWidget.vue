@@ -15,17 +15,17 @@
 <template>
 	<CnWidgetWrapper
 		:title="title"
-		:widget-id="widgetId || 'object-geo'"
-		:documentation-url="documentationUrl"
+		:widgetId="widgetId || 'object-geo'"
+		:documentationUrl="documentationUrl"
 		:refreshing="saving"
 		flush>
 		<div class="cn-object-geo-widget">
 			<div v-if="editable && addressSearch" class="cn-object-geo-widget__search">
 				<NcTextField
-					:model-value="query"
+					:modelValue="query"
 					:label="t('nextcloud-vue', 'Search for an address or place')"
-					:show-trailing-button="false"
-					@update:model-value="onQueryInput">
+					:showTrailingButton="false"
+					@update:modelValue="onQueryInput">
 					<Magnify :size="18" />
 				</NcTextField>
 				<NcLoadingIcon v-if="searching" :size="20" />
@@ -49,10 +49,10 @@
 				:basemaps="resolvedBasemaps"
 				:markers="mapMarkers"
 				:height="height"
-				:auto-fit="false"
-				:fit-control="fitControl"
-				:locate-control="locateControl"
-				:fullscreen-control="fullscreenControl"
+				:autoFit="false"
+				:fitControl="fitControl"
+				:locateControl="locateControl"
+				:fullscreenControl="fullscreenControl"
 				:aria-label="t('nextcloud-vue', 'Object location map')"
 				@click="onMapClick" />
 			<p v-if="editable && !activePoint" class="cn-object-geo-widget__hint">

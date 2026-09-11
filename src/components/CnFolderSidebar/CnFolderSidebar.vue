@@ -22,7 +22,7 @@
 		<CnFolderTree
 			v-else
 			:folders="normalizedTree"
-			:selected-id="selectedId"
+			:selectedId="selectedId"
 			@select="select" />
 
 		<!-- The `field` source was handed one page and no facet to complete

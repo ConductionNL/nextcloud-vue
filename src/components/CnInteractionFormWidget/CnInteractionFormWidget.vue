@@ -4,15 +4,15 @@
 -->
 <template>
 	<CnFormWidgetBase
-		block-class="cn-interaction-form-widget"
+		blockClass="cn-interaction-form-widget"
 		:fields="formFields"
 		:model="form"
 		:errors="{ subject: subjectError }"
-		:can-submit="canRegister"
+		:canSubmit="canRegister"
 		:submitting="saving"
-		:submit-label="registerLabel"
-		:submitting-label="savingLabel"
-		:error-message="errorMessage"
+		:submitLabel="registerLabel"
+		:submittingLabel="savingLabel"
+		:errorMessage="errorMessage"
 		@update:field="onFieldUpdate"
 		@submit="onRegister">
 		<!-- The client picker is the one control the base does not know about:
@@ -23,9 +23,9 @@
 			<CnResourceSelect
 				:register="register"
 				:schema="clientSchema"
-				:label-field="clientLabelField"
-				:model-value="form.client"
-				:input-label="clientLabel"
+				:labelField="clientLabelField"
+				:modelValue="form.client"
+				:inputLabel="clientLabel"
 				@update:modelValue="onClientChange"
 				@create="onClientCreated" />
 		</template>

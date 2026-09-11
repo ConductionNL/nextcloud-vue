@@ -6,7 +6,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:no-close="loading"
+		:noClose="loading"
 		@closing="onClose">
 		<div
 			class="cn-save-view"
@@ -17,17 +17,17 @@
 			</NcNoteCard>
 
 			<NcTextField
-				:model-value="name"
+				:modelValue="name"
 				:label="t('nextcloud-vue', 'View name')"
-				:label-visible="true"
+				:labelVisible="true"
 				:placeholder="t('nextcloud-vue', 'My view')"
 				data-testid="cn-save-view-name-input"
-				@update:model-value="(v) => name = v" />
+				@update:modelValue="(v) => name = v" />
 
 			<NcCheckboxRadioSwitch
-				:model-value="isPublic"
+				:modelValue="isPublic"
 				data-testid="cn-save-view-public-toggle"
-				@update:model-value="(v) => isPublic = v">
+				@update:modelValue="(v) => isPublic = v">
 				{{ t('nextcloud-vue', 'Share with other users (public)') }}
 			</NcCheckboxRadioSwitch>
 		</div>

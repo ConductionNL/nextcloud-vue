@@ -31,10 +31,10 @@
 
 				<div class="cn-index-sidebar__section">
 					<NcTextField
-						:model-value="searchValue || ''"
+						:modelValue="searchValue || ''"
 						:placeholder="searchPlaceholder"
 						:label="searchLabel"
-						@update:model-value="$emit('search', $event)" />
+						@update:modelValue="$emit('search', $event)" />
 				</div>
 
 				<div v-if="schemaFilters.length > 0" class="cn-index-sidebar__section">
@@ -45,7 +45,7 @@
 						class="cn-index-sidebar__filter-group">
 						<div class="cn-index-sidebar__filter-header">
 							<span class="cn-index-sidebar__filter-label">{{ filter.label }}</span>
-							<NcPopover v-if="filter.description" popup-role="dialog">
+							<NcPopover v-if="filter.description" popupRole="dialog">
 								<template #trigger>
 									<NcButton
 										type="tertiary-no-background"
@@ -63,14 +63,14 @@
 						</div>
 						<NcSelect
 							class="cn-index-sidebar__select"
-							:model-value="getSelectedFilterOptions(filter)"
+							:modelValue="getSelectedFilterOptions(filter)"
 							:options="getFilterOptions(filter)"
 							placeholder="Select..."
-							:input-label="filter.label"
+							:inputLabel="filter.label"
 							:multiple="true"
-							:keep-open="true"
+							:keepOpen="true"
 							:clearable="true"
-							@update:model-value="onFilterChange(filter.key, $event)" />
+							@update:modelValue="onFilterChange(filter.key, $event)" />
 					</div>
 				</div>
 
@@ -101,10 +101,10 @@
 								<ChevronRight v-else :size="20" />
 								<h4>{{ resolvedPropertiesLabel }}</h4>
 								<NcCheckboxRadioSwitch
-									:model-value="isGroupAllVisible(allColumns)"
+									:modelValue="isGroupAllVisible(allColumns)"
 									class="cn-sidebar-columns__select-all"
 									@click.stop
-									@update:model-value="toggleGroupAll(allColumns)">
+									@update:modelValue="toggleGroupAll(allColumns)">
 									All
 								</NcCheckboxRadioSwitch>
 							</div>
@@ -112,8 +112,8 @@
 								<NcCheckboxRadioSwitch
 									v-for="col in allColumns"
 									:key="col.key"
-									:model-value="isColumnVisible(col.key)"
-									@update:model-value="toggleColumn(col.key)">
+									:modelValue="isColumnVisible(col.key)"
+									@update:modelValue="toggleColumn(col.key)">
 									{{ col.label }}
 								</NcCheckboxRadioSwitch>
 							</div>
@@ -129,10 +129,10 @@
 								<ChevronRight v-else :size="20" />
 								<h4>{{ group.label }}</h4>
 								<NcCheckboxRadioSwitch
-									:model-value="isGroupAllVisible(group.columns)"
+									:modelValue="isGroupAllVisible(group.columns)"
 									class="cn-sidebar-columns__select-all"
 									@click.stop
-									@update:model-value="toggleGroupAll(group.columns)">
+									@update:modelValue="toggleGroupAll(group.columns)">
 									All
 								</NcCheckboxRadioSwitch>
 							</div>
@@ -140,8 +140,8 @@
 								<NcCheckboxRadioSwitch
 									v-for="col in group.columns"
 									:key="col.key"
-									:model-value="isColumnVisible(col.key)"
-									@update:model-value="toggleColumn(col.key)">
+									:modelValue="isColumnVisible(col.key)"
+									@update:modelValue="toggleColumn(col.key)">
 									{{ col.label }}
 								</NcCheckboxRadioSwitch>
 							</div>

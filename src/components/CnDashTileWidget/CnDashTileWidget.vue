@@ -26,8 +26,8 @@
 				</svg>
 				<span
 					v-else-if="iconType === 'class'"
-					:class="['icon', icon]"
-					class="cn-dash-tile-widget__icon-class" />
+					:class="[icon]"
+					class="cn-dash-tile-widget__icon-class icon" />
 				<img
 					v-else-if="iconType === 'url'"
 					:src="icon"

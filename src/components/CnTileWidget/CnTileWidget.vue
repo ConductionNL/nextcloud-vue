@@ -25,7 +25,7 @@
 			</svg>
 			<!-- Other icon types -->
 			<div v-else class="cn-tile-widget__icon">
-				<span v-if="tile.iconType === 'class'" :class="['icon', tile.icon]" />
+				<span v-if="tile.iconType === 'class'" class="icon" :class="[tile.icon]" />
 				<img v-else-if="tile.iconType === 'url'" :src="tile.icon" alt="">
 				<span v-else-if="tile.iconType === 'emoji'" class="cn-tile-widget__emoji">{{ tile.icon }}</span>
 			</div>

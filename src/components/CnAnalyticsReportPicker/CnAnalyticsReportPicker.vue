@@ -42,7 +42,7 @@
 				:label="t('nextcloud-vue', 'Search reports')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-analytics-report-picker__search"
-				@update:model-value="onSearch" />
+				@update:modelValue="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent

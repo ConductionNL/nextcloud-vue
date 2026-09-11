@@ -33,9 +33,9 @@
 					:items="group.items"
 					:layout="layout"
 					:columns="columns"
-					:label-width="labelWidth"
+					:labelWidth="labelWidth"
 					:accent="false"
-					:empty-label="emptyLabel" />
+					:emptyLabel="emptyLabel" />
 			</div>
 		</template>
 
@@ -46,9 +46,9 @@
 			:items="metadataItems"
 			:layout="layout"
 			:columns="columns"
-			:label-width="labelWidth"
+			:labelWidth="labelWidth"
 			:accent="false"
-			:empty-label="emptyLabel" />
+			:emptyLabel="emptyLabel" />
 	</CnDetailCard>
 </template>
 

@@ -9,7 +9,7 @@
 		v-if="childRenderer"
 		:content="childContent"
 		:placement="placement"
-		:edit-mode="editMode" />
+		:editMode="editMode" />
 	<div v-else class="cn-container-child cn-container-child--unknown">
 		<span class="cn-container-child__missing">{{ unknownLabel }}</span>
 	</div>

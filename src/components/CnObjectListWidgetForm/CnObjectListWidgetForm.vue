@@ -26,17 +26,17 @@
 				placeholder="expectedCloseDate"
 				@update="updateSort('field', $event)" />
 			<NcSelect
-				:model-value="sort.dir"
+				:modelValue="sort.dir"
 				:options="dirOptions"
-				:input-label="t('nextcloud-vue', 'Direction')"
+				:inputLabel="t('nextcloud-vue', 'Direction')"
 				:clearable="false"
-				@update:model-value="updateSort('dir', $event)" />
+				@update:modelValue="updateSort('dir', $event)" />
 			<NcTextField
 				class="cn-object-list-form__limit"
-				:model-value="String(limit)"
+				:modelValue="String(limit)"
 				type="number"
 				:label="t('nextcloud-vue', 'Max rows')"
-				@update:model-value="updateLimit($event)" />
+				@update:modelValue="updateLimit($event)" />
 		</div>
 
 		<!-- Filters with operators. -->
@@ -57,11 +57,11 @@
 				:placeholder="t('nextcloud-vue', 'Select a property')"
 				@update="updateColumn(i, 'key', $event)" />
 			<NcTextField
-				:model-value="col.label"
+				:modelValue="col.label"
 				:label="t('nextcloud-vue', 'Header')"
 				placeholder="Deal"
 				class="cn-object-list-form__col-row__header"
-				@update:model-value="updateColumn(i, 'label', $event)" />
+				@update:modelValue="updateColumn(i, 'label', $event)" />
 			<NcButton
 				variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Remove column')"

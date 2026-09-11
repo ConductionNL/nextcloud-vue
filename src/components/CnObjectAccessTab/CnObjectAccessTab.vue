@@ -58,10 +58,10 @@
 					{{ scopeHeadingLabel }}
 				</h4>
 				<NcCheckboxRadioSwitch
-					:model-value="isPrivate"
+					:modelValue="isPrivate"
 					:disabled="readOnly || savingScope"
 					type="switch"
-					@update:model-value="onScopeToggle">
+					@update:modelValue="onScopeToggle">
 					{{ privateLabel }}
 				</NcCheckboxRadioSwitch>
 				<p class="cn-object-access-tab__hint">
@@ -127,7 +127,7 @@
 					:clearable="false"
 					:aria-label="typeLabel"
 					label="label"
-					track-by="value" />
+					trackBy="value" />
 
 				<NcTextField
 					v-if="needsPrincipal"
@@ -137,9 +137,9 @@
 
 				<NcCheckboxRadioSwitch
 					v-if="newTypeValue !== 'link'"
-					:model-value="allowEditing"
+					:modelValue="allowEditing"
 					type="checkbox"
-					@update:model-value="allowEditing = $event">
+					@update:modelValue="allowEditing = $event">
 					{{ allowEditingLabel }}
 				</NcCheckboxRadioSwitch>
 

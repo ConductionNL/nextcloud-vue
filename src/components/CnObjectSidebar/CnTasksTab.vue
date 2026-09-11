@@ -37,9 +37,9 @@
 					v-model="newTaskAssignee"
 					:options="userList"
 					:placeholder="assigneeLabel"
-					:input-label="assigneeLabel"
+					:inputLabel="assigneeLabel"
 					label="displayName"
-					track-by="userId"
+					trackBy="userId"
 					:clearable="true" />
 			</div>
 		</div>
@@ -51,13 +51,13 @@
 					v-model="filterStatus"
 					:options="statusOptions"
 					:placeholder="statusFilterLabel"
-					:input-label="statusFilterLabel"
+					:inputLabel="statusFilterLabel"
 					:clearable="true" />
 				<NcSelect
 					v-model="filterAssignee"
 					:options="assigneeOptions"
 					:placeholder="assigneeFilterLabel"
-					:input-label="assigneeFilterLabel"
+					:inputLabel="assigneeFilterLabel"
 					:clearable="true" />
 			</div>
 		</div>
@@ -73,7 +73,7 @@
 				:key="task.id"
 				:name="task.summary || task.title || task.name"
 				:bold="false"
-				:force-display-actions="true"
+				:forceDisplayActions="true"
 				:class="{ 'cn-sidebar-tab__task--overdue': isOverdue(task) }">
 				<template #icon>
 					<button class="cn-sidebar-tab__task-checkbox" @click.stop="toggleTask(task)">

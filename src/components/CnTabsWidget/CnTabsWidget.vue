@@ -8,21 +8,21 @@
 		<CnTabs
 			:aria-label="stripLabel"
 			class="cn-tabs-widget__tabs"
-			@update:active-index="onTabChange">
+			@update:activeIndex="onTabChange">
 			<!-- One Actions menu for the whole widget, bound to whichever child
 			     is showing. This is the point of the component: six tabbed
 			     widgets used to mean six card headers stacked down the page. -->
 			<template #nav-end>
 				<CnActionsMenu
-					:show-refresh="showRefresh"
-					:show-request-feature="showRequestFeature"
-					:show-documentation="showDocumentation"
-					:documentation-url="documentationUrl"
-					:widget-id="activeWidgetId"
+					:showRefresh="showRefresh"
+					:showRequestFeature="showRequestFeature"
+					:showDocumentation="showDocumentation"
+					:documentationUrl="documentationUrl"
+					:widgetId="activeWidgetId"
 					:title="activeTitle"
 					:surface="`widget:${activeWidgetId}`"
-					refresh-channel="cn:widget:refresh"
-					testid-base="cn-tabs-widget">
+					refreshChannel="cn:widget:refresh"
+					testidBase="cn-tabs-widget">
 					<!-- The open panel's own items, below the built-in trio.
 					     A panel draws no header, so these would otherwise have
 					     nowhere to go: the data widget's Metadata and full edit
@@ -40,7 +40,7 @@
 						<NcActionButton
 							v-for="action in activePanelActions"
 							:key="action.key"
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="action.run()">
 							<template #icon>
 								<CnIcon :name="action.icon" :size="20" />
@@ -72,18 +72,18 @@
 					v-if="entry.widget"
 					:widget="entry.widget"
 					chrome="bare"
-					:object-id="objectId"
+					:objectId="objectId"
 					:object="objectData"
-					:object-type="objectType"
-					:schema-object="schemaObject"
+					:objectType="objectType"
+					:schemaObject="schemaObject"
 					:register="register"
 					:schema="schema"
 					:store="store"
 					:surface="surface"
-					:integration-context="integrationContext"
-					:cn-registry="cnRegistry"
-					@geo-saved="onGeoSaved"
-					@open-integration="onOpenIntegration" />
+					:integrationContext="integrationContext"
+					:cnRegistry="cnRegistry"
+					@geoSaved="onGeoSaved"
+					@openIntegration="onOpenIntegration" />
 				<NcEmptyContent v-else :name="missingLabel(entry)" />
 			</CnTab>
 		</CnTabs>

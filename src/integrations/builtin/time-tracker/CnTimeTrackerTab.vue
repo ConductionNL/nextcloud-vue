@@ -103,7 +103,7 @@
 					:bold="true"
 					:href="rowUrl(row)"
 					target="_blank"
-					:force-display-actions="true">
+					:forceDisplayActions="true">
 					<template #icon>
 						<span class="cn-time-tracker-tab__row-icon" :class="rowClass(row)">
 							<ClipboardTextOutline v-if="rowKind(row) === 'task'" :size="22" />
@@ -120,7 +120,7 @@
 								v-if="startedAtMs(row) !== null"
 								class="cn-time-tracker-tab__date"
 								:timestamp="startedAtMs(row)"
-								:relative-time="'short'" />
+								relativeTime="short" />
 							<span v-else-if="taskCountLabel(row)" class="cn-time-tracker-tab__task-count">
 								{{ taskCountLabel(row) }}
 							</span>
@@ -140,7 +140,7 @@
 					<template #actions>
 						<NcActionButton
 							class="cn-time-tracker-tab__unlink"
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="unlinkRow(row)">
 							<template #icon>
 								<LinkOff :size="20" />
@@ -154,13 +154,13 @@
 
 		<CnTimeTrackerPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 
 		<CnTimeTrackerCreate
 			v-if="createOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="createOpen = false"
 			@create="onCreatePick" />
 	</div>

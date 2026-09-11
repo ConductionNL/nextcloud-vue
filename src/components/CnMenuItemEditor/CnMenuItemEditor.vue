@@ -24,7 +24,7 @@
 			<CnIconBrowser
 				v-if="showIcons"
 				:value="item.icon || null"
-				allow-url
+				allowUrl
 				clearable
 				@input="emitFieldChange('icon', $event || '')" />
 			<button
@@ -49,10 +49,10 @@
 				:item="child"
 				:depth="depth + 1"
 				:path="[...path, idx]"
-				:show-icons="showIcons"
-				@update-item="$emit('update-item', $event)"
-				@remove-item="$emit('remove-item', $event)"
-				@add-child="$emit('add-child', $event)" />
+				:showIcons="showIcons"
+				@updateItem="$emit('update-item', $event)"
+				@removeItem="$emit('remove-item', $event)"
+				@addChild="$emit('add-child', $event)" />
 		</div>
 	</div>
 </template>

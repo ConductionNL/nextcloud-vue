@@ -75,11 +75,11 @@
 			<!-- No register yet → offer to create one. -->
 			<div v-else-if="!registers.length" class="cn-edit-data__empty">
 				<p>{{ t('nextcloud-vue', 'This app has no data register yet. Create one to start adding schemas.') }}</p>
-				<NcTextField :model-value="newRegisterTitle"
+				<NcTextField :modelValue="newRegisterTitle"
 					:label="t('nextcloud-vue', 'Register name')"
-					:label-visible="true"
+					:labelVisible="true"
 					:placeholder="t('nextcloud-vue', 'My data')"
-					@update:model-value="(v) => newRegisterTitle = v" />
+					@update:modelValue="(v) => newRegisterTitle = v" />
 				<NcButton variant="primary" :disabled="busy || !newRegisterTitle.trim()" @click="createRegister">
 					<template v-if="busy" #icon>
 						<NcLoadingIcon :size="20" />
@@ -93,10 +93,10 @@
 				<div class="cn-edit-data__register">
 					<template v-if="renamingRegister">
 						<NcTextField class="cn-edit-data__register-rename"
-							:model-value="renameTitle"
+							:modelValue="renameTitle"
 							:label="t('nextcloud-vue', 'Register name')"
 							:disabled="busy"
-							@update:model-value="(v) => renameTitle = v"
+							@update:modelValue="(v) => renameTitle = v"
 							@keydown.enter="renameRegister"
 							@keydown.esc="renamingRegister = false" />
 						<NcButton variant="primary"
@@ -120,9 +120,9 @@
 					<template v-else>
 						<NcSelect v-if="registers.length > 1"
 							class="cn-edit-data__register-select"
-							:model-value="selectedRegisterOption"
+							:modelValue="selectedRegisterOption"
 							:options="registerOptions"
-							:input-label="t('nextcloud-vue', 'Register')"
+							:inputLabel="t('nextcloud-vue', 'Register')"
 							label="label"
 							:clearable="false"
 							@update:modelValue="onSelectRegister" />
@@ -197,12 +197,12 @@
 		<CnSchemaFormDialog
 			v-if="showSchemaDialog"
 			:item="editingSchema"
-			:dialog-title="editingSchema ? t('nextcloud-vue', 'Edit schema') : t('nextcloud-vue', 'New schema')"
-			:available-registers="registerOptions"
-			:available-schemas="schemas"
-			:show-delete="!!editingSchema"
+			:dialogTitle="editingSchema ? t('nextcloud-vue', 'Edit schema') : t('nextcloud-vue', 'New schema')"
+			:availableRegisters="registerOptions"
+			:availableSchemas="schemas"
+			:showDelete="!!editingSchema"
 			@confirm="onSchemaConfirm"
-			@delete-schema="onSchemaDelete"
+			@deleteSchema="onSchemaDelete"
 			@close="showSchemaDialog = false" />
 
 		<template #actions>

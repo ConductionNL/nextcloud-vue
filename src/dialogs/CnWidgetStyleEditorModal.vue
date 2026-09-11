@@ -23,7 +23,7 @@
 					:is="typeFormComponent"
 					ref="typeForm"
 					:key="(widget.widgetId || widget.id || 'w') + '-' + show"
-					:editing-widget="widget"
+					:editingWidget="widget"
 					@update:content="draftContent = $event" />
 				<ul v-if="contentErrors.length" class="cn-widget-style-editor__errors">
 					<li v-for="(err, i) in contentErrors" :key="i">
@@ -42,19 +42,19 @@
 				</h3>
 
 				<NcCheckboxRadioSwitch
-					:model-value="draft.showTitle"
+					:modelValue="draft.showTitle"
 					data-testid="cn-widget-style-show-title"
-					@update:model-value="draft.showTitle = $event">
+					@update:modelValue="draft.showTitle = $event">
 					{{ t('nextcloud-vue', 'Show title') }}
 				</NcCheckboxRadioSwitch>
 
 				<NcTextField
 					v-if="draft.showTitle"
-					:model-value="draft.customTitle"
+					:modelValue="draft.customTitle"
 					:label="t('nextcloud-vue', 'Custom title')"
 					:placeholder="titlePlaceholder"
 					data-testid="cn-widget-style-custom-title"
-					@update:model-value="draft.customTitle = $event" />
+					@update:modelValue="draft.customTitle = $event" />
 			</div>
 
 			<!-- Background section: colour picker over the chrome background. -->
@@ -91,7 +91,7 @@
 				<CnIconBrowser
 					:value="draft.customIcon || null"
 					:icons="builtinCatalogue"
-					:url-icons="legacyExtraIcons"
+					:urlIcons="legacyExtraIcons"
 					clearable
 					data-testid="cn-widget-style-icon"
 					@input="draft.customIcon = $event || ''" />

@@ -6,7 +6,7 @@
 <template>
 	<NcActions
 		:aria-label="menuLabel"
-		:force-menu="true"
+		:forceMenu="true"
 		placement="bottom-end"
 		type="tertiary"
 		class="cn-widget-edit-cog"
@@ -16,7 +16,7 @@
 			<Cog :size="20" />
 		</template>
 		<NcActionButton
-			:close-after-click="true"
+			:closeAfterClick="true"
 			data-testid="cn-widget-edit-cog-edit"
 			@click="onEdit">
 			<template #icon>
@@ -25,7 +25,7 @@
 			{{ editLabel }}
 		</NcActionButton>
 		<NcActionButton
-			:close-after-click="true"
+			:closeAfterClick="true"
 			data-testid="cn-widget-edit-cog-delete"
 			@click="onRemove">
 			<template #icon>

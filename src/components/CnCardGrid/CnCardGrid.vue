@@ -31,7 +31,7 @@
 						:object="object"
 						:schema="schema"
 						:selectable="selectable"
-						:click-to-view="clickToView"
+						:clickToView="clickToView"
 						:selected="isSelected(object)"
 						v-on="cardListeners(object)">
 						<template v-if="$slots['card-actions']" #actions="{ object: obj }">

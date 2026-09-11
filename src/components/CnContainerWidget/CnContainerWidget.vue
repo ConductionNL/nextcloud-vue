@@ -22,7 +22,7 @@
 				<div class="grid-stack-item-content">
 					<CnContainerChild
 						:placement="child"
-						:edit-mode="editMode" />
+						:editMode="editMode" />
 				</div>
 			</div>
 		</div>

@@ -16,7 +16,7 @@
 		<NcActions
 			v-model:open="menuOpen"
 			:aria-label="t('nextcloud-vue', 'Edit with Buildiq')"
-			:class="['cn-buildiq-edit__actions', { 'cn-buildiq-edit__actions--editing': isEditing }]">
+			class="cn-buildiq-edit__actions" :class="[{ 'cn-buildiq-edit__actions--editing': isEditing }]">
 			<template #icon>
 				<svg class="cn-buildiq-edit__glyph"
 					width="20"
@@ -31,7 +31,7 @@
 			<!-- Save keeps the menu open while persisting so the spinner that
 			     replaces the save icon stays visible; onToggleEdit closes it
 			     once the async save settles. -->
-			<NcActionButton :close-after-click="false" :disabled="saving" @click="onToggleEdit">
+			<NcActionButton :closeAfterClick="false" :disabled="saving" @click="onToggleEdit">
 				<template #icon>
 					<NcLoadingIcon v-if="saving" :size="20" />
 					<Pencil v-else-if="!isEditing" :size="20" />
@@ -46,7 +46,7 @@
 			     Add widget there. -->
 			<NcActionButton v-if="pageSupportsWidgets"
 				:disabled="!isEditing"
-				:close-after-click="true"
+				:closeAfterClick="true"
 				@click="onAddWidget">
 				<template #icon>
 					<Plus :size="20" />
@@ -54,28 +54,28 @@
 				{{ t('nextcloud-vue', 'Add widget…') }}
 			</NcActionButton>
 
-			<NcActionButton :close-after-click="true" @click="onEditPages">
+			<NcActionButton :closeAfterClick="true" @click="onEditPages">
 				<template #icon>
 					<FileMultiple :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Edit pages…') }}
 			</NcActionButton>
 
-			<NcActionButton :close-after-click="true" @click="onEditMenu">
+			<NcActionButton :closeAfterClick="true" @click="onEditMenu">
 				<template #icon>
 					<MenuIcon :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Edit menu…') }}
 			</NcActionButton>
 
-			<NcActionButton :close-after-click="true" @click="onEditSidebar">
+			<NcActionButton :closeAfterClick="true" @click="onEditSidebar">
 				<template #icon>
 					<PageLayoutSidebarRight :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Edit sidebar…') }}
 			</NcActionButton>
 
-			<NcActionButton :close-after-click="true" @click="onEditActions">
+			<NcActionButton :closeAfterClick="true" @click="onEditActions">
 				<template #icon>
 					<GestureTapButton :size="20" />
 				</template>
@@ -97,21 +97,21 @@
 			     re-implementing the modal. Removing them would be a breaking
 			     change to that API for a menu-layout decision. -->
 
-			<NcActionButton :close-after-click="true" @click="onEditData">
+			<NcActionButton :closeAfterClick="true" @click="onEditData">
 				<template #icon>
 					<Database :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Edit data…') }}
 			</NcActionButton>
 
-			<NcActionButton :close-after-click="true" @click="onEditFlows">
+			<NcActionButton :closeAfterClick="true" @click="onEditFlows">
 				<template #icon>
 					<Sitemap :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Edit flows…') }}
 			</NcActionButton>
 
-			<NcActionButton v-if="isEditing" :close-after-click="true" @click="onCancel">
+			<NcActionButton v-if="isEditing" :closeAfterClick="true" @click="onCancel">
 				<template #icon>
 					<Close :size="20" />
 				</template>
@@ -134,7 +134,7 @@
 		<CnEditSidebarModal
 			v-if="showSidebarModal"
 			:working="workingManifest"
-			:page-id="effectivePageId"
+			:pageId="effectivePageId"
 			@close="showSidebarModal = false" />
 		<CnAddWidgetModal
 			v-if="showAddWidgetModal"
@@ -146,7 +146,7 @@
 		<CnEditActionsModal
 			v-if="showActionsModal"
 			:working="workingManifest"
-			:page-id="effectivePageId"
+			:pageId="effectivePageId"
 			@close="showActionsModal = false" />
 		<CnEditDataModal
 			v-if="showDataModal"
@@ -155,7 +155,7 @@
 		<CnFlowEditModal
 			v-if="showFlowsCanvasModal"
 			:app="flowApp"
-			flow-id="new"
+			flowId="new"
 			@close="showFlowsCanvasModal = false" />
 		<CnEditSetupModal
 			v-if="showSetupModal"

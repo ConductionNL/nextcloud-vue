@@ -8,12 +8,12 @@
 		:objects="rows"
 		:loading="store.loading"
 		:selectable="false"
-		:show-add="false"
-		:show-view-action="false"
-		:show-edit-action="false"
+		:showAdd="false"
+		:showViewAction="false"
+		:showEditAction="false"
 		:actions="rowActions"
-		row-click-to-view
-		@row-click="openFlow">
+		rowClickToView
+		@rowClick="openFlow">
 		<template #header-actions>
 			<NcButton variant="primary" @click="createFlow">
 				<template #icon>

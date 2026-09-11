@@ -47,7 +47,7 @@
 				:label="t('nextcloud-vue', 'Search projects')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-cospend-picker__search"
-				@update:model-value="onSearch" />
+				@update:modelValue="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent

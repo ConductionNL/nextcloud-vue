@@ -34,9 +34,9 @@
 					<NcAvatar
 						class="cn-email-card__avatar"
 						:size="32"
-						:display-name="row.sender"
+						:displayName="row.sender"
 						:user="row.avatarUser"
-						:is-no-user="true" />
+						:isNoUser="true" />
 					<div class="cn-email-card__text">
 						<div class="cn-email-card__row-head">
 							<strong class="cn-email-card__subject">{{ row.subject }}</strong>

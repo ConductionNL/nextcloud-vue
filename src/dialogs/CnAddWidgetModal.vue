@@ -39,10 +39,10 @@
 				:is="activeSubFormComponent"
 				ref="activeSubForm"
 				:key="state.type"
-				:editing-widget="state.editingWidget"
+				:editingWidget="state.editingWidget"
 				:value="state.content"
-				:file-upload-fn="fileUploadFn"
-				:calendars-fetcher="calendarsFetcher"
+				:fileUploadFn="fileUploadFn"
+				:calendarsFetcher="calendarsFetcher"
 				@update:content="onContentUpdate" />
 		</div>
 		<div v-else class="cn-add-widget-modal__empty">
@@ -61,15 +61,15 @@
 			     title inputs. -->
 			<template v-if="!activeTypeOwnsTitle">
 				<NcCheckboxRadioSwitch
-					:model-value="chrome.showTitle"
-					@update:model-value="chrome.showTitle = $event">
+					:modelValue="chrome.showTitle"
+					@update:modelValue="chrome.showTitle = $event">
 					{{ t('nextcloud-vue', 'Show title') }}
 				</NcCheckboxRadioSwitch>
 				<NcTextField
 					v-if="chrome.showTitle"
-					:model-value="chrome.customTitle"
+					:modelValue="chrome.customTitle"
 					:label="t('nextcloud-vue', 'Custom title')"
-					@update:model-value="chrome.customTitle = $event" />
+					@update:modelValue="chrome.customTitle = $event" />
 			</template>
 			<div class="cn-add-widget-modal__chrome-row">
 				<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Background') }}</span>
@@ -86,8 +86,8 @@
 				<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Icon') }}</span>
 				<CnIconBrowser
 					:value="chrome.customIcon"
-					:upload-fn="uploadFn"
-					allow-url
+					:uploadFn="uploadFn"
+					allowUrl
 					clearable
 					@input="chrome.customIcon = $event" />
 			</div>

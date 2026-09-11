@@ -32,7 +32,7 @@
 				:title="title"
 				:description="description"
 				:icon="icon"
-				:visually-hidden="!showTitle" />
+				:visuallyHidden="!showTitle" />
 		</slot>
 
 		<!-- Actions slot -->
@@ -55,7 +55,7 @@
 		<slot
 			name="files-view"
 			:folder="folder"
-			:allowed-types="allowedTypes"
+			:allowedTypes="allowedTypes"
 			:files="filteredFiles"
 			:loading="loading"
 			:error="error"
@@ -86,8 +86,8 @@
 					v-else
 					:columns="columns"
 					:rows="filteredFiles"
-					row-key="path"
-					:empty-text="emptyText" />
+					rowKey="path"
+					:emptyText="emptyText" />
 			</div>
 		</slot>
 	</div>

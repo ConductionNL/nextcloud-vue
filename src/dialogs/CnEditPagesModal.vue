@@ -20,7 +20,7 @@
 		<CnPageTreeNode v-else
 			:list="pages"
 			:menu="working && Array.isArray(working.menu) ? working.menu : null"
-			:max-depth="1"
+			:maxDepth="1"
 			@navigate="onNavigate" />
 
 		<template #actions>

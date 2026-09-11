@@ -57,14 +57,14 @@
 
 			<CnSupportDialog
 				v-if="showSupportDialog"
-				:app-name="resolvedAppName"
-				:app-slug="resolvedAppSlug"
-				:app-store-url="resolvedAppStoreUrl"
-				:feature-request-url="resolvedFeatureRequestUrl"
-				:donate-url="donateUrl"
-				:support-url="supportUrl"
-				:founder-name="founderName"
-				:founder-title="founderTitle"
+				:appName="resolvedAppName"
+				:appSlug="resolvedAppSlug"
+				:appStoreUrl="resolvedAppStoreUrl"
+				:featureRequestUrl="resolvedFeatureRequestUrl"
+				:donateUrl="donateUrl"
+				:supportUrl="supportUrl"
+				:founderName="founderName"
+				:founderTitle="founderTitle"
 				@close="showSupportDialog = false" />
 		</template>
 	</div>

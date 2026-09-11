@@ -25,10 +25,10 @@
 		:forge="resolvedForge"
 		:features="resolvedFeatures"
 		:disabled="resolvedDisabled"
-		:openbuilt-url="resolvedOpenbuiltUrl"
-		:llm-skills-url="resolvedLlmSkillsUrl"
-		:suggest-url="resolvedSuggestUrl"
-		:documentation-url="resolvedDocumentationUrl" />
+		:openbuiltUrl="resolvedOpenbuiltUrl"
+		:llmSkillsUrl="resolvedLlmSkillsUrl"
+		:suggestUrl="resolvedSuggestUrl"
+		:documentationUrl="resolvedDocumentationUrl" />
 </template>
 
 <script>

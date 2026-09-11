@@ -71,9 +71,9 @@
 			v-if="missingApp"
 			:title="widgetTitle"
 			:chromeless="isBare"
-			title-icon-position="left"
-			:show-refresh="false"
-			:show-request-feature="false">
+			titleIconPosition="left"
+			:showRefresh="false"
+			:showRequestFeature="false">
 			<template v-if="widget && widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
@@ -88,16 +88,16 @@
 			v-else-if="isData && schemaObject"
 			:title="resolvedTitle"
 			:chromeless="isBare"
-			:show-actions="!isBare"
+			:showActions="!isBare"
 			:icon="widget.icon || null"
 			:schema="schemaObject"
-			:object-data="object"
-			:object-type="objectType"
+			:objectData="object"
+			:objectType="objectType"
 			:store="store"
 			:overrides="content.overrides || {}"
 			:include="content.include || null"
 			:exclude="content.exclude || []"
-			:hide-empty="content.hideEmpty === true || hideEmpty"
+			:hideEmpty="content.hideEmpty === true || hideEmpty"
 			:columns="content.columns || 3"
 			:editable="content.editable !== false" />
 
@@ -107,34 +107,34 @@
 			v-else-if="isRelated"
 			:title="resolvedTitle"
 			:bare="isBare"
-			:object-type="objectType"
-			:object-id="objectId"
-			:object-data="object"
+			:objectType="objectType"
+			:objectId="objectId"
+			:objectData="object"
 			:register="register"
 			:schema="schema"
 			:store="store"
-			:include-groups="content.groups || []"
-			:hide-single-tab-title="content.hideSingleTabTitle !== false"
-			:show-total-count="content.showTotalCount !== false"
-			@open-integration="onOpenIntegration" />
+			:includeGroups="content.groups || []"
+			:hideSingleTabTitle="content.hideSingleTabTitle !== false"
+			:showTotalCount="content.showTotalCount !== false"
+			@openIntegration="onOpenIntegration" />
 
 		<!-- `type: 'object-geo'` — view/edit the object's `@self.geo` on a map. -->
 		<CnObjectGeoWidget
 			v-else-if="isGeo"
 			:title="resolvedTitle"
-			:object-id="objectId"
-			:object-data="object"
+			:objectId="objectId"
+			:objectData="object"
 			:register="register"
 			:schema="schema"
 			:editable="content.editable !== false"
-			:address-search="content.addressSearch === true"
+			:addressSearch="content.addressSearch === true"
 			:basemap="content.basemap || 'standard'"
-			:allow-basemap-switch="content.allowBasemapSwitch === true"
-			:fit-control="content.fitControl !== false"
-			:locate-control="content.locateControl !== false"
-			:fullscreen-control="content.fullscreenControl !== false"
+			:allowBasemapSwitch="content.allowBasemapSwitch === true"
+			:fitControl="content.fitControl !== false"
+			:locateControl="content.locateControl !== false"
+			:fullscreenControl="content.fullscreenControl !== false"
 			:height="content.height || '360px'"
-			:default-zoom="content.defaultZoom || 7"
+			:defaultZoom="content.defaultZoom || 7"
 			@saved="onGeoSaved" />
 
 		<!-- Mount-mode integration leaf (openregister#2127): a bare host-owned
@@ -142,7 +142,7 @@
 		<CnLeafMountHost
 			v-else-if="isMountIntegration"
 			:provider="integrationProvider"
-			:mount-props="integrationMountProps" />
+			:mountProps="integrationMountProps" />
 
 		<!-- Integration leaf, component mode. In BARE mode this renders the
 		     provider's `tab` (its bare content) rather than its `widget` (which
@@ -166,9 +166,9 @@
 		<CnWidgetWrapper
 			v-else-if="renderer && isContentOnly && !isBare"
 			:title="widget.title || ''"
-			title-icon-position="left"
-			:show-refresh="false"
-			:show-request-feature="false"
+			titleIconPosition="left"
+			:showRefresh="false"
+			:showRequestFeature="false"
 			class="cn-detail-page__catalog-card">
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
@@ -195,11 +195,11 @@
 		<CnWidgetWrapper
 			v-else-if="renderer && isCard && !isBare"
 			:title="widget.title || content.title || ''"
-			:show-title="effectiveShowCardTitle"
-			title-icon-position="left"
+			:showTitle="effectiveShowCardTitle"
+			titleIconPosition="left"
 			flush
-			:show-refresh="false"
-			:show-request-feature="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
 			class="cn-detail-page__card-fit">
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />

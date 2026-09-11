@@ -178,7 +178,7 @@
 
 		<CnFilesWidgetDeleteDialog
 			:open="confirmTarget !== null"
-			:file-name="confirmTarget ? confirmTarget.name : ''"
+			:fileName="confirmTarget ? confirmTarget.name : ''"
 			@update:open="onDeleteDialogToggle"
 			@confirm="performDelete" />
 	</div>

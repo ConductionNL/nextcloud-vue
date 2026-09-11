@@ -8,17 +8,17 @@
 					v-model="filterAction"
 					:options="actionOptions"
 					:placeholder="actionFilterLabel"
-					:input-label="actionFilterLabel"
+					:inputLabel="actionFilterLabel"
 					:multiple="true"
-					:keep-open="true"
+					:keepOpen="true"
 					class="cn-audit-filters__select" />
 				<NcSelect
 					v-model="filterUser"
 					:options="userOptions"
 					:placeholder="userFilterLabel"
-					:input-label="userFilterLabel"
+					:inputLabel="userFilterLabel"
 					:multiple="true"
-					:keep-open="true"
+					:keepOpen="true"
 					class="cn-audit-filters__select" />
 				<NcDateTimePickerNative
 					id="audit-date-from"
@@ -43,7 +43,7 @@
 						:name="formatDate(entry.created)"
 						:bold="false"
 						:details="entry.action"
-						:counter-number="changedCount(entry)"
+						:counterNumber="changedCount(entry)"
 						@click="toggleExpand(entry.id)">
 						<template #icon>
 							<History :size="32" />

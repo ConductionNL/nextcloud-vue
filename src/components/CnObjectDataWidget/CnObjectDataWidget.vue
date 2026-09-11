@@ -11,15 +11,15 @@
 <template>
 	<CnWidgetWrapper
 		:title="title"
-		:show-title="showTitle"
-		:show-actions="showActions"
+		:showTitle="showTitle"
+		:showActions="showActions"
 		:borderless="borderless"
 		:flush="flush"
 		:chromeless="chromeless"
-		:widget-id="widgetId || objectType"
-		:documentation-url="documentationUrl"
+		:widgetId="widgetId || objectType"
+		:documentationUrl="documentationUrl"
 		:class="{ 'cn-object-data-widget--expanded': overflowing && expanded }"
-		:title-icon-position="(iconComponent || iconName) ? 'left' : 'right'">
+		:titleIconPosition="(iconComponent || iconName) ? 'left' : 'right'">
 		<template v-if="iconName" #title-icon>
 			<CnIcon :name="iconName" :size="20" />
 		</template>
@@ -50,7 +50,7 @@
 		<template #action-items>
 			<NcActionButton
 				v-if="editable"
-				:close-after-click="true"
+				:closeAfterClick="true"
 				@click="editModalOpen = true">
 				<template #icon>
 					<Pencil :size="20" />
@@ -58,7 +58,7 @@
 				{{ editLabel }}
 			</NcActionButton>
 			<NcActionButton
-				:close-after-click="true"
+				:closeAfterClick="true"
 				@click="metadataModalOpen = true">
 				<template #icon>
 					<InformationOutline :size="20" />
@@ -116,10 +116,10 @@
 							<NcTextField
 								v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'"
 								ref="activeEditor"
-								:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
+								:modelValue="editData[field.key] != null ? String(editData[field.key]) : ''"
 								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
 								:placeholder="field.description"
-								@update:model-value="val => updateField(field.key, val)"
+								@update:modelValue="val => updateField(field.key, val)"
 								@keydown.enter="commitEdit"
 								@keydown.escape="cancelEdit" />
 
@@ -127,10 +127,10 @@
 							<NcTextField
 								v-else-if="field.widget === 'number'"
 								ref="activeEditor"
-								:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
+								:modelValue="editData[field.key] != null ? String(editData[field.key]) : ''"
 								type="number"
 								:placeholder="field.description"
-								@update:model-value="val => updateField(field.key, val !== '' ? Number(val) : null)"
+								@update:modelValue="val => updateField(field.key, val !== '' ? Number(val) : null)"
 								@keydown.enter="commitEdit"
 								@keydown.escape="cancelEdit" />
 
@@ -154,11 +154,11 @@
 								v-else-if="isSingleRelationField(field.key)"
 								ref="activeEditor"
 								:options="relationOptions[field.key] || []"
-								:model-value="relationSelectedOption(field)"
+								:modelValue="relationSelectedOption(field)"
 								:loading="relationOptionsLoading"
 								label="label"
 								:clearable="!field.required"
-								@update:model-value="onRelationChange(field, $event)"
+								@update:modelValue="onRelationChange(field, $event)"
 								@close="commitEdit" />
 
 							<!-- Select -->
@@ -166,9 +166,9 @@
 								v-else-if="field.widget === 'select'"
 								ref="activeEditor"
 								:options="getSelectOptions(field)"
-								:model-value="getSelectedOption(field)"
+								:modelValue="getSelectedOption(field)"
 								:clearable="!field.required"
-								@update:model-value="onSelectChange(field, $event)"
+								@update:modelValue="onSelectChange(field, $event)"
 								@close="commitEdit" />
 
 							<!-- Multiselect -->
@@ -176,29 +176,29 @@
 								v-else-if="field.widget === 'multiselect'"
 								ref="activeEditor"
 								:options="getMultiselectOptions(field)"
-								:model-value="getSelectedMultiselectOptions(field)"
+								:modelValue="getSelectedMultiselectOptions(field)"
 								:multiple="true"
-								:keep-open="true"
+								:keepOpen="true"
 								:clearable="true"
-								@update:model-value="onMultiselectChange(field, $event)" />
+								@update:modelValue="onMultiselectChange(field, $event)" />
 
 							<!-- Tags -->
 							<NcSelect
 								v-else-if="field.widget === 'tags'"
 								ref="activeEditor"
-								:model-value="editData[field.key] || []"
+								:modelValue="editData[field.key] || []"
 								:multiple="true"
-								:keep-open="true"
+								:keepOpen="true"
 								:taggable="true"
 								:clearable="true"
-								@update:model-value="val => updateField(field.key, val)" />
+								@update:modelValue="val => updateField(field.key, val)" />
 
 							<!-- Checkbox / Switch -->
 							<NcCheckboxRadioSwitch
 								v-else-if="field.widget === 'checkbox'"
-								:model-value="!!editData[field.key]"
+								:modelValue="!!editData[field.key]"
 								type="switch"
-								@update:model-value="val => { updateField(field.key, val); commitEdit() }">
+								@update:modelValue="val => { updateField(field.key, val); commitEdit() }">
 								{{ editData[field.key] ? 'Yes' : 'No' }}
 							</NcCheckboxRadioSwitch>
 
@@ -206,9 +206,9 @@
 							<NcTextField
 								v-else-if="field.widget === 'date'"
 								ref="activeEditor"
-								:model-value="editData[field.key] || ''"
+								:modelValue="editData[field.key] || ''"
 								type="date"
-								@update:model-value="val => updateField(field.key, val)"
+								@update:modelValue="val => updateField(field.key, val)"
 								@keydown.enter="commitEdit"
 								@keydown.escape="cancelEdit" />
 
@@ -216,9 +216,9 @@
 							<NcTextField
 								v-else-if="field.widget === 'datetime'"
 								ref="activeEditor"
-								:model-value="editData[field.key] || ''"
+								:modelValue="editData[field.key] || ''"
 								type="datetime-local"
-								@update:model-value="val => updateField(field.key, val)"
+								@update:modelValue="val => updateField(field.key, val)"
 								@keydown.enter="commitEdit"
 								@keydown.escape="cancelEdit" />
 
@@ -226,9 +226,9 @@
 							<NcTextField
 								v-else
 								ref="activeEditor"
-								:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
+								:modelValue="editData[field.key] != null ? String(editData[field.key]) : ''"
 								:placeholder="field.description"
-								@update:model-value="val => updateField(field.key, val)"
+								@update:modelValue="val => updateField(field.key, val)"
 								@keydown.enter="commitEdit"
 								@keydown.escape="cancelEdit" />
 						</template>
@@ -363,7 +363,7 @@
 		     Metadata action item rather than as a permanent page widget. -->
 		<CnObjectMetadataModal
 			v-if="metadataModalOpen"
-			:object-data="objectData"
+			:objectData="objectData"
 			@close="metadataModalOpen = false" />
 
 		<!-- Full-form edit (alongside the per-field inline editing) — schema-driven
@@ -372,10 +372,10 @@
 			v-if="editModalOpen"
 			:schema="schema"
 			:item="objectData"
-			:dialog-title="editLabel"
+			:dialogTitle="editLabel"
 			:overrides="resolvedOverrides"
-			:exclude-fields="exclude"
-			:include-fields="include"
+			:excludeFields="exclude"
+			:includeFields="include"
 			:size="formSize"
 			:columns="formColumns"
 			@confirm="onEditConfirm"

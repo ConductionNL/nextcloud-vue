@@ -11,10 +11,10 @@
 		<NcDashboardWidget
 			v-if="isApiWidget"
 			:items="widgetItems"
-			:show-more-url="widget.widgetUrl"
+			:showMoreUrl="widget.widgetUrl"
 			:loading="loading"
-			:item-menu="false"
-			:round-icons="widget.itemIconsRound">
+			:itemMenu="false"
+			:roundIcons="widget.itemIconsRound">
 			<template #empty-content>
 				<NcEmptyContent
 					v-if="emptyMessage"

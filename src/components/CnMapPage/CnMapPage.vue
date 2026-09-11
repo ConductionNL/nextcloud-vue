@@ -69,12 +69,12 @@
 				:markers="markers"
 				:clustering="clustering"
 				:height="height"
-				:auto-fit="autoFit"
+				:autoFit="autoFit"
 				:aria-label="ariaLabel"
-				:unavailable-label="unavailableLabel"
-				@map-ready="onMapReady"
-				@marker-click="onMarkerClick"
-				@bounds-change="onBoundsChange"
+				:unavailableLabel="unavailableLabel"
+				@mapReady="onMapReady"
+				@markerClick="onMarkerClick"
+				@boundsChange="onBoundsChange"
 				@click="onMapClick">
 				<template v-if="$slots.legend || $slots.legend" #legend="ctx">
 					<!--

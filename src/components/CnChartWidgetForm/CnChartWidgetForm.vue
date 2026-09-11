@@ -12,17 +12,17 @@
 
 		<div class="cn-chart-widget-form__row2">
 			<NcSelect
-				:model-value="chartKind"
+				:modelValue="chartKind"
 				:options="chartKindOptions"
-				:input-label="t('nextcloud-vue', 'Chart type')"
+				:inputLabel="t('nextcloud-vue', 'Chart type')"
 				:clearable="false"
-				@update:model-value="updateField('chartKind', $event)" />
+				@update:modelValue="updateField('chartKind', $event)" />
 			<NcSelect
-				:model-value="mode"
+				:modelValue="mode"
 				:options="modeOptions"
-				:input-label="t('nextcloud-vue', 'Breakdown')"
+				:inputLabel="t('nextcloud-vue', 'Breakdown')"
 				:clearable="false"
-				@update:model-value="updateField('mode', $event)">
+				@update:modelValue="updateField('mode', $event)">
 				<template #option="{ label: id }">
 					{{ modeLabel(id) }}
 				</template>
@@ -54,11 +54,11 @@
 				placeholder="expectedCloseDate"
 				@update="updateBucket('field', $event)" />
 			<NcSelect
-				:model-value="bucket.interval"
+				:modelValue="bucket.interval"
 				:options="intervalOptions"
-				:input-label="t('nextcloud-vue', 'Interval')"
+				:inputLabel="t('nextcloud-vue', 'Interval')"
 				:clearable="false"
-				@update:model-value="updateBucket('interval', $event)" />
+				@update:modelValue="updateBucket('interval', $event)" />
 		</div>
 
 		<!-- Category breakdown. -->
@@ -70,26 +70,26 @@
 				placeholder="stage"
 				@update="updateGroup('field', $event)" />
 			<NcSelect
-				:model-value="group.sort"
+				:modelValue="group.sort"
 				:options="sortOptions"
-				:input-label="t('nextcloud-vue', 'Sort')"
+				:inputLabel="t('nextcloud-vue', 'Sort')"
 				:clearable="false"
-				@update:model-value="updateGroup('sort', $event)" />
+				@update:modelValue="updateGroup('sort', $event)" />
 			<NcTextField
-				:model-value="String(group.limit)"
+				:modelValue="String(group.limit)"
 				type="number"
 				:label="t('nextcloud-vue', 'Top N')"
-				@update:model-value="updateGroup('limit', Number($event) || 0)" />
+				@update:modelValue="updateGroup('limit', Number($event) || 0)" />
 		</div>
 
 		<!-- Shared metric (both modes). -->
 		<div class="cn-chart-widget-form__row2">
 			<NcSelect
-				:model-value="metric"
+				:modelValue="metric"
 				:options="metricOptions"
-				:input-label="t('nextcloud-vue', 'Aggregation')"
+				:inputLabel="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@update:model-value="updateField('metric', $event)" />
+				@update:modelValue="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric && metric !== 'count'"
 				:value="metricField"

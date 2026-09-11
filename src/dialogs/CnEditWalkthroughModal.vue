@@ -29,7 +29,7 @@
 				:clearable="false"
 				:reduce="o => o.id"
 				label="label"
-				:input-label="t('nextcloud-vue', 'Trigger')" />
+				:inputLabel="t('nextcloud-vue', 'Trigger')" />
 		</label>
 
 		<h3 class="cn-edit-walkthrough__steps-title">
@@ -57,8 +57,8 @@
 				<NcTextField v-model="step.task"
 					:label="t('nextcloud-vue', 'Task (the one action for this step)')" />
 				<NcTextField :label="t('nextcloud-vue', 'Target (optional CSS selector to spotlight; blank = centred)')"
-					:model-value="targetRef(step)"
-					@update:model-value="setTarget(step, $event)" />
+					:modelValue="targetRef(step)"
+					@update:modelValue="setTarget(step, $event)" />
 			</li>
 		</ul>
 

@@ -23,11 +23,11 @@
 				<li v-for="(tab, index) in editableTabs" :key="index" class="cn-edit-sidebar__tab">
 					<div class="cn-edit-sidebar__tab-row">
 						<NcCheckboxRadioSwitch
-							:model-value="!isHidden(tab.id)"
+							:modelValue="!isHidden(tab.id)"
 							:aria-label="t('nextcloud-vue', 'Visible')"
-							@update:model-value="(v) => setTabVisible(tab.id, v)" />
-						<NcTextField v-model="tab.label" :label="t('nextcloud-vue', 'Tab label')" :label-visible="true" />
-						<NcTextField v-model="tab.id" :label="t('nextcloud-vue', 'Tab id')" :label-visible="true" />
+							@update:modelValue="(v) => setTabVisible(tab.id, v)" />
+						<NcTextField v-model="tab.label" :label="t('nextcloud-vue', 'Tab label')" :labelVisible="true" />
+						<NcTextField v-model="tab.id" :label="t('nextcloud-vue', 'Tab id')" :labelVisible="true" />
 						<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="removeTab(index)">
 							<template #icon>
 								<Delete :size="20" />
@@ -36,12 +36,12 @@
 					</div>
 					<label class="cn-edit-sidebar__content">
 						<span>{{ t('nextcloud-vue', 'Content') }}</span>
-						<NcSelect :model-value="selectedContent(tab)"
+						<NcSelect :modelValue="selectedContent(tab)"
 							:options="contentOptions"
 							:clearable="false"
 							label="label"
-							:input-label="t('nextcloud-vue', 'Tab content')"
-							@update:model-value="(o) => setContent(tab, o)" />
+							:inputLabel="t('nextcloud-vue', 'Tab content')"
+							@update:modelValue="(o) => setContent(tab, o)" />
 					</label>
 				</li>
 			</ul>

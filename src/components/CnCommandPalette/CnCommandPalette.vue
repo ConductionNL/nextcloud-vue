@@ -34,7 +34,7 @@
 	<NcDialog v-if="isOpen"
 		:name="paletteLabel"
 		size="normal"
-		:close-on-click-outside="true"
+		:closeOnClickOutside="true"
 		class="cn-command-palette-dialog"
 		data-testid="cn-command-palette-dialog"
 		@closing="close">

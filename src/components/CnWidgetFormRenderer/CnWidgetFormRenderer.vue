@@ -15,8 +15,8 @@
 <template>
 	<CnWidgetWrapper
 		:title="title"
-		:widget-id="widgetId"
-		:documentation-url="documentationUrl"
+		:widgetId="widgetId"
+		:documentationUrl="documentationUrl"
 		flush>
 		<CnFormPage v-bind="{ ...innerProps, ...$attrs }" />
 	</CnWidgetWrapper>

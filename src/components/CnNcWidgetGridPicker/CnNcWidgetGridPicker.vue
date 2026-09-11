@@ -35,7 +35,7 @@
 						v-if="widget.iconUrl"
 						class="cn-nc-widget-grid-picker__icon"
 						:src="widget.iconUrl"
-						:alt="''"
+						alt=""
 						aria-hidden="true">
 					<span
 						v-else

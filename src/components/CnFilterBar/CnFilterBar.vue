@@ -3,13 +3,13 @@
 		<!-- Search input -->
 		<div class="cn-filter-bar__search" data-testid="cn-filter-bar-search">
 			<NcTextField
-				:model-value="searchValue"
+				:modelValue="searchValue"
 				:placeholder="searchPlaceholder"
 				:label="searchPlaceholder"
-				trailing-button-icon="close"
-				:show-trailing-button="searchValue !== ''"
-				@update:model-value="$emit('search', $event)"
-				@trailing-button-click="$emit('search', '')">
+				trailingButtonIcon="close"
+				:showTrailingButton="searchValue !== ''"
+				@update:modelValue="$emit('search', $event)"
+				@trailingButtonClick="$emit('search', '')">
 				<template #icon>
 					<Magnify :size="20" />
 				</template>
@@ -24,29 +24,29 @@
 					v-if="filter.type === 'select'"
 					:key="filter.key"
 					class="cn-filter-bar__filter"
-					:model-value="filter.value"
+					:modelValue="filter.value"
 					:options="filter.options || []"
 					:placeholder="filter.label"
-					:input-label="filter.label"
+					:inputLabel="filter.label"
 					:clearable="true"
-					@update:model-value="onFilterChange(filter.key, $event)" />
+					@update:modelValue="onFilterChange(filter.key, $event)" />
 
 				<!-- Text filter -->
 				<NcTextField
 					v-else-if="filter.type === 'text'"
 					:key="filter.key"
 					class="cn-filter-bar__filter"
-					:model-value="filter.value || ''"
+					:modelValue="filter.value || ''"
 					:placeholder="filter.label"
 					:label="filter.label"
-					@update:model-value="onFilterChange(filter.key, $event)" />
+					@update:modelValue="onFilterChange(filter.key, $event)" />
 
 				<!-- Checkbox filter -->
 				<NcCheckboxRadioSwitch
 					v-else-if="filter.type === 'checkbox'"
 					:key="filter.key"
-					:model-value="!!filter.value"
-					@update:model-value="onFilterChange(filter.key, $event)">
+					:modelValue="!!filter.value"
+					@update:modelValue="onFilterChange(filter.key, $event)">
 					{{ filter.label }}
 				</NcCheckboxRadioSwitch>
 			</template>

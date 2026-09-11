@@ -30,8 +30,8 @@
 			v-else
 			v-model:shown="open"
 			:triggers="[]"
-			popup-role="dialog"
-			popover-base-class="cn-icon-browser__popper">
+			popupRole="dialog"
+			popoverBaseClass="cn-icon-browser__popper">
 			<template #trigger="{ attrs }">
 				<!-- @slot trigger Popup-mode trigger; defaults to an icon button that opens the popover. -->
 				<!-- @binding {Function} open Opens the popover. -->

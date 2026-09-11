@@ -30,7 +30,7 @@
 		:data-page-id="currentPage.id"
 		data-testid="cn-page"
 		:data-testid-page-id="currentPage.id"
-		:class="['cn-page-renderer', { 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
+		class="cn-page-renderer" :class="[{ 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
 		<!--
 		  A page whose `requiresApp` is not installed renders the missing-
 		  dependency screen INSTEAD of its body.
@@ -119,15 +119,15 @@
 				v-if="widgetsBySlot.has('body')"
 				:widgets="widgetsBySlot.get('body')"
 				:editable="bodyEditable"
-				slot-name="body" />
+				slotName="body" />
 			<component
 				:is="resolvedComponent"
 				v-else-if="resolvedComponent"
 				:key="pageRenderKey"
 				v-bind="{ ...$attrs, ...resolvedProps }"
 				@view="onRowOpen"
-				@row-click="onRowOpen"
-				@edit-open="onRowOpen"
+				@rowClick="onRowOpen"
+				@editOpen="onRowOpen"
 				@configure="showConfigModal = true">
 				<!-- This `<template v-for>` defines dynamic SLOTS, not a
 				     rendered list, so the rule's advice is inverted here:
@@ -150,27 +150,27 @@
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('header-actions')"
 				:widgets="widgetsBySlot.get('header-actions')"
-				slot-name="header-actions" />
+				slotName="header-actions" />
 			<!-- footer slot -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('footer')"
 				:widgets="widgetsBySlot.get('footer')"
-				slot-name="footer" />
+				slotName="footer" />
 			<!-- modal slot -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('modal')"
 				:widgets="widgetsBySlot.get('modal')"
-				slot-name="modal" />
+				slotName="modal" />
 			<!-- sidebar slot (gated by cnPageSidebarVisible) -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('sidebar') && pageSidebarVisibleValue"
 				:widgets="widgetsBySlot.get('sidebar')"
-				slot-name="sidebar" />
+				slotName="sidebar" />
 			<!-- dynamic tab:* and section:* slots -->
 			<template v-for="dynamicSlot in dynamicSlotKeys" :key="dynamicSlot">
 				<CnWidgetGrid
 					:widgets="widgetsBySlot.get(dynamicSlot)"
-					:slot-name="dynamicSlot" />
+					:slotName="dynamicSlot" />
 			</template>
 		</template>
 
@@ -180,8 +180,8 @@
 			:key="pageRenderKey"
 			v-bind="{ ...$attrs, ...resolvedProps }"
 			@view="onRowOpen"
-			@row-click="onRowOpen"
-			@edit-open="onRowOpen"
+			@rowClick="onRowOpen"
+			@editOpen="onRowOpen"
 			@configure="showConfigModal = true">
 			<!-- Dynamic slot definition, not a rendered list — see the note on
 			     the identical block above. -->

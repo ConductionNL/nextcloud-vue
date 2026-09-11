@@ -14,8 +14,8 @@
 		<li v-for="node in tree" :key="keyOf(node)" class="cn-menu-tree__node">
 			<CnMenuTreeRow :item="node.ref"
 				:pages="pages"
-				:can-add-child="maxDepth > 0"
-				@add-child="addChild(node)"
+				:canAddChild="maxDepth > 0"
+				@addChild="addChild(node)"
 				@remove="removeNode(node, null)" />
 
 			<!-- One level of children: a drop target on every top item. -->
@@ -31,7 +31,7 @@
 				<li v-for="child in node.children" :key="keyOf(child)" class="cn-menu-tree__node">
 					<CnMenuTreeRow :item="child.ref"
 						:pages="pages"
-						:can-add-child="false"
+						:canAddChild="false"
 						@remove="removeNode(child, node)" />
 				</li>
 			</draggable>

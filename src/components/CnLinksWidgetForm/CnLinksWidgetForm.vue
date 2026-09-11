@@ -66,7 +66,7 @@
 						<CnIconBrowser
 							class="cn-links-form__icon"
 							:value="link.icon"
-							allow-url
+							allowUrl
 							@input="updateLink(sIdx, lIdx, 'icon', $event)" />
 						<input
 							v-if="showLinkDescriptions"

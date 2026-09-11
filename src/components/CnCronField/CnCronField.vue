@@ -5,12 +5,12 @@
 <template>
 	<div class="cn-cron-field">
 		<NcSelect
-			:model-value="presetOption"
+			:modelValue="presetOption"
 			:options="presetOptions"
-			:input-label="label"
+			:inputLabel="label"
 			:disabled="disabled"
 			:clearable="false"
-			@update:model-value="onPreset" />
+			@update:modelValue="onPreset" />
 
 		<!-- Only the controls the chosen schedule actually uses. A "every day"
 		     schedule has no weekday to pick, and showing one greyed out invites
@@ -18,39 +18,39 @@
 		<div v-if="preset !== 'custom'" class="cn-cron-field__parts">
 			<NcSelect
 				v-if="usesMinute"
-				:model-value="minuteOption"
+				:modelValue="minuteOption"
 				:options="minuteOptions"
-				:input-label="t('nextcloud-vue', 'Minute')"
+				:inputLabel="t('nextcloud-vue', 'Minute')"
 				:disabled="disabled"
 				:clearable="false"
-				@update:model-value="onPart('minute', $event)" />
+				@update:modelValue="onPart('minute', $event)" />
 
 			<NcSelect
 				v-if="usesHour"
-				:model-value="hourOption"
+				:modelValue="hourOption"
 				:options="hourOptions"
-				:input-label="t('nextcloud-vue', 'Hour')"
+				:inputLabel="t('nextcloud-vue', 'Hour')"
 				:disabled="disabled"
 				:clearable="false"
-				@update:model-value="onPart('hour', $event)" />
+				@update:modelValue="onPart('hour', $event)" />
 
 			<NcSelect
 				v-if="preset === 'weekly'"
-				:model-value="weekdayOption"
+				:modelValue="weekdayOption"
 				:options="weekdayOptions"
-				:input-label="t('nextcloud-vue', 'Day of the week')"
+				:inputLabel="t('nextcloud-vue', 'Day of the week')"
 				:disabled="disabled"
 				:clearable="false"
-				@update:model-value="onPart('weekday', $event)" />
+				@update:modelValue="onPart('weekday', $event)" />
 
 			<NcSelect
 				v-if="preset === 'monthly'"
-				:model-value="monthdayOption"
+				:modelValue="monthdayOption"
 				:options="monthdayOptions"
-				:input-label="t('nextcloud-vue', 'Day of the month')"
+				:inputLabel="t('nextcloud-vue', 'Day of the month')"
 				:disabled="disabled"
 				:clearable="false"
-				@update:model-value="onPart('monthday', $event)" />
+				@update:modelValue="onPart('monthday', $event)" />
 		</div>
 
 		<!-- The expression itself is always reachable, and is the only control
@@ -58,12 +58,12 @@
 		     express the schedules cron can, and cannot be checked by someone who
 		     already knows what they want. -->
 		<NcTextField
-			:model-value="modelValue"
+			:modelValue="modelValue"
 			:label="t('nextcloud-vue', 'Cron expression')"
 			:disabled="disabled"
 			:error="error !== null"
-			:helper-text="error || summary"
-			@update:model-value="onExpression" />
+			:helperText="error || summary"
+			@update:modelValue="onExpression" />
 	</div>
 </template>
 

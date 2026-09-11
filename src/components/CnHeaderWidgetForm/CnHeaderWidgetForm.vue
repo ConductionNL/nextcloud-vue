@@ -6,17 +6,17 @@
 <template>
 	<div class="cn-header-widget-form">
 		<NcTextField
-			:model-value="title"
+			:modelValue="title"
 			:label="t('nextcloud-vue', 'Title')"
 			:placeholder="t('nextcloud-vue', 'Header title')"
 			required
-			@update:model-value="updateField('title', $event)" />
+			@update:modelValue="updateField('title', $event)" />
 
 		<NcTextField
-			:model-value="subtitle"
+			:modelValue="subtitle"
 			:label="t('nextcloud-vue', 'Subtitle (optional)')"
 			:placeholder="t('nextcloud-vue', 'Optional subtitle')"
-			@update:model-value="updateField('subtitle', $event)" />
+			@update:modelValue="updateField('subtitle', $event)" />
 
 		<!-- Pick a background image. Selection does NOT upload — the file is held
 		     and only uploaded when the host modal calls commit() on submit, so
@@ -52,11 +52,11 @@
 		</p>
 
 		<NcTextField
-			:model-value="backgroundImageUrl"
+			:modelValue="backgroundImageUrl"
 			:label="t('nextcloud-vue', 'Background image URL')"
 			placeholder="https://example.com/banner.jpg"
 			:disabled="!!pendingFile"
-			@update:model-value="updateField('backgroundImageUrl', $event)" />
+			@update:modelValue="updateField('backgroundImageUrl', $event)" />
 
 		<label class="cn-header-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Background color') }}
@@ -68,9 +68,9 @@
 		</label>
 
 		<NcSelect
-			:model-value="overlayMode"
+			:modelValue="overlayMode"
 			:options="overlayModeOptions"
-			:input-label="t('nextcloud-vue', 'Overlay mode')"
+			:inputLabel="t('nextcloud-vue', 'Overlay mode')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
@@ -109,18 +109,18 @@
 		</label>
 
 		<NcSelect
-			:model-value="textAlign"
+			:modelValue="textAlign"
 			:options="textAlignOptions"
-			:input-label="t('nextcloud-vue', 'Text alignment')"
+			:inputLabel="t('nextcloud-vue', 'Text alignment')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('textAlign', $event)" />
 
 		<NcSelect
-			:model-value="verticalAlign"
+			:modelValue="verticalAlign"
 			:options="verticalAlignOptions"
-			:input-label="t('nextcloud-vue', 'Vertical alignment')"
+			:inputLabel="t('nextcloud-vue', 'Vertical alignment')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
@@ -137,21 +137,21 @@
 			</legend>
 
 			<NcTextField
-				:model-value="ctaLabel"
+				:modelValue="ctaLabel"
 				:label="t('nextcloud-vue', 'Button text')"
 				:placeholder="t('nextcloud-vue', 'Sign up')"
-				@update:model-value="updateCta('label', $event)" />
+				@update:modelValue="updateCta('label', $event)" />
 
 			<NcTextField
-				:model-value="ctaUrl"
+				:modelValue="ctaUrl"
 				:label="t('nextcloud-vue', 'Target URL')"
 				placeholder="https://..."
-				@update:model-value="updateCta('url', $event)" />
+				@update:modelValue="updateCta('url', $event)" />
 
 			<NcSelect
-				:model-value="ctaStyle"
+				:modelValue="ctaStyle"
 				:options="ctaStyleOptions"
-				:input-label="t('nextcloud-vue', 'Button style')"
+				:inputLabel="t('nextcloud-vue', 'Button style')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"

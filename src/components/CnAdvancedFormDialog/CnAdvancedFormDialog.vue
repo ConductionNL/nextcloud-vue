@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="resolvedTitle"
 		size="large"
-		:no-close="loading"
+		:noClose="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -28,12 +28,12 @@
 			<slot
 				v-if="$slots.form"
 				name="form"
-				:form-data="formData"
-				:update-field="updateField"
-				:object-properties="objectPropertiesForSlot"
-				:json-data="jsonData"
-				:update-json="updateJsonFromExternal"
-				:is-valid-json="isValidJson(jsonData)" />
+				:formData="formData"
+				:updateField="updateField"
+				:objectProperties="objectPropertiesForSlot"
+				:jsonData="jsonData"
+				:updateJson="updateJsonFromExternal"
+				:isValidJson="isValidJson(jsonData)" />
 
 			<!-- Default content -->
 			<template v-else>
@@ -56,7 +56,7 @@
 								role="tab"
 								:aria-selected="activeTab === idx"
 								:disabled="tab.disabled"
-								:class="['cn-advanced-form-dialog__tab-button', { 'is-active': activeTab === idx }]"
+								class="cn-advanced-form-dialog__tab-button" :class="[{ 'is-active': activeTab === idx }]"
 								@click="activeTab = idx">
 								{{ tab.title }}
 							</button>
@@ -73,26 +73,26 @@
 						class="cn-advanced-form-dialog__tab-content">
 						<slot
 							name="tab-properties"
-							:form-data="formData"
-							:update-field="updateField"
-							:object-properties="objectPropertiesForSlot"
-							:selected-property="selectedProperty"
-							:get-property-display-name="getPropertyDisplayName"
-							:get-property-validation-class="getPropertyValidationClass"
-							:is-property-editable="isPropertyEditable"
-							:validation-display="validationDisplay">
+							:formData="formData"
+							:updateField="updateField"
+							:objectProperties="objectPropertiesForSlot"
+							:selectedProperty="selectedProperty"
+							:getPropertyDisplayName="getPropertyDisplayName"
+							:getPropertyValidationClass="getPropertyValidationClass"
+							:isPropertyEditable="isPropertyEditable"
+							:validationDisplay="validationDisplay">
 							<CnPropertiesTab
 								ref="propertiesTab"
 								:schema="schema"
 								:item="item"
-								:form-data="formData"
-								:selected-property="selectedProperty"
-								:editable-types="editableTypes"
-								:validation-display="validationDisplay"
-								:exclude-fields="excludeFields"
-								:include-fields="includeFields"
-								@update:property-value="onPropertyValueUpdate"
-								@update:selected-property="selectedProperty = $event" />
+								:formData="formData"
+								:selectedProperty="selectedProperty"
+								:editableTypes="editableTypes"
+								:validationDisplay="validationDisplay"
+								:excludeFields="excludeFields"
+								:includeFields="includeFields"
+								@update:propertyValue="onPropertyValueUpdate"
+								@update:selectedProperty="selectedProperty = $event" />
 						</slot>
 					</div>
 
@@ -102,8 +102,8 @@
 						v-show="activeTab === tabIndex('metadata')"
 						role="tabpanel"
 						class="cn-advanced-form-dialog__tab-content">
-						<slot name="tab-metadata" :item="item" :form-data="formData">
-							<CnMetadataTab :item="item" :form-data="formData" />
+						<slot name="tab-metadata" :item="item" :formData="formData">
+							<CnMetadataTab :item="item" :formData="formData" />
 						</slot>
 					</div>
 
@@ -115,10 +115,10 @@
 						class="cn-advanced-form-dialog__tab-content">
 						<slot
 							name="tab-data"
-							:json-data="jsonData"
-							:update-json="updateJsonFromExternal"
-							:is-valid="isValidJson(jsonData)"
-							:format-json="formatJSON">
+							:jsonData="jsonData"
+							:updateJson="updateJsonFromExternal"
+							:isValid="isValidJson(jsonData)"
+							:formatJson="formatJSON">
 							<CnDataTab
 								:value="jsonData"
 								:dark="jsonEditorDark"

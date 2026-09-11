@@ -69,13 +69,13 @@
 				<SortVariant :size="20" class="cn-actions-bar__sort-icon" :aria-label="sortLabel" />
 				<NcSelect
 					class="cn-actions-bar__sort-select"
-					:model-value="selectedSortOption"
+					:modelValue="selectedSortOption"
 					:options="sortOptions"
 					:reduce="opt => opt.value"
 					:clearable="false"
 					:aria-label-combobox="sortLabel"
 					label="label"
-					@update:model-value="onSortChange" />
+					@update:modelValue="onSortChange" />
 			</div>
 
 			<!-- @slot filters Inline filter controls rendered inside the action bar, between the view toggle and the add/actions (e.g. a CnQuickFilterBar segmented toggle). -->
@@ -128,9 +128,9 @@
 
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions
-				:force-name="true"
+				:forceName="true"
 				:inline="inlineActionCount"
-				:menu-name="actionsMenuName"
+				:menuName="actionsMenuName"
 				data-testid="cn-actions">
 				<!--
 					@event refresh
@@ -163,7 +163,7 @@
 					<template #icon>
 						<CnIcon v-if="entry.icon && isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
 						<span v-else-if="entry.icon"
-							:class="['cn-actions-bar__header-action-icon', entry.icon]" />
+							class="cn-actions-bar__header-action-icon" :class="[entry.icon]" />
 					</template>
 					{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
 				</NcActionButton>
@@ -239,7 +239,7 @@
 					@binding {number} count Length of the current selection.
 					@binding {Array<string|number>} selected-ids The selected row ids.
 				-->
-				<slot name="mass-actions" :count="selectedIds.length" :selected-ids="selectedIds" />
+				<slot name="mass-actions" :count="selectedIds.length" :selectedIds="selectedIds" />
 			</NcActions>
 		</div>
 
@@ -309,7 +309,7 @@
 			<slot
 				name="selection-actions"
 				:count="selectedIds.length"
-				:selected-ids="selectedIds" />
+				:selectedIds="selectedIds" />
 			<!--
 				@event clear-selection
 				@description User clicked the selection strip's Clear control. The host should empty its selection (CnIndexPage does this for you and re-emits `select` with an empty array).

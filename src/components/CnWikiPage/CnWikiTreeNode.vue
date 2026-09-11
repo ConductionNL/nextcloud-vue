@@ -22,8 +22,8 @@
 				v-for="child in children"
 				:key="childKey(child)"
 				:node="child"
-				:title-field="titleField"
-				:tree-field="treeField"
+				:titleField="titleField"
+				:treeField="treeField"
 				@click="bubble" />
 		</ul>
 	</li>

@@ -85,11 +85,11 @@
 			<div class="cn-visibility-rules__field">
 				<NcSelect
 					v-model="conditionDraft.kind"
-					:input-label="t('nextcloud-vue', 'Condition kind')"
+					:inputLabel="t('nextcloud-vue', 'Condition kind')"
 					:aria-label-combobox="t('nextcloud-vue', 'Condition kind')"
 					:options="kindOptions"
 					label="label"
-					track-by="id"
+					trackBy="id"
 					:clearable="false" />
 			</div>
 
@@ -97,7 +97,7 @@
 			<div v-if="activeKind === 'group'" class="cn-visibility-rules__field">
 				<NcSelect
 					v-model="conditionDraft.groups"
-					:input-label="t('nextcloud-vue', 'Groups')"
+					:inputLabel="t('nextcloud-vue', 'Groups')"
 					:aria-label-combobox="t('nextcloud-vue', 'Groups')"
 					:options="availableGroups"
 					:multiple="true"
@@ -108,17 +108,17 @@
 			<template v-else-if="activeKind === 'time'">
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:model-value="conditionDraft.startTime"
+						:modelValue="conditionDraft.startTime"
 						:label="t('nextcloud-vue', 'Start time (HH:MM)')"
 						placeholder="09:00"
-						@update:model-value="conditionDraft.startTime = $event" />
+						@update:modelValue="conditionDraft.startTime = $event" />
 				</div>
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:model-value="conditionDraft.endTime"
+						:modelValue="conditionDraft.endTime"
 						:label="t('nextcloud-vue', 'End time (HH:MM)')"
 						placeholder="17:00"
-						@update:model-value="conditionDraft.endTime = $event" />
+						@update:modelValue="conditionDraft.endTime = $event" />
 				</div>
 			</template>
 
@@ -126,17 +126,17 @@
 			<template v-else-if="activeKind === 'date'">
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:model-value="conditionDraft.startDate"
+						:modelValue="conditionDraft.startDate"
 						:label="t('nextcloud-vue', 'Start date (YYYY-MM-DD)')"
 						placeholder="2026-12-01"
-						@update:model-value="conditionDraft.startDate = $event" />
+						@update:modelValue="conditionDraft.startDate = $event" />
 				</div>
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:model-value="conditionDraft.endDate"
+						:modelValue="conditionDraft.endDate"
 						:label="t('nextcloud-vue', 'End date (YYYY-MM-DD)')"
 						placeholder="2026-12-31"
-						@update:model-value="conditionDraft.endDate = $event" />
+						@update:modelValue="conditionDraft.endDate = $event" />
 				</div>
 			</template>
 
@@ -144,17 +144,17 @@
 			<template v-else-if="activeKind === 'attribute'">
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:model-value="conditionDraft.attribute"
+						:modelValue="conditionDraft.attribute"
 						:label="t('nextcloud-vue', 'Attribute')"
 						placeholder="language"
-						@update:model-value="conditionDraft.attribute = $event" />
+						@update:modelValue="conditionDraft.attribute = $event" />
 				</div>
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:model-value="conditionDraft.value"
+						:modelValue="conditionDraft.value"
 						:label="t('nextcloud-vue', 'Equals value')"
 						placeholder="nl"
-						@update:model-value="conditionDraft.value = $event" />
+						@update:modelValue="conditionDraft.value = $event" />
 				</div>
 			</template>
 

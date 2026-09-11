@@ -49,12 +49,12 @@
 					<NcActions
 						v-if="canClaim(task) || canComplete(task)"
 						class="cn-tasks-widget__actions"
-						:force-menu="true"
+						:forceMenu="true"
 						:aria-label="tr('Task actions')"
 						@click.stop>
 						<NcActionButton
 							v-if="canClaim(task)"
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="claim(task)">
 							{{ tr('Claim') }}
 						</NcActionButton>
@@ -62,7 +62,7 @@
 							<NcActionButton
 								v-for="outcome in outcomesOf(task)"
 								:key="outcomeId(outcome)"
-								:close-after-click="true"
+								:closeAfterClick="true"
 								@click="complete(task, outcomeId(outcome))">
 								{{ completeLabel(outcome) }}
 							</NcActionButton>

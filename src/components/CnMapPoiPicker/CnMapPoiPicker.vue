@@ -41,7 +41,7 @@
 				:label="t('nextcloud-vue', 'Search locations')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-map-poi-picker__search"
-				@update:model-value="onSearch" />
+				@update:modelValue="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent

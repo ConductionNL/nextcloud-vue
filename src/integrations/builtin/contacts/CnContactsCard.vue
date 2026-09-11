@@ -27,13 +27,13 @@
 		:title="chipTitle">
 		<NcAvatar
 			:size="28"
-			:display-name="(primaryContact && primaryContact.displayName) || unknownLabel"
+			:displayName="(primaryContact && primaryContact.displayName) || unknownLabel"
 			:user="avatarSeed(primaryContact)"
 			:url="(primaryContact && primaryContact.avatarUrl) || undefined"
-			:is-no-user="true"
-			:disable-menu="true"
-			:disable-tooltip="true"
-			:show-user-status="false" />
+			:isNoUser="true"
+			:disableMenu="true"
+			:disableTooltip="true"
+			:showUserStatus="false" />
 		<div class="cn-contacts-card__chip-text">
 			<span class="cn-contacts-card__chip-name">
 				{{ (primaryContact && primaryContact.displayName) || unknownLabel }}
@@ -74,13 +74,13 @@
 				class="cn-contacts-card__item">
 				<NcAvatar
 					:size="32"
-					:display-name="item.displayName || unknownLabel"
+					:displayName="item.displayName || unknownLabel"
 					:user="avatarSeed(item)"
 					:url="item.avatarUrl || undefined"
-					:is-no-user="true"
-					:disable-menu="true"
-					:disable-tooltip="true"
-					:show-user-status="false" />
+					:isNoUser="true"
+					:disableMenu="true"
+					:disableTooltip="true"
+					:showUserStatus="false" />
 				<div class="cn-contacts-card__item-text">
 					<span class="cn-contacts-card__item-name">{{ item.displayName || unknownLabel }}</span>
 					<span v-if="item.email" class="cn-contacts-card__item-email">{{ item.email }}</span>

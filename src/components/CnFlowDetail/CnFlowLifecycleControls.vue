@@ -50,7 +50,7 @@
 <template>
 	<h2 class="cn-flow-lifecycle" data-testid="flow-title">
 		<CnFlowHealthDot :enabled="store.flow.enabled === true"
-			:last-run-status="store.flow.lastRunStatus || null" />
+			:lastRunStatus="store.flow.lastRunStatus || null" />
 		<span class="cn-flow-lifecycle__name">{{ name }}</span>
 		<span class="cn-flow-lifecycle__pill cn-flow-lifecycle__pill--version"
 			:title="versionTitle"

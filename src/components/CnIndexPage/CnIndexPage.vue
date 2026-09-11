@@ -13,12 +13,12 @@
 			:title="title"
 			:description="description"
 			:icon="resolvedIcon"
-			:show-title="showTitle">
+			:showTitle="showTitle">
 			<CnPageHeader
 				:title="title"
 				:description="description"
 				:icon="resolvedIcon"
-				:visually-hidden="!showTitle" />
+				:visuallyHidden="!showTitle" />
 		</slot>
 
 		<!-- Optional content below header, above actions bar -->
@@ -29,59 +29,59 @@
 		<!-- Actions bar -->
 		<CnActionsBar
 			:pagination="effectivePagination"
-			:object-count="effectiveObjects.length"
+			:objectCount="effectiveObjects.length"
 			:selectable="selectable"
-			:selected-ids="internalSelectedIds"
-			:add-label="resolvedAddLabel"
-			:add-icon="resolvedIcon"
-			:inline-action-count="inlineActionCount"
-			:show-mass-import="showMassImport"
-			:show-mass-export="showMassExport"
-			:show-mass-copy="showMassCopy"
-			:show-mass-delete="showMassDelete"
-			:view-mode="currentViewMode"
-			:show-view-toggle="showViewToggle"
-			:available-view-modes="effectiveToggleModes"
-			:cards-label="cardsLabel"
-			:table-label="tableLabel"
-			:list-label="listLabel"
-			:cards-icon="cardsIcon"
-			:table-icon="tableIcon"
-			:show-map="showMapSegment"
-			:map-label="mapLabel"
-			:map-icon="mapIcon"
-			:list-icon="listIcon"
-			:show-sort-select="showSortSelect"
-			:sort-options="sortSelectOptions"
-			:sort-value="sortSelectValue"
-			:show-search="inlineSearch"
-			:search-value="effectiveSearchValue"
-			:search-placeholder="searchPlaceholder"
+			:selectedIds="internalSelectedIds"
+			:addLabel="resolvedAddLabel"
+			:addIcon="resolvedIcon"
+			:inlineActionCount="inlineActionCount"
+			:showMassImport="showMassImport"
+			:showMassExport="showMassExport"
+			:showMassCopy="showMassCopy"
+			:showMassDelete="showMassDelete"
+			:viewMode="currentViewMode"
+			:showViewToggle="showViewToggle"
+			:availableViewModes="effectiveToggleModes"
+			:cardsLabel="cardsLabel"
+			:tableLabel="tableLabel"
+			:listLabel="listLabel"
+			:cardsIcon="cardsIcon"
+			:tableIcon="tableIcon"
+			:showMap="showMapSegment"
+			:mapLabel="mapLabel"
+			:mapIcon="mapIcon"
+			:listIcon="listIcon"
+			:showSortSelect="showSortSelect"
+			:sortOptions="sortSelectOptions"
+			:sortValue="sortSelectValue"
+			:showSearch="inlineSearch"
+			:searchValue="effectiveSearchValue"
+			:searchPlaceholder="searchPlaceholder"
 			:refreshing="effectiveRefreshing"
-			:refresh-disabled="refreshDisabled"
-			:add-disabled="addDisabled"
-			:show-add="effectiveShowAdd"
-			:show-sidebar-toggle="hasSidebar"
-			:sidebar-open="sidebarOpen"
-			:header-actions="mergedHeaderActions"
-			:bulk-actions="mergedBulkActions"
-			:documentation-url="documentationUrl"
-			:documentation-label="documentationLabel || undefined"
-			@sort-change="$emit('sort-change', $event)"
+			:refreshDisabled="refreshDisabled"
+			:addDisabled="addDisabled"
+			:showAdd="effectiveShowAdd"
+			:showSidebarToggle="hasSidebar"
+			:sidebarOpen="sidebarOpen"
+			:headerActions="mergedHeaderActions"
+			:bulkActions="mergedBulkActions"
+			:documentationUrl="documentationUrl"
+			:documentationLabel="documentationLabel || undefined"
+			@sortChange="$emit('sort-change', $event)"
 			@add="onAddClick"
-			@clear-selection="onSelect([])"
-			@toggle-sidebar="sidebarOpen = !sidebarOpen"
+			@clearSelection="onSelect([])"
+			@toggleSidebar="sidebarOpen = !sidebarOpen"
 			@refresh="onRefreshEvent"
-			@header-action="onHeaderAction"
-			@bulk-action="onBulkAction"
-			@show-import="showImportDialog = true"
-			@show-export="showExportDialog = true"
-			@show-copy="showMassCopyDialog = true"
-			@show-delete="showMassDeleteDialog = true"
+			@headerAction="onHeaderAction"
+			@bulkAction="onBulkAction"
+			@showImport="showImportDialog = true"
+			@showExport="showExportDialog = true"
+			@showCopy="showMassCopyDialog = true"
+			@showDelete="showMassDeleteDialog = true"
 			@search="onSearchEvent"
-			@view-mode-change="onViewModeChange">
+			@viewModeChange="onViewModeChange">
 			<template v-if="$slots['mass-actions']" #mass-actions="{ count, selectedIds: ids }">
-				<slot name="mass-actions" :count="count" :selected-ids="ids" />
+				<slot name="mass-actions" :count="count" :selectedIds="ids" />
 			</template>
 			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
@@ -92,7 +92,7 @@
 			<template
 				v-if="$slots['selection-actions']"
 				#selection-actions="{ count, selectedIds: ids }">
-				<slot name="selection-actions" :count="count" :selected-ids="ids" />
+				<slot name="selection-actions" :count="count" :selectedIds="ids" />
 			</template>
 			<template v-if="$slots['header-actions'] || $slots['actions'] || isEditMode || showExportMenu || allowSavedViews" #actions>
 				<!--
@@ -108,17 +108,17 @@
 					v-if="allowSavedViews"
 					:views="savedViews"
 					:loading="savedViewsLoading"
-					:current-user-id="currentSavedViewsUserId"
+					:currentUserId="currentSavedViewsUserId"
 					@apply="onApplySavedView"
-					@save-request="showSaveViewDialog = true"
-					@delete-request="onDeleteViewRequest" />
+					@saveRequest="showSaveViewDialog = true"
+					@deleteRequest="onDeleteViewRequest" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
 				     CSV/Excel entries navigate to OR's export-leaf URL, passing the
 				     current route's query params through as filters. -->
 				<NcActions
 					v-if="showExportMenu"
-					:force-name="true"
-					:menu-name="t('nextcloud-vue', 'Export')"
+					:forceName="true"
+					:menuName="t('nextcloud-vue', 'Export')"
 					data-testid="cn-index-export-menu"
 					:aria-label="t('nextcloud-vue', 'Export')">
 					<template #icon>
@@ -158,10 +158,10 @@
 					:tabs="effectiveQuickFilters"
 					:mode="quickFilterMode"
 					:multiple="quickFilterMultiple"
-					:active-index="activeQuickFilterIndex"
-					:selected-indices="selectedQuickFilterIndices"
-					@update:active-index="onQuickFilterChange"
-					@update:selected-indices="onQuickFilterMultiChange" />
+					:activeIndex="activeQuickFilterIndex"
+					:selectedIndices="selectedQuickFilterIndices"
+					@update:activeIndex="onQuickFilterChange"
+					@update:selectedIndices="onQuickFilterMultiChange" />
 			</template>
 		</CnActionsBar>
 
@@ -170,8 +170,8 @@
 			v-if="showMassDeleteDialog"
 			ref="massDeleteDialog"
 			:items="selectedObjects"
-			:name-field="massActionNameField"
-			:name-formatter="nameFormatter"
+			:nameField="massActionNameField"
+			:nameFormatter="nameFormatter"
 			@confirm="onMassDeleteConfirm"
 			@close="showMassDeleteDialog = false" />
 
@@ -180,8 +180,8 @@
 			v-if="showMassCopyDialog"
 			ref="massCopyDialog"
 			:items="selectedObjects"
-			:name-field="massActionNameField"
-			:name-formatter="nameFormatter"
+			:nameField="massActionNameField"
+			:nameFormatter="nameFormatter"
 			@confirm="onMassCopyConfirm"
 			@close="showMassCopyDialog = false" />
 
@@ -217,9 +217,9 @@
 			v-if="viewPendingDelete"
 			ref="deleteViewConfirmDialog"
 			variant="error"
-			:dialog-title="t('nextcloud-vue', 'Delete view')"
+			:dialogTitle="t('nextcloud-vue', 'Delete view')"
 			:message="deleteViewMessage"
-			:confirm-label="t('nextcloud-vue', 'Delete')"
+			:confirmLabel="t('nextcloud-vue', 'Delete')"
 			@confirm="onDeleteViewConfirm"
 			@close="viewPendingDelete = null" />
 
@@ -240,8 +240,8 @@
 				v-if="showSingleDeleteDialog && actionTargetItem"
 				ref="singleDeleteDialog"
 				:item="actionTargetItem"
-				:name-field="massActionNameField"
-				:name-formatter="nameFormatter"
+				:nameField="massActionNameField"
+				:nameFormatter="nameFormatter"
 				@confirm="onSingleDeleteConfirm"
 				@close="closeSingleDelete" />
 		</slot>
@@ -263,8 +263,8 @@
 				v-if="showSingleCopyDialog && actionTargetItem"
 				ref="singleCopyDialog"
 				:item="actionTargetItem"
-				:name-field="massActionNameField"
-				:name-formatter="nameFormatter"
+				:nameField="massActionNameField"
+				:nameFormatter="nameFormatter"
 				@confirm="onSingleCopyConfirm"
 				@close="closeSingleCopy" />
 		</slot>
@@ -296,10 +296,10 @@
 				:schema="effectiveSchema"
 				:item="editItem"
 				:register="register"
-				:exclude-fields="excludeFields"
-				:include-fields="includeFields"
-				:field-overrides="fieldOverrides"
-				:name-field="massActionNameField"
+				:excludeFields="excludeFields"
+				:includeFields="includeFields"
+				:fieldOverrides="fieldOverrides"
+				:nameField="massActionNameField"
 				:size="formSize"
 				:columns="formColumns"
 				@confirm="onFormConfirm"
@@ -313,10 +313,10 @@
 				ref="formDialog"
 				:schema="effectiveSchema"
 				:item="editItem"
-				:exclude-fields="excludeFields"
-				:include-fields="includeFields"
-				:field-overrides="fieldOverrides"
-				:name-field="massActionNameField"
+				:excludeFields="excludeFields"
+				:includeFields="includeFields"
+				:fieldOverrides="fieldOverrides"
+				:nameField="massActionNameField"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog" />
 		</slot>
@@ -331,16 +331,16 @@
 					:source="folderSidebarSource"
 					:folders="folderSidebarFolders"
 					:objects="effectiveObjects"
-					:group-by="folderSidebar.groupBy || folderSidebar.field || ''"
-					:facet-values="folderSidebarFacetValues"
+					:groupBy="folderSidebar.groupBy || folderSidebar.field || ''"
+					:facetValues="folderSidebarFacetValues"
 					:partial="folderSidebarPartial"
-					:files-path="folderSidebar.filesPath || '/'"
-					:selected-id="selectedFolderId"
-					:all-label="folderSidebar.allLabel || undefined"
+					:filesPath="folderSidebar.filesPath || '/'"
+					:selectedId="selectedFolderId"
+					:allLabel="folderSidebar.allLabel || undefined"
 					:title="folderSidebar.title || ''"
-					:id-field="folderPassthroughIdField"
-					:name-field="folderPassthroughNameField"
-					:allow-create="Boolean(folderSidebar.allowCreate)"
+					:idField="folderPassthroughIdField"
+					:nameField="folderPassthroughNameField"
+					:allowCreate="Boolean(folderSidebar.allowCreate)"
 					@select="onFolderSelect"
 					@create="$emit('folder-create', $event)" />
 			</div>
@@ -377,24 +377,24 @@
 					v-else-if="currentViewMode === 'table'"
 					:schema="effectiveSchema"
 					:columns="tableColumns"
-					:row-icon="rowIcon"
+					:rowIcon="rowIcon"
 					:rows="displayObjects"
-					:sort-key="effectiveSortKey"
-					:sort-order="effectiveSortOrder"
-					:sort-keys="effectiveSortKeys"
+					:sortKey="effectiveSortKey"
+					:sortOrder="effectiveSortOrder"
+					:sortKeys="effectiveSortKeys"
 					:selectable="selectable"
-					:row-click-to-view="rowClickToView"
-					:selected-ids="internalSelectedIds"
-					:row-key="rowKey"
-					:empty-text="emptyText"
-					:exclude-columns="excludeColumns"
-					:include-columns="includeColumns"
-					:column-overrides="columnOverrides"
-					:row-class="rowClass"
+					:rowClickToView="rowClickToView"
+					:selectedIds="internalSelectedIds"
+					:rowKey="rowKey"
+					:emptyText="emptyText"
+					:excludeColumns="excludeColumns"
+					:includeColumns="includeColumns"
+					:columnOverrides="columnOverrides"
+					:rowClass="rowClass"
 					@sort="onSortEvent"
 					@select="onSelect"
-					@row-click="onRowClick"
-					@row-context-menu="onRowContextMenu">
+					@rowClick="onRowClick"
+					@rowContextMenu="onRowContextMenu">
 					<!-- Pass through column slots -->
 					<template
 						v-for="col in slotColumns"
@@ -422,7 +422,7 @@
 						#actions-header>
 						<NcActions
 							v-if="filterMenu && filterableFields.length"
-							:force-menu="true"
+							:forceMenu="true"
 							:aria-label="t('nextcloud-vue', 'Filter')">
 							<template #icon>
 								<FilterOutline :size="20" />
@@ -432,15 +432,15 @@
 								<NcActionCheckbox
 									v-for="val in field.values"
 									:key="`${field.key}-${val}`"
-									:model-value="isFilterActive(field.key, val)"
-									@update:model-value="toggleFilter(field.key, val)">
+									:modelValue="isFilterActive(field.key, val)"
+									@update:modelValue="toggleFilter(field.key, val)">
 									{{ val }}
 								</NcActionCheckbox>
 							</template>
 						</NcActions>
 						<NcActions
 							v-if="columnMenu && governedColumns.length"
-							:force-menu="true"
+							:forceMenu="true"
 							:aria-label="t('nextcloud-vue', 'Columns')">
 							<template #icon>
 								<ViewColumnOutline :size="20" />
@@ -449,8 +449,8 @@
 							<NcActionCheckbox
 								v-for="col in governedColumns"
 								:key="`col-${col.key}`"
-								:model-value="isColumnVisible(col.key)"
-								@update:model-value="toggleColumn(col.key)">
+								:modelValue="isColumnVisible(col.key)"
+								@update:modelValue="toggleColumn(col.key)">
 								{{ cnTranslate(col.label || col.key) }}
 							</NcActionCheckbox>
 						</NcActions>
@@ -469,9 +469,9 @@
 					:layers="mapLayers"
 					:basemaps="mapBasemaps"
 					:markers="mapMarkers"
-					:auto-fit="true"
+					:autoFit="true"
 					height="100%"
-					@marker-click="onMarkerClick" />
+					@markerClick="onMarkerClick" />
 
 				<!-- List view -->
 				<CnObjectList
@@ -480,9 +480,9 @@
 					:schema="effectiveSchema"
 					:config="listConfig"
 					:selectable="selectable"
-					:selected-ids="internalSelectedIds"
-					:row-key="rowKey"
-					:empty-text="emptyText"
+					:selectedIds="internalSelectedIds"
+					:rowKey="rowKey"
+					:emptyText="emptyText"
 					@click="onRowClick"
 					@select="onSelect">
 					<!--
@@ -531,10 +531,10 @@
 					:objects="displayObjects"
 					:schema="effectiveSchema"
 					:selectable="selectable"
-					:click-to-view="rowClickToView"
-					:selected-ids="internalSelectedIds"
-					:row-key="rowKey"
-					:empty-text="emptyText"
+					:clickToView="rowClickToView"
+					:selectedIds="internalSelectedIds"
+					:rowKey="rowKey"
+					:emptyText="emptyText"
 					@click="onRowClick"
 					@select="onSelect">
 					<!--
@@ -572,20 +572,20 @@
 				<CnContextMenu
 					v-model:open="contextMenuOpen"
 					:actions="mergedActions"
-					:target-item="contextMenuRow"
+					:targetItem="contextMenuRow"
 					@action="onRowAction"
 					@close="closeContextMenu" />
 
 				<!-- Pagination -->
 				<CnPagination
 					v-if="effectivePagination && effectivePagination.pages > 1"
-					:current-page="effectivePagination.page || 1"
-					:total-pages="effectivePagination.pages || 1"
-					:total-items="effectivePagination.total || 0"
-					:current-page-size="effectivePagination.limit || 20"
+					:currentPage="effectivePagination.page || 1"
+					:totalPages="effectivePagination.pages || 1"
+					:totalItems="effectivePagination.total || 0"
+					:currentPageSize="effectivePagination.limit || 20"
 					class="cn-index-page__pagination"
-					@page-changed="onPageEvent"
-					@page-size-changed="$emit('page-size-changed', $event)" />
+					@pageChanged="onPageEvent"
+					@pageSizeChanged="$emit('page-size-changed', $event)" />
 			</div>
 		</div>
 
@@ -608,17 +608,17 @@
 			:schema="effectiveSchema"
 			:title="title"
 			:icon="resolvedIcon"
-			:search-value="effectiveSearchValue"
-			:visible-columns="effectiveVisibleColumns"
-			:active-filters="effectiveActiveFilters"
-			:column-groups="resolvedSidebar.columnGroups || []"
-			:facet-data="resolvedSidebar.facets || {}"
-			:show-metadata="resolvedSidebar.showMetadata !== false"
+			:searchValue="effectiveSearchValue"
+			:visibleColumns="effectiveVisibleColumns"
+			:activeFilters="effectiveActiveFilters"
+			:columnGroups="resolvedSidebar.columnGroups || []"
+			:facetData="resolvedSidebar.facets || {}"
+			:showMetadata="resolvedSidebar.showMetadata !== false"
 			v-bind="sidebarSearchProps"
 			@update:open="sidebarOpen = $event"
 			@search="onSearchEvent"
-			@columns-change="onColumnsEvent"
-			@filter-change="onFilterEvent" />
+			@columnsChange="onColumnsEvent"
+			@filterChange="onFilterEvent" />
 	</div>
 </template>
 

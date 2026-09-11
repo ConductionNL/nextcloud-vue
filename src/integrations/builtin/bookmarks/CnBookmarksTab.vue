@@ -89,7 +89,7 @@
 					:bold="true"
 					:href="bookmark.url"
 					target="_blank"
-					:force-display-actions="true">
+					:forceDisplayActions="true">
 					<template #icon>
 						<span class="cn-bookmarks-tab__row-icon">
 							<Bookmark :size="20" />
@@ -116,13 +116,13 @@
 						</span>
 					</template>
 					<template #actions>
-						<NcActionButton :close-after-click="true" @click="openBookmark(bookmark)">
+						<NcActionButton :closeAfterClick="true" @click="openBookmark(bookmark)">
 							<template #icon>
 								<OpenInNew :size="20" />
 							</template>
 							{{ t('nextcloud-vue', 'Open bookmark') }}
 						</NcActionButton>
-						<NcActionButton :close-after-click="true" @click="unlinkBookmark(bookmark)">
+						<NcActionButton :closeAfterClick="true" @click="unlinkBookmark(bookmark)">
 							<template #icon>
 								<LinkOff :size="20" />
 							</template>
@@ -135,7 +135,7 @@
 
 		<CnBookmarkPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 

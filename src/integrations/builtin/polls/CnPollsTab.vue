@@ -113,7 +113,7 @@
 						<NcDateTime
 							class="cn-polls-tab__time"
 							:timestamp="deadlineMs(poll)"
-							:relative-time="'short'" />
+							relativeTime="short" />
 					</span>
 				</div>
 
@@ -148,7 +148,7 @@
 
 		<CnPollPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 

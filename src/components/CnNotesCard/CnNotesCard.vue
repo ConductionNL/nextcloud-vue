@@ -48,8 +48,8 @@
 					<div class="cn-notes-card__note-header">
 						<CnUserActionMenu
 							v-if="!isCurrentUser(note)"
-							:user-id="getNoteAuthorId(note)"
-							:display-name="getNoteAuthorName(note)">
+							:userId="getNoteAuthorId(note)"
+							:displayName="getNoteAuthorName(note)">
 							<strong class="cn-notes-card__author">{{ getNoteAuthorName(note) }}</strong>
 						</CnUserActionMenu>
 						<strong v-else class="cn-notes-card__author cn-notes-card__author--self">

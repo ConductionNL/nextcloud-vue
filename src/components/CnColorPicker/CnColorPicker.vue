@@ -4,8 +4,8 @@
 			v-model:shown="open"
 			:disabled="disabled"
 			:triggers="[]"
-			popup-role="dialog"
-			popover-base-class="cn-color-picker__popper">
+			popupRole="dialog"
+			popoverBaseClass="cn-color-picker__popper">
 			<template #trigger>
 				<button
 					type="button"
@@ -29,7 +29,7 @@
 					v-bind="$attrs"
 					class="cn-color-picker__chrome"
 					:class="{ 'cn-color-picker__chrome--locked-mode': mode !== null }"
-					:model-value="value || '#000000'" />
+					:modelValue="value || '#000000'" />
 			</div>
 		</NcPopover>
 		<!-- Inline clear affordance: sits next to the swatch and only appears

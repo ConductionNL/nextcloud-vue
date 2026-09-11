@@ -3,15 +3,15 @@
 		ref="dialog"
 		:tabs="dialogTabs"
 		:item="item"
-		:dialog-title="dialogTitle"
-		entity-name="Schema"
+		:dialogTitle="dialogTitle"
+		entityName="Schema"
 		:size="size"
-		:disable-save="!!saveDisabledReason"
-		:disable-save-tooltip="saveDisabledReason"
-		:success-text="resolvedSuccessText"
-		:cancel-label="cancelLabel"
-		:close-label="closeLabel"
-		:confirm-label="confirmLabel"
+		:disableSave="!!saveDisabledReason"
+		:disableSaveTooltip="saveDisabledReason"
+		:successText="resolvedSuccessText"
+		:cancelLabel="cancelLabel"
+		:closeLabel="closeLabel"
+		:confirmLabel="confirmLabel"
 		@confirm="handleConfirm"
 		@close="$emit('close')">
 		<!-- Metadata Display -->
@@ -73,46 +73,46 @@
 		<!-- Properties Tab -->
 		<template #tab-properties="{ loading: dialogLoading }">
 			<CnSchemaPropertiesTab
-				:schema-item="schemaItem"
+				:schemaItem="schemaItem"
 				:loading="dialogLoading"
-				:selected-property="selectedProperty"
-				:properties-modified="propertiesModified"
-				:original-properties="originalProperties"
-				:inherited-properties="inheritedProperties"
-				:type-options-for-select="typeOptionsForSelect"
-				:available-schemas="availableSchemas"
-				:available-registers="availableRegisters"
-				:available-tags-options="availableTagsOptions"
-				:user-groups="userGroups"
-				:sorted-user-groups="sortedUserGroups"
-				:loading-groups="loadingGroups"
-				@add-property="addProperty"
-				@update:selected-property="selectedProperty = $event"
-				@update:property-key="updatePropertyKey($event.oldKey, $event.newKey)"
-				@copy-property="copyProperty"
-				@delete-property="deleteProperty" />
+				:selectedProperty="selectedProperty"
+				:propertiesModified="propertiesModified"
+				:originalProperties="originalProperties"
+				:inheritedProperties="inheritedProperties"
+				:typeOptionsForSelect="typeOptionsForSelect"
+				:availableSchemas="availableSchemas"
+				:availableRegisters="availableRegisters"
+				:availableTagsOptions="availableTagsOptions"
+				:userGroups="userGroups"
+				:sortedUserGroups="sortedUserGroups"
+				:loadingGroups="loadingGroups"
+				@addProperty="addProperty"
+				@update:selectedProperty="selectedProperty = $event"
+				@update:propertyKey="updatePropertyKey($event.oldKey, $event.newKey)"
+				@copyProperty="copyProperty"
+				@deleteProperty="deleteProperty" />
 		</template>
 
 		<!-- Configuration Tab -->
 		<template #tab-configuration="{ loading: dialogLoading }">
 			<CnSchemaConfigurationTab
-				:schema-item="schemaItem"
+				:schemaItem="schemaItem"
 				:loading="dialogLoading"
-				:available-schemas="availableSchemas"
-				:property-options="propertyOptions"
-				:all-of-schema-names="allOfSchemaNames" />
+				:availableSchemas="availableSchemas"
+				:propertyOptions="propertyOptions"
+				:allOfSchemaNames="allOfSchemaNames" />
 		</template>
 
 		<!-- Security Tab -->
 		<template #tab-security>
 			<CnSchemaSecurityTab
-				:schema-item="schemaItem"
-				:user-groups="userGroups"
-				:sorted-user-groups="sortedUserGroups"
-				:loading-groups="loadingGroups"
-				:has-any-permissions="hasAnyPermissions"
-				:is-restrictive-schema="isRestrictiveSchema"
-				:inherited-properties="inheritedProperties" />
+				:schemaItem="schemaItem"
+				:userGroups="userGroups"
+				:sortedUserGroups="sortedUserGroups"
+				:loadingGroups="loadingGroups"
+				:hasAnyPermissions="hasAnyPermissions"
+				:isRestrictiveSchema="isRestrictiveSchema"
+				:inheritedProperties="inheritedProperties" />
 		</template>
 
 		<!-- Optional Action Buttons (edit mode only) -->

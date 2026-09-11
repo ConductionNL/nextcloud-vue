@@ -9,10 +9,10 @@
 				v-if="resolvedWidget === 'boolean'"
 				class="cn-advanced-form-dialog__boolean-input-row">
 				<NcCheckboxRadioSwitch
-					:model-value="!!value"
+					:modelValue="!!value"
 					type="switch"
 					class="cn-advanced-form-dialog__boolean-input-row__input"
-					@update:model-value="emit($event)">
+					@update:modelValue="emit($event)">
 					{{ displayName }}
 				</NcCheckboxRadioSwitch>
 				<InformationOutline
@@ -26,42 +26,42 @@
 				class="cn-advanced-form-dialog__color-input-row">
 				<CnColorPicker
 					:value="chromePickerValue"
-					:disable-alpha="!hasAlpha"
+					:disableAlpha="!hasAlpha"
 					:mode="colorPickerMode"
 					@input="onChromeColorInput" />
 				<NcTextField
 					ref="inputRef"
-					:model-value="colorTextValue"
+					:modelValue="colorTextValue"
 					:placeholder="colorPlaceholder"
-					@update:model-value="onColorTextInput($event)" />
+					@update:modelValue="onColorTextInput($event)" />
 			</div>
 			<NcDateTimePicker
 				v-else-if="resolvedWidget === 'datetime'"
-				:model-value="datetimeValue"
+				:modelValue="datetimeValue"
 				:type="datetimePickerType"
 				:placeholder="displayName"
-				:input-label="displayName"
-				@update:model-value="emitDatetime($event)" />
+				:inputLabel="displayName"
+				@update:modelValue="emitDatetime($event)" />
 			<NcTextArea
 				v-else-if="resolvedWidget === 'textarea'"
 				ref="inputRef"
-				:model-value="stringValue"
+				:modelValue="stringValue"
 				:placeholder="displayName"
 				:rows="textareaRows"
 				:maxlength="maxLengthAttr"
 				class="cn-advanced-form-dialog__textarea"
-				@update:model-value="emit($event)" />
+				@update:modelValue="emit($event)" />
 			<NcSelect
 				v-else-if="resolvedWidget === 'select'"
-				:model-value="effectiveSelectValue"
+				:modelValue="effectiveSelectValue"
 				:options="effectiveSelectOptions"
 				:multiple="effectiveSelectMultiple"
 				:taggable="effectiveSelectTaggable"
-				:push-tags="effectiveSelectTaggable"
-				:keep-open="effectiveSelectMultiple"
-				:input-label="displayName"
+				:pushTags="effectiveSelectTaggable"
+				:keepOpen="effectiveSelectMultiple"
+				:inputLabel="displayName"
 				:placeholder="displayName"
-				@update:model-value="emitSelect($event)" />
+				@update:modelValue="emitSelect($event)" />
 			<CnJsonViewer
 				v-else-if="resolvedWidget === 'object'"
 				:value="objectJsonString"
@@ -105,7 +105,7 @@
 					v-if="objectArrayDialogOpen"
 					:schema="schemaProp.items"
 					:item="objectArrayDialogItem"
-					:dialog-title="objectArrayDialogTitle"
+					:dialogTitle="objectArrayDialogTitle"
 					:show-metadata-tab="false"
 					@confirm="onObjectArrayConfirm"
 					@close="closeObjectArrayDialog" />
@@ -113,7 +113,7 @@
 			<NcTextField
 				v-else
 				ref="inputRef"
-				:model-value="stringValue"
+				:modelValue="stringValue"
 				:type="inputType"
 				:placeholder="displayName"
 				:min="minimum"
@@ -122,7 +122,7 @@
 				:pattern="pattern"
 				:minlength="minLengthAttr"
 				:maxlength="maxLengthAttr"
-				@update:model-value="emitConverted($event)" />
+				@update:modelValue="emitConverted($event)" />
 		</div>
 
 		<!-- Display mode -->

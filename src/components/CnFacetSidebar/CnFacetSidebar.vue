@@ -29,8 +29,8 @@
 				<!-- Checkbox filter (boolean) -->
 				<NcCheckboxRadioSwitch
 					v-if="filter.type === 'checkbox'"
-					:model-value="getFilterValue(filter.key) === true"
-					@update:model-value="onFilterChange(filter.key, $event)">
+					:modelValue="getFilterValue(filter.key) === true"
+					@update:modelValue="onFilterChange(filter.key, $event)">
 					{{ filter.label }}
 				</NcCheckboxRadioSwitch>
 
@@ -38,22 +38,22 @@
 				<NcSelect
 					v-else-if="filter.type === 'select'"
 					class="cn-facet-sidebar__select"
-					:model-value="getSelectedOptions(filter)"
+					:modelValue="getSelectedOptions(filter)"
 					:options="getFilterOptions(filter)"
 					:placeholder="filter.label"
-					:input-label="filter.label"
+					:inputLabel="filter.label"
 					:multiple="true"
-					:keep-open="true"
+					:keepOpen="true"
 					:clearable="true"
-					@update:model-value="onSelectChange(filter.key, $event)" />
+					@update:modelValue="onSelectChange(filter.key, $event)" />
 
 				<!-- Text filter (fallback) -->
 				<NcTextField
 					v-else
-					:model-value="getFilterValue(filter.key) || ''"
+					:modelValue="getFilterValue(filter.key) || ''"
 					:placeholder="filter.label"
 					:label="filter.label"
-					@update:model-value="onFilterChange(filter.key, $event)" />
+					@update:modelValue="onFilterChange(filter.key, $event)" />
 			</div>
 		</div>
 	</div>

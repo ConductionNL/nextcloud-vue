@@ -74,13 +74,13 @@
 				:bold="hasUnread(room)"
 				:href="roomUrl(room)"
 				target="_blank"
-				:force-display-actions="true">
+				:forceDisplayActions="true">
 				<template #icon>
 					<NcAvatar
-						:display-name="roomTitle(room)"
+						:displayName="roomTitle(room)"
 						:size="40"
-						:is-no-user="true"
-						:show-user-status="false" />
+						:isNoUser="true"
+						:showUserStatus="false" />
 				</template>
 				<template #subname>
 					<span class="cn-talk-tab__preview">{{ roomSubname(room) }}</span>
@@ -89,7 +89,7 @@
 					<NcDateTime
 						class="cn-talk-tab__time"
 						:timestamp="roomTimestamp(room)"
-						:relative-time="'short'" />
+						relativeTime="short" />
 				</template>
 				<template v-if="hasUnread(room)" #indicator>
 					<NcCounterBubble
@@ -100,13 +100,13 @@
 					</NcCounterBubble>
 				</template>
 				<template #actions>
-					<NcActionButton :close-after-click="true" @click="openRoom(room)">
+					<NcActionButton :closeAfterClick="true" @click="openRoom(room)">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
 						{{ t('nextcloud-vue', 'Open in Talk') }}
 					</NcActionButton>
-					<NcActionButton :close-after-click="true" @click="unlinkRoom(room)">
+					<NcActionButton :closeAfterClick="true" @click="unlinkRoom(room)">
 						<template #icon>
 							<Close :size="20" />
 						</template>
@@ -119,7 +119,7 @@
 		<!-- Picker + Create modals (mounted lazily) -->
 		<CnTalkRoomPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onPickerLink" />
 

@@ -97,13 +97,13 @@
 						<div class="cn-contacts-tab__avatar">
 							<NcAvatar
 								:size="40"
-								:display-name="contact.displayName || unknownLabel"
+								:displayName="contact.displayName || unknownLabel"
 								:user="avatarSeed(contact)"
 								:url="contact.avatarUrl || undefined"
-								:is-no-user="true"
-								:disable-menu="true"
-								:disable-tooltip="true"
-								:show-user-status="false" />
+								:isNoUser="true"
+								:disableMenu="true"
+								:disableTooltip="true"
+								:showUserStatus="false" />
 						</div>
 						<div class="cn-contacts-tab__details">
 							<div class="cn-contacts-tab__name-row">
@@ -145,7 +145,7 @@
 		<!-- Link existing contact dialog -->
 		<CnContactPicker
 			v-if="showLinkDialog"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@link="onPickerLink"
 			@close="showLinkDialog = false" />
 

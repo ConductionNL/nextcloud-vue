@@ -29,7 +29,7 @@
 				<img
 					v-if="faviconUrl(entity)"
 					:src="faviconUrl(entity)"
-					:alt="''"
+					alt=""
 					class="cn-bookmarks-card__favicon"
 					@error="onFaviconError(entity)">
 				<Bookmark v-else :size="14" />
@@ -57,7 +57,7 @@
 					<img
 						v-if="faviconUrl(mostRecent)"
 						:src="faviconUrl(mostRecent)"
-						:alt="''"
+						alt=""
 						class="cn-bookmarks-card__favicon"
 						@error="onFaviconError(mostRecent)">
 					<Bookmark v-else :size="14" />
@@ -92,7 +92,7 @@
 						<img
 							v-if="faviconUrl(bookmark)"
 							:src="faviconUrl(bookmark)"
-							:alt="''"
+							alt=""
 							class="cn-bookmarks-card__favicon"
 							@error="onFaviconError(bookmark)">
 						<Bookmark v-else :size="14" />

@@ -2,12 +2,12 @@
 	<CnSettingsSection
 		:name="name"
 		:description="description"
-		:doc-url="docUrl"
+		:docUrl="docUrl"
 		:loading="registersLoading"
-		loading-message="Loading registers..."
+		loadingMessage="Loading registers..."
 		:error="!!registersError"
-		:error-message="registersError || ''"
-		:on-retry="loadRegisters">
+		:errorMessage="registersError || ''"
+		:onRetry="loadRegisters">
 		<!-- Action buttons -->
 		<template #actions>
 			<NcButton
@@ -44,8 +44,8 @@
 				<!-- Group header -->
 				<slot name="group-header"
 					:group="group"
-					:configured-count="configuredCount(groupIdx)"
-					:total-count="group.types.length">
+					:configuredCount="configuredCount(groupIdx)"
+					:totalCount="group.types.length">
 					<div class="cn-register-mapping__group-header">
 						<h4 class="cn-register-mapping__group-title">
 							{{ group.name }}
@@ -65,14 +65,14 @@
 				<div class="cn-register-mapping__register-select">
 					<label class="cn-register-mapping__label">{{ labels.register }}</label>
 					<NcSelect
-						:model-value="selectedRegister(groupIdx)"
+						:modelValue="selectedRegister(groupIdx)"
 						:options="registerSelectOptions"
 						:placeholder="labels.selectRegister"
-						:input-label="labels.register"
+						:inputLabel="labels.register"
 						:loading="registersLoading"
 						label="label"
-						track-by="value"
-						@update:model-value="handleRegisterChange(groupIdx, $event)" />
+						trackBy="value"
+						@update:modelValue="handleRegisterChange(groupIdx, $event)" />
 				</div>
 
 				<!-- Type list -->
@@ -117,13 +117,13 @@
 									{{ type.description }}
 								</p>
 								<NcSelect
-									:model-value="selectedSchema(groupIdx, type)"
+									:modelValue="selectedSchema(groupIdx, type)"
 									:options="schemaSelectOptions(groupIdx)"
 									:placeholder="labels.selectSchema"
-									:input-label="labels.schema"
+									:inputLabel="labels.schema"
 									label="label"
-									track-by="value"
-									@update:model-value="handleSchemaChange(groupIdx, type, $event)" />
+									trackBy="value"
+									@update:modelValue="handleSchemaChange(groupIdx, type, $event)" />
 							</div>
 						</transition>
 					</template>

@@ -33,13 +33,13 @@
 				:update="(v) => onUpdate(field, v)">
 				<NcSelect
 					v-if="field.type === 'select'"
-					:model-value="selectedOption(field)"
+					:modelValue="selectedOption(field)"
 					:options="field.options || []"
-					:input-label="field.label"
+					:inputLabel="field.label"
 					:label="field.optionLabel || 'label'"
 					:clearable="field.clearable === true"
 					:disabled="field.disabled === true"
-					@update:model-value="(o) => onUpdate(field, o ? o[field.optionValue || 'value'] : '')" />
+					@update:modelValue="(o) => onUpdate(field, o ? o[field.optionValue || 'value'] : '')" />
 
 				<!-- The textarea is the one control with no NC component behind
 				     it, so the base draws its own label — hence __label, which
@@ -63,13 +63,13 @@
 
 				<NcTextField
 					v-else
-					:model-value="valueOf(field)"
+					:modelValue="valueOf(field)"
 					:label="field.label"
 					:type="field.inputType || 'text'"
 					:error="Boolean(errorFor(field))"
-					:helper-text="errorFor(field)"
+					:helperText="errorFor(field)"
 					:disabled="field.disabled === true"
-					@update:model-value="(v) => onUpdate(field, v)" />
+					@update:modelValue="(v) => onUpdate(field, v)" />
 			</slot>
 		</div>
 

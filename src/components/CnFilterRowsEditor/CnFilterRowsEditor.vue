@@ -17,11 +17,11 @@
 				placeholder="status"
 				@update="update(i, 'key', $event)" />
 			<NcSelect
-				:model-value="row.op"
+				:modelValue="row.op"
 				:options="opIds"
-				:input-label="t('nextcloud-vue', 'Operator')"
+				:inputLabel="t('nextcloud-vue', 'Operator')"
 				:clearable="false"
-				@update:model-value="update(i, 'op', $event)">
+				@update:modelValue="update(i, 'op', $event)">
 				<template #option="{ label: opId }">
 					{{ opLabel(opId) }}
 				</template>
@@ -30,10 +30,10 @@
 				</template>
 			</NcSelect>
 			<NcTextField
-				:model-value="row.value"
+				:modelValue="row.value"
 				:label="t('nextcloud-vue', 'Value')"
 				placeholder="won"
-				@update:model-value="update(i, 'value', $event)" />
+				@update:modelValue="update(i, 'value', $event)" />
 			<NcButton
 				variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Remove filter')"
