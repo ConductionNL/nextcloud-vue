@@ -9,6 +9,16 @@
  * global mount config instead.
  */
 
+// Make `Date.now()` non-decreasing before anything else runs.
+//
+// This workspace's wall clock steps BACKWARDS under load, and Vue drops any
+// DOM event that looks older than the listener it is about to reach, so a
+// backwards step turns a `trigger()` into a no-op with no error and no warning.
+// See the module's docblock for the measurements and for how the guard works.
+// Installed first, because every listener Vue attaches from here on stamps
+// itself with this clock.
+require('./support/monotonicDateNow.js').installMonotonicDateNow()
+
 // Polyfill structuredClone for Node < 17 / jsdom
 if (typeof global.structuredClone === 'undefined') {
 	global.structuredClone = (obj) => JSON.parse(JSON.stringify(obj))
@@ -126,4 +136,13 @@ if (typeof URL.revokeObjectURL !== 'function') {
 // Nothing here depends on a wrapper surviving between tests: the one spec that
 // mounts outside a test body registers widgets in `beforeAll` and mounts inside
 // each `it`.
+//
+// ⚠️ THE "CLICK THAT DOES NOTHING" ABOVE WAS ATTRIBUTED HERE ON A GUESS, AND
+// THE MEASURED CAUSE IS THE CLOCK. A backwards step of the wall clock makes
+// Vue drop the dispatched event before any handler runs, which is why the
+// affected specs had nothing in common except that they click. The shim at the
+// top of this file is what addresses that; see `tests/support/monotonicDateNow.js`
+// and nextcloud-vue#1102. Unmounting still earns its place on its own terms, a
+// live component between tests is state the next test did not ask for, so it
+// stays, but it is not the reason those four specs stopped flaking.
 enableAutoUnmount(afterEach)
