@@ -27,8 +27,12 @@ describe('CnImageWidgetForm', () => {
 		window.URL.revokeObjectURL = jest.fn()
 	})
 	afterEach(() => {
-		delete window.URL.createObjectURL
-		delete window.URL.revokeObjectURL
+		// Put the global no-ops back rather than deleting the properties. The
+		// auto-unmount in tests/setup.js runs AFTER this hook, and the component
+		// revokes its preview on teardown, so a deleted property fails the test
+		// that already passed.
+		window.URL.createObjectURL = () => 'blob:jsdom-stub'
+		window.URL.revokeObjectURL = () => {}
 	})
 
 	const selectFile = (wrapper, file) => {

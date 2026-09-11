@@ -29,10 +29,16 @@
  * It reports no open handles across all 352 suites.
  *
  * WHAT IT COSTS. Nothing to correctness — every test passes and the exit code
- * is 0. It can perturb scheduling enough to surface an order-dependent flake
- * (seen once on CnAddWidgetModal, not reproducible on a second run of the same
- * tree). If that becomes common, the lead worth pulling is per-suite teardown
- * of mounted components, not this config.
+ * is 0. It can perturb scheduling enough to surface an order-dependent flake,
+ * and that DID become common: four click-based specs failed one per full run
+ * (CnIconPicker, CnWidgetWrapper, CnDataTableSort, CnDataTable), each passing
+ * in isolation and on a re-run of the same tree.
+ *
+ * The lead this note named was the right one, and it has now been pulled:
+ * `tests/setup.js` calls Vue Test Utils' `enableAutoUnmount(afterEach)`, so a
+ * mounted component no longer outlives the test that mounted it. 361 specs
+ * mount and only 81 unmounted. Measured over six consecutive full runs before
+ * and after; see that file for the reasoning.
  *
  * Capping `maxWorkers` here would slow every developer's run to hide a warning
  * CI does not emit, so it is left alone and explained instead.
