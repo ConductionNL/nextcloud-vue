@@ -16,11 +16,36 @@ import CnFileField from '@/components/CnFileField/CnFileField.vue'
 import { readFileAsDataUrl, FALLBACK_MAX_BYTES } from '@/utils/widgetUpload.js'
 
 /**
- * Wait until the component's async FileReader work has settled.
+ * Wait until the component has finished with the picked file.
  *
+ * A FIXED SLEEP IS WHAT MADE THIS FLAKY. The first version waited 20 ms for a
+ * real FileReader, which is a macrotask rather than a microtask, so
+ * `flushPromises()` cannot cover it and 20 ms is simply a guess. It held on a
+ * quiet machine and lost on a loaded CI runner: the read had not resolved,
+ * nothing had been emitted yet, and `emitted()[0][0]` threw on `undefined`.
+ * It passed on one branch and failed on the next with no code change between.
+ *
+ * So this waits on the component's own `reading` flag, which is set before the
+ * read's `await` and cleared in its `finally`. The refused paths (wrong type,
+ * too large) return before setting it, so for them this resolves immediately,
+ * and the tests asserting that NOTHING is emitted are not slowed down or
+ * turned into timeouts. A read that never finishes fails loudly here rather
+ * than letting a later assertion read an absent emit.
+ *
+ * @param {object} wrapper The mounted CnFileField.
+ * @param {number} [timeoutMs] How long a read may take before the test fails.
  * @return {Promise<void>}
  */
-const settle = () => new Promise((resolve) => setTimeout(resolve, 20))
+async function settle(wrapper, timeoutMs = 5000) {
+	const deadline = Date.now() + timeoutMs
+	while (wrapper.vm.reading && Date.now() < deadline) {
+		await new Promise((resolve) => setTimeout(resolve, 5))
+	}
+	if (wrapper.vm.reading) {
+		throw new Error(`CnFileField was still reading the file after ${timeoutMs} ms`)
+	}
+	await wrapper.vm.$nextTick()
+}
 
 /**
  * Put `file` on the hidden input and fire its change event, the way a
@@ -34,7 +59,7 @@ async function pick(wrapper, file) {
 	const input = wrapper.find('[data-testid="cn-file-field-input"]')
 	Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
 	await input.trigger('change')
-	await settle()
+	await settle(wrapper)
 }
 
 const pdf = (size = 12) => new File(['x'.repeat(size)], 'advice.pdf', { type: 'application/pdf' })
