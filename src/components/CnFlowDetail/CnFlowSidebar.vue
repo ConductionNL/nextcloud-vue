@@ -41,6 +41,7 @@
 	<component :is="embedded ? 'div' : 'NcAppSidebar'"
 		v-if="store.sidebarOpen"
 		:class="embedded ? 'cn-flow-sidebar cn-flow-sidebar--embedded' : 'cn-flow-sidebar'"
+		:name="embedded ? undefined : flowName"
 		:active="embedded ? undefined : tab"
 		@update:active="tab = $event"
 		@close="onClose">
@@ -56,15 +57,17 @@
 			trigger to an author who was not about to change it from there, and
 			it is edited in the settings modal with every other field.
 
-			⚠️ AND NO `name` EITHER. The version belongs BESIDE the title, and
-			NcAppSidebar renders its own heading with no slot to reach into. So
-			the heading is CnFlowLifecycleControls' own h2, and this component
-			hands the sidebar nothing to render above it — passing both would
-			put the flow's name on screen twice.
+			⚠️ THE NAME IS THE SIDEBAR'S, THE REST IS OURS. `name` is a REQUIRED
+			prop, and this component used to pass none so that the version could
+			sit beside the title in CnFlowLifecycleControls' own h2. NcAppSidebar
+			then rendered its heading EMPTY, above ours: a heading naming
+			nothing, announced as such, with a Vue warning on every mount. So the
+			flow's name is handed over, the lifecycle row renders under it
+			without a name of its own, and there is one heading again.
 		-->
 		<template v-if="!embedded" #description>
 			<div class="cn-flow-sidebar__header">
-				<CnFlowLifecycleControls />
+				<CnFlowLifecycleControls :show-name="false" />
 			</div>
 		</template>
 
@@ -290,6 +293,19 @@ export default {
 		 */
 		inspectedRun() {
 			return this.store.runs.find((run) => run.uuid === this.store.inspectedRunUuid) || null
+		},
+
+		/**
+		 * What NcAppSidebar puts in its heading.
+		 *
+		 * The same fallback CnFlowLifecycleControls uses for the embedded host,
+		 * so a flow with no name yet reads the same either way rather than
+		 * leaving the sidebar's required heading empty.
+		 *
+		 * @return {string} The flow's name.
+		 */
+		flowName() {
+			return this.store.flow.name || this.t('nextcloud-vue', 'Flow')
 		},
 
 		/**
