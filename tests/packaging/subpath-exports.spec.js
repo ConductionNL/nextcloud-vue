@@ -323,11 +323,9 @@ function requireCallsIn(source) {
  * @return {string[]} Tar entry paths.
  */
 function firstPartyEsmEntries() {
-	return entries.filter((name) =>
-		name.startsWith('package/dist/esm/')
+	return entries.filter((name) => name.startsWith('package/dist/esm/')
 		&& name.endsWith('.js')
-		&& !name.startsWith('package/dist/esm/node_modules/'),
-	)
+		&& !name.startsWith('package/dist/esm/node_modules/'))
 }
 
 /**
@@ -467,10 +465,7 @@ describe('packaging — every redistributed dependency is under an OSI licence',
 		// OR binds loosest: any alternative may satisfy the whole expression.
 		return normalised.split(/\s+OR\s+/i).some((alternative) =>
 			// Within an alternative, every AND-ed part must be allowed.
-			alternative.split(/\s+AND\s+/i).every((part) =>
-				ALLOWED_LICENCES.has(part.trim().replace(/\+$/, '')),
-			),
-		)
+			alternative.split(/\s+AND\s+/i).every((part) => ALLOWED_LICENCES.has(part.trim().replace(/\+$/, ''))))
 	}
 
 	/**
@@ -566,9 +561,7 @@ describe('packaging — every redistributed dependency is under an OSI licence',
 	})
 
 	it('resolves an MIT vue3-apexcharts in the tree that gets bundled', () => {
-		const wrapper = JSON.parse(
-			fs.readFileSync(path.join(REPO, 'node_modules', 'vue3-apexcharts', 'package.json'), 'utf8'),
-		)
+		const wrapper = JSON.parse(fs.readFileSync(path.join(REPO, 'node_modules', 'vue3-apexcharts', 'package.json'), 'utf8'))
 		expect(wrapper.license).toBe('MIT')
 		expect(semverMajorMinor(wrapper.version)).toBe('1.8')
 	})
@@ -580,9 +573,7 @@ describe('packaging — every redistributed dependency is under an OSI licence',
 		// eslint-disable-next-line n/no-extraneous-require
 		const semver = require('semver')
 		expect(semver.satisfies('5.0.0', pkg.dependencies.apexcharts)).toBe(false)
-		const core = JSON.parse(
-			fs.readFileSync(path.join(REPO, 'node_modules', 'apexcharts', 'package.json'), 'utf8'),
-		)
+		const core = JSON.parse(fs.readFileSync(path.join(REPO, 'node_modules', 'apexcharts', 'package.json'), 'utf8'))
 		expect(core.license).toBe('MIT')
 	})
 })

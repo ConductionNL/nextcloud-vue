@@ -124,7 +124,7 @@ import { buildBugReportUrl, buildFeatureRequestUrl, DEFAULT_FORGE } from '../../
  */
 function defaultDocsBase(appId) {
 	const id = String(appId || '').trim()
-	if (!id) return ''
+	if (!id) { return '' }
 	return `https://${id}.conduction.nl/docs/`
 }
 
@@ -141,11 +141,11 @@ function defaultDocsBase(appId) {
  */
 export function resolveDocsUrl(base, anchor) {
 	const a = String(anchor || '').trim()
-	if (a.includes('://')) return a
+	if (a.includes('://')) { return a }
 	const b = String(base || '').trim()
-	if (!b) return ''
-	if (!a) return b
-	if (a.startsWith('#')) return `${b.replace(/#.*$/, '')}${a}`
+	if (!b) { return '' }
+	if (!a) { return b }
+	if (a.startsWith('#')) { return `${b.replace(/#.*$/, '')}${a}` }
 	if (a.startsWith('/')) {
 		try {
 			return new URL(a, b).toString()
@@ -263,6 +263,7 @@ export default {
 		 */
 		cnDocumentationBaseUrl: { default: () => '' },
 	},
+
 	inheritAttrs: false,
 
 	props: {
@@ -277,6 +278,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Whether the Request-a-feature item renders.
 		 *
@@ -286,6 +288,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Explicit documentation link target, opened in a new tab. Wins over
 		 * the `cnDocumentationBaseUrl` + `docsAnchor` pair. Leave empty (the
@@ -297,6 +300,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * This surface's own section in the app's documentation, appended to
 		 * the app-wide `cnDocumentationBaseUrl`. A bare slug (`open-cases`)
@@ -311,6 +315,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Whether the Documentation item renders. Defaults to true — the
 		 * canonical trio is meant to be present on every surface; set false
@@ -322,6 +327,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Whether the "Report a bug" item renders.
 		 *
@@ -331,6 +337,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Explicit "Report a bug" target. Empty (the default) builds a
 		 * new-issue deep-link on the app's forge from the injected
@@ -343,11 +350,13 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Pre-translated label for the Report-a-bug action. */
 		reportBugLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Report a bug'),
 		},
+
 		/**
 		 * Pre-translated label for the Documentation item. Defaults to the
 		 * lib's translation of "Documentation".
@@ -356,6 +365,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Documentation'),
 		},
+
 		/**
 		 * Stable id forwarded on the `@refresh` / `@request-feature`
 		 * payloads (as `widgetId`) and on the `cn:widget:refresh`
@@ -368,6 +378,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Human-readable title carried on action payloads.
 		 */
@@ -375,6 +386,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Stable `surface` slug naming where the menu sits (e.g.
 		 * `widget:<id>`, `detail:<id>`, `dashboard:<id>`). Used as the
@@ -387,6 +399,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional `specRef` slug. Accepted for backward compatibility with
 		 * hosts that bound it for the removed in-product suggestion modal;
@@ -399,6 +412,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Whether a refresh is currently in flight. While true, the Refresh
 		 * item is disabled and shows a loading spinner for exactly as long as
@@ -410,6 +424,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Event-bus channel the default Refresh handler emits on when no
 		 * host listener suppresses it. Widgets use `cn:widget:refresh`;
@@ -419,21 +434,25 @@ export default {
 			type: String,
 			default: 'cn:widget:refresh',
 		},
+
 		/** Pre-translated label for the Refresh action. */
 		refreshLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Refresh'),
 		},
+
 		/** Pre-translated label for the Request-a-feature action. */
 		requestFeatureLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Request a feature'),
 		},
+
 		/** Pre-translated aria-label / tooltip for the overflow trigger. */
 		actionsMenuLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Actions'),
 		},
+
 		/**
 		 * Prefix for the `data-testid`s emitted on the menu container and
 		 * its items: `<base>-actions` (container), `<base>-action-refresh`,
@@ -458,11 +477,11 @@ export default {
 		 * @return {boolean}
 		 */
 		hasOverflowMenu() {
-			if (this.showRefresh) return true
-			if (this.showDocumentation && this.resolvedDocumentationUrl) return true
-			if (this.showReportBug && this.resolvedReportBugUrl) return true
-			if (this.showRequestFeature) return true
-			if (this.$slots['primary-items']) return true
+			if (this.showRefresh) { return true }
+			if (this.showDocumentation && this.resolvedDocumentationUrl) { return true }
+			if (this.showReportBug && this.resolvedReportBugUrl) { return true }
+			if (this.showRequestFeature) { return true }
+			if (this.$slots['primary-items']) { return true }
 			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
 		},
 
@@ -499,7 +518,7 @@ export default {
 		 */
 		sourceTitle() {
 			const resolve = this.cnWidgetTitleSource
-			if (typeof resolve !== 'function' || !this.widgetId) return ''
+			if (typeof resolve !== 'function' || !this.widgetId) { return '' }
 			try {
 				return String(resolve(this.widgetId) || '').trim()
 			} catch (e) {
@@ -517,9 +536,9 @@ export default {
 		 * @return {string}
 		 */
 		resolvedReportBugUrl() {
-			if (this.reportBugUrl) return this.reportBugUrl
+			if (this.reportBugUrl) { return this.reportBugUrl }
 			const repo = String(this.cnFeatureRequestRepo || '').trim()
-			if (!repo) return ''
+			if (!repo) { return '' }
 			// buildBugReportUrl owns both the host (one resolveForge for the
 			// whole suggestion flow) and the bug-report issue FORM. This was
 			// hand-rolled here against a local copy of the forge host map that
@@ -560,7 +579,7 @@ export default {
 		 */
 		resolvedRequestFeatureUrl() {
 			const repo = String(this.cnFeatureRequestRepo || '').trim()
-			if (!repo) return ''
+			if (!repo) { return '' }
 			return buildFeatureRequestUrl(this.cnFeatureRequestForge, repo, {
 				title: this.sourceTitle,
 				surface: this.surface || this.widgetId,
@@ -586,7 +605,7 @@ export default {
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('refresh', { widgetId: this.widgetId, title: this.title }, ev)
-			if (ev.defaultPrevented) return
+			if (ev.defaultPrevented) { return }
 			emitOnBus(this.refreshChannel, {
 				widgetId: this.widgetId,
 				title: this.title,
@@ -612,12 +631,10 @@ export default {
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('request-feature', { widgetId: this.widgetId, title: this.title }, ev)
-			if (ev.defaultPrevented) return
+			if (ev.defaultPrevented) { return }
 			if (!this.resolvedRequestFeatureUrl) {
 				// eslint-disable-next-line no-console
-				console.warn(
-					'[CnActionsMenu] Cannot open the feature-request form: missing cnFeatureRequestRepo inject (mount under CnAppRoot or bind a custom @request-feature listener).',
-				)
+				console.warn('[CnActionsMenu] Cannot open the feature-request form: missing cnFeatureRequestRepo inject (mount under CnAppRoot or bind a custom @request-feature listener).')
 				return
 			}
 			window.open(this.resolvedRequestFeatureUrl, '_blank', 'noopener,noreferrer')

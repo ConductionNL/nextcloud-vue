@@ -63,8 +63,7 @@ function mountWith(objectStore) {
 	})
 }
 
-const dataIds = (wrapper) =>
-	(wrapper.vm.autoBodyLayout || []).map((l) => l.widgetId)
+const dataIds = (wrapper) => (wrapper.vm.autoBodyLayout || []).map((l) => l.widgetId)
 
 describe('CnDetailPage — the schema can arrive after the object', () => {
 	// THE PREMISE. If the auto-body stopped dropping `data` outright this file
@@ -124,8 +123,6 @@ describe('CnDetailPage — the schema can arrive after the object', () => {
 
 		// An existing body must not be rebuilt from scratch by a schema
 		// re-publish, or a user's drag/resize would be silently reset.
-		expect(
-			wrapper.vm.autoBodyLayout.find((l) => l.widgetId === 'data').gridY,
-		).toBe(7)
+		expect(wrapper.vm.autoBodyLayout.find((l) => l.widgetId === 'data').gridY).toBe(7)
 	})
 })

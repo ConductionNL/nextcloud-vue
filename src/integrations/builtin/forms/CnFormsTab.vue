@@ -466,7 +466,7 @@ export default {
 		},
 
 		async onLinkSelected(payload) {
-			if (!payload || !payload.formId) return
+			if (!payload || !payload.formId) { return }
 			try {
 				const response = await fetch(this.baseUrl(), {
 					method: 'POST',
@@ -485,7 +485,7 @@ export default {
 		},
 
 		async onCreateSubmit(payload) {
-			if (!payload || !payload.title) return
+			if (!payload || !payload.title) { return }
 			this.creating = true
 			this.createError = ''
 			try {
@@ -515,7 +515,7 @@ export default {
 		},
 
 		async unlink(form) {
-			if (!form?.id) return
+			if (!form?.id) { return }
 			try {
 				const response = await fetch(`${this.baseUrl()}/${encodeURIComponent(form.id)}`, {
 					method: 'DELETE',

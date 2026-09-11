@@ -371,9 +371,7 @@ export default {
 				...fromForm,
 				...(this.entry?.configKeys || []).filter((k) => !fromForm.includes(k)),
 			]
-			const present = Object.keys(this.draft.config).filter(
-				(k) => !k.startsWith('$') && !declared.includes(k),
-			)
+			const present = Object.keys(this.draft.config).filter((k) => !k.startsWith('$') && !declared.includes(k))
 
 			return [...declared, ...present]
 		},

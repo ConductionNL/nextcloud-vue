@@ -76,21 +76,21 @@ export default {
 			if (this.activeOrganisation && this.activeOrganisation.name) {
 				return this.activeOrganisation.name
 			}
-			if (this.fallbackName) return this.fallbackName
+			if (this.fallbackName) { return this.fallbackName }
 			return this.activeOrganisationUuid || ''
 		},
 
 		/** Single-letter avatar based on the resolved name. */
 		iconLetter() {
 			const name = this.displayName
-			if (!name) return ''
+			if (!name) { return '' }
 			return name.charAt(0).toUpperCase()
 		},
 
 		/** Deterministic colour-from-name for the avatar background. */
 		iconStyle() {
 			const name = this.displayName
-			if (!name) return {}
+			if (!name) { return {} }
 			let hash = 0
 			for (let i = 0; i < name.length; i++) {
 				hash = name.charCodeAt(i) + ((hash << 5) - hash)
@@ -103,7 +103,7 @@ export default {
 		badgeTitle() {
 			const name = this.displayName
 			const uuid = this.activeOrganisationUuid
-			if (name && uuid && name !== uuid) return `${name} (${uuid})`
+			if (name && uuid && name !== uuid) { return `${name} (${uuid})` }
 			return name || uuid || ''
 		},
 

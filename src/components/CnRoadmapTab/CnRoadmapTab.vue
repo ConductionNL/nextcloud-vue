@@ -105,6 +105,7 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * Admin opt-out flag — when true the tab renders the disabled empty state.
 		 */
@@ -124,10 +125,9 @@ export default {
 
 	computed: {
 		sortedItems() {
-			return [...this.items].sort(
-				(a, b) => (b.reactions?.total_count || 0) - (a.reactions?.total_count || 0),
-			)
+			return [...this.items].sort((a, b) => (b.reactions?.total_count || 0) - (a.reactions?.total_count || 0))
 		},
+
 		disabledLabel() { return t('nextcloud-vue', 'Roadmap is disabled by your administrator') },
 		patNotConfiguredTitle() { return t('nextcloud-vue', 'Roadmap not yet configured') },
 		patNotConfiguredDescription() { return t('nextcloud-vue', 'Ask your administrator to add a GitHub Personal Access Token in the OpenRegister settings to enable the roadmap.') },

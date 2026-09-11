@@ -96,36 +96,43 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Number of selected items */
 		count: {
 			type: Number,
 			default: 0,
 		},
+
 		/** Whether to show the built-in Import action */
 		showImport: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to show the built-in Export action */
 		showExport: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to show the built-in Copy action */
 		showCopy: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to show the built-in Delete action */
 		showDelete: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Label template for the menu button. Use {count} for the count. */
 		menuLabelTemplate: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Mass actions ({count})'),
 		},
+
 		/** Label for the built-in Import mass-action button. */
 		importLabel: { type: String, default: () => t('nextcloud-vue', 'Import') },
 		/** Label for the built-in Export mass-action button. */

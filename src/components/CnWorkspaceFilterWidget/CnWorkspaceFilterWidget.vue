@@ -109,6 +109,7 @@ export default {
 	props: {
 		/**
 		 * Persisted configuration blob.
+		 *
 		 * @type {{label?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, default?: (string|number)}}
 		 */
 		content: {
@@ -135,23 +136,28 @@ export default {
 		label() {
 			return this.content.label || ''
 		},
+
 		/** Choice style: 'select' or 'radio' (default). */
 		style() {
 			return this.content.style === 'select' ? 'select' : 'radio'
 		},
+
 		/** Whether to render per-option counts. */
 		showCounts() {
 			return this.content.showCounts !== false
 		},
+
 		/** The bare workspace key the selection writes (strips a `@workspace.` / `@page.` prefix). */
 		writeKey() {
 			const w = this.content.writes || ''
 			return String(w).replace(/^@(workspace|page)\./, '')
 		},
+
 		/** A stable radiogroup name so the radios are mutually exclusive. */
 		radioGroupName() {
 			return `cn-wsf-${this.writeKey || 'filter'}`
 		},
+
 		/** The option list actually rendered — the optional "All" entry prepended. */
 		displayOptions() {
 			const base = this.normalisedOptions
@@ -160,6 +166,7 @@ export default {
 			}
 			return base
 		},
+
 		/** Normalised `{ value, label, count? }` options from whichever source is configured. */
 		normalisedOptions() {
 			const raw = this.fetchedOptions !== null
@@ -167,18 +174,22 @@ export default {
 				: (Array.isArray(this.content.options) ? this.content.options : [])
 			return raw.map((o) => this.normaliseOption(o)).filter((o) => o.value !== undefined && o.value !== null)
 		},
+
 		/** The selected option object (for NcSelect). */
 		selectedOption() {
 			return this.displayOptions.find((o) => String(o.value) === String(this.selected)) || null
 		},
+
 		/**
 		 * The reactive workspace value for this key — watched so an external
 		 * write (another widget) syncs the local selection.
+		 *
 		 * @return {*}
 		 */
 		workspaceValue() {
 			return this.readWorkspace()
 		},
+
 		loadingLabel() {
 			return t('nextcloud-vue', 'Loading…')
 		},
@@ -190,12 +201,14 @@ export default {
 			deep: true,
 			handler() { this.loadOptions() },
 		},
+
 		/**
 		 * Track external workspace changes (another widget writing the same key).
+		 *
 		 * @param {*} val The new workspace value for this key.
 		 */
 		workspaceValue(val) {
-			if (val !== undefined) this.selected = val
+			if (val !== undefined) { this.selected = val }
 		},
 	},
 
@@ -223,12 +236,12 @@ export default {
 		 * @return {{value: *, label: string, count?: number}}
 		 */
 		normaliseOption(o) {
-			if (o === null || o === undefined) return { value: undefined, label: '' }
-			if (typeof o !== 'object') return { value: o, label: String(o) }
+			if (o === null || o === undefined) { return { value: undefined, label: '' } }
+			if (typeof o !== 'object') { return { value: o, label: String(o) } }
 			const value = o.value !== undefined ? o.value : (o.id !== undefined ? o.id : o.key)
 			const label = o.label !== undefined ? o.label : (o.name !== undefined ? o.name : String(value))
 			const out = { value, label: String(label) }
-			if (o.count !== undefined) out.count = o.count
+			if (o.count !== undefined) { out.count = o.count }
 			return out
 		},
 
@@ -299,7 +312,7 @@ export default {
 				const params = { groupBy: src.groupBy, metric: 'count' }
 				const filter = resolveFilterTokens(src.filter || {}, { workspace: this.readWorkspaceBag() })
 				for (const [k, v] of Object.entries(filter)) {
-					if (v !== '' && v !== null && v !== undefined) params[`filter[${k}]`] = v
+					if (v !== '' && v !== null && v !== undefined) { params[`filter[${k}]`] = v }
 				}
 				const res = await axios.get(url, { params })
 				const groups = (res && res.data && res.data.groups) || []
@@ -366,7 +379,7 @@ export default {
 		 */
 		readWorkspaceBag() {
 			const holder = this.cnWorkspaceContext
-			if (!holder || typeof holder !== 'object') return {}
+			if (!holder || typeof holder !== 'object') { return {} }
 			return ('value' in holder) ? (holder.value || {}) : holder
 		},
 
@@ -377,7 +390,7 @@ export default {
 		 * @return {*}
 		 */
 		readWorkspace() {
-			if (!this.writeKey) return undefined
+			if (!this.writeKey) { return undefined }
 			const bag = this.readWorkspaceBag()
 			return bag[this.writeKey]
 		},
@@ -391,9 +404,9 @@ export default {
 		 * @return {void}
 		 */
 		writeWorkspace(value) {
-			if (!this.writeKey) return
+			if (!this.writeKey) { return }
 			const holder = this.cnWorkspaceContext
-			if (!holder || typeof holder !== 'object') return
+			if (!holder || typeof holder !== 'object') { return }
 			if ('value' in holder) {
 				holder.value = { ...(holder.value || {}), [this.writeKey]: value }
 				return

@@ -124,6 +124,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values — used when not editing and the parent
 		 * supplies registry defaults.
@@ -134,6 +135,7 @@ export default {
 			type: Object,
 			default: () => ({ ...DEFAULT_CONTENT }),
 		},
+
 		/**
 		 * Optional raw-file upload transport: `async (file: File) => ({ url })`.
 		 * Deliberately named `fileUploadFn` (not `uploadFn`) to avoid colliding
@@ -151,6 +153,7 @@ export default {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Legacy base64 upload transport, superseded by `fileUploadFn`.
 		 *

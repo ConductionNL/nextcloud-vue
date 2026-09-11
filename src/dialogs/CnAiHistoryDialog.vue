@@ -94,15 +94,18 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** UUID of the currently active conversation (for active indicator) */
 		activeConversationUuid: {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * Backend app id the conversation-list URL resolves against. Single
 		 * configuration point for the chat backend — see
 		 * composables/aiChatConfig.js. Defaults to `hermiq`.
+		 *
 		 * @type {string}
 		 */
 		chatAppId: {
@@ -160,6 +163,7 @@ export default {
 		 * Keep the dialog's own conversation list in sync after
 		 * CnAiHistoryList's inline rename/describe control saves a change,
 		 * without a full refetch.
+		 *
 		 * @param {{uuid: string, title: string, description: string}} payload Renamed fields.
 		 */
 		onRenamed({ uuid, title, description }) {

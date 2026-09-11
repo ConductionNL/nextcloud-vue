@@ -160,6 +160,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Field descriptors, in render order. See the component description
 		 * for the shape.
@@ -170,6 +171,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * The form values, keyed by field key. Read-only here: the base emits
 		 * `update:field` and the host owns the mutation.
@@ -180,6 +182,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Per-field validation messages, keyed by field key. A non-empty entry
 		 * puts its field into the error state and shows the text as helper
@@ -191,26 +194,31 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether the submit button is enabled (before `submitting`). */
 		canSubmit: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether a submit is in flight — disables the button and swaps its label. */
 		submitting: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Pre-translated submit button label. */
 		submitLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Save'),
 		},
+
 		/** Pre-translated label shown while `submitting`. */
 		submittingLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Saving…'),
 		},
+
 		/** Form-level error message, shown as one line below the actions. */
 		errorMessage: {
 			type: String,

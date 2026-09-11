@@ -241,9 +241,7 @@ describe('CnSettingsPage — tabs orchestration (REQ-MSO-*)', () => {
 		})
 		expect(mount2).not.toThrow()
 		// eslint-disable-next-line no-console
-		expect(console.warn).toHaveBeenCalledWith(
-			expect.stringContaining('NotRegistered'),
-		)
+		expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('NotRegistered'))
 	})
 
 	it('REQ-MSO-6: missing componentName on type:"component" warns and skips', () => {
@@ -264,9 +262,7 @@ describe('CnSettingsPage — tabs orchestration (REQ-MSO-*)', () => {
 		// No widget rendered, but the page didn't throw.
 		expect(wrapper.exists()).toBe(true)
 		// eslint-disable-next-line no-console
-		expect(console.warn).toHaveBeenCalledWith(
-			expect.stringContaining('componentName'),
-		)
+		expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('componentName'))
 	})
 
 	it('REQ-MSO-6: sibling widgets keep rendering after a missed component lookup', () => {

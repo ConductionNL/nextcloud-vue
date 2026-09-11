@@ -106,6 +106,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Placement entity — reserved to match the renderer contract.
 		 *

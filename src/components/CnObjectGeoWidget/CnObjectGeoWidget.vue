@@ -195,61 +195,73 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Location'),
 		},
+
 		/** The object data — its `@self.geo` seeds the marker; `@self` also supplies register/schema/id fallbacks. */
 		objectData: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** The object's id. Explicit prop wins over `objectData['@self'].id`. */
 		objectId: {
 			type: [String, Number],
 			default: '',
 		},
+
 		/** OpenRegister register slug/id. When omitted, derived from `objectData['@self'].register`. */
 		register: {
 			type: [String, Number],
 			default: '',
 		},
+
 		/** OpenRegister schema slug/id. When omitted, derived from `objectData['@self'].schema`. */
 		schema: {
 			type: [String, Number],
 			default: '',
 		},
+
 		/** Whether the map is editable (click to set, footer Save/Remove). Read-only when false. */
 		editable: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Map container height. Forwarded to CnMapWidget. */
 		height: {
 			type: [String, Number],
 			default: '360px',
 		},
+
 		/** Map centre `[lat, lng]` used when the object has no location yet. */
 		defaultCenter: {
 			type: Array,
 			default: () => [...DEFAULT_CENTER],
 			validator: (v) => Array.isArray(v) && v.length === 2 && v.every((n) => typeof n === 'number' && Number.isFinite(n)),
 		},
+
 		/** Zoom used when the object has no location yet. */
 		defaultZoom: {
 			type: Number,
 			default: 7,
 		},
+
 		/**
 		 * Base layer stack forwarded to `CnMapWidget` (`{ type, url, options }[]`).
 		 * Defaults to the OpenStreetMap standard tile set; override to use a
 		 * different basemap (e.g. the Dutch PDOK BRT achtergrondkaart). Supplying a
 		 * `tile` entry here takes over the background and disables `basemap`.
+		 *
 		 * @type {Array<object>}
 		 */
 		layers: {
 			type: Array,
 			default: () => DEFAULT_LAYERS.map((l) => ({ ...l })),
 		},
+
 		/**
 		 * Base map shown by default — one of `standard`, `humanitarian`, `terrain`.
 		 * The app must allowlist the tile host in its `img-src` CSP.
+		 *
 		 * @type {string}
 		 */
 		basemap: {
@@ -257,26 +269,31 @@ export default {
 			default: 'standard',
 			validator: (v) => Object.prototype.hasOwnProperty.call(BASEMAPS, v),
 		},
+
 		/** Offer a base-map switcher so users can change the background themselves. */
 		allowBasemapSwitch: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Show the "fit to location" control (re-centres on the marker). */
 		fitControl: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Show the "locate me" control (browser geolocation). */
 		locateControl: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Show the fullscreen toggle. */
 		fullscreenControl: {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Show an address-search box that geocodes a place name via OpenStreetMap
 		 * Nominatim and drops the marker there. Requires `editable`, and the app must
@@ -286,11 +303,13 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Documentation link for the overflow Actions menu. */
 		documentationUrl: {
 			type: String,
 			default: '',
 		},
+
 		/** Stable id forwarded to the widget chrome. */
 		widgetId: {
 			type: String,
@@ -358,7 +377,7 @@ export default {
 
 		/** The currently-saved geo value (local override after PATCH, else the prop's `@self.geo`). */
 		savedGeo() {
-			if (this.localGeo !== undefined) return this.localGeo
+			if (this.localGeo !== undefined) { return this.localGeo }
 			const self = this.safeObjectData['@self'] || {}
 			return self.geo || null
 		},
@@ -398,7 +417,7 @@ export default {
 		 * background we pass NO tile layer here, or the two would stack.
 		 */
 		resolvedLayers() {
-			if (this.resolvedBasemaps.length > 0) return []
+			if (this.resolvedBasemaps.length > 0) { return [] }
 			return (Array.isArray(this.layers) && this.layers.length) ? this.layers : DEFAULT_LAYERS.map((l) => ({ ...l }))
 		},
 
@@ -413,10 +432,10 @@ export default {
 		 */
 		resolvedBasemaps() {
 			// A consumer-supplied custom tile layer owns the background.
-			if (!this.layersAreDefault) return []
+			if (!this.layersAreDefault) { return [] }
 
 			const selected = BASEMAPS[this.basemap] || BASEMAPS.standard
-			if (!this.allowBasemapSwitch) return [{ ...selected }]
+			if (!this.allowBasemapSwitch) { return [{ ...selected }] }
 
 			// Selected first (it is the one CnMapWidget activates on load), then the rest.
 			return [
@@ -435,7 +454,7 @@ export default {
 
 		/** CnMapWidget markers config — a single Point feature for the active location, or null. */
 		mapMarkers() {
-			if (!this.activePoint) return null
+			if (!this.activePoint) { return null }
 			return {
 				features: [this.pointFeature(this.activePoint)],
 				iconColor: 'var(--color-primary-element, #0082c9)',
@@ -444,7 +463,7 @@ export default {
 
 		/** Human-readable "lat, lng" for the active point. */
 		coordsLabel() {
-			if (!this.activePoint) return ''
+			if (!this.activePoint) { return '' }
 			return `${this.activePoint.lat.toFixed(5)}, ${this.activePoint.lng.toFixed(5)}`
 		},
 	},
@@ -493,14 +512,14 @@ export default {
 		 */
 		async geocode() {
 			const q = (this.query || '').trim()
-			if (q.length < 3) return
+			if (q.length < 3) { return }
 
 			this.searching = true
 			this.searchError = ''
 			try {
 				const url = `${NOMINATIM_URL}?format=jsonv2&limit=5&q=${encodeURIComponent(q)}`
 				const response = await fetch(url)
-				if (!response.ok) throw new Error(`HTTP ${response.status}`)
+				if (!response.ok) { throw new Error(`HTTP ${response.status}`) }
 				const json = await response.json()
 				this.results = (Array.isArray(json) ? json : [])
 					.map((r) => ({
@@ -529,7 +548,7 @@ export default {
 		 * @return {void}
 		 */
 		pickResult(result) {
-			if (!this.editable || !result) return
+			if (!this.editable || !result) { return }
 			this.draft = { lat: result.lat, lng: result.lng }
 			this.results = []
 			this.query = result.label
@@ -589,8 +608,8 @@ export default {
 		 * @return {boolean} True when equal.
 		 */
 		samePoint(a, b) {
-			if (!a && !b) return true
-			if (!a || !b) return false
+			if (!a && !b) { return true }
+			if (!a || !b) { return false }
 			return Math.abs(a.lat - b.lat) < 1e-9 && Math.abs(a.lng - b.lng) < 1e-9
 		},
 
@@ -601,7 +620,7 @@ export default {
 		 * @return {void}
 		 */
 		onMapClick(payload) {
-			if (!this.editable || !payload) return
+			if (!this.editable || !payload) { return }
 			const point = this.finitePoint(payload.lat, payload.lng)
 			if (point) {
 				this.draft = point
@@ -628,7 +647,7 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async save() {
-			if (this.saving) return
+			if (this.saving) { return }
 			if (!this.resolvedRegister || !this.resolvedSchema || !this.resolvedId) {
 				this.error = t('nextcloud-vue', 'Cannot save — the object is not fully loaded yet.')
 				return
@@ -647,7 +666,7 @@ export default {
 					headers: buildHeaders(),
 					body: JSON.stringify({ '@self': { geo: newGeo } }),
 				})
-				if (!response.ok) throw new Error(`${response.status}`)
+				if (!response.ok) { throw new Error(`${response.status}`) }
 				this.localGeo = newGeo
 				this.draft = undefined
 				/**

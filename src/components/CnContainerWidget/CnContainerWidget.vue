@@ -84,6 +84,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether the surrounding dashboard shell is in edit mode. */
 		editMode: {
 			type: Boolean,

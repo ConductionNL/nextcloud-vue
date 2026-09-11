@@ -228,21 +228,25 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Placement entity; its `id` scopes the host Files endpoint. */
 		placement: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether the dashboard shell is in admin mode. */
 		isAdmin: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether the dashboard shell is in edit mode. */
 		canEdit: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * App base for the host's files-widget endpoints
 		 * (`{apiBase}/api/widgets/files/{placementId}/...`). Lets a consuming
@@ -515,6 +519,7 @@ export default {
 				this.fetchContents()
 			},
 		},
+
 		objectKey: {
 			immediate: true,
 			/**
@@ -846,13 +851,13 @@ export default {
 
 				const url = this.objectBound
 					? generateUrl(
-						`${this.objectApiBase}/objects/{register}/{schema}/{objectId}/files/{fileId}`,
-						{ register: this.register, schema: this.schemaSlug, objectId: this.objectId, fileId: target.fileId },
-					)
+							`${this.objectApiBase}/objects/{register}/{schema}/{objectId}/files/{fileId}`,
+							{ register: this.register, schema: this.schemaSlug, objectId: this.objectId, fileId: target.fileId },
+						)
 					: generateUrl(
-						`${this.apiBase}/api/widgets/files/{placementId}/files/{fileId}`,
-						{ placementId: this.placementId, fileId: target.fileId },
-					)
+							`${this.apiBase}/api/widgets/files/{placementId}/files/{fileId}`,
+							{ placementId: this.placementId, fileId: target.fileId },
+						)
 				await axios.delete(url)
 				this.items = this.items.filter((item) => item.fileId !== target.fileId)
 			} catch (err) {

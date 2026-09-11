@@ -50,7 +50,7 @@ const stackingOf = (page, parentName, nestedName) => page.evaluate(([p, n]) => {
 	const all = [...document.body.querySelectorAll('*')]
 	const read = (name) => {
 		const m = masks.find((x) => ((x.querySelector('h2, .dialog__name') || {}).textContent || '').includes(name))
-		if (!m) return null
+		if (!m) { return null }
 		const dialog = m.querySelector('.dialog, .modal-container') || m
 		const box = dialog.getBoundingClientRect()
 		return { zIndex: Number(getComputedStyle(m).zIndex), domIndex: all.indexOf(m), box: { x: box.x, y: box.y, w: box.width, h: box.height } }

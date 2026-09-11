@@ -153,6 +153,7 @@ export default {
 		 * ("which dataset am I exporting?"). Empty (the default) hides the
 		 * picker and keeps the pre-existing format-only dialog. When set, the
 		 * `confirm` payload carries the chosen `entity` id.
+		 *
 		 * @type {Array<{id: string, label: string}>}
 		 */
 		entities: {
@@ -202,7 +203,7 @@ export default {
 	},
 
 	beforeUnmount() {
-		if (this.closeTimeout) clearTimeout(this.closeTimeout)
+		if (this.closeTimeout) { clearTimeout(this.closeTimeout) }
 	},
 
 	methods: {

@@ -384,8 +384,7 @@ export function installIntegrationRegistry(globalRef) {
 	if (prior !== undefined
 		&& prior !== integrations
 		&& typeof prior.register === 'function'
-		&& prior._queue === undefined
-	) {
+		&& prior._queue === undefined) {
 		return prior
 	}
 

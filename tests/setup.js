@@ -71,7 +71,6 @@ config.global.mocks = {
 // out.
 if (typeof globalThis.ResizeObserver === 'undefined') {
 	globalThis.ResizeObserver = class ResizeObserver {
-
 		/** @return {void} */
 		observe() {}
 
@@ -80,7 +79,6 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
 
 		/** @return {void} */
 		disconnect() {}
-
 	}
 }
 

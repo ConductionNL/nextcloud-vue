@@ -143,7 +143,7 @@ function createHintCoalescer(fn, waitMs) {
 	}
 
 	function cancel() {
-		if (timer) clearTimeout(timer)
+		if (timer) { clearTimeout(timer) }
 		timer = null
 		pending = false
 	}
@@ -295,13 +295,13 @@ export function liveUpdatesPlugin(opts = {}) {
 				const dispatch = isObject
 					? () => {
 						// Dispatch fetchObject with dedup
-						store.fetchObject(type, id)
-					}
+							store.fetchObject(type, id)
+						}
 					: () => {
 						// Dispatch fetchCollection with last stashed params + dedup
-						const lastParams = store.__lastCollectionParams?.get(type) || {}
-						store.fetchCollection(type, lastParams)
-					}
+							const lastParams = store.__lastCollectionParams?.get(type) || {}
+							store.fetchCollection(type, lastParams)
+						}
 				const coalesced = createHintCoalescer(dispatch, debounceMs)
 
 				const callback = () => {
@@ -359,7 +359,7 @@ export function liveUpdatesPlugin(opts = {}) {
 			 * @param {object} handle Handle returned by subscribe()
 			 */
 			unsubscribe(handle) {
-				if (!handle || !handle._livePlugin || handle._released) return
+				if (!handle || !handle._livePlugin || handle._released) { return }
 				handle._released = true
 
 				// Cancel any pending coalesced refetch before tearing down the

@@ -346,23 +346,27 @@ export default {
 		 * maturity level, a computed score, a domain term) can explain itself where the
 		 * reader is looking. `columnsFromSchema` fills it from the JSON Schema property
 		 * description automatically, so schema-driven tables get it for free.
+		 *
 		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string}|string>}
 		 */
 		columns: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Optional leading icon shown at the start of every row. Either a static
 		 * MDI icon name (PascalCase, e.g. `'FileDocumentOutline'`) applied to all
 		 * rows, or a function `(row) => iconName` to vary it per row. The icon is
 		 * resolved through the shared CnIcon registry. Unset = no icon column.
+		 *
 		 * @type {string | ((row: object) => string) | null}
 		 */
 		rowIcon: {
 			type: [String, Function],
 			default: null,
 		},
+
 		/**
 		 * Schema object with `properties` field (schema-driven mode).
 		 * When provided, columns are auto-generated from schema properties.
@@ -371,42 +375,50 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Per-column overrides when using schema mode: { key: { width, label, sortable, ... } } */
 		columnOverrides: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Column keys to exclude when using schema mode */
 		excludeColumns: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Column keys to include when using schema mode (whitelist) */
 		includeColumns: {
 			type: Array,
 			default: null,
 		},
+
 		/** Row data array. Each row should have a unique identifier (see rowKey). */
 		rows: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Whether data is loading (shows loading spinner) */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Current sort column key */
 		sortKey: {
 			type: String,
 			default: null,
 		},
+
 		/** Current sort order: 'asc', 'desc', or null (no sort) */
 		sortOrder: {
 			type: String,
 			default: 'asc',
 			validator: (v) => v === null || ['asc', 'desc'].includes(v),
 		},
+
 		/**
 		 * Ordered multi-column sort state: `[{ key, order }, ...]` (priority
 		 * order, 0 to 3 entries). Optional — when empty (the default), the
@@ -414,52 +426,62 @@ export default {
 		 * single-sort hosts are completely unaffected. Shift+click a
 		 * sortable header to append/cycle a secondary or tertiary key (see
 		 * `src/utils/multiColumnSort.js`).
+		 *
 		 * @type {Array<{key: string, order: 'asc'|'desc'}>}
 		 */
 		sortKeys: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Whether rows can be selected with checkboxes */
 		selectable: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Array of currently selected row IDs */
 		selectedIds: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Property name used as unique row identifier */
 		rowKey: {
 			type: String,
 			default: 'id',
 		},
+
 		/** Text shown when there are no rows */
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No items found'),
 		},
+
 		/** Function returning CSS class(es) for a row: (row) => string|object */
 		rowClass: {
 			type: Function,
 			default: null,
 		},
+
 		/** Function returning CSS class(es) for a data cell: (row, col) => string|object */
 		cellClass: {
 			type: Function,
 			default: null,
 		},
+
 		/** Whether to constrain table height and make it scrollable */
 		scrollable: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Text shown while loading */
 		loadingText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Loading...'),
 		},
+
 		/**
 		 * Accessible name for the select-all checkbox in the header row.
 		 * Used as the checkbox's `aria-label` so screen readers announce a
@@ -470,6 +492,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Select all rows'),
 		},
+
 		/**
 		 * Accessible name for a per-row select checkbox. Used as the
 		 * checkbox's `aria-label` so screen readers announce a named control
@@ -479,6 +502,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Select row'),
 		},
+
 		/**
 		 * Optional card title rendered in a header above the table. When set, the
 		 * table reads as a self-contained card (the container's own border/radius
@@ -488,6 +512,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Drop the container's card chrome (border, radius, shadow) so the table
 		 * sits flush inside a parent that already provides a card (e.g. a
@@ -497,6 +522,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Fill the height of the parent (a flex-column card / widget content
 		 * area) so the optional `#footer` is pushed to the bottom instead of
@@ -509,6 +535,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Hide the column-header row (`<thead>`). Useful for compact dashboard
 		 * list widgets that want a plain bordered-row list without column labels.
@@ -517,6 +544,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Switch the table to `table-layout: fixed`, making each column's `width`
 		 * authoritative instead of a hint the browser may override. Opt in when a
@@ -526,12 +554,14 @@ export default {
 		 * column left unsized soaks up all remaining width. Cells also break long
 		 * words rather than overflowing. Columns with no `width` share whatever
 		 * space is left, so size every column when you want exact control.
+		 *
 		 * @type {boolean}
 		 */
 		fixedLayout: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Max number of rows to display. When the total exceeds it, only the first
 		 * `limit` render and the "View all" footer appears (with `viewAllRoute`).
@@ -541,40 +571,48 @@ export default {
 			type: Number,
 			default: 0,
 		},
+
 		/**
 		 * vue-router route object for the "View all" footer link. The footer only
 		 * shows when set AND the rows are a `limit`-ed subset. Folded in from CnTableWidget.
+		 *
 		 * @type {object|null}
 		 */
 		viewAllRoute: {
 			type: Object,
 			default: null,
 		},
+
 		/** Pre-translated "View all" footer label. */
 		viewAllLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'View all'),
 		},
+
 		/**
 		 * Self-fetch mode (folded from CnTableWidget): the OpenRegister register
 		 * id/slug. When `register` + `schemaId` are set and no `rows` are passed,
 		 * the table fetches `/apps/openregister/api/objects/{register}/{schemaId}`.
+		 *
 		 * @type {string|number|null}
 		 */
 		register: {
 			type: [String, Number],
 			default: null,
 		},
+
 		/**
 		 * Self-fetch mode (folded from CnTableWidget): the OpenRegister schema
 		 * id used together with `register`. (Distinct from the `schema` prop,
 		 * which is a JSON Schema object for column generation.)
+		 *
 		 * @type {string|number|null}
 		 */
 		schemaId: {
 			type: [String, Number],
 			default: null,
 		},
+
 		/**
 		 * Extra query parameters sent with the self-fetch request (register +
 		 * schemaId mode) — e.g. a resolved filter map, `_order[field]` ordering,
@@ -582,27 +620,32 @@ export default {
 		 * (CnWidgetObjectTable's declarative `source`) can drive filtering and
 		 * ordering without re-implementing the fetch. Ignored when external
 		 * `rows` are supplied.
+		 *
 		 * @type {object|null}
 		 */
 		fetchParams: {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Convenience navigation (folded from CnTableWidget): a function that
 		 * receives the clicked row and returns a vue-router route to push. When
 		 * set, a row click navigates there (the `row-click` event still fires).
+		 *
 		 * @type {Function|null}
 		 */
 		rowClickRoute: {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * When true, a row-body click emits `row-click` (for navigation) even
 		 * while `selectable` — selection then happens only via the checkbox
 		 * column. Lets "click row = open, tick box = select" coexist. Default
 		 * false keeps the legacy behaviour (selectable rows select on body click).
+		 *
 		 * @type {boolean}
 		 */
 		rowClickToView: {
@@ -660,6 +703,7 @@ export default {
 				? t('nextcloud-vue', '{title} — scrollable table', { title: this.title })
 				: t('nextcloud-vue', 'Scrollable table')
 		},
+
 		/**
 		 * The row source: external `rows` when provided, else the self-fetched
 		 * rows (register + schemaId mode). External rows always win.
@@ -667,8 +711,8 @@ export default {
 		 * @return {Array<object>}
 		 */
 		sourceRows() {
-			if (this.rows && this.rows.length > 0) return this.rows
-			if (this.register != null && this.schemaId != null) return this.fetchedRows
+			if (this.rows && this.rows.length > 0) { return this.rows }
+			if (this.register != null && this.schemaId != null) { return this.fetchedRows }
 			return this.rows
 		},
 
@@ -719,6 +763,7 @@ export default {
 		isLoading() {
 			return this.loading || this.selfFetchLoading
 		},
+
 		/**
 		 * Effective columns: schema-generated or manually provided.
 		 * Schema columns take precedence when schema is provided and no manual columns given.
@@ -726,10 +771,10 @@ export default {
 		effectiveColumns() {
 			const cols = (this.schema && this.columns.length === 0)
 				? columnsFromSchema(this.schema, {
-					exclude: this.excludeColumns,
-					include: this.includeColumns,
-					overrides: this.columnOverrides,
-				})
+						exclude: this.excludeColumns,
+						include: this.includeColumns,
+						overrides: this.columnOverrides,
+					})
 				: this.columns
 			if (!(cols || []).some((c) => typeof c === 'string')) {
 				return cols || []
@@ -739,7 +784,7 @@ export default {
 				: []
 			const byKey = new Map(schemaCols.map((c) => [c.key, c]))
 			return (cols || []).map((c) => {
-				if (typeof c !== 'string') return c
+				if (typeof c !== 'string') { return c }
 				return byKey.get(c) || { key: c, label: c, sortable: true }
 			})
 		},
@@ -754,16 +799,16 @@ export default {
 		 * @return {Array<{key: string, order: 'asc'|'desc'}>}
 		 */
 		effectiveSortKeys() {
-			if (this.sortKeys && this.sortKeys.length > 0) return this.sortKeys
-			if (this.sortKey) return [{ key: this.sortKey, order: this.sortOrder || 'asc' }]
+			if (this.sortKeys && this.sortKeys.length > 0) { return this.sortKeys }
+			if (this.sortKey) { return [{ key: this.sortKey, order: this.sortOrder || 'asc' }] }
 			return []
 		},
 
 		totalColumns() {
 			let count = this.effectiveColumns.length
-			if (this.selectable) count++
-			if (this.rowIcon) count++
-			if (this.$slots['row-actions']) count++
+			if (this.selectable) { count++ }
+			if (this.rowIcon) { count++ }
+			if (this.$slots['row-actions']) { count++ }
 			return count
 		},
 
@@ -795,10 +840,12 @@ export default {
 		rows: {
 			handler() { this.loadAggregates() },
 		},
+
 		effectiveColumns: {
 			handler() { this.loadAggregates() },
 			deep: false,
 		},
+
 		/**
 		 * Re-run the self-fetch when its inputs (register, schemaId, or the
 		 * host-driven `fetchParams`) change — a token-resolved filter (e.g.
@@ -841,7 +888,7 @@ export default {
 		 */
 		observeScrollOverflow() {
 			this.measureScrollOverflow()
-			if (typeof ResizeObserver === 'undefined') return
+			if (typeof ResizeObserver === 'undefined') { return }
 			this._scrollObserver = new ResizeObserver(() => this.measureScrollOverflow())
 			const el = this.$refs.scrollEl
 			if (el) {
@@ -849,7 +896,7 @@ export default {
 				// The table itself, not just the port: a column widening pushes
 				// the content past the fold without the port changing size.
 				const table = el.querySelector('table')
-				if (table) this._scrollObserver.observe(table)
+				if (table) { this._scrollObserver.observe(table) }
 			}
 		},
 
@@ -864,7 +911,7 @@ export default {
 			// table that visually fits as scrollable, which would put a tab
 			// stop on it for no reachable content.
 			const next = !!el && (el.scrollWidth - el.clientWidth) > 1
-			if (next !== this.isScrollable) this.isScrollable = next
+			if (next !== this.isScrollable) { this.isScrollable = next }
 		},
 
 		/**
@@ -890,10 +937,11 @@ export default {
 		 * @return {string} The translated label, or the input unchanged.
 		 */
 		translateLabel(label) {
-			if (!label) return ''
+			if (!label) { return '' }
 			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
 			return fn(label)
 		},
+
 		/**
 		 * Self-fetch rows from OpenRegister (register + schemaId mode). Best-effort:
 		 * any failure leaves the fetched rows empty. Folded from CnTableWidget.
@@ -943,6 +991,7 @@ export default {
 				this.$router.push(this.viewAllRoute).catch(() => {})
 			}
 		},
+
 		/**
 		 * Resolve the leading-row icon name for a row. Returns the static
 		 * `rowIcon` string, or the result of the `rowIcon(row)` function.
@@ -1047,7 +1096,7 @@ export default {
 			if (col && col.aggregate) {
 				const cached = this.aggregateValues[String(row[this.rowKey])]
 				const v = cached ? cached[col.key] : undefined
-				if (v === undefined) return this.aggregateLoading ? '…' : '—'
+				if (v === undefined) { return this.aggregateLoading ? '…' : '—' }
 				return v
 			}
 			return this.getCellValue(row, col.key)
@@ -1087,7 +1136,7 @@ export default {
 		async loadAggregates() {
 			const aggCols = this.effectiveColumns.filter((c) => c && c.aggregate && c.aggregate.op === 'count')
 			if (aggCols.length === 0) {
-				if (Object.keys(this.aggregateValues).length > 0) this.aggregateValues = {}
+				if (Object.keys(this.aggregateValues).length > 0) { this.aggregateValues = {} }
 				this.aggregateLoading = false
 				return
 			}
@@ -1100,26 +1149,24 @@ export default {
 				next[rowKey] = {}
 				for (const col of aggCols) {
 					const agg = col.aggregate
-					if (!agg.register || !agg.schema) continue
+					if (!agg.register || !agg.schema) { continue }
 					const where = this.resolveAggregateWhere(agg.where, row)
-					jobs.push(
-						axios.get(generateUrl(`/apps/openregister/api/objects/${agg.register}/${agg.schema}`), {
-							params: { ...where, _limit: 0 },
+					jobs.push(axios.get(generateUrl(`/apps/openregister/api/objects/${agg.register}/${agg.schema}`), {
+						params: { ...where, _limit: 0 },
+					})
+						.then((res) => {
+							const d = res && res.data
+							next[rowKey][col.key] = (d && (d.total ?? (Array.isArray(d.results) ? d.results.length : undefined))) ?? 0
 						})
-							.then((res) => {
-								const d = res && res.data
-								next[rowKey][col.key] = (d && (d.total ?? (Array.isArray(d.results) ? d.results.length : undefined))) ?? 0
-							})
-							.catch((e) => {
-								// eslint-disable-next-line no-console
-								console.warn(`[CnDataTable] aggregate "${col.key}" count failed for row ${rowKey}`, e)
-								next[rowKey][col.key] = undefined
-							}),
-					)
+						.catch((e) => {
+							// eslint-disable-next-line no-console
+							console.warn(`[CnDataTable] aggregate "${col.key}" count failed for row ${rowKey}`, e)
+							next[rowKey][col.key] = undefined
+						}))
 				}
 			}
 			await Promise.all(jobs)
-			if (id !== this.aggregateRequestId) return
+			if (id !== this.aggregateRequestId) { return }
 			this.aggregateValues = next
 			this.aggregateLoading = false
 		},
@@ -1136,7 +1183,7 @@ export default {
 		 * @param {MouseEvent} [event] The originating click event.
 		 */
 		onRowClick(row, event) {
-			if (this.wasDrag(event)) return
+			if (this.wasDrag(event)) { return }
 			if (this.selectable && !this.rowClickToView) {
 				this.toggleSelect(row)
 				return
@@ -1150,7 +1197,7 @@ export default {
 			// function maps the row to a route to push (the event still fires).
 			if (this.rowClickRoute && this.$router) {
 				const route = this.rowClickRoute(row)
-				if (route) this.$router.push(route).catch(() => {})
+				if (route) { this.$router.push(route).catch(() => {}) }
 			}
 		},
 
@@ -1191,9 +1238,9 @@ export default {
 		 * @return {string|null}
 		 */
 		ariaSortFor(col) {
-			if (!col.sortable) return null
+			if (!col.sortable) { return null }
 			const primary = this.effectiveSortKeys[0]
-			if (!primary || primary.key !== col.key) return null
+			if (!primary || primary.key !== col.key) { return null }
 			return primary.order === 'asc' ? 'ascending' : 'descending'
 		},
 
@@ -1216,7 +1263,7 @@ export default {
 		 * @param {KeyboardEvent} event The originating keydown event.
 		 */
 		onHeaderKeydown(key, event) {
-			if (event.key !== 'Enter') return
+			if (event.key !== 'Enter') { return }
 			event.preventDefault()
 			this.applySort(key, !!event.shiftKey)
 		},

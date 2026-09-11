@@ -206,7 +206,7 @@ export function getIconComponent(name) {
  * @return {boolean} True when the registry has a component for this exact name.
  */
 export function hasRegistryIcon(name) {
-	if (typeof name !== 'string' || name.length === 0) return false
-	if (name.startsWith('icon-')) return false
+	if (typeof name !== 'string' || name.length === 0) { return false }
+	if (name.startsWith('icon-')) { return false }
 	return Object.prototype.hasOwnProperty.call(DASHBOARD_ICONS, name)
 }

@@ -99,25 +99,30 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** Schema definition; `schema.configuration` supplies field defaults */
 		schema: {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Explicit field mapping. Every key is optional and overrides the
 		 * schema-configuration default.
+		 *
 		 * @type {{ titleField?: string, subtitleField?: string, imageField?: string, iconField?: string, iconName?: string, badgeField?: string, badgeVariantField?: string, badgeVariant?: string, badgeColorMap?: object }}
 		 */
 		config: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether this row is selected */
 		selected: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether to show the selection checkbox */
 		selectable: {
 			type: Boolean,
@@ -212,7 +217,7 @@ export default {
 		 */
 		onRowClick(event) {
 			if (this.selectable) {
-				if (this.wasDrag(event)) return
+				if (this.wasDrag(event)) { return }
 				/**
 				 * @event select Emitted when a selectable row toggles selection (body or checkbox click).
 				 * @type {object} The row's object.

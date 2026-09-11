@@ -134,26 +134,31 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Whether the parent's conversation fetch is still in flight. */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether the parent's conversation fetch failed. */
 		fetchError: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** UUID of the currently active conversation (for the active-row indicator). */
 		activeConversationUuid: {
 			type: String,
 			default: null,
 		},
+
 		/** Backend app id the rename/describe PATCH resolves against. */
 		chatAppId: {
 			type: String,
 			default: DEFAULT_CHAT_APP_ID,
 		},
+
 		/** Whether to show the name/description search field. */
 		searchable: {
 			type: Boolean,
@@ -230,7 +235,7 @@ export default {
 		},
 
 		formatRelative(dateStr) {
-			if (!dateStr) return ''
+			if (!dateStr) { return '' }
 			try {
 				const date = new Date(dateStr)
 				const now = new Date()
@@ -238,9 +243,9 @@ export default {
 				const diffMinutes = Math.floor(diffMs / 60000)
 				const diffHours = Math.floor(diffMinutes / 60)
 				const diffDays = Math.floor(diffHours / 24)
-				if (diffMinutes < 2) return 'just now'
-				if (diffMinutes < 60) return `${diffMinutes}m ago`
-				if (diffHours < 24) return `${diffHours}h ago`
+				if (diffMinutes < 2) { return 'just now' }
+				if (diffMinutes < 60) { return `${diffMinutes}m ago` }
+				if (diffHours < 24) { return `${diffHours}h ago` }
 				return `${diffDays}d ago`
 			} catch {
 				return ''

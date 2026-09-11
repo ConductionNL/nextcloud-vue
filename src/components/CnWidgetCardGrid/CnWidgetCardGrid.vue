@@ -50,6 +50,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Items'),
 		},
+
 		/**
 		 * Documentation link surfaced in the widget's overflow Actions menu.
 		 * Empty (the default) hides the Documentation item; the Refresh and
@@ -59,6 +60,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Stable id forwarded to the widget chrome for the Refresh /
 		 * Request-a-feature payloads.
@@ -67,6 +69,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Array of object records to render as cards. */
 		objects: {
 			type: Array,

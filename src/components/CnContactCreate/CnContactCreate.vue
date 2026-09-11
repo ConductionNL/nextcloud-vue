@@ -160,6 +160,7 @@ export default {
 		emailInvalidMsg: { type: String, default: () => t('nextcloud-vue', 'Email is not a valid address.') },
 		/**
 		 * Role options for the role dropdown.
+		 *
 		 * @type {Array<{ label: string, value: string }>}
 		 */
 		roleOptions: {
@@ -197,8 +198,8 @@ export default {
 
 		emailError() {
 			const value = this.form.email.trim()
-			if (value === '') return ''
-			if (!EMAIL_REGEX.test(value)) return this.emailInvalidMsg
+			if (value === '') { return '' }
+			if (!EMAIL_REGEX.test(value)) { return this.emailInvalidMsg }
 			return ''
 		},
 
@@ -221,7 +222,7 @@ export default {
 		},
 
 		submit() {
-			if (!this.canSubmit) return
+			if (!this.canSubmit) { return }
 			/**
 			 * @event create Emitted on submit. Payload: `{ displayName, email, phone, org, role }`.
 			 */

@@ -301,12 +301,14 @@ export default {
 		 * declares no `dateRange` is unaffected by the page range — that is
 		 * deliberate, so adding a range to a dashboard cannot silently change what
 		 * an existing tile requests.
+		 *
 		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: *, variant: string, icon?: string}>}}
 		 */
 		content: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Translate function. Falls back to the injected `cnTranslate`
 		 * (itself an identity function by default). Provide explicitly when
@@ -379,6 +381,7 @@ export default {
 		effectiveTranslate() {
 			return this.translate ?? this.cnTranslate
 		},
+
 		/**
 		 * The tile label, run through the host translate function so a
 		 * manifest-authored source string localises to the user's language.
@@ -389,6 +392,7 @@ export default {
 			const label = this.content.label
 			return label ? this.effectiveTranslate(label) : ''
 		},
+
 		/**
 		 * The tile caption, translated and then interpolated with the fetched
 		 * payload.
@@ -417,15 +421,16 @@ export default {
 		 */
 		resolvedCaption() {
 			const caption = this.content.caption
-			if (!caption) return ''
+			if (!caption) { return '' }
 			const translated = this.effectiveTranslate(caption)
-			if (translated.indexOf('{') === -1) return translated
+			if (translated.indexOf('{') === -1) { return translated }
 			const payload = this.endpointMode ? this.epData : null
 			return translated.replace(/\{([A-Za-z0-9_.]+)\}/g, (whole, path) => {
 				const v = getByPath(payload, path)
 				return (v === undefined || v === null) ? '' : String(v)
 			}).replace(/\s{2,}/g, ' ').trim()
 		},
+
 		/**
 		 * The unwrapped detail-page object context for token resolution, or null
 		 * on surfaces (dashboards) that don't provide one.
@@ -435,6 +440,7 @@ export default {
 		objectCtx() {
 			return resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext)
 		},
+
 		/**
 		 * The unwrapped page-level workspace context map for `@page.*` /
 		 * `@workspace.*` token resolution. Always an object (defaults to `{}`).
@@ -446,6 +452,7 @@ export default {
 			const unwrapped = (c && typeof c === 'object' && 'value' in c) ? c.value : c
 			return (unwrapped && typeof unwrapped === 'object') ? unwrapped : {}
 		},
+
 		/**
 		 * The unwrapped page-level app config map for `@config.*` token
 		 * resolution. Always an object (defaults to `{}`).
@@ -455,6 +462,7 @@ export default {
 		configCtx() {
 			return unwrapAppConfig(this.cnAppConfig)
 		},
+
 		/**
 		 * Whether the tile is endpoint-bound (Wave 2): a `content.endpointSource`
 		 * with a `url` switches the value/loading/error surface to the shared
@@ -468,6 +476,7 @@ export default {
 			const es = this.content.endpointSource
 			return !!(es && es.url)
 		},
+
 		/**
 		 * The raw display value: in endpoint mode, the payload value plucked at
 		 * `content.valueField` (dot-path; omitted = the payload itself);
@@ -476,11 +485,12 @@ export default {
 		 * @return {*}
 		 */
 		displayValue() {
-			if (this.objectFieldMode) return this.objectFieldValue
-			if (!this.endpointMode) return this.value
+			if (this.objectFieldMode) { return this.objectFieldValue }
+			if (!this.endpointMode) { return this.value }
 			const v = getByPath(this.epData, this.content.valueField)
 			return v === undefined ? null : v
 		},
+
 		/**
 		 * Whether the headline is text rather than a number.
 		 *
@@ -493,9 +503,10 @@ export default {
 		 */
 		isTextValue() {
 			const v = this.displayValue
-			if (v === null || v === undefined || v === '') return false
+			if (v === null || v === undefined || v === '') { return false }
 			return !Number.isFinite(Number(v))
 		},
+
 		/**
 		 * Whether the tile reads a field off the BOUND RECORD rather than
 		 * aggregating or calling an endpoint (`content.objectField`).
@@ -511,6 +522,7 @@ export default {
 			const of = this.content.objectField
 			return !!(of && (typeof of === 'string' || of.field))
 		},
+
 		/**
 		 * The bound record's value for `content.objectField`.
 		 *
@@ -531,19 +543,21 @@ export default {
 			const cfg = this.content.objectField
 			const field = typeof cfg === 'string' ? cfg : cfg?.field
 			const record = this.objectCtx?.object
-			if (!record || !field) return null
+			if (!record || !field) { return null }
 			const raw = getByPath(record, field)
 			return (raw === undefined || raw === '') ? null : raw
 		},
+
 		/**
 		 * @return {*} The field's value, or null.
 		 */
 		objectFieldValue() {
-			if (this.objectFieldRaw === null) return null
+			if (this.objectFieldRaw === null) { return null }
 			// An unresolved or unresolvable reference falls back to the raw value
 			// rather than blanking, the same way CnFkResolveCell does.
 			return this.referenceLabel !== null ? this.referenceLabel : this.objectFieldRaw
 		},
+
 		/**
 		 * Loading state for the active source (endpoint or OpenRegister).
 		 *
@@ -552,6 +566,7 @@ export default {
 		displayLoading() {
 			return this.endpointMode ? this.epLoading : this.loading
 		},
+
 		/**
 		 * Error message for the active source ('' = none).
 		 *
@@ -560,6 +575,7 @@ export default {
 		displayError() {
 			return this.endpointMode ? this.epError : this.error
 		},
+
 		/**
 		 * The previous-period value plucked at `content.previousField`
 		 * (endpoint mode only), or null when not configured / not numeric.
@@ -567,10 +583,11 @@ export default {
 		 * @return {number|null}
 		 */
 		previousValue() {
-			if (!this.endpointMode || !this.content.previousField) return null
+			if (!this.endpointMode || !this.content.previousField) { return null }
 			const v = Number(getByPath(this.epData, this.content.previousField))
 			return Number.isFinite(v) ? v : null
 		},
+
 		/**
 		 * Trend percent for the sublabel (the pipelinq KPI contract): a
 		 * server-computed percent plucked at `content.deltaField` when set,
@@ -581,27 +598,30 @@ export default {
 		 * @return {number|null}
 		 */
 		trendPct() {
-			if (!this.endpointMode) return null
+			if (!this.endpointMode) { return null }
 			if (this.content.deltaField) {
 				const v = Number(getByPath(this.epData, this.content.deltaField))
 				return Number.isFinite(v) ? v : null
 			}
 			const prev = this.previousValue
 			const cur = Number(this.displayValue)
-			if (prev === null || prev === 0 || !Number.isFinite(cur)) return null
+			if (prev === null || prev === 0 || !Number.isFinite(cur)) { return null }
 			return ((cur - prev) / Math.abs(prev)) * 100
 		},
+
 		/** The signed trend percent, e.g. "+12.3%". */
 		formattedTrend() {
-			if (this.trendPct === null) return ''
+			if (this.trendPct === null) { return '' }
 			const sign = this.trendPct > 0 ? '+' : ''
 			return `${sign}${this.trendPct.toFixed(1)}%`
 		},
+
 		/** The arrow component for the trend direction. */
 		trendIcon() {
-			if (this.trendPct === null || Math.abs(this.trendPct) < 0.05) return 'TrendingNeutral'
+			if (this.trendPct === null || Math.abs(this.trendPct) < 0.05) { return 'TrendingNeutral' }
 			return this.trendPct > 0 ? 'TrendingUp' : 'TrendingDown'
 		},
+
 		/**
 		 * Green when the trend moves in `content.goodDirection` (default
 		 * 'up'), red otherwise, neutral for a ~0 change — the CnDeltaWidget
@@ -610,12 +630,13 @@ export default {
 		 * @return {string}
 		 */
 		trendColor() {
-			if (this.trendPct === null || Math.abs(this.trendPct) < 0.05) return 'var(--color-text-maxcontrast)'
+			if (this.trendPct === null || Math.abs(this.trendPct) < 0.05) { return 'var(--color-text-maxcontrast)' }
 			const good = this.content.goodDirection || 'up'
 			const rising = this.trendPct > 0
 			const isGood = good === 'up' ? rising : !rising
 			return isGood ? 'var(--color-success)' : 'var(--color-error)'
 		},
+
 		/**
 		 * The first `content.variantWhen` rule matching the current display
 		 * value (first-match wins), or null. Each rule is
@@ -625,11 +646,12 @@ export default {
 		 */
 		activeVariantRule() {
 			const rules = this.content.variantWhen
-			if (!Array.isArray(rules) || rules.length === 0) return null
+			if (!Array.isArray(rules) || rules.length === 0) { return null }
 			const current = this.displayValue
-			if (current === null || current === undefined) return null
+			if (current === null || current === undefined) { return null }
 			return rules.find((r) => r && this.matchesRule(current, r)) || null
 		},
+
 		/**
 		 * The CSS colour for the matched variant rule ('' = keep the
 		 * configured colours).
@@ -638,10 +660,10 @@ export default {
 		 */
 		variantColor() {
 			const rule = this.activeVariantRule
-			if (rule && rule.variant) return VARIANT_COLORS[rule.variant] || ''
+			if (rule && rule.variant) { return VARIANT_COLORS[rule.variant] || '' }
 			// An explicit variantWhen rule always wins: a tile that says how it
 			// wants to be coloured is not overruled by the generic at-limit tint.
-			if (this.atLimit) return VARIANT_COLORS.warning || ''
+			if (this.atLimit) { return VARIANT_COLORS.warning || '' }
 			// A STATIC `variant` is the floor, below both of the above: it is the
 			// tile's resting colour, not a signal about the current value, so a
 			// threshold rule or an at-limit warning must be able to override it.
@@ -651,9 +673,10 @@ export default {
 			// this component would otherwise silently lose its colour — a change
 			// nothing would report, on a dashboard where colour is the fastest
 			// thing a reader takes in.
-			if (this.content.variant) return VARIANT_COLORS[this.content.variant] || ''
+			if (this.content.variant) { return VARIANT_COLORS[this.content.variant] || '' }
 			return ''
 		},
+
 		/**
 		 * The icon shown in the circle: a matched variant rule's `icon`
 		 * override, else `content.icon`.
@@ -664,6 +687,7 @@ export default {
 			const rule = this.activeVariantRule
 			return (rule && rule.icon) || this.content.icon || ''
 		},
+
 		/**
 		 * Card orientation. Horizontal (icon beside the number) is the
 		 * canonical KPI card; `content.layout: 'vertical'` stacks the icon
@@ -674,6 +698,7 @@ export default {
 		cardLayout() {
 			return (this.content || {}).layout === 'vertical' ? 'vertical' : 'horizontal'
 		},
+
 		/**
 		 * Whether the card draws no box of its own. On by default: every stat
 		 * tile is rendered inside a CnWidgetWrapper that already draws a card,
@@ -685,16 +710,19 @@ export default {
 		flat() {
 			return (this.content || {}).flat !== false
 		},
+
 		/** Inline style for the icon circle (variant rule wins over iconColor). */
 		iconCircleStyle() {
 			const color = this.variantColor || this.content.iconColor || this.content.valueColor || 'var(--color-primary-element)'
 			return { color, backgroundColor: this.tint(color) }
 		},
+
 		/** Inline style for the value text (variant rule wins over valueColor). */
 		valueStyle() {
 			const color = this.variantColor || this.content.valueColor
 			return color ? { color } : {}
 		},
+
 		/**
 		 * The formatted value string per the `content.format` spec. Resolves
 		 * `@config.<key>` tokens (e.g. `currency: '@config.currency'`) against the
@@ -707,6 +735,7 @@ export default {
 		formattedValue() {
 			return formatMetricValue(this.displayValue, this.content.format, this.configCtx)
 		},
+
 		/**
 		 * The capacity this tile is measured against — `content.limitField`
 		 * (dot-path into the endpoint payload, so a server-configured quota is
@@ -724,6 +753,7 @@ export default {
 			const n = Number(raw)
 			return Number.isFinite(n) ? n : null
 		},
+
 		/**
 		 * The limit rendered beside the value, e.g. the "100" in "0 / 100".
 		 * Formatted with the value's own `format` spec minus prefix/suffix —
@@ -733,10 +763,11 @@ export default {
 		 * @return {string}
 		 */
 		formattedLimit() {
-			if (this.limitValue === null) return ''
+			if (this.limitValue === null) { return '' }
 			const { prefix, suffix, ...rest } = (this.content.format || {})
 			return formatMetricValue(this.limitValue, rest, this.configCtx)
 		},
+
 		/**
 		 * Whether the tile has reached or passed its limit. Drives the warning
 		 * tint when no explicit `variantWhen` rule already claims the colour.
@@ -744,10 +775,11 @@ export default {
 		 * @return {boolean}
 		 */
 		atLimit() {
-			if (this.limitValue === null) return false
+			if (this.limitValue === null) { return false }
 			const current = Number(this.displayValue)
 			return Number.isFinite(current) && current >= this.limitValue
 		},
+
 		/**
 		 * The tile's own range presets (`content.dateRange.presets`). Empty when
 		 * the tile has no override, which is also what hides the picker.
@@ -758,6 +790,7 @@ export default {
 			const presets = this.content.dateRange?.presets
 			return Array.isArray(presets) ? presets.filter(Boolean) : []
 		},
+
 		/**
 		 * The preset id currently selected — the tile's own override when set,
 		 * else whatever the dashboard range reports, so the picker opens showing
@@ -768,11 +801,13 @@ export default {
 		activeRangePreset() {
 			return (this.tileRange || this.activeRange() || {}).preset || ''
 		},
+
 		/** Accessible name for the range picker (no visible label on a compact tile). */
 		rangeAriaLabel() {
 			const label = this.resolvedLabel || this.effectiveTranslate('Date range')
 			return `${label} — ${this.effectiveTranslate('date range')}`
 		},
+
 		/** Stable signature of the data source so the watcher only refetches on real change. */
 		sourceKey() {
 			return JSON.stringify({
@@ -788,6 +823,7 @@ export default {
 		sourceKey() {
 			this.fetchValue()
 		},
+
 		objectFieldRaw: {
 			immediate: true,
 			handler() {
@@ -817,7 +853,7 @@ export default {
 			const cfg = this.content.objectField
 			const resolve = (cfg && typeof cfg === 'object') ? cfg.resolve : null
 			const raw = this.objectFieldRaw
-			if (!resolve || !resolve.register || !resolve.schema || !raw) return
+			if (!resolve || !resolve.register || !resolve.schema || !raw) { return }
 
 			let store = null
 			try {
@@ -827,7 +863,7 @@ export default {
 				// and never blank.
 				return
 			}
-			if (!store) return
+			if (!store) { return }
 
 			const type = resolveObjectOpType(store, { register: resolve.register, schema: resolve.schema })
 			const id = String(raw)
@@ -835,7 +871,7 @@ export default {
 				const cached = store.objects && store.objects[type] && store.objects[type][id]
 				const obj = cached || await store.fetchObject(type, id)
 				const label = this.pickReferenceLabel(obj, resolve.labelField)
-				if (label) this.referenceLabel = label
+				if (label) { this.referenceLabel = label }
 			} catch (e) {
 				// Leave the raw value showing.
 			}
@@ -851,14 +887,14 @@ export default {
 		 * @return {string} The label, or '' when none is usable.
 		 */
 		pickReferenceLabel(obj, labelField) {
-			if (!obj || typeof obj !== 'object') return ''
+			if (!obj || typeof obj !== 'object') { return '' }
 			const candidates = [obj[labelField || 'title'], obj.title, obj.name, obj['@self'] && obj['@self'].name]
 			for (const value of candidates) {
-				if (typeof value === 'string' && value !== '') return value
-				if (typeof value === 'number') return String(value)
+				if (typeof value === 'string' && value !== '') { return value }
+				if (typeof value === 'number') { return String(value) }
 				if (value && typeof value === 'object' && !Array.isArray(value)) {
 					const first = Object.values(value).find((v) => typeof v === 'string' && v !== '')
-					if (first) return first
+					if (first) { return first }
 				}
 			}
 			return ''
@@ -881,15 +917,17 @@ export default {
 		 */
 		selectRange(presetId) {
 			const preset = this.rangePresets.find((p) => p.id === presetId)
-			if (!preset) return
+			if (!preset) { return }
 			this.tileRange = { preset: preset.id, from: preset.from ?? null, to: preset.to ?? null }
 		},
+
 		tint(color) {
 			if (typeof color === 'string' && /^#([0-9a-f]{6})$/i.test(color)) {
 				return color + '1f' // ~12% alpha
 			}
 			return 'var(--color-primary-element-light, rgba(0,130,201,0.1))'
 		},
+
 		/**
 		 * Whether a `variantWhen` rule matches the current value. Numeric
 		 * comparison when both sides coerce to numbers; `eq` / `neq` fall back
@@ -904,15 +942,16 @@ export default {
 			const b = Number(rule.value)
 			const numeric = Number.isFinite(a) && Number.isFinite(b)
 			switch (rule.op) {
-			case 'eq': return numeric ? a === b : String(current) === String(rule.value)
-			case 'neq': return numeric ? a !== b : String(current) !== String(rule.value)
-			case 'gt': return numeric && a > b
-			case 'gte': return numeric && a >= b
-			case 'lt': return numeric && a < b
-			case 'lte': return numeric && a <= b
-			default: return false
+				case 'eq': return numeric ? a === b : String(current) === String(rule.value)
+				case 'neq': return numeric ? a !== b : String(current) !== String(rule.value)
+				case 'gt': return numeric && a > b
+				case 'gte': return numeric && a >= b
+				case 'lt': return numeric && a < b
+				case 'lte': return numeric && a <= b
+				default: return false
 			}
 		},
+
 		/**
 		 * Flatten a filter map into `filter[key]=value` / `filter[key][op]=value`
 		 * query params (operator-aware, matching the OpenRegister vocabulary).
@@ -922,7 +961,7 @@ export default {
 		 * @return {void}
 		 */
 		flattenFilter(target, filter) {
-			if (!filter || typeof filter !== 'object') return
+			if (!filter || typeof filter !== 'object') { return }
 			// Resolve `@objectId` / `@object.*` (detail page), `@workspace.*`
 			// (page-level context — e.g. the dashboard date-range pills publish
 			// `dateFrom` / `dateTo`) AND `@config.*` (page-level app config), then
@@ -933,12 +972,13 @@ export default {
 			filter = dropOptionalUnresolved(resolveFilterTokens(filter, ctx))
 			for (const [k, v] of Object.entries(filter)) {
 				if (v && typeof v === 'object') {
-					for (const [op, ov] of Object.entries(v)) target[`filter[${k}][${op}]`] = ov
+					for (const [op, ov] of Object.entries(v)) { target[`filter[${k}][${op}]`] = ov }
 				} else if (v !== '' && v !== null && v !== undefined) {
 					target[`filter[${k}]`] = v
 				}
 			}
 		},
+
 		/**
 		 * Fetch one scalar from the OpenRegister `/value` aggregation endpoint.
 		 *
@@ -956,11 +996,12 @@ export default {
 				{ register: s.register, schema: s.schema },
 			)
 			const params = { metric: metric || 'count' }
-			if (field) params.field = field
+			if (field) { params.field = field }
 			this.flattenFilter(params, filter)
 			const res = await axios.get(url, { params })
 			return res?.data?.value ?? null
 		},
+
 		/**
 		 * Resolve the widget's value from its `source`. Supports three source
 		 * kinds (ADR-041): a plain `aggregate` (count/sum/avg/min/max with
@@ -1027,6 +1068,7 @@ export default {
 				this.loading = false
 			}
 		},
+
 		/**
 		 * Compute a weighted sum `Σ (field × weightField) ÷ divisor` client-side
 		 * (no OpenRegister expression-aggregation primitive yet). Pulls the
@@ -1038,7 +1080,7 @@ export default {
 		 * @return {Promise<number|null>} The weighted sum.
 		 */
 		async fetchWeighted(axios, generateUrl, s) {
-			if (!s.field || !s.weightField) return null
+			if (!s.field || !s.weightField) { return null }
 			const url = generateUrl(
 				'/apps/openregister/api/objects/{register}/{schema}',
 				{ register: s.register, schema: s.schema },
@@ -1052,10 +1094,11 @@ export default {
 			for (const r of rows) {
 				const v = Number(r[s.field])
 				const w = Number(r[s.weightField])
-				if (Number.isFinite(v) && Number.isFinite(w)) sum += (v * w) / divisor
+				if (Number.isFinite(v) && Number.isFinite(w)) { sum += (v * w) / divisor }
 			}
 			return sum
 		},
+
 		/**
 		 * Resolve `@page.<key>` / `@workspace.<key>` / `@config.<key>` /
 		 * `@objectId` / `@object.<field>` tokens inside a string against the page
@@ -1068,7 +1111,7 @@ export default {
 		 * @return {string} The interpolated string.
 		 */
 		interpolateTokens(str) {
-			if (typeof str !== 'string') return str
+			if (typeof str !== 'string') { return str }
 			return str.replace(/@(page|workspace)\.([A-Za-z0-9_]+)/g, (_, _ns, key) => {
 				const v = this.pageCtx[key]
 				return (v === undefined || v === null) ? '' : String(v)
@@ -1083,6 +1126,7 @@ export default {
 				return (v === undefined || v === null) ? '' : String(v)
 			})
 		},
+
 		/**
 		 * Read a dot-path off an object (e.g. `"data.totalLeads"`, `"summary.0.count"`).
 		 * Returns undefined when any segment is missing.
@@ -1097,6 +1141,7 @@ export default {
 			// path pluck identically.
 			return getByPath(obj, path)
 		},
+
 		/**
 		 * Fetch a single value from an arbitrary app REST endpoint. The `url` and
 		 * any string `params` value are token-interpolated (`@page.*` etc.), the
@@ -1121,7 +1166,7 @@ export default {
 			}
 			const res = await axios.get(url, { params })
 			const extracted = this.getByPath(res && res.data, s.path)
-			if (extracted === undefined || extracted === null) return null
+			if (extracted === undefined || extracted === null) { return null }
 			const num = Number(extracted)
 			return Number.isFinite(num) ? num : extracted
 		},

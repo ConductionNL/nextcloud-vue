@@ -275,7 +275,7 @@ export default {
 				if (response.ok) {
 					const data = await response.json()
 					const raw = Array.isArray(data) ? data : (data.cards || data.results || [])
-					this.cards = raw.map(c => ({
+					this.cards = raw.map((c) => ({
 						id: c.id ?? c.cardId,
 						title: c.title ?? c.cardTitle ?? `Card ${c.id}`,
 					}))

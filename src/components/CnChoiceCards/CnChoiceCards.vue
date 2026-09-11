@@ -103,6 +103,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * The selected value: a scalar, or an array when `multiple`.
 		 *
@@ -112,31 +113,37 @@ export default {
 			type: [String, Number, Boolean, Array, Object],
 			default: null,
 		},
+
 		/** Allow selecting several cards; the model becomes an array. */
 		multiple: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Group label, rendered as the fieldset's legend. */
 		label: {
 			type: String,
 			default: '',
 		},
+
 		/** Disable every card (e.g. a dependent choice with no parent value yet). */
 		disabled: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Show a spinner instead of the grid while options are being fetched. */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Message shown when there is nothing to choose from. */
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Nothing to choose from here.'),
 		},
+
 		/** Lines of description shown before clamping. */
 		descriptionLines: {
 			type: Number,
@@ -179,6 +186,7 @@ export default {
 				})
 				.filter((option) => option.value !== undefined)
 		},
+
 		/**
 		 * The current selection as an array of values, whatever the model shape.
 		 *
@@ -207,6 +215,7 @@ export default {
 		isSelected(option) {
 			return this.selectedValues.some((v) => String(v) === String(option.value))
 		},
+
 		/**
 		 * Select (single) or toggle (multiple) an option and emit the new model.
 		 *

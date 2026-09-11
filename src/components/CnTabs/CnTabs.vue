@@ -117,16 +117,19 @@ export default defineComponent({
 			type: String,
 			default: '',
 		},
+
 		/** Stretch the nav items to fill the strip (bootstrap-vue's `justified`). */
 		justified: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Card-style chrome (border + padding) around the panel area. */
 		card: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Accessible name for the tab strip, applied to the `role="tablist"`
 		 * element. Screen readers announce it when focus enters the strip.

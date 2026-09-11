@@ -38,11 +38,11 @@
  * @return {boolean} `true` when the field should be visible.
  */
 export function shouldShow(field, formData) {
-	if (!field || typeof field !== 'object') return true
+	if (!field || typeof field !== 'object') { return true }
 
 	// Accept either `condition` (preferred) or `visibleWhen` (alias from the issue).
 	const condition = field.condition || field.visibleWhen
-	if (condition === undefined || condition === null) return true
+	if (condition === undefined || condition === null) { return true }
 
 	if (typeof condition !== 'object' || Array.isArray(condition)) {
 		console.warn(`CnFormDialog: field "${field.key}" condition must be an object, got ${typeof condition}`)

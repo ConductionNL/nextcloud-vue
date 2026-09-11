@@ -95,8 +95,8 @@ describe('CnAppRoot walkthrough ↔ support-note sequencing', () => {
 		// Fresh user on both counts: no walkthrough seen, no support note seen.
 		axios.get.mockImplementation((url) => {
 			const u = String(url)
-			if (u.includes(WT_PREF_PATH)) return Promise.resolve({ data: { value: null } })
-			if (u.includes(SUPPORT_PREF_PATH)) return Promise.resolve({ data: { value: null } })
+			if (u.includes(WT_PREF_PATH)) { return Promise.resolve({ data: { value: null } }) }
+			if (u.includes(SUPPORT_PREF_PATH)) { return Promise.resolve({ data: { value: null } }) }
 			return Promise.reject(new Error('no route'))
 		})
 		axios.put.mockResolvedValue({ data: { value: 'ok' } })
@@ -123,8 +123,8 @@ describe('CnAppRoot walkthrough ↔ support-note sequencing', () => {
 	it('a returning support-note user gets the walkthrough with no interruption', async () => {
 		axios.get.mockImplementation((url) => {
 			const u = String(url)
-			if (u.includes(WT_PREF_PATH)) return Promise.resolve({ data: { value: null } })
-			if (u.includes(SUPPORT_PREF_PATH)) return Promise.resolve({ data: { value: '1' } })
+			if (u.includes(WT_PREF_PATH)) { return Promise.resolve({ data: { value: null } }) }
+			if (u.includes(SUPPORT_PREF_PATH)) { return Promise.resolve({ data: { value: '1' } }) }
 			return Promise.reject(new Error('no route'))
 		})
 

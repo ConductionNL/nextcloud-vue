@@ -126,36 +126,43 @@ export default {
 			type: Array,
 			required: true,
 		},
+
 		/** Property name used for display (e.g., 'title', 'name') */
 		nameField: {
 			type: String,
 			default: 'title',
 		},
+
 		/** Optional function to format the item name. Receives the item, returns a string. Overrides nameField when provided. */
 		nameFormatter: {
 			type: Function,
 			default: null,
 		},
+
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Delete items'),
 		},
+
 		/** Warning text shown above the item list */
 		warningText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'The following items will be permanently deleted. Remove any items you want to keep.'),
 		},
+
 		/** Text when all items removed from list */
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No items selected for deletion.'),
 		},
+
 		/** Success message */
 		successText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Items successfully deleted.'),
 		},
+
 		/** Label for the cancel button (visible before the delete runs). */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
 		/** Label for the close button (visible after delete completes). */
@@ -184,12 +191,12 @@ export default {
 	},
 
 	beforeUnmount() {
-		if (this.closeTimeout) clearTimeout(this.closeTimeout)
+		if (this.closeTimeout) { clearTimeout(this.closeTimeout) }
 	},
 
 	methods: {
 		getItemName(item) {
-			if (this.nameFormatter) return this.nameFormatter(item)
+			if (this.nameFormatter) { return this.nameFormatter(item) }
 			return item[this.nameField] || item.name || item.title || item.id
 		},
 

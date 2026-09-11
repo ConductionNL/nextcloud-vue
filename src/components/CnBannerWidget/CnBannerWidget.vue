@@ -74,11 +74,13 @@ export default {
 			default: '',
 			validator: (v) => v === '' || VARIANTS.includes(v),
 		},
+
 		/** Pre-translated banner text. Empty falls back to the `content` blob. */
 		text: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional visibility condition. Shape:
 		 * `{ endpoint?, source?, field?, op?, value }` — exactly one of
@@ -90,22 +92,26 @@ export default {
 		 * `op` is `eq | neq | gt | gte | lt | lte` (default `eq`); `value` is
 		 * the literal right-hand side. `null` (the default) shows the banner
 		 * unconditionally.
+		 *
 		 * @type {object|null}
 		 */
 		visibleWhen: {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Optional click-through route: a vue-router route NAME (string) or
 		 * a full location object. When set, the banner text is an accessible
 		 * button that navigates on click / Enter. `null` renders static text.
+		 *
 		 * @type {string|object|null}
 		 */
 		route: {
 			type: [String, Object],
 			default: null,
 		},
+
 		/**
 		 * Stored content blob (CnDashboardPage registry branch) carrying the
 		 * same keys as the flat props: `{ variant, text, visibleWhen, route }`.
@@ -115,6 +121,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Pre-evaluated `visibleWhen` outcome `{ met, value }`, injected by a
 		 * host that already ran the predicate (CnDashboardPage evaluates it
@@ -123,6 +130,7 @@ export default {
 		 * no duplicate request and no hidden-until-self-evaluated flash —
 		 * and `value` feeds the `{value}` text placeholder. `null` (the
 		 * default) keeps the banner self-evaluating.
+		 *
 		 * @type {object|null}
 		 */
 		conditionOutcome: {
@@ -150,18 +158,22 @@ export default {
 			const v = this.variant || (this.content && this.content.variant) || 'info'
 			return VARIANTS.includes(v) ? v : 'info'
 		},
+
 		/** The effective banner text (prop → content → ''). */
 		resolvedText() {
 			return this.text || (this.content && this.content.text) || ''
 		},
+
 		/** The effective visibleWhen condition (prop → content → null). */
 		resolvedVisibleWhen() {
 			return this.visibleWhen || (this.content && this.content.visibleWhen) || null
 		},
+
 		/** The effective injected outcome (prop → content → null). */
 		resolvedConditionOutcome() {
 			return this.conditionOutcome || (this.content && this.content.conditionOutcome) || null
 		},
+
 		/**
 		 * The rendered text: `resolvedText` with `{value}` replaced by the
 		 * predicate's field value once one is known. Without a known value
@@ -171,19 +183,22 @@ export default {
 		 */
 		displayText() {
 			const text = this.resolvedText
-			if (this.conditionValue === null || !text.includes('{value}')) return text
+			if (this.conditionValue === null || !text.includes('{value}')) { return text }
 			return text.replaceAll('{value}', String(this.conditionValue))
 		},
+
 		/** The effective click-through route (prop → content → null). */
 		resolvedRoute() {
 			return this.route || (this.content && this.content.route) || null
 		},
+
 		/** Whether the banner renders: no condition = always; else the evaluated outcome. */
 		visible() {
-			if (this.resolvedText === '') return false
-			if (!this.resolvedVisibleWhen) return true
+			if (this.resolvedText === '') { return false }
+			if (!this.resolvedVisibleWhen) { return true }
 			return this.conditionMet === true
 		},
+
 		/** Whether the banner navigates on click (route set + router present). */
 		clickable() {
 			return !!this.resolvedRoute && !!this.$router
@@ -195,6 +210,7 @@ export default {
 			immediate: true,
 			handler() { this.evaluateCondition() },
 		},
+
 		resolvedConditionOutcome() { this.evaluateCondition() },
 	},
 
@@ -241,7 +257,7 @@ export default {
 		 * @return {void}
 		 */
 		onClick() {
-			if (!this.clickable) return
+			if (!this.clickable) { return }
 			const route = this.resolvedRoute
 			const location = typeof route === 'string' ? { name: route } : route
 			this.$router.push(location).catch(() => {})

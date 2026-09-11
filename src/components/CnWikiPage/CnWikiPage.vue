@@ -329,7 +329,7 @@ export default {
 
 		/** Article title resolved through `titleField`. */
 		resolvedTitle() {
-			if (!this.article) return ''
+			if (!this.article) { return '' }
 			const value = this.article[this.titleField]
 			return typeof value === 'string' ? value : ''
 		},
@@ -339,7 +339,7 @@ export default {
 		 * Empty string when the article is null or has no body.
 		 */
 		renderedBody() {
-			if (!this.article) return ''
+			if (!this.article) { return '' }
 			const source = this.article[this.contentField]
 			try {
 				return cnRenderMarkdown(source)
@@ -368,10 +368,10 @@ export default {
 		 * @return {string}
 		 */
 		treeKey(node) {
-			if (!node) return ''
-			if (typeof node.id === 'string' || typeof node.id === 'number') return String(node.id)
+			if (!node) { return '' }
+			if (typeof node.id === 'string' || typeof node.id === 'number') { return String(node.id) }
 			const title = node[this.effectiveSidebarTitleField]
-			if (typeof title === 'string') return title
+			if (typeof title === 'string') { return title }
 			return JSON.stringify(node)
 		},
 	},

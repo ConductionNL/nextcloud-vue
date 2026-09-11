@@ -143,26 +143,31 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** OpenRegister schema ID */
 		schemaId: {
 			type: String,
 			required: true,
 		},
+
 		/** Object UUID */
 		objectId: {
 			type: String,
 			required: true,
 		},
+
 		/** Base API URL for OpenRegister */
 		apiBase: {
 			type: String,
 			default: '/apps/openregister/api',
 		},
+
 		/** Maximum number of notes to display */
 		maxDisplay: {
 			type: Number,
 			default: 5,
 		},
+
 		/** Whether the card is collapsible */
 		collapsible: {
 			type: Boolean,
@@ -252,7 +257,7 @@ export default {
 		},
 
 		async fetchNotes() {
-			if (!this.registerId || !this.schemaId || !this.objectId) return
+			if (!this.registerId || !this.schemaId || !this.objectId) { return }
 			this.loading = true
 			try {
 				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes`
@@ -269,7 +274,7 @@ export default {
 		},
 
 		async submitNote() {
-			if (!this.newNoteText.trim() || this.noteSaving) return
+			if (!this.newNoteText.trim() || this.noteSaving) { return }
 			this.noteSaving = true
 			try {
 				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes`
@@ -302,7 +307,7 @@ export default {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {
-					this.allNotes = this.allNotes.filter(n => n.id !== note.id)
+					this.allNotes = this.allNotes.filter((n) => n.id !== note.id)
 					this.$emit('note-deleted')
 				}
 			} catch (err) {
@@ -311,7 +316,7 @@ export default {
 		},
 
 		formatDate(dateStr) {
-			if (!dateStr) return ''
+			if (!dateStr) { return '' }
 			try {
 				return new Date(dateStr).toLocaleString(undefined, {
 					year: 'numeric',

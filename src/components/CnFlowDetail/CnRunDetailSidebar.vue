@@ -189,9 +189,7 @@ export default {
 		 * @return {Array<object>} The rows.
 		 */
 		objectRows() {
-			const stepNodes = new Set(
-				(this.store.steps || []).map((step) => String(step.transition || '')),
-			)
+			const stepNodes = new Set((this.store.steps || []).map((step) => String(step.transition || '')))
 
 			return (this.store.runObjects || []).flatMap((group) => (group.objects || []).map((obj) => ({
 				...obj,

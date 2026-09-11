@@ -197,6 +197,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * The widget chrome being edited. Its `styleConfig` and chrome fields
 		 * (`showTitle`, `customTitle`, `customIcon`) are mutated in place on Save.
@@ -207,11 +208,13 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** Whether to show the Delete button (false for compulsory widgets). */
 		deletable: {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Extra icon options appended to the built-in set, e.g. an app's own
 		 * icon pack. Each `{ id, label, icon }` where `icon` may be an MDI path
@@ -297,7 +300,7 @@ export default {
 		 */
 		typeFormComponent() {
 			const type = this.widget && this.widget.type
-			if (!type) return null
+			if (!type) { return null }
 			const entry = getWidgetTypeEntry(type)
 			return (entry && entry.form) || null
 		},
@@ -316,7 +319,7 @@ export default {
 		 */
 		isCardWidget() {
 			const type = this.widget && this.widget.type
-			if (!type) return false
+			if (!type) { return false }
 			const entry = getWidgetTypeEntry(type)
 			return Boolean(entry && entry.card === true)
 		},

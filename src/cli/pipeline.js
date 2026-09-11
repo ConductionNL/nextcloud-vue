@@ -78,7 +78,7 @@ function runPipeline(manifest, opts = {}) {
 		current = {
 			...current,
 			pages: current.pages.map((page) => {
-				if (!page || typeof page !== 'object') return page
+				if (!page || typeof page !== 'object') { return page }
 
 				// 4. Merge dashboard widgets + layout
 				const { page: p1, count: mergeCount } = mergeDashboardWidgetsAndLayout(page)

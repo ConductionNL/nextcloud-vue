@@ -50,6 +50,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Form'),
 		},
+
 		/**
 		 * Documentation link surfaced in the widget's overflow Actions menu.
 		 * Empty (the default) hides the Documentation item; the Refresh and
@@ -59,6 +60,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Stable id forwarded to the widget chrome for the Refresh /
 		 * Request-a-feature payloads.
@@ -67,21 +69,25 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Register slug for form data submission. */
 		register: {
 			type: String,
 			default: null,
 		},
+
 		/** Schema slug for the form data shape. */
 		schema: {
 			type: String,
 			default: null,
 		},
+
 		/** Form fields. Forwarded to CnFormPage. */
 		fields: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Multi-step wizard groups (manifest-form-logic). Forwarded to
 		 * CnFormPage. `visibleWhen` / `validation` travel inside `fields`
@@ -91,31 +97,37 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Submit handler name. Forwarded to CnFormPage. */
 		submitHandler: {
 			type: String,
 			default: '',
 		},
+
 		/** Submit endpoint URL. Forwarded to CnFormPage. */
 		submitEndpoint: {
 			type: String,
 			default: '',
 		},
+
 		/** HTTP method for endpoint mode. Forwarded to CnFormPage. */
 		submitMethod: {
 			type: String,
 			default: 'POST',
 		},
+
 		/** Form mode. Forwarded to CnFormPage. */
 		mode: {
 			type: String,
 			default: 'public',
 		},
+
 		/** Page description. Forwarded to CnFormPage. */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/** Pre-filled form state. Forwarded to CnFormPage. */
 		initialValue: {
 			type: Object,
@@ -128,6 +140,7 @@ export default {
 		 * `$props` minus the chrome props (`title`, `documentationUrl`,
 		 * `widgetId`) so they are consumed by CnWidgetWrapper and never
 		 * forwarded to the inner CnFormPage.
+		 *
 		 * @return {object}
 		 */
 		innerProps() {

@@ -94,7 +94,13 @@ export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
  * @type {string[]}
  */
 export const SENTINEL_CONTEXTS = Object.freeze([
-	'filter', 'config', 'object', 'workspace', 'route', 'declarative', 'visibleWhen',
+	'filter',
+	'config',
+	'object',
+	'workspace',
+	'route',
+	'declarative',
+	'visibleWhen',
 ])
 
 /**
@@ -184,11 +190,7 @@ export const ROUTE_TOKEN_RE = /^@route\.([A-Za-z][A-Za-z0-9_-]*)$/
 export const TODAY_DELTA_RE = /^@today([+-]\d+)d$/
 
 /** Compiled per-context matchers (anchored, from SENTINEL_TOKEN_PATTERNS). */
-const CONTEXT_RE = Object.freeze(
-	Object.fromEntries(
-		Object.entries(SENTINEL_TOKEN_PATTERNS).map(([ctx, pat]) => [ctx, new RegExp(pat)]),
-	),
-)
+const CONTEXT_RE = Object.freeze(Object.fromEntries(Object.entries(SENTINEL_TOKEN_PATTERNS).map(([ctx, pat]) => [ctx, new RegExp(pat)])))
 
 /**
  * True when `value` is a string that begins with `@` (i.e. shaped like a
@@ -210,9 +212,9 @@ export function looksLikeSentinel(value) {
  * @return {(string|null)} A member of {@link SENTINEL_CONTEXTS} or null.
  */
 export function contextOf(token) {
-	if (typeof token !== 'string') return null
+	if (typeof token !== 'string') { return null }
 	for (const ctx of SENTINEL_CONTEXTS) {
-		if (CONTEXT_RE[ctx].test(token)) return ctx
+		if (CONTEXT_RE[ctx].test(token)) { return ctx }
 	}
 	return null
 }
@@ -237,7 +239,7 @@ export function isKnownToken(token) {
  * @return {({key: string, replacement: (string|null), removal: string, note: string}|null)}
  */
 export function matchDeprecation(token) {
-	if (typeof token !== 'string') return null
+	if (typeof token !== 'string') { return null }
 	for (const [key, entry] of Object.entries(SENTINEL_DEPRECATIONS)) {
 		if (entry.test.test(token)) {
 			return { key, replacement: entry.replacement, removal: entry.removal, note: entry.note }
@@ -254,9 +256,9 @@ export function matchDeprecation(token) {
  */
 export function classifyToken(token) {
 	const deprecation = matchDeprecation(token)
-	if (deprecation) return { status: 'deprecated', context: null, deprecation }
+	if (deprecation) { return { status: 'deprecated', context: null, deprecation } }
 	const context = contextOf(token)
-	if (context) return { status: 'known', context, deprecation: null }
+	if (context) { return { status: 'known', context, deprecation: null } }
 	return { status: 'unknown', context: null, deprecation: null }
 }
 
@@ -281,7 +283,7 @@ export function scanManifestTokens(manifest) {
 
 	const visit = (node, path) => {
 		if (typeof node === 'string') {
-			if (!looksLikeSentinel(node)) return
+			if (!looksLikeSentinel(node)) { return }
 			const c = classifyToken(node)
 			if (c.status === 'deprecated') {
 				deprecated.push({ token: node, path, replacement: c.deprecation.replacement, removal: c.deprecation.removal })
@@ -297,15 +299,15 @@ export function scanManifestTokens(manifest) {
 			return
 		}
 		if (node && typeof node === 'object') {
-			for (const [k, v] of Object.entries(node)) visit(v, `${path}.${k}`)
+			for (const [k, v] of Object.entries(node)) { visit(v, `${path}.${k}`) }
 		}
 	}
 
 	const pages = manifest && Array.isArray(manifest.pages) ? manifest.pages : []
 	pages.forEach((page, i) => {
-		if (!page || typeof page !== 'object') return
-		if (page.config && typeof page.config === 'object') visit(page.config, `pages[${i}].config`)
-		if (Array.isArray(page.widgets)) visit(page.widgets, `pages[${i}].widgets`)
+		if (!page || typeof page !== 'object') { return }
+		if (page.config && typeof page.config === 'object') { visit(page.config, `pages[${i}].config`) }
+		if (Array.isArray(page.widgets)) { visit(page.widgets, `pages[${i}].widgets`) }
 	})
 
 	return { unknown, deprecated, known }

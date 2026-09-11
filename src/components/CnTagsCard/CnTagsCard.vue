@@ -66,6 +66,7 @@ export default {
 			default: 'detail-page',
 			validator: (value) => ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity'].includes(value),
 		},
+
 		/** Base API URL. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Whether the card collapses. */

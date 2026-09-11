@@ -37,7 +37,7 @@ const mountGrid = (props = {}) => mount(CnDashboardGrid, {
 	},
 })
 
-const items = wrapper => wrapper.findAll('.grid-stack-item')
+const items = (wrapper) => wrapper.findAll('.grid-stack-item')
 
 describe('CnDashboardGrid — grid items are named, focusable groups', () => {
 	it('exposes role=group, tabindex=0 and an accessible name in edit mode', () => {
@@ -95,7 +95,7 @@ describe('CnDashboardGrid — grid items are named, focusable groups', () => {
 				],
 			},
 		})
-		const labels = [0, 1, 2].map(i => items(wrapper).at(i).attributes('aria-label'))
+		const labels = [0, 1, 2].map((i) => items(wrapper).at(i).attributes('aria-label'))
 
 		expect(labels[0]).toContain('Named')
 		expect(labels[1]).toContain('weather')
@@ -103,7 +103,7 @@ describe('CnDashboardGrid — grid items are named, focusable groups', () => {
 	})
 
 	it('uses a custom itemLabel verbatim', () => {
-		const wrapper = mountGrid({ itemLabel: item => `Card ${item.id}` })
+		const wrapper = mountGrid({ itemLabel: (item) => `Card ${item.id}` })
 		expect(items(wrapper).at(0).attributes('aria-label')).toBe('Card a')
 	})
 })
@@ -252,7 +252,7 @@ describe('CnDashboardGrid — keyboard activation', () => {
 	it('dispatches a bubbling contextmenu from inside the item so pointer menus become keyboard-reachable', async () => {
 		const wrapper = mountGrid()
 		const seen = []
-		wrapper.find('.slot-root').element.addEventListener('contextmenu', e => seen.push(e))
+		wrapper.find('.slot-root').element.addEventListener('contextmenu', (e) => seen.push(e))
 
 		await items(wrapper).at(0).trigger('keydown', { key: 'Enter' })
 
@@ -264,7 +264,7 @@ describe('CnDashboardGrid — keyboard activation', () => {
 	it('skips the synthetic contextmenu when activateOpensContextMenu is false', async () => {
 		const wrapper = mountGrid({ activateOpensContextMenu: false })
 		const seen = []
-		wrapper.find('.slot-root').element.addEventListener('contextmenu', e => seen.push(e))
+		wrapper.find('.slot-root').element.addEventListener('contextmenu', (e) => seen.push(e))
 
 		await items(wrapper).at(0).trigger('keydown', { key: 'Enter' })
 

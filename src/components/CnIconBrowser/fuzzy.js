@@ -93,10 +93,8 @@ export function fuzzyFilter(icons, query) {
 			scored.push({ icon, score })
 		}
 	}
-	scored.sort((a, b) =>
-		b.score - a.score
+	scored.sort((a, b) => b.score - a.score
 		|| a.icon.label.length - b.icon.label.length
-		|| a.icon.label.localeCompare(b.icon.label),
-	)
+		|| a.icon.label.localeCompare(b.icon.label))
 	return scored.map((s) => s.icon)
 }

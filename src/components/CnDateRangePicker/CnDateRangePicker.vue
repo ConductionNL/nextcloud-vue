@@ -127,9 +127,9 @@ function resolveCalendarPeriod(period, now) {
  * @return {{ from: string, to: string } | null} ISO-8601 UTC window or null.
  */
 export function resolvePresetWindow(presetId, presets, now = new Date()) {
-	if (!presetId || presetId === 'custom') return null
+	if (!presetId || presetId === 'custom') { return null }
 	const preset = (presets || []).find((p) => p.id === presetId)
-	if (!preset) return null
+	if (!preset) { return null }
 	// Calendar-aligned presets ("Current month") anchor to the start of the
 	// calendar unit, NOT to `now − N days`. Checked first so a preset that
 	// carries both `period` and a legacy `days` hint resolves as a period.
@@ -144,7 +144,7 @@ export function resolvePresetWindow(presetId, presets, now = new Date()) {
 		const start = new Date(now.getTime() - preset.hours * 3600000)
 		return { from: start.toISOString(), to: end.toISOString() }
 	}
-	if (typeof preset.days !== 'number') return null
+	if (typeof preset.days !== 'number') { return null }
 	// Day-granularity presets are calendar-aligned: midnight UTC start of
 	// the (days-1)-th day back through end-of-day UTC today. `today`
 	// (days=1) resolves to "00:00 → 23:59 of today".
@@ -152,7 +152,10 @@ export function resolvePresetWindow(presetId, presets, now = new Date()) {
 		now.getUTCFullYear(),
 		now.getUTCMonth(),
 		now.getUTCDate(),
-		23, 59, 59, 999,
+		23,
+		59,
+		59,
+		999,
 	))
 	const start = new Date(end)
 	start.setUTCDate(start.getUTCDate() - (preset.days - 1))
@@ -199,6 +202,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * The same value as `value`, under Vue 3's own v-model name.
 		 *
@@ -229,6 +233,7 @@ export default {
 			type: Array,
 			default: () => DEFAULT_DATE_RANGE_PRESETS.map((p) => ({ ...p })),
 		},
+
 		/**
 		 * When `true`, both pickers AND the preset select are
 		 * disabled. Mirrors `NcDateTimePicker.disabled`.
@@ -239,6 +244,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Date input visual format string, forwarded to the underlying
 		 * `NcDateTimePicker`s. Default: `'yyyy-MM-dd'`.
@@ -258,6 +264,7 @@ export default {
 			type: String,
 			default: 'yyyy-MM-dd',
 		},
+
 		/**
 		 * Accessible label for the preset dropdown.
 		 *
@@ -267,6 +274,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Range preset'),
 		},
+
 		/**
 		 * Accessible label for the start-of-range picker.
 		 *
@@ -276,6 +284,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'From'),
 		},
+
 		/**
 		 * Accessible label for the end-of-range picker.
 		 *
@@ -298,18 +307,23 @@ export default {
 		boundValue() {
 			return this.modelValue !== undefined ? this.modelValue : this.value
 		},
+
 		fromDate() {
 			return this.boundValue?.from ? new Date(this.boundValue.from) : null
 		},
+
 		toDate() {
 			return this.boundValue?.to ? new Date(this.boundValue.to) : null
 		},
+
 		selectedPresetId() {
 			return this.boundValue?.preset || 'custom'
 		},
+
 		presetOptions() {
 			return this.presets.map((p) => ({ id: p.id, label: p.label, days: p.days }))
 		},
+
 		selectedPresetOption() {
 			const match = this.presetOptions.find((p) => p.id === this.selectedPresetId)
 			// Fall back to the first option if the current preset id
@@ -343,6 +357,7 @@ export default {
 			 */
 			this.$emit('update:modelValue', next)
 		},
+
 		/**
 		 * Handle a preset selection. When the preset has a numeric
 		 * `days` value we recompute the window; for `custom` (or any
@@ -354,7 +369,7 @@ export default {
 		 *   The selected option (NcSelect emits the full option object).
 		 */
 		onPresetInput(option) {
-			if (!option) return
+			if (!option) { return }
 			const win = resolvePresetWindow(option.id, this.presets)
 			if (win) {
 				/**
@@ -418,7 +433,10 @@ function toIsoStartOfDay(date) {
 		date.getUTCFullYear(),
 		date.getUTCMonth(),
 		date.getUTCDate(),
-		0, 0, 0, 0,
+		0,
+		0,
+		0,
+		0,
 	))
 	return d.toISOString()
 }
@@ -434,7 +452,10 @@ function toIsoEndOfDay(date) {
 		date.getUTCFullYear(),
 		date.getUTCMonth(),
 		date.getUTCDate(),
-		23, 59, 59, 999,
+		23,
+		59,
+		59,
+		999,
 	))
 	return d.toISOString()
 }

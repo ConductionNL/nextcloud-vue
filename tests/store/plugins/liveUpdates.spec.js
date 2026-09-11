@@ -294,9 +294,7 @@ describe('liveUpdatesPlugin', () => {
 
 			let resolve
 			const pending = new Promise((res) => { resolve = res })
-			global.fetch = jest.fn().mockReturnValue(
-				pending.then(() => okJson({ results: [], total: 0, page: 1, pages: 1 })),
-			)
+			global.fetch = jest.fn().mockReturnValue(pending.then(() => okJson({ results: [], total: 0, page: 1, pages: 1 })))
 
 			const params = { _limit: 10, _search: 'test' }
 			const p1 = store.fetchCollection('melding', params)
@@ -489,9 +487,7 @@ describe('liveUpdatesPlugin', () => {
 				schemaSlug: 'meldingen',
 			})
 			const handle = await store.subscribe('melding', undefined, subscribeOpts)
-			const call = mockListenFn.mock.calls.find(
-				(args) => args[0] === 'or-collection-zaken-meldingen',
-			)
+			const call = mockListenFn.mock.calls.find((args) => args[0] === 'or-collection-zaken-meldingen')
 			expect(call).toBeTruthy()
 			return { handle, fire: () => call[1]('or-collection-zaken-meldingen', {}) }
 		}

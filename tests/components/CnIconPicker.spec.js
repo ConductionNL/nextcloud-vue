@@ -138,7 +138,11 @@ describe('CnIconPicker catalogue adapters', () => {
 
 	it('dedupeCatalogue drops duplicate + empty values', () => {
 		const cat = dedupeCatalogue([
-			{ value: 'a' }, { value: 'a' }, { value: '' }, { value: 'b' }, null,
+			{ value: 'a' },
+			{ value: 'a' },
+			{ value: '' },
+			{ value: 'b' },
+			null,
 		])
 		expect(cat.map((e) => e.value)).toEqual(['a', 'b'])
 	})

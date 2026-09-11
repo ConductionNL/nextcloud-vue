@@ -279,41 +279,49 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'No work packages linked yet'),
 		},
+
 		/** Pre-translated label for the "Open OpenProject" CTA. */
 		openOpenprojectLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Open OpenProject'),
 		},
+
 		/** Pre-translated label for the "Configure OpenProject connection" CTA. */
 		configureLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Configure OpenProject connection'),
 		},
+
 		/** Pre-translated label shown when the integration is unconfigured. */
 		unconfiguredLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'OpenProject is not configured yet. Add an `openproject` source in Integriq to start linking work packages.'),
 		},
+
 		/** Pre-translated banner when OpenProject is unavailable. */
 		unavailableLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'OpenProject is currently unavailable.'),
 		},
+
 		/** Pre-translated banner when the OAuth/API token has expired. */
 		authExpiredLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Authorisation for OpenProject expired. Reconnect the source in Integriq to restore access.'),
 		},
+
 		/** Pre-translated link label to the Integriq admin. */
 		openconnectorLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Open Integriq'),
 		},
+
 		/** URL of the Integriq source admin page (for the `openproject` source). */
 		openconnectorUrl: {
 			type: String,
 			default: '/index.php/apps/openconnector/sources/openproject',
 		},
+
 		/** Fallback URL of the OpenProject app entry. */
 		openprojectAppUrl: {
 			type: String,

@@ -79,9 +79,7 @@ describe('CnFormDialog — $ref object references', () => {
 		})
 		await flushPromises()
 		expect(mockStore.fetchCollection).toHaveBeenCalled()
-		const options = wrapper.vm.getEffectiveOptions(
-			wrapper.vm.resolvedFields.find((f) => f.key === 'caseType'),
-		)
+		const options = wrapper.vm.getEffectiveOptions(wrapper.vm.resolvedFields.find((f) => f.key === 'caseType'))
 		expect(options).toEqual([
 			{ id: 'uuid-omg', label: 'Omgevingsvergunning' },
 			{ id: 'uuid-kap', label: 'Kapvergunning' },

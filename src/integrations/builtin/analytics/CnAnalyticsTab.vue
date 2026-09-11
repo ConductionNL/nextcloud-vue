@@ -309,13 +309,13 @@ export default {
 		reportTypeLabel(report) {
 			const type = this.reportType(report)
 			switch (type) {
-			case 0: return t('nextcloud-vue', 'Group')
-			case 1: return t('nextcloud-vue', 'File')
-			case 2: return t('nextcloud-vue', 'Database')
-			case 3: return t('nextcloud-vue', 'Git')
-			case 4: return t('nextcloud-vue', 'External')
-			case 6: return t('nextcloud-vue', 'JSON')
-			default: return t('nextcloud-vue', 'Report')
+				case 0: return t('nextcloud-vue', 'Group')
+				case 1: return t('nextcloud-vue', 'File')
+				case 2: return t('nextcloud-vue', 'Database')
+				case 3: return t('nextcloud-vue', 'Git')
+				case 4: return t('nextcloud-vue', 'External')
+				case 6: return t('nextcloud-vue', 'JSON')
+				default: return t('nextcloud-vue', 'Report')
 			}
 		},
 
@@ -331,11 +331,11 @@ export default {
 		badgeVariant(report) {
 			const type = this.reportType(report)
 			switch (type) {
-			case 1: return 'primary'
-			case 2: return 'success'
-			case 4: return 'warning'
-			case 6: return 'info'
-			default: return 'default'
+				case 1: return 'primary'
+				case 2: return 'success'
+				case 4: return 'warning'
+				case 6: return 'info'
+				default: return 'default'
 			}
 		},
 
@@ -350,12 +350,12 @@ export default {
 		reportIcon(report) {
 			const type = this.reportType(report)
 			switch (type) {
-			case 1: return TableIcon
-			case 0: return ViewDashboard
-			case 2: return DatabaseOutline
-			case 4: return ChartLine
-			case 6: return ChartPie
-			default: return ChartBar
+				case 1: return TableIcon
+				case 0: return ViewDashboard
+				case 2: return DatabaseOutline
+				case 4: return ChartLine
+				case 6: return ChartPie
+				default: return ChartBar
 			}
 		},
 

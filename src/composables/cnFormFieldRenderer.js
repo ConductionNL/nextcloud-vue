@@ -285,13 +285,11 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 			if (!map['string-textarea'] && !warned.has('__no-nc-textarea')) {
 				warned.add('__no-nc-textarea')
 				// eslint-disable-next-line no-console
-				console.warn(
-					'[cnRenderFormField] NcTextArea is unavailable from @nextcloud/vue; '
+				console.warn('[cnRenderFormField] NcTextArea is unavailable from @nextcloud/vue; '
 					+ 'falling back to a bare <textarea> for `widget: "textarea"` fields. '
 					+ 'The fallback has no label wiring and no error/helperText state. '
 					+ 'Check that @nextcloud/vue satisfies the peer range, or pass '
-					+ 'componentMap["string-textarea"] explicitly.',
-				)
+					+ 'componentMap["string-textarea"] explicitly.')
 			}
 			result = {
 				kind: 'string-textarea',
@@ -328,9 +326,7 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 		if (!warned.has(field.type)) {
 			warned.add(field.type)
 			// eslint-disable-next-line no-console
-			console.warn(
-				`[cnRenderFormField] Unknown field.type "${field.type}" for field "${field.key}". Falling back to NcTextField. Known types: ${KNOWN_TYPES.join(', ')}.`,
-			)
+			console.warn(`[cnRenderFormField] Unknown field.type "${field.type}" for field "${field.key}". Falling back to NcTextField. Known types: ${KNOWN_TYPES.join(', ')}.`)
 		}
 		result = {
 			kind: 'fallback',
@@ -346,7 +342,7 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 	}
 
 	// Should be unreachable given the KNOWN_TYPES check above.
-	if (!result) return null
+	if (!result) { return null }
 
 	// manifest-form-logic (REQ-MFL-11): NcInputField-family kinds get the
 	// NC-standard error props. `string-textarea` only qualifies when

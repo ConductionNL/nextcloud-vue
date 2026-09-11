@@ -129,6 +129,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Consumer-supplied data source overriding the `cnPeopleSource`
 		 * injection. Must expose `fetchPeople(args) => Promise<{users, total,

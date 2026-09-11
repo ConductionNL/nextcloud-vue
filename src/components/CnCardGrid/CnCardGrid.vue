@@ -99,41 +99,49 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Schema definition (passed through to CnObjectCard) */
 		schema: {
 			type: Object,
 			default: null,
 		},
+
 		/** Whether data is loading */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether cards can be selected */
 		selectable: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * When true, a body click on a selectable card emits `click`
 		 * (navigation) and selection happens via the checkbox only — the
 		 * card-grid counterpart of CnIndexPage's `rowClickToView`.
+		 *
 		 * @type {boolean}
 		 */
 		clickToView: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Array of currently selected object IDs */
 		selectedIds: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Property name used as unique identifier */
 		rowKey: {
 			type: String,
 			default: 'id',
 		},
+
 		/** Text shown when there are no objects */
 		emptyText: {
 			type: String,

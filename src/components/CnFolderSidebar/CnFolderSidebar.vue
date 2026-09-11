@@ -99,36 +99,43 @@ export default {
 			default: 'custom',
 			validator: (v) => ['custom', 'field', 'files'].includes(v),
 		},
+
 		/**
 		 * `custom` source: the folders, flat (with `parentField`) or nested
 		 * (with `childrenField`). Each needs at least `idField` + `nameField`.
+		 *
 		 * @type {Array<object>}
 		 */
 		folders: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** `field` source: the objects whose `groupBy` values become folders. */
 		objects: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** `field` source: the object property to group by. */
 		groupBy: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * `field` source: facet buckets for `groupBy`, normalised as the object
 		 * store delivers them (`{ value, count?, label? }`). A facet is computed
 		 * across the whole query rather than the loaded page, so when this is
 		 * supplied it replaces the row grouping entirely.
+		 *
 		 * @type {Array<object>}
 		 */
 		facetValues: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * `field` source: whether `objects` is only part of the result set.
 		 * Set it when the list is paged and no facet is available, so the
@@ -139,11 +146,13 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** `files` source: the folder path to list children of (root of the tree). */
 		filesPath: {
 			type: String,
 			default: '/',
 		},
+
 		/**
 		 * `files` source: how deep to recurse under `filesPath` (each level is a
 		 * WebDAV request per folder — keep small). 1 = immediate children only.
@@ -152,66 +161,79 @@ export default {
 			type: Number,
 			default: 1,
 		},
+
 		/**
 		 * `files` source: async loader override. Signature
 		 * `({ path, depth }) => Promise<folders>`. Defaults to a built-in
 		 * WebDAV PROPFIND loader. Inject in tests.
+		 *
 		 * @type {Function}
 		 */
 		fetcher: {
 			type: Function,
 			default: null,
 		},
+
 		/** The currently selected folder id (or null for "All"). */
 		selectedId: {
 			type: [String, Number],
 			default: null,
 		},
+
 		/** Optional heading above the tree. */
 		title: {
 			type: String,
 			default: '',
 		},
+
 		/** Label for the "All" reset entry. */
 		allLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'All'),
 		},
+
 		/** Notice shown when the folders cover only the loaded page. */
 		partialLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Folders cover this page only.'),
 		},
+
 		/** MDI icon name for the "All" entry (resolved via CnIcon; empty = the built-in all-inclusive icon). */
 		allIcon: {
 			type: String,
 			default: '',
 		},
+
 		/** Property holding each folder's id (custom source). */
 		idField: {
 			type: String,
 			default: 'id',
 		},
+
 		/** Property holding each folder's display name (custom source). */
 		nameField: {
 			type: String,
 			default: 'name',
 		},
+
 		/** Property holding the parent id for flat custom folders. */
 		parentField: {
 			type: String,
 			default: 'parentId',
 		},
+
 		/** Property holding pre-nested children (custom source). */
 		childrenField: {
 			type: String,
 			default: 'children',
 		},
+
 		/** Show a "New folder" button (custom source). */
 		allowCreate: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Label for the New-folder button. */
 		createLabel: {
 			type: String,
@@ -231,8 +253,8 @@ export default {
 	computed: {
 		/** The folder tree normalized to `{ id, name, icon?, count?, children }`. */
 		normalizedTree() {
-			if (this.source === 'field') return this.fieldTree
-			if (this.source === 'files') return this.fileTree
+			if (this.source === 'field') { return this.fieldTree }
+			if (this.source === 'files') { return this.fileTree }
 			return this.customTree
 		},
 
@@ -277,7 +299,7 @@ export default {
 		 * total for that category, and that is a number nothing measured.
 		 */
 		fieldTree() {
-			if (!this.groupBy) return []
+			if (!this.groupBy) { return [] }
 
 			if (this.facetValues.length > 0) {
 				return this.facetValues.map((bucket) => {
@@ -296,7 +318,7 @@ export default {
 			const counts = new Map()
 			this.objects.forEach((obj) => {
 				const value = obj[this.groupBy]
-				if (value == null || value === '') return
+				if (value == null || value === '') { return }
 				counts.set(value, (counts.get(value) || 0) + 1)
 			})
 			return Array.from(counts.entries()).map(([value, count]) => {
@@ -374,7 +396,7 @@ export default {
 
 		/** Load the WebDAV folder tree when the `files` source is active. */
 		async maybeLoadFiles() {
-			if (this.source !== 'files') return
+			if (this.source !== 'files') { return }
 			this.loading = true
 			try {
 				const load = this.fetcher || fetchWebdavFolderTree

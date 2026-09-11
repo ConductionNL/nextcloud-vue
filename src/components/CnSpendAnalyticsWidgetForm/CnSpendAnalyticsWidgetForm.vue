@@ -104,6 +104,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Initial content values when not editing (registry defaults). */
 		value: {
 			type: Object,
@@ -190,6 +191,7 @@ export default {
 					departmentIds: [...this.departmentIds],
 					vendorIds: [...this.vendorIds],
 				},
+
 				drillThroughTarget: this.drillThroughTarget,
 				attachEvidence: this.attachEvidence,
 				aiInsights: { enabled: this.aiInsightsEnabled },

@@ -50,9 +50,7 @@ describe('the tasks source is registered', () => {
 		expect(typeof source.loading).toBe('function')
 		expect(typeof source.openRow).toBe('function')
 		expect(source.showAdd).toBe(false)
-		expect(source.columns.map((c) => c.key)).toEqual(
-			['title', 'subjectLabel', 'stateLabel', 'priorityLabel', 'dueLabel', 'assignee'],
-		)
+		expect(source.columns.map((c) => c.key)).toEqual(['title', 'subjectLabel', 'stateLabel', 'priorityLabel', 'dueLabel', 'assignee'])
 	})
 
 	it('supplies the scope tabs with assigned as the default', () => {

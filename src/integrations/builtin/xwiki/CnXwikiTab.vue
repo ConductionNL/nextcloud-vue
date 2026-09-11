@@ -239,40 +239,40 @@ export default {
 	computed: {
 		banner() {
 			switch (this.bannerKind) {
-			case 'unconfigured':
-				return {
-					kind: 'unconfigured',
-					title: t('nextcloud-vue', 'XWiki connection not configured'),
-					message: t('nextcloud-vue', 'Add an XWiki source in Integriq with the upstream URL and credentials so OpenRegister can link pages.'),
-					ctaLabel: t('nextcloud-vue', 'Configure XWiki connection'),
-					ctaHandler: this.openIntegriq,
-				}
-			case 'auth':
-				return {
-					kind: 'auth',
-					title: t('nextcloud-vue', 'XWiki authentication failed'),
-					message: t('nextcloud-vue', 'XWiki returned 401 — check the Integriq source credentials.'),
-					ctaLabel: t('nextcloud-vue', 'Reconnect'),
-					ctaHandler: this.openIntegriq,
-				}
-			case 'upstream':
-				return {
-					kind: 'upstream',
-					title: t('nextcloud-vue', 'XWiki is currently unavailable'),
-					message: t('nextcloud-vue', 'The upstream XWiki host did not respond. Try again in a moment.'),
-					ctaLabel: t('nextcloud-vue', 'Retry'),
-					ctaHandler: this.fetchPages,
-				}
-			case 'error':
-				return {
-					kind: 'error',
-					title: t('nextcloud-vue', 'Could not load XWiki pages'),
-					message: t('nextcloud-vue', 'Something went wrong while loading the linked pages.'),
-					ctaLabel: t('nextcloud-vue', 'Retry'),
-					ctaHandler: this.fetchPages,
-				}
-			default:
-				return { kind: 'none', title: '', message: '', ctaLabel: '', ctaHandler: () => {} }
+				case 'unconfigured':
+					return {
+						kind: 'unconfigured',
+						title: t('nextcloud-vue', 'XWiki connection not configured'),
+						message: t('nextcloud-vue', 'Add an XWiki source in Integriq with the upstream URL and credentials so OpenRegister can link pages.'),
+						ctaLabel: t('nextcloud-vue', 'Configure XWiki connection'),
+						ctaHandler: this.openIntegriq,
+					}
+				case 'auth':
+					return {
+						kind: 'auth',
+						title: t('nextcloud-vue', 'XWiki authentication failed'),
+						message: t('nextcloud-vue', 'XWiki returned 401 — check the Integriq source credentials.'),
+						ctaLabel: t('nextcloud-vue', 'Reconnect'),
+						ctaHandler: this.openIntegriq,
+					}
+				case 'upstream':
+					return {
+						kind: 'upstream',
+						title: t('nextcloud-vue', 'XWiki is currently unavailable'),
+						message: t('nextcloud-vue', 'The upstream XWiki host did not respond. Try again in a moment.'),
+						ctaLabel: t('nextcloud-vue', 'Retry'),
+						ctaHandler: this.fetchPages,
+					}
+				case 'error':
+					return {
+						kind: 'error',
+						title: t('nextcloud-vue', 'Could not load XWiki pages'),
+						message: t('nextcloud-vue', 'Something went wrong while loading the linked pages.'),
+						ctaLabel: t('nextcloud-vue', 'Retry'),
+						ctaHandler: this.fetchPages,
+					}
+				default:
+					return { kind: 'none', title: '', message: '', ctaLabel: '', ctaHandler: () => {} }
 			}
 		},
 	},

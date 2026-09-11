@@ -82,6 +82,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * The full placement record — legacy fallback source for
 		 * `placement.tile*` fields when `content` is empty.
@@ -92,11 +93,13 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether the current user is an admin (pairs with `canEdit`). */
 		isAdmin: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether the surrounding dashboard shell is in edit mode. */
 		canEdit: {
 			type: Boolean,

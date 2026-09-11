@@ -26,12 +26,10 @@ import { resolveFilterTokens, dropOptionalUnresolved } from './resolveFilterToke
  * @return {object} The resolved filter map.
  */
 export function resolveFilterMap(filterMap, params, ctx) {
-	if (!filterMap || typeof filterMap !== 'object') return {}
+	if (!filterMap || typeof filterMap !== 'object') { return {} }
 	const out = {}
 	for (const [k, v] of Object.entries(filterMap)) {
-		if (typeof v === 'string' && v.startsWith('@route.')) out[k] = params[v.slice('@route.'.length)]
-		else if (typeof v === 'string' && v.startsWith(':')) out[k] = params[v.slice(1)]
-		else out[k] = v
+		if (typeof v === 'string' && v.startsWith('@route.')) { out[k] = params[v.slice('@route.'.length)] } else if (typeof v === 'string' && v.startsWith(':')) { out[k] = params[v.slice(1)] } else { out[k] = v }
 	}
 	return dropOptionalUnresolved(resolveFilterTokens(out, ctx))
 }
@@ -54,14 +52,14 @@ export function resolveFilterMap(filterMap, params, ctx) {
  */
 export function parseSortKeysFromQuery(route) {
 	const raw = route && route.query && route.query._order
-	if (typeof raw !== 'string' || raw === '') return null
+	if (typeof raw !== 'string' || raw === '') { return null }
 	let parsed
 	try {
 		parsed = JSON.parse(raw)
 	} catch (e) {
 		return null
 	}
-	if (!Array.isArray(parsed) || parsed.length === 0) return null
+	if (!Array.isArray(parsed) || parsed.length === 0) { return null }
 	const keys = parsed
 		.filter((k) => k && typeof k.key === 'string')
 		.map((k) => ({ key: k.key, order: k.order === 'desc' ? 'desc' : 'asc' }))
@@ -89,11 +87,11 @@ export function parseSortKeysFromQuery(route) {
  * @return {object} The query-derived filter map.
  */
 export function resolveQueryFilters(query, ctx) {
-	if (!query || typeof query !== 'object') return {}
+	if (!query || typeof query !== 'object') { return {} }
 	const out = {}
 	for (const [k, v] of Object.entries(query)) {
-		if (k.startsWith('_')) continue
-		if (v === undefined || v === null || v === '') continue
+		if (k.startsWith('_')) { continue }
+		if (v === undefined || v === null || v === '') { continue }
 		out[k] = v
 	}
 	return dropOptionalUnresolved(resolveFilterTokens(out, ctx))

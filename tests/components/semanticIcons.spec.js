@@ -31,10 +31,8 @@ describe('ADR-077 semantic icon vocabulary', () => {
 	it('is not empty and covers both tiers', () => {
 		expect(Object.keys(SEMANTIC_ICONS_TIER_A).length).toBeGreaterThan(0)
 		expect(Object.keys(SEMANTIC_ICONS_TIER_B).length).toBeGreaterThan(0)
-		expect(Object.keys(SEMANTIC_ICONS)).toHaveLength(
-			Object.keys(SEMANTIC_ICONS_TIER_A).length
-			+ Object.keys(SEMANTIC_ICONS_TIER_B).length,
-		)
+		expect(Object.keys(SEMANTIC_ICONS)).toHaveLength(Object.keys(SEMANTIC_ICONS_TIER_A).length
+			+ Object.keys(SEMANTIC_ICONS_TIER_B).length)
 	})
 
 	// The check that would have caught `LedgerOutline` before it shipped.

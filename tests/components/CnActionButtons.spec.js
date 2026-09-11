@@ -176,7 +176,10 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			await flush()
 			expect(dispatchAction).toHaveBeenCalledTimes(1)
 			expect(dispatchAction.mock.calls[0][0]).toMatchObject({
-				type: 'api-call', url: '/apps/pipelinq/api/werkplek/state', method: 'PUT', params: { open: false },
+				type: 'api-call',
+				url: '/apps/pipelinq/api/werkplek/state',
+				method: 'PUT',
+				params: { open: false },
 			})
 		})
 
@@ -331,7 +334,9 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 
 			expect(order).toEqual(['crm/lead', 'crm/leadValue'])
 			expect(saveObject).toHaveBeenLastCalledWith('crm/leadValue', {
-				lead: 'lead-1', field: 'def-1', value: 'Cultuur',
+				lead: 'lead-1',
+				field: 'def-1',
+				value: 'Cultuur',
 			})
 		})
 

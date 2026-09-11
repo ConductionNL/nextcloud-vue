@@ -58,8 +58,7 @@ describe('CnDeltaWidget', () => {
 })
 
 describe('CnDeltaWidget — @config.currency token', () => {
-	const mountCfg = (content, config) =>
-		shallowMount(CnDeltaWidget, { propsData: { content }, provide: { cnAppConfig: config || {} } })
+	const mountCfg = (content, config) => shallowMount(CnDeltaWidget, { propsData: { content }, provide: { cnAppConfig: config || {} } })
 
 	it('resolves @config.currency into the format spec', () => {
 		const w = mountCfg(

@@ -29,11 +29,11 @@ export function finitePoint(lat, lng) {
 	// `Number(null)` and `Number('')` are BOTH 0 — and 0 is finite. Passing them
 	// through would plant a marker at (0, 0), in the Gulf of Guinea, for every object
 	// whose coordinates are simply absent. Reject the empty shapes before coercing.
-	if (!isNumeric(lat) || !isNumeric(lng)) return null
+	if (!isNumeric(lat) || !isNumeric(lng)) { return null }
 
 	const latNum = Number(lat)
 	const lngNum = Number(lng)
-	if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) return null
+	if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) { return null }
 	return { lat: latNum, lng: lngNum }
 }
 
@@ -45,8 +45,8 @@ export function finitePoint(lat, lng) {
  * @return {boolean} True when it can be safely coerced to a coordinate.
  */
 function isNumeric(value) {
-	if (typeof value === 'number') return Number.isFinite(value)
-	if (typeof value !== 'string') return false
+	if (typeof value === 'number') { return Number.isFinite(value) }
+	if (typeof value !== 'string') { return false }
 	return value.trim() !== '' && Number.isFinite(Number(value))
 }
 
@@ -61,7 +61,7 @@ function isNumeric(value) {
  * @return {?{lat: number, lng: number}} The point, or null.
  */
 export function parseGeoPoint(geo) {
-	if (!geo || typeof geo !== 'object') return null
+	if (!geo || typeof geo !== 'object') { return null }
 
 	// FeatureCollection → first feature.
 	if (geo.type === 'FeatureCollection' && Array.isArray(geo.features) && geo.features.length) {
@@ -98,7 +98,7 @@ export function parseGeoPoint(geo) {
  * @return {?object} A GeoJSON Feature whose `properties` is the object, or null.
  */
 export function objectToGeoFeature(obj, options = {}) {
-	if (!obj || typeof obj !== 'object') return null
+	if (!obj || typeof obj !== 'object') { return null }
 
 	const self = obj['@self'] || {}
 	let point = parseGeoPoint(self.geo)
@@ -109,7 +109,7 @@ export function objectToGeoFeature(obj, options = {}) {
 			point = finitePoint(obj[latField], obj[lngField])
 		}
 	}
-	if (!point) return null
+	if (!point) { return null }
 
 	return {
 		type: 'Feature',

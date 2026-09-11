@@ -52,14 +52,14 @@ function valueForType(type) {
 	// A union (`type: [String, Number]`) is satisfied by its first member.
 	const t = Array.isArray(type) ? type[0] : type
 	switch (t) {
-	case String: return 'smoke'
-	case Number: return 1
-	case Boolean: return false
-	case Array: return []
-	case Object: return {}
-	case Function: return () => {}
-	case Date: return new Date(0)
-	default: return null
+		case String: return 'smoke'
+		case Number: return 1
+		case Boolean: return false
+		case Array: return []
+		case Object: return {}
+		case Function: return () => {}
+		case Date: return new Date(0)
+		default: return null
 	}
 }
 
@@ -157,7 +157,7 @@ function synthProps(name, Component) {
 			}
 
 			// `props: { foo: String }` shorthand declares no `required`.
-			if (!isObj || def.required !== true) continue
+			if (!isObj || def.required !== true) { continue }
 			props[key] = valueForType(type)
 		}
 	}

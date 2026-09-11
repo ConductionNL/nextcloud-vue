@@ -13,7 +13,7 @@
  * @return {*} The value, or undefined when the object carries no such field.
  */
 export function objectFieldValue(obj, key) {
-	if (!obj || typeof key !== 'string') return undefined
+	if (!obj || typeof key !== 'string') { return undefined }
 	if (key.includes('.')) {
 		return key.split('.').reduce((o, k) => o?.[k], obj)
 	}
@@ -42,7 +42,7 @@ export function objectFieldValue(obj, key) {
  * @return {string} The display name, or '' when the object carries nothing nameable.
  */
 export function objectDisplayName(obj) {
-	if (!obj || typeof obj !== 'object') return ''
+	if (!obj || typeof obj !== 'object') { return '' }
 
 	const self = (obj['@self'] && typeof obj['@self'] === 'object') ? obj['@self'] : {}
 
@@ -57,9 +57,15 @@ export function objectDisplayName(obj) {
 	// rather than each keeping its own list — which is how one of them ended up
 	// returning an object (see the type guard below).
 	const candidates = [
-		self.name, obj.name, obj.title,
-		obj.displayName, obj.naam, obj.label, obj.identifier,
-		self.id, obj.id,
+		self.name,
+		obj.name,
+		obj.title,
+		obj.displayName,
+		obj.naam,
+		obj.label,
+		obj.identifier,
+		self.id,
+		obj.id,
 	]
 	// TYPE-CHECKED, and that is the point rather than a nicety. A property named
 	// `name` is not necessarily a string: Haal Centraal naming gives a person
@@ -69,8 +75,8 @@ export function objectDisplayName(obj) {
 	// brpPerson rows, whose `@self.name` already held "Stephan Janssen" the whole
 	// time, one candidate further down a list that never got there.
 	for (const c of candidates) {
-		if (typeof c === 'string' && c.trim() !== '') return c
-		if (typeof c === 'number') return String(c)
+		if (typeof c === 'string' && c.trim() !== '') { return c }
+		if (typeof c === 'number') { return String(c) }
 	}
 	return ''
 }

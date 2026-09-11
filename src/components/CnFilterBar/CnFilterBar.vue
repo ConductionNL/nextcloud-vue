@@ -102,27 +102,32 @@ export default {
 		/**
 		 * Filter definitions. Each item has `key`, `label`, `type` ('select'|'text'|'checkbox'),
 		 * optional `options` (for select), and optional `value`.
+		 *
 		 * @type {Array<{key: string, label: string, type: 'select'|'text'|'checkbox', options: Array, value: any}>}
 		 */
 		filters: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Current search text */
 		searchValue: {
 			type: String,
 			default: '',
 		},
+
 		/** Search input placeholder text */
 		searchPlaceholder: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Search...'),
 		},
+
 		/** Whether to show the "Clear all" button */
 		showClearAll: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Clear all button label */
 		clearAllLabel: {
 			type: String,
@@ -142,6 +147,7 @@ export default {
 	methods: {
 		/**
 		 * Emit filter change event.
+		 *
 		 * @param {string} key Filter key
 		 * @param {*} value New filter value
 		 */

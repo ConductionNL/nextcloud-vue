@@ -13,7 +13,6 @@ import { getCurrentUser } from '@nextcloud/auth'
  * a "Locked by X" banner without a second fetch.
  */
 export class LockConflictError extends Error {
-
 	/**
 	 * @param {string}      message  Human-readable description.
 	 * @param {object|null} info     Lock metadata (`{ user, displayName, expiresAt }`) parsed from the response.
@@ -24,7 +23,6 @@ export class LockConflictError extends Error {
 		this.lockedBy = info?.user ?? info?.displayName ?? null
 		this.expiresAt = info?.expiresAt ?? null
 	}
-
 }
 
 /**
@@ -32,12 +30,10 @@ export class LockConflictError extends Error {
  * Consumers may fall back to "edit without lock" UX.
  */
 export class PermissionError extends Error {
-
 	constructor(message) {
 		super(message)
 		this.name = 'PermissionError'
 	}
-
 }
 
 /**
@@ -84,7 +80,7 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 	function readSelfLock() {
 		const t = readType()
 		const i = readId()
-		if (!t || !i) return null
+		if (!t || !i) { return null }
 		const obj = objectStore.objects?.[t]?.[i]
 		const self = obj?.['@self'] ?? obj
 		return self?.locked ?? null
@@ -92,10 +88,10 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 
 	const locked = computed(() => {
 		const l = readSelfLock()
-		if (!l) return false
+		if (!l) { return false }
 		if (l.expiresAt) {
 			const exp = new Date(l.expiresAt).getTime()
-			if (Number.isFinite(exp) && exp <= Date.now()) return false
+			if (Number.isFinite(exp) && exp <= Date.now()) { return false }
 		}
 		return true
 	})
@@ -110,7 +106,7 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 
 	const expiresAt = computed(() => {
 		const raw = readSelfLock()?.expiresAt
-		if (!raw) return null
+		if (!raw) { return null }
 		const d = new Date(raw)
 		return Number.isNaN(d.getTime()) ? null : d
 	})
@@ -148,7 +144,7 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 		} catch {
 			// swallow — the lock is held; the cache will catch up
 		}
-		if (autoRenew) startRenewTimer()
+		if (autoRenew) { startRenewTimer() }
 	}
 
 	async function release() {
@@ -157,7 +153,7 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 			await axios.delete(endpoint())
 		} catch (e) {
 			const status = e?.response?.status
-			if (status === 404) return // already released; idempotent
+			if (status === 404) { return } // already released; idempotent
 			if (status === 401 || status === 403) {
 				throw new PermissionError(e?.response?.data?.message || 'No permission to release this lock')
 			}
@@ -170,9 +166,9 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 
 	function startRenewTimer() {
 		stopRenewTimer()
-		if (!autoRenew) return
+		if (!autoRenew) { return }
 		renewTimer = setInterval(() => {
-			if (!isVisible()) return
+			if (!isVisible()) { return }
 			if (!lockedByMe.value) { stopRenewTimer(); return }
 			// Re-issue acquire; idempotent on the server (resets TTL).
 			acquire().catch(() => stopRenewTimer())
@@ -187,7 +183,7 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 	}
 
 	function beaconRelease() {
-		if (!lockedByMe.value) return
+		if (!lockedByMe.value) { return }
 		try {
 			navigator.sendBeacon?.(endpoint() + '?_method=DELETE')
 		} catch { /* best-effort */ }

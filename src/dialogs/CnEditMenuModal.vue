@@ -68,7 +68,7 @@ export default {
 			// editor always has a mutable list to edit in place (the working
 			// manifest is ours to mutate by design — never the base).
 			// eslint-disable-next-line vue/no-mutating-props, vue/no-side-effects-in-computed-properties
-			if (this.working && !Array.isArray(this.working.menu)) this.working.menu = []
+			if (this.working && !Array.isArray(this.working.menu)) { this.working.menu = [] }
 			return this.working ? this.working.menu : []
 		},
 

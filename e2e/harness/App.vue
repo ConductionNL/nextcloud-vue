@@ -555,6 +555,7 @@ export default {
 				},
 				{ id: 'c', type: 'default', position: { x: 40, y: 300 }, data: { label: 'End' } },
 			],
+
 			// `markerEnd` and `type` are what `useFlowStore.canvasEdges` actually
 			// emits for every line. Without them the harness drew a bare
 			// default-bezier edge, so the e2e lane could not see an arrowhead
@@ -584,10 +585,12 @@ export default {
 					{ widgetId: 'tw-b', label: 'Second' },
 				],
 			},
+
 			twWidgets: [
 				{ id: 'tw-a', type: 'custom', title: 'First' },
 				{ id: 'tw-b', type: 'custom', title: 'Second' },
 			],
+
 			// A data widget in a tab panel (?baredata=1).
 			//
 			// TWO tabs, and the data widget is the SECOND one. The bug was about
@@ -606,10 +609,12 @@ export default {
 					{ widgetId: 'bd-data', label: 'Core data' },
 				],
 			},
+
 			bdWidgets: [
 				{ id: 'bd-other', type: 'custom', title: 'Timeline' },
 				{ id: 'bd-data', type: 'data', title: 'Core case data' },
 			],
+
 			bdSchema: {
 				title: 'Case',
 				properties: {
@@ -618,12 +623,14 @@ export default {
 					status: { type: 'string', title: 'Status' },
 				},
 			},
+
 			bdObject: {
 				id: 'case-1',
 				title: 'Permit for a roof terrace',
 				reference: 'Z-2026-0041',
 				status: 'In review',
 			},
+
 			// Non-sortable, exactly like scholiq's failing "manage-courses" widget
 			// table. A STRING column normalises to `sortable: true`, which puts a
 			// tabindex on every <th> — the scrollport then HAS focusable content
@@ -639,11 +646,13 @@ export default {
 				{ key: 'status', label: 'Status', sortable: false },
 				{ key: 'description', label: 'Description', sortable: false },
 			],
+
 			dtNarrowColumns: [{ key: 'id', label: 'ID', sortable: false }],
 			dtRows: [
 				{ id: 'c-1', name: 'Introduction to Civics', teacher: 'A. de Vries', location: 'Building A, room 210', startDate: '2026-09-01', endDate: '2026-12-19', status: 'Planned', description: 'A long description column so the table overflows its narrow container.' },
 				{ id: 'c-2', name: 'Public Administration', teacher: 'B. Jansen', location: 'Building C, room 4', startDate: '2026-09-08', endDate: '2027-01-30', status: 'Open', description: 'Another long description so the row is comfortably wider than the box.' },
 			],
+
 			chipWidgets: [{ id: 'chip-widget', title: 'Chip widget', type: 'custom' }],
 			chipLayout: [{ id: 1, widgetId: 'chip-widget', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3, dateChip: true }],
 			chipDateRange: {
@@ -657,6 +666,7 @@ export default {
 					{ id: 'year', label: 'Current year', period: 'year' },
 				],
 			},
+
 			dashRows: Array.from({ length: 30 }, (_, i) => ({ id: i + 1, name: 'Row ' + (i + 1) })),
 			// Schema-deletion harness (?sd=1). The register slug is what the modal
 			// matches against; the spec's page.route() stubs supply the register.
@@ -674,6 +684,7 @@ export default {
 				{ id: 100, slug: 'cow', title: 'Cow' },
 				{ id: 101, slug: 'stable', title: 'Stable' },
 			],
+
 			srefRegisters: [{ id: 5, title: 'Production' }],
 			srefSchema: {
 				title: 'Barn',
@@ -683,8 +694,10 @@ export default {
 						items: { type: 'object', objectConfiguration: { handling: 'related-schema' } },
 					},
 				},
+
 				required: [],
 			},
+
 			sdManifest: { pages: [{ config: { register: 'harness-register' } }] },
 			icon: null,
 			placement: 'left',
@@ -704,6 +717,7 @@ export default {
 					href: 'https://example.org/explore',
 				},
 			],
+
 			// CnTasksWidget / tasks entity source harness (?tasksWidget=1 / ?tasksIndex=1).
 			showTasksWidget: (typeof window !== 'undefined' && window.location.search.includes('tasksWidget')),
 			showTasksIndex: (typeof window !== 'undefined' && window.location.search.includes('tasksIndex')),
@@ -718,11 +732,13 @@ export default {
 					{ value: 'telefoon', label: 'Phone' },
 					{ value: 'email', label: 'Email' },
 				],
+
 				outcomes: [
 					{ value: 'opgelost', label: 'Resolved' },
 					{ value: 'open', label: 'Open' },
 				],
 			},
+
 			showTwoColumn: (typeof window !== 'undefined' && window.location.search.includes('twocol')),
 			showNcProxy: (typeof window !== 'undefined' && window.location.search.includes('ncproxy')),
 			// Eight scalars and one textarea: enough fields that pairing them
@@ -743,8 +759,10 @@ export default {
 					// field that must REFUSE to be paired.
 					description: { type: 'string', format: 'textarea', title: 'Description' },
 				},
+
 				required: ['title'],
 			},
+
 			showFormDialog: (typeof window !== 'undefined' && window.location.search.includes('fd')),
 			// Array-mode dynamic properties harness (?arr=1).
 			showArrayMode: (typeof window !== 'undefined' && window.location.search.includes('arr')),
@@ -758,10 +776,12 @@ export default {
 					successMessage: 'Case created.',
 				},
 			],
+
 			fdResult: null,
 			fdFields: [
 				{ key: 'icon', widget: 'icon', label: 'Icon', iconSources: ['fontawesome'], catalogues: { fontawesome: faSample }, searchable: true },
 			],
+
 			showFormLogic: (typeof window !== 'undefined' && window.location.search.includes('fl')),
 			flResult: null,
 			flFields: [
@@ -785,15 +805,18 @@ export default {
 				// kind !== "company", which is not what this harness exercises.
 				{ key: 'amount', type: 'number', label: 'Amount' },
 			],
+
 			flSteps: [
 				{ id: 'who', title: 'Who', fields: ['kind', 'name'] },
 				{ id: 'details', title: 'Details', fields: ['kvk', 'amount'] },
 			],
+
 			flCustomComponents: {
 				echoSubmit: (formData) => {
 					this.flResult = formData
 				},
 			},
+
 			showWalkthrough: (typeof window !== 'undefined' && window.location.search.includes('wt')),
 			wtManifest: {
 				version: '1.0.0',
@@ -813,6 +836,7 @@ export default {
 			},
 		}
 	},
+
 	mounted() {
 		// A real app gets the modal stack for free — `CnAppRoot` installs it on
 		// mount, and apps that do not mount `CnAppRoot` are told to call this
@@ -911,9 +935,7 @@ export default {
 		 */
 		onCanvasNodeRemove(id) {
 			this.canvasNodes = this.canvasNodes.filter((node) => node.id !== id)
-			this.canvasEdges = this.canvasEdges.filter(
-				(edge) => edge.source !== id && edge.target !== id,
-			)
+			this.canvasEdges = this.canvasEdges.filter((edge) => edge.source !== id && edge.target !== id)
 		},
 	},
 }

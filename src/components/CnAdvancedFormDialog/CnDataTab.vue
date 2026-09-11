@@ -75,7 +75,7 @@ export default {
 		},
 
 		isValidJson(str) {
-			if (!str || !str.trim()) return false
+			if (!str || !str.trim()) { return false }
 			try {
 				JSON.parse(str)
 				return true

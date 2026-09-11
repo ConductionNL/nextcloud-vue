@@ -96,6 +96,7 @@ export default {
 		 * Shape: {number, title, body, html_url, user.{login, avatar_url},
 		 *        reactions.{total_count, +1}, created_at, updated_at,
 		 *        labels[].{name, color}}.
+		 *
 		 * @type {object}
 		 */
 		item: {
@@ -117,9 +118,7 @@ export default {
 
 		visibleLabels() {
 			const labels = Array.isArray(this.item.labels) ? this.item.labels : []
-			return labels.filter(
-				(label) => label && typeof label.name === 'string' && !ROADMAP_LABEL_BLOCKLIST.some((re) => re.test(label.name)),
-			)
+			return labels.filter((label) => label && typeof label.name === 'string' && !ROADMAP_LABEL_BLOCKLIST.some((re) => re.test(label.name)))
 		},
 
 		relativeCreatedAt() {
@@ -128,10 +127,10 @@ export default {
 			}
 			const created = new Date(this.item.created_at)
 			const diffSec = Math.floor((Date.now() - created.getTime()) / 1000)
-			if (diffSec < 60) return `${diffSec}s`
-			if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m`
-			if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h`
-			if (diffSec < 2592000) return `${Math.floor(diffSec / 86400)}d`
+			if (diffSec < 60) { return `${diffSec}s` }
+			if (diffSec < 3600) { return `${Math.floor(diffSec / 60)}m` }
+			if (diffSec < 86400) { return `${Math.floor(diffSec / 3600)}h` }
+			if (diffSec < 2592000) { return `${Math.floor(diffSec / 86400)}d` }
 			return created.toLocaleDateString()
 		},
 	},
@@ -148,6 +147,7 @@ export default {
 				color: this.contrastTextColor(label.color),
 			}
 		},
+
 		contrastTextColor(hexColor) {
 			// Simple luminance check — dark text on bright bg, white on dark.
 			const r = parseInt(hexColor.slice(0, 2), 16)

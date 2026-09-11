@@ -157,7 +157,7 @@ export default {
 
 	computed: {
 		canSubmit() {
-			const filledOptions = this.options.map(o => (o || '').trim()).filter(o => o !== '')
+			const filledOptions = this.options.map((o) => (o || '').trim()).filter((o) => o !== '')
 			return this.title.trim() !== '' && filledOptions.length >= 2
 		},
 	},
@@ -206,7 +206,7 @@ export default {
 				title: this.title.trim(),
 				description: this.description.trim(),
 				type: this.type,
-				options: this.options.map(o => (o || '').trim()).filter(o => o !== ''),
+				options: this.options.map((o) => (o || '').trim()).filter((o) => o !== ''),
 				deadline: this.deadline ? new Date(this.deadline).toISOString() : null,
 			}
 			/**

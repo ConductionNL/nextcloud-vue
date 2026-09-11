@@ -66,6 +66,7 @@ export default {
 	props: {
 		/**
 		 * The related-collection descriptors.
+		 *
 		 * @type {Array<{title?: string, register: string, schema: string, filter?: object, columns?: Array, sort?: object, limit?: number, rowRoute?: string}>}
 		 */
 		collections: {

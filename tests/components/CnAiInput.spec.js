@@ -176,13 +176,11 @@ describe('CnAiInput', () => {
  * a correct one.
  */
 describe('CnAiInput dictation', () => {
-
 	/**
 	 * A stand-in for the browser's SpeechRecognition, which jsdom does not have.
 	 * Records what the component did to it, and lets a test push results in.
 	 */
 	class FakeRecognition {
-
 		constructor() {
 			FakeRecognition.instances.push(this)
 			this.started = 0
@@ -213,7 +211,6 @@ describe('CnAiInput dictation', () => {
 			results.length = 1
 			this.onresult({ resultIndex: 0, results })
 		}
-
 	}
 
 	FakeRecognition.instances = []
@@ -375,9 +372,7 @@ describe('CnAiInput dictation', () => {
  * it is how confidential audio reaches Google.
  */
 describe('CnAiInput speech engines', () => {
-
 	class FakeRecognition {
-
 		constructor() {
 			FakeRecognition.instances.push(this)
 			this.started = 0
@@ -391,7 +386,6 @@ describe('CnAiInput speech engines', () => {
 		stop() {
 			this.stopped += 1
 		}
-
 	}
 
 	FakeRecognition.instances = []
@@ -507,9 +501,7 @@ describe('CnAiInput speech engines', () => {
  * answers itself hands-free until somebody notices.
  */
 describe('CnAiInput conversation mode', () => {
-
 	class FakeRecognition {
-
 		constructor() {
 			FakeRecognition.instances.push(this)
 			this.stopped = 0
@@ -526,7 +518,6 @@ describe('CnAiInput conversation mode', () => {
 			results[0].isFinal = true
 			this.onresult({ resultIndex: 0, results })
 		}
-
 	}
 
 	FakeRecognition.instances = []
@@ -545,9 +536,7 @@ describe('CnAiInput conversation mode', () => {
 
 	it('offers no conversation control unless the agent allows it', () => {
 		expect(mountInput().find('[data-testid="cn-ai-input-converse"]').exists()).toBe(false)
-		expect(
-			mountInput({ conversationEnabled: true }).find('[data-testid="cn-ai-input-converse"]').exists(),
-		).toBe(true)
+		expect(mountInput({ conversationEnabled: true }).find('[data-testid="cn-ai-input-converse"]').exists()).toBe(true)
 	})
 
 	it('sends the turn on a silence — the difference from dictation', async () => {
@@ -639,7 +628,6 @@ describe('CnAiInput conversation mode', () => {
  * that tells somebody their agent's private engine is unavailable.
  */
 describe('CnAiInput blocked microphone', () => {
-
 	beforeEach(() => {
 		jest.clearAllMocks()
 		// A browser with no speech recognition and no recorder: nothing can run,

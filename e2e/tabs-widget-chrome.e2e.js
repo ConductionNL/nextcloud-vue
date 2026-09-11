@@ -110,11 +110,11 @@ test.describe('CnTabsWidget chrome', () => {
 		const inside = await page.evaluate(() => {
 			const c = document.querySelector('.cn-tabs-widget').getBoundingClientRect()
 			const end = document.querySelector('.cn-tabs__nav-end')
-			if (!end) return 'no nav-end'
+			if (!end) { return 'no nav-end' }
 			const e = end.getBoundingClientRect()
 			return { withinRight: e.right <= c.right + 1, onTabRow: e.top < document.querySelector('.cn-tabs__content').getBoundingClientRect().top }
 		})
-		if (inside === 'no nav-end') test.skip(true, 'harness widget renders no actions menu')
+		if (inside === 'no nav-end') { test.skip(true, 'harness widget renders no actions menu') }
 		expect(inside.withinRight).toBe(true)
 		expect(inside.onTabRow).toBe(true)
 	})
@@ -136,9 +136,7 @@ test.describe('CnTabsWidget chrome', () => {
 		await page.addStyleTag({
 			content: 'button:not(.button-vue, [class^="vs__"]):not(.app-navigation-entry-button) { margin-bottom: 3px; }',
 		})
-		const mb = await page.evaluate(() =>
-			getComputedStyle(document.querySelector('.cn-tabs__nav-item--active')).marginBottom,
-		)
+		const mb = await page.evaluate(() => getComputedStyle(document.querySelector('.cn-tabs__nav-item--active')).marginBottom)
 		expect(mb).toBe('-1px')
 	})
 

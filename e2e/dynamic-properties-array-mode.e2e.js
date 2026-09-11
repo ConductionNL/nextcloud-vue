@@ -69,7 +69,9 @@ async function stubOpenRegister(page, saved) {
 	// with no fields at all — a dialog that opens and looks fine.
 	// So: broadest first, most specific last.
 	await page.route('**/apps/openregister/**', (route) => route.fulfill({
-		status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] }),
+		status: 200,
+		contentType: 'application/json',
+		body: JSON.stringify({ results: [] }),
 	}))
 
 	await page.route('**/apps/openregister/api/objects/**', (route) => {
@@ -99,7 +101,9 @@ async function stubOpenRegister(page, saved) {
 	// `/api/schemas/case?register=…` is a SINGLE-schema fetch: the store uses
 	// the parsed body AS the schema, so it must not be wrapped in an envelope.
 	await page.route('**/apps/openregister/api/schemas/**', (route) => route.fulfill({
-		status: 200, contentType: 'application/json', body: JSON.stringify(SCHEMA),
+		status: 200,
+		contentType: 'application/json',
+		body: JSON.stringify(SCHEMA),
 	}))
 }
 

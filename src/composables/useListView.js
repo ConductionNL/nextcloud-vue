@@ -86,9 +86,7 @@ export function useListView(objectTypeOrOptions, options) {
 	// existing consumers get the fix without touching their templates.
 	const bootstrapping = ref(true)
 	const loading = computed(() => bootstrapping.value || objectStore.loading[objectType] || false)
-	const pagination = computed(
-		() => objectStore.pagination[objectType] || { total: 0, page: 1, pages: 1, limit: 20 },
-	)
+	const pagination = computed(() => objectStore.pagination[objectType] || { total: 0, page: 1, pages: 1, limit: 20 })
 	// Facets are computed by the platform over the whole query rather than the
 	// loaded page, so anything that needs the complete set of values for a
 	// field (a folder pane grouping by it, say) reads them here rather than
@@ -121,7 +119,7 @@ export function useListView(objectTypeOrOptions, options) {
 	 */
 	function resolveExtend() {
 		const e = typeof opts.extend === 'function' ? opts.extend() : opts.extend
-		if (!Array.isArray(e)) return []
+		if (!Array.isArray(e)) { return [] }
 		return e.filter((v) => typeof v === 'string' && v !== '')
 	}
 
@@ -254,7 +252,7 @@ export function useListView(objectTypeOrOptions, options) {
 	// ── Sidebar wiring ───────────────────────────────────────────────────
 
 	function setupSidebar() {
-		if (!sidebarState) return
+		if (!sidebarState) { return }
 		sidebarState.active = true
 		sidebarState.schema = schema.value
 		sidebarState.searchValue = searchTerm.value
@@ -267,7 +265,7 @@ export function useListView(objectTypeOrOptions, options) {
 	}
 
 	function teardownSidebar() {
-		if (!sidebarState) return
+		if (!sidebarState) { return }
 		sidebarState.active = false
 		sidebarState.schema = null
 		sidebarState.activeFilters = {}

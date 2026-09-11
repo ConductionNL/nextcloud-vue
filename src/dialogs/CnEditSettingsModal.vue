@@ -155,10 +155,12 @@ export default {
 			}
 			return this.working ? this.working.menu : []
 		},
+
 		/** Count of settings-section items (drives the empty state). */
 		settingsItemCount() {
 			return this.menu.filter((i) => i && i.section === 'settings').length
 		},
+
 		/**
 		 * The manifest's pages as Route-dropdown options (value = page id =
 		 * route name, label = title) — same source CnEditMenuModal uses.
@@ -171,10 +173,12 @@ export default {
 				.filter((p) => p && typeof p.id === 'string' && p.id !== '')
 				.map((p) => ({ value: p.id, label: (typeof p.title === 'string' && p.title) ? p.title : p.id }))
 		},
+
 		/** The manifest's `nav` object (read-only view; writes go through ensureNav). */
 		nav() {
 			return (this.working && this.working.nav && typeof this.working.nav === 'object') ? this.working.nav : {}
 		},
+
 		/**
 		 * Whether the foldout shows the auto "Personal settings" entry. Mirrors
 		 * CnAppNav's runtime default (shown unless explicitly `false`) so the
@@ -184,30 +188,37 @@ export default {
 		includePersonalSettings() {
 			return this.nav.includePersonalSettings !== false
 		},
+
 		/** The settings foldout label (empty string when unset). */
 		settingsLabel() {
 			return typeof this.nav.settingsLabel === 'string' ? this.nav.settingsLabel : ''
 		},
+
 		/** Whether the foldout shows a "Features & roadmap" entry (off by default). */
 		includeRoadmap() {
 			return this.nav.includeRoadmap === true
 		},
+
 		/** Label for the roadmap foldout entry (empty string when unset). */
 		roadmapLabel() {
 			return typeof this.nav.roadmapLabel === 'string' ? this.nav.roadmapLabel : ''
 		},
+
 		/** Target link/route for the roadmap foldout entry (empty when unset). */
 		roadmapUrl() {
 			return typeof this.nav.roadmapUrl === 'string' ? this.nav.roadmapUrl : ''
 		},
+
 		/** Whether the foldout shows a "Documentation" entry (off by default). */
 		includeDocumentation() {
 			return this.nav.includeDocumentation === true
 		},
+
 		/** Label for the documentation foldout entry (empty string when unset). */
 		documentationLabel() {
 			return typeof this.nav.documentationLabel === 'string' ? this.nav.documentationLabel : ''
 		},
+
 		/** Target URL for the documentation foldout entry (empty when unset). */
 		documentationUrl() {
 			return typeof this.nav.documentationUrl === 'string' ? this.nav.documentationUrl : ''
@@ -222,11 +233,13 @@ export default {
 			const maxOrder = settings.reduce((m, i) => Math.max(m, typeof i.order === 'number' ? i.order : 0), 0)
 			this.menu.push({ id: `settings-${settings.length + 1}`, label: '', icon: 'icon-settings', route: '', section: 'settings', order: maxOrder + 10 })
 		},
+
 		/** Ensure `working.nav` is an object, then return it for mutation. */
 		ensureNav() {
-			if (!this.working.nav || typeof this.working.nav !== 'object') this.working.nav = {}
+			if (!this.working.nav || typeof this.working.nav !== 'object') { this.working.nav = {} }
 			return this.working.nav
 		},
+
 		/**
 		 * Toggle the auto personal-settings entry.
 		 *
@@ -237,6 +250,7 @@ export default {
 		setIncludePersonalSettings(checked) {
 			this.ensureNav().includePersonalSettings = Boolean(checked)
 		},
+
 		/**
 		 * Set the settings foldout label.
 		 *
@@ -246,6 +260,7 @@ export default {
 		setSettingsLabel(value) {
 			this.ensureNav().settingsLabel = value
 		},
+
 		/**
 		 * Toggle the roadmap foldout entry.
 		 *
@@ -256,6 +271,7 @@ export default {
 		setIncludeRoadmap(checked) {
 			this.ensureNav().includeRoadmap = Boolean(checked)
 		},
+
 		/**
 		 * Set the roadmap entry label.
 		 *
@@ -265,6 +281,7 @@ export default {
 		setRoadmapLabel(value) {
 			this.ensureNav().roadmapLabel = value
 		},
+
 		/**
 		 * Set the roadmap entry link/route.
 		 *
@@ -274,6 +291,7 @@ export default {
 		setRoadmapUrl(value) {
 			this.ensureNav().roadmapUrl = value
 		},
+
 		/**
 		 * Toggle the documentation foldout entry.
 		 *
@@ -284,6 +302,7 @@ export default {
 		setIncludeDocumentation(checked) {
 			this.ensureNav().includeDocumentation = Boolean(checked)
 		},
+
 		/**
 		 * Set the documentation entry label.
 		 *
@@ -293,6 +312,7 @@ export default {
 		setDocumentationLabel(value) {
 			this.ensureNav().documentationLabel = value
 		},
+
 		/**
 		 * Set the documentation entry URL.
 		 *

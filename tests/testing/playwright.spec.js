@@ -1096,9 +1096,7 @@ describe('component-tree accessor', () => {
 
 	it('records nesting depth, so "mounted" and "mounted where" are distinguishable', async () => {
 		const all = await mountedComponents(makePage())
-		expect(all.find((c) => c.name === 'CnIndexPage').depth).toBeGreaterThan(
-			all.find((c) => c.props.appId === 'openbuild').depth,
-		)
+		expect(all.find((c) => c.name === 'CnIndexPage').depth).toBeGreaterThan(all.find((c) => c.props.appId === 'openbuild').depth)
 	})
 
 	it('drops un-serialisable props instead of blanking the whole entry', async () => {

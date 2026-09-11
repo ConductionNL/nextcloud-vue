@@ -26,8 +26,8 @@ jest.mock('@nextcloud/router', () => ({
 // hoisted `var` above is assigned — those early subscriptions are dropped.
 jest.mock('@nextcloud/event-bus', () => ({
 	subscribe: jest.fn((channel, cb) => {
-		if (!mockBusHandlers) return
-		if (!mockBusHandlers[channel]) mockBusHandlers[channel] = []
+		if (!mockBusHandlers) { return }
+		if (!mockBusHandlers[channel]) { mockBusHandlers[channel] = [] }
 		mockBusHandlers[channel].push(cb)
 	}),
 	unsubscribe: jest.fn(),
@@ -59,7 +59,7 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
  * @return {void}
  */
 const fireBus = (channel, payload) => {
-	for (const cb of (mockBusHandlers[channel] || [])) cb(payload)
+	for (const cb of (mockBusHandlers[channel] || [])) { cb(payload) }
 }
 
 beforeEach(() => {
@@ -67,7 +67,7 @@ beforeEach(() => {
 	axios.post.mockReset()
 	generateUrl.mockClear()
 	invalidateEndpointSourceCache()
-	for (const k of Object.keys(mockBusHandlers)) delete mockBusHandlers[k]
+	for (const k of Object.keys(mockBusHandlers)) { delete mockBusHandlers[k] }
 })
 
 describe('getByPath', () => {

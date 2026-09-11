@@ -63,11 +63,13 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Currently selected schema slug (v-model:schema). */
 		schema: {
 			type: String,
 			default: '',
 		},
+
 		/** Disable both dropdowns. */
 		disabled: {
 			type: Boolean,
@@ -90,19 +92,23 @@ export default {
 		registerOptions() {
 			return this.registers.map((r) => ({ id: r.slug, label: r.title || r.slug }))
 		},
+
 		/** The option object matching the current register slug (or null). */
 		registerOption() {
 			return this.registerOptions.find((o) => o.id === this.register)
 				|| (this.register ? { id: this.register, label: this.register } : null)
 		},
+
 		/** The fetched register entry for the current slug. */
 		currentRegister() {
 			return this.registers.find((r) => r.slug === this.register) || null
 		},
+
 		/** Schema dropdown options, scoped to the selected register. */
 		schemaOptions() {
 			return (this.currentRegister?.schemas || []).map((s) => ({ id: s.slug, label: s.title || s.slug }))
 		},
+
 		/** The option object matching the current schema slug (or null). */
 		schemaOption() {
 			return this.schemaOptions.find((o) => o.id === this.schema)

@@ -180,8 +180,9 @@ export default {
 	watch: {
 		objectId: {
 			immediate: true,
-			handler(id) { if (id) this.fetchAuditTrails() },
+			handler(id) { if (id) { this.fetchAuditTrails() } },
 		},
+
 		filterAction() { this.resetAndFetch() },
 		filterUser() { this.resetAndFetch() },
 		filterDateFrom() { this.resetAndFetch() },
@@ -200,8 +201,8 @@ export default {
 			params.set('limit', this.limit)
 			params.set('_page', this.page)
 			params.set('_sort[created]', 'DESC')
-			if (this.filterAction?.length) params.set('action', this.filterAction.join(','))
-			if (this.filterUser?.length) params.set('user_name', this.filterUser.join(','))
+			if (this.filterAction?.length) { params.set('action', this.filterAction.join(',')) }
+			if (this.filterUser?.length) { params.set('user_name', this.filterUser.join(',')) }
 			if (this.filterDateFrom) {
 				params.set('_dateFrom', new Date(this.filterDateFrom).toISOString().split('T')[0])
 			}
@@ -212,7 +213,7 @@ export default {
 		},
 
 		async fetchAuditTrails() {
-			if (!this.register || !this.schema) return
+			if (!this.register || !this.schema) { return }
 			this.loading = this.page === 1
 			this.loadingMore = this.page > 1
 			try {
@@ -234,7 +235,7 @@ export default {
 					}
 					this.total = data.total || this.entries.length
 					// Build user options from all seen entries
-					const users = new Set(this.entries.map(e => e.userName || e.user).filter(Boolean))
+					const users = new Set(this.entries.map((e) => e.userName || e.user).filter(Boolean))
 					this.userOptions = [...users].sort()
 				}
 			} catch (err) {
@@ -255,7 +256,7 @@ export default {
 		},
 
 		changedCount(entry) {
-			if (!entry.changed || typeof entry.changed !== 'object') return 0
+			if (!entry.changed || typeof entry.changed !== 'object') { return 0 }
 			return Object.keys(entry.changed).length
 		},
 
@@ -264,13 +265,13 @@ export default {
 		},
 
 		formatValue(val) {
-			if (val === null || val === undefined) return 'null'
-			if (typeof val === 'object') return JSON.stringify(val)
+			if (val === null || val === undefined) { return 'null' }
+			if (typeof val === 'object') { return JSON.stringify(val) }
 			return String(val)
 		},
 
 		formatDate(dateStr) {
-			if (!dateStr) return ''
+			if (!dateStr) { return '' }
 			try {
 				return new Date(dateStr).toLocaleString(undefined, {
 					year: 'numeric',

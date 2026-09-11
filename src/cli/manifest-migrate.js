@@ -63,8 +63,7 @@ function loadValidator() {
 
 program
 	.name('manifest-migrate')
-	.description(
-		'Transform a v1 @conduction/nextcloud-vue app manifest to v2 format.\n\n'
+	.description('Transform a v1 @conduction/nextcloud-vue app manifest to v2 format.\n\n'
 		+ 'Automatically applies all mechanical migration rules from the v2 spec:\n'
 		+ '  - Merges dashboard widgets[] + layout[] into unified top-level widgets[]\n'
 		+ '  - Lifts sidebarTabs[].widgets[] to slot:"sidebar" widget entries\n'
@@ -72,8 +71,7 @@ program
 		+ '  - Migrates cardComponent to card-grid widget\n'
 		+ '  - Normalises action type fields\n'
 		+ '  - Migrates customComponents to registry\n'
-		+ '  - Sets $schema to the v2 canonical URL',
-	)
+		+ '  - Sets $schema to the v2 canonical URL')
 	.requiredOption('--input <path>', 'Path to the v1 manifest.json file to transform')
 	.option('--output <path>', 'Path to write the transformed v2 manifest (default: same as --input)')
 	.option('--validate-only', 'Validate the input against its declared $schema and exit without transforming')

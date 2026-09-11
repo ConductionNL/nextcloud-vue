@@ -145,6 +145,7 @@ export default {
 		/**
 		 * Whether to render the "share uploaded files" toggle. Off by default;
 		 * when false, uploads never set the share flag (no auto-publish).
+		 *
 		 * @type {boolean}
 		 */
 		showShareToggle: { type: Boolean, default: false },
@@ -152,6 +153,7 @@ export default {
 		 * Initial state for the share toggle. `true`/`false` wins outright;
 		 * `null` (the default) defers to the schema's
 		 * `configuration.defaultAutoShare` from OpenRegister.
+		 *
 		 * @type {boolean|null}
 		 */
 		defaultShare: { type: Boolean, default: null },
@@ -191,7 +193,7 @@ export default {
 		objectId: {
 			immediate: true,
 			handler(id) {
-				if (id) this.fetchFiles()
+				if (id) { this.fetchFiles() }
 				this.applyShareDefault()
 			},
 		},
@@ -214,7 +216,7 @@ export default {
 		},
 
 		async fetchFiles(append = false) {
-			if (!this.register || !this.schema) return
+			if (!this.register || !this.schema) { return }
 			if (append) { this.loadingMore = true } else { this.loading = true }
 			try {
 				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
@@ -247,6 +249,7 @@ export default {
 		 * `configuration.defaultAutoShare` from OpenRegister and use that.
 		 * Network failure or missing key → keep the safe default (false) so
 		 * a hiccup never silently flips uploads to "share".
+		 *
 		 * @return {Promise<void>}
 		 */
 		async applyShareDefault() {
@@ -255,13 +258,13 @@ export default {
 				return
 			}
 			this.share = false
-			if (!this.schema) return
+			if (!this.schema) { return }
 			try {
 				const response = await fetch(
 					`${this.apiBase}/schemas/${this.schema}`,
 					{ headers: buildHeaders() },
 				)
-				if (!response.ok) return
+				if (!response.ok) { return }
 				const data = await response.json().catch(() => null)
 				if (data?.configuration?.defaultAutoShare === true) {
 					this.share = true
@@ -283,18 +286,18 @@ export default {
 		onDrop(event) {
 			this.isDragOver = false
 			const droppedFiles = event.dataTransfer?.files
-			if (droppedFiles?.length) this.uploadFiles(droppedFiles)
+			if (droppedFiles?.length) { this.uploadFiles(droppedFiles) }
 		},
 
 		async onFileUpload(event) {
 			const inputFiles = event.target.files
-			if (!inputFiles?.length) return
+			if (!inputFiles?.length) { return }
 			await this.uploadFiles(inputFiles)
-			if (this.fileInputEl) this.fileInputEl.value = ''
+			if (this.fileInputEl) { this.fileInputEl.value = '' }
 		},
 
 		async uploadFiles(fileList) {
-			if (!fileList?.length || !this.register || !this.schema) return
+			if (!fileList?.length || !this.register || !this.schema) { return }
 			this.uploadError = ''
 			const formData = new FormData()
 			for (const file of fileList) {
@@ -349,13 +352,13 @@ export default {
 		},
 
 		async deleteFile(file) {
-			if (!this.register || !this.schema) return
+			if (!this.register || !this.schema) { return }
 			try {
 				await fetch(
 					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files/${file.id}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
-				this.files = this.files.filter(f => f.id !== file.id)
+				this.files = this.files.filter((f) => f.id !== file.id)
 			} catch (err) {
 				console.error('CnFilesTab: Failed to delete file', err)
 			}
@@ -363,9 +366,9 @@ export default {
 
 		formatFileSize(bytes) {
 			const sizes = ['Bytes', 'KB', 'MB', 'GB']
-			if (!bytes || bytes === 0) return 'n/a'
+			if (!bytes || bytes === 0) { return 'n/a' }
 			const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)))
-			if (i === 0) return '< 1 KB'
+			if (i === 0) { return '< 1 KB' }
 			return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + sizes[i]
 		},
 	},

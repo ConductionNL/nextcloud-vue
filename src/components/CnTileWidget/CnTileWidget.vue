@@ -74,6 +74,7 @@ export default {
 		 * external link, and `route` pushes `linkValue` through the host
 		 * app's vue-router so SPA state (e.g. an in-memory vault key)
 		 * survives the navigation.
+		 *
 		 * @type {{ title: string, icon: string, iconType: 'svg'|'class'|'url'|'emoji', backgroundColor: string, textColor: string, linkType: 'app'|'url'|'route', linkValue: string }}
 		 */
 		tile: {

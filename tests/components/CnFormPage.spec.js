@@ -283,7 +283,7 @@ describe('CnFormPage — manifest-form-logic', () => {
 
 	afterEach(() => {
 		warnSpy.mockRestore()
-		if (global.fetch && global.fetch.mockRestore) global.fetch.mockRestore()
+		if (global.fetch && global.fetch.mockRestore) { global.fetch.mockRestore() }
 	})
 
 	describe('steps: indicator + navigation (REQ-MFL-6)', () => {
@@ -549,7 +549,7 @@ describe('CnFormPage — manifest-form-logic', () => {
 						// Vue 3 has no `this.$createElement`, no `staticClass`, and no
 						// nested `attrs:` — slot functions import `h` and pass a flat
 						// props object.
-						'field-rating'(props) {
+						'field-rating': function(props) {
 							return h('div', { class: 'custom-rating', 'data-error': props.error || '' })
 						},
 					},

@@ -210,6 +210,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values — used when not editing.
 		 *
@@ -242,6 +243,7 @@ export default {
 				color: typeof link?.color === 'string' ? link.color : '',
 				openInNewTab: typeof link?.openInNewTab === 'boolean' ? link.openInNewTab : undefined,
 			})),
+
 			iconSize: initial.iconSize ?? DEFAULT_CONTENT.iconSize,
 			iconShape: initial.iconShape ?? DEFAULT_CONTENT.iconShape,
 			showLabels: typeof initial.showLabels === 'boolean' ? initial.showLabels : DEFAULT_CONTENT.showLabels,
@@ -263,6 +265,7 @@ export default {
 				{ value: 'xlarge', label: t('nextcloud-vue', 'Extra large') },
 			]
 		},
+
 		/** Icon-shape select options. */
 		iconShapeOptions() {
 			return [
@@ -271,6 +274,7 @@ export default {
 				{ value: 'circle', label: t('nextcloud-vue', 'Circle') },
 			]
 		},
+
 		/** Label-position select options. */
 		labelPositionOptions() {
 			return [
@@ -278,6 +282,7 @@ export default {
 				{ value: 'overlay', label: t('nextcloud-vue', 'Overlay') },
 			]
 		},
+
 		/** Column-count select options (`auto` + 1..12). */
 		columnsOptions() {
 			const list = [{ value: 'auto', label: t('nextcloud-vue', 'Auto') }]
@@ -286,6 +291,7 @@ export default {
 			}
 			return list
 		},
+
 		/** Tile-background select options. */
 		tileBackgroundOptions() {
 			return [
@@ -294,6 +300,7 @@ export default {
 				{ value: 'gradient', label: t('nextcloud-vue', 'Gradient') },
 			]
 		},
+
 		/** Hover-effect select options. */
 		hoverEffectOptions() {
 			return [
@@ -303,10 +310,12 @@ export default {
 				{ value: 'none', label: t('nextcloud-vue', 'None') },
 			]
 		},
+
 		/** Whether the per-link colour column is shown (solid tiles only). */
 		showColorColumn() {
 			return this.tileBackgroundStyle === 'solid'
 		},
+
 		/** The full content blob assembled from the current field values. */
 		assembledContent() {
 			return {
@@ -324,6 +333,7 @@ export default {
 					}
 					return out
 				}),
+
 				iconSize: this.iconSize,
 				iconShape: this.iconShape,
 				showLabels: this.showLabels,

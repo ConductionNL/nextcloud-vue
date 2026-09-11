@@ -140,7 +140,7 @@ export default {
 			if (term === '') {
 				return this.albums
 			}
-			return this.albums.filter(album => (album.name || '').toLowerCase().includes(term))
+			return this.albums.filter((album) => (album.name || '').toLowerCase().includes(term))
 		},
 	},
 

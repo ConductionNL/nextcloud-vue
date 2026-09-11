@@ -64,9 +64,7 @@ describe('sentinel-token vocabulary ⇄ schema $def equality', () => {
 
 	it('sentinelTokenAny unions exactly the seven per-context $defs', () => {
 		const refs = schema.$defs.sentinelTokenAny.anyOf.map((s) => s.$ref)
-		expect(refs.sort()).toEqual(
-			Object.values(DEF_FOR_CONTEXT).map((d) => `#/$defs/${d}`).sort(),
-		)
+		expect(refs.sort()).toEqual(Object.values(DEF_FOR_CONTEXT).map((d) => `#/$defs/${d}`).sort())
 	})
 })
 

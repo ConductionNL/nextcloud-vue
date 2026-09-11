@@ -44,9 +44,7 @@ describe('singleton externals', () => {
 		it('covers every package the incident was about', () => {
 			// dexie is the boot-killer, dompurify the security boundary, marked and
 			// @vueuse/core the silent duplicates, gridstack the JS/CSS pair.
-			expect(SINGLETON_PACKAGES).toEqual(
-				expect.arrayContaining(['@vueuse/core', 'dexie', 'dompurify', 'gridstack', 'marked']),
-			)
+			expect(SINGLETON_PACKAGES).toEqual(expect.arrayContaining(['@vueuse/core', 'dexie', 'dompurify', 'gridstack', 'marked']))
 		})
 
 		it('is declared in peerDependencies and NOT in dependencies', () => {

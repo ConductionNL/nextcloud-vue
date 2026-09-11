@@ -265,6 +265,7 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * The same value as `value`, under Vue 3's own v-model name.
 		 *
@@ -291,6 +292,7 @@ export default {
 			type: Object,
 			default: () => DASHBOARD_ICONS,
 		},
+
 		/**
 		 * Enriched mode: which icon sets to offer, any of `mdi` / `fontawesome`
 		 * / `opengemeenten`. Defaults to `['mdi']`. Setting anything other than
@@ -302,6 +304,7 @@ export default {
 			type: Array,
 			default: () => ['mdi'],
 		},
+
 		/**
 		 * Enriched mode: consumer-supplied catalogues keyed by source name. Each
 		 * value is an array of `{ key, label, value, search, path?, component?,
@@ -314,16 +317,19 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Enriched mode: show a search box that filters the active source. */
 		searchable: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Enriched mode: offer a custom-SVG editor with a Format action. */
 		allowCustomSvg: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Icon placement (`v-model:placement`). Rendered as a left/right toggle
 		 * only when the consumer binds `placement`.
@@ -334,6 +340,7 @@ export default {
 			type: String,
 			default: 'left',
 		},
+
 		/**
 		 * Compact mode: render a small trigger button that opens the icon grid
 		 * as a popover, instead of the always-visible grid. Suited to table
@@ -343,6 +350,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Show a leading "None" tile that clears the selection (emits null).
 		 * Off by default so existing pickers are unchanged.
@@ -351,6 +359,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Injected upload transport: `async (dataUrl) => ({ url })`. When null,
 		 * the upload control is hidden (no transport dependency in the library).
@@ -388,6 +397,7 @@ export default {
 		boundValue() {
 			return this.modelValue !== undefined ? this.modelValue : this.value
 		},
+
 		/**
 		 * Whether the upload control is shown (only when an uploadFn is given).
 		 *
@@ -396,6 +406,7 @@ export default {
 		canUpload() {
 			return typeof this.uploadFn === 'function'
 		},
+
 		/**
 		 * The legacy grid's selected value — only reflects v-model when it holds
 		 * a registry key; a custom URL leaves nothing highlighted.
@@ -408,6 +419,7 @@ export default {
 			}
 			return ''
 		},
+
 		/**
 		 * Whether enriched multi-source mode is active. Opt-in: any of
 		 * `searchable`, `allowCustomSvg`, a non-empty `catalogues`, or a
@@ -422,6 +434,7 @@ export default {
 				|| Object.keys(this.catalogues).length > 0
 				|| !defaultSources
 		},
+
 		/**
 		 * The de-duplicated list of source names actually offered.
 		 *
@@ -437,6 +450,7 @@ export default {
 				return true
 			})
 		},
+
 		/**
 		 * Whether a left/right placement toggle is shown (consumer bound it).
 		 *
@@ -464,6 +478,7 @@ export default {
 			const vnodeProps = this.$ && this.$.vnode && this.$.vnode.props
 			return !!(vnodeProps && vnodeProps['onUpdate:placement'])
 		},
+
 		/**
 		 * The catalogue for the active source. For `mdi` with no supplied
 		 * catalogue, uses the lazy-loaded `@mdi/js` set or the DASHBOARD_ICONS
@@ -481,6 +496,7 @@ export default {
 			}
 			return []
 		},
+
 		/**
 		 * A catalogue built from the built-in DASHBOARD_ICONS registry, used as
 		 * the MDI fallback when `@mdi/js` is unavailable.
@@ -495,6 +511,7 @@ export default {
 				search: name.toLowerCase(),
 			}))
 		},
+
 		/**
 		 * The filtered, de-duplicated, and capped entries shown in the grid.
 		 * Uncapped while searching; always keeps the selected icon visible.
@@ -516,6 +533,7 @@ export default {
 			}
 			return sliced
 		},
+
 		/**
 		 * Whether the active catalogue has more (un-queried) entries than the
 		 * current display cap — drives the "scroll for more" hint and load-on-scroll.
@@ -568,6 +586,7 @@ export default {
 			 */
 			this.$emit('update:modelValue', next)
 		},
+
 		t,
 		/**
 		 * Attempt to lazy-load `@mdi/js` (optional dependency) and adapt it into
@@ -588,6 +607,7 @@ export default {
 				this.mdiCatalogue = null
 			}
 		},
+
 		/**
 		 * Reveal the next batch of icons when the grid is scrolled near its
 		 * bottom (infinite scroll), so the user can browse the whole catalogue
@@ -605,6 +625,7 @@ export default {
 				this.displayLimit += 120
 			}
 		},
+
 		/**
 		 * Switch the active source (and back to standard icon mode). Resets the
 		 * display cap so the new source starts from the top.
@@ -621,6 +642,7 @@ export default {
 				this.loadMdiCatalogue()
 			}
 		},
+
 		/**
 		 * Human label for a source name.
 		 *
@@ -639,6 +661,7 @@ export default {
 			}
 			return source
 		},
+
 		/**
 		 * Switch between standard grid and custom-SVG editing.
 		 *
@@ -651,6 +674,7 @@ export default {
 				this.emitValue(this.customSvg)
 			}
 		},
+
 		/**
 		 * Handle input in the custom-SVG editor — stores and emits raw SVG.
 		 *
@@ -661,6 +685,7 @@ export default {
 			this.customSvg = svg
 			this.emitValue(svg || null)
 		},
+
 		/**
 		 * Pretty-print the SVG in the custom editor (indented, one node per
 		 * line). Leaves the content unchanged when no `<svg>` element is found.
@@ -691,6 +716,7 @@ export default {
 				// Leave content unchanged on any parse/serialize error.
 			}
 		},
+
 		/**
 		 * Recursively serialize an SVG DOM node into indented markup.
 		 *
@@ -726,6 +752,7 @@ export default {
 			}
 			return serialize(root, 0)
 		},
+
 		/**
 		 * Emit the chosen icon value (or null for the "None" tile).
 		 *
@@ -745,6 +772,7 @@ export default {
 				this.$refs.root.open = false
 			}
 		},
+
 		/**
 		 * Emit a new placement value.
 		 *
@@ -758,6 +786,7 @@ export default {
 			 */
 			this.$emit('update:placement', option)
 		},
+
 		/**
 		 * Read the selected file as a data URL and hand it to `uploadFn`,
 		 * emitting the returned URL on success.
@@ -797,6 +826,7 @@ export default {
 			}
 			reader.readAsDataURL(file)
 		},
+
 		/**
 		 * Clear the native file input so re-selecting the same file re-fires.
 		 *

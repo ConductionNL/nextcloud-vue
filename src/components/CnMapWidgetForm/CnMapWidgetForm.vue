@@ -136,6 +136,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values when not editing (registry defaults).
 		 *
@@ -167,6 +168,7 @@ export default {
 				register: initial.register ?? '',
 				schema: initial.schema ?? '',
 			},
+
 			center: [Number(centre[0]), Number(centre[1])],
 			zoom: Number.isFinite(initial.zoom) ? initial.zoom : 7,
 			height: initial.height || '400px',
@@ -212,6 +214,7 @@ export default {
 			handler(content) {
 				this.$emit('update:content', content)
 			},
+
 			deep: true,
 			immediate: true,
 		},
@@ -258,7 +261,7 @@ export default {
 		 */
 		onCentre(index, value) {
 			const n = Number(value)
-			if (!Number.isFinite(n)) return
+			if (!Number.isFinite(n)) { return }
 			this.center[index] = n
 		},
 

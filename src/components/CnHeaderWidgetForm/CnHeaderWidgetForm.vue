@@ -219,6 +219,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values — used when not editing and the parent
 		 * supplies registry defaults.
@@ -229,6 +230,7 @@ export default {
 			type: Object,
 			default: () => ({ ...DEFAULT_CONTENT }),
 		},
+
 		/**
 		 * Optional raw-file upload transport: `async (file: File) => ({ url })`.
 		 * Named `fileUploadFn` (not `uploadFn`) to match `CnAddWidgetModal`'s
@@ -246,6 +248,7 @@ export default {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Legacy base64 upload transport, superseded by `fileUploadFn`.
 		 *
@@ -282,33 +285,43 @@ export default {
 			backgroundImageUrl: typeof initial.backgroundImageUrl === 'string'
 				? initial.backgroundImageUrl
 				: DEFAULT_CONTENT.backgroundImageUrl,
+
 			backgroundImageFileId: (typeof initial.backgroundImageFileId === 'number')
 				? initial.backgroundImageFileId
 				: DEFAULT_CONTENT.backgroundImageFileId,
+
 			backgroundColor: typeof initial.backgroundColor === 'string'
 				? initial.backgroundColor
 				: DEFAULT_CONTENT.backgroundColor,
+
 			overlayMode: ALLOWED_OVERLAY_MODES.includes(initial.overlayMode)
 				? initial.overlayMode
 				: DEFAULT_CONTENT.overlayMode,
+
 			overlayColor: typeof initial.overlayColor === 'string'
 				? initial.overlayColor
 				: DEFAULT_CONTENT.overlayColor,
+
 			overlayOpacity: typeof initial.overlayOpacity === 'number'
 				? initial.overlayOpacity
 				: DEFAULT_CONTENT.overlayOpacity,
+
 			textColor: typeof initial.textColor === 'string'
 				? initial.textColor
 				: DEFAULT_CONTENT.textColor,
+
 			textAlign: ALLOWED_TEXT_ALIGN.includes(initial.textAlign)
 				? initial.textAlign
 				: DEFAULT_CONTENT.textAlign,
+
 			verticalAlign: ALLOWED_VERTICAL_ALIGN.includes(initial.verticalAlign)
 				? initial.verticalAlign
 				: DEFAULT_CONTENT.verticalAlign,
+
 			height: ALLOWED_HEIGHTS.includes(initial.height)
 				? initial.height
 				: DEFAULT_CONTENT.height,
+
 			ctaLabel: cta && typeof cta.label === 'string' ? cta.label : '',
 			ctaUrl: cta && typeof cta.url === 'string' ? cta.url : '',
 			ctaStyle: (cta && ALLOWED_CTA_STYLES.includes(cta.style)) ? cta.style : 'primary',

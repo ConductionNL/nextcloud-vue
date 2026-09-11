@@ -179,6 +179,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Consumer-supplied data source overriding the
 		 * `cnSpendAnalyticsSource` injection. Must expose `fetchSummary`,

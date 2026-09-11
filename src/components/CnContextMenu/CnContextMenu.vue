@@ -193,7 +193,7 @@ export default {
 		 */
 		visibleActions() {
 			return this.actions.filter((action) => {
-				if (action.visible === undefined) return true
+				if (action.visible === undefined) { return true }
 				if (typeof action.visible === 'function') {
 					return !!action.visible(this.targetItem)
 				}
@@ -371,7 +371,7 @@ export default {
 		 * @return {void}
 		 */
 		onDocumentMouseDown(event) {
-			if (!this.internalOpen || this.isInsideMenu(event.target)) return
+			if (!this.internalOpen || this.isInsideMenu(event.target)) { return }
 			this.onClose()
 		},
 
@@ -384,10 +384,10 @@ export default {
 		 * @return {boolean} True when the target belongs to this menu.
 		 */
 		isInsideMenu(target) {
-			if (!(target instanceof Node)) return false
-			if (this.$refs.panel?.contains(target)) return true
+			if (!(target instanceof Node)) { return false }
+			if (this.$refs.panel?.contains(target)) { return true }
 			const content = this.$refs.actions?.$refs?.popover?.getPopoverContentElement?.()
-			if (content?.contains(target)) return true
+			if (content?.contains(target)) { return true }
 			// Fallback for when the popover ref chain is unavailable —
 			// `action-item__popper` is the base class NcActions gives its popper.
 			return target instanceof Element && !!target.closest('.action-item__popper')

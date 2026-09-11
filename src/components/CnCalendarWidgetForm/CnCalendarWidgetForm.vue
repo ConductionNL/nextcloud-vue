@@ -96,11 +96,13 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Initial content values when not editing (registry defaults). */
 		value: {
 			type: Object,
 			default: () => ({ ...DEFAULT_CONTENT }),
 		},
+
 		/**
 		 * Optional async fetcher returning the user's calendars
 		 * (`[{key, name, color}]`). When provided, the internal-calendar
@@ -131,9 +133,11 @@ export default {
 			internalCalendars: Array.isArray(initial.internalCalendars)
 				? [...initial.internalCalendars]
 				: [],
+
 			externalIcsUrls: Array.isArray(initial.externalIcsUrls)
 				? [...initial.externalIcsUrls]
 				: [],
+
 			viewMode: VIEW_MODES.includes(initial.viewMode) ? initial.viewMode : DEFAULT_CONTENT.viewMode,
 			daysAhead: this.coerceNumber(initial.daysAhead, DEFAULT_CONTENT.daysAhead),
 			colorByCalendar: initial.colorByCalendar !== false,

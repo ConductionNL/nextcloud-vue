@@ -110,6 +110,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * The slot name this grid is rendering for (e.g. "body", "sidebar", "tab:general").
 		 *
@@ -119,6 +120,7 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * Consumer registry override. When provided, overrides the injected
 		 * cnRegistry. Used for standalone testing.
@@ -129,6 +131,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Explicit column-count override for this slot. When `null` (default),
 		 * columns resolve from the injected per-page `slotColumns` map and then
@@ -142,6 +145,7 @@ export default {
 			type: Number,
 			default: null,
 		},
+
 		/**
 		 * When `true`, the `body` slot renders a GridStack drag/resize grid
 		 * (ADR-041 in-app edit mode) instead of the read-only CSS grid; geometry
@@ -170,15 +174,18 @@ export default {
 		editableBody() {
 			return this.editable && this.slotName === 'body'
 		},
+
 		gridColumns() {
 			// Three-layer resolution: `columns` prop → injected per-page
 			// slotColumns → the library default for the slot (getGridColumns
 			// is preserved as the default tier inside resolveSlotColumns).
 			return resolveSlotColumns(this.slotName, this.cnSlotColumns, this.columns)
 		},
+
 		effectiveRegistry() {
 			return this.registry ?? this.cnRegistry ?? {}
 		},
+
 		/**
 		 * Resolved detail-page object context (or `{}`). Read from the
 		 * reactive holder published by `CnPageRenderer`; the `.value`
@@ -201,6 +208,7 @@ export default {
 			}
 			return out
 		},
+
 		/**
 		 * CSS custom properties driving the shared `.cn-grid` engine — the
 		 * desktop column count for this slot. Responsive collapse (12 → 6 →
@@ -211,6 +219,7 @@ export default {
 		gridVars() {
 			return { '--cn-grid-cols': this.gridColumns }
 		},
+
 		/**
 		 * Whether this slot's grid collapses responsively. Multi-column
 		 * slots (body/footer/tab/section) do; the single-column sidebar
@@ -221,6 +230,7 @@ export default {
 		isResponsive() {
 			return this.gridColumns > 1
 		},
+
 		resolvedWidgets() {
 			const columns = this.gridColumns
 			const result = []
@@ -269,16 +279,14 @@ export default {
 					// so a deep import happened to work by accident.
 					const catalogEmpty = Object.keys(dashboardWidgetRegistry).length === 0
 					// eslint-disable-next-line no-console
-					console.warn(
-						catalogEmpty
-							? `[CnWidgetGrid] The dashboard widget catalog is EMPTY, so widgetKey "${key}" `
-								+ `in slot "${this.slotName}" cannot resolve — this is not a bad key. `
-								+ 'Import the package root (`@conduction/nextcloud-vue`) or, if you '
-								+ 'cherry-pick modules, `components/CnWidgetGrid/registerDashboardWidgets.js`. '
-								+ 'Importing a widget\'s own module gives you the component but registers no type.'
-							: `[CnWidgetGrid] Unknown widgetKey "${key}" in slot "${this.slotName}". `
-								+ 'Register it in the built-in registry or pass it via the CnAppRoot registry prop.',
-					)
+					console.warn(catalogEmpty
+						? `[CnWidgetGrid] The dashboard widget catalog is EMPTY, so widgetKey "${key}" `
+						+ `in slot "${this.slotName}" cannot resolve — this is not a bad key. `
+						+ 'Import the package root (`@conduction/nextcloud-vue`) or, if you '
+						+ 'cherry-pick modules, `components/CnWidgetGrid/registerDashboardWidgets.js`. '
+						+ 'Importing a widget\'s own module gives you the component but registers no type.'
+						: `[CnWidgetGrid] Unknown widgetKey "${key}" in slot "${this.slotName}". `
+							+ 'Register it in the built-in registry or pass it via the CnAppRoot registry prop.')
 					// Render a visible, designed placeholder instead of silently
 					// skipping — a page whose widgets ALL fail to resolve must not
 					// leave a blank pane (2026-07-06 audit: petstore dashboard).
@@ -299,10 +307,8 @@ export default {
 				let gridWidth = typeof widget.gridWidth === 'number' ? widget.gridWidth : 1
 				if (gridWidth > columns) {
 					// eslint-disable-next-line no-console
-					console.warn(
-						`[CnWidgetGrid] Widget "${key}" in slot "${this.slotName}" has gridWidth ${gridWidth} `
-						+ `which exceeds the slot's gridColumns (${columns}). Clamping to ${columns}.`,
-					)
+					console.warn(`[CnWidgetGrid] Widget "${key}" in slot "${this.slotName}" has gridWidth ${gridWidth} `
+						+ `which exceeds the slot's gridColumns (${columns}). Clamping to ${columns}.`)
 					gridWidth = columns
 				}
 
@@ -355,7 +361,7 @@ export default {
 	},
 
 	mounted() {
-		if (this.editableBody) this.initGrid()
+		if (this.editableBody) { this.initGrid() }
 	},
 
 	beforeUnmount() {
@@ -368,21 +374,24 @@ export default {
 		hasGridRow,
 		/**
 		 * Stable GridStack id for a widget entry (its id, else its index).
+		 *
 		 * @param {object} widget The resolved widget entry.
 		 * @param {number} index The entry's position in the slot.
 		 */
 		gsId(widget, index) {
 			return widget.id != null ? widget.id : `idx-${index}`
 		},
+
 		/** Initialise the GridStack engine on the editable body container. */
 		initGrid() {
 			const container = this.$refs.gridContainer
-			if (!container) return
+			if (!container) { return }
 			const el = container.querySelector('.grid-stack')
-			if (!el) return
+			if (!el) { return }
 			this.grid = initGridStack(el, { columns: this.gridColumns, editable: true })
 			this.grid.on('change', (_event, items) => this.handleGridChange(items))
 		},
+
 		/** Tear down the GridStack engine. */
 		destroyGrid() {
 			if (this.grid) {
@@ -390,6 +399,7 @@ export default {
 				this.grid = null
 			}
 		},
+
 		/**
 		 * Write GridStack geometry back into the widget entries (matched by id,
 		 * index fallback), clamped within the resolved column bound, and emit the
@@ -404,7 +414,7 @@ export default {
 				const key = String(this.gsId(resolved, index))
 				const g = geom.get(key)
 				const target = this.widgets[index]
-				if (!g || !target) return
+				if (!g || !target) { return }
 				const width = Math.min(g.gridWidth, cols)
 				const x = Math.min(g.gridX, Math.max(0, cols - width))
 				target.gridX = x

@@ -123,6 +123,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Whether the current user is an admin. Combined with `canEdit` to
 		 * suppress click handlers in edit mode.
@@ -133,6 +134,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Whether the surrounding dashboard shell is in edit mode.
 		 *

@@ -72,6 +72,7 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 		 * Facet data per type for CnIndexSidebar:
 		 * `{ fieldName: { values: [{ value, count?, label? }] } }`. `count` and
 		 * `label` are omitted when the bucket did not carry them.
+		 *
 		 * @type {{string: object}}
 		 */
 		facets: {},
@@ -99,6 +100,7 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 const baseGetters = {
 	/**
 	 * Get all registered object type slugs.
+	 *
 	 * @param {object} state Pinia state
 	 * @return {string[]}
 	 */
@@ -106,6 +108,7 @@ const baseGetters = {
 
 	/**
 	 * Get the collection array for a type.
+	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => Array
 	 */
@@ -113,6 +116,7 @@ const baseGetters = {
 
 	/**
 	 * Get a single cached object by type and ID.
+	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string, id: string) => object|null
 	 */
@@ -120,6 +124,7 @@ const baseGetters = {
 
 	/**
 	 * Alias for getObject — check cache without fetching.
+	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string, id: string) => object|null
 	 */
@@ -127,6 +132,7 @@ const baseGetters = {
 
 	/**
 	 * Check if a type is currently loading.
+	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => boolean
 	 */
@@ -134,6 +140,7 @@ const baseGetters = {
 
 	/**
 	 * Get the current error for a type.
+	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => ApiError|null
 	 */
@@ -141,14 +148,15 @@ const baseGetters = {
 
 	/**
 	 * Get pagination state for a type.
+	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => {total, page, pages, limit}
 	 */
-	getPagination: (state) => (type) =>
-		state.pagination[type] || { total: 0, page: 1, pages: 1, limit: 20 },
+	getPagination: (state) => (type) => state.pagination[type] || { total: 0, page: 1, pages: 1, limit: 20 },
 
 	/**
 	 * Get the current search term for a type.
+	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => string
 	 */
@@ -156,6 +164,7 @@ const baseGetters = {
 
 	/**
 	 * Get a cached schema for a type.
+	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => object|null
 	 */
@@ -163,6 +172,7 @@ const baseGetters = {
 
 	/**
 	 * Get a cached register for a type.
+	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => object|null
 	 */
@@ -170,6 +180,7 @@ const baseGetters = {
 
 	/**
 	 * Get facet data for a type (CnIndexSidebar-compatible format).
+	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => object
 	 */
@@ -195,6 +206,7 @@ const baseActions = {
 	 *
 	 * takes a unspecified number of props and joins them from first to left with a `-`.
 	 * However it is recommended to give it 1 register and 1 schema in that order.
+	 *
 	 * @param {*} params - unspecified number of props
 	 * @return {string}
 	 */
@@ -319,7 +331,7 @@ const baseActions = {
 	 */
 	_resolveLanguage() {
 		const getter = this._options.languageGetter
-		if (typeof getter !== 'function') return null
+		if (typeof getter !== 'function') { return null }
 		try {
 			const v = getter()
 			return typeof v === 'string' && v.length > 0 ? v : null
@@ -343,7 +355,7 @@ const baseActions = {
 	 */
 	_resolveTargetLanguage() {
 		const getter = this._options.targetLanguageGetter
-		if (typeof getter !== 'function') return null
+		if (typeof getter !== 'function') { return null }
 		try {
 			const v = getter()
 			return typeof v === 'string' && v.length > 0 ? v : null
@@ -381,7 +393,7 @@ const baseActions = {
 	 */
 	setActiveTenantOrganisation(uuid) {
 		const next = (typeof uuid === 'string' && uuid.length > 0) ? uuid : null
-		if (this.activeTenantOrganisationUuid === next) return
+		if (this.activeTenantOrganisationUuid === next) { return }
 
 		this.activeTenantOrganisationUuid = next
 
@@ -840,7 +852,7 @@ const baseActions = {
 	 */
 	async deleteObjects(type, ids) {
 		const result = { successfulIds: [], failedIds: [] }
-		if (!ids?.length) return result
+		if (!ids?.length) { return result }
 
 		this.loading = { ...this.loading, [type]: true }
 		this.errors = { ...this.errors, [type]: null }
@@ -866,8 +878,7 @@ const baseActions = {
 
 			const outcomes = await Promise.all(ids.map(runOne))
 			for (const { id, success } of outcomes) {
-				if (success) result.successfulIds.push(id)
-				else result.failedIds.push(id)
+				if (success) { result.successfulIds.push(id) } else { result.failedIds.push(id) }
 			}
 
 			if (result.successfulIds.length > 0) {
@@ -875,7 +886,7 @@ const baseActions = {
 				if (this.objects[type]) {
 					const remaining = {}
 					for (const [k, v] of Object.entries(this.objects[type])) {
-						if (!successSet.has(k)) remaining[k] = v
+						if (!successSet.has(k)) { remaining[k] = v }
 					}
 					this.objects = { ...this.objects, [type]: remaining }
 				}
@@ -909,7 +920,7 @@ const baseActions = {
 	 * @return {Promise<{[key: string]: object}>} Map of id -> object
 	 */
 	async resolveReferences(type, ids) {
-		if (!ids || ids.length === 0) return {}
+		if (!ids || ids.length === 0) { return {} }
 
 		const uniqueIds = [...new Set(ids.filter(Boolean))]
 		const result = {}

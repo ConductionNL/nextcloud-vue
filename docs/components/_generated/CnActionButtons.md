@@ -10,7 +10,7 @@
 
 ### Events
 
-| Name      | Payload | Description                                                                                                                                                                                                                                                                              |
-| --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `created` | —       | Emitted after an open-form action saves. Payload: the created object.                                                                                                                                                                                                                    |
-| `entries` | —       | Emitted in `display: "menu"` only, whenever the visible actions, their toggle state or their pending flags change. Payload: one menu-ready descriptor per visible action, each carrying `id`, `label`, `iconName`, `iconClass`, `disabled`, `pressed`, `testid` and a pre-bound `run()`. |
+| Name      | Payload | Description                                                           |
+| --------- | ------- | --------------------------------------------------------------------- |
+| `created` | —       | Emitted after an open-form action saves. Payload: the created object. |
+| `entries` | —       |                                                                       |

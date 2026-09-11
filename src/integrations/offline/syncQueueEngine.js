@@ -232,22 +232,22 @@ export function nextState(operation, result) {
  */
 export function resolveConflictChoice(resolution, mergedPayload = null) {
 	switch (resolution) {
-	case 'client_wins':
-		return { patch: { status: 'pending', forceUpdate: true, attemptCount: 0 }, requeue: true }
-	case 'manual_merge':
-		return {
-			patch: {
-				status: 'pending',
-				forceUpdate: true,
-				attemptCount: 0,
-				payload: mergedPayload,
-			},
-			requeue: true,
-		}
-	case 'server_wins':
-		return { patch: { status: 'synced', forceUpdate: false }, requeue: false }
-	default:
-		throw new Error(`Unknown conflict resolution: ${resolution}`)
+		case 'client_wins':
+			return { patch: { status: 'pending', forceUpdate: true, attemptCount: 0 }, requeue: true }
+		case 'manual_merge':
+			return {
+				patch: {
+					status: 'pending',
+					forceUpdate: true,
+					attemptCount: 0,
+					payload: mergedPayload,
+				},
+				requeue: true,
+			}
+		case 'server_wins':
+			return { patch: { status: 'synced', forceUpdate: false }, requeue: false }
+		default:
+			throw new Error(`Unknown conflict resolution: ${resolution}`)
 	}
 }
 

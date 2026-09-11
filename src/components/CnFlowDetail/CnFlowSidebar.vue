@@ -386,7 +386,7 @@ export default {
 		 * @param {string|null} uuid The run now being watched.
 		 * @return {void}
 		 */
-		'store.watchedRunUuid'(uuid) {
+		'store.watchedRunUuid': function(uuid) {
 			if (uuid) {
 				this.tab = 'flow-runs'
 			}
@@ -404,7 +404,7 @@ export default {
 		 * @param {string|null} uuid The run now being inspected.
 		 * @return {void}
 		 */
-		'store.inspectedRunUuid'(uuid) {
+		'store.inspectedRunUuid': function(uuid) {
 			if (uuid) {
 				this.tab = 'flow-runs'
 			}

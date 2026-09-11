@@ -83,6 +83,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * The same value as `value`, under Vue 3's own v-model name.
 		 *
@@ -137,6 +138,7 @@ export default {
 		boundValue() {
 			return this.modelValue !== undefined ? this.modelValue : this.value
 		},
+
 		/** Operator ids for the select. */
 		opIds() {
 			return FILTER_OPERATORS.map((o) => o.id)
@@ -168,6 +170,7 @@ export default {
 			 */
 			this.$emit('update:modelValue', next)
 		},
+
 		t,
 
 		/**

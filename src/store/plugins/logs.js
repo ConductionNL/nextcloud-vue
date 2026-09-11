@@ -156,7 +156,7 @@ export function logsPlugin(options = {}) {
 	if (autoRefreshOnItemChange) {
 		plugin.setup = function setup(store) {
 			store.$onAction(({ name, after }) => {
-				if (name !== 'setItem') return
+				if (name !== 'setItem') { return }
 				after(() => {
 					if (store.item?.id != null) {
 						store.refreshLogs().catch((error) => {

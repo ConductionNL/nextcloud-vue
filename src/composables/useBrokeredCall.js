@@ -23,9 +23,7 @@ export const OPENREGISTER_SESSION_REQUEST_PATH = '/apps/openregister/api/credent
  * @return {string} The generated, NC-base-prefixed URL.
  */
 export function brokerSessionRequestUrl(credentialId) {
-	return generateUrl(
-		OPENREGISTER_SESSION_REQUEST_PATH.replace('{id}', encodeURIComponent(String(credentialId))),
-	)
+	return generateUrl(OPENREGISTER_SESSION_REQUEST_PATH.replace('{id}', encodeURIComponent(String(credentialId))))
 }
 
 /**
@@ -39,13 +37,13 @@ export function brokerSessionRequestUrl(credentialId) {
  */
 export function buildBrokerPath(path, query) {
 	const base = typeof path === 'string' ? path : ''
-	if (!query || typeof query !== 'object' || Array.isArray(query)) return base
+	if (!query || typeof query !== 'object' || Array.isArray(query)) { return base }
 	const usp = new URLSearchParams()
 	for (const [key, value] of Object.entries(query)) {
-		if (value === undefined || value === null) continue
+		if (value === undefined || value === null) { continue }
 		if (Array.isArray(value)) {
 			for (const item of value) {
-				if (item === undefined || item === null) continue
+				if (item === undefined || item === null) { continue }
 				usp.append(key, String(item))
 			}
 			continue
@@ -53,7 +51,7 @@ export function buildBrokerPath(path, query) {
 		usp.append(key, String(value))
 	}
 	const qs = usp.toString()
-	if (!qs) return base
+	if (!qs) { return base }
 	return base + (base.includes('?') ? '&' : '?') + qs
 }
 
@@ -67,10 +65,10 @@ export function buildBrokerPath(path, query) {
  * @return {*} The parsed payload, the raw string, or null.
  */
 export function parseBrokeredBody(body) {
-	if (body === null || body === undefined) return null
-	if (typeof body !== 'string') return body
+	if (body === null || body === undefined) { return null }
+	if (typeof body !== 'string') { return body }
 	const trimmed = body.trim()
-	if (trimmed === '') return null
+	if (trimmed === '') { return null }
 	if (trimmed[0] === '{' || trimmed[0] === '[') {
 		try {
 			return JSON.parse(trimmed)
@@ -95,23 +93,17 @@ export function parseBrokeredBody(body) {
  */
 function cleanBrokerError(status, origin, cause) {
 	if (status === 403) {
-		return new Error(
-			'Brokered request denied (403): the credential broker refused this request. '
-			+ 'Check that you own the credential and that this app is in its allowedApps.',
-		)
+		return new Error('Brokered request denied (403): the credential broker refused this request. '
+			+ 'Check that you own the credential and that this app is in its allowedApps.')
 	}
 	if (status === 502) {
-		return new Error(
-			'Brokered request failed (502): the external provider could not be reached '
-			+ 'through the credential broker.',
-		)
+		return new Error('Brokered request failed (502): the external provider could not be reached '
+			+ 'through the credential broker.')
 	}
 	if (typeof status === 'number') {
-		return new Error(
-			origin === 'upstream'
-				? `Brokered upstream responded ${status}.`
-				: `Brokered request failed (${status}).`,
-		)
+		return new Error(origin === 'upstream'
+			? `Brokered upstream responded ${status}.`
+			: `Brokered request failed (${status}).`)
 	}
 	// No status → transport/network error. The browser never held the secret,
 	// so the message is safe, but keep it terse.
@@ -182,7 +174,7 @@ export function useBrokeredCall(config, options = {}) {
 				method: String(c.method || 'GET').toUpperCase(),
 				path: buildBrokerPath(c.path, c.query),
 			}
-			if (c.headers && typeof c.headers === 'object') payload.headers = c.headers
+			if (c.headers && typeof c.headers === 'object') { payload.headers = c.headers }
 			payload.body = c.body ?? null
 
 			const resp = await axios.post(url, payload)
@@ -208,10 +200,10 @@ export function useBrokeredCall(config, options = {}) {
 		}
 	}
 
-	if (immediate) refetch()
+	if (immediate) { refetch() }
 
 	// Reactive inputs re-run the request (deep — nested query/headers change).
-	if (isRef(config)) watch(config, refetch, { deep: true })
+	if (isRef(config)) { watch(config, refetch, { deep: true }) }
 
 	return { data, loading, error, refetch }
 }

@@ -30,7 +30,7 @@ const stubs = {
 
 function mountDetail(props = {}, cnAiContext = null) {
 	const provide = {}
-	if (cnAiContext) provide.cnAiContext = cnAiContext
+	if (cnAiContext) { provide.cnAiContext = cnAiContext }
 
 	return mount(CnDetailPage, {
 		propsData: {

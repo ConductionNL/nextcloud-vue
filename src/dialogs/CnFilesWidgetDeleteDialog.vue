@@ -46,6 +46,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Name of the file pending deletion, shown in the confirmation prompt. */
 		fileName: {
 			type: String,

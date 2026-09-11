@@ -61,6 +61,7 @@ export default {
 	props: {
 		/**
 		 * The aggregate descriptors.
+		 *
 		 * @type {Array<{label: string, register: string, schema: string, metric?: string, field?: string, filter?: object, format?: string}>}
 		 */
 		aggregates: {
@@ -82,9 +83,10 @@ export default {
 		/** The unwrapped object context (or null). */
 		objectCtx() {
 			const c = this.cnObjectContext
-			if (!c) return null
+			if (!c) { return null }
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
+
 		/**
 		 * The chips with their fetched value formatted for display.
 		 *
@@ -100,6 +102,7 @@ export default {
 				}
 			})
 		},
+
 		/**
 		 * A stable signature of the aggregate query set + the object id it is
 		 * scoped to, so the watcher only refetches on a real change.
@@ -134,13 +137,13 @@ export default {
 		 * @return {string|number}
 		 */
 		formatChip(raw, format) {
-			if (raw === null || raw === undefined) return '—'
+			if (raw === null || raw === undefined) { return '—' }
 			if (format === 'currency') {
 				const num = Number(raw)
-				if (Number.isNaN(num)) return String(raw)
+				if (Number.isNaN(num)) { return String(raw) }
 				return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(num)
 			}
-			if (typeof raw === 'number') return raw.toLocaleString()
+			if (typeof raw === 'number') { return raw.toLocaleString() }
 			return raw
 		},
 

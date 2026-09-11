@@ -203,46 +203,55 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** The `manifest.setup.steps` array to render. */
 		steps: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Dialog title. */
 		dialogTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Set up this app'),
 		},
+
 		/** Final-step submit button label. */
 		submitLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Finish'),
 		},
+
 		/** Cancel button label. */
 		cancelLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Cancel'),
 		},
+
 		/** Next button label. */
 		nextLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Next'),
 		},
+
 		/** Back button label. */
 		backLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Back'),
 		},
+
 		/** Run-action button label. */
 		runLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Run'),
 		},
+
 		/** Result-phase success text. */
 		successText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Setup complete.'),
 		},
+
 		/**
 		 * Whether the wizard can be dismissed before finishing (Cancel
 		 * button, ESC, backdrop click). Pass `false` when a REQUIRED step
@@ -256,6 +265,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Ids of steps the SERVER already reports as done (e.g.
 		 * `useSetupStatus(...).steps` filtered to `done === true`), passed by
@@ -313,6 +323,7 @@ export default {
 		setupSteps() {
 			return (this.steps || []).filter((s) => s && s.id && s.type)
 		},
+
 		wizardSteps() {
 			return this.setupSteps.map((s) => ({
 				id: s.id,
@@ -320,6 +331,7 @@ export default {
 				optional: s.required !== true,
 			}))
 		},
+
 		/**
 		 * Recap rows for the `summary` step — one per non-summary step, with
 		 * the value the user selected (choice label / config field values) and
@@ -356,6 +368,7 @@ export default {
 					return { id: step.id, title: this.stepTitle(step), value, done }
 				})
 		},
+
 		/**
 		 * Id of the step the wizard should open on when RESUMING: the first
 		 * non-`info`/`summary` step not already done, per the CURRENT session's
@@ -374,7 +387,7 @@ export default {
 			}
 			const actionable = this.setupSteps.filter((s) => s.type !== 'info' && s.type !== 'summary')
 			const firstUnmet = actionable.find((s) => {
-				if (s.type === 'choice') return !(this.hasChoice(s) || this.isServerDone(s.id))
+				if (s.type === 'choice') { return !(this.hasChoice(s) || this.isServerDone(s.id)) }
 				return !this.isStepDone(s.id)
 			})
 			return firstUnmet ? firstUnmet.id : ''
@@ -404,6 +417,7 @@ export default {
 			const raw = (step && step.title) || (step && step.id) || ''
 			return raw === '' ? '' : this.cnTranslate(raw)
 		},
+
 		/**
 		 * The visible body for a step, resolved through the host app's
 		 * translation function.
@@ -423,12 +437,15 @@ export default {
 			const raw = (step && step.body) || ''
 			return raw === '' ? '' : this.cnTranslate(raw)
 		},
+
 		stepSlot(step) {
 			return 'step-' + step.id
 		},
+
 		hasCustomSlot(id) {
 			return !!this.$slots['step-' + id] || !!this.$slots['step-' + id]
 		},
+
 		fieldsFor(step) {
 			if (step.schema && typeof step.schema === 'object') {
 				return fieldsFromSchema(step.schema, { translate: this.cnTranslate })
@@ -436,6 +453,7 @@ export default {
 			// Fallback: a plain text field per declared config key.
 			return (step.configKeys || []).map((key) => ({ key, label: key, widget: 'text' }))
 		},
+
 		/**
 		 * Options for a `choice` step. When the step declares `dependsOn`
 		 * (a parent step's configKey) + `optionsByParent`, the option list
@@ -473,6 +491,7 @@ export default {
 				return translated
 			})
 		},
+
 		/**
 		 * The option list a `choice` step declares `optionsSource` for, read
 		 * from the setup status document the app already serves.
@@ -513,6 +532,7 @@ export default {
 				})
 				.filter((option) => option.value !== undefined)
 		},
+
 		/**
 		 * Whether a choice step renders as a card grid rather than a dropdown.
 		 *
@@ -522,6 +542,7 @@ export default {
 		isCardChoice(step) {
 			return step.display === 'cards'
 		},
+
 		/**
 		 * Whether this step is still waiting for its live option list.
 		 *
@@ -531,6 +552,7 @@ export default {
 		isOptionsLoading(step) {
 			return !!step.optionsSource && this.setupStatusLoading === true
 		},
+
 		/**
 		 * The card grid's model: plain values, not the option objects NcSelect
 		 * binds. `scalarChoice` already reduces either shape to values, so both
@@ -546,16 +568,19 @@ export default {
 			}
 			return value === undefined ? null : value
 		},
+
 		isChoiceDisabled(step) {
-			if (!step.dependsOn) return false
+			if (!step.dependsOn) { return false }
 			const parentValue = this.choiceValues[step.dependsOn]
 			return parentValue == null || parentValue === ''
 		},
+
 		dependsOnHint(step) {
 			const parent = this.setupSteps.find((s) => s.configKey === step.dependsOn)
 			const label = parent ? (parent.title || parent.id) : step.dependsOn
 			return t('nextcloud-vue', 'Select "{step}" first.', { step: label })
 		},
+
 		/**
 		 * The visible label for one selected choice entry.
 		 *
@@ -576,6 +601,7 @@ export default {
 			const match = this.optionsFor(step).find((o) => o && String(o.value) === String(entry))
 			return (match && match.label) ? match.label : String(entry)
 		},
+
 		hasChoice(step) {
 			const v = this.choiceModel[step.id]
 			if (step.multiple === true) {
@@ -583,6 +609,7 @@ export default {
 			}
 			return v != null && v !== ''
 		},
+
 		scalarChoice(step) {
 			const raw = this.choiceModel[step.id]
 			if (step.multiple === true) {
@@ -590,6 +617,7 @@ export default {
 			}
 			return raw && raw.value !== undefined ? raw.value : raw
 		},
+
 		onChoice(step, value) {
 			this.userTouched[step.id] = true
 			this.choiceModel[step.id] = value
@@ -601,7 +629,7 @@ export default {
 				if (child.dependsOn && child.dependsOn === step.configKey) {
 					this.choiceModel[child.id] = child.multiple === true ? [] : null
 					this.userTouched[child.id] = false
-					if (child.configKey) this.choiceValues[child.configKey] = ''
+					if (child.configKey) { this.choiceValues[child.configKey] = '' }
 				}
 			}
 			// Re-apply auto-suggestions for steps that derive a default from this one.
@@ -611,6 +639,7 @@ export default {
 				}
 			}
 		},
+
 		/**
 		 * Auto-fill a `choice` step's suggested default from an earlier choice
 		 * (its `suggestFrom` configKey → `suggestMap[parentValue]`). No-op once
@@ -621,15 +650,16 @@ export default {
 		 * @return {void}
 		 */
 		applySuggestion(step) {
-			if (this.userTouched[step.id] === true) return
+			if (this.userTouched[step.id] === true) { return }
 			const parentValue = this.choiceValues[step.suggestFrom]
-			if (parentValue == null || parentValue === '') return
+			if (parentValue == null || parentValue === '') { return }
 			const wanted = (step.suggestMap || {})[parentValue]
-			if (wanted == null) return
+			if (wanted == null) { return }
 			const opt = this.optionsFor(step).find((o) => o.value === wanted) || { value: wanted, label: String(wanted) }
 			this.choiceModel[step.id] = opt
-			if (step.configKey) this.choiceValues[step.configKey] = wanted
+			if (step.configKey) { this.choiceValues[step.configKey] = wanted }
 		},
+
 		/**
 		 * CnWizardDialog `validate` hook — intercepts Next/Submit to persist
 		 * the active step before advancing. `choice`/`config-fields` steps
@@ -643,7 +673,7 @@ export default {
 		 */
 		async validateStep(stepId) {
 			const step = this.setupSteps.find((s) => s.id === stepId)
-			if (!step) return true
+			if (!step) { return true }
 			if (step.type === 'choice') {
 				if (!this.hasChoice(step)) {
 					// Already persisted server-side and the user only back-navigated
@@ -682,6 +712,7 @@ export default {
 			}
 			return true
 		},
+
 		/**
 		 * Persist one or more app-config values via the setup contract.
 		 *
@@ -695,6 +726,7 @@ export default {
 			])
 			await axios.post(generateUrl(`/apps/${this.appId}/api/setup/config`), patch)
 		},
+
 		async runAction(step) {
 			this.running[step.id] = true
 			this.actionResult[step.id] = null
@@ -703,9 +735,7 @@ export default {
 					import('@nextcloud/axios'),
 					import('@nextcloud/router'),
 				])
-				const { data } = await axios.post(
-					generateUrl(`/apps/${this.appId}/api/setup/action/${step.action}`),
-				)
+				const { data } = await axios.post(generateUrl(`/apps/${this.appId}/api/setup/action/${step.action}`))
 				const result = {
 					success: data && data.success !== false,
 					message: (data && data.message) || t('nextcloud-vue', 'Done.'),
@@ -726,9 +756,11 @@ export default {
 				this.running[step.id] = false
 			}
 		},
+
 		isStepDone(id) {
 			return this.isServerDone(id) || this.localDone[id] === true || (this.actionResult[id] && this.actionResult[id].success)
 		},
+
 		/**
 		 * Whether the server already reported this step done in a prior
 		 * session, via the `completedStepIds` prop.
@@ -739,6 +771,7 @@ export default {
 		isServerDone(id) {
 			return this.completedStepIds.includes(id)
 		},
+
 		onSubmit() {
 			if (this.$refs.wizard && this.$refs.wizard.setResult) {
 				this.$refs.wizard.setResult({ success: true, message: this.successText })
@@ -748,6 +781,7 @@ export default {
 			 */
 			this.$emit('complete')
 		},
+
 		onStepChange(payload) {
 			// Pre-fill a suggested default when entering a step that derives one.
 			const step = this.setupSteps.find((s) => s.id === payload.stepId)
@@ -760,12 +794,14 @@ export default {
 			 */
 			this.$emit('step-change', payload)
 		},
+
 		onClose() {
 			/**
 			 * @event close Emitted when the dialog should close.
 			 */
 			this.$emit('close')
 		},
+
 		errorMessage(err) {
 			const data = err && err.response && err.response.data
 			if (data && (data.message || data.error)) {

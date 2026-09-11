@@ -111,9 +111,7 @@ describe('CnAppRoot registry validation', () => {
 				},
 			},
 		})
-		expect(warnSpy).toHaveBeenCalledWith(
-			expect.stringContaining('allowedSlots'),
-		)
+		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('allowedSlots'))
 		warnSpy.mockRestore()
 	})
 
@@ -241,9 +239,7 @@ describe('CnAppRoot customComponents deprecation warning', () => {
 			manifest: v2Manifest,
 			customComponents: { MyComp: MockPage },
 		})
-		const deprecationWarnings = warnSpy.mock.calls.filter(
-			(args) => args[0] && args[0].includes('customComponents') && args[0].includes('deprecated'),
-		)
+		const deprecationWarnings = warnSpy.mock.calls.filter((args) => args[0] && args[0].includes('customComponents') && args[0].includes('deprecated'))
 		expect(deprecationWarnings.length).toBe(1)
 		warnSpy.mockRestore()
 	})
@@ -254,9 +250,7 @@ describe('CnAppRoot customComponents deprecation warning', () => {
 			manifest: baseManifest,
 			customComponents: { MyComp: MockPage },
 		})
-		const deprecationWarnings = warnSpy.mock.calls.filter(
-			(args) => args[0] && args[0].includes('customComponents') && args[0].includes('deprecated'),
-		)
+		const deprecationWarnings = warnSpy.mock.calls.filter((args) => args[0] && args[0].includes('customComponents') && args[0].includes('deprecated'))
 		expect(deprecationWarnings.length).toBe(0)
 		warnSpy.mockRestore()
 	})
@@ -267,9 +261,7 @@ describe('CnAppRoot customComponents deprecation warning', () => {
 			manifest: v2Manifest,
 			customComponents: {},
 		})
-		const deprecationWarnings = warnSpy.mock.calls.filter(
-			(args) => args[0] && args[0].includes('customComponents') && args[0].includes('deprecated'),
-		)
+		const deprecationWarnings = warnSpy.mock.calls.filter((args) => args[0] && args[0].includes('customComponents') && args[0].includes('deprecated'))
 		expect(deprecationWarnings.length).toBe(0)
 		warnSpy.mockRestore()
 	})
@@ -282,9 +274,7 @@ describe('CnAppRoot customComponents deprecation warning', () => {
 		})
 		// Force an update
 		await wrapper.setProps({ manifest: { ...v2Manifest } })
-		const deprecationWarnings = warnSpy.mock.calls.filter(
-			(args) => args[0] && args[0].includes('customComponents') && args[0].includes('deprecated'),
-		)
+		const deprecationWarnings = warnSpy.mock.calls.filter((args) => args[0] && args[0].includes('customComponents') && args[0].includes('deprecated'))
 		// Only 1 warning despite re-render
 		expect(deprecationWarnings.length).toBe(1)
 		warnSpy.mockRestore()

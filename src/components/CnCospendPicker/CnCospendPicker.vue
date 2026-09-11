@@ -141,7 +141,7 @@ export default {
 			if (term === '') {
 				return this.projects
 			}
-			return this.projects.filter(project => (project.name || '').toLowerCase().includes(term))
+			return this.projects.filter((project) => (project.name || '').toLowerCase().includes(term))
 		},
 	},
 

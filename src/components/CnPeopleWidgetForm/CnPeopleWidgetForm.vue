@@ -131,6 +131,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Initial content values when not editing (registry defaults). */
 		value: {
 			type: Object,
@@ -158,24 +159,30 @@ export default {
 			selectedUsers: Array.isArray(initial.selectedUsers)
 				? [...initial.selectedUsers]
 				: [...DEFAULT_CONTENT.selectedUsers],
+
 			filterOperator: initial.filterOperator ?? DEFAULT_CONTENT.filterOperator,
 			excludeDisabled: typeof initial.excludeDisabled === 'boolean'
 				? initial.excludeDisabled
 				: DEFAULT_CONTENT.excludeDisabled,
+
 			showBirthdays: typeof initial.showBirthdays === 'boolean'
 				? initial.showBirthdays
 				: DEFAULT_CONTENT.showBirthdays,
+
 			birthdayWindowDays: typeof initial.birthdayWindowDays === 'number'
 				? initial.birthdayWindowDays
 				: DEFAULT_CONTENT.birthdayWindowDays,
+
 			sortBy: initial.sortBy ?? DEFAULT_CONTENT.sortBy,
 			columns: typeof initial.columns === 'number'
 				? initial.columns
 				: DEFAULT_CONTENT.columns,
+
 			showFields: { ...DEFAULT_CONTENT.showFields, ...(initial.showFields || {}) },
 			groupFilterValues: groupFilter && Array.isArray(groupFilter.values)
 				? [...groupFilter.values]
 				: [],
+
 			birthdayWindowError: '',
 		}
 	},

@@ -47,6 +47,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Map'),
 		},
+
 		/**
 		 * Documentation link surfaced in the widget's overflow Actions menu.
 		 * Empty (the default) hides the Documentation item; the Refresh and
@@ -56,6 +57,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Stable id forwarded to the widget chrome for the Refresh /
 		 * Request-a-feature payloads.
@@ -64,36 +66,43 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Map center as [lat, lng]. */
 		center: {
 			type: Array,
 			default: () => [52.0, 5.0],
 		},
+
 		/** Initial zoom level. */
 		zoom: {
 			type: Number,
 			default: 7,
 		},
+
 		/** Layer definitions. */
 		layers: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Marker configuration object. */
 		markers: {
 			type: Object,
 			default: null,
 		},
+
 		/** Enable clustering. */
 		clustering: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Map container height. */
 		height: {
 			type: [String, Number],
 			default: '400px',
 		},
+
 		/** Auto-fit bounds to loaded features. */
 		autoFit: {
 			type: Boolean,

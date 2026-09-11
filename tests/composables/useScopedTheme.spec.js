@@ -168,7 +168,6 @@ describe('useScopedTheme — apply/teardown', () => {
 		const injected = await theme.apply(manifest('gemeente-blauw'), '')
 		expect(injected).toBe(false)
 	})
-
 })
 
 describe('useScopedTheme — listTokenSets', () => {

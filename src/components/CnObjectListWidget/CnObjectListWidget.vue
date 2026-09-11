@@ -181,6 +181,7 @@ export default {
 		 * (default 25) — the rendered row count fits the host cell (ADR-062).
 		 * `viewAllRoute` / `viewAllQuery` configure the "View all (N)" footer
 		 * navigation; `viewAllQuery` values are token-resolved (`@objectId`).
+		 *
 		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, columns?: Array, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object}}
 		 */
 		content: {
@@ -218,9 +219,10 @@ export default {
 		 */
 		objectCtx() {
 			const c = this.cnObjectContext
-			if (!c) return null
+			if (!c) { return null }
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
+
 		/**
 		 * The unwrapped workspace context bag (or null). Vue 2.7 `setup`/inject
 		 * may hand back a raw ref; unwrap `.value` so token resolution reads the
@@ -230,9 +232,10 @@ export default {
 		 */
 		workspaceCtx() {
 			const c = this.cnWorkspaceContext
-			if (!c) return null
+			if (!c) { return null }
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
+
 		/**
 		 * Token-resolution context merged from the detail-page object context
 		 * and the page-level workspace bag (`@workspace.<key>`).
@@ -244,6 +247,7 @@ export default {
 			base.workspace = this.workspaceCtx || {}
 			return base
 		},
+
 		/**
 		 * The filter with every `@`-token resolved against `tokenCtx`, then with
 		 * any UNRESOLVED OPTIONAL token (`@workspace.<key>?`) dropped — so an
@@ -256,6 +260,7 @@ export default {
 		resolvedFilter() {
 			return dropOptionalUnresolved(resolveFilterTokens(this.content.filter || {}, this.tokenCtx))
 		},
+
 		/**
 		 * Whether a context-dependent filter token (e.g. `@workspace.selectedClient`)
 		 * is still unresolved — the page state this list depends on isn't set yet,
@@ -266,6 +271,7 @@ export default {
 		waitingForContext() {
 			return hasUnresolvedTokens(this.resolvedFilter)
 		},
+
 		/**
 		 * Prompt shown while a context-bound list has an unresolved REQUIRED
 		 * token. A `content.prompt` override always wins. Otherwise the default
@@ -277,11 +283,12 @@ export default {
 		 * @return {string}
 		 */
 		promptText() {
-			if (this.content.prompt) return this.content.prompt
+			if (this.content.prompt) { return this.content.prompt }
 			return this.objectCtx
 				? t('nextcloud-vue', 'Nothing here yet')
 				: t('nextcloud-vue', 'Select an item to see related records')
 		},
+
 		/**
 		 * Quiet, status-code-free label shown when a fetch fails. The real
 		 * axios error is logged to the console, never rendered (ADR-062).
@@ -291,6 +298,7 @@ export default {
 		loadErrorLabel() {
 			return this.content.errorText || t('nextcloud-vue', 'Could not load these records')
 		},
+
 		/**
 		 * Column definitions normalised for CnDataTable. A string column becomes
 		 * `{ key, label }`; an object column keeps its key/label AND carries the
@@ -308,7 +316,7 @@ export default {
 				}
 				const out = { key: c.key, label: c.label || c.key }
 				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'sortable']) {
-					if (c[k] !== undefined) out[k] = c[k]
+					if (c[k] !== undefined) { out[k] = c[k] }
 				}
 				return out
 			})
@@ -332,10 +340,12 @@ export default {
 			}
 			return mapped
 		},
+
 		/** Empty-state text (overridable via `content.emptyText`). */
 		emptyText() {
 			return this.content.emptyText || t('nextcloud-vue', 'No items')
 		},
+
 		/**
 		 * The empty-state text run through the host translate function. Used
 		 * only by this component's OWN empty state — the raw `emptyText`
@@ -348,6 +358,7 @@ export default {
 			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
 			return this.emptyText ? fn(this.emptyText) : this.emptyText
 		},
+
 		/**
 		 * The rows actually rendered: capped to what fits the host grid cell
 		 * (ADR-062 — content adapts to the cell, never a nested scrollbar).
@@ -359,6 +370,7 @@ export default {
 		visibleRows() {
 			return this.fitRows ? this.rows.slice(0, this.fitRows) : this.rows
 		},
+
 		/**
 		 * Rows per page. This is `content.limit` (the fetch cap) — a FIXED
 		 * number, deliberately not the measured `fitRows`: a page size derived
@@ -371,6 +383,7 @@ export default {
 		pageSize() {
 			return Number((this.content || {}).limit) || 25
 		},
+
 		/**
 		 * Total pages for the resolved filter, from the SERVER's total.
 		 *
@@ -379,6 +392,7 @@ export default {
 		totalPages() {
 			return Math.max(Math.ceil((this.total || 0) / this.pageSize), 1)
 		},
+
 		/**
 		 * Whether the compact pager renders.
 		 *
@@ -392,13 +406,15 @@ export default {
 		 * @return {boolean}
 		 */
 		showPager() {
-			if (this.totalPages <= 1) return false
+			if (this.totalPages <= 1) { return false }
 			return this.fitRows === null || this.fitRows >= this.rows.length
 		},
+
 		/** Whether the designed empty state is what the widget is showing. */
 		showingEmptyState() {
 			return !this.waitingForContext && !this.error && !this.loading && this.rows.length === 0
 		},
+
 		/**
 		 * How many matching objects are NOT rendered (server total minus the
 		 * visible slice). Drives the "View all (N)" footer.
@@ -408,14 +424,17 @@ export default {
 		hiddenCount() {
 			return Math.max((this.total || this.rows.length) - this.visibleRows.length, 0)
 		},
+
 		/** Pre-translated "View all (N)" footer label. */
 		viewAllLabel() {
 			return t('nextcloud-vue', 'View all ({total})', { total: this.total || this.rows.length })
 		},
+
 		/** Pre-translated "+N more" footer label (no viewAllRoute configured). */
 		moreLabel() {
 			return t('nextcloud-vue', '+{count} more', { count: this.hiddenCount })
 		},
+
 		/** Whether the create affordance renders (on by default; `content.allowCreate: false` opts out). */
 		allowCreate() {
 			const c = this.content || {}
@@ -460,10 +479,12 @@ export default {
 			const c = this.content || {}
 			return (c.formFieldOverrides && typeof c.formFieldOverrides === 'object') ? c.formFieldOverrides : {}
 		},
+
 		/** Pre-translated Add label (overridable via `content.addLabel`). */
 		addLabel() {
 			return this.content.addLabel || t('nextcloud-vue', 'Add')
 		},
+
 		/** Stable signature of the query so the watcher only refetches on real change. */
 		sourceKey() {
 			const c = this.content || {}
@@ -504,7 +525,7 @@ export default {
 		// page's own Refresh) must not turn one write into a queue of
 		// overlapping reads for one list.
 		this._onPageRefresh = () => {
-			if (this.loading) return
+			if (this.loading) { return }
 			this.fetchRows()
 		}
 		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
@@ -524,7 +545,7 @@ export default {
 			unsubscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 			this._onPageRefresh = null
 		}
-		if (this._fitObserver) this._fitObserver.disconnect()
+		if (this._fitObserver) { this._fitObserver.disconnect() }
 	},
 
 	methods: {
@@ -576,7 +597,7 @@ export default {
 				if (filter && typeof filter === 'object') {
 					for (const [k, v] of Object.entries(filter)) {
 						if (v && typeof v === 'object') {
-							for (const [op, ov] of Object.entries(v)) params[`${k}[${op}]`] = ov
+							for (const [op, ov] of Object.entries(v)) { params[`${k}[${op}]`] = ov }
 						} else if (v !== '' && v !== null && v !== undefined) {
 							params[k] = v
 						}
@@ -612,7 +633,7 @@ export default {
 			const cell = this.$el && this.$el.closest && this.$el.closest('.grid-stack-item-content')
 			if (!cell) { this.fitRows = null; return }
 			const table = this.$el.querySelector('.cn-object-list-widget__table table')
-			if (!table) return
+			if (!table) { return }
 			const cellRect = cell.getBoundingClientRect()
 			const tableRect = table.getBoundingClientRect()
 			const firstRow = table.querySelector('tbody tr')
@@ -636,7 +657,7 @@ export default {
 		 */
 		async openCreate() {
 			const c = this.content || {}
-			if (!c.schema) return
+			if (!c.schema) { return }
 			try {
 				if (!this.createSchema) {
 					const [{ default: axios }, { generateUrl }] = await Promise.all([
@@ -677,7 +698,7 @@ export default {
 				}
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
 				await axios.post(url, payload)
-				if (this.$refs.createDialog) this.$refs.createDialog.setResult({ success: true })
+				if (this.$refs.createDialog) { this.$refs.createDialog.setResult({ success: true }) }
 				/**
 				 * @event created Emitted after a successful create with the sent payload.
 				 * @type {object}
@@ -685,7 +706,7 @@ export default {
 				this.$emit('created', payload)
 				this.fetchRows()
 			} catch (e) {
-				if (this.$refs.createDialog) this.$refs.createDialog.setResult({ error: (e && e.message) || 'error' })
+				if (this.$refs.createDialog) { this.$refs.createDialog.setResult({ error: (e && e.message) || 'error' }) }
 			}
 		},
 
@@ -708,7 +729,7 @@ export default {
 		 */
 		onPageChange(next) {
 			const target = Math.min(Math.max(Number(next) || 1, 1), this.totalPages)
-			if (target === this.page) return
+			if (target === this.page) { return }
 			this.page = target
 			this.fetchRows()
 		},

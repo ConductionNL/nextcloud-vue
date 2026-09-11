@@ -79,14 +79,14 @@ export function mergeManifestDelta(base, delta) {
  */
 function mergeValue(base, delta, path, orphans) {
 	// Delta absent → keep base. Base absent / scalar mismatch → delta wins.
-	if (delta === undefined) return clone(base)
+	if (delta === undefined) { return clone(base) }
 	if (!isPlainObject(base) || !isPlainObject(delta)) {
 		return clone(delta)
 	}
 
 	const out = { ...clone(base) }
 	for (const key of Object.keys(delta)) {
-		if (key === ORDER_KEY) continue
+		if (key === ORDER_KEY) { continue }
 		const childPath = path ? `${path}/${key}` : key
 		const baseChild = base[key]
 		const deltaChild = delta[key]
@@ -132,7 +132,7 @@ function mergeKeyedArray(baseArr, deltaArr, keyField, path, orphans) {
 	})
 
 	for (const deltaEntry of deltaArr) {
-		if (!isPlainObject(deltaEntry)) continue
+		if (!isPlainObject(deltaEntry)) { continue }
 		const key = deltaEntry[keyField]
 		const op = deltaEntry[OP_KEY]
 		const entryPath = `${path}/${key}`
@@ -182,7 +182,7 @@ function applyOrder(entries, order, keyField) {
 		}
 	}
 	for (const e of entries) {
-		if (!used.has(e && e[keyField])) result.push(e)
+		if (!used.has(e && e[keyField])) { result.push(e) }
 	}
 	return result
 }
@@ -225,7 +225,7 @@ function isPlainObject(value) {
  * @return {*} The deep copy, or `value` itself when it is not an object.
  */
 function clone(value) {
-	if (value === undefined) return undefined
-	if (value === null || typeof value !== 'object') return value
+	if (value === undefined) { return undefined }
+	if (value === null || typeof value !== 'object') { return value }
 	return JSON.parse(JSON.stringify(value))
 }

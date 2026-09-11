@@ -731,8 +731,8 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {Promise<void>}
 		 */
 		async ensureFlowLoaded(id) {
-			if (!id || id === 'new') return
-			if (this.flows.some((flow) => String(flow.id) === String(id))) return
+			if (!id || id === 'new') { return }
+			if (this.flows.some((flow) => String(flow.id) === String(id))) { return }
 
 			try {
 				const response = await axios.get(generateUrl('/apps/openregister/api/flows/' + encodeURIComponent(id)))
@@ -1108,9 +1108,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				return
 			}
 
-			this.flow.nodes = this.nodes.map(
-				(node) => (node.id === id ? { ...node, x, y, position: { x, y } } : node),
-			)
+			this.flow.nodes = this.nodes.map((node) => (node.id === id ? { ...node, x, y, position: { x, y } } : node))
 			this.dirty = true
 		},
 
@@ -1149,9 +1147,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				return
 			}
 
-			const exists = this.edges.some(
-				(edge) => (edge.source ?? edge.from) === source && (edge.target ?? edge.to) === target,
-			)
+			const exists = this.edges.some((edge) => (edge.source ?? edge.from) === source && (edge.target ?? edge.to) === target)
 			if (exists) {
 				return
 			}
@@ -1349,9 +1345,7 @@ export const useFlowStore = defineStore('cnFlow', {
 			// behind pointing at a node that no longer exists — and `from`/`to`
 			// is exactly what the server stores, so every edge on a loaded flow
 			// survived the deletion of the node it referenced.
-			this.flow.edges = this.edges.filter(
-				(edge) => (edge.source ?? edge.from) !== id && (edge.target ?? edge.to) !== id,
-			)
+			this.flow.edges = this.edges.filter((edge) => (edge.source ?? edge.from) !== id && (edge.target ?? edge.to) !== id)
 			this.selectedNodeId = null
 			// A dialog open on a line that ran through this node now describes
 			// a connection the document no longer holds; every edge action would
@@ -1700,9 +1694,7 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.versionBumpRefusal = null
 
 			try {
-				const response = await axios.get(
-					generateUrl(`/apps/openregister/api/flows/${this.flow.id}/version-preview`),
-				)
+				const response = await axios.get(generateUrl(`/apps/openregister/api/flows/${this.flow.id}/version-preview`))
 				this.publishPreview = response.data || null
 				return this.publishPreview
 			} catch (error) {
@@ -1820,9 +1812,7 @@ export const useFlowStore = defineStore('cnFlow', {
 			}
 
 			try {
-				const response = await axios.get(
-					generateUrl(`/apps/openregister/api/flows/${this.flow.id}/versions`),
-				)
+				const response = await axios.get(generateUrl(`/apps/openregister/api/flows/${this.flow.id}/versions`))
 				this.versions = response.data?.results || []
 			} catch (error) {
 				console.error('cn-flow: could not read the flow versions', error)
@@ -1873,9 +1863,15 @@ export const useFlowStore = defineStore('cnFlow', {
 		async duplicate(id, name, options = {}) {
 			const response = await axios.get(generateUrl(`/apps/openregister/api/flows/${id}`))
 			const {
-				id: _id, uuid: _uuid, owner: _owner, organisation: _organisation,
-				created: _created, updated: _updated, lifecycleStatus: _lifecycleStatus,
-				version: _version, ...editable
+				id: _id,
+				uuid: _uuid,
+				owner: _owner,
+				organisation: _organisation,
+				created: _created,
+				updated: _updated,
+				lifecycleStatus: _lifecycleStatus,
+				version: _version,
+				...editable
 			} = response.data || {}
 			const createResponse = await axios.post(
 				generateUrl('/apps/openregister/api/flows'),
@@ -2034,9 +2030,7 @@ export const useFlowStore = defineStore('cnFlow', {
 			}
 
 			try {
-				const response = await axios.get(
-					generateUrl(`/apps/openregister/api/flow-runs/${uuid}`),
-				)
+				const response = await axios.get(generateUrl(`/apps/openregister/api/flow-runs/${uuid}`))
 
 				// A re-watch can land while this request is in the air; its
 				// answer describes a run nobody is watching any more.
@@ -2159,9 +2153,7 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.inspectedRunUuid = runUuid
 			let version = null
 			try {
-				const response = await axios.get(
-					generateUrl(`/apps/openregister/api/flow-runs/${runUuid}`),
-				)
+				const response = await axios.get(generateUrl(`/apps/openregister/api/flow-runs/${runUuid}`))
 				this.steps = response.data?.log || []
 				// Read from the RUN, not from `this.runs`. A run reached by
 				// `?run=` need not be in the loaded page of run history at all —
@@ -2223,9 +2215,7 @@ export const useFlowStore = defineStore('cnFlow', {
 			}
 
 			try {
-				const response = await axios.get(
-					generateUrl(`/apps/openregister/api/flows/${this.flow.id}/versions/${number}`),
-				)
+				const response = await axios.get(generateUrl(`/apps/openregister/api/flows/${this.flow.id}/versions/${number}`))
 				const graph = response.data?.graph
 				if (!graph || Array.isArray(graph.nodes) === false) {
 					this.runGraphNotice = { version: number, reason: 'unreadable' }
@@ -2354,9 +2344,7 @@ export const useFlowStore = defineStore('cnFlow', {
 		 */
 		async loadRunObjects(runUuid) {
 			try {
-				const response = await axios.get(
-					generateUrl(`/apps/openregister/api/flow-runs/${runUuid}/objects`),
-				)
+				const response = await axios.get(generateUrl(`/apps/openregister/api/flow-runs/${runUuid}/objects`))
 				this.runObjects = response.data?.nodes || []
 			} catch (error) {
 				console.error('cn-flow: could not load the objects this run touched', error)

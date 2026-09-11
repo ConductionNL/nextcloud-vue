@@ -29,9 +29,7 @@ const Host = (composable) => defineComponent({
 describe('useObjectSubscription', () => {
 	test('subscribes on mount, unsubscribes on unmount', async () => {
 		const store = makeStore()
-		const Comp = Host((props) =>
-			useObjectSubscription(store, props.type, props.id),
-		)
+		const Comp = Host((props) => useObjectSubscription(store, props.type, props.id))
 		const w = mount(Comp, { propsData: { store, type: 'meeting', id: 'uuid-1' } })
 		await Promise.resolve()
 		await w.vm.$nextTick()

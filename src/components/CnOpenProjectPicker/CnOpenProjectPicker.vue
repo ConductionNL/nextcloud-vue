@@ -193,7 +193,7 @@ export default {
 		 * @return {Array} The project option rows.
 		 */
 		projectOptions() {
-			return this.projects.map(name => ({ id: name, label: name }))
+			return this.projects.map((name) => ({ id: name, label: name }))
 		},
 
 		/**

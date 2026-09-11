@@ -56,9 +56,8 @@ function mountWidget({ catalogue, withSource = true }) {
 			cnFeatureRequestForge: { type: 'github' },
 			...(withSource
 				? {
-					cnWidgetTitleSource: (id) =>
-						(id === 'recent-activity-feed' ? 'Recent activity' : ''),
-				}
+						cnWidgetTitleSource: (id) => (id === 'recent-activity-feed' ? 'Recent activity' : ''),
+					}
 				: {}),
 		},
 	})
@@ -98,10 +97,8 @@ describe('Report a bug — issue language', () => {
 			.find('[data-testid="cn-widget-wrapper-action-report-bug"]')
 			.attributes('href')
 
-		expect(href.startsWith(
-			'https://github.com/ConductionNL/keepiq/issues/new'
-			+ '?template=bug-report.yml&title=%5BBUG%5D+Recent+activity',
-		)).toBe(true)
+		expect(href.startsWith('https://github.com/ConductionNL/keepiq/issues/new'
+			+ '?template=bug-report.yml&title=%5BBUG%5D+Recent+activity')).toBe(true)
 		// The French must not survive anywhere in the link.
 		expect(href).not.toContain('Activit')
 	})
@@ -164,8 +161,7 @@ describe('CnDashboardPage — getWidgetTitleSource', () => {
 	 * @param {string} id Widget id to resolve.
 	 * @return {string} The resolved source title.
 	 */
-	const resolve = (ctx, id) =>
-		CnDashboardPage.methods.getWidgetTitleSource.call(ctx, id)
+	const resolve = (ctx, id) => CnDashboardPage.methods.getWidgetTitleSource.call(ctx, id)
 
 	// A translate function that would corrupt the result if it were used.
 	const translate = () => 'TRANSLATED'

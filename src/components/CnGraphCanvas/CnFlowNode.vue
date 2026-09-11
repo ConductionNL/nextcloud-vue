@@ -168,31 +168,37 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** Vue Flow's per-node data bag. */
 		data: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether Vue Flow considers this node selected. */
 		selected: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** How far one arrow-key press moves the node, in canvas units. */
 		step: {
 			type: Number,
 			default: 8,
 		},
+
 		/** How far a Shift+arrow press moves it. */
 		coarseStep: {
 			type: Number,
 			default: 40,
 		},
+
 		/** Whether this node may be resized. */
 		resizable: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Whether Delete/Backspace on this node emits `remove`. Defaults to
 		 * true; a read-only canvas passes false so the key does nothing.

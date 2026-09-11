@@ -96,10 +96,7 @@ const CnHostedObjectTable = {
 		// carries parent listeners (onXxx) too. Vue 3: props/attrs/listeners are
 		// one flat object; slots are the 3rd arg.
 		const { content: _content, ...rest } = attrs
-		return h(CnWidgetObjectTable,
-			{ ...rest, ...objectTableContentToProps(content), hideWrapper: true },
-			this.$slots,
-		)
+		return h(CnWidgetObjectTable, { ...rest, ...objectTableContentToProps(content), hideWrapper: true }, this.$slots)
 	},
 }
 

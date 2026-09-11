@@ -166,7 +166,7 @@ export default {
 			if (term === '') {
 				return this.operations
 			}
-			return this.operations.filter(op => (op.name || '').toLowerCase().includes(term))
+			return this.operations.filter((op) => (op.name || '').toLowerCase().includes(term))
 		},
 	},
 

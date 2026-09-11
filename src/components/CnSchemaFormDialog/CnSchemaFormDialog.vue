@@ -239,6 +239,7 @@ export default {
 		DeleteSweep,
 		Upload,
 	},
+
 	props: {
 		/** Existing schema item for edit mode. Pass null for create mode. */
 		item: { type: Object, default: null },
@@ -305,6 +306,7 @@ export default {
 		/** Tooltip for the Delete schema button while objects are still attached. */
 		cannotDeleteTooltip: { type: String, default: () => t('nextcloud-vue', 'Cannot delete: objects are still attached') },
 	},
+
 	emits: [
 		'analyze-properties',
 		'close',
@@ -315,6 +317,7 @@ export default {
 		'publish-objects',
 		'validate-objects',
 	],
+
 	data() {
 		return {
 			isCopied: false,
@@ -338,6 +341,7 @@ export default {
 					autoPublish: false,
 					defaultAutoShare: false,
 				},
+
 				authorization: {},
 				hardValidation: false,
 				immutable: false,
@@ -347,6 +351,7 @@ export default {
 			},
 		}
 	},
+
 	computed: {
 		/**
 		 * Tab definitions for CnTabbedFormDialog.
@@ -360,29 +365,29 @@ export default {
 				{ id: 'security', title: t('nextcloud-vue', 'Security') },
 			]
 		},
+
 		sortedUserGroups() {
 			return this.userGroups
-				.filter(group => group.id !== 'admin' && group.id !== 'public' && group.id !== 'authenticated')
+				.filter((group) => group.id !== 'admin' && group.id !== 'public' && group.id !== 'authenticated')
 				.sort((a, b) => {
 					const nameA = a.displayname || a.id
 					const nameB = b.displayname || b.id
 					return nameA.localeCompare(nameB)
 				})
 		},
+
 		hasAnyPermissions() {
 			const auth = this.schemaItem.authorization || {}
-			return Object.keys(auth).some(action =>
-				Array.isArray(auth[action]) && auth[action].length > 0,
-			)
+			return Object.keys(auth).some((action) => Array.isArray(auth[action]) && auth[action].length > 0)
 		},
+
 		isRestrictiveSchema() {
 			const auth = this.schemaItem.authorization || {}
 			const actions = ['create', 'read', 'update', 'delete']
-			return actions.some(action =>
-				Array.isArray(auth[action]) && auth[action].length > 0
-					&& !auth[action].includes('public'),
-			)
+			return actions.some((action) => Array.isArray(auth[action]) && auth[action].length > 0
+				&& !auth[action].includes('public'))
 		},
+
 		typeOptionsForSelect() {
 			return [
 				{ id: 'string', label: t('nextcloud-vue', 'String') },
@@ -396,26 +401,30 @@ export default {
 				{ id: 'oneOf', label: t('nextcloud-vue', 'One of') },
 			]
 		},
+
 		propertyOptions() {
-			const ownKeys = Object.keys(this.schemaItem.properties || {}).filter(k => k !== '')
-			const inheritedKeys = Object.keys(this.inheritedProperties || {}).filter(k => k !== '')
+			const ownKeys = Object.keys(this.schemaItem.properties || {}).filter((k) => k !== '')
+			const inheritedKeys = Object.keys(this.inheritedProperties || {}).filter((k) => k !== '')
 			return [...new Set([...inheritedKeys, ...ownKeys])]
 		},
+
 		availableTagsOptions() {
-			return this.availableTags.map(tag => ({
+			return this.availableTags.map((tag) => ({
 				id: tag,
 				label: tag,
 			}))
 		},
+
 		/**
 		 * Resolved success text for backwards compatibility (includes trailing period).
 		 *
 		 * @return {string}
 		 */
 		resolvedSuccessText() {
-			if (this.successText) return this.successText
+			if (this.successText) { return this.successText }
 			return t('nextcloud-vue', '{title} saved successfully.', { title: t('nextcloud-vue', 'Schema') })
 		},
+
 		/**
 		 * Returns a human-readable reason the save button is disabled, or '' when saving is allowed.
 		 * Used for both :disable-save and the WCAG tooltip/aria-label on the button.
@@ -426,7 +435,7 @@ export default {
 			if (!this.schemaItem.title) {
 				return t('nextcloud-vue', 'A schema title is required before saving')
 			}
-			const hasUnnamedProperty = Object.keys(this.schemaItem.properties || {}).some(key => key === '')
+			const hasUnnamedProperty = Object.keys(this.schemaItem.properties || {}).some((key) => key === '')
 			if (hasUnnamedProperty) {
 				return t('nextcloud-vue', 'All properties must have a name before saving')
 			}
@@ -439,14 +448,15 @@ export default {
 			}
 
 			return this.schemaItem.allOf
-				.map(ref => {
+				.map((ref) => {
 					const schemaId = typeof ref === 'object' ? ref.id : ref
-					const schema = this.availableSchemas.find(s => s.id === schemaId)
+					const schema = this.availableSchemas.find((s) => s.id === schemaId)
 					return schema ? (schema.title || `Schema ${schema.id}`) : schemaId
 				})
-				.filter(name => name)
+				.filter((name) => name)
 		},
 	},
+
 	watch: {
 		item: {
 			immediate: true,
@@ -454,10 +464,11 @@ export default {
 				this.initializeSchemaItem()
 			},
 		},
+
 		'schemaItem.properties': {
 			handler(newProperties) {
 				if (newProperties) {
-					Object.keys(newProperties).forEach(key => {
+					Object.keys(newProperties).forEach((key) => {
 						const property = newProperties[key]
 						if (property) {
 							// Initialize nested objects if they don't exist
@@ -527,22 +538,22 @@ export default {
 				}
 				this.checkPropertiesModified()
 			},
+
 			deep: true,
 		},
 	},
+
 	methods: {
 		t,
 		findSchemaBySlug(schemaSlug) {
-			if (!schemaSlug) return undefined
-			return this.availableSchemas.find(schema =>
-				(schema.slug && schema.slug.toLowerCase() === schemaSlug.toLowerCase())
+			if (!schemaSlug) { return undefined }
+			return this.availableSchemas.find((schema) => (schema.slug && schema.slug.toLowerCase() === schemaSlug.toLowerCase())
 				|| schema.id === schemaSlug
-				|| schema.title === schemaSlug,
-			)
+				|| schema.title === schemaSlug)
 		},
 
 		ensureRefIsString(obj, key) {
-			if (!obj || !key) return
+			if (!obj || !key) { return }
 
 			if (obj[key] && typeof obj[key].$ref === 'object' && obj[key].$ref !== null) {
 				if (obj[key].$ref.id) {
@@ -587,6 +598,7 @@ export default {
 					autoPublish: false,
 					defaultAutoShare: false,
 				},
+
 				authorization: {},
 				hardValidation: false,
 				immutable: false,
@@ -635,7 +647,7 @@ export default {
 			}
 
 			// Ensure existing properties have facetable set to false by default
-			Object.keys(this.schemaItem.properties || {}).forEach(key => {
+			Object.keys(this.schemaItem.properties || {}).forEach((key) => {
 				if (this.schemaItem.properties[key].facetable === undefined) {
 					this.schemaItem.properties[key].facetable = false
 				}
@@ -651,7 +663,7 @@ export default {
 			})
 
 			// Ensure all $ref values are strings and migrate old structure
-			Object.keys(this.schemaItem.properties || {}).forEach(key => {
+			Object.keys(this.schemaItem.properties || {}).forEach((key) => {
 				this.ensureRefIsString(this.schemaItem.properties, key)
 				this.migratePropertyToNewStructure(key)
 			})
@@ -667,7 +679,7 @@ export default {
 		},
 
 		checkPropertiesModified() {
-			if (!this.originalProperties) return false
+			if (!this.originalProperties) { return false }
 
 			const currentProperties = JSON.stringify(this.schemaItem.properties || {})
 			const originalProperties = JSON.stringify(this.originalProperties)
@@ -699,8 +711,8 @@ export default {
 		},
 
 		updatePropertyKey(oldKey, newKey) {
-			if (newKey === oldKey) return
-			if (this.schemaItem.properties[newKey] !== undefined && newKey !== oldKey) return
+			if (newKey === oldKey) { return }
+			if (this.schemaItem.properties[newKey] !== undefined && newKey !== oldKey) { return }
 
 			const propertyData = { ...this.schemaItem.properties[oldKey] }
 
@@ -750,7 +762,7 @@ export default {
 		 */
 		handleConfirm() {
 			const cleanedSchemaItem = JSON.parse(JSON.stringify(this.schemaItem))
-			Object.keys(cleanedSchemaItem.properties || {}).forEach(key => {
+			Object.keys(cleanedSchemaItem.properties || {}).forEach((key) => {
 				this.ensureRefIsString(cleanedSchemaItem.properties, key)
 
 				if (cleanedSchemaItem.properties[key].register
@@ -772,8 +784,8 @@ export default {
 			for (const field of ['allOf', 'oneOf', 'anyOf']) {
 				if (Array.isArray(cleanedSchemaItem[field])) {
 					cleanedSchemaItem[field] = cleanedSchemaItem[field]
-						.map(ref => (typeof ref === 'object' && ref !== null ? ref.id : ref))
-						.filter(id => id != null && id !== '')
+						.map((ref) => (typeof ref === 'object' && ref !== null ? ref.id : ref))
+						.filter((id) => id != null && id !== '')
 					if (cleanedSchemaItem[field].length === 0) {
 						delete cleanedSchemaItem[field]
 					}
@@ -799,7 +811,7 @@ export default {
 		},
 
 		migratePropertyToNewStructure(key) {
-			if (!this.schemaItem.properties[key]) return
+			if (!this.schemaItem.properties[key]) { return }
 
 			const property = this.schemaItem.properties[key]
 

@@ -141,6 +141,7 @@ export default {
 		/** Delete button label / title. */
 		deleteLabel: { type: String, default: 'Delete' },
 	},
+
 	emits: ['delete', 'download', 'file-click', 'upload', 'upload-rejected'],
 	data() {
 		return {
@@ -148,6 +149,7 @@ export default {
 			deletingIds: {},
 		}
 	},
+
 	methods: {
 		/**
 		 * Pick the emoji-icon for a file based on extension /
@@ -160,17 +162,18 @@ export default {
 		iconFor(file) {
 			const ext = (file.name || '').split('.').pop().toLowerCase()
 			const type = (file.type || '').toLowerCase()
-			if (type.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) return '🖼️'
-			if (type.startsWith('video/') || ['mp4', 'mov', 'avi', 'webm'].includes(ext)) return '🎬'
-			if (type.startsWith('audio/') || ['mp3', 'wav', 'ogg'].includes(ext)) return '🎵'
-			if (['pdf'].includes(ext)) return '📕'
-			if (['doc', 'docx', 'odt', 'txt', 'md'].includes(ext)) return '📄'
-			if (['xls', 'xlsx', 'ods', 'csv'].includes(ext)) return '📊'
-			if (['ppt', 'pptx', 'odp'].includes(ext)) return '📈'
-			if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return '🗜️'
-			if (['xml', 'json', 'yml', 'yaml'].includes(ext)) return '🧾'
+			if (type.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) { return '🖼️' }
+			if (type.startsWith('video/') || ['mp4', 'mov', 'avi', 'webm'].includes(ext)) { return '🎬' }
+			if (type.startsWith('audio/') || ['mp3', 'wav', 'ogg'].includes(ext)) { return '🎵' }
+			if (['pdf'].includes(ext)) { return '📕' }
+			if (['doc', 'docx', 'odt', 'txt', 'md'].includes(ext)) { return '📄' }
+			if (['xls', 'xlsx', 'ods', 'csv'].includes(ext)) { return '📊' }
+			if (['ppt', 'pptx', 'odp'].includes(ext)) { return '📈' }
+			if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) { return '🗜️' }
+			if (['xml', 'json', 'yml', 'yaml'].includes(ext)) { return '🧾' }
 			return '📎'
 		},
+
 		/**
 		 * Format a byte count as a short human-readable string.
 		 *
@@ -178,11 +181,12 @@ export default {
 		 * @return {string} Like '1.2 MB'.
 		 */
 		humanSize(bytes) {
-			if (bytes === undefined || bytes === null) return ''
-			if (bytes < 1024) return `${bytes} B`
-			if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+			if (bytes === undefined || bytes === null) { return '' }
+			if (bytes < 1024) { return `${bytes} B` }
+			if (bytes < 1024 * 1024) { return `${(bytes / 1024).toFixed(1)} KB` }
 			return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 		},
+
 		/**
 		 * Format an ISO timestamp as a short locale string.
 		 *
@@ -192,12 +196,13 @@ export default {
 		formatTimestamp(iso) {
 			try {
 				const d = new Date(iso)
-				if (Number.isNaN(d.getTime())) return iso
+				if (Number.isNaN(d.getTime())) { return iso }
 				return d.toLocaleString()
 			} catch (e) {
 				return iso
 			}
 		},
+
 		/**
 		 * Programmatic open of the file picker. Useful from a
 		 * parent button.
@@ -205,18 +210,20 @@ export default {
 		 * @return {void}
 		 */
 		openFilePicker() {
-			if (this.readOnly) return
-			if (this.$refs.fileInput) this.$refs.fileInput.click()
+			if (this.readOnly) { return }
+			if (this.$refs.fileInput) { this.$refs.fileInput.click() }
 		},
+
 		/**
 		 * Dropzone dragover handler.
 		 *
 		 * @return {void}
 		 */
 		onDragOver() {
-			if (this.readOnly) return
+			if (this.readOnly) { return }
 			this.isDragging = true
 		},
+
 		/**
 		 * Dropzone dragleave handler.
 		 *
@@ -225,6 +232,7 @@ export default {
 		onDragLeave() {
 			this.isDragging = false
 		},
+
 		/**
 		 * Dropzone drop handler — extracts files + validates size +
 		 * emits @upload.
@@ -234,10 +242,11 @@ export default {
 		 */
 		onDrop(event) {
 			this.isDragging = false
-			if (this.readOnly) return
+			if (this.readOnly) { return }
 			const list = event.dataTransfer ? Array.from(event.dataTransfer.files || []) : []
 			this.emitUpload(list)
 		},
+
 		/**
 		 * File-input change handler.
 		 *
@@ -249,6 +258,7 @@ export default {
 			this.emitUpload(list)
 			event.target.value = ''
 		},
+
 		/**
 		 * Validate + emit `@upload` with the file batch.
 		 *
@@ -256,7 +266,7 @@ export default {
 		 * @return {void}
 		 */
 		emitUpload(list) {
-			if (list.length === 0) return
+			if (list.length === 0) { return }
 			if (this.maxSizeMb > 0) {
 				const limit = this.maxSizeMb * 1024 * 1024
 				const oversized = list.find((f) => f.size > limit)
@@ -277,6 +287,7 @@ export default {
 			 */
 			this.$emit('upload', list)
 		},
+
 		/**
 		 * Forward a file-row click.
 		 *
@@ -291,6 +302,7 @@ export default {
 			 */
 			this.$emit('file-click', file)
 		},
+
 		/**
 		 * Forward a download action.
 		 *
@@ -305,6 +317,7 @@ export default {
 			 */
 			this.$emit('download', file)
 		},
+
 		/**
 		 * Forward a delete action; sets the in-flight flag so the
 		 * button disables until the parent removes the file or
@@ -323,6 +336,7 @@ export default {
 			 */
 			this.$emit('delete', file)
 		},
+
 		/**
 		 * Public method — clear the in-flight delete marker for a
 		 * file id. Use when the parent's persist fails so the

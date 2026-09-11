@@ -156,7 +156,7 @@ describe('CnDeckTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.onLinkPick({ cardId: 42 })
-		expect(calls.some(c => /\/deck$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')).toBe(true)
+		expect(calls.some((c) => /\/deck$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')).toBe(true)
 		wrapper.unmount()
 	})
 
@@ -170,7 +170,7 @@ describe('CnDeckTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.onCreatePick({ boardId: 1, stackId: 2, title: 'X' })
-		expect(calls.some(c => /\/deck\/new$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')).toBe(true)
+		expect(calls.some((c) => /\/deck\/new$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')).toBe(true)
 		wrapper.unmount()
 	})
 })

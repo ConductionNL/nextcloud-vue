@@ -165,6 +165,7 @@ export default {
 			type: Object,
 			default: () => emptyTable(),
 		},
+
 		/**
 		 * The same value as `value`, under Vue 3's own v-model name.
 		 *
@@ -206,6 +207,7 @@ export default {
 		boundValue() {
 			return this.modelValue !== undefined ? this.modelValue : this.value
 		},
+
 		/**
 		 * Whether the table currently has a selectable cell (non-empty grid).
 		 *
@@ -267,6 +269,7 @@ export default {
 			 */
 			this.$emit('update:modelValue', next)
 		},
+
 		t,
 
 		/**
@@ -461,9 +464,7 @@ export default {
 		 */
 		onDeleteColumn() {
 			const cIdx = this.anchor.cIdx
-			const hasText = this.boundValue.rows.some(
-				(row) => row[cIdx] && typeof row[cIdx].text === 'string' && row[cIdx].text.trim() !== '',
-			)
+			const hasText = this.boundValue.rows.some((row) => row[cIdx] && typeof row[cIdx].text === 'string' && row[cIdx].text.trim() !== '')
 			if (hasText) {
 				const proceed = typeof window !== 'undefined' && typeof window.confirm === 'function'
 					? window.confirm(t('nextcloud-vue', 'This column contains text. Delete?'))

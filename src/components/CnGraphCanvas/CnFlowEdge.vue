@@ -146,41 +146,49 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** Source handle x, in canvas space, as measured by Vue Flow. */
 		sourceX: {
 			type: Number,
 			default: 0,
 		},
+
 		/** Source handle y. */
 		sourceY: {
 			type: Number,
 			default: 0,
 		},
+
 		/** Target handle x. */
 		targetX: {
 			type: Number,
 			default: 0,
 		},
+
 		/** Target handle y. */
 		targetY: {
 			type: Number,
 			default: 0,
 		},
+
 		/** Which side the line leaves the source from. */
 		sourcePosition: {
 			type: String,
 			default: 'bottom',
 		},
+
 		/** Which side the line enters the target on. */
 		targetPosition: {
 			type: String,
 			default: 'top',
 		},
+
 		/** Vue Flow's per-edge data bag. `labelT` is read from here. */
 		data: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Router for this line — `smoothstep`, `straight`, or bezier by
 		 * default. Named `lineType` rather than `type`, because `type` on an
@@ -191,31 +199,37 @@ export default {
 			type: String,
 			default: DEFAULT_EDGE_LINE_TYPE,
 		},
+
 		/** Marker at the start of the line, in Vue Flow's shape. */
 		markerStart: {
 			type: [String, Object],
 			default: undefined,
 		},
+
 		/** Marker at the end of the line. */
 		markerEnd: {
 			type: [String, Object],
 			default: undefined,
 		},
+
 		/** Stroke style for the line. */
 		style: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether Vue Flow considers this edge selected. */
 		selected: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Accessible name for the label control. */
 		labelAriaLabel: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Whether a travelling pulse runs along this line to show the direction
 		 * of flow. On by default; a host passes false for a still canvas.
@@ -269,9 +283,7 @@ export default {
 				return false
 			}
 
-			return this.rendersContent(
-				this.$slots.label({ edge: { id: this.id, data: this.data, selected: this.selected } }),
-			)
+			return this.rendersContent(this.$slots.label({ edge: { id: this.id, data: this.data, selected: this.selected } }))
 		},
 
 		/**
@@ -285,9 +297,7 @@ export default {
 				return false
 			}
 
-			return this.rendersContent(
-				this.$slots.adornment({ edge: { id: this.id, data: this.data, selected: this.selected } }),
-			)
+			return this.rendersContent(this.$slots.adornment({ edge: { id: this.id, data: this.data, selected: this.selected } }))
 		},
 
 		/**

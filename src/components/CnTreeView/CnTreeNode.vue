@@ -83,6 +83,7 @@ export default {
 		/** A11y label for the collapse button. */
 		collapseLabel: { type: String, default: 'Collapse' },
 	},
+
 	emits: ['select', 'toggle'],
 	computed: {
 		/**
@@ -94,6 +95,7 @@ export default {
 			const c = this.node[this.childrenKey]
 			return Array.isArray(c) && c.length > 0
 		},
+
 		/**
 		 * Whether this node is currently expanded.
 		 *
@@ -102,6 +104,7 @@ export default {
 		isExpanded() {
 			return Boolean(this.expandedIds[this.node[this.idKey]])
 		},
+
 		/**
 		 * Whether this node is the currently-selected one.
 		 *
@@ -111,10 +114,12 @@ export default {
 			return this.selectedId === this.node[this.idKey]
 		},
 	},
+
 	methods: {
 		toggle() {
 			this.$emit('toggle', this.node[this.idKey])
 		},
+
 		onRowClick() {
 			this.$emit('select', this.node)
 		},

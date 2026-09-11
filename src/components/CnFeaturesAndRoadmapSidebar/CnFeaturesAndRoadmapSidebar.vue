@@ -122,6 +122,7 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * Absolute URL for the LLM-skills CTA (opens in a new tab).
 		 */
@@ -129,6 +130,7 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * Optional override for the Suggest CTA. When set, the CTA renders
 		 * as an anchor pointing at this URL — appropriate when the app
@@ -138,6 +140,7 @@ export default {
 		 * default), so the empty-string button-that-emits-`@suggest` path
 		 * is a legacy fallback for standalone mounts. External URLs
 		 * (matching `^https?://`) open in a new tab.
+		 *
 		 * @type {string}
 		 */
 		suggestUrl: {
@@ -152,6 +155,7 @@ export default {
 		suggestUrlIsExternal() {
 			return /^https?:\/\//i.test(this.suggestUrl)
 		},
+
 		sidebarTitle() { return t('nextcloud-vue', 'Your input is the roadmap') },
 		sidebarSubtitle() { return t('nextcloud-vue', 'Four ways to ship what you need') },
 
@@ -183,6 +187,7 @@ export default {
 			 */
 			this.$emit('suggest')
 		},
+
 		emitSupport() {
 			/**
 			 * @event support Emitted when the user clicks the "Show support

@@ -138,7 +138,8 @@ describe('describeSchemaChange', () => {
 
 	it('reads as a sentence, with no raw placeholders or snake_case', () => {
 		const text = describeSchemaChange(
-			{ property: 'barn', kind: 'type_changed', old: 'string', new: 'object' }, t,
+			{ property: 'barn', kind: 'type_changed', old: 'string', new: 'object' },
+			t,
 		)
 		expect(text).toBe('barn: type changed (from string to object)')
 		expect(text).not.toContain('{property}')
@@ -147,7 +148,8 @@ describe('describeSchemaChange', () => {
 
 	it('handles a null "old" and an object "new"', () => {
 		const text = describeSchemaChange(
-			{ property: 'size', kind: 'constraint_tightened', old: null, new: { enum: ['small'] } }, t,
+			{ property: 'size', kind: 'constraint_tightened', old: null, new: { enum: ['small'] } },
+			t,
 		)
 		expect(text).toContain('none')
 		expect(text).toContain('{"enum":["small"]}')

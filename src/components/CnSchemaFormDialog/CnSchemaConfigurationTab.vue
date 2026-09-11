@@ -196,6 +196,7 @@ export default {
 		NcCheckboxRadioSwitch,
 		NcSelect,
 	},
+
 	props: {
 		/** The full schema item — mutated directly */
 		schemaItem: { type: Object, required: true },
@@ -208,17 +209,20 @@ export default {
 		/** Pre-computed names for allOf note card display */
 		allOfSchemaNames: { type: Array, default: () => [] },
 	},
+
 	data() {
 		return {
 			allowedTagsInput: '',
 		}
 	},
+
 	computed: {
 		/** Local alias to avoid vue/no-mutating-props on template bindings */
 		schema() {
 			return this.schemaItem
 		},
 	},
+
 	watch: {
 		'schema.configuration.allowedTags': {
 			immediate: true,
@@ -227,6 +231,7 @@ export default {
 			},
 		},
 	},
+
 	methods: {
 		t,
 		/**
@@ -239,11 +244,12 @@ export default {
 			const trimmed = (value || '').trim()
 			this.schema.icon = trimmed === '' ? null : trimmed
 		},
+
 		updateAllowedTags(value) {
 			if (!value || value.trim() === '') {
 				this.schema.configuration.allowedTags = []
 			} else {
-				const tags = value.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
+				const tags = value.split(',').map((tag) => tag.trim()).filter((tag) => tag !== '')
 				this.schema.configuration.allowedTags = tags
 			}
 		},

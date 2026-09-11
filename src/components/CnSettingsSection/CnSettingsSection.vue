@@ -123,56 +123,67 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** Brief section description (shown under title by NcSettingsSection) */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/** Detailed description shown in a separate block below the title */
 		detailedDescription: {
 			type: String,
 			default: '',
 		},
+
 		/** Documentation URL (shows info icon next to title) */
 		docUrl: {
 			type: String,
 			default: '',
 		},
+
 		/** Whether the section is in a loading state */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Message shown during loading */
 		loadingMessage: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Loading...'),
 		},
+
 		/** Whether the section is in an error state */
 		error: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Message shown when in error state */
 		errorMessage: {
 			type: String,
 			default: () => t('nextcloud-vue', 'An error occurred'),
 		},
+
 		/** Callback function for retry button (shown in error state). If null, no retry button is shown. */
 		onRetry: {
 			type: Function,
 			default: null,
 		},
+
 		/** Text for the retry button */
 		retryButtonText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Retry'),
 		},
+
 		/** Whether the section has no data to show */
 		empty: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Message shown when section is empty */
 		emptyMessage: {
 			type: String,

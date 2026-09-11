@@ -175,11 +175,13 @@ export default {
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+
 		/** Object context `{ register, schema, objectId }` forwarded by the host page. */
 		integrationContext: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** OpenRegister register id (slug or uuid) — falls back to integrationContext. */
 		register: { type: String, default: '' },
 		/** OpenRegister schema id (slug or uuid) — falls back to integrationContext. */

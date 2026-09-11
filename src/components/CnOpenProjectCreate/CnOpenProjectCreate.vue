@@ -146,7 +146,7 @@ export default {
 
 	computed: {
 		projectOptions() {
-			return this.projects.map(name => ({ id: name, label: name }))
+			return this.projects.map((name) => ({ id: name, label: name }))
 		},
 
 		/**

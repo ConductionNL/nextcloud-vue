@@ -91,12 +91,14 @@ export default {
 		 *   set; otherwise the default Nextcloud apps page is used
 		 * - `enabled` discriminates the link label: `false` means the
 		 *   app is installed but disabled; otherwise it's not installed
+		 *
 		 * @type {Array<{id: string, name: string, installUrl: string, enabled: boolean}>}
 		 */
 		dependencies: {
 			type: Array,
 			required: true,
 		},
+
 		/**
 		 * Optional name of the host app, included in the default heading.
 		 *
@@ -106,16 +108,19 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Heading text. Override for localisation. */
 		heading: {
 			type: String,
 			default: 'Required apps are missing',
 		},
+
 		/** Introductory text under the heading. */
 		intro: {
 			type: String,
 			default: 'This app needs the following Nextcloud apps to be installed and enabled.',
 		},
+
 		/**
 		 * Label for the install/enable action when the app is not
 		 * installed. Defaults to "Install and enable" — the single
@@ -125,11 +130,13 @@ export default {
 			type: String,
 			default: 'Install and enable',
 		},
+
 		/** Label for the action when dep.enabled === false (installed but disabled). */
 		enableLabel: {
 			type: String,
 			default: 'Enable',
 		},
+
 		/**
 		 * Copy shown to non-admins in place of the action, with `{name}`
 		 * replaced by the dependency's display name. Non-admins cannot hit
@@ -222,6 +229,7 @@ export default {
 				this.installingDepId = null
 			}
 		},
+
 		/**
 		 * Interpolate the non-admin copy with the dependency's display name.
 		 *
@@ -231,8 +239,9 @@ export default {
 		resolveAskAdmin(dep) {
 			return this.askAdminLabel.replace('{name}', dep.name || dep.id)
 		},
+
 		resolveLink(dep) {
-			if (dep.installUrl) return dep.installUrl
+			if (dep.installUrl) { return dep.installUrl }
 			if (dep.enabled === false) {
 				return `/index.php/settings/apps/disabled/${dep.id}`
 			}

@@ -96,6 +96,7 @@ export default {
 	emits: [
 		/**
 		 * Emitted with the assembled content blob on every field change.
+		 *
 		 * @event update:content
 		 * @type {object}
 		 */

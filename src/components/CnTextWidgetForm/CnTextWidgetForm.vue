@@ -157,6 +157,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values — used when not editing and the parent
 		 * supplies registry defaults.

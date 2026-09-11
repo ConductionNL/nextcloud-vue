@@ -58,20 +58,20 @@ export function columnsFromSchema(schema, options = {}) {
 	const entries = Object.entries(schema.properties)
 		.filter(([key, prop]) => {
 			// Skip properties marked as not visible
-			if (prop.visible === false) return false
+			if (prop.visible === false) { return false }
 			// Apply exclude list
-			if (exclude.includes(key)) return false
+			if (exclude.includes(key)) { return false }
 			// Apply include whitelist
-			if (include && !include.includes(key)) return false
+			if (include && !include.includes(key)) { return false }
 			// Skip complex object types by default (they don't render well in tables)
-			if (prop.type === 'object') return false
+			if (prop.type === 'object') { return false }
 			return true
 		})
 		.sort(([keyA, propA], [keyB, propB]) => {
 			// Sort by order hint first, then alphabetically
 			const orderA = typeof propA.order === 'number' ? propA.order : Infinity
 			const orderB = typeof propB.order === 'number' ? propB.order : Infinity
-			if (orderA !== orderB) return orderA - orderB
+			if (orderA !== orderB) { return orderA - orderB }
 			return keyA.localeCompare(keyB)
 		})
 
@@ -144,14 +144,14 @@ export function formatValue(value, property = {}, options = {}) {
 	// Number/Integer
 	if (type === 'integer' || type === 'number') {
 		const num = Number(value)
-		if (Number.isNaN(num)) return String(value)
+		if (Number.isNaN(num)) { return String(value) }
 		return num.toLocaleString()
 	}
 
 	// Array
 	if (type === 'array' || Array.isArray(value)) {
-		if (!Array.isArray(value)) return String(value)
-		if (value.length === 0) return '—'
+		if (!Array.isArray(value)) { return String(value) }
+		if (value.length === 0) { return '—' }
 		// Stringify each entry so an array of OBJECTS never collapses to the
 		// useless "[object Object]" that `Array.prototype.join` produces — a
 		// nested object renders as compact JSON instead (ADR-062: a value cell
@@ -191,7 +191,7 @@ export function formatValue(value, property = {}, options = {}) {
 	if (format === 'date-time' || format === 'date') {
 		try {
 			const date = new Date(str)
-			if (Number.isNaN(date.getTime())) return str
+			if (Number.isNaN(date.getTime())) { return str }
 			if (format === 'date') {
 				return date.toLocaleDateString(undefined, {
 					day: '2-digit',
@@ -260,7 +260,7 @@ export function formatValue(value, property = {}, options = {}) {
  * @return {string} Truncated string
  */
 function truncateString(str, maxLength) {
-	if (str.length <= maxLength) return str
+	if (str.length <= maxLength) { return str }
 	return str.substring(0, maxLength) + '...'
 }
 
@@ -311,7 +311,7 @@ function normalizeRef(ref) {
 		const tail = ref.includes('/') ? ref.substring(ref.lastIndexOf('/') + 1) : ref
 		return tail !== '' ? tail : null
 	}
-	if (typeof ref === 'number' && !Number.isNaN(ref)) return ref
+	if (typeof ref === 'number' && !Number.isNaN(ref)) { return ref }
 	return null
 }
 
@@ -327,18 +327,18 @@ function normalizeRef(ref) {
  * @return {boolean} True when the property marks a Nextcloud user.
  */
 function isUserProp(prop) {
-	if (!prop || typeof prop !== 'object') return false
-	if (prop.referenceType === 'nextcloud-user') return true
+	if (!prop || typeof prop !== 'object') { return false }
+	if (prop.referenceType === 'nextcloud-user') { return true }
 	const format = prop.format || ''
 	return format === 'user' || format === 'username'
 }
 
 function resolveWidget(prop) {
 	// Explicit widget hint takes priority
-	if (prop.widget) return prop.widget
+	if (prop.widget) { return prop.widget }
 
 	// Enum → select
-	if (prop.enum) return 'select'
+	if (prop.enum) { return 'select' }
 
 	const type = prop.type || 'string'
 	const format = prop.format || ''
@@ -348,38 +348,38 @@ function resolveWidget(prop) {
 	// references (`items.$ref`) → a multi-select. Checked before the
 	// plain type/format fallback so a `{ type: 'string', format: 'uuid',
 	// $ref: '<slug-or-id>' }` property renders as a dropdown, not a UUID box.
-	if (normalizeRef(prop.$ref) !== null) return 'select'
-	if (type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null) return 'multiselect'
+	if (normalizeRef(prop.$ref) !== null) { return 'select' }
+	if (type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null) { return 'multiselect' }
 
 	// Nextcloud user reference (referenceType 'nextcloud-user' or
 	// format 'user'/'username'): a searchable dropdown of real Nextcloud
 	// users (label = display name, value = UID). An array of users is a
 	// multi-select. Checked before the plain type/format fallback so a
 	// user-marked property renders as a picker, not a free-text box.
-	if (isUserProp(prop)) return 'user'
-	if (type === 'array' && isUserProp(prop.items)) return 'user-multiselect'
+	if (isUserProp(prop)) { return 'user' }
+	if (type === 'array' && isUserProp(prop.items)) { return 'user-multiselect' }
 
 	// Boolean → switch/checkbox
-	if (type === 'boolean') return 'checkbox'
+	if (type === 'boolean') { return 'checkbox' }
 
 	// Number types
-	if (type === 'integer' || type === 'number') return 'number'
+	if (type === 'integer' || type === 'number') { return 'number' }
 
 	// Array types
 	if (type === 'array') {
-		if (prop.items && prop.items.enum) return 'multiselect'
+		if (prop.items && prop.items.enum) { return 'multiselect' }
 		return 'tags'
 	}
 
 	// Format-based widgets
-	if (format === 'date-time') return 'datetime'
-	if (format === 'date') return 'date'
-	if (format === 'email') return 'email'
-	if (format === 'uri' || format === 'url') return 'url'
-	if (format === 'markdown' || format === 'textarea') return 'textarea'
+	if (format === 'date-time') { return 'datetime' }
+	if (format === 'date') { return 'date' }
+	if (format === 'email') { return 'email' }
+	if (format === 'uri' || format === 'url') { return 'url' }
+	if (format === 'markdown' || format === 'textarea') { return 'textarea' }
 
 	// Long text → textarea
-	if (prop.maxLength && prop.maxLength > 255) return 'textarea'
+	if (prop.maxLength && prop.maxLength > 255) { return 'textarea' }
 
 	return 'text'
 }
@@ -407,7 +407,7 @@ function firstSentenceOf(text) {
 	while ((match = boundary.exec(text)) !== null) {
 		const lastWord = text.slice(0, match.index).split(/\s+/).pop().toLowerCase()
 		// "e.g." and single-letter initials carry a period mid-sentence.
-		if (NON_TERMINAL_ABBREVIATIONS.includes(lastWord) || /^[a-z]$/i.test(lastWord)) continue
+		if (NON_TERMINAL_ABBREVIATIONS.includes(lastWord) || /^[a-z]$/i.test(lastWord)) { continue }
 		return text.slice(0, match.index + 1)
 	}
 	return ''
@@ -441,7 +441,7 @@ function clampToWord(text, max) {
  */
 export function splitDescription(text, max = DESCRIPTION_INLINE_MAX) {
 	const full = typeof text === 'string' ? text.trim() : ''
-	if (!full || full.length <= max) return { short: full, long: '' }
+	if (!full || full.length <= max) { return { short: full, long: '' } }
 
 	const sentence = firstSentenceOf(full)
 	return {
@@ -479,28 +479,28 @@ export function fieldsFromSchema(schema, options = {}) {
 	const entries = Object.entries(schema.properties)
 		.filter(([key, prop]) => {
 			// Skip properties marked as not visible
-			if (prop.visible === false) return false
+			if (prop.visible === false) { return false }
 			// Per-key override visibility: `overrides[key].hidden === true` hides
 			// the field on every surface that consumes this pipeline (data widget
 			// + form dialog), so a single config map controls both.
-			if (overrides[key]?.hidden === true) return false
+			if (overrides[key]?.hidden === true) { return false }
 			// Skip readOnly properties by default — UNLESS a per-key override
 			// explicitly re-enables the field (`overrides[key].readOnly === false`).
 			// This lets a consumer surface a schema-readOnly field (e.g. a
 			// denormalised name that's read-only on edit but must be collected
 			// on create) without flipping the whole form to includeReadOnly.
-			if (prop.readOnly === true && !includeReadOnly && overrides[key]?.readOnly !== false) return false
+			if (prop.readOnly === true && !includeReadOnly && overrides[key]?.readOnly !== false) { return false }
 			// Apply exclude list
-			if (exclude.includes(key)) return false
+			if (exclude.includes(key)) { return false }
 			// Apply include whitelist
-			if (include && !include.includes(key)) return false
+			if (include && !include.includes(key)) { return false }
 			// Skip complex object types unless the caller opts in with an explicit widget
 			// (e.g. `widget: 'json'` or `widget: 'code'` in CnFormDialog) — or unless the
 			// property is an OpenRegister object REFERENCE (`$ref`). A reference is a
 			// relation to another schema's object, which resolveWidget maps to a
 			// searchable 'select'; dropping it here meant a related-object property
 			// (e.g. cow.barn → barn) silently never rendered in the form at all.
-			if (prop.type === 'object' && !prop.widget && normalizeRef(prop.$ref) === null) return false
+			if (prop.type === 'object' && !prop.widget && normalizeRef(prop.$ref) === null) { return false }
 			return true
 		})
 		.sort(([keyA, propA], [keyB, propB]) => {
@@ -514,7 +514,7 @@ export function fieldsFromSchema(schema, options = {}) {
 			const orderB = typeof overrides[keyB]?.order === 'number'
 				? overrides[keyB].order
 				: (typeof propB.order === 'number' ? propB.order : Infinity)
-			if (orderA !== orderB) return orderA - orderB
+			if (orderA !== orderB) { return orderA - orderB }
 			return keyA.localeCompare(keyB)
 		})
 
@@ -592,8 +592,8 @@ export function fieldsFromSchema(schema, options = {}) {
 			reference: (normalizeRef(prop.$ref) !== null)
 				? { schema: normalizeRef(prop.$ref), multiple: false, ...(prop['x-external-register'] ? { register: prop['x-external-register'] } : {}) }
 				: (prop.type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null)
-					? { schema: normalizeRef(prop.items.$ref), multiple: true, ...((prop.items['x-external-register'] || prop['x-external-register']) ? { register: prop.items['x-external-register'] || prop['x-external-register'] } : {}) }
-					: null,
+						? { schema: normalizeRef(prop.items.$ref), multiple: true, ...((prop.items['x-external-register'] || prop['x-external-register']) ? { register: prop.items['x-external-register'] || prop['x-external-register'] } : {}) }
+						: null,
 			// Nextcloud user reference: when a property marks a NC user
 			// (`referenceType: 'nextcloud-user'`, or `format: 'user'`/
 			// `'username'`), tag it so CnFormDialog renders a searchable
@@ -604,8 +604,8 @@ export function fieldsFromSchema(schema, options = {}) {
 			userPicker: isUserProp(prop)
 				? { multiple: false }
 				: (prop.type === 'array' && isUserProp(prop.items))
-					? { multiple: true }
-					: null,
+						? { multiple: true }
+						: null,
 			// Conditional immutability (AD: x-openregister-readonly-when): a
 			// property can declare it becomes read-only when another field on the
 			// same object holds a given value — e.g. a hybrid app's identity
@@ -653,13 +653,13 @@ export function filtersFromSchema(schema, options = {}) {
 
 	return Object.entries(schema.properties)
 		.filter(([, prop]) => {
-			if (prop.facetable !== true) return false
+			if (prop.facetable !== true) { return false }
 			return true
 		})
 		.sort(([keyA, propA], [keyB, propB]) => {
 			const orderA = typeof propA.order === 'number' ? propA.order : Infinity
 			const orderB = typeof propB.order === 'number' ? propB.order : Infinity
-			if (orderA !== orderB) return orderA - orderB
+			if (orderA !== orderB) { return orderA - orderB }
 			return keyA.localeCompare(keyB)
 		})
 		.map(([key, prop]) => {
@@ -697,8 +697,15 @@ export function filtersFromSchema(schema, options = {}) {
  * URL-like string formats — values must parse as a `URL` to be considered valid.
  */
 const URL_FORMATS = new Set([
-	'url', 'uri', 'uri-reference', 'iri', 'iri-reference', 'uri-template',
-	'accessUrl', 'shareUrl', 'downloadUrl',
+	'url',
+	'uri',
+	'uri-reference',
+	'iri',
+	'iri-reference',
+	'uri-template',
+	'accessUrl',
+	'shareUrl',
+	'downloadUrl',
 ])
 
 /**
@@ -744,9 +751,9 @@ export function validateValue(value, property = {}, options = {}) {
 	}
 	const type = property.type || 'string'
 	if (type === 'integer') {
-		if (typeof value !== 'number' || !Number.isInteger(value)) return 'Value must be an integer.'
+		if (typeof value !== 'number' || !Number.isInteger(value)) { return 'Value must be an integer.' }
 	} else if (type === 'number') {
-		if (typeof value !== 'number' || Number.isNaN(value)) return 'Value must be a number.'
+		if (typeof value !== 'number' || Number.isNaN(value)) { return 'Value must be a number.' }
 	}
 	if (type === 'integer' || type === 'number') {
 		if (typeof property.minimum === 'number' && value < property.minimum) {
@@ -757,7 +764,7 @@ export function validateValue(value, property = {}, options = {}) {
 		}
 	}
 	if (type === 'string') {
-		if (typeof value !== 'string') return 'Value must be a string.'
+		if (typeof value !== 'string') { return 'Value must be a string.' }
 		if (typeof property.minLength === 'number' && value.length < property.minLength) {
 			return `Must be at least ${property.minLength} characters.`
 		}
@@ -777,10 +784,10 @@ export function validateValue(value, property = {}, options = {}) {
 			return `Value must be '${property.const}'.`
 		}
 		const fmtErr = validateStringFormat(property.format, value)
-		if (fmtErr) return fmtErr
+		if (fmtErr) { return fmtErr }
 	}
 	if (type === 'array') {
-		if (!Array.isArray(value)) return 'Value must be a list.'
+		if (!Array.isArray(value)) { return 'Value must be a list.' }
 		if (typeof property.minItems === 'number' && value.length < property.minItems) {
 			return `Select at least ${property.minItems} items.`
 		}
@@ -790,11 +797,11 @@ export function validateValue(value, property = {}, options = {}) {
 		if (property.items && typeof property.items === 'object') {
 			for (let i = 0; i < value.length; i++) {
 				const itemErr = validateValue(value[i], property.items)
-				if (itemErr) return `Item ${i + 1}: ${itemErr}`
+				if (itemErr) { return `Item ${i + 1}: ${itemErr}` }
 			}
 		}
 	}
-	if (type === 'boolean' && typeof value !== 'boolean') return 'Value must be a boolean.'
+	if (type === 'boolean' && typeof value !== 'boolean') { return 'Value must be a boolean.' }
 	if (Array.isArray(property.enum) && property.enum.length > 0 && !property.enum.includes(value)) {
 		return 'Value must be one of the allowed options.'
 	}
@@ -803,12 +810,13 @@ export function validateValue(value, property = {}, options = {}) {
 
 /**
  * Validate a string value against a JSON-Schema `format`.
+ *
  * @param {string} format Schema format identifier.
  * @param {string} value String value to validate.
  * @return {string|null} Error message or null when valid.
  */
 function validateStringFormat(format, value) {
-	if (!format) return null
+	if (!format) { return null }
 	if (format === 'time') {
 		// HTML5 `<input type="time">` produces `HH:MM` or `HH:MM:SS[.sss]`.
 		// `new Date()` won't parse a bare time, so check the shape directly.
@@ -823,7 +831,7 @@ function validateStringFormat(format, value) {
 		// Accept fully-qualified URLs (`https://example.com`) and protocol-less
 		// shorthand (`example.com/path`) by retrying with an `https://` prefix.
 		// Reject obviously non-URL inputs (whitespace, missing dots / authority).
-		if (/\s/.test(value)) return 'Value must be a valid URL.'
+		if (/\s/.test(value)) { return 'Value must be a valid URL.' }
 		try {
 			/* eslint-disable-next-line no-new */
 			new URL(value)
@@ -833,13 +841,13 @@ function validateStringFormat(format, value) {
 		}
 		try {
 			const parsed = new URL('https://' + value)
-			if (parsed.hostname && parsed.hostname.includes('.')) return null
+			if (parsed.hostname && parsed.hostname.includes('.')) { return null }
 		} catch {
 			// Fall through to the rejection below.
 		}
 		return 'Value must be a valid URL.'
 	}
 	const re = FORMAT_PATTERNS[format]
-	if (re && !re.test(value)) return `Value must be a valid '${format}'.`
+	if (re && !re.test(value)) { return `Value must be a valid '${format}'.` }
 	return null
 }

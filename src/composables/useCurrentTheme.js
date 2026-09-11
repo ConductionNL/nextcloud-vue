@@ -36,7 +36,7 @@ function init() {
 	if (state.theme === null) {
 		state.theme = typeof document === 'undefined' ? 'light' : getTheme()
 	}
-	if (initialized || typeof document === 'undefined') return
+	if (initialized || typeof document === 'undefined') { return }
 	initialized = true
 
 	const refresh = () => {

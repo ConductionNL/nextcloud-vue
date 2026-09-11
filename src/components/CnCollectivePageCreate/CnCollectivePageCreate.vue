@@ -98,7 +98,7 @@ export default {
 
 	computed: {
 		collectiveOptions() {
-			return this.collectives.map(c => ({ id: c.id, label: c.emoji ? `${c.emoji} ${c.name}` : c.name }))
+			return this.collectives.map((c) => ({ id: c.id, label: c.emoji ? `${c.emoji} ${c.name}` : c.name }))
 		},
 
 		canSubmit() {

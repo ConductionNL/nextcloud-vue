@@ -140,7 +140,7 @@ export default {
 			if (term === '') {
 				return this.entries
 			}
-			return this.entries.filter(entry => (entry.name || '').toLowerCase().includes(term))
+			return this.entries.filter((entry) => (entry.name || '').toLowerCase().includes(term))
 		},
 	},
 

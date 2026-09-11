@@ -84,6 +84,7 @@ export default {
 	emits: [
 		/**
 		 * Emitted with the assembled content blob on every field change.
+		 *
 		 * @event update:content
 		 * @type {object}
 		 */
@@ -107,10 +108,12 @@ export default {
 		groupOptions() {
 			return RELATED_GROUPS.map((g) => ({ id: g.key, label: t('nextcloud-vue', g.label) }))
 		},
+
 		/** The currently selected options (NcSelect value shape). */
 		selectedOptions() {
 			return this.groupOptions.filter((o) => this.groups.includes(o.id))
 		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {
@@ -143,11 +146,13 @@ export default {
 			this.groups = (Array.isArray(options) ? options : []).map((o) => o.id)
 			this.emitChange()
 		},
+
 		/** Emit the assembled content. */
 		emitChange() { this.$emit('update:content', this.assembledContent) },
 		/**
 		 * Validate the form; an empty array means valid. The related widget
 		 * inherits its object from the page, so no field is required.
+		 *
 		 * @return {string[]} the validation errors.
 		 */
 		validate() { return [] },

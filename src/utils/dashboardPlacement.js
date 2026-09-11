@@ -69,7 +69,7 @@ export const DEFAULT_GRID_BREAKPOINTS = Object.freeze([
  */
 export function getDashboardColumnOpts(breakpoints = DEFAULT_GRID_BREAKPOINTS, layout = 'moveScale') {
 	return {
-		breakpoints: breakpoints.map(b => ({ ...b })),
+		breakpoints: breakpoints.map((b) => ({ ...b })),
 		layout,
 		breakpointForWindow: true,
 	}
@@ -108,7 +108,7 @@ function scanForEmptySlot(sz, nodes, columns, maxScanRows) {
 	for (let y = 0; y < maxScanRows; y++) {
 		for (let x = 0; x <= columns - sz.w; x++) {
 			const candidate = { x, y, w: sz.w, h: sz.h }
-			const collides = nodes.some(n => rectsOverlap(candidate, n))
+			const collides = nodes.some((n) => rectsOverlap(candidate, n))
 			if (!collides) {
 				return { x, y }
 			}
@@ -146,7 +146,7 @@ export function placeNewWidget(spec, layout, options = {}) {
 	const viewportRows = options.viewportRows || DEFAULT_VIEWPORT_ROWS
 
 	const safeLayout = Array.isArray(layout) ? layout : []
-	const nodes = safeLayout.map(p => ({
+	const nodes = safeLayout.map((p) => ({
 		id: p.id,
 		x: Number.isFinite(p.gridX) ? p.gridX : 0,
 		y: Number.isFinite(p.gridY) ? p.gridY : 0,
@@ -157,7 +157,7 @@ export function placeNewWidget(spec, layout, options = {}) {
 	let primaryHit = null
 	if (options.grid && options.grid.engine) {
 		const probe = { w, h, _id: '__cn_placement_probe__' }
-		const liveNodes = options.grid.engine.nodes.filter(n => n._id !== probe._id)
+		const liveNodes = options.grid.engine.nodes.filter((n) => n._id !== probe._id)
 		const found = options.grid.engine.findEmptyPosition(probe, liveNodes, columns)
 		if (found) {
 			primaryHit = { x: probe.x, y: probe.y }

@@ -215,30 +215,32 @@ export default {
 
 	computed: {
 		hasUnsavedChanges() {
-			if (this.isNew) return false
-			return Object.keys(this.formData).some(key => this.isValueChanged(key))
+			if (this.isNew) { return false }
+			return Object.keys(this.formData).some((key) => this.isValueChanged(key))
 		},
+
 		propCellStyle() {
-			if (this.propCellColor === null) return undefined
-			if (this.propCellColor === 'none') return { boxShadow: 'none' }
+			if (this.propCellColor === null) { return undefined }
+			if (this.propCellColor === 'none') { return { boxShadow: 'none' } }
 			return { boxShadow: `inset 3px 0 0 0 ${this.propCellColor}` }
 		},
+
 		objectProperties() {
 			const schemaProps = this.schema?.properties || {}
 			const obj = this.item || {}
 			const exclude = this.excludeFields || []
 			const include = this.includeFields
 			const filterKey = (k) => {
-				if (k === '@self' || k === 'id') return false
-				if (exclude.includes(k)) return false
-				if (include && !include.includes(k)) return false
-				if (schemaProps[k]?.hideOnForm === true) return false
+				if (k === '@self' || k === 'id') { return false }
+				if (exclude.includes(k)) { return false }
+				if (include && !include.includes(k)) { return false }
+				if (schemaProps[k]?.hideOnForm === true) { return false }
 				return true
 			}
 			const existing = Object.entries(obj).filter(([k]) => filterKey(k))
 			const missing = []
 			for (const [key, prop] of Object.entries(schemaProps)) {
-				if (!filterKey(key)) continue
+				if (!filterKey(key)) { continue }
 				if (!Object.prototype.hasOwnProperty.call(obj, key)) {
 					missing.push([key, this.defaultForProperty(prop)])
 				}
@@ -277,11 +279,11 @@ export default {
 				...Object.keys(schemaProps),
 			])
 			for (const k of keys) {
-				if (k === '@self' || k === 'id') continue
-				if (exclude.includes(k)) continue
-				if (include && !include.includes(k)) continue
-				if (schemaProps[k]?.hideOnForm === true) continue
-				if (this.isConstantOrImmutableKey(k)) return true
+				if (k === '@self' || k === 'id') { continue }
+				if (exclude.includes(k)) { continue }
+				if (include && !include.includes(k)) { continue }
+				if (schemaProps[k]?.hideOnForm === true) { continue }
+				if (this.isConstantOrImmutableKey(k)) { return true }
 			}
 			return false
 		},
@@ -319,7 +321,7 @@ export default {
 		},
 
 		isValueChanged(key) {
-			if (this.formData[key] === undefined) return false
+			if (this.formData[key] === undefined) { return false }
 			const original = this.item ? this.item[key] : undefined
 			const current = this.formData[key]
 			if (typeof current === 'object' || typeof original === 'object') {
@@ -330,6 +332,7 @@ export default {
 
 		/**
 		 * The effective value for a key: formData override or the object's own value
+		 *
 		 * @param {string} key - The property key to look up
 		 * @param {*} objectValue - The fallback value from the object
 		 */
@@ -341,20 +344,21 @@ export default {
 		 * Initial display value for a schema property that doesn't yet exist on the
 		 * object. Honors `default` and `const` first, then falls back to the
 		 * type-appropriate empty value.
+		 *
 		 * @param {object} prop - The schema property entry.
 		 */
 		defaultForProperty(prop) {
-			if (!prop) return ''
-			if (prop.default !== undefined) return prop.default
-			if (prop.const !== undefined) return prop.const
+			if (!prop) { return '' }
+			if (prop.default !== undefined) { return prop.default }
+			if (prop.const !== undefined) { return prop.const }
 			switch (prop.type) {
-			case 'string': return ''
-			case 'number':
-			case 'integer': return 0
-			case 'boolean': return false
-			case 'array': return []
-			case 'object': return {}
-			default: return ''
+				case 'string': return ''
+				case 'number':
+				case 'integer': return 0
+				case 'boolean': return false
+				case 'array': return []
+				case 'object': return {}
+				default: return ''
 			}
 		},
 
@@ -366,11 +370,12 @@ export default {
 		 * Whether a property is marked required either via `schema.required: [...]`
 		 * (the JSON-Schema-canonical place) or via `prop.required: true` on the
 		 * property entry itself (a non-standard but commonly seen variant).
+		 *
 		 * @param {string} key - Property key.
 		 * @return {boolean}
 		 */
 		isRequired(key) {
-			if ((this.schema?.required || []).includes(key)) return true
+			if ((this.schema?.required || []).includes(key)) { return true }
 			const prop = this.schema?.properties?.[key]
 			return !!(prop && prop.required === true)
 		},
@@ -380,6 +385,7 @@ export default {
 		 * should be hide-able via the show/hide toggle. Note: `immutable` /
 		 * `readOnly` are NOT considered constant — they're set on creation
 		 * and locked afterward, but should remain visible in the form.
+		 *
 		 * @param {string} key - Property key.
 		 * @return {boolean}
 		 */
@@ -388,21 +394,22 @@ export default {
 		 * for this property — i.e. the prop is settable on creation but
 		 * locks once persisted, AND it isn't already locked. Once locked the
 		 * lock icon takes over and the badge would be redundant.
+		 *
 		 * @param {string} key - Property key.
 		 * @return {boolean}
 		 */
 		isImmutableHint(key) {
 			const prop = this.schema?.properties?.[key]
-			if (!prop) return false
-			if (prop.const !== undefined) return false
+			if (!prop) { return false }
+			if (prop.const !== undefined) { return false }
 			const lockOnce = prop.immutable === true || prop.readOnly === true
-			if (!lockOnce) return false
+			if (!lockOnce) { return false }
 			return this.isPropertyEditable(key, null)
 		},
 
 		isConstantOrImmutableKey(key) {
 			const prop = this.schema?.properties?.[key]
-			if (!prop) return false
+			if (!prop) { return false }
 			return prop.const !== undefined
 		},
 
@@ -412,8 +419,8 @@ export default {
 		// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
 		isPropertyEditable(key, value) {
 			const prop = this.schema?.properties?.[key]
-			if (!prop) return true
-			if (prop.const !== undefined) return false
+			if (!prop) { return true }
+			if (prop.const !== undefined) { return false }
 			// `immutable` / `readOnly` mean "settable on creation, locked
 			// once persisted". Use the persisted `item` (not the live value
 			// the user is typing) as the source of truth — otherwise the
@@ -421,7 +428,7 @@ export default {
 			const lockOnce = prop.immutable === true || prop.readOnly === true
 			if (lockOnce) {
 				const persisted = this.item && this.item[key]
-				if (persisted != null && persisted !== '') return false
+				if (persisted != null && persisted !== '') { return false }
 			}
 			const type = prop.type || 'string'
 			return this.editableTypes.includes(type)
@@ -448,20 +455,20 @@ export default {
 		getPropertyValidationClass(key, value) {
 			const state = this.getPropertyValidationState(key, value)
 			switch (state) {
-			case 'invalid': return 'cn-advanced-form-dialog__table-row--invalid'
-			case 'warning': return 'cn-advanced-form-dialog__table-row--warning'
-			case 'new': return 'cn-advanced-form-dialog__table-row--new'
-			case 'valid': return 'cn-advanced-form-dialog__table-row--valid'
-			default: return ''
+				case 'invalid': return 'cn-advanced-form-dialog__table-row--invalid'
+				case 'warning': return 'cn-advanced-form-dialog__table-row--warning'
+				case 'new': return 'cn-advanced-form-dialog__table-row--new'
+				case 'valid': return 'cn-advanced-form-dialog__table-row--valid'
+				default: return ''
 			}
 		},
 
 		getPropertyValidationState(key, value) {
 			const prop = this.schema?.properties?.[key]
 			const existsInObject = this.item ? Object.prototype.hasOwnProperty.call(this.item, key) : false
-			if (!prop) return 'warning'
-			if (!existsInObject) return 'new'
-			if (this.isValidPropertyValue(key, value, prop)) return 'valid'
+			if (!prop) { return 'warning' }
+			if (!existsInObject) { return 'new' }
+			if (this.isValidPropertyValue(key, value, prop)) { return 'valid' }
 			return 'invalid'
 		},
 
@@ -472,23 +479,23 @@ export default {
 			}
 			const type = schemaProperty?.type || 'string'
 			switch (type) {
-			case 'string':
-				if (typeof value !== 'string') return false
-				if (schemaProperty?.format === 'date-time' && !this.isValidDate(value)) return false
-				if (schemaProperty?.format === 'email' && !this.isValidEmail(value)) return false
-				if (schemaProperty?.format === 'uri' && !this.isValidUri(value)) return false
-				if (schemaProperty?.const && value !== schemaProperty.const) return false
-				return true
-			case 'number':
-				return typeof value === 'number' && !Number.isNaN(value)
-			case 'boolean':
-				return typeof value === 'boolean'
-			case 'array':
-				return Array.isArray(value)
-			case 'object':
-				return typeof value === 'object' && value !== null && !Array.isArray(value)
-			default:
-				return true
+				case 'string':
+					if (typeof value !== 'string') { return false }
+					if (schemaProperty?.format === 'date-time' && !this.isValidDate(value)) { return false }
+					if (schemaProperty?.format === 'email' && !this.isValidEmail(value)) { return false }
+					if (schemaProperty?.format === 'uri' && !this.isValidUri(value)) { return false }
+					if (schemaProperty?.const && value !== schemaProperty.const) { return false }
+					return true
+				case 'number':
+					return typeof value === 'number' && !Number.isNaN(value)
+				case 'boolean':
+					return typeof value === 'boolean'
+				case 'array':
+					return Array.isArray(value)
+				case 'object':
+					return typeof value === 'object' && value !== null && !Array.isArray(value)
+				default:
+					return true
 			}
 		},
 
@@ -553,27 +560,27 @@ export default {
 		},
 
 		handleRowClick(key, event) {
-			if (event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON' || event.target.closest('.cn-advanced-form-dialog__value-input-container')) return
+			if (event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON' || event.target.closest('.cn-advanced-form-dialog__value-input-container')) { return }
 			const value = this.resolvedValue(key, this.objectProperties.find(([k]) => k === key)?.[1])
-			if (!this.isPropertyEditable(key, value)) return
+			if (!this.isPropertyEditable(key, value)) { return }
 			const prop = this.schema?.properties?.[key]
-			if (prop && !this.editableTypes.includes(prop.type || 'string')) return
+			if (prop && !this.editableTypes.includes(prop.type || 'string')) { return }
 			this.$emit('update:selected-property', key)
 			this.$nextTick(() => {
 				const ref = this.$refs['cell-' + key]
 				const cell = ref && (Array.isArray(ref) ? ref[0] : ref)
-				if (cell && cell.focus) cell.focus()
+				if (cell && cell.focus) { cell.focus() }
 			})
 		},
 
 		isValidDate(v) {
-			if (!v) return false
+			if (!v) { return false }
 			const d = new Date(v)
 			return d instanceof Date && !Number.isNaN(d.getTime())
 		},
 
 		isValidEmail(v) {
-			if (!v) return false
+			if (!v) { return false }
 			// Forbid '.' inside each domain segment to remove the
 			// `[^\s@]+\.[^\s@]+` ambiguity that triggers ReDoS
 			// (codeql js/redos). Multi-label domains still match via the
@@ -582,7 +589,7 @@ export default {
 		},
 
 		isValidUri(v) {
-			if (!v) return false
+			if (!v) { return false }
 			try {
 				return !!new URL(v)
 			} catch {

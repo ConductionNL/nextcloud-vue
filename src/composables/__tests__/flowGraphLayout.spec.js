@@ -291,9 +291,7 @@ describe('layoutFlowNodes — the real dossiq case flow', () => {
 	})
 
 	it('flows left to right, except the one loop-back the flow really has', () => {
-		const backward = lines.filter(
-			(line) => points.get(line.target).x <= points.get(line.source).x,
-		)
+		const backward = lines.filter((line) => points.get(line.target).x <= points.get(line.source).x)
 
 		// `ask-indiener → check-complete` closes the resubmission loop; every
 		// other edge must point right.

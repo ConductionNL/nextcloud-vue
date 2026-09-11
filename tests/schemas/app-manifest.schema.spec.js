@@ -25,9 +25,7 @@ describe('app-manifest.schema.json (metadata)', () => {
 	})
 
 	it('uses the GitHub raw URL on `main` as $id', () => {
-		expect(schema.$id).toBe(
-			'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json',
-		)
+		expect(schema.$id).toBe('https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json')
 	})
 
 	it('has a title and description', () => {
@@ -1271,9 +1269,7 @@ describe('validateManifest — settings orchestration (manifest-settings-orchest
 		const config = schema.$defs.page.properties.config
 		expect(config.properties.tabs).toBeDefined()
 		expect(config.properties.tabs.type).toBe('array')
-		expect(config.properties.tabs.items.required).toEqual(
-			expect.arrayContaining(['id', 'label', 'sections']),
-		)
+		expect(config.properties.tabs.items.required).toEqual(expect.arrayContaining(['id', 'label', 'sections']))
 	})
 
 	it('REQ-MSO-8: schema top-level version field is at the current schema version (1.8.0)', () => {

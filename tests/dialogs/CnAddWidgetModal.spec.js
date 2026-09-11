@@ -100,10 +100,19 @@ describe('CnAddWidgetModal', () => {
 		const registry = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
 		const Modal = require('../../src/dialogs/CnAddWidgetModal.vue').default
 		registry.registerDashboardWidget('owns-title-test', {
-			renderer: { name: 'R' }, form: fakeForm(), defaultContent: {}, displayName: 'Owns title', icon: 'Star', ownsTitle: true,
+			renderer: { name: 'R' },
+			form: fakeForm(),
+			defaultContent: {},
+			displayName: 'Owns title',
+			icon: 'Star',
+			ownsTitle: true,
 		})
 		registry.registerDashboardWidget('plain-title-test', {
-			renderer: { name: 'R' }, form: fakeForm(), defaultContent: {}, displayName: 'Plain', icon: 'Star',
+			renderer: { name: 'R' },
+			form: fakeForm(),
+			defaultContent: {},
+			displayName: 'Plain',
+			icon: 'Star',
 		})
 		const wrapper = mount(Modal, { propsData: { show: true } })
 		wrapper.vm.state.type = 'owns-title-test'
@@ -125,7 +134,12 @@ describe('CnAddWidgetModal', () => {
 		const { CnAddWidgetModal, registry } = loadModal({ label: { displayName: 'Label' } })
 		// A detail-only type (mirrors the real `data` widget).
 		registry.registerDashboardWidget('data', {
-			renderer: { name: 'R' }, form: fakeForm(), defaultContent: {}, displayName: 'Object data', icon: 'Star', surfaces: ['detail-page'],
+			renderer: { name: 'R' },
+			form: fakeForm(),
+			defaultContent: {},
+			displayName: 'Object data',
+			icon: 'Star',
+			surfaces: ['detail-page'],
 		})
 		// Default (dashboard) surface excludes it.
 		const dash = mount(CnAddWidgetModal, { propsData: { show: true } })

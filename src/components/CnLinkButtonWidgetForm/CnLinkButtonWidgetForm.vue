@@ -284,6 +284,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values — used when not editing and the parent
 		 * supplies registry defaults.
@@ -409,13 +410,13 @@ export default {
 		 */
 		urlPlaceholderFor(actionType) {
 			switch (actionType) {
-			case ACTION_TYPES.INTERNAL:
-				return 'action-id'
-			case ACTION_TYPES.CREATE_FILE:
-				return 'docx'
-			case ACTION_TYPES.EXTERNAL:
-			default:
-				return 'https://...'
+				case ACTION_TYPES.INTERNAL:
+					return 'action-id'
+				case ACTION_TYPES.CREATE_FILE:
+					return 'docx'
+				case ACTION_TYPES.EXTERNAL:
+				default:
+					return 'https://...'
 			}
 		},
 
@@ -444,11 +445,11 @@ export default {
 			if (next === DISPLAY_MODES.LIST && this.links.length === 0) {
 				const seed = (this.label !== '' || this.url !== '' || this.icon !== '')
 					? normaliseLink({
-						label: this.label,
-						url: this.url,
-						icon: this.icon,
-						actionType: this.actionType,
-					})
+							label: this.label,
+							url: this.url,
+							icon: this.icon,
+							actionType: this.actionType,
+						})
 					: normaliseLink({ ...DEFAULT_LINK })
 				this.links = [seed]
 			}

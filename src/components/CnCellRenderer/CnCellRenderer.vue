@@ -195,11 +195,13 @@ export default {
 			type: [String, Number, Boolean, Array, Object],
 			default: null,
 		},
+
 		/** Schema property definition: { type, format, enum, items, title } */
 		property: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Optional cell-formatter id (e.g. `currency`, `automationTrigger`).
 		 * When set and resolvable in the injected `cnFormatters` registry,
@@ -211,6 +213,7 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * Declarative options map passed as the formatter's fourth argument
 		 * (e.g. `{ currency: 'USD' }` for the built-in `currency` formatter,
@@ -221,6 +224,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Optional cell-widget id (e.g. `badge`, or a consumer-registered
 		 * name). When it resolves in `cnCellWidgets` the cell renders that
@@ -236,6 +240,7 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * Extra props spread onto the resolved cell-widget component. The
 		 * built-in `"link"` reads its target from here: `route` (a manifest
@@ -248,6 +253,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Optional declarative cell-format spec — a no-code alternative to a
 		 * registry `formatter`. Recognised `style` values:
@@ -268,12 +274,14 @@ export default {
 		 * Resolved AFTER `formatter` / `widget` (those win), but BEFORE the
 		 * type-aware rendering, so a manifest column can opt into currency or a
 		 * colour swatch without registering a function.
+		 *
 		 * @type {{style?: 'currency'|'number'|'percent'|'duration'|'swatch', currency?: string, decimals?: number, unit?: 'milliseconds'|'seconds'|'minutes'|'hours', prefix?: string, suffix?: string, colorField?: string}}
 		 */
 		format: {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * The full row object — passed so a formatter can be a function of
 		 * the whole record (e.g. "days since `@self.updated`"), not just
@@ -283,11 +291,13 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Maximum string length before truncation */
 		truncate: {
 			type: Number,
 			default: 100,
 		},
+
 		/**
 		 * Row identifier field — used by the built-in `widget:"link"` when
 		 * the manifest doesn't specify an explicit `widgetProps.params`
@@ -333,7 +343,7 @@ export default {
 		 * @return {Date|null}
 		 */
 		dateTimestamp() {
-			if (!this.hasValue) return null
+			if (!this.hasValue) { return null }
 			const date = new Date(this.value)
 			return Number.isNaN(date.getTime()) ? null : date
 		},
@@ -350,7 +360,7 @@ export default {
 		 * @return {string|null}
 		 */
 		uriHref() {
-			if (!this.hasValue) return null
+			if (!this.hasValue) { return null }
 			return safeHref(String(this.value))
 		},
 
@@ -368,7 +378,7 @@ export default {
 		 * @return {object|Function|null}
 		 */
 		widgetComponent() {
-			if (!this.widget) return null
+			if (!this.widget) { return null }
 			const c = this.cnCellWidgets && this.cnCellWidgets[this.widget]
 			return c || null
 		},
@@ -424,7 +434,7 @@ export default {
 				const key = this.row ? this.row[wp.routeField] : undefined
 				if (key !== undefined && key !== null && Object.prototype.hasOwnProperty.call(map, String(key))) {
 					const mapped = map[String(key)]
-					if (typeof mapped === 'string' && mapped !== '') return mapped
+					if (typeof mapped === 'string' && mapped !== '') { return mapped }
 				}
 			}
 			return (typeof wp.route === 'string' && wp.route !== '') ? wp.route : null
@@ -443,9 +453,9 @@ export default {
 		 * @return {object|null}
 		 */
 		linkRoute() {
-			if (this.widget !== 'link') return null
+			if (this.widget !== 'link') { return null }
 			const route = this.linkRouteName
-			if (!route) return null
+			if (!route) { return null }
 			const paramMap = (this.widgetProps && this.widgetProps.params)
 				|| { id: this.rowKey || 'id' }
 			const params = {}
@@ -467,12 +477,10 @@ export default {
 		 * @return {string|null}
 		 */
 		linkHref() {
-			if (this.widget !== 'link') return null
+			if (this.widget !== 'link') { return null }
 			const href = this.widgetProps && this.widgetProps.href
-			if (!href) return null
-			const resolved = String(href).replace(/\{(\w+)\}/g, (_, key) =>
-				this.row && this.row[key] != null ? String(this.row[key]) : '',
-			)
+			if (!href) { return null }
+			const resolved = String(href).replace(/\{(\w+)\}/g, (_, key) => this.row && this.row[key] != null ? String(this.row[key]) : '')
 			// The safeHref retrofit (18700fd94) put this check here and a later
 			// lint pass (e5ea00d51) dropped it, leaving the docblock above
 			// promising a check the code no longer made: a template of `{url}`
@@ -529,7 +537,7 @@ export default {
 		 * @return {string|null}
 		 */
 		swatchColor() {
-			if (!this.isSwatch) return null
+			if (!this.isSwatch) { return null }
 			const field = (this.format && this.format.colorField) || 'color'
 			const c = this.row && this.row[field]
 			return (typeof c === 'string' && c.trim() !== '') ? c : null
@@ -561,12 +569,12 @@ export default {
 
 		cellClass() {
 			const classes = []
-			if (this.propertyType === 'boolean') classes.push('cn-cell-renderer--boolean')
-			if (this.isEnum) classes.push('cn-cell-renderer--enum')
+			if (this.propertyType === 'boolean') { classes.push('cn-cell-renderer--boolean') }
+			if (this.isEnum) { classes.push('cn-cell-renderer--enum') }
 			if (this.property?.format === 'date-time' || this.property?.format === 'date') {
 				classes.push('cn-cell-renderer--date')
 			}
-			if (this.property?.format === 'uuid') classes.push('cn-cell-renderer--uuid')
+			if (this.property?.format === 'uuid') { classes.push('cn-cell-renderer--uuid') }
 			if (this.propertyType === 'integer' || this.propertyType === 'number') {
 				classes.push('cn-cell-renderer--number')
 			}
@@ -594,9 +602,7 @@ export default {
 			if (!WARNED_LINK_KEYS.has(key)) {
 				WARNED_LINK_KEYS.add(key)
 				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnCellRenderer] widget:"link" on "${key}" has no resolvable target — set widgetProps.route (page id) or widgetProps.href (URL with optional {field} placeholders); cell falls back to plain text.`,
-				)
+				console.warn(`[CnCellRenderer] widget:"link" on "${key}" has no resolvable target — set widgetProps.route (page id) or widgetProps.href (URL with optional {field} placeholders); cell falls back to plain text.`)
 			}
 		}
 	},
@@ -611,9 +617,9 @@ export default {
 		 * @return {string}
 		 */
 		applyBuiltinFormat() {
-			if (!this.hasValue) return '—'
+			if (!this.hasValue) { return '—' }
 			const fmt = this.format || {}
-			if (fmt.style === 'duration') return this.formatDuration()
+			if (fmt.style === 'duration') { return this.formatDuration() }
 			const num = Number(this.value)
 			if (!Number.isFinite(num)) {
 				return formatValue(this.value, this.property, { truncate: this.truncate })
@@ -643,6 +649,7 @@ export default {
 			}
 			return `${fmt.prefix || ''}${body}${fmt.suffix || ''}`
 		},
+
 		/**
 		 * Render a numeric duration compactly (`1u 23m`, `45m 10s`, `12s`). The
 		 * raw value is seconds unless `format.unit` is `'milliseconds'` /
@@ -662,10 +669,9 @@ export default {
 				// field (request/step timings), and they would all collapse to
 				// the `0s` floor below — so render them in ms directly.
 				const ms = Math.round(secs)
-				if (Math.abs(ms) < 1000) return `${fmt.prefix || ''}${ms}ms${fmt.suffix || ''}`
+				if (Math.abs(ms) < 1000) { return `${fmt.prefix || ''}${ms}ms${fmt.suffix || ''}` }
 				secs = ms / 1000
-			} else if (fmt.unit === 'minutes') secs *= 60
-			else if (fmt.unit === 'hours') secs *= 3600
+			} else if (fmt.unit === 'minutes') { secs *= 60 } else if (fmt.unit === 'hours') { secs *= 3600 }
 			secs = Math.round(secs)
 			const sign = secs < 0 ? '-' : ''
 			secs = Math.abs(secs)
@@ -673,10 +679,10 @@ export default {
 			const m = Math.floor((secs % 3600) / 60)
 			const s = secs % 60
 			const parts = []
-			if (h > 0) parts.push(`${h}u`)
-			if (m > 0) parts.push(`${m}m`)
-			if (s > 0 && h === 0) parts.push(`${s}s`)
-			if (parts.length === 0) parts.push('0s')
+			if (h > 0) { parts.push(`${h}u`) }
+			if (m > 0) { parts.push(`${m}m`) }
+			if (s > 0 && h === 0) { parts.push(`${s}s`) }
+			if (parts.length === 0) { parts.push('0s') }
 			return `${fmt.prefix || ''}${sign}${parts.join(' ')}${fmt.suffix || ''}`
 		},
 	},

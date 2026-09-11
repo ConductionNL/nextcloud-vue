@@ -115,6 +115,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Initial content values (registry defaults when not editing). */
 		value: {
 			type: Object,
@@ -144,6 +145,7 @@ export default {
 			aspectRatio: VALID_ASPECT_RATIOS.includes(initial.aspectRatio)
 				? initial.aspectRatio
 				: DEFAULT_CONTENT.aspectRatio,
+
 			posterUrl: typeof initial.posterUrl === 'string' ? initial.posterUrl : DEFAULT_CONTENT.posterUrl,
 		}
 	},
@@ -177,16 +179,16 @@ export default {
 		 */
 		detectedSourceLabel() {
 			switch (this.detectedSource) {
-			case 'youtube':
-				return t('nextcloud-vue', 'Detected: YouTube')
-			case 'vimeo':
-				return t('nextcloud-vue', 'Detected: Vimeo')
-			case 'peertube':
-				return t('nextcloud-vue', 'Detected: PeerTube')
-			case 'nc-file':
-				return t('nextcloud-vue', 'Detected: Nextcloud File')
-			default:
-				return ''
+				case 'youtube':
+					return t('nextcloud-vue', 'Detected: YouTube')
+				case 'vimeo':
+					return t('nextcloud-vue', 'Detected: Vimeo')
+				case 'peertube':
+					return t('nextcloud-vue', 'Detected: PeerTube')
+				case 'nc-file':
+					return t('nextcloud-vue', 'Detected: Nextcloud File')
+				default:
+					return ''
 			}
 		},
 

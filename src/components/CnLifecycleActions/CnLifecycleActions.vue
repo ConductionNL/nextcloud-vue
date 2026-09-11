@@ -93,29 +93,35 @@ export default {
 			type: [String, Number],
 			default: '',
 		},
+
 		/**
 		 * The currently-loaded object (for client-side `from`-state filtering of
 		 * a config-declared `transitions` list, and to read the lifecycle field).
+		 *
 		 * @type {object|null}
 		 */
 		object: {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * The lifecycle config block. A declared transition may carry
 		 * `inputs: [{ field, required }]` to collect data before it is applied.
+		 *
 		 * @type {{field?: string, transitions?: Array<{from?: (string|Array<string>), to?: string, action?: string, label?: string, confirm?: string, variant?: string, inputs?: Array<{field: string, required?: boolean}>}>, autoFetch?: boolean}}
 		 */
 		config: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * The object's JSON Schema (with `properties`), forwarded to
 		 * `CnTransitionInputDialog` so a transition's declared inputs render
 		 * with the property's title/type instead of a bare text box. Optional —
 		 * without it every input falls back to a plain labelled text field.
+		 *
 		 * @type {object|null}
 		 */
 		schema: {
@@ -149,11 +155,13 @@ export default {
 		field() {
 			return this.config.field || this.config.property || 'status'
 		},
+
 		/** The object's current lifecycle value. */
 		currentState() {
-			if (!this.object) return ''
+			if (!this.object) { return '' }
 			return String(this.object[this.field] ?? '')
 		},
+
 		/**
 		 * Whether to use the server `/available-actions` endpoint. Defaults to
 		 * true unless an explicit `transitions` array is declared AND
@@ -162,9 +170,10 @@ export default {
 		 * @return {boolean}
 		 */
 		useServer() {
-			if (this.config.autoFetch === true) return true
+			if (this.config.autoFetch === true) { return true }
 			return !Array.isArray(this.config.transitions) || this.config.transitions.length === 0
 		},
+
 		/**
 		 * The transitions to render as buttons — either the server-derived set or
 		 * the config-declared set filtered to the object's current state. A
@@ -201,7 +210,7 @@ export default {
 		objectId: {
 			immediate: true,
 			handler() {
-				if (this.useServer) this.fetchActions()
+				if (this.useServer) { this.fetchActions() }
 			},
 		},
 	},
@@ -215,7 +224,7 @@ export default {
 		 * @return {boolean}
 		 */
 		fromMatches(tr) {
-			if (tr.from === undefined || tr.from === null) return true
+			if (tr.from === undefined || tr.from === null) { return true }
 			const from = Array.isArray(tr.from) ? tr.from : [tr.from]
 			return from.map(String).includes(this.currentState)
 		},
@@ -230,9 +239,9 @@ export default {
 		 * @return {string}
 		 */
 		labelFor(action, to, description) {
-			if (description) return description
+			if (description) { return description }
 			const src = action || to || ''
-			if (!src) return t('nextcloud-vue', 'Apply')
+			if (!src) { return t('nextcloud-vue', 'Apply') }
 			return src.charAt(0).toUpperCase() + src.slice(1).replace(/[_-]+/g, ' ')
 		},
 
@@ -244,7 +253,7 @@ export default {
 		async fetchActions() {
 			this.serverActions = []
 			this.error = ''
-			if (!this.objectId) return
+			if (!this.objectId) { return }
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
@@ -271,7 +280,7 @@ export default {
 		 */
 		async onTransition(tr) {
 			if (tr.confirm && typeof window !== 'undefined' && typeof window.confirm === 'function') {
-				if (!window.confirm(tr.confirm)) return
+				if (!window.confirm(tr.confirm)) { return }
 			}
 			if (Array.isArray(tr.inputs) && tr.inputs.length > 0) {
 				this.inputTransition = tr
@@ -290,7 +299,7 @@ export default {
 		async onInputConfirm(data) {
 			const tr = this.inputTransition
 			this.inputTransition = null
-			if (!tr) return
+			if (!tr) { return }
 			await this.postTransition(tr, data)
 		},
 
@@ -329,7 +338,7 @@ export default {
 				 * so the new state + freshly-allowed transitions render.
 				 */
 				this.$emit('reload')
-				if (this.useServer) await this.fetchActions()
+				if (this.useServer) { await this.fetchActions() }
 			} catch (e) {
 				this.error = this.extractError(e)
 			} finally {
@@ -347,7 +356,7 @@ export default {
 		 */
 		extractError(e) {
 			const data = e && e.response && e.response.data
-			if (data && typeof data.error === 'string') return data.error
+			if (data && typeof data.error === 'string') { return data.error }
 			return (e && e.message) || t('nextcloud-vue', 'Transition failed')
 		},
 	},

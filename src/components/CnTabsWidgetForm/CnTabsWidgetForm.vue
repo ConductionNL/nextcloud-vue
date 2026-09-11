@@ -86,6 +86,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Every widget definition on the surface, so the picker can offer the
 		 * siblings this widget may hold.
@@ -96,6 +97,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * This widget's own id, so the picker cannot offer the tabs widget
 		 * itself and produce a widget that contains itself.
@@ -193,7 +195,7 @@ export default {
 		 */
 		updateLabel(index, label) {
 			const tabs = this.tabs.map((tab, i) => {
-				if (i !== index) return { ...tab }
+				if (i !== index) { return { ...tab } }
 				const next = { ...tab }
 				if (label && label.trim() !== '') {
 					next.label = label

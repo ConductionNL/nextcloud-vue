@@ -44,6 +44,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * The visible label for the control.
 		 *
@@ -53,6 +54,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Available field names (schema properties); empty falls back to text.
 		 *
@@ -62,6 +64,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Placeholder for the text fallback.
 		 *
@@ -71,6 +74,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Whether the dropdown may be cleared back to empty.
 		 *

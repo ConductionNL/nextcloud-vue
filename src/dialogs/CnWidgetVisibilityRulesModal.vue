@@ -217,6 +217,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * The rule set to edit. Each rule ANDs its `conditions`; the array ORs
 		 * its rules. A condition is `{ kind, ...config }`. The prop is not
@@ -228,6 +229,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Group options for the `group` condition picker. */
 		availableGroups: {
 			type: Array,
@@ -285,16 +287,16 @@ export default {
 		 */
 		canAddCondition() {
 			switch (this.activeKind) {
-			case 'group':
-				return Array.isArray(this.conditionDraft.groups) && this.conditionDraft.groups.length > 0
-			case 'time':
-				return this.conditionDraft.startTime !== '' && this.conditionDraft.endTime !== ''
-			case 'date':
-				return this.conditionDraft.startDate !== '' || this.conditionDraft.endDate !== ''
-			case 'attribute':
-				return this.conditionDraft.attribute !== '' && this.conditionDraft.value !== ''
-			default:
-				return false
+				case 'group':
+					return Array.isArray(this.conditionDraft.groups) && this.conditionDraft.groups.length > 0
+				case 'time':
+					return this.conditionDraft.startTime !== '' && this.conditionDraft.endTime !== ''
+				case 'date':
+					return this.conditionDraft.startDate !== '' || this.conditionDraft.endDate !== ''
+				case 'attribute':
+					return this.conditionDraft.attribute !== '' && this.conditionDraft.value !== ''
+				default:
+					return false
 			}
 		},
 	},
@@ -416,16 +418,16 @@ export default {
 		 */
 		buildCondition() {
 			switch (this.activeKind) {
-			case 'group':
-				return { kind: 'group', groups: [...this.conditionDraft.groups] }
-			case 'time':
-				return { kind: 'time', startTime: this.conditionDraft.startTime, endTime: this.conditionDraft.endTime }
-			case 'date':
-				return { kind: 'date', startDate: this.conditionDraft.startDate, endDate: this.conditionDraft.endDate }
-			case 'attribute':
-				return { kind: 'attribute', attribute: this.conditionDraft.attribute, operator: 'equals', value: this.conditionDraft.value }
-			default:
-				return null
+				case 'group':
+					return { kind: 'group', groups: [...this.conditionDraft.groups] }
+				case 'time':
+					return { kind: 'time', startTime: this.conditionDraft.startTime, endTime: this.conditionDraft.endTime }
+				case 'date':
+					return { kind: 'date', startDate: this.conditionDraft.startDate, endDate: this.conditionDraft.endDate }
+				case 'attribute':
+					return { kind: 'attribute', attribute: this.conditionDraft.attribute, operator: 'equals', value: this.conditionDraft.value }
+				default:
+					return null
 			}
 		},
 
@@ -482,16 +484,16 @@ export default {
 		 */
 		summariseCondition(condition) {
 			switch (condition.kind) {
-			case 'group':
-				return (condition.groups || []).join(', ')
-			case 'time':
-				return `${condition.startTime || ''}–${condition.endTime || ''}`
-			case 'date':
-				return `${condition.startDate || '…'} → ${condition.endDate || '…'}`
-			case 'attribute':
-				return `${condition.attribute || ''} = ${condition.value || ''}`
-			default:
-				return ''
+				case 'group':
+					return (condition.groups || []).join(', ')
+				case 'time':
+					return `${condition.startTime || ''}–${condition.endTime || ''}`
+				case 'date':
+					return `${condition.startDate || '…'} → ${condition.endDate || '…'}`
+				case 'attribute':
+					return `${condition.attribute || ''} = ${condition.value || ''}`
+				default:
+					return ''
 			}
 		},
 

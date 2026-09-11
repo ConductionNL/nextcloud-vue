@@ -113,6 +113,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Initial content values (registry defaults when not editing). */
 		value: {
 			type: Object,

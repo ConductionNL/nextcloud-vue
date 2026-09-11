@@ -40,7 +40,7 @@ describe('resolveKbProvider', () => {
 
 describe('defaultKbProvider.search', () => {
 	afterEach(() => {
-		if (global.fetch && global.fetch.mockReset) global.fetch.mockReset()
+		if (global.fetch && global.fetch.mockReset) { global.fetch.mockReset() }
 	})
 
 	it('GETs the endpoint with query + space + tags + limit and normalises the body', async () => {

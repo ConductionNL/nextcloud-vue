@@ -241,7 +241,7 @@ export default {
 		events(op) {
 			const raw = op.events ?? op.data?.events ?? []
 			if (Array.isArray(raw) === true) {
-				return raw.filter(e => typeof e === 'string' && e !== '')
+				return raw.filter((e) => typeof e === 'string' && e !== '')
 			}
 			return []
 		},

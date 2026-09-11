@@ -210,6 +210,7 @@ export default {
 			default: 'detail-page',
 			validator: (value) => ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity'].includes(value),
 		},
+
 		/** Base API URL. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Number of history entries to fetch per page. */
@@ -261,15 +262,18 @@ export default {
 		resolvedTitle() {
 			return this.title || t('nextcloud-vue', 'Version history')
 		},
+
 		hasMore() {
 			return this.entries.length < this.total
 		},
+
 		diffRows() {
 			if (this.activeDiff === null) {
 				return []
 			}
 			return buildFieldRows(this.activeDiff.oldState, this.activeDiff.newState)
 		},
+
 		visibleDiffRows() {
 			if (this.showAllFields === true) {
 				return this.diffRows

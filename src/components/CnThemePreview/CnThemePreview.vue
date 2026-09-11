@@ -108,6 +108,7 @@ export default {
 			validator: (v) => Array.isArray(v) && v.length > 0
 				&& v.every((p) => p && typeof p.key === 'string' && typeof p.label === 'string'),
 		},
+
 		/**
 		 * Initial colour map. Falls back to each picker's `default`
 		 * when omitted; falls back to `#000000` when neither is set.
@@ -139,12 +140,14 @@ export default {
 		/** Reset-button label. */
 		resetLabel: { type: String, default: 'Reset to defaults' },
 	},
+
 	emits: ['change', 'input', 'update:modelValue'],
 	data() {
 		return {
 			model: this.buildInitialModel(),
 		}
 	},
+
 	computed: {
 		/**
 		 * The value the consumer actually bound, whichever prop they used.
@@ -154,6 +157,7 @@ export default {
 		boundValue() {
 			return this.modelValue !== undefined ? this.modelValue : this.value
 		},
+
 		/**
 		 * Inline CSS variables applied to the preview panel.
 		 *
@@ -166,6 +170,7 @@ export default {
 			}
 			return out
 		},
+
 		/**
 		 * The same value as `value`, under Vue 3's own v-model name.
 		 *
@@ -187,13 +192,14 @@ export default {
 		 * @return {boolean} True when at least one key differs.
 		 */
 		isModified() {
-			if (!this.defaults) return false
+			if (!this.defaults) { return false }
 			for (const [k, v] of Object.entries(this.defaults)) {
-				if (this.model[k] !== v) return true
+				if (this.model[k] !== v) { return true }
 			}
 			return false
 		},
 	},
+
 	watch: {
 		/**
 		 * Re-seed the model when the consumer passes a fresh `value`
@@ -201,12 +207,14 @@ export default {
 		 */
 		value: {
 			handler(next) {
-				if (!next || typeof next !== 'object') return
+				if (!next || typeof next !== 'object') { return }
 				this.model = { ...this.model, ...next }
 			},
+
 			deep: true,
 		},
 	},
+
 	methods: {
 		/**
 		 * Tell the consumer the value changed, in both v-model dialects.
@@ -232,6 +240,7 @@ export default {
 			 */
 			this.$emit('update:modelValue', next)
 		},
+
 		/**
 		 * Build the starting model from `value` / picker defaults.
 		 *
@@ -255,6 +264,7 @@ export default {
 			}
 			return out
 		},
+
 		/**
 		 * Handle a picker / text-input change. Validates the value
 		 * is a hex colour-ish string before mutating.
@@ -264,20 +274,22 @@ export default {
 		 * @return {void}
 		 */
 		onPickerChange(key, value) {
-			if (typeof value !== 'string') return
+			if (typeof value !== 'string') { return }
 			this.model = { ...this.model, [key]: value }
 			this.emitChange()
 		},
+
 		/**
 		 * Reset the model to `defaults`.
 		 *
 		 * @return {void}
 		 */
 		reset() {
-			if (!this.defaults) return
+			if (!this.defaults) { return }
 			this.model = { ...this.defaults }
 			this.emitChange()
 		},
+
 		/**
 		 * Emit the change event.
 		 *

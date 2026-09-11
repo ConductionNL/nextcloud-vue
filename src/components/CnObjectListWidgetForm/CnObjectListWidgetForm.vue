@@ -125,6 +125,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values when not editing (registry defaults).
 		 *
@@ -153,14 +154,17 @@ export default {
 				register: initial.register ?? '',
 				schema: initial.schema ?? '',
 			},
+
 			sort: {
 				field: initial.sort?.field ?? '',
 				dir: initial.sort?.dir ?? 'asc',
 			},
+
 			limit: Number.isFinite(initial.limit) ? initial.limit : 5,
 			columns: Array.isArray(initial.columns) && initial.columns.length
 				? initial.columns.map((c) => (typeof c === 'string' ? { key: c, label: c } : { key: c.key, label: c.label || c.key }))
 				: [{ key: '', label: '' }],
+
 			filterRows: filterToRows(initial.filter || {}),
 			availableFields: [],
 		}
@@ -171,6 +175,7 @@ export default {
 		dirOptions() {
 			return ['asc', 'desc']
 		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {

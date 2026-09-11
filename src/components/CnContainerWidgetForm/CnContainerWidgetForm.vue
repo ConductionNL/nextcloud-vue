@@ -77,6 +77,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Initial content values (registry defaults when not editing). */
 		value: {
 			type: Object,
@@ -100,9 +101,11 @@ export default {
 			backgroundColor: typeof initial.backgroundColor === 'string'
 				? initial.backgroundColor
 				: DEFAULT_CONTENT.backgroundColor,
+
 			padding: PADDING_VALUES.includes(initial.padding)
 				? initial.padding
 				: DEFAULT_CONTENT.padding,
+
 			title: typeof initial.title === 'string'
 				? initial.title
 				: DEFAULT_CONTENT.title,

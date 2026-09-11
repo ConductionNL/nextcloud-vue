@@ -194,27 +194,32 @@ export default {
 		 * (`open-form` | `toggle` | `api-call` | `navigate` | `open-modal` |
 		 * `refresh` | `handler`) plus `id` / `label` and an optional
 		 * `visibleWhen` predicate, `icon`, `variant`, and `confirm`.
+		 *
 		 * @type {Array<object>}
 		 */
 		actions: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Explicit Vue Router instance for `navigate` / `open-page` /
 		 * `onSuccessRoute`. Falls back to `this.$router`. Only needed for
 		 * standalone mounts outside a router tree.
+		 *
 		 * @type {object|null}
 		 */
 		router: {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Where the actions are drawn. `buttons` (the default) puts one
 		 * NcButton per action in the host's header. `menu` draws none and
 		 * emits `entries` instead, so the host can render them inside an
 		 * overflow menu while this component keeps owning the dialogs.
+		 *
 		 * @type {'buttons'|'menu'}
 		 */
 		display: {
@@ -267,6 +272,7 @@ export default {
 		effectiveTranslate() {
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
 		},
+
 		/**
 		 * Create-form seed values for the open `open-form` action. An action
 		 * declares them as `props`, which is how a single schema backs several
@@ -277,7 +283,7 @@ export default {
 		 */
 		formInitialValues() {
 			const props = this.formEntry && this.formEntry.props
-			if (!props || typeof props !== 'object' || Array.isArray(props)) return null
+			if (!props || typeof props !== 'object' || Array.isArray(props)) { return null }
 			// Seed values go through the SAME token grammar as filters, so an
 			// action on a detail page can stamp the record it belongs to:
 			// `{ "domainObjectRef": "@objectId" }`. Without this the literal
@@ -285,6 +291,7 @@ export default {
 			// is a defect that only shows up in whatever reads it later.
 			return resolveFilterTokens(props, this.tokenCtx)
 		},
+
 		/**
 		 * The register the open dialog reads and writes against. The plain
 		 * form needs it to resolve `$ref` pickers into real dropdowns; without
@@ -296,10 +303,12 @@ export default {
 		formRegister() {
 			return (this.formEntry && this.formEntry.register) || this.objectCtx.register || ''
 		},
+
 		/** The actions whose visibleWhen evaluated true (or carry no predicate). */
 		visibleActions() {
 			return (this.actions || []).filter((a) => a && a.id && this.visibility[a.id] !== false)
 		},
+
 		/**
 		 * The visible actions flattened for a host that draws them as menu
 		 * items. Everything the item needs to render is resolved here — the
@@ -337,22 +346,26 @@ export default {
 				}
 			})
 		},
+
 		/** Unwrapped page workspace bag. */
 		workspaceCtx() {
 			const c = this.workspaceRaw
 			const v = (c && typeof c === 'object' && 'value' in c) ? c.value : c
 			return (v && typeof v === 'object') ? v : {}
 		},
+
 		/** Unwrapped app-config bag. */
 		configCtx() {
 			const c = this.appConfigRaw
 			const v = (c && typeof c === 'object' && 'value' in c) ? c.value : c
 			return (v && typeof v === 'object') ? v : {}
 		},
+
 		/** The merged object token context (both detail-surface injects). */
 		objectCtx() {
 			return resolveObjectTokenContext(this.objectCtxRaw, this.detailCtxRaw) || {}
 		},
+
 		/** The full token context for url/param interpolation + local visibleWhen. */
 		tokenCtx() {
 			return {
@@ -361,6 +374,7 @@ export default {
 				config: this.configCtx,
 			}
 		},
+
 		/** The effective router (explicit prop wins, else this.$router). */
 		effectiveRouter() {
 			return this.router || this.$router || null
@@ -375,11 +389,13 @@ export default {
 				this.initToggles()
 			},
 		},
+
 		// Re-evaluate local (object-context) visibleWhen when the record loads.
 		objectCtx: {
 			deep: true,
 			handler() { this.evaluateVisibility() },
 		},
+
 		// Push the menu-ready descriptors at a `display: "menu"` host. It fires
 		// immediately so the host has the list on first paint, and again on
 		// every change of visibility, toggle state or pending flag — the three
@@ -390,7 +406,7 @@ export default {
 				/**
 				 * @event entries Emitted in `display: "menu"` only, whenever the visible actions, their toggle state or their pending flags change. Payload: one menu-ready descriptor per visible action, each carrying `id`, `label`, `iconName`, `iconClass`, `disabled`, `pressed`, `testid` and a pre-bound `run()`.
 				 */
-				if (this.display === 'menu') this.$emit('entries', entries)
+				if (this.display === 'menu') { this.$emit('entries', entries) }
 			},
 		},
 	},
@@ -415,7 +431,7 @@ export default {
 		 */
 		async evaluateVisibility() {
 			for (const action of this.actions || []) {
-				if (!action || !action.id) continue
+				if (!action || !action.id) { continue }
 				if (!action.visibleWhen) {
 					this.visibility[action.id] = true
 					continue
@@ -434,9 +450,9 @@ export default {
 		 */
 		async initToggles() {
 			for (const action of this.actions || []) {
-				if (!action || action.type !== 'toggle' || !action.id) continue
+				if (!action || action.type !== 'toggle' || !action.id) { continue }
 				this.toggleState[action.id] = false
-				if (!action.stateSource || !action.stateSource.url) continue
+				if (!action.stateSource || !action.stateSource.url) { continue }
 				try {
 					const payload = await fetchEndpointSource(action.stateSource, this.tokenCtx)
 					const value = action.field ? this.readField(payload, action.field) : payload
@@ -455,7 +471,7 @@ export default {
 		 * @return {*} The value at the path.
 		 */
 		readField(data, field) {
-			if (!field) return data
+			if (!field) { return data }
 			return String(field).split('.').reduce((o, k) => (o == null ? o : o[k]), data)
 		},
 
@@ -468,13 +484,13 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async onToggleClick(entry) {
-			if (this.togglePending[entry.id]) return
+			if (this.togglePending[entry.id]) { return }
 			const previous = Boolean(this.toggleState[entry.id])
 			const next = !previous
 			this.toggleState[entry.id] = next
 			this.togglePending[entry.id] = true
 			const writeParams = { ...(entry.params || {}) }
-			if (entry.field) writeParams[entry.field] = next
+			if (entry.field) { writeParams[entry.field] = next }
 			const result = await this.dispatch({
 				type: 'api-call',
 				url: entry.writeUrl,
@@ -513,7 +529,7 @@ export default {
 		 */
 		async onConfirmProceed() {
 			const entry = this.confirmEntry
-			if (!entry) return
+			if (!entry) { return }
 			const result = await this.runAction(entry)
 			const dialog = this.$refs.confirmDialog
 			if (dialog && typeof dialog.setResult === 'function') {
@@ -603,7 +619,7 @@ export default {
 			}
 			if (!this.formSchema) {
 				const { showError } = await import('@nextcloud/dialogs')
-				if (typeof showError === 'function') showError(t('nextcloud-vue', 'Could not open the form.'))
+				if (typeof showError === 'function') { showError(t('nextcloud-vue', 'Could not open the form.')) }
 				this.formEntry = null
 			}
 		},
@@ -646,9 +662,9 @@ export default {
 				const saved = override
 					? await override(payload, { register, schema, type })
 					: await store.saveObject(type, payload)
-				if (!saved) throw new Error('save rejected')
+				if (!saved) { throw new Error('save rejected') }
 				await this.saveDynamicAnswers(store, register, dynamic, saved)
-				if (dialog && typeof dialog.setResult === 'function') dialog.setResult({ success: true })
+				if (dialog && typeof dialog.setResult === 'function') { dialog.setResult({ success: true }) }
 				const { showSuccess } = await import('@nextcloud/dialogs')
 				if (typeof showSuccess === 'function') {
 					showSuccess((entry && entry.successMessage) || t('nextcloud-vue', 'Saved.'))
@@ -661,7 +677,7 @@ export default {
 				this.$emit('created', saved)
 				if (entry && entry.onSuccessRoute && this.effectiveRouter) {
 					const location = buildOnSuccessRoute(entry.onSuccessRoute, saved)
-					if (location) this.effectiveRouter.push(location).catch(() => {})
+					if (location) { this.effectiveRouter.push(location).catch(() => {}) }
 				}
 			} catch (e) {
 				if (dialog && typeof dialog.setResult === 'function') {
@@ -687,15 +703,15 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async saveDynamicAnswers(store, register, dynamic, saved) {
-			if (!dynamic || !Array.isArray(dynamic.answers) || dynamic.answers.length === 0) return
+			if (!dynamic || !Array.isArray(dynamic.answers) || dynamic.answers.length === 0) { return }
 			const objectId = saved && (saved.id || saved.uuid)
-			if (!objectId) return
+			if (!objectId) { return }
 			const declarations = dynamic.declarations || []
 			for (const { key, config } of declarations) {
 				const values = config && config.values
-				if (!values || !values.schema) continue
+				if (!values || !values.schema) { continue }
 				// Already written as part of the parent payload.
-				if (usesArrayValues(config)) continue
+				if (usesArrayValues(config)) { continue }
 				// An answer belongs to exactly one declaration. With a single
 				// declaration every answer carries its key anyway; the filter
 				// only matters once a schema has two, where writing an answer
@@ -704,7 +720,7 @@ export default {
 					? dynamic.answers
 					: dynamic.answers.filter((a) => a.declarationKey === key)
 				const rows = valueRecordsFor(mine, config, objectId)
-				if (rows.length === 0) continue
+				if (rows.length === 0) { continue }
 				const valueRegister = values.register || register
 				const type = resolveObjectOpType(store, { register: valueRegister, schema: values.schema })
 				for (const row of rows) {
@@ -721,15 +737,15 @@ export default {
 		 * @return {void}
 		 */
 		foldArrayAnswers(payload, dynamic) {
-			if (!dynamic || !Array.isArray(dynamic.answers) || dynamic.answers.length === 0) return
+			if (!dynamic || !Array.isArray(dynamic.answers) || dynamic.answers.length === 0) { return }
 			const declarations = dynamic.declarations || []
 			for (const { key, config } of declarations) {
-				if (!usesArrayValues(config)) continue
+				if (!usesArrayValues(config)) { continue }
 				const mine = declarations.length === 1
 					? dynamic.answers
 					: dynamic.answers.filter((a) => a.declarationKey === key)
 				const entries = valueArrayFor(mine, config, dynamic.definitions || [])
-				if (entries.length) payload[config.values.arrayKey] = entries
+				if (entries.length) { payload[config.values.arrayKey] = entries }
 			}
 		},
 

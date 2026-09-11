@@ -67,7 +67,7 @@ describe('CnDashboardGrid — accessibility', () => {
 
 		const nodes = wrapper.element.querySelectorAll('.grid-stack-item')
 		expect(nodes.length).toBe(2)
-		nodes.forEach(node => {
+		nodes.forEach((node) => {
 			expect(node.getAttribute('role')).toBe('group')
 			expect(node.getAttribute('tabindex')).toBe('0')
 			expect((node.getAttribute('aria-label') || '').trim().length).toBeGreaterThan(0)

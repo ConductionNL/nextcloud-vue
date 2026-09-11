@@ -255,6 +255,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * The shared `useManifestEditor` instance (`{ editing, working, dirty,
 		 * enter, cancel, save }`). Falls back to the injected `cnManifestEditor`.
@@ -265,6 +266,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * The active page's id, forwarded to `CnEditSidebarModal` so it edits the
 		 * right page's sidebar config.
@@ -332,40 +334,49 @@ export default {
 		isAvailable() {
 			return Boolean(this.available || this.unref(this.cnOpenBuildAvailable))
 		},
+
 		/** Active page id — the `pageId` prop, else the current route name. */
 		effectivePageId() {
 			return this.pageId || (this.$route && this.$route.name) || ''
 		},
+
 		/** The resolved editor (prop wins over inject). */
 		activeEditor() {
 			return this.editor ?? this.cnManifestEditor ?? null
 		},
+
 		/** Whether edit mode is active. */
 		isEditing() {
 			return Boolean(this.activeEditor && this.unref(this.activeEditor.editing))
 		},
+
 		/** The working manifest copy (or null when not editing). */
 		workingManifest() {
 			return this.activeEditor ? this.unref(this.activeEditor.working) : null
 		},
+
 		/** The manifest to read page metadata from: working copy, else the live one. */
 		effectiveManifest() {
 			return this.workingManifest || this.unref(this.cnManifest) || null
 		},
+
 		/** The active page object, resolved from the effective manifest. */
 		currentPage() {
 			const m = this.effectiveManifest
 			const pages = (m && Array.isArray(m.pages)) ? m.pages : []
 			return pages.find((p) => p && p.id === this.effectivePageId) || null
 		},
+
 		/** Whether the active page is a dashboard (the only page type with widget slots). */
 		isDashboardPage() {
 			return !!(this.currentPage && this.currentPage.type === 'dashboard')
 		},
+
 		/** Whether the active page is a detail page (its body is an adjustable grid). */
 		isDetailPage() {
 			return !!(this.currentPage && this.currentPage.type === 'detail')
 		},
+
 		/**
 		 * Whether the active page hosts a widget grid that "Add widget" can target.
 		 * Only dashboard and detail pages do: their bodies are adjustable widget
@@ -378,6 +389,7 @@ export default {
 		pageSupportsWidgets() {
 			return this.isDashboardPage || this.isDetailPage
 		},
+
 		/**
 		 * The widget-picker surface for "Add widget". Detail pages get
 		 * `'detail-page'` so detail-only types (notably a second `data` widget)
@@ -389,6 +401,7 @@ export default {
 		addWidgetSurface() {
 			return this.isDetailPage ? 'detail-page' : 'app-dashboard'
 		},
+
 		/**
 		 * The active detail page's `{ register, schema }` (from its config),
 		 * forwarded to the Add-widget modal so the data sub-form resolves the
@@ -398,7 +411,7 @@ export default {
 		 * @return {{register: string, schema: string}|null} the page context.
 		 */
 		addWidgetDataContext() {
-			if (!this.isDetailPage) return null
+			if (!this.isDetailPage) { return null }
 			const cfg = (this.currentPage && this.currentPage.config) || {}
 			return { register: cfg.register || '', schema: cfg.schema || '' }
 		},
@@ -408,15 +421,17 @@ export default {
 		t,
 		/**
 		 * Read a value that may be a Vue ref or a plain value.
+		 *
 		 * @param {*} maybeRef A Vue ref or plain value.
 		 * @return {*} The unwrapped value.
 		 */
 		unref(maybeRef) {
 			return maybeRef && typeof maybeRef === 'object' && 'value' in maybeRef ? maybeRef.value : maybeRef
 		},
+
 		/** Enter edit mode, or persist + leave when already editing. */
 		async onToggleEdit() {
-			if (!this.activeEditor || this.saving) return
+			if (!this.activeEditor || this.saving) { return }
 			if (this.isEditing) {
 				// Show a spinner in the (kept-open) menu while the save persists,
 				// then close the menu once it settles — pass or fail.
@@ -442,23 +457,26 @@ export default {
 				this.menuOpen = false
 			}
 		},
+
 		/** Discard edits and leave edit mode. */
 		onCancel() {
-			if (this.activeEditor) this.activeEditor.cancel()
+			if (this.activeEditor) { this.activeEditor.cancel() }
 			/**
 			 * @event cancel Emitted when edits are discarded.
 			 */
 			this.$emit('cancel')
 		},
+
 		/** Open the Add-widget modal (only in edit mode). */
 		onAddWidget() {
-			if (!this.isEditing) return
+			if (!this.isEditing) { return }
 			this.showAddWidgetModal = true
 			/**
 			 * @event add-widget Emitted when "Add widget…" is activated in edit mode.
 			 */
 			this.$emit('add-widget')
 		},
+
 		/**
 		 * Append the chosen widget to the active page's body slot in the working
 		 * manifest. The new entry stacks below existing body widgets at full width.
@@ -468,10 +486,10 @@ export default {
 		onAddWidgetSubmit(payload) {
 			this.showAddWidgetModal = false
 			const manifest = this.workingManifest
-			if (!manifest || !payload || !payload.type) return
+			if (!manifest || !payload || !payload.type) { return }
 			const pages = Array.isArray(manifest.pages) ? manifest.pages : []
 			const page = pages.find((p) => p && p.id === this.effectivePageId) ?? pages[0]
-			if (!page) return
+			if (!page) { return }
 			const content = payload.content && typeof payload.content === 'object' ? { ...payload.content } : (getDefaultContent(payload.type) || {})
 			const wid = `w-${payload.type}-${Date.now()}`
 
@@ -486,6 +504,7 @@ export default {
 				// then the registry's display name.
 				title: chrome.customTitle || content.title || content.label
 					|| entry?.displayName || payload.type,
+
 				// Cards headline themselves via `content.label`, so they default
 				// headerless unless the modal explicitly asked for a header.
 				showTitle: typeof chrome.showTitle === 'boolean' ? chrome.showTitle : !isCard,
@@ -508,13 +527,13 @@ export default {
 			// through a live lookup rather than a cached map — see getWidgetDef.)
 			const cfg = page.config && typeof page.config === 'object' && !Array.isArray(page.config) ? page.config : null
 			if ((page.type === 'dashboard' || page.type === 'detail') && cfg) {
-				if (!Array.isArray(cfg.widgets)) cfg.widgets = []
-				if (!Array.isArray(cfg.layout)) cfg.layout = []
+				if (!Array.isArray(cfg.widgets)) { cfg.widgets = [] }
+				if (!Array.isArray(cfg.layout)) { cfg.layout = [] }
 				const nextY = cfg.layout.reduce((max, l) => Math.max(max, (l.gridY || 0) + (l.gridHeight || 1)), 0)
 				cfg.widgets.push({ id: wid, type: payload.type, ...chromeFields, content })
 				cfg.layout.push({ id: cfg.layout.length + 1, widgetId: wid, gridX: 0, gridY: nextY, gridWidth: 6, gridHeight: 3 })
 			} else {
-				if (!Array.isArray(page.widgets)) page.widgets = []
+				if (!Array.isArray(page.widgets)) { page.widgets = [] }
 				const bodyWidgets = page.widgets.filter((w) => w && w.slot === 'body')
 				const nextY = bodyWidgets.reduce((max, w) => Math.max(max, (w.gridY || 0) + (w.gridHeight || 1)), 0)
 				page.widgets.push({
@@ -535,6 +554,7 @@ export default {
 			 */
 			this.$emit('widget-added', payload)
 		},
+
 		/**
 		 * Ensure an edit session is active so the modals have a `working` copy to
 		 * mutate. Opening Edit menu / sidebar / actions enters edit mode if not
@@ -547,6 +567,7 @@ export default {
 				this.$emit('edit')
 			}
 		},
+
 		/**
 		 * "Eject" the default detail-page body grid into the working manifest on
 		 * first edit: when the active page is a `type:"detail"` whose config has no
@@ -561,16 +582,16 @@ export default {
 		 */
 		ejectDetailGridIfNeeded() {
 			const manifest = this.workingManifest
-			if (!manifest) return
+			if (!manifest) { return }
 			const pages = Array.isArray(manifest.pages) ? manifest.pages : []
 			const page = pages.find((p) => p && p.id === this.effectivePageId) ?? null
-			if (!page || page.type !== 'detail') return
+			if (!page || page.type !== 'detail') { return }
 			if (!page.config || typeof page.config !== 'object' || Array.isArray(page.config)) {
 				page.config = {}
 			}
 			const cfg = page.config
 			// Already customised (ejected before, or a hand-authored grid page).
-			if (Array.isArray(cfg.widgets) && cfg.widgets.length > 0) return
+			if (Array.isArray(cfg.widgets) && cfg.widgets.length > 0) { return }
 			const grid = defaultDetailGrid({
 				register: cfg.register || '',
 				schema: cfg.schema || '',
@@ -579,6 +600,7 @@ export default {
 			cfg.widgets = grid.widgets
 			cfg.layout = grid.layout
 		},
+
 		/** Enter edit mode (if needed) and open the pages editor modal. */
 		onEditPages() {
 			this.ensureEditing()
@@ -588,6 +610,7 @@ export default {
 			 */
 			this.$emit('edit-pages')
 		},
+
 		/** Enter edit mode (if needed) and open the menu editor modal. */
 		onEditMenu() {
 			this.ensureEditing()
@@ -597,6 +620,7 @@ export default {
 			 */
 			this.$emit('edit-menu')
 		},
+
 		/** Enter edit mode (if needed) and open the settings editor modal. */
 		onEditSettings() {
 			this.ensureEditing()
@@ -606,6 +630,7 @@ export default {
 			 */
 			this.$emit('edit-settings')
 		},
+
 		/** Enter edit mode (if needed) and open the sidebar editor modal. */
 		onEditSidebar() {
 			this.ensureEditing()
@@ -615,6 +640,7 @@ export default {
 			 */
 			this.$emit('edit-sidebar')
 		},
+
 		/** Enter edit mode (if needed) and open the actions editor modal. */
 		onEditActions() {
 			this.ensureEditing()
@@ -624,6 +650,7 @@ export default {
 			 */
 			this.$emit('edit-actions')
 		},
+
 		/** Enter edit mode (if needed) and open the setup-wizard editor modal. */
 		onEditSetup() {
 			this.ensureEditing()
@@ -633,6 +660,7 @@ export default {
 			 */
 			this.$emit('edit-setup')
 		},
+
 		/** Enter edit mode (if needed) and open the walkthrough editor modal. */
 		onEditWalkthrough() {
 			this.ensureEditing()
@@ -642,6 +670,7 @@ export default {
 			 */
 			this.$emit('edit-walkthrough')
 		},
+
 		/** Enter edit mode (if needed) and open the support/donation editor modal. */
 		onEditSupport() {
 			this.ensureEditing()
@@ -651,6 +680,7 @@ export default {
 			 */
 			this.$emit('edit-support')
 		},
+
 		/**
 		 * Open the data (register + schemas) editor. Unlike the manifest editors
 		 * this does NOT enter manifest edit mode — it manages OpenRegister
@@ -664,6 +694,7 @@ export default {
 			 */
 			this.$emit('edit-data')
 		},
+
 		/**
 		 * Open the flow editor. Like Edit data, this edits OpenRegister directly
 		 * and does NOT enter manifest edit mode.

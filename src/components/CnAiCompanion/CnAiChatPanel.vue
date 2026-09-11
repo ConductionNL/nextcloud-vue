@@ -411,6 +411,7 @@ export default {
 		 * Corner the window is anchored to — mirrors the launcher hex's own
 		 * `position`, so the window opens from the button rather than across
 		 * the page from it.
+		 *
 		 * @type {'bottom-right'|'bottom-left'|'top-right'|'top-left'}
 		 */
 		position: {
@@ -501,6 +502,7 @@ export default {
 		 * Agents as `{ id, label }`, matching the shape the old inline picker
 		 * used — the agents API returns `uuid` on some deployments and `id` on
 		 * others, and both have been seen in the wild.
+		 *
 		 * @return {Array<{id: string, label: string}>} Selectable agents.
 		 */
 		/**
@@ -518,9 +520,7 @@ export default {
 				return null
 			}
 
-			return this.agents.find(
-				(agent) => (agent.uuid || agent.id) === this.selectedAgentUuid,
-			) || null
+			return this.agents.find((agent) => (agent.uuid || agent.id) === this.selectedAgentUuid) || null
 		},
 
 		/**
@@ -675,6 +675,7 @@ export default {
 		 * Falls back while the agent list is still loading, and again if it
 		 * failed — a titlebar with an empty title reads as a broken window, so
 		 * every branch names something.
+		 *
 		 * @return {string} Title text.
 		 */
 		agentLabel() {
@@ -714,9 +715,10 @@ export default {
 		 * Mirror it into the panel's own tracked uuid so a brand-new conversation
 		 * shows as "active" immediately — the same tracking that drives
 		 * isOnNewChatScreen and the History/recent-sessions active-row indicator.
+		 *
 		 * @param {string|null} newVal The stream's current conversation uuid.
 		 */
-		'streamState.conversationUuid'(newVal) {
+		'streamState.conversationUuid': function(newVal) {
 			if (newVal) {
 				this.activeConversationUuid = newVal
 			}
@@ -731,7 +733,7 @@ export default {
 		 *
 		 * @param {boolean} streaming Whether a turn is still in flight.
 		 */
-		'streamState.isStreaming'(streaming) {
+		'streamState.isStreaming': function(streaming) {
 			if (streaming === true) {
 				return
 			}
@@ -1029,6 +1031,7 @@ export default {
 
 		/**
 		 * A conversation's menu label, trimmed to keep the menu one line per row.
+		 *
 		 * @param {{title: string, uuid: string}} conversation The conversation.
 		 * @return {string} Display label.
 		 */
@@ -1044,6 +1047,7 @@ export default {
 		 * Re-emit CnAiInput's `{ text, attachments }` payload up to
 		 * CnAiCompanion, which owns the stream composable, adding the
 		 * currently-selected agent uuid (this panel's own picker state).
+		 *
 		 * @param {{text: string, attachments: Array<{path: string, name: string}>}} payload CnAiInput's send payload.
 		 */
 		onSend({ text, attachments }) {
@@ -1073,6 +1077,7 @@ export default {
 		 * Keep the panel's own conversation list (feeding both the sessions menu
 		 * and the history view) in sync after an inline rename/describe save,
 		 * without a full refetch.
+		 *
 		 * @param {{uuid: string, title: string, description: string}} payload Renamed fields.
 		 */
 		onConversationRenamed({ uuid, title, description }) {
@@ -1089,6 +1094,7 @@ export default {
 		 * AgentsController::index()/serializeAgent()). Degrades gracefully on
 		 * failure: the menu shows an inline notice but the rest of the window
 		 * (history, message input) stays usable.
+		 *
 		 * @returns {Promise<void>}
 		 */
 		async fetchAgents() {
@@ -1114,6 +1120,7 @@ export default {
 		 * Fetch the caller's conversations once, feeding both the sessions menu's
 		 * recent entries (top 5) and the history view's full searchable list — a
 		 * single fetch keeps both surfaces consistent.
+		 *
 		 * @returns {Promise<void>}
 		 */
 		async fetchConversations() {

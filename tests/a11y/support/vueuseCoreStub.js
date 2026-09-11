@@ -64,7 +64,7 @@ module.exports = {
 		const event = options.eventName || `update:${key}`
 		return computed({
 			get: () => props[key],
-			set: (val) => { if (emit) emit(event, val) },
+			set: (val) => { if (emit) { emit(event, val) } },
 		})
 	},
 
@@ -91,7 +91,7 @@ module.exports = {
 	 */
 	whenever(source, cb) {
 		if (typeof Vue.watch === 'function') {
-			return Vue.watch(source, (value) => { if (value) cb(value) })
+			return Vue.watch(source, (value) => { if (value) { cb(value) } })
 		}
 		return () => {}
 	},

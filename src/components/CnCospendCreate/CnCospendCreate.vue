@@ -96,7 +96,7 @@ export default {
 
 	computed: {
 		currencyOptions() {
-			return DEFAULT_CURRENCIES.map(code => ({ id: code, label: code }))
+			return DEFAULT_CURRENCIES.map((code) => ({ id: code, label: code }))
 		},
 
 		canSubmit() {

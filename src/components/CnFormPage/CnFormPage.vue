@@ -254,7 +254,7 @@ const ALLOWED_METHODS = ['POST', 'PUT', 'PATCH']
  * @return {string}
  */
 function resolveParams(url, params) {
-	if (!url || !params) return url
+	if (!url || !params) { return url }
 	return String(url).replace(/:([A-Za-z_][A-Za-z0-9_]*)/g, (match, name) => {
 		const value = params[name]
 		return value === undefined || value === null ? match : encodeURIComponent(String(value))
@@ -299,6 +299,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Multi-step wizard groups: `Array<{id, title, description?,
 		 * fields: string[]}>`. `fields[]` entries are KEY REFERENCES into
@@ -310,6 +311,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Registered submit handler name. Resolves against the
 		 * `cnCustomComponents` registry (or `customComponents` prop).
@@ -321,6 +323,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * URL the form data is dispatched to. `:paramName` segments are
 		 * resolved against `$route.params` at submit time.
@@ -329,12 +332,14 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** HTTP method for endpoint mode. POST | PUT | PATCH. */
 		submitMethod: {
 			type: String,
 			default: 'POST',
 			validator: (v) => typeof v === 'string' && ALLOWED_METHODS.includes(v.toUpperCase()),
 		},
+
 		/**
 		 * Form mode. `public` shows the success banner and hides the
 		 * form on submit; `edit` and `create` keep the form mounted so
@@ -345,31 +350,37 @@ export default {
 			default: 'public',
 			validator: (v) => ['edit', 'create', 'public'].includes(v),
 		},
+
 		/** i18n key for the submit button label. */
 		submitLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Submit'),
 		},
+
 		/** i18n key for the success banner. */
 		successMessage: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Thank you!'),
 		},
+
 		/** Pre-filled form state. Consumed by `mode: "edit"`. */
 		initialValue: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Page title. Forwarded to CnPageHeader. */
 		title: {
 			type: String,
 			default: '',
 		},
+
 		/** Page description. Forwarded to CnPageHeader. */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional translation function. When provided, applied to
 		 * field labels, success messages, `validation.message`, etc.
@@ -381,6 +392,7 @@ export default {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Optional explicit custom-component registry. When set, takes
 		 * precedence over the injected `cnCustomComponents`. Mirrors
@@ -396,6 +408,7 @@ export default {
 
 	/**
 	 * Events:
+	 *
 	 * @event submit
 	 * @description Fired after a successful submit (handler returned, or endpoint POST/PUT/PATCH succeeded).
 	 *   Payload is the effective payload — `formData` with hidden-by-condition field keys removed.
@@ -437,6 +450,7 @@ export default {
 		dirty() {
 			return JSON.stringify(this.formData) !== JSON.stringify(this.cloneInitial())
 		},
+
 		/**
 		 * Effective custom-component registry. Explicit prop wins over
 		 * the injected value (mirrors CnPageRenderer's resolution).
@@ -446,18 +460,21 @@ export default {
 		effectiveCustomComponents() {
 			return this.customComponents ?? this.cnCustomComponents ?? {}
 		},
+
 		/** Whether `steps` declares at least one entry. */
 		hasSteps() {
 			return Array.isArray(this.steps) && this.steps.length > 0
 		},
+
 		/** `config.fields[].key` → field object lookup. */
 		fieldsByKey() {
 			const map = {}
 			this.fields.forEach((f) => {
-				if (f && typeof f.key === 'string') map[f.key] = f
+				if (f && typeof f.key === 'string') { map[f.key] = f }
 			})
 			return map
 		},
+
 		/**
 		 * Single-pass, declaration-order visibility cascade over `fields`
 		 * (REQ-MFL-9). LOCAL-mode conditions evaluate synchronously
@@ -472,7 +489,7 @@ export default {
 			const result = {}
 			const effectiveData = {}
 			this.fields.forEach((field) => {
-				if (!field || typeof field.key !== 'string') return
+				if (!field || typeof field.key !== 'string') { return }
 				const cond = field.visibleWhen
 				let visible = true
 				if (cond && (cond.endpoint || cond.source)) {
@@ -485,6 +502,7 @@ export default {
 			})
 			return result
 		},
+
 		/** Fields for the current step (or the full flat list when stepless). */
 		currentStepFields() {
 			if (this.hasSteps) {
@@ -492,33 +510,39 @@ export default {
 			}
 			return this.fields
 		},
+
 		/** `currentStepFields` filtered to those currently visible. */
 		visibleCurrentStepFields() {
 			return this.currentStepFields.filter((f) => f && this.isFieldVisible(f.key))
 		},
+
 		/** Current step's optional description (stepless ⇒ ''). */
 		currentStepDescription() {
-			if (!this.hasSteps) return ''
+			if (!this.hasSteps) { return '' }
 			const step = this.steps[this.currentStepIndex]
 			return step && step.description ? step.description : ''
 		},
+
 		/** Indices of steps that are NOT fully hidden by conditions. */
 		visibleStepIndices() {
-			if (!this.hasSteps) return []
+			if (!this.hasSteps) { return [] }
 			return this.steps.map((_, i) => i).filter((i) => !this.isStepHidden(this.steps[i]))
 		},
+
 		/** Whether the current step is the first non-fully-hidden step. */
 		isFirstStep() {
-			if (!this.hasSteps) return true
+			if (!this.hasSteps) { return true }
 			const list = this.visibleStepIndices
 			return list.length === 0 || this.currentStepIndex === list[0]
 		},
+
 		/** Whether the current step is the last non-fully-hidden step. */
 		isLastStep() {
-			if (!this.hasSteps) return true
+			if (!this.hasSteps) { return true }
 			const list = this.visibleStepIndices
 			return list.length === 0 || this.currentStepIndex === list[list.length - 1]
 		},
+
 		/**
 		 * The dispatched payload (REQ-MFL-10): `formData` with every
 		 * hidden-by-condition declared field key removed. Keys not
@@ -561,7 +585,7 @@ export default {
 		},
 
 		resolveLabel(key) {
-			if (!key) return ''
+			if (!key) { return '' }
 			const fn = typeof this.translate === 'function' ? this.translate : (k) => k
 			return fn(key)
 		},
@@ -596,11 +620,11 @@ export default {
 		 * @return {boolean}
 		 */
 		fieldHasNativeErrorSupport(field) {
-			if (this.$slots[`field-${field.key}`] || this.$slots[`field-${field.key}`]) return false
+			if (this.$slots[`field-${field.key}`] || this.$slots[`field-${field.key}`]) { return false }
 			const render = this.resolveFieldRender(field)
-			if (!render) return false
-			if (['string', 'number', 'password', 'fallback'].includes(render.kind)) return true
-			if (render.kind === 'string-textarea') return render.tag !== 'textarea'
+			if (!render) { return false }
+			if (['string', 'number', 'password', 'fallback'].includes(render.kind)) { return true }
+			if (render.kind === 'string-textarea') { return render.tag !== 'textarea' }
 			return false
 		},
 
@@ -612,7 +636,7 @@ export default {
 		 * @return {Array<object>}
 		 */
 		stepFields(step) {
-			if (!step || !Array.isArray(step.fields)) return []
+			if (!step || !Array.isArray(step.fields)) { return [] }
 			return step.fields.map((key) => this.fieldsByKey[key]).filter(Boolean)
 		},
 
@@ -648,9 +672,7 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async resolveRemoteVisibility() {
-			const remoteFields = this.fields.filter(
-				(f) => f && f.visibleWhen && (f.visibleWhen.endpoint || f.visibleWhen.source),
-			)
+			const remoteFields = this.fields.filter((f) => f && f.visibleWhen && (f.visibleWhen.endpoint || f.visibleWhen.source))
 			await Promise.all(remoteFields.map(async (field) => {
 				const result = await evaluateVisibleWhen(field.visibleWhen, { object: this.formData })
 				this.remoteVisibility[field.key] = result
@@ -669,7 +691,7 @@ export default {
 		validateVisibleFields(fieldsList) {
 			let firstInvalidKey = null
 			fieldsList.forEach((field) => {
-				if (!field || typeof field.key !== 'string') return
+				if (!field || typeof field.key !== 'string') { return }
 				if (!this.isFieldVisible(field.key)) {
 					delete this.fieldErrors[field.key]
 					return
@@ -677,7 +699,7 @@ export default {
 				const message = validateFieldValue(field, this.formData[field.key], this.resolveLabel)
 				if (message) {
 					this.fieldErrors[field.key] = message
-					if (!firstInvalidKey) firstInvalidKey = field.key
+					if (!firstInvalidKey) { firstInvalidKey = field.key }
 				} else {
 					delete this.fieldErrors[field.key]
 				}
@@ -695,9 +717,9 @@ export default {
 			this.$nextTick(() => {
 				const refEntry = this.$refs[`field-${key}`]
 				const node = Array.isArray(refEntry) ? refEntry[0] : refEntry
-				if (!node || typeof node.querySelector !== 'function') return
+				if (!node || typeof node.querySelector !== 'function') { return }
 				const input = node.querySelector('input, textarea, select, [tabindex]')
-				if (input && typeof input.focus === 'function') input.focus()
+				if (input && typeof input.focus === 'function') { input.focus() }
 			})
 		},
 
@@ -712,7 +734,7 @@ export default {
 		nextVisibleStepIndex(fromIndex, direction) {
 			let idx = fromIndex + direction
 			while (idx >= 0 && idx < this.steps.length) {
-				if (!this.isStepHidden(this.steps[idx])) return idx
+				if (!this.isStepHidden(this.steps[idx])) { return idx }
 				idx += direction
 			}
 			return -1
@@ -796,10 +818,8 @@ export default {
 			const firstInvalidKey = this.validateVisibleFields(allFieldsList)
 			if (firstInvalidKey) {
 				if (this.hasSteps) {
-					const stepIndex = this.steps.findIndex(
-						(step) => this.stepFields(step).some((f) => f.key === firstInvalidKey),
-					)
-					if (stepIndex >= 0) this.currentStepIndex = stepIndex
+					const stepIndex = this.steps.findIndex((step) => this.stepFields(step).some((f) => f.key === firstInvalidKey))
+					if (stepIndex >= 0) { this.currentStepIndex = stepIndex }
 				}
 				this.focusField(firstInvalidKey)
 				return
@@ -851,9 +871,7 @@ export default {
 			const handler = this.effectiveCustomComponents[this.submitHandler]
 			if (typeof handler !== 'function') {
 				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnFormPage] handler "${this.submitHandler}" not found in customComponents (or not a function). Did you register it?`,
-				)
+				console.warn(`[CnFormPage] handler "${this.submitHandler}" not found in customComponents (or not a function). Did you register it?`)
 				throw new Error(`CnFormPage: handler "${this.submitHandler}" not registered`)
 			}
 			await handler(this.effectivePayload, this.$route, this.$router)

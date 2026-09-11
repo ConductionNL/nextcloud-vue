@@ -27,10 +27,30 @@ import { h } from 'vue'
  * left alone: "false" is a meaningful value there and several specs assert it.
  */
 const NATIVE_BOOLEAN_ATTRS = new Set([
-	'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'controls',
-	'default', 'defer', 'disabled', 'formnovalidate', 'hidden', 'ismap',
-	'itemscope', 'loop', 'multiple', 'muted', 'nomodule', 'novalidate', 'open',
-	'playsinline', 'readonly', 'required', 'reversed', 'selected',
+	'allowfullscreen',
+	'async',
+	'autofocus',
+	'autoplay',
+	'checked',
+	'controls',
+	'default',
+	'defer',
+	'disabled',
+	'formnovalidate',
+	'hidden',
+	'ismap',
+	'itemscope',
+	'loop',
+	'multiple',
+	'muted',
+	'nomodule',
+	'novalidate',
+	'open',
+	'playsinline',
+	'readonly',
+	'required',
+	'reversed',
+	'selected',
 ])
 
 /**
@@ -61,7 +81,7 @@ const createStub = (name) => ({
 				children.push(slots.default())
 			}
 			for (const key of Object.keys(slots)) {
-				if (key === 'default') continue
+				if (key === 'default') { continue }
 				children.push(slots[key]())
 			}
 			// `class` must be MERGED, not spread over. Vue 2 kept class/style out
@@ -184,7 +204,7 @@ export const NcRichContenteditable = {
 			}
 		},
 		onKeydown(event) {
-			if (!this.open) return
+			if (!this.open) { return }
 			if (event.key === 'ArrowDown') {
 				event.preventDefault()
 				this.activeIndex = Math.min(this.activeIndex + 1, this.suggestions.length - 1)
@@ -200,7 +220,7 @@ export const NcRichContenteditable = {
 			}
 		},
 		select(suggestion) {
-			if (!suggestion) return
+			if (!suggestion) { return }
 			const id = String(suggestion.id)
 			const token = /^[A-Za-z0-9_.'-]+$/.test(id) ? `@${id}` : `@"${id}"`
 			const newText = this.modelValue.replace(/@[A-Za-z0-9_.'-]*$/, `${token} `)
@@ -266,7 +286,7 @@ export const NcPopover = {
 			vnodes.push(this.$slots.default())
 		}
 		for (const name of Object.keys(this.$slots)) {
-			if (name === 'default' || name === 'trigger') continue
+			if (name === 'default' || name === 'trigger') { continue }
 			vnodes.push(this.$slots[name]())
 		}
 		return h('div', { class: ['stub', 'NcPopover'] }, vnodes)

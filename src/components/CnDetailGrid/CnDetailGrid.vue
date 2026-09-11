@@ -152,6 +152,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Array of detail items to render.
 		 *
@@ -166,6 +167,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Object context forwarded to integration single-entity
 		 * widgets rendered for items that declare a `referenceType`:
@@ -177,6 +179,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Layout mode.
 		 * - 'grid': Responsive card grid, label stacked above value
@@ -187,6 +190,7 @@ export default {
 			default: 'grid',
 			validator: (v) => ['grid', 'horizontal'].includes(v),
 		},
+
 		/**
 		 * Number of fixed grid columns. Set to 0 (default) for responsive auto-fit.
 		 * Only applies to layout="grid".
@@ -195,6 +199,7 @@ export default {
 			type: Number,
 			default: 0,
 		},
+
 		/**
 		 * Minimum width (px) for auto-fit grid items.
 		 * Only applies when columns is 0 and layout is 'grid'.
@@ -203,6 +208,7 @@ export default {
 			type: Number,
 			default: 250,
 		},
+
 		/**
 		 * Minimum width (px) for labels in horizontal mode.
 		 */
@@ -210,6 +216,7 @@ export default {
 			type: Number,
 			default: 150,
 		},
+
 		/**
 		 * Whether to show the left accent border on items.
 		 */
@@ -217,6 +224,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Text shown when the items array is empty.
 		 */
@@ -246,6 +254,7 @@ export default {
 				'cn-detail-grid--accent': this.accent,
 			}
 		},
+
 		rootStyles() {
 			if (this.layout === 'grid') {
 				if (this.columns > 0) {
@@ -258,6 +267,7 @@ export default {
 			}
 			return {}
 		},
+
 		itemClasses() {
 			return {
 				'cn-detail-grid__item--horizontal': this.layout === 'horizontal',
@@ -273,7 +283,7 @@ export default {
 		 * @return {*} The value, or a dash when it carries none.
 		 */
 		displayValue(item) {
-			if (item.value === undefined || item.value === null) return '-'
+			if (item.value === undefined || item.value === null) { return '-' }
 			return item.value
 		},
 
@@ -288,7 +298,7 @@ export default {
 		 * @return {string|null} The href to render, or null for no link.
 		 */
 		linkHref(item) {
-			if (!item.href) return null
+			if (!item.href) { return null }
 			const href = safeHref(item.href)
 			return href === '#' ? null : href
 		},

@@ -53,7 +53,7 @@ describe('readVisibleWhenPath', () => {
 
 describe('evaluateVisibleWhen', () => {
 	afterEach(() => {
-		if (global.fetch && global.fetch.mockReset) global.fetch.mockReset()
+		if (global.fetch && global.fetch.mockReset) { global.fetch.mockReset() }
 	})
 
 	it('a null condition is always visible', async () => {
@@ -162,17 +162,20 @@ describe('appInstalled precondition', () => {
 		// Both must hold: the app is here AND the record is in the right state.
 		const ctx = { object: { status: 'open' } }
 		await expect(evaluateVisibleWhen(
-			{ appInstalled: 'humaniq', field: 'status', op: 'eq', value: 'open' }, ctx,
+			{ appInstalled: 'humaniq', field: 'status', op: 'eq', value: 'open' },
+			ctx,
 		)).resolves.toBe(true)
 		await expect(evaluateVisibleWhen(
-			{ appInstalled: 'humaniq', field: 'status', op: 'eq', value: 'closed' }, ctx,
+			{ appInstalled: 'humaniq', field: 'status', op: 'eq', value: 'closed' },
+			ctx,
 		)).resolves.toBe(false)
 	})
 
 	it('hides on the app check even when the field condition would pass', async () => {
 		const ctx = { object: { status: 'open' } }
 		await expect(evaluateVisibleWhen(
-			{ appInstalled: 'nosuchapp', field: 'status', op: 'eq', value: 'open' }, ctx,
+			{ appInstalled: 'nosuchapp', field: 'status', op: 'eq', value: 'open' },
+			ctx,
 		)).resolves.toBe(false)
 	})
 

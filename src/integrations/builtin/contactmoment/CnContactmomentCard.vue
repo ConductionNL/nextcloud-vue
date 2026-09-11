@@ -147,7 +147,7 @@ export default {
 				const url = `/apps/pipelinq/api/activity/${encodeURIComponent(this.resolvedEntityType)}/${encodeURIComponent(this.objectId)}`
 					+ `?type=contactmomenten&_limit=${encodeURIComponent(this.limit)}`
 				const res = await fetch(url, { headers: { Accept: 'application/json' } })
-				if (!res.ok) throw new Error(String(res.status))
+				if (!res.ok) { throw new Error(String(res.status)) }
 				const body = await res.json()
 				this.items = Array.isArray(body.results) ? body.results : []
 				this.total = Number(body.total) || this.items.length

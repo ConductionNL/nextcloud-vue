@@ -145,6 +145,7 @@ export default {
 				this.unmountLeaf()
 			}
 		},
+
 		mountKey() {
 			// Bound object (or provider) changed: full teardown + rebuild.
 			this.unmountLeaf()

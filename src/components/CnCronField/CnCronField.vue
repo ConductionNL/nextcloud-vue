@@ -105,11 +105,13 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Label for the schedule picker. */
 		label: {
 			type: String,
 			default: '',
 		},
+
 		/** Whether every control is disabled. */
 		disabled: {
 			type: Boolean,

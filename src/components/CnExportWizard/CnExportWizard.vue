@@ -178,6 +178,7 @@ export default {
 			type: String,
 			default: 'Export',
 		},
+
 		/**
 		 * Optional description shown above the form fields.
 		 *
@@ -187,6 +188,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Scope pickers to render. Recognised values:
 		 * `'date-range'`, `'regulation'`, `'schema'`. Unknown values
@@ -198,6 +200,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Format options for the format select. Each entry can be a
 		 * string (the value, used as the label too) or an object
@@ -209,6 +212,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Delivery options. Recognised values include `'download'`,
 		 * `'email'`, `'api'`. `'email'` reveals an additional
@@ -220,6 +224,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Optional list of regulation values (e.g. `['GDPR', 'AVG']`).
 		 * When non-empty the regulation field renders as a select;
@@ -231,6 +236,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Override-map for the built-in field labels.
 		 * Keys: `'dateFrom' | 'dateTo' | 'regulation' | 'schema' | 'format' | 'delivery'`.
@@ -241,6 +247,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Confirm-button label. */
 		confirmLabel: { type: String, default: 'Export' },
 		/** Cancel-button label (form phase). */
@@ -259,6 +266,7 @@ export default {
 			default: () => ({}),
 		},
 	},
+
 	emits: ['close', 'confirm'],
 	data() {
 		return {
@@ -267,6 +275,7 @@ export default {
 			formData: this.buildEmptyForm(),
 		}
 	},
+
 	computed: {
 		/**
 		 * Default label for the "Date from" input. Consumers override
@@ -306,6 +315,7 @@ export default {
 		 */
 		deliveryLabel() { return 'Delivery' },
 	},
+
 	methods: {
 		/**
 		 * Build a fresh form-data object with default values applied.
@@ -324,6 +334,7 @@ export default {
 				...this.defaults,
 			}
 		},
+
 		/**
 		 * Pick the consumer-override label for a field, falling back
 		 * to the prop-level default.
@@ -336,6 +347,7 @@ export default {
 		labelOr(key, fallback) {
 			return this.fieldLabels[key] || fallback
 		},
+
 		/**
 		 * Stable DOM id helper so labels link to the right input.
 		 *
@@ -345,6 +357,7 @@ export default {
 		fieldIdFor(key) {
 			return `cn-export-wizard-${key}`
 		},
+
 		/**
 		 * Confirm handler. Emits @confirm with the current form data
 		 * and sets `loading` until `setResult` is called.
@@ -360,6 +373,7 @@ export default {
 			 */
 			this.$emit('confirm', { ...this.formData })
 		},
+
 		/**
 		 * Public method called by the parent to switch the dialog
 		 * into the result phase.
@@ -371,6 +385,7 @@ export default {
 			this.result = result || { success: true }
 			this.loading = false
 		},
+
 		/**
 		 * Close-button handler. Resets local state so the next open
 		 * starts fresh.

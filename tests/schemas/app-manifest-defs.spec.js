@@ -66,7 +66,7 @@ function structuralValidate(def, value, path = '$') {
 		}
 		const required = Array.isArray(def.required) ? def.required : []
 		for (const key of required) {
-			if (!(key in value)) errors.push(`${path}.${key}: required`)
+			if (!(key in value)) { errors.push(`${path}.${key}: required`) }
 		}
 		const props = def.properties || {}
 		const allowExtra = def.additionalProperties === true
@@ -110,7 +110,7 @@ function structuralValidate(def, value, path = '$') {
 		return { valid: errors.length === 0, errors }
 	}
 	if (def.type === 'boolean') {
-		if (typeof value !== 'boolean') errors.push(`${path}: must be boolean`)
+		if (typeof value !== 'boolean') { errors.push(`${path}: must be boolean`) }
 		return { valid: errors.length === 0, errors }
 	}
 	// def.type undefined (e.g. formField.default — "any") — accept.
@@ -212,13 +212,15 @@ describe('$defs.formField', () => {
 		expect(r.errors.some((e) => e.includes('type: must be one of'))).toBe(true)
 	})
 	it('declares type as a closed enum of the seven allowed values', () => {
-		expect(schema.$defs.formField.properties.type.enum).toEqual(
-			['boolean', 'number', 'string', 'enum', 'password', 'json', 'file'],
-		)
+		expect(schema.$defs.formField.properties.type.enum).toEqual(['boolean', 'number', 'string', 'enum', 'password', 'json', 'file'])
 	})
 	it('accepts a file field with its accept and maxSize options', () => {
 		const r = structuralValidate(schema.$defs.formField, {
-			key: 'report', label: 'Report', type: 'file', accept: '.pdf,image/*', maxSize: 10485760,
+			key: 'report',
+			label: 'Report',
+			type: 'file',
+			accept: '.pdf,image/*',
+			maxSize: 10485760,
 		})
 		expect(r).toEqual({ valid: true, errors: [] })
 		expect(schema.$defs.formField.properties.accept.type).toBe('string')

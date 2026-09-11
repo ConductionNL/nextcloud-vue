@@ -90,7 +90,6 @@ const testSchema = {
 // ---------- columnsFromSchema ----------
 
 describe('columnsFromSchema', () => {
-
 	it('generates columns from schema properties', () => {
 		const columns = columnsFromSchema(testSchema)
 		expect(columns.length).toBeGreaterThan(0)
@@ -207,7 +206,6 @@ describe('columnsFromSchema', () => {
 // ---------- formatValue ----------
 
 describe('formatValue', () => {
-
 	it('returns dash for null/undefined/empty', () => {
 		expect(formatValue(null)).toBe('—')
 		expect(formatValue(undefined)).toBe('—')
@@ -332,7 +330,6 @@ describe('formatValue', () => {
 // ---------- filtersFromSchema ----------
 
 describe('filtersFromSchema', () => {
-
 	it('returns filters for facetable properties only', () => {
 		const filters = filtersFromSchema(testSchema)
 		const keys = filters.map((f) => f.key)
@@ -532,7 +529,6 @@ const formSchema = {
 }
 
 describe('fieldsFromSchema', () => {
-
 	it('generates fields from schema properties', () => {
 		const fields = fieldsFromSchema(formSchema)
 		expect(fields.length).toBeGreaterThan(0)

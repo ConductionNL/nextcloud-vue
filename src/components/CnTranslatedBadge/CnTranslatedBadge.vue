@@ -80,28 +80,31 @@ export default {
 	computed: {
 		/**
 		 * The translatedFrom BCP-47 string when present, else null.
+		 *
 		 * @return {string|null}
 		 */
 		translatedFrom() {
 			const meta = this.object && this.object._translationMeta
-			if (!meta) return null
+			if (!meta) { return null }
 			const v = meta.translatedFrom
 			return typeof v === 'string' && v.length > 0 ? v : null
 		},
 
 		/**
 		 * The translatedAt ISO timestamp when present, else null.
+		 *
 		 * @return {string|null}
 		 */
 		translatedAt() {
 			const meta = this.object && this.object._translationMeta
-			if (!meta) return null
+			if (!meta) { return null }
 			const v = meta.translatedAt
 			return typeof v === 'string' && v.length > 0 ? v : null
 		},
 
 		/**
 		 * Whether the badge should render at all.
+		 *
 		 * @return {boolean}
 		 */
 		visible() {
@@ -111,15 +114,16 @@ export default {
 		/**
 		 * Display name for the source language. Falls back through
 		 * `localeNameFormatter` → `Intl.DisplayNames` → raw BCP-47.
+		 *
 		 * @return {string}
 		 */
 		sourceDisplayName() {
 			const bcp47 = this.translatedFrom
-			if (!bcp47) return ''
+			if (!bcp47) { return '' }
 			if (typeof this.localeNameFormatter === 'function') {
 				try {
 					const v = this.localeNameFormatter(bcp47)
-					if (typeof v === 'string' && v.length > 0) return v
+					if (typeof v === 'string' && v.length > 0) { return v }
 				} catch {
 					// fall through to Intl
 				}
@@ -129,7 +133,7 @@ export default {
 					const navLang = (typeof navigator !== 'undefined' && navigator.language) || 'en'
 					const dn = new Intl.DisplayNames([navLang], { type: 'language' })
 					const v = dn.of(bcp47)
-					if (typeof v === 'string' && v.length > 0) return v
+					if (typeof v === 'string' && v.length > 0) { return v }
 				} catch {
 					// fall through to raw
 				}
@@ -139,6 +143,7 @@ export default {
 
 		/**
 		 * The user-facing label, e.g. `(translated from Dutch)`.
+		 *
 		 * @return {string}
 		 */
 		label() {
@@ -148,10 +153,11 @@ export default {
 		/**
 		 * Hover title — exposes `translatedAt` so users can see how
 		 * old the projection is.
+		 *
 		 * @return {string}
 		 */
 		hoverTitle() {
-			if (!this.translatedAt) return ''
+			if (!this.translatedAt) { return '' }
 			try {
 				const d = new Date(this.translatedAt)
 				if (!Number.isNaN(d.getTime())) {

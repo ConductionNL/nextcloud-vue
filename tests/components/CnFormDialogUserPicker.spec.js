@@ -65,9 +65,7 @@ describe('CnFormDialog — Nextcloud user picker', () => {
 		const wrapper = mount(CnFormDialog, { propsData: { schema: userSchema, item: null }, stubs })
 		await flushPromises()
 		expect(searchNextcloudUsers).toHaveBeenCalled()
-		const options = wrapper.vm.getEffectiveOptions(
-			wrapper.vm.resolvedFields.find((f) => f.key === 'assignee'),
-		)
+		const options = wrapper.vm.getEffectiveOptions(wrapper.vm.resolvedFields.find((f) => f.key === 'assignee'))
 		expect(options).toEqual([
 			{ id: 'annemarie', label: 'Annemarie de Vries', subline: '' },
 			{ id: 'henk', label: 'Henk Bakker', subline: '' },

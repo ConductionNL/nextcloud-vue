@@ -560,9 +560,7 @@ export default {
 
 				const suffix = params.toString() ? `?${params.toString()}` : ''
 				const response = await fetch(
-					generateUrl(
-						`/apps/${this.resolvedApp}/api/store/items${suffix}`,
-					),
+					generateUrl(`/apps/${this.resolvedApp}/api/store/items${suffix}`),
 					{
 						headers: { requesttoken: window.OC?.requestToken },
 					},
@@ -604,9 +602,7 @@ export default {
 
 			try {
 				const response = await fetch(
-					generateUrl(
-						`/apps/${this.resolvedApp}/api/store/items/${encodeURIComponent(card.slug)}/install`,
-					),
+					generateUrl(`/apps/${this.resolvedApp}/api/store/items/${encodeURIComponent(card.slug)}/install`),
 					{
 						method: 'POST',
 						headers: {
@@ -618,16 +614,12 @@ export default {
 				const body = await response.json()
 
 				if (response.ok !== true) {
-					showError(
-						body.message
-							?? t('nextcloud-vue', 'The item could not be installed.'),
-					)
+					showError(body.message
+						?? t('nextcloud-vue', 'The item could not be installed.'))
 					return
 				}
 
-				const refused = (body.components ?? []).filter(
-					(c) => c.status !== 'installed',
-				)
+				const refused = (body.components ?? []).filter((c) => c.status !== 'installed')
 				if (refused.length === 0) {
 					showSuccess(t('nextcloud-vue', 'Installed.'))
 					this.report = null

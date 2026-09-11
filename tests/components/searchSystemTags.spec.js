@@ -95,12 +95,10 @@ describe('parseSystemTags', () => {
 	})
 
 	it('parses many tags in document order', () => {
-		const xml = multistatus(
-			collectionRoot
+		const xml = multistatus(collectionRoot
 			+ tagResponse({ id: 1, displayName: 'Alpha', userVisible: true })
 			+ tagResponse({ id: 2, displayName: 'Beta', canAssign: false })
-			+ tagResponse({ id: 3, displayName: 'Gamma', userAssignable: false, userVisible: false }),
-		)
+			+ tagResponse({ id: 3, displayName: 'Gamma', userAssignable: false, userVisible: false }))
 		expect(parseSystemTags(xml)).toEqual([
 			{ id: 1, displayName: 'Alpha', canAssign: true, userAssignable: true, userVisible: true },
 			{ id: 2, displayName: 'Beta', canAssign: false, userAssignable: true, userVisible: true },
@@ -110,7 +108,11 @@ describe('parseSystemTags', () => {
 
 	it('coerces the boolean flags from their string form', () => {
 		const xml = multistatus(tagResponse({
-			id: 7, displayName: 'Mixed', canAssign: false, userAssignable: true, userVisible: false,
+			id: 7,
+			displayName: 'Mixed',
+			canAssign: false,
+			userAssignable: true,
+			userVisible: false,
 		}))
 		const [tag] = parseSystemTags(xml)
 		expect(tag.canAssign).toBe(false)

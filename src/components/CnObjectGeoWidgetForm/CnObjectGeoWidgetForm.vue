@@ -131,6 +131,7 @@ export default {
 	emits: [
 		/**
 		 * Emitted with the assembled content blob on every field change.
+		 *
 		 * @event update:content
 		 * @type {object}
 		 */
@@ -206,7 +207,7 @@ export default {
 		 * @return {void}
 		 */
 		onBasemapSelect(option) {
-			if (!option || !option.id) return
+			if (!option || !option.id) { return }
 			this.updateField('basemap', option.id)
 		},
 
@@ -220,7 +221,7 @@ export default {
 		 */
 		onZoomInput(value) {
 			const parsed = Number.parseInt(value, 10)
-			if (!Number.isFinite(parsed)) return
+			if (!Number.isFinite(parsed)) { return }
 			this.updateField('defaultZoom', Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, parsed)))
 		},
 

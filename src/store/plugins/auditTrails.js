@@ -239,7 +239,7 @@ export function auditTrailsPlugin(options = {}) {
 			 * @return {Promise<boolean>} True if deleted successfully
 			 */
 			async deleteMultipleGlobalAuditTrails(ids) {
-				if (!ids?.length) return true
+				if (!ids?.length) { return true }
 
 				this.globalAuditTrailsLoading = true
 				this.globalAuditTrailsError = null

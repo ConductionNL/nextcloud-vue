@@ -115,10 +115,18 @@ describe('CnEmailTab', () => {
 
 	it('appends results when load-more is clicked', async () => {
 		const page0 = new Array(3).fill(null).map((_, i) => ({
-			id: i + 1, subject: `s${i + 1}`, sender: 'a', mailAccountId: 1, mailMessageId: i,
+			id: i + 1,
+			subject: `s${i + 1}`,
+			sender: 'a',
+			mailAccountId: 1,
+			mailMessageId: i,
 		}))
 		const page1 = new Array(2).fill(null).map((_, i) => ({
-			id: i + 4, subject: `s${i + 4}`, sender: 'b', mailAccountId: 1, mailMessageId: i + 10,
+			id: i + 4,
+			subject: `s${i + 4}`,
+			sender: 'b',
+			mailAccountId: 1,
+			mailMessageId: i + 10,
 		}))
 		global.fetch = jest.fn()
 			.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ results: page0, total: 5 }) })
@@ -140,7 +148,11 @@ describe('CnEmailTab', () => {
 
 	it('reads the standardized {items, total, nextCursor} envelope', async () => {
 		const items = new Array(3).fill(null).map((_, i) => ({
-			id: i + 1, subject: `s${i + 1}`, sender: 'a', mailAccountId: 1, mailMessageId: i,
+			id: i + 1,
+			subject: `s${i + 1}`,
+			sender: 'a',
+			mailAccountId: 1,
+			mailMessageId: i,
 		}))
 		global.fetch = jest.fn().mockResolvedValueOnce({
 			ok: true,

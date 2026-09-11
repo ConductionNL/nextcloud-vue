@@ -93,6 +93,7 @@ export default {
 	props: {
 		/**
 		 * Persisted configuration blob (see component description for the shape).
+		 *
 		 * @type {{register?: string, schema?: string, defaults?: object, clientSchema?: string, clientField?: string, clientLabelField?: string, subjectField?: string, summaryField?: string, channelField?: string, outcomeField?: string, channels?: Array, outcomes?: Array}}
 		 */
 		content: {
@@ -112,6 +113,7 @@ export default {
 				summary: '',
 				outcome: '',
 			},
+
 			saving: false,
 			errorMessage: '',
 			subjectError: '',
@@ -122,32 +124,39 @@ export default {
 		register() {
 			return this.content.register || 'pipelinq'
 		},
+
 		schema() {
 			return this.content.schema || 'contactmoment'
 		},
+
 		clientSchema() {
 			return this.content.clientSchema || 'client'
 		},
+
 		clientLabelField() {
 			return this.content.clientLabelField || 'name'
 		},
+
 		typeSlug() {
 			return `${this.register}-${this.schema}`
 		},
+
 		/** Channel options `{ value, label }`. */
 		channelOptions() {
 			return Array.isArray(this.content.channels) && this.content.channels.length > 0
 				? this.content.channels
 				: [
-					{ value: 'telefoon', label: t('nextcloud-vue', 'Phone') },
-					{ value: 'email', label: t('nextcloud-vue', 'Email') },
-					{ value: 'chat', label: t('nextcloud-vue', 'Chat') },
-				]
+						{ value: 'telefoon', label: t('nextcloud-vue', 'Phone') },
+						{ value: 'email', label: t('nextcloud-vue', 'Email') },
+						{ value: 'chat', label: t('nextcloud-vue', 'Chat') },
+					]
 		},
+
 		/** Outcome options `{ value, label }`. */
 		outcomeOptions() {
 			return Array.isArray(this.content.outcomes) ? this.content.outcomes : []
 		},
+
 		/**
 		 * The field descriptors handed to CnFormWidgetBase — the whole of this
 		 * widget's form, declared rather than drawn. Order matters: it is the
@@ -168,6 +177,7 @@ export default {
 				{ key: 'outcome', type: 'select', label: this.outcomeLabel, options: this.outcomeOptions, clearable: true },
 			]
 		},
+
 		objectStore() {
 			try {
 				return useObjectStore()
@@ -175,14 +185,17 @@ export default {
 				return null
 			}
 		},
+
 		workspaceCtx() {
 			const c = this.cnWorkspaceContext
-			if (!c) return null
+			if (!c) { return null }
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
+
 		canRegister() {
 			return Boolean(this.form.subject && this.form.subject.trim() && this.form.channel)
 		},
+
 		channelLabel() { return t('nextcloud-vue', 'Channel') },
 		clientLabel() { return t('nextcloud-vue', 'Client') },
 		subjectLabel() { return t('nextcloud-vue', 'Subject') },
@@ -211,7 +224,7 @@ export default {
 		 */
 		onFieldUpdate({ key, value }) {
 			this.form[key] = value
-			if (key === 'summary') this.writeWorkspace('activeSummary', value)
+			if (key === 'summary') { this.writeWorkspace('activeSummary', value) }
 		},
 
 		/**
@@ -255,7 +268,7 @@ export default {
 		 */
 		writeWorkspace(key, value) {
 			const holder = this.cnWorkspaceContext
-			if (!holder || typeof holder !== 'object') return
+			if (!holder || typeof holder !== 'object') { return }
 			if ('value' in holder) {
 				holder.value = { ...(holder.value || {}), [key]: value }
 				return
@@ -292,9 +305,9 @@ export default {
 				[c.channelField || 'channel']: this.form.channel,
 				[c.contactedAtField || 'contactedAt']: new Date().toISOString(),
 			}
-			if (this.form.client) payload[c.clientField || 'client'] = this.form.client
-			if (this.form.summary) payload[c.summaryField || 'summary'] = this.form.summary
-			if (this.form.outcome) payload[c.outcomeField || 'outcome'] = this.form.outcome
+			if (this.form.client) { payload[c.clientField || 'client'] = this.form.client }
+			if (this.form.summary) { payload[c.summaryField || 'summary'] = this.form.summary }
+			if (this.form.outcome) { payload[c.outcomeField || 'outcome'] = this.form.outcome }
 
 			this.saving = true
 			try {

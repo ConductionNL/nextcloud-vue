@@ -159,9 +159,7 @@ export default {
 				{ field: 'removedKeys', label: this.t('nextcloud-vue', 'Setting') },
 			]
 
-			return kinds.flatMap(({ field, label }) =>
-				(preview[field] || []).map((name) => ({ key: `${field}:${name}`, kind: label, name })),
-			)
+			return kinds.flatMap(({ field, label }) => (preview[field] || []).map((name) => ({ key: `${field}:${name}`, kind: label, name })))
 		},
 	},
 

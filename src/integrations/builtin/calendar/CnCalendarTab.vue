@@ -319,17 +319,19 @@ export default {
 			})
 			return copy
 		},
+
 		upcomingEvents() {
 			const now = Date.now()
 			return this.sortedEvents.filter((ev) => {
-				if (!ev.dtstart) return true
+				if (!ev.dtstart) { return true }
 				return new Date(ev.dtstart).getTime() >= now
 			})
 		},
+
 		pastEvents() {
 			const now = Date.now()
 			return this.sortedEvents.filter((ev) => {
-				if (!ev.dtstart) return false
+				if (!ev.dtstart) { return false }
 				return new Date(ev.dtstart).getTime() < now
 			})
 		},
@@ -357,7 +359,7 @@ export default {
 		},
 
 		async fetchEvents() {
-			if (!this.register || !this.schema || !this.objectId) return
+			if (!this.register || !this.schema || !this.objectId) { return }
 			this.loading = true
 			this.error = ''
 			this.degraded = false
@@ -386,9 +388,11 @@ export default {
 		openCreate() {
 			this.showCreate = true
 		},
+
 		closeCreate() {
 			this.showCreate = false
 		},
+
 		async onEventCreated() {
 			this.closeCreate()
 			await this.fetchEvents()
@@ -398,9 +402,11 @@ export default {
 		openPicker() {
 			this.showPicker = true
 		},
+
 		closePicker() {
 			this.showPicker = false
 		},
+
 		async onPickerLink(payload) {
 			// payload: { calendarUri, eventUid }
 			this.closePicker()
@@ -418,7 +424,7 @@ export default {
 					let message = t('nextcloud-vue', 'Could not link the meeting.')
 					try {
 						const body = await response.json()
-						if (body && typeof body.error === 'string') message = body.error
+						if (body && typeof body.error === 'string') { message = body.error }
 					} catch (_) { /* ignore */ }
 					this.error = message
 				}
@@ -431,7 +437,7 @@ export default {
 
 		async unlink(ev) {
 			const key = this.rowKey(ev)
-			if (this.rowBusyKey || !key) return
+			if (this.rowBusyKey || !key) { return }
 			this.rowBusyKey = key
 			this.error = ''
 			try {
@@ -458,7 +464,7 @@ export default {
 		async deleteEvent(ev) {
 			const key = this.rowKey(ev)
 			const eventUri = ev.id
-			if (this.rowBusyKey || !eventUri) return
+			if (this.rowBusyKey || !eventUri) { return }
 			this.rowBusyKey = key
 			this.error = ''
 			try {
@@ -483,20 +489,20 @@ export default {
 		// --- Presentation helpers (NC Calendar agenda look) ---
 
 		parseDate(value) {
-			if (!value) return null
+			if (!value) { return null }
 			const d = new Date(value)
 			return Number.isNaN(d.getTime()) ? null : d
 		},
 
 		monthOf(ev) {
 			const d = this.parseDate(ev.dtstart)
-			if (!d) return '—'
+			if (!d) { return '—' }
 			return d.toLocaleDateString(undefined, { month: 'short' })
 		},
 
 		dayOf(ev) {
 			const d = this.parseDate(ev.dtstart)
-			if (!d) return '?'
+			if (!d) { return '?' }
 			return String(d.getDate())
 		},
 
@@ -523,23 +529,23 @@ export default {
 
 		statusLabel(ev) {
 			const status = (ev.status || '').toString().toLowerCase()
-			if (status === 'confirmed') return t('nextcloud-vue', 'Confirmed')
-			if (status === 'tentative') return t('nextcloud-vue', 'Tentative')
-			if (status === 'cancelled') return t('nextcloud-vue', 'Cancelled')
+			if (status === 'confirmed') { return t('nextcloud-vue', 'Confirmed') }
+			if (status === 'tentative') { return t('nextcloud-vue', 'Tentative') }
+			if (status === 'cancelled') { return t('nextcloud-vue', 'Cancelled') }
 			return ''
 		},
 
 		statusVariant(ev) {
 			const status = (ev.status || '').toString().toLowerCase()
-			if (status === 'confirmed') return 'success'
-			if (status === 'tentative') return 'warning'
-			if (status === 'cancelled') return 'error'
+			if (status === 'confirmed') { return 'success' }
+			if (status === 'tentative') { return 'warning' }
+			if (status === 'cancelled') { return 'error' }
 			return 'default'
 		},
 
 		attendeeList(ev) {
 			const raw = ev.attendees || ev.participants || []
-			if (!Array.isArray(raw)) return []
+			if (!Array.isArray(raw)) { return [] }
 			return raw.map((att) => {
 				if (typeof att === 'string') {
 					return { name: att, initials: this.initialsFor(att) }
@@ -565,11 +571,11 @@ export default {
 
 		initialsFor(name) {
 			const clean = (name || '').trim()
-			if (!clean) return '?'
+			if (!clean) { return '?' }
 			const local = clean.includes('@') ? clean.split('@')[0] : clean
 			const parts = local.split(/[\s._-]+/).filter(Boolean)
-			if (parts.length === 0) return clean.charAt(0).toUpperCase()
-			if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+			if (parts.length === 0) { return clean.charAt(0).toUpperCase() }
+			if (parts.length === 1) { return parts[0].charAt(0).toUpperCase() }
 			return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
 		},
 	},

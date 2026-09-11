@@ -20,7 +20,7 @@ jest.mock('@nextcloud/router', () => ({
 	__esModule: true,
 	generateUrl: jest.fn((p, params) => {
 		let out = p
-		for (const [k, v] of Object.entries(params || {})) out = out.replace(`{${k}}`, v)
+		for (const [k, v] of Object.entries(params || {})) { out = out.replace(`{${k}}`, v) }
 		return `/nc${out}`
 	}),
 }))
@@ -343,7 +343,7 @@ describe('CnChartWidget — dataSource.aggregate (Wave 3)', () => {
 
 	it('client-side fallback sums sumField when metric is sum', async () => {
 		axios.get.mockImplementation((url) => {
-			if (url === GROUPED_URL) return Promise.reject(new Error('404'))
+			if (url === GROUPED_URL) { return Promise.reject(new Error('404')) }
 			return Promise.resolve({
 				data: {
 					results: [

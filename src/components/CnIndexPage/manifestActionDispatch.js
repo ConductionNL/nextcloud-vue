@@ -23,7 +23,7 @@ function isExternalUrl(target) {
  * @return {{ resolved: boolean, value: * }} `resolved` is false when a token names a field the row does not carry.
  */
 function resolveRowToken(value, row) {
-	if (typeof value !== 'string' || !value.includes('{')) return { resolved: true, value }
+	if (typeof value !== 'string' || !value.includes('{')) { return { resolved: true, value } }
 
 	const exact = value.match(/^\{([^{}]+)\}$/)
 	if (exact) {
@@ -108,7 +108,7 @@ export function resolveActionHandler(action, ctx) {
 
 	// type === 'handler' (default): the v1.3.0 handler-string path.
 	const name = action.handler
-	if (typeof name !== 'string' || name.length === 0) return null
+	if (typeof name !== 'string' || name.length === 0) { return null }
 
 	if (name === 'navigate') {
 		const route = action.route
@@ -138,8 +138,8 @@ export function resolveActionHandler(action, ctx) {
 		}
 	}
 
-	if (name === 'emit') return null
-	if (name === 'none') return () => {}
+	if (name === 'emit') { return null }
+	if (name === 'none') { return () => {} }
 
 	const fn = ctx.customComponents[name]
 	if (typeof fn === 'function') {
@@ -164,7 +164,7 @@ export function resolveActionHandler(action, ctx) {
  * @return {object} The action with its handler resolved (or stripped on failure).
  */
 export function dispatchAction(action, ctx) {
-	if (typeof action.handler === 'function') return action
+	if (typeof action.handler === 'function') { return action }
 
 	const type = (typeof action.type === 'string' && action.type.length > 0) ? action.type : 'handler'
 	// Nothing to resolve: the default `handler` type with no handler string

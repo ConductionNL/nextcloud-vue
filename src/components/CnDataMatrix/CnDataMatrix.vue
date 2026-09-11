@@ -153,12 +153,14 @@ export default {
 		/** Label preceding the column-totals row. */
 		columnTotalsLabel: { type: String, default: 'Total' },
 	},
+
 	emits: ['cell-edit'],
 	data() {
 		return {
 			editing: null, // { rowId, colKey }
 		}
 	},
+
 	computed: {
 		/**
 		 * Grand total (sum of every numeric cell). Shown in the
@@ -172,13 +174,14 @@ export default {
 				for (const col of this.columns) {
 					if (col.type === 'number') {
 						const v = Number(row[col.key])
-						if (Number.isFinite(v)) total += v
+						if (Number.isFinite(v)) { total += v }
 					}
 				}
 			}
 			return total
 		},
 	},
+
 	methods: {
 		/**
 		 * Whether the given (row, col) is the active edit cell.
@@ -190,6 +193,7 @@ export default {
 		isEditing(row, col) {
 			return this.editing && this.editing.rowId === row[this.rowIdKey] && this.editing.colKey === col.key
 		},
+
 		/**
 		 * Effective read-only flag for a single cell.
 		 *
@@ -200,6 +204,7 @@ export default {
 		isCellReadOnly(row, col) {
 			return Boolean(col.readOnly)
 		},
+
 		/**
 		 * Read the cell value from the row.
 		 *
@@ -210,6 +215,7 @@ export default {
 		cellValue(row, col) {
 			return row[col.key]
 		},
+
 		/**
 		 * Format a cell value for display. Number columns get a
 		 * locale-formatted number; others go through the column's
@@ -220,15 +226,16 @@ export default {
 		 * @return {string} The display string.
 		 */
 		formatCell(value, col) {
-			if (value === undefined || value === null || value === '') return ''
-			if (typeof col.formatter === 'function') return col.formatter(value)
+			if (value === undefined || value === null || value === '') { return '' }
+			if (typeof col.formatter === 'function') { return col.formatter(value) }
 			if (col.type === 'number') {
 				const n = Number(value)
-				if (!Number.isFinite(n)) return value
+				if (!Number.isFinite(n)) { return value }
 				return n.toLocaleString()
 			}
 			return value
 		},
+
 		/**
 		 * BEM modifier(s) for a cell — currently only the read-only
 		 * flag. Consumers extend via the `formatter` if they want
@@ -244,6 +251,7 @@ export default {
 				'cn-data-matrix__cell--number': col.type === 'number',
 			}
 		},
+
 		/**
 		 * Start editing a cell.
 		 *
@@ -252,7 +260,7 @@ export default {
 		 * @return {void}
 		 */
 		startEdit(row, col) {
-			if (this.readOnly || this.isCellReadOnly(row, col)) return
+			if (this.readOnly || this.isCellReadOnly(row, col)) { return }
 			this.editing = { rowId: row[this.rowIdKey], colKey: col.key }
 			this.$nextTick(() => {
 				if (this.$refs.activeInput && this.$refs.activeInput[0]) {
@@ -264,6 +272,7 @@ export default {
 				}
 			})
 		},
+
 		/**
 		 * Commit an edit — coerces the value to the column type and
 		 * emits `@cell-edit`.
@@ -274,7 +283,7 @@ export default {
 		 * @return {void}
 		 */
 		commitEdit(row, col, raw) {
-			if (!this.editing) return
+			if (!this.editing) { return }
 			let value = raw
 			if (col.type === 'number') {
 				const n = Number(raw)
@@ -288,6 +297,7 @@ export default {
 			 */
 			this.$emit('cell-edit', { rowId: row[this.rowIdKey], colKey: col.key, value, row })
 		},
+
 		/**
 		 * Cancel the active edit (Esc).
 		 *
@@ -296,6 +306,7 @@ export default {
 		cancelEdit() {
 			this.editing = null
 		},
+
 		/**
 		 * Per-row total — sum of every numeric column.
 		 *
@@ -307,11 +318,12 @@ export default {
 			for (const col of this.columns) {
 				if (col.type === 'number') {
 					const v = Number(row[col.key])
-					if (Number.isFinite(v)) total += v
+					if (Number.isFinite(v)) { total += v }
 				}
 			}
 			return total
 		},
+
 		/**
 		 * Per-column total — aggregate over all rows using the
 		 * column's `aggregate` setting (`sum` by default).
@@ -320,9 +332,9 @@ export default {
 		 * @return {number}
 		 */
 		columnTotal(col) {
-			if (col.type !== 'number') return ''
+			if (col.type !== 'number') { return '' }
 			const mode = col.aggregate || 'sum'
-			if (mode === 'none') return ''
+			if (mode === 'none') { return '' }
 			// Drop empty cells (null / undefined / '') BEFORE coercing —
 			// `Number(null)` is `0`, which would otherwise be counted and
 			// summed as a real zero value.
@@ -331,9 +343,9 @@ export default {
 				.filter((v) => v !== null && v !== undefined && v !== '')
 				.map((v) => Number(v))
 				.filter((v) => Number.isFinite(v))
-			if (values.length === 0) return 0
-			if (mode === 'count') return values.length
-			if (mode === 'avg') return values.reduce((a, b) => a + b, 0) / values.length
+			if (values.length === 0) { return 0 }
+			if (mode === 'count') { return values.length }
+			if (mode === 'avg') { return values.reduce((a, b) => a + b, 0) / values.length }
 			// default: sum
 			return values.reduce((a, b) => a + b, 0)
 		},

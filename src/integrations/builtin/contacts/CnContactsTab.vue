@@ -326,9 +326,9 @@ export default {
 		 */
 		initialsFor(contact) {
 			const name = (contact?.displayName || '').trim()
-			if (name === '') return '?'
+			if (name === '') { return '?' }
 			const parts = name.split(/\s+/).filter(Boolean)
-			if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+			if (parts.length === 1) { return parts[0].charAt(0).toUpperCase() }
 			return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
 		},
 
@@ -408,7 +408,7 @@ export default {
 		},
 
 		async fetchContacts() {
-			if (!this.register || !this.schema || !this.objectId) return
+			if (!this.register || !this.schema || !this.objectId) { return }
 			this.loading = true
 			this.error = null
 			try {
@@ -459,7 +459,7 @@ export default {
 		},
 
 		async unlink(contact) {
-			if (!contact?.contactUid) return
+			if (!contact?.contactUid) { return }
 			try {
 				const url = `${this.baseUrl}/${encodeURIComponent(contact.contactUid)}`
 				await fetch(url, { method: 'DELETE', headers: buildHeaders() })

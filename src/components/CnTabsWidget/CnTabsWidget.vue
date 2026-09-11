@@ -187,9 +187,10 @@ export default {
 				 * @return {void}
 				 */
 				set: (id, items) => {
-					if (!id) return
+					if (!id) { return }
 					this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: items }
 				},
+
 				/**
 				 * Withdraw a panel's items, on unmount or when its own menu
 				 * comes back.
@@ -198,7 +199,7 @@ export default {
 				 * @return {void}
 				 */
 				clear: (id) => {
-					if (!(id in this.panelActionsByWidget)) return
+					if (!(id in this.panelActionsByWidget)) { return }
 					const { [id]: _removed, ...rest } = this.panelActionsByWidget
 					this.panelActionsByWidget = rest
 				},
@@ -219,6 +220,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Every widget definition available on the surface, for `content.tabs[]`
 		 * to reference by id.
@@ -233,71 +235,85 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** The bound record's id. */
 		objectId: {
 			type: [String, Number],
 			default: '',
 		},
+
 		/** The loaded record, or null while it is still being fetched. */
 		objectData: {
 			type: Object,
 			default: null,
 		},
+
 		/** The resolved object-type slug. */
 		objectType: {
 			type: String,
 			default: '',
 		},
+
 		/** The resolved JSON Schema object, needed by a `data` child. */
 		schemaObject: {
 			type: Object,
 			default: null,
 		},
+
 		/** OpenRegister register slug of the surface. */
 		register: {
 			type: [String, Object],
 			default: '',
 		},
+
 		/** OpenRegister schema slug of the surface. */
 		schema: {
 			type: [String, Object],
 			default: '',
 		},
+
 		/** The effective object store. */
 		store: {
 			type: Object,
 			default: null,
 		},
+
 		/** Rendering surface forwarded to integration children (AD-19). */
 		surface: {
 			type: String,
 			default: 'detail-page',
 		},
+
 		/** Object context forwarded to integration children. */
 		integrationContext: {
 			type: Object,
 			default: null,
 		},
+
 		/** The consumer's component registry, for custom child widget types. */
 		cnRegistry: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Show the Refresh entry in the hoisted Actions menu. */
 		showRefresh: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Show the Request-a-feature entry in the hoisted Actions menu. */
 		showRequestFeature: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Show the Documentation entry in the hoisted Actions menu. */
 		showDocumentation: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Documentation URL for the hoisted Actions menu. */
 		documentationUrl: {
 			type: String,

@@ -12,7 +12,7 @@
  * @return {void}
  */
 export function applyAiContext(holder, pageKind, ctx = {}) {
-	if (!holder) return
+	if (!holder) { return }
 	holder.pageKind = pageKind
 	if (pageKind === 'index') {
 		holder.registerSlug = ctx.register || undefined

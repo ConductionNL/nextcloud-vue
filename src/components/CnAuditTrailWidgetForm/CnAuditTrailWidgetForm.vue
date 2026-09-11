@@ -49,6 +49,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values when not editing (registry defaults).
 		 *

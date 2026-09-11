@@ -85,8 +85,7 @@ const plainSchema = {
  * @param {string} slug The referenced schema slug the call must end with.
  * @return {Array<Array>} The matching mock calls, in order.
  */
-const callsFor = (slug) =>
-	mockStore.fetchCollection.mock.calls.filter(([s]) => String(s).endsWith(slug))
+const callsFor = (slug) => mockStore.fetchCollection.mock.calls.filter(([s]) => String(s).endsWith(slug))
 
 beforeEach(() => {
 	mockStore.objectTypeRegistry = {}

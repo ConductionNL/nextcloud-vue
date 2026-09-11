@@ -266,6 +266,7 @@ export default {
 	methods: {
 		/**
 		 * Check if an icon value is a component reference (not a string name).
+		 *
 		 * @param {*} icon - Icon value to check
 		 * @return {boolean}
 		 */

@@ -217,6 +217,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * OpenRegister register id — a slug/uuid string, or the register
 		 * OBJECT a detail page injects. Accepts both for the same reason
@@ -256,6 +257,7 @@ export default {
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+
 		/**
 		 * Explicit allowlist of leaf ids to show as tabs. When omitted,
 		 * all registered integrations eligible for `surface` are shown.
@@ -533,6 +535,7 @@ export default {
 				objectId: this.objectId !== '' && this.objectId !== null && this.objectId !== undefined
 					? String(this.objectId)
 					: '',
+
 				objectType: this.objectType,
 				apiBase: this.apiBase,
 				surface: this.surface,

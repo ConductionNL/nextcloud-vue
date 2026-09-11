@@ -74,9 +74,7 @@ const DEFINITION_TYPE = 'dossiq/propertyDefinition'
  */
 function mockStore(records = definitions) {
 	const state = { definitions: records }
-	const fetchCollection = jest.fn((type) => Promise.resolve(
-		type === DEFINITION_TYPE ? state.definitions : [],
-	))
+	const fetchCollection = jest.fn((type) => Promise.resolve(type === DEFINITION_TYPE ? state.definitions : []))
 	useObjectStore.mockReturnValue({
 		fetchCollection,
 		createObjectTypeSlug: (register, schema) => `${register}/${schema}`,

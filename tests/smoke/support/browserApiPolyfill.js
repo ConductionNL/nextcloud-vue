@@ -31,14 +31,12 @@ function installInertObserver(name) {
 		return
 	}
 	globalThis[name] = class {
-
 		observe() {}
 		unobserve() {}
 		disconnect() {}
 		takeRecords() {
 			return []
 		}
-
 	}
 }
 

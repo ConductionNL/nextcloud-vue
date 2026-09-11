@@ -145,9 +145,7 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 		// REQ-IMM-002: no manifest backend fetch / URL computation happened.
 		// (Unrelated AI-companion health probe is permitted; the manifest
 		// endpoint must not be hit.)
-		const manifestCalls = axios.get.mock.calls.filter(
-			(call) => typeof call[0] === 'string' && call[0].includes('/api/manifest'),
-		)
+		const manifestCalls = axios.get.mock.calls.filter((call) => typeof call[0] === 'string' && call[0].includes('/api/manifest'))
 		expect(manifestCalls).toHaveLength(0)
 		expect(generateUrl).not.toHaveBeenCalled()
 	})
@@ -275,9 +273,7 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 		// rather than a placeholder — the mount is not blocked.
 		expect(wrapper.find('.router-view-stub').attributes('data-page-id')).toBe('dup')
 		// No manifest endpoint hit (AI-companion health probe is unrelated).
-		const manifestCalls = axios.get.mock.calls.filter(
-			(call) => typeof call[0] === 'string' && call[0].includes('/api/manifest'),
-		)
+		const manifestCalls = axios.get.mock.calls.filter((call) => typeof call[0] === 'string' && call[0].includes('/api/manifest'))
 		expect(manifestCalls).toHaveLength(0)
 
 		warnSpy.mockRestore()
@@ -315,9 +311,7 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 
 		// REQ-IMM-004: the fetcher branch ran — axios.get called once
 		// against the generated manifest endpoint.
-		const manifestCalls = axios.get.mock.calls.filter(
-			(call) => typeof call[0] === 'string' && call[0].includes('/api/manifest'),
-		)
+		const manifestCalls = axios.get.mock.calls.filter((call) => typeof call[0] === 'string' && call[0].includes('/api/manifest'))
 		expect(manifestCalls).toHaveLength(1)
 		expect(manifestCalls[0][0]).toBe('/index.php/apps/fixture-app/api/manifest')
 		expect(generateUrl).toHaveBeenCalledWith('/apps/fixture-app/api/manifest')

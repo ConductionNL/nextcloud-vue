@@ -108,12 +108,14 @@ export default {
 	props: {
 		/**
 		 * Default position for the FAB.
+		 *
 		 * @type {'bottom-right'|'bottom-left'|'top-right'|'top-left'}
 		 */
 		position: {
 			type: String,
 			default: 'bottom-right',
 		},
+
 		/**
 		 * Backend app id that answers the chat/health/conversation HTTP calls
 		 * (`/index.php/apps/{chatAppId}/api/...`). Single configuration point for
@@ -122,6 +124,7 @@ export default {
 		 * "Amendment 2026-07-05"); `CnAppRoot` forwards its own `chatAppId`
 		 * prop here so a consuming app can point the widget at another backend
 		 * (e.g. `openregister` during its compat window) in one place.
+		 *
 		 * @type {string}
 		 */
 		chatAppId: {
@@ -141,6 +144,7 @@ export default {
 		 * Shape mirrors the injected context: `{ appId, pageKind, fileId,
 		 * objectUuid, registerSlug, schemaSlug, route }`. All optional; whatever
 		 * the host knows is better than 'unknown'.
+		 *
 		 * @type {object|null}
 		 */
 		context: {
@@ -338,10 +342,8 @@ export default {
 						continue
 					}
 					// eslint-disable-next-line no-console
-					console.info(
-						`[CnAiCompanion] chat backend "${this.chatAppId}" health probe did not return 2xx `
-							+ `after ${HEALTH_PROBE_ATTEMPTS} attempts — widget hidden`,
-					)
+					console.info(`[CnAiCompanion] chat backend "${this.chatAppId}" health probe did not return 2xx `
+						+ `after ${HEALTH_PROBE_ATTEMPTS} attempts — widget hidden`)
 					this.probeSucceeded = false
 				}
 			}
@@ -352,6 +354,7 @@ export default {
 		 *
 		 * The launcher stays visible while the window is open (see the template),
 		 * so it has to answer for both directions rather than only opening.
+		 *
 		 * @return {void}
 		 */
 		togglePanel() {

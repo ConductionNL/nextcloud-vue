@@ -47,12 +47,14 @@ export default {
 	props: {
 		/**
 		 * Folders at this level. Each may carry a `children` array for nesting.
+		 *
 		 * @type {Array<{ id: (string|number), name: string, icon?: string, count?: number, children?: Array }>}
 		 */
 		folders: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** The currently selected folder id. */
 		selectedId: {
 			type: [String, Number],

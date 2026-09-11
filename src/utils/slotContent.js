@@ -26,11 +26,11 @@ import { Comment, Fragment, Text } from 'vue'
  * @return {boolean} True when at least one vnode renders visible content.
  */
 export function hasRenderableContent(nodes) {
-	if (!Array.isArray(nodes)) return false
+	if (!Array.isArray(nodes)) { return false }
 	return nodes.some((vnode) => {
-		if (!vnode || vnode.type === Comment) return false
-		if (vnode.type === Text) return String(vnode.children ?? '').trim() !== ''
-		if (vnode.type === Fragment) return hasRenderableContent(vnode.children)
+		if (!vnode || vnode.type === Comment) { return false }
+		if (vnode.type === Text) { return String(vnode.children ?? '').trim() !== '' }
+		if (vnode.type === Fragment) { return hasRenderableContent(vnode.children) }
 		return true
 	})
 }
@@ -46,7 +46,7 @@ export function hasRenderableContent(nodes) {
  * @return {boolean} True when calling it yields visible content.
  */
 export function slotRenders(slot) {
-	if (typeof slot !== 'function') return false
+	if (typeof slot !== 'function') { return false }
 	try {
 		return hasRenderableContent(slot())
 	} catch (e) {

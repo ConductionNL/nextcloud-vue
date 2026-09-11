@@ -132,11 +132,13 @@ export default {
 
 	computed: {
 		boardOptions() {
-			return this.boards.map(board => ({ id: board.id, label: board.title }))
+			return this.boards.map((board) => ({ id: board.id, label: board.title }))
 		},
+
 		stackOptions() {
-			return this.stacks.map(stack => ({ id: stack.id, label: stack.title }))
+			return this.stacks.map((stack) => ({ id: stack.id, label: stack.title }))
 		},
+
 		canSubmit() {
 			return Boolean(this.selectedBoard && this.selectedStack && this.title.trim())
 		},

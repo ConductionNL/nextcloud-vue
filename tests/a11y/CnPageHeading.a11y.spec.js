@@ -100,10 +100,10 @@ const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6, [role="heading"]'
 function isExposedToAssistiveTech(element) {
 	let node = element
 	while (node && node.nodeType === 1) {
-		if (node.getAttribute('aria-hidden') === 'true') return false
-		if (node.hasAttribute('hidden')) return false
+		if (node.getAttribute('aria-hidden') === 'true') { return false }
+		if (node.hasAttribute('hidden')) { return false }
 		const style = window.getComputedStyle(node)
-		if (style.display === 'none' || style.visibility === 'hidden') return false
+		if (style.display === 'none' || style.visibility === 'hidden') { return false }
 		node = node.parentElement
 	}
 	return true

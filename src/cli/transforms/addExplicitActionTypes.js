@@ -26,9 +26,9 @@ function addExplicitActionTypes(page) {
 
 	// Helper that adds type:"handler" to actions missing a type field
 	function normalizeActions(actions) {
-		if (!Array.isArray(actions)) return actions
+		if (!Array.isArray(actions)) { return actions }
 		return actions.map((action) => {
-			if (!action || typeof action !== 'object') return action
+			if (!action || typeof action !== 'object') { return action }
 			if (action.type === undefined) {
 				count++
 				return { ...action, type: 'handler' }

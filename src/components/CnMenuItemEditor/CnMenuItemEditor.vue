@@ -97,11 +97,13 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** 1-indexed depth — drives the indent and the depth label. */
 		depth: {
 			type: Number,
 			default: 1,
 		},
+
 		/**
 		 * Path of indices from the root to this item (e.g. `[0, 2]`).
 		 *
@@ -111,6 +113,7 @@ export default {
 			type: Array,
 			required: true,
 		},
+
 		/**
 		 * Whether the widget's "Show Icons" option is enabled. Hides the icon
 		 * picker (and stops it wasting row space) when icons won't render at

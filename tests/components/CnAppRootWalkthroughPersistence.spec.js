@@ -112,9 +112,7 @@ describe('CnAppRoot walkthrough completion persistence', () => {
 	it('reads the declared completionConfigKey on mount', async () => {
 		const w = mountRoot('wt-read')
 		await settle()
-		expect(axios.get).toHaveBeenCalledWith(
-			expect.stringContaining('/apps/wt-read' + PREF_PATH),
-		)
+		expect(axios.get).toHaveBeenCalledWith(expect.stringContaining('/apps/wt-read' + PREF_PATH))
 		w.unmount()
 	})
 

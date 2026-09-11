@@ -136,6 +136,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values — used when not editing and the parent
 		 * supplies registry defaults.
@@ -166,6 +167,7 @@ export default {
 			lineThickness: typeof initial.lineThickness === 'number'
 				? initial.lineThickness
 				: DEFAULT_CONTENT.lineThickness,
+
 			lineStyle: initial.lineStyle ?? DEFAULT_CONTENT.lineStyle,
 			whitespaceSize: initial.whitespaceSize ?? DEFAULT_CONTENT.whitespaceSize,
 			headingText: initial.headingText ?? DEFAULT_CONTENT.headingText,

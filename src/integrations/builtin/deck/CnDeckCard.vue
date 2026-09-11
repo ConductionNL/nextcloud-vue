@@ -140,6 +140,7 @@ export default {
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+
 		/** Optional single-entity reference (card id). */
 		value: { type: [String, Number], default: '' },
 		/** Pre-translated card title. */

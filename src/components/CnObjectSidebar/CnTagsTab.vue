@@ -110,7 +110,7 @@ export default {
 
 	methods: {
 		async fetchTags() {
-			if (!this.register || !this.schema) return
+			if (!this.register || !this.schema) { return }
 			this.loading = true
 			try {
 				const response = await fetch(
@@ -128,7 +128,7 @@ export default {
 		},
 
 		async fetchAvailableTags() {
-			if (!this.register || !this.schema) return
+			if (!this.register || !this.schema) { return }
 			try {
 				const response = await fetch(`${this.apiBase}/tags`, { headers: buildHeaders() })
 				if (response.ok) {
@@ -142,12 +142,10 @@ export default {
 		filterSuggestions() {
 			const query = this.newTagName.trim().toLowerCase()
 			if (!query) {
-				this.filtered = this.availableTags.filter(t => !this.tags.includes(t))
+				this.filtered = this.availableTags.filter((t) => !this.tags.includes(t))
 				return
 			}
-			this.filtered = this.availableTags.filter(
-				t => t.toLowerCase().includes(query) && !this.tags.includes(t),
-			)
+			this.filtered = this.availableTags.filter((t) => t.toLowerCase().includes(query) && !this.tags.includes(t))
 		},
 
 		selectSuggestion(tagName) {
@@ -157,7 +155,7 @@ export default {
 		},
 
 		async addTag() {
-			if (!this.newTagName.trim() || !this.register || !this.schema) return
+			if (!this.newTagName.trim() || !this.register || !this.schema) { return }
 			this.saving = true
 			this.showSuggestions = false
 			try {
@@ -182,7 +180,7 @@ export default {
 		},
 
 		async removeTag(tagName) {
-			if (!this.register || !this.schema) return
+			if (!this.register || !this.schema) { return }
 			try {
 				const response = await fetch(
 					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags/${encodeURIComponent(tagName)}`,

@@ -74,6 +74,7 @@ export default {
 		cnAiContext: {
 			default: () => ({ appId: 'unknown' }),
 		},
+
 		/**
 		 * Forge config provided by CnAppRoot from `manifest.nav.forge`.
 		 * Used as the fallback for `resolvedForge` so the whole app shares
@@ -94,16 +95,19 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Target forge for the feature-request deep-link. Manifest config
 		 * > initialState > the `cnFeatureRequestForge` inject (CnAppRoot)
 		 * > Codeberg.
+		 *
 		 * @type {{type: 'codeberg'|'forgejo'|'gitea'|'github', baseUrl?: string}|null}
 		 */
 		forge: {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Build-time feature manifest. When omitted, falls back to
 		 * the loadState value, then to an empty array.
@@ -114,6 +118,7 @@ export default {
 			type: Array,
 			default: null,
 		},
+
 		/**
 		 * Admin opt-out flag. When omitted, falls back to the
 		 * loadState value, then to false.
@@ -124,6 +129,7 @@ export default {
 			type: Boolean,
 			default: null,
 		},
+
 		/**
 		 * Override for the OpenBuilt sidebar CTA target. Manifest config
 		 * > initialState > the view's own default (in-instance /apps/openbuilt).
@@ -132,6 +138,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Override for the LLM-skills sidebar CTA target. Manifest config
 		 * > initialState > docs.conduction.nl/ai-skills.
@@ -140,6 +147,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Override for the Suggest sidebar CTA. When set, the sidebar
 		 * Suggest CTA renders as an anchor pointing here; when empty
@@ -150,6 +158,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * URL of the app's public documentation site. When set, an info
 		 * banner above the card grid points users at the docs. Manifest
@@ -159,6 +168,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Override for the appId used to namespace loadState lookups.
 		 * Tests pass an explicit value; production reads it from the
@@ -238,18 +248,22 @@ export default {
 			}
 			return readInitialState(this.effectiveAppId, 'features_roadmap_disabled', false)
 		},
+
 		resolvedOpenbuiltUrl() {
 			return this.openbuiltUrl
 				|| readInitialState(this.effectiveAppId, 'features_roadmap_openbuilt_url', '')
 		},
+
 		resolvedLlmSkillsUrl() {
 			return this.llmSkillsUrl
 				|| readInitialState(this.effectiveAppId, 'features_roadmap_llm_skills_url', '')
 		},
+
 		resolvedSuggestUrl() {
 			return this.suggestUrl
 				|| readInitialState(this.effectiveAppId, 'features_roadmap_suggest_url', '')
 		},
+
 		resolvedDocumentationUrl() {
 			return this.documentationUrl
 				|| readInitialState(this.effectiveAppId, 'features_roadmap_documentation_url', '')

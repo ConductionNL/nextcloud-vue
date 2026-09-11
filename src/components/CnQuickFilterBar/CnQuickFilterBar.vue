@@ -107,14 +107,17 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Index of the currently active tab, or `null` for none active. Single-select only. */
 		activeIndex: {
 			type: Number,
 			default: null,
 		},
+
 		/**
 		 * Presentation: `'chips'` (pill button strip, default) or
 		 * `'dropdown'` (a single `NcSelect`).
+		 *
 		 * @type {'chips'|'dropdown'}
 		 */
 		mode: {
@@ -122,6 +125,7 @@ export default {
 			default: 'chips',
 			validator: (v) => ['chips', 'dropdown'].includes(v),
 		},
+
 		/**
 		 * Allow more than one tab active at once. Selection is exposed via
 		 * `selectedIndices` + `update:selected-indices`; the parent ORs the
@@ -131,19 +135,23 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Active tab indices when `multiple` is set (the array v-model).
+		 *
 		 * @type {number[]}
 		 */
 		selectedIndices: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Accessible label / placeholder for the dropdown control. */
 		selectLabel: {
 			type: String,
 			default: 'Filter',
 		},
+
 		/** Placeholder text for the dropdown (falls back to `selectLabel`). */
 		placeholder: {
 			type: String,
@@ -166,6 +174,7 @@ export default {
 				.map((tab, index) => ({ label: tab.label, icon: tab.icon, index, _empty: this.isEmptyFilter(tab) }))
 				.filter((o) => !o._empty)
 		},
+
 		/**
 		 * Current NcSelect value — an array of option objects when
 		 * `multiple`, a single option object (or null) otherwise.
@@ -191,6 +200,7 @@ export default {
 		isChipActive(i) {
 			return this.multiple ? this.selectedIndices.includes(i) : i === this.activeIndex
 		},
+
 		/**
 		 * Whether a tab's `filter` map is absent/empty (the "All" tab).
 		 *
@@ -201,6 +211,7 @@ export default {
 		isEmptyFilter(tab) {
 			return !tab || !tab.filter || Object.keys(tab.filter).length === 0
 		},
+
 		/**
 		 * Chip-click handler. In single mode emits the new active index; in
 		 * multiple mode toggles the index in/out of the selection. Clicking
@@ -224,9 +235,10 @@ export default {
 				this.$emit('update:selected-indices', next)
 				return
 			}
-			if (i === this.activeIndex) return
+			if (i === this.activeIndex) { return }
 			this.$emit('update:active-index', i)
 		},
+
 		/**
 		 * NcSelect input handler — normalises the option object(s) back to
 		 * indices and emits the matching model event.

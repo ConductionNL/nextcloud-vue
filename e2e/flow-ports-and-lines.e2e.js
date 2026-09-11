@@ -442,10 +442,8 @@ test.describe('flow editor — the menus draw the right glyph', () => {
 		// slow frame: 1 red run in 3 on an identical SHA, 2026-09-01.
 		await expect(page.getByRole('menuitem')).toHaveCount(3)
 
-		const paths = await page.evaluate(() =>
-			[...document.querySelectorAll('[role="menuitem"] svg path')]
-				.map((node) => node.getAttribute('d')),
-		)
+		const paths = await page.evaluate(() => [...document.querySelectorAll('[role="menuitem"] svg path')]
+			.map((node) => node.getAttribute('d')))
 
 		expect(paths).toHaveLength(3)
 		// Non-empty, so "no icon at all" cannot pass as three distinct nothings.
@@ -461,10 +459,8 @@ test.describe('flow editor — the menus draw the right glyph', () => {
 		// Same race as the step menu above: let the six entries render first.
 		await expect(page.getByRole('menuitem')).toHaveCount(6)
 
-		const paths = await page.evaluate(() =>
-			[...document.querySelectorAll('[role="menuitem"] svg path')]
-				.map((node) => node.getAttribute('d')),
-		)
+		const paths = await page.evaluate(() => [...document.querySelectorAll('[role="menuitem"] svg path')]
+			.map((node) => node.getAttribute('d')))
 
 		// Edit label / Angled / Straight / Curved / Copy / Delete.
 		expect(paths).toHaveLength(6)
@@ -473,7 +469,6 @@ test.describe('flow editor — the menus draw the right glyph', () => {
 		}
 		expect(new Set(paths).size).toBe(6)
 	})
-
 })
 
 test.describe('flow editor — accessibility', () => {
@@ -506,12 +501,8 @@ test.describe('flow editor — accessibility', () => {
 				return await window.axe.run(document.querySelector('[data-testid="flow-box"]'))
 			})
 
-			const serious = result.violations.filter(
-				(violation) => violation.impact === 'serious' || violation.impact === 'critical',
-			)
-			expect(
-				serious.map((violation) => `${violation.id}: ${violation.nodes.map((n) => n.html).join(' | ')}`),
-			).toEqual([])
+			const serious = result.violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+			expect(serious.map((violation) => `${violation.id}: ${violation.nodes.map((n) => n.html).join(' | ')}`)).toEqual([])
 		})
 	}
 })

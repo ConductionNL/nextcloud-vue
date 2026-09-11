@@ -151,36 +151,43 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** The main count number to display prominently */
 		count: {
 			type: Number,
 			default: 0,
 		},
+
 		/** Label displayed next to the count */
 		countLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'objects'),
 		},
+
 		/** Detailed breakdown object (key-value pairs) */
 		breakdown: {
 			type: Object,
 			default: null,
 		},
+
 		/** Whether data is currently loading */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Text shown while loading */
 		loadingLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Loading...'),
 		},
+
 		/** Text shown when count is 0 */
 		emptyLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No items found'),
 		},
+
 		/**
 		 * The tile could not load its number. Anything truthy counts — pass the
 		 * caught error itself, or just `true`.
@@ -191,6 +198,7 @@ export default {
 		 * during a failure is the exact thing this prop exists to stop. A
 		 * dashboard showing 0 because the backend is down is worse than one
 		 * showing nothing, because 0 is a number a reader will believe.
+		 *
 		 * @type {boolean|string|Error|null}
 		 */
 		error: {
@@ -203,27 +211,32 @@ export default {
 			type: [String, Boolean, Object],
 			default: null,
 		},
+
 		/** Text shown in place of the count when `error` is set. */
 		errorLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Unavailable'),
 		},
+
 		/** Icon component (e.g., imported MDI icon) */
 		icon: {
 			type: [Object, Function],
 			default: null,
 		},
+
 		/** Icon size in pixels */
 		iconSize: {
 			type: Number,
 			default: 24,
 		},
+
 		/** Color variant: 'default', 'primary', 'success', 'warning', 'error' */
 		variant: {
 			type: String,
 			default: 'default',
 			validator: (v) => ['default', 'primary', 'success', 'warning', 'error'].includes(v),
 		},
+
 		/**
 		 * Stack the icon above a centred number instead of placing it beside
 		 * one. The canonical KPI card is horizontal, so this is the opt-out;
@@ -233,6 +246,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Lay the icon left of the content. No longer needed — this is the
 		 * canonical card's own layout — and kept so existing callers that pass
@@ -244,6 +258,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Draw the card's own grey box. Off by default: a stats block is
 		 * normally rendered inside a wrapper that already draws a card, and a
@@ -254,16 +269,19 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether the card is clickable */
 		clickable: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether to display 0 as a count value instead of the empty label */
 		showZeroCount: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Vue Router location object for declarative navigation.
 		 * When set, the card renders as a <router-link> and clickable styles are implied.
@@ -324,8 +342,8 @@ export default {
 		 * - neither → 'div' (static display)
 		 */
 		componentTag() {
-			if (this.route) return 'router-link'
-			if (this.clickable) return 'a'
+			if (this.route) { return 'router-link' }
+			if (this.clickable) { return 'a' }
 			return 'div'
 		},
 
@@ -333,8 +351,8 @@ export default {
 		 * Dynamic attributes for the root element based on rendering mode.
 		 */
 		componentAttrs() {
-			if (this.route) return { to: this.route, tabindex: '0' }
-			if (this.clickable) return { href: '#', role: 'button', tabindex: '0' }
+			if (this.route) { return { to: this.route, tabindex: '0' } }
+			if (this.clickable) { return { href: '#', role: 'button', tabindex: '0' } }
 			return {}
 		},
 
@@ -378,7 +396,7 @@ export default {
 
 		onClick(event) {
 			// When route is set, router-link handles navigation — do not emit click
-			if (this.route) return
+			if (this.route) { return }
 			if (this.clickable) {
 				event.preventDefault()
 				this.$emit('click', event)

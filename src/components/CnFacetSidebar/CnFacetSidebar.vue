@@ -110,31 +110,37 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Live facet data from the API: `{ fieldName: { values: [{ value, count?, label? }] } }` */
 		facetData: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Current active filters: { fieldName: value | [values] } */
 		activeFilters: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether facet data is loading */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Sidebar title */
 		title: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Filters'),
 		},
+
 		/** Clear all button label */
 		clearLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Clear all'),
 		},
+
 		/**
 		 * Whether the current user is an admin.
 		 * When false, schema properties with `adminOnly: true` are hidden from filters.
@@ -154,7 +160,7 @@ export default {
 
 		hasActiveFilters() {
 			return Object.values(this.activeFilters).some((v) => {
-				if (Array.isArray(v)) return v.length > 0
+				if (Array.isArray(v)) { return v.length > 0 }
 				return v !== null && v !== undefined && v !== '' && v !== false
 			})
 		},
@@ -180,7 +186,7 @@ export default {
 
 		getSelectedOptions(filter) {
 			const value = this.getFilterValue(filter.key)
-			if (!value) return []
+			if (!value) { return [] }
 			const values = Array.isArray(value) ? value : [value]
 			const options = this.getFilterOptions(filter)
 			return values.map((v) => options.find((o) => o.id === v) || { id: v, label: String(v) })

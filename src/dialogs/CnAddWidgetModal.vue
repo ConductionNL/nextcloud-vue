@@ -155,6 +155,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * When set, the type `<select>` is hidden and the form opens directly
 		 * on this type (toolbar deep-links).
@@ -163,6 +164,7 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * When set, the modal opens in edit mode: the type select is hidden
 		 * (placement type is immutable) and the sub-form is pre-filled from
@@ -174,6 +176,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Optional upload transport for the Appearance icon picker:
 		 * `async (dataUrl: string) => ({ url })`. The icon picker reads the chosen
@@ -187,6 +190,7 @@ export default {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Optional raw-file upload transport forwarded to the active sub-form as
 		 * its `file-upload-fn`: `async (file: File) => ({ url })`. Deliberately a
@@ -202,6 +206,7 @@ export default {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Optional async fetcher returning the user's calendars
 		 * (`[{key, name, color}]`) for the calendar widget's picker. Provided
@@ -214,6 +219,7 @@ export default {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * The surface the picker offers types for. `'detail-page'` surfaces
 		 * detail-only types (e.g. a second `data` widget) alongside the universal
@@ -226,6 +232,7 @@ export default {
 			type: String,
 			default: 'app-dashboard',
 		},
+
 		/**
 		 * Authoritative object context `{ register, schema }` for the page hosting
 		 * the picker (supplied by the Buildiq edit button from the ACTIVE page's
@@ -433,6 +440,7 @@ export default {
 				this.openLifecycle()
 			}
 		},
+
 		editingWidget: {
 			immediate: false,
 			/**
@@ -447,6 +455,7 @@ export default {
 				}
 			},
 		},
+
 		/**
 		 * Re-seed the form when the preselected type changes while open.
 		 *
@@ -551,6 +560,7 @@ export default {
 				showTitle: showRaw === undefined
 					? !this.isCardType(w.type || this.state.type)
 					: Boolean(Number(showRaw) || showRaw === true),
+
 				customTitle: pick(w.customTitle, c.customTitle, c.title) || '',
 				backgroundColor: pick(w.backgroundColor, w.styleConfig?.backgroundColor, c.styleConfig?.backgroundColor) || '',
 				customIcon: pick(w.customIcon, c.customIcon, c.icon) || '',
@@ -586,7 +596,7 @@ export default {
 		 * @return {boolean} true when the registry entry is a card.
 		 */
 		isCardType(type) {
-			if (!type) return false
+			if (!type) { return false }
 			const entry = getWidgetTypeEntry(type)
 			return Boolean(entry && entry.card === true)
 		},

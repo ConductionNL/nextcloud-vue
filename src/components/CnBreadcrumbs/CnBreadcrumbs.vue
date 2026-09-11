@@ -84,11 +84,10 @@ export default {
 		crumbs: {
 			type: Array,
 			default: () => [],
-			validator: (value) => value.every(
-				(crumb) => crumb && typeof crumb === 'object'
-					&& (typeof crumb.label === 'string' || typeof crumb.icon === 'string'),
-			),
+			validator: (value) => value.every((crumb) => crumb && typeof crumb === 'object'
+				&& (typeof crumb.label === 'string' || typeof crumb.icon === 'string')),
 		},
+
 		/**
 		 * Accessible name of the breadcrumb nav landmark. Defaults to the
 		 * lib's translation of "Breadcrumbs"; override per surface when a

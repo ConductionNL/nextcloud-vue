@@ -179,11 +179,13 @@ export default {
 			type: Array,
 			required: true,
 		},
+
 		/** Edges in Vue Flow's shape: `{ id, source, target }`. */
 		edges: {
 			type: Array,
 			required: true,
 		},
+
 		/**
 		 * When true, every interaction is refused — drag, connect AND select.
 		 *
@@ -195,46 +197,55 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Frame the whole graph on first render. */
 		fitView: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Snap dragged nodes to the grid. */
 		snapToGrid: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Grid spacing, as Vue Flow's `[x, y]`. */
 		snapGrid: {
 			type: Array,
 			default: () => [16, 16],
 		},
+
 		/** Minimum zoom. */
 		minZoom: {
 			type: Number,
 			default: 0.2,
 		},
+
 		/** Maximum zoom. */
 		maxZoom: {
 			type: Number,
 			default: 2,
 		},
+
 		/** Vue Flow's connection mode — `loose` or `strict`. */
 		connectionMode: {
 			type: String,
 			default: 'loose',
 		},
+
 		/** Draw the dotted background. */
 		showBackground: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Draw the zoom/fit controls. */
 		showControls: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Draw the minimap. */
 		showMiniMap: {
 			type: Boolean,

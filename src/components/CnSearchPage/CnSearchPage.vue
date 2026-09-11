@@ -186,6 +186,7 @@ export default {
 			default: (total, shown) => `Showing ${shown} of ${total} results.`,
 		},
 	},
+
 	emits: ['facets-change', 'query-change', 'result-click', 'search', 'update:query'],
 	data() {
 		return {
@@ -193,6 +194,7 @@ export default {
 			hasSearched: false,
 		}
 	},
+
 	computed: {
 		/**
 		 * Whether any facet has at least one active value.
@@ -201,14 +203,16 @@ export default {
 		 */
 		hasActiveFacets() {
 			for (const k of Object.keys(this.activeFacets || {})) {
-				if (Array.isArray(this.activeFacets[k]) && this.activeFacets[k].length > 0) return true
+				if (Array.isArray(this.activeFacets[k]) && this.activeFacets[k].length > 0) { return true }
 			}
 			return false
 		},
 	},
+
 	watch: {
-		query(next) { if (next !== this.localQuery) this.localQuery = next },
+		query(next) { if (next !== this.localQuery) { this.localQuery = next } },
 	},
+
 	methods: {
 		/**
 		 * Whether a (facetKey, value) is currently active.
@@ -221,6 +225,7 @@ export default {
 			const arr = this.activeFacets[key]
 			return Array.isArray(arr) && arr.includes(value)
 		},
+
 		/**
 		 * Toggle a facet option on/off and emit the new map.
 		 *
@@ -237,12 +242,12 @@ export default {
 			} else {
 				const cur = Array.isArray(next[key]) ? [...next[key]] : []
 				const idx = cur.indexOf(value)
-				if (checked && idx < 0) cur.push(value)
-				else if (!checked && idx >= 0) cur.splice(idx, 1)
+				if (checked && idx < 0) { cur.push(value) } else if (!checked && idx >= 0) { cur.splice(idx, 1) }
 				next[key] = cur
 			}
 			this.emitFacetsChange(next)
 		},
+
 		/**
 		 * Clear every facet.
 		 *
@@ -251,6 +256,7 @@ export default {
 		clearFacets() {
 			this.emitFacetsChange({})
 		},
+
 		emitFacetsChange(next) {
 			/**
 			 * @event facets-change Emitted on any facet toggle / clear.
@@ -259,6 +265,7 @@ export default {
 			this.$emit('facets-change', next)
 			this.emitSearch()
 		},
+
 		/**
 		 * Submit-button handler — propagates the latest query.
 		 *
@@ -268,6 +275,7 @@ export default {
 			this.emitQueryChange()
 			this.emitSearch()
 		},
+
 		/**
 		 * Live query-input handler — emits each keystroke (consumers
 		 * are responsible for debouncing).
@@ -277,6 +285,7 @@ export default {
 		onQueryInput() {
 			this.emitQueryChange()
 		},
+
 		emitQueryChange() {
 			/**
 			 * @event query-change Emitted on every query mutation.
@@ -286,6 +295,7 @@ export default {
 			/** v-model-friendly alias. */
 			this.$emit('update:query', this.localQuery)
 		},
+
 		emitSearch() {
 			this.hasSearched = true
 			/**
@@ -295,6 +305,7 @@ export default {
 			 */
 			this.$emit('search', { query: this.localQuery, facets: { ...this.activeFacets } })
 		},
+
 		/**
 		 * Forward a result click.
 		 *

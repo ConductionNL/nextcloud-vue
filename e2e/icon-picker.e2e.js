@@ -25,8 +25,7 @@ test.describe('CnIconPicker — enriched (real browser)', () => {
 
 		await search.fill('account')
 		await expect.poll(async () => {
-			const labels = await sec.locator('.cn-icon-picker__icon').evaluateAll(
-				(els) => els.map((e) => (e.getAttribute('aria-label') || '').toLowerCase()))
+			const labels = await sec.locator('.cn-icon-picker__icon').evaluateAll((els) => els.map((e) => (e.getAttribute('aria-label') || '').toLowerCase()))
 			return labels.length > 0 && labels.every((l) => l.includes('account') || l === 'no icon')
 		}).toBe(true)
 	})

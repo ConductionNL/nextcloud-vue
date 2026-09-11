@@ -202,6 +202,7 @@ export default {
 			from: TENANT_CONTEXT_KEY,
 			default: null,
 		},
+
 		/**
 		 * Consumer translation function, provided by CnAppRoot as
 		 * `cnTranslate: this.translate` (bound to the host app's id). Field
@@ -227,6 +228,7 @@ export default {
 		 * subtype is chosen by the button that opened the form.
 		 *
 		 * Ignored when `item` is set: an edit already carries its own values.
+		 *
 		 * @type {object|null}
 		 */
 		initialValues: { type: Object, default: null },
@@ -318,24 +320,24 @@ export default {
 		},
 
 		resolvedTitle() {
-			if (this.dialogTitle) return this.dialogTitle
+			if (this.dialogTitle) { return this.dialogTitle }
 			return this.isCreateMode
 				? t('nextcloud-vue', 'Create {title}', { title: this.schemaTitle })
 				: t('nextcloud-vue', 'Edit {title}', { title: this.schemaTitle })
 		},
 
 		resolvedConfirmLabel() {
-			if (this.confirmLabel) return this.confirmLabel
+			if (this.confirmLabel) { return this.confirmLabel }
 			return this.isCreateMode ? t('nextcloud-vue', 'Create') : t('nextcloud-vue', 'Save')
 		},
 
 		resolvedSuccessText() {
-			if (this.successText) return this.successText
+			if (this.successText) { return this.successText }
 			return t('nextcloud-vue', '{title} saved successfully.', { title: this.schemaTitle })
 		},
 
 		resolvedShowMetadataTab() {
-			if (this.showMetadataTab !== null) return this.showMetadataTab
+			if (this.showMetadataTab !== null) { return this.showMetadataTab }
 			return !!this.item
 		},
 
@@ -349,9 +351,9 @@ export default {
 			const exclude = this.excludeFields || []
 			const include = this.includeFields
 			for (const key of Object.keys(props)) {
-				if (key === '@self' || key === 'id') continue
-				if (exclude.includes(key)) continue
-				if (include && !include.includes(key)) continue
+				if (key === '@self' || key === 'id') { continue }
+				if (exclude.includes(key)) { continue }
+				if (include && !include.includes(key)) { continue }
 				return true
 			}
 			return false
@@ -374,25 +376,25 @@ export default {
 			const exclude = this.excludeFields || []
 			const include = this.includeFields
 			const filterKey = (k) => {
-				if (k === '@self' || k === 'id') return false
-				if (exclude.includes(k)) return false
-				if (include && !include.includes(k)) return false
+				if (k === '@self' || k === 'id') { return false }
+				if (exclude.includes(k)) { return false }
+				if (include && !include.includes(k)) { return false }
 				return true
 			}
 			const existing = Object.entries(obj).filter(([k]) => filterKey(k))
 			const missing = []
 			for (const [key, prop] of Object.entries(schemaProps)) {
-				if (!filterKey(key)) continue
+				if (!filterKey(key)) { continue }
 				if (!Object.prototype.hasOwnProperty.call(obj, key)) {
 					let def
 					switch (prop.type) {
-					case 'string': def = prop.const ?? ''; break
-					case 'number':
-					case 'integer': def = 0; break
-					case 'boolean': def = false; break
-					case 'array': def = []; break
-					case 'object': def = {}; break
-					default: def = ''
+						case 'string': def = prop.const ?? ''; break
+						case 'number':
+						case 'integer': def = 0; break
+						case 'boolean': def = false; break
+						case 'array': def = []; break
+						case 'object': def = {}; break
+						default: def = ''
 					}
 					missing.push([key, def])
 				}
@@ -402,8 +404,8 @@ export default {
 
 		dataTabIndex() {
 			let index = 0
-			if (this.showPropertiesTable) index++
-			if (this.resolvedShowMetadataTab) index++
+			if (this.showPropertiesTable) { index++ }
+			if (this.resolvedShowMetadataTab) { index++ }
 			return index
 		},
 
@@ -426,6 +428,7 @@ export default {
 				this.initFormData(newItem)
 			},
 		},
+
 		hasSchemaProperties: {
 			immediate: true,
 			handler(hasProps) {
@@ -436,17 +439,20 @@ export default {
 				}
 			},
 		},
+
 		jsonData(newVal) {
 			if (!this.isInternalUpdate && this.isValidJson(newVal)) {
 				this.updateFormFromJson()
 			}
 		},
+
 		formData: {
 			handler() {
 				if (!this.isInternalUpdate) {
 					this.updateJsonFromForm()
 				}
 			},
+
 			deep: true,
 		},
 	},
@@ -509,60 +515,63 @@ export default {
 		 */
 		_autofillTenant() {
 			const ctx = this._cnTenantContext
-			if (!ctx) return
+			if (!ctx) { return }
 			const uuid = ctx.activeOrganisationUuid && ctx.activeOrganisationUuid.value
-			if (!uuid) return
+			if (!uuid) { return }
 			const hasOrgField = this.resolvedFields.some((f) => f.key === 'organisation')
-			if (!hasOrgField) return
+			if (!hasOrgField) { return }
 			const current = this.formData.organisation
-			if (current !== null && current !== undefined && current !== '') return
+			if (current !== null && current !== undefined && current !== '') { return }
 			this.formData.organisation = uuid
 		},
 
 		updateField(key, value) {
 			this.formData[key] = value
-			if (this.errors[key]) delete this.errors[key]
+			if (this.errors[key]) { delete this.errors[key] }
 		},
 
 		onPropertyValueUpdate({ key, value }) {
 			this.formData[key] = value
-			if (this.errors[key]) delete this.errors[key]
+			if (this.errors[key]) { delete this.errors[key] }
 		},
 
 		/**
 		 * Proxy for slot consumers: exposes isPropertyEditable from the tab sub-component.
+		 *
 		 * @param {string} key - Property key
 		 * @param {*} value - Current property value
 		 */
 		isPropertyEditable(key, value) {
 			const tab = this.$refs.propertiesTab
-			if (tab) return tab.isPropertyEditable(key, value)
+			if (tab) { return tab.isPropertyEditable(key, value) }
 			return true
 		},
 
 		/**
 		 * Proxy for slot consumers.
+		 *
 		 * @param {string} key - Property key
 		 */
 		getPropertyDisplayName(key) {
 			const tab = this.$refs.propertiesTab
-			if (tab) return tab.getPropertyDisplayName(key)
+			if (tab) { return tab.getPropertyDisplayName(key) }
 			return key
 		},
 
 		/**
 		 * Proxy for slot consumers.
+		 *
 		 * @param {string} key - Property key
 		 * @param {*} value - Current property value
 		 */
 		getPropertyValidationClass(key, value) {
 			const tab = this.$refs.propertiesTab
-			if (tab) return tab.getPropertyValidationClass(key, value)
+			if (tab) { return tab.getPropertyValidationClass(key, value) }
 			return ''
 		},
 
 		updateFormFromJson() {
-			if (this.isInternalUpdate) return
+			if (this.isInternalUpdate) { return }
 			try {
 				this.isInternalUpdate = true
 				this.formData = JSON.parse(this.jsonData)
@@ -574,7 +583,7 @@ export default {
 		},
 
 		updateJsonFromForm() {
-			if (this.isInternalUpdate) return
+			if (this.isInternalUpdate) { return }
 			try {
 				this.isInternalUpdate = true
 				this.jsonData = JSON.stringify(this.formData, null, 2)
@@ -587,11 +596,11 @@ export default {
 
 		updateJsonFromExternal(newJson) {
 			this.jsonData = newJson
-			if (this.isValidJson(newJson)) this.updateFormFromJson()
+			if (this.isValidJson(newJson)) { this.updateFormFromJson() }
 		},
 
 		isValidJson(str) {
-			if (!str || !str.trim()) return false
+			if (!str || !str.trim()) { return false }
 			try {
 				JSON.parse(str)
 				return true
@@ -637,8 +646,8 @@ export default {
 		},
 
 		executeConfirm() {
-			if (!this.validate()) return
-			if (this.isDataTabActive && !this.isValidJson(this.jsonData)) return
+			if (!this.validate()) { return }
+			if (this.isDataTabActive && !this.isValidJson(this.jsonData)) { return }
 			this.$emit('confirm', JSON.parse(JSON.stringify(this.formData)))
 		},
 

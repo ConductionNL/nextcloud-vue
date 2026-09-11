@@ -45,21 +45,25 @@ export default {
 		borderless: { type: Boolean, default: false },
 		/**
 		 * External row data. When provided, no API calls are made.
+		 *
 		 * @type {object[]}
 		 */
 		rows: { type: Array, default: null },
 		/**
 		 * Column definitions for the table.
+		 *
 		 * @type {Array<{ key: string, label: string, sortable: boolean }>}
 		 */
 		columns: { type: Array, default: () => [] },
 		/**
 		 * OpenRegister register id for self-fetch mode.
+		 *
 		 * @type {string|number}
 		 */
 		register: { type: [String, Number], default: null },
 		/**
 		 * OpenRegister schema id for self-fetch mode.
+		 *
 		 * @type {string|number}
 		 */
 		schemaId: { type: [String, Number], default: null },
@@ -67,11 +71,13 @@ export default {
 		limit: { type: Number, default: 0 },
 		/**
 		 * vue-router route for the "View all" link.
+		 *
 		 * @type {object}
 		 */
 		viewAllRoute: { type: Object, default: null },
 		/**
 		 * Function returning a route object for row-click navigation.
+		 *
 		 * @type {Function}
 		 */
 		rowClickRoute: { type: Function, default: null },
@@ -85,11 +91,9 @@ export default {
 		if (!deprecationWarned) {
 			deprecationWarned = true
 			// eslint-disable-next-line no-console
-			console.warn(
-				'[nextcloud-vue] CnTableWidget is deprecated and will be removed. '
+			console.warn('[nextcloud-vue] CnTableWidget is deprecated and will be removed. '
 				+ 'Use <CnDataTable> directly — it now supports title, viewAllRoute, '
-				+ 'limit, register+schemaId self-fetch, rowClickRoute, and borderless.',
-			)
+				+ 'limit, register+schemaId self-fetch, rowClickRoute, and borderless.')
 		}
 	},
 }

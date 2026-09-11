@@ -132,7 +132,7 @@ export default {
 			if (term === '') {
 				return this.polls
 			}
-			return this.polls.filter(poll => (poll.title || '').toLowerCase().includes(term))
+			return this.polls.filter((poll) => (poll.title || '').toLowerCase().includes(term))
 		},
 	},
 

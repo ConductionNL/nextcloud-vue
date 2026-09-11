@@ -126,6 +126,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Partial streaming text from the current token stream.
 		 */
@@ -133,6 +134,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Streaming/request-in-flight flag. When true AND `currentText` is
 		 * empty, the component renders a "Thinking..." placeholder bubble
@@ -171,17 +173,17 @@ export default {
 	methods: {
 		toggleTool(messageIndex, toolIndex) {
 			const msg = this.messages[messageIndex]
-			if (!msg || !msg.toolCalls) return
+			if (!msg || !msg.toolCalls) { return }
 			const tool = msg.toolCalls[toolIndex]
-			if (!tool) return
+			if (!tool) { return }
 			// Vue 2: use $set for reactivity on new properties
 			msg.toolCalls[toolIndex] = { ...tool, _expanded: !tool._expanded }
 		},
 
 		formatToolPayload(tool) {
 			const payload = {}
-			if (tool.arguments !== undefined) payload.arguments = tool.arguments
-			if (tool.result !== undefined) payload.result = tool.result
+			if (tool.arguments !== undefined) { payload.arguments = tool.arguments }
+			if (tool.result !== undefined) { payload.result = tool.result }
 			const json = JSON.stringify(payload, null, 2)
 			// Truncate at 10KB
 			if (json.length > 10240) {

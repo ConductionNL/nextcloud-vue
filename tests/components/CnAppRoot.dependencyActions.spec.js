@@ -179,9 +179,7 @@ describe('CnAppRoot soft-dependency banner (REQ-DIA-6) — DEPRECATED, opt-in', 
 		expect(wrapper.findAll('.cn-app-root__soft-dep')).toHaveLength(0)
 		// The data is still computed and still exposed — only the in-shell
 		// surface is gone, so an app rendering its own list keeps working.
-		expect(wrapper.vm.unresolvedSoftDependencies.map((d) => d.id)).toEqual(
-			['deck', 'spreed', 'forms', 'integriq'],
-		)
+		expect(wrapper.vm.unresolvedSoftDependencies.map((d) => d.id)).toEqual(['deck', 'spreed', 'forms', 'integriq'])
 	})
 })
 

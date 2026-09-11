@@ -233,6 +233,7 @@ export default {
 		/** Title/aria label for the per-row delete icon button. */
 		deleteLabel: { type: String, default: 'Delete' },
 	},
+
 	emits: ['input', 'update:modelValue', 'save'],
 	data() {
 		return {
@@ -241,6 +242,7 @@ export default {
 			autoKeyCounter: 1,
 		}
 	},
+
 	computed: {
 		/**
 		 * The value the consumer actually bound, whichever prop they used.
@@ -250,15 +252,17 @@ export default {
 		boundValue() {
 			return this.modelValue !== undefined ? this.modelValue : this.value
 		},
+
 		/**
 		 * Currently-selected field object, or null.
 		 *
 		 * @return {object|null}
 		 */
 		selectedField() {
-			if (this.selectedIndex < 0 || this.selectedIndex >= this.model.length) return null
+			if (this.selectedIndex < 0 || this.selectedIndex >= this.model.length) { return null }
 			return this.model[this.selectedIndex]
 		},
+
 		/**
 		 * JSON preview of the field list.
 		 *
@@ -268,6 +272,7 @@ export default {
 			return JSON.stringify(this.model, null, 2)
 		},
 	},
+
 	watch: {
 		value: {
 			handler(next) {
@@ -275,9 +280,11 @@ export default {
 					this.model = [...next]
 				}
 			},
+
 			deep: true,
 		},
 	},
+
 	methods: {
 		/**
 		 * Tell the consumer the value changed, in both v-model dialects.
@@ -303,6 +310,7 @@ export default {
 			 */
 			this.$emit('update:modelValue', next)
 		},
+
 		/**
 		 * Append a new field of the given type to the list.
 		 *
@@ -312,11 +320,12 @@ export default {
 		addField(type) {
 			const key = `field_${this.autoKeyCounter++}`
 			const entry = { key, type, label: '', required: false }
-			if (type === 'enum') entry.options = []
+			if (type === 'enum') { entry.options = [] }
 			this.model = [...this.model, entry]
 			this.selectedIndex = this.model.length - 1
 			this.emitChange()
 		},
+
 		/**
 		 * Update a field property on the selected field.
 		 *
@@ -325,13 +334,14 @@ export default {
 		 * @return {void}
 		 */
 		updateSelected(prop, value) {
-			if (this.selectedIndex < 0) return
+			if (this.selectedIndex < 0) { return }
 			const updated = { ...this.model[this.selectedIndex], [prop]: value }
 			const next = [...this.model]
 			next[this.selectedIndex] = updated
 			this.model = next
 			this.emitChange()
 		},
+
 		/**
 		 * Move a field up or down.
 		 *
@@ -341,15 +351,15 @@ export default {
 		 */
 		moveField(idx, dir) {
 			const target = idx + dir
-			if (target < 0 || target >= this.model.length) return
+			if (target < 0 || target >= this.model.length) { return }
 			const next = [...this.model]
 			const [field] = next.splice(idx, 1)
 			next.splice(target, 0, field)
 			this.model = next
-			if (this.selectedIndex === idx) this.selectedIndex = target
-			else if (this.selectedIndex === target) this.selectedIndex = idx
+			if (this.selectedIndex === idx) { this.selectedIndex = target } else if (this.selectedIndex === target) { this.selectedIndex = idx }
 			this.emitChange()
 		},
+
 		/**
 		 * Remove a field.
 		 *
@@ -367,6 +377,7 @@ export default {
 			}
 			this.emitChange()
 		},
+
 		/**
 		 * Programmatic save trigger — emits the current model as a
 		 * `@save` event without closing or resetting.
@@ -381,6 +392,7 @@ export default {
 			 */
 			this.$emit('save', [...this.model])
 		},
+
 		emitChange() {
 			/**
 			 * @event input v-model emit.

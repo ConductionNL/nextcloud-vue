@@ -115,39 +115,47 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Schema definition (passed through to CnObjectRow) */
 		schema: {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Field-mapping config passed through to CnObjectRow.
+		 *
 		 * @type {{ titleField?: string, subtitleField?: string, imageField?: string, iconField?: string, iconName?: string, badgeField?: string, badgeVariantField?: string, badgeVariant?: string, badgeColorMap?: object }}
 		 */
 		config: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether data is loading */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether rows can be selected */
 		selectable: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Array of currently selected object IDs */
 		selectedIds: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Property name used as unique identifier */
 		rowKey: {
 			type: String,
 			default: 'id',
 		},
+
 		/** Text shown when there are no objects */
 		emptyText: {
 			type: String,

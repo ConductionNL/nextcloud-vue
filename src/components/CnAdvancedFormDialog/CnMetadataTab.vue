@@ -79,7 +79,7 @@ export default {
 
 		resolvedRows() {
 			const extra = Array.isArray(this.extraRows) ? this.extraRows : []
-			if (this.replaceRows) return extra
+			if (this.replaceRows) { return extra }
 			return [...this.defaultRows, ...extra]
 		},
 	},

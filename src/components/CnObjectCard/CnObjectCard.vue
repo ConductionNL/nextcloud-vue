@@ -113,32 +113,38 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** Schema definition with properties and configuration */
 		schema: {
 			type: Object,
 			required: true,
 		},
+
 		/** Whether this card is selected */
 		selected: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether to show selection checkbox */
 		selectable: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * When true, a body click on a SELECTABLE card emits `click`
 		 * (navigation) instead of toggling selection — selection then happens
 		 * via the checkbox only. The card counterpart of CnIndexPage's
 		 * `rowClickToView` (a table row click already navigates in that mode).
+		 *
 		 * @type {boolean}
 		 */
 		clickToView: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Maximum number of metadata fields to show */
 		maxMetadata: {
 			type: Number,
@@ -175,7 +181,7 @@ export default {
 		},
 
 		truncatedDescription() {
-			if (!this.description) return null
+			if (!this.description) { return null }
 			if (this.description.length > 120) {
 				return this.description.substring(0, 120) + '...'
 			}
@@ -202,14 +208,14 @@ export default {
 
 		/** Remaining visible properties for the metadata section */
 		metadataFields() {
-			if (!this.schema?.properties) return []
+			if (!this.schema?.properties) { return [] }
 
 			return Object.entries(this.schema.properties)
 				.filter(([key, prop]) => {
-					if (this.configFields.includes(key)) return false
-					if (prop.visible === false) return false
-					if (prop.type === 'object') return false
-					if (prop.format === 'markdown') return false
+					if (this.configFields.includes(key)) { return false }
+					if (prop.visible === false) { return false }
+					if (prop.type === 'object') { return false }
+					if (prop.format === 'markdown') { return false }
 					return true
 				})
 				.sort(([, a], [, b]) => {
@@ -240,7 +246,7 @@ export default {
 		 */
 		onCardClick(event) {
 			if (this.selectable && !this.clickToView) {
-				if (this.wasDrag(event)) return
+				if (this.wasDrag(event)) { return }
 				/**
 				 * @event select Emitted when the card toggles selection (clicking the body of a selectable card, or its checkbox).
 				 * @type {object} The card's object.

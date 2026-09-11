@@ -106,10 +106,12 @@ export default {
 		setup() {
 			return (this.working && this.working.setup) ? this.working.setup : { enabled: true, steps: [] }
 		},
+
 		/** The setup steps array. */
 		steps() {
 			return this.setup.steps
 		},
+
 		/** Selectable step types. */
 		typeOptions() {
 			return [
@@ -126,7 +128,7 @@ export default {
 		// Lazily create the setup block reactively. Assigning a brand-new
 		// property on the working manifest must go through $set, or Vue 2 won't
 		// track later mutations (added steps wouldn't render).
-		if (!this.working) return
+		if (!this.working) { return }
 		if (!this.working.setup || typeof this.working.setup !== 'object') {
 			this.working.setup = { enabled: true, steps: [] }
 		}
@@ -141,6 +143,7 @@ export default {
 		add() {
 			this.steps.push({ id: `step-${this.steps.length + 1}`, type: 'info', title: '', body: '', required: false })
 		},
+
 		/**
 		 * Remove the step at index.
 		 *
@@ -149,6 +152,7 @@ export default {
 		remove(index) {
 			this.steps.splice(index, 1)
 		},
+
 		/**
 		 * The comma-separated config keys for a config-fields step.
 		 *
@@ -158,6 +162,7 @@ export default {
 		configKeysText(step) {
 			return Array.isArray(step.configKeys) ? step.configKeys.join(', ') : ''
 		},
+
 		/**
 		 * Store the config keys (the fields the wizard collects) for a step.
 		 * The wizard renders a text field per key and saves them to app config.

@@ -164,9 +164,7 @@ describe('CnIndexPage — self-fetch mode: @workspace.<key> filter tokens', () =
 
 	it('DROPS an unresolved OPTIONAL `@workspace.<key>?` token instead of sending it literally', async () => {
 		// No cnWorkspaceContext provided at all (mirrors an app that never sets it).
-		mountPage(
-			{ title: 'Employees', register: 'hrmq', schema: 'employee', filter: { administrationId: '@workspace.activeAdministrationId?' } },
-		)
+		mountPage({ title: 'Employees', register: 'hrmq', schema: 'employee', filter: { administrationId: '@workspace.activeAdministrationId?' } })
 		await new Promise((resolve) => setTimeout(resolve))
 		expect(mockStore.fetchCollection).toHaveBeenCalled()
 		const params = mockStore.fetchCollection.mock.calls[0][1] || {}

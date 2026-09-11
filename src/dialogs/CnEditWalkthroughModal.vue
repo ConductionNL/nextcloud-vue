@@ -113,14 +113,17 @@ export default {
 		walkthrough() {
 			return (this.working && this.working.walkthrough) ? this.working.walkthrough : { enabled: true, tours: [] }
 		},
+
 		/** The primary (first) tour. */
 		tour() {
 			return this.walkthrough.tours[0] || { id: 'getting-started', title: '', trigger: 'first-visit', steps: [] }
 		},
+
 		/** The primary tour's steps. */
 		steps() {
 			return this.tour.steps
 		},
+
 		/** Selectable triggers. */
 		triggerOptions() {
 			return [
@@ -134,7 +137,7 @@ export default {
 		// Lazily create the walkthrough block + primary tour reactively. New
 		// properties on the working manifest must go through $set, or Vue 2 won't
 		// track later mutations (added steps wouldn't render).
-		if (!this.working) return
+		if (!this.working) { return }
 		if (!this.working.walkthrough || typeof this.working.walkthrough !== 'object') {
 			this.working.walkthrough = { enabled: true, tours: [] }
 		}
@@ -156,6 +159,7 @@ export default {
 		add() {
 			this.steps.push({ id: `wt-${this.steps.length + 1}`, title: '', body: '', task: '' })
 		},
+
 		/**
 		 * Remove the step at index.
 		 *
@@ -164,6 +168,7 @@ export default {
 		remove(index) {
 			this.steps.splice(index, 1)
 		},
+
 		/**
 		 * Read a step's target CSS selector (empty string when unset).
 		 *
@@ -171,11 +176,12 @@ export default {
 		 * @return {string} The target selector.
 		 */
 		targetRef(step) {
-			if (!step.target) return ''
+			if (!step.target) { return '' }
 			// `selector` is what CnWalkthrough resolves for kind:"selector";
 			// fall back to the older `ref` for steps authored before that.
 			return step.target.selector || step.target.ref || ''
 		},
+
 		/**
 		 * Set a step's target as a CSS selector (cleared when blank).
 		 *

@@ -40,6 +40,7 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** Whether the surrounding container is in edit mode. */
 		editMode: {
 			type: Boolean,

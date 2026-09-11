@@ -109,6 +109,7 @@ export default {
 			default: 'detail-page',
 			validator: (value) => ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity'].includes(value),
 		},
+
 		/** Base API URL. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Maximum rows to render. */
@@ -147,12 +148,15 @@ export default {
 		resolvedTitle() {
 			return this.title || t('nextcloud-vue', 'Emails')
 		},
+
 		effectiveMax() {
 			return this.surface === 'single-entity' ? 1 : this.maxDisplay
 		},
+
 		displayedMessages() {
 			return this.messages.slice(0, this.effectiveMax)
 		},
+
 		/**
 		 * Template-safe view rows; keeps `?.`/`??` out of the buble template.
 		 *

@@ -24,7 +24,7 @@ const { expandPageTemplates } = require('../../src/utils/expandPageTemplates.js'
  * @return {*} The canonicalised value.
  */
 function canonical(value) {
-	if (Array.isArray(value)) return value.map(canonical)
+	if (Array.isArray(value)) { return value.map(canonical) }
 	if (value !== null && typeof value === 'object') {
 		return Object.keys(value).sort().reduce((acc, k) => {
 			acc[k] = canonical(value[k])

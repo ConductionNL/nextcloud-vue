@@ -127,6 +127,7 @@ export default {
 			default: 'typed',
 			validator: (v) => v === 'typed' || v === 'drawn',
 		},
+
 		/**
 		 * Optional affirmation text rendered next to a checkbox the
 		 * user must tick (the `affirmed` field in the emit payload).
@@ -181,6 +182,7 @@ export default {
 		/** Clear-button label. */
 		clearLabel: { type: String, default: 'Clear' },
 	},
+
 	emits: ['change'],
 	data() {
 		return {
@@ -193,6 +195,7 @@ export default {
 			hasDrawnContent: false,
 		}
 	},
+
 	computed: {
 		/**
 		 * Whether the current capture has any content (typed text or
@@ -204,6 +207,7 @@ export default {
 			return this.mode === 'typed' ? this.typedValue.length > 0 : this.hasDrawnContent
 		},
 	},
+
 	watch: {
 		mode() {
 			// Switching modes clears the other mode's draft so an
@@ -215,13 +219,16 @@ export default {
 			}
 			this.emitChange()
 		},
+
 		affirmed() {
 			this.emitChange()
 		},
 	},
+
 	mounted() {
 		this.$nextTick(() => this.prepareCanvas())
 	},
+
 	methods: {
 		/**
 		 * Resolve the initial mode given the allow flags.
@@ -229,11 +236,12 @@ export default {
 		 * @return {'typed'|'drawn'} The starting mode.
 		 */
 		resolveInitialMode() {
-			if (this.initialMode === 'drawn' && this.allowDrawn) return 'drawn'
-			if (this.initialMode === 'typed' && this.allowTyped) return 'typed'
-			if (this.allowTyped) return 'typed'
+			if (this.initialMode === 'drawn' && this.allowDrawn) { return 'drawn' }
+			if (this.initialMode === 'typed' && this.allowTyped) { return 'typed' }
+			if (this.allowTyped) { return 'typed' }
 			return 'drawn'
 		},
+
 		/**
 		 * Prepare the canvas with stroke style + background fill.
 		 *
@@ -249,12 +257,13 @@ export default {
 			// — under jest that reads as "Test suite failed to run", with no
 			// failing test to point at.
 			const ctx = this.$refs.canvas?.getContext('2d')
-			if (!ctx) return
+			if (!ctx) { return }
 			ctx.lineCap = 'round'
 			ctx.lineJoin = 'round'
 			ctx.lineWidth = this.lineWidth
 			ctx.strokeStyle = this.strokeColor
 		},
+
 		/**
 		 * Compute canvas-relative coordinates from a pointer event.
 		 *
@@ -269,6 +278,7 @@ export default {
 				y: (clientY - rect.top) * (this.canvasHeight / rect.height),
 			}
 		},
+
 		/**
 		 * Start a stroke from a mouse-down.
 		 *
@@ -281,6 +291,7 @@ export default {
 			this.lastX = x
 			this.lastY = y
 		},
+
 		/**
 		 * Continue a stroke on mouse-move.
 		 *
@@ -288,12 +299,13 @@ export default {
 		 * @return {void}
 		 */
 		continueStroke(event) {
-			if (!this.drawing) return
+			if (!this.drawing) { return }
 			const { x, y } = this.toCanvasCoords(event.clientX, event.clientY)
 			this.drawSegment(this.lastX, this.lastY, x, y)
 			this.lastX = x
 			this.lastY = y
 		},
+
 		/**
 		 * Touch-event variant of startStroke.
 		 *
@@ -301,10 +313,11 @@ export default {
 		 * @return {void}
 		 */
 		startStrokeTouch(event) {
-			if (!event.touches || event.touches.length === 0) return
+			if (!event.touches || event.touches.length === 0) { return }
 			const t = event.touches[0]
 			this.startStroke({ clientX: t.clientX, clientY: t.clientY })
 		},
+
 		/**
 		 * Touch-event variant of continueStroke.
 		 *
@@ -312,20 +325,22 @@ export default {
 		 * @return {void}
 		 */
 		continueStrokeTouch(event) {
-			if (!event.touches || event.touches.length === 0) return
+			if (!event.touches || event.touches.length === 0) { return }
 			const t = event.touches[0]
 			this.continueStroke({ clientX: t.clientX, clientY: t.clientY })
 		},
+
 		/**
 		 * End the current stroke and emit a change.
 		 *
 		 * @return {void}
 		 */
 		endStroke() {
-			if (!this.drawing) return
+			if (!this.drawing) { return }
 			this.drawing = false
 			this.emitChange()
 		},
+
 		/**
 		 * Draw a single segment + mark the canvas as containing
 		 * content (drives `hasContent`).
@@ -338,13 +353,14 @@ export default {
 		 */
 		drawSegment(x1, y1, x2, y2) {
 			const ctx = this.$refs.canvas?.getContext('2d')
-			if (!ctx) return
+			if (!ctx) { return }
 			ctx.beginPath()
 			ctx.moveTo(x1, y1)
 			ctx.lineTo(x2, y2)
 			ctx.stroke()
 			this.hasDrawnContent = true
 		},
+
 		/**
 		 * Clear the canvas surface (no change emit).
 		 *
@@ -359,6 +375,7 @@ export default {
 			ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
 			this.hasDrawnContent = false
 		},
+
 		/**
 		 * Clear both modes' content + reset affirmation. Emits change
 		 * so the parent sees an empty payload.
@@ -371,6 +388,7 @@ export default {
 			this.affirmed = false
 			this.emitChange()
 		},
+
 		/**
 		 * Handle typed-input changes — emit on every keystroke.
 		 *
@@ -379,6 +397,7 @@ export default {
 		onTypedInput() {
 			this.emitChange()
 		},
+
 		/**
 		 * Build the audit metadata block.
 		 *
@@ -391,6 +410,7 @@ export default {
 			}
 			return base
 		},
+
 		/**
 		 * Build + emit the change payload.
 		 *
@@ -418,6 +438,7 @@ export default {
 				audit: this.buildAudit(),
 			})
 		},
+
 		/**
 		 * Return the current capture payload without emitting. Useful
 		 * for parent components that want to snapshot on submit.

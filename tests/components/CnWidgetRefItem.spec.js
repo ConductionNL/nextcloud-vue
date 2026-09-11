@@ -87,9 +87,7 @@ describe('CnWidgetRefItem', () => {
 			await wrapper.vm.$nextTick()
 			await wrapper.vm.$nextTick()
 
-			expect(axios.get).toHaveBeenCalledWith(
-				'/index.php/apps/openregister/api/schemas/regulation/widgets/coverageGrid',
-			)
+			expect(axios.get).toHaveBeenCalledWith('/index.php/apps/openregister/api/schemas/regulation/widgets/coverageGrid')
 		})
 
 		it('renders the resolved component after API success', async () => {

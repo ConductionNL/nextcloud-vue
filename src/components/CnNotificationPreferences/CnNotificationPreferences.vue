@@ -96,6 +96,7 @@ export default {
 		BellOutline,
 		BellOffOutline,
 	},
+
 	inject: {
 		/**
 		 * Consuming app's id (e.g. "pipelinq"), provided by the CnAppRoot
@@ -106,6 +107,7 @@ export default {
 		 */
 		cnAppId: { default: () => '' },
 	},
+
 	data() {
 		return {
 			loading: true,
@@ -113,6 +115,7 @@ export default {
 			entries: [],
 		}
 	},
+
 	computed: {
 		/**
 		 * Entries scoped to the current app. Falls back to the full list
@@ -127,6 +130,7 @@ export default {
 			}
 			return this.entries.filter((entry) => entry.application === this.cnAppId)
 		},
+
 		/**
 		 * Group the scoped effective-preference list by schema for display.
 		 *
@@ -147,9 +151,11 @@ export default {
 			return Array.from(groups.values())
 		},
 	},
+
 	mounted() {
 		this.load()
 	},
+
 	methods: {
 		t,
 

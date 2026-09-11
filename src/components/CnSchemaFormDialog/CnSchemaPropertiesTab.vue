@@ -145,6 +145,7 @@ export default {
 		AlertOutline,
 		LockOutline,
 	},
+
 	inheritAttrs: false,
 	props: {
 		/** The full schema item (needs .properties, .required) */
@@ -174,6 +175,7 @@ export default {
 		/** Properties inherited from parent schemas (allOf) — shown as locked/read-only rows */
 		inheritedProperties: { type: Object, default: () => ({}) },
 	},
+
 	emits: [
 		'add-property',
 		'copy-property',
@@ -181,6 +183,7 @@ export default {
 		'update:property-key',
 		'update:selected-property',
 	],
+
 	data() {
 		return {
 			propertyStableIds: {},
@@ -192,11 +195,13 @@ export default {
 			],
 		}
 	},
+
 	computed: {
 		/** Local alias to avoid vue/no-mutating-props on template bindings */
 		schema() {
 			return this.schemaItem
 		},
+
 		sortedProperties() {
 			const properties = this.schema.properties || {}
 			return Object.entries(properties)
@@ -206,13 +211,14 @@ export default {
 					if (orderA > 0 && orderB > 0) {
 						return orderA - orderB
 					}
-					if (orderA > 0) return -1
-					if (orderB > 0) return 1
+					if (orderA > 0) { return -1 }
+					if (orderB > 0) { return 1 }
 					const createdA = propA.created || ''
 					const createdB = propB.created || ''
 					return createdA.localeCompare(createdB)
 				})
 		},
+
 		propertyRows() {
 			const ownProperties = this.schema.properties || {}
 			const inheritedRows = Object.entries(this.inheritedProperties || {})
@@ -234,6 +240,7 @@ export default {
 			return [...inheritedRows, ...ownRows]
 		},
 	},
+
 	watch: {
 		selectedProperty(newKey) {
 			if (newKey !== null) {
@@ -260,6 +267,7 @@ export default {
 			}
 		},
 	},
+
 	methods: {
 		t,
 		getStablePropertyId(propertyName) {
@@ -276,7 +284,7 @@ export default {
 		},
 
 		isPropertyModified(key) {
-			if (!this.originalProperties) return false
+			if (!this.originalProperties) { return false }
 			const currentProperty = JSON.stringify(this.schema.properties[key] || {})
 			const originalProperty = JSON.stringify(this.originalProperties[key] || {})
 			return currentProperty !== originalProperty
@@ -284,9 +292,9 @@ export default {
 
 		hasCustomTableSettings(key) {
 			const table = this.schema.properties[key]?.table
-			if (!table) return false
+			if (!table) { return false }
 			const defaults = { default: false }
-			return !Object.keys(table).every(setting => table[setting] === defaults[setting])
+			return !Object.keys(table).every((setting) => table[setting] === defaults[setting])
 		},
 
 		getRowClass(row) {
@@ -308,14 +316,14 @@ export default {
 		},
 
 		onRowClick(row) {
-			if (row._inherited) return
-			if (this.selectedProperty === row._key) return
+			if (row._inherited) { return }
+			if (this.selectedProperty === row._key) { return }
 			this.$emit('update:selected-property', row._key)
 		},
 
 		onPropertyKeyUpdate(oldKey, newKey) {
-			if (newKey === oldKey) return
-			if (this.schema.properties[newKey] !== undefined && newKey !== oldKey) return
+			if (newKey === oldKey) { return }
+			if (this.schema.properties[newKey] !== undefined && newKey !== oldKey) { return }
 
 			this.isRenaming = true
 

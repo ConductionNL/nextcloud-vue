@@ -50,7 +50,7 @@ async function stubOpenRegister(page, onDelete) {
 	const deleteCalls = []
 
 	await page.route('**/apps/openregister/api/registers**', (route) => {
-		if (route.request().method() === 'GET') return json(route, { results: [REGISTER] })
+		if (route.request().method() === 'GET') { return json(route, { results: [REGISTER] }) }
 		return json(route, REGISTER) // PATCH — unlink
 	})
 
@@ -90,8 +90,7 @@ async function startDeletingCow(page) {
 
 test.describe('CnEditDataModal — deleting a schema that still has objects', () => {
 	test('names the schema in the confirmation — never a raw “%s” placeholder', async ({ page }) => {
-		await stubOpenRegister(page, ({ route }) =>
-			json(route, { error: 'schema-has-objects', objectCount: 1 }, 409))
+		await stubOpenRegister(page, ({ route }) => json(route, { error: 'schema-has-objects', objectCount: 1 }, 409))
 
 		await startDeletingCow(page)
 
@@ -111,7 +110,7 @@ test.describe('CnEditDataModal — deleting a schema that still has objects', ()
 	test('confirming runs the cascade, and the register is only unlinked once it lands', async ({ page }) => {
 		let deleted = false
 		const { deleteCalls } = await stubOpenRegister(page, ({ route, cascade }) => {
-			if (!cascade) return json(route, { error: 'schema-has-objects', objectCount: 1 }, 409)
+			if (!cascade) { return json(route, { error: 'schema-has-objects', objectCount: 1 }, 409) }
 			deleted = true
 			return json(route, { success: true, deletedCount: 1, tableDropped: true })
 		})
@@ -128,8 +127,7 @@ test.describe('CnEditDataModal — deleting a schema that still has objects', ()
 	})
 
 	test('cancelling destroys nothing and closes the prompt', async ({ page }) => {
-		const { deleteCalls } = await stubOpenRegister(page, ({ route }) =>
-			json(route, { error: 'schema-has-objects', objectCount: 1 }, 409))
+		const { deleteCalls } = await stubOpenRegister(page, ({ route }) => json(route, { error: 'schema-has-objects', objectCount: 1 }, 409))
 
 		await startDeletingCow(page)
 		await confirmBox(page).getByRole('button', { name: /^Cancel$/ }).click()
@@ -141,8 +139,7 @@ test.describe('CnEditDataModal — deleting a schema that still has objects', ()
 	// THE LOOP. A server that does not know the cascade flag answers 409 again.
 	test('a cascade that still reports objects errors out — it must NOT re-prompt', async ({ page }) => {
 		// This server ignores ?deleteObjects=true — i.e. an OpenRegister predating it.
-		const { deleteCalls } = await stubOpenRegister(page, ({ route }) =>
-			json(route, { error: 'schema-has-objects', objectCount: 1 }, 409))
+		const { deleteCalls } = await stubOpenRegister(page, ({ route }) => json(route, { error: 'schema-has-objects', objectCount: 1 }, 409))
 
 		await startDeletingCow(page)
 		await confirmBox(page).getByRole('button', { name: /Delete schema and 1 object/i }).click()

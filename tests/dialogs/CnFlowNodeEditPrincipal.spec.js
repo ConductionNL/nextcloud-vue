@@ -24,9 +24,7 @@ let mockRows = []
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
 	default: {
-		get: jest.fn(() =>
-			Promise.resolve({ data: { ocs: { data: mockRows } } }),
-		),
+		get: jest.fn(() => Promise.resolve({ data: { ocs: { data: mockRows } } })),
 		post: jest.fn(() => Promise.resolve({ data: {} })),
 		put: jest.fn(() => Promise.resolve({ data: {} })),
 		delete: jest.fn(() => Promise.resolve({ data: {} })),

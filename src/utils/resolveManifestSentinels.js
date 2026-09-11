@@ -106,7 +106,7 @@ export async function resolveManifestSentinels(manifest, appId, options = {}) {
 	const keys = new Set()
 	const pages = Array.isArray(manifest.pages) ? manifest.pages : []
 	for (const page of pages) {
-		if (!isPlainObject(page) || !isPlainObject(page.config)) continue
+		if (!isPlainObject(page) || !isPlainObject(page.config)) { continue }
 		collectSentinelKeys(page.config, keys)
 	}
 
@@ -132,7 +132,7 @@ export async function resolveManifestSentinels(manifest, appId, options = {}) {
 	// pages[].config only. Other fields are passed through by reference.
 	const out = { ...manifest }
 	out.pages = pages.map((page) => {
-		if (!isPlainObject(page) || !isPlainObject(page.config)) return page
+		if (!isPlainObject(page) || !isPlainObject(page.config)) { return page }
 		return { ...page, config: substituteInTree(page.config, resolved) }
 	})
 
@@ -151,15 +151,15 @@ export async function resolveManifestSentinels(manifest, appId, options = {}) {
 function collectSentinelKeys(node, keys) {
 	if (typeof node === 'string') {
 		const match = node.match(SENTINEL_PATTERN)
-		if (match) keys.add(match[1])
+		if (match) { keys.add(match[1]) }
 		return
 	}
 	if (Array.isArray(node)) {
-		for (const item of node) collectSentinelKeys(item, keys)
+		for (const item of node) { collectSentinelKeys(item, keys) }
 		return
 	}
 	if (isPlainObject(node)) {
-		for (const value of Object.values(node)) collectSentinelKeys(value, keys)
+		for (const value of Object.values(node)) { collectSentinelKeys(value, keys) }
 	}
 }
 
@@ -227,7 +227,7 @@ async function defaultGetAppConfigValue(appId, key) {
 			if (response && response.status === 200 && response.data !== undefined) {
 				const data = response.data
 				// API may return either a raw scalar or `{ value: ... }`.
-				if (isPlainObject(data) && 'value' in data) return data.value
+				if (isPlainObject(data) && 'value' in data) { return data.value }
 				return data
 			}
 		} catch (e) {

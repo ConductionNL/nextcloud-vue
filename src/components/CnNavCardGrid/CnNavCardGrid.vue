@@ -120,6 +120,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Explore'),
 		},
+
 		/**
 		 * Documentation link surfaced in the widget's overflow Actions menu.
 		 * Empty (the default) hides the Documentation item; the Refresh and
@@ -129,6 +130,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Stable id forwarded to the widget chrome for the Refresh /
 		 * Request-a-feature payloads, and used to namespace each card's
@@ -138,6 +140,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Array of navCardEntry records to render as navigation cards. */
 		entries: {
 			type: Array,
@@ -162,9 +165,9 @@ export default {
 				.sort((a, b) => {
 					const aHas = typeof a.order === 'number'
 					const bHas = typeof b.order === 'number'
-					if (aHas && !bHas) return -1
-					if (!aHas && bHas) return 1
-					if (!aHas && !bHas) return 0
+					if (aHas && !bHas) { return -1 }
+					if (!aHas && bHas) { return 1 }
+					if (!aHas && !bHas) { return 0 }
 					return a.order - b.order
 				})
 		},
@@ -194,8 +197,8 @@ export default {
 		 */
 		passesVisibleIf(entry, runtime) {
 			const condition = entry.visibleIf
-			if (!condition || typeof condition !== 'object') return true
-			if (condition.appInstalled && !isAppInstalled(condition.appInstalled)) return false
+			if (!condition || typeof condition !== 'object') { return true }
+			if (condition.appInstalled && !isAppInstalled(condition.appInstalled)) { return false }
 			return passesContextPredicates(condition, runtime)
 		},
 
@@ -207,7 +210,7 @@ export default {
 		 * @return {object|null} The matching `cnManifest.pages[]` entry.
 		 */
 		pageForEntry(entry) {
-			if (!entry.route) return null
+			if (!entry.route) { return null }
 			const pages = this.cnManifest?.pages ?? []
 			return pages.find((p) => p.id === entry.route) ?? null
 		},
@@ -226,8 +229,8 @@ export default {
 		 * @return {boolean}
 		 */
 		isDisabled(entry) {
-			if (!entry.route) return false
-			if (this.pageForEntry(entry)) return false
+			if (!entry.route) { return false }
+			if (this.pageForEntry(entry)) { return false }
 			if (!this._warnedUnresolvedRoutes.has(entry.id)) {
 				this._warnedUnresolvedRoutes.add(entry.id)
 				// eslint-disable-next-line no-console
@@ -250,15 +253,15 @@ export default {
 		 */
 		countFor(entry) {
 			const raw = entry?.count
-			if (raw === undefined || raw === null) return null
+			if (raw === undefined || raw === null) { return null }
 			if (typeof raw === 'number') {
 				return raw > 0 ? raw : null
 			}
-			if (raw !== 'auto') return null
+			if (raw !== 'auto') { return null }
 			const page = this.pageForEntry(entry)
 			const register = page?.config?.register
 			const schema = page?.config?.schema
-			if (page?.type !== 'index' || !register || !schema) return null
+			if (page?.type !== 'index' || !register || !schema) { return null }
 			const value = this.cnMenuCounts?.[register]?.[schema]
 			return typeof value === 'number' && value > 0 ? value : null
 		},
@@ -272,8 +275,8 @@ export default {
 		 * @return {string} Tag/component name for the dynamic `:is`.
 		 */
 		cardTag(entry) {
-			if (entry.route && !this.isDisabled(entry)) return 'router-link'
-			if (entry.href) return 'a'
+			if (entry.route && !this.isDisabled(entry)) { return 'router-link' }
+			if (entry.href) { return 'a' }
 			return 'div'
 		},
 

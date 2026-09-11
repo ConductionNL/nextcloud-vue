@@ -329,21 +329,25 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** The object UUID */
 		objectId: {
 			type: String,
 			required: true,
 		},
+
 		/** OpenRegister register ID */
 		register: {
 			type: String,
 			default: '',
 		},
+
 		/** OpenRegister schema ID */
 		schema: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * The loaded object, forwarded to prop-driven sidebar-tab widgets
 		 * (the `data` / `metadata` built-ins) as `objectData`. The sidebar is
@@ -357,6 +361,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * The resolved JSON Schema OBJECT (with a `properties` field), forwarded
 		 * to the `data` built-in tab widget (CnObjectDataWidget), which needs the
@@ -369,11 +374,13 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Array of tab IDs to hide: 'files', 'notes', 'tags', 'tasks', 'auditTrail' */
 		hiddenTabs: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Use the pluggable integration registry to drive the sidebar
 		 * tabs. Defaults to `true` (ADR-019): tabs are rendered one per
@@ -402,6 +409,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Integration ids to exclude when rendering registry-driven
 		 * tabs. Mirrors `hiddenTabs` for the legacy mode.
@@ -412,31 +420,37 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Whether the sidebar is open */
 		open: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Sidebar title (defaults to objectType) */
 		title: {
 			type: String,
 			default: '',
 		},
+
 		/** Sidebar subtitle */
 		subtitle: {
 			type: String,
 			default: '',
 		},
+
 		/** @deprecated Use `subtitle` instead. Alias kept for backwards compatibility. */
 		subtitleProp: {
 			type: String,
 			default: '',
 		},
+
 		/** Base API URL for OpenRegister */
 		apiBase: {
 			type: String,
 			default: '/apps/openregister/api',
 		},
+
 		/**
 		 * Whether to auto-subscribe to live updates for the
 		 * current object. Defaults to true. The sidebar calls
@@ -449,6 +463,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Optional explicit Pinia store instance. When omitted,
 		 * the sidebar skips auto-subscribe (Pinia not yet active
@@ -612,13 +627,16 @@ export default {
 		sidebarTitle() {
 			return this.title || this.objectType || 'Details'
 		},
+
 		sidebarSubtitle() {
 			return this.subtitle || this.subtitleProp || ''
 		},
+
 		/** Whether the consumer has supplied a custom `tabs` array. */
 		hasCustomTabs() {
 			return Array.isArray(this.tabs) && this.tabs.length > 0
 		},
+
 		/**
 		 * Whether registry mode is active. Custom `tabs` always wins
 		 * (with a warning at mount) so consumers don't get a surprise
@@ -627,6 +645,7 @@ export default {
 		isRegistryMode() {
 			return this.useRegistry === true && this.hasCustomTabs === false
 		},
+
 		/**
 		 * Filtered registry snapshot: drops providers whose id is in
 		 * `excludeIntegrations` or `hiddenTabs`. Stays reactive on
@@ -640,10 +659,12 @@ export default {
 			const all = this.registryIntegrations || []
 			return all.filter((p) => excluded.has(p.id) === false)
 		},
+
 		/** Effective customComponents registry: prop wins, inject fallback. */
 		effectiveCustomComponents() {
 			return this.customComponents || this.cnCustomComponents || {}
 		},
+
 		/**
 		 * Effective v2 component registry (ADR-036). Kind-tagged entries
 		 * keyed by component name. Consulted by `resolveTabComponent` so a
@@ -653,6 +674,7 @@ export default {
 		effectiveRegistry() {
 			return this.cnRegistry || {}
 		},
+
 		/**
 		 * Shared object context forwarded to every widget / component
 		 * mounted inside a custom tab — same context the built-in tabs
@@ -667,6 +689,7 @@ export default {
 				apiBase: this.apiBase,
 			}
 		},
+
 		/**
 		 * Context forwarded to a mount-mode leaf's `mount(el, props)` for the
 		 * single-entity sidebar surface — the same shape an SFC tab receives,
@@ -696,9 +719,10 @@ export default {
 				this.activeTab = this.requestedTab || this.computeInitialActiveTab()
 			},
 		},
+
 		requestedTab(id) {
 			// Host deep-link: switch to the requested tab when it changes.
-			if (id) this.activeTab = id
+			if (id) { this.activeTab = id }
 		},
 	},
 
@@ -799,9 +823,9 @@ export default {
 		 * @return {object|null} Vue component, or null when unresolved
 		 */
 		resolveWidgetComponent(type) {
-			if (BUILTIN_WIDGETS[type]) return BUILTIN_WIDGETS[type]
+			if (BUILTIN_WIDGETS[type]) { return BUILTIN_WIDGETS[type] }
 			const reg = this.effectiveCustomComponents
-			if (reg && reg[type]) return reg[type]
+			if (reg && reg[type]) { return reg[type] }
 			// eslint-disable-next-line no-console
 			console.warn(`[CnObjectSidebar] Unknown widget type "${type}" — not in built-ins (data, metadata, audit, audit-trail, object-table) and not in customComponents registry.`)
 			return null

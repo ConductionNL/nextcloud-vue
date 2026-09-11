@@ -48,9 +48,7 @@ function runPayload(status, log = []) {
  * @return {number} The count.
  */
 function runFetchCount() {
-	return axios.get.mock.calls.filter(
-		([url]) => String(url).includes('/api/flow-runs/run-1'),
-	).length
+	return axios.get.mock.calls.filter(([url]) => String(url).includes('/api/flow-runs/run-1')).length
 }
 
 describe('useFlowStore.watchRun', () => {
@@ -104,7 +102,6 @@ describe('useFlowStore.watchRun', () => {
 	})
 
 	it('floors a too-eager interval at 2 seconds', async () => {
-
 		store.watchRun('run-1', { intervalMs: 100 })
 		await jest.advanceTimersByTimeAsync(0)
 		expect(runFetchCount()).toBe(1)
@@ -178,7 +175,6 @@ describe('useFlowStore.watchRun', () => {
 	})
 
 	it('replaces the watch when a different run is watched', async () => {
-
 		store.watchRun('run-1')
 		await jest.advanceTimersByTimeAsync(0)
 
@@ -195,7 +191,6 @@ describe('useFlowStore.watchRun', () => {
 	})
 
 	it('stops polling on stopWatching, keeping the fetched state', async () => {
-
 		store.watchRun('run-1')
 		await jest.advanceTimersByTimeAsync(0)
 		store.stopWatching()

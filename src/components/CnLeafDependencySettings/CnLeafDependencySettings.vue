@@ -148,6 +148,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Dependency declarations, in the manifest's own shape: a list of
 		 * app-id strings, or `{ id, name?, required? }` objects. `required`
@@ -159,6 +160,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Whether the current user may install/enable apps. When false the
 		 * row shows an "ask your administrator" line instead of the button.
@@ -167,6 +169,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Also list dependencies that are present and enabled. Off by
 		 * default — an admin section about what is missing should be empty
@@ -176,11 +179,13 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Pre-translated section heading. */
 		sectionName: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Optional integrations'),
 		},
+
 		/** Pre-translated section description. */
 		sectionDescription: {
 			type: String,
@@ -220,7 +225,7 @@ export default {
 				.map((entry) => {
 					const isObject = entry && typeof entry === 'object'
 					const id = isObject ? entry.id : entry
-					if (typeof id !== 'string' || id === '') return null
+					if (typeof id !== 'string' || id === '') { return null }
 					return {
 						id,
 						name: (isObject && entry.name) || id,

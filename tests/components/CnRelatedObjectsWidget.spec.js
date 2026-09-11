@@ -470,7 +470,7 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 
 	it('keeps the draft and surfaces an error when the note POST fails', async () => {
 		global.fetch = jest.fn((url, init) => {
-			if (init && init.method === 'POST') return Promise.resolve({ ok: false, status: 500 })
+			if (init && init.method === 'POST') { return Promise.resolve({ ok: false, status: 500 }) }
 			return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
 		})
 		const wrapper = mountTabbed()
@@ -542,9 +542,7 @@ describe('CnRelatedObjectsWidget — extraSections on the tabbed path', () => {
 		const labels = wrapper.findAll('.cn-related-objects-widget__tab-label').map((w) => w.text())
 		expect(labels).toContain('Planned cases')
 		expect(wrapper.find('.cn-related-objects-widget__empty-state').exists()).toBe(false)
-		expect(wrapper.findAll('.cn-related-objects-widget__row').map((w) => w.text())).toEqual(
-			expect.arrayContaining([expect.stringContaining('Hoorzitting')]),
-		)
+		expect(wrapper.findAll('.cn-related-objects-widget__row').map((w) => w.text())).toEqual(expect.arrayContaining([expect.stringContaining('Hoorzitting')]))
 	})
 
 	it('shows the section beside the self-fetched groups, not instead of them', async () => {

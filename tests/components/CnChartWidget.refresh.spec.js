@@ -21,8 +21,8 @@ var mockEpRefetch = jest.fn()
 // to csrf-token-update at MODULE LOAD — before the hoisted `var` above is
 // assigned. That early subscription is irrelevant here and simply dropped.
 jest.mock('@nextcloud/event-bus', () => ({
-	subscribe: jest.fn((channel, cb) => { if (mockBusHandlers) mockBusHandlers[channel] = cb }),
-	unsubscribe: jest.fn((channel) => { if (mockBusHandlers) delete mockBusHandlers[channel] }),
+	subscribe: jest.fn((channel, cb) => { if (mockBusHandlers) { mockBusHandlers[channel] = cb } }),
+	unsubscribe: jest.fn((channel) => { if (mockBusHandlers) { delete mockBusHandlers[channel] } }),
 	emit: jest.fn(),
 }))
 
@@ -61,7 +61,7 @@ const mountChart = (props = {}) => mount(CnChartWidget, {
 describe('CnChartWidget — refresh (#6)', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
-		for (const k of Object.keys(mockBusHandlers)) delete mockBusHandlers[k]
+		for (const k of Object.keys(mockBusHandlers)) { delete mockBusHandlers[k] }
 	})
 
 	it('subscribes to cn:widget:refresh on mount', () => {
@@ -110,7 +110,7 @@ describe('CnChartWidget — refresh (#6)', () => {
 describe('CnChartWidget — page-level refresh', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
-		for (const k of Object.keys(mockBusHandlers)) delete mockBusHandlers[k]
+		for (const k of Object.keys(mockBusHandlers)) { delete mockBusHandlers[k] }
 	})
 
 	it('subscribes to cn:page:refresh on mount', () => {

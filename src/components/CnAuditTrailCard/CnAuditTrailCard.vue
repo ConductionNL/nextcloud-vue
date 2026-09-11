@@ -76,6 +76,7 @@ export default {
 			default: 'detail-page',
 			validator: (value) => ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity'].includes(value),
 		},
+
 		/** Base API URL. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Maximum rows to render. */
@@ -106,6 +107,7 @@ export default {
 		resolvedTitle() {
 			return this.title || t('nextcloud-vue', 'Audit trail')
 		},
+
 		displayedEntries() {
 			return this.entries.slice(0, this.maxDisplay)
 		},

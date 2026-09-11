@@ -34,8 +34,8 @@ import { safeCurrencyCode } from './formatMetric.js'
  * @return {Date|null} A `Date` instance, or `null` if the input is null/empty/unparseable.
  */
 function toDate(value) {
-	if (value == null || value === '') return null
-	if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
+	if (value == null || value === '') { return null }
+	if (value instanceof Date) { return Number.isNaN(value.getTime()) ? null : value }
 	const d = new Date(value)
 	return Number.isNaN(d.getTime()) ? null : d
 }
@@ -48,9 +48,9 @@ function toDate(value) {
  * @return {string} Formatted date, or `''` for null/empty, or `String(value)` for unparseable.
  */
 export function formatDate(value) {
-	if (value == null || value === '') return ''
+	if (value == null || value === '') { return '' }
 	const d = toDate(value)
-	if (!d) return String(value)
+	if (!d) { return String(value) }
 	return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(d)
 }
 
@@ -62,9 +62,9 @@ export function formatDate(value) {
  * @return {string} Formatted date + time, or `''` for null/empty, or `String(value)` for unparseable.
  */
 export function formatDateTime(value) {
-	if (value == null || value === '') return ''
+	if (value == null || value === '') { return '' }
 	const d = toDate(value)
-	if (!d) return String(value)
+	if (!d) { return String(value) }
 	return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(d)
 }
 
@@ -77,9 +77,9 @@ export function formatDateTime(value) {
  * @return {string} Relative phrasing, or `''` for null/empty, or `String(value)` for unparseable.
  */
 export function formatRelativeTime(value) {
-	if (value == null || value === '') return ''
+	if (value == null || value === '') { return '' }
 	const d = toDate(value)
-	if (!d) return String(value)
+	if (!d) { return String(value) }
 	const diffMs = d.getTime() - Date.now()
 	const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
 	const units = [
@@ -128,11 +128,11 @@ function dayDiffFromToday(d) {
  * @return {string} The relative-day phrasing (or ''/original on bad input).
  */
 export function formatDaysUntil(value) {
-	if (value == null || value === '') return ''
+	if (value == null || value === '') { return '' }
 	const d = toDate(value)
-	if (!d) return String(value)
+	if (!d) { return String(value) }
 	const days = dayDiffFromToday(d)
-	if (days === 0) return t('nextcloud-vue', 'Due today')
+	if (days === 0) { return t('nextcloud-vue', 'Due today') }
 	if (days > 0) {
 		return n('nextcloud-vue', '{count} day remaining', '{count} days remaining', days, { count: days })
 	}
@@ -154,11 +154,11 @@ export function formatDaysUntil(value) {
  * @return {string} The relative-day phrasing (or ''/original on bad input).
  */
 export function formatDaysSince(value) {
-	if (value == null || value === '') return ''
+	if (value == null || value === '') { return '' }
 	const d = toDate(value)
-	if (!d) return String(value)
+	if (!d) { return String(value) }
 	const days = dayDiffFromToday(d)
-	if (days === 0) return t('nextcloud-vue', 'Today')
+	if (days === 0) { return t('nextcloud-vue', 'Today') }
 	if (days < 0) {
 		const ago = Math.abs(days)
 		return n('nextcloud-vue', '{count} day ago', '{count} days ago', ago, { count: ago })
@@ -182,9 +182,9 @@ export function formatDaysSince(value) {
  * @return {string} The locale currency string (or ''/original on bad input).
  */
 export function formatCurrency(value, _row, _property, options) {
-	if (value == null || value === '') return ''
+	if (value == null || value === '') { return '' }
 	const num = Number(value)
-	if (!Number.isFinite(num)) return String(value)
+	if (!Number.isFinite(num)) { return String(value) }
 	const opts = options || {}
 	const decimals = Number.isFinite(opts.decimals) ? opts.decimals : 2
 	return new Intl.NumberFormat(undefined, {
@@ -215,12 +215,12 @@ export function formatCurrency(value, _row, _property, options) {
  * @return {string} The selected phrase with `{n}` substituted (or ''/original on bad input).
  */
 export function formatConditionalPhrase(value, _row, _property, options) {
-	if (value == null || value === '') return ''
+	if (value == null || value === '') { return '' }
 	const num = Number(value)
-	if (!Number.isFinite(num)) return String(value)
+	if (!Number.isFinite(num)) { return String(value) }
 	const opts = options || {}
 	const phrase = num < 0 ? opts.negative : (num > 0 ? opts.positive : opts.zero)
-	if (typeof phrase !== 'string' || phrase === '') return String(value)
+	if (typeof phrase !== 'string' || phrase === '') { return String(value) }
 	return phrase.replace(/\{n\}/g, String(Math.abs(num)))
 }
 
@@ -238,9 +238,9 @@ export function formatConditionalPhrase(value, _row, _property, options) {
  * @return {*} The parsed collection, or `value` unchanged.
  */
 function parseCollection(value) {
-	if (typeof value !== 'string') return value
+	if (typeof value !== 'string') { return value }
 	const trimmed = value.trim()
-	if (trimmed[0] !== '[' && trimmed[0] !== '{') return value
+	if (trimmed[0] !== '[' && trimmed[0] !== '{') { return value }
 	try {
 		const parsed = JSON.parse(trimmed)
 		return (parsed !== null && typeof parsed === 'object') ? parsed : value
@@ -274,15 +274,13 @@ export function formatCount(value, _row, _property, options) {
 	// used to fall through to the scalar branch and count as one entry, so a
 	// column over a `0` rendered "1 retry" — the singular of a thing that isn't
 	// there.
-	if (value == null || value === '' || value === 0 || value === false) return zero
+	if (value == null || value === '' || value === 0 || value === false) { return zero }
 	const collection = parseCollection(value)
 	let n
-	if (Array.isArray(collection)) n = collection.length
-	else if (typeof collection === 'object') n = Object.keys(collection).length
-	else n = 1
-	if (n === 0) return zero
+	if (Array.isArray(collection)) { n = collection.length } else if (typeof collection === 'object') { n = Object.keys(collection).length } else { n = 1 }
+	if (n === 0) { return zero }
 	const phrase = n === 1 ? (opts.singular ?? opts.plural) : (opts.plural ?? opts.singular)
-	if (typeof phrase !== 'string' || phrase === '') return String(n)
+	if (typeof phrase !== 'string' || phrase === '') { return String(n) }
 	return phrase.replace(/\{n\}/g, String(n))
 }
 

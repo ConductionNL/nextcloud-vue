@@ -204,6 +204,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values when not editing (registry defaults).
 		 *
@@ -240,6 +241,7 @@ export default {
 				currency: fmt.currency ?? DEFAULT_CONTENT.format.currency,
 				decimals: Number.isFinite(fmt.decimals) ? fmt.decimals : 0,
 			},
+
 			kind: src.kind || 'aggregate',
 			source: { register: src.register ?? '', schema: src.schema ?? '' },
 			metric: src.metric ?? 'count',
@@ -249,6 +251,7 @@ export default {
 				weightField: src.weightField ?? '',
 				divisor: Number.isFinite(src.divisor) ? src.divisor : 100,
 			},
+
 			filterRows: filterToRows(src.filter || {}),
 			numeratorRows: filterToRows((src.numerator && src.numerator.filter) || (src.parts && src.parts.A && src.parts.A.filter) || {}),
 			denominatorRows: filterToRows((src.denominator && src.denominator.filter) || (src.parts && src.parts.B && src.parts.B.filter) || {}),
@@ -262,14 +265,17 @@ export default {
 		kindOptions() {
 			return ['aggregate', 'ratio', 'computed', 'weighted']
 		},
+
 		/** Aggregation metric options. */
 		metricOptions() {
 			return ['count', 'sum', 'avg', 'min', 'max']
 		},
+
 		/** Number-format style options. */
 		styleOptions() {
 			return ['number', 'currency', 'percent']
 		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			const base = { register: this.source.register, schema: this.source.schema }
@@ -341,9 +347,9 @@ export default {
 		 * @return {string} The translated label; unknown ids fall back to "Aggregate".
 		 */
 		kindLabel(id) {
-			if (id === 'ratio') return t('nextcloud-vue', 'Ratio (%)')
-			if (id === 'computed') return t('nextcloud-vue', 'Formula')
-			if (id === 'weighted') return t('nextcloud-vue', 'Weighted sum')
+			if (id === 'ratio') { return t('nextcloud-vue', 'Ratio (%)') }
+			if (id === 'computed') { return t('nextcloud-vue', 'Formula') }
+			if (id === 'weighted') { return t('nextcloud-vue', 'Weighted sum') }
 			return t('nextcloud-vue', 'Aggregate')
 		},
 

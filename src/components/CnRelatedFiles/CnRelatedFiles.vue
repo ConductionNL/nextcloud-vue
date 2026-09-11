@@ -119,6 +119,7 @@ export default {
 		 * Related file references to render. Each entry:
 		 * `{ path, name?, description? }`. `name` falls back to the basename
 		 * of `path` when omitted.
+		 *
 		 * @type {Array<{path: string, name?: string, description?: string}>}
 		 */
 		files: { type: Array, default: () => [] },
@@ -145,12 +146,14 @@ export default {
 		/** Per-row Remove button label / title. */
 		removeLabel: { type: String, default: 'Remove' },
 	},
+
 	emits: ['add', 'remove', 'update:files'],
 	data() {
 		return {
 			pathDraft: '',
 		}
 	},
+
 	methods: {
 		/**
 		 * Pick the emoji-icon for a related file based on its extension.
@@ -162,17 +165,18 @@ export default {
 		 */
 		iconFor(file) {
 			const ext = (file.name || file.path || '').split('.').pop().toLowerCase()
-			if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) return '🖼️'
-			if (['mp4', 'mov', 'avi', 'webm'].includes(ext)) return '🎬'
-			if (['mp3', 'wav', 'ogg'].includes(ext)) return '🎵'
-			if (['pdf'].includes(ext)) return '📕'
-			if (['doc', 'docx', 'odt', 'txt', 'md'].includes(ext)) return '📄'
-			if (['xls', 'xlsx', 'ods', 'csv'].includes(ext)) return '📊'
-			if (['ppt', 'pptx', 'odp'].includes(ext)) return '📈'
-			if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return '🗜️'
-			if (['xml', 'json', 'yml', 'yaml'].includes(ext)) return '🧾'
+			if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) { return '🖼️' }
+			if (['mp4', 'mov', 'avi', 'webm'].includes(ext)) { return '🎬' }
+			if (['mp3', 'wav', 'ogg'].includes(ext)) { return '🎵' }
+			if (['pdf'].includes(ext)) { return '📕' }
+			if (['doc', 'docx', 'odt', 'txt', 'md'].includes(ext)) { return '📄' }
+			if (['xls', 'xlsx', 'ods', 'csv'].includes(ext)) { return '📊' }
+			if (['ppt', 'pptx', 'odp'].includes(ext)) { return '📈' }
+			if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) { return '🗜️' }
+			if (['xml', 'json', 'yml', 'yaml'].includes(ext)) { return '🧾' }
 			return '📎'
 		},
+
 		/**
 		 * Display name for a row — the explicit `name`, or the basename of
 		 * the path when `name` is absent.
@@ -183,6 +187,7 @@ export default {
 		displayName(file) {
 			return file.name || this.basename(file.path)
 		},
+
 		/**
 		 * Extract the basename (last path segment) from a full path.
 		 *
@@ -193,6 +198,7 @@ export default {
 			const clean = String(path || '')
 			return clean.split('/').filter(Boolean).pop() || clean
 		},
+
 		/**
 		 * Build a `{ path, name }` ref from a picked / typed path, deriving
 		 * `name` from the basename.
@@ -204,6 +210,7 @@ export default {
 			const clean = String(path || '')
 			return { path: clean, name: this.basename(clean) }
 		},
+
 		/**
 		 * Open the native Nextcloud file picker (choose-existing, no
 		 * directories) and relate the picked file(s). Consumers persist —
@@ -213,7 +220,7 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async openPicker() {
-			if (this.readOnly) return
+			if (this.readOnly) { return }
 			try {
 				const picker = getFilePickerBuilder(this.pickerTitle)
 					.setMultiSelect(this.allowMultiple)
@@ -223,10 +230,10 @@ export default {
 					.allowDirectories(false)
 					.build()
 				const picked = await picker.pick()
-				if (!picked) return
+				if (!picked) { return }
 				const paths = Array.isArray(picked) ? picked : [picked]
 				const refs = paths.filter(Boolean).map((p) => this.toRef(p))
-				if (refs.length) this.addRefs(refs)
+				if (refs.length) { this.addRefs(refs) }
 			} catch (e) {
 				// User-cancellation rejects the promise in some dialog versions —
 				// treat any dismissal as a no-op rather than surfacing an error.
@@ -234,6 +241,7 @@ export default {
 				console.debug('[CnRelatedFiles] file picker closed', e)
 			}
 		},
+
 		/**
 		 * Relate a file typed into the path fallback field, then clear it.
 		 *
@@ -241,10 +249,11 @@ export default {
 		 */
 		addFromPath() {
 			const value = this.pathDraft.trim()
-			if (!value) return
+			if (!value) { return }
 			this.addRefs([this.toRef(value)])
 			this.pathDraft = ''
 		},
+
 		/**
 		 * Append new refs to the list and emit both the granular `@add`
 		 * event and the `@update:files` model event.
@@ -266,6 +275,7 @@ export default {
 			 */
 			this.$emit('update:files', next)
 		},
+
 		/**
 		 * Remove a related file by index and emit both `@remove` and
 		 * `@update:files`.
@@ -275,7 +285,7 @@ export default {
 		 * @return {void}
 		 */
 		removeFile(file, index) {
-			if (this.readOnly) return
+			if (this.readOnly) { return }
 			const next = this.files.filter((_, i) => i !== index)
 			/**
 			 * @event remove Emitted when a row's Remove button is clicked.

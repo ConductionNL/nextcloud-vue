@@ -16,7 +16,7 @@ describe('CnContextMenu visible predicate', () => {
 				targetItem: { published: true },
 			},
 		})
-		const labels = wrapper.vm.visibleActions.map(a => a.label)
+		const labels = wrapper.vm.visibleActions.map((a) => a.label)
 		expect(labels).toEqual(['Edit', 'Depublish'])
 	})
 
@@ -30,7 +30,7 @@ describe('CnContextMenu visible predicate', () => {
 				targetItem: { published: false },
 			},
 		})
-		const labels = wrapper.vm.visibleActions.map(a => a.label)
+		const labels = wrapper.vm.visibleActions.map((a) => a.label)
 		expect(labels).toEqual(['Publish'])
 	})
 
@@ -54,7 +54,7 @@ describe('CnContextMenu visible predicate', () => {
 				targetItem: null,
 			},
 		})
-		const labels = wrapper.vm.visibleActions.map(a => a.label)
+		const labels = wrapper.vm.visibleActions.map((a) => a.label)
 		expect(labels).toEqual(['Shown'])
 	})
 })

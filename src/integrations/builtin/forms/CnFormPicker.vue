@@ -251,9 +251,9 @@ export default {
 	methods: {
 		statusLabel(form) {
 			const status = String(form.status || 'open').toLowerCase()
-			if (status === 'closed') return t('nextcloud-vue', 'Closed')
-			if (status === 'archived') return t('nextcloud-vue', 'Archived')
-			if (status === 'draft') return t('nextcloud-vue', 'Draft')
+			if (status === 'closed') { return t('nextcloud-vue', 'Closed') }
+			if (status === 'archived') { return t('nextcloud-vue', 'Archived') }
+			if (status === 'draft') { return t('nextcloud-vue', 'Draft') }
 			return t('nextcloud-vue', 'Open')
 		},
 
@@ -277,7 +277,7 @@ export default {
 		},
 
 		emitLink() {
-			if (!this.selected) return
+			if (!this.selected) { return }
 			const payload = { formId: this.selected.id }
 			if (this.linkSpecificSubmission) {
 				const sid = parseInt(this.submissionId, 10)

@@ -243,11 +243,13 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether the current user is an admin (pairs with `canEdit`). */
 		isAdmin: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether the surrounding shell is in edit mode. */
 		canEdit: {
 			type: Boolean,

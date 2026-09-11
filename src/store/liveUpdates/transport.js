@@ -92,10 +92,10 @@ function switchToPolling(activeSubscriptions) {
  * @return {object} The singleton live-updates instance
  */
 export function getLiveUpdates(opts = {}) {
-	if (instance) return instance
+	if (instance) { return instance }
 
-	if (opts.pollIntervalCollection) state.pollIntervalCollection = opts.pollIntervalCollection
-	if (opts.pollIntervalObject) state.pollIntervalObject = opts.pollIntervalObject
+	if (opts.pollIntervalCollection) { state.pollIntervalCollection = opts.pollIntervalCollection }
+	if (opts.pollIntervalObject) { state.pollIntervalObject = opts.pollIntervalObject }
 
 	/**
 	 * Determine which transport to use by probing notify_push availability.
@@ -148,7 +148,7 @@ export function getLiveUpdates(opts = {}) {
 		 * @return {string}
 		 */
 		getStatus() {
-			if (state.activeTransport) return state.activeTransport.getStatus()
+			if (state.activeTransport) { return state.activeTransport.getStatus() }
 			return 'offline'
 		},
 
@@ -205,7 +205,7 @@ export function getLiveUpdates(opts = {}) {
 		 */
 		unsubscribe(handle) {
 			const internalHandle = state.handles.get(handle)
-			if (!internalHandle) return
+			if (!internalHandle) { return }
 
 			state.handles.delete(handle)
 
@@ -218,8 +218,8 @@ export function getLiveUpdates(opts = {}) {
 		 * Reset singleton state (for testing).
 		 */
 		_reset() {
-			if (state.wsTransport) state.wsTransport.destroy()
-			if (state.pollTransport) state.pollTransport.destroy()
+			if (state.wsTransport) { state.wsTransport.destroy() }
+			if (state.pollTransport) { state.pollTransport.destroy() }
 			state.wsTransport = null
 			state.pollTransport = null
 			state.activeTransport = null
@@ -240,8 +240,8 @@ export function resetLiveUpdates() {
 		instance._reset()
 	} else {
 		// Still reset module state
-		if (state.wsTransport) state.wsTransport.destroy()
-		if (state.pollTransport) state.pollTransport.destroy()
+		if (state.wsTransport) { state.wsTransport.destroy() }
+		if (state.pollTransport) { state.pollTransport.destroy() }
 		state.wsTransport = null
 		state.pollTransport = null
 		state.activeTransport = null

@@ -23,8 +23,8 @@ var mockDsRefetch = jest.fn()
 // CnChartWidget.refresh.spec.js is: @nextcloud/auth subscribes at module load,
 // before the hoisted var is assigned, and that subscription is irrelevant here.
 jest.mock('@nextcloud/event-bus', () => ({
-	subscribe: jest.fn((channel, cb) => { if (mockBusHandlers) mockBusHandlers[channel] = cb }),
-	unsubscribe: jest.fn((channel) => { if (mockBusHandlers) delete mockBusHandlers[channel] }),
+	subscribe: jest.fn((channel, cb) => { if (mockBusHandlers) { mockBusHandlers[channel] = cb } }),
+	unsubscribe: jest.fn((channel) => { if (mockBusHandlers) { delete mockBusHandlers[channel] } }),
 	emit: jest.fn(),
 }))
 
@@ -71,7 +71,7 @@ const dataSource = { register: 'openconnector', schema: 'source' }
 
 beforeEach(() => {
 	jest.clearAllMocks()
-	for (const k of Object.keys(mockBusHandlers)) delete mockBusHandlers[k]
+	for (const k of Object.keys(mockBusHandlers)) { delete mockBusHandlers[k] }
 })
 
 describe('CnStatsBlockWidget — page-level refresh', () => {

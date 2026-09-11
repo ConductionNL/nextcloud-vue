@@ -3,11 +3,9 @@ import { createCrudStore } from '../../src/store/createCrudStore.js'
 
 // Simple entity class for testing
 class TestEntity {
-
 	constructor(data) {
 		Object.assign(this, data)
 	}
-
 }
 
 describe('createCrudStore', () => {
@@ -740,7 +738,7 @@ describe('createCrudStore', () => {
 				name: 'a',
 				setup(s) {
 					s.$onAction(({ name, after }) => {
-						if (name === 'setItem') after(aAfter)
+						if (name === 'setItem') { after(aAfter) }
 					})
 				},
 			}
@@ -748,7 +746,7 @@ describe('createCrudStore', () => {
 				name: 'b',
 				setup(s) {
 					s.$onAction(({ name, after }) => {
-						if (name === 'setItem') after(bAfter)
+						if (name === 'setItem') { after(bAfter) }
 					})
 				},
 			}
@@ -770,7 +768,7 @@ describe('createCrudStore', () => {
 				name: 'p',
 				setup(s) {
 					s.$onAction(({ name, after: afterCb }) => {
-						if (name === 'setItem') afterCb(after)
+						if (name === 'setItem') { afterCb(after) }
 					})
 				},
 			}

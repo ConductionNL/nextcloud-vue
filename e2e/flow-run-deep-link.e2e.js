@@ -162,9 +162,7 @@ test.describe('the run deep link, all the way through', () => {
 		// The step that only exists on the version this run executed. Its
 		// presence proves the run reached the flow page AND that the page
 		// pinned the graph to the run's version.
-		await expect(
-			page.locator('[data-testid="runlink-page"] .cn-flow-detail__node-label', { hasText: SINCE_DELETED }),
-		).toBeVisible()
+		await expect(page.locator('[data-testid="runlink-page"] .cn-flow-detail__node-label', { hasText: SINCE_DELETED })).toBeVisible()
 
 		// And the canvas says which version, so the reader is not left to
 		// infer it from a step they may not recognise.

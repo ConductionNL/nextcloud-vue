@@ -49,7 +49,10 @@ jest.mock('leaflet', () => {
 				}),
 				invalidateSize: jest.fn(),
 				getBounds: jest.fn(() => ({
-					getNorth: () => 53, getSouth: () => 51, getEast: () => 6, getWest: () => 4,
+					getNorth: () => 53,
+					getSouth: () => 51,
+					getEast: () => 6,
+					getWest: () => 4,
 				})),
 				getZoom: jest.fn(() => 7),
 				fitBounds: jest.fn(),
@@ -92,7 +95,6 @@ jest.mock('leaflet', () => {
 	// Control plumbing — enough of L.Control / L.DomUtil / L.DomEvent for the
 	// custom control bar (fit / locate / fullscreen) and the base-map switcher.
 	L.Control = class {
-
 		constructor(opts) { this.options = opts || {} }
 		addTo(map) {
 			map._controls = map._controls || []
@@ -100,14 +102,11 @@ jest.mock('leaflet', () => {
 			map._controls.push(this)
 			return this
 		}
-
 	}
 	L.Control.extend = (proto) => {
 		const Base = L.Control
 		return class extends Base {
-
 			constructor(opts) { super(opts); Object.assign(this, proto) }
-
 		}
 	}
 	L.control = Object.assign(
@@ -130,8 +129,8 @@ jest.mock('leaflet', () => {
 		// over out-of-scope variables.
 		create: jest.fn((tag, className, parent) => {
 			const el = globalThis.document.createElement(tag)
-			if (className) el.className = className
-			if (parent) parent.appendChild(el)
+			if (className) { el.className = className }
+			if (parent) { parent.appendChild(el) }
 			return el
 		}),
 	}
@@ -168,8 +167,8 @@ const mountWidget = (propsData) => mount(CnMapWidget, {
 
 beforeEach(() => {
 	const L = require('leaflet').default
-	if (L && L.__instances) L.__instances.length = 0
-	if (L && L.__lastMap) L.__lastMap.current = null
+	if (L && L.__instances) { L.__instances.length = 0 }
+	if (L && L.__lastMap) { L.__lastMap.current = null }
 	jest.clearAllMocks()
 	global.fetch = undefined
 })
@@ -434,7 +433,11 @@ describe('CnMapWidget — events', () => {
 		await new Promise((resolve) => setTimeout(resolve, 150))
 		expect(wrapper.emitted('bounds-change')).toBeTruthy()
 		expect(wrapper.emitted('bounds-change')[0][0]).toEqual({
-			north: 53, south: 51, east: 6, west: 4, zoom: 7,
+			north: 53,
+			south: 51,
+			east: 6,
+			west: 4,
+			zoom: 7,
 		})
 		wrapper.unmount()
 	})

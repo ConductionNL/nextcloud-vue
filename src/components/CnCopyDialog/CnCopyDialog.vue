@@ -116,31 +116,37 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** Property name used for display (e.g., 'title', 'name') */
 		nameField: {
 			type: String,
 			default: 'title',
 		},
+
 		/** Optional function to format the item name. Receives the item, returns a string. Overrides nameField when provided. */
 		nameFormatter: {
 			type: Function,
 			default: null,
 		},
+
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Copy item'),
 		},
+
 		/** Label for the naming pattern selector */
 		patternLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Naming pattern'),
 		},
+
 		/** Success message */
 		successText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Item successfully copied.'),
 		},
+
 		/** Label for the cancel button (visible before the copy runs). */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
 		/** Label for the close button (visible after copy completes). */
@@ -162,7 +168,7 @@ export default {
 
 	computed: {
 		itemName() {
-			if (this.nameFormatter) return this.nameFormatter(this.item)
+			if (this.nameFormatter) { return this.nameFormatter(this.item) }
 			return this.item[this.nameField] || this.item.name || this.item.title || this.item.id
 		},
 
@@ -178,6 +184,7 @@ export default {
 			get() {
 				return this.patternOptions.find((p) => p.id === this.selectedPatternId) || this.patternOptions[0]
 			},
+
 			set(pattern) {
 				this.selectedPatternId = pattern ? pattern.id : 'copy-of'
 			},
@@ -189,20 +196,20 @@ export default {
 	},
 
 	beforeUnmount() {
-		if (this.closeTimeout) clearTimeout(this.closeTimeout)
+		if (this.closeTimeout) { clearTimeout(this.closeTimeout) }
 	},
 
 	methods: {
 		applyPattern(name, patternId) {
 			switch (patternId) {
-			case 'copy-of':
-				return t('nextcloud-vue', 'Copy of {name}', { name })
-			case 'name-copy':
-				return t('nextcloud-vue', '{name} - Copy', { name })
-			case 'name-parens':
-				return t('nextcloud-vue', '{name} (Copy)', { name })
-			default:
-				return t('nextcloud-vue', 'Copy of {name}', { name })
+				case 'copy-of':
+					return t('nextcloud-vue', 'Copy of {name}', { name })
+				case 'name-copy':
+					return t('nextcloud-vue', '{name} - Copy', { name })
+				case 'name-parens':
+					return t('nextcloud-vue', '{name} (Copy)', { name })
+				default:
+					return t('nextcloud-vue', 'Copy of {name}', { name })
 			}
 		},
 

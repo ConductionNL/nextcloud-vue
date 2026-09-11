@@ -106,6 +106,7 @@ export default {
 	emits: [
 		/**
 		 * Emitted with the assembled content blob on every field change.
+		 *
 		 * @event update:content
 		 * @type {object}
 		 */
@@ -165,6 +166,7 @@ export default {
 		async loadFields() {
 			this.availableFields = await fetchSchemaProperties(this.source.register, this.source.schema)
 		},
+
 		/**
 		 * Set a top-level field and emit.
 		 *
@@ -193,6 +195,7 @@ export default {
 		emitChange() { this.$emit('update:content', this.assembledContent) },
 		/**
 		 * Validate the form; an empty array means valid.
+		 *
 		 * @return {string[]} the validation errors.
 		 */
 		validate() {

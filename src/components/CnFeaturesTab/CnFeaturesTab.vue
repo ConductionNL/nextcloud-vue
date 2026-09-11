@@ -62,6 +62,7 @@ export default {
 		/**
 		 * Array of feature objects to render. Sorted alphabetically by title
 		 * (locale-aware, case-insensitive) inside the component.
+		 *
 		 * @type {Array<{slug: string, title: string, summary: string, docsUrl: string}>}
 		 */
 		features: {
@@ -76,12 +77,15 @@ export default {
 			const collator = new Intl.Collator(undefined, { sensitivity: 'base' })
 			return [...this.features].sort((a, b) => collator.compare(a.title || '', b.title || ''))
 		},
+
 		emptyTitle() {
 			return t('nextcloud-vue', 'No features documented yet')
 		},
+
 		emptyDescription() {
 			return t('nextcloud-vue', 'Capabilities listed here are auto-generated from the openspec/specs/ directory once a status is set to "implemented" or "reviewed".')
 		},
+
 		docsLinkLabel() {
 			return t('nextcloud-vue', 'Read more')
 		},

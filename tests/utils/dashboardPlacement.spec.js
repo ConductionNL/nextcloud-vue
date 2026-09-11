@@ -36,7 +36,7 @@ describe('placeNewWidget', () => {
 		expect(r).toMatchObject({ x: 0, y: 0, w: 12, h: 2 })
 		// the items overlapping the new (0,0,12,2) rect get pushed to gridY = h (2)
 		expect(r.pushed.length).toBeGreaterThan(0)
-		expect(r.pushed.every(p => p.gridY === 2)).toBe(true)
+		expect(r.pushed.every((p) => p.gridY === 2)).toBe(true)
 	})
 
 	it('tolerates a non-array layout', () => {
@@ -49,7 +49,7 @@ describe('getDashboardColumnOpts', () => {
 		const opts = getDashboardColumnOpts()
 		expect(opts.layout).toBe('moveScale')
 		expect(opts.breakpointForWindow).toBe(true)
-		expect(opts.breakpoints).toEqual(DEFAULT_GRID_BREAKPOINTS.map(b => ({ ...b })))
+		expect(opts.breakpoints).toEqual(DEFAULT_GRID_BREAKPOINTS.map((b) => ({ ...b })))
 	})
 
 	it('returns a fresh copy (mutation-safe)', () => {

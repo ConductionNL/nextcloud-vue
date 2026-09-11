@@ -161,6 +161,7 @@ export default {
 	emits: [
 		/**
 		 * Emitted with the assembled content blob on every field change.
+		 *
 		 * @event update:content
 		 * @type {object}
 		 */
@@ -193,6 +194,7 @@ export default {
 				{ value: 3, label: t('nextcloud-vue', '3 columns') },
 			]
 		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {
@@ -228,6 +230,7 @@ export default {
 			const v = c && typeof c === 'object' && 'value' in c ? c.value : c
 			return { register: (v && v.register) || '', schema: (v && v.schema) || '' }
 		},
+
 		/**
 		 * Resolve the schema's property names and build editable rows, merging
 		 * any persisted overrides onto each.
@@ -254,6 +257,7 @@ export default {
 				}
 			})
 		},
+
 		/**
 		 * Set a top-level field and emit.
 		 *
@@ -288,12 +292,13 @@ export default {
 		onDrop(index) {
 			const from = this.dragIndex
 			this.dragIndex = null
-			if (from === null || from === index) return
+			if (from === null || from === index) { return }
 			const moved = this.rows.splice(from, 1)[0]
 			this.rows.splice(index, 0, moved)
 			this.rows.forEach((row, i) => { row.order = i })
 			this.emitChange()
 		},
+
 		/**
 		 * Set a source sub-field and emit. Leaving either empty falls back to the
 		 * injected object context.
@@ -313,10 +318,11 @@ export default {
 		 */
 		setRow(key, field, value) {
 			const row = this.rows.find((r) => r.key === key)
-			if (!row) return
+			if (!row) { return }
 			row[field] = value
 			this.emitChange()
 		},
+
 		/**
 		 * Collapse the rows into a minimal overrides map — only non-default
 		 * fields are persisted so the stored config stays small.
@@ -327,20 +333,22 @@ export default {
 			const out = {}
 			for (const row of this.rows) {
 				const o = {}
-				if (row.hidden) o.hidden = true
-				if (row.label && row.label.trim() !== '') o.label = row.label
-				if (typeof row.order === 'number') o.order = row.order
-				if (Number.isFinite(row.gridColumn) && row.gridColumn !== 1) o.gridColumn = row.gridColumn
-				if (row.widget && row.widget !== 'auto') o.widget = row.widget
-				if (row.editable === false) o.editable = false
-				if (Object.keys(o).length) out[row.key] = o
+				if (row.hidden) { o.hidden = true }
+				if (row.label && row.label.trim() !== '') { o.label = row.label }
+				if (typeof row.order === 'number') { o.order = row.order }
+				if (Number.isFinite(row.gridColumn) && row.gridColumn !== 1) { o.gridColumn = row.gridColumn }
+				if (row.widget && row.widget !== 'auto') { o.widget = row.widget }
+				if (row.editable === false) { o.editable = false }
+				if (Object.keys(o).length) { out[row.key] = o }
 			}
 			return out
 		},
+
 		/** Emit the assembled content. */
 		emitChange() { this.$emit('update:content', this.assembledContent) },
 		/**
 		 * Validate the form; an empty array means valid.
+		 *
 		 * @return {string[]} the validation errors.
 		 */
 		validate() {

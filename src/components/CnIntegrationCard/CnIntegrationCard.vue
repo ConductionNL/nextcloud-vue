@@ -107,6 +107,7 @@ export default {
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+
 		/** Optional single-entity reference (id or canonical reference). */
 		value: { type: String, default: '' },
 		/** Pre-translated card title (defaults to id). */

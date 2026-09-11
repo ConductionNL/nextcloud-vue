@@ -710,32 +710,39 @@ export default {
 				{ id: 'advanced', label: t('nextcloud-vue', 'Advanced') },
 			]
 		},
+
 		/** Closed page-type options. */
 		pageTypeOptions() {
 			return PAGE_TYPES
 		},
+
 		/** All four layouts — the "Available views" multi-select options. */
 		viewModeOptions() {
 			return VIEW_MODES.map((o) => ({ value: o.value, label: t('nextcloud-vue', o.label) }))
 		},
+
 		/**
 		 * The enabled view layouts (array form): the page's `config.viewModes`
 		 * whitelist when set, else the historical Cards + Table default.
+		 *
 		 * @return {string[]}
 		 */
 		enabledViews() {
 			const v = this.page && this.page.config && this.page.config.viewModes
 			return (Array.isArray(v) && v.length) ? v : ['cards', 'table']
 		},
+
 		/** The enabled views as multi-select options. */
 		selectedAvailableViews() {
 			return this.enabledViews
 				.map((val) => this.viewModeOptions.find((o) => o.value === val))
 				.filter(Boolean)
 		},
+
 		/**
 		 * Default-view options: only the enabled layouts (plus the current default
 		 * even if it was disabled, so it still displays rather than reading blank).
+		 *
 		 * @return {Array<{value: string, label: string}>}
 		 */
 		defaultViewOptions() {
@@ -744,44 +751,54 @@ export default {
 			enabled.add(current)
 			return this.viewModeOptions.filter((o) => enabled.has(o.value))
 		},
+
 		/** Whether Map is one of the enabled views (reveals the Map-config fields). */
 		mapEnabled() {
 			return this.enabledViews.includes('map')
 		},
+
 		/** Per-column transform format options. */
 		formatOptions() {
 			return FORMAT_OPTIONS.map((o) => ({ value: o.value, label: t('nextcloud-vue', o.label), channel: o.channel }))
 		},
+
 		/** Sort-direction options. */
 		sortOrderOptions() {
 			return SORT_ORDERS.map((o) => ({ value: o.value, label: t('nextcloud-vue', o.label) }))
 		},
+
 		/** Index action toggles. */
 		actionToggles() {
 			return ACTION_TOGGLES.map((a) => ({ key: a.key, label: t('nextcloud-vue', a.label), hint: t('nextcloud-vue', a.hint) }))
 		},
+
 		/** Advanced JSON fields. */
 		jsonFields() {
 			return JSON_FIELDS.map((f) => ({ key: f.key, label: t('nextcloud-vue', f.label), placeholder: f.placeholder, hint: t('nextcloud-vue', f.hint) }))
 		},
+
 		/** True while any Advanced JSON field holds invalid JSON (blocks Done). */
 		hasJsonError() {
 			return Object.values(this.jsonErrors).some(Boolean)
 		},
+
 		/** The page's type as an option. */
 		selectedType() {
 			const type = (this.page && this.page.type) || 'custom'
 			return PAGE_TYPES.find((o) => o.value === type) || { value: type, label: type }
 		},
+
 		/** The default view as an option. */
 		selectedViewMode() {
 			const v = this.configValue('viewMode') || 'table'
 			return VIEW_MODES.find((o) => o.value === v) || { value: v, label: v }
 		},
+
 		/** Whether this page renders OpenRegister data. */
 		isDataPage() {
 			return this.page && (this.page.type === 'index' || this.page.type === 'detail')
 		},
+
 		/**
 		 * The data sources actually in force: the live holder when CnAppRoot
 		 * has a loader, else the static snapshot.
@@ -790,95 +807,113 @@ export default {
 			const live = this.cnDataSourcesState && this.cnDataSourcesState.value
 			return live || this.cnDataSources
 		},
+
 		/** Whether a refresh is currently in flight. */
 		dataSourcesLoading() {
 			return !!(this.cnDataSourcesState && this.cnDataSourcesState.loading)
 		},
+
 		/** The last refresh's failure, if any. */
 		dataSourcesError() {
 			return (this.cnDataSourcesState && this.cnDataSourcesState.error) || null
 		},
+
 		/** Whether app data sources were provided. */
 		hasDataSources() {
 			const ds = this.effectiveDataSources
 			return !!(ds && Array.isArray(ds.registers) && ds.registers.length)
 		},
+
 		/**
 		 * Whether to render dropdowns rather than free-text slug inputs. A
 		 * configured loader counts even before its first fetch resolves, so
 		 * the panel never flashes text fields and then swaps them for selects.
 		 */
 		showPickers() {
-			if (this.hasDataSources || this.dataSourcesLoading) return true
+			if (this.hasDataSources || this.dataSourcesLoading) { return true }
 			return !!(this.cnDataSourcesState && this.cnDataSourcesState.hasLoader)
 		},
+
 		/** Register options. */
 		registerOptions() {
-			if (!this.hasDataSources) return []
+			if (!this.hasDataSources) { return [] }
 			return this.effectiveDataSources.registers.map((r) => ({ value: r.value, label: r.label || r.value }))
 		},
+
 		/** Schema options for the chosen register. */
 		schemaOptions() {
-			if (!this.hasDataSources) return []
+			if (!this.hasDataSources) { return [] }
 			const reg = this.effectiveDataSources.registers.find((r) => r.value === this.configValue('register'))
 			const schemas = (reg && Array.isArray(reg.schemas)) ? reg.schemas : []
 			return schemas.map((s) => ({ value: s.value, label: s.label || s.value, columns: s.columns || [] }))
 		},
+
 		/** Chosen register option. */
 		selectedRegister() {
 			const slug = this.configValue('register')
-			if (!slug) return null
+			if (!slug) { return null }
 			return this.registerOptions.find((o) => o.value === slug) || { value: slug, label: slug }
 		},
+
 		/** Chosen schema option. */
 		selectedSchema() {
 			const slug = this.configValue('schema')
-			if (!slug) return null
+			if (!slug) { return null }
 			return this.schemaOptions.find((o) => o.value === slug) || { value: slug, label: slug }
 		},
+
 		/** Column options (chosen schema's properties). */
 		columnOptions() {
 			const schema = this.schemaOptions.find((o) => o.value === this.configValue('schema'))
 			const cols = (schema && Array.isArray(schema.columns)) ? schema.columns : []
 			return cols.map((c) => ({ value: c, label: c }))
 		},
+
 		/** Page columns as options. */
 		selectedColumns() {
 			return this.columnsArray.map((c) => ({ value: c, label: c }))
 		},
+
 		/** Page columns as comma string. */
 		columnsText() {
 			return this.columnsArray.join(', ')
 		},
+
 		/** Configured columns (array form). */
 		columnsArray() {
 			return (this.page && this.page.config && Array.isArray(this.page.config.columns)) ? this.page.config.columns : []
 		},
+
 		/**
 		 * Columns offered the per-column transform rows: the configured columns,
 		 * else the schema's columns. Empty when neither is known (free-text page).
+		 *
 		 * @return {string[]}
 		 */
 		transformColumns() {
-			if (this.columnsArray.length) return this.columnsArray
+			if (this.columnsArray.length) { return this.columnsArray }
 			return this.columnOptions.map((o) => o.value)
 		},
+
 		/** Columns offered as default-sort fields (same source as transforms). */
 		sortFieldOptions() {
 			return this.transformColumns.map((c) => ({ value: c, label: c }))
 		},
+
 		/** The default-sort field as an option (single-key). */
 		selectedSortField() {
 			const sort = this.defaultSortArray
-			if (!sort.length || !sort[0].field) return null
+			if (!sort.length || !sort[0].field) { return null }
 			return { value: sort[0].field, label: sort[0].field }
 		},
+
 		/** The default-sort direction as an option. */
 		selectedSortOrder() {
 			const sort = this.defaultSortArray
 			const order = (sort[0] && sort[0].order) || 'asc'
 			return SORT_ORDERS.find((o) => o.value === order) || SORT_ORDERS[0]
 		},
+
 		/** The configured default sort (array form). */
 		defaultSortArray() {
 			return (this.page && this.page.config && Array.isArray(this.page.config.defaultSort)) ? this.page.config.defaultSort : []
@@ -888,21 +923,24 @@ export default {
 	// The modal is `v-if`-mounted, so mount == open: refreshing here picks up
 	// any register/schema created since the app booted, with no page reload.
 	mounted() {
-		if (typeof this.cnRefreshDataSources === 'function') this.cnRefreshDataSources()
+		if (typeof this.cnRefreshDataSources === 'function') { this.cnRefreshDataSources() }
 	},
 
 	methods: {
 		t,
 		/**
 		 * Re-run the data-source fetch after a failure (the error notice's Retry).
+		 *
 		 * @return {void}
 		 */
 		retryDataSources() {
-			if (typeof this.cnRefreshDataSources === 'function') this.cnRefreshDataSources()
+			if (typeof this.cnRefreshDataSources === 'function') { this.cnRefreshDataSources() }
 		},
+
 		/**
 		 * Build the Advanced-tab editing buffer from the page's current config —
 		 * each JSON field pretty-printed, or '' when unset.
+		 *
 		 * @return {object}
 		 */
 		buildJsonText() {
@@ -913,8 +951,10 @@ export default {
 			}
 			return out
 		},
+
 		/**
 		 * Ensure the page has a plain-object config (resets a PHP-corrupted array).
+		 *
 		 * @return {object}
 		 */
 		ensureConfig() {
@@ -923,8 +963,10 @@ export default {
 			}
 			return this.page.config
 		},
+
 		/**
 		 * Read a config value (empty string when unset).
+		 *
 		 * @param {string} key The config key.
 		 * @return {*}
 		 */
@@ -932,19 +974,22 @@ export default {
 			const v = (this.page && this.page.config && this.page.config[key])
 			return (v === undefined || v === null) ? '' : v
 		},
+
 		/**
 		 * Write a config field in place (deletes when falsy/empty).
+		 *
 		 * @param {string} key The config key.
 		 * @param {string} value The value.
 		 * @return {void}
 		 */
 		setConfig(key, value) {
 			const config = this.ensureConfig()
-			if (value) config[key] = value
-			else delete config[key]
+			if (value) { config[key] = value } else { delete config[key] }
 		},
+
 		/**
 		 * Write a numeric config field (deletes when blank/NaN).
+		 *
 		 * @param {string} key The config key.
 		 * @param {string} value The raw input value.
 		 * @return {void}
@@ -952,57 +997,64 @@ export default {
 		setNumber(key, value) {
 			const config = this.ensureConfig()
 			const n = Number(value)
-			if (value === '' || value === null || Number.isNaN(n)) delete config[key]
-			else config[key] = n
+			if (value === '' || value === null || Number.isNaN(n)) { delete config[key] } else { config[key] = n }
 		},
+
 		/**
 		 * Effective value of a boolean toggle: the stored value when set, else the
 		 * key's CnIndexPage default (NOT all default-true — e.g. showTitle is false).
+		 *
 		 * @param {string} key The config key.
 		 * @return {boolean}
 		 */
 		boolVal(key) {
 			const cfg = (this.page && this.page.config) || {}
-			if (Object.prototype.hasOwnProperty.call(cfg, key)) return !!cfg[key]
+			if (Object.prototype.hasOwnProperty.call(cfg, key)) { return !!cfg[key] }
 			return BOOL_DEFAULTS[key] === true
 		},
+
 		/**
 		 * Set a boolean toggle: store the value when it differs from the key's
 		 * default, drop the key when it equals the default (keeps config minimal,
 		 * and correct for keys that default false like showTitle).
+		 *
 		 * @param {string} key The config key.
 		 * @param {boolean} checked The new state.
 		 * @return {void}
 		 */
 		setBool(key, checked) {
 			const config = this.ensureConfig()
-			if (checked === (BOOL_DEFAULTS[key] === true)) delete config[key]
-			else config[key] = checked
+			if (checked === (BOOL_DEFAULTS[key] === true)) { delete config[key] } else { config[key] = checked }
 		},
+
 		/**
 		 * Set the page type in place.
+		 *
 		 * @param {{value: string}|null} option The type option.
 		 * @return {void}
 		 */
 		setType(option) {
 			this.page.type = option ? option.value : 'custom'
 		},
+
 		/**
 		 * Set the default view mode (drops the key when it equals the 'table' default).
+		 *
 		 * @param {{value: string}|null} option The view-mode option.
 		 * @return {void}
 		 */
 		setViewMode(option) {
 			const config = this.ensureConfig()
 			const v = option ? option.value : 'table'
-			if (v && v !== 'table') config.viewMode = v
-			else delete config.viewMode
+			if (v && v !== 'table') { config.viewMode = v } else { delete config.viewMode }
 		},
+
 		/**
 		 * Set the enabled view layouts (`config.viewModes`), preserving the picked
 		 * order. Drops the key when it equals the Cards + Table default (order-
 		 * independent) so the config stays minimal. When the current default view is
 		 * no longer enabled, resets it to the first still-enabled layout.
+		 *
 		 * @param {Array<{value: string}>} options The selected view options.
 		 * @return {void}
 		 */
@@ -1011,19 +1063,19 @@ export default {
 			const modes = (options || []).map((o) => o.value)
 			const isDefault = modes.length === 2
 				&& modes.includes('cards') && modes.includes('table')
-			if (!modes.length || isDefault) delete config.viewModes
-			else config.viewModes = modes
+			if (!modes.length || isDefault) { delete config.viewModes } else { config.viewModes = modes }
 			// Keep the default view within the enabled set.
 			const effective = modes.length ? modes : ['cards', 'table']
 			const current = this.configValue('viewMode') || 'table'
 			if (!effective.includes(current)) {
 				const next = effective[0]
-				if (next && next !== 'table') config.viewMode = next
-				else delete config.viewMode
+				if (next && next !== 'table') { config.viewMode = next } else { delete config.viewMode }
 			}
 		},
+
 		/**
 		 * Read a `config.mapConfig` sub-field (empty string when unset).
+		 *
 		 * @param {string} key The mapConfig key.
 		 * @return {string}
 		 */
@@ -1031,9 +1083,11 @@ export default {
 			const mc = this.page && this.page.config && this.page.config.mapConfig
 			return (mc && typeof mc === 'object' && mc[key] != null) ? mc[key] : ''
 		},
+
 		/**
 		 * Write a `config.mapConfig` sub-field in place, pruning an emptied map so
 		 * the config stays minimal.
+		 *
 		 * @param {string} key The mapConfig key.
 		 * @param {string} value The value.
 		 * @return {void}
@@ -1045,12 +1099,13 @@ export default {
 				map = {}
 				config.mapConfig = map
 			}
-			if (value) map[key] = value
-			else delete map[key]
-			if (!Object.keys(config.mapConfig).length) delete config.mapConfig
+			if (value) { map[key] = value } else { delete map[key] }
+			if (!Object.keys(config.mapConfig).length) { delete config.mapConfig }
 		},
+
 		/**
 		 * Set the register; clears schema + columns.
+		 *
 		 * @param {{value: string}|null} option The register option.
 		 * @return {void}
 		 */
@@ -1059,8 +1114,10 @@ export default {
 			this.setConfig('schema', '')
 			this.setConfig('columns', '')
 		},
+
 		/**
 		 * Set the schema; clears columns.
+		 *
 		 * @param {{value: string}|null} option The schema option.
 		 * @return {void}
 		 */
@@ -1068,30 +1125,34 @@ export default {
 			this.setConfig('schema', option ? option.value : '')
 			this.setConfig('columns', '')
 		},
+
 		/**
 		 * Set columns from selected options.
+		 *
 		 * @param {Array<{value: string}>} options The column options.
 		 * @return {void}
 		 */
 		setColumns(options) {
 			const config = this.ensureConfig()
 			const cols = (options || []).map((o) => o.value)
-			if (cols.length) config.columns = cols
-			else delete config.columns
+			if (cols.length) { config.columns = cols } else { delete config.columns }
 		},
+
 		/**
 		 * Set columns from a comma-separated string.
+		 *
 		 * @param {string} text The column keys.
 		 * @return {void}
 		 */
 		setColumnsText(text) {
 			const config = this.ensureConfig()
 			const cols = String(text || '').split(',').map((s) => s.trim()).filter(Boolean)
-			if (cols.length) config.columns = cols
-			else delete config.columns
+			if (cols.length) { config.columns = cols } else { delete config.columns }
 		},
+
 		/**
 		 * The override object for a column (empty object when none).
+		 *
 		 * @param {string} col The column key.
 		 * @return {object}
 		 */
@@ -1099,17 +1160,21 @@ export default {
 			const ov = this.page && this.page.config && this.page.config.columnOverrides
 			return (ov && typeof ov === 'object' && ov[col]) ? ov[col] : {}
 		},
+
 		/**
 		 * A column's custom label (empty string when none).
+		 *
 		 * @param {string} col The column key.
 		 * @return {string}
 		 */
 		colLabel(col) {
 			return this.colOverride(col).label || ''
 		},
+
 		/**
 		 * Persist (or remove) a column override, pruning empty objects/maps so the
 		 * config stays minimal.
+		 *
 		 * @param {string} col The column key.
 		 * @param {object} override The next override object.
 		 * @return {void}
@@ -1121,38 +1186,40 @@ export default {
 				map = {}
 				config.columnOverrides = map
 			}
-			if (override && Object.keys(override).length) map[col] = override
-			else delete map[col]
-			if (!Object.keys(config.columnOverrides).length) delete config.columnOverrides
+			if (override && Object.keys(override).length) { map[col] = override } else { delete map[col] }
+			if (!Object.keys(config.columnOverrides).length) { delete config.columnOverrides }
 		},
+
 		/**
 		 * Set a column's custom label.
+		 *
 		 * @param {string} col The column key.
 		 * @param {string} label The label.
 		 * @return {void}
 		 */
 		setColLabel(col, label) {
 			const next = { ...this.colOverride(col) }
-			if (label) next.label = label
-			else delete next.label
+			if (label) { next.label = label } else { delete next.label }
 			this.writeOverride(col, next)
 		},
+
 		/**
 		 * The selected format option for a column (reverse-mapped from its override).
+		 *
 		 * @param {string} col The column key.
 		 * @return {object}
 		 */
 		selectedFormat(col) {
 			const ov = this.colOverride(col)
 			let value = ''
-			if (ov.formatter) value = ov.formatter
-			else if (ov.widget) value = ov.widget
-			else if (ov.format && ov.format.style) value = ov.format.style
+			if (ov.formatter) { value = ov.formatter } else if (ov.widget) { value = ov.widget } else if (ov.format && ov.format.style) { value = ov.format.style }
 			return this.formatOptions.find((o) => o.value === value) || this.formatOptions[0]
 		},
+
 		/**
 		 * Apply a format preset to a column — clears the other transform channels,
 		 * keeps any custom label.
+		 *
 		 * @param {string} col The column key.
 		 * @param {object} option The chosen format option ({value, channel}).
 		 * @return {void}
@@ -1163,13 +1230,13 @@ export default {
 			delete next.widget
 			delete next.format
 			const preset = FORMAT_OPTIONS.find((o) => o.value === (option && option.value))
-			if (preset && preset.channel === 'formatter') next.formatter = preset.value
-			else if (preset && preset.channel === 'widget') next.widget = preset.value
-			else if (preset && preset.channel === 'format') next.format = { style: preset.value }
+			if (preset && preset.channel === 'formatter') { next.formatter = preset.value } else if (preset && preset.channel === 'widget') { next.widget = preset.value } else if (preset && preset.channel === 'format') { next.format = { style: preset.value } }
 			this.writeOverride(col, next)
 		},
+
 		/**
 		 * Set the default-sort field (single-key); preserves the current direction.
+		 *
 		 * @param {{value: string}|null} option The field option.
 		 * @return {void}
 		 */
@@ -1179,20 +1246,24 @@ export default {
 			const order = (this.defaultSortArray[0] && this.defaultSortArray[0].order) || 'asc'
 			config.defaultSort = [{ field: option.value, order }]
 		},
+
 		/**
 		 * Set the default-sort direction (no-op until a field is chosen).
+		 *
 		 * @param {{value: string}|null} option The direction option.
 		 * @return {void}
 		 */
 		setSortOrder(option) {
 			const sort = this.defaultSortArray
-			if (!sort.length || !sort[0].field) return
+			if (!sort.length || !sort[0].field) { return }
 			const config = this.ensureConfig()
 			config.defaultSort = [{ field: sort[0].field, order: option ? option.value : 'asc' }]
 		},
+
 		/**
 		 * Edit an Advanced JSON field: parse, flag errors, and persist on success
 		 * (blank clears the key).
+		 *
 		 * @param {string} key The config key.
 		 * @param {string} text The raw textarea value.
 		 * @return {void}

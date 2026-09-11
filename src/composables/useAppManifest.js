@@ -305,8 +305,8 @@ function loadFromBackend(appId, bundledManifest, options) {
  * @return {object} New merged object.
  */
 function deepMerge(target, source) {
-	if (!isPlainObject(target)) return source
-	if (!isPlainObject(source)) return source
+	if (!isPlainObject(target)) { return source }
+	if (!isPlainObject(source)) { return source }
 	const out = { ...target }
 	for (const key of Object.keys(source)) {
 		if (isPlainObject(source[key]) && isPlainObject(target[key])) {

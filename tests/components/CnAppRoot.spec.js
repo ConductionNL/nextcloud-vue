@@ -201,9 +201,7 @@ describe('CnAppRoot', () => {
 			})
 
 			expect(seen).not.toBeNull()
-			expect(Object.keys(seen)).toEqual(
-				expect.arrayContaining(['manifest', 'permissions', 'isOwner', 'isAdmin', 'appId']),
-			)
+			expect(Object.keys(seen)).toEqual(expect.arrayContaining(['manifest', 'permissions', 'isOwner', 'isAdmin', 'appId']))
 			expect(typeof seen.isAdmin).toBe('boolean')
 		})
 

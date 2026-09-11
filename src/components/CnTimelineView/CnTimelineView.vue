@@ -114,6 +114,7 @@ export default {
 			default: 'asc',
 			validator: (v) => v === 'asc' || v === 'desc',
 		},
+
 		/**
 		 * Optional `kind` → CSS-class-suffix map. Each event's
 		 * `kind` becomes `cn-timeline-view__event--<class>` so
@@ -131,6 +132,7 @@ export default {
 		 */
 		locale: { type: String, default: undefined },
 	},
+
 	emits: ['event-click'],
 	computed: {
 		/**
@@ -157,6 +159,7 @@ export default {
 			return arr
 		},
 	},
+
 	methods: {
 		/**
 		 * Pick the `{key,label}` for an event using the consumer's
@@ -168,10 +171,11 @@ export default {
 		resolveGroup(evt) {
 			if (typeof this.groupBy === 'function') {
 				const out = this.groupBy(evt)
-				if (out && typeof out.key === 'string') return out
+				if (out && typeof out.key === 'string') { return out }
 			}
 			return this.defaultGroup(evt)
 		},
+
 		/**
 		 * Default grouping — by ISO date (YYYY-MM-DD).
 		 *
@@ -180,11 +184,12 @@ export default {
 		 */
 		defaultGroup(evt) {
 			const d = new Date(evt.start)
-			if (Number.isNaN(d.getTime())) return { key: 'invalid', label: 'Unknown date' }
+			if (Number.isNaN(d.getTime())) { return { key: 'invalid', label: 'Unknown date' } }
 			const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 			const label = d.toLocaleDateString(this.locale, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
 			return { key, label }
 		},
+
 		/**
 		 * Render a single event's start (and optional end) time as
 		 * `HH:MM` (or `HH:MM – HH:MM`).
@@ -194,13 +199,14 @@ export default {
 		 */
 		formatTimeRange(evt) {
 			const s = new Date(evt.start)
-			if (Number.isNaN(s.getTime())) return ''
+			if (Number.isNaN(s.getTime())) { return '' }
 			const start = s.toLocaleTimeString(this.locale, { hour: '2-digit', minute: '2-digit' })
-			if (!evt.end) return start
+			if (!evt.end) { return start }
 			const e = new Date(evt.end)
-			if (Number.isNaN(e.getTime())) return start
+			if (Number.isNaN(e.getTime())) { return start }
 			return `${start} – ${e.toLocaleTimeString(this.locale, { hour: '2-digit', minute: '2-digit' })}`
 		},
+
 		/**
 		 * Resolve the event's BEM modifier from `kindClassMap`.
 		 *
@@ -208,9 +214,10 @@ export default {
 		 * @return {string|null} BEM modifier class, or null.
 		 */
 		eventClass(evt) {
-			if (!evt.kind || !this.kindClassMap[evt.kind]) return null
+			if (!evt.kind || !this.kindClassMap[evt.kind]) { return null }
 			return `cn-timeline-view__event--${this.kindClassMap[evt.kind]}`
 		},
+
 		/**
 		 * Forward an event click upward.
 		 *

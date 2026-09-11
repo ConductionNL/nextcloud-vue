@@ -320,6 +320,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * A friendly app name for copy ("{app} may use this credential"). Falls
 		 * back to the appId.
@@ -330,6 +331,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * The current app's manifest `credentials[]` declarations — the
 		 * providers this app can reach through the broker. Shape:
@@ -341,6 +343,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Which credential set to manage: `"personal"` (the signed-in user's
 		 * own; app-scoped toggle only) or `"organisation"` (org-wide; full
@@ -353,6 +356,7 @@ export default {
 			default: 'personal',
 			validator: (v) => ['personal', 'organisation'].includes(v),
 		},
+
 		/**
 		 * Optional link target explaining the Keepiq vault. Defaults to the
 		 * Keepiq app route; pass '' to hide the link.
@@ -392,6 +396,7 @@ export default {
 		appDisplayName() {
 			return this.appName || this.appId || t('nextcloud-vue', 'This app')
 		},
+
 		/**
 		 * Reframed intro copy per scope.
 		 *
@@ -403,6 +408,7 @@ export default {
 			}
 			return t('nextcloud-vue', 'Apps sometimes need to act on your behalf against an external service. So they never hold your secrets, you give a secret to Nextcloud once and it is kept in Keepiq — a native, encrypted credential vault. Apps then make the call through Keepiq and never see the secret. You decide which apps may use each credential — share one across apps, or keep one per app.')
 		},
+
 		/**
 		 * Resolved Keepiq link (explicit prop, or the app route by default).
 		 *
@@ -414,6 +420,7 @@ export default {
 			}
 			return this.vaultUrl || generateUrl('/apps/doriath')
 		},
+
 		/**
 		 * The provider tiles offered in the add-wizard grid: what the server
 		 * actually offers when known (so we never offer a provider the broker
@@ -432,6 +439,7 @@ export default {
 			}
 			return ids.map((id) => ({ identifier: id, title: this.providerTitle(id) }))
 		},
+
 		/**
 		 * Provider identifiers the app declares it uses, derived from
 		 * `appCredentials`. Empty when the app declares nothing — filtering is
@@ -444,6 +452,7 @@ export default {
 				.map((r) => r && r.provider)
 				.filter(Boolean))
 		},
+
 		/**
 		 * Stored credentials to display — filtered to the app's supported
 		 * providers when it declares any, so you can only see and authorise
@@ -457,6 +466,7 @@ export default {
 			}
 			return this.credentials.filter((c) => this.supportedProviders.has(c.provider))
 		},
+
 		/**
 		 * The union of app ids the organisation allowed-apps picker offers.
 		 *
@@ -476,6 +486,7 @@ export default {
 			}
 			return Array.from(ids)
 		},
+
 		/**
 		 * Presentation metadata for the provider currently being added.
 		 *
@@ -484,6 +495,7 @@ export default {
 		activeMeta() {
 			return PROVIDER_META[this.form.provider] || {}
 		},
+
 		/**
 		 * Whether the add form can be submitted — name, provider and a secret
 		 * are required (the whole point is to store a secret).

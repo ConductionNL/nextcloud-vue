@@ -27,6 +27,7 @@ import { test, expect } from '@playwright/test'
  * and the ARROW CLICK — the wiring this spec guards — stays real.
  * Retrying via toPass is safe: addEnumValue() has an enum.includes() duplicate
  * guard, so a repeated set+click is idempotent.
+ *
  * @param {import('@playwright/test').Page} page The test page.
  * @param {import('@playwright/test').Locator} enumField The "Add enum value" textbox.
  * @param {string} value The enum value to add.

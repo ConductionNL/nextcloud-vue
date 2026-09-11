@@ -214,7 +214,7 @@ export default {
 
 		chipTitle() {
 			const c = this.primaryContact
-			if (!c) return ''
+			if (!c) { return '' }
 			const bits = [c.displayName, c.email, c.role].filter(Boolean)
 			return bits.join(' — ')
 		},
@@ -239,9 +239,9 @@ export default {
 	methods: {
 		initialsFor(contact) {
 			const name = (contact?.displayName || '').trim()
-			if (name === '') return '?'
+			if (name === '') { return '?' }
 			const parts = name.split(/\s+/).filter(Boolean)
-			if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+			if (parts.length === 1) { return parts[0].charAt(0).toUpperCase() }
 			return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
 		},
 
@@ -253,12 +253,12 @@ export default {
 		 * @return {string}
 		 */
 		avatarSeed(contact) {
-			if (!contact) return '?'
+			if (!contact) { return '?' }
 			return contact.contactUid || contact.email || contact.displayName || '?'
 		},
 
 		async fetchContacts() {
-			if (!this.register || !this.schema || !this.objectId) return
+			if (!this.register || !this.schema || !this.objectId) { return }
 			this.loading = true
 			this.error = null
 			try {

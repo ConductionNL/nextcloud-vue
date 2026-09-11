@@ -600,6 +600,7 @@ export default {
 				},
 			]
 		},
+
 		/**
 		 * What can be done to a connection, as CnContextMenu's action list.
 		 *
@@ -1249,7 +1250,7 @@ export default {
 		 * @param {string|null} next The newly watched run's uuid.
 		 * @return {void}
 		 */
-		'store.watchedRunUuid'(next) {
+		'store.watchedRunUuid': function(next) {
 			if (next === null) {
 				return
 			}
@@ -1266,7 +1267,7 @@ export default {
 		 * @param {Array<object>} steps The watched run's log so far.
 		 * @return {void}
 		 */
-		'store.watchedSteps'(steps) {
+		'store.watchedSteps': function(steps) {
 			if (this.runAnimation.mode !== 'watch') {
 				return
 			}
@@ -1288,7 +1289,7 @@ export default {
 		 *
 		 * @return {void}
 		 */
-		'store.replayToken'() {
+		'store.replayToken': function() {
 			this.startRunAnimation('replay')
 			this.runAnimation.queue.push(...this.store.steps)
 			this.drainRunQueue()
@@ -1302,7 +1303,7 @@ export default {
 		 * @param {boolean} next Whether the flow now has unsaved changes.
 		 * @return {void}
 		 */
-		'store.dirty'(next) {
+		'store.dirty': function(next) {
 			if (next === true) {
 				this.cancelRunAnimation()
 			}
@@ -1751,9 +1752,7 @@ export default {
 			// which already normalises `{from, to}` and list endpoints.
 			anim.traceLineId = null
 			if (previous !== null && previous !== nodeId) {
-				const line = this.store.canvasEdges.find(
-					(candidate) => candidate.source === previous && candidate.target === nodeId,
-				)
+				const line = this.store.canvasEdges.find((candidate) => candidate.source === previous && candidate.target === nodeId)
 				if (line !== undefined) {
 					anim.traceLineId = line.id
 					if (anim.tracedLineIds.includes(line.id) === false) {

@@ -62,12 +62,12 @@ function mountNav({
 	const provide = useProps
 		? {}
 		: {
-			cnManifest: manifest,
-			cnTranslate: translate ?? ((k) => k),
-			...(openUserSettings ? { cnOpenUserSettings: openUserSettings } : {}),
-			...(replayWalkthrough ? { cnReplayWalkthrough: replayWalkthrough } : {}),
-			...(cnAppId !== undefined ? { cnAppId } : {}),
-		}
+				cnManifest: manifest,
+				cnTranslate: translate ?? ((k) => k),
+				...(openUserSettings ? { cnOpenUserSettings: openUserSettings } : {}),
+				...(replayWalkthrough ? { cnReplayWalkthrough: replayWalkthrough } : {}),
+				...(cnAppId !== undefined ? { cnAppId } : {}),
+			}
 	const propsData = {
 		permissions,
 		...(isOwner !== undefined ? { isOwner } : {}),
@@ -75,9 +75,9 @@ function mountNav({
 		...(appId !== undefined ? { appId } : {}),
 		...(useProps
 			? {
-				manifest,
-				translate: translate ?? ((k) => k),
-			}
+					manifest,
+					translate: translate ?? ((k) => k),
+				}
 			: {}),
 	}
 	return mount(CnAppNav, {
@@ -377,7 +377,11 @@ describe('CnAppNav', () => {
 			const group = wrapper.vm.visibleItems.find((i) => i.id === 'group')
 
 			expect(wrapper.vm.visibleChildren(group).map((c) => c.id)).toEqual([
-				'queue', 'mywork', 'tickets', 'projects', 'tasks',
+				'queue',
+				'mywork',
+				'tickets',
+				'projects',
+				'tasks',
 			])
 		})
 
@@ -402,7 +406,9 @@ describe('CnAppNav', () => {
 			const group = wrapper.vm.visibleItems.find((i) => i.id === 'group')
 
 			expect(wrapper.vm.visibleChildren(group).map((c) => c.id)).toEqual([
-				'ordered', 'first-unordered', 'second-unordered',
+				'ordered',
+				'first-unordered',
+				'second-unordered',
 			])
 		})
 

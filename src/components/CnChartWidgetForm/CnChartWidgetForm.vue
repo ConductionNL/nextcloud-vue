@@ -160,6 +160,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values when not editing (registry defaults).
 		 *
@@ -207,22 +208,27 @@ export default {
 		chartKindOptions() {
 			return ['area', 'line', 'bar', 'pie', 'donut']
 		},
+
 		/** Breakdown mode ids. */
 		modeOptions() {
 			return ['timeseries', 'category']
 		},
+
 		/** Time-bucket interval options (normalised case-insensitively downstream). */
 		intervalOptions() {
 			return ['day', 'week', 'month', 'quarter', 'year']
 		},
+
 		/** Aggregation metric options. */
 		metricOptions() {
 			return ['count', 'sum', 'avg', 'min', 'max']
 		},
+
 		/** Group sort options. */
 		sortOptions() {
 			return ['desc', 'asc']
 		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			const ds = {

@@ -91,6 +91,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** The placement record (reserved — kept to match the renderer contract). */
 		placement: {
 			type: Object,
@@ -375,6 +376,7 @@ export default {
 		fileStreamingUrl() {
 			this.videoLoadFailed = false
 		},
+
 		videoUrl() {
 			this.videoLoadFailed = false
 		},

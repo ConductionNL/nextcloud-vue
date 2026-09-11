@@ -162,6 +162,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Pre-built columns, e.g. the response of `GET /api/views/{id}/kanban`.
 		 *
@@ -171,41 +172,49 @@ export default {
 			type: Array,
 			default: null,
 		},
+
 		/** The schema property whose distinct values become columns. */
 		groupByField: {
 			type: String,
 			required: true,
 		},
+
 		/** Explicit column order. Takes precedence over the schema's enum order. */
 		columnOrder: {
 			type: Array,
 			default: null,
 		},
+
 		/** Object fields rendered on each card (in order). */
 		cardFields: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Schema definition, used to resolve enum column order and card field types. */
 		schema: {
 			type: Object,
 			default: null,
 		},
+
 		/** Overall loading state (initial board fetch). */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Column values currently loading more cards (drives the per-column spinner). */
 		loadingColumns: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Cards shown per column before "load more", in local (`objects`-driven) mode. */
 		pageSize: {
 			type: Number,
 			default: 20,
 		},
+
 		/** Object property used as each card's identity. */
 		rowKey: {
 			type: String,
@@ -242,23 +251,29 @@ export default {
 	watch: {
 		objects: {
 			handler() {
-				if (!this.suppressRebuild) this.rebuild()
+				if (!this.suppressRebuild) { this.rebuild() }
 			},
+
 			deep: false,
 		},
+
 		columns: {
 			handler() {
-				if (!this.suppressRebuild) this.rebuild()
+				if (!this.suppressRebuild) { this.rebuild() }
 			},
+
 			deep: false,
 		},
+
 		groupByField() {
 			this.rebuild()
 		},
+
 		columnOrder: {
 			handler() {
 				this.rebuild()
 			},
+
 			deep: true,
 		},
 	},
@@ -374,7 +389,7 @@ export default {
 			const oneOf = this.schema?.properties?.[this.groupByField]?.oneOf
 			if (Array.isArray(oneOf)) {
 				const match = oneOf.find((entry) => entry?.const === column.value)
-				if (match?.title) return match.title
+				if (match?.title) { return match.title }
 			}
 			return String(column.value)
 		},
@@ -388,7 +403,7 @@ export default {
 		 */
 		cardTitle(card) {
 			const nameField = this.schema?.configuration?.objectNameField
-			if (nameField && card[nameField]) return String(card[nameField])
+			if (nameField && card[nameField]) { return String(card[nameField]) }
 			return String(card.title || card.name || card[this.rowKey] || '—')
 		},
 
@@ -492,14 +507,14 @@ export default {
 		 * @return {void}
 		 */
 		onColumnChange(evt, column) {
-			if (!evt.added) return
+			if (!evt.added) { return }
 
 			const card = evt.added.element
 			const fromValue = this.dragOriginValue
 			const toValue = column.value
 			this.dragOriginValue = null
 
-			if (fromValue === toValue) return
+			if (fromValue === toValue) { return }
 
 			this.commitMove(card, fromValue, toValue, evt.added.newIndex)
 		},
@@ -562,14 +577,14 @@ export default {
 		 */
 		rejectMove(objectId, reason) {
 			const pending = this.pendingMoves[objectId]
-			if (!pending) return
+			if (!pending) { return }
 
 			const toColumn = this.localColumns.find((c) => c.value === pending.toValue)
 			const fromColumn = this.localColumns.find((c) => c.value === pending.fromValue)
 
 			if (toColumn) {
 				const idx = toColumn.cards.findIndex((c) => this.cardKey(c) === objectId)
-				if (idx !== -1) toColumn.cards.splice(idx, 1)
+				if (idx !== -1) { toColumn.cards.splice(idx, 1) }
 			}
 			if (fromColumn) {
 				fromColumn.cards.push(pending.card)
@@ -600,7 +615,7 @@ export default {
 		clearPending(objectId) {
 			const { [objectId]: _removed, ...rest } = this.pendingMoves
 			this.pendingMoves = rest
-			if (Object.keys(rest).length === 0) this.suppressRebuild = false
+			if (Object.keys(rest).length === 0) { this.suppressRebuild = false }
 		},
 	},
 }

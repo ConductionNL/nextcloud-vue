@@ -137,7 +137,7 @@ export default {
 			if (term === '') {
 				return this.pois
 			}
-			return this.pois.filter(poi => (poi.name || '').toLowerCase().includes(term))
+			return this.pois.filter((poi) => (poi.name || '').toLowerCase().includes(term))
 		},
 	},
 

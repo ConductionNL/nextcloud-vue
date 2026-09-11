@@ -55,6 +55,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values when not editing (registry defaults).
 		 *
@@ -92,6 +93,7 @@ export default {
 		variantOptions() {
 			return ['info', 'warning', 'error']
 		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {

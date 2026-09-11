@@ -475,7 +475,8 @@ describe('@conduction/nextcloud-vue/eslint — the preset enrols no file it cann
 	})
 
 	it.each(['Probe.ts', 'Probe.tsx', 'Probe.mts', 'Probe.cts'])(
-		'does NOT drag %s into the lint set either', async (name) => {
+		'does NOT drag %s into the lint set either',
+		async (name) => {
 			// The same glob enrolled four TypeScript extensions the preset ships
 			// no parser for. Measured before the fix: all four FATAL.
 			const FlatESLint = resolveFlatESLint()

@@ -113,11 +113,13 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Placement entity carrying the id used in the items request. */
 		placement: {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Consumer-supplied items source: either a fully-formed URL string or
 		 * a builder `(placementId, { limit }) => string`. When `null` the

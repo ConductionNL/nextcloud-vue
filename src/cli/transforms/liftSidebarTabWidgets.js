@@ -42,7 +42,7 @@ function liftSidebarTabWidgets(page) {
 	let rowOffset = 0
 
 	for (const tab of sidebarTabs) {
-		if (!tab) continue
+		if (!tab) { continue }
 
 		const tabWidgets = Array.isArray(tab.widgets) ? tab.widgets : []
 		const hasComponent = typeof tab.component === 'string' && tab.component.length > 0
@@ -57,7 +57,7 @@ function liftSidebarTabWidgets(page) {
 		// Lift each widget from this tab into the page's widgets[] with slot:"sidebar"
 		for (let i = 0; i < tabWidgets.length; i++) {
 			const w = tabWidgets[i]
-			if (!w) continue
+			if (!w) { continue }
 
 			const { type, dataSource, ...rest } = w
 			const resolveEntries = Object.entries(rest).filter(([k]) => k.startsWith('@resolve:'))

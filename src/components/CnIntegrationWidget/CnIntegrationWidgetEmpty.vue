@@ -62,6 +62,7 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/**
 		 * Why it's unavailable: 'missing-app' | 'not-configured' |
 		 * 'unknown'. Drives the name + description copy.

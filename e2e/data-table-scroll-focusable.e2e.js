@@ -56,9 +56,7 @@ async function axeRule(page, testId, ruleId) {
 test.describe('CnDataTable horizontal scrollport', () => {
 	test('really does overflow in the harness (precondition)', async ({ page }) => {
 		await page.goto('/?dtscroll=1')
-		const overflow = await page.locator('[data-testid="dt-overflowing"] .cn-data-table__scroll').evaluate(
-			(el) => el.scrollWidth - el.clientWidth,
-		)
+		const overflow = await page.locator('[data-testid="dt-overflowing"] .cn-data-table__scroll').evaluate((el) => el.scrollWidth - el.clientWidth)
 		// If this ever reaches 0 the two tests below would pass vacuously —
 		// axe skips the rule entirely on a region that does not scroll.
 		expect(overflow).toBeGreaterThan(1)

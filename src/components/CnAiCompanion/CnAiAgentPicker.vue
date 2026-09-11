@@ -63,11 +63,13 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Selected agent uuid (v-model style — parent owns the value). */
 		value: {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * The same value as `value`, under Vue 3's own v-model name.
 		 *
@@ -88,6 +90,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether the agent-list fetch failed. */
 		fetchError: {
 			type: Boolean,
@@ -106,6 +109,7 @@ export default {
 		boundValue() {
 			return this.modelValue !== undefined ? this.modelValue : this.value
 		},
+
 		options() {
 			return this.agents.map((agent) => ({
 				id: agent.uuid || agent.id,
@@ -153,6 +157,7 @@ export default {
 			 */
 			this.$emit('update:modelValue', next)
 		},
+
 		onInput(option) {
 			this.emitValue(option ? option.id : null)
 		},

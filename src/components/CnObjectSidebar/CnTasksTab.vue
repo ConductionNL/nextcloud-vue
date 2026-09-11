@@ -210,18 +210,20 @@ export default {
 
 	computed: {
 		statusOptions() {
-			return [...new Set(this.tasks.map(t => t.status).filter(Boolean))]
+			return [...new Set(this.tasks.map((t) => t.status).filter(Boolean))]
 		},
+
 		assigneeOptions() {
-			return [...new Set(this.tasks.map(t => this.extractAssignee(t)).filter(Boolean))]
+			return [...new Set(this.tasks.map((t) => this.extractAssignee(t)).filter(Boolean))]
 		},
+
 		filteredTasks() {
 			let result = this.tasks
 			if (this.filterStatus) {
-				result = result.filter(t => t.status === this.filterStatus)
+				result = result.filter((t) => t.status === this.filterStatus)
 			}
 			if (this.filterAssignee) {
-				result = result.filter(t => this.extractAssignee(t) === this.filterAssignee)
+				result = result.filter((t) => this.extractAssignee(t) === this.filterAssignee)
 			}
 			return result
 		},
@@ -241,7 +243,7 @@ export default {
 
 	methods: {
 		async fetchTasks(append = false) {
-			if (!this.register || !this.schema) return
+			if (!this.register || !this.schema) { return }
 			if (append) { this.loadingMore = true } else { this.loading = true }
 			try {
 				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
@@ -269,12 +271,12 @@ export default {
 		},
 
 		isOverdue(task) {
-			if (!task.due || task.status === 'completed') return false
+			if (!task.due || task.status === 'completed') { return false }
 			return new Date(task.due) < new Date()
 		},
 
 		async fetchUsers() {
-			if (!this.register || !this.schema) return
+			if (!this.register || !this.schema) { return }
 			try {
 				const response = await fetch('/ocs/v2.php/cloud/users/details?format=json&limit=50', {
 					headers: buildHeaders(),
@@ -293,7 +295,7 @@ export default {
 		},
 
 		async addTask() {
-			if (!this.newTaskSummary.trim() || !this.register || !this.schema) return
+			if (!this.newTaskSummary.trim() || !this.register || !this.schema) { return }
 			this.saving = true
 			try {
 				const taskData = { summary: this.newTaskSummary.trim() }
@@ -325,7 +327,7 @@ export default {
 			this.newTaskSummary = task.summary || task.title || task.name || ''
 			this.newTaskDue = task.due ? new Date(task.due).toISOString().split('T')[0] : null
 			const assigneeName = this.extractAssignee(task)
-			this.newTaskAssignee = this.userList.find(u => u.displayName === assigneeName) || null
+			this.newTaskAssignee = this.userList.find((u) => u.displayName === assigneeName) || null
 		},
 
 		cancelEdit() {
@@ -334,7 +336,7 @@ export default {
 		},
 
 		async saveEdit() {
-			if (!this.newTaskSummary.trim() || !this.editingTaskId) return
+			if (!this.newTaskSummary.trim() || !this.editingTaskId) { return }
 			this.saving = true
 			try {
 				const taskData = { summary: this.newTaskSummary.trim() }
@@ -411,7 +413,7 @@ export default {
 					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(task.id)}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
-				this.tasks = this.tasks.filter(t => t.id !== task.id)
+				this.tasks = this.tasks.filter((t) => t.id !== task.id)
 			} catch (err) {
 				console.error('CnTasksTab: Failed to delete task', err)
 			}
@@ -425,10 +427,11 @@ export default {
 		},
 
 		formatShortDate(dateStr) {
-			if (!dateStr) return ''
+			if (!dateStr) { return '' }
 			try {
 				return new Date(dateStr).toLocaleDateString(undefined, {
-					day: 'numeric', month: 'short',
+					day: 'numeric',
+					month: 'short',
 				})
 			} catch { return dateStr }
 		},

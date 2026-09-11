@@ -257,10 +257,8 @@ describe('CnIconBrowserPanel — upload', () => {
 		OrigFileReader = global.FileReader
 		lastReader = null
 		global.FileReader = class {
-
 			constructor() { lastReader = this; this.onload = null; this.onerror = null }
 			readAsDataURL() { /* test fires onload/onerror manually */ }
-
 		}
 	})
 	afterEach(() => {

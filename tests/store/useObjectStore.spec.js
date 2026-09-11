@@ -98,7 +98,10 @@ describe('useObjectStore', () => {
 
 		it('returns default pagination for unknown type', () => {
 			expect(store.getPagination('nonexistent')).toEqual({
-				total: 0, page: 1, pages: 1, limit: 20,
+				total: 0,
+				page: 1,
+				pages: 1,
+				limit: 20,
 			})
 		})
 	})

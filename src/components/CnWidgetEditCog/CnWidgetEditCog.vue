@@ -83,6 +83,7 @@ export default {
 			type: String,
 			default: 'Widget menu',
 		},
+
 		/**
 		 * Label for the Edit action item.
 		 *
@@ -92,6 +93,7 @@ export default {
 			type: String,
 			default: 'Edit widget',
 		},
+
 		/**
 		 * Label for the Delete action item.
 		 *

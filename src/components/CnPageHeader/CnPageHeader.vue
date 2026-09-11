@@ -82,21 +82,25 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** Optional description shown below the title */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/** Optional MDI icon name (rendered via CnIcon) */
 		icon: {
 			type: String,
 			default: '',
 		},
+
 		/** Icon size in pixels */
 		iconSize: {
 			type: Number,
 			default: 28,
 		},
+
 		/**
 		 * Render the `<h1>` for assistive technology only — clipped to a 1px
 		 * box and removed from layout flow, so the page looks exactly as it
@@ -107,6 +111,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Translate function. Falls back to the injected `cnTranslate`,
 		 * which itself defaults to an identity function.

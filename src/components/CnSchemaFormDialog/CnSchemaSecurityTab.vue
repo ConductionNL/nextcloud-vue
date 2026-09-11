@@ -317,6 +317,7 @@ export default {
 		ChevronDown,
 		ChevronRight,
 	},
+
 	props: {
 		/** The full schema item — mutates authorization directly */
 		schemaItem: { type: Object, required: true },
@@ -333,6 +334,7 @@ export default {
 		/** Properties inherited from parent schemas (allOf) */
 		inheritedProperties: { type: Object, default: () => ({}) },
 	},
+
 	data() {
 		return {
 			actions: ['create', 'read', 'update', 'delete'],
@@ -347,6 +349,7 @@ export default {
 			},
 		}
 	},
+
 	computed: {
 		/** Local alias to avoid vue/no-mutating-props on template bindings */
 		schema() {
@@ -368,10 +371,10 @@ export default {
 		},
 
 		propertyOptions() {
-			const ownKeys = Object.keys(this.schemaItem.properties || {}).filter(k => k !== '')
-			const inheritedKeys = Object.keys(this.inheritedProperties || {}).filter(k => k !== '')
+			const ownKeys = Object.keys(this.schemaItem.properties || {}).filter((k) => k !== '')
+			const inheritedKeys = Object.keys(this.inheritedProperties || {}).filter((k) => k !== '')
 			const allKeys = [...new Set([...inheritedKeys, ...ownKeys])]
-			const schemaProps = allKeys.map(key => ({ id: key, label: key }))
+			const schemaProps = allKeys.map((key) => ({ id: key, label: key }))
 			const systemProps = [
 				{ id: '_organisation', label: t('nextcloud-vue', '_organisation (system)') },
 				{ id: '_owner', label: t('nextcloud-vue', '_owner (system)') },
@@ -401,7 +404,7 @@ export default {
 			return [
 				{ id: 'public', label: 'public' },
 				{ id: 'authenticated', label: 'authenticated' },
-				...this.sortedUserGroups.map(g => ({ id: g.id, label: g.displayname || g.id })),
+				...this.sortedUserGroups.map((g) => ({ id: g.id, label: g.displayname || g.id })),
 			]
 		},
 
@@ -428,6 +431,7 @@ export default {
 			return Boolean(auth.inheritFromPublic)
 		},
 	},
+
 	methods: {
 		t,
 
@@ -460,25 +464,25 @@ export default {
 		availablePropertyOptions(action, ruleIdx) {
 			const rules = this.getConditionalRules(action)
 			const currentRule = rules[ruleIdx]
-			if (!currentRule || !currentRule.rule.match) return this.propertyOptions
+			if (!currentRule || !currentRule.rule.match) { return this.propertyOptions }
 			const used = Object.keys(currentRule.rule.match)
-			return this.propertyOptions.filter(opt => !used.includes(opt.id))
+			return this.propertyOptions.filter((opt) => !used.includes(opt.id))
 		},
 
 		// ─── Operator / value helpers ─────────────────────────────────────
 
 		getOperatorLabel(opId) {
-			const op = this.operatorOptions.find(o => o.id === opId)
+			const op = this.operatorOptions.find((o) => o.id === opId)
 			return op ? op.label : opId
 		},
 
 		formatConditionValue(val) {
-			if (Array.isArray(val)) return val.join(', ')
+			if (Array.isArray(val)) { return val.join(', ') }
 			return String(val)
 		},
 
 		getGroupOption(groupId) {
-			return this.allGroupOptions.find(opt => opt.id === groupId)
+			return this.allGroupOptions.find((opt) => opt.id === groupId)
 				|| { id: groupId, label: groupId }
 		},
 
@@ -486,7 +490,7 @@ export default {
 
 		hasGroupPermission(groupId, action) {
 			const auth = this.schema.authorization || {}
-			if (!auth[action] || !Array.isArray(auth[action])) return false
+			if (!auth[action] || !Array.isArray(auth[action])) { return false }
 			return auth[action].includes(groupId)
 		},
 
@@ -522,7 +526,7 @@ export default {
 		 */
 		getConditionalRules(action) {
 			const auth = this.schema.authorization || {}
-			if (!auth[action] || !Array.isArray(auth[action])) return []
+			if (!auth[action] || !Array.isArray(auth[action])) { return [] }
 			const result = []
 			auth[action].forEach((entry, index) => {
 				if (entry && typeof entry === 'object') {
@@ -547,14 +551,14 @@ export default {
 				const lastCard = cards[cards.length - 1]
 				if (lastCard) {
 					const firstFocusable = lastCard.querySelector('input, button, [tabindex]')
-					if (firstFocusable) firstFocusable.focus({ preventScroll: true })
+					if (firstFocusable) { firstFocusable.focus({ preventScroll: true }) }
 				}
 			})
 		},
 
 		removeConditionalRule(action, originalIndex) {
 			const auth = this.schema.authorization
-			if (!auth || !auth[action]) return
+			if (!auth || !auth[action]) { return }
 			auth[action].splice(originalIndex, 1)
 			if (auth[action].length === 0) {
 				delete this.schema.authorization[action]
@@ -570,7 +574,7 @@ export default {
 
 		removeCondition(action, originalIndex, propKey) {
 			const rule = this.schema.authorization[action][originalIndex]
-			if (!rule.match) return
+			if (!rule.match) { return }
 			const updated = { ...rule.match }
 			delete updated[propKey]
 			rule.match = updated
@@ -586,7 +590,7 @@ export default {
 			this.addingCondition = { action, ruleIdx }
 			this.newCondition = {
 				propertyOption: null,
-				operatorOption: this.operatorOptions.find(o => o.id === '$lte'),
+				operatorOption: this.operatorOptions.find((o) => o.id === '$lte'),
 				valueOption: null,
 				customValue: null,
 				existsOption: this.existsOptions[0],
@@ -599,7 +603,7 @@ export default {
 				const form = Array.isArray(formEl) ? formEl[0] : formEl
 				if (form) {
 					const firstInput = (form.$el || form).querySelector('input, [tabindex="0"]')
-					if (firstInput) firstInput.focus({ preventScroll: true })
+					if (firstInput) { firstInput.focus({ preventScroll: true }) }
 				}
 			})
 		},
@@ -626,7 +630,7 @@ export default {
 		confirmAddCondition(action, originalIndex) {
 			const property = this.newCondition.propertyOption && this.newCondition.propertyOption.id
 			const operator = this.newCondition.operatorOption && this.newCondition.operatorOption.id
-			if (!property || !operator) return
+			if (!property || !operator) { return }
 
 			let conditionValue
 			if (operator === '$exists') {
@@ -638,7 +642,7 @@ export default {
 				conditionValue = this.newCondition.valueOption && this.newCondition.valueOption.id
 			}
 
-			if (!conditionValue && conditionValue !== false) return
+			if (!conditionValue && conditionValue !== false) { return }
 
 			const rule = this.schema.authorization[action][originalIndex]
 			// Replace the entire match object so Vue 2's property-level dep on `rule.match`

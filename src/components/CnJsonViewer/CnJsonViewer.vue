@@ -97,6 +97,7 @@ export default {
 			default: 'auto',
 			validator: (v) => ['json', 'xml', 'html', 'text', 'auto'].includes(v),
 		},
+
 		/**
 		 * Custom text for the error banner rendered below the editor.
 		 * - `null` (default): the built-in "Invalid JSON format" banner renders
@@ -130,14 +131,18 @@ export default {
 				this.$emit('update:value', v)
 			},
 		},
+
 		isDark: {
 			get() { return getTheme() === 'dark' },
 		},
+
 		theme: {
 			get() { return this.isDark ? githubDark : githubLight },
 		},
+
 		/**
 		 * Resolve 'auto' language to a concrete language based on content.
+		 *
 		 * @return {string} Resolved language: 'json', 'xml', or 'text'
 		 */
 		resolvedLanguage() {
@@ -145,7 +150,7 @@ export default {
 				return this.language
 			}
 			const trimmed = (this.internalValue || '').trim()
-			if (!trimmed) return 'text'
+			if (!trimmed) { return 'text' }
 			try {
 				JSON.parse(trimmed)
 				return 'json'
@@ -161,59 +166,69 @@ export default {
 			}
 			return 'text'
 		},
+
 		/**
 		 * CodeMirror language extension based on resolved language.
+		 *
 		 * @return {object|null} Language extension or null for plain text
 		 */
 		langExtension() {
 			switch (this.resolvedLanguage) {
-			case 'json':
-				return jsonLang()
-			case 'html':
-				return htmlLang()
-			case 'xml':
-				return xmlLang()
-			case 'text':
-			default:
-				return null
+				case 'json':
+					return jsonLang()
+				case 'html':
+					return htmlLang()
+				case 'xml':
+					return xmlLang()
+				case 'text':
+				default:
+					return null
 			}
 		},
+
 		/**
 		 * CodeMirror linter extension (only active for JSON in edit mode).
+		 *
 		 * @return {object|null} Linter extension or null
 		 */
 		linterExtension() {
-			if (this.readOnly) return null
-			if (this.resolvedLanguage === 'json') return jsonLinter()
+			if (this.readOnly) { return null }
+			if (this.resolvedLanguage === 'json') { return jsonLinter() }
 			return null
 		},
+
 		/**
 		 * Combined CodeMirror extensions array.
+		 *
 		 * @return {Array} Extensions including theme and optional language
 		 */
 		editorExtensions() {
 			const exts = [this.theme]
-			if (this.langExtension) exts.push(this.langExtension)
+			if (this.langExtension) { exts.push(this.langExtension) }
 			return exts
 		},
+
 		/**
 		 * Error text displayed in the banner. Caller-provided `errorText` wins;
 		 * otherwise falls back to the built-in "Invalid JSON format" message.
+		 *
 		 * @return {string} Message to show.
 		 */
 		resolvedErrorText() {
-			if (this.errorText !== null) return this.errorText
+			if (this.errorText !== null) { return this.errorText }
 			return 'Invalid JSON format'
 		},
+
 		/**
 		 * Whether to show the error banner.
 		 * - If `errorText` is supplied, the caller controls visibility via its
 		 *   emptiness.
 		 * - Otherwise, show iff the content is editable JSON and fails to parse.
+		 *
 		 * @return {boolean} Visibility flag.
 		 */
 		shouldShowError() {
-			if (this.errorText !== null) return this.errorText !== ''
+			if (this.errorText !== null) { return this.errorText !== '' }
 			return !this.readOnly
 				&& this.resolvedLanguage === 'json'
 				&& !this.isValidJson(this.internalValue)
@@ -226,6 +241,7 @@ export default {
 				this.internalValue = v
 			}
 		},
+
 		resolvedLanguage: {
 			immediate: true,
 			handler(lang) {
@@ -274,11 +290,12 @@ export default {
 
 		/**
 		 * Check if a string is valid JSON.
+		 *
 		 * @param {string} str - String to validate
 		 * @return {boolean} True if valid JSON
 		 */
 		isValidJson(str) {
-			if (!str || !str.trim()) return false
+			if (!str || !str.trim()) { return false }
 			try {
 				JSON.parse(str)
 				return true

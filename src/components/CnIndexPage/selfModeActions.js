@@ -42,7 +42,7 @@ function storeErrorMessage(ctx, fallback) {
  */
 export function createSelfModeActions(ctx) {
 	async function handleSingleDelete(id) {
-		if (!selfModeReady(ctx)) return false
+		if (!selfModeReady(ctx)) { return false }
 		try {
 			const ok = await ctx.selfObjectStore().deleteObject(ctx.selfObjectType(), id)
 			if (ok) {
@@ -59,7 +59,7 @@ export function createSelfModeActions(ctx) {
 	}
 
 	async function handleMassDelete(ids) {
-		if (!selfModeReady(ctx)) return false
+		if (!selfModeReady(ctx)) { return false }
 		try {
 			const { successfulIds, failedIds } = await ctx.selfObjectStore().deleteObjects(ctx.selfObjectType(), ids)
 			if (failedIds.length === 0) {
@@ -79,7 +79,7 @@ export function createSelfModeActions(ctx) {
 	}
 
 	async function handleSingleCopy(payload) {
-		if (!selfModeReady(ctx)) return false
+		if (!selfModeReady(ctx)) { return false }
 		const { id, newName } = payload || {}
 		const source = findSource(ctx, id)
 		if (!source) {
@@ -103,7 +103,7 @@ export function createSelfModeActions(ctx) {
 	}
 
 	async function handleMassCopy(payload) {
-		if (!selfModeReady(ctx)) return false
+		if (!selfModeReady(ctx)) { return false }
 		const ids = (payload && payload.ids) || []
 		const nameField = resolveNameField(ctx)
 		const getName = (payload && payload.getName) || ((item) => item[ctx.massActionNameField()])
@@ -118,8 +118,7 @@ export function createSelfModeActions(ctx) {
 			const clone = cloneObjectForCopy(source, getName(source), nameField)
 			try {
 				const saved = await ctx.selfObjectStore().saveObject(ctx.selfObjectType(), clone)
-				if (saved) successfulIds.push(id)
-				else failedIds.push(id)
+				if (saved) { successfulIds.push(id) } else { failedIds.push(id) }
 			} catch (_e) {
 				failedIds.push(id)
 			}
@@ -138,7 +137,7 @@ export function createSelfModeActions(ctx) {
 	}
 
 	async function handleMassExport(payload) {
-		if (!ctx.isSelfFetchMode() || !ctx.register() || !ctx.schema()) return false
+		if (!ctx.isSelfFetchMode() || !ctx.register() || !ctx.schema()) { return false }
 		try {
 			await runSelfExportRequest({
 				register: ctx.register(),
@@ -153,7 +152,7 @@ export function createSelfModeActions(ctx) {
 	}
 
 	async function handleMassImport(payload) {
-		if (!ctx.isSelfFetchMode() || !ctx.register()) return false
+		if (!ctx.isSelfFetchMode() || !ctx.register()) { return false }
 		try {
 			await runSelfImportRequest({
 				register: ctx.register(),
@@ -169,7 +168,7 @@ export function createSelfModeActions(ctx) {
 	}
 
 	async function handleFormSave(formData) {
-		if (!selfModeReady(ctx)) return false
+		if (!selfModeReady(ctx)) { return false }
 		try {
 			const saved = await ctx.selfObjectStore().saveObject(ctx.selfObjectType(), formData)
 			if (saved) {

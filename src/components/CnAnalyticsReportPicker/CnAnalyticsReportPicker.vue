@@ -140,7 +140,7 @@ export default {
 			if (term === '') {
 				return this.reports
 			}
-			return this.reports.filter(report => (report.name || '').toLowerCase().includes(term))
+			return this.reports.filter((report) => (report.name || '').toLowerCase().includes(term))
 		},
 	},
 
@@ -224,13 +224,13 @@ export default {
 				return t('nextcloud-vue', 'Report')
 			}
 			switch (Number(raw)) {
-			case 0: return t('nextcloud-vue', 'Group')
-			case 1: return t('nextcloud-vue', 'File')
-			case 2: return t('nextcloud-vue', 'Database')
-			case 3: return t('nextcloud-vue', 'Git')
-			case 4: return t('nextcloud-vue', 'External')
-			case 6: return t('nextcloud-vue', 'JSON')
-			default: return t('nextcloud-vue', 'Report')
+				case 0: return t('nextcloud-vue', 'Group')
+				case 1: return t('nextcloud-vue', 'File')
+				case 2: return t('nextcloud-vue', 'Database')
+				case 3: return t('nextcloud-vue', 'Git')
+				case 4: return t('nextcloud-vue', 'External')
+				case 6: return t('nextcloud-vue', 'JSON')
+				default: return t('nextcloud-vue', 'Report')
 			}
 		},
 
