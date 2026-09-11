@@ -5,6 +5,8 @@
 
 <template>
 	<div class="cn-news-form">
+		<!-- The URLs collected here reach no fetcher today — see the FINDING in
+		     CnNewsWidget.vue's loadItems(). -->
 		<label class="cn-news-form__label">
 			{{ t('nextcloud-vue', 'Feed URLs') }}
 		</label>

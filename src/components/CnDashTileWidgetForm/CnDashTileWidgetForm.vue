@@ -73,8 +73,10 @@ const DEFAULT_CONTENT = Object.freeze({
 	title: '',
 	icon: '',
 	iconType: 'class',
-	backgroundColor: '#3b82f6',
-	textColor: '#ffffff',
+	// Empty so an untouched colour picker stores nothing and the tile follows
+	// the instance theme — see the registry entry in CnDashTileWidget/index.js.
+	backgroundColor: '',
+	textColor: '',
 	linkType: 'app',
 	linkValue: '',
 })

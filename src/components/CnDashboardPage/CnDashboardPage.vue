@@ -3038,17 +3038,33 @@ export default {
 			return def?.type === 'tile'
 		},
 
+		/**
+		 * The tile config for a `type: "tile"` widget def.
+		 *
+		 * Read from `content` first, then the def's top level — the same
+		 * dual-shape read CnDashTileWidget does. A tile authored through the
+		 * Add-widget modal keeps the form's fields in `content`; only preset
+		 * and legacy tiles carry them at the top level. Reading the top level
+		 * alone left every authored tile with no icon, no link and CnTileWidget's
+		 * fallback blue, while its title still showed — the one field the modal
+		 * also writes there.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {object|null} the tile config, or null when no def matches.
+		 */
 		getTileConfig(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			if (!def) return null
+			const c = (def.content && typeof def.content === 'object') ? def.content : {}
 			return {
-				title: def.title,
-				icon: def.icon,
-				iconType: def.iconType,
-				backgroundColor: def.backgroundColor,
-				textColor: def.textColor,
-				linkType: def.linkType,
-				linkValue: def.linkValue,
+				// The modal resolves the header title, so the top level wins here.
+				title: def.title ?? c.title,
+				icon: c.icon ?? def.icon,
+				iconType: c.iconType ?? def.iconType,
+				backgroundColor: c.backgroundColor ?? def.backgroundColor,
+				textColor: c.textColor ?? def.textColor,
+				linkType: c.linkType ?? def.linkType,
+				linkValue: c.linkValue ?? def.linkValue,
 			}
 		},
 

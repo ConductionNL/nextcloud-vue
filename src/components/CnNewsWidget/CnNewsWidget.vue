@@ -298,6 +298,23 @@ export default {
 		 */
 		async loadItems() {
 			const url = this.resolveEndpoint()
+			// FINDING (2026-09-11): this early return is why a configured feed
+			// shows nothing. CnNewsWidgetForm collects `feedUrls` and nothing
+			// reads them — items come only from `itemsEndpoint`, and no app in
+			// the fleet supplies one (checked buildiq, openregister, integriq,
+			// opencatalogi, keepiq; the docs name LaunchPad as the consumer).
+			// So the form asks for an RSS URL the renderer cannot use.
+			//
+			// It cannot be closed here: a cross-origin feed sends no CORS
+			// headers, and the response is XML, not the JSON shape above.
+			//
+			// SUGGESTED FIX — route it through OpenRegister: one endpoint there
+			// that fetches and parses RSS/Atom server-side and returns the
+			// documented shape gives the whole fleet working feeds, and a
+			// consumer then only has to point `itemsEndpoint` at it (no change
+			// in here — CnDashboardPage already spreads stored widget content
+			// as props). Needs SSRF guarding, since the URL comes from whoever
+			// edits the dashboard. NOT a decision taken here.
 			if (url === null) {
 				return
 			}
