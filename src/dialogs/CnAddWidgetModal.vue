@@ -593,7 +593,9 @@ export default {
 		 * @return {boolean} true when the registry entry is a card.
 		 */
 		isCardType(type) {
-			if (!type) { return false }
+			if (!type) {
+				return false
+			}
 			const entry = getWidgetTypeEntry(type)
 			return Boolean(entry && entry.card === true)
 		},

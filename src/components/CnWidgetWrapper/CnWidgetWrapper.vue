@@ -655,8 +655,12 @@ export default {
 		 * @return {boolean}
 		 */
 		effectiveShowRefresh() {
-			if (this.hideRefresh) { return false }
-			if (this.showRefresh !== null) { return this.showRefresh }
+			if (this.hideRefresh) {
+				return false
+			}
+			if (this.showRefresh !== null) {
+				return this.showRefresh
+			}
 			// `$.vnode.props`, not `$attrs`: `refresh` is a declared emit, and
 			// Vue keeps declared emits out of `$attrs`.
 			return Boolean(this.$.vnode.props?.onRefresh)
@@ -682,7 +686,9 @@ export default {
 		 * @return {string}
 		 */
 		resolvedWidgetId() {
-			if (this.widgetId) { return this.widgetId }
+			if (this.widgetId) {
+				return this.widgetId
+			}
 			return this.displayTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 		},
 
@@ -837,8 +843,12 @@ export default {
 		 * @return {boolean} True when the header should render.
 		 */
 		headerIsWorthIt() {
-			if (this.titleVisible) { return true }
-			if (this.actionsSlotRenders()) { return true }
+			if (this.titleVisible) {
+				return true
+			}
+			if (this.actionsSlotRenders()) {
+				return true
+			}
 			return this.showActions && this.hasActionsSlot
 		},
 

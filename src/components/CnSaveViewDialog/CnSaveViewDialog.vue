@@ -117,7 +117,9 @@ export default {
 		 * and either closes the dialog or reports back via `setError()`.
 		 */
 		onConfirm() {
-			if (!this.name.trim()) { return }
+			if (!this.name.trim()) {
+				return
+			}
 			this.loading = true
 			this.error = ''
 			/**

@@ -167,7 +167,9 @@ export default {
 				return Math.min(100, Math.max(0, item.percentage))
 			}
 			const total = (item.total !== undefined && item.total !== null) ? item.total : this.totalCount
-			if (total === 0) { return 0 }
+			if (total === 0) {
+				return 0
+			}
 			return Math.round(((item.count || 0) / total) * 100)
 		},
 

@@ -361,7 +361,9 @@ export default {
 	},
 
 	mounted() {
-		if (this.editableBody) { this.initGrid() }
+		if (this.editableBody) {
+			this.initGrid()
+		}
 	},
 
 	beforeUnmount() {
@@ -385,9 +387,13 @@ export default {
 		/** Initialise the GridStack engine on the editable body container. */
 		initGrid() {
 			const container = this.$refs.gridContainer
-			if (!container) { return }
+			if (!container) {
+				return
+			}
 			const el = container.querySelector('.grid-stack')
-			if (!el) { return }
+			if (!el) {
+				return
+			}
 			this.grid = initGridStack(el, { columns: this.gridColumns, editable: true })
 			this.grid.on('change', (_event, items) => this.handleGridChange(items))
 		},
@@ -414,7 +420,9 @@ export default {
 				const key = String(this.gsId(resolved, index))
 				const g = geom.get(key)
 				const target = this.widgets[index]
-				if (!g || !target) { return }
+				if (!g || !target) {
+					return
+				}
 				const width = Math.min(g.gridWidth, cols)
 				const x = Math.min(g.gridX, Math.max(0, cols - width))
 				target.gridX = x

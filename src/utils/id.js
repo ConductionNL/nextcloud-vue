@@ -7,8 +7,14 @@
  * @return {string} id
  */
 export const extractId = (value) => {
-	if (typeof value === 'string') { return value }
-	if (typeof value === 'object' && value?.id) { return value.id }
-	if (typeof value === 'object' && value?.['@self']?.id) { return value['@self'].id }
+	if (typeof value === 'string') {
+		return value
+	}
+	if (typeof value === 'object' && value?.id) {
+		return value.id
+	}
+	if (typeof value === 'object' && value?.['@self']?.id) {
+		return value['@self'].id
+	}
 	return value
 }

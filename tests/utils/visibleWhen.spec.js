@@ -53,7 +53,9 @@ describe('readVisibleWhenPath', () => {
 
 describe('evaluateVisibleWhen', () => {
 	afterEach(() => {
-		if (global.fetch && global.fetch.mockReset) { global.fetch.mockReset() }
+		if (global.fetch && global.fetch.mockReset) {
+			global.fetch.mockReset()
+		}
 	})
 
 	it('a null condition is always visible', async () => {

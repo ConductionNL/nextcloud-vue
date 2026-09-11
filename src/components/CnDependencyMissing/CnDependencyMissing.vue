@@ -241,7 +241,9 @@ export default {
 		},
 
 		resolveLink(dep) {
-			if (dep.installUrl) { return dep.installUrl }
+			if (dep.installUrl) {
+				return dep.installUrl
+			}
 			if (dep.enabled === false) {
 				return `/index.php/settings/apps/disabled/${dep.id}`
 			}

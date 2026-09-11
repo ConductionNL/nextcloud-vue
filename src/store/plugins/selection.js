@@ -54,7 +54,9 @@ export function selectionPlugin() {
 			 */
 			isAllSelected: (state) => (type) => {
 				const collection = state.collections?.[type] || []
-				if (!collection.length) { return false }
+				if (!collection.length) {
+					return false
+				}
 				return collection.every((r) => {
 					const id = r.id ?? r['@self']?.id
 					return id != null && state.selectedObjects.includes(id)
@@ -96,7 +98,9 @@ export function selectionPlugin() {
 				} else {
 					// Add this type's IDs to existing selection (deduplicated)
 					const existing = new Set(this.selectedObjects)
-					for (const id of ids) { existing.add(id) }
+					for (const id of ids) {
+						existing.add(id)
+					}
 					this.selectedObjects = [...existing]
 				}
 			},

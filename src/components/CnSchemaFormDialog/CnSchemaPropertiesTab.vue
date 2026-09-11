@@ -210,8 +210,12 @@ export default {
 					if (orderA > 0 && orderB > 0) {
 						return orderA - orderB
 					}
-					if (orderA > 0) { return -1 }
-					if (orderB > 0) { return 1 }
+					if (orderA > 0) {
+						return -1
+					}
+					if (orderB > 0) {
+						return 1
+					}
 					const createdA = propA.created || ''
 					const createdB = propB.created || ''
 					return createdA.localeCompare(createdB)
@@ -283,7 +287,9 @@ export default {
 		},
 
 		isPropertyModified(key) {
-			if (!this.originalProperties) { return false }
+			if (!this.originalProperties) {
+				return false
+			}
 			const currentProperty = JSON.stringify(this.schema.properties[key] || {})
 			const originalProperty = JSON.stringify(this.originalProperties[key] || {})
 			return currentProperty !== originalProperty
@@ -291,7 +297,9 @@ export default {
 
 		hasCustomTableSettings(key) {
 			const table = this.schema.properties[key]?.table
-			if (!table) { return false }
+			if (!table) {
+				return false
+			}
 			const defaults = { default: false }
 			return !Object.keys(table).every((setting) => table[setting] === defaults[setting])
 		},
@@ -315,14 +323,22 @@ export default {
 		},
 
 		onRowClick(row) {
-			if (row._inherited) { return }
-			if (this.selectedProperty === row._key) { return }
+			if (row._inherited) {
+				return
+			}
+			if (this.selectedProperty === row._key) {
+				return
+			}
 			this.$emit('update:selected-property', row._key)
 		},
 
 		onPropertyKeyUpdate(oldKey, newKey) {
-			if (newKey === oldKey) { return }
-			if (this.schema.properties[newKey] !== undefined && newKey !== oldKey) { return }
+			if (newKey === oldKey) {
+				return
+			}
+			if (this.schema.properties[newKey] !== undefined && newKey !== oldKey) {
+				return
+			}
 
 			this.isRenaming = true
 

@@ -121,7 +121,9 @@ export default {
 	watch: {
 		list: {
 			handler() {
-				if (this.suppressRebuild) { return }
+				if (this.suppressRebuild) {
+					return
+				}
 				this.tree = this.buildTree()
 			},
 
@@ -177,7 +179,9 @@ export default {
 			const childrenByParent = {}
 			const top = []
 			for (const p of list) {
-				if (!p) { continue }
+				if (!p) {
+					continue
+				}
 				if (p.parent && topIds.has(p.parent)) {
 					(childrenByParent[p.parent] || (childrenByParent[p.parent] = [])).push(p)
 				} else {
@@ -199,7 +203,9 @@ export default {
 		flatten() {
 			const flat = []
 			for (const node of this.tree) {
-				if (node.ref.parent) { delete node.ref.parent }
+				if (node.ref.parent) {
+					delete node.ref.parent
+				}
 				flat.push(node.ref)
 				for (const child of node.children) {
 					child.ref.parent = node.ref.id
@@ -241,7 +247,9 @@ export default {
 		nextId() {
 			const ids = new Set(this.list.map((p) => p && p.id))
 			let n = this.list.length + 1
-			while (ids.has(`page-${n}`)) { n++ }
+			while (ids.has(`page-${n}`)) {
+				n++
+			}
 			return `page-${n}`
 		},
 
@@ -257,15 +265,25 @@ export default {
 		 */
 		renamePage(ref, newId) {
 			const oldId = ref.id
-			if (!newId || newId === oldId) { return }
-			if (this.list.some((p) => p && p.id === newId)) { return }
+			if (!newId || newId === oldId) {
+				return
+			}
+			if (this.list.some((p) => p && p.id === newId)) {
+				return
+			}
 			for (const p of this.list) {
-				if (p && p.parent === oldId) { p.parent = newId }
+				if (p && p.parent === oldId) {
+					p.parent = newId
+				}
 			}
 			if (Array.isArray(this.menu)) {
 				const walk = (items) => (items || []).forEach((it) => {
-					if (!it) { return }
-					if (it.route === oldId) { it.route = newId }
+					if (!it) {
+						return
+					}
+					if (it.route === oldId) {
+						it.route = newId
+					}
 					walk(it.children)
 				})
 				walk(this.menu)
@@ -299,10 +317,14 @@ export default {
 		removeNode(node, parent) {
 			if (parent) {
 				const i = parent.children.indexOf(node)
-				if (i !== -1) { parent.children.splice(i, 1) }
+				if (i !== -1) {
+					parent.children.splice(i, 1)
+				}
 			} else {
 				const i = this.tree.indexOf(node)
-				if (i !== -1) { this.tree.splice(i, 1, ...node.children) }
+				if (i !== -1) {
+					this.tree.splice(i, 1, ...node.children)
+				}
 			}
 			this.flatten()
 		},

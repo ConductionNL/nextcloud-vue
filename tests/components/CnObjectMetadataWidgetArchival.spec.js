@@ -253,7 +253,9 @@ describe('CnObjectMetadataWidget — an archival decision with a gap (nextcloud-
 		})
 		const map = {}
 		for (const item of wrapper.vm.metadataItems) {
-			if (item.group === 'archiving') { map[item.label] = item }
+			if (item.group === 'archiving') {
+				map[item.label] = item
+			}
 		}
 		return map
 	}

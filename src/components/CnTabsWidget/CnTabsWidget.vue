@@ -194,7 +194,9 @@ export default {
 				 * @return {void}
 				 */
 				set: (id, items, source = 'widget') => {
-					if (!id) { return }
+					if (!id) {
+						return
+					}
 					const forId = { ...(this.panelActionsByWidget[id] || {}), [source]: items }
 					this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: forId }
 				},
@@ -210,7 +212,9 @@ export default {
 				 */
 				clear: (id, source = 'widget') => {
 					const forId = this.panelActionsByWidget[id]
-					if (!forId || !(source in forId)) { return }
+					if (!forId || !(source in forId)) {
+						return
+					}
 					const { [source]: _removed, ...keptSources } = forId
 					if (Object.keys(keptSources).length) {
 						this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: keptSources }
@@ -357,7 +361,9 @@ export default {
 		 */
 		activePanelActions() {
 			const forId = this.panelActionsByWidget[this.activeWidgetId]
-			if (!forId) { return [] }
+			if (!forId) {
+				return []
+			}
 			// Host first, then the widget's own: the catalog Add is about the
 			// panel as a whole, the widget's items about what is in it.
 			return [...(forId.host || []), ...(forId.widget || [])]

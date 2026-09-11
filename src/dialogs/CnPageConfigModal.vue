@@ -830,19 +830,25 @@ export default {
 		 * the panel never flashes text fields and then swaps them for selects.
 		 */
 		showPickers() {
-			if (this.hasDataSources || this.dataSourcesLoading) { return true }
+			if (this.hasDataSources || this.dataSourcesLoading) {
+				return true
+			}
 			return !!(this.cnDataSourcesState && this.cnDataSourcesState.hasLoader)
 		},
 
 		/** Register options. */
 		registerOptions() {
-			if (!this.hasDataSources) { return [] }
+			if (!this.hasDataSources) {
+				return []
+			}
 			return this.effectiveDataSources.registers.map((r) => ({ value: r.value, label: r.label || r.value }))
 		},
 
 		/** Schema options for the chosen register. */
 		schemaOptions() {
-			if (!this.hasDataSources) { return [] }
+			if (!this.hasDataSources) {
+				return []
+			}
 			const reg = this.effectiveDataSources.registers.find((r) => r.value === this.configValue('register'))
 			const schemas = (reg && Array.isArray(reg.schemas)) ? reg.schemas : []
 			return schemas.map((s) => ({ value: s.value, label: s.label || s.value, columns: s.columns || [] }))
@@ -851,14 +857,18 @@ export default {
 		/** Chosen register option. */
 		selectedRegister() {
 			const slug = this.configValue('register')
-			if (!slug) { return null }
+			if (!slug) {
+				return null
+			}
 			return this.registerOptions.find((o) => o.value === slug) || { value: slug, label: slug }
 		},
 
 		/** Chosen schema option. */
 		selectedSchema() {
 			const slug = this.configValue('schema')
-			if (!slug) { return null }
+			if (!slug) {
+				return null
+			}
 			return this.schemaOptions.find((o) => o.value === slug) || { value: slug, label: slug }
 		},
 
@@ -891,7 +901,9 @@ export default {
 		 * @return {string[]}
 		 */
 		transformColumns() {
-			if (this.columnsArray.length) { return this.columnsArray }
+			if (this.columnsArray.length) {
+				return this.columnsArray
+			}
 			return this.columnOptions.map((o) => o.value)
 		},
 
@@ -903,7 +915,9 @@ export default {
 		/** The default-sort field as an option (single-key). */
 		selectedSortField() {
 			const sort = this.defaultSortArray
-			if (!sort.length || !sort[0].field) { return null }
+			if (!sort.length || !sort[0].field) {
+				return null
+			}
 			return { value: sort[0].field, label: sort[0].field }
 		},
 
@@ -923,7 +937,9 @@ export default {
 	// The modal is `v-if`-mounted, so mount == open: refreshing here picks up
 	// any register/schema created since the app booted, with no page reload.
 	mounted() {
-		if (typeof this.cnRefreshDataSources === 'function') { this.cnRefreshDataSources() }
+		if (typeof this.cnRefreshDataSources === 'function') {
+			this.cnRefreshDataSources()
+		}
 	},
 
 	methods: {
@@ -934,7 +950,9 @@ export default {
 		 * @return {void}
 		 */
 		retryDataSources() {
-			if (typeof this.cnRefreshDataSources === 'function') { this.cnRefreshDataSources() }
+			if (typeof this.cnRefreshDataSources === 'function') {
+				this.cnRefreshDataSources()
+			}
 		},
 
 		/**
@@ -1009,7 +1027,9 @@ export default {
 		 */
 		boolVal(key) {
 			const cfg = (this.page && this.page.config) || {}
-			if (Object.prototype.hasOwnProperty.call(cfg, key)) { return !!cfg[key] }
+			if (Object.prototype.hasOwnProperty.call(cfg, key)) {
+				return !!cfg[key]
+			}
 			return BOOL_DEFAULTS[key] === true
 		},
 
@@ -1100,7 +1120,9 @@ export default {
 				config.mapConfig = map
 			}
 			if (value) { map[key] = value } else { delete map[key] }
-			if (!Object.keys(config.mapConfig).length) { delete config.mapConfig }
+			if (!Object.keys(config.mapConfig).length) {
+				delete config.mapConfig
+			}
 		},
 
 		/**
@@ -1187,7 +1209,9 @@ export default {
 				config.columnOverrides = map
 			}
 			if (override && Object.keys(override).length) { map[col] = override } else { delete map[col] }
-			if (!Object.keys(config.columnOverrides).length) { delete config.columnOverrides }
+			if (!Object.keys(config.columnOverrides).length) {
+				delete config.columnOverrides
+			}
 		},
 
 		/**
@@ -1212,7 +1236,9 @@ export default {
 		selectedFormat(col) {
 			const ov = this.colOverride(col)
 			let value = ''
-			if (ov.formatter) { value = ov.formatter } else if (ov.widget) { value = ov.widget } else if (ov.format && ov.format.style) { value = ov.format.style }
+			if (ov.formatter) { value = ov.formatter } else if (ov.widget) { value = ov.widget } else if (ov.format && ov.format.style) {
+				value = ov.format.style
+			}
 			return this.formatOptions.find((o) => o.value === value) || this.formatOptions[0]
 		},
 
@@ -1242,7 +1268,9 @@ export default {
 		 */
 		setSortField(option) {
 			const config = this.ensureConfig()
-			if (!option) { delete config.defaultSort; return }
+			if (!option) {
+				delete config.defaultSort; return
+			}
 			const order = (this.defaultSortArray[0] && this.defaultSortArray[0].order) || 'asc'
 			config.defaultSort = [{ field: option.value, order }]
 		},
@@ -1255,7 +1283,9 @@ export default {
 		 */
 		setSortOrder(option) {
 			const sort = this.defaultSortArray
-			if (!sort.length || !sort[0].field) { return }
+			if (!sort.length || !sort[0].field) {
+				return
+			}
 			const config = this.ensureConfig()
 			config.defaultSort = [{ field: sort[0].field, order: option ? option.value : 'asc' }]
 		},

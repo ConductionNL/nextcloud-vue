@@ -166,7 +166,9 @@ export default {
 
 	methods: {
 		async fetchNotes() {
-			if (!this.register || !this.schema) { return }
+			if (!this.register || !this.schema) {
+				return
+			}
 			this.loading = true
 			try {
 				const response = await fetch(
@@ -269,7 +271,9 @@ export default {
 		 */
 		emitMentionEvent(savedText, noteId) {
 			const mentionedUserIds = extractMentionedIds(savedText)
-			if (mentionedUserIds.length === 0) { return }
+			if (mentionedUserIds.length === 0) {
+				return
+			}
 			this.$emit('mention', {
 				objectId: this.objectId,
 				register: this.register,
@@ -280,7 +284,9 @@ export default {
 		},
 
 		async addNote() {
-			if (!this.newNoteText.trim()) { return }
+			if (!this.newNoteText.trim()) {
+				return
+			}
 			this.saving = true
 			const savedText = this.newNoteText.trim()
 			try {
@@ -320,7 +326,9 @@ export default {
 		},
 
 		async saveEdit() {
-			if (!this.newNoteText.trim() || !this.editingNoteId) { return }
+			if (!this.newNoteText.trim() || !this.editingNoteId) {
+				return
+			}
 			this.saving = true
 			const savedText = this.newNoteText.trim()
 			const noteId = this.editingNoteId
@@ -361,7 +369,9 @@ export default {
 		},
 
 		formatDate(dateStr) {
-			if (!dateStr) { return '' }
+			if (!dateStr) {
+				return ''
+			}
 			try {
 				return new Date(dateStr).toLocaleString(undefined, {
 					year: 'numeric',

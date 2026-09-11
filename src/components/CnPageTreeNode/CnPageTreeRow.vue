@@ -326,19 +326,25 @@ export default {
 		 * the panel never flashes text fields and then swaps them for selects.
 		 */
 		showPickers() {
-			if (this.hasDataSources || this.dataSourcesLoading) { return true }
+			if (this.hasDataSources || this.dataSourcesLoading) {
+				return true
+			}
 			return !!(this.cnDataSourcesState && this.cnDataSourcesState.hasLoader)
 		},
 
 		/** Register dropdown options from the data sources. */
 		registerOptions() {
-			if (!this.hasDataSources) { return [] }
+			if (!this.hasDataSources) {
+				return []
+			}
 			return this.effectiveDataSources.registers.map((r) => ({ value: r.value, label: r.label || r.value }))
 		},
 
 		/** Schema options for the chosen register. */
 		schemaOptions() {
-			if (!this.hasDataSources) { return [] }
+			if (!this.hasDataSources) {
+				return []
+			}
 			const reg = this.effectiveDataSources.registers.find((r) => r.value === this.configValue('register'))
 			const schemas = (reg && Array.isArray(reg.schemas)) ? reg.schemas : []
 			return schemas.map((s) => ({ value: s.value, label: s.label || s.value, columns: s.columns || [] }))
@@ -347,14 +353,18 @@ export default {
 		/** The chosen register as an option. */
 		selectedRegister() {
 			const slug = this.configValue('register')
-			if (!slug) { return null }
+			if (!slug) {
+				return null
+			}
 			return this.registerOptions.find((o) => o.value === slug) || { value: slug, label: slug }
 		},
 
 		/** The chosen schema as an option. */
 		selectedSchema() {
 			const slug = this.configValue('schema')
-			if (!slug) { return null }
+			if (!slug) {
+				return null
+			}
 			return this.schemaOptions.find((o) => o.value === slug) || { value: slug, label: slug }
 		},
 
@@ -394,7 +404,9 @@ export default {
 		 * @return {void}
 		 */
 		retryDataSources() {
-			if (typeof this.cnRefreshDataSources === 'function') { this.cnRefreshDataSources() }
+			if (typeof this.cnRefreshDataSources === 'function') {
+				this.cnRefreshDataSources()
+			}
 		},
 
 		/**
@@ -408,7 +420,9 @@ export default {
 			if (field === 'name') {
 				this.$nextTick(() => {
 					const el = this.$refs.nameField && this.$refs.nameField.$el && this.$refs.nameField.$el.querySelector('input')
-					if (el) { el.focus() }
+					if (el) {
+						el.focus()
+					}
 				})
 			}
 		},

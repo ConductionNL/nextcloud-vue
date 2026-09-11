@@ -113,7 +113,9 @@ export function resolveForge(forge) {
  */
 export function forgeDisplayName(type) {
 	const names = { codeberg: 'Codeberg', github: 'GitHub', forgejo: 'Forgejo', gitea: 'Gitea' }
-	if (names[type]) { return names[type] }
+	if (names[type]) {
+		return names[type]
+	}
 	return type ? type.charAt(0).toUpperCase() + type.slice(1) : ''
 }
 

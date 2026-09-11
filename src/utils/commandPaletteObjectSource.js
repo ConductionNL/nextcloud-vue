@@ -44,14 +44,18 @@
  * @return {?{path: string}} A vue-router location, or `null` when no matching detail page exists.
  */
 export function resolveManifestDetailRoute(pages, { register, schema, id } = {}) {
-	if (!Array.isArray(pages) || id === undefined || id === null || id === '') { return null }
+	if (!Array.isArray(pages) || id === undefined || id === null || id === '') {
+		return null
+	}
 	const page = pages.find((p) => p
 		&& p.type === 'detail'
 		&& p.config
 		&& p.config.register === register
 		&& p.config.schema === schema
 		&& typeof p.route === 'string')
-	if (!page) { return null }
+	if (!page) {
+		return null
+	}
 	const path = page.route.replace(/:[^/]+/, encodeURIComponent(String(id)))
 	return { path }
 }
@@ -123,13 +127,17 @@ export function createObjectSearchSource(config = {}) {
 
 		const items = []
 		settled.forEach((outcome, i) => {
-			if (outcome.status !== 'fulfilled' || !Array.isArray(outcome.value)) { return }
+			if (outcome.status !== 'fulfilled' || !Array.isArray(outcome.value)) {
+				return
+			}
 			const type = typeList[i]
 			for (const obj of outcome.value) {
 				const resolved = typeof resolveResult === 'function'
 					? resolveResult(obj, type)
 					: defaultResolveResult(obj, type)
-				if (!resolved || !resolved.title) { continue }
+				if (!resolved || !resolved.title) {
+					continue
+				}
 
 				let run = typeof resolved.run === 'function' ? resolved.run : null
 				if (!run && resolved.route && router && typeof router.push === 'function') {

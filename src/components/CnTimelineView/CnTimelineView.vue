@@ -171,7 +171,9 @@ export default {
 		resolveGroup(evt) {
 			if (typeof this.groupBy === 'function') {
 				const out = this.groupBy(evt)
-				if (out && typeof out.key === 'string') { return out }
+				if (out && typeof out.key === 'string') {
+					return out
+				}
 			}
 			return this.defaultGroup(evt)
 		},
@@ -199,11 +201,17 @@ export default {
 		 */
 		formatTimeRange(evt) {
 			const s = new Date(evt.start)
-			if (Number.isNaN(s.getTime())) { return '' }
+			if (Number.isNaN(s.getTime())) {
+				return ''
+			}
 			const start = s.toLocaleTimeString(this.locale, { hour: '2-digit', minute: '2-digit' })
-			if (!evt.end) { return start }
+			if (!evt.end) {
+				return start
+			}
 			const e = new Date(evt.end)
-			if (Number.isNaN(e.getTime())) { return start }
+			if (Number.isNaN(e.getTime())) {
+				return start
+			}
 			return `${start} – ${e.toLocaleTimeString(this.locale, { hour: '2-digit', minute: '2-digit' })}`
 		},
 
@@ -214,7 +222,9 @@ export default {
 		 * @return {string|null} BEM modifier class, or null.
 		 */
 		eventClass(evt) {
-			if (!evt.kind || !this.kindClassMap[evt.kind]) { return null }
+			if (!evt.kind || !this.kindClassMap[evt.kind]) {
+				return null
+			}
 			return `cn-timeline-view__event--${this.kindClassMap[evt.kind]}`
 		},
 

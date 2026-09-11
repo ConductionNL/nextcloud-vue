@@ -235,7 +235,9 @@ export default {
 				this.$emit('update:selected-indices', next)
 				return
 			}
-			if (i === this.activeIndex) { return }
+			if (i === this.activeIndex) {
+				return
+			}
 			this.$emit('update:active-index', i)
 		},
 

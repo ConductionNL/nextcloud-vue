@@ -234,7 +234,9 @@ export default {
 		},
 
 		formatRelative(dateStr) {
-			if (!dateStr) { return '' }
+			if (!dateStr) {
+				return ''
+			}
 			try {
 				const date = new Date(dateStr)
 				const now = new Date()
@@ -242,7 +244,9 @@ export default {
 				const diffMinutes = Math.floor(diffMs / 60000)
 				const diffHours = Math.floor(diffMinutes / 60)
 				const diffDays = Math.floor(diffHours / 24)
-				if (diffMinutes < 2) { return 'just now' }
+				if (diffMinutes < 2) {
+					return 'just now'
+				}
 				if (diffMinutes < 60) { return `${diffMinutes}m ago` }
 				if (diffHours < 24) { return `${diffHours}h ago` }
 				return `${diffDays}d ago`

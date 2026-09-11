@@ -103,7 +103,9 @@ export default {
 		 */
 		visibleActions() {
 			return this.actions.filter((action) => {
-				if (action.visible === undefined) { return true }
+				if (action.visible === undefined) {
+					return true
+				}
 				if (typeof action.visible === 'function') {
 					return !!action.visible(this.row)
 				}

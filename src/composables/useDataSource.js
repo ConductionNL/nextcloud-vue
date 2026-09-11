@@ -92,7 +92,9 @@ export function useDataSource(dataSource, options = {}) {
 		return typeof v === 'function' ? v() : v
 	})
 	const range = computed(() => {
-		if (!options.range) { return null }
+		if (!options.range) {
+			return null
+		}
 		const r = options.range
 		return isRef(r) ? r.value : (typeof r === 'function' ? r() : r)
 	})
@@ -104,7 +106,9 @@ export function useDataSource(dataSource, options = {}) {
 	const appId = computed(() => {
 		const o = options.appId
 		const explicit = isRef(o) ? o.value : (typeof o === 'function' ? o() : o)
-		if (explicit) { return explicit }
+		if (explicit) {
+			return explicit
+		}
 		return (isRef(injectedAppId) ? injectedAppId.value : injectedAppId) || null
 	})
 
@@ -112,7 +116,9 @@ export function useDataSource(dataSource, options = {}) {
 	// of GraphQL. Null (and thus a no-op) for every other dataSource shape.
 	const brokerConfig = computed(() => {
 		const s = ds.value
-		if (!s || !s.broker) { return null }
+		if (!s || !s.broker) {
+			return null
+		}
 		const b = s.broker
 		return {
 			credentialId: b.credentialId,
@@ -186,16 +192,24 @@ export function useDataSource(dataSource, options = {}) {
 
 	// One-shot bootstrap when the input arrives synchronously. Reactive inputs
 	// (refs) are handled by each composable's internal watchers.
-	if (query.value) { gqlRefetch() }
-	if (brokerConfig.value) { brokered.refetch() }
+	if (query.value) {
+		gqlRefetch()
+	}
+	if (brokerConfig.value) {
+		brokered.refetch()
+	}
 
 	const loading = computed(() => (isBroker.value ? brokered.loading.value : gqlLoading.value))
 	const error = computed(() => (isBroker.value ? brokered.error.value : (bucketError.value || gqlError.value)))
 	const refetch = () => (isBroker.value ? brokered.refetch() : gqlRefetch())
 
 	const data = computed(() => {
-		if (isBroker.value) { return brokered.data.value }
-		if (!rawData.value || !selectors.value) { return null }
+		if (isBroker.value) {
+			return brokered.data.value
+		}
+		if (!rawData.value || !selectors.value) {
+			return null
+		}
 		const out = {}
 		for (const [key, path] of Object.entries(selectors.value)) {
 			out[key] = selectByPath(rawData.value, path)
@@ -207,8 +221,12 @@ export function useDataSource(dataSource, options = {}) {
 }
 
 function resolveSelectors(dataSource) {
-	if (!dataSource) { return null }
-	if (dataSource.graphql?.selectors) { return dataSource.graphql.selectors }
+	if (!dataSource) {
+		return null
+	}
+	if (dataSource.graphql?.selectors) {
+		return dataSource.graphql.selectors
+	}
 	if (dataSource.bucket && dataSource.schema) {
 		return {
 			series: `${dataSource.schema}.groups[].value`,
@@ -359,7 +377,9 @@ function normaliseInterval(interval) {
  * @return {string} The enum literal (default `'COUNT'`).
  */
 function normaliseMetric(metric) {
-	if (metric === undefined || metric === null || metric === '') { return 'COUNT' }
+	if (metric === undefined || metric === null || metric === '') {
+		return 'COUNT'
+	}
 	if (typeof metric !== 'string') {
 		throw new Error(`buildBucketQuery: metric must be a string (got ${typeof metric})`)
 	}
@@ -378,7 +398,9 @@ function normaliseMetric(metric) {
  * @return {string} The GraphQL literal representation.
  */
 function stringifyFilter(value) {
-	if (value === null || value === undefined) { return 'null' }
+	if (value === null || value === undefined) {
+		return 'null'
+	}
 	if (Array.isArray(value)) {
 		return '[' + value.map(stringifyFilter).join(', ') + ']'
 	}

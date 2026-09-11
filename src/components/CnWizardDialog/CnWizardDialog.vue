@@ -341,7 +341,9 @@ export default {
 		 * @return {number} Step index in the range [0, steps.length).
 		 */
 		resolveInitialIndex() {
-			if (!this.initialStep) { return 0 }
+			if (!this.initialStep) {
+				return 0
+			}
 			const idx = this.steps.findIndex((s) => s.id === this.initialStep)
 			return idx >= 0 ? idx : 0
 		},
@@ -368,10 +370,14 @@ export default {
 		 */
 		async runValidation() {
 			this.validationError = ''
-			if (typeof this.validate !== 'function') { return true }
+			if (typeof this.validate !== 'function') {
+				return true
+			}
 			try {
 				const outcome = await this.validate(this.currentStep.id, this.stepData)
-				if (outcome === true) { return true }
+				if (outcome === true) {
+					return true
+				}
 				if (typeof outcome === 'string') {
 					this.validationError = outcome
 					return false
@@ -394,7 +400,9 @@ export default {
 				return this.submit()
 			}
 			const ok = await this.runValidation()
-			if (!ok) { return }
+			if (!ok) {
+				return
+			}
 			this.currentIndex += 1
 			/**
 			 * @event step-change Emitted on every step navigation
@@ -416,7 +424,9 @@ export default {
 		 * @return {void}
 		 */
 		back() {
-			if (this.isFirst) { return }
+			if (this.isFirst) {
+				return
+			}
 			this.validationError = ''
 			this.currentIndex -= 1
 			this.$emit('step-change', {
@@ -436,7 +446,9 @@ export default {
 		 */
 		jumpTo(stepId) {
 			const idx = this.steps.findIndex((s) => s.id === stepId)
-			if (idx < 0) { return }
+			if (idx < 0) {
+				return
+			}
 			this.validationError = ''
 			this.currentIndex = idx
 			this.$emit('step-change', {
@@ -456,7 +468,9 @@ export default {
 		 */
 		async submit() {
 			const ok = await this.runValidation()
-			if (!ok) { return }
+			if (!ok) {
+				return
+			}
 			this.loading = true
 			/**
 			 * @event submit Emitted when the user reaches the final

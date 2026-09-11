@@ -73,7 +73,9 @@ export function createRecencyTracker(appId = 'default') {
 		 * @return {void}
 		 */
 		recordUse(id) {
-			if (typeof id !== 'string' || id === '') { return }
+			if (typeof id !== 'string' || id === '') {
+				return
+			}
 			const counts = readUsageCounts(appId)
 			counts[id] = (counts[id] || 0) + 1
 

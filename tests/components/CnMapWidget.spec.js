@@ -129,8 +129,12 @@ jest.mock('leaflet', () => {
 		// over out-of-scope variables.
 		create: jest.fn((tag, className, parent) => {
 			const el = globalThis.document.createElement(tag)
-			if (className) { el.className = className }
-			if (parent) { parent.appendChild(el) }
+			if (className) {
+				el.className = className
+			}
+			if (parent) {
+				parent.appendChild(el)
+			}
 			return el
 		}),
 	}
@@ -167,8 +171,12 @@ const mountWidget = (propsData) => mount(CnMapWidget, {
 
 beforeEach(() => {
 	const L = require('leaflet').default
-	if (L && L.__instances) { L.__instances.length = 0 }
-	if (L && L.__lastMap) { L.__lastMap.current = null }
+	if (L && L.__instances) {
+		L.__instances.length = 0
+	}
+	if (L && L.__lastMap) {
+		L.__lastMap.current = null
+	}
 	jest.clearAllMocks()
 	global.fetch = undefined
 })

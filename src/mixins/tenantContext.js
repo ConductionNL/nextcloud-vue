@@ -29,7 +29,9 @@ let _fallbackContext = null
  * @return {object} Tenant context
  */
 function getFallbackContext() {
-	if (!_fallbackContext) { _fallbackContext = createTenantContext(null, null) }
+	if (!_fallbackContext) {
+		_fallbackContext = createTenantContext(null, null)
+	}
 	return _fallbackContext
 }
 

@@ -463,7 +463,9 @@ export default {
 		availablePropertyOptions(action, ruleIdx) {
 			const rules = this.getConditionalRules(action)
 			const currentRule = rules[ruleIdx]
-			if (!currentRule || !currentRule.rule.match) { return this.propertyOptions }
+			if (!currentRule || !currentRule.rule.match) {
+				return this.propertyOptions
+			}
 			const used = Object.keys(currentRule.rule.match)
 			return this.propertyOptions.filter((opt) => !used.includes(opt.id))
 		},
@@ -476,7 +478,9 @@ export default {
 		},
 
 		formatConditionValue(val) {
-			if (Array.isArray(val)) { return val.join(', ') }
+			if (Array.isArray(val)) {
+				return val.join(', ')
+			}
 			return String(val)
 		},
 
@@ -489,7 +493,9 @@ export default {
 
 		hasGroupPermission(groupId, action) {
 			const auth = this.schema.authorization || {}
-			if (!auth[action] || !Array.isArray(auth[action])) { return false }
+			if (!auth[action] || !Array.isArray(auth[action])) {
+				return false
+			}
 			return auth[action].includes(groupId)
 		},
 
@@ -525,7 +531,9 @@ export default {
 		 */
 		getConditionalRules(action) {
 			const auth = this.schema.authorization || {}
-			if (!auth[action] || !Array.isArray(auth[action])) { return [] }
+			if (!auth[action] || !Array.isArray(auth[action])) {
+				return []
+			}
 			const result = []
 			auth[action].forEach((entry, index) => {
 				if (entry && typeof entry === 'object') {
@@ -557,7 +565,9 @@ export default {
 
 		removeConditionalRule(action, originalIndex) {
 			const auth = this.schema.authorization
-			if (!auth || !auth[action]) { return }
+			if (!auth || !auth[action]) {
+				return
+			}
 			auth[action].splice(originalIndex, 1)
 			if (auth[action].length === 0) {
 				delete this.schema.authorization[action]
@@ -573,7 +583,9 @@ export default {
 
 		removeCondition(action, originalIndex, propKey) {
 			const rule = this.schema.authorization[action][originalIndex]
-			if (!rule.match) { return }
+			if (!rule.match) {
+				return
+			}
 			const updated = { ...rule.match }
 			delete updated[propKey]
 			rule.match = updated
@@ -629,7 +641,9 @@ export default {
 		confirmAddCondition(action, originalIndex) {
 			const property = this.newCondition.propertyOption && this.newCondition.propertyOption.id
 			const operator = this.newCondition.operatorOption && this.newCondition.operatorOption.id
-			if (!property || !operator) { return }
+			if (!property || !operator) {
+				return
+			}
 
 			let conditionValue
 			if (operator === '$exists') {
@@ -641,7 +655,9 @@ export default {
 				conditionValue = this.newCondition.valueOption && this.newCondition.valueOption.id
 			}
 
-			if (!conditionValue && conditionValue !== false) { return }
+			if (!conditionValue && conditionValue !== false) {
+				return
+			}
 
 			const rule = this.schema.authorization[action][originalIndex]
 			// Replace the entire match object so Vue 2's property-level dep on `rule.match`

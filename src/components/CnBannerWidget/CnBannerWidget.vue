@@ -183,7 +183,9 @@ export default {
 		 */
 		displayText() {
 			const text = this.resolvedText
-			if (this.conditionValue === null || !text.includes('{value}')) { return text }
+			if (this.conditionValue === null || !text.includes('{value}')) {
+				return text
+			}
 			return text.replaceAll('{value}', String(this.conditionValue))
 		},
 
@@ -194,8 +196,12 @@ export default {
 
 		/** Whether the banner renders: no condition = always; else the evaluated outcome. */
 		visible() {
-			if (this.resolvedText === '') { return false }
-			if (!this.resolvedVisibleWhen) { return true }
+			if (this.resolvedText === '') {
+				return false
+			}
+			if (!this.resolvedVisibleWhen) {
+				return true
+			}
 			return this.conditionMet === true
 		},
 
@@ -257,7 +263,9 @@ export default {
 		 * @return {void}
 		 */
 		onClick() {
-			if (!this.clickable) { return }
+			if (!this.clickable) {
+				return
+			}
 			const route = this.resolvedRoute
 			const location = typeof route === 'string' ? { name: route } : route
 			this.$router.push(location).catch(() => {})

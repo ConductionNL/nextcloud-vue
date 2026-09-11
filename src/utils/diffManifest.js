@@ -48,7 +48,9 @@ export function diffManifest(base, edited) {
  * @return {*} Minimal delta value, or `undefined` if unchanged.
  */
 function diffValue(base, edited, path) {
-	if (deepEqual(base, edited)) { return undefined }
+	if (deepEqual(base, edited)) {
+		return undefined
+	}
 	if (!isPlainObject(base) || !isPlainObject(edited)) {
 		return clone(edited)
 	}
@@ -68,14 +70,20 @@ function diffValue(base, edited, path) {
 			} else if (result.entries.length > 0) {
 				out[key] = result.entries
 			}
-			if (result.order) { orderMap[key] = result.order }
+			if (result.order) {
+				orderMap[key] = result.order
+			}
 		} else {
 			const childDelta = diffValue(baseChild, editedChild, childPath)
-			if (childDelta !== undefined) { out[key] = childDelta }
+			if (childDelta !== undefined) {
+				out[key] = childDelta
+			}
 		}
 	}
 
-	if (Object.keys(orderMap).length > 0) { out.__order = orderMap }
+	if (Object.keys(orderMap).length > 0) {
+		out.__order = orderMap
+	}
 	return Object.keys(out).length > 0 ? out : undefined
 }
 
@@ -142,24 +150,34 @@ function isPlainObject(value) {
 }
 
 function deepEqual(a, b) {
-	if (a === b) { return true }
+	if (a === b) {
+		return true
+	}
 	if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
 		return false
 	}
 	const aArr = Array.isArray(a)
 	const bArr = Array.isArray(b)
-	if (aArr !== bArr) { return false }
+	if (aArr !== bArr) {
+		return false
+	}
 	if (aArr) {
 		return a.length === b.length && a.every((v, i) => deepEqual(v, b[i]))
 	}
 	const aKeys = Object.keys(a)
 	const bKeys = Object.keys(b)
-	if (aKeys.length !== bKeys.length) { return false }
+	if (aKeys.length !== bKeys.length) {
+		return false
+	}
 	return aKeys.every((k) => Object.prototype.hasOwnProperty.call(b, k) && deepEqual(a[k], b[k]))
 }
 
 function clone(value) {
-	if (value === undefined) { return undefined }
-	if (value === null || typeof value !== 'object') { return value }
+	if (value === undefined) {
+		return undefined
+	}
+	if (value === null || typeof value !== 'object') {
+		return value
+	}
 	return JSON.parse(JSON.stringify(value))
 }

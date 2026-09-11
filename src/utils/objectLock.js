@@ -34,10 +34,14 @@ import { getCurrentUser } from '@nextcloud/auth'
  * @return {object|null} The lock payload, or null when there is none.
  */
 export function readLockPayload(object) {
-	if (!object || typeof object !== 'object') { return null }
+	if (!object || typeof object !== 'object') {
+		return null
+	}
 	const self = object['@self'] ?? object
 	const lock = self?.locked
-	if (!lock || typeof lock !== 'object') { return null }
+	if (!lock || typeof lock !== 'object') {
+		return null
+	}
 	return lock
 }
 
@@ -53,10 +57,14 @@ export function readLockPayload(object) {
  */
 export function isObjectLocked(object) {
 	const lock = readLockPayload(object)
-	if (!lock) { return false }
+	if (!lock) {
+		return false
+	}
 	if (lock.expiresAt) {
 		const expires = new Date(lock.expiresAt).getTime()
-		if (Number.isFinite(expires) && expires <= Date.now()) { return false }
+		if (Number.isFinite(expires) && expires <= Date.now()) {
+			return false
+		}
 	}
 	return true
 }
@@ -69,7 +77,9 @@ export function isObjectLocked(object) {
  */
 export function lockHolder(object) {
 	const lock = readLockPayload(object)
-	if (!lock) { return null }
+	if (!lock) {
+		return null
+	}
 	return lock.displayName ?? lock.user ?? null
 }
 
@@ -88,9 +98,13 @@ export function lockHolder(object) {
  */
 export function isLockedByCurrentUser(object) {
 	const lock = readLockPayload(object)
-	if (!lock) { return false }
+	if (!lock) {
+		return false
+	}
 	const uid = getCurrentUser()?.uid
-	if (!uid) { return false }
+	if (!uid) {
+		return false
+	}
 	return String(lock.user ?? '') === String(uid)
 }
 
@@ -113,7 +127,9 @@ export function resolveObjectLock(object) {
 	let expiresAt = null
 	if (lock.expiresAt) {
 		const parsed = new Date(lock.expiresAt)
-		if (Number.isFinite(parsed.getTime())) { expiresAt = parsed }
+		if (Number.isFinite(parsed.getTime())) {
+			expiresAt = parsed
+		}
 	}
 
 	const locked = !expiresAt || expiresAt.getTime() > Date.now()

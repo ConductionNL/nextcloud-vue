@@ -71,7 +71,9 @@ const dataSource = { register: 'openconnector', schema: 'source' }
 
 beforeEach(() => {
 	jest.clearAllMocks()
-	for (const k of Object.keys(mockBusHandlers)) { delete mockBusHandlers[k] }
+	for (const k of Object.keys(mockBusHandlers)) {
+		delete mockBusHandlers[k]
+	}
 })
 
 describe('CnStatsBlockWidget — page-level refresh', () => {

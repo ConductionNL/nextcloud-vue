@@ -160,7 +160,9 @@ export default {
 
 		hasActiveFilters() {
 			return Object.values(this.activeFilters).some((v) => {
-				if (Array.isArray(v)) { return v.length > 0 }
+				if (Array.isArray(v)) {
+					return v.length > 0
+				}
 				return v !== null && v !== undefined && v !== '' && v !== false
 			})
 		},
@@ -186,7 +188,9 @@ export default {
 
 		getSelectedOptions(filter) {
 			const value = this.getFilterValue(filter.key)
-			if (!value) { return [] }
+			if (!value) {
+				return []
+			}
 			const values = Array.isArray(value) ? value : [value]
 			const options = this.getFilterOptions(filter)
 			return values.map((v) => options.find((o) => o.id === v) || { id: v, label: String(v) })

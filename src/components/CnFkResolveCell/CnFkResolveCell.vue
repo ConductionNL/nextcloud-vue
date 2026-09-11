@@ -90,7 +90,9 @@ export default {
 		 * @return {string[]}
 		 */
 		ids() {
-			if (this.value === null || this.value === undefined || this.value === '') { return [] }
+			if (this.value === null || this.value === undefined || this.value === '') {
+				return []
+			}
 			const list = Array.isArray(this.value) ? this.value : [this.value]
 			return list
 				.filter((id) => id !== null && id !== undefined && id !== '')
@@ -124,16 +126,24 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async resolveAll() {
-			if (!this.register || !this.schema || this.ids.length === 0) { return }
+			if (!this.register || !this.schema || this.ids.length === 0) {
+				return
+			}
 			const store = this.getObjectStore()
-			if (!store) { return }
+			if (!store) {
+				return
+			}
 			const type = resolveObjectOpType(store, { register: this.register, schema: this.schema })
 			await Promise.all(this.ids.map(async (id) => {
-				if (this.labels[id]) { return }
+				if (this.labels[id]) {
+					return
+				}
 				const cached = store.objects && store.objects[type] && store.objects[type][id]
 				const obj = cached || await this.fetchOne(store, type, id)
 				const label = this.pickLabel(obj)
-				if (label) { this.labels[id] = label }
+				if (label) {
+					this.labels[id] = label
+				}
 			}))
 		},
 
@@ -163,14 +173,22 @@ export default {
 		 * @return {string} The label, or '' when none is usable.
 		 */
 		pickLabel(obj) {
-			if (!obj || typeof obj !== 'object') { return '' }
+			if (!obj || typeof obj !== 'object') {
+				return ''
+			}
 			const candidates = [obj[this.labelField], obj.title, obj['@self'] && obj['@self'].name]
 			for (const raw of candidates) {
-				if (typeof raw === 'string' && raw !== '') { return raw }
-				if (typeof raw === 'number') { return String(raw) }
+				if (typeof raw === 'string' && raw !== '') {
+					return raw
+				}
+				if (typeof raw === 'number') {
+					return String(raw)
+				}
 				if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
 					const first = Object.values(raw).find((v) => typeof v === 'string' && v !== '')
-					if (first) { return first }
+					if (first) {
+						return first
+					}
 				}
 			}
 			return ''

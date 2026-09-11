@@ -670,7 +670,9 @@ export default {
 		},
 
 		findSchemaBySlug(schemaSlug) {
-			if (!schemaSlug) { return undefined }
+			if (!schemaSlug) {
+				return undefined
+			}
 			return this.availableSchemas.find((schema) => (schema.slug && schema.slug.toLowerCase() === schemaSlug.toLowerCase())
 				|| schema.id === schemaSlug
 				|| schema.title === schemaSlug)
@@ -832,7 +834,9 @@ export default {
 		// --- Enum ---
 
 		addEnumValue(key, value) {
-			if (!value || !value.trim()) { return }
+			if (!value || !value.trim()) {
+				return
+			}
 
 			const trimmedValue = value.trim()
 
@@ -877,7 +881,9 @@ export default {
 		},
 
 		updateArrayDefault(key, value) {
-			if (!this.schema.properties[key]) { return }
+			if (!this.schema.properties[key]) {
+				return
+			}
 
 			if (!value || value.trim() === '') {
 				this.schema.properties[key].default = undefined
@@ -888,7 +894,9 @@ export default {
 		},
 
 		updateObjectDefault(key, value) {
-			if (!this.schema.properties[key]) { return }
+			if (!this.schema.properties[key]) {
+				return
+			}
 
 			if (!value || value.trim() === '' || value.trim() === '{}') {
 				this.schema.properties[key].default = undefined
@@ -906,7 +914,9 @@ export default {
 		// --- Schema references ---
 
 		ensureRefIsString(obj, key) {
-			if (!obj || !key) { return }
+			if (!obj || !key) {
+				return
+			}
 
 			if (obj[key] && typeof obj[key].$ref === 'object' && obj[key].$ref !== null) {
 				if (obj[key].$ref.id) {
@@ -927,20 +937,26 @@ export default {
 
 		isRefInvalid(key) {
 			const property = this.schema.properties[key]
-			if (!property || !property.$ref) { return false }
+			if (!property || !property.$ref) {
+				return false
+			}
 			const rawRef = typeof property.$ref === 'object' ? property.$ref.id : property.$ref
 			return typeof rawRef === 'number'
 		},
 
 		isArrayItemRefInvalid(key) {
 			const property = this.schema.properties[key]
-			if (!property || !property.items || !property.items.$ref) { return false }
+			if (!property || !property.items || !property.items.$ref) {
+				return false
+			}
 			const rawRef = typeof property.items.$ref === 'object' ? property.items.$ref.id : property.items.$ref
 			return typeof rawRef === 'number'
 		},
 
 		updateSchemaReference(key, value) {
-			if (!this.schema.properties[key]) { return }
+			if (!this.schema.properties[key]) {
+				return
+			}
 
 			const schemaRef = typeof value === 'object' && value?.id ? value.id : value
 			this.schema.properties[key].$ref = schemaRef
@@ -972,7 +988,9 @@ export default {
 		},
 
 		updateArrayItemSchemaReference(key, value) {
-			if (!this.schema.properties[key] || !this.schema.properties[key].items) { return }
+			if (!this.schema.properties[key] || !this.schema.properties[key].items) {
+				return
+			}
 
 			const schemaRef = typeof value === 'object' && value?.id ? value.id : value
 			this.schema.properties[key].items.$ref = schemaRef
@@ -1000,7 +1018,9 @@ export default {
 		// --- Register references ---
 
 		updateRegisterReference(key, value) {
-			if (!this.schema.properties[key]) { return }
+			if (!this.schema.properties[key]) {
+				return
+			}
 
 			if (!this.schema.properties[key].objectConfiguration) {
 				this.schema.properties[key].objectConfiguration = { handling: 'related-object' }
@@ -1019,7 +1039,9 @@ export default {
 		},
 
 		updateArrayItemRegisterReference(key, value) {
-			if (!this.schema.properties[key] || !this.schema.properties[key].items) { return }
+			if (!this.schema.properties[key] || !this.schema.properties[key].items) {
+				return
+			}
 
 			if (!this.schema.properties[key].items.objectConfiguration) {
 				this.schema.properties[key].items.objectConfiguration = { handling: 'related-object' }
@@ -1035,7 +1057,9 @@ export default {
 		},
 
 		getRegisterValue(key) {
-			if (!this.schema.properties[key]) { return null }
+			if (!this.schema.properties[key]) {
+				return null
+			}
 
 			const property = this.schema.properties[key]
 			if (property.objectConfiguration && property.objectConfiguration.register !== undefined) {
@@ -1048,7 +1072,9 @@ export default {
 		},
 
 		getArrayItemRegisterValue(key) {
-			if (!this.schema.properties[key] || !this.schema.properties[key].items) { return null }
+			if (!this.schema.properties[key] || !this.schema.properties[key].items) {
+				return null
+			}
 
 			const items = this.schema.properties[key].items
 			if (items.objectConfiguration && items.objectConfiguration.register !== undefined) {
@@ -1094,7 +1120,9 @@ export default {
 		 * @return {?object} The matching option, a raw-ref fallback, or null.
 		 */
 		matchSchemaRefOption(ref) {
-			if (ref === undefined || ref === null || ref === '') { return null }
+			if (ref === undefined || ref === null || ref === '') {
+				return null
+			}
 			const raw = typeof ref === 'object' && ref.id !== undefined ? ref.id : ref
 			const tail = typeof raw === 'string' && raw.includes('/') ? raw.substring(raw.lastIndexOf('/') + 1) : raw
 			return this.schemaRefOptions.find((o) => o.id === raw)
@@ -1132,7 +1160,9 @@ export default {
 		 * @return {?object} The matching option, a raw fallback, or null.
 		 */
 		matchRegisterOption(value) {
-			if (value === undefined || value === null || value === '') { return null }
+			if (value === undefined || value === null || value === '') {
+				return null
+			}
 			const raw = typeof value === 'object' && value.id !== undefined ? value.id : value
 			return this.registerSelectOptions.find((o) => String(o.id) === String(raw))
 				|| { id: raw, label: String(raw) }
@@ -1142,10 +1172,14 @@ export default {
 
 		getInversedByOptions(key) {
 			const property = this.schema.properties[key]
-			if (!property || !property.$ref) { return [] }
+			if (!property || !property.$ref) {
+				return []
+			}
 
 			const rawRef = typeof property.$ref === 'object' ? property.$ref.id : property.$ref
-			if (typeof rawRef === 'number') { return [] }
+			if (typeof rawRef === 'number') {
+				return []
+			}
 
 			const schemaRef = String(rawRef)
 			let schemaSlug = schemaRef
@@ -1154,7 +1188,9 @@ export default {
 			}
 
 			const referencedSchema = this.findSchemaBySlug(schemaSlug)
-			if (!referencedSchema || !referencedSchema.properties) { return [] }
+			if (!referencedSchema || !referencedSchema.properties) {
+				return []
+			}
 
 			return Object.keys(referencedSchema.properties).map((propKey) => ({
 				id: propKey,
@@ -1164,10 +1200,14 @@ export default {
 
 		getInversedByOptionsForArrayItems(key) {
 			const property = this.schema.properties[key]
-			if (!property || !property.items || !property.items.$ref) { return [] }
+			if (!property || !property.items || !property.items.$ref) {
+				return []
+			}
 
 			const rawRef = typeof property.items.$ref === 'object' ? property.items.$ref.id : property.items.$ref
-			if (typeof rawRef === 'number') { return [] }
+			if (typeof rawRef === 'number') {
+				return []
+			}
 
 			const schemaRef = String(rawRef)
 			let schemaSlug = schemaRef
@@ -1176,7 +1216,9 @@ export default {
 			}
 
 			const referencedSchema = this.findSchemaBySlug(schemaSlug)
-			if (!referencedSchema || !referencedSchema.properties) { return [] }
+			if (!referencedSchema || !referencedSchema.properties) {
+				return []
+			}
 
 			return Object.keys(referencedSchema.properties).map((propKey) => ({
 				id: propKey,
@@ -1216,12 +1258,16 @@ export default {
 		// --- Query params ---
 
 		getObjectQueryParams(key) {
-			if (!this.schema.properties[key] || !this.schema.properties[key].objectConfiguration) { return '' }
+			if (!this.schema.properties[key] || !this.schema.properties[key].objectConfiguration) {
+				return ''
+			}
 			return this.schema.properties[key].objectConfiguration.queryParams || ''
 		},
 
 		updateObjectQueryParams(key, value) {
-			if (!this.schema.properties[key]) { return }
+			if (!this.schema.properties[key]) {
+				return
+			}
 
 			if (!this.schema.properties[key].objectConfiguration) {
 				this.schema.properties[key].objectConfiguration = { handling: 'related-object' }
@@ -1235,12 +1281,16 @@ export default {
 		},
 
 		getArrayItemQueryParams(key) {
-			if (!this.schema.properties[key] || !this.schema.properties[key].items || !this.schema.properties[key].items.objectConfiguration) { return '' }
+			if (!this.schema.properties[key] || !this.schema.properties[key].items || !this.schema.properties[key].items.objectConfiguration) {
+				return ''
+			}
 			return this.schema.properties[key].items.objectConfiguration.queryParams || ''
 		},
 
 		updateArrayItemQueryParams(key, value) {
-			if (!this.schema.properties[key] || !this.schema.properties[key].items) { return }
+			if (!this.schema.properties[key] || !this.schema.properties[key].items) {
+				return
+			}
 
 			if (!this.schema.properties[key].items.objectConfiguration) {
 				this.schema.properties[key].items.objectConfiguration = { handling: 'related-object' }
@@ -1257,10 +1307,16 @@ export default {
 
 		getFilePropertySetting(key, setting) {
 			const property = this.schema.properties[key]
-			if (!property) { return false }
+			if (!property) {
+				return false
+			}
 
-			if (property.type === 'file') { return property[setting] || false }
-			if (property.type === 'array' && property.items) { return property.items[setting] || false }
+			if (property.type === 'file') {
+				return property[setting] || false
+			}
+			if (property.type === 'array' && property.items) {
+				return property.items[setting] || false
+			}
 			return false
 		},
 
@@ -1296,7 +1352,9 @@ export default {
 
 		getFilePropertyTags(key, setting) {
 			const property = this.schema.properties[key]
-			if (!property) { return [] }
+			if (!property) {
+				return []
+			}
 
 			let tags = []
 			if (property.type === 'file') {
@@ -1326,7 +1384,9 @@ export default {
 		// --- Table config ---
 
 		getPropertyTableSetting(key, setting) {
-			if (!this.schema.properties[key] || !this.schema.properties[key].table) { return false }
+			if (!this.schema.properties[key] || !this.schema.properties[key].table) {
+				return false
+			}
 			return this.schema.properties[key].table[setting] === true
 		},
 
@@ -1335,7 +1395,9 @@ export default {
 		},
 
 		updatePropertyTableSetting(key, setting, value) {
-			if (!this.schema.properties[key]) { return }
+			if (!this.schema.properties[key]) {
+				return
+			}
 
 			if (!this.schema.properties[key].table) {
 				this.schema.properties[key].table = {}
@@ -1354,7 +1416,9 @@ export default {
 
 		isTableConfigDefault(key) {
 			const table = this.schema.properties[key]?.table
-			if (!table) { return true }
+			if (!table) {
+				return true
+			}
 
 			const defaults = { default: false }
 			return Object.keys(table).every((setting) => table[setting] === defaults[setting])
@@ -1367,22 +1431,32 @@ export default {
 		// --- Property-level RBAC ---
 
 		hasPropertyAnyPermissions(key) {
-			if (!this.schema.properties[key] || !this.schema.properties[key].authorization) { return false }
+			if (!this.schema.properties[key] || !this.schema.properties[key].authorization) {
+				return false
+			}
 			const auth = this.schema.properties[key].authorization
 			return Object.keys(auth).some((action) => Array.isArray(auth[action]) && auth[action].length > 0)
 		},
 
 		getDisplayGroupName(groupId) {
-			if (groupId === 'public') { return t('nextcloud-vue', 'Public') }
-			if (groupId === 'authenticated') { return t('nextcloud-vue', 'Authenticated') }
-			if (groupId === 'admin') { return t('nextcloud-vue', 'Admin') }
+			if (groupId === 'public') {
+				return t('nextcloud-vue', 'Public')
+			}
+			if (groupId === 'authenticated') {
+				return t('nextcloud-vue', 'Authenticated')
+			}
+			if (groupId === 'admin') {
+				return t('nextcloud-vue', 'Admin')
+			}
 
 			const group = this.userGroups.find((g) => g.id === groupId)
 			return group ? (group.displayname || group.id) : groupId
 		},
 
 		getPropertyPermissionsList(key) {
-			if (!this.schema.properties[key] || !this.schema.properties[key].authorization) { return [] }
+			if (!this.schema.properties[key] || !this.schema.properties[key].authorization) {
+				return []
+			}
 
 			const auth = this.schema.properties[key].authorization
 			const permissionsList = []
@@ -1393,10 +1467,18 @@ export default {
 					auth[action].forEach((groupId) => {
 						if (!processedGroups.has(groupId)) {
 							const rights = []
-							if (auth.create && auth.create.includes(groupId)) { rights.push('C') }
-							if (auth.read && auth.read.includes(groupId)) { rights.push('R') }
-							if (auth.update && auth.update.includes(groupId)) { rights.push('U') }
-							if (auth.delete && auth.delete.includes(groupId)) { rights.push('D') }
+							if (auth.create && auth.create.includes(groupId)) {
+								rights.push('C')
+							}
+							if (auth.read && auth.read.includes(groupId)) {
+								rights.push('R')
+							}
+							if (auth.update && auth.update.includes(groupId)) {
+								rights.push('U')
+							}
+							if (auth.delete && auth.delete.includes(groupId)) {
+								rights.push('D')
+							}
 
 							permissionsList.push({
 								group: this.getDisplayGroupName(groupId),
@@ -1416,12 +1498,24 @@ export default {
 			})
 
 			return permissionsList.sort((a, b) => {
-				if (a.groupId === 'public') { return -1 }
-				if (b.groupId === 'public') { return 1 }
-				if (a.groupId === 'authenticated') { return -1 }
-				if (b.groupId === 'authenticated') { return 1 }
-				if (a.groupId === 'admin') { return 1 }
-				if (b.groupId === 'admin') { return -1 }
+				if (a.groupId === 'public') {
+					return -1
+				}
+				if (b.groupId === 'public') {
+					return 1
+				}
+				if (a.groupId === 'authenticated') {
+					return -1
+				}
+				if (b.groupId === 'authenticated') {
+					return 1
+				}
+				if (a.groupId === 'admin') {
+					return 1
+				}
+				if (b.groupId === 'admin') {
+					return -1
+				}
 				return a.group.localeCompare(b.group)
 			})
 		},
@@ -1445,14 +1539,20 @@ export default {
 		},
 
 		hasPropertyGroupPermission(key, groupId, action) {
-			if (!this.schema.properties[key] || !this.schema.properties[key].authorization) { return false }
+			if (!this.schema.properties[key] || !this.schema.properties[key].authorization) {
+				return false
+			}
 			const auth = this.schema.properties[key].authorization
-			if (!auth[action] || !Array.isArray(auth[action])) { return false }
+			if (!auth[action] || !Array.isArray(auth[action])) {
+				return false
+			}
 			return auth[action].includes(groupId)
 		},
 
 		updatePropertyGroupPermission(key, groupId, action, hasPermission) {
-			if (!this.schema.properties[key]) { return }
+			if (!this.schema.properties[key]) {
+				return
+			}
 
 			if (!this.schema.properties[key].authorization) {
 				this.schema.properties[key].authorization = {}
@@ -1481,7 +1581,9 @@ export default {
 		},
 
 		addPropertyGroupPermissions(key) {
-			if (!this.propertyNewPermissionGroup) { return }
+			if (!this.propertyNewPermissionGroup) {
+				return
+			}
 
 			const groupId = typeof this.propertyNewPermissionGroup === 'object'
 				? this.propertyNewPermissionGroup.id
@@ -1509,7 +1611,9 @@ export default {
 
 		removePropertyGroupPermissions(key, displayName) {
 			const permission = this.getPropertyPermissionsList(key).find((p) => p.group === displayName)
-			if (!permission || permission.groupId === 'admin') { return }
+			if (!permission || permission.groupId === 'admin') {
+				return
+			}
 
 			const groupId = permission.groupId
 

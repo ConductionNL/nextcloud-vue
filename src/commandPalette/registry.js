@@ -103,7 +103,9 @@ export function createCommandRegistry() {
 	 */
 	function unregister(id) {
 		const removed = commands.delete(id)
-		if (removed) { notify() }
+		if (removed) {
+			notify()
+		}
 		return removed
 	}
 
@@ -115,7 +117,9 @@ export function createCommandRegistry() {
 	 */
 	function list() {
 		return Array.from(commands.values()).sort((a, b) => {
-			if (a.order !== b.order) { return a.order - b.order }
+			if (a.order !== b.order) {
+				return a.order - b.order
+			}
 			return a.title.localeCompare(b.title)
 		})
 	}

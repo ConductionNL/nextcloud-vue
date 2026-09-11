@@ -149,7 +149,9 @@ export default {
 		 */
 		expandedMap() {
 			const out = {}
-			for (const id of this.expandedIds) { out[id] = true }
+			for (const id of this.expandedIds) {
+				out[id] = true
+			}
 			return out
 		},
 	},
@@ -160,7 +162,9 @@ export default {
 			const walk = (n) => {
 				ids.push(n[this.idKey])
 				const cs = n[this.childrenKey]
-				if (Array.isArray(cs)) { cs.forEach(walk) }
+				if (Array.isArray(cs)) {
+					cs.forEach(walk)
+				}
 			}
 			this.safeNodes.forEach(walk)
 			// Description goes ABOVE `@event`, not inline after it:
@@ -236,7 +240,9 @@ export default {
 			const walk = (n) => {
 				ids.push(n[this.idKey])
 				const cs = n[this.childrenKey]
-				if (Array.isArray(cs)) { cs.forEach(walk) }
+				if (Array.isArray(cs)) {
+					cs.forEach(walk)
+				}
 			}
 			this.safeNodes.forEach(walk)
 			// Description goes ABOVE `@event`, not inline after it:

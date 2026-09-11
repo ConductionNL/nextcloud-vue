@@ -341,7 +341,9 @@ describe('CnChartWidget — dataSource.aggregate (Wave 3)', () => {
 
 	it('client-side fallback sums sumField when metric is sum', async () => {
 		axios.get.mockImplementation((url) => {
-			if (url === GROUPED_URL) { return Promise.reject(new Error('404')) }
+			if (url === GROUPED_URL) {
+				return Promise.reject(new Error('404'))
+			}
 			return Promise.resolve({
 				data: {
 					results: [

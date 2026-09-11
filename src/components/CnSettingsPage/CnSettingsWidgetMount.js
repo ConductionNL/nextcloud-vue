@@ -66,7 +66,9 @@ export default {
 		// vnode returned by `render()` cannot be used here under Vue 3.
 		const proxy = this.$refs.inner
 		const inst = proxy && proxy.$
-		if (!inst || typeof inst.emit !== 'function') { return }
+		if (!inst || typeof inst.emit !== 'function') {
+			return
+		}
 		const originalEmit = inst.emit
 		const self = this
 		// Vue 3's public `$emit` getter returns `instance.emit` at call

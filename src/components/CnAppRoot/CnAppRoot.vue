@@ -864,10 +864,14 @@ export default {
 			 * @return {void}
 			 */
 			cnReplayWalkthrough: (tourId) => {
-				if (!this.walkthroughEnabled) { return }
+				if (!this.walkthroughEnabled) {
+					return
+				}
 				const wt = useWalkthrough(this.appId, this.manifest)
 				const id = tourId || (this.manifest.walkthrough.tours[0] && this.manifest.walkthrough.tours[0].id)
-				if (id) { wt.restart(id) }
+				if (id) {
+					wt.restart(id)
+				}
 			},
 
 			/**
@@ -1500,7 +1504,9 @@ export default {
 				: undefined),
 		})
 		watch(() => props.manifest, (m) => {
-			if (!manifestEditor.editing.value) { baseRef.value = m }
+			if (!manifestEditor.editing.value) {
+				baseRef.value = m
+			}
 		})
 		// One shared install/enable action for the or-missing guard and the
 		// soft-dependency banners (REQ-DIA-3 / REQ-DIA-6). `depInstalling` /
@@ -1674,7 +1680,9 @@ export default {
 						const isObject = entry !== null && typeof entry === 'object'
 						const id = isObject ? entry.id : entry
 						const required = isObject ? entry.required !== false : true
-						if (required || typeof id !== 'string' || id === '') { continue }
+						if (required || typeof id !== 'string' || id === '') {
+							continue
+						}
 						if (window.localStorage.getItem('cn-soft-dep-dismissed:' + this.appId + ':' + id)) {
 							out.push(id)
 						}
@@ -1848,7 +1856,9 @@ export default {
 			const runtimeUser = runtime && typeof runtime.user === 'object' && runtime.user !== null
 				? runtime.user
 				: null
-			if (runtimeUser && runtimeUser.isOwner === true) { return true }
+			if (runtimeUser && runtimeUser.isOwner === true) {
+				return true
+			}
 			return this.ownerGroupsIntersect
 		},
 
@@ -1889,7 +1899,9 @@ export default {
 		 * @return {Array<string>}
 		 */
 		ownerGidsFromPermissions() {
-			if (!Array.isArray(this.permissions)) { return [] }
+			if (!Array.isArray(this.permissions)) {
+				return []
+			}
 			return this.permissions
 				.filter((p) => typeof p === 'string' && p.length > 0)
 				.map((p) => (p.startsWith('group:') ? p.slice('group:'.length) : p))
@@ -1904,7 +1916,9 @@ export default {
 		ownerGroupsIntersect() {
 			const groups = this.currentUserGroups
 			const owners = this.ownerGidsFromPermissions
-			if (groups.length === 0 || owners.length === 0) { return false }
+			if (groups.length === 0 || owners.length === 0) {
+				return false
+			}
 			return groups.some((g) => owners.includes(g))
 		},
 
@@ -1970,11 +1984,19 @@ export default {
 		 * @return {boolean}
 		 */
 		shouldAutoMountObjectSidebar() {
-			if (this.$slots && this.$slots.sidebar) { return false }
-			if (this.$slots && this.$slots.sidebar) { return false }
-			if (this.ancestorObjectSidebarState) { return false }
+			if (this.$slots && this.$slots.sidebar) {
+				return false
+			}
+			if (this.$slots && this.$slots.sidebar) {
+				return false
+			}
+			if (this.ancestorObjectSidebarState) {
+				return false
+			}
 			const holder = this.localObjectSidebarState
-			if (!holder || !holder.active) { return false }
+			if (!holder || !holder.active) {
+				return false
+			}
 			const hasObjectCoordinates = !!(holder.objectType && holder.objectId)
 			return hasObjectCoordinates
 		},
@@ -2104,7 +2126,9 @@ export default {
 				.map((entry) => {
 					const isObject = entry !== null && typeof entry === 'object'
 					const id = isObject ? entry.id : entry
-					if (typeof id !== 'string' || id === '') { return null }
+					if (typeof id !== 'string' || id === '') {
+						return null
+					}
 					const required = isObject ? entry.required !== false : true
 					const name = (isObject && entry.name) || id
 					return { id, required, name, status: useAppStatus(id) }
@@ -2130,7 +2154,9 @@ export default {
 			return this.dependencyStatuses
 				.filter(({ id, status }) => {
 					const server = this.serverAppStatuses[id]
-					if (server !== undefined) { return !server.installed || !server.enabled }
+					if (server !== undefined) {
+						return !server.installed || !server.enabled
+					}
 					return !status.installed.value || !status.enabled.value
 				})
 				.map(({ id, required, name }) => {
@@ -2324,9 +2350,15 @@ export default {
 				.sort((a, b) => {
 					const aHas = typeof a.order === 'number'
 					const bHas = typeof b.order === 'number'
-					if (aHas && !bHas) { return -1 }
-					if (!aHas && bHas) { return 1 }
-					if (!aHas && !bHas) { return 0 }
+					if (aHas && !bHas) {
+						return -1
+					}
+					if (!aHas && bHas) {
+						return 1
+					}
+					if (!aHas && !bHas) {
+						return 0
+					}
 					return a.order - b.order
 				})
 		},
@@ -2376,7 +2408,9 @@ export default {
 			try {
 				const p = new URLSearchParams(window.location.search)
 				const tourId = p.get('cn_resume_tour')
-				if (!tourId) { return null }
+				if (!tourId) {
+					return null
+				}
 				return { tourId, stepId: p.get('cn_resume_step') || '' }
 			} catch (e) {
 				return null
@@ -2384,12 +2418,18 @@ export default {
 		},
 
 		phase() {
-			if (this.isLoading) { return 'loading' }
+			if (this.isLoading) {
+				return 'loading'
+			}
 			// Only unresolved HARD dependencies block the shell (REQ-DIA-5);
 			// unresolved SOFT dependencies surface as a non-blocking in-shell
 			// banner and let the app advance to setup/shell.
-			if (this.unresolvedHardDependencies.length > 0) { return 'dependency-missing' }
-			if (this.setupGating) { return 'setup' }
+			if (this.unresolvedHardDependencies.length > 0) {
+				return 'dependency-missing'
+			}
+			if (this.setupGating) {
+				return 'setup'
+			}
 			return 'shell'
 		},
 
@@ -2553,8 +2593,12 @@ export default {
 		 */
 		resolvedFeatureRequestRepo() {
 			const explicit = this.manifest?.nav?.featureRequestRepo
-			if (typeof explicit === 'string' && explicit.length > 0) { return explicit }
-			if (!this.appId) { return '' }
+			if (typeof explicit === 'string' && explicit.length > 0) {
+				return explicit
+			}
+			if (!this.appId) {
+				return ''
+			}
 			return `ConductionNL/${this.appId}`
 		},
 
@@ -2620,7 +2664,9 @@ export default {
 		 * @return {object|null}
 		 */
 		activeModalComponent() {
-			if (!this.activeModalKey) { return null }
+			if (!this.activeModalKey) {
+				return null
+			}
 			const entry = (this.registry || {})[this.activeModalKey]
 			return (entry && entry.component) ? entry.component : null
 		},
@@ -2750,8 +2796,12 @@ export default {
 		 * @return {boolean} True when the entry may render.
 		 */
 		passesIntegrationPermission(item) {
-			if (!item.permission) { return true }
-			if (!this.permissions || this.permissions.length === 0) { return true }
+			if (!item.permission) {
+				return true
+			}
+			if (!this.permissions || this.permissions.length === 0) {
+				return true
+			}
 			return this.permissions.includes(item.permission)
 		},
 
@@ -2766,8 +2816,12 @@ export default {
 		 */
 		passesIntegrationVisibleIf(item) {
 			const condition = item.visibleIf
-			if (!condition || typeof condition !== 'object') { return true }
-			if (condition.appInstalled && !isAppInstalled(condition.appInstalled)) { return false }
+			if (!condition || typeof condition !== 'object') {
+				return true
+			}
+			if (condition.appInstalled && !isAppInstalled(condition.appInstalled)) {
+				return false
+			}
 			const runtime = (this.manifest && this.manifest.runtime) || null
 			return passesContextPredicates(condition, runtime)
 		},
@@ -2787,8 +2841,12 @@ export default {
 		 * @return {Promise<void>} Resolves when the refresh settles. Never rejects.
 		 */
 		async refreshDataSources() {
-			if (typeof this.dataSourcesLoader !== 'function') { return }
-			if (this._dataSourcesInFlight) { return this._dataSourcesInFlight }
+			if (typeof this.dataSourcesLoader !== 'function') {
+				return
+			}
+			if (this._dataSourcesInFlight) {
+				return this._dataSourcesInFlight
+			}
 
 			this.dataSourcesState.loading = true
 			this.dataSourcesState.error = null
@@ -2841,23 +2899,33 @@ export default {
 		 */
 		resolvePageSidebarComponent() {
 			const routeName = this.$route?.name
-			if (!routeName) { return null }
+			if (!routeName) {
+				return null
+			}
 
 			const page = (this.manifest?.pages ?? []).find((p) => p?.id === routeName)
-			if (!page || typeof page.sidebarComponent !== 'string' || page.sidebarComponent === '') { return null }
+			if (!page || typeof page.sidebarComponent !== 'string' || page.sidebarComponent === '') {
+				return null
+			}
 
 			// `sidebar.show: false` suppresses the rail entirely, so a page
 			// declaring both is contradictory; visibility wins, matching what
 			// CnPageRenderer already warns about.
-			if (page?.sidebar?.show === false) { return null }
+			if (page?.sidebar?.show === false) {
+				return null
+			}
 
 			return this.resolveAdminSettingsComponent(page.sidebarComponent)
 		},
 
 		resolveAdminSettingsComponent(key) {
-			if (typeof key !== 'string' || key === '') { return null }
+			if (typeof key !== 'string' || key === '') {
+				return null
+			}
 			const reg = (this.registry && this.registry[key]) || null
-			if (reg && reg.component) { return reg.component }
+			if (reg && reg.component) {
+				return reg.component
+			}
 			const legacy = this.customComponents && this.customComponents[key]
 			return legacy || null
 		},
@@ -2893,7 +2961,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async installDependency(id) {
-			if (!id) { return }
+			if (!id) {
+				return
+			}
 			this.installingDepId = id
 			this.erroredDepId = null
 			try {
@@ -2974,7 +3044,9 @@ export default {
 			const editor = this.manifestEditor
 			const dirtyRef = editor && editor.dirty
 			const dirty = dirtyRef && typeof dirtyRef === 'object' && 'value' in dirtyRef ? dirtyRef.value : dirtyRef
-			if (!dirty) { return undefined }
+			if (!dirty) {
+				return undefined
+			}
 			// The standard cross-browser incantation to trigger the prompt.
 			event.preventDefault()
 			event.returnValue = ''
@@ -3124,12 +3196,16 @@ export default {
 		 */
 		restartWalkthroughFromSettings() {
 			this.userSettingsOpen = false
-			if (!this.walkthroughEnabled) { return }
+			if (!this.walkthroughEnabled) {
+				return
+			}
 			// 50ms lets the dialog's close animation settle so the tour
 			// re-appears cleanly over the app shell, not the closing modal.
 			setTimeout(() => {
 				const id = this.manifest.walkthrough.tours[0] && this.manifest.walkthrough.tours[0].id
-				if (id) { useWalkthrough(this.appId, this.manifest).restart(id) }
+				if (id) {
+					useWalkthrough(this.appId, this.manifest).restart(id)
+				}
 			}, 50)
 		},
 
@@ -3144,7 +3220,9 @@ export default {
 		_validateRegistry() {
 			const registry = this.registry || {}
 			for (const [key, entry] of Object.entries(registry)) {
-				if (!entry || typeof entry !== 'object') { continue }
+				if (!entry || typeof entry !== 'object') {
+					continue
+				}
 
 				const kind = entry.kind
 
@@ -3170,7 +3248,9 @@ export default {
 		 * repeat warnings on re-render.
 		 */
 		_warnCustomComponentsDeprecation() {
-			if (this._customComponentsWarnedOnce) { return }
+			if (this._customComponentsWarnedOnce) {
+				return
+			}
 
 			const hasCustomComponents = this.customComponents
 				&& typeof this.customComponents === 'object'
@@ -3247,9 +3327,13 @@ export default {
 				const targets = []
 				for (const page of pages) {
 					for (const widget of page?.widgets ?? []) {
-						if (widget?.widgetKey !== 'nav-card-grid') { continue }
+						if (widget?.widgetKey !== 'nav-card-grid') {
+							continue
+						}
 						for (const entry of widget?.props?.entries ?? []) {
-							if (entry?.count !== 'auto' || !entry?.route) { continue }
+							if (entry?.count !== 'auto' || !entry?.route) {
+								continue
+							}
 							const target = pages.find((p) => p.id === entry.route)
 							if (target?.type === 'index' && target?.config?.register && target?.config?.schema) {
 								targets.push({ register: target.config.register, schema: target.config.schema })
@@ -3261,14 +3345,18 @@ export default {
 			}
 
 			const pairs = [...collectAutoTargets(menu), ...collectNavCardGridTargets()]
-			if (pairs.length === 0) { return }
+			if (pairs.length === 0) {
+				return
+			}
 
 			// De-duplicate by (register, schema).
 			const seen = new Set()
 			const uniquePairs = []
 			for (const pair of pairs) {
 				const key = `${pair.register}|${pair.schema}`
-				if (seen.has(key)) { continue }
+				if (seen.has(key)) {
+					continue
+				}
 				seen.add(key)
 				uniquePairs.push(pair)
 			}
@@ -3305,7 +3393,9 @@ export default {
 			}
 			for (const result of results) {
 				const { register, schema, count } = result ?? {}
-				if (typeof count !== 'number' || count < 0) { continue }
+				if (typeof count !== 'number' || count < 0) {
+					continue
+				}
 				if (!this.cnMenuCounts[register]) {
 					this.cnMenuCounts[register] = {}
 				}
@@ -3331,7 +3421,9 @@ export default {
 				// silently skip; CnAppNav renders no badge.
 				return
 			}
-			if (!store) { return }
+			if (!store) {
+				return
+			}
 
 			for (const { register, schema } of uniquePairs) {
 				const slug = `${register}-${schema}`

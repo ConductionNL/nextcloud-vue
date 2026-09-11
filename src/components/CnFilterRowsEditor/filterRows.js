@@ -36,7 +36,9 @@ export const FILTER_OPERATORS = Object.freeze([
 export function rowsToFilter(rows) {
 	const out = {}
 	for (const r of rows || []) {
-		if (!r || typeof r.key !== 'string' || r.key.trim() === '') { continue }
+		if (!r || typeof r.key !== 'string' || r.key.trim() === '') {
+			continue
+		}
 		const key = r.key.trim()
 		const op = r.op || 'eq'
 		if (op === 'eq') {

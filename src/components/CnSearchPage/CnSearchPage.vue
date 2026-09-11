@@ -203,7 +203,9 @@ export default {
 		 */
 		hasActiveFacets() {
 			for (const k of Object.keys(this.activeFacets || {})) {
-				if (Array.isArray(this.activeFacets[k]) && this.activeFacets[k].length > 0) { return true }
+				if (Array.isArray(this.activeFacets[k]) && this.activeFacets[k].length > 0) {
+					return true
+				}
 			}
 			return false
 		},
@@ -242,7 +244,9 @@ export default {
 			} else {
 				const cur = Array.isArray(next[key]) ? [...next[key]] : []
 				const idx = cur.indexOf(value)
-				if (checked && idx < 0) { cur.push(value) } else if (!checked && idx >= 0) { cur.splice(idx, 1) }
+				if (checked && idx < 0) { cur.push(value) } else if (!checked && idx >= 0) {
+					cur.splice(idx, 1)
+				}
 				next[key] = cur
 			}
 			this.emitFacetsChange(next)

@@ -244,7 +244,9 @@ export default {
 
 	computed: {
 		computedTooltip() {
-			if (this.titleTooltip) { return this.titleTooltip }
+			if (this.titleTooltip) {
+				return this.titleTooltip
+			}
 			return this.isTitleEllipsized ? this.title : ''
 		},
 

@@ -127,9 +127,13 @@ function resolveCalendarPeriod(period, now) {
  * @return {{ from: string, to: string } | null} ISO-8601 UTC window or null.
  */
 export function resolvePresetWindow(presetId, presets, now = new Date()) {
-	if (!presetId || presetId === 'custom') { return null }
+	if (!presetId || presetId === 'custom') {
+		return null
+	}
 	const preset = (presets || []).find((p) => p.id === presetId)
-	if (!preset) { return null }
+	if (!preset) {
+		return null
+	}
 	// Calendar-aligned presets ("Current month") anchor to the start of the
 	// calendar unit, NOT to `now − N days`. Checked first so a preset that
 	// carries both `period` and a legacy `days` hint resolves as a period.
@@ -144,7 +148,9 @@ export function resolvePresetWindow(presetId, presets, now = new Date()) {
 		const start = new Date(now.getTime() - preset.hours * 3600000)
 		return { from: start.toISOString(), to: end.toISOString() }
 	}
-	if (typeof preset.days !== 'number') { return null }
+	if (typeof preset.days !== 'number') {
+		return null
+	}
 	// Day-granularity presets are calendar-aligned: midnight UTC start of
 	// the (days-1)-th day back through end-of-day UTC today. `today`
 	// (days=1) resolves to "00:00 → 23:59 of today".
@@ -369,7 +375,9 @@ export default {
 		 *   The selected option (NcSelect emits the full option object).
 		 */
 		onPresetInput(option) {
-			if (!option) { return }
+			if (!option) {
+				return
+			}
 			const win = resolvePresetWindow(option.id, this.presets)
 			if (win) {
 				/**

@@ -125,7 +125,9 @@ export default {
 		 * @return {object|null} The bound record, or null.
 		 */
 		record() {
-			if (this.objectData) { return this.objectData }
+			if (this.objectData) {
+				return this.objectData
+			}
 			const ctx = resolveObjectTokenContext(this.cnObjectContextInjected, this.cnDetailObjectContextInjected)
 			return ctx?.object || null
 		},
@@ -137,9 +139,13 @@ export default {
 		 */
 		targetDate() {
 			const field = this.content?.field
-			if (!this.record || !field) { return null }
+			if (!this.record || !field) {
+				return null
+			}
 			const raw = getByPath(this.record, field)
-			if (raw === null || raw === undefined || raw === '') { return null }
+			if (raw === null || raw === undefined || raw === '') {
+				return null
+			}
 			const parsed = new Date(raw)
 			return Number.isNaN(parsed.getTime()) ? null : parsed
 		},
@@ -153,7 +159,9 @@ export default {
 		 * @return {number|null} Days remaining, or null.
 		 */
 		daysRemaining() {
-			if (!this.targetDate) { return null }
+			if (!this.targetDate) {
+				return null
+			}
 			const startOfDay = (d) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())
 			return Math.round((startOfDay(this.targetDate) - startOfDay(new Date())) / MS_PER_DAY)
 		},
@@ -170,15 +178,21 @@ export default {
 		 */
 		headline() {
 			const days = this.daysRemaining
-			if (days === null) { return '—' }
+			if (days === null) {
+				return '—'
+			}
 			if (days < 0) {
 				const overdue = Math.abs(days)
 				return overdue === 1
 					? t('nextcloud-vue', '1 day overdue')
 					: t('nextcloud-vue', '{count} days overdue', { count: overdue })
 			}
-			if (days === 0) { return t('nextcloud-vue', 'Due today') }
-			if (days === 1) { return t('nextcloud-vue', '1 day left') }
+			if (days === 0) {
+				return t('nextcloud-vue', 'Due today')
+			}
+			if (days === 1) {
+				return t('nextcloud-vue', '1 day left')
+			}
 			return t('nextcloud-vue', '{count} days left', { count: days })
 		},
 
@@ -189,7 +203,9 @@ export default {
 		 * @return {string} The formatted date, or ''.
 		 */
 		subLabel() {
-			if (!this.targetDate || this.content?.showDate === false) { return '' }
+			if (!this.targetDate || this.content?.showDate === false) {
+				return ''
+			}
 			return this.targetDate.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
 		},
 
@@ -200,11 +216,19 @@ export default {
 		 */
 		variant() {
 			const days = this.daysRemaining
-			if (days === null) { return 'default' }
-			if (days < 0) { return 'error' }
+			if (days === null) {
+				return 'default'
+			}
+			if (days < 0) {
+				return 'error'
+			}
 			const thresholds = this.content?.thresholds || {}
-			if (Number.isFinite(thresholds.danger) && days <= thresholds.danger) { return 'error' }
-			if (Number.isFinite(thresholds.warn) && days <= thresholds.warn) { return 'warning' }
+			if (Number.isFinite(thresholds.danger) && days <= thresholds.danger) {
+				return 'error'
+			}
+			if (Number.isFinite(thresholds.warn) && days <= thresholds.warn) {
+				return 'warning'
+			}
 			return 'default'
 		},
 

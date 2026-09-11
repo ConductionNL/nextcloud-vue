@@ -217,7 +217,9 @@ export default {
 		 */
 		onRowClick(event) {
 			if (this.selectable) {
-				if (this.wasDrag(event)) { return }
+				if (this.wasDrag(event)) {
+					return
+				}
 				/**
 				 * @event select Emitted when a selectable row toggles selection (body or checkbox click).
 				 * @type {object} The row's object.

@@ -29,10 +29,14 @@ const _cache = new Map()
  * @return {Promise<string[]>} The top-level field names (empty when unresolved).
  */
 export async function fetchSchemaProperties(register, schema, options = {}) {
-	if (!register || !schema) { return [] }
+	if (!register || !schema) {
+		return []
+	}
 	const { includeId = false } = options
 	const key = `${register}/${schema}/${includeId ? 'id' : 'noid'}`
-	if (_cache.has(key)) { return _cache.get(key) }
+	if (_cache.has(key)) {
+		return _cache.get(key)
+	}
 	try {
 		const [{ default: axios }, { generateUrl }] = await Promise.all([
 			import('@nextcloud/axios'),

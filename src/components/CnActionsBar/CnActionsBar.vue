@@ -737,7 +737,9 @@ export default {
 		},
 
 		countText() {
-			if (!this.pagination) { return '' }
+			if (!this.pagination) {
+				return ''
+			}
 			return t('nextcloud-vue', 'Showing {count} of {total}', { count: this.objectCount, total: this.pagination.total })
 		},
 
@@ -755,7 +757,9 @@ export default {
 				map: { label: this.mapLabel || t('nextcloud-vue', 'Map'), icon: this.mapIcon, fallback: MapMarkerOutline },
 			}
 			const modes = [...this.availableViewModes]
-			if (this.showMap && !modes.includes('map')) { modes.push('map') }
+			if (this.showMap && !modes.includes('map')) {
+				modes.push('map')
+			}
 			return modes
 				.filter((mode) => defs[mode])
 				.map((mode) => ({ mode, ...defs[mode] }))
@@ -787,7 +791,9 @@ export default {
 		 */
 		actionItemsCount() {
 			const slot = this.$slots['action-items']
-			if (!slot) { return 0 }
+			if (!slot) {
+				return 0
+			}
 			const vnodes = slot() || []
 			return vnodes.filter((n) => n && (n.tag !== undefined || n.componentOptions !== undefined)).length
 		},
@@ -799,8 +805,12 @@ export default {
 		 * inline. Pre-separator items: 1 (Refresh) + actionItemsCount.
 		 */
 		showActionsSeparator() {
-			if (!this.hasMassActions) { return false }
-			if (!this.$slots['action-items']) { return false }
+			if (!this.hasMassActions) {
+				return false
+			}
+			if (!this.$slots['action-items']) {
+				return false
+			}
 			const preSeparatorOverflow = 1 + this.actionItemsCount - this.inlineActionCount
 			return preSeparatorOverflow > 0
 		},
@@ -847,8 +857,12 @@ export default {
 		 *   `CnIcon` as `:name`; `false` for CSS-class icons or empty.
 		 */
 		isMdiIconName(name) {
-			if (!name || typeof name !== 'string') { return false }
-			if (name.startsWith('icon-')) { return false }
+			if (!name || typeof name !== 'string') {
+				return false
+			}
+			if (name.startsWith('icon-')) {
+				return false
+			}
 			return true
 		},
 

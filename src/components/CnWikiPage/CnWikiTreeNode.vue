@@ -109,8 +109,12 @@ export default {
 		 * @return {string}
 		 */
 		childKey(child) {
-			if (!child) { return '' }
-			if (typeof child.id === 'string' || typeof child.id === 'number') { return String(child.id) }
+			if (!child) {
+				return ''
+			}
+			if (typeof child.id === 'string' || typeof child.id === 'number') {
+				return String(child.id)
+			}
 			const title = child[this.titleField]
 			return typeof title === 'string' ? title : JSON.stringify(child)
 		},

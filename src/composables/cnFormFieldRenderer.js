@@ -342,7 +342,9 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 	}
 
 	// Should be unreachable given the KNOWN_TYPES check above.
-	if (!result) { return null }
+	if (!result) {
+		return null
+	}
 
 	// manifest-form-logic (REQ-MFL-11): NcInputField-family kinds get the
 	// NC-standard error props. `string-textarea` only qualifies when

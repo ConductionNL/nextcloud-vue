@@ -465,7 +465,9 @@ export default {
 		 */
 		workspaceCtx() {
 			const c = this.cnWorkspaceContext
-			if (!c) { return null }
+			if (!c) {
+				return null
+			}
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
 
@@ -580,12 +582,16 @@ export default {
 			if (filter && typeof filter === 'object') {
 				for (const [k, v] of Object.entries(filter)) {
 					if (Array.isArray(v)) {
-						if (v.length > 0) { params[k] = v }
+						if (v.length > 0) {
+							params[k] = v
+						}
 					} else if (v && typeof v === 'object') {
 						for (const [op, ov] of Object.entries(v)) {
 							if (op === 'in' && Array.isArray(ov)) {
 								// OR's IN form is the bare repeated field param.
-								if (ov.length > 0) { params[k] = ov }
+								if (ov.length > 0) {
+									params[k] = ov
+								}
 							} else {
 								params[`${k}[${op}]`] = ov
 							}
@@ -616,7 +622,9 @@ export default {
 			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowClass, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {
-				if (v !== undefined) { inner[k] = v }
+				if (v !== undefined) {
+					inner[k] = v
+				}
 			}
 			// `rowClass` is consumed here (function or declarative rules[]) and
 			// forwarded to CnDataTable as a compiled `(row) => class` function.
@@ -664,7 +672,9 @@ export default {
 			return (row) => {
 				const classes = []
 				for (const rule of rules) {
-					if (!rule || !rule.class) { continue }
+					if (!rule || !rule.class) {
+						continue
+					}
 					const when = rule.when || {}
 					const actual = readVisibleWhenPath(row, when.field)
 					if (compareVisibleWhen(actual, when.op || 'eq', when.value)) {
@@ -734,7 +744,9 @@ export default {
 		forwardedScopedSlots() {
 			const out = {}
 			for (const name of Object.keys(this.$slots || {})) {
-				if (name === 'row-actions' && this.rowScopedActions.length > 0) { continue }
+				if (name === 'row-actions' && this.rowScopedActions.length > 0) {
+					continue
+				}
 				out[name] = true
 			}
 			return out
@@ -888,7 +900,9 @@ export default {
 				if (store && this.source) {
 					const type = resolveObjectOpType(store, this.source)
 					const err = store.errors && store.errors[type]
-					if (err && err.message) { return err.message }
+					if (err && err.message) {
+						return err.message
+					}
 				}
 			} catch (e) {
 				// fall through to the generic message

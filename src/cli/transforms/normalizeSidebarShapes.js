@@ -61,7 +61,9 @@ function normalizeSidebarShapes(page) {
 	const processTabs = (tabs) => {
 		const residual = []
 		for (const tab of Array.isArray(tabs) ? tabs : []) {
-			if (!tab || typeof tab !== 'object') { continue }
+			if (!tab || typeof tab !== 'object') {
+				continue
+			}
 			const tabWidgets = Array.isArray(tab.widgets) ? tab.widgets : []
 			const componentOnly = tabWidgets.length === 0
 				&& typeof tab.component === 'string' && tab.component.length > 0
@@ -77,7 +79,9 @@ function normalizeSidebarShapes(page) {
 			}
 			for (let i = 0; i < tabWidgets.length; i++) {
 				const w = tabWidgets[i]
-				if (!w || typeof w !== 'object') { continue }
+				if (!w || typeof w !== 'object') {
+					continue
+				}
 				const { type, widgetKey, dataSource, ...rest } = w
 				const resolveEntries = Object.entries(rest).filter(([k]) => k.startsWith('@resolve:'))
 				const propEntries = Object.entries(rest).filter(([k]) => !k.startsWith('@resolve:'))
@@ -90,9 +94,15 @@ function normalizeSidebarShapes(page) {
 					gridWidth: 1,
 					gridHeight: 1,
 				}
-				if (propEntries.length > 0) { entry.props = Object.fromEntries(propEntries) }
-				if (dataSource !== undefined) { entry.dataSource = dataSource }
-				for (const [k, v] of resolveEntries) { entry[k] = v }
+				if (propEntries.length > 0) {
+					entry.props = Object.fromEntries(propEntries)
+				}
+				if (dataSource !== undefined) {
+					entry.dataSource = dataSource
+				}
+				for (const [k, v] of resolveEntries) {
+					entry[k] = v
+				}
 				lifted.push(entry)
 			}
 			rowOffset += tabWidgets.length

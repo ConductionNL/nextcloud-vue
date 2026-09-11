@@ -43,7 +43,9 @@ function flattenSettingsSectionWidgets(page) {
 	let rowOffset = 0
 
 	for (const section of sections) {
-		if (!section) { continue }
+		if (!section) {
+			continue
+		}
 
 		const sectionWidgets = Array.isArray(section.widgets) ? section.widgets : []
 		const hasFields = Array.isArray(section.fields)
@@ -61,7 +63,9 @@ function flattenSettingsSectionWidgets(page) {
 
 		for (let i = 0; i < sectionWidgets.length; i++) {
 			const w = sectionWidgets[i]
-			if (!w) { continue }
+			if (!w) {
+				continue
+			}
 
 			const { type, dataSource, ...rest } = w
 			const resolveEntries = Object.entries(rest).filter(([k]) => k.startsWith('@resolve:'))

@@ -24,7 +24,9 @@ export const DEFAULT_POLL_INTERVAL_OBJECT = 60000
  * @return {boolean}
  */
 function isVisible() {
-	if (typeof document === 'undefined') { return true }
+	if (typeof document === 'undefined') {
+		return true
+	}
 	return document.visibilityState !== 'hidden'
 }
 
@@ -51,8 +53,12 @@ export function createPollingTransport() {
 	 * Set up a document visibility listener (once, lazily).
 	 */
 	function ensureVisibilityListener() {
-		if (visibilityHandler !== null) { return }
-		if (typeof document === 'undefined') { return }
+		if (visibilityHandler !== null) {
+			return
+		}
+		if (typeof document === 'undefined') {
+			return
+		}
 
 		visibilityHandler = () => {
 			if (document.visibilityState === 'visible') {
@@ -76,7 +82,9 @@ export function createPollingTransport() {
 	 * @return {void}
 	 */
 	function fireCallbacks(entry) {
-		if (!isVisible()) { return }
+		if (!isVisible()) {
+			return
+		}
 		for (const cb of entry.callbacks) {
 			try {
 				cb()
@@ -158,7 +166,9 @@ export function createPollingTransport() {
 		unsubscribe(handle) {
 			const { eventKey, cb } = handle
 			const entry = keys.get(eventKey)
-			if (!entry) { return }
+			if (!entry) {
+				return
+			}
 
 			entry.callbacks.delete(cb)
 			entry.refcount -= 1

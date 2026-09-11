@@ -304,7 +304,9 @@ export default {
 		},
 
 		filtersKey(next, prev) {
-			if (next === prev) { return }
+			if (next === prev) {
+				return
+			}
 			// The scope moved, so anything already selected may no longer be
 			// in it. Drop the stale options + selection, then re-seed.
 			this.options = []
@@ -332,7 +334,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async loadInitialOptions() {
-			if (!this.preload || !this.objectStore) { return }
+			if (!this.preload || !this.objectStore) {
+				return
+			}
 			this.loading = true
 			try {
 				this.ensureRegistered()
@@ -428,9 +432,13 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async createFromTerm(term) {
-			if (!this.objectStore && !this.createHandler) { return }
+			if (!this.objectStore && !this.createHandler) {
+				return
+			}
 			const name = (term || '').trim()
-			if (!name) { return }
+			if (!name) {
+				return
+			}
 			this.loading = true
 			try {
 				// The active scope is part of the new object's identity: a
@@ -447,7 +455,9 @@ export default {
 					this.ensureRegistered()
 					created = await this.objectStore.saveObject(this.typeSlug, payload)
 				}
-				if (!created) { return }
+				if (!created) {
+					return
+				}
 				const option = this.toOption(created)
 				this.options = [option, ...this.options.filter((o) => o.value !== option.value)]
 				this.localSelected = option
@@ -498,12 +508,18 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async ensureSelectedLoaded() {
-			if (!this.modelValue || this.selectedOption || !this.objectStore) { return }
+			if (!this.modelValue || this.selectedOption || !this.objectStore) {
+				return
+			}
 			try {
 				this.ensureRegistered()
-				if (typeof this.objectStore.fetchObject !== 'function') { return }
+				if (typeof this.objectStore.fetchObject !== 'function') {
+					return
+				}
 				const obj = await this.objectStore.fetchObject(this.typeSlug, String(this.modelValue))
-				if (obj) { this.localSelected = this.toOption(obj) }
+				if (obj) {
+					this.localSelected = this.toOption(obj)
+				}
 			} catch (e) {
 				// Leave the id un-labelled rather than crash.
 			}

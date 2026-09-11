@@ -57,7 +57,9 @@ export function clearRouteSentinelWarnings() {
  * @return {boolean} True when value is a plain object.
  */
 function isPlainObject(value) {
-	if (value === null || typeof value !== 'object') { return false }
+	if (value === null || typeof value !== 'object') {
+		return false
+	}
 	const proto = Object.getPrototypeOf(value)
 	return proto === Object.prototype || proto === null
 }
@@ -83,7 +85,9 @@ export function resolveRouteSentinels(value, params, pageId = '<unknown>') {
 
 	if (typeof value === 'string') {
 		const match = SENTINEL_PATTERN.exec(value)
-		if (!match) { return value }
+		if (!match) {
+			return value
+		}
 		const param = match[1]
 		if (Object.prototype.hasOwnProperty.call(safeParams, param)) {
 			return safeParams[param]
@@ -103,7 +107,9 @@ export function resolveRouteSentinels(value, params, pageId = '<unknown>') {
 		let changed = false
 		const out = value.map((item) => {
 			const resolved = resolveRouteSentinels(item, safeParams, pageId)
-			if (resolved !== item) { changed = true }
+			if (resolved !== item) {
+				changed = true
+			}
 			return resolved
 		})
 		// Preserve the original array reference when no element changed.
@@ -115,7 +121,9 @@ export function resolveRouteSentinels(value, params, pageId = '<unknown>') {
 		const out = {}
 		for (const [key, val] of Object.entries(value)) {
 			const resolved = resolveRouteSentinels(val, safeParams, pageId)
-			if (resolved !== val) { changed = true }
+			if (resolved !== val) {
+				changed = true
+			}
 			out[key] = resolved
 		}
 		// Preserve the original object reference when no key changed.

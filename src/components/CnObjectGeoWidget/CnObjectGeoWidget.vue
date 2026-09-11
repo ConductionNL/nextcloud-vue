@@ -377,7 +377,9 @@ export default {
 
 		/** The currently-saved geo value (local override after PATCH, else the prop's `@self.geo`). */
 		savedGeo() {
-			if (this.localGeo !== undefined) { return this.localGeo }
+			if (this.localGeo !== undefined) {
+				return this.localGeo
+			}
 			const self = this.safeObjectData['@self'] || {}
 			return self.geo || null
 		},
@@ -417,7 +419,9 @@ export default {
 		 * background we pass NO tile layer here, or the two would stack.
 		 */
 		resolvedLayers() {
-			if (this.resolvedBasemaps.length > 0) { return [] }
+			if (this.resolvedBasemaps.length > 0) {
+				return []
+			}
 			return (Array.isArray(this.layers) && this.layers.length) ? this.layers : DEFAULT_LAYERS.map((l) => ({ ...l }))
 		},
 
@@ -432,7 +436,9 @@ export default {
 		 */
 		resolvedBasemaps() {
 			// A consumer-supplied custom tile layer owns the background.
-			if (!this.layersAreDefault) { return [] }
+			if (!this.layersAreDefault) {
+				return []
+			}
 
 			const selected = BASEMAPS[this.basemap] || BASEMAPS.standard
 			if (!this.allowBasemapSwitch) { return [{ ...selected }] }
@@ -454,7 +460,9 @@ export default {
 
 		/** CnMapWidget markers config — a single Point feature for the active location, or null. */
 		mapMarkers() {
-			if (!this.activePoint) { return null }
+			if (!this.activePoint) {
+				return null
+			}
 			return {
 				features: [this.pointFeature(this.activePoint)],
 				iconColor: 'var(--color-primary-element, #0082c9)',
@@ -463,7 +471,9 @@ export default {
 
 		/** Human-readable "lat, lng" for the active point. */
 		coordsLabel() {
-			if (!this.activePoint) { return '' }
+			if (!this.activePoint) {
+				return ''
+			}
 			return `${this.activePoint.lat.toFixed(5)}, ${this.activePoint.lng.toFixed(5)}`
 		},
 	},
@@ -512,7 +522,9 @@ export default {
 		 */
 		async geocode() {
 			const q = (this.query || '').trim()
-			if (q.length < 3) { return }
+			if (q.length < 3) {
+				return
+			}
 
 			this.searching = true
 			this.searchError = ''
@@ -548,7 +560,9 @@ export default {
 		 * @return {void}
 		 */
 		pickResult(result) {
-			if (!this.editable || !result) { return }
+			if (!this.editable || !result) {
+				return
+			}
 			this.draft = { lat: result.lat, lng: result.lng }
 			this.results = []
 			this.query = result.label
@@ -608,8 +622,12 @@ export default {
 		 * @return {boolean} True when equal.
 		 */
 		samePoint(a, b) {
-			if (!a && !b) { return true }
-			if (!a || !b) { return false }
+			if (!a && !b) {
+				return true
+			}
+			if (!a || !b) {
+				return false
+			}
 			return Math.abs(a.lat - b.lat) < 1e-9 && Math.abs(a.lng - b.lng) < 1e-9
 		},
 
@@ -620,7 +638,9 @@ export default {
 		 * @return {void}
 		 */
 		onMapClick(payload) {
-			if (!this.editable || !payload) { return }
+			if (!this.editable || !payload) {
+				return
+			}
 			const point = this.finitePoint(payload.lat, payload.lng)
 			if (point) {
 				this.draft = point
@@ -647,7 +667,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async save() {
-			if (this.saving) { return }
+			if (this.saving) {
+				return
+			}
 			if (!this.resolvedRegister || !this.resolvedSchema || !this.resolvedId) {
 				this.error = t('nextcloud-vue', 'Cannot save — the object is not fully loaded yet.')
 				return

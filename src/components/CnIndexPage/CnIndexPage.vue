@@ -2108,7 +2108,9 @@ export default {
 		isSelfFetchMode() { return this.isSelfFetch && !!this.list },
 		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
 		effectiveObjects() {
-			if (this.isNamedSource) { return this.namedRows }
+			if (this.isNamedSource) {
+				return this.namedRows
+			}
 			return this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects
 		},
 
@@ -2122,8 +2124,12 @@ export default {
 		 * @return {object[]}
 		 */
 		displayObjects() {
-			if (!this.defaultSort || this.defaultSort.length === 0) { return this.effectiveObjects }
-			if (this.effectiveSortKey) { return this.effectiveObjects }
+			if (!this.defaultSort || this.defaultSort.length === 0) {
+				return this.effectiveObjects
+			}
+			if (this.effectiveSortKey) {
+				return this.effectiveObjects
+			}
 			return multiKeySort(this.effectiveObjects, this.defaultSort)
 		},
 
@@ -2135,7 +2141,9 @@ export default {
 		 * @return {boolean}
 		 */
 		showMapSegment() {
-			if (Array.isArray(this.viewModes)) { return this.viewModes.includes('map') }
+			if (Array.isArray(this.viewModes)) {
+				return this.viewModes.includes('map')
+			}
 			return Object.keys(this.mapConfig || {}).length > 0
 		},
 
@@ -2173,8 +2181,12 @@ export default {
 		 * @return {Array<object>} The folder list.
 		 */
 		folderSidebarFolders() {
-			if (!this.folderSidebar) { return [] }
-			if (this.folderSidebar.source === 'register') { return this.folderRegisterList }
+			if (!this.folderSidebar) {
+				return []
+			}
+			if (this.folderSidebar.source === 'register') {
+				return this.folderRegisterList
+			}
 			return this.folderSidebar.folders || []
 		},
 
@@ -2184,7 +2196,9 @@ export default {
 		 * @return {string} The property the folders group by, or ''.
 		 */
 		folderSidebarGroupBy() {
-			if (!this.folderSidebar) { return '' }
+			if (!this.folderSidebar) {
+				return ''
+			}
 			return this.folderSidebar.groupBy || this.folderSidebar.field || ''
 		},
 
@@ -2206,7 +2220,9 @@ export default {
 		 */
 		folderSidebarFacetValues() {
 			const field = this.folderSidebarGroupBy
-			if (!field) { return [] }
+			if (!field) {
+				return []
+			}
 
 			const fromStore = this.isSelfFetchMode ? (this.list.facets?.value || null) : null
 			const facets = fromStore
@@ -2226,7 +2242,9 @@ export default {
 		 * @return {boolean} True when the folder list is knowingly incomplete.
 		 */
 		folderSidebarPartial() {
-			if (this.folderSidebarFacetValues.length > 0) { return false }
+			if (this.folderSidebarFacetValues.length > 0) {
+				return false
+			}
 			const total = Number(this.effectivePagination?.total ?? 0)
 			return total > this.effectiveObjects.length
 		},
@@ -2240,7 +2258,9 @@ export default {
 		 * @return {string} The id field key.
 		 */
 		folderPassthroughIdField() {
-			if (this.folderSidebar && this.folderSidebar.source === 'register') { return 'id' }
+			if (this.folderSidebar && this.folderSidebar.source === 'register') {
+				return 'id'
+			}
 			return (this.folderSidebar && this.folderSidebar.idField) || 'id'
 		},
 
@@ -2248,7 +2268,9 @@ export default {
 		 * @return {string} The name field key for CnFolderSidebar's custom list.
 		 */
 		folderPassthroughNameField() {
-			if (this.folderSidebar && this.folderSidebar.source === 'register') { return 'name' }
+			if (this.folderSidebar && this.folderSidebar.source === 'register') {
+				return 'name'
+			}
 			return (this.folderSidebar && this.folderSidebar.nameField) || 'name'
 		},
 
@@ -2264,7 +2286,9 @@ export default {
 			const features = []
 			for (const row of this.displayObjects) {
 				const geometry = this.resolveRowGeometry(row)
-				if (!geometry) { continue }
+				if (!geometry) {
+					continue
+				}
 				features.push({
 					type: 'Feature',
 					geometry,
@@ -2340,7 +2364,9 @@ export default {
 
 		/** Loading flag: store loading in self-fetch mode, else the `loading` prop. */
 		effectiveLoading() {
-			if (this.isNamedSource) { return this.namedLoading }
+			if (this.isNamedSource) {
+				return this.namedLoading
+			}
 			return this.isSelfFetchMode ? !!this.list.loading.value : this.loading
 		},
 
@@ -2364,7 +2390,9 @@ export default {
 		effectivePagination() { return this.isSelfFetchMode ? this.list.pagination.value : this.pagination },
 		/** Resolved schema OBJECT (for column generation / icons / labels). */
 		effectiveSchema() {
-			if (this.isSelfFetchMode) { return this.list.schema.value }
+			if (this.isSelfFetchMode) {
+				return this.list.schema.value
+			}
 			return (this.schema && typeof this.schema === 'object') ? this.schema : null
 		},
 
@@ -2374,7 +2402,9 @@ export default {
 		 * resolved schema object's `slug`/`name`.
 		 */
 		exportSchemaSlug() {
-			if (typeof this.schema === 'string') { return this.schema }
+			if (typeof this.schema === 'string') {
+				return this.schema
+			}
 			return this.effectiveSchema?.slug || this.effectiveSchema?.name || ''
 		},
 
@@ -2404,7 +2434,9 @@ export default {
 		 * @return {string}
 		 */
 		deleteViewMessage() {
-			if (!this.viewPendingDelete) { return '' }
+			if (!this.viewPendingDelete) {
+				return ''
+			}
 			return t('nextcloud-vue', 'Delete the view "{name}"? This cannot be undone.', { name: this.viewPendingDelete.name })
 		},
 
@@ -2523,7 +2555,9 @@ export default {
 				))
 			}
 			const visible = this.effectiveVisibleColumns
-			if (!Array.isArray(visible)) { return cols }
+			if (!Array.isArray(visible)) {
+				return cols
+			}
 
 			const governed = this.sidebarGovernedColumnKeys
 			cols = cols.filter((c) => {
@@ -2534,7 +2568,9 @@ export default {
 			const present = new Set(cols.map((c) => (typeof c === 'string' ? c : c.key)))
 			const byKey = new Map(this.governedColumns.map((c) => [c.key, c]))
 			visible.forEach((key) => {
-				if (present.has(key)) { return }
+				if (present.has(key)) {
+					return
+				}
 				const def = byKey.get(key)
 				if (def) {
 					cols.push({ ...def })
@@ -2546,7 +2582,9 @@ export default {
 
 		/** Resolved icon — explicit prop overrides schema.icon */
 		resolvedIcon() {
-			if (this.icon) { return this.icon }
+			if (this.icon) {
+				return this.icon
+			}
 			return this.effectiveSchema?.icon || ''
 		},
 
@@ -2738,7 +2776,9 @@ export default {
 
 		/** Whether all visible items are selected */
 		allSelected() {
-			if (this.effectiveObjects.length === 0 || this.internalSelectedIds.length === 0) { return false }
+			if (this.effectiveObjects.length === 0 || this.internalSelectedIds.length === 0) {
+				return false
+			}
 			return this.effectiveObjects.every((o) => this.internalSelectedIds.includes(o[this.rowKey]))
 		},
 
@@ -2756,7 +2796,9 @@ export default {
 
 		/** Add button label — derived from schema.title if not explicitly set */
 		resolvedAddLabel() {
-			if (this.addLabel) { return this.cnTranslate(this.addLabel) }
+			if (this.addLabel) {
+				return this.cnTranslate(this.addLabel)
+			}
 			// A named source names its own create action. Without this the button
 			// falls back to a schema-derived noun, and a named source has no
 			// schema — so the control the migration was supposed to preserve
@@ -2904,7 +2946,9 @@ export default {
 		 */
 		activeOrganisation: {
 			handler(next) {
-				if (!next) { return }
+				if (!next) {
+					return
+				}
 				const uuid = next.uuid || null
 				// Update the object store when one is bound — sub-store
 				// methods may not exist on non-OR stores; guard with typeof.
@@ -2948,7 +2992,9 @@ export default {
 		'$route.params': {
 			deep: true,
 			handler() {
-				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') { this.list.refresh(1) }
+				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') {
+					this.list.refresh(1)
+				}
 			},
 		},
 
@@ -2958,7 +3004,9 @@ export default {
 		'$route.query': {
 			deep: true,
 			handler() {
-				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') { this.list.refresh(1) }
+				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') {
+					this.list.refresh(1)
+				}
 			},
 		},
 
@@ -2967,7 +3015,9 @@ export default {
 		// so the user lands on the index page with the form already open.
 		'$route.query.action': {
 			handler(val) {
-				if (val === 'create') { this.maybeOpenCreateFromQuery() }
+				if (val === 'create') {
+					this.maybeOpenCreateFromQuery()
+				}
 			},
 		},
 	},
@@ -2981,13 +3031,17 @@ export default {
 			// Reflect a deep-link filter (e.g. ?caseType=<id>) as the active folder.
 			const key = this.folderSidebar.filterField || this.folderSidebar.field
 			const active = key && this.effectiveActiveFilters[key]
-			if (active) { this.selectedFolderId = Array.isArray(active) ? active[0] : active }
+			if (active) {
+				this.selectedFolderId = Array.isArray(active) ? active[0] : active
+			}
 		}
 	},
 
 	created() {
 		this.pushAiContext()
-		if (this.allowSavedViews) { this.fetchSavedViews() }
+		if (this.allowSavedViews) {
+			this.fetchSavedViews()
+		}
 		this.selfActions = createSelfModeActions({
 			isSelfFetchMode: () => this.isSelfFetchMode,
 			selfObjectStore: () => this.selfObjectStore,
@@ -3040,7 +3094,9 @@ export default {
 		 *   `fn({ actionId })` thunk.
 		 */
 		resolveHeaderHandler(entry) {
-			if (!entry) { return entry }
+			if (!entry) {
+				return entry
+			}
 			const handler = entry.handler
 			if (typeof handler === 'function') {
 				return { ...entry }
@@ -3217,7 +3273,9 @@ export default {
 		 * @return {void}
 		 */
 		onSearchEvent(value) {
-			if (this.isSelfFetchMode && typeof this.list.onSearch === 'function') { this.list.onSearch(value) }
+			if (this.isSelfFetchMode && typeof this.list.onSearch === 'function') {
+				this.list.onSearch(value)
+			}
 			this.$emit('search', value)
 		},
 
@@ -3254,7 +3312,9 @@ export default {
 		 * @return {void}
 		 */
 		onSortEvent(payload) {
-			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') { this.list.onSort(payload) }
+			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') {
+				this.list.onSort(payload)
+			}
 			if (this.isSelfFetchMode) {
 				const keys = Array.isArray(payload.keys)
 					? payload.keys
@@ -3276,7 +3336,9 @@ export default {
 		 * @return {void}
 		 */
 		persistSortToRoute(keys) {
-			if (!this.$router || !this.$route) { return }
+			if (!this.$router || !this.$route) {
+				return
+			}
 			const query = { ...this.$route.query }
 			if (Array.isArray(keys) && keys.length > 0) {
 				query._order = JSON.stringify(keys)
@@ -3291,7 +3353,9 @@ export default {
 		 * @return {void}
 		 */
 		onPageEvent(page) {
-			if (this.isSelfFetchMode && typeof this.list.onPageChange === 'function') { this.list.onPageChange(page) }
+			if (this.isSelfFetchMode && typeof this.list.onPageChange === 'function') {
+				this.list.onPageChange(page)
+			}
 			this.$emit('page-changed', page)
 		},
 
@@ -3300,7 +3364,9 @@ export default {
 		 * @return {void}
 		 */
 		onFilterEvent(payload) {
-			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') { this.list.onFilterChange(payload.key, payload.values) }
+			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') {
+				this.list.onFilterChange(payload.key, payload.values)
+			}
 			this.$emit('filter-change', payload)
 		},
 
@@ -3333,7 +3399,9 @@ export default {
 		 */
 		async loadFolderRegister() {
 			const cfg = this.folderSidebar
-			if (!cfg || cfg.source !== 'register' || !cfg.register || !cfg.schema) { return }
+			if (!cfg || cfg.source !== 'register' || !cfg.register || !cfg.schema) {
+				return
+			}
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
@@ -3412,7 +3480,9 @@ export default {
 		 * @return {void}
 		 */
 		onColumnsEvent(columns) {
-			if (this.isSelfFetchMode && this.list.visibleColumns) { this.list.visibleColumns.value = columns }
+			if (this.isSelfFetchMode && this.list.visibleColumns) {
+				this.list.visibleColumns.value = columns
+			}
 			this.$emit('columns-change', columns)
 		},
 
@@ -3437,7 +3507,9 @@ export default {
 		 * the inline render alive.
 		 */
 		publishHoistedSidebar() {
-			if (!this.cnHostsIndexSidebar || !this.cnIndexSidebarConfig) { return }
+			if (!this.cnHostsIndexSidebar || !this.cnIndexSidebarConfig) {
+				return
+			}
 			if (!this.resolvedSidebar.enabled || this.resolvedSidebar.show === false) {
 				this.cnIndexSidebarConfig.value = null
 				return
@@ -3462,7 +3534,9 @@ export default {
 		 */
 		onRowAction(payload) {
 			const matched = this.mergedActions.find((a) => a.label === payload.action)
-			if (matched && matched._dispatchSuppress) { return }
+			if (matched && matched._dispatchSuppress) {
+				return
+			}
 			this.$emit('action', payload)
 		},
 
@@ -3527,9 +3601,13 @@ export default {
 		onMarkerClick(payload) {
 			const feature = payload && payload.feature
 			const key = feature && feature.properties ? feature.properties[this.rowKey] : undefined
-			if (key === undefined || key === null) { return }
+			if (key === undefined || key === null) {
+				return
+			}
 			const row = this.displayObjects.find((o) => o[this.rowKey] === key)
-			if (row) { this.onRowClick(row) }
+			if (row) {
+				this.onRowClick(row)
+			}
 		},
 
 		/**
@@ -3542,7 +3620,9 @@ export default {
 		 * @return {{ lat: number, lng: number } | null}
 		 */
 		resolveRowLatLng(row) {
-			if (!row) { return null }
+			if (!row) {
+				return null
+			}
 			const cfg = this.mapConfig || {}
 			if (cfg.geoField) {
 				let geo = this.getByPath(row, cfg.geoField)
@@ -3578,7 +3658,9 @@ export default {
 		 * @return {object|null} A GeoJSON geometry object, or null.
 		 */
 		resolveRowGeometry(row) {
-			if (!row) { return null }
+			if (!row) {
+				return null
+			}
 			const cfg = this.mapConfig || {}
 			const GEO_TYPES = ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon', 'GeometryCollection']
 			if (cfg.geoField) {
@@ -3590,7 +3672,9 @@ export default {
 					const hasShape = geo.type === 'GeometryCollection'
 						? Array.isArray(geo.geometries)
 						: Array.isArray(geo.coordinates)
-					if (hasShape) { return geo }
+					if (hasShape) {
+						return geo
+					}
 				}
 			}
 			const lat = Number(this.getByPath(row, cfg.latField))
@@ -3609,16 +3693,22 @@ export default {
 		 * @return {{lat: number, lng: number}|null}
 		 */
 		firstLatLng(geometry) {
-			if (!geometry) { return null }
+			if (!geometry) {
+				return null
+			}
 			if (geometry.type === 'GeometryCollection') {
 				for (const g of (geometry.geometries || [])) {
 					const p = this.firstLatLng(g)
-					if (p) { return p }
+					if (p) {
+						return p
+					}
 				}
 				return null
 			}
 			let c = geometry.coordinates
-			while (Array.isArray(c) && Array.isArray(c[0])) { c = c[0] }
+			while (Array.isArray(c) && Array.isArray(c[0])) {
+				c = c[0]
+			}
 			if (Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1])) {
 				return { lat: Number(c[1]), lng: Number(c[0]) }
 			}
@@ -3634,8 +3724,12 @@ export default {
 		 * @return {*} The resolved value or undefined.
 		 */
 		getByPath(obj, path) {
-			if (!obj || !path) { return undefined }
-			if (Object.prototype.hasOwnProperty.call(obj, path)) { return obj[path] }
+			if (!obj || !path) {
+				return undefined
+			}
+			if (Object.prototype.hasOwnProperty.call(obj, path)) {
+				return obj[path]
+			}
 			return path.split('.').reduce((acc, seg) => (acc == null ? undefined : acc[seg]), obj)
 		},
 
@@ -3736,8 +3830,12 @@ export default {
 		 * absent / not `'create'`.
 		 */
 		maybeOpenCreateFromQuery() {
-			if (!this.$route || !this.$route.query || this.$route.query.action !== 'create') { return }
-			if (!this.showFormDialog) { return }
+			if (!this.$route || !this.$route.query || this.$route.query.action !== 'create') {
+				return
+			}
+			if (!this.showFormDialog) {
+				return
+			}
 			this.openFormDialog(null)
 			// Clear the query param; guard against redundant navigation errors.
 			if (this.$router) {
@@ -3774,17 +3872,23 @@ export default {
 		// --- Mass action handlers ---
 
 		async onMassDeleteConfirm(ids) {
-			if (await this.selfActions.handleMassDelete(ids)) { return }
+			if (await this.selfActions.handleMassDelete(ids)) {
+				return
+			}
 			this.$emit('mass-delete', ids)
 		},
 
 		async onMassCopyConfirm(payload) {
-			if (await this.selfActions.handleMassCopy(payload)) { return }
+			if (await this.selfActions.handleMassCopy(payload)) {
+				return
+			}
 			this.$emit('mass-copy', payload)
 		},
 
 		async onMassExportConfirm(payload) {
-			if (await this.selfActions.handleMassExport(payload)) { return }
+			if (await this.selfActions.handleMassExport(payload)) {
+				return
+			}
 			this.$emit('mass-export', payload)
 		},
 
@@ -3832,7 +3936,9 @@ export default {
 		 */
 		onApplySavedView(view) {
 			const query = buildRouteQueryFromViewState(extractViewState(view))
-			if (!this.$router) { return }
+			if (!this.$router) {
+				return
+			}
 			const nav = this.$router.replace({ query })
 			// Swallow the duplicate-navigation rejection (Vue Router 3)
 			// when the applied view matches the current query.
@@ -3853,7 +3959,9 @@ export default {
 			const payload = buildViewCreatePayload({ name, description: '', isPublic, isDefault: false, state })
 			try {
 				const view = await useSavedViewsApi().createView(payload)
-				if (view) { this.savedViews = [...this.savedViews, view] }
+				if (view) {
+					this.savedViews = [...this.savedViews, view]
+				}
 				this.showSaveViewDialog = false
 			} catch (error) {
 				// eslint-disable-next-line no-console
@@ -3879,7 +3987,9 @@ export default {
 		 */
 		async onDeleteViewConfirm() {
 			const view = this.viewPendingDelete
-			if (!view) { return }
+			if (!view) {
+				return
+			}
 			try {
 				await useSavedViewsApi().deleteView(view.id)
 				this.savedViews = this.savedViews.filter((v) => v.id !== view.id)
@@ -3892,7 +4002,9 @@ export default {
 		},
 
 		async onMassImportConfirm(payload) {
-			if (await this.selfActions.handleMassImport(payload)) { return }
+			if (await this.selfActions.handleMassImport(payload)) {
+				return
+			}
 			this.$emit('mass-import', payload)
 		},
 
@@ -3948,7 +4060,9 @@ export default {
 				}
 				return
 			}
-			if (await this.selfActions.handleSingleDelete(id)) { return }
+			if (await this.selfActions.handleSingleDelete(id)) {
+				return
+			}
 			this.$emit('delete', id)
 		},
 
@@ -3969,7 +4083,9 @@ export default {
 				}
 				return
 			}
-			if (await this.selfActions.handleSingleCopy(payload)) { return }
+			if (await this.selfActions.handleSingleCopy(payload)) {
+				return
+			}
 			this.$emit('copy', payload)
 		},
 
@@ -4024,7 +4140,9 @@ export default {
 				}
 				return
 			}
-			if (await this.selfActions.handleFormSave(formData)) { return }
+			if (await this.selfActions.handleFormSave(formData)) {
+				return
+			}
 			this.$emit(this.editItem ? 'edit' : 'create', formData)
 		},
 

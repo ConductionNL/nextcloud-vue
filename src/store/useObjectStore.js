@@ -331,7 +331,9 @@ const baseActions = {
 	 */
 	_resolveLanguage() {
 		const getter = this._options.languageGetter
-		if (typeof getter !== 'function') { return null }
+		if (typeof getter !== 'function') {
+			return null
+		}
 		try {
 			const v = getter()
 			return typeof v === 'string' && v.length > 0 ? v : null
@@ -355,7 +357,9 @@ const baseActions = {
 	 */
 	_resolveTargetLanguage() {
 		const getter = this._options.targetLanguageGetter
-		if (typeof getter !== 'function') { return null }
+		if (typeof getter !== 'function') {
+			return null
+		}
 		try {
 			const v = getter()
 			return typeof v === 'string' && v.length > 0 ? v : null
@@ -393,7 +397,9 @@ const baseActions = {
 	 */
 	setActiveTenantOrganisation(uuid) {
 		const next = (typeof uuid === 'string' && uuid.length > 0) ? uuid : null
-		if (this.activeTenantOrganisationUuid === next) { return }
+		if (this.activeTenantOrganisationUuid === next) {
+			return
+		}
 
 		this.activeTenantOrganisationUuid = next
 
@@ -852,7 +858,9 @@ const baseActions = {
 	 */
 	async deleteObjects(type, ids) {
 		const result = { successfulIds: [], failedIds: [] }
-		if (!ids?.length) { return result }
+		if (!ids?.length) {
+			return result
+		}
 
 		this.loading = { ...this.loading, [type]: true }
 		this.errors = { ...this.errors, [type]: null }
@@ -886,7 +894,9 @@ const baseActions = {
 				if (this.objects[type]) {
 					const remaining = {}
 					for (const [k, v] of Object.entries(this.objects[type])) {
-						if (!successSet.has(k)) { remaining[k] = v }
+						if (!successSet.has(k)) {
+							remaining[k] = v
+						}
 					}
 					this.objects = { ...this.objects, [type]: remaining }
 				}

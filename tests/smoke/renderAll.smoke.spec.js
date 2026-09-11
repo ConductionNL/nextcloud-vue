@@ -77,7 +77,9 @@ describe('real-render smoke sweep', () => {
 		const { ok, messages, threw, empty } = await mountOnce(name, Component)
 		const isKnown = Object.prototype.hasOwnProperty.call(known, name)
 
-		if (empty) { renderedEmpty.push(name) }
+		if (empty) {
+			renderedEmpty.push(name)
+		}
 
 		if (ok && isKnown) {
 			throw new Error(name + ' now renders clean but is still listed in '

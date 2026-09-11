@@ -83,7 +83,9 @@ export default {
 		/** The unwrapped object context (or null). */
 		objectCtx() {
 			const c = this.cnObjectContext
-			if (!c) { return null }
+			if (!c) {
+				return null
+			}
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
 
@@ -137,13 +139,19 @@ export default {
 		 * @return {string|number}
 		 */
 		formatChip(raw, format) {
-			if (raw === null || raw === undefined) { return '—' }
+			if (raw === null || raw === undefined) {
+				return '—'
+			}
 			if (format === 'currency') {
 				const num = Number(raw)
-				if (Number.isNaN(num)) { return String(raw) }
+				if (Number.isNaN(num)) {
+					return String(raw)
+				}
 				return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(num)
 			}
-			if (typeof raw === 'number') { return raw.toLocaleString() }
+			if (typeof raw === 'number') {
+				return raw.toLocaleString()
+			}
 			return raw
 		},
 

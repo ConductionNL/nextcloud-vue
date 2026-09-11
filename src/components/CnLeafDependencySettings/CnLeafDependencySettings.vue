@@ -225,7 +225,9 @@ export default {
 				.map((entry) => {
 					const isObject = entry && typeof entry === 'object'
 					const id = isObject ? entry.id : entry
-					if (typeof id !== 'string' || id === '') { return null }
+					if (typeof id !== 'string' || id === '') {
+						return null
+					}
 					return {
 						id,
 						name: (isObject && entry.name) || id,

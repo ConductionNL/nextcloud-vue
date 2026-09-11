@@ -150,7 +150,9 @@ export default {
 				return this.language
 			}
 			const trimmed = (this.internalValue || '').trim()
-			if (!trimmed) { return 'text' }
+			if (!trimmed) {
+				return 'text'
+			}
 			try {
 				JSON.parse(trimmed)
 				return 'json'
@@ -192,8 +194,12 @@ export default {
 		 * @return {object|null} Linter extension or null
 		 */
 		linterExtension() {
-			if (this.readOnly) { return null }
-			if (this.resolvedLanguage === 'json') { return jsonLinter() }
+			if (this.readOnly) {
+				return null
+			}
+			if (this.resolvedLanguage === 'json') {
+				return jsonLinter()
+			}
 			return null
 		},
 
@@ -204,7 +210,9 @@ export default {
 		 */
 		editorExtensions() {
 			const exts = [this.theme]
-			if (this.langExtension) { exts.push(this.langExtension) }
+			if (this.langExtension) {
+				exts.push(this.langExtension)
+			}
 			return exts
 		},
 
@@ -215,7 +223,9 @@ export default {
 		 * @return {string} Message to show.
 		 */
 		resolvedErrorText() {
-			if (this.errorText !== null) { return this.errorText }
+			if (this.errorText !== null) {
+				return this.errorText
+			}
 			return 'Invalid JSON format'
 		},
 
@@ -228,7 +238,9 @@ export default {
 		 * @return {boolean} Visibility flag.
 		 */
 		shouldShowError() {
-			if (this.errorText !== null) { return this.errorText !== '' }
+			if (this.errorText !== null) {
+				return this.errorText !== ''
+			}
 			return !this.readOnly
 				&& this.resolvedLanguage === 'json'
 				&& !this.isValidJson(this.internalValue)
@@ -295,7 +307,9 @@ export default {
 		 * @return {boolean} True if valid JSON
 		 */
 		isValidJson(str) {
-			if (!str || !str.trim()) { return false }
+			if (!str || !str.trim()) {
+				return false
+			}
 			try {
 				JSON.parse(str)
 				return true

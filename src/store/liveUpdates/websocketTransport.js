@@ -95,7 +95,9 @@ export function createWebsocketTransport() {
 	 * Schedule a reconnect attempt with exponential backoff + jitter.
 	 */
 	function scheduleReconnect() {
-		if (reconnectTimer !== null) { return }
+		if (reconnectTimer !== null) {
+			return
+		}
 
 		reconnectFailures += 1
 
@@ -191,7 +193,9 @@ export function createWebsocketTransport() {
 		unsubscribe(handle) {
 			const { eventKey, cb } = handle
 			const cbs = listeners.get(eventKey)
-			if (!cbs) { return }
+			if (!cbs) {
+				return
+			}
 
 			cbs.delete(cb)
 			if (cbs.size === 0) {

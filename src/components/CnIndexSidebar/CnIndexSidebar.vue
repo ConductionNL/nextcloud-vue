@@ -370,7 +370,9 @@ export default {
 
 		/** Sidebar name — schema title, shown as the h2 header */
 		resolvedName() {
-			if (this.title) { return this.title }
+			if (this.title) {
+				return this.title
+			}
 			return this.schema?.title || 'Search'
 		},
 
@@ -381,19 +383,25 @@ export default {
 
 		/** Properties group label — derived from schema.title if not explicitly set */
 		resolvedPropertiesLabel() {
-			if (this.propertiesGroupLabel) { return this.propertiesGroupLabel }
+			if (this.propertiesGroupLabel) {
+				return this.propertiesGroupLabel
+			}
 			return this.schema?.title || 'Properties'
 		},
 
 		/** All available columns from schema */
 		allColumns() {
-			if (!this.schema) { return [] }
+			if (!this.schema) {
+				return []
+			}
 			return columnsFromSchema(this.schema, { translate: this.cnTranslate })
 		},
 
 		/** Filter definitions from schema (facetable properties, respecting RBAC) */
 		schemaFilters() {
-			if (!this.schema) { return [] }
+			if (!this.schema) {
+				return []
+			}
 			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin, translate: this.cnTranslate })
 		},
 
@@ -462,7 +470,9 @@ export default {
 		 * @param {string} key Column key
 		 */
 		isColumnVisible(key) {
-			if (this.visibleColumns === null) { return true }
+			if (this.visibleColumns === null) {
+				return true
+			}
 			return this.visibleColumns.includes(key)
 		},
 
@@ -549,7 +559,9 @@ export default {
 		 */
 		getSelectedFilterOptions(filter) {
 			const value = this.activeFilters[filter.key]
-			if (!value) { return [] }
+			if (!value) {
+				return []
+			}
 			const values = Array.isArray(value) ? value : [value]
 			const options = this.getFilterOptions(filter)
 			return values.map((v) => options.find((o) => o.id === v) || { id: v, label: String(v) })

@@ -24,14 +24,20 @@ import { generateOcsUrl } from '@nextcloud/router'
  * @return {{id: string, label: string, subline: string}|null} Option or null when it isn't a user.
  */
 function toUserOption(suggestion) {
-	if (!suggestion || typeof suggestion !== 'object') { return null }
+	if (!suggestion || typeof suggestion !== 'object') {
+		return null
+	}
 	const isUser = suggestion.source === 'users'
 		|| suggestion.shareType === 0
 		|| (suggestion.value && suggestion.value.shareType === 0)
-	if (!isUser) { return null }
+	if (!isUser) {
+		return null
+	}
 	const uid = suggestion.id
 		|| (suggestion.value && suggestion.value.shareWith)
-	if (uid === undefined || uid === null || uid === '') { return null }
+	if (uid === undefined || uid === null || uid === '') {
+		return null
+	}
 	return {
 		id: String(uid),
 		label: suggestion.label || String(uid),
@@ -95,7 +101,9 @@ export async function searchNextcloudUsers(query = '', options = {}) {
  */
 export async function resolveNextcloudUser(uid) {
 	const fallback = { id: String(uid), label: String(uid) }
-	if (uid === undefined || uid === null || uid === '') { return fallback }
+	if (uid === undefined || uid === null || uid === '') {
+		return fallback
+	}
 	const results = await searchNextcloudUsers(String(uid))
 	const match = results.find((opt) => opt.id === String(uid))
 	return match || fallback

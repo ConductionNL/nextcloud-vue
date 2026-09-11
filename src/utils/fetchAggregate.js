@@ -27,7 +27,9 @@ import { resolveFilterTokens } from './resolveFilterTokens.js'
  * @return {void}
  */
 export function flattenAggFilter(target, filter, ctx) {
-	if (!filter || typeof filter !== 'object') { return }
+	if (!filter || typeof filter !== 'object') {
+		return
+	}
 	filter = resolveFilterTokens(filter, ctx)
 	for (const [k, v] of Object.entries(filter)) {
 		if (v && typeof v === 'object') {
@@ -54,7 +56,9 @@ export function flattenAggFilter(target, filter, ctx) {
  */
 export async function fetchAggregateValue(source, ctx) {
 	const s = source || {}
-	if (!s.register || !s.schema) { return null }
+	if (!s.register || !s.schema) {
+		return null
+	}
 	const [{ default: axios }, { generateUrl }] = await Promise.all([
 		import('@nextcloud/axios'),
 		import('@nextcloud/router'),
@@ -64,7 +68,9 @@ export async function fetchAggregateValue(source, ctx) {
 		{ register: s.register, schema: s.schema },
 	)
 	const params = { metric: s.metric || 'count' }
-	if (s.field) { params.field = s.field }
+	if (s.field) {
+		params.field = s.field
+	}
 	flattenAggFilter(params, s.filter || {}, ctx)
 	const res = await axios.get(url, { params })
 	return (res && res.data && res.data.value !== undefined) ? res.data.value : null

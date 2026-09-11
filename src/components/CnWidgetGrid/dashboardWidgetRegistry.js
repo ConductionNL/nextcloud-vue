@@ -113,8 +113,12 @@ export function getWidgetTypeEntry(type) {
  * @return {boolean} true when the entry may be added on that surface.
  */
 export function widgetTypeAllowsSurface(entry, surface) {
-	if (!entry) { return false }
-	if (!Array.isArray(entry.surfaces) || entry.surfaces.length === 0) { return true }
+	if (!entry) {
+		return false
+	}
+	if (!Array.isArray(entry.surfaces) || entry.surfaces.length === 0) {
+		return true
+	}
 	return entry.surfaces.includes(surface)
 }
 

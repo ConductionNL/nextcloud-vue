@@ -190,14 +190,18 @@ export default {
 		 * @return {string} The name, or '' when there is no file.
 		 */
 		displayName() {
-			if (!this.hasValue) { return '' }
+			if (!this.hasValue) {
+				return ''
+			}
 			if (this.isPickedContent) {
 				return this.pickedName || t('nextcloud-vue', 'A file is attached.')
 			}
 			const v = this.modelValue
 			if (v && typeof v === 'object') {
 				const name = v.title || v.filename || v.name || (typeof v.path === 'string' ? v.path.split('/').pop() : '')
-				if (typeof name === 'string' && name !== '') { return name }
+				if (typeof name === 'string' && name !== '') {
+					return name
+				}
 			}
 			return t('nextcloud-vue', 'A file is attached.')
 		},
@@ -230,9 +234,13 @@ export default {
 		 * @return {void}
 		 */
 		openPicker() {
-			if (this.disabled || this.reading) { return }
+			if (this.disabled || this.reading) {
+				return
+			}
 			const input = this.$refs.fileInput
-			if (input && typeof input.click === 'function') { input.click() }
+			if (input && typeof input.click === 'function') {
+				input.click()
+			}
 		},
 
 		/**
@@ -247,8 +255,12 @@ export default {
 			const input = event && event.target
 			const file = input && input.files && input.files[0]
 			// Clear the input so picking the same file again still fires change.
-			if (input) { input.value = '' }
-			if (!file) { return }
+			if (input) {
+				input.value = ''
+			}
+			if (!file) {
+				return
+			}
 			this.readError = ''
 			if (!this.fileMatchesAccept(file)) {
 				this.readError = t('nextcloud-vue', 'This file type is not accepted.')
@@ -300,12 +312,18 @@ export default {
 				.split(',')
 				.map((s) => s.trim().toLowerCase())
 				.filter((s) => s !== '')
-			if (tokens.length === 0) { return true }
+			if (tokens.length === 0) {
+				return true
+			}
 			const name = String(file.name || '').toLowerCase()
 			const type = String(file.type || '').toLowerCase()
 			return tokens.some((token) => {
-				if (token.startsWith('.')) { return name.endsWith(token) }
-				if (token.endsWith('/*')) { return type !== '' && type.startsWith(token.slice(0, -1)) }
+				if (token.startsWith('.')) {
+					return name.endsWith(token)
+				}
+				if (token.endsWith('/*')) {
+					return type !== '' && type.startsWith(token.slice(0, -1))
+				}
 				return type === token
 			})
 		},
@@ -317,7 +335,9 @@ export default {
 		 * @return {string} The formatted size.
 		 */
 		formatSize(bytes) {
-			if (!Number.isFinite(bytes) || bytes <= 0) { return '0 B' }
+			if (!Number.isFinite(bytes) || bytes <= 0) {
+				return '0 B'
+			}
 			const units = ['B', 'KB', 'MB', 'GB']
 			const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
 			return `${parseFloat((bytes / Math.pow(1024, i)).toFixed(1))} ${units[i]}`

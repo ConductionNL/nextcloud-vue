@@ -166,7 +166,9 @@ export default {
 			const out = { ...fmt }
 			for (const key of ['currency', 'prefix', 'suffix']) {
 				const raw = fmt[key]
-				if (typeof raw !== 'string' || raw.charAt(0) !== '@') { continue }
+				if (typeof raw !== 'string' || raw.charAt(0) !== '@') {
+					continue
+				}
 				const resolved = resolveFilterValue(raw, ctx)
 				out[key] = (typeof resolved === 'string' && resolved.charAt(0) === '@') ? undefined : resolved
 			}
@@ -177,34 +179,48 @@ export default {
 		ratio() {
 			const t = Number(this.target)
 			const v = Number(this.value)
-			if (!Number.isFinite(t) || t === 0 || !Number.isFinite(v)) { return null }
+			if (!Number.isFinite(t) || t === 0 || !Number.isFinite(v)) {
+				return null
+			}
 			return v / t
 		},
 
 		/** Percentage label, e.g. "83%". */
 		pctLabel() {
-			if (this.ratio === null) { return '—' }
+			if (this.ratio === null) {
+				return '—'
+			}
 			return Math.round(this.ratio * 100) + '%'
 		},
 
 		/** Bar fill width, clamped to 100%. */
 		fillWidth() {
-			if (this.ratio === null) { return '0%' }
+			if (this.ratio === null) {
+				return '0%'
+			}
 			return Math.min(100, Math.max(0, this.ratio * 100)) + '%'
 		},
 
 		/** Bar colour from the threshold bands (invert flips good/bad). */
 		barColor() {
-			if (this.ratio === null) { return 'var(--color-primary-element)' }
+			if (this.ratio === null) {
+				return 'var(--color-primary-element)'
+			}
 			const th = this.content.thresholds || {}
 			const pct = this.ratio * 100
 			const warn = Number.isFinite(th.warn) ? th.warn : 80
 			const danger = Number.isFinite(th.danger) ? th.danger : 100
 			let level
 			if (pct >= danger) { level = 'danger' } else if (pct >= warn) { level = 'warn' } else { level = 'ok' }
-			if (th.invert) { level = level === 'ok' ? 'danger' : level === 'danger' ? 'ok' : 'warn' }
-			if (level === 'danger') { return 'var(--color-error)' }
-			if (level === 'warn') { return 'var(--color-warning)' }
+			if (th.invert) {
+				level = level === 'ok' ? 'danger' : level === 'danger' ? 'ok' : 'warn'
+			}
+			if (level === 'danger') {
+				return 'var(--color-error)'
+			}
+			if (level === 'warn') {
+				return 'var(--color-warning)'
+			}
 			return 'var(--color-success)'
 		},
 

@@ -419,7 +419,9 @@ export default {
 		 * @return {string}
 		 */
 		resolvedSuccessText() {
-			if (this.successText) { return this.successText }
+			if (this.successText) {
+				return this.successText
+			}
 			return t('nextcloud-vue', '{title} saved successfully.', { title: t('nextcloud-vue', 'Schema') })
 		},
 
@@ -544,14 +546,18 @@ export default {
 	methods: {
 		t,
 		findSchemaBySlug(schemaSlug) {
-			if (!schemaSlug) { return undefined }
+			if (!schemaSlug) {
+				return undefined
+			}
 			return this.availableSchemas.find((schema) => (schema.slug && schema.slug.toLowerCase() === schemaSlug.toLowerCase())
 				|| schema.id === schemaSlug
 				|| schema.title === schemaSlug)
 		},
 
 		ensureRefIsString(obj, key) {
-			if (!obj || !key) { return }
+			if (!obj || !key) {
+				return
+			}
 
 			if (obj[key] && typeof obj[key].$ref === 'object' && obj[key].$ref !== null) {
 				if (obj[key].$ref.id) {
@@ -677,7 +683,9 @@ export default {
 		},
 
 		checkPropertiesModified() {
-			if (!this.originalProperties) { return false }
+			if (!this.originalProperties) {
+				return false
+			}
 
 			const currentProperties = JSON.stringify(this.schemaItem.properties || {})
 			const originalProperties = JSON.stringify(this.originalProperties)
@@ -709,8 +717,12 @@ export default {
 		},
 
 		updatePropertyKey(oldKey, newKey) {
-			if (newKey === oldKey) { return }
-			if (this.schemaItem.properties[newKey] !== undefined && newKey !== oldKey) { return }
+			if (newKey === oldKey) {
+				return
+			}
+			if (this.schemaItem.properties[newKey] !== undefined && newKey !== oldKey) {
+				return
+			}
 
 			const propertyData = { ...this.schemaItem.properties[oldKey] }
 
@@ -809,7 +821,9 @@ export default {
 		},
 
 		migratePropertyToNewStructure(key) {
-			if (!this.schemaItem.properties[key]) { return }
+			if (!this.schemaItem.properties[key]) {
+				return
+			}
 
 			const property = this.schemaItem.properties[key]
 

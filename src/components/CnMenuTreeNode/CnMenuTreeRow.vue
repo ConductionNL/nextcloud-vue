@@ -168,7 +168,9 @@ export default {
 		/** The chosen target page as an option (synthetic fallback for a custom route). */
 		selectedPage() {
 			const route = this.item && this.item.route
-			if (!route) { return null }
+			if (!route) {
+				return null
+			}
 			return this.pages.find((o) => o.value === route) || { value: route, label: route }
 		},
 
@@ -192,7 +194,9 @@ export default {
 			if (field === 'label') {
 				this.$nextTick(() => {
 					const el = this.$refs.labelField && this.$refs.labelField.$el && this.$refs.labelField.$el.querySelector('input')
-					if (el) { el.focus() }
+					if (el) {
+						el.focus()
+					}
 				})
 			}
 		},

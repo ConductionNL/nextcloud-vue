@@ -376,7 +376,9 @@ export default {
 		 */
 		helpUrl() {
 			const repo = String(this.helpRepo || '').trim()
-			if (!repo) { return '' }
+			if (!repo) {
+				return ''
+			}
 			return buildFeatureRequestUrl(null, repo)
 		},
 

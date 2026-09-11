@@ -134,7 +134,9 @@ export function createManifestEditHistory(options = {}) {
 	 *   no earlier entry (state left unchanged).
 	 */
 	function undo() {
-		if (cursor <= 0) { return null }
+		if (cursor <= 0) {
+			return null
+		}
 		cursor -= 1
 		return entries[cursor]
 	}
@@ -146,7 +148,9 @@ export function createManifestEditHistory(options = {}) {
 	 *   no later entry (state left unchanged).
 	 */
 	function redo() {
-		if (cursor === -1 || cursor >= entries.length - 1) { return null }
+		if (cursor === -1 || cursor >= entries.length - 1) {
+			return null
+		}
 		cursor += 1
 		return entries[cursor]
 	}
@@ -219,18 +223,24 @@ function shareOrClone(value, prev) {
  * @return {boolean} Whether `a` and `b` are deeply equal.
  */
 function deepEqual(a, b) {
-	if (a === b) { return true }
+	if (a === b) {
+		return true
+	}
 	if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
 		return false
 	}
 	const aArr = Array.isArray(a)
 	const bArr = Array.isArray(b)
-	if (aArr !== bArr) { return false }
+	if (aArr !== bArr) {
+		return false
+	}
 	if (aArr) {
 		return a.length === b.length && a.every((v, i) => deepEqual(v, b[i]))
 	}
 	const aKeys = Object.keys(a)
 	const bKeys = Object.keys(b)
-	if (aKeys.length !== bKeys.length) { return false }
+	if (aKeys.length !== bKeys.length) {
+		return false
+	}
 	return aKeys.every((k) => Object.prototype.hasOwnProperty.call(b, k) && deepEqual(a[k], b[k]))
 }

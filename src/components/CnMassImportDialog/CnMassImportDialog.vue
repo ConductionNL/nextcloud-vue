@@ -334,7 +334,9 @@ export default {
 
 	computed: {
 		hasErrors() {
-			if (!this.result || !this.result.summary) { return false }
+			if (!this.result || !this.result.summary) {
+				return false
+			}
 			return Object.values(this.result.summary).some((sheet) => sheet.errors && sheet.errors.length > 0)
 		},
 	},
@@ -350,7 +352,9 @@ export default {
 		},
 
 		formatFileSize(bytes) {
-			if (bytes === 0) { return '0 B' }
+			if (bytes === 0) {
+				return '0 B'
+			}
 			const k = 1024
 			const sizes = ['B', 'KB', 'MB', 'GB']
 			const i = Math.floor(Math.log(bytes) / Math.log(k))
@@ -358,8 +362,12 @@ export default {
 		},
 
 		getCount(val) {
-			if (Array.isArray(val)) { return val.length }
-			if (typeof val === 'number') { return val }
+			if (Array.isArray(val)) {
+				return val.length
+			}
+			if (typeof val === 'number') {
+				return val
+			}
 			return 0
 		},
 

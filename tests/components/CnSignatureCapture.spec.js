@@ -10,7 +10,9 @@ function stubCanvas(wrapper) {
 	// reading `.element` before the guard is what fails — in typed mode there
 	// is no <canvas> in the DOM at all.
 	const found = wrapper.find('canvas')
-	if (!found.exists()) { return }
+	if (!found.exists()) {
+		return
+	}
 	const canvas = found.element
 	const noop = () => {}
 	canvas.getContext = () => ({

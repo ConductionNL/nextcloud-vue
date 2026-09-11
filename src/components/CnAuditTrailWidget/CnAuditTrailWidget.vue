@@ -130,7 +130,9 @@ export default {
 		 * @return {number}
 		 */
 		resolvedMaxDisplay() {
-			if (this.maxDisplay > 0) { return this.maxDisplay }
+			if (this.maxDisplay > 0) {
+				return this.maxDisplay
+			}
 			const fromContent = Number(this.content.maxDisplay)
 			return Number.isFinite(fromContent) && fromContent > 0 ? fromContent : 5
 		},

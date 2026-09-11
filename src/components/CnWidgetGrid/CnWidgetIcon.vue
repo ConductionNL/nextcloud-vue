@@ -115,7 +115,9 @@ export default {
 			// getIconComponent() unconditionally is useless here, because it
 			// returns the DEFAULT icon for every unknown name, which is exactly
 			// the wrong-but-plausible glyph this fallback exists to stop.
-			if (!hasRegistryIcon(this.name)) { return null }
+			if (!hasRegistryIcon(this.name)) {
+				return null
+			}
 			return getIconComponent(this.name)
 		},
 	},

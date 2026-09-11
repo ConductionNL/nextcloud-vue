@@ -196,7 +196,9 @@ export default {
 			if (this.surface === 'user-dashboard' || this.surface === 'app-dashboard') {
 				const now = Date.now()
 				const upcoming = sorted.filter((ev) => {
-					if (!ev.dtstart) { return true }
+					if (!ev.dtstart) {
+						return true
+					}
 					return new Date(ev.dtstart).getTime() >= now
 				})
 				return upcoming.slice(0, this.maxDisplay)
@@ -224,7 +226,9 @@ export default {
 		},
 
 		isUpcoming(ev) {
-			if (!ev.dtstart) { return true }
+			if (!ev.dtstart) {
+				return true
+			}
 			try {
 				return new Date(ev.dtstart).getTime() >= Date.now()
 			} catch (_) {
@@ -299,10 +303,14 @@ export default {
 		},
 
 		formatShort(value) {
-			if (!value) { return '' }
+			if (!value) {
+				return ''
+			}
 			try {
 				const d = new Date(value)
-				if (Number.isNaN(d.getTime())) { return String(value) }
+				if (Number.isNaN(d.getTime())) {
+					return String(value)
+				}
 				const opts = this.surface === 'single-entity'
 					? { dateStyle: 'medium' }
 					: { dateStyle: 'medium', timeStyle: 'short' }

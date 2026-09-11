@@ -113,7 +113,9 @@ export default {
 
 		/** The page's normalised sidebar config object (ensured to exist). */
 		sidebar() {
-			if (!this.page) { return null }
+			if (!this.page) {
+				return null
+			}
 			// Normalise the working page in place so the editor can bind to it —
 			// the working manifest is ours to mutate by design (see CnEditPagesModal).
 			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
@@ -132,7 +134,9 @@ export default {
 			},
 
 			set(value) {
-				if (!this.sidebar) { return }
+				if (!this.sidebar) {
+					return
+				}
 				// Detail pages gate on `show`; index pages gate their embedded
 				// sidebar (and its actions-bar toggle button) on `enabled`. Set
 				// both so the toggle mounts/suppresses the sidebar on either page
@@ -153,16 +157,24 @@ export default {
 		/** The page's sidebar `tabs[]` array (ensured to exist) — for editing. */
 		editableTabs() {
 			const s = this.sidebar
-			if (!s) { return [] }
-			if (!Array.isArray(s.tabs)) { s.tabs = [] }
+			if (!s) {
+				return []
+			}
+			if (!Array.isArray(s.tabs)) {
+				s.tabs = []
+			}
 			return s.tabs
 		},
 
 		/** The page's hiddenTabs array (ensured to exist). */
 		hiddenTabs() {
 			const s = this.sidebar
-			if (!s) { return [] }
-			if (!Array.isArray(s.hiddenTabs)) { s.hiddenTabs = [] }
+			if (!s) {
+				return []
+			}
+			if (!Array.isArray(s.hiddenTabs)) {
+				s.hiddenTabs = []
+			}
 			return s.hiddenTabs
 		},
 
@@ -224,7 +236,9 @@ export default {
 		 */
 		setTabVisible(id, visible) {
 			const idx = this.hiddenTabs.indexOf(id)
-			if (visible && idx !== -1) { this.hiddenTabs.splice(idx, 1) } else if (!visible && idx === -1) { this.hiddenTabs.push(id) }
+			if (visible && idx !== -1) { this.hiddenTabs.splice(idx, 1) } else if (!visible && idx === -1) {
+				this.hiddenTabs.push(id)
+			}
 		},
 
 		/** Add a new sidebar tab, enabling the sidebar if it was off. */

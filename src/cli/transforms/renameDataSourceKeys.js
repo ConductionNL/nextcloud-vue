@@ -36,14 +36,18 @@ function renameDataSourceKeys(page) {
 
 	let count = 0
 	const widgets = page.widgets.map((w) => {
-		if (!w || typeof w !== 'object') { return w }
+		if (!w || typeof w !== 'object') {
+			return w
+		}
 
 		const hasBareSource = Object.prototype.hasOwnProperty.call(w, 'source')
 		const hasContentSource = w.content && typeof w.content === 'object'
 			&& !Array.isArray(w.content)
 			&& Object.prototype.hasOwnProperty.call(w.content, 'source')
 
-		if (!hasBareSource && !hasContentSource) { return w }
+		if (!hasBareSource && !hasContentSource) {
+			return w
+		}
 
 		count++
 		const next = { ...w }
@@ -52,7 +56,9 @@ function renameDataSourceKeys(page) {
 		// both; process content first so an explicit bare source can still fill.
 		if (hasContentSource) {
 			const { source, ...restContent } = next.content
-			if (next.dataSource === undefined) { next.dataSource = source }
+			if (next.dataSource === undefined) {
+				next.dataSource = source
+			}
 			if (Object.keys(restContent).length > 0) {
 				next.content = restContent
 			} else {
@@ -61,7 +67,9 @@ function renameDataSourceKeys(page) {
 		}
 
 		if (hasBareSource) {
-			if (next.dataSource === undefined) { next.dataSource = next.source }
+			if (next.dataSource === undefined) {
+				next.dataSource = next.source
+			}
 			delete next.source
 		}
 

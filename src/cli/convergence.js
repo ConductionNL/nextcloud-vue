@@ -41,7 +41,9 @@ function runConvergence(manifest, opts = {}) {
 	}
 
 	current.pages = current.pages.map((page) => {
-		if (!page || typeof page !== 'object') { return page }
+		if (!page || typeof page !== 'object') {
+			return page
+		}
 
 		// 1. Promote bespoke custom dashboards.
 		const { page: p1, promoted, flagged } = promoteCustomDashboard(page)

@@ -72,7 +72,9 @@ export function useClickDragGuard() {
 	function wasDrag(event) {
 		const from = start
 		start = null
-		if (!from || !event) { return false }
+		if (!from || !event) {
+			return false
+		}
 		return Math.hypot(event.clientX - from.x, event.clientY - from.y) > CLICK_DRAG_THRESHOLD
 	}
 

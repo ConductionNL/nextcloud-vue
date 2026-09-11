@@ -1569,10 +1569,14 @@ export default {
 		 * @return {Array<object>}
 		 */
 		displayLayout() {
-			if (this.gridEditable) { return this.layout }
+			if (this.gridEditable) {
+				return this.layout
+			}
 			const items = this.layout || []
 			const visible = items.filter((item) => !this.isCollapsedWidget(item))
-			if (visible.length === items.length) { return items }
+			if (visible.length === items.length) {
+				return items
+			}
 			return this.compactDisplayLayout(visible)
 		},
 
@@ -1587,7 +1591,9 @@ export default {
 		 * @return {boolean}
 		 */
 		effectiveWidgetShowRefresh() {
-			if (this.widgetShowRefresh !== null) { return this.widgetShowRefresh }
+			if (this.widgetShowRefresh !== null) {
+				return this.widgetShowRefresh
+			}
 			// `$.vnode.props`, not `$attrs`: a declared emit is stripped out of
 			// `$attrs`. And the key is `onWidgetRefresh` — Vue's compiler
 			// camelizes every `v-on` argument, so the hyphenated
@@ -1604,7 +1610,9 @@ export default {
 		 * @return {string}
 		 */
 		resolvedPageId() {
-			if (this.pageId) { return this.pageId }
+			if (this.pageId) {
+				return this.pageId
+			}
 			const slug = (this.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 			return slug || 'dashboard'
 		},
@@ -1678,7 +1686,9 @@ export default {
 			const rng = this.currentRange || this.dashboardDateRange
 			if (rng && rng.preset && rng.preset !== 'custom') {
 				const preset = this.effectivePresets.find((p) => p && p.id === rng.preset)
-				if (preset && preset.label) { return preset.label }
+				if (preset && preset.label) {
+					return preset.label
+				}
 			}
 			return this.formatDashboardDateRange() || t('nextcloud-vue', 'Date range')
 		},
@@ -1759,12 +1769,18 @@ export default {
 			let content = def.content || {}
 			if ((!content || Object.keys(content).length === 0) && (def.props || def.dataSource)) {
 				content = {}
-				if (def.title) { content.title = def.title }
+				if (def.title) {
+					content.title = def.title
+				}
 				if (def.props) {
 					content.props = def.props
-					if (def.props.chartKind) { content.chartKind = def.props.chartKind }
+					if (def.props.chartKind) {
+						content.chartKind = def.props.chartKind
+					}
 				}
-				if (def.dataSource) { content.dataSource = def.dataSource }
+				if (def.dataSource) {
+					content.dataSource = def.dataSource
+				}
 			}
 			return {
 				id: def.id || this.configWidgetId,
@@ -1791,7 +1807,9 @@ export default {
 		widgetRefItems() {
 			const out = []
 			for (const item of this.content) {
-				if (!item || typeof item !== 'object') { continue }
+				if (!item || typeof item !== 'object') {
+					continue
+				}
 				if (item.type === 'widget-ref') {
 					out.push(item)
 				} else {
@@ -1887,8 +1905,12 @@ export default {
 		 */
 		initPageFilters() {
 			for (const pf of this.pageFilters || []) {
-				if (!pf || !pf.key) { continue }
-				if (this.workspaceContext[pf.key] !== undefined) { continue }
+				if (!pf || !pf.key) {
+					continue
+				}
+				if (this.workspaceContext[pf.key] !== undefined) {
+					continue
+				}
 				const fallback = (pf.options && pf.options.length) ? pf.options[0].value : undefined
 				const value = pf.default !== undefined ? pf.default : fallback
 				if (value !== undefined) {
@@ -1905,7 +1927,9 @@ export default {
 		 * @return {object|null}
 		 */
 		selectedPageFilterOption(pf) {
-			if (!pf || !pf.key) { return null }
+			if (!pf || !pf.key) {
+				return null
+			}
 			const current = this.workspaceContext[pf.key]
 			return (pf.options || []).find((o) => o.value === current) || null
 		},
@@ -1919,7 +1943,9 @@ export default {
 		 * @return {void}
 		 */
 		onPageFilterChange(pf, option) {
-			if (!pf || !pf.key) { return }
+			if (!pf || !pf.key) {
+				return
+			}
 			const value = option && typeof option === 'object' ? option.value : option
 			this.workspaceContext[pf.key] = value
 			/**
@@ -2030,8 +2056,12 @@ export default {
 			//    methods write through to the ref's `.value` automatically.
 			if ((!from || !to) && this.dashboardDateRange) {
 				const rng = this.dashboardDateRange
-				if (bucket.fromVar && rng[bucket.fromVar]) { from = from || rng[bucket.fromVar] }
-				if (bucket.toVar && rng[bucket.toVar]) { to = to || rng[bucket.toVar] }
+				if (bucket.fromVar && rng[bucket.fromVar]) {
+					from = from || rng[bucket.fromVar]
+				}
+				if (bucket.toVar && rng[bucket.toVar]) {
+					to = to || rng[bucket.toVar]
+				}
 			}
 			return this.formatRangeLabel(from, to)
 		},
@@ -2046,7 +2076,9 @@ export default {
 		 */
 		formatDashboardDateRange() {
 			const rng = this.dashboardDateRange
-			if (!rng) { return null }
+			if (!rng) {
+				return null
+			}
 			return this.formatRangeLabel(rng.from || null, rng.to || null)
 		},
 
@@ -2061,9 +2093,13 @@ export default {
 		 * @return {string|null} Formatted label, or null when both bounds are empty.
 		 */
 		formatRangeLabel(from, to) {
-			if (!from && !to) { return null }
+			if (!from && !to) {
+				return null
+			}
 			const toDate = (v) => {
-				if (typeof v !== 'string' || v.length < 10) { return null }
+				if (typeof v !== 'string' || v.length < 10) {
+					return null
+				}
 				const d = new Date(`${v.slice(0, 10)}T00:00:00`)
 				return Number.isNaN(d.getTime()) ? null : d
 			}
@@ -2072,7 +2108,9 @@ export default {
 			const thisYear = new Date().getFullYear()
 			const needsYear = [fromDate, toDateValue].some((d) => d && d.getFullYear() !== thisYear)
 			const fmt = (d) => {
-				if (!d) { return '' }
+				if (!d) {
+					return ''
+				}
 				return d.toLocaleDateString(undefined, {
 					day: 'numeric',
 					month: 'short',
@@ -2100,14 +2138,20 @@ export default {
 		 * @return {void}
 		 */
 		onChipPresetPick(preset, _item) {
-			if (!preset || !preset.id) { return }
-			if (preset.id === 'custom') { return }
+			if (!preset || !preset.id) {
+				return
+			}
+			if (preset.id === 'custom') {
+				return
+			}
 			if (this.isClearPreset(preset)) {
 				this.onDateRangeChange({ from: '', to: '', preset: preset.id })
 				return
 			}
 			const win = resolvePresetWindow(preset.id, this.effectivePresets)
-			if (!win) { return }
+			if (!win) {
+				return
+			}
 			this.onDateRangeChange({ ...win, preset: preset.id })
 		},
 
@@ -2122,7 +2166,9 @@ export default {
 		 * @return {void}
 		 */
 		onPillPick(preset) {
-			if (!preset || !preset.id) { return }
+			if (!preset || !preset.id) {
+				return
+			}
 			// An "All" / clear preset removes the window (empty from/to) so
 			// optional date tokens drop and widgets show the unfiltered count.
 			if (this.isClearPreset(preset)) {
@@ -2130,7 +2176,9 @@ export default {
 				return
 			}
 			const win = resolvePresetWindow(preset.id, this.effectivePresets)
-			if (!win) { return }
+			if (!win) {
+				return
+			}
 			this.onDateRangeChange({ ...win, preset: preset.id })
 		},
 
@@ -2177,7 +2225,9 @@ export default {
 		 * @return {Date|null} Date for the picker model, or null.
 		 */
 		toPickerDate(iso) {
-			if (!iso) { return null }
+			if (!iso) {
+				return null
+			}
 			const d = new Date(iso)
 			return Number.isNaN(d.getTime()) ? null : d
 		},
@@ -2202,7 +2252,9 @@ export default {
 		 * receives those props (some dashboards are schema-specific).
 		 */
 		pushAiContext() {
-			if (!this.cnAiContext) { return }
+			if (!this.cnAiContext) {
+				return
+			}
 			this.cnAiContext.pageKind = 'dashboard'
 			// Dashboard pages don't universally carry register/schema props —
 			// leave them undefined (they'll be whatever the previous page set,
@@ -2221,7 +2273,9 @@ export default {
 		 * consumers can wire their initial fetch to the same event.
 		 */
 		initDateRange() {
-			if (!this.dateRangeEnabled) { return }
+			if (!this.dateRangeEnabled) {
+				return
+			}
 			let initial = null
 			// 1. Persisted state (when a key is set).
 			if (this.dateRange?.persistKey) {
@@ -2317,8 +2371,12 @@ export default {
 		 * @return {boolean}
 		 */
 		isClearPreset(preset) {
-			if (!preset) { return false }
-			if (preset.clear === true) { return true }
+			if (!preset) {
+				return false
+			}
+			if (preset.clear === true) {
+				return true
+			}
 			return preset.id !== 'custom'
 				&& typeof preset.days !== 'number'
 				&& typeof preset.hours !== 'number'
@@ -2336,9 +2394,13 @@ export default {
 		 */
 		readPersisted(key) {
 			try {
-				if (typeof localStorage === 'undefined') { return null }
+				if (typeof localStorage === 'undefined') {
+					return null
+				}
 				const raw = localStorage.getItem(key)
-				if (!raw) { return null }
+				if (!raw) {
+					return null
+				}
 				const parsed = JSON.parse(raw)
 				if (!parsed || typeof parsed.from !== 'string' || typeof parsed.to !== 'string') {
 					return null
@@ -2363,7 +2425,9 @@ export default {
 		 */
 		persistRange(key, value) {
 			try {
-				if (typeof localStorage === 'undefined') { return }
+				if (typeof localStorage === 'undefined') {
+					return
+				}
 				localStorage.setItem(key, JSON.stringify(value))
 			} catch (_e) {
 				// Intentionally swallowed — non-fatal.
@@ -2388,11 +2452,21 @@ export default {
 				for (const u of updated) {
 					const item = this.layout.find((l) => String(l.id) === String(u.id))
 						|| this.layout.find((l) => l.widgetId === u.widgetId)
-					if (!item) { continue }
-					if (u.gridX !== undefined) { item.gridX = u.gridX }
-					if (u.gridY !== undefined) { item.gridY = u.gridY }
-					if (u.gridWidth !== undefined) { item.gridWidth = u.gridWidth }
-					if (u.gridHeight !== undefined) { item.gridHeight = u.gridHeight }
+					if (!item) {
+						continue
+					}
+					if (u.gridX !== undefined) {
+						item.gridX = u.gridX
+					}
+					if (u.gridY !== undefined) {
+						item.gridY = u.gridY
+					}
+					if (u.gridWidth !== undefined) {
+						item.gridWidth = u.gridWidth
+					}
+					if (u.gridHeight !== undefined) {
+						item.gridHeight = u.gridHeight
+					}
 				}
 			}
 			/**
@@ -2447,10 +2521,16 @@ export default {
 		 */
 		isCollapsedWidget(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			if (!def || !def.type) { return false }
+			if (!def || !def.type) {
+				return false
+			}
 			const { text, visibleWhen } = this.widgetDisplayConfig(def)
-			if (this.isBannerDef(def) && text === '') { return true }
-			if (!visibleWhen) { return false }
+			if (this.isBannerDef(def) && text === '') {
+				return true
+			}
+			if (!visibleWhen) {
+				return false
+			}
 			const outcome = this.widgetConditionOutcome[item.widgetId]
 			return !outcome || outcome.met !== true
 		},
@@ -2503,13 +2583,17 @@ export default {
 					this.widgetConditionOutcome[def.id] = outcome
 				}
 			}))
-			if (seq !== this.widgetEvalSeq) { return }
+			if (seq !== this.widgetEvalSeq) {
+				return
+			}
 			// Prune outcomes for defs that left the conditional set — pruned
 			// AFTER the run (not before) so a still-visible widget never
 			// flashes collapsed while its re-evaluation is in flight.
 			const live = new Set(conditional.map((def) => def.id))
 			for (const id of Object.keys(this.widgetConditionOutcome)) {
-				if (!live.has(id)) { delete this.widgetConditionOutcome[id] }
+				if (!live.has(id)) {
+					delete this.widgetConditionOutcome[id]
+				}
 			}
 			this.widgetConditionsSettled = true
 		},
@@ -2562,11 +2646,19 @@ export default {
 					// was narrower and the two can disagree on gridY.
 					const effectiveWidth = to - x
 					let y = 0
-					for (let c = x; c < to; c++) { y = Math.max(y, heights[c]) }
-					for (let c = x; c < to; c++) { heights[c] = y + h }
-					if (y === (item.gridY ?? 0) && effectiveWidth === w) { return item }
+					for (let c = x; c < to; c++) {
+						y = Math.max(y, heights[c])
+					}
+					for (let c = x; c < to; c++) {
+						heights[c] = y + h
+					}
+					if (y === (item.gridY ?? 0) && effectiveWidth === w) {
+						return item
+					}
 					const out = { ...item, gridY: y }
-					if (effectiveWidth !== w) { out.gridWidth = effectiveWidth }
+					if (effectiveWidth !== w) {
+						out.gridWidth = effectiveWidth
+					}
 					return out
 				})
 		},
@@ -2602,7 +2694,9 @@ export default {
 		requiredAppsFor(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			const req = def && def.requiresApp
-			if (!req) { return [] }
+			if (!req) {
+				return []
+			}
 			return Array.isArray(req) ? req.filter(Boolean) : [req]
 		},
 
@@ -2618,8 +2712,12 @@ export default {
 		isAppAvailable(appId) {
 			const status = this.appStatuses && this.appStatuses[appId]
 			if (status) {
-				if (typeof status.enabled === 'boolean') { return status.enabled }
-				if (typeof status.installed === 'boolean') { return status.installed }
+				if (typeof status.enabled === 'boolean') {
+					return status.enabled
+				}
+				if (typeof status.installed === 'boolean') {
+					return status.installed
+				}
 			}
 			return isAppInstalled(appId)
 		},
@@ -2635,7 +2733,9 @@ export default {
 		 */
 		missingRequiredApp(item) {
 			for (const appId of this.requiredAppsFor(item)) {
-				if (!this.isAppAvailable(appId)) { return appId }
+				if (!this.isAppAvailable(appId)) {
+					return appId
+				}
 			}
 			return null
 		},
@@ -2677,7 +2777,9 @@ export default {
 		 */
 		registryRenderer(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			if (!def || !def.type) { return null }
+			if (!def || !def.type) {
+				return null
+			}
 			// `integration` is NOT ours to resolve — it has its own branch
 			// (isIntegrationWidget -> resolveRegistryWidget(integrationId)),
 			// and one without an `integrationId` must fall through to
@@ -2685,7 +2787,9 @@ export default {
 			// .integration would render a widget where the page means to say
 			// "unavailable". CnDetailPage excludes the same type for the same
 			// reason.
-			if (def.type === 'integration') { return null }
+			if (def.type === 'integration') {
+				return null
+			}
 			// Same three-layer order as CnWidgetGrid and CnDetailPage:
 			// consumer registry -> dashboard catalog -> BUILT_IN_WIDGETS.
 			//
@@ -2703,7 +2807,9 @@ export default {
 			//
 			// #709 unified CnWidgetGrid and CnDetailPage but missed this one.
 			const consumer = (this.cnRegistry || {})[def.type]
-			if (consumer) { return consumer.component ?? consumer }
+			if (consumer) {
+				return consumer.component ?? consumer
+			}
 			// THE TYPE AS WRITTEN WINS; the alias is only a fallback.
 			//
 			// `object-table` and `table` are two DIFFERENT registered widgets
@@ -2723,7 +2829,9 @@ export default {
 			// own right — `map-viewer` still reaches `map`.
 			const entry = getWidgetTypeEntry(def.type)
 				|| getWidgetTypeEntry(canonicalWidgetType(def.type))
-			if (entry && entry.renderer) { return entry.renderer }
+			if (entry && entry.renderer) {
+				return entry.renderer
+			}
 			return BUILT_IN_WIDGETS[def.type] || BUILT_IN_WIDGETS[canonicalWidgetType(def.type)] || null
 		},
 
@@ -2742,7 +2850,9 @@ export default {
 		 */
 		isCardWidget(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			if (!def || !def.type) { return false }
+			if (!def || !def.type) {
+				return false
+			}
 			// Same precedence as registryRenderer: the type as written first, the
 			// alias only as a fallback. Canonicalising first read the card flag
 			// off a DIFFERENT widget's entry, so the chrome could disagree with
@@ -2838,7 +2948,9 @@ export default {
 				def.showTitle = edited.showTitle !== false
 				def.customTitle = edited.customTitle || null
 				def.customIcon = edited.customIcon || null
-				if (edited.content !== undefined) { def.content = edited.content }
+				if (edited.content !== undefined) {
+					def.content = edited.content
+				}
 			}
 			const layoutItem = this.layout.find((l) => l.widgetId === this.configWidgetId)
 			if (layoutItem) {
@@ -2933,7 +3045,9 @@ export default {
 		widgetShowTitle(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			const value = item.showTitle !== undefined ? item.showTitle : def?.showTitle
-			if (value === undefined || value === null) { return !this.isCardWidget(item) }
+			if (value === undefined || value === null) {
+				return !this.isCardWidget(item)
+			}
 			return value !== false
 		},
 
@@ -2977,7 +3091,9 @@ export default {
 		widgetShowActions(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			const value = item.showActions !== undefined ? item.showActions : def?.showActions
-			if (value === undefined || value === null) { return !this.isCardWidget(item) }
+			if (value === undefined || value === null) {
+				return !this.isCardWidget(item)
+			}
 			return value !== false
 		},
 
@@ -3027,10 +3143,18 @@ export default {
 		 */
 		getWidgetShowRefresh(item) {
 			const def = this.getWidgetDef(item.widgetId) || {}
-			if (def.hideRefresh === true || item.hideRefresh === true) { return false }
-			if (typeof def.showRefresh === 'boolean') { return def.showRefresh }
-			if (typeof item.showRefresh === 'boolean') { return item.showRefresh }
-			if (this.hasWidgetSlot(item.widgetId)) { return this.effectiveWidgetShowRefresh }
+			if (def.hideRefresh === true || item.hideRefresh === true) {
+				return false
+			}
+			if (typeof def.showRefresh === 'boolean') {
+				return def.showRefresh
+			}
+			if (typeof item.showRefresh === 'boolean') {
+				return item.showRefresh
+			}
+			if (this.hasWidgetSlot(item.widgetId)) {
+				return this.effectiveWidgetShowRefresh
+			}
 			return this.showRefresh
 		},
 
@@ -3082,7 +3206,9 @@ export default {
 
 		getTileConfig(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			if (!def) { return null }
+			if (!def) {
+				return null
+			}
 			return {
 				title: def.title,
 				icon: def.icon,
@@ -3266,7 +3392,9 @@ export default {
 			// manifest that DOES set them must reach the component, or the
 			// declaration is a silent no-op that reads like configuration.
 			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'vertical', 'filled', 'route', 'iconClass']) {
-				if (props[key] !== undefined) { out[key] = props[key] }
+				if (props[key] !== undefined) {
+					out[key] = props[key]
+				}
 			}
 			// `countLabel` is the unit beside the number ("0 cases", "0 tasks").
 			// It is manifest-authored prose and was being forwarded raw, so a
@@ -3319,10 +3447,14 @@ export default {
 			const props = content.props || def?.props || {}
 			const out = {}
 			const chartKind = content.chartKind || props.chartKind
-			if (chartKind) { out.type = chartKind }
+			if (chartKind) {
+				out.type = chartKind
+			}
 			for (const key of CHART_PROP_KEYS) {
 				const v = content[key] !== undefined ? content[key] : props[key]
-				if (v !== undefined) { out[key] = v }
+				if (v !== undefined) {
+					out[key] = v
+				}
 			}
 			// A dashboard tile's height is fixed by its grid units, so the chart
 			// has to fit the tile — CnChartWidget's standalone default is a
@@ -3331,7 +3463,9 @@ export default {
 			// chart tile into a scroll region: the tile scrolled the graph
 			// instead of showing it. An authored `height` still wins, so a
 			// manifest can pin one deliberately.
-			if (out.height === undefined) { out.height = '100%' }
+			if (out.height === undefined) {
+				out.height = '100%'
+			}
 			return out
 		},
 

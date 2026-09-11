@@ -269,7 +269,9 @@ export default {
 		// robust than the GraphQL count shorthand. Raw `graphql` still flows here.
 		const dsForGraphql = () => {
 			const ds = props.dataSource
-			if (ds && ds.register && ds.schema && !ds.graphql) { return null }
+			if (ds && ds.register && ds.schema && !ds.graphql) {
+				return null
+			}
 			return ds
 		}
 		const { data, loading, error, refetch } = useDataSource(dsForGraphql)
@@ -306,7 +308,9 @@ export default {
 		 */
 		objectCtx() {
 			const c = this.cnObjectContext
-			if (!c) { return null }
+			if (!c) {
+				return null
+			}
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
 
@@ -318,7 +322,9 @@ export default {
 		 */
 		workspaceCtx() {
 			const c = this.cnWorkspaceContext
-			if (!c) { return null }
+			if (!c) {
+				return null
+			}
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
 
@@ -369,7 +375,9 @@ export default {
 		 */
 		restKey() {
 			const ds = this.dataSource || {}
-			if (!ds.register || !ds.schema || ds.graphql) { return null }
+			if (!ds.register || !ds.schema || ds.graphql) {
+				return null
+			}
 			return JSON.stringify({
 				register: ds.register,
 				schema: ds.schema,
@@ -387,7 +395,9 @@ export default {
 		 * @return {string|null}
 		 */
 		entriesKey() {
-			if (!this.hasEntries) { return null }
+			if (!this.hasEntries) {
+				return null
+			}
 			return JSON.stringify(this.entries.map((entry) => ({
 				register: (entry && entry.register) || '',
 				schema: (entry && entry.schema) || '',
@@ -398,9 +408,13 @@ export default {
 		},
 
 		resolvedCount() {
-			if (typeof this.restCount === 'number') { return this.restCount }
+			if (typeof this.restCount === 'number') {
+				return this.restCount
+			}
 			const value = this.dsData?.count
-			if (typeof value === 'number') { return value }
+			if (typeof value === 'number') {
+				return value
+			}
 			if (typeof value === 'string') {
 				const parsed = Number(value)
 				return Number.isFinite(parsed) ? parsed : 0
@@ -482,7 +496,9 @@ export default {
 		 * @return {object|string|null} The token-resolved route.
 		 */
 		resolveEntryRoute(route) {
-			if (!route || typeof route !== 'object') { return route || null }
+			if (!route || typeof route !== 'object') {
+				return route || null
+			}
 			const out = { ...route }
 			if (out.query && typeof out.query === 'object') {
 				out.query = dropOptionalUnresolved(resolveFilterTokens(out.query, this.tokenCtx))
@@ -525,7 +541,9 @@ export default {
 					{ register: src.register, schema: src.schema },
 				)
 				const params = { metric: src.metric || (src.aggregate === 'count' ? 'count' : 'count') }
-				if (src.field) { params.field = src.field }
+				if (src.field) {
+					params.field = src.field
+				}
 				for (const [k, v] of Object.entries(filter || {})) {
 					if (v && typeof v === 'object') {
 						for (const [op, ov] of Object.entries(v)) { params[`filter[${k}][${op}]`] = ov }
@@ -550,7 +568,9 @@ export default {
 		 */
 		async fetchRest() {
 			const ds = this.dataSource || {}
-			if (!ds.register || !ds.schema || ds.graphql) { this.restCount = null; return }
+			if (!ds.register || !ds.schema || ds.graphql) {
+				this.restCount = null; return
+			}
 			this.restCount = await this.fetchValue(ds, resolveFilterTokens(ds.filter || {}))
 		},
 
@@ -573,12 +593,18 @@ export default {
 			const entries = this.entries
 			this.entryFetching = entries.map(() => true)
 			const counts = await Promise.all(entries.map(async (entry) => {
-				if (!entry || !entry.register || !entry.schema) { return null }
+				if (!entry || !entry.register || !entry.schema) {
+					return null
+				}
 				const filter = this.resolvedEntryFilter(entry)
-				if (hasUnresolvedTokens(filter)) { return null }
+				if (hasUnresolvedTokens(filter)) {
+					return null
+				}
 				return this.fetchValue(entry, filter)
 			}))
-			if (id !== this.entriesRequestId) { return }
+			if (id !== this.entriesRequestId) {
+				return
+			}
 			this.entryCounts = counts
 			this.entryFetching = entries.map(() => false)
 		},

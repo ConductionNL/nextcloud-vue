@@ -151,7 +151,9 @@ export default {
 			type: String,
 			default: '',
 			validator(value) {
-				if (!value) { return true }
+				if (!value) {
+					return true
+				}
 				// Block dangerous schemes before Vue even renders.
 				// safeHref returns '#' for javascript:/data:/vbscript:// etc.
 				return safeHref(value) !== '#'
@@ -208,7 +210,9 @@ export default {
 		 * @return {string|null}
 		 */
 		safeSrc() {
-			if (!this.conversationSource) { return null }
+			if (!this.conversationSource) {
+				return null
+			}
 			const validated = safeHref(this.conversationSource)
 			return validated === '#' ? null : validated
 		},

@@ -313,45 +313,83 @@ export default {
 		 * @return {string} one of SUPPORTED_WIDGETS
 		 */
 		resolvedWidget() {
-			if (this.widget === 'array') { return 'select' }
-			if (this.widget) { return this.widget }
-			const prop = this.schemaProp
-			if (!prop) { return 'text' }
-			if (prop.type === 'boolean') { return 'boolean' }
-			if (prop.type === 'array') {
-				if (prop.items?.type === 'object') { return 'objectArray' }
+			if (this.widget === 'array') {
 				return 'select'
 			}
-			if (prop.type === 'object') { return 'object' }
-			if (prop.type === 'string') {
-				if (Array.isArray(prop.enum) && prop.enum.length > 0) { return 'select' }
-				const fmt = prop.format || ''
-				if (['date', 'time', 'date-time'].includes(fmt)) { return 'datetime' }
-				if (TEXTAREA_FORMATS.has(fmt)) { return 'textarea' }
-				if (COLOR_FORMATS.has(fmt)) { return 'color' }
+			if (this.widget) {
+				return this.widget
 			}
-			if (prop.type === 'number' || prop.type === 'integer') { return 'number' }
+			const prop = this.schemaProp
+			if (!prop) {
+				return 'text'
+			}
+			if (prop.type === 'boolean') {
+				return 'boolean'
+			}
+			if (prop.type === 'array') {
+				if (prop.items?.type === 'object') {
+					return 'objectArray'
+				}
+				return 'select'
+			}
+			if (prop.type === 'object') {
+				return 'object'
+			}
+			if (prop.type === 'string') {
+				if (Array.isArray(prop.enum) && prop.enum.length > 0) {
+					return 'select'
+				}
+				const fmt = prop.format || ''
+				if (['date', 'time', 'date-time'].includes(fmt)) {
+					return 'datetime'
+				}
+				if (TEXTAREA_FORMATS.has(fmt)) {
+					return 'textarea'
+				}
+				if (COLOR_FORMATS.has(fmt)) {
+					return 'color'
+				}
+			}
+			if (prop.type === 'number' || prop.type === 'integer') {
+				return 'number'
+			}
 			return 'text'
 		},
 
 		inputType() {
 			const prop = this.schemaProp
-			if (!prop) { return 'text' }
+			if (!prop) {
+				return 'text'
+			}
 			const fmt = prop.format || ''
 			if (prop.type === 'string') {
-				if (fmt === 'email' || fmt === 'idn-email') { return 'email' }
-				if (URL_FORMATS.has(fmt)) { return 'url' }
-				if (fmt === 'password') { return 'password' }
-				if (fmt === 'telephone' || fmt === 'phone') { return 'tel' }
+				if (fmt === 'email' || fmt === 'idn-email') {
+					return 'email'
+				}
+				if (URL_FORMATS.has(fmt)) {
+					return 'url'
+				}
+				if (fmt === 'password') {
+					return 'password'
+				}
+				if (fmt === 'telephone' || fmt === 'phone') {
+					return 'tel'
+				}
 			}
-			if (prop.type === 'number' || prop.type === 'integer') { return 'number' }
+			if (prop.type === 'number' || prop.type === 'integer') {
+				return 'number'
+			}
 			return 'text'
 		},
 
 		pattern() {
 			const prop = this.schemaProp
-			if (!prop || prop.type !== 'string') { return undefined }
-			if (prop.pattern) { return prop.pattern }
+			if (!prop || prop.type !== 'string') {
+				return undefined
+			}
+			if (prop.pattern) {
+				return prop.pattern
+			}
 			return undefined
 		},
 
@@ -370,15 +408,21 @@ export default {
 
 		/** CSS-renderable representation of the current color value (raw value works for all standard formats). */
 		colorPreviewValue() {
-			if (this.pendingColor) { return this.pendingColor }
+			if (this.pendingColor) {
+				return this.pendingColor
+			}
 			const v = this.stringValue
-			if (!v) { return '' }
+			if (!v) {
+				return ''
+			}
 			return v
 		},
 
 		/** Text-field value: shows the optimistic pendingColor while the picker is dragging. */
 		colorTextValue() {
-			if (this.pendingColor) { return this.pendingColor }
+			if (this.pendingColor) {
+				return this.pendingColor
+			}
 			return this.stringValue
 		},
 
@@ -394,8 +438,12 @@ export default {
 		 */
 		colorPickerMode() {
 			const fmt = this.schemaProp?.format
-			if (fmt === 'color-rgb' || fmt === 'color-rgba') { return 'rgb' }
-			if (fmt === 'color-hsl' || fmt === 'color-hsla') { return 'hsl' }
+			if (fmt === 'color-rgb' || fmt === 'color-rgba') {
+				return 'rgb'
+			}
+			if (fmt === 'color-hsl' || fmt === 'color-hsla') {
+				return 'hsl'
+			}
 			return 'hex'
 		},
 
@@ -406,7 +454,9 @@ export default {
 		 */
 		chromePickerValue() {
 			const v = this.pendingColor || this.stringValue
-			if (v) { return v }
+			if (v) {
+				return v
+			}
 			return { hex: this.hexColorValue, a: 1 }
 		},
 
@@ -428,7 +478,9 @@ export default {
 		/** Hex string used as the value of the native `<input type="color">`. */
 		hexColorValue() {
 			const v = this.stringValue
-			if (!v) { return '#000000' }
+			if (!v) {
+				return '#000000'
+			}
 			const trimmed = v.trim()
 			const hexMatch = trimmed.match(/^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i)
 			if (hexMatch) {
@@ -452,8 +504,12 @@ export default {
 
 		step() {
 			const prop = this.schemaProp
-			if (prop?.type === 'integer') { return '1' }
-			if (prop?.type === 'number') { return 'any' }
+			if (prop?.type === 'integer') {
+				return '1'
+			}
+			if (prop?.type === 'number') {
+				return 'any'
+			}
 			return undefined
 		},
 
@@ -473,13 +529,17 @@ export default {
 
 		helpDescription() {
 			const prop = this.schemaProp
-			if (!prop) { return '' }
+			if (!prop) {
+				return ''
+			}
 			return prop.userDescription || prop.description || ''
 		},
 
 		helpExample() {
 			const ex = this.schemaProp?.example
-			if (ex === undefined || ex === null || ex === '') { return '' }
+			if (ex === undefined || ex === null || ex === '') {
+				return ''
+			}
 			if (typeof ex === 'object') {
 				try { return JSON.stringify(ex) } catch { return '' }
 			}
@@ -497,10 +557,16 @@ export default {
 
 		/** Resolved option list for the `select` widget (explicit prop, schema enum, or items.enum). */
 		effectiveSelectOptions() {
-			if (this.selectOptions) { return this.selectOptions }
+			if (this.selectOptions) {
+				return this.selectOptions
+			}
 			const prop = this.schemaProp
-			if (!prop) { return [] }
-			if (Array.isArray(prop.enum) && prop.enum.length > 0) { return prop.enum }
+			if (!prop) {
+				return []
+			}
+			if (Array.isArray(prop.enum) && prop.enum.length > 0) {
+				return prop.enum
+			}
 			if (prop.type === 'array' && Array.isArray(prop.items?.enum) && prop.items.enum.length > 0) {
 				return prop.items.enum
 			}
@@ -509,16 +575,24 @@ export default {
 
 		/** Whether the `select` widget allows multiple values. */
 		effectiveSelectMultiple() {
-			if (this.widget === 'select') { return this.selectMultiple }
-			if (this.widget === 'array') { return true }
+			if (this.widget === 'select') {
+				return this.selectMultiple
+			}
+			if (this.widget === 'array') {
+				return true
+			}
 			const prop = this.schemaProp
-			if (prop?.type === 'array') { return true }
+			if (prop?.type === 'array') {
+				return true
+			}
 			return false
 		},
 
 		/** Whether the `select` widget accepts free-form tags (no fixed enum). */
 		effectiveSelectTaggable() {
-			if (this.widget === 'select') { return false }
+			if (this.widget === 'select') {
+				return false
+			}
 			const prop = this.schemaProp
 			const isArray = this.widget === 'array' || prop?.type === 'array'
 			return isArray && this.effectiveSelectOptions.length === 0
@@ -533,10 +607,14 @@ export default {
 				return match !== undefined ? match : id
 			}
 			if (this.effectiveSelectMultiple) {
-				if (!Array.isArray(v)) { return [] }
+				if (!Array.isArray(v)) {
+					return []
+				}
 				return v.map(lookup)
 			}
-			if (v == null || v === '') { return null }
+			if (v == null || v === '') {
+				return null
+			}
 			return lookup(v)
 		},
 
@@ -559,15 +637,21 @@ export default {
 		 */
 		datetimePickerType() {
 			const fmt = this.schemaProp?.format
-			if (fmt === 'date') { return 'date' }
-			if (fmt === 'time') { return 'time' }
+			if (fmt === 'date') {
+				return 'date'
+			}
+			if (fmt === 'time') {
+				return 'time'
+			}
 			return 'datetime'
 		},
 
 		/** Current value as a `Date` instance for NcDateTimePicker, or null. */
 		datetimeValue() {
 			const v = this.value
-			if (!v) { return null }
+			if (!v) {
+				return null
+			}
 			// Date-only strings (YYYY-MM-DD) are parsed as UTC midnight by the spec,
 			// which shifts to the previous day in positive-UTC-offset timezones when
 			// fed to a picker that renders in local time. Parse them as local midnight.
@@ -583,16 +667,26 @@ export default {
 
 		stringValue() {
 			const v = this.value
-			if (v == null) { return '' }
-			if (typeof v === 'string') { return v }
-			if (typeof v === 'object') { return JSON.stringify(v) }
+			if (v == null) {
+				return ''
+			}
+			if (typeof v === 'string') {
+				return v
+			}
+			if (typeof v === 'object') {
+				return JSON.stringify(v)
+			}
 			return String(v)
 		},
 
 		objectJsonString() {
 			const v = this.value
-			if (v == null) { return '' }
-			if (typeof v === 'string') { return v }
+			if (v == null) {
+				return ''
+			}
+			if (typeof v === 'string') {
+				return v
+			}
 			try {
 				return JSON.stringify(v, null, 2)
 			} catch {
@@ -610,15 +704,21 @@ export default {
 
 		displayValue() {
 			const prop = this.schemaProp
-			if (prop?.const !== undefined) { return prop.const }
+			if (prop?.const !== undefined) {
+				return prop.const
+			}
 			const v = this.value
-			if (v === null || v === undefined || v === '') { return '—' }
+			if (v === null || v === undefined || v === '') {
+				return '—'
+			}
 			return formatValue(v, prop || {})
 		},
 
 		formattedDateValue() {
 			const v = this.value
-			if (!v) { return '' }
+			if (!v) {
+				return ''
+			}
 			const fmt = this.schemaProp?.format
 			// Same local-midnight parse as datetimeValue to avoid UTC-shift in display.
 			if (fmt === 'date' && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
@@ -626,9 +726,15 @@ export default {
 				return new Date(year, month - 1, day).toLocaleDateString()
 			}
 			const d = new Date(v)
-			if (Number.isNaN(d.getTime())) { return String(v) }
-			if (fmt === 'date') { return d.toLocaleDateString() }
-			if (fmt === 'time') { return d.toLocaleTimeString() }
+			if (Number.isNaN(d.getTime())) {
+				return String(v)
+			}
+			if (fmt === 'date') {
+				return d.toLocaleDateString()
+			}
+			if (fmt === 'time') {
+				return d.toLocaleTimeString()
+			}
 			return d.toLocaleString()
 		},
 	},
@@ -646,12 +752,16 @@ export default {
 		/** Focus the underlying text input (called by parent after row click) */
 		focus() {
 			const ref = this.$refs.inputRef
-			if (!ref) { return }
+			if (!ref) {
+				return
+			}
 			const el = ref.$el || ref
 			const input = el?.querySelector?.('input,textarea')
 			if (input) {
 				input.focus()
-				if (typeof input.select === 'function') { input.select() }
+				if (typeof input.select === 'function') {
+					input.select()
+				}
 			}
 		},
 
@@ -666,11 +776,15 @@ export default {
 				switch (prop.type) {
 					case 'number':
 						converted = newVal === '' ? null : parseFloat(newVal)
-						if (Number.isNaN(converted)) { converted = null }
+						if (Number.isNaN(converted)) {
+							converted = null
+						}
 						break
 					case 'integer':
 						converted = newVal === '' ? null : parseInt(newVal, 10)
-						if (Number.isNaN(converted)) { converted = null }
+						if (Number.isNaN(converted)) {
+							converted = null
+						}
 						break
 					case 'boolean':
 						converted = Boolean(newVal)
@@ -758,17 +872,31 @@ export default {
 		 * @return {*}
 		 */
 		coerceItem(v, itemType) {
-			if (v === null || v === undefined) { return v }
+			if (v === null || v === undefined) {
+				return v
+			}
 			// No declared item type — pass through untouched (preserves the
 			// shape consumers may have set up via `selectOptions` etc).
-			if (!itemType) { return v }
+			if (!itemType) {
+				return v
+			}
 			// Already the right shape — pass through.
-			if (itemType === 'number' && typeof v === 'number') { return v }
-			if (itemType === 'integer' && typeof v === 'number' && Number.isInteger(v)) { return v }
-			if (itemType === 'boolean' && typeof v === 'boolean') { return v }
-			if (itemType === 'string' && typeof v === 'string') { return v }
+			if (itemType === 'number' && typeof v === 'number') {
+				return v
+			}
+			if (itemType === 'integer' && typeof v === 'number' && Number.isInteger(v)) {
+				return v
+			}
+			if (itemType === 'boolean' && typeof v === 'boolean') {
+				return v
+			}
+			if (itemType === 'string' && typeof v === 'string') {
+				return v
+			}
 			const s = String(v).trim()
-			if (s === '') { return undefined }
+			if (s === '') {
+				return undefined
+			}
 			if (itemType === 'number') {
 				const n = Number(s)
 				return Number.isFinite(n) ? n : undefined
@@ -778,8 +906,12 @@ export default {
 				return Number.isFinite(n) && Number.isInteger(n) ? n : undefined
 			}
 			if (itemType === 'boolean') {
-				if (/^(true|1|yes|on)$/i.test(s)) { return true }
-				if (/^(false|0|no|off)$/i.test(s)) { return false }
+				if (/^(true|1|yes|on)$/i.test(s)) {
+					return true
+				}
+				if (/^(false|0|no|off)$/i.test(s)) {
+					return false
+				}
 				return undefined
 			}
 			return s
@@ -851,7 +983,9 @@ export default {
 			}
 			if (item && typeof item === 'object') {
 				for (const v of Object.values(item)) {
-					if (v == null || v === '') { continue }
+					if (v == null || v === '') {
+						continue
+					}
 					if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
 						return String(v)
 					}
@@ -861,7 +995,9 @@ export default {
 		},
 
 		isValidDate(v) {
-			if (!v) { return false }
+			if (!v) {
+				return false
+			}
 			const d = new Date(v)
 			return d instanceof Date && !Number.isNaN(d.getTime())
 		},
@@ -879,12 +1015,16 @@ export default {
 				const el = document.createElement('div')
 				el.style.color = ''
 				el.style.color = cssValue
-				if (!el.style.color) { return null }
+				if (!el.style.color) {
+					return null
+				}
 				document.body.appendChild(el)
 				const rgb = getComputedStyle(el).color
 				document.body.removeChild(el)
 				const m = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
-				if (!m) { return null }
+				if (!m) {
+					return null
+				}
 				const toHex = (n) => parseInt(n, 10).toString(16).padStart(2, '0')
 				return `#${toHex(m[1])}${toHex(m[2])}${toHex(m[3])}`
 			} catch {
@@ -907,7 +1047,9 @@ export default {
 		 */
 		onChromeColorInput(color) {
 			this.pendingColor = this.chromeColorToFormatValue(color)
-			if (this.pendingColorTimer) { clearTimeout(this.pendingColorTimer) }
+			if (this.pendingColorTimer) {
+				clearTimeout(this.pendingColorTimer)
+			}
 			this.pendingColorTimer = setTimeout(() => this.flushPendingColor(), 120)
 		},
 
@@ -925,9 +1067,13 @@ export default {
 			const g = rgba?.g ?? 0
 			const b = rgba?.b ?? 0
 			const a = rgba?.a ?? color?.a ?? 1
-			if (fmt === 'color-hex' || fmt === 'color') { return (hex || '#000000').toLowerCase() }
+			if (fmt === 'color-hex' || fmt === 'color') {
+				return (hex || '#000000').toLowerCase()
+			}
 			if (fmt === 'color-hex-alpha') {
-				if (hex8) { return hex8.toLowerCase() }
+				if (hex8) {
+					return hex8.toLowerCase()
+				}
 				const aHex = Math.round(a * 255).toString(16).padStart(2, '0')
 				return ((hex || '#000000') + aHex).toLowerCase()
 			}
@@ -949,7 +1095,9 @@ export default {
 				clearTimeout(this.pendingColorTimer)
 				this.pendingColorTimer = null
 			}
-			if (this.pendingColor === null) { return }
+			if (this.pendingColor === null) {
+				return
+			}
 			const out = this.pendingColor
 			this.pendingColor = null
 			this.$emit('update:value', out)

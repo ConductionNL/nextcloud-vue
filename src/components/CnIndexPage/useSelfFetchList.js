@@ -9,7 +9,9 @@ import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '.
 
 function resolveInitialQuickFilterIndex(quickFilters) {
 	const tabs = Array.isArray(quickFilters) ? quickFilters : null
-	if (!tabs || tabs.length === 0) { return null }
+	if (!tabs || tabs.length === 0) {
+		return null
+	}
 	const di = tabs.findIndex((t) => t && t.default === true)
 	return di >= 0 ? di : 0
 }
@@ -26,12 +28,20 @@ function resolveInitialQuickFilterIndex(quickFilters) {
 function unionFilterMaps(filterMaps) {
 	const grouped = {}
 	for (const map of filterMaps) {
-		if (!map || typeof map !== 'object') { continue }
+		if (!map || typeof map !== 'object') {
+			continue
+		}
 		for (const [k, v] of Object.entries(map)) {
-			if (v === undefined || v === null || v === '') { continue }
-			if (!grouped[k]) { grouped[k] = [] }
+			if (v === undefined || v === null || v === '') {
+				continue
+			}
+			if (!grouped[k]) {
+				grouped[k] = []
+			}
 			for (const item of (Array.isArray(v) ? v : [v])) {
-				if (!grouped[k].includes(item)) { grouped[k].push(item) }
+				if (!grouped[k].includes(item)) {
+					grouped[k].push(item)
+				}
 			}
 		}
 	}
@@ -186,7 +196,9 @@ export function useSelfFetchList(props, instance, inject) {
 	// `@workspace.<key>`/`@config.<key>` token in `props.filter` must re-scope
 	// the list without a manual reload.
 	watch([activeQuickFilterIndex, selectedQuickFilterIndices, workspaceSignature, appConfigSignature], () => {
-		if (list && typeof list.refresh === 'function') { list.refresh(1) }
+		if (list && typeof list.refresh === 'function') {
+			list.refresh(1)
+		}
 	})
 
 	// Live collection updates (manifest-live-updates): subscribe to the

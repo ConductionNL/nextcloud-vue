@@ -157,7 +157,9 @@ function synthProps(name, Component) {
 			}
 
 			// `props: { foo: String }` shorthand declares no `required`.
-			if (!isObj || def.required !== true) { continue }
+			if (!isObj || def.required !== true) {
+				continue
+			}
 			props[key] = valueForType(type)
 		}
 	}

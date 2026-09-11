@@ -259,7 +259,9 @@ export default {
 		 * @return {object|null}
 		 */
 		selectedField() {
-			if (this.selectedIndex < 0 || this.selectedIndex >= this.model.length) { return null }
+			if (this.selectedIndex < 0 || this.selectedIndex >= this.model.length) {
+				return null
+			}
 			return this.model[this.selectedIndex]
 		},
 
@@ -320,7 +322,9 @@ export default {
 		addField(type) {
 			const key = `field_${this.autoKeyCounter++}`
 			const entry = { key, type, label: '', required: false }
-			if (type === 'enum') { entry.options = [] }
+			if (type === 'enum') {
+				entry.options = []
+			}
 			this.model = [...this.model, entry]
 			this.selectedIndex = this.model.length - 1
 			this.emitChange()
@@ -334,7 +338,9 @@ export default {
 		 * @return {void}
 		 */
 		updateSelected(prop, value) {
-			if (this.selectedIndex < 0) { return }
+			if (this.selectedIndex < 0) {
+				return
+			}
 			const updated = { ...this.model[this.selectedIndex], [prop]: value }
 			const next = [...this.model]
 			next[this.selectedIndex] = updated
@@ -351,12 +357,16 @@ export default {
 		 */
 		moveField(idx, dir) {
 			const target = idx + dir
-			if (target < 0 || target >= this.model.length) { return }
+			if (target < 0 || target >= this.model.length) {
+				return
+			}
 			const next = [...this.model]
 			const [field] = next.splice(idx, 1)
 			next.splice(target, 0, field)
 			this.model = next
-			if (this.selectedIndex === idx) { this.selectedIndex = target } else if (this.selectedIndex === target) { this.selectedIndex = idx }
+			if (this.selectedIndex === idx) { this.selectedIndex = target } else if (this.selectedIndex === target) {
+				this.selectedIndex = idx
+			}
 			this.emitChange()
 		},
 

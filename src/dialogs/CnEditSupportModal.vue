@@ -217,7 +217,9 @@ export default {
 		// Vue 2 won't track later edits. The buttons are seeded with their
 		// defaults so all four are visible and can be toggled, relabelled,
 		// re-styled, re-iconed or dropped.
-		if (!this.working) { return }
+		if (!this.working) {
+			return
+		}
 		if (!this.working.support || typeof this.working.support !== 'object') {
 			this.working.support = { enabled: true }
 		}
@@ -285,7 +287,9 @@ export default {
 		 */
 		onAvatarFile(event) {
 			const file = event.target && event.target.files && event.target.files[0]
-			if (!file) { return }
+			if (!file) {
+				return
+			}
 			const reader = new FileReader()
 			reader.onload = () => {
 				this.support.founderAvatarUrl = String(reader.result)

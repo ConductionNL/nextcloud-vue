@@ -57,7 +57,9 @@ export function useManifestEditor(baseRef, options = {}) {
 	const snapshot = ref(null)
 
 	const dirty = computed(() => {
-		if (!editing.value || snapshot.value == null) { return false }
+		if (!editing.value || snapshot.value == null) {
+			return false
+		}
 		return stableStringify(baseRef.value) !== stableStringify(snapshot.value)
 	})
 
@@ -103,7 +105,9 @@ export function useManifestEditor(baseRef, options = {}) {
 
 	/** Restore the live manifest from the snapshot (in place) and leave edit mode. */
 	function cancel() {
-		if (snapshot.value && baseRef.value) { restoreInPlace(baseRef.value, snapshot.value) }
+		if (snapshot.value && baseRef.value) {
+			restoreInPlace(baseRef.value, snapshot.value)
+		}
 		snapshot.value = null
 		editing.value = false
 	}
@@ -143,7 +147,9 @@ export function useManifestEditor(baseRef, options = {}) {
  */
 function restoreInPlace(target, snap) {
 	for (const key of Object.keys(target)) {
-		if (!(key in snap)) { delete target[key] }
+		if (!(key in snap)) {
+			delete target[key]
+		}
 	}
 	for (const key of Object.keys(snap)) {
 		target[key] = deepClone(snap[key])
@@ -157,8 +163,12 @@ function restoreInPlace(target, snap) {
  * @return {*} A deep clone of the value.
  */
 function deepClone(value) {
-	if (value == null) { return value }
-	if (typeof structuredClone === 'function') { return structuredClone(value) }
+	if (value == null) {
+		return value
+	}
+	if (typeof structuredClone === 'function') {
+		return structuredClone(value)
+	}
 	return JSON.parse(JSON.stringify(value))
 }
 

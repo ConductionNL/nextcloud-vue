@@ -76,14 +76,18 @@ export default {
 			if (this.activeOrganisation && this.activeOrganisation.name) {
 				return this.activeOrganisation.name
 			}
-			if (this.fallbackName) { return this.fallbackName }
+			if (this.fallbackName) {
+				return this.fallbackName
+			}
 			return this.activeOrganisationUuid || ''
 		},
 
 		/** Single-letter avatar based on the resolved name. */
 		iconLetter() {
 			const name = this.displayName
-			if (!name) { return '' }
+			if (!name) {
+				return ''
+			}
 			return name.charAt(0).toUpperCase()
 		},
 

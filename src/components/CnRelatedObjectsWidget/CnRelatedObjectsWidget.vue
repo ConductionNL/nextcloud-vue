@@ -765,7 +765,9 @@ export default {
 		 * @return {boolean} true when the tab strip should be shown.
 		 */
 		tabStripVisible() {
-			if (!this.visibleGroups.length) { return false }
+			if (!this.visibleGroups.length) {
+				return false
+			}
 			return !(this.hideSingleTabTitle && this.visibleGroups.length === 1)
 		},
 
@@ -790,7 +792,9 @@ export default {
 
 		/** The currently active group, defaulting to the first visible one. */
 		activeGroup() {
-			if (!this.visibleGroups.length) { return null }
+			if (!this.visibleGroups.length) {
+				return null
+			}
 			return this.visibleGroups.find((group) => group.key === this.activeKey) || this.visibleGroups[0]
 		},
 
@@ -802,9 +806,15 @@ export default {
 
 		/** True when every legacy section is empty. */
 		isEmpty() {
-			if (this.objectItems.length || this.fileItems.length) { return false }
-			if (this.extraSections.some((s) => (s.items || []).length)) { return false }
-			if (this.showIntegrations && this.linkedApps.length) { return false }
+			if (this.objectItems.length || this.fileItems.length) {
+				return false
+			}
+			if (this.extraSections.some((s) => (s.items || []).length)) {
+				return false
+			}
+			if (this.showIntegrations && this.linkedApps.length) {
+				return false
+			}
 			return true
 		},
 
@@ -821,7 +831,9 @@ export default {
 		 */
 		resolvedEmptyLabel() {
 			const legacyDefault = t('nextcloud-vue', 'Nothing related yet')
-			if (this.emptyLabel && this.emptyLabel !== legacyDefault) { return this.emptyLabel }
+			if (this.emptyLabel && this.emptyLabel !== legacyDefault) {
+				return this.emptyLabel
+			}
 			if (this.singleSourceKey) {
 				return t('nextcloud-vue', 'No {source} yet', { source: this.groupLabelFor(this.singleSourceKey).toLowerCase() })
 			}
@@ -830,7 +842,9 @@ export default {
 
 		/** Empty-state icon: the single source's own icon, else a generic link. */
 		emptyIconName() {
-			if (this.singleSourceKey) { return this.groupIconFor(this.singleSourceKey) }
+			if (this.singleSourceKey) {
+				return this.groupIconFor(this.singleSourceKey)
+			}
 			return 'LinkVariant'
 		},
 
@@ -906,8 +920,12 @@ export default {
 		 * @return {string}
 		 */
 		groupLabelFor(key) {
-			if (key === 'objects') { return this.objectsLabel }
-			if (key === 'files') { return this.filesLabel }
+			if (key === 'objects') {
+				return this.objectsLabel
+			}
+			if (key === 'files') {
+				return this.filesLabel
+			}
 			return this.leafLabel(key)
 		},
 
@@ -918,8 +936,12 @@ export default {
 		 * @return {string}
 		 */
 		groupIconFor(key) {
-			if (key === 'objects') { return 'FileTreeOutline' }
-			if (key === 'files') { return 'Paperclip' }
+			if (key === 'objects') {
+				return 'FileTreeOutline'
+			}
+			if (key === 'files') {
+				return 'Paperclip'
+			}
 			const def = LEAF_GROUPS.find((g) => g.key === key)
 			return (def && (this.integrationIcon(def.integrationId) || def.icon)) || 'LinkVariant'
 		},
@@ -947,7 +969,9 @@ export default {
 		/** Open the hidden file input for the footer upload flow. */
 		openFilePicker() {
 			this.addError = ''
-			if (this.fileInputEl) { this.fileInputEl.click() }
+			if (this.fileInputEl) {
+				this.fileInputEl.click()
+			}
 		},
 
 		/**
@@ -959,7 +983,9 @@ export default {
 		async onFilesPicked(event) {
 			const files = Array.from((event.target && event.target.files) || [])
 			event.target.value = ''
-			if (!files.length || this.uploading) { return }
+			if (!files.length || this.uploading) {
+				return
+			}
 			this.uploading = true
 			this.addError = ''
 			try {
@@ -997,7 +1023,9 @@ export default {
 		 */
 		async onAddNote() {
 			const message = String(this.noteDraft || '').trim()
-			if (!message) { return }
+			if (!message) {
+				return
+			}
 			this.addError = ''
 			try {
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}/notes', {
@@ -1176,7 +1204,9 @@ export default {
 		 * @return {string}
 		 */
 		integrationIcon(integrationId) {
-			if (!integrationId || typeof this.getById !== 'function') { return '' }
+			if (!integrationId || typeof this.getById !== 'function') {
+				return ''
+			}
 			const entry = this.getById(integrationId)
 			return (entry && entry.icon) || ''
 		},
@@ -1239,7 +1269,9 @@ export default {
 				// `no-store`: relations change as the user links content; a stale
 				// cached empty response would wrongly show the empty state on load.
 				const response = await fetch(this.relatedUrl(suffix), { method: 'GET', headers: buildHeaders(), cache: 'no-store' })
-				if (!response.ok) { return null }
+				if (!response.ok) {
+					return null
+				}
 				return await response.json()
 			} catch {
 				return null
@@ -1252,9 +1284,13 @@ export default {
 		 * @return {object|null}
 		 */
 		getStore() {
-			if (this.store) { return this.store }
+			if (this.store) {
+				return this.store
+			}
 			try {
-				if (!this.$pinia) { return null }
+				if (!this.$pinia) {
+					return null
+				}
 				return useObjectStore()
 			} catch {
 				return null
@@ -1344,11 +1380,15 @@ export default {
 		 * @return {string}
 		 */
 		formatSize(bytes) {
-			if (!Number.isFinite(bytes)) { return '' }
+			if (!Number.isFinite(bytes)) {
+				return ''
+			}
 			const units = ['B', 'KB', 'MB', 'GB']
 			let n = bytes
 			let u = 0
-			while (n >= 1024 && u < units.length - 1) { n /= 1024; u++ }
+			while (n >= 1024 && u < units.length - 1) {
+				n /= 1024; u++
+			}
 			return `${n.toFixed(u === 0 ? 0 : 1)} ${units[u]}`
 		},
 
@@ -1437,8 +1477,12 @@ export default {
 				for (const raw of ((envelope && envelope.results) || [])) {
 					const row = this.toObjectRow(raw)
 					const key = String(row.id)
-					if (key && seen.has(key)) { continue }
-					if (key) { seen.add(key) }
+					if (key && seen.has(key)) {
+						continue
+					}
+					if (key) {
+						seen.add(key)
+					}
 					merged.push(row)
 				}
 			}
@@ -1500,9 +1544,15 @@ export default {
 			try {
 				if (this.showObjects) {
 					const calls = []
-					if (typeof store.fetchUses === 'function') { calls.push(store.fetchUses(type, id)) }
-					if (typeof store.fetchUsed === 'function') { calls.push(store.fetchUsed(type, id)) }
-					if (typeof store.fetchContracts === 'function') { calls.push(store.fetchContracts(type, id)) }
+					if (typeof store.fetchUses === 'function') {
+						calls.push(store.fetchUses(type, id))
+					}
+					if (typeof store.fetchUsed === 'function') {
+						calls.push(store.fetchUsed(type, id))
+					}
+					if (typeof store.fetchContracts === 'function') {
+						calls.push(store.fetchContracts(type, id))
+					}
 					const groups = await Promise.all(calls)
 					const seen = new Set()
 					const merged = []
@@ -1510,8 +1560,12 @@ export default {
 						for (const raw of (group || [])) {
 							const row = this.toObjectRow(raw)
 							const key = String(row.id)
-							if (key && seen.has(key)) { continue }
-							if (key) { seen.add(key) }
+							if (key && seen.has(key)) {
+								continue
+							}
+							if (key) {
+								seen.add(key)
+							}
 							merged.push(row)
 						}
 					}

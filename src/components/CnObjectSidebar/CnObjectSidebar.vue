@@ -719,7 +719,9 @@ export default {
 
 		requestedTab(id) {
 			// Host deep-link: switch to the requested tab when it changes.
-			if (id) { this.activeTab = id }
+			if (id) {
+				this.activeTab = id
+			}
 		},
 	},
 
@@ -820,9 +822,13 @@ export default {
 		 * @return {object|null} Vue component, or null when unresolved
 		 */
 		resolveWidgetComponent(type) {
-			if (BUILTIN_WIDGETS[type]) { return BUILTIN_WIDGETS[type] }
+			if (BUILTIN_WIDGETS[type]) {
+				return BUILTIN_WIDGETS[type]
+			}
 			const reg = this.effectiveCustomComponents
-			if (reg && reg[type]) { return reg[type] }
+			if (reg && reg[type]) {
+				return reg[type]
+			}
 			// eslint-disable-next-line no-console
 			console.warn(`[CnObjectSidebar] Unknown widget type "${type}" — not in built-ins (data, metadata, audit, audit-trail, object-table) and not in customComponents registry.`)
 			return null

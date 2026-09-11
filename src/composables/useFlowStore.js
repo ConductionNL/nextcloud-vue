@@ -731,8 +731,12 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {Promise<void>}
 		 */
 		async ensureFlowLoaded(id) {
-			if (!id || id === 'new') { return }
-			if (this.flows.some((flow) => String(flow.id) === String(id))) { return }
+			if (!id || id === 'new') {
+				return
+			}
+			if (this.flows.some((flow) => String(flow.id) === String(id))) {
+				return
+			}
 
 			try {
 				const response = await axios.get(generateUrl('/apps/openregister/api/flows/' + encodeURIComponent(id)))

@@ -283,7 +283,9 @@ describe('CnFormPage — manifest-form-logic', () => {
 
 	afterEach(() => {
 		warnSpy.mockRestore()
-		if (global.fetch && global.fetch.mockRestore) { global.fetch.mockRestore() }
+		if (global.fetch && global.fetch.mockRestore) {
+			global.fetch.mockRestore()
+		}
 	})
 
 	describe('steps: indicator + navigation (REQ-MFL-6)', () => {

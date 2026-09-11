@@ -280,12 +280,18 @@ export default {
 
 	methods: {
 		matchesAllowedTypes(mime) {
-			if (!mime) { return false }
+			if (!mime) {
+				return false
+			}
 			for (const pattern of this.allowedTypes) {
-				if (pattern === mime) { return true }
+				if (pattern === mime) {
+					return true
+				}
 				if (pattern.endsWith('/*')) {
 					const prefix = pattern.slice(0, -1) // keep trailing slash
-					if (mime.startsWith(prefix)) { return true }
+					if (mime.startsWith(prefix)) {
+						return true
+					}
 				}
 			}
 			return false

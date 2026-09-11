@@ -1694,13 +1694,17 @@ export default {
 		 * @return {object|null}
 		 */
 		configWidget() {
-			if (!this.configWidgetId) { return null }
+			if (!this.configWidgetId) {
+				return null
+			}
 			const def = this.bodyGridWidgets.find((w) => w.id === this.configWidgetId)
 			return def || null
 		},
 
 		resolvedPageId() {
-			if (this.pageId) { return this.pageId }
+			if (this.pageId) {
+				return this.pageId
+			}
 			return String(this.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 		},
 
@@ -1824,7 +1828,9 @@ export default {
 			const props = (this.currentSchema && this.currentSchema.properties) || {}
 			const out = {}
 			for (const [k, v] of Object.entries(q)) {
-				if (Object.prototype.hasOwnProperty.call(props, k)) { out[k] = v }
+				if (Object.prototype.hasOwnProperty.call(props, k)) {
+					out[k] = v
+				}
 			}
 			return Object.keys(out).length ? out : null
 		},
@@ -1845,8 +1851,12 @@ export default {
 		 * @return {boolean}
 		 */
 		formDialogVisible() {
-			if (!this.currentSchema) { return false }
-			if (this.isCreateMode) { return true }
+			if (!this.currentSchema) {
+				return false
+			}
+			if (this.isCreateMode) {
+				return true
+			}
 			return this.editFormOpen && !this.editFormAwaitingRecord
 		},
 
@@ -1871,7 +1881,9 @@ export default {
 		 * @return {boolean}
 		 */
 		effectiveHeaderShowRefresh() {
-			if (this.showRefresh !== null) { return this.showRefresh }
+			if (this.showRefresh !== null) {
+				return this.showRefresh
+			}
 			// `$.vnode.props`, not `$attrs`: `refresh` is a declared emit, and
 			// Vue keeps declared emits out of `$attrs`.
 			return Boolean(this.$.vnode.props?.onRefresh) || this.hasSchemaDrivenFetch
@@ -1918,9 +1930,13 @@ export default {
 		 */
 		currentObject() {
 			const store = this.effectiveObjectStore
-			if (!store) { return null }
+			if (!store) {
+				return null
+			}
 			const type = this.resolvedObjectType
-			if (!type || !this.objectId) { return null }
+			if (!type || !this.objectId) {
+				return null
+			}
 			return store.objects?.[type]?.[this.objectId] ?? null
 		},
 
@@ -1934,7 +1950,9 @@ export default {
 		 * @return {boolean}
 		 */
 		editFormAwaitingRecord() {
-			if (!this.effectiveObjectStore || !this.objectId) { return false }
+			if (!this.effectiveObjectStore || !this.objectId) {
+				return false
+			}
 			return !this.currentObject
 		},
 
@@ -1954,13 +1972,19 @@ export default {
 			// Schema-driven path: reuse what `currentObject` already
 			// computed.
 			const fromSchemaDriven = this.currentObject
-			if (fromSchemaDriven) { return fromSchemaDriven }
+			if (fromSchemaDriven) {
+				return fromSchemaDriven
+			}
 			// Direct-mount fallback: legacy callers pass `objectType` +
 			// `objectId`. Read the same cache shape but keyed off the
 			// explicit slug.
 			const store = this.effectiveObjectStore
-			if (!store) { return null }
-			if (!this.objectType || !this.objectId) { return null }
+			if (!store) {
+				return null
+			}
+			if (!this.objectType || !this.objectId) {
+				return null
+			}
 			return store.objects?.[this.objectType]?.[this.objectId] ?? null
 		},
 
@@ -1975,12 +1999,16 @@ export default {
 		 */
 		objectDisplayName() {
 			const obj = this.resolvedObject
-			if (!obj || typeof obj !== 'object') { return '' }
+			if (!obj || typeof obj !== 'object') {
+				return ''
+			}
 			const self = obj['@self'] || {}
 			const id = this.objectId != null ? String(this.objectId) : ''
 			const candidates = [self.name, self.title, obj.name, obj.title, obj.displayName]
 			for (const c of candidates) {
-				if (c != null && c !== '' && String(c) !== id) { return String(c) }
+				if (c != null && c !== '' && String(c) !== id) {
+					return String(c)
+				}
 			}
 			const composed = ((obj.firstName || '') + ' ' + (obj.lastName || '')).trim()
 			return composed || ''
@@ -2048,7 +2076,9 @@ export default {
 		 */
 		typeEyebrow() {
 			const name = this.objectDisplayName
-			if (!name || !this.title || name === this.title) { return '' }
+			if (!name || !this.title || name === this.title) {
+				return ''
+			}
 			return this.resolvedTitle
 		},
 
@@ -2062,9 +2092,13 @@ export default {
 		 */
 		currentSchema() {
 			const store = this.effectiveObjectStore
-			if (!store) { return null }
+			if (!store) {
+				return null
+			}
 			const type = this.resolvedObjectType
-			if (!type) { return null }
+			if (!type) {
+				return null
+			}
 			return store.schemas?.[type] ?? null
 		},
 
@@ -2111,7 +2145,9 @@ export default {
 		 * @return {object} `{ register, schema, objectId }`.
 		 */
 		effectiveIntegrationContext() {
-			if (this.integrationContext) { return this.integrationContext }
+			if (this.integrationContext) {
+				return this.integrationContext
+			}
 			const resolved = this.resolvedSidebar || {}
 			return {
 				register: resolved.register || this.sidebarProps?.register || this.register || '',
@@ -2134,8 +2170,12 @@ export default {
 			// built pre-edit would stay frozen for in-place pushes (Add widget
 			// on a detail page / grid ejection). See CnDashboardPage.hasWidgets.
 			this.editingBody
-			if (this.hasGridLayout) { return this.layout }
-			if (this.shouldRenderAutoBody) { return this.autoBodyLayout || [] }
+			if (this.hasGridLayout) {
+				return this.layout
+			}
+			if (this.shouldRenderAutoBody) {
+				return this.autoBodyLayout || []
+			}
 			return []
 		},
 
@@ -2147,8 +2187,12 @@ export default {
 		 * @return {Array} Widget definitions.
 		 */
 		bodyGridWidgets() {
-			if (this.hasGridLayout) { return this.widgets }
-			if (this.shouldRenderAutoBody) { return this.autoBodyWidgets || [] }
+			if (this.hasGridLayout) {
+				return this.widgets
+			}
+			if (this.shouldRenderAutoBody) {
+				return this.autoBodyWidgets || []
+			}
 			return []
 		},
 
@@ -2221,7 +2265,9 @@ export default {
 			// non-empty `sidebarTabs` opt-in activates it even past the prop's
 			// default `{ enabled: false }` — the procest CaseDetail manifest
 			// pattern, where a page declares only `config.sidebarTabs`.
-			if (r.show === false) { return false }
+			if (r.show === false) {
+				return false
+			}
 			if (r.enabled === false) {
 				return Array.isArray(this.sidebarTabs) && this.sidebarTabs.length > 0
 			}
@@ -2246,7 +2292,9 @@ export default {
 		 * @return {Array}
 		 */
 		endPlacementSections() {
-			if (!this.hasBodyWidgets) { return [] }
+			if (!this.hasBodyWidgets) {
+				return []
+			}
 			const named = ['before-body', 'after-data', 'after-related']
 			return this.bodyWidgets.filter((s) => !s || !s.placement || !named.includes(s.placement))
 		},
@@ -2329,7 +2377,9 @@ export default {
 		shouldRenderAutoBody: {
 			immediate: true,
 			handler(active) {
-				if (active && !this.autoBodyLayout) { this.materializeAutoBody() }
+				if (active && !this.autoBodyLayout) {
+					this.materializeAutoBody()
+				}
 			},
 		},
 
@@ -2452,7 +2502,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async onReleaseLock() {
-			if (!this.lockState || this.releasingLock) { return }
+			if (!this.lockState || this.releasingLock) {
+				return
+			}
 			this.releasingLock = true
 			try {
 				await this.lockState.release()
@@ -2476,7 +2528,9 @@ export default {
 			// Schema-driven (manifest) detail pages self-fetch — without this
 			// the Refresh action has no host listener to act on and does
 			// nothing. Re-fetch the object + schema and spin the action.
-			if (!this.hasSchemaDrivenFetch) { return }
+			if (!this.hasSchemaDrivenFetch) {
+				return
+			}
 			this.internalRefreshing = true
 			try {
 				await this.fetchObjectIfNeeded()
@@ -2498,8 +2552,12 @@ export default {
 		 * @return {void}
 		 */
 		onPageRefreshBus() {
-			if (!this.hasSchemaDrivenFetch) { return }
-			if (this.internalRefreshing) { return }
+			if (!this.hasSchemaDrivenFetch) {
+				return
+			}
+			if (this.internalRefreshing) {
+				return
+			}
 			this.internalRefreshing = true
 			Promise.resolve(this.fetchObjectIfNeeded()).finally(() => {
 				this.internalRefreshing = false
@@ -2638,11 +2696,15 @@ export default {
 			// Create archetype: no object to fetch, but the create form needs
 			// the schema — register the type and fetch its schema, then stop.
 			if (!this.hasSchemaDrivenFetch) {
-				if (this.isCreateMode) { await this.fetchSchemaForCreate() }
+				if (this.isCreateMode) {
+					await this.fetchSchemaForCreate()
+				}
 				return
 			}
 			const store = this.effectiveObjectStore
-			if (!store) { return }
+			if (!store) {
+				return
+			}
 			const type = this.resolvedObjectType
 			// (slug, schemaId, registerId, slugs) — same shape as the
 			// CnIndexPage / CnLogsPage fix. Passing the slug strings into
@@ -2696,7 +2758,9 @@ export default {
 		 */
 		async fetchSchemaForCreate() {
 			const store = this.effectiveObjectStore
-			if (!store) { return }
+			if (!store) {
+				return
+			}
 			const type = this.resolvedObjectType
 			if (typeof store.registerObjectType === 'function'
 				&& !store.objectTypeRegistry?.[type]) {
@@ -2708,7 +2772,9 @@ export default {
 				)
 			}
 			try {
-				if (typeof store.fetchSchema === 'function') { await store.fetchSchema(type) }
+				if (typeof store.fetchSchema === 'function') {
+					await store.fetchSchema(type)
+				}
 			} catch (err) {
 				console.error('[CnDetailPage] create-mode schema fetch failed:', err)
 			}
@@ -2904,7 +2970,9 @@ export default {
 			 * @event create-cancel Emitted when the create form is dismissed.
 			 */
 			this.$emit('create-cancel')
-			if (this.$router) { this.$router.back() }
+			if (this.$router) {
+				this.$router.back()
+			}
 		},
 
 		/**
@@ -2978,7 +3046,9 @@ export default {
 		 * @return {void}
 		 */
 		scheduleCellOverflowAudit() {
-			if (process.env.NODE_ENV === 'production') { return }
+			if (process.env.NODE_ENV === 'production') {
+				return
+			}
 			clearTimeout(this._cellAuditTimer)
 			this._cellAuditTimer = setTimeout(() => this.auditCellOverflow(), 800)
 		},
@@ -2991,10 +3061,14 @@ export default {
 		 * @return {void}
 		 */
 		auditCellOverflow() {
-			if (!this.$el || !this.$el.querySelectorAll) { return }
+			if (!this.$el || !this.$el.querySelectorAll) {
+				return
+			}
 			this.$el.querySelectorAll('.grid-stack-item').forEach((cell) => {
 				const content = cell.querySelector('.grid-stack-item-content')
-				if (!content) { return }
+				if (!content) {
+					return
+				}
 				if (content.scrollHeight > content.clientHeight + 8) {
 					const inner = cell.querySelector('.cn-detail-page__grid-item')
 					const label = (inner && inner.getAttribute('aria-labelledby')) || cell.getAttribute('gs-id') || ''
@@ -3016,7 +3090,9 @@ export default {
 		 * @return {boolean} true when the grid heading should render.
 		 */
 		showGridTitle(item) {
-			if (item.showTitle === false || !this.findWidget(item)) { return false }
+			if (item.showTitle === false || !this.findWidget(item)) {
+				return false
+			}
 			return Boolean(this.$slots[`widget-${item.widgetId}`] || this.$slots[`widget-${item.widgetId}`])
 		},
 
@@ -3045,7 +3121,9 @@ export default {
 		 * @return {boolean} true when the wrapper header renders.
 		 */
 		showCardTitle(item) {
-			if (item.showTitle === false) { return false }
+			if (item.showTitle === false) {
+				return false
+			}
 			const def = this.findWidget(item)
 			return def?.title !== undefined || widgetContentOf(def).title !== undefined
 		},
@@ -3176,7 +3254,9 @@ export default {
 		 */
 		registryFormFor(item) {
 			const def = this.findWidget(item)
-			if (!def || !def.type) { return null }
+			if (!def || !def.type) {
+				return null
+			}
 			const entry = getWidgetTypeEntry(def.type)
 			return (entry && entry.form) || null
 		},
@@ -3250,8 +3330,12 @@ export default {
 		onWidgetConfigSave(edited) {
 			const def = this.bodyGridWidgets.find((w) => w.id === this.configWidgetId)
 			if (def) {
-				if (edited.title !== undefined) { def.title = edited.title }
-				if (edited.content !== undefined) { def.content = edited.content }
+				if (edited.title !== undefined) {
+					def.title = edited.title
+				}
+				if (edited.content !== undefined) {
+					def.content = edited.content
+				}
 				def.styleConfig = edited.styleConfig || {}
 			}
 			this.showWidgetConfig = false
@@ -3283,11 +3367,15 @@ export default {
 			const layoutArr = this.hasGridLayout ? this.layout : this.autoBodyLayout
 			if (Array.isArray(widgetArr)) {
 				const wIdx = widgetArr.findIndex((w) => w.id === id)
-				if (wIdx !== -1) { widgetArr.splice(wIdx, 1) }
+				if (wIdx !== -1) {
+					widgetArr.splice(wIdx, 1)
+				}
 			}
 			if (Array.isArray(layoutArr)) {
 				const lIdx = layoutArr.findIndex((l) => l.widgetId === id)
-				if (lIdx !== -1) { layoutArr.splice(lIdx, 1) }
+				if (lIdx !== -1) {
+					layoutArr.splice(lIdx, 1)
+				}
 			}
 			this.showWidgetConfig = false
 			this.$emit('widget-config-change', null)
@@ -3299,7 +3387,9 @@ export default {
 		 * what object the user is viewing.
 		 */
 		pushAiContext() {
-			if (!this.cnAiContext) { return }
+			if (!this.cnAiContext) {
+				return
+			}
 			const resolved = this.resolvedSidebar || {}
 			this.cnAiContext.pageKind = 'detail'
 			this.cnAiContext.objectUuid = this.objectId ? String(this.objectId) : undefined
@@ -3314,7 +3404,9 @@ export default {
 		 * (standalone / read-only mounts).
 		 */
 		syncObjectContext() {
-			if (!this.cnObjectContextRef) { return }
+			if (!this.cnObjectContextRef) {
+				return
+			}
 			const resolved = this.resolvedSidebar || {}
 			this.cnObjectContextRef.value = {
 				objectId: this.objectId !== undefined && this.objectId !== null ? String(this.objectId) : null,
@@ -3338,7 +3430,9 @@ export default {
 		 * state to the next mount.
 		 */
 		syncSidebarState() {
-			if (!this.hasExternalSidebar) { return }
+			if (!this.hasExternalSidebar) {
+				return
+			}
 			this.warnIfDeprecatedSidebarShape()
 			// During a background refresh (content stays in place — see
 			// `hasLoadedOnce`), a transient loading-driven `enabled: false`
@@ -3347,7 +3441,9 @@ export default {
 			// refresh unmounts the host's CnObjectSidebar and re-fetches all
 			// its sub-resources (files/notes/tags/tasks/audit). Skip the sync
 			// while refreshing; the `loading` watcher re-syncs once it settles.
-			if (this.loading && this.hasLoadedOnce) { return }
+			if (this.loading && this.hasLoadedOnce) {
+				return
+			}
 			const r = this.resolvedSidebar
 			if (this.sidebarActive && this.resolvedObjectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
@@ -3508,8 +3604,12 @@ export default {
 		 * don't spam the console.
 		 */
 		warnIfDeprecatedSidebarShape() {
-			if (typeof this.sidebar !== 'boolean') { return }
-			if (this.__sidebarBooleanWarned) { return }
+			if (typeof this.sidebar !== 'boolean') {
+				return
+			}
+			if (this.__sidebarBooleanWarned) {
+				return
+			}
 			this.__sidebarBooleanWarned = true
 
 			console.warn('[CnDetailPage] :sidebar=Boolean is deprecated; pass an Object — see docs/components/cn-detail-page.md for the new shape.')

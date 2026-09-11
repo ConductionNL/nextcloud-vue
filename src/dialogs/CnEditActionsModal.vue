@@ -134,13 +134,17 @@ export default {
 
 		/** The page's `config.actions[]` array (ensured to exist). */
 		actions() {
-			if (!this.page) { return [] }
+			if (!this.page) {
+				return []
+			}
 			// Normalise the working page in place so the editor can bind to it —
 			// the working manifest is ours to mutate by design (see CnEditPagesModal).
 			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 			if (!this.page.config || typeof this.page.config !== 'object') { this.page.config = {} }
 			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!Array.isArray(this.page.config.actions)) { this.page.config.actions = [] }
+			if (!Array.isArray(this.page.config.actions)) {
+				this.page.config.actions = []
+			}
 			return this.page.config.actions
 		},
 	},
@@ -188,7 +192,9 @@ export default {
 		 */
 		move(index, delta) {
 			const to = index + delta
-			if (to < 0 || to >= this.actions.length) { return }
+			if (to < 0 || to >= this.actions.length) {
+				return
+			}
 			const [item] = this.actions.splice(index, 1)
 			this.actions.splice(to, 0, item)
 		},

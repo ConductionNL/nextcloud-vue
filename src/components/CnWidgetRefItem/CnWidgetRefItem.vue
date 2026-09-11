@@ -125,9 +125,13 @@ export default {
 		 * @return {{ schemaSlug: string, widgetSlug: string }|null}
 		 */
 		parsedRef() {
-			if (!this.refUri) { return null }
+			if (!this.refUri) {
+				return null
+			}
 			const match = WIDGET_REF_PATTERN.exec(this.refUri)
-			if (!match) { return null }
+			if (!match) {
+				return null
+			}
 			return { schemaSlug: match[1], widgetSlug: match[2] }
 		},
 	},

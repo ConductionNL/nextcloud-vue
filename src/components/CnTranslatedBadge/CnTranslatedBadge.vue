@@ -85,7 +85,9 @@ export default {
 		 */
 		translatedFrom() {
 			const meta = this.object && this.object._translationMeta
-			if (!meta) { return null }
+			if (!meta) {
+				return null
+			}
 			const v = meta.translatedFrom
 			return typeof v === 'string' && v.length > 0 ? v : null
 		},
@@ -97,7 +99,9 @@ export default {
 		 */
 		translatedAt() {
 			const meta = this.object && this.object._translationMeta
-			if (!meta) { return null }
+			if (!meta) {
+				return null
+			}
 			const v = meta.translatedAt
 			return typeof v === 'string' && v.length > 0 ? v : null
 		},
@@ -119,11 +123,15 @@ export default {
 		 */
 		sourceDisplayName() {
 			const bcp47 = this.translatedFrom
-			if (!bcp47) { return '' }
+			if (!bcp47) {
+				return ''
+			}
 			if (typeof this.localeNameFormatter === 'function') {
 				try {
 					const v = this.localeNameFormatter(bcp47)
-					if (typeof v === 'string' && v.length > 0) { return v }
+					if (typeof v === 'string' && v.length > 0) {
+						return v
+					}
 				} catch {
 					// fall through to Intl
 				}
@@ -133,7 +141,9 @@ export default {
 					const navLang = (typeof navigator !== 'undefined' && navigator.language) || 'en'
 					const dn = new Intl.DisplayNames([navLang], { type: 'language' })
 					const v = dn.of(bcp47)
-					if (typeof v === 'string' && v.length > 0) { return v }
+					if (typeof v === 'string' && v.length > 0) {
+						return v
+					}
 				} catch {
 					// fall through to raw
 				}
@@ -157,7 +167,9 @@ export default {
 		 * @return {string}
 		 */
 		hoverTitle() {
-			if (!this.translatedAt) { return '' }
+			if (!this.translatedAt) {
+				return ''
+			}
 			try {
 				const d = new Date(this.translatedAt)
 				if (!Number.isNaN(d.getTime())) {

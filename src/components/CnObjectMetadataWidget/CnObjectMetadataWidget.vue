@@ -331,7 +331,9 @@ export default {
 			// either way because the API mirrors it to the top level.
 			if (selfBlock && typeof selfBlock === 'object') {
 				const carried = {}
-				if (data.id !== undefined && selfBlock.id === undefined) { carried.id = data.id }
+				if (data.id !== undefined && selfBlock.id === undefined) {
+					carried.id = data.id
+				}
 				return { ...carried, ...selfBlock }
 			}
 
@@ -392,11 +394,17 @@ export default {
 
 			for (const def of METADATA_FIELDS) {
 				// Filter by include/exclude
-				if (this.include && !this.include.includes(def.key)) { continue }
-				if (this.exclude.includes(def.key)) { continue }
+				if (this.include && !this.include.includes(def.key)) {
+					continue
+				}
+				if (this.exclude.includes(def.key)) {
+					continue
+				}
 
 				const raw = source[def.key]
-				if (raw === undefined || raw === null) { continue }
+				if (raw === undefined || raw === null) {
+					continue
+				}
 
 				items.push({
 					// Translated at use, not at import: the bundles register
@@ -427,12 +435,18 @@ export default {
 			const archival = this.archivalSource
 			const hasDecision = Object.keys(archival).length > 0
 			for (const def of ARCHIVAL_FIELDS) {
-				if (this.include && !this.include.includes(def.key)) { continue }
-				if (this.exclude.includes(def.key)) { continue }
+				if (this.include && !this.include.includes(def.key)) {
+					continue
+				}
+				if (this.exclude.includes(def.key)) {
+					continue
+				}
 
 				const raw = archival[def.key]
 				const absent = raw === undefined || raw === null
-				if (absent && !(hasDecision && (def.core || this.include))) { continue }
+				if (absent && !(hasDecision && (def.core || this.include))) {
+					continue
+				}
 
 				items.push({
 					label: t('nextcloud-vue', def.label),
@@ -459,7 +473,9 @@ export default {
 		 * @param {object} def - The metadata field definition (format, label, etc.).
 		 */
 		formatMetadataValue(value, def) {
-			if (value === null || value === undefined) { return '-' }
+			if (value === null || value === undefined) {
+				return '-'
+			}
 
 			// The lock is an object (`{ user, displayName, expiresAt }`) and used
 			// to reach the panel as raw JSON, which reads as debug output rather
@@ -495,7 +511,9 @@ export default {
 
 			if (def.format === 'date') {
 				const date = new Date(value)
-				if (Number.isNaN(date.getTime())) { return String(value) }
+				if (Number.isNaN(date.getTime())) {
+					return String(value)
+				}
 				return date.toLocaleDateString(undefined, {
 					day: '2-digit',
 					month: '2-digit',
@@ -507,7 +525,9 @@ export default {
 			if (def.format === 'date-time') {
 				try {
 					const date = new Date(value)
-					if (Number.isNaN(date.getTime())) { return String(value) }
+					if (Number.isNaN(date.getTime())) {
+						return String(value)
+					}
 					return date.toLocaleDateString(undefined, {
 						day: '2-digit',
 						month: '2-digit',
@@ -547,7 +567,9 @@ export default {
 		 * @return {string} Who holds it, and until when.
 		 */
 		formatLock(lock) {
-			if (typeof lock !== 'object') { return String(lock) }
+			if (typeof lock !== 'object') {
+				return String(lock)
+			}
 			const holder = lock.displayName || lock.user
 			const until = lock.expiresAt ? new Date(lock.expiresAt) : null
 			const hasUntil = until && !Number.isNaN(until.getTime())
@@ -609,9 +631,13 @@ export default {
 		 * @return {string|null} The href, or null when it is not linkable.
 		 */
 		hrefFor(raw, def) {
-			if (def.format !== 'folder') { return null }
+			if (def.format !== 'folder') {
+				return null
+			}
 			const id = String(raw).trim()
-			if (!/^\d+$/.test(id)) { return null }
+			if (!/^\d+$/.test(id)) {
+				return null
+			}
 			return generateUrl('/apps/files/?fileid={id}&opendetails=true', { id })
 		},
 
@@ -629,11 +655,17 @@ export default {
 		 */
 		formatDuration(value) {
 			const match = /^P(\d+)([YMD])$/.exec(String(value))
-			if (!match) { return String(value) }
+			if (!match) {
+				return String(value)
+			}
 
 			const amount = Number(match[1])
-			if (match[2] === 'Y') { return n('nextcloud-vue', '%n year', '%n years', amount) }
-			if (match[2] === 'M') { return n('nextcloud-vue', '%n month', '%n months', amount) }
+			if (match[2] === 'Y') {
+				return n('nextcloud-vue', '%n year', '%n years', amount)
+			}
+			if (match[2] === 'M') {
+				return n('nextcloud-vue', '%n month', '%n months', amount)
+			}
 			return n('nextcloud-vue', '%n day', '%n days', amount)
 		},
 
@@ -669,7 +701,9 @@ export default {
 		 * @return {string} The hold sentence.
 		 */
 		formatLegalHold(hold) {
-			if (typeof hold !== 'object') { return String(hold) }
+			if (typeof hold !== 'object') {
+				return String(hold)
+			}
 
 			if (hold.active) {
 				if (hold.reason) {

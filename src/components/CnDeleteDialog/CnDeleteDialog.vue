@@ -151,7 +151,9 @@ export default {
 
 	computed: {
 		itemName() {
-			if (this.nameFormatter) { return this.nameFormatter(this.item) }
+			if (this.nameFormatter) {
+				return this.nameFormatter(this.item)
+			}
 			// The caller's `nameField` first — it is the explicit instruction —
 			// but only when it holds a STRING. A schema whose `name` is
 			// structured (Haal Centraal naming gives a person
@@ -167,8 +169,12 @@ export default {
 			// fell all the way through to the UUID even after the object was
 			// skipped.
 			const explicit = this.item[this.nameField]
-			if (typeof explicit === 'string' && explicit.trim() !== '') { return explicit }
-			if (typeof explicit === 'number') { return String(explicit) }
+			if (typeof explicit === 'string' && explicit.trim() !== '') {
+				return explicit
+			}
+			if (typeof explicit === 'number') {
+				return String(explicit)
+			}
 			return objectDisplayName(this.item) || this.item.id
 		},
 
@@ -178,7 +184,9 @@ export default {
 	},
 
 	beforeUnmount() {
-		if (this.closeTimeout) { clearTimeout(this.closeTimeout) }
+		if (this.closeTimeout) {
+			clearTimeout(this.closeTimeout)
+		}
 	},
 
 	methods: {

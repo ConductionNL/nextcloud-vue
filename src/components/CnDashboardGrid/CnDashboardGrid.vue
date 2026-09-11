@@ -345,7 +345,9 @@ export default {
 
 	watch: {
 		editable(val) {
-			if (!this.grid) { return }
+			if (!this.grid) {
+				return
+			}
 			if (val) {
 				this.grid.enable()
 			} else {
@@ -462,7 +464,9 @@ export default {
 		},
 
 		handleGridChange(items) {
-			if (!items || items.length === 0) { return }
+			if (!items || items.length === 0) {
+				return
+			}
 
 			const updated = this.layout.map((item) => {
 				const gridItem = items.find((gi) => String(gi.id) === String(item.id))
@@ -494,9 +498,15 @@ export default {
 		 * @return {void}
 		 */
 		onItemKeydown(event, item) {
-			if (!this.keyboardRepositioning) { return }
-			if (event.target !== event.currentTarget) { return }
-			if (event.altKey || event.ctrlKey || event.metaKey) { return }
+			if (!this.keyboardRepositioning) {
+				return
+			}
+			if (event.target !== event.currentTarget) {
+				return
+			}
+			if (event.altKey || event.ctrlKey || event.metaKey) {
+				return
+			}
 
 			if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
 				event.preventDefault()
@@ -504,7 +514,9 @@ export default {
 				return
 			}
 
-			if (!this.editable) { return }
+			if (!this.editable) {
+				return
+			}
 
 			const handled = this.applyKey(event.key, event.shiftKey, item)
 			if (handled) {
@@ -722,7 +734,9 @@ export default {
 		 * @return {void}
 		 */
 		dispatchContextMenu(el, clientX, clientY) {
-			if (typeof MouseEvent !== 'function') { return }
+			if (typeof MouseEvent !== 'function') {
+				return
+			}
 			const content = el.querySelector('.grid-stack-item-content')
 			const target = (content && content.firstElementChild) || content || el
 			target.dispatchEvent(new MouseEvent('contextmenu', {
@@ -742,7 +756,9 @@ export default {
 		 */
 		itemElement(id) {
 			const container = this.$refs.gridContainer
-			if (!container) { return null }
+			if (!container) {
+				return null
+			}
 			return container.querySelector(`[gs-id="${id}"]`)
 		},
 
@@ -754,7 +770,9 @@ export default {
 		 */
 		gridNode(id) {
 			const nodes = this.grid && this.grid.engine && this.grid.engine.nodes
-			if (!Array.isArray(nodes)) { return null }
+			if (!Array.isArray(nodes)) {
+				return null
+			}
 			return nodes.find((n) => String(n.id) === String(id)) || null
 		},
 

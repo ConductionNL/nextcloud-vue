@@ -61,7 +61,9 @@ const mountChart = (props = {}) => mount(CnChartWidget, {
 describe('CnChartWidget — refresh (#6)', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
-		for (const k of Object.keys(mockBusHandlers)) { delete mockBusHandlers[k] }
+		for (const k of Object.keys(mockBusHandlers)) {
+			delete mockBusHandlers[k]
+		}
 	})
 
 	it('subscribes to cn:widget:refresh on mount', () => {
@@ -110,7 +112,9 @@ describe('CnChartWidget — refresh (#6)', () => {
 describe('CnChartWidget — page-level refresh', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
-		for (const k of Object.keys(mockBusHandlers)) { delete mockBusHandlers[k] }
+		for (const k of Object.keys(mockBusHandlers)) {
+			delete mockBusHandlers[k]
+		}
 	})
 
 	it('subscribes to cn:page:refresh on mount', () => {

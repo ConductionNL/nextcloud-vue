@@ -237,9 +237,13 @@ export default {
 			const { from: gridStart, to: gridEnd } = this.gridRange
 
 			for (const object of this.objects) {
-				if (!object) { continue }
+				if (!object) {
+					continue
+				}
 				const start = this.parseDate(object[this.dateField])
-				if (!start) { continue }
+				if (!start) {
+					continue
+				}
 
 				const rawEnd = this.endDateField ? this.parseDate(object[this.endDateField]) : null
 				const end = rawEnd && rawEnd >= start ? rawEnd : start
@@ -248,7 +252,9 @@ export default {
 				const spanEnd = end > gridEnd ? gridEnd : end
 
 				for (const iso of this.isoDateRange(spanStart, spanEnd)) {
-					if (!buckets[iso]) { buckets[iso] = [] }
+					if (!buckets[iso]) {
+						buckets[iso] = []
+					}
 					buckets[iso].push(object)
 				}
 			}
@@ -283,8 +289,12 @@ export default {
 	watch: {
 		visibleDate(newValue) {
 			const parsed = this.parseDate(newValue)
-			if (!parsed) { return }
-			if (this.toIsoDate(parsed).slice(0, 7) === this.toIsoDate(this.internalDate).slice(0, 7)) { return }
+			if (!parsed) {
+				return
+			}
+			if (this.toIsoDate(parsed).slice(0, 7) === this.toIsoDate(this.internalDate).slice(0, 7)) {
+				return
+			}
 			this.internalDate = parsed
 			this.emitRangeChange()
 		},
@@ -305,7 +315,9 @@ export default {
 		 * @return {Date|null}
 		 */
 		parseDate(value) {
-			if (!value) { return null }
+			if (!value) {
+				return null
+			}
 			const date = value instanceof Date ? value : new Date(value)
 			return Number.isNaN(date.getTime()) ? null : date
 		},
@@ -362,7 +374,9 @@ export default {
 		 * @return {string}
 		 */
 		objectTitle(object) {
-			if (this.titleField && object[this.titleField]) { return String(object[this.titleField]) }
+			if (this.titleField && object[this.titleField]) {
+				return String(object[this.titleField])
+			}
 			return String(object.title || object.name || object[this.rowKey] || '—')
 		},
 

@@ -162,15 +162,33 @@ export default {
 		iconFor(file) {
 			const ext = (file.name || '').split('.').pop().toLowerCase()
 			const type = (file.type || '').toLowerCase()
-			if (type.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) { return '🖼️' }
-			if (type.startsWith('video/') || ['mp4', 'mov', 'avi', 'webm'].includes(ext)) { return '🎬' }
-			if (type.startsWith('audio/') || ['mp3', 'wav', 'ogg'].includes(ext)) { return '🎵' }
-			if (['pdf'].includes(ext)) { return '📕' }
-			if (['doc', 'docx', 'odt', 'txt', 'md'].includes(ext)) { return '📄' }
-			if (['xls', 'xlsx', 'ods', 'csv'].includes(ext)) { return '📊' }
-			if (['ppt', 'pptx', 'odp'].includes(ext)) { return '📈' }
-			if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) { return '🗜️' }
-			if (['xml', 'json', 'yml', 'yaml'].includes(ext)) { return '🧾' }
+			if (type.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
+				return '🖼️'
+			}
+			if (type.startsWith('video/') || ['mp4', 'mov', 'avi', 'webm'].includes(ext)) {
+				return '🎬'
+			}
+			if (type.startsWith('audio/') || ['mp3', 'wav', 'ogg'].includes(ext)) {
+				return '🎵'
+			}
+			if (['pdf'].includes(ext)) {
+				return '📕'
+			}
+			if (['doc', 'docx', 'odt', 'txt', 'md'].includes(ext)) {
+				return '📄'
+			}
+			if (['xls', 'xlsx', 'ods', 'csv'].includes(ext)) {
+				return '📊'
+			}
+			if (['ppt', 'pptx', 'odp'].includes(ext)) {
+				return '📈'
+			}
+			if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+				return '🗜️'
+			}
+			if (['xml', 'json', 'yml', 'yaml'].includes(ext)) {
+				return '🧾'
+			}
 			return '📎'
 		},
 
@@ -181,7 +199,9 @@ export default {
 		 * @return {string} Like '1.2 MB'.
 		 */
 		humanSize(bytes) {
-			if (bytes === undefined || bytes === null) { return '' }
+			if (bytes === undefined || bytes === null) {
+				return ''
+			}
 			if (bytes < 1024) { return `${bytes} B` }
 			if (bytes < 1024 * 1024) { return `${(bytes / 1024).toFixed(1)} KB` }
 			return `${(bytes / 1024 / 1024).toFixed(1)} MB`
@@ -196,7 +216,9 @@ export default {
 		formatTimestamp(iso) {
 			try {
 				const d = new Date(iso)
-				if (Number.isNaN(d.getTime())) { return iso }
+				if (Number.isNaN(d.getTime())) {
+					return iso
+				}
 				return d.toLocaleString()
 			} catch (e) {
 				return iso
@@ -210,8 +232,12 @@ export default {
 		 * @return {void}
 		 */
 		openFilePicker() {
-			if (this.readOnly) { return }
-			if (this.$refs.fileInput) { this.$refs.fileInput.click() }
+			if (this.readOnly) {
+				return
+			}
+			if (this.$refs.fileInput) {
+				this.$refs.fileInput.click()
+			}
 		},
 
 		/**
@@ -220,7 +246,9 @@ export default {
 		 * @return {void}
 		 */
 		onDragOver() {
-			if (this.readOnly) { return }
+			if (this.readOnly) {
+				return
+			}
 			this.isDragging = true
 		},
 
@@ -242,7 +270,9 @@ export default {
 		 */
 		onDrop(event) {
 			this.isDragging = false
-			if (this.readOnly) { return }
+			if (this.readOnly) {
+				return
+			}
 			const list = event.dataTransfer ? Array.from(event.dataTransfer.files || []) : []
 			this.emitUpload(list)
 		},
@@ -266,7 +296,9 @@ export default {
 		 * @return {void}
 		 */
 		emitUpload(list) {
-			if (list.length === 0) { return }
+			if (list.length === 0) {
+				return
+			}
 			if (this.maxSizeMb > 0) {
 				const limit = this.maxSizeMb * 1024 * 1024
 				const oversized = list.find((f) => f.size > limit)

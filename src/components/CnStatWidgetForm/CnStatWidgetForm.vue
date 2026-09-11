@@ -347,9 +347,15 @@ export default {
 		 * @return {string} The translated label; unknown ids fall back to "Aggregate".
 		 */
 		kindLabel(id) {
-			if (id === 'ratio') { return t('nextcloud-vue', 'Ratio (%)') }
-			if (id === 'computed') { return t('nextcloud-vue', 'Formula') }
-			if (id === 'weighted') { return t('nextcloud-vue', 'Weighted sum') }
+			if (id === 'ratio') {
+				return t('nextcloud-vue', 'Ratio (%)')
+			}
+			if (id === 'computed') {
+				return t('nextcloud-vue', 'Formula')
+			}
+			if (id === 'weighted') {
+				return t('nextcloud-vue', 'Weighted sum')
+			}
 			return t('nextcloud-vue', 'Aggregate')
 		},
 

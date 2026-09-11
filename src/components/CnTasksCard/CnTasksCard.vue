@@ -225,7 +225,9 @@ export default {
 		},
 
 		isOverdue(task) {
-			if (!task.dueDate || task.status === 'completed') { return false }
+			if (!task.dueDate || task.status === 'completed') {
+				return false
+			}
 			try {
 				return new Date(task.dueDate) < new Date()
 			} catch {
@@ -234,7 +236,9 @@ export default {
 		},
 
 		async fetchTasks() {
-			if (!this.registerId || !this.schemaId || !this.objectId) { return }
+			if (!this.registerId || !this.schemaId || !this.objectId) {
+				return
+			}
 			this.loading = true
 			try {
 				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/tasks`
@@ -251,7 +255,9 @@ export default {
 		},
 
 		formatDate(dateStr) {
-			if (!dateStr) { return '' }
+			if (!dateStr) {
+				return ''
+			}
 			try {
 				return new Date(dateStr).toLocaleDateString(undefined, {
 					year: 'numeric',

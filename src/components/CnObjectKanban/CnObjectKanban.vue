@@ -251,7 +251,9 @@ export default {
 	watch: {
 		objects: {
 			handler() {
-				if (!this.suppressRebuild) { this.rebuild() }
+				if (!this.suppressRebuild) {
+					this.rebuild()
+				}
 			},
 
 			deep: false,
@@ -259,7 +261,9 @@ export default {
 
 		columns: {
 			handler() {
-				if (!this.suppressRebuild) { this.rebuild() }
+				if (!this.suppressRebuild) {
+					this.rebuild()
+				}
 			},
 
 			deep: false,
@@ -389,7 +393,9 @@ export default {
 			const oneOf = this.schema?.properties?.[this.groupByField]?.oneOf
 			if (Array.isArray(oneOf)) {
 				const match = oneOf.find((entry) => entry?.const === column.value)
-				if (match?.title) { return match.title }
+				if (match?.title) {
+					return match.title
+				}
 			}
 			return String(column.value)
 		},
@@ -403,7 +409,9 @@ export default {
 		 */
 		cardTitle(card) {
 			const nameField = this.schema?.configuration?.objectNameField
-			if (nameField && card[nameField]) { return String(card[nameField]) }
+			if (nameField && card[nameField]) {
+				return String(card[nameField])
+			}
 			return String(card.title || card.name || card[this.rowKey] || '—')
 		},
 
@@ -507,14 +515,18 @@ export default {
 		 * @return {void}
 		 */
 		onColumnChange(evt, column) {
-			if (!evt.added) { return }
+			if (!evt.added) {
+				return
+			}
 
 			const card = evt.added.element
 			const fromValue = this.dragOriginValue
 			const toValue = column.value
 			this.dragOriginValue = null
 
-			if (fromValue === toValue) { return }
+			if (fromValue === toValue) {
+				return
+			}
 
 			this.commitMove(card, fromValue, toValue, evt.added.newIndex)
 		},
@@ -577,14 +589,18 @@ export default {
 		 */
 		rejectMove(objectId, reason) {
 			const pending = this.pendingMoves[objectId]
-			if (!pending) { return }
+			if (!pending) {
+				return
+			}
 
 			const toColumn = this.localColumns.find((c) => c.value === pending.toValue)
 			const fromColumn = this.localColumns.find((c) => c.value === pending.fromValue)
 
 			if (toColumn) {
 				const idx = toColumn.cards.findIndex((c) => this.cardKey(c) === objectId)
-				if (idx !== -1) { toColumn.cards.splice(idx, 1) }
+				if (idx !== -1) {
+					toColumn.cards.splice(idx, 1)
+				}
 			}
 			if (fromColumn) {
 				fromColumn.cards.push(pending.card)
@@ -615,7 +631,9 @@ export default {
 		clearPending(objectId) {
 			const { [objectId]: _removed, ...rest } = this.pendingMoves
 			this.pendingMoves = rest
-			if (Object.keys(rest).length === 0) { this.suppressRebuild = false }
+			if (Object.keys(rest).length === 0) {
+				this.suppressRebuild = false
+			}
 		},
 	},
 }

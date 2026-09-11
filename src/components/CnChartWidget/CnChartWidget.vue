@@ -95,11 +95,15 @@ const NICE_CEIL_STEPS = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]
  * @return {number} The next nice ceiling at or above `value`.
  */
 function niceCeil(value) {
-	if (!Number.isFinite(value) || value <= 0) { return 1 }
+	if (!Number.isFinite(value) || value <= 0) {
+		return 1
+	}
 	const magnitude = 10 ** Math.floor(Math.log10(value))
 	for (const step of NICE_CEIL_STEPS) {
 		const candidate = step * magnitude
-		if (value <= candidate) { return candidate }
+		if (value <= candidate) {
+			return candidate
+		}
 	}
 	return 10 * magnitude
 }
@@ -574,8 +578,12 @@ export default {
 		// the STRING `aggregate: 'count'` still flow through it).
 		const dsForGraphql = () => {
 			const ds = props.dataSource
-			if (ds && (ds.bucket || ds.groupBy)) { return null }
-			if (ds && ds.aggregate && typeof ds.aggregate === 'object') { return null }
+			if (ds && (ds.bucket || ds.groupBy)) {
+				return null
+			}
+			if (ds && ds.aggregate && typeof ds.aggregate === 'object') {
+				return null
+			}
 			return ds
 		}
 		const { data, refetch } = useDataSource(dsForGraphql, { range })
@@ -677,9 +685,13 @@ export default {
 		 */
 		endpointChartData() {
 			const es = this.endpointSource
-			if (!es || !es.url) { return null }
+			if (!es || !es.url) {
+				return null
+			}
 			const payload = this.epData
-			if (payload === null || payload === undefined) { return null }
+			if (payload === null || payload === undefined) {
+				return null
+			}
 			const seriesDefs = Array.isArray(es.series) ? es.series.filter((s) => s && s.path) : []
 			let labels = []
 			let mapped = []
@@ -722,27 +734,39 @@ export default {
 		 */
 		resolvedSeries() {
 			const ep = this.endpointChartData
-			if (ep) { return ep.series }
+			if (ep) {
+				return ep.series
+			}
 			const rest = this.aggregateData || this.bucketData || this.groupByData
-			if (rest?.series !== undefined) { return rest.series }
+			if (rest?.series !== undefined) {
+				return rest.series
+			}
 			const fromDs = this.dsData?.series
 			return fromDs !== undefined ? fromDs : this.series
 		},
 
 		resolvedCategories() {
 			const ep = this.endpointChartData
-			if (ep) { return ep.categories }
+			if (ep) {
+				return ep.categories
+			}
 			const rest = this.aggregateData || this.bucketData || this.groupByData
-			if (rest?.categories !== undefined) { return rest.categories }
+			if (rest?.categories !== undefined) {
+				return rest.categories
+			}
 			const fromDs = this.dsData?.categories
 			return fromDs !== undefined ? fromDs : this.categories
 		},
 
 		resolvedLabels() {
 			const ep = this.endpointChartData
-			if (ep) { return ep.labels }
+			if (ep) {
+				return ep.labels
+			}
 			const rest = this.aggregateData || this.bucketData || this.groupByData
-			if (rest?.labels !== undefined) { return rest.labels }
+			if (rest?.labels !== undefined) {
+				return rest.labels
+			}
 			const fromDs = this.dsData?.labels
 			return fromDs !== undefined ? fromDs : this.labels
 		},
@@ -780,7 +804,9 @@ export default {
 		 */
 		drilldownKeys() {
 			const rest = this.aggregateData || this.groupByData
-			if (rest && Array.isArray(rest.rawKeys)) { return rest.rawKeys }
+			if (rest && Array.isArray(rest.rawKeys)) {
+				return rest.rawKeys
+			}
 			const keys = ['pie', 'donut', 'radialBar'].includes(this.type)
 				? this.resolvedLabels
 				: this.resolvedCategories
@@ -790,7 +816,9 @@ export default {
 		/** Stable signature of the aggregate source (else null). */
 		aggregateKey() {
 			const agg = this.aggregateDef
-			if (!agg || !this.dataSource.schema) { return null }
+			if (!agg || !this.dataSource.schema) {
+				return null
+			}
 			return JSON.stringify({
 				register: this.dataSource.register || '',
 				schema: this.dataSource.schema,
@@ -802,7 +830,9 @@ export default {
 		/** Stable signature of a categorical groupBy source (else null). */
 		groupByKey() {
 			const gb = this.dataSource && this.dataSource.groupBy
-			if (!gb || !this.dataSource.schema) { return null }
+			if (!gb || !this.dataSource.schema) {
+				return null
+			}
 			return JSON.stringify({
 				register: this.dataSource.register || '',
 				schema: this.dataSource.schema,
@@ -827,14 +857,18 @@ export default {
 		 */
 		activeRange() {
 			const r = this.cnDashboardDateRange
-			if (!r || typeof r !== 'object') { return null }
+			if (!r || typeof r !== 'object') {
+				return null
+			}
 			return ('value' in r) ? (r.value || null) : r
 		},
 
 		/** Stable signature of a time-bucket source + the active range (else null). */
 		bucketKey() {
 			const b = this.dataSource && this.dataSource.bucket
-			if (!b || !this.dataSource.schema) { return null }
+			if (!b || !this.dataSource.schema) {
+				return null
+			}
 			const r = this.activeRange
 			return JSON.stringify({
 				register: this.dataSource.register || '',
@@ -846,7 +880,9 @@ export default {
 		},
 
 		defaultColors() {
-			if (this.colors.length > 0) { return this.colors }
+			if (this.colors.length > 0) {
+				return this.colors
+			}
 			// Nextcloud-themed color palette
 			return [
 				'var(--color-primary-element, #0082c9)',
@@ -865,7 +901,9 @@ export default {
 		 * @return {{key: string, label?: string, series?: string[], valueFormat?: (string|object)}|null}
 		 */
 		activeView() {
-			if (!Array.isArray(this.views) || this.views.length === 0) { return null }
+			if (!Array.isArray(this.views) || this.views.length === 0) {
+				return null
+			}
 			return this.views.find((v) => v && v.key === this.activeViewKey) || this.views[0]
 		},
 
@@ -882,9 +920,15 @@ export default {
 		displayedSeries() {
 			const series = this.resolvedSeries
 			const view = this.activeView
-			if (!view || !Array.isArray(view.series) || view.series.length === 0) { return series }
-			if (['pie', 'donut', 'radialBar'].includes(this.type)) { return series }
-			if (!Array.isArray(series)) { return series }
+			if (!view || !Array.isArray(view.series) || view.series.length === 0) {
+				return series
+			}
+			if (['pie', 'donut', 'radialBar'].includes(this.type)) {
+				return series
+			}
+			if (!Array.isArray(series)) {
+				return series
+			}
 			const filtered = series.filter((s) => s && view.series.includes(s.name))
 			return filtered.length > 0 ? filtered : series
 		},
@@ -905,9 +949,13 @@ export default {
 				// Without the tuple case an `[x, y]` series read as all-NaN and
 				// dropped every point, which silently disabled `valueAxisBounds`.
 				let raw = v
-				if (Array.isArray(v)) { raw = v[1] } else if (typeof v === 'object' && v !== null) { raw = v.y }
+				if (Array.isArray(v)) { raw = v[1] } else if (typeof v === 'object' && v !== null) {
+					raw = v.y
+				}
 				const n = Number(raw)
-				if (Number.isFinite(n)) { out.push(n) }
+				if (Number.isFinite(n)) {
+					out.push(n)
+				}
 			}
 			for (const s of (Array.isArray(this.displayedSeries) ? this.displayedSeries : [])) {
 				if (Array.isArray(s)) { s.forEach(push) } else if (s && Array.isArray(s.data)) { s.data.forEach(push) } else { push(s) }
@@ -940,11 +988,19 @@ export default {
 		 * @return {{min: number, max: number}|null} Axis bounds, or null to autoscale.
 		 */
 		valueAxisBounds() {
-			if (this.valueAxisBaseline === 'fit') { return null }
-			if (['pie', 'donut', 'radialBar'].includes(this.type)) { return null }
-			if (this.options?.chart?.stacked) { return null }
+			if (this.valueAxisBaseline === 'fit') {
+				return null
+			}
+			if (['pie', 'donut', 'radialBar'].includes(this.type)) {
+				return null
+			}
+			if (this.options?.chart?.stacked) {
+				return null
+			}
 			const values = this.plottedValues
-			if (values.length === 0) { return null }
+			if (values.length === 0) {
+				return null
+			}
 			// A single pass, not `Math.min(...values)`: the spread passes one
 			// ARGUMENT per datapoint, which throws RangeError once the series
 			// outgrows the engine's argument limit (~65k). Minute buckets over
@@ -952,12 +1008,18 @@ export default {
 			let dataMin = values[0]
 			let dataMax = values[0]
 			for (const v of values) {
-				if (v < dataMin) { dataMin = v }
-				if (v > dataMax) { dataMax = v }
+				if (v < dataMin) {
+					dataMin = v
+				}
+				if (v > dataMax) {
+					dataMax = v
+				}
 			}
 			// Negative values: a zero floor would crop them. Leave the framing
 			// to ApexCharts, which already spans zero for magnitude marks.
-			if (dataMin < 0) { return null }
+			if (dataMin < 0) {
+				return null
+			}
 			// A flat all-zero series has no scale to infer — give it a token
 			// ceiling so the axis renders instead of collapsing.
 			if (dataMax === 0) { return { min: 0, max: 1 } }
@@ -969,7 +1031,9 @@ export default {
 			// 1-in-1000 wiggle can't fill the plot.
 			const spread = dataMax - dataMin
 			const minSpread = dataMax * 0.25
-			if (spread >= minSpread) { return null }
+			if (spread >= minSpread) {
+				return null
+			}
 			const pad = (minSpread - spread) / 2
 			return { min: Math.max(0, dataMin - pad), max: niceCeil(dataMax + pad) }
 		},
@@ -984,7 +1048,9 @@ export default {
 		 */
 		valueFormatterFn() {
 			const vf = (this.activeView && this.activeView.valueFormat) || this.valueFormat
-			if (!vf) { return null }
+			if (!vf) {
+				return null
+			}
 			const name = typeof vf === 'string' ? vf : vf.name
 			const currency = safeCurrencyCode(typeof vf === 'object' ? vf.currency : undefined)
 			const decimals = (typeof vf === 'object' && Number.isFinite(vf.decimals)) ? vf.decimals : null
@@ -1026,7 +1092,9 @@ export default {
 		 * @return {Record<string, string>|null}
 		 */
 		effectiveColorMap() {
-			if (this.colorMap && typeof this.colorMap === 'object') { return this.colorMap }
+			if (this.colorMap && typeof this.colorMap === 'object') {
+				return this.colorMap
+			}
 			const fromAggregate = this.aggregateData && this.aggregateData.colorMap
 			return (fromAggregate && typeof fromAggregate === 'object') ? fromAggregate : null
 		},
@@ -1041,11 +1109,15 @@ export default {
 		 */
 		mappedColors() {
 			const map = this.effectiveColorMap
-			if (!map) { return null }
+			if (!map) {
+				return null
+			}
 			const keys = ['pie', 'donut', 'radialBar'].includes(this.type)
 				? this.resolvedLabels
 				: this.resolvedCategories
-			if (!Array.isArray(keys) || keys.length === 0) { return null }
+			if (!Array.isArray(keys) || keys.length === 0) {
+				return null
+			}
 			const palette = this.defaultColors
 			return keys.map((key, i) => map[key] || palette[i % palette.length])
 		},
@@ -1058,8 +1130,12 @@ export default {
 		 */
 		hasChartData() {
 			const series = this.resolvedSeries
-			if (!Array.isArray(series) || series.length === 0) { return false }
-			if (['pie', 'donut', 'radialBar'].includes(this.type)) { return true }
+			if (!Array.isArray(series) || series.length === 0) {
+				return false
+			}
+			if (['pie', 'donut', 'radialBar'].includes(this.type)) {
+				return true
+			}
 			return series.some((s) => Array.isArray(s && s.data) && s.data.length > 0)
 		},
 
@@ -1150,7 +1226,9 @@ export default {
 				defaults.chart.events = {
 					dataPointSelection: this.onDataPointSelection,
 					dataPointMouseEnter: (event) => {
-						if (event && event.target) { event.target.style.cursor = 'pointer' }
+						if (event && event.target) {
+							event.target.style.cursor = 'pointer'
+						}
 					},
 				}
 			}
@@ -1250,8 +1328,12 @@ export default {
 		// FIRST, before the ResizeObserver early-return — environments
 		// without ResizeObserver (jsdom) must still get the subscription.
 		this._onWidgetRefresh = (payload) => {
-			if (!this.widgetId) { return }
-			if (payload?.widgetId !== this.widgetId) { return }
+			if (!this.widgetId) {
+				return
+			}
+			if (payload?.widgetId !== this.widgetId) {
+				return
+			}
 			this.refresh()
 		}
 		subscribe(REFRESH_BUS_CHANNEL, this._onWidgetRefresh)
@@ -1272,7 +1354,9 @@ export default {
 		}
 		subscribe(PAGE_REFRESH_BUS_CHANNEL, this._onPageRefresh)
 
-		if (typeof ResizeObserver === 'undefined') { return }
+		if (typeof ResizeObserver === 'undefined') {
+			return
+		}
 		this._lastWidth = this.$el.offsetWidth
 		this._lastHeight = this.$el.offsetHeight
 		this._resizeTimer = null
@@ -1289,7 +1373,9 @@ export default {
 			// Pinned-height charts keep the width-only behaviour: their height
 			// never depends on the box.
 			const heightChanged = this.fitToContainer && newHeight !== this._lastHeight
-			if (newWidth === this._lastWidth && !heightChanged) { return }
+			if (newWidth === this._lastWidth && !heightChanged) {
+				return
+			}
 			this._lastWidth = newWidth
 			this._lastHeight = newHeight
 			clearTimeout(this._resizeTimer)
@@ -1443,7 +1529,9 @@ export default {
 					from,
 					to,
 				}
-				if (b.metricField) { params.metricField = b.metricField }
+				if (b.metricField) {
+					params.metricField = b.metricField
+				}
 				const _f = resolveFilterTokens(ds.filter || {}, this.chartTokenCtx())
 				if (_f && typeof _f === 'object') {
 					for (const [k, v] of Object.entries(_f)) {
@@ -1455,13 +1543,17 @@ export default {
 					}
 				}
 				const res = await axios.get(url, { params })
-				if (requestKey !== this.bucketKey) { return }
+				if (requestKey !== this.bucketKey) {
+					return
+				}
 				const groups = (res && res.data && res.data.groups) || []
 				const categories = groups.map((g) => this.formatBucketKey(g.key, b.interval))
 				const values = groups.map((g) => Number(g.value) || 0)
 				this.bucketData = { series: [{ name: b.metricField || b.metric || 'count', data: values }], categories, labels: categories }
 			} catch (e) {
-				if (requestKey === this.bucketKey) { this.bucketData = null }
+				if (requestKey === this.bucketKey) {
+					this.bucketData = null
+				}
 			}
 		},
 
@@ -1480,9 +1572,13 @@ export default {
 		 * @return {string} A short, locale-aware label.
 		 */
 		formatBucketKey(key, interval) {
-			if (!key) { return '' }
+			if (!key) {
+				return ''
+			}
 			const d = parseBucketKey(key)
-			if (!d) { return String(key) }
+			if (!d) {
+				return String(key)
+			}
 			const thisYear = new Date().getFullYear()
 			const year = d.getFullYear() === thisYear ? {} : { year: 'numeric' }
 			switch (String(interval || '').toLowerCase()) {
@@ -1531,9 +1627,15 @@ export default {
 					{ register: ds.register, schema: ds.schema },
 				)
 				const params = { groupBy: gb.field, metric: gb.metric || 'count' }
-				if (gb.metricField) { params.field = gb.metricField }
-				if (gb.sort === 'asc' || gb.sort === 'desc') { params.sort = gb.sort }
-				if (gb.limit) { params.limit = gb.limit }
+				if (gb.metricField) {
+					params.field = gb.metricField
+				}
+				if (gb.sort === 'asc' || gb.sort === 'desc') {
+					params.sort = gb.sort
+				}
+				if (gb.limit) {
+					params.limit = gb.limit
+				}
 				const _f = resolveFilterTokens(ds.filter || {}, this.chartTokenCtx())
 				if (_f && typeof _f === 'object') {
 					for (const [k, v] of Object.entries(_f)) {
@@ -1545,13 +1647,17 @@ export default {
 					}
 				}
 				const res = await axios.get(url, { params })
-				if (requestKey !== this.groupByKey) { return }
+				if (requestKey !== this.groupByKey) {
+					return
+				}
 				let groups = (res && res.data && res.data.groups) || []
 				// Client-side sort + top-N (robust even if the backend ignored them).
 				if (gb.sort === 'asc' || gb.sort === 'desc') {
 					groups = [...groups].sort((a, b) => (gb.sort === 'desc' ? b.value - a.value : a.value - b.value))
 				}
-				if (gb.limit) { groups = groups.slice(0, gb.limit) }
+				if (gb.limit) {
+					groups = groups.slice(0, gb.limit)
+				}
 				let keys = groups.map((g) => (g.key === null || g.key === undefined ? '—' : String(g.key)))
 				// Raw (unresolved) keys, index-aligned with the display labels —
 				// a `dataSource.drilldown` click navigates with these (Wave 3).
@@ -1561,7 +1667,9 @@ export default {
 				// the referenced objects' display labels (e.g. client name).
 				if (gb.reference && gb.reference.schema) {
 					keys = await this.resolveGroupByLabels(ds.register, gb.reference, groups)
-					if (requestKey !== this.groupByKey) { return }
+					if (requestKey !== this.groupByKey) {
+						return
+					}
 				}
 				if (['pie', 'donut', 'radialBar'].includes(this.type)) {
 					this.groupByData = { series: values, labels: keys, categories: keys, rawKeys }
@@ -1569,7 +1677,9 @@ export default {
 					this.groupByData = { series: [{ name: gb.metricField || gb.metric || 'count', data: values }], categories: keys, labels: keys, rawKeys }
 				}
 			} catch (e) {
-				if (requestKey === this.groupByKey) { this.groupByData = null }
+				if (requestKey === this.groupByKey) {
+					this.groupByData = null
+				}
 			}
 		},
 
@@ -1615,7 +1725,9 @@ export default {
 					{ register: ds.register, schema: ds.schema },
 				)
 				const params = { groupBy: agg.groupBy, metric }
-				if (metric === 'sum') { params.field = agg.sumField }
+				if (metric === 'sum') {
+					params.field = agg.sumField
+				}
 				const _f = resolveFilterTokens(ds.filter || {}, this.chartTokenCtx())
 				if (_f && typeof _f === 'object') {
 					for (const [k, v] of Object.entries(_f)) {
@@ -1633,13 +1745,17 @@ export default {
 				groups = await this.aggregateFromCollection(ds, agg, metric)
 			}
 			if (!groups) {
-				if (requestKey === this.aggregateKey) { this.aggregateData = null }
+				if (requestKey === this.aggregateKey) {
+					this.aggregateData = null
+				}
 				return
 			}
 			const built = await this.buildAggregateData(groups, agg)
 			// Guard against a stale (slower) response overwriting a newer
 			// source signature — mirrors the endpoint-source seq guard.
-			if (requestKey === this.aggregateKey) { this.aggregateData = built }
+			if (requestKey === this.aggregateKey) {
+				this.aggregateData = built
+			}
 		},
 
 		/**
@@ -1735,14 +1851,18 @@ export default {
 				// deleted, or never existed), which resolves to an empty label.
 				// Empty keys keep their existing '—' placeholder.
 				labels = resolved.map((r, i) => {
-					if (r.label) { return r.label }
+					if (r.label) {
+						return r.label
+					}
 					return rawKeys[i] === '' ? labels[i] : t('nextcloud-vue', 'Unknown')
 				})
 				const withColor = resolved.filter((r) => r.color)
 				if (withColor.length > 0) {
 					colorMap = {}
 					resolved.forEach((r, i) => {
-						if (r.color) { colorMap[labels[i]] = r.color }
+						if (r.color) {
+							colorMap[labels[i]] = r.color
+						}
 					})
 				}
 			}
@@ -1777,7 +1897,9 @@ export default {
 				values.push(other.value)
 			}
 			const base = { rawKeys, labels, categories: labels }
-			if (colorMap) { base.colorMap = colorMap }
+			if (colorMap) {
+				base.colorMap = colorMap
+			}
 			if (['pie', 'donut', 'radialBar'].includes(this.type)) {
 				return { ...base, series: values }
 			}
@@ -1858,11 +1980,17 @@ export default {
 		 */
 		onDataPointSelection(_event, _chartContext, config) {
 			const drill = this.drilldownDef
-			if (!drill || !this.$router) { return }
+			if (!drill || !this.$router) {
+				return
+			}
 			const idx = config && config.dataPointIndex
-			if (typeof idx !== 'number' || idx < 0) { return }
+			if (typeof idx !== 'number' || idx < 0) {
+				return
+			}
 			const key = this.drilldownKeys[idx]
-			if (key === undefined || key === OTHER_BUCKET_KEY) { return }
+			if (key === undefined || key === OTHER_BUCKET_KEY) {
+				return
+			}
 			const query = { [drill.filterParam]: key }
 			const location = String(drill.route).startsWith('/')
 				? { path: drill.route, query }
@@ -1892,7 +2020,9 @@ export default {
 				])
 				return await Promise.all(groups.map(async (g) => {
 					const key = g.key
-					if (key === null || key === undefined || key === '') { return '—' }
+					if (key === null || key === undefined || key === '') {
+						return '—'
+					}
 					try {
 						const url = generateUrl(
 							'/apps/openregister/api/objects/{register}/{schema}/{id}',
@@ -1924,12 +2054,18 @@ export default {
 		 * @return {string} A display-ready string.
 		 */
 		displayString(value) {
-			if (value === null || value === undefined) { return '' }
+			if (value === null || value === undefined) {
+				return ''
+			}
 			if (typeof value === 'object' && !Array.isArray(value)) {
 				const lang = getLanguage() || ''
 				const short = lang.split('-')[0]
-				if (value[lang] !== undefined) { return String(value[lang]) }
-				if (value[short] !== undefined) { return String(value[short]) }
+				if (value[lang] !== undefined) {
+					return String(value[lang])
+				}
+				if (value[short] !== undefined) {
+					return String(value[short])
+				}
 				const vals = Object.values(value)
 				return vals.length ? String(vals[0]) : ''
 			}

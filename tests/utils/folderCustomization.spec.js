@@ -35,7 +35,9 @@ describe('folderCustomization catalogs', () => {
 			const max = Math.max(r, g, b)
 			const min = Math.min(r, g, b)
 			const d = max - min
-			if (d === 0) { return 0 }
+			if (d === 0) {
+				return 0
+			}
 			let h
 			if (max === r) { h = ((g - b) / d) % 6 } else if (max === g) { h = (b - r) / d + 2 } else { h = (r - g) / d + 4 }
 			return ((h * 60) + 360) % 360

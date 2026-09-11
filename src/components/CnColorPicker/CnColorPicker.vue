@@ -189,7 +189,9 @@ export default {
 		open(isOpen) {
 			// Re-apply on every open: vue-color resets `fieldsIndex` if the
 			// component is unmounted/remounted by the popover.
-			if (isOpen) { this.$nextTick(() => this.applyMode()) }
+			if (isOpen) {
+				this.$nextTick(() => this.applyMode())
+			}
 		},
 	},
 
@@ -213,7 +215,9 @@ export default {
 
 		/** Pin the Chrome picker's `fieldsIndex` to the requested mode. */
 		applyMode() {
-			if (!this.mode) { return }
+			if (!this.mode) {
+				return
+			}
 			const idx = { hex: 0, rgb: 1, hsl: 2 }[this.mode]
 			const picker = this.$refs.picker
 			if (picker && picker.fieldsIndex !== idx) {

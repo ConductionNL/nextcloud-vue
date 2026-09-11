@@ -126,7 +126,9 @@ export default {
 	watch: {
 		list: {
 			handler() {
-				if (this.suppressRebuild) { return }
+				if (this.suppressRebuild) {
+					return
+				}
 				this.tree = this.buildTree()
 			},
 
@@ -273,7 +275,9 @@ export default {
 			const walk = (arr) => (arr || []).forEach((it) => { if (it) { ids.add(it.id); walk(it.children) } })
 			walk(this.list)
 			let n = ids.size + 1
-			while (ids.has(`menu-${n}`)) { n++ }
+			while (ids.has(`menu-${n}`)) {
+				n++
+			}
 			return `menu-${n}`
 		},
 
@@ -299,10 +303,14 @@ export default {
 		removeNode(node, parent) {
 			if (parent) {
 				const i = parent.children.indexOf(node)
-				if (i !== -1) { parent.children.splice(i, 1) }
+				if (i !== -1) {
+					parent.children.splice(i, 1)
+				}
 			} else {
 				const i = this.tree.indexOf(node)
-				if (i !== -1) { this.tree.splice(i, 1, ...node.children) }
+				if (i !== -1) {
+					this.tree.splice(i, 1, ...node.children)
+				}
 			}
 			this.flatten()
 		},

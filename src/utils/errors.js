@@ -153,7 +153,9 @@ export function parseAxiosError(error) {
 	if (typeof data === 'string' && data !== '') {
 		message = data
 	} else if (data && typeof data === 'object') {
-		if (typeof data.error === 'string') { code = data.error }
+		if (typeof data.error === 'string') {
+			code = data.error
+		}
 		message = (typeof data.message === 'string' && data.message)
 			|| (typeof data.error === 'string' && data.error)
 			|| null

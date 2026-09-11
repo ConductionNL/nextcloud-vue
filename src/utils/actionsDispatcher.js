@@ -72,7 +72,9 @@ export function resolveObjectOpType(store, source) {
 	const schema = String(source.schema)
 	const registry = store.objectTypeRegistry || {}
 	for (const [slug, config] of Object.entries(registry)) {
-		if (!config) { continue }
+		if (!config) {
+			continue
+		}
 		if ((String(config.register) === register && String(config.schema) === schema)
 			|| (config.registerSlug === register && config.schemaSlug === schema)) {
 			return slug
@@ -93,10 +95,16 @@ export function resolveObjectOpType(store, source) {
  * @return {string|number|null} The object id, or null when absent.
  */
 function rowObjectId(row) {
-	if (!row || typeof row !== 'object') { return null }
-	if (row.id !== undefined && row.id !== null) { return row.id }
+	if (!row || typeof row !== 'object') {
+		return null
+	}
+	if (row.id !== undefined && row.id !== null) {
+		return row.id
+	}
 	const self = row['@self']
-	if (self && typeof self === 'object' && self.id !== undefined && self.id !== null) { return self.id }
+	if (self && typeof self === 'object' && self.id !== undefined && self.id !== null) {
+		return self.id
+	}
 	return null
 }
 
@@ -108,11 +116,19 @@ function rowObjectId(row) {
  * @return {string|number|null} The object id, or null when absent.
  */
 export function savedObjectId(saved) {
-	if (!saved || typeof saved !== 'object') { return null }
-	if (saved.id !== undefined && saved.id !== null) { return saved.id }
-	if (saved.uuid !== undefined && saved.uuid !== null) { return saved.uuid }
+	if (!saved || typeof saved !== 'object') {
+		return null
+	}
+	if (saved.id !== undefined && saved.id !== null) {
+		return saved.id
+	}
+	if (saved.uuid !== undefined && saved.uuid !== null) {
+		return saved.uuid
+	}
 	const self = saved['@self']
-	if (self && typeof self === 'object' && self.id !== undefined && self.id !== null) { return self.id }
+	if (self && typeof self === 'object' && self.id !== undefined && self.id !== null) {
+		return self.id
+	}
 	return null
 }
 
@@ -146,8 +162,12 @@ export function resolveCreateOverrideHandler(name, registry, customComponents) {
 		return entry
 	}
 	if (entry && typeof entry === 'object') {
-		if (typeof entry.handler === 'function') { return entry.handler }
-		if (typeof entry.fn === 'function') { return entry.fn }
+		if (typeof entry.handler === 'function') {
+			return entry.handler
+		}
+		if (typeof entry.fn === 'function') {
+			return entry.fn
+		}
 	}
 	const legacy = (customComponents || {})[name]
 	return typeof legacy === 'function' ? legacy : null
@@ -214,7 +234,9 @@ export function buildOnSuccessRoute(onSuccessRoute, saved) {
  */
 function translateMessage(message, context) {
 	const fn = context && context.translate
-	if (!message || typeof fn !== 'function') { return message }
+	if (!message || typeof fn !== 'function') {
+		return message
+	}
 	return fn(message)
 }
 
@@ -233,7 +255,9 @@ function translateMessage(message, context) {
  * @return {string} The interpolated string.
  */
 function interpolateActionString(str, ctx) {
-	if (typeof str !== 'string') { return str }
+	if (typeof str !== 'string') {
+		return str
+	}
 	const braced = str.replace(/\{objectId\}/g, () => {
 		const id = ctx.objectId
 		return (id === undefined || id === null) ? '' : String(id)
@@ -347,8 +371,12 @@ function resolveAgentRef(actionVal, ctxDefault, tokenCtx) {
 	} else if (typeof v === 'string') {
 		v = interpolateActionString(v, tokenCtx)
 	}
-	if (v && typeof v === 'object') { return String(v.slug || v.id || '') }
-	if (v === undefined || v === null) { return '' }
+	if (v && typeof v === 'object') {
+		return String(v.slug || v.id || '')
+	}
+	if (v === undefined || v === null) {
+		return ''
+	}
 	return String(v)
 }
 
@@ -395,9 +423,13 @@ async function executeAgentAction(action, context) {
 
 	const body = { register, schema, objectId }
 	const resultField = resolveAgentRef(action.resultField, undefined, tokenCtx)
-	if (resultField) { body.resultField = resultField }
+	if (resultField) {
+		body.resultField = resultField
+	}
 	const skill = resolveAgentRef(action.skill, undefined, tokenCtx)
-	if (skill) { body.skill = skill }
+	if (skill) {
+		body.skill = skill
+	}
 	if (typeof action.prompt === 'string' && action.prompt !== '') {
 		body.prompt = interpolateActionString(action.prompt, tokenCtx)
 	}

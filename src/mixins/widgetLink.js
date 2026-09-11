@@ -39,9 +39,15 @@ export default {
 		 */
 		linkRoute() {
 			const r = (this.content && (this.content.route || this.content.clickRoute)) || null
-			if (!r) { return null }
-			if (typeof r === 'string') { return r }
-			if (typeof r !== 'object') { return null }
+			if (!r) {
+				return null
+			}
+			if (typeof r === 'string') {
+				return r
+			}
+			if (typeof r !== 'object') {
+				return null
+			}
 			return { ...r, ...this.resolveRouteTokens(r) }
 		},
 		/** An external href configured on the tile, or null. */
@@ -51,8 +57,12 @@ export default {
 		},
 		/** Root element tag: 'router-link' (SPA), 'a' (external), or 'div'. */
 		linkTag() {
-			if (this.linkRoute) { return 'router-link' }
-			if (this.linkHref) { return 'a' }
+			if (this.linkRoute) {
+				return 'router-link'
+			}
+			if (this.linkHref) {
+				return 'a'
+			}
 			return 'div'
 		},
 		/** Root element attributes for the resolved link tag. */
@@ -80,7 +90,9 @@ export default {
 			const out = {}
 			for (const key of ['query', 'params']) {
 				const map = route[key]
-				if (!map || typeof map !== 'object') { continue }
+				if (!map || typeof map !== 'object') {
+					continue
+				}
 				const resolved = {}
 				for (const [k, v] of Object.entries(map)) {
 					if (Array.isArray(v)) {
@@ -88,7 +100,9 @@ export default {
 					} else {
 						const r = resolveFilterValue(v)
 						// Drop a still-unresolved context-bound token (e.g. `@workspace.*`).
-						if (typeof r === 'string' && r.charAt(0) === '@') { continue }
+						if (typeof r === 'string' && r.charAt(0) === '@') {
+							continue
+						}
 						resolved[k] = r
 					}
 				}

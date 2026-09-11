@@ -165,15 +165,33 @@ export default {
 		 */
 		iconFor(file) {
 			const ext = (file.name || file.path || '').split('.').pop().toLowerCase()
-			if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) { return '🖼️' }
-			if (['mp4', 'mov', 'avi', 'webm'].includes(ext)) { return '🎬' }
-			if (['mp3', 'wav', 'ogg'].includes(ext)) { return '🎵' }
-			if (['pdf'].includes(ext)) { return '📕' }
-			if (['doc', 'docx', 'odt', 'txt', 'md'].includes(ext)) { return '📄' }
-			if (['xls', 'xlsx', 'ods', 'csv'].includes(ext)) { return '📊' }
-			if (['ppt', 'pptx', 'odp'].includes(ext)) { return '📈' }
-			if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) { return '🗜️' }
-			if (['xml', 'json', 'yml', 'yaml'].includes(ext)) { return '🧾' }
+			if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
+				return '🖼️'
+			}
+			if (['mp4', 'mov', 'avi', 'webm'].includes(ext)) {
+				return '🎬'
+			}
+			if (['mp3', 'wav', 'ogg'].includes(ext)) {
+				return '🎵'
+			}
+			if (['pdf'].includes(ext)) {
+				return '📕'
+			}
+			if (['doc', 'docx', 'odt', 'txt', 'md'].includes(ext)) {
+				return '📄'
+			}
+			if (['xls', 'xlsx', 'ods', 'csv'].includes(ext)) {
+				return '📊'
+			}
+			if (['ppt', 'pptx', 'odp'].includes(ext)) {
+				return '📈'
+			}
+			if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+				return '🗜️'
+			}
+			if (['xml', 'json', 'yml', 'yaml'].includes(ext)) {
+				return '🧾'
+			}
 			return '📎'
 		},
 
@@ -220,7 +238,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async openPicker() {
-			if (this.readOnly) { return }
+			if (this.readOnly) {
+				return
+			}
 			try {
 				const picker = getFilePickerBuilder(this.pickerTitle)
 					.setMultiSelect(this.allowMultiple)
@@ -230,10 +250,14 @@ export default {
 					.allowDirectories(false)
 					.build()
 				const picked = await picker.pick()
-				if (!picked) { return }
+				if (!picked) {
+					return
+				}
 				const paths = Array.isArray(picked) ? picked : [picked]
 				const refs = paths.filter(Boolean).map((p) => this.toRef(p))
-				if (refs.length) { this.addRefs(refs) }
+				if (refs.length) {
+					this.addRefs(refs)
+				}
 			} catch (e) {
 				// User-cancellation rejects the promise in some dialog versions —
 				// treat any dismissal as a no-op rather than surfacing an error.
@@ -249,7 +273,9 @@ export default {
 		 */
 		addFromPath() {
 			const value = this.pathDraft.trim()
-			if (!value) { return }
+			if (!value) {
+				return
+			}
 			this.addRefs([this.toRef(value)])
 			this.pathDraft = ''
 		},
@@ -285,7 +311,9 @@ export default {
 		 * @return {void}
 		 */
 		removeFile(file, index) {
-			if (this.readOnly) { return }
+			if (this.readOnly) {
+				return
+			}
 			const next = this.files.filter((_, i) => i !== index)
 			/**
 			 * @event remove Emitted when a row's Remove button is clicked.

@@ -199,7 +199,9 @@ export default {
 			const declared = Array.isArray(this.transition?.inputs) ? this.transition.inputs : []
 			const properties = (this.schema && this.schema.properties) || {}
 			for (const input of declared) {
-				if (!input || typeof input.field !== 'string' || input.field === '') { continue }
+				if (!input || typeof input.field !== 'string' || input.field === '') {
+					continue
+				}
 				const prop = properties[input.field] || {}
 				values[input.field] = prop.default !== undefined
 					? prop.default
@@ -217,9 +219,15 @@ export default {
 		 * @return {'text'|'textarea'|'number'|'checkbox'}
 		 */
 		clampWidget(widget) {
-			if (widget === 'checkbox' || widget === 'switch') { return 'checkbox' }
-			if (widget === 'textarea') { return 'textarea' }
-			if (widget === 'number') { return 'number' }
+			if (widget === 'checkbox' || widget === 'switch') {
+				return 'checkbox'
+			}
+			if (widget === 'textarea') {
+				return 'textarea'
+			}
+			if (widget === 'number') {
+				return 'number'
+			}
 			return 'text'
 		},
 
@@ -253,19 +261,25 @@ export default {
 		 */
 		isFilled(field) {
 			const value = this.values[field.key]
-			if (field.widget === 'checkbox') { return value === true }
+			if (field.widget === 'checkbox') {
+				return value === true
+			}
 			return String(value ?? '').trim() !== ''
 		},
 
 		/** Confirm: emit exactly the declared keys (numbers cast) and let the parent POST. */
 		onConfirm() {
-			if (!this.canConfirm) { return }
+			if (!this.canConfirm) {
+				return
+			}
 			const data = {}
 			for (const field of this.fields) {
 				let value = this.values[field.key]
 				if (field.widget === 'number' && String(value ?? '').trim() !== '') {
 					const parsed = Number(value)
-					if (!Number.isNaN(parsed)) { value = parsed }
+					if (!Number.isNaN(parsed)) {
+						value = parsed
+					}
 				}
 				data[field.key] = value
 			}

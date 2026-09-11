@@ -146,8 +146,12 @@ describe('manifest-migrate CLI — exit codes and error handling', () => {
 				expect(report).toContain('# Migration Report')
 				expect(report).toContain('## Summary')
 			} finally {
-				if (fs.existsSync(tmpOutput)) { fs.unlinkSync(tmpOutput) }
-				if (fs.existsSync(tmpReport)) { fs.unlinkSync(tmpReport) }
+				if (fs.existsSync(tmpOutput)) {
+					fs.unlinkSync(tmpOutput)
+				}
+				if (fs.existsSync(tmpReport)) {
+					fs.unlinkSync(tmpReport)
+				}
 			}
 		})
 	})

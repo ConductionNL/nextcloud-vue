@@ -218,9 +218,13 @@ export default {
 		 * @return {object|null} The resolved Vue component, or null.
 		 */
 		resolveSectionComponent(name) {
-			if (typeof name !== 'string' || name === '') { return null }
+			if (typeof name !== 'string' || name === '') {
+				return null
+			}
 			const reg = (this.cnRegistry && this.cnRegistry[name]) || null
-			if (reg && reg.component) { return reg.component }
+			if (reg && reg.component) {
+				return reg.component
+			}
 			const legacy = this.cnCustomComponents && this.cnCustomComponents[name]
 			return legacy || null
 		},

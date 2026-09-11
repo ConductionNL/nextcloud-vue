@@ -265,9 +265,15 @@ export default {
 		 * @return {boolean} True when submittable.
 		 */
 		isValid() {
-			if (this.reasonRequired && !this.formData.reason) { return false }
-			if (this.notesRequired && !this.formData.notes.trim()) { return false }
-			if (this.filesRequired && this.formData.files.length === 0) { return false }
+			if (this.reasonRequired && !this.formData.reason) {
+				return false
+			}
+			if (this.notesRequired && !this.formData.notes.trim()) {
+				return false
+			}
+			if (this.filesRequired && this.formData.files.length === 0) {
+				return false
+			}
 			return true
 		},
 	},
@@ -330,7 +336,9 @@ export default {
 		 * @return {void}
 		 */
 		onConfirm() {
-			if (!this.isValid) { return }
+			if (!this.isValid) {
+				return
+			}
 			this.loading = true
 			/**
 			 * @event confirm Emitted when the user clicks Submit.

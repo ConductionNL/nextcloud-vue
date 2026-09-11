@@ -22,12 +22,18 @@
  * @return {unknown} The value at the path, or `undefined` when any segment is missing.
  */
 function resolvePath(root, path) {
-	if (!root || typeof root !== 'object') { return undefined }
+	if (!root || typeof root !== 'object') {
+		return undefined
+	}
 	const segments = path.split('.')
 	let current = root
 	for (const segment of segments) {
-		if (current === null || typeof current !== 'object') { return undefined }
-		if (!Object.prototype.hasOwnProperty.call(current, segment)) { return undefined }
+		if (current === null || typeof current !== 'object') {
+			return undefined
+		}
+		if (!Object.prototype.hasOwnProperty.call(current, segment)) {
+			return undefined
+		}
 		current = current[segment]
 	}
 	return current
@@ -68,20 +74,28 @@ function evaluatePredicate(value, predicate) {
 
 	// Object predicate — evaluate each recognised operator; all must pass (implicit AND).
 	if (Object.prototype.hasOwnProperty.call(predicate, 'eq')) {
-		if (value !== predicate.eq) { return false }
+		if (value !== predicate.eq) {
+			return false
+		}
 	}
 
 	if (Object.prototype.hasOwnProperty.call(predicate, 'in')) {
-		if (!Array.isArray(predicate.in) || !predicate.in.includes(value)) { return false }
+		if (!Array.isArray(predicate.in) || !predicate.in.includes(value)) {
+			return false
+		}
 	}
 
 	if (Object.prototype.hasOwnProperty.call(predicate, 'notIn')) {
-		if (!Array.isArray(predicate.notIn) || predicate.notIn.includes(value)) { return false }
+		if (!Array.isArray(predicate.notIn) || predicate.notIn.includes(value)) {
+			return false
+		}
 	}
 
 	// Numeric / date comparisons — convert ISO date strings to timestamps for consistent ordering.
 	const toComparable = (v) => {
-		if (typeof v === 'number') { return v }
+		if (typeof v === 'number') {
+			return v
+		}
 		if (typeof v === 'string') {
 			const ts = Date.parse(v)
 			return isNaN(ts) ? v : ts
@@ -90,21 +104,31 @@ function evaluatePredicate(value, predicate) {
 	}
 
 	if (Object.prototype.hasOwnProperty.call(predicate, 'gt')) {
-		if (!(toComparable(value) > toComparable(predicate.gt))) { return false }
+		if (!(toComparable(value) > toComparable(predicate.gt))) {
+			return false
+		}
 	}
 	if (Object.prototype.hasOwnProperty.call(predicate, 'gte')) {
-		if (!(toComparable(value) >= toComparable(predicate.gte))) { return false }
+		if (!(toComparable(value) >= toComparable(predicate.gte))) {
+			return false
+		}
 	}
 	if (Object.prototype.hasOwnProperty.call(predicate, 'lt')) {
-		if (!(toComparable(value) < toComparable(predicate.lt))) { return false }
+		if (!(toComparable(value) < toComparable(predicate.lt))) {
+			return false
+		}
 	}
 	if (Object.prototype.hasOwnProperty.call(predicate, 'lte')) {
-		if (!(toComparable(value) <= toComparable(predicate.lte))) { return false }
+		if (!(toComparable(value) <= toComparable(predicate.lte))) {
+			return false
+		}
 	}
 
 	if (Object.prototype.hasOwnProperty.call(predicate, 'truthy')) {
 		const expected = Boolean(predicate.truthy)
-		if (Boolean(value) !== expected) { return false }
+		if (Boolean(value) !== expected) {
+			return false
+		}
 	}
 
 	return true
@@ -152,21 +176,29 @@ const RESERVED_KEYS = new Set(['appInstalled'])
  * @return {boolean} Whether all context-path predicates pass.
  */
 export function passesContextPredicates(visibleIf, runtime) {
-	if (!visibleIf || typeof visibleIf !== 'object') { return true }
+	if (!visibleIf || typeof visibleIf !== 'object') {
+		return true
+	}
 
 	// Gather the context-path keys (non-reserved keys).
 	const contextKeys = Object.keys(visibleIf).filter((k) => !RESERVED_KEYS.has(k))
-	if (contextKeys.length === 0) { return true }
+	if (contextKeys.length === 0) {
+		return true
+	}
 
 	// When context-path predicates are declared but no runtime data is
 	// available, the item is hidden (fail-safe: don't show role-gated
 	// content to unidentified users).
-	if (!runtime || typeof runtime !== 'object') { return false }
+	if (!runtime || typeof runtime !== 'object') {
+		return false
+	}
 
 	for (const path of contextKeys) {
 		const value = resolvePath(runtime, path)
 		const predicate = visibleIf[path]
-		if (!evaluatePredicate(value, predicate)) { return false }
+		if (!evaluatePredicate(value, predicate)) {
+			return false
+		}
 	}
 
 	return true

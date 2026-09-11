@@ -39,7 +39,9 @@ const MENTION_REGEX = new RegExp(`(?<=^|\\s)@(?:${QUOTED_ID}|(${SIMPLE_ID}))`, '
  * @return {Array<{type: 'text', value: string}|{type: 'mention', id: string, raw: string}>} Ordered segments.
  */
 export function parseMentions(text) {
-	if (typeof text !== 'string' || text === '') { return [] }
+	if (typeof text !== 'string' || text === '') {
+		return []
+	}
 
 	const segments = []
 	let lastIndex = 0
@@ -102,10 +104,14 @@ const IN_PROGRESS_MENTION = /(?:^|\s)@([A-Za-z0-9_.'-]*)$/
  * @return {{query: string, start: number}|null} The in-progress query and where it starts, or `null`.
  */
 export function detectMentionQuery(text, cursorPosition) {
-	if (typeof text !== 'string') { return null }
+	if (typeof text !== 'string') {
+		return null
+	}
 	const upToCursor = text.slice(0, cursorPosition)
 	const match = upToCursor.match(IN_PROGRESS_MENTION)
-	if (!match) { return null }
+	if (!match) {
+		return null
+	}
 	const atIndex = upToCursor.lastIndexOf('@')
 	return { query: match[1], start: atIndex }
 }

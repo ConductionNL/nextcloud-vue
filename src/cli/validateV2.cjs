@@ -73,9 +73,13 @@ function validateManifestV2(manifest) {
 	// gridX + gridWidth <= 12
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page || !Array.isArray(page.widgets)) { return }
+			if (!page || !Array.isArray(page.widgets)) {
+				return
+			}
 			page.widgets.forEach((widget, wIndex) => {
-				if (!widget) { return }
+				if (!widget) {
+					return
+				}
 				const gx = widget.gridX
 				const gw = widget.gridWidth
 				if (typeof gx === 'number' && typeof gw === 'number' && gx + gw > 12) {
@@ -94,14 +98,18 @@ function validateManifestV2(manifest) {
 	}
 	if (Array.isArray(clone.menu)) {
 		clone.menu.forEach((item, i) => {
-			if (!item) { return }
+			if (!item) {
+				return
+			}
 			if (isSentinel(item.id)) { errors.push(`/menu/${i}/id must not be a @resolve: sentinel`) }
 			if (isSentinel(item.route)) { errors.push(`/menu/${i}/route must not be a @resolve: sentinel`) }
 		})
 	}
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, i) => {
-			if (!page) { return }
+			if (!page) {
+				return
+			}
 			if (isSentinel(page.id)) { errors.push(`/pages/${i}/id must not be a @resolve: sentinel`) }
 			if (isSentinel(page.route)) { errors.push(`/pages/${i}/route must not be a @resolve: sentinel`) }
 			if (isSentinel(page.component)) { errors.push(`/pages/${i}/component must not be a @resolve: sentinel`) }

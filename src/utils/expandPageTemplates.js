@@ -96,7 +96,9 @@ export function expandPageTemplates(manifest, options = {}) {
 	const sets = isPlainObject(manifest.sets) ? manifest.sets : {}
 	const templateById = new Map()
 	for (const tpl of (templates || [])) {
-		if (isPlainObject(tpl) && typeof tpl.id === 'string') { templateById.set(tpl.id, tpl) }
+		if (isPlainObject(tpl) && typeof tpl.id === 'string') {
+			templateById.set(tpl.id, tpl)
+		}
 	}
 
 	const basePages = Array.isArray(manifest.pages) ? manifest.pages.map(clone) : []
@@ -128,7 +130,9 @@ export function expandPageTemplates(manifest, options = {}) {
 				missing = true
 			}
 		}
-		if (missing) { return }
+		if (missing) {
+			return
+		}
 
 		// Substitute placeholders into the template's page shape.
 		const localErrors = []
@@ -184,7 +188,9 @@ function substitute(node, params, declared, sets, _sets, errors, label) {
 		const out = []
 		for (const item of node) {
 			const v = substitute(item, params, declared, sets, _sets, errors, label)
-			if (v !== DROP) { out.push(v) }
+			if (v !== DROP) {
+				out.push(v)
+			}
 		}
 		return out
 	}
@@ -220,7 +226,9 @@ function substituteString(str, params, declared, sets, errors, label) {
 	return str.replace(PLACEHOLDER_RE, (_m, tokenRaw) => {
 		const token = tokenRaw.trim()
 		const v = resolveToken(token, params, declared, sets, errors, label)
-		if (v === DROP || v === undefined || v === null) { return '' }
+		if (v === DROP || v === undefined || v === null) {
+			return ''
+		}
 		return String(v)
 	})
 }
@@ -267,11 +275,19 @@ function resolveToken(token, params, declared, sets, errors, label) {
  */
 function effectiveParams(instance) {
 	const out = {}
-	if (instance.register !== undefined) { out.register = instance.register }
-	if (instance.schema !== undefined) { out.schema = instance.schema }
-	if (instance.label !== undefined) { out.label = instance.label }
+	if (instance.register !== undefined) {
+		out.register = instance.register
+	}
+	if (instance.schema !== undefined) {
+		out.schema = instance.schema
+	}
+	if (instance.label !== undefined) {
+		out.label = instance.label
+	}
 	if (isPlainObject(instance.params)) {
-		for (const k of Object.keys(instance.params)) { out[k] = instance.params[k] }
+		for (const k of Object.keys(instance.params)) {
+			out[k] = instance.params[k]
+		}
 	}
 	return out
 }
@@ -310,7 +326,11 @@ function isPlainObject(value) {
  * @return {*} A deep clone of the value.
  */
 function clone(value) {
-	if (value === undefined) { return undefined }
-	if (value === null || typeof value !== 'object') { return value }
+	if (value === undefined) {
+		return undefined
+	}
+	if (value === null || typeof value !== 'object') {
+		return value
+	}
 	return JSON.parse(JSON.stringify(value))
 }

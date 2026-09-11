@@ -78,9 +78,15 @@ describe('CnAppRoot currentUserGroups', () => {
 
 	it('prefers `buildiq` when both namespaces publish', () => {
 		loadState.mockImplementation((app, key, fallback) => {
-			if (key !== 'currentUserGroups') { return fallback }
-			if (app === 'buildiq') { return ['current'] }
-			if (app === 'openbuild') { return ['legacy'] }
+			if (key !== 'currentUserGroups') {
+				return fallback
+			}
+			if (app === 'buildiq') {
+				return ['current']
+			}
+			if (app === 'openbuild') {
+				return ['legacy']
+			}
 			return fallback
 		})
 		expect(mountRoot().vm.currentUserGroups).toEqual(['current'])

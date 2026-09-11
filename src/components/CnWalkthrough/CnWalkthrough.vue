@@ -213,7 +213,9 @@ export default {
 		 * @return {boolean} True when Next should render.
 		 */
 		showNext() {
-			if (!this.step) { return false }
+			if (!this.step) {
+				return false
+			}
 			const enforced = !!this.step.task && this.step.advanceOn && this.step.advanceOn.type !== 'manual'
 			return !enforced || this.step.allowManualNext === true
 		},
@@ -255,7 +257,9 @@ export default {
 		},
 
 		liveText() {
-			if (!this.step) { return '' }
+			if (!this.step) {
+				return ''
+			}
 			return t('nextcloud-vue', 'Step {n} of {total}', { n: this.index + 1, total: this.total }) + ': ' + (this.stepTitle || '')
 		},
 
@@ -296,7 +300,9 @@ export default {
 
 	watch: {
 		step(newStep, oldStep) {
-			if (!newStep) { return }
+			if (!newStep) {
+				return
+			}
 			if (!oldStep || newStep.id !== oldStep.id) {
 				/**
 				 * @event step-change Emitted when the active step changes.
@@ -350,7 +356,9 @@ export default {
 		this._onObjectCreated = (e) => this.wt.notify({ kind: 'object-created', object: (e && e.detail) || {} })
 		window.addEventListener('cn-walkthrough:object-created', this._onObjectCreated)
 		this.hookRouter()
-		if (this.active) { this.$nextTick(() => this.locateTarget()) }
+		if (this.active) {
+			this.$nextTick(() => this.locateTarget())
+		}
 	},
 
 	beforeUnmount() {
@@ -358,7 +366,9 @@ export default {
 		window.removeEventListener('resize', this._onScroll)
 		window.removeEventListener('keydown', this._onKey)
 		window.removeEventListener('cn-walkthrough:object-created', this._onObjectCreated)
-		if (typeof this._routeUnhook === 'function') { this._routeUnhook() }
+		if (typeof this._routeUnhook === 'function') {
+			this._routeUnhook()
+		}
 		this.teardownStep()
 	},
 
@@ -370,7 +380,9 @@ export default {
 		 * @return {string} The resolved string.
 		 */
 		tr(value) {
-			if (!value) { return '' }
+			if (!value) {
+				return ''
+			}
 			return typeof this.translate === 'function' ? this.translate(value) : value
 		},
 
@@ -381,7 +393,9 @@ export default {
 		 */
 		hookRouter() {
 			const router = this.$router
-			if (!router || typeof router.afterEach !== 'function') { return }
+			if (!router || typeof router.afterEach !== 'function') {
+				return
+			}
 			this._routeUnhook = router.afterEach((to) => {
 				this.wt.notify({ kind: 'route', route: to.name, params: to.params || {} })
 				// A first-visit tour deferred because the user deep-linked onto a
@@ -409,11 +423,19 @@ export default {
 		 * @return {void}
 		 */
 		maybeAutoStart() {
-			if (this.wt.running.value) { return }
-			if (this.tourId) { this.wt.start(this.tourId); return }
+			if (this.wt.running.value) {
+				return
+			}
+			if (this.tourId) {
+				this.wt.start(this.tourId); return
+			}
 			const auto = this.wt.autoStartTour.value
-			if (!auto) { return }
-			if (!this.$router) { this.wt.start(auto.id); return }
+			if (!auto) {
+				return
+			}
+			if (!this.$router) {
+				this.wt.start(auto.id); return
+			}
 			const routeName = this.$route && this.$route.name
 			if (this.routeMatchesTour(auto, routeName)) {
 				this.wt.start(auto.id)
@@ -515,7 +537,9 @@ export default {
 		 */
 		routeMatchesTour(tour, routeName) {
 			const page = this.firstStepPage(tour)
-			if (!page) { return true }
+			if (!page) {
+				return true
+			}
 			return !!routeName && String(routeName) === page
 		},
 
@@ -537,13 +561,17 @@ export default {
 			this.targetEl = el
 			if (!el) {
 				// Optional step whose target is absent → skip; else wait for it.
-				if (this.step.optional) { this.wt.skip(); return }
+				if (this.step.optional) {
+					this.wt.skip(); return
+				}
 				// A nav-item/page target may be absent because it lives in a
 				// collapsed nav group (children not rendered). Best-effort expand
 				// the group so the MutationObserver below catches the now-rendered
 				// target and re-locates it.
 				const tgtKind = (this.step.target && this.step.target.kind) || ''
-				if (tgtKind === 'nav-item' || tgtKind === 'page') { this.revealTarget() }
+				if (tgtKind === 'nav-item' || tgtKind === 'page') {
+					this.revealTarget()
+				}
 				this.observeForTarget()
 				this.rect = null
 				return
@@ -570,10 +598,16 @@ export default {
 			const ref = tgt.ref
 			const q = (sel) => { try { return document.querySelector(sel) } catch (e) { return null } }
 			const esc = (v) => (window.CSS && CSS.escape ? CSS.escape(v) : String(v).replace(/"/g, '\\"'))
-			if (tgt.kind === 'selector' && tgt.selector) { return q(tgt.selector) }
-			if (!ref) { return null }
+			if (tgt.kind === 'selector' && tgt.selector) {
+				return q(tgt.selector)
+			}
+			if (!ref) {
+				return null
+			}
 			const byId = q(`[data-walkthrough-id="${esc(ref)}"]`) || q(`[data-testid="${esc(ref)}"]`)
-			if (byId) { return byId }
+			if (byId) {
+				return byId
+			}
 			if (tgt.kind === 'nav-item' || tgt.kind === 'page') {
 				return q(`[data-cn-route="${esc(ref)}"]`) || q(`a[href$="#/${esc(ref)}"]`) || q(`[data-route="${esc(ref)}"]`)
 			}
@@ -597,13 +631,19 @@ export default {
 		 * @return {void}
 		 */
 		revealTarget() {
-			if (this._revealAttempted) { return }
+			if (this._revealAttempted) {
+				return
+			}
 			this._revealAttempted = true
 			const nav = document.querySelector('.app-navigation') || document.querySelector('#app-navigation')
-			if (!nav) { return }
+			if (!nav) {
+				return
+			}
 			const clicked = new Set()
 			const click = (el) => {
-				if (!el || clicked.has(el) || typeof el.click !== 'function') { return }
+				if (!el || clicked.has(el) || typeof el.click !== 'function') {
+					return
+				}
 				clicked.add(el)
 				try { el.click() } catch (e) { /* jsdom / detached */ }
 			}
@@ -618,9 +658,13 @@ export default {
 			// aria-expanded on the toggle — collapsed state is the absent
 			// `--opened` / `open` class on the wrapper).
 			nav.querySelectorAll('.app-navigation-entry--collapsible').forEach((group) => {
-				if (group.classList.contains('app-navigation-entry--opened') || group.classList.contains('open')) { return }
+				if (group.classList.contains('app-navigation-entry--opened') || group.classList.contains('open')) {
+					return
+				}
 				const btn = group.querySelector('button.icon-collapse, .app-navigation-entry__children-toggle, .app-navigation-entry__collapse')
-				if (btn) { click(btn) }
+				if (btn) {
+					click(btn)
+				}
 			})
 		},
 
@@ -643,7 +687,9 @@ export default {
 		 * @return {void}
 		 */
 		computeRect() {
-			if (!this.targetEl) { return }
+			if (!this.targetEl) {
+				return
+			}
 			const r = this.targetEl.getBoundingClientRect()
 			// Target present but not laid out (e.g. a nav item inside a collapsed
 			// group, or a hidden element): fall back to an anchorless centered
@@ -680,7 +726,9 @@ export default {
 		 */
 		placeCard() {
 			const card = this.$refs.card
-			if (!card || !this.rect) { return }
+			if (!card || !this.rect) {
+				return
+			}
 			const cw = card.offsetWidth || 320
 			const ch = card.offsetHeight || 160
 			const gap = 12
@@ -690,8 +738,12 @@ export default {
 			let placement = this.step.placement && this.step.placement !== 'auto' ? this.step.placement : 'bottom'
 			let top
 			let left
-			if (placement === 'bottom' && r.top + r.height + gap + ch > vh) { placement = 'top' }
-			if (placement === 'top' && r.top - gap - ch < 0) { placement = 'bottom' }
+			if (placement === 'bottom' && r.top + r.height + gap + ch > vh) {
+				placement = 'top'
+			}
+			if (placement === 'top' && r.top - gap - ch < 0) {
+				placement = 'bottom'
+			}
 			if (placement === 'bottom') { top = r.top + r.height + gap; left = r.left } else if (placement === 'top') { top = r.top - gap - ch; left = r.left } else if (placement === 'left') { top = r.top; left = r.left - gap - cw } else { top = r.top; left = r.left + r.width + gap }
 			// Clamp to the viewport. `left`/`top` live in overlay-relative space
 			// (this.rect was host-subtracted), so the viewport bounds must be
@@ -714,7 +766,9 @@ export default {
 		focusCard() {
 			this.$nextTick(() => {
 				const btn = this.$refs.firstBtn && this.$refs.firstBtn.$el
-				if (btn && typeof btn.focus === 'function') { btn.focus() }
+				if (btn && typeof btn.focus === 'function') {
+					btn.focus()
+				}
 			})
 		},
 
@@ -782,10 +836,18 @@ export default {
 		 */
 		teardownStep() {
 			this._revealAttempted = false
-			if (this._observer) { this._observer.disconnect(); this._observer = null }
-			if (this._resizeObs) { this._resizeObs.disconnect(); this._resizeObs = null }
-			if (this._delayTimer) { clearTimeout(this._delayTimer); this._delayTimer = null }
-			if (this._settleTimers) { this._settleTimers.forEach(clearTimeout); this._settleTimers = null }
+			if (this._observer) {
+				this._observer.disconnect(); this._observer = null
+			}
+			if (this._resizeObs) {
+				this._resizeObs.disconnect(); this._resizeObs = null
+			}
+			if (this._delayTimer) {
+				clearTimeout(this._delayTimer); this._delayTimer = null
+			}
+			if (this._settleTimers) {
+				this._settleTimers.forEach(clearTimeout); this._settleTimers = null
+			}
 			if (this.targetEl && this._clickHandler) {
 				this.targetEl.removeEventListener('click', this._clickHandler)
 				this._clickHandler = null
@@ -845,10 +907,14 @@ export default {
 		 */
 		doHandoff() {
 			const h = (this.step && this.step.handoff) || {}
-			if (!h.url) { return }
+			if (!h.url) {
+				return
+			}
 			const tour = h.tour || (this.wt.activeTour.value && this.wt.activeTour.value.id) || ''
 			let url = h.url + (h.url.indexOf('?') === -1 ? '?' : '&') + 'cn_resume_tour=' + encodeURIComponent(tour)
-			if (h.step) { url += '&cn_resume_step=' + encodeURIComponent(h.step) }
+			if (h.step) {
+				url += '&cn_resume_step=' + encodeURIComponent(h.step)
+			}
 			/**
 			 * @event handoff Emitted just before navigating to a cross-app destination.
 			 * @type {{ app: string, url: string }}

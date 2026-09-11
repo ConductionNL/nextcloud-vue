@@ -155,7 +155,9 @@ export default {
 		/** The workspace context bag, unwrapped (or null). */
 		workspaceCtx() {
 			const c = this.cnWorkspaceContext
-			if (!c) { return null }
+			if (!c) {
+				return null
+			}
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
 
@@ -167,7 +169,9 @@ export default {
 		/** The summary text the page wrote, if any. */
 		boundSummary() {
 			const ws = this.workspaceCtx
-			if (!ws) { return '' }
+			if (!ws) {
+				return ''
+			}
 			const v = ws[this.bindKey]
 			return typeof v === 'string' ? v : ''
 		},
@@ -184,7 +188,9 @@ export default {
 
 		/** Label noting the search is following the live summary. */
 		boundLabel() {
-			if (this.manual || !this.boundSummary) { return '' }
+			if (this.manual || !this.boundSummary) {
+				return ''
+			}
 			return t('nextcloud-vue', 'Suggested from the active summary')
 		},
 
@@ -200,7 +206,9 @@ export default {
 		 * @return {boolean}
 		 */
 		externalOpen() {
-			if (typeof this.content.externalOpen === 'boolean') { return this.content.externalOpen }
+			if (typeof this.content.externalOpen === 'boolean') {
+				return this.content.externalOpen
+			}
 			return Boolean(this.resolvedProvider && this.resolvedProvider.externalOpen)
 		},
 
@@ -233,13 +241,17 @@ export default {
 		 * @param {string} val The new summary text.
 		 */
 		boundSummary(val) {
-			if (this.manual) { return }
+			if (this.manual) {
+				return
+			}
 			this.scheduleSearch(val || '')
 		},
 	},
 
 	beforeUnmount() {
-		if (this.debounceHandle) { clearTimeout(this.debounceHandle) }
+		if (this.debounceHandle) {
+			clearTimeout(this.debounceHandle)
+		}
 	},
 
 	methods: {
@@ -262,7 +274,9 @@ export default {
 		 */
 		scheduleSearch(text) {
 			this.term = text
-			if (this.debounceHandle) { clearTimeout(this.debounceHandle) }
+			if (this.debounceHandle) {
+				clearTimeout(this.debounceHandle)
+			}
 			if (text.trim().length < this.minChars) {
 				this.results = []
 				this.unavailable = false

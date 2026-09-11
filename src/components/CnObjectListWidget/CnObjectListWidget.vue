@@ -272,7 +272,9 @@ export default {
 		 */
 		objectCtx() {
 			const c = this.cnObjectContext
-			if (!c) { return null }
+			if (!c) {
+				return null
+			}
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
 
@@ -285,7 +287,9 @@ export default {
 		 */
 		workspaceCtx() {
 			const c = this.cnWorkspaceContext
-			if (!c) { return null }
+			if (!c) {
+				return null
+			}
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
 
@@ -336,7 +340,9 @@ export default {
 		 * @return {string}
 		 */
 		promptText() {
-			if (this.content.prompt) { return this.content.prompt }
+			if (this.content.prompt) {
+				return this.content.prompt
+			}
 			return this.objectCtx
 				? t('nextcloud-vue', 'Nothing here yet')
 				: t('nextcloud-vue', 'Select an item to see related records')
@@ -369,7 +375,9 @@ export default {
 				}
 				const out = { key: c.key, label: c.label || c.key }
 				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'sortable']) {
-					if (c[k] !== undefined) { out[k] = c[k] }
+					if (c[k] !== undefined) {
+						out[k] = c[k]
+					}
 				}
 				return out
 			})
@@ -502,7 +510,9 @@ export default {
 		 * @return {boolean}
 		 */
 		showPager() {
-			if (this.totalPages <= 1) { return false }
+			if (this.totalPages <= 1) {
+				return false
+			}
 			return this.fitRows === null || this.fitRows >= this.rows.length
 		},
 
@@ -621,7 +631,9 @@ export default {
 		// page's own Refresh) must not turn one write into a queue of
 		// overlapping reads for one list.
 		this._onPageRefresh = () => {
-			if (this.loading) { return }
+			if (this.loading) {
+				return
+			}
 			this.fetchRows()
 		}
 		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
@@ -641,7 +653,9 @@ export default {
 			unsubscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 			this._onPageRefresh = null
 		}
-		if (this._fitObserver) { this._fitObserver.disconnect() }
+		if (this._fitObserver) {
+			this._fitObserver.disconnect()
+		}
 	},
 
 	methods: {
@@ -694,7 +708,9 @@ export default {
 				// uuid string as an object path.
 				if (Array.isArray(c.extend)) {
 					const extend = c.extend.filter((e) => typeof e === 'string' && e !== '')
-					if (extend.length > 0) { params._extend = extend }
+					if (extend.length > 0) {
+						params._extend = extend
+					}
 				}
 				// The OpenRegister OBJECT-SEARCH endpoint filters on DIRECT field
 				// params (`status=open`, `value[gt]=30000`) — unlike the
@@ -737,9 +753,13 @@ export default {
 		 */
 		measureFit() {
 			const cell = this.$el && this.$el.closest && this.$el.closest('.grid-stack-item-content')
-			if (!cell) { this.fitRows = null; return }
+			if (!cell) {
+				this.fitRows = null; return
+			}
 			const table = this.$el.querySelector('.cn-object-list-widget__table table')
-			if (!table) { return }
+			if (!table) {
+				return
+			}
 			const cellRect = cell.getBoundingClientRect()
 			const tableRect = table.getBoundingClientRect()
 			const firstRow = table.querySelector('tbody tr')
@@ -763,7 +783,9 @@ export default {
 		 */
 		async openCreate() {
 			const c = this.content || {}
-			if (!c.schema) { return }
+			if (!c.schema) {
+				return
+			}
 			try {
 				if (!this.createSchema) {
 					const [{ default: axios }, { generateUrl }] = await Promise.all([
@@ -835,7 +857,9 @@ export default {
 		 */
 		onPageChange(next) {
 			const target = Math.min(Math.max(Number(next) || 1, 1), this.totalPages)
-			if (target === this.page) { return }
+			if (target === this.page) {
+				return
+			}
 			this.page = target
 			this.fetchRows()
 		},
@@ -904,7 +928,9 @@ export default {
 		 * @return {void}
 		 */
 		dispatch(action, extraArgs = [], extraProps = {}) {
-			if (!action || typeof action !== 'object') { return }
+			if (!action || typeof action !== 'object') {
+				return
+			}
 			const type = action.type || 'handler'
 			let wrapped = action
 			if (type === 'handler') {
@@ -930,7 +956,9 @@ export default {
 		 */
 		dragHasFiles(event) {
 			const types = event && event.dataTransfer && event.dataTransfer.types
-			if (!types) { return false }
+			if (!types) {
+				return false
+			}
 			return Array.prototype.indexOf.call(types, 'Files') !== -1
 		},
 
@@ -939,7 +967,9 @@ export default {
 		 * @return {void}
 		 */
 		onDragEnter(event) {
-			if (!this.dropZoneAction || !this.dragHasFiles(event)) { return }
+			if (!this.dropZoneAction || !this.dragHasFiles(event)) {
+				return
+			}
 			event.preventDefault()
 			this.dragDepth += 1
 		},
@@ -952,7 +982,9 @@ export default {
 		 * @return {void}
 		 */
 		onDragOver(event) {
-			if (!this.dropZoneAction || !this.dragHasFiles(event)) { return }
+			if (!this.dropZoneAction || !this.dragHasFiles(event)) {
+				return
+			}
 			event.preventDefault()
 		},
 
@@ -964,7 +996,9 @@ export default {
 		 * @return {void}
 		 */
 		onDragLeave() {
-			if (!this.dropZoneAction) { return }
+			if (!this.dropZoneAction) {
+				return
+			}
 			this.dragDepth = Math.max(0, this.dragDepth - 1)
 		},
 
@@ -978,12 +1012,18 @@ export default {
 		 * @return {void}
 		 */
 		onDrop(event) {
-			if (!this.dropZoneAction) { return }
-			if (!this.dragHasFiles(event)) { this.dragDepth = 0; return }
+			if (!this.dropZoneAction) {
+				return
+			}
+			if (!this.dragHasFiles(event)) {
+				this.dragDepth = 0; return
+			}
 			event.preventDefault()
 			this.dragDepth = 0
 			const files = Array.from((event.dataTransfer && event.dataTransfer.files) || [])
-			if (files.length === 0) { return }
+			if (files.length === 0) {
+				return
+			}
 			/**
 			 * @event files-dropped Emitted with the dropped files, for a host
 			 * that wants to handle the drop itself rather than declare an action.

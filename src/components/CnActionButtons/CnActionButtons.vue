@@ -283,7 +283,9 @@ export default {
 		 */
 		formInitialValues() {
 			const props = this.formEntry && this.formEntry.props
-			if (!props || typeof props !== 'object' || Array.isArray(props)) { return null }
+			if (!props || typeof props !== 'object' || Array.isArray(props)) {
+				return null
+			}
 			// Seed values go through the SAME token grammar as filters, so an
 			// action on a detail page can stamp the record it belongs to:
 			// `{ "domainObjectRef": "@objectId" }`. Without this the literal
@@ -406,7 +408,9 @@ export default {
 				/**
 				 * @event entries Emitted in `display: "menu"` only, whenever the visible actions, their toggle state or their pending flags change. Payload: one menu-ready descriptor per visible action, each carrying `id`, `label`, `iconName`, `iconClass`, `disabled`, `pressed`, `testid` and a pre-bound `run()`.
 				 */
-				if (this.display === 'menu') { this.$emit('entries', entries) }
+				if (this.display === 'menu') {
+					this.$emit('entries', entries)
+				}
 			},
 		},
 	},
@@ -431,7 +435,9 @@ export default {
 		 */
 		async evaluateVisibility() {
 			for (const action of this.actions || []) {
-				if (!action || !action.id) { continue }
+				if (!action || !action.id) {
+					continue
+				}
 				if (!action.visibleWhen) {
 					this.visibility[action.id] = true
 					continue
@@ -450,9 +456,13 @@ export default {
 		 */
 		async initToggles() {
 			for (const action of this.actions || []) {
-				if (!action || action.type !== 'toggle' || !action.id) { continue }
+				if (!action || action.type !== 'toggle' || !action.id) {
+					continue
+				}
 				this.toggleState[action.id] = false
-				if (!action.stateSource || !action.stateSource.url) { continue }
+				if (!action.stateSource || !action.stateSource.url) {
+					continue
+				}
 				try {
 					const payload = await fetchEndpointSource(action.stateSource, this.tokenCtx)
 					const value = action.field ? this.readField(payload, action.field) : payload
@@ -471,7 +481,9 @@ export default {
 		 * @return {*} The value at the path.
 		 */
 		readField(data, field) {
-			if (!field) { return data }
+			if (!field) {
+				return data
+			}
 			return String(field).split('.').reduce((o, k) => (o == null ? o : o[k]), data)
 		},
 
@@ -484,13 +496,17 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async onToggleClick(entry) {
-			if (this.togglePending[entry.id]) { return }
+			if (this.togglePending[entry.id]) {
+				return
+			}
 			const previous = Boolean(this.toggleState[entry.id])
 			const next = !previous
 			this.toggleState[entry.id] = next
 			this.togglePending[entry.id] = true
 			const writeParams = { ...(entry.params || {}) }
-			if (entry.field) { writeParams[entry.field] = next }
+			if (entry.field) {
+				writeParams[entry.field] = next
+			}
 			const result = await this.dispatch({
 				type: 'api-call',
 				url: entry.writeUrl,
@@ -529,7 +545,9 @@ export default {
 		 */
 		async onConfirmProceed() {
 			const entry = this.confirmEntry
-			if (!entry) { return }
+			if (!entry) {
+				return
+			}
 			const result = await this.runAction(entry)
 			const dialog = this.$refs.confirmDialog
 			if (dialog && typeof dialog.setResult === 'function') {
@@ -619,7 +637,9 @@ export default {
 			}
 			if (!this.formSchema) {
 				const { showError } = await import('@nextcloud/dialogs')
-				if (typeof showError === 'function') { showError(t('nextcloud-vue', 'Could not open the form.')) }
+				if (typeof showError === 'function') {
+					showError(t('nextcloud-vue', 'Could not open the form.'))
+				}
 				this.formEntry = null
 			}
 		},
@@ -662,7 +682,9 @@ export default {
 				const saved = override
 					? await override(payload, { register, schema, type })
 					: await store.saveObject(type, payload)
-				if (!saved) { throw new Error('save rejected') }
+				if (!saved) {
+					throw new Error('save rejected')
+				}
 				await this.saveDynamicAnswers(store, register, dynamic, saved)
 				if (dialog && typeof dialog.setResult === 'function') { dialog.setResult({ success: true }) }
 				const { showSuccess } = await import('@nextcloud/dialogs')
@@ -703,15 +725,23 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async saveDynamicAnswers(store, register, dynamic, saved) {
-			if (!dynamic || !Array.isArray(dynamic.answers) || dynamic.answers.length === 0) { return }
+			if (!dynamic || !Array.isArray(dynamic.answers) || dynamic.answers.length === 0) {
+				return
+			}
 			const objectId = saved && (saved.id || saved.uuid)
-			if (!objectId) { return }
+			if (!objectId) {
+				return
+			}
 			const declarations = dynamic.declarations || []
 			for (const { key, config } of declarations) {
 				const values = config && config.values
-				if (!values || !values.schema) { continue }
+				if (!values || !values.schema) {
+					continue
+				}
 				// Already written as part of the parent payload.
-				if (usesArrayValues(config)) { continue }
+				if (usesArrayValues(config)) {
+					continue
+				}
 				// An answer belongs to exactly one declaration. With a single
 				// declaration every answer carries its key anyway; the filter
 				// only matters once a schema has two, where writing an answer
@@ -720,7 +750,9 @@ export default {
 					? dynamic.answers
 					: dynamic.answers.filter((a) => a.declarationKey === key)
 				const rows = valueRecordsFor(mine, config, objectId)
-				if (rows.length === 0) { continue }
+				if (rows.length === 0) {
+					continue
+				}
 				const valueRegister = values.register || register
 				const type = resolveObjectOpType(store, { register: valueRegister, schema: values.schema })
 				for (const row of rows) {
@@ -737,15 +769,21 @@ export default {
 		 * @return {void}
 		 */
 		foldArrayAnswers(payload, dynamic) {
-			if (!dynamic || !Array.isArray(dynamic.answers) || dynamic.answers.length === 0) { return }
+			if (!dynamic || !Array.isArray(dynamic.answers) || dynamic.answers.length === 0) {
+				return
+			}
 			const declarations = dynamic.declarations || []
 			for (const { key, config } of declarations) {
-				if (!usesArrayValues(config)) { continue }
+				if (!usesArrayValues(config)) {
+					continue
+				}
 				const mine = declarations.length === 1
 					? dynamic.answers
 					: dynamic.answers.filter((a) => a.declarationKey === key)
 				const entries = valueArrayFor(mine, config, dynamic.definitions || [])
-				if (entries.length) { payload[config.values.arrayKey] = entries }
+				if (entries.length) {
+					payload[config.values.arrayKey] = entries
+				}
 			}
 		},
 

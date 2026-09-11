@@ -128,7 +128,9 @@ export default {
 		// Lazily create the setup block reactively. Assigning a brand-new
 		// property on the working manifest must go through $set, or Vue 2 won't
 		// track later mutations (added steps wouldn't render).
-		if (!this.working) { return }
+		if (!this.working) {
+			return
+		}
 		if (!this.working.setup || typeof this.working.setup !== 'object') {
 			this.working.setup = { enabled: true, steps: [] }
 		}

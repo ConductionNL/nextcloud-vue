@@ -243,7 +243,9 @@ export default {
 
 	methods: {
 		async fetchTasks(append = false) {
-			if (!this.register || !this.schema) { return }
+			if (!this.register || !this.schema) {
+				return
+			}
 			if (append) { this.loadingMore = true } else { this.loading = true }
 			try {
 				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
@@ -271,12 +273,16 @@ export default {
 		},
 
 		isOverdue(task) {
-			if (!task.due || task.status === 'completed') { return false }
+			if (!task.due || task.status === 'completed') {
+				return false
+			}
 			return new Date(task.due) < new Date()
 		},
 
 		async fetchUsers() {
-			if (!this.register || !this.schema) { return }
+			if (!this.register || !this.schema) {
+				return
+			}
 			try {
 				const response = await fetch('/ocs/v2.php/cloud/users/details?format=json&limit=50', {
 					headers: buildHeaders(),
@@ -295,7 +301,9 @@ export default {
 		},
 
 		async addTask() {
-			if (!this.newTaskSummary.trim() || !this.register || !this.schema) { return }
+			if (!this.newTaskSummary.trim() || !this.register || !this.schema) {
+				return
+			}
 			this.saving = true
 			try {
 				const taskData = { summary: this.newTaskSummary.trim() }
@@ -336,7 +344,9 @@ export default {
 		},
 
 		async saveEdit() {
-			if (!this.newTaskSummary.trim() || !this.editingTaskId) { return }
+			if (!this.newTaskSummary.trim() || !this.editingTaskId) {
+				return
+			}
 			this.saving = true
 			try {
 				const taskData = { summary: this.newTaskSummary.trim() }
@@ -427,7 +437,9 @@ export default {
 		},
 
 		formatShortDate(dateStr) {
-			if (!dateStr) { return '' }
+			if (!dateStr) {
+				return ''
+			}
 			try {
 				return new Date(dateStr).toLocaleDateString(undefined, {
 					day: 'numeric',

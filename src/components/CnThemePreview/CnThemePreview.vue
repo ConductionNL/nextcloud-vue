@@ -192,9 +192,13 @@ export default {
 		 * @return {boolean} True when at least one key differs.
 		 */
 		isModified() {
-			if (!this.defaults) { return false }
+			if (!this.defaults) {
+				return false
+			}
 			for (const [k, v] of Object.entries(this.defaults)) {
-				if (this.model[k] !== v) { return true }
+				if (this.model[k] !== v) {
+					return true
+				}
 			}
 			return false
 		},
@@ -207,7 +211,9 @@ export default {
 		 */
 		value: {
 			handler(next) {
-				if (!next || typeof next !== 'object') { return }
+				if (!next || typeof next !== 'object') {
+					return
+				}
 				this.model = { ...this.model, ...next }
 			},
 
@@ -274,7 +280,9 @@ export default {
 		 * @return {void}
 		 */
 		onPickerChange(key, value) {
-			if (typeof value !== 'string') { return }
+			if (typeof value !== 'string') {
+				return
+			}
 			this.model = { ...this.model, [key]: value }
 			this.emitChange()
 		},
@@ -285,7 +293,9 @@ export default {
 		 * @return {void}
 		 */
 		reset() {
-			if (!this.defaults) { return }
+			if (!this.defaults) {
+				return
+			}
 			this.model = { ...this.defaults }
 			this.emitChange()
 		},

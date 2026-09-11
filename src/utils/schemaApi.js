@@ -75,9 +75,15 @@ export class SchemaHasObjectsError extends Error {
  * @return {*} The unwrapped payload.
  */
 function unwrap(data) {
-	if (!data) { return data }
-	if (data.result !== undefined) { return data.result }
-	if (data.results !== undefined) { return data.results }
+	if (!data) {
+		return data
+	}
+	if (data.result !== undefined) {
+		return data.result
+	}
+	if (data.results !== undefined) {
+		return data.results
+	}
 	return data
 }
 
@@ -165,7 +171,9 @@ export async function deleteSchema(id, options = {}) {
  * @return {string} The description.
  */
 export function describeSchemaChange(change, translate) {
-	if (!change || typeof change !== 'object') { return '' }
+	if (!change || typeof change !== 'object') {
+		return ''
+	}
 	const t = typeof translate === 'function' ? translate : (app, text) => text
 
 	const property = change.property || t('nextcloud-vue', 'schema')

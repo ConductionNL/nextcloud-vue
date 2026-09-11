@@ -913,9 +913,13 @@ export default {
 		 */
 		enumDisplayLabel() {
 			return (field, raw) => {
-				if (raw === null || raw === undefined || raw === '') { return null }
+				if (raw === null || raw === undefined || raw === '') {
+					return null
+				}
 				const values = Array.isArray(field.enum) ? field.enum : null
-				if (values === null || !values.includes(raw)) { return null }
+				if (values === null || !values.includes(raw)) {
+					return null
+				}
 				const labels = field.enumLabels || {}
 				return this.cnTranslate(labels[raw] || String(raw))
 			}
@@ -1034,12 +1038,18 @@ export default {
 	},
 
 	beforeUnmount() {
-		if (this._overflowObserver) { this._overflowObserver.disconnect() }
-		if (this._overflowTimer) { clearTimeout(this._overflowTimer) }
+		if (this._overflowObserver) {
+			this._overflowObserver.disconnect()
+		}
+		if (this._overflowTimer) {
+			clearTimeout(this._overflowTimer)
+		}
 		// Leave nothing behind in the strip's menu. A closed tab's panel can be
 		// torn down while the strip lives on, and an item whose widget is gone
 		// would open a dialog belonging to nothing.
-		if (this.panelActionSink) { this.panelActionSink.clear() }
+		if (this.panelActionSink) {
+			this.panelActionSink.clear()
+		}
 	},
 
 	methods: {
@@ -1053,7 +1063,9 @@ export default {
 		 * @return {void}
 		 */
 		publishPanelActions() {
-			if (!this.panelActionSink) { return }
+			if (!this.panelActionSink) {
+				return
+			}
 			if (this.showActions) {
 				this.panelActionSink.clear()
 				return
@@ -1067,7 +1079,9 @@ export default {
 		/** Toggle the expand/collapse state and, on collapse, re-measure. */
 		toggleExpanded() {
 			this.expanded = !this.expanded
-			if (!this.expanded) { this.$nextTick(() => this.measureOverflow()) }
+			if (!this.expanded) {
+				this.$nextTick(() => this.measureOverflow())
+			}
 		},
 
 		/**
@@ -1079,7 +1093,9 @@ export default {
 		 * @return {void}
 		 */
 		scheduleOverflowMeasure() {
-			if (typeof window === 'undefined') { return }
+			if (typeof window === 'undefined') {
+				return
+			}
 			if (!this._overflowObserver && typeof ResizeObserver !== 'undefined' && this.$refs.grid) {
 				const content = this.$refs.grid.closest && this.$refs.grid.closest('.cn-widget-wrapper__content')
 				if (content) {
@@ -1100,10 +1116,14 @@ export default {
 		 * @return {void}
 		 */
 		measureOverflow() {
-			if (this.expanded) { return }
+			if (this.expanded) {
+				return
+			}
 			const grid = this.$refs.grid
 			const content = grid && grid.closest && grid.closest('.cn-widget-wrapper__content')
-			if (!grid || !content) { this.overflowing = false; this.collapsedMaxHeight = null; return }
+			if (!grid || !content) {
+				this.overflowing = false; this.collapsedMaxHeight = null; return
+			}
 			const avail = content.clientHeight
 			// Natural (unclipped) grid height. `scrollHeight` ignores the
 			// max-height clip so it reflects the full field set.
@@ -1154,7 +1174,9 @@ export default {
 		 * @return {number} The clip height (px).
 		 */
 		computeWholeRowClip(rowBottoms, budget) {
-			if (!rowBottoms.length) { return budget }
+			if (!rowBottoms.length) {
+				return budget
+			}
 			let clip = rowBottoms[0]
 			for (const b of rowBottoms) {
 				if (b <= budget) { clip = b } else { break }
@@ -1183,15 +1205,21 @@ export default {
 		 */
 		fieldValueKind(field) {
 			const prop = ((this.schema && this.schema.properties) || {})[field.key]
-			if (this.isRelationField(prop)) { return 'scalar' }
+			if (this.isRelationField(prop)) {
+				return 'scalar'
+			}
 			const raw = this.rawOf(field)
 			if (Array.isArray(raw)) {
-				if (raw.length === 0) { return 'scalar' }
+				if (raw.length === 0) {
+					return 'scalar'
+				}
 				return raw.some((v) => v !== null && typeof v === 'object' && !Array.isArray(v))
 					? 'object-array'
 					: 'scalar-array'
 			}
-			if (raw !== null && typeof raw === 'object') { return 'object' }
+			if (raw !== null && typeof raw === 'object') {
+				return 'object'
+			}
 			return 'scalar'
 		},
 
@@ -1203,12 +1231,16 @@ export default {
 		 * @return {string[]} Up to five column keys.
 		 */
 		objectArrayColumns(raw) {
-			if (!Array.isArray(raw)) { return [] }
+			if (!Array.isArray(raw)) {
+				return []
+			}
 			const keys = []
 			for (const item of raw.slice(0, 3)) {
 				if (item && typeof item === 'object') {
 					for (const k of Object.keys(item)) {
-						if (!keys.includes(k)) { keys.push(k) }
+						if (!keys.includes(k)) {
+							keys.push(k)
+						}
 					}
 				}
 			}
@@ -1245,8 +1277,12 @@ export default {
 		 * @return {string} The display string.
 		 */
 		stringifyCell(v) {
-			if (v === null || v === undefined || v === '') { return '—' }
-			if (typeof v === 'boolean') { return v ? '✓' : '—' }
+			if (v === null || v === undefined || v === '') {
+				return '—'
+			}
+			if (typeof v === 'boolean') {
+				return v ? '✓' : '—'
+			}
 			if (typeof v === 'object') {
 				try {
 					return JSON.stringify(v)
@@ -1263,10 +1299,14 @@ export default {
 		 * @param {object} field The field descriptor (from `fieldsFromSchema`).
 		 */
 		isImageField(field) {
-			if (field.widget === 'image') { return true }
+			if (field.widget === 'image') {
+				return true
+			}
 			const prop = this.schema.properties && this.schema.properties[field.key]
 			const fmt = (prop && (prop.format || prop.contentMediaType)) || ''
-			if (fmt === 'image' || String(fmt).indexOf('image/') === 0) { return true }
+			if (fmt === 'image' || String(fmt).indexOf('image/') === 0) {
+				return true
+			}
 			return /(^|[._-])(photo|image|avatar|logo|thumb|picture)/i.test(field.key)
 		},
 
@@ -1276,9 +1316,15 @@ export default {
 		 * @param {object} prop The schema property definition.
 		 */
 		relationProp(prop) {
-			if (!prop) { return null }
-			if (prop['x-openregister-relation']) { return prop['x-openregister-relation'] }
-			if (prop.items && prop.items['x-openregister-relation']) { return prop.items['x-openregister-relation'] }
+			if (!prop) {
+				return null
+			}
+			if (prop['x-openregister-relation']) {
+				return prop['x-openregister-relation']
+			}
+			if (prop.items && prop.items['x-openregister-relation']) {
+				return prop.items['x-openregister-relation']
+			}
 			// Canonical OpenRegister shorthand: `$ref` on a uuid-string
 			// property (or its array items) references a schema in the SAME
 			// register. Authored as a slug ("caseType"), but the live schema
@@ -1298,7 +1344,9 @@ export default {
 		/** The current register from the injected detail-page object context. */
 		contextRegisterOf() {
 			const c = this.cnObjectContext
-			if (!c) { return '' }
+			if (!c) {
+				return ''
+			}
 			const v = (typeof c === 'object' && 'value' in c) ? c.value : c
 			return (v && v.register) || ''
 		},
@@ -1357,7 +1405,9 @@ export default {
 		 */
 		isRelationPending(field) {
 			const prop = ((this.schema && this.schema.properties) || {})[field.key]
-			if (!prop || this.relationProp(prop) === null) { return false }
+			if (!prop || this.relationProp(prop) === null) {
+				return false
+			}
 			const raw = (this.objectData || {})[field.key]
 			const ids = Array.isArray(raw) ? raw : (raw ? [raw] : [])
 			return ids.some((id) => id && !(id in this.relatedLabels))
@@ -1373,7 +1423,9 @@ export default {
 		 */
 		isSingleRelationField(key) {
 			const prop = ((this.schema && this.schema.properties) || {})[key]
-			if (!prop || prop.type === 'array') { return false }
+			if (!prop || prop.type === 'array') {
+				return false
+			}
 			return this.relationProp(prop) !== null
 		},
 
@@ -1395,8 +1447,12 @@ export default {
 			// the next one is right.
 			const str = (v) => (typeof v === 'string' && v.trim() !== '' ? v : (typeof v === 'number' ? String(v) : ''))
 			let name = str(obj.name) || str(obj.title) || str(obj.displayName)
-			if (!name && (str(obj.firstName) || str(obj.lastName))) { name = (str(obj.firstName) + ' ' + str(obj.lastName)).trim() }
-			if (!name && str(self.name) && self.name !== id) { name = str(self.name) }
+			if (!name && (str(obj.firstName) || str(obj.lastName))) {
+				name = (str(obj.firstName) + ' ' + str(obj.lastName)).trim()
+			}
+			if (!name && str(self.name) && self.name !== id) {
+				name = str(self.name)
+			}
 			return name || id
 		},
 
@@ -1410,9 +1466,13 @@ export default {
 		async loadRelationOptions(key) {
 			const prop = ((this.schema && this.schema.properties) || {})[key]
 			const rel = this.relationProp(prop)
-			if (!rel) { return }
+			if (!rel) {
+				return
+			}
 			const parts = String(rel.target || '').split('/')
-			if (parts.length < 2) { return }
+			if (parts.length < 2) {
+				return
+			}
 			this.relationOptionsLoading = true
 			try {
 				const url = generateUrl('/apps/openregister/api/objects/{reg}/{sch}', { reg: parts[0], sch: parts[1] })
@@ -1431,7 +1491,9 @@ export default {
 					const ctx = { objectId: ((this.objectData || {})['@self'] && (this.objectData || {})['@self'].id) || (this.objectData || {}).id, object: objData }
 					const filter = resolveFilterTokens(rawFilter, ctx)
 					for (const [fk, fv] of Object.entries(filter)) {
-						if (typeof fv === 'string' && fv.charAt(0) === '@') { continue }
+						if (typeof fv === 'string' && fv.charAt(0) === '@') {
+							continue
+						}
 						if (fv && typeof fv === 'object') {
 							for (const [op, ov] of Object.entries(fv)) { params[`${fk}[${op}]`] = ov }
 						} else if (fv !== '' && fv !== null && fv !== undefined) {
@@ -1463,7 +1525,9 @@ export default {
 		 */
 		relationSelectedOption(field) {
 			const v = this.editData[field.key]
-			if (!v) { return null }
+			if (!v) {
+				return null
+			}
 			return { id: v, label: this.relatedLabels[v] || String(v) }
 		},
 
@@ -1475,7 +1539,9 @@ export default {
 		 * @param {object|null} opt Chosen option or null (cleared).
 		 */
 		onRelationChange(field, opt) {
-			if (opt && opt.id) { this.relatedLabels[opt.id] = opt.label }
+			if (opt && opt.id) {
+				this.relatedLabels[opt.id] = opt.label
+			}
 			this.updateField(field.key, opt ? opt.id : null)
 		},
 
@@ -1489,13 +1555,19 @@ export default {
 			const jobs = []
 			for (const key of Object.keys(props)) {
 				const rel = this.relationProp(props[key])
-				if (!rel) { continue }
+				if (!rel) {
+					continue
+				}
 				const parts = String(rel.target || '').split('/')
-				if (parts.length < 2) { continue }
+				if (parts.length < 2) {
+					continue
+				}
 				const raw = (this.objectData || {})[key]
 				const ids = Array.isArray(raw) ? raw : (raw ? [raw] : [])
 				for (const id of ids) {
-					if (!id || (id in this.relatedLabels) || jobs.some((j) => j.id === id)) { continue }
+					if (!id || (id in this.relatedLabels) || jobs.some((j) => j.id === id)) {
+						continue
+					}
 					jobs.push({ reg: parts[0], sch: parts[1], id })
 				}
 			}
@@ -1518,7 +1590,9 @@ export default {
 		 * @param {object} field - Resolved field definition from resolvedFields
 		 */
 		isEditable(field) {
-			if (!this.editable) { return false }
+			if (!this.editable) {
+				return false
+			}
 			// Per-field override takes priority
 			const override = this.resolvedOverrides[field.key]
 			if (override && typeof override.editable === 'boolean') {
@@ -1528,7 +1602,9 @@ export default {
 			// another field on this object holds a given value (schema
 			// `x-openregister-readonly-when`). Evaluated against the live object —
 			// e.g. a hybrid app's identity fields lock when appType === 'hybrid'.
-			if (this.isReadOnlyByCondition(field)) { return false }
+			if (this.isReadOnlyByCondition(field)) {
+				return false
+			}
 			// Schema readOnly
 			return !field.readOnly
 		},
@@ -1541,10 +1617,16 @@ export default {
 		 */
 		isReadOnlyByCondition(field) {
 			const rule = field.readOnlyWhen
-			if (!rule || !rule.field) { return false }
+			if (!rule || !rule.field) {
+				return false
+			}
 			const current = this.objectData ? this.objectData[rule.field] : undefined
-			if (Array.isArray(rule.in)) { return rule.in.includes(current) }
-			if ('equals' in rule) { return current === rule.equals }
+			if (Array.isArray(rule.in)) {
+				return rule.in.includes(current)
+			}
+			if ('equals' in rule) {
+				return current === rule.equals
+			}
 			return false
 		},
 
@@ -1588,7 +1670,9 @@ export default {
 					const el = Array.isArray(editor) ? editor[0] : editor
 					if (el && el.$el) {
 						const input = el.$el.querySelector('input, textarea, select')
-						if (input) { input.focus() }
+						if (input) {
+							input.focus()
+						}
 					} else if (el && el.focus) {
 						el.focus()
 					}
@@ -1613,7 +1697,9 @@ export default {
 		 * dirty state (e.g. checkbox edits queued without a per-field confirm).
 		 */
 		async commitEdit() {
-			if (!this.editingField) { return }
+			if (!this.editingField) {
+				return
+			}
 
 			const key = this.editingField
 			const newValue = this.editData[key]
@@ -1656,7 +1742,9 @@ export default {
 		 * Save all dirty fields via the objectStore or emit event.
 		 */
 		async save() {
-			if (!this.isDirty) { return }
+			if (!this.isDirty) {
+				return
+			}
 
 			const mergedData = {
 				...this.objectData,
@@ -1732,7 +1820,9 @@ export default {
 		 */
 		_getObjectStore() {
 			// Prefer explicit store prop
-			if (this.store) { return this.store }
+			if (this.store) {
+				return this.store
+			}
 
 			try {
 				// useObjectStore is a static import (top of file) — bundler
@@ -1740,7 +1830,9 @@ export default {
 				// to resolve the relative path. The try/catch still guards
 				// the case where the consumer hasn't set up pinia.
 				const pinia = this.$pinia
-				if (!pinia) { return null }
+				if (!pinia) {
+					return null
+				}
 				return useObjectStore()
 			} catch {
 				return null
@@ -1787,7 +1879,9 @@ export default {
 
 		getSelectedOption(field) {
 			const val = this.editData[field.key]
-			if (val === null || val === undefined) { return null }
+			if (val === null || val === undefined) {
+				return null
+			}
 			// Find matching option from enum for proper label display
 			const options = this.getSelectOptions(field)
 			return options.find((opt) => opt.id === val) || { id: val, label: String(val) }
@@ -1811,7 +1905,9 @@ export default {
 
 		getSelectedMultiselectOptions(field) {
 			const val = this.editData[field.key]
-			if (!Array.isArray(val)) { return [] }
+			if (!Array.isArray(val)) {
+				return []
+			}
 			// Map selected IDs to option objects with labels
 			const options = this.getMultiselectOptions(field)
 			return val.map((v) => options.find((opt) => opt.id === v) || { id: v, label: String(v) })

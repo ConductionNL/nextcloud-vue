@@ -33,11 +33,15 @@ export const SLOT_COLUMNS_DEFAULTS = Object.freeze({
  * @return {number} Default column count.
  */
 export function defaultSlotColumns(slotName) {
-	if (!slotName) { return 12 }
+	if (!slotName) {
+		return 12
+	}
 	if (Object.prototype.hasOwnProperty.call(SLOT_COLUMNS_DEFAULTS, slotName)) {
 		return SLOT_COLUMNS_DEFAULTS[slotName]
 	}
-	if (/^tab:/.test(slotName) || /^section:/.test(slotName)) { return 12 }
+	if (/^tab:/.test(slotName) || /^section:/.test(slotName)) {
+		return 12
+	}
 	return 12
 }
 
@@ -52,8 +56,12 @@ export function defaultSlotColumns(slotName) {
  * @return {number} Effective column count (always a positive integer).
  */
 export function resolveSlotColumns(slotName, slotColumns = null, propColumns = null) {
-	if (isPositiveInt(propColumns)) { return propColumns }
-	if (slotColumns && isPositiveInt(slotColumns[slotName])) { return slotColumns[slotName] }
+	if (isPositiveInt(propColumns)) {
+		return propColumns
+	}
+	if (slotColumns && isPositiveInt(slotColumns[slotName])) {
+		return slotColumns[slotName]
+	}
 	return defaultSlotColumns(slotName)
 }
 

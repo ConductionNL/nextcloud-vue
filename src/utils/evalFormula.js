@@ -24,18 +24,24 @@ function tokenize(src) {
 	let i = 0
 	while (i < src.length) {
 		const c = src[i]
-		if (c === ' ' || c === '\t') { i++; continue }
+		if (c === ' ' || c === '\t') {
+			i++; continue
+		}
 		if ('+-*/()'.includes(c)) { tokens.push({ t: c }); i++; continue }
 		if ((c >= '0' && c <= '9') || c === '.') {
 			let j = i + 1
-			while (j < src.length && ((src[j] >= '0' && src[j] <= '9') || src[j] === '.')) { j++ }
+			while (j < src.length && ((src[j] >= '0' && src[j] <= '9') || src[j] === '.')) {
+				j++
+			}
 			tokens.push({ t: 'num', v: src.slice(i, j) })
 			i = j
 			continue
 		}
 		if (/[A-Za-z_]/.test(c)) {
 			let j = i + 1
-			while (j < src.length && /[A-Za-z0-9_]/.test(src[j])) { j++ }
+			while (j < src.length && /[A-Za-z0-9_]/.test(src[j])) {
+				j++
+			}
 			tokens.push({ t: 'id', v: src.slice(i, j) })
 			i = j
 			continue
@@ -64,22 +70,30 @@ function toRpn(tokens) {
 		} else if (tok.t === '(') {
 			ops.push(tok)
 		} else if (tok.t === ')') {
-			while (ops.length && ops[ops.length - 1].t !== '(') { out.push(ops.pop()) }
-			if (!ops.length) { return null }
+			while (ops.length && ops[ops.length - 1].t !== '(') {
+				out.push(ops.pop())
+			}
+			if (!ops.length) {
+				return null
+			}
 			ops.pop()
 		} else { // operator
 			// Unary minus: a '-' at the start or after an operator/'('.
 			if (tok.t === '-' && (prev === null || prev.t === '(' || PREC[prev.t])) {
 				out.push({ t: 'num', v: '0' })
 			}
-			while (ops.length && PREC[ops[ops.length - 1].t] >= PREC[tok.t]) { out.push(ops.pop()) }
+			while (ops.length && PREC[ops[ops.length - 1].t] >= PREC[tok.t]) {
+				out.push(ops.pop())
+			}
 			ops.push(tok)
 		}
 		prev = tok
 	}
 	while (ops.length) {
 		const op = ops.pop()
-		if (op.t === '(') { return null }
+		if (op.t === '(') {
+			return null
+		}
 		out.push(op)
 	}
 	return out
@@ -94,28 +108,40 @@ function toRpn(tokens) {
  * @return {number|null} The result, or null on error / divide-by-zero.
  */
 export function evalFormula(formula, vars) {
-	if (typeof formula !== 'string' || formula.trim() === '') { return null }
+	if (typeof formula !== 'string' || formula.trim() === '') {
+		return null
+	}
 	const tokens = tokenize(formula)
-	if (!tokens) { return null }
+	if (!tokens) {
+		return null
+	}
 	const rpn = toRpn(tokens)
-	if (!rpn) { return null }
+	if (!rpn) {
+		return null
+	}
 	const stack = []
 	for (const tok of rpn) {
 		if (tok.t === 'num') {
 			stack.push(Number(tok.v))
 		} else if (tok.t === 'id') {
 			const val = vars[tok.v]
-			if (typeof val !== 'number' || !Number.isFinite(val)) { return null }
+			if (typeof val !== 'number' || !Number.isFinite(val)) {
+				return null
+			}
 			stack.push(val)
 		} else {
 			const b = stack.pop()
 			const a = stack.pop()
-			if (a === undefined || b === undefined) { return null }
+			if (a === undefined || b === undefined) {
+				return null
+			}
 			let r
 			if (tok.t === '+') { r = a + b } else if (tok.t === '-') { r = a - b } else if (tok.t === '*') { r = a * b } else if (tok.t === '/') { if (b === 0) { return null } r = a / b } else { return null }
 			stack.push(r)
 		}
 	}
-	if (stack.length !== 1 || !Number.isFinite(stack[0])) { return null }
+	if (stack.length !== 1 || !Number.isFinite(stack[0])) {
+		return null
+	}
 	return stack[0]
 }

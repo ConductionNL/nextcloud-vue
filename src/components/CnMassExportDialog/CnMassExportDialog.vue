@@ -203,7 +203,9 @@ export default {
 	},
 
 	beforeUnmount() {
-		if (this.closeTimeout) { clearTimeout(this.closeTimeout) }
+		if (this.closeTimeout) {
+			clearTimeout(this.closeTimeout)
+		}
 	},
 
 	methods: {

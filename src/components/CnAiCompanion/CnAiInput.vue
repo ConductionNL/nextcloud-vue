@@ -947,7 +947,9 @@ export default {
 
 		autoGrow() {
 			const el = this.$refs.textarea
-			if (!el) { return }
+			if (!el) {
+				return
+			}
 			// Reset height first so shrinking works
 			el.style.height = 'auto'
 			// Clamp to 6-line max (~1.5em per line + padding)

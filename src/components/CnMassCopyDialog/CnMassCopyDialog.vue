@@ -215,12 +215,16 @@ export default {
 	},
 
 	beforeUnmount() {
-		if (this.closeTimeout) { clearTimeout(this.closeTimeout) }
+		if (this.closeTimeout) {
+			clearTimeout(this.closeTimeout)
+		}
 	},
 
 	methods: {
 		getItemName(item) {
-			if (this.nameFormatter) { return this.nameFormatter(item) }
+			if (this.nameFormatter) {
+				return this.nameFormatter(item)
+			}
 			return item[this.nameField] || item.name || item.title || item.id
 		},
 

@@ -201,7 +201,9 @@ export default {
 		 * @return {number}
 		 */
 		currentStageIndex() {
-			if (this.currentStage == null) { return -1 }
+			if (this.currentStage == null) {
+				return -1
+			}
 			return this.stages.findIndex((s) => s.id === this.currentStage)
 		},
 
@@ -227,9 +229,15 @@ export default {
 		 * @return {'completed'|'current'|'upcoming'}
 		 */
 		stageState(index) {
-			if (this.currentStageIndex === -1) { return 'upcoming' }
-			if (index < this.currentStageIndex) { return 'completed' }
-			if (index === this.currentStageIndex) { return 'current' }
+			if (this.currentStageIndex === -1) {
+				return 'upcoming'
+			}
+			if (index < this.currentStageIndex) {
+				return 'completed'
+			}
+			if (index === this.currentStageIndex) {
+				return 'current'
+			}
 			return 'upcoming'
 		},
 
@@ -254,7 +262,9 @@ export default {
 		 * @param {number} index The stage index
 		 */
 		onStageClick(stage, index) {
-			if (!this.clickable) { return }
+			if (!this.clickable) {
+				return
+			}
 			/**
 			 * Emitted when a clickable stage is activated (click, Enter, or Space).
 			 *
@@ -273,7 +283,9 @@ export default {
 		 * @param {number} index The stage index
 		 */
 		onKeydown(event, stage, index) {
-			if (!this.clickable) { return }
+			if (!this.clickable) {
+				return
+			}
 
 			const isHorizontal = this.orientation === 'horizontal'
 			const nextKeys = isHorizontal ? ['ArrowRight'] : ['ArrowDown']
@@ -297,7 +309,9 @@ export default {
 		 * @param {number} newIndex Target index
 		 */
 		moveFocus(newIndex) {
-			if (newIndex < 0 || newIndex >= this.stages.length) { return }
+			if (newIndex < 0 || newIndex >= this.stages.length) {
+				return
+			}
 			this.focusedIndex = newIndex
 			this.$nextTick(() => {
 				const nodes = this.$refs.stageNodes
@@ -311,7 +325,9 @@ export default {
 		 * Scroll the current stage into view on mount (horizontal overflow).
 		 */
 		scrollCurrentIntoView() {
-			if (this.orientation !== 'horizontal' || this.currentStageIndex === -1) { return }
+			if (this.orientation !== 'horizontal' || this.currentStageIndex === -1) {
+				return
+			}
 			this.$nextTick(() => {
 				const nodes = this.$refs.stageNodes
 				if (nodes && nodes[this.currentStageIndex]) {

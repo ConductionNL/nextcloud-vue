@@ -70,9 +70,13 @@ function convergeTypedWidgets(page) {
 	// via `widgetId` (real apps), `i` (grid-layout convention) or `id`.
 	const layoutById = {}
 	for (const item of configLayout) {
-		if (!item || typeof item !== 'object') { continue }
+		if (!item || typeof item !== 'object') {
+			continue
+		}
 		const key = item.widgetId ?? item.i ?? item.id
-		if (key !== undefined && key !== null) { layoutById[key] = item }
+		if (key !== undefined && key !== null) {
+			layoutById[key] = item
+		}
 	}
 
 	const canonicalTop = topWidgets.filter((w) => !isDialectB(w))
@@ -146,17 +150,31 @@ function convertDef(def, layoutById, nextRow, advanceRow) {
 	}
 
 	const props = {}
-	if (title) { props.title = title }
-	for (const [k, v] of propEntries) { props[k] = v }
+	if (title) {
+		props.title = title
+	}
+	for (const [k, v] of propEntries) {
+		props[k] = v
+	}
 	// showTitle from the layout entry is a per-widget presentation flag.
-	if (typeof layout.showTitle === 'boolean') { props.showTitle = layout.showTitle }
-	if (Object.keys(props).length > 0) { entry.props = props }
+	if (typeof layout.showTitle === 'boolean') {
+		props.showTitle = layout.showTitle
+	}
+	if (Object.keys(props).length > 0) {
+		entry.props = props
+	}
 
-	if (dataSource !== undefined) { entry.dataSource = dataSource }
-	for (const [k, v] of resolveEntries) { entry[k] = v }
+	if (dataSource !== undefined) {
+		entry.dataSource = dataSource
+	}
+	for (const [k, v] of resolveEntries) {
+		entry[k] = v
+	}
 
 	// Advance the auto-placement cursor only when the layout gave no explicit y.
-	if (grid.gridY === undefined) { advanceRow(gridHeight) }
+	if (grid.gridY === undefined) {
+		advanceRow(gridHeight)
+	}
 
 	return entry
 }

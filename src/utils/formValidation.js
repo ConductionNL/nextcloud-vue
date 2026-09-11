@@ -72,7 +72,9 @@ function passesRequired(type, value) {
  * @return {boolean}
  */
 function isEmptyValue(type, value) {
-	if (type === 'number') { return value === null || value === undefined || value === '' }
+	if (type === 'number') {
+		return value === null || value === undefined || value === ''
+	}
 	return value === null || value === undefined || (typeof value === 'string' && value.trim().length === 0)
 }
 
@@ -87,9 +89,13 @@ function isEmptyValue(type, value) {
  * @return {string|null} The failure message, or `null` when the value is valid.
  */
 export function validateFieldValue(field, value, translate) {
-	if (!field || typeof field !== 'object') { return null }
+	if (!field || typeof field !== 'object') {
+		return null
+	}
 	const validation = field.validation
-	if (!validation || typeof validation !== 'object') { return null }
+	if (!validation || typeof validation !== 'object') {
+		return null
+	}
 
 	const type = field.type
 	const tr = typeof translate === 'function' ? translate : (key) => key
@@ -113,7 +119,9 @@ export function validateFieldValue(field, value, translate) {
 			const belowMin = hasMin && measured < validation.min
 			const aboveMax = hasMax && measured > validation.max
 			if (belowMin || aboveMax) {
-				if (customMessage) { return customMessage }
+				if (customMessage) {
+					return customMessage
+				}
 				if (type === 'number') {
 					if (hasMin && hasMax) { return ncTranslate('nextcloud-vue', 'Must be between {min} and {max}', { min: validation.min, max: validation.max }) }
 					if (belowMin) { return ncTranslate('nextcloud-vue', 'Must be at least {min}', { min: validation.min }) }

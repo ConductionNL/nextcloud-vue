@@ -293,7 +293,9 @@ export default {
 			const out = { ...fmt }
 			for (const key of ['currency', 'prefix', 'suffix']) {
 				const raw = fmt[key]
-				if (typeof raw !== 'string' || raw.charAt(0) !== '@') { continue }
+				if (typeof raw !== 'string' || raw.charAt(0) !== '@') {
+					continue
+				}
 				const resolved = resolveFilterValue(raw, ctx)
 				out[key] = (typeof resolved === 'string' && resolved.charAt(0) === '@') ? undefined : resolved
 			}
@@ -354,7 +356,9 @@ export default {
 		 * @return {*}
 		 */
 		effectiveCurrent() {
-			if (!this.endpointMode) { return this.current }
+			if (!this.endpointMode) {
+				return this.current
+			}
 			const v = getByPath(this.epData, this.content.valueField)
 			return v === undefined ? null : v
 		},
@@ -367,7 +371,9 @@ export default {
 		 * @return {*}
 		 */
 		effectivePrevious() {
-			if (!this.endpointMode) { return this.previous }
+			if (!this.endpointMode) {
+				return this.previous
+			}
 			const v = getByPath(this.epData, this.content.previousField)
 			return v === undefined ? null : v
 		},
@@ -407,20 +413,26 @@ export default {
 			}
 			const prev = Number(this.effectivePrevious)
 			const cur = Number(this.effectiveCurrent)
-			if (!Number.isFinite(prev) || prev === 0 || !Number.isFinite(cur)) { return null }
+			if (!Number.isFinite(prev) || prev === 0 || !Number.isFinite(cur)) {
+				return null
+			}
 			return ((cur - prev) / Math.abs(prev)) * 100
 		},
 
 		/** The signed percentage, e.g. "+12.3%". */
 		formattedDelta() {
-			if (this.deltaPct === null) { return '' }
+			if (this.deltaPct === null) {
+				return ''
+			}
 			const sign = this.deltaPct > 0 ? '+' : ''
 			return `${sign}${this.deltaPct.toFixed(1)}%`
 		},
 
 		/** The arrow component for the delta direction. */
 		deltaIcon() {
-			if (this.deltaPct === null || Math.abs(this.deltaPct) < 0.05) { return 'TrendingNeutral' }
+			if (this.deltaPct === null || Math.abs(this.deltaPct) < 0.05) {
+				return 'TrendingNeutral'
+			}
 			return this.deltaPct > 0 ? 'TrendingUp' : 'TrendingDown'
 		},
 
@@ -430,7 +442,9 @@ export default {
 		 * tiles declare `content.goodDirection` at the top level.
 		 */
 		deltaColor() {
-			if (this.deltaPct === null || Math.abs(this.deltaPct) < 0.05) { return 'var(--color-text-maxcontrast)' }
+			if (this.deltaPct === null || Math.abs(this.deltaPct) < 0.05) {
+				return 'var(--color-text-maxcontrast)'
+			}
 			const good = (this.content.source && this.content.source.goodDirection)
 				|| this.content.goodDirection || 'up'
 			const rising = this.deltaPct > 0
@@ -483,7 +497,9 @@ export default {
 		 * @return {string} A translucent or token background.
 		 */
 		tint(color) {
-			if (typeof color === 'string' && /^#([0-9a-f]{6})$/i.test(color)) { return color + '1f' }
+			if (typeof color === 'string' && /^#([0-9a-f]{6})$/i.test(color)) {
+				return color + '1f'
+			}
 			return 'var(--color-primary-element-light, rgba(0,130,201,0.1))'
 		},
 

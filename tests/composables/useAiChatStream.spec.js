@@ -150,7 +150,9 @@ describe('useAiChatStream', () => {
 			// Return a promise that calls onopen with 404 and catches the fallback error
 			return (async () => {
 				try {
-					if (options.onopen) { await options.onopen(fakeResponse) }
+					if (options.onopen) {
+						await options.onopen(fakeResponse)
+					}
 				} catch (err) {
 					if (err && err.isFallback) {
 						// Fall through — the .catch in send() handles it
@@ -286,7 +288,9 @@ describe('useAiChatStream', () => {
 		fetchEventSource.mockImplementation((_url, options) => {
 			const fakeResponse = { ok: false, status: 404 }
 			return (async () => {
-				if (options.onopen) { await options.onopen(fakeResponse) }
+				if (options.onopen) {
+					await options.onopen(fakeResponse)
+				}
 			})()
 		})
 		axios.post.mockResolvedValue({ data: { content: 'Fallback', role: 'assistant' }, status: 200 })

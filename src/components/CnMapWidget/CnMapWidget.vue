@@ -416,7 +416,9 @@ export default {
 		// re-render the affected layer set.
 		'cfg.layers': {
 			handler() {
-				if (this.map) { this.renderLayers() }
+				if (this.map) {
+					this.renderLayers()
+				}
 			},
 
 			deep: true,
@@ -424,7 +426,9 @@ export default {
 
 		'cfg.markers': {
 			handler() {
-				if (this.map) { this.renderMarkers() }
+				if (this.map) {
+					this.renderMarkers()
+				}
 			},
 
 			deep: true,
@@ -497,7 +501,9 @@ export default {
 			this.map.on('moveend', () => {
 				clearTimeout(this.boundsTimer)
 				this.boundsTimer = setTimeout(() => {
-					if (!this.map) { return }
+					if (!this.map) {
+						return
+					}
 					const b = this.map.getBounds()
 					/**
 					 * Viewport bounds change event. Fired (debounced) after pan / zoom settles.
@@ -534,7 +540,9 @@ export default {
 				this.resizeObserver = new ResizeObserver(() => {
 					clearTimeout(this.resizeTimer)
 					this.resizeTimer = setTimeout(() => {
-						if (this.map) { this.map.invalidateSize() }
+						if (this.map) {
+							this.map.invalidateSize()
+						}
 					}, 100)
 				})
 				this.resizeObserver.observe(this.$refs.mapEl)
@@ -563,7 +571,9 @@ export default {
 		 */
 		renderLayers() {
 			const L = this.L
-			if (!this.map || !L) { return }
+			if (!this.map || !L) {
+				return
+			}
 
 			// Tear down old layers
 			for (const layer of this.layerInstances) {
@@ -578,7 +588,9 @@ export default {
 			this.renderBasemaps()
 
 			for (const def of this.cfg.layers) {
-				if (!def || typeof def !== 'object') { continue }
+				if (!def || typeof def !== 'object') {
+					continue
+				}
 				if (!ALLOWED_LAYER_TYPES.includes(def.type)) {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnMapWidget] Unknown layer type "${def.type}", skipping.`)
@@ -586,17 +598,25 @@ export default {
 				}
 
 				const opts = { ...(def.options || {}) }
-				if (def.attribution && !opts.attribution) { opts.attribution = def.attribution }
+				if (def.attribution && !opts.attribution) {
+					opts.attribution = def.attribution
+				}
 
 				let instance = null
 				if (def.type === 'tile') {
-					if (typeof def.url !== 'string' || def.url.length === 0) { continue }
+					if (typeof def.url !== 'string' || def.url.length === 0) {
+						continue
+					}
 					instance = L.tileLayer(def.url, opts)
 				} else if (def.type === 'wms') {
-					if (typeof def.url !== 'string' || def.url.length === 0) { continue }
+					if (typeof def.url !== 'string' || def.url.length === 0) {
+						continue
+					}
 					instance = L.tileLayer.wms(def.url, opts)
 				} else if (def.type === 'wfs') {
-					if (typeof def.url !== 'string' || def.url.length === 0) { continue }
+					if (typeof def.url !== 'string' || def.url.length === 0) {
+						continue
+					}
 					this.fetchAndAddGeoJson(def.url, opts)
 					continue
 				} else if (def.type === 'geojson') {
@@ -627,7 +647,9 @@ export default {
 			fetch(url)
 				.then((r) => r.json())
 				.then((json) => {
-					if (!this.map) { return }
+					if (!this.map) {
+						return
+					}
 					const layer = L.geoJSON(json, opts)
 					layer.addTo(this.map)
 					this.layerInstances.push(layer)
@@ -646,7 +668,9 @@ export default {
 		 */
 		async renderMarkers() {
 			const L = this.L
-			if (!this.map || !L || !this.cfg.markers) { return }
+			if (!this.map || !L || !this.cfg.markers) {
+				return
+			}
 
 			// Tear down previous marker layer
 			if (this.markerLayer) {
@@ -659,7 +683,9 @@ export default {
 			}
 
 			const features = await this.collectFeatures()
-			if (!features || features.length === 0) { return }
+			if (!features || features.length === 0) {
+				return
+			}
 
 			const layer = L.geoJSON({ type: 'FeatureCollection', features }, {
 				pointToLayer: (feature, latlng) => {
@@ -763,7 +789,9 @@ export default {
 		 */
 		renderBasemaps() {
 			const L = this.L
-			if (!this.map || !L || typeof L.tileLayer !== 'function') { return }
+			if (!this.map || !L || typeof L.tileLayer !== 'function') {
+				return
+			}
 
 			const basemaps = (this.cfg.basemaps || []).filter((b) => b && typeof b.url === 'string' && b.url.length > 0)
 			if (basemaps.length === 0) {
@@ -784,11 +812,15 @@ export default {
 			const baseLayers = {}
 			basemaps.forEach((bm, index) => {
 				const opts = { ...(bm.options || {}) }
-				if (bm.attribution && !opts.attribution) { opts.attribution = bm.attribution }
+				if (bm.attribution && !opts.attribution) {
+					opts.attribution = bm.attribution
+				}
 				const instance = L.tileLayer(bm.url, opts)
 				baseLayers[bm.name || `${index + 1}`] = instance
 				// Only the first base map is live on load; the switcher swaps in the rest.
-				if (index === 0) { instance.addTo(this.map) }
+				if (index === 0) {
+					instance.addTo(this.map)
+				}
 				this.layerInstances.push(instance)
 			})
 
@@ -806,7 +838,9 @@ export default {
 			const L = this.L
 			// L.Control is absent from lightweight Leaflet stubs (tests); the map is
 			// still perfectly usable without the extra bar, so degrade quietly.
-			if (!this.map || !L || !L.Control || typeof L.Control.extend !== 'function') { return }
+			if (!this.map || !L || !L.Control || typeof L.Control.extend !== 'function') {
+				return
+			}
 
 			const buttons = []
 			if (this.fitControl) {
@@ -818,7 +852,9 @@ export default {
 			if (this.fullscreenControl) {
 				buttons.push({ key: 'fullscreen', title: t('nextcloud-vue', 'Toggle fullscreen'), icon: ICON_FULLSCREEN, onClick: () => this.toggleFullscreen() })
 			}
-			if (buttons.length === 0) { return }
+			if (buttons.length === 0) {
+				return
+			}
 
 			// `onAdd()` below is invoked by Leaflet with `this` bound to the
 			// L.Control instance, so the component has to be captured here to
@@ -835,7 +871,9 @@ export default {
 						anchor.setAttribute('role', 'button')
 						anchor.setAttribute('aria-label', button.title)
 						anchor.innerHTML = controlIcon(button.icon)
-						if (button.key === 'fullscreen') { self.fullscreenButton = anchor }
+						if (button.key === 'fullscreen') {
+							self.fullscreenButton = anchor
+						}
 						L.DomEvent.on(anchor, 'click', L.DomEvent.stop).on(anchor, 'click', button.onClick)
 					}
 					// Keep clicks / wheel on the bar from panning or zooming the map.
@@ -854,12 +892,18 @@ export default {
 		 * `autoFit` lands on at load. Public: consumers MAY call it through `$refs`.
 		 */
 		fitToMarkers() {
-			if (!this.map) { return }
+			if (!this.map) {
+				return
+			}
 			const target = this.clusterGroup || this.markerLayer
-			if (!target) { return }
+			if (!target) {
+				return
+			}
 			try {
 				const bounds = target.getBounds()
-				if (!bounds || !bounds.isValid()) { return }
+				if (!bounds || !bounds.isValid()) {
+					return
+				}
 				// Measure first — a stale container size yields a wrong fit.
 				this.map.invalidateSize()
 				this.map.fitBounds(bounds, { padding: [50, 50] })
@@ -873,7 +917,9 @@ export default {
 		 * insecure origin) surface via the `locationerror` handler in `initMap`.
 		 */
 		locateMe() {
-			if (!this.map || typeof this.map.locate !== 'function') { return }
+			if (!this.map || typeof this.map.locate !== 'function') {
+				return
+			}
 			this.map.locate({ setView: true, maxZoom: 16 })
 		},
 
@@ -886,7 +932,9 @@ export default {
 				this.fullscreenButton.innerHTML = controlIcon(this.isFullscreen ? ICON_FULLSCREEN_EXIT : ICON_FULLSCREEN)
 			}
 			this.$nextTick(() => {
-				if (this.map) { this.map.invalidateSize() }
+				if (this.map) {
+					this.map.invalidateSize()
+				}
 			})
 		},
 
@@ -905,14 +953,18 @@ export default {
 		 * @return {Promise<Array<object>>} GeoJSON Feature array.
 		 */
 		async collectFeatures() {
-			if (!this.cfg.markers) { return [] }
+			if (!this.cfg.markers) {
+				return []
+			}
 			let features = await this.collectSourceFeatures()
 			// Optional pin at the configured centre, plotted alongside the object
 			// markers (`markers.centerMarker`). Spread into a new array so an inline
 			// `features[]` prop is never mutated.
 			if (this.cfg.markers.centerMarker) {
 				const centre = this.centreMarkerFeature()
-				if (centre) { features = [...features, centre] }
+				if (centre) {
+					features = [...features, centre]
+				}
 			}
 			return features
 		},
@@ -930,7 +982,9 @@ export default {
 				return this.cfg.markers.features
 			}
 			const ds = this.cfg.markers.dataSource
-			if (!ds) { return [] }
+			if (!ds) {
+				return []
+			}
 			if (typeof ds.url === 'string' && ds.url.length > 0) {
 				try {
 					const response = await fetch(ds.url)
@@ -1015,8 +1069,12 @@ export default {
 		 * @return {Array<object>} GeoJSON Feature array.
 		 */
 		normaliseFeatures(json) {
-			if (!json) { return [] }
-			if (Array.isArray(json.features)) { return json.features }
+			if (!json) {
+				return []
+			}
+			if (Array.isArray(json.features)) {
+				return json.features
+			}
 			if (Array.isArray(json)) {
 				const latField = (this.cfg.markers && this.cfg.markers.latField) || 'lat'
 				const lngField = (this.cfg.markers && this.cfg.markers.lngField) || 'lng'

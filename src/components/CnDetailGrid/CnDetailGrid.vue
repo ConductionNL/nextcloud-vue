@@ -302,7 +302,9 @@ export default {
 		 * @return {*} The value, or a dash when it carries none.
 		 */
 		displayValue(item) {
-			if (item.value === undefined || item.value === null) { return '-' }
+			if (item.value === undefined || item.value === null) {
+				return '-'
+			}
 			return item.value
 		},
 
@@ -317,7 +319,9 @@ export default {
 		 * @return {string|null} The href to render, or null for no link.
 		 */
 		linkHref(item) {
-			if (!item.href) { return null }
+			if (!item.href) {
+				return null
+			}
 			const href = safeHref(item.href)
 			return href === '#' ? null : href
 		},

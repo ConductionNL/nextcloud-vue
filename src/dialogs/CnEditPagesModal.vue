@@ -90,7 +90,9 @@ export default {
 	// The modal is `v-if`-mounted, so mount == open: refreshing here picks up
 	// any register/schema created since the app booted, with no page reload.
 	mounted() {
-		if (typeof this.cnRefreshDataSources === 'function') { this.cnRefreshDataSources() }
+		if (typeof this.cnRefreshDataSources === 'function') {
+			this.cnRefreshDataSources()
+		}
 	},
 
 	methods: {
@@ -99,7 +101,9 @@ export default {
 		add() {
 			let n = this.pages.length + 1
 			const ids = new Set(this.pages.map((p) => p && p.id))
-			while (ids.has(`page-${n}`)) { n++ }
+			while (ids.has(`page-${n}`)) {
+				n++
+			}
 			const id = `page-${n}`
 			this.pages.push({ id, route: `/${id}`, type: 'custom', title: '', config: {} })
 		},

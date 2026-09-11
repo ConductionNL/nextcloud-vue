@@ -501,14 +501,18 @@ export default {
 			listStore: null,
 			resolveFixedFilters: () => ({}),
 		}
-		if (!props.register || !props.schema) { return NO_LIST }
+		if (!props.register || !props.schema) {
+			return NO_LIST
+		}
 
 		const store = props.store || useObjectStore()
 		// The `store` prop has always accepted a hand-rolled object, but
 		// useListView assumes a full OpenRegister store (pagination/errors/
 		// fetchSchema). Duck-type it and fall back to the legacy no-params
 		// fetch rather than throwing on a partial store.
-		if (typeof store.fetchCollection !== 'function' || !store.pagination) { return NO_LIST }
+		if (typeof store.fetchCollection !== 'function' || !store.pagination) {
+			return NO_LIST
+		}
 
 		const objectType = `${props.register}-${props.schema}`
 		// Must run synchronously: useListView's onMounted calls fetchSchema(),
@@ -607,14 +611,20 @@ export default {
 		 * `#error` slot never rendered for a store-backed page.
 		 */
 		error() {
-			if (this.localError) { return this.localError }
-			if (this.list && this.listStore) { return this.listStore.errors[this.objectType] || null }
+			if (this.localError) {
+				return this.localError
+			}
+			if (this.list && this.listStore) {
+				return this.listStore.errors[this.objectType] || null
+			}
 			return null
 		},
 
 		/** Rows to render: the store collection, or locally sorted axios rows. */
 		rows() {
-			if (this.list) { return this.list.objects.value }
+			if (this.list) {
+				return this.list.objects.value
+			}
 			// Legacy-store fallback: read the store's collection LIVE rather than
 			// the snapshot `fetch()` took. `rows` used to reach the collection
 			// through a computed; snapshotting into `localRows` meant a store that
@@ -626,7 +636,9 @@ export default {
 				? this.store.collections?.[`${this.register}-${this.schema}`]
 				: null
 			const base = Array.isArray(live) ? live : this.localRows
-			if (this.localSortKeys.length === 0) { return base }
+			if (this.localSortKeys.length === 0) {
+				return base
+			}
 			// CnDataTable is presentational — it never sorts its own rows — so
 			// `source` mode has to apply the header sort itself.
 			return multiKeySort(base, this.localSortKeys.map((k) => ({ field: k.key, order: k.order })))
@@ -675,7 +687,9 @@ export default {
 			if (this.columns.length > 0) {
 				return this.columns.map((c) => (typeof c === 'string' ? { key: c, label: this.humanise(c) } : c))
 			}
-			if (this.tableSchema) { return [] }
+			if (this.tableSchema) {
+				return []
+			}
 			return legacyDefaultColumns()
 		},
 
@@ -688,9 +702,13 @@ export default {
 
 		/** Dialog heading: the entry's message when it has one, else its id. */
 		detailTitle() {
-			if (!this.detailRow) { return '' }
+			if (!this.detailRow) {
+				return ''
+			}
 			const message = this.detailRow.message
-			if (typeof message === 'string' && message !== '') { return message }
+			if (typeof message === 'string' && message !== '') {
+				return message
+			}
 			const id = this.detailRow[this.rowKey]
 			return id ? String(id) : t('nextcloud-vue', 'Log entry')
 		},
@@ -734,13 +752,17 @@ export default {
 		 * @return {string} The serialized filter map.
 		 */
 		filterSignature() {
-			if (!this.list) { return '' }
+			if (!this.list) {
+				return ''
+			}
 			return JSON.stringify(this.resolveFixedFilters())
 		},
 
 		/** The clicked row's renderable entries — `@self` and empties dropped. */
 		detailEntries() {
-			if (!this.detailRow) { return [] }
+			if (!this.detailRow) {
+				return []
+			}
 			return Object.entries(this.detailRow)
 				.filter(([key, value]) => key !== '@self' && value !== null && value !== undefined && value !== '')
 		},
@@ -771,12 +793,16 @@ export default {
 		// owns the initial fetch. This also covers a reactive `filter` prop
 		// change, which had no watcher of its own at all.
 		filterSignature(next, prev) {
-			if (!this.list || next === prev) { return }
+			if (!this.list || next === prev) {
+				return
+			}
 			// Guarded only when this page HAS a route name to compare against —
 			// a router-less host, or one whose routes are unnamed, keeps the
 			// unguarded behaviour rather than losing refetches to a comparison
 			// that can never match.
-			if (this._ownRouteName !== undefined && this.$route?.name !== this._ownRouteName) { return }
+			if (this._ownRouteName !== undefined && this.$route?.name !== this._ownRouteName) {
+				return
+			}
 			this.list.refresh(1)
 		},
 
@@ -795,7 +821,9 @@ export default {
 	mounted() {
 		// In store mode useListView's own onMounted owns the initial fetch;
 		// calling fetch() here too would double-request on every page load.
-		if (!this.list) { this.fetch() }
+		if (!this.list) {
+			this.fetch()
+		}
 	},
 
 	methods: {

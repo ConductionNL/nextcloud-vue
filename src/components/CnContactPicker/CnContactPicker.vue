@@ -239,9 +239,13 @@ export default {
 		 */
 		initialsFor(row) {
 			const name = (row?.displayName || '').trim()
-			if (name === '') { return '?' }
+			if (name === '') {
+				return '?'
+			}
 			const parts = name.split(/\s+/).filter(Boolean)
-			if (parts.length === 1) { return parts[0].charAt(0).toUpperCase() }
+			if (parts.length === 1) {
+				return parts[0].charAt(0).toUpperCase()
+			}
 			return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
 		},
 
@@ -291,10 +295,16 @@ export default {
 		 * @return {Array}
 		 */
 		unwrapList(data) {
-			if (Array.isArray(data)) { return data }
+			if (Array.isArray(data)) {
+				return data
+			}
 			if (data && typeof data === 'object') {
-				if (Array.isArray(data.results)) { return data.results }
-				if (Array.isArray(data.items)) { return data.items }
+				if (Array.isArray(data.results)) {
+					return data.results
+				}
+				if (Array.isArray(data.items)) {
+					return data.items
+				}
 			}
 			return []
 		},
@@ -310,7 +320,9 @@ export default {
 		},
 
 		confirm() {
-			if (!this.selected) { return }
+			if (!this.selected) {
+				return
+			}
 			/**
 			 * @event link Emitted when the user confirms a selection. Payload: `{ contactUid, addressbookId, contactUri, displayName, email, role }`.
 			 */

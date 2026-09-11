@@ -264,10 +264,18 @@ const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'mod
  * @return {boolean}
  */
 function isKnownSlot(slotName) {
-	if (!slotName) { return false }
-	if (KNOWN_SLOTS.has(slotName)) { return true }
-	if (/^tab:[^\s]+$/.test(slotName)) { return true }
-	if (/^section:[^\s]+$/.test(slotName)) { return true }
+	if (!slotName) {
+		return false
+	}
+	if (KNOWN_SLOTS.has(slotName)) {
+		return true
+	}
+	if (/^tab:[^\s]+$/.test(slotName)) {
+		return true
+	}
+	if (/^section:[^\s]+$/.test(slotName)) {
+		return true
+	}
 	return false
 }
 
@@ -571,7 +579,9 @@ export default {
 		 */
 		exportDialogEntities() {
 			const entities = this.exportAction && this.exportAction.entities
-			if (!Array.isArray(entities)) { return [] }
+			if (!Array.isArray(entities)) {
+				return []
+			}
 			return entities
 				.map((e) => (typeof e === 'string' ? { id: e, label: e } : e))
 				.filter((e) => e && e.id)
@@ -587,7 +597,9 @@ export default {
 		 */
 		exportDialogFormats() {
 			const formats = this.exportAction && this.exportAction.formats
-			if (!Array.isArray(formats) || formats.length === 0) { return undefined }
+			if (!Array.isArray(formats) || formats.length === 0) {
+				return undefined
+			}
 			return formats
 				.map((f) => (typeof f === 'string' ? { id: f, label: f.toUpperCase() } : f))
 				.filter((f) => f && f.id)
@@ -619,7 +631,9 @@ export default {
 		widgetsBySlot() {
 			const page = this.currentPage
 			const map = new Map()
-			if (!page || !Array.isArray(page.widgets)) { return map }
+			if (!page || !Array.isArray(page.widgets)) {
+				return map
+			}
 
 			for (const widget of page.widgets) {
 				const slot = widget?.slot
@@ -826,10 +840,14 @@ export default {
 			const index = new Map()
 			if (Array.isArray(pages)) {
 				for (const page of pages) {
-					if (!page || page.type !== 'detail') { continue }
+					if (!page || page.type !== 'detail') {
+						continue
+					}
 					const cfg = page.config || {}
 					const key = `${cfg.register} ${cfg.schema}`
-					if (!index.has(key)) { index.set(key, page) }
+					if (!index.has(key)) {
+						index.set(key, page)
+					}
 				}
 			}
 			return index
@@ -846,7 +864,9 @@ export default {
 		 */
 		pageRenderKey() {
 			const page = this.currentPage
-			if (!page) { return 'none' }
+			if (!page) {
+				return 'none'
+			}
 			const cfg = (page.config && typeof page.config === 'object' && !Array.isArray(page.config)) ? page.config : {}
 			return [page.id, cfg.register || '', cfg.schema || ''].join(':')
 		},
@@ -872,8 +892,12 @@ export default {
 		 * @return {boolean}
 		 */
 		hasRenderableBody() {
-			if (this.resolvedComponent) { return true }
-			if (this.isV2Manifest && this.widgetsBySlot && this.widgetsBySlot.has('body')) { return true }
+			if (this.resolvedComponent) {
+				return true
+			}
+			if (this.isV2Manifest && this.widgetsBySlot && this.widgetsBySlot.has('body')) {
+				return true
+			}
 			return false
 		},
 
@@ -1165,7 +1189,9 @@ export default {
 		 */
 		resolvedSlotEntries() {
 			const page = this.currentPage
-			if (!page) { return [] }
+			if (!page) {
+				return []
+			}
 			const map = { ...(page.slots ?? {}) }
 			// For a custom page that has no explicit `component`, `slots.main`
 			// is promoted to the page BODY by `resolvedComponent`, so drop it
@@ -1174,8 +1200,12 @@ export default {
 			if (page.type === 'custom' && !page.component && map.main) {
 				delete map.main
 			}
-			if (page.headerComponent) { map.header = page.headerComponent }
-			if (page.actionsComponent) { map.actions = page.actionsComponent }
+			if (page.headerComponent) {
+				map.header = page.headerComponent
+			}
+			if (page.actionsComponent) {
+				map.actions = page.actionsComponent
+			}
 			const entries = []
 			for (const [name, registryName] of Object.entries(map)) {
 				const component = this.resolveRegistryName(registryName, name)
@@ -1370,7 +1400,9 @@ export default {
 			const action = this.exportAction
 			const dialog = this.$refs.exportDialog
 			const setResult = (result) => {
-				if (dialog && typeof dialog.setResult === 'function') { dialog.setResult(result) }
+				if (dialog && typeof dialog.setResult === 'function') {
+					dialog.setResult(result)
+				}
 			}
 			const handlers = this.effectiveManifest?.actions ?? {}
 			const fn = action && action.handler && handlers[action.handler]
@@ -1415,10 +1447,14 @@ export default {
 			const rowRoute = (typeof cfg.rowRoute === 'string' && cfg.rowRoute !== '') ? cfg.rowRoute : null
 			const detail = this.detailPageByRegisterSchema.get(`${cfg.register} ${cfg.schema}`)
 			const target = rowRoute ?? detail?.id ?? null
-			if (!target) { return }
+			if (!target) {
+				return
+			}
 			const self = row['@self'] || {}
 			const id = row.id ?? self.id ?? self.uuid ?? row.uuid
-			if (id === undefined || id === null || id === '') { return }
+			if (id === undefined || id === null || id === '') {
+				return
+			}
 			// A name the router does not have makes every row click a no-op that
 			// looks exactly like a broken table, so name the mistake instead of
 			// letting push() reject into a silent catch. Feature-detected: only
@@ -1442,7 +1478,9 @@ export default {
 		 */
 		routeNameIsKnown(name) {
 			const router = this.$router
-			if (!router) { return false }
+			if (!router) {
+				return false
+			}
 			if (typeof router.hasRoute === 'function') {
 				return router.hasRoute(name)
 			}
@@ -1683,9 +1721,13 @@ export default {
 		 */
 		autoRegisterCustomTypes() {
 			const page = this.currentPage
-			if (!page || page.type !== 'custom') { return }
+			if (!page || page.type !== 'custom') {
+				return
+			}
 			const config = page.config
-			if (!config || typeof config !== 'object') { return }
+			if (!config || typeof config !== 'object') {
+				return
+			}
 
 			let store = null
 			try {
@@ -1731,7 +1773,9 @@ export default {
 			const types = config.types
 			if (Array.isArray(types)) {
 				for (const entry of types) {
-					if (!entry || typeof entry !== 'object') { continue }
+					if (!entry || typeof entry !== 'object') {
+						continue
+					}
 					const name = entry.name
 					const r = entry.register
 					const s = entry.schema

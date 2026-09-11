@@ -22,7 +22,9 @@ function carryForwardVerbatimFields(manifest) {
 	const carriedFields = []
 
 	function checkObject(obj, path) {
-		if (!obj || typeof obj !== 'object' || Array.isArray(obj)) { return }
+		if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+			return
+		}
 		for (const [key, value] of Object.entries(obj)) {
 			const fieldPath = `${path}/${key}`
 			if (key.startsWith('@resolve:') || key === 'dataSource' || key === 'dynamicSource' || key === 'sidebarComponent') {

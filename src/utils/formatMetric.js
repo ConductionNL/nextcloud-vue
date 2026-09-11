@@ -41,7 +41,9 @@ export function resolveConfigFormat(format, configCtx) {
 	const ctx = { config: (configCtx && typeof configCtx === 'object') ? configCtx : {} }
 	for (const key of ['currency', 'prefix', 'suffix']) {
 		const raw = fmt[key]
-		if (typeof raw !== 'string' || raw.charAt(0) !== '@') { continue }
+		if (typeof raw !== 'string' || raw.charAt(0) !== '@') {
+			continue
+		}
 		const resolved = resolveFilterValue(raw, ctx)
 		out[key] = (typeof resolved === 'string' && resolved.charAt(0) === '@') ? undefined : resolved
 	}
@@ -89,9 +91,13 @@ export function safeCurrencyCode(currency) {
  * @return {string} The formatted display string.
  */
 export function formatMetricValue(value, format, configCtx) {
-	if (value === null || value === undefined) { return '—' }
+	if (value === null || value === undefined) {
+		return '—'
+	}
 	const num = Number(value)
-	if (!Number.isFinite(num)) { return String(value) }
+	if (!Number.isFinite(num)) {
+		return String(value)
+	}
 
 	const fmt = resolveConfigFormat(format, configCtx)
 	// `duration-hours` and `decimal` default to ONE fraction digit; the

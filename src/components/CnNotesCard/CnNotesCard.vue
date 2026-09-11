@@ -256,7 +256,9 @@ export default {
 		},
 
 		async fetchNotes() {
-			if (!this.registerId || !this.schemaId || !this.objectId) { return }
+			if (!this.registerId || !this.schemaId || !this.objectId) {
+				return
+			}
 			this.loading = true
 			try {
 				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes`
@@ -273,7 +275,9 @@ export default {
 		},
 
 		async submitNote() {
-			if (!this.newNoteText.trim() || this.noteSaving) { return }
+			if (!this.newNoteText.trim() || this.noteSaving) {
+				return
+			}
 			this.noteSaving = true
 			try {
 				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes`
@@ -315,7 +319,9 @@ export default {
 		},
 
 		formatDate(dateStr) {
-			if (!dateStr) { return '' }
+			if (!dateStr) {
+				return ''
+			}
 			try {
 				return new Date(dateStr).toLocaleString(undefined, {
 					year: 'numeric',

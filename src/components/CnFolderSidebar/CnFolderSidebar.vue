@@ -253,8 +253,12 @@ export default {
 	computed: {
 		/** The folder tree normalized to `{ id, name, icon?, count?, children }`. */
 		normalizedTree() {
-			if (this.source === 'field') { return this.fieldTree }
-			if (this.source === 'files') { return this.fileTree }
+			if (this.source === 'field') {
+				return this.fieldTree
+			}
+			if (this.source === 'files') {
+				return this.fileTree
+			}
 			return this.customTree
 		},
 
@@ -299,7 +303,9 @@ export default {
 		 * total for that category, and that is a number nothing measured.
 		 */
 		fieldTree() {
-			if (!this.groupBy) { return [] }
+			if (!this.groupBy) {
+				return []
+			}
 
 			if (this.facetValues.length > 0) {
 				return this.facetValues.map((bucket) => {
@@ -318,7 +324,9 @@ export default {
 			const counts = new Map()
 			this.objects.forEach((obj) => {
 				const value = obj[this.groupBy]
-				if (value == null || value === '') { return }
+				if (value == null || value === '') {
+					return
+				}
 				counts.set(value, (counts.get(value) || 0) + 1)
 			})
 			return Array.from(counts.entries()).map(([value, count]) => {
@@ -396,7 +404,9 @@ export default {
 
 		/** Load the WebDAV folder tree when the `files` source is active. */
 		async maybeLoadFiles() {
-			if (this.source !== 'files') { return }
+			if (this.source !== 'files') {
+				return
+			}
 			this.loading = true
 			try {
 				const load = this.fetcher || fetchWebdavFolderTree

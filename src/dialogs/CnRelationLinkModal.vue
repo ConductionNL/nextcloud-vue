@@ -146,7 +146,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async onConfirm() {
-			if (!this.selectedId || !this.objectStore) { return }
+			if (!this.selectedId || !this.objectStore) {
+				return
+			}
 			this.saving = true
 			this.error = ''
 			try {

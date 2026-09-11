@@ -168,7 +168,9 @@ export default {
 
 	computed: {
 		itemName() {
-			if (this.nameFormatter) { return this.nameFormatter(this.item) }
+			if (this.nameFormatter) {
+				return this.nameFormatter(this.item)
+			}
 			return this.item[this.nameField] || this.item.name || this.item.title || this.item.id
 		},
 
@@ -196,7 +198,9 @@ export default {
 	},
 
 	beforeUnmount() {
-		if (this.closeTimeout) { clearTimeout(this.closeTimeout) }
+		if (this.closeTimeout) {
+			clearTimeout(this.closeTimeout)
+		}
 	},
 
 	methods: {

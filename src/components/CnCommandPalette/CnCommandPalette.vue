@@ -308,7 +308,9 @@ export default {
 			const flat = []
 			const visit = (entries) => {
 				for (const entry of entries) {
-					if (!entry || entry.type === 'caption') { continue }
+					if (!entry || entry.type === 'caption') {
+						continue
+					}
 					if (entry.route || entry.href) {
 						flat.push({
 							id: `nav:${entry.id}`,
@@ -443,8 +445,12 @@ export default {
 		 */
 		onGlobalKeydown(event) {
 			const key = typeof event.key === 'string' ? event.key.toLowerCase() : ''
-			if (key !== this.shortcut.toLowerCase()) { return }
-			if (!(event.metaKey || event.ctrlKey) || event.altKey) { return }
+			if (key !== this.shortcut.toLowerCase()) {
+				return
+			}
+			if (!(event.metaKey || event.ctrlKey) || event.altKey) {
+				return
+			}
 			event.preventDefault()
 			this.cp.toggle()
 		},
@@ -475,18 +481,24 @@ export default {
 			}
 			if (event.key === 'Home') {
 				event.preventDefault()
-				if (this.flatResults.length > 0) { this.activeId = this.flatResults[0].item.id }
+				if (this.flatResults.length > 0) {
+					this.activeId = this.flatResults[0].item.id
+				}
 				return
 			}
 			if (event.key === 'End') {
 				event.preventDefault()
-				if (this.flatResults.length > 0) { this.activeId = this.flatResults[this.flatResults.length - 1].item.id }
+				if (this.flatResults.length > 0) {
+					this.activeId = this.flatResults[this.flatResults.length - 1].item.id
+				}
 				return
 			}
 			if (event.key === 'Enter') {
 				event.preventDefault()
 				const active = this.flatResults.find((entry) => entry.item.id === this.activeId)
-				if (active) { this.activateItem(active.item) }
+				if (active) {
+					this.activateItem(active.item)
+				}
 			}
 		},
 
@@ -495,7 +507,9 @@ export default {
 		 * @return {void}
 		 */
 		moveActive(delta) {
-			if (this.flatResults.length === 0) { return }
+			if (this.flatResults.length === 0) {
+				return
+			}
 			const currentIndex = this.flatResults.findIndex((entry) => entry.item.id === this.activeId)
 			const nextIndex = Math.min(Math.max(currentIndex + delta, 0), this.flatResults.length - 1)
 			this.activeId = this.flatResults[nextIndex].item.id
@@ -512,13 +526,17 @@ export default {
 		 * @return {void}
 		 */
 		activateItem(item) {
-			if (!item || typeof item.run !== 'function') { return }
+			if (!item || typeof item.run !== 'function') {
+				return
+			}
 			/**
 			 * @event select Emitted just before a result's `run()` fires.
 			 * @type {object}
 			 */
 			this.$emit('select', item)
-			if (this.recency) { this.recency.recordUse(item.id) }
+			if (this.recency) {
+				this.recency.recordUse(item.id)
+			}
 			this.close()
 			this.$nextTick(() => item.run())
 		},
@@ -547,7 +565,9 @@ export default {
 			this.objectResults = []
 			this.activeId = this.flatResults.length > 0 ? this.flatResults[0].item.id : null
 			this.$nextTick(() => {
-				if (this.$refs.input) { this.$refs.input.focus() }
+				if (this.$refs.input) {
+					this.$refs.input.focus()
+				}
 			})
 		},
 
@@ -589,7 +609,9 @@ export default {
 		 */
 		scheduleObjectSearch() {
 			this.clearDebounce()
-			if (!this.objectSearch) { return }
+			if (!this.objectSearch) {
+				return
+			}
 			if (this.query.trim() === '') {
 				this.objectResults = []
 				this.objectLoading = false

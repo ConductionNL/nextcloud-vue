@@ -124,7 +124,9 @@ import { buildBugReportUrl, buildFeatureRequestUrl, DEFAULT_FORGE } from '../../
  */
 function defaultDocsBase(appId) {
 	const id = String(appId || '').trim()
-	if (!id) { return '' }
+	if (!id) {
+		return ''
+	}
 	return `https://${id}.conduction.nl/docs/`
 }
 
@@ -141,10 +143,16 @@ function defaultDocsBase(appId) {
  */
 export function resolveDocsUrl(base, anchor) {
 	const a = String(anchor || '').trim()
-	if (a.includes('://')) { return a }
+	if (a.includes('://')) {
+		return a
+	}
 	const b = String(base || '').trim()
-	if (!b) { return '' }
-	if (!a) { return b }
+	if (!b) {
+		return ''
+	}
+	if (!a) {
+		return b
+	}
 	if (a.startsWith('#')) { return `${b.replace(/#.*$/, '')}${a}` }
 	if (a.startsWith('/')) {
 		try {
@@ -477,11 +485,21 @@ export default {
 		 * @return {boolean}
 		 */
 		hasOverflowMenu() {
-			if (this.showRefresh) { return true }
-			if (this.showDocumentation && this.resolvedDocumentationUrl) { return true }
-			if (this.showReportBug && this.resolvedReportBugUrl) { return true }
-			if (this.showRequestFeature) { return true }
-			if (this.$slots['primary-items']) { return true }
+			if (this.showRefresh) {
+				return true
+			}
+			if (this.showDocumentation && this.resolvedDocumentationUrl) {
+				return true
+			}
+			if (this.showReportBug && this.resolvedReportBugUrl) {
+				return true
+			}
+			if (this.showRequestFeature) {
+				return true
+			}
+			if (this.$slots['primary-items']) {
+				return true
+			}
 			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
 		},
 
@@ -518,7 +536,9 @@ export default {
 		 */
 		sourceTitle() {
 			const resolve = this.cnWidgetTitleSource
-			if (typeof resolve !== 'function' || !this.widgetId) { return '' }
+			if (typeof resolve !== 'function' || !this.widgetId) {
+				return ''
+			}
 			try {
 				return String(resolve(this.widgetId) || '').trim()
 			} catch (e) {
@@ -536,9 +556,13 @@ export default {
 		 * @return {string}
 		 */
 		resolvedReportBugUrl() {
-			if (this.reportBugUrl) { return this.reportBugUrl }
+			if (this.reportBugUrl) {
+				return this.reportBugUrl
+			}
 			const repo = String(this.cnFeatureRequestRepo || '').trim()
-			if (!repo) { return '' }
+			if (!repo) {
+				return ''
+			}
 			// buildBugReportUrl owns both the host (one resolveForge for the
 			// whole suggestion flow) and the bug-report issue FORM. This was
 			// hand-rolled here against a local copy of the forge host map that
@@ -579,7 +603,9 @@ export default {
 		 */
 		resolvedRequestFeatureUrl() {
 			const repo = String(this.cnFeatureRequestRepo || '').trim()
-			if (!repo) { return '' }
+			if (!repo) {
+				return ''
+			}
 			return buildFeatureRequestUrl(this.cnFeatureRequestForge, repo, {
 				title: this.sourceTitle,
 				surface: this.surface || this.widgetId,
@@ -605,7 +631,9 @@ export default {
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('refresh', { widgetId: this.widgetId, title: this.title }, ev)
-			if (ev.defaultPrevented) { return }
+			if (ev.defaultPrevented) {
+				return
+			}
 			emitOnBus(this.refreshChannel, {
 				widgetId: this.widgetId,
 				title: this.title,
@@ -631,7 +659,9 @@ export default {
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('request-feature', { widgetId: this.widgetId, title: this.title }, ev)
-			if (ev.defaultPrevented) { return }
+			if (ev.defaultPrevented) {
+				return
+			}
 			if (!this.resolvedRequestFeatureUrl) {
 				// eslint-disable-next-line no-console
 				console.warn('[CnActionsMenu] Cannot open the feature-request form: missing cnFeatureRequestRepo inject (mount under CnAppRoot or bind a custom @request-feature listener).')

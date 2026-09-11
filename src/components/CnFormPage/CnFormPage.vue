@@ -254,7 +254,9 @@ const ALLOWED_METHODS = ['POST', 'PUT', 'PATCH']
  * @return {string}
  */
 function resolveParams(url, params) {
-	if (!url || !params) { return url }
+	if (!url || !params) {
+		return url
+	}
 	return String(url).replace(/:([A-Za-z_][A-Za-z0-9_]*)/g, (match, name) => {
 		const value = params[name]
 		return value === undefined || value === null ? match : encodeURIComponent(String(value))
@@ -470,7 +472,9 @@ export default {
 		fieldsByKey() {
 			const map = {}
 			this.fields.forEach((f) => {
-				if (f && typeof f.key === 'string') { map[f.key] = f }
+				if (f && typeof f.key === 'string') {
+					map[f.key] = f
+				}
 			})
 			return map
 		},
@@ -489,7 +493,9 @@ export default {
 			const result = {}
 			const effectiveData = {}
 			this.fields.forEach((field) => {
-				if (!field || typeof field.key !== 'string') { return }
+				if (!field || typeof field.key !== 'string') {
+					return
+				}
 				const cond = field.visibleWhen
 				let visible = true
 				if (cond && (cond.endpoint || cond.source)) {
@@ -518,27 +524,35 @@ export default {
 
 		/** Current step's optional description (stepless ⇒ ''). */
 		currentStepDescription() {
-			if (!this.hasSteps) { return '' }
+			if (!this.hasSteps) {
+				return ''
+			}
 			const step = this.steps[this.currentStepIndex]
 			return step && step.description ? step.description : ''
 		},
 
 		/** Indices of steps that are NOT fully hidden by conditions. */
 		visibleStepIndices() {
-			if (!this.hasSteps) { return [] }
+			if (!this.hasSteps) {
+				return []
+			}
 			return this.steps.map((_, i) => i).filter((i) => !this.isStepHidden(this.steps[i]))
 		},
 
 		/** Whether the current step is the first non-fully-hidden step. */
 		isFirstStep() {
-			if (!this.hasSteps) { return true }
+			if (!this.hasSteps) {
+				return true
+			}
 			const list = this.visibleStepIndices
 			return list.length === 0 || this.currentStepIndex === list[0]
 		},
 
 		/** Whether the current step is the last non-fully-hidden step. */
 		isLastStep() {
-			if (!this.hasSteps) { return true }
+			if (!this.hasSteps) {
+				return true
+			}
 			const list = this.visibleStepIndices
 			return list.length === 0 || this.currentStepIndex === list[list.length - 1]
 		},
@@ -585,7 +599,9 @@ export default {
 		},
 
 		resolveLabel(key) {
-			if (!key) { return '' }
+			if (!key) {
+				return ''
+			}
 			const fn = typeof this.translate === 'function' ? this.translate : (k) => k
 			return fn(key)
 		},
@@ -620,11 +636,19 @@ export default {
 		 * @return {boolean}
 		 */
 		fieldHasNativeErrorSupport(field) {
-			if (this.$slots[`field-${field.key}`] || this.$slots[`field-${field.key}`]) { return false }
+			if (this.$slots[`field-${field.key}`] || this.$slots[`field-${field.key}`]) {
+				return false
+			}
 			const render = this.resolveFieldRender(field)
-			if (!render) { return false }
-			if (['string', 'number', 'password', 'fallback'].includes(render.kind)) { return true }
-			if (render.kind === 'string-textarea') { return render.tag !== 'textarea' }
+			if (!render) {
+				return false
+			}
+			if (['string', 'number', 'password', 'fallback'].includes(render.kind)) {
+				return true
+			}
+			if (render.kind === 'string-textarea') {
+				return render.tag !== 'textarea'
+			}
 			return false
 		},
 
@@ -636,7 +660,9 @@ export default {
 		 * @return {Array<object>}
 		 */
 		stepFields(step) {
-			if (!step || !Array.isArray(step.fields)) { return [] }
+			if (!step || !Array.isArray(step.fields)) {
+				return []
+			}
 			return step.fields.map((key) => this.fieldsByKey[key]).filter(Boolean)
 		},
 
@@ -691,7 +717,9 @@ export default {
 		validateVisibleFields(fieldsList) {
 			let firstInvalidKey = null
 			fieldsList.forEach((field) => {
-				if (!field || typeof field.key !== 'string') { return }
+				if (!field || typeof field.key !== 'string') {
+					return
+				}
 				if (!this.isFieldVisible(field.key)) {
 					delete this.fieldErrors[field.key]
 					return
@@ -699,7 +727,9 @@ export default {
 				const message = validateFieldValue(field, this.formData[field.key], this.resolveLabel)
 				if (message) {
 					this.fieldErrors[field.key] = message
-					if (!firstInvalidKey) { firstInvalidKey = field.key }
+					if (!firstInvalidKey) {
+						firstInvalidKey = field.key
+					}
 				} else {
 					delete this.fieldErrors[field.key]
 				}
@@ -717,9 +747,13 @@ export default {
 			this.$nextTick(() => {
 				const refEntry = this.$refs[`field-${key}`]
 				const node = Array.isArray(refEntry) ? refEntry[0] : refEntry
-				if (!node || typeof node.querySelector !== 'function') { return }
+				if (!node || typeof node.querySelector !== 'function') {
+					return
+				}
 				const input = node.querySelector('input, textarea, select, [tabindex]')
-				if (input && typeof input.focus === 'function') { input.focus() }
+				if (input && typeof input.focus === 'function') {
+					input.focus()
+				}
 			})
 		},
 
@@ -734,7 +768,9 @@ export default {
 		nextVisibleStepIndex(fromIndex, direction) {
 			let idx = fromIndex + direction
 			while (idx >= 0 && idx < this.steps.length) {
-				if (!this.isStepHidden(this.steps[idx])) { return idx }
+				if (!this.isStepHidden(this.steps[idx])) {
+					return idx
+				}
 				idx += direction
 			}
 			return -1
@@ -819,7 +855,9 @@ export default {
 			if (firstInvalidKey) {
 				if (this.hasSteps) {
 					const stepIndex = this.steps.findIndex((step) => this.stepFields(step).some((f) => f.key === firstInvalidKey))
-					if (stepIndex >= 0) { this.currentStepIndex = stepIndex }
+					if (stepIndex >= 0) {
+						this.currentStepIndex = stepIndex
+					}
 				}
 				this.focusField(firstInvalidKey)
 				return

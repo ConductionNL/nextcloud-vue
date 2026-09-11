@@ -188,7 +188,9 @@ export default {
 
 		workspaceCtx() {
 			const c = this.cnWorkspaceContext
-			if (!c) { return null }
+			if (!c) {
+				return null
+			}
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
 
@@ -224,7 +226,9 @@ export default {
 		 */
 		onFieldUpdate({ key, value }) {
 			this.form[key] = value
-			if (key === 'summary') { this.writeWorkspace('activeSummary', value) }
+			if (key === 'summary') {
+				this.writeWorkspace('activeSummary', value)
+			}
 		},
 
 		/**
@@ -268,7 +272,9 @@ export default {
 		 */
 		writeWorkspace(key, value) {
 			const holder = this.cnWorkspaceContext
-			if (!holder || typeof holder !== 'object') { return }
+			if (!holder || typeof holder !== 'object') {
+				return
+			}
 			if ('value' in holder) {
 				holder.value = { ...(holder.value || {}), [key]: value }
 				return
@@ -305,9 +311,15 @@ export default {
 				[c.channelField || 'channel']: this.form.channel,
 				[c.contactedAtField || 'contactedAt']: new Date().toISOString(),
 			}
-			if (this.form.client) { payload[c.clientField || 'client'] = this.form.client }
-			if (this.form.summary) { payload[c.summaryField || 'summary'] = this.form.summary }
-			if (this.form.outcome) { payload[c.outcomeField || 'outcome'] = this.form.outcome }
+			if (this.form.client) {
+				payload[c.clientField || 'client'] = this.form.client
+			}
+			if (this.form.summary) {
+				payload[c.summaryField || 'summary'] = this.form.summary
+			}
+			if (this.form.outcome) {
+				payload[c.outcomeField || 'outcome'] = this.form.outcome
+			}
 
 			this.saving = true
 			try {

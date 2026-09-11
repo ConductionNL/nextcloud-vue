@@ -150,7 +150,9 @@ export function useDetailView(objectTypeOrOptions, id, options) {
 	// ── Lifecycle ────────────────────────────────────────────────────────
 
 	async function fetchIfNeeded(currentId) {
-		if (!currentId || currentId === 'new') { return }
+		if (!currentId || currentId === 'new') {
+			return
+		}
 		await objectStore.fetchObject(objectType, currentId)
 	}
 

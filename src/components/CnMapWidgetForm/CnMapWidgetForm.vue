@@ -261,7 +261,9 @@ export default {
 		 */
 		onCentre(index, value) {
 			const n = Number(value)
-			if (!Number.isFinite(n)) { return }
+			if (!Number.isFinite(n)) {
+				return
+			}
 			this.center[index] = n
 		},
 

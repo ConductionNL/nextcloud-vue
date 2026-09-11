@@ -385,7 +385,9 @@ export default {
 		 * @param {number} idx Tab index to activate.
 		 */
 		onTabClick(idx) {
-			if (this.activeTab === idx) { return }
+			if (this.activeTab === idx) {
+				return
+			}
 			this.activeTab = idx
 			this.$emit('update:activeTab', idx)
 		},

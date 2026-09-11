@@ -208,7 +208,9 @@ export default {
 		 * @param {*} val The new workspace value for this key.
 		 */
 		workspaceValue(val) {
-			if (val !== undefined) { this.selected = val }
+			if (val !== undefined) {
+				this.selected = val
+			}
 		},
 	},
 
@@ -241,7 +243,9 @@ export default {
 			const value = o.value !== undefined ? o.value : (o.id !== undefined ? o.id : o.key)
 			const label = o.label !== undefined ? o.label : (o.name !== undefined ? o.name : String(value))
 			const out = { value, label: String(label) }
-			if (o.count !== undefined) { out.count = o.count }
+			if (o.count !== undefined) {
+				out.count = o.count
+			}
 			return out
 		},
 
@@ -390,7 +394,9 @@ export default {
 		 * @return {*}
 		 */
 		readWorkspace() {
-			if (!this.writeKey) { return undefined }
+			if (!this.writeKey) {
+				return undefined
+			}
 			const bag = this.readWorkspaceBag()
 			return bag[this.writeKey]
 		},
@@ -404,9 +410,13 @@ export default {
 		 * @return {void}
 		 */
 		writeWorkspace(value) {
-			if (!this.writeKey) { return }
+			if (!this.writeKey) {
+				return
+			}
 			const holder = this.cnWorkspaceContext
-			if (!holder || typeof holder !== 'object') { return }
+			if (!holder || typeof holder !== 'object') {
+				return
+			}
 			if ('value' in holder) {
 				holder.value = { ...(holder.value || {}), [this.writeKey]: value }
 				return

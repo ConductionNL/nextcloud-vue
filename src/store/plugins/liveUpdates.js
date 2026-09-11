@@ -143,7 +143,9 @@ function createHintCoalescer(fn, waitMs) {
 	}
 
 	function cancel() {
-		if (timer) { clearTimeout(timer) }
+		if (timer) {
+			clearTimeout(timer)
+		}
 		timer = null
 		pending = false
 	}
@@ -359,7 +361,9 @@ export function liveUpdatesPlugin(opts = {}) {
 			 * @param {object} handle Handle returned by subscribe()
 			 */
 			unsubscribe(handle) {
-				if (!handle || !handle._livePlugin || handle._released) { return }
+				if (!handle || !handle._livePlugin || handle._released) {
+					return
+				}
 				handle._released = true
 
 				// Cancel any pending coalesced refetch before tearing down the

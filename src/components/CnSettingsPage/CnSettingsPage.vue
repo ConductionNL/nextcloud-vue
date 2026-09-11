@@ -559,9 +559,13 @@ export default {
 		 * @return {Array<object>}
 		 */
 		activeSections() {
-			if (!this.hasTabs) { return this.sections || [] }
+			if (!this.hasTabs) {
+				return this.sections || []
+			}
 			const active = this.tabs.find((t) => t && t.id === this.activeTabId)
-			if (active && Array.isArray(active.sections)) { return active.sections }
+			if (active && Array.isArray(active.sections)) {
+				return active.sections
+			}
 			// Defensive fallback — should not happen because
 			// `resolveInitialTabId` always lands on a known tab.
 			const first = this.tabs[0]
@@ -592,7 +596,9 @@ export default {
 		initialTab(next) {
 			if (typeof next === 'string' && next.length > 0) {
 				const exists = this.tabs.some((t) => t && t.id === next)
-				if (exists) { this.activeTabId = next }
+				if (exists) {
+					this.activeTabId = next
+				}
 			}
 		},
 	},
@@ -617,11 +623,17 @@ export default {
 		// emitting a Vue warning about an undefined `value` prop.
 		selectedOption(field) {
 			const v = this.formData[field.key]
-			if (v === null || v === undefined) { return null }
-			if (!Array.isArray(field.options)) { return v }
+			if (v === null || v === undefined) {
+				return null
+			}
+			if (!Array.isArray(field.options)) {
+				return v
+			}
 			for (const opt of field.options) {
 				if (opt && typeof opt === 'object') {
-					if (opt.value === v) { return opt }
+					if (opt.value === v) {
+						return opt
+					}
 				} else if (opt === v) {
 					return opt
 				}
@@ -634,7 +646,9 @@ export default {
 		// when options are objects, the primitive when options are
 		// primitives, or `null` on clear.
 		optionValue(emitted) {
-			if (emitted === null || emitted === undefined) { return null }
+			if (emitted === null || emitted === undefined) {
+				return null
+			}
 			if (typeof emitted === 'object' && 'value' in emitted) {
 				return emitted.value
 			}
@@ -649,14 +663,20 @@ export default {
 			// Only flat-field sections contribute defaults; component
 			// and widgets sections own their own state.
 			const allSections = []
-			for (const section of this.sections || []) { allSections.push(section) }
+			for (const section of this.sections || []) {
+				allSections.push(section)
+			}
 			for (const tab of this.tabs || []) {
 				if (tab && Array.isArray(tab.sections)) {
-					for (const section of tab.sections) { allSections.push(section) }
+					for (const section of tab.sections) {
+						allSections.push(section)
+					}
 				}
 			}
 			for (const section of allSections) {
-				if (!section || !Array.isArray(section.fields)) { continue }
+				if (!section || !Array.isArray(section.fields)) {
+					continue
+				}
 				for (const field of section.fields) {
 					if (field.default !== undefined && merged[field.key] === undefined) {
 						merged[field.key] = field.default
@@ -667,8 +687,12 @@ export default {
 		},
 
 		resolveLabel(value) {
-			if (!value) { return '' }
-			if (this.translate) { return this.translate(value) }
+			if (!value) {
+				return ''
+			}
+			if (this.translate) {
+				return this.translate(value)
+			}
 			return value
 		},
 
@@ -709,7 +733,9 @@ export default {
 		 */
 		resolveSectionComponent(section) {
 			const name = section.component
-			if (!name) { return null }
+			if (!name) {
+				return null
+			}
 			const resolved = this.effectiveCustomComponents[name]
 			if (!resolved) {
 				// eslint-disable-next-line no-console
@@ -740,7 +766,9 @@ export default {
 		 */
 		resolveWidgetComponent(widget) {
 			const type = widget && typeof widget.type === 'string' ? widget.type : ''
-			if (!type) { return null }
+			if (!type) {
+				return null
+			}
 			if (Object.prototype.hasOwnProperty.call(BUILTIN_SETTINGS_WIDGETS, type)) {
 				const builtin = BUILTIN_SETTINGS_WIDGETS[type]
 				if (builtin === COMPONENT_DISCRIMINATOR) {
@@ -796,7 +824,9 @@ export default {
 			for (let widgetIndex = 0; widgetIndex < widgets.length; widgetIndex++) {
 				const widget = widgets[widgetIndex] || {}
 				const component = this.resolveWidgetComponent(widget)
-				if (!component) { continue }
+				if (!component) {
+					continue
+				}
 				const widgetType = widget.type === 'component' && typeof widget.componentName === 'string'
 					? widget.componentName
 					: widget.type
@@ -821,10 +851,14 @@ export default {
 		 * @return {string} The resolved tab id (empty in flat mode).
 		 */
 		resolveInitialTabId() {
-			if (!this.hasTabs) { return '' }
+			if (!this.hasTabs) {
+				return ''
+			}
 			if (typeof this.initialTab === 'string' && this.initialTab.length > 0) {
 				const exists = this.tabs.some((t) => t && t.id === this.initialTab)
-				if (exists) { return this.initialTab }
+				if (exists) {
+					return this.initialTab
+				}
 			}
 			const first = this.tabs[0]
 			return first && typeof first.id === 'string' ? first.id : ''
@@ -840,8 +874,12 @@ export default {
 		 * @param {number} tabIndex The tab's index in `tabs[]`.
 		 */
 		onTabClick(tab, tabIndex) {
-			if (!tab || typeof tab.id !== 'string') { return }
-			if (this.activeTabId === tab.id) { return }
+			if (!tab || typeof tab.id !== 'string') {
+				return
+			}
+			if (this.activeTabId === tab.id) {
+				return
+			}
 			this.activeTabId = tab.id
 			this.$emit('tab-change', { tabId: tab.id, tabIndex })
 		},

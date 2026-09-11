@@ -207,7 +207,9 @@ export function createCrudStore(name, config = {}) {
 			 */
 			setActiveTenantOrganisation(uuid) {
 				const next = (typeof uuid === 'string' && uuid.length > 0) ? uuid : null
-				if (this.activeTenantOrganisationUuid === next) { return }
+				if (this.activeTenantOrganisationUuid === next) {
+					return
+				}
 				this.activeTenantOrganisationUuid = next
 				this.item = null
 				this.list = []

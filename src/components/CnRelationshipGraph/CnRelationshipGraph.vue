@@ -180,7 +180,9 @@ export default {
 		 * @return {object|null} The root node or null.
 		 */
 		rootNode() {
-			if (this.nodes.length === 0) { return null }
+			if (this.nodes.length === 0) {
+				return null
+			}
 			return this.nodes.find((n) => n.isRoot) || this.nodes[0]
 		},
 
@@ -191,7 +193,9 @@ export default {
 		 * @return {Array<object>} Positioned nodes.
 		 */
 		resolvedNodes() {
-			if (this.nodes.length === 0) { return [] }
+			if (this.nodes.length === 0) {
+				return []
+			}
 			if (this.layout === 'manual') {
 				return this.nodes.map((n) => ({
 					...n,
@@ -233,7 +237,9 @@ export default {
 		 */
 		nodeMap() {
 			const out = {}
-			for (const n of this.resolvedNodes) { out[n.id] = n }
+			for (const n of this.resolvedNodes) {
+				out[n.id] = n
+			}
 			return out
 		},
 
@@ -248,7 +254,9 @@ export default {
 				.map((e) => {
 					const s = this.nodeMap[e.source]
 					const t = this.nodeMap[e.target]
-					if (!s || !t) { return null }
+					if (!s || !t) {
+						return null
+					}
 					return { ...e, x1: s.x, y1: s.y, x2: t.x, y2: t.y }
 				})
 				.filter(Boolean)

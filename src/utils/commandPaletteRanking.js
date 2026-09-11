@@ -193,7 +193,9 @@ function scoreCandidate(item, normalisedQuery) {
 	const keywords = Array.isArray(item.keywords) ? item.keywords : []
 	for (const keyword of keywords) {
 		const result = scoreField(keyword, normalisedQuery)
-		if (result.tier === MATCH_TIER.NONE) { continue }
+		if (result.tier === MATCH_TIER.NONE) {
+			continue
+		}
 		const adjusted = { tier: result.tier, score: result.score * KEYWORD_FIELD_PENALTY }
 		if (adjusted.tier > best.tier || (adjusted.tier === best.tier && adjusted.score > best.score)) {
 			best = adjusted
@@ -213,9 +215,13 @@ function scoreCandidate(item, normalisedQuery) {
  * @return {number} The boost, `0` when `usageCounts` is omitted or the id is unseen.
  */
 function recencyBoostFor(usageCounts, id) {
-	if (!usageCounts || typeof usageCounts !== 'object') { return 0 }
+	if (!usageCounts || typeof usageCounts !== 'object') {
+		return 0
+	}
 	const count = usageCounts[id]
-	if (typeof count !== 'number' || count <= 0) { return 0 }
+	if (typeof count !== 'number' || count <= 0) {
+		return 0
+	}
 	// Diminishing returns — the first few uses matter most, capped well
 	// under one tier-gap so it can only re-order WITHIN a tier.
 	return Math.min(MAX_RECENCY_BOOST, Math.log2(count + 1) * 6)
@@ -263,10 +269,14 @@ export function rankCommandPaletteItems(items, query, options = {}) {
 	})
 
 	const byScoreThenTitleThenIndex = (a, b) => {
-		if (b.score !== a.score) { return b.score - a.score }
+		if (b.score !== a.score) {
+			return b.score - a.score
+		}
 		const titleA = normalise(a.item.title)
 		const titleB = normalise(b.item.title)
-		if (titleA !== titleB) { return titleA < titleB ? -1 : 1 }
+		if (titleA !== titleB) {
+			return titleA < titleB ? -1 : 1
+		}
 		return a.index - b.index
 	}
 

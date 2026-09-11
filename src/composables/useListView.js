@@ -119,7 +119,9 @@ export function useListView(objectTypeOrOptions, options) {
 	 */
 	function resolveExtend() {
 		const e = typeof opts.extend === 'function' ? opts.extend() : opts.extend
-		if (!Array.isArray(e)) { return [] }
+		if (!Array.isArray(e)) {
+			return []
+		}
 		return e.filter((v) => typeof v === 'string' && v !== '')
 	}
 
@@ -252,7 +254,9 @@ export function useListView(objectTypeOrOptions, options) {
 	// ── Sidebar wiring ───────────────────────────────────────────────────
 
 	function setupSidebar() {
-		if (!sidebarState) { return }
+		if (!sidebarState) {
+			return
+		}
 		sidebarState.active = true
 		sidebarState.schema = schema.value
 		sidebarState.searchValue = searchTerm.value
@@ -265,7 +269,9 @@ export function useListView(objectTypeOrOptions, options) {
 	}
 
 	function teardownSidebar() {
-		if (!sidebarState) { return }
+		if (!sidebarState) {
+			return
+		}
 		sidebarState.active = false
 		sidebarState.schema = null
 		sidebarState.activeFilters = {}

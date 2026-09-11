@@ -411,7 +411,9 @@ export default {
 		 * @return {{register: string, schema: string}|null} the page context.
 		 */
 		addWidgetDataContext() {
-			if (!this.isDetailPage) { return null }
+			if (!this.isDetailPage) {
+				return null
+			}
 			const cfg = (this.currentPage && this.currentPage.config) || {}
 			return { register: cfg.register || '', schema: cfg.schema || '' }
 		},
@@ -431,7 +433,9 @@ export default {
 
 		/** Enter edit mode, or persist + leave when already editing. */
 		async onToggleEdit() {
-			if (!this.activeEditor || this.saving) { return }
+			if (!this.activeEditor || this.saving) {
+				return
+			}
 			if (this.isEditing) {
 				// Show a spinner in the (kept-open) menu while the save persists,
 				// then close the menu once it settles — pass or fail.
@@ -460,7 +464,9 @@ export default {
 
 		/** Discard edits and leave edit mode. */
 		onCancel() {
-			if (this.activeEditor) { this.activeEditor.cancel() }
+			if (this.activeEditor) {
+				this.activeEditor.cancel()
+			}
 			/**
 			 * @event cancel Emitted when edits are discarded.
 			 */
@@ -469,7 +475,9 @@ export default {
 
 		/** Open the Add-widget modal (only in edit mode). */
 		onAddWidget() {
-			if (!this.isEditing) { return }
+			if (!this.isEditing) {
+				return
+			}
 			this.showAddWidgetModal = true
 			/**
 			 * @event add-widget Emitted when "Add widget…" is activated in edit mode.
@@ -486,10 +494,14 @@ export default {
 		onAddWidgetSubmit(payload) {
 			this.showAddWidgetModal = false
 			const manifest = this.workingManifest
-			if (!manifest || !payload || !payload.type) { return }
+			if (!manifest || !payload || !payload.type) {
+				return
+			}
 			const pages = Array.isArray(manifest.pages) ? manifest.pages : []
 			const page = pages.find((p) => p && p.id === this.effectivePageId) ?? pages[0]
-			if (!page) { return }
+			if (!page) {
+				return
+			}
 			const content = payload.content && typeof payload.content === 'object' ? { ...payload.content } : (getDefaultContent(payload.type) || {})
 			const wid = `w-${payload.type}-${Date.now()}`
 
@@ -527,13 +539,19 @@ export default {
 			// through a live lookup rather than a cached map — see getWidgetDef.)
 			const cfg = page.config && typeof page.config === 'object' && !Array.isArray(page.config) ? page.config : null
 			if ((page.type === 'dashboard' || page.type === 'detail') && cfg) {
-				if (!Array.isArray(cfg.widgets)) { cfg.widgets = [] }
-				if (!Array.isArray(cfg.layout)) { cfg.layout = [] }
+				if (!Array.isArray(cfg.widgets)) {
+					cfg.widgets = []
+				}
+				if (!Array.isArray(cfg.layout)) {
+					cfg.layout = []
+				}
 				const nextY = cfg.layout.reduce((max, l) => Math.max(max, (l.gridY || 0) + (l.gridHeight || 1)), 0)
 				cfg.widgets.push({ id: wid, type: payload.type, ...chromeFields, content })
 				cfg.layout.push({ id: cfg.layout.length + 1, widgetId: wid, gridX: 0, gridY: nextY, gridWidth: 6, gridHeight: 3 })
 			} else {
-				if (!Array.isArray(page.widgets)) { page.widgets = [] }
+				if (!Array.isArray(page.widgets)) {
+					page.widgets = []
+				}
 				const bodyWidgets = page.widgets.filter((w) => w && w.slot === 'body')
 				const nextY = bodyWidgets.reduce((max, w) => Math.max(max, (w.gridY || 0) + (w.gridHeight || 1)), 0)
 				page.widgets.push({
@@ -582,16 +600,22 @@ export default {
 		 */
 		ejectDetailGridIfNeeded() {
 			const manifest = this.workingManifest
-			if (!manifest) { return }
+			if (!manifest) {
+				return
+			}
 			const pages = Array.isArray(manifest.pages) ? manifest.pages : []
 			const page = pages.find((p) => p && p.id === this.effectivePageId) ?? null
-			if (!page || page.type !== 'detail') { return }
+			if (!page || page.type !== 'detail') {
+				return
+			}
 			if (!page.config || typeof page.config !== 'object' || Array.isArray(page.config)) {
 				page.config = {}
 			}
 			const cfg = page.config
 			// Already customised (ejected before, or a hand-authored grid page).
-			if (Array.isArray(cfg.widgets) && cfg.widgets.length > 0) { return }
+			if (Array.isArray(cfg.widgets) && cfg.widgets.length > 0) {
+				return
+			}
 			const grid = defaultDetailGrid({
 				register: cfg.register || '',
 				schema: cfg.schema || '',

@@ -193,7 +193,9 @@ export default {
 		objectId: {
 			immediate: true,
 			handler(id) {
-				if (id) { this.fetchFiles() }
+				if (id) {
+					this.fetchFiles()
+				}
 				this.applyShareDefault()
 			},
 		},
@@ -216,7 +218,9 @@ export default {
 		},
 
 		async fetchFiles(append = false) {
-			if (!this.register || !this.schema) { return }
+			if (!this.register || !this.schema) {
+				return
+			}
 			if (append) { this.loadingMore = true } else { this.loading = true }
 			try {
 				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
@@ -258,13 +262,17 @@ export default {
 				return
 			}
 			this.share = false
-			if (!this.schema) { return }
+			if (!this.schema) {
+				return
+			}
 			try {
 				const response = await fetch(
 					`${this.apiBase}/schemas/${this.schema}`,
 					{ headers: buildHeaders() },
 				)
-				if (!response.ok) { return }
+				if (!response.ok) {
+					return
+				}
 				const data = await response.json().catch(() => null)
 				if (data?.configuration?.defaultAutoShare === true) {
 					this.share = true
@@ -286,18 +294,26 @@ export default {
 		onDrop(event) {
 			this.isDragOver = false
 			const droppedFiles = event.dataTransfer?.files
-			if (droppedFiles?.length) { this.uploadFiles(droppedFiles) }
+			if (droppedFiles?.length) {
+				this.uploadFiles(droppedFiles)
+			}
 		},
 
 		async onFileUpload(event) {
 			const inputFiles = event.target.files
-			if (!inputFiles?.length) { return }
+			if (!inputFiles?.length) {
+				return
+			}
 			await this.uploadFiles(inputFiles)
-			if (this.fileInputEl) { this.fileInputEl.value = '' }
+			if (this.fileInputEl) {
+				this.fileInputEl.value = ''
+			}
 		},
 
 		async uploadFiles(fileList) {
-			if (!fileList?.length || !this.register || !this.schema) { return }
+			if (!fileList?.length || !this.register || !this.schema) {
+				return
+			}
 			this.uploadError = ''
 			const formData = new FormData()
 			for (const file of fileList) {
@@ -352,7 +368,9 @@ export default {
 		},
 
 		async deleteFile(file) {
-			if (!this.register || !this.schema) { return }
+			if (!this.register || !this.schema) {
+				return
+			}
 			try {
 				await fetch(
 					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files/${file.id}`,
@@ -366,9 +384,13 @@ export default {
 
 		formatFileSize(bytes) {
 			const sizes = ['Bytes', 'KB', 'MB', 'GB']
-			if (!bytes || bytes === 0) { return 'n/a' }
+			if (!bytes || bytes === 0) {
+				return 'n/a'
+			}
 			const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)))
-			if (i === 0) { return '< 1 KB' }
+			if (i === 0) {
+				return '< 1 KB'
+			}
 			return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + sizes[i]
 		},
 	},

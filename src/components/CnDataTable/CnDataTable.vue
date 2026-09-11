@@ -712,8 +712,12 @@ export default {
 		 * @return {Array<object>}
 		 */
 		sourceRows() {
-			if (this.rows && this.rows.length > 0) { return this.rows }
-			if (this.register != null && this.schemaId != null) { return this.fetchedRows }
+			if (this.rows && this.rows.length > 0) {
+				return this.rows
+			}
+			if (this.register != null && this.schemaId != null) {
+				return this.fetchedRows
+			}
 			return this.rows
 		},
 
@@ -785,7 +789,9 @@ export default {
 				: []
 			const byKey = new Map(schemaCols.map((c) => [c.key, c]))
 			return (cols || []).map((c) => {
-				if (typeof c !== 'string') { return c }
+				if (typeof c !== 'string') {
+					return c
+				}
 				return byKey.get(c) || { key: c, label: c, sortable: true }
 			})
 		},
@@ -800,16 +806,24 @@ export default {
 		 * @return {Array<{key: string, order: 'asc'|'desc'}>}
 		 */
 		effectiveSortKeys() {
-			if (this.sortKeys && this.sortKeys.length > 0) { return this.sortKeys }
+			if (this.sortKeys && this.sortKeys.length > 0) {
+				return this.sortKeys
+			}
 			if (this.sortKey) { return [{ key: this.sortKey, order: this.sortOrder || 'asc' }] }
 			return []
 		},
 
 		totalColumns() {
 			let count = this.effectiveColumns.length
-			if (this.selectable) { count++ }
-			if (this.rowIcon) { count++ }
-			if (this.$slots['row-actions']) { count++ }
+			if (this.selectable) {
+				count++
+			}
+			if (this.rowIcon) {
+				count++
+			}
+			if (this.$slots['row-actions']) {
+				count++
+			}
 			return count
 		},
 
@@ -889,7 +903,9 @@ export default {
 		 */
 		observeScrollOverflow() {
 			this.measureScrollOverflow()
-			if (typeof ResizeObserver === 'undefined') { return }
+			if (typeof ResizeObserver === 'undefined') {
+				return
+			}
 			this._scrollObserver = new ResizeObserver(() => this.measureScrollOverflow())
 			const el = this.$refs.scrollEl
 			if (el) {
@@ -897,7 +913,9 @@ export default {
 				// The table itself, not just the port: a column widening pushes
 				// the content past the fold without the port changing size.
 				const table = el.querySelector('table')
-				if (table) { this._scrollObserver.observe(table) }
+				if (table) {
+					this._scrollObserver.observe(table)
+				}
 			}
 		},
 
@@ -912,7 +930,9 @@ export default {
 			// table that visually fits as scrollable, which would put a tab
 			// stop on it for no reachable content.
 			const next = !!el && (el.scrollWidth - el.clientWidth) > 1
-			if (next !== this.isScrollable) { this.isScrollable = next }
+			if (next !== this.isScrollable) {
+				this.isScrollable = next
+			}
 		},
 
 		/**
@@ -938,7 +958,9 @@ export default {
 		 * @return {string} The translated label, or the input unchanged.
 		 */
 		translateLabel(label) {
-			if (!label) { return '' }
+			if (!label) {
+				return ''
+			}
 			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
 			return fn(label)
 		},
@@ -1097,7 +1119,9 @@ export default {
 			if (col && col.aggregate) {
 				const cached = this.aggregateValues[String(row[this.rowKey])]
 				const v = cached ? cached[col.key] : undefined
-				if (v === undefined) { return this.aggregateLoading ? '…' : '—' }
+				if (v === undefined) {
+					return this.aggregateLoading ? '…' : '—'
+				}
 				return v
 			}
 			return this.getCellValue(row, col.key)
@@ -1150,7 +1174,9 @@ export default {
 				next[rowKey] = {}
 				for (const col of aggCols) {
 					const agg = col.aggregate
-					if (!agg.register || !agg.schema) { continue }
+					if (!agg.register || !agg.schema) {
+						continue
+					}
 					const where = this.resolveAggregateWhere(agg.where, row)
 					jobs.push(axios.get(generateUrl(`/apps/openregister/api/objects/${agg.register}/${agg.schema}`), {
 						params: { ...where, _limit: 0 },
@@ -1167,7 +1193,9 @@ export default {
 				}
 			}
 			await Promise.all(jobs)
-			if (id !== this.aggregateRequestId) { return }
+			if (id !== this.aggregateRequestId) {
+				return
+			}
 			this.aggregateValues = next
 			this.aggregateLoading = false
 		},
@@ -1184,7 +1212,9 @@ export default {
 		 * @param {MouseEvent} [event] The originating click event.
 		 */
 		onRowClick(row, event) {
-			if (this.wasDrag(event)) { return }
+			if (this.wasDrag(event)) {
+				return
+			}
 			if (this.selectable && !this.rowClickToView) {
 				this.toggleSelect(row)
 				return
@@ -1239,9 +1269,13 @@ export default {
 		 * @return {string|null}
 		 */
 		ariaSortFor(col) {
-			if (!col.sortable) { return null }
+			if (!col.sortable) {
+				return null
+			}
 			const primary = this.effectiveSortKeys[0]
-			if (!primary || primary.key !== col.key) { return null }
+			if (!primary || primary.key !== col.key) {
+				return null
+			}
 			return primary.order === 'asc' ? 'ascending' : 'descending'
 		},
 
@@ -1264,7 +1298,9 @@ export default {
 		 * @param {KeyboardEvent} event The originating keydown event.
 		 */
 		onHeaderKeydown(key, event) {
-			if (event.key !== 'Enter') { return }
+			if (event.key !== 'Enter') {
+				return
+			}
 			event.preventDefault()
 			this.applySort(key, !!event.shiftKey)
 		},

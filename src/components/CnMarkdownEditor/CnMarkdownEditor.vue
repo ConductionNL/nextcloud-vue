@@ -456,18 +456,28 @@ export default {
 		 */
 		onKeydown(event) {
 			const ta = this.$refs.textarea
-			if (!ta) { return }
+			if (!ta) {
+				return
+			}
 			if (event.ctrlKey || event.metaKey) {
 				let toolId = null
-				if (event.key === 'b' || event.key === 'B') { toolId = 'bold' } else if (event.key === 'i' || event.key === 'I') { toolId = 'italic' }
-				if (!toolId) { return }
+				if (event.key === 'b' || event.key === 'B') { toolId = 'bold' } else if (event.key === 'i' || event.key === 'I') {
+					toolId = 'italic'
+				}
+				if (!toolId) {
+					return
+				}
 				const tool = this.toolbar.find((t) => t.id === toolId)
-				if (!tool) { return }
+				if (!tool) {
+					return
+				}
 				event.preventDefault()
 				this.invokeTool(tool)
 				return
 			}
-			if (event.altKey) { return }
+			if (event.altKey) {
+				return
+			}
 			if (event.key === 'Enter' && !event.shiftKey) {
 				this.handleListEnter(event, ta)
 			} else if (event.key === 'Tab') {
@@ -488,15 +498,21 @@ export default {
 		handleListEnter(event, ta) {
 			const value = this.localValue
 			const selStart = ta.selectionStart
-			if (selStart !== ta.selectionEnd) { return }
+			if (selStart !== ta.selectionEnd) {
+				return
+			}
 			const lineStart = value.slice(0, selStart).lastIndexOf('\n') + 1
 			const nl = value.indexOf('\n', selStart)
 			const lineEnd = nl === -1 ? value.length : nl
 			const m = value.slice(lineStart, lineEnd).match(LIST_ITEM_RE)
-			if (!m) { return }
+			if (!m) {
+				return
+			}
 			const [, indent, marker, gap, content] = m
 			// Only act once the caret is past the marker (in the item body).
-			if (selStart < lineStart + indent.length + marker.length + gap.length) { return }
+			if (selStart < lineStart + indent.length + marker.length + gap.length) {
+				return
+			}
 			event.preventDefault()
 			if (content.trim() === '') {
 				// Empty item → exit the list: drop the marker, leave a blank line.
@@ -527,7 +543,9 @@ export default {
 			const firstLineStart = value.slice(0, selStart).lastIndexOf('\n') + 1
 			const firstNl = value.indexOf('\n', firstLineStart)
 			const firstLineEnd = firstNl === -1 ? value.length : firstNl
-			if (!LIST_ITEM_RE.test(value.slice(firstLineStart, firstLineEnd))) { return }
+			if (!LIST_ITEM_RE.test(value.slice(firstLineStart, firstLineEnd))) {
+				return
+			}
 			event.preventDefault()
 			const endRef = selEnd > selStart ? selEnd - 1 : selEnd
 			const lastNl = value.indexOf('\n', endRef)
@@ -541,9 +559,13 @@ export default {
 					if (ln.startsWith('\t')) {
 						strip = 1
 					} else {
-						while (strip < 2 && ln[strip] === ' ') { strip++ }
+						while (strip < 2 && ln[strip] === ' ') {
+							strip++
+						}
 					}
-					if (i === 0) { firstDelta = -strip }
+					if (i === 0) {
+						firstDelta = -strip
+					}
 					return ln.slice(strip)
 				})
 			} else {
@@ -574,7 +596,9 @@ export default {
 			this.emitValue(next)
 			this.$nextTick(() => {
 				const ta = this.$refs.textarea
-				if (!ta) { return }
+				if (!ta) {
+					return
+				}
 				ta.focus()
 				ta.setSelectionRange(selStart, selEnd)
 			})
@@ -604,7 +628,9 @@ export default {
 		 */
 		invokeTool(tool) {
 			const ta = this.$refs.textarea
-			if (!ta) { return }
+			if (!ta) {
+				return
+			}
 			const before = this.localValue.slice(0, ta.selectionStart)
 			const selected = this.localValue.slice(ta.selectionStart, ta.selectionEnd)
 			const after = this.localValue.slice(ta.selectionEnd)

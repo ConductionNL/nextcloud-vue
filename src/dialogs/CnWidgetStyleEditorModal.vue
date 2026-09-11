@@ -300,7 +300,9 @@ export default {
 		 */
 		typeFormComponent() {
 			const type = this.widget && this.widget.type
-			if (!type) { return null }
+			if (!type) {
+				return null
+			}
 			const entry = getWidgetTypeEntry(type)
 			return (entry && entry.form) || null
 		},
@@ -319,7 +321,9 @@ export default {
 		 */
 		isCardWidget() {
 			const type = this.widget && this.widget.type
-			if (!type) { return false }
+			if (!type) {
+				return false
+			}
 			const entry = getWidgetTypeEntry(type)
 			return Boolean(entry && entry.card === true)
 		},

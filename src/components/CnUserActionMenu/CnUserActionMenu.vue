@@ -195,7 +195,9 @@ export default {
 
 	methods: {
 		openMenu() {
-			if (!this.interactive) { return }
+			if (!this.interactive) {
+				return
+			}
 			this.isOpen = true
 			// Resolve email on first open if not yet done
 			if (!this.emailResolved) {
@@ -347,7 +349,9 @@ export default {
 		},
 
 		sendEmail() {
-			if (!this.userEmail) { return }
+			if (!this.userEmail) {
+				return
+			}
 			if (this.hasMail) {
 				window.location.href = `/apps/mail/compose?to=${encodeURIComponent(this.userEmail)}`
 			} else {

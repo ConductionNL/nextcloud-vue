@@ -174,7 +174,9 @@ export default {
 
 	methods: {
 		async submit() {
-			if (!this.canSubmit || this.saving) { return }
+			if (!this.canSubmit || this.saving) {
+				return
+			}
 			this.saving = true
 			this.error = ''
 			try {
@@ -193,8 +195,12 @@ export default {
 						payload.dtend = end.toISOString()
 					}
 				}
-				if (this.form.location.trim()) { payload.location = this.form.location.trim() }
-				if (this.form.description.trim()) { payload.description = this.form.description.trim() }
+				if (this.form.location.trim()) {
+					payload.location = this.form.location.trim()
+				}
+				if (this.form.description.trim()) {
+					payload.description = this.form.description.trim()
+				}
 
 				const response = await fetch(
 					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/events`,
@@ -215,7 +221,9 @@ export default {
 					let message = t('nextcloud-vue', 'Could not create the meeting.')
 					try {
 						const body = await response.json()
-						if (body && typeof body.error === 'string') { message = body.error }
+						if (body && typeof body.error === 'string') {
+							message = body.error
+						}
 					} catch (_) { /* ignore */ }
 					this.error = message
 				}

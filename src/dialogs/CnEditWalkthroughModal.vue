@@ -137,7 +137,9 @@ export default {
 		// Lazily create the walkthrough block + primary tour reactively. New
 		// properties on the working manifest must go through $set, or Vue 2 won't
 		// track later mutations (added steps wouldn't render).
-		if (!this.working) { return }
+		if (!this.working) {
+			return
+		}
 		if (!this.working.walkthrough || typeof this.working.walkthrough !== 'object') {
 			this.working.walkthrough = { enabled: true, tours: [] }
 		}
@@ -175,7 +177,9 @@ export default {
 		 * @return {string} The target selector.
 		 */
 		targetRef(step) {
-			if (!step.target) { return '' }
+			if (!step.target) {
+				return ''
+			}
 			// `selector` is what CnWalkthrough resolves for kind:"selector";
 			// fall back to the older `ref` for steps authored before that.
 			return step.target.selector || step.target.ref || ''

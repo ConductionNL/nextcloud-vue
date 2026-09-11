@@ -84,7 +84,9 @@ export function clearDeprecationWarnings() {
  */
 export function warnIfDeprecated(token, warn) {
 	const dep = matchDeprecation(token)
-	if (!dep) { return false }
+	if (!dep) {
+		return false
+	}
 	if (!_warnedDeprecations.has(token)) {
 		_warnedDeprecations.add(token)
 		const target = dep.replacement
@@ -134,21 +136,29 @@ export function resolveManifestSubtree(value, opts = {}) {
 	const unresolved = []
 	const walk = (node) => {
 		if (typeof node === 'string') {
-			if (!looksLikeSentinel(node)) { return node }
+			if (!looksLikeSentinel(node)) {
+				return node
+			}
 			warnIfDeprecated(node, warn)
 			const resolved = resolveFilterValue(node, ctx)
 			if (resolved === node && !isOptionalUnresolved(node)) {
 				// Still a raw token: unresolved unless it is a load-time / server-side
 				// context this render-pass deliberately leaves alone.
 				const c = contextOf(node)
-				if (c !== 'config' && c !== 'declarative' && c !== 'visibleWhen') { unresolved.push(node) }
+				if (c !== 'config' && c !== 'declarative' && c !== 'visibleWhen') {
+					unresolved.push(node)
+				}
 			}
 			return resolved
 		}
-		if (Array.isArray(node)) { return node.map(walk) }
+		if (Array.isArray(node)) {
+			return node.map(walk)
+		}
 		if (node && typeof node === 'object') {
 			const out = {}
-			for (const [k, v] of Object.entries(node)) { out[k] = walk(v) }
+			for (const [k, v] of Object.entries(node)) {
+				out[k] = walk(v)
+			}
 			return out
 		}
 		return node

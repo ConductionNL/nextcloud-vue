@@ -54,9 +54,13 @@ function installedCopies(name) {
 	 * @return {void}
 	 */
 	const walk = (dir) => {
-		if (!fs.existsSync(dir)) { return }
+		if (!fs.existsSync(dir)) {
+			return
+		}
 		for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-			if (!entry.isDirectory()) { continue }
+			if (!entry.isDirectory()) {
+				continue
+			}
 			const full = path.join(dir, entry.name)
 			// Scoped packages hold their own directory level.
 			if (entry.name.startsWith('@')) {

@@ -41,7 +41,9 @@ function createBus() {
 	const listeners = new Set()
 	return {
 		on(cb) {
-			if (typeof cb === 'function') { listeners.add(cb) }
+			if (typeof cb === 'function') {
+				listeners.add(cb)
+			}
 			return () => listeners.delete(cb)
 		},
 		off(cb) {
@@ -100,7 +102,9 @@ export function createTenantContext(initialUuid = null, initialOrg = null) {
 		const previousUuid = activeOrganisationUuid.value
 		if (previousUuid === uuid) {
 			// Idempotent — refresh the resolved entity but skip emit
-			if (org) { activeOrganisation.value = org }
+			if (org) {
+				activeOrganisation.value = org
+			}
 			return
 		}
 
@@ -148,7 +152,9 @@ export function provideTenantContext(initialUuid = null, initialOrg = null) {
  */
 export function useTenantContext() {
 	const injected = inject(TENANT_CONTEXT_KEY, null)
-	if (injected) { return injected }
+	if (injected) {
+		return injected
+	}
 
 	const fallback = createTenantContext(null, null)
 	const realSetter = fallback.setActiveTenant

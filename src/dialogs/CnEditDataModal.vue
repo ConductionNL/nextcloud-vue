@@ -243,11 +243,21 @@ import {
  * @return {*} The unwrapped payload.
  */
 function unwrap(data) {
-	if (!data) { return data }
-	if (data.result !== undefined) { return data.result }
-	if (data.results !== undefined) { return data.results }
-	if (data.registers !== undefined) { return data.registers }
-	if (data.schemas !== undefined) { return data.schemas }
+	if (!data) {
+		return data
+	}
+	if (data.result !== undefined) {
+		return data.result
+	}
+	if (data.results !== undefined) {
+		return data.results
+	}
+	if (data.registers !== undefined) {
+		return data.registers
+	}
+	if (data.schemas !== undefined) {
+		return data.schemas
+	}
 	return data
 }
 
@@ -346,7 +356,9 @@ export default {
 		 */
 		cascadeWarning() {
 			const p = this.pendingCascade
-			if (!p) { return '' }
+			if (!p) {
+				return ''
+			}
 			const name = (p.schema && (p.schema.title || p.schema.slug)) || ''
 			return n(
 				'nextcloud-vue',
@@ -457,11 +469,15 @@ export default {
 			const ids = (reg && Array.isArray(reg.schemas)) ? reg.schemas.filter((x) => typeof x === 'number' || typeof x === 'string') : []
 			const resolved = await Promise.all(ids.map(async (id) => {
 				const cached = dataCache.schemas.get(id)
-				if (cached) { return cached }
+				if (cached) {
+					return cached
+				}
 				try {
 					const { data } = await axios.get(generateUrl(`/apps/openregister/api/schemas/${id}`), { headers: this.headers() })
 					const schema = unwrap(data)
-					if (schema) { dataCache.schemas.set(id, schema) }
+					if (schema) {
+						dataCache.schemas.set(id, schema)
+					}
 					return schema
 				} catch {
 					return null
@@ -481,9 +497,13 @@ export default {
 		syncDataSources() {
 			const ds = this.cnDataSources
 			const reg = this.selectedRegister
-			if (!ds || !Array.isArray(ds.registers) || !reg) { return }
+			if (!ds || !Array.isArray(ds.registers) || !reg) {
+				return
+			}
 			const dsReg = ds.registers.find((r) => r.value === reg.slug)
-			if (!dsReg) { return }
+			if (!dsReg) {
+				return
+			}
 			dsReg.schemas = this.schemas.map((s) => ({
 				value: s.slug,
 				label: s.title || s.slug,
@@ -506,7 +526,9 @@ export default {
 		/** Open the inline rename field pre-filled with the current title. */
 		startRename() {
 			const reg = this.selectedRegister
-			if (!reg) { return }
+			if (!reg) {
+				return
+			}
 			this.renameTitle = reg.title || reg.slug || ''
 			this.renamingRegister = true
 		},
@@ -521,7 +543,9 @@ export default {
 		async renameRegister() {
 			const reg = this.selectedRegister
 			const title = this.renameTitle.trim()
-			if (!reg || !title) { return }
+			if (!reg || !title) {
+				return
+			}
 			if (title === (reg.title || '')) {
 				this.renamingRegister = false
 				return
@@ -539,7 +563,9 @@ export default {
 				const ds = this.cnDataSources
 				if (ds && Array.isArray(ds.registers)) {
 					const dsReg = ds.registers.find((r) => r.value === reg.slug)
-					if (dsReg) { dsReg.label = title }
+					if (dsReg) {
+						dsReg.label = title
+					}
 				}
 				this.renamingRegister = false
 			} catch (e) {
@@ -600,7 +626,9 @@ export default {
 					acknowledgeBreaking,
 					headers: this.headers(),
 				})
-				if (!id && saved && saved.id) { await this.linkSchema(saved.id) }
+				if (!id && saved && saved.id) {
+					await this.linkSchema(saved.id)
+				}
 
 				this.pendingBreaking = null
 				this.showSchemaDialog = false
@@ -638,7 +666,9 @@ export default {
 		 */
 		async confirmBreaking() {
 			const pending = this.pendingBreaking
-			if (!pending) { return }
+			if (!pending) {
+				return
+			}
 			await this.onSchemaConfirm(pending.schema, true)
 		},
 
@@ -680,9 +710,13 @@ export default {
 		 */
 		async linkSchema(schemaId) {
 			const reg = this.selectedRegister
-			if (!reg) { return }
+			if (!reg) {
+				return
+			}
 			const ids = Array.isArray(reg.schemas) ? [...reg.schemas] : []
-			if (!ids.includes(schemaId)) { ids.push(schemaId) }
+			if (!ids.includes(schemaId)) {
+				ids.push(schemaId)
+			}
 			await axios.patch(
 				generateUrl(`/apps/openregister/api/registers/${reg.id}`),
 				{ schemas: ids },
@@ -709,7 +743,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async removeSchema(schema, deleteObjects = false) {
-			if (!schema || !schema.id) { return }
+			if (!schema || !schema.id) {
+				return
+			}
 			this.busy = true
 			this.error = ''
 			try {
@@ -760,7 +796,9 @@ export default {
 		 */
 		async confirmCascade() {
 			const pending = this.pendingCascade
-			if (!pending) { return }
+			if (!pending) {
+				return
+			}
 			this.pendingCascade = null
 			await this.removeSchema(pending.schema, true)
 		},
@@ -777,7 +815,9 @@ export default {
 		 */
 		async createRegister() {
 			const title = this.newRegisterTitle.trim()
-			if (!title) { return }
+			if (!title) {
+				return
+			}
 			this.busy = true
 			this.error = ''
 			try {

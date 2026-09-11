@@ -343,8 +343,12 @@ export default {
 		 * - neither → 'div' (static display)
 		 */
 		componentTag() {
-			if (this.route) { return 'router-link' }
-			if (this.clickable) { return 'a' }
+			if (this.route) {
+				return 'router-link'
+			}
+			if (this.clickable) {
+				return 'a'
+			}
 			return 'div'
 		},
 
@@ -397,7 +401,9 @@ export default {
 
 		onClick(event) {
 			// When route is set, router-link handles navigation — do not emit click
-			if (this.route) { return }
+			if (this.route) {
+				return
+			}
 			if (this.clickable) {
 				event.preventDefault()
 				this.$emit('click', event)

@@ -701,7 +701,9 @@ export default {
 		 * @return {object|null} The component, or null.
 		 */
 		integrationComponent() {
-			if (!this.isIntegration) { return null }
+			if (!this.isIntegration) {
+				return null
+			}
 			const id = this.widget.integrationId
 			// `bareWidget` lets a provider say its WIDGET is already bare, so a
 			// tab panel gets the widget surface instead of the sidebar one.
@@ -719,7 +721,9 @@ export default {
 			if (this.isBare && this.integrationProvider?.tab && typeof this.resolveRegistryTab === 'function') {
 				return this.resolveRegistryTab(id)
 			}
-			if (typeof this.resolveRegistryWidget !== 'function') { return null }
+			if (typeof this.resolveRegistryWidget !== 'function') {
+				return null
+			}
 			return this.resolveRegistryWidget(id, this.surface)
 		},
 
@@ -814,7 +818,9 @@ export default {
 		 * @return {boolean} true for a widget that renders other widgets.
 		 */
 		isContainer() {
-			if (!this.widget?.type) { return false }
+			if (!this.widget?.type) {
+				return false
+			}
 			const entry = getWidgetTypeEntry(this.widget.type)
 			return Boolean(entry && entry.container === true)
 		},
@@ -827,7 +833,9 @@ export default {
 		 * @return {boolean} true when Add should render.
 		 */
 		catalogAddEnabled() {
-			if (!['object-list', 'table'].includes(this.widget?.type)) { return false }
+			if (!['object-list', 'table'].includes(this.widget?.type)) {
+				return false
+			}
 			return this.content.allowCreate !== false
 		},
 
@@ -838,7 +846,9 @@ export default {
 		 * @return {boolean} true when the wrapper header renders.
 		 */
 		effectiveShowCardTitle() {
-			if (this.showCardTitle !== null) { return this.showCardTitle }
+			if (this.showCardTitle !== null) {
+				return this.showCardTitle
+			}
 			return this.widget?.title !== undefined || this.content.title !== undefined
 		},
 
@@ -863,7 +873,9 @@ export default {
 		 * @return {object[]} PanelAction descriptors.
 		 */
 		ownPanelActions() {
-			if (!this.isBare || !this.catalogAddEnabled) { return [] }
+			if (!this.isBare || !this.catalogAddEnabled) {
+				return []
+			}
 			return [{
 				key: 'catalog-add',
 				label: this.addLabel,
@@ -886,7 +898,9 @@ export default {
 	beforeUnmount() {
 		// A closed tab's panel can be torn down while the strip lives on, and an
 		// item whose host is gone would call into nothing.
-		if (this.panelActionSink) { this.panelActionSink.clear(this.widget?.id, 'host') }
+		if (this.panelActionSink) {
+			this.panelActionSink.clear(this.widget?.id, 'host')
+		}
 	},
 
 	methods: {
@@ -899,9 +913,13 @@ export default {
 		 * @return {void}
 		 */
 		publishOwnPanelActions() {
-			if (!this.panelActionSink) { return }
+			if (!this.panelActionSink) {
+				return
+			}
 			const id = this.widget?.id
-			if (!id) { return }
+			if (!id) {
+				return
+			}
 			if (this.ownPanelActions.length) {
 				this.panelActionSink.set(id, this.ownPanelActions, 'host')
 			} else {

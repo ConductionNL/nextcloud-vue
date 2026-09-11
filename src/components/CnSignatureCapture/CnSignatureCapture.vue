@@ -236,9 +236,15 @@ export default {
 		 * @return {'typed'|'drawn'} The starting mode.
 		 */
 		resolveInitialMode() {
-			if (this.initialMode === 'drawn' && this.allowDrawn) { return 'drawn' }
-			if (this.initialMode === 'typed' && this.allowTyped) { return 'typed' }
-			if (this.allowTyped) { return 'typed' }
+			if (this.initialMode === 'drawn' && this.allowDrawn) {
+				return 'drawn'
+			}
+			if (this.initialMode === 'typed' && this.allowTyped) {
+				return 'typed'
+			}
+			if (this.allowTyped) {
+				return 'typed'
+			}
 			return 'drawn'
 		},
 
@@ -257,7 +263,9 @@ export default {
 			// — under jest that reads as "Test suite failed to run", with no
 			// failing test to point at.
 			const ctx = this.$refs.canvas?.getContext('2d')
-			if (!ctx) { return }
+			if (!ctx) {
+				return
+			}
 			ctx.lineCap = 'round'
 			ctx.lineJoin = 'round'
 			ctx.lineWidth = this.lineWidth
@@ -299,7 +307,9 @@ export default {
 		 * @return {void}
 		 */
 		continueStroke(event) {
-			if (!this.drawing) { return }
+			if (!this.drawing) {
+				return
+			}
 			const { x, y } = this.toCanvasCoords(event.clientX, event.clientY)
 			this.drawSegment(this.lastX, this.lastY, x, y)
 			this.lastX = x
@@ -313,7 +323,9 @@ export default {
 		 * @return {void}
 		 */
 		startStrokeTouch(event) {
-			if (!event.touches || event.touches.length === 0) { return }
+			if (!event.touches || event.touches.length === 0) {
+				return
+			}
 			const t = event.touches[0]
 			this.startStroke({ clientX: t.clientX, clientY: t.clientY })
 		},
@@ -325,7 +337,9 @@ export default {
 		 * @return {void}
 		 */
 		continueStrokeTouch(event) {
-			if (!event.touches || event.touches.length === 0) { return }
+			if (!event.touches || event.touches.length === 0) {
+				return
+			}
 			const t = event.touches[0]
 			this.continueStroke({ clientX: t.clientX, clientY: t.clientY })
 		},
@@ -336,7 +350,9 @@ export default {
 		 * @return {void}
 		 */
 		endStroke() {
-			if (!this.drawing) { return }
+			if (!this.drawing) {
+				return
+			}
 			this.drawing = false
 			this.emitChange()
 		},
@@ -353,7 +369,9 @@ export default {
 		 */
 		drawSegment(x1, y1, x2, y2) {
 			const ctx = this.$refs.canvas?.getContext('2d')
-			if (!ctx) { return }
+			if (!ctx) {
+				return
+			}
 			ctx.beginPath()
 			ctx.moveTo(x1, y1)
 			ctx.lineTo(x2, y2)

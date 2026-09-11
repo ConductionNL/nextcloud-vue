@@ -32,7 +32,9 @@ const preset = require(path.join(ROOT, 'stylelint', 'index.js'))
  */
 function extendsOf() {
 	const e = preset.extends
-	if (!e) { return [] }
+	if (!e) {
+		return []
+	}
 	return Array.isArray(e) ? e : [e]
 }
 

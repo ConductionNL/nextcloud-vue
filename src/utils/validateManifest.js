@@ -149,7 +149,9 @@ export function validateManifestV2(manifest) {
 		const templateIds = new Set()
 		if (Array.isArray(clone.pageTemplates)) {
 			clone.pageTemplates.forEach((tpl, index) => {
-				if (!tpl || typeof tpl.id !== 'string') { return }
+				if (!tpl || typeof tpl.id !== 'string') {
+					return
+				}
 				if (templateIds.has(tpl.id)) {
 					errors.push(`pageTemplates[${index}]/id: "${tpl.id}" must be unique within pageTemplates[]`)
 				} else {
@@ -159,7 +161,9 @@ export function validateManifestV2(manifest) {
 		}
 		if (Array.isArray(clone.pageInstances)) {
 			clone.pageInstances.forEach((inst, index) => {
-				if (!inst || typeof inst.templateRef !== 'string') { return }
+				if (!inst || typeof inst.templateRef !== 'string') {
+					return
+				}
 				if (!templateIds.has(inst.templateRef)) {
 					errors.push(`pageInstances[${index}]/templateRef: "${inst.templateRef}" references no pageTemplates[] entry`)
 				}
@@ -172,9 +176,13 @@ export function validateManifestV2(manifest) {
 	//    sidebar; we still run the arithmetic check for clarity).
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page || !Array.isArray(page.widgets)) { return }
+			if (!page || !Array.isArray(page.widgets)) {
+				return
+			}
 			page.widgets.forEach((widget, wIndex) => {
-				if (!widget) { return }
+				if (!widget) {
+					return
+				}
 				const gx = widget.gridX
 				const gw = widget.gridWidth
 				if (typeof gx === 'number' && typeof gw === 'number') {
@@ -199,10 +207,16 @@ export function validateManifestV2(manifest) {
 	//    went stale.
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page || page.type !== 'dashboard') { return }
-			if (!Array.isArray(page.widgets) || page.widgets.length !== 1) { return }
+			if (!page || page.type !== 'dashboard') {
+				return
+			}
+			if (!Array.isArray(page.widgets) || page.widgets.length !== 1) {
+				return
+			}
 			const widget = page.widgets[0]
-			if (!widget) { return }
+			if (!widget) {
+				return
+			}
 			// Normalise omitted grid coords against the body-slot defaults
 			// (gridX/Y → 0, gridWidth/Height → 12) so authors cannot
 			// circumvent the rule by omitting fields. Required-field
@@ -213,9 +227,13 @@ export function validateManifestV2(manifest) {
 			const gy = typeof widget.gridY === 'number' ? widget.gridY : 0
 			const gw = typeof widget.gridWidth === 'number' ? widget.gridWidth : 12
 			const gh = typeof widget.gridHeight === 'number' ? widget.gridHeight : 12
-			if (slot !== 'body' || gx !== 0 || gy !== 0 || gw !== 12 || gh !== 12) { return }
+			if (slot !== 'body' || gx !== 0 || gy !== 0 || gw !== 12 || gh !== 12) {
+				return
+			}
 			const widgetKey = typeof widget.widgetKey === 'string' ? widget.widgetKey : ''
-			if (!widgetKey || LIBRARY_BUILT_IN_WIDGET_KEYS.has(widgetKey)) { return }
+			if (!widgetKey || LIBRARY_BUILT_IN_WIDGET_KEYS.has(widgetKey)) {
+				return
+			}
 			const pageId = typeof page.id === 'string' ? page.id : `[${pIndex}]`
 			errors.push(`pages[${pageId}]/widgets[0]: pages[${pageId}] is type:"dashboard" with a single 12×12 custom widget — this is always a custom page in disguise.\n`
 				+ 'Valid alternatives:\n'
@@ -229,10 +247,14 @@ export function validateManifestV2(manifest) {
 	//     merge key, so duplicates would make a patch ambiguous.
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page || !Array.isArray(page.widgets)) { return }
+			if (!page || !Array.isArray(page.widgets)) {
+				return
+			}
 			const seen = new Set()
 			page.widgets.forEach((widget, wIndex) => {
-				if (!widget || typeof widget.id !== 'string') { return }
+				if (!widget || typeof widget.id !== 'string') {
+					return
+				}
 				if (seen.has(widget.id)) {
 					errors.push(`pages[${pIndex}]/widgets[${wIndex}]/id: "${widget.id}" must be unique within the page's widgets[]`)
 				} else {
@@ -251,12 +273,16 @@ export function validateManifestV2(manifest) {
 			node.forEach((v, i) => walkReserved(v, `${path}[${i}]`))
 			return
 		}
-		if (!isPlainObject(node)) { return }
+		if (!isPlainObject(node)) {
+			return
+		}
 		for (const k of Object.keys(node)) {
 			if (k === '$op' || k === '__order') {
 				errors.push(`${path || ''}/${k}: reserved delta marker "${k}" is not allowed in a manifest (only inside a delta payload consumed by mergeManifestDelta)`)
 			}
-			if (k === 'props') { continue }
+			if (k === 'props') {
+				continue
+			}
 			walkReserved(node[k], `${path}/${k}`)
 		}
 	})(clone, '')
@@ -267,7 +293,9 @@ export function validateManifestV2(manifest) {
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
 			const sc = isPlainObject(page && page.config) ? page.config.slotColumns : undefined
-			if (sc === undefined) { return }
+			if (sc === undefined) {
+				return
+			}
 			if (!isPlainObject(sc)) {
 				errors.push(`pages[${pIndex}]/config/slotColumns: must be an object mapping slot name to a positive integer`)
 				return
@@ -290,9 +318,13 @@ export function validateManifestV2(manifest) {
 	//     in-app widget editor legitimately creates not-yet-configured widgets.
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page || !Array.isArray(page.widgets)) { return }
+			if (!page || !Array.isArray(page.widgets)) {
+				return
+			}
 			page.widgets.forEach((widget, wIndex) => {
-				if (!widget || widget.widgetKey !== 'stats-block') { return }
+				if (!widget || widget.widgetKey !== 'stats-block') {
+					return
+				}
 				const props = isPlainObject(widget.props) ? widget.props : {}
 				const hasEntries = Array.isArray(props.entries) && props.entries.length > 0
 				const hasDataSource = (widget.dataSource !== undefined && widget.dataSource !== null)
@@ -328,18 +360,24 @@ export function validateManifestV2(manifest) {
 	// Shared with the v1 path — see `validateChartBaseline`.
 	const _checkChartBaseline = (bag, path) => validateChartBaseline(bag, path, errors)
 	const _checkKpiContent = (content, path) => {
-		if (!isPlainObject(content)) { return }
+		if (!isPlainObject(content)) {
+			return
+		}
 		if (_hasConfiguredOrSource(content.source) && _hasEndpointSource(content.endpointSource)) {
 			errors.push(`${path}: widget content declares BOTH a source and an endpointSource — exactly one of the two data bindings is allowed (OpenRegister source OR endpointSource)`)
 		}
 	}
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page) { return }
+			if (!page) {
+				return
+			}
 			// v2 grid placement: pages[].widgets[]
 			if (Array.isArray(page.widgets)) {
 				page.widgets.forEach((widget, wIndex) => {
-					if (!widget) { return }
+					if (!widget) {
+						return
+					}
 					const props = isPlainObject(widget.props) ? widget.props : {}
 					if (widget.widgetKey === 'stat' || widget.widgetKey === 'delta') {
 						_checkKpiContent(props.content, `pages[${pIndex}]/widgets[${wIndex}]`)
@@ -366,7 +404,9 @@ export function validateManifestV2(manifest) {
 			const legacy = page.config && Array.isArray(page.config.widgets) ? page.config.widgets : null
 			if (legacy) {
 				legacy.forEach((def, wIndex) => {
-					if (!def) { return }
+					if (!def) {
+						return
+					}
 					if (def.type === 'stat' || def.type === 'delta') {
 						_checkKpiContent(def.content, `pages[${pIndex}]/config/widgets[${wIndex}]`)
 					}
@@ -401,7 +441,9 @@ export function validateManifestV2(manifest) {
 	}
 	if (Array.isArray(clone.menu)) {
 		clone.menu.forEach((item, index) => {
-			if (!item) { return }
+			if (!item) {
+				return
+			}
 			if (typeof item.id === 'string' && _v2Sentinel.test(item.id)) {
 				errors.push(`/menu/${index}/id must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
 			}
@@ -412,7 +454,9 @@ export function validateManifestV2(manifest) {
 	}
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, index) => {
-			if (!page) { return }
+			if (!page) {
+				return
+			}
 			const _isS = (v) => typeof v === 'string' && _v2Sentinel.test(v)
 			if (_isS(page.id)) {
 				errors.push(`/pages/${index}/id must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
@@ -452,7 +496,9 @@ export function validateManifestV2(manifest) {
 	//    ConductionNL/nextcloud-vue#445.)
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, index) => {
-			if (!page || page.type !== 'detail') { return }
+			if (!page || page.type !== 'detail') {
+				return
+			}
 			const cfg = isPlainObject(page.config) ? page.config : null
 			const pathSlash = `/pages/${index}/config`
 			const pathBracket = `pages[${index}].config`
@@ -481,9 +527,13 @@ export function validateManifestV2(manifest) {
 	//    gate-22 (schema-only) reported the manifest clean.
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page || page.type !== 'dashboard') { return }
+			if (!page || page.type !== 'dashboard') {
+				return
+			}
 			const config = isPlainObject(page.config) ? page.config : null
-			if (!config || !Array.isArray(config.widgets)) { return }
+			if (!config || !Array.isArray(config.widgets)) {
+				return
+			}
 			const pageId = typeof page.id === 'string' ? page.id : `[${pIndex}]`
 			const topSlots = isPlainObject(page.slots) ? page.slots : {}
 			const configSlots = isPlainObject(config.slots) ? config.slots : null
@@ -497,9 +547,13 @@ export function validateManifestV2(manifest) {
 
 			// (b) each custom widget needs a top-level slots entry
 			config.widgets.forEach((widget, wIndex) => {
-				if (!widget || widget.type !== 'custom') { return }
+				if (!widget || widget.type !== 'custom') {
+					return
+				}
 				const id = typeof widget.id === 'string' ? widget.id : null
-				if (!id) { return }
+				if (!id) {
+					return
+				}
 				const slotKey = `widget-${id}`
 				const wiredTop = typeof topSlots[slotKey] === 'string' && topSlots[slotKey].length > 0
 				// If it is (only) under config.slots, (a) already named the
@@ -523,9 +577,13 @@ export function validateManifestV2(manifest) {
 	//    branch is untouched.
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page || page.type !== 'form') { return }
+			if (!page || page.type !== 'form') {
+				return
+			}
 			const config = isPlainObject(page.config) ? page.config : null
-			if (!config) { return }
+			if (!config) {
+				return
+			}
 			const pathBase = `/pages/${pIndex}/config`
 
 			const fieldList = Array.isArray(config.fields) ? config.fields : []
@@ -537,7 +595,9 @@ export function validateManifestV2(manifest) {
 				const seenStepIds = new Set()
 				const assignmentCount = new Map()
 				config.steps.forEach((step, sIndex) => {
-					if (!step) { return }
+					if (!step) {
+						return
+					}
 					if (typeof step.id === 'string') {
 						if (seenStepIds.has(step.id)) {
 							errors.push(`${pathBase}/steps[${sIndex}]/id: duplicate step id "${step.id}" — step ids must be unique within the page`)
@@ -561,7 +621,9 @@ export function validateManifestV2(manifest) {
 				const duplicated = []
 				declaredKeys.forEach((key) => {
 					const count = assignmentCount.get(key) || 0
-					if (count === 0) { unassigned.push(key) } else if (count > 1) { duplicated.push(key) }
+					if (count === 0) { unassigned.push(key) } else if (count > 1) {
+						duplicated.push(key)
+					}
 				})
 				if (unassigned.length > 0) {
 					errors.push(`${pathBase}/steps: field key(s) ${unassigned.map((k) => `"${k}"`).join(', ')} are not assigned to any step — every declared field must appear in exactly one step when steps is present`)
@@ -573,7 +635,9 @@ export function validateManifestV2(manifest) {
 
 			// fields[].validation / fields[].visibleWhen cross-shape rules
 			fieldList.forEach((field, fIndex) => {
-				if (!field || typeof field !== 'object') { return }
+				if (!field || typeof field !== 'object') {
+					return
+				}
 				const fieldPath = `${pathBase}/fields[${fIndex}]`
 				const fieldType = field.type
 
@@ -910,7 +974,9 @@ function isPlainObject(value) {
  * @param {string[]} errors The error array to push to (mutated).
  */
 function validateTypeConfig(page, index, errors) {
-	if (!page || typeof page.type !== 'string') { return }
+	if (!page || typeof page.type !== 'string') {
+		return
+	}
 	const cfg = isPlainObject(page.config) ? page.config : null
 	const pathBracket = `pages[${index}].config`
 	const pathSlash = `/pages/${index}/config`
@@ -1185,7 +1251,9 @@ function validateTypeConfig(page, index, errors) {
  * @param {string[]} errors Accumulator for error messages.
  */
 function validateWikiConfigFields(cfg, pathSlash, errors) {
-	if (!isPlainObject(cfg)) { return }
+	if (!isPlainObject(cfg)) {
+		return
+	}
 	const stringFields = [
 		'contentField',
 		'titleField',
@@ -1237,7 +1305,9 @@ function validateWikiConfigFields(cfg, pathSlash, errors) {
  */
 function validateSidebarConfig(page, pageIndex, errors) {
 	const config = page.config
-	if (!isPlainObject(config)) { return }
+	if (!isPlainObject(config)) {
+		return
+	}
 
 	// --- Index sidebar ---
 	if (page.type === 'index' && config.sidebar !== undefined) {
@@ -1406,7 +1476,9 @@ function validateDetailTabsArray(tabs, tabsPath, errors) {
  * @return {void}
  */
 function validatePageRequiresApp(page, pageIndex, errors) {
-	if (page.requiresApp === undefined) { return }
+	if (page.requiresApp === undefined) {
+		return
+	}
 
 	const path = `/pages/${pageIndex}/requiresApp`
 
@@ -1435,7 +1507,9 @@ function validatePageRequiresApp(page, pageIndex, errors) {
 }
 
 function validatePageSidebar(page, pageIndex, errors) {
-	if (page.sidebar === undefined) { return }
+	if (page.sidebar === undefined) {
+		return
+	}
 	const path = `/pages/${pageIndex}/sidebar`
 	if (!isPlainObject(page.sidebar)) {
 		errors.push(`${path} must be an object`)
@@ -1464,7 +1538,9 @@ function validatePageSidebar(page, pageIndex, errors) {
  * @param {string[]} errors Accumulator
  */
 function validateColumnsArray(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.columns === undefined) { return }
+	if (!cfg || cfg.columns === undefined) {
+		return
+	}
 	if (!Array.isArray(cfg.columns)) {
 		errors.push(`${pathSlash}/columns: ${pathBracket}.columns: must be an array when set`)
 		return
@@ -1508,7 +1584,9 @@ const ALLOWED_CONFIG_MODES = ['edit', 'create', 'public']
  * @param {string[]} errors Accumulator
  */
 function validateConfigMode(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.mode === undefined) { return }
+	if (!cfg || cfg.mode === undefined) {
+		return
+	}
 	if (typeof cfg.mode !== 'string' || !ALLOWED_CONFIG_MODES.includes(cfg.mode)) {
 		errors.push(`${pathSlash}/mode: ${pathBracket}.mode: must be one of ${ALLOWED_CONFIG_MODES.join(' | ')}`)
 	}
@@ -1526,7 +1604,9 @@ function validateConfigMode(cfg, pathSlash, pathBracket, errors) {
  * @param {string[]} errors Accumulator
  */
 function validateActionsArray(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.actions === undefined) { return }
+	if (!cfg || cfg.actions === undefined) {
+		return
+	}
 	if (!Array.isArray(cfg.actions)) {
 		errors.push(`${pathSlash}/actions: ${pathBracket}.actions: must be an array when set`)
 		return
@@ -1586,7 +1666,9 @@ const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
  * @param {string[]} errors Accumulator
  */
 function validateIndexActionToggles(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.actionToggles === undefined) { return }
+	if (!cfg || cfg.actionToggles === undefined) {
+		return
+	}
 	if (!isPlainObject(cfg.actionToggles)) {
 		errors.push(`${pathSlash}/actionToggles: ${pathBracket}.actionToggles: must be an object`)
 		return
@@ -1611,7 +1693,9 @@ function validateIndexActionToggles(cfg, pathSlash, pathBracket, errors) {
  * @param {string[]} errors Accumulator
  */
 function validateDetailSidebarTabs(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.sidebarTabs === undefined) { return }
+	if (!cfg || cfg.sidebarTabs === undefined) {
+		return
+	}
 	if (!Array.isArray(cfg.sidebarTabs)) {
 		errors.push(`${pathSlash}/sidebarTabs: ${pathBracket}.sidebarTabs: must be an array`)
 		return
@@ -1664,7 +1748,9 @@ function validateDetailSidebarTabs(cfg, pathSlash, pathBracket, errors) {
  * @param {string[]} errors Accumulator
  */
 function validateSidebarTabGroupRefs(page, index, errors) {
-	if (!page || !Array.isArray(page.widgets) || page.widgets.length === 0) { return }
+	if (!page || !Array.isArray(page.widgets) || page.widgets.length === 0) {
+		return
+	}
 	const cfg = isPlainObject(page.config) ? page.config : null
 	const declaredIds = new Set()
 	if (cfg && Array.isArray(cfg.sidebarTabs)) {
@@ -1675,9 +1761,15 @@ function validateSidebarTabGroupRefs(page, index, errors) {
 		}
 	}
 	page.widgets.forEach((widget, wIndex) => {
-		if (!isPlainObject(widget)) { return }
-		if (widget.slot !== 'sidebar') { return }
-		if (typeof widget.tabGroup !== 'string' || widget.tabGroup.length === 0) { return }
+		if (!isPlainObject(widget)) {
+			return
+		}
+		if (widget.slot !== 'sidebar') {
+			return
+		}
+		if (typeof widget.tabGroup !== 'string' || widget.tabGroup.length === 0) {
+			return
+		}
 		if (declaredIds.size === 0) {
 			errors.push(`pages[${index}]/widgets/${wIndex}/tabGroup: "${widget.tabGroup}" referenced but config.sidebarTabs[] is empty or missing — declare the tab to silence this error`)
 			return
@@ -1698,7 +1790,9 @@ function validateSidebarTabGroupRefs(page, index, errors) {
  * @param {string[]} errors Accumulator
  */
 function validateWidgetsArray(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.widgets === undefined) { return }
+	if (!cfg || cfg.widgets === undefined) {
+		return
+	}
 	if (!Array.isArray(cfg.widgets)) {
 		errors.push(`${pathSlash}/widgets: ${pathBracket}.widgets: must be an array when set`)
 		return
@@ -1740,9 +1834,13 @@ function validateWidgetsArray(cfg, pathSlash, pathBracket, errors) {
  * @return {void}
  */
 function validateChartBaseline(bag, path, errors) {
-	if (!isPlainObject(bag)) { return }
+	if (!isPlainObject(bag)) {
+		return
+	}
 	const value = bag.valueAxisBaseline
-	if (value === undefined || value === null) { return }
+	if (value === undefined || value === null) {
+		return
+	}
 	if (typeof value !== 'string' || !CHART_VALUE_AXIS_BASELINES.includes(value)) {
 		errors.push(`${path}/valueAxisBaseline: must be one of ${CHART_VALUE_AXIS_BASELINES.join(' | ')}`)
 	}
@@ -1760,7 +1858,9 @@ function validateChartBaseline(bag, path, errors) {
  * @param {string[]} errors Accumulator
  */
 function validateLayoutArray(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.layout === undefined) { return }
+	if (!cfg || cfg.layout === undefined) {
+		return
+	}
 	if (!Array.isArray(cfg.layout)) {
 		errors.push(`${pathSlash}/layout: ${pathBracket}.layout: must be an array when set`)
 		return
@@ -1883,7 +1983,9 @@ const MENU_ACTIONS = ['user-settings']
  * @param {string[]} errors Error array to push to (mutated).
  */
 function validateMenuAction(item, path, errors) {
-	if (item.action === undefined) { return }
+	if (item.action === undefined) {
+		return
+	}
 	if (typeof item.action !== 'string' || !MENU_ACTIONS.includes(item.action)) {
 		errors.push(`${path}/action must be one of: ${MENU_ACTIONS.join(', ')}`)
 	}
@@ -1908,7 +2010,9 @@ function validateMenuAction(item, path, errors) {
  * @param {string[]} errors Accumulator
  */
 function validateMenuItemVisibleIf(visibleIf, path, errors) {
-	if (visibleIf === undefined) { return }
+	if (visibleIf === undefined) {
+		return
+	}
 	if (!isPlainObject(visibleIf)) {
 		errors.push(`${path} must be an object when set`)
 		return
@@ -1922,7 +2026,9 @@ function validateMenuItemVisibleIf(visibleIf, path, errors) {
 	// Validate context-path predicate keys (any non-reserved key).
 	const RESERVED = new Set(['appInstalled'])
 	for (const key of Object.keys(visibleIf)) {
-		if (RESERVED.has(key)) { continue }
+		if (RESERVED.has(key)) {
+			continue
+		}
 		// Context path key must be dot-separated with non-empty segments.
 		const segments = key.split('.')
 		if (segments.some((s) => s.length === 0) || key.length === 0) {
@@ -1973,7 +2079,9 @@ const WIDGET_REF_URI_PATTERN = /^openregister:\/\/widget\/[a-z0-9-]+\/[a-zA-Z][a
  * @param {string[]} errors Accumulator
  */
 function validateContentArray(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.content === undefined) { return }
+	if (!cfg || cfg.content === undefined) {
+		return
+	}
 	if (!Array.isArray(cfg.content)) {
 		errors.push(`${pathSlash}/content: ${pathBracket}.content: must be an array when set`)
 		return
@@ -2016,7 +2124,9 @@ function validateContentArray(cfg, pathSlash, pathBracket, errors) {
 const FORM_FIELD_TYPES = ['boolean', 'number', 'string', 'enum', 'password', 'json']
 const FORM_PAGE_FIELD_TYPES = [...FORM_FIELD_TYPES, 'file']
 function validateFieldsArray(fields, fieldsPath, errors, allowedTypes = FORM_FIELD_TYPES) {
-	if (!Array.isArray(fields)) { return }
+	if (!Array.isArray(fields)) {
+		return
+	}
 	fields.forEach((field, fIndex) => {
 		const fieldPath = `${fieldsPath}/${fIndex}`
 		if (!isPlainObject(field)) {

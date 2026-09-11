@@ -370,7 +370,9 @@ export default {
 		disabledDescription() { return t('nextcloud-vue', 'Contact your Nextcloud administrator to enable Features & Roadmap on this instance.') },
 
 		resolvedOpenbuiltUrl() {
-			if (this.openbuiltUrl) { return this.openbuiltUrl }
+			if (this.openbuiltUrl) {
+				return this.openbuiltUrl
+			}
 			return generateUrl(DEFAULT_OPENBUILT_PATH)
 		},
 
@@ -383,7 +385,9 @@ export default {
 		},
 
 		repoSlug() {
-			if (!this.repo || !this.repo.includes('/')) { return '' }
+			if (!this.repo || !this.repo.includes('/')) {
+				return ''
+			}
 			return this.repo.split('/')[1].toLowerCase()
 		},
 
@@ -392,9 +396,13 @@ export default {
 		},
 
 		resolvedAppName() {
-			if (this.appName) { return this.appName }
+			if (this.appName) {
+				return this.appName
+			}
 			const slug = this.repoSlug
-			if (!slug) { return '' }
+			if (!slug) {
+				return ''
+			}
 			return slug.charAt(0).toUpperCase() + slug.slice(1)
 		},
 
@@ -405,8 +413,12 @@ export default {
 		},
 
 		resolvedFeatureRequestUrl() {
-			if (this.featureRequestUrl) { return this.featureRequestUrl }
-			if (!this.repo) { return '' }
+			if (this.featureRequestUrl) {
+				return this.featureRequestUrl
+			}
+			if (!this.repo) {
+				return ''
+			}
 			// The feature-request issue FORM, not the blank new-issue page —
 			// the form's structured fields replaced the removed in-product
 			// suggestion modal.
@@ -467,7 +479,9 @@ export default {
 		 * when there's no CnAppRoot ancestor.
 		 */
 		publishHoistedSidebar() {
-			if (!this.cnHostsIndexSidebar || !this.cnIndexSidebarConfig) { return }
+			if (!this.cnHostsIndexSidebar || !this.cnIndexSidebarConfig) {
+				return
+			}
 			if (this.disabled) {
 				this.cnIndexSidebarConfig.value = null
 				return

@@ -43,13 +43,21 @@ function emptyState() {
  */
 export function extractViewStateFromRouteQuery(query) {
 	const state = emptyState()
-	if (!query || typeof query !== 'object' || Array.isArray(query)) { return state }
+	if (!query || typeof query !== 'object' || Array.isArray(query)) {
+		return state
+	}
 	for (const [key, value] of Object.entries(query)) {
-		if (key.startsWith('_')) { continue }
-		if (value === undefined || value === null || value === '') { continue }
+		if (key.startsWith('_')) {
+			continue
+		}
+		if (value === undefined || value === null || value === '') {
+			continue
+		}
 		state.filters[key] = value
 	}
-	if (typeof query._search === 'string' && query._search !== '') { state.search = query._search }
+	if (typeof query._search === 'string' && query._search !== '') {
+		state.search = query._search
+	}
 	if (typeof query._sortKey === 'string' && query._sortKey !== '') {
 		state.sortKey = query._sortKey
 		state.sortOrder = query._sortOrder === 'desc' ? 'desc' : 'asc'
@@ -75,10 +83,14 @@ export function buildRouteQueryFromViewState(state) {
 	const src = (state && typeof state === 'object') ? state : {}
 	const filters = (src.filters && typeof src.filters === 'object' && !Array.isArray(src.filters)) ? src.filters : {}
 	for (const [key, value] of Object.entries(filters)) {
-		if (value === undefined || value === null || value === '') { continue }
+		if (value === undefined || value === null || value === '') {
+			continue
+		}
 		query[key] = value
 	}
-	if (typeof src.search === 'string' && src.search !== '') { query._search = src.search }
+	if (typeof src.search === 'string' && src.search !== '') {
+		query._search = src.search
+	}
 	if (src.sortKey) {
 		query._sortKey = String(src.sortKey)
 		query._sortOrder = src.sortOrder === 'desc' ? 'desc' : 'asc'
@@ -130,17 +142,25 @@ export function buildViewCreatePayload({ name, description, isPublic, isDefault,
  */
 export function extractViewState(view) {
 	const state = emptyState()
-	if (!view || typeof view !== 'object' || Array.isArray(view)) { return state }
+	if (!view || typeof view !== 'object' || Array.isArray(view)) {
+		return state
+	}
 	// Full view object (has a `query` key) or a raw query blob itself.
 	const query = (Object.prototype.hasOwnProperty.call(view, 'query')) ? view.query : view
-	if (!query || typeof query !== 'object' || Array.isArray(query)) { return state }
+	if (!query || typeof query !== 'object' || Array.isArray(query)) {
+		return state
+	}
 	if (query.filters && typeof query.filters === 'object' && !Array.isArray(query.filters)) {
 		for (const [key, value] of Object.entries(query.filters)) {
-			if (value === undefined || value === null || value === '') { continue }
+			if (value === undefined || value === null || value === '') {
+				continue
+			}
 			state.filters[key] = value
 		}
 	}
-	if (typeof query.search === 'string') { state.search = query.search }
+	if (typeof query.search === 'string') {
+		state.search = query.search
+	}
 	const sort = query.sort
 	if (sort && typeof sort === 'object' && !Array.isArray(sort) && sort.key) {
 		state.sortKey = String(sort.key)

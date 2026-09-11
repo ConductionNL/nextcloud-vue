@@ -387,7 +387,9 @@ export default {
 			}
 			const actionable = this.setupSteps.filter((s) => s.type !== 'info' && s.type !== 'summary')
 			const firstUnmet = actionable.find((s) => {
-				if (s.type === 'choice') { return !(this.hasChoice(s) || this.isServerDone(s.id)) }
+				if (s.type === 'choice') {
+					return !(this.hasChoice(s) || this.isServerDone(s.id))
+				}
 				return !this.isStepDone(s.id)
 			})
 			return firstUnmet ? firstUnmet.id : ''
@@ -570,7 +572,9 @@ export default {
 		},
 
 		isChoiceDisabled(step) {
-			if (!step.dependsOn) { return false }
+			if (!step.dependsOn) {
+				return false
+			}
 			const parentValue = this.choiceValues[step.dependsOn]
 			return parentValue == null || parentValue === ''
 		},
@@ -629,7 +633,9 @@ export default {
 				if (child.dependsOn && child.dependsOn === step.configKey) {
 					this.choiceModel[child.id] = child.multiple === true ? [] : null
 					this.userTouched[child.id] = false
-					if (child.configKey) { this.choiceValues[child.configKey] = '' }
+					if (child.configKey) {
+						this.choiceValues[child.configKey] = ''
+					}
 				}
 			}
 			// Re-apply auto-suggestions for steps that derive a default from this one.
@@ -650,14 +656,22 @@ export default {
 		 * @return {void}
 		 */
 		applySuggestion(step) {
-			if (this.userTouched[step.id] === true) { return }
+			if (this.userTouched[step.id] === true) {
+				return
+			}
 			const parentValue = this.choiceValues[step.suggestFrom]
-			if (parentValue == null || parentValue === '') { return }
+			if (parentValue == null || parentValue === '') {
+				return
+			}
 			const wanted = (step.suggestMap || {})[parentValue]
-			if (wanted == null) { return }
+			if (wanted == null) {
+				return
+			}
 			const opt = this.optionsFor(step).find((o) => o.value === wanted) || { value: wanted, label: String(wanted) }
 			this.choiceModel[step.id] = opt
-			if (step.configKey) { this.choiceValues[step.configKey] = wanted }
+			if (step.configKey) {
+				this.choiceValues[step.configKey] = wanted
+			}
 		},
 
 		/**
@@ -673,7 +687,9 @@ export default {
 		 */
 		async validateStep(stepId) {
 			const step = this.setupSteps.find((s) => s.id === stepId)
-			if (!step) { return true }
+			if (!step) {
+				return true
+			}
 			if (step.type === 'choice') {
 				if (!this.hasChoice(step)) {
 					// Already persisted server-side and the user only back-navigated

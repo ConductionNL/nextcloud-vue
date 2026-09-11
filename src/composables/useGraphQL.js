@@ -41,17 +41,25 @@ export function selectByPath(obj, selector) {
 		const key = isArrayHop ? raw.slice(0, -2) : raw
 		const next = []
 		for (const value of cursor) {
-			if (value == null) { continue }
+			if (value == null) {
+				continue
+			}
 			const inner = key === '' ? value : value[key]
-			if (inner === undefined) { continue }
+			if (inner === undefined) {
+				continue
+			}
 			if (isArrayHop) {
-				if (Array.isArray(inner)) { next.push(...inner) }
+				if (Array.isArray(inner)) {
+					next.push(...inner)
+				}
 				continue
 			}
 			next.push(inner)
 		}
 		cursor = next
-		if (cursor.length === 0) { return isArrayHop ? [] : undefined }
+		if (cursor.length === 0) {
+			return isArrayHop ? [] : undefined
+		}
 	}
 	if (segments[segments.length - 1].endsWith('[]')) {
 		return cursor
@@ -105,7 +113,9 @@ export function useGraphQL(query, variables, options = {}) {
 		error.value = null
 		try {
 			const body = { query: q, variables: readVariables() }
-			if (operationName) { body.operationName = operationName }
+			if (operationName) {
+				body.operationName = operationName
+			}
 			const resp = await axios.post(endpoint, body)
 			if (resp.data?.errors?.length) {
 				error.value = new Error(resp.data.errors.map((e) => e.message).join('; '))
@@ -121,9 +131,13 @@ export function useGraphQL(query, variables, options = {}) {
 		}
 	}
 
-	if (immediate) { refetch() }
+	if (immediate) {
+		refetch()
+	}
 
-	if (isRef(query)) { watch(query, refetch) }
+	if (isRef(query)) {
+		watch(query, refetch)
+	}
 	if (isRef(variables)) { watch(variables, refetch, { deep: true }) }
 
 	return { data, loading, error, refetch }

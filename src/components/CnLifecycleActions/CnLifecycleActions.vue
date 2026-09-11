@@ -158,7 +158,9 @@ export default {
 
 		/** The object's current lifecycle value. */
 		currentState() {
-			if (!this.object) { return '' }
+			if (!this.object) {
+				return ''
+			}
 			return String(this.object[this.field] ?? '')
 		},
 
@@ -170,7 +172,9 @@ export default {
 		 * @return {boolean}
 		 */
 		useServer() {
-			if (this.config.autoFetch === true) { return true }
+			if (this.config.autoFetch === true) {
+				return true
+			}
 			return !Array.isArray(this.config.transitions) || this.config.transitions.length === 0
 		},
 
@@ -210,7 +214,9 @@ export default {
 		objectId: {
 			immediate: true,
 			handler() {
-				if (this.useServer) { this.fetchActions() }
+				if (this.useServer) {
+					this.fetchActions()
+				}
 			},
 		},
 	},
@@ -224,7 +230,9 @@ export default {
 		 * @return {boolean}
 		 */
 		fromMatches(tr) {
-			if (tr.from === undefined || tr.from === null) { return true }
+			if (tr.from === undefined || tr.from === null) {
+				return true
+			}
 			const from = Array.isArray(tr.from) ? tr.from : [tr.from]
 			return from.map(String).includes(this.currentState)
 		},
@@ -239,9 +247,13 @@ export default {
 		 * @return {string}
 		 */
 		labelFor(action, to, description) {
-			if (description) { return description }
+			if (description) {
+				return description
+			}
 			const src = action || to || ''
-			if (!src) { return t('nextcloud-vue', 'Apply') }
+			if (!src) {
+				return t('nextcloud-vue', 'Apply')
+			}
 			return src.charAt(0).toUpperCase() + src.slice(1).replace(/[_-]+/g, ' ')
 		},
 
@@ -253,7 +265,9 @@ export default {
 		async fetchActions() {
 			this.serverActions = []
 			this.error = ''
-			if (!this.objectId) { return }
+			if (!this.objectId) {
+				return
+			}
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
@@ -280,7 +294,9 @@ export default {
 		 */
 		async onTransition(tr) {
 			if (tr.confirm && typeof window !== 'undefined' && typeof window.confirm === 'function') {
-				if (!window.confirm(tr.confirm)) { return }
+				if (!window.confirm(tr.confirm)) {
+					return
+				}
 			}
 			if (Array.isArray(tr.inputs) && tr.inputs.length > 0) {
 				this.inputTransition = tr
@@ -299,7 +315,9 @@ export default {
 		async onInputConfirm(data) {
 			const tr = this.inputTransition
 			this.inputTransition = null
-			if (!tr) { return }
+			if (!tr) {
+				return
+			}
 			await this.postTransition(tr, data)
 		},
 
@@ -338,7 +356,9 @@ export default {
 				 * so the new state + freshly-allowed transitions render.
 				 */
 				this.$emit('reload')
-				if (this.useServer) { await this.fetchActions() }
+				if (this.useServer) {
+					await this.fetchActions()
+				}
 			} catch (e) {
 				this.error = this.extractError(e)
 			} finally {
@@ -356,7 +376,9 @@ export default {
 		 */
 		extractError(e) {
 			const data = e && e.response && e.response.data
-			if (data && typeof data.error === 'string') { return data.error }
+			if (data && typeof data.error === 'string') {
+				return data.error
+			}
 			return (e && e.message) || t('nextcloud-vue', 'Transition failed')
 		},
 	},

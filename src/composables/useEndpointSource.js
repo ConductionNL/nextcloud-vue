@@ -100,7 +100,9 @@ const responseCache = new Map()
  * @return {*} The resolved value or undefined.
  */
 export function getByPath(obj, path) {
-	if (path === undefined || path === null || path === '') { return obj }
+	if (path === undefined || path === null || path === '') {
+		return obj
+	}
 	return String(path).split('.').reduce(
 		(o, k) => (o == null ? undefined : o[k]),
 		obj,
@@ -119,7 +121,9 @@ export function getByPath(obj, path) {
  * @return {string} The interpolated string.
  */
 export function interpolateUrlTokens(str, ctx) {
-	if (typeof str !== 'string') { return str }
+	if (typeof str !== 'string') {
+		return str
+	}
 	const c = ctx || {}
 	const workspace = c.workspace || {}
 	const config = c.config || {}
@@ -183,12 +187,16 @@ export function resolveEndpointRequest(config, ctx) {
  * @return {boolean} true when a token collapsed into an empty path segment.
  */
 function hasEmptyPathSegment(rawUrl, resolvedUrl) {
-	if (typeof rawUrl !== 'string' || rawUrl.indexOf('@') === -1) { return false }
+	if (typeof rawUrl !== 'string' || rawUrl.indexOf('@') === -1) {
+		return false
+	}
 	const path = String(resolvedUrl).split('?')[0].split('#')[0]
 	// A trailing slash on a URL that HAD no trailing slash before interpolation,
 	// or any `//` inside the path, is a segment that resolved to nothing.
 	const rawPath = rawUrl.split('?')[0].split('#')[0]
-	if (path.includes('//') && !rawPath.includes('//')) { return true }
+	if (path.includes('//') && !rawPath.includes('//')) {
+		return true
+	}
 	return path.length > 1 && path.endsWith('/') && !rawPath.endsWith('/')
 }
 
@@ -226,7 +234,9 @@ export function invalidateEndpointSourceCache() {
 async function fetchSharedResponse(request, opts) {
 	const key = endpointCacheKey(request)
 	const now = Date.now()
-	if (opts && opts.force) { responseCache.delete(key) }
+	if (opts && opts.force) {
+		responseCache.delete(key)
+	}
 	const entry = responseCache.get(key)
 	if (entry && (now - entry.timestamp) < ENDPOINT_SOURCE_TTL_MS) {
 		return entry.promise
@@ -266,9 +276,13 @@ async function fetchSharedResponse(request, opts) {
  * @return {Promise<*>} The plucked payload (or null).
  */
 export async function fetchEndpointSource(config, ctx, opts) {
-	if (!config || !config.url) { return null }
+	if (!config || !config.url) {
+		return null
+	}
 	const request = resolveEndpointRequest(config, ctx)
-	if (request.blocked) { return null }
+	if (request.blocked) {
+		return null
+	}
 	const body = await fetchSharedResponse(request, opts)
 	const payload = getByPath(body, config.responsePath)
 	return payload === undefined ? null : payload
@@ -327,7 +341,9 @@ export function useEndpointSource(source, options) {
 	 */
 	const requestKey = computed(() => {
 		const cfg = read(source)
-		if (!cfg || !cfg.url) { return null }
+		if (!cfg || !cfg.url) {
+			return null
+		}
 		const request = resolveEndpointRequest(cfg, readCtx())
 		return JSON.stringify({
 			u: request.url,
@@ -366,11 +382,15 @@ export function useEndpointSource(source, options) {
 		error.value = ''
 		try {
 			const body = await fetchSharedResponse(request, { force: force === true })
-			if (seq !== fetchSeq) { return }
+			if (seq !== fetchSeq) {
+				return
+			}
 			const payload = getByPath(body, cfg.responsePath)
 			data.value = payload === undefined ? null : payload
 		} catch (e) {
-			if (seq !== fetchSeq) { return }
+			if (seq !== fetchSeq) {
+				return
+			}
 			error.value = (e && e.message) || 'error'
 			data.value = null
 		} finally {
@@ -381,7 +401,9 @@ export function useEndpointSource(source, options) {
 				const hold = force === true ? MIN_FORCED_LOADING_MS - (Date.now() - startedAt) : 0
 				if (hold > 0) {
 					setTimeout(() => {
-						if (seq === fetchSeq) { loading.value = false }
+						if (seq === fetchSeq) {
+							loading.value = false
+						}
 					}, hold)
 				} else {
 					loading.value = false
@@ -408,8 +430,12 @@ export function useEndpointSource(source, options) {
 	const onPageRefresh = () => { load(true) }
 	const onWidgetRefresh = (payload) => {
 		const id = read(opts.widgetId)
-		if (!id) { return }
-		if (!payload || payload.widgetId !== id) { return }
+		if (!id) {
+			return
+		}
+		if (!payload || payload.widgetId !== id) {
+			return
+		}
 		load(true)
 	}
 	subscribe(PAGE_REFRESH_CHANNEL, onPageRefresh)

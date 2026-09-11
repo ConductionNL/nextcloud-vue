@@ -36,7 +36,9 @@
  * @return {object|null} The unwrapped bag, or null.
  */
 function unwrap(v) {
-	if (!v || typeof v !== 'object') { return null }
+	if (!v || typeof v !== 'object') {
+		return null
+	}
 	return ('value' in v) ? (v.value || null) : v
 }
 
@@ -51,7 +53,9 @@ function unwrap(v) {
 export function resolveObjectTokenContext(objectCtx, detailCtx) {
 	const primary = unwrap(objectCtx)
 	const holder = unwrap(detailCtx)
-	if (!primary && !holder) { return null }
+	if (!primary && !holder) {
+		return null
+	}
 	const fromHolder = holder
 		? {
 				objectId: holder.objectId ?? null,
@@ -65,10 +69,18 @@ export function resolveObjectTokenContext(objectCtx, detailCtx) {
 	if (primary) {
 		// The primary (CnDetailPage) context wins per field, but its null /
 		// empty fields fall back to the holder's values.
-		if (primary.objectId !== undefined && primary.objectId !== null) { out.objectId = primary.objectId }
-		if (primary.object) { out.object = primary.object }
-		if (primary.register) { out.register = primary.register }
-		if (primary.schema) { out.schema = primary.schema }
+		if (primary.objectId !== undefined && primary.objectId !== null) {
+			out.objectId = primary.objectId
+		}
+		if (primary.object) {
+			out.object = primary.object
+		}
+		if (primary.register) {
+			out.register = primary.register
+		}
+		if (primary.schema) {
+			out.schema = primary.schema
+		}
 	}
 	return out
 }

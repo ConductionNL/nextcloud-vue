@@ -38,7 +38,9 @@ const stubs = {
 
 function mountDashboard(props = {}, cnAiContext = null) {
 	const provide = {}
-	if (cnAiContext) { provide.cnAiContext = cnAiContext }
+	if (cnAiContext) {
+		provide.cnAiContext = cnAiContext
+	}
 
 	return mount(CnDashboardPage, {
 		propsData: {
