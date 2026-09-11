@@ -346,9 +346,9 @@ export default {
 		return {
 			[PANEL_ACTION_SINK]: sink
 				? {
-						set: (items) => sink.set(this.widget?.id, items),
-						clear: () => sink.clear(this.widget?.id),
-					}
+					set: (items) => sink.set(this.widget?.id, items, 'widget'),
+					clear: () => sink.clear(this.widget?.id, 'widget'),
+				}
 				: null,
 		}
 	},
@@ -368,7 +368,6 @@ export default {
 			type: Object,
 			required: true,
 		},
-
 		/**
 		 * How much chrome to draw around the widget.
 		 * - `'card'` — a titled `CnWidgetWrapper`, the detail-page grid default.
@@ -379,67 +378,56 @@ export default {
 			default: 'card',
 			validator: (v) => ['card', 'bare'].includes(v),
 		},
-
 		/** The bound record's id. Present on the first render; `object` is not. */
 		objectId: {
 			type: [String, Number],
 			default: '',
 		},
-
 		/** The loaded record, or null while it is still being fetched. */
 		object: {
 			type: Object,
 			default: null,
 		},
-
 		/** The resolved object-type slug. */
 		objectType: {
 			type: String,
 			default: '',
 		},
-
 		/** The resolved JSON Schema object, needed by the `data` widget. */
 		schemaObject: {
 			type: Object,
 			default: null,
 		},
-
 		/** OpenRegister register slug of the surface. */
 		register: {
 			type: [String, Object],
 			default: '',
 		},
-
 		/** OpenRegister schema slug of the surface. */
 		schema: {
 			type: [String, Object],
 			default: '',
 		},
-
 		/** The effective object store. */
 		store: {
 			type: Object,
 			default: null,
 		},
-
 		/** Rendering surface forwarded to integration widgets (AD-19). */
 		surface: {
 			type: String,
 			default: 'detail-page',
 		},
-
 		/** Object context forwarded to integration widgets. */
 		integrationContext: {
 			type: Object,
 			default: null,
 		},
-
 		/** Hide empty properties in the `data` widget. */
 		hideEmpty: {
 			type: Boolean,
 			default: false,
 		},
-
 		/**
 		 * Every widget definition on the surface, for a CONTAINER widget to
 		 * resolve the children it references by id.
@@ -453,7 +441,6 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Whether a card widget (stat / gauge / delta) draws the wrapper header.
 		 *
@@ -472,7 +459,6 @@ export default {
 			type: Boolean,
 			default: null,
 		},
-
 		/**
 		 * The consumer's component registry, consulted before the built-in
 		 * catalog so a custom widget type overrides a built-in (REQ-MVR-005).
@@ -591,12 +577,12 @@ export default {
 		missingAppDescription() {
 			return this.widgetTitle
 				? t('nextcloud-vue', '{title} needs the {app} app. Install and enable it to see this.', {
-						title: this.widgetTitle,
-						app: this.requiredAppLabel,
-					})
+					title: this.widgetTitle,
+					app: this.requiredAppLabel,
+				})
 				: t('nextcloud-vue', 'Install and enable the {app} app to see this.', {
-						app: this.requiredAppLabel,
-					})
+					app: this.requiredAppLabel,
+				})
 		},
 
 		/**
@@ -701,7 +687,7 @@ export default {
 		 * @return {object|null} The component, or null.
 		 */
 		integrationComponent() {
-			if (!this.isIntegration) { return null }
+			if (!this.isIntegration) return null
 			const id = this.widget.integrationId
 			// `bareWidget` lets a provider say its WIDGET is already bare, so a
 			// tab panel gets the widget surface instead of the sidebar one.
@@ -719,7 +705,7 @@ export default {
 			if (this.isBare && this.integrationProvider?.tab && typeof this.resolveRegistryTab === 'function') {
 				return this.resolveRegistryTab(id)
 			}
-			if (typeof this.resolveRegistryWidget !== 'function') { return null }
+			if (typeof this.resolveRegistryWidget !== 'function') return null
 			return this.resolveRegistryWidget(id, this.surface)
 		},
 
@@ -814,7 +800,7 @@ export default {
 		 * @return {boolean} true for a widget that renders other widgets.
 		 */
 		isContainer() {
-			if (!this.widget?.type) { return false }
+			if (!this.widget?.type) return false
 			const entry = getWidgetTypeEntry(this.widget.type)
 			return Boolean(entry && entry.container === true)
 		},
@@ -827,7 +813,7 @@ export default {
 		 * @return {boolean} true when Add should render.
 		 */
 		catalogAddEnabled() {
-			if (!['object-list', 'table'].includes(this.widget?.type)) { return false }
+			if (!['object-list', 'table'].includes(this.widget?.type)) return false
 			return this.content.allowCreate !== false
 		},
 
@@ -838,7 +824,7 @@ export default {
 		 * @return {boolean} true when the wrapper header renders.
 		 */
 		effectiveShowCardTitle() {
-			if (this.showCardTitle !== null) { return this.showCardTitle }
+			if (this.showCardTitle !== null) return this.showCardTitle
 			return this.widget?.title !== undefined || this.content.title !== undefined
 		},
 
@@ -846,9 +832,69 @@ export default {
 		addLabel() {
 			return t('nextcloud-vue', 'Add')
 		},
+
+		/**
+		 * The items THIS HOST offers to the surface, as opposed to the ones the
+		 * widget inside it publishes.
+		 *
+		 * There is one: the catalog Add. It is drawn in the host's own card
+		 * header, and that header only exists off a panel, so a Documents or
+		 * Files tab simply had no way to add anything. The data widget's
+		 * Metadata went the same way until it was published, and this is the
+		 * same defect one widget type along.
+		 *
+		 * Empty off a panel, where the header draws the item itself and
+		 * publishing would put it in two menus at once.
+		 *
+		 * @return {object[]} PanelAction descriptors.
+		 */
+		ownPanelActions() {
+			if (!this.isBare || !this.catalogAddEnabled) return []
+			return [{
+				key: 'catalog-add',
+				label: this.addLabel,
+				icon: 'Plus',
+				run: () => this.invokeCatalogAdd(),
+			}]
+		},
+	},
+
+	watch: {
+		ownPanelActions: {
+			handler() { this.publishOwnPanelActions() },
+		},
+	},
+
+	mounted() {
+		this.publishOwnPanelActions()
+	},
+
+	beforeUnmount() {
+		// A closed tab's panel can be torn down while the strip lives on, and an
+		// item whose host is gone would call into nothing.
+		if (this.panelActionSink) this.panelActionSink.clear(this.widget?.id, 'host')
 	},
 
 	methods: {
+		/**
+		 * Publish or withdraw this host's OWN items on the surface.
+		 *
+		 * Published under the `host` source so the widget inside the panel can
+		 * publish its own without either replacing the other.
+		 *
+		 * @return {void}
+		 */
+		publishOwnPanelActions() {
+			if (!this.panelActionSink) return
+			const id = this.widget?.id
+			if (!id) return
+			if (this.ownPanelActions.length) {
+				this.panelActionSink.set(id, this.ownPanelActions, 'host')
+			} else {
+				this.panelActionSink.clear(id, 'host')
+			}
+		},
+
 		/**
 		 * Re-emit the geo widget's save so the surface can reload the record.
 		 *

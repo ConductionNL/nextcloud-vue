@@ -50,8 +50,15 @@
 				</slot>
 			</div>
 
-			<!-- Value -->
-			<div class="cn-detail-grid__value">
+			<!-- Value. A row that is present but holds nothing carries the
+			     --empty modifier, the same one CnObjectDataWidget uses, so a
+			     reader and a test can tell "present and blank" from "present
+			     with a value" rather than reading a lone dash. -->
+			<div
+				:class="{
+					'cn-detail-grid__value': true,
+					'cn-detail-grid__value--empty': isEmptyValue(item),
+				}">
 				<!-- @slot item-{index} Per-item value override (e.g. `#item-0`). Defaults to `item.value` or the AD-18 reference widget. -->
 				<!-- @binding {object} item The item definition being rendered. -->
 				<!-- @binding {number} index The item's position in `items`. -->
@@ -277,6 +284,19 @@ export default {
 
 	methods: {
 		/**
+		 * Whether the item is present but carries no value.
+		 *
+		 * `empty: true` lets a caller say so explicitly when it has already
+		 * formatted the absence into a placeholder of its own.
+		 *
+		 * @param {object} item - The item definition.
+		 * @return {boolean} True when the row is blank.
+		 */
+		isEmptyValue(item) {
+			return item.empty === true || item.value === undefined || item.value === null
+		},
+
+		/**
 		 * The item's value as rendered, with the empty placeholder.
 		 *
 		 * @param {object} item - The item definition.
@@ -409,6 +429,11 @@ export default {
 	color: var(--color-main-text);
 	overflow-wrap: anywhere;
 	margin: 0.5rem;
+}
+
+.cn-detail-grid__value--empty {
+	color: var(--color-text-maxcontrast);
+	font-style: italic;
 }
 
 .cn-detail-grid--horizontal .cn-detail-grid__value {

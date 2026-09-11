@@ -16,30 +16,35 @@ import CnFileField from '@/components/CnFileField/CnFileField.vue'
 import { readFileAsDataUrl, FALLBACK_MAX_BYTES } from '@/utils/widgetUpload.js'
 
 /**
- * Wait until the component's async FileReader work has settled.
+ * Wait until the component has finished with the picked file.
  *
- * Waits on the component's own `reading` flag rather than on the clock. This
- * used to be a fixed 20ms sleep, and FileReader in jsdom resolves on the event
- * loop, so on a loaded machine the read had not finished when the assertion
- * ran: `emitted('update:modelValue')` came back undefined and the spec failed
- * on a line that was not the bug. It passed alone and failed in a full run.
+ * A FIXED SLEEP IS WHAT MADE THIS FLAKY. The first version waited 20 ms for a
+ * real FileReader, which is a macrotask rather than a microtask, so
+ * `flushPromises()` cannot cover it and 20 ms is simply a guess. It held on a
+ * quiet machine and lost on a loaded CI runner: the read had not resolved,
+ * nothing had been emitted yet, and `emitted()[0][0]` threw on `undefined`.
+ * It passed on one branch and failed on the next with no code change between.
  *
- * The handler sets `reading` before its first await, so by the time
- * `trigger()` resolves the flag is already true for a file it accepted, and
- * still false for one it refused, which returns straight away.
+ * So this waits on the component's own `reading` flag, which is set before the
+ * read's `await` and cleared in its `finally`. The refused paths (wrong type,
+ * too large) return before setting it, so for them this resolves immediately,
+ * and the tests asserting that NOTHING is emitted are not slowed down or
+ * turned into timeouts. A read that never finishes fails loudly here rather
+ * than letting a later assertion read an absent emit.
  *
  * @param {object} wrapper The mounted CnFileField.
+ * @param {number} [timeoutMs] How long a read may take before the test fails.
  * @return {Promise<void>}
  */
-async function settle(wrapper) {
-	for (let i = 0; i < 500; i++) {
-		if (!wrapper.vm.reading) {
-			await wrapper.vm.$nextTick()
-			return
-		}
+async function settle(wrapper, timeoutMs = 5000) {
+	const deadline = Date.now() + timeoutMs
+	while (wrapper.vm.reading && Date.now() < deadline) {
 		await new Promise((resolve) => setTimeout(resolve, 5))
 	}
-	throw new Error('CnFileField never finished reading the picked file')
+	if (wrapper.vm.reading) {
+		throw new Error(`CnFileField was still reading the file after ${timeoutMs} ms`)
+	}
+	await wrapper.vm.$nextTick()
 }
 
 /**

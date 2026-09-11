@@ -126,3 +126,24 @@ describe('CnDetailGrid — an item that carries a link', () => {
 		wrapper.unmount()
 	})
 })
+
+describe('CnDetailGrid — a row that is present but blank', () => {
+	it('marks a blank row so it reads as blank, not as a value', () => {
+		const wrapper = mount(CnDetailGrid, {
+			propsData: { items: [{ label: 'Disposal date', value: '-', empty: true }, { label: 'Appraisal', value: 'Destroy' }] },
+		})
+		const values = wrapper.findAll('.cn-detail-grid__value')
+
+		expect(values[0].classes()).toContain('cn-detail-grid__value--empty')
+		expect(values[1].classes()).not.toContain('cn-detail-grid__value--empty')
+		wrapper.unmount()
+	})
+
+	it('treats an item with no value at all as blank too', () => {
+		const wrapper = mount(CnDetailGrid, { propsData: { items: [{ label: 'Owner' }] } })
+
+		expect(wrapper.find('.cn-detail-grid__value').classes()).toContain('cn-detail-grid__value--empty')
+		expect(wrapper.find('.cn-detail-grid__value').text()).toBe('-')
+		wrapper.unmount()
+	})
+})

@@ -177,30 +177,45 @@ export default {
 		return {
 			[PANEL_ACTION_SINK]: {
 				/**
-				 * Publish a panel's items.
+				 * Publish a panel's items, under one SOURCE.
+				 *
+				 * A panel has two possible publishers: the host, for an action
+				 * the host itself would have drawn (the catalog Add), and the
+				 * widget inside it, for its own menu items. Keyed by source so
+				 * the two coexist; a single slot per widget meant whichever
+				 * published last silently replaced the other.
 				 *
 				 * Replaces the map rather than mutating it so the computed that
 				 * reads it re-evaluates on any change.
 				 *
 				 * @param {string} id The publishing widget's id.
 				 * @param {object[]} items Its PanelAction descriptors.
+				 * @param {string} [source] Who is publishing: `host` or `widget`.
 				 * @return {void}
 				 */
-				set: (id, items) => {
-					if (!id) { return }
-					this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: items }
+				set: (id, items, source = 'widget') => {
+					if (!id) return
+					const forId = { ...(this.panelActionsByWidget[id] || {}), [source]: items }
+					this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: forId }
 				},
-
 				/**
-				 * Withdraw a panel's items, on unmount or when its own menu
-				 * comes back.
+				 * Withdraw one source's items, on unmount or when that
+				 * publisher's own menu comes back. The other source's items
+				 * stay.
 				 *
 				 * @param {string} id The publishing widget's id.
+				 * @param {string} [source] Who is withdrawing.
 				 * @return {void}
 				 */
-				clear: (id) => {
-					if (!(id in this.panelActionsByWidget)) { return }
-					const { [id]: _removed, ...rest } = this.panelActionsByWidget
+				clear: (id, source = 'widget') => {
+					const forId = this.panelActionsByWidget[id]
+					if (!forId || !(source in forId)) return
+					const { [source]: _removed, ...keptSources } = forId
+					if (Object.keys(keptSources).length) {
+						this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: keptSources }
+						return
+					}
+					const { [id]: _gone, ...rest } = this.panelActionsByWidget
 					this.panelActionsByWidget = rest
 				},
 			},
@@ -220,7 +235,6 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
-
 		/**
 		 * Every widget definition available on the surface, for `content.tabs[]`
 		 * to reference by id.
@@ -235,85 +249,71 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
 		/** The bound record's id. */
 		objectId: {
 			type: [String, Number],
 			default: '',
 		},
-
 		/** The loaded record, or null while it is still being fetched. */
 		objectData: {
 			type: Object,
 			default: null,
 		},
-
 		/** The resolved object-type slug. */
 		objectType: {
 			type: String,
 			default: '',
 		},
-
 		/** The resolved JSON Schema object, needed by a `data` child. */
 		schemaObject: {
 			type: Object,
 			default: null,
 		},
-
 		/** OpenRegister register slug of the surface. */
 		register: {
 			type: [String, Object],
 			default: '',
 		},
-
 		/** OpenRegister schema slug of the surface. */
 		schema: {
 			type: [String, Object],
 			default: '',
 		},
-
 		/** The effective object store. */
 		store: {
 			type: Object,
 			default: null,
 		},
-
 		/** Rendering surface forwarded to integration children (AD-19). */
 		surface: {
 			type: String,
 			default: 'detail-page',
 		},
-
 		/** Object context forwarded to integration children. */
 		integrationContext: {
 			type: Object,
 			default: null,
 		},
-
 		/** The consumer's component registry, for custom child widget types. */
 		cnRegistry: {
 			type: Object,
 			default: () => ({}),
 		},
-
 		/** Show the Refresh entry in the hoisted Actions menu. */
 		showRefresh: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Show the Request-a-feature entry in the hoisted Actions menu. */
 		showRequestFeature: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Show the Documentation entry in the hoisted Actions menu. */
 		showDocumentation: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Documentation URL for the hoisted Actions menu. */
 		documentationUrl: {
 			type: String,
@@ -340,7 +340,11 @@ export default {
 		 * @return {object[]} PanelAction descriptors for the active tab.
 		 */
 		activePanelActions() {
-			return this.panelActionsByWidget[this.activeWidgetId] || []
+			const forId = this.panelActionsByWidget[this.activeWidgetId]
+			if (!forId) return []
+			// Host first, then the widget's own: the catalog Add is about the
+			// panel as a whole, the widget's items about what is in it.
+			return [...(forId.host || []), ...(forId.widget || [])]
 		},
 
 		/**

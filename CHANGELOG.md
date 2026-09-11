@@ -16,6 +16,12 @@
   Root `npm audit` now reports 0, and `npm audit --omit=dev` reports 0.
 
 ### Fixed
+- **The open tab now decides the whole Actions menu, including a catalog panel's Add.** A panel draws no header, so anything that header would have carried is gone unless it is published to the strip. `CnObjectDataWidget` publishes its Metadata and full-form Edit. `CnDetailWidgetHost` did not publish its own: the catalog **Add** lives in the card header the host draws off a panel, so a Documents or Files tab had no way to add anything at all. Reported from a real case, where the Data tab's menu offered only the built-in trio.
+
+  The channel now keys by SOURCE as well as by widget id, because a panel has two possible publishers. With one slot per widget, whichever published last silently replaced the other, so a panel with both would have lost one.
+
+  `allowCreate: false` is still honoured: a read-only list publishes no Add, so a panel never offers what a card refuses.
+
 - **`CnNcWidgetWidget` says when a proxied widget cannot be shown here, instead of saying it has no items.** A dashboard widget whose provider implements only `IWidget` declares `itemApiVersions: []` and is simply ABSENT from the widget-items response. With no native callback registered on the page, the proxy used to render "No items available" under it. For the Tasks app's widget on a case handler's dashboard that read as "you have no tasks" while five were due, and the same list appeared the moment LaunchPad's legacy widget bridge was switched on.
 
   The two cases were always distinguishable, they just were not distinguished: an unsupported widget has no key in the response, while a widget with nothing right now comes back as its own key holding an empty list (the Mail app's `{items: [], emptyContentMessage}`). Only a SUCCESSFUL response can say a widget is absent, so a failed request keeps the ordinary empty state rather than a claim about the app. No extra request is made.
@@ -81,6 +87,16 @@
 - **`CnDetailWidgetHost` and `CnIntegrationWidget` now resolve every integration leaf through the lib-owned registry path.** Both read `provider.tab` / `provider.widget` straight off the shared registry entry for bare tab panels, skipping the `__libOwned` swap that `useIntegrationRegistry().resolveTab` / `resolveWidget` apply. When OpenRegister's `integration-global` bundle had registered the entry, the rendered component belonged to that bundle's Vue: its `resolveComponent()` found no current instance and `NcButton` / `CnDetailCard` reached the DOM as literal `<ncbutton>` / `<cndetailcard>` elements. Seen live on dossiq's case page: the Notes and Contacts tabs showed the raw tags and the Files tab rendered an empty card. `useIntegrationRegistry` gains `resolveBaseWidget(id)`, the surface-agnostic counterpart of `resolveWidget` that a `bareWidget` provider is rendered through. Consumer-custom ids (no `__libOwned`) still resolve to their stored component.
 
 ### Added
+- **`CnObjectListWidget` can read several fields off one reference, carry row actions, and take a file drop.** Three keys on its content blob: `extend`, `rowActions` and `dropZone`.
+
+  `extend` is the OpenRegister `_extend[]` list sent with the fetch, and it is what makes a dotted column key work. `CnDataTable` reads `informatieobject.title` as a path into the row, and a reference property holds a uuid string at that key, so six columns off one referenced object rendered as one repeated value with nothing logged and nothing failing. The built-in `fkResolve` cell widget answers the one-label case and does not answer this one, because it resolves a single `labelField` per column.
+
+  `rowActions[]` and `dropZone` both take entries in the unified manifest action shape, dispatched through the page's own dispatcher, so this widget grows no second action vocabulary. A `handler` action receives the row (or the dropped `File[]`) as its final argument; an `open-modal` drop receives the files as `props.files`, because a modal has no argument list. Declaring neither key leaves the rendered table byte-for-byte what it was: the trailing actions column is only painted when the slot is supplied, and a widget without `dropZone` returns from every drag handler before touching any state.
+
+  The widget uploads nothing on a drop. It reads no file content and calls no write endpoint — whoever receives the files decides where they go, the same split the form file field keeps. A drag carrying anything but files is left to the browser.
+
+  This is `dossiq-duplication-to-abstractions` 1.2, and it is what dossiq's `documents-on-the-case` 2.2 has been waiting on. That task needs all three: six fields off `informatieobject`, a Versions row action, and the Documents tab's drop handler.
+
 - **Every host of `CnFormDialog` can now ask for its size and its column count, not just the manifest `open-form` action.** `CnIndexPage` and `CnDetailPage` take `formSize` / `formColumns` props (declarable as `pages[].config.formSize` / `.formColumns`, both now in the v2 manifest schema), `CnObjectListWidget` reads `formSize` / `formColumns` off its content blob, and `CnObjectDataWidget` takes them as props.
 
   The dialog has supported `size` and `columns: 2` since two-column forms shipped, but only `CnActionButtons` ever passed them on. The result was not a missing feature so much as an inconsistent one: the same app could open a roomy two-column create form from a detail page's header action and a cramped one-column form for the same kind of record from its index page's Add button, with nothing in either manifest to explain why. Dossiq had exactly that — a case create form in two columns, and a case-type create form asking 41 properties in one.
