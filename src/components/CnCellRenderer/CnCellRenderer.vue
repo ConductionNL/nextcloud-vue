@@ -192,7 +192,7 @@ export default {
 	props: {
 		/** The raw cell value */
 		value: {
-			type: [String, Number, Boolean, Array, Object],
+			type: [Boolean, String, Number, Array, Object],
 			default: null,
 		},
 

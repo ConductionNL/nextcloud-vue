@@ -88,6 +88,7 @@ import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
 import { filterToRows, rowsToFilter } from '../CnFilterRowsEditor/filterRows.js'
 
@@ -111,7 +112,7 @@ const DEFAULT_CONTENT = Object.freeze({
 export default {
 	name: 'CnDeltaWidgetForm',
 
-	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnIconBrowser },
+	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnIconBrowser, CnRegisterSchemaSelect },
 
 	props: {
 		/**

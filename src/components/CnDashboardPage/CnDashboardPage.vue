@@ -1747,6 +1747,7 @@ export default {
 			// built pre-edit has no reactive deps and would stay frozen forever,
 			// keeping the empty state on screen after the first Add widget.
 			// Re-evaluating post-enter re-subscribes against the reactive graph.
+			// eslint-disable-next-line @typescript-eslint/no-unused-expressions -- the read IS the effect: it registers the reactive dependency.
 			this.gridEditable
 			return this.layout.length > 0 || this.widgetRefItems.length > 0
 		},

@@ -68,7 +68,6 @@
 					{{ filesLabel }}<span v-if="filesRequired" class="cn-rich-submit__required">*</span>
 				</label>
 				<input :id="fieldIdFor('files')"
-					ref="fileInput"
 					type="file"
 					:accept="filesAccept"
 					:multiple="maxFiles !== 1"

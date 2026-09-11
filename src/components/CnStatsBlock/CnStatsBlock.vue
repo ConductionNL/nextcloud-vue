@@ -209,6 +209,7 @@ export default {
 			// clearing its message back to '' is reporting RECOVERY, and that
 			// would have pinned the tile in its error state after the fetch
 			// succeeded again. String first keeps '' falsy.
+			// eslint-disable-next-line vue/prefer-prop-type-boolean-first -- Boolean first would make `error=""` truthy, which is the recovery signal.
 			type: [String, Boolean, Object],
 			default: null,
 		},

@@ -12,7 +12,6 @@
 		</div>
 		<div
 			v-else
-			ref="grid"
 			class="cn-nc-widget-grid-picker__grid"
 			role="radiogroup"
 			:aria-label="t('nextcloud-vue', 'Pick a widget')">

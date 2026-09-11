@@ -694,7 +694,7 @@ export default {
 			}
 			const seriesDefs = Array.isArray(es.series) ? es.series.filter((s) => s && s.path) : []
 			let labels = []
-			let mapped = []
+			let mapped
 			if (Array.isArray(payload)) {
 				if (es.labelsPath) {
 					labels = payload.map((pt) => {
@@ -1730,7 +1730,7 @@ export default {
 				return
 			}
 			const requestKey = this.aggregateKey
-			let groups = null
+			let groups
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),

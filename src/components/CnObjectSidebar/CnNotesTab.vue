@@ -126,6 +126,7 @@ export default {
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 		/** Text shown when there are no notes */
 		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
+		/** Text shown while the notes are being fetched */
 		loadingLabel: { type: String, default: () => t('nextcloud-vue', 'Loading notes…') },
 	},
 

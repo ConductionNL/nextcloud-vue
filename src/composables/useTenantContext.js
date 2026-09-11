@@ -88,8 +88,8 @@ export function createTenantContext(initialUuid = null, initialOrg = null) {
 	 * @param {object} [organisation] Full org entity when calling with (uuid, org)
 	 */
 	function setActiveTenant(uuidOrPayload, organisation) {
-		let uuid = null
-		let org = null
+		let uuid
+		let org
 
 		if (uuidOrPayload && typeof uuidOrPayload === 'object') {
 			uuid = uuidOrPayload.uuid ?? null
