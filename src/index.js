@@ -227,6 +227,8 @@ export {
 	CnSignatureCapture,
 	CnSpendAnalyticsWidget,
 	CnSpendAnalyticsWidgetForm,
+	CnStagesWidget,
+	CnStagesWidgetForm,
 	CnStatsBlock,
 	CnStatsBlockWidget,
 	CnStatsBlockWidgetForm,

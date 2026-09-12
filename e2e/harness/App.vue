@@ -154,6 +154,15 @@
 			</div>
 		</template>
 
+		<!--
+			The stages widget and the status badge tile on a case detail surface
+			(?stageswidget=1, ?statbadge=1). See StagesHarness.vue.
+		-->
+		<template v-else-if="showStages">
+			<h2>Stages widget</h2>
+			<StagesHarness />
+		</template>
+
 		<template v-else-if="showTabsWidget">
 			<h2>Tabs widget</h2>
 			<div class="tw-box" data-testid="tw-widget">
@@ -528,6 +537,7 @@ import CnTabsWidget from '../../src/components/CnTabsWidget/CnTabsWidget.vue'
 import CnTasksWidget from '../../src/components/CnTasksWidget/CnTasksWidget.vue'
 import CnWalkthrough from '../../src/components/CnWalkthrough/CnWalkthrough.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
+import StagesHarness from './StagesHarness.vue'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
 import { installModalStack } from '../../src/utils/modalStack.js'
@@ -551,7 +561,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, StagesHarness, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -588,6 +598,8 @@ export default {
 			showCron: (typeof window !== 'undefined' && window.location.search.includes('cron=1')),
 			cronValue: '0 9 * * 1',
 			showDtScroll: (typeof window !== 'undefined' && window.location.search.includes('dtscroll')),
+			// Stages widget and status badge tile harness (?stageswidget=1 / ?statbadge=1).
+			showStages: (typeof window !== 'undefined' && /[?&](stageswidget|statbadge)=/.test(window.location.search)),
 			// Tabs widget chrome harness (?tabswidget=1).
 			showTabsWidget: (typeof window !== 'undefined' && window.location.search.includes('tabswidget')),
 			showBareData: (typeof window !== 'undefined' && window.location.search.includes('baredata')),

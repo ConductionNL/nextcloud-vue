@@ -62,12 +62,21 @@
 				<NcLoadingIcon v-if="displayLoading" :size="22" />
 				<span v-else-if="displayError" class="cn-stat-widget__error" :title="displayError">—</span>
 				<template v-else>
+					<!-- Badge mode: the value is a state name, so it reads as the
+					     library's status pill rather than as a headline number. -->
+					<CnStatusBadge
+						v-if="isBadge"
+						class="cn-stat-widget__badge"
+						data-testid="cn-stat-widget-badge"
+						:label="shownValue"
+						:variant="badgeVariant" />
 					<span
+						v-else
 						class="cn-kpi-card__value cn-stat-widget__value"
-						:class="{ 'cn-kpi-card__value--text': isTextValue }"
-						:title="isTextValue ? String(displayValue) : null"
+						:class="{ 'cn-kpi-card__value--text': isTextValue || shownValueIsText }"
+						:title="shownValueIsText ? shownValue : (isTextValue ? String(displayValue) : null)"
 						:style="valueStyle">
-						{{ formattedValue }}
+						{{ shownValue }}
 					</span>
 					<span
 						v-if="formattedLimit !== ''"
@@ -98,6 +107,7 @@ import { inject, ref } from 'vue'
 import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
 import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
 import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import widgetLink from '../../mixins/widgetLink.js'
@@ -106,12 +116,16 @@ import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { evaluateVisibleWhenLocal, readVisibleWhenPath } from '../../utils/visibleWhen.js'
 
 // The canonical KPI look lives in one shared stylesheet, imported by BOTH
 // this component and CnStatsBlock, so the two cannot drift apart again.
 // Importing it here also means the look arrives without the consuming app
 // having pulled in the library's global css/index.css.
 import '../../css/kpi-card.css'
+// Badge mode renders CnStatusBadge, whose colours live in the global badge
+// stylesheet. Imported here for the same reason as kpi-card.css above.
+import '../../css/badge.css'
 
 /**
  * Variant → CSS colour token map for the `variantWhen` threshold rules.
@@ -142,6 +156,15 @@ const VARIANT_COLORS = {
 	error: 'var(--color-error-text, var(--color-error))',
 	danger: 'var(--color-error-text, var(--color-error))',
 }
+
+/**
+ * The variants CnStatusBadge accepts. Badge mode normalises every tile
+ * variant onto this list: `danger` becomes `error`, anything unknown is
+ * skipped so the next rule in line decides.
+ *
+ * @type {string[]}
+ */
+const BADGE_VARIANTS = ['default', 'primary', 'success', 'warning', 'error', 'info']
 
 /**
  * CnStatWidget — an abstract, manifest-configured KPI / single-statistic tile.
@@ -195,6 +218,36 @@ const VARIANT_COLORS = {
  *   clickRoute: 'leads',                       // whole-tile click-through (alias of route)
  * }
  * ```
+ *
+ * BADGE MODE. `display: 'badge'` renders the value as a `CnStatusBadge` pill,
+ * for a tile whose value is a state name rather than a count. The badge colour
+ * can come from the RESOLVED ROW of an `objectField` reference, not only from
+ * the displayed text: `resolve.variantField` names a field on the looked-up
+ * row, and `resolve.variantMap` maps its value to a variant (without a map the
+ * field value itself must be a variant name). `emptyText` replaces the dash
+ * when the value is empty or its reference does not resolve. `overrides` test
+ * the BOUND RECORD, first match wins, and replace the label, variant and icon,
+ * so a record in a special state reads as that state:
+ * ```js
+ * content: {
+ *   label: 'Status',
+ *   display: 'badge',
+ *   emptyText: 'Unknown',
+ *   objectField: {
+ *     field: 'status',
+ *     resolve: {
+ *       register: 'dossiq',
+ *       schema: 'statusType',
+ *       labelField: 'name',
+ *       variantField: 'isFinal',
+ *       variantMap: { true: 'success', false: 'info' },
+ *     },
+ *   },
+ *   overrides: [
+ *     { when: { field: 'suspended' }, label: 'Suspended', variant: 'warning' },
+ *   ],
+ * }
+ * ```
  */
 export default {
 	name: 'CnStatWidget',
@@ -202,6 +255,7 @@ export default {
 	components: {
 		NcLoadingIcon,
 		CnWidgetIcon,
+		CnStatusBadge,
 		TrendingUp,
 		TrendingDown,
 		TrendingNeutral,
@@ -303,7 +357,20 @@ export default {
 		 * deliberate, so adding a range to a dashboard cannot silently change what
 		 * an existing tile requests.
 		 *
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>}}
+		 * `display: 'badge'` renders the value as a `CnStatusBadge`. On an
+		 * `objectField` reference, `resolve.variantField` (a dot-path on the
+		 * looked-up row) plus `resolve.variantMap` (`{ rowValue: variant }`)
+		 * colour it from the row; without a map the row value must itself be a
+		 * variant name. `emptyText` replaces the dash for an empty value, and
+		 * for a reference that does not resolve. `overrides`
+		 * (`[{ when: { field, op?, value? }, label?, variant?, icon? }]`, first
+		 * match wins) test the bound record: `when` is the local `visibleWhen`
+		 * grammar, and a `when` with neither `op` nor `value` tests the field
+		 * for truthiness. A match replaces the shown label, the colour and the
+		 * icon. Precedence of the colour: override, `variantWhen`, the at-limit
+		 * warning, the resolved row, the static `variant`.
+		 *
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'), emptyText?: string, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string}>}}
 		 */
 		content: {
 			type: Object,
@@ -366,6 +433,17 @@ export default {
 			// Resolved display label for an `objectField` that holds a reference
 			// uuid. Null until resolved, and null forever when it cannot be.
 			referenceLabel: null,
+			// The looked-up row behind `referenceLabel`, read by
+			// `resolve.variantField` to colour the tile from the row itself.
+			referenceRow: null,
+			// True once a configured lookup ran and found no usable label.
+			referenceFailed: false,
+			// True while a configured lookup is in flight. Without it, "not
+			// resolved yet" and "cannot be resolved" were the same state, so the
+			// tile showed the RAW UUID for the length of the request and then
+			// replaced it with the label or the empty text. A person watching a
+			// status badge saw `4f2b9c10-…` flash past where a state belonged.
+			referencePending: false,
 			value: null,
 			loading: false,
 			error: '',
@@ -519,6 +597,129 @@ export default {
 		},
 
 		/**
+		 * Whether the tile renders its value as a status badge.
+		 *
+		 * @return {boolean} true when `content.display` is `'badge'`.
+		 */
+		isBadge() {
+			return this.content.display === 'badge'
+		},
+
+		/**
+		 * The first `content.overrides` entry whose `when` matches the BOUND
+		 * RECORD, or null. Needs a detail-page record: on a dashboard there is
+		 * nothing to test, so no override applies.
+		 *
+		 * @return {object|null} The matching override.
+		 */
+		activeOverride() {
+			const rules = this.content.overrides
+			if (!Array.isArray(rules) || rules.length === 0) {
+				return null
+			}
+			const record = this.objectCtx?.object
+			if (!record || typeof record !== 'object') {
+				return null
+			}
+			return rules.find((rule) => rule && this.matchesOverride(record, rule.when)) || null
+		},
+
+		/**
+		 * The translated `content.emptyText` when it applies, else ''.
+		 *
+		 * It applies to an empty value, and to an `objectField` reference whose
+		 * lookup found nothing. Without `emptyText` an unresolvable reference
+		 * keeps showing its raw value, as it always has.
+		 *
+		 * @return {string} The text to show instead of the value, or ''.
+		 */
+		emptyValueText() {
+			const text = this.content.emptyText
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			const v = this.displayValue
+			const empty = v === null || v === undefined || v === ''
+			if (empty || (this.objectFieldMode && this.referenceFailed)) {
+				return this.effectiveTranslate(text)
+			}
+			return ''
+		},
+
+		/**
+		 * The text the tile shows: an override's label, else the empty text,
+		 * else the formatted value.
+		 *
+		 * @return {string} The shown text.
+		 */
+		shownValue() {
+			const override = this.activeOverride
+			if (override && typeof override.label === 'string' && override.label !== '') {
+				return this.effectiveTranslate(override.label)
+			}
+			return this.emptyValueText || this.formattedValue
+		},
+
+		/**
+		 * Whether the shown text replaced the formatted value. Such a text is a
+		 * word, so it takes the wrapping text style of a name.
+		 *
+		 * @return {boolean} true when an override or the empty text is shown.
+		 */
+		shownValueIsText() {
+			return this.shownValue !== this.formattedValue
+		},
+
+		/**
+		 * The variant the RESOLVED ROW asks for through
+		 * `objectField.resolve.variantField` / `variantMap`, or ''.
+		 *
+		 * @return {string} The variant name, or ''.
+		 */
+		rowVariant() {
+			const cfg = this.content.objectField
+			const resolve = (cfg && typeof cfg === 'object') ? cfg.resolve : null
+			if (!resolve || !resolve.variantField || !this.referenceRow) {
+				return ''
+			}
+			const raw = getByPath(this.referenceRow, resolve.variantField)
+			if (raw === undefined || raw === null) {
+				return ''
+			}
+			const map = resolve.variantMap
+			if (map && typeof map === 'object') {
+				const hit = map[String(raw)]
+				return typeof hit === 'string' ? hit : ''
+			}
+			return typeof raw === 'string' ? raw : ''
+		},
+
+		/**
+		 * The CnStatusBadge variant in badge mode. Same precedence as the text
+		 * colour: override, `variantWhen`, at-limit, resolved row, static
+		 * `variant`. The first one that names a badge variant wins.
+		 *
+		 * @return {string} A CnStatusBadge variant.
+		 */
+		badgeVariant() {
+			const rule = this.activeVariantRule
+			const candidates = [
+				this.activeOverride?.variant,
+				rule?.variant,
+				this.atLimit ? 'warning' : '',
+				this.rowVariant,
+				this.content.variant,
+			]
+			for (const candidate of candidates) {
+				const variant = candidate === 'danger' ? 'error' : candidate
+				if (BADGE_VARIANTS.includes(variant)) {
+					return variant
+				}
+			}
+			return 'default'
+		},
+
+		/**
 		 * Whether the tile reads a field off the BOUND RECORD rather than
 		 * aggregating or calling an endpoint (`content.objectField`).
 		 *
@@ -579,6 +780,13 @@ export default {
 		 * @return {boolean}
 		 */
 		displayLoading() {
+			// A reference lookup is a request like any other, and it is the only
+			// one the record mode makes. Leaving it out meant the tile rendered
+			// the raw uuid as if it were the answer while the request was still
+			// out.
+			if (this.objectFieldMode) {
+				return this.referencePending
+			}
 			return this.endpointMode ? this.epLoading : this.loading
 		},
 
@@ -690,6 +898,12 @@ export default {
 		 * @return {string}
 		 */
 		variantColor() {
+			// An override describes the RECORD's state (a suspended case), which
+			// outranks anything the value itself suggests.
+			const override = this.activeOverride
+			if (override && override.variant) {
+				return VARIANT_COLORS[override.variant] || ''
+			}
 			const rule = this.activeVariantRule
 			if (rule && rule.variant) {
 				return VARIANT_COLORS[rule.variant] || ''
@@ -698,6 +912,11 @@ export default {
 			// wants to be coloured is not overruled by the generic at-limit tint.
 			if (this.atLimit) {
 				return VARIANT_COLORS.warning || ''
+			}
+			// The resolved row's colour sits just above the static floor. An
+			// unknown name falls through rather than blanking the tile.
+			if (this.rowVariant && VARIANT_COLORS[this.rowVariant]) {
+				return VARIANT_COLORS[this.rowVariant]
 			}
 			// A STATIC `variant` is the floor, below both of the above: it is the
 			// tile's resting colour, not a signal about the current value, so a
@@ -721,8 +940,9 @@ export default {
 		 * @return {string}
 		 */
 		resolvedIcon() {
+			const override = this.activeOverride
 			const rule = this.activeVariantRule
-			return (rule && rule.icon) || this.content.icon || ''
+			return (override && override.icon) || (rule && rule.icon) || this.content.icon || ''
 		},
 
 		/**
@@ -891,6 +1111,9 @@ export default {
 		 */
 		async resolveReference() {
 			this.referenceLabel = null
+			this.referenceRow = null
+			this.referenceFailed = false
+			this.referencePending = false
 			const cfg = this.content.objectField
 			const resolve = (cfg && typeof cfg === 'object') ? cfg.resolve : null
 			const raw = this.objectFieldRaw
@@ -898,6 +1121,8 @@ export default {
 				return
 			}
 
+			// Assigned by the try below, and the catch returns rather than falling
+			// through, so an initialiser here would never be read.
 			let store
 			try {
 				store = useObjectStore()
@@ -912,16 +1137,56 @@ export default {
 
 			const type = resolveObjectOpType(store, { register: resolve.register, schema: resolve.schema })
 			const id = String(raw)
+			const cached = store.objects && store.objects[type] && store.objects[type][id]
+			// Only an actual request pends. A cache hit resolves in the same
+			// tick, and flagging it would flicker a loading icon for nothing.
+			if (!cached) {
+				this.referencePending = true
+			}
 			try {
-				const cached = store.objects && store.objects[type] && store.objects[type][id]
 				const obj = cached || await store.fetchObject(type, id)
+				// The record may have moved on while the lookup was in flight.
+				// The newer call owns the state, so this one touches nothing.
+				if (String(this.objectFieldRaw) !== id) {
+					return
+				}
+				this.referencePending = false
+				if (obj && typeof obj === 'object') {
+					this.referenceRow = obj
+				}
 				const label = this.pickReferenceLabel(obj, resolve.labelField)
 				if (label) {
 					this.referenceLabel = label
+				} else {
+					this.referenceFailed = true
 				}
 			} catch {
-				// Leave the raw value showing.
+				// Leave the raw value showing, unless `emptyText` says otherwise.
+				if (String(this.objectFieldRaw) === id) {
+					this.referencePending = false
+					this.referenceFailed = true
+				}
 			}
+		},
+
+		/**
+		 * Whether an override's `when` matches the bound record. Uses the local
+		 * `visibleWhen` grammar (`{ field, op, value }`); a `when` with neither
+		 * `op` nor `value` is a truthiness test on the field.
+		 *
+		 * @param {object} record The bound record.
+		 * @param {{field: string, op?: string, value?: unknown}} when The condition.
+		 * @return {boolean} True when the override applies.
+		 */
+		matchesOverride(record, when) {
+			if (!when || typeof when !== 'object' || typeof when.field !== 'string' || when.field === '') {
+				return false
+			}
+			const compares = Object.hasOwn(when, 'value') || Boolean(when.op)
+			if (!compares) {
+				return Boolean(readVisibleWhenPath(record, when.field))
+			}
+			return evaluateVisibleWhenLocal(when, record)
 		},
 
 		/**
@@ -1043,8 +1308,8 @@ export default {
 		/**
 		 * Fetch one scalar from the OpenRegister `/value` aggregation endpoint.
 		 *
-		 * @param {{get: (url: string, config?: object) => Promise<object>}} axios The axios instance.
-		 * @param {(path: string, params?: object) => string} generateUrl The router helper.
+		 * @param {object} axios The axios instance.
+		 * @param {(url: string, params?: object) => string} generateUrl The router helper.
 		 * @param {object} s The source (register/schema).
 		 * @param {string} metric The aggregation metric.
 		 * @param {?string} field The numeric field (non-count metrics).
@@ -1137,8 +1402,8 @@ export default {
 		 * (no OpenRegister expression-aggregation primitive yet). Pulls the
 		 * matching objects (capped at `limit`, default 1000) and folds them.
 		 *
-		 * @param {{get: (url: string, config?: object) => Promise<object>}} axios The axios instance.
-		 * @param {(path: string, params?: object) => string} generateUrl The router helper.
+		 * @param {object} axios The axios instance.
+		 * @param {(url: string, params?: object) => string} generateUrl The router helper.
 		 * @param {object} s The weighted source `{ field, weightField, divisor?, filter?, limit? }`.
 		 * @return {Promise<number|null>} The weighted sum.
 		 */
@@ -1219,8 +1484,8 @@ export default {
 		 * to a custom-aggregation endpoint (e.g. `/api/analytics/summary`) that
 		 * OpenRegister's per-schema aggregation can't express.
 		 *
-		 * @param {{get: (url: string, config?: object) => Promise<object>}} axios The axios instance.
-		 * @param {(path: string, params?: object) => string} generateUrl The router helper.
+		 * @param {object} axios The axios instance.
+		 * @param {(url: string, params?: object) => string} generateUrl The router helper.
 		 * @param {object} s The endpoint source `{ url, path?, params?, method? }`.
 		 * @return {Promise<number|null>} The extracted value.
 		 */
@@ -1295,6 +1560,17 @@ export default {
 .cn-stat-widget__range:focus-visible {
 	background: var(--color-background-hover);
 	color: var(--color-main-text);
+}
+
+/* Badge mode: the pill takes the value's place in the row. Sized to the
+   card's label scale so it sits in the row without pushing the tile taller. */
+.cn-stat-widget__badge {
+	flex: 0 1 auto;
+	min-width: 0;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: var(--cn-kpi-label-size, 13px);
 }
 
 /* The denominator of a "value / limit" pair. Deliberately quieter and smaller

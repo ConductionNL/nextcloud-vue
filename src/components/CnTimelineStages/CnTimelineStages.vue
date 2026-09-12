@@ -21,6 +21,7 @@
 			:class="stageClasses(index)"
 			role="listitem"
 			:aria-current="stageStates[index] === 'current' ? 'step' : undefined"
+			:aria-disabled="clickable && stage.disabled ? 'true' : undefined"
 			:tabindex="clickable ? (focusedIndex === index ? 0 : -1) : undefined"
 			@click="onStageClick(stage, index)"
 			@keydown="onKeydown($event, stage, index)">
@@ -104,9 +105,13 @@ export default {
 	props: {
 		/**
 		 * Array of stage objects. Each must have `id` (unique) and `label` (display text).
-		 * Optional `subtitle` for secondary text below the label.
+		 * Optional `subtitle` for secondary text below the label. Optional
+		 * `disabled` marks a stage that cannot be chosen: in clickable mode it
+		 * keeps its focus stop, carries `aria-disabled="true"` and emits
+		 * `stage-blocked` instead of `stage-click`, so the consumer can tell
+		 * the person why nothing happened.
 		 *
-		 * @type {{ id: string, label: string, subtitle: string }[]}
+		 * @type {{ id: string, label: string, subtitle?: string, disabled?: boolean }[]}
 		 */
 		stages: {
 			type: Array,
@@ -170,7 +175,7 @@ export default {
 		},
 	},
 
-	emits: ['stage-click'],
+	emits: ['stage-click', 'stage-blocked'],
 
 	data() {
 		return {
@@ -252,6 +257,7 @@ export default {
 			return {
 				'cn-timeline-stages__stage': true,
 				[`cn-timeline-stages__stage--${state}`]: true,
+				'cn-timeline-stages__stage--disabled': this.clickable && this.stages[index]?.disabled === true,
 			}
 		},
 
@@ -263,6 +269,21 @@ export default {
 		 */
 		onStageClick(stage, index) {
 			if (!this.clickable) {
+				return
+			}
+			if (stage.disabled === true) {
+				/**
+				 * Emitted when a stage that cannot be chosen is activated.
+				 *
+				 * The stage still emits no `stage-click`, so nothing acts on it.
+				 * This says the person TRIED, which is what lets a consumer
+				 * answer them. Without it a blocked stage was silent to anyone
+				 * not running a screen reader: no message, no move, nothing.
+				 *
+				 * @event stage-blocked
+				 * @type {{ stage: object, index: number }}
+				 */
+				this.$emit('stage-blocked', { stage, index })
 				return
 			}
 			/**
@@ -299,6 +320,13 @@ export default {
 				this.moveFocus(index - 1)
 			} else if (event.key === 'Enter' || event.key === ' ') {
 				event.preventDefault()
+				// A disabled stage keeps its focus stop, so a screen reader can
+				// reach it and read why, but it cannot be chosen. The attempt
+				// is still reported, so the consumer can answer it.
+				if (stage.disabled === true) {
+					this.$emit('stage-blocked', { stage, index })
+					return
+				}
 				this.$emit('stage-click', { stage, index })
 			}
 		},

@@ -118,6 +118,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'quicklinks',
 	'related',
 	'spend-analytics',
+	'stages',
 	'stat',
 	'stats-block',
 	'table',
