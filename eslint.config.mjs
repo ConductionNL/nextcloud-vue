@@ -96,6 +96,7 @@ export default [
 	{
 		files: [
 			'eslint/**',
+			'stylelint/**',
 			'testing/**',
 			'scripts/**',
 			'e2e/**',

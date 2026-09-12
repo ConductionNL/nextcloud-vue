@@ -2,8 +2,6 @@
   "name": "@conduction/nextcloud-vue",
   "version": "2.0.5",
   "description": "Shared Vue component library for Conduction Nextcloud apps — complements @nextcloud/vue with higher-level components, OpenRegister integration, and NL Design System support",
-  "license": "EUPL-1.2",
-  "author": "Conduction B.V. <info@conduction.nl>",
   "homepage": "https://github.com/ConductionNL/nextcloud-vue#readme",
   "bugs": {
     "url": "https://github.com/ConductionNL/nextcloud-vue/issues"
@@ -12,10 +10,43 @@
     "type": "git",
     "url": "git+https://github.com/ConductionNL/nextcloud-vue.git"
   },
+  "license": "EUPL-1.2",
+  "author": "Conduction B.V. <info@conduction.nl>",
+  "sideEffects": [
+    "**/*.css",
+    "**/*.vue",
+    "**/*.vue.js",
+    "**/*.vue2.js",
+    "**/CnWidgetGrid/registerDashboardWidgets.js",
+    "**/dashboardRegistration.js",
+    "**/Cn*Widget/index.js"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/nextcloud-vue.cjs.js",
+      "default": "./dist/nextcloud-vue.cjs.js"
+    },
+    "./public": {
+      "import": "./src/public/index.js",
+      "default": "./src/public/index.js"
+    },
+    "./eslint": "./eslint/index.js",
+    "./stylelint": "./stylelint/index.js",
+    "./testing": "./testing/index.js",
+    "./testing/playwright": "./testing/playwright.js",
+    "./webpack": "./webpack/index.js",
+    "./dist/*": "./dist/*",
+    "./src/*": "./src/*",
+    "./css/*": "./css/*",
+    "./l10n/*": "./l10n/*",
+    "./scripts/*": "./scripts/*",
+    "./package.json": "./package.json"
+  },
   "main": "dist/nextcloud-vue.cjs.js",
   "module": "dist/esm/index.js",
-  "style": "dist/nextcloud-vue.css",
   "types": "src/types/index.d.ts",
+  "style": "dist/nextcloud-vue.css",
   "bin": {
     "manifest-migrate": "src/cli/manifest-migrate.js"
   },
@@ -30,60 +61,66 @@
     "testing/",
     "webpack/"
   ],
-  "sideEffects": [
-    "**/*.css",
-    "**/*.vue",
-    "**/*.vue.js",
-    "**/*.vue2.js",
-    "**/CnWidgetGrid/registerDashboardWidgets.js",
-    "**/dashboardRegistration.js",
-    "**/Cn*Widget/index.js"
-  ],
   "scripts": {
-    "build:validators": "node scripts/build-validators.js",
     "prebuild": "npm run build:validators",
     "build": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\" && rollup -c",
+    "build:validators": "node scripts/build-validators.js",
+    "build:vue3": "rollup -c rollup.config.vue3.mjs",
+    "check:a11y": "jest --config jest.a11y.config.js",
+    "check:build": "npm run build && npm run check:css-entry",
+    "check:bundled-peers": "node scripts/check-bundled-peers.mjs",
+    "check:css-entry": "node scripts/check-css-entry.js",
+    "check:dist-sideeffects": "node scripts/check-dist-sideeffects.mjs",
+    "check:docs": "node scripts/check-docs.js",
+    "check:docs-fresh": "cd docusaurus && npm run prebuild:docs && cd .. && git diff --exit-code docs/components/_generated/",
+    "check:integration-parity": "node scripts/check-integration-parity.js",
+    "check:jsdoc": "node scripts/check-jsdoc.js",
+    "check:peers": "node scripts/check-peer-consistency.js",
+    "check:public-safe": "node scripts/check-public-safe.js",
+    "check:smoke": "jest --config jest.smoke.config.js",
+    "check:vue3-compile": "node scripts/vue3-compile-sweep.cjs",
     "dev": "rollup -c -w",
+    "harness": "vite --config e2e/vite.config.mjs",
+    "jsdoc-baselines:update": "node scripts/check-jsdoc.js --update",
+    "lint": "eslint src/ eslint/ testing/ tests/ e2e/",
+    "lint-fix": "npm run lint -- --fix",
+    "prepare": "husky || true",
+    "prepublishOnly": "npm run build",
+    "smoke-baseline:update": "node scripts/update-smoke-baseline.js",
+    "styleguide": "cd styleguide && npm run server",
+    "styleguide:build": "cd styleguide && npm run build",
+    "stylelint": "stylelint 'src/**/*.vue' 'src/**/*.css'",
     "pretest": "npm run build:validators",
     "test": "jest",
     "test:e2e": "playwright test",
-    "harness": "vite --config e2e/vite.config.mjs",
     "test:types": "tsd",
-    "lint": "eslint src/ eslint/ testing/ tests/ e2e/",
-    "lint-fix": "npm run lint -- --fix",
-    "stylelint": "stylelint 'src/**/*.vue' 'src/**/*.css'",
-    "update:manifest-fixtures": "node scripts/update-fleet-manifest-fixtures.js",
-    "check:docs": "node scripts/check-docs.js",
-    "check:jsdoc": "node scripts/check-jsdoc.js",
-    "check:integration-parity": "node scripts/check-integration-parity.js",
-    "check:peers": "node scripts/check-peer-consistency.js",
-    "check:css-entry": "node scripts/check-css-entry.js",
-    "check:build": "npm run build && npm run check:css-entry",
-    "check:docs-fresh": "cd docusaurus && npm run prebuild:docs && cd .. && git diff --exit-code docs/components/_generated/",
-    "check:a11y": "jest --config jest.a11y.config.js",
-    "check:smoke": "jest --config jest.smoke.config.js",
-    "jsdoc-baselines:update": "node scripts/check-jsdoc.js --update",
-    "smoke-baseline:update": "node scripts/update-smoke-baseline.js",
-    "prepare": "husky || true",
-    "prepublishOnly": "npm run build",
-    "styleguide": "cd styleguide && npm run server",
-    "styleguide:build": "cd styleguide && npm run build",
-    "build:vue3": "rollup -c rollup.config.vue3.mjs",
-    "check:vue3-compile": "node scripts/vue3-compile-sweep.cjs",
-    "check:dist-sideeffects": "node scripts/check-dist-sideeffects.mjs",
-    "check:bundled-peers": "node scripts/check-bundled-peers.mjs",
-    "check:public-safe": "node scripts/check-public-safe.js"
+    "update:manifest-fixtures": "node scripts/update-fleet-manifest-fixtures.js"
   },
-  "tsd": {
-    "directory": "test-d",
-    "compilerOptions": {
-      "strict": true,
-      "target": "es2020",
-      "module": "esnext",
-      "moduleResolution": "node",
-      "esModileInterop": true,
-      "skipLibCheck": true
-    }
+  "overrides": {
+    "axios": "^1.18.0",
+    "baseline-browser-mapping": "^2.11.0",
+    "brace-expansion": "^2.1.4",
+    "browserslist": "^4.28.7",
+    "colord": "^2.9.4",
+    "dompurify": "$dompurify",
+    "fast-uri": "^3.1.6",
+    "fast-xml-parser": "^5.7.0",
+    "form-data": "^4.0.6",
+    "ip-address": "^10.3.1",
+    "js-yaml": "^4.3.2",
+    "json5": "^2.2.3",
+    "loader-utils": "^1.4.2",
+    "picomatch": "^4.0.4",
+    "postcss": "^8.5.23",
+    "postcss-modules-local-by-default": {
+      "postcss-selector-parser": "^7.1.3"
+    },
+    "postcss-modules-scope": {
+      "postcss-selector-parser": "^7.1.3"
+    },
+    "postcss-selector-parser": "^6.1.3",
+    "stylelint-config-html": "^1.1.0",
+    "svgo": "^2.8.4"
   },
   "dependencies": {
     "@ckpack/vue-color": "^1.6.0",
@@ -121,78 +158,6 @@
     "vue-codemirror6": "^1.4.3",
     "vue3-apexcharts": "~1.8.0",
     "vuedraggable": "^4.1.0"
-  },
-  "peerDependencies": {
-    "@nextcloud/auth": "^2.0.0 || ^3.0.0",
-    "@nextcloud/axios": "^2.0.0",
-    "@nextcloud/capabilities": "^1.2.1",
-    "@nextcloud/initial-state": "^2.2.0 || ^3.0.0",
-    "@nextcloud/l10n": "^2.0.0 || ^3.0.0",
-    "@nextcloud/router": "^2.0.0 || ^3.0.0",
-    "@nextcloud/stylelint-config": "^3.2.2",
-    "@nextcloud/vue": "^9.0.0",
-    "@vueuse/core": "^11.0.0 || ^14.0.0",
-    "axe-core": "^4.10.0",
-    "dexie": "^4.0.8",
-    "dompurify": "^3.0.0",
-    "eslint": "^8.56.0 || ^9.0.0 || ^10.0.0",
-    "eslint-plugin-vue": "^9.21.0 || ^10.0.0",
-    "gridstack": "^12.0.0 || ^13.0.0",
-    "marked": ">=12 <19",
-    "pinia": "^2.0.0 || ^3.0.0 || ^4.0.0",
-    "stylelint": "^17.9.1",
-    "vue": "^3.5.0",
-    "vue-eslint-parser": "^9.4.0 || ^10.0.0",
-    "vue-material-design-icons": "^5.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@nextcloud/stylelint-config": {
-      "optional": true
-    },
-    "axe-core": {
-      "optional": true
-    },
-    "eslint": {
-      "optional": true
-    },
-    "eslint-plugin-vue": {
-      "optional": true
-    },
-    "stylelint": {
-      "optional": true
-    },
-    "vue-eslint-parser": {
-      "optional": true
-    }
-  },
-  "optionalDependencies": {
-    "@mdi/js": "^7.4.47"
-  },
-  "overrides": {
-    "json5": "^2.2.3",
-    "loader-utils": "^1.4.2",
-    "postcss": "^8.5.23",
-    "axios": "^1.18.0",
-    "form-data": "^4.0.6",
-    "fast-uri": "^3.1.6",
-    "dompurify": "$dompurify",
-    "browserslist": "^4.28.7",
-    "baseline-browser-mapping": "^2.11.0",
-    "brace-expansion": "^2.1.4",
-    "ip-address": "^10.3.1",
-    "js-yaml": "^4.3.2",
-    "picomatch": "^4.0.4",
-    "svgo": "^2.8.4",
-    "colord": "^2.9.4",
-    "postcss-selector-parser": "^6.1.3",
-    "fast-xml-parser": "^5.7.0",
-    "postcss-modules-local-by-default": {
-      "postcss-selector-parser": "^7.1.3"
-    },
-    "postcss-modules-scope": {
-      "postcss-selector-parser": "^7.1.3"
-    },
-    "stylelint-config-html": "^1.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
@@ -247,26 +212,61 @@
     "vue-material-design-icons": "^5.2.0",
     "vue-router": "^5.2.0"
   },
-  "exports": {
-    ".": {
-      "import": "./dist/esm/index.js",
-      "require": "./dist/nextcloud-vue.cjs.js",
-      "default": "./dist/nextcloud-vue.cjs.js"
+  "peerDependencies": {
+    "@nextcloud/auth": "^2.0.0 || ^3.0.0",
+    "@nextcloud/axios": "^2.0.0",
+    "@nextcloud/capabilities": "^1.2.1",
+    "@nextcloud/initial-state": "^2.2.0 || ^3.0.0",
+    "@nextcloud/l10n": "^2.0.0 || ^3.0.0",
+    "@nextcloud/router": "^2.0.0 || ^3.0.0",
+    "@nextcloud/stylelint-config": "^3.2.2",
+    "@nextcloud/vue": "^9.0.0",
+    "@vueuse/core": "^11.0.0 || ^14.0.0",
+    "axe-core": "^4.10.0",
+    "dexie": "^4.0.8",
+    "dompurify": "^3.0.0",
+    "eslint": "^8.56.0 || ^9.0.0 || ^10.0.0",
+    "eslint-plugin-vue": "^9.21.0 || ^10.0.0",
+    "gridstack": "^12.0.0 || ^13.0.0",
+    "marked": ">=12 <19",
+    "pinia": "^2.0.0 || ^3.0.0 || ^4.0.0",
+    "stylelint": "^17.9.1",
+    "vue": "^3.5.0",
+    "vue-eslint-parser": "^9.4.0 || ^10.0.0",
+    "vue-material-design-icons": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@nextcloud/stylelint-config": {
+      "optional": true
     },
-    "./public": {
-      "import": "./src/public/index.js",
-      "default": "./src/public/index.js"
+    "axe-core": {
+      "optional": true
     },
-    "./eslint": "./eslint/index.js",
-    "./stylelint": "./stylelint/index.js",
-    "./testing": "./testing/index.js",
-    "./testing/playwright": "./testing/playwright.js",
-    "./webpack": "./webpack/index.js",
-    "./dist/*": "./dist/*",
-    "./src/*": "./src/*",
-    "./css/*": "./css/*",
-    "./l10n/*": "./l10n/*",
-    "./scripts/*": "./scripts/*",
-    "./package.json": "./package.json"
+    "eslint": {
+      "optional": true
+    },
+    "eslint-plugin-vue": {
+      "optional": true
+    },
+    "stylelint": {
+      "optional": true
+    },
+    "vue-eslint-parser": {
+      "optional": true
+    }
+  },
+  "optionalDependencies": {
+    "@mdi/js": "^7.4.47"
+  },
+  "tsd": {
+    "directory": "test-d",
+    "compilerOptions": {
+      "strict": true,
+      "target": "es2020",
+      "module": "esnext",
+      "moduleResolution": "node",
+      "esModileInterop": true,
+      "skipLibCheck": true
+    }
   }
 }
