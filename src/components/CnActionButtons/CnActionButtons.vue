@@ -88,6 +88,21 @@
 			:initial-values="formInitialValues"
 			@confirm="onFormConfirm"
 			@close="closeForm" />
+
+		<!-- run-node's config dialog (manifest-run-node-action): only mounted
+		     when the target node declared at least one field AND that
+		     describe call succeeded — an empty/no form runs immediately with
+		     no dialog at all (openRunNode below), and a describe FAILURE also
+		     skips the dialog (toasts instead) rather than showing an empty,
+		     confusing one. -->
+		<CnRunNodeDialog
+			v-if="runNodeEntry && runNodeFields.length"
+			:title="tr(runNodeEntry.formTitle) || tr(runNodeEntry.label)"
+			:fields="runNodeFields"
+			:loading="Boolean(actionPending[runNodeEntry.id])"
+			:translate="effectiveTranslate"
+			@confirm="onRunNodeConfirm"
+			@close="closeRunNode" />
 	</div>
 </template>
 
@@ -100,7 +115,8 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { valueRecordsFor, valueArrayFor, usesArrayValues } from '../../utils/dynamicProperties.js'
-import { dispatchAction, resolveObjectOpType, buildOnSuccessRoute, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
+import { dispatchAction, postRunNode, resolveObjectOpType, buildOnSuccessRoute, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
+import CnRunNodeDialog from '../../dialogs/CnRunNodeDialog.vue'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
@@ -129,6 +145,13 @@ import { useObjectStore } from '../../store/useObjectStore.js'
  *  - **`toggle`** — a two-way state button: `GET`s `stateSource` on mount,
  *    renders `labelOn` / `labelOff`, and on click `writes` the flipped
  *    value OPTIMISTICALLY, reverting on failure.
+ *  - **`run-node`** (manifest-run-node-action) — GETs the target flow node's
+ *    describe endpoint (OpenRegister's `or-flow-run-node`); a node with
+ *    declared fields mounts `CnRunNodeDialog` (its own small field renderer —
+ *    see that component's docblock for why it is not `CnFlowNodeEditModal`'s),
+ *    a node with none runs immediately. Either way `postRunNode()`
+ *    (`actionsDispatcher.js`) makes the actual call, subject-token-resolved
+ *    exactly like `agent`.
  *
  * Every other type (`api-call`, `navigate`, `open-modal`, `open-page`,
  * `refresh`, `handler`) routes through the shared `dispatchAction` — with
@@ -161,7 +184,7 @@ import { useObjectStore } from '../../store/useObjectStore.js'
 export default {
 	name: 'CnActionButtons',
 
-	components: { NcButton, CnIcon, CnConfirmDialog, CnFormDialog, CnAdvancedFormDialog },
+	components: { NcButton, CnIcon, CnConfirmDialog, CnFormDialog, CnAdvancedFormDialog, CnRunNodeDialog },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -252,6 +275,10 @@ export default {
 			formEntry: null,
 			/** The fetched schema object for the open-form dialog (null until loaded). */
 			formSchema: null,
+			/** The run-node action currently in flight / showing its dialog (null = closed). */
+			runNodeEntry: null,
+			/** The target node's declared config-form fields, from the describe GET. */
+			runNodeFields: [],
 			/** Default confirm-dialog message. */
 			defaultConfirmMessage: t('nextcloud-vue', 'Are you sure you want to continue?'),
 		}
@@ -537,6 +564,10 @@ export default {
 				await this.openForm(entry)
 				return undefined
 			}
+			if (entry.type === 'run-node') {
+				await this.openRunNode(entry)
+				return undefined
+			}
 			this.actionPending[entry.id] = true
 			const result = await this.dispatch(entry)
 			this.actionPending[entry.id] = false
@@ -573,6 +604,7 @@ export default {
 			return dispatchAction(action, {
 				router: this.effectiveRouter,
 				openForm: (a) => this.openForm(a),
+				openRunNode: (a) => this.openRunNode(a),
 				...extra,
 			})
 		},
@@ -606,6 +638,99 @@ export default {
 				if (typeof showError === 'function') showError(t('nextcloud-vue', 'Could not open the form.'))
 				this.formEntry = null
 			}
+		},
+
+		/**
+		 * Open (or skip) the `run-node` config dialog: GET the target node's
+		 * describe endpoint (`or-flow-run-node`'s `GET .../{flowId}/{nodeId}/run`),
+		 * and either mount `CnRunNodeDialog` with its declared fields, or —
+		 * for a node with none — run immediately with an empty config. A
+		 * failed describe call toasts and does neither (RN-4: this resolves
+		 * as soon as the decision is made, never waiting on the person).
+		 *
+		 * @param {object} entry The run-node action (`flowId`, `nodeId`, ...).
+		 * @return {Promise<void>}
+		 *
+		 * @spec openspec/changes/manifest-run-node-action/specs/manifest-run-node-action/spec.md#requirement-the-nodes-own-config-form-drives-the-dialog-not-a-new-token
+		 */
+		async openRunNode(entry) {
+			const flowId = entry.flowId
+			const nodeId = entry.nodeId
+			if (!flowId || !nodeId) {
+				// eslint-disable-next-line no-console
+				console.warn('[CnActionButtons] run-node requires flowId and nodeId.', entry)
+				return
+			}
+
+			let fields = []
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl(`/apps/openregister/api/flows/${encodeURIComponent(flowId)}/nodes/${encodeURIComponent(nodeId)}/run`)
+				const response = await axios.get(url)
+				fields = Array.isArray(response.data && response.data.configForm) ? response.data.configForm : []
+			} catch (error) {
+				const { showError } = await import('@nextcloud/dialogs')
+				const serverMessage = error && error.response && error.response.data
+					&& (error.response.data.error || error.response.data.message)
+				if (typeof showError === 'function') {
+					showError(serverMessage || t('nextcloud-vue', 'Could not open this action.'))
+				}
+				return
+			}
+
+			if (!fields.length) {
+				// Empty (or undeclared) form: the "empty form is itself
+				// information" rule flow-node-config-forms already established
+				// for the editor — run immediately, no dialog.
+				this.actionPending[entry.id] = true
+				await this.runNodePost(entry, {})
+				this.actionPending[entry.id] = false
+				return
+			}
+
+			this.runNodeFields = fields
+			this.runNodeEntry = entry
+		},
+
+		/**
+		 * The run-node dialog's confirm: POST the collected config, close the
+		 * dialog either way (success or failure both end the interaction —
+		 * a failure already toasted its own message).
+		 *
+		 * @param {object} config The dialog's collected field values.
+		 * @return {Promise<void>}
+		 *
+		 * @spec openspec/changes/manifest-run-node-action/specs/manifest-run-node-action/spec.md#requirement-a-run-node-action-invokes-one-flow-node-against-the-page-object
+		 */
+		async onRunNodeConfirm(config) {
+			const entry = this.runNodeEntry
+			if (!entry) return
+			this.actionPending[entry.id] = true
+			await this.runNodePost(entry, config)
+			this.actionPending[entry.id] = false
+			this.closeRunNode()
+		},
+
+		/**
+		 * POST the run-node call through the shared dispatcher's `postRunNode`
+		 * (subject/register/schema resolution, fail-closed, toast + refresh —
+		 * see its own docblock in actionsDispatcher.js).
+		 *
+		 * @param {object} entry The run-node action.
+		 * @param {object} config The node's collected config.
+		 * @return {Promise<{ok: boolean}>}
+		 */
+		runNodePost(entry, config) {
+			return postRunNode(entry, { tokenCtx: this.tokenCtx, translate: this.effectiveTranslate }, config)
+		},
+
+		/** Close the run-node dialog without running anything. */
+		closeRunNode() {
+			this.runNodeEntry = null
+			this.runNodeFields = []
 		},
 
 		/**
