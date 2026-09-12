@@ -203,6 +203,33 @@
 			:placeholder="t('nextcloud-vue', 'Unknown')"
 			@update:modelValue="updateField('emptyText', $event)" />
 
+		<!-- Countdown settings. Shown only for the countdown display mode,
+		     because a day threshold means nothing to a tile showing a number. -->
+		<template v-if="display === 'countdown'">
+			<div class="cn-stat-widget-form__row2" data-testid="cn-stat-widget-form-countdown">
+				<NcTextField
+					:modelValue="countdown.warnAt"
+					type="number"
+					:label="t('nextcloud-vue', 'Warn from (days left)')"
+					placeholder="14"
+					@update:modelValue="updateCountdown('warnAt', $event)" />
+				<NcTextField
+					:modelValue="countdown.dangerAt"
+					type="number"
+					:label="t('nextcloud-vue', 'Urgent from (days left)')"
+					placeholder="5"
+					@update:modelValue="updateCountdown('dangerAt', $event)" />
+			</div>
+			<NcTextField
+				:modelValue="countdown.pastLabel"
+				:label="t('nextcloud-vue', 'Text when the date has passed')"
+				:placeholder="t('nextcloud-vue', 'Overdue by {n} days')"
+				@update:modelValue="updateCountdown('pastLabel', $event)" />
+			<p class="cn-stat-widget-form__hint">
+				{{ t('nextcloud-vue', 'The tile counts whole days, and today counts as zero. A date that has passed reads as overdue in red, never as a negative number. Write {n} where the number of days belongs. Both thresholds include their own day, and the urgent one wins.') }}
+			</p>
+		</template>
+
 		<NcTextField
 			:modelValue="caption"
 			:label="t('nextcloud-vue', 'Caption (optional)')"
@@ -358,7 +385,7 @@ const DEFAULT_CONTENT = Object.freeze({
  *
  * @type {string[]}
  */
-const OWNED_KEYS = ['label', 'icon', 'iconColor', 'valueColor', 'caption', 'format', 'source', 'objectField', 'display', 'emptyText', 'overrides']
+const OWNED_KEYS = ['label', 'icon', 'iconColor', 'valueColor', 'caption', 'format', 'source', 'objectField', 'display', 'emptyText', 'overrides', 'countdown']
 
 /**
  * Seed the colour-per-value rows from a stored `variantMap`.
@@ -445,9 +472,12 @@ function overridesToRows(overrides) {
  * off the bound detail-page record (`objectField`), optionally looked up in a
  * register and schema, with a colour taken from the looked-up row.
  *
- * The display section edits `display` (text or badge) and `emptyText`, and
- * the special-states list edits `overrides`: record conditions that swap the
- * shown label and colour. Keys the form does not own pass through unchanged.
+ * The display section edits `display` (text, badge, or a countdown to a date)
+ * and `emptyText`, and the special-states list edits `overrides`: record
+ * conditions that swap the shown label and colour. Choosing the countdown mode
+ * reveals its two day thresholds and the wording for a date that has passed;
+ * every other `countdown` key travels through the round trip untouched. Keys
+ * the form does not own pass through unchanged.
  *
  * Emits `update:content` on every change; `validate()` requires a register +
  * schema, a field for non-count metrics, the weight field for the weighted
@@ -504,8 +534,22 @@ export default {
 				passthrough[key] = v
 			}
 		}
+		// The countdown block, split into the three settings the form draws and
+		// everything else. The rest travels through the round trip untouched:
+		// `unit`, `futureLabel`, `todayLabel` and `emptyText` are all real keys
+		// a manifest may carry, and the form narrowing the block to what it
+		// happens to draw is exactly the defect the override rows already fixed.
+		const cd = (initial.countdown && typeof initial.countdown === 'object') ? initial.countdown : {}
+		const { warnAt, dangerAt, pastLabel, ...countdownRest } = cd
 		return {
 			passthrough,
+			countdownRest,
+			countdown: {
+				warnAt: Number.isFinite(warnAt) ? String(warnAt) : '',
+				dangerAt: Number.isFinite(dangerAt) ? String(dangerAt) : '',
+				pastLabel: typeof pastLabel === 'string' ? pastLabel : '',
+			},
+
 			recordField: typeof of === 'string' ? of : ((of && of.field) || ''),
 			recordResolve: {
 				register: ofResolve.register ?? '',
@@ -515,7 +559,7 @@ export default {
 			},
 
 			variantRows: variantMapToRows(ofResolve.variantMap),
-			display: initial.display === 'badge' ? 'badge' : 'text',
+			display: ['badge', 'countdown'].includes(initial.display) ? initial.display : 'text',
 			emptyText: initial.emptyText ?? '',
 			overrideRows: overridesToRows(initial.overrides),
 			label: initial.label ?? DEFAULT_CONTENT.label,
@@ -555,7 +599,7 @@ export default {
 
 		/** Display-mode options. */
 		displayOptions() {
-			return ['text', 'badge']
+			return ['text', 'badge', 'countdown']
 		},
 
 		/** Colour variants a badge and a tile understand. */
@@ -629,8 +673,15 @@ export default {
 			}
 			// The new keys are written only when set, so a form that never
 			// touches them emits exactly the blob it always has.
-			if (this.display === 'badge') {
-				content.display = 'badge'
+			if (this.display === 'badge' || this.display === 'countdown') {
+				content.display = this.display
+			}
+			// Written whenever it holds anything, INDEPENDENT of the display
+			// mode: somebody flipping a countdown tile to text to look at it
+			// should not lose the thresholds on the way back.
+			const countdown = this.assembledCountdown
+			if (Object.keys(countdown).length) {
+				content.countdown = countdown
 			}
 			if (this.emptyText) {
 				content.emptyText = this.emptyText
@@ -640,6 +691,32 @@ export default {
 				content.overrides = overrides
 			}
 			return content
+		},
+
+		/**
+		 * The `countdown` block from the drawn settings plus every key the form
+		 * does not draw.
+		 *
+		 * An empty threshold box is an ABSENT threshold, not zero. `Number('')`
+		 * is 0, and a `dangerAt: 0` would paint every tile with a future
+		 * deadline red on the day it arrives, which is not what leaving a box
+		 * blank asks for.
+		 *
+		 * @return {object} The countdown config, `{}` when nothing is set.
+		 */
+		assembledCountdown() {
+			const out = { ...this.countdownRest }
+			for (const key of ['warnAt', 'dangerAt']) {
+				const raw = this.countdown[key]
+				const n = Number(raw)
+				if (raw !== '' && raw !== null && raw !== undefined && Number.isFinite(n)) {
+					out[key] = n
+				}
+			}
+			if (this.countdown.pastLabel) {
+				out.pastLabel = this.countdown.pastLabel
+			}
+			return out
 		},
 
 		/**
@@ -758,11 +835,17 @@ export default {
 		/**
 		 * Human label for a display mode.
 		 *
-		 * @param {'text'|'badge'} id A `displayOptions` value.
+		 * @param {'text'|'badge'|'countdown'} id A `displayOptions` value.
 		 * @return {string} The translated label.
 		 */
 		displayLabel(id) {
-			return id === 'badge' ? t('nextcloud-vue', 'Badge') : t('nextcloud-vue', 'Text')
+			if (id === 'badge') {
+				return t('nextcloud-vue', 'Badge')
+			}
+			if (id === 'countdown') {
+				return t('nextcloud-vue', 'Countdown to a date')
+			}
+			return t('nextcloud-vue', 'Text')
 		},
 
 		/**
@@ -811,6 +894,23 @@ export default {
 		 */
 		updateResolve(field, value) {
 			this.recordResolve[field] = value
+			this.emitChange()
+		},
+
+		/**
+		 * Set a countdown setting and emit.
+		 *
+		 * The thresholds stay STRINGS in the form and are converted once, in
+		 * `assembledCountdown`. Converting here would turn a cleared box into
+		 * `0`, and `0` is a threshold that fires rather than a threshold that
+		 * is gone.
+		 *
+		 * @param {'warnAt'|'dangerAt'|'pastLabel'} field The countdown key to write.
+		 * @param {string} value The new value.
+		 * @return {void}
+		 */
+		updateCountdown(field, value) {
+			this.countdown[field] = value
 			this.emitChange()
 		},
 

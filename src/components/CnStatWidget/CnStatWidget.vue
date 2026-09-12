@@ -73,6 +73,7 @@
 					<span
 						v-else
 						class="cn-kpi-card__value cn-stat-widget__value"
+						:data-testid="isCountdown ? 'cn-stat-widget-countdown' : null"
 						:class="{ 'cn-kpi-card__value--text': isTextValue || shownValueIsText }"
 						:title="shownValueIsText ? shownValue : (isTextValue ? String(displayValue) : null)"
 						:style="valueStyle">
@@ -167,6 +168,64 @@ const VARIANT_COLORS = {
 const BADGE_VARIANTS = ['default', 'primary', 'success', 'warning', 'error', 'info']
 
 /**
+ * A bare `YYYY-MM-DD`, the shape OpenRegister stores a date property in.
+ *
+ * It is matched BEFORE `new Date()` sees it on purpose. `new Date('2026-09-26')`
+ * is specified to parse a date-only string as UTC midnight, so west of
+ * Greenwich it lands on the 25th local and every countdown built on it is a
+ * day short. A date the schema calls a date has no time and no zone, so it is
+ * read as the local calendar day it names.
+ *
+ * @type {RegExp}
+ */
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/
+
+/** Milliseconds in a day, used only between two UTC-normalised midnights. */
+const DAY_MS = 86400000
+
+/**
+ * The local calendar day a value names, as a UTC midnight timestamp.
+ *
+ * WHY CALENDAR DAYS AND NOT ELAPSED MILLISECONDS. A deadline is a day on a
+ * calendar, not an instant. Subtracting timestamps makes a deadline at 23:00
+ * today read as "0 days" and one at 01:00 tomorrow read as "0 days" as well
+ * (two hours apart), while 09:00 tomorrow reads as "1 day" — the same calendar
+ * distance rendering as two different answers because of the time somebody
+ * happened to type. So both ends are collapsed to the LOCAL calendar day they
+ * fall on, and the difference is taken between those days.
+ *
+ * The collapse goes through `Date.UTC` rather than a local `Date`, because two
+ * UTC midnights are always exactly `DAY_MS` apart, while two local midnights
+ * across a DST change are 23 or 25 hours apart and a plain division then
+ * rounds to the wrong day twice a year.
+ *
+ * @param {unknown} value A date string, a `Date`, or an epoch-milliseconds number.
+ * @return {number|null} The UTC-midnight timestamp of that local day, or null when there is no readable date.
+ */
+function calendarDay(value) {
+	if (value === null || value === undefined || value === '') {
+		return null
+	}
+	if (typeof value === 'string') {
+		const parts = DATE_ONLY.exec(value.trim())
+		if (parts) {
+			return Date.UTC(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]))
+		}
+	}
+	const isDate = value instanceof Date
+	if (!isDate && typeof value !== 'string' && !Number.isFinite(value)) {
+		// A boolean or an object is not a mis-typed date, it is not a date at
+		// all; `new Date(true)` would happily answer 1 January 1970.
+		return null
+	}
+	const parsed = isDate ? value : new Date(value)
+	if (Number.isNaN(parsed.getTime())) {
+		return null
+	}
+	return Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+}
+
+/**
  * CnStatWidget — an abstract, manifest-configured KPI / single-statistic tile.
  *
  * Reads ONE scalar value from OpenRegister's ad-hoc aggregation endpoint
@@ -248,6 +307,31 @@ const BADGE_VARIANTS = ['default', 'primary', 'success', 'warning', 'error', 'in
  *   ],
  * }
  * ```
+ *
+ * COUNTDOWN MODE. `display: 'countdown'` reads a DATE off the record (or off an
+ * endpoint payload) and renders the time remaining, so a deadline is a
+ * configured KPI tile rather than a component an app writes by hand:
+ * ```js
+ * content: {
+ *   label: 'Deadline',
+ *   display: 'countdown',
+ *   objectField: 'dueDate',
+ *   countdown: {
+ *     unit: 'days',                      // the only unit; anything else is read as days
+ *     warnAt: 14,                        // warning at or below this many days left
+ *     dangerAt: 5,                       // error at or below, and it wins over warnAt
+ *     pastLabel: 'Overdue by {n} days',  // a date that has passed
+ *     emptyText: 'No deadline',          // absent or unreadable date
+ *   },
+ * }
+ * ```
+ * A passed date NEVER renders as a negative number: it renders `pastLabel` with
+ * `{n}` as the number of days it is past, and it is always the error colour
+ * whether or not `dangerAt` is set. Today is 0, not 1 and not −1, and renders
+ * `todayLabel` ("Today"). The thresholds are INCLUSIVE. An absent or unreadable
+ * date renders `countdown.emptyText`, falling back to `content.emptyText` and
+ * then to the dash, never `NaN` or `Invalid Date`. `overrides` outrank the
+ * countdown's own label and colour exactly as they outrank a badge's.
  */
 export default {
 	name: 'CnStatWidget',
@@ -367,10 +451,22 @@ export default {
 		 * match wins) test the bound record: `when` is the local `visibleWhen`
 		 * grammar, and a `when` with neither `op` nor `value` tests the field
 		 * for truthiness. A match replaces the shown label, the colour and the
-		 * icon. Precedence of the colour: override, `variantWhen`, the at-limit
-		 * warning, the resolved row, the static `variant`.
+		 * icon. Precedence of the colour: override, `variantWhen`, the countdown
+		 * threshold, the at-limit warning, the resolved row, the static
+		 * `variant`.
 		 *
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'), emptyText?: string, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string}>}}
+		 * `display: 'countdown'` reads the value as a DATE and renders the days
+		 * remaining. `countdown.warnAt` / `countdown.dangerAt` are inclusive day
+		 * thresholds and `dangerAt` wins; `countdown.pastLabel` (with `{n}`)
+		 * words a date that has passed, which is always the error colour and is
+		 * never shown as a negative number; `countdown.todayLabel` words a date
+		 * due today, which counts as 0; `countdown.futureLabel` (with `{n}`)
+		 * words the ordinary case; `countdown.emptyText` words an absent or
+		 * unreadable date, falling back to the top-level `emptyText`. Days are
+		 * counted between LOCAL CALENDAR DAYS, not as elapsed milliseconds, so
+		 * the time of day on a deadline never moves the answer.
+		 *
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string}>}}
 		 */
 		content: {
 			type: Object,
@@ -606,6 +702,122 @@ export default {
 		},
 
 		/**
+		 * Whether the tile renders its value as a time-remaining countdown.
+		 *
+		 * @return {boolean} true when `content.display` is `'countdown'`.
+		 */
+		isCountdown() {
+			return this.content.display === 'countdown'
+		},
+
+		/**
+		 * The countdown block, or `{}`. `unit` is accepted and ignored: days is
+		 * the only unit this renders, and saying so is better than pretending
+		 * an hours or weeks mode exists.
+		 *
+		 * @return {object} The countdown config.
+		 */
+		countdownConfig() {
+			const cfg = this.content.countdown
+			return (cfg && typeof cfg === 'object') ? cfg : {}
+		},
+
+		/**
+		 * Whole LOCAL CALENDAR DAYS from today to the tile's value read as a
+		 * date. Positive is still to come, 0 is today, negative has passed.
+		 *
+		 * Zero is today because both ends are collapsed onto the calendar day
+		 * they fall on and then subtracted: a deadline dated today is the same
+		 * day as today, and the same day is a distance of nothing. Not 1 (which
+		 * would claim a day that is already being spent) and not −1 (which
+		 * would call a deadline that has not passed overdue).
+		 *
+		 * Null when the tile is not in countdown mode, or when the value holds
+		 * no readable date — which is what keeps `NaN` off the tile.
+		 *
+		 * @return {number|null} The signed day count, or null.
+		 */
+		countdownDays() {
+			if (!this.isCountdown) {
+				return null
+			}
+			const due = calendarDay(this.displayValue)
+			if (due === null) {
+				return null
+			}
+			const now = new Date()
+			const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+			return Math.round((due - today) / DAY_MS)
+		},
+
+		/**
+		 * The countdown sentence: the past wording for a date that has gone by,
+		 * the today wording for today, the future wording otherwise. `{n}` is
+		 * the number of days, never signed — "−3 days left" is exactly the
+		 * reading this mode exists to prevent.
+		 *
+		 * The built-in wordings carry their own singular, so a tile that
+		 * configures nothing still reads "1 day left" rather than "1 days
+		 * left". A configured `futureLabel` / `pastLabel` replaces both forms,
+		 * because a manifest author writing their own wording is the one who
+		 * knows how their language counts.
+		 *
+		 * @return {string} The sentence, or '' when there is nothing to count.
+		 */
+		countdownText() {
+			const days = this.countdownDays
+			if (days === null) {
+				return ''
+			}
+			const cfg = this.countdownConfig
+			if (days === 0) {
+				return this.effectiveTranslate(cfg.todayLabel || 'Today')
+			}
+			const n = Math.abs(days)
+			const past = days < 0
+			let template = past ? cfg.pastLabel : cfg.futureLabel
+			if (typeof template !== 'string' || template === '') {
+				if (past) {
+					template = n === 1 ? 'Overdue by {n} day' : 'Overdue by {n} days'
+				} else {
+					template = n === 1 ? '{n} day left' : '{n} days left'
+				}
+			}
+			return this.effectiveTranslate(template).replace(/\{n\}/g, String(n))
+		},
+
+		/**
+		 * The colour the countdown itself asks for: error once the date has
+		 * passed or the day count is at or below `dangerAt`, warning at or
+		 * below `warnAt`, else ''.
+		 *
+		 * A passed date is the danger colour whether or not `dangerAt` is
+		 * configured: overdue is not a threshold anybody has to opt into. Both
+		 * thresholds are INCLUSIVE, and `dangerAt` is tested first, so exactly
+		 * 5 days with `dangerAt: 5` is danger and not warning even when
+		 * `warnAt` also matches.
+		 *
+		 * @return {string} 'error', 'warning', or ''.
+		 */
+		countdownVariant() {
+			const days = this.countdownDays
+			if (days === null) {
+				return ''
+			}
+			if (days < 0) {
+				return 'error'
+			}
+			const cfg = this.countdownConfig
+			if (Number.isFinite(cfg.dangerAt) && days <= cfg.dangerAt) {
+				return 'error'
+			}
+			if (Number.isFinite(cfg.warnAt) && days <= cfg.warnAt) {
+				return 'warning'
+			}
+			return ''
+		},
+
+		/**
 		 * The first `content.overrides` entry whose `when` matches the BOUND
 		 * RECORD, or null. Needs a detail-page record: on a dashboard there is
 		 * nothing to test, so no override applies.
@@ -631,24 +843,35 @@ export default {
 		 * lookup found nothing. Without `emptyText` an unresolvable reference
 		 * keeps showing its raw value, as it always has.
 		 *
+		 * In countdown mode it applies to an UNREADABLE date as well, not only
+		 * to an absent one. `'not yet planned'` is a perfectly non-empty value
+		 * and there is no countdown to be had from it, so without this the tile
+		 * would print the raw string where a deadline belongs.
+		 *
 		 * @return {string} The text to show instead of the value, or ''.
 		 */
 		emptyValueText() {
-			const text = this.content.emptyText
+			const text = this.isCountdown
+				? (this.countdownConfig.emptyText || this.content.emptyText)
+				: this.content.emptyText
 			if (typeof text !== 'string' || text === '') {
 				return ''
 			}
 			const v = this.displayValue
 			const empty = v === null || v === undefined || v === ''
-			if (empty || (this.objectFieldMode && this.referenceFailed)) {
+			if (empty || (this.objectFieldMode && this.referenceFailed) || (this.isCountdown && this.countdownDays === null)) {
 				return this.effectiveTranslate(text)
 			}
 			return ''
 		},
 
 		/**
-		 * The text the tile shows: an override's label, else the empty text,
-		 * else the formatted value.
+		 * The text the tile shows: an override's label, else the countdown
+		 * sentence, else the empty text, else the formatted value.
+		 *
+		 * The override sits above the countdown for the same reason it sits
+		 * above a badge's status: a suspended case is not waiting for its
+		 * deadline, so it reads as suspended.
 		 *
 		 * @return {string} The shown text.
 		 */
@@ -657,7 +880,7 @@ export default {
 			if (override && typeof override.label === 'string' && override.label !== '') {
 				return this.effectiveTranslate(override.label)
 			}
-			return this.emptyValueText || this.formattedValue
+			return this.countdownText || this.emptyValueText || this.formattedValue
 		},
 
 		/**
@@ -907,6 +1130,13 @@ export default {
 			const rule = this.activeVariantRule
 			if (rule && rule.variant) {
 				return VARIANT_COLORS[rule.variant] || ''
+			}
+			// The countdown's own threshold sits below `variantWhen`, which is
+			// the author naming a colour outright, and above the at-limit tint,
+			// which is the generic one. A passed date reports `error` from here
+			// whether or not a threshold was configured.
+			if (this.countdownVariant) {
+				return VARIANT_COLORS[this.countdownVariant] || ''
 			}
 			// An explicit variantWhen rule always wins: a tile that says how it
 			// wants to be coloured is not overruled by the generic at-limit tint.
