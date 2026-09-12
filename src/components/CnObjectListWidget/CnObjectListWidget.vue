@@ -374,7 +374,7 @@ export default {
 		 * field's entries are flattened) and narrows the rendered rows to
 		 * those carrying a selected value. Client-side over the fetched page,
 		 * like the rest of this widget's row set.
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, selectable?: boolean, bulkActions?: Array<object>, sortable?: (boolean|Array<string>), facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object}}
 		 */
 		content: {
 			type: Object,
