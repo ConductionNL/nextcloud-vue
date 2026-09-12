@@ -16,7 +16,7 @@
  * sources, everything else returns the staged entry page.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnActivityTab = require('../CnActivityTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -62,12 +62,6 @@ function routedFetch(entryResponder, dropdowns = {}) {
 	})
 }
 
-async function flush(wrapper) {
-	await wrapper.vm.$nextTick()
-	await wrapper.vm.$nextTick()
-	await wrapper.vm.$nextTick()
-}
-
 describe('CnActivityTab', () => {
 	afterEach(() => {
 		delete global.fetch
@@ -76,7 +70,7 @@ describe('CnActivityTab', () => {
 	it('renders the empty state when the provider returns no entries', async () => {
 		global.fetch = routedFetch(() => jsonOk({ results: [], total: 0, nextCursor: null }))
 		const wrapper = mount(CnActivityTab, { propsData: { ...DEFAULT_PROPS } })
-		await flush(wrapper)
+		await flushPromises()
 		expect(wrapper.text()).toContain('No activity yet for this object')
 		wrapper.unmount()
 	})
@@ -95,7 +89,7 @@ describe('CnActivityTab', () => {
 			nextCursor: null,
 		}))
 		const wrapper = mount(CnActivityTab, { propsData: { ...DEFAULT_PROPS } })
-		await flush(wrapper)
+		await flushPromises()
 		const days = wrapper.findAll('.cn-activity-tab__day')
 		expect(days).toHaveLength(2)
 		const text = wrapper.text()
@@ -114,7 +108,7 @@ describe('CnActivityTab', () => {
 			nextCursor: null,
 		}))
 		const wrapper = mount(CnActivityTab, { propsData: { ...DEFAULT_PROPS } })
-		await flush(wrapper)
+		await flushPromises()
 		expect(wrapper.text()).toContain('Bob added a comment')
 		expect(wrapper.text()).toContain('bob')
 		wrapper.unmount()
@@ -126,7 +120,7 @@ describe('CnActivityTab', () => {
 			{ types: ['files', 'or:decision'], actors: ['alice', 'bob'] },
 		)
 		const wrapper = mount(CnActivityTab, { propsData: { ...DEFAULT_PROPS } })
-		await flush(wrapper)
+		await flushPromises()
 		expect(wrapper.vm.types).toEqual(['files', 'or:decision'])
 		expect(wrapper.vm.actors).toEqual(['alice', 'bob'])
 		const options = wrapper.findAll('option').map((w) => w.text())
@@ -141,12 +135,12 @@ describe('CnActivityTab', () => {
 			{ types: ['files'], actors: [] },
 		)
 		const wrapper = mount(CnActivityTab, { propsData: { ...DEFAULT_PROPS } })
-		await flush(wrapper)
+		await flushPromises()
 		global.fetch.mockClear()
 
 		wrapper.vm.selectedType = 'files'
 		await wrapper.vm.resetAndFetch()
-		await flush(wrapper)
+		await flushPromises()
 
 		const entryCall = global.fetch.mock.calls
 			.map((c) => c[0])
@@ -158,11 +152,11 @@ describe('CnActivityTab', () => {
 	it('sets the after query param when a date range is selected', async () => {
 		global.fetch = routedFetch(() => jsonOk({ results: [], total: 0, nextCursor: null }))
 		const wrapper = mount(CnActivityTab, { propsData: { ...DEFAULT_PROPS } })
-		await flush(wrapper)
+		await flushPromises()
 		global.fetch.mockClear()
 
 		wrapper.vm.selectRange('7d')
-		await flush(wrapper)
+		await flushPromises()
 
 		const entryCall = global.fetch.mock.calls
 			.map((c) => c[0])
@@ -197,12 +191,12 @@ describe('CnActivityTab', () => {
 		})
 
 		const wrapper = mount(CnActivityTab, { propsData: { ...DEFAULT_PROPS, pageSize: 2 } })
-		await flush(wrapper)
+		await flushPromises()
 		expect(wrapper.vm.entries).toHaveLength(2)
 		expect(wrapper.vm.hasMore).toBe(true)
 
 		await wrapper.vm.loadMore()
-		await flush(wrapper)
+		await flushPromises()
 		expect(wrapper.vm.entries).toHaveLength(4)
 		expect(wrapper.vm.hasMore).toBe(false)
 
@@ -219,7 +213,7 @@ describe('CnActivityTab', () => {
 	it('renders the unavailable banner on 501', async () => {
 		global.fetch = routedFetch(() => ({ ok: false, status: 501, json: () => Promise.resolve({}) }))
 		const wrapper = mount(CnActivityTab, { propsData: { ...DEFAULT_PROPS } })
-		await flush(wrapper)
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Activity is currently unavailable.')
 		wrapper.unmount()
 	})
@@ -227,7 +221,7 @@ describe('CnActivityTab', () => {
 	it('renders the unavailable banner on 503', async () => {
 		global.fetch = routedFetch(() => ({ ok: false, status: 503, json: () => Promise.resolve({}) }))
 		const wrapper = mount(CnActivityTab, { propsData: { ...DEFAULT_PROPS } })
-		await flush(wrapper)
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Activity is currently unavailable.')
 		wrapper.unmount()
 	})
@@ -241,7 +235,7 @@ describe('CnActivityTab', () => {
 			return Promise.reject(new Error('boom'))
 		})
 		const wrapper = mount(CnActivityTab, { propsData: { ...DEFAULT_PROPS } })
-		await flush(wrapper)
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load activity.')
 		wrapper.unmount()
 		spy.mockRestore()

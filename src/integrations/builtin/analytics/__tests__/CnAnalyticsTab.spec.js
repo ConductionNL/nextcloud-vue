@@ -15,7 +15,7 @@
  *    per-row unlink (unlinkReport) POST/DELETE to the OR endpoints.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnAnalyticsTab = require('../CnAnalyticsTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -53,8 +53,7 @@ describe('CnAnalyticsTab', () => {
 	it('renders the empty state with an "Open Analytics" CTA when no reports', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce(okJson({ results: [] }))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No reports linked yet')
 		expect(wrapper.text()).toContain('Open Analytics')
 		wrapper.unmount()
@@ -68,8 +67,7 @@ describe('CnAnalyticsTab', () => {
 			],
 		}))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		// Each report renders as an NcListItem row.
 		const rows = wrapper.findAll('.cn-analytics-tab__row')
 		expect(rows).toHaveLength(2)
@@ -99,8 +97,7 @@ describe('CnAnalyticsTab', () => {
 			],
 		}))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		// Title is bound to the NcListItem `name` attribute; subheader is text.
 		const row = wrapper.find('.cn-analytics-tab__row')
 		expect(row.attributes('name')).toBe('KPI')
@@ -116,8 +113,7 @@ describe('CnAnalyticsTab', () => {
 			results: [makeReport({ reportId: 99, reportType: 999 })],
 		}))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Report')
 		wrapper.unmount()
 	})
@@ -127,8 +123,7 @@ describe('CnAnalyticsTab', () => {
 			results: [makeReport({ reportId: 11, reportTitle: 'Revenue', value: 12345 })],
 		}))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.find('.cn-analytics-tab__kpi').exists()).toBe(true)
 		expect(wrapper.find('.cn-analytics-tab__kpi').text()).toBe((12345).toLocaleString())
 		wrapper.unmount()
@@ -139,8 +134,7 @@ describe('CnAnalyticsTab', () => {
 			results: [makeReport({ reportId: 12, value: undefined, kpi: undefined })],
 		}))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.find('.cn-analytics-tab__kpi').exists()).toBe(false)
 		wrapper.unmount()
 	})
@@ -148,8 +142,7 @@ describe('CnAnalyticsTab', () => {
 	it('shows the unavailable banner when the endpoint returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce(okJson({}, 503))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Analytics is currently unavailable.')
 		expect(wrapper.find('.cn-analytics-tab__row').exists()).toBe(false)
 		wrapper.unmount()
@@ -159,8 +152,7 @@ describe('CnAnalyticsTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load reports.')
 		wrapper.unmount()
 		spy.mockRestore()
@@ -172,8 +164,7 @@ describe('CnAnalyticsTab', () => {
 			.mockResolvedValueOnce(okJson({ id: 1 }, 201)) // link POST
 			.mockResolvedValueOnce(okJson({ results: [makeReport({ reportId: 5, reportTitle: 'Linked' })] })) // refetch
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.vm.onLinkPick({ reportId: 5 })
 		await wrapper.vm.$nextTick()
@@ -192,8 +183,7 @@ describe('CnAnalyticsTab', () => {
 			.mockResolvedValueOnce(okJson({ results: [] }))
 			.mockResolvedValueOnce(okJson({ error: 'dup' }, 409))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.vm.onLinkPick({ reportId: 5 })
 		await wrapper.vm.$nextTick()
@@ -207,8 +197,7 @@ describe('CnAnalyticsTab', () => {
 			.mockResolvedValueOnce(okJson({ id: 9 }, 201))
 			.mockResolvedValueOnce(okJson({ results: [] }))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.vm.onCreatePick({ name: 'New report', type: 0 })
 		await wrapper.vm.$nextTick()
@@ -226,8 +215,7 @@ describe('CnAnalyticsTab', () => {
 			.mockResolvedValueOnce(okJson({ success: true }))
 			.mockResolvedValueOnce(okJson({ results: [] }))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.vm.unlinkReport({ reportId: 5 })
 		await wrapper.vm.$nextTick()
