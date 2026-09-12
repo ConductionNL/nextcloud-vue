@@ -19,17 +19,19 @@ const CnEditDataModal = require('../../src/dialogs/CnEditDataModal.vue').default
 const { onSchemaConfirm, confirmBreaking, cancelBreaking, describeBreakingChange } = CnEditDataModal.methods
 const { breakingChanges } = CnEditDataModal.computed
 
-const breaking409 = () => ({
-	message: 'Request failed with status code 409',
-	response: {
-		status: 409,
-		data: {
-			error: 'Schema change classified breaking; acknowledgeBreaking required.',
-			classification: 'breaking',
-			changes: [{ property: 'barn', kind: 'type_changed', old: 'string', new: 'object' }],
+function breaking409() {
+	return {
+		message: 'Request failed with status code 409',
+		response: {
+			status: 409,
+			data: {
+				error: 'Schema change classified breaking; acknowledgeBreaking required.',
+				classification: 'breaking',
+				changes: [{ property: 'barn', kind: 'type_changed', old: 'string', new: 'object' }],
+			},
 		},
-	},
-})
+	}
+}
 
 const axios = require('@nextcloud/axios').default
 
@@ -57,7 +59,9 @@ function harness() {
 }
 
 describe('CnEditDataModal — breaking schema change', () => {
-	beforeEach(() => { jest.resetAllMocks() })
+	beforeEach(() => {
+		jest.resetAllMocks()
+	})
 
 	it('offers the acknowledgement instead of a dead end', async () => {
 		axios.put = jest.fn().mockRejectedValue(breaking409())

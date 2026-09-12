@@ -11,15 +11,15 @@
 <template>
 	<CnWidgetWrapper
 		:title="title"
-		:show-title="showTitle"
-		:show-actions="showActions"
+		:showTitle="showTitle"
+		:showActions="showActions"
 		:borderless="borderless"
 		:flush="flush"
 		:chromeless="chromeless"
-		:widget-id="widgetId || objectType"
-		:documentation-url="documentationUrl"
+		:widgetId="widgetId || objectType"
+		:documentationUrl="documentationUrl"
 		:class="{ 'cn-object-data-widget--expanded': overflowing && expanded }"
-		:title-icon-position="(iconComponent || iconName) ? 'left' : 'right'">
+		:titleIconPosition="(iconComponent || iconName) ? 'left' : 'right'">
 		<template v-if="iconName" #title-icon>
 			<CnIcon :name="iconName" :size="20" />
 		</template>
@@ -50,7 +50,7 @@
 		<template #action-items>
 			<NcActionButton
 				v-if="editable"
-				:close-after-click="true"
+				:closeAfterClick="true"
 				@click="editModalOpen = true">
 				<template #icon>
 					<Pencil :size="20" />
@@ -58,7 +58,7 @@
 				{{ editLabel }}
 			</NcActionButton>
 			<NcActionButton
-				:close-after-click="true"
+				:closeAfterClick="true"
 				@click="metadataModalOpen = true">
 				<template #icon>
 					<InformationOutline :size="20" />
@@ -116,10 +116,10 @@
 							<NcTextField
 								v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'"
 								ref="activeEditor"
-								:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
+								:modelValue="editData[field.key] != null ? String(editData[field.key]) : ''"
 								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
 								:placeholder="field.description"
-								@update:model-value="val => updateField(field.key, val)"
+								@update:modelValue="val => updateField(field.key, val)"
 								@keydown.enter="commitEdit"
 								@keydown.escape="cancelEdit" />
 
@@ -127,10 +127,10 @@
 							<NcTextField
 								v-else-if="field.widget === 'number'"
 								ref="activeEditor"
-								:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
+								:modelValue="editData[field.key] != null ? String(editData[field.key]) : ''"
 								type="number"
 								:placeholder="field.description"
-								@update:model-value="val => updateField(field.key, val !== '' ? Number(val) : null)"
+								@update:modelValue="val => updateField(field.key, val !== '' ? Number(val) : null)"
 								@keydown.enter="commitEdit"
 								@keydown.escape="cancelEdit" />
 
@@ -154,11 +154,11 @@
 								v-else-if="isSingleRelationField(field.key)"
 								ref="activeEditor"
 								:options="relationOptions[field.key] || []"
-								:model-value="relationSelectedOption(field)"
+								:modelValue="relationSelectedOption(field)"
 								:loading="relationOptionsLoading"
 								label="label"
 								:clearable="!field.required"
-								@update:model-value="onRelationChange(field, $event)"
+								@update:modelValue="onRelationChange(field, $event)"
 								@close="commitEdit" />
 
 							<!-- Select -->
@@ -166,9 +166,9 @@
 								v-else-if="field.widget === 'select'"
 								ref="activeEditor"
 								:options="getSelectOptions(field)"
-								:model-value="getSelectedOption(field)"
+								:modelValue="getSelectedOption(field)"
 								:clearable="!field.required"
-								@update:model-value="onSelectChange(field, $event)"
+								@update:modelValue="onSelectChange(field, $event)"
 								@close="commitEdit" />
 
 							<!-- Multiselect -->
@@ -176,29 +176,29 @@
 								v-else-if="field.widget === 'multiselect'"
 								ref="activeEditor"
 								:options="getMultiselectOptions(field)"
-								:model-value="getSelectedMultiselectOptions(field)"
+								:modelValue="getSelectedMultiselectOptions(field)"
 								:multiple="true"
-								:keep-open="true"
+								:keepOpen="true"
 								:clearable="true"
-								@update:model-value="onMultiselectChange(field, $event)" />
+								@update:modelValue="onMultiselectChange(field, $event)" />
 
 							<!-- Tags -->
 							<NcSelect
 								v-else-if="field.widget === 'tags'"
 								ref="activeEditor"
-								:model-value="editData[field.key] || []"
+								:modelValue="editData[field.key] || []"
 								:multiple="true"
-								:keep-open="true"
+								:keepOpen="true"
 								:taggable="true"
 								:clearable="true"
-								@update:model-value="val => updateField(field.key, val)" />
+								@update:modelValue="val => updateField(field.key, val)" />
 
 							<!-- Checkbox / Switch -->
 							<NcCheckboxRadioSwitch
 								v-else-if="field.widget === 'checkbox'"
-								:model-value="!!editData[field.key]"
+								:modelValue="!!editData[field.key]"
 								type="switch"
-								@update:model-value="val => { updateField(field.key, val); commitEdit() }">
+								@update:modelValue="val => { updateField(field.key, val); commitEdit() }">
 								{{ editData[field.key] ? 'Yes' : 'No' }}
 							</NcCheckboxRadioSwitch>
 
@@ -206,9 +206,9 @@
 							<NcTextField
 								v-else-if="field.widget === 'date'"
 								ref="activeEditor"
-								:model-value="editData[field.key] || ''"
+								:modelValue="editData[field.key] || ''"
 								type="date"
-								@update:model-value="val => updateField(field.key, val)"
+								@update:modelValue="val => updateField(field.key, val)"
 								@keydown.enter="commitEdit"
 								@keydown.escape="cancelEdit" />
 
@@ -216,9 +216,9 @@
 							<NcTextField
 								v-else-if="field.widget === 'datetime'"
 								ref="activeEditor"
-								:model-value="editData[field.key] || ''"
+								:modelValue="editData[field.key] || ''"
 								type="datetime-local"
-								@update:model-value="val => updateField(field.key, val)"
+								@update:modelValue="val => updateField(field.key, val)"
 								@keydown.enter="commitEdit"
 								@keydown.escape="cancelEdit" />
 
@@ -226,9 +226,9 @@
 							<NcTextField
 								v-else
 								ref="activeEditor"
-								:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
+								:modelValue="editData[field.key] != null ? String(editData[field.key]) : ''"
 								:placeholder="field.description"
-								@update:model-value="val => updateField(field.key, val)"
+								@update:modelValue="val => updateField(field.key, val)"
 								@keydown.enter="commitEdit"
 								@keydown.escape="cancelEdit" />
 						</template>
@@ -237,12 +237,12 @@
 						<div
 							v-if="field.widget !== 'checkbox'"
 							class="cn-object-data-widget__editor-actions">
-							<NcButton type="tertiary-no-background" @click="commitEdit">
+							<NcButton variant="tertiary-no-background" @click="commitEdit">
 								<template #icon>
 									<Check :size="20" />
 								</template>
 							</NcButton>
-							<NcButton type="tertiary-no-background" @click="cancelEdit">
+							<NcButton variant="tertiary-no-background" @click="cancelEdit">
 								<template #icon>
 									<Close :size="20" />
 								</template>
@@ -363,7 +363,7 @@
 		     Metadata action item rather than as a permanent page widget. -->
 		<CnObjectMetadataModal
 			v-if="metadataModalOpen"
-			:object-data="objectData"
+			:objectData="objectData"
 			@close="metadataModalOpen = false" />
 
 		<!-- Full-form edit (alongside the per-field inline editing) — schema-driven
@@ -372,10 +372,10 @@
 			v-if="editModalOpen"
 			:schema="schema"
 			:item="objectData"
-			:dialog-title="editLabel"
+			:dialogTitle="editLabel"
 			:overrides="resolvedOverrides"
-			:exclude-fields="exclude"
-			:include-fields="include"
+			:excludeFields="exclude"
+			:includeFields="include"
 			:size="formSize"
 			:columns="formColumns"
 			@confirm="onEditConfirm"
@@ -384,23 +384,23 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcActionButton } from '@nextcloud/vue'
-import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
-import { CnIcon } from '../CnIcon/index.js'
-import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
-import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
-import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
+import { generateUrl } from '@nextcloud/router'
+import { NcActionButton, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
+import Check from 'vue-material-design-icons/Check.vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
-import Check from 'vue-material-design-icons/Check.vue'
-import Close from 'vue-material-design-icons/Close.vue'
-import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
-import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
+import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import { useObjectStore } from '../../store/index.js'
+import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
+import { CnIcon } from '../CnIcon/index.js'
+import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
+import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
 /**
  * CnObjectDataWidget — Schema-driven editable data grid widget.
@@ -489,6 +489,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Data'),
 		},
+
 		/**
 		 * Draw the header's title row.
 		 *
@@ -500,12 +501,14 @@ export default {
 		 * It exists because `title` carries a DEFAULT of "Data". A host that
 		 * wanted no title passed `undefined` and got the default instead, which
 		 * is how a tab panel ended up with a "Data" heading nobody chose.
+		 *
 		 * @type {boolean}
 		 */
 		showTitle: {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Show the overflow Actions menu in the header.
 		 *
@@ -524,28 +527,34 @@ export default {
 		 * utils/panelActions.js. Inline editing never used the menu at all: a cell
 		 * opens its editor when clicked, and Save and Discard appear in the
 		 * `actions` slot from the moment there is an edit to commit.
+		 *
 		 * @type {boolean}
 		 */
 		showActions: {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Drop the card border and background, for a host that draws its own.
+		 *
 		 * @type {boolean}
 		 */
 		borderless: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Drop the content padding, for a host that supplies its own inset.
+		 *
 		 * @type {boolean}
 		 */
 		flush: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Draw no card at all: no border, no background, no content padding,
 		 * no title row, no header divider. What a tab panel wants, in one word
@@ -557,17 +566,20 @@ export default {
 		 * plain HTML attribute, and changed nothing — a caller asking for the
 		 * documented thing got a silent no-op with an attribute in the DOM to
 		 * suggest it had worked.
+		 *
 		 * @type {boolean}
 		 */
 		chromeless: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Optional MDI icon component for the header. */
 		icon: {
 			type: [Object, Function, String],
 			default: null,
 		},
+
 		/**
 		 * Documentation link surfaced in the widget's overflow Actions
 		 * menu. Empty (the default) hides the Documentation item; the
@@ -577,6 +589,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Stable id forwarded to the widget chrome for the Refresh /
 		 * Request-a-feature payloads. Falls back to `objectType`, then to a
@@ -586,6 +599,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * The JSON Schema describing the object's properties.
 		 * Must have a `properties` field.
@@ -599,6 +613,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * The object data to display and edit.
 		 * Keys should match the schema property keys.
@@ -611,6 +626,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * The registered object type slug in the objectStore.
 		 * Required for saving via objectStore.saveObject().
@@ -619,6 +635,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional objectStore instance. When provided, used directly for saving.
 		 * When not provided, falls back to auto-detecting the store via Pinia.
@@ -627,6 +644,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Per-property configuration overrides.
 		 * Keys are property names, values are override objects.
@@ -650,6 +668,7 @@ export default {
 			type: [Object, Array],
 			default: () => ({}),
 		},
+
 		/**
 		 * Number of grid columns.
 		 */
@@ -657,6 +676,7 @@ export default {
 			type: Number,
 			default: 3,
 		},
+
 		/**
 		 * Whether editing is enabled globally.
 		 * When false, no fields are editable regardless of per-field settings.
@@ -665,6 +685,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Hide fields that have no value, instead of rendering them with an em dash.
 		 *
@@ -682,22 +703,27 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Properties to exclude from display.
+		 *
 		 * @type {string[]}
 		 */
 		exclude: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Properties to include (whitelist mode). If provided, only these are shown.
+		 *
 		 * @type {string[]}
 		 */
 		include: {
 			type: Array,
 			default: () => null,
 		},
+
 		/**
 		 * NcDialog size for the edit form dialog. This widget already scopes
 		 * the form with `include` / `exclude`, but a scoped form can still be
@@ -707,6 +733,7 @@ export default {
 			type: String,
 			default: 'normal',
 		},
+
 		/**
 		 * How many columns the edit form flows its fields into. Pair `2` with
 		 * `formSize: 'large'`, or the two columns are merely two narrow ones.
@@ -716,26 +743,31 @@ export default {
 			default: 1,
 			validator: (value) => value === 1 || value === 2,
 		},
+
 		/** Label for the save button */
 		saveLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Save'),
 		},
+
 		/** Label for the discard button */
 		discardLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Discard'),
 		},
+
 		/** Label shown when no properties to display */
 		emptyLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No data available'),
 		},
+
 		/** Label for the Metadata item in the overflow Actions menu. */
 		metadataLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Metadata'),
 		},
+
 		/** Label for the Edit action item (opens the full-form edit dialog). */
 		editLabel: {
 			type: String,
@@ -799,14 +831,18 @@ export default {
 					key: 'edit',
 					label: this.editLabel,
 					icon: 'Pencil',
-					run: () => { this.editModalOpen = true },
+					run: () => {
+						this.editModalOpen = true
+					},
 				})
 			}
 			items.push({
 				key: 'metadata',
 				label: this.metadataLabel,
 				icon: 'InformationOutline',
-				run: () => { this.metadataModalOpen = true },
+				run: () => {
+					this.metadataModalOpen = true
+				},
 			})
 			return items
 		},
@@ -851,7 +887,7 @@ export default {
 
 			// Attach grid span info (a display-only concern, not part of the
 			// shared field pipeline) from the same overrides map.
-			const withSpans = fields.map(field => ({
+			const withSpans = fields.map((field) => ({
 				...field,
 				gridColumn: (this.resolvedOverrides[field.key] && this.resolvedOverrides[field.key].gridColumn) || 1,
 				gridRow: (this.resolvedOverrides[field.key] && this.resolvedOverrides[field.key].gridRow) || 1,
@@ -863,7 +899,7 @@ export default {
 
 			// Keep a field the user is currently editing or has pending changes for,
 			// otherwise it would vanish mid-edit the moment its value is cleared.
-			return withSpans.filter(field => field.key === this.editingField
+			return withSpans.filter((field) => field.key === this.editingField
 				|| field.key in this.dirtyFields
 				|| !this.isEmptyValue((this.objectData || {})[field.key]))
 		},
@@ -875,15 +911,19 @@ export default {
 		 * The stored value is untouched — only what the user reads changes, so
 		 * inline editing still writes back the raw code.
 		 *
-		 * @return {(field: object, raw: *) => string|null} Given the resolved
+		 * @return {(field: object, raw: unknown) => string|null} Given the resolved
 		 *   field descriptor and the stored value, the label to display — or
 		 *   null to fall through to `formatValue`.
 		 */
 		enumDisplayLabel() {
 			return (field, raw) => {
-				if (raw === null || raw === undefined || raw === '') return null
+				if (raw === null || raw === undefined || raw === '') {
+					return null
+				}
 				const values = Array.isArray(field.enum) ? field.enum : null
-				if (values === null || !values.includes(raw)) return null
+				if (values === null || !values.includes(raw)) {
+					return null
+				}
 				const labels = field.enumLabels || {}
 				return this.cnTranslate(labels[raw] || String(raw))
 			}
@@ -900,7 +940,7 @@ export default {
 					? this.dirtyFields[field.key]
 					: (this.objectData || {})[field.key]
 				const prop = this.schema.properties && this.schema.properties[field.key]
-				if (this.isRelationField(prop) && raw != null && raw !== '') {
+				if (this.isRelationField(prop) && raw !== null && raw !== undefined && raw !== '') {
 					values[field.key] = this.relationLabel(raw)
 					continue
 				}
@@ -939,7 +979,7 @@ export default {
 		 */
 		collapsedGridStyle() {
 			const style = { ...this.gridStyle }
-			if (this.overflowing && !this.expanded && this.collapsedMaxHeight != null) {
+			if (this.overflowing && !this.expanded && this.collapsedMaxHeight !== null && this.collapsedMaxHeight !== undefined) {
 				style.maxHeight = this.collapsedMaxHeight + 'px'
 			}
 			return style
@@ -972,19 +1012,28 @@ export default {
 				this.resolveRelations()
 			},
 		},
+
 		schema: {
-			handler() { this.resolveRelations() },
+			handler() {
+				this.resolveRelations()
+			},
 		},
+
 		// Republish when the items change (a label retranslated, `editable`
 		// flipped) and when the widget's own menu comes or goes. Not `immediate`:
 		// an immediate watcher runs during this component's own setup, and
 		// publishing then would mutate the ancestor's state mid-render. Mounted
 		// does it once the tree is settled.
 		panelActionItems: {
-			handler() { this.publishPanelActions() },
+			handler() {
+				this.publishPanelActions()
+			},
 		},
+
 		showActions: {
-			handler() { this.publishPanelActions() },
+			handler() {
+				this.publishPanelActions()
+			},
 		},
 	},
 
@@ -999,12 +1048,18 @@ export default {
 	},
 
 	beforeUnmount() {
-		if (this._overflowObserver) this._overflowObserver.disconnect()
-		if (this._overflowTimer) clearTimeout(this._overflowTimer)
+		if (this._overflowObserver) {
+			this._overflowObserver.disconnect()
+		}
+		if (this._overflowTimer) {
+			clearTimeout(this._overflowTimer)
+		}
 		// Leave nothing behind in the strip's menu. A closed tab's panel can be
 		// torn down while the strip lives on, and an item whose widget is gone
 		// would open a dialog belonging to nothing.
-		if (this.panelActionSink) this.panelActionSink.clear()
+		if (this.panelActionSink) {
+			this.panelActionSink.clear()
+		}
 	},
 
 	methods: {
@@ -1018,7 +1073,9 @@ export default {
 		 * @return {void}
 		 */
 		publishPanelActions() {
-			if (!this.panelActionSink) return
+			if (!this.panelActionSink) {
+				return
+			}
 			if (this.showActions) {
 				this.panelActionSink.clear()
 				return
@@ -1032,7 +1089,9 @@ export default {
 		/** Toggle the expand/collapse state and, on collapse, re-measure. */
 		toggleExpanded() {
 			this.expanded = !this.expanded
-			if (!this.expanded) this.$nextTick(() => this.measureOverflow())
+			if (!this.expanded) {
+				this.$nextTick(() => this.measureOverflow())
+			}
 		},
 
 		/**
@@ -1044,7 +1103,9 @@ export default {
 		 * @return {void}
 		 */
 		scheduleOverflowMeasure() {
-			if (typeof window === 'undefined') return
+			if (typeof window === 'undefined') {
+				return
+			}
 			if (!this._overflowObserver && typeof ResizeObserver !== 'undefined' && this.$refs.grid) {
 				const content = this.$refs.grid.closest && this.$refs.grid.closest('.cn-widget-wrapper__content')
 				if (content) {
@@ -1065,10 +1126,16 @@ export default {
 		 * @return {void}
 		 */
 		measureOverflow() {
-			if (this.expanded) return
+			if (this.expanded) {
+				return
+			}
 			const grid = this.$refs.grid
 			const content = grid && grid.closest && grid.closest('.cn-widget-wrapper__content')
-			if (!grid || !content) { this.overflowing = false; this.collapsedMaxHeight = null; return }
+			if (!grid || !content) {
+				this.overflowing = false
+				this.collapsedMaxHeight = null
+				return
+			}
 			const avail = content.clientHeight
 			// Natural (unclipped) grid height. `scrollHeight` ignores the
 			// max-height clip so it reflects the full field set.
@@ -1119,23 +1186,30 @@ export default {
 		 * @return {number} The clip height (px).
 		 */
 		computeWholeRowClip(rowBottoms, budget) {
-			if (!rowBottoms.length) return budget
+			if (!rowBottoms.length) {
+				return budget
+			}
 			let clip = rowBottoms[0]
 			for (const b of rowBottoms) {
-				if (b <= budget) clip = b
-				else break
+				if (b <= budget) {
+					clip = b
+				} else {
+					break
+				}
 			}
 			return clip
 		},
 
 		/**
 		 * Raw (possibly dirty) value for a field.
+		 *
 		 * @param {object} field The field descriptor (from `fieldsFromSchema`).
 		 */
 		rawOf(field) {
 			const o = this.objectData || {}
 			return (field.key in this.dirtyFields) ? this.dirtyFields[field.key] : o[field.key]
 		},
+
 		/**
 		 * Classify a field's raw value for display so the template can pick a
 		 * legible renderer (ADR-062: a structured value must never render as
@@ -1147,17 +1221,24 @@ export default {
 		 */
 		fieldValueKind(field) {
 			const prop = ((this.schema && this.schema.properties) || {})[field.key]
-			if (this.isRelationField(prop)) return 'scalar'
+			if (this.isRelationField(prop)) {
+				return 'scalar'
+			}
 			const raw = this.rawOf(field)
 			if (Array.isArray(raw)) {
-				if (raw.length === 0) return 'scalar'
+				if (raw.length === 0) {
+					return 'scalar'
+				}
 				return raw.some((v) => v !== null && typeof v === 'object' && !Array.isArray(v))
 					? 'object-array'
 					: 'scalar-array'
 			}
-			if (raw !== null && typeof raw === 'object') return 'object'
+			if (raw !== null && typeof raw === 'object') {
+				return 'object'
+			}
 			return 'scalar'
 		},
+
 		/**
 		 * Column keys for an array-of-objects inline table: the union of the
 		 * keys of the first three items, capped at five columns.
@@ -1166,17 +1247,22 @@ export default {
 		 * @return {string[]} Up to five column keys.
 		 */
 		objectArrayColumns(raw) {
-			if (!Array.isArray(raw)) return []
+			if (!Array.isArray(raw)) {
+				return []
+			}
 			const keys = []
 			for (const item of raw.slice(0, 3)) {
 				if (item && typeof item === 'object') {
 					for (const k of Object.keys(item)) {
-						if (!keys.includes(k)) keys.push(k)
+						if (!keys.includes(k)) {
+							keys.push(k)
+						}
 					}
 				}
 			}
 			return keys.slice(0, 5)
 		},
+
 		/**
 		 * The first five rows of an array-of-objects value (the table caps at
 		 * five rows + an "N more" affordance).
@@ -1187,26 +1273,32 @@ export default {
 		objectArrayRows(raw) {
 			return Array.isArray(raw) ? raw.slice(0, 5) : []
 		},
+
 		/**
 		 * `[key, value]` pairs of a single plain-object value, for the compact
 		 * definition-list renderer.
 		 *
 		 * @param {object} raw The object value.
-		 * @return {Array<[string, *]>} The entries.
+		 * @return {Array<[string, unknown]>} The entries.
 		 */
 		objectEntries(raw) {
 			return (raw && typeof raw === 'object') ? Object.entries(raw) : []
 		},
+
 		/**
 		 * Stringify a scalar cell value; a nested object/array collapses to
 		 * compact JSON (never "[object Object]").
 		 *
-		 * @param {*} v The cell value.
+		 * @param {unknown} v The cell value.
 		 * @return {string} The display string.
 		 */
 		stringifyCell(v) {
-			if (v === null || v === undefined || v === '') return '—'
-			if (typeof v === 'boolean') return v ? '✓' : '—'
+			if (v === null || v === undefined || v === '') {
+				return '—'
+			}
+			if (typeof v === 'boolean') {
+				return v ? '✓' : '—'
+			}
 			if (typeof v === 'object') {
 				try {
 					return JSON.stringify(v)
@@ -1216,25 +1308,39 @@ export default {
 			}
 			return String(v)
 		},
+
 		/**
 		 * Whether a field should render as an image preview.
+		 *
 		 * @param {object} field The field descriptor (from `fieldsFromSchema`).
 		 */
 		isImageField(field) {
-			if (field.widget === 'image') return true
+			if (field.widget === 'image') {
+				return true
+			}
 			const prop = this.schema.properties && this.schema.properties[field.key]
 			const fmt = (prop && (prop.format || prop.contentMediaType)) || ''
-			if (fmt === 'image' || String(fmt).indexOf('image/') === 0) return true
+			if (fmt === 'image' || String(fmt).indexOf('image/') === 0) {
+				return true
+			}
 			return /(^|[._-])(photo|image|avatar|logo|thumb|picture)/i.test(field.key)
 		},
+
 		/**
 		 * The x-openregister-relation block for a property (scalar or array), or null.
+		 *
 		 * @param {object} prop The schema property definition.
 		 */
 		relationProp(prop) {
-			if (!prop) return null
-			if (prop['x-openregister-relation']) return prop['x-openregister-relation']
-			if (prop.items && prop.items['x-openregister-relation']) return prop.items['x-openregister-relation']
+			if (!prop) {
+				return null
+			}
+			if (prop['x-openregister-relation']) {
+				return prop['x-openregister-relation']
+			}
+			if (prop.items && prop.items['x-openregister-relation']) {
+				return prop.items['x-openregister-relation']
+			}
 			// Canonical OpenRegister shorthand: `$ref` on a uuid-string
 			// property (or its array items) references a schema in the SAME
 			// register. Authored as a slug ("caseType"), but the live schema
@@ -1242,11 +1348,13 @@ export default {
 			// accept both; the objects API resolves either in its path.
 			// Register comes from the detail-page object context (ADR-062:
 			// references display the target object's NAME, never a raw uuid).
-			const rawRef = prop.$ref != null ? prop.$ref : (prop.items ? prop.items.$ref : null)
-			if (rawRef != null && (typeof rawRef === 'string' || typeof rawRef === 'number')) {
+			const rawRef = prop.$ref !== null && prop.$ref !== undefined ? prop.$ref : (prop.items ? prop.items.$ref : null)
+			if (rawRef !== null && rawRef !== undefined && (typeof rawRef === 'string' || typeof rawRef === 'number')) {
 				const slug = String(rawRef).split('/').pop().replace(/\.json$/, '')
 				const reg = this.contextRegisterOf()
-				if (slug && reg) return { target: `${reg}/${slug}` }
+				if (slug && reg) {
+					return { target: `${reg}/${slug}` }
+				}
 			}
 			return null
 		},
@@ -1254,24 +1362,29 @@ export default {
 		/** The current register from the injected detail-page object context. */
 		contextRegisterOf() {
 			const c = this.cnObjectContext
-			if (!c) return ''
+			if (!c) {
+				return ''
+			}
 			const v = (typeof c === 'object' && 'value' in c) ? c.value : c
 			return (v && v.register) || ''
 		},
+
 		/**
 		 * Whether a property is a relation.
+		 *
 		 * @param {object} prop The schema property definition.
 		 */
 		isRelationField(prop) {
 			return this.relationProp(prop) !== null
 		},
+
 		/**
 		 * Whether a stored value counts as "no value" for `hideEmpty`.
 		 *
 		 * `false` and `0` are values, not absences, so they are deliberately kept —
 		 * hiding a boolean because it is false would lose information.
 		 *
-		 * @param {*} value The raw value from objectData.
+		 * @param {unknown} value The raw value from objectData.
 		 * @return {boolean} True when there is nothing to show.
 		 */
 		isEmptyValue(value) {
@@ -1286,11 +1399,13 @@ export default {
 			}
 			return false
 		},
+
 		/**
 		 * Display label(s) for a relation value, using resolved names. While a
 		 * name lookup is still in flight the placeholder '…' shows — a raw
 		 * uuid must never flash before the name arrives (ADR-062). Failed
 		 * lookups land in relatedLabels as the id itself (terminal fallback).
+		 *
 		 * @param {string|Array} raw The relation value(s).
 		 * @return {string} Resolved name(s), '…' while loading.
 		 */
@@ -1302,12 +1417,15 @@ export default {
 		/**
 		 * Whether a relation field's display name(s) are still being fetched
 		 * (drives the skeleton placeholder in the display cell).
+		 *
 		 * @param {object} field Resolved field definition.
 		 * @return {boolean}
 		 */
 		isRelationPending(field) {
 			const prop = ((this.schema && this.schema.properties) || {})[field.key]
-			if (!prop || this.relationProp(prop) === null) return false
+			if (!prop || this.relationProp(prop) === null) {
+				return false
+			}
 			const raw = (this.objectData || {})[field.key]
 			const ids = Array.isArray(raw) ? raw : (raw ? [raw] : [])
 			return ids.some((id) => id && !(id in this.relatedLabels))
@@ -1317,17 +1435,21 @@ export default {
 		 * Whether a field is a SINGLE-VALUE relation (edited through the
 		 * name-labeled object picker). Array relations keep the generic
 		 * editor for now.
+		 *
 		 * @param {string} key Schema property key.
 		 * @return {boolean}
 		 */
 		isSingleRelationField(key) {
 			const prop = ((this.schema && this.schema.properties) || {})[key]
-			if (!prop || prop.type === 'array') return false
+			if (!prop || prop.type === 'array') {
+				return false
+			}
 			return this.relationProp(prop) !== null
 		},
 
 		/**
 		 * Best display name for a referenced object.
+		 *
 		 * @param {object} obj The fetched object.
 		 * @param {string} id Fallback id.
 		 * @return {string}
@@ -1343,23 +1465,32 @@ export default {
 			// the next one is right.
 			const str = (v) => (typeof v === 'string' && v.trim() !== '' ? v : (typeof v === 'number' ? String(v) : ''))
 			let name = str(obj.name) || str(obj.title) || str(obj.displayName)
-			if (!name && (str(obj.firstName) || str(obj.lastName))) name = (str(obj.firstName) + ' ' + str(obj.lastName)).trim()
-			if (!name && str(self.name) && self.name !== id) name = str(self.name)
+			if (!name && (str(obj.firstName) || str(obj.lastName))) {
+				name = (str(obj.firstName) + ' ' + str(obj.lastName)).trim()
+			}
+			if (!name && str(self.name) && self.name !== id) {
+				name = str(self.name)
+			}
 			return name || id
 		},
 
 		/**
 		 * Load the picker options for a relation field from its target schema
 		 * (first 200 objects, labeled by display name).
+		 *
 		 * @param {string} key Schema property key.
 		 * @return {Promise<void>}
 		 */
 		async loadRelationOptions(key) {
 			const prop = ((this.schema && this.schema.properties) || {})[key]
 			const rel = this.relationProp(prop)
-			if (!rel) return
+			if (!rel) {
+				return
+			}
 			const parts = String(rel.target || '').split('/')
-			if (parts.length < 2) return
+			if (parts.length < 2) {
+				return
+			}
 			this.relationOptionsLoading = true
 			try {
 				const url = generateUrl('/apps/openregister/api/objects/{reg}/{sch}', { reg: parts[0], sch: parts[1] })
@@ -1378,9 +1509,13 @@ export default {
 					const ctx = { objectId: ((this.objectData || {})['@self'] && (this.objectData || {})['@self'].id) || (this.objectData || {}).id, object: objData }
 					const filter = resolveFilterTokens(rawFilter, ctx)
 					for (const [fk, fv] of Object.entries(filter)) {
-						if (typeof fv === 'string' && fv.charAt(0) === '@') continue
+						if (typeof fv === 'string' && fv.charAt(0) === '@') {
+							continue
+						}
 						if (fv && typeof fv === 'object') {
-							for (const [op, ov] of Object.entries(fv)) params[`${fk}[${op}]`] = ov
+							for (const [op, ov] of Object.entries(fv)) {
+								params[`${fk}[${op}]`] = ov
+							}
 						} else if (fv !== '' && fv !== null && fv !== undefined) {
 							params[fk] = fv
 						}
@@ -1394,8 +1529,12 @@ export default {
 				}).filter((o) => o.id)
 				this.relationOptions[key] = opts
 				// Cache the labels so display resolution reuses them.
-				opts.forEach((o) => { if (!(o.id in this.relatedLabels)) this.relatedLabels[o.id] = o.label })
-			} catch (e) {
+				opts.forEach((o) => {
+					if (!(o.id in this.relatedLabels)) {
+						this.relatedLabels[o.id] = o.label
+					}
+				})
+			} catch {
 				this.relationOptions[key] = []
 			} finally {
 				this.relationOptionsLoading = false
@@ -1404,25 +1543,32 @@ export default {
 
 		/**
 		 * The currently selected picker option for a relation field.
+		 *
 		 * @param {object} field Field descriptor.
 		 * @return {object|null} `{ id, label }` or null when unset.
 		 */
 		relationSelectedOption(field) {
 			const v = this.editData[field.key]
-			if (!v) return null
+			if (!v) {
+				return null
+			}
 			return { id: v, label: this.relatedLabels[v] || String(v) }
 		},
 
 		/**
 		 * Apply a relation picker choice: store the referenced object's ID
 		 * (the persisted value stays a uuid; only the display is a name).
+		 *
 		 * @param {object} field Field descriptor.
 		 * @param {object|null} opt Chosen option or null (cleared).
 		 */
 		onRelationChange(field, opt) {
-			if (opt && opt.id) this.relatedLabels[opt.id] = opt.label
+			if (opt && opt.id) {
+				this.relatedLabels[opt.id] = opt.label
+			}
 			this.updateField(field.key, opt ? opt.id : null)
 		},
+
 		/** Fetch related objects' display names into relatedLabels. */
 		async resolveRelations() {
 			// Collect every unresolved (target, id) pair first, then fetch them
@@ -1433,13 +1579,19 @@ export default {
 			const jobs = []
 			for (const key of Object.keys(props)) {
 				const rel = this.relationProp(props[key])
-				if (!rel) continue
+				if (!rel) {
+					continue
+				}
 				const parts = String(rel.target || '').split('/')
-				if (parts.length < 2) continue
+				if (parts.length < 2) {
+					continue
+				}
 				const raw = (this.objectData || {})[key]
 				const ids = Array.isArray(raw) ? raw : (raw ? [raw] : [])
 				for (const id of ids) {
-					if (!id || (id in this.relatedLabels) || jobs.some((j) => j.id === id)) continue
+					if (!id || (id in this.relatedLabels) || jobs.some((j) => j.id === id)) {
+						continue
+					}
 					jobs.push({ reg: parts[0], sch: parts[1], id })
 				}
 			}
@@ -1450,17 +1602,21 @@ export default {
 					const d = (res && res.data) ? res.data : {}
 					const obj = (d.results && d.results[0]) ? d.results[0] : d
 					this.relatedLabels[id] = this.objectDisplayName(obj, id)
-				} catch (e) {
+				} catch {
 					this.relatedLabels[id] = id
 				}
 			}))
 		},
+
 		/**
 		 * Check if a field is editable.
+		 *
 		 * @param {object} field - Resolved field definition from resolvedFields
 		 */
 		isEditable(field) {
-			if (!this.editable) return false
+			if (!this.editable) {
+				return false
+			}
 			// Per-field override takes priority
 			const override = this.resolvedOverrides[field.key]
 			if (override && typeof override.editable === 'boolean') {
@@ -1470,7 +1626,9 @@ export default {
 			// another field on this object holds a given value (schema
 			// `x-openregister-readonly-when`). Evaluated against the live object —
 			// e.g. a hybrid app's identity fields lock when appType === 'hybrid'.
-			if (this.isReadOnlyByCondition(field)) return false
+			if (this.isReadOnlyByCondition(field)) {
+				return false
+			}
 			// Schema readOnly
 			return !field.readOnly
 		},
@@ -1483,15 +1641,22 @@ export default {
 		 */
 		isReadOnlyByCondition(field) {
 			const rule = field.readOnlyWhen
-			if (!rule || !rule.field) return false
+			if (!rule || !rule.field) {
+				return false
+			}
 			const current = this.objectData ? this.objectData[rule.field] : undefined
-			if (Array.isArray(rule.in)) return rule.in.includes(current)
-			if ('equals' in rule) return current === rule.equals
+			if (Array.isArray(rule.in)) {
+				return rule.in.includes(current)
+			}
+			if ('equals' in rule) {
+				return current === rule.equals
+			}
 			return false
 		},
 
 		/**
 		 * Check if a field's current value is empty.
+		 *
 		 * @param {string} key - Field key to check
 		 */
 		isValueEmpty(key) {
@@ -1503,6 +1668,7 @@ export default {
 
 		/**
 		 * Start inline editing for a field.
+		 *
 		 * @param {object} field - Resolved field definition from resolvedFields
 		 */
 		startEdit(field) {
@@ -1528,7 +1694,9 @@ export default {
 					const el = Array.isArray(editor) ? editor[0] : editor
 					if (el && el.$el) {
 						const input = el.$el.querySelector('input, textarea, select')
-						if (input) input.focus()
+						if (input) {
+							input.focus()
+						}
 					} else if (el && el.focus) {
 						el.focus()
 					}
@@ -1538,8 +1706,9 @@ export default {
 
 		/**
 		 * Update the working edit value for a field.
+		 *
 		 * @param {string} key - Field key to update
-		 * @param {*} value - New value for the field
+		 * @param {unknown} value - New value for the field
 		 */
 		updateField(key, value) {
 			this.editData = { ...this.editData, [key]: value }
@@ -1552,7 +1721,9 @@ export default {
 		 * dirty state (e.g. checkbox edits queued without a per-field confirm).
 		 */
 		async commitEdit() {
-			if (!this.editingField) return
+			if (!this.editingField) {
+				return
+			}
 
 			const key = this.editingField
 			const newValue = this.editData[key]
@@ -1595,7 +1766,9 @@ export default {
 		 * Save all dirty fields via the objectStore or emit event.
 		 */
 		async save() {
-			if (!this.isDirty) return
+			if (!this.isDirty) {
+				return
+			}
 
 			const mergedData = {
 				...this.objectData,
@@ -1632,6 +1805,7 @@ export default {
 		/**
 		 * Persist the full-form edit dialog result, merged onto the current
 		 * object, via the same store path as inline save. Closes on success.
+		 *
 		 * @param {object} formData The submitted form payload.
 		 * @return {Promise<void>}
 		 */
@@ -1665,11 +1839,14 @@ export default {
 		/**
 		 * Get the objectStore instance.
 		 * Uses the `store` prop if provided, otherwise tries Pinia auto-detection.
+		 *
 		 * @return {object|null}
 		 */
 		_getObjectStore() {
 			// Prefer explicit store prop
-			if (this.store) return this.store
+			if (this.store) {
+				return this.store
+			}
 
 			try {
 				// useObjectStore is a static import (top of file) — bundler
@@ -1677,7 +1854,9 @@ export default {
 				// to resolve the relative path. The try/catch still guards
 				// the case where the consumer hasn't set up pinia.
 				const pinia = this.$pinia
-				if (!pinia) return null
+				if (!pinia) {
+					return null
+				}
 				return useObjectStore()
 			} catch {
 				return null
@@ -1686,6 +1865,7 @@ export default {
 
 		/**
 		 * Compute CSS grid placement for a field cell.
+		 *
 		 * @param {object} field - The field configuration object.
 		 */
 		cellStyle(field) {
@@ -1704,6 +1884,7 @@ export default {
 		/**
 		 * Normalize an option to { id, label } format.
 		 * Accepts plain strings or objects with id/label properties.
+		 *
 		 * @param {string|object} val - Raw option value to normalize.
 		 */
 		_normalizeOption(val) {
@@ -1715,17 +1896,19 @@ export default {
 
 		getSelectOptions(field) {
 			if (field.enum) {
-				return field.enum.map(val => this._normalizeOption(val))
+				return field.enum.map((val) => this._normalizeOption(val))
 			}
 			return []
 		},
 
 		getSelectedOption(field) {
 			const val = this.editData[field.key]
-			if (val === null || val === undefined) return null
+			if (val === null || val === undefined) {
+				return null
+			}
 			// Find matching option from enum for proper label display
 			const options = this.getSelectOptions(field)
-			return options.find(opt => opt.id === val) || { id: val, label: String(val) }
+			return options.find((opt) => opt.id === val) || { id: val, label: String(val) }
 		},
 
 		onSelectChange(field, option) {
@@ -1735,26 +1918,28 @@ export default {
 		getMultiselectOptions(field) {
 			// Check override enum first, then schema items.enum
 			if (field.enum) {
-				return field.enum.map(val => this._normalizeOption(val))
+				return field.enum.map((val) => this._normalizeOption(val))
 			}
 			const itemsEnum = field.items && field.items.enum
 			if (itemsEnum) {
-				return itemsEnum.map(val => this._normalizeOption(val))
+				return itemsEnum.map((val) => this._normalizeOption(val))
 			}
 			return []
 		},
 
 		getSelectedMultiselectOptions(field) {
 			const val = this.editData[field.key]
-			if (!Array.isArray(val)) return []
+			if (!Array.isArray(val)) {
+				return []
+			}
 			// Map selected IDs to option objects with labels
 			const options = this.getMultiselectOptions(field)
-			return val.map(v => options.find(opt => opt.id === v) || { id: v, label: String(v) })
+			return val.map((v) => options.find((opt) => opt.id === v) || { id: v, label: String(v) })
 		},
 
 		onMultiselectChange(field, selected) {
 			const values = Array.isArray(selected)
-				? selected.map(opt => opt.id || opt)
+				? selected.map((opt) => opt.id || opt)
 				: []
 			this.updateField(field.key, values)
 		},

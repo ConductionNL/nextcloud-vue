@@ -10,14 +10,14 @@
  * actionsDispatcherW3.spec.js).
  */
 
-import { ref } from 'vue'
-import { mount } from '@vue/test-utils'
-import CnActionButtons from '../../src/components/CnActionButtons/CnActionButtons.vue'
-import { dispatchAction, postRunNode, resolveObjectOpType } from '../../src/utils/actionsDispatcher.js'
 import axios from '@nextcloud/axios'
+import { mount } from '@vue/test-utils'
+import { ref } from 'vue'
+import CnActionButtons from '../../src/components/CnActionButtons/CnActionButtons.vue'
 import { fetchEndpointSource } from '../../src/composables/useEndpointSource.js'
-import { evaluateVisibleWhen } from '../../src/utils/visibleWhen.js'
 import { useObjectStore } from '../../src/store/useObjectStore.js'
+import { dispatchAction, postRunNode, resolveObjectOpType } from '../../src/utils/actionsDispatcher.js'
+import { evaluateVisibleWhen } from '../../src/utils/visibleWhen.js'
 
 jest.mock('../../src/utils/actionsDispatcher.js', () => {
 	// Keep the real route-builder helper (buildOnSuccessRoute) so the
@@ -195,7 +195,10 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			await flush()
 			expect(dispatchAction).toHaveBeenCalledTimes(1)
 			expect(dispatchAction.mock.calls[0][0]).toMatchObject({
-				type: 'api-call', url: '/apps/pipelinq/api/werkplek/state', method: 'PUT', params: { open: false },
+				type: 'api-call',
+				url: '/apps/pipelinq/api/werkplek/state',
+				method: 'PUT',
+				params: { open: false },
 			})
 		})
 
@@ -350,7 +353,9 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 
 			expect(order).toEqual(['crm/lead', 'crm/leadValue'])
 			expect(saveObject).toHaveBeenLastCalledWith('crm/leadValue', {
-				lead: 'lead-1', field: 'def-1', value: 'Cultuur',
+				lead: 'lead-1',
+				field: 'def-1',
+				value: 'Cultuur',
 			})
 		})
 

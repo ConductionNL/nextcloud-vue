@@ -42,6 +42,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Square pixel size for the icon. */
 		size: {
 			type: Number,

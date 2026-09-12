@@ -10,13 +10,14 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnStatusBadge from '@/components/CnStatusBadge/CnStatusBadge.vue'
 
 const colorMap = { submitted: 'warning', approved: 'success' }
 
-const variantOf = (wrapper) => ['default', 'primary', 'success', 'warning', 'error', 'info']
-	.find((v) => wrapper.find('.cn-status-badge--' + v).exists())
+function variantOf(wrapper) {
+	return ['default', 'primary', 'success', 'warning', 'error', 'info']
+		.find((v) => wrapper.find('.cn-status-badge--' + v).exists())
+}
 
 describe('CnStatusBadge — variant resolution', () => {
 	it('resolves the variant from the label when no colorKey is given (unchanged)', () => {

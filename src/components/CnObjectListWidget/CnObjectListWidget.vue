@@ -132,7 +132,7 @@
 							:value="group.key"
 							:register="groupLabelResolveConfig.register"
 							:schema="groupLabelResolveConfig.schema"
-							:label-field="groupLabelResolveConfig.labelField || 'name'" />
+							:labelField="groupLabelResolveConfig.labelField || 'name'" />
 						<template v-else>
 							{{ group.label }}
 						</template>
@@ -142,13 +142,13 @@
 						:columns="resolvedColumns"
 						:rows="group.rows"
 						:loading="loading"
-						:empty-text="emptyText"
+						:emptyText="emptyText"
 						:selectable="content.selectable === true"
-						:selected-ids="selectedIds"
-						:sort-key="localSort.field || null"
-						:sort-order="localSort.dir || 'asc'"
+						:selectedIds="selectedIds"
+						:sortKey="localSort.field || null"
+						:sortOrder="localSort.dir || 'asc'"
 						borderless
-						@row-click="onRowClick"
+						@rowClick="onRowClick"
 						@select="onSelect"
 						@sort="onSort">
 						<template v-if="mappedRowActions.length > 0" #row-actions="{ row }">
@@ -162,13 +162,13 @@
 					:columns="resolvedColumns"
 					:rows="facetedRows"
 					:loading="loading"
-					:empty-text="emptyText"
+					:emptyText="emptyText"
 					:selectable="content.selectable === true"
-					:selected-ids="selectedIds"
-					:sort-key="localSort.field || null"
-					:sort-order="localSort.dir || 'asc'"
+					:selectedIds="selectedIds"
+					:sortKey="localSort.field || null"
+					:sortOrder="localSort.dir || 'asc'"
 					borderless
-					@row-click="onRowClick"
+					@rowClick="onRowClick"
 					@select="onSelect"
 					@sort="onSort">
 					<!-- Declarative per-row actions (`content.rowActions`).
@@ -198,12 +198,12 @@
 				v-if="showPager"
 				compact
 				class="cn-object-list-widget__pager"
-				:current-page="page"
-				:total-pages="totalPages"
-				:total-items="total"
-				:current-page-size="pageSize"
-				:min-items-to-show="0"
-				@page-changed="onPageChange" />
+				:currentPage="page"
+				:totalPages="totalPages"
+				:totalItems="total"
+				:currentPageSize="pageSize"
+				:minItemsToShow="0"
+				@pageChanged="onPageChange" />
 			<button
 				v-if="hiddenCount > 0 && content.viewAllRoute"
 				type="button"
@@ -255,26 +255,26 @@
 			:item="null"
 			:size="formSize"
 			:columns="formColumns"
-			:include-fields="formIncludeFields"
-			:exclude-fields="formExcludeFields"
-			:field-overrides="formFieldOverrides"
+			:includeFields="formIncludeFields"
+			:excludeFields="formExcludeFields"
+			:fieldOverrides="formFieldOverrides"
 			@confirm="onCreateConfirm"
 			@close="showCreate = false" />
 	</div>
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { translate as t } from '@nextcloud/l10n'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
-import { CnRowActions } from '../CnRowActions/index.js'
-import { translate as t } from '@nextcloud/l10n'
-import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
-import { objectFieldValue } from '../../utils/objectName.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { objectFieldValue } from '../../utils/objectName.js'
+import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { CnRowActions } from '../CnRowActions/index.js'
 
 /**
  * Event-bus channel a page-level refresh is announced on. The page's Actions
@@ -395,6 +395,7 @@ export default {
 		 * field's entries are flattened) and narrows the rendered rows to
 		 * those carrying a selected value. Client-side over the fetched page,
 		 * like the rest of this widget's row set.
+		 *
 		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object}}
 		 */
 		content: {
@@ -450,9 +451,12 @@ export default {
 		 */
 		objectCtx() {
 			const c = this.cnObjectContext
-			if (!c) return null
+			if (!c) {
+				return null
+			}
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
+
 		/**
 		 * The unwrapped workspace context bag (or null). Vue 2.7 `setup`/inject
 		 * may hand back a raw ref; unwrap `.value` so token resolution reads the
@@ -462,9 +466,12 @@ export default {
 		 */
 		workspaceCtx() {
 			const c = this.cnWorkspaceContext
-			if (!c) return null
+			if (!c) {
+				return null
+			}
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
+
 		/**
 		 * Token-resolution context merged from the detail-page object context
 		 * and the page-level workspace bag (`@workspace.<key>`).
@@ -476,6 +483,7 @@ export default {
 			base.workspace = this.workspaceCtx || {}
 			return base
 		},
+
 		/**
 		 * The filter with every `@`-token resolved against `tokenCtx`, then with
 		 * any UNRESOLVED OPTIONAL token (`@workspace.<key>?`) dropped — so an
@@ -488,6 +496,7 @@ export default {
 		resolvedFilter() {
 			return dropOptionalUnresolved(resolveFilterTokens(this.content.filter || {}, this.tokenCtx))
 		},
+
 		/**
 		 * Whether a context-dependent filter token (e.g. `@workspace.selectedClient`)
 		 * is still unresolved — the page state this list depends on isn't set yet,
@@ -498,6 +507,7 @@ export default {
 		waitingForContext() {
 			return hasUnresolvedTokens(this.resolvedFilter)
 		},
+
 		/**
 		 * Prompt shown while a context-bound list has an unresolved REQUIRED
 		 * token. A `content.prompt` override always wins. Otherwise the default
@@ -509,11 +519,14 @@ export default {
 		 * @return {string}
 		 */
 		promptText() {
-			if (this.content.prompt) return this.content.prompt
+			if (this.content.prompt) {
+				return this.content.prompt
+			}
 			return this.objectCtx
 				? t('nextcloud-vue', 'Nothing here yet')
 				: t('nextcloud-vue', 'Select an item to see related records')
 		},
+
 		/**
 		 * Quiet, status-code-free label shown when a fetch fails. The real
 		 * axios error is logged to the console, never rendered (ADR-062).
@@ -523,6 +536,7 @@ export default {
 		loadErrorLabel() {
 			return this.content.errorText || t('nextcloud-vue', 'Could not load these records')
 		},
+
 		/**
 		 * Column definitions normalised for CnDataTable. A string column becomes
 		 * `{ key, label }`; an object column keeps its key/label AND carries the
@@ -541,7 +555,9 @@ export default {
 				}
 				const out = { key: c.key, label: c.label || c.key }
 				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'sortable']) {
-					if (c[k] !== undefined) out[k] = c[k]
+					if (c[k] !== undefined) {
+						out[k] = c[k]
+					}
 				}
 				// `content.sortable` (bool = every column, array = the listed
 				// keys) fills in `sortable` for a column that did not already
@@ -574,6 +590,7 @@ export default {
 			}
 			return mapped
 		},
+
 		/**
 		 * Declared per-row actions mapped onto the CnRowActions shape. Every
 		 * entry keeps its label, icon and `destructive` flag and routes its
@@ -594,6 +611,7 @@ export default {
 					handler: (row) => this.runRowAction(action, row),
 				}))
 		},
+
 		/**
 		 * The declared drop-zone action, or null. A widget without the key
 		 * takes no part in a drag at all.
@@ -604,15 +622,18 @@ export default {
 			const dz = this.content.dropZone
 			return (dz && typeof dz === 'object') ? dz : null
 		},
+
 		/** Whether a file drag is currently over a drop-enabled widget. */
 		dropping() {
 			return this.dropZoneAction !== null && this.dragDepth > 0
 		},
+
 		/** Copy shown on the drop overlay (overridable via `dropZone.label`). */
 		dropLabel() {
 			return (this.dropZoneAction && this.dropZoneAction.label)
 				|| t('nextcloud-vue', 'Drop files here')
 		},
+
 		/**
 		 * Whether the click-to-pick upload button renders: a `dropZone` is
 		 * declared and the host has not opted out with `content.upload: false`.
@@ -622,10 +643,12 @@ export default {
 		showUploadButton() {
 			return this.dropZoneAction !== null && this.content.upload !== false
 		},
+
 		/** Pre-translated Upload label (overridable via `content.uploadLabel`). */
 		uploadLabel() {
 			return this.content.uploadLabel || t('nextcloud-vue', 'Upload')
 		},
+
 		/**
 		 * Declared bulk actions mapped onto the same `{label, icon, destructive,
 		 * handler}` shape `mappedRowActions` uses, so CnRowActions and the bulk
@@ -646,6 +669,7 @@ export default {
 					handler: () => this.runBulkAction(action),
 				}))
 		},
+
 		/**
 		 * The currently selected row objects, resolved from `rows` (not just
 		 * the visible/faceted slice) so a selection made before a facet filter
@@ -656,6 +680,7 @@ export default {
 		selectedRows() {
 			return this.rows.filter((row) => this.selectedIds.includes(row.id))
 		},
+
 		/**
 		 * Distinct values of `content.facet.field` across the currently loaded
 		 * rows, flattening an array-valued field (the "keywords across the
@@ -666,22 +691,28 @@ export default {
 		 */
 		facetOptions() {
 			const facet = this.content.facet
-			if (!facet || !facet.field) return []
+			if (!facet || !facet.field) {
+				return []
+			}
 			const values = new Set()
 			for (const row of this.visibleRows) {
 				const raw = objectFieldValue(row, facet.field)
 				const list = Array.isArray(raw) ? raw : (raw !== undefined && raw !== null && raw !== '' ? [raw] : [])
 				for (const v of list) {
-					if (v !== undefined && v !== null && v !== '') values.add(v)
+					if (v !== undefined && v !== null && v !== '') {
+						values.add(v)
+					}
 				}
 			}
 			return Array.from(values).sort()
 		},
+
 		/** Pre-translated facet label (`content.facet.label`, falls back to a generic "Filter"). */
 		facetLabel() {
 			const facet = this.content.facet
 			return (facet && facet.label) || t('nextcloud-vue', 'Filter')
 		},
+
 		/**
 		 * Rows narrowed by the selected facet values. A row matches when at
 		 * least one of its (possibly array) values at `facet.field` is among
@@ -691,13 +722,16 @@ export default {
 		 */
 		facetedRows() {
 			const facet = this.content.facet
-			if (!facet || !facet.field || this.facetSelected.length === 0) return this.visibleRows
+			if (!facet || !facet.field || this.facetSelected.length === 0) {
+				return this.visibleRows
+			}
 			return this.visibleRows.filter((row) => {
 				const raw = objectFieldValue(row, facet.field)
 				const list = Array.isArray(raw) ? raw : (raw !== undefined && raw !== null ? [raw] : [])
 				return list.some((v) => this.facetSelected.includes(v))
 			})
 		},
+
 		/**
 		 * Whether the fetch returned rows but the active facet selection
 		 * matches none of them — the "clear filter" empty state, distinct
@@ -708,10 +742,12 @@ export default {
 		showNoFacetMatchState() {
 			return !this.loading && this.rows.length > 0 && this.facetSelected.length > 0 && this.facetedRows.length === 0
 		},
+
 		/** Whether `content.groupBy` is declared, so the template picks the grouped render path. */
 		isGrouped() {
 			return typeof this.content.groupBy === 'string' && this.content.groupBy !== ''
 		},
+
 		/**
 		 * `content.groupLabelResolve` (`{register, schema, labelField?}`), or
 		 * null. When set, the group heading resolves `group.key` through the
@@ -726,6 +762,7 @@ export default {
 			const cfg = this.content.groupLabelResolve
 			return (cfg && typeof cfg === 'object' && cfg.register && cfg.schema) ? cfg : null
 		},
+
 		/**
 		 * The faceted rows bucketed by `content.groupBy`, one entry per
 		 * distinct value in first-seen order (matching how the rows already
@@ -737,7 +774,9 @@ export default {
 		 * @return {Array<{key: string, label: string, rows: Array<object>}>}
 		 */
 		groupedRows() {
-			if (!this.isGrouped) return []
+			if (!this.isGrouped) {
+				return []
+			}
 			const field = this.content.groupBy
 			const labelField = this.content.groupLabel || field
 			const order = []
@@ -759,10 +798,12 @@ export default {
 			}
 			return order.map((key) => byKey.get(key))
 		},
+
 		/** Empty-state text (overridable via `content.emptyText`). */
 		emptyText() {
 			return this.content.emptyText || t('nextcloud-vue', 'No items')
 		},
+
 		/**
 		 * The empty-state text run through the host translate function. Used
 		 * only by this component's OWN empty state — the raw `emptyText`
@@ -775,6 +816,7 @@ export default {
 			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
 			return this.emptyText ? fn(this.emptyText) : this.emptyText
 		},
+
 		/**
 		 * The rows actually rendered: capped to what fits the host grid cell
 		 * (ADR-062 — content adapts to the cell, never a nested scrollbar).
@@ -786,6 +828,7 @@ export default {
 		visibleRows() {
 			return this.fitRows ? this.rows.slice(0, this.fitRows) : this.rows
 		},
+
 		/**
 		 * Rows per page. This is `content.limit` (the fetch cap) — a FIXED
 		 * number, deliberately not the measured `fitRows`: a page size derived
@@ -798,6 +841,7 @@ export default {
 		pageSize() {
 			return Number((this.content || {}).limit) || 25
 		},
+
 		/**
 		 * Total pages for the resolved filter, from the SERVER's total.
 		 *
@@ -806,6 +850,7 @@ export default {
 		totalPages() {
 			return Math.max(Math.ceil((this.total || 0) / this.pageSize), 1)
 		},
+
 		/**
 		 * Whether the compact pager renders.
 		 *
@@ -819,13 +864,17 @@ export default {
 		 * @return {boolean}
 		 */
 		showPager() {
-			if (this.totalPages <= 1) return false
+			if (this.totalPages <= 1) {
+				return false
+			}
 			return this.fitRows === null || this.fitRows >= this.rows.length
 		},
+
 		/** Whether the designed empty state is what the widget is showing. */
 		showingEmptyState() {
 			return !this.waitingForContext && !this.error && !this.loading && this.rows.length === 0
 		},
+
 		/**
 		 * How many matching objects are NOT rendered (server total minus the
 		 * visible slice). Drives the "View all (N)" footer.
@@ -835,14 +884,17 @@ export default {
 		hiddenCount() {
 			return Math.max((this.total || this.rows.length) - this.visibleRows.length, 0)
 		},
+
 		/** Pre-translated "View all (N)" footer label. */
 		viewAllLabel() {
 			return t('nextcloud-vue', 'View all ({total})', { total: this.total || this.rows.length })
 		},
+
 		/** Pre-translated "+N more" footer label (no viewAllRoute configured). */
 		moreLabel() {
 			return t('nextcloud-vue', '+{count} more', { count: this.hiddenCount })
 		},
+
 		/** Whether the create affordance renders (on by default; `content.allowCreate: false` opts out). */
 		allowCreate() {
 			const c = this.content || {}
@@ -887,10 +939,12 @@ export default {
 			const c = this.content || {}
 			return (c.formFieldOverrides && typeof c.formFieldOverrides === 'object') ? c.formFieldOverrides : {}
 		},
+
 		/** Pre-translated Add label (overridable via `content.addLabel`). */
 		addLabel() {
 			return this.content.addLabel || t('nextcloud-vue', 'Add')
 		},
+
 		/** Stable signature of the query so the watcher only refetches on real change. */
 		sourceKey() {
 			const c = this.content || {}
@@ -934,7 +988,9 @@ export default {
 		// page's own Refresh) must not turn one write into a queue of
 		// overlapping reads for one list.
 		this._onPageRefresh = () => {
-			if (this.loading) return
+			if (this.loading) {
+				return
+			}
 			this.fetchRows()
 		}
 		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
@@ -954,7 +1010,9 @@ export default {
 			unsubscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 			this._onPageRefresh = null
 		}
-		if (this._fitObserver) this._fitObserver.disconnect()
+		if (this._fitObserver) {
+			this._fitObserver.disconnect()
+		}
 	},
 
 	methods: {
@@ -1007,7 +1065,9 @@ export default {
 				// uuid string as an object path.
 				if (Array.isArray(c.extend)) {
 					const extend = c.extend.filter((e) => typeof e === 'string' && e !== '')
-					if (extend.length > 0) params._extend = extend
+					if (extend.length > 0) {
+						params._extend = extend
+					}
 				}
 				// The OpenRegister OBJECT-SEARCH endpoint filters on DIRECT field
 				// params (`status=open`, `value[gt]=30000`) — unlike the
@@ -1016,7 +1076,9 @@ export default {
 				if (filter && typeof filter === 'object') {
 					for (const [k, v] of Object.entries(filter)) {
 						if (v && typeof v === 'object') {
-							for (const [op, ov] of Object.entries(v)) params[`${k}[${op}]`] = ov
+							for (const [op, ov] of Object.entries(v)) {
+								params[`${k}[${op}]`] = ov
+							}
 						} else if (v !== '' && v !== null && v !== undefined) {
 							params[k] = v
 						}
@@ -1050,9 +1112,14 @@ export default {
 		 */
 		measureFit() {
 			const cell = this.$el && this.$el.closest && this.$el.closest('.grid-stack-item-content')
-			if (!cell) { this.fitRows = null; return }
+			if (!cell) {
+				this.fitRows = null
+				return
+			}
 			const table = this.$el.querySelector('.cn-object-list-widget__table table')
-			if (!table) return
+			if (!table) {
+				return
+			}
 			const cellRect = cell.getBoundingClientRect()
 			const tableRect = table.getBoundingClientRect()
 			const firstRow = table.querySelector('tbody tr')
@@ -1076,7 +1143,9 @@ export default {
 		 */
 		async openCreate() {
 			const c = this.content || {}
-			if (!c.schema) return
+			if (!c.schema) {
+				return
+			}
 			try {
 				if (!this.createSchema) {
 					const [{ default: axios }, { generateUrl }] = await Promise.all([
@@ -1117,7 +1186,9 @@ export default {
 				}
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
 				await axios.post(url, payload)
-				if (this.$refs.createDialog) this.$refs.createDialog.setResult({ success: true })
+				if (this.$refs.createDialog) {
+					this.$refs.createDialog.setResult({ success: true })
+				}
 				/**
 				 * @event created Emitted after a successful create with the sent payload.
 				 * @type {object}
@@ -1125,7 +1196,9 @@ export default {
 				this.$emit('created', payload)
 				this.fetchRows()
 			} catch (e) {
-				if (this.$refs.createDialog) this.$refs.createDialog.setResult({ error: (e && e.message) || 'error' })
+				if (this.$refs.createDialog) {
+					this.$refs.createDialog.setResult({ error: (e && e.message) || 'error' })
+				}
 			}
 		},
 
@@ -1148,7 +1221,9 @@ export default {
 		 */
 		onPageChange(next) {
 			const target = Math.min(Math.max(Number(next) || 1, 1), this.totalPages)
-			if (target === this.page) return
+			if (target === this.page) {
+				return
+			}
 			this.page = target
 			this.fetchRows()
 		},
@@ -1222,7 +1297,9 @@ export default {
 		 * @return {void}
 		 */
 		dispatch(action, extraArgs = [], extraProps = {}) {
-			if (!action || typeof action !== 'object') return
+			if (!action || typeof action !== 'object') {
+				return
+			}
 			const type = action.type || 'handler'
 			let wrapped = action
 			if (type === 'handler') {
@@ -1248,7 +1325,9 @@ export default {
 		 */
 		dragHasFiles(event) {
 			const types = event && event.dataTransfer && event.dataTransfer.types
-			if (!types) return false
+			if (!types) {
+				return false
+			}
 			return Array.prototype.indexOf.call(types, 'Files') !== -1
 		},
 
@@ -1257,7 +1336,9 @@ export default {
 		 * @return {void}
 		 */
 		onDragEnter(event) {
-			if (!this.dropZoneAction || !this.dragHasFiles(event)) return
+			if (!this.dropZoneAction || !this.dragHasFiles(event)) {
+				return
+			}
 			event.preventDefault()
 			this.dragDepth += 1
 		},
@@ -1270,7 +1351,9 @@ export default {
 		 * @return {void}
 		 */
 		onDragOver(event) {
-			if (!this.dropZoneAction || !this.dragHasFiles(event)) return
+			if (!this.dropZoneAction || !this.dragHasFiles(event)) {
+				return
+			}
 			event.preventDefault()
 		},
 
@@ -1282,7 +1365,9 @@ export default {
 		 * @return {void}
 		 */
 		onDragLeave() {
-			if (!this.dropZoneAction) return
+			if (!this.dropZoneAction) {
+				return
+			}
 			this.dragDepth = Math.max(0, this.dragDepth - 1)
 		},
 
@@ -1296,12 +1381,19 @@ export default {
 		 * @return {void}
 		 */
 		onDrop(event) {
-			if (!this.dropZoneAction) return
-			if (!this.dragHasFiles(event)) { this.dragDepth = 0; return }
+			if (!this.dropZoneAction) {
+				return
+			}
+			if (!this.dragHasFiles(event)) {
+				this.dragDepth = 0
+				return
+			}
 			event.preventDefault()
 			this.dragDepth = 0
 			const files = Array.from((event.dataTransfer && event.dataTransfer.files) || [])
-			if (files.length === 0) return
+			if (files.length === 0) {
+				return
+			}
 			/**
 			 * @event files-dropped Emitted with the dropped files, for a host
 			 * that wants to handle the drop itself rather than declare an action.
@@ -1319,7 +1411,9 @@ export default {
 		 * @return {void}
 		 */
 		triggerUpload() {
-			if (this.$refs.uploadInput) this.$refs.uploadInput.click()
+			if (this.$refs.uploadInput) {
+				this.$refs.uploadInput.click()
+			}
 		},
 
 		/**
@@ -1330,7 +1424,9 @@ export default {
 		 */
 		onUploadFilesSelected(event) {
 			const files = Array.from((event.target && event.target.files) || [])
-			if (files.length === 0 || !this.dropZoneAction) return
+			if (files.length === 0 || !this.dropZoneAction) {
+				return
+			}
 			this.$emit('files-dropped', files)
 			this.dispatch(this.dropZoneAction, [files], { files })
 			event.target.value = ''

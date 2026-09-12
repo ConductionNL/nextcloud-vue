@@ -9,8 +9,8 @@
  */
 
 import * as ncVue from '@nextcloud/vue'
-import { cnRenderFormField, NC_TEXT_AREA_AVAILABLE } from '@/composables/cnFormFieldRenderer.js'
 import CnFileField from '@/components/CnFileField/CnFileField.vue'
+import { cnRenderFormField, NC_TEXT_AREA_AVAILABLE } from '@/composables/cnFormFieldRenderer.js'
 
 describe('cnRenderFormField', () => {
 	let warnSpy
@@ -251,7 +251,6 @@ describe('cnRenderFormField — NcTextArea resolution', () => {
 		jest.resetModules()
 		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		try {
-			// eslint-disable-next-line n/global-require
 			const { cnRenderFormField: fresh } = require('@/composables/cnFormFieldRenderer.js')
 			const out = fresh({
 				field: { key: 'comment', type: 'string', widget: 'textarea', label: 'Comment' },

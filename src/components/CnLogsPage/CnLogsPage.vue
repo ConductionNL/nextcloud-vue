@@ -37,7 +37,7 @@
 				:title="title"
 				:description="description"
 				:icon="icon"
-				:visually-hidden="!showTitle" />
+				:visuallyHidden="!showTitle" />
 		</slot>
 
 		<div v-if="$slots.actions" class="cn-logs-page__actions">
@@ -82,14 +82,14 @@
 					:schema="tableSchema"
 					:columns="resolvedColumns"
 					:rows="rows"
-					:row-key="rowKey"
-					:fixed-layout="fixedLayout"
-					:sort-key="effectiveSortKey"
-					:sort-order="effectiveSortOrder"
-					:sort-keys="effectiveSortKeys"
-					:empty-text="emptyText"
+					:rowKey="rowKey"
+					:fixedLayout="fixedLayout"
+					:sortKey="effectiveSortKey"
+					:sortOrder="effectiveSortOrder"
+					:sortKeys="effectiveSortKeys"
+					:emptyText="emptyText"
 					@sort="onSort"
-					@row-click="onRowClick">
+					@rowClick="onRowClick">
 					<template
 						v-for="col in slotColumns"
 						#[`column-${col}`]="{ row, value }">
@@ -108,12 +108,12 @@
 				<CnPagination
 					v-if="paginationState && paginationState.pages > 1"
 					class="cn-logs-page__pagination"
-					:current-page="paginationState.page || 1"
-					:total-pages="paginationState.pages || 1"
-					:total-items="paginationState.total || 0"
-					:current-page-size="paginationState.limit || 20"
-					@page-changed="onPageChange"
-					@page-size-changed="onPageSizeChange" />
+					:currentPage="paginationState.page || 1"
+					:totalPages="paginationState.pages || 1"
+					:totalItems="paginationState.total || 0"
+					:currentPageSize="paginationState.limit || 20"
+					@pageChanged="onPageChange"
+					@pageSizeChanged="onPageSizeChange" />
 			</template>
 
 			<div v-if="error" class="cn-logs-page__error">
@@ -168,20 +168,20 @@
 </template>
 
 <script>
-import { getCurrentInstance, inject } from 'vue'
-import { translate as t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import HistoryIcon from 'vue-material-design-icons/History.vue'
+import { getCurrentInstance, inject } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
-import { CnDataTable } from '../CnDataTable/index.js'
-import { CnDetailGrid } from '../CnDetailGrid/index.js'
-import { CnPageHeader } from '../CnPageHeader/index.js'
-import { CnPagination } from '../CnPagination/index.js'
+import HistoryIcon from 'vue-material-design-icons/History.vue'
 import { useListView } from '../../composables/index.js'
 import { useObjectStore } from '../../store/index.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
+import { CnDataTable } from '../CnDataTable/index.js'
+import { CnDetailGrid } from '../CnDetailGrid/index.js'
+import { CnPageHeader } from '../CnPageHeader/index.js'
+import { CnPagination } from '../CnPagination/index.js'
 
 /**
  * Legacy default columns. Retained ONLY for `source` mode and for a store
@@ -273,11 +273,13 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Activity log'),
 		},
+
 		/** Description shown under the title when `showTitle` is set. */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Whether to render the inline page header VISIBLY. Defaults to true:
 		 * unlike CnIndexPage (which surfaces the title in its sidebar header
@@ -291,11 +293,13 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/** MDI icon name for the header. */
 		icon: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * OpenRegister register slug. Required (with `schema`) for store-backed
 		 * mode. Changing it after mount requires a remount — CnPageRenderer keys
@@ -307,6 +311,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * OpenRegister schema slug. Required (with `register`) for store-backed
 		 * mode. Changing it after mount requires a remount (see `register`).
@@ -315,11 +320,13 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Custom log source URL — used when `register`+`schema` is not set. */
 		source: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Column definitions for the table. When omitted, a store-backed page
 		 * derives its columns from the loaded schema; a `source`-backed page
@@ -334,6 +341,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Fixed filter map merged into every fetch, ABOVE the `$route.query`
 		 * deep-link filters so the page's own scoping wins on a key collision.
@@ -348,6 +356,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Pagination config; only `limit` is read, as the page size sent as
 		 * `_limit`. Null = the store default of 20. Store mode only.
@@ -358,6 +367,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial sort column. Null (the default) sends no `_order`, leaving the
 		 * server's own ordering in place.
@@ -366,12 +376,14 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/** Initial sort direction. Inert while `sortKey` is null. */
 		sortOrder: {
 			type: String,
 			default: 'asc',
 			validator: (v) => v === null || ['asc', 'desc'].includes(v),
 		},
+
 		/**
 		 * Initial MULTI-column sort as an ordered priority list. Takes precedence
 		 * over `sortKey`/`sortOrder` when non-empty; empty (the default) is inert.
@@ -385,6 +397,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Make the columns' declared `width` authoritative (`table-layout: fixed`)
 		 * instead of a hint the browser may override from cell content. Worth
@@ -397,6 +410,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Open a read-only detail dialog when a row is clicked, rendering the
 		 * entry's fields — including nested bags like a stack trace or an
@@ -408,6 +422,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Manifest page id (route name) to open on a row click, pushed as
 		 * `{ name: rowRoute, params: { id: row[rowKey] } }` — the same shape
@@ -419,26 +434,31 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Row identifier property. Defaults to `id` (matches OR + most custom log shapes). */
 		rowKey: {
 			type: String,
 			default: 'id',
 		},
+
 		/** Text shown when there are no log entries. */
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No log entries to show'),
 		},
+
 		/** Text shown when the fetch fails. */
 		errorText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Could not load log entries'),
 		},
+
 		/** Label for the row-detail dialog's close button. */
 		closeLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Close'),
 		},
+
 		/**
 		 * Override the object store. Useful when the consuming app calls
 		 * `createObjectStore` with a custom ID. When null, the default
@@ -481,14 +501,18 @@ export default {
 			listStore: null,
 			resolveFixedFilters: () => ({}),
 		}
-		if (!props.register || !props.schema) return NO_LIST
+		if (!props.register || !props.schema) {
+			return NO_LIST
+		}
 
 		const store = props.store || useObjectStore()
 		// The `store` prop has always accepted a hand-rolled object, but
 		// useListView assumes a full OpenRegister store (pagination/errors/
 		// fetchSchema). Duck-type it and fall back to the legacy no-params
 		// fetch rather than throwing on a partial store.
-		if (typeof store.fetchCollection !== 'function' || !store.pagination) return NO_LIST
+		if (typeof store.fetchCollection !== 'function' || !store.pagination) {
+			return NO_LIST
+		}
 
 		const objectType = `${props.register}-${props.schema}`
 		// Must run synchronously: useListView's onMounted calls fetchSchema(),
@@ -564,6 +588,7 @@ export default {
 		usesStore() {
 			return !!this.list
 		},
+
 		/**
 		 * Whether the component should fetch via axios. Store mode needs BOTH
 		 * `register` and `schema`, so a half-configured pair with a `source` set
@@ -572,25 +597,34 @@ export default {
 		usesSource() {
 			return !(this.register && this.schema) && !!this.source
 		},
+
 		/** Loading state of the active fetch mode. */
 		loading() {
 			// `list` is a bag of refs returned from setup(); only TOP-LEVEL setup
 			// refs are auto-unwrapped, so every read below goes through `.value`.
 			return this.list ? this.list.loading.value : this.localLoading
 		},
+
 		/**
 		 * Fetch error. `fetchCollection` records failures on the store rather
 		 * than throwing, so store mode reads them from there — without this the
 		 * `#error` slot never rendered for a store-backed page.
 		 */
 		error() {
-			if (this.localError) return this.localError
-			if (this.list && this.listStore) return this.listStore.errors[this.objectType] || null
+			if (this.localError) {
+				return this.localError
+			}
+			if (this.list && this.listStore) {
+				return this.listStore.errors[this.objectType] || null
+			}
 			return null
 		},
+
 		/** Rows to render: the store collection, or locally sorted axios rows. */
 		rows() {
-			if (this.list) return this.list.objects.value
+			if (this.list) {
+				return this.list.objects.value
+			}
 			// Legacy-store fallback: read the store's collection LIVE rather than
 			// the snapshot `fetch()` took. `rows` used to reach the collection
 			// through a computed; snapshotting into `localRows` meant a store that
@@ -602,11 +636,14 @@ export default {
 				? this.store.collections?.[`${this.register}-${this.schema}`]
 				: null
 			const base = Array.isArray(live) ? live : this.localRows
-			if (this.localSortKeys.length === 0) return base
+			if (this.localSortKeys.length === 0) {
+				return base
+			}
 			// CnDataTable is presentational — it never sorts its own rows — so
 			// `source` mode has to apply the header sort itself.
 			return multiKeySort(base, this.localSortKeys.map((k) => ({ field: k.key, order: k.order })))
 		},
+
 		/**
 		 * Server pagination STATE (`{ total, page, pages, limit }`); null in
 		 * source mode, which has no paging. Distinct from the `pagination`
@@ -615,6 +652,7 @@ export default {
 		paginationState() {
 			return this.list ? this.list.pagination.value : null
 		},
+
 		/**
 		 * The LOADED schema object (not the `schema` slug prop), forwarded to
 		 * CnDataTable for type-aware cell rendering and schema-derived columns.
@@ -622,18 +660,22 @@ export default {
 		tableSchema() {
 			return (this.list && this.list.schema.value) || null
 		},
+
 		/** Active ordered sort keys, from the composable or local source state. */
 		effectiveSortKeys() {
 			return this.list ? this.list.sortKeys.value : this.localSortKeys
 		},
+
 		/** Primary sort key (mirrors `effectiveSortKeys[0]`) for CnDataTable. */
 		effectiveSortKey() {
 			return this.effectiveSortKeys[0]?.key ?? null
 		},
+
 		/** Primary sort direction (mirrors `effectiveSortKeys[0]`). */
 		effectiveSortOrder() {
 			return this.effectiveSortKeys[0]?.order ?? 'asc'
 		},
+
 		/**
 		 * Resolved columns. A consumer-provided list wins. Otherwise, when a
 		 * schema is loaded, return `[]` so CnDataTable derives the columns from
@@ -645,29 +687,39 @@ export default {
 			if (this.columns.length > 0) {
 				return this.columns.map((c) => (typeof c === 'string' ? { key: c, label: this.humanise(c) } : c))
 			}
-			if (this.tableSchema) return []
+			if (this.tableSchema) {
+				return []
+			}
 			return legacyDefaultColumns()
 		},
+
 		/** Column slot names that the parent has provided (for pass-through). */
 		slotColumns() {
 			return Object.keys(this.$slots || {})
 				.filter((name) => name.startsWith('column-'))
 				.map((name) => name.replace('column-', ''))
 		},
+
 		/** Dialog heading: the entry's message when it has one, else its id. */
 		detailTitle() {
-			if (!this.detailRow) return ''
+			if (!this.detailRow) {
+				return ''
+			}
 			const message = this.detailRow.message
-			if (typeof message === 'string' && message !== '') return message
+			if (typeof message === 'string' && message !== '') {
+				return message
+			}
 			const id = this.detailRow[this.rowKey]
 			return id ? String(id) : t('nextcloud-vue', 'Log entry')
 		},
+
 		/** The clicked row's primitive fields, as CnDetailGrid items. */
 		detailScalarItems() {
 			return this.detailEntries
 				.filter(([, value]) => !this.isBag(value))
 				.map(([key, value]) => ({ label: this.propertyLabel(key), value: String(value) }))
 		},
+
 		/**
 		 * The clicked row's nested fields. A bag of primitives (a stack trace's
 		 * frames, an argument map) renders as its own labelled grid; anything
@@ -687,6 +739,7 @@ export default {
 					}
 				})
 		},
+
 		/**
 		 * Stable signature of the RESOLVED fetch scope — the query deep-link
 		 * filters plus the `filter` prop after route-param and `@`-token
@@ -699,12 +752,17 @@ export default {
 		 * @return {string} The serialized filter map.
 		 */
 		filterSignature() {
-			if (!this.list) return ''
+			if (!this.list) {
+				return ''
+			}
 			return JSON.stringify(this.resolveFixedFilters())
 		},
+
 		/** The clicked row's renderable entries — `@self` and empties dropped. */
 		detailEntries() {
-			if (!this.detailRow) return []
+			if (!this.detailRow) {
+				return []
+			}
 			return Object.entries(this.detailRow)
 				.filter(([key, value]) => key !== '@self' && value !== null && value !== undefined && value !== '')
 		},
@@ -735,17 +793,30 @@ export default {
 		// owns the initial fetch. This also covers a reactive `filter` prop
 		// change, which had no watcher of its own at all.
 		filterSignature(next, prev) {
-			if (!this.list || next === prev) return
+			if (!this.list || next === prev) {
+				return
+			}
 			// Guarded only when this page HAS a route name to compare against —
 			// a router-less host, or one whose routes are unnamed, keeps the
 			// unguarded behaviour rather than losing refetches to a comparison
 			// that can never match.
-			if (this._ownRouteName !== undefined && this.$route?.name !== this._ownRouteName) return
+			if (this._ownRouteName !== undefined && this.$route?.name !== this._ownRouteName) {
+				return
+			}
 			this.list.refresh(1)
 		},
-		register(value, previous) { this.onSourcePropChange('register', value, previous) },
-		schema(value, previous) { this.onSourcePropChange('schema', value, previous) },
-		source(value, previous) { this.onSourcePropChange('source', value, previous) },
+
+		register(value, previous) {
+			this.onSourcePropChange('register', value, previous)
+		},
+
+		schema(value, previous) {
+			this.onSourcePropChange('schema', value, previous)
+		},
+
+		source(value, previous) {
+			this.onSourcePropChange('source', value, previous)
+		},
 	},
 
 	created() {
@@ -758,7 +829,9 @@ export default {
 	mounted() {
 		// In store mode useListView's own onMounted owns the initial fetch;
 		// calling fetch() here too would double-request on every page load.
-		if (!this.list) this.fetch()
+		if (!this.list) {
+			this.fetch()
+		}
 	},
 
 	methods: {
@@ -787,7 +860,7 @@ export default {
 		/**
 		 * Whether a value is a nested bag (object/array) rather than a scalar.
 		 *
-		 * @param {*} value The value to test.
+		 * @param {unknown} value The value to test.
 		 * @return {boolean} True for non-null objects and arrays.
 		 */
 		isBag(value) {
@@ -863,8 +936,8 @@ export default {
 		 * indication why. Warns in development only, once per change.
 		 *
 		 * @param {string} name The prop that changed.
-		 * @param {*} value The new value.
-		 * @param {*} previous The previous value.
+		 * @param {unknown} value The new value.
+		 * @param {unknown} previous The previous value.
 		 * @return {void}
 		 */
 		onSourcePropChange(name, value, previous) {
@@ -874,11 +947,9 @@ export default {
 			}
 			if (process.env.NODE_ENV !== 'production') {
 				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnLogsPage] \`${name}\` changed from "${previous}" to "${value}" on a mounted store-backed page. `
+				console.warn(`[CnLogsPage] \`${name}\` changed from "${previous}" to "${value}" on a mounted store-backed page. `
 					+ 'The data source is bound once at setup, so this has no effect — remount the page (e.g. give it a '
-					+ ':key) to pick up the new register/schema.',
-				)
+					+ ':key) to pick up the new register/schema.')
 			}
 		},
 
@@ -927,7 +998,9 @@ export default {
 				// `.catch` swallows vue-router's NavigationDuplicated when the
 				// row is already open — a rejected push is not an error here.
 				const push = this.$router?.push({ name: this.rowRoute, params: { id: row?.[this.rowKey] } })
-				if (push && typeof push.catch === 'function') push.catch(() => {})
+				if (push && typeof push.catch === 'function') {
+					push.catch(() => {})
+				}
 			} else if (this.rowDetail) {
 				this.detailRow = row
 			}

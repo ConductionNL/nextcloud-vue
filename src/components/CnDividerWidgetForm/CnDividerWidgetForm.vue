@@ -10,9 +10,9 @@
 		</p>
 
 		<NcSelect
-			:model-value="style"
+			:modelValue="style"
 			:options="styleOptions"
-			:input-label="t('nextcloud-vue', 'Style')"
+			:inputLabel="t('nextcloud-vue', 'Style')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
@@ -30,17 +30,17 @@
 
 			<NcTextField
 				type="number"
-				:model-value="String(lineThickness)"
+				:modelValue="String(lineThickness)"
 				:label="t('nextcloud-vue', 'Thickness (pixels)')"
 				placeholder="1"
 				:min="1"
 				:max="8"
-				@update:model-value="updateThickness($event)" />
+				@update:modelValue="updateThickness($event)" />
 
 			<NcSelect
-				:model-value="lineStyle"
+				:modelValue="lineStyle"
 				:options="lineStyleOptions"
-				:input-label="t('nextcloud-vue', 'Line style')"
+				:inputLabel="t('nextcloud-vue', 'Line style')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
@@ -49,9 +49,9 @@
 
 		<template v-if="style === 'whitespace'">
 			<NcSelect
-				:model-value="whitespaceSize"
+				:modelValue="whitespaceSize"
 				:options="whitespaceSizeOptions"
-				:input-label="t('nextcloud-vue', 'Spacing size')"
+				:inputLabel="t('nextcloud-vue', 'Spacing size')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
@@ -60,11 +60,11 @@
 
 		<template v-if="style === 'heading-break'">
 			<NcTextField
-				:model-value="headingText"
+				:modelValue="headingText"
 				:label="t('nextcloud-vue', 'Heading text')"
 				:placeholder="t('nextcloud-vue', 'Section heading')"
 				required
-				@update:model-value="updateField('headingText', $event)" />
+				@update:modelValue="updateField('headingText', $event)" />
 
 			<label class="cn-divider-widget-form__color-label">
 				{{ t('nextcloud-vue', 'Line color') }}
@@ -76,9 +76,9 @@
 			</label>
 
 			<NcSelect
-				:model-value="lineStyle"
+				:modelValue="lineStyle"
 				:options="lineStyleOptions"
-				:input-label="t('nextcloud-vue', 'Line style')"
+				:inputLabel="t('nextcloud-vue', 'Line style')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
@@ -88,8 +88,8 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 
 const STYLES = Object.freeze({
@@ -136,6 +136,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values — used when not editing and the parent
 		 * supplies registry defaults.
@@ -166,6 +167,7 @@ export default {
 			lineThickness: typeof initial.lineThickness === 'number'
 				? initial.lineThickness
 				: DEFAULT_CONTENT.lineThickness,
+
 			lineStyle: initial.lineStyle ?? DEFAULT_CONTENT.lineStyle,
 			whitespaceSize: initial.whitespaceSize ?? DEFAULT_CONTENT.whitespaceSize,
 			headingText: initial.headingText ?? DEFAULT_CONTENT.headingText,

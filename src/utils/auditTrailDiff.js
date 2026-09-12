@@ -33,7 +33,7 @@
  * `changed` property is missing or not a plain object, are skipped
  * without throwing.
  *
- * @param {Array<{changed?: Record<string, {old: *, new: *}>}>} entries Oldest-first ordered audit-trail entries.
+ * @param {Array<{changed?: Record<string, {old: unknown, new: unknown}>}>} entries Oldest-first ordered audit-trail entries.
  * @return {FoldedAuditState} The folded before/after state pair.
  */
 export function foldAuditTrailEntries(entries) {

@@ -1,4 +1,4 @@
-export { useObjectStore, createObjectStore } from './useObjectStore.js'
+export { createObjectStore, useObjectStore } from './useObjectStore.js'
 export { createCrudStore } from './createCrudStore.js'
 export { createSubResourcePlugin, emptyPaginated } from './createSubResourcePlugin.js'
-export { auditTrailsPlugin, relationsPlugin, filesPlugin, lifecyclePlugin, liveUpdatesPlugin, logsPlugin, registerMappingPlugin, selectionPlugin, searchPlugin, SEARCH_TYPE, getRegisterApiUrl, getSchemaApiUrl } from './plugins/index.js'
+export { auditTrailsPlugin, filesPlugin, getRegisterApiUrl, getSchemaApiUrl, lifecyclePlugin, liveUpdatesPlugin, logsPlugin, registerMappingPlugin, relationsPlugin, SEARCH_TYPE, searchPlugin, selectionPlugin } from './plugins/index.js'

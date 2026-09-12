@@ -9,7 +9,7 @@
  *  - fetchSingle path for single-entity.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnSharesCard = require('../CnSharesCard.vue').default
 
 const DEFAULT_PROPS = {
@@ -54,8 +54,7 @@ describe('CnSharesCard', () => {
 			}),
 		})
 		const wrapper = mount(CnSharesCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const text = wrapper.text()
 		expect(text).toMatch(/2 users/)
 		expect(text).toMatch(/1 groups/)
@@ -66,8 +65,7 @@ describe('CnSharesCard', () => {
 	it('renders the empty state on dashboard surface when no shares', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnSharesCard, { propsData: { ...DEFAULT_PROPS, surface: 'app-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No shares on this object yet')
 		wrapper.unmount()
 	})
@@ -84,8 +82,7 @@ describe('CnSharesCard', () => {
 			}),
 		})
 		const wrapper = mount(CnSharesCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const groups = wrapper.findAll('.cn-shares-card__group')
 		expect(groups).toHaveLength(2)
 		expect(wrapper.text()).toContain('Alice')
@@ -102,8 +99,7 @@ describe('CnSharesCard', () => {
 		const wrapper = mount(CnSharesCard, {
 			propsData: { ...DEFAULT_PROPS, surface: 'single-entity', value: 'sh-99' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const chip = wrapper.find('.cn-shares-card__chip')
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('public')
@@ -126,8 +122,7 @@ describe('CnSharesCard', () => {
 	it('shows unavailable label on 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnSharesCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC sharing is currently unavailable.')
 		wrapper.unmount()
 	})
@@ -136,8 +131,7 @@ describe('CnSharesCard', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnSharesCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No shares on this object yet')
 		wrapper.unmount()
 		spy.mockRestore()

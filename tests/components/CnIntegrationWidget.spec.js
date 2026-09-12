@@ -18,7 +18,6 @@
 
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
-
 import CnIntegrationWidget from '../../src/components/CnIntegrationWidget/CnIntegrationWidget.vue'
 import { createIntegrationRegistry } from '../../src/integrations/registry.js'
 

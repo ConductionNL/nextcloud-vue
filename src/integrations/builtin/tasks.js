@@ -13,8 +13,8 @@
  * @module integrations/builtin/tasks
  */
 
-import { h } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
+import { h } from 'vue'
 import CnTasksTab from '../../components/CnObjectSidebar/CnTasksTab.vue'
 import CnTasksCard from '../../components/CnTasksCard/CnTasksCard.vue'
 

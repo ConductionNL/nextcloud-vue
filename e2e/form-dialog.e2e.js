@@ -5,7 +5,7 @@
 //   REQ-DG-010 — schema-driven widget:'icon' renders CnIconPicker in CnFormDialog
 //   and the selected value flows into the confirm payload.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
 	// ?fd=1 renders the CnFormDialog harness with a single widget:'icon' field.

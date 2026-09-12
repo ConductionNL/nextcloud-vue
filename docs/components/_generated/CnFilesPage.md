@@ -20,13 +20,13 @@
 
 ### Slots
 
-| Name         | Bindings                                                          | Description |
-| ------------ | ----------------------------------------------------------------- | ----------- |
-| `header`     | `title`, `description`, `icon`                                    |             |
-| `actions`    | —                                                                 |             |
-| `files-view` | `folder`, `allowed-types`, `files`, `loading`, `error`, `refresh` |             |
-| `error`      | `error`                                                           |             |
-| `empty`      | —                                                                 |             |
+| Name         | Bindings                                                         | Description |
+| ------------ | ---------------------------------------------------------------- | ----------- |
+| `header`     | `title`, `description`, `icon`                                   |             |
+| `actions`    | —                                                                |             |
+| `files-view` | `folder`, `allowedTypes`, `files`, `loading`, `error`, `refresh` |             |
+| `error`      | `error`                                                          |             |
+| `empty`      | —                                                                |             |
 
 ### Methods
 

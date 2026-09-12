@@ -88,7 +88,9 @@ describe('CnDataMatrix', () => {
 		const wrapper = mount(CnDataMatrix, {
 			propsData: {
 				rows: [
-					{ id: 1, x: 10 }, { id: 2, x: 20 }, { id: 3, x: 60 },
+					{ id: 1, x: 10 },
+					{ id: 2, x: 20 },
+					{ id: 3, x: 60 },
 				],
 				columns: [{ key: 'x', label: 'X', type: 'number', aggregate: 'avg' }],
 			},
@@ -100,7 +102,9 @@ describe('CnDataMatrix', () => {
 		const wrapper = mount(CnDataMatrix, {
 			propsData: {
 				rows: [
-					{ id: 1, x: 10 }, { id: 2, x: null }, { id: 3, x: 20 },
+					{ id: 1, x: 10 },
+					{ id: 2, x: null },
+					{ id: 3, x: 20 },
 				],
 				columns: [{ key: 'x', label: 'X', type: 'number', aggregate: 'count' }],
 			},

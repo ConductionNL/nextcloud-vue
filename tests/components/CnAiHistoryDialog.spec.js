@@ -19,7 +19,6 @@ jest.mock('@nextcloud/axios', () => ({
 	},
 }))
 
-// eslint-disable-next-line n/no-missing-require -- ESM-only package; jest resolves it via moduleNameMapper (tests/__mocks__/nextcloud-axios.js)
 const axios = require('@nextcloud/axios').default
 const CnAiHistoryDialog = require('../../src/dialogs/CnAiHistoryDialog.vue').default
 

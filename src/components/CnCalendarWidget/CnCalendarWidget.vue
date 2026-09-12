@@ -168,6 +168,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Consumer-supplied data source overriding the `cnCalendarSource`
 		 * injection. Must expose `fetchEvents({from, to}) => Promise<{events,
@@ -267,10 +268,14 @@ export default {
 		 */
 		hasNoCalendarChosen() {
 			const c = this.content
-			if (!c) return false
+			if (!c) {
+				return false
+			}
 			const internal = c.internalCalendars
 			const external = c.externalIcsUrls
-			if (!Array.isArray(internal) && !Array.isArray(external)) return false
+			if (!Array.isArray(internal) && !Array.isArray(external)) {
+				return false
+			}
 			return (internal || []).length === 0 && (external || []).length === 0
 		},
 
@@ -422,6 +427,7 @@ export default {
 				this.fetchEvents()
 			},
 		},
+
 		// Month/week/agenda use different fetch windows — refetch on switch.
 		activeMode() {
 			this.fetchEvents()

@@ -31,8 +31,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnFormsTab from './forms/CnFormsTab.vue'
 import CnFormsCard from './forms/CnFormsCard.vue'
+import CnFormsTab from './forms/CnFormsTab.vue'
 
 /**
  * `forms` integration descriptor.

@@ -21,8 +21,8 @@ import {
 	actionNote,
 	actionsByTarget,
 	declaresInputs,
-	readAvailableActions,
 	performTransition,
+	readAvailableActions,
 	transitionError,
 } from '../../src/composables/useLifecycleTransitions.js'
 

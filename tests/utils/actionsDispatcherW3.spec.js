@@ -14,9 +14,9 @@
  * and toggle (non-dispatchable — warns).
  */
 
-import { emit } from '@nextcloud/event-bus'
-import { showSuccess, showError } from '@nextcloud/dialogs'
 import axios from '@nextcloud/axios'
+import { showError, showSuccess } from '@nextcloud/dialogs'
+import { emit } from '@nextcloud/event-bus'
 import { triggerBlobDownload } from '../../src/components/CnIndexPage/selfModeIO.js'
 import { dispatchAction, postRunNode } from '../../src/utils/actionsDispatcher.js'
 

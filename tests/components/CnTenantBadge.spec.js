@@ -4,7 +4,6 @@
 
 import { mount } from '@vue/test-utils'
 import { defineComponent, h } from 'vue'
-
 import CnTenantBadge from '../../src/components/CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../src/composables/useTenantContext.js'
 

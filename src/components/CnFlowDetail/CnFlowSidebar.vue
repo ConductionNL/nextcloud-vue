@@ -67,7 +67,7 @@
 		-->
 		<template v-if="!embedded" #description>
 			<div class="cn-flow-sidebar__header">
-				<CnFlowLifecycleControls :show-name="false" />
+				<CnFlowLifecycleControls :showName="false" />
 			</div>
 		</template>
 
@@ -84,7 +84,7 @@
 				:key="action.id"
 				:data-testid="action.testid"
 				:disabled="action.disabled"
-				:close-after-click="true"
+				:closeAfterClick="true"
 				@click="action.run()">
 				<template #icon>
 					<component :is="action.icon" :size="20" />
@@ -100,7 +100,7 @@
 					:key="action.id"
 					:data-testid="action.testid"
 					:disabled="action.disabled"
-					:close-after-click="true"
+					:closeAfterClick="true"
 					@click="action.run()">
 					<template #icon>
 						<component :is="action.icon" :size="20" />
@@ -208,9 +208,9 @@ import Publish from 'vue-material-design-icons/Publish.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import CnFlowPublishDialog from '../../dialogs/CnFlowPublishDialog.vue'
 import CnFlowSettingsModal from '../../dialogs/CnFlowSettingsModal.vue'
-import { useFlowStore } from '../../composables/useFlowStore.js'
 import CnFlowLifecycleControls from './CnFlowLifecycleControls.vue'
 import CnRunDetailSidebar from './CnRunDetailSidebar.vue'
+import { useFlowStore } from '../../composables/useFlowStore.js'
 
 export default {
 	name: 'CnFlowSidebar',
@@ -346,7 +346,9 @@ export default {
 				icon: 'Pencil',
 				label: this.t('nextcloud-vue', 'Edit flow'),
 				disabled: false,
-				run: () => { this.settingsOpen = true },
+				run: () => {
+					this.settingsOpen = true
+				},
 			}]
 
 			// The label says which way the switch will GO, not which way it is
@@ -370,7 +372,9 @@ export default {
 					icon: 'Publish',
 					label: this.t('nextcloud-vue', 'Publish'),
 					disabled: this.store.transitioning || !this.store.flow.id,
-					run: () => { this.publishOpen = true },
+					run: () => {
+						this.publishOpen = true
+					},
 				})
 			}
 
@@ -413,7 +417,7 @@ export default {
 		 * @param {string|null} uuid The run now being watched.
 		 * @return {void}
 		 */
-		'store.watchedRunUuid'(uuid) {
+		'store.watchedRunUuid': function(uuid) {
 			if (uuid) {
 				this.tab = 'flow-runs'
 			}
@@ -431,7 +435,7 @@ export default {
 		 * @param {string|null} uuid The run now being inspected.
 		 * @return {void}
 		 */
-		'store.inspectedRunUuid'(uuid) {
+		'store.inspectedRunUuid': function(uuid) {
 			if (uuid) {
 				this.tab = 'flow-runs'
 			}

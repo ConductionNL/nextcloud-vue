@@ -24,23 +24,21 @@
  */
 
 import schema from '../../src/schemas/app-manifest.schema.json'
-
-import columnValid from '../fixtures/def-column-valid.json'
-import columnInvalid from '../fixtures/def-column-invalid.json'
-import actionValid from '../fixtures/def-action-valid.json'
-import actionInvalid from '../fixtures/def-action-invalid.json'
-import widgetDefValid from '../fixtures/def-widgetDef-valid.json'
-import widgetDefInvalid from '../fixtures/def-widgetDef-invalid.json'
-import layoutItemValid from '../fixtures/def-layoutItem-valid.json'
-import layoutItemInvalid from '../fixtures/def-layoutItem-invalid.json'
-import formFieldValid from '../fixtures/def-formField-valid.json'
-import formFieldInvalid from '../fixtures/def-formField-invalid.json'
-import sidebarSectionValid from '../fixtures/def-sidebarSection-valid.json'
-import sidebarSectionInvalid from '../fixtures/def-sidebarSection-invalid.json'
-import sidebarTabValid from '../fixtures/def-sidebarTab-valid.json'
-import sidebarTabInvalid from '../fixtures/def-sidebarTab-invalid.json'
-
 import { validateManifest } from '../../src/utils/validateManifest.js'
+import actionInvalid from '../fixtures/def-action-invalid.json'
+import actionValid from '../fixtures/def-action-valid.json'
+import columnInvalid from '../fixtures/def-column-invalid.json'
+import columnValid from '../fixtures/def-column-valid.json'
+import formFieldInvalid from '../fixtures/def-formField-invalid.json'
+import formFieldValid from '../fixtures/def-formField-valid.json'
+import layoutItemInvalid from '../fixtures/def-layoutItem-invalid.json'
+import layoutItemValid from '../fixtures/def-layoutItem-valid.json'
+import sidebarSectionInvalid from '../fixtures/def-sidebarSection-invalid.json'
+import sidebarSectionValid from '../fixtures/def-sidebarSection-valid.json'
+import sidebarTabInvalid from '../fixtures/def-sidebarTab-invalid.json'
+import sidebarTabValid from '../fixtures/def-sidebarTab-valid.json'
+import widgetDefInvalid from '../fixtures/def-widgetDef-invalid.json'
+import widgetDefValid from '../fixtures/def-widgetDef-valid.json'
 import valid from '../fixtures/manifest-valid.json'
 
 /**
@@ -66,7 +64,9 @@ function structuralValidate(def, value, path = '$') {
 		}
 		const required = Array.isArray(def.required) ? def.required : []
 		for (const key of required) {
-			if (!(key in value)) errors.push(`${path}.${key}: required`)
+			if (!(key in value)) {
+				errors.push(`${path}.${key}: required`)
+			}
 		}
 		const props = def.properties || {}
 		const allowExtra = def.additionalProperties === true
@@ -110,7 +110,9 @@ function structuralValidate(def, value, path = '$') {
 		return { valid: errors.length === 0, errors }
 	}
 	if (def.type === 'boolean') {
-		if (typeof value !== 'boolean') errors.push(`${path}: must be boolean`)
+		if (typeof value !== 'boolean') {
+			errors.push(`${path}: must be boolean`)
+		}
 		return { valid: errors.length === 0, errors }
 	}
 	// def.type undefined (e.g. formField.default — "any") — accept.
@@ -212,13 +214,15 @@ describe('$defs.formField', () => {
 		expect(r.errors.some((e) => e.includes('type: must be one of'))).toBe(true)
 	})
 	it('declares type as a closed enum of the seven allowed values', () => {
-		expect(schema.$defs.formField.properties.type.enum).toEqual(
-			['boolean', 'number', 'string', 'enum', 'password', 'json', 'file'],
-		)
+		expect(schema.$defs.formField.properties.type.enum).toEqual(['boolean', 'number', 'string', 'enum', 'password', 'json', 'file'])
 	})
 	it('accepts a file field with its accept and maxSize options', () => {
 		const r = structuralValidate(schema.$defs.formField, {
-			key: 'report', label: 'Report', type: 'file', accept: '.pdf,image/*', maxSize: 10485760,
+			key: 'report',
+			label: 'Report',
+			type: 'file',
+			accept: '.pdf,image/*',
+			maxSize: 10485760,
 		})
 		expect(r).toEqual({ valid: true, errors: [] })
 		expect(schema.$defs.formField.properties.accept.type).toBe('string')

@@ -4,7 +4,7 @@
  * fetch-failure fallback.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnTagsCard = require('../../src/components/CnTagsCard/CnTagsCard.vue').default
 
 describe('CnTagsCard', () => {
@@ -21,8 +21,7 @@ describe('CnTagsCard', () => {
 		const wrapper = mount(CnTagsCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No tags')
 		wrapper.unmount()
 	})
@@ -41,8 +40,7 @@ describe('CnTagsCard', () => {
 		const wrapper = mount(CnTagsCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.findAll('.cn-tags-card__pill')).toHaveLength(3)
 		expect(wrapper.text()).toContain('urgent')
 		expect(wrapper.text()).toContain('archived')
@@ -54,8 +52,7 @@ describe('CnTagsCard', () => {
 		const wrapper = mount(CnTagsCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No tags')
 		wrapper.unmount()
 	})

@@ -22,8 +22,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnTalkTab from './talk/CnTalkTab.vue'
 import CnTalkCard from './talk/CnTalkCard.vue'
+import CnTalkTab from './talk/CnTalkTab.vue'
 
 /**
  * `talk` integration descriptor.

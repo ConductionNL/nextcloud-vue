@@ -25,13 +25,13 @@
 		<template v-else>
 			<CnTimelineStages
 				:stages="timelineStages"
-				:current-stage="currentStageId"
+				:currentStage="currentStageId"
 				:orientation="orientation"
 				:size="size"
 				:clickable="interactive"
 				:aria-label="ariaLabel"
-				@stage-click="onStageClick"
-				@stage-blocked="onStageBlocked">
+				@stageClick="onStageClick"
+				@stageBlocked="onStageBlocked">
 				<template #label="{ stage }">
 					<span class="cn-timeline-stages__label" :data-testid="`cn-stages-widget-stage-${stage.id}`">
 						{{ stage.label }}
@@ -96,12 +96,12 @@
 </template>
 
 <script>
-import { inject, ref } from 'vue'
 import { emit as emitBus } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
-import CnTimelineStages from '../CnTimelineStages/CnTimelineStages.vue'
+import { inject, ref } from 'vue'
 import CnTransitionInputDialog from '../../dialogs/CnTransitionInputDialog.vue'
+import CnTimelineStages from '../CnTimelineStages/CnTimelineStages.vue'
 import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import {
 	actionNote,
@@ -111,15 +111,16 @@ import {
 	readAvailableActions,
 	transitionError,
 } from '../../composables/useLifecycleTransitions.js'
+import { useObjectStore } from '../../store/useObjectStore.js'
+import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import {
 	dropOptionalUnresolved,
 	hasUnresolvedTokens,
 	resolveFilterTokens,
 } from '../../utils/resolveFilterTokens.js'
-import { useObjectStore } from '../../store/useObjectStore.js'
-import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { normalizeStages, stageSavePayload } from './stagesModel.js'
+
 // The stepper's look lives in the global timeline stylesheet. Imported here
 // so the widget renders styled without the app's global css/index.css, the
 // same reason CnStatWidget imports kpi-card.css.
@@ -131,8 +132,8 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 /**
  * Unwrap a value that may be a plain object or a `{ value }` holder.
  *
- * @param {*} v The injected value.
- * @return {*} The unwrapped value.
+ * @param {unknown} v The injected value.
+ * @return {unknown} The unwrapped value.
  */
 function unwrap(v) {
 	return (v && typeof v === 'object' && 'value' in v) ? v.value : v
@@ -141,11 +142,13 @@ function unwrap(v) {
 /**
  * Flatten a register or schema reference to its slug or id.
  *
- * @param {*} value The reference (string, or an object with slug/id).
+ * @param {unknown} value The reference (string, or an object with slug/id).
  * @return {string} The slug or id, or ''.
  */
 function refKey(value) {
-	if (value && typeof value === 'object') return String(value.slug || value.id || '')
+	if (value && typeof value === 'object') {
+		return String(value.slug || value.id || '')
+	}
 	return (value === undefined || value === null) ? '' : String(value)
 }
 
@@ -280,6 +283,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * The bound record, when the surface passes it. Falls back to the
 		 * detail page's injected object context.
@@ -290,6 +294,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * The bound record's id, when the surface passes it. Falls back to the
 		 * injected object context.
@@ -298,6 +303,7 @@ export default {
 			type: [String, Number],
 			default: '',
 		},
+
 		/**
 		 * The object-store type slug of the bound record, used by the `field`
 		 * transition. Falls back to the context, then to the register and
@@ -307,6 +313,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * The object store to save through. Falls back to the context's store,
 		 * then to the shared `useObjectStore()`.
@@ -317,6 +324,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * The record's JSON Schema, forwarded to `CnTransitionInputDialog` so a
 		 * transition's declared inputs render with the property's title and
@@ -329,6 +337,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Translate function for the manifest-authored strings. Falls back to
 		 * the injected `cnTranslate`, an identity function by default.
@@ -460,9 +469,13 @@ export default {
 		 */
 		recordId() {
 			const fromCtx = this.tokenCtx().objectId
-			if (fromCtx !== null && fromCtx !== undefined && fromCtx !== '') return String(fromCtx)
+			if (fromCtx !== null && fromCtx !== undefined && fromCtx !== '') {
+				return String(fromCtx)
+			}
 			const record = this.record
-			if (!record) return ''
+			if (!record) {
+				return ''
+			}
 			const own = record.id ?? record['@self']?.id ?? record.uuid
 			return (own === undefined || own === null) ? '' : String(own)
 		},
@@ -474,7 +487,9 @@ export default {
 		 */
 		recordStageId() {
 			const field = this.content.currentField
-			if (!field || !this.record) return null
+			if (!field || !this.record) {
+				return null
+			}
 			const raw = getByPath(this.record, field)
 			return (raw === undefined || raw === null || raw === '') ? null : String(raw)
 		},
@@ -525,7 +540,9 @@ export default {
 		 * @return {boolean} True while loading.
 		 */
 		stagesPending() {
-			if (this.endpointStages) return this.stagesBodyLoading || (this.stagesBody === null && !this.stagesBodyError)
+			if (this.endpointStages) {
+				return this.stagesBodyLoading || (this.stagesBody === null && !this.stagesBodyError)
+			}
 			return this.sourceLoading
 		},
 
@@ -549,8 +566,12 @@ export default {
 		 */
 		transition() {
 			const tr = this.content.transition
-			if (!tr || typeof tr !== 'object') return null
-			if (tr.kind === 'field' || tr.kind === 'lifecycle') return tr
+			if (!tr || typeof tr !== 'object') {
+				return null
+			}
+			if (tr.kind === 'field' || tr.kind === 'lifecycle') {
+				return tr
+			}
 			return null
 		},
 
@@ -600,8 +621,12 @@ export default {
 		 * @return {Map<string, object>|null} The moves.
 		 */
 		moves() {
-			if (!this.lifecycleMode) return null
-			if (!this.actionsLoaded) return null
+			if (!this.lifecycleMode) {
+				return null
+			}
+			if (!this.actionsLoaded) {
+				return null
+			}
 			return actionsByTarget(this.actions)
 		},
 
@@ -657,7 +682,9 @@ export default {
 		 */
 		sourceKey() {
 			const cfg = this.content.stagesSource
-			if (this.endpointStages || !cfg || !cfg.register || !cfg.schema) return ''
+			if (this.endpointStages || !cfg || !cfg.register || !cfg.schema) {
+				return ''
+			}
 			return JSON.stringify({ cfg, filter: resolveFilterTokens(cfg.filter || {}, this.tokenCtx()) })
 		},
 
@@ -679,8 +706,11 @@ export default {
 				this.fetchSourceStages()
 			},
 		},
+
 		record(next, previous) {
-			if (next === previous) return
+			if (next === previous) {
+				return
+			}
 			// A RE-READ RECORD IS AUTHORITATIVE, whatever it says.
 			//
 			// `movedTo` is the optimistic stage, shown so a move looks
@@ -692,13 +722,19 @@ export default {
 			// fresh record ends the optimism either way.
 			this.movedTo = null
 		},
+
 		recordStageId(next, previous) {
-			if (next === previous) return
+			if (next === previous) {
+				return
+			}
 			// The record moved without us, so the list in hand describes a stage
 			// it has left. Our OWN move refetches inside `performMove`, while
 			// `busy` still holds, so this does not double-request it.
-			if (previous !== null && !this.busy) this.loadActions()
+			if (previous !== null && !this.busy) {
+				this.loadActions()
+			}
 		},
+
 		actionsKey: {
 			immediate: true,
 			handler() {
@@ -732,20 +768,28 @@ export default {
 		 */
 		stageAccess(stage) {
 			const open = { disabled: false, reason: '', reasonVisible: false }
-			if (!this.transition) return open
+			if (!this.transition) {
+				return open
+			}
 			// You cannot move to where you already are. That is NOT the same as
 			// blocked, so it is not announced as blocked: the stage carries
 			// `aria-current="step"` and nothing else. Marking it
 			// `aria-disabled` on top said "you may not go here" about the place
 			// the record already is. `onStageClick` refuses it explicitly.
-			if (stage.id === this.currentStageId) return open
+			if (stage.id === this.currentStageId) {
+				return open
+			}
 			// A move is running, or the action list in hand is the one for the
 			// stage the record has just LEFT. Everything is disabled until the
 			// fresh list lands, and the focus stops stay.
-			if (!this.canMove) return { disabled: true, reason: '', reasonVisible: false }
+			if (!this.canMove) {
+				return { disabled: true, reason: '', reasonVisible: false }
+			}
 			// The field path has no server to ask, which is exactly why it is an
 			// explicit opt-in: every stage is offered and the write decides.
-			if (!this.lifecycleMode) return open
+			if (!this.lifecycleMode) {
+				return open
+			}
 			// A FAILED READ IS NOT A POLICY DECISION. Saying "not reachable from
 			// the current stage" about every stage would state, confidently and
 			// wrongly, something nobody has checked.
@@ -754,7 +798,9 @@ export default {
 			}
 			// Not read yet. Not "no moves allowed", which is why this is not the
 			// same branch as an empty list.
-			if (this.moves === null) return { disabled: true, reason: '', reasonVisible: false }
+			if (this.moves === null) {
+				return { disabled: true, reason: '', reasonVisible: false }
+			}
 			const move = this.moves.get(stage.id)
 			if (!move) {
 				const reason = this.content.unreachableReason
@@ -779,20 +825,28 @@ export default {
 		 * @return {void}
 		 */
 		onStageClick({ stage }) {
-			if (!this.canMove || !stage) return
+			if (!this.canMove || !stage) {
+				return
+			}
 			// The current stage is no longer marked disabled, so refuse it here.
 			// You cannot move to where you already are, and re-firing the move
 			// that just landed is exactly what a stray click would do.
-			if (stage.id === this.currentStageId) return
+			if (stage.id === this.currentStageId) {
+				return
+			}
 			// No `target.disabled` check: CnTimelineStages emits `stage-blocked`
 			// for those and never `stage-click`, so a second check here was a
 			// branch nothing could reach and nothing could test.
 			const target = this.timelineStages.find((s) => s.id === stage.id)
-			if (!target) return
+			if (!target) {
+				return
+			}
 			this.blockedMessage = ''
 			this.moveError = ''
 			const move = this.moves ? this.moves.get(stage.id) : null
-			if (this.lifecycleMode && !move) return
+			if (this.lifecycleMode && !move) {
+				return
+			}
 			const request = {
 				stage: { id: stage.id, label: target.label },
 				action: move ? move.action : stage.id,
@@ -828,7 +882,9 @@ export default {
 		 * @return {void}
 		 */
 		onStageBlocked({ stage }) {
-			if (!stage) return
+			if (!stage) {
+				return
+			}
 			const target = this.timelineStages.find((s) => s.id === stage.id)
 			this.blockedMessage = (target && target.reason)
 				|| (this.busy
@@ -845,7 +901,9 @@ export default {
 		onInputConfirm(data) {
 			const pending = this.pendingAction
 			this.pendingAction = null
-			if (!pending || !pending.__request) return
+			if (!pending || !pending.__request) {
+				return
+			}
 			this.performMove(pending.__request, data)
 		},
 
@@ -882,7 +940,9 @@ export default {
 				// the stage the record has just LEFT, and a click against it
 				// would POST a move the server has already closed. Fails
 				// closed, because `busy` only clears in the finally below.
-				if (this.lifecycleMode) await this.loadActions()
+				if (this.lifecycleMode) {
+					await this.loadActions()
+				}
 			} catch (error) {
 				this.moveError = transitionError(error, this.tr('The move could not be made'))
 			} finally {
@@ -906,12 +966,16 @@ export default {
 			this.actions = []
 			this.actionsLoaded = false
 			this.actionsFailed = false
-			if (!this.lifecycleMode || !this.recordId) return
+			if (!this.lifecycleMode || !this.recordId) {
+				return
+			}
 			const id = this.recordId
 			const read = await readAvailableActions(id)
 			// The record may have moved on while the read was in flight; the
 			// newer read owns the state.
-			if (String(this.recordId) !== String(id)) return
+			if (String(this.recordId) !== String(id)) {
+				return
+			}
 			this.actions = read.actions
 			this.actionsFailed = read.failed
 			// A FAILED READ IS NOT AN ANSWER. Leaving `actionsLoaded` false
@@ -933,11 +997,17 @@ export default {
 		 */
 		async moveViaField(request) {
 			const record = this.record
-			if (!record) throw userError(this.tr('The record is not loaded yet'))
+			if (!record) {
+				throw userError(this.tr('The record is not loaded yet'))
+			}
 			const store = this.resolveStore()
-			if (!store) throw userError(this.tr('The move could not be made'))
+			if (!store) {
+				throw userError(this.tr('The move could not be made'))
+			}
 			const type = this.resolveType(store)
-			if (!type) throw userError(this.tr('The move could not be made'))
+			if (!type) {
+				throw userError(this.tr('The move could not be made'))
+			}
 			// REFUSE rather than save without an id. `saveObject` picks PUT over
 			// POST purely on the presence of `id`, and an OpenRegister record
 			// carries its id in `@self`, not at the top level, so a record whose
@@ -965,12 +1035,16 @@ export default {
 		 * @return {object|null} The store.
 		 */
 		resolveStore() {
-			if (this.store) return this.store
+			if (this.store) {
+				return this.store
+			}
 			const holder = unwrap(this.detailCtxRaw)
-			if (holder && holder.store) return holder.store
+			if (holder && holder.store) {
+				return holder.store
+			}
 			try {
 				return useObjectStore()
-			} catch (e) {
+			} catch {
 				// No active Pinia: there is no store to save through.
 				return null
 			}
@@ -983,13 +1057,19 @@ export default {
 		 * @return {string} The type slug, or ''.
 		 */
 		resolveType(store) {
-			if (this.objectType) return this.objectType
+			if (this.objectType) {
+				return this.objectType
+			}
 			const holder = unwrap(this.detailCtxRaw)
-			if (holder && holder.objectType) return holder.objectType
+			if (holder && holder.objectType) {
+				return holder.objectType
+			}
 			const ctx = this.tokenCtx()
 			const register = refKey(ctx.register)
 			const schema = refKey(ctx.schema)
-			if (!register || !schema) return ''
+			if (!register || !schema) {
+				return ''
+			}
 			return resolveObjectOpType(store, { register, schema })
 		},
 
@@ -1001,10 +1081,16 @@ export default {
 		 * @return {void}
 		 */
 		refreshContextRecord() {
-			if (unwrap(this.objectCtxRaw)) return
+			if (unwrap(this.objectCtxRaw)) {
+				return
+			}
 			const holder = unwrap(this.detailCtxRaw)
-			if (!holder || !holder.store || typeof holder.store.fetchObject !== 'function') return
-			if (!holder.objectType || holder.objectId === undefined || holder.objectId === null) return
+			if (!holder || !holder.store || typeof holder.store.fetchObject !== 'function') {
+				return
+			}
+			if (!holder.objectType || holder.objectId === undefined || holder.objectId === null) {
+				return
+			}
 			holder.store.fetchObject(holder.objectType, holder.objectId).catch(() => {})
 		},
 
@@ -1040,9 +1126,13 @@ export default {
 			try {
 				const type = resolveObjectOpType(store, { register: String(cfg.register), schema: String(cfg.schema) })
 				const params = { ...filter, _limit: cfg.limit || 100 }
-				if (cfg.orderBy) params[`_order[${cfg.orderBy}]`] = 'asc'
+				if (cfg.orderBy) {
+					params[`_order[${cfg.orderBy}]`] = 'asc'
+				}
 				const rows = await store.fetchCollection(type, params)
-				if (key !== this.sourceKey) return
+				if (key !== this.sourceKey) {
+					return
+				}
 				const error = typeof store.getError === 'function' ? store.getError(type) : null
 				if (error) {
 					this.sourceError = (error && error.message) || 'error'
@@ -1051,11 +1141,15 @@ export default {
 					this.sourceRows = Array.isArray(rows) ? rows : []
 				}
 			} catch (e) {
-				if (key !== this.sourceKey) return
+				if (key !== this.sourceKey) {
+					return
+				}
 				this.sourceError = (e && e.message) || 'error'
 				this.sourceRows = []
 			} finally {
-				if (key === this.sourceKey) this.sourceLoading = false
+				if (key === this.sourceKey) {
+					this.sourceLoading = false
+				}
 			}
 		},
 	},

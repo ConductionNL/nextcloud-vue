@@ -8,7 +8,7 @@
  * click-to-upload button that rides the existing `dropZone` action.
  */
 
-import { shallowMount, flushPromises } from '@vue/test-utils'
+import { flushPromises, shallowMount } from '@vue/test-utils'
 
 const mockGet = jest.fn()
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: (...a) => mockGet(...a) } }))
@@ -107,12 +107,17 @@ describe('CnObjectListWidget — groupBy', () => {
 		await flushPromises()
 
 		expect(w.vm.groupLabelResolveConfig).toEqual({
-			register: 'dossiq', schema: 'informatieobjecttype', labelField: 'description',
+			register: 'dossiq',
+			schema: 'informatieobjecttype',
+			labelField: 'description',
 		})
 		const cell = w.findComponent({ name: 'CnFkResolveCell' })
 		expect(cell.exists()).toBe(true)
 		expect(cell.props()).toMatchObject({
-			value: 'type-uuid-1', register: 'dossiq', schema: 'informatieobjecttype', labelField: 'description',
+			value: 'type-uuid-1',
+			register: 'dossiq',
+			schema: 'informatieobjecttype',
+			labelField: 'description',
 		})
 	})
 
@@ -190,9 +195,7 @@ describe('CnObjectListWidget — selectable + bulkActions', () => {
 		// of `this.selectedRows` (objects) as the appended arg would still pass
 		// a shallow `toHaveBeenCalled()` check — asserting the actual row shape
 		// is what catches that.
-		expect(cnDispatchAction).toHaveBeenCalledWith(
-			expect.objectContaining({ args: [[{ id: '1', title: 'a' }, { id: '2', title: 'b' }]] }),
-		)
+		expect(cnDispatchAction).toHaveBeenCalledWith(expect.objectContaining({ args: [[{ id: '1', title: 'a' }, { id: '2', title: 'b' }]] }))
 		expect(w.vm.selectedIds).toEqual([])
 	})
 

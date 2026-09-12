@@ -6,17 +6,17 @@
 <template>
 	<div class="cn-header-widget-form">
 		<NcTextField
-			:model-value="title"
+			:modelValue="title"
 			:label="t('nextcloud-vue', 'Title')"
 			:placeholder="t('nextcloud-vue', 'Header title')"
 			required
-			@update:model-value="updateField('title', $event)" />
+			@update:modelValue="updateField('title', $event)" />
 
 		<NcTextField
-			:model-value="subtitle"
+			:modelValue="subtitle"
 			:label="t('nextcloud-vue', 'Subtitle (optional)')"
 			:placeholder="t('nextcloud-vue', 'Optional subtitle')"
-			@update:model-value="updateField('subtitle', $event)" />
+			@update:modelValue="updateField('subtitle', $event)" />
 
 		<!-- Pick a background image. Selection does NOT upload — the file is held
 		     and only uploaded when the host modal calls commit() on submit, so
@@ -52,11 +52,11 @@
 		</p>
 
 		<NcTextField
-			:model-value="backgroundImageUrl"
+			:modelValue="backgroundImageUrl"
 			:label="t('nextcloud-vue', 'Background image URL')"
 			placeholder="https://example.com/banner.jpg"
 			:disabled="!!pendingFile"
-			@update:model-value="updateField('backgroundImageUrl', $event)" />
+			@update:modelValue="updateField('backgroundImageUrl', $event)" />
 
 		<label class="cn-header-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Background color') }}
@@ -68,9 +68,9 @@
 		</label>
 
 		<NcSelect
-			:model-value="overlayMode"
+			:modelValue="overlayMode"
 			:options="overlayModeOptions"
-			:input-label="t('nextcloud-vue', 'Overlay mode')"
+			:inputLabel="t('nextcloud-vue', 'Overlay mode')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
@@ -109,18 +109,18 @@
 		</label>
 
 		<NcSelect
-			:model-value="textAlign"
+			:modelValue="textAlign"
 			:options="textAlignOptions"
-			:input-label="t('nextcloud-vue', 'Text alignment')"
+			:inputLabel="t('nextcloud-vue', 'Text alignment')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('textAlign', $event)" />
 
 		<NcSelect
-			:model-value="verticalAlign"
+			:modelValue="verticalAlign"
 			:options="verticalAlignOptions"
-			:input-label="t('nextcloud-vue', 'Vertical alignment')"
+			:inputLabel="t('nextcloud-vue', 'Vertical alignment')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
@@ -137,21 +137,21 @@
 			</legend>
 
 			<NcTextField
-				:model-value="ctaLabel"
+				:modelValue="ctaLabel"
 				:label="t('nextcloud-vue', 'Button text')"
 				:placeholder="t('nextcloud-vue', 'Sign up')"
-				@update:model-value="updateCta('label', $event)" />
+				@update:modelValue="updateCta('label', $event)" />
 
 			<NcTextField
-				:model-value="ctaUrl"
+				:modelValue="ctaUrl"
 				:label="t('nextcloud-vue', 'Target URL')"
 				placeholder="https://..."
-				@update:model-value="updateCta('url', $event)" />
+				@update:modelValue="updateCta('url', $event)" />
 
 			<NcSelect
-				:model-value="ctaStyle"
+				:modelValue="ctaStyle"
 				:options="ctaStyleOptions"
-				:input-label="t('nextcloud-vue', 'Button style')"
+				:inputLabel="t('nextcloud-vue', 'Button style')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
@@ -161,10 +161,10 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcButton } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
-import { extractTransportUrl, readFileAsDataUrl, embedAsDataUrl, warnUploadFnDeprecated } from '../../utils/widgetUpload.js'
+import { embedAsDataUrl, extractTransportUrl, readFileAsDataUrl, warnUploadFnDeprecated } from '../../utils/widgetUpload.js'
 
 const ALLOWED_OVERLAY_MODES = ['none', 'tint', 'gradient-bottom']
 const ALLOWED_HEIGHTS = ['small', 'medium', 'large', 'xlarge']
@@ -219,6 +219,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values — used when not editing and the parent
 		 * supplies registry defaults.
@@ -229,6 +230,7 @@ export default {
 			type: Object,
 			default: () => ({ ...DEFAULT_CONTENT }),
 		},
+
 		/**
 		 * Optional raw-file upload transport: `async (file: File) => ({ url })`.
 		 * Named `fileUploadFn` (not `uploadFn`) to match `CnAddWidgetModal`'s
@@ -240,12 +242,13 @@ export default {
 		 * (~1.37 MB once base64-encoded and stored) so a huge inline blob can't
 		 * freeze the tab. Wire a transport for anything larger.
 		 *
-		 * @type {Function|null}
+		 * @type {((file: File) => Promise<{ url: string }>)|null}
 		 */
 		fileUploadFn: {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Legacy base64 upload transport, superseded by `fileUploadFn`.
 		 *
@@ -255,7 +258,7 @@ export default {
 		 * a data URL and hands that to this function (emitting a one-time
 		 * console.warn). `fileUploadFn` takes precedence when both are provided.
 		 *
-		 * @type {Function|null}
+		 * @type {((dataUrl: string) => Promise<{ url: string }>)|null}
 		 */
 		uploadFn: {
 			type: Function,
@@ -282,33 +285,43 @@ export default {
 			backgroundImageUrl: typeof initial.backgroundImageUrl === 'string'
 				? initial.backgroundImageUrl
 				: DEFAULT_CONTENT.backgroundImageUrl,
+
 			backgroundImageFileId: (typeof initial.backgroundImageFileId === 'number')
 				? initial.backgroundImageFileId
 				: DEFAULT_CONTENT.backgroundImageFileId,
+
 			backgroundColor: typeof initial.backgroundColor === 'string'
 				? initial.backgroundColor
 				: DEFAULT_CONTENT.backgroundColor,
+
 			overlayMode: ALLOWED_OVERLAY_MODES.includes(initial.overlayMode)
 				? initial.overlayMode
 				: DEFAULT_CONTENT.overlayMode,
+
 			overlayColor: typeof initial.overlayColor === 'string'
 				? initial.overlayColor
 				: DEFAULT_CONTENT.overlayColor,
+
 			overlayOpacity: typeof initial.overlayOpacity === 'number'
 				? initial.overlayOpacity
 				: DEFAULT_CONTENT.overlayOpacity,
+
 			textColor: typeof initial.textColor === 'string'
 				? initial.textColor
 				: DEFAULT_CONTENT.textColor,
+
 			textAlign: ALLOWED_TEXT_ALIGN.includes(initial.textAlign)
 				? initial.textAlign
 				: DEFAULT_CONTENT.textAlign,
+
 			verticalAlign: ALLOWED_VERTICAL_ALIGN.includes(initial.verticalAlign)
 				? initial.verticalAlign
 				: DEFAULT_CONTENT.verticalAlign,
+
 			height: ALLOWED_HEIGHTS.includes(initial.height)
 				? initial.height
 				: DEFAULT_CONTENT.height,
+
 			ctaLabel: cta && typeof cta.label === 'string' ? cta.label : '',
 			ctaUrl: cta && typeof cta.url === 'string' ? cta.url : '',
 			ctaStyle: (cta && ALLOWED_CTA_STYLES.includes(cta.style)) ? cta.style : 'primary',
@@ -408,7 +421,7 @@ export default {
 		 * Set a top-level field and re-emit the assembled payload.
 		 *
 		 * @param {string} field one of the top-level content keys.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {
@@ -468,6 +481,7 @@ export default {
 				this.updateField('backgroundImageUrl', resolvedUrl)
 			} catch (err) {
 				this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload image')
+				// eslint-disable-next-line no-console
 				console.error('Header image upload failed:', err)
 				throw err
 			} finally {

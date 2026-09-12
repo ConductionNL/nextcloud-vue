@@ -6,16 +6,16 @@
 		<NcSettingsSection
 			:name="resolvedTitle"
 			:description="resolvedDescription"
-			:doc-url="docUrl" />
+			:docUrl="docUrl" />
 
 		<!-- Version information card (version, up-to-date check, re-import, support footer) -->
 		<CnVersionInfoCard
 			v-if="showVersionCard"
-			:app-name="appName"
-			:app-version="resolvedVersion"
-			:configured-version="resolvedConfiguredVersion"
-			:is-up-to-date="resolvedIsUpToDate"
-			:show-update-button="showUpdateButton"
+			:appName="appName"
+			:appVersion="resolvedVersion"
+			:configuredVersion="resolvedConfiguredVersion"
+			:isUpToDate="resolvedIsUpToDate"
+			:showUpdateButton="showUpdateButton"
 			:updating="updating"
 			:title="versionTitle"
 			:description="resolvedVersionDescription"
@@ -99,9 +99,9 @@
 		<CnCredentials
 			v-if="showOrganisationCredentials"
 			scope="organisation"
-			:app-id="appId"
-			:app-name="appName"
-			:app-credentials="appCredentials"
+			:appId="appId"
+			:appName="appName"
+			:appCredentials="appCredentials"
 			data-testid="cn-admin-organisation-credentials" />
 
 		<!-- @slot default The app's own settings sections, rendered below the version card. -->
@@ -110,7 +110,7 @@
 		<!-- First-time setup wizard, opened from the admin page (ADR-042). -->
 		<CnSetupWizard
 			v-if="showSetup && setupWizardOpen"
-			:app-id="appId"
+			:appId="appId"
 			:steps="setupSteps"
 			@complete="setupWizardOpen = false"
 			@close="setupWizardOpen = false" />
@@ -118,19 +118,19 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
-import { loadState } from '@nextcloud/initial-state'
-import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
-import { showSuccess, showError } from '@nextcloud/dialogs'
+import { showError, showSuccess } from '@nextcloud/dialogs'
+import { loadState } from '@nextcloud/initial-state'
+import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
-import Refresh from 'vue-material-design-icons/Refresh.vue'
 import AutoFix from 'vue-material-design-icons/AutoFix.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
-import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import { buildFeatureRequestUrl } from '../../utils/forge.js'
+import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
 
 /**
  * CnAdminSettingsShell — the canonical chrome for a Conduction app's Nextcloud
@@ -196,6 +196,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * The app's manifest `credentials[]` declarations, forwarded to the
 		 * broker to drive its informational "apps requesting credentials"
@@ -205,16 +206,19 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** The Nextcloud app id (used for the default re-import endpoint + version loadState). */
 		appId: {
 			type: String,
 			required: true,
 		},
+
 		/** Human-readable application name shown in the header and version card. */
 		appName: {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * Running app version. When empty, read from
 		 * `loadState(appId, 'version', 'Unknown')` (provided by AppHost's
@@ -224,36 +228,43 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Page title. Defaults to "<appName> Settings". */
 		title: {
 			type: String,
 			default: '',
 		},
+
 		/** Page description. Defaults to "Configure your <appName> installation". */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/** Documentation URL (renders the info icon next to the title). */
 		docUrl: {
 			type: String,
 			default: '',
 		},
+
 		/** Whether to render the version card. */
 		showVersionCard: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Version card heading. */
 		versionTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Version information'),
 		},
+
 		/** Version card description. Defaults to "Information about the current <appName> installation". */
 		versionDescription: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Configured version (for apps that track a separate config version).
 		 * When omitted, read from `loadState(appId, 'configuredVersion', '')`
@@ -263,6 +274,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Whether the installation is up to date. Drives the badge/button in the
 		 * version card. When left null, the shell reads the REAL value from
@@ -274,21 +286,25 @@ export default {
 			type: Boolean,
 			default: null,
 		},
+
 		/** Whether to show the version card's up-to-date / update button. */
 		showUpdateButton: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether an app update is in progress (drives the update button spinner). */
 		updating: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether to show the "Re-import configuration" action. */
 		showReimport: {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Override the re-import endpoint. Defaults to the canonical AppHost
 		 * route `/apps/<appId>/api/settings/load`.
@@ -297,36 +313,43 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Whether to render the default support footer. */
 		showSupport: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Support contact email. */
 		supportEmail: {
 			type: String,
 			default: 'support@conduction.nl',
 		},
+
 		/** SLA contact email (set to '' to hide the SLA line). */
 		slaEmail: {
 			type: String,
 			default: 'sales@conduction.nl',
 		},
+
 		/** Show a "Run setup wizard" action that opens CnSetupWizard (ADR-042). */
 		showSetup: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** The `manifest.setup.steps` array passed to CnSetupWizard. */
 		setupSteps: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Show a "Help us / suggest a feature" link to the forge's feature-request form. */
 		showHelp: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** `<owner>/<repo>` GitHub slug the feature-request link targets. */
 		helpRepo: {
 			type: String,
@@ -353,7 +376,9 @@ export default {
 		 */
 		helpUrl() {
 			const repo = String(this.helpRepo || '').trim()
-			if (!repo) return ''
+			if (!repo) {
+				return ''
+			}
 			return buildFeatureRequestUrl(null, repo)
 		},
 
@@ -364,10 +389,12 @@ export default {
 			}
 			return loadState(this.appId, 'version', 'Unknown')
 		},
+
 		/** @return {string} Configured version, falling back to AppHost initial state. */
 		resolvedConfiguredVersion() {
 			return this.configuredVersion || loadState(this.appId, 'configuredVersion', '')
 		},
+
 		/** @return {boolean} Real up-to-date signal: explicit prop wins, else AppHost initial state. */
 		resolvedIsUpToDate() {
 			if (this.isUpToDate !== null) {
@@ -375,46 +402,57 @@ export default {
 			}
 			return loadState(this.appId, 'isUpToDate', true)
 		},
+
 		/** @return {string} Page title, defaulting to "<appName> Settings". */
 		resolvedTitle() {
 			return this.title || t('nextcloud-vue', '{app} Settings', { app: this.appName })
 		},
+
 		/** @return {string} Page description. */
 		resolvedDescription() {
 			return this.description || t('nextcloud-vue', 'Configure your {app} installation', { app: this.appName })
 		},
+
 		/** @return {string} Version card description. */
 		resolvedVersionDescription() {
 			return this.versionDescription || t('nextcloud-vue', 'Information about the current {app} installation', { app: this.appName })
 		},
+
 		/** @return {string} Re-import endpoint. */
 		resolvedReimportUrl() {
 			return this.reimportUrl || generateUrl('/apps/{appId}/api/settings/load', { appId: this.appId })
 		},
+
 		/** @return {string} Re-import button label. */
 		reimportLabel() {
 			return t('nextcloud-vue', 'Re-import configuration')
 		},
+
 		/** @return {string} Re-import in-progress label. */
 		importingLabel() {
 			return t('nextcloud-vue', 'Importing…')
 		},
+
 		/** @return {string} Support footer heading. */
 		supportTitle() {
 			return t('nextcloud-vue', 'Support')
 		},
+
 		/** @return {string} Support footer line. */
 		supportLine() {
 			return t('nextcloud-vue', 'For support, contact us at')
 		},
+
 		/** @return {string} SLA footer line. */
 		slaLine() {
 			return t('nextcloud-vue', 'For a Service Level Agreement (SLA), contact')
 		},
+
 		/** @return {string} Setup-wizard button label. */
 		setupLabel() {
 			return t('nextcloud-vue', 'Run setup wizard')
 		},
+
 		/** @return {string} Help / suggest-feature button label. */
 		helpLabel() {
 			return t('nextcloud-vue', 'Help us')

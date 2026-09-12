@@ -14,8 +14,8 @@
  */
 
 import schema from '../../src/schemas/app-manifest-v2.schema.json'
-import { validateManifestV2 } from '../../src/utils/validateManifest.js'
 import { SENTINEL_TOKEN_PATTERNS } from '../../src/utils/sentinelTokens.js'
+import { validateManifestV2 } from '../../src/utils/validateManifest.js'
 
 const DEF_FOR_CONTEXT = {
 	filter: 'sentinelFilterToken',
@@ -28,19 +28,21 @@ const DEF_FOR_CONTEXT = {
 	deprecated: 'sentinelDeprecatedToken',
 }
 
-const manifest = (config, widgets) => ({
-	$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
-	version: '1.0.0',
-	menu: [],
-	pages: [{
-		id: 'p',
-		route: '/p',
-		type: 'index',
-		title: 't',
-		...(config ? { config } : {}),
-		...(widgets ? { widgets } : {}),
-	}],
-})
+function manifest(config, widgets) {
+	return {
+		$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
+		version: '1.0.0',
+		menu: [],
+		pages: [{
+			id: 'p',
+			route: '/p',
+			type: 'index',
+			title: 't',
+			...(config ? { config } : {}),
+			...(widgets ? { widgets } : {}),
+		}],
+	}
+}
 
 describe('sentinel-token vocabulary ⇄ schema $def equality', () => {
 	it('every context pattern string equals its schema $def pattern (no drift)', () => {
@@ -64,9 +66,7 @@ describe('sentinel-token vocabulary ⇄ schema $def equality', () => {
 
 	it('sentinelTokenAny unions exactly the seven per-context $defs', () => {
 		const refs = schema.$defs.sentinelTokenAny.anyOf.map((s) => s.$ref)
-		expect(refs.sort()).toEqual(
-			Object.values(DEF_FOR_CONTEXT).map((d) => `#/$defs/${d}`).sort(),
-		)
+		expect(refs.sort()).toEqual(Object.values(DEF_FOR_CONTEXT).map((d) => `#/$defs/${d}`).sort())
 	})
 })
 

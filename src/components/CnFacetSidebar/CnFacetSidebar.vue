@@ -29,8 +29,8 @@
 				<!-- Checkbox filter (boolean) -->
 				<NcCheckboxRadioSwitch
 					v-if="filter.type === 'checkbox'"
-					:model-value="getFilterValue(filter.key) === true"
-					@update:model-value="onFilterChange(filter.key, $event)">
+					:modelValue="getFilterValue(filter.key) === true"
+					@update:modelValue="onFilterChange(filter.key, $event)">
 					{{ filter.label }}
 				</NcCheckboxRadioSwitch>
 
@@ -38,22 +38,22 @@
 				<NcSelect
 					v-else-if="filter.type === 'select'"
 					class="cn-facet-sidebar__select"
-					:model-value="getSelectedOptions(filter)"
+					:modelValue="getSelectedOptions(filter)"
 					:options="getFilterOptions(filter)"
 					:placeholder="filter.label"
-					:input-label="filter.label"
+					:inputLabel="filter.label"
 					:multiple="true"
-					:keep-open="true"
+					:keepOpen="true"
 					:clearable="true"
-					@update:model-value="onSelectChange(filter.key, $event)" />
+					@update:modelValue="onSelectChange(filter.key, $event)" />
 
 				<!-- Text filter (fallback) -->
 				<NcTextField
 					v-else
-					:model-value="getFilterValue(filter.key) || ''"
+					:modelValue="getFilterValue(filter.key) || ''"
 					:placeholder="filter.label"
 					:label="filter.label"
-					@update:model-value="onFilterChange(filter.key, $event)" />
+					@update:modelValue="onFilterChange(filter.key, $event)" />
 			</div>
 		</div>
 	</div>
@@ -61,9 +61,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcSelect, NcTextField, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
-import { filtersFromSchema } from '../../utils/schema.js'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
 import { facetOptionLabel } from '../../utils/facets.js'
+import { filtersFromSchema } from '../../utils/schema.js'
 
 /**
  * CnFacetSidebar — Auto-generated faceted search sidebar from schema properties.
@@ -110,31 +110,37 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Live facet data from the API: `{ fieldName: { values: [{ value, count?, label? }] } }` */
 		facetData: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Current active filters: { fieldName: value | [values] } */
 		activeFilters: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether facet data is loading */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Sidebar title */
 		title: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Filters'),
 		},
+
 		/** Clear all button label */
 		clearLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Clear all'),
 		},
+
 		/**
 		 * Whether the current user is an admin.
 		 * When false, schema properties with `adminOnly: true` are hidden from filters.
@@ -154,7 +160,9 @@ export default {
 
 		hasActiveFilters() {
 			return Object.values(this.activeFilters).some((v) => {
-				if (Array.isArray(v)) return v.length > 0
+				if (Array.isArray(v)) {
+					return v.length > 0
+				}
 				return v !== null && v !== undefined && v !== '' && v !== false
 			})
 		},
@@ -180,7 +188,9 @@ export default {
 
 		getSelectedOptions(filter) {
 			const value = this.getFilterValue(filter.key)
-			if (!value) return []
+			if (!value) {
+				return []
+			}
 			const values = Array.isArray(value) ? value : [value]
 			const options = this.getFilterOptions(filter)
 			return values.map((v) => options.find((o) => o.id === v) || { id: v, label: String(v) })

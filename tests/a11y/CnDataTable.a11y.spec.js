@@ -16,8 +16,8 @@ jest.mock('@nextcloud/axios', () => ({
 	default: { get: jest.fn() },
 }))
 
-const { mountAttached } = require('./support/mountAttached.js')
 const { expectAccessible } = require('../../src/testing/a11y.js')
+const { mountAttached } = require('./support/mountAttached.js')
 const CnDataTable = require('../../src/components/CnDataTable/CnDataTable.vue').default
 
 const columns = [

@@ -29,7 +29,7 @@
 				<img
 					v-if="faviconUrl(entity)"
 					:src="faviconUrl(entity)"
-					:alt="''"
+					alt=""
 					class="cn-bookmarks-card__favicon"
 					@error="onFaviconError(entity)">
 				<Bookmark v-else :size="14" />
@@ -57,7 +57,7 @@
 					<img
 						v-if="faviconUrl(mostRecent)"
 						:src="faviconUrl(mostRecent)"
-						:alt="''"
+						alt=""
 						class="cn-bookmarks-card__favicon"
 						@error="onFaviconError(mostRecent)">
 					<Bookmark v-else :size="14" />
@@ -92,7 +92,7 @@
 						<img
 							v-if="faviconUrl(bookmark)"
 							:src="faviconUrl(bookmark)"
-							:alt="''"
+							alt=""
 							class="cn-bookmarks-card__favicon"
 							@error="onFaviconError(bookmark)">
 						<Bookmark v-else :size="14" />
@@ -117,7 +117,7 @@
 </template>
 
 <script>
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import Bookmark from 'vue-material-design-icons/Bookmark.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
@@ -153,6 +153,7 @@ export default {
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+
 		/** Optional single-entity reference (bookmark id). */
 		value: { type: [String, Number], default: '' },
 		/** Pre-translated card title. */
@@ -216,9 +217,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler() { this.fetch() } },
-		surface() { this.fetch() },
-		value() { if (this.surface === 'single-entity') { this.fetchSingle() } },
+		objectId: { immediate: true, handler() {
+			this.fetch()
+		} },
+
+		surface() {
+			this.fetch()
+		},
+
+		value() {
+			if (this.surface === 'single-entity') {
+				this.fetchSingle()
+			}
+		},
 	},
 
 	methods: {
@@ -245,7 +256,7 @@ export default {
 			try {
 				const url = new URL(bookmark.url)
 				return `${url.origin}/favicon.ico`
-			} catch (e) {
+			} catch {
 				return ''
 			}
 		},

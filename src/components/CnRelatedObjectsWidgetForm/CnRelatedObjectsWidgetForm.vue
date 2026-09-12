@@ -10,27 +10,27 @@
 		</h4>
 
 		<NcTextField
-			:model-value="title"
+			:modelValue="title"
 			:label="t('nextcloud-vue', 'Title')"
 			placeholder="Related"
-			@update:model-value="updateField('title', $event)" />
+			@update:modelValue="updateField('title', $event)" />
 
 		<NcSelect
-			:model-value="selectedOptions"
+			:modelValue="selectedOptions"
 			:options="groupOptions"
 			:multiple="true"
-			:close-on-select="false"
-			:input-label="t('nextcloud-vue', 'Relations to show')"
+			keepOpen
+			:inputLabel="t('nextcloud-vue', 'Relations to show')"
 			:placeholder="t('nextcloud-vue', 'All relations')"
-			@update:model-value="onGroupsInput" />
+			@update:modelValue="onGroupsInput" />
 		<p class="cn-related-form__hint">
 			{{ t('nextcloud-vue', 'Leave empty to show every relation that has items. Empty groups are always hidden.') }}
 		</p>
 
 		<NcCheckboxRadioSwitch
-			:model-value="hideSingleTabTitle"
+			:modelValue="hideSingleTabTitle"
 			type="switch"
-			@update:model-value="updateField('hideSingleTabTitle', $event)">
+			@update:modelValue="updateField('hideSingleTabTitle', $event)">
 			{{ t('nextcloud-vue', 'Hide the tab bar when only one relation is shown') }}
 		</NcCheckboxRadioSwitch>
 		<p class="cn-related-form__hint">
@@ -38,9 +38,9 @@
 		</p>
 
 		<NcCheckboxRadioSwitch
-			:model-value="showTotalCount"
+			:modelValue="showTotalCount"
 			type="switch"
-			@update:model-value="updateField('showTotalCount', $event)">
+			@update:modelValue="updateField('showTotalCount', $event)">
 			{{ t('nextcloud-vue', 'Show a total count next to the title') }}
 		</NcCheckboxRadioSwitch>
 		<p class="cn-related-form__hint">
@@ -50,8 +50,8 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 import { RELATED_GROUPS } from '../CnRelatedObjectsWidget/relatedGroups.js'
 
 const DEFAULT_CONTENT = Object.freeze({
@@ -75,15 +75,24 @@ export default {
 	components: { NcTextField, NcSelect, NcCheckboxRadioSwitch },
 
 	props: {
-		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
+		/**
+		 * The placement being edited (pre-fills from `editingWidget.content`), or null.
+		 *
+		 * @type {{content: object}|null}
+		 */
 		editingWidget: { type: Object, default: null },
-		/** Initial content values when not editing (registry defaults). @type {object} */
+		/**
+		 * Initial content values when not editing (registry defaults).
+		 *
+		 * @type {object}
+		 */
 		value: { type: Object, default: () => ({ ...DEFAULT_CONTENT }) },
 	},
 
 	emits: [
 		/**
 		 * Emitted with the assembled content blob on every field change.
+		 *
 		 * @event update:content
 		 * @type {object}
 		 */
@@ -107,10 +116,12 @@ export default {
 		groupOptions() {
 			return RELATED_GROUPS.map((g) => ({ id: g.key, label: t('nextcloud-vue', g.label) }))
 		},
+
 		/** The currently selected options (NcSelect value shape). */
 		selectedOptions() {
 			return this.groupOptions.filter((o) => this.groups.includes(o.id))
 		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {
@@ -132,7 +143,11 @@ export default {
 		 *   the two display options.
 		 * @return {void}
 		 */
-		updateField(field, value) { this[field] = value; this.emitChange() },
+		updateField(field, value) {
+			this[field] = value
+			this.emitChange()
+		},
+
 		/**
 		 * Map the selected options back to group keys and emit.
 		 *
@@ -143,14 +158,21 @@ export default {
 			this.groups = (Array.isArray(options) ? options : []).map((o) => o.id)
 			this.emitChange()
 		},
+
 		/** Emit the assembled content. */
-		emitChange() { this.$emit('update:content', this.assembledContent) },
+		emitChange() {
+			this.$emit('update:content', this.assembledContent)
+		},
+
 		/**
 		 * Validate the form; an empty array means valid. The related widget
 		 * inherits its object from the page, so no field is required.
+		 *
 		 * @return {string[]} the validation errors.
 		 */
-		validate() { return [] },
+		validate() {
+			return []
+		},
 	},
 }
 </script>

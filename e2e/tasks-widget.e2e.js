@@ -17,7 +17,7 @@
  *  - @e2e claiming the pooled task posts the claim and refreshes the list
  *  - @e2e the refused claim surfaces the server's message
  */
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 /**
  * One task row as the flow-tasks read returns it.
@@ -42,16 +42,18 @@ function row(overrides = {}) {
 	}
 }
 
-const pooled = () => row({
-	uuid: 'task-2',
-	displayTitle: 'Vraag aanvullende stukken op',
-	state: 'enabled',
-	assignee: null,
-	priority: 'normal',
-	overdue: true,
-	daysOverdue: 2,
-	daysUntilDue: null,
-})
+function pooled() {
+	return row({
+		uuid: 'task-2',
+		displayTitle: 'Vraag aanvullende stukken op',
+		state: 'enabled',
+		assignee: null,
+		priority: 'normal',
+		overdue: true,
+		daysOverdue: 2,
+		daysUntilDue: null,
+	})
+}
 
 test.describe('the tasks index page (entitySource: "tasks")', () => {
 	test.beforeEach(async ({ page }) => {

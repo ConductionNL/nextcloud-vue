@@ -15,7 +15,13 @@ describe('normalizeSidebarShapes', () => {
 		expect(count).toBe(1)
 		expect(out.config.sidebarTabs).toBeUndefined()
 		expect(out.widgets[0]).toMatchObject({
-			widgetKey: 'stat', slot: 'sidebar', tabGroup: 't1', gridX: 0, gridY: 0, gridWidth: 1, gridHeight: 1,
+			widgetKey: 'stat',
+			slot: 'sidebar',
+			tabGroup: 't1',
+			gridX: 0,
+			gridY: 0,
+			gridWidth: 1,
+			gridHeight: 1,
 		})
 		expect(out.widgets[0].props).toEqual({ title: 'Count' })
 	})

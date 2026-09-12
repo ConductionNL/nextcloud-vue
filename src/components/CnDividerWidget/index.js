@@ -1,5 +1,5 @@
-import CnDividerWidget from './CnDividerWidget.vue'
 import CnDividerWidgetForm from '../CnDividerWidgetForm/CnDividerWidgetForm.vue'
+import CnDividerWidget from './CnDividerWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('divider', {

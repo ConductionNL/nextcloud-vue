@@ -1,11 +1,11 @@
-import { toRaw } from 'vue'
 import { defineStore } from 'pinia'
-import { buildHeaders, buildQueryString, prefixUrl, capitalize } from '../utils/headers.js'
-import { parseResponseError, networkError, genericError } from '../utils/errors.js'
-import { extractId } from '../utils/id.js'
+import { toRaw } from 'vue'
 import { discardResponseBody } from '../utils/discardResponseBody.js'
+import { genericError, networkError, parseResponseError } from '../utils/errors.js'
 import { normalizeFacets } from '../utils/facets.js'
-import { mergePluginState, mergePluginGetters, mergePluginActions } from './pluginMerge.js'
+import { buildHeaders, buildQueryString, capitalize, prefixUrl } from '../utils/headers.js'
+import { extractId } from '../utils/id.js'
+import { mergePluginActions, mergePluginGetters, mergePluginState } from './pluginMerge.js'
 import { liveUpdatesPlugin } from './plugins/liveUpdates.js'
 
 /**
@@ -72,10 +72,11 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 		 * Facet data per type for CnIndexSidebar:
 		 * `{ fieldName: { values: [{ value, count?, label? }] } }`. `count` and
 		 * `label` are omitted when the bucket did not carry them.
+		 *
 		 * @type {{string: object}}
 		 */
 		facets: {},
-		/** @type {{baseUrl: string, organisationUuidGetter: Function|null, languageGetter: Function|null, targetLanguageGetter: Function|null}} */
+		/** @type {{baseUrl: string, organisationUuidGetter: (() => string|null)|null, languageGetter: (() => string|null)|null, targetLanguageGetter: (() => string|null)|null}} */
 		_options: {
 			baseUrl,
 			organisationUuidGetter: null,
@@ -99,6 +100,7 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 const baseGetters = {
 	/**
 	 * Get all registered object type slugs.
+	 *
 	 * @param {object} state Pinia state
 	 * @return {string[]}
 	 */
@@ -106,72 +108,81 @@ const baseGetters = {
 
 	/**
 	 * Get the collection array for a type.
+	 *
 	 * @param {object} state Pinia state
-	 * @return {Function} (type: string) => Array
+	 * @return {(type: string) => Array}
 	 */
 	getCollection: (state) => (type) => state.collections[type] || [],
 
 	/**
 	 * Get a single cached object by type and ID.
+	 *
 	 * @param {object} state Pinia state
-	 * @return {Function} (type: string, id: string) => object|null
+	 * @return {(type: string, id: string) => object|null}
 	 */
 	getObject: (state) => (type, id) => state.objects[type]?.[id] || null,
 
 	/**
 	 * Alias for getObject — check cache without fetching.
+	 *
 	 * @param {object} state Pinia state
-	 * @return {Function} (type: string, id: string) => object|null
+	 * @return {(type: string, id: string) => object|null}
 	 */
 	getCachedObject: (state) => (type, id) => state.objects[type]?.[id] || null,
 
 	/**
 	 * Check if a type is currently loading.
+	 *
 	 * @param {object} state Pinia state
-	 * @return {Function} (type: string) => boolean
+	 * @return {(type: string) => boolean}
 	 */
 	isLoading: (state) => (type) => state.loading[type] || false,
 
 	/**
 	 * Get the current error for a type.
+	 *
 	 * @param {object} state Pinia state
-	 * @return {Function} (type: string) => ApiError|null
+	 * @return {(type: string) => ApiError|null}
 	 */
 	getError: (state) => (type) => state.errors[type] || null,
 
 	/**
 	 * Get pagination state for a type.
+	 *
 	 * @param {object} state Pinia state
-	 * @return {Function} (type: string) => {total, page, pages, limit}
+	 * @return {(type: string) => {total, page, pages, limit}}
 	 */
-	getPagination: (state) => (type) =>
-		state.pagination[type] || { total: 0, page: 1, pages: 1, limit: 20 },
+	getPagination: (state) => (type) => state.pagination[type] || { total: 0, page: 1, pages: 1, limit: 20 },
 
 	/**
 	 * Get the current search term for a type.
+	 *
 	 * @param {object} state Pinia state
-	 * @return {Function} (type: string) => string
+	 * @return {(type: string) => string}
 	 */
 	getSearchTerm: (state) => (type) => state.searchTerms[type] || '',
 
 	/**
 	 * Get a cached schema for a type.
+	 *
 	 * @param {object} state Pinia state
-	 * @return {Function} (type: string) => object|null
+	 * @return {(type: string) => object|null}
 	 */
 	getSchema: (state) => (type) => state.schemas[type] || null,
 
 	/**
 	 * Get a cached register for a type.
+	 *
 	 * @param {object} state Pinia state
-	 * @return {Function} (type: string) => object|null
+	 * @return {(type: string) => object|null}
 	 */
 	getRegister: (state) => (type) => state.registers[type] || null,
 
 	/**
 	 * Get facet data for a type (CnIndexSidebar-compatible format).
+	 *
 	 * @param {object} state Pinia state
-	 * @return {Function} (type: string) => object
+	 * @return {(type: string) => object}
 	 */
 	getFacets: (state) => (type) => state.facets[type] || {},
 }
@@ -195,7 +206,8 @@ const baseActions = {
 	 *
 	 * takes a unspecified number of props and joins them from first to left with a `-`.
 	 * However it is recommended to give it 1 register and 1 schema in that order.
-	 * @param {*} params - unspecified number of props
+	 *
+	 * @param {unknown} params - unspecified number of props
 	 * @return {string}
 	 */
 	createObjectTypeSlug(...params) {
@@ -319,7 +331,9 @@ const baseActions = {
 	 */
 	_resolveLanguage() {
 		const getter = this._options.languageGetter
-		if (typeof getter !== 'function') return null
+		if (typeof getter !== 'function') {
+			return null
+		}
 		try {
 			const v = getter()
 			return typeof v === 'string' && v.length > 0 ? v : null
@@ -343,7 +357,9 @@ const baseActions = {
 	 */
 	_resolveTargetLanguage() {
 		const getter = this._options.targetLanguageGetter
-		if (typeof getter !== 'function') return null
+		if (typeof getter !== 'function') {
+			return null
+		}
 		try {
 			const v = getter()
 			return typeof v === 'string' && v.length > 0 ? v : null
@@ -381,7 +397,9 @@ const baseActions = {
 	 */
 	setActiveTenantOrganisation(uuid) {
 		const next = (typeof uuid === 'string' && uuid.length > 0) ? uuid : null
-		if (this.activeTenantOrganisationUuid === next) return
+		if (this.activeTenantOrganisationUuid === next) {
+			return
+		}
 
 		this.activeTenantOrganisationUuid = next
 
@@ -586,6 +604,7 @@ const baseActions = {
 
 			if (!response.ok) {
 				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error(`Error fetching ${type} collection:`, this.errors[type])
 				return []
 			}
@@ -618,6 +637,7 @@ const baseActions = {
 					? networkError(error)
 					: genericError(error),
 			}
+			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 			console.error(`Error fetching ${type} collection:`, error)
 			return []
 		} finally {
@@ -692,6 +712,7 @@ const baseActions = {
 				// went wrong: `parseResponseError` returns a reactive proxy,
 				// which the console renders as an unreadable `Proxy(Object)`.
 				if (response.status !== 404) {
+					// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 					console.error(
 						`Error fetching ${type}/${id}: ${response.status} ${response.statusText}`,
 						toRaw(this.errors[type]),
@@ -715,6 +736,7 @@ const baseActions = {
 					? networkError(error)
 					: genericError(error),
 			}
+			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 			console.error(`Error fetching ${type}/${id}:`, error)
 			return null
 		} finally {
@@ -748,6 +770,7 @@ const baseActions = {
 
 			if (!response.ok) {
 				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error(`Error saving ${type}:`, this.errors[type])
 				return null
 			}
@@ -768,6 +791,7 @@ const baseActions = {
 					? networkError(error)
 					: genericError(error),
 			}
+			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 			console.error(`Error saving ${type}:`, error)
 			return null
 		} finally {
@@ -796,6 +820,7 @@ const baseActions = {
 
 			if (!response.ok) {
 				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error(`Error deleting ${type}/${id}:`, this.errors[type])
 				return false
 			}
@@ -823,6 +848,7 @@ const baseActions = {
 					? networkError(error)
 					: genericError(error),
 			}
+			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 			console.error(`Error deleting ${type}/${id}:`, error)
 			return false
 		} finally {
@@ -840,7 +866,9 @@ const baseActions = {
 	 */
 	async deleteObjects(type, ids) {
 		const result = { successfulIds: [], failedIds: [] }
-		if (!ids?.length) return result
+		if (!ids?.length) {
+			return result
+		}
 
 		this.loading = { ...this.loading, [type]: true }
 		this.errors = { ...this.errors, [type]: null }
@@ -859,6 +887,7 @@ const baseActions = {
 					discardResponseBody(response)
 					return { id, success: response.ok }
 				} catch (error) {
+					// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 					console.error(`Error deleting ${type}/${id}:`, error)
 					return { id, success: false }
 				}
@@ -866,8 +895,11 @@ const baseActions = {
 
 			const outcomes = await Promise.all(ids.map(runOne))
 			for (const { id, success } of outcomes) {
-				if (success) result.successfulIds.push(id)
-				else result.failedIds.push(id)
+				if (success) {
+					result.successfulIds.push(id)
+				} else {
+					result.failedIds.push(id)
+				}
 			}
 
 			if (result.successfulIds.length > 0) {
@@ -875,7 +907,9 @@ const baseActions = {
 				if (this.objects[type]) {
 					const remaining = {}
 					for (const [k, v] of Object.entries(this.objects[type])) {
-						if (!successSet.has(k)) remaining[k] = v
+						if (!successSet.has(k)) {
+							remaining[k] = v
+						}
 					}
 					this.objects = { ...this.objects, [type]: remaining }
 				}
@@ -909,7 +943,9 @@ const baseActions = {
 	 * @return {Promise<{[key: string]: object}>} Map of id -> object
 	 */
 	async resolveReferences(type, ids) {
-		if (!ids || ids.length === 0) return {}
+		if (!ids || ids.length === 0) {
+			return {}
+		}
 
 		const uniqueIds = [...new Set(ids.filter(Boolean))]
 		const result = {}
@@ -964,7 +1000,7 @@ const baseActions = {
  * @param {Array} [plugins] Array of plugin definitions
  * @param {string} [baseUrl] Base API URL override
  * @param {object} [extraOptions] Factory-level getters (organisationUuidGetter, languageGetter, targetLanguageGetter)
- * @return {Function} Pinia store composable
+ * @return {() => object} Pinia store composable
  */
 function defineObjectStore(storeId, plugins = [], baseUrl = DEFAULT_BASE_URL, extraOptions = {}) {
 	const pluginState = mergePluginState(plugins)
@@ -1079,22 +1115,22 @@ export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID, [liveUpdatesPl
  *   collisions (a consumer plugin defining `subscribe`, `unsubscribe`, or
  *   live state keys) the consumer plugin keeps priority.
  *   See the `live-updates-default-on` change.
- * @param {Function} [options.organisationUuidGetter] `() => string|null` — when set, every
+ * @param {() => string|null} [options.organisationUuidGetter] When set, every
  *   request stamps `X-OpenRegister-Organisation: <uuid>` for multi-tenancy.
  *   See the `multi-tenancy-context` change.
- * @param {Function} [options.languageGetter] `() => string|null` — when set, every read URL
+ * @param {() => string|null} [options.languageGetter] When set, every read URL
  *   stamps `?_lang=<bcp47>` so OR returns the localised projection per the
  *   `i18n-api-language-negotiation` contract. Returning `null` or an empty
  *   string skips the parameter. A throwing getter is downgraded to `null`.
  *   See the `i18n-language-negotiation-getters` change.
- * @param {Function} [options.targetLanguageGetter] `() => string|null` — when set, every
+ * @param {() => string|null} [options.targetLanguageGetter] When set, every
  *   write request stamps `X-Translation-Target-Language: <bcp47>` so OR
  *   authors the payload into `_translations[<bcp47>]` instead of overwriting
  *   the canonical source row, per the `i18n-source-of-truth` contract.
  *   Returning `null` or an empty string skips the header. A throwing getter
  *   is downgraded to `null`.
  *   See the `i18n-language-negotiation-getters` change.
- * @return {Function} Pinia store composable
+ * @return {() => object} Pinia store composable
  *
  * @example
  * // Basic (backwards compatible)

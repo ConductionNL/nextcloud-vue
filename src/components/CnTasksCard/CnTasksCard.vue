@@ -50,8 +50,8 @@
 							<span v-if="hasAssignee(task)" class="cn-tasks-card__assignee">
 								<CnUserActionMenu
 									v-if="!isCurrentUser(task.assignee)"
-									:user-id="task.assignee"
-									:display-name="task.assignee">
+									:userId="task.assignee"
+									:displayName="task.assignee">
 									<span class="cn-tasks-card__assignee-name">{{ task.assignee }}</span>
 								</CnUserActionMenu>
 								<span v-else class="cn-tasks-card__assignee-name cn-tasks-card__assignee-name--self">
@@ -89,11 +89,10 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
-import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
 import CheckboxBlankOutline from 'vue-material-design-icons/CheckboxBlankOutline.vue'
-import ProgressClock from 'vue-material-design-icons/ProgressClock.vue'
+import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
 import CloseCircleOutline from 'vue-material-design-icons/CloseCircleOutline.vue'
-
+import ProgressClock from 'vue-material-design-icons/ProgressClock.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import CnUserActionMenu from '../CnUserActionMenu/CnUserActionMenu.vue'
 import { buildHeaders } from '../../utils/index.js'
@@ -226,7 +225,9 @@ export default {
 		},
 
 		isOverdue(task) {
-			if (!task.dueDate || task.status === 'completed') return false
+			if (!task.dueDate || task.status === 'completed') {
+				return false
+			}
 			try {
 				return new Date(task.dueDate) < new Date()
 			} catch {
@@ -235,7 +236,9 @@ export default {
 		},
 
 		async fetchTasks() {
-			if (!this.registerId || !this.schemaId || !this.objectId) return
+			if (!this.registerId || !this.schemaId || !this.objectId) {
+				return
+			}
 			this.loading = true
 			try {
 				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/tasks`
@@ -245,6 +248,7 @@ export default {
 					this.allTasks = data.results || data || []
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnTasksCard: Failed to fetch tasks', err)
 			} finally {
 				this.loading = false
@@ -252,7 +256,9 @@ export default {
 		},
 
 		formatDate(dateStr) {
-			if (!dateStr) return ''
+			if (!dateStr) {
+				return ''
+			}
 			try {
 				return new Date(dateStr).toLocaleDateString(undefined, {
 					year: 'numeric',

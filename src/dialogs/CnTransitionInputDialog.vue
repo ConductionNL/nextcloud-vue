@@ -16,31 +16,31 @@
 				class="cn-transition-input__field"
 				:data-testid="`cn-transition-input-${field.key}`">
 				<NcCheckboxRadioSwitch v-if="field.widget === 'checkbox'"
-					:model-value="values[field.key] === true"
+					:modelValue="values[field.key] === true"
 					type="switch"
-					@update:model-value="setValue(field.key, $event === true)">
+					@update:modelValue="setValue(field.key, $event === true)">
 					{{ requiredLabel(field) }}
 				</NcCheckboxRadioSwitch>
 
 				<NcTextArea v-else-if="field.widget === 'textarea'"
-					:model-value="String(values[field.key] ?? '')"
+					:modelValue="String(values[field.key] ?? '')"
 					:label="requiredLabel(field)"
-					:helper-text="field.description || ''"
+					:helperText="field.description || ''"
 					rows="4"
-					@update:model-value="setValue(field.key, $event)" />
+					@update:modelValue="setValue(field.key, $event)" />
 
 				<NcTextField v-else-if="field.widget === 'number'"
-					:model-value="String(values[field.key] ?? '')"
+					:modelValue="String(values[field.key] ?? '')"
 					type="number"
 					:label="requiredLabel(field)"
-					:helper-text="field.description || ''"
-					@update:model-value="setValue(field.key, $event)" />
+					:helperText="field.description || ''"
+					@update:modelValue="setValue(field.key, $event)" />
 
 				<NcTextField v-else
-					:model-value="String(values[field.key] ?? '')"
+					:modelValue="String(values[field.key] ?? '')"
 					:label="requiredLabel(field)"
-					:helper-text="field.description || ''"
-					@update:model-value="setValue(field.key, $event)" />
+					:helperText="field.description || ''"
+					@update:modelValue="setValue(field.key, $event)" />
 			</div>
 		</div>
 
@@ -63,7 +63,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcTextField, NcTextArea, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcTextArea, NcTextField } from '@nextcloud/vue'
 import { fieldsFromSchema } from '../utils/schema.js'
 
 /**
@@ -114,16 +114,19 @@ export default {
 		 * The transition being applied. `inputs` is the declared input list from
 		 * `x-openregister-lifecycle.transitions.<action>.inputs` (server-derived
 		 * or config-declared); `label` doubles as dialog title + confirm label.
+		 *
 		 * @type {{action?: string, label?: string, inputs?: Array<{field: string, required?: boolean}>}}
 		 */
 		transition: {
 			type: Object,
 			required: true,
 		},
+
 		/**
 		 * The object's JSON Schema (with `properties`), used to resolve each
 		 * input's label, widget and helper text. Optional — undeclared fields
 		 * render as plain text inputs labelled by their field name.
+		 *
 		 * @type {object|null}
 		 */
 		schema: {
@@ -136,7 +139,7 @@ export default {
 
 	data() {
 		return {
-			/** @type {{[key: string]: *}} Collected input values, keyed by declared field name. */
+			/** @type {{[key: string]: unknown}} Collected input values, keyed by declared field name. */
 			values: this.initialValues(),
 		}
 	},
@@ -196,7 +199,9 @@ export default {
 			const declared = Array.isArray(this.transition?.inputs) ? this.transition.inputs : []
 			const properties = (this.schema && this.schema.properties) || {}
 			for (const input of declared) {
-				if (!input || typeof input.field !== 'string' || input.field === '') continue
+				if (!input || typeof input.field !== 'string' || input.field === '') {
+					continue
+				}
 				const prop = properties[input.field] || {}
 				values[input.field] = prop.default !== undefined
 					? prop.default
@@ -214,9 +219,15 @@ export default {
 		 * @return {'text'|'textarea'|'number'|'checkbox'}
 		 */
 		clampWidget(widget) {
-			if (widget === 'checkbox' || widget === 'switch') return 'checkbox'
-			if (widget === 'textarea') return 'textarea'
-			if (widget === 'number') return 'number'
+			if (widget === 'checkbox' || widget === 'switch') {
+				return 'checkbox'
+			}
+			if (widget === 'textarea') {
+				return 'textarea'
+			}
+			if (widget === 'number') {
+				return 'number'
+			}
 			return 'text'
 		},
 
@@ -235,7 +246,7 @@ export default {
 		 * Store one input's value.
 		 *
 		 * @param {string} key The declared field name.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 */
 		setValue(key, value) {
 			this.values = { ...this.values, [key]: value }
@@ -250,19 +261,25 @@ export default {
 		 */
 		isFilled(field) {
 			const value = this.values[field.key]
-			if (field.widget === 'checkbox') return value === true
+			if (field.widget === 'checkbox') {
+				return value === true
+			}
 			return String(value ?? '').trim() !== ''
 		},
 
 		/** Confirm: emit exactly the declared keys (numbers cast) and let the parent POST. */
 		onConfirm() {
-			if (!this.canConfirm) return
+			if (!this.canConfirm) {
+				return
+			}
 			const data = {}
 			for (const field of this.fields) {
 				let value = this.values[field.key]
 				if (field.widget === 'number' && String(value ?? '').trim() !== '') {
 					const parsed = Number(value)
-					if (!Number.isNaN(parsed)) value = parsed
+					if (!Number.isNaN(parsed)) {
+						value = parsed
+					}
 				}
 				data[field.key] = value
 			}
@@ -270,7 +287,7 @@ export default {
 			 * @event confirm Emitted when the user confirms with all required
 			 * inputs filled. Payload holds exactly the declared input keys; the
 			 * parent POSTs `{ action, data }`.
-			 * @type {{[key: string]: *}}
+			 * @type {{[key: string]: unknown}}
 			 */
 			this.$emit('confirm', data)
 		},

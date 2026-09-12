@@ -33,8 +33,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnActivityTab from './activity/CnActivityTab.vue'
 import CnActivityCard from './activity/CnActivityCard.vue'
+import CnActivityTab from './activity/CnActivityTab.vue'
 
 /**
  * `activity` integration descriptor.

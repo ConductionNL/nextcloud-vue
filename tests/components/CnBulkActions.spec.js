@@ -190,7 +190,10 @@ describe('CnIndexPage — bulk action dispatch', () => {
 		wrapper.vm.onBulkAction({ id: 'reassign' })
 
 		expect(wrapper.emitted('bulk-action')[0][0]).toEqual({
-			action: 'reassign', id: 'reassign', selectedIds: [], count: 0,
+			action: 'reassign',
+			id: 'reassign',
+			selectedIds: [],
+			count: 0,
 		})
 	})
 })

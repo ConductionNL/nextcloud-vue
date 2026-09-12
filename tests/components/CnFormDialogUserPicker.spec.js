@@ -18,11 +18,9 @@ jest.mock('../../src/utils/userAutocomplete.js', () => ({
 	resolveNextcloudUser: jest.fn().mockResolvedValue({ id: 'henk', label: 'Henk Bakker' }),
 }))
 
-// Import AFTER the mock is registered.
-// eslint-disable-next-line import/first
-import { searchNextcloudUsers, resolveNextcloudUser } from '../../src/utils/userAutocomplete.js'
-// eslint-disable-next-line import/first
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
+// Import AFTER the mock is registered.
+import { resolveNextcloudUser, searchNextcloudUsers } from '../../src/utils/userAutocomplete.js'
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0))
 
@@ -33,6 +31,7 @@ const stubs = {
 	NcLoadingIcon: true,
 	NcTextField: true,
 	NcSelect: true,
+	NcSelectUsers: true,
 	NcCheckboxRadioSwitch: true,
 	NcDateTimePickerNative: true,
 	CnJsonViewer: true,
@@ -65,9 +64,7 @@ describe('CnFormDialog — Nextcloud user picker', () => {
 		const wrapper = mount(CnFormDialog, { propsData: { schema: userSchema, item: null }, stubs })
 		await flushPromises()
 		expect(searchNextcloudUsers).toHaveBeenCalled()
-		const options = wrapper.vm.getEffectiveOptions(
-			wrapper.vm.resolvedFields.find((f) => f.key === 'assignee'),
-		)
+		const options = wrapper.vm.getEffectiveOptions(wrapper.vm.resolvedFields.find((f) => f.key === 'assignee'))
 		expect(options).toEqual([
 			{ id: 'annemarie', label: 'Annemarie de Vries', subline: '' },
 			{ id: 'henk', label: 'Henk Bakker', subline: '' },
@@ -114,5 +111,26 @@ describe('CnFormDialog — Nextcloud user picker', () => {
 			{ id: 'henk', label: 'Henk Bakker' },
 		])
 		expect(wrapper.vm.formData.watchers).toEqual(['annemarie', 'henk'])
+	})
+
+	// WHICH COMPONENT RENDERS, not merely that a select does.
+	//
+	// A user field used to be an NcSelect carrying `:user-select="true"`.
+	// @nextcloud/vue 9 REMOVED that prop, so the flag was silently dropped and a
+	// user field became an ordinary select: no avatars, no user styling. Nothing
+	// failed, because nothing asserted which component was mounted.
+	it('renders a user field as NcSelectUsers, and an ordinary select as NcSelect', () => {
+		const wrapper = mount(CnFormDialog, { propsData: { schema: userSchema, item: null }, stubs })
+		expect(wrapper.findComponent({ name: 'NcSelectUsers' }).exists()).toBe(true)
+	})
+
+	it('leaves a non-user select as NcSelect', () => {
+		const plain = {
+			title: 'Case',
+			properties: { status: { type: 'string', title: 'Status', enum: ['open', 'closed'] } },
+		}
+		const wrapper = mount(CnFormDialog, { propsData: { schema: plain, item: null }, stubs })
+		expect(wrapper.findComponent({ name: 'NcSelectUsers' }).exists()).toBe(false)
+		expect(wrapper.findComponent({ name: 'NcSelect' }).exists()).toBe(true)
 	})
 })

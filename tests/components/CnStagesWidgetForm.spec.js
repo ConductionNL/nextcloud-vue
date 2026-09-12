@@ -7,14 +7,15 @@
  * editor without losing config.
  */
 import { shallowMount } from '@vue/test-utils'
-import CnStagesWidgetForm from '../../src/components/CnStagesWidgetForm/CnStagesWidgetForm.vue'
 import CnStagesWidget from '../../src/components/CnStagesWidget/CnStagesWidget.vue'
-import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
+import CnStagesWidgetForm from '../../src/components/CnStagesWidgetForm/CnStagesWidgetForm.vue'
 import {
 	getDefaultContent,
 	getWidgetTypeEntry,
 	listWidgetTypes,
 } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+
+import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
 
 const DOSSIQ_TIMELINE = {
 	currentField: 'status',

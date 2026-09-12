@@ -21,7 +21,7 @@
 // the store does to the document. This file asserts that those decisions become
 // the thing a user can see and click.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const EDITOR = '/?flow=1'
 const CANVAS = '/?canvas=1'
@@ -442,10 +442,8 @@ test.describe('flow editor — the menus draw the right glyph', () => {
 		// slow frame: 1 red run in 3 on an identical SHA, 2026-09-01.
 		await expect(page.getByRole('menuitem')).toHaveCount(3)
 
-		const paths = await page.evaluate(() =>
-			[...document.querySelectorAll('[role="menuitem"] svg path')]
-				.map((node) => node.getAttribute('d')),
-		)
+		const paths = await page.evaluate(() => [...document.querySelectorAll('[role="menuitem"] svg path')]
+			.map((node) => node.getAttribute('d')))
 
 		expect(paths).toHaveLength(3)
 		// Non-empty, so "no icon at all" cannot pass as three distinct nothings.
@@ -461,10 +459,8 @@ test.describe('flow editor — the menus draw the right glyph', () => {
 		// Same race as the step menu above: let the six entries render first.
 		await expect(page.getByRole('menuitem')).toHaveCount(6)
 
-		const paths = await page.evaluate(() =>
-			[...document.querySelectorAll('[role="menuitem"] svg path')]
-				.map((node) => node.getAttribute('d')),
-		)
+		const paths = await page.evaluate(() => [...document.querySelectorAll('[role="menuitem"] svg path')]
+			.map((node) => node.getAttribute('d')))
 
 		// Edit label / Angled / Straight / Curved / Copy / Delete.
 		expect(paths).toHaveLength(6)
@@ -473,7 +469,6 @@ test.describe('flow editor — the menus draw the right glyph', () => {
 		}
 		expect(new Set(paths).size).toBe(6)
 	})
-
 })
 
 test.describe('flow editor — accessibility', () => {
@@ -493,7 +488,6 @@ test.describe('flow editor — accessibility', () => {
 			// it: the state a half-built flow spends most of its life in, and the
 			// one with the most colour and the most `title` / `aria-label` on
 			// elements that are not controls.
-			// eslint-disable-next-line
 			const axePath = require.resolve('axe-core')
 
 			await seed(page)
@@ -502,16 +496,11 @@ test.describe('flow editor — accessibility', () => {
 
 			await page.addScriptTag({ path: axePath })
 			const result = await page.evaluate(async () => {
-				// eslint-disable-next-line
 				return await window.axe.run(document.querySelector('[data-testid="flow-box"]'))
 			})
 
-			const serious = result.violations.filter(
-				(violation) => violation.impact === 'serious' || violation.impact === 'critical',
-			)
-			expect(
-				serious.map((violation) => `${violation.id}: ${violation.nodes.map((n) => n.html).join(' | ')}`),
-			).toEqual([])
+			const serious = result.violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+			expect(serious.map((violation) => `${violation.id}: ${violation.nodes.map((n) => n.html).join(' | ')}`)).toEqual([])
 		})
 	}
 })

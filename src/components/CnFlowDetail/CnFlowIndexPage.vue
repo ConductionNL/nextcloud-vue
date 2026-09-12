@@ -15,7 +15,7 @@
 			<span class="cn-flow-index__count">
 				{{ n('nextcloud-vue', 'Showing %n flow', 'Showing %n flows', store.flows.length) }}
 			</span>
-			<NcButton type="primary" @click="$emit('create')">
+			<NcButton variant="primary" @click="$emit('create')">
 				{{ t('nextcloud-vue', 'New flow') }}
 			</NcButton>
 		</div>
@@ -123,6 +123,7 @@ export default {
 		// Deprecated per ADR-096: a flow list is an ordinary index surface and
 		// belongs on CnIndexPage (columns + `:objects`), not on a bespoke
 		// table. Kept rendering so existing consumers do not break.
+		// eslint-disable-next-line no-console -- deprecation notice, aimed at the developer console
 		console.warn('CnFlowIndexPage is deprecated — build the flow list on CnIndexPage instead (see hermiq\'s FlowIndex.vue for the template).')
 		await this.store.load({ app: this.app })
 	},

@@ -14,8 +14,8 @@
  * and fails for a screen-reader user — so axe scans both modes.
  */
 
-const { mountAttached } = require('./support/mountAttached.js')
 const { expectAccessible } = require('../../src/testing/a11y.js')
+const { mountAttached } = require('./support/mountAttached.js')
 const CnDashboardGrid = require('../../src/components/CnDashboardGrid/CnDashboardGrid.vue').default
 
 const layout = [
@@ -67,7 +67,7 @@ describe('CnDashboardGrid — accessibility', () => {
 
 		const nodes = wrapper.element.querySelectorAll('.grid-stack-item')
 		expect(nodes.length).toBe(2)
-		nodes.forEach(node => {
+		nodes.forEach((node) => {
 			expect(node.getAttribute('role')).toBe('group')
 			expect(node.getAttribute('tabindex')).toBe('0')
 			expect((node.getAttribute('aria-label') || '').trim().length).toBeGreaterThan(0)

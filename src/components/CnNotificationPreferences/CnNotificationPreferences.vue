@@ -29,9 +29,9 @@
 				<div class="cn-notif-prefs__grid">
 					<div v-for="entry in group.items" :key="entry.key" class="cn-notif-prefs__card">
 						<NcCheckboxRadioSwitch type="switch"
-							:model-value="entry.enabled"
+							:modelValue="entry.enabled"
 							:disabled="entry.saving"
-							@update:model-value="onToggle(entry, $event)">
+							@update:modelValue="onToggle(entry, $event)">
 							{{ notificationLabel(entry.notification) }}
 						</NcCheckboxRadioSwitch>
 						<NcButton v-if="entry.source === 'user-override'"
@@ -48,6 +48,9 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 /**
  * CnNotificationPreferences
  *
@@ -77,11 +80,8 @@
  * than guessed into the wrong app.
  */
 import { NcAppSettingsSection, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
-import axios from '@nextcloud/axios'
-import BellOutline from 'vue-material-design-icons/BellOutline.vue'
 import BellOffOutline from 'vue-material-design-icons/BellOffOutline.vue'
+import BellOutline from 'vue-material-design-icons/BellOutline.vue'
 
 const PREFS_PATH = '/apps/openregister/api/notification-preferences'
 
@@ -96,6 +96,7 @@ export default {
 		BellOutline,
 		BellOffOutline,
 	},
+
 	inject: {
 		/**
 		 * Consuming app's id (e.g. "pipelinq"), provided by the CnAppRoot
@@ -106,6 +107,7 @@ export default {
 		 */
 		cnAppId: { default: () => '' },
 	},
+
 	data() {
 		return {
 			loading: true,
@@ -113,6 +115,7 @@ export default {
 			entries: [],
 		}
 	},
+
 	computed: {
 		/**
 		 * Entries scoped to the current app. Falls back to the full list
@@ -127,6 +130,7 @@ export default {
 			}
 			return this.entries.filter((entry) => entry.application === this.cnAppId)
 		},
+
 		/**
 		 * Group the scoped effective-preference list by schema for display.
 		 *
@@ -147,9 +151,11 @@ export default {
 			return Array.from(groups.values())
 		},
 	},
+
 	mounted() {
 		this.load()
 	},
+
 	methods: {
 		t,
 
@@ -170,7 +176,7 @@ export default {
 					enabled: e.enabled === true,
 					saving: false,
 				}))
-			} catch (e) {
+			} catch {
 				this.error = true
 			} finally {
 				this.loading = false
@@ -195,7 +201,7 @@ export default {
 					enabled: checked,
 				})
 				entry.source = 'user-override'
-			} catch (e) {
+			} catch {
 				entry.enabled = previous
 				this.showError(t('nextcloud-vue', 'Could not save notification preference'))
 			} finally {
@@ -218,7 +224,7 @@ export default {
 					reset: true,
 				})
 				await this.load()
-			} catch (e) {
+			} catch {
 				this.showError(t('nextcloud-vue', 'Could not reset notification preference'))
 				entry.saving = false
 			}

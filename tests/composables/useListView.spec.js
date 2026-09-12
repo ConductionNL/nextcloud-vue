@@ -9,6 +9,29 @@
 import { mount } from '@vue/test-utils'
 import { defineComponent, h, reactive, ref } from 'vue'
 import { useListView } from '../../src/composables/useListView.js'
+import { settleUntil } from '../support/settleUntil.js'
+
+/**
+ * Wait until `onSearch`'s debounced refetch has actually reached the store.
+ *
+ * `onSearch` debounces by a REAL 300 ms in the product, so the refetch is a
+ * macrotask away and no number of ticks can cover it. The three waits here
+ * used to sleep 350 ms for it — 50 ms of headroom on a shared runner, which
+ * is how this spec lost a full run and reported the search params of the
+ * MOUNT fetch instead of the search one. The debounce stays a duration in the
+ * product; the assertion wants the call, so that is what we wait for.
+ *
+ * @param {object} store The fake object store.
+ * @param {number} before Call count captured before the search was typed.
+ * @return {Promise<object>} The params of the fetch the search produced.
+ */
+async function settleSearch(store, before) {
+	await settleUntil(
+		() => store.fetchCollection.mock.calls.length > before,
+		'the debounced search refetch',
+	)
+	return store.fetchCollection.mock.calls[store.fetchCollection.mock.calls.length - 1][1]
+}
 
 /**
  * Build a minimal fake objectStore exposing only what the new-API
@@ -42,7 +65,9 @@ function mountList(store, opts, mountOptions) {
 			const list = useListView('t', { objectStore: store, ...opts })
 			return { list }
 		},
-		render() { return h('div') },
+		render() {
+			return h('div')
+		},
 	})
 	return mount(Comp, mountOptions)
 }
@@ -55,9 +80,9 @@ describe('useListView — fixedFilters', () => {
 		expect(store.fetchCollection).toHaveBeenCalled()
 		expect(store.fetchCollection.mock.calls[0][1].a).toBe(1)
 
+		const before = store.fetchCollection.mock.calls.length
 		await w.vm.list.onSearch('hello')
-		await new Promise((resolve) => setTimeout(resolve, 350))
-		const last = store.fetchCollection.mock.calls[store.fetchCollection.mock.calls.length - 1][1]
+		const last = await settleSearch(store, before)
 		expect(last.a).toBe(1)
 		expect(last._search).toBe('hello')
 	})
@@ -256,9 +281,9 @@ describe('useListView — extend', () => {
 		await new Promise((resolve) => setTimeout(resolve))
 		expect(store.fetchCollection.mock.calls[0][1]._extend).toEqual(['calculations'])
 
+		const before = store.fetchCollection.mock.calls.length
 		await w.vm.list.onSearch('hello')
-		await new Promise((resolve) => setTimeout(resolve, 350))
-		const last = store.fetchCollection.mock.calls[store.fetchCollection.mock.calls.length - 1][1]
+		const last = await settleSearch(store, before)
 		expect(last._extend).toEqual(['calculations'])
 	})
 
@@ -270,9 +295,9 @@ describe('useListView — extend', () => {
 		expect(store.fetchCollection.mock.calls[0][1]._extend).toEqual(['calculations'])
 
 		which.value = ['calculations', 'files']
+		const before = store.fetchCollection.mock.calls.length
 		await w.vm.list.onSearch('x')
-		await new Promise((resolve) => setTimeout(resolve, 350))
-		const last = store.fetchCollection.mock.calls[store.fetchCollection.mock.calls.length - 1][1]
+		const last = await settleSearch(store, before)
 		expect(last._extend).toEqual(['calculations', 'files'])
 	})
 

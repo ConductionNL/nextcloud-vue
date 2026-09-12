@@ -47,7 +47,7 @@ const SENTINEL_PATTERN = RESOLVE_TOKEN_RE
  * Process-wide cache of resolved IAppConfig values, keyed by
  * `${appId}::${key}`. Cleared via `clearResolveCache()` (test-only).
  *
- * @type {Map<string, Promise<*>>}
+ * @type {Map<string, Promise<unknown>>}
  */
 const resolveCache = new Map()
 
@@ -83,10 +83,10 @@ export function clearResolveCache() {
  * @param {string} appId Nextcloud app ID. Used to scope the
  *   IAppConfig lookup namespace.
  * @param {object} [options] Resolver overrides.
- * @param {Function} [options.getAppConfigValue] Async (appId, key) =>
- *   value resolver. Override for tests; defaults to the
+ * @param {(appId: string, key: string) => Promise<unknown>} [options.getAppConfigValue] Value
+ *   resolver. Override for tests; defaults to the
  *   initial-state-then-fetch chain documented above.
- * @param {Function} [options.warn] Override for `console.warn`. Used in
+ * @param {(...args: unknown[]) => void} [options.warn] Override for `console.warn`. Used in
  *   tests to capture warning calls without polluting test output.
  * @return {Promise<{ manifest: object, unresolved: string[] }>}
  */
@@ -106,7 +106,9 @@ export async function resolveManifestSentinels(manifest, appId, options = {}) {
 	const keys = new Set()
 	const pages = Array.isArray(manifest.pages) ? manifest.pages : []
 	for (const page of pages) {
-		if (!isPlainObject(page) || !isPlainObject(page.config)) continue
+		if (!isPlainObject(page) || !isPlainObject(page.config)) {
+			continue
+		}
 		collectSentinelKeys(page.config, keys)
 	}
 
@@ -132,7 +134,9 @@ export async function resolveManifestSentinels(manifest, appId, options = {}) {
 	// pages[].config only. Other fields are passed through by reference.
 	const out = { ...manifest }
 	out.pages = pages.map((page) => {
-		if (!isPlainObject(page) || !isPlainObject(page.config)) return page
+		if (!isPlainObject(page) || !isPlainObject(page.config)) {
+			return page
+		}
 		return { ...page, config: substituteInTree(page.config, resolved) }
 	})
 
@@ -144,22 +148,28 @@ export async function resolveManifestSentinels(manifest, appId, options = {}) {
  * provided `keys` Set. Plain objects + arrays are descended; primitive
  * leaves are checked against the sentinel pattern.
  *
- * @param {*} node Current tree node (object, array, or primitive).
+ * @param {unknown} node Current tree node (object, array, or primitive).
  * @param {Set<string>} keys Accumulator for unique sentinel keys.
  * @return {void}
  */
 function collectSentinelKeys(node, keys) {
 	if (typeof node === 'string') {
 		const match = node.match(SENTINEL_PATTERN)
-		if (match) keys.add(match[1])
+		if (match) {
+			keys.add(match[1])
+		}
 		return
 	}
 	if (Array.isArray(node)) {
-		for (const item of node) collectSentinelKeys(item, keys)
+		for (const item of node) {
+			collectSentinelKeys(item, keys)
+		}
 		return
 	}
 	if (isPlainObject(node)) {
-		for (const value of Object.values(node)) collectSentinelKeys(value, keys)
+		for (const value of Object.values(node)) {
+			collectSentinelKeys(value, keys)
+		}
 	}
 }
 
@@ -167,9 +177,9 @@ function collectSentinelKeys(node, keys) {
  * Recursively rebuild a tree, replacing each fully-matched sentinel
  * with its resolved value. Returns a NEW tree; input is unchanged.
  *
- * @param {*} node Current tree node.
- * @param {Map<string,*>} resolved Map of key → resolved value (or null).
- * @return {*} New tree with sentinels substituted.
+ * @param {unknown} node Current tree node.
+ * @param {Map<string,unknown>} resolved Map of key → resolved value (or null).
+ * @return {unknown} New tree with sentinels substituted.
  */
 function substituteInTree(node, resolved) {
 	if (typeof node === 'string') {
@@ -205,7 +215,7 @@ function substituteInTree(node, resolved) {
  * @param {string} appId Nextcloud app ID.
  * @param {string} key IAppConfig key (already validated as
  *   lowercase + alphanumeric + `_-` by the sentinel regex).
- * @return {Promise<*>} Resolved value or `null` when unset.
+ * @return {Promise<unknown>} Resolved value or `null` when unset.
  */
 async function defaultGetAppConfigValue(appId, key) {
 	const cacheKey = `${appId}::${key}`
@@ -227,10 +237,12 @@ async function defaultGetAppConfigValue(appId, key) {
 			if (response && response.status === 200 && response.data !== undefined) {
 				const data = response.data
 				// API may return either a raw scalar or `{ value: ... }`.
-				if (isPlainObject(data) && 'value' in data) return data.value
+				if (isPlainObject(data) && 'value' in data) {
+					return data.value
+				}
 				return data
 			}
-		} catch (e) {
+		} catch {
 			// Silent — caller treats as "unset".
 		}
 		return null
@@ -246,7 +258,7 @@ async function defaultGetAppConfigValue(appId, key) {
  *
  * @param {string} appId Nextcloud app ID.
  * @param {string} key IAppConfig key.
- * @return {*} Provisioned value or `undefined`.
+ * @return {unknown} Provisioned value or `undefined`.
  */
 function readInitialState(appId, key) {
 	try {
@@ -260,7 +272,7 @@ function readInitialState(appId, key) {
 		// `#initial-state-*` element is missing and no fallback is supplied —
 		// that is a real, expected runtime condition, not a resolution failure.
 		return loadState(appId, key, undefined)
-	} catch (e) {
+	} catch {
 		// No slot provisioned for this app/key — the documented "absent" case.
 	}
 	return undefined
@@ -269,7 +281,7 @@ function readInitialState(appId, key) {
 /**
  * Type guard — true when value is a plain (non-array, non-null) object.
  *
- * @param {*} value Candidate.
+ * @param {unknown} value Candidate.
  * @return {boolean} True when value is a plain object.
  */
 function isPlainObject(value) {

@@ -9,7 +9,7 @@
  * Plus error / unavailable handling that mirrors CnIntegrationCard.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnDeckCard = require('../CnDeckCard.vue').default
 
 const DEFAULT_PROPS = {
@@ -43,8 +43,7 @@ describe('CnDeckCard', () => {
 	it('renders the empty label when there are no linked cards', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnDeckCard, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No cards linked yet')
 		wrapper.unmount()
 	})
@@ -62,8 +61,7 @@ describe('CnDeckCard', () => {
 			}),
 		})
 		const wrapper = mount(CnDeckCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const txt = wrapper.text()
 		// 3 cards, 2 stacks
 		expect(txt).toContain('3')
@@ -86,8 +84,7 @@ describe('CnDeckCard', () => {
 			}),
 		})
 		const wrapper = mount(CnDeckCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page', value: '2' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const columns = wrapper.findAll('.cn-deck-card__column')
 		expect(columns).toHaveLength(3)
 		const highlighted = wrapper.findAll('.cn-deck-card__row--highlight')
@@ -109,8 +106,7 @@ describe('CnDeckCard', () => {
 			}),
 		})
 		const wrapper = mount(CnDeckCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const columns = wrapper.findAll('.cn-deck-card__column')
 		expect(columns).toHaveLength(3)
 		wrapper.unmount()
@@ -123,8 +119,7 @@ describe('CnDeckCard', () => {
 			json: () => Promise.resolve(makeCard({ cardId: 42, cardTitle: 'Migrate DB', stackTitle: 'Doing' })),
 		})
 		const wrapper = mount(CnDeckCard, { propsData: { ...DEFAULT_PROPS, surface: 'single-entity', value: 42 } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const chip = wrapper.find('.cn-deck-card__chip')
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Migrate DB')
@@ -135,8 +130,7 @@ describe('CnDeckCard', () => {
 	it('shows the unavailable label when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnDeckCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Deck is currently unavailable.')
 		wrapper.unmount()
 	})
@@ -145,8 +139,7 @@ describe('CnDeckCard', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnDeckCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No cards linked yet')
 		wrapper.unmount()
 		spy.mockRestore()

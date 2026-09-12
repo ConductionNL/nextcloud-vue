@@ -4,8 +4,8 @@
  * registration, and that the subscription is cleaned up on unmount.
  */
 
-const { defineComponent, h, computed } = require('vue')
 const { mount } = require('@vue/test-utils')
+const { defineComponent, h, computed } = require('vue')
 
 const tab = { name: 'StubTab' }
 const widget = { name: 'StubWidget' }

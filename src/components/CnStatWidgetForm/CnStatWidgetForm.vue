@@ -11,11 +11,11 @@
 		</h4>
 
 		<NcSelect
-			:model-value="kind"
+			:modelValue="kind"
 			:options="kindOptions"
-			:input-label="t('nextcloud-vue', 'Source type')"
+			:inputLabel="t('nextcloud-vue', 'Source type')"
 			:clearable="false"
-			@update:model-value="updateField('kind', $event)">
+			@update:modelValue="updateField('kind', $event)">
 			<template #option="{ label: id }">
 				{{ kindLabel(id) }}
 			</template>
@@ -27,10 +27,10 @@
 		<!-- A field on the record this page is about: no register, no query. -->
 		<template v-if="kind === 'record'">
 			<NcTextField
-				:model-value="recordField"
+				:modelValue="recordField"
 				:label="t('nextcloud-vue', 'Property on this record')"
 				placeholder="status"
-				@update:model-value="updateField('recordField', $event)" />
+				@update:modelValue="updateField('recordField', $event)" />
 			<p class="cn-stat-widget-form__hint">
 				{{ t('nextcloud-vue', 'The tile shows this value from the record the page is about.') }}
 			</p>
@@ -45,15 +45,15 @@
 			</div>
 			<div v-if="recordResolve.register && recordResolve.schema" class="cn-stat-widget-form__row2">
 				<NcTextField
-					:model-value="recordResolve.labelField"
+					:modelValue="recordResolve.labelField"
 					:label="t('nextcloud-vue', 'Label property')"
 					placeholder="name"
-					@update:model-value="updateResolve('labelField', $event)" />
+					@update:modelValue="updateResolve('labelField', $event)" />
 				<NcTextField
-					:model-value="recordResolve.variantField"
+					:modelValue="recordResolve.variantField"
 					:label="t('nextcloud-vue', 'Colour property')"
 					placeholder="isFinal"
-					@update:model-value="updateResolve('variantField', $event)" />
+					@update:modelValue="updateResolve('variantField', $event)" />
 			</div>
 			<template v-if="recordResolve.variantField">
 				<label class="cn-stat-widget-form__sublabel">{{ t('nextcloud-vue', 'Colour per value') }}</label>
@@ -66,16 +66,16 @@
 					class="cn-stat-widget-form__rule"
 					data-testid="cn-stat-widget-form-variant-row">
 					<NcTextField
-						:model-value="row.value"
+						:modelValue="row.value"
 						:label="t('nextcloud-vue', 'Value')"
 						placeholder="true"
-						@update:model-value="updateRow('variantRows', i, 'value', $event)" />
+						@update:modelValue="updateRow('variantRows', i, 'value', $event)" />
 					<NcSelect
-						:model-value="row.variant"
+						:modelValue="row.variant"
 						:options="variantOptions"
-						:input-label="t('nextcloud-vue', 'Colour')"
+						:inputLabel="t('nextcloud-vue', 'Colour')"
 						:clearable="false"
-						@update:model-value="updateRow('variantRows', i, 'variant', $event)">
+						@update:modelValue="updateRow('variantRows', i, 'variant', $event)">
 						<template #option="{ label: id }">
 							{{ variantLabel(id) }}
 						</template>
@@ -114,11 +114,11 @@
 			<!-- Aggregate / Ratio share metric + field. Weighted uses field × weight. -->
 			<div v-if="kind !== 'weighted'" class="cn-stat-widget-form__row2">
 				<NcSelect
-					:model-value="metric"
+					:modelValue="metric"
 					:options="metricOptions"
-					:input-label="t('nextcloud-vue', 'Aggregation')"
+					:inputLabel="t('nextcloud-vue', 'Aggregation')"
 					:clearable="false"
-					@update:model-value="updateField('metric', $event)" />
+					@update:modelValue="updateField('metric', $event)" />
 				<CnFieldPicker
 					v-if="metric && metric !== 'count'"
 					:value="field"
@@ -141,21 +141,21 @@
 					placeholder="probability"
 					@update="updateWeighted('weightField', $event)" />
 				<NcTextField
-					:model-value="String(weighted.divisor)"
+					:modelValue="String(weighted.divisor)"
 					type="number"
 					:label="t('nextcloud-vue', 'Weight divisor')"
 					placeholder="100"
-					@update:model-value="updateWeighted('divisor', Number($event) || 1)" />
+					@update:modelValue="updateWeighted('divisor', Number($event) || 1)" />
 			</div>
 
 			<!-- Aggregate + Weighted use one filter; Ratio + Computed use two parts. -->
 			<template v-if="kind === 'ratio' || kind === 'computed'">
 				<NcTextField
 					v-if="kind === 'computed'"
-					:model-value="formula"
+					:modelValue="formula"
 					:label="t('nextcloud-vue', 'Formula (A, B)')"
 					placeholder="A/B*100"
-					@update:model-value="updateField('formula', $event)" />
+					@update:modelValue="updateField('formula', $event)" />
 				<label class="cn-stat-widget-form__sublabel">{{ kind === 'computed' ? t('nextcloud-vue', 'Part A') : t('nextcloud-vue', 'Numerator (the part)') }}</label>
 				<CnFilterRowsEditor :value="numeratorRows" :fields="availableFields" @input="onRows('numeratorRows', $event)" />
 				<label class="cn-stat-widget-form__sublabel">{{ kind === 'computed' ? t('nextcloud-vue', 'Part B') : t('nextcloud-vue', 'Denominator (the whole)') }}</label>
@@ -173,10 +173,10 @@
 		</h4>
 
 		<NcTextField
-			:model-value="label"
+			:modelValue="label"
 			:label="t('nextcloud-vue', 'Label')"
 			placeholder="Revenue"
-			@update:model-value="updateField('label', $event)" />
+			@update:modelValue="updateField('label', $event)" />
 
 		<CnIconBrowser
 			:value="icon"
@@ -184,11 +184,11 @@
 			@input="updateField('icon', $event)" />
 
 		<NcSelect
-			:model-value="display"
+			:modelValue="display"
 			:options="displayOptions"
-			:input-label="t('nextcloud-vue', 'Show the value as')"
+			:inputLabel="t('nextcloud-vue', 'Show the value as')"
 			:clearable="false"
-			@update:model-value="updateField('display', $event)">
+			@update:modelValue="updateField('display', $event)">
 			<template #option="{ label: id }">
 				{{ displayLabel(id) }}
 			</template>
@@ -198,16 +198,16 @@
 		</NcSelect>
 
 		<NcTextField
-			:model-value="emptyText"
+			:modelValue="emptyText"
 			:label="t('nextcloud-vue', 'Text when there is no value (optional)')"
 			:placeholder="t('nextcloud-vue', 'Unknown')"
-			@update:model-value="updateField('emptyText', $event)" />
+			@update:modelValue="updateField('emptyText', $event)" />
 
 		<NcTextField
-			:model-value="caption"
+			:modelValue="caption"
 			:label="t('nextcloud-vue', 'Caption (optional)')"
 			:placeholder="t('nextcloud-vue', 'vs previous period')"
-			@update:model-value="updateField('caption', $event)" />
+			@update:modelValue="updateField('caption', $event)" />
 
 		<div class="cn-stat-widget-form__row2">
 			<label class="cn-stat-widget-form__color-label">
@@ -241,16 +241,16 @@
 			class="cn-stat-widget-form__rule"
 			data-testid="cn-stat-widget-form-override-row">
 			<NcTextField
-				:model-value="row.field"
+				:modelValue="row.field"
 				:label="t('nextcloud-vue', 'Property')"
 				placeholder="suspended"
-				@update:model-value="updateRow('overrideRows', i, 'field', $event)" />
+				@update:modelValue="updateRow('overrideRows', i, 'field', $event)" />
 			<NcSelect
-				:model-value="row.op"
+				:modelValue="row.op"
 				:options="overrideOpOptions"
-				:input-label="t('nextcloud-vue', 'Condition')"
+				:inputLabel="t('nextcloud-vue', 'Condition')"
 				:clearable="false"
-				@update:model-value="updateRow('overrideRows', i, 'op', $event)">
+				@update:modelValue="updateRow('overrideRows', i, 'op', $event)">
 				<template #option="{ label: id }">
 					{{ overrideOpLabel(id) }}
 				</template>
@@ -260,20 +260,20 @@
 			</NcSelect>
 			<NcTextField
 				v-if="row.op !== 'truthy'"
-				:model-value="row.value"
+				:modelValue="row.value"
 				:label="t('nextcloud-vue', 'Value')"
-				@update:model-value="updateRow('overrideRows', i, 'value', $event)" />
+				@update:modelValue="updateRow('overrideRows', i, 'value', $event)" />
 			<NcTextField
-				:model-value="row.label"
+				:modelValue="row.label"
 				:label="t('nextcloud-vue', 'Label')"
 				:placeholder="t('nextcloud-vue', 'Suspended')"
-				@update:model-value="updateRow('overrideRows', i, 'label', $event)" />
+				@update:modelValue="updateRow('overrideRows', i, 'label', $event)" />
 			<NcSelect
-				:model-value="row.variant"
+				:modelValue="row.variant"
 				:options="variantOptions"
-				:input-label="t('nextcloud-vue', 'Colour')"
+				:inputLabel="t('nextcloud-vue', 'Colour')"
 				:clearable="false"
-				@update:model-value="updateRow('overrideRows', i, 'variant', $event)">
+				@update:modelValue="updateRow('overrideRows', i, 'variant', $event)">
 				<template #option="{ label: id }">
 					{{ variantLabel(id) }}
 				</template>
@@ -308,38 +308,38 @@
 
 		<div class="cn-stat-widget-form__row2">
 			<NcSelect
-				:model-value="format.style"
+				:modelValue="format.style"
 				:options="styleOptions"
-				:input-label="t('nextcloud-vue', 'Style')"
+				:inputLabel="t('nextcloud-vue', 'Style')"
 				:clearable="false"
-				@update:model-value="updateFormat('style', $event)" />
+				@update:modelValue="updateFormat('style', $event)" />
 			<NcTextField
 				v-if="format.style === 'currency'"
-				:model-value="format.currency"
+				:modelValue="format.currency"
 				:label="t('nextcloud-vue', 'Currency')"
 				placeholder="EUR"
-				@update:model-value="updateFormat('currency', $event)" />
+				@update:modelValue="updateFormat('currency', $event)" />
 			<NcTextField
-				:model-value="String(format.decimals)"
+				:modelValue="String(format.decimals)"
 				type="number"
 				:label="t('nextcloud-vue', 'Decimals')"
-				@update:model-value="updateFormat('decimals', Number($event) || 0)" />
+				@update:modelValue="updateFormat('decimals', Number($event) || 0)" />
 		</div>
 	</div>
 </template>
 
 <script>
-import { NcButton, NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
-import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
-import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
-import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
-import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
-import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
+import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
+import { filterToRows, rowsToFilter } from '../CnFilterRowsEditor/filterRows.js'
 
 const DEFAULT_CONTENT = Object.freeze({
 	label: '',
@@ -367,7 +367,9 @@ const OWNED_KEYS = ['label', 'icon', 'iconColor', 'valueColor', 'caption', 'form
  * @return {Array<{value: string, variant: string}>} The editable rows.
  */
 function variantMapToRows(map) {
-	if (!map || typeof map !== 'object') return []
+	if (!map || typeof map !== 'object') {
+		return []
+	}
 	return Object.entries(map).map(([value, variant]) => ({ value, variant: String(variant) }))
 }
 
@@ -379,11 +381,13 @@ function variantMapToRows(map) {
  * included, so a number stays a number. A row somebody actually edited writes
  * the string they typed, which is the only honest reading of a text field.
  *
- * @param {{value: string, valueRaw: *}} row The override row.
- * @return {*} The value to store.
+ * @param {{value: string, valueRaw: unknown}} row The override row.
+ * @return {unknown} The value to store.
  */
 function overrideValue(row) {
-	if (row.valueRaw !== undefined && String(row.valueRaw) === row.value) return row.valueRaw
+	if (row.valueRaw !== undefined && String(row.valueRaw) === row.value) {
+		return row.valueRaw
+	}
 	return row.value
 }
 
@@ -394,7 +398,9 @@ function overrideValue(row) {
  * @return {Array<{field: string, op: string, value: string, label: string, variant: string}>} The editable rows.
  */
 function overridesToRows(overrides) {
-	if (!Array.isArray(overrides)) return []
+	if (!Array.isArray(overrides)) {
+		return []
+	}
 	return overrides.map((o, index) => {
 		// An override the form cannot draw is KEPT, not dropped. A `when` with
 		// no `field` is a valid clause the grammar grows over time (an
@@ -405,7 +411,7 @@ function overridesToRows(overrides) {
 		}
 		const { field, op, value, ...whenRest } = o.when
 		const { when, label, variant, icon, ...rest } = o
-		const compares = Object.prototype.hasOwnProperty.call(o.when, 'value') || Boolean(op)
+		const compares = Object.hasOwn(o.when, 'value') || Boolean(op)
 		return {
 			index,
 			field,
@@ -464,6 +470,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values when not editing (registry defaults).
 		 *
@@ -493,7 +500,9 @@ export default {
 		const ofResolve = (of && typeof of === 'object' && of.resolve) || {}
 		const passthrough = {}
 		for (const [key, v] of Object.entries(initial)) {
-			if (!OWNED_KEYS.includes(key)) passthrough[key] = v
+			if (!OWNED_KEYS.includes(key)) {
+				passthrough[key] = v
+			}
 		}
 		return {
 			passthrough,
@@ -504,6 +513,7 @@ export default {
 				labelField: ofResolve.labelField ?? '',
 				variantField: ofResolve.variantField ?? '',
 			},
+
 			variantRows: variantMapToRows(ofResolve.variantMap),
 			display: initial.display === 'badge' ? 'badge' : 'text',
 			emptyText: initial.emptyText ?? '',
@@ -518,6 +528,7 @@ export default {
 				currency: fmt.currency ?? DEFAULT_CONTENT.format.currency,
 				decimals: Number.isFinite(fmt.decimals) ? fmt.decimals : 0,
 			},
+
 			kind: of ? 'record' : (src.kind || 'aggregate'),
 			source: { register: src.register ?? '', schema: src.schema ?? '' },
 			metric: src.metric ?? 'count',
@@ -527,6 +538,7 @@ export default {
 				weightField: src.weightField ?? '',
 				divisor: Number.isFinite(src.divisor) ? src.divisor : 100,
 			},
+
 			filterRows: filterToRows(src.filter || {}),
 			numeratorRows: filterToRows((src.numerator && src.numerator.filter) || (src.parts && src.parts.A && src.parts.A.filter) || {}),
 			denominatorRows: filterToRows((src.denominator && src.denominator.filter) || (src.parts && src.parts.B && src.parts.B.filter) || {}),
@@ -540,26 +552,32 @@ export default {
 		kindOptions() {
 			return ['aggregate', 'ratio', 'computed', 'weighted', 'record']
 		},
+
 		/** Display-mode options. */
 		displayOptions() {
 			return ['text', 'badge']
 		},
+
 		/** Colour variants a badge and a tile understand. */
 		variantOptions() {
 			return ['default', 'primary', 'success', 'warning', 'error', 'info']
 		},
+
 		/** Special-state conditions: a truthiness test or a comparison. */
 		overrideOpOptions() {
 			return ['truthy', 'eq', 'neq', 'gt', 'gte', 'lt', 'lte']
 		},
+
 		/** Aggregation metric options. */
 		metricOptions() {
 			return ['count', 'sum', 'avg', 'min', 'max']
 		},
+
 		/** Number-format style options. */
 		styleOptions() {
 			return ['number', 'currency', 'percent']
 		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			const base = { register: this.source.register, schema: this.source.schema }
@@ -611,12 +629,19 @@ export default {
 			}
 			// The new keys are written only when set, so a form that never
 			// touches them emits exactly the blob it always has.
-			if (this.display === 'badge') content.display = 'badge'
-			if (this.emptyText) content.emptyText = this.emptyText
+			if (this.display === 'badge') {
+				content.display = 'badge'
+			}
+			if (this.emptyText) {
+				content.emptyText = this.emptyText
+			}
 			const overrides = this.assembledOverrides
-			if (overrides.length) content.overrides = overrides
+			if (overrides.length) {
+				content.overrides = overrides
+			}
 			return content
 		},
+
 		/**
 		 * The `objectField` config for the record kind: the plain property
 		 * name, or `{ field, resolve }` once a lookup target is chosen.
@@ -625,19 +650,28 @@ export default {
 		 */
 		assembledObjectField() {
 			const r = this.recordResolve
-			if (!r.register || !r.schema) return this.recordField
+			if (!r.register || !r.schema) {
+				return this.recordField
+			}
 			const resolve = { register: r.register, schema: r.schema }
-			if (r.labelField) resolve.labelField = r.labelField
+			if (r.labelField) {
+				resolve.labelField = r.labelField
+			}
 			if (r.variantField) {
 				resolve.variantField = r.variantField
 				const map = {}
 				for (const row of this.variantRows) {
-					if (row.value !== '' && row.variant) map[row.value] = row.variant
+					if (row.value !== '' && row.variant) {
+						map[row.value] = row.variant
+					}
 				}
-				if (Object.keys(map).length) resolve.variantMap = map
+				if (Object.keys(map).length) {
+					resolve.variantMap = map
+				}
 			}
 			return { field: this.recordField, resolve }
 		},
+
 		/**
 		 * The `overrides` list from the special-state rows. A row without a
 		 * property is still being typed, so it is left out.
@@ -661,14 +695,22 @@ export default {
 			return this.overrideRows
 				.filter((row) => row.opaque !== undefined || row.field)
 				.map((row) => {
-					if (row.opaque !== undefined) return row.opaque
+					if (row.opaque !== undefined) {
+						return row.opaque
+					}
 					const when = row.op === 'truthy'
 						? { ...row.whenRest, field: row.field }
 						: { ...row.whenRest, field: row.field, op: row.op, value: overrideValue(row) }
 					const override = { ...row.rest, when }
-					if (row.label) override.label = row.label
-					if (row.variant) override.variant = row.variant
-					if (row.icon) override.icon = row.icon
+					if (row.label) {
+						override.label = row.label
+					}
+					if (row.variant) {
+						override.variant = row.variant
+					}
+					if (row.icon) {
+						override.icon = row.icon
+					}
 					return override
 				})
 		},
@@ -698,10 +740,18 @@ export default {
 		 * @return {string} The translated label; unknown ids fall back to "Aggregate".
 		 */
 		kindLabel(id) {
-			if (id === 'ratio') return t('nextcloud-vue', 'Ratio (%)')
-			if (id === 'computed') return t('nextcloud-vue', 'Formula')
-			if (id === 'weighted') return t('nextcloud-vue', 'Weighted sum')
-			if (id === 'record') return t('nextcloud-vue', 'Field on this record')
+			if (id === 'ratio') {
+				return t('nextcloud-vue', 'Ratio (%)')
+			}
+			if (id === 'computed') {
+				return t('nextcloud-vue', 'Formula')
+			}
+			if (id === 'weighted') {
+				return t('nextcloud-vue', 'Weighted sum')
+			}
+			if (id === 'record') {
+				return t('nextcloud-vue', 'Field on this record')
+			}
 			return t('nextcloud-vue', 'Aggregate')
 		},
 

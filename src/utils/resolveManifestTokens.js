@@ -34,9 +34,9 @@
  * @module utils/resolveManifestTokens
  */
 
+import { isOptionalUnresolved, resolveFilterValue } from './resolveFilterTokens.js'
 import resolveRouteSentinels from './resolveRouteSentinels.js'
-import { resolveFilterValue, isOptionalUnresolved } from './resolveFilterTokens.js'
-import { SENTINEL_CONTEXTS, contextOf, matchDeprecation, looksLikeSentinel } from './sentinelTokens.js'
+import { contextOf, looksLikeSentinel, matchDeprecation, SENTINEL_CONTEXTS } from './sentinelTokens.js'
 
 /**
  * Dispatch table: canonical context → the resolver that owns it. Documentation
@@ -78,22 +78,22 @@ export function clearDeprecationWarnings() {
  * map. Idempotent per token for the process lifetime.
  *
  * @param {string} token The `@`-prefixed token.
- * @param {Function} warn console.warn override (tests).
+ * @param {(...args: unknown[]) => void} warn console.warn override (tests).
  * @return {boolean} True when the token is deprecated (regardless of whether a
  *   warning was emitted this call).
  */
 export function warnIfDeprecated(token, warn) {
 	const dep = matchDeprecation(token)
-	if (!dep) return false
+	if (!dep) {
+		return false
+	}
 	if (!_warnedDeprecations.has(token)) {
 		_warnedDeprecations.add(token)
 		const target = dep.replacement
 			? `use '${dep.replacement}' instead`
 			: 'it will be removed with no direct replacement'
-		warn(
-			`[resolveManifestTokens] Deprecated sentinel token '${token}' — ${target} `
-			+ `(removal ${dep.removal}). ${dep.note}`,
-		)
+		warn(`[resolveManifestTokens] Deprecated sentinel token '${token}' — ${target} `
+			+ `(removal ${dep.removal}). ${dep.note}`)
 	}
 	return true
 }
@@ -106,15 +106,15 @@ export function warnIfDeprecated(token, warn) {
  * drop-in for a caller that previously ran `resolveRouteSentinels` then a
  * `resolveFilterTokens`-style pass by hand.
  *
- * @param {*} value The subtree (typically a `pages[].config` block). Not mutated.
+ * @param {unknown} value The subtree (typically a `pages[].config` block). Not mutated.
  * @param {object} [opts] Resolution inputs.
  * @param {object} [opts.params] vue-router params for `@route.<param>`.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [opts.ctx]
  *   Context forwarded to {@link resolveFilterValue} for filter / object /
  *   workspace / `@config.<key>` tokens.
  * @param {string} [opts.pageId] Page id for route-resolver warning dedup.
- * @param {Function} [opts.warn] console.warn override (tests).
- * @return {{value: *, unresolved: string[]}} The resolved subtree plus the
+ * @param {(...args: unknown[]) => void} [opts.warn] console.warn override (tests).
+ * @return {{value: unknown, unresolved: string[]}} The resolved subtree plus the
  *   list of tokens that stayed unresolved (excluding OPTIONAL `?` tokens, which
  *   are meant to be dropped, not waited on).
  */
@@ -136,21 +136,29 @@ export function resolveManifestSubtree(value, opts = {}) {
 	const unresolved = []
 	const walk = (node) => {
 		if (typeof node === 'string') {
-			if (!looksLikeSentinel(node)) return node
+			if (!looksLikeSentinel(node)) {
+				return node
+			}
 			warnIfDeprecated(node, warn)
 			const resolved = resolveFilterValue(node, ctx)
 			if (resolved === node && !isOptionalUnresolved(node)) {
 				// Still a raw token: unresolved unless it is a load-time / server-side
 				// context this render-pass deliberately leaves alone.
 				const c = contextOf(node)
-				if (c !== 'config' && c !== 'declarative' && c !== 'visibleWhen') unresolved.push(node)
+				if (c !== 'config' && c !== 'declarative' && c !== 'visibleWhen') {
+					unresolved.push(node)
+				}
 			}
 			return resolved
 		}
-		if (Array.isArray(node)) return node.map(walk)
+		if (Array.isArray(node)) {
+			return node.map(walk)
+		}
 		if (node && typeof node === 'object') {
 			const out = {}
-			for (const [k, v] of Object.entries(node)) out[k] = walk(v)
+			for (const [k, v] of Object.entries(node)) {
+				out[k] = walk(v)
+			}
 			return out
 		}
 		return node

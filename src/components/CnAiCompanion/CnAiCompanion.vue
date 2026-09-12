@@ -48,24 +48,24 @@
 		<CnAiChatPanel
 			ref="panel"
 			:visible="isPanelOpen"
-			:stream-state="stream.state"
-			:chat-app-id="chatAppId"
+			:streamState="stream.state"
+			:chatAppId="chatAppId"
 			:context="context"
 			:position="position"
-			:fab-ref="$refs.fabButton"
+			:fabRef="$refs.fabButton"
 			@close="closePanel"
 			@send="onSend"
-			@new-thread="onNewThread"
-			@load-conversation="onLoadConversation" />
+			@newThread="onNewThread"
+			@loadConversation="onLoadConversation" />
 	</div>
 </template>
 
 <script>
 import axios from '@nextcloud/axios'
-import { useAiChatStream } from '../../composables/useAiChatStream.js'
-import { DEFAULT_CHAT_APP_ID, chatHealthUrl } from '../../composables/aiChatConfig.js'
-import CnAiFloatingButton from './CnAiFloatingButton.vue'
 import CnAiChatPanel from './CnAiChatPanel.vue'
+import CnAiFloatingButton from './CnAiFloatingButton.vue'
+import { chatHealthUrl, DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
+import { useAiChatStream } from '../../composables/useAiChatStream.js'
 
 const HEALTH_TIMEOUT = 5000
 
@@ -108,12 +108,14 @@ export default {
 	props: {
 		/**
 		 * Default position for the FAB.
+		 *
 		 * @type {'bottom-right'|'bottom-left'|'top-right'|'top-left'}
 		 */
 		position: {
 			type: String,
 			default: 'bottom-right',
 		},
+
 		/**
 		 * Backend app id that answers the chat/health/conversation HTTP calls
 		 * (`/index.php/apps/{chatAppId}/api/...`). Single configuration point for
@@ -122,6 +124,7 @@ export default {
 		 * "Amendment 2026-07-05"); `CnAppRoot` forwards its own `chatAppId`
 		 * prop here so a consuming app can point the widget at another backend
 		 * (e.g. `openregister` during its compat window) in one place.
+		 *
 		 * @type {string}
 		 */
 		chatAppId: {
@@ -141,6 +144,7 @@ export default {
 		 * Shape mirrors the injected context: `{ appId, pageKind, fileId,
 		 * objectUuid, registerSlug, schemaSlug, route }`. All optional; whatever
 		 * the host knows is better than 'unknown'.
+		 *
 		 * @type {object|null}
 		 */
 		context: {
@@ -280,7 +284,7 @@ export default {
 				return
 			}
 
-			if (scope[COMPANION_SINGLETON_KEY] == null) {
+			if (scope[COMPANION_SINGLETON_KEY] === null || scope[COMPANION_SINGLETON_KEY] === undefined) {
 				scope[COMPANION_SINGLETON_KEY] = this
 				this.isPrimaryCompanion = true
 				return
@@ -338,10 +342,8 @@ export default {
 						continue
 					}
 					// eslint-disable-next-line no-console
-					console.info(
-						`[CnAiCompanion] chat backend "${this.chatAppId}" health probe did not return 2xx `
-							+ `after ${HEALTH_PROBE_ATTEMPTS} attempts — widget hidden`,
-					)
+					console.info(`[CnAiCompanion] chat backend "${this.chatAppId}" health probe did not return 2xx `
+						+ `after ${HEALTH_PROBE_ATTEMPTS} attempts — widget hidden`)
 					this.probeSucceeded = false
 				}
 			}
@@ -352,6 +354,7 @@ export default {
 		 *
 		 * The launcher stays visible while the window is open (see the template),
 		 * so it has to answer for both directions rather than only opening.
+		 *
 		 * @return {void}
 		 */
 		togglePanel() {

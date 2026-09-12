@@ -1,3 +1,4 @@
+import axios from '@nextcloud/axios'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
  * SPDX-License-Identifier: EUPL-1.2
@@ -21,7 +22,6 @@
  * the run it saved was empty, so it could not fail on the flow's contents.
  */
 import { createPinia, setActivePinia } from 'pinia'
-import axios from '@nextcloud/axios'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
 
 jest.mock('@nextcloud/axios', () => ({

@@ -12,8 +12,8 @@
  */
 import { mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
-import CnStatWidget from '../../src/components/CnStatWidget/CnStatWidget.vue'
 import CnStatusBadge from '../../src/components/CnStatusBadge/CnStatusBadge.vue'
+import CnStatWidget from '../../src/components/CnStatWidget/CnStatWidget.vue'
 
 /**
  * Drain the watcher, store lookup and re-render chain.
@@ -55,24 +55,28 @@ function answerWith(row) {
 	return jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => row })
 }
 
-const variantOf = (wrapper) => ['default', 'primary', 'success', 'warning', 'error', 'info']
-	.find((v) => wrapper.find('.cn-status-badge--' + v).exists())
+function variantOf(wrapper) {
+	return ['default', 'primary', 'success', 'warning', 'error', 'info']
+		.find((v) => wrapper.find('.cn-status-badge--' + v).exists())
+}
 
-const statusTile = (extra = {}) => ({
-	label: 'Status',
-	display: 'badge',
-	objectField: {
-		field: 'status',
-		resolve: {
-			register: 'dossiq',
-			schema: 'statusType',
-			labelField: 'name',
-			variantField: 'isFinal',
-			variantMap: { true: 'success', false: 'info' },
+function statusTile(extra = {}) {
+	return {
+		label: 'Status',
+		display: 'badge',
+		objectField: {
+			field: 'status',
+			resolve: {
+				register: 'dossiq',
+				schema: 'statusType',
+				labelField: 'name',
+				variantField: 'isFinal',
+				variantMap: { true: 'success', false: 'info' },
+			},
 		},
-	},
-	...extra,
-})
+		...extra,
+	}
+}
 
 afterEach(() => {
 	jest.restoreAllMocks()

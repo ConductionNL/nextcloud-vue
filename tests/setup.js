@@ -38,9 +38,9 @@ if (!global.fetch) {
 	global.fetch = jest.fn()
 }
 
+const { translate, translatePlural } = require('@nextcloud/l10n')
 const { config, enableAutoUnmount } = require('@vue/test-utils')
 const { createPinia, setActivePinia } = require('pinia')
-const { translate, translatePlural } = require('@nextcloud/l10n')
 
 // A fresh pinia per test keeps store state from leaking across specs. It is
 // both installed into every mounted component (`global.plugins`) and made the
@@ -81,7 +81,6 @@ config.global.mocks = {
 // out.
 if (typeof globalThis.ResizeObserver === 'undefined') {
 	globalThis.ResizeObserver = class ResizeObserver {
-
 		/** @return {void} */
 		observe() {}
 
@@ -90,7 +89,6 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
 
 		/** @return {void} */
 		disconnect() {}
-
 	}
 }
 

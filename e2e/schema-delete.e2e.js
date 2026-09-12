@@ -18,7 +18,7 @@
 // OpenRegister is stubbed at the network layer, so the real dialog runs against real
 // HTTP responses.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const REGISTER = {
 	id: 2466,
@@ -32,25 +32,29 @@ const SCHEMAS = {
 	4434: { id: 4434, slug: 'cow', title: 'Cow', properties: { name: { type: 'string' } } },
 }
 
-const json = (route, body, status = 200) => route.fulfill({
-	status,
-	contentType: 'application/json',
-	body: JSON.stringify(body),
-})
+function json(route, body, status = 200) {
+	return route.fulfill({
+		status,
+		contentType: 'application/json',
+		body: JSON.stringify(body),
+	})
+}
 
 /**
  * Stub OpenRegister. `onDelete` decides what the schema DELETE does, so each test
  * can model a different server: one that supports the cascade, and one that does not.
  *
  * @param {import('@playwright/test').Page} page The page.
- * @param {Function} onDelete Receives ({ route, url, cascade }) for a schema DELETE.
+ * @param {(args: {route: object, url: string, cascade: boolean}) => (void|Promise<void>)} onDelete Receives ({ route, url, cascade }) for a schema DELETE.
  * @return {Promise<{deleteCalls: string[]}>} Records every schema-DELETE url.
  */
 async function stubOpenRegister(page, onDelete) {
 	const deleteCalls = []
 
 	await page.route('**/apps/openregister/api/registers**', (route) => {
-		if (route.request().method() === 'GET') return json(route, { results: [REGISTER] })
+		if (route.request().method() === 'GET') {
+			return json(route, { results: [REGISTER] })
+		}
 		return json(route, REGISTER) // PATCH — unlink
 	})
 
@@ -90,8 +94,7 @@ async function startDeletingCow(page) {
 
 test.describe('CnEditDataModal — deleting a schema that still has objects', () => {
 	test('names the schema in the confirmation — never a raw “%s” placeholder', async ({ page }) => {
-		await stubOpenRegister(page, ({ route }) =>
-			json(route, { error: 'schema-has-objects', objectCount: 1 }, 409))
+		await stubOpenRegister(page, ({ route }) => json(route, { error: 'schema-has-objects', objectCount: 1 }, 409))
 
 		await startDeletingCow(page)
 
@@ -111,7 +114,9 @@ test.describe('CnEditDataModal — deleting a schema that still has objects', ()
 	test('confirming runs the cascade, and the register is only unlinked once it lands', async ({ page }) => {
 		let deleted = false
 		const { deleteCalls } = await stubOpenRegister(page, ({ route, cascade }) => {
-			if (!cascade) return json(route, { error: 'schema-has-objects', objectCount: 1 }, 409)
+			if (!cascade) {
+				return json(route, { error: 'schema-has-objects', objectCount: 1 }, 409)
+			}
 			deleted = true
 			return json(route, { success: true, deletedCount: 1, tableDropped: true })
 		})
@@ -128,8 +133,7 @@ test.describe('CnEditDataModal — deleting a schema that still has objects', ()
 	})
 
 	test('cancelling destroys nothing and closes the prompt', async ({ page }) => {
-		const { deleteCalls } = await stubOpenRegister(page, ({ route }) =>
-			json(route, { error: 'schema-has-objects', objectCount: 1 }, 409))
+		const { deleteCalls } = await stubOpenRegister(page, ({ route }) => json(route, { error: 'schema-has-objects', objectCount: 1 }, 409))
 
 		await startDeletingCow(page)
 		await confirmBox(page).getByRole('button', { name: /^Cancel$/ }).click()
@@ -141,8 +145,7 @@ test.describe('CnEditDataModal — deleting a schema that still has objects', ()
 	// THE LOOP. A server that does not know the cascade flag answers 409 again.
 	test('a cascade that still reports objects errors out — it must NOT re-prompt', async ({ page }) => {
 		// This server ignores ?deleteObjects=true — i.e. an OpenRegister predating it.
-		const { deleteCalls } = await stubOpenRegister(page, ({ route }) =>
-			json(route, { error: 'schema-has-objects', objectCount: 1 }, 409))
+		const { deleteCalls } = await stubOpenRegister(page, ({ route }) => json(route, { error: 'schema-has-objects', objectCount: 1 }, 409))
 
 		await startDeletingCow(page)
 		await confirmBox(page).getByRole('button', { name: /Delete schema and 1 object/i }).click()

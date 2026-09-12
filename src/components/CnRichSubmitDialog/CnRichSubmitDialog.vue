@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:no-close="loading"
+		:noClose="loading"
 		data-testid="cn-modal"
 		data-testid-modal="cn-rich-submit-dialog"
 		@closing="onClose">
@@ -68,7 +68,6 @@
 					{{ filesLabel }}<span v-if="filesRequired" class="cn-rich-submit__required">*</span>
 				</label>
 				<input :id="fieldIdFor('files')"
-					ref="fileInput"
 					type="file"
 					:accept="filesAccept"
 					:multiple="maxFiles !== 1"
@@ -105,7 +104,7 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 
 /**
  * CnRichSubmitDialog — Single-screen rich-submit modal with reason
@@ -224,6 +223,7 @@ export default {
 		 */
 		defaults: { type: Object, default: () => ({}) },
 	},
+
 	emits: ['close', 'confirm'],
 	data() {
 		return {
@@ -239,9 +239,11 @@ export default {
 				// reason / notes only.
 				...(this.defaults && this.defaults.files === undefined ? { files: [] } : {}),
 			},
+
 			radioGroupName: 'cn-rich-submit-reason-' + Math.random().toString(36).slice(2, 8),
 		}
 	},
+
 	computed: {
 		/**
 		 * Reasons normalised to `{ value, label, description? }`
@@ -251,22 +253,32 @@ export default {
 		 */
 		normalisedReasons() {
 			return this.reasons.map((r) => {
-				if (typeof r === 'string') return { value: r, label: r }
+				if (typeof r === 'string') {
+					return { value: r, label: r }
+				}
 				return { value: r.value, label: r.label || r.value, description: r.description }
 			})
 		},
+
 		/**
 		 * Whether the form satisfies the required-field rules.
 		 *
 		 * @return {boolean} True when submittable.
 		 */
 		isValid() {
-			if (this.reasonRequired && !this.formData.reason) return false
-			if (this.notesRequired && !this.formData.notes.trim()) return false
-			if (this.filesRequired && this.formData.files.length === 0) return false
+			if (this.reasonRequired && !this.formData.reason) {
+				return false
+			}
+			if (this.notesRequired && !this.formData.notes.trim()) {
+				return false
+			}
+			if (this.filesRequired && this.formData.files.length === 0) {
+				return false
+			}
 			return true
 		},
 	},
+
 	methods: {
 		/**
 		 * Stable DOM id helper.
@@ -277,6 +289,7 @@ export default {
 		fieldIdFor(key) {
 			return `cn-rich-submit-${key}`
 		},
+
 		/**
 		 * Handle a change on the file input. Applies max-files and
 		 * max-size-mb constraints; surfaces violations as a
@@ -304,6 +317,7 @@ export default {
 			}
 			this.formData.files = incoming
 		},
+
 		/**
 		 * Format a byte count into a short human-readable string.
 		 *
@@ -311,18 +325,25 @@ export default {
 		 * @return {string} Like "1.2 MB".
 		 */
 		humanSize(bytes) {
-			if (bytes < 1024) return `${bytes} B`
-			if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+			if (bytes < 1024) {
+				return `${bytes} B`
+			}
+			if (bytes < 1024 * 1024) {
+				return `${(bytes / 1024).toFixed(1)} KB`
+			}
 			return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 		},
+
 		/**
-		 * Confirm handler. Emits @confirm with the current form data
+		 * Confirm handler. Emits `@confirm` with the current form data
 		 * + sets `loading` until `setResult()` is called.
 		 *
 		 * @return {void}
 		 */
 		onConfirm() {
-			if (!this.isValid) return
+			if (!this.isValid) {
+				return
+			}
 			this.loading = true
 			/**
 			 * @event confirm Emitted when the user clicks Submit.
@@ -335,6 +356,7 @@ export default {
 				files: [...this.formData.files],
 			})
 		},
+
 		/**
 		 * Public method called by the parent to switch the dialog
 		 * into the result phase.
@@ -346,8 +368,9 @@ export default {
 			this.result = result || { success: true }
 			this.loading = false
 		},
+
 		/**
-		 * Reset state and emit @close.
+		 * Reset state and emit `@close`.
 		 *
 		 * @return {void}
 		 */

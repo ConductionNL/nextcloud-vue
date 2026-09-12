@@ -77,39 +77,35 @@ function collectVueFiles(dir) {
  */
 function report(list) {
 	if (list.length === 0) {
-		// eslint-disable-next-line no-console
 		console.log('✓ integration build: every integration SFC template compiles through buble (no template-side ES2020)')
 		return
 	}
-	// eslint-disable-next-line no-console
+
 	console.error('✗ integration template-compile gate failed:')
 	for (const f of list) {
-		// eslint-disable-next-line no-console
 		console.error(`  - ${path.relative(process.cwd(), f.file)}: ${f.message}`)
 	}
-	// eslint-disable-next-line no-console
+
 	console.error('\nVue 2 template expressions are transpiled by buble, which does NOT')
-	// eslint-disable-next-line no-console
+
 	console.error('support optional chaining (?.) or nullish coalescing (??) inside a')
-	// eslint-disable-next-line no-console
+
 	console.error('<template> block. Move the expression into a computed/method, or use')
-	// eslint-disable-next-line no-console
+
 	console.error('an explicit (a && a.b) / (a == null ? d : a) form in the template.')
-	// eslint-disable-next-line no-console
+
 	console.error('(See K1/K2 of the integration-hardening change; ADR-019.)')
 }
 
 let vueCompiler
 let transpileToFunctions
 try {
-	// eslint-disable-next-line global-require, import/no-extraneous-dependencies
 	vueCompiler = require('vue-template-compiler')
 	// vue-template-compiler ships the es2015 (buble) transpiler that
 	// rollup-plugin-vue uses to turn the compiled render string into a
 	// function. This is the exact stage that rejects template ES2020.
-	// eslint-disable-next-line global-require, import/no-extraneous-dependencies
 	transpileToFunctions = require('vue-template-es2015-compiler')
-} catch (e) {
+} catch {
 	// In a toolchain without these deps installed (e.g. a docs-only CI
 	// lane), fall back to a static scan of `<template>` blocks for `?.`
 	// and `??`. Coarser, but never silently passes.
@@ -142,7 +138,7 @@ function compileEach() {
 		}
 		// The render fn string is what rollup-plugin-vue feeds to buble.
 		const code = `var render = function(){${compiled.render}}\n`
-			+ `var staticRenderFns = [${(compiled.staticRenderFns || []).map(fn => `function(){${fn}}`).join(',')}]`
+			+ `var staticRenderFns = [${(compiled.staticRenderFns || []).map((fn) => `function(){${fn}}`).join(',')}]`
 		try {
 			transpileToFunctions(code, { transforms: { stripWithFunctional: false } })
 		} catch (err) {

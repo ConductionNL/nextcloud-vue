@@ -117,7 +117,7 @@
 					</div>
 
 					<!-- Row actions -->
-					<NcActions :force-menu="true" class="cn-calendar-tab__actions">
+					<NcActions :forceMenu="true" class="cn-calendar-tab__actions">
 						<NcActionButton :disabled="rowBusyKey === rowKey(ev)" @click="unlink(ev)">
 							<template #icon>
 								<LinkVariantOff :size="20" />
@@ -184,7 +184,7 @@
 						</div>
 					</div>
 
-					<NcActions :force-menu="true" class="cn-calendar-tab__actions">
+					<NcActions :forceMenu="true" class="cn-calendar-tab__actions">
 						<NcActionButton :disabled="rowBusyKey === rowKey(ev)" @click="unlink(ev)">
 							<template #icon>
 								<LinkVariantOff :size="20" />
@@ -205,7 +205,7 @@
 		<!-- Picker modal (Tier-2 link existing flow) -->
 		<CnCalendarEventPicker
 			v-if="showPicker"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@link="onPickerLink"
 			@close="closePicker" />
 
@@ -214,8 +214,8 @@
 			v-if="showCreate"
 			:register="register"
 			:schema="schema"
-			:object-id="objectId"
-			:api-base="apiBase"
+			:objectId="objectId"
+			:apiBase="apiBase"
 			@created="onEventCreated"
 			@close="closeCreate" />
 	</div>
@@ -224,22 +224,22 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcButton,
-	NcActions,
 	NcActionButton,
+	NcActions,
+	NcButton,
 	NcLoadingIcon,
 } from '@nextcloud/vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import LinkVariantOff from 'vue-material-design-icons/LinkVariantOff.vue'
-import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import MapMarkerOutline from 'vue-material-design-icons/MapMarkerOutline.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
-import { buildHeaders } from '../../../utils/index.js'
-import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import CnCalendarEventPicker from '../../../components/CnCalendarEventPicker/CnCalendarEventPicker.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnCalendarEventCreate from '../../../components/CnCalendarEventCreate/CnCalendarEventCreate.vue'
+import CnCalendarEventPicker from '../../../components/CnCalendarEventPicker/CnCalendarEventPicker.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
+import { buildHeaders } from '../../../utils/index.js'
 
 const MAX_AVATARS = 3
 
@@ -272,8 +272,10 @@ export default {
 	},
 
 	props: {
+		/* eslint-disable vue/no-unused-properties -- the integration dispatch binds integrationId on every integration component (see CnIntegrationWidgetGrid), so declaring it keeps it out of $attrs */
 		/** Stable integration id (matches PHP-side provider id, always `calendar`). */
 		integrationId: { type: String, default: 'calendar' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Parent object id. */
 		objectId: { type: String, required: true },
 		/** OpenRegister register id (slug or uuid). */
@@ -284,14 +286,23 @@ export default {
 		apiBase: { type: String, default: '/apps/openregister/api' },
 
 		// --- Pre-translated labels (ADR-007) ---
+		/** Label for the button that creates a meeting. */
 		addEventLabel: { type: String, default: () => t('nextcloud-vue', 'Add meeting') },
+		/** Label for the button that links an existing meeting. */
 		linkExistingLabel: { type: String, default: () => t('nextcloud-vue', 'Link existing') },
+		/** Label for the action that unlinks a meeting from the object. */
 		unlinkLabel: { type: String, default: () => t('nextcloud-vue', 'Unlink') },
+		/** Label for the action that deletes a meeting. */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete meeting') },
+		/** Empty state shown when no meeting is linked yet. */
 		noEventsLabel: { type: String, default: () => t('nextcloud-vue', 'No meetings linked yet') },
+		/** Stand-in title for a meeting that has none. */
 		untitledLabel: { type: String, default: () => t('nextcloud-vue', '(no title)') },
+		/** Heading above the meetings that are still to come. */
 		upcomingLabel: { type: String, default: () => t('nextcloud-vue', 'Upcoming') },
+		/** Heading above the meetings that already happened. */
 		pastLabel: { type: String, default: () => t('nextcloud-vue', 'Past') },
+		/** Message shown when the Calendar app cannot be reached. */
 		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'Nextcloud Calendar is currently unavailable.') },
 	},
 
@@ -319,17 +330,23 @@ export default {
 			})
 			return copy
 		},
+
 		upcomingEvents() {
 			const now = Date.now()
 			return this.sortedEvents.filter((ev) => {
-				if (!ev.dtstart) return true
+				if (!ev.dtstart) {
+					return true
+				}
 				return new Date(ev.dtstart).getTime() >= now
 			})
 		},
+
 		pastEvents() {
 			const now = Date.now()
 			return this.sortedEvents.filter((ev) => {
-				if (!ev.dtstart) return false
+				if (!ev.dtstart) {
+					return false
+				}
 				return new Date(ev.dtstart).getTime() < now
 			})
 		},
@@ -357,7 +374,9 @@ export default {
 		},
 
 		async fetchEvents() {
-			if (!this.register || !this.schema || !this.objectId) return
+			if (!this.register || !this.schema || !this.objectId) {
+				return
+			}
 			this.loading = true
 			this.error = ''
 			this.degraded = false
@@ -386,9 +405,11 @@ export default {
 		openCreate() {
 			this.showCreate = true
 		},
+
 		closeCreate() {
 			this.showCreate = false
 		},
+
 		async onEventCreated() {
 			this.closeCreate()
 			await this.fetchEvents()
@@ -398,9 +419,11 @@ export default {
 		openPicker() {
 			this.showPicker = true
 		},
+
 		closePicker() {
 			this.showPicker = false
 		},
+
 		async onPickerLink(payload) {
 			// payload: { calendarUri, eventUid }
 			this.closePicker()
@@ -418,8 +441,10 @@ export default {
 					let message = t('nextcloud-vue', 'Could not link the meeting.')
 					try {
 						const body = await response.json()
-						if (body && typeof body.error === 'string') message = body.error
-					} catch (_) { /* ignore */ }
+						if (body && typeof body.error === 'string') {
+							message = body.error
+						}
+					} catch { /* ignore */ }
 					this.error = message
 				}
 			} catch (err) {
@@ -431,7 +456,9 @@ export default {
 
 		async unlink(ev) {
 			const key = this.rowKey(ev)
-			if (this.rowBusyKey || !key) return
+			if (this.rowBusyKey || !key) {
+				return
+			}
 			this.rowBusyKey = key
 			this.error = ''
 			try {
@@ -458,7 +485,9 @@ export default {
 		async deleteEvent(ev) {
 			const key = this.rowKey(ev)
 			const eventUri = ev.id
-			if (this.rowBusyKey || !eventUri) return
+			if (this.rowBusyKey || !eventUri) {
+				return
+			}
 			this.rowBusyKey = key
 			this.error = ''
 			try {
@@ -483,20 +512,26 @@ export default {
 		// --- Presentation helpers (NC Calendar agenda look) ---
 
 		parseDate(value) {
-			if (!value) return null
+			if (!value) {
+				return null
+			}
 			const d = new Date(value)
 			return Number.isNaN(d.getTime()) ? null : d
 		},
 
 		monthOf(ev) {
 			const d = this.parseDate(ev.dtstart)
-			if (!d) return '—'
+			if (!d) {
+				return '—'
+			}
 			return d.toLocaleDateString(undefined, { month: 'short' })
 		},
 
 		dayOf(ev) {
 			const d = this.parseDate(ev.dtstart)
-			if (!d) return '?'
+			if (!d) {
+				return '?'
+			}
 			return String(d.getDate())
 		},
 
@@ -523,23 +558,37 @@ export default {
 
 		statusLabel(ev) {
 			const status = (ev.status || '').toString().toLowerCase()
-			if (status === 'confirmed') return t('nextcloud-vue', 'Confirmed')
-			if (status === 'tentative') return t('nextcloud-vue', 'Tentative')
-			if (status === 'cancelled') return t('nextcloud-vue', 'Cancelled')
+			if (status === 'confirmed') {
+				return t('nextcloud-vue', 'Confirmed')
+			}
+			if (status === 'tentative') {
+				return t('nextcloud-vue', 'Tentative')
+			}
+			if (status === 'cancelled') {
+				return t('nextcloud-vue', 'Cancelled')
+			}
 			return ''
 		},
 
 		statusVariant(ev) {
 			const status = (ev.status || '').toString().toLowerCase()
-			if (status === 'confirmed') return 'success'
-			if (status === 'tentative') return 'warning'
-			if (status === 'cancelled') return 'error'
+			if (status === 'confirmed') {
+				return 'success'
+			}
+			if (status === 'tentative') {
+				return 'warning'
+			}
+			if (status === 'cancelled') {
+				return 'error'
+			}
 			return 'default'
 		},
 
 		attendeeList(ev) {
 			const raw = ev.attendees || ev.participants || []
-			if (!Array.isArray(raw)) return []
+			if (!Array.isArray(raw)) {
+				return []
+			}
 			return raw.map((att) => {
 				if (typeof att === 'string') {
 					return { name: att, initials: this.initialsFor(att) }
@@ -565,11 +614,17 @@ export default {
 
 		initialsFor(name) {
 			const clean = (name || '').trim()
-			if (!clean) return '?'
+			if (!clean) {
+				return '?'
+			}
 			const local = clean.includes('@') ? clean.split('@')[0] : clean
 			const parts = local.split(/[\s._-]+/).filter(Boolean)
-			if (parts.length === 0) return clean.charAt(0).toUpperCase()
-			if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+			if (parts.length === 0) {
+				return clean.charAt(0).toUpperCase()
+			}
+			if (parts.length === 1) {
+				return parts[0].charAt(0).toUpperCase()
+			}
 			return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
 		},
 	},

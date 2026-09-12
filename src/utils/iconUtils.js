@@ -12,7 +12,7 @@
  * the icon surfaces (CnIconBrowser, CnIconBrowserPanel, CnDashboardIcon,
  * CnWidgetIcon, CnDashTileWidgetForm) share one definition and can't drift.
  *
- * @param {*} value - the candidate value (only strings can match).
+ * @param {unknown} value - the candidate value (only strings can match).
  * @return {boolean} true when the value looks like an SVG path string.
  */
 export function isSvgPath(value) {

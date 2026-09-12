@@ -171,9 +171,7 @@ describe('CnPageRenderer — v2 widget-grid live detail context (#222)', () => {
 		await flush()
 
 		// Old handle released, new object subscribed.
-		expect(mockStore.unsubscribe).toHaveBeenCalledWith(
-			expect.objectContaining({ id: 'pub-1' }),
-		)
+		expect(mockStore.unsubscribe).toHaveBeenCalledWith(expect.objectContaining({ id: 'pub-1' }))
 		expect(mockStore.subscribe).toHaveBeenCalledWith('publication-publication', 'pub-2')
 
 		w.unmount()
@@ -186,9 +184,7 @@ describe('CnPageRenderer — v2 widget-grid live detail context (#222)', () => {
 
 		w.unmount()
 		await flush()
-		expect(mockStore.unsubscribe).toHaveBeenCalledWith(
-			expect.objectContaining({ id: 'pub-1' }),
-		)
+		expect(mockStore.unsubscribe).toHaveBeenCalledWith(expect.objectContaining({ id: 'pub-1' }))
 	})
 
 	it('releases the subscription when the persistent renderer navigates off the detail page', async () => {
@@ -203,9 +199,7 @@ describe('CnPageRenderer — v2 widget-grid live detail context (#222)', () => {
 		route.params = {}
 		await flush()
 
-		expect(mockStore.unsubscribe).toHaveBeenCalledWith(
-			expect.objectContaining({ id: 'pub-1' }),
-		)
+		expect(mockStore.unsubscribe).toHaveBeenCalledWith(expect.objectContaining({ id: 'pub-1' }))
 		expect(w.vm.detailObjectContext.value).toBeNull()
 
 		w.unmount()

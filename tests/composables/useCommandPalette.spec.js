@@ -3,8 +3,8 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  */
 
+import { commandPaletteRegistry, createCommandRegistry } from '@/commandPalette/registry.js'
 import { useCommandPalette } from '@/composables/useCommandPalette.js'
-import { createCommandRegistry, commandPaletteRegistry } from '@/commandPalette/registry.js'
 
 describe('useCommandPalette', () => {
 	afterEach(() => {

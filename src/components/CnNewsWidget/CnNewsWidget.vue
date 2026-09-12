@@ -34,7 +34,7 @@
 						v-if="showThumbnails && item.thumbnailUrl"
 						class="cn-news-widget__thumb"
 						:src="item.thumbnailUrl"
-						:alt="''">
+						alt="">
 					<div class="cn-news-widget__body">
 						<h4 class="cn-news-widget__title">{{ item.title }}</h4>
 						<p
@@ -52,7 +52,7 @@
 						v-if="showThumbnails && item.thumbnailUrl"
 						class="cn-news-widget__thumb"
 						:src="item.thumbnailUrl"
-						:alt="''">
+						alt="">
 					<div class="cn-news-widget__body">
 						<h4 class="cn-news-widget__title">
 							{{ item.title }}
@@ -73,9 +73,9 @@
 </template>
 
 <script>
-import DOMPurify from 'dompurify'
-import { translate as t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
+import DOMPurify from 'dompurify'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 
 const ALLOWED_LAYOUTS = ['list', 'grid', 'carousel']
@@ -113,17 +113,19 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Placement entity carrying the id used in the items request. */
 		placement: {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Consumer-supplied items source: either a fully-formed URL string or
 		 * a builder `(placementId, { limit }) => string`. When `null` the
 		 * widget renders the empty state without making a request.
 		 *
-		 * @type {string|Function|null}
+		 * @type {string|((placementId: string, options: { limit: number }) => string)|null}
 		 */
 		itemsEndpoint: {
 			type: [String, Function],
@@ -233,7 +235,7 @@ export default {
 		/**
 		 * The placement id used to build the items request.
 		 *
-		 * @return {*} the placement id, or `null`.
+		 * @return {unknown} the placement id, or `null`.
 		 */
 		placementId() {
 			return this.placement && this.placement.id ? this.placement.id : null
@@ -311,7 +313,7 @@ export default {
 				this.items = Array.isArray(data.items) ? data.items : []
 				this.failedCount = typeof data.feedsFailed === 'number' ? data.feedsFailed : 0
 				this.failedUrls = Array.isArray(data.failedUrls) ? data.failedUrls : []
-			} catch (err) {
+			} catch {
 				this.hasError = true
 				this.items = []
 			} finally {

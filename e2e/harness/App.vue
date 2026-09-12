@@ -26,9 +26,9 @@
 					:rows="dashRows"
 					:columns="['name']"
 					borderless
-					:total-row-count="dashRows.length"
-					:view-all-route="{ name: 'anything' }"
-					view-all-label="View all"
+					:totalRowCount="dashRows.length"
+					:viewAllRoute="{ name: 'anything' }"
+					viewAllLabel="View all"
 					:limit="5" />
 			</div>
 		</template>
@@ -59,10 +59,10 @@
 				<CnGraphCanvas
 					:nodes="canvasNodes"
 					:edges="canvasEdges"
-					:read-only="canvasReadOnly"
-					:show-mini-map="true"
-					@nodes-change="canvasChanges.push($event)"
-					@node-remove="onCanvasNodeRemove"
+					:readOnly="canvasReadOnly"
+					:showMiniMap="true"
+					@nodesChange="canvasChanges.push($event)"
+					@nodeRemove="onCanvasNodeRemove"
 					@connect="canvasConnections.push($event)" />
 			</div>
 			<pre data-testid="canvas-connections">{{ JSON.stringify(canvasConnections) }}</pre>
@@ -147,7 +147,7 @@
 		<template v-else-if="showRunLink">
 			<h2>Run deep link</h2>
 			<div class="runlink-widget" data-testid="runlink-widget">
-				<CnFlowRunsWidget :content="runLinkContent" widget-id="runs" />
+				<CnFlowRunsWidget :content="runLinkContent" widgetId="runs" />
 			</div>
 			<div class="runlink-page" data-testid="runlink-page">
 				<RouterView />
@@ -166,7 +166,7 @@
 		<template v-else-if="showTabsWidget">
 			<h2>Tabs widget</h2>
 			<div class="tw-box" data-testid="tw-widget">
-				<CnTabsWidget :content="twContent" :available-widgets="twWidgets" />
+				<CnTabsWidget :content="twContent" :availableWidgets="twWidgets" />
 			</div>
 		</template>
 
@@ -200,11 +200,11 @@
 			<div class="tw-box" data-testid="bd-widget">
 				<CnTabsWidget
 					:content="bdContent"
-					:available-widgets="bdWidgets"
-					object-id="case-1"
-					:object-data="bdObject"
-					object-type="case"
-					:schema-object="bdSchema"
+					:availableWidgets="bdWidgets"
+					objectId="case-1"
+					:objectData="bdObject"
+					objectType="case"
+					:schemaObject="bdSchema"
 					register="dossiq"
 					schema="case" />
 			</div>
@@ -238,7 +238,7 @@
 			<CnDashboardPage
 				:widgets="chipWidgets"
 				:layout="chipLayout"
-				:date-range="chipDateRange"
+				:dateRange="chipDateRange"
 				title="Chip harness">
 				<template #widget-chip-widget>
 					<p data-testid="chip-widget-body">
@@ -252,7 +252,7 @@
 		     doesn't block the icon/markdown sections). -->
 		<template v-else-if="showWalkthrough">
 			<h2>Walkthrough</h2>
-			<CnWalkthrough app-id="harness" :manifest="wtManifest" seen-version="" />
+			<CnWalkthrough appId="harness" :manifest="wtManifest" seenVersion="" />
 		</template>
 
 		<!--
@@ -275,10 +275,10 @@
 			<h2>Schema editor — add enum value</h2>
 			<CnSchemaFormDialog
 				:item="spaSchema"
-				dialog-title="New schema"
-				:available-registers="[]"
-				:available-schemas="[]"
-				:show-delete="false"
+				dialogTitle="New schema"
+				:availableRegisters="[]"
+				:availableSchemas="[]"
+				:showDelete="false"
 				@confirm="() => {}"
 				@close="() => {}" />
 		</template>
@@ -300,7 +300,7 @@
 			<NcDialog name="Select in dialog" :open="true">
 				<div style="min-height: 220px;">
 					<NcSelect v-model="selZValue"
-						input-label="Pick a fruit"
+						inputLabel="Pick a fruit"
 						:options="selZOptions" />
 				</div>
 			</NcDialog>
@@ -317,10 +317,10 @@
 			<h2>Schema editor — schema reference</h2>
 			<CnSchemaFormDialog
 				:item="srefSchema"
-				dialog-title="New schema"
-				:available-registers="srefRegisters"
-				:available-schemas="srefSchemas"
-				:show-delete="false"
+				dialogTitle="New schema"
+				:availableRegisters="srefRegisters"
+				:availableSchemas="srefSchemas"
+				:showDelete="false"
 				@confirm="() => {}"
 				@close="() => {}" />
 		</template>
@@ -372,9 +372,9 @@
 		</template>
 		<template v-else-if="showTasksIndex">
 			<CnIndexPage
-				entity-source="tasks"
+				entitySource="tasks"
 				title="Tasks"
-				:show-refresh="false" />
+				:showRefresh="false" />
 		</template>
 
 		<!-- CnFormDialog schema-driven widget:'icon' (gated behind ?fd=1). -->
@@ -438,9 +438,9 @@
 				:schema="twoColSchema"
 				:objects="[]"
 				:loading="false"
-				:show-refresh="false"
-				form-size="large"
-				:form-columns="2" />
+				:showRefresh="false"
+				formSize="large"
+				:formColumns="2" />
 		</template>
 
 		<template v-else-if="showFormDialog">
@@ -462,8 +462,8 @@
 			<CnFormPage
 				:fields="flFields"
 				:steps="flSteps"
-				submit-handler="echoSubmit"
-				:custom-components="flCustomComponents"
+				submitHandler="echoSubmit"
+				:customComponents="flCustomComponents"
 				mode="public" />
 			<pre data-testid="fl-result">{{ flResult ? JSON.stringify(flResult) : 'none' }}</pre>
 		</template>
@@ -475,7 +475,7 @@
 					v-model="icon"
 					v-model:placement="placement"
 					searchable
-					allow-custom-svg
+					allowCustomSvg
 					clearable
 					:sources="sources"
 					:catalogues="catalogues" />
@@ -514,33 +514,33 @@
 </template>
 
 <script>
+import { NcDialog, NcSelect } from '@nextcloud/vue'
+import CnActionButtons from '../../src/components/CnActionButtons/CnActionButtons.vue'
 import CnCronField from '../../src/components/CnCronField/CnCronField.vue'
+import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
+import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
 import CnFlowDetail from '../../src/components/CnFlowDetail/CnFlowDetail.vue'
 import CnFlowSidebar from '../../src/components/CnFlowDetail/CnFlowSidebar.vue'
-import { useFlowStore } from '../../src/composables/useFlowStore.js'
-import CnGraphCanvas from '../../src/components/CnGraphCanvas/CnGraphCanvas.vue'
-import CnIconPicker from '../../src/components/CnIconPicker/CnIconPicker.vue'
-import CnIconBrowser from '../../src/components/CnIconBrowser/CnIconBrowser.vue'
-import CnMarkdownEditor from '../../src/components/CnMarkdownEditor/CnMarkdownEditor.vue'
-import CnWalkthrough from '../../src/components/CnWalkthrough/CnWalkthrough.vue'
+import CnFlowRunsWidget from '../../src/components/CnFlowRunsWidget/CnFlowRunsWidget.vue'
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 import CnFormPage from '../../src/components/CnFormPage/CnFormPage.vue'
-import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
-import CnSchemaFormDialog from '../../src/components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
-import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
-import CnActionButtons from '../../src/components/CnActionButtons/CnActionButtons.vue'
-import CnTabsWidget from '../../src/components/CnTabsWidget/CnTabsWidget.vue'
-import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
-import CnNavCardGrid from '../../src/components/CnNavCardGrid/CnNavCardGrid.vue'
-import CnInteractionFormWidget from '../../src/components/CnInteractionFormWidget/CnInteractionFormWidget.vue'
-import CnTasksWidget from '../../src/components/CnTasksWidget/CnTasksWidget.vue'
-import CnFlowRunsWidget from '../../src/components/CnFlowRunsWidget/CnFlowRunsWidget.vue'
+import CnGraphCanvas from '../../src/components/CnGraphCanvas/CnGraphCanvas.vue'
+import CnIconBrowser from '../../src/components/CnIconBrowser/CnIconBrowser.vue'
+import CnIconPicker from '../../src/components/CnIconPicker/CnIconPicker.vue'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
+import CnInteractionFormWidget from '../../src/components/CnInteractionFormWidget/CnInteractionFormWidget.vue'
+import CnMarkdownEditor from '../../src/components/CnMarkdownEditor/CnMarkdownEditor.vue'
+import CnNavCardGrid from '../../src/components/CnNavCardGrid/CnNavCardGrid.vue'
 import CnNcWidgetWidget from '../../src/components/CnNcWidgetWidget/CnNcWidgetWidget.vue'
+import CnSchemaFormDialog from '../../src/components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
+import CnTabsWidget from '../../src/components/CnTabsWidget/CnTabsWidget.vue'
+import CnTasksWidget from '../../src/components/CnTasksWidget/CnTasksWidget.vue'
+import CnWalkthrough from '../../src/components/CnWalkthrough/CnWalkthrough.vue'
+import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import StagesHarness from './StagesHarness.vue'
-import { NcDialog, NcSelect } from '@nextcloud/vue'
-import { installModalStack } from '../../src/utils/modalStack.js'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
+import { useFlowStore } from '../../src/composables/useFlowStore.js'
+import { installModalStack } from '../../src/utils/modalStack.js'
 
 const wtStep = (id, title, body) => ({ id, sinceVersion: '1.0.0', placement: 'center', title, body, target: { kind: 'page', ref: 'harness' }, advanceOn: { type: 'manual' } })
 
@@ -583,6 +583,7 @@ export default {
 				},
 				{ id: 'c', type: 'default', position: { x: 40, y: 300 }, data: { label: 'End' } },
 			],
+
 			// `markerEnd` and `type` are what `useFlowStore.canvasEdges` actually
 			// emits for every line. Without them the harness drew a bare
 			// default-bezier edge, so the e2e lane could not see an arrowhead
@@ -615,10 +616,12 @@ export default {
 					{ widgetId: 'tw-b', label: 'Second' },
 				],
 			},
+
 			twWidgets: [
 				{ id: 'tw-a', type: 'custom', title: 'First' },
 				{ id: 'tw-b', type: 'custom', title: 'Second' },
 			],
+
 			// A data widget in a tab panel (?baredata=1).
 			//
 			// TWO tabs, and the data widget is the SECOND one. The bug was about
@@ -637,10 +640,12 @@ export default {
 					{ widgetId: 'bd-data', label: 'Core data' },
 				],
 			},
+
 			bdWidgets: [
 				{ id: 'bd-other', type: 'custom', title: 'Timeline' },
 				{ id: 'bd-data', type: 'data', title: 'Core case data' },
 			],
+
 			bdSchema: {
 				title: 'Case',
 				properties: {
@@ -649,12 +654,14 @@ export default {
 					status: { type: 'string', title: 'Status' },
 				},
 			},
+
 			bdObject: {
 				id: 'case-1',
 				title: 'Permit for a roof terrace',
 				reference: 'Z-2026-0041',
 				status: 'In review',
 			},
+
 			// Non-sortable, exactly like scholiq's failing "manage-courses" widget
 			// table. A STRING column normalises to `sortable: true`, which puts a
 			// tabindex on every <th> — the scrollport then HAS focusable content
@@ -670,11 +677,13 @@ export default {
 				{ key: 'status', label: 'Status', sortable: false },
 				{ key: 'description', label: 'Description', sortable: false },
 			],
+
 			dtNarrowColumns: [{ key: 'id', label: 'ID', sortable: false }],
 			dtRows: [
 				{ id: 'c-1', name: 'Introduction to Civics', teacher: 'A. de Vries', location: 'Building A, room 210', startDate: '2026-09-01', endDate: '2026-12-19', status: 'Planned', description: 'A long description column so the table overflows its narrow container.' },
 				{ id: 'c-2', name: 'Public Administration', teacher: 'B. Jansen', location: 'Building C, room 4', startDate: '2026-09-08', endDate: '2027-01-30', status: 'Open', description: 'Another long description so the row is comfortably wider than the box.' },
 			],
+
 			chipWidgets: [{ id: 'chip-widget', title: 'Chip widget', type: 'custom' }],
 			chipLayout: [{ id: 1, widgetId: 'chip-widget', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3, dateChip: true }],
 			chipDateRange: {
@@ -688,6 +697,7 @@ export default {
 					{ id: 'year', label: 'Current year', period: 'year' },
 				],
 			},
+
 			dashRows: Array.from({ length: 30 }, (_, i) => ({ id: i + 1, name: 'Row ' + (i + 1) })),
 			// Schema-deletion harness (?sd=1). The register slug is what the modal
 			// matches against; the spec's page.route() stubs supply the register.
@@ -705,6 +715,7 @@ export default {
 				{ id: 100, slug: 'cow', title: 'Cow' },
 				{ id: 101, slug: 'stable', title: 'Stable' },
 			],
+
 			srefRegisters: [{ id: 5, title: 'Production' }],
 			srefSchema: {
 				title: 'Barn',
@@ -714,8 +725,10 @@ export default {
 						items: { type: 'object', objectConfiguration: { handling: 'related-schema' } },
 					},
 				},
+
 				required: [],
 			},
+
 			sdManifest: { pages: [{ config: { register: 'harness-register' } }] },
 			icon: null,
 			placement: 'left',
@@ -735,6 +748,7 @@ export default {
 					href: 'https://example.org/explore',
 				},
 			],
+
 			// CnTasksWidget / tasks entity source harness (?tasksWidget=1 / ?tasksIndex=1).
 			showTasksWidget: (typeof window !== 'undefined' && window.location.search.includes('tasksWidget')),
 			showTasksIndex: (typeof window !== 'undefined' && window.location.search.includes('tasksIndex')),
@@ -749,11 +763,13 @@ export default {
 					{ value: 'telefoon', label: 'Phone' },
 					{ value: 'email', label: 'Email' },
 				],
+
 				outcomes: [
 					{ value: 'opgelost', label: 'Resolved' },
 					{ value: 'open', label: 'Open' },
 				],
 			},
+
 			showTwoColumn: (typeof window !== 'undefined' && window.location.search.includes('twocol')),
 			showNcProxy: (typeof window !== 'undefined' && window.location.search.includes('ncproxy')),
 			// Eight scalars and one textarea: enough fields that pairing them
@@ -774,8 +790,10 @@ export default {
 					// field that must REFUSE to be paired.
 					description: { type: 'string', format: 'textarea', title: 'Description' },
 				},
+
 				required: ['title'],
 			},
+
 			showFormDialog: (typeof window !== 'undefined' && window.location.search.includes('fd')),
 			// Array-mode dynamic properties harness (?arr=1).
 			showArrayMode: (typeof window !== 'undefined' && window.location.search.includes('arr')),
@@ -789,10 +807,12 @@ export default {
 					successMessage: 'Case created.',
 				},
 			],
+
 			fdResult: null,
 			fdFields: [
 				{ key: 'icon', widget: 'icon', label: 'Icon', iconSources: ['fontawesome'], catalogues: { fontawesome: faSample }, searchable: true },
 			],
+
 			showFormLogic: (typeof window !== 'undefined' && window.location.search.includes('fl')),
 			flResult: null,
 			flFields: [
@@ -816,15 +836,18 @@ export default {
 				// kind !== "company", which is not what this harness exercises.
 				{ key: 'amount', type: 'number', label: 'Amount' },
 			],
+
 			flSteps: [
 				{ id: 'who', title: 'Who', fields: ['kind', 'name'] },
 				{ id: 'details', title: 'Details', fields: ['kvk', 'amount'] },
 			],
+
 			flCustomComponents: {
 				echoSubmit: (formData) => {
 					this.flResult = formData
 				},
 			},
+
 			showWalkthrough: (typeof window !== 'undefined' && window.location.search.includes('wt')),
 			wtManifest: {
 				version: '1.0.0',
@@ -844,6 +867,7 @@ export default {
 			},
 		}
 	},
+
 	mounted() {
 		// A real app gets the modal stack for free — `CnAppRoot` installs it on
 		// mount, and apps that do not mount `CnAppRoot` are told to call this
@@ -962,9 +986,7 @@ export default {
 		 */
 		onCanvasNodeRemove(id) {
 			this.canvasNodes = this.canvasNodes.filter((node) => node.id !== id)
-			this.canvasEdges = this.canvasEdges.filter(
-				(edge) => edge.source !== id && edge.target !== id,
-			)
+			this.canvasEdges = this.canvasEdges.filter((edge) => edge.source !== id && edge.target !== id)
 		},
 	},
 }

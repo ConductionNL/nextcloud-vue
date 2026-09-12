@@ -80,10 +80,10 @@
 					:class="{ 'cn-talk-card__row--unread': hasUnread(room) }">
 					<div class="cn-talk-card__row-icon">
 						<NcAvatar
-							:display-name="roomTitle(room)"
+							:displayName="roomTitle(room)"
 							:size="32"
-							:is-no-user="true"
-							:show-user-status="false" />
+							:isNoUser="true"
+							hideStatus />
 						<NcCounterBubble
 							v-if="hasUnread(room)"
 							class="cn-talk-card__badge"
@@ -107,7 +107,7 @@
 </template>
 
 <script>
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcCounterBubble, NcLoadingIcon } from '@nextcloud/vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
@@ -143,6 +143,7 @@ export default {
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+
 		/** Optional single-entity reference (room token). */
 		value: { type: String, default: '' },
 		/** Pre-translated card title. */
@@ -222,9 +223,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler() { this.fetch() } },
-		surface() { this.fetch() },
-		value() { if (this.surface === 'single-entity') { this.fetchSingle() } },
+		objectId: { immediate: true, handler() {
+			this.fetch()
+		} },
+
+		surface() {
+			this.fetch()
+		},
+
+		value() {
+			if (this.surface === 'single-entity') {
+				this.fetchSingle()
+			}
+		},
 	},
 
 	methods: {

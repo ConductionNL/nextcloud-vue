@@ -48,6 +48,8 @@
 
 import { emit } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
+import { parseDispositionFilename, triggerBlobDownload } from '../components/CnIndexPage/selfModeIO.js'
+import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
 import {
 	dropOptionalUnresolved,
 	dropOptionalUnresolvedDeep,
@@ -56,8 +58,6 @@ import {
 	resolveDeepTokens,
 	resolveFilterTokens,
 } from './resolveFilterTokens.js'
-import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
-import { parseDispositionFilename, triggerBlobDownload } from '../components/CnIndexPage/selfModeIO.js'
 
 /** Event-bus channel the page-level Refresh signal broadcasts on (Wave 2). */
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
@@ -77,7 +77,9 @@ export function resolveObjectOpType(store, source) {
 	const schema = String(source.schema)
 	const registry = store.objectTypeRegistry || {}
 	for (const [slug, config] of Object.entries(registry)) {
-		if (!config) continue
+		if (!config) {
+			continue
+		}
 		if ((String(config.register) === register && String(config.schema) === schema)
 			|| (config.registerSlug === register && config.schemaSlug === schema)) {
 			return slug
@@ -98,10 +100,16 @@ export function resolveObjectOpType(store, source) {
  * @return {string|number|null} The object id, or null when absent.
  */
 function rowObjectId(row) {
-	if (!row || typeof row !== 'object') return null
-	if (row.id !== undefined && row.id !== null) return row.id
+	if (!row || typeof row !== 'object') {
+		return null
+	}
+	if (row.id !== undefined && row.id !== null) {
+		return row.id
+	}
 	const self = row['@self']
-	if (self && typeof self === 'object' && self.id !== undefined && self.id !== null) return self.id
+	if (self && typeof self === 'object' && self.id !== undefined && self.id !== null) {
+		return self.id
+	}
 	return null
 }
 
@@ -113,11 +121,19 @@ function rowObjectId(row) {
  * @return {string|number|null} The object id, or null when absent.
  */
 export function savedObjectId(saved) {
-	if (!saved || typeof saved !== 'object') return null
-	if (saved.id !== undefined && saved.id !== null) return saved.id
-	if (saved.uuid !== undefined && saved.uuid !== null) return saved.uuid
+	if (!saved || typeof saved !== 'object') {
+		return null
+	}
+	if (saved.id !== undefined && saved.id !== null) {
+		return saved.id
+	}
+	if (saved.uuid !== undefined && saved.uuid !== null) {
+		return saved.uuid
+	}
 	const self = saved['@self']
-	if (self && typeof self === 'object' && self.id !== undefined && self.id !== null) return self.id
+	if (self && typeof self === 'object' && self.id !== undefined && self.id !== null) {
+		return self.id
+	}
 	return null
 }
 
@@ -140,7 +156,7 @@ export function savedObjectId(saved) {
  * @param {string} name The registered handler name.
  * @param {object} registry The v2 component registry.
  * @param {object} customComponents The legacy customComponents map.
- * @return {?Function} The async create handler, or null when unresolved.
+ * @return {?((props?: object) => Promise<unknown>)} The async create handler, or null when unresolved.
  */
 export function resolveCreateOverrideHandler(name, registry, customComponents) {
 	if (typeof name !== 'string' || name === '') {
@@ -151,8 +167,12 @@ export function resolveCreateOverrideHandler(name, registry, customComponents) {
 		return entry
 	}
 	if (entry && typeof entry === 'object') {
-		if (typeof entry.handler === 'function') return entry.handler
-		if (typeof entry.fn === 'function') return entry.fn
+		if (typeof entry.handler === 'function') {
+			return entry.handler
+		}
+		if (typeof entry.fn === 'function') {
+			return entry.fn
+		}
 	}
 	const legacy = (customComponents || {})[name]
 	return typeof legacy === 'function' ? legacy : null
@@ -213,13 +233,15 @@ export function buildOnSuccessRoute(onSuccessRoute, saved) {
  * lacks the key, the message is returned byte-identical. Server-supplied
  * messages are data and are never routed through here.
  *
- * @param {*} message The manifest-authored message (may be undefined).
+ * @param {unknown} message The manifest-authored message (may be undefined).
  * @param {object} context The dispatch context (`context.translate` optional).
- * @return {*} The translated message, or the input unchanged.
+ * @return {unknown} The translated message, or the input unchanged.
  */
 function translateMessage(message, context) {
 	const fn = context && context.translate
-	if (!message || typeof fn !== 'function') return message
+	if (!message || typeof fn !== 'function') {
+		return message
+	}
 	return fn(message)
 }
 
@@ -238,7 +260,9 @@ function translateMessage(message, context) {
  * @return {string} The interpolated string.
  */
 function interpolateActionString(str, ctx) {
-	if (typeof str !== 'string') return str
+	if (typeof str !== 'string') {
+		return str
+	}
 	const braced = str.replace(/\{objectId\}/g, () => {
 		const id = ctx.objectId
 		return (id === undefined || id === null) ? '' : String(id)
@@ -276,7 +300,7 @@ function interpolateActionString(str, ctx) {
  * @param {object} context Runtime context; `context.tokenCtx` is the token
  *   context (`{ objectId?, object?, workspace?, config? }`) the URL/body
  *   resolve against.
- * @return {Promise<{ok: boolean, data?: *, error?: *}>} The call outcome.
+ * @return {Promise<{ok: boolean, data?: unknown, error?: unknown}>} The call outcome.
  */
 async function executeApiCall(action, context) {
 	const tokenCtx = context.tokenCtx || {}
@@ -319,7 +343,9 @@ async function executeApiCall(action, context) {
 			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Action completed.'))
 		}
 		const shouldRefresh = isDownload ? action.refresh === true : action.refresh !== false
-		if (shouldRefresh) emit(PAGE_REFRESH_CHANNEL, {})
+		if (shouldRefresh) {
+			emit(PAGE_REFRESH_CHANNEL, {})
+		}
 		return { ok: true, data: res && res.data }
 	} catch (error) {
 		const serverMessage = error && error.response && error.response.data
@@ -340,8 +366,8 @@ async function executeApiCall(action, context) {
  * to the server); a `{ slug | id }` object (a schema holder) is flattened to its
  * slug/id.
  *
- * @param {*} actionVal The action's explicit value (may be undefined or an @-token).
- * @param {*} ctxDefault The page-context default (`tokenCtx.<field>`).
+ * @param {unknown} actionVal The action's explicit value (may be undefined or an @-token).
+ * @param {unknown} ctxDefault The page-context default (`tokenCtx.<field>`).
  * @param {object} tokenCtx The token context the @-tokens resolve against.
  * @return {string} The resolved reference, or '' when unresolved/absent.
  */
@@ -352,8 +378,12 @@ function resolveAgentRef(actionVal, ctxDefault, tokenCtx) {
 	} else if (typeof v === 'string') {
 		v = interpolateActionString(v, tokenCtx)
 	}
-	if (v && typeof v === 'object') return String(v.slug || v.id || '')
-	if (v === undefined || v === null) return ''
+	if (v && typeof v === 'object') {
+		return String(v.slug || v.id || '')
+	}
+	if (v === undefined || v === null) {
+		return ''
+	}
 	return String(v)
 }
 
@@ -383,7 +413,7 @@ function resolveAgentRef(actionVal, ctxDefault, tokenCtx) {
  *   `errorMessage?`, `refresh?`).
  * @param {object} context Runtime context; `context.tokenCtx` is the token
  *   context (`{ objectId?, object?, register?, schema?, workspace?, config? }`).
- * @return {Promise<{ok: boolean, data?: *, error?: *}>} The call outcome.
+ * @return {Promise<{ok: boolean, data?: unknown, error?: unknown}>} The call outcome.
  */
 async function executeAgentAction(action, context) {
 	const tokenCtx = context.tokenCtx || {}
@@ -400,9 +430,13 @@ async function executeAgentAction(action, context) {
 
 	const body = { register, schema, objectId }
 	const resultField = resolveAgentRef(action.resultField, undefined, tokenCtx)
-	if (resultField) body.resultField = resultField
+	if (resultField) {
+		body.resultField = resultField
+	}
 	const skill = resolveAgentRef(action.skill, undefined, tokenCtx)
-	if (skill) body.skill = skill
+	if (skill) {
+		body.skill = skill
+	}
 	if (typeof action.prompt === 'string' && action.prompt !== '') {
 		body.prompt = interpolateActionString(action.prompt, tokenCtx)
 	}
@@ -418,7 +452,9 @@ async function executeAgentAction(action, context) {
 		if (typeof dialogs.showSuccess === 'function') {
 			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run queued'))
 		}
-		if (action.refresh !== false) emit(PAGE_REFRESH_CHANNEL, {})
+		if (action.refresh !== false) {
+			emit(PAGE_REFRESH_CHANNEL, {})
+		}
 		return { ok: true, data: res && res.data }
 	} catch (error) {
 		const response = error && error.response
@@ -501,7 +537,9 @@ export async function postRunNode(action, context, config = {}) {
 		if (typeof dialogs.showSuccess === 'function') {
 			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run completed.'))
 		}
-		if (action.refresh !== false) emit(PAGE_REFRESH_CHANNEL, {})
+		if (action.refresh !== false) {
+			emit(PAGE_REFRESH_CHANNEL, {})
+		}
 		return { ok: true, data: res && res.data }
 	} catch (error) {
 		const response = error && error.response
@@ -585,19 +623,19 @@ export async function postRunNode(action, context, config = {}) {
  * @param {object} [context.registry] Component registry (Record<string, { kind, component }>).
  *   Required for "open-modal" type.
  * @param {object} [context.handlers] Map of handler name → function. Required for "handler" type.
- * @param {Function} [context.openModal] Function `(key, props)` that opens a modal.
+ * @param {(key: string, props?: object) => void} [context.openModal] Opens a modal.
  *   Required for "open-modal" type.
- * @param {Function} [context.openExport] Function `(action)` that opens the shared
+ * @param {(action: object) => void} [context.openExport] Opens the shared
  *   CnMassExportDialog configured from the action. Required for "export" type —
  *   CnPageRenderer pre-binds it in the `cnDispatchAction` context.
- * @param {Function} [context.openForm] Function `(action)` that opens the schema-driven
+ * @param {(action: object) => void} [context.openForm] Opens the schema-driven
  *   create dialog. Required for "open-form" type — the rendering surface
  *   (CnActionButtons) provides it, mirroring `openExport`. On a successful save the
  *   surface navigates to `action.onSuccessRoute` (a route NAME string, or
  *   `{name, paramField?, objectParam?}`) via {@link buildOnSuccessRoute}, which merges
  *   the saved object's id into the route params so the navigation can deep-link to the
  *   created object.
- * @param {Function} [context.openRunNode] Function `(action)` that opens the
+ * @param {(action: object) => void} [context.openRunNode] Opens the
  *   node-config dialog (or runs immediately for an empty config form) and
  *   POSTs to OpenRegister's direct-invoke endpoint on submit. Required for
  *   "run-node" type — the rendering surface (CnActionButtons) provides it,
@@ -605,7 +643,7 @@ export async function postRunNode(action, context, config = {}) {
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [context.tokenCtx]
  *   Token context "api-call" URLs/params resolve against (the same shape
  *   `resolveFilterTokens` / `interpolateUrlTokens` take).
- * @param {Function} [context.translate] The consumer's bound `t()` — the same
+ * @param {(app: string, text: string, vars?: object) => string} [context.translate] The consumer's bound `t()`, the same
  *   `cnTranslate` CnAppRoot provides to the page chrome. Applied to the
  *   manifest-authored `successMessage` / `errorMessage` of "api-call" and
  *   "agent" so their toasts follow the user's language. Omitted (or a
@@ -635,107 +673,95 @@ export function dispatchAction(action, context = {}) {
 	const type = action.type || 'handler'
 
 	switch (type) {
-	case 'handler': {
-		const handlerName = action.handler
-		const handlers = context.handlers || {}
+		case 'handler': {
+			const handlerName = action.handler
+			const handlers = context.handlers || {}
 
-		if (!handlerName || typeof handlers[handlerName] !== 'function') {
+			if (!handlerName || typeof handlers[handlerName] !== 'function') {
 			// eslint-disable-next-line no-console
-			console.warn(
-				`[dispatchAction] Handler "${handlerName}" not found in context.handlers.`,
-			)
-			return
-		}
-		handlers[handlerName](...(action.args ?? []))
-		break
-	}
-
-	case 'open-modal': {
-		const target = action.target
-		const registry = context.registry || {}
-		const entry = registry[target]
-
-		if (!entry) {
-			// eslint-disable-next-line no-console
-			console.warn(
-				`[dispatchAction] open-modal target "${target}" not found in registry.`,
-			)
-			return
+				console.warn(`[dispatchAction] Handler "${handlerName}" not found in context.handlers.`)
+				return
+			}
+			handlers[handlerName](...(action.args ?? []))
+			break
 		}
 
-		if (entry.kind !== 'modal') {
+		case 'open-modal': {
+			const target = action.target
+			const registry = context.registry || {}
+			const entry = registry[target]
+
+			if (!entry) {
 			// eslint-disable-next-line no-console
-			console.warn(
-				`[dispatchAction] open-modal target "${target}" has kind "${entry.kind}" (expected "modal").`,
-			)
-			return
+				console.warn(`[dispatchAction] open-modal target "${target}" not found in registry.`)
+				return
+			}
+
+			if (entry.kind !== 'modal') {
+			// eslint-disable-next-line no-console
+				console.warn(`[dispatchAction] open-modal target "${target}" has kind "${entry.kind}" (expected "modal").`)
+				return
+			}
+
+			if (typeof context.openModal !== 'function') {
+			// eslint-disable-next-line no-console
+				console.warn('[dispatchAction] open-modal requires context.openModal to be a function.')
+				return
+			}
+
+			context.openModal(target, action.props ?? {})
+			break
 		}
 
-		if (typeof context.openModal !== 'function') {
+		case 'open-page': {
+			if (!context.router) {
 			// eslint-disable-next-line no-console
-			console.warn(
-				'[dispatchAction] open-modal requires context.openModal to be a function.',
-			)
-			return
+				console.warn('[dispatchAction] open-page requires context.router to be a Vue Router instance.')
+				return
+			}
+			context.router.push({ name: action.target })
+			break
 		}
 
-		context.openModal(target, action.props ?? {})
-		break
-	}
-
-	case 'open-page': {
-		if (!context.router) {
+		case 'navigate': {
+			if (!context.router) {
 			// eslint-disable-next-line no-console
-			console.warn(
-				'[dispatchAction] open-page requires context.router to be a Vue Router instance.',
-			)
-			return
+				console.warn('[dispatchAction] navigate requires context.router to be a Vue Router instance.')
+				return
+			}
+			context.router.push(action.target)
+			break
 		}
-		context.router.push({ name: action.target })
-		break
-	}
 
-	case 'navigate': {
-		if (!context.router) {
-			// eslint-disable-next-line no-console
-			console.warn(
-				'[dispatchAction] navigate requires context.router to be a Vue Router instance.',
-			)
-			return
-		}
-		context.router.push(action.target)
-		break
-	}
-
-	case 'export': {
+		case 'export': {
 		// Export launcher (Wave 1, nextcloud-vue#91): the host page opens the
 		// shared CnMassExportDialog configured via the action's entities[] /
 		// formats[]; the dialog's confirm payload routes to the action's
 		// optional `handler` (the app's export service does the download).
-		if (typeof context.openExport !== 'function') {
+			if (typeof context.openExport !== 'function') {
 			// eslint-disable-next-line no-console
-			console.warn('[dispatchAction] export requires context.openExport to be a function.')
-			return
+				console.warn('[dispatchAction] export requires context.openExport to be a function.')
+				return
+			}
+			context.openExport(action)
+			break
 		}
-		context.openExport(action)
-		break
-	}
 
-	case 'open-form': {
+		case 'open-form': {
 		// Schema-driven create dialog (Wave 3, nextcloud-vue#91): the
 		// rendering surface (CnActionButtons) mounts the shared
 		// CnAdvancedFormDialog and handles the save — mirroring how
 		// `export` delegates to the host's CnMassExportDialog.
-		if (typeof context.openForm !== 'function') {
+			if (typeof context.openForm !== 'function') {
 			// eslint-disable-next-line no-console
-			console.warn('[dispatchAction] open-form requires context.openForm to be a function.')
-			return
+				console.warn('[dispatchAction] open-form requires context.openForm to be a function.')
+				return
+			}
+			context.openForm(action)
+			break
 		}
-		context.openForm(action)
-		break
-	}
 
-	case 'run-node': {
+		case 'run-node': {
 		// Direct flow-node invocation (manifest-run-node-action / RN-4):
 		// SAME shape as open-form, deliberately — the rendering surface
 		// (CnActionButtons) resolves the node's own config form, opens a
@@ -747,52 +773,52 @@ export function dispatchAction(action, context = {}) {
 		// every other consumer's assumption that dispatchAction's Promise
 		// means "the call happened", not "the human decided" (see design.md
 		// RN-4 for why an awaiting-on-UI shape was rejected).
-		if (typeof context.openRunNode !== 'function') {
+			if (typeof context.openRunNode !== 'function') {
 			// eslint-disable-next-line no-console
-			console.warn('[dispatchAction] run-node requires context.openRunNode to be a function.')
-			return
+				console.warn('[dispatchAction] run-node requires context.openRunNode to be a function.')
+				return
+			}
+			context.openRunNode(action)
+			break
 		}
-		context.openRunNode(action)
-		break
-	}
 
-	case 'refresh': {
+		case 'refresh': {
 		// Page-level refresh (Wave 3, nextcloud-vue#91): bump the SAME
 		// `cn:page:refresh` event-bus signal the page overflow menu's
 		// Refresh item broadcasts — every endpoint-bound / bus-subscribed
 		// widget on the page force-refetches past its shared cache.
-		emit(PAGE_REFRESH_CHANNEL, {})
-		break
-	}
+			emit(PAGE_REFRESH_CHANNEL, {})
+			break
+		}
 
-	case 'api-call': {
+		case 'api-call': {
 		// POST/PUT an app endpoint + toast + refresh (Wave 3). Any
 		// `confirm` on the action is INTENT the rendering surface consumed
 		// BEFORE calling the dispatcher (object-op precedent) — no gating
 		// happens here.
-		return executeApiCall(action, context)
-	}
+			return executeApiCall(action, context)
+		}
 
-	case 'agent': {
+		case 'agent': {
 		// Run a governed hermiq agent against the page object (hermiq#41). A
 		// first-class companion to api-call: resolves the object context
 		// (register/schema/objectId) and POSTs run-on-object. Any `confirm`
 		// on the action is INTENT the rendering surface consumed BEFORE
 		// dispatch (api-call / object-op precedent) — no gating here. hermiq
 		// is NOT hard-required: an app-level 404 surfaces a graceful toast.
-		return executeAgentAction(action, context)
-	}
+			return executeAgentAction(action, context)
+		}
 
-	case 'toggle': {
+		case 'toggle': {
 		// A toggle is a stateful two-way control (GET state on mount,
 		// write on click) — it is RENDERED by the header-actions surface
 		// (CnActionButtons), never dispatched as a one-shot action.
 		// eslint-disable-next-line no-console
-		console.warn('[dispatchAction] "toggle" is a stateful header-actions control rendered by CnActionButtons — it cannot be dispatched.')
-		return
-	}
+			console.warn('[dispatchAction] "toggle" is a stateful header-actions control rendered by CnActionButtons — it cannot be dispatched.')
+			return
+		}
 
-	case 'object-op': {
+		case 'object-op': {
 		// Declarative mutation of an OpenRegister object, dispatched via the
 		// shared object store (ADR-049). The manifest declares INTENT only:
 		// authorization-shaped fields on the action (`role`, `allow`, …) are
@@ -800,46 +826,46 @@ export function dispatchAction(action, context = {}) {
 		// (ADR-022 / ADR-023) and a forbidden mutation is rejected server-side.
 		// The store mutates its caches only on success, so a rejected write
 		// surfaces as an error with no local state change.
-		const op = action.op
-		if (op !== 'patch' && op !== 'delete' && op !== 'create') {
+			const op = action.op
+			if (op !== 'patch' && op !== 'delete' && op !== 'create') {
 			// eslint-disable-next-line no-console
-			console.warn(`[dispatchAction] object-op has invalid op "${op}" (expected patch | delete | create).`)
-			return
-		}
-		const store = context.objectStore
-		if (!store || typeof store.saveObject !== 'function' || typeof store.deleteObject !== 'function') {
+				console.warn(`[dispatchAction] object-op has invalid op "${op}" (expected patch | delete | create).`)
+				return
+			}
+			const store = context.objectStore
+			if (!store || typeof store.saveObject !== 'function' || typeof store.deleteObject !== 'function') {
 			// eslint-disable-next-line no-console
-			console.warn('[dispatchAction] object-op requires context.objectStore (useObjectStore shape).')
-			return
-		}
-		const source = context.source
-		if (!source || !source.register || !source.schema) {
+				console.warn('[dispatchAction] object-op requires context.objectStore (useObjectStore shape).')
+				return
+			}
+			const source = context.source
+			if (!source || !source.register || !source.schema) {
 			// eslint-disable-next-line no-console
-			console.warn('[dispatchAction] object-op requires context.source with register + schema.')
-			return
-		}
-		const type = resolveObjectOpType(store, source)
+				console.warn('[dispatchAction] object-op requires context.source with register + schema.')
+				return
+			}
+			const type = resolveObjectOpType(store, source)
 
-		if (op === 'create') {
-			return store.saveObject(type, { ...(action.values || {}) })
-		}
+			if (op === 'create') {
+				return store.saveObject(type, { ...(action.values || {}) })
+			}
 
-		const row = context.row
-		const id = rowObjectId(row)
-		if (id === null) {
+			const row = context.row
+			const id = rowObjectId(row)
+			if (id === null) {
 			// eslint-disable-next-line no-console
-			console.warn(`[dispatchAction] object-op "${op}" is row-scoped and requires context.row with an id.`)
-			return
+				console.warn(`[dispatchAction] object-op "${op}" is row-scoped and requires context.row with an id.`)
+				return
+			}
+			if (op === 'delete') {
+				return store.deleteObject(type, id)
+			}
+			// patch: the row's object merged with the action's values.
+			return store.saveObject(type, { ...row, ...(action.values || {}), id })
 		}
-		if (op === 'delete') {
-			return store.deleteObject(type, id)
-		}
-		// patch: the row's object merged with the action's values.
-		return store.saveObject(type, { ...row, ...(action.values || {}), id })
-	}
 
-	default:
+		default:
 		// eslint-disable-next-line no-console
-		console.warn(`[dispatchAction] Unknown action type "${type}".`)
+			console.warn(`[dispatchAction] Unknown action type "${type}".`)
 	}
 }

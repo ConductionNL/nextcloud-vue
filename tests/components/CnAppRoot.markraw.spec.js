@@ -19,20 +19,22 @@
  * the raw boundary this change establishes.
  */
 
-import { mount } from '@vue/test-utils'
-import { isReactive, h, toRaw } from 'vue'
+import { flushPromises, mount } from '@vue/test-utils'
+import { h, isReactive, toRaw } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({ getCapabilities: jest.fn(() => ({})) }))
 const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
 const { diffManifest } = require('../../src/utils/diffManifest.js')
 const CnAppRoot = require('../../src/components/CnAppRoot/CnAppRoot.vue').default
 
-const makeManifest = () => ({
-	version: '1.0.0',
-	dependencies: [],
-	menu: [{ id: 'home', label: 'Home', route: 'home' }],
-	pages: [{ id: 'home', route: '/', type: 'index', title: 'Home' }],
-})
+function makeManifest() {
+	return {
+		version: '1.0.0',
+		dependencies: [],
+		menu: [{ id: 'home', label: 'Home', route: 'home' }],
+		pages: [{ id: 'home', route: '/', type: 'index', title: 'Home' }],
+	}
+}
 
 /**
  * Mount CnAppRoot nested inside a wrapper so its manifest prop is not
@@ -109,14 +111,12 @@ describe('CnAppRoot — raw/reactive manifest boundary (audit item 9)', () => {
 
 		// In-place label edit on the (now reactive) menu renders live.
 		root.vm.manifestEditor.working.value.menu[0].label = 'Renamed'
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(nav.html()).toContain('name="Renamed"')
 
 		// Appending a menu item renders live too.
 		root.vm.manifestEditor.working.value.menu.push({ id: 'added', label: 'Added', route: 'x' })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(nav.html()).toContain('name="Added"')
 	})
 
@@ -127,13 +127,11 @@ describe('CnAppRoot — raw/reactive manifest boundary (audit item 9)', () => {
 		root.vm.manifestEditor.enter()
 		await wrapper.vm.$nextTick()
 		root.vm.manifestEditor.working.value.menu[0].label = 'Discarded'
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(nav.html()).toContain('name="Discarded"')
 
 		root.vm.manifestEditor.cancel()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(root.vm.manifestEditor.editing.value).toBe(false)
 		expect(manifest.menu[0].label).toBe('Home') // restored in place
 		expect(nav.html()).toContain('name="Home"')

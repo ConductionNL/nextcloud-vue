@@ -14,21 +14,21 @@
  * Spec: REQ-MVR-005 (manifest-v2-renderer) — widget key resolution
  */
 
-import CnWidgetObjectTable from '../CnWidgetObjectTable/CnWidgetObjectTable.vue'
-import CnWidgetFormRenderer from '../CnWidgetFormRenderer/CnWidgetFormRenderer.vue'
-import CnWidgetMapViewer from '../CnWidgetMapViewer/CnWidgetMapViewer.vue'
-import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
-import CnWidgetCardGrid from '../CnWidgetCardGrid/CnWidgetCardGrid.vue'
+import CnAuditTrailWidget from '../CnAuditTrailWidget/CnAuditTrailWidget.vue'
+import CnBannerWidget from '../CnBannerWidget/CnBannerWidget.vue'
+import CnDividerWidget from '../CnDividerWidget/CnDividerWidget.vue'
+import CnHeaderWidget from '../CnHeaderWidget/CnHeaderWidget.vue'
+import CnIntegrationWidget from '../CnIntegrationWidget/CnIntegrationWidget.vue'
 import CnNavCardGrid from '../CnNavCardGrid/CnNavCardGrid.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
+import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
-import CnIntegrationWidget from '../CnIntegrationWidget/CnIntegrationWidget.vue'
-import CnBannerWidget from '../CnBannerWidget/CnBannerWidget.vue'
-import CnAuditTrailWidget from '../CnAuditTrailWidget/CnAuditTrailWidget.vue'
-import CnHeaderWidget from '../CnHeaderWidget/CnHeaderWidget.vue'
 import CnTextWidget from '../CnTextWidget/CnTextWidget.vue'
-import CnDividerWidget from '../CnDividerWidget/CnDividerWidget.vue'
+import CnWidgetCardGrid from '../CnWidgetCardGrid/CnWidgetCardGrid.vue'
+import CnWidgetFormRenderer from '../CnWidgetFormRenderer/CnWidgetFormRenderer.vue'
+import CnWidgetMapViewer from '../CnWidgetMapViewer/CnWidgetMapViewer.vue'
+import CnWidgetObjectTable from '../CnWidgetObjectTable/CnWidgetObjectTable.vue'
 
 /**
  * Built-in widget registry.

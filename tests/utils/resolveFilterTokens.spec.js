@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  */
-import { resolveFilterValue, resolveFilterTokens, hasUnresolvedTokens, isOptionalUnresolved, dropOptionalUnresolved } from '../../src/utils/resolveFilterTokens.js'
+import { dropOptionalUnresolved, hasUnresolvedTokens, isOptionalUnresolved, resolveFilterTokens, resolveFilterValue } from '../../src/utils/resolveFilterTokens.js'
 
 describe('resolveFilterTokens', () => {
 	it('passes through non-token values', () => {
@@ -21,8 +21,10 @@ describe('resolveFilterTokens', () => {
 	})
 
 	it('resolves a @today±Nd offset to a date N days away', () => {
-		const today = new Date(); today.setHours(0, 0, 0, 0)
-		const minus7 = new Date(today); minus7.setDate(minus7.getDate() - 7)
+		const today = new Date()
+		today.setHours(0, 0, 0, 0)
+		const minus7 = new Date(today)
+		minus7.setDate(minus7.getDate() - 7)
 		const expected = `${minus7.getFullYear()}-${String(minus7.getMonth() + 1).padStart(2, '0')}-${String(minus7.getDate()).padStart(2, '0')}`
 		expect(resolveFilterValue('@today-7d')).toBe(expected)
 	})
@@ -146,7 +148,9 @@ describe('resolveFilterTokens', () => {
 	describe('relative-date arithmetic (@today±Nd)', () => {
 		it('resolves @today+7d and @today-30d at day granularity', () => {
 			const shift = (days) => {
-				const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + days)
+				const d = new Date()
+				d.setHours(0, 0, 0, 0)
+				d.setDate(d.getDate() + days)
 				return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 			}
 			expect(resolveFilterValue('@today+7d')).toBe(shift(7))

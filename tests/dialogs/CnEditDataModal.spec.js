@@ -1,3 +1,4 @@
+import axios from '@nextcloud/axios'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -7,8 +8,6 @@
  * add/edit/remove + register-linking via the OpenRegister API.
  */
 import { mount } from '@vue/test-utils'
-
-import axios from '@nextcloud/axios'
 import CnEditDataModal, { invalidateDataCache } from '../../src/dialogs/CnEditDataModal.vue'
 
 jest.mock('@nextcloud/router', () => ({ generateUrl: (p) => p }))
@@ -47,7 +46,11 @@ beforeEach(() => {
 	// Reset it between cases so each test loads from its own axios mocks instead
 	// of a previous case's cached list/schemas.
 	invalidateDataCache()
-	axios.get.mockReset(); axios.post.mockReset(); axios.put.mockReset(); axios.patch.mockReset(); axios.delete.mockReset()
+	axios.get.mockReset()
+	axios.post.mockReset()
+	axios.put.mockReset()
+	axios.patch.mockReset()
+	axios.delete.mockReset()
 })
 
 describe('CnEditDataModal', () => {

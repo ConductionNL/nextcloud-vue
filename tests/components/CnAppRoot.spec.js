@@ -201,9 +201,7 @@ describe('CnAppRoot', () => {
 			})
 
 			expect(seen).not.toBeNull()
-			expect(Object.keys(seen)).toEqual(
-				expect.arrayContaining(['manifest', 'permissions', 'isOwner', 'isAdmin', 'appId']),
-			)
+			expect(Object.keys(seen)).toEqual(expect.arrayContaining(['manifest', 'permissions', 'isOwner', 'isAdmin', 'appId']))
 			expect(typeof seen.isAdmin).toBe('boolean')
 		})
 
@@ -350,11 +348,15 @@ describe('CnAppRoot', () => {
 		// compiler at runtime.
 		const NamedSidebar = {
 			name: 'NamedSidebar',
-			render() { return h('div', { class: 'named-sidebar' }, 'named') },
+			render() {
+				return h('div', { class: 'named-sidebar' }, 'named')
+			},
 		}
 		const ConsumerSidebar = {
 			name: 'ConsumerSidebar',
-			render() { return h('div', { class: 'consumer-sidebar' }, 'consumer') },
+			render() {
+				return h('div', { class: 'consumer-sidebar' }, 'consumer')
+			},
 		}
 
 		it('mounts the resolved component as the slot default content when no #sidebar override', () => {
@@ -524,7 +526,9 @@ describe('CnAppRoot', () => {
 		// the returns-null path below — an unverifiable dependency is treated as
 		// missing rather than silently hidden.
 		it('treats a getCapabilities() throw as a missing dependency (REQ-OR-7)', async () => {
-			getCapabilities.mockImplementation(() => { throw new Error('capabilities-api-down') })
+			getCapabilities.mockImplementation(() => {
+				throw new Error('capabilities-api-down')
+			})
 			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 			const wrapper = mountWithGuard()
 			await wrapper.vm.$nextTick()
@@ -701,7 +705,9 @@ describe('CnAppRoot', () => {
 		it('swallows errors from _fetchAndCacheCount and leaves the map empty', async () => {
 			const fakeStore = {
 				objectTypeRegistry: {},
-				registerObjectType: () => { throw new Error('nope') },
+				registerObjectType: () => {
+					throw new Error('nope')
+				},
 				fetchCollection: jest.fn(),
 				getPagination: jest.fn(),
 			}

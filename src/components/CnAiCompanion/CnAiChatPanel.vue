@@ -99,7 +99,7 @@
 					<NcActions
 						:aria-label="cnTranslate('Session settings')"
 						:title="cnTranslate('Session settings')"
-						:force-menu="true"
+						:forceMenu="true"
 						data-testid="cn-ai-panel-settings">
 						<template #icon>
 							<Cog :size="18" />
@@ -114,10 +114,10 @@
 					  offered here even where the microphone cannot be.
 					-->
 						<NcActionCheckbox
-							:model-value="speakReplies"
+							:modelValue="speakReplies"
 							:disabled="speechSynthesisSupported === false"
 							data-testid="cn-ai-panel-speak-toggle"
-							@update:model-value="onSpeakRepliesToggled">
+							@update:modelValue="onSpeakRepliesToggled">
 							{{ speechSynthesisSupported
 								? cnTranslate('Read replies aloud')
 								: cnTranslate('Read replies aloud (not supported here)') }}
@@ -127,7 +127,7 @@
 						<NcActionButton
 							v-for="agent in visibleAgentOptions"
 							:key="agent.id"
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="onAgentSelected(agent.id)">
 							<template #icon>
 								<Check v-if="agent.id === selectedAgentUuid" :size="20" />
@@ -143,7 +143,7 @@
 					-->
 						<NcActionButton
 							v-if="hiddenAgentCount > 0"
-							:close-after-click="false"
+							:closeAfterClick="false"
 							data-testid="cn-ai-panel-all-agents"
 							@click="showAllAgents = true">
 							<template #icon>
@@ -159,14 +159,14 @@
 					<NcActions
 						:aria-label="cnTranslate('Sessions')"
 						:title="cnTranslate('Sessions')"
-						:force-menu="true"
+						:forceMenu="true"
 						data-testid="cn-ai-panel-sessions">
 						<template #icon>
 							<History :size="18" />
 						</template>
 						<NcActionButton
 							:disabled="isOnNewChatScreen"
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="onNewChat">
 							<template #icon>
 								<Plus :size="20" />
@@ -177,7 +177,7 @@
 						<NcActionButton
 							v-for="conversation in recentConversations"
 							:key="conversation.uuid"
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="onConversationSelect(conversation.uuid)">
 							<template #icon>
 								<MessageTextOutline :size="20" />
@@ -185,7 +185,7 @@
 							{{ conversationLabel(conversation) }}
 						</NcActionButton>
 						<NcActionButton
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="activeView = 'history'">
 							<template #icon>
 								<History :size="20" />
@@ -197,7 +197,7 @@
 					<NcButton
 						:aria-label="cnTranslate('Close')"
 						:title="cnTranslate('Close')"
-						type="tertiary"
+						variant="tertiary"
 						data-testid="cn-ai-panel-close"
 						@click="onClose">
 						<template #icon>
@@ -211,8 +211,8 @@
 				<div class="cn-ai-chat-window__messages">
 					<CnAiMessageList
 						:messages="streamState.messages"
-						:current-text="streamState.currentText"
-						:is-streaming="streamState.isStreaming">
+						:currentText="streamState.currentText"
+						:isStreaming="streamState.isStreaming">
 						<template #empty>
 							<div class="cn-ai-chat-window__start" data-testid="cn-ai-chat-tab-start">
 								<NcEmptyContent :name="agentLabel">
@@ -260,14 +260,14 @@
 						</p>
 						<div class="cn-ai-approval__actions">
 							<NcButton
-								type="primary"
+								variant="primary"
 								:disabled="resolvingApprovalId === approval.id"
 								:data-testid="'cn-ai-approval-allow-' + approval.id"
 								@click="onApprovalDecision(approval, 'granted')">
 								{{ cnTranslate('Allow') }}
 							</NcButton>
 							<NcButton
-								type="tertiary"
+								variant="tertiary"
 								:disabled="resolvingApprovalId === approval.id"
 								:data-testid="'cn-ai-approval-deny-' + approval.id"
 								@click="onApprovalDecision(approval, 'refused')">
@@ -281,13 +281,13 @@
 					<CnAiInput
 						ref="input"
 						:disabled="streamState.isStreaming"
-						:chat-app-id="chatAppId"
-						:speech-input-engine="speechPolicy.inputEngine"
-						:dictation-silence-timeout="speechPolicy.silenceTimeout"
-						:local-speech-available="localSpeechAvailable"
-						:conversation-enabled="speechPolicy.conversationEnabled"
+						:chatAppId="chatAppId"
+						:speechInputEngine="speechPolicy.inputEngine"
+						:dictationSilenceTimeout="speechPolicy.silenceTimeout"
+						:localSpeechAvailable="localSpeechAvailable"
+						:conversationEnabled="speechPolicy.conversationEnabled"
 						@send="onSend"
-						@conversation-state="onConversationTurn" />
+						@conversationState="onConversationTurn" />
 				</div>
 			</div>
 
@@ -295,9 +295,9 @@
 				<CnAiHistoryList
 					:conversations="conversations"
 					:loading="conversationsLoading"
-					:fetch-error="conversationsFetchError"
-					:active-conversation-uuid="activeConversationUuid"
-					:chat-app-id="chatAppId"
+					:fetchError="conversationsFetchError"
+					:activeConversationUuid="activeConversationUuid"
+					:chatAppId="chatAppId"
 					:searchable="true"
 					@select="onConversationSelect"
 					@renamed="onConversationRenamed" />
@@ -307,34 +307,34 @@
 </template>
 
 <script>
-import { NcActions, NcActionButton, NcActionCaption, NcActionCheckbox, NcActionSeparator, NcButton, NcEmptyContent } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
-import Plus from 'vue-material-design-icons/Plus.vue'
-import History from 'vue-material-design-icons/History.vue'
-import Creation from 'vue-material-design-icons/Creation.vue'
-import Close from 'vue-material-design-icons/Close.vue'
+import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcActionSeparator, NcButton, NcEmptyContent } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
-import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
+import Creation from 'vue-material-design-icons/Creation.vue'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
-import CnAiMessageList from './CnAiMessageList.vue'
-import CnAiInput from './CnAiInput.vue'
-import CnAiHistoryList from './CnAiHistoryList.vue'
+import History from 'vue-material-design-icons/History.vue'
+import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDashboardIcon from '../CnIconPicker/CnDashboardIcon.vue'
+import CnAiHistoryList from './CnAiHistoryList.vue'
+import CnAiInput from './CnAiInput.vue'
+import CnAiMessageList from './CnAiMessageList.vue'
 import {
-	DEFAULT_CHAT_APP_ID,
 	agentsUrl,
 	conversationsUrl,
+	DEFAULT_CHAT_APP_ID,
 	normalizeConversation,
 	speechCapabilitiesUrl,
 	speechSynthesisUrl,
 } from '../../composables/aiChatConfig.js'
 import {
-	SPEECH_LOCAL,
-	SPEECH_OFF,
 	browserSynthesisUsable,
 	normalizeAgentSpeechPolicy,
 	resolveSpeakingEngine,
+	SPEECH_LOCAL,
+	SPEECH_OFF,
 } from '../../composables/aiSpeechPolicy.js'
 
 /**
@@ -411,6 +411,7 @@ export default {
 		 * Corner the window is anchored to — mirrors the launcher hex's own
 		 * `position`, so the window opens from the button rather than across
 		 * the page from it.
+		 *
 		 * @type {'bottom-right'|'bottom-left'|'top-right'|'top-left'}
 		 */
 		position: {
@@ -501,6 +502,7 @@ export default {
 		 * Agents as `{ id, label }`, matching the shape the old inline picker
 		 * used — the agents API returns `uuid` on some deployments and `id` on
 		 * others, and both have been seen in the wild.
+		 *
 		 * @return {Array<{id: string, label: string}>} Selectable agents.
 		 */
 		/**
@@ -518,9 +520,7 @@ export default {
 				return null
 			}
 
-			return this.agents.find(
-				(agent) => (agent.uuid || agent.id) === this.selectedAgentUuid,
-			) || null
+			return this.agents.find((agent) => (agent.uuid || agent.id) === this.selectedAgentUuid) || null
 		},
 
 		/**
@@ -675,6 +675,7 @@ export default {
 		 * Falls back while the agent list is still loading, and again if it
 		 * failed — a titlebar with an empty title reads as a broken window, so
 		 * every branch names something.
+		 *
 		 * @return {string} Title text.
 		 */
 		agentLabel() {
@@ -714,9 +715,10 @@ export default {
 		 * Mirror it into the panel's own tracked uuid so a brand-new conversation
 		 * shows as "active" immediately — the same tracking that drives
 		 * isOnNewChatScreen and the History/recent-sessions active-row indicator.
+		 *
 		 * @param {string|null} newVal The stream's current conversation uuid.
 		 */
-		'streamState.conversationUuid'(newVal) {
+		'streamState.conversationUuid': function(newVal) {
 			if (newVal) {
 				this.activeConversationUuid = newVal
 			}
@@ -731,7 +733,7 @@ export default {
 		 *
 		 * @param {boolean} streaming Whether a turn is still in flight.
 		 */
-		'streamState.isStreaming'(streaming) {
+		'streamState.isStreaming': function(streaming) {
 			if (streaming === true) {
 				return
 			}
@@ -768,7 +770,7 @@ export default {
 		restoreSpeakPreference() {
 			try {
 				this.speakReplies = (window.localStorage.getItem(SPEAK_PREFERENCE_KEY) === '1')
-			} catch (e) {
+			} catch {
 				// Storage can be unavailable (private mode, blocked cookies).
 				// The toggle then simply does not persist.
 				this.speakReplies = false
@@ -788,7 +790,7 @@ export default {
 			}
 			try {
 				window.localStorage.setItem(SPEAK_PREFERENCE_KEY, this.speakReplies ? '1' : '0')
-			} catch (e) {
+			} catch {
 				// Preference is still honoured for this session.
 			}
 		},
@@ -849,7 +851,7 @@ export default {
 			try {
 				const response = await axios.get(speechCapabilitiesUrl(this.chatAppId))
 				this.localSpeechAvailable = !!(response && response.data && response.data.available)
-			} catch (e) {
+			} catch {
 				this.localSpeechAvailable = false
 			}
 		},
@@ -878,7 +880,7 @@ export default {
 					this.resumeConversationIfActive()
 				}
 				await this.localSpeechAudio.play()
-			} catch (e) {
+			} catch {
 				// Speaking is a convenience; a failure must not disturb the chat
 				// — but a conversation waiting on it must not stall either.
 				this.resumeConversationIfActive()
@@ -940,7 +942,7 @@ export default {
 					: 'en-US'
 				utterance.onend = () => this.resumeConversationIfActive()
 				window.speechSynthesis.speak(utterance)
-			} catch (e) {
+			} catch {
 				// Speaking is a convenience; a failure must not disturb the chat
 				// — but a conversation waiting on it must not stall either.
 				this.resumeConversationIfActive()
@@ -959,7 +961,7 @@ export default {
 			if (this.localSpeechAudio !== null) {
 				try {
 					this.localSpeechAudio.pause()
-				} catch (e) {
+				} catch {
 					// Already stopped.
 				}
 				this.localSpeechAudio = null
@@ -969,7 +971,7 @@ export default {
 			}
 			try {
 				window.speechSynthesis.cancel()
-			} catch (e) {
+			} catch {
 				// Nothing to cancel.
 			}
 		},
@@ -1012,7 +1014,7 @@ export default {
 						[],
 					)
 				}
-			} catch (e) {
+			} catch {
 				// Leave the card in place: a decision that did not record must not
 				// look as though it did.
 				this.resolvingApprovalId = ''
@@ -1025,10 +1027,30 @@ export default {
 		onClose() {
 			this.stopSpeaking()
 			this.$emit('close')
+			this.returnFocusToLauncher()
+		},
+
+		/**
+		 * Put focus back on the launcher the panel was opened from (WCAG 2.2
+		 * SC 2.4.3 Focus Order). The panel is hidden rather than unmounted, so
+		 * without this the focused control disappears and focus falls to the
+		 * document body, stranding a keyboard user at the top of the page.
+		 *
+		 * `fabRef` may be a component instance or a plain element, so both
+		 * shapes are accepted.
+		 *
+		 * @return {void}
+		 */
+		returnFocusToLauncher() {
+			const el = this.fabRef?.$el ?? this.fabRef
+			if (el && typeof el.focus === 'function') {
+				el.focus()
+			}
 		},
 
 		/**
 		 * A conversation's menu label, trimmed to keep the menu one line per row.
+		 *
 		 * @param {{title: string, uuid: string}} conversation The conversation.
 		 * @return {string} Display label.
 		 */
@@ -1044,6 +1066,7 @@ export default {
 		 * Re-emit CnAiInput's `{ text, attachments }` payload up to
 		 * CnAiCompanion, which owns the stream composable, adding the
 		 * currently-selected agent uuid (this panel's own picker state).
+		 *
 		 * @param {{text: string, attachments: Array<{path: string, name: string}>}} payload CnAiInput's send payload.
 		 */
 		onSend({ text, attachments }) {
@@ -1073,6 +1096,7 @@ export default {
 		 * Keep the panel's own conversation list (feeding both the sessions menu
 		 * and the history view) in sync after an inline rename/describe save,
 		 * without a full refetch.
+		 *
 		 * @param {{uuid: string, title: string, description: string}} payload Renamed fields.
 		 */
 		onConversationRenamed({ uuid, title, description }) {
@@ -1089,6 +1113,7 @@ export default {
 		 * AgentsController::index()/serializeAgent()). Degrades gracefully on
 		 * failure: the menu shows an inline notice but the rest of the window
 		 * (history, message input) stays usable.
+		 *
 		 * @returns {Promise<void>}
 		 */
 		async fetchAgents() {
@@ -1114,6 +1139,7 @@ export default {
 		 * Fetch the caller's conversations once, feeding both the sessions menu's
 		 * recent entries (top 5) and the history view's full searchable list — a
 		 * single fetch keeps both surfaces consistent.
+		 *
 		 * @returns {Promise<void>}
 		 */
 		async fetchConversations() {

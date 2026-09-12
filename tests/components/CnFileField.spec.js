@@ -13,7 +13,7 @@
 
 import { mount } from '@vue/test-utils'
 import CnFileField from '@/components/CnFileField/CnFileField.vue'
-import { readFileAsDataUrl, FALLBACK_MAX_BYTES } from '@/utils/widgetUpload.js'
+import { FALLBACK_MAX_BYTES, readFileAsDataUrl } from '@/utils/widgetUpload.js'
 
 /**
  * Wait until the component has finished with the picked file.

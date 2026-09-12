@@ -8,9 +8,9 @@
  */
 
 import { spawnSync } from 'child_process'
-import path from 'path'
 import fs from 'fs'
 import os from 'os'
+import path from 'path'
 
 const CLI = path.resolve(__dirname, '../../src/cli/manifest-migrate.js')
 const V1_MANIFEST = path.resolve(__dirname, '../fixtures/v1-manifests/decidesk-v1.json')
@@ -133,9 +133,12 @@ describe('manifest-migrate CLI — exit codes and error handling', () => {
 			const tmpReport = path.join(os.tmpdir(), 'v2-report.md')
 			try {
 				const { status } = runCli([
-					'--input', V1_MANIFEST,
-					'--output', tmpOutput,
-					'--report', tmpReport,
+					'--input',
+					V1_MANIFEST,
+					'--output',
+					tmpOutput,
+					'--report',
+					tmpReport,
 				])
 				expect(status).toBe(0)
 				expect(fs.existsSync(tmpReport)).toBe(true)
@@ -143,8 +146,12 @@ describe('manifest-migrate CLI — exit codes and error handling', () => {
 				expect(report).toContain('# Migration Report')
 				expect(report).toContain('## Summary')
 			} finally {
-				if (fs.existsSync(tmpOutput)) fs.unlinkSync(tmpOutput)
-				if (fs.existsSync(tmpReport)) fs.unlinkSync(tmpReport)
+				if (fs.existsSync(tmpOutput)) {
+					fs.unlinkSync(tmpOutput)
+				}
+				if (fs.existsSync(tmpReport)) {
+					fs.unlinkSync(tmpReport)
+				}
 			}
 		})
 	})

@@ -121,10 +121,10 @@
 
 						<!-- Personal: only toggle THIS app in/out of the credential. -->
 						<div v-if="scope === 'personal'" class="cn-credentials__item-toggle">
-							<NcCheckboxRadioSwitch :model-value="appAllowed(cred)"
+							<NcCheckboxRadioSwitch :modelValue="appAllowed(cred)"
 								:disabled="cred.saving"
 								type="switch"
-								@update:model-value="toggleThisApp(cred, $event)">
+								@update:modelValue="toggleThisApp(cred, $event)">
 								{{ t('nextcloud-vue', '{app} may use this credential', { app: appDisplayName }) }}
 							</NcCheckboxRadioSwitch>
 							<p v-if="otherApps(cred).length" class="cn-credentials__also muted">
@@ -136,14 +136,14 @@
 						<NcSelect v-else
 							class="cn-credentials__item-apps"
 							:options="appOptions"
-							:model-value="cred.allowedApps"
+							:modelValue="cred.allowedApps"
 							:multiple="true"
 							:taggable="true"
-							:close-on-select="false"
+							keepOpen
 							:disabled="cred.saving"
-							:input-label="t('nextcloud-vue', 'Allowed apps')"
+							:inputLabel="t('nextcloud-vue', 'Allowed apps')"
 							:placeholder="t('nextcloud-vue', 'No app may use this credential yet')"
-							@update:model-value="onAllowedAppsChange(cred, $event)" />
+							@update:modelValue="onAllowedAppsChange(cred, $event)" />
 					</li>
 				</ul>
 			</section>
@@ -209,14 +209,14 @@
 						<form class="cn-credentials__form" @submit.prevent="onCreate">
 							<NcTextField v-model="form.name"
 								:label="t('nextcloud-vue', 'Name')"
-								:helper-text="t('nextcloud-vue', 'A label to recognise this credential later.')"
+								:helperText="t('nextcloud-vue', 'A label to recognise this credential later.')"
 								:disabled="saving"
 								required />
 
 							<NcTextField v-model="form.secret"
 								type="password"
 								:label="activeMeta.secretLabel || t('nextcloud-vue', 'Secret')"
-								:helper-text="t('nextcloud-vue', 'Sent to OpenRegister and stored in Keepiq. It is never shown again.')"
+								:helperText="t('nextcloud-vue', 'Sent to OpenRegister and stored in Keepiq. It is never shown again.')"
 								:disabled="saving"
 								autocomplete="new-password"
 								required />
@@ -224,14 +224,14 @@
 							<!-- Organisation add: admin also chooses the allowed apps up-front. -->
 							<NcSelect v-if="scope === 'organisation'"
 								:options="appOptions"
-								:model-value="form.allowedApps"
+								:modelValue="form.allowedApps"
 								:multiple="true"
 								:taggable="true"
-								:close-on-select="false"
+								keepOpen
 								:disabled="saving"
-								:input-label="t('nextcloud-vue', 'Allowed apps')"
+								:inputLabel="t('nextcloud-vue', 'Allowed apps')"
 								:placeholder="t('nextcloud-vue', 'Choose which apps may use it')"
-								@update:model-value="form.allowedApps = normaliseApps($event)" />
+								@update:modelValue="form.allowedApps = normaliseApps($event)" />
 							<p v-else class="cn-credentials__muted cn-credentials__addnote">
 								{{ t('nextcloud-vue', '{app} will be allowed to use this credential. You can change that afterwards.', { app: appDisplayName }) }}
 							</p>
@@ -255,12 +255,12 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
-import axios from '@nextcloud/axios'
 
 const CREDENTIALS_PATH = '/apps/openregister/api/credentials'
 const PROVIDERS_PATH = '/apps/openregister/api/credentials/providers'
@@ -320,6 +320,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * A friendly app name for copy ("{app} may use this credential"). Falls
 		 * back to the appId.
@@ -330,6 +331,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * The current app's manifest `credentials[]` declarations — the
 		 * providers this app can reach through the broker. Shape:
@@ -341,6 +343,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Which credential set to manage: `"personal"` (the signed-in user's
 		 * own; app-scoped toggle only) or `"organisation"` (org-wide; full
@@ -353,6 +356,7 @@ export default {
 			default: 'personal',
 			validator: (v) => ['personal', 'organisation'].includes(v),
 		},
+
 		/**
 		 * Optional link target explaining the Keepiq vault. Defaults to the
 		 * Keepiq app route; pass '' to hide the link.
@@ -392,6 +396,7 @@ export default {
 		appDisplayName() {
 			return this.appName || this.appId || t('nextcloud-vue', 'This app')
 		},
+
 		/**
 		 * Reframed intro copy per scope.
 		 *
@@ -403,6 +408,7 @@ export default {
 			}
 			return t('nextcloud-vue', 'Apps sometimes need to act on your behalf against an external service. So they never hold your secrets, you give a secret to Nextcloud once and it is kept in Keepiq — a native, encrypted credential vault. Apps then make the call through Keepiq and never see the secret. You decide which apps may use each credential — share one across apps, or keep one per app.')
 		},
+
 		/**
 		 * Resolved Keepiq link (explicit prop, or the app route by default).
 		 *
@@ -414,6 +420,7 @@ export default {
 			}
 			return this.vaultUrl || generateUrl('/apps/doriath')
 		},
+
 		/**
 		 * The provider tiles offered in the add-wizard grid: what the server
 		 * actually offers when known (so we never offer a provider the broker
@@ -432,6 +439,7 @@ export default {
 			}
 			return ids.map((id) => ({ identifier: id, title: this.providerTitle(id) }))
 		},
+
 		/**
 		 * Provider identifiers the app declares it uses, derived from
 		 * `appCredentials`. Empty when the app declares nothing — filtering is
@@ -444,6 +452,7 @@ export default {
 				.map((r) => r && r.provider)
 				.filter(Boolean))
 		},
+
 		/**
 		 * Stored credentials to display — filtered to the app's supported
 		 * providers when it declares any, so you can only see and authorise
@@ -457,6 +466,7 @@ export default {
 			}
 			return this.credentials.filter((c) => this.supportedProviders.has(c.provider))
 		},
+
 		/**
 		 * The union of app ids the organisation allowed-apps picker offers.
 		 *
@@ -476,6 +486,7 @@ export default {
 			}
 			return Array.from(ids)
 		},
+
 		/**
 		 * Presentation metadata for the provider currently being added.
 		 *
@@ -484,6 +495,7 @@ export default {
 		activeMeta() {
 			return PROVIDER_META[this.form.provider] || {}
 		},
+
 		/**
 		 * Whether the add form can be submitted — name, provider and a secret
 		 * are required (the whole point is to store a secret).
@@ -521,7 +533,7 @@ export default {
 				])
 				this.credentials = this.mapCredentials(credsRes?.data?.results)
 				this.providers = Array.isArray(provRes?.data?.results) ? provRes.data.results : []
-			} catch (e) {
+			} catch {
 				this.error = true
 				this.credentials = []
 				this.providers = []
@@ -608,7 +620,7 @@ export default {
 				await axios.post(generateUrl(CREDENTIALS_PATH), body)
 				this.cancelAdd()
 				await this.load()
-			} catch (e) {
+			} catch {
 				this.showError(t('nextcloud-vue', 'Could not save the credential'))
 			} finally {
 				this.saving = false
@@ -626,7 +638,7 @@ export default {
 			try {
 				await axios.delete(generateUrl(`${CREDENTIALS_PATH}/${encodeURIComponent(cred.id)}`))
 				await this.load()
-			} catch (e) {
+			} catch {
 				this.showError(t('nextcloud-vue', 'Could not delete the credential'))
 				cred.saving = false
 				cred.confirmingDelete = false
@@ -677,7 +689,7 @@ export default {
 			cred.saving = true
 			try {
 				await axios.put(generateUrl(`${CREDENTIALS_PATH}/${encodeURIComponent(cred.id)}`), { allowedApps: next })
-			} catch (e) {
+			} catch {
 				cred.allowedApps = previous
 				this.showError(t('nextcloud-vue', 'Could not update the credential'))
 			} finally {
@@ -700,7 +712,7 @@ export default {
 			cred.saving = true
 			try {
 				await axios.put(generateUrl(`${CREDENTIALS_PATH}/${encodeURIComponent(cred.id)}`), { allowedApps: next })
-			} catch (e) {
+			} catch {
 				cred.allowedApps = previous
 				this.showError(t('nextcloud-vue', 'Could not update allowed apps'))
 			} finally {

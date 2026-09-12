@@ -10,9 +10,8 @@
 
 import { runConvergence } from '../../src/cli/convergence.js'
 import { validateManifestV2 } from '../../src/utils/validateManifest.js'
-
-import zaaMixed from '../fixtures/dialect-manifests/zaakafhandelapp-mixed.json'
 import petMixed from '../fixtures/dialect-manifests/petstore-mixed.json'
+import zaaMixed from '../fixtures/dialect-manifests/zaakafhandelapp-mixed.json'
 
 /**
  * Assert a converged manifest carries exactly one widget dialect: no page has a
@@ -39,7 +38,9 @@ describe('runConvergence — fleet mixed-dialect regression', () => {
 			it('produces a manifest that still validates against the v2 schema', () => {
 				const { transformed } = runConvergence(manifest)
 				const result = validateManifestV2(transformed)
-				if (!result.valid) console.error(`${name} errors:`, result.errors.slice(0, 10))
+				if (!result.valid) {
+					console.error(`${name} errors:`, result.errors.slice(0, 10))
+				}
 				expect(result.valid).toBe(true)
 			})
 

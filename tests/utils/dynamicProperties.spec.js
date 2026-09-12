@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import {
-	DYNAMIC_KEY_PREFIX,
 	definitionIdFromKey,
 	definitionQueryParams,
+	DYNAMIC_KEY_PREFIX,
 	extendsFormDeclarations,
 	isDynamicKey,
 	prefillDeclarations,

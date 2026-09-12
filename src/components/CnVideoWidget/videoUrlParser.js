@@ -60,7 +60,7 @@ function safeParseUrl(input) {
 	const trimmed = input.trim()
 	try {
 		return new URL(trimmed, 'https://__local__/')
-	} catch (e) {
+	} catch {
 		return null
 	}
 }

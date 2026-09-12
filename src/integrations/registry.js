@@ -21,6 +21,14 @@
  * @module integrations/registry
  */
 
+/*
+ * `process.env.NODE_ENV` is not a runtime global in the browser: every
+ * consuming app's bundler substitutes it at build time (webpack's
+ * DefinePlugin, rollup's replace). Declared here so the reference is
+ * described rather than assumed.
+ */
+/* global process */
+
 const DEV = process.env.NODE_ENV !== 'production'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -80,7 +88,7 @@ export function createIntegrationRegistry() {
 	 * @param {?string} [entry.docsUrl] Setup-docs URL for the empty state; defaults to `https://openregister.conduction.nl/docs/Integrations/{id}/`.
 	 * @param {?object} [entry.offlineConfig] Opaque per-integration config bag forwarded verbatim to the integration's components (e.g. the field-inspection leaf's offline schema/filter config). A consuming app overrides it by pre-registering the same id.
 	 * @param {'component'|'mount'} [entry.renderMode] Render strategy (openregister#2127 / ADR-066). `'component'` (default) interprets the SFC `tab`/`widget` under the host's own Vue runtime. `'mount'` hands the leaf a bare host-owned DOM element via `mount`/`unmount`, so a leaf built against a different Vue major than the host renders its own framework instance inside that element.
-	 * @param {(el: Element, props: object) => any} [entry.mount] Mount hand-off. Required together with `unmount` when `renderMode` is `'mount'`; the host calls it against a bare element with the same context an SFC widget/tab receives (`{ register, schema, objectId, surface, integrationContext, … }`). May also be supplied alongside an SFC pair as a same-major fast path.
+	 * @param {(el: Element, props: object) => void} [entry.mount] Mount hand-off. Required together with `unmount` when `renderMode` is `'mount'`; the host calls it against a bare element with the same context an SFC widget/tab receives (`{ register, schema, objectId, surface, integrationContext, … }`). May also be supplied alongside an SFC pair as a same-major fast path.
 	 * @param {(el: Element) => void} [entry.unmount] Teardown hand-off, called by the host before it removes the element and on surface hide / bound-object change. Travels as a pair with `mount`.
 	 *
 	 * @return {?object} Normalised entry, or null on collision / malformed mount pair in prod.
@@ -384,8 +392,7 @@ export function installIntegrationRegistry(globalRef) {
 	if (prior !== undefined
 		&& prior !== integrations
 		&& typeof prior.register === 'function'
-		&& prior._queue === undefined
-	) {
+		&& prior._queue === undefined) {
 		return prior
 	}
 

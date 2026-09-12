@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<draggable v-model="tree"
+	<Draggable v-model="tree"
 		tag="ul"
 		class="cn-menu-tree"
 		:group="group"
@@ -14,12 +14,12 @@
 		<li v-for="node in tree" :key="keyOf(node)" class="cn-menu-tree__node">
 			<CnMenuTreeRow :item="node.ref"
 				:pages="pages"
-				:can-add-child="maxDepth > 0"
-				@add-child="addChild(node)"
+				:canAddChild="maxDepth > 0"
+				@addChild="addChild(node)"
 				@remove="removeNode(node, null)" />
 
 			<!-- One level of children: a drop target on every top item. -->
-			<draggable v-if="maxDepth > 0"
+			<Draggable v-if="maxDepth > 0"
 				v-model="node.children"
 				tag="ul"
 				class="cn-menu-tree__children"
@@ -31,17 +31,17 @@
 				<li v-for="child in node.children" :key="keyOf(child)" class="cn-menu-tree__node">
 					<CnMenuTreeRow :item="child.ref"
 						:pages="pages"
-						:can-add-child="false"
+						:canAddChild="false"
 						@remove="removeNode(child, node)" />
 				</li>
-			</draggable>
+			</Draggable>
 		</li>
-	</draggable>
+	</Draggable>
 </template>
 
 <script>
-import draggable from 'vuedraggable'
 import { translate as t } from '@nextcloud/l10n'
+import draggable from 'vuedraggable'
 import CnMenuTreeRow from './CnMenuTreeRow.vue'
 
 /**
@@ -65,7 +65,7 @@ import CnMenuTreeRow from './CnMenuTreeRow.vue'
 export default {
 	name: 'CnMenuTreeNode',
 
-	components: { draggable, CnMenuTreeRow },
+	components: { Draggable: draggable, CnMenuTreeRow },
 
 	props: {
 		/**
@@ -78,11 +78,13 @@ export default {
 			type: Array,
 			required: true,
 		},
+
 		/** Maximum nesting depth that may gain children (CnAppNav supports one level). */
 		maxDepth: {
 			type: Number,
 			default: 1,
 		},
+
 		/**
 		 * Selectable target pages as `{ value: routeName, label }` options,
 		 * forwarded to every row's Page picker.
@@ -93,6 +95,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Which nav section this editor scopes to at the top level. An editor
 		 * shows — and on flatten rewrites — ONLY entries whose section matches
@@ -123,11 +126,15 @@ export default {
 	watch: {
 		list: {
 			handler() {
-				if (this.suppressRebuild) return
+				if (this.suppressRebuild) {
+					return
+				}
 				this.tree = this.buildTree()
 			},
+
 			deep: false,
 		},
+
 		section() {
 			this.tree = this.buildTree()
 		},
@@ -137,6 +144,7 @@ export default {
 		t,
 		/**
 		 * Stable-ish v-for key for a node.
+		 *
 		 * @param {object} node The tree node.
 		 * @return {string}
 		 */
@@ -176,8 +184,9 @@ export default {
 
 		/**
 		 * Order comparator: numeric `order` ascending, array index as tiebreak.
+		 *
 		 * @param {Array} arr The array being sorted (for index tiebreak).
-		 * @return {Function}
+		 * @return {(a: object, b: object) => number} The comparator.
 		 */
 		byOrder(arr) {
 			return (a, b) => {
@@ -189,6 +198,7 @@ export default {
 
 		/**
 		 * Build the nested mirror from `list`, scoped to this section and ordered.
+		 *
 		 * @return {Array<{ref: object, children: Array}>}
 		 */
 		buildTree() {
@@ -208,6 +218,7 @@ export default {
 		 * Flatten the mirror back onto `list` in place: renumber `order`, set/clear
 		 * the top-level `section` marker, rebuild each item's `children[]`, and
 		 * preserve the other section's items.
+		 *
 		 * @return {void}
 		 */
 		flatten() {
@@ -216,8 +227,11 @@ export default {
 			const mine = this.tree.map((node, i) => {
 				const ref = node.ref
 				ref.order = (i + 1) * 10
-				if (want === 'main') delete ref.section
-				else ref.section = want
+				if (want === 'main') {
+					delete ref.section
+				} else {
+					ref.section = want
+				}
 				if (node.children.length) {
 					ref.children = node.children.map((cn, j) => {
 						cn.ref.order = (j + 1) * 10
@@ -235,12 +249,15 @@ export default {
 			// mutated by reference so diffManifest captures the reorder/nesting.
 			// eslint-disable-next-line vue/no-mutating-props
 			this.list.splice(0, this.list.length, ...next)
-			this.$nextTick(() => { this.suppressRebuild = false })
+			this.$nextTick(() => {
+				this.suppressRebuild = false
+			})
 		},
 
 		/**
 		 * vuedraggable guard: forbid dropping a node that HAS children into a
 		 * child list (would nest two levels deep).
+		 *
 		 * @param {object} evt The vuedraggable move event.
 		 * @return {boolean} False to veto.
 		 */
@@ -256,19 +273,28 @@ export default {
 
 		/**
 		 * Generate a unique `menu-N` id not already used at any level of `list`.
+		 *
 		 * @return {string}
 		 */
 		nextId() {
 			const ids = new Set()
-			const walk = (arr) => (arr || []).forEach((it) => { if (it) { ids.add(it.id); walk(it.children) } })
+			const walk = (arr) => (arr || []).forEach((it) => {
+				if (it) {
+					ids.add(it.id)
+					walk(it.children)
+				}
+			})
 			walk(this.list)
 			let n = ids.size + 1
-			while (ids.has(`menu-${n}`)) n++
+			while (ids.has(`menu-${n}`)) {
+				n++
+			}
 			return `menu-${n}`
 		},
 
 		/**
 		 * Append a blank child under a top node.
+		 *
 		 * @param {object} node The parent tree node.
 		 * @return {void}
 		 */
@@ -280,6 +306,7 @@ export default {
 
 		/**
 		 * Remove a node. A removed top node's children are lifted to top level.
+		 *
 		 * @param {object} node The node to remove.
 		 * @param {object|null} parent The parent node, or null for a top node.
 		 * @return {void}
@@ -287,10 +314,14 @@ export default {
 		removeNode(node, parent) {
 			if (parent) {
 				const i = parent.children.indexOf(node)
-				if (i !== -1) parent.children.splice(i, 1)
+				if (i !== -1) {
+					parent.children.splice(i, 1)
+				}
 			} else {
 				const i = this.tree.indexOf(node)
-				if (i !== -1) this.tree.splice(i, 1, ...node.children)
+				if (i !== -1) {
+					this.tree.splice(i, 1, ...node.children)
+				}
 			}
 			this.flatten()
 		},

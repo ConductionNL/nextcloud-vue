@@ -34,7 +34,7 @@
 	<NcDialog v-if="isOpen"
 		:name="paletteLabel"
 		size="normal"
-		:close-on-click-outside="true"
+		:closeOnClickOutside="true"
 		class="cn-command-palette-dialog"
 		data-testid="cn-command-palette-dialog"
 		@closing="close">
@@ -102,12 +102,12 @@
 </template>
 
 <script>
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcDialog } from '@nextcloud/vue'
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
 import CnIcon from '../CnIcon/CnIcon.vue'
-import { useCommandPalette } from '../../composables/useCommandPalette.js'
-import { rankCommandPaletteItems, groupRankedResultsBySection } from '../../utils/commandPaletteRanking.js'
 import { createRecencyTracker } from '../../commandPalette/recency.js'
+import { useCommandPalette } from '../../composables/useCommandPalette.js'
+import { groupRankedResultsBySection, rankCommandPaletteItems } from '../../utils/commandPaletteRanking.js'
 
 let domIdCounter = 0
 
@@ -143,7 +143,7 @@ export default {
 		 * `createObjectSearchSource` (`src/utils/commandPaletteObjectSource.js`)
 		 * produces. Omit to run without live object search.
 		 *
-		 * @type {Function|null}
+		 * @type {((query: string) => Promise<object[]>)|null}
 		 */
 		objectSearch: { type: Function, default: null },
 		/**
@@ -211,6 +211,7 @@ export default {
 		 */
 		commandRegistry: { type: Object, default: null },
 	},
+
 	emits: ['select'],
 	data() {
 		return {
@@ -225,6 +226,7 @@ export default {
 			destroyed: false,
 		}
 	},
+
 	computed: {
 		/**
 		 * The palette API for this instance's registry (default shared
@@ -235,54 +237,63 @@ export default {
 		cp() {
 			return useCommandPalette(this.commandRegistry)
 		},
+
 		/**
 		 * @return {boolean} Whether the palette is currently open (mirrors the shared `cp.state.isOpen`).
 		 */
 		isOpen() {
 			return this.cp.state.isOpen
 		},
+
 		/**
 		 * @return {object|null} The recency tracker for `appId`, or `null` when the boost is disabled (no `appId`).
 		 */
 		recency() {
 			return this.appId ? createRecencyTracker(this.appId) : null
 		},
+
 		/**
 		 * @return {string} The resolved `label` prop.
 		 */
 		paletteLabel() {
 			return this.label
 		},
+
 		/**
 		 * @return {string} The resolved `placeholder` prop.
 		 */
 		placeholderLabel() {
 			return this.placeholder
 		},
+
 		/**
 		 * @return {string} Empty-results state text.
 		 */
 		emptyLabel() {
 			return t('nextcloud-vue', 'No results found.')
 		},
+
 		/**
 		 * @return {string} Fallback section heading for results without an explicit `section`.
 		 */
 		defaultSectionLabel() {
 			return t('nextcloud-vue', 'Results')
 		},
+
 		/**
 		 * @return {string} DOM id of the `role="listbox"` element, targeted by the input's `aria-controls`.
 		 */
 		listboxDomId() {
 			return `${this.domId}-listbox`
 		},
+
 		/**
 		 * @return {string} DOM id of the `aria-live="polite"` result-count status region.
 		 */
 		statusDomId() {
 			return `${this.domId}-status`
 		},
+
 		/**
 		 * Flattened navigation commands built from `manifest.menu`
 		 * (recursing one level into `children`, per the manifest's own
@@ -297,7 +308,9 @@ export default {
 			const flat = []
 			const visit = (entries) => {
 				for (const entry of entries) {
-					if (!entry || entry.type === 'caption') continue
+					if (!entry || entry.type === 'caption') {
+						continue
+					}
 					if (entry.route || entry.href) {
 						flat.push({
 							id: `nav:${entry.id}`,
@@ -316,18 +329,21 @@ export default {
 			visit(menu)
 			return flat
 		},
+
 		/**
 		 * @return {Array<object>} Registered action commands (from `useCommandPalette().register(...)`).
 		 */
 		commandItems() {
 			return this.cp.commands.items
 		},
+
 		/**
 		 * @return {Record<string, number>|null} The recency/frequency usage-count map, or `null` when the boost is disabled (no `appId`).
 		 */
 		usageCounts() {
 			return this.recency ? this.recency.getUsageCounts() : null
 		},
+
 		/**
 		 * Ranked + merged results: navigation and actions are ranked
 		 * strictly (a non-matching entry is dropped); objects are ranked
@@ -351,24 +367,28 @@ export default {
 			}
 			return [...rankedStatic, ...rankedObjects].sort((a, b) => b.score - a.score)
 		},
+
 		/**
 		 * @return {Array<{section: ?string, entries: Array<object>}>}
 		 */
 		groupedResults() {
 			return groupRankedResultsBySection(this.rankedResults)
 		},
+
 		/**
 		 * @return {Array<{item: object, tier: number, score: number}>} The ranked results as a flat list (grouping-order-preserving), used for keyboard Up/Down/Enter and the empty-state check.
 		 */
 		flatResults() {
 			return this.groupedResults.flatMap((g) => g.entries)
 		},
+
 		/**
 		 * @return {string|null} DOM id of the currently active `<li role="option">`, or `null` when nothing is active.
 		 */
 		activeOptionDomId() {
 			return this.activeId ? this.optionDomId(this.activeId) : null
 		},
+
 		/**
 		 * @return {string} `aria-live="polite"` announcement of the current result count — screen-reader users get an audible count on every keystroke without the whole listbox being re-announced.
 		 */
@@ -377,6 +397,7 @@ export default {
 			return n('nextcloud-vue', '{count} result', '{count} results', count, { count })
 		},
 	},
+
 	watch: {
 		isOpen(next) {
 			if (next) {
@@ -385,9 +406,11 @@ export default {
 				this.onClose()
 			}
 		},
+
 		query() {
 			this.scheduleObjectSearch()
 		},
+
 		flatResults(next) {
 			// Keep the active option valid as the result set changes shape
 			// (e.g. object results arriving after navigation/actions
@@ -402,16 +425,19 @@ export default {
 			}
 		},
 	},
+
 	mounted() {
 		if (!this.disableShortcut) {
 			document.addEventListener('keydown', this.onGlobalKeydown)
 		}
 	},
+
 	beforeUnmount() {
 		document.removeEventListener('keydown', this.onGlobalKeydown)
 		this.clearDebounce()
 		this.destroyed = true
 	},
+
 	methods: {
 		/**
 		 * @param {KeyboardEvent} event The document-level keydown event.
@@ -419,11 +445,16 @@ export default {
 		 */
 		onGlobalKeydown(event) {
 			const key = typeof event.key === 'string' ? event.key.toLowerCase() : ''
-			if (key !== this.shortcut.toLowerCase()) return
-			if (!(event.metaKey || event.ctrlKey) || event.altKey) return
+			if (key !== this.shortcut.toLowerCase()) {
+				return
+			}
+			if (!(event.metaKey || event.ctrlKey) || event.altKey) {
+				return
+			}
 			event.preventDefault()
 			this.cp.toggle()
 		},
+
 		/**
 		 * Keydown handler scoped to the palette's own input/listbox —
 		 * handles the WAI-ARIA combobox interaction model (focus stays on
@@ -450,30 +481,40 @@ export default {
 			}
 			if (event.key === 'Home') {
 				event.preventDefault()
-				if (this.flatResults.length > 0) this.activeId = this.flatResults[0].item.id
+				if (this.flatResults.length > 0) {
+					this.activeId = this.flatResults[0].item.id
+				}
 				return
 			}
 			if (event.key === 'End') {
 				event.preventDefault()
-				if (this.flatResults.length > 0) this.activeId = this.flatResults[this.flatResults.length - 1].item.id
+				if (this.flatResults.length > 0) {
+					this.activeId = this.flatResults[this.flatResults.length - 1].item.id
+				}
 				return
 			}
 			if (event.key === 'Enter') {
 				event.preventDefault()
 				const active = this.flatResults.find((entry) => entry.item.id === this.activeId)
-				if (active) this.activateItem(active.item)
+				if (active) {
+					this.activateItem(active.item)
+				}
 			}
 		},
+
 		/**
 		 * @param {number} delta `1` for the next option, `-1` for the previous. Clamped (does not wrap).
 		 * @return {void}
 		 */
 		moveActive(delta) {
-			if (this.flatResults.length === 0) return
+			if (this.flatResults.length === 0) {
+				return
+			}
 			const currentIndex = this.flatResults.findIndex((entry) => entry.item.id === this.activeId)
 			const nextIndex = Math.min(Math.max(currentIndex + delta, 0), this.flatResults.length - 1)
 			this.activeId = this.flatResults[nextIndex].item.id
 		},
+
 		/**
 		 * Activate a result: record it for the recency boost, close the
 		 * palette (which restores focus), THEN run it on `nextTick` — so
@@ -485,16 +526,21 @@ export default {
 		 * @return {void}
 		 */
 		activateItem(item) {
-			if (!item || typeof item.run !== 'function') return
+			if (!item || typeof item.run !== 'function') {
+				return
+			}
 			/**
 			 * @event select Emitted just before a result's `run()` fires.
 			 * @type {object}
 			 */
 			this.$emit('select', item)
-			if (this.recency) this.recency.recordUse(item.id)
+			if (this.recency) {
+				this.recency.recordUse(item.id)
+			}
 			this.close()
 			this.$nextTick(() => item.run())
 		},
+
 		/**
 		 * @param {object} entry A navigation-source `manifest.menu` entry.
 		 * @return {void}
@@ -509,6 +555,7 @@ export default {
 				router.push(entry.query ? { name: entry.route, query: entry.query } : { name: entry.route })
 			}
 		},
+
 		/**
 		 * @return {void}
 		 */
@@ -518,9 +565,12 @@ export default {
 			this.objectResults = []
 			this.activeId = this.flatResults.length > 0 ? this.flatResults[0].item.id : null
 			this.$nextTick(() => {
-				if (this.$refs.input) this.$refs.input.focus()
+				if (this.$refs.input) {
+					this.$refs.input.focus()
+				}
 			})
 		},
+
 		/**
 		 * @return {void}
 		 */
@@ -532,6 +582,7 @@ export default {
 				target.focus()
 			}
 		},
+
 		/**
 		 * NcDialog's `@closing` (backdrop click / its own Escape handling)
 		 * and the palette's own Escape/toggle path both funnel through
@@ -542,6 +593,7 @@ export default {
 		close() {
 			this.cp.close()
 		},
+
 		/**
 		 * @return {void}
 		 */
@@ -551,12 +603,15 @@ export default {
 				this.debounceTimer = null
 			}
 		},
+
 		/**
 		 * @return {void}
 		 */
 		scheduleObjectSearch() {
 			this.clearDebounce()
-			if (!this.objectSearch) return
+			if (!this.objectSearch) {
+				return
+			}
 			if (this.query.trim() === '') {
 				this.objectResults = []
 				this.objectLoading = false
@@ -564,6 +619,7 @@ export default {
 			}
 			this.debounceTimer = setTimeout(() => this.runObjectSearch(), this.objectSearchDebounce)
 		},
+
 		/**
 		 * @return {Promise<void>}
 		 */
@@ -571,7 +627,7 @@ export default {
 			const token = ++this.objectSearchToken
 			const query = this.query
 			this.objectLoading = true
-			let results = []
+			let results
 			try {
 				results = await this.objectSearch(query)
 			} catch (e) {
@@ -587,6 +643,7 @@ export default {
 			this.objectResults = Array.isArray(results) ? results : []
 			this.objectLoading = false
 		},
+
 		/**
 		 * @param {string} id A result's item id.
 		 * @return {string} The DOM id used for its `<li role="option">` + `aria-activedescendant` target.

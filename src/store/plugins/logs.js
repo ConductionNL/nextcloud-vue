@@ -1,7 +1,7 @@
-import { buildQueryString } from '../../utils/headers.js'
 // `buildHeaders` is reached via `this._buildHeaders()` so logs fetches
 // inherit the active tenant UUID (multi-tenancy-context).
-import { parseResponseError, networkError, genericError } from '../../utils/errors.js'
+import { genericError, networkError, parseResponseError } from '../../utils/errors.js'
+import { buildQueryString } from '../../utils/headers.js'
 
 /**
  * Logs sub-resource plugin for createCrudStore.
@@ -86,7 +86,7 @@ export function logsPlugin(options = {}) {
 
 			try {
 				const params = { ...defaultSort }
-				if (!(parentIdParam in filters) && this.item?.id != null) {
+				if (!(parentIdParam in filters) && this.item?.id !== null && this.item?.id !== undefined) {
 					params[parentIdParam] = String(this.item.id)
 				}
 				Object.assign(params, filters)
@@ -156,10 +156,13 @@ export function logsPlugin(options = {}) {
 	if (autoRefreshOnItemChange) {
 		plugin.setup = function setup(store) {
 			store.$onAction(({ name, after }) => {
-				if (name !== 'setItem') return
+				if (name !== 'setItem') {
+					return
+				}
 				after(() => {
-					if (store.item?.id != null) {
+					if (store.item?.id !== null && store.item?.id !== undefined) {
 						store.refreshLogs().catch((error) => {
+							// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 							console.error('logsPlugin: auto-refresh failed:', error)
 						})
 					} else {

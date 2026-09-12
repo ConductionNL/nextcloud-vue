@@ -6,9 +6,9 @@
 <template>
 	<NcActions
 		:aria-label="menuLabel"
-		:force-menu="true"
+		:forceMenu="true"
 		placement="bottom-end"
-		type="tertiary"
+		variant="tertiary"
 		class="cn-widget-edit-cog"
 		data-testid="cn-widget-edit-cog"
 		@click.stop>
@@ -16,7 +16,7 @@
 			<Cog :size="20" />
 		</template>
 		<NcActionButton
-			:close-after-click="true"
+			:closeAfterClick="true"
 			data-testid="cn-widget-edit-cog-edit"
 			@click="onEdit">
 			<template #icon>
@@ -25,7 +25,7 @@
 			{{ editLabel }}
 		</NcActionButton>
 		<NcActionButton
-			:close-after-click="true"
+			:closeAfterClick="true"
 			data-testid="cn-widget-edit-cog-delete"
 			@click="onRemove">
 			<template #icon>
@@ -37,10 +37,10 @@
 </template>
 
 <script>
-import { NcActions, NcActionButton } from '@nextcloud/vue'
+import { NcActionButton, NcActions } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
 
 /**
  * CnWidgetEditCog — the single per-widget edit affordance for editable
@@ -83,6 +83,7 @@ export default {
 			type: String,
 			default: 'Widget menu',
 		},
+
 		/**
 		 * Label for the Edit action item.
 		 *
@@ -92,6 +93,7 @@ export default {
 			type: String,
 			default: 'Edit widget',
 		},
+
 		/**
 		 * Label for the Delete action item.
 		 *

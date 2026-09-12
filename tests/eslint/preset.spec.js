@@ -19,11 +19,9 @@
  * @jest-environment node
  */
 
+const pluginVue = require('eslint-plugin-vue')
 const fs = require('fs')
 const path = require('path')
-
-const pluginVue = require('eslint-plugin-vue')
-
 const {
 	conductionVue3,
 	conductionVue3Fixes,
@@ -43,7 +41,6 @@ const FIXTURES = path.join(__dirname, '..', 'fixtures', 'eslint-preset')
  * @return {Function} The flat-config ESLint class.
  */
 function resolveFlatESLint() {
-	// eslint-disable-next-line n/no-missing-require
 	const risky = require('eslint/use-at-your-own-risk')
 	return risky.FlatESLint || require('eslint').ESLint
 }
@@ -475,7 +472,8 @@ describe('@conduction/nextcloud-vue/eslint — the preset enrols no file it cann
 	})
 
 	it.each(['Probe.ts', 'Probe.tsx', 'Probe.mts', 'Probe.cts'])(
-		'does NOT drag %s into the lint set either', async (name) => {
+		'does NOT drag %s into the lint set either',
+		async (name) => {
 			// The same glob enrolled four TypeScript extensions the preset ships
 			// no parser for. Measured before the fix: all four FATAL.
 			const FlatESLint = resolveFlatESLint()

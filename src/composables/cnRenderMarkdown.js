@@ -85,6 +85,7 @@ export function cnRenderMarkdown(text) {
 		// guard so a malformed input (e.g. a corrupted code-fence) can
 		// never blank the page. Empty string falls through to the
 		// CnWikiPage empty-state.
+		// eslint-disable-next-line no-console
 		console.warn('[cnRenderMarkdown] markdown parse/sanitise failed; returning empty string', e)
 		return ''
 	}

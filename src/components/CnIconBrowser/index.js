@@ -6,5 +6,5 @@
 import CnIconBrowser from './CnIconBrowser.vue'
 
 export { CnIconBrowser }
-export { mdiCatalogue, vmdiCatalogue, findIconByValue } from './iconCatalogue.js'
+export { findIconByValue, mdiCatalogue, vmdiCatalogue } from './iconCatalogue.js'
 export default CnIconBrowser

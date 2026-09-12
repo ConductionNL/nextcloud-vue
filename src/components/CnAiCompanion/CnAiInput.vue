@@ -117,7 +117,7 @@
 				<NcLoadingIcon
 					v-if="transcribing"
 					:size="20" />
-				<Microphone
+				<MicrophoneIcon
 					v-else-if="micIsOpen"
 					:size="20" />
 				<MicrophoneOutline
@@ -203,25 +203,25 @@
 </template>
 
 <script>
-import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
-import Send from 'vue-material-design-icons/Send.vue'
-import Paperclip from 'vue-material-design-icons/Paperclip.vue'
+import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
-import Microphone from 'vue-material-design-icons/Microphone.vue'
 import Headset from 'vue-material-design-icons/Headset.vue'
 import HeadsetOff from 'vue-material-design-icons/HeadsetOff.vue'
+import MicrophoneIcon from 'vue-material-design-icons/Microphone.vue'
 import MicrophoneOutline from 'vue-material-design-icons/MicrophoneOutline.vue'
-import { DEFAULT_CHAT_APP_ID, attachmentsUrl, speechTranscriptionsUrl } from '../../composables/aiChatConfig.js'
+import Paperclip from 'vue-material-design-icons/Paperclip.vue'
+import Send from 'vue-material-design-icons/Send.vue'
+import { attachmentsUrl, DEFAULT_CHAT_APP_ID, speechTranscriptionsUrl } from '../../composables/aiChatConfig.js'
+import { createLocalDictation } from '../../composables/aiLocalDictation.js'
 import {
-	SPEECH_AUTO,
-	SPEECH_LOCAL,
-	SPEECH_OFF,
 	browserRecognitionUsable,
 	browserRecordingUsable,
 	resolveDictationEngine,
+	SPEECH_AUTO,
+	SPEECH_LOCAL,
+	SPEECH_OFF,
 } from '../../composables/aiSpeechPolicy.js'
-import { createLocalDictation } from '../../composables/aiLocalDictation.js'
 
 /** How long a dictation failure stays on screen, in ms. */
 const DICTATION_ERROR_TIMEOUT = 6000
@@ -235,7 +235,7 @@ export default {
 		Send,
 		Paperclip,
 		Close,
-		Microphone,
+		MicrophoneIcon,
 		MicrophoneOutline,
 		Headset,
 		HeadsetOff,
@@ -253,16 +253,19 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Backend app id the attach control uploads files to
 		 * (`POST /index.php/apps/{chatAppId}/api/chat/attachments`). See
 		 * composables/aiChatConfig.js `attachmentsUrl()`.
+		 *
 		 * @type {string}
 		 */
 		chatAppId: {
 			type: String,
 			default: DEFAULT_CHAT_APP_ID,
 		},
+
 		/**
 		 * How long a silence may last during dictation before the microphone is
 		 * released, in ms. `0` disables the timer and leaves the mic open until
@@ -276,12 +279,14 @@ export default {
 		 *
 		 * Per-agent, because the right pause length is a property of the work:
 		 * dictating a case note is not the same rhythm as answering a question.
+		 *
 		 * @type {number}
 		 */
 		dictationSilenceTimeout: {
 			type: Number,
 			default: 2500,
 		},
+
 		/**
 		 * Which engine this agent's dictation may use: `auto`, `browser`,
 		 * `local` or `off`. Comes from the agent's `voiceInputEngine`.
@@ -290,12 +295,14 @@ export default {
 		 * when the instance's speech service is down — an agent is set to it
 		 * because its subject matter must not reach a cloud service, and the
 		 * browser engine IS a cloud service in Chrome, Edge and Safari alike.
+		 *
 		 * @type {string}
 		 */
 		speechInputEngine: {
 			type: String,
 			default: SPEECH_AUTO,
 		},
+
 		/**
 		 * Whether the instance's own speech service answered its capability
 		 * probe. Passed in rather than probed here so one panel makes one call
@@ -305,12 +312,14 @@ export default {
 		 * private engine it has not confirmed. Wrong in the safe direction: the
 		 * cost is the browser engine where local would have worked, not audio
 		 * leaving an instance that thought it was private.
+		 *
 		 * @type {boolean}
 		 */
 		localSpeechAvailable: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Whether this agent offers hands-free conversation — a separate
 		 * control from the microphone, and deliberately so.
@@ -321,6 +330,7 @@ export default {
 		 * speaking, and it is sent. Putting both on one button would mean every
 		 * dictated pause risks posting a half-finished thought, which is why
 		 * this is a second control the user chose to press.
+		 *
 		 * @type {boolean}
 		 */
 		conversationEnabled: {
@@ -333,7 +343,12 @@ export default {
 
 	data() {
 		return {
-			/** The hidden file input, set by the template's function ref (kept off `$refs` so the ref stays dynamic). @type {HTMLInputElement|null} */
+			/**
+			 * The hidden file input, set by the template's function ref (kept
+			 * off `$refs` so the ref stays dynamic).
+			 *
+			 * @type {HTMLInputElement|null}
+			 */
 			fileInputEl: null,
 			inputText: '',
 			/** Uploaded attachment refs: { path, name } — awaiting send. */
@@ -873,9 +888,7 @@ export default {
 				// `start()` throws if called twice, and on some browsers when the
 				// origin is not permitted. Either way say so rather than resetting
 				// in silence.
-				this.showDictationError(
-					this.cnTranslate('Dictation could not start: ') + (e.message || 'unknown'),
-				)
+				this.showDictationError(this.cnTranslate('Dictation could not start: ') + (e.message || 'unknown'))
 				this.listening = false
 				this.recognition = null
 			}
@@ -902,7 +915,7 @@ export default {
 			}
 			try {
 				this.recognition.stop()
-			} catch (e) {
+			} catch {
 				// Already stopped; nothing to release.
 			}
 			this.recognition = null
@@ -939,7 +952,9 @@ export default {
 
 		autoGrow() {
 			const el = this.$refs.textarea
-			if (!el) return
+			if (!el) {
+				return
+			}
 			// Reset height first so shrinking works
 			el.style.height = 'auto'
 			// Clamp to 6-line max (~1.5em per line + padding)
@@ -972,6 +987,7 @@ export default {
 		 * on success, add it as a removable chip. Surfaces the backend's
 		 * `{ error }` message inline on a 400 rejection (oversized, or not
 		 * text-decodable) instead of silently dropping the file.
+		 *
 		 * @param {Event} event The file input's change event.
 		 * @return {Promise<void>}
 		 */
@@ -1001,6 +1017,7 @@ export default {
 
 		/**
 		 * Remove a pending attachment chip before it's sent.
+		 *
 		 * @param {number} index Index into `attachments`.
 		 */
 		removeAttachment(index) {

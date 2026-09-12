@@ -24,7 +24,7 @@
 	<NcDialog
 		:name="title"
 		size="normal"
-		:no-close="loading"
+		:noClose="loading"
 		data-testid="cn-modal"
 		data-testid-modal="cn-contact-picker"
 		@closing="onClose">
@@ -32,10 +32,10 @@
 			<NcTextField
 				v-model="query"
 				:label="searchLabel"
-				:input-label="searchLabel"
+				:inputLabel="searchLabel"
 				:placeholder="searchPlaceholder"
 				class="cn-contact-picker__search"
-				@update:model-value="onSearch" />
+				@update:modelValue="onSearch" />
 
 			<NcLoadingIcon v-if="loading" class="cn-contact-picker__loading" />
 
@@ -81,12 +81,12 @@
 			<div class="cn-contact-picker__role">
 				<label for="cn-contact-picker-role">{{ roleLabel }}</label>
 				<NcSelect
-					input-id="cn-contact-picker-role"
+					inputId="cn-contact-picker-role"
 					:options="roleOptions"
-					:model-value="role"
+					:modelValue="role"
 					:clearable="true"
-					:input-label="roleLabel"
-					@update:model-value="role = $event" />
+					:inputLabel="roleLabel"
+					@update:modelValue="role = $event" />
 			</div>
 		</div>
 
@@ -119,7 +119,6 @@ import {
 } from '@nextcloud/vue'
 import AccountSearchOutline from 'vue-material-design-icons/AccountSearchOutline.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
-
 import { buildHeaders } from '../../utils/index.js'
 
 /**
@@ -178,6 +177,7 @@ export default {
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Link contact') },
 		/**
 		 * Role options for the link's role dropdown.
+		 *
 		 * @type {Array<{ label: string, value: string }>}
 		 */
 		roleOptions: {
@@ -239,9 +239,13 @@ export default {
 		 */
 		initialsFor(row) {
 			const name = (row?.displayName || '').trim()
-			if (name === '') return '?'
+			if (name === '') {
+				return '?'
+			}
 			const parts = name.split(/\s+/).filter(Boolean)
-			if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+			if (parts.length === 1) {
+				return parts[0].charAt(0).toUpperCase()
+			}
 			return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
 		},
 
@@ -275,6 +279,7 @@ export default {
 			} catch (err) {
 				// Search is best-effort — surface an empty list so the
 				// "create new" fallback button stays usable.
+				// eslint-disable-next-line no-console
 				console.error('CnContactPicker: search failed', err)
 				this.results = []
 			} finally {
@@ -286,15 +291,21 @@ export default {
 		 * Normalise a list response (`{results:[...]}`, `{items:[...]}`,
 		 * or bare array).
 		 *
-		 * @param {*} data parsed JSON
+		 * @param {unknown} data parsed JSON
 		 *
 		 * @return {Array}
 		 */
 		unwrapList(data) {
-			if (Array.isArray(data)) return data
+			if (Array.isArray(data)) {
+				return data
+			}
 			if (data && typeof data === 'object') {
-				if (Array.isArray(data.results)) return data.results
-				if (Array.isArray(data.items)) return data.items
+				if (Array.isArray(data.results)) {
+					return data.results
+				}
+				if (Array.isArray(data.items)) {
+					return data.items
+				}
 			}
 			return []
 		},
@@ -310,7 +321,9 @@ export default {
 		},
 
 		confirm() {
-			if (!this.selected) return
+			if (!this.selected) {
+				return
+			}
 			/**
 			 * @event link Emitted when the user confirms a selection. Payload: `{ contactUid, addressbookId, contactUri, displayName, email, role }`.
 			 */

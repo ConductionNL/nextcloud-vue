@@ -32,6 +32,7 @@
 import { mount } from '@vue/test-utils'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+
 // Populates the catalog with `table`, `chart`, `map`, `object-list`, …
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
 // Side-effect module that registers `object-table` -> CnHostedObjectTable.

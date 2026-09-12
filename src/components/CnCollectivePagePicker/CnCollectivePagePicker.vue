@@ -54,7 +54,7 @@
 				:label="t('nextcloud-vue', 'Search pages')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-collective-page-picker__search"
-				@update:model-value="onSearch" />
+				@update:modelValue="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent
@@ -147,7 +147,7 @@ export default {
 		 * @return {Array} The collective option rows.
 		 */
 		collectiveOptions() {
-			return this.collectives.map(c => ({ id: c.id, label: c.emoji ? `${c.emoji} ${c.name}` : c.name }))
+			return this.collectives.map((c) => ({ id: c.id, label: c.emoji ? `${c.emoji} ${c.name}` : c.name }))
 		},
 
 		/**

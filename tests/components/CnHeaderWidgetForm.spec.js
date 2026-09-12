@@ -7,7 +7,7 @@
 import { mount } from '@vue/test-utils'
 import CnHeaderWidgetForm from '@/components/CnHeaderWidgetForm/CnHeaderWidgetForm.vue'
 
-const selectFile = (wrapper, file) => {
+function selectFile(wrapper, file) {
 	wrapper.vm.handleFileSelect({ target: { files: [file] } })
 }
 

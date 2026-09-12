@@ -27,7 +27,9 @@ jest.mock('@nextcloud/router', () => ({
 	generateUrl: jest.fn((p, params) => {
 		let out = p
 		if (params) {
-			for (const [k, v] of Object.entries(params)) out = out.replace(`{${k}}`, v)
+			for (const [k, v] of Object.entries(params)) {
+				out = out.replace(`{${k}}`, v)
+			}
 		}
 		return `/nc${out}`
 	}),

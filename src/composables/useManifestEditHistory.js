@@ -28,7 +28,7 @@ import { createManifestEditHistory } from '../utils/manifestEditHistory.js'
  * @param {object} [options] Forwarded verbatim to `createManifestEditHistory`.
  * @param {number} [options.limit] Maximum number of stored snapshots (default `100`).
  * @param {number} [options.coalesceMs] Coalescing window in ms (default `0`, disabled).
- * @param {Function} [options.now] Injectable clock (default `Date.now`).
+ * @param {() => number} [options.now] Injectable clock (default `Date.now`).
  * @return {{
  *   push: (state: object, label?: string) => (object|null),
  *   undo: () => (object|null),

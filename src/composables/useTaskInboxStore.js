@@ -3,9 +3,9 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
  */
 
-import { defineStore } from 'pinia'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { defineStore } from 'pinia'
 
 /**
  * The OpenRegister inbox read behind the `tasks` entity source.
@@ -100,6 +100,7 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 				this.error = error?.message || String(error)
 				this.tasks = []
 				this.total = 0
+				// eslint-disable-next-line no-console
 				console.error('[useTaskInboxStore] Loading the task inbox failed', error)
 			} finally {
 				this.loading = false

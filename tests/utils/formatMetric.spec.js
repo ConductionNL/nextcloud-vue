@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  */
-import { safeCurrencyCode, resolveConfigFormat, unwrapAppConfig, formatMetricValue } from '../../src/utils/formatMetric.js'
+import { formatMetricValue, resolveConfigFormat, safeCurrencyCode, unwrapAppConfig } from '../../src/utils/formatMetric.js'
 
 describe('safeCurrencyCode', () => {
 	it('accepts valid three-letter codes and upper-cases them', () => {

@@ -6,43 +6,43 @@
 <template>
 	<div class="cn-spend-analytics-widget-form">
 		<NcSelect
-			:model-value="viewMode"
+			:modelValue="viewMode"
 			:options="viewModeOptions"
-			:input-label="t('nextcloud-vue', 'View mode')"
+			:inputLabel="t('nextcloud-vue', 'View mode')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('viewMode', $event)" />
 
 		<NcSelect
-			:model-value="period"
+			:modelValue="period"
 			:options="periodOptions"
-			:input-label="t('nextcloud-vue', 'Period')"
+			:inputLabel="t('nextcloud-vue', 'Period')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('period', $event)" />
 
 		<NcTextField
-			:model-value="categoryIdsString"
+			:modelValue="categoryIdsString"
 			:label="t('nextcloud-vue', 'Category filter (comma separated CPV / category ids)')"
 			:placeholder="t('nextcloud-vue', 'e.g. 30190000, 48000000')"
-			@update:model-value="updateListField('categoryIds', $event)" />
+			@update:modelValue="updateListField('categoryIds', $event)" />
 
 		<NcTextField
-			:model-value="departmentIdsString"
+			:modelValue="departmentIdsString"
 			:label="t('nextcloud-vue', 'Department filter (comma separated cost-centre ids)')"
-			@update:model-value="updateListField('departmentIds', $event)" />
+			@update:modelValue="updateListField('departmentIds', $event)" />
 
 		<NcTextField
-			:model-value="vendorIdsString"
+			:modelValue="vendorIdsString"
 			:label="t('nextcloud-vue', 'Vendor filter (comma separated supplier ids)')"
-			@update:model-value="updateListField('vendorIds', $event)" />
+			@update:modelValue="updateListField('vendorIds', $event)" />
 
 		<NcSelect
-			:model-value="drillThroughTarget"
+			:modelValue="drillThroughTarget"
 			:options="drillThroughOptions"
-			:input-label="t('nextcloud-vue', 'Drill-through behaviour')"
+			:inputLabel="t('nextcloud-vue', 'Drill-through behaviour')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
@@ -67,8 +67,8 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 
 const VIEW_MODES = Object.freeze(['summary', 'trend', 'top-vendors', 'top-categories'])
 const PERIODS = Object.freeze(['month', 'quarter', 'ytd', 'fy'])
@@ -104,6 +104,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Initial content values when not editing (registry defaults). */
 		value: {
 			type: Object,
@@ -190,6 +191,7 @@ export default {
 					departmentIds: [...this.departmentIds],
 					vendorIds: [...this.vendorIds],
 				},
+
 				drillThroughTarget: this.drillThroughTarget,
 				attachEvidence: this.attachEvidence,
 				aiInsights: { enabled: this.aiInsightsEnabled },
@@ -203,7 +205,7 @@ export default {
 		/**
 		 * Filter a raw value to a clean string array.
 		 *
-		 * @param {*} raw the raw value.
+		 * @param {unknown} raw the raw value.
 		 * @return {string[]} the cleaned list.
 		 */
 		coerceList(raw) {
@@ -217,7 +219,7 @@ export default {
 		 * Set a field and notify the parent.
 		 *
 		 * @param {string} field the reactive key.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {

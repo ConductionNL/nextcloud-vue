@@ -202,7 +202,7 @@ const GUEST_SURFACE = 'guest-surface'
  *
  * @return {{user: (string|null), isNextcloudPage: boolean}} Session facts.
  */
-const readSurfaceSession = () => {
+function readSurfaceSession() {
 	const oc = globalThis.OC || {}
 	const head = (globalThis.document && globalThis.document.head) || null
 	const attr = (name) => (head && typeof head.getAttribute === 'function' ? head.getAttribute(name) : null)
@@ -213,7 +213,7 @@ const readSurfaceSession = () => {
 			const current = oc.getCurrentUser()
 			user = (current && current.uid) || null
 		}
-	} catch (e) {
+	} catch {
 		/* a partially-initialised OC can throw; absence is the answer we want */
 	}
 	if (!user && typeof oc.currentUser === 'string' && oc.currentUser !== '') {
@@ -327,7 +327,7 @@ function matchAllRefusal(scope) {
  * @param {object} args The serialised `{ prefix, ids, matchAll, value }`.
  * @return {number} Concrete keys written to the backing store.
  */
-const applySeed = (args) => {
+function applySeed(args) {
 	const store = globalThis.__cnSeenSeeds || (globalThis.__cnSeenSeeds = [])
 	store.push(args)
 
@@ -364,7 +364,7 @@ const applySeed = (args) => {
 			try {
 				globalThis.localStorage.setItem(args.prefix + id, args.value)
 				written++
-			} catch (e) {
+			} catch {
 				/* private mode / quota / opaque origin — the shim still covers reads */
 			}
 		}
@@ -397,7 +397,7 @@ function poisonStorageState(page, scope) {
 	let context
 	try {
 		context = page.context()
-	} catch (e) {
+	} catch {
 		return
 	}
 	if (!context || typeof context.storageState !== 'function' || context.__cnStorageStatePoisoned) {
@@ -896,7 +896,7 @@ async function retireFirstRunWizard(page, options = {}) {
 				headers: { requesttoken: oc.requestToken || '' },
 			})
 			return res.status
-		} catch (e) {
+		} catch {
 			return -1
 		}
 	}, route).catch(() => -1)
@@ -1171,7 +1171,7 @@ async function findMounted(page, componentName) {
  * @param {object} page Playwright `Page`.
  * @param {string} componentName Component to locate, by `name`.
  * @param {string} propName Prop to read.
- * @return {Promise<*>} A structured clone of the prop value.
+ * @return {Promise<unknown>} A structured clone of the prop value.
  * @throws {Error} When the component is not mounted, or has no such prop. The
  *   message lists every component that WAS found, so a rename shows up as a
  *   rename and not as a phantom "not mounted".
@@ -1265,16 +1265,14 @@ function resolveBaseUrl(options = {}) {
 		}
 	}
 
-	throw new Error(
-		'Neither ' + BASE_URL_ENV_VARS.join(' nor ') + ' is set.\n\n'
+	throw new Error('Neither ' + BASE_URL_ENV_VARS.join(' nor ') + ' is set.\n\n'
 		+ 'The e2e suite deliberately has no default: suites used to fall back to\n'
 		+ 'http://localhost:8080, which is the SHARED dev container, and then wrote\n'
 		+ 'fixtures into an environment other sessions were using.\n\n'
 		+ 'Point it at your own isolated instance, e.g.\n'
 		+ '  PLAYWRIGHT_BASE_URL=http://localhost:8097 npm run test:e2e\n\n'
 		+ 'In CI the shared quality workflow exports BASE_URL, which is also\n'
-		+ 'accepted; if you are seeing this in CI, that export is missing.\n',
-	)
+		+ 'accepted; if you are seeing this in CI, that export is missing.\n')
 }
 
 /**

@@ -10,7 +10,11 @@
   forwarded so consumers can branch internally if desired.
 -->
 <template>
-	<CnDetailCard :title="resolvedTitle" :icon="Tag" :collapsible="collapsible">
+	<CnDetailCard
+		:title="resolvedTitle"
+		:icon="Tag"
+		:collapsible="collapsible"
+		:data-surface="surface">
 		<NcLoadingIcon v-if="loading" />
 		<div v-else-if="tags.length === 0" class="cn-tags-card__empty">
 			{{ noTagsLabel }}
@@ -66,6 +70,7 @@ export default {
 			default: 'detail-page',
 			validator: (value) => ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity'].includes(value),
 		},
+
 		/** Base API URL. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Whether the card collapses. */
@@ -93,7 +98,11 @@ export default {
 	watch: {
 		objectId: {
 			immediate: true,
-			handler(id) { if (id) { this.fetchTags() } },
+			handler(id) {
+				if (id) {
+					this.fetchTags()
+				}
+			},
 		},
 	},
 

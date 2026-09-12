@@ -21,7 +21,9 @@ const ELLIPSIS_RE = /(?<!\.)\.{3}(?!\.)/g
 function processFile(file) {
 	const original = fs.readFileSync(file, 'utf8')
 	const rewritten = original.replace(ELLIPSIS_RE, '…')
-	if (rewritten === original) return false
+	if (rewritten === original) {
+		return false
+	}
 	fs.writeFileSync(file, rewritten)
 	return true
 }
@@ -33,7 +35,9 @@ if (!fs.existsSync(l10nDir)) {
 
 let changed = 0
 for (const entry of fs.readdirSync(l10nDir)) {
-	if (!entry.endsWith('.json')) continue
+	if (!entry.endsWith('.json')) {
+		continue
+	}
 	const file = path.join(l10nDir, entry)
 	if (processFile(file)) {
 		changed++

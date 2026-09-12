@@ -23,11 +23,11 @@
 				<li v-for="(tab, index) in editableTabs" :key="index" class="cn-edit-sidebar__tab">
 					<div class="cn-edit-sidebar__tab-row">
 						<NcCheckboxRadioSwitch
-							:model-value="!isHidden(tab.id)"
+							:modelValue="!isHidden(tab.id)"
 							:aria-label="t('nextcloud-vue', 'Visible')"
-							@update:model-value="(v) => setTabVisible(tab.id, v)" />
-						<NcTextField v-model="tab.label" :label="t('nextcloud-vue', 'Tab label')" :label-visible="true" />
-						<NcTextField v-model="tab.id" :label="t('nextcloud-vue', 'Tab id')" :label-visible="true" />
+							@update:modelValue="(v) => setTabVisible(tab.id, v)" />
+						<NcTextField v-model="tab.label" :label="t('nextcloud-vue', 'Tab label')" :labelVisible="true" />
+						<NcTextField v-model="tab.id" :label="t('nextcloud-vue', 'Tab id')" :labelVisible="true" />
 						<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="removeTab(index)">
 							<template #icon>
 								<Delete :size="20" />
@@ -36,12 +36,12 @@
 					</div>
 					<label class="cn-edit-sidebar__content">
 						<span>{{ t('nextcloud-vue', 'Content') }}</span>
-						<NcSelect :model-value="selectedContent(tab)"
+						<NcSelect :modelValue="selectedContent(tab)"
 							:options="contentOptions"
 							:clearable="false"
 							label="label"
-							:input-label="t('nextcloud-vue', 'Tab content')"
-							@update:model-value="(o) => setContent(tab, o)" />
+							:inputLabel="t('nextcloud-vue', 'Tab content')"
+							@update:modelValue="(o) => setContent(tab, o)" />
 					</label>
 				</li>
 			</ul>
@@ -67,16 +67,17 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcEmptyContent, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
+import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 export default {
 	name: 'CnEditSidebarModal',
 
-	components: { NcDialog, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon, NcSelect, Plus, Delete },
+	components: { NcDialog, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon, NcSelect, Plus, Delete, ContentSaveOutline },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -90,6 +91,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * The active page's id; selects which page's sidebar config to edit.
 		 *
@@ -109,27 +111,35 @@ export default {
 			const pages = this.working && Array.isArray(this.working.pages) ? this.working.pages : []
 			return pages.find((p) => p && p.id === this.pageId) ?? null
 		},
+
 		/** The page's normalised sidebar config object (ensured to exist). */
 		sidebar() {
-			if (!this.page) return null
+			if (!this.page) {
+				return null
+			}
 			// Normalise the working page in place so the editor can bind to it —
 			// the working manifest is ours to mutate by design (see CnEditPagesModal).
-			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!this.page.config || typeof this.page.config !== 'object') this.page.config = {}
+			if (!this.page.config || typeof this.page.config !== 'object') {
+				// eslint-disable-next-line vue/no-side-effects-in-computed-properties
+				this.page.config = {}
+			}
 			const cfg = this.page.config
 			if (typeof cfg.sidebar !== 'object' || cfg.sidebar === null) {
-				// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 				cfg.sidebar = typeof cfg.sidebar === 'boolean' ? { show: cfg.sidebar } : {}
 			}
 			return cfg.sidebar
 		},
+
 		/** Two-way switch for whole-sidebar visibility. */
 		sidebarShown: {
 			get() {
 				return this.sidebar ? this.sidebar.show !== false : false
 			},
+
 			set(value) {
-				if (!this.sidebar) return
+				if (!this.sidebar) {
+					return
+				}
 				// Detail pages gate on `show`; index pages gate their embedded
 				// sidebar (and its actions-bar toggle button) on `enabled`. Set
 				// both so the toggle mounts/suppresses the sidebar on either page
@@ -140,27 +150,37 @@ export default {
 				this.sidebar.enabled = value
 			},
 		},
+
 		/** Declared sidebar tabs on this page (or empty). */
 		tabs() {
 			const s = this.sidebar
 			return s && Array.isArray(s.tabs) ? s.tabs : []
 		},
+
 		/** The page's sidebar `tabs[]` array (ensured to exist) — for editing. */
 		editableTabs() {
 			const s = this.sidebar
-			if (!s) return []
-			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!Array.isArray(s.tabs)) s.tabs = []
+			if (!s) {
+				return []
+			}
+			if (!Array.isArray(s.tabs)) {
+				s.tabs = []
+			}
 			return s.tabs
 		},
+
 		/** The page's hiddenTabs array (ensured to exist). */
 		hiddenTabs() {
 			const s = this.sidebar
-			if (!s) return []
-			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!Array.isArray(s.hiddenTabs)) s.hiddenTabs = []
+			if (!s) {
+				return []
+			}
+			if (!Array.isArray(s.hiddenTabs)) {
+				s.hiddenTabs = []
+			}
 			return s.hiddenTabs
 		},
+
 		/** Selectable content types for a tab (mapped to a built-in widget). */
 		contentOptions() {
 			return [
@@ -184,6 +204,7 @@ export default {
 			const type = (Array.isArray(tab.widgets) && tab.widgets[0]) ? tab.widgets[0].type : ''
 			return this.contentOptions.find((o) => o.id === type) || this.contentOptions[0]
 		},
+
 		/**
 		 * Set a tab's content widget from the chosen option. An empty choice
 		 * clears the widgets (a plain labelled tab).
@@ -199,6 +220,7 @@ export default {
 				tab.widgets = [{ type }]
 			}
 		},
+
 		/**
 		 * Whether a tab id is currently hidden.
 		 *
@@ -208,6 +230,7 @@ export default {
 		isHidden(id) {
 			return this.hiddenTabs.includes(id)
 		},
+
 		/**
 		 * Show or hide a tab by id, mutating the working copy's hiddenTabs.
 		 *
@@ -216,9 +239,13 @@ export default {
 		 */
 		setTabVisible(id, visible) {
 			const idx = this.hiddenTabs.indexOf(id)
-			if (visible && idx !== -1) this.hiddenTabs.splice(idx, 1)
-			else if (!visible && idx === -1) this.hiddenTabs.push(id)
+			if (visible && idx !== -1) {
+				this.hiddenTabs.splice(idx, 1)
+			} else if (!visible && idx === -1) {
+				this.hiddenTabs.push(id)
+			}
 		},
+
 		/** Add a new sidebar tab, enabling the sidebar if it was off. */
 		addTab() {
 			if (this.sidebar) {
@@ -230,6 +257,7 @@ export default {
 			}
 			this.editableTabs.push({ id: `tab-${this.editableTabs.length + 1}`, label: '', widgets: [] })
 		},
+
 		/**
 		 * Remove the tab at `index`.
 		 *

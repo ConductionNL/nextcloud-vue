@@ -57,14 +57,14 @@
 
 			<CnSupportDialog
 				v-if="showSupportDialog"
-				:app-name="resolvedAppName"
-				:app-slug="resolvedAppSlug"
-				:app-store-url="resolvedAppStoreUrl"
-				:feature-request-url="resolvedFeatureRequestUrl"
-				:donate-url="donateUrl"
-				:support-url="supportUrl"
-				:founder-name="founderName"
-				:founder-title="founderTitle"
+				:appName="resolvedAppName"
+				:appSlug="resolvedAppSlug"
+				:appStoreUrl="resolvedAppStoreUrl"
+				:featureRequestUrl="resolvedFeatureRequestUrl"
+				:donateUrl="donateUrl"
+				:supportUrl="supportUrl"
+				:founderName="founderName"
+				:founderTitle="founderTitle"
 				@close="showSupportDialog = false" />
 		</template>
 	</div>
@@ -104,10 +104,9 @@ import FormatListBulleted from 'vue-material-design-icons/FormatListBulleted.vue
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import RoadVariant from 'vue-material-design-icons/RoadVariant.vue'
-
+import CnFeaturesAndRoadmapSidebar from '../CnFeaturesAndRoadmapSidebar/CnFeaturesAndRoadmapSidebar.vue'
 import CnFeaturesTab from '../CnFeaturesTab/CnFeaturesTab.vue'
 import CnRoadmapTab from '../CnRoadmapTab/CnRoadmapTab.vue'
-import CnFeaturesAndRoadmapSidebar from '../CnFeaturesAndRoadmapSidebar/CnFeaturesAndRoadmapSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import { buildFeatureRequestUrl, DEFAULT_FORGE } from '../../utils/forge.js'
 
@@ -160,26 +159,30 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * Target forge the feature-request deep-links are built against
 		 * (the Suggest CTA and the support dialog's feature-request URL).
 		 * Set `{type: 'github'}` (optionally with `baseUrl`) to switch
 		 * forge.
+		 *
 		 * @type {{type: 'codeberg'|'forgejo'|'gitea'|'github', baseUrl?: string}}
 		 */
 		forge: {
 			type: Object,
 			default: () => ({ ...DEFAULT_FORGE }),
 		},
+
 		/**
 		 * Build-time feature manifest (alphabetical list rendered by CnFeaturesTab).
+		 *
 		 * @type {Array<{slug: string, title: string, summary: string, docsUrl: string}>}
 		 */
 		features: {
 			type: Array,
-			required: true,
 			default: () => [],
 		},
+
 		/**
 		 * Admin opt-out flag — when true the entire view collapses to a
 		 * single "disabled by admin" empty state.
@@ -188,25 +191,30 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Override the OpenBuilt sidebar CTA target. Pass an absolute URL or
 		 * a Nextcloud-relative path. When unset, defaults to the in-instance
 		 * OpenBuilt route at `/apps/openbuilt` (resolved via `generateUrl`).
+		 *
 		 * @type {string}
 		 */
 		openbuiltUrl: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Override the LLM-skills sidebar CTA target. Defaults to
 		 * `https://docs.conduction.nl/ai-skills`.
+		 *
 		 * @type {string}
 		 */
 		llmSkillsUrl: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional override for the Suggest CTA inside the sidebar. When
 		 * set the CTA renders as an anchor pointing at this URL —
@@ -214,56 +222,66 @@ export default {
 		 * public form, a Discord channel, or any non-forge target. When
 		 * empty (default) the CTA links the forge's feature-request
 		 * issue form derived from `repo` + `forge`.
+		 *
 		 * @type {string}
 		 */
 		suggestUrl: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional URL of the app's public documentation site. When set,
 		 * an info banner is rendered above the card grid pointing users at
 		 * `<docs>` for full technical + user docs. Per-app — pipelinq
 		 * passes `https://pipelinq.conduction.nl`, decidesk passes its
 		 * own, etc. When empty (default) no banner renders.
+		 *
 		 * @type {string}
 		 */
 		documentationUrl: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Display name of the host app, used as the title of the bundled
 		 * `CnSupportDialog` and interpolated into its body copy. When
 		 * empty (default) the View derives a humanised label from `repo`
 		 * — `ConductionNL/openregister` becomes `Openregister` — which is
 		 * fine for stock apps and overridable for camelCased names.
+		 *
 		 * @type {string}
 		 */
 		appName: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Kebab-case host-app id passed to `CnSupportDialog` (its
 		 * localStorage namespace). When empty (default) the View derives
 		 * it from `repo` — second segment lower-cased.
+		 *
 		 * @type {string}
 		 */
 		appSlug: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Nextcloud App Store listing URL for the host app, threaded
 		 * through to `CnSupportDialog`. When empty (default) the View
 		 * derives `https://apps.nextcloud.com/apps/{appSlug}`.
+		 *
 		 * @type {string}
 		 */
 		appStoreUrl: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * URL the "Suggest a feature" CTA inside `CnSupportDialog` opens.
 		 * When empty (default) the View derives
@@ -273,42 +291,51 @@ export default {
 		 * this one is the "open on the forge" fallback used by the support
 		 * dialog, which is meant for the casual visitor rather than the
 		 * existing suggest-feature loop.
+		 *
 		 * @type {string}
 		 */
 		featureRequestUrl: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Donate-CTA URL passed to `CnSupportDialog`. Defaults to
 		 * ConductionNL's GitHub Sponsors page.
+		 *
 		 * @type {string}
 		 */
 		donateUrl: {
 			type: String,
 			default: DEFAULT_DONATE_URL,
 		},
+
 		/**
 		 * Business-support CTA URL passed to `CnSupportDialog`. Defaults
 		 * to the Conduction contact page.
+		 *
 		 * @type {string}
 		 */
 		supportUrl: {
 			type: String,
 			default: DEFAULT_SUPPORT_URL,
 		},
+
 		/**
 		 * Name rendered in the handwritten signature of `CnSupportDialog`.
 		 * Defaults to Ruben van der Linde.
+		 *
 		 * @type {string}
 		 */
 		founderName: {
 			type: String,
 			default: DEFAULT_FOUNDER_NAME,
 		},
+
 		/**
 		 * Title shown after the handwritten signature in `CnSupportDialog`
 		 * (e.g. "Founder", "Oprichter").
+		 *
 		 * @type {string}
 		 */
 		founderTitle: {
@@ -330,46 +357,75 @@ export default {
 				? t('nextcloud-vue', 'Features')
 				: t('nextcloud-vue', 'Roadmap')
 		},
+
 		toggleLabel() {
 			return this.activeView === 'features'
 				? t('nextcloud-vue', 'Show roadmap')
 				: t('nextcloud-vue', 'Show features')
 		},
-		suggestLabel() { return t('nextcloud-vue', 'Suggest feature') },
-		disabledTitle() { return t('nextcloud-vue', 'This feature has been disabled by your administrator') },
-		disabledDescription() { return t('nextcloud-vue', 'Contact your Nextcloud administrator to enable Features & Roadmap on this instance.') },
+
+		suggestLabel() {
+			return t('nextcloud-vue', 'Suggest feature')
+		},
+
+		disabledTitle() {
+			return t('nextcloud-vue', 'This feature has been disabled by your administrator')
+		},
+
+		disabledDescription() {
+			return t('nextcloud-vue', 'Contact your Nextcloud administrator to enable Features & Roadmap on this instance.')
+		},
 
 		resolvedOpenbuiltUrl() {
-			if (this.openbuiltUrl) return this.openbuiltUrl
+			if (this.openbuiltUrl) {
+				return this.openbuiltUrl
+			}
 			return generateUrl(DEFAULT_OPENBUILT_PATH)
 		},
+
 		resolvedLlmSkillsUrl() {
 			return this.llmSkillsUrl || DEFAULT_LLM_SKILLS_URL
 		},
+
 		resolvedDocumentationUrl() {
 			return this.documentationUrl || ''
 		},
+
 		repoSlug() {
-			if (!this.repo || !this.repo.includes('/')) return ''
+			if (!this.repo || !this.repo.includes('/')) {
+				return ''
+			}
 			return this.repo.split('/')[1].toLowerCase()
 		},
+
 		resolvedAppSlug() {
 			return this.appSlug || this.repoSlug
 		},
+
 		resolvedAppName() {
-			if (this.appName) return this.appName
+			if (this.appName) {
+				return this.appName
+			}
 			const slug = this.repoSlug
-			if (!slug) return ''
+			if (!slug) {
+				return ''
+			}
 			return slug.charAt(0).toUpperCase() + slug.slice(1)
 		},
+
 		resolvedAppStoreUrl() {
 			return this.appStoreUrl || (this.resolvedAppSlug
 				? `https://apps.nextcloud.com/apps/${this.resolvedAppSlug}`
 				: '')
 		},
+
 		resolvedFeatureRequestUrl() {
-			if (this.featureRequestUrl) return this.featureRequestUrl
-			if (!this.repo) return ''
+			if (this.featureRequestUrl) {
+				return this.featureRequestUrl
+			}
+			if (!this.repo) {
+				return ''
+			}
 			// The feature-request issue FORM, not the blank new-issue page —
 			// the form's structured fields replaced the removed in-product
 			// suggestion modal.
@@ -386,15 +442,23 @@ export default {
 		resolvedSuggestUrl() {
 			return this.suggestUrl || this.resolvedFeatureRequestUrl
 		},
+
 		documentationUrlIsExternal() {
 			return /^https?:\/\//i.test(this.resolvedDocumentationUrl)
 		},
-		docsNoteLeading() { return t('nextcloud-vue', 'Looking for documentation? Visit') },
+
+		docsNoteLeading() {
+			return t('nextcloud-vue', 'Looking for documentation? Visit')
+		},
+
 		docsNoteLinkLabel() {
 			// Strip protocol for a cleaner inline link label.
 			return this.resolvedDocumentationUrl.replace(/^https?:\/\//i, '')
 		},
-		docsNoteTrailing() { return t('nextcloud-vue', 'for all technical and user documentation.') },
+
+		docsNoteTrailing() {
+			return t('nextcloud-vue', 'for all technical and user documentation.')
+		},
 	},
 
 	mounted() {
@@ -413,9 +477,11 @@ export default {
 		toggleView() {
 			this.activeView = this.activeView === 'features' ? 'roadmap' : 'features'
 		},
+
 		openSupportDialog() {
 			this.showSupportDialog = true
 		},
+
 		/**
 		 * Publish the hoisted-sidebar config to `cnIndexSidebarConfig`
 		 * (same holder CnIndexPage uses) so CnAppRoot mounts the
@@ -425,7 +491,9 @@ export default {
 		 * when there's no CnAppRoot ancestor.
 		 */
 		publishHoistedSidebar() {
-			if (!this.cnHostsIndexSidebar || !this.cnIndexSidebarConfig) return
+			if (!this.cnHostsIndexSidebar || !this.cnIndexSidebarConfig) {
+				return
+			}
 			if (this.disabled) {
 				this.cnIndexSidebarConfig.value = null
 				return
@@ -440,6 +508,7 @@ export default {
 					// as an anchor and its `suggest` emit path stays idle.
 					suggestUrl: this.resolvedSuggestUrl,
 				},
+
 				listeners: {
 					support: () => this.openSupportDialog(),
 				},

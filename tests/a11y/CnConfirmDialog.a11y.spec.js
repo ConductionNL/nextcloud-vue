@@ -10,8 +10,8 @@
  * content phases.
  */
 
-const { mountAttached } = require('./support/mountAttached.js')
 const { expectAccessible } = require('../../src/testing/a11y.js')
+const { mountAttached } = require('./support/mountAttached.js')
 const CnConfirmDialog = require('../../src/dialogs/CnConfirmDialog.vue').default
 
 describe('CnConfirmDialog — accessibility', () => {

@@ -135,21 +135,21 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon, NcEmptyContent } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import ClipboardCheckOutline from 'vue-material-design-icons/ClipboardCheckOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
+import { checklistProgress, classifyGps, syncIndicator, validateChecklistAnswers } from '../../offline/fieldCollectionHelpers.js'
 import {
-	storePlanning,
-	getPlannedItems,
-	getCachedObject,
-	getPlanningMeta,
-	enqueueMutation,
 	countPending,
+	enqueueMutation,
+	getCachedObject,
+	getPlannedItems,
+	getPlanningMeta,
 	resolveDeviceId,
+	storePlanning,
 } from '../../offline/offlineDb.js'
 import { fetchPlanning, fetchReferences } from '../../offline/planningFetch.js'
 import { drainQueue } from '../../offline/syncReplayService.js'
-import { syncIndicator, validateChecklistAnswers, checklistProgress, classifyGps } from '../../offline/fieldCollectionHelpers.js'
 import { DEFAULT_FIELD_INSPECTION_CONFIG } from '../field-inspection.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -169,17 +169,21 @@ export default {
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'field-inspection'`). */
 		integrationId: { type: String, default: 'field-inspection' },
+		/* eslint-disable vue/no-unused-properties -- every integration surface is handed `surface` by its host; this card renders one layout and does not branch on it */
 		/** Rendering surface (AD-19). */
 		surface: {
 			type: String,
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+		/* eslint-enable vue/no-unused-properties */
+
 		/** Object context `{ register, schema, objectId }` forwarded by the host page. */
 		integrationContext: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** OpenRegister register id (slug or uuid) — falls back to integrationContext. */
 		register: { type: String, default: '' },
 		/** OpenRegister schema id (slug or uuid) — falls back to integrationContext. */
@@ -263,7 +267,9 @@ export default {
 	},
 
 	watch: {
-		integrationContext: { immediate: true, handler() { this.loadLocal() } },
+		integrationContext: { immediate: true, handler() {
+			this.loadLocal()
+		} },
 	},
 
 	/**
