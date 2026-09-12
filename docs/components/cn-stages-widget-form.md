@@ -10,9 +10,9 @@ The form is grouped the way a person thinks about the widget.
 
 **Stages.** Where the stage list is read from, either an app endpoint or an OpenRegister query, plus the property names to read a label, a description, an order and the closing flag from. Only the source you pick is written, so switching from one to the other leaves no orphan config behind.
 
-**Moving the record.** What clicking a stage does: save the record's own property, call an app endpoint, or nothing at all for a read-only strip. The endpoint mode collects the address, the method and the keys the stage, the comment and the result are sent under. A separate control asks whether every move must be confirmed.
+**Moving the record.** What clicking a stage does: move the record through its lifecycle (the default), write the stage onto the record for a schema that has no lifecycle, or nothing at all. On the lifecycle path the only thing left to type is the words to show beside a stage the record cannot reach.
 
-**Guards.** The address that lists the reachable stages, and the property names that carry the target stage, the move id, whether it is allowed, and the reason it is not.
+There is no guard section, because there is no guard to configure. OpenRegister answers which stages are reachable and re-validates every move, so a manifest cannot map a field name badly and lose the guard. See [`CnStagesWidget`](./cn-stages-widget.md) for what each key does at render time.
 
 Keys the form does not show are kept and written back on save, so config an app hand-wrote into its manifest survives a trip through the editor.
 
@@ -31,8 +31,9 @@ Keys the form does not show are kept and written back on save, so config an app 
 
 ## Notes
 
-- `validate()` requires the property holding the current stage, a stage source, and an address for an endpoint transition.
-- A read-only strip drops the transition, the guards and the confirm setting rather than writing them as empty strings.
+- `validate()` requires the property holding the current stage and a stage source. The transition needs nothing: the lifecycle path has nothing to fill in, and the field path only writes the property already required above.
+- A read-only strip drops the transition and its wording rather than writing them as empty strings, and the field opt-in drops the unreachable wording, which it would never show.
+- A `kind` the form does not know opens as read only, matching the widget: a typo must not silently select a mode nobody asked for.
 - The address fields take `@objectId` and `@object.<property>`, so an endpoint can name the record it is asked about.
 
 Next: read what each key does in [`CnStagesWidget`](./cn-stages-widget.md), or see how the widget resolves in the [dashboard widget catalog](./dashboard-widget-catalog.md).

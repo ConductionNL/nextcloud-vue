@@ -245,11 +245,11 @@ Supports external rows (`rows`) or self-fetch (`register` + `schemaId`). Shares 
 ### Stages · `stages`
 
 The stages a record moves through, read from an app endpoint or an OpenRegister
-query. Clicking a reachable stage moves the record, either by saving its stage
-property or by calling a transition endpoint. An optional availability endpoint
-disables the stages that are closed and says why. **Detail-page surface only**: it
+query. Which of them can be reached comes from Open Register's lifecycle
+(`/available-actions`), and clicking one performs that transition. The same
+contract `CnLifecycleActions` renders as buttons. **Detail-page surface only**: it
 reads and moves the bound record, which only a detail page has.
-→ [`CnStagesWidget`](./cn-stages-widget.md) · [`CnStagesWidgetForm`](./cn-stages-widget-form.md) · [`CnStageMoveDialog`](./cn-stage-move-dialog.md)
+→ [`CnStagesWidget`](./cn-stages-widget.md) · [`CnStagesWidgetForm`](./cn-stages-widget-form.md) · [`CnLifecycleActions`](./cn-lifecycle-actions.md)
 
 ---
 
