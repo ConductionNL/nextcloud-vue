@@ -367,6 +367,13 @@ describe('CnStatWidget: calendar days, not elapsed time', () => {
 		expect(w.vm.countdownDays).toBe(30)
 	})
 
+	it('counts whole days over a long span whose deadline falls earlier in the day', () => {
+		// 52 calendar days, but 51.5 elapsed ones, because the deadline is at
+		// midnight and now is at noon. Dividing milliseconds answers 51.
+		const w = mountDeadline({ unit: 'days' }, { dueDate: '2026-11-03T00:00:00' })
+		expect(w.vm.countdownDays).toBe(52)
+	})
+
 	it('accepts a Date and an epoch timestamp as well as a string', () => {
 		const due = new Date(2026, 8, 19, 6, 0, 0)
 
@@ -377,22 +384,72 @@ describe('CnStatWidget: calendar days, not elapsed time', () => {
 
 // The same decision, seen from the failure it prevents. `new Date('2026-09-13')`
 // is specified to parse a DATE-ONLY string as UTC midnight, so west of
-// Greenwich it lands on the 12th local and every countdown built on it is a day
-// short. OpenRegister stores a date property in exactly that shape.
-describe('CnStatWidget: a date-only string west of Greenwich', () => {
-	const realTz = process.env.TZ
+// Greenwich it lands on the 12th LOCAL and every countdown built on it is a day
+// short. OpenRegister stores a date property in exactly that shape, so this is
+// the everyday case, not an exotic one.
+//
+// The suite cannot simply switch zone to show it: `tests/globalSetup.js` pins
+// `TZ=UTC` before any worker starts, on purpose and with its reasons written
+// down, and Node caches the zone on first `Date` use, so a later assignment to
+// `process.env.TZ` does nothing at all. A test that flips the variable and
+// asserts afterwards passes whatever the code does, which is no test. So the
+// zone is STOOD IN FOR instead: a `Date` whose local-component getters read
+// four hours behind UTC is exactly what the failure needs to become visible.
+describe('CnStatWidget: a date-only string read west of Greenwich', () => {
+	const LOCAL_GETTERS = ['getFullYear', 'getMonth', 'getDate']
+	let restore = null
 
-	beforeAll(() => {
-		process.env.TZ = 'America/New_York'
-	})
-
-	afterAll(() => {
-		process.env.TZ = realTz
-	})
+	/**
+	 * Stand in for a zone `hours` behind UTC by shifting what the local-component
+	 * getters report. Parsing, `Date.UTC` and the fake clock are left exactly as
+	 * they are, so the only thing under test is how a value is read back.
+	 *
+	 * The getters are patched on the prototype rather than by swapping the `Date`
+	 * constructor: a subclass assigned to `global.Date` was not picked up at all
+	 * here, and an emulation that quietly does nothing is the very thing this
+	 * block exists to avoid.
+	 *
+	 * @param {number} hours How far behind UTC to stand.
+	 * @return {void}
+	 */
+	function standWestOfGreenwich(hours) {
+		const shift = hours * 3600000
+		const proto = Date.prototype
+		const original = {}
+		for (const name of LOCAL_GETTERS) {
+			original[name] = proto[name]
+			const utcName = name.replace('get', 'getUTC')
+			proto[name] = function shifted() {
+				// A fresh instance, so the UTC getter below is the untouched one
+				// and there is no recursion.
+				return new Date(this.getTime() - shift)[utcName]()
+			}
+		}
+		restore = () => {
+			for (const name of LOCAL_GETTERS) {
+				proto[name] = original[name]
+			}
+		}
+	}
 
 	beforeEach(() => {
-		// New York, so a local noon that is well clear of both midnights.
-		jest.setSystemTime(new Date(2026, 8, 12, 12, 0, 0))
+		// New York in September. Noon local is 16:00 UTC, so "today" is the 12th
+		// on both clocks and nothing but the deadline is in question.
+		jest.setSystemTime(new Date(2026, 8, 12, 16, 0, 0))
+		standWestOfGreenwich(4)
+	})
+
+	afterEach(() => {
+		if (restore) {
+			restore()
+			restore = null
+		}
+	})
+
+	it('proves the stand-in is actually standing west', () => {
+		// Without this the three assertions below pass in a UTC process whatever
+		// the component does, which is the shape of every test that cannot fail.
+		expect(new Date(Date.UTC(2026, 8, 13, 0, 0, 0)).getDate()).toBe(12)
 	})
 
 	it('reads a bare YYYY-MM-DD as the local day it names, not as UTC midnight', () => {
@@ -401,15 +458,11 @@ describe('CnStatWidget: a date-only string west of Greenwich', () => {
 		expect(mountDeadline({}, { dueDate: '2026-09-11' }).vm.countdownDays).toBe(-1)
 	})
 
-	it('still reads a deadline late tonight as today', () => {
-		expect(mountDeadline({}, { dueDate: '2026-09-12T23:30:00' }).vm.countdownDays).toBe(0)
+	it('does not call tomorrow today, which is what the UTC parse would do', () => {
+		expect(shown(mountDeadline({}, { dueDate: '2026-09-13' }))).toBe('1 day left')
 	})
 
-	it('crosses a daylight-saving change without losing or gaining a day', () => {
-		// The US clocks go back on 1 November 2026, so 51 of these days are 24
-		// hours long and one is 25. Dividing elapsed milliseconds would round
-		// the answer to 51.
-		jest.setSystemTime(new Date(2026, 9, 15, 12, 0, 0))
-		expect(mountDeadline({}, { dueDate: '2026-12-06' }).vm.countdownDays).toBe(52)
+	it('still reads a deadline late tonight as today', () => {
+		expect(mountDeadline({}, { dueDate: '2026-09-12T23:30:00-04:00' }).vm.countdownDays).toBe(0)
 	})
 })
