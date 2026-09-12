@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Deprecated
+- **`@conduction/nextcloud-vue/eslint` is deprecated in favour of `@nextcloud/eslint-config` 9.** The preset was written because fourteen apps each maintained their own Vue 3 lint config and one of them armed no `vue/no-deprecated-*` rule at all, which let four `beforeDestroy` hooks survive a Vue 3 migration as live memory leaks. Upstream now covers that. Measured with `--print-config` on this repository: all 21 `vue/no-deprecated-*` rules are armed at error, including `no-deprecated-delete-set` and `no-deprecated-model-definition`, the two missing from `plugin:vue/vue3-essential` that were the reason for writing the list out by hand. `ecmaVersion` resolves to the current year rather than a pin, the SFC script parser is set in the object form, and the three inverted Vue 2 rules the preset switches off are absent upstream.
+
+  This library moved to `recommendedLibrary` itself, which is the point: a preset its publisher does not use is a preset nobody tests, and that is exactly how the missing `@nextcloud/stylelint-config` dependency in the sibling stylelint preset stayed invisible until it broke a consumer.
+
+  **Nothing is removed and no app has to act today.** The preset still loads, still carries its guarantees, and its peer range already accepts ESLint 8, 9 and 10. An app migrates by swapping the import for `recommendedLibrary`, `recommended` or `recommendedJavascript`; `docs/tooling/eslint-preset.md` shows the before and after. `@nextcloud/eslint-config` 9 is ESM only and asks for Node `^22.14 || ^24 || >=26`, so the config file has to be `eslint.config.mjs`.
+
 ### Security
 - **The sanitizer that runs in the markdown editor is no longer a 2.x copy.** `@toast-ui/editor` depends on `dompurify@^2.3.3`, so installing this library brought a SECOND sanitizer into the tree beside the 3.x it declares. That nested copy carried fifteen open XSS advisories, and it is the copy that actually sanitizes what a user types. This library's own dompurify being current said nothing about it, which is why it went unnoticed.
 

@@ -5,6 +5,29 @@
  * `@conduction/nextcloud-vue/eslint` — the shared flat-config ESLint preset
  * for every Conduction Nextcloud app.
  *
+ * @deprecated Use `@nextcloud/eslint-config` 9 instead: `recommendedLibrary`
+ * for a library, `recommended` for an app, `recommendedJavascript` for an app
+ * with no TypeScript. Upstream now ships what this preset was written to
+ * guarantee, and it ships more of it: measured with
+ * `--print-config` on this repository, all 21 `vue/no-deprecated-*` rules are
+ * armed at error, including `no-deprecated-delete-set` and
+ * `no-deprecated-model-definition`, the two that were the reason for writing
+ * the list out by hand here. `ecmaVersion` resolves to the current year rather
+ * than a pin, and the SFC script parser is configured in the object form, so
+ * the two parsing defects described below cannot occur either. The three
+ * inverted Vue-2 rules this preset switches off are absent upstream, which is
+ * the same outcome by a shorter route.
+ *
+ * This library itself moved to `recommendedLibrary`, which is the point: a
+ * preset its publisher does not use is a preset nobody tests, and that is
+ * exactly how the missing `@nextcloud/stylelint-config` dependency in the
+ * sibling stylelint preset stayed invisible.
+ *
+ * Nothing is removed. The preset still loads, still carries its guarantees,
+ * and the peer range already accepts ESLint 8, 9 and 10, so an app on it keeps
+ * working and can migrate when it suits. See docs/tooling/eslint-preset.md for
+ * what a migration looks like.
+ *
  * WHY THIS LIVES IN nc-vue (not in each app)
  * ------------------------------------------
  * Fourteen apps consume this library and every one of them was carrying its
