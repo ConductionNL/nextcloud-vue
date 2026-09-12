@@ -3,7 +3,7 @@
  * Asserts fetch wiring, empty/loaded/error states, and load-more paging.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnEmailTab = require('../CnEmailTab.vue').default
 
 describe('CnEmailTab', () => {
@@ -23,8 +23,7 @@ describe('CnEmailTab', () => {
 		const wrapper = mount(CnEmailTab, {
 			propsData: { objectId: 'o1', register: 'r1', schema: 's1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No linked emails yet')
 		wrapper.unmount()
 	})
@@ -34,8 +33,7 @@ describe('CnEmailTab', () => {
 		const wrapper = mount(CnEmailTab, {
 			propsData: { objectId: 'o1', register: 'r1', schema: 's1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load emails')
 		wrapper.unmount()
 	})
@@ -56,8 +54,7 @@ describe('CnEmailTab', () => {
 		const wrapper = mount(CnEmailTab, {
 			propsData: { objectId: 'o1', register: 'r1', schema: 's1', pageSize: 3 },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		// 3 NC-Mail-style rows rendered, one per message.
 		expect(wrapper.findAll('.cn-email-tab__row')).toHaveLength(3)
 		expect(wrapper.vm.messages).toHaveLength(3)
@@ -100,8 +97,7 @@ describe('CnEmailTab', () => {
 		const wrapper = mount(CnEmailTab, {
 			propsData: { objectId: 'o1', register: 'r1', schema: 's1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-email-tab__row')
 		expect(rows).toHaveLength(2)
 		// First row unread → carries the modifier class.
@@ -134,12 +130,10 @@ describe('CnEmailTab', () => {
 		const wrapper = mount(CnEmailTab, {
 			propsData: { objectId: 'o1', register: 'r1', schema: 's1', pageSize: 3 },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.vm.messages).toHaveLength(3)
 		await wrapper.find('.cn-sidebar-tab__load-more').trigger('click')
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.vm.messages).toHaveLength(5)
 		// Load-more hidden once we've drained `total`.
 		expect(wrapper.find('.cn-sidebar-tab__load-more').exists()).toBe(false)
@@ -161,8 +155,7 @@ describe('CnEmailTab', () => {
 		const wrapper = mount(CnEmailTab, {
 			propsData: { objectId: 'o1', register: 'r1', schema: 's1', pageSize: 3 },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.vm.messages).toHaveLength(3)
 		expect(wrapper.vm.total).toBe(10)
 		expect(wrapper.vm.nextCursor).toBe('1')
@@ -181,12 +174,10 @@ describe('CnEmailTab', () => {
 		const wrapper = mount(CnEmailTab, {
 			propsData: { objectId: 'o1', register: 'r1', schema: 's1', pageSize: 1 },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.vm.messages).toHaveLength(1)
 		await wrapper.find('.cn-sidebar-tab__load-more').trigger('click')
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.vm.messages).toHaveLength(2)
 		// The second fetch carried the cursor as `_page=1`.
 		const secondUrl = global.fetch.mock.calls[1][0]
@@ -202,8 +193,7 @@ describe('CnEmailTab', () => {
 		const wrapper = mount(CnEmailTab, {
 			propsData: { objectId: 'o1', register: '', schema: '' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(global.fetch).not.toHaveBeenCalled()
 		wrapper.unmount()
 	})
