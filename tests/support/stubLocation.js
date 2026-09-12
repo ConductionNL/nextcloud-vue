@@ -72,11 +72,9 @@ function implOf(wrapper) {
 	const key = Reflect.ownKeys(wrapper).find((k) => typeof k === 'symbol')
 
 	if (!key) {
-		throw new Error(
-			'stubLocation: no implementation symbol on window.location. '
+		throw new Error('stubLocation: no implementation symbol on window.location. '
 			+ 'jsdom has changed how it stores wrapper implementations, so this '
-			+ 'helper needs revisiting rather than working around.',
-		)
+			+ 'helper needs revisiting rather than working around.')
 	}
 
 	return wrapper[key]

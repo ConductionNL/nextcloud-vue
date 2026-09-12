@@ -25,10 +25,10 @@ jest.mock('@nextcloud/axios', () => ({
 
 import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
-import { stubLocationMethod } from '../support/stubLocation.js'
 const { useNamedSource } = require('../../src/components/CnIndexPage/useNamedSource.js')
 const { indexSources, resolveIndexSource, taskDueLabel, taskDeepLink } = require('../../src/composables/indexSources.js')
 const { useTaskInboxStore } = require('../../src/composables/useTaskInboxStore.js')
+const { stubLocationMethod } = require('../support/stubLocation.js')
 
 /** @return {object} The params of the most recent GET. */
 function lastParams() {

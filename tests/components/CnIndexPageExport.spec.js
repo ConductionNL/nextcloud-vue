@@ -13,10 +13,9 @@
  * tests/__mocks__/nextcloud-vue.js, which flattens slots into plain divs.
  */
 
-import { stubLocationMethod } from '../support/stubLocation.js'
-
 const { mount } = require('@vue/test-utils')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
+const { stubLocationMethod } = require('../support/stubLocation.js')
 
 const stubs = {
 	CnDataTable: true,
