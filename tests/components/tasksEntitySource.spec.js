@@ -28,6 +28,7 @@ import { nextTick, ref } from 'vue'
 const { useNamedSource } = require('../../src/components/CnIndexPage/useNamedSource.js')
 const { indexSources, resolveIndexSource, taskDueLabel, taskDeepLink } = require('../../src/composables/indexSources.js')
 const { useTaskInboxStore } = require('../../src/composables/useTaskInboxStore.js')
+const { stubLocationMethod } = require('../support/stubLocation.js')
 
 /** @return {object} The params of the most recent GET. */
 function lastParams() {
@@ -171,22 +172,22 @@ describe('the row mapping says state, due and priority in words', () => {
 describe('a row opens the task deep link', () => {
 	it('navigates to the openregister page, as a full URL', () => {
 		const source = indexSources.tasks()
-		const original = window.location
-		// A full stand-in, not a bare `{ assign }`: `generateUrl` reads
-		// `pathname`/`href` off the live location, and a partial stub breaks
-		// every later spec in the file, not this one.
-		delete window.location
-		window.location = { assign: jest.fn(), href: original.href, pathname: original.pathname }
+		// Only `assign` is faked, and the rest of the location is left real.
+		// That is deliberate: `generateUrl` reads `pathname`/`href` off the
+		// live location, and the old hand-rolled stand-in had to copy both
+		// back in to avoid breaking every later spec in this file. See
+		// `tests/support/stubLocation.js` for why the stand-in is gone.
+		const assign = stubLocationMethod('assign')
 
 		try {
 			source.openRow({ uuid: 't-9' })
-			expect(window.location.assign).toHaveBeenCalledWith(taskDeepLink('t-9'))
+			expect(assign).toHaveBeenCalledWith(taskDeepLink('t-9'))
 			expect(taskDeepLink('t-9')).toContain('/apps/openregister/flow-tasks/t-9')
 
 			source.openRow({})
-			expect(window.location.assign).toHaveBeenCalledTimes(1)
+			expect(assign).toHaveBeenCalledTimes(1)
 		} finally {
-			window.location = original
+			assign.mockRestore()
 		}
 	})
 })

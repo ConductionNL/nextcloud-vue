@@ -15,6 +15,7 @@
 
 const { mount } = require('@vue/test-utils')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
+const { stubLocationMethod } = require('../support/stubLocation.js')
 
 const stubs = {
 	CnDataTable: true,
@@ -49,9 +50,14 @@ describe('CnIndexPage — native Export menu', () => {
 	let assignSpy
 
 	beforeEach(() => {
-		assignSpy = jest.fn()
-		delete window.location
-		window.location = { pathname: '/', assign: assignSpy }
+		// jsdom's own `pathname` is already `/`, which is what this spec used
+		// to set by hand, so only `assign` needs faking. See
+		// `tests/support/stubLocation.js`.
+		assignSpy = stubLocationMethod('assign')
+	})
+
+	afterEach(() => {
+		assignSpy.mockRestore()
 	})
 
 	it('does not render the Export menu when allowExport is unset (default false)', () => {

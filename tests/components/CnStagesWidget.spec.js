@@ -245,15 +245,141 @@ describe('CnStagesWidget: reachability comes from the lifecycle', () => {
 	})
 
 	it('shows what a reachable move says about itself', async () => {
-		allowActions([{ action: 'close', to: 'st-done', description: 'Closes the case.', requires: 'A decision document.' }])
+		allowActions([{ action: 'close', to: 'st-done', description: 'Closes the case.' }])
 		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
 		await flush()
 
 		const note = w.find('[data-testid="cn-stages-widget-reason-st-done"]')
-		expect(note.text()).toBe('Closes the case. A decision document.')
+		expect(note.text()).toBe('Closes the case.')
 		expect(note.classes()).toContain('cn-stages-widget__reason')
 	})
 
+	// A PHP CLASS NAME IS NOT COPY. `requires` is the guard's
+	// dependency-injection tag, copied verbatim out of the schema annotation by
+	// OpenRegister, and it used to be concatenated onto the visible note. Every
+	// transition in the fleet that declares a guard showed it.
+	it('never puts what the move requires on screen', async () => {
+		allowActions([{
+			action: 'close',
+			to: 'st-done',
+			description: 'Closes the case.',
+			requires: 'OCA\\Dossiq\\Lifecycle\\BezwaarDeadlineGuard',
+		}])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-done"]').text()).toBe('Closes the case.')
+		expect(w.text()).not.toContain('OCA')
+		expect(w.text()).not.toContain('BezwaarDeadlineGuard')
+	})
+
+	// The 107 transitions across the fleet that declare a guard and NO
+	// description. The class name was the entire note there, so the fix has to
+	// leave nothing behind rather than an empty element under the stage.
+	it('renders no note at all for a move whose only annotation is its guard', async () => {
+		allowActions([{ action: 'enable', to: 'st-done', requires: 'OCA\\Hermiq\\Lifecycle\\AiFeatureDpoAckGuard' }])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-done"]').exists()).toBe(false)
+		expect(stageNode(w, 'st-done').attributes('aria-disabled')).toBeUndefined()
+		expect(w.text()).not.toContain('AiFeatureDpoAckGuard')
+	})
+})
+
+// OFFERED AND REFUSED IS A THIRD ANSWER. Before `blocked`, a move was either in
+// the list or absent, so "this move exists, you cannot take it right now, and
+// here is why" had nowhere to live and arrived as the generic widget-level
+// "not reachable from the current stage", which is a claim about the process
+// rather than about this record.
+describe('CnStagesWidget: a move that is offered but refused', () => {
+	const BLOCKED = {
+		action: 'beslissen',
+		to: 'st-done',
+		blocked: true,
+		description: 'The decision document is missing.',
+	}
+
+	it('disables the stage and shows the guard’s own reason on screen', async () => {
+		allowActions([BLOCKED])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(stageNode(w, 'st-done').attributes('aria-disabled')).toBe('true')
+		const reason = w.find('[data-testid="cn-stages-widget-reason-st-done"]')
+		expect(reason.text()).toBe('The decision document is missing.')
+		expect(reason.classes()).toContain('cn-stages-widget__reason')
+		expect(reason.classes()).not.toContain('cn-stages-widget__sr-only')
+	})
+
+	// The three refusals are three different claims and must not read alike.
+	it('reads differently from an unreachable stage and from a failed read', async () => {
+		allowActions([BLOCKED])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		// Blocked: the app's reason. Unreachable: the widget's wording. And no
+		// claim at all that the availability read failed.
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-done"]').text())
+			.toBe('The decision document is missing.')
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-work"]').text())
+			.toBe('Not reachable from the current stage')
+		expect(w.find('[data-testid="cn-stages-widget-actions-error"]').exists()).toBe(false)
+	})
+
+	it('says something when the blocked stage is clicked, rather than nothing', async () => {
+		allowActions([BLOCKED])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(w.find('[data-testid="cn-stages-widget-blocked"]').exists()).toBe(false)
+		await stageNode(w, 'st-done').trigger('click')
+		await flush()
+
+		expect(w.find('[data-testid="cn-stages-widget-blocked"]').text())
+			.toBe('The decision document is missing.')
+		expect(axios.post).not.toHaveBeenCalled()
+	})
+
+	// A guard that refuses without saying why still has to produce a sentence:
+	// a dimmed stage that explains nothing is what this whole branch exists to
+	// stop.
+	it('falls back to its own words when the guard gave no reason', async () => {
+		allowActions([{ action: 'beslissen', to: 'st-done', blocked: true }])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-done"]').text())
+			.toBe('This move is not possible right now')
+	})
+
+	// FAILS CLOSED TWICE. The strip disables the stage, and the move method
+	// refuses it as well, so no path through the component POSTs a transition a
+	// guard has already refused.
+	it('refuses the move even when the click arrives some other way', async () => {
+		allowActions([BLOCKED])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		w.vm.onStageClick({ stage: { id: 'st-done' } })
+		await flush()
+
+		expect(axios.post).not.toHaveBeenCalled()
+	})
+
+	// A blocked move is still a move, so the stage is NOT absent from the
+	// process: it keeps its place and only loses its click.
+	it('leaves the stages an action really does reach alone', async () => {
+		allowActions([BLOCKED, { action: 'start', to: 'st-work', description: 'Start work.' }])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(stageNode(w, 'st-work').attributes('aria-disabled')).toBeUndefined()
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-work"]').text()).toBe('Start work.')
+	})
+})
+
+describe('CnStagesWidget: before the allowed moves are known', () => {
 	// NOT READ YET IS NOT "NO MOVES ALLOWED". Collapsing the two would leave
 	// the strip clickable for the length of one request.
 	it('blocks every stage until the actions have been read', async () => {

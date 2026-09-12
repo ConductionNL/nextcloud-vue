@@ -11,6 +11,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { stubLocationMethod } from '../support/stubLocation.js'
 
 // Admin/non-admin gating boundary.
 jest.mock('@nextcloud/auth', () => ({
@@ -85,19 +86,18 @@ describe('CnDependencyMissing', () => {
 		})
 
 		it('calls mockInstallAndEnable and reloads on success', async () => {
-			const reload = jest.fn()
-			const original = window.location
-			delete window.location
-			window.location = { reload }
+			const reload = stubLocationMethod('reload')
 
-			const wrapper = mountDep({ dependencies: [{ id: 'openregister', name: 'OpenRegister' }] })
-			await wrapper.find('[data-testid="cn-dependency-missing-install"]').trigger('click')
-			await Promise.resolve()
+			try {
+				const wrapper = mountDep({ dependencies: [{ id: 'openregister', name: 'OpenRegister' }] })
+				await wrapper.find('[data-testid="cn-dependency-missing-install"]').trigger('click')
+				await Promise.resolve()
 
-			expect(mockInstallAndEnable).toHaveBeenCalledWith('openregister')
-			expect(reload).toHaveBeenCalled()
-
-			window.location = original
+				expect(mockInstallAndEnable).toHaveBeenCalledWith('openregister')
+				expect(reload).toHaveBeenCalled()
+			} finally {
+				reload.mockRestore()
+			}
 		})
 
 		it('shows the error and keeps the store link on failure', async () => {
