@@ -972,15 +972,17 @@ export default {
 			this.page = 1
 			this.fetchRows()
 		},
+
 		// The create-dialog schema is cached per instance, and an instance can
 		// be retargeted (CnRelatedCollections keys its children by index, so a
 		// reordered entry reuses the component). A schema resolved for the OLD
 		// register is exactly the wrong-app schema the register scoping above
 		// exists to prevent — drop it so the next open resolves it again.
-		'content.register'() {
+		'content.register': function() {
 			this.forgetCreateSchema()
 		},
-		'content.schema'() {
+
+		'content.schema': function() {
 			this.forgetCreateSchema()
 		},
 	},
