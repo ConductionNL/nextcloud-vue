@@ -473,6 +473,8 @@ async function executeAgentAction(action, context) {
  *   dialog), or `{}` for a node with no declared fields.
  * @return {Promise<{ok: boolean, data?: object, error?: Error}>} The call outcome —
  *   `data` is the created `FlowRun` on success.
+ *
+ * @spec openspec/changes/manifest-run-node-action/specs/manifest-run-node-action/spec.md#requirement-a-run-node-action-invokes-one-flow-node-against-the-page-object
  */
 export async function postRunNode(action, context, config = {}) {
 	const tokenCtx = context.tokenCtx || {}

@@ -650,6 +650,8 @@ export default {
 		 *
 		 * @param {object} entry The run-node action (`flowId`, `nodeId`, ...).
 		 * @return {Promise<void>}
+		 *
+		 * @spec openspec/changes/manifest-run-node-action/specs/manifest-run-node-action/spec.md#requirement-the-nodes-own-config-form-drives-the-dialog-not-a-new-token
 		 */
 		async openRunNode(entry) {
 			const flowId = entry.flowId
@@ -700,6 +702,8 @@ export default {
 		 *
 		 * @param {object} config The dialog's collected field values.
 		 * @return {Promise<void>}
+		 *
+		 * @spec openspec/changes/manifest-run-node-action/specs/manifest-run-node-action/spec.md#requirement-a-run-node-action-invokes-one-flow-node-against-the-page-object
 		 */
 		async onRunNodeConfirm(config) {
 			const entry = this.runNodeEntry
