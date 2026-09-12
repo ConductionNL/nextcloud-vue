@@ -96,6 +96,24 @@ function mountWidget(content, record = { id: 'case-1', caseType: 'ct-1', status:
 }
 
 /**
+ * An axios-shaped rejection.
+ *
+ * Axios throws an Error carrying `response`, so the fixture is an Error too.
+ * A bare object also trips `prefer-promise-reject-errors`, and the rule is
+ * right: a rejection that is not an Error carries no stack, so a spec that
+ * fails on it reports nothing about where it came from.
+ *
+ * @param {number} [status] The HTTP status.
+ * @param {object} [data] The response body.
+ * @return {Error} The rejection.
+ */
+function axiosError(status, data) {
+	const error = new Error(`Request failed with status code ${status}`)
+	error.response = { status, ...(data !== undefined ? { data } : {}) }
+	return error
+}
+
+/**
  * The stage node for a stage id.
  *
  * @param {object} wrapper The widget wrapper.
@@ -312,7 +330,7 @@ describe('CnStagesWidget: moving the record', () => {
 
 	it('shows OpenRegister’s refusal and stays on the stage', async () => {
 		allowActions([{ action: 'close', to: 'st-done' }])
-		axios.post.mockRejectedValue({ response: { status: 403, data: { error: 'Only a coordinator may close a case.' } } })
+		axios.post.mockRejectedValue(axiosError(403, { error: 'Only a coordinator may close a case.' }))
 		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
 		await flush()
 
@@ -720,7 +738,7 @@ describe('CnStagesWidget: a failed read is not a policy decision', () => {
 	function failActionsWith(status) {
 		axios.get.mockImplementation((url) => {
 			if (url.includes('blueprint')) return Promise.resolve({ data: BLUEPRINT })
-			return Promise.reject({ response: { status } })
+			return Promise.reject(axiosError(status))
 		})
 	}
 

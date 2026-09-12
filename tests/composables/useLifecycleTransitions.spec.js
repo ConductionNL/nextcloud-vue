@@ -26,6 +26,21 @@ import {
 	transitionError,
 } from '../../src/composables/useLifecycleTransitions.js'
 
+/**
+ * An axios-shaped rejection: an Error carrying `response`, which is what axios
+ * actually throws. A bare object has no stack, so a spec failing on one says
+ * nothing about where it came from.
+ *
+ * @param {number} [status] The HTTP status.
+ * @param {object} [data] The response body.
+ * @return {Error} The rejection.
+ */
+function axiosError(status, data) {
+	const error = new Error(`Request failed with status code ${status}`)
+	error.response = { status, ...(data !== undefined ? { data } : {}) }
+	return error
+}
+
 beforeEach(() => {
 	axios.get.mockReset()
 	axios.post.mockReset()
@@ -44,7 +59,7 @@ describe('readAvailableActions', () => {
 	// A 404 IS AN ANSWER. A schema without a lifecycle is a legitimate schema:
 	// there are no moves, and that is a fact about the record, not a fault.
 	it('reads a missing lifecycle as no moves, and not as a failure', async () => {
-		axios.get.mockRejectedValue({ response: { status: 404 } })
+		axios.get.mockRejectedValue(axiosError(404))
 		expect(await readAvailableActions('case-1')).toEqual({ actions: [], failed: false })
 	})
 
@@ -56,7 +71,7 @@ describe('readAvailableActions', () => {
 		[503],
 		[undefined],
 	])('reports a %p as a failure', async (status) => {
-		axios.get.mockRejectedValue(status ? { response: { status } } : new Error('Network Error'))
+		axios.get.mockRejectedValue(status ? axiosError(status) : new Error('Network Error'))
 		expect(await readAvailableActions('case-1')).toEqual({ actions: [], failed: true })
 	})
 
@@ -96,7 +111,7 @@ describe('performTransition', () => {
 
 	// The caller decides where a refusal is shown, so the error travels.
 	it('throws the refusal through', async () => {
-		axios.post.mockRejectedValue({ response: { status: 403, data: { error: 'Only a coordinator may close.' } } })
+		axios.post.mockRejectedValue(axiosError(403, { error: 'Only a coordinator may close.' }))
 		await expect(performTransition('c', 'close')).rejects.toBeTruthy()
 	})
 })
