@@ -116,11 +116,20 @@ export function normalizeStages(rows, cfg = {}) {
  *
  *  - `@self`, which is OpenRegister's server-owned metadata envelope and not a
  *    property of the record at all;
- *  - `null`, `{}` and `[]`, which OpenRegister refuses on an object property.
- *    It says so by rejecting the whole write, so a record carrying one empty
- *    object property could not change its stage at all. Omitting the key is
- *    the documented answer, and an absent property and an empty one mean the
- *    same thing to OpenRegister, so nothing is lost by leaving it out.
+ *  - `null` and `{}`, which OpenRegister refuses on an object property. It
+ *    says so by rejecting the whole write, so a record carrying one empty
+ *    object property could not change its stage at all, and omitting the key
+ *    is the documented answer.
+ *
+ * An empty ARRAY is deliberately NOT dropped, though an earlier version of
+ * this did drop it. The justification above covers an object property, and an
+ * array property holding `[]` is a different thing: a list somebody emptied on
+ * purpose. Dropping it is only safe if this PUT replaces rather than merges,
+ * and that is not something to assume from the client. If it merges, dropping
+ * `[]` silently restores the values the person just removed, which is data
+ * loss nobody sees. Sending it risks a refusal instead, which is loud, visible
+ * and diagnosable. Between a silent wrong answer and a noisy one, take the
+ * noise.
  *
  * `{ kind: 'field' }` is an explicit opt-in, NOT the registry default, which is
  * `{ kind: 'lifecycle' }`. Nothing validates this write, so an app reaches it
@@ -138,7 +147,6 @@ export function stageSavePayload(record, id, field, stageId, extra = {}) {
 	for (const [key, value] of Object.entries(record || {})) {
 		if (key === '@self') continue
 		if (value === null) continue
-		if (Array.isArray(value) && value.length === 0) continue
 		if (value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) continue
 		payload[key] = value
 	}

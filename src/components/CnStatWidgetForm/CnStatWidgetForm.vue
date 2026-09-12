@@ -294,7 +294,7 @@
 				</template>
 			</NcButton>
 		</div>
-		<NcButton variant="tertiary" @click="addRow('overrideRows', { field: '', op: 'truthy', value: '', label: '', variant: 'warning', icon: '', whenRest: {}, rest: {} })">
+		<NcButton variant="tertiary" @click="addRow('overrideRows', { field: '', op: 'truthy', value: '', valueRaw: undefined, label: '', variant: 'warning', icon: '', whenRest: {}, rest: {} })">
 			<template #icon>
 				<Plus :size="18" />
 			</template>
@@ -372,6 +372,22 @@ function variantMapToRows(map) {
 }
 
 /**
+ * The value an override row writes back.
+ *
+ * The editor's input is a text box, so what it hands back is always a string.
+ * A row whose text is unchanged writes the value the manifest stored, type
+ * included, so a number stays a number. A row somebody actually edited writes
+ * the string they typed, which is the only honest reading of a text field.
+ *
+ * @param {{value: string, valueRaw: *}} row The override row.
+ * @return {*} The value to store.
+ */
+function overrideValue(row) {
+	if (row.valueRaw !== undefined && String(row.valueRaw) === row.value) return row.valueRaw
+	return row.value
+}
+
+/**
  * Seed the special-state rows from stored `overrides`.
  *
  * @param {Array|undefined} overrides The stored overrides.
@@ -395,6 +411,12 @@ function overridesToRows(overrides) {
 			field,
 			op: compares ? (op || 'eq') : 'truthy',
 			value: compares && value !== undefined && value !== null ? String(value) : '',
+			// The value the manifest actually stored, kept beside the text the
+			// field edits. The input is a text box, so everything it produces
+			// is a string, and a stored `{ op: 'gt', value: 5 }` round-tripped
+			// to `'5'` merely by opening the editor. `5 > '5'` and `5 > 5` are
+			// not the same comparison.
+			valueRaw: compares ? value : undefined,
 			label: label || '',
 			variant: variant || 'warning',
 			icon: icon || '',
@@ -642,7 +664,7 @@ export default {
 					if (row.opaque !== undefined) return row.opaque
 					const when = row.op === 'truthy'
 						? { ...row.whenRest, field: row.field }
-						: { ...row.whenRest, field: row.field, op: row.op, value: row.value }
+						: { ...row.whenRest, field: row.field, op: row.op, value: overrideValue(row) }
 					const override = { ...row.rest, when }
 					if (row.label) override.label = row.label
 					if (row.variant) override.variant = row.variant

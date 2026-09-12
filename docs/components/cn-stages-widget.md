@@ -4,7 +4,7 @@ The stages a record moves through, as a placeable widget. Clicking a stage moves
 
 Registered in the widget catalog under the `stages` type, on the **detail-page** surface only, and configured by [`CnStagesWidgetForm`](./cn-stages-widget-form.md). It draws the strip with [`CnTimelineStages`](./cn-timeline-stages.md), reads the current stage off the bound record, and moves the record through OpenRegister's lifecycle when a reachable stage is clicked. Nothing about the record type is hard-coded, so a case, a request and a deal all use the same widget with different config.
 
-It is the same contract [`CnLifecycleActions`](./cn-lifecycle-actions.md) speaks, rendered differently. That component draws the allowed moves as buttons, this one draws them as a timeline. Both go through the same shared code, so there is one place that knows what a transition is.
+It is the same contract [`CnLifecycleActions`](./cn-lifecycle-actions.md) speaks, rendered differently. That component draws the allowed moves as buttons, this one draws them as a timeline. Both call `useLifecycleTransitions`, so reading the allowed actions, performing a transition and turning a refusal into a sentence exist once rather than twice.
 
 This replaces the hand-written transition strip an app used to ship as its own component. A hand-written strip cannot be moved, resized or removed by the person who owns the page, and it has to be rewritten in every app that wants one.
 
@@ -46,7 +46,13 @@ That is the whole guard, and it is why there is nothing here to configure. There
 
 `description` and `requires` from a reachable action become the note beside the stage, so the person can see what the move does before making it. Neither is a gate: OpenRegister has already filtered the list, and it re-validates the move.
 
-A stage no action reaches carries screen-reader text saying so. `unreachableReason` replaces the default wording when an app has better words for its own process.
+A stage no action reaches is dimmed and carries its reason on screen, not only for a screen reader, and clicking it repeats that reason in a live region under the strip. A control that silently does nothing reads as broken, and a blocked stage that looks the same as one further down the process tells nobody anything. `unreachableReason` replaces the default wording when an app has better words for its own process.
+
+### When the guard cannot be read
+
+A 404 means the schema declares no lifecycle. That is an answer: there are no moves, and each stage says it is not reachable.
+
+A 500, a timeout or a dropped connection is not an answer. The widget says the guard could not be checked, once, under the strip, and every stage stays disabled without claiming anything about itself. Saying "not reachable from the current stage" there would state confidently something nobody has checked.
 
 ## Moving the record
 
@@ -90,12 +96,12 @@ A `kind` the widget does not know reads as read only, so a typo cannot silently 
 
 ## Notes
 
-- Nothing is clickable before the allowed actions have been read. "Not read yet" and "no move allowed" are different states, and collapsing them would leave the strip clickable for the length of one request.
-- The strip stays blocked from a move until the fresh action list arrives, because until then the list in hand describes the stage the record has just left.
+- Nothing is clickable before the allowed actions have been read, and a stage says nothing about itself while the answer is unknown. "Not read yet" and "no move allowed" are different states, and collapsing them would both leave the strip clickable for the length of one request and let it make a claim nobody has checked.
+- The list stops being authoritative the moment a re-read starts, not when the replacement lands. That covers a move made somewhere else, by another widget or another person, which reaches the widget with no move of its own in flight.
 - The current stage carries `aria-current="step"` and nothing else. It is not a move, and it is not blocked either, so it is not announced as blocked. Clicking it does nothing, which stops a stray click re-firing the move that just landed.
 - A move in flight keeps every stage's focus stop and marks the stages disabled. Taking the stops away would drop a keyboard user's focus to the page body with nothing to restore it to.
 - A re-read record is authoritative whatever it says, so a call the server accepted without moving anything does not leave the strip claiming a stage.
-- On the `field` opt-in the save carries the record's own properties, minus the `@self` envelope and minus anything holding `null`, `{}` or `[]`, which OpenRegister refuses on an object property. A record with no id at all is refused rather than saved, because the save would create a duplicate instead of updating it.
+- On the `field` opt-in the save carries the record's own properties, minus the `@self` envelope and minus anything holding `null` or `{}`, which OpenRegister refuses on an object property. An empty list is kept: emptying it was a decision, and dropping it would only be safe if the write replaced rather than merged. A record with no id at all is refused rather than saved, because the save would create a duplicate instead of updating it.
 - The strip carries `role="list"` with `ariaLabel` as its name, so a screen reader announces what the stages belong to.
 
 Next: configure a placement with [`CnStagesWidgetForm`](./cn-stages-widget-form.md), or put the same moves in a button row with [`CnLifecycleActions`](./cn-lifecycle-actions.md).

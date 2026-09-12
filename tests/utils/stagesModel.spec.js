@@ -73,11 +73,19 @@ describe('stageSavePayload', () => {
 	// OpenRegister REFUSES {}, [] and null on an object property, and says so by
 	// rejecting the whole write. Sending the record straight back meant a case
 	// carrying one empty object property could not change its stage at all.
-	it('omits the shapes OpenRegister refuses', () => {
+	it('omits the shapes OpenRegister refuses on an object property', () => {
 		const payload = stageSavePayload(record, 'c-1', 'status', 'st-work')
 		expect(payload).not.toHaveProperty('assignee')
-		expect(payload).not.toHaveProperty('attachments')
 		expect(payload).not.toHaveProperty('address')
+	})
+
+	// AN EMPTY LIST IS A VALUE SOMEBODY CHOSE. Dropping it is only safe if this
+	// PUT replaces rather than merges, and that is not something to assume from
+	// the client: if it merges, the values the person just removed come back
+	// after a stage move, silently. A refusal would at least be visible.
+	it('keeps an empty array, because emptying a list is a decision', () => {
+		const payload = stageSavePayload(record, 'c-1', 'status', 'st-work')
+		expect(payload.attachments).toEqual([])
 	})
 
 	it('keeps falsey values that are not empty', () => {

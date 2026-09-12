@@ -626,8 +626,10 @@ describe('CnStagesWidget: the field opt-in', () => {
 		const body = JSON.parse(init.body)
 		expect(body).not.toHaveProperty('@self')
 		expect(body).not.toHaveProperty('applicant')
-		expect(body).not.toHaveProperty('documents')
 		expect(body).not.toHaveProperty('closedAt')
+		// An empty LIST travels: emptying it was a decision, and dropping it is
+		// only safe if this PUT replaces rather than merges.
+		expect(body.documents).toEqual([])
 		expect(body).toMatchObject({ id: 'case-1', status: 'st-work', caseType: 'ct-1', reference: 'Z-2026-1' })
 	})
 

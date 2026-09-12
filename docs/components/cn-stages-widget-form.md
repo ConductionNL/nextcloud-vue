@@ -14,7 +14,7 @@ The form is grouped the way a person thinks about the widget.
 
 There is no guard section, because there is no guard to configure. OpenRegister answers which stages are reachable and re-validates every move, so a manifest cannot map a field name badly and lose the guard. See [`CnStagesWidget`](./cn-stages-widget.md) for what each key does at render time.
 
-Keys the form does not show are kept and written back on save, so config an app hand-wrote into its manifest survives a trip through the editor.
+Keys the form does not show are kept and written back on save, so config an app hand-wrote into its manifest survives a trip through the editor. That includes a `transition` whose `kind` this version does not recognise: the picker reads it as read only, because a typo must not select a mode nobody asked for, but the block is kept exactly as stored and the form says so. Only picking read only deliberately removes it.
 
 ## Props
 

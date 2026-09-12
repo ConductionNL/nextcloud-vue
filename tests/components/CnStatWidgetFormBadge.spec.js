@@ -215,6 +215,42 @@ describe('CnStatWidgetForm: display, empty text and special states', () => {
 		expect(emitted.label).toBe('On hold')
 	})
 
+	// A TEXT BOX PRODUCES STRINGS, and opening the editor should not be an edit.
+	// A stored `{ op: 'gt', value: 5 }` round-tripped to `'5'` merely by being
+	// looked at, and `5 > '5'` is not the comparison the manifest asked for.
+	it('keeps a numeric override value a number when nobody retyped it', () => {
+		const stored = {
+			...dossiqStatus,
+			overrides: [{ when: { field: 'daysOpen', op: 'gt', value: 5 }, label: 'Overdue', variant: 'error' }],
+		}
+		const w = mountForm(stored)
+		w.vm.updateRow('overrideRows', 0, 'label', 'Late')
+
+		expect(w.emitted('update:content').at(-1)[0].overrides[0].when.value).toBe(5)
+	})
+
+	it('keeps a boolean override value a boolean', () => {
+		const stored = {
+			...dossiqStatus,
+			overrides: [{ when: { field: 'archived', op: 'eq', value: true }, label: 'Archived' }],
+		}
+		const w = mountForm(stored)
+		w.vm.updateRow('overrideRows', 0, 'label', 'Filed')
+
+		expect(w.emitted('update:content').at(-1)[0].overrides[0].when.value).toBe(true)
+	})
+
+	it('writes what was typed once somebody actually edits the value', () => {
+		const stored = {
+			...dossiqStatus,
+			overrides: [{ when: { field: 'daysOpen', op: 'gt', value: 5 }, label: 'Overdue' }],
+		}
+		const w = mountForm(stored)
+		w.vm.updateRow('overrideRows', 0, 'value', '10')
+
+		expect(w.emitted('update:content').at(-1)[0].overrides[0].when.value).toBe('10')
+	})
+
 	it('keeps a clause of the when grammar it cannot draw', () => {
 		const w = mountForm(dossiqStatus)
 		w.vm.updateRow('overrideRows', 1, 'variant', 'error')
