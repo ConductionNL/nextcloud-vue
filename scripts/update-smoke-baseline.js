@@ -54,7 +54,7 @@ const previous = fs.existsSync(BASELINE) ? fs.readFileSync(BASELINE, 'utf8') : n
 const priorNotes = (() => {
 	try {
 		return JSON.parse(previous || '{}').notes || {}
-	} catch (e) {
+	} catch {
 		return {}
 	}
 })()
@@ -62,7 +62,9 @@ const priorNotes = (() => {
 // Empty the baseline so every current failure is reported rather than tolerated.
 fs.writeFileSync(BASELINE, JSON.stringify({ knownFailing: {} }, null, '\t') + '\n')
 
-let out = ''
+// Both branches below assign it: a successful run gives stdout, and a
+// non-zero exit is the expected path whose output is this script's input.
+let out
 try {
 	out = execFileSync('npx', ['jest', '--config', 'jest.smoke.config.js', '--silent'], {
 		cwd: ROOT,
@@ -87,7 +89,9 @@ const knownFailing = {}
 const lines = out.split('\n')
 for (let i = 0; i < lines.length; i++) {
 	const m = lines[i].match(/●\s+real-render smoke sweep\s+›\s+(Cn[A-Za-z0-9]+) mounts and renders clean/)
-	if (!m) continue
+	if (!m) {
+		continue
+	}
 	const name = m[1]
 	// Look ahead for the "threw:" / "warned:" detail line the spec emits.
 	let reason = 'unknown'
@@ -102,13 +106,17 @@ for (let i = 0; i < lines.length; i++) {
 }
 
 const sorted = {}
-for (const k of Object.keys(knownFailing).sort()) sorted[k] = knownFailing[k]
+for (const k of Object.keys(knownFailing).sort()) {
+	sorted[k] = knownFailing[k]
+}
 
 // Keep notes for entries that are still failing; drop the rest so the file does
 // not accumulate commentary about components that were fixed long ago.
 const notes = {}
 for (const k of Object.keys(sorted)) {
-	if (priorNotes[k]) notes[k] = priorNotes[k]
+	if (priorNotes[k]) {
+		notes[k] = priorNotes[k]
+	}
 }
 
 const payload = {

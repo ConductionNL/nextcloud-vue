@@ -95,8 +95,15 @@ export default [
 	},
 	{
 		files: [
-			'eslint/**', 'testing/**', 'scripts/**', 'e2e/**', 'src/cli/**',
-			'**/*.cjs', '*.config.js', '*.config.mjs', '*.config.cjs',
+			'eslint/**',
+			'testing/**',
+			'scripts/**',
+			'e2e/**',
+			'src/cli/**',
+			'**/*.cjs',
+			'*.config.js',
+			'*.config.mjs',
+			'*.config.cjs',
 		],
 		languageOptions: {
 			globals: { ...globals.node },
@@ -236,7 +243,19 @@ export default [
 		// and minimal JSDoc are intentional for build tools. The `n/*` and
 		// `import/*` relaxations that used to live here went with their
 		// plugins; the JSDoc ones remain.
-		files: ['src/cli/**/*.js', 'src/cli/**/*.cjs'],
+		//
+		// `scripts/**` joins them for the same reason, and for one more: what a
+		// build script prints IS its interface. Its console lines are read by
+		// whoever ran it and by the CI log, so they are output, not a leftover
+		// diagnostic, and 71 of them were the largest block of findings outside
+		// the published source.
+		files: [
+			'src/cli/**/*.js',
+			'src/cli/**/*.cjs',
+			'scripts/**/*.js',
+			'scripts/**/*.mjs',
+			'scripts/**/*.cjs',
+		],
 		rules: {
 			'no-console': 'off',
 			'jsdoc/require-param-description': 'off',

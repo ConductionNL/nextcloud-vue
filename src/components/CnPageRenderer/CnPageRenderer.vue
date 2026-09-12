@@ -449,7 +449,7 @@ export default {
 		 * components rendered by the renderer can `inject('cnTranslate')`
 		 * via the consumer's setup.
 		 *
-		 * @type {?(text: string, placeholders?: object) => string}
+		 * @type {((text: string, placeholders?: object) => string)|null}
 		 */
 		translate: {
 			type: Function,

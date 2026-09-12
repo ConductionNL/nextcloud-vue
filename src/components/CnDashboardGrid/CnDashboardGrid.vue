@@ -210,7 +210,7 @@ export default {
 		 * doesn't capture (e.g. style edits — return `${item.id}:${item.updatedAt}`).
 		 * Default `null` = key on `item.id`.
 		 *
-		 * @type {?(item: object) => (string|number)}
+		 * @type {((item: object) => (string|number))|null}
 		 */
 		itemKey: {
 			type: Function,
@@ -235,7 +235,7 @@ export default {
 		 * `widgetTitle` → `widgetId`, then a positional "Widget N"). The returned
 		 * string is used verbatim — no coordinates are appended.
 		 *
-		 * @type {?(item: object, index: number) => string}
+		 * @type {((item: object, index: number) => string)|null}
 		 */
 		itemLabel: {
 			type: Function,

@@ -14,14 +14,11 @@
 
 'use strict'
 
+const addFormats = require('ajv-formats')
+const Ajv2020 = require('ajv/dist/2020')
+const standaloneCode = require('ajv/dist/standalone')
 const fs = require('fs')
 const path = require('path')
-// eslint-disable-next-line n/no-unpublished-require
-const Ajv2020 = require('ajv/dist/2020')
-// eslint-disable-next-line n/no-unpublished-require
-const addFormats = require('ajv-formats')
-// eslint-disable-next-line n/no-unpublished-require
-const standaloneCode = require('ajv/dist/standalone')
 
 // ajv and ajv-formats export default via CJS interop differently depending on
 // bundler / Node version — unwrap .default when present.
@@ -170,5 +167,5 @@ const banner = `// SPDX-License-Identifier: EUPL-1.2
 fs.writeFileSync(outPath, banner + moduleCode)
 
 const kb = (moduleCode.length / 1024).toFixed(1)
-// eslint-disable-next-line no-console
+
 console.log(`build-validators: wrote ${path.relative(process.cwd(), outPath)} (${kb} KB)`)

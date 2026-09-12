@@ -1395,7 +1395,7 @@ export default {
 		 *
 		 * When absent, create behaviour is unchanged (store / self-store save).
 		 *
-		 * @type {?(formData: object, ctx: { register: string, schema: (object|string), objectType: string, effectiveSchema: object }) => Promise<object>}
+		 * @type {((formData: object, ctx: { register: string, schema: (object|string), objectType: string, effectiveSchema: object }) => Promise<object>)|null}
 		 */
 		createOverride: {
 			type: Function,

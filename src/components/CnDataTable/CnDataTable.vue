@@ -637,7 +637,7 @@ export default {
 		 * receives the clicked row and returns a vue-router route to push. When
 		 * set, a row click navigates there (the `row-click` event still fires).
 		 *
-		 * @type {?(row: object) => object}
+		 * @type {((row: object) => object)|null}
 		 */
 		rowClickRoute: {
 			type: Function,
