@@ -14,7 +14,7 @@
  * set must not get the tour rendered.
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({
@@ -65,10 +65,7 @@ const walkthroughManifest = {
  * @return {Promise<void>}
  */
 async function settle() {
-	await Promise.resolve()
-	await Promise.resolve()
-	await nextTick()
-	await nextTick()
+	await flushPromises()
 }
 
 /**

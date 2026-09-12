@@ -15,7 +15,7 @@
  *  - 501 + 503 + generic-error degradation paths.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnFlowTab = require('../CnFlowTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -62,8 +62,7 @@ describe('CnFlowTab', () => {
 	it('renders the empty state with an "Open Workflow settings" CTA when no operations', async () => {
 		global.fetch.mockReturnValueOnce(resolveOnce(envelope([], false)))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No automations linked yet')
 		expect(wrapper.text()).toContain('Open Workflow settings')
 		wrapper.unmount()
@@ -72,8 +71,7 @@ describe('CnFlowTab', () => {
 	it('renders a row with title, entity and operation summary', async () => {
 		global.fetch.mockReturnValueOnce(resolveOnce(envelope([makeOp()], false)))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-flow-tab__row')
 		expect(rows).toHaveLength(1)
 		// The rule name is bound to the NcListItem `name` attribute.
@@ -90,8 +88,7 @@ describe('CnFlowTab', () => {
 	it('renders trigger-event chips shortened to the method name', async () => {
 		global.fetch.mockReturnValueOnce(resolveOnce(envelope([makeOp()], false)))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const chips = wrapper.findAll('.cn-flow-tab__chip')
 		expect(chips.length).toBeGreaterThan(0)
 		expect(chips.at(0).text()).toBe('postCreate')
@@ -101,8 +98,7 @@ describe('CnFlowTab', () => {
 	it('renders a condition count when checks are present', async () => {
 		global.fetch.mockReturnValueOnce(resolveOnce(envelope([makeOp()], false)))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('1 conditions')
 		wrapper.unmount()
 	})
@@ -110,8 +106,7 @@ describe('CnFlowTab', () => {
 	it('marks operations with explicit enabled:false as disabled', async () => {
 		global.fetch.mockReturnValueOnce(resolveOnce(envelope([makeOp({ enabled: false })], false)))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.find('.cn-flow-tab__row--disabled').exists()).toBe(true)
 		expect(wrapper.find('.cn-flow-tab__enabled--off').exists()).toBe(true)
 		expect(wrapper.text()).toContain('Disabled')
@@ -121,8 +116,7 @@ describe('CnFlowTab', () => {
 	it('admin sees the "Link existing automation" button + per-row unlink', async () => {
 		global.fetch.mockReturnValueOnce(resolveOnce(envelope([makeOp()], true)))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.vm.isAdmin).toBe(true)
 		expect(wrapper.find('[data-testid="cn-flow-tab-link"]').exists()).toBe(true)
 		expect(wrapper.find('[data-testid="cn-flow-tab-unlink"]').exists()).toBe(true)
@@ -132,8 +126,7 @@ describe('CnFlowTab', () => {
 	it('non-admin sees neither link button nor per-row unlink', async () => {
 		global.fetch.mockReturnValueOnce(resolveOnce(envelope([makeOp()], false)))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.vm.isAdmin).toBe(false)
 		expect(wrapper.find('[data-testid="cn-flow-tab-link"]').exists()).toBe(false)
 		expect(wrapper.find('[data-testid="cn-flow-tab-unlink"]').exists()).toBe(false)
@@ -143,8 +136,7 @@ describe('CnFlowTab', () => {
 	it('shows the 501 banner when Flow is not installed', async () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({}, 501))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Workflow Engine is not installed.')
 		wrapper.unmount()
 	})
@@ -152,8 +144,7 @@ describe('CnFlowTab', () => {
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({}, 503))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Flow is currently unavailable.')
 		expect(wrapper.find('.cn-flow-tab__row').exists()).toBe(false)
 		wrapper.unmount()
@@ -163,8 +154,7 @@ describe('CnFlowTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch.mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load automations.')
 		wrapper.unmount()
 		spy.mockRestore()
@@ -173,8 +163,7 @@ describe('CnFlowTab', () => {
 	it('falls back to the shortened class name when name is absent', async () => {
 		global.fetch.mockReturnValueOnce(resolveOnce(envelope([makeOp({ operationName: '' })], false)))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		// Fallback name is bound to the NcListItem `name` attribute.
 		expect(wrapper.find('.cn-flow-tab__row').attributes('name')).toBe('GenericOperation')
 		wrapper.unmount()

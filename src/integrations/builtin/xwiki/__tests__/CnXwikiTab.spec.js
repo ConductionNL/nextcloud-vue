@@ -11,7 +11,7 @@
  *  - generic-error fallback when fetch throws.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnXwikiTab = require('../CnXwikiTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -58,8 +58,7 @@ describe('CnXwikiTab', () => {
 	it('renders the empty state when no pages are linked', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnXwikiTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No XWiki pages linked yet')
 		expect(wrapper.find('.cn-xwiki-tab__row').exists()).toBe(false)
 		expect(wrapper.find('.cn-xwiki-tab__banner').exists()).toBe(false)
@@ -75,8 +74,7 @@ describe('CnXwikiTab', () => {
 			}),
 		})
 		const wrapper = mount(CnXwikiTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-xwiki-tab__row')
 		expect(rows).toHaveLength(1)
 		// Title is passed to NcListItem via the `name` prop (rendered as the `name` attribute).
@@ -97,9 +95,7 @@ describe('CnXwikiTab', () => {
 	it('shows the "Configure XWiki connection" CTA when the Integriq source is missing', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce(unavailable('openconnector-source-missing'))
 		const wrapper = mount(CnXwikiTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const banner = wrapper.find('.cn-xwiki-tab__banner')
 		expect(banner.exists()).toBe(true)
 		expect(banner.classes()).toContain('cn-xwiki-tab__banner--unconfigured')
@@ -113,9 +109,7 @@ describe('CnXwikiTab', () => {
 	it('shows the unconfigured banner when Integriq itself is down', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce(unavailable('openconnector-down'))
 		const wrapper = mount(CnXwikiTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const banner = wrapper.find('.cn-xwiki-tab__banner')
 		expect(banner.exists()).toBe(true)
 		expect(banner.classes()).toContain('cn-xwiki-tab__banner--unconfigured')
@@ -126,9 +120,7 @@ describe('CnXwikiTab', () => {
 	it('shows the auth-failure banner with a Reconnect CTA when the source credentials are bad', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce(unavailable('provider-auth'))
 		const wrapper = mount(CnXwikiTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const banner = wrapper.find('.cn-xwiki-tab__banner')
 		expect(banner.exists()).toBe(true)
 		expect(banner.classes()).toContain('cn-xwiki-tab__banner--auth')
@@ -141,9 +133,7 @@ describe('CnXwikiTab', () => {
 	it('shows the upstream-unavailable banner with a Retry CTA when XWiki itself is down', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce(unavailable('upstream-service-down'))
 		const wrapper = mount(CnXwikiTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const banner = wrapper.find('.cn-xwiki-tab__banner')
 		expect(banner.exists()).toBe(true)
 		expect(banner.classes()).toContain('cn-xwiki-tab__banner--upstream')
@@ -156,8 +146,7 @@ describe('CnXwikiTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('network boom'))
 		const wrapper = mount(CnXwikiTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const banner = wrapper.find('.cn-xwiki-tab__banner')
 		expect(banner.exists()).toBe(true)
 		expect(banner.classes()).toContain('cn-xwiki-tab__banner--error')

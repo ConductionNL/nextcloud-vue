@@ -51,6 +51,16 @@ function init() {
 		attributeFilter: ['data-theme-dark', 'data-theme-light', 'data-theme-default'],
 	})
 
+	// Guarded, not assumed: `window.matchMedia` is absent in jsdom and in any
+	// host that has not implemented it, and this init() runs from inside a
+	// computed during render — so an unguarded call THROWS while the component
+	// is mounting, surfacing as a component that will not render rather than
+	// as anything about the theme. The MutationObserver above still tracks
+	// Nextcloud's own theme switch; only the OS-preference half is skipped.
+	if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+		return
+	}
+
 	const mq = window.matchMedia('(prefers-color-scheme: light)')
 	if (typeof mq.addEventListener === 'function') {
 		mq.addEventListener('change', refresh)

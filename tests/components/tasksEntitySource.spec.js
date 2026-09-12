@@ -23,7 +23,7 @@ jest.mock('@nextcloud/axios', () => ({
 	},
 }))
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
 const { useNamedSource } = require('../../src/components/CnIndexPage/useNamedSource.js')
 const { indexSources, resolveIndexSource, taskDueLabel, taskDeepLink } = require('../../src/composables/indexSources.js')
@@ -226,8 +226,7 @@ describe('named-source quick filters', () => {
 		await nextTick()
 
 		activeIndex.value = 1
-		await nextTick()
-		await nextTick()
+		await flushPromises()
 
 		expect(mockGet).toHaveBeenCalledTimes(2)
 		expect(lastParams()).toEqual({ scope: 'pooled', sort: '-dueAt', limit: 10 })

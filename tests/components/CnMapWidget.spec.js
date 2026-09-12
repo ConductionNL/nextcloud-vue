@@ -15,6 +15,7 @@
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import CnMapWidget from '@/components/CnMapWidget/CnMapWidget.vue'
+import { settleUntil } from '../support/settleUntil.js'
 
 jest.mock('leaflet', () => {
 	const layerInstances = []
@@ -478,8 +479,13 @@ describe('CnMapWidget — events', () => {
 		await flush()
 		await nextTick()
 		require('leaflet').default.__lastMap.current._handlers.moveend()
-		// Wait past the 100ms debounce window
-		await new Promise((resolve) => setTimeout(resolve, 150))
+		// The moveend debounce is a real 100 ms in the product, so the emit is a
+		// macrotask away. This used to sleep 150 ms for it, which is 50 ms of
+		// headroom on a loaded runner and reports "expected truthy, got
+		// undefined" when it runs out — a message about the event rather than
+		// about the wait. The debounce stays a duration in the product; the
+		// assertion wants the emit, so wait for the emit.
+		await settleUntil(() => wrapper.emitted('bounds-change'), 'the debounced bounds-change emit')
 		expect(wrapper.emitted('bounds-change')).toBeTruthy()
 		expect(wrapper.emitted('bounds-change')[0][0]).toEqual({
 			north: 53,

@@ -9,7 +9,7 @@
  *  - generic-error path when fetch throws.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnPollsTab = require('../CnPollsTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -56,8 +56,7 @@ describe('CnPollsTab', () => {
 	it('renders the empty state with an "Open Polls" CTA when no polls', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No polls linked yet')
 		expect(wrapper.text()).toContain('Open Polls')
 		wrapper.unmount()
@@ -70,8 +69,7 @@ describe('CnPollsTab', () => {
 			json: () => Promise.resolve({ results: [makePoll()] }),
 		})
 		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-polls-tab__row')
 		expect(rows).toHaveLength(1)
 		// Title stripped of marker
@@ -114,8 +112,7 @@ describe('CnPollsTab', () => {
 			}),
 		})
 		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const title = wrapper.find('.cn-polls-tab__title')
 		expect(title.exists()).toBe(true)
 		expect(title.text()).toBe('verification poll')
@@ -131,8 +128,7 @@ describe('CnPollsTab', () => {
 			json: () => Promise.resolve({ results: [makePoll({ deadline: pastDeadline(3) })] }),
 		})
 		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Closed')
 		expect(wrapper.find('.cn-polls-tab__row--closed').exists()).toBe(true)
 		wrapper.unmount()
@@ -141,8 +137,7 @@ describe('CnPollsTab', () => {
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Polls is currently unavailable.')
 		expect(wrapper.find('.cn-polls-tab__row').exists()).toBe(false)
 		wrapper.unmount()
@@ -152,8 +147,7 @@ describe('CnPollsTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load polls.')
 		wrapper.unmount()
 		spy.mockRestore()
@@ -174,8 +168,7 @@ describe('CnPollsTab', () => {
 			}),
 		})
 		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.findAll('.cn-polls-tab__row')).toHaveLength(1)
 		expect(wrapper.find('.cn-polls-tab__option').exists()).toBe(false)
 		expect(wrapper.text()).toContain('Bare poll')
@@ -185,8 +178,7 @@ describe('CnPollsTab', () => {
 	it('opens the picker modal when "Link existing poll" is clicked', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.pickerOpen).toBe(false)
 		wrapper.vm.openPicker()
@@ -197,8 +189,7 @@ describe('CnPollsTab', () => {
 	it('opens the create modal when "Create new poll" is clicked', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.createOpen).toBe(false)
 		wrapper.vm.openCreate()
@@ -214,8 +205,7 @@ describe('CnPollsTab', () => {
 			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 
 		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.vm.onLinkPick({ pollId: 99 })
 
@@ -232,8 +222,7 @@ describe('CnPollsTab', () => {
 			.mockResolvedValueOnce({ ok: false, status: 409, json: () => Promise.resolve({}) })
 
 		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.vm.onLinkPick({ pollId: 99 })
 
@@ -248,8 +237,7 @@ describe('CnPollsTab', () => {
 			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 
 		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		const payload = {
 			title: 'Lunch',
@@ -274,8 +262,7 @@ describe('CnPollsTab', () => {
 			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 
 		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.vm.unlinkPoll({ pollId: 42 })
 

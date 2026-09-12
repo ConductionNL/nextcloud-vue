@@ -2,7 +2,7 @@
  * Tests for CnAiInput.vue keyboard, disabled-state, and attach-file behaviour.
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
@@ -114,8 +114,7 @@ describe('CnAiInput', () => {
 		const fileInput = wrapper.find('input[type="file"]')
 		Object.defineProperty(fileInput.element, 'files', { value: [file] })
 		await fileInput.trigger('change')
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(axios.post).toHaveBeenCalledWith(
 			'/index.php/apps/hermiq/api/chat/attachments',
@@ -136,8 +135,7 @@ describe('CnAiInput', () => {
 		const fileInput = wrapper.find('input[type="file"]')
 		Object.defineProperty(fileInput.element, 'files', { value: [file] })
 		await fileInput.trigger('change')
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.attachments).toEqual([])
 		expect(wrapper.vm.uploadError).toBe('File is too large')

@@ -9,7 +9,7 @@
  * Plus error / unavailable handling that mirrors CnIntegrationCard.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnBookmarksCard = require('../CnBookmarksCard.vue').default
 
 const DEFAULT_PROPS = {
@@ -42,8 +42,7 @@ describe('CnBookmarksCard', () => {
 	it('renders the empty label when there are no linked bookmarks', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnBookmarksCard, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No bookmarks linked yet')
 		wrapper.unmount()
 	})
@@ -61,8 +60,7 @@ describe('CnBookmarksCard', () => {
 			}),
 		})
 		const wrapper = mount(CnBookmarksCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const txt = wrapper.text()
 		expect(txt).toContain('3')
 		expect(wrapper.find('.cn-bookmarks-card__headline').exists()).toBe(true)
@@ -87,8 +85,7 @@ describe('CnBookmarksCard', () => {
 			}),
 		})
 		const wrapper = mount(CnBookmarksCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-bookmarks-card__row')
 		// COMPACT_LIMIT = 5
 		expect(rows).toHaveLength(5)
@@ -103,8 +100,7 @@ describe('CnBookmarksCard', () => {
 			json: () => Promise.resolve(makeBookmark({ id: 7, title: 'Status doc', url: 'https://status.test/page' })),
 		})
 		const wrapper = mount(CnBookmarksCard, { propsData: { ...DEFAULT_PROPS, surface: 'single-entity', value: '7' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const chip = wrapper.find('.cn-bookmarks-card__chip')
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Status doc')
@@ -114,8 +110,7 @@ describe('CnBookmarksCard', () => {
 	it('shows the unavailable label when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnBookmarksCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Bookmarks is currently unavailable.')
 		wrapper.unmount()
 	})
@@ -124,8 +119,7 @@ describe('CnBookmarksCard', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnBookmarksCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No bookmarks linked yet')
 		wrapper.unmount()
 		spy.mockRestore()
