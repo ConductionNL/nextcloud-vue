@@ -79,21 +79,6 @@ function allowActions(actions) {
 }
 
 /**
- * Answer the GET reads by url.
- *
- * @param {object} answers Url fragment to response body.
- * @return {void}
- */
-function answerGets(answers) {
-	axios.get.mockImplementation((url) => {
-		const hit = Object.keys(answers).find((fragment) => url.includes(fragment))
-		if (!hit) return Promise.reject(new Error('unexpected GET ' + url))
-		const body = answers[hit]
-		return body instanceof Error ? Promise.reject(body) : Promise.resolve({ data: body })
-	})
-}
-
-/**
  * Mount the widget on a detail page bound to `record`.
  *
  * @param {object} content The widget config.
@@ -142,7 +127,6 @@ beforeEach(() => {
 afterEach(() => {
 	jest.restoreAllMocks()
 })
-
 
 describe('CnStagesWidget: the stage list', () => {
 	it('reads the stages from an endpoint named by the record, in order', async () => {
