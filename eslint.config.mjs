@@ -100,6 +100,14 @@ export default [
 			'scripts/**',
 			'e2e/**',
 			'src/cli/**',
+			// The three trees that are Node tooling rather than shipped source:
+			// the docs site, the styleguide and its CommonJS mocks, and the
+			// webpack plugin. Without them `require`, `module` and `process`
+			// read as undefined globals in files that only ever run in Node.
+			'docusaurus/**',
+			'styleguide/**',
+			'webpack/**',
+			'examples/**',
 			'**/*.cjs',
 			'*.config.js',
 			'*.config.mjs',
@@ -255,12 +263,27 @@ export default [
 			'scripts/**/*.js',
 			'scripts/**/*.mjs',
 			'scripts/**/*.cjs',
+			// A runnable demo's console lines are what it demonstrates.
+			'examples/**/*.js',
 		],
 		rules: {
 			'no-console': 'off',
 			'jsdoc/require-param-description': 'off',
 			'jsdoc/escape-inline-tags': 'off',
 			'jsdoc/reject-function-type': 'off',
+		},
+	},
+
+	{
+		// THE DOCS SITE'S JSX. `React` is imported for the classic JSX
+		// transform and then read by JSX syntax rather than by any statement,
+		// so a rule that counts statements sees an unused binding. The plugin
+		// that understands this, eslint-plugin-react, is not installed: this
+		// repository ships Vue, and pulling in a React plugin to lint a docs
+		// site would be a worse trade than naming the one identifier.
+		files: ['docusaurus/**/*.js', 'docusaurus/**/*.jsx'],
+		rules: {
+			'no-unused-vars': ['error', { varsIgnorePattern: '^React$', argsIgnorePattern: '^_' }],
 		},
 	},
 

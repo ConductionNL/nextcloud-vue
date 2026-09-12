@@ -1,3 +1,4 @@
+import BrowserOnly from '@docusaurus/BrowserOnly'
 /**
  * Stub redirect for the brand footer's "Privacy" link.
  *
@@ -10,31 +11,39 @@
  * Same pattern in /terms.jsx and /iso.jsx.
  */
 import React from 'react'
-import BrowserOnly from '@docusaurus/BrowserOnly'
 
 const TARGET = 'https://conduction.nl/privacy'
 
+/**
+ *
+ */
 export default function Privacy() {
-  return (
-    <BrowserOnly fallback={<RedirectNotice />}>
-      {() => {
-        if (typeof window !== 'undefined') {
-          window.location.replace(TARGET)
-        }
-        return <RedirectNotice />
-      }}
-    </BrowserOnly>
-  )
+	return (
+		<BrowserOnly fallback={<RedirectNotice />}>
+			{() => {
+				if (typeof window !== 'undefined') {
+					window.location.replace(TARGET)
+				}
+				return <RedirectNotice />
+			}}
+		</BrowserOnly>
+	)
 }
 
+/**
+ *
+ */
 function RedirectNotice() {
-  return (
-    <main style={{ padding: '4rem 1.5rem', textAlign: 'center' }}>
-      <h1>Privacy</h1>
-      <p>
-        This page lives on <a href={TARGET}>conduction.nl/privacy</a>.
-        Redirecting…
-      </p>
-    </main>
-  )
+	return (
+		<main style={{ padding: '4rem 1.5rem', textAlign: 'center' }}>
+			<h1>Privacy</h1>
+			<p>
+				This page lives on
+				{' '}
+				<a href={TARGET}>conduction.nl/privacy</a>
+				.
+				Redirecting…
+			</p>
+		</main>
+	)
 }

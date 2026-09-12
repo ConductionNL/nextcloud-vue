@@ -3,19 +3,31 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "prebuild": "npm run prebuild:docs",
+    "build": "docusaurus build",
+    "ci": "npm ci && npm run build",
+    "clear": "docusaurus clear",
+    "deploy": "docusaurus deploy",
     "docusaurus": "docusaurus",
     "prebuild:docs": "vue-docgen --configFile docgen.config.js",
-    "prestart": "npm run prebuild:docs",
-    "prebuild": "npm run prebuild:docs",
-    "start": "docusaurus start",
-    "build": "docusaurus build",
-    "swizzle": "docusaurus swizzle",
-    "deploy": "docusaurus deploy",
-    "clear": "docusaurus clear",
     "serve": "docusaurus serve",
-    "write-translations": "docusaurus write-translations",
+    "prestart": "npm run prebuild:docs",
+    "start": "docusaurus start",
+    "swizzle": "docusaurus swizzle",
     "write-heading-ids": "docusaurus write-heading-ids",
-    "ci": "npm ci && npm run build"
+    "write-translations": "docusaurus write-translations"
+  },
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   },
   "dependencies": {
     "@conduction/docusaurus-preset": "^3.12.0",
@@ -31,18 +43,6 @@
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.7.0",
     "vue-docgen-cli": "^4.79.0"
-  },
-  "browserslist": {
-    "production": [
-      ">0.5%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
   },
   "engines": {
     "node": ">=18.0"
