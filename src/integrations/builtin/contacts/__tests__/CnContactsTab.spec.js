@@ -147,12 +147,24 @@ describe('CnContactsTab', () => {
 	})
 
 	it('skips the fetch when register or schema is empty', async () => {
-		global.fetch = jest.fn()
-		const wrapper = mount(CnContactsTab, {
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ results: [], total: 0 }) })
+		const skipped = mount(CnContactsTab, {
 			propsData: { objectId: 'o1', register: '', schema: '' },
 		})
 		await flushPromises()
-		expect(global.fetch).not.toHaveBeenCalled()
-		wrapper.unmount()
+
+		// The assertion here is a negative, which holds before the component
+		// has done anything at all. Anchor it: a second tab mounted with both
+		// ids DOES fetch, so once its call is on record a fetch was reachable
+		// by this point and the skipped tab's zero calls mean it refused.
+		const fetching = mount(CnContactsTab, {
+			propsData: { objectId: 'o1', register: 'r1', schema: 's1' },
+		})
+		await flushPromises()
+		expect(global.fetch).toHaveBeenCalledTimes(1)
+		expect(global.fetch.mock.calls[0][0]).toContain('r1')
+
+		skipped.unmount()
+		fetching.unmount()
 	})
 })

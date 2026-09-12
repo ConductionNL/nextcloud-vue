@@ -135,6 +135,9 @@ describe('CnAnalyticsTab', () => {
 		}))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
 		await flushPromises()
+		// Anchor the negative below: the row proves the report arrived and was
+		// rendered, so an absent KPI means it was omitted rather than pending.
+		expect(wrapper.find('.cn-analytics-tab__row').exists()).toBe(true)
 		expect(wrapper.find('.cn-analytics-tab__kpi').exists()).toBe(false)
 		wrapper.unmount()
 	})

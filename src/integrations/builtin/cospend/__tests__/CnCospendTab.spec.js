@@ -121,6 +121,10 @@ describe('CnCospendTab', () => {
 		})
 		const wrapper = mount(CnCospendTab, { propsData: { ...DEFAULT_PROPS } })
 		await flushPromises()
+		// Anchor the negative below: the row proves the fetch landed and the
+		// component rendered it, so an absent totals footer means it was
+		// omitted rather than not yet drawn.
+		expect(wrapper.find('.cn-cospend-tab__row').exists()).toBe(true)
 		expect(wrapper.find('.cn-cospend-tab__totals').exists()).toBe(false)
 		wrapper.unmount()
 	})
