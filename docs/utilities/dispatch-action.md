@@ -17,7 +17,7 @@ import { dispatchAction } from '@conduction/nextcloud-vue'
 function dispatchAction(
     action: {
         type?: 'handler' | 'open-modal' | 'open-page' | 'navigate' | 'object-op'
-             | 'export' | 'open-form' | 'refresh' | 'api-call' | 'agent' | 'toggle',
+             | 'export' | 'open-form' | 'refresh' | 'api-call' | 'agent' | 'run-node' | 'toggle',
         // type-specific fields:
         handler?: string,           // type='handler'; type='export' — confirm handler name
         args?: any[],               // type='handler'
@@ -42,9 +42,12 @@ function dispatchAction(
         skill?: string,             // type='agent' — optional skill id
         prompt?: string,            // type='agent' — optional prompt (inline @-token interpolation)
         resultField?: string,       // type='agent' — object field the result writes to
-        register?: string,          // type='agent' | 'open-form' — OR register slug (agent: defaults to @register)
-        schema?: string,            // type='agent' | 'open-form' — OR schema slug (agent: defaults to @schema)
+        register?: string,          // type='agent' | 'open-form' | 'run-node' — OR register slug (agent/run-node: defaults to @register)
+        schema?: string,            // type='agent' | 'open-form' | 'run-node' — OR schema slug (agent/run-node: defaults to @schema)
         objectId?: string,          // type='agent' — target object id (defaults to @objectId)
+        flowId?: string,            // type='run-node' (REQUIRED) — the published flow's uuid
+        nodeId?: string,            // type='run-node' (REQUIRED) — the node id within flowId's graph
+        subject?: string,           // type='run-node' — the subject object (defaults to @objectId)
     },
     context: {
         router?: VueRouter,         // required for 'open-page' + 'navigate'
@@ -53,12 +56,13 @@ function dispatchAction(
         openModal?: (key: string, props?: object) => void,  // required for 'open-modal'
         openExport?: (action: object) => void,  // required for 'export' (CnPageRenderer pre-binds it)
         openForm?: (action: object) => void,    // required for 'open-form' (the header-actions surface provides it)
+        openRunNode?: (action: object) => void, // required for 'run-node' (the header-actions surface provides it)
         objectStore?: ObjectStore,  // required for 'object-op' (useObjectStore shape)
         source?: { register, schema },  // required for 'object-op' — the widget's source
         row?: object,               // required for 'object-op' patch/delete (row-scoped)
-        tokenCtx?: object,          // 'api-call' | 'agent' — { objectId?, object?, register?, schema?, workspace?, config? }
+        tokenCtx?: object,          // 'api-call' | 'agent' | 'run-node' — { objectId?, object?, register?, schema?, workspace?, config? }
     },
-): void | Promise<object | boolean | null>  // object-op / api-call / agent return a promise
+): void | Promise<object | boolean | null>  // object-op / api-call / agent / postRunNode return a promise
 ```
 
 When `action.type` is missing it's treated as `"handler"` for v1
@@ -332,6 +336,58 @@ remains the fallback when you need a bespoke body or a non-hermiq endpoint.
 `register` / `schema` / `objectId` are omitted above — they default to the
 detail page's object context. On a page with no object context, declare
 them explicitly.
+
+### `run-node` (manifest-run-node-action)
+
+Invoke **one OpenRegister flow node** directly against the page's subject
+object — the upstream half of dossiq `documents-on-the-case` task 3.3
+(e.g. "Generate document" on a case). Follows the SAME shape as `open-form`
+deliberately: `dispatchAction` only calls `context.openRunNode(action)` and
+resolves immediately — it does **not** wait for a person to answer a dialog,
+so every existing consumer's assumption ("this Promise means the call
+happened") stays true. The header-actions surface
+([`CnActionButtons`](../components/cn-action-buttons.md)) provides
+`openRunNode`: it GETs the target node's describe endpoint
+(`GET /apps/openregister/api/flows/{flowId}/nodes/{nodeId}/run`), mounts a
+`CnRunNodeDialog` when the node declares config fields (sourced from
+OpenRegister's `IFlowNodeConfigForm` — no new `@pick:`-style sentinel token),
+and runs immediately when it doesn't.
+
+```jsonc
+{ "id": "generate-document", "label": "Generate document", "type": "run-node", "flowId": "…", "nodeId": "merge-template" }
+```
+
+`flowId` and `nodeId` are REQUIRED — a node's config and eligibility are
+properties of the flow document it lives in, so neither can be inferred.
+`subject` (typically `@objectId`, and the default when omitted) is the
+object the node acts on AND is authorized against: OpenRegister's own
+object-RBAC evaluates whether the caller holds update permission on it
+(`or-flow-run-node`'s RN-1) — the flow's own `flow.run` right is
+deliberately **not** consulted here, because it carries no subject
+dimension and would add no safety.
+
+The actual call is made by the separately-exported `postRunNode(action,
+context, config)` once a config is collected (or `{}` for a node with no
+declared fields) — it POSTs
+
+```jsonc
+{ "subject": { "uuid": "...", "register": "...", "schema": "..." }, "config": { /* the node's collected fields */ } }
+```
+
+to `POST /apps/openregister/api/flows/{flowId}/nodes/{nodeId}/run`, exactly
+mirroring `agent`'s fail-closed and toast/refresh behaviour:
+
+- an **unresolved required subject** (or a missing `flowId`/`nodeId`)
+  **blocks the call**;
+- on **success** it toasts `successMessage` (default `'Run completed.'`) and
+  — unless `refresh: false` — bumps `cn:page:refresh`;
+- a **403** (no object-RBAC permission on the subject) or any other error
+  fail-closes with the server's message.
+
+Returns a promise of `{ ok, data?, error? }` — `data` is the created
+`FlowRun` on success. `confirm` gating and `createOverride` do not apply
+here (there is no create payload to override); `register` / `schema`
+default to the page's `@register` / `@schema` context, same as `agent`.
 
 ### `toggle` (Wave 3, #91) — not dispatched
 

@@ -21,7 +21,12 @@
  * agent (run a governed hermiq agent against the page object via
  * POST /apps/hermiq/api/agents/{agent}/run-on-object — hermiq#41; a
  * first-class companion to api-call that resolves the register/schema/
- * objectId context for the author and fail-closes when hermiq is absent).
+ * objectId context for the author and fail-closes when hermiq is absent) |
+ * run-node (manifest-run-node-action — invoke ONE OpenRegister flow node
+ * directly against a subject object via
+ * POST /api/flows/{flowId}/nodes/{nodeId}/run; the rendering surface
+ * provides context.openRunNode, mirroring open-form, and resolves the
+ * node's own declared config form before opening a dialog — see or-flow-run-node).
  *
  * `api-call`'s request body prefers `payload` (DEEP @-token resolution at
  * any nesting depth — object/array, e.g. a Filinq-style
@@ -151,7 +156,7 @@ export function savedObjectId(saved) {
  * @param {string} name The registered handler name.
  * @param {object} registry The v2 component registry.
  * @param {object} customComponents The legacy customComponents map.
- * @return {?((context: object) => unknown)} The async create handler, or null when unresolved.
+ * @return {?((props?: object) => Promise<unknown>)} The async create handler, or null when unresolved.
  */
 export function resolveCreateOverrideHandler(name, registry, customComponents) {
 	if (typeof name !== 'string' || name === '') {
@@ -471,6 +476,83 @@ async function executeAgentAction(action, context) {
 }
 
 /**
+ * POST the run-node call: `POST /apps/openregister/api/flows/{flowId}/nodes/{nodeId}/run`.
+ *
+ * This is the SECOND half of `run-node` (manifest-run-node-action / or-flow-run-node) —
+ * the first half is `context.openRunNode` in the `dispatchAction` switch below, which
+ * only OPENS the config dialog (or decides none is needed) and never itself waits for
+ * the person. Once the rendering surface has a `config` object (from the dialog's
+ * submit, or `{}` when the node's declared form was empty), it calls this directly —
+ * it is not reached through `dispatchAction`'s switch, because by that point there is
+ * no further "type" dispatch to do, only the call itself, same as `executeAgentAction`
+ * is called directly by `case 'api-call'`'s sibling rather than re-entering the switch.
+ *
+ * Fail-closed exactly like `executeAgentAction`: an unresolved REQUIRED subject
+ * (`action.subject`, defaulting to the page's `@objectId`) or a missing
+ * `flowId`/`nodeId` BLOCKS the call (warn) rather than POSTing a literal token or an
+ * incomplete subject reference. The subject sent is `{ uuid, register, schema }` —
+ * OpenRegister's `FlowNodeRunController::resolveAuthorizedSubject()` needs all three
+ * to resolve the object and evaluate the caller's object-RBAC permission on it; `register`
+ * / `schema` default to the page's own `@register` / `@schema` context, the same
+ * defaulting `agent` already uses.
+ *
+ * A 403 here means the caller holds no update permission on the subject
+ * (OpenRegister's object-RBAC, evaluated server-side — RN-1(c)) — this function does not
+ * special-case it beyond surfacing the server's message, the same fail-closed handling
+ * `api-call` / `agent` already give a rejected call.
+ *
+ * @param {object} action The run-node action (`flowId`, `nodeId`, `subject?`,
+ *   `register?`, `schema?`, `successMessage?`, `errorMessage?`, `refresh?`).
+ * @param {object} context Runtime context — needs `context.tokenCtx` and, for a
+ *   localised toast, `context.translate`.
+ * @param {object} [config] The node's collected config (from its `configForm()`
+ *   dialog), or `{}` for a node with no declared fields.
+ * @return {Promise<{ok: boolean, data?: object, error?: Error}>} The call outcome —
+ *   `data` is the created `FlowRun` on success.
+ *
+ * @spec openspec/changes/manifest-run-node-action/specs/manifest-run-node-action/spec.md#requirement-a-run-node-action-invokes-one-flow-node-against-the-page-object
+ */
+export async function postRunNode(action, context, config = {}) {
+	const tokenCtx = context.tokenCtx || {}
+	const flowId = resolveAgentRef(action.flowId, undefined, tokenCtx)
+	const nodeId = resolveAgentRef(action.nodeId, undefined, tokenCtx)
+	const uuid = resolveAgentRef(action.subject, tokenCtx.objectId, tokenCtx)
+	const register = resolveAgentRef(action.register, tokenCtx.register, tokenCtx)
+	const schema = resolveAgentRef(action.schema, tokenCtx.schema, tokenCtx)
+
+	if (!flowId || !nodeId || !uuid || !register || !schema) {
+		// eslint-disable-next-line no-console
+		console.warn('[dispatchAction] run-node is missing flowId/nodeId or a required subject token (objectId/register/schema) is unresolved — skipping.', action)
+		return { ok: false, error: new Error('run-node blocked') }
+	}
+
+	const [{ default: axios }, { generateUrl }, dialogs] = await Promise.all([
+		import('@nextcloud/axios'),
+		import('@nextcloud/router'),
+		import('@nextcloud/dialogs'),
+	])
+	const target = generateUrl(`/apps/openregister/api/flows/${encodeURIComponent(flowId)}/nodes/${encodeURIComponent(nodeId)}/run`)
+	try {
+		const res = await axios.post(target, { subject: { uuid, register, schema }, config: config || {} })
+		if (typeof dialogs.showSuccess === 'function') {
+			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run completed.'))
+		}
+		if (action.refresh !== false) {
+			emit(PAGE_REFRESH_CHANNEL, {})
+		}
+		return { ok: true, data: res && res.data }
+	} catch (error) {
+		const response = error && error.response
+		const serverMessage = response && response.data
+			&& (response.data.error || response.data.message)
+		if (typeof dialogs.showError === 'function') {
+			dialogs.showError(translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.'))
+		}
+		return { ok: false, error }
+	}
+}
+
+/**
  * Dispatch a v2 manifest action.
  *
  * @param {object} action The action object from the manifest.
@@ -541,7 +623,7 @@ async function executeAgentAction(action, context) {
  * @param {object} [context.registry] Component registry (Record<string, { kind, component }>).
  *   Required for "open-modal" type.
  * @param {object} [context.handlers] Map of handler name → function. Required for "handler" type.
- * @param {(key: string, props: object) => void} [context.openModal] Opens a modal.
+ * @param {(key: string, props?: object) => void} [context.openModal] Opens a modal.
  *   Required for "open-modal" type.
  * @param {(action: object) => void} [context.openExport] Opens the shared
  *   CnMassExportDialog configured from the action. Required for "export" type —
@@ -553,10 +635,15 @@ async function executeAgentAction(action, context) {
  *   `{name, paramField?, objectParam?}`) via {@link buildOnSuccessRoute}, which merges
  *   the saved object's id into the route params so the navigation can deep-link to the
  *   created object.
+ * @param {(action: object) => void} [context.openRunNode] Opens the
+ *   node-config dialog (or runs immediately for an empty config form) and
+ *   POSTs to OpenRegister's direct-invoke endpoint on submit. Required for
+ *   "run-node" type — the rendering surface (CnActionButtons) provides it,
+ *   mirroring `openForm`.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [context.tokenCtx]
  *   Token context "api-call" URLs/params resolve against (the same shape
  *   `resolveFilterTokens` / `interpolateUrlTokens` take).
- * @param {(app: string, text: string, vars?: object) => string} [context.translate] The consumer's bound `t()` — the same
+ * @param {(app: string, text: string, vars?: object) => string} [context.translate] The consumer's bound `t()`, the same
  *   `cnTranslate` CnAppRoot provides to the page chrome. Applied to the
  *   manifest-authored `successMessage` / `errorMessage` of "api-call" and
  *   "agent" so their toasts follow the user's language. Omitted (or a
@@ -671,6 +758,27 @@ export function dispatchAction(action, context = {}) {
 				return
 			}
 			context.openForm(action)
+			break
+		}
+
+		case 'run-node': {
+		// Direct flow-node invocation (manifest-run-node-action / RN-4):
+		// SAME shape as open-form, deliberately — the rendering surface
+		// (CnActionButtons) resolves the node's own config form, opens a
+		// generic dialog when it has fields (skips it when empty), and
+		// POSTs subject+config to OpenRegister's
+		// /api/flows/{flowId}/nodes/{nodeId}/run on submit. This case
+		// resolves as soon as the dialog OPENS (or the empty-form call
+		// starts) — it does NOT wait for the person to answer, matching
+		// every other consumer's assumption that dispatchAction's Promise
+		// means "the call happened", not "the human decided" (see design.md
+		// RN-4 for why an awaiting-on-UI shape was rejected).
+			if (typeof context.openRunNode !== 'function') {
+			// eslint-disable-next-line no-console
+				console.warn('[dispatchAction] run-node requires context.openRunNode to be a function.')
+				return
+			}
+			context.openRunNode(action)
 			break
 		}
 

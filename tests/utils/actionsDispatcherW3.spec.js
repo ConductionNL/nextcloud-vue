@@ -8,6 +8,9 @@
  * toast + refresh, DEEP `payload` token resolution, `download: true` blob
  * flow), agent (run-on-object token resolution, 202 handling,
  * unresolved-@objectId block, hermiq-absent graceful toast — hermiq#41),
+ * run-node's dialog dispatch (delegates to context.openRunNode) and its
+ * `postRunNode()` POST half (subject/register/schema token resolution,
+ * fail-closed on an unresolved subject, 403 handling — manifest-run-node-action),
  * and toggle (non-dispatchable — warns).
  */
 
@@ -15,7 +18,7 @@ import axios from '@nextcloud/axios'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { emit } from '@nextcloud/event-bus'
 import { triggerBlobDownload } from '../../src/components/CnIndexPage/selfModeIO.js'
-import { dispatchAction } from '../../src/utils/actionsDispatcher.js'
+import { dispatchAction, postRunNode } from '../../src/utils/actionsDispatcher.js'
 
 jest.mock('@nextcloud/event-bus', () => ({
 	emit: jest.fn(),
@@ -67,6 +70,28 @@ describe('dispatchAction — Wave 3 types (#91)', () => {
 			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 			expect(() => dispatchAction({ type: 'open-form' }, {})).not.toThrow()
 			expect(warnSpy).toHaveBeenCalled()
+			warnSpy.mockRestore()
+		})
+	})
+
+	describe('run-node', () => {
+		it('delegates to context.openRunNode with the action', () => {
+			const openRunNode = jest.fn()
+			const action = { id: 'generate-doc', label: 'Generate document', type: 'run-node', flowId: 'f1', nodeId: 'n1', subject: '@objectId' }
+			dispatchAction(action, { openRunNode })
+			expect(openRunNode).toHaveBeenCalledWith(action)
+		})
+
+		/**
+		 * 🔴 mutation check: comment out the `typeof context.openRunNode !==
+		 * 'function'` guard (or its `return`) and this reddens — the case
+		 * falls through to `context.openRunNode(action)` on an undefined
+		 * value, throwing a TypeError instead of warning.
+		 */
+		it('warns and no-ops when context.openRunNode is missing', () => {
+			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+			expect(() => dispatchAction({ type: 'run-node', flowId: 'f1', nodeId: 'n1' }, {})).not.toThrow()
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('run-node'))
 			warnSpy.mockRestore()
 		})
 	})
@@ -442,6 +467,103 @@ describe('dispatchAction — Wave 3 types (#91)', () => {
 				await dispatchAction(
 					{ type: 'agent', agent: 'a1', refresh: false },
 					{ tokenCtx: { register: 'crm', schema: 'lead', objectId: '42' } },
+				)
+				await flush()
+				expect(emit).not.toHaveBeenCalled()
+			})
+		})
+
+		describe('run-node — postRunNode() (manifest-run-node-action / or-flow-run-node)', () => {
+			it('POSTs subject+config to the direct-invoke endpoint, toasts, and refreshes', async () => {
+				axios.post.mockResolvedValue({ data: { uuid: 'run-1', status: 'completed' } })
+				const result = await postRunNode(
+					{ flowId: 'flow-1', nodeId: 'merge-template' },
+					{ tokenCtx: { register: 'crm', schema: 'case', objectId: 'obj-1' } },
+					{ templateSlug: 'welcome' },
+				)
+				await flush()
+
+				expect(axios.post).toHaveBeenCalledWith(
+					'/nc/apps/openregister/api/flows/flow-1/nodes/merge-template/run',
+					{ subject: { uuid: 'obj-1', register: 'crm', schema: 'case' }, config: { templateSlug: 'welcome' } },
+				)
+				expect(showSuccess).toHaveBeenCalledWith('Run completed.')
+				expect(emit).toHaveBeenCalledWith('cn:page:refresh', {})
+				expect(result.ok).toBe(true)
+			})
+
+			it('defaults config to {} for a node with no declared fields', async () => {
+				axios.post.mockResolvedValue({ data: {} })
+				await postRunNode(
+					{ flowId: 'flow-1', nodeId: 'n1' },
+					{ tokenCtx: { register: 'crm', schema: 'case', objectId: 'obj-1' } },
+				)
+				await flush()
+				expect(axios.post).toHaveBeenCalledWith(
+					expect.any(String),
+					expect.objectContaining({ config: {} }),
+				)
+			})
+
+			it('lets an explicit subject/register/schema override the page context', async () => {
+				axios.post.mockResolvedValue({ data: {} })
+				await postRunNode(
+					{ flowId: 'flow-1', nodeId: 'n1', subject: 'other-obj', register: 'other-reg', schema: 'other-schema' },
+					{ tokenCtx: { register: 'crm', schema: 'case', objectId: 'obj-1' } },
+				)
+				await flush()
+				expect(axios.post).toHaveBeenCalledWith(
+					expect.any(String),
+					expect.objectContaining({ subject: { uuid: 'other-obj', register: 'other-reg', schema: 'other-schema' } }),
+				)
+			})
+
+			/**
+			 * 🔴 mutation check: relax any ONE of the four `if (!flowId ...)`
+			 * clauses in `postRunNode()` and this reddens — `axios.post` gets
+			 * called with an incomplete subject reference instead of being
+			 * blocked.
+			 */
+			it('BLOCKS the call (with a warn) when the required subject/@objectId is unresolved', async () => {
+				const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+				const result = await postRunNode(
+					{ flowId: 'flow-1', nodeId: 'n1' },
+					{ tokenCtx: { register: 'crm', schema: 'case' } },
+				)
+				expect(axios.post).not.toHaveBeenCalled()
+				expect(result.ok).toBe(false)
+				expect(warnSpy).toHaveBeenCalled()
+				warnSpy.mockRestore()
+			})
+
+			it('BLOCKS the call when flowId or nodeId is missing', async () => {
+				const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+				const result = await postRunNode(
+					{ nodeId: 'n1' },
+					{ tokenCtx: { register: 'crm', schema: 'case', objectId: 'obj-1' } },
+				)
+				expect(axios.post).not.toHaveBeenCalled()
+				expect(result.ok).toBe(false)
+				warnSpy.mockRestore()
+			})
+
+			it('fail-closes with the server message on a 403 (no subject permission — RN-1(c))', async () => {
+				axios.post.mockRejectedValue({ response: { status: 403, data: { error: 'You do not have permission to act on this object.' } } })
+				const result = await postRunNode(
+					{ flowId: 'flow-1', nodeId: 'n1' },
+					{ tokenCtx: { register: 'crm', schema: 'case', objectId: 'obj-1' } },
+				)
+				await flush()
+				expect(showError).toHaveBeenCalledWith('You do not have permission to act on this object.')
+				expect(emit).not.toHaveBeenCalled()
+				expect(result.ok).toBe(false)
+			})
+
+			it('does not refresh when action.refresh is false', async () => {
+				axios.post.mockResolvedValue({ data: {} })
+				await postRunNode(
+					{ flowId: 'flow-1', nodeId: 'n1', refresh: false },
+					{ tokenCtx: { register: 'crm', schema: 'case', objectId: 'obj-1' } },
 				)
 				await flush()
 				expect(emit).not.toHaveBeenCalled()

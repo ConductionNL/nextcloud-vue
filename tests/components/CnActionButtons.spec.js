@@ -10,12 +10,13 @@
  * actionsDispatcherW3.spec.js).
  */
 
+import axios from '@nextcloud/axios'
 import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
 import CnActionButtons from '../../src/components/CnActionButtons/CnActionButtons.vue'
 import { fetchEndpointSource } from '../../src/composables/useEndpointSource.js'
 import { useObjectStore } from '../../src/store/useObjectStore.js'
-import { dispatchAction, resolveObjectOpType } from '../../src/utils/actionsDispatcher.js'
+import { dispatchAction, postRunNode, resolveObjectOpType } from '../../src/utils/actionsDispatcher.js'
 import { evaluateVisibleWhen } from '../../src/utils/visibleWhen.js'
 
 jest.mock('../../src/utils/actionsDispatcher.js', () => {
@@ -26,12 +27,21 @@ jest.mock('../../src/utils/actionsDispatcher.js', () => {
 	return {
 		__esModule: true,
 		dispatchAction: jest.fn(() => Promise.resolve({ ok: true })),
+		postRunNode: jest.fn(() => Promise.resolve({ ok: true })),
 		resolveObjectOpType: jest.fn(() => 'crm/lead'),
 		buildOnSuccessRoute: actual.buildOnSuccessRoute,
 		savedObjectId: actual.savedObjectId,
 		resolveCreateOverrideHandler: actual.resolveCreateOverrideHandler,
 	}
 })
+jest.mock('@nextcloud/axios', () => ({
+	__esModule: true,
+	default: { get: jest.fn(() => Promise.resolve({ data: {} })) },
+}))
+jest.mock('@nextcloud/router', () => ({
+	__esModule: true,
+	generateUrl: jest.fn((p) => `/nc${p}`),
+}))
 jest.mock('../../src/composables/useEndpointSource.js', () => ({
 	__esModule: true,
 	fetchEndpointSource: jest.fn(() => Promise.resolve(null)),
@@ -89,6 +99,11 @@ const stubs = {
 		template: '<div class="advanced-form-dialog-stub" />',
 		methods: { setResult() {} },
 	},
+	CnRunNodeDialog: {
+		name: 'CnRunNodeDialog',
+		props: ['title', 'fields', 'loading', 'translate'],
+		template: '<div class="run-node-dialog-stub" />',
+	},
 }
 
 function mountBar(actions, { provide } = {}) {
@@ -104,6 +119,10 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 	beforeEach(() => {
 		dispatchAction.mockClear()
 		dispatchAction.mockResolvedValue({ ok: true })
+		postRunNode.mockClear()
+		postRunNode.mockResolvedValue({ ok: true })
+		axios.get.mockReset()
+		axios.get.mockResolvedValue({ data: {} })
 		fetchEndpointSource.mockReset()
 		fetchEndpointSource.mockResolvedValue(null)
 		evaluateVisibleWhen.mockReset()
@@ -558,6 +577,107 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			w.vm.formEntry = w.vm.actions[0]
 
 			expect(w.vm.formInitialValues).toBeNull()
+		})
+	})
+
+	describe('run-node (manifest-run-node-action)', () => {
+		const runNodeAction = { id: 'generate-doc', label: 'Generate document', type: 'run-node', flowId: 'flow-1', nodeId: 'merge-template' }
+
+		it('opens CnRunNodeDialog when the describe call returns declared fields', async () => {
+			axios.get.mockResolvedValue({
+				data: { id: 'merge-template', type: 'dossiq.merge-template', configForm: [{ key: 'templateSlug', label: 'Template', type: 'select', optionsFrom: '/apps/dossiq/api/templates' }] },
+			})
+			const wrapper = mountBar([runNodeAction])
+			await flush()
+
+			await wrapper.find('[data-testid="cn-action-generate-doc"]').trigger('click')
+			await flush()
+
+			expect(axios.get).toHaveBeenCalledWith('/nc/apps/openregister/api/flows/flow-1/nodes/merge-template/run')
+			expect(postRunNode).not.toHaveBeenCalled()
+			expect(wrapper.findComponent({ name: 'CnRunNodeDialog' }).exists()).toBe(true)
+			expect(wrapper.findComponent({ name: 'CnRunNodeDialog' }).props('fields')).toEqual([
+				{ key: 'templateSlug', label: 'Template', type: 'select', optionsFrom: '/apps/dossiq/api/templates' },
+			])
+		})
+
+		it('runs immediately with no dialog when the node declares an empty config form', async () => {
+			axios.get.mockResolvedValue({ data: { id: 'n1', type: 'x', configForm: [] } })
+			const wrapper = mountBar([runNodeAction])
+			await flush()
+
+			await wrapper.find('[data-testid="cn-action-generate-doc"]').trigger('click')
+			await flush()
+
+			expect(postRunNode).toHaveBeenCalledTimes(1)
+			expect(postRunNode.mock.calls[0][0]).toMatchObject({ flowId: 'flow-1', nodeId: 'merge-template' })
+			expect(postRunNode.mock.calls[0][2]).toEqual({})
+			expect(wrapper.findComponent({ name: 'CnRunNodeDialog' }).exists()).toBe(false)
+		})
+
+		it('runs immediately with no dialog when the node declares no configForm at all', async () => {
+			axios.get.mockResolvedValue({ data: { id: 'n1', type: 'x' } })
+			const wrapper = mountBar([runNodeAction])
+			await flush()
+
+			await wrapper.find('[data-testid="cn-action-generate-doc"]').trigger('click')
+			await flush()
+
+			expect(postRunNode).toHaveBeenCalledTimes(1)
+			expect(wrapper.findComponent({ name: 'CnRunNodeDialog' }).exists()).toBe(false)
+		})
+
+		/**
+		 * 🔴 mutation check: swap the `!fields.length` branch's `return` for a
+		 * fall-through and this reddens — the dialog mounts AND postRunNode
+		 * fires, running the node twice for a single click.
+		 */
+		it('the dialog confirm calls postRunNode with the collected config, then closes', async () => {
+			axios.get.mockResolvedValue({
+				data: { configForm: [{ key: 'templateSlug', label: 'Template', type: 'select' }] },
+			})
+			const wrapper = mountBar([runNodeAction])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-generate-doc"]').trigger('click')
+			await flush()
+
+			const dialog = wrapper.findComponent({ name: 'CnRunNodeDialog' })
+			expect(dialog.exists()).toBe(true)
+			await dialog.vm.$emit('confirm', { templateSlug: 'welcome' })
+			await flush()
+
+			expect(postRunNode).toHaveBeenCalledTimes(1)
+			expect(postRunNode.mock.calls[0][2]).toEqual({ templateSlug: 'welcome' })
+			expect(wrapper.findComponent({ name: 'CnRunNodeDialog' }).exists()).toBe(false)
+		})
+
+		it('closes the dialog without calling postRunNode on close/cancel', async () => {
+			axios.get.mockResolvedValue({
+				data: { configForm: [{ key: 'templateSlug', label: 'Template', type: 'select' }] },
+			})
+			const wrapper = mountBar([runNodeAction])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-generate-doc"]').trigger('click')
+			await flush()
+
+			const dialog = wrapper.findComponent({ name: 'CnRunNodeDialog' })
+			await dialog.vm.$emit('close')
+			await flush()
+
+			expect(postRunNode).not.toHaveBeenCalled()
+			expect(wrapper.findComponent({ name: 'CnRunNodeDialog' }).exists()).toBe(false)
+		})
+
+		it('toasts an error and opens no dialog when the describe call fails (RN-4: never waits on the person)', async () => {
+			axios.get.mockRejectedValue({ response: { status: 404, data: {} } })
+			const wrapper = mountBar([runNodeAction])
+			await flush()
+
+			await wrapper.find('[data-testid="cn-action-generate-doc"]').trigger('click')
+			await flush()
+
+			expect(postRunNode).not.toHaveBeenCalled()
+			expect(wrapper.findComponent({ name: 'CnRunNodeDialog' }).exists()).toBe(false)
 		})
 	})
 })
