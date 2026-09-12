@@ -18,7 +18,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { monotonicNow, __setClockSourceForTests } from './monotonicDateNow.js'
+import { __setClockSourceForTests, monotonicNow } from './monotonicDateNow.js'
 
 /** Smallest thing that reads a DOM event back into component state. */
 const Typeable = {

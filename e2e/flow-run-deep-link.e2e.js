@@ -182,7 +182,9 @@ test.describe('the run deep link, all the way through', () => {
 
 		// Held from here on, so the destination page renders mid-load.
 		let releaseFlows = () => {}
-		const held = new Promise((resolve) => { releaseFlows = resolve })
+		const held = new Promise((resolve) => {
+			releaseFlows = resolve
+		})
 		await page.route('**/apps/openregister/api/flows?**', async (route) => {
 			await held
 			await route.fulfill({
@@ -216,9 +218,7 @@ test.describe('the run deep link, all the way through', () => {
 
 		// Let it finish, and the settled state is the one that was always right.
 		releaseFlows()
-		await expect(
-			page.locator('[data-testid="runlink-page"] .cn-flow-detail__node-label', { hasText: SINCE_DELETED }),
-		).toBeVisible()
+		await expect(page.locator('[data-testid="runlink-page"] .cn-flow-detail__node-label', { hasText: SINCE_DELETED })).toBeVisible()
 		await expect(page.locator('[data-testid="flow-canvas-loading"]')).toHaveCount(0)
 		await expect(page.locator('[data-testid="flow-add-step"]')).toBeVisible()
 	})

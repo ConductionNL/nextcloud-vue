@@ -17,8 +17,8 @@
  */
 
 const fs = require('fs')
-const path = require('path')
 const { builtinModules } = require('module')
+const path = require('path')
 
 const ROOT = path.resolve(__dirname, '../..')
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'))

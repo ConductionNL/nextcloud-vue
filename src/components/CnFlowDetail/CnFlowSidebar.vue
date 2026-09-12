@@ -67,7 +67,7 @@
 		-->
 		<template v-if="!embedded" #description>
 			<div class="cn-flow-sidebar__header">
-				<CnFlowLifecycleControls :show-name="false" />
+				<CnFlowLifecycleControls :showName="false" />
 			</div>
 		</template>
 
