@@ -612,7 +612,7 @@
 			:visible-columns="effectiveVisibleColumns"
 			:active-filters="effectiveActiveFilters"
 			:column-groups="resolvedSidebar.columnGroups || []"
-			:facet-data="resolvedSidebar.facets || {}"
+			:facet-data="effectiveFacetData"
 			:show-metadata="resolvedSidebar.showMetadata !== false"
 			v-bind="sidebarSearchProps"
 			@update:open="sidebarOpen = $event"
@@ -2191,13 +2191,57 @@ export default {
 			const field = this.folderSidebarGroupBy
 			if (!field) return []
 
-			const fromStore = this.isSelfFetchMode ? (this.list.facets?.value || null) : null
-			const facets = fromStore
+			const facets = this.storeFacets
 				|| (this.folderSidebar && this.folderSidebar.facets)
 				|| this.resolvedSidebar.facets
 				|| {}
 
 			return facets[field]?.values || []
+		},
+
+		/**
+		 * The facet buckets OpenRegister computed for THIS page's query, or
+		 * null when this page does not fetch its own rows.
+		 *
+		 * Only self-fetch mode has them: the store keys facets by object type
+		 * and rewrites that entry from the same response the rows came from, so
+		 * what this returns always describes the query currently on screen.
+		 * Consumer-managed, named-source and entity-source pages never fetch
+		 * through the store, so there is nothing here to read and the caller
+		 * falls back to whatever the consumer passed in.
+		 *
+		 * @return {object|null} The live facet map, or null.
+		 */
+		storeFacets() {
+			return this.isSelfFetchMode ? (this.list.facets?.value || null) : null
+		},
+
+		/**
+		 * Facet data for the index sidebar.
+		 *
+		 * The `sidebar.facets` key is a DATA channel, not a declaration of
+		 * which facets exist: its docblock calls it "live facet data" and it
+		 * feeds CnIndexSidebar's `facetData` prop unchanged. Which filters the
+		 * sidebar offers comes from the schema (`filtersFromSchema` over the
+		 * facetable properties), and a filter with no bucket falls back to its
+		 * own declarative `options`. So there is nothing to merge here — the
+		 * two sources answer the same question, and the fresher one wins.
+		 *
+		 * A manifest-driven page has no consumer to fill `sidebar.facets`, so
+		 * before this read the sidebar was handed the manifest's sidebar config
+		 * and every facet rendered "No results" while the response body carried
+		 * the buckets.
+		 *
+		 * Note the store wins even when it is empty (`{}` is truthy), which is
+		 * deliberate and the conservative direction: until the first response
+		 * lands, offering no options is right, and offering options left over
+		 * from a config that never described this query would be worse. Same
+		 * precedence `folderSidebarFacetValues` has always used.
+		 *
+		 * @return {object} `{ fieldName: { values: [...] } }`, possibly empty.
+		 */
+		effectiveFacetData() {
+			return this.storeFacets || this.resolvedSidebar.facets || {}
 		},
 
 		/**
@@ -2818,7 +2862,7 @@ export default {
 				visibleColumns: this.effectiveVisibleColumns,
 				activeFilters: this.effectiveActiveFilters,
 				columnGroups: this.resolvedSidebar.columnGroups || [],
-				facetData: this.resolvedSidebar.facets || {},
+				facetData: this.effectiveFacetData,
 				showMetadata: this.resolvedSidebar.showMetadata !== false,
 				...this.sidebarSearchProps,
 			}
