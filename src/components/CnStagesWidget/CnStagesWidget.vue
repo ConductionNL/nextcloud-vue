@@ -107,6 +107,7 @@ import {
 	actionNote,
 	actionsByTarget,
 	declaresInputs,
+	isBlockedAction,
 	performTransition,
 	readAvailableActions,
 	transitionError,
@@ -204,15 +205,24 @@ function userError(message) {
  *
  * `GET /apps/openregister/api/objects/{id}/available-actions`, the same
  * endpoint `CnLifecycleActions` reads. It answers
- * `{ actions: [{ action, to, requires, description, inputs? }] }` already
- * filtered to the record's current state, so a stage is reachable exactly
- * when an action leads to it.
+ * `{ actions: [{ action, to, requires, description, inputs?, blocked? }] }`
+ * already filtered to the record's current state, so a stage is reachable
+ * exactly when an action leads to it.
  *
  * That is why there is no `allowed` flag to read, no field mapping to get
  * backwards and no config that can remove the guard: a stage no action
  * reaches is disabled because nothing said it was reachable. It fails closed
  * by construction rather than by a check somebody has to remember to write.
- * `description` and `requires` become the note beside the stage.
+ *
+ * `description` becomes the note beside the stage. `requires` does NOT: it is
+ * the guard class's dependency-injection tag, an identifier for OpenRegister
+ * and not a sentence for a person, and it used to be printed on screen.
+ *
+ * An action may also answer `blocked: true`, which is the third case: the move
+ * exists but a guard refuses it right now, and `description` says why. The
+ * stage renders disabled with that reason on screen, which reads differently
+ * from "no action reaches this stage" and differently again from "the
+ * availability read failed".
  *
  * ## Moving
  *
@@ -763,6 +773,13 @@ export default {
 		 * stage is reachable exactly when an action leads to it. There is no
 		 * flag to read and no way to configure the guard away.
 		 *
+		 * Three refusals live here and they must not read alike, because they
+		 * are not the same claim. NO ACTION REACHES THE STAGE is a policy
+		 * answer about the process. A BLOCKED action is a policy answer about
+		 * this record right now, and it comes with the app's own reason. A
+		 * FAILED READ is not an answer at all, and says so. Collapsing any two
+		 * of them tells somebody something nobody checked.
+		 *
 		 * @param {{id: string}} stage The stage.
 		 * @return {{disabled: boolean, reason: string, reasonVisible: boolean}} The access.
 		 */
@@ -812,6 +829,19 @@ export default {
 				// control that silently does nothing reads as broken.
 				return { disabled: true, reason, reasonVisible: true }
 			}
+			// OFFERED AND REFUSED. The move exists, so the stage keeps its place
+			// in the process, but a guard says not now. The app's own reason is
+			// the point of this branch, so it is shown rather than replaced by
+			// wording of ours; the fallback is only for a guard that gave none.
+			// Visible, like the unreachable reason and for the same cause: a
+			// dimmed stage that explains nothing reads as broken.
+			if (isBlockedAction(move)) {
+				return {
+					disabled: true,
+					reason: actionNote(move) || this.tr('This move is not possible right now'),
+					reasonVisible: true,
+				}
+			}
 			// What the move says about itself. It is not a refusal, so it is
 			// shown rather than hidden: it tells the person what happens next.
 			return { ...open, reason: actionNote(move), reasonVisible: Boolean(actionNote(move)) }
@@ -844,7 +874,11 @@ export default {
 			this.blockedMessage = ''
 			this.moveError = ''
 			const move = this.moves ? this.moves.get(stage.id) : null
-			if (this.lifecycleMode && !move) {
+			// No move, or a move a guard has refused. Both fail closed here as
+			// well as in `stageAccess`, so the POST cannot happen even if a
+			// caller reaches this method some other way than a click on a stage
+			// the strip already disabled.
+			if (this.lifecycleMode && (!move || isBlockedAction(move))) {
 				return
 			}
 			const request = {
