@@ -1188,17 +1188,22 @@ export default {
 		},
 
 		/**
-		 * Dispatch one declared action. Non-`handler` types go through as
-		 * declared; a `handler` action gets the row appended as its last
-		 * argument, the same convention CnWidgetObjectTable uses, so a
-		 * registry function reads its row from where it already expects one.
+		 * Dispatch one declared row action. A `handler` action gets the row
+		 * appended as its last argument, the same convention CnWidgetObjectTable
+		 * uses, so a registry function reads its row from where it already
+		 * expects one. An `open-modal` action gets the row merged onto its
+		 * `props` as `row` — mirroring how a drop hands a modal `props.files`
+		 * and a bulk action hands it `props.selectedIds` — because a "Versions"
+		 * or "Delete" row action is meaningless without knowing WHICH row it
+		 * was clicked on, and `open-modal`'s `action.props` is forwarded
+		 * verbatim otherwise (it carries no per-click information at all).
 		 *
 		 * @param {object} action The declared action.
 		 * @param {object|null} row The row the action was triggered on.
 		 * @return {void}
 		 */
 		runRowAction(action, row) {
-			this.dispatch(action, [row])
+			this.dispatch(action, [row], { row })
 		},
 
 		/**
