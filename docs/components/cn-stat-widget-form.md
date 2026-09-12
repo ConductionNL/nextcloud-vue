@@ -19,7 +19,13 @@ Config sub-form for the `stat` ([`CnStatWidget`](./cn-stat-widget.md)) dashboard
 
 A fifth source kind reads a property off the bound record instead of asking a server for a number. Pick **Field on this record** and name the property. When the property holds a reference, name the register and schema to look the label up in, and optionally a property to colour the tile from, with a value per colour.
 
-The display section edits `display` (plain text or a badge) and `emptyText`, and the special-states list builds `overrides`: a property to test, an optional comparison, and the label, colour and icon to show when it matches. See [`CnStatWidget`](./cn-stat-widget.md) for what each key does at render time.
+The display section edits `display` (plain text, a badge, or a countdown to a date) and `emptyText`, and the special-states list builds `overrides`: a property to test, an optional comparison, and the label, colour and icon to show when it matches. See [`CnStatWidget`](./cn-stat-widget.md) for what each key does at render time.
+
+## Configuring a countdown
+
+Choosing **Countdown to a date** reveals the two day thresholds and the wording for a date that has passed, which is the whole of what most deadline tiles need. Leaving a threshold box empty means no threshold: it is written out of the config rather than saved as zero, because a `dangerAt` of zero paints every tile red on the day its deadline arrives, which is not what clearing a box asks for.
+
+The form draws three of the `countdown` keys and carries the rest. `unit`, `futureLabel`, `todayLabel` and the countdown's own `emptyText` survive a trip through the editor untouched, so a wording an app hand-wrote into its manifest is still there after somebody opens the tile to adjust a threshold. The block also survives switching the tile to plain text and back, so looking at a deadline tile in another mode is not a way to lose its settings.
 
 Keys the form does not show are kept and written back on save, so config an app hand-wrote into its manifest survives a trip through the editor. That holds inside an override too: a clause of the `when` grammar the form does not draw travels through the round trip, and an override it cannot draw at all is re-emitted in its own position rather than dropped.
 
