@@ -70,7 +70,7 @@
 				:key="file.id"
 				:name="file.name || file.title"
 				:bold="false"
-				:force-display-actions="true">
+				:forceDisplayActions="true">
 				<template #icon>
 					<FileOutline :size="32" />
 				</template>
@@ -110,11 +110,11 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcListItem, NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
-import Upload from 'vue-material-design-icons/Upload.vue'
+import { NcActionButton, NcButton, NcCheckboxRadioSwitch, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
 import { buildHeaders } from '../../utils/index.js'
 import { safeHref } from '../../utils/safeHref.js'
 
@@ -145,6 +145,7 @@ export default {
 		/**
 		 * Whether to render the "share uploaded files" toggle. Off by default;
 		 * when false, uploads never set the share flag (no auto-publish).
+		 *
 		 * @type {boolean}
 		 */
 		showShareToggle: { type: Boolean, default: false },
@@ -152,6 +153,7 @@ export default {
 		 * Initial state for the share toggle. `true`/`false` wins outright;
 		 * `null` (the default) defers to the schema's
 		 * `configuration.defaultAutoShare` from OpenRegister.
+		 *
 		 * @type {boolean|null}
 		 */
 		defaultShare: { type: Boolean, default: null },
@@ -191,7 +193,9 @@ export default {
 		objectId: {
 			immediate: true,
 			handler(id) {
-				if (id) this.fetchFiles()
+				if (id) {
+					this.fetchFiles()
+				}
 				this.applyShareDefault()
 			},
 		},
@@ -214,8 +218,14 @@ export default {
 		},
 
 		async fetchFiles(append = false) {
-			if (!this.register || !this.schema) return
-			if (append) { this.loadingMore = true } else { this.loading = true }
+			if (!this.register || !this.schema) {
+				return
+			}
+			if (append) {
+				this.loadingMore = true
+			} else {
+				this.loading = true
+			}
 			try {
 				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
 				const response = await fetch(
@@ -229,6 +239,7 @@ export default {
 					this.total = data.total || this.files.length
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnFilesTab: Failed to fetch files', err)
 			} finally {
 				this.loading = false
@@ -247,6 +258,7 @@ export default {
 		 * `configuration.defaultAutoShare` from OpenRegister and use that.
 		 * Network failure or missing key → keep the safe default (false) so
 		 * a hiccup never silently flips uploads to "share".
+		 *
 		 * @return {Promise<void>}
 		 */
 		async applyShareDefault() {
@@ -255,13 +267,17 @@ export default {
 				return
 			}
 			this.share = false
-			if (!this.schema) return
+			if (!this.schema) {
+				return
+			}
 			try {
 				const response = await fetch(
 					`${this.apiBase}/schemas/${this.schema}`,
 					{ headers: buildHeaders() },
 				)
-				if (!response.ok) return
+				if (!response.ok) {
+					return
+				}
 				const data = await response.json().catch(() => null)
 				if (data?.configuration?.defaultAutoShare === true) {
 					this.share = true
@@ -269,6 +285,7 @@ export default {
 			} catch (err) {
 				// Non-fatal — keep the safe default, but surface the
 				// failure so a missing toggle default isn't silent.
+				// eslint-disable-next-line no-console
 				console.error('CnFilesTab: Failed to fetch schema default for share toggle', err)
 			}
 		},
@@ -277,24 +294,37 @@ export default {
 			this.fileInputEl?.click()
 		},
 
-		onDragOver() { this.isDragOver = true },
-		onDragLeave() { this.isDragOver = false },
+		onDragOver() {
+			this.isDragOver = true
+		},
+
+		onDragLeave() {
+			this.isDragOver = false
+		},
 
 		onDrop(event) {
 			this.isDragOver = false
 			const droppedFiles = event.dataTransfer?.files
-			if (droppedFiles?.length) this.uploadFiles(droppedFiles)
+			if (droppedFiles?.length) {
+				this.uploadFiles(droppedFiles)
+			}
 		},
 
 		async onFileUpload(event) {
 			const inputFiles = event.target.files
-			if (!inputFiles?.length) return
+			if (!inputFiles?.length) {
+				return
+			}
 			await this.uploadFiles(inputFiles)
-			if (this.fileInputEl) this.fileInputEl.value = ''
+			if (this.fileInputEl) {
+				this.fileInputEl.value = ''
+			}
 		},
 
 		async uploadFiles(fileList) {
-			if (!fileList?.length || !this.register || !this.schema) return
+			if (!fileList?.length || !this.register || !this.schema) {
+				return
+			}
 			this.uploadError = ''
 			const formData = new FormData()
 			for (const file of fileList) {
@@ -323,6 +353,7 @@ export default {
 				}
 				await this.fetchFiles()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnFilesTab: Failed to upload file', err)
 				this.uploadError = 'Upload failed: could not connect to server'
 			} finally {
@@ -349,23 +380,30 @@ export default {
 		},
 
 		async deleteFile(file) {
-			if (!this.register || !this.schema) return
+			if (!this.register || !this.schema) {
+				return
+			}
 			try {
 				await fetch(
 					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files/${file.id}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
-				this.files = this.files.filter(f => f.id !== file.id)
+				this.files = this.files.filter((f) => f.id !== file.id)
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnFilesTab: Failed to delete file', err)
 			}
 		},
 
 		formatFileSize(bytes) {
 			const sizes = ['Bytes', 'KB', 'MB', 'GB']
-			if (!bytes || bytes === 0) return 'n/a'
+			if (!bytes || bytes === 0) {
+				return 'n/a'
+			}
 			const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)))
-			if (i === 0) return '< 1 KB'
+			if (i === 0) {
+				return '< 1 KB'
+			}
 			return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + sizes[i]
 		},
 	},

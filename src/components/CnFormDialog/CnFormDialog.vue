@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="resolvedTitle"
 		:size="size"
-		:no-close="loading"
+		:noClose="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -39,9 +39,9 @@
 				v-if="$slots.form"
 				name="form"
 				:fields="resolvedFields"
-				:form-data="formData"
+				:formData="formData"
 				:errors="errors"
-				:update-field="updateField" />
+				:updateField="updateField" />
 
 			<!-- Auto-generated form -->
 			<template v-else>
@@ -70,7 +70,7 @@
 						:field="field"
 						:value="formData[field.key]"
 						:error="errors[field.key]"
-						:update-field="updateField" />
+						:updateField="updateField" />
 
 					<!-- referenceType (AD-18): render the integration's
 					     single-entity widget instead of a plain input. -->
@@ -93,8 +93,8 @@
 						:title="semanticUnavailableText(field)">
 						<NcTextField
 							:label="field.label + (field.required ? ' *' : '')"
-							:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
-							:helper-text="isSemanticLoading(field) ? '' : semanticUnavailableText(field)"
+							:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
+							:helperText="isSemanticLoading(field) ? '' : semanticUnavailableText(field)"
 							:disabled="true"
 							:loading="isSemanticLoading(field)"
 							:placeholder="field.description" />
@@ -108,12 +108,12 @@
 						<template v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'">
 							<NcTextField
 								:label="field.label + (field.required ? ' *' : '')"
-								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
 								:error="!!errors[field.key]"
 								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
 								:disabled="field.readOnly"
 								:placeholder="field.description"
-								@update:model-value="value => updateField(field.key, value)" />
+								@update:modelValue="value => updateField(field.key, value)" />
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
@@ -124,12 +124,12 @@
 						<template v-else-if="field.widget === 'number'">
 							<NcTextField
 								:label="field.label + (field.required ? ' *' : '')"
-								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
 								:error="!!errors[field.key]"
 								type="number"
 								:disabled="field.readOnly"
 								:placeholder="field.description"
-								@update:model-value="value => updateField(field.key, value !== '' ? Number(value) : null)" />
+								@update:modelValue="value => updateField(field.key, value !== '' ? Number(value) : null)" />
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
@@ -164,12 +164,12 @@
 							v-else-if="isReferenceField(field) && field.allowCreate"
 							class="cn-form-dialog__select-wrapper">
 							<CnResourceSelect
-								:input-id="'cn-form-' + field.key"
-								:input-label="field.label + (field.required ? ' *' : '')"
+								:inputId="'cn-form-' + field.key"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
 								:register="referenceRegister(field)"
 								:schema="field.reference.schema"
-								:label-field="referenceLabelField(field)"
-								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:labelField="referenceLabelField(field)"
+								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
 								:clearable="!field.required"
 								@update:modelValue="value => onReferenceSelected(field, value)"
 								@create="obj => onReferenceCreated(field, obj)" />
@@ -183,10 +183,10 @@
 						     renders a switch mapping off→enum[0], on→last enum value. -->
 						<NcCheckboxRadioSwitch
 							v-else-if="field.widget === 'switch'"
-							:model-value="isSwitchOn(field)"
+							:modelValue="isSwitchOn(field)"
 							:disabled="field.readOnly"
 							type="switch"
-							@update:model-value="value => updateField(field.key, switchValueFor(field, value))">
+							@update:modelValue="value => updateField(field.key, switchValueFor(field, value))">
 							{{ field.label }}{{ field.required ? ' *' : '' }}
 						</NcCheckboxRadioSwitch>
 
@@ -197,17 +197,24 @@
 						     onAsyncSearch) resolves real users — mirroring how `user-multiselect`
 						     shares the multiselect branch below. -->
 						<div v-else-if="field.widget === 'select' || field.widget === 'user'" class="cn-form-dialog__select-wrapper">
-							<NcSelect
-								:input-id="'cn-form-' + field.key"
-								:input-label="field.label + (field.required ? ' *' : '')"
+							<!-- A `widget: "user"` field renders NcSelectUsers, everything
+							     else NcSelect. It used to be one NcSelect with
+							     `:user-select="isUserField(field)"`, and @nextcloud/vue 9
+							     REMOVED that prop, so a user field had silently become a
+							     plain select. NcSelectUsers wraps NcSelect and merges the
+							     rest of these bindings through, so the async load, search
+							     and select machinery is unchanged either way. -->
+							<component
+								:is="isUserField(field) ? 'NcSelectUsers' : 'NcSelect'"
+								:inputId="'cn-form-' + field.key"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
 								:options="getEffectiveOptions(field)"
-								:model-value="getEffectiveSelectedOption(field)"
+								:modelValue="getEffectiveSelectedOption(field)"
 								:clearable="!field.required"
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
 								:filterable="!isAsyncEnum(field)"
-								:user-select="isUserField(field)"
-								@update:model-value="onEffectiveSelectChange(field, $event)"
+								@update:modelValue="onEffectiveSelectChange(field, $event)"
 								@search="isAsyncEnum(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
 									v-if="$slots['field-' + field.key + '-option']"
@@ -223,7 +230,7 @@
 									<!-- @binding {object} option The selected option (`{ id, label }`). -->
 									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
 								</template>
-							</NcSelect>
+							</component>
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
@@ -233,17 +240,17 @@
 						<!-- Multiselect (array enum items / $ref array / Nextcloud users, supports async function) -->
 						<div v-else-if="field.widget === 'multiselect' || field.widget === 'user-multiselect'" class="cn-form-dialog__select-wrapper">
 							<NcSelect
-								:input-id="'cn-form-' + field.key"
-								:input-label="field.label + (field.required ? ' *' : '')"
+								:inputId="'cn-form-' + field.key"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
 								:options="getEffectiveArrayOptions(field)"
-								:model-value="getEffectiveSelectedArrayOptions(field)"
+								:modelValue="getEffectiveSelectedArrayOptions(field)"
 								:multiple="true"
-								:keep-open="true"
+								:keepOpen="true"
 								:clearable="true"
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
 								:filterable="!isAsyncItemsEnum(field)"
-								@update:model-value="onEffectiveMultiSelectChange(field, $event)"
+								@update:modelValue="onEffectiveMultiSelectChange(field, $event)"
 								@search="isAsyncItemsEnum(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
 									v-if="$slots['field-' + field.key + '-option']"
@@ -266,18 +273,18 @@
 						<div v-else-if="field.widget === 'tags'" class="cn-form-dialog__select-wrapper">
 							<!-- TODO: restore `:options` to `asyncState[field.key]?.options` once on Vue 3 (buble doesn't support optional chaining) -->
 							<NcSelect
-								:input-id="'cn-form-' + field.key"
-								:input-label="field.label + (field.required ? ' *' : '')"
-								:model-value="formData[field.key] || []"
+								:inputId="'cn-form-' + field.key"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:modelValue="formData[field.key] || []"
 								:options="isFieldAsync(field) ? ((asyncState[field.key] && asyncState[field.key].options) || []) : []"
 								:multiple="true"
-								:keep-open="true"
+								:keepOpen="true"
 								:taggable="true"
 								:clearable="true"
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
 								:filterable="!isFieldAsync(field)"
-								@update:model-value="updateField(field.key, $event)"
+								@update:modelValue="updateField(field.key, $event)"
 								@search="isFieldAsync(field) ? onAsyncSearch(field, $event) : undefined">
 								<template
 									v-if="$slots['field-' + field.key + '-option']"
@@ -299,10 +306,10 @@
 						<!-- Checkbox / Switch (boolean) -->
 						<NcCheckboxRadioSwitch
 							v-else-if="field.widget === 'checkbox'"
-							:model-value="!!formData[field.key]"
+							:modelValue="!!formData[field.key]"
 							:disabled="field.readOnly"
 							type="switch"
-							@update:model-value="value => updateField(field.key, value)">
+							@update:modelValue="value => updateField(field.key, value)">
 							{{ field.label }}{{ field.required ? ' *' : '' }}
 						</NcCheckboxRadioSwitch>
 
@@ -318,10 +325,10 @@
 								:id="'cn-form-' + field.key"
 								:type="field.widget === 'datetime' ? 'datetime-local' : 'date'"
 								:label="field.label"
-								:hide-label="true"
-								:model-value="dateValueFor(field)"
+								:hideLabel="true"
+								:modelValue="dateValueFor(field)"
 								:disabled="field.readOnly"
-								@update:model-value="date => onDateFieldInput(field, date)" />
+								@update:modelValue="date => onDateFieldInput(field, date)" />
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
@@ -336,8 +343,8 @@
 							<CnJsonViewer
 								:value="jsonStringFor(field)"
 								language="json"
-								:read-only="field.readOnly"
-								:error-text="jsonErrors[field.key] || ''"
+								:readOnly="field.readOnly"
+								:errorText="jsonErrors[field.key] || ''"
 								@update:value="value => onJsonFieldInput(field, value)" />
 							<CnFieldHelper
 								:text="field.description"
@@ -353,7 +360,7 @@
 							<CnJsonViewer
 								:value="formData[field.key] != null ? String(formData[field.key]) : ''"
 								:language="field.language || 'auto'"
-								:read-only="field.readOnly"
+								:readOnly="field.readOnly"
 								@update:value="value => updateField(field.key, value)" />
 							<CnFieldHelper
 								:text="field.description"
@@ -371,7 +378,7 @@
 								:value="formData[field.key] != null ? String(formData[field.key]) : null"
 								:sources="field.iconSources || ['mdi']"
 								:catalogues="field.catalogues || {}"
-								:allow-custom-svg="!!field.allowCustomSvg"
+								:allowCustomSvg="!!field.allowCustomSvg"
 								:clearable="!field.required"
 								@input="value => updateField(field.key, value)" />
 							<CnFieldHelper
@@ -384,11 +391,11 @@
 						<template v-else>
 							<NcTextField
 								:label="field.label + (field.required ? ' *' : '')"
-								:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
 								:error="!!errors[field.key]"
 								:disabled="field.readOnly"
 								:placeholder="field.description"
-								@update:model-value="value => updateField(field.key, value)" />
+								@update:modelValue="value => updateField(field.key, value)" />
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
@@ -435,30 +442,30 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect, NcSelectUsers, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
-import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
-import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
+import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
-import { fieldsFromSchema } from '../../utils/schema.js'
-import { searchNextcloudUsers, resolveNextcloudUser } from '../../utils/userAutocomplete.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
-import { shouldShow } from '../../utils/fieldCondition.js'
-import { objectDisplayName } from '../../utils/objectName.js'
 import {
-	extendsFormDeclarations,
 	definitionQueryParams,
+	DYNAMIC_KEY_PREFIX,
+	extendsFormDeclarations,
 	prefillDeclarations,
 	prefillValues,
 	propertiesFromDefinitions,
 	splitDynamicFormData,
-	DYNAMIC_KEY_PREFIX,
 } from '../../utils/dynamicProperties.js'
-import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
+import { shouldShow } from '../../utils/fieldCondition.js'
+import { objectDisplayName } from '../../utils/objectName.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { fieldsFromSchema } from '../../utils/schema.js'
+import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 
 /**
  * Widgets that take the full width of a two-column form.
@@ -582,9 +589,6 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  * with the form data. The parent performs the actual API call and calls
  * `setResult()` via a ref.
  *
- * @event confirm Emitted when the user confirms the form. Payload: formData object (includes `id` in edit mode).
- * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
- *
  * ```vue
  * <CnFormDialog
  *   v-if="showFormDialog"
@@ -631,6 +635,9 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  *   </template>
  * </CnFormDialog>
  * ```
+ *
+ * @event confirm Emitted when the user confirms the form. Payload: formData object (includes `id` in edit mode).
+ * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
  */
 export default {
 	name: 'CnFormDialog',
@@ -642,6 +649,7 @@ export default {
 		NcLoadingIcon,
 		NcTextField,
 		NcSelect,
+		NcSelectUsers,
 		NcDateTimePickerNative,
 		NcCheckboxRadioSwitch,
 		CnJsonViewer,
@@ -657,6 +665,7 @@ export default {
 			from: TENANT_CONTEXT_KEY,
 			default: null,
 		},
+
 		/**
 		 * Consumer translation function, provided by CnAppRoot as
 		 * `cnTranslate: this.translate` (bound to the host app's id). Field
@@ -702,6 +711,7 @@ export default {
 		 * Seed values for CREATE mode, keyed by field. Merged over the schema
 		 * defaults when opening a new-item form. Use it to pre-link a child to
 		 * its parent when adding from a detail page (e.g. `{ lead: '<uuid>' }`).
+		 *
 		 * @type {object}
 		 */
 		initialData: {
@@ -713,6 +723,7 @@ export default {
 		 * Field keys rendered read-only (disabled) and immutable — typically the
 		 * parent reference seeded via `initialData` so the user can't repoint a
 		 * child away from the record it was created under.
+		 *
 		 * @type {string[]}
 		 */
 		lockedFields: {
@@ -762,8 +773,13 @@ export default {
 			default: null,
 		},
 
-		/** Which field is the "name" (used in result messages) */
-		nameField: {
+		/**
+		 * Which field is the "name".
+		 *
+		 * @deprecated Never read. The result note card renders whatever message the
+		 * parent hands to `setResult()`, so this field names nothing.
+		 */
+		nameField: { // eslint-disable-line vue/no-unused-properties -- deprecated no-op, kept so apps still passing it do not leak it onto the DOM through $attrs.
 			type: String,
 			default: 'title',
 		},
@@ -917,24 +933,32 @@ export default {
 			// Schema titles are authored in English as the canonical source, the
 			// same as the property titles `fieldsFromSchema` translates — so the
 			// heading of a Dutch form does not read "Edit Time entry".
-			if (this.schema && this.schema.title) return this.cnTranslate(this.schema.title)
+			if (this.schema && this.schema.title) {
+				return this.cnTranslate(this.schema.title)
+			}
 			return t('nextcloud-vue', 'Item')
 		},
 
 		resolvedTitle() {
-			if (this.dialogTitle) return this.cnTranslate(this.dialogTitle)
+			if (this.dialogTitle) {
+				return this.cnTranslate(this.dialogTitle)
+			}
 			return this.isCreateMode
 				? t('nextcloud-vue', 'Create {title}', { title: this.schemaTitle })
 				: t('nextcloud-vue', 'Edit {title}', { title: this.schemaTitle })
 		},
 
 		resolvedConfirmLabel() {
-			if (this.confirmLabel) return this.confirmLabel
+			if (this.confirmLabel) {
+				return this.confirmLabel
+			}
 			return this.isCreateMode ? t('nextcloud-vue', 'Create') : t('nextcloud-vue', 'Save')
 		},
 
 		resolvedSuccessText() {
-			if (this.successText) return this.successText
+			if (this.successText) {
+				return this.successText
+			}
 			return t('nextcloud-vue', '{title} saved successfully.', { title: this.schemaTitle })
 		},
 
@@ -944,8 +968,12 @@ export default {
 				.filter((f) => f.required)
 				.every((f) => {
 					const val = this.formData[f.key]
-					if (val === null || val === undefined || val === '') return false
-					if (Array.isArray(val) && val.length === 0) return false
+					if (val === null || val === undefined || val === '') {
+						return false
+					}
+					if (Array.isArray(val) && val.length === 0) {
+						return false
+					}
 					return true
 				})
 		},
@@ -994,7 +1022,9 @@ export default {
 		 * @return {Array<{key: string, config: object}>} The declarations.
 		 */
 		prefillDecls() {
-			if (this.fields || !this.isCreateMode) return []
+			if (this.fields || !this.isCreateMode) {
+				return []
+			}
 			return prefillDeclarations(this.schema)
 		},
 
@@ -1025,11 +1055,15 @@ export default {
 			const decls = []
 			for (const [key, prop] of Object.entries(properties)) {
 				const filter = prop && prop['x-relation-filter']
-				if (!filter || typeof filter !== 'object') continue
+				if (!filter || typeof filter !== 'object') {
+					continue
+				}
 				const drivers = Object.values(filter)
 					.filter((v) => typeof v === 'string' && v.startsWith('@object.'))
 					.map((v) => v.slice('@object.'.length))
-				if (drivers.length > 0) decls.push({ key, drivers })
+				if (drivers.length > 0) {
+					decls.push({ key, drivers })
+				}
 			}
 			return decls
 		},
@@ -1055,7 +1089,9 @@ export default {
 		 * @return {object[]} The dynamic fields, ordered after the schema's own.
 		 */
 		dynamicFields() {
-			if (Object.keys(this.dynamicProperties).length === 0) return []
+			if (Object.keys(this.dynamicProperties).length === 0) {
+				return []
+			}
 			return fieldsFromSchema(
 				{ properties: this.dynamicProperties, required: this.dynamicRequired },
 				{ translate: this.cnTranslate },
@@ -1067,15 +1103,17 @@ export default {
 			const base = this.fields
 				? this.fields
 				: fieldsFromSchema(this.schema, {
-					exclude: this.excludeFields,
-					include: this.includeFields,
-					overrides: this.fieldOverrides,
-					translate: this.cnTranslate,
-				}).concat(this.dynamicFields)
+						exclude: this.excludeFields,
+						include: this.includeFields,
+						overrides: this.fieldOverrides,
+						translate: this.cnTranslate,
+					}).concat(this.dynamicFields)
 
 			// Render locked fields (parent references seeded via initialData) as
 			// read-only so the disabled binding on every widget branch applies.
-			if (!this.lockedFields.length) return base
+			if (!this.lockedFields.length) {
+				return base
+			}
 			return base.map((field) => (
 				this.lockedFields.includes(field.key)
 					? { ...field, readOnly: true }
@@ -1200,14 +1238,20 @@ export default {
 		 */
 		relationFilterToken() {
 			const stale = new Set(this.relationFilterDecls.map(({ key }) => key))
-			if (stale.size === 0) return
+			if (stale.size === 0) {
+				return
+			}
 
 			// The TRANSFORMED fields, the same list initAsyncFields iterates:
 			// a resolved cross-app semantic reference is a `$ref` picker by
 			// then and scopes itself the same way.
 			for (const field of this.resolvedFields.map((f) => this.applySemanticResolution(f))) {
-				if (!stale.has(field.key)) continue
-				if (!this.isAsyncEnum(field) && !this.isAsyncItemsEnum(field)) continue
+				if (!stale.has(field.key)) {
+					continue
+				}
+				if (!this.isAsyncEnum(field) && !this.isAsyncItemsEnum(field)) {
+					continue
+				}
 				// OPTIONS ONLY, the value is left alone. Clearing a selection
 				// that the new scope no longer offers looks tempting, and it
 				// would fight `applyPrefill`: `x-openregister-prefill` reacts
@@ -1221,18 +1265,20 @@ export default {
 		},
 
 		visibleFields(newFields, oldFields) {
-			if (!Array.isArray(oldFields)) return
+			if (!Array.isArray(oldFields)) {
+				return
+			}
 			const newKeys = new Set(newFields.map((f) => f.key))
 			for (const oldField of oldFields) {
-				if (!newKeys.has(oldField.key) && Object.prototype.hasOwnProperty.call(this.formData, oldField.key)) {
+				if (!newKeys.has(oldField.key) && Object.hasOwn(this.formData, oldField.key)) {
 					delete this.formData[oldField.key]
-					if (Object.prototype.hasOwnProperty.call(this.errors, oldField.key)) {
+					if (Object.hasOwn(this.errors, oldField.key)) {
 						delete this.errors[oldField.key]
 					}
-					if (Object.prototype.hasOwnProperty.call(this.jsonErrors, oldField.key)) {
+					if (Object.hasOwn(this.jsonErrors, oldField.key)) {
 						delete this.jsonErrors[oldField.key]
 					}
-					if (Object.prototype.hasOwnProperty.call(this.jsonDrafts, oldField.key)) {
+					if (Object.hasOwn(this.jsonDrafts, oldField.key)) {
 						delete this.jsonDrafts[oldField.key]
 					}
 				}
@@ -1254,9 +1300,13 @@ export default {
 
 	beforeUnmount() {
 		for (const state of Object.values(this.asyncState)) {
-			if (state.searchTimeout) clearTimeout(state.searchTimeout)
+			if (state.searchTimeout) {
+				clearTimeout(state.searchTimeout)
+			}
 		}
-		if (this.closeTimeout) clearTimeout(this.closeTimeout)
+		if (this.closeTimeout) {
+			clearTimeout(this.closeTimeout)
+		}
 	},
 
 	methods: {
@@ -1314,7 +1364,9 @@ export default {
 				}
 			}
 			for (const uri of uris) {
-				if (this.semanticResolutions[uri]) continue
+				if (this.semanticResolutions[uri]) {
+					continue
+				}
 				this.semanticResolutions[uri] = { status: 'loading', resolved: false }
 				this.resolveSemanticReference(uri).then((result) => {
 					this.semanticResolutions[uri] = { status: 'done', ...result }
@@ -1352,11 +1404,12 @@ export default {
 						resolved: true,
 						registerSlug: String(data.registerSlug),
 						schemaSlug: String(data.schemaSlug),
-						appId: data.appId != null ? String(data.appId) : null,
+						appId: data.appId !== null && data.appId !== undefined ? String(data.appId) : null,
 					}
 				}
 				return empty
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error(`CnFormDialog: semantic reference resolve failed for "${uri}":`, err)
 				return empty
 			}
@@ -1371,7 +1424,9 @@ export default {
 		 * @return {boolean}
 		 */
 		isSemanticResolved(field) {
-			if (!field || !field.referenceSemanticType) return false
+			if (!field || !field.referenceSemanticType) {
+				return false
+			}
 			const entry = this.semanticResolutions[field.referenceSemanticType]
 			return !!(entry && entry.status === 'done' && entry.resolved)
 		},
@@ -1383,7 +1438,9 @@ export default {
 		 * @return {boolean}
 		 */
 		isSemanticLoading(field) {
-			if (!field || !field.referenceSemanticType) return false
+			if (!field || !field.referenceSemanticType) {
+				return false
+			}
 			const entry = this.semanticResolutions[field.referenceSemanticType]
 			return !entry || entry.status === 'loading'
 		},
@@ -1431,9 +1488,13 @@ export default {
 		 * @return {object} The (possibly transformed) field.
 		 */
 		applySemanticResolution(field) {
-			if (!field || !field.referenceSemanticType) return field
+			if (!field || !field.referenceSemanticType) {
+				return field
+			}
 			const entry = this.semanticResolutions[field.referenceSemanticType]
-			if (!entry || entry.status !== 'done' || !entry.resolved) return field
+			if (!entry || entry.status !== 'done' || !entry.resolved) {
+				return field
+			}
 			return {
 				...field,
 				widget: 'select',
@@ -1451,7 +1512,9 @@ export default {
 		 * @return {string} The id, or '' when the record has none.
 		 */
 		recordId(record) {
-			if (!record || typeof record !== 'object') return ''
+			if (!record || typeof record !== 'object') {
+				return ''
+			}
 			return String(record.id ?? record['@self']?.id ?? record.uuid ?? '')
 		},
 
@@ -1469,7 +1532,9 @@ export default {
 		 */
 		isSameRecord(oldItem, newItem) {
 			const oldId = this.recordId(oldItem)
-			if (oldId === '') return true
+			if (oldId === '') {
+				return true
+			}
 			return oldId === this.recordId(newItem)
 		},
 
@@ -1481,7 +1546,9 @@ export default {
 		 */
 		pendingUserEdits() {
 			const keys = Object.keys(this.touchedFields || {})
-			if (keys.length === 0) return null
+			if (keys.length === 0) {
+				return null
+			}
 			const edits = {}
 			for (const key of keys) {
 				if (Object.hasOwn(this.formData, key)) {
@@ -1499,7 +1566,9 @@ export default {
 		 * @return {void}
 		 */
 		restoreUserEdits(edits) {
-			if (!edits) return
+			if (!edits) {
+				return
+			}
 			for (const key of Object.keys(edits)) {
 				this.formData[key] = edits[key]
 				this.touchedFields[key] = true
@@ -1568,19 +1637,27 @@ export default {
 			for (const field of this.resolvedFields.map((f) => this.applySemanticResolution(f))) {
 				if (this.isReferenceField(field)) {
 					const uuid = this.formData[field.key]
-					if (uuid) this.resolveReferenceLabel(field, uuid)
+					if (uuid) {
+						this.resolveReferenceLabel(field, uuid)
+					}
 				} else if (this.isReferenceArrayField(field)) {
 					const uuids = this.formData[field.key]
 					if (Array.isArray(uuids)) {
-						for (const uuid of uuids) this.resolveReferenceLabel(field, uuid)
+						for (const uuid of uuids) {
+							this.resolveReferenceLabel(field, uuid)
+						}
 					}
 				} else if (this.isUserField(field)) {
 					const uid = this.formData[field.key]
-					if (uid) this.resolveUserLabel(uid)
+					if (uid) {
+						this.resolveUserLabel(uid)
+					}
 				} else if (this.isUserArrayField(field)) {
 					const uids = this.formData[field.key]
 					if (Array.isArray(uids)) {
-						for (const uid of uids) this.resolveUserLabel(uid)
+						for (const uid of uids) {
+							this.resolveUserLabel(uid)
+						}
 					}
 				}
 			}
@@ -1595,7 +1672,9 @@ export default {
 		 * @param {string} uid The stored user UID.
 		 */
 		async resolveUserLabel(uid) {
-			if (!uid || this.referenceLabels[uid]) return
+			if (!uid || this.referenceLabels[uid]) {
+				return
+			}
 			const option = await resolveNextcloudUser(uid)
 			if (option && option.id) {
 				this.referenceLabels = { ...this.referenceLabels, [option.id]: option.label || String(option.id) }
@@ -1611,13 +1690,21 @@ export default {
 		 */
 		_autofillTenant() {
 			const ctx = this._cnTenantContext
-			if (!ctx) return
+			if (!ctx) {
+				return
+			}
 			const uuid = ctx.activeOrganisationUuid && ctx.activeOrganisationUuid.value
-			if (!uuid) return
+			if (!uuid) {
+				return
+			}
 			const hasOrgField = this.resolvedFields.some((f) => f.key === 'organisation')
-			if (!hasOrgField) return
+			if (!hasOrgField) {
+				return
+			}
 			const current = this.formData.organisation
-			if (current !== null && current !== undefined && current !== '') return
+			if (current !== null && current !== undefined && current !== '') {
+				return
+			}
 			this.formData.organisation = uuid
 		},
 
@@ -1637,7 +1724,9 @@ export default {
 		 */
 		fieldVisible(field) {
 			const condition = field.condition || field.visibleWhen
-			if (!condition || typeof condition !== 'object') return true
+			if (!condition || typeof condition !== 'object') {
+				return true
+			}
 
 			const target = this.formData[condition.field]
 
@@ -1710,7 +1799,9 @@ export default {
 				return this.jsonDrafts[field.key]
 			}
 			const value = this.formData[field.key]
-			if (value === null || value === undefined) return ''
+			if (value === null || value === undefined) {
+				return ''
+			}
 			try {
 				return JSON.stringify(value, null, 2)
 			} catch {
@@ -1754,7 +1845,9 @@ export default {
 		 */
 		dateValueFor(field) {
 			const raw = this.formData[field.key]
-			if (!raw) return null
+			if (!raw) {
+				return null
+			}
 			// Accept both ISO ('2026-10-15T14:30:00Z') and OpenRegister's
 			// space-separated persisted form ('2026-10-15 14:30:00'); the
 			// optional trailing 'Z'/offset is ignored for the local-time picker.
@@ -1824,9 +1917,13 @@ export default {
 		 */
 		normalizePersistedDates() {
 			for (const field of this.resolvedFields) {
-				if (field.widget !== 'date' && field.widget !== 'datetime') continue
+				if (field.widget !== 'date' && field.widget !== 'datetime') {
+					continue
+				}
 				const raw = this.formData[field.key]
-				if (raw === null || raw === undefined || raw === '') continue
+				if (raw === null || raw === undefined || raw === '') {
+					continue
+				}
 				// Leave a value that ALREADY satisfies the schema format alone.
 				//
 				// This pass exists for OpenRegister's persisted shape
@@ -1840,7 +1937,9 @@ export default {
 				// — the same digits, two hours earlier, silently, on an edit that
 				// never touched the field. It is schema-valid either way, so
 				// nothing downstream objects (nextcloud-vue#835).
-				if (this.isCanonicalDateValue(field.widget, raw)) continue
+				if (this.isCanonicalDateValue(field.widget, raw)) {
+					continue
+				}
 				const date = this.dateValueFor(field)
 				if (date instanceof Date && !isNaN(date.getTime())) {
 					this.formData[field.key] = this.formatDateValue(field.widget, date)
@@ -1858,11 +1957,13 @@ export default {
 		 * normalised.
 		 *
 		 * @param {string} widget The field widget ('date' | 'datetime').
-		 * @param {*} raw The stored value.
+		 * @param {unknown} raw The stored value.
 		 * @return {boolean} True when the value needs no rewrite.
 		 */
 		isCanonicalDateValue(widget, raw) {
-			if (typeof raw !== 'string') return false
+			if (typeof raw !== 'string') {
+				return false
+			}
 			if (widget === 'date') {
 				return /^\d{4}-\d{2}-\d{2}$/.test(raw)
 			}
@@ -1878,7 +1979,7 @@ export default {
 		 * every other string is Dutch.
 		 *
 		 * @param {object} field The field descriptor.
-		 * @param {*} val The raw enum value.
+		 * @param {unknown} val The raw enum value.
 		 * @return {string} The label to render.
 		 */
 		enumOptionLabel(field, val) {
@@ -1887,7 +1988,9 @@ export default {
 		},
 
 		getEnumOptions(field) {
-			if (!field.enum) return []
+			if (!field.enum) {
+				return []
+			}
 			// Cache the built option list per field so the same option object
 			// references are reused across renders. NcSelect/vue-select match
 			// the selected model against options by identity — returning fresh
@@ -1907,7 +2010,9 @@ export default {
 
 		getSelectedEnumOption(field) {
 			const val = this.formData[field.key]
-			if (val === null || val === undefined) return null
+			if (val === null || val === undefined) {
+				return null
+			}
 			// Return the SAME option object reference from the field's option
 			// list so NcSelect/vue-select recognises it as selected (it matches
 			// the model against options by identity). Returning a fresh
@@ -1917,7 +2022,9 @@ export default {
 			// values not present in the list.
 			const options = this.getEnumOptions(field)
 			const match = options.find((o) => o.id === val)
-			if (match) return match
+			if (match) {
+				return match
+			}
 			return { id: val, label: this.enumOptionLabel(field, val) }
 		},
 
@@ -1926,7 +2033,9 @@ export default {
 		},
 
 		getArrayEnumOptions(field) {
-			if (!field.items || !field.items.enum) return []
+			if (!field.items || !field.items.enum) {
+				return []
+			}
 			return field.items.enum.map((val) => ({
 				id: val,
 				label: this.enumOptionLabel(field, val),
@@ -1935,7 +2044,9 @@ export default {
 
 		getSelectedArrayOptions(field) {
 			const val = this.formData[field.key]
-			if (!Array.isArray(val)) return []
+			if (!Array.isArray(val)) {
+				return []
+			}
 			return val.map((v) => ({ id: v, label: this.enumOptionLabel(field, v) }))
 		},
 
@@ -2063,7 +2174,9 @@ export default {
 		 * @return {string} The display label.
 		 */
 		displayLabel(obj) {
-			if (!obj || typeof obj !== 'object') return String(obj)
+			if (!obj || typeof obj !== 'object') {
+				return String(obj)
+			}
 			return objectDisplayName(obj)
 		},
 
@@ -2106,7 +2219,9 @@ export default {
 		 */
 		onReferenceSelected(field, value) {
 			this.updateField(field.key, value || null)
-			if (value) this.applyTemplateFill(field, value)
+			if (value) {
+				this.applyTemplateFill(field, value)
+			}
 		},
 
 		/**
@@ -2120,12 +2235,16 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async applyTemplateFill(field, source) {
-			if (!field || !field.fillFrom || !source) return
+			if (!field || !field.fillFrom || !source) {
+				return
+			}
 			let obj = (typeof source === 'object') ? source : null
 			if (!obj) {
 				const register = this.referenceRegister(field)
 				const store = this.getObjectStore()
-				if (!register || !store || !field.reference) return
+				if (!register || !store || !field.reference) {
+					return
+				}
 				try {
 					const slug = store.createObjectTypeSlug(register, field.reference.schema)
 					if (!store.objectTypeRegistry[slug]) {
@@ -2133,11 +2252,14 @@ export default {
 					}
 					obj = await store.fetchObject(slug, String(source))
 				} catch (err) {
+					// eslint-disable-next-line no-console
 					console.error(`CnFormDialog: template fill fetch failed for "${field.key}":`, err)
 					return
 				}
 			}
-			if (!obj) return
+			if (!obj) {
+				return
+			}
 			for (const formKey of Object.keys(field.fillFrom)) {
 				const sourceKey = field.fillFrom[formKey]
 				const value = obj[sourceKey]
@@ -2156,7 +2278,9 @@ export default {
 		 */
 		isSwitchOn(field) {
 			const values = Array.isArray(field.enum) ? field.enum : []
-			if (values.length === 0) return !!this.formData[field.key]
+			if (values.length === 0) {
+				return !!this.formData[field.key]
+			}
 			return this.formData[field.key] === values[values.length - 1]
 		},
 
@@ -2166,11 +2290,13 @@ export default {
 		 *
 		 * @param {object}  field The switch field descriptor (carries `enum`).
 		 * @param {boolean} on    The new switch state.
-		 * @return {*} The enum value to store.
+		 * @return {unknown} The enum value to store.
 		 */
 		switchValueFor(field, on) {
 			const values = Array.isArray(field.enum) ? field.enum : []
-			if (values.length === 0) return on
+			if (values.length === 0) {
+				return on
+			}
 			return on ? values[values.length - 1] : values[0]
 		},
 
@@ -2195,7 +2321,9 @@ export default {
 		 * @return {object|null} The object store, or null.
 		 */
 		getObjectStore() {
-			if (this._objectStore) return this._objectStore
+			if (this._objectStore) {
+				return this._objectStore
+			}
 			try {
 				this._objectStore = useObjectStore()
 				return this._objectStore
@@ -2213,12 +2341,16 @@ export default {
 		 * merely opening an existing record would look like a change and
 		 * refetch its definitions.
 		 *
-		 * @param {*} value The raw form value.
+		 * @param {unknown} value The raw form value.
 		 * @return {string} The value's identity, '' when unset.
 		 */
 		dynamicDriverValue(value) {
-			if (value === null || value === undefined || value === '') return ''
-			if (typeof value === 'object') return String(value.id || value.uuid || '')
+			if (value === null || value === undefined || value === '') {
+				return ''
+			}
+			if (typeof value === 'object') {
+				return String(value.id || value.uuid || '')
+			}
 			return String(value)
 		},
 
@@ -2243,7 +2375,9 @@ export default {
 				return
 			}
 			const store = this.getObjectStore()
-			if (!store) return
+			if (!store) {
+				return
+			}
 
 			this.dynamicLoading = true
 			const properties = {}
@@ -2257,7 +2391,9 @@ export default {
 					// so the form's register is the default; `register` names
 					// another app's when it does not (ADR-066).
 					const register = (config.definitions && config.definitions.register) || this.register
-					if (!schemaSlug || !register) continue
+					if (!schemaSlug || !register) {
+						continue
+					}
 					const slug = store.createObjectTypeSlug(register, schemaSlug)
 					if (!store.objectTypeRegistry[slug]) {
 						store.registerObjectType(slug, schemaSlug, register)
@@ -2271,7 +2407,9 @@ export default {
 					// Kept for the confirm payload. Array-mode declarations
 					// store the definition's NAME beside its value on the
 					// parent, and the answers alone carry only ids.
-					if (Array.isArray(records)) definitions.push(...records)
+					if (Array.isArray(records)) {
+						definitions.push(...records)
+					}
 					// `orderFrom` keeps each declaration's block together and
 					// after the schema's own fields, whose `order` values are
 					// authored well below this.
@@ -2282,14 +2420,19 @@ export default {
 					)
 					Object.assign(properties, mappedProps.properties)
 					required.push(...mappedProps.required)
-					for (const propKey of Object.keys(mappedProps.properties)) owners[propKey] = key
+					for (const propKey of Object.keys(mappedProps.properties)) {
+						owners[propKey] = key
+					}
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnFormDialog: could not load the fields for this selection:', err)
 			}
 			// A slower earlier fetch must not overwrite a later selection's
 			// fields; the signature it started under is the only way to tell.
-			if (this.dynamicToken !== token) return
+			if (this.dynamicToken !== token) {
+				return
+			}
 			this.dynamicDefinitions = definitions
 			this.dynamicProperties = properties
 			this.dynamicRequired = required
@@ -2310,7 +2453,9 @@ export default {
 		 * @return {boolean} True when the field spans both columns.
 		 */
 		fieldSpansBothColumns(field) {
-			if (this.columns !== 2 || !field) return false
+			if (this.columns !== 2 || !field) {
+				return false
+			}
 			return WIDE_WIDGETS.includes(field.widget)
 		},
 
@@ -2337,10 +2482,14 @@ export default {
 			this.prefillToken = token
 			const active = this.prefillDecls
 				.filter(({ key }) => this.dynamicDriverValue(this.formData[key]) !== '')
-			if (active.length === 0) return
+			if (active.length === 0) {
+				return
+			}
 
 			const store = this.getObjectStore()
-			if (!store) return
+			if (!store) {
+				return
+			}
 
 			const resolved = {}
 			try {
@@ -2352,7 +2501,9 @@ export default {
 						|| (field && field.reference && field.reference.schema)
 					const register = config.register
 						|| (field ? this.referenceRegister(field) : this.register)
-					if (!schemaSlug || !register) continue
+					if (!schemaSlug || !register) {
+						continue
+					}
 
 					const slug = store.createObjectTypeSlug(register, schemaSlug)
 					if (!store.objectTypeRegistry[slug]) {
@@ -2367,16 +2518,21 @@ export default {
 			} catch (err) {
 				// A prefill that fails leaves the person typing the values
 				// themselves, which is exactly where they were before.
+				// eslint-disable-next-line no-console
 				console.error('CnFormDialog: could not prefill from this selection:', err)
 				return
 			}
 
-			if (this.prefillToken !== token) return
+			if (this.prefillToken !== token) {
+				return
+			}
 			for (const [target, value] of Object.entries(resolved)) {
 				const current = this.formData[target]
 				const empty = current === null || current === undefined || current === ''
 					|| (Array.isArray(current) && current.length === 0)
-				if (empty) this.formData[target] = value
+				if (empty) {
+					this.formData[target] = value
+				}
 			}
 		},
 
@@ -2388,20 +2544,30 @@ export default {
 		 */
 		seedDynamicDefaults(properties) {
 			for (const [key, prop] of Object.entries(properties)) {
-				if (prop.default === undefined) continue
-				if (this.formData[key] !== undefined && this.formData[key] !== null && this.formData[key] !== '') continue
+				if (prop.default === undefined) {
+					continue
+				}
+				if (this.formData[key] !== undefined && this.formData[key] !== null && this.formData[key] !== '') {
+					continue
+				}
 				this.formData[key] = prop.default
 			}
 		},
 
 		async fetchReferenceOptions(field, query) {
 			const register = this.referenceRegister(field)
-			if (!register || !field.reference || !field.reference.schema) return []
+			if (!register || !field.reference || !field.reference.schema) {
+				return []
+			}
 			const store = this.getObjectStore()
-			if (!store) return []
+			if (!store) {
+				return []
+			}
 			try {
 				const params = { _limit: 100 }
-				if (query) params._search = query
+				if (query) {
+					params._search = query
+				}
 				// Declarative option scoping (`x-relation-filter`): narrow the
 				// picker to objects that fit the form's CURRENT values — e.g. a
 				// line item's `product` scoped to the chosen leadProduct. Mirrors
@@ -2414,9 +2580,13 @@ export default {
 					const ctx = { objectId: this.formData.id, object: { ...this.formData } }
 					const filter = resolveFilterTokens(rawFilter, ctx)
 					for (const [fk, fv] of Object.entries(filter)) {
-						if (typeof fv === 'string' && fv.charAt(0) === '@') continue
+						if (typeof fv === 'string' && fv.charAt(0) === '@') {
+							continue
+						}
 						if (fv && typeof fv === 'object') {
-							for (const [op, ov] of Object.entries(fv)) params[`${fk}[${op}]`] = ov
+							for (const [op, ov] of Object.entries(fv)) {
+								params[`${fk}[${op}]`] = ov
+							}
 						} else if (fv !== '' && fv !== null && fv !== undefined) {
 							params[fk] = fv
 						}
@@ -2441,6 +2611,7 @@ export default {
 				}
 				return options
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error(`CnFormDialog: reference fetch failed for field "${field.key}":`, err)
 				return []
 			}
@@ -2455,9 +2626,13 @@ export default {
 		 */
 		async resolveReferenceLabel(field, uuid) {
 			const register = this.referenceRegister(field)
-			if (!uuid || this.referenceLabels[uuid] || !register || !field.reference) return
+			if (!uuid || this.referenceLabels[uuid] || !register || !field.reference) {
+				return
+			}
 			const store = this.getObjectStore()
-			if (!store) return
+			if (!store) {
+				return
+			}
 			try {
 				const slug = store.createObjectTypeSlug(register, field.reference.schema)
 				if (!store.objectTypeRegistry[slug]) {
@@ -2468,6 +2643,7 @@ export default {
 					this.referenceLabels = { ...this.referenceLabels, [obj.id]: this.displayLabel(obj) }
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error(`CnFormDialog: reference label resolve failed for "${uuid}":`, err)
 			}
 		},
@@ -2478,7 +2654,9 @@ export default {
 		initAsyncFields() {
 			// Clean up existing timeouts
 			for (const state of Object.values(this.asyncState)) {
-				if (state.searchTimeout) clearTimeout(state.searchTimeout)
+				if (state.searchTimeout) {
+					clearTimeout(state.searchTimeout)
+				}
 			}
 
 			// Iterate the *transformed* fields so a resolved cross-app
@@ -2510,7 +2688,9 @@ export default {
 		 */
 		async loadAsyncOptions(field, query) {
 			const state = this.asyncState[field.key]
-			if (!state) return
+			if (!state) {
+				return
+			}
 
 			state.loading = true
 
@@ -2526,7 +2706,9 @@ export default {
 					results = await searchNextcloudUsers(query)
 					const labels = {}
 					for (const opt of results) {
-						if (opt && opt.id) labels[opt.id] = opt.label || String(opt.id)
+						if (opt && opt.id) {
+							labels[opt.id] = opt.label || String(opt.id)
+						}
 					}
 					if (Object.keys(labels).length > 0) {
 						this.referenceLabels = { ...this.referenceLabels, ...labels }
@@ -2537,6 +2719,7 @@ export default {
 				}
 				state.options = Array.isArray(results) ? results : []
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error(`CnFormDialog: async enum error for field "${field.key}":`, err)
 				state.options = []
 			} finally {
@@ -2552,7 +2735,9 @@ export default {
 		 */
 		onAsyncSearch(field, query) {
 			const state = this.asyncState[field.key]
-			if (!state) return
+			if (!state) {
+				return
+			}
 
 			if (state.searchTimeout) {
 				clearTimeout(state.searchTimeout)
@@ -2591,7 +2776,9 @@ export default {
 				// display option `{ id, label }` (label from the resolved-labels
 				// cache, falling back to the id until it loads).
 				const uuid = this.formData[field.key]
-				if (uuid === null || uuid === undefined || uuid === '') return null
+				if (uuid === null || uuid === undefined || uuid === '') {
+					return null
+				}
 				return { id: uuid, label: this.referenceLabels[uuid] || String(uuid) }
 			}
 			if (this.isAsyncEnum(field)) {
@@ -2617,7 +2804,9 @@ export default {
 				this.updateField(field.key, option ? option.id : null)
 				// Reference options are label-only ({id,label}) — pass the id so
 				// template pre-fill fetches the full object.
-				if (option && option.id) this.applyTemplateFill(field, String(option.id))
+				if (option && option.id) {
+					this.applyTemplateFill(field, String(option.id))
+				}
 			} else if (this.isAsyncEnum(field)) {
 				// Store full option object for async selects
 				this.updateField(field.key, option || null)
@@ -2651,7 +2840,9 @@ export default {
 				// Reference / user arrays store an array of ids (UUIDs / UIDs) —
 				// resolve each to a display option `{ id, label }`.
 				const uuids = this.formData[field.key]
-				if (!Array.isArray(uuids)) return []
+				if (!Array.isArray(uuids)) {
+					return []
+				}
 				return uuids.map((uuid) => ({ id: uuid, label: this.referenceLabels[uuid] || String(uuid) }))
 			}
 			if (this.isAsyncItemsEnum(field)) {
@@ -2674,7 +2865,9 @@ export default {
 				const list = options || []
 				const labels = {}
 				for (const o of list) {
-					if (o && o.id) labels[o.id] = o.label || String(o.id)
+					if (o && o.id) {
+						labels[o.id] = o.label || String(o.id)
+					}
 				}
 				if (Object.keys(labels).length > 0) {
 					this.referenceLabels = { ...this.referenceLabels, ...labels }
@@ -2734,7 +2927,9 @@ export default {
 				}
 
 				// Skip further validation if empty and not required
-				if (value === null || value === undefined || value === '') continue
+				if (value === null || value === undefined || value === '') {
+					continue
+				}
 
 				const v = field.validation || {}
 
@@ -2758,8 +2953,7 @@ export default {
 							if (!new RegExp(v.pattern).test(value)) {
 								newErrors[field.key] = 'Invalid format.'
 							}
-						// TODO: restore to `catch {` (optional catch binding) once on Vue 3 (buble doesn't support it)
-						} catch (_e) {
+						} catch {
 							// Ignore invalid regex patterns
 						}
 					}
@@ -2780,8 +2974,12 @@ export default {
 		},
 
 		executeConfirm() {
-			if (!this.validate()) return
-			if (!this.jsonFieldsValid) return
+			if (!this.validate()) {
+				return
+			}
+			if (!this.jsonFieldsValid) {
+				return
+			}
 
 			this.formError = null
 			this.loading = true
@@ -2823,7 +3021,9 @@ export default {
 		buildSubmitPayload() {
 			const payload = { ...this.formData }
 			for (const field of this.resolvedFields) {
-				if (payload[field.key] !== '') continue
+				if (payload[field.key] !== '') {
+					continue
+				}
 				const v = field.validation || {}
 				const hasFormatConstraint = !!field.format
 					|| (v.pattern !== undefined && v.pattern !== null)

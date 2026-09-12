@@ -196,9 +196,7 @@ describe('CnPageRenderer auto-register for type:"custom" pages (#341)', () => {
 		}
 		mountRenderer(manifest, 'half')
 		expect(mockStore.registerObjectType).not.toHaveBeenCalled()
-		expect(warnSpy).toHaveBeenCalledWith(
-			expect.stringContaining('declares only one of config.register / config.schema'),
-		)
+		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('declares only one of config.register / config.schema'))
 	})
 
 	it('skips invalid types[] entries with a warning but still registers the valid ones', () => {
@@ -228,9 +226,7 @@ describe('CnPageRenderer auto-register for type:"custom" pages (#341)', () => {
 		expect(mockStore.registerObjectType).toHaveBeenNthCalledWith(1, 'pipeline', 'pipeline', 'pipelines')
 		expect(mockStore.registerObjectType).toHaveBeenNthCalledWith(2, 'lane', 'lane', 'pipelines')
 		// Plus a warning for each of the three skipped entries.
-		expect(warnSpy).toHaveBeenCalledWith(
-			expect.stringContaining('Skipping invalid entry in config.types'),
-		)
+		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Skipping invalid entry in config.types'))
 	})
 
 	it('survives registerObjectType throwing — page still mounts, warning logged', () => {

@@ -6,25 +6,25 @@
 <template>
 	<div class="cn-register-schema-select">
 		<NcSelect
-			:model-value="registerOption"
+			:modelValue="registerOption"
 			:options="registerOptions"
-			:input-label="t('nextcloud-vue', 'Register')"
+			:inputLabel="t('nextcloud-vue', 'Register')"
 			:placeholder="t('nextcloud-vue', 'Select a register')"
 			:loading="loading"
 			:disabled="disabled"
 			:clearable="false"
 			label="label"
-			@update:model-value="onRegister" />
+			@update:modelValue="onRegister" />
 		<NcSelect
-			:model-value="schemaOption"
+			:modelValue="schemaOption"
 			:options="schemaOptions"
-			:input-label="t('nextcloud-vue', 'Schema')"
+			:inputLabel="t('nextcloud-vue', 'Schema')"
 			:placeholder="register ? t('nextcloud-vue', 'Select a schema') : t('nextcloud-vue', 'Pick a register first')"
 			:loading="loading"
 			:disabled="disabled || !register"
 			:clearable="false"
 			label="label"
-			@update:model-value="onSchema" />
+			@update:modelValue="onSchema" />
 	</div>
 </template>
 
@@ -63,11 +63,13 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Currently selected schema slug (v-model:schema). */
 		schema: {
 			type: String,
 			default: '',
 		},
+
 		/** Disable both dropdowns. */
 		disabled: {
 			type: Boolean,
@@ -90,19 +92,23 @@ export default {
 		registerOptions() {
 			return this.registers.map((r) => ({ id: r.slug, label: r.title || r.slug }))
 		},
+
 		/** The option object matching the current register slug (or null). */
 		registerOption() {
 			return this.registerOptions.find((o) => o.id === this.register)
 				|| (this.register ? { id: this.register, label: this.register } : null)
 		},
+
 		/** The fetched register entry for the current slug. */
 		currentRegister() {
 			return this.registers.find((r) => r.slug === this.register) || null
 		},
+
 		/** Schema dropdown options, scoped to the selected register. */
 		schemaOptions() {
 			return (this.currentRegister?.schemas || []).map((s) => ({ id: s.slug, label: s.title || s.slug }))
 		},
+
 		/** The option object matching the current schema slug (or null). */
 		schemaOption() {
 			return this.schemaOptions.find((o) => o.id === this.schema)
@@ -142,6 +148,7 @@ export default {
 						.map((s) => ({ slug: s.slug || String(s.id), title: s.title || s.slug || String(s.id) })),
 				}))
 			} catch (e) {
+				// eslint-disable-next-line no-console
 				console.error('CnRegisterSchemaSelect: failed to fetch registers', e)
 			} finally {
 				this.loading = false

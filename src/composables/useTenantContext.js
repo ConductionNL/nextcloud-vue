@@ -27,7 +27,7 @@
  * Options-API mixin in `src/mixins/tenantContext.js`.
  */
 
-import { ref, inject, provide } from 'vue'
+import { inject, provide, ref } from 'vue'
 
 /** Injection key used by both `provideTenantContext` and `useTenantContext`. */
 export const TENANT_CONTEXT_KEY = Symbol('cn:tenantContext')
@@ -35,13 +35,15 @@ export const TENANT_CONTEXT_KEY = Symbol('cn:tenantContext')
 /**
  * Minimal event bus matching the public API consumers reach for.
  *
- * @return {{ on: Function, off: Function, emit: Function }}
+ * @return {{ on: (cb: (event: { previousUuid: string|null, uuid: string|null, organisation: object|null }) => void) => (() => void), off: (cb: (event: { previousUuid: string|null, uuid: string|null, organisation: object|null }) => void) => void, emit: (payload: { previousUuid: string|null, uuid: string|null, organisation: object|null }) => void }}
  */
 function createBus() {
 	const listeners = new Set()
 	return {
 		on(cb) {
-			if (typeof cb === 'function') listeners.add(cb)
+			if (typeof cb === 'function') {
+				listeners.add(cb)
+			}
 			return () => listeners.delete(cb)
 		},
 		off(cb) {
@@ -86,8 +88,8 @@ export function createTenantContext(initialUuid = null, initialOrg = null) {
 	 * @param {object} [organisation] Full org entity when calling with (uuid, org)
 	 */
 	function setActiveTenant(uuidOrPayload, organisation) {
-		let uuid = null
-		let org = null
+		let uuid
+		let org
 
 		if (uuidOrPayload && typeof uuidOrPayload === 'object') {
 			uuid = uuidOrPayload.uuid ?? null
@@ -100,7 +102,9 @@ export function createTenantContext(initialUuid = null, initialOrg = null) {
 		const previousUuid = activeOrganisationUuid.value
 		if (previousUuid === uuid) {
 			// Idempotent — refresh the resolved entity but skip emit
-			if (org) activeOrganisation.value = org
+			if (org) {
+				activeOrganisation.value = org
+			}
 			return
 		}
 
@@ -148,17 +152,17 @@ export function provideTenantContext(initialUuid = null, initialOrg = null) {
  */
 export function useTenantContext() {
 	const injected = inject(TENANT_CONTEXT_KEY, null)
-	if (injected) return injected
+	if (injected) {
+		return injected
+	}
 
 	const fallback = createTenantContext(null, null)
 	const realSetter = fallback.setActiveTenant
 	fallback.setActiveTenant = function noopSetActiveTenant(...args) {
 		// eslint-disable-next-line no-console
-		console.warn(
-			'[useTenantContext] No provider found in the component tree. '
+		console.warn('[useTenantContext] No provider found in the component tree. '
 			+ 'Call provideTenantContext() in App.vue / CnAppRoot before reading the context. '
-			+ 'setActiveTenant() is a no-op until a provider is mounted.',
-		)
+			+ 'setActiveTenant() is a no-op until a provider is mounted.')
 		return realSetter(...args)
 	}
 	return fallback

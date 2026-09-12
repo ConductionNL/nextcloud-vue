@@ -16,7 +16,7 @@
 // The chip's open state has the same property — the active affordance is a
 // computed background on the pill, and jsdom computes no styles.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
 	await page.goto('/?chip=1')

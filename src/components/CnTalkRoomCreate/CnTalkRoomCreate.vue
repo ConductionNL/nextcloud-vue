@@ -43,7 +43,7 @@
 			<NcSelect
 				v-model="selectedType"
 				:label="t('nextcloud-vue', 'Type')"
-				:input-label="t('nextcloud-vue', 'Type')"
+				:inputLabel="t('nextcloud-vue', 'Type')"
 				:options="typeOptions"
 				:clearable="false"
 				required />

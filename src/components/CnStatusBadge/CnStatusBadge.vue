@@ -37,6 +37,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Color variant: 'default', 'primary', 'success', 'warning', 'error', 'info'
 		 */
@@ -45,12 +46,14 @@ export default {
 			default: 'default',
 			validator: (v) => ['default', 'primary', 'success', 'warning', 'error', 'info'].includes(v),
 		},
+
 		/** Size: 'small' or 'medium' */
 		size: {
 			type: String,
 			default: 'medium',
 			validator: (v) => ['small', 'medium'].includes(v),
 		},
+
 		/**
 		 * Use solid background with white text instead of light background with colored text.
 		 * Useful when the badge is placed on a colored background (e.g., an active card).
@@ -59,6 +62,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Map of label values to variants. When provided, the variant is resolved
 		 * from this map using the label (case-insensitive). Falls back to the variant prop.
@@ -68,6 +72,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Key to look up in `colorMap` instead of the label. Set this when the
 		 * label is a translated/display string but the map is keyed on the raw

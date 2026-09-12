@@ -40,7 +40,7 @@ export { CnCopyDialog } from './CnCopyDialog/index.js'
 export { CnFieldHelper } from './CnFieldHelper/index.js'
 export { CnFormDialog } from './CnFormDialog/index.js'
 export { CnFormBuilder } from './CnFormBuilder/index.js'
-export { CnAdvancedFormDialog, CnPropertiesTab, CnMetadataTab, CnPropertyValueCell } from './CnAdvancedFormDialog/index.js'
+export { CnAdvancedFormDialog, CnMetadataTab, CnPropertiesTab, CnPropertyValueCell } from './CnAdvancedFormDialog/index.js'
 export { CnMassDeleteDialog } from './CnMassDeleteDialog/index.js'
 export { CnMassCopyDialog } from './CnMassCopyDialog/index.js'
 export { CnKpiGrid } from './CnKpiGrid/index.js'
@@ -58,16 +58,16 @@ export { CnRegisterSchemaSelect } from './CnRegisterSchemaSelect/index.js'
 export { CnThemePreview } from './CnThemePreview/index.js'
 export { CnRelationshipGraph } from './CnRelationshipGraph/index.js'
 export { CnGraphCanvas } from './CnGraphCanvas/index.js'
-export { CnFlowDetail, CnFlowSidebar, CnFlowIndexPage } from './CnFlowDetail/index.js'
+export { CnFlowDetail, CnFlowIndexPage, CnFlowSidebar } from './CnFlowDetail/index.js'
 export { CnIcon, ICON_MAP, registerIcons } from './CnIcon/index.js'
 export {
+	conceptForIcon,
+	getSemanticIconComponent,
+	SEMANTIC_ICON_COMPONENTS,
+	SEMANTIC_ICON_TIERS,
 	SEMANTIC_ICONS,
 	SEMANTIC_ICONS_TIER_A,
 	SEMANTIC_ICONS_TIER_B,
-	SEMANTIC_ICON_TIERS,
-	SEMANTIC_ICON_COMPONENTS,
-	conceptForIcon,
-	getSemanticIconComponent,
 } from './CnIcon/semanticIcons.js'
 export { CnPageHeader } from './CnPageHeader/index.js'
 export { CnBreadcrumbs } from './CnBreadcrumbs/index.js'
@@ -85,7 +85,7 @@ export { CnWidgetWrapper } from './CnWidgetWrapper/index.js'
 export { CnWidgetEmptyState } from './CnWidgetEmptyState/index.js'
 export { CnFormWidgetBase } from './CnFormWidgetBase/index.js'
 export { CnWidgetEditCog } from './CnWidgetEditCog/index.js'
-export { CnIconPicker, CnDashboardIcon } from './CnIconPicker/index.js'
+export { CnDashboardIcon, CnIconPicker } from './CnIconPicker/index.js'
 export { CnIconBrowser, mdiCatalogue, vmdiCatalogue } from './CnIconBrowser/index.js'
 export { CnIconColorPicker } from './CnIconColorPicker/index.js'
 export { CnWidgetRenderer } from './CnWidgetRenderer/index.js'
@@ -209,7 +209,7 @@ export { CnFormPage } from './CnFormPage/index.js'
 export { CnMapWidget } from './CnMapWidget/index.js'
 export { CnMapPage } from './CnMapPage/index.js'
 export { CnWikiPage } from './CnWikiPage/index.js'
-export { CnFlowsPage, CnFlowEditorPage } from './CnFlowsPage/index.js'
+export { CnFlowEditorPage, CnFlowsPage } from './CnFlowsPage/index.js'
 export { default as CnWidgetRefItem } from './CnWidgetRefItem/index.js'
 export { CnReportsPage } from './CnReportsPage/index.js'
 export { CnStorePage } from './CnStorePage/index.js'
@@ -334,9 +334,11 @@ export { CnNcWidgetGridPicker } from './CnNcWidgetGridPicker/index.js'
 
 // Generic tab strip. `NcAppSidebarTab` only works inside an `NcAppSidebar`, and
 // `bootstrap-vue@2` — what apps reached for instead — has no Vue 3 release.
-export { CnTabs, CnTab, CN_TABS_INJECTION_KEY } from './CnTabs/index.js'
+export { CN_TABS_INJECTION_KEY, CnTab, CnTabs } from './CnTabs/index.js'
 export { CnCountdownWidget } from './CnCountdownWidget/index.js'
 export { CnCountdownWidgetForm } from './CnCountdownWidgetForm/index.js'
 export { CnTabsWidget } from './CnTabsWidget/index.js'
 export { CnTabsWidgetForm } from './CnTabsWidgetForm/index.js'
+export { CnStagesWidget } from './CnStagesWidget/index.js'
+export { CnStagesWidgetForm } from './CnStagesWidgetForm/index.js'
 export { CnDetailWidgetHost } from './CnDetailWidgetHost/index.js'

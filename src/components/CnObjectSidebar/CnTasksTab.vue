@@ -37,9 +37,9 @@
 					v-model="newTaskAssignee"
 					:options="userList"
 					:placeholder="assigneeLabel"
-					:input-label="assigneeLabel"
+					:inputLabel="assigneeLabel"
 					label="displayName"
-					track-by="userId"
+					trackBy="userId"
 					:clearable="true" />
 			</div>
 		</div>
@@ -51,13 +51,13 @@
 					v-model="filterStatus"
 					:options="statusOptions"
 					:placeholder="statusFilterLabel"
-					:input-label="statusFilterLabel"
+					:inputLabel="statusFilterLabel"
 					:clearable="true" />
 				<NcSelect
 					v-model="filterAssignee"
 					:options="assigneeOptions"
 					:placeholder="assigneeFilterLabel"
-					:input-label="assigneeFilterLabel"
+					:inputLabel="assigneeFilterLabel"
 					:clearable="true" />
 			</div>
 		</div>
@@ -73,7 +73,7 @@
 				:key="task.id"
 				:name="task.summary || task.title || task.name"
 				:bold="false"
-				:force-display-actions="true"
+				:forceDisplayActions="true"
 				:class="{ 'cn-sidebar-tab__task--overdue': isOverdue(task) }">
 				<template #icon>
 					<button class="cn-sidebar-tab__task-checkbox" @click.stop="toggleTask(task)">
@@ -128,14 +128,14 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcTextField, NcListItem, NcActionButton, NcLoadingIcon, NcDateTimePickerNative, NcSelect } from '@nextcloud/vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
+import { NcActionButton, NcButton, NcDateTimePickerNative, NcListItem, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
+import CheckboxBlankOutline from 'vue-material-design-icons/CheckboxBlankOutline.vue'
+import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
-import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
-import CheckboxBlankOutline from 'vue-material-design-icons/CheckboxBlankOutline.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import { buildHeaders } from '../../utils/index.js'
 
 export default {
@@ -210,18 +210,20 @@ export default {
 
 	computed: {
 		statusOptions() {
-			return [...new Set(this.tasks.map(t => t.status).filter(Boolean))]
+			return [...new Set(this.tasks.map((t) => t.status).filter(Boolean))]
 		},
+
 		assigneeOptions() {
-			return [...new Set(this.tasks.map(t => this.extractAssignee(t)).filter(Boolean))]
+			return [...new Set(this.tasks.map((t) => this.extractAssignee(t)).filter(Boolean))]
 		},
+
 		filteredTasks() {
 			let result = this.tasks
 			if (this.filterStatus) {
-				result = result.filter(t => t.status === this.filterStatus)
+				result = result.filter((t) => t.status === this.filterStatus)
 			}
 			if (this.filterAssignee) {
-				result = result.filter(t => this.extractAssignee(t) === this.filterAssignee)
+				result = result.filter((t) => this.extractAssignee(t) === this.filterAssignee)
 			}
 			return result
 		},
@@ -241,8 +243,14 @@ export default {
 
 	methods: {
 		async fetchTasks(append = false) {
-			if (!this.register || !this.schema) return
-			if (append) { this.loadingMore = true } else { this.loading = true }
+			if (!this.register || !this.schema) {
+				return
+			}
+			if (append) {
+				this.loadingMore = true
+			} else {
+				this.loading = true
+			}
 			try {
 				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
 				const response = await fetch(
@@ -256,6 +264,7 @@ export default {
 					this.total = data.total || this.tasks.length
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTasksTab: Failed to fetch tasks', err)
 			} finally {
 				this.loading = false
@@ -269,12 +278,16 @@ export default {
 		},
 
 		isOverdue(task) {
-			if (!task.due || task.status === 'completed') return false
+			if (!task.due || task.status === 'completed') {
+				return false
+			}
 			return new Date(task.due) < new Date()
 		},
 
 		async fetchUsers() {
-			if (!this.register || !this.schema) return
+			if (!this.register || !this.schema) {
+				return
+			}
 			try {
 				const response = await fetch('/ocs/v2.php/cloud/users/details?format=json&limit=50', {
 					headers: buildHeaders(),
@@ -288,12 +301,15 @@ export default {
 					}))
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTasksTab: Failed to fetch users', err)
 			}
 		},
 
 		async addTask() {
-			if (!this.newTaskSummary.trim() || !this.register || !this.schema) return
+			if (!this.newTaskSummary.trim() || !this.register || !this.schema) {
+				return
+			}
 			this.saving = true
 			try {
 				const taskData = { summary: this.newTaskSummary.trim() }
@@ -314,6 +330,7 @@ export default {
 				this.clearForm()
 				await this.fetchTasks()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTasksTab: Failed to add task', err)
 			} finally {
 				this.saving = false
@@ -325,7 +342,7 @@ export default {
 			this.newTaskSummary = task.summary || task.title || task.name || ''
 			this.newTaskDue = task.due ? new Date(task.due).toISOString().split('T')[0] : null
 			const assigneeName = this.extractAssignee(task)
-			this.newTaskAssignee = this.userList.find(u => u.displayName === assigneeName) || null
+			this.newTaskAssignee = this.userList.find((u) => u.displayName === assigneeName) || null
 		},
 
 		cancelEdit() {
@@ -334,7 +351,9 @@ export default {
 		},
 
 		async saveEdit() {
-			if (!this.newTaskSummary.trim() || !this.editingTaskId) return
+			if (!this.newTaskSummary.trim() || !this.editingTaskId) {
+				return
+			}
 			this.saving = true
 			try {
 				const taskData = { summary: this.newTaskSummary.trim() }
@@ -360,6 +379,7 @@ export default {
 				this.clearForm()
 				await this.fetchTasks()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTasksTab: Failed to update task', err)
 			} finally {
 				this.saving = false
@@ -385,6 +405,7 @@ export default {
 				)
 				await this.fetchTasks()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTasksTab: Failed to toggle task', err)
 			}
 		},
@@ -401,6 +422,7 @@ export default {
 				)
 				await this.fetchTasks()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTasksTab: Failed to complete task', err)
 			}
 		},
@@ -411,8 +433,9 @@ export default {
 					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(task.id)}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
-				this.tasks = this.tasks.filter(t => t.id !== task.id)
+				this.tasks = this.tasks.filter((t) => t.id !== task.id)
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTasksTab: Failed to delete task', err)
 			}
 		},
@@ -425,12 +448,17 @@ export default {
 		},
 
 		formatShortDate(dateStr) {
-			if (!dateStr) return ''
+			if (!dateStr) {
+				return ''
+			}
 			try {
 				return new Date(dateStr).toLocaleDateString(undefined, {
-					day: 'numeric', month: 'short',
+					day: 'numeric',
+					month: 'short',
 				})
-			} catch { return dateStr }
+			} catch {
+				return dateStr
+			}
 		},
 	},
 }

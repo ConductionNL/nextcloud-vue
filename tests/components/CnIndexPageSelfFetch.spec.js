@@ -120,7 +120,9 @@ describe('CnIndexPage — self-fetch mode', () => {
 		// fetchCollection resolves only when we call `release()`, so we can
 		// assert the spinner is on mid-flight and off once it settles.
 		let release
-		mockStore.fetchCollection.mockImplementationOnce(() => new Promise((resolve) => { release = resolve }))
+		mockStore.fetchCollection.mockImplementationOnce(() => new Promise((resolve) => {
+			release = resolve
+		}))
 		const wrapper = mountPage({ title: 'Decisions', register: 'decidesk', schema: 'decision' })
 		await new Promise((resolve) => setTimeout(resolve))
 
@@ -164,13 +166,11 @@ describe('CnIndexPage — self-fetch mode: @workspace.<key> filter tokens', () =
 
 	it('DROPS an unresolved OPTIONAL `@workspace.<key>?` token instead of sending it literally', async () => {
 		// No cnWorkspaceContext provided at all (mirrors an app that never sets it).
-		mountPage(
-			{ title: 'Employees', register: 'hrmq', schema: 'employee', filter: { administrationId: '@workspace.activeAdministrationId?' } },
-		)
+		mountPage({ title: 'Employees', register: 'hrmq', schema: 'employee', filter: { administrationId: '@workspace.activeAdministrationId?' } })
 		await new Promise((resolve) => setTimeout(resolve))
 		expect(mockStore.fetchCollection).toHaveBeenCalled()
 		const params = mockStore.fetchCollection.mock.calls[0][1] || {}
-		expect(Object.prototype.hasOwnProperty.call(params, 'administrationId')).toBe(false)
+		expect(Object.hasOwn(params, 'administrationId')).toBe(false)
 	})
 
 	it('DROPS the token when cnWorkspaceContext is provided but the key is unset', async () => {
@@ -182,7 +182,7 @@ describe('CnIndexPage — self-fetch mode: @workspace.<key> filter tokens', () =
 		)
 		await new Promise((resolve) => setTimeout(resolve))
 		const params = mockStore.fetchCollection.mock.calls[0][1] || {}
-		expect(Object.prototype.hasOwnProperty.call(params, 'administrationId')).toBe(false)
+		expect(Object.hasOwn(params, 'administrationId')).toBe(false)
 	})
 
 	it('re-fetches reactively when the workspace ctx changes — no reload required', async () => {
@@ -195,7 +195,7 @@ describe('CnIndexPage — self-fetch mode: @workspace.<key> filter tokens', () =
 		await new Promise((resolve) => setTimeout(resolve))
 		expect(mockStore.fetchCollection).toHaveBeenCalledTimes(1)
 		let params = mockStore.fetchCollection.mock.calls[0][1] || {}
-		expect(Object.prototype.hasOwnProperty.call(params, 'administrationId')).toBe(false)
+		expect(Object.hasOwn(params, 'administrationId')).toBe(false)
 
 		// The administration switcher writes into the SAME ref (see hrmq's
 		// App.vue / AdministrationSwitcher.vue) — mutate it here the same way.

@@ -56,7 +56,9 @@ export const gridLayout = {
 		 * @return {Array} Sorted copy of the layout array.
 		 */
 		sortedLayout() {
-			if (!this.layout) return []
+			if (!this.layout) {
+				return []
+			}
 			return [...this.layout].sort((a, b) => {
 				if (a.gridY !== b.gridY) {
 					return a.gridY - b.gridY
@@ -110,7 +112,7 @@ export const gridLayout = {
 		 * @return {object|undefined} The matching widget definition.
 		 */
 		findWidget(item) {
-			return this.widgets.find(w => w.id === item.widgetId)
+			return this.widgets.find((w) => w.id === item.widgetId)
 		},
 	},
 }

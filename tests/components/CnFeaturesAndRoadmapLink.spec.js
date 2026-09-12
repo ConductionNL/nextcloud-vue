@@ -10,7 +10,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnFeaturesAndRoadmapLink from '../../src/components/CnFeaturesAndRoadmapLink/CnFeaturesAndRoadmapLink.vue'
 
 // Stub NcAppNavigationItem so the test does not pull the entire @nextcloud/vue tree.

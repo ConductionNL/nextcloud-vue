@@ -114,7 +114,7 @@
 </template>
 
 <script>
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import Clock from 'vue-material-design-icons/Clock.vue'
 import Timer from 'vue-material-design-icons/Timer.vue'
@@ -147,6 +147,7 @@ export default {
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+
 		/** Optional single-entity reference (row id). */
 		value: { type: [String, Number], default: '' },
 		/** Pre-translated card title. */
@@ -251,9 +252,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler() { this.fetch() } },
-		surface() { this.fetch() },
-		value() { if (this.surface === 'single-entity') { this.fetchSingle() } },
+		objectId: { immediate: true, handler() {
+			this.fetch()
+		} },
+
+		surface() {
+			this.fetch()
+		},
+
+		value() {
+			if (this.surface === 'single-entity') {
+				this.fetchSingle()
+			}
+		},
 	},
 
 	methods: {

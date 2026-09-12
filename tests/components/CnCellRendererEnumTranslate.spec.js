@@ -14,7 +14,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnCellRenderer from '@/components/CnCellRenderer/CnCellRenderer.vue'
 
 const property = {

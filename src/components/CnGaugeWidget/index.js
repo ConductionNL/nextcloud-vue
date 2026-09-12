@@ -9,8 +9,8 @@
  * `CnWidgetStyleEditorModal`.
  */
 
-import CnGaugeWidget from './CnGaugeWidget.vue'
 import CnGaugeWidgetForm from '../CnGaugeWidgetForm/CnGaugeWidgetForm.vue'
+import CnGaugeWidget from './CnGaugeWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('gauge', {

@@ -8,9 +8,9 @@
 		v-if="resolvedRegister && resolvedSchema && resolvedObjectId"
 		:register="resolvedRegister"
 		:schema="resolvedSchema"
-		:object-id="resolvedObjectId"
+		:objectId="resolvedObjectId"
 		:title="resolvedTitle"
-		:max-display="resolvedMaxDisplay" />
+		:maxDisplay="resolvedMaxDisplay" />
 </template>
 
 <script>
@@ -60,6 +60,7 @@ export default {
 		/**
 		 * OpenRegister schema — a slug string, or the schema OBJECT the
 		 * detail-context merge supplies (its slug/name/id is used).
+		 *
 		 * @type {string|object}
 		 */
 		schema: { type: [String, Object], default: '' },
@@ -76,6 +77,7 @@ export default {
 	computed: {
 		/**
 		 * The resolved object-context bag from either inject shape, or {}.
+		 *
 		 * @return {object}
 		 */
 		ctx() {
@@ -83,42 +85,54 @@ export default {
 			const holder = this.cnDetailObjectContext && this.cnDetailObjectContext.value
 			return inj || holder || {}
 		},
+
 		/**
 		 * The audited object's id: explicit prop → inject context → content.
+		 *
 		 * @return {string}
 		 */
 		resolvedObjectId() {
 			return this.objectId || this.ctx.objectId || this.content.objectId || ''
 		},
+
 		/**
 		 * The register slug/id: explicit prop → inject context → content.
+		 *
 		 * @return {string}
 		 */
 		resolvedRegister() {
 			return this.register || this.ctx.register || this.content.register || ''
 		},
+
 		/**
 		 * The schema SLUG: explicit prop → inject context → content; a
 		 * schema object collapses to its slug/name/id.
+		 *
 		 * @return {string}
 		 */
 		resolvedSchema() {
 			const s = this.schema || this.ctx.schema || this.content.schema || ''
 			return typeof s === 'string' ? s : (s && (s.slug || s.name || s.id)) || ''
 		},
+
 		/**
 		 * The card title: explicit prop → content → '' (card default).
+		 *
 		 * @return {string}
 		 */
 		resolvedTitle() {
 			return this.title || this.content.title || ''
 		},
+
 		/**
 		 * The row cap: explicit prop → content → the card's own default (5).
+		 *
 		 * @return {number}
 		 */
 		resolvedMaxDisplay() {
-			if (this.maxDisplay > 0) return this.maxDisplay
+			if (this.maxDisplay > 0) {
+				return this.maxDisplay
+			}
 			const fromContent = Number(this.content.maxDisplay)
 			return Number.isFinite(fromContent) && fromContent > 0 ? fromContent : 5
 		},

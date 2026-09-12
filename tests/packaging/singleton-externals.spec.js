@@ -37,16 +37,14 @@
  * That is the gap these tests close.
  */
 
-import { SINGLETON_PACKAGES, isSingletonExternal } from '../../rollup.singleton-externals.mjs'
+import { isSingletonExternal, SINGLETON_PACKAGES } from '../../rollup.singleton-externals.mjs'
 
 describe('singleton externals', () => {
 	describe('the list itself', () => {
 		it('covers every package the incident was about', () => {
 			// dexie is the boot-killer, dompurify the security boundary, marked and
 			// @vueuse/core the silent duplicates, gridstack the JS/CSS pair.
-			expect(SINGLETON_PACKAGES).toEqual(
-				expect.arrayContaining(['@vueuse/core', 'dexie', 'dompurify', 'gridstack', 'marked']),
-			)
+			expect(SINGLETON_PACKAGES).toEqual(expect.arrayContaining(['@vueuse/core', 'dexie', 'dompurify', 'gridstack', 'marked']))
 		})
 
 		it('is declared in peerDependencies and NOT in dependencies', () => {
@@ -55,7 +53,6 @@ describe('singleton externals', () => {
 			// by npm and can nest under our own node_modules, so the bare specifier
 			// the dist emits resolves to OUR copy and there is still no singleton.
 			// dompurify and marked were in exactly that state.
-			// eslint-disable-next-line
 			const pkg = require('../../package.json')
 
 			for (const name of SINGLETON_PACKAGES) {

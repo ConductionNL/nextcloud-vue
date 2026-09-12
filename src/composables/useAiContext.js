@@ -80,7 +80,7 @@ export function useAiContext(instance) {
 	// Euro-Office editor: sending a message threw
 	// `TypeError: Cannot read properties of null (reading 'appId')`
 	// and the turn never left the browser.
-	if (instance && instance[CN_AI_CONTEXT_KEY] != null) {
+	if (instance && instance[CN_AI_CONTEXT_KEY] !== null && instance[CN_AI_CONTEXT_KEY] !== undefined) {
 		return instance[CN_AI_CONTEXT_KEY]
 	}
 

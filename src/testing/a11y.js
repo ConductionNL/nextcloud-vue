@@ -166,11 +166,9 @@ function resolveNode(target) {
 			return target
 		}
 	}
-	throw new TypeError(
-		'expectAccessible(target): target must be a @vue/test-utils wrapper '
+	throw new TypeError('expectAccessible(target): target must be a @vue/test-utils wrapper '
 		+ '(with .element), a Vue instance (with .$el), or a DOM node — got '
-		+ `${Object.prototype.toString.call(target)}.`,
-	)
+		+ `${Object.prototype.toString.call(target)}.`)
 }
 
 /**
@@ -231,15 +229,13 @@ export async function expectAccessible(target, options = {}) {
 	// helper without having installed axe-core themselves.
 	let axe
 	try {
-		// eslint-disable-next-line global-require
+		// eslint-disable-next-line no-undef -- test-only helper, always run under jest (CommonJS), where `require` exists
 		axe = require('axe-core')
 	} catch (err) {
-		throw new Error(
-			'expectAccessible() requires the "axe-core" package. Add it to your '
+		throw new Error('expectAccessible() requires the "axe-core" package. Add it to your '
 			+ 'devDependencies (`npm install --save-dev axe-core`) — it is an '
 			+ 'optional peerDependency of @conduction/nextcloud-vue, never a '
-			+ 'transitive install.',
-		)
+			+ 'transitive install.', { cause: err })
 	}
 
 	const node = resolveNode(target)

@@ -10,7 +10,9 @@ function stubCanvas(wrapper) {
 	// reading `.element` before the guard is what fails — in typed mode there
 	// is no <canvas> in the DOM at all.
 	const found = wrapper.find('canvas')
-	if (!found.exists()) return
+	if (!found.exists()) {
+		return
+	}
 	const canvas = found.element
 	const noop = () => {}
 	canvas.getContext = () => ({
@@ -54,9 +56,9 @@ describe('CnSignatureCapture', () => {
 	})
 
 	it('renders the affirmation checkbox when affirmation prop is set', () => {
-		const wrapper = mount(CnSignatureCapture, { propsData: { affirmation: 'I declare …' } })
+		const wrapper = mount(CnSignatureCapture, { propsData: { affirmation: 'I declare …' } })
 		expect(wrapper.findAll('input[type="checkbox"]').length).toBe(1)
-		expect(wrapper.text()).toContain('I declare …')
+		expect(wrapper.text()).toContain('I declare …')
 	})
 
 	it('hides the affirmation checkbox when prop is empty', () => {

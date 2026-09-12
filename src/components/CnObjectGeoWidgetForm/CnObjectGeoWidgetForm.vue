@@ -10,12 +10,12 @@
 		</h4>
 
 		<NcTextField
-			:model-value="title"
+			:modelValue="title"
 			:label="t('nextcloud-vue', 'Title')"
 			placeholder="Location"
-			@update:model-value="updateField('title', $event)" />
+			@update:modelValue="updateField('title', $event)" />
 
-		<NcCheckboxRadioSwitch :model-value="editable" @update:model-value="updateField('editable', $event)">
+		<NcCheckboxRadioSwitch :modelValue="editable" @update:modelValue="updateField('editable', $event)">
 			{{ t('nextcloud-vue', 'Allow editing the location on the map') }}
 		</NcCheckboxRadioSwitch>
 		<p class="cn-object-geo-form__hint">
@@ -23,9 +23,9 @@
 		</p>
 
 		<NcCheckboxRadioSwitch
-			:model-value="addressSearch"
+			:modelValue="addressSearch"
 			:disabled="!editable"
-			@update:model-value="updateField('addressSearch', $event)">
+			@update:modelValue="updateField('addressSearch', $event)">
 			{{ t('nextcloud-vue', 'Show an address search box') }}
 		</NcCheckboxRadioSwitch>
 		<p class="cn-object-geo-form__hint">
@@ -37,14 +37,14 @@
 		</h4>
 
 		<NcSelect
-			:model-value="selectedBasemapOption"
+			:modelValue="selectedBasemapOption"
 			:options="basemapOptions"
-			:input-label="t('nextcloud-vue', 'Base map')"
+			:inputLabel="t('nextcloud-vue', 'Base map')"
 			:clearable="false"
 			label="label"
-			@update:model-value="onBasemapSelect" />
+			@update:modelValue="onBasemapSelect" />
 
-		<NcCheckboxRadioSwitch :model-value="allowBasemapSwitch" @update:model-value="updateField('allowBasemapSwitch', $event)">
+		<NcCheckboxRadioSwitch :modelValue="allowBasemapSwitch" @update:modelValue="updateField('allowBasemapSwitch', $event)">
 			{{ t('nextcloud-vue', 'Let users switch the base map') }}
 		</NcCheckboxRadioSwitch>
 		<p class="cn-object-geo-form__hint">
@@ -55,13 +55,13 @@
 			{{ t('nextcloud-vue', 'Map controls') }}
 		</h4>
 
-		<NcCheckboxRadioSwitch :model-value="fitControl" @update:model-value="updateField('fitControl', $event)">
+		<NcCheckboxRadioSwitch :modelValue="fitControl" @update:modelValue="updateField('fitControl', $event)">
 			{{ t('nextcloud-vue', 'Recenter button') }}
 		</NcCheckboxRadioSwitch>
-		<NcCheckboxRadioSwitch :model-value="locateControl" @update:model-value="updateField('locateControl', $event)">
+		<NcCheckboxRadioSwitch :modelValue="locateControl" @update:modelValue="updateField('locateControl', $event)">
 			{{ t('nextcloud-vue', 'Locate-me button') }}
 		</NcCheckboxRadioSwitch>
-		<NcCheckboxRadioSwitch :model-value="fullscreenControl" @update:model-value="updateField('fullscreenControl', $event)">
+		<NcCheckboxRadioSwitch :modelValue="fullscreenControl" @update:modelValue="updateField('fullscreenControl', $event)">
 			{{ t('nextcloud-vue', 'Fullscreen button') }}
 		</NcCheckboxRadioSwitch>
 
@@ -70,17 +70,17 @@
 		</h4>
 
 		<NcTextField
-			:model-value="height"
+			:modelValue="height"
 			:label="t('nextcloud-vue', 'Map height')"
 			placeholder="360px"
-			@update:model-value="updateField('height', $event)" />
+			@update:modelValue="updateField('height', $event)" />
 
 		<NcTextField
-			:model-value="String(defaultZoom)"
+			:modelValue="String(defaultZoom)"
 			type="number"
 			:label="t('nextcloud-vue', 'Zoom when no location is set')"
 			placeholder="7"
-			@update:model-value="onZoomInput" />
+			@update:modelValue="onZoomInput" />
 		<p class="cn-object-geo-form__hint">
 			{{ t('nextcloud-vue', 'Zoom ranges from 1 (the whole world) to 19 (street level). Once the object has a location, the map zooms to it.') }}
 		</p>
@@ -88,8 +88,8 @@
 </template>
 
 <script>
-import { NcTextField, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 
 const DEFAULT_CONTENT = Object.freeze({
 	title: '',
@@ -122,15 +122,24 @@ export default {
 	components: { NcTextField, NcCheckboxRadioSwitch, NcSelect },
 
 	props: {
-		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
+		/**
+		 * The placement being edited (pre-fills from `editingWidget.content`), or null.
+		 *
+		 * @type {{content: object}|null}
+		 */
 		editingWidget: { type: Object, default: null },
-		/** Initial content values when not editing (registry defaults). @type {object} */
+		/**
+		 * Initial content values when not editing (registry defaults).
+		 *
+		 * @type {object}
+		 */
 		value: { type: Object, default: () => ({ ...DEFAULT_CONTENT }) },
 	},
 
 	emits: [
 		/**
 		 * Emitted with the assembled content blob on every field change.
+		 *
 		 * @event update:content
 		 * @type {object}
 		 */
@@ -191,7 +200,7 @@ export default {
 		 * Set a field and emit the assembled content.
 		 *
 		 * @param {string} field The field name.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {
@@ -206,7 +215,9 @@ export default {
 		 * @return {void}
 		 */
 		onBasemapSelect(option) {
-			if (!option || !option.id) return
+			if (!option || !option.id) {
+				return
+			}
 			this.updateField('basemap', option.id)
 		},
 
@@ -220,7 +231,9 @@ export default {
 		 */
 		onZoomInput(value) {
 			const parsed = Number.parseInt(value, 10)
-			if (!Number.isFinite(parsed)) return
+			if (!Number.isFinite(parsed)) {
+				return
+			}
 			this.updateField('defaultZoom', Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, parsed)))
 		},
 

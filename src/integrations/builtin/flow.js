@@ -31,8 +31,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnFlowTab from './flow/CnFlowTab.vue'
 import CnFlowCard from './flow/CnFlowCard.vue'
+import CnFlowTab from './flow/CnFlowTab.vue'
 
 /**
  * `flow` integration descriptor.

@@ -111,9 +111,7 @@ describe('CnDependencyMissing', () => {
 			await wrapper.vm.$nextTick()
 
 			expect(wrapper.find('.cn-dependency-missing__item-error').text()).toContain('Could not download app')
-			expect(wrapper.find('.cn-dependency-missing__item-link').attributes('href')).toBe(
-				'/index.php/settings/apps/featured/openregister',
-			)
+			expect(wrapper.find('.cn-dependency-missing__item-link').attributes('href')).toBe('/index.php/settings/apps/featured/openregister')
 		})
 	})
 

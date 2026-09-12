@@ -10,22 +10,22 @@
 		</h4>
 
 		<NcTextField
-			:model-value="title"
+			:modelValue="title"
 			:label="t('nextcloud-vue', 'Title')"
 			placeholder="Data"
-			@update:model-value="updateField('title', $event)" />
+			@update:modelValue="updateField('title', $event)" />
 
 		<div class="cn-data-form__row2">
 			<NcTextField
-				:model-value="source.register"
+				:modelValue="source.register"
 				:label="t('nextcloud-vue', 'Register')"
 				:placeholder="contextSource.register || 'pipelinq'"
-				@update:model-value="updateSource('register', $event)" />
+				@update:modelValue="updateSource('register', $event)" />
 			<NcTextField
-				:model-value="source.schema"
+				:modelValue="source.schema"
 				:label="t('nextcloud-vue', 'Schema')"
 				:placeholder="contextSource.schema || 'lead'"
-				@update:model-value="updateSource('schema', $event)" />
+				@update:modelValue="updateSource('schema', $event)" />
 		</div>
 
 		<div class="cn-data-form__layout">
@@ -44,10 +44,10 @@
 			</div>
 			<NcTextField
 				type="number"
-				:model-value="String(columns)"
+				:modelValue="String(columns)"
 				:label="t('nextcloud-vue', 'Columns')"
 				class="cn-data-form__columns"
-				@update:model-value="updateField('columns', Number($event))" />
+				@update:modelValue="updateField('columns', Number($event))" />
 		</div>
 
 		<h4 class="cn-data-form__section">
@@ -74,34 +74,34 @@
 			<div class="cn-data-form__prop-head">
 				<span class="cn-data-form__grip" :title="t('nextcloud-vue', 'Drag to reorder')" aria-hidden="true">⋮⋮</span>
 				<NcCheckboxRadioSwitch
-					:model-value="!row.hidden"
+					:modelValue="!row.hidden"
 					type="switch"
-					@update:model-value="setRow(row.key, 'hidden', !$event)">
+					@update:modelValue="setRow(row.key, 'hidden', !$event)">
 					<span class="cn-data-form__prop-name">{{ row.key }}</span>
 				</NcCheckboxRadioSwitch>
 			</div>
 
 			<div v-if="!row.hidden" class="cn-data-form__prop-body">
 				<NcTextField
-					:model-value="row.label"
+					:modelValue="row.label"
 					:label="t('nextcloud-vue', 'Label')"
 					:placeholder="row.key"
-					@update:model-value="setRow(row.key, 'label', $event)" />
+					@update:modelValue="setRow(row.key, 'label', $event)" />
 				<NcTextField
 					type="number"
-					:model-value="String(row.gridColumn)"
+					:modelValue="String(row.gridColumn)"
 					:label="t('nextcloud-vue', 'Span')"
-					@update:model-value="setRow(row.key, 'gridColumn', Number($event))" />
+					@update:modelValue="setRow(row.key, 'gridColumn', Number($event))" />
 				<NcSelect
-					:model-value="row.widget"
+					:modelValue="row.widget"
 					:options="widgetOptions"
-					:input-label="t('nextcloud-vue', 'Editor')"
+					:inputLabel="t('nextcloud-vue', 'Editor')"
 					:clearable="false"
-					@update:model-value="setRow(row.key, 'widget', $event)" />
+					@update:modelValue="setRow(row.key, 'widget', $event)" />
 				<NcCheckboxRadioSwitch
-					:model-value="row.editable"
+					:modelValue="row.editable"
 					type="switch"
-					@update:model-value="setRow(row.key, 'editable', $event)">
+					@update:modelValue="setRow(row.key, 'editable', $event)">
 					{{ t('nextcloud-vue', 'Editable') }}
 				</NcCheckboxRadioSwitch>
 			</div>
@@ -110,8 +110,8 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
 
 const DEFAULT_CONTENT = Object.freeze({
@@ -152,15 +152,24 @@ export default {
 	},
 
 	props: {
-		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
+		/**
+		 * The placement being edited (pre-fills from `editingWidget.content`), or null.
+		 *
+		 * @type {{content: object}|null}
+		 */
 		editingWidget: { type: Object, default: null },
-		/** Initial content values when not editing (registry defaults). @type {object} */
+		/**
+		 * Initial content values when not editing (registry defaults).
+		 *
+		 * @type {object}
+		 */
 		value: { type: Object, default: () => ({ ...DEFAULT_CONTENT }) },
 	},
 
 	emits: [
 		/**
 		 * Emitted with the assembled content blob on every field change.
+		 *
 		 * @event update:content
 		 * @type {object}
 		 */
@@ -182,9 +191,15 @@ export default {
 
 	computed: {
 		/** Edit-widget type options ('auto' = derive from schema). */
-		widgetOptions() { return WIDGET_OPTIONS },
+		widgetOptions() {
+			return WIDGET_OPTIONS
+		},
+
 		/** The inherited register/schema (shown as placeholders when not overridden). */
-		contextSource() { return this.unwrapContext() },
+		contextSource() {
+			return this.unwrapContext()
+		},
+
 		/** Quick column-layout presets (1 = stacked beneath each other). */
 		layoutPresets() {
 			return [
@@ -193,6 +208,7 @@ export default {
 				{ value: 3, label: t('nextcloud-vue', '3 columns') },
 			]
 		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {
@@ -228,6 +244,7 @@ export default {
 			const v = c && typeof c === 'object' && 'value' in c ? c.value : c
 			return { register: (v && v.register) || '', schema: (v && v.schema) || '' }
 		},
+
 		/**
 		 * Resolve the schema's property names and build editable rows, merging
 		 * any persisted overrides onto each.
@@ -254,6 +271,7 @@ export default {
 				}
 			})
 		},
+
 		/**
 		 * Set a top-level field and emit.
 		 *
@@ -261,21 +279,32 @@ export default {
 		 * @param {string|number} value The widget title, or the column count.
 		 * @return {void}
 		 */
-		updateField(field, value) { this[field] = value; this.emitChange() },
+		updateField(field, value) {
+			this[field] = value
+			this.emitChange()
+		},
+
 		/**
 		 * Apply a column-layout preset (1 = stacked) and emit.
 		 *
 		 * @param {number} value The column count to set.
 		 * @return {void}
 		 */
-		setColumns(value) { this.columns = value; this.emitChange() },
+		setColumns(value) {
+			this.columns = value
+			this.emitChange()
+		},
+
 		/**
 		 * Remember which row a drag started on.
 		 *
 		 * @param {number} index The row index being dragged.
 		 * @return {void}
 		 */
-		onDragStart(index) { this.dragIndex = index },
+		onDragStart(index) {
+			this.dragIndex = index
+		},
+
 		/**
 		 * Reorder the property rows on drop: move the dragged row to the drop
 		 * target, then stamp every row with a sequential `order` so the new order
@@ -288,12 +317,17 @@ export default {
 		onDrop(index) {
 			const from = this.dragIndex
 			this.dragIndex = null
-			if (from === null || from === index) return
+			if (from === null || from === index) {
+				return
+			}
 			const moved = this.rows.splice(from, 1)[0]
 			this.rows.splice(index, 0, moved)
-			this.rows.forEach((row, i) => { row.order = i })
+			this.rows.forEach((row, i) => {
+				row.order = i
+			})
 			this.emitChange()
 		},
+
 		/**
 		 * Set a source sub-field and emit. Leaving either empty falls back to the
 		 * injected object context.
@@ -302,21 +336,28 @@ export default {
 		 * @param {string} value The chosen register or schema slug.
 		 * @return {void}
 		 */
-		updateSource(field, value) { this.source[field] = value; this.emitChange() },
+		updateSource(field, value) {
+			this.source[field] = value
+			this.emitChange()
+		},
+
 		/**
 		 * Mutate one property row and re-emit.
 		 *
 		 * @param {string} key The property name.
 		 * @param {string} field The row field to set.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 * @return {void}
 		 */
 		setRow(key, field, value) {
 			const row = this.rows.find((r) => r.key === key)
-			if (!row) return
+			if (!row) {
+				return
+			}
 			row[field] = value
 			this.emitChange()
 		},
+
 		/**
 		 * Collapse the rows into a minimal overrides map — only non-default
 		 * fields are persisted so the stored config stays small.
@@ -327,20 +368,39 @@ export default {
 			const out = {}
 			for (const row of this.rows) {
 				const o = {}
-				if (row.hidden) o.hidden = true
-				if (row.label && row.label.trim() !== '') o.label = row.label
-				if (typeof row.order === 'number') o.order = row.order
-				if (Number.isFinite(row.gridColumn) && row.gridColumn !== 1) o.gridColumn = row.gridColumn
-				if (row.widget && row.widget !== 'auto') o.widget = row.widget
-				if (row.editable === false) o.editable = false
-				if (Object.keys(o).length) out[row.key] = o
+				if (row.hidden) {
+					o.hidden = true
+				}
+				if (row.label && row.label.trim() !== '') {
+					o.label = row.label
+				}
+				if (typeof row.order === 'number') {
+					o.order = row.order
+				}
+				if (Number.isFinite(row.gridColumn) && row.gridColumn !== 1) {
+					o.gridColumn = row.gridColumn
+				}
+				if (row.widget && row.widget !== 'auto') {
+					o.widget = row.widget
+				}
+				if (row.editable === false) {
+					o.editable = false
+				}
+				if (Object.keys(o).length) {
+					out[row.key] = o
+				}
 			}
 			return out
 		},
+
 		/** Emit the assembled content. */
-		emitChange() { this.$emit('update:content', this.assembledContent) },
+		emitChange() {
+			this.$emit('update:content', this.assembledContent)
+		},
+
 		/**
 		 * Validate the form; an empty array means valid.
+		 *
 		 * @return {string[]} the validation errors.
 		 */
 		validate() {

@@ -9,8 +9,8 @@
  * `CnWidgetStyleEditorModal`.
  */
 
-import CnDeltaWidget from './CnDeltaWidget.vue'
 import CnDeltaWidgetForm from '../CnDeltaWidgetForm/CnDeltaWidgetForm.vue'
+import CnDeltaWidget from './CnDeltaWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('delta', {

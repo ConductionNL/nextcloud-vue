@@ -11,7 +11,7 @@
  *  - generic-error path when fetch throws.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnTimeTrackerTab = require('../CnTimeTrackerTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -67,8 +67,7 @@ describe('CnTimeTrackerTab', () => {
 	it('renders the empty state with an "Open TimeManager" CTA when no rows', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnTimeTrackerTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No tracked time linked yet')
 		expect(wrapper.text()).toContain('Open TimeManager')
 		wrapper.unmount()
@@ -83,8 +82,7 @@ describe('CnTimeTrackerTab', () => {
 			}),
 		})
 		const wrapper = mount(CnTimeTrackerTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.find('.cn-time-tracker-tab__kind-chip--client').exists()).toBe(true)
 		expect(wrapper.find('.cn-time-tracker-tab__kind-chip--task').exists()).toBe(true)
 		expect(wrapper.find('.cn-time-tracker-tab__kind-chip--time').exists()).toBe(true)
@@ -114,8 +112,7 @@ describe('CnTimeTrackerTab', () => {
 			json: () => Promise.resolve({ results: [{ id: 7, title: 'Legacy project', data: { uuid: 'u-7' } }] }),
 		})
 		const wrapper = mount(CnTimeTrackerTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.find('.cn-time-tracker-tab__kind-chip--client').exists()).toBe(true)
 		expect(wrapper.find('.cn-time-tracker-tab__row').attributes('name')).toBe('Legacy project')
 		wrapper.unmount()
@@ -124,8 +121,7 @@ describe('CnTimeTrackerTab', () => {
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnTimeTrackerTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC TimeManager is currently unavailable.')
 		expect(wrapper.find('.cn-time-tracker-tab__row').exists()).toBe(false)
 		wrapper.unmount()
@@ -135,8 +131,7 @@ describe('CnTimeTrackerTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnTimeTrackerTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load tracked time.')
 		wrapper.unmount()
 		spy.mockRestore()

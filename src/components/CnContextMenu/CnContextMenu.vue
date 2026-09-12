@@ -4,8 +4,8 @@
 			v-if="!activePanel"
 			ref="actions"
 			v-model:open="internalOpen"
-			:manual-open="true"
-			:force-menu="true"
+			:manualOpen="true"
+			:forceMenu="true"
 			class="cn-context-menu"
 			container="body"
 			data-testid="cn-context-menu"
@@ -19,7 +19,7 @@
 				:disabled="resolveDisabled(action)"
 				:class="{ 'cn-row-action--destructive': action.destructive }"
 				:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
-				close-after-click
+				closeAfterClick
 				@click="onAction(action)">
 				<template v-if="action.icon" #icon>
 					<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
@@ -67,7 +67,7 @@
 					:name="`panel:${activePanel}`"
 					:back="back"
 					:close="onClose"
-					:target-item="targetItem" />
+					:targetItem="targetItem" />
 			</div>
 		</template>
 	</div>
@@ -75,7 +75,7 @@
 
 <script>
 import { NcActionButton, NcActions } from '@nextcloud/vue'
-import { CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, clearContextMenuPositionDom } from '../../composables/useContextMenu.js'
+import { clearContextMenuPositionDom, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR } from '../../composables/useContextMenu.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -144,7 +144,7 @@ export default {
 		 * When the entire array is empty (or all entries are filtered out), only
 		 * the default slot content is rendered.
 		 *
-		 * @type {Array<{label: string, icon: object | string, handler: Function, disabled: boolean | Function, visible: boolean | Function, title: string | Function, destructive: boolean}>}
+		 * @type {Array<{label: string, icon: object | string, handler: (targetItem: object) => void, disabled: boolean | ((targetItem: object) => boolean), visible: boolean | ((targetItem: object) => boolean), title: string | ((targetItem: object) => string), destructive: boolean}>}
 		 */
 		actions: {
 			type: Array,
@@ -193,7 +193,9 @@ export default {
 		 */
 		visibleActions() {
 			return this.actions.filter((action) => {
-				if (action.visible === undefined) return true
+				if (action.visible === undefined) {
+					return true
+				}
 				if (typeof action.visible === 'function') {
 					return !!action.visible(this.targetItem)
 				}
@@ -358,7 +360,7 @@ export default {
 		 *
 		 * NcActions has to run in `manual-open` mode here (the menu is opened
 		 * from a right-click via the `open` prop, not by activating the trigger
-		 * button). @nextcloud/vue 9 couples that mode to
+		 * button). `@nextcloud/vue` 9 couples that mode to
 		 * `noCloseOnClickOutside: this.manualOpen`, and NcPopover derives
 		 * `autoHide: !noCloseOnClickOutside && closeOnClickOutside` — so the
 		 * popper's own outside-click dismissal is switched off and nothing else
@@ -371,7 +373,9 @@ export default {
 		 * @return {void}
 		 */
 		onDocumentMouseDown(event) {
-			if (!this.internalOpen || this.isInsideMenu(event.target)) return
+			if (!this.internalOpen || this.isInsideMenu(event.target)) {
+				return
+			}
 			this.onClose()
 		},
 
@@ -384,10 +388,16 @@ export default {
 		 * @return {boolean} True when the target belongs to this menu.
 		 */
 		isInsideMenu(target) {
-			if (!(target instanceof Node)) return false
-			if (this.$refs.panel?.contains(target)) return true
+			if (!(target instanceof Node)) {
+				return false
+			}
+			if (this.$refs.panel?.contains(target)) {
+				return true
+			}
 			const content = this.$refs.actions?.$refs?.popover?.getPopoverContentElement?.()
-			if (content?.contains(target)) return true
+			if (content?.contains(target)) {
+				return true
+			}
 			// Fallback for when the popover ref chain is unavailable —
 			// `action-item__popper` is the base class NcActions gives its popper.
 			return target instanceof Element && !!target.closest('.action-item__popper')
@@ -474,7 +484,7 @@ export default {
 		 * Meant to fire after the popper's hide animation completes, clearing
 		 * the cursor-position CSS vars.
 		 *
-		 * **Currently dead.** @nextcloud/vue 9 binds `onAfterClose` on its
+		 * **Currently dead.** `@nextcloud/vue` 9 binds `onAfterClose` on its
 		 * NcPopover while NcPopover only emits `afterHide`, so NcActions never
 		 * emits `closed` and neither do we. Nothing depends on it any more —
 		 * positioning is scoped to this menu's own popper (see `tagPopper`), the
@@ -486,7 +496,7 @@ export default {
 		onClosed() {
 			clearContextMenuPositionDom()
 			/**
-			 * @event closed Intended to fire after the popper's hide animation completes. Does not currently fire — @nextcloud/vue 9's NcActions listens for an `afterClose` event NcPopover never emits. Use `close` instead.
+			 * @event closed Intended to fire after the popper's hide animation completes. Does not currently fire — `@nextcloud/vue` 9's NcActions listens for an `afterClose` event NcPopover never emits. Use `close` instead.
 			 */
 			this.$emit('closed')
 		},

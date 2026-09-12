@@ -48,8 +48,8 @@
 					<div class="cn-notes-card__note-header">
 						<CnUserActionMenu
 							v-if="!isCurrentUser(note)"
-							:user-id="getNoteAuthorId(note)"
-							:display-name="getNoteAuthorName(note)">
+							:userId="getNoteAuthorId(note)"
+							:displayName="getNoteAuthorName(note)">
 							<strong class="cn-notes-card__author">{{ getNoteAuthorName(note) }}</strong>
 						</CnUserActionMenu>
 						<strong v-else class="cn-notes-card__author cn-notes-card__author--self">
@@ -62,7 +62,7 @@
 					</p>
 					<NcButton
 						v-if="canDeleteNote(note)"
-						type="tertiary-no-background"
+						variant="tertiary-no-background"
 						class="cn-notes-card__delete-btn"
 						:aria-label="deleteLabel"
 						@click="confirmDelete(note)">
@@ -89,9 +89,8 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
-import Send from 'vue-material-design-icons/Send.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
-
+import Send from 'vue-material-design-icons/Send.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import CnUserActionMenu from '../CnUserActionMenu/CnUserActionMenu.vue'
 import { buildHeaders } from '../../utils/index.js'
@@ -143,26 +142,31 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** OpenRegister schema ID */
 		schemaId: {
 			type: String,
 			required: true,
 		},
+
 		/** Object UUID */
 		objectId: {
 			type: String,
 			required: true,
 		},
+
 		/** Base API URL for OpenRegister */
 		apiBase: {
 			type: String,
 			default: '/apps/openregister/api',
 		},
+
 		/** Maximum number of notes to display */
 		maxDisplay: {
 			type: Number,
 			default: 5,
 		},
+
 		/** Whether the card is collapsible */
 		collapsible: {
 			type: Boolean,
@@ -187,7 +191,7 @@ export default {
 		/** Label for the submit button that creates a new note. */
 		addNoteLabel: { type: String, default: () => t('nextcloud-vue', 'Add note') },
 		/** Placeholder shown inside the new-note textarea before any input. */
-		addNotePlaceholder: { type: String, default: () => t('nextcloud-vue', 'Write a note...') },
+		addNotePlaceholder: { type: String, default: () => t('nextcloud-vue', 'Write a note…') },
 		/** Empty-state text shown when the object has zero notes. */
 		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
 		/** Label for the "Show all" button rendered when the note list is truncated. */
@@ -252,7 +256,9 @@ export default {
 		},
 
 		async fetchNotes() {
-			if (!this.registerId || !this.schemaId || !this.objectId) return
+			if (!this.registerId || !this.schemaId || !this.objectId) {
+				return
+			}
 			this.loading = true
 			try {
 				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes`
@@ -262,6 +268,7 @@ export default {
 					this.allNotes = data.results || data || []
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error('CnNotesCard: Failed to fetch notes', err)
 			} finally {
 				this.loading = false
@@ -269,7 +276,9 @@ export default {
 		},
 
 		async submitNote() {
-			if (!this.newNoteText.trim() || this.noteSaving) return
+			if (!this.newNoteText.trim() || this.noteSaving) {
+				return
+			}
 			this.noteSaving = true
 			try {
 				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes`
@@ -286,6 +295,7 @@ export default {
 					this.showError('Failed to add note')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error('CnNotesCard: Failed to add note', err)
 				this.showError('Failed to add note')
 			} finally {
@@ -302,16 +312,19 @@ export default {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {
-					this.allNotes = this.allNotes.filter(n => n.id !== note.id)
+					this.allNotes = this.allNotes.filter((n) => n.id !== note.id)
 					this.$emit('note-deleted')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error('CnNotesCard: Failed to delete note', err)
 			}
 		},
 
 		formatDate(dateStr) {
-			if (!dateStr) return ''
+			if (!dateStr) {
+				return ''
+			}
 			try {
 				return new Date(dateStr).toLocaleString(undefined, {
 					year: 'numeric',
@@ -327,11 +340,11 @@ export default {
 
 		showError(message) {
 			try {
-				// eslint-disable-next-line n/no-missing-import
 				import('@nextcloud/dialogs').then(({ showError }) => {
 					showError(message)
 				})
 			} catch {
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error(message)
 			}
 		},

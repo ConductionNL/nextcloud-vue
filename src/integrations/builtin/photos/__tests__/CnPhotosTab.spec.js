@@ -12,7 +12,7 @@
  *  - generic-error path when fetch throws.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnPhotosTab = require('../CnPhotosTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -46,8 +46,7 @@ describe('CnPhotosTab', () => {
 	it('renders the empty state with an "Open Photos" CTA when no albums', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnPhotosTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No albums linked yet')
 		expect(wrapper.text()).toContain('Open Photos')
 		wrapper.unmount()
@@ -65,8 +64,7 @@ describe('CnPhotosTab', () => {
 			}),
 		})
 		const wrapper = mount(CnPhotosTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const tiles = wrapper.findAll('.cn-photos-tab__tile')
 		expect(tiles).toHaveLength(2)
 		expect(wrapper.text()).toContain('Alpha')
@@ -89,8 +87,7 @@ describe('CnPhotosTab', () => {
 			}),
 		})
 		const wrapper = mount(CnPhotosTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const text = wrapper.text()
 		expect(text).toContain('Site visit')
 		expect(text).not.toContain('[or:obj-1]')
@@ -106,8 +103,7 @@ describe('CnPhotosTab', () => {
 			}),
 		})
 		const wrapper = mount(CnPhotosTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		// cover img renders initially
 		expect(wrapper.find('img.cn-photos-tab__cover-img').exists()).toBe(true)
 		// trigger error
@@ -122,8 +118,7 @@ describe('CnPhotosTab', () => {
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnPhotosTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Photos is currently unavailable.')
 		expect(wrapper.find('.cn-photos-tab__tile').exists()).toBe(false)
 		wrapper.unmount()
@@ -133,8 +128,7 @@ describe('CnPhotosTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnPhotosTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load albums.')
 		wrapper.unmount()
 		spy.mockRestore()
@@ -143,8 +137,7 @@ describe('CnPhotosTab', () => {
 	it('renders the Tier-2 link/create action buttons', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnPhotosTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Link existing album')
 		expect(wrapper.text()).toContain('Create new album')
 		wrapper.unmount()
@@ -156,8 +149,7 @@ describe('CnPhotosTab', () => {
 			.mockResolvedValueOnce({ ok: true, status: 201, json: () => Promise.resolve({}) }) // POST link
 			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) }) // refetch
 		const wrapper = mount(CnPhotosTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.vm.onLinkPick({ albumId: 7 })
 		const linkCall = global.fetch.mock.calls[1]
@@ -172,8 +164,7 @@ describe('CnPhotosTab', () => {
 			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 			.mockResolvedValueOnce({ ok: false, status: 409, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnPhotosTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.vm.onLinkPick({ albumId: 7 })
 		expect(wrapper.vm.error).toContain('already linked')
@@ -186,8 +177,7 @@ describe('CnPhotosTab', () => {
 			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ success: true }) })
 			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnPhotosTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.vm.unlinkAlbum({ albumId: 42 })
 		const delCall = global.fetch.mock.calls[1]

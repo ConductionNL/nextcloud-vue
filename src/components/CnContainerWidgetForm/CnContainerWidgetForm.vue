@@ -24,25 +24,25 @@
 		</label>
 
 		<NcSelect
-			:model-value="padding"
+			:modelValue="padding"
 			:options="paddingOptions"
-			:input-label="t('nextcloud-vue', 'Padding')"
+			:inputLabel="t('nextcloud-vue', 'Padding')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('padding', $event)" />
 
 		<NcTextField
-			:model-value="title"
+			:modelValue="title"
 			:label="t('nextcloud-vue', 'Title (optional)')"
 			:placeholder="t('nextcloud-vue', 'Title (optional)')"
-			@update:model-value="updateField('title', $event)" />
+			@update:modelValue="updateField('title', $event)" />
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcTextField, NcSelect } from '@nextcloud/vue'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 
 const PADDING_VALUES = Object.freeze(['none', 'small', 'medium', 'large'])
@@ -77,6 +77,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Initial content values (registry defaults when not editing). */
 		value: {
 			type: Object,
@@ -100,9 +101,11 @@ export default {
 			backgroundColor: typeof initial.backgroundColor === 'string'
 				? initial.backgroundColor
 				: DEFAULT_CONTENT.backgroundColor,
+
 			padding: PADDING_VALUES.includes(initial.padding)
 				? initial.padding
 				: DEFAULT_CONTENT.padding,
+
 			title: typeof initial.title === 'string'
 				? initial.title
 				: DEFAULT_CONTENT.title,

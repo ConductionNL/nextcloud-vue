@@ -32,9 +32,9 @@
  * @see openregister#1958
  */
 
-import { onBeforeUnmount, shallowRef, computed } from 'vue'
-import { integrations as defaultRegistry, sharedRegistryIfInstalled } from '../integrations/registry.js'
+import { computed, onBeforeUnmount, shallowRef } from 'vue'
 import { LIB_INTEGRATION_COMPONENTS } from '../integrations/libComponents.js'
+import { integrations as defaultRegistry, sharedRegistryIfInstalled } from '../integrations/registry.js'
 
 /**
  * Subscribe to the integration registry and expose a reactive

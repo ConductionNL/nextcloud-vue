@@ -2,9 +2,9 @@
  * Unit tests for handleCustomPages and updateSchemaField / carryForwardVerbatimFields.
  */
 
-import { handleCustomPages, handleCustomPage } from '../../../src/cli/transforms/handleCustomPages.js'
-import { updateSchemaField, V2_SCHEMA_URL } from '../../../src/cli/transforms/updateSchemaField.js'
 import { carryForwardVerbatimFields } from '../../../src/cli/transforms/carryForwardVerbatimFields.js'
+import { handleCustomPage, handleCustomPages } from '../../../src/cli/transforms/handleCustomPages.js'
+import { updateSchemaField, V2_SCHEMA_URL } from '../../../src/cli/transforms/updateSchemaField.js'
 
 // --- handleCustomPages ---
 

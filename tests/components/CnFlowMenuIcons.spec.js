@@ -21,8 +21,8 @@
  */
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import CnIcon from '../../src/components/CnIcon/CnIcon.vue'
 import CnFlowDetail from '../../src/components/CnFlowDetail/CnFlowDetail.vue'
+import CnIcon from '../../src/components/CnIcon/CnIcon.vue'
 
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,

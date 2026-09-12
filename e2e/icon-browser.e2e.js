@@ -5,7 +5,7 @@
 // jsdom cannot prove the important part — that RVO arrives as a lazily-fetched
 // chunk rather than sitting in the eager bundle — so it is asserted here.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const section = (page) => page.getByTestId('section-icon-browser')
 const tab = (page, name) => section(page).locator('.cn-icon-browser-panel__tab', { hasText: name })

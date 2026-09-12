@@ -11,9 +11,9 @@
  * under jsdom.
  */
 
+const { expectAccessible } = require('../../src/testing/a11y.js')
 const { mountAttached } = require('./support/mountAttached.js')
 const { openNcActionsMenu } = require('./support/openNcActionsMenu.js')
-const { expectAccessible } = require('../../src/testing/a11y.js')
 const CnSavedViewsControl = require('../../src/components/CnSavedViewsControl/CnSavedViewsControl.vue').default
 
 describe('CnSavedViewsControl — accessibility', () => {

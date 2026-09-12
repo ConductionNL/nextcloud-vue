@@ -46,20 +46,20 @@ import { defineAsyncComponent } from 'vue'
  *   `src/components/index.js` barrel. No change to CnPageRenderer.vue.
  */
 export const defaultPageTypes = {
-	index: defineAsyncComponent(() => import('../CnIndexPage/CnIndexPage.vue').then(m => m.default)),
-	detail: defineAsyncComponent(() => import('../CnDetailPage/CnDetailPage.vue').then(m => m.default)),
-	dashboard: defineAsyncComponent(() => import('../CnDashboardPage/CnDashboardPage.vue').then(m => m.default)),
-	logs: defineAsyncComponent(() => import('../CnLogsPage/CnLogsPage.vue').then(m => m.default)),
-	settings: defineAsyncComponent(() => import('../CnSettingsPage/CnSettingsPage.vue').then(m => m.default)),
-	chat: defineAsyncComponent(() => import('../CnChatPage/CnChatPage.vue').then(m => m.default)),
-	files: defineAsyncComponent(() => import('../CnFilesPage/CnFilesPage.vue').then(m => m.default)),
-	form: defineAsyncComponent(() => import('../CnFormPage/CnFormPage.vue').then(m => m.default)),
-	map: defineAsyncComponent(() => import('../CnMapPage/CnMapPage.vue').then(m => m.default)),
-	roadmap: defineAsyncComponent(() => import('../CnFeaturesAndRoadmapPage/CnFeaturesAndRoadmapPage.vue').then(m => m.default)),
-	reports: defineAsyncComponent(() => import('../CnReportsPage/CnReportsPage.vue').then(m => m.default)),
-	store: defineAsyncComponent(() => import('../CnStorePage/CnStorePage.vue').then(m => m.default)),
-	search: defineAsyncComponent(() => import('../CnSearchPage/CnSearchPage.vue').then(m => m.default)),
-	wiki: defineAsyncComponent(() => import('../CnWikiPage/CnWikiPage.vue').then(m => m.default)),
+	index: defineAsyncComponent(() => import('../CnIndexPage/CnIndexPage.vue').then((m) => m.default)),
+	detail: defineAsyncComponent(() => import('../CnDetailPage/CnDetailPage.vue').then((m) => m.default)),
+	dashboard: defineAsyncComponent(() => import('../CnDashboardPage/CnDashboardPage.vue').then((m) => m.default)),
+	logs: defineAsyncComponent(() => import('../CnLogsPage/CnLogsPage.vue').then((m) => m.default)),
+	settings: defineAsyncComponent(() => import('../CnSettingsPage/CnSettingsPage.vue').then((m) => m.default)),
+	chat: defineAsyncComponent(() => import('../CnChatPage/CnChatPage.vue').then((m) => m.default)),
+	files: defineAsyncComponent(() => import('../CnFilesPage/CnFilesPage.vue').then((m) => m.default)),
+	form: defineAsyncComponent(() => import('../CnFormPage/CnFormPage.vue').then((m) => m.default)),
+	map: defineAsyncComponent(() => import('../CnMapPage/CnMapPage.vue').then((m) => m.default)),
+	roadmap: defineAsyncComponent(() => import('../CnFeaturesAndRoadmapPage/CnFeaturesAndRoadmapPage.vue').then((m) => m.default)),
+	reports: defineAsyncComponent(() => import('../CnReportsPage/CnReportsPage.vue').then((m) => m.default)),
+	store: defineAsyncComponent(() => import('../CnStorePage/CnStorePage.vue').then((m) => m.default)),
+	search: defineAsyncComponent(() => import('../CnSearchPage/CnSearchPage.vue').then((m) => m.default)),
+	wiki: defineAsyncComponent(() => import('../CnWikiPage/CnWikiPage.vue').then((m) => m.default)),
 	// A flow list USED TO need its own page type. A flow lives in
 	// OpenRegister's native flow store, not a register/schema pair, so the
 	// object-backed index had nothing to bind to — and every app adopting flows
@@ -74,11 +74,11 @@ export const defaultPageTypes = {
 	// The flow EDITOR. `flow` opens one flow; the LIST is now an ordinary
 	// `type: "index"` with `config.entitySource: "flows"`, so a flow surface needs no
 	// custom page and no page type of its own for the list half.
-	flow: defineAsyncComponent(() => import('../CnFlowsPage/CnFlowEditorPage.vue').then(m => m.default)),
+	flow: defineAsyncComponent(() => import('../CnFlowsPage/CnFlowEditorPage.vue').then((m) => m.default)),
 
 	// DEPRECATED, kept so the fleet can migrate without a flag day. `flows`
 	// predates named index sources and `flow-detail` is the old name for
 	// `flow`. Both still resolve; remove them once no manifest names them.
-	flows: defineAsyncComponent(() => import('../CnFlowsPage/CnFlowsPage.vue').then(m => m.default)),
-	'flow-detail': defineAsyncComponent(() => import('../CnFlowsPage/CnFlowEditorPage.vue').then(m => m.default)),
+	flows: defineAsyncComponent(() => import('../CnFlowsPage/CnFlowsPage.vue').then((m) => m.default)),
+	'flow-detail': defineAsyncComponent(() => import('../CnFlowsPage/CnFlowEditorPage.vue').then((m) => m.default)),
 }

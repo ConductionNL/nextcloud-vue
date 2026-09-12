@@ -11,7 +11,7 @@
  */
 
 import Vue from 'vue'
-import { STREAM_SCRIPT, CONVERSATIONS, SEND_RESPONSE } from './mocks/stream-fixtures.js'
+import { CONVERSATIONS, SEND_RESPONSE, STREAM_SCRIPT } from './mocks/stream-fixtures.js'
 
 // ─── Mock interceptor using fetch monkey-patch ────────────────────────────────
 

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: EUPL-1.2
  */
 
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 
 /**
  * Per-`appId` cache of setup-status results. The Vue refs are stored so all
@@ -71,7 +71,7 @@ export function useSetupStatus(appId, manifest) {
 
 	const steps = computed(() => stepDefs.map((s) => {
 		const bag = status.value.steps || {}
-		const reported = Object.prototype.hasOwnProperty.call(bag, s.id)
+		const reported = Object.hasOwn(bag, s.id)
 		const st = bag[s.id] || {}
 		// `reported` separates "the server says this step is NOT done" from "the
 		// server never mentioned this step at all". Both used to flatten into

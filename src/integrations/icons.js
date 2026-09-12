@@ -25,14 +25,11 @@
  * @module integrations/icons
  */
 
-import { registerIcons } from '../components/CnIcon/CnIcon.vue'
-
 import AccountBox from 'vue-material-design-icons/AccountBox.vue'
-import PhoneOutline from 'vue-material-design-icons/PhoneOutline.vue'
 import AccountGroupOutline from 'vue-material-design-icons/AccountGroupOutline.vue'
 import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
-import BookOpenPageVariant from 'vue-material-design-icons/BookOpenPageVariant.vue'
 import Bookmark from 'vue-material-design-icons/Bookmark.vue'
+import BookOpenPageVariant from 'vue-material-design-icons/BookOpenPageVariant.vue'
 import Briefcase from 'vue-material-design-icons/Briefcase.vue'
 import Calendar from 'vue-material-design-icons/Calendar.vue'
 import ChartBar from 'vue-material-design-icons/ChartBar.vue'
@@ -52,12 +49,14 @@ import Image from 'vue-material-design-icons/Image.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import MapMarker from 'vue-material-design-icons/MapMarker.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
+import PhoneOutline from 'vue-material-design-icons/PhoneOutline.vue'
 import Poll from 'vue-material-design-icons/Poll.vue'
-import SitemapOutline from 'vue-material-design-icons/SitemapOutline.vue'
 import Share from 'vue-material-design-icons/Share.vue'
+import SitemapOutline from 'vue-material-design-icons/SitemapOutline.vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import Timeline from 'vue-material-design-icons/Timeline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
+import { registerIcons } from '../components/CnIcon/CnIcon.vue'
 
 /**
  * Every MDI icon referenced by a built-in or leaf integration

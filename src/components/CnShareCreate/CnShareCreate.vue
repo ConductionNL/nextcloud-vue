@@ -84,7 +84,7 @@
 					type="email"
 					:label="t('nextcloud-vue', 'Email address')"
 					:error="emailTouched && !emailValid"
-					:helper-text="emailTouched && !emailValid ? t('nextcloud-vue', 'Enter a valid email address') : ''"
+					:helperText="emailTouched && !emailValid ? t('nextcloud-vue', 'Enter a valid email address') : ''"
 					data-testid="cn-share-create-email"
 					@blur="emailTouched = true" />
 			</div>
@@ -96,8 +96,8 @@
 					:key="perm.value"
 					class="cn-share-create__perm-option">
 					<NcCheckboxRadioSwitch
-						:model-value="hasPermission(perm.value)"
-						@update:model-value="togglePermission(perm.value, $event)">
+						:modelValue="hasPermission(perm.value)"
+						@update:modelValue="togglePermission(perm.value, $event)">
 						{{ perm.label }}
 					</NcCheckboxRadioSwitch>
 				</label>

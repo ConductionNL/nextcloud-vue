@@ -22,7 +22,7 @@
 				<div class="grid-stack-item-content">
 					<CnContainerChild
 						:placement="child"
-						:edit-mode="editMode" />
+						:editMode="editMode" />
 				</div>
 			</div>
 		</div>
@@ -84,6 +84,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether the surrounding dashboard shell is in edit mode. */
 		editMode: {
 			type: Boolean,
@@ -134,7 +135,7 @@ export default {
 		 */
 		paddingToken() {
 			const value = this.content?.padding
-			if (typeof value === 'string' && Object.prototype.hasOwnProperty.call(PADDING_TOKENS, value)) {
+			if (typeof value === 'string' && Object.hasOwn(PADDING_TOKENS, value)) {
 				return value
 			}
 			return 'medium'
@@ -220,11 +221,11 @@ export default {
 			if (!this.$refs.innerGrid) {
 				return
 			}
-			let GridStackCtor = null
+			let GridStackCtor
 			try {
 				const mod = await import('gridstack')
 				GridStackCtor = mod && (mod.GridStack || mod.default)
-			} catch (e) {
+			} catch {
 				// GridStack runtime unavailable — non-fatal in tests.
 				return
 			}
@@ -287,7 +288,7 @@ export default {
 			if (this.gridInstance && typeof this.gridInstance.destroy === 'function') {
 				try {
 					this.gridInstance.destroy(false)
-				} catch (e) {
+				} catch {
 					// no-op — best-effort teardown
 				}
 			}

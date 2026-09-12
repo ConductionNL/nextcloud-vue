@@ -122,13 +122,12 @@
  * sidebar container).
  */
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton } from '@nextcloud/vue'
+import { NcButton, NcDialog } from '@nextcloud/vue'
+import BriefcaseOutline from 'vue-material-design-icons/BriefcaseOutline.vue'
 import HandHeart from 'vue-material-design-icons/HandHeart.vue'
 import HeartOutline from 'vue-material-design-icons/HeartOutline.vue'
 import Star from 'vue-material-design-icons/Star.vue'
-import BriefcaseOutline from 'vue-material-design-icons/BriefcaseOutline.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
-
 import { ensureCaveatFontFace } from './assets/caveatFontFace.js'
 import { DEFAULT_FOUNDER_AVATAR } from './assets/founderAvatar.js'
 
@@ -162,15 +161,17 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * Kebab-case app id used as the localStorage namespace by
 		 * `useSupportDialog`. Required so two apps mounted in the same
 		 * Nextcloud session don't share a "shown" flag.
 		 */
-		appSlug: {
+		appSlug: { // eslint-disable-line vue/no-unused-properties -- the host reads it, not this component: it is the namespace handed to useSupportDialog().
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * Nextcloud App Store listing URL for the host app — opens in a
 		 * new tab when the "Review on App Store" CTA fires. Required.
@@ -179,6 +180,7 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * URL the "Suggest a feature" CTA opens (typically the host app's
 		 * forge "new issue" form, e.g. on GitHub). Required.
@@ -187,6 +189,7 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * URL the "Donate" CTA opens. Defaults to ConductionNL's GitHub
 		 * Sponsors page so apps that haven't set up their own donation
@@ -196,6 +199,7 @@ export default {
 			type: String,
 			default: 'https://github.com/sponsors/ConductionNL',
 		},
+
 		/**
 		 * URL the "Get support" CTA opens. Defaults to the Conduction
 		 * support page, where organisations are matched with a Host,
@@ -206,6 +210,7 @@ export default {
 			type: String,
 			default: 'https://www.conduction.nl/support',
 		},
+
 		/**
 		 * Target of the inline "Conduction" link in the default body copy.
 		 * Ignored when `bodyParagraphs` is provided.
@@ -214,6 +219,7 @@ export default {
 			type: String,
 			default: 'https://www.conduction.nl',
 		},
+
 		/**
 		 * Target of the inline "apps" link in the default body copy.
 		 * Ignored when `bodyParagraphs` is provided.
@@ -222,6 +228,7 @@ export default {
 			type: String,
 			default: 'https://www.conduction.nl/connext',
 		},
+
 		/**
 		 * Name rendered in the handwritten signature line. Defaults to
 		 * Ruben van der Linde; overridable so a Conduction-adjacent
@@ -231,6 +238,7 @@ export default {
 			type: String,
 			default: 'Ruben van der Linde',
 		},
+
 		/**
 		 * Title shown under the signature name. Defaults to
 		 * "a founder of Conduction" (Conduction has more than one
@@ -240,6 +248,7 @@ export default {
 			type: String,
 			default: 'a founder of Conduction',
 		},
+
 		/**
 		 * Avatar shown to the left of the signature. Defaults to the
 		 * bundled founder portrait (data URI, self-hosted — no third-party
@@ -250,6 +259,7 @@ export default {
 			type: String,
 			default: DEFAULT_FOUNDER_AVATAR,
 		},
+
 		/**
 		 * Profile the avatar links to (opens in a new tab). Defaults to
 		 * the founder's LinkedIn. Pass an empty string to render the
@@ -259,6 +269,7 @@ export default {
 			type: String,
 			default: 'https://www.linkedin.com/in/rubenlinde/',
 		},
+
 		/**
 		 * Optional body-copy override. When non-empty, the array is
 		 * rendered verbatim — one `<p>` per entry, no inline links — and
@@ -270,6 +281,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Optional dialog-title override. When empty the title is the default
 		 * "Support {appName}". Set it to title the note however you like.
@@ -280,6 +292,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Per-button overrides, keyed by button id (`donate`, `support`,
 		 * `feature-request`, `app-store`). Each value may set `enabled`
@@ -302,9 +315,11 @@ export default {
 		hasBodyOverride() {
 			return Array.isArray(this.bodyParagraphs) && this.bodyParagraphs.length > 0
 		},
+
 		dialogTitle() {
 			return this.title || t('nextcloud-vue', 'Support {appName}', { appName: this.appName })
 		},
+
 		/**
 		 * The built-in buttons in display order, each carrying its default
 		 * label, icon component, variant and URL. The `buttons` prop overrides
@@ -320,6 +335,7 @@ export default {
 				{ id: 'app-store', label: this.appStoreLabel, iconComponent: Star, variant: 'secondary', url: this.appStoreUrl },
 			]
 		},
+
 		/**
 		 * The buttons actually rendered: defaults merged with the `buttons`
 		 * prop overrides, with disabled buttons (`enabled: false`) removed. A
@@ -349,28 +365,54 @@ export default {
 				})
 				.filter((b) => b.enabled)
 		},
-		greetingHi() { return t('nextcloud-vue', 'Hi,') },
+
+		greetingHi() {
+			return t('nextcloud-vue', 'Hi,')
+		},
+
 		introLead() {
 			return t('nextcloud-vue', 'I\'m {founderName}, a founder of', { founderName: this.founderName })
 		},
-		conductionLabel() { return t('nextcloud-vue', 'Conduction') },
+
+		conductionLabel() {
+			return t('nextcloud-vue', 'Conduction')
+		},
+
 		teamLead() {
 			return t('nextcloud-vue', 'We\'re a small Dutch team. We build {appName} and the rest of our open-source', { appName: this.appName })
 		},
-		appsLabel() { return t('nextcloud-vue', 'apps') },
+
+		appsLabel() {
+			return t('nextcloud-vue', 'apps')
+		},
+
 		teamTrail() {
 			return t('nextcloud-vue', 'for Nextcloud. Every app is EUPL-1.2 licensed, and the source is on GitHub. Your data stays yours, and you can read, fork or improve it yourself.')
 		},
+
 		featureParagraph() {
 			return t('nextcloud-vue', 'Feature requests are what move {appName} forward, not sales calls. If something is missing, awkward, or you\'d like it to work differently, tell us. That\'s how the app grows.', { appName: this.appName })
 		},
+
 		supportParagraph() {
 			return t('nextcloud-vue', 'If {appName} is useful to you, a review on the App Store helps other people find it, and a small donation keeps us writing code instead of invoices. The app stays free, always. And if your organisation wants hands-on help with hosting, setup or an SLA, we\'ll match you with a partner who supports it.', { appName: this.appName })
 		},
-		featureRequestLabel() { return t('nextcloud-vue', 'Suggest a feature') },
-		appStoreLabel() { return t('nextcloud-vue', 'Review on App Store') },
-		donateLabel() { return t('nextcloud-vue', 'Donate') },
-		supportLabel() { return t('nextcloud-vue', 'Get support') },
+
+		featureRequestLabel() {
+			return t('nextcloud-vue', 'Suggest a feature')
+		},
+
+		appStoreLabel() {
+			return t('nextcloud-vue', 'Review on App Store')
+		},
+
+		donateLabel() {
+			return t('nextcloud-vue', 'Donate')
+		},
+
+		supportLabel() {
+			return t('nextcloud-vue', 'Get support')
+		},
 	},
 
 	mounted() {
@@ -398,6 +440,7 @@ export default {
 			 */
 			this.$emit('action', { action, url })
 		},
+
 		onClose() {
 			/**
 			 * @event close Emitted when the user dismisses the dialog

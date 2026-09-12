@@ -13,8 +13,8 @@
  * doesn't force the registration.
  */
 
-import CnObjectDataWidget from './CnObjectDataWidget.vue'
 import CnObjectDataWidgetForm from '../CnObjectDataWidgetForm/CnObjectDataWidgetForm.vue'
+import CnObjectDataWidget from './CnObjectDataWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('data', {

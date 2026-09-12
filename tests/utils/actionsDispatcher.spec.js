@@ -180,7 +180,10 @@ describe('dispatchAction — object-op type', () => {
 			errors: {},
 			registerObjectType: jest.fn(function(slug, schemaId, registerId) {
 				this.objectTypeRegistry[slug] = {
-					schema: schemaId, register: registerId, registerSlug: null, schemaSlug: null,
+					schema: schemaId,
+					register: registerId,
+					registerSlug: null,
+					schemaSlug: null,
 				}
 			}),
 			saveObject: jest.fn().mockResolvedValue({ id: '42' }),
@@ -200,7 +203,9 @@ describe('dispatchAction — object-op type', () => {
 		)
 		expect(store.registerObjectType).toHaveBeenCalledWith('pipelinq/case', 'case', 'pipelinq')
 		expect(store.saveObject).toHaveBeenCalledWith('pipelinq/case', {
-			id: '42', title: 'A case', status: 'accepted',
+			id: '42',
+			title: 'A case',
+			status: 'accepted',
 		})
 		expect(result).toEqual({ id: '42' })
 	})

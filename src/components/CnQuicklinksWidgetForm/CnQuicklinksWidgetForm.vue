@@ -7,18 +7,18 @@
 	<div class="cn-quicklinks-widget-form">
 		<div class="cn-quicklinks-widget-form__settings">
 			<NcSelect
-				:model-value="iconSize"
+				:modelValue="iconSize"
 				:options="iconSizeOptions"
-				:input-label="t('nextcloud-vue', 'Icon size')"
+				:inputLabel="t('nextcloud-vue', 'Icon size')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
 				@update:modelValue="updateOption('iconSize', $event)" />
 
 			<NcSelect
-				:model-value="iconShape"
+				:modelValue="iconShape"
 				:options="iconShapeOptions"
-				:input-label="t('nextcloud-vue', 'Icon shape')"
+				:inputLabel="t('nextcloud-vue', 'Icon shape')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
@@ -33,9 +33,9 @@
 			</label>
 
 			<NcSelect
-				:model-value="labelPosition"
+				:modelValue="labelPosition"
 				:options="labelPositionOptions"
-				:input-label="t('nextcloud-vue', 'Label position')"
+				:inputLabel="t('nextcloud-vue', 'Label position')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
@@ -43,27 +43,27 @@
 				@update:modelValue="updateOption('labelPosition', $event)" />
 
 			<NcSelect
-				:model-value="columns"
+				:modelValue="columns"
 				:options="columnsOptions"
-				:input-label="t('nextcloud-vue', 'Columns')"
+				:inputLabel="t('nextcloud-vue', 'Columns')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
 				@update:modelValue="updateOption('columns', $event)" />
 
 			<NcSelect
-				:model-value="tileBackgroundStyle"
+				:modelValue="tileBackgroundStyle"
 				:options="tileBackgroundOptions"
-				:input-label="t('nextcloud-vue', 'Tile background')"
+				:inputLabel="t('nextcloud-vue', 'Tile background')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
 				@update:modelValue="updateOption('tileBackgroundStyle', $event)" />
 
 			<NcSelect
-				:model-value="hoverEffect"
+				:modelValue="hoverEffect"
 				:options="hoverEffectOptions"
-				:input-label="t('nextcloud-vue', 'Hover effect')"
+				:inputLabel="t('nextcloud-vue', 'Hover effect')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
@@ -102,7 +102,7 @@
 								type="text"
 								class="cn-quicklinks-widget-form__input"
 								:class="{ 'cn-quicklinks-widget-form__input--invalid': !isLinkUrlValid(link) }"
-								:placeholder="'https://...'"
+								placeholder="https://..."
 								@input="onContentChange">
 							<small
 								v-if="!isLinkUrlValid(link)"
@@ -113,7 +113,7 @@
 						<td>
 							<CnIconBrowser
 								:value="link.icon"
-								allow-url
+								allowUrl
 								@input="(v) => { link.icon = v; onContentChange() }" />
 						</td>
 						<td v-if="showColorColumn">
@@ -151,7 +151,7 @@
 					v-model="csvDraft"
 					class="cn-quicklinks-widget-form__bulk-input"
 					rows="4"
-					:placeholder="'Docs,https://docs.example.com\nFiles,/apps/files'" />
+					:placeholder="bulkPlaceholder" />
 				<button
 					type="button"
 					class="cn-quicklinks-widget-form__bulk-apply"
@@ -164,10 +164,10 @@
 </template>
 
 <script>
-import { NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import { NcSelect } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import { sanitiseUrl, validateUrl } from '../../utils/widgetUrl.js'
 
 const DEFAULT_CONTENT = Object.freeze({
@@ -210,6 +210,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values — used when not editing.
 		 *
@@ -242,6 +243,7 @@ export default {
 				color: typeof link?.color === 'string' ? link.color : '',
 				openInNewTab: typeof link?.openInNewTab === 'boolean' ? link.openInNewTab : undefined,
 			})),
+
 			iconSize: initial.iconSize ?? DEFAULT_CONTENT.iconSize,
 			iconShape: initial.iconShape ?? DEFAULT_CONTENT.iconShape,
 			showLabels: typeof initial.showLabels === 'boolean' ? initial.showLabels : DEFAULT_CONTENT.showLabels,
@@ -254,6 +256,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Example CSV for the bulk-add textarea. A data holder rather than a
+		 * template literal because the two example rows are separated by a real
+		 * newline, which an inline attribute cannot carry.
+		 *
+		 * @return {string} Two example rows, one per line.
+		 */
+		bulkPlaceholder() {
+			return 'Docs,https://docs.example.com\nFiles,/apps/files'
+		},
+
 		/** Icon-size select options. */
 		iconSizeOptions() {
 			return [
@@ -263,6 +276,7 @@ export default {
 				{ value: 'xlarge', label: t('nextcloud-vue', 'Extra large') },
 			]
 		},
+
 		/** Icon-shape select options. */
 		iconShapeOptions() {
 			return [
@@ -271,6 +285,7 @@ export default {
 				{ value: 'circle', label: t('nextcloud-vue', 'Circle') },
 			]
 		},
+
 		/** Label-position select options. */
 		labelPositionOptions() {
 			return [
@@ -278,6 +293,7 @@ export default {
 				{ value: 'overlay', label: t('nextcloud-vue', 'Overlay') },
 			]
 		},
+
 		/** Column-count select options (`auto` + 1..12). */
 		columnsOptions() {
 			const list = [{ value: 'auto', label: t('nextcloud-vue', 'Auto') }]
@@ -286,6 +302,7 @@ export default {
 			}
 			return list
 		},
+
 		/** Tile-background select options. */
 		tileBackgroundOptions() {
 			return [
@@ -294,6 +311,7 @@ export default {
 				{ value: 'gradient', label: t('nextcloud-vue', 'Gradient') },
 			]
 		},
+
 		/** Hover-effect select options. */
 		hoverEffectOptions() {
 			return [
@@ -303,10 +321,12 @@ export default {
 				{ value: 'none', label: t('nextcloud-vue', 'None') },
 			]
 		},
+
 		/** Whether the per-link colour column is shown (solid tiles only). */
 		showColorColumn() {
 			return this.tileBackgroundStyle === 'solid'
 		},
+
 		/** The full content blob assembled from the current field values. */
 		assembledContent() {
 			return {
@@ -324,6 +344,7 @@ export default {
 					}
 					return out
 				}),
+
 				iconSize: this.iconSize,
 				iconShape: this.iconShape,
 				showLabels: this.showLabels,
@@ -342,7 +363,7 @@ export default {
 		 * Set a widget-level option and notify the parent.
 		 *
 		 * @param {string} field the option key.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateOption(field, value) {

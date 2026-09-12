@@ -7,8 +7,8 @@
 		<!-- Selection checkbox -->
 		<div v-if="selectable" class="cn-object-row__checkbox" @click.stop>
 			<NcCheckboxRadioSwitch
-				:model-value="selected"
-				@update:model-value="$emit('select', object)" />
+				:modelValue="selected"
+				@update:modelValue="$emit('select', object)" />
 		</div>
 
 		<!-- Leading icon / image — omitted entirely when nothing is configured
@@ -20,7 +20,7 @@
 				<img
 					v-if="imageUrl"
 					:src="imageUrl"
-					:alt="''"
+					alt=""
 					width="24"
 					height="24"
 					class="cn-object-row__image">
@@ -43,7 +43,7 @@
 					v-if="badgeLabel"
 					:label="badgeLabel"
 					:variant="badgeVariant"
-					:color-map="badgeColorMap"
+					:colorMap="badgeColorMap"
 					size="small" />
 			</slot>
 		</span>
@@ -59,9 +59,9 @@
 
 <script>
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
-import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 
 /**
  * CnObjectRow — Compact single-line list row for object display.
@@ -99,25 +99,30 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** Schema definition; `schema.configuration` supplies field defaults */
 		schema: {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Explicit field mapping. Every key is optional and overrides the
 		 * schema-configuration default.
+		 *
 		 * @type {{ titleField?: string, subtitleField?: string, imageField?: string, iconField?: string, iconName?: string, badgeField?: string, badgeVariantField?: string, badgeVariant?: string, badgeColorMap?: object }}
 		 */
 		config: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether this row is selected */
 		selected: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether to show the selection checkbox */
 		selectable: {
 			type: Boolean,
@@ -147,7 +152,7 @@ export default {
 
 		title() {
 			const field = this.config.titleField || this.schemaConfig.objectNameField
-			if (field && this.object[field] != null) {
+			if (field && this.object[field] !== null && this.object[field] !== undefined) {
 				return String(this.object[field])
 			}
 			return this.object.title || this.object.name || this.object.id || '—'
@@ -155,7 +160,7 @@ export default {
 
 		subtitle() {
 			const field = this.config.subtitleField || this.schemaConfig.objectDescriptionField
-			if (field && this.object[field] != null && this.object[field] !== '') {
+			if (field && this.object[field] !== null && this.object[field] !== undefined && this.object[field] !== '') {
 				return String(this.object[field])
 			}
 			return null
@@ -184,7 +189,7 @@ export default {
 
 		badgeLabel() {
 			const field = this.config.badgeField
-			if (field && this.object[field] != null && this.object[field] !== '') {
+			if (field && this.object[field] !== null && this.object[field] !== undefined && this.object[field] !== '') {
 				return String(this.object[field])
 			}
 			return null
@@ -212,7 +217,9 @@ export default {
 		 */
 		onRowClick(event) {
 			if (this.selectable) {
-				if (this.wasDrag(event)) return
+				if (this.wasDrag(event)) {
+					return
+				}
 				/**
 				 * @event select Emitted when a selectable row toggles selection (body or checkbox click).
 				 * @type {object} The row's object.

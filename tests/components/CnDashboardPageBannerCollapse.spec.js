@@ -48,19 +48,21 @@ const stubs = {
 
 const CONDITION = { endpoint: '/api/status', field: 'status', op: 'eq', value: 'in_progress' }
 
-const mountWith = ({ banner = {}, layoutExtra = {} } = {}) => mount(CnDashboardPage, {
-	propsData: {
-		widgets: [
-			{ id: 'b', type: 'banner', ...banner },
-			{ id: 'w', type: 'test-banner-neighbour' },
-		],
-		layout: [
-			{ id: '1', widgetId: 'b', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 1, ...layoutExtra },
-			{ id: '2', widgetId: 'w', gridX: 0, gridY: 1, gridWidth: 6, gridHeight: 4 },
-		],
-	},
-	stubs,
-})
+function mountWith({ banner = {}, layoutExtra = {} } = {}) {
+	return mount(CnDashboardPage, {
+		propsData: {
+			widgets: [
+				{ id: 'b', type: 'banner', ...banner },
+				{ id: 'w', type: 'test-banner-neighbour' },
+			],
+			layout: [
+				{ id: '1', widgetId: 'b', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 1, ...layoutExtra },
+				{ id: '2', widgetId: 'w', gridX: 0, gridY: 1, gridWidth: 6, gridHeight: 4 },
+			],
+		},
+		stubs,
+	})
+}
 
 const cells = (wrapper) => wrapper.findAll('.cell').map((c) => ({ wid: c.attributes('data-wid'), y: c.attributes('data-y') }))
 
@@ -83,7 +85,9 @@ describe('CnDashboardPage — hidden banners collapse their grid cell', () => {
 
 	it('holds the grid\'s first paint until the predicates settle — no pop-in reflow', async () => {
 		let resolveFetch
-		readVisibleWhenValue.mockReturnValue(new Promise((resolve) => { resolveFetch = resolve }))
+		readVisibleWhenValue.mockReturnValue(new Promise((resolve) => {
+			resolveFetch = resolve
+		}))
 		const wrapper = mountWith({ banner: { content: { text: 'T', visibleWhen: CONDITION } } })
 		// Predicate pending: loading icon instead of a grid that would reflow.
 		expect(wrapper.findAll('.cell')).toHaveLength(0)
@@ -197,7 +201,9 @@ describe('CnDashboardPage — hidden banners collapse their grid cell', () => {
 	it('ignores a stale evaluation resolving after a newer one (no verdict overwrite)', async () => {
 		let resolveStale
 		readVisibleWhenValue
-			.mockReturnValueOnce(new Promise((resolve) => { resolveStale = resolve }))
+			.mockReturnValueOnce(new Promise((resolve) => {
+				resolveStale = resolve
+			}))
 			.mockResolvedValueOnce('active')
 		const wrapper = mountWith({ banner: { content: { text: 'T', visibleWhen: CONDITION } } })
 		// Run 1 is in flight; edit the predicate so run 2 starts (new value).

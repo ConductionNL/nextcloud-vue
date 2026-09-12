@@ -17,7 +17,6 @@
  */
 
 export default class ToastuiEditorMock {
-
 	constructor(options = {}) {
 		this.options = options
 		this.el = options.el
@@ -56,5 +55,4 @@ export default class ToastuiEditorMock {
 			onChange()
 		}
 	}
-
 }

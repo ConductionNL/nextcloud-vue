@@ -20,12 +20,14 @@
  *
  * @param {object} row The row object.
  * @param {string} field The field key (supports dot notation).
- * @return {*} The value, or undefined.
+ * @return {unknown} The value, or undefined.
  */
 function readField(row, field) {
-	if (!row || typeof field !== 'string') return undefined
+	if (!row || typeof field !== 'string') {
+		return undefined
+	}
 	if (field.includes('.')) {
-		return field.split('.').reduce((obj, k) => (obj == null ? undefined : obj[k]), row)
+		return field.split('.').reduce((obj, k) => (obj === null || obj === undefined ? undefined : obj[k]), row)
 	}
 	if (row[field] === undefined && row['@self'] && typeof row['@self'] === 'object') {
 		return row['@self'][field]
@@ -36,7 +38,7 @@ function readField(row, field) {
 /**
  * Whether a value is "empty" for sort purposes (always sorts last).
  *
- * @param {*} v The value.
+ * @param {unknown} v The value.
  * @return {boolean}
  */
 function isEmpty(v) {
@@ -46,18 +48,22 @@ function isEmpty(v) {
 /**
  * Compare two raw values type-aware. Returns <0, 0, or >0.
  *
- * @param {*} a Left value.
- * @param {*} b Right value.
+ * @param {unknown} a Left value.
+ * @param {unknown} b Right value.
  * @return {number}
  */
 function compareValues(a, b) {
-	if (typeof a === 'number' && typeof b === 'number') return a - b
+	if (typeof a === 'number' && typeof b === 'number') {
+		return a - b
+	}
 
 	// Numeric strings → numeric compare.
 	const na = Number(a)
 	const nb = Number(b)
 	if (Number.isFinite(na) && Number.isFinite(nb) && String(a).trim() !== '' && String(b).trim() !== '') {
-		if (na !== nb) return na - nb
+		if (na !== nb) {
+			return na - nb
+		}
 	}
 
 	// Date-like strings → timestamp compare.
@@ -65,7 +71,9 @@ function compareValues(a, b) {
 	const tb = Date.parse(b)
 	if (!Number.isNaN(ta) && !Number.isNaN(tb)
 		&& /[-/:T]/.test(String(a)) && /[-/:T]/.test(String(b))) {
-		if (ta !== tb) return ta - tb
+		if (ta !== tb) {
+			return ta - tb
+		}
 	}
 
 	return String(a).localeCompare(String(b))
@@ -83,7 +91,9 @@ export function multiKeySort(rows, spec) {
 		return Array.isArray(rows) ? rows : []
 	}
 	const keys = spec.filter((k) => k && typeof k.field === 'string')
-	if (keys.length === 0) return rows
+	if (keys.length === 0) {
+		return rows
+	}
 	// Decorate-sort-undecorate keeps the sort stable across engines.
 	return rows
 		.map((row, index) => ({ row, index }))
@@ -95,12 +105,16 @@ export function multiKeySort(rows, spec) {
 				const ea = isEmpty(va)
 				const eb = isEmpty(vb)
 				if (ea || eb) {
-					if (ea && eb) continue
+					if (ea && eb) {
+						continue
+					}
 					return ea ? 1 : -1
 				}
 				const dir = k.order === 'desc' ? -1 : 1
 				const cmp = compareValues(va, vb)
-				if (cmp !== 0) return cmp * dir
+				if (cmp !== 0) {
+					return cmp * dir
+				}
 			}
 			return x.index - y.index
 		})

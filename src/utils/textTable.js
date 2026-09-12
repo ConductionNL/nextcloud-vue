@@ -316,10 +316,10 @@ function cloneTable(tableData) {
 			: ['left'],
 		rows: Array.isArray(tableData.rows)
 			? tableData.rows.map((row) => row.map((cell) => ({
-				text: typeof cell?.text === 'string' ? cell.text : '',
-				rowSpan: cell?.rowSpan || 1,
-				colSpan: cell?.colSpan || 1,
-			})))
+					text: typeof cell?.text === 'string' ? cell.text : '',
+					rowSpan: cell?.rowSpan || 1,
+					colSpan: cell?.colSpan || 1,
+				})))
 			: [[emptyCell()]],
 	}
 }

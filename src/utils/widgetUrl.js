@@ -44,7 +44,7 @@ export const ALLOWED_SCHEMES = Object.freeze([
  * when it is safe, or an empty string when the scheme is dangerous (so the
  * caller can drop the value rather than store an XSS vector).
  *
- * @param {*} url the raw input value (typically a string from a form field).
+ * @param {unknown} url the raw input value (typically a string from a form field).
  * @return {string} the sanitised URL, or `''` when unsafe / non-string.
  */
 export function sanitiseUrl(url) {
@@ -70,7 +70,7 @@ export function sanitiseUrl(url) {
  * `mailto:`, `tel:`, or `/` (relative Nextcloud path); never a dangerous
  * scheme.
  *
- * @param {*} url the candidate URL.
+ * @param {unknown} url the candidate URL.
  * @return {boolean} `true` when the URL passes every rule.
  */
 export function validateUrl(url) {
@@ -102,7 +102,7 @@ export function validateUrl(url) {
  * Whether a URL would open in a new tab by default (external http/https
  * schemes) when a link's explicit `openInNewTab` field is not set.
  *
- * @param {*} url the candidate URL.
+ * @param {unknown} url the candidate URL.
  * @return {boolean} `true` for an http/https URL.
  */
 export function isExternalUrl(url) {
@@ -118,7 +118,7 @@ export function isExternalUrl(url) {
  * or a remote URL) rather than a bare MDI icon name. Custom sources render
  * as `<img>`; bare names render through `CnIcon`.
  *
- * @param {*} name the icon value from widget content.
+ * @param {unknown} name the icon value from widget content.
  * @return {boolean} `true` when the value is a `/`-, `http`- or `data:`-prefixed source.
  */
 export function isCustomIconUrl(name) {

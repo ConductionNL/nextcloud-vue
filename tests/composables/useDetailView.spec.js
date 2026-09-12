@@ -14,11 +14,10 @@ jest.mock('../../src/store/index.js', () => ({
 	useObjectStore: jest.fn(),
 }))
 
-const { useObjectStore } = require('../../src/store/index.js')
-const { useDetailView } = require('../../src/composables/useDetailView.js')
-
-const { defineComponent, h, ref } = require('vue')
 const { mount } = require('@vue/test-utils')
+const { defineComponent, h, ref } = require('vue')
+const { useDetailView } = require('../../src/composables/useDetailView.js')
+const { useObjectStore } = require('../../src/store/index.js')
 
 /**
  * Flush microtasks + onMounted.
@@ -62,7 +61,9 @@ function mountDetail(args) {
 			const detail = useDetailView(...args)
 			return { detail }
 		},
-		render() { return h('div') },
+		render() {
+			return h('div')
+		},
 	})
 	return mount(Comp)
 }

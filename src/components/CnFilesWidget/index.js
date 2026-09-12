@@ -6,8 +6,8 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
-import CnFilesWidget from './CnFilesWidget.vue'
 import CnFilesWidgetForm from '../CnFilesWidgetForm/CnFilesWidgetForm.vue'
+import CnFilesWidget from './CnFilesWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('files', {

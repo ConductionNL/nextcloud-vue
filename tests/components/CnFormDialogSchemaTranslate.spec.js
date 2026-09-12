@@ -13,7 +13,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnFormDialog from '@/components/CnFormDialog/CnFormDialog.vue'
 
 const stubs = {
@@ -43,7 +42,7 @@ const dict = {
 	billable: 'declarabel',
 	internal: 'intern',
 }
-const cnTranslate = (key, vars) => {
+function cnTranslate(key, vars) {
 	const out = dict[key] ?? key
 	return vars ? Object.entries(vars).reduce((acc, [k, v]) => acc.replace('{' + k + '}', v), out) : out
 }

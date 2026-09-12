@@ -1,3 +1,4 @@
+import { shallowMount } from '@vue/test-utils'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -8,7 +9,6 @@
  * register) while that state is unset.
  */
 import { reactive } from 'vue'
-import { shallowMount } from '@vue/test-utils'
 import CnObjectListWidget from '../../src/components/CnObjectListWidget/CnObjectListWidget.vue'
 
 describe('CnObjectListWidget — workspace context', () => {

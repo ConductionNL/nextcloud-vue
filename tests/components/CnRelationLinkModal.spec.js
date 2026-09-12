@@ -20,9 +20,7 @@ jest.mock('../../src/store/index.js', () => ({
 	useObjectStore: () => mockStore,
 }))
 
-// eslint-disable-next-line import/first
 import { shallowMount } from '@vue/test-utils'
-// eslint-disable-next-line import/first
 import CnRelationLinkModal from '../../src/dialogs/CnRelationLinkModal.vue'
 
 describe('CnRelationLinkModal', () => {
@@ -66,7 +64,9 @@ describe('CnRelationLinkModal', () => {
 
 	it('surfaces the store error and does not emit linked when save fails', async () => {
 		mockStore.saveObject.mockResolvedValueOnce(null)
-		mockStore.errors = { 'pipelinq-contact': { toString() { return 'Save rejected.' } } }
+		mockStore.errors = { 'pipelinq-contact': { toString() {
+			return 'Save rejected.'
+		} } }
 		const wrapper = mountModal()
 		wrapper.setData({ selectedId: 'client-99' })
 		await wrapper.vm.$nextTick()

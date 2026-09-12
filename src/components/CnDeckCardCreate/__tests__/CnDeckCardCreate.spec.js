@@ -8,7 +8,7 @@
  *  - submit is disabled until board, stack and title are present.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnDeckCardCreate = require('../CnDeckCardCreate.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -27,8 +27,7 @@ describe('CnDeckCardCreate', () => {
 	it('loads boards on mount', async () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ results: [{ id: 1, title: 'Sprint' }] }))
 		const wrapper = mount(CnDeckCardCreate)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.vm.boards).toEqual([{ id: 1, title: 'Sprint' }])
 		wrapper.unmount()
 	})
@@ -39,12 +38,10 @@ describe('CnDeckCardCreate', () => {
 			.mockReturnValueOnce(resolveOnce({ results: [{ id: 11, title: 'To Do' }] }))
 
 		const wrapper = mount(CnDeckCardCreate)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.vm.onBoardChange({ id: 1, label: 'Sprint' })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.stacks).toEqual([{ id: 11, title: 'To Do' }])
 		wrapper.unmount()
@@ -54,8 +51,7 @@ describe('CnDeckCardCreate', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ results: [{ id: 1, title: 'Sprint' }] }))
 
 		const wrapper = mount(CnDeckCardCreate)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.setData({
 			selectedBoard: { id: 1, label: 'Sprint' },
@@ -82,8 +78,7 @@ describe('CnDeckCardCreate', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ results: [] }))
 
 		const wrapper = mount(CnDeckCardCreate)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.canSubmit).toBe(false)
 		wrapper.vm.submit()

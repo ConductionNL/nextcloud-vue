@@ -47,22 +47,23 @@
 </template>
 
 <script>
+import { NcLoadingIcon } from '@nextcloud/vue'
+import { inject, ref } from 'vue'
+import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
+import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
+import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
+import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
+import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
+import widgetLink from '../../mixins/widgetLink.js'
+import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
+import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { dropOptionalUnresolved, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+
 // The canonical KPI card, shared with CnStatWidget and CnStatsBlock.
 // Imported here so the tile is styled even when the consuming app pulls in
 // components individually rather than through css/index.css.
 import '../../css/kpi-card.css'
-import { inject, ref } from 'vue'
-import { NcLoadingIcon } from '@nextcloud/vue'
-import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
-import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
-import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
-import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
-import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
-import { dropOptionalUnresolved, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
-import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
-import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
-import widgetLink from '../../mixins/widgetLink.js'
-import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 
 /**
  * CnDeltaWidget — an abstract comparison / delta KPI tile.
@@ -178,12 +179,14 @@ export default {
 		 * `source` | `endpointSource`. `goodDirection` moves to the content
 		 * top level in endpoint mode (`source.goodDirection` still wins for
 		 * the OpenRegister form).
+		 *
 		 * @type {{label?: string, icon?: string, iconColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {register?: string, schema?: string, metric?: string, field?: string, goodDirection?: ('up'|'down'), current?: {filter?: object}, previous?: {filter?: object}}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down')}}
 		 */
 		content: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Translate function. Falls back to the injected `cnTranslate`
 		 * (itself an identity function by default). Provide explicitly when
@@ -274,6 +277,7 @@ export default {
 			const unwrapped = (c && typeof c === 'object' && 'value' in c) ? c.value : c
 			return (unwrapped && typeof unwrapped === 'object') ? unwrapped : {}
 		},
+
 		/**
 		 * The `content.format` spec with its `currency` / `prefix` / `suffix`
 		 * `@config.<key>` tokens resolved against the page-level app config. A
@@ -289,17 +293,21 @@ export default {
 			const out = { ...fmt }
 			for (const key of ['currency', 'prefix', 'suffix']) {
 				const raw = fmt[key]
-				if (typeof raw !== 'string' || raw.charAt(0) !== '@') continue
+				if (typeof raw !== 'string' || raw.charAt(0) !== '@') {
+					continue
+				}
 				const resolved = resolveFilterValue(raw, ctx)
 				out[key] = (typeof resolved === 'string' && resolved.charAt(0) === '@') ? undefined : resolved
 			}
 			return out
 		},
+
 		/** Inline style for the icon circle (tinted with iconColor). */
 		iconCircleStyle() {
 			const color = this.content.iconColor || this.content.valueColor || 'var(--color-primary-element)'
 			return { color, backgroundColor: this.tint(color) }
 		},
+
 		/**
 		 * Card orientation. Horizontal (icon beside the number) is the
 		 * canonical KPI card; `content.layout: 'vertical'` stacks the icon
@@ -310,6 +318,7 @@ export default {
 		cardLayout() {
 			return (this.content || {}).layout === 'vertical' ? 'vertical' : 'horizontal'
 		},
+
 		/**
 		 * Whether the card draws no box of its own. On by default — the tile
 		 * is rendered inside a CnWidgetWrapper that already draws a card.
@@ -319,10 +328,12 @@ export default {
 		flat() {
 			return (this.content || {}).flat !== false
 		},
+
 		/** Inline colour for the value, when the tile names one. */
 		valueStyle() {
 			return this.content.valueColor ? { color: this.content.valueColor } : {}
 		},
+
 		/**
 		 * Whether the tile is endpoint-bound (Wave 2): a `content.endpointSource`
 		 * with a `url` reads both legs from one shared payload instead of the
@@ -336,30 +347,37 @@ export default {
 			const es = this.content.endpointSource
 			return !!(es && es.url)
 		},
+
 		/**
 		 * The current value for the active source: the payload value at
 		 * `content.valueField` in endpoint mode, else the OpenRegister
 		 * `current` leg.
 		 *
-		 * @return {*}
+		 * @return {number|string|null}
 		 */
 		effectiveCurrent() {
-			if (!this.endpointMode) return this.current
+			if (!this.endpointMode) {
+				return this.current
+			}
 			const v = getByPath(this.epData, this.content.valueField)
 			return v === undefined ? null : v
 		},
+
 		/**
 		 * The previous value for the active source: the payload value at
 		 * `content.previousField` in endpoint mode, else the OpenRegister
 		 * `previous` leg.
 		 *
-		 * @return {*}
+		 * @return {number|string|null}
 		 */
 		effectivePrevious() {
-			if (!this.endpointMode) return this.previous
+			if (!this.endpointMode) {
+				return this.previous
+			}
 			const v = getByPath(this.epData, this.content.previousField)
 			return v === undefined ? null : v
 		},
+
 		/**
 		 * Loading state for the active source (endpoint or OpenRegister).
 		 *
@@ -368,6 +386,7 @@ export default {
 		displayLoading() {
 			return this.endpointMode ? this.epLoading : this.loading
 		},
+
 		/**
 		 * Error message for the active source ('' = none).
 		 *
@@ -376,10 +395,12 @@ export default {
 		displayError() {
 			return this.endpointMode ? this.epError : this.error
 		},
+
 		/** The current value, number-formatted per content.format. */
 		formattedCurrent() {
 			return this.formatNumber(this.effectiveCurrent)
 		},
+
 		/**
 		 * Percentage change current vs previous, or null when not computable.
 		 * In endpoint mode a `content.deltaField` (a server-computed percent
@@ -392,47 +413,62 @@ export default {
 			}
 			const prev = Number(this.effectivePrevious)
 			const cur = Number(this.effectiveCurrent)
-			if (!Number.isFinite(prev) || prev === 0 || !Number.isFinite(cur)) return null
+			if (!Number.isFinite(prev) || prev === 0 || !Number.isFinite(cur)) {
+				return null
+			}
 			return ((cur - prev) / Math.abs(prev)) * 100
 		},
+
 		/** The signed percentage, e.g. "+12.3%". */
 		formattedDelta() {
-			if (this.deltaPct === null) return ''
+			if (this.deltaPct === null) {
+				return ''
+			}
 			const sign = this.deltaPct > 0 ? '+' : ''
 			return `${sign}${this.deltaPct.toFixed(1)}%`
 		},
+
 		/** The arrow component for the delta direction. */
 		deltaIcon() {
-			if (this.deltaPct === null || Math.abs(this.deltaPct) < 0.05) return 'TrendingNeutral'
+			if (this.deltaPct === null || Math.abs(this.deltaPct) < 0.05) {
+				return 'TrendingNeutral'
+			}
 			return this.deltaPct > 0 ? 'TrendingUp' : 'TrendingDown'
 		},
+
 		/**
 		 * Green when the change is in the configured good direction, else red.
 		 * `source.goodDirection` (the OpenRegister form) wins; endpoint-bound
 		 * tiles declare `content.goodDirection` at the top level.
 		 */
 		deltaColor() {
-			if (this.deltaPct === null || Math.abs(this.deltaPct) < 0.05) return 'var(--color-text-maxcontrast)'
+			if (this.deltaPct === null || Math.abs(this.deltaPct) < 0.05) {
+				return 'var(--color-text-maxcontrast)'
+			}
 			const good = (this.content.source && this.content.source.goodDirection)
 				|| this.content.goodDirection || 'up'
 			const rising = this.deltaPct > 0
 			const isGood = good === 'up' ? rising : !rising
 			return isGood ? 'var(--color-success)' : 'var(--color-error)'
 		},
+
 		/** Stable signature so the watcher only refetches on real change. */
 		sourceKey() {
 			return JSON.stringify(this.content.source || {})
 		},
+
 		/** Merged detail-page object context (`{ objectId, object, register, schema }`) or null — both detail-surface injects (#91 Wave 3). */
 		objectCtx() {
 			return resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext)
 		},
+
 		/** Unwrapped page-level workspace context map (always an object). */
 		pageCtx() {
 			const c = this.cnWorkspaceContext
 			const v = (c && typeof c === 'object' && 'value' in c) ? c.value : c
 			return v || {}
 		},
+
 		/** Workspace signature so the widget refetches when the date window changes. */
 		workspaceKey() {
 			return JSON.stringify(this.pageCtx || {})
@@ -443,6 +479,7 @@ export default {
 		sourceKey() {
 			this.fetchValues()
 		},
+
 		workspaceKey() {
 			this.fetchValues()
 		},
@@ -460,18 +497,22 @@ export default {
 		 * @return {string} A translucent or token background.
 		 */
 		tint(color) {
-			if (typeof color === 'string' && /^#([0-9a-f]{6})$/i.test(color)) return color + '1f'
+			if (typeof color === 'string' && /^#([0-9a-f]{6})$/i.test(color)) {
+				return color + '1f'
+			}
 			return 'var(--color-primary-element-light, rgba(0,130,201,0.1))'
 		},
+
 		/**
 		 * Format a number per the content.format spec (number/currency/percent).
 		 *
-		 * @param {*} value The raw value.
+		 * @param {number|string|null} value The raw value.
 		 * @return {string} The formatted string.
 		 */
 		formatNumber(value) {
 			return formatMetricValue(value, this.resolvedFormat, unwrapAppConfig(this.cnAppConfig))
 		},
+
 		/**
 		 * Fetch the current and previous aggregates from OpenRegister.
 		 *

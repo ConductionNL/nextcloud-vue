@@ -26,8 +26,8 @@
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
-import { integrations } from '../../src/integrations/registry.js'
 import { LIB_INTEGRATION_COMPONENTS } from '../../src/integrations/libComponents.js'
+import { integrations } from '../../src/integrations/registry.js'
 
 /**
  * A leaf as it renders when it belongs to another bundle's Vue.
@@ -146,7 +146,9 @@ describe('CnDetailWidgetHost — lib-owned leaves resolve to this bundle', () =>
 	})
 
 	it('negative control: a consumer-custom bareWidget id keeps its stored widget', () => {
-		const CustomWidget = { name: 'CustomWidget', render() { return h('div', { class: 'custom-widget' }) } }
+		const CustomWidget = { name: 'CustomWidget', render() {
+			return h('div', { class: 'custom-widget' })
+		} }
 		integrations.register({ id: 'my-leaf', label: 'Mine', requiredApp: null, tab: CustomLeaf, widget: CustomWidget, bareWidget: true })
 		const w = mountHost('my-leaf')
 		expect(w.find('.custom-widget').exists()).toBe(true)

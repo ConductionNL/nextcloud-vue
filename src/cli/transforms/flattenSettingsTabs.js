@@ -39,7 +39,9 @@ function flattenSettingsTabs(page) {
 	let rowOffset = 0
 
 	for (const tab of tabs) {
-		if (!tab) continue
+		if (!tab) {
+			continue
+		}
 
 		const tabSections = Array.isArray(tab.sections) ? tab.sections : []
 
@@ -52,7 +54,9 @@ function flattenSettingsTabs(page) {
 		let hasWidgetSections = false
 
 		for (const section of tabSections) {
-			if (!section) continue
+			if (!section) {
+				continue
+			}
 
 			const sectionWidgets = Array.isArray(section.widgets) ? section.widgets : []
 			const hasFields = Array.isArray(section.fields)
@@ -67,7 +71,9 @@ function flattenSettingsTabs(page) {
 
 			for (let i = 0; i < sectionWidgets.length; i++) {
 				const w = sectionWidgets[i]
-				if (!w) continue
+				if (!w) {
+					continue
+				}
 
 				const { type, dataSource, ...rest } = w
 				const resolveEntries = Object.entries(rest).filter(([k]) => k.startsWith('@resolve:'))

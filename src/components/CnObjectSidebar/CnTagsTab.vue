@@ -6,7 +6,7 @@
 				<NcTextField
 					v-model="newTagName"
 					:label="addTagPlaceholder"
-					@update:model-value="filterSuggestions"
+					@update:modelValue="filterSuggestions"
 					@keyup.enter="addTag"
 					@focus="showSuggestions = true" />
 				<NcButton
@@ -58,10 +58,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcTextField, NcLoadingIcon } from '@nextcloud/vue'
-import TagOutline from 'vue-material-design-icons/TagOutline.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import { buildHeaders } from '../../utils/index.js'
 
 export default {
@@ -110,7 +110,9 @@ export default {
 
 	methods: {
 		async fetchTags() {
-			if (!this.register || !this.schema) return
+			if (!this.register || !this.schema) {
+				return
+			}
 			this.loading = true
 			try {
 				const response = await fetch(
@@ -121,6 +123,7 @@ export default {
 					this.tags = await response.json()
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTagsTab: Failed to fetch tags', err)
 			} finally {
 				this.loading = false
@@ -128,13 +131,16 @@ export default {
 		},
 
 		async fetchAvailableTags() {
-			if (!this.register || !this.schema) return
+			if (!this.register || !this.schema) {
+				return
+			}
 			try {
 				const response = await fetch(`${this.apiBase}/tags`, { headers: buildHeaders() })
 				if (response.ok) {
 					this.availableTags = await response.json()
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTagsTab: Failed to fetch available tags', err)
 			}
 		},
@@ -142,12 +148,10 @@ export default {
 		filterSuggestions() {
 			const query = this.newTagName.trim().toLowerCase()
 			if (!query) {
-				this.filtered = this.availableTags.filter(t => !this.tags.includes(t))
+				this.filtered = this.availableTags.filter((t) => !this.tags.includes(t))
 				return
 			}
-			this.filtered = this.availableTags.filter(
-				t => t.toLowerCase().includes(query) && !this.tags.includes(t),
-			)
+			this.filtered = this.availableTags.filter((t) => t.toLowerCase().includes(query) && !this.tags.includes(t))
 		},
 
 		selectSuggestion(tagName) {
@@ -157,7 +161,9 @@ export default {
 		},
 
 		async addTag() {
-			if (!this.newTagName.trim() || !this.register || !this.schema) return
+			if (!this.newTagName.trim() || !this.register || !this.schema) {
+				return
+			}
 			this.saving = true
 			this.showSuggestions = false
 			try {
@@ -175,6 +181,7 @@ export default {
 				this.newTagName = ''
 				this.fetchAvailableTags()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTagsTab: Failed to add tag', err)
 			} finally {
 				this.saving = false
@@ -182,7 +189,9 @@ export default {
 		},
 
 		async removeTag(tagName) {
-			if (!this.register || !this.schema) return
+			if (!this.register || !this.schema) {
+				return
+			}
 			try {
 				const response = await fetch(
 					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags/${encodeURIComponent(tagName)}`,
@@ -192,6 +201,7 @@ export default {
 					this.tags = await response.json()
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnTagsTab: Failed to remove tag', err)
 			}
 		},

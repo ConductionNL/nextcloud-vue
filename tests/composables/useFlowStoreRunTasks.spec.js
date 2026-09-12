@@ -24,8 +24,8 @@
  *    name this run are therefore discarded rather than rendered.
  */
 
-import { createPinia, setActivePinia } from 'pinia'
 import axios from '@nextcloud/axios'
+import { createPinia, setActivePinia } from 'pinia'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
 
 jest.mock('@nextcloud/axios', () => ({

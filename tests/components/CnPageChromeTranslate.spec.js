@@ -28,15 +28,15 @@ jest.mock('../../src/utils/fetchAggregate.js', () => ({
 	fetchAggregateValue: jest.fn(),
 }))
 
-import CnPageHeader from '../../src/components/CnPageHeader/CnPageHeader.vue'
-import CnWidgetWrapper from '../../src/components/CnWidgetWrapper/CnWidgetWrapper.vue'
-import CnTileWidget from '../../src/components/CnTileWidget/CnTileWidget.vue'
+import CnCardGrid from '../../src/components/CnCardGrid/CnCardGrid.vue'
+import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
 import CnDeltaWidget from '../../src/components/CnDeltaWidget/CnDeltaWidget.vue'
 import CnGaugeWidget from '../../src/components/CnGaugeWidget/CnGaugeWidget.vue'
 import CnHeaderWidget from '../../src/components/CnHeaderWidget/CnHeaderWidget.vue'
 import CnObjectList from '../../src/components/CnObjectList/CnObjectList.vue'
-import CnCardGrid from '../../src/components/CnCardGrid/CnCardGrid.vue'
-import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
+import CnPageHeader from '../../src/components/CnPageHeader/CnPageHeader.vue'
+import CnTileWidget from '../../src/components/CnTileWidget/CnTileWidget.vue'
+import CnWidgetWrapper from '../../src/components/CnWidgetWrapper/CnWidgetWrapper.vue'
 
 /** A partial catalogue: some keys land, "Not in the catalogue" deliberately does not. */
 const dict = {

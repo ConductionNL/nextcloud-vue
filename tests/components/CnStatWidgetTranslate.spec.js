@@ -19,7 +19,6 @@ jest.mock('@nextcloud/router', () => ({
 }))
 
 import { mount } from '@vue/test-utils'
-
 import CnStatWidget from '../../src/components/CnStatWidget/CnStatWidget.vue'
 
 const stubs = {

@@ -27,10 +27,10 @@
 <template>
 	<CnWidgetWrapper
 		:title="title"
-		:show-title="!bare"
+		:showTitle="!bare"
 		:borderless="bare"
-		:widget-id="widgetId || objectType"
-		:documentation-url="documentationUrl"
+		:widgetId="widgetId || objectType"
+		:documentationUrl="documentationUrl"
 		:refreshing="loading"
 		flush>
 		<!-- Total beside the card title. Carries the count that the tab strip
@@ -48,7 +48,8 @@
 						type="button"
 						role="tab"
 						:aria-selected="String(group.key === activeKey)"
-						:class="['cn-related-objects-widget__tab', { 'cn-related-objects-widget__tab--active': group.key === activeKey }]"
+						class="cn-related-objects-widget__tab"
+						:class="[{ 'cn-related-objects-widget__tab--active': group.key === activeKey }]"
 						@click="activeKey = group.key">
 						<CnIcon :name="group.icon" :size="18" class="cn-related-objects-widget__tab-icon" />
 						<span class="cn-related-objects-widget__tab-label">{{ group.label }}</span>
@@ -204,13 +205,13 @@
 					{{ uploading ? t('nextcloud-vue', 'Uploading…') : addLabelFor(soleAddable) }}
 				</NcButton>
 				<NcActions v-else
-					:menu-name="t('nextcloud-vue', 'Add')"
-					type="secondary"
-					:force-menu="true">
+					:menuName="t('nextcloud-vue', 'Add')"
+					variant="secondary"
+					:forceMenu="true">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
-					<NcActionButton v-if="groupAllowed('files')" :close-after-click="true" @click="openFilePicker">
+					<NcActionButton v-if="groupAllowed('files')" :closeAfterClick="true" @click="openFilePicker">
 						<template #icon>
 							<Paperclip :size="20" />
 						</template>
@@ -225,9 +226,9 @@
 						draft stayed empty and Add note submitted nothing.
 					-->
 					<NcActionInput v-if="groupAllowed('notes')"
-						:model-value="noteDraft"
+						:modelValue="noteDraft"
 						:label="t('nextcloud-vue', 'Add note')"
-						@update:model-value="noteDraft = $event"
+						@update:modelValue="noteDraft = $event"
 						@submit="onAddNote">
 						<template #icon>
 							<CnIcon name="CommentTextOutline" :size="20" />
@@ -236,7 +237,7 @@
 					</NcActionInput>
 					<NcActionButton v-for="group in emitAddableGroups"
 						:key="`add-${group.key}`"
-						:close-after-click="true"
+						:closeAfterClick="true"
 						@click="onAddGroup(group.key)">
 						<template #icon>
 							<CnIcon :name="group.icon" :size="20" />
@@ -263,20 +264,20 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { NcActions, NcActionButton, NcActionInput, NcButton, NcEmptyContent } from '@nextcloud/vue'
-import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
-import { CnIcon } from '../CnIcon/index.js'
-import { buildHeaders } from '../../utils/headers.js'
+import { NcActionButton, NcActionInput, NcActions, NcButton, NcEmptyContent } from '@nextcloud/vue'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import FileTreeOutline from 'vue-material-design-icons/FileTreeOutline.vue'
+import Paperclip from 'vue-material-design-icons/Paperclip.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { registerIntegrationIcons } from '../../integrations/icons.js'
 import { useObjectStore } from '../../store/index.js'
-import FileTreeOutline from 'vue-material-design-icons/FileTreeOutline.vue'
-import Paperclip from 'vue-material-design-icons/Paperclip.vue'
-import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { buildHeaders } from '../../utils/headers.js'
+import { CnIcon } from '../CnIcon/index.js'
+import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
 // ⚠️ THIS WIDGET RENDERS INTEGRATION ICONS AND DID NOT REGISTER THEM.
 //
@@ -396,6 +397,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Related'),
 		},
+
 		/**
 		 * Drop the card chrome: no header, no border. For a surface that already
 		 * supplies both, such as a `CnTabsWidget` panel, where a second title
@@ -408,21 +410,25 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** The registered object type slug (used for legacy store fetches). */
 		objectType: {
 			type: String,
 			default: '',
 		},
+
 		/** The object's id. */
 		objectId: {
 			type: [String, Number],
 			default: '',
 		},
+
 		/** The object data — used to derive id/register/schema when not passed explicitly. */
 		objectData: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * OpenRegister register slug. When omitted, derived from
 		 * `objectData['@self'].register`. Required (with `schema`) for the
@@ -432,6 +438,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * OpenRegister schema slug. When omitted, derived from
 		 * `objectData['@self'].schema`. Required (with `register`) for the
@@ -441,10 +448,12 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Render mode. `'tabs'` (default) self-fetches from OpenRegister and
 		 * renders a tab per non-empty group. `'list'` forces the deprecated
 		 * store-action list path.
+		 *
 		 * @type {'tabs'|'list'}
 		 */
 		layout: {
@@ -452,11 +461,13 @@ export default {
 			default: 'tabs',
 			validator: (value) => ['tabs', 'list'].includes(value),
 		},
+
 		/** Include `/contracts` relations in the Objects group (opt-in). */
 		showContracts: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Whitelist of relation-group keys to display (tabbed path). When
 		 * non-empty, ONLY these groups render — e.g. `['objects', 'files',
@@ -464,12 +475,14 @@ export default {
 		 * page carry several Related widgets each scoped to different relations.
 		 * Keys: `objects`, `files`, and the leaf groups (mails, events, contacts,
 		 * notes, tasks, deck, talk, forms, maps, polls, …).
+		 *
 		 * @type {string[]}
 		 */
 		includeGroups: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Object store instance (legacy list path only). When omitted, the
 		 * widget tries Pinia auto-detection. Relation/file sections only render
@@ -479,30 +492,36 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Show the related-objects (uses/used/contracts) section/tab. */
 		showObjects: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Show the files section/tab. */
 		showFiles: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Show the leaf-integration entry-point section (legacy list path). */
 		showIntegrations: {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Integration ids to omit from the "Linked apps" section (on top of
 		 * the always-omitted core tabs files/notes/tags/tasks/audit/shares).
+		 *
 		 * @type {string[]}
 		 */
 		excludeIntegrations: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Extra related sections the widget cannot resolve itself — content a
 		 * host knows about that OpenRegister's relation endpoints do not
@@ -528,40 +547,48 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Documentation link for the overflow Actions menu. */
 		documentationUrl: {
 			type: String,
 			default: '',
 		},
+
 		/** Stable id forwarded to the widget chrome. Falls back to objectType. */
 		widgetId: {
 			type: String,
 			default: '',
 		},
+
 		/** Section/tab heading for related objects. */
 		objectsLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Objects'),
 		},
+
 		/** Section/tab heading for files. */
 		filesLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Files'),
 		},
+
 		/** Section heading for the leaf-integration entry points (legacy list path). */
 		linkedAppsLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Linked apps'),
 		},
+
 		/**
 		 * Deprecated no-op label, kept for backward compatibility.
+		 *
 		 * @deprecated No longer rendered — tabbed mode deep-links each item to its
 		 * owning Nextcloud app instead of offering an open-in-sidebar action.
 		 */
-		openInSidebarLabel: {
+		openInSidebarLabel: { // eslint-disable-line vue/no-unused-properties -- deprecated no-op, kept so apps still passing it do not leak it onto the DOM through $attrs.
 			type: String,
 			default: () => t('nextcloud-vue', 'Open in sidebar'),
 		},
+
 		/**
 		 * Empty-state label shown when nothing is related. When left at its
 		 * default, a contextual label is derived instead: a widget scoped to a
@@ -572,6 +599,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Nothing related yet'),
 		},
+
 		/**
 		 * Render the "Add" footer (upload file / add note / per-group add
 		 * events) on the tabbed self-fetch path. Disable for read-only hosts.
@@ -580,6 +608,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Suppress the tab strip when only one group is visible. A lone tab
 		 * repeats the widget title verbatim ("Files" card carrying a "Files"
@@ -589,6 +618,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Render a count pill beside the widget title totalling every visible
 		 * group. Keeps the count reachable once `hideSingleTabTitle` has taken
@@ -618,7 +648,11 @@ export default {
 
 	data() {
 		return {
-			/** The file input element, set by the template's function ref (kept off `$refs` so the ref stays dynamic — see the template). @type {HTMLInputElement|null} */
+			/**
+			 * The file input element, set by the template's function ref (kept off `$refs` so the ref stays dynamic — see the template).
+			 *
+			 * @type {HTMLInputElement|null}
+			 */
 			fileInputEl: null,
 			/** Whether any section/tab is currently fetching. */
 			loading: false,
@@ -724,10 +758,8 @@ export default {
 		 */
 		visibleGroups() {
 			const allow = Array.isArray(this.includeGroups) ? this.includeGroups : []
-			const own = this.groups.filter((group) =>
-				(group.total > 0 || group.items.length > 0)
-				&& (allow.length === 0 || allow.includes(group.key)),
-			)
+			const own = this.groups.filter((group) => (group.total > 0 || group.items.length > 0)
+				&& (allow.length === 0 || allow.includes(group.key)))
 			return [...own, ...this.extraGroups]
 		},
 
@@ -738,7 +770,9 @@ export default {
 		 * @return {boolean} true when the tab strip should be shown.
 		 */
 		tabStripVisible() {
-			if (!this.visibleGroups.length) return false
+			if (!this.visibleGroups.length) {
+				return false
+			}
 			return !(this.hideSingleTabTitle && this.visibleGroups.length === 1)
 		},
 
@@ -758,12 +792,14 @@ export default {
 
 		/** Placeholder shown in the body while the first fetch is in flight. */
 		loadingLabel() {
-			return t('nextcloud-vue', 'Loading …')
+			return t('nextcloud-vue', 'Loading …')
 		},
 
 		/** The currently active group, defaulting to the first visible one. */
 		activeGroup() {
-			if (!this.visibleGroups.length) return null
+			if (!this.visibleGroups.length) {
+				return null
+			}
 			return this.visibleGroups.find((group) => group.key === this.activeKey) || this.visibleGroups[0]
 		},
 
@@ -775,9 +811,15 @@ export default {
 
 		/** True when every legacy section is empty. */
 		isEmpty() {
-			if (this.objectItems.length || this.fileItems.length) return false
-			if (this.extraSections.some((s) => (s.items || []).length)) return false
-			if (this.showIntegrations && this.linkedApps.length) return false
+			if (this.objectItems.length || this.fileItems.length) {
+				return false
+			}
+			if (this.extraSections.some((s) => (s.items || []).length)) {
+				return false
+			}
+			if (this.showIntegrations && this.linkedApps.length) {
+				return false
+			}
 			return true
 		},
 
@@ -794,7 +836,9 @@ export default {
 		 */
 		resolvedEmptyLabel() {
 			const legacyDefault = t('nextcloud-vue', 'Nothing related yet')
-			if (this.emptyLabel && this.emptyLabel !== legacyDefault) return this.emptyLabel
+			if (this.emptyLabel && this.emptyLabel !== legacyDefault) {
+				return this.emptyLabel
+			}
 			if (this.singleSourceKey) {
 				return t('nextcloud-vue', 'No {source} yet', { source: this.groupLabelFor(this.singleSourceKey).toLowerCase() })
 			}
@@ -803,7 +847,9 @@ export default {
 
 		/** Empty-state icon: the single source's own icon, else a generic link. */
 		emptyIconName() {
-			if (this.singleSourceKey) return this.groupIconFor(this.singleSourceKey)
+			if (this.singleSourceKey) {
+				return this.groupIconFor(this.singleSourceKey)
+			}
 			return 'LinkVariant'
 		},
 
@@ -874,29 +920,40 @@ export default {
 
 		/**
 		 * Display label for a relation group key.
+		 *
 		 * @param {string} key - Group key (`objects`, `files`, or a leaf key).
 		 * @return {string}
 		 */
 		groupLabelFor(key) {
-			if (key === 'objects') return this.objectsLabel
-			if (key === 'files') return this.filesLabel
+			if (key === 'objects') {
+				return this.objectsLabel
+			}
+			if (key === 'files') {
+				return this.filesLabel
+			}
 			return this.leafLabel(key)
 		},
 
 		/**
 		 * Icon name for a relation group key.
+		 *
 		 * @param {string} key - Group key.
 		 * @return {string}
 		 */
 		groupIconFor(key) {
-			if (key === 'objects') return 'FileTreeOutline'
-			if (key === 'files') return 'Paperclip'
+			if (key === 'objects') {
+				return 'FileTreeOutline'
+			}
+			if (key === 'files') {
+				return 'Paperclip'
+			}
 			const def = LEAF_GROUPS.find((g) => g.key === key)
 			return (def && (this.integrationIcon(def.integrationId) || def.icon)) || 'LinkVariant'
 		},
 
 		/**
 		 * Whether a group is available to the Add footer.
+		 *
 		 * @param {string} key - Group key.
 		 * @return {boolean}
 		 */
@@ -906,6 +963,7 @@ export default {
 
 		/**
 		 * "Add …" label for a group entry.
+		 *
 		 * @param {{ key: string, label: string }} group - The addable group.
 		 * @return {string}
 		 */
@@ -916,18 +974,23 @@ export default {
 		/** Open the hidden file input for the footer upload flow. */
 		openFilePicker() {
 			this.addError = ''
-			if (this.fileInputEl) this.fileInputEl.click()
+			if (this.fileInputEl) {
+				this.fileInputEl.click()
+			}
 		},
 
 		/**
 		 * Upload the picked files to the object and refresh the groups.
+		 *
 		 * @param {Event} event - The file input change event.
 		 * @return {Promise<void>}
 		 */
 		async onFilesPicked(event) {
 			const files = Array.from((event.target && event.target.files) || [])
 			event.target.value = ''
-			if (!files.length || this.uploading) return
+			if (!files.length || this.uploading) {
+				return
+			}
 			this.uploading = true
 			this.addError = ''
 			try {
@@ -940,14 +1003,16 @@ export default {
 				})
 				// buildHeaders(null): let the browser set the multipart boundary.
 				const response = await fetch(url, { method: 'POST', headers: buildHeaders(null), body: formData })
-				if (!response.ok) throw new Error(`${response.status}`)
+				if (!response.ok) {
+					throw new Error(`${response.status}`)
+				}
 				/**
 				 * @event file-uploaded Files were uploaded via the Add footer.
 				 * @type {File[]}
 				 */
 				this.$emit('file-uploaded', files)
 				await this.loadAll()
-			} catch (e) {
+			} catch {
 				this.addError = t('nextcloud-vue', 'Upload failed')
 			} finally {
 				this.uploading = false
@@ -965,7 +1030,9 @@ export default {
 		 */
 		async onAddNote() {
 			const message = String(this.noteDraft || '').trim()
-			if (!message) return
+			if (!message) {
+				return
+			}
 			this.addError = ''
 			try {
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}/notes', {
@@ -978,7 +1045,9 @@ export default {
 					headers: buildHeaders(),
 					body: JSON.stringify({ message }),
 				})
-				if (!response.ok) throw new Error(`${response.status}`)
+				if (!response.ok) {
+					throw new Error(`${response.status}`)
+				}
 				this.noteDraft = ''
 				/**
 				 * @event note-added A note was created via the Add footer.
@@ -986,13 +1055,14 @@ export default {
 				 */
 				this.$emit('note-added', message)
 				await this.loadAll()
-			} catch (e) {
+			} catch {
 				this.addError = t('nextcloud-vue', 'Could not add note')
 			}
 		},
 
 		/**
 		 * Emit the add request for groups without a built-in flow.
+		 *
 		 * @param {string} key - The group key (objects, mails, events, …).
 		 */
 		onAddGroup(key) {
@@ -1006,6 +1076,7 @@ export default {
 
 		/**
 		 * Emit the related-object selection for the host to route.
+		 *
 		 * @param {object} raw - The related object record.
 		 */
 		onSelectObject(raw) {
@@ -1018,6 +1089,7 @@ export default {
 
 		/**
 		 * Emit the file selection for the host to route.
+		 *
 		 * @param {object} raw - The file record.
 		 */
 		onSelectFile(raw) {
@@ -1033,6 +1105,7 @@ export default {
 		 * Nextcloud app when a link can be resolved, otherwise emit a
 		 * host-routed event. Related objects always route through the host
 		 * (their owning app's detail page).
+		 *
 		 * @param {object} group - The active group descriptor.
 		 * @param {object} item - The clicked, normalised row (`item.raw` is the record).
 		 */
@@ -1075,6 +1148,7 @@ export default {
 
 		/**
 		 * Whether a row is currently inline-expanded (no-deep-link leaves).
+		 *
 		 * @param {string} groupKey - The active group key.
 		 * @param {object} item - The normalised row.
 		 * @return {boolean}
@@ -1086,6 +1160,7 @@ export default {
 		/**
 		 * Resolve the owning-app deep link for a related item, or '' when none
 		 * can be built (the caller then falls back to a host-routed event).
+		 *
 		 * @param {string} groupKey - The group key (files, contacts, deck, …).
 		 * @param {object} raw - The leaf/file record.
 		 * @return {string} A Nextcloud URL, or '' when unresolved.
@@ -1102,7 +1177,7 @@ export default {
 			}
 			// Contacts → open the contact card in the Contacts app.
 			if (groupKey === 'contacts' && raw.contactUid) {
-				const key = raw.addressbookId != null ? `${raw.contactUid}~${raw.addressbookId}` : String(raw.contactUid)
+				const key = raw.addressbookId !== null && raw.addressbookId !== undefined ? `${raw.contactUid}~${raw.addressbookId}` : String(raw.contactUid)
 				return generateUrl('/apps/contacts/All contacts/{key}', { key })
 			}
 			// Deck → open the card on its board.
@@ -1113,7 +1188,9 @@ export default {
 			if (groupKey === 'tasks') {
 				const cal = raw.calendarId || raw.calendarUri
 				const task = raw.uri || raw.uid || raw.id
-				if (cal && task) return generateUrl('/apps/tasks/#/calendars/{cal}/tasks/{task}', { cal: String(cal), task: String(task) })
+				if (cal && task) {
+					return generateUrl('/apps/tasks/#/calendars/{cal}/tasks/{task}', { cal: String(cal), task: String(task) })
+				}
 			}
 			// Meetings/events → open the event in the Calendar app (dav path, base64url).
 			if (groupKey === 'events') {
@@ -1133,11 +1210,14 @@ export default {
 
 		/**
 		 * The registered integration's icon name, or '' when not registered.
+		 *
 		 * @param {string} integrationId - The integration id.
 		 * @return {string}
 		 */
 		integrationIcon(integrationId) {
-			if (!integrationId || typeof this.getById !== 'function') return ''
+			if (!integrationId || typeof this.getById !== 'function') {
+				return ''
+			}
 			const entry = this.getById(integrationId)
 			return (entry && entry.icon) || ''
 		},
@@ -1146,6 +1226,7 @@ export default {
 		 * Emit a click in a host-supplied extra section. Reached from both
 		 * paths: the legacy list's own rows, and a tabbed-path row whose
 		 * group came from `extraSections`.
+		 *
 		 * @param {string} sectionKey - The section's key.
 		 * @param {object} item - The clicked item.
 		 */
@@ -1161,6 +1242,7 @@ export default {
 		/**
 		 * Emit the leaf-integration open request for the host to route
 		 * (the detail-page auto-body deep-links the sidebar tab).
+		 *
 		 * @param {string} integrationId - The leaf integration id.
 		 */
 		onOpenIntegration(integrationId) {
@@ -1174,6 +1256,7 @@ export default {
 
 		/**
 		 * Build an OpenRegister object sub-resource URL.
+		 *
 		 * @param {string} suffix - The sub-resource (e.g. 'relations', 'uses', 'files').
 		 * @return {string} The fully-qualified API URL.
 		 */
@@ -1188,6 +1271,7 @@ export default {
 
 		/**
 		 * GET an OpenRegister sub-resource, returning the parsed JSON or null.
+		 *
 		 * @param {string} suffix - The sub-resource suffix.
 		 * @return {Promise<object|null>}
 		 */
@@ -1196,7 +1280,9 @@ export default {
 				// `no-store`: relations change as the user links content; a stale
 				// cached empty response would wrongly show the empty state on load.
 				const response = await fetch(this.relatedUrl(suffix), { method: 'GET', headers: buildHeaders(), cache: 'no-store' })
-				if (!response.ok) return null
+				if (!response.ok) {
+					return null
+				}
 				return await response.json()
 			} catch {
 				return null
@@ -1205,12 +1291,17 @@ export default {
 
 		/**
 		 * Resolve the object store: explicit prop first, then Pinia (legacy path).
+		 *
 		 * @return {object|null}
 		 */
 		getStore() {
-			if (this.store) return this.store
+			if (this.store) {
+				return this.store
+			}
 			try {
-				if (!this.$pinia) return null
+				if (!this.$pinia) {
+					return null
+				}
 				return useObjectStore()
 			} catch {
 				return null
@@ -1219,6 +1310,7 @@ export default {
 
 		/**
 		 * Normalise a related object into a display row.
+		 *
 		 * @param {object} raw - The related object record.
 		 * @return {{ id: string, label: string, meta: string, raw: object }}
 		 */
@@ -1231,9 +1323,19 @@ export default {
 			// cover common display properties across schemas — including Dutch
 			// ones (onderwerp, omschrijving, naam, titel) — before the schema/id.
 			const label = [
-				raw.title, raw.name, raw.displayName, raw.label,
-				raw.onderwerp, raw.subject, raw.omschrijving, raw.naam, raw.titel,
-				self.title, self.name, raw.summary, raw.description,
+				raw.title,
+				raw.name,
+				raw.displayName,
+				raw.label,
+				raw.onderwerp,
+				raw.subject,
+				raw.omschrijving,
+				raw.naam,
+				raw.titel,
+				self.title,
+				self.name,
+				raw.summary,
+				raw.description,
 			].find((v) => typeof v === 'string' && v.trim() && !isUuid(v)) || self.schema || String(id)
 			const meta = self.schema || raw.schema || ''
 			return { id, label, meta: typeof meta === 'string' ? meta : '', raw }
@@ -1241,18 +1343,20 @@ export default {
 
 		/**
 		 * Normalise a file record into a display row.
+		 *
 		 * @param {object} raw - The file record.
 		 * @return {{ id: string, label: string, meta: string, raw: object }}
 		 */
 		toFileRow(raw) {
 			const id = raw.id || raw.fileid || raw.name || ''
 			const label = raw.name || raw.title || raw.basename || String(id)
-			const size = raw.size != null ? this.formatSize(raw.size) : ''
+			const size = raw.size !== null && raw.size !== undefined ? this.formatSize(raw.size) : ''
 			return { id, label, meta: size, raw }
 		},
 
 		/**
 		 * Normalise a leaf-relation record (mail, event, contact, …) into a row.
+		 *
 		 * @param {object} raw - The leaf record.
 		 * @param {number} index - Position fallback for the id.
 		 * @return {{ id: string, label: string, meta: string, raw: object }}
@@ -1282,20 +1386,27 @@ export default {
 
 		/**
 		 * Human-readable byte size.
+		 *
 		 * @param {number} bytes - Raw byte count.
 		 * @return {string}
 		 */
 		formatSize(bytes) {
-			if (!Number.isFinite(bytes)) return ''
+			if (!Number.isFinite(bytes)) {
+				return ''
+			}
 			const units = ['B', 'KB', 'MB', 'GB']
 			let n = bytes
 			let u = 0
-			while (n >= 1024 && u < units.length - 1) { n /= 1024; u++ }
+			while (n >= 1024 && u < units.length - 1) {
+				n /= 1024
+				u++
+			}
 			return `${n.toFixed(u === 0 ? 0 : 1)} ${units[u]}`
 		},
 
 		/**
 		 * Dispatch to the tabbed self-fetch or the legacy store path.
+		 *
 		 * @return {Promise<void>}
 		 */
 		async loadAll() {
@@ -1314,6 +1425,7 @@ export default {
 
 		/**
 		 * Fetch every group directly from OpenRegister and build the tabs.
+		 *
 		 * @return {Promise<void>}
 		 */
 		async loadTabs() {
@@ -1366,6 +1478,7 @@ export default {
 
 		/**
 		 * Merge uses/used/contracts result envelopes into deduped object rows.
+		 *
 		 * @param {Array<object|null>} envelopes - The `{ results }` payloads.
 		 * @return {Array<{ id: string, label: string, meta: string, raw: object }>}
 		 */
@@ -1376,8 +1489,12 @@ export default {
 				for (const raw of ((envelope && envelope.results) || [])) {
 					const row = this.toObjectRow(raw)
 					const key = String(row.id)
-					if (key && seen.has(key)) continue
-					if (key) seen.add(key)
+					if (key && seen.has(key)) {
+						continue
+					}
+					if (key) {
+						seen.add(key)
+					}
 					merged.push(row)
 				}
 			}
@@ -1386,6 +1503,7 @@ export default {
 
 		/**
 		 * Translated label for a leaf group key.
+		 *
 		 * @param {string} key - The group key.
 		 * @return {string}
 		 */
@@ -1416,11 +1534,13 @@ export default {
 
 		/**
 		 * Legacy store-action path: fetch relations/files from the object store.
+		 *
 		 * @return {Promise<void>}
 		 */
 		async loadViaStore() {
 			if (!legacyWarned) {
 				legacyWarned = true
+				// eslint-disable-next-line no-console
 				console.warn('[CnRelatedObjectsWidget] The store-action list path is deprecated; pass an object with `@self` (or register/schema props) to use the tabbed self-fetch path.')
 			}
 
@@ -1437,9 +1557,15 @@ export default {
 			try {
 				if (this.showObjects) {
 					const calls = []
-					if (typeof store.fetchUses === 'function') calls.push(store.fetchUses(type, id))
-					if (typeof store.fetchUsed === 'function') calls.push(store.fetchUsed(type, id))
-					if (typeof store.fetchContracts === 'function') calls.push(store.fetchContracts(type, id))
+					if (typeof store.fetchUses === 'function') {
+						calls.push(store.fetchUses(type, id))
+					}
+					if (typeof store.fetchUsed === 'function') {
+						calls.push(store.fetchUsed(type, id))
+					}
+					if (typeof store.fetchContracts === 'function') {
+						calls.push(store.fetchContracts(type, id))
+					}
 					const groups = await Promise.all(calls)
 					const seen = new Set()
 					const merged = []
@@ -1447,8 +1573,12 @@ export default {
 						for (const raw of (group || [])) {
 							const row = this.toObjectRow(raw)
 							const key = String(row.id)
-							if (key && seen.has(key)) continue
-							if (key) seen.add(key)
+							if (key && seen.has(key)) {
+								continue
+							}
+							if (key) {
+								seen.add(key)
+							}
 							merged.push(row)
 						}
 					}
@@ -1466,6 +1596,7 @@ export default {
 
 		/**
 		 * Refetch when the shared widget Refresh fires for this widget.
+		 *
 		 * @param {{ widgetId: string }} payload - Bus payload.
 		 */
 		onBusRefresh(payload) {

@@ -18,11 +18,11 @@ jest.mock('@nextcloud/capabilities', () => ({
 }))
 
 import axios from '@nextcloud/axios'
+const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
 const {
 	useBuildiqEditAvailability,
 	useOpenBuildEditAvailability,
 } = require('../../src/composables/useBuildiqEditAvailability.js')
-const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
 
 describe('useBuildiqEditAvailability', () => {
 	beforeEach(() => {

@@ -1,3 +1,6 @@
+import { getWidgetTypeEntry, listWidgetTypes } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { hasRegistryIcon } from '../../src/components/CnWidgetGrid/widgetIcons.js'
+
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -16,8 +19,6 @@
  * registration once. These tests pin that the type is actually registered.
  */
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
-import { getWidgetTypeEntry, listWidgetTypes } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
-import { hasRegistryIcon } from '../../src/components/CnWidgetGrid/widgetIcons.js'
 
 describe('the map dashboard widget', () => {
 	it('is registered, so Add Widget can offer it', () => {

@@ -14,7 +14,7 @@
 				:is="previewIcon"
 				v-if="previewIcon"
 				:size="28"
-				:fill-color="previewColor" />
+				:fillColor="previewColor" />
 		</div>
 
 		<div class="cn-icon-color-picker__section">
@@ -62,10 +62,10 @@
 				{{ tr('Icon') }}
 			</span>
 			<NcTextField
-				:model-value="query"
+				:modelValue="query"
 				:label="tr('Search icons')"
 				data-testid="cn-icon-color-picker-search"
-				@update:model-value="query = $event">
+				@update:modelValue="query = $event">
 				<Magnify :size="16" />
 			</NcTextField>
 			<div
@@ -354,35 +354,35 @@ export default {
 
 			let next = null
 			switch (event.key) {
-			case 'ArrowRight':
-				next = (index + 1) % cells.length
-				break
-			case 'ArrowLeft':
-				next = (index - 1 + cells.length) % cells.length
-				break
-			case 'ArrowDown':
-			case 'ArrowUp': {
-				if (group !== 'icons') {
+				case 'ArrowRight':
+					next = (index + 1) % cells.length
+					break
+				case 'ArrowLeft':
+					next = (index - 1 + cells.length) % cells.length
+					break
+				case 'ArrowDown':
+				case 'ArrowUp': {
+					if (group !== 'icons') {
+						return
+					}
+					// One visual row per keypress. jsdom reports no resolved
+					// grid tracks — then swallow the key (keep the page from
+					// scrolling under an open grid) without moving focus.
+					const columns = this.gridColumnCount(event.currentTarget)
+					const step = event.key === 'ArrowDown' ? columns : -columns
+					if (columns && index + step >= 0 && index + step < cells.length) {
+						next = index + step
+					}
+					break
+				}
+				case 'Home':
+					next = 0
+					break
+				case 'End':
+					next = cells.length - 1
+					break
+				default:
 					return
-				}
-				// One visual row per keypress. jsdom reports no resolved
-				// grid tracks — then swallow the key (keep the page from
-				// scrolling under an open grid) without moving focus.
-				const columns = this.gridColumnCount(event.currentTarget)
-				const step = event.key === 'ArrowDown' ? columns : -columns
-				if (columns && index + step >= 0 && index + step < cells.length) {
-					next = index + step
-				}
-				break
-			}
-			case 'Home':
-				next = 0
-				break
-			case 'End':
-				next = cells.length - 1
-				break
-			default:
-				return
 			}
 
 			event.preventDefault()

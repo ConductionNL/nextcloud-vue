@@ -136,9 +136,7 @@ describe('CnIndexPage — live collection updates (self-fetch mode)', () => {
 			await flush()
 			// Self-fetch still works; no subscription warning was emitted.
 			expect(mockStore.fetchCollection).toHaveBeenCalled()
-			const subscriptionWarns = warnSpy.mock.calls.filter(
-				(c) => String(c[0]).includes('useObjectSubscription'),
-			)
+			const subscriptionWarns = warnSpy.mock.calls.filter((c) => String(c[0]).includes('useObjectSubscription'))
 			expect(subscriptionWarns).toHaveLength(0)
 			w.unmount()
 		} finally {

@@ -30,7 +30,6 @@ jest.mock('@nextcloud/event-bus', () => ({
 	unsubscribe: jest.fn(),
 }))
 
-// eslint-disable-next-line import/first
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 
 const CHANNEL = 'cn:page:refresh'
@@ -55,15 +54,17 @@ function busHandler() {
 	return call && call[1]
 }
 
-const mountPage = (store, propsData = {}) => mount(CnDetailPage, {
-	propsData: {
-		register: 'openbuilt',
-		schema: 'application',
-		objectId: 'a-1',
-		objectStore: store,
-		...propsData,
-	},
-})
+function mountPage(store, propsData = {}) {
+	return mount(CnDetailPage, {
+		propsData: {
+			register: 'openbuilt',
+			schema: 'application',
+			objectId: 'a-1',
+			objectStore: store,
+			...propsData,
+		},
+	})
+}
 
 describe('CnDetailPage — cn:page:refresh', () => {
 	beforeEach(() => jest.clearAllMocks())
@@ -138,7 +139,9 @@ describe('CnDetailPage — cn:page:refresh', () => {
 	it('reads ONCE when the channel fires twice before the first read settles', async () => {
 		const store = makeFakeStore()
 		let release
-		store.fetchObject.mockImplementation(() => new Promise((resolve) => { release = resolve }))
+		store.fetchObject.mockImplementation(() => new Promise((resolve) => {
+			release = resolve
+		}))
 		mountPage(store)
 		await Promise.resolve()
 		store.fetchObject.mockClear()

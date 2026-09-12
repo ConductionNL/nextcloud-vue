@@ -43,12 +43,12 @@
 								:key="index"
 								:title="item.title"
 								:count="item.count"
-								:count-label="item.countLabel"
+								:countLabel="item.countLabel"
 								:variant="item.variant || 'default'"
 								:icon="isComponentIcon(item.icon) ? item.icon : null"
-								:icon-size="item.iconSize || 24"
+								:iconSize="item.iconSize || 24"
 								:horizontal="item.horizontal !== undefined ? item.horizontal : true"
-								:show-zero-count="item.showZeroCount !== undefined ? item.showZeroCount : true"
+								:showZeroCount="item.showZeroCount !== undefined ? item.showZeroCount : true"
 								:breakdown="item.breakdown || null"
 								:route="item.route || null"
 								:clickable="item.clickable || false"
@@ -63,19 +63,19 @@
 						<!-- Grid layout -->
 						<CnKpiGrid
 							v-else-if="section.layout === 'grid'"
-							grid-class="remove-margin"
+							gridClass="remove-margin"
 							:columns="section.columns || 2">
 							<CnStatsBlock
 								v-for="(item, index) in section.items"
 								:key="index"
 								:title="item.title"
 								:count="item.count"
-								:count-label="item.countLabel"
+								:countLabel="item.countLabel"
 								:variant="item.variant || 'default'"
 								:icon="isComponentIcon(item.icon) ? item.icon : null"
-								:icon-size="item.iconSize || 24"
+								:iconSize="item.iconSize || 24"
 								:horizontal="item.horizontal !== undefined ? item.horizontal : false"
-								:show-zero-count="item.showZeroCount !== undefined ? item.showZeroCount : true"
+								:showZeroCount="item.showZeroCount !== undefined ? item.showZeroCount : true"
 								:breakdown="item.breakdown || null"
 								:route="item.route || null"
 								:clickable="item.clickable || false"
@@ -95,9 +95,9 @@
 						<CnProgressBar
 							:items="section.items"
 							:variant="section.variant || 'primary'"
-							:bar-height="section.barHeight || 8"
+							:barHeight="section.barHeight || 8"
 							:rounded="section.rounded !== undefined ? section.rounded : true"
-							:show-percentage="section.showPercentage || false" />
+							:showPercentage="section.showPercentage || false" />
 					</slot>
 				</template>
 
@@ -143,16 +143,17 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
+import { NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { CnIcon } from '../CnIcon/index.js'
+import { CnKpiGrid } from '../CnKpiGrid/index.js'
+import { CnProgressBar } from '../CnProgressBar/index.js'
+import { CnStatsBlock } from '../CnStatsBlock/index.js'
+
 // The canonical KPI scale (`--cn-kpi-*`) lives in one stylesheet. Imported
 // here as well as from css/index.css so the tokens resolve even when the
 // consuming app pulls in components individually.
 import '../../css/kpi-card.css'
-import { translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon, NcListItem } from '@nextcloud/vue'
-import { CnStatsBlock } from '../CnStatsBlock/index.js'
-import { CnKpiGrid } from '../CnKpiGrid/index.js'
-import { CnIcon } from '../CnIcon/index.js'
-import { CnProgressBar } from '../CnProgressBar/index.js'
 
 /**
  * CnStatsPanel — Configurable statistics panel with sections of stat blocks and list items.
@@ -251,7 +252,7 @@ export default {
 		/** Label shown during loading state */
 		loadingLabel: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Loading...'),
+			default: () => t('nextcloud-vue', 'Loading…'),
 		},
 
 		/** Default text shown when a section has no items. Can be overridden per section via `section.emptyLabel`. */
@@ -266,11 +267,12 @@ export default {
 	methods: {
 		/**
 		 * Check if an icon value is a component reference (not a string name).
-		 * @param {*} icon - Icon value to check
+		 *
+		 * @param {unknown} icon - Icon value to check
 		 * @return {boolean}
 		 */
 		isComponentIcon(icon) {
-			return icon != null && typeof icon !== 'string'
+			return icon !== null && icon !== undefined && typeof icon !== 'string'
 		},
 	},
 }

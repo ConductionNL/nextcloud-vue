@@ -12,7 +12,6 @@
  */
 
 import { shallowMount } from '@vue/test-utils'
-
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
 
 /**

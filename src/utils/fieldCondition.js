@@ -38,18 +38,24 @@
  * @return {boolean} `true` when the field should be visible.
  */
 export function shouldShow(field, formData) {
-	if (!field || typeof field !== 'object') return true
+	if (!field || typeof field !== 'object') {
+		return true
+	}
 
 	// Accept either `condition` (preferred) or `visibleWhen` (alias from the issue).
 	const condition = field.condition || field.visibleWhen
-	if (condition === undefined || condition === null) return true
+	if (condition === undefined || condition === null) {
+		return true
+	}
 
 	if (typeof condition !== 'object' || Array.isArray(condition)) {
+		// eslint-disable-next-line no-console -- manifest-authoring mistake surfaced to the developer console
 		console.warn(`CnFormDialog: field "${field.key}" condition must be an object, got ${typeof condition}`)
 		return true
 	}
 
 	if (typeof condition.field !== 'string' || condition.field.length === 0) {
+		// eslint-disable-next-line no-console -- manifest-authoring mistake surfaced to the developer console
 		console.warn(`CnFormDialog: field "${field.key}" condition is missing a "field" reference`)
 		return true
 	}
@@ -57,25 +63,26 @@ export function shouldShow(field, formData) {
 	const data = formData && typeof formData === 'object' ? formData : {}
 	const value = data[condition.field]
 
-	if (Object.prototype.hasOwnProperty.call(condition, 'equals')) {
+	if (Object.hasOwn(condition, 'equals')) {
 		return value === condition.equals
 	}
-	if (Object.prototype.hasOwnProperty.call(condition, 'notEquals')) {
+	if (Object.hasOwn(condition, 'notEquals')) {
 		return value !== condition.notEquals
 	}
-	if (Object.prototype.hasOwnProperty.call(condition, 'in')) {
+	if (Object.hasOwn(condition, 'in')) {
 		return Array.isArray(condition.in) && condition.in.includes(value)
 	}
-	if (Object.prototype.hasOwnProperty.call(condition, 'notIn')) {
+	if (Object.hasOwn(condition, 'notIn')) {
 		return Array.isArray(condition.notIn) && !condition.notIn.includes(value)
 	}
-	if (Object.prototype.hasOwnProperty.call(condition, 'truthy')) {
+	if (Object.hasOwn(condition, 'truthy')) {
 		return Boolean(value) === Boolean(condition.truthy)
 	}
-	if (Object.prototype.hasOwnProperty.call(condition, 'falsy')) {
+	if (Object.hasOwn(condition, 'falsy')) {
 		return Boolean(value) === !condition.falsy
 	}
 
+	// eslint-disable-next-line no-console -- manifest-authoring mistake surfaced to the developer console
 	console.warn(`CnFormDialog: field "${field.key}" condition has no recognised predicate (equals/notEquals/in/notIn/truthy/falsy); keeping field visible`)
 	return true
 }

@@ -25,11 +25,13 @@ const stubs = {
 	CnActionsMenu: { template: '<div class="menu-stub" />' },
 }
 
-const mountWrapper = (propsData = {}, opts = {}) => mount(CnWidgetWrapper, {
-	propsData: { title: 'Concept Publications', ...propsData },
-	stubs,
-	...opts,
-})
+function mountWrapper(propsData = {}, opts = {}) {
+	return mount(CnWidgetWrapper, {
+		propsData: { title: 'Concept Publications', ...propsData },
+		stubs,
+		...opts,
+	})
+}
 
 const iconSlot = { 'title-icon': '<span class="my-icon" />' }
 
@@ -89,7 +91,6 @@ describe('CnWidgetWrapper — icon/title spacing', () => {
 		const w = mountWrapper({ titleIconPosition: 'left' }, { slots: iconSlot })
 		const icon = w.find('.cn-widget-wrapper__title-icon').element
 		const title = w.find('.cn-widget-wrapper__title').element
-		// eslint-disable-next-line no-bitwise
 		expect(icon.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 	})
 

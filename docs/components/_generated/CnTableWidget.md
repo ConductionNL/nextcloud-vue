@@ -12,6 +12,6 @@
 | `schemaId`      | `union`                                                    |          | `null`      | OpenRegister schema id for self-fetch mode.                       |
 | `limit`         | `number`                                                   |          | `0`         | Max rows to display before the "View all" link appears.           |
 | `viewAllRoute`  | `object`                                                   |          | `null`      | vue-router route for the "View all" link.                         |
-| `rowClickRoute` | `Function`                                                 |          | `null`      | Function returning a route object for row-click navigation.       |
+| `rowClickRoute` | `(row: object) => object`                                  |          | `null`      | Function returning a route object for row-click navigation.       |
 | `viewAllLabel`  | `string`                                                   |          | `undefined` | Pre-translated "View all" label.                                  |
 | `emptyText`     | `string`                                                   |          | `undefined` | Pre-translated empty-state text.                                  |

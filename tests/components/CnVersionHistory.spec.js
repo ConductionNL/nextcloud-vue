@@ -9,7 +9,7 @@
  * classes on nested JSON lines.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnVersionHistory = require('../../src/components/CnVersionHistory/CnVersionHistory.vue').default
 
 // `@nextcloud/vue` is globally mocked to dumb `<div class="stub ...">`
@@ -38,11 +38,6 @@ function mountHistory(propsData) {
 	return mount(CnVersionHistory, { propsData, stubs })
 }
 
-async function flush(wrapper) {
-	await wrapper.vm.$nextTick()
-	await wrapper.vm.$nextTick()
-}
-
 describe('CnVersionHistory — history list', () => {
 	beforeEach(() => {
 		global.fetch = jest.fn()
@@ -55,7 +50,7 @@ describe('CnVersionHistory — history list', () => {
 	it('renders the empty label when there are no entries', async () => {
 		mockFetchOnce({ results: [], total: 0 })
 		const wrapper = mountHistory({ register: 'r1', schema: 's1', objectId: 'o1' })
-		await flush(wrapper)
+		await flushPromises()
 		expect(wrapper.text()).toContain('No version history yet')
 		wrapper.unmount()
 	})
@@ -69,7 +64,7 @@ describe('CnVersionHistory — history list', () => {
 			total: 5,
 		})
 		const wrapper = mountHistory({ register: 'r1', schema: 's1', objectId: 'o1', pageSize: 2 })
-		await flush(wrapper)
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-version-history__row')
 		expect(rows).toHaveLength(2)
 		expect(rows.at(0).text()).toContain('1.1.0')
@@ -115,9 +110,9 @@ describe('CnVersionHistory — single-entry diff', () => {
 			total: 1,
 		})
 		const wrapper = mountHistory({ register: 'r1', schema: 's1', objectId: 'o1' })
-		await flush(wrapper)
+		await flushPromises()
 		await wrapper.find('.cn-version-history__row-main').trigger('click')
-		await flush(wrapper)
+		await flushPromises()
 
 		const fieldCells = wrapper.findAll('.cn-version-history__diff-field')
 		expect(fieldCells).toHaveLength(2)
@@ -134,9 +129,9 @@ describe('CnVersionHistory — single-entry diff', () => {
 			total: 1,
 		})
 		const wrapper = mountHistory({ register: 'r1', schema: 's1', objectId: 'o1' })
-		await flush(wrapper)
+		await flushPromises()
 		await wrapper.find('.cn-version-history__row-main').trigger('click')
-		await flush(wrapper)
+		await flushPromises()
 		expect(wrapper.text()).toContain('No field changes to show')
 		wrapper.unmount()
 	})
@@ -160,9 +155,9 @@ describe('CnVersionHistory — single-entry diff', () => {
 			total: 1,
 		})
 		const wrapper = mountHistory({ register: 'r1', schema: 's1', objectId: 'o1' })
-		await flush(wrapper)
+		await flushPromises()
 		await wrapper.find('.cn-version-history__row-main').trigger('click')
-		await flush(wrapper)
+		await flushPromises()
 
 		// Default: only the changed "street" line is visible, not the unchanged "city" line.
 		expect(wrapper.text()).toContain('street')
@@ -170,7 +165,7 @@ describe('CnVersionHistory — single-entry diff', () => {
 
 		const toggle = wrapper.find('.cn-version-history__diff-toolbar .nc-switch')
 		await toggle.setChecked(true)
-		await flush(wrapper)
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('city')
 		wrapper.unmount()
@@ -195,9 +190,9 @@ describe('CnVersionHistory — single-entry diff', () => {
 			total: 1,
 		})
 		const wrapper = mountHistory({ register: 'r1', schema: 's1', objectId: 'o1' })
-		await flush(wrapper)
+		await flushPromises()
 		await wrapper.find('.cn-version-history__row-main').trigger('click')
-		await flush(wrapper)
+		await flushPromises()
 
 		expect(wrapper.find('.cn-version-history__diff-line--changed').exists()).toBe(true)
 		expect(wrapper.find('.cn-version-history__diff-line--added').exists()).toBe(true)
@@ -210,14 +205,14 @@ describe('CnVersionHistory — single-entry diff', () => {
 			total: 1,
 		})
 		const wrapper = mountHistory({ register: 'r1', schema: 's1', objectId: 'o1' })
-		await flush(wrapper)
+		await flushPromises()
 		await wrapper.find('.cn-version-history__row-main').trigger('click')
-		await flush(wrapper)
+		await flushPromises()
 		expect(wrapper.find('.cn-version-history__diff-table').exists()).toBe(true)
 
 		const backButtons = wrapper.findAll('button').filter((b) => b.text() === 'Back to history')
 		await backButtons.at(0).trigger('click')
-		await flush(wrapper)
+		await flushPromises()
 		expect(wrapper.find('.cn-version-history__diff-table').exists()).toBe(false)
 		expect(wrapper.find('.cn-version-history__rows').exists()).toBe(true)
 		wrapper.unmount()
@@ -242,18 +237,18 @@ describe('CnVersionHistory — two-entry compare', () => {
 			total: 2,
 		})
 		const wrapper = mountHistory({ register: 'r1', schema: 's1', objectId: 'o1' })
-		await flush(wrapper)
+		await flushPromises()
 
 		const checkboxes = wrapper.findAll('.cn-version-history__row .nc-switch')
 		expect(checkboxes).toHaveLength(2)
 		await checkboxes.at(0).setChecked(true)
 		await checkboxes.at(1).setChecked(true)
-		await flush(wrapper)
+		await flushPromises()
 
 		const compareButton = wrapper.findAll('button').filter((b) => b.text().includes('Compare selected')).at(0)
 		expect(compareButton.attributes('disabled')).toBeUndefined()
 		await compareButton.trigger('click')
-		await flush(wrapper)
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('status')
 		expect(wrapper.text()).toContain('draft')
@@ -274,14 +269,14 @@ describe('CnVersionHistory — two-entry compare', () => {
 			total: 2,
 		})
 		const wrapper = mountHistory({ register: 'r1', schema: 's1', objectId: 'o1' })
-		await flush(wrapper)
+		await flushPromises()
 
 		const compareButton = () => wrapper.findAll('button').filter((b) => b.text().includes('Compare selected')).at(0)
 		expect(compareButton().attributes('disabled')).toBeDefined()
 
 		const checkboxes = wrapper.findAll('.cn-version-history__row .nc-switch')
 		await checkboxes.at(0).setChecked(true)
-		await flush(wrapper)
+		await flushPromises()
 		expect(compareButton().attributes('disabled')).toBeDefined()
 		wrapper.unmount()
 	})

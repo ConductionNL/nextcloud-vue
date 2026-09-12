@@ -232,22 +232,22 @@ export function nextState(operation, result) {
  */
 export function resolveConflictChoice(resolution, mergedPayload = null) {
 	switch (resolution) {
-	case 'client_wins':
-		return { patch: { status: 'pending', forceUpdate: true, attemptCount: 0 }, requeue: true }
-	case 'manual_merge':
-		return {
-			patch: {
-				status: 'pending',
-				forceUpdate: true,
-				attemptCount: 0,
-				payload: mergedPayload,
-			},
-			requeue: true,
-		}
-	case 'server_wins':
-		return { patch: { status: 'synced', forceUpdate: false }, requeue: false }
-	default:
-		throw new Error(`Unknown conflict resolution: ${resolution}`)
+		case 'client_wins':
+			return { patch: { status: 'pending', forceUpdate: true, attemptCount: 0 }, requeue: true }
+		case 'manual_merge':
+			return {
+				patch: {
+					status: 'pending',
+					forceUpdate: true,
+					attemptCount: 0,
+					payload: mergedPayload,
+				},
+				requeue: true,
+			}
+		case 'server_wins':
+			return { patch: { status: 'synced', forceUpdate: false }, requeue: false }
+		default:
+			throw new Error(`Unknown conflict resolution: ${resolution}`)
 	}
 }
 
@@ -258,7 +258,7 @@ export function resolveConflictChoice(resolution, mergedPayload = null) {
  * @param {object} clientVersion The user's offline version.
  * @param {object} serverVersion The server's current version.
  *
- * @return {Array<{ field: string, client: *, server: * }>} The differing fields.
+ * @return {Array<{ field: string, client: unknown, server: unknown }>} The differing fields.
  */
 export function diffVersions(clientVersion, serverVersion) {
 	const client = clientVersion ?? {}

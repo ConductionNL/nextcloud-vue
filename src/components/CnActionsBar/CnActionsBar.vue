@@ -69,13 +69,13 @@
 				<SortVariant :size="20" class="cn-actions-bar__sort-icon" :aria-label="sortLabel" />
 				<NcSelect
 					class="cn-actions-bar__sort-select"
-					:model-value="selectedSortOption"
+					:modelValue="selectedSortOption"
 					:options="sortOptions"
 					:reduce="opt => opt.value"
 					:clearable="false"
 					:aria-label-combobox="sortLabel"
 					label="label"
-					@update:model-value="onSortChange" />
+					@update:modelValue="onSortChange" />
 			</div>
 
 			<!-- @slot filters Inline filter controls rendered inside the action bar, between the view toggle and the add/actions (e.g. a CnQuickFilterBar segmented toggle). -->
@@ -128,9 +128,9 @@
 
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions
-				:force-name="true"
+				:forceName="true"
 				:inline="inlineActionCount"
-				:menu-name="actionsMenuName"
+				:menuName="actionsMenuName"
 				data-testid="cn-actions">
 				<!--
 					@event refresh
@@ -163,7 +163,8 @@
 					<template #icon>
 						<CnIcon v-if="entry.icon && isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
 						<span v-else-if="entry.icon"
-							:class="['cn-actions-bar__header-action-icon', entry.icon]" />
+							class="cn-actions-bar__header-action-icon"
+							:class="[entry.icon]" />
 					</template>
 					{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
 				</NcActionButton>
@@ -239,7 +240,7 @@
 					@binding {number} count Length of the current selection.
 					@binding {Array<string|number>} selected-ids The selected row ids.
 				-->
-				<slot name="mass-actions" :count="selectedIds.length" :selected-ids="selectedIds" />
+				<slot name="mass-actions" :count="selectedIds.length" :selectedIds="selectedIds" />
 			</NcActions>
 		</div>
 
@@ -309,7 +310,7 @@
 			<slot
 				name="selection-actions"
 				:count="selectedIds.length"
-				:selected-ids="selectedIds" />
+				:selectedIds="selectedIds" />
 			<!--
 				@event clear-selection
 				@description User clicked the selection strip's Clear control. The host should empty its selection (CnIndexPage does this for you and re-emits `select` with an empty array).
@@ -332,7 +333,6 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
-import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
@@ -340,14 +340,15 @@ import Export from 'vue-material-design-icons/Export.vue'
 import FormatListBulletedSquare from 'vue-material-design-icons/FormatListBulletedSquare.vue'
 import Import from 'vue-material-design-icons/Import.vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
+import MapMarkerOutline from 'vue-material-design-icons/MapMarkerOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import SortVariant from 'vue-material-design-icons/SortVariant.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Tune from 'vue-material-design-icons/Tune.vue'
 import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
-import MapMarkerOutline from 'vue-material-design-icons/MapMarkerOutline.vue'
 import ViewListOutline from 'vue-material-design-icons/ViewListOutline.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -481,6 +482,7 @@ export default {
 		/**
 		 * Which view-mode segments to render, in order. Defaults to the
 		 * historical two-segment control; add `'list'` to expose the list view.
+		 *
 		 * @type {Array<'cards' | 'table' | 'list'>}
 		 */
 		availableViewModes: {
@@ -557,6 +559,7 @@ export default {
 
 		/**
 		 * Options for the sort dropdown.
+		 *
 		 * @type {Array<{ value: string, label: string }>}
 		 */
 		sortOptions: {
@@ -735,7 +738,9 @@ export default {
 		},
 
 		countText() {
-			if (!this.pagination) return ''
+			if (!this.pagination) {
+				return ''
+			}
 			return t('nextcloud-vue', 'Showing {count} of {total}', { count: this.objectCount, total: this.pagination.total })
 		},
 
@@ -753,7 +758,9 @@ export default {
 				map: { label: this.mapLabel || t('nextcloud-vue', 'Map'), icon: this.mapIcon, fallback: MapMarkerOutline },
 			}
 			const modes = [...this.availableViewModes]
-			if (this.showMap && !modes.includes('map')) modes.push('map')
+			if (this.showMap && !modes.includes('map')) {
+				modes.push('map')
+			}
 			return modes
 				.filter((mode) => defs[mode])
 				.map((mode) => ({ mode, ...defs[mode] }))
@@ -785,9 +792,11 @@ export default {
 		 */
 		actionItemsCount() {
 			const slot = this.$slots['action-items']
-			if (!slot) return 0
+			if (!slot) {
+				return 0
+			}
 			const vnodes = slot() || []
-			return vnodes.filter(n => n && (n.tag !== undefined || n.componentOptions !== undefined)).length
+			return vnodes.filter((n) => n && (n.tag !== undefined || n.componentOptions !== undefined)).length
 		},
 
 		/**
@@ -797,8 +806,12 @@ export default {
 		 * inline. Pre-separator items: 1 (Refresh) + actionItemsCount.
 		 */
 		showActionsSeparator() {
-			if (!this.hasMassActions) return false
-			if (!this.$slots['action-items']) return false
+			if (!this.hasMassActions) {
+				return false
+			}
+			if (!this.$slots['action-items']) {
+				return false
+			}
 			const preSeparatorOverflow = 1 + this.actionItemsCount - this.inlineActionCount
 			return preSeparatorOverflow > 0
 		},
@@ -845,8 +858,12 @@ export default {
 		 *   `CnIcon` as `:name`; `false` for CSS-class icons or empty.
 		 */
 		isMdiIconName(name) {
-			if (!name || typeof name !== 'string') return false
-			if (name.startsWith('icon-')) return false
+			if (!name || typeof name !== 'string') {
+				return false
+			}
+			if (name.startsWith('icon-')) {
+				return false
+			}
 			return true
 		},
 

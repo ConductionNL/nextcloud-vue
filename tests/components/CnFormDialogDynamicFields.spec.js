@@ -74,9 +74,7 @@ const DEFINITION_TYPE = 'dossiq/propertyDefinition'
  */
 function mockStore(records = definitions) {
 	const state = { definitions: records }
-	const fetchCollection = jest.fn((type) => Promise.resolve(
-		type === DEFINITION_TYPE ? state.definitions : [],
-	))
+	const fetchCollection = jest.fn((type) => Promise.resolve(type === DEFINITION_TYPE ? state.definitions : []))
 	useObjectStore.mockReturnValue({
 		fetchCollection,
 		createObjectTypeSlug: (register, schema) => `${register}/${schema}`,
@@ -207,7 +205,9 @@ describe('CnFormDialog data-driven fields', () => {
 		// A fast second pick must win. Without the token guard the first
 		// selection's slower response reinstates fields the user moved off.
 		let resolveFirst
-		const first = new Promise((resolve) => { resolveFirst = resolve })
+		const first = new Promise((resolve) => {
+			resolveFirst = resolve
+		})
 		const responses = [first, Promise.resolve([{ id: 'def-late', name: 'Locatie', propertyType: 'string' }])]
 		const fetchCollection = jest.fn((type) => (
 			type === DEFINITION_TYPE ? responses.shift() : Promise.resolve([])

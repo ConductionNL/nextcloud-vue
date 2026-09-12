@@ -1,5 +1,5 @@
-import CnLabelWidget from './CnLabelWidget.vue'
 import CnLabelWidgetForm from '../CnLabelWidgetForm/CnLabelWidgetForm.vue'
+import CnLabelWidget from './CnLabelWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('label', {

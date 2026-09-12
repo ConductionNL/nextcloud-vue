@@ -27,6 +27,6 @@
 
 ### Slots
 
-| Name             | Bindings                                    | Description                                                  |
-| ---------------- | ------------------------------------------- | ------------------------------------------------------------ |
-| `stepSlot(step)` | `name`, `step`, `run-action`, `save-config` | step-\{id\} Override a step's body (for `component` steps or |
+| Name             | Bindings                                  | Description                                                  |
+| ---------------- | ----------------------------------------- | ------------------------------------------------------------ |
+| `stepSlot(step)` | `name`, `step`, `runAction`, `saveConfig` | step-\{id\} Override a step's body (for `component` steps or |

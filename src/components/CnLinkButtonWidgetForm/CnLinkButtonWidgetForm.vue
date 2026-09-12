@@ -6,9 +6,9 @@
 <template>
 	<div class="cn-link-button-widget-form">
 		<NcSelect
-			:model-value="displayMode"
+			:modelValue="displayMode"
 			:options="displayModeOptions"
-			:input-label="t('nextcloud-vue', 'Display mode')"
+			:inputLabel="t('nextcloud-vue', 'Display mode')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
@@ -17,32 +17,32 @@
 		<!-- Single-button fields (hidden in list mode). -->
 		<template v-if="!isListMode">
 			<NcTextField
-				:model-value="label"
+				:modelValue="label"
 				:label="t('nextcloud-vue', 'Label')"
 				:placeholder="t('nextcloud-vue', 'Label')"
 				required
-				@update:model-value="updateField('label', $event)" />
+				@update:modelValue="updateField('label', $event)" />
 
 			<NcSelect
-				:model-value="actionType"
+				:modelValue="actionType"
 				:options="actionTypeOptions"
-				:input-label="t('nextcloud-vue', 'Action type')"
+				:inputLabel="t('nextcloud-vue', 'Action type')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
 				@update:modelValue="updateField('actionType', $event)" />
 
 			<NcTextField
-				:model-value="url"
+				:modelValue="url"
 				:label="t('nextcloud-vue', 'URL')"
 				:placeholder="urlPlaceholder"
 				required
-				@update:model-value="updateField('url', $event)" />
+				@update:modelValue="updateField('url', $event)" />
 
 			<CnIconBrowser
 				:value="icon"
 				:label="t('nextcloud-vue', 'Icon (optional)')"
-				allow-url
+				allowUrl
 				@input="updateField('icon', $event)" />
 		</template>
 
@@ -69,18 +69,18 @@
 		<!-- List-mode editor. -->
 		<template v-if="isListMode">
 			<NcSelect
-				:model-value="listOrientation"
+				:modelValue="listOrientation"
 				:options="orientationOptions"
-				:input-label="t('nextcloud-vue', 'List orientation')"
+				:inputLabel="t('nextcloud-vue', 'List orientation')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
 				@update:modelValue="updateField('listOrientation', $event)" />
 
 			<NcSelect
-				:model-value="listItemGap"
+				:modelValue="listItemGap"
 				:options="gapOptions"
-				:input-label="t('nextcloud-vue', 'List item spacing')"
+				:inputLabel="t('nextcloud-vue', 'List item spacing')"
 				:reduce="(option) => option.value"
 				label="label"
 				:clearable="false"
@@ -107,7 +107,7 @@
 							:disabled="index === 0"
 							:aria-label="t('nextcloud-vue', 'Move link up')"
 							@click="moveLinkUp(index)">
-							{{ '↑' }}
+							↑
 						</button>
 						<button
 							type="button"
@@ -115,40 +115,40 @@
 							:disabled="index === links.length - 1"
 							:aria-label="t('nextcloud-vue', 'Move link down')"
 							@click="moveLinkDown(index)">
-							{{ '↓' }}
+							↓
 						</button>
 						<div class="cn-link-button-widget-form__row-fields">
 							<NcTextField
-								:model-value="link.label"
+								:modelValue="link.label"
 								:label="t('nextcloud-vue', 'Label')"
 								:placeholder="t('nextcloud-vue', 'Label')"
 								required
-								@update:model-value="updateLinkField(index, 'label', $event)" />
+								@update:modelValue="updateLinkField(index, 'label', $event)" />
 							<NcSelect
-								:model-value="link.actionType"
+								:modelValue="link.actionType"
 								:options="actionTypeOptions"
-								:input-label="t('nextcloud-vue', 'Action type')"
+								:inputLabel="t('nextcloud-vue', 'Action type')"
 								:reduce="(option) => option.value"
 								label="label"
 								:clearable="false"
 								@update:modelValue="updateLinkField(index, 'actionType', $event)" />
 							<NcTextField
-								:model-value="link.url"
+								:modelValue="link.url"
 								:label="t('nextcloud-vue', 'URL')"
 								:placeholder="urlPlaceholderFor(link.actionType)"
 								required
-								@update:model-value="updateLinkField(index, 'url', $event)" />
+								@update:modelValue="updateLinkField(index, 'url', $event)" />
 							<CnIconBrowser
 								:value="link.icon"
 								:label="t('nextcloud-vue', 'Icon (optional)')"
-								allow-url
+								allowUrl
 								@input="updateLinkField(index, 'icon', $event)" />
 							<NcTextField
 								v-if="link.actionType === 'createFile'"
-								:model-value="link.value"
+								:modelValue="link.value"
 								:label="t('nextcloud-vue', 'File extension')"
-								:placeholder="'docx'"
-								@update:model-value="updateLinkField(index, 'value', $event)" />
+								placeholder="docx"
+								@update:modelValue="updateLinkField(index, 'value', $event)" />
 						</div>
 						<button
 							type="button"
@@ -177,10 +177,10 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 
 const ACTION_TYPES = Object.freeze({
 	EXTERNAL: 'external',
@@ -284,6 +284,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values — used when not editing and the parent
 		 * supplies registry defaults.
@@ -409,13 +410,13 @@ export default {
 		 */
 		urlPlaceholderFor(actionType) {
 			switch (actionType) {
-			case ACTION_TYPES.INTERNAL:
-				return 'action-id'
-			case ACTION_TYPES.CREATE_FILE:
-				return 'docx'
-			case ACTION_TYPES.EXTERNAL:
-			default:
-				return 'https://...'
+				case ACTION_TYPES.INTERNAL:
+					return 'action-id'
+				case ACTION_TYPES.CREATE_FILE:
+					return 'docx'
+				case ACTION_TYPES.EXTERNAL:
+				default:
+					return 'https://...'
 			}
 		},
 
@@ -444,11 +445,11 @@ export default {
 			if (next === DISPLAY_MODES.LIST && this.links.length === 0) {
 				const seed = (this.label !== '' || this.url !== '' || this.icon !== '')
 					? normaliseLink({
-						label: this.label,
-						url: this.url,
-						icon: this.icon,
-						actionType: this.actionType,
-					})
+							label: this.label,
+							url: this.url,
+							icon: this.icon,
+							actionType: this.actionType,
+						})
 					: normaliseLink({ ...DEFAULT_LINK })
 				this.links = [seed]
 			}

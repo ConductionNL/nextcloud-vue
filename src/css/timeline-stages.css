@@ -217,6 +217,42 @@
 	background-color: var(--color-background-dark, #ededed);
 }
 
+/* A stage that cannot be chosen keeps its focus stop but reads as inert.
+   It must also LOOK different from a stage that is merely later in the
+   process: dimmed, with a not-allowed cursor. Without the dimming the only
+   difference a sighted person could perceive was the cursor, which nobody
+   notices, so a blocked stage and an upcoming one were the same picture. */
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--disabled {
+	cursor: not-allowed;
+	opacity: 0.55;
+}
+
+/* The dimming must not take the reason with it: an explanation nobody can read
+   is the state this rule exists to fix. */
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--disabled .cn-stages-widget__reason {
+	opacity: 1;
+	color: var(--color-text-maxcontrast);
+}
+
+/* The stage the record is ON is not a move, and it is not blocked either. It
+   carries no `aria-disabled` and no not-allowed cursor: both said "you may not
+   go here" about the place the record already is. It simply offers nothing. */
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--current {
+	cursor: default;
+}
+
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--current:hover {
+	background-color: transparent;
+}
+
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--disabled:hover {
+	background-color: transparent;
+}
+
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--upcoming.cn-timeline-stages__stage--disabled .cn-timeline-stages__indicator {
+	border-style: dashed;
+}
+
 /* Focus ring (keyboard only) */
 .cn-timeline-stages--clickable .cn-timeline-stages__stage:focus-visible {
 	outline: 2px solid var(--color-primary-element, #0082c9);

@@ -18,8 +18,8 @@
  */
 
 import { h } from 'vue'
-import CnWidgetObjectTable from './CnWidgetObjectTable.vue'
 import CnObjectListWidgetForm from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
+import CnWidgetObjectTable from './CnWidgetObjectTable.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 /**
@@ -50,7 +50,6 @@ export function objectTableContentToProps(content) {
 	// unusable value has to be dropped rather than forwarded and warned about.
 	const hasLimit = Number.isFinite(limit) && limit > 0
 	if (c.source && typeof c.source === 'object') {
-		// eslint-disable-next-line no-unused-vars
 		const { limit: _limit, ...v2 } = c
 		return hasLimit ? { ...v2, limit } : { ...v2 }
 	}
@@ -96,10 +95,7 @@ const CnHostedObjectTable = {
 		// carries parent listeners (onXxx) too. Vue 3: props/attrs/listeners are
 		// one flat object; slots are the 3rd arg.
 		const { content: _content, ...rest } = attrs
-		return h(CnWidgetObjectTable,
-			{ ...rest, ...objectTableContentToProps(content), hideWrapper: true },
-			this.$slots,
-		)
+		return h(CnWidgetObjectTable, { ...rest, ...objectTableContentToProps(content), hideWrapper: true }, this.$slots)
 	},
 }
 

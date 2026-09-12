@@ -14,10 +14,10 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import {
-	collectServerDescriptors,
 	collectJsRegistrations,
 	collectJsRegistrationSites,
 	collectLibraryRegistrations,
+	collectServerDescriptors,
 	crossReferenceServerLeaves,
 	reportCrossRef,
 } from '../../scripts/check-integration-parity.js'
@@ -38,7 +38,8 @@ function makeRepo(files) {
 	return root
 }
 
-const PHP_RENDER_SURFACE = (id, useConst = false) => `<?php
+function PHP_RENDER_SURFACE(id, useConst = false) {
+	return `<?php
 use OCA\\OpenRegister\\Service\\Integration\\LeafDescriptor;
 class RegisterLeafListener {
 	${useConst ? `public const LEAF_ID = '${id}';` : ''}
@@ -56,8 +57,10 @@ class RegisterLeafListener {
 	}
 }
 `
+}
 
-const PHP_DATA_ONLY = (id) => `<?php
+function PHP_DATA_ONLY(id) {
+	return `<?php
 use OCA\\OpenRegister\\Service\\Integration\\LeafDescriptor;
 $descriptor = new LeafDescriptor(
 	id: '${id}',
@@ -66,8 +69,10 @@ $descriptor = new LeafDescriptor(
 	kinds: [LeafDescriptor::KIND_DATA_PROVIDER],
 );
 `
+}
 
-const JS_REGISTRATION = (id) => `import { registerIntegration } from '@conduction/nextcloud-vue'
+function JS_REGISTRATION(id) {
+	return `import { registerIntegration } from '@conduction/nextcloud-vue'
 import Tab from './Tab.vue'
 import Widget from './Widget.vue'
 registerIntegration({
@@ -77,6 +82,7 @@ registerIntegration({
 	widget: Widget,
 })
 `
+}
 
 describe('check-integration-parity — ADR-066 server↔JS cross-ref', () => {
 	it('collects a string-literal id + render-surface flag from PHP', () => {
@@ -227,7 +233,8 @@ registerIntegration({
 // accepts everything.
 // ---------------------------------------------------------------------------
 
-const PHP_PROVIDER = (id, { base = 'AbstractIntegrationProvider', useConst = false } = {}) => `<?php
+function PHP_PROVIDER(id, { base = 'AbstractIntegrationProvider', useConst = false } = {}) {
+	return `<?php
 
 /**
  * A docblock that says the words "new LeafDescriptor(" and
@@ -251,8 +258,10 @@ ${useConst ? `    public const ID = '${id}';\n` : ''}
 
 }
 `
+}
 
-const PHP_PROVIDER_VIA_INTERFACE = (id) => `<?php
+function PHP_PROVIDER_VIA_INTERFACE(id) {
+	return `<?php
 namespace OCA\\OpenRegister\\Service\\Integration\\Providers;
 use OCA\\OpenRegister\\Service\\Integration\\IntegrationProvider;
 class ViaInterface implements IntegrationProvider, JsonSerializable
@@ -263,12 +272,14 @@ class ViaInterface implements IntegrationProvider, JsonSerializable
     }
 }
 `
+}
 
 // CONTROL: a class with an identical getId() that is NOT an integration
 // provider. If this is collected, the matcher is keying on the method name
 // rather than the contract, and every id-bearing service in lib/ becomes a
 // "leaf".
-const PHP_NOT_A_PROVIDER = (id) => `<?php
+function PHP_NOT_A_PROVIDER(id) {
+	return `<?php
 namespace OCA\\OpenRegister\\ContextChat;
 class ContentProvider implements IContentProvider
 {
@@ -278,6 +289,7 @@ class ContentProvider implements IContentProvider
     }
 }
 `
+}
 
 const PHP_ABSTRACT_BASE = `<?php
 namespace OCA\\OpenRegister\\Service\\Integration;
@@ -290,7 +302,8 @@ abstract class AbstractIntegrationProvider implements IntegrationProvider
 }
 `
 
-const JS_DIRECT_REGISTRATION = (id) => `import Tab from './Tab.vue'
+function JS_DIRECT_REGISTRATION(id) {
+	return `import Tab from './Tab.vue'
 window.OCA.OpenRegister.integrations.register({
 	id: '${id}',
 	label: 'X',
@@ -298,6 +311,7 @@ window.OCA.OpenRegister.integrations.register({
 	widget: Tab,
 })
 `
+}
 
 describe('check-integration-parity — IntegrationProvider server face', () => {
 	it('collects an IntegrationProvider class id from its getId() literal', () => {

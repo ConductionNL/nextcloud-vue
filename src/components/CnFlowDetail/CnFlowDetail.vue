@@ -71,7 +71,7 @@
 				     told no, and pressing it on a snapshot would have written the
 				     snapshot over the live flow. The store refuses the snapshot case
 				     outright; this is the half that says so before the click. -->
-				<NcButton type="primary"
+				<NcButton variant="primary"
 					:disabled="store.saving || !store.flow.name || store.graphLocked"
 					:title="saveDisabledReason"
 					data-testid="flow-save-button"
@@ -91,7 +91,7 @@
 					</template>
 					{{ t('nextcloud-vue', 'Run') }}
 				</NcButton>
-				<NcButton type="tertiary"
+				<NcButton variant="tertiary"
 					:disabled="store.checking || !store.nodes.length"
 					@click="store.check()">
 					<template #icon>
@@ -100,7 +100,7 @@
 					</template>
 					{{ t('nextcloud-vue', 'Check') }}
 				</NcButton>
-				<NcButton type="tertiary"
+				<NcButton variant="tertiary"
 					:disabled="!store.nodes.length"
 					:aria-label="t('nextcloud-vue', 'Arrange steps automatically')"
 					:title="t('nextcloud-vue', 'Arrange steps automatically')"
@@ -112,7 +112,7 @@
 				<!-- Undo has a BUTTON as well as Ctrl+Z. A shortcut nobody is told
 				     about is a feature only its author has: the affordance is what
 				     tells a user the canvas is safe to experiment on. -->
-				<NcButton type="tertiary"
+				<NcButton variant="tertiary"
 					:disabled="!store.canUndo"
 					:aria-label="t('nextcloud-vue', 'Undo the last change')"
 					:title="t('nextcloud-vue', 'Undo the last change')"
@@ -133,7 +133,7 @@
 			</span>
 
 			<div class="cn-flow-detail__toolbar-group">
-				<NcButton type="tertiary"
+				<NcButton variant="tertiary"
 					:disabled="zoom <= minZoom"
 					:aria-label="t('nextcloud-vue', 'Zoom out')"
 					@click="zoomBy(-0.1)">
@@ -141,12 +141,12 @@
 						<Minus :size="20" />
 					</template>
 				</NcButton>
-				<NcButton type="tertiary"
+				<NcButton variant="tertiary"
 					:aria-label="t('nextcloud-vue', 'Reset zoom')"
 					@click="zoom = 1">
 					{{ Math.round(zoom * 100) }}%
 				</NcButton>
-				<NcButton type="tertiary"
+				<NcButton variant="tertiary"
 					:disabled="zoom >= maxZoom"
 					:aria-label="t('nextcloud-vue', 'Zoom in')"
 					@click="zoomBy(0.1)">
@@ -158,7 +158,7 @@
 
 			<!-- The way back to a closed sidebar has to live OUTSIDE it. -->
 			<NcButton v-if="!store.sidebarOpen"
-				type="tertiary"
+				variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Show the flow controls')"
 				:title="t('nextcloud-vue', 'Show the flow controls')"
 				@click="store.sidebarOpen = true">
@@ -195,18 +195,18 @@
 		<CnGraphCanvas
 			:nodes="canvasNodes"
 			:edges="canvasEdgesWithRunState"
-			:min-zoom="minZoom"
-			:max-zoom="maxZoom"
-			@node-select="onNodeSelect"
-			@edge-select="onEdgeSelect"
-			@edge-label-click="onEdgeLabelClick"
-			@edge-label-context="onEdgeLabelContext"
-			@edge-label-move="onEdgeLabelMove"
-			@canvas-click="onCanvasClick"
-			@nodes-change="onNodesChange"
-			@node-remove="store.removeNode($event)"
+			:minZoom="minZoom"
+			:maxZoom="maxZoom"
+			@nodeSelect="onNodeSelect"
+			@edgeSelect="onEdgeSelect"
+			@edgeLabelClick="onEdgeLabelClick"
+			@edgeLabelContext="onEdgeLabelContext"
+			@edgeLabelMove="onEdgeLabelMove"
+			@canvasClick="onCanvasClick"
+			@nodesChange="onNodesChange"
+			@nodeRemove="store.removeNode($event)"
 			@connect="store.connect($event)"
-			@canvas-drop="onCanvasDrop">
+			@canvasDrop="onCanvasDrop">
 			<!-- The step's own chrome. `node.data` carries the flow node, because
 			     Vue Flow's `type` selects a COMPONENT while the flow's own type
 			     is domain data — conflating the two would make every new step
@@ -261,7 +261,7 @@
 		<CnContextMenu
 			v-model:open="nodeMenuOpen"
 			:actions="nodeMenuActions"
-			:target-item="nodeMenuTarget"
+			:targetItem="nodeMenuTarget"
 			@close="closeNodeMenu" />
 
 		<!-- The line's own actions, at the line. A connection was the one thing
@@ -271,7 +271,7 @@
 		<CnContextMenu
 			v-model:open="edgeMenuOpen"
 			:actions="edgeMenuActions"
-			:target-item="edgeMenuTarget"
+			:targetItem="edgeMenuTarget"
 			@close="closeEdgeMenu" />
 
 		<CnFlowEdgeEditModal v-if="store.editingEdge !== null" />
@@ -316,6 +316,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import CheckDecagram from 'vue-material-design-icons/CheckDecagram.vue'
+import ContentPaste from 'vue-material-design-icons/ContentPaste.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import DockRight from 'vue-material-design-icons/DockRight.vue'
 import Minus from 'vue-material-design-icons/Minus.vue'
@@ -327,16 +328,15 @@ import UndoVariant from 'vue-material-design-icons/UndoVariant.vue'
 import VectorCurve from 'vue-material-design-icons/VectorCurve.vue'
 import VectorLine from 'vue-material-design-icons/VectorLine.vue'
 import VectorPolyline from 'vue-material-design-icons/VectorPolyline.vue'
-import ContentPaste from 'vue-material-design-icons/ContentPaste.vue'
 import CnFlowEdgeEditModal from '../../dialogs/CnFlowEdgeEditModal.vue'
 import CnFlowNodeEditModal from '../../dialogs/CnFlowNodeEditModal.vue'
-import CnContextMenu from '../CnContextMenu/CnContextMenu.vue'
-import CnFlowCanvasMessages from './CnFlowCanvasMessages.vue'
-import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
-import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
-import { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from '../../composables/useFlowEdgeStyles.js'
-import { useContextMenu } from '../../composables/useContextMenu.js'
 import CnFlowStepPickerModal from '../../dialogs/CnFlowStepPickerModal.vue'
+import CnContextMenu from '../CnContextMenu/CnContextMenu.vue'
+import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
+import CnFlowCanvasMessages from './CnFlowCanvasMessages.vue'
+import { useContextMenu } from '../../composables/useContextMenu.js'
+import { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from '../../composables/useFlowEdgeStyles.js'
+import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
 import { useFlowStore } from '../../composables/useFlowStore.js'
 
 /**
@@ -703,6 +703,7 @@ export default {
 				},
 			]
 		},
+
 		/**
 		 * What can be done to a connection, as CnContextMenu's action list.
 		 *
@@ -1360,7 +1361,7 @@ export default {
 		 * @param {string|null} next The newly watched run's uuid.
 		 * @return {void}
 		 */
-		'store.watchedRunUuid'(next) {
+		'store.watchedRunUuid': function(next) {
 			if (next === null) {
 				return
 			}
@@ -1377,7 +1378,7 @@ export default {
 		 * @param {Array<object>} steps The watched run's log so far.
 		 * @return {void}
 		 */
-		'store.watchedSteps'(steps) {
+		'store.watchedSteps': function(steps) {
 			if (this.runAnimation.mode !== 'watch') {
 				return
 			}
@@ -1399,7 +1400,7 @@ export default {
 		 *
 		 * @return {void}
 		 */
-		'store.replayToken'() {
+		'store.replayToken': function() {
 			this.startRunAnimation('replay')
 			this.runAnimation.queue.push(...this.store.steps)
 			this.drainRunQueue()
@@ -1413,7 +1414,7 @@ export default {
 		 * @param {boolean} next Whether the flow now has unsaved changes.
 		 * @return {void}
 		 */
-		'store.dirty'(next) {
+		'store.dirty': function(next) {
 			if (next === true) {
 				this.cancelRunAnimation()
 			}
@@ -1897,9 +1898,7 @@ export default {
 			// which already normalises `{from, to}` and list endpoints.
 			anim.traceLineId = null
 			if (previous !== null && previous !== nodeId) {
-				const line = this.store.canvasEdges.find(
-					(candidate) => candidate.source === previous && candidate.target === nodeId,
-				)
+				const line = this.store.canvasEdges.find((candidate) => candidate.source === previous && candidate.target === nodeId)
 				if (line !== undefined) {
 					anim.traceLineId = line.id
 					if (anim.tracedLineIds.includes(line.id) === false) {

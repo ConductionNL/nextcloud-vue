@@ -12,6 +12,7 @@ import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import CnContainerWidget from '@/components/CnContainerWidget/CnContainerWidget.vue'
 import CnContainerWidgetForm from '@/components/CnContainerWidgetForm/CnContainerWidgetForm.vue'
+
 // Importing the video index self-registers the `video` type into the SAME
 // (non-isolated) shared registry singleton that CnContainerChild consults, so
 // the recursive-dispatch test can resolve a child renderer.

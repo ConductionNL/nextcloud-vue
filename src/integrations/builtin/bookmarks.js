@@ -22,8 +22,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnBookmarksTab from './bookmarks/CnBookmarksTab.vue'
 import CnBookmarksCard from './bookmarks/CnBookmarksCard.vue'
+import CnBookmarksTab from './bookmarks/CnBookmarksTab.vue'
 
 /**
  * `bookmarks` integration descriptor.

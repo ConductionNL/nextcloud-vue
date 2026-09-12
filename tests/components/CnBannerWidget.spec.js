@@ -69,8 +69,8 @@ describe('CnBannerWidget', () => {
 
 	it('is registered in dashboardWidgetRegistry and BUILT_IN_WIDGETS', () => {
 		require('../../src/components/CnWidgetGrid/registerDashboardWidgets.js')
-		const { getWidgetTypeEntry } = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
 		const { BUILT_IN_WIDGETS } = require('../../src/components/CnWidgetGrid/builtInWidgets.js')
+		const { getWidgetTypeEntry } = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
 		const entry = getWidgetTypeEntry('banner')
 		expect(entry).not.toBeNull()
 		expect(entry.renderer).toBe(CnBannerWidget)

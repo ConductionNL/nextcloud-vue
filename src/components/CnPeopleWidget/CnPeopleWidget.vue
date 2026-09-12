@@ -57,7 +57,7 @@
 					:src="user.avatarUrl"
 					:width="avatarSize"
 					:height="avatarSize"
-					:alt="''"
+					alt=""
 					class="cn-people-widget__avatar">
 				<div class="cn-people-widget__meta">
 					<strong class="cn-people-widget__name">{{ user.displayName || user.uid }}</strong>
@@ -129,6 +129,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Consumer-supplied data source overriding the `cnPeopleSource`
 		 * injection. Must expose `fetchPeople(args) => Promise<{users, total,

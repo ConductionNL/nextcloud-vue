@@ -61,7 +61,7 @@ export function cacheKey(register, schema, collection, objectId) {
  * Production code never calls this — `getDb()` lazy-imports `dexie`. Tests pass
  * a fake-indexeddb-backed Dexie so the store can be exercised in Node.
  *
- * @param {Function} ctor The Dexie class.
+ * @param {new (name: string) => object} ctor The Dexie class.
  *
  * @return {void}
  */

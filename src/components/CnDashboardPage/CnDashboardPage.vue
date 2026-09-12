@@ -37,7 +37,7 @@
 				<slot name="actions" />
 				<NcButton
 					v-if="allowEdit"
-					:type="isEditing ? 'primary' : 'secondary'"
+					:variant="isEditing ? 'primary' : 'secondary'"
 					@click="toggleEdit">
 					<template #icon>
 						<Pencil v-if="!isEditing" :size="20" />
@@ -54,25 +54,25 @@
 				     Separate from the per-widget menus. `docs-anchor` deep-links
 				     the docs item to THIS page's section. -->
 				<CnActionsMenu
-					:show-refresh="showRefresh"
-					:show-request-feature="showRequestFeature"
-					:show-report-bug="showReportBug"
-					:show-documentation="showDocumentation"
-					:documentation-url="documentationUrl"
-					:docs-anchor="resolvedPageId"
-					:documentation-label="documentationLabel"
-					:refresh-label="refreshLabel"
-					:request-feature-label="requestFeatureLabel"
-					:actions-menu-label="actionsMenuLabel"
+					:showRefresh="showRefresh"
+					:showRequestFeature="showRequestFeature"
+					:showReportBug="showReportBug"
+					:showDocumentation="showDocumentation"
+					:documentationUrl="documentationUrl"
+					:docsAnchor="resolvedPageId"
+					:documentationLabel="documentationLabel"
+					:refreshLabel="refreshLabel"
+					:requestFeatureLabel="requestFeatureLabel"
+					:actionsMenuLabel="actionsMenuLabel"
 					:refreshing="refreshing"
-					:widget-id="resolvedPageId"
+					:widgetId="resolvedPageId"
 					:title="title"
 					:surface="`dashboard:${resolvedPageId}`"
-					:spec-ref="specRef"
-					refresh-channel="cn:page:refresh"
-					testid-base="cn-dashboard-page"
+					:specRef="specRef"
+					refreshChannel="cn:page:refresh"
+					testidBase="cn-dashboard-page"
 					@refresh="onActionsRefresh"
-					@request-feature="onActionsRequestFeature">
+					@requestFeature="onActionsRequestFeature">
 					<!-- @slot action-items Additional NcActionButton-family
 					     items appended inside the page-level overflow menu,
 					     after Refresh / Documentation / Request a feature. -->
@@ -125,7 +125,7 @@
 				</button>
 				<NcActions
 					v-if="hasCustomPreset"
-					:force-menu="true"
+					:forceMenu="true"
 					container="body"
 					class="cn-dashboard-page__date-pill-custom"
 					data-testid="cn-dashboard-page-date-pill-custom">
@@ -138,16 +138,16 @@
 					</template>
 					<NcActionInput
 						type="datetime-local"
-						is-native-picker
-						:model-value="toPickerDate(currentRange && currentRange.from)"
+						isNativePicker
+						:modelValue="toPickerDate(currentRange && currentRange.from)"
 						:label="t('nextcloud-vue', 'From')"
-						@update:model-value="onChipDateInput('from', $event)" />
+						@update:modelValue="onChipDateInput('from', $event)" />
 					<NcActionInput
 						type="datetime-local"
-						is-native-picker
-						:model-value="toPickerDate(currentRange && currentRange.to)"
+						isNativePicker
+						:modelValue="toPickerDate(currentRange && currentRange.to)"
 						:label="t('nextcloud-vue', 'To')"
-						@update:model-value="onChipDateInput('to', $event)" />
+						@update:modelValue="onChipDateInput('to', $event)" />
 				</NcActions>
 			</div>
 			<!-- Default (picker) mode: the original select + two date inputs. -->
@@ -172,13 +172,13 @@
 				class="cn-dashboard-page__page-filter">
 				<span v-if="pf.label" class="cn-dashboard-page__page-filter-label">{{ pf.label }}</span>
 				<NcSelect
-					:model-value="selectedPageFilterOption(pf)"
+					:modelValue="selectedPageFilterOption(pf)"
 					:options="pf.options || []"
 					:clearable="false"
-					:input-label="pf.label || pf.key"
+					:inputLabel="pf.label || pf.key"
 					label="label"
 					:data-testid="'cn-page-filter-' + pf.key"
-					@update:model-value="onPageFilterChange(pf, $event)" />
+					@update:modelValue="onPageFilterChange(pf, $event)" />
 			</label>
 		</div>
 
@@ -229,7 +229,7 @@
 			<CnWidgetRefItem
 				v-for="(item, idx) in widgetRefItems"
 				:key="item.ref + '-' + idx"
-				:ref-uri="item.ref"
+				:refUri="item.ref"
 				class="cn-dashboard-page__content-item" />
 		</div>
 
@@ -249,9 +249,9 @@
 			:layout="displayLayout"
 			:editable="gridEditable"
 			:columns="columns"
-			:cell-height="cellHeight"
+			:cellHeight="cellHeight"
 			:margin="gridMargin"
-			@layout-change="onLayoutChange">
+			@layoutChange="onLayoutChange">
 			<template #widget="{ item }">
 				<!-- In-app edit overlay (ADR-041): a single launchpad-style
 				     configure cog opens the per-widget style/config editor,
@@ -274,7 +274,7 @@
 				<CnWidgetWrapper
 					v-if="missingRequiredApp(item)"
 					:title="getWidgetTitle(item)"
-					:show-title="widgetShowTitle(item)">
+					:showTitle="widgetShowTitle(item)">
 					<NcEmptyContent
 						:name="installAppLabel(missingRequiredApp(item))"
 						:description="t('nextcloud-vue', 'This widget shows data from another app that isn\'t installed yet.')"
@@ -308,24 +308,24 @@
 				     does nothing. -->
 				<template v-else-if="hasWidgetSlot(item.widgetId)">
 					<CnWidgetWrapper
-						:widget-id="item.widgetId"
+						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
-						:icon-url="getWidgetIconUrl(item)"
-						:icon-class="getWidgetIconClass(item)"
-						:show-title="widgetShowTitle(item)"
+						:iconUrl="getWidgetIconUrl(item)"
+						:iconClass="getWidgetIconClass(item)"
+						:showTitle="widgetShowTitle(item)"
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}"
-						:title-icon-position="getWidgetTitleIconPosition(item)"
-						:title-icon-color="getWidgetTitleIconColor(item)"
-						:title-icon-variant="getWidgetTitleIconVariant(item)"
-						:show-refresh="getWidgetShowRefresh(item)"
-						:show-actions="widgetShowActions(item)"
-						:documentation-url="getWidgetDocumentationUrl(item)"
-						:docs-anchor="getWidgetDocsAnchor(item)"
+						:styleConfig="item.styleConfig || {}"
+						:titleIconPosition="getWidgetTitleIconPosition(item)"
+						:titleIconColor="getWidgetTitleIconColor(item)"
+						:titleIconVariant="getWidgetTitleIconVariant(item)"
+						:showRefresh="getWidgetShowRefresh(item)"
+						:showActions="widgetShowActions(item)"
+						:documentationUrl="getWidgetDocumentationUrl(item)"
+						:docsAnchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
-						@request-feature="onWidgetRequestFeature(item)">
+						@requestFeature="onWidgetRequestFeature(item)">
 						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
 						<template v-if="$slots['widget-' + item.widgetId + '-title-icon']" #title-icon>
 							<slot :name="'widget-' + item.widgetId + '-title-icon'" :item="item" :widget="getWidgetDef(item.widgetId)" />
@@ -344,7 +344,7 @@
 						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
 							<NcActions
 								v-model:open="openChipPicker[item.widgetId]"
-								:force-menu="true"
+								:forceMenu="true"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -356,7 +356,7 @@
 								<NcActionButton
 									v-for="preset in effectivePresets"
 									:key="preset.id"
-									:close-after-click="true"
+									:closeAfterClick="true"
 									@click="onChipPresetPick(preset, item)">
 									<template #icon>
 										<CalendarRange v-if="currentRange.preset === preset.id" :size="16" />
@@ -367,16 +367,16 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									is-native-picker
-									:model-value="toPickerDate(currentRange.from)"
+									isNativePicker
+									:modelValue="toPickerDate(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
-									@update:model-value="onChipDateInput('from', $event)" />
+									@update:modelValue="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									is-native-picker
-									:model-value="toPickerDate(currentRange.to)"
+									isNativePicker
+									:modelValue="toPickerDate(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
-									@update:model-value="onChipDateInput('to', $event)" />
+									@update:modelValue="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
 						<!-- @slot widget-{widgetId} Per-widget body content (e.g. `#widget-my-work`). Apps inject custom widget rendering here. Scope: `{ item, widget }`. -->
@@ -387,28 +387,28 @@
 				<!-- Chart widget — manifest-driven apexcharts mount -->
 				<template v-else-if="isChart(item)">
 					<CnWidgetWrapper
-						:widget-id="item.widgetId"
+						:widgetId="item.widgetId"
 						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
-						:icon-url="getWidgetIconUrl(item)"
-						:icon-class="getWidgetIconClass(item)"
-						:show-title="widgetShowTitle(item)"
+						:iconUrl="getWidgetIconUrl(item)"
+						:iconClass="getWidgetIconClass(item)"
+						:showTitle="widgetShowTitle(item)"
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}"
-						:title-icon-position="getWidgetTitleIconPosition(item)"
-						:title-icon-color="getWidgetTitleIconColor(item)"
-						:title-icon-variant="getWidgetTitleIconVariant(item)"
-						:show-refresh="getWidgetShowRefresh(item)"
-						:documentation-url="getWidgetDocumentationUrl(item)"
-						:docs-anchor="getWidgetDocsAnchor(item)"
+						:styleConfig="item.styleConfig || {}"
+						:titleIconPosition="getWidgetTitleIconPosition(item)"
+						:titleIconColor="getWidgetTitleIconColor(item)"
+						:titleIconVariant="getWidgetTitleIconVariant(item)"
+						:showRefresh="getWidgetShowRefresh(item)"
+						:documentationUrl="getWidgetDocumentationUrl(item)"
+						:docsAnchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
-						@request-feature="onWidgetRequestFeature(item)">
+						@requestFeature="onWidgetRequestFeature(item)">
 						<template v-if="dateRangeEnabled && (item.dateChip === true || formatChartDateRange(item))" #title-meta>
 							<NcActions
 								v-model:open="openChipPicker[item.widgetId]"
-								:force-menu="true"
+								:forceMenu="true"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -420,7 +420,7 @@
 								<NcActionButton
 									v-for="preset in effectivePresets"
 									:key="preset.id"
-									:close-after-click="true"
+									:closeAfterClick="true"
 									@click="onChipPresetPick(preset, item)">
 									<template #icon>
 										<CalendarRange v-if="currentRange.preset === preset.id" :size="16" />
@@ -431,21 +431,21 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									is-native-picker
-									:model-value="toPickerDate(currentRange.from)"
+									isNativePicker
+									:modelValue="toPickerDate(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
-									@update:model-value="onChipDateInput('from', $event)" />
+									@update:modelValue="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									is-native-picker
-									:model-value="toPickerDate(currentRange.to)"
+									isNativePicker
+									:modelValue="toPickerDate(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
-									@update:model-value="onChipDateInput('to', $event)" />
+									@update:modelValue="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
 						<CnChartWidget
 							v-bind="getChartProps(item)"
-							:widget-id="item.widgetId"
+							:widgetId="item.widgetId"
 							:data-source="getWidgetDataSource(item)" />
 					</CnWidgetWrapper>
 				</template>
@@ -464,21 +464,21 @@
 				     headerless, so only CnStatsBlock's own title renders. -->
 				<template v-else-if="isStatsBlock(item)">
 					<CnWidgetWrapper
-						:widget-id="item.widgetId"
+						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
-						:icon-url="getWidgetIconUrl(item)"
-						:icon-class="getWidgetIconClass(item)"
-						:show-title="widgetShowTitle(item)"
-						:show-actions="widgetShowActions(item)"
+						:iconUrl="getWidgetIconUrl(item)"
+						:iconClass="getWidgetIconClass(item)"
+						:showTitle="widgetShowTitle(item)"
+						:showActions="widgetShowActions(item)"
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}"
-						:documentation-url="getWidgetDocumentationUrl(item)"
-						:docs-anchor="getWidgetDocsAnchor(item)"
+						:styleConfig="item.styleConfig || {}"
+						:documentationUrl="getWidgetDocumentationUrl(item)"
+						:docsAnchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
-						@request-feature="onWidgetRequestFeature(item)">
+						@requestFeature="onWidgetRequestFeature(item)">
 						<CnStatsBlockWidget
 							v-bind="getStatsBlockProps(item)"
 							:title="getWidgetTitle(item)"
@@ -490,30 +490,30 @@
 				     integration registry (AD-19 surface fallback). -->
 				<template v-else-if="isIntegration(item)">
 					<CnWidgetWrapper
-						:widget-id="item.widgetId"
+						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
-						:icon-url="getWidgetIconUrl(item)"
-						:icon-class="getWidgetIconClass(item)"
-						:show-title="widgetShowTitle(item)"
+						:iconUrl="getWidgetIconUrl(item)"
+						:iconClass="getWidgetIconClass(item)"
+						:showTitle="widgetShowTitle(item)"
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}"
-						:title-icon-position="getWidgetTitleIconPosition(item)"
-						:title-icon-color="getWidgetTitleIconColor(item)"
-						:title-icon-variant="getWidgetTitleIconVariant(item)"
-						:show-refresh="getWidgetShowRefresh(item)"
-						:documentation-url="getWidgetDocumentationUrl(item)"
-						:docs-anchor="getWidgetDocsAnchor(item)"
+						:styleConfig="item.styleConfig || {}"
+						:titleIconPosition="getWidgetTitleIconPosition(item)"
+						:titleIconColor="getWidgetTitleIconColor(item)"
+						:titleIconVariant="getWidgetTitleIconVariant(item)"
+						:showRefresh="getWidgetShowRefresh(item)"
+						:documentationUrl="getWidgetDocumentationUrl(item)"
+						:docsAnchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
-						@request-feature="onWidgetRequestFeature(item)">
+						@requestFeature="onWidgetRequestFeature(item)">
 						<!-- Mount-mode integration leaf (openregister#2127):
 						     rendered through CnLeafMountHost so a cross-Vue-major
 						     leaf mounts its own framework into a bare element. -->
 						<CnLeafMountHost
 							v-if="isMountIntegration(item)"
 							:provider="integrationProviderFor(item)"
-							:mount-props="getIntegrationMountProps(item)" />
+							:mountProps="getIntegrationMountProps(item)" />
 						<component
 							:is="resolveIntegrationWidget(item)"
 							v-else-if="resolveIntegrationWidget(item)"
@@ -527,21 +527,21 @@
 				<!-- NC Dashboard API widget -->
 				<template v-else-if="isNcWidget(item)">
 					<CnWidgetWrapper
-						:widget-id="item.widgetId"
+						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
-						:icon-url="getWidgetIconUrl(item)"
-						:icon-class="getWidgetIconClass(item)"
-						:show-title="widgetShowTitle(item)"
+						:iconUrl="getWidgetIconUrl(item)"
+						:iconClass="getWidgetIconClass(item)"
+						:showTitle="widgetShowTitle(item)"
 						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}"
-						:show-refresh="getWidgetShowRefresh(item)"
-						:documentation-url="getWidgetDocumentationUrl(item)"
-						:docs-anchor="getWidgetDocsAnchor(item)"
+						:styleConfig="item.styleConfig || {}"
+						:showRefresh="getWidgetShowRefresh(item)"
+						:documentationUrl="getWidgetDocumentationUrl(item)"
+						:docsAnchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
-						@request-feature="onWidgetRequestFeature(item)">
+						@requestFeature="onWidgetRequestFeature(item)">
 						<CnWidgetRenderer
 							:widget="getWidgetDef(item.widgetId)"
-							:unavailable-text="unavailableLabel" />
+							:unavailableText="unavailableLabel" />
 					</CnWidgetWrapper>
 				</template>
 
@@ -550,23 +550,23 @@
 				     this is how catalog widgets added via "Add widget…" appear. -->
 				<template v-else-if="registryRenderer(item)">
 					<CnWidgetWrapper
-						:widget-id="item.widgetId"
+						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
-						:show-title="widgetShowTitle(item)"
-						:show-actions="widgetShowActions(item)"
-						:show-refresh="getWidgetShowRefresh(item)"
+						:showTitle="widgetShowTitle(item)"
+						:showActions="widgetShowActions(item)"
+						:showRefresh="getWidgetShowRefresh(item)"
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
-						:title-icon-position="getWidgetTitleIconPosition(item)"
-						:title-icon-color="getWidgetTitleIconColor(item)"
-						:title-icon-variant="getWidgetTitleIconVariant(item)"
+						:titleIconPosition="getWidgetTitleIconPosition(item)"
+						:titleIconColor="getWidgetTitleIconColor(item)"
+						:titleIconVariant="getWidgetTitleIconVariant(item)"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}"
-						:documentation-url="getWidgetDocumentationUrl(item)"
-						:docs-anchor="getWidgetDocsAnchor(item)"
+						:styleConfig="item.styleConfig || {}"
+						:documentationUrl="getWidgetDocumentationUrl(item)"
+						:docsAnchor="getWidgetDocsAnchor(item)"
 						@refresh="onWidgetRefresh(item)"
-						@request-feature="onWidgetRequestFeature(item)">
+						@requestFeature="onWidgetRequestFeature(item)">
 						<!-- Opt-in per-widget date chip (`layout[].dateChip: true`) for
 						     registered card widgets (stat / gauge / delta). Same popover
 						     and SHARED dashboard range as the custom-widget chip above; it
@@ -576,7 +576,7 @@
 						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
 							<NcActions
 								v-model:open="openChipPicker[item.widgetId]"
-								:force-menu="true"
+								:forceMenu="true"
 								container="body"
 								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
 								class="cn-dashboard-page__date-chip-trigger">
@@ -588,7 +588,7 @@
 								<NcActionButton
 									v-for="preset in effectivePresets"
 									:key="preset.id"
-									:close-after-click="true"
+									:closeAfterClick="true"
 									@click="onChipPresetPick(preset, item)">
 									<template #icon>
 										<CalendarRange v-if="currentRange && currentRange.preset === preset.id" :size="16" />
@@ -599,16 +599,16 @@
 								<NcActionSeparator />
 								<NcActionInput
 									type="datetime-local"
-									is-native-picker
-									:model-value="toPickerDate(currentRange && currentRange.from)"
+									isNativePicker
+									:modelValue="toPickerDate(currentRange && currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
-									@update:model-value="onChipDateInput('from', $event)" />
+									@update:modelValue="onChipDateInput('from', $event)" />
 								<NcActionInput
 									type="datetime-local"
-									is-native-picker
-									:model-value="toPickerDate(currentRange && currentRange.to)"
+									isNativePicker
+									:modelValue="toPickerDate(currentRange && currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
-									@update:model-value="onChipDateInput('to', $event)" />
+									@update:modelValue="onChipDateInput('to', $event)" />
 							</NcActions>
 						</template>
 						<!-- `widget-id` reaches the renderer's own refresh
@@ -617,7 +617,7 @@
 						     broadcasts with the same id. -->
 						<component
 							:is="registryRenderer(item)"
-							:widget-id="item.widgetId"
+							:widgetId="item.widgetId"
 							:content="registryWidgetBindings(item)"
 							v-bind="registryWidgetBindings(item)" />
 					</CnWidgetWrapper>
@@ -627,8 +627,8 @@
 				<CnWidgetWrapper
 					v-else
 					:title="getWidgetTitle(item)"
-					:show-title="widgetShowTitle(item)"
-					:show-refresh="false">
+					:showTitle="widgetShowTitle(item)"
+					:showRefresh="false">
 					<div class="cn-dashboard-page__unknown">
 						{{ unavailableLabel }}
 					</div>
@@ -671,44 +671,44 @@
 </template>
 
 <script>
-import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcActions,
 	NcActionButton,
 	NcActionInput,
+	NcActions,
 	NcActionSeparator,
 	NcButton,
 	NcEmptyContent,
 	NcLoadingIcon,
 	NcSelect,
 } from '@nextcloud/vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
+import { provide, ref, watch } from 'vue'
+import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
-import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
-import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import Download from 'vue-material-design-icons/Download.vue'
-import { isAppInstalled } from '../../utils/appInstalled.js'
-import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
-import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
-import { BUILT_IN_WIDGETS } from '../CnWidgetGrid/builtInWidgets.js'
-import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
-import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
-import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
-import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
-import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
-import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
-import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
-import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
-import CnBodySections from '../CnBodySections/CnBodySections.vue'
-import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
-import { CnActionsMenu } from '../CnActionsMenu/index.js'
-import { CnActionButtons } from '../CnActionButtons/index.js'
-import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
-import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
+import CnBodySections from '../CnBodySections/CnBodySections.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
+import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
+import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
+import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
+import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
+import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
+import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
+import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
+import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
+import { CnActionButtons } from '../CnActionButtons/index.js'
+import { CnActionsMenu } from '../CnActionsMenu/index.js'
+import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
+import { BUILT_IN_WIDGETS } from '../CnWidgetGrid/builtInWidgets.js'
+import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -908,11 +908,13 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Page description (shown below title) */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Widget definitions array. Each widget defines metadata for rendering.
 		 *
@@ -922,24 +924,28 @@ export default {
 		 * Chart widgets: `{ id: 'sla', type: 'chart', title: 'SLA trend',
 		 *   props: { chartKind: 'line', series: [{ name: 'SLA %', data: [82, 88, 91] }],
 		 *            categories: ['Q1', 'Q2', 'Q3'], options: { stroke: { width: 3 } } } }`
+		 *
 		 * @type {Array<{ id: string, title: string, type: string, iconUrl: string, iconClass: string, buttons: Array, itemApiVersions: number[], reloadInterval: number, props: object }>}
 		 */
 		widgets: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Layout array defining widget positions in the grid.
 		 *
 		 * Each item: `{ id: 'unique-id', widgetId: 'my-widget', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 3 }`
 		 *
 		 * Additional properties (showTitle, styleConfig, tile config) are passed through.
+		 *
 		 * @type {Array<{ id: string|number, widgetId: string, gridX: number, gridY: number, gridWidth: number, gridHeight: number, showTitle: boolean, styleConfig: object }>}
 		 */
 		layout: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Declarative content items. Each item is a `widget-ref` entry from the
 		 * manifest's `pages[].config.content[]` array:
@@ -961,6 +967,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Declarative IN-BODY sections (host-app section components) rendered
 		 * ALONGSIDE the widget grid — the dashboard equivalent of CnDetailPage's
@@ -993,6 +1000,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Page-level app config map exposed to declarative widget / section
 		 * config via the `@config.<key>` token (e.g. the reporting `currency`
@@ -1010,51 +1018,61 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether the dashboard is loading */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether to show the edit toggle button */
 		allowEdit: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Number of grid columns */
 		columns: {
 			type: Number,
 			default: 12,
 		},
+
 		/** Grid cell height in pixels */
 		cellHeight: {
 			type: Number,
 			default: 80,
 		},
+
 		/** Grid margin in pixels */
 		gridMargin: {
 			type: Number,
 			default: 12,
 		},
+
 		/** Label for the edit button */
 		editLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Edit'),
 		},
+
 		/** Label for the done button (when editing) */
 		doneLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Done'),
 		},
+
 		/** Label for the empty state */
 		emptyLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No widgets configured'),
 		},
+
 		/** Label for unavailable widgets */
 		unavailableLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Widget not available'),
 		},
+
 		/**
 		 * Rendering surface forwarded to integration widgets (widgets
 		 * whose `type === 'integration'`). Drives the AD-19 surface
@@ -1067,6 +1085,7 @@ export default {
 			default: 'app-dashboard',
 			validator: (value) => INTEGRATION_SURFACES.includes(value),
 		},
+
 		/**
 		 * Object context forwarded to integration widgets:
 		 * `{ register, schema, objectId }`. Optional — most dashboards
@@ -1080,6 +1099,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Optional per-app install/enable status map used by the
 		 * `requiresApp` widget gate. Shape: `{ [appId]: { installed:
@@ -1098,6 +1118,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Optional date-range header descriptor. When `enabled: true`
 		 * the dashboard renders a `CnDateRangePicker` between the
@@ -1163,6 +1184,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Optional declarative header actions (#91 Wave 3) rendered as buttons
 		 * in the dashboard header via CnActionButtons — `open-form` (schema
@@ -1178,6 +1200,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Optional page-level filter controls rendered in the dashboard header.
 		 * Each selection is written into the reactive page-level workspace
@@ -1197,6 +1220,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Show the built-in Refresh item in the page-level overflow Actions
 		 * menu. On by default. The default handler emits `@refresh` and,
@@ -1218,6 +1242,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Show the built-in Refresh item on each **custom-slot** widget
 		 * (distinct from the page-level `showRefresh`). Tri-state:
@@ -1237,6 +1262,7 @@ export default {
 			type: Boolean,
 			default: null,
 		},
+
 		/**
 		 * Show the built-in Request-a-feature item in the page-level
 		 * overflow Actions menu. On by default; opens the forge's
@@ -1248,6 +1274,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Show the built-in "Report a bug" item in the page-level overflow
 		 * Actions menu. On by default — the trio Request a feature / Report a
@@ -1259,6 +1286,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Show the built-in Documentation item in the page-level overflow
 		 * Actions menu. On by default; the shared menu resolves the target
@@ -1270,6 +1298,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Explicit documentation link for this dashboard, opened in a new tab.
 		 * Usually unnecessary: the page-level menu builds one from the
@@ -1281,11 +1310,13 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Pre-translated label for the Documentation action. Defaults to "Documentation". */
 		documentationLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Documentation'),
 		},
+
 		/**
 		 * Stable id for this dashboard, used in the `@refresh` /
 		 * `@request-feature` payloads and the `surface: "dashboard:<id>"`
@@ -1298,6 +1329,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional `specRef` slug. Accepted for backward compatibility with
 		 * hosts that bound it for the removed in-product suggestion modal;
@@ -1310,21 +1342,25 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Whether a page-level refresh is in flight (disables the Refresh item and shows its spinner). */
 		refreshing: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Pre-translated label for the Refresh action. */
 		refreshLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Refresh'),
 		},
+
 		/** Pre-translated label for the Request-a-feature action. */
 		requestFeatureLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Request a feature'),
 		},
+
 		/** Pre-translated aria-label / tooltip for the overflow menu trigger. */
 		actionsMenuLabel: {
 			type: String,
@@ -1378,7 +1414,9 @@ export default {
 		provide('cnAppConfig', appConfigRef)
 		watch(
 			() => props.appConfig,
-			(next) => { appConfigRef.value = { ...(next || {}) } },
+			(next) => {
+				appConfigRef.value = { ...(next || {}) }
+			},
 			{ deep: true },
 		)
 
@@ -1436,7 +1474,7 @@ export default {
 			 * would otherwise leave its wrapper card and reserved grid row
 			 * behind as a tall empty box.
 			 *
-			 * @type {Record<string, {met: boolean, value: any}>}
+			 * @type {Record<string, {met: boolean, value: unknown}>}
 			 */
 			widgetConditionOutcome: {},
 			/**
@@ -1513,6 +1551,7 @@ export default {
 			const buildiqEditing = Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
 			return this.isEditing || buildiqEditing
 		},
+
 		/**
 		 * The layout actually handed to the grid. In live (non-edit) mode,
 		 * widgets that would render nothing right now — a `visibleWhen`
@@ -1532,12 +1571,17 @@ export default {
 		 * @return {Array<object>}
 		 */
 		displayLayout() {
-			if (this.gridEditable) return this.layout
+			if (this.gridEditable) {
+				return this.layout
+			}
 			const items = this.layout || []
 			const visible = items.filter((item) => !this.isCollapsedWidget(item))
-			if (visible.length === items.length) return items
+			if (visible.length === items.length) {
+				return items
+			}
 			return this.compactDisplayLayout(visible)
 		},
+
 		/**
 		 * Effective Refresh visibility for custom-slot widgets. An explicit
 		 * `widgetShowRefresh` prop wins; when unset (`null`), show Refresh
@@ -1549,7 +1593,9 @@ export default {
 		 * @return {boolean}
 		 */
 		effectiveWidgetShowRefresh() {
-			if (this.widgetShowRefresh !== null) return this.widgetShowRefresh
+			if (this.widgetShowRefresh !== null) {
+				return this.widgetShowRefresh
+			}
 			// `$.vnode.props`, not `$attrs`: a declared emit is stripped out of
 			// `$attrs`. And the key is `onWidgetRefresh` — Vue's compiler
 			// camelizes every `v-on` argument, so the hyphenated
@@ -1557,6 +1603,7 @@ export default {
 			// unconditionally and the auto-detect never once fired.
 			return Boolean(this.$.vnode.props?.onWidgetRefresh)
 		},
+
 		/**
 		 * Stable id for the page-level Actions menu. Prefers the explicit
 		 * `pageId` prop; falls back to a slugified `title`, then
@@ -1565,10 +1612,13 @@ export default {
 		 * @return {string}
 		 */
 		resolvedPageId() {
-			if (this.pageId) return this.pageId
+			if (this.pageId) {
+				return this.pageId
+			}
 			const slug = (this.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 			return slug || 'dashboard'
 		},
+
 		/**
 		 * Whether the caller supplied an `action-items` slot — forwarded
 		 * conditionally so the shared CnActionsMenu doesn't treat an
@@ -1638,7 +1688,9 @@ export default {
 			const rng = this.currentRange || this.dashboardDateRange
 			if (rng && rng.preset && rng.preset !== 'custom') {
 				const preset = this.effectivePresets.find((p) => p && p.id === rng.preset)
-				if (preset && preset.label) return preset.label
+				if (preset && preset.label) {
+					return preset.label
+				}
 			}
 			return this.formatDashboardDateRange() || t('nextcloud-vue', 'Date range')
 		},
@@ -1695,7 +1747,7 @@ export default {
 			// built pre-edit has no reactive deps and would stay frozen forever,
 			// keeping the empty state on screen after the first Add widget.
 			// Re-evaluating post-enter re-subscribes against the reactive graph.
-			// eslint-disable-next-line no-unused-expressions
+			// eslint-disable-next-line @typescript-eslint/no-unused-expressions -- the read IS the effect: it registers the reactive dependency.
 			this.gridEditable
 			return this.layout.length > 0 || this.widgetRefItems.length > 0
 		},
@@ -1720,12 +1772,18 @@ export default {
 			let content = def.content || {}
 			if ((!content || Object.keys(content).length === 0) && (def.props || def.dataSource)) {
 				content = {}
-				if (def.title) content.title = def.title
+				if (def.title) {
+					content.title = def.title
+				}
 				if (def.props) {
 					content.props = def.props
-					if (def.props.chartKind) content.chartKind = def.props.chartKind
+					if (def.props.chartKind) {
+						content.chartKind = def.props.chartKind
+					}
 				}
-				if (def.dataSource) content.dataSource = def.dataSource
+				if (def.dataSource) {
+					content.dataSource = def.dataSource
+				}
 			}
 			return {
 				id: def.id || this.configWidgetId,
@@ -1752,14 +1810,14 @@ export default {
 		widgetRefItems() {
 			const out = []
 			for (const item of this.content) {
-				if (!item || typeof item !== 'object') continue
+				if (!item || typeof item !== 'object') {
+					continue
+				}
 				if (item.type === 'widget-ref') {
 					out.push(item)
 				} else {
 					// eslint-disable-next-line no-console
-					console.warn(
-						`[CnDashboardPage] Unknown content item type "${item.type}" — only "widget-ref" is supported. Item will be skipped.`,
-					)
+					console.warn(`[CnDashboardPage] Unknown content item type "${item.type}" — only "widget-ref" is supported. Item will be skipped.`)
 				}
 			}
 			return out
@@ -1820,7 +1878,9 @@ export default {
 		 */
 		widgets: {
 			deep: true,
-			handler() { this.evaluateWidgetConditions() },
+			handler() {
+				this.evaluateWidgetConditions()
+			},
 		},
 	},
 
@@ -1850,8 +1910,12 @@ export default {
 		 */
 		initPageFilters() {
 			for (const pf of this.pageFilters || []) {
-				if (!pf || !pf.key) continue
-				if (this.workspaceContext[pf.key] !== undefined) continue
+				if (!pf || !pf.key) {
+					continue
+				}
+				if (this.workspaceContext[pf.key] !== undefined) {
+					continue
+				}
 				const fallback = (pf.options && pf.options.length) ? pf.options[0].value : undefined
 				const value = pf.default !== undefined ? pf.default : fallback
 				if (value !== undefined) {
@@ -1859,6 +1923,7 @@ export default {
 				}
 			}
 		},
+
 		/**
 		 * The currently-selected option object for a page filter's NcSelect
 		 * (matched by `value` against the workspace context), or null.
@@ -1867,10 +1932,13 @@ export default {
 		 * @return {object|null}
 		 */
 		selectedPageFilterOption(pf) {
-			if (!pf || !pf.key) return null
+			if (!pf || !pf.key) {
+				return null
+			}
 			const current = this.workspaceContext[pf.key]
 			return (pf.options || []).find((o) => o.value === current) || null
 		},
+
 		/**
 		 * Write a page filter's new selection into the reactive workspace
 		 * context so every `@page.<key>` / `@workspace.<key>` token re-resolves.
@@ -1880,7 +1948,9 @@ export default {
 		 * @return {void}
 		 */
 		onPageFilterChange(pf, option) {
-			if (!pf || !pf.key) return
+			if (!pf || !pf.key) {
+				return
+			}
 			const value = option && typeof option === 'object' ? option.value : option
 			this.workspaceContext[pf.key] = value
 			/**
@@ -1889,6 +1959,7 @@ export default {
 			 */
 			this.$emit('page-filter-change', { key: pf.key, value })
 		},
+
 		/**
 		 * Re-emit the page-level CnActionsMenu `@refresh` to the host,
 		 * passing the synthetic event through so a host listener can
@@ -1897,7 +1968,7 @@ export default {
 		 * per-widget menus emit.
 		 *
 		 * @param {{ widgetId: string, title: string }} payload Action payload.
-		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @param {{ defaultPrevented: boolean, preventDefault: () => void }} ev Synthetic event.
 		 * @return {void}
 		 */
 		onActionsRefresh(payload, ev) {
@@ -1916,7 +1987,7 @@ export default {
 		 * host. Distinct from `@widget-request-feature`.
 		 *
 		 * @param {{ widgetId: string, title: string }} payload Action payload.
-		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @param {{ defaultPrevented: boolean, preventDefault: () => void }} ev Synthetic event.
 		 * @return {void}
 		 */
 		onActionsRequestFeature(payload, ev) {
@@ -1990,8 +2061,12 @@ export default {
 			//    methods write through to the ref's `.value` automatically.
 			if ((!from || !to) && this.dashboardDateRange) {
 				const rng = this.dashboardDateRange
-				if (bucket.fromVar && rng[bucket.fromVar]) from = from || rng[bucket.fromVar]
-				if (bucket.toVar && rng[bucket.toVar]) to = to || rng[bucket.toVar]
+				if (bucket.fromVar && rng[bucket.fromVar]) {
+					from = from || rng[bucket.fromVar]
+				}
+				if (bucket.toVar && rng[bucket.toVar]) {
+					to = to || rng[bucket.toVar]
+				}
 			}
 			return this.formatRangeLabel(from, to)
 		},
@@ -2006,7 +2081,9 @@ export default {
 		 */
 		formatDashboardDateRange() {
 			const rng = this.dashboardDateRange
-			if (!rng) return null
+			if (!rng) {
+				return null
+			}
 			return this.formatRangeLabel(rng.from || null, rng.to || null)
 		},
 
@@ -2021,9 +2098,13 @@ export default {
 		 * @return {string|null} Formatted label, or null when both bounds are empty.
 		 */
 		formatRangeLabel(from, to) {
-			if (!from && !to) return null
+			if (!from && !to) {
+				return null
+			}
 			const toDate = (v) => {
-				if (typeof v !== 'string' || v.length < 10) return null
+				if (typeof v !== 'string' || v.length < 10) {
+					return null
+				}
 				const d = new Date(`${v.slice(0, 10)}T00:00:00`)
 				return Number.isNaN(d.getTime()) ? null : d
 			}
@@ -2032,7 +2113,9 @@ export default {
 			const thisYear = new Date().getFullYear()
 			const needsYear = [fromDate, toDateValue].some((d) => d && d.getFullYear() !== thisYear)
 			const fmt = (d) => {
-				if (!d) return ''
+				if (!d) {
+					return ''
+				}
 				return d.toLocaleDateString(undefined, {
 					day: 'numeric',
 					month: 'short',
@@ -2041,7 +2124,9 @@ export default {
 			}
 			const left = fmt(fromDate)
 			const right = fmt(toDateValue)
-			if (left && right) return `${left} – ${right}`
+			if (left && right) {
+				return `${left} – ${right}`
+			}
 			return (left || right) || null
 		},
 
@@ -2056,18 +2141,24 @@ export default {
 		 *
 		 * @param {{ label: string, value: string }} preset Preset descriptor.
 		 * @param {object} _item Layout item (unused — included so the
-		 *   binding shape matches the template's @click signature).
+		 *   binding shape matches the template's `@click` signature).
 		 * @return {void}
 		 */
 		onChipPresetPick(preset, _item) {
-			if (!preset || !preset.id) return
-			if (preset.id === 'custom') return
+			if (!preset || !preset.id) {
+				return
+			}
+			if (preset.id === 'custom') {
+				return
+			}
 			if (this.isClearPreset(preset)) {
 				this.onDateRangeChange({ from: '', to: '', preset: preset.id })
 				return
 			}
 			const win = resolvePresetWindow(preset.id, this.effectivePresets)
-			if (!win) return
+			if (!win) {
+				return
+			}
 			this.onDateRangeChange({ ...win, preset: preset.id })
 		},
 
@@ -2082,7 +2173,9 @@ export default {
 		 * @return {void}
 		 */
 		onPillPick(preset) {
-			if (!preset || !preset.id) return
+			if (!preset || !preset.id) {
+				return
+			}
 			// An "All" / clear preset removes the window (empty from/to) so
 			// optional date tokens drop and widgets show the unfiltered count.
 			if (this.isClearPreset(preset)) {
@@ -2090,7 +2183,9 @@ export default {
 				return
 			}
 			const win = resolvePresetWindow(preset.id, this.effectivePresets)
-			if (!win) return
+			if (!win) {
+				return
+			}
 			this.onDateRangeChange({ ...win, preset: preset.id })
 		},
 
@@ -2137,7 +2232,9 @@ export default {
 		 * @return {Date|null} Date for the picker model, or null.
 		 */
 		toPickerDate(iso) {
-			if (!iso) return null
+			if (!iso) {
+				return null
+			}
 			const d = new Date(iso)
 			return Number.isNaN(d.getTime()) ? null : d
 		},
@@ -2162,7 +2259,9 @@ export default {
 		 * receives those props (some dashboards are schema-specific).
 		 */
 		pushAiContext() {
-			if (!this.cnAiContext) return
+			if (!this.cnAiContext) {
+				return
+			}
 			this.cnAiContext.pageKind = 'dashboard'
 			// Dashboard pages don't universally carry register/schema props —
 			// leave them undefined (they'll be whatever the previous page set,
@@ -2181,7 +2280,9 @@ export default {
 		 * consumers can wire their initial fetch to the same event.
 		 */
 		initDateRange() {
-			if (!this.dateRangeEnabled) return
+			if (!this.dateRangeEnabled) {
+				return
+			}
 			let initial = null
 			// 1. Persisted state (when a key is set).
 			if (this.dateRange?.persistKey) {
@@ -2277,8 +2378,12 @@ export default {
 		 * @return {boolean}
 		 */
 		isClearPreset(preset) {
-			if (!preset) return false
-			if (preset.clear === true) return true
+			if (!preset) {
+				return false
+			}
+			if (preset.clear === true) {
+				return true
+			}
 			return preset.id !== 'custom'
 				&& typeof preset.days !== 'number'
 				&& typeof preset.hours !== 'number'
@@ -2296,9 +2401,13 @@ export default {
 		 */
 		readPersisted(key) {
 			try {
-				if (typeof localStorage === 'undefined') return null
+				if (typeof localStorage === 'undefined') {
+					return null
+				}
 				const raw = localStorage.getItem(key)
-				if (!raw) return null
+				if (!raw) {
+					return null
+				}
 				const parsed = JSON.parse(raw)
 				if (!parsed || typeof parsed.from !== 'string' || typeof parsed.to !== 'string') {
 					return null
@@ -2308,7 +2417,7 @@ export default {
 					to: parsed.to,
 					preset: typeof parsed.preset === 'string' ? parsed.preset : 'custom',
 				}
-			} catch (_e) {
+			} catch {
 				return null
 			}
 		},
@@ -2323,9 +2432,11 @@ export default {
 		 */
 		persistRange(key, value) {
 			try {
-				if (typeof localStorage === 'undefined') return
+				if (typeof localStorage === 'undefined') {
+					return
+				}
 				localStorage.setItem(key, JSON.stringify(value))
-			} catch (_e) {
+			} catch {
 				// Intentionally swallowed — non-fatal.
 			}
 		},
@@ -2348,11 +2459,21 @@ export default {
 				for (const u of updated) {
 					const item = this.layout.find((l) => String(l.id) === String(u.id))
 						|| this.layout.find((l) => l.widgetId === u.widgetId)
-					if (!item) continue
-					if (u.gridX !== undefined) item.gridX = u.gridX
-					if (u.gridY !== undefined) item.gridY = u.gridY
-					if (u.gridWidth !== undefined) item.gridWidth = u.gridWidth
-					if (u.gridHeight !== undefined) item.gridHeight = u.gridHeight
+					if (!item) {
+						continue
+					}
+					if (u.gridX !== undefined) {
+						item.gridX = u.gridX
+					}
+					if (u.gridY !== undefined) {
+						item.gridY = u.gridY
+					}
+					if (u.gridWidth !== undefined) {
+						item.gridWidth = u.gridWidth
+					}
+					if (u.gridHeight !== undefined) {
+						item.gridHeight = u.gridHeight
+					}
 				}
 			}
 			/**
@@ -2407,10 +2528,16 @@ export default {
 		 */
 		isCollapsedWidget(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			if (!def || !def.type) return false
+			if (!def || !def.type) {
+				return false
+			}
 			const { text, visibleWhen } = this.widgetDisplayConfig(def)
-			if (this.isBannerDef(def) && text === '') return true
-			if (!visibleWhen) return false
+			if (this.isBannerDef(def) && text === '') {
+				return true
+			}
+			if (!visibleWhen) {
+				return false
+			}
 			const outcome = this.widgetConditionOutcome[item.widgetId]
 			return !outcome || outcome.met !== true
 		},
@@ -2454,7 +2581,7 @@ export default {
 				try {
 					const value = await readVisibleWhenValue(cond)
 					outcome = { met: compareVisibleWhen(value, cond.op || 'eq', cond.value), value }
-				} catch (e) {
+				} catch {
 					// fail-safe: hidden
 				}
 				// A newer run owns the map now — a stale verdict (possibly for
@@ -2463,13 +2590,17 @@ export default {
 					this.widgetConditionOutcome[def.id] = outcome
 				}
 			}))
-			if (seq !== this.widgetEvalSeq) return
+			if (seq !== this.widgetEvalSeq) {
+				return
+			}
 			// Prune outcomes for defs that left the conditional set — pruned
 			// AFTER the run (not before) so a still-visible widget never
 			// flashes collapsed while its re-evaluation is in flight.
 			const live = new Set(conditional.map((def) => def.id))
 			for (const id of Object.keys(this.widgetConditionOutcome)) {
-				if (!live.has(id)) delete this.widgetConditionOutcome[id]
+				if (!live.has(id)) {
+					delete this.widgetConditionOutcome[id]
+				}
 			}
 			this.widgetConditionsSettled = true
 		},
@@ -2522,11 +2653,19 @@ export default {
 					// was narrower and the two can disagree on gridY.
 					const effectiveWidth = to - x
 					let y = 0
-					for (let c = x; c < to; c++) y = Math.max(y, heights[c])
-					for (let c = x; c < to; c++) heights[c] = y + h
-					if (y === (item.gridY ?? 0) && effectiveWidth === w) return item
+					for (let c = x; c < to; c++) {
+						y = Math.max(y, heights[c])
+					}
+					for (let c = x; c < to; c++) {
+						heights[c] = y + h
+					}
+					if (y === (item.gridY ?? 0) && effectiveWidth === w) {
+						return item
+					}
 					const out = { ...item, gridY: y }
-					if (effectiveWidth !== w) out.gridWidth = effectiveWidth
+					if (effectiveWidth !== w) {
+						out.gridWidth = effectiveWidth
+					}
 					return out
 				})
 		},
@@ -2562,7 +2701,9 @@ export default {
 		requiredAppsFor(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			const req = def && def.requiresApp
-			if (!req) return []
+			if (!req) {
+				return []
+			}
 			return Array.isArray(req) ? req.filter(Boolean) : [req]
 		},
 
@@ -2578,8 +2719,12 @@ export default {
 		isAppAvailable(appId) {
 			const status = this.appStatuses && this.appStatuses[appId]
 			if (status) {
-				if (typeof status.enabled === 'boolean') return status.enabled
-				if (typeof status.installed === 'boolean') return status.installed
+				if (typeof status.enabled === 'boolean') {
+					return status.enabled
+				}
+				if (typeof status.installed === 'boolean') {
+					return status.installed
+				}
 			}
 			return isAppInstalled(appId)
 		},
@@ -2595,7 +2740,9 @@ export default {
 		 */
 		missingRequiredApp(item) {
 			for (const appId of this.requiredAppsFor(item)) {
-				if (!this.isAppAvailable(appId)) return appId
+				if (!this.isAppAvailable(appId)) {
+					return appId
+				}
 			}
 			return null
 		},
@@ -2637,7 +2784,9 @@ export default {
 		 */
 		registryRenderer(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			if (!def || !def.type) return null
+			if (!def || !def.type) {
+				return null
+			}
 			// `integration` is NOT ours to resolve — it has its own branch
 			// (isIntegrationWidget -> resolveRegistryWidget(integrationId)),
 			// and one without an `integrationId` must fall through to
@@ -2645,7 +2794,9 @@ export default {
 			// .integration would render a widget where the page means to say
 			// "unavailable". CnDetailPage excludes the same type for the same
 			// reason.
-			if (def.type === 'integration') return null
+			if (def.type === 'integration') {
+				return null
+			}
 			// Same three-layer order as CnWidgetGrid and CnDetailPage:
 			// consumer registry -> dashboard catalog -> BUILT_IN_WIDGETS.
 			//
@@ -2663,7 +2814,9 @@ export default {
 			//
 			// #709 unified CnWidgetGrid and CnDetailPage but missed this one.
 			const consumer = (this.cnRegistry || {})[def.type]
-			if (consumer) return consumer.component ?? consumer
+			if (consumer) {
+				return consumer.component ?? consumer
+			}
 			// THE TYPE AS WRITTEN WINS; the alias is only a fallback.
 			//
 			// `object-table` and `table` are two DIFFERENT registered widgets
@@ -2683,7 +2836,9 @@ export default {
 			// own right — `map-viewer` still reaches `map`.
 			const entry = getWidgetTypeEntry(def.type)
 				|| getWidgetTypeEntry(canonicalWidgetType(def.type))
-			if (entry && entry.renderer) return entry.renderer
+			if (entry && entry.renderer) {
+				return entry.renderer
+			}
 			return BUILT_IN_WIDGETS[def.type] || BUILT_IN_WIDGETS[canonicalWidgetType(def.type)] || null
 		},
 
@@ -2702,7 +2857,9 @@ export default {
 		 */
 		isCardWidget(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			if (!def || !def.type) return false
+			if (!def || !def.type) {
+				return false
+			}
 			// Same precedence as registryRenderer: the type as written first, the
 			// alias only as a fallback. Canonicalising first read the card flag
 			// off a DIFFERENT widget's entry, so the chrome could disagree with
@@ -2798,7 +2955,9 @@ export default {
 				def.showTitle = edited.showTitle !== false
 				def.customTitle = edited.customTitle || null
 				def.customIcon = edited.customIcon || null
-				if (edited.content !== undefined) def.content = edited.content
+				if (edited.content !== undefined) {
+					def.content = edited.content
+				}
 			}
 			const layoutItem = this.layout.find((l) => l.widgetId === this.configWidgetId)
 			if (layoutItem) {
@@ -2893,7 +3052,9 @@ export default {
 		widgetShowTitle(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			const value = item.showTitle !== undefined ? item.showTitle : def?.showTitle
-			if (value === undefined || value === null) return !this.isCardWidget(item)
+			if (value === undefined || value === null) {
+				return !this.isCardWidget(item)
+			}
 			return value !== false
 		},
 
@@ -2937,7 +3098,9 @@ export default {
 		widgetShowActions(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			const value = item.showActions !== undefined ? item.showActions : def?.showActions
-			if (value === undefined || value === null) return !this.isCardWidget(item)
+			if (value === undefined || value === null) {
+				return !this.isCardWidget(item)
+			}
 			return value !== false
 		},
 
@@ -2987,10 +3150,18 @@ export default {
 		 */
 		getWidgetShowRefresh(item) {
 			const def = this.getWidgetDef(item.widgetId) || {}
-			if (def.hideRefresh === true || item.hideRefresh === true) return false
-			if (typeof def.showRefresh === 'boolean') return def.showRefresh
-			if (typeof item.showRefresh === 'boolean') return item.showRefresh
-			if (this.hasWidgetSlot(item.widgetId)) return this.effectiveWidgetShowRefresh
+			if (def.hideRefresh === true || item.hideRefresh === true) {
+				return false
+			}
+			if (typeof def.showRefresh === 'boolean') {
+				return def.showRefresh
+			}
+			if (typeof item.showRefresh === 'boolean') {
+				return item.showRefresh
+			}
+			if (this.hasWidgetSlot(item.widgetId)) {
+				return this.effectiveWidgetShowRefresh
+			}
 			return this.showRefresh
 		},
 
@@ -3003,6 +3174,7 @@ export default {
 			const def = this.getWidgetDef(item.widgetId)
 			return def?.titleIconColor || null
 		},
+
 		/**
 		 * The widget's semantic header-icon colour. Read from the widget
 		 * definition's `titleIconVariant`; defaults to `primary`, which is
@@ -3018,6 +3190,7 @@ export default {
 			const def = this.getWidgetDef(item.widgetId)
 			return def?.titleIconVariant || 'primary'
 		},
+
 		/**
 		 * The widget's own section in the app's documentation, forwarded to
 		 * the shared Actions menu so its Documentation item deep-links to
@@ -3040,7 +3213,9 @@ export default {
 
 		getTileConfig(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			if (!def) return null
+			if (!def) {
+				return null
+			}
 			return {
 				title: def.title,
 				icon: def.icon,
@@ -3224,7 +3399,9 @@ export default {
 			// manifest that DOES set them must reach the component, or the
 			// declaration is a silent no-op that reads like configuration.
 			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'vertical', 'filled', 'route', 'iconClass']) {
-				if (props[key] !== undefined) out[key] = props[key]
+				if (props[key] !== undefined) {
+					out[key] = props[key]
+				}
 			}
 			// `countLabel` is the unit beside the number ("0 cases", "0 tasks").
 			// It is manifest-authored prose and was being forwarded raw, so a
@@ -3245,10 +3422,8 @@ export default {
 				out.entries = contentEntries
 			} else if (Array.isArray(def?.entries)) {
 				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnDashboardPage] stats-block "${item.widgetId}" declares \`entries\` at the widget-def root — `
-					+ 'move it under `content.entries`. Root-level `entries` is deprecated and will stop being read.',
-				)
+				console.warn(`[CnDashboardPage] stats-block "${item.widgetId}" declares \`entries\` at the widget-def root — `
+					+ 'move it under `content.entries`. Root-level `entries` is deprecated and will stop being read.')
 				out.entries = def.entries
 			}
 			return out
@@ -3279,10 +3454,14 @@ export default {
 			const props = content.props || def?.props || {}
 			const out = {}
 			const chartKind = content.chartKind || props.chartKind
-			if (chartKind) out.type = chartKind
+			if (chartKind) {
+				out.type = chartKind
+			}
 			for (const key of CHART_PROP_KEYS) {
 				const v = content[key] !== undefined ? content[key] : props[key]
-				if (v !== undefined) out[key] = v
+				if (v !== undefined) {
+					out[key] = v
+				}
 			}
 			// A dashboard tile's height is fixed by its grid units, so the chart
 			// has to fit the tile — CnChartWidget's standalone default is a
@@ -3291,7 +3470,9 @@ export default {
 			// chart tile into a scroll region: the tile scrolled the graph
 			// instead of showing it. An authored `height` still wins, so a
 			// manifest can pin one deliberately.
-			if (out.height === undefined) out.height = '100%'
+			if (out.height === undefined) {
+				out.height = '100%'
+			}
 			return out
 		},
 

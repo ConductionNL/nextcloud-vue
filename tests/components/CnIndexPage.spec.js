@@ -44,6 +44,7 @@ jest.mock('../../src/store/index.js', () => ({
 
 const { mount } = require('@vue/test-utils')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
+const { settleUntil } = require('../support/settleUntil.js')
 
 /** Stub every heavy sub-component that CnIndexPage uses internally. */
 const stubs = {
@@ -284,10 +285,17 @@ describe('search and filter parameter forwarding', () => {
 
 	it('renders self-fetch mode and calls fetchCollection on mount', async () => {
 		mountPage({ title: 'Items', register: 'r1', schema: 's1' })
-		// Give the async created() chain time to run
-		await new Promise((resolve) => setTimeout(resolve, 10))
+		// The mount fetch is a macrotask away, and 10 ms was a guess at how far.
+		// Wait for the call the test is named after instead. registerObjectType
+		// is synchronous in useSelfFetchList, so it has landed by the time the
+		// fetch it feeds has.
+		await settleUntil(
+			() => mockStore.fetchCollection.mock.calls.length > 0,
+			'the self-fetch mount fetch',
+		)
 		// In self-fetch mode the store is consulted
 		expect(mockStore.registerObjectType).toHaveBeenCalled()
+		expect(mockStore.fetchCollection).toHaveBeenCalled()
 	})
 })
 

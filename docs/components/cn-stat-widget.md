@@ -92,6 +92,51 @@ A plain scalar needs no `resolve`, and `objectField: "priority"` is accepted as 
 
 A non-numeric value renders as text, because `formatMetricValue` returns `String(value)` for anything non-finite.
 
+## Showing a state as a badge (`display`)
+
+`display: "badge"` renders the value as [`CnStatusBadge`](./cn-status-badge.md) instead of as a headline figure. A status is a state, not a quantity, and a state set in 32px type reads as a number that went wrong.
+
+```json
+{
+  "type": "stat",
+  "content": {
+    "label": "Status",
+    "display": "badge",
+    "emptyText": "Unknown",
+    "objectField": {
+      "field": "status",
+      "resolve": {
+        "register": "dossiq",
+        "schema": "statusType",
+        "labelField": "name",
+        "variantField": "isFinal",
+        "variantMap": { "true": "success", "false": "info" }
+      }
+    }
+  }
+}
+```
+
+The badge takes its colour from the first rule that names one: an `overrides` match, a `variantWhen` rule, the limit warning, the resolved row, then the static `variant`. `danger` is accepted as an alias of `error`, and a name the badge does not know is skipped so the next rule decides.
+
+`resolve.variantField` names a field on the looked-up row and `resolve.variantMap` maps its value to a variant, so a status colours itself from its own record rather than from a colour list copied into every manifest. Without a map, a row value that is already a variant name is used as is.
+
+`emptyText` replaces the dash for a value that is empty or that the lookup could not resolve. It is translated like `label` and `caption`. Without it the raw value stays visible, because a blank tile says nothing at all.
+
+## Recolouring from the record (`overrides`)
+
+`overrides` tests the bound record and replaces the label, the colour and the icon of the tile. The first match wins.
+
+```json
+{
+  "overrides": [
+    { "when": { "field": "suspended" }, "label": "Suspended", "variant": "warning", "icon": "PauseCircle" }
+  ]
+}
+```
+
+`when` takes the `visibleWhen` comparison grammar, so `{ field, op, value }` works alongside the truthiness form above. An override outranks `emptyText`, which is what makes a suspended record with no status still read as suspended. It recolours the plain text value too, not only the badge.
+
 ## Props
 
 | Prop | Type | Default | Description |

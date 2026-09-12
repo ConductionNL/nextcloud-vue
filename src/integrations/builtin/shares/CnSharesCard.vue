@@ -98,10 +98,10 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
-import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
 import AccountGroupOutline from 'vue-material-design-icons/AccountGroupOutline.vue'
-import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
 import Earth from 'vue-material-design-icons/Earth.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import Share from 'vue-material-design-icons/Share.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
@@ -159,6 +159,7 @@ export default {
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+
 		/** Optional single-entity reference (share id). */
 		value: { type: [String, Number], default: '' },
 		/** Pre-translated card title. */
@@ -260,9 +261,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler() { this.fetch() } },
-		surface() { this.fetch() },
-		value() { if (this.surface === 'single-entity') { this.fetchSingle() } },
+		objectId: { immediate: true, handler() {
+			this.fetch()
+		} },
+
+		surface() {
+			this.fetch()
+		},
+
+		value() {
+			if (this.surface === 'single-entity') {
+				this.fetchSingle()
+			}
+		},
 	},
 
 	methods: {

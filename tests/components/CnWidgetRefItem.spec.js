@@ -11,7 +11,7 @@
  *    or component not found in registry.
  */
 
-import { shallowMount } from '@vue/test-utils'
+import { flushPromises, shallowMount } from '@vue/test-utils'
 // Component definitions held in reactive state come back as Proxies in Vue 3,
 // so identity checks need the raw target (see useRuntimeManifest.spec.js).
 import { toRaw } from 'vue'
@@ -82,22 +82,18 @@ describe('CnWidgetRefItem', () => {
 		it('calls the OR widget-fetch API with the correct URL', async () => {
 			axios.get.mockResolvedValue({ data: { component: 'CoverageGridWidget' } })
 
-			const wrapper = mountItem('openregister://widget/regulation/coverageGrid')
+			mountItem('openregister://widget/regulation/coverageGrid')
 			// Let the created() async run.
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 
-			expect(axios.get).toHaveBeenCalledWith(
-				'/index.php/apps/openregister/api/schemas/regulation/widgets/coverageGrid',
-			)
+			expect(axios.get).toHaveBeenCalledWith('/index.php/apps/openregister/api/schemas/regulation/widgets/coverageGrid')
 		})
 
 		it('renders the resolved component after API success', async () => {
 			axios.get.mockResolvedValue({ data: { component: 'CoverageGridWidget', title: 'Grid' } })
 
 			const wrapper = mountItem('openregister://widget/regulation/coverageGrid')
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 
 			expect(wrapper.vm.loading).toBe(false)
 			expect(wrapper.vm.error).toBeNull()
@@ -110,8 +106,7 @@ describe('CnWidgetRefItem', () => {
 			})
 
 			const wrapper = mountItem('openregister://widget/regulation/coverageGrid')
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 
 			// widgetData should contain all keys except `component`
 			expect(wrapper.vm.widgetData).toEqual({ title: 'Coverage', items: ['a', 'b'] })
@@ -125,8 +120,7 @@ describe('CnWidgetRefItem', () => {
 			axios.get.mockRejectedValue(err)
 
 			const wrapper = mountItem('openregister://widget/regulation/coverageGrid')
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 
 			expect(wrapper.vm.loading).toBe(false)
 			expect(wrapper.vm.error).toContain('404')
@@ -138,8 +132,7 @@ describe('CnWidgetRefItem', () => {
 			axios.get.mockResolvedValue({ data: {} })
 
 			const wrapper = mountItem('openregister://widget/regulation/coverageGrid')
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 
 			expect(wrapper.vm.loading).toBe(false)
 			expect(wrapper.vm.error).toContain('"component"')
@@ -150,8 +143,7 @@ describe('CnWidgetRefItem', () => {
 			axios.get.mockResolvedValue({ data: { component: 'UnknownWidget' } })
 
 			const wrapper = mountItem('openregister://widget/regulation/coverageGrid')
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 
 			expect(wrapper.vm.error).toContain('"UnknownWidget"')
 			expect(warnSpy).toHaveBeenCalled()
@@ -193,13 +185,11 @@ describe('CnWidgetRefItem', () => {
 				.mockResolvedValueOnce({ data: { component: 'BoardProofWidget' } })
 
 			const wrapper = mountItem('openregister://widget/regulation/coverageGrid')
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 			expect(toRaw(wrapper.vm.resolvedComponent)).toBe(CoverageGridStub)
 
 			await wrapper.setProps({ refUri: 'openregister://widget/regulation/boardProof' })
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 			expect(toRaw(wrapper.vm.resolvedComponent)).toBe(BoardProofStub)
 			expect(axios.get).toHaveBeenCalledTimes(2)
 		})

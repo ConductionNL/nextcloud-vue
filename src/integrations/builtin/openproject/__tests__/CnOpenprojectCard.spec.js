@@ -13,7 +13,7 @@
  * branching paths instead of empty silently.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnOpenprojectCard = require('../CnOpenprojectCard.vue').default
 
 const DEFAULT_PROPS = {
@@ -49,8 +49,7 @@ describe('CnOpenprojectCard', () => {
 	it('renders the empty label when there are no linked work packages', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnOpenprojectCard, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No work packages linked yet')
 		wrapper.unmount()
 	})
@@ -69,8 +68,7 @@ describe('CnOpenprojectCard', () => {
 			}),
 		})
 		const wrapper = mount(CnOpenprojectCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const text = wrapper.text()
 		expect(text).toContain('4')
 		expect(wrapper.find('.cn-openproject-card__headline').exists()).toBe(true)
@@ -95,8 +93,7 @@ describe('CnOpenprojectCard', () => {
 			}),
 		})
 		const wrapper = mount(CnOpenprojectCard, { propsData: { ...DEFAULT_PROPS, surface: 'app-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-openproject-card__distribution-row')
 		expect(rows.length).toBeGreaterThanOrEqual(2)
 		// One progress dot, two done-class dots ("Done" and "Resolved" both map to done).
@@ -118,8 +115,7 @@ describe('CnOpenprojectCard', () => {
 			}),
 		})
 		const wrapper = mount(CnOpenprojectCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page', value: '2' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-openproject-card__row')
 		expect(rows).toHaveLength(3)
 		const highlighted = wrapper.findAll('.cn-openproject-card__row--highlight')
@@ -135,8 +131,7 @@ describe('CnOpenprojectCard', () => {
 			json: () => Promise.resolve(makeWp({ id: 42, title: 'Migrate DB', status: 'In progress' })),
 		})
 		const wrapper = mount(CnOpenprojectCard, { propsData: { ...DEFAULT_PROPS, surface: 'single-entity', value: 42 } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const chip = wrapper.find('.cn-openproject-card__chip')
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Migrate DB')
@@ -148,8 +143,7 @@ describe('CnOpenprojectCard', () => {
 	it('surfaces the unconfigured auth state (412) on the dashboard surface', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 412, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnOpenprojectCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('OpenProject not configured in Integriq')
 		expect(wrapper.find('.cn-openproject-card__auth-badge--warn').exists()).toBe(true)
 		wrapper.unmount()
@@ -158,8 +152,7 @@ describe('CnOpenprojectCard', () => {
 	it('surfaces the auth-expired state (401) on the detail-page surface', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 401, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnOpenprojectCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Authorisation for OpenProject expired')
 		expect(wrapper.find('.cn-openproject-card__auth-badge--error').exists()).toBe(true)
 		expect(wrapper.find('.cn-openproject-card__row').exists()).toBe(false)
@@ -169,8 +162,7 @@ describe('CnOpenprojectCard', () => {
 	it('shows the unavailable label when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnOpenprojectCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('OpenProject is currently unavailable.')
 		wrapper.unmount()
 	})
@@ -179,8 +171,7 @@ describe('CnOpenprojectCard', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnOpenprojectCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No work packages linked yet')
 		wrapper.unmount()
 		spy.mockRestore()

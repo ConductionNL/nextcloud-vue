@@ -8,8 +8,8 @@
  */
 
 import {
-	resolveRouteSentinels,
 	clearRouteSentinelWarnings,
+	resolveRouteSentinels,
 } from '../../src/utils/resolveRouteSentinels.js'
 
 describe('resolveRouteSentinels', () => {

@@ -70,15 +70,14 @@
  * Spec: features-roadmap-component — Requirement "RoadmapTab".
  */
 import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
 import { translate as t } from '@nextcloud/l10n'
-import { NcEmptyContent, NcLoadingIcon, NcButton } from '@nextcloud/vue'
+import { generateUrl } from '@nextcloud/router'
+import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import KeyOutline from 'vue-material-design-icons/KeyOutline.vue'
 import RoadVariant from 'vue-material-design-icons/RoadVariant.vue'
-
 import CnRoadmapItem from '../CnRoadmapItem/CnRoadmapItem.vue'
 
 export default {
@@ -105,6 +104,7 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * Admin opt-out flag — when true the tab renders the disabled empty state.
 		 */
@@ -124,19 +124,44 @@ export default {
 
 	computed: {
 		sortedItems() {
-			return [...this.items].sort(
-				(a, b) => (b.reactions?.total_count || 0) - (a.reactions?.total_count || 0),
-			)
+			return [...this.items].sort((a, b) => (b.reactions?.total_count || 0) - (a.reactions?.total_count || 0))
 		},
-		disabledLabel() { return t('nextcloud-vue', 'Roadmap is disabled by your administrator') },
-		patNotConfiguredTitle() { return t('nextcloud-vue', 'Roadmap not yet configured') },
-		patNotConfiguredDescription() { return t('nextcloud-vue', 'Ask your administrator to add a GitHub Personal Access Token in the OpenRegister settings to enable the roadmap.') },
-		rateLimitedTitle() { return t('nextcloud-vue', 'GitHub temporarily unavailable') },
-		rateLimitedDescription() { return t('nextcloud-vue', 'GitHub rate limited the request — please retry in a few minutes.') },
-		errorTitle() { return t('nextcloud-vue', 'Could not load the roadmap') },
-		emptyTitle() { return t('nextcloud-vue', 'No roadmap items yet') },
-		emptyDescription() { return t('nextcloud-vue', 'When the maintainers label issues "enhancement" or "feature" on GitHub they will appear here.') },
-		retryLabel() { return t('nextcloud-vue', 'Retry') },
+
+		disabledLabel() {
+			return t('nextcloud-vue', 'Roadmap is disabled by your administrator')
+		},
+
+		patNotConfiguredTitle() {
+			return t('nextcloud-vue', 'Roadmap not yet configured')
+		},
+
+		patNotConfiguredDescription() {
+			return t('nextcloud-vue', 'Ask your administrator to add a GitHub Personal Access Token in the OpenRegister settings to enable the roadmap.')
+		},
+
+		rateLimitedTitle() {
+			return t('nextcloud-vue', 'GitHub temporarily unavailable')
+		},
+
+		rateLimitedDescription() {
+			return t('nextcloud-vue', 'GitHub rate limited the request — please retry in a few minutes.')
+		},
+
+		errorTitle() {
+			return t('nextcloud-vue', 'Could not load the roadmap')
+		},
+
+		emptyTitle() {
+			return t('nextcloud-vue', 'No roadmap items yet')
+		},
+
+		emptyDescription() {
+			return t('nextcloud-vue', 'When the maintainers label issues "enhancement" or "feature" on GitHub they will appear here.')
+		},
+
+		retryLabel() {
+			return t('nextcloud-vue', 'Retry')
+		},
 	},
 
 	mounted() {

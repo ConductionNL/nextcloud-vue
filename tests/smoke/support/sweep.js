@@ -104,7 +104,9 @@ async function mountOnce(name, Component) {
 	const messages = []
 	const capture = (m) => {
 		const s = typeof m === 'string' ? m : String(m && m.message ? m.message : m)
-		if (!isIgnorable(s)) messages.push(s.split('\n')[0].trim())
+		if (!isIgnorable(s)) {
+			messages.push(s.split('\n')[0].trim())
+		}
 	}
 
 	const spyWarn = jest.spyOn(console, 'warn').mockImplementation(capture)
@@ -196,11 +198,15 @@ async function mountOnce(name, Component) {
 		threw = String(e && e.message ? e.message : e).split('\n')[0].trim()
 	} finally {
 		try {
-			if (wrapper) wrapper.unmount()
+			if (wrapper) {
+				wrapper.unmount()
+			}
 		} catch (e) {
 			// An unmount failure is a real defect too, but attribute it clearly
 			// rather than letting it masquerade as a mount failure.
-			if (!threw) threw = 'unmount: ' + String(e && e.message ? e.message : e).split('\n')[0].trim()
+			if (!threw) {
+				threw = 'unmount: ' + String(e && e.message ? e.message : e).split('\n')[0].trim()
+			}
 		}
 		container.remove()
 		spyWarn.mockRestore()
@@ -229,7 +235,9 @@ function componentExports(barrel) {
 			// A component definition is an object (SFCs compile to one) or a
 			// function (defineAsyncComponent / functional). Anything else that
 			// happens to be Cn-prefixed is not a component.
-			if (!v || (typeof v !== 'object' && typeof v !== 'function')) return false
+			if (!v || (typeof v !== 'object' && typeof v !== 'function')) {
+				return false
+			}
 
 			// ...but an ES6 CLASS is also `typeof 'function'`, so the check above
 			// admits one. `CnHttpError` (the error cnFetchJson throws) is
@@ -242,7 +250,9 @@ function componentExports(barrel) {
 			// instanceof Error` alone, so a subclass of a subclass is caught too.
 			let proto = v.prototype
 			while (proto) {
-				if (proto === Error.prototype) return false
+				if (proto === Error.prototype) {
+					return false
+				}
 				proto = Object.getPrototypeOf(proto)
 			}
 			return true

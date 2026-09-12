@@ -122,7 +122,9 @@ describe('a named source supplies its columns to the table', () => {
 		const source = indexSources.flows()
 
 		const cols = tableColumns({
-			columns: [], isNamedSource: true, namedSource: source,
+			columns: [],
+			isNamedSource: true,
+			namedSource: source,
 		})
 
 		expect(cols.length).toBeGreaterThan(0)
@@ -134,7 +136,9 @@ describe('a named source supplies its columns to the table', () => {
 		const mine = [{ key: 'app', label: 'App' }]
 
 		const cols = tableColumns({
-			columns: mine, isNamedSource: true, namedSource: indexSources.flows(),
+			columns: mine,
+			isNamedSource: true,
+			namedSource: indexSources.flows(),
 		})
 
 		// openregister's cross-app flow list needs an `app` column the shared
@@ -191,7 +195,9 @@ describe('a named source supplies its row actions', () => {
 		const mine = [{ id: 'archive', label: 'Archive' }]
 
 		const acts = mergedActions({
-			actions: mine, isNamedSource: true, namedSource: indexSources.flows(),
+			actions: mine,
+			isNamedSource: true,
+			namedSource: indexSources.flows(),
 		})
 
 		expect(acts.map((a) => a.label)).toEqual(['Archive'])
@@ -293,7 +299,9 @@ describe('a named source supplies its create and navigation actions', () => {
 			namedSource: flows(),
 			$router: { push: (r) => pushed.push(r) },
 			showFormDialog: true,
-			$emit: (e) => { emitted = e },
+			$emit: (e) => {
+				emitted = e
+			},
 		})
 		expect(emitted).toBe('add')
 		expect(pushed).toEqual([])

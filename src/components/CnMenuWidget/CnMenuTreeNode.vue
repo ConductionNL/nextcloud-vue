@@ -44,12 +44,12 @@
 				:key="`tree-child-${idx}`"
 				:item="child"
 				:depth="depth + 1"
-				:show-icons="showIcons"
-				:expanded-by-default="expandedByDefault"
-				:active-path="activePath"
-				:active-leaf-key="activeLeafKey"
-				:current-key="`${currentKey}.${idx}`"
-				:active-highlight="activeHighlight"
+				:showIcons="showIcons"
+				:expandedByDefault="expandedByDefault"
+				:activePath="activePath"
+				:activeLeafKey="activeLeafKey"
+				:currentKey="`${currentKey}.${idx}`"
+				:activeHighlight="activeHighlight"
 				@navigate="$emit('navigate', $event)" />
 		</ul>
 	</li>
@@ -80,21 +80,25 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** 1-indexed depth — drives indentation. */
 		depth: {
 			type: Number,
 			default: 1,
 		},
+
 		/** When false, all icon slots collapse to invisible spacers. */
 		showIcons: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** When true, every node mounts already expanded. */
 		expandedByDefault: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Dotted-key map of `'active' | 'in-path'` flags.
 		 *
@@ -104,16 +108,19 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Key of the deepest active leaf; used to disambiguate ties. */
 		activeLeafKey: {
 			type: String,
 			default: null,
 		},
+
 		/** Key of THIS node within the parent's path map. */
 		currentKey: {
 			type: String,
 			required: true,
 		},
+
 		/** Highlight style — drives the row class. */
 		activeHighlight: {
 			type: String,

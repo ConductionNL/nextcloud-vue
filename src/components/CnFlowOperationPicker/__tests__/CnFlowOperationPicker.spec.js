@@ -79,7 +79,7 @@ describe('CnFlowOperationPicker', () => {
 		expect(wrapper.find('.cn-flow-operation-picker__list').exists()).toBe(false)
 		// No "Link automation" confirm button.
 		const confirmButtons = wrapper.findAll('button')
-		const linkButton = confirmButtons.filter(b => b.text().includes('Link automation'))
+		const linkButton = confirmButtons.filter((b) => b.text().includes('Link automation'))
 		expect(linkButton.length).toBe(0)
 		wrapper.unmount()
 	})

@@ -4,8 +4,8 @@
  */
 import { mount } from '@vue/test-utils'
 import { defineComponent, h, nextTick, ref } from 'vue'
-import CnTabs from '../../src/components/CnTabs/CnTabs.vue'
 import CnTab from '../../src/components/CnTabs/CnTab.vue'
+import CnTabs from '../../src/components/CnTabs/CnTabs.vue'
 import { CN_TABS_INJECTION_KEY } from '../../src/components/CnTabs/tabsKey.js'
 
 /**

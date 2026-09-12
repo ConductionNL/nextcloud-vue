@@ -72,7 +72,7 @@
 				:href="opUrl(op)"
 				target="_blank"
 				:bold="true"
-				:force-display-actions="isAdmin">
+				:forceDisplayActions="isAdmin">
 				<template #icon>
 					<span class="cn-flow-tab__avatar" :class="enabledClass(op)" :aria-hidden="true">
 						<SitemapOutline :size="20" />
@@ -106,7 +106,7 @@
 						class="cn-flow-tab__unlink"
 						:aria-label="t('nextcloud-vue', 'Unlink automation')"
 						data-testid="cn-flow-tab-unlink"
-						:close-after-click="true"
+						:closeAfterClick="true"
 						@click="confirmUnlink(op)">
 						<template #icon>
 							<Close :size="20" />
@@ -119,8 +119,8 @@
 
 		<CnFlowOperationPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
-			:flow-settings-url="flowSettingsUrl"
+			:apiBase="apiBase"
+			:flowSettingsUrl="flowSettingsUrl"
 			@close="pickerOpen = false"
 			@link="onLink" />
 	</div>
@@ -149,8 +149,10 @@ export default {
 	components: { NcActionButton, NcButton, NcListItem, NcLoadingIcon, AlertCircleOutline, Close, Plus, SitemapOutline, CnFlowOperationPicker, CnStatusBadge },
 
 	props: {
+		/* eslint-disable vue/no-unused-properties -- the integration dispatch binds integrationId on every integration component (see CnIntegrationWidgetGrid), so declaring it keeps it out of $attrs */
 		/** Stable integration id (forwarded from the registry — always `'flow'`). */
 		integrationId: { type: String, default: 'flow' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Parent object id. */
 		objectId: { type: String, required: true },
 		/** OpenRegister register id (slug or uuid). */
@@ -181,9 +183,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchOperations() } } },
-		register() { this.fetchOperations() },
-		schema() { this.fetchOperations() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchOperations()
+			}
+		} },
+
+		register() {
+			this.fetchOperations()
+		},
+
+		schema() {
+			this.fetchOperations()
+		},
 	},
 
 	methods: {
@@ -241,7 +253,7 @@ export default {
 		events(op) {
 			const raw = op.events ?? op.data?.events ?? []
 			if (Array.isArray(raw) === true) {
-				return raw.filter(e => typeof e === 'string' && e !== '')
+				return raw.filter((e) => typeof e === 'string' && e !== '')
 			}
 			return []
 		},
@@ -263,7 +275,7 @@ export default {
 				try {
 					const parsed = JSON.parse(raw)
 					return Array.isArray(parsed) === true ? parsed.length : 0
-				} catch (e) {
+				} catch {
 					return 0
 				}
 			}

@@ -13,10 +13,10 @@
 			:key="`feed-${index}`"
 			class="cn-news-form__feed-row">
 			<NcTextField
-				:model-value="url"
+				:modelValue="url"
 				:label="t('nextcloud-vue', 'Feed URL')"
 				placeholder="https://example.com/feed.xml"
-				@update:model-value="updateFeedUrl(index, $event)" />
+				@update:modelValue="updateFeedUrl(index, $event)" />
 			<button
 				type="button"
 				class="cn-news-form__feed-remove"
@@ -33,71 +33,71 @@
 		</button>
 
 		<NcSelect
-			:model-value="layout"
+			:modelValue="layout"
 			:options="layoutOptions"
-			:input-label="t('nextcloud-vue', 'Layout')"
+			:inputLabel="t('nextcloud-vue', 'Layout')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('layout', $event)" />
 
 		<NcTextField
-			:model-value="String(itemLimit)"
+			:modelValue="String(itemLimit)"
 			type="number"
 			:label="t('nextcloud-vue', 'Item limit (1–50)')"
-			@update:model-value="updateNumericField('itemLimit', $event, 1, 50)" />
+			@update:modelValue="updateNumericField('itemLimit', $event, 1, 50)" />
 
 		<NcCheckboxRadioSwitch
-			:model-value="showThumbnails"
-			@update:model-value="updateField('showThumbnails', $event)">
+			:modelValue="showThumbnails"
+			@update:modelValue="updateField('showThumbnails', $event)">
 			{{ t('nextcloud-vue', 'Show thumbnails') }}
 		</NcCheckboxRadioSwitch>
 
 		<NcCheckboxRadioSwitch
-			:model-value="showSummary"
-			@update:model-value="updateField('showSummary', $event)">
+			:modelValue="showSummary"
+			@update:modelValue="updateField('showSummary', $event)">
 			{{ t('nextcloud-vue', 'Show summary') }}
 		</NcCheckboxRadioSwitch>
 
 		<NcTextField
-			:model-value="String(summaryMaxChars)"
+			:modelValue="String(summaryMaxChars)"
 			type="number"
 			:label="t('nextcloud-vue', 'Summary max characters')"
-			@update:model-value="updateNumericField('summaryMaxChars', $event, 0, 5000)" />
+			@update:modelValue="updateNumericField('summaryMaxChars', $event, 0, 5000)" />
 
 		<NcSelect
-			:model-value="dateFormat"
+			:modelValue="dateFormat"
 			:options="dateFormatOptions"
-			:input-label="t('nextcloud-vue', 'Date format')"
+			:inputLabel="t('nextcloud-vue', 'Date format')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('dateFormat', $event)" />
 
 		<NcCheckboxRadioSwitch
-			:model-value="metadataFilterEnabled"
-			@update:model-value="toggleMetadataFilter">
+			:modelValue="metadataFilterEnabled"
+			@update:modelValue="toggleMetadataFilter">
 			{{ t('nextcloud-vue', 'Filter by dashboard metadata') }}
 		</NcCheckboxRadioSwitch>
 
 		<div v-if="metadataFilterEnabled" class="cn-news-form__metadata">
 			<NcTextField
-				:model-value="metadataFieldKey"
+				:modelValue="metadataFieldKey"
 				:label="t('nextcloud-vue', 'Metadata field key')"
 				placeholder="department"
-				@update:model-value="updateMetadataField('fieldKey', $event)" />
+				@update:modelValue="updateMetadataField('fieldKey', $event)" />
 			<NcTextField
-				:model-value="metadataValue"
+				:modelValue="metadataValue"
 				:label="t('nextcloud-vue', 'Metadata value to match')"
 				placeholder="marketing"
-				@update:model-value="updateMetadataField('value', $event)" />
+				@update:modelValue="updateMetadataField('value', $event)" />
 		</div>
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 
 const ALLOWED_LAYOUTS = Object.freeze(['list', 'grid', 'carousel'])
 
@@ -137,6 +137,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Initial content values (registry defaults when not editing). */
 		value: {
 			type: Object,
@@ -233,7 +234,7 @@ export default {
 		 * Set a field and emit.
 		 *
 		 * @param {string} field the field name.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {

@@ -9,7 +9,7 @@
  *    emit, none. These must keep working (back-compat).
  */
 
-import { resolveActionHandler, dispatchAction } from '../../src/components/CnIndexPage/manifestActionDispatch.js'
+import { dispatchAction, resolveActionHandler } from '../../src/components/CnIndexPage/manifestActionDispatch.js'
 
 function ctx(overrides = {}) {
 	return {

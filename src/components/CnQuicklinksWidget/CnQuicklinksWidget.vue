@@ -123,6 +123,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Whether the current user is an admin. Combined with `canEdit` to
 		 * suppress click handlers in edit mode.
@@ -133,6 +134,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Whether the surrounding dashboard shell is in edit mode.
 		 *
@@ -183,7 +185,7 @@ export default {
 		/** Resolved icon-size key (default `medium`). */
 		iconSize() {
 			const declared = this.content?.iconSize
-			return Object.prototype.hasOwnProperty.call(SIZE_PX, declared) ? declared : 'medium'
+			return Object.hasOwn(SIZE_PX, declared) ? declared : 'medium'
 		},
 
 		/** The pixel size for the active icon-size key. */
@@ -194,7 +196,7 @@ export default {
 		/** Resolved icon-shape key (default `rounded`). */
 		iconShape() {
 			const declared = this.content?.iconShape
-			return Object.prototype.hasOwnProperty.call(SHAPE_RADIUS, declared) ? declared : 'rounded'
+			return Object.hasOwn(SHAPE_RADIUS, declared) ? declared : 'rounded'
 		},
 
 		/** The CSS border-radius for the active shape. */
@@ -476,7 +478,7 @@ export default {
 				}
 				const parsed = new URL(url)
 				return parsed.hostname
-			} catch (_err) {
+			} catch {
 				return ''
 			}
 		},

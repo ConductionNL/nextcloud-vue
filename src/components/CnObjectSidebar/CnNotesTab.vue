@@ -9,11 +9,11 @@
 		<div class="cn-sidebar-tab__action">
 			<NcRichContenteditable
 				class="cn-sidebar-tab__composer"
-				:model-value="newNoteText"
-				:auto-complete="fetchMentionSuggestions"
+				:modelValue="newNoteText"
+				:autoComplete="fetchMentionSuggestions"
 				:placeholder="addNotePlaceholder"
 				multiline
-				@update:model-value="newNoteText = $event" />
+				@update:modelValue="newNoteText = $event" />
 			<div class="cn-sidebar-tab__action--row">
 				<NcButton
 					v-if="editingNoteId"
@@ -49,7 +49,7 @@
 				:key="note.id"
 				:name="note.actorDisplayName || note.author || 'Unknown'"
 				:bold="false"
-				:force-display-actions="true">
+				:forceDisplayActions="true">
 				<template #icon>
 					<CommentTextOutline :size="32" />
 				</template>
@@ -89,13 +89,13 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcListItem, NcActionButton, NcLoadingIcon, NcRichContenteditable } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcListItem, NcLoadingIcon, NcRichContenteditable } from '@nextcloud/vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
-import Send from 'vue-material-design-icons/Send.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Send from 'vue-material-design-icons/Send.vue'
 import { buildHeaders } from '../../utils/index.js'
-import { parseMentions, extractMentionedIds } from '../../utils/mentions.js'
+import { extractMentionedIds, parseMentions } from '../../utils/mentions.js'
 import { searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 
 export default {
@@ -126,6 +126,7 @@ export default {
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 		/** Text shown when there are no notes */
 		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
+		/** Text shown while the notes are being fetched */
 		loadingLabel: { type: String, default: () => t('nextcloud-vue', 'Loading notes…') },
 	},
 
@@ -160,13 +161,19 @@ export default {
 	watch: {
 		objectId: {
 			immediate: true,
-			handler(id) { if (id) this.fetchNotes() },
+			handler(id) {
+				if (id) {
+					this.fetchNotes()
+				}
+			},
 		},
 	},
 
 	methods: {
 		async fetchNotes() {
-			if (!this.register || !this.schema) return
+			if (!this.register || !this.schema) {
+				return
+			}
 			this.loading = true
 			try {
 				const response = await fetch(
@@ -179,6 +186,7 @@ export default {
 					this.resolveMentionNames()
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnNotesTab: Failed to fetch notes', err)
 			} finally {
 				this.loading = false
@@ -191,7 +199,7 @@ export default {
 		 * via `searchNextcloudUsers` (fail-soft: errors resolve to []).
 		 *
 		 * @param {string} search The partial id/name typed after `@`.
-		 * @param {Function} callback Receives the suggestion array.
+		 * @param {(suggestions: Array<object>) => void} callback Receives the suggestion array.
 		 */
 		async fetchMentionSuggestions(search, callback) {
 			const users = await searchNextcloudUsers(search)
@@ -269,7 +277,9 @@ export default {
 		 */
 		emitMentionEvent(savedText, noteId) {
 			const mentionedUserIds = extractMentionedIds(savedText)
-			if (mentionedUserIds.length === 0) return
+			if (mentionedUserIds.length === 0) {
+				return
+			}
 			this.$emit('mention', {
 				objectId: this.objectId,
 				register: this.register,
@@ -280,7 +290,9 @@ export default {
 		},
 
 		async addNote() {
-			if (!this.newNoteText.trim()) return
+			if (!this.newNoteText.trim()) {
+				return
+			}
 			this.saving = true
 			const savedText = this.newNoteText.trim()
 			try {
@@ -303,6 +315,7 @@ export default {
 				this.newNoteText = ''
 				await this.fetchNotes()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnNotesTab: Failed to add note', err)
 			} finally {
 				this.saving = false
@@ -320,7 +333,9 @@ export default {
 		},
 
 		async saveEdit() {
-			if (!this.newNoteText.trim() || !this.editingNoteId) return
+			if (!this.newNoteText.trim() || !this.editingNoteId) {
+				return
+			}
 			this.saving = true
 			const savedText = this.newNoteText.trim()
 			const noteId = this.editingNoteId
@@ -338,6 +353,7 @@ export default {
 				this.newNoteText = ''
 				await this.fetchNotes()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnNotesTab: Failed to update note', err)
 			} finally {
 				this.saving = false
@@ -354,14 +370,17 @@ export default {
 					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes/${note.id}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
-				this.notes = this.notes.filter(n => n.id !== note.id)
+				this.notes = this.notes.filter((n) => n.id !== note.id)
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnNotesTab: Failed to delete note', err)
 			}
 		},
 
 		formatDate(dateStr) {
-			if (!dateStr) return ''
+			if (!dateStr) {
+				return ''
+			}
 			try {
 				return new Date(dateStr).toLocaleString(undefined, {
 					year: 'numeric',
@@ -370,7 +389,9 @@ export default {
 					hour: '2-digit',
 					minute: '2-digit',
 				})
-			} catch { return dateStr }
+			} catch {
+				return dateStr
+			}
 		},
 	},
 }

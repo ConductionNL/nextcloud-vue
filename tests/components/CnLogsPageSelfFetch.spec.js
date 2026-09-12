@@ -166,8 +166,7 @@ describe('CnLogsPage — store-backed list', () => {
 	// instead of calling a handler by name — the previous shape, which could not
 	// have caught either of the defects the tests below pin, since both are about
 	// WHICH fires the watcher gets and what it does with them.
-	const reactiveRoute = (query = {}, params = {}, name = 'job-logs') =>
-		reactive({ name, query, params })
+	const reactiveRoute = (query = {}, params = {}, name = 'job-logs') => reactive({ name, query, params })
 
 	it('a $route.query change re-fetches exactly once with the new filter', async () => {
 		const route = reactiveRoute({ jobId: 'j-1' })

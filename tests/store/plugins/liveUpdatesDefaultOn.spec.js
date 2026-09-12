@@ -14,9 +14,9 @@
  */
 
 import { createPinia, setActivePinia } from 'pinia'
-import { createObjectStore } from '../../../src/store/useObjectStore.js'
-import { liveUpdatesPlugin } from '../../../src/store/plugins/liveUpdates.js'
 import { resetLiveUpdates } from '../../../src/store/liveUpdates/transport.js'
+import { liveUpdatesPlugin } from '../../../src/store/plugins/liveUpdates.js'
+import { createObjectStore } from '../../../src/store/useObjectStore.js'
 
 // --- Mocks ---
 
@@ -180,10 +180,10 @@ describe('createObjectStore default-on live updates', () => {
 			})
 
 			let resolve
-			const pending = new Promise((res) => { resolve = res })
-			global.fetch = jest.fn().mockReturnValue(
-				pending.then(() => okJson({ results: [], total: 0, page: 1, pages: 1 })),
-			)
+			const pending = new Promise((res) => {
+				resolve = res
+			})
+			global.fetch = jest.fn().mockReturnValue(pending.then(() => okJson({ results: [], total: 0, page: 1, pages: 1 })))
 
 			const params = { _limit: 10 }
 			const p1 = store.fetchCollection('melding', params)
@@ -206,10 +206,10 @@ describe('createObjectStore default-on live updates', () => {
 			await store.subscribe('melding', 'uuid-abc')
 
 			let resolve
-			const pending = new Promise((res) => { resolve = res })
-			global.fetch = jest.fn().mockReturnValue(
-				pending.then(() => okJson({ results: [], total: 0, page: 1, pages: 1 })),
-			)
+			const pending = new Promise((res) => {
+				resolve = res
+			})
+			global.fetch = jest.fn().mockReturnValue(pending.then(() => okJson({ results: [], total: 0, page: 1, pages: 1 })))
 
 			const params = { _limit: 10 }
 			const p1 = store.fetchCollection('melding', params)

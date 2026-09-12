@@ -29,14 +29,14 @@
 
 ### Slots
 
-| Name              | Bindings                              | Description |
-| ----------------- | ------------------------------------- | ----------- |
-| `above-tabs`      | `loading`                             |             |
-| `'tab-' + tab.id` | `name`, `loading`                     |             |
-| `below-tabs`      | `loading`                             |             |
-| `actions-left`    | `loading`, `is-create-mode`, `result` |             |
-| `actions-right`   | `loading`, `is-create-mode`, `result` |             |
-| `confirm-icon`    | —                                     |             |
+| Name              | Bindings                            | Description |
+| ----------------- | ----------------------------------- | ----------- |
+| `above-tabs`      | `loading`                           |             |
+| `'tab-' + tab.id` | `name`, `loading`                   |             |
+| `below-tabs`      | `loading`                           |             |
+| `actions-left`    | `loading`, `isCreateMode`, `result` |             |
+| `actions-right`   | `loading`, `isCreateMode`, `result` |             |
+| `confirm-icon`    | —                                   |             |
 
 ### Methods
 

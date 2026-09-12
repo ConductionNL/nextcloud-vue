@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:no-close="loading"
+		:noClose="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -31,23 +31,23 @@
 			<div v-if="entities.length > 0" class="cn-mass-export__field">
 				<label for="cn-mass-export-entity">{{ entityLabel }}</label>
 				<NcSelect
-					input-id="cn-mass-export-entity"
-					:label-outside="true"
+					inputId="cn-mass-export-entity"
+					:labelOutside="true"
 					:options="entities"
-					:model-value="selectedEntity"
+					:modelValue="selectedEntity"
 					:clearable="false"
-					@update:model-value="selectedEntity = $event" />
+					@update:modelValue="selectedEntity = $event" />
 			</div>
 
 			<div class="cn-mass-export__field">
 				<label for="cn-mass-export-format">{{ formatLabel }}</label>
 				<NcSelect
-					input-id="cn-mass-export-format"
-					:label-outside="true"
+					inputId="cn-mass-export-format"
+					:labelOutside="true"
 					:options="formats"
-					:model-value="selectedFormat"
+					:modelValue="selectedFormat"
 					:clearable="false"
-					@update:model-value="selectedFormat = $event" />
+					@update:modelValue="selectedFormat = $event" />
 			</div>
 		</div>
 
@@ -153,6 +153,7 @@ export default {
 		 * ("which dataset am I exporting?"). Empty (the default) hides the
 		 * picker and keeps the pre-existing format-only dialog. When set, the
 		 * `confirm` payload carries the chosen `entity` id.
+		 *
 		 * @type {Array<{id: string, label: string}>}
 		 */
 		entities: {
@@ -202,7 +203,9 @@ export default {
 	},
 
 	beforeUnmount() {
-		if (this.closeTimeout) clearTimeout(this.closeTimeout)
+		if (this.closeTimeout) {
+			clearTimeout(this.closeTimeout)
+		}
 	},
 
 	methods: {

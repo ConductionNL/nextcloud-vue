@@ -9,14 +9,14 @@
  */
 
 import {
-	useWalkthrough,
 	__resetWalkthroughCacheForTests,
 	loadWalkthroughSeenVersion,
+	normaliseSeenVersion,
 	persistWalkthroughSeenVersion,
 	readLocalWalkthroughSeenVersion,
-	normaliseSeenVersion,
-	walkthroughPreferenceUrl,
+	useWalkthrough,
 	WALKTHROUGH_SEEN_STORAGE_PREFIX,
+	walkthroughPreferenceUrl,
 } from '@/composables/useWalkthrough.js'
 
 /**
@@ -74,9 +74,7 @@ describe('walkthrough completion persistence', () => {
 			const http = makeHttp({ value: '2.1.0' })
 			const storage = makeStorage()
 			const seen = await loadWalkthroughSeenVersion('openbuild', KEY, { http, storage })
-			expect(http.get).toHaveBeenCalledWith(
-				expect.stringContaining('/apps/openbuild/api/preferences/' + KEY),
-			)
+			expect(http.get).toHaveBeenCalledWith(expect.stringContaining('/apps/openbuild/api/preferences/' + KEY))
 			expect(seen).toBe('2.1.0')
 		})
 

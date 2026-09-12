@@ -57,7 +57,7 @@
   and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
 -->
 <template>
-	<NcContent :app-name="appDisplayName || (manifest && manifest.name) || appId" :data-nldesign-theme-scope="appId" data-testid="cn-app-root">
+	<NcContent :appName="appDisplayName || (manifest && manifest.name) || appId" :data-nldesign-theme-scope="appId" data-testid="cn-app-root">
 		<!-- Phase 0a: capabilities check in flight -->
 		<template v-if="capabilitiesLoading">
 			<div class="cn-app-root__capabilities-loading" data-testid="cn-app-root-capabilities-loading">
@@ -77,7 +77,7 @@
 		  to its public landing page). See REQ-OR-4.
 		-->
 		<template v-else-if="missingApps.length > 0">
-			<slot name="or-missing" :missing-apps="missingApps">
+			<slot name="or-missing" :missingApps="missingApps">
 				<div class="cn-app-root__or-missing">
 					<NcEmptyContent
 						:name="orMissingTitle"
@@ -151,7 +151,7 @@
 			<slot name="dependency-missing" :dependencies="unresolvedHardDependencies">
 				<CnDependencyMissing
 					:dependencies="unresolvedHardDependencies"
-					:app-name="appId" />
+					:appName="appId" />
 			</slot>
 		</template>
 
@@ -168,10 +168,10 @@
 			<slot name="setup" :steps="manifest.setup.steps" :status="setupState">
 				<div class="cn-app-root__setup">
 					<CnSetupWizard
-						:app-id="appId"
+						:appId="appId"
 						:steps="manifest.setup.steps"
 						:cancellable="false"
-						:completed-step-ids="setupCompletedStepIds"
+						:completedStepIds="setupCompletedStepIds"
 						@complete="onSetupComplete" />
 				</div>
 			</slot>
@@ -201,14 +201,14 @@
 			<slot name="menu"
 				:manifest="menuManifest"
 				:permissions="permissions"
-				:is-owner="isOwner"
-				:is-admin="isAdmin"
-				:app-id="appId">
+				:isOwner="isOwner"
+				:isAdmin="isAdmin"
+				:appId="appId">
 				<CnAppNav :manifest="menuManifest"
 					:permissions="permissions"
-					:is-owner="isOwner"
-					:is-admin="isAdmin"
-					:app-id="appId" />
+					:isOwner="isOwner"
+					:isAdmin="isAdmin"
+					:appId="appId" />
 			</slot>
 			<NcAppContent>
 				<!--
@@ -387,16 +387,16 @@
 				v-if="shouldAutoMountObjectSidebar"
 				:open="effectiveObjectSidebarState.open === true"
 				:tabs="effectiveObjectSidebarState.tabs"
-				:object-type="effectiveObjectSidebarState.objectType"
-				:object-id="effectiveObjectSidebarState.objectId"
-				:object-data="effectiveObjectSidebarState.object"
-				:object-schema="effectiveObjectSidebarState.schemaObject"
+				:objectType="effectiveObjectSidebarState.objectType"
+				:objectId="effectiveObjectSidebarState.objectId"
+				:objectData="effectiveObjectSidebarState.object"
+				:objectSchema="effectiveObjectSidebarState.schemaObject"
 				:register="effectiveObjectSidebarState.register"
 				:schema="effectiveObjectSidebarState.schema"
 				:title="effectiveObjectSidebarState.title"
 				:subtitle="effectiveObjectSidebarState.subtitle"
-				:hidden-tabs="effectiveObjectSidebarState.hiddenTabs"
-				:requested-tab="effectiveObjectSidebarState.requestedTab"
+				:hiddenTabs="effectiveObjectSidebarState.hiddenTabs"
+				:requestedTab="effectiveObjectSidebarState.requestedTab"
 				@update:open="effectiveObjectSidebarState.open = $event" />
 
 			<!--
@@ -407,7 +407,7 @@
 			  Gating (health probe, pageKind overrides) happens inside the
 			  component; app opt-in is via the `aiCompanion` prop (default off).
 			-->
-			<CnAiCompanion v-if="aiCompanion" :chat-app-id="chatAppId" />
+			<CnAiCompanion v-if="aiCompanion" :chatAppId="chatAppId" />
 
 			<!--
 			  Non-gating setup wizard (REQ-SETUP-NV-012 optional path). Shown
@@ -417,10 +417,10 @@
 			-->
 			<div v-if="setupWizardOpen" class="cn-app-root__setup-optional">
 				<CnSetupWizard
-					:app-id="appId"
+					:appId="appId"
 					:steps="manifest.setup.steps"
 					:cancellable="true"
-					:completed-step-ids="setupCompletedStepIds"
+					:completedStepIds="setupCompletedStepIds"
 					@complete="onSetupComplete"
 					@close="dismissSetupWizard" />
 			</div>
@@ -438,7 +438,7 @@
 				v-if="cnCommandPaletteVisible"
 				:manifest="manifest"
 				:router="$router"
-				:app-id="appId"
+				:appId="appId"
 				v-bind="cnCommandPaletteOverrides" />
 
 			<!--
@@ -451,10 +451,10 @@
 			-->
 			<CnSupportDialog
 				v-if="cnSupportVisible"
-				:app-name="cnSupportAppName"
-				:app-slug="appId"
-				:app-store-url="cnSupportAppStoreUrl"
-				:feature-request-url="cnSupportFeatureRequestUrl"
+				:appName="cnSupportAppName"
+				:appSlug="appId"
+				:appStoreUrl="cnSupportAppStoreUrl"
+				:featureRequestUrl="cnSupportFeatureRequestUrl"
 				v-bind="cnSupportOverrides"
 				@close="cnSupportHide" />
 			<!--
@@ -483,11 +483,11 @@
 			<slot v-if="walkthroughEnabled && walkthroughSeenResolved && cnSupportVisible !== true"
 				name="walkthrough"
 				:manifest="manifest"
-				:seen-version="walkthroughSeenVersion">
+				:seenVersion="walkthroughSeenVersion">
 				<CnWalkthrough
-					:app-id="appId"
+					:appId="appId"
 					:manifest="manifest"
-					:seen-version="walkthroughSeenVersion"
+					:seenVersion="walkthroughSeenVersion"
 					:resume="walkthroughResume"
 					:translate="translate"
 					@complete="onWalkthroughComplete"
@@ -503,7 +503,7 @@
 			-->
 			<NcAppSettingsDialog
 				:open="userSettingsOpen"
-				:show-navigation="true"
+				:showNavigation="true"
 				:name="resolvedUserSettingsTitle"
 				@update:open="userSettingsOpen = $event">
 				<!-- @slot user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to the notification-preferences pane when omitted. -->
@@ -521,9 +521,9 @@
 						:name="translate('Credentials')">
 						<CnCredentials
 							scope="personal"
-							:app-id="appId"
-							:app-name="appDisplayName || (manifest && manifest.name) || appId"
-							:app-credentials="(manifest && manifest.credentials) || []" />
+							:appId="appId"
+							:appName="appDisplayName || (manifest && manifest.name) || appId"
+							:appCredentials="(manifest && manifest.credentials) || []" />
 					</NcAppSettingsSection>
 					<!--
 						Self-service walkthrough replay (ADR-043). Only mounts
@@ -617,51 +617,51 @@
 </template>
 
 <script>
-import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
 import { getCurrentUser } from '@nextcloud/auth'
+import axios from '@nextcloud/axios'
+import { loadState } from '@nextcloud/initial-state'
+import { generateUrl } from '@nextcloud/router'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { computed, reactive, shallowRef, watch } from 'vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Restart from 'vue-material-design-icons/Restart.vue'
-import CnAppNav from '../CnAppNav/CnAppNav.vue'
-import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
-import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
-import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
-import CnWalkthrough from '../CnWalkthrough/CnWalkthrough.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
-import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
+import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
+import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnCommandPalette from '../CnCommandPalette/CnCommandPalette.vue'
-import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
-import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
-import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
+import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
+import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
+import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
+import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
+import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
-import { provideTenantContext } from '../../composables/useTenantContext.js'
-import { computed, shallowRef, watch, reactive } from 'vue'
-import { useManifestEditor } from '../../composables/useManifestEditor.js'
-import { useBuildiqEditAvailability } from '../../composables/useBuildiqEditAvailability.js'
-import { useScopedTheme } from '../../composables/useScopedTheme.js'
-import { loadState } from '@nextcloud/initial-state'
-import { isAppInstalled } from '../../utils/appInstalled.js'
-import { passesContextPredicates } from '../../utils/visibleIfContext.js'
-import { useAppStatus } from '../../composables/useAppStatus.js'
+import CnWalkthrough from '../CnWalkthrough/CnWalkthrough.vue'
+import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
+import { useAppStatus } from '../../composables/useAppStatus.js'
+import { useBuildiqEditAvailability } from '../../composables/useBuildiqEditAvailability.js'
+import { useManifestEditor } from '../../composables/useManifestEditor.js'
+import { useScopedTheme } from '../../composables/useScopedTheme.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
+import { useSupportDialog } from '../../composables/useSupportDialog.js'
+import { provideTenantContext } from '../../composables/useTenantContext.js'
 import {
-	useWalkthrough,
 	loadWalkthroughSeenVersion,
+	normaliseSeenVersion,
 	persistWalkthroughSeenVersion,
 	readLocalWalkthroughSeenVersion,
-	normaliseSeenVersion,
+	useWalkthrough,
 } from '../../composables/useWalkthrough.js'
-import { useSupportDialog } from '../../composables/useSupportDialog.js'
-import { useObjectStore } from '../../store/index.js'
-import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
-import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
-import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
-import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
+import { useObjectStore } from '../../store/index.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
+import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
+import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
+import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
+import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
 /**
  * Recognised registry kinds and their required metadata fields.
@@ -754,6 +754,7 @@ export default {
 			get cnManifest() {
 				return self.manifestEditor ? self.manifestEditor.source.value : self.manifest
 			},
+
 			cnManifestEditor: this.manifestEditor,
 			// App registers/schemas for the in-app pages editor (index/detail
 			// data source). Plain value (not a getter) so deep descendants —
@@ -793,6 +794,7 @@ export default {
 			get cnPermissions() {
 				return Array.isArray(self.permissions) ? self.permissions : []
 			},
+
 			cnCustomComponents: this.customComponents,
 			cnTranslate: this.translate,
 			cnPageTypes: this.pageTypes,
@@ -824,14 +826,13 @@ export default {
 				const entry = this.registry[key]
 				if (!entry || entry.kind !== 'modal') {
 					// eslint-disable-next-line no-console
-					console.warn(
-						`[CnAppRoot] cnOpenModal: "${key}" is not a registered modal (kind must be "modal").`,
-					)
+					console.warn(`[CnAppRoot] cnOpenModal: "${key}" is not a registered modal (kind must be "modal").`)
 					return
 				}
 				this.activeModalKey = key
 				this.activeModalProps = props
 			},
+
 			/**
 			 * Open the host app's NcAppSettingsDialog. Bound to
 			 * `this` so descendants don't have to. Used by CnAppNav
@@ -863,11 +864,16 @@ export default {
 			 * @return {void}
 			 */
 			cnReplayWalkthrough: (tourId) => {
-				if (!this.walkthroughEnabled) return
+				if (!this.walkthroughEnabled) {
+					return
+				}
 				const wt = useWalkthrough(this.appId, this.manifest)
 				const id = tourId || (this.manifest.walkthrough.tours[0] && this.manifest.walkthrough.tours[0].id)
-				if (id) wt.restart(id)
+				if (id) {
+					wt.restart(id)
+				}
 			},
+
 			/**
 			 * Reactive AI context holder. Page components (CnIndexPage,
 			 * CnDetailPage, CnDashboardPage) overwrite fields on this object
@@ -1022,6 +1028,7 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/**
 		 * DEPRECATED (2.1.0) — render the in-shell orange soft-dependency
 		 * banners above the routed page. Off by default: they stacked one per
@@ -1038,6 +1045,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Remount key for the routed `<router-view>`. Hosts that rebuild the
 		 * router at runtime (e.g. the Buildiq builder adding a page mid-edit)
@@ -1054,18 +1062,20 @@ export default {
 			type: [String, Number],
 			default: 'cn-router-view',
 		},
+
 		/**
 		 * Optional persistence hook for in-app editing (ADR-041). Called with the
 		 * minimal manifest delta when the user saves an edit. When omitted, Save
 		 * still updates the rendered manifest in memory but persists nothing —
 		 * wire this to the Buildiq app-override endpoint to make edits durable.
 		 *
-		 * @type {Function|null}
+		 * @type {((delta: object) => void|Promise<void>)|null}
 		 */
 		persistManifestDelta: {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * App data sources for the in-app pages editor (ADR-041). Lets the
 		 * Edit-pages modal offer Register / Schema / Columns dropdowns for
@@ -1081,6 +1091,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Async loader for the same data sources, re-invoked every time a
 		 * pages-editor modal opens — so a register or schema created after
@@ -1094,12 +1105,13 @@ export default {
 		 * both props are given, `dataSources` seeds the initial list and
 		 * the loader's result replaces it on the first refresh.
 		 *
-		 * @type {Function|null}
+		 * @type {(() => Promise<{ registers: Array<object> }>)|null}
 		 */
 		dataSourcesLoader: {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Nextcloud app id. Forwarded to NcContent as `app-name` and
 		 * to CnDependencyMissing for the heading.
@@ -1110,6 +1122,7 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * Human-readable name shown in the Nextcloud top bar. When set it
 		 * overrides the technical `appId` so a virtual app shows its own name
@@ -1119,6 +1132,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * First-open support note (`CnSupportDialog`). `true` (default)
 		 * auto-mounts it, deriving the app name and the App-Store /
@@ -1135,6 +1149,7 @@ export default {
 			type: [Boolean, Object],
 			default: true,
 		},
+
 		/**
 		 * Whether to mount the floating AI-chat companion (`CnAiCompanion`).
 		 * Opt-in: `false` (default) keeps the companion off; pass `true` to
@@ -1150,6 +1165,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Whether to mount the Ctrl/Cmd+K command palette (`CnCommandPalette`).
 		 * Opt-in: `false` (default) keeps it off, so existing apps are
@@ -1167,6 +1183,7 @@ export default {
 			type: [Boolean, Object],
 			default: false,
 		},
+
 		/**
 		 * Backend app id the AI Chat Companion targets for its chat / health /
 		 * conversation HTTP calls (`/index.php/apps/{chatAppId}/api/...`). This is
@@ -1184,6 +1201,7 @@ export default {
 			type: String,
 			default: DEFAULT_CHAT_APP_ID,
 		},
+
 		/**
 		 * Whether the manifest is still loading from the backend.
 		 * Typically wired to `useAppManifest().isLoading`. Defaults to
@@ -1196,6 +1214,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Custom-component registry consumed by CnPageRenderer for
 		 * `type: "custom"` pages and slot overrides. Empty by default.
@@ -1206,6 +1225,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Cell-formatter registry. Map of formatter-id →
 		 * `(value, row, property) => string|number`. Resolves the
@@ -1223,6 +1243,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Cell-widget registry. Map of widget-id → Vue component, rendered
 		 * for a column that declares `pages[].config.columns[].widget`. The
@@ -1239,6 +1260,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Pluggable knowledge-base search providers (#91 Wave 3). Map of
 		 * provider-key → provider object (`{ search(query, opts), externalOpen? }`),
@@ -1256,6 +1278,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Translate function provided by the consuming app. The library
 		 * never imports `t()` from a specific app, so the consumer
@@ -1271,12 +1294,13 @@ export default {
 		 * install via `Vue.mixin({ methods: { t, n } })`. The provide
 		 * key is `cnTranslate`.
 		 *
-		 * @type {Function}
+		 * @type {(key: string) => string}
 		 */
 		translate: {
 			type: Function,
 			default: (key) => key,
 		},
+
 		/**
 		 * List of permission strings the current user holds. Forwarded
 		 * to CnAppNav's permission filter.
@@ -1287,6 +1311,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Page-type registry. Map of `pages[].type` → Vue component.
 		 * Provided to descendant CnPageRenderer instances via inject.
@@ -1300,6 +1325,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Component registry for v2 manifests. Map of registry key →
 		 * `{ kind, component, ...kindMetadata }`. Provided to descendants
@@ -1318,6 +1344,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Required Nextcloud apps for this Conduction app to function.
 		 * Default `['openregister']` — every fleet app stores its data
@@ -1348,6 +1375,7 @@ export default {
 			type: Array,
 			default: () => ['openregister'],
 		},
+
 		/**
 		 * Title rendered at the top of the user-settings modal
 		 * (NcAppSettingsDialog `name` prop). Defaults to the
@@ -1360,6 +1388,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Title rendered at the top of the admin-settings modal
 		 * (NcAppSettingsDialog `name` prop). Defaults to the
@@ -1451,9 +1480,9 @@ export default {
 		const supportPair = (props.supportDialog === false || manifestSupportDisabled)
 			? {}
 			: (() => {
-				const { visible, hide } = useSupportDialog(props.appId, { persistence: 'server' })
-				return { cnSupportVisible: visible, cnSupportHide: hide }
-			})()
+					const { visible, hide } = useSupportDialog(props.appId, { persistence: 'server' })
+					return { cnSupportVisible: visible, cnSupportHide: hide }
+				})()
 
 		// In-app editing (ADR-041) + the raw/reactive boundary (audit item 9,
 		// `manifest-markraw-reactivity`). `baseRef` is the SINGLE reactive holder
@@ -1475,7 +1504,9 @@ export default {
 				: undefined),
 		})
 		watch(() => props.manifest, (m) => {
-			if (!manifestEditor.editing.value) baseRef.value = m
+			if (!manifestEditor.editing.value) {
+				baseRef.value = m
+			}
 		})
 		// One shared install/enable action for the or-missing guard and the
 		// soft-dependency banners (REQ-DIA-3 / REQ-DIA-6). `depInstalling` /
@@ -1490,9 +1521,7 @@ export default {
 		// edit itself with itself). Default true: omitting the flag keeps the
 		// button wherever the Buildiq app is enabled (ADR-041). The manifest key
 		// keeps its `openbuild` spelling — it is shipped manifest data.
-		const buildiqEditable = computed(
-			() => buildiqAvailable.value && props.manifest?.openbuildEditable !== false,
-		)
+		const buildiqEditable = computed(() => buildiqAvailable.value && props.manifest?.openbuildEditable !== false)
 
 		// Scoped NL Design token-set theming (scoped-theme-applier). Watches the
 		// SAME editing/props branch `cnManifest`'s getter already uses, so the
@@ -1568,6 +1597,7 @@ export default {
 				pageKind: 'custom',
 				route: { path: (typeof window !== 'undefined' ? window.location.pathname : '') },
 			}),
+
 			/**
 			 * Reactive holder for the pages editor's register/schema
 			 * data sources. Provided as `cnDataSourcesState`.
@@ -1591,6 +1621,7 @@ export default {
 				error: null,
 				hasLoader: typeof this.dataSourcesLoader === 'function',
 			},
+
 			/**
 			 * Reactive `{ [register]: { [schema]: number } }` map of
 			 * object-store totals — one entry per unique
@@ -1649,16 +1680,19 @@ export default {
 						const isObject = entry !== null && typeof entry === 'object'
 						const id = isObject ? entry.id : entry
 						const required = isObject ? entry.required !== false : true
-						if (required || typeof id !== 'string' || id === '') continue
+						if (required || typeof id !== 'string' || id === '') {
+							continue
+						}
 						if (window.localStorage.getItem('cn-soft-dep-dismissed:' + this.appId + ':' + id)) {
 							out.push(id)
 						}
 					}
-				} catch (e) {
+				} catch {
 					// localStorage unavailable (private mode) — nothing dismissed.
 				}
 				return out
 			})(),
+
 			/**
 			 * Session-only flag: the user dismissed (or finished) the non-gating
 			 * setup wizard during THIS page load. The durable answer lives in
@@ -1704,6 +1738,7 @@ export default {
 			walkthroughSeenResolved: !(this.manifest
 				&& this.manifest.walkthrough
 				&& this.manifest.walkthrough.completionConfigKey),
+
 			/**
 			 * Key of the currently active modal (opened via cnOpenModal).
 			 * null when no modal is open.
@@ -1752,6 +1787,7 @@ export default {
 				// the sidebar pick its own default.
 				requestedTab: null,
 			}),
+
 			/**
 			 * Local holder for the index-sidebar channel. Distinct
 			 * reference from `localObjectSidebarState` so the
@@ -1790,6 +1826,7 @@ export default {
 		pageSidebarComponent() {
 			return this.resolvePageSidebarComponent() ?? this.cnPageSidebarComponent?.value ?? null
 		},
+
 		/**
 		 * Whether the current user is an OWNER of this app — the gate for
 		 * the admin-settings nav entry + dialog (admin-settings-owner-gating
@@ -1819,9 +1856,12 @@ export default {
 			const runtimeUser = runtime && typeof runtime.user === 'object' && runtime.user !== null
 				? runtime.user
 				: null
-			if (runtimeUser && runtimeUser.isOwner === true) return true
+			if (runtimeUser && runtimeUser.isOwner === true) {
+				return true
+			}
 			return this.ownerGroupsIntersect
 		},
+
 		/**
 		 * Caller's Nextcloud group GIDs, published by Buildiq's
 		 * `DashboardController::publishCurrentUserGroups()` initial state.
@@ -1847,6 +1887,7 @@ export default {
 				return []
 			}
 		},
+
 		/**
 		 * Owner GIDs parsed from the `permissions` prop using the existing
 		 * per-item permission grammar (`group:<gid>` or a bare GID). Not
@@ -1858,11 +1899,14 @@ export default {
 		 * @return {Array<string>}
 		 */
 		ownerGidsFromPermissions() {
-			if (!Array.isArray(this.permissions)) return []
+			if (!Array.isArray(this.permissions)) {
+				return []
+			}
 			return this.permissions
 				.filter((p) => typeof p === 'string' && p.length > 0)
 				.map((p) => (p.startsWith('group:') ? p.slice('group:'.length) : p))
 		},
+
 		/**
 		 * Whether `currentUserGroups` and `ownerGidsFromPermissions`
 		 * intersect — the FALLBACK half of `isOwner`.
@@ -1872,9 +1916,12 @@ export default {
 		ownerGroupsIntersect() {
 			const groups = this.currentUserGroups
 			const owners = this.ownerGidsFromPermissions
-			if (groups.length === 0 || owners.length === 0) return false
+			if (groups.length === 0 || owners.length === 0) {
+				return false
+			}
 			return groups.some((g) => owners.includes(g))
 		},
+
 		/**
 		 * The manifest the default `<CnAppNav>` renders — the editor's working
 		 * `source` while in-app editing, else the live `manifest` prop. Passed to
@@ -1908,6 +1955,7 @@ export default {
 			}
 			return m
 		},
+
 		/**
 		 * Active object-sidebar holder for the auto-mount block.
 		 * Mirrors the local holder; if an ancestor already provides
@@ -1920,6 +1968,7 @@ export default {
 		effectiveObjectSidebarState() {
 			return this.localObjectSidebarState
 		},
+
 		/**
 		 * Decide whether THIS CnAppRoot should render the hoisted
 		 * CnObjectSidebar. False when:
@@ -1935,14 +1984,23 @@ export default {
 		 * @return {boolean}
 		 */
 		shouldAutoMountObjectSidebar() {
-			if (this.$slots && this.$slots.sidebar) return false
-			if (this.$slots && this.$slots.sidebar) return false
-			if (this.ancestorObjectSidebarState) return false
+			if (this.$slots && this.$slots.sidebar) {
+				return false
+			}
+			if (this.$slots && this.$slots.sidebar) {
+				return false
+			}
+			if (this.ancestorObjectSidebarState) {
+				return false
+			}
 			const holder = this.localObjectSidebarState
-			if (!holder || !holder.active) return false
+			if (!holder || !holder.active) {
+				return false
+			}
 			const hasObjectCoordinates = !!(holder.objectType && holder.objectId)
 			return hasObjectCoordinates
 		},
+
 		/**
 		 * Resolved support-dialog config — the manifest's `support` block
 		 * (authored in Buildiq's "Edit support & donation" editor) overlaid
@@ -1961,6 +2019,7 @@ export default {
 				: {}
 			return { ...fromManifest, ...fromProp }
 		},
+
 		/**
 		 * App display name for the support note — host override, else the
 		 * capitalised `appId` (e.g. `pipelinq` → `Pipelinq`).
@@ -1975,6 +2034,7 @@ export default {
 				? this.appId.charAt(0).toUpperCase() + this.appId.slice(1)
 				: ''
 		},
+
 		/**
 		 * App Store listing URL — host override, else the conventional
 		 * `apps.nextcloud.com/apps/{appId}`.
@@ -1985,6 +2045,7 @@ export default {
 			return this.cnSupportConfig.appStoreUrl
 				|| ('https://apps.nextcloud.com/apps/' + this.appId)
 		},
+
 		/**
 		 * Feature-request URL — host override, else the new-issue link on
 		 * the app's own forge. Derived from the SAME resolved repo and
@@ -2002,6 +2063,7 @@ export default {
 			const { baseUrl } = resolveForge(this.resolvedFeatureRequestForge)
 			return `${baseUrl}/${this.resolvedFeatureRequestRepo}/issues/new`
 		},
+
 		/**
 		 * Pass-through of any other `CnSupportDialog` props supplied in
 		 * the `supportDialog` override object (donateUrl, supportUrl,
@@ -2021,6 +2083,7 @@ export default {
 			}
 			return out
 		},
+
 		/**
 		 * Whether the `CnCommandPalette` auto-mount is active — `true`, or
 		 * an override object (per the `supportDialog` Boolean|Object
@@ -2031,6 +2094,7 @@ export default {
 		cnCommandPaletteVisible() {
 			return this.commandPalette === true || (!!this.commandPalette && typeof this.commandPalette === 'object')
 		},
+
 		/**
 		 * Prop overrides supplied via the `commandPalette` object form,
 		 * spread onto `CnCommandPalette` OVER the auto-wired `manifest` /
@@ -2042,6 +2106,7 @@ export default {
 		cnCommandPaletteOverrides() {
 			return (this.commandPalette && typeof this.commandPalette === 'object') ? this.commandPalette : {}
 		},
+
 		/**
 		 * Per-dependency status, computed once per `appId` declared in
 		 * `manifest.dependencies`. Reading the value here triggers the
@@ -2061,13 +2126,16 @@ export default {
 				.map((entry) => {
 					const isObject = entry !== null && typeof entry === 'object'
 					const id = isObject ? entry.id : entry
-					if (typeof id !== 'string' || id === '') return null
+					if (typeof id !== 'string' || id === '') {
+						return null
+					}
 					const required = isObject ? entry.required !== false : true
 					const name = (isObject && entry.name) || id
 					return { id, required, name, status: useAppStatus(id) }
 				})
 				.filter((entry) => entry !== null)
 		},
+
 		/**
 		 * App statuses injected by the PHP boot() via IInitialStateService.
 		 * Keyed by app id: { installed: bool, enabled: bool }.
@@ -2086,7 +2154,9 @@ export default {
 			return this.dependencyStatuses
 				.filter(({ id, status }) => {
 					const server = this.serverAppStatuses[id]
-					if (server !== undefined) return !server.installed || !server.enabled
+					if (server !== undefined) {
+						return !server.installed || !server.enabled
+					}
 					return !status.installed.value || !status.enabled.value
 				})
 				.map(({ id, required, name }) => {
@@ -2110,6 +2180,7 @@ export default {
 					return { id, name, required, category: 'featured', enabled: undefined }
 				})
 		},
+
 		/**
 		 * Unresolved HARD dependencies — the app cannot run without these,
 		 * so their presence gates the shell behind the blocking
@@ -2121,6 +2192,7 @@ export default {
 		unresolvedHardDependencies() {
 			return this.unresolvedDependencies.filter((dep) => dep.required)
 		},
+
 		/**
 		 * Unresolved SOFT dependencies — optional integrations whose
 		 * absence must NOT block the shell. Each surfaces as a dismissible
@@ -2135,6 +2207,7 @@ export default {
 				.filter((dep) => !dep.required)
 				.filter((dep) => !this.dismissedSoftDeps.includes(dep.id))
 		},
+
 		/**
 		 * The soft-dependency notices actually RENDERED in the shell. Empty
 		 * unless the deprecated `softDependencyNotices` prop is switched back
@@ -2148,6 +2221,7 @@ export default {
 		visibleSoftDependencyNotices() {
 			return this.softDependencyNotices ? this.unresolvedSoftDependencies : []
 		},
+
 		/**
 		 * First-time-setup status for this app (ADR-042), or null when the
 		 * manifest declares no `setup` block. Calls useSetupStatus inside the
@@ -2160,6 +2234,7 @@ export default {
 			}
 			return useSetupStatus(this.appId, this.manifest)
 		},
+
 		/**
 		 * Whether a REQUIRED setup step is unmet — the app shell is gated to
 		 * the setup wizard until this clears. Never gates while the status is
@@ -2169,6 +2244,7 @@ export default {
 			const s = this.setupState
 			return !!s && s.loading.value === false && s.requiredUnmet.value.length > 0
 		},
+
 		/**
 		 * Whether the setup wizard should be OFFERED (non-gating) because
 		 * every required step is met but at least one ACTIONABLE optional step
@@ -2229,6 +2305,7 @@ export default {
 				: s.optionalUnmet.value
 			return outstanding.some((st) => st.type !== 'info' && st.type !== 'summary')
 		},
+
 		/**
 		 * Ids of setup steps the server already reports done. Passed to
 		 * `CnSetupWizard` so a freshly (re)mounted wizard resumes at the
@@ -2241,6 +2318,7 @@ export default {
 			const s = this.setupState
 			return s ? s.steps.value.filter((st) => st.done).map((st) => st.id) : []
 		},
+
 		/**
 		 * The manifest's `section: "integrations"` menu entries — the links
 		 * that leave this app for another one, rendered in the Integrations
@@ -2272,12 +2350,19 @@ export default {
 				.sort((a, b) => {
 					const aHas = typeof a.order === 'number'
 					const bHas = typeof b.order === 'number'
-					if (aHas && !bHas) return -1
-					if (!aHas && bHas) return 1
-					if (!aHas && !bHas) return 0
+					if (aHas && !bHas) {
+						return -1
+					}
+					if (!aHas && bHas) {
+						return 1
+					}
+					if (!aHas && !bHas) {
+						return 0
+					}
 					return a.order - b.order
 				})
 		},
+
 		/**
 		 * Whether the manifest declares an enabled walkthrough with at least one
 		 * tour (ADR-043). Drives the non-gating CnWalkthrough overlay in the shell.
@@ -2288,6 +2373,7 @@ export default {
 			const w = this.manifest && this.manifest.walkthrough
 			return !!(w && w.enabled !== false && Array.isArray(w.tours) && w.tours.length > 0)
 		},
+
 		/**
 		 * The per-user preference key holding the last app version whose tour the
 		 * user has seen (`manifest.walkthrough.completionConfigKey`). Empty when
@@ -2299,6 +2385,7 @@ export default {
 			const w = this.manifest && this.manifest.walkthrough
 			return (w && typeof w.completionConfigKey === 'string' && w.completionConfigKey) || ''
 		},
+
 		/**
 		 * The user's last-seen app version for walkthrough composition. Resolved
 		 * from the per-user `completionConfigKey` preference (cross-device) with
@@ -2310,6 +2397,7 @@ export default {
 		walkthroughSeenVersion() {
 			return this.walkthroughSeenVersionValue
 		},
+
 		/**
 		 * Cross-app / refresh resume token parsed from the URL query
 		 * (`cn_resume_tour` / `cn_resume_step`), or null.
@@ -2320,21 +2408,31 @@ export default {
 			try {
 				const p = new URLSearchParams(window.location.search)
 				const tourId = p.get('cn_resume_tour')
-				if (!tourId) return null
+				if (!tourId) {
+					return null
+				}
 				return { tourId, stepId: p.get('cn_resume_step') || '' }
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
+
 		phase() {
-			if (this.isLoading) return 'loading'
+			if (this.isLoading) {
+				return 'loading'
+			}
 			// Only unresolved HARD dependencies block the shell (REQ-DIA-5);
 			// unresolved SOFT dependencies surface as a non-blocking in-shell
 			// banner and let the app advance to setup/shell.
-			if (this.unresolvedHardDependencies.length > 0) return 'dependency-missing'
-			if (this.setupGating) return 'setup'
+			if (this.unresolvedHardDependencies.length > 0) {
+				return 'dependency-missing'
+			}
+			if (this.setupGating) {
+				return 'setup'
+			}
 			return 'shell'
 		},
+
 		/**
 		 * Default link surfaced by the missing-app empty-state action.
 		 * Points at the OpenRegister integration page in the Nextcloud
@@ -2344,6 +2442,7 @@ export default {
 		orStoreLink() {
 			return OR_STORE_LINK
 		},
+
 		/**
 		 * Whether the current user is a Nextcloud admin. Only admins can
 		 * hit `settings/apps/enable`, so both dependency surfaces branch on
@@ -2364,10 +2463,11 @@ export default {
 		isAdmin() {
 			try {
 				return getCurrentUser()?.isAdmin === true
-			} catch (e) {
+			} catch {
 				return false
 			}
 		},
+
 		/**
 		 * The missing app the or-missing guard's primary install/enable
 		 * action targets — the first entry of `missingApps` (typically
@@ -2378,6 +2478,7 @@ export default {
 		orMissingPrimaryApp() {
 			return this.missingApps[0] || ''
 		},
+
 		/**
 		 * Human-readable list of the missing apps for the guard copy.
 		 *
@@ -2386,6 +2487,7 @@ export default {
 		missingAppsLabel() {
 			return this.missingApps.join(', ')
 		},
+
 		/**
 		 * Guard title — the translated `app-availability.title`, or a
 		 * sensible English default when the key is untranslated (REQ-DIA-7).
@@ -2395,6 +2497,7 @@ export default {
 		orMissingTitle() {
 			return this.availabilityCopy('app-availability.title', 'Required app not available')
 		},
+
 		/**
 		 * Guard description — translated `app-availability.description` or an
 		 * English default naming the missing app(s) (REQ-DIA-7).
@@ -2407,6 +2510,7 @@ export default {
 				`This app requires ${this.missingAppsLabel || 'another Nextcloud app'} to be installed and enabled.`,
 			)
 		},
+
 		/**
 		 * Fallback store-link label — translated `app-availability.action`
 		 * or an English default (REQ-DIA-7).
@@ -2416,6 +2520,7 @@ export default {
 		orMissingActionLabel() {
 			return this.availabilityCopy('app-availability.action', 'Open app settings')
 		},
+
 		/**
 		 * Admin install button label for the or-missing guard.
 		 *
@@ -2424,6 +2529,7 @@ export default {
 		orMissingInstallLabel() {
 			return this.availabilityCopy('app-availability.install', 'Install and enable')
 		},
+
 		/**
 		 * Non-admin "ask your administrator" copy for the or-missing guard
 		 * (REQ-DIA-3), naming the missing app(s).
@@ -2436,6 +2542,7 @@ export default {
 				`Ask your administrator to enable ${this.missingAppsLabel || 'the required app'}.`,
 			)
 		},
+
 		/**
 		 * Soft-dependency install-action label (app not installed).
 		 *
@@ -2444,6 +2551,7 @@ export default {
 		softDepInstallLabel() {
 			return this.availabilityCopy('app-availability.soft.install', 'Install and enable')
 		},
+
 		/**
 		 * Soft-dependency enable-action label (installed but disabled).
 		 *
@@ -2452,6 +2560,7 @@ export default {
 		softDepEnableLabel() {
 			return this.availabilityCopy('app-availability.soft.enable', 'Enable')
 		},
+
 		/**
 		 * Soft-dependency dismiss-action label.
 		 *
@@ -2460,6 +2569,7 @@ export default {
 		softDepDismissLabel() {
 			return this.availabilityCopy('app-availability.soft.dismiss', 'Dismiss')
 		},
+
 		/**
 		 * Repo target for the built-in feature-request deep link.
 		 * Provided to descendants under the `cnFeatureRequestRepo`
@@ -2483,10 +2593,15 @@ export default {
 		 */
 		resolvedFeatureRequestRepo() {
 			const explicit = this.manifest?.nav?.featureRequestRepo
-			if (typeof explicit === 'string' && explicit.length > 0) return explicit
-			if (!this.appId) return ''
+			if (typeof explicit === 'string' && explicit.length > 0) {
+				return explicit
+			}
+			if (!this.appId) {
+				return ''
+			}
 			return `ConductionNL/${this.appId}`
 		},
+
 		/**
 		 * Forge config for the built-in feature-request deep link,
 		 * provided under the `cnFeatureRequestForge` inject key. Reads
@@ -2500,9 +2615,11 @@ export default {
 			const cfg = this.manifest?.nav?.forge
 			return { ...DEFAULT_FORGE, ...(cfg && typeof cfg === 'object' ? cfg : {}) }
 		},
+
 		resolvedUserSettingsTitle() {
 			return this.userSettingsTitle || this.translate('User settings')
 		},
+
 		/**
 		 * Title for the admin-settings modal. Prop override, else the
 		 * translated "Administration". Mirrors `resolvedUserSettingsTitle`.
@@ -2512,6 +2629,7 @@ export default {
 		resolvedAdminSettingsTitle() {
 			return this.adminSettingsTitle || this.translate('Administration')
 		},
+
 		/**
 		 * Section heading for the walkthrough-replay block in user settings.
 		 *
@@ -2520,6 +2638,7 @@ export default {
 		restartWalkthroughSectionName() {
 			return this.translate('Walkthrough')
 		},
+
 		/**
 		 * Explanatory line above the restart-walkthrough button.
 		 *
@@ -2528,6 +2647,7 @@ export default {
 		restartWalkthroughHint() {
 			return this.translate('Take the guided tour of this app again.')
 		},
+
 		/**
 		 * Label for the restart-walkthrough button in user settings.
 		 *
@@ -2536,6 +2656,7 @@ export default {
 		restartWalkthroughLabel() {
 			return this.translate('Restart walkthrough')
 		},
+
 		/**
 		 * Resolve the active modal's Vue component from the registry.
 		 * Returns null when no modal is open or the key no longer resolves.
@@ -2543,7 +2664,9 @@ export default {
 		 * @return {object|null}
 		 */
 		activeModalComponent() {
-			if (!this.activeModalKey) return null
+			if (!this.activeModalKey) {
+				return null
+			}
 			const entry = (this.registry || {})[this.activeModalKey]
 			return (entry && entry.component) ? entry.component : null
 		},
@@ -2576,6 +2699,7 @@ export default {
 				}
 			},
 		},
+
 		/**
 		 * Resolve the per-user walkthrough completion preference whenever the
 		 * declared `completionConfigKey` appears or changes (ADR-043).
@@ -2672,10 +2796,15 @@ export default {
 		 * @return {boolean} True when the entry may render.
 		 */
 		passesIntegrationPermission(item) {
-			if (!item.permission) return true
-			if (!this.permissions || this.permissions.length === 0) return true
+			if (!item.permission) {
+				return true
+			}
+			if (!this.permissions || this.permissions.length === 0) {
+				return true
+			}
 			return this.permissions.includes(item.permission)
 		},
+
 		/**
 		 * `visibleIf` gate for an Integrations entry, mirroring
 		 * `CnAppNav.passesVisibleIf`. `appInstalled` matters more here than
@@ -2687,11 +2816,16 @@ export default {
 		 */
 		passesIntegrationVisibleIf(item) {
 			const condition = item.visibleIf
-			if (!condition || typeof condition !== 'object') return true
-			if (condition.appInstalled && !isAppInstalled(condition.appInstalled)) return false
+			if (!condition || typeof condition !== 'object') {
+				return true
+			}
+			if (condition.appInstalled && !isAppInstalled(condition.appInstalled)) {
+				return false
+			}
 			const runtime = (this.manifest && this.manifest.runtime) || null
 			return passesContextPredicates(condition, runtime)
 		},
+
 		/**
 		 * Re-fetch the pages editor's register/schema data sources via the
 		 * `dataSourcesLoader` prop. Provided to descendants as
@@ -2707,8 +2841,12 @@ export default {
 		 * @return {Promise<void>} Resolves when the refresh settles. Never rejects.
 		 */
 		async refreshDataSources() {
-			if (typeof this.dataSourcesLoader !== 'function') return
-			if (this._dataSourcesInFlight) return this._dataSourcesInFlight
+			if (typeof this.dataSourcesLoader !== 'function') {
+				return
+			}
+			if (this._dataSourcesInFlight) {
+				return this._dataSourcesInFlight
+			}
 
 			this.dataSourcesState.loading = true
 			this.dataSourcesState.error = null
@@ -2731,6 +2869,7 @@ export default {
 
 			return this._dataSourcesInFlight
 		},
+
 		/**
 		 * Resolve a custom `adminSettings` entry's `component` key against
 		 * the same registries `CnBodySections.resolveSectionComponent` /
@@ -2760,25 +2899,37 @@ export default {
 		 */
 		resolvePageSidebarComponent() {
 			const routeName = this.$route?.name
-			if (!routeName) return null
+			if (!routeName) {
+				return null
+			}
 
 			const page = (this.manifest?.pages ?? []).find((p) => p?.id === routeName)
-			if (!page || typeof page.sidebarComponent !== 'string' || page.sidebarComponent === '') return null
+			if (!page || typeof page.sidebarComponent !== 'string' || page.sidebarComponent === '') {
+				return null
+			}
 
 			// `sidebar.show: false` suppresses the rail entirely, so a page
 			// declaring both is contradictory; visibility wins, matching what
 			// CnPageRenderer already warns about.
-			if (page?.sidebar?.show === false) return null
+			if (page?.sidebar?.show === false) {
+				return null
+			}
 
 			return this.resolveAdminSettingsComponent(page.sidebarComponent)
 		},
+
 		resolveAdminSettingsComponent(key) {
-			if (typeof key !== 'string' || key === '') return null
+			if (typeof key !== 'string' || key === '') {
+				return null
+			}
 			const reg = (this.registry && this.registry[key]) || null
-			if (reg && reg.component) return reg.component
+			if (reg && reg.component) {
+				return reg.component
+			}
 			const legacy = this.customComponents && this.customComponents[key]
 			return legacy || null
 		},
+
 		/**
 		 * Return the translated copy for `key`, or `fallback` when the
 		 * `translate` prop leaves the key unchanged (its default is the
@@ -2797,6 +2948,7 @@ export default {
 				? fallback
 				: translated
 		},
+
 		/**
 		 * Install-and-enable (or enable) a missing dependency via the shared
 		 * `useAppInstaller` (REQ-DIA-3 / REQ-DIA-6). Marks the dependency
@@ -2809,13 +2961,15 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async installDependency(id) {
-			if (!id) return
+			if (!id) {
+				return
+			}
 			this.installingDepId = id
 			this.erroredDepId = null
 			try {
 				await this.appInstaller.installAndEnable(id)
 				window.location.reload()
-			} catch (e) {
+			} catch {
 				// Error is surfaced inline via `depInstallError`; the store
 				// link remains available as a manual fallback. A cancelled
 				// password confirmation also lands here (no error text).
@@ -2824,6 +2978,7 @@ export default {
 				this.installingDepId = null
 			}
 		},
+
 		/**
 		 * Dismiss a soft-dependency banner (REQ-DIA-6). Persists the
 		 * dismissal under `cn-soft-dep-dismissed:{appId}:{depId}` and hides
@@ -2835,13 +2990,14 @@ export default {
 		dismissSoftDep(id) {
 			try {
 				window.localStorage.setItem('cn-soft-dep-dismissed:' + this.appId + ':' + id, '1')
-			} catch (e) {
+			} catch {
 				// Best-effort persistence (private mode / no storage).
 			}
 			if (!this.dismissedSoftDeps.includes(id)) {
 				this.dismissedSoftDeps.push(id)
 			}
 		},
+
 		/**
 		 * Heading for a soft-dependency banner.
 		 *
@@ -2851,6 +3007,7 @@ export default {
 		softDepHeading(dep) {
 			return this.availabilityCopy('app-availability.soft.heading', `Optional: ${dep.name}`)
 		},
+
 		/**
 		 * Body text for a soft-dependency banner.
 		 *
@@ -2863,6 +3020,7 @@ export default {
 				`${dep.name} unlocks optional features in this app but is not installed or enabled.`,
 			)
 		},
+
 		/**
 		 * Non-admin "ask your administrator" copy for a soft-dependency
 		 * banner.
@@ -2873,6 +3031,7 @@ export default {
 		softDepAskAdmin(dep) {
 			return this.availabilityCopy('app-availability.soft.ask-admin', `Ask your administrator to enable ${dep.name}.`)
 		},
+
 		/**
 		 * Warn before unload when the manifest editor has unsaved (or still-
 		 * persisting) changes, so a refresh can't silently discard an in-app
@@ -2885,12 +3044,15 @@ export default {
 			const editor = this.manifestEditor
 			const dirtyRef = editor && editor.dirty
 			const dirty = dirtyRef && typeof dirtyRef === 'object' && 'value' in dirtyRef ? dirtyRef.value : dirtyRef
-			if (!dirty) return undefined
+			if (!dirty) {
+				return undefined
+			}
 			// The standard cross-browser incantation to trigger the prompt.
 			event.preventDefault()
 			event.returnValue = ''
 			return ''
 		},
+
 		/**
 		 * Re-fetch setup status after the wizard reports completion so the
 		 * phase flips from `setup` to `shell` without a page reload.
@@ -2916,6 +3078,7 @@ export default {
 			 */
 			this.$emit('setup-complete')
 		},
+
 		/**
 		 * Dismiss the non-gating optional-setup wizard (REQ-SETUP-NV-012) and
 		 * unmount it.
@@ -2926,6 +3089,7 @@ export default {
 			this.persistSetupWizardDismissal()
 			this.setupWizardOpen = false
 		},
+
 		/**
 		 * `localStorage` key holding the non-gating setup wizard's dismissal for
 		 * the manifest's CURRENT `setup.version`. Read at use time rather than
@@ -2937,6 +3101,7 @@ export default {
 			const version = (this.manifest && this.manifest.setup && this.manifest.setup.version) || 0
 			return 'cn-setup-wizard-dismissed:' + this.appId + ':' + version
 		},
+
 		/**
 		 * Whether the non-gating setup wizard has already been dismissed for
 		 * this manifest `setup.version` — this session or a previous visit.
@@ -2949,10 +3114,11 @@ export default {
 			}
 			try {
 				return window.localStorage.getItem(this.setupWizardDismissKey()) === '1'
-			} catch (e) {
+			} catch {
 				return false
 			}
 		},
+
 		/**
 		 * Record the non-gating setup wizard as dismissed for this manifest
 		 * `setup.version` so it doesn't auto-open again.
@@ -2962,11 +3128,12 @@ export default {
 		persistSetupWizardDismissal() {
 			try {
 				window.localStorage.setItem(this.setupWizardDismissKey(), '1')
-			} catch (e) {
+			} catch {
 				// Best-effort persistence (private mode / no storage).
 			}
 			this.setupWizardDismissed = true
 		},
+
 		/**
 		 * Resolve the user's last-seen walkthrough version from the per-user
 		 * `completionConfigKey` preference before the overlay is allowed to
@@ -2992,6 +3159,7 @@ export default {
 				this.walkthroughSeenResolved = true
 			}
 		},
+
 		/**
 		 * Persist the current app version as the user's last-seen walkthrough
 		 * version (so an upgrade later surfaces only newer steps) and notify.
@@ -3015,6 +3183,7 @@ export default {
 			 */
 			this.$emit('walkthrough-complete')
 		},
+
 		/**
 		 * Replay the product tour from the user-settings dialog. Closes the
 		 * dialog first, then restarts the first declared tour on the next tick
@@ -3027,14 +3196,19 @@ export default {
 		 */
 		restartWalkthroughFromSettings() {
 			this.userSettingsOpen = false
-			if (!this.walkthroughEnabled) return
+			if (!this.walkthroughEnabled) {
+				return
+			}
 			// 50ms lets the dialog's close animation settle so the tour
 			// re-appears cleanly over the app shell, not the closing modal.
 			setTimeout(() => {
 				const id = this.manifest.walkthrough.tours[0] && this.manifest.walkthrough.tours[0].id
-				if (id) useWalkthrough(this.appId, this.manifest).restart(id)
+				if (id) {
+					useWalkthrough(this.appId, this.manifest).restart(id)
+				}
 			}, 50)
 		},
+
 		/**
 		 * Validate every entry in the `registry` prop at mount time.
 		 *
@@ -3046,7 +3220,9 @@ export default {
 		_validateRegistry() {
 			const registry = this.registry || {}
 			for (const [key, entry] of Object.entries(registry)) {
-				if (!entry || typeof entry !== 'object') continue
+				if (!entry || typeof entry !== 'object') {
+					continue
+				}
 
 				const kind = entry.kind
 
@@ -3056,11 +3232,9 @@ export default {
 
 				const requiredFields = REGISTRY_KIND_REQUIRED_FIELDS[kind]
 				for (const field of requiredFields) {
-					if (!Object.prototype.hasOwnProperty.call(entry, field)) {
+					if (!Object.hasOwn(entry, field)) {
 						// eslint-disable-next-line no-console
-						console.warn(
-							`[CnAppRoot] Registry entry "${key}" (kind: "${kind}") is missing required metadata field "${field}".`,
-						)
+						console.warn(`[CnAppRoot] Registry entry "${key}" (kind: "${kind}") is missing required metadata field "${field}".`)
 					}
 				}
 			}
@@ -3074,7 +3248,9 @@ export default {
 		 * repeat warnings on re-render.
 		 */
 		_warnCustomComponentsDeprecation() {
-			if (this._customComponentsWarnedOnce) return
+			if (this._customComponentsWarnedOnce) {
+				return
+			}
 
 			const hasCustomComponents = this.customComponents
 				&& typeof this.customComponents === 'object'
@@ -3086,10 +3262,8 @@ export default {
 
 			if (hasCustomComponents && isV2Manifest) {
 				// eslint-disable-next-line no-console
-				console.warn(
-					'CnAppRoot: `customComponents` prop is deprecated when using v2 manifests. '
-					+ 'Use the `registry` prop instead (see ADR-036).',
-				)
+				console.warn('CnAppRoot: `customComponents` prop is deprecated when using v2 manifests. '
+					+ 'Use the `registry` prop instead (see ADR-036).')
 				this._customComponentsWarnedOnce = true
 			}
 		},
@@ -3153,9 +3327,13 @@ export default {
 				const targets = []
 				for (const page of pages) {
 					for (const widget of page?.widgets ?? []) {
-						if (widget?.widgetKey !== 'nav-card-grid') continue
+						if (widget?.widgetKey !== 'nav-card-grid') {
+							continue
+						}
 						for (const entry of widget?.props?.entries ?? []) {
-							if (entry?.count !== 'auto' || !entry?.route) continue
+							if (entry?.count !== 'auto' || !entry?.route) {
+								continue
+							}
 							const target = pages.find((p) => p.id === entry.route)
 							if (target?.type === 'index' && target?.config?.register && target?.config?.schema) {
 								targets.push({ register: target.config.register, schema: target.config.schema })
@@ -3167,14 +3345,18 @@ export default {
 			}
 
 			const pairs = [...collectAutoTargets(menu), ...collectNavCardGridTargets()]
-			if (pairs.length === 0) return
+			if (pairs.length === 0) {
+				return
+			}
 
 			// De-duplicate by (register, schema).
 			const seen = new Set()
 			const uniquePairs = []
 			for (const pair of pairs) {
 				const key = `${pair.register}|${pair.schema}`
-				if (seen.has(key)) continue
+				if (seen.has(key)) {
+					continue
+				}
 				seen.add(key)
 				uniquePairs.push(pair)
 			}
@@ -3211,7 +3393,9 @@ export default {
 			}
 			for (const result of results) {
 				const { register, schema, count } = result ?? {}
-				if (typeof count !== 'number' || count < 0) continue
+				if (typeof count !== 'number' || count < 0) {
+					continue
+				}
 				if (!this.cnMenuCounts[register]) {
 					this.cnMenuCounts[register] = {}
 				}
@@ -3232,12 +3416,14 @@ export default {
 			let store
 			try {
 				store = useObjectStore()
-			} catch (err) {
+			} catch {
 				// No Pinia plugin installed (tests, isolated mounts) —
 				// silently skip; CnAppNav renders no badge.
 				return
 			}
-			if (!store) return
+			if (!store) {
+				return
+			}
 
 			for (const { register, schema } of uniquePairs) {
 				const slug = `${register}-${schema}`
@@ -3282,7 +3468,7 @@ export default {
 					}
 					this.cnMenuCounts[register][schema] = total
 				}
-			} catch (err) {
+			} catch {
 				// Non-fatal — leave the badge unrendered.
 			}
 		},

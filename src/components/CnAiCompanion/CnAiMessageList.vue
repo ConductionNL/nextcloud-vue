@@ -17,7 +17,8 @@
 		<div
 			v-for="(message, index) in messages"
 			:key="index"
-			:class="['cn-ai-message-list__item', `cn-ai-message-list__item--${message.role}`]">
+			class="cn-ai-message-list__item"
+			:class="[`cn-ai-message-list__item--${message.role}`]">
 			<!-- System message -->
 			<div v-if="message.role === 'system'" class="cn-ai-message-list__system-text">
 				{{ message.content }}
@@ -44,14 +45,15 @@
 				<NcRichText
 					v-if="message.content"
 					:text="message.content"
-					:use-markdown="true"
-					:use-extended-markdown="true" />
+					:useMarkdown="true"
+					:useExtendedMarkdown="true" />
 
 				<!-- Tool calls / results -->
 				<div
 					v-for="(tool, tIdx) in (message.toolCalls || [])"
 					:key="tIdx"
-					:class="['cn-ai-message-list__tool', { 'cn-ai-message-list__tool--error': tool.isError }]">
+					class="cn-ai-message-list__tool"
+					:class="[{ 'cn-ai-message-list__tool--error': tool.isError }]">
 					<button
 						type="button"
 						class="cn-ai-message-list__tool-summary"
@@ -59,7 +61,8 @@
 						@click="toggleTool(index, tIdx)">
 						<ChevronDown
 							:size="16"
-							:class="['cn-ai-message-list__tool-chevron', { 'cn-ai-message-list__tool-chevron--open': isToolExpanded(index, tIdx) }]" />
+							class="cn-ai-message-list__tool-chevron"
+							:class="[{ 'cn-ai-message-list__tool-chevron--open': isToolExpanded(index, tIdx) }]" />
 						{{ cnTranslate('Tool: {toolId}').replace('{toolId}', tool.toolId) }}
 					</button>
 					<div v-if="isToolExpanded(index, tIdx)" class="cn-ai-message-list__tool-detail">
@@ -76,8 +79,8 @@
 				     as pipes while streaming and reflow into a table at the end. -->
 				<NcRichText
 					:text="currentText"
-					:use-markdown="true"
-					:use-extended-markdown="true" />
+					:useMarkdown="true"
+					:useExtendedMarkdown="true" />
 			</div>
 		</div>
 
@@ -126,6 +129,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Partial streaming text from the current token stream.
 		 */
@@ -133,6 +137,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Streaming/request-in-flight flag. When true AND `currentText` is
 		 * empty, the component renders a "Thinking..." placeholder bubble
@@ -208,8 +213,12 @@ export default {
 
 		formatToolPayload(tool) {
 			const payload = {}
-			if (tool.arguments !== undefined) payload.arguments = tool.arguments
-			if (tool.result !== undefined) payload.result = tool.result
+			if (tool.arguments !== undefined) {
+				payload.arguments = tool.arguments
+			}
+			if (tool.result !== undefined) {
+				payload.result = tool.result
+			}
 			const json = JSON.stringify(payload, null, 2)
 			// Truncate at 10KB
 			if (json.length > 10240) {

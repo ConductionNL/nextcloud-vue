@@ -30,8 +30,8 @@
 			v-else
 			v-model:shown="open"
 			:triggers="[]"
-			popup-role="dialog"
-			popover-base-class="cn-icon-browser__popper">
+			popupRole="dialog"
+			popoverBaseClass="cn-icon-browser__popper">
 			<template #trigger="{ attrs }">
 				<!-- @slot trigger Popup-mode trigger; defaults to an icon button that opens the popover. -->
 				<!-- @binding {Function} open Opens the popover. -->
@@ -94,12 +94,12 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcPopover } from '@nextcloud/vue'
 import CnIconBrowserPanel from './CnIconBrowserPanel.vue'
-import { findIconByValue } from './iconCatalogue.js'
+import { nlDesignIconGroups } from '../../icons/nlDesignGroups.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
 import { nextUid } from '../../utils/uid.js'
-import { isCustomIconUrl, DASHBOARD_ICONS } from '../CnIconPicker/dashboardIcons.js'
+import { DASHBOARD_ICONS, isCustomIconUrl } from '../CnIconPicker/dashboardIcons.js'
 import { DASHBOARD_ICONS as WIDGET_ICONS } from '../CnWidgetGrid/widgetIcons.js'
-import { nlDesignIconGroups } from '../../icons/nlDesignGroups.js'
+import { findIconByValue } from './iconCatalogue.js'
 
 /**
  * Curated fallback catalogue, built from the library's always-present
@@ -173,6 +173,7 @@ export default {
 			from: 'cnIconCatalogue',
 			default: null,
 		},
+
 		/**
 		 * App-provided URL-icon groups, used when no `urlIconGroups` prop is passed.
 		 * Same purpose as `cnIconCatalogue`, for the image-URL sets on the Custom
@@ -195,6 +196,7 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * The same value as `value`, under Vue 3's own v-model name.
 		 *
@@ -221,6 +223,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Curated image-URL icons for the Custom tab. Each renders as an `<img>`
 		 * and emits its `url` when picked.
@@ -231,6 +234,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Curated image-URL icons split into named groups, rendered on the Custom
 		 * tab as one sub-tab per group with its own search + truncation. Use this
@@ -243,16 +247,18 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Injected upload transport: `async (dataUrl) => ({ url })`. When null,
 		 * the upload control is hidden (the library carries no upload dependency).
 		 *
-		 * @type {Function|null}
+		 * @type {((dataUrl: string) => Promise<{ url: string }>)|null}
 		 */
 		uploadFn: {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Maximum number of icon cells rendered in the grid at once. Keeps the
 		 * DOM small; a hint is shown when matches exceed the cap.
@@ -263,6 +269,7 @@ export default {
 			type: Number,
 			default: 150,
 		},
+
 		/**
 		 * Catalogue `key`s to show when the search box is empty. Falls back to
 		 * the first `maxResults` of the catalogue in order.
@@ -273,6 +280,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Render the picker panel inline (always open) instead of the default
 		 * trigger-button-plus-popover. Use inline inside a roomy surface; leave it
@@ -284,6 +292,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Show the human-readable label under each icon cell.
 		 *
@@ -293,6 +302,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Offer a free-text image-URL input on the Custom tab, so the picker can
 		 * also hold an arbitrary URL (the icon-or-URL fields). Off by default.
@@ -303,6 +313,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Optional field label rendered above the control. Convenience for form
 		 * fields so the consumer needn't wrap the picker in its own label.
@@ -313,6 +324,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Offer a control to unset the icon (emits `null`). Use for optional icon
 		 * fields, where a picked icon would otherwise be impossible to remove.
@@ -323,6 +335,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Ordered catalogue source keys, one tab each (e.g. `['mdi', 'fontawesome',
 		 * 'opengemeenten']`). Empty → a single "Icons" tab over the resolved icons.
@@ -333,6 +346,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Entries per source: `{ mdi: [...], fontawesome: [...] }`. Build with the
 		 * `fromMdiJs` / `fromFontAwesome` / `fromOpenGemeenten` adapters.
@@ -343,6 +357,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Offer a tab for authoring a raw `<svg>` icon by hand.
 		 *
@@ -370,11 +385,12 @@ export default {
 		/**
 		 * The value the consumer actually bound, whichever prop they used.
 		 *
-		 * @return {*} The bound value.
+		 * @return {unknown} The bound value.
 		 */
 		boundValue() {
 			return this.modelValue !== undefined ? this.modelValue : this.value
 		},
+
 		/**
 		 * Stable id for the trigger button, used to associate the field label
 		 * (`<label :for>`) with the control.
@@ -384,6 +400,7 @@ export default {
 		triggerId() {
 			return 'cn-icon-browser-trigger-' + this.uid
 		},
+
 		/**
 		 * Stable id for the field label, referenced by the trigger button's
 		 * `aria-labelledby` so screen readers announce the label as the
@@ -394,6 +411,7 @@ export default {
 		labelId() {
 			return 'cn-icon-browser-label-' + this.uid
 		},
+
 		/**
 		 * The catalogue actually browsed: the `icons` prop if given, else the
 		 * app-provided `cnIconCatalogue`, else the curated fallback.
@@ -409,6 +427,7 @@ export default {
 			}
 			return CURATED_FALLBACK
 		},
+
 		/**
 		 * The URL-icon groups actually offered: the `urlIconGroups` prop if given,
 		 * else a provided `cnIconUrlGroups`, else the bundled NL-government sets.
@@ -429,6 +448,7 @@ export default {
 			}
 			return DEFAULT_URL_ICON_GROUPS
 		},
+
 		/**
 		 * The props forwarded to the inner panel (inline and popover share these).
 		 *
@@ -451,6 +471,7 @@ export default {
 				allowCustomSvg: this.allowCustomSvg,
 			}
 		},
+
 		/**
 		 * Whether the current value is a URL (trigger renders as `<img>`).
 		 *
@@ -459,6 +480,7 @@ export default {
 		isUrlValue() {
 			return isCustomIconUrl(this.boundValue)
 		},
+
 		/**
 		 * The catalogue entry matching the current value (for the trigger preview).
 		 *
@@ -467,6 +489,7 @@ export default {
 		selectedEntry() {
 			return findIconByValue(this.resolvedIcons, this.boundValue)
 		},
+
 		/**
 		 * The SVG path to preview on the trigger when the value is a bare path.
 		 *
@@ -481,6 +504,7 @@ export default {
 			}
 			return isSvgPath(this.boundValue) ? this.boundValue : null
 		},
+
 		/**
 		 * Human label for the current selection (used by the trigger slot scope).
 		 *
@@ -506,23 +530,24 @@ export default {
 		 * `v-model` are the same consumer as far as this component knows, and
 		 * emitting only one silently breaks half of them.
 		 *
-		 * @param {*} next The new value.
+		 * @param {unknown} next The new value.
 		 * @return {void}
 		 */
 		emitValue(next) {
 			/**
 			 * @event input The value changed. Vue 2's v-model dialect, kept for
 			 *   existing consumers.
-			 * @type {*}
+			 * @type {unknown}
 			 */
 			this.$emit('input', next)
 			/**
 			 * @event update:modelValue The value changed. Vue 3's v-model
 			 *   dialect — what a plain `v-model` listens for.
-			 * @type {*}
+			 * @type {unknown}
 			 */
 			this.$emit('update:modelValue', next)
 		},
+
 		t,
 
 		/**

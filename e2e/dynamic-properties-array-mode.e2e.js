@@ -17,7 +17,7 @@
 // precisely a silent one: answers collected, form closed, nothing saved, no
 // error. Reading the real request is the only assertion that fails on that.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const URL = '/?arr=1'
 
@@ -69,16 +69,18 @@ async function stubOpenRegister(page, saved) {
 	// with no fields at all — a dialog that opens and looks fine.
 	// So: broadest first, most specific last.
 	await page.route('**/apps/openregister/**', (route) => route.fulfill({
-		status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] }),
+		status: 200,
+		contentType: 'application/json',
+		body: JSON.stringify({ results: [] }),
 	}))
 
 	await page.route('**/apps/openregister/api/objects/**', (route) => {
 		const req = route.request()
 		if (req.method() === 'POST' || req.method() === 'PUT') {
-			let body = null
+			let body
 			try {
 				body = JSON.parse(req.postData() || '{}')
-			} catch (e) {
+			} catch {
 				body = null
 			}
 			saved.push({ url: req.url(), body, raw: req.postData() })
@@ -99,7 +101,9 @@ async function stubOpenRegister(page, saved) {
 	// `/api/schemas/case?register=…` is a SINGLE-schema fetch: the store uses
 	// the parsed body AS the schema, so it must not be wrapped in an envelope.
 	await page.route('**/apps/openregister/api/schemas/**', (route) => route.fulfill({
-		status: 200, contentType: 'application/json', body: JSON.stringify(SCHEMA),
+		status: 200,
+		contentType: 'application/json',
+		body: JSON.stringify(SCHEMA),
 	}))
 }
 

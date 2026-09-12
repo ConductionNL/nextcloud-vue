@@ -267,11 +267,11 @@
 import { translate as t } from '@nextcloud/l10n'
 import Cancel from 'vue-material-design-icons/Cancel.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
-import { findIconByValue } from './iconCatalogue.js'
-import { fuzzyFilter } from './fuzzy.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
 import { nextUid } from '../../utils/uid.js'
 import { isCustomIconUrl } from '../CnIconPicker/dashboardIcons.js'
+import { fuzzyFilter } from './fuzzy.js'
+import { findIconByValue } from './iconCatalogue.js'
 
 /**
  * CnIconBrowserPanel — the always-open picker panel used by
@@ -301,6 +301,7 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * The same value as `value`, under Vue 3's own v-model name.
 		 *
@@ -325,6 +326,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Curated image-URL icons for the Custom tab: `[{ label, url }]`.
 		 *
@@ -334,6 +336,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Curated URL icons split into named groups: `[{ key, label, icons }]`.
 		 * Rendered on the Custom tab as one sub-tab per group, each with its own
@@ -351,6 +354,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Offer a control to unset the icon (emits `null`). Shown next to the
 		 * preview whenever a value is selected.
@@ -361,6 +365,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Ordered catalogue source keys, one tab each (e.g. `['mdi', 'fontawesome']`).
 		 * `mdi` is special: its catalogue is loaded from the optional `@mdi/js`
@@ -373,6 +378,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Entries per source: `{ mdi: [...], fontawesome: [...] }`. Build with the
 		 * `fromMdiJs` / `fromFontAwesome` / `fromOpenGemeenten` adapters.
@@ -383,6 +389,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Offer a tab for authoring a raw `<svg>` icon by hand.
 		 *
@@ -392,16 +399,18 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Injected upload transport: `async (dataUrl) => ({ url })`. When null,
 		 * the upload control is hidden.
 		 *
-		 * @type {Function|null}
+		 * @type {((dataUrl: string) => Promise<{ url: string }>)|null}
 		 */
 		uploadFn: {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Maximum number of icon cells rendered in the grid at once.
 		 *
@@ -411,6 +420,7 @@ export default {
 			type: Number,
 			default: 150,
 		},
+
 		/**
 		 * Catalogue `key`s to show when the search box is empty.
 		 *
@@ -420,6 +430,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Show the human-readable label under each icon cell.
 		 *
@@ -429,6 +440,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Offer a free-text image-URL input on the Custom tab.
 		 *
@@ -477,11 +489,12 @@ export default {
 		/**
 		 * The value the consumer actually bound, whichever prop they used.
 		 *
-		 * @return {*} The bound value.
+		 * @return {unknown} The bound value.
 		 */
 		boundValue() {
 			return this.modelValue !== undefined ? this.modelValue : this.value
 		},
+
 		/**
 		 * Whether the upload control is shown (only when an uploadFn is given).
 		 *
@@ -490,6 +503,7 @@ export default {
 		canUpload() {
 			return typeof this.uploadFn === 'function'
 		},
+
 		/**
 		 * Named icon sets, each promoted to its own top-level tab.
 		 *
@@ -502,6 +516,7 @@ export default {
 		promotedGroups() {
 			return this.resolvedGroups.filter((group) => !!group.label)
 		},
+
 		/**
 		 * Curated url-icons that have no set name, shown inside the Custom tab
 		 * alongside the URL input and upload control.
@@ -513,6 +528,7 @@ export default {
 				.filter((group) => !group.label)
 				.flatMap((group) => group.icons)
 		},
+
 		/**
 		 * Whether the Custom tab is offered — a bring-your-own source exists.
 		 *
@@ -524,6 +540,7 @@ export default {
 		hasCustomTab() {
 			return this.allowUrl || this.canUpload || this.unnamedIcons.length > 0
 		},
+
 		/**
 		 * Path/component icon catalogues, one tab each.
 		 *
@@ -547,6 +564,7 @@ export default {
 					icons: this.catalogueFor(source),
 				}))
 		},
+
 		/**
 		 * The catalogue whose tab is selected (empty when a non-catalogue tab is).
 		 *
@@ -556,6 +574,7 @@ export default {
 			const tab = this.catalogueTabs.find((c) => c.key === this.mode)
 			return tab ? tab.icons : []
 		},
+
 		/**
 		 * Every catalogue entry across all sources — used to resolve the preview
 		 * for the current value regardless of which tab it came from.
@@ -565,6 +584,7 @@ export default {
 		allCatalogueIcons() {
 			return this.catalogueTabs.flatMap((tab) => tab.icons)
 		},
+
 		/**
 		 * Whether the raw-SVG authoring tab is offered.
 		 *
@@ -573,6 +593,7 @@ export default {
 		hasCustomSvgTab() {
 			return this.allowCustomSvg
 		},
+
 		/**
 		 * The tablist: a tab per icon catalogue, then per named icon set, then
 		 * Custom (URL/upload) and Custom SVG. Rendered only when there's >1.
@@ -592,6 +613,7 @@ export default {
 			}
 			return tabs
 		},
+
 		/**
 		 * Curated URL icons normalised to groups. `urlIconGroups` wins; otherwise
 		 * the flat `urlIcons` become a single unnamed group.
@@ -601,7 +623,7 @@ export default {
 		 * empty and fills in without the tab disappearing. Groups that are neither
 		 * populated nor loadable drop out.
 		 *
-		 * @return {Array<{ key: string, label: string, icons: Array<object>, lazy: boolean, load: Function|null }>} the groups.
+		 * @return {Array<{ key: string, label: string, icons: Array<object>, lazy: boolean, load: (() => Promise<Array<object>>)|null }>} the groups.
 		 */
 		resolvedGroups() {
 			const groups = this.urlIconGroups.length > 0
@@ -618,6 +640,7 @@ export default {
 					icons: this.groupIcons[g.key] || (Array.isArray(g.icons) ? g.icons : []),
 				}))
 		},
+
 		/**
 		 * The icon set whose tab is currently selected, or null when the active tab
 		 * is not a set (Icons / Custom).
@@ -627,6 +650,7 @@ export default {
 		activeGroup() {
 			return this.promotedGroups.find((group) => this.groupKey(group) === this.mode) || null
 		},
+
 		/**
 		 * Active set's icons filtered by its search box (label match).
 		 *
@@ -640,6 +664,7 @@ export default {
 			}
 			return icons.filter((icon) => String(icon.label || '').toLowerCase().includes(q))
 		},
+
 		/**
 		 * The rendered slice of the Custom grid, capped at `maxResults` to keep the
 		 * DOM small for large packs (a hint is shown when matches exceed the cap).
@@ -649,6 +674,7 @@ export default {
 		customVisibleIcons() {
 			return this.customMatches.slice(0, this.maxResults)
 		},
+
 		/**
 		 * Whether the Custom grid is truncated (more matches than rendered).
 		 *
@@ -657,6 +683,7 @@ export default {
 		customTruncated() {
 			return this.customMatches.length > this.customVisibleIcons.length
 		},
+
 		/**
 		 * Index of the selected tab, used to seed roving keyboard navigation.
 		 *
@@ -665,6 +692,7 @@ export default {
 		activeTabIndex() {
 			return Math.max(0, this.tabs.findIndex((tab) => tab.key === this.mode))
 		},
+
 		/**
 		 * Whether the current value is a URL (render as `<img>`).
 		 *
@@ -673,6 +701,7 @@ export default {
 		isUrlValue() {
 			return isCustomIconUrl(this.boundValue)
 		},
+
 		/**
 		 * The catalogue entry matching the current value (for preview/highlight).
 		 * Searched across EVERY source, not just the active tab, so the preview
@@ -683,6 +712,7 @@ export default {
 		selectedEntry() {
 			return findIconByValue(this.allCatalogueIcons, this.boundValue)
 		},
+
 		/**
 		 * The SVG path to preview when the value is a bare path string not backed
 		 * by a catalogue component.
@@ -698,6 +728,7 @@ export default {
 			}
 			return isSvgPath(this.boundValue) ? this.boundValue : null
 		},
+
 		/**
 		 * Human label for the current selection.
 		 *
@@ -718,6 +749,7 @@ export default {
 			}
 			return this.selectedEntry ? this.selectedEntry.label : t('nextcloud-vue', 'Custom icon')
 		},
+
 		/**
 		 * The catalogue filtered by the debounced search query (or the default
 		 * set when the query is empty). Not yet capped.
@@ -734,6 +766,7 @@ export default {
 			}
 			return fuzzyFilter(this.activeCatalogue, q)
 		},
+
 		/**
 		 * Total number of icons matching the current query (before capping).
 		 *
@@ -742,6 +775,7 @@ export default {
 		matchCount() {
 			return this.matchedIcons.length
 		},
+
 		/**
 		 * The capped slice of matches actually rendered in the grid.
 		 *
@@ -750,6 +784,7 @@ export default {
 		visibleIcons() {
 			return this.matchedIcons.slice(0, this.maxResults)
 		},
+
 		/**
 		 * Whether the match set was truncated by the `maxResults` cap.
 		 *
@@ -758,6 +793,7 @@ export default {
 		truncated() {
 			return this.matchCount > this.visibleIcons.length
 		},
+
 		/**
 		 * Empty-state message — distinguishes "no catalogue" from "no matches".
 		 *
@@ -777,11 +813,13 @@ export default {
 				this.debouncedQuery = value
 			}, 150)
 		},
+
 		value(v) {
 			if (isCustomIconUrl(v)) {
 				this.urlDraft = v
 			}
 		},
+
 		// Keep the roving cursor valid as filtering changes the list; prefer the
 		// currently-selected icon's cell so it's the first one Tab lands on.
 		visibleIcons: {
@@ -791,6 +829,7 @@ export default {
 				this.activeIndex = selected >= 0 ? selected : 0
 			},
 		},
+
 		// A lazy set is fetched only once its own tab is selected — never on mount,
 		// which is what keeps RVO's 1.9MB out of the initial load. Searches are
 		// per-tab, so both query boxes reset when the tab changes.
@@ -823,23 +862,24 @@ export default {
 		 * `v-model` are the same consumer as far as this component knows, and
 		 * emitting only one silently breaks half of them.
 		 *
-		 * @param {*} next The new value.
+		 * @param {unknown} next The new value.
 		 * @return {void}
 		 */
 		emitValue(next) {
 			/**
 			 * @event input The value changed. Vue 2's v-model dialect, kept for
 			 *   existing consumers.
-			 * @type {*}
+			 * @type {unknown}
 			 */
 			this.$emit('input', next)
 			/**
 			 * @event update:modelValue The value changed. Vue 3's v-model
 			 *   dialect — what a plain `v-model` listens for.
-			 * @type {*}
+			 * @type {unknown}
 			 */
 			this.$emit('update:modelValue', next)
 		},
+
 		t,
 
 		/**
@@ -867,6 +907,7 @@ export default {
 				this.groupIcons[group.key] = Array.isArray(icons) ? icons : []
 			} catch (error) {
 				this.groupError[group.key] = t('nextcloud-vue', 'Could not load this icon set.')
+				// eslint-disable-next-line no-console
 				console.error('Icon set "' + group.key + '" failed to load:', error)
 			} finally {
 				this.groupLoading[group.key] = false
@@ -945,7 +986,7 @@ export default {
 					import('../CnIconPicker/iconCatalogues.js'),
 				])
 				this.mdiCatalogue = adapters.fromMdiJs(mdi)
-			} catch (error) {
+			} catch {
 				// @mdi/js not installed — the `icons` fallback stands.
 				this.mdiCatalogue = null
 			}
@@ -1025,13 +1066,21 @@ export default {
 			const last = this.tabs.length - 1
 			let next = index
 			switch (event.key) {
-			case 'ArrowRight':
-			case 'ArrowDown': next = index === last ? 0 : index + 1; break
-			case 'ArrowLeft':
-			case 'ArrowUp': next = index === 0 ? last : index - 1; break
-			case 'Home': next = 0; break
-			case 'End': next = last; break
-			default: return
+				case 'ArrowRight':
+				case 'ArrowDown':
+					next = index === last ? 0 : index + 1
+					break
+				case 'ArrowLeft':
+				case 'ArrowUp':
+					next = index === 0 ? last : index - 1
+					break
+				case 'Home':
+					next = 0
+					break
+				case 'End':
+					next = last
+					break
+				default: return
 			}
 			event.preventDefault()
 			this.mode = this.tabs[next].key
@@ -1083,13 +1132,25 @@ export default {
 			const cols = this.gridColumns()
 			let next = index
 			switch (event.key) {
-			case 'ArrowRight': next = Math.min(index + 1, last); break
-			case 'ArrowLeft': next = Math.max(index - 1, 0); break
-			case 'ArrowDown': next = Math.min(index + cols, last); break
-			case 'ArrowUp': next = Math.max(index - cols, 0); break
-			case 'Home': next = 0; break
-			case 'End': next = last; break
-			default: return
+				case 'ArrowRight':
+					next = Math.min(index + 1, last)
+					break
+				case 'ArrowLeft':
+					next = Math.max(index - 1, 0)
+					break
+				case 'ArrowDown':
+					next = Math.min(index + cols, last)
+					break
+				case 'ArrowUp':
+					next = Math.max(index - cols, 0)
+					break
+				case 'Home':
+					next = 0
+					break
+				case 'End':
+					next = last
+					break
+				default: return
 			}
 			event.preventDefault()
 			this.activeIndex = next
@@ -1169,6 +1230,7 @@ export default {
 					this.$emit('pick')
 				} catch (err) {
 					this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload icon')
+					// eslint-disable-next-line no-console
 					console.error('Icon upload failed:', err)
 				} finally {
 					this.uploading = false

@@ -28,16 +28,16 @@
  * `openregister` during its compat window) without touching this file.
  */
 
-import { reactive } from 'vue'
-import axios from '@nextcloud/axios'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
-import { useAiContext } from './useAiContext.js'
+import axios from '@nextcloud/axios'
+import { reactive } from 'vue'
 import {
-	DEFAULT_CHAT_APP_ID,
-	chatStreamUrl,
 	chatSendUrl,
+	chatStreamUrl,
 	conversationMessagesUrl,
+	DEFAULT_CHAT_APP_ID,
 } from './aiChatConfig.js'
+import { useAiContext } from './useAiContext.js'
 
 /**
  * Factory that creates and returns a reactive AI chat stream state object.
@@ -103,6 +103,7 @@ export function useAiChatStream(contextInstance, options = {}) {
 
 	/**
 	 * Get the current cnAiContext snapshot for inclusion in request bodies.
+	 *
 	 * @returns {object}
 	 */
 	function getContextSnapshot() {
@@ -133,6 +134,7 @@ export function useAiChatStream(contextInstance, options = {}) {
 
 	/**
 	 * Handle an individual SSE message frame.
+	 *
 	 * @param {object} msg - { event, data } from fetchEventSource
 	 */
 	function handleSseMessage(msg) {
@@ -145,58 +147,59 @@ export function useAiChatStream(contextInstance, options = {}) {
 		}
 
 		switch (event) {
-		case 'token':
-			state.currentText += (parsed.delta || '')
-			break
+			case 'token':
+				state.currentText += (parsed.delta || '')
+				break
 
-		case 'tool_call':
-			state.toolCalls.push({
-				toolId: parsed.toolId,
-				arguments: parsed.arguments,
-				result: undefined,
-				isError: false,
-			})
-			break
+			case 'tool_call':
+				state.toolCalls.push({
+					toolId: parsed.toolId,
+					arguments: parsed.arguments,
+					result: undefined,
+					isError: false,
+				})
+				break
 
-		case 'tool_result': {
-			const entry = state.toolCalls.find((tc) => tc.toolId === parsed.toolId)
-			if (entry) {
-				entry.result = parsed.result
-				entry.isError = Boolean(parsed.isError)
+			case 'tool_result': {
+				const entry = state.toolCalls.find((tc) => tc.toolId === parsed.toolId)
+				if (entry) {
+					entry.result = parsed.result
+					entry.isError = Boolean(parsed.isError)
+				}
+				break
 			}
-			break
-		}
 
-		case 'heartbeat':
+			case 'heartbeat':
 			// Liveness signal only — no UI update
-			break
+				break
 
-		case 'final':
+			case 'final':
 			// Commit the streamed text as a finalised assistant message.
 			// If no `token` events arrived (non-streaming-provider fallback path —
 			// the contract allows the server to emit only the terminal `final`
 			// event with `fullText` for providers that don't stream), seed
 			// `currentText` from the payload so the assistant bubble renders.
-			if (state.currentText === '' && typeof parsed.fullText === 'string') {
-				state.currentText = parsed.fullText
-			}
-			if (Array.isArray(parsed.pendingApprovals)) {
-				state.pendingApprovals = parsed.pendingApprovals
-			}
-			finalise(parsed.messageId, parsed.conversationUuid)
-			break
+				if (state.currentText === '' && typeof parsed.fullText === 'string') {
+					state.currentText = parsed.fullText
+				}
+				if (Array.isArray(parsed.pendingApprovals)) {
+					state.pendingApprovals = parsed.pendingApprovals
+				}
+				finalise(parsed.messageId, parsed.conversationUuid)
+				break
 
-		case 'error':
-			fail(parsed.code || 'unknown', parsed.message || 'Unknown error')
-			break
+			case 'error':
+				fail(parsed.code || 'unknown', parsed.message || 'Unknown error')
+				break
 
-		default:
-			break
+			default:
+				break
 		}
 	}
 
 	/**
 	 * Push the completed assistant message into state.messages and resolve send().
+	 *
 	 * @param {string|undefined} messageId - Server-supplied id from the final event;
 	 *   when empty/missing we synthesise a stable client-side id so Vue's :key
 	 *   stays unique within the conversation.
@@ -230,6 +233,7 @@ export function useAiChatStream(contextInstance, options = {}) {
 
 	/**
 	 * Handle an error event or transport failure.
+	 *
 	 * @param {string} code - Machine-readable error code (e.g. 'rate_limited', 'connection_error')
 	 * @param {string} message - Human-readable error message for the UI
 	 */
@@ -250,6 +254,7 @@ export function useAiChatStream(contextInstance, options = {}) {
 	/**
 	 * Non-streaming fallback: POST to /api/chat/send via axios, then synthesise
 	 * a single "final" event from the JSON response.
+	 *
 	 * @param {string} content - The user's message text
 	 * @param {object} body - Request body already built by send() (message, context, newThread)
 	 */
@@ -465,6 +470,7 @@ export function useAiChatStream(contextInstance, options = {}) {
 	 * shape the send/stream paths produce so CnAiMessageList renders resumed
 	 * conversations identically to live ones. OR does not persist tool calls
 	 * on messages, so toolCalls degrades to [].
+	 *
 	 * @param {string} conversationUuid - UUID of the conversation to resume
 	 * @returns {Promise<void>}
 	 */

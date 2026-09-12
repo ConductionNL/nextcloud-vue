@@ -66,10 +66,10 @@
 			<CnConfirmDialog
 				v-if="confirmAction"
 				ref="confirmDialog"
-				:dialog-title="confirmAction.label"
+				:dialogTitle="confirmAction.label"
 				:message="confirmMessage"
 				:variant="confirmAction.op === 'delete' ? 'error' : 'primary'"
-				:confirm-label="confirmAction.label"
+				:confirmLabel="confirmAction.label"
 				@confirm="onConfirmConfirmed"
 				@close="closeConfirm" />
 		</div>
@@ -77,20 +77,20 @@
 </template>
 
 <script>
-import { inject, ref } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
-import CnDataTable from '../CnDataTable/CnDataTable.vue'
-import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
-import { CnRowActions } from '../CnRowActions/index.js'
-import { CnIcon } from '../CnIcon/index.js'
+import { inject, ref } from 'vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
-import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
-import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
-import { readVisibleWhenPath, compareVisibleWhen } from '../../utils/visibleWhen.js'
+import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
-import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
+import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { compareVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
+import { CnIcon } from '../CnIcon/index.js'
+import { CnRowActions } from '../CnRowActions/index.js'
+import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 // Chrome-less pass-through used when `hideWrapper` is set (see hostShell.js
 // for why it lives in its own module).
 import { CnWidgetHostShell } from './hostShell.js'
@@ -169,6 +169,7 @@ export default {
 		 */
 		cnDispatchAction: { default: null },
 	},
+
 	inheritAttrs: false,
 
 	props: {
@@ -179,6 +180,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Table'),
 		},
+
 		/**
 		 * Documentation link surfaced in the widget's overflow Actions menu.
 		 * Empty (the default) hides the Documentation item; the Refresh and
@@ -188,6 +190,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Stable id forwarded to the widget chrome for the Refresh /
 		 * Request-a-feature payloads.
@@ -196,6 +199,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Render content-only, WITHOUT the widget's own CnWidgetWrapper
 		 * chrome. Set by hosts that already provide the card chrome — e.g.
@@ -208,36 +212,43 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Register slug. Forwarded to CnDataTable. */
 		register: {
 			type: String,
 			default: null,
 		},
+
 		/** Schema slug. Forwarded to CnDataTable. */
 		schema: {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * Column definitions. Forwarded to CnDataTable — bare string keys OR
 		 * the object form (`{ key, label, sortable, width, cellClass,
 		 * formatter, widget, format, aggregate }`) both pass straight through.
+		 *
 		 * @type {Array<object|string>}
 		 */
 		columns: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Rows array. Forwarded to CnDataTable. External rows always win over `source`. */
 		rows: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Loading state. Forwarded to CnDataTable. */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Declarative self-fetch source (ADR-049). When set and no external
 		 * `rows` are supplied, the widget resolves `filter` @-tokens and
@@ -248,12 +259,14 @@ export default {
 		 * fetch so virtual/declarative calc fields ride along and render as
 		 * ordinary columns. Default `null` keeps the pre-existing
 		 * pass-through behaviour byte-for-byte.
+		 *
 		 * @type {{register?: string, schema?: string, filter?: object, order?: object, limit?: number, extend?: string[]}|null}
 		 */
 		source: {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Endpoint data binding (Wave 2, #91) — the alternative to the
 		 * OpenRegister `source` for rows an app REST endpoint computes (e.g. a
@@ -268,12 +281,14 @@ export default {
 		 * `endpointSource` (validator-enforced); external `rows` still win
 		 * over both. `columns` / formatters / `rowRoute` / `actions` apply
 		 * unchanged on top of endpoint rows.
+		 *
 		 * @type {{url: string, method?: string, params?: object, responsePath?: string}|null}
 		 */
 		endpointSource: {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Declarative actions (unified manifest action shape — `handler` |
 		 * `open-modal` | `open-page` | `navigate` | `object-op`). `object-op`
@@ -282,12 +297,14 @@ export default {
 		 * affordance. `delete` always confirms; `patch` / `create` confirm on
 		 * `confirm: true`. Authorization-shaped fields on an action have no
 		 * effect — OpenRegister RBAC is the only authority.
+		 *
 		 * @type {Array<object>}
 		 */
 		actions: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Hide the column-header row. Forwarded to CnDataTable — the compact
 		 * dashboard-list surface.
@@ -296,6 +313,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Drop CnDataTable's card chrome (border, radius, shadow) so the table
 		 * sits flush inside the widget card. Forwarded to CnDataTable.
@@ -304,6 +322,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Route NAME for row-click navigation. Mapped onto CnDataTable's
 		 * `rowClickRoute` as `{ name: rowRoute, params: { id } }` with the
@@ -313,6 +332,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Client-side row cap, forwarded to CnDataTable (`0` = all rows).
 		 * This is what makes `viewAllRoute` reachable for `endpointSource`
@@ -326,34 +346,41 @@ export default {
 			type: Number,
 			default: 0,
 		},
+
 		/**
 		 * vue-router route object for the "View all" footer link. Forwarded
 		 * to CnDataTable (footer shows when the rows are a `limit`-ed subset).
+		 *
 		 * @type {object|null}
 		 */
 		viewAllRoute: {
 			type: Object,
 			default: null,
 		},
+
 		/** Pre-translated "View all" footer label. Forwarded to CnDataTable. */
 		viewAllLabel: {
 			type: String,
 			default: undefined,
 		},
+
 		/** Text shown when there are no rows. Forwarded to CnDataTable. */
 		emptyText: {
 			type: String,
 			default: undefined,
 		},
+
 		/**
 		 * Leading per-row icon: a static MDI icon name string, or a function
 		 * `(row) => iconName`. Forwarded to CnDataTable.
-		 * @type {string|Function|null}
+		 *
+		 * @type {string|((row: object) => string)|null}
 		 */
 		rowIcon: {
 			type: [String, Function],
 			default: null,
 		},
+
 		/**
 		 * Per-row CSS class binding (#91). Two forms:
 		 *  - a FUNCTION `(row) => string` — passed straight through to
@@ -366,7 +393,8 @@ export default {
 		 *    evaluated in order and every matching `class` is space-joined, so an
 		 *    overdue / at-risk row can be highlighted declaratively from a
 		 *    manifest with no bespoke function. Default `null` = no row class.
-		 * @type {Function|Array<{when: {field: string, op?: string, value: *}, class: string}>|null}
+		 *
+		 * @type {((row: object) => string)|Array<{when: {field: string, op?: string, value: unknown}, class: string}>|null}
 		 */
 		rowClass: {
 			type: [Function, Array],
@@ -422,24 +450,31 @@ export default {
 		 * The merged detail-page object context for token resolution — both
 		 * detail-surface injects, holder fields backfilling (#91 Wave 3) —
 		 * or null on surfaces (dashboards) that don't provide one.
+		 *
 		 * @return {object|null}
 		 */
 		objectCtx() {
 			return resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext)
 		},
+
 		/**
 		 * The unwrapped workspace context bag (or null). Vue 2.7 inject may
 		 * hand back a raw ref; unwrap `.value` for token resolution.
+		 *
 		 * @return {object|null}
 		 */
 		workspaceCtx() {
 			const c = this.cnWorkspaceContext
-			if (!c) return null
+			if (!c) {
+				return null
+			}
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
+
 		/**
 		 * Token-resolution context merged from the detail-page object context
 		 * and the page-level workspace bag (`@workspace.<key>`).
+		 *
 		 * @return {object}
 		 */
 		tokenCtx() {
@@ -447,48 +482,58 @@ export default {
 			base.workspace = this.workspaceCtx || {}
 			return base
 		},
+
 		/**
 		 * `source.filter` with every @-token resolved against `tokenCtx`, then
 		 * with any UNRESOLVED OPTIONAL clause (`@workspace.<key>?`) dropped —
 		 * an optional clause simply shows all rows until its context is set.
+		 *
 		 * @return {object}
 		 */
 		resolvedFilter() {
 			return dropOptionalUnresolved(resolveFilterTokens((this.source && this.source.filter) || {}, this.tokenCtx))
 		},
+
 		/**
 		 * Whether a REQUIRED context token in `source.filter` is still
 		 * unresolved — the widget then skips the fetch instead of querying the
 		 * whole register.
+		 *
 		 * @return {boolean}
 		 */
 		waitingForContext() {
 			return !!this.source && hasUnresolvedTokens(this.resolvedFilter)
 		},
+
 		/**
 		 * Whether the Wave-2 `endpointSource` drives the rows: a usable
 		 * endpoint config and no external rows (external rows always win).
+		 *
 		 * @return {boolean}
 		 */
 		endpointActive() {
 			return !!(this.endpointSource && this.endpointSource.url)
 				&& (!this.rows || this.rows.length === 0)
 		},
+
 		/**
 		 * Rows resolved from the endpoint payload. The payload (after the
 		 * `responsePath` pluck the shared engine applies) must be an ARRAY;
 		 * anything else renders as an empty table rather than crashing the
 		 * column renderer.
+		 *
 		 * @return {Array<object>}
 		 */
 		endpointRows() {
 			return Array.isArray(this.epData) ? this.epData : []
 		},
+
 		/**
 		 * Whether the declarative `source` drives a self-fetch: a usable
 		 * source, no external rows (external rows always win), no active
 		 * endpoint binding (exactly-one-of — endpointSource wins when both
 		 * slip past the validator), and no unresolved required token.
+		 *
 		 * @return {boolean}
 		 */
 		selfFetchActive() {
@@ -497,6 +542,7 @@ export default {
 				&& !this.endpointActive
 				&& !this.waitingForContext
 		},
+
 		/**
 		 * Query params handed to CnDataTable's self-fetch: the resolved filter
 		 * as direct field params (OpenRegister object-search shape),
@@ -512,6 +558,7 @@ export default {
 		 * `useObjectStore` send and the only IN form OpenRegister parses (a
 		 * `field[in]`-style key is NOT understood server-side). Empty arrays
 		 * are skipped (no constraint).
+		 *
 		 * @return {object}
 		 */
 		resolvedFetchParams() {
@@ -535,12 +582,16 @@ export default {
 			if (filter && typeof filter === 'object') {
 				for (const [k, v] of Object.entries(filter)) {
 					if (Array.isArray(v)) {
-						if (v.length > 0) params[k] = v
+						if (v.length > 0) {
+							params[k] = v
+						}
 					} else if (v && typeof v === 'object') {
 						for (const [op, ov] of Object.entries(v)) {
 							if (op === 'in' && Array.isArray(ov)) {
 								// OR's IN form is the bare repeated field param.
-								if (ov.length > 0) params[k] = ov
+								if (ov.length > 0) {
+									params[k] = ov
+								}
 							} else {
 								params[`${k}[${op}]`] = ov
 							}
@@ -552,6 +603,7 @@ export default {
 			}
 			return params
 		},
+
 		/**
 		 * `$props` minus the chrome props (`title`, `documentationUrl`,
 		 * `widgetId`, `hideWrapper`) and the widget-only props (`source`,
@@ -563,14 +615,16 @@ export default {
 		 * through unexpanded. When the Wave-2 `endpointSource` is active it
 		 * supplies the resolved `rows` + `loading` instead — columns,
 		 * formatters, and row navigation apply unchanged on top.
+		 *
 		 * @return {object}
 		 */
 		innerProps() {
-			// eslint-disable-next-line no-unused-vars
 			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowClass, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {
-				if (v !== undefined) inner[k] = v
+				if (v !== undefined) {
+					inner[k] = v
+				}
 			}
 			// `rowClass` is consumed here (function or declarative rules[]) and
 			// forwarded to CnDataTable as a compiled `(row) => class` function.
@@ -594,6 +648,7 @@ export default {
 			}
 			return inner
 		},
+
 		/**
 		 * The effective `rowClass` function forwarded to CnDataTable. A
 		 * host-supplied FUNCTION passes straight through; a declarative
@@ -602,7 +657,8 @@ export default {
 		 * row (`field` dot-path + `op` + `value`). Null when `rowClass` is
 		 * unset or an empty array — the widget then forwards nothing so
 		 * CnDataTable's own default applies.
-		 * @return {Function|null}
+		 *
+		 * @return {?(row: object) => string} The row-class function, or null.
 		 */
 		compiledRowClass() {
 			const rc = this.rowClass
@@ -616,7 +672,9 @@ export default {
 			return (row) => {
 				const classes = []
 				for (const rule of rules) {
-					if (!rule || !rule.class) continue
+					if (!rule || !rule.class) {
+						continue
+					}
 					const when = rule.when || {}
 					const actual = readVisibleWhenPath(row, when.field)
 					if (compareVisibleWhen(actual, when.op || 'eq', when.value)) {
@@ -626,10 +684,12 @@ export default {
 				return classes.join(' ')
 			}
 		},
+
 		/**
 		 * Row-click navigation function derived from the `rowRoute` route
 		 * name (CnDataTable's `rowClickRoute` shape).
-		 * @return {Function}
+		 *
+		 * @return {(row: object) => (object|null)} A vue-router location, or null for a row with no id.
 		 */
 		rowRouteFn() {
 			return (row) => {
@@ -637,26 +697,32 @@ export default {
 				return id ? { name: this.rowRoute, params: { id: String(id) } } : null
 			}
 		},
+
 		/**
 		 * Actions rendered per row: every non-`object-op` type plus
 		 * `object-op` `patch` / `delete` (they mutate THAT row's object).
+		 *
 		 * @return {Array<object>}
 		 */
 		rowScopedActions() {
 			return (this.actions || []).filter((a) => a && (a.type !== 'object-op' || a.op === 'patch' || a.op === 'delete'))
 		},
+
 		/**
 		 * `object-op` `create` actions — widget-scoped (no row to mutate), so
 		 * they render in the list footer, never in the row menu.
+		 *
 		 * @return {Array<object>}
 		 */
 		createActions() {
 			return (this.actions || []).filter((a) => a && a.type === 'object-op' && a.op === 'create')
 		},
+
 		/**
 		 * Row-scoped actions mapped onto the CnRowActions shape: label + icon
 		 * pass through, `object-op` `delete` renders destructive, and the
 		 * handler routes back through the widget's confirm-gated dispatcher.
+		 *
 		 * @return {Array<object>}
 		 */
 		mappedRowActions() {
@@ -667,23 +733,29 @@ export default {
 				handler: (row) => this.onActionTriggered(action, row),
 			}))
 		},
+
 		/**
 		 * Host-supplied CnDataTable scoped slots to forward (keys only). The
 		 * `row-actions` slot is withheld while the widget renders its own
 		 * declarative actions menu.
+		 *
 		 * @return {object}
 		 */
 		forwardedScopedSlots() {
 			const out = {}
 			for (const name of Object.keys(this.$slots || {})) {
-				if (name === 'row-actions' && this.rowScopedActions.length > 0) continue
+				if (name === 'row-actions' && this.rowScopedActions.length > 0) {
+					continue
+				}
 				out[name] = true
 			}
 			return out
 		},
+
 		/**
 		 * Confirmation question for the pending confirm-gated action —
 		 * destructive copy for `delete`, a generic confirm otherwise.
+		 *
 		 * @return {string}
 		 */
 		confirmMessage() {
@@ -717,6 +789,7 @@ export default {
 		/**
 		 * Confirm-dialog primary button: run the pending action and report
 		 * the outcome back into the dialog's result phase.
+		 *
 		 * @return {Promise<void>}
 		 */
 		async onConfirmConfirmed() {
@@ -749,7 +822,9 @@ export default {
 		 * @return {Promise<{ok: boolean, error?: string}>}
 		 */
 		async runAction(action, row) {
-			if (!action) return { ok: false, error: '' }
+			if (!action) {
+				return { ok: false, error: '' }
+			}
 			if (action.type !== 'object-op') {
 				const wrapped = (!action.type || action.type === 'handler')
 					? { ...action, args: [...(action.args || []), row] }
@@ -779,7 +854,7 @@ export default {
 			/**
 			 * @event object-op Emitted after a successful declarative mutation
 			 * so a host that supplies external `rows` can refetch them.
-			 * @type {{action: object, row: (object|null), result: *}}
+			 * @type {{action: object, row: (object|null), result: unknown}}
 			 */
 			this.$emit('object-op', { action, row, result })
 			return { ok: true }
@@ -804,12 +879,13 @@ export default {
 		/**
 		 * The shared object store instance, or null when no Pinia is active
 		 * (`dispatchAction` then warns and no-ops).
+		 *
 		 * @return {object|null}
 		 */
 		getObjectStore() {
 			try {
 				return useObjectStore()
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -826,9 +902,11 @@ export default {
 				if (store && this.source) {
 					const type = resolveObjectOpType(store, this.source)
 					const err = store.errors && store.errors[type]
-					if (err && err.message) return err.message
+					if (err && err.message) {
+						return err.message
+					}
 				}
-			} catch (e) {
+			} catch {
 				// fall through to the generic message
 			}
 			return t('nextcloud-vue', 'The operation was rejected')

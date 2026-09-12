@@ -97,7 +97,7 @@
 						:name="subjectFor(entry)"
 						:bold="false"
 						:compact="true"
-						:force-display-actions="false">
+						:forceDisplayActions="false">
 						<template #name>
 							<span class="cn-activity-tab__subject">{{ subjectFor(entry) }}</span>
 						</template>
@@ -105,11 +105,11 @@
 							<span class="cn-activity-tab__avatar-wrap">
 								<NcAvatar
 									:user="avatarUser(entry)"
-									:display-name="actorFor(entry)"
+									:displayName="actorFor(entry)"
 									:size="36"
-									:disable-menu="true"
-									:disable-tooltip="true"
-									:show-user-status="false" />
+									:disableMenu="true"
+									:disableTooltip="true"
+									hideStatus />
 								<span class="cn-activity-tab__type-badge" :class="typeBadgeClass(entry)">
 									<component :is="iconFor(entry)" :size="12" />
 								</span>
@@ -124,7 +124,7 @@
 							<NcDateTime
 								class="cn-activity-tab__time"
 								:timestamp="timestampMillis(entry)"
-								:relative-time="'short'" />
+								relativeTime="short" />
 						</template>
 						<template v-else #details>
 							<span class="cn-activity-tab__time">{{ relativeTime(entry) }}</span>
@@ -151,15 +151,15 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
-import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
-import CalendarOutline from 'vue-material-design-icons/CalendarOutline.vue'
-import Timeline from 'vue-material-design-icons/Timeline.vue'
-import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
+import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import CalendarClockOutline from 'vue-material-design-icons/CalendarClockOutline.vue'
+import CalendarOutline from 'vue-material-design-icons/CalendarOutline.vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
+import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
-import CalendarClockOutline from 'vue-material-design-icons/CalendarClockOutline.vue'
+import Timeline from 'vue-material-design-icons/Timeline.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 const DEFAULT_PAGE_SIZE = 25
@@ -195,8 +195,10 @@ export default {
 	},
 
 	props: {
+		/* eslint-disable vue/no-unused-properties -- the integration dispatch binds integrationId on every integration component (see CnIntegrationWidgetGrid), so declaring it keeps it out of $attrs */
 		/** Stable integration id (forwarded from the registry — always `'activity'`). */
 		integrationId: { type: String, default: 'activity' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Parent object id. */
 		objectId: { type: String, required: true },
 		/** OpenRegister register id (slug or uuid). */
@@ -280,9 +282,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.bootstrap() } } },
-		register() { this.bootstrap() },
-		schema() { this.bootstrap() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.bootstrap()
+			}
+		} },
+
+		register() {
+			this.bootstrap()
+		},
+
+		schema() {
+			this.bootstrap()
+		},
 	},
 
 	methods: {
@@ -353,7 +365,7 @@ export default {
 			}
 			try {
 				return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
-			} catch (e) {
+			} catch {
 				return date.toISOString().split('T')[0]
 			}
 		},
@@ -365,7 +377,7 @@ export default {
 			}
 			try {
 				return ts.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-			} catch (e) {
+			} catch {
 				return ts.toISOString().split('T')[1].slice(0, 5)
 			}
 		},

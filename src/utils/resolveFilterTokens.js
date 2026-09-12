@@ -68,22 +68,26 @@ function ymd(d) {
 /**
  * Resolve a single filter value if it is a dynamic `@`-token, else pass through.
  *
- * @param {*} v The candidate value.
+ * @param {unknown} v The candidate value.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Optional
  *   context for `@objectId` / `@object.<field>` (detail page),
  *   `@workspace.<key>` (page-level workspace state), and `@config.<key>`
  *   (page-level app config) tokens.
- * @return {*} The resolved value.
+ * @return {unknown} The resolved value.
  */
 export function resolveFilterValue(v, ctx) {
-	if (typeof v !== 'string' || v.charAt(0) !== '@') return v
+	if (typeof v !== 'string' || v.charAt(0) !== '@') {
+		return v
+	}
 	const now = new Date()
 	if (v === '@objectId') {
 		return (ctx && ctx.objectId !== undefined && ctx.objectId !== null) ? String(ctx.objectId) : v
 	}
 	if (v.startsWith('@object.')) {
 		const field = v.slice('@object.'.length)
-		if (ctx && ctx.object && field && ctx.object[field] !== undefined) return ctx.object[field]
+		if (ctx && ctx.object && field && ctx.object[field] !== undefined) {
+			return ctx.object[field]
+		}
 		return v
 	}
 	if (v.startsWith('@workspace.')) {
@@ -115,16 +119,18 @@ export function resolveFilterValue(v, ctx) {
 	if (v === '@me') {
 		// Canonical source is @nextcloud/auth; window.OC is the fallback for
 		// environments where the auth package can't read the page state (jsdom).
-		let uid = null
+		let uid
 		try {
 			const user = getCurrentUser()
 			uid = user && user.uid
-		} catch (e) {
+		} catch {
 			uid = null
 		}
 		return uid || (typeof window !== 'undefined' && window.OC && window.OC.currentUser) || ''
 	}
-	if (v === '@now') return now.toISOString()
+	if (v === '@now') {
+		return now.toISOString()
+	}
 	if (v === '@today') {
 		const d = new Date(now)
 		d.setHours(0, 0, 0, 0)
@@ -158,7 +164,7 @@ export function resolveFilterValue(v, ctx) {
  * it as "drop me when unset"). Callers strip such keys from the filter so the
  * list shows all rows rather than waiting for a selection / a config value.
  *
- * @param {*} v A (possibly resolved) filter value.
+ * @param {unknown} v A (possibly resolved) filter value.
  * @return {boolean}
  */
 export function isOptionalUnresolved(v) {
@@ -178,24 +184,34 @@ export function isOptionalUnresolved(v) {
  * @return {object} The filter without optional-unresolved keys.
  */
 export function dropOptionalUnresolved(filter) {
-	if (!filter || typeof filter !== 'object') return filter
+	if (!filter || typeof filter !== 'object') {
+		return filter
+	}
 	const out = {}
 	for (const [k, v] of Object.entries(filter)) {
-		if (isOptionalUnresolved(v)) continue
+		if (isOptionalUnresolved(v)) {
+			continue
+		}
 		if (Array.isArray(v)) {
 			const items = v.filter((item) => !isOptionalUnresolved(item))
-			if (items.length > 0) out[k] = items
+			if (items.length > 0) {
+				out[k] = items
+			}
 		} else if (v && typeof v === 'object') {
 			const inner = {}
 			for (const [op, ov] of Object.entries(v)) {
 				if (Array.isArray(ov)) {
 					const items = ov.filter((item) => !isOptionalUnresolved(item))
-					if (items.length > 0) inner[op] = items
+					if (items.length > 0) {
+						inner[op] = items
+					}
 				} else if (!isOptionalUnresolved(ov)) {
 					inner[op] = ov
 				}
 			}
-			if (Object.keys(inner).length > 0) out[k] = inner
+			if (Object.keys(inner).length > 0) {
+				out[k] = inner
+			}
 		} else {
 			out[k] = v
 		}
@@ -217,18 +233,28 @@ export function dropOptionalUnresolved(filter) {
  * @return {boolean} True when any value is still a (non-optional) string beginning with `@`.
  */
 export function hasUnresolvedTokens(filter) {
-	if (!filter || typeof filter !== 'object') return false
+	if (!filter || typeof filter !== 'object') {
+		return false
+	}
 	const blocking = (x) => typeof x === 'string' && x.charAt(0) === '@' && !isOptionalUnresolved(x)
 	const anyBlocking = (v) => {
-		if (blocking(v)) return true
-		if (Array.isArray(v)) return v.some(blocking)
+		if (blocking(v)) {
+			return true
+		}
+		if (Array.isArray(v)) {
+			return v.some(blocking)
+		}
 		return false
 	}
 	for (const v of Object.values(filter)) {
-		if (anyBlocking(v)) return true
+		if (anyBlocking(v)) {
+			return true
+		}
 		if (v && typeof v === 'object' && !Array.isArray(v)) {
 			for (const ov of Object.values(v)) {
-				if (anyBlocking(ov)) return true
+				if (anyBlocking(ov)) {
+					return true
+				}
 			}
 		}
 	}
@@ -247,7 +273,9 @@ export function hasUnresolvedTokens(filter) {
  * @return {object} A new filter map with tokens resolved.
  */
 export function resolveFilterTokens(filter, ctx) {
-	if (!filter || typeof filter !== 'object') return filter
+	if (!filter || typeof filter !== 'object') {
+		return filter
+	}
 	const resolveOne = (v) => (Array.isArray(v)
 		? v.map((item) => resolveFilterValue(item, ctx))
 		: resolveFilterValue(v, ctx))
@@ -255,7 +283,9 @@ export function resolveFilterTokens(filter, ctx) {
 	for (const [k, v] of Object.entries(filter)) {
 		if (v && typeof v === 'object' && !Array.isArray(v)) {
 			const inner = {}
-			for (const [op, ov] of Object.entries(v)) inner[op] = resolveOne(ov)
+			for (const [op, ov] of Object.entries(v)) {
+				inner[op] = resolveOne(ov)
+			}
 			out[k] = inner
 		} else {
 			out[k] = resolveOne(v)
@@ -274,16 +304,20 @@ export function resolveFilterTokens(filter, ctx) {
  * needs the token resolved inside a nested array of objects, which the
  * shallow filter-map resolver can't reach.
  *
- * @param {*} value The value to resolve — object / array / primitive.
+ * @param {unknown} value The value to resolve — object / array / primitive.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Optional
  *   context forwarded to {@link resolveFilterValue}.
- * @return {*} A new value with every string leaf token-resolved (structure preserved).
+ * @return {unknown} A new value with every string leaf token-resolved (structure preserved).
  */
 export function resolveDeepTokens(value, ctx) {
-	if (Array.isArray(value)) return value.map((v) => resolveDeepTokens(v, ctx))
+	if (Array.isArray(value)) {
+		return value.map((v) => resolveDeepTokens(v, ctx))
+	}
 	if (value && typeof value === 'object') {
 		const out = {}
-		for (const [k, v] of Object.entries(value)) out[k] = resolveDeepTokens(v, ctx)
+		for (const [k, v] of Object.entries(value)) {
+			out[k] = resolveDeepTokens(v, ctx)
+		}
 		return out
 	}
 	return resolveFilterValue(value, ctx)
@@ -297,12 +331,16 @@ export function resolveDeepTokens(value, ctx) {
  * `@objectId` / `@object.<field>`) that failed to resolve, instead of
  * silently sending the literal token string to the server.
  *
- * @param {*} value The (already deep-resolved) value.
+ * @param {unknown} value The (already deep-resolved) value.
  * @return {boolean} True when a required token is still unresolved.
  */
 export function hasUnresolvedDeepTokens(value) {
-	if (Array.isArray(value)) return value.some(hasUnresolvedDeepTokens)
-	if (value && typeof value === 'object') return Object.values(value).some(hasUnresolvedDeepTokens)
+	if (Array.isArray(value)) {
+		return value.some(hasUnresolvedDeepTokens)
+	}
+	if (value && typeof value === 'object') {
+		return Object.values(value).some(hasUnresolvedDeepTokens)
+	}
 	return typeof value === 'string' && value.charAt(0) === '@' && !isOptionalUnresolved(value)
 }
 
@@ -313,8 +351,8 @@ export function hasUnresolvedDeepTokens(value) {
  * whose value is an unresolved optional token is dropped entirely; an array
  * item that resolves unresolved-optional is filtered out.
  *
- * @param {*} value The (already {@link resolveDeepTokens}-resolved) value.
- * @return {*} The value with unresolved-optional leaves removed.
+ * @param {unknown} value The (already {@link resolveDeepTokens}-resolved) value.
+ * @return {unknown} The value with unresolved-optional leaves removed.
  */
 export function dropOptionalUnresolvedDeep(value) {
 	if (Array.isArray(value)) {
@@ -325,7 +363,9 @@ export function dropOptionalUnresolvedDeep(value) {
 	if (value && typeof value === 'object') {
 		const out = {}
 		for (const [k, v] of Object.entries(value)) {
-			if (isOptionalUnresolved(v)) continue
+			if (isOptionalUnresolved(v)) {
+				continue
+			}
 			out[k] = dropOptionalUnresolvedDeep(v)
 		}
 		return out

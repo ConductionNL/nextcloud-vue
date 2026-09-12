@@ -56,7 +56,7 @@
 		class="cn-flow-lifecycle"
 		data-testid="flow-title">
 		<CnFlowHealthDot :enabled="store.flow.enabled === true"
-			:last-run-status="store.flow.lastRunStatus || null" />
+			:lastRunStatus="store.flow.lastRunStatus || null" />
 		<!-- Only where nothing else is rendering it. Under NcAppSidebar the
 		     name is the sidebar's own heading, and printing it here too would
 		     put the flow's name on screen twice. -->
@@ -72,8 +72,8 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { useFlowStore } from '../../composables/useFlowStore.js'
 import CnFlowHealthDot from './CnFlowHealthDot.vue'
+import { useFlowStore } from '../../composables/useFlowStore.js'
 
 export default {
 	name: 'CnFlowLifecycleControls',

@@ -1,9 +1,9 @@
 import { createPinia, setActivePinia } from 'pinia'
-import { createObjectStore } from '../../src/store/useObjectStore.js'
-import { filesPlugin } from '../../src/store/plugins/files.js'
 import { auditTrailsPlugin } from '../../src/store/plugins/auditTrails.js'
-import { relationsPlugin } from '../../src/store/plugins/relations.js'
+import { filesPlugin } from '../../src/store/plugins/files.js'
 import { lifecyclePlugin } from '../../src/store/plugins/lifecycle.js'
+import { relationsPlugin } from '../../src/store/plugins/relations.js'
+import { createObjectStore } from '../../src/store/useObjectStore.js'
 
 describe('useObjectStore', () => {
 	let store
@@ -98,7 +98,10 @@ describe('useObjectStore', () => {
 
 		it('returns default pagination for unknown type', () => {
 			expect(store.getPagination('nonexistent')).toEqual({
-				total: 0, page: 1, pages: 1, limit: 20,
+				total: 0,
+				page: 1,
+				pages: 1,
+				limit: 20,
 			})
 		})
 	})

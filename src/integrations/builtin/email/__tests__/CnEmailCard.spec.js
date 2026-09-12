@@ -4,7 +4,7 @@
  * control, single-entity surface, and subject/sender/when formatters.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnEmailCard = require('../CnEmailCard.vue').default
 
 describe('CnEmailCard', () => {
@@ -24,8 +24,7 @@ describe('CnEmailCard', () => {
 		const wrapper = mount(CnEmailCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No linked emails yet')
 		wrapper.unmount()
 	})
@@ -48,8 +47,7 @@ describe('CnEmailCard', () => {
 		const wrapper = mount(CnEmailCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1', maxDisplay: 5 },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.findAll('.cn-email-card__row')).toHaveLength(5)
 		expect(wrapper.text()).toContain('Hello world')
 		expect(wrapper.text()).toContain('alice@example.com')
@@ -74,8 +72,7 @@ describe('CnEmailCard', () => {
 		const wrapper = mount(CnEmailCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		await wrapper.find('.cn-email-card__show-all').trigger('click')
 		expect(wrapper.emitted('show-all')).toBeTruthy()
 		wrapper.unmount()
@@ -86,8 +83,7 @@ describe('CnEmailCard', () => {
 		const wrapper = mount(CnEmailCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load emails')
 		wrapper.unmount()
 	})
@@ -103,8 +99,7 @@ describe('CnEmailCard', () => {
 		const wrapper = mount(CnEmailCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('(no subject)')
 		expect(wrapper.text()).toContain('Unknown sender')
 		wrapper.unmount()
@@ -124,8 +119,7 @@ describe('CnEmailCard', () => {
 		const wrapper = mount(CnEmailCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1', surface: 'single-entity' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.findAll('.cn-email-card__row')).toHaveLength(1)
 		expect(wrapper.text()).toContain('one')
 		wrapper.unmount()

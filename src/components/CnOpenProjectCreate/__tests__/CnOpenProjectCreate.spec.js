@@ -11,7 +11,7 @@
  *  - no create is emitted when the form is incomplete.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnOpenProjectCreate = require('../CnOpenProjectCreate.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -37,8 +37,7 @@ describe('CnOpenProjectCreate', () => {
 		}))
 
 		const wrapper = mount(CnOpenProjectCreate)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.projects).toEqual(['Portal', 'Internal'])
 		expect(wrapper.vm.projectOptions).toHaveLength(2)
@@ -51,8 +50,7 @@ describe('CnOpenProjectCreate', () => {
 		}))
 
 		const wrapper = mount(CnOpenProjectCreate)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.vm.project = { id: 'Portal', label: 'Portal' }
 		wrapper.vm.subject = 'Ship it'
@@ -71,8 +69,7 @@ describe('CnOpenProjectCreate', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ results: [] }))
 
 		const wrapper = mount(CnOpenProjectCreate)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.vm.projectId = '42'
 		wrapper.vm.subject = 'Ship it'
@@ -89,8 +86,7 @@ describe('CnOpenProjectCreate', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ error: 'no source' }, 503))
 
 		const wrapper = mount(CnOpenProjectCreate)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.unconfigured).toBe(true)
 		expect(wrapper.text()).toContain('Configure OpenProject connection')
@@ -101,8 +97,7 @@ describe('CnOpenProjectCreate', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ error: 'nope' }, 501))
 
 		const wrapper = mount(CnOpenProjectCreate)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('Integriq is not installed.')
 		wrapper.unmount()

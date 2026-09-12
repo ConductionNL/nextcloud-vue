@@ -13,7 +13,7 @@
  *    rows.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnFormsTab = require('../CnFormsTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -79,8 +79,7 @@ describe('CnFormsTab', () => {
 	it('renders the empty state with an "Open Forms" CTA when no forms', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnFormsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No forms linked yet')
 		expect(wrapper.text()).toContain('Open Forms')
 		wrapper.unmount()
@@ -93,8 +92,7 @@ describe('CnFormsTab', () => {
 			json: () => Promise.resolve({ results: [makeForm()] }),
 		})
 		const wrapper = mount(CnFormsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-forms-tab__row')
 		expect(rows).toHaveLength(1)
 		// Title is passed to NcListItem via the `name` prop (rendered by
@@ -122,8 +120,7 @@ describe('CnFormsTab', () => {
 			}),
 		})
 		const wrapper = mount(CnFormsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		// 1 form row, not 4 rows
 		expect(wrapper.findAll('.cn-forms-tab__row')).toHaveLength(1)
 		// Submission tally is surfaced as a response-count bubble.
@@ -140,8 +137,7 @@ describe('CnFormsTab', () => {
 			json: () => Promise.resolve({ results: [makeForm({ expiresAt: pastExpiry(3) })] }),
 		})
 		const wrapper = mount(CnFormsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.find('.cn-forms-tab__row--closed').exists()).toBe(true)
 		expect(wrapper.find('.cn-forms-tab__status--closed').exists()).toBe(true)
 		expect(wrapper.text()).toContain('Closed')
@@ -155,8 +151,7 @@ describe('CnFormsTab', () => {
 			json: () => Promise.resolve({ results: [makeForm({ expiresAt: futureExpiry(5) })] }),
 		})
 		const wrapper = mount(CnFormsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.find('.cn-forms-tab__expiry').exists()).toBe(true)
 		expect(wrapper.find('.cn-forms-tab__status--open').exists()).toBe(true)
 		wrapper.unmount()
@@ -165,8 +160,7 @@ describe('CnFormsTab', () => {
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnFormsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Forms is currently unavailable.')
 		expect(wrapper.find('.cn-forms-tab__row').exists()).toBe(false)
 		wrapper.unmount()
@@ -176,8 +170,7 @@ describe('CnFormsTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnFormsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load forms.')
 		wrapper.unmount()
 		spy.mockRestore()
@@ -186,8 +179,7 @@ describe('CnFormsTab', () => {
 	it('renders the "Link existing form" + "Create new form" header actions (Tier-2)', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnFormsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Link existing form')
 		expect(wrapper.text()).toContain('Create new form')
 		wrapper.unmount()
@@ -196,8 +188,7 @@ describe('CnFormsTab', () => {
 	it('fetches from the Tier-2 link endpoint (/api/objects/{r}/{s}/{id}/forms)', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnFormsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(global.fetch).toHaveBeenCalledWith(
 			expect.stringMatching(/\/api\/objects\/reg\/schema\/obj-1\/forms$/),
 			expect.any(Object),
@@ -212,8 +203,7 @@ describe('CnFormsTab', () => {
 			json: () => Promise.resolve({ results: [makeForm()] }),
 		})
 		const wrapper = mount(CnFormsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.find('.cn-forms-tab__unlink').exists()).toBe(true)
 		wrapper.unmount()
 	})

@@ -6,14 +6,14 @@
 <template>
 	<div class="cn-audit-trail-form">
 		<NcTextField
-			:model-value="title"
+			:modelValue="title"
 			:label="t('nextcloud-vue', 'Title')"
-			@update:model-value="update('title', $event)" />
+			@update:modelValue="update('title', $event)" />
 		<NcTextField
-			:model-value="String(maxDisplay)"
+			:modelValue="String(maxDisplay)"
 			type="number"
 			:label="t('nextcloud-vue', 'Max rows')"
-			@update:model-value="updateMaxDisplay($event)" />
+			@update:modelValue="updateMaxDisplay($event)" />
 		<p class="cn-audit-trail-form__hint">
 			{{ t('nextcloud-vue', 'The audited object comes from the page context (detail pages).') }}
 		</p>
@@ -21,8 +21,8 @@
 </template>
 
 <script>
-import { NcTextField } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcTextField } from '@nextcloud/vue'
 
 /**
  * CnAuditTrailWidgetForm — the config sub-form for an `audit-trail` widget.
@@ -49,6 +49,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values when not editing (registry defaults).
 		 *
@@ -92,7 +93,7 @@ export default {
 		 * Set one field and emit the assembled content.
 		 *
 		 * @param {string} field The data field name.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 */
 		update(field, value) {
 			this[field] = value

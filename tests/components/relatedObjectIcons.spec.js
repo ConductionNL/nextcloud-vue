@@ -35,10 +35,25 @@ import CnRelatedObjectsWidget from '../../src/components/CnRelatedObjectsWidget/
  * would change the very import graph this file exists to measure.
  */
 const SECTION_ICONS = [
-	'Email', 'Calendar', 'AccountBox', 'CommentTextOutline', 'CheckboxMarkedOutline',
-	'ViewColumnOutline', 'ChatOutline', 'ClipboardText', 'MapMarker', 'Poll',
-	'Bookmark', 'BookOpenPageVariant', 'Image', 'CurrencyEur', 'Clock',
-	'ChartBar', 'SitemapOutline', 'Briefcase', 'FileDocumentMultiple',
+	'Email',
+	'Calendar',
+	'AccountBox',
+	'CommentTextOutline',
+	'CheckboxMarkedOutline',
+	'ViewColumnOutline',
+	'ChatOutline',
+	'ClipboardText',
+	'MapMarker',
+	'Poll',
+	'Bookmark',
+	'BookOpenPageVariant',
+	'Image',
+	'CurrencyEur',
+	'Clock',
+	'ChartBar',
+	'SitemapOutline',
+	'Briefcase',
+	'FileDocumentMultiple',
 ]
 
 /**
@@ -90,18 +105,29 @@ describe('CnRelatedObjectsWidget — agreement with the integration registry', (
 	 * widget section that deep-links to it.
 	 */
 	it('draws a section with the icon its integration uses', () => {
-		// eslint-disable-next-line
 		const { builtinIntegrations } = require('../../src/integrations/builtin/index.js')
 		const registry = new Map(builtinIntegrations.map((entry) => [entry.id, entry.icon]))
 
 		const pairs = [
-			['email', 'Email'], ['calendar', 'Calendar'], ['contacts', 'AccountBox'],
-			['notes', 'CommentTextOutline'], ['tasks', 'CheckboxMarkedOutline'],
-			['deck', 'ViewColumnOutline'], ['talk', 'ChatOutline'], ['forms', 'ClipboardText'],
-			['maps', 'MapMarker'], ['polls', 'Poll'], ['bookmarks', 'Bookmark'],
-			['collectives', 'BookOpenPageVariant'], ['photos', 'Image'], ['cospend', 'CurrencyEur'],
-			['time-tracker', 'Clock'], ['analytics', 'ChartBar'], ['flow', 'SitemapOutline'],
-			['openproject', 'Briefcase'], ['xwiki', 'FileDocumentMultiple'],
+			['email', 'Email'],
+			['calendar', 'Calendar'],
+			['contacts', 'AccountBox'],
+			['notes', 'CommentTextOutline'],
+			['tasks', 'CheckboxMarkedOutline'],
+			['deck', 'ViewColumnOutline'],
+			['talk', 'ChatOutline'],
+			['forms', 'ClipboardText'],
+			['maps', 'MapMarker'],
+			['polls', 'Poll'],
+			['bookmarks', 'Bookmark'],
+			['collectives', 'BookOpenPageVariant'],
+			['photos', 'Image'],
+			['cospend', 'CurrencyEur'],
+			['time-tracker', 'Clock'],
+			['analytics', 'ChartBar'],
+			['flow', 'SitemapOutline'],
+			['openproject', 'Briefcase'],
+			['xwiki', 'FileDocumentMultiple'],
 		]
 
 		const disagreements = pairs
@@ -121,14 +147,29 @@ describe('CnRelatedObjectsWidget — agreement with the integration registry', (
 	 * tells that apart from a tab the user has not installed.
 	 */
 	it('deep-links every section at an integration that exists', () => {
-		// eslint-disable-next-line
 		const { builtinIntegrations } = require('../../src/integrations/builtin/index.js')
 		const known = new Set(builtinIntegrations.map((entry) => entry.id))
 
 		const ids = [
-			'email', 'calendar', 'contacts', 'notes', 'tasks', 'deck', 'talk', 'forms',
-			'maps', 'polls', 'bookmarks', 'collectives', 'photos', 'cospend',
-			'time-tracker', 'analytics', 'flow', 'openproject', 'xwiki',
+			'email',
+			'calendar',
+			'contacts',
+			'notes',
+			'tasks',
+			'deck',
+			'talk',
+			'forms',
+			'maps',
+			'polls',
+			'bookmarks',
+			'collectives',
+			'photos',
+			'cospend',
+			'time-tracker',
+			'analytics',
+			'flow',
+			'openproject',
+			'xwiki',
 		]
 
 		expect(ids.filter((id) => known.has(id) === false)).toEqual([])

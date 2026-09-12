@@ -23,5 +23,8 @@ export interface CnPublicPathOptions {
  * are not served from `/apps/<app>/js/`.
  *
  * Does not mutate the input. Accepts the multi-compiler array form.
+ *
+ * @param config The webpack configuration, or the multi-compiler array form.
+ * @param options Where the public path is read from at runtime.
  */
 export function withPublicPath<T extends object | object[]>(config: T, options?: CnPublicPathOptions): T

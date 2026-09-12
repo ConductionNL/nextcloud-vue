@@ -79,9 +79,7 @@ export function readFileAsDataUrl(file) {
  */
 export function embedAsDataUrl(file) {
 	if (file.size > FALLBACK_MAX_BYTES) {
-		return Promise.reject(new Error(
-			t('nextcloud-vue', 'Image is too large to embed. Configure an upload transport for larger files.'),
-		))
+		return Promise.reject(new Error(t('nextcloud-vue', 'Image is too large to embed. Configure an upload transport for larger files.')))
 	}
 	return readFileAsDataUrl(file)
 }

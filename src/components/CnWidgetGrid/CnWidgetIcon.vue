@@ -38,8 +38,8 @@
 
 <script>
 import CnIcon from '../CnIcon/CnIcon.vue'
-import { hasRegistryIcon, getIconComponent, isCustomIconUrl } from './widgetIcons.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
+import { getIconComponent, hasRegistryIcon, isCustomIconUrl } from './widgetIcons.js'
 
 /**
  * CnWidgetIcon — resolves a widget icon field following the
@@ -71,11 +71,13 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/** Square pixel size applied to the MDI component or the `<img>`. */
 		size: {
 			type: Number,
 			default: 20,
 		},
+
 		/** Alt text for `<img>` inputs; falls back to `'icon'` for a11y. */
 		alt: {
 			type: String,
@@ -113,7 +115,9 @@ export default {
 			// getIconComponent() unconditionally is useless here, because it
 			// returns the DEFAULT icon for every unknown name, which is exactly
 			// the wrong-but-plausible glyph this fallback exists to stop.
-			if (!hasRegistryIcon(this.name)) return null
+			if (!hasRegistryIcon(this.name)) {
+				return null
+			}
 			return getIconComponent(this.name)
 		},
 	},

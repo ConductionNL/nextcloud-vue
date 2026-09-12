@@ -27,7 +27,6 @@
  * arithmetic, hit-testing — belongs in the Playwright e2e instead.
  */
 import { mount } from '@vue/test-utils'
-
 import CnFlowNode from '../../src/components/CnGraphCanvas/CnFlowNode.vue'
 import CnGraphCanvas from '../../src/components/CnGraphCanvas/CnGraphCanvas.vue'
 
