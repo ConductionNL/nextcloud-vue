@@ -18,7 +18,7 @@
 			<CnDetailWidgetHost
 				:widget="widget"
 				chrome="card"
-				object-id="case-1"
+				objectId="case-1"
 				:object="record"
 				register="dossiq"
 				schema="case" />
@@ -30,10 +30,11 @@
 </template>
 
 <script>
-import { provide, ref } from 'vue'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
+import { provide, ref } from 'vue'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
+
+import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
 
 const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams()
 
@@ -119,7 +120,9 @@ export default {
 		 */
 		async reload() {
 			const response = await fetch('/apps/openregister/api/objects/dossiq/case/case-1')
-			if (!response.ok) return
+			if (!response.ok) {
+				return
+			}
 			const record = await response.json()
 			this.record = record
 			this.context = { ...this.context, object: record }

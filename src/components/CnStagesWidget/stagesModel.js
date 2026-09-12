@@ -35,7 +35,9 @@ import { getByPath } from '../../composables/useEndpointSource.js'
  * @return {string} The id, or '' when the row has none.
  */
 export function rowId(row, idField) {
-	if (!row || typeof row !== 'object') return ''
+	if (!row || typeof row !== 'object') {
+		return ''
+	}
 	const configured = idField ? getByPath(row, idField) : undefined
 	const id = configured ?? row.id ?? row['@self']?.id ?? row.uuid
 	return (id === undefined || id === null) ? '' : String(id)
@@ -45,12 +47,16 @@ export function rowId(row, idField) {
  * Turn a label value into display text. A per-language map (an
  * `x-translatable` property) collapses to its first non-empty string.
  *
- * @param {*} value The raw label value.
+ * @param {unknown} value The raw label value.
  * @return {string} The text, or ''.
  */
 export function labelText(value) {
-	if (typeof value === 'string') return value
-	if (typeof value === 'number') return String(value)
+	if (typeof value === 'string') {
+		return value
+	}
+	if (typeof value === 'number') {
+		return String(value)
+	}
 	if (value && typeof value === 'object' && !Array.isArray(value)) {
 		const first = Object.values(value).find((v) => typeof v === 'string' && v !== '')
 		return first || ''
@@ -62,7 +68,7 @@ export function labelText(value) {
  * Whether a flag value means true. Accepts the shapes a JSON round trip or a
  * database column produces: `true`, `1`, `'1'`, `'true'`.
  *
- * @param {*} value The raw value.
+ * @param {unknown} value The raw value.
  * @return {boolean} True when the flag is set.
  */
 export function isTrue(value) {
@@ -145,9 +151,15 @@ export function normalizeStages(rows, cfg = {}) {
 export function stageSavePayload(record, id, field, stageId, extra = {}) {
 	const payload = {}
 	for (const [key, value] of Object.entries(record || {})) {
-		if (key === '@self') continue
-		if (value === null) continue
-		if (value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) continue
+		if (key === '@self') {
+			continue
+		}
+		if (value === null) {
+			continue
+		}
+		if (value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) {
+			continue
+		}
 		payload[key] = value
 	}
 	Object.assign(payload, extra)

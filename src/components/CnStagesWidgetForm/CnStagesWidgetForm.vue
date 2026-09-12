@@ -10,18 +10,18 @@
 		</h4>
 
 		<NcTextField
-			:model-value="draft.currentField || ''"
+			:modelValue="draft.currentField || ''"
 			:label="t('nextcloud-vue', 'Property holding the current stage')"
 			placeholder="status"
-			@update:model-value="setPath('currentField', $event)" />
+			@update:modelValue="setPath('currentField', $event)" />
 
 		<div class="cn-stages-form__row">
 			<NcSelect
-				:model-value="draft.orientation || 'horizontal'"
+				:modelValue="draft.orientation || 'horizontal'"
 				:options="['horizontal', 'vertical']"
-				:input-label="t('nextcloud-vue', 'Direction')"
+				:inputLabel="t('nextcloud-vue', 'Direction')"
 				:clearable="false"
-				@update:model-value="setPath('orientation', $event)">
+				@update:modelValue="setPath('orientation', $event)">
 				<template #option="{ label: id }">
 					{{ orientationLabel(id) }}
 				</template>
@@ -30,11 +30,11 @@
 				</template>
 			</NcSelect>
 			<NcSelect
-				:model-value="draft.size || 'medium'"
+				:modelValue="draft.size || 'medium'"
 				:options="['medium', 'small']"
-				:input-label="t('nextcloud-vue', 'Size')"
+				:inputLabel="t('nextcloud-vue', 'Size')"
 				:clearable="false"
-				@update:model-value="setPath('size', $event)">
+				@update:modelValue="setPath('size', $event)">
 				<template #option="{ label: id }">
 					{{ sizeLabel(id) }}
 				</template>
@@ -45,21 +45,21 @@
 		</div>
 
 		<NcTextField
-			:model-value="draft.ariaLabel || ''"
+			:modelValue="draft.ariaLabel || ''"
 			:label="t('nextcloud-vue', 'Accessible name for the stages')"
 			:placeholder="t('nextcloud-vue', 'Case progress')"
-			@update:model-value="setPath('ariaLabel', $event)" />
+			@update:modelValue="setPath('ariaLabel', $event)" />
 
 		<!-- Where the stages come from. -->
 		<h4 class="cn-stages-form__section">
 			{{ t('nextcloud-vue', 'Stages') }}
 		</h4>
 		<NcSelect
-			:model-value="stagesKind"
+			:modelValue="stagesKind"
 			:options="['endpoint', 'source']"
-			:input-label="t('nextcloud-vue', 'Read the stages from')"
+			:inputLabel="t('nextcloud-vue', 'Read the stages from')"
 			:clearable="false"
-			@update:model-value="setStagesKind">
+			@update:modelValue="setStagesKind">
 			<template #option="{ label: id }">
 				{{ stagesKindLabel(id) }}
 			</template>
@@ -70,39 +70,39 @@
 
 		<template v-if="stagesKind === 'endpoint'">
 			<NcTextField
-				:model-value="draft.stagesEndpoint.url || ''"
+				:modelValue="draft.stagesEndpoint.url || ''"
 				:label="t('nextcloud-vue', 'Address')"
 				placeholder="/apps/myapp/api/types/@object.type/stages"
-				@update:model-value="setPath('stagesEndpoint.url', $event)" />
+				@update:modelValue="setPath('stagesEndpoint.url', $event)" />
 			<div class="cn-stages-form__row">
 				<NcTextField
-					:model-value="draft.stagesEndpoint.path || ''"
+					:modelValue="draft.stagesEndpoint.path || ''"
 					:label="t('nextcloud-vue', 'List in the response')"
 					placeholder="stages"
-					@update:model-value="setPath('stagesEndpoint.path', $event)" />
+					@update:modelValue="setPath('stagesEndpoint.path', $event)" />
 				<NcTextField
-					:model-value="draft.stagesEndpoint.orderField || ''"
+					:modelValue="draft.stagesEndpoint.orderField || ''"
 					:label="t('nextcloud-vue', 'Order property')"
 					placeholder="order"
-					@update:model-value="setPath('stagesEndpoint.orderField', $event)" />
+					@update:modelValue="setPath('stagesEndpoint.orderField', $event)" />
 			</div>
 			<div class="cn-stages-form__row">
 				<NcTextField
-					:model-value="draft.stagesEndpoint.labelField || ''"
+					:modelValue="draft.stagesEndpoint.labelField || ''"
 					:label="t('nextcloud-vue', 'Label property')"
 					placeholder="name"
-					@update:model-value="setPath('stagesEndpoint.labelField', $event)" />
+					@update:modelValue="setPath('stagesEndpoint.labelField', $event)" />
 				<NcTextField
-					:model-value="draft.stagesEndpoint.descriptionField || ''"
+					:modelValue="draft.stagesEndpoint.descriptionField || ''"
 					:label="t('nextcloud-vue', 'Description property')"
 					placeholder="description"
-					@update:model-value="setPath('stagesEndpoint.descriptionField', $event)" />
+					@update:modelValue="setPath('stagesEndpoint.descriptionField', $event)" />
 			</div>
 			<NcTextField
-				:model-value="draft.stagesEndpoint.finalField || ''"
+				:modelValue="draft.stagesEndpoint.finalField || ''"
 				:label="t('nextcloud-vue', 'Closing-stage property')"
 				placeholder="isFinal"
-				@update:model-value="setPath('stagesEndpoint.finalField', $event)" />
+				@update:modelValue="setPath('stagesEndpoint.finalField', $event)" />
 			<p class="cn-stages-form__hint">
 				{{ t('nextcloud-vue', 'Use @objectId or @object.<property> in the address to name this record.') }}
 			</p>
@@ -118,27 +118,27 @@
 			</div>
 			<div class="cn-stages-form__row">
 				<NcTextField
-					:model-value="draft.stagesSource.orderBy || ''"
+					:modelValue="draft.stagesSource.orderBy || ''"
 					:label="t('nextcloud-vue', 'Order property')"
 					placeholder="order"
-					@update:model-value="setPath('stagesSource.orderBy', $event)" />
+					@update:modelValue="setPath('stagesSource.orderBy', $event)" />
 				<NcTextField
-					:model-value="draft.stagesSource.labelField || ''"
+					:modelValue="draft.stagesSource.labelField || ''"
 					:label="t('nextcloud-vue', 'Label property')"
 					placeholder="name"
-					@update:model-value="setPath('stagesSource.labelField', $event)" />
+					@update:modelValue="setPath('stagesSource.labelField', $event)" />
 			</div>
 			<div class="cn-stages-form__row">
 				<NcTextField
-					:model-value="draft.stagesSource.descriptionField || ''"
+					:modelValue="draft.stagesSource.descriptionField || ''"
 					:label="t('nextcloud-vue', 'Description property')"
 					placeholder="description"
-					@update:model-value="setPath('stagesSource.descriptionField', $event)" />
+					@update:modelValue="setPath('stagesSource.descriptionField', $event)" />
 				<NcTextField
-					:model-value="draft.stagesSource.finalField || ''"
+					:modelValue="draft.stagesSource.finalField || ''"
 					:label="t('nextcloud-vue', 'Closing-stage property')"
 					placeholder="isFinal"
-					@update:model-value="setPath('stagesSource.finalField', $event)" />
+					@update:modelValue="setPath('stagesSource.finalField', $event)" />
 			</div>
 			<CnFilterRowsEditor
 				:value="filterRows"
@@ -154,11 +154,11 @@
 			{{ t('nextcloud-vue', 'Moving the record') }}
 		</h4>
 		<NcSelect
-			:model-value="transitionKind"
+			:modelValue="transitionKind"
 			:options="['lifecycle', 'field', 'none']"
-			:input-label="t('nextcloud-vue', 'Clicking a stage')"
+			:inputLabel="t('nextcloud-vue', 'Clicking a stage')"
 			:clearable="false"
-			@update:model-value="setTransitionKind">
+			@update:modelValue="setTransitionKind">
 			<template #option="{ label: id }">
 				{{ transitionKindLabel(id) }}
 			</template>
@@ -179,16 +179,16 @@
 
 		<NcTextField
 			v-if="transitionKind === 'lifecycle'"
-			:model-value="draft.unreachableReason || ''"
+			:modelValue="draft.unreachableReason || ''"
 			:label="t('nextcloud-vue', 'Text for a stage that cannot be reached (optional)')"
 			:placeholder="t('nextcloud-vue', 'Not reachable from the current stage')"
-			@update:model-value="setPath('unreachableReason', $event)" />
+			@update:modelValue="setPath('unreachableReason', $event)" />
 	</div>
 </template>
 
 <script>
-import { NcSelect, NcTextField } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import { filterToRows, rowsToFilter } from '../CnFilterRowsEditor/filterRows.js'
@@ -260,6 +260,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values when not editing (registry defaults).
 		 *
@@ -332,21 +333,30 @@ export default {
 		assembledContent() {
 			const out = {}
 			for (const [key, value] of Object.entries(this.draft)) {
-				if (value === '' || value === null || value === undefined) continue
+				if (value === '' || value === null || value === undefined) {
+					continue
+				}
 				if (value && typeof value === 'object' && !Array.isArray(value)) {
 					const compact = {}
 					for (const [k, v] of Object.entries(value)) {
-						if (v === '' || v === null || v === undefined) continue
+						if (v === '' || v === null || v === undefined) {
+							continue
+						}
 						compact[k] = v
 					}
-					if (Object.keys(compact).length === 0) continue
+					if (Object.keys(compact).length === 0) {
+						continue
+					}
 					out[key] = compact
 				} else {
 					out[key] = value
 				}
 			}
-			if (this.stagesKind === 'endpoint') delete out.stagesSource
-			else delete out.stagesEndpoint
+			if (this.stagesKind === 'endpoint') {
+				delete out.stagesSource
+			} else {
+				delete out.stagesEndpoint
+			}
 			// Only a DELIBERATE read-only choice drops the block. An
 			// unrecognised kind is kept exactly as stored, along with the text
 			// that goes with it.
@@ -356,7 +366,9 @@ export default {
 			}
 			// The reachable-stage text belongs to the lifecycle path; the field
 			// path never marks a stage unreachable, so it would never show.
-			if (this.transitionKind === 'field') delete out.unreachableReason
+			if (this.transitionKind === 'field') {
+				delete out.unreachableReason
+			}
 			return out
 		},
 	},
@@ -368,7 +380,7 @@ export default {
 		 * Write one config value by dot path (`transition.url`) and emit.
 		 *
 		 * @param {string} path The dot path into the draft.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 * @return {void}
 		 */
 		setPath(path, value) {
@@ -376,7 +388,9 @@ export default {
 			const last = keys.pop()
 			let target = this.draft
 			for (const key of keys) {
-				if (!target[key] || typeof target[key] !== 'object') target[key] = {}
+				if (!target[key] || typeof target[key] !== 'object') {
+					target[key] = {}
+				}
 				target = target[key]
 			}
 			target[last] = value
@@ -454,8 +468,12 @@ export default {
 		 * @return {string} The label.
 		 */
 		transitionKindLabel(id) {
-			if (id === 'lifecycle') return t('nextcloud-vue', 'Moves the record through its lifecycle')
-			if (id === 'field') return t('nextcloud-vue', 'Saves the stage on the record')
+			if (id === 'lifecycle') {
+				return t('nextcloud-vue', 'Moves the record through its lifecycle')
+			}
+			if (id === 'field') {
+				return t('nextcloud-vue', 'Saves the stage on the record')
+			}
 			return t('nextcloud-vue', 'Does nothing (read only)')
 		},
 

@@ -37,7 +37,7 @@
  * not pull them into its bundle, which is how `CnLifecycleActions` already
  * loaded them.
  *
- * @return {Promise<{axios: object, generateUrl: Function}>} The two helpers.
+ * @return {Promise<{axios: object, generateUrl: (url: string, params?: object) => string}>} The two helpers.
  */
 async function http() {
 	const [{ default: axios }, { generateUrl }] = await Promise.all([
@@ -62,10 +62,12 @@ async function http() {
  *    when in truth nothing had been read at all.
  *
  * @param {string|number} objectId The record's id.
- * @return {Promise<{actions: Array<{action: string, to: string, requires?: *, description?: string, inputs?: Array<{field: string, required?: boolean}>}>, failed: boolean}>} The allowed actions, and whether the read failed.
+ * @return {Promise<{actions: Array<{action: string, to: string, requires?: unknown, description?: string, inputs?: Array<{field: string, required?: boolean}>}>, failed: boolean}>} The allowed actions, and whether the read failed.
  */
 export async function readAvailableActions(objectId) {
-	if (objectId === null || objectId === undefined || objectId === '') return { actions: [], failed: false }
+	if (objectId === null || objectId === undefined || objectId === '') {
+		return { actions: [], failed: false }
+	}
 	const { axios, generateUrl } = await http()
 	const url = generateUrl('/apps/openregister/api/objects/{id}/available-actions', { id: String(objectId) })
 	try {
@@ -113,9 +115,15 @@ export async function performTransition(objectId, action, data) {
  */
 export function transitionError(e, fallback = '') {
 	const data = e && e.response && e.response.data
-	if (data && typeof data.error === 'string' && data.error.trim() !== '') return data.error
-	if (data && typeof data.message === 'string' && data.message.trim() !== '') return data.message
-	if (e && typeof e.userMessage === 'string' && e.userMessage !== '') return e.userMessage
+	if (data && typeof data.error === 'string' && data.error.trim() !== '') {
+		return data.error
+	}
+	if (data && typeof data.message === 'string' && data.message.trim() !== '') {
+		return data.message
+	}
+	if (e && typeof e.userMessage === 'string' && e.userMessage !== '') {
+		return e.userMessage
+	}
 	return fallback || (e && e.message) || ''
 }
 
@@ -142,11 +150,17 @@ export function declaresInputs(action) {
 export function actionsByTarget(actions) {
 	const byTarget = new Map()
 	for (const action of Array.isArray(actions) ? actions : []) {
-		if (!action || typeof action !== 'object') continue
+		if (!action || typeof action !== 'object') {
+			continue
+		}
 		const to = action.to
-		if (to === undefined || to === null || to === '') continue
+		if (to === undefined || to === null || to === '') {
+			continue
+		}
 		const key = String(to)
-		if (!byTarget.has(key)) byTarget.set(key, action)
+		if (!byTarget.has(key)) {
+			byTarget.set(key, action)
+		}
 	}
 	return byTarget
 }
@@ -163,15 +177,21 @@ export function actionsByTarget(actions) {
  * @return {string} The note, or ''.
  */
 export function actionNote(action) {
-	if (!action || typeof action !== 'object') return ''
+	if (!action || typeof action !== 'object') {
+		return ''
+	}
 	const parts = []
-	if (typeof action.description === 'string' && action.description.trim() !== '') parts.push(action.description.trim())
+	if (typeof action.description === 'string' && action.description.trim() !== '') {
+		parts.push(action.description.trim())
+	}
 	const requires = action.requires
 	if (typeof requires === 'string' && requires.trim() !== '') {
 		parts.push(requires.trim())
 	} else if (Array.isArray(requires)) {
 		for (const one of requires) {
-			if (typeof one === 'string' && one.trim() !== '') parts.push(one.trim())
+			if (typeof one === 'string' && one.trim() !== '') {
+				parts.push(one.trim())
+			}
 		}
 	}
 	return parts.join(' ')

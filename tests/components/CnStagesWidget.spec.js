@@ -72,8 +72,12 @@ const LIFECYCLE = { kind: 'lifecycle' }
  */
 function allowActions(actions) {
 	axios.get.mockImplementation((url) => {
-		if (url.includes('available-actions')) return Promise.resolve({ data: { actions } })
-		if (url.includes('blueprint')) return Promise.resolve({ data: BLUEPRINT })
+		if (url.includes('available-actions')) {
+			return Promise.resolve({ data: { actions } })
+		}
+		if (url.includes('blueprint')) {
+			return Promise.resolve({ data: BLUEPRINT })
+		}
 		return Promise.reject(new Error('unexpected GET ' + url))
 	})
 }
@@ -135,7 +139,9 @@ beforeAll(() => {
 beforeEach(() => {
 	// tests/setup.js installs ONE jest.fn as global.fetch, and spyOn on a mock
 	// returns that same mock, so its calls would carry over between tests.
-	if (jest.isMockFunction(global.fetch)) global.fetch.mockReset()
+	if (jest.isMockFunction(global.fetch)) {
+		global.fetch.mockReset()
+	}
 	invalidateEndpointSourceCache()
 	axios.get.mockReset()
 	axios.post.mockReset()
@@ -253,8 +259,12 @@ describe('CnStagesWidget: reachability comes from the lifecycle', () => {
 	it('blocks every stage until the actions have been read', async () => {
 		let release
 		axios.get.mockImplementation((url) => {
-			if (url.includes('blueprint')) return Promise.resolve({ data: BLUEPRINT })
-			return new Promise((resolve) => { release = () => resolve({ data: { actions: [{ action: 'start', to: 'st-work' }] } }) })
+			if (url.includes('blueprint')) {
+				return Promise.resolve({ data: BLUEPRINT })
+			}
+			return new Promise((resolve) => {
+				release = () => resolve({ data: { actions: [{ action: 'start', to: 'st-work' }] } })
+			})
 		})
 		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
 		await flush()
@@ -271,7 +281,9 @@ describe('CnStagesWidget: reachability comes from the lifecycle', () => {
 
 	it('blocks every stage when the lifecycle answers nothing at all', async () => {
 		axios.get.mockImplementation((url) => {
-			if (url.includes('blueprint')) return Promise.resolve({ data: BLUEPRINT })
+			if (url.includes('blueprint')) {
+				return Promise.resolve({ data: BLUEPRINT })
+			}
 			return Promise.reject(new Error('404'))
 		})
 		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
@@ -473,8 +485,12 @@ describe('CnStagesWidget: what the strip says while it works', () => {
 
 		let release
 		axios.get.mockImplementation((url) => {
-			if (url.includes('blueprint')) return Promise.resolve({ data: BLUEPRINT })
-			return new Promise((resolve) => { release = () => resolve({ data: { actions: [] } }) })
+			if (url.includes('blueprint')) {
+				return Promise.resolve({ data: BLUEPRINT })
+			}
+			return new Promise((resolve) => {
+				release = () => resolve({ data: { actions: [] } })
+			})
 		})
 
 		await stageNode(w, 'st-work').trigger('click')
@@ -514,7 +530,9 @@ describe('CnStagesWidget: what the strip says while it works', () => {
 	it('keeps every focus stop while a move is running, and marks them busy', async () => {
 		allowActions([{ action: 'start', to: 'st-work' }, { action: 'close', to: 'st-done' }])
 		let settle
-		axios.post.mockImplementation(() => new Promise((resolve) => { settle = () => resolve({ data: {} }) }))
+		axios.post.mockImplementation(() => new Promise((resolve) => {
+			settle = () => resolve({ data: {} })
+		}))
 		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
 		await flush()
 
@@ -561,7 +579,8 @@ describe('CnStagesWidget: the field opt-in', () => {
 	it('asks for no actions and offers every stage', async () => {
 		allowActions([])
 		const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
-			ok: true, json: async () => ({ id: 'case-1', status: 'st-work' }),
+			ok: true,
+			json: async () => ({ id: 'case-1', status: 'st-work' }),
 		})
 		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: FIELD })
 		await flush()
@@ -580,7 +599,8 @@ describe('CnStagesWidget: the field opt-in', () => {
 	it('reads the id out of the @self envelope when the context carries none', async () => {
 		allowActions([])
 		const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
-			ok: true, json: async () => ({ id: 'case-1', status: 'st-work' }),
+			ok: true,
+			json: async () => ({ id: 'case-1', status: 'st-work' }),
 		})
 		const w = mountWithContext(
 			{ '@self': { id: 'case-1' }, caseType: 'ct-1', status: 'st-new' },
@@ -620,7 +640,8 @@ describe('CnStagesWidget: the field opt-in', () => {
 	it('omits @self and the empty shapes OpenRegister refuses', async () => {
 		allowActions([])
 		const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
-			ok: true, json: async () => ({ id: 'case-1', status: 'st-work' }),
+			ok: true,
+			json: async () => ({ id: 'case-1', status: 'st-work' }),
 		})
 		const w = mountWithContext(
 			{
@@ -737,7 +758,9 @@ describe('CnStagesWidget: a failed read is not a policy decision', () => {
 	 */
 	function failActionsWith(status) {
 		axios.get.mockImplementation((url) => {
-			if (url.includes('blueprint')) return Promise.resolve({ data: BLUEPRINT })
+			if (url.includes('blueprint')) {
+				return Promise.resolve({ data: BLUEPRINT })
+			}
 			return Promise.reject(axiosError(status))
 		})
 	}
@@ -796,8 +819,12 @@ describe('CnStagesWidget: a list being replaced is not a list', () => {
 		// Hold the refetch open, then move the record from elsewhere.
 		let release
 		axios.get.mockImplementation((url) => {
-			if (url.includes('blueprint')) return Promise.resolve({ data: BLUEPRINT })
-			return new Promise((resolve) => { release = () => resolve({ data: { actions: [{ action: 'reopen', to: 'st-new' }] } }) })
+			if (url.includes('blueprint')) {
+				return Promise.resolve({ data: BLUEPRINT })
+			}
+			return new Promise((resolve) => {
+				release = () => resolve({ data: { actions: [{ action: 'reopen', to: 'st-new' }] } })
+			})
 		})
 		w.context.value = { ...w.context.value, object: { id: 'case-1', caseType: 'ct-1', status: 'st-done' } }
 		await flush()
@@ -818,8 +845,12 @@ describe('CnStagesWidget: a list being replaced is not a list', () => {
 	it('says nothing about a stage while the list is unknown', async () => {
 		let release
 		axios.get.mockImplementation((url) => {
-			if (url.includes('blueprint')) return Promise.resolve({ data: BLUEPRINT })
-			return new Promise((resolve) => { release = () => resolve({ data: { actions: [] } }) })
+			if (url.includes('blueprint')) {
+				return Promise.resolve({ data: BLUEPRINT })
+			}
+			return new Promise((resolve) => {
+				release = () => resolve({ data: { actions: [] } })
+			})
 		})
 		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
 		await flush()

@@ -22,7 +22,7 @@
 // so a broken registration fails here rather than in a consuming app. Every
 // request is stubbed with page.route(), so the answers are fixed.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 // The widgets pull the whole detail-host chain, so the first compile of this
 // entry is slow. Serial plus a longer budget pays that once (the tabs widget
@@ -57,28 +57,35 @@ async function stubCase(page, options = {}) {
 	await page.route('**/apps/openregister/api/objects/case-1/available-actions', (route) => json(route, {
 		actions: state.status === 'st-new'
 			? [{
-				action: 'start',
-				to: 'st-work',
-				requires: null,
-				description: 'Take the case into treatment.',
-			}, {
-				action: 'close',
-				to: 'st-done',
-				requires: null,
-				description: 'Close the case.',
-				...(options.inputs ? { inputs: options.inputs } : {}),
-			}]
+					action: 'start',
+					to: 'st-work',
+					requires: null,
+					description: 'Take the case into treatment.',
+				}, {
+					action: 'close',
+					to: 'st-done',
+					requires: null,
+					description: 'Close the case.',
+					...(options.inputs ? { inputs: options.inputs } : {}),
+				}]
 			: [{ action: 'reopen', to: 'st-new', requires: null, description: null }],
 	}))
 	await page.route('**/apps/openregister/api/objects/case-1/transition', (route) => {
 		const body = route.request().postDataJSON()
 		state.posts.push(body)
-		if (options.refuse) return json(route, options.refuse, 403)
-		if (body.action === 'start') state.status = 'st-work'
+		if (options.refuse) {
+			return json(route, options.refuse, 403)
+		}
+		if (body.action === 'start') {
+			state.status = 'st-work'
+		}
 		return json(route, { id: 'case-1', status: state.status })
 	})
 	await page.route('**/apps/openregister/api/objects/dossiq/case/case-1', (route) => json(route, {
-		id: 'case-1', caseType: 'ct-1', status: state.status, suspended: false,
+		id: 'case-1',
+		caseType: 'ct-1',
+		status: state.status,
+		suspended: false,
 	}))
 	return state
 }
@@ -135,7 +142,9 @@ test.describe('the stages widget', () => {
 		const state = await stubCase(page)
 		let transitionRequests = 0
 		page.on('request', (request) => {
-			if (request.url().endsWith('/transition')) transitionRequests++
+			if (request.url().endsWith('/transition')) {
+				transitionRequests++
+			}
 		})
 		await openHarness(page, '?stageswidget=1', STRIP)
 		// Move first, so st-done is no longer among the allowed actions.
@@ -206,10 +215,15 @@ test.describe('the guard could not be read', () => {
 		const json = (route, body) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
 		await page.route('**/apps/dossiq/api/case-types/ct-1/blueprint', (route) => json(route, BLUEPRINT))
 		await page.route('**/apps/openregister/api/objects/case-1/available-actions', (route) => route.fulfill({
-			status: 500, contentType: 'application/json', body: '{}',
+			status: 500,
+			contentType: 'application/json',
+			body: '{}',
 		}))
 		await page.route('**/apps/openregister/api/objects/dossiq/case/case-1', (route) => json(route, {
-			id: 'case-1', caseType: 'ct-1', status: 'st-new', suspended: false,
+			id: 'case-1',
+			caseType: 'ct-1',
+			status: 'st-new',
+			suspended: false,
 		}))
 
 		await openHarness(page, '?stageswidget=1', STRIP)
