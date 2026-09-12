@@ -11,7 +11,7 @@
  * to a fresh, test-seeded registry.
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { h } from 'vue'
 
 /**
@@ -238,8 +238,7 @@ describe('CnAddWidgetModal', () => {
 		await wrapper.vm.$nextTick()
 		// Open in edit mode via the `show` watcher (not initial mount).
 		wrapper.setProps({ show: true, editingWidget: { type: 'label', content: { text: 'hi' } } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		// Valid, but unchanged → Save disabled.
 		expect(wrapper.vm.isValid).toBe(true)

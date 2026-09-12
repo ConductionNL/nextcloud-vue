@@ -10,8 +10,7 @@
  * overlay — it never loses tour progress.
  */
 
-import { mount } from '@vue/test-utils'
-import { nextTick } from 'vue'
+import { flushPromises, mount } from '@vue/test-utils'
 
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(() => Promise.resolve({})),
@@ -58,10 +57,7 @@ const walkthroughManifest = {
  * @return {Promise<void>}
  */
 async function settle() {
-	await Promise.resolve()
-	await Promise.resolve()
-	await nextTick()
-	await nextTick()
+	await flushPromises()
 }
 
 /**

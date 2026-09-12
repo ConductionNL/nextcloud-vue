@@ -8,7 +8,7 @@
  * - Edit data opens the data editor WITHOUT entering manifest edit mode
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { ref } from 'vue'
 import CnBuildiqEditButton from '../../src/components/CnBuildiqEditButton/CnBuildiqEditButton.vue'
 
@@ -104,8 +104,7 @@ describe('CnBuildiqEditButton', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.saving).toBe(true)
 		resolveSave({ pages: [] })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.vm.saving).toBe(false)
 		expect(wrapper.vm.menuOpen).toBe(false)
 	})

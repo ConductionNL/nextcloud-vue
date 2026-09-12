@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  */
-import { shallowMount } from '@vue/test-utils'
+import { flushPromises, shallowMount } from '@vue/test-utils'
 
 const mockStore = {
 	registerObjectType: jest.fn(),
@@ -108,8 +108,7 @@ describe('CnResourceSelect', () => {
 	it('preloads a first page on mount when asked', async () => {
 		mockStore.fetchCollection.mockResolvedValueOnce([{ id: 'c1', name: 'Acme' }])
 		const w = mount({ preload: true })
-		await w.vm.$nextTick()
-		await w.vm.$nextTick()
+		await flushPromises()
 		expect(mockStore.fetchCollection).toHaveBeenCalledWith('pipelinq-client', { _limit: 20 })
 		expect(w.vm.options).toEqual([{ value: 'c1', label: 'Acme' }])
 	})
