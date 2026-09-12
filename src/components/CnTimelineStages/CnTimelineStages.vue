@@ -107,8 +107,9 @@ export default {
 		 * Array of stage objects. Each must have `id` (unique) and `label` (display text).
 		 * Optional `subtitle` for secondary text below the label. Optional
 		 * `disabled` marks a stage that cannot be chosen: in clickable mode it
-		 * keeps its focus stop, carries `aria-disabled="true"` and emits no
-		 * `stage-click`.
+		 * keeps its focus stop, carries `aria-disabled="true"` and emits
+		 * `stage-blocked` instead of `stage-click`, so the consumer can tell
+		 * the person why nothing happened.
 		 * @type {{ id: string, label: string, subtitle?: string, disabled?: boolean }[]}
 		 */
 		stages: {
@@ -163,7 +164,7 @@ export default {
 		},
 	},
 
-	emits: ['stage-click'],
+	emits: ['stage-click', 'stage-blocked'],
 
 	data() {
 		return {
@@ -238,7 +239,22 @@ export default {
 		 * @param {number} index The stage index
 		 */
 		onStageClick(stage, index) {
-			if (!this.clickable || stage.disabled === true) return
+			if (!this.clickable) return
+			if (stage.disabled === true) {
+				/**
+				 * Emitted when a stage that cannot be chosen is activated.
+				 *
+				 * The stage still emits no `stage-click`, so nothing acts on it.
+				 * This says the person TRIED, which is what lets a consumer
+				 * answer them. Without it a blocked stage was silent to anyone
+				 * not running a screen reader: no message, no move, nothing.
+				 *
+				 * @event stage-blocked
+				 * @type {{ stage: object, index: number }}
+				 */
+				this.$emit('stage-blocked', { stage, index })
+				return
+			}
 			/**
 			 * Emitted when a clickable stage is activated (click, Enter, or Space).
 			 * @event stage-click
@@ -269,8 +285,12 @@ export default {
 			} else if (event.key === 'Enter' || event.key === ' ') {
 				event.preventDefault()
 				// A disabled stage keeps its focus stop, so a screen reader can
-				// reach it and read why, but it cannot be chosen.
-				if (stage.disabled === true) return
+				// reach it and read why, but it cannot be chosen. The attempt
+				// is still reported, so the consumer can answer it.
+				if (stage.disabled === true) {
+					this.$emit('stage-blocked', { stage, index })
+					return
+				}
 				this.$emit('stage-click', { stage, index })
 			}
 		},

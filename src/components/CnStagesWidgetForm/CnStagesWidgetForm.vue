@@ -167,6 +167,9 @@
 			</template>
 		</NcSelect>
 
+		<p v-if="unknownTransitionKind" class="cn-stages-form__hint" data-testid="cn-stages-form-unknown-kind">
+			{{ t('nextcloud-vue', 'This widget is set to something this editor does not know. It is kept as it is unless you pick one of the options above.') }}
+		</p>
 		<p v-if="transitionKind === 'lifecycle'" class="cn-stages-form__hint">
 			{{ t('nextcloud-vue', 'Open Register decides which stages can be reached and checks every move. Nothing to configure here.') }}
 		</p>
@@ -305,6 +308,22 @@ export default {
 		},
 
 		/**
+		 * Whether the stored `kind` is one this form does not know.
+		 *
+		 * NOT the same as "the person chose read only", and the difference is
+		 * destructive. Both show `none` in the picker, but only one of them is
+		 * an instruction to delete the block. A kind this version has never
+		 * heard of is a typo or a newer library's mode, and editing an
+		 * unrelated field should not throw it away.
+		 *
+		 * @return {boolean} True when the stored kind is unrecognised.
+		 */
+		unknownTransitionKind() {
+			const kind = this.draft.transition.kind
+			return Boolean(kind) && kind !== 'field' && kind !== 'lifecycle'
+		},
+
+		/**
 		 * The content blob as it is stored: empty strings and empty blocks
 		 * left out, and only the chosen stage source kept.
 		 *
@@ -328,7 +347,10 @@ export default {
 			}
 			if (this.stagesKind === 'endpoint') delete out.stagesSource
 			else delete out.stagesEndpoint
-			if (this.transitionKind === 'none') {
+			// Only a DELIBERATE read-only choice drops the block. An
+			// unrecognised kind is kept exactly as stored, along with the text
+			// that goes with it.
+			if (this.transitionKind === 'none' && !this.unknownTransitionKind) {
 				delete out.transition
 				delete out.unreachableReason
 			}

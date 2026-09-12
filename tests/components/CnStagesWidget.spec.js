@@ -193,14 +193,18 @@ describe('CnStagesWidget: reachability comes from the lifecycle', () => {
 		expect(stageNode(w, 'st-done').attributes('aria-disabled')).toBe('true')
 	})
 
-	it('says why a stage cannot be chosen, for a screen reader', async () => {
+	// VISIBLE, NOT SCREEN-READER-ONLY. Hidden, the only feedback a pointer user
+	// got from a blocked stage was nothing at all: no message, no move, no
+	// explanation. A control that silently does nothing reads as broken.
+	it('says why a stage cannot be chosen, on screen', async () => {
 		allowActions([{ action: 'start', to: 'st-work' }])
 		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
 		await flush()
 
 		const reason = w.find('[data-testid="cn-stages-widget-reason-st-done"]')
 		expect(reason.text()).toBe('Not reachable from the current stage')
-		expect(reason.classes()).toContain('cn-stages-widget__sr-only')
+		expect(reason.classes()).toContain('cn-stages-widget__reason')
+		expect(reason.classes()).not.toContain('cn-stages-widget__sr-only')
 	})
 
 	it('uses the app’s own words for an unreachable stage when it gave any', async () => {
@@ -638,5 +642,176 @@ describe('CnStagesWidget: the field opt-in', () => {
 		await stageNode(w, 'st-work').trigger('click')
 		await flush()
 		expect(axios.post).not.toHaveBeenCalled()
+	})
+})
+
+describe('CnStagesWidget: a stage that cannot be chosen answers the click', () => {
+	// A CLICK THAT DOES NOTHING READS AS BROKEN. CnTimelineStages emits no
+	// `stage-click` for a disabled stage, by design, so the widget hears
+	// `stage-blocked` instead and answers with the reason. Before this, a
+	// pointer user clicked and learned nothing, ever.
+	it('shows the reason on screen when a blocked stage is clicked', async () => {
+		allowActions([{ action: 'start', to: 'st-work' }])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(w.find('[data-testid="cn-stages-widget-blocked"]').exists()).toBe(false)
+		await stageNode(w, 'st-done').trigger('click')
+		await flush()
+
+		const said = w.find('[data-testid="cn-stages-widget-blocked"]')
+		expect(said.text()).toBe('Not reachable from the current stage')
+		expect(said.attributes('role')).toBe('status')
+		expect(axios.post).not.toHaveBeenCalled()
+	})
+
+	it('answers a keyboard activation of a blocked stage too', async () => {
+		allowActions([{ action: 'start', to: 'st-work' }])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		await stageNode(w, 'st-done').trigger('keydown', { key: 'Enter' })
+		await flush()
+
+		expect(w.find('[data-testid="cn-stages-widget-blocked"]').text()).toBe('Not reachable from the current stage')
+		expect(axios.post).not.toHaveBeenCalled()
+	})
+
+	it('uses the app’s own words when it gave any', async () => {
+		allowActions([{ action: 'start', to: 'st-work' }])
+		const w = mountWidget({
+			currentField: 'status',
+			stagesEndpoint: STAGES_ENDPOINT,
+			transition: LIFECYCLE,
+			unreachableReason: 'Not possible from here',
+		})
+		await flush()
+		await stageNode(w, 'st-done').trigger('click')
+		await flush()
+
+		expect(w.find('[data-testid="cn-stages-widget-blocked"]').text()).toBe('Not possible from here')
+	})
+
+	it('clears what it said once a real move starts', async () => {
+		allowActions([{ action: 'start', to: 'st-work' }])
+		axios.post.mockResolvedValue({ data: {} })
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+		await stageNode(w, 'st-done').trigger('click')
+		await flush()
+		expect(w.find('[data-testid="cn-stages-widget-blocked"]').exists()).toBe(true)
+
+		await stageNode(w, 'st-work').trigger('click')
+		await flush()
+
+		expect(w.find('[data-testid="cn-stages-widget-blocked"]').exists()).toBe(false)
+	})
+})
+
+describe('CnStagesWidget: a failed read is not a policy decision', () => {
+	/**
+	 * Answer `/available-actions` with a status, and the blueprint normally.
+	 *
+	 * @param {number} status The HTTP status to fail with.
+	 * @return {void}
+	 */
+	function failActionsWith(status) {
+		axios.get.mockImplementation((url) => {
+			if (url.includes('blueprint')) return Promise.resolve({ data: BLUEPRINT })
+			return Promise.reject({ response: { status } })
+		})
+	}
+
+	// A 500 IS NOT AN ANSWER. Swallowing it into an empty list made every stage
+	// disabled with the reason "not reachable from the current stage", which
+	// states confidently something nobody checked.
+	it('says the guard could not be checked, rather than claiming every stage is unreachable', async () => {
+		failActionsWith(500)
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(w.find('[data-testid="cn-stages-widget-actions-error"]').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-work"]').text())
+			.toBe('Could not check whether this stage can be reached')
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-work"]').text())
+			.not.toBe('Not reachable from the current stage')
+	})
+
+	it('blocks every move when the read failed', async () => {
+		failActionsWith(500)
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(stageNode(w, 'st-work').attributes('aria-disabled')).toBe('true')
+		await stageNode(w, 'st-work').trigger('click')
+		await flush()
+		expect(axios.post).not.toHaveBeenCalled()
+	})
+
+	// A 404 IS AN ANSWER: the schema declares no lifecycle. That is "no moves",
+	// not "something broke", so it must not raise the failure notice.
+	it('treats a missing lifecycle as no moves, not as a failure', async () => {
+		failActionsWith(404)
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(w.find('[data-testid="cn-stages-widget-actions-error"]').exists()).toBe(false)
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-work"]').text())
+			.toBe('Not reachable from the current stage')
+	})
+})
+
+describe('CnStagesWidget: a list being replaced is not a list', () => {
+	// THE STALE LIST MUST STOP BEING AUTHORITATIVE AT THE START OF THE REFETCH,
+	// not when the replacement lands. Our own move is covered by `busy`, but a
+	// move made ELSEWHERE (a second widget, CnLifecycleActions on the same
+	// page, another user plus a refresh) reaches the recordStageId watcher with
+	// `busy` false, and the old list kept driving the strip.
+	it('disables every stage while the actions are being re-read after an outside move', async () => {
+		allowActions([{ action: 'start', to: 'st-work' }, { action: 'close', to: 'st-done' }])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+		expect(stageNode(w, 'st-work').attributes('aria-disabled')).toBeUndefined()
+
+		// Hold the refetch open, then move the record from elsewhere.
+		let release
+		axios.get.mockImplementation((url) => {
+			if (url.includes('blueprint')) return Promise.resolve({ data: BLUEPRINT })
+			return new Promise((resolve) => { release = () => resolve({ data: { actions: [{ action: 'reopen', to: 'st-new' }] } }) })
+		})
+		w.context.value = { ...w.context.value, object: { id: 'case-1', caseType: 'ct-1', status: 'st-done' } }
+		await flush()
+
+		expect(stageNode(w, 'st-work').attributes('aria-disabled')).toBe('true')
+		await stageNode(w, 'st-work').trigger('click')
+		await flush()
+		expect(axios.post).not.toHaveBeenCalled()
+
+		release()
+		await flush()
+		expect(stageNode(w, 'st-new').attributes('aria-disabled')).toBeUndefined()
+	})
+
+	// AND IT MUST NOT CLAIM ANYTHING WHILE IT IS UNKNOWN. An empty map and an
+	// unread list both disable every stage, so the difference only shows in
+	// what the stage SAYS: "not reachable" is a claim, and nobody has checked.
+	it('says nothing about a stage while the list is unknown', async () => {
+		let release
+		axios.get.mockImplementation((url) => {
+			if (url.includes('blueprint')) return Promise.resolve({ data: BLUEPRINT })
+			return new Promise((resolve) => { release = () => resolve({ data: { actions: [] } }) })
+		})
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(stageNode(w, 'st-work').attributes('aria-disabled')).toBe('true')
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-work"]').exists()).toBe(false)
+
+		release()
+		await flush()
+
+		// Now the list IS known, and an absent stage is genuinely unreachable.
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-work"]').text())
+			.toBe('Not reachable from the current stage')
 	})
 })

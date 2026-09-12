@@ -122,8 +122,9 @@ export function normalizeStages(rows, cfg = {}) {
  *    the documented answer, and an absent property and an empty one mean the
  *    same thing to OpenRegister, so nothing is lost by leaving it out.
  *
- * Because `{ kind: 'field' }` is the registry default, this is the path an app
- * gets without configuring anything.
+ * `{ kind: 'field' }` is an explicit opt-in, NOT the registry default, which is
+ * `{ kind: 'lifecycle' }`. Nothing validates this write, so an app reaches it
+ * only by asking for it.
  *
  * @param {object} record The bound record.
  * @param {string} id The record's id, already resolved by the caller.

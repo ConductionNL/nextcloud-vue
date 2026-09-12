@@ -125,6 +125,33 @@ describe('CnStagesWidgetForm', () => {
 		expect(w.vm.transitionKind).toBe('none')
 	})
 
+	// READING IT AS READ ONLY IS NOT PERMISSION TO DELETE IT. A kind this
+	// version has never heard of is a typo or a newer library's mode, and
+	// editing an unrelated field must not throw the block away.
+	it('keeps a transition block whose kind it does not recognise', () => {
+		const stored = { ...DOSSIQ_TIMELINE, transition: { kind: 'lifecyle', extra: 'kept' } }
+		const w = mountForm(stored)
+		w.vm.setPath('size', 'small')
+
+		const emitted = w.emitted('update:content').at(-1)[0]
+		expect(emitted.transition).toEqual({ kind: 'lifecyle', extra: 'kept' })
+		expect(emitted.unreachableReason).toBe('Not possible from the current stage')
+	})
+
+	it('says so, rather than leaving the picker looking like the truth', () => {
+		const w = mountForm({ ...DOSSIQ_TIMELINE, transition: { kind: 'lifecyle' } })
+		expect(w.find('[data-testid="cn-stages-form-unknown-kind"]').exists()).toBe(true)
+	})
+
+	it('drops the block once the person actually picks read only', () => {
+		const w = mountForm({ ...DOSSIQ_TIMELINE, transition: { kind: 'lifecyle' } })
+		w.vm.setTransitionKind('none')
+
+		const emitted = w.emitted('update:content').at(-1)[0]
+		expect(emitted.transition).toBeUndefined()
+		expect(emitted.unreachableReason).toBeUndefined()
+	})
+
 	it('validates the required keys', () => {
 		const w = mountForm({ currentField: '', stagesEndpoint: { url: '' }, transition: { kind: 'lifecycle' } })
 		expect(w.vm.validate()).toEqual([

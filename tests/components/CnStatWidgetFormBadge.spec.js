@@ -199,6 +199,22 @@ describe('CnStatWidgetForm: display, empty text and special states', () => {
 		expect(overrides[0]).toEqual({ when: { field: 'suspended' }, label: 'On hold', variant: 'warning', icon: 'PauseCircle' })
 	})
 
+	// The SIBLING of the `when` case below, and it had no test at all: an
+	// override key the form does not draw (a future `priority`, a `tooltip`)
+	// was dropped on save exactly the way the icon was.
+	it('keeps an override key it cannot draw', () => {
+		const stored = {
+			...dossiqStatus,
+			overrides: [{ when: { field: 'suspended' }, label: 'Suspended', variant: 'warning', tooltip: 'Paused by the handler' }],
+		}
+		const w = mountForm(stored)
+		w.vm.updateRow('overrideRows', 0, 'label', 'On hold')
+
+		const emitted = w.emitted('update:content').at(-1)[0].overrides[0]
+		expect(emitted.tooltip).toBe('Paused by the handler')
+		expect(emitted.label).toBe('On hold')
+	})
+
 	it('keeps a clause of the when grammar it cannot draw', () => {
 		const w = mountForm(dossiqStatus)
 		w.vm.updateRow('overrideRows', 1, 'variant', 'error')

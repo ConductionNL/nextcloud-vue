@@ -217,9 +217,21 @@
 	background-color: var(--color-background-dark, #ededed);
 }
 
-/* A stage that cannot be chosen keeps its focus stop but reads as inert. */
+/* A stage that cannot be chosen keeps its focus stop but reads as inert.
+   It must also LOOK different from a stage that is merely later in the
+   process: dimmed, with a not-allowed cursor. Without the dimming the only
+   difference a sighted person could perceive was the cursor, which nobody
+   notices, so a blocked stage and an upcoming one were the same picture. */
 .cn-timeline-stages--clickable .cn-timeline-stages__stage--disabled {
 	cursor: not-allowed;
+	opacity: 0.55;
+}
+
+/* The dimming must not take the reason with it: an explanation nobody can read
+   is the state this rule exists to fix. */
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--disabled .cn-stages-widget__reason {
+	opacity: 1;
+	color: var(--color-text-maxcontrast);
 }
 
 /* The stage the record is ON is not a move, and it is not blocked either. It

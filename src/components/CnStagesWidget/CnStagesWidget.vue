@@ -30,7 +30,8 @@
 				:size="size"
 				:clickable="interactive"
 				:aria-label="ariaLabel"
-				@stage-click="onStageClick">
+				@stage-click="onStageClick"
+				@stage-blocked="onStageBlocked">
 				<template #label="{ stage }">
 					<span class="cn-timeline-stages__label" :data-testid="`cn-stages-widget-stage-${stage.id}`">
 						{{ stage.label }}
@@ -51,12 +52,31 @@
 				</template>
 			</CnTimelineStages>
 
+			<!-- The guard could not be read at all. Said once, here, rather than
+			     by every stage claiming it is not reachable. -->
+			<p
+				v-if="actionsFailed"
+				class="cn-stages-widget__notice"
+				data-testid="cn-stages-widget-actions-error"
+				role="status">
+				{{ tr('Could not check which stages can be reached') }}
+			</p>
 			<p
 				v-if="moveError && !pendingAction"
 				class="cn-stages-widget__error"
 				data-testid="cn-stages-widget-error"
 				role="alert">
 				{{ moveError }}
+			</p>
+			<!-- What a click on a stage that cannot be chosen answered. Visible
+			     AND announced: a pointer user learned nothing from that click
+			     before, because the only explanation was screen-reader text. -->
+			<p
+				v-if="blockedMessage && !moveError"
+				class="cn-stages-widget__blocked"
+				data-testid="cn-stages-widget-blocked"
+				role="status">
+				{{ blockedMessage }}
 			</p>
 			<p class="cn-stages-widget__sr-only" aria-live="polite">
 				{{ statusMessage }}
@@ -87,8 +107,8 @@ import {
 	actionNote,
 	actionsByTarget,
 	declaresInputs,
-	fetchAvailableActions,
 	performTransition,
+	readAvailableActions,
 	transitionError,
 } from '../../composables/useLifecycleTransitions.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
@@ -248,9 +268,13 @@ export default {
 		 * `currentField`, `stagesEndpoint` or `stagesSource`, `transition`
 		 * (`{ kind: 'lifecycle' }` by default, or `{ kind: 'field' }`, or
 		 * absent for a read-only strip), `unreachableReason`, `orientation`,
-		 * `size` and `ariaLabel`.
+		 * `size`, `ariaLabel` and `label`.
 		 *
-		 * @type {{currentField?: string, stagesEndpoint?: object, stagesSource?: object, transition?: object, unreachableReason?: string, orientation?: ('horizontal'|'vertical'), size?: ('medium'|'small'), ariaLabel?: string}}
+		 * `ariaLabel` names the strip for a screen reader. It falls back to
+		 * `label`, the placement's own title, so a titled card does not have to
+		 * repeat itself, and then to "Stages".
+		 *
+		 * @type {{currentField?: string, stagesEndpoint?: object, stagesSource?: object, transition?: object, unreachableReason?: string, orientation?: ('horizontal'|'vertical'), size?: ('medium'|'small'), ariaLabel?: string, label?: string}}
 		 */
 		content: {
 			type: Object,
@@ -387,6 +411,12 @@ export default {
 			 */
 			actionsLoaded: false,
 			/**
+			 * @type {boolean} The read failed, as opposed to answering that
+			 * there is nothing to do. A failure is reported as one rather than
+			 * dressed up as a policy decision about every stage.
+			 */
+			actionsFailed: false,
+			/**
 			 * @type {object|null} The action whose declared inputs are being
 			 * collected. Non-null mounts CnTransitionInputDialog, and the POST
 			 * waits for its confirm.
@@ -396,6 +426,12 @@ export default {
 			busy: false,
 			/** @type {string} Why the last move failed, or ''. */
 			moveError: '',
+			/**
+			 * @type {string} What a click on a stage that cannot be chosen said,
+			 * shown until the next click. A refusal the person can see, rather
+			 * than a control that does nothing.
+			 */
+			blockedMessage: '',
 			/** @type {string} The last outcome, for the polite live region. */
 			statusMessage: '',
 		}
@@ -710,6 +746,12 @@ export default {
 			// The field path has no server to ask, which is exactly why it is an
 			// explicit opt-in: every stage is offered and the write decides.
 			if (!this.lifecycleMode) return open
+			// A FAILED READ IS NOT A POLICY DECISION. Saying "not reachable from
+			// the current stage" about every stage would state, confidently and
+			// wrongly, something nobody has checked.
+			if (this.actionsFailed) {
+				return { disabled: true, reason: this.tr('Could not check whether this stage can be reached'), reasonVisible: false }
+			}
 			// Not read yet. Not "no moves allowed", which is why this is not the
 			// same branch as an empty list.
 			if (this.moves === null) return { disabled: true, reason: '', reasonVisible: false }
@@ -718,7 +760,11 @@ export default {
 				const reason = this.content.unreachableReason
 					? this.effectiveTranslate(this.content.unreachableReason)
 					: this.tr('Not reachable from the current stage')
-				return { disabled: true, reason, reasonVisible: false }
+				// VISIBLE, not screen-reader-only. Hidden, the only feedback a
+				// pointer user got from a blocked stage was nothing at all: no
+				// cursor change they would notice, no message, no move. A
+				// control that silently does nothing reads as broken.
+				return { disabled: true, reason, reasonVisible: true }
 			}
 			// What the move says about itself. It is not a refusal, so it is
 			// shown rather than hidden: it tells the person what happens next.
@@ -738,8 +784,12 @@ export default {
 			// You cannot move to where you already are, and re-firing the move
 			// that just landed is exactly what a stray click would do.
 			if (stage.id === this.currentStageId) return
+			// No `target.disabled` check: CnTimelineStages emits `stage-blocked`
+			// for those and never `stage-click`, so a second check here was a
+			// branch nothing could reach and nothing could test.
 			const target = this.timelineStages.find((s) => s.id === stage.id)
-			if (!target || target.disabled) return
+			if (!target) return
+			this.blockedMessage = ''
 			this.moveError = ''
 			const move = this.moves ? this.moves.get(stage.id) : null
 			if (this.lifecycleMode && !move) return
@@ -763,6 +813,27 @@ export default {
 				return
 			}
 			this.performMove(request)
+		},
+
+		/**
+		 * A stage that cannot be chosen was clicked: say why.
+		 *
+		 * SAY SOMETHING. This used to be silence. The reason was rendered as
+		 * screen-reader-only text, so a pointer user clicked, nothing moved,
+		 * nothing appeared, and nothing explained it. The sentence now goes on
+		 * screen in a polite live region, so both kinds of user get the same
+		 * answer from the same click.
+		 *
+		 * @param {{stage: {id: string}}} payload The CnTimelineStages event.
+		 * @return {void}
+		 */
+		onStageBlocked({ stage }) {
+			if (!stage) return
+			const target = this.timelineStages.find((s) => s.id === stage.id)
+			this.blockedMessage = (target && target.reason)
+				|| (this.busy
+					? this.tr('Just a moment, the last move is still running')
+					: this.tr('This stage cannot be chosen right now'))
 		},
 
 		/**
@@ -825,18 +896,29 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async loadActions() {
-			if (!this.lifecycleMode || !this.recordId) {
-				this.actions = []
-				this.actionsLoaded = false
-				return
-			}
+			// THE LIST IN HAND IS ALREADY WRONG. Whatever prompted this read,
+			// the answer we are holding describes a state the record may have
+			// left, so it stops being authoritative NOW rather than when the
+			// replacement arrives. Without this the `recordStageId` watcher
+			// path refetched with `busy` false and the old list still driving
+			// the strip, so a stage the record had left stayed clickable and a
+			// click POSTed a move out of a state that no longer existed.
+			this.actions = []
+			this.actionsLoaded = false
+			this.actionsFailed = false
+			if (!this.lifecycleMode || !this.recordId) return
 			const id = this.recordId
-			const actions = await fetchAvailableActions(id)
+			const read = await readAvailableActions(id)
 			// The record may have moved on while the read was in flight; the
 			// newer read owns the state.
 			if (String(this.recordId) !== String(id)) return
-			this.actions = actions
-			this.actionsLoaded = true
+			this.actions = read.actions
+			this.actionsFailed = read.failed
+			// A FAILED READ IS NOT AN ANSWER. Leaving `actionsLoaded` false
+			// keeps every stage disabled, and `actionsFailed` is what makes the
+			// widget say the guard could not be checked rather than let each
+			// stage claim it is not reachable.
+			this.actionsLoaded = !read.failed
 		},
 
 		/**
@@ -1011,6 +1093,13 @@ export default {
 	margin-top: 2px;
 	font-size: 0.8em;
 	line-height: 1.3;
+	color: var(--color-text-maxcontrast);
+}
+
+/* What a click on a stage that cannot be chosen answered. */
+.cn-stages-widget__blocked {
+	margin: 0;
+	font-size: 0.9em;
 	color: var(--color-text-maxcontrast);
 }
 

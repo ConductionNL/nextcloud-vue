@@ -21,7 +21,7 @@ import {
 	actionNote,
 	actionsByTarget,
 	declaresInputs,
-	fetchAvailableActions,
+	readAvailableActions,
 	performTransition,
 	transitionError,
 } from '../../src/composables/useLifecycleTransitions.js'
@@ -31,37 +31,49 @@ beforeEach(() => {
 	axios.post.mockReset()
 })
 
-describe('fetchAvailableActions', () => {
+describe('readAvailableActions', () => {
 	it('reads the actions OpenRegister allows for the record', async () => {
 		axios.get.mockResolvedValue({ data: { actions: [{ action: 'start', to: 'open' }] } })
 
-		const actions = await fetchAvailableActions('case-1')
+		const read = await readAvailableActions('case-1')
 
 		expect(axios.get).toHaveBeenCalledWith('/apps/openregister/api/objects/case-1/available-actions')
-		expect(actions).toEqual([{ action: 'start', to: 'open' }])
+		expect(read).toEqual({ actions: [{ action: 'start', to: 'open' }], failed: false })
 	})
 
-	// A SCHEMA WITHOUT A LIFECYCLE IS A LEGITIMATE SCHEMA. The endpoint answers
-	// 404, which means "no transitions", not "something broke".
-	it('answers an empty list when there is no lifecycle', async () => {
+	// A 404 IS AN ANSWER. A schema without a lifecycle is a legitimate schema:
+	// there are no moves, and that is a fact about the record, not a fault.
+	it('reads a missing lifecycle as no moves, and not as a failure', async () => {
 		axios.get.mockRejectedValue({ response: { status: 404 } })
-		expect(await fetchAvailableActions('case-1')).toEqual([])
+		expect(await readAvailableActions('case-1')).toEqual({ actions: [], failed: false })
+	})
+
+	// A 500 IS NOT AN ANSWER, and collapsing the two let a failed read render
+	// as a policy decision: every stage disabled, each one explaining it is not
+	// reachable, when nothing had been read at all.
+	it.each([
+		[500],
+		[503],
+		[undefined],
+	])('reports a %p as a failure', async (status) => {
+		axios.get.mockRejectedValue(status ? { response: { status } } : new Error('Network Error'))
+		expect(await readAvailableActions('case-1')).toEqual({ actions: [], failed: true })
 	})
 
 	it('asks nothing without a record id', async () => {
-		expect(await fetchAvailableActions('')).toEqual([])
-		expect(await fetchAvailableActions(null)).toEqual([])
+		expect(await readAvailableActions('')).toEqual({ actions: [], failed: false })
+		expect(await readAvailableActions(null)).toEqual({ actions: [], failed: false })
 		expect(axios.get).not.toHaveBeenCalled()
 	})
 
 	it('drops an entry that names no action', async () => {
 		axios.get.mockResolvedValue({ data: { actions: [{ to: 'open' }, null, 'x', { action: 'close', to: 'closed' }] } })
-		expect(await fetchAvailableActions('c')).toEqual([{ action: 'close', to: 'closed' }])
+		expect((await readAvailableActions('c')).actions).toEqual([{ action: 'close', to: 'closed' }])
 	})
 
 	it('answers an empty list for a body that carries no actions array', async () => {
 		axios.get.mockResolvedValue({ data: {} })
-		expect(await fetchAvailableActions('c')).toEqual([])
+		expect(await readAvailableActions('c')).toEqual({ actions: [], failed: false })
 	})
 })
 

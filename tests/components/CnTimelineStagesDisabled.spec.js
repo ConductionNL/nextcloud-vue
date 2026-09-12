@@ -68,3 +68,41 @@ describe('CnTimelineStages: disabled stages', () => {
 		expect(node(w, 1).classes()).not.toContain('cn-timeline-stages__stage--disabled')
 	})
 })
+
+describe('CnTimelineStages: a blocked stage reports the attempt', () => {
+	// IT STILL REFUSES THE MOVE. What changes is that it says the person tried,
+	// which is what lets a consumer answer them. Before this a blocked stage
+	// was silent to anyone not running a screen reader.
+	it('emits stage-blocked instead of stage-click on a click', async () => {
+		const w = mountTimeline()
+		await w.findAll('.cn-timeline-stages__stage')[1].trigger('click')
+
+		expect(w.emitted('stage-click')).toBeUndefined()
+		expect(w.emitted('stage-blocked')[0][0].stage.id).toBe('b')
+	})
+
+	it('emits stage-blocked on Enter and on Space', async () => {
+		const w = mountTimeline()
+		await w.findAll('.cn-timeline-stages__stage')[1].trigger('keydown', { key: 'Enter' })
+		await w.findAll('.cn-timeline-stages__stage')[1].trigger('keydown', { key: ' ' })
+
+		expect(w.emitted('stage-click')).toBeUndefined()
+		expect(w.emitted('stage-blocked')).toHaveLength(2)
+	})
+
+	it('emits nothing at all when the timeline is not clickable', async () => {
+		const w = mountTimeline({ clickable: false })
+		await w.findAll('.cn-timeline-stages__stage')[1].trigger('click')
+
+		expect(w.emitted('stage-click')).toBeUndefined()
+		expect(w.emitted('stage-blocked')).toBeUndefined()
+	})
+
+	it('emits stage-click, not stage-blocked, for a stage that is open', async () => {
+		const w = mountTimeline()
+		await w.findAll('.cn-timeline-stages__stage')[0].trigger('click')
+
+		expect(w.emitted('stage-click')[0][0].stage.id).toBe('a')
+		expect(w.emitted('stage-blocked')).toBeUndefined()
+	})
+})

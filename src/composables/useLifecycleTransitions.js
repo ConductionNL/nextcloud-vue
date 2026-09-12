@@ -50,23 +50,34 @@ async function http() {
 /**
  * The moves OpenRegister allows on a record right now.
  *
- * A missing lifecycle answers 404, which means "no transitions" rather than an
- * error: a schema without a lifecycle graph is a legitimate schema. The caller
- * decides what an empty list looks like on screen.
+ * Returns `{ actions, failed }`, and the caller must not collapse the two.
+ *
+ *  - A 404 means the schema declares no lifecycle, which is a legitimate
+ *    schema. `{ actions: [], failed: false }`: there are no moves, and that is
+ *    an answer.
+ *  - A 500, a timeout or a dropped connection is NOT an answer.
+ *    `{ actions: [], failed: true }`. Returning the same empty list for both
+ *    made a failed read render as a policy decision: every stage disabled,
+ *    each one explaining that it is "not reachable from the current stage",
+ *    when in truth nothing had been read at all.
  *
  * @param {string|number} objectId The record's id.
- * @return {Promise<Array<{action: string, to: string, requires?: *, description?: string, inputs?: Array<{field: string, required?: boolean}>}>>} The allowed actions.
+ * @return {Promise<{actions: Array<{action: string, to: string, requires?: *, description?: string, inputs?: Array<{field: string, required?: boolean}>}>, failed: boolean}>} The allowed actions, and whether the read failed.
  */
-export async function fetchAvailableActions(objectId) {
-	if (objectId === null || objectId === undefined || objectId === '') return []
+export async function readAvailableActions(objectId) {
+	if (objectId === null || objectId === undefined || objectId === '') return { actions: [], failed: false }
 	const { axios, generateUrl } = await http()
 	const url = generateUrl('/apps/openregister/api/objects/{id}/available-actions', { id: String(objectId) })
 	try {
 		const res = await axios.get(url)
 		const actions = res && res.data && res.data.actions
-		return Array.isArray(actions) ? actions.filter((a) => a && typeof a === 'object' && a.action) : []
+		return {
+			actions: Array.isArray(actions) ? actions.filter((a) => a && typeof a === 'object' && a.action) : [],
+			failed: false,
+		}
 	} catch (e) {
-		return []
+		const status = e && e.response && e.response.status
+		return { actions: [], failed: status !== 404 }
 	}
 }
 
