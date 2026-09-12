@@ -59,32 +59,102 @@
 			<span class="cn-sidebar-tab__dropzone-text">{{ dropZoneLabel }}</span>
 		</div>
 
-		<!-- File list -->
+		<!-- File list. Each row borrows what Nextcloud already has on this
+		     page: the theme's own mime icon (OC.MimeType), the core preview
+		     endpoint for images, the Viewer for opening, and the Files sidebar
+		     for details, sharing and versions. Nothing of the Files app is
+		     rebuilt here; the row hands over to it. -->
 		<NcLoadingIcon v-if="loading" />
-		<div v-else-if="files.length === 0" class="cn-sidebar-tab__empty">
-			{{ noFilesLabel }}
-		</div>
+		<NcEmptyContent
+			v-else-if="files.length === 0"
+			class="cn-sidebar-tab__empty"
+			:name="noFilesLabel"
+			:description="dropZoneLabel">
+			<template #icon>
+				<Paperclip :size="44" />
+			</template>
+		</NcEmptyContent>
 		<div v-else class="cn-sidebar-tab__list">
 			<NcListItem
 				v-for="file in files"
 				:key="file.id"
 				:name="file.name || file.title"
 				:bold="false"
-				:forceDisplayActions="true">
+				:forceDisplayActions="true"
+				@click="openFile(file)">
 				<template #icon>
-					<FileOutline :size="32" />
+					<img
+						v-if="previewUrlFor(file)"
+						class="cn-sidebar-tab__thumb"
+						:src="previewUrlFor(file)"
+						alt=""
+						loading="lazy"
+						@error="onPreviewError(file)">
+					<img
+						v-else-if="mimeIconFor(file)"
+						class="cn-sidebar-tab__mime"
+						:src="mimeIconFor(file)"
+						alt="">
+					<FileOutline v-else :size="32" />
 				</template>
 				<template #subname>
-					{{ formatFileSize(file.size) }}
+					<span class="cn-sidebar-tab__meta">
+						<span>{{ formatFileSize(file.size) }}</span>
+						<template v-if="modifiedAt(file)">
+							<span aria-hidden="true"> · </span>
+							<NcDateTime :timestamp="modifiedAt(file)" :ignoreSeconds="true" />
+						</template>
+						<template v-if="labelsOf(file)">
+							<span aria-hidden="true"> · </span>
+							<span>{{ labelsOf(file) }}</span>
+						</template>
+					</span>
 				</template>
 				<template #actions>
-					<NcActionButton @click="openFile(file)">
+					<NcActionButton :closeAfterClick="true" @click="openFile(file)">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
 						{{ openLabel }}
 					</NcActionButton>
-					<NcActionButton @click="deleteFile(file)">
+					<NcActionLink
+						v-if="file.id"
+						:href="downloadUrlFor(file)"
+						:download="file.name || file.title || ''"
+						:closeAfterClick="true">
+						<template #icon>
+							<Download :size="20" />
+						</template>
+						{{ downloadLabel }}
+					</NcActionLink>
+					<NcActionButton
+						v-if="canShowDetails() && file.path"
+						:closeAfterClick="true"
+						@click="showDetails(file)">
+						<template #icon>
+							<InformationOutline :size="20" />
+						</template>
+						{{ detailsLabel }}
+					</NcActionButton>
+					<NcActionLink
+						v-if="file.id"
+						:href="showInFilesUrl(file)"
+						target="_blank"
+						rel="noopener noreferrer"
+						:closeAfterClick="true">
+						<template #icon>
+							<FolderOutline :size="20" />
+						</template>
+						{{ showInFilesLabel }}
+					</NcActionLink>
+					<NcActionButton v-if="file.id" :closeAfterClick="true" @click="copyLink(file)">
+						<template #icon>
+							<LinkVariant :size="20" />
+						</template>
+						{{ copyLinkLabel }}
+					</NcActionButton>
+					<NcActionSeparator />
+					<NcActionButton :closeAfterClick="true" @click="deleteFile(file)">
 						<template #icon>
 							<Delete :size="20" />
 						</template>
@@ -110,10 +180,26 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcCheckboxRadioSwitch, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { generateUrl } from '@nextcloud/router'
+import {
+	NcActionButton,
+	NcActionLink,
+	NcActionSeparator,
+	NcButton,
+	NcCheckboxRadioSwitch,
+	NcDateTime,
+	NcEmptyContent,
+	NcListItem,
+	NcLoadingIcon,
+} from '@nextcloud/vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import Download from 'vue-material-design-icons/Download.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
+import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import { buildHeaders } from '../../utils/index.js'
 import { safeHref } from '../../utils/safeHref.js'
@@ -121,7 +207,26 @@ import { safeHref } from '../../utils/safeHref.js'
 export default {
 	name: 'CnFilesTab',
 
-	components: { NcButton, NcCheckboxRadioSwitch, NcListItem, NcActionButton, NcLoadingIcon, Upload, FileOutline, OpenInNew, Delete },
+	components: {
+		NcActionButton,
+		NcActionLink,
+		NcActionSeparator,
+		NcButton,
+		NcCheckboxRadioSwitch,
+		NcDateTime,
+		NcEmptyContent,
+		NcListItem,
+		NcLoadingIcon,
+		Delete,
+		Download,
+		FileOutline,
+		FolderOutline,
+		InformationOutline,
+		LinkVariant,
+		OpenInNew,
+		Paperclip,
+		Upload,
+	},
 
 	props: {
 		/** ID of the object this tab belongs to */
@@ -140,6 +245,14 @@ export default {
 		openLabel: { type: String, default: () => t('nextcloud-vue', 'Open') },
 		/** Label for the delete action */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		/** Label of the Download action. */
+		downloadLabel: { type: String, default: () => t('nextcloud-vue', 'Download') },
+		/** Label of the action that opens the Files sidebar on the file. */
+		detailsLabel: { type: String, default: () => t('nextcloud-vue', 'Details and sharing') },
+		/** Label of the link that opens the file in the Files app. */
+		showInFilesLabel: { type: String, default: () => t('nextcloud-vue', 'Show in Files') },
+		/** Label of the action that copies the file permalink. */
+		copyLinkLabel: { type: String, default: () => t('nextcloud-vue', 'Copy link') },
 		/** Label for the load-more button */
 		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
 		/**
@@ -172,6 +285,8 @@ export default {
 			total: 0,
 			limit: 20,
 			share: false,
+			/** File ids whose preview request failed, so the row falls back to the mime icon. */
+			previewFailed: {},
 			/**
 			 * The file input element, set by the template's function ref.
 			 *
@@ -361,7 +476,188 @@ export default {
 			}
 		},
 
+		/**
+		 * Whether the Files app's details sidebar is on this page.
+		 *
+		 * It is when the host page dispatched Nextcloud's `LoadSidebar` event
+		 * server-side; then `OCA.Files.Sidebar.open(path)` shows the same
+		 * sharing, versions, comments and activity tabs the Files app shows.
+		 * Absent, the row offers no details action rather than a dead one. A
+		 * method rather than a computed: the global is not reactive, so a
+		 * cached answer from before the sidebar script ran would stay wrong.
+		 *
+		 * @return {boolean} true when the sidebar can be opened.
+		 */
+		canShowDetails() {
+			return typeof window !== 'undefined' && typeof window.OCA?.Files?.Sidebar?.open === 'function'
+		},
+
+		/**
+		 * The file's path relative to the user's files root, which is the path
+		 * the Viewer and the Files sidebar take. OpenRegister reports the node's
+		 * full path (`/{uid}/files/…`), so the first two segments come off.
+		 *
+		 * @param {string} path The node path as OpenRegister reports it.
+		 * @return {string} The user-relative path, `/` at least.
+		 */
+		userRelativePath(path) {
+			const stripped = String(path || '').replace(/^\/[^/]+\/files(?=\/|$)/, '')
+			return stripped === '' ? '/' : stripped
+		},
+
+		/**
+		 * The theme's own icon for the file's mime type, the one the Files app
+		 * draws, or null on a page without Nextcloud's core script.
+		 *
+		 * @param {object} file The file row.
+		 * @return {string|null} The icon url.
+		 */
+		mimeIconFor(file) {
+			const getIconUrl = typeof window !== 'undefined' ? window.OC?.MimeType?.getIconUrl : null
+			if (typeof getIconUrl !== 'function') {
+				return null
+			}
+			const mime = file.type || file.mimetype || file.mimeType || ''
+			try {
+				return getIconUrl(mime) || null
+			} catch {
+				return null
+			}
+		},
+
+		/**
+		 * A small preview for an image, through Nextcloud's core preview
+		 * endpoint, or null for anything else or after the preview failed once.
+		 *
+		 * @param {object} file The file row.
+		 * @return {string|null} The preview url.
+		 */
+		previewUrlFor(file) {
+			const mime = file.type || file.mimetype || file.mimeType || ''
+			if (!file.id || !/^image\//i.test(mime) || /svg/i.test(mime) || this.previewFailed[file.id]) {
+				return null
+			}
+			return generateUrl('/core/preview?fileId={fileId}&x=64&y=64&a=1', { fileId: file.id })
+		},
+
+		/**
+		 * Remember that a preview did not load, so the row shows the mime icon.
+		 *
+		 * @param {object} file The file row.
+		 * @return {void}
+		 */
+		onPreviewError(file) {
+			this.previewFailed = { ...this.previewFailed, [file.id]: true }
+		},
+
+		/**
+		 * The file's modification moment as a Date, or null when unknown.
+		 *
+		 * @param {object} file The file row.
+		 * @return {Date|null} The moment.
+		 */
+		modifiedAt(file) {
+			const raw = file.modified || file.updated || ''
+			if (!raw) {
+				return null
+			}
+			const date = new Date(raw)
+			return Number.isNaN(date.getTime()) ? null : date
+		},
+
+		/**
+		 * The file's labels (Nextcloud tags), joined for the meta line.
+		 *
+		 * @param {object} file The file row.
+		 * @return {string} The labels, or the empty string.
+		 */
+		labelsOf(file) {
+			return Array.isArray(file.labels) ? file.labels.filter(Boolean).join(', ') : ''
+		},
+
+		/**
+		 * The download url for a file, through OpenRegister's file endpoint,
+		 * which streams the node the object owns.
+		 *
+		 * @param {object} file The file row.
+		 * @return {string} The url.
+		 */
+		downloadUrlFor(file) {
+			return `${this.apiBase}/files/${encodeURIComponent(String(file.id))}/download`
+		},
+
+		/**
+		 * The Files app's permalink for a file: opens the Files app at the
+		 * file's folder with the file selected.
+		 *
+		 * @param {object} file The file row.
+		 * @return {string} The url.
+		 */
+		showInFilesUrl(file) {
+			return generateUrl('/f/{fileid}', { fileid: file.id })
+		},
+
+		/**
+		 * Open the Files sidebar on this file: details, sharing, versions,
+		 * comments and activity, exactly as the Files app offers them.
+		 *
+		 * @param {object} file The file row.
+		 * @return {void}
+		 */
+		showDetails(file) {
+			if (!this.canShowDetails() || !file.path) {
+				return
+			}
+			window.OCA.Files.Sidebar.open(this.userRelativePath(file.path))
+		},
+
+		/**
+		 * Put the file's permalink on the clipboard and say so.
+		 *
+		 * @param {object} file The file row.
+		 * @return {Promise<void>}
+		 */
+		async copyLink(file) {
+			const href = new URL(this.showInFilesUrl(file), window.location.origin).href
+			try {
+				await navigator.clipboard.writeText(href)
+				const { showSuccess } = await import('@nextcloud/dialogs')
+				showSuccess(t('nextcloud-vue', 'Link copied'))
+			} catch {
+				const { showError } = await import('@nextcloud/dialogs')
+				showError(t('nextcloud-vue', 'The link could not be copied'))
+			}
+		},
+
+		/**
+		 * Whether Nextcloud's Viewer is on this page and handles the file.
+		 *
+		 * The Viewer is there when the host page dispatched `LoadViewer`
+		 * server-side; it lists the mime types it can show, and a type it
+		 * cannot falls through to the next way of opening the file.
+		 *
+		 * @param {object} file The file row.
+		 * @return {boolean} true when the Viewer can open it in place.
+		 */
+		viewerHandles(file) {
+			const viewer = typeof window !== 'undefined' ? window.OCA?.Viewer : null
+			if (!viewer || typeof viewer.open !== 'function' || !file.path) {
+				return false
+			}
+			const mime = file.type || file.mimetype || file.mimeType || ''
+			const mimetypes = Array.isArray(viewer.mimetypes) ? viewer.mimetypes : null
+			return mimetypes === null ? true : mimetypes.includes(mime)
+		},
+
 		openFile(file) {
+			// The Viewer first: it opens the file over this page, so the reader
+			// stays on the object. A public share link and the Files app come
+			// after, in that order, when the Viewer is absent or cannot show
+			// the type.
+			if (this.viewerHandles(file)) {
+				window.OCA.Viewer.open({ path: this.userRelativePath(file.path) })
+				return
+			}
 			if (file.accessUrl) {
 				// Security: accessUrl originates from the OR files API and may be
 				// attacker-controlled. Validate the scheme via safeHref before
@@ -465,6 +761,20 @@ export default {
 }
 
 .cn-sidebar-tab__list { display: flex; flex-direction: column; gap: 2px; }
+
+.cn-sidebar-tab__mime,
+.cn-sidebar-tab__thumb {
+	width: 32px;
+	height: 32px;
+	display: block;
+}
+
+.cn-sidebar-tab__thumb {
+	object-fit: cover;
+	border-radius: var(--border-radius, 4px);
+}
+
+.cn-sidebar-tab__meta { color: var(--color-text-maxcontrast); }
 
 .cn-sidebar-tab__load-more { margin-top: 8px; }
 </style>
