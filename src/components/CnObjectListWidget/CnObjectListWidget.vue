@@ -120,7 +120,23 @@
 					class="cn-object-list-widget__group"
 					data-testid="object-list-group">
 					<h4 class="cn-object-list-widget__group-heading">
-						{{ group.label }} ({{ group.rows.length }})
+						<!-- `groupLabelResolve` reuses the fkResolve cell for the
+						     heading itself: `groupBy` may bucket by a uuid that is
+						     ONE MORE hop past what `extend` inlined (e.g. a
+						     reference's own reference), which `objectFieldValue`
+						     cannot read off the row at all. The live object-store
+						     lookup CnDataTable columns already use for a `$ref`
+						     column is the same answer for a `$ref` GROUP. -->
+						<CnFkResolveCell
+							v-if="groupLabelResolveConfig"
+							:value="group.key"
+							:register="groupLabelResolveConfig.register"
+							:schema="groupLabelResolveConfig.schema"
+							:label-field="groupLabelResolveConfig.labelField || 'name'" />
+						<template v-else>
+							{{ group.label }}
+						</template>
+						({{ group.rows.length }})
 					</h4>
 					<CnDataTable
 						:columns="resolvedColumns"
@@ -249,6 +265,7 @@
 
 <script>
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
+import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
@@ -291,7 +308,7 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 export default {
 	name: 'CnObjectListWidget',
 
-	components: { CnDataTable, CnFormDialog, CnPagination, CnWidgetEmptyState, CnRowActions },
+	components: { CnDataTable, CnFormDialog, CnPagination, CnWidgetEmptyState, CnRowActions, CnFkResolveCell },
 
 	inject: {
 		/**
@@ -356,7 +373,11 @@ export default {
 		 * reference the same way a column does) buckets the fetched rows into
 		 * one heading + table per distinct value, in first-seen order.
 		 * `groupLabel` is the field path used for the heading text; it
-		 * defaults to the raw `groupBy` value when absent.
+		 * defaults to the raw `groupBy` value when absent. `groupLabelResolve`
+		 * (`{register, schema, labelField?}`) is for a `groupBy` whose human
+		 * label sits a hop further than `extend` reaches (a reference's own
+		 * reference): the heading resolves the raw group key through the
+		 * shared object store, the same `fkResolve` cell widget a column uses.
 		 *
 		 * `selectable` turns on CnDataTable's checkbox column; `bulkActions`
 		 * (same action shape as `rowActions`) render as buttons in a bar that
@@ -374,7 +395,7 @@ export default {
 		 * field's entries are flattened) and narrows the rendered rows to
 		 * those carrying a selected value. Client-side over the fetched page,
 		 * like the rest of this widget's row set.
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object}}
 		 */
 		content: {
 			type: Object,
@@ -690,6 +711,20 @@ export default {
 		/** Whether `content.groupBy` is declared, so the template picks the grouped render path. */
 		isGrouped() {
 			return typeof this.content.groupBy === 'string' && this.content.groupBy !== ''
+		},
+		/**
+		 * `content.groupLabelResolve` (`{register, schema, labelField?}`), or
+		 * null. When set, the group heading resolves `group.key` through the
+		 * shared object store instead of reading a plain field off the row —
+		 * for a `groupBy` whose human label lives a hop further than `extend`
+		 * inlined (a reference's own reference, e.g. grouping documents by
+		 * type when only the document itself, not its type, was extended).
+		 *
+		 * @return {{register: string, schema: string, labelField?: string}|null}
+		 */
+		groupLabelResolveConfig() {
+			const cfg = this.content.groupLabelResolve
+			return (cfg && typeof cfg === 'object' && cfg.register && cfg.schema) ? cfg : null
 		},
 		/**
 		 * The faceted rows bucketed by `content.groupBy`, one entry per
