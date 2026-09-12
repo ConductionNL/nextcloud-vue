@@ -205,6 +205,8 @@ export {
 	CnCountdownWidget,
 	CnCountdownWidgetForm,
 	CnTabsWidgetForm,
+	CnStagesWidget,
+	CnStagesWidgetForm,
 	CnDetailWidgetHost,
 	CnIcon,
 	CnPageHeader,

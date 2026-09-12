@@ -68,6 +68,8 @@ import CnTabsWidget from '../CnTabsWidget/CnTabsWidget.vue'
 import CnTabsWidgetForm from '../CnTabsWidgetForm/CnTabsWidgetForm.vue'
 import CnCountdownWidget from '../CnCountdownWidget/CnCountdownWidget.vue'
 import CnCountdownWidgetForm from '../CnCountdownWidgetForm/CnCountdownWidgetForm.vue'
+import CnStagesWidget from '../CnStagesWidget/CnStagesWidget.vue'
+import CnStagesWidgetForm from '../CnStagesWidgetForm/CnStagesWidgetForm.vue'
 
 registerDashboardWidget('chart', {
 	renderer: CnChartWidget,
@@ -213,6 +215,29 @@ registerDashboardWidget('countdown', {
 	// Card family: the tile headlines itself, so the wrapper draws no header.
 	card: true,
 	// It reads a date off the BOUND RECORD, which only a detail page has.
+	surfaces: ['detail-page'],
+})
+
+// The record's stages, where clicking a stage moves the record there.
+// Registered inline for the same tree-shaking reason as `map` above.
+registerDashboardWidget('stages', {
+	renderer: CnStagesWidget,
+	form: CnStagesWidgetForm,
+	defaultContent: {
+		currentField: 'status',
+		orientation: 'horizontal',
+		size: 'medium',
+		stagesEndpoint: { url: '', path: '' },
+		// The LIFECYCLE, not a record write. OpenRegister decides what is
+		// reachable and re-validates the move; a field write has neither.
+		transition: { kind: 'lifecycle' },
+	},
+	displayName: 'Stages',
+	icon: 'Timeline',
+	// Card family on the detail grid: a titled wrapper around a self-contained
+	// strip, like the KPI tiles it usually sits beside.
+	card: true,
+	// It reads and moves the BOUND RECORD, which only a detail page has.
 	surfaces: ['detail-page'],
 })
 

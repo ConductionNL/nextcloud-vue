@@ -35,6 +35,11 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import CnTransitionInputDialog from '../../dialogs/CnTransitionInputDialog.vue'
+import {
+	performTransition,
+	readAvailableActions,
+	transitionError,
+} from '../../composables/useLifecycleTransitions.js'
 
 /**
  * CnLifecycleActions — declarative status-gated transition buttons for a
@@ -245,21 +250,12 @@ export default {
 			this.serverActions = []
 			this.error = ''
 			if (!this.objectId) return
-			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
-				const url = generateUrl(
-					'/apps/openregister/api/objects/{id}/available-actions',
-					{ id: String(this.objectId) },
-				)
-				const res = await axios.get(url)
-				this.serverActions = (res && res.data && Array.isArray(res.data.actions)) ? res.data.actions : []
-			} catch (e) {
-				// A missing lifecycle / 404 simply means "no transitions" — render nothing.
-				this.serverActions = []
-			}
+			// A missing lifecycle answers 404, which means "no transitions" and
+			// renders nothing. `fetchAvailableActions` owns that, and owns the
+			// shape of the answer, so this component and CnStagesWidget cannot
+			// disagree about what an action list is.
+			const read = await readAvailableActions(this.objectId)
+			this.serverActions = read.actions
 		},
 
 		/**
@@ -309,21 +305,13 @@ export default {
 			this.pendingAction = tr.action
 			this.error = ''
 			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
-				const url = generateUrl(
-					'/apps/openregister/api/objects/{id}/transition',
-					{ id: String(this.objectId) },
-				)
-				const res = await axios.post(url, data !== undefined ? { action: tr.action, data } : { action: tr.action })
+				const saved = await performTransition(this.objectId, tr.action, data)
 				/**
 				 * @event transitioned A lifecycle transition succeeded. Payload is
 				 * `{ action, to, object }`.
 				 * @type {{ action: string, to: string, object: object }}
 				 */
-				this.$emit('transitioned', { action: tr.action, to: tr.to, object: (res && res.data) || null })
+				this.$emit('transitioned', { action: tr.action, to: tr.to, object: saved })
 				/**
 				 * @event reload Ask the host (CnDetailPage) to re-fetch the object
 				 * so the new state + freshly-allowed transitions render.
@@ -339,16 +327,19 @@ export default {
 		},
 
 		/**
-		 * Pull a human message out of an axios error — OpenRegister returns
-		 * `{ error: '<reason>' }` on a 403/422 rejection.
+		 * Pull a human message out of an axios error.
+		 *
+		 * `transitionError` owns the shape OpenRegister answers a refusal with,
+		 * so both this component and CnStagesWidget read a 403 or 422 the same
+		 * way. It also rejects a BLANK `error`, which the local version used to
+		 * return as-is: an empty string renders no message at all, so a refusal
+		 * with an empty body looked like a move that had simply not happened.
 		 *
 		 * @param {object} e The axios error.
 		 * @return {string}
 		 */
 		extractError(e) {
-			const data = e && e.response && e.response.data
-			if (data && typeof data.error === 'string') return data.error
-			return (e && e.message) || t('nextcloud-vue', 'Transition failed')
+			return transitionError(e, t('nextcloud-vue', 'Transition failed'))
 		},
 	},
 }
