@@ -7,7 +7,7 @@
 	<NcDialog
 		:name="tr(title)"
 		size="normal"
-		:no-close="loading"
+		:noClose="loading"
 		data-testid="cn-run-node-dialog"
 		@closing="$emit('close')">
 		<NcNoteCard v-if="loadError" type="error" data-testid="cn-run-node-dialog-error">
@@ -22,43 +22,43 @@
 				class="cn-run-node-dialog__field">
 				<NcCheckboxRadioSwitch
 					v-if="field.type === 'boolean'"
-					:model-value="values[field.key] === true"
+					:modelValue="values[field.key] === true"
 					type="switch"
-					@update:model-value="setValue(field.key, $event)">
+					@update:modelValue="setValue(field.key, $event)">
 					{{ tr(field.label) }}
 				</NcCheckboxRadioSwitch>
 
 				<NcSelect
 					v-else-if="field.type === 'select'"
-					:model-value="selectedOption(field)"
+					:modelValue="selectedOption(field)"
 					:options="optionsFor(field)"
-					:input-label="tr(field.label)"
+					:inputLabel="tr(field.label)"
 					:loading="optionsLoading[field.key] === true"
 					:placeholder="t('nextcloud-vue', 'Pick one…')"
-					@update:model-value="setValue(field.key, $event ? $event.id : '')" />
+					@update:modelValue="setValue(field.key, $event ? $event.id : '')" />
 
 				<NcTextArea
 					v-else-if="field.type === 'textarea'"
-					:model-value="String(values[field.key] ?? '')"
+					:modelValue="String(values[field.key] ?? '')"
 					:label="tr(field.label)"
-					:helper-text="tr(field.help)"
+					:helperText="tr(field.help)"
 					rows="4"
-					@update:model-value="setValue(field.key, $event)" />
+					@update:modelValue="setValue(field.key, $event)" />
 
 				<NcTextField
 					v-else-if="field.type === 'number'"
-					:model-value="String(values[field.key] ?? '')"
+					:modelValue="String(values[field.key] ?? '')"
 					type="number"
 					:label="tr(field.label)"
-					:helper-text="tr(field.help)"
-					@update:model-value="setNumberValue(field.key, $event)" />
+					:helperText="tr(field.help)"
+					@update:modelValue="setNumberValue(field.key, $event)" />
 
 				<NcTextField
 					v-else
-					:model-value="String(values[field.key] ?? '')"
+					:modelValue="String(values[field.key] ?? '')"
 					:label="tr(field.label)"
-					:helper-text="tr(field.help)"
-					@update:model-value="setValue(field.key, $event)" />
+					:helperText="tr(field.help)"
+					@update:modelValue="setValue(field.key, $event)" />
 			</div>
 
 			<p v-if="!fields.length" class="cn-run-node-dialog__hint">
@@ -129,6 +129,7 @@ export default {
 		/**
 		 * The node's declared config form — `IFlowNodeConfigForm::configForm()`'s
 		 * shape, unchanged: `[{key, label, type, help?, required?, optionsFrom?}]`.
+		 *
 		 * @type {Array<object>}
 		 */
 		fields: { type: Array, default: () => [] },
@@ -157,7 +158,9 @@ export default {
 		/** Every `required: true` field carries a non-empty value. */
 		requiredFieldsFilled() {
 			return this.fields.every((field) => {
-				if (field.required !== true) return true
+				if (field.required !== true) {
+					return true
+				}
 				const value = this.values[field.key]
 				return value !== undefined && value !== null && value !== ''
 			})
@@ -193,7 +196,9 @@ export default {
 		 * @return {string|undefined} The translated (or source) string.
 		 */
 		tr(value) {
-			if (!value) return value
+			if (!value) {
+				return value
+			}
 			return typeof this.translate === 'function' ? this.translate(value) : value
 		},
 
@@ -201,7 +206,7 @@ export default {
 		 * Write one field's value.
 		 *
 		 * @param {string} key The field key.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 * @return {void}
 		 */
 		setValue(key, value) {
@@ -232,7 +237,9 @@ export default {
 		 */
 		selectedOption(field) {
 			const value = this.values[field.key]
-			if (value === undefined || value === null || value === '') return null
+			if (value === undefined || value === null || value === '') {
+				return null
+			}
 			const opts = this.options[field.key] || []
 			return opts.find((o) => o.id === value) || { id: value, label: String(value) }
 		},

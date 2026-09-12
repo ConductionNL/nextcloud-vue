@@ -9,8 +9,8 @@
  * (covered in CnActionButtons.spec.js and actionsDispatcherW3.spec.js).
  */
 
-import { mount } from '@vue/test-utils'
 import axios from '@nextcloud/axios'
+import { mount } from '@vue/test-utils'
 import CnRunNodeDialog from '../../src/dialogs/CnRunNodeDialog.vue'
 
 jest.mock('@nextcloud/axios', () => ({
