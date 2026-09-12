@@ -27,8 +27,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnXwikiTab from './xwiki/CnXwikiTab.vue'
 import CnXwikiCard from './xwiki/CnXwikiCard.vue'
+import CnXwikiTab from './xwiki/CnXwikiTab.vue'
 
 /**
  * `xwiki` integration descriptor.

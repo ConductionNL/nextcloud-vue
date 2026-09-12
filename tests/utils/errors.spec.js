@@ -1,4 +1,4 @@
-import { parseResponseError, networkError, genericError } from '../../src/utils/errors.js'
+import { genericError, networkError, parseResponseError } from '../../src/utils/errors.js'
 
 describe('parseResponseError', () => {
 	it('parses 404 errors', async () => {

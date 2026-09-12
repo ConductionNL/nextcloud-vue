@@ -14,8 +14,8 @@
  * instance whose cron is not running, it never moves at all.
  */
 
-import { createPinia, setActivePinia } from 'pinia'
 import axios from '@nextcloud/axios'
+import { createPinia, setActivePinia } from 'pinia'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
 
 jest.mock('@nextcloud/axios', () => ({

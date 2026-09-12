@@ -59,7 +59,7 @@
 				v-model="project"
 				:options="projectOptions"
 				:placeholder="t('nextcloud-vue', 'Select a project')"
-				:input-label="t('nextcloud-vue', 'Project')"
+				:inputLabel="t('nextcloud-vue', 'Project')"
 				label="label"
 				class="cn-openproject-create__project"
 				required />
@@ -146,7 +146,7 @@ export default {
 
 	computed: {
 		projectOptions() {
-			return this.projects.map(name => ({ id: name, label: name }))
+			return this.projects.map((name) => ({ id: name, label: name }))
 		},
 
 		/**

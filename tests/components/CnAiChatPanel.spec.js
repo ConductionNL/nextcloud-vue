@@ -114,9 +114,7 @@ describe('CnAiChatPanel', () => {
 		// `title` AND the window's `aria-label` carry the same string: the name
 		// is truncated in a 380px window, so hover is the only way a sighted
 		// user reads it in full.
-		expect(identity.attributes('title')).toBe(
-			wrapper.find('.cn-ai-chat-window').attributes('aria-label'),
-		)
+		expect(identity.attributes('title')).toBe(wrapper.find('.cn-ai-chat-window').attributes('aria-label'))
 	})
 
 	it('emits "close" when the titlebar close button is pressed', async () => {

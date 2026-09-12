@@ -23,8 +23,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnPollsTab from './polls/CnPollsTab.vue'
 import CnPollsCard from './polls/CnPollsCard.vue'
+import CnPollsTab from './polls/CnPollsTab.vue'
 
 /**
  * `polls` integration descriptor.

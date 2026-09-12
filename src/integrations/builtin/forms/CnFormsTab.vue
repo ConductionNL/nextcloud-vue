@@ -81,7 +81,7 @@
 				:bold="false"
 				:href="formUrl(form)"
 				target="_blank"
-				:force-display-actions="true">
+				:forceDisplayActions="true">
 				<template #icon>
 					<ClipboardText :size="40" class="cn-forms-tab__row-icon" />
 				</template>
@@ -100,7 +100,7 @@
 							v-if="expiresAtMs(form) !== null"
 							class="cn-forms-tab__expiry"
 							:timestamp="expiresAtMs(form)"
-							:relative-time="'short'" />
+							relativeTime="short" />
 					</div>
 				</template>
 				<template v-if="submissionCount(form) > 0" #indicator>
@@ -111,7 +111,7 @@
 					</NcCounterBubble>
 				</template>
 				<template #actions>
-					<NcActionButton :close-after-click="true" @click="openForm(form)">
+					<NcActionButton :closeAfterClick="true" @click="openForm(form)">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
@@ -119,7 +119,7 @@
 					</NcActionButton>
 					<NcActionButton
 						class="cn-forms-tab__unlink"
-						:close-after-click="true"
+						:closeAfterClick="true"
 						@click="unlink(form)">
 						<template #icon>
 							<Close :size="20" />
@@ -132,17 +132,17 @@
 
 		<CnFormPicker
 			v-if="showPicker"
-			:object-id="objectId"
+			:objectId="objectId"
 			:register="register"
 			:schema="schema"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@link="onLinkSelected"
 			@close="showPicker = false" />
 
 		<CnFormCreate
 			v-if="showCreate"
 			:submitting="creating"
-			:submit-error="createError"
+			:submitError="createError"
 			@create="onCreateSubmit"
 			@close="onCreateClose" />
 	</div>
@@ -157,11 +157,10 @@ import Close from 'vue-material-design-icons/Close.vue'
 import LinkVariantPlus from 'vue-material-design-icons/LinkVariantPlus.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders } from '../../../utils/index.js'
 import CnFormCreate from './CnFormCreate.vue'
 import CnFormPicker from './CnFormPicker.vue'
+import { buildHeaders } from '../../../utils/index.js'
 
 /**
  * CnFormsTab — bespoke linked-forms list for the Tier-2 `forms` leaf.
@@ -194,8 +193,10 @@ export default {
 	},
 
 	props: {
+		/* eslint-disable vue/no-unused-properties -- the integration dispatch binds integrationId on every integration component (see CnIntegrationWidgetGrid), so declaring it keeps it out of $attrs */
 		/** Stable integration id (forwarded from the registry — always `'forms'`). */
 		integrationId: { type: String, default: 'forms' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Parent object id. */
 		objectId: { type: String, required: true },
 		/** OpenRegister register id (slug or uuid). */
@@ -272,9 +273,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchForms() } } },
-		register() { this.fetchForms() },
-		schema() { this.fetchForms() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchForms()
+			}
+		} },
+
+		register() {
+			this.fetchForms()
+		},
+
+		schema() {
+			this.fetchForms()
+		},
 	},
 
 	methods: {
@@ -435,6 +446,7 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not load forms.')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnFormsTab] failed to fetch forms', err)
 				this.rawRows = []
 				this.error = t('nextcloud-vue', 'Could not load forms.')
@@ -446,7 +458,7 @@ export default {
 		/**
 		 * Canonical wrapper-key cascade — mirrors CnContactsTab.unwrapList.
 		 *
-		 * @param {*} data parsed JSON response body
+		 * @param {object|Array<object>|null} data parsed JSON response body
 		 *
 		 * @return {Array}
 		 */
@@ -466,7 +478,9 @@ export default {
 		},
 
 		async onLinkSelected(payload) {
-			if (!payload || !payload.formId) return
+			if (!payload || !payload.formId) {
+				return
+			}
 			try {
 				const response = await fetch(this.baseUrl(), {
 					method: 'POST',
@@ -474,18 +488,22 @@ export default {
 					body: JSON.stringify(payload),
 				})
 				if (!response.ok) {
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('[CnFormsTab] link failed', response.status, response.statusText)
 					return
 				}
 				this.showPicker = false
 				await this.fetchForms()
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnFormsTab] link error', err)
 			}
 		},
 
 		async onCreateSubmit(payload) {
-			if (!payload || !payload.title) return
+			if (!payload || !payload.title) {
+				return
+			}
 			this.creating = true
 			this.createError = ''
 			try {
@@ -502,6 +520,7 @@ export default {
 				this.showCreate = false
 				await this.fetchForms()
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnFormsTab] create error', err)
 				this.createError = String(err?.message || err)
 			} finally {
@@ -515,18 +534,22 @@ export default {
 		},
 
 		async unlink(form) {
-			if (!form?.id) return
+			if (!form?.id) {
+				return
+			}
 			try {
 				const response = await fetch(`${this.baseUrl()}/${encodeURIComponent(form.id)}`, {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})
 				if (!response.ok) {
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('[CnFormsTab] unlink failed', response.status, response.statusText)
 					return
 				}
 				this.rawRows = this.rawRows.filter((r) => String(r.id ?? r.formId ?? '') !== String(form.id))
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnFormsTab] unlink error', err)
 			}
 		},

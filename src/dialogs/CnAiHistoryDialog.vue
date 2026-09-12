@@ -25,7 +25,7 @@
 	<NcDialog
 		:open="open"
 		:name="cnTranslate('History')"
-		:close-on-click-outside="true"
+		:closeOnClickOutside="true"
 		@update:open="$emit('update:open', $event)">
 		<template #default>
 			<!-- Loading state -->
@@ -55,9 +55,9 @@
 				<CnAiHistoryList
 					:conversations="conversations"
 					:loading="false"
-					:fetch-error="false"
-					:active-conversation-uuid="activeConversationUuid"
-					:chat-app-id="chatAppId"
+					:fetchError="false"
+					:activeConversationUuid="activeConversationUuid"
+					:chatAppId="chatAppId"
 					:searchable="true"
 					@select="selectConversation"
 					@renamed="onRenamed" />
@@ -67,11 +67,11 @@
 </template>
 
 <script>
-import { NcDialog, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
+import { NcDialog, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import CnAiHistoryList from '../components/CnAiCompanion/CnAiHistoryList.vue'
-import { DEFAULT_CHAT_APP_ID, conversationsUrl, normalizeConversation } from '../composables/aiChatConfig.js'
+import { conversationsUrl, DEFAULT_CHAT_APP_ID, normalizeConversation } from '../composables/aiChatConfig.js'
 
 export default {
 	name: 'CnAiHistoryDialog',
@@ -94,15 +94,18 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** UUID of the currently active conversation (for active indicator) */
 		activeConversationUuid: {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * Backend app id the conversation-list URL resolves against. Single
 		 * configuration point for the chat backend — see
 		 * composables/aiChatConfig.js. Defaults to `hermiq`.
+		 *
 		 * @type {string}
 		 */
 		chatAppId: {
@@ -160,6 +163,7 @@ export default {
 		 * Keep the dialog's own conversation list in sync after
 		 * CnAiHistoryList's inline rename/describe control saves a change,
 		 * without a full refetch.
+		 *
 		 * @param {{uuid: string, title: string, description: string}} payload Renamed fields.
 		 */
 		onRenamed({ uuid, title, description }) {

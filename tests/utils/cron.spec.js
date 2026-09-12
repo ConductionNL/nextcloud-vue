@@ -13,13 +13,21 @@ import { describeCron, isValidCron, parseCron } from '../../src/utils/cron.js'
 describe('parseCron', () => {
 	it('splits an expression into named fields', () => {
 		expect(parseCron('0 9 * * 1')).toEqual({
-			minute: '0', hour: '9', monthday: '*', month: '*', weekday: '1',
+			minute: '0',
+			hour: '9',
+			monthday: '*',
+			month: '*',
+			weekday: '1',
 		})
 	})
 
 	it('reads a missing field as *, so a half-typed expression is not a crash', () => {
 		expect(parseCron('0 9')).toEqual({
-			minute: '0', hour: '9', monthday: '*', month: '*', weekday: '*',
+			minute: '0',
+			hour: '9',
+			monthday: '*',
+			month: '*',
+			weekday: '*',
 		})
 	})
 

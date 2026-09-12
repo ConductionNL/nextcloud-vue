@@ -107,6 +107,7 @@ export default {
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+
 		/** Optional single-entity reference (id or canonical reference). */
 		value: { type: String, default: '' },
 		/** Pre-translated card title (defaults to id). */
@@ -150,10 +151,23 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler() { this.fetch() } },
-		integrationId() { this.fetch() },
-		surface() { this.fetch() },
-		value() { if (this.surface === 'single-entity') { this.fetchSingle() } },
+		objectId: { immediate: true, handler() {
+			this.fetch()
+		} },
+
+		integrationId() {
+			this.fetch()
+		},
+
+		surface() {
+			this.fetch()
+		},
+
+		value() {
+			if (this.surface === 'single-entity') {
+				this.fetchSingle()
+			}
+		},
 	},
 
 	methods: {

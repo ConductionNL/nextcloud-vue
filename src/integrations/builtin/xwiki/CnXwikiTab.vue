@@ -102,7 +102,7 @@
 				:bold="true"
 				:href="pageHref(page)"
 				:target="pageHref(page) ? '_blank' : undefined"
-				:force-display-actions="true">
+				:forceDisplayActions="true">
 				<template #icon>
 					<span class="cn-xwiki-tab__row-icon">
 						<FileDocumentOutline :size="22" />
@@ -117,7 +117,7 @@
 							v-if="modifiedMs(page) !== null"
 							class="cn-xwiki-tab__date"
 							:timestamp="modifiedMs(page)"
-							:relative-time="'short'" />
+							relativeTime="short" />
 					</span>
 				</template>
 				<template v-if="excerpt(page)" #extra>
@@ -127,7 +127,7 @@
 					<NcActionButton
 						v-if="pageHref(page)"
 						class="cn-xwiki-tab__open"
-						:close-after-click="true"
+						:closeAfterClick="true"
 						@click="openPage(page)">
 						<template #icon>
 							<OpenInNew :size="20" />
@@ -136,7 +136,7 @@
 					</NcActionButton>
 					<NcActionButton
 						class="cn-xwiki-tab__unlink"
-						:close-after-click="true"
+						:closeAfterClick="true"
 						@click="unlinkPage(page)">
 						<template #icon>
 							<LinkOff :size="20" />
@@ -149,16 +149,16 @@
 
 		<CnXwikiPagePicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
-			:open-connector-sources-url="openConnectorSourcesUrl"
+			:apiBase="apiBase"
+			:openConnectorSourcesUrl="openConnectorSourcesUrl"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 
 		<CnXwikiPageCreate
 			v-if="createOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			:unavailable="banner.kind === 'unconfigured'"
-			:open-connector-sources-url="openConnectorSourcesUrl"
+			:openConnectorSourcesUrl="openConnectorSourcesUrl"
 			@close="createOpen = false"
 			@create="onCreatePick" />
 	</div>
@@ -239,48 +239,58 @@ export default {
 	computed: {
 		banner() {
 			switch (this.bannerKind) {
-			case 'unconfigured':
-				return {
-					kind: 'unconfigured',
-					title: t('nextcloud-vue', 'XWiki connection not configured'),
-					message: t('nextcloud-vue', 'Add an XWiki source in Integriq with the upstream URL and credentials so OpenRegister can link pages.'),
-					ctaLabel: t('nextcloud-vue', 'Configure XWiki connection'),
-					ctaHandler: this.openIntegriq,
-				}
-			case 'auth':
-				return {
-					kind: 'auth',
-					title: t('nextcloud-vue', 'XWiki authentication failed'),
-					message: t('nextcloud-vue', 'XWiki returned 401 — check the Integriq source credentials.'),
-					ctaLabel: t('nextcloud-vue', 'Reconnect'),
-					ctaHandler: this.openIntegriq,
-				}
-			case 'upstream':
-				return {
-					kind: 'upstream',
-					title: t('nextcloud-vue', 'XWiki is currently unavailable'),
-					message: t('nextcloud-vue', 'The upstream XWiki host did not respond. Try again in a moment.'),
-					ctaLabel: t('nextcloud-vue', 'Retry'),
-					ctaHandler: this.fetchPages,
-				}
-			case 'error':
-				return {
-					kind: 'error',
-					title: t('nextcloud-vue', 'Could not load XWiki pages'),
-					message: t('nextcloud-vue', 'Something went wrong while loading the linked pages.'),
-					ctaLabel: t('nextcloud-vue', 'Retry'),
-					ctaHandler: this.fetchPages,
-				}
-			default:
-				return { kind: 'none', title: '', message: '', ctaLabel: '', ctaHandler: () => {} }
+				case 'unconfigured':
+					return {
+						kind: 'unconfigured',
+						title: t('nextcloud-vue', 'XWiki connection not configured'),
+						message: t('nextcloud-vue', 'Add an XWiki source in Integriq with the upstream URL and credentials so OpenRegister can link pages.'),
+						ctaLabel: t('nextcloud-vue', 'Configure XWiki connection'),
+						ctaHandler: this.openIntegriq,
+					}
+				case 'auth':
+					return {
+						kind: 'auth',
+						title: t('nextcloud-vue', 'XWiki authentication failed'),
+						message: t('nextcloud-vue', 'XWiki returned 401 — check the Integriq source credentials.'),
+						ctaLabel: t('nextcloud-vue', 'Reconnect'),
+						ctaHandler: this.openIntegriq,
+					}
+				case 'upstream':
+					return {
+						kind: 'upstream',
+						title: t('nextcloud-vue', 'XWiki is currently unavailable'),
+						message: t('nextcloud-vue', 'The upstream XWiki host did not respond. Try again in a moment.'),
+						ctaLabel: t('nextcloud-vue', 'Retry'),
+						ctaHandler: this.fetchPages,
+					}
+				case 'error':
+					return {
+						kind: 'error',
+						title: t('nextcloud-vue', 'Could not load XWiki pages'),
+						message: t('nextcloud-vue', 'Something went wrong while loading the linked pages.'),
+						ctaLabel: t('nextcloud-vue', 'Retry'),
+						ctaHandler: this.fetchPages,
+					}
+				default:
+					return { kind: 'none', title: '', message: '', ctaLabel: '', ctaHandler: () => {} }
 			}
 		},
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchPages() } } },
-		register() { this.fetchPages() },
-		schema() { this.fetchPages() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchPages()
+			}
+		} },
+
+		register() {
+			this.fetchPages()
+		},
+
+		schema() {
+			this.fetchPages()
+		},
 	},
 
 	methods: {
@@ -500,7 +510,7 @@ export default {
 					try {
 						const body = await response.json()
 						cause = String(body?.details?.cause ?? '')
-					} catch (_e) {
+					} catch {
 						cause = ''
 					}
 					this.bannerKind = this.bannerFromCause(cause)

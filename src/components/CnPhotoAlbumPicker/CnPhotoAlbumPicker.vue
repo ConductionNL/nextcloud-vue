@@ -41,7 +41,7 @@
 				:label="t('nextcloud-vue', 'Search albums')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-photo-album-picker__search"
-				@update:model-value="onSearch" />
+				@update:modelValue="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent
@@ -96,7 +96,7 @@
  *
  * @see ADR-019 (pluggable integrations) and ADR-022 (sidebar tabs)
  */
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import ImageMultiple from 'vue-material-design-icons/ImageMultiple.vue'
 import { buildHeaders } from '../../utils/index.js'
@@ -140,7 +140,7 @@ export default {
 			if (term === '') {
 				return this.albums
 			}
-			return this.albums.filter(album => (album.name || '').toLowerCase().includes(term))
+			return this.albums.filter((album) => (album.name || '').toLowerCase().includes(term))
 		},
 	},
 

@@ -89,7 +89,7 @@
 						size="small"
 						class="cn-polls-tab__status" />
 					<NcButton
-						type="tertiary-no-background"
+						variant="tertiary-no-background"
 						:aria-label="t('nextcloud-vue', 'Unlink poll')"
 						class="cn-polls-tab__unlink"
 						@click="unlinkPoll(poll)">
@@ -113,7 +113,7 @@
 						<NcDateTime
 							class="cn-polls-tab__time"
 							:timestamp="deadlineMs(poll)"
-							:relative-time="'short'" />
+							relativeTime="short" />
 					</span>
 				</div>
 
@@ -148,7 +148,7 @@
 
 		<CnPollPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 
@@ -172,9 +172,9 @@ import LinkOff from 'vue-material-design-icons/LinkOff.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Poll from 'vue-material-design-icons/Poll.vue'
-import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnPollCreate from '../../../components/CnPollCreate/CnPollCreate.vue'
 import CnPollPicker from '../../../components/CnPollPicker/CnPollPicker.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
@@ -242,9 +242,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchPolls() } } },
-		register() { this.fetchPolls() },
-		schema() { this.fetchPolls() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchPolls()
+			}
+		} },
+
+		register() {
+			this.fetchPolls()
+		},
+
+		schema() {
+			this.fetchPolls()
+		},
 	},
 
 	methods: {

@@ -9,7 +9,7 @@
  *  - generic-error path when fetch throws.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnMapsTab = require('../CnMapsTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -48,8 +48,7 @@ describe('CnMapsTab', () => {
 	it('renders the empty state with an "Open Locations" CTA when no points', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnMapsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No locations linked yet')
 		expect(wrapper.text()).toContain('Open Locations')
 		wrapper.unmount()
@@ -67,8 +66,7 @@ describe('CnMapsTab', () => {
 			}),
 		})
 		const wrapper = mount(CnMapsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-maps-tab__row')
 		expect(rows).toHaveLength(2)
 		expect(wrapper.text()).toContain('Alpha site')
@@ -91,8 +89,7 @@ describe('CnMapsTab', () => {
 			}),
 		})
 		const wrapper = mount(CnMapsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const link = wrapper.find('.cn-maps-tab__open-link')
 		expect(link.exists()).toBe(true)
 		expect(link.attributes('href')).toBe('/index.php/apps/maps/?point=52.36844,4.88379')
@@ -111,8 +108,7 @@ describe('CnMapsTab', () => {
 			}),
 		})
 		const wrapper = mount(CnMapsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const titleEl = wrapper.find('.cn-maps-tab__title')
 		expect(titleEl.exists()).toBe(true)
 		expect(titleEl.text()).toBe('Field office')
@@ -147,8 +143,7 @@ describe('CnMapsTab', () => {
 			}),
 		})
 		const wrapper = mount(CnMapsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).not.toContain('or:a270fe68')
 		expect(wrapper.text()).not.toContain('3C33EEFC2E88')
 		expect(wrapper.text()).not.toContain('3c33eefc2e88')
@@ -160,8 +155,7 @@ describe('CnMapsTab', () => {
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnMapsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Location is currently unavailable.')
 		expect(wrapper.find('.cn-maps-tab__row').exists()).toBe(false)
 		wrapper.unmount()
@@ -171,8 +165,7 @@ describe('CnMapsTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnMapsTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load locations.')
 		wrapper.unmount()
 		spy.mockRestore()

@@ -68,8 +68,12 @@ function dashboardWithSlots(slotsLocation) {
 		},
 	}
 	const slots = { 'widget-active-decisions': 'ActiveDecisionsKpiWidget' }
-	if (slotsLocation === 'top') page.slots = slots
-	if (slotsLocation === 'config') page.config.slots = slots
+	if (slotsLocation === 'top') {
+		page.slots = slots
+	}
+	if (slotsLocation === 'config') {
+		page.config.slots = slots
+	}
 	// 'missing' → no slots map anywhere
 	return page
 }

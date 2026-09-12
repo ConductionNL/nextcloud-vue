@@ -6,8 +6,8 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
-import CnNewsWidget from './CnNewsWidget.vue'
 import CnNewsWidgetForm from '../CnNewsWidgetForm/CnNewsWidgetForm.vue'
+import CnNewsWidget from './CnNewsWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('news', {

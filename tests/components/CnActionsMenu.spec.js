@@ -13,8 +13,8 @@
  * (disabled + loading icon driven solely by `:refreshing`).
  */
 
-import { mount } from '@vue/test-utils'
 import { emit as emitOnBus } from '@nextcloud/event-bus'
+import { mount } from '@vue/test-utils'
 import CnActionsMenu from '../../src/components/CnActionsMenu/CnActionsMenu.vue'
 
 jest.mock('@nextcloud/event-bus', () => ({
@@ -53,13 +53,15 @@ const baseStubs = {
 	BugOutline: true,
 }
 
-const mountMenu = (propsData = {}, opts = {}) => mount(CnActionsMenu, {
-	propsData: { widgetId: 'w1', title: 'My widget', surface: 'widget:w1', ...propsData },
-	stubs: baseStubs,
-	mocks: { $route: { name: 'Dashboard' } },
-	provide: { cnAppId: 'pipelinq', cnFeatureRequestRepo: 'ConductionNL/pipelinq', ...(opts.provide || {}) },
-	...opts,
-})
+function mountMenu(propsData = {}, opts = {}) {
+	return mount(CnActionsMenu, {
+		propsData: { widgetId: 'w1', title: 'My widget', surface: 'widget:w1', ...propsData },
+		stubs: baseStubs,
+		mocks: { $route: { name: 'Dashboard' } },
+		provide: { cnAppId: 'pipelinq', cnFeatureRequestRepo: 'ConductionNL/pipelinq', ...(opts.provide || {}) },
+		...opts,
+	})
+}
 
 describe('CnActionsMenu — visibility & testidBase', () => {
 	beforeEach(() => {

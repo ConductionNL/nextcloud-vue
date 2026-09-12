@@ -53,11 +53,13 @@ export function clearRouteSentinelWarnings() {
  * Check whether `value` is a JSON-style plain object (not Array,
  * Map, Set, Date, etc.).
  *
- * @param {*} value Value to test.
+ * @param {unknown} value Value to test.
  * @return {boolean} True when value is a plain object.
  */
 function isPlainObject(value) {
-	if (value === null || typeof value !== 'object') return false
+	if (value === null || typeof value !== 'object') {
+		return false
+	}
 	const proto = Object.getPrototypeOf(value)
 	return proto === Object.prototype || proto === null
 }
@@ -73,30 +75,30 @@ function isPlainObject(value) {
  * the clone and `diffManifest` would see no change. Only changed paths are
  * rebuilt; unchanged ones stay pointer-identical to the manifest.
  *
- * @param {*} value The input value (any depth).
+ * @param {unknown} value The input value (any depth).
  * @param {object} params The route params map (e.g. `$route.params`).
  * @param {string} pageId Page identifier used for warning dedup.
- * @return {*} Value with sentinels resolved; identical reference when unchanged.
+ * @return {unknown} Value with sentinels resolved; identical reference when unchanged.
  */
 export function resolveRouteSentinels(value, params, pageId = '<unknown>') {
 	const safeParams = params && typeof params === 'object' ? params : {}
 
 	if (typeof value === 'string') {
 		const match = SENTINEL_PATTERN.exec(value)
-		if (!match) return value
+		if (!match) {
+			return value
+		}
 		const param = match[1]
-		if (Object.prototype.hasOwnProperty.call(safeParams, param)) {
+		if (Object.hasOwn(safeParams, param)) {
 			return safeParams[param]
 		}
 		const dedupKey = `${pageId}::${value}`
 		if (!_warnedKeys.has(dedupKey)) {
 			_warnedKeys.add(dedupKey)
 			// eslint-disable-next-line no-console
-			console.warn(
-				`[resolveRouteSentinels] page "${pageId}": `
+			console.warn(`[resolveRouteSentinels] page "${pageId}": `
 				+ `sentinel "${value}" — param "${param}" is not in $route.params. `
-				+ 'Substituting null.',
-			)
+				+ 'Substituting null.')
 		}
 		return null
 	}
@@ -105,7 +107,9 @@ export function resolveRouteSentinels(value, params, pageId = '<unknown>') {
 		let changed = false
 		const out = value.map((item) => {
 			const resolved = resolveRouteSentinels(item, safeParams, pageId)
-			if (resolved !== item) changed = true
+			if (resolved !== item) {
+				changed = true
+			}
 			return resolved
 		})
 		// Preserve the original array reference when no element changed.
@@ -117,7 +121,9 @@ export function resolveRouteSentinels(value, params, pageId = '<unknown>') {
 		const out = {}
 		for (const [key, val] of Object.entries(value)) {
 			const resolved = resolveRouteSentinels(val, safeParams, pageId)
-			if (resolved !== val) changed = true
+			if (resolved !== val) {
+				changed = true
+			}
 			out[key] = resolved
 		}
 		// Preserve the original object reference when no key changed.

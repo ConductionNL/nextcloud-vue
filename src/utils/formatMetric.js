@@ -41,7 +41,9 @@ export function resolveConfigFormat(format, configCtx) {
 	const ctx = { config: (configCtx && typeof configCtx === 'object') ? configCtx : {} }
 	for (const key of ['currency', 'prefix', 'suffix']) {
 		const raw = fmt[key]
-		if (typeof raw !== 'string' || raw.charAt(0) !== '@') continue
+		if (typeof raw !== 'string' || raw.charAt(0) !== '@') {
+			continue
+		}
 		const resolved = resolveFilterValue(raw, ctx)
 		out[key] = (typeof resolved === 'string' && resolved.charAt(0) === '@') ? undefined : resolved
 	}
@@ -57,7 +59,7 @@ export function resolveConfigFormat(format, configCtx) {
  * This guard is the single choke point that keeps a malformed currency from
  * ever throwing: anything that is not three ASCII letters falls back to `EUR`.
  *
- * @param {*} currency The (possibly unresolved / invalid) currency value.
+ * @param {unknown} currency The (possibly unresolved / invalid) currency value.
  * @return {string} A safe upper-case three-letter code (falls back to `EUR`).
  */
 export function safeCurrencyCode(currency) {
@@ -83,15 +85,19 @@ export function safeCurrencyCode(currency) {
  *  - `decimal` is a plain number with ONE fraction digit by default (the
  *    fleet KPIs' `toFixed(1)` convention), where `number` defaults to 0.
  *
- * @param {*}      value     The raw value to format.
+ * @param {unknown}      value     The raw value to format.
  * @param {object} format    The `content.format` spec (`{ style, currency, decimals, prefix, suffix }`).
  * @param {object} configCtx The page-level app-config map for `@config.<key>` resolution.
  * @return {string} The formatted display string.
  */
 export function formatMetricValue(value, format, configCtx) {
-	if (value === null || value === undefined) return '—'
+	if (value === null || value === undefined) {
+		return '—'
+	}
 	const num = Number(value)
-	if (!Number.isFinite(num)) return String(value)
+	if (!Number.isFinite(num)) {
+		return String(value)
+	}
 
 	const fmt = resolveConfigFormat(format, configCtx)
 	// `duration-hours` and `decimal` default to ONE fraction digit; the

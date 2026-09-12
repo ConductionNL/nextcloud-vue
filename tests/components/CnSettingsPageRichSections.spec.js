@@ -39,7 +39,6 @@ jest.mock('@/components/CnVersionInfoCard/CnVersionInfoCard.vue', () => ({
 		render() {
 			// `jest.mock` factories are hoisted above the imports, so the
 			// module-scope `h` import is out of scope here — require it inline.
-			// eslint-disable-next-line global-require
 			const { h } = require('vue')
 			return h('div', {
 				class: 'cn-version-info-card-stub',
@@ -56,7 +55,6 @@ jest.mock('@/components/CnRegisterMapping/CnRegisterMapping.vue', () => ({
 		props: ['name', 'groups', 'configuration', 'showReimportButton'],
 		render() {
 			// Hoisted factory — require `h` inline (see the mock above).
-			// eslint-disable-next-line global-require
 			const { h } = require('vue')
 			return h('div', {
 				class: 'cn-register-mapping-stub',
@@ -90,12 +88,10 @@ describe('CnSettingsPage — rich sections (REQ-MSRS-*)', () => {
 
 	beforeEach(() => {
 		originalWarn = console.warn
-		// eslint-disable-next-line no-console
 		console.warn = jest.fn()
 	})
 
 	afterEach(() => {
-		// eslint-disable-next-line no-console
 		console.warn = originalWarn
 		jest.clearAllMocks()
 	})
@@ -236,9 +232,7 @@ describe('CnSettingsPage — rich sections (REQ-MSRS-*)', () => {
 		expect(() => {
 			mount(CnSettingsPage, { propsData: { sections }, stubs })
 		}).not.toThrow()
-		// eslint-disable-next-line no-console
 		expect(console.warn).toHaveBeenCalled()
-		// eslint-disable-next-line no-console
 		const calls = console.warn.mock.calls.map((c) => c.join(' '))
 		expect(calls.some((m) => m.includes('does-not-exist'))).toBe(true)
 	})
@@ -250,7 +244,6 @@ describe('CnSettingsPage — rich sections (REQ-MSRS-*)', () => {
 		const wrapper = mount(CnSettingsPage, { propsData: { sections }, stubs })
 		// The section card still renders (chrome stays); body is empty.
 		expect(wrapper.findAll('.cn-settings-card-stub').length).toBe(1)
-		// eslint-disable-next-line no-console
 		expect(console.warn).toHaveBeenCalled()
 	})
 

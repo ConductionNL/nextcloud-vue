@@ -121,7 +121,9 @@ describe('resolvePresetWindow', () => {
 		it('month does NOT resolve to the rolling last-30-days window', () => {
 			const period = resolvePresetWindow('month', periods, now)
 			const rolling = resolvePresetWindow(
-				'roll', [{ id: 'roll', label: 'Last 30 days', days: 30 }], now,
+				'roll',
+				[{ id: 'roll', label: 'Last 30 days', days: 30 }],
+				now,
 			)
 			expect(period.from).not.toBe(rolling.from)
 		})

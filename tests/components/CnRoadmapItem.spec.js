@@ -12,7 +12,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnRoadmapItem from '../../src/components/CnRoadmapItem/CnRoadmapItem.vue'
 
 const mountOpts = {

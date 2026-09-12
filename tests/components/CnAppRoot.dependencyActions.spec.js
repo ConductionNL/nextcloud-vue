@@ -61,12 +61,14 @@ function mountRoot({ manifest, requiresApps = [], translate, props = {} } = {}) 
  */
 const mountRootWithBanners = (opts) => mountRoot({ ...opts, props: { ...(opts.props || {}), softDependencyNotices: true } })
 
-const baseManifest = (dependencies) => ({
-	version: '1.0.0',
-	menu: [{ id: 'home', label: 'Home', route: 'home' }],
-	pages: [{ id: 'home', route: '/', type: 'index', title: 'Home' }],
-	dependencies,
-})
+function baseManifest(dependencies) {
+	return {
+		version: '1.0.0',
+		menu: [{ id: 'home', label: 'Home', route: 'home' }],
+		pages: [{ id: 'home', route: '/', type: 'index', title: 'Home' }],
+		dependencies,
+	}
+}
 
 describe('CnAppRoot HARD/SOFT dependencies (REQ-DIA-5)', () => {
 	beforeEach(() => {
@@ -75,7 +77,9 @@ describe('CnAppRoot HARD/SOFT dependencies (REQ-DIA-5)', () => {
 		mockInstallAndEnable.mockReset().mockResolvedValue(undefined)
 		mockInstallerRefs.installing.value = false
 		mockInstallerRefs.error.value = null
-		try { window.localStorage.clear() } catch (e) { /* noop */ }
+		try {
+			window.localStorage.clear()
+		} catch { /* noop */ }
 	})
 
 	it('normalises a string entry to a HARD dependency', () => {
@@ -116,7 +120,9 @@ describe('CnAppRoot soft-dependency banner (REQ-DIA-6) — DEPRECATED, opt-in', 
 		mockInstallAndEnable.mockReset().mockResolvedValue(undefined)
 		mockInstallerRefs.installing.value = false
 		mockInstallerRefs.error.value = null
-		try { window.localStorage.clear() } catch (e) { /* noop */ }
+		try {
+			window.localStorage.clear()
+		} catch { /* noop */ }
 	})
 
 	it('renders a dismissible banner with an install action for an unresolved soft dep', () => {
@@ -179,9 +185,7 @@ describe('CnAppRoot soft-dependency banner (REQ-DIA-6) — DEPRECATED, opt-in', 
 		expect(wrapper.findAll('.cn-app-root__soft-dep')).toHaveLength(0)
 		// The data is still computed and still exposed — only the in-shell
 		// surface is gone, so an app rendering its own list keeps working.
-		expect(wrapper.vm.unresolvedSoftDependencies.map((d) => d.id)).toEqual(
-			['deck', 'spreed', 'forms', 'integriq'],
-		)
+		expect(wrapper.vm.unresolvedSoftDependencies.map((d) => d.id)).toEqual(['deck', 'spreed', 'forms', 'integriq'])
 	})
 })
 

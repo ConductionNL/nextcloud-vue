@@ -45,7 +45,7 @@
 				:label="t('nextcloud-vue', 'Search bookmarks')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-bookmark-picker__search"
-				@update:model-value="onSearch" />
+				@update:modelValue="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent
@@ -63,7 +63,7 @@
 							<img
 								v-if="faviconUrl(bookmark)"
 								:src="faviconUrl(bookmark)"
-								:alt="''"
+								alt=""
 								class="cn-bookmark-picker__favicon"
 								@error="onFaviconError(bookmark)">
 							<Bookmark v-else :size="20" />
@@ -244,7 +244,7 @@ export default {
 			try {
 				const url = new URL(bookmark.url)
 				return `${url.origin}/favicon.ico`
-			} catch (e) {
+			} catch {
 				return ''
 			}
 		},

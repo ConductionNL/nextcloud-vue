@@ -171,9 +171,7 @@ describe('CnFlowDetail', () => {
 			await wrapper.setProps({ id: 'flow-b' })
 			await wrapper.vm.$nextTick()
 
-			expect(load).toHaveBeenCalledWith(
-				expect.objectContaining({ id: 'flow-b' }),
-			)
+			expect(load).toHaveBeenCalledWith(expect.objectContaining({ id: 'flow-b' }))
 		})
 
 		it('reloads when leaving a saved flow for a blank one', async () => {
@@ -183,9 +181,7 @@ describe('CnFlowDetail', () => {
 			await wrapper.setProps({ id: 'new' })
 			await wrapper.vm.$nextTick()
 
-			expect(load).toHaveBeenCalledWith(
-				expect.objectContaining({ id: 'new' }),
-			)
+			expect(load).toHaveBeenCalledWith(expect.objectContaining({ id: 'new' }))
 		})
 
 		it('does not reload when the id is set to what it already was', async () => {

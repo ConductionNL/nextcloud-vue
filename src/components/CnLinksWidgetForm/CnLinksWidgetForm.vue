@@ -66,7 +66,7 @@
 						<CnIconBrowser
 							class="cn-links-form__icon"
 							:value="link.icon"
-							allow-url
+							allowUrl
 							@input="updateLink(sIdx, lIdx, 'icon', $event)" />
 						<input
 							v-if="showLinkDescriptions"
@@ -266,6 +266,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Initial content values (registry defaults when not editing). */
 		value: {
 			type: Object,
@@ -288,13 +289,16 @@ export default {
 			sections: Array.isArray(initial.sections) && initial.sections.length > 0
 				? this.cloneSections(initial.sections)
 				: [],
+
 			columns: this.clampColumns(initial.columns ?? DEFAULT_CONTENT.columns),
 			linkLayout: VALID_LAYOUTS.includes(initial.linkLayout)
 				? initial.linkLayout
 				: DEFAULT_CONTENT.linkLayout,
+
 			iconSize: VALID_SIZES.includes(initial.iconSize)
 				? initial.iconSize
 				: DEFAULT_CONTENT.iconSize,
+
 			openInNewTab: initial.openInNewTab === undefined ? DEFAULT_CONTENT.openInNewTab : Boolean(initial.openInNewTab),
 			showSectionTitles: initial.showSectionTitles === undefined ? DEFAULT_CONTENT.showSectionTitles : Boolean(initial.showSectionTitles),
 			showLinkDescriptions: initial.showLinkDescriptions === undefined ? DEFAULT_CONTENT.showLinkDescriptions : Boolean(initial.showLinkDescriptions),
@@ -334,11 +338,11 @@ export default {
 				title: typeof section?.title === 'string' ? section.title : '',
 				links: Array.isArray(section?.links)
 					? section.links.map((link) => ({
-						label: typeof link?.label === 'string' ? link.label : '',
-						url: typeof link?.url === 'string' ? link.url : '',
-						icon: typeof link?.icon === 'string' ? link.icon : '',
-						description: typeof link?.description === 'string' ? link.description : '',
-					}))
+							label: typeof link?.label === 'string' ? link.label : '',
+							url: typeof link?.url === 'string' ? link.url : '',
+							icon: typeof link?.icon === 'string' ? link.icon : '',
+							description: typeof link?.description === 'string' ? link.description : '',
+						}))
 					: [],
 			}))
 		},
@@ -346,7 +350,7 @@ export default {
 		/**
 		 * Clamp the column count to 1–6.
 		 *
-		 * @param {*} value the candidate column count.
+		 * @param {unknown} value the candidate column count.
 		 * @return {number} the clamped column count.
 		 */
 		clampColumns(value) {
@@ -495,7 +499,7 @@ export default {
 		 * Update a global layout option, then emit.
 		 *
 		 * @param {string} field the option field.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateOption(field, value) {

@@ -21,10 +21,10 @@
 				:options="availableSchemas"
 				:multiple="true"
 				:clearable="true"
-				:keep-open="true"
+				:keepOpen="true"
 				label="title"
-				track-by="id"
-				:input-label="t('nextcloud-vue', 'allOf - Inherits from ALL schemas (Recommended)')"
+				trackBy="id"
+				:inputLabel="t('nextcloud-vue', 'allOf - Inherits from ALL schemas (Recommended)')"
 				:placeholder="t('nextcloud-vue', 'Select schemas to inherit from (supports multiple parents)')">
 				<template #option="{ title, description }">
 					<div class="cn-schema-form__schema-option">
@@ -54,10 +54,10 @@
 				:options="availableSchemas"
 				:multiple="true"
 				:clearable="true"
-				:keep-open="true"
+				:keepOpen="true"
 				label="title"
-				track-by="id"
-				:input-label="t('nextcloud-vue', 'oneOf - Exactly one schema must match')"
+				trackBy="id"
+				:inputLabel="t('nextcloud-vue', 'oneOf - Exactly one schema must match')"
 				:placeholder="t('nextcloud-vue', 'Select schemas (instance must match exactly one)')">
 				<template #option="{ title, description }">
 					<div class="cn-schema-form__schema-option">
@@ -78,10 +78,10 @@
 				:options="availableSchemas"
 				:multiple="true"
 				:clearable="true"
-				:keep-open="true"
+				:keepOpen="true"
 				label="title"
-				track-by="id"
-				:input-label="t('nextcloud-vue', 'anyOf - At least one schema must match')"
+				trackBy="id"
+				:inputLabel="t('nextcloud-vue', 'anyOf - At least one schema must match')"
 				:placeholder="t('nextcloud-vue', 'Select schemas (instance must match at least one)')">
 				<template #option="{ title, description }">
 					<div class="cn-schema-form__schema-option">
@@ -100,28 +100,28 @@
 			:disabled="loading"
 			:options="propertyOptions"
 			:clearable="true"
-			:input-label="t('nextcloud-vue', 'Object name field')"
+			:inputLabel="t('nextcloud-vue', 'Object name field')"
 			:placeholder="t('nextcloud-vue', 'Select a property to use as object name')" />
 		<NcSelect
 			v-model="schema.configuration.objectDescriptionField"
 			:disabled="loading"
 			:options="propertyOptions"
 			:clearable="true"
-			:input-label="t('nextcloud-vue', 'Object description field')"
+			:inputLabel="t('nextcloud-vue', 'Object description field')"
 			:placeholder="t('nextcloud-vue', 'Select a property to use as object description')" />
 		<NcSelect
 			v-model="schema.configuration.objectImageField"
 			:disabled="loading"
 			:options="propertyOptions"
 			:clearable="true"
-			:input-label="t('nextcloud-vue', 'Object image field')"
+			:inputLabel="t('nextcloud-vue', 'Object image field')"
 			:placeholder="t('nextcloud-vue', 'Select a property to use as object image representing the object. e.g. logo (should contain base64 encoded image)')" />
 		<NcSelect
 			v-model="schema.configuration.objectSummaryField"
 			:disabled="loading"
 			:options="propertyOptions"
 			:clearable="true"
-			:input-label="t('nextcloud-vue', 'Object summary field')"
+			:inputLabel="t('nextcloud-vue', 'Object summary field')"
 			:placeholder="t('nextcloud-vue', 'Select a property to use as object summary. e.g. summary, abstract, or excerpt')" />
 		<NcCheckboxRadioSwitch
 			v-model="schema.configuration.allowFiles"
@@ -143,7 +143,7 @@
 			:disabled="loading"
 			:label="t('nextcloud-vue', 'Allowed tags (comma-separated)')"
 			:placeholder="t('nextcloud-vue', 'image, document, audio, video')"
-			@update:model-value="updateAllowedTags" />
+			@update:modelValue="updateAllowedTags" />
 		<NcCheckboxRadioSwitch
 			v-model="schema.hardValidation"
 			:disabled="loading">
@@ -155,9 +155,9 @@
 			type="number" />
 		<NcTextField :disabled="loading"
 			:label="t('nextcloud-vue', 'Icon (Material Design Icon name, e.g. Dog)')"
-			:model-value="schema.icon || ''"
+			:modelValue="schema.icon || ''"
 			:placeholder="t('nextcloud-vue', 'e.g. Dog, Account, Tag — see pictogrammers.com/library/mdi')"
-			@update:model-value="setIcon" />
+			@update:modelValue="setIcon" />
 		<NcCheckboxRadioSwitch
 			v-model="schema.immutable"
 			:disabled="loading">
@@ -174,11 +174,11 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcTextField,
-	NcTextArea,
-	NcNoteCard,
 	NcCheckboxRadioSwitch,
+	NcNoteCard,
 	NcSelect,
+	NcTextArea,
+	NcTextField,
 } from '@nextcloud/vue'
 
 /**
@@ -196,6 +196,7 @@ export default {
 		NcCheckboxRadioSwitch,
 		NcSelect,
 	},
+
 	props: {
 		/** The full schema item — mutated directly */
 		schemaItem: { type: Object, required: true },
@@ -208,17 +209,20 @@ export default {
 		/** Pre-computed names for allOf note card display */
 		allOfSchemaNames: { type: Array, default: () => [] },
 	},
+
 	data() {
 		return {
 			allowedTagsInput: '',
 		}
 	},
+
 	computed: {
 		/** Local alias to avoid vue/no-mutating-props on template bindings */
 		schema() {
 			return this.schemaItem
 		},
 	},
+
 	watch: {
 		'schema.configuration.allowedTags': {
 			immediate: true,
@@ -227,6 +231,7 @@ export default {
 			},
 		},
 	},
+
 	methods: {
 		t,
 		/**
@@ -239,11 +244,12 @@ export default {
 			const trimmed = (value || '').trim()
 			this.schema.icon = trimmed === '' ? null : trimmed
 		},
+
 		updateAllowedTags(value) {
 			if (!value || value.trim() === '') {
 				this.schema.configuration.allowedTags = []
 			} else {
-				const tags = value.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
+				const tags = value.split(',').map((tag) => tag.trim()).filter((tag) => tag !== '')
 				this.schema.configuration.allowedTags = tags
 			}
 		},

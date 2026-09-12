@@ -10,10 +10,10 @@
 		</h4>
 
 		<NcTextField
-			:model-value="title"
+			:modelValue="title"
 			:label="t('nextcloud-vue', 'Title')"
 			placeholder="Sources"
-			@update:model-value="updateField('title', $event)" />
+			@update:modelValue="updateField('title', $event)" />
 
 		<div class="cn-stats-block-form__row2">
 			<CnRegisterSchemaSelect
@@ -25,11 +25,11 @@
 
 		<div class="cn-stats-block-form__row2">
 			<NcSelect
-				:model-value="metric"
+				:modelValue="metric"
 				:options="metricOptions"
-				:input-label="t('nextcloud-vue', 'Aggregation')"
+				:inputLabel="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@update:model-value="updateField('metric', $event)" />
+				@update:modelValue="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric !== 'count'"
 				:value="field"
@@ -47,16 +47,16 @@
 
 		<div class="cn-stats-block-form__row2">
 			<NcTextField
-				:model-value="countLabel"
+				:modelValue="countLabel"
 				:label="t('nextcloud-vue', 'Count label')"
 				placeholder="sources"
-				@update:model-value="updateField('countLabel', $event)" />
+				@update:modelValue="updateField('countLabel', $event)" />
 			<NcSelect
-				:model-value="variant"
+				:modelValue="variant"
 				:options="variantOptions"
-				:input-label="t('nextcloud-vue', 'Color')"
+				:inputLabel="t('nextcloud-vue', 'Color')"
 				:clearable="false"
-				@update:model-value="updateField('variant', $event)" />
+				@update:modelValue="updateField('variant', $event)" />
 		</div>
 
 		<CnIconBrowser
@@ -68,14 +68,14 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
-import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
-import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
-import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
+import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
+import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
+import { filterToRows, rowsToFilter } from '../CnFilterRowsEditor/filterRows.js'
 
 const DEFAULT_CONTENT = Object.freeze({
 	title: '',
@@ -97,15 +97,24 @@ export default {
 	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect, CnIconBrowser },
 
 	props: {
-		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
+		/**
+		 * The placement being edited (pre-fills from `editingWidget.content`), or null.
+		 *
+		 * @type {{content: object}|null}
+		 */
 		editingWidget: { type: Object, default: null },
-		/** Initial content values when not editing (registry defaults). @type {object} */
+		/**
+		 * Initial content values when not editing (registry defaults).
+		 *
+		 * @type {object}
+		 */
 		value: { type: Object, default: () => ({ ...DEFAULT_CONTENT }) },
 	},
 
 	emits: [
 		/**
 		 * Emitted with the assembled content blob on every field change.
+		 *
 		 * @event update:content
 		 * @type {object}
 		 */
@@ -131,9 +140,15 @@ export default {
 
 	computed: {
 		/** Aggregation metric options. */
-		metricOptions() { return ['count', 'sum', 'avg', 'min', 'max'] },
+		metricOptions() {
+			return ['count', 'sum', 'avg', 'min', 'max']
+		},
+
 		/** Card colour variants (CnStatsBlock). */
-		variantOptions() { return ['default', 'primary', 'success', 'warning', 'error'] },
+		variantOptions() {
+			return ['default', 'primary', 'success', 'warning', 'error']
+		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {
@@ -165,6 +180,7 @@ export default {
 		async loadFields() {
 			this.availableFields = await fetchSchemaProperties(this.source.register, this.source.schema)
 		},
+
 		/**
 		 * Set a top-level field and emit.
 		 *
@@ -172,7 +188,11 @@ export default {
 		 * @param {string} value The new value for that key.
 		 * @return {void}
 		 */
-		updateField(field, value) { this[field] = value; this.emitChange() },
+		updateField(field, value) {
+			this[field] = value
+			this.emitChange()
+		},
+
 		/**
 		 * Set a source sub-field and emit.
 		 *
@@ -180,7 +200,11 @@ export default {
 		 * @param {string} value The chosen register or schema slug.
 		 * @return {void}
 		 */
-		updateSource(field, value) { this.source[field] = value; this.emitChange() },
+		updateSource(field, value) {
+			this.source[field] = value
+			this.emitChange()
+		},
+
 		/**
 		 * Receive updated filter rows.
 		 *
@@ -188,11 +212,19 @@ export default {
 		 *   full row list, serialised by `rowsToFilter()` into `dataSource.filter`.
 		 * @return {void}
 		 */
-		onFilterRows(rows) { this.filterRows = rows; this.emitChange() },
+		onFilterRows(rows) {
+			this.filterRows = rows
+			this.emitChange()
+		},
+
 		/** Emit the assembled content. */
-		emitChange() { this.$emit('update:content', this.assembledContent) },
+		emitChange() {
+			this.$emit('update:content', this.assembledContent)
+		},
+
 		/**
 		 * Validate the form; an empty array means valid.
+		 *
 		 * @return {string[]} the validation errors.
 		 */
 		validate() {

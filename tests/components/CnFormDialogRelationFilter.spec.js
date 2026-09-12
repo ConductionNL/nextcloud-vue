@@ -37,7 +37,6 @@ jest.mock('../../src/store/useObjectStore.js', () => ({
 }))
 
 // Import AFTER the mock is registered.
-// eslint-disable-next-line import/first
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0))
@@ -85,8 +84,7 @@ const plainSchema = {
  * @param {string} slug The referenced schema slug the call must end with.
  * @return {Array<Array>} The matching mock calls, in order.
  */
-const callsFor = (slug) =>
-	mockStore.fetchCollection.mock.calls.filter(([s]) => String(s).endsWith(slug))
+const callsFor = (slug) => mockStore.fetchCollection.mock.calls.filter(([s]) => String(s).endsWith(slug))
 
 beforeEach(() => {
 	mockStore.objectTypeRegistry = {}

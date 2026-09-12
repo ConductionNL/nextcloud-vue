@@ -19,10 +19,10 @@
 			<NcTextField v-if="editing === 'name'"
 				ref="nameField"
 				class="cn-page-tree__inline-field"
-				:model-value="page.title || ''"
+				:modelValue="page.title || ''"
 				:label="t('nextcloud-vue', 'Title')"
-				:label-outside="true"
-				@update:model-value="setTitle"
+				:labelOutside="true"
+				@update:modelValue="setTitle"
 				@keydown.enter="stopEdit"
 				@blur="stopEdit" />
 			<button v-else
@@ -36,12 +36,12 @@
 			<!-- Type: click to change inline. -->
 			<NcSelect v-if="editing === 'type'"
 				class="cn-page-tree__inline-select"
-				:model-value="selectedType"
+				:modelValue="selectedType"
 				:options="pageTypeOptions"
-				:input-label="t('nextcloud-vue', 'Type')"
+				:inputLabel="t('nextcloud-vue', 'Type')"
 				label="label"
 				:clearable="false"
-				@update:model-value="onType"
+				@update:modelValue="onType"
 				@close="stopEdit" />
 			<button v-else
 				type="button"
@@ -65,34 +65,34 @@
 		     dropdown clicks don't dismiss it. -->
 		<div v-if="expanded" class="cn-page-tree__panel">
 			<NcTextField class="cn-page-tree__panel-field"
-				:model-value="page.title || ''"
+				:modelValue="page.title || ''"
 				:label="t('nextcloud-vue', 'Title')"
-				:label-visible="true"
-				@update:model-value="setTitle" />
+				:labelVisible="true"
+				@update:modelValue="setTitle" />
 
 			<NcSelect class="cn-page-tree__panel-field"
-				:model-value="selectedType"
+				:modelValue="selectedType"
 				:options="pageTypeOptions"
-				:input-label="t('nextcloud-vue', 'Type')"
+				:inputLabel="t('nextcloud-vue', 'Type')"
 				label="label"
 				:clearable="false"
-				@update:model-value="onType" />
+				@update:modelValue="onType" />
 
 			<NcTextField class="cn-page-tree__panel-field"
-				:model-value="slugDraft"
+				:modelValue="slugDraft"
 				:label="t('nextcloud-vue', 'Slug (page id)')"
-				:label-visible="true"
+				:labelVisible="true"
 				:placeholder="page.id"
-				@update:model-value="(v) => slugDraft = v"
+				@update:modelValue="(v) => slugDraft = v"
 				@keydown.enter="commitSlug"
 				@blur="commitSlug" />
 
 			<NcTextField class="cn-page-tree__panel-field"
-				:model-value="page.route || ''"
+				:modelValue="page.route || ''"
 				:label="t('nextcloud-vue', 'Route')"
-				:label-visible="true"
-				:placeholder="'/example'"
-				@update:model-value="setRoute" />
+				:labelVisible="true"
+				placeholder="/example"
+				@update:modelValue="setRoute" />
 
 			<template v-if="isDataPage">
 				<NcNoteCard v-if="dataSourcesError"
@@ -106,56 +106,56 @@
 
 				<NcSelect v-if="showPickers"
 					class="cn-page-tree__panel-field"
-					:model-value="selectedRegister"
+					:modelValue="selectedRegister"
 					:options="registerOptions"
-					:input-label="t('nextcloud-vue', 'Register')"
+					:inputLabel="t('nextcloud-vue', 'Register')"
 					label="label"
 					:clearable="true"
 					:loading="dataSourcesLoading"
 					:placeholder="t('nextcloud-vue', 'Choose a register')"
-					@update:model-value="setRegister" />
+					@update:modelValue="setRegister" />
 				<NcTextField v-else
 					class="cn-page-tree__panel-field"
-					:model-value="configValue('register')"
+					:modelValue="configValue('register')"
 					:label="t('nextcloud-vue', 'Register')"
-					:label-visible="true"
-					@update:model-value="(v) => setConfig('register', v)" />
+					:labelVisible="true"
+					@update:modelValue="(v) => setConfig('register', v)" />
 
 				<NcSelect v-if="showPickers"
 					class="cn-page-tree__panel-field"
-					:model-value="selectedSchema"
+					:modelValue="selectedSchema"
 					:options="schemaOptions"
-					:input-label="t('nextcloud-vue', 'Schema')"
+					:inputLabel="t('nextcloud-vue', 'Schema')"
 					label="label"
 					:clearable="true"
 					:loading="dataSourcesLoading"
 					:disabled="!configValue('register')"
 					:placeholder="t('nextcloud-vue', 'Choose a schema')"
-					@update:model-value="setSchema" />
+					@update:modelValue="setSchema" />
 				<NcTextField v-else
 					class="cn-page-tree__panel-field"
-					:model-value="configValue('schema')"
+					:modelValue="configValue('schema')"
 					:label="t('nextcloud-vue', 'Schema')"
-					:label-visible="true"
-					@update:model-value="(v) => setConfig('schema', v)" />
+					:labelVisible="true"
+					@update:modelValue="(v) => setConfig('schema', v)" />
 
 				<NcSelect v-if="page.type === 'index' && columnOptions.length"
 					class="cn-page-tree__panel-field"
-					:model-value="selectedColumns"
+					:modelValue="selectedColumns"
 					:options="columnOptions"
-					:input-label="t('nextcloud-vue', 'Columns')"
+					:inputLabel="t('nextcloud-vue', 'Columns')"
 					label="label"
 					:multiple="true"
-					:close-on-select="false"
+					keepOpen
 					:placeholder="t('nextcloud-vue', 'All properties')"
-					@update:model-value="setColumns" />
+					@update:modelValue="setColumns" />
 				<NcTextField v-else-if="page.type === 'index'"
 					class="cn-page-tree__panel-field"
-					:model-value="columnsText"
+					:modelValue="columnsText"
 					:label="t('nextcloud-vue', 'Columns (comma separated)')"
-					:label-visible="true"
-					:placeholder="'name, status'"
-					@update:model-value="setColumnsText" />
+					:labelVisible="true"
+					placeholder="name, status"
+					@update:modelValue="setColumnsText" />
 			</template>
 
 			<div class="cn-page-tree__panel-actions">
@@ -177,16 +177,16 @@
 </template>
 
 <script>
-import { NcButton, NcTextField, NcSelect, NcNoteCard } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import DragVertical from 'vue-material-design-icons/DragVertical.vue'
-import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import FormatListBulletedSquare from 'vue-material-design-icons/FormatListBulletedSquare.vue'
-import TextBoxOutline from 'vue-material-design-icons/TextBoxOutline.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
+import TextBoxOutline from 'vue-material-design-icons/TextBoxOutline.vue'
+import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 
 // The renderer's closed page-type enum (CnPageRenderer dispatches on these).
 const PAGE_TYPES = [
@@ -246,6 +246,7 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** Whether this row may gain a sub-page (top level only). */
 		canAddChild: {
 			type: Boolean,
@@ -271,24 +272,29 @@ export default {
 		pageTypeOptions() {
 			return PAGE_TYPES
 		},
+
 		/** The MDI component name for the page's type glyph. */
 		typeIconComponent() {
 			return TYPE_ICON_COMPONENTS[this.page && this.page.type] || TYPE_ICON_COMPONENTS.custom
 		},
+
 		/** Human label for the page's type. */
 		typeLabel() {
 			const opt = PAGE_TYPES.find((o) => o.value === (this.page && this.page.type))
 			return opt ? opt.label : (this.page && this.page.type) || 'custom'
 		},
+
 		/** The page's type as a dropdown option (synthetic fallback for unknown values). */
 		selectedType() {
 			const type = (this.page && this.page.type) || 'custom'
 			return PAGE_TYPES.find((o) => o.value === type) || { value: type, label: type }
 		},
+
 		/** Whether this page renders OpenRegister data (needs register/schema). */
 		isDataPage() {
 			return this.page && (this.page.type === 'index' || this.page.type === 'detail')
 		},
+
 		/**
 		 * The data sources actually in force: the live holder when CnAppRoot
 		 * has a loader, else the static snapshot.
@@ -297,63 +303,84 @@ export default {
 			const live = this.cnDataSourcesState && this.cnDataSourcesState.value
 			return live || this.cnDataSources
 		},
+
 		/** Whether a refresh is currently in flight. */
 		dataSourcesLoading() {
 			return !!(this.cnDataSourcesState && this.cnDataSourcesState.loading)
 		},
+
 		/** The last refresh's failure, if any. */
 		dataSourcesError() {
 			return (this.cnDataSourcesState && this.cnDataSourcesState.error) || null
 		},
+
 		/** Whether app data sources (registers/schemas) were provided. */
 		hasDataSources() {
 			const ds = this.effectiveDataSources
 			return !!(ds && Array.isArray(ds.registers) && ds.registers.length)
 		},
+
 		/**
 		 * Whether to render dropdowns rather than free-text slug inputs. A
 		 * configured loader counts even before its first fetch resolves, so
 		 * the panel never flashes text fields and then swaps them for selects.
 		 */
 		showPickers() {
-			if (this.hasDataSources || this.dataSourcesLoading) return true
+			if (this.hasDataSources || this.dataSourcesLoading) {
+				return true
+			}
 			return !!(this.cnDataSourcesState && this.cnDataSourcesState.hasLoader)
 		},
+
 		/** Register dropdown options from the data sources. */
 		registerOptions() {
-			if (!this.hasDataSources) return []
+			if (!this.hasDataSources) {
+				return []
+			}
 			return this.effectiveDataSources.registers.map((r) => ({ value: r.value, label: r.label || r.value }))
 		},
+
 		/** Schema options for the chosen register. */
 		schemaOptions() {
-			if (!this.hasDataSources) return []
+			if (!this.hasDataSources) {
+				return []
+			}
 			const reg = this.effectiveDataSources.registers.find((r) => r.value === this.configValue('register'))
 			const schemas = (reg && Array.isArray(reg.schemas)) ? reg.schemas : []
 			return schemas.map((s) => ({ value: s.value, label: s.label || s.value, columns: s.columns || [] }))
 		},
+
 		/** The chosen register as an option. */
 		selectedRegister() {
 			const slug = this.configValue('register')
-			if (!slug) return null
+			if (!slug) {
+				return null
+			}
 			return this.registerOptions.find((o) => o.value === slug) || { value: slug, label: slug }
 		},
+
 		/** The chosen schema as an option. */
 		selectedSchema() {
 			const slug = this.configValue('schema')
-			if (!slug) return null
+			if (!slug) {
+				return null
+			}
 			return this.schemaOptions.find((o) => o.value === slug) || { value: slug, label: slug }
 		},
+
 		/** Selectable column options (the chosen schema's property keys). */
 		columnOptions() {
 			const schema = this.schemaOptions.find((o) => o.value === this.configValue('schema'))
 			const cols = (schema && Array.isArray(schema.columns)) ? schema.columns : []
 			return cols.map((c) => ({ value: c, label: c }))
 		},
+
 		/** The page's columns as dropdown options. */
 		selectedColumns() {
 			const cols = (this.page && this.page.config && Array.isArray(this.page.config.columns)) ? this.page.config.columns : []
 			return cols.map((c) => ({ value: c, label: c }))
 		},
+
 		/** The columns as a comma-separated string (free-text fallback). */
 		columnsText() {
 			const cols = (this.page && this.page.config && Array.isArray(this.page.config.columns)) ? this.page.config.columns : []
@@ -364,7 +391,7 @@ export default {
 	watch: {
 		// Keep the slug draft in sync if the id changes externally (e.g. a rename
 		// elsewhere or the panel re-opening on a different page).
-		'page.id'(id) {
+		'page.id': function(id) {
 			this.slugDraft = id
 		},
 	},
@@ -373,13 +400,18 @@ export default {
 		t,
 		/**
 		 * Re-run the data-source fetch after a failure (the error notice's Retry).
+		 *
 		 * @return {void}
 		 */
 		retryDataSources() {
-			if (typeof this.cnRefreshDataSources === 'function') this.cnRefreshDataSources()
+			if (typeof this.cnRefreshDataSources === 'function') {
+				this.cnRefreshDataSources()
+			}
 		},
+
 		/**
 		 * Enter inline-edit mode for a field, focusing it on next tick.
+		 *
 		 * @param {string} field 'name' | 'type'.
 		 * @return {void}
 		 */
@@ -388,33 +420,42 @@ export default {
 			if (field === 'name') {
 				this.$nextTick(() => {
 					const el = this.$refs.nameField && this.$refs.nameField.$el && this.$refs.nameField.$el.querySelector('input')
-					if (el) el.focus()
+					if (el) {
+						el.focus()
+					}
 				})
 			}
 		},
+
 		/** Leave inline-edit mode. */
 		stopEdit() {
 			this.editing = null
 		},
+
 		/**
 		 * Write the page title in place.
+		 *
 		 * @param {string} value The new title.
 		 * @return {void}
 		 */
 		setTitle(value) {
 			this.page.title = value
 		},
+
 		/**
 		 * Set the page route in place.
+		 *
 		 * @param {string} value The new route path.
 		 * @return {void}
 		 */
 		setRoute(value) {
 			this.page.route = value
 		},
+
 		/**
 		 * Commit a slug (page id) rename. Emits `rename` so the parent can cascade
 		 * references (menu links, child `parent`); a no-op when unchanged/empty.
+		 *
 		 * @return {void}
 		 */
 		commitSlug() {
@@ -425,8 +466,10 @@ export default {
 			}
 			this.$emit('rename', next)
 		},
+
 		/**
 		 * Write the chosen type onto the page and leave inline edit mode.
+		 *
 		 * @param {{value: string}|null} option The selected type option.
 		 * @return {void}
 		 */
@@ -434,9 +477,11 @@ export default {
 			this.page.type = option ? option.value : 'custom'
 			this.stopEdit()
 		},
+
 		/**
 		 * Ensure the page has a plain-object `config` and return it. An empty
 		 * `config: {}` round-trips through PHP as `[]`; reset arrays too.
+		 *
 		 * @return {object}
 		 */
 		ensureConfig() {
@@ -445,27 +490,36 @@ export default {
 			}
 			return this.page.config
 		},
+
 		/**
 		 * Read a `config` field (empty string when unset).
+		 *
 		 * @param {string} key The config key.
 		 * @return {string}
 		 */
 		configValue(key) {
 			return (this.page && this.page.config && this.page.config[key]) || ''
 		},
+
 		/**
 		 * Write a `config` field in place (deletes the key when cleared).
+		 *
 		 * @param {string} key The config key.
 		 * @param {string} value The value (falsy removes the key).
 		 * @return {void}
 		 */
 		setConfig(key, value) {
 			const config = this.ensureConfig()
-			if (value) config[key] = value
-			else delete config[key]
+			if (value) {
+				config[key] = value
+			} else {
+				delete config[key]
+			}
 		},
+
 		/**
 		 * Set the register; clears schema + columns (they are register-scoped).
+		 *
 		 * @param {{value: string}|null} option The selected register option.
 		 * @return {void}
 		 */
@@ -474,8 +528,10 @@ export default {
 			this.setConfig('schema', '')
 			this.setConfig('columns', '')
 		},
+
 		/**
 		 * Set the schema; clears columns (column keys are schema-specific).
+		 *
 		 * @param {{value: string}|null} option The selected schema option.
 		 * @return {void}
 		 */
@@ -483,27 +539,37 @@ export default {
 			this.setConfig('schema', option ? option.value : '')
 			this.setConfig('columns', '')
 		},
+
 		/**
 		 * Set the columns from the selected dropdown options.
+		 *
 		 * @param {Array<{value: string}>} options The selected column options.
 		 * @return {void}
 		 */
 		setColumns(options) {
 			const config = this.ensureConfig()
 			const cols = (options || []).map((o) => o.value)
-			if (cols.length) config.columns = cols
-			else delete config.columns
+			if (cols.length) {
+				config.columns = cols
+			} else {
+				delete config.columns
+			}
 		},
+
 		/**
 		 * Set the columns from a comma-separated string (free-text fallback).
+		 *
 		 * @param {string} text The comma-separated column keys.
 		 * @return {void}
 		 */
 		setColumnsText(text) {
 			const config = this.ensureConfig()
 			const cols = String(text || '').split(',').map((s) => s.trim()).filter(Boolean)
-			if (cols.length) config.columns = cols
-			else delete config.columns
+			if (cols.length) {
+				config.columns = cols
+			} else {
+				delete config.columns
+			}
 		},
 	},
 }

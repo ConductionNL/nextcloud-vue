@@ -9,7 +9,7 @@
  *  - early-out when single-entity value missing.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnActivityCard = require('../CnActivityCard.vue').default
 
 const DEFAULT_PROPS = {
@@ -53,8 +53,7 @@ describe('CnActivityCard', () => {
 			}),
 		})
 		const wrapper = mount(CnActivityCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toMatch(/2 today/)
 		wrapper.unmount()
 	})
@@ -62,8 +61,7 @@ describe('CnActivityCard', () => {
 	it('renders the empty state on dashboard surface when no entries', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnActivityCard, { propsData: { ...DEFAULT_PROPS, surface: 'app-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No activity yet for this object')
 		wrapper.unmount()
 	})
@@ -84,8 +82,7 @@ describe('CnActivityCard', () => {
 			}),
 		})
 		const wrapper = mount(CnActivityCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const days = wrapper.findAll('.cn-activity-card__day')
 		expect(days).toHaveLength(2)
 		expect(wrapper.text()).toContain('Today A')
@@ -107,8 +104,7 @@ describe('CnActivityCard', () => {
 		const wrapper = mount(CnActivityCard, {
 			propsData: { ...DEFAULT_PROPS, surface: 'single-entity', value: 'ev-99' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const chip = wrapper.find('.cn-activity-card__chip')
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('carol')
@@ -129,8 +125,7 @@ describe('CnActivityCard', () => {
 	it('shows the unavailable label on 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnActivityCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Activity is currently unavailable.')
 		wrapper.unmount()
 	})
@@ -139,8 +134,7 @@ describe('CnActivityCard', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnActivityCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No activity yet for this object')
 		wrapper.unmount()
 		spy.mockRestore()

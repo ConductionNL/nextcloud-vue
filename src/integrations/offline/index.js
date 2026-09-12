@@ -13,46 +13,46 @@
  */
 
 export {
-	cacheKey,
-	getDb,
-	storePlanning,
-	getPlannedItems,
-	getCachedObject,
-	getPlanningMeta,
-	enqueueMutation,
-	countPending,
-	resolveDeviceId,
-	__setDexie,
 	__resetDbForTests,
+	__setDexie,
+	cacheKey,
+	countPending,
+	enqueueMutation,
+	getCachedObject,
+	getDb,
+	getPlannedItems,
+	getPlanningMeta,
+	resolveDeviceId,
+	storePlanning,
 } from './offlineDb.js'
 
 export {
 	BACKOFF_SCHEDULE_MS,
-	MAX_ATTEMPTS,
-	TERMINAL_STATUSES,
-	orderForReplay,
-	delayForAttempt,
 	canRetry,
 	classifyConflict,
-	isConflictRetryable,
-	nextState,
-	resolveConflictChoice,
+	delayForAttempt,
 	diffVersions,
+	isConflictRetryable,
+	MAX_ATTEMPTS,
+	nextState,
+	orderForReplay,
+	resolveConflictChoice,
+	TERMINAL_STATUSES,
 } from './syncQueueEngine.js'
 
-export { replayOperation, drainQueue } from './syncReplayService.js'
+export { drainQueue, replayOperation } from './syncReplayService.js'
 
 export {
-	toDayString,
 	buildPlanningQuery,
 	fetchPlanning,
 	fetchReferences,
+	toDayString,
 } from './planningFetch.js'
 
 export {
-	GPS_POOR_ACCURACY_M,
-	classifyGps,
-	validateChecklistAnswers,
 	checklistProgress,
+	classifyGps,
+	GPS_POOR_ACCURACY_M,
 	syncIndicator,
+	validateChecklistAnswers,
 } from './fieldCollectionHelpers.js'

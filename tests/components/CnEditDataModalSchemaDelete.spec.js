@@ -14,10 +14,12 @@
 import { parseAxiosError } from '../../src/utils/errors.js'
 
 // A 409 exactly as OpenRegister's SchemasController::destroy sends it.
-const conflict409 = (objectCount = 1) => ({
-	message: 'Request failed with status code 409', // axios's useless generic
-	response: { status: 409, data: { error: 'schema-has-objects', objectCount } },
-})
+function conflict409(objectCount = 1) {
+	return {
+		message: 'Request failed with status code 409', // axios's useless generic
+		response: { status: 409, data: { error: 'schema-has-objects', objectCount } },
+	}
+}
 
 describe('parseAxiosError', () => {
 	it('extracts the server error code and count from a 409 body', () => {
@@ -107,8 +109,12 @@ describe('CnEditDataModal — removeSchema ordering and cascade', () => {
 
 	it('unlinks only AFTER a successful delete', async () => {
 		const order = []
-		axios.delete = jest.fn(async () => { order.push('delete') })
-		axios.patch = jest.fn(async () => { order.push('patch') })
+		axios.delete = jest.fn(async () => {
+			order.push('delete')
+		})
+		axios.patch = jest.fn(async () => {
+			order.push('patch')
+		})
 
 		const ctx = harness(axios)
 		await ctx.removeSchema({ id: 4434, title: 'Cow' })

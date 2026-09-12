@@ -106,6 +106,8 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
+		/* eslint-disable vue/no-unused-properties -- part of the widget contract: CnContainerChild and the dashboard pages bind :placement on every widget, so declaring it keeps it out of $attrs */
 		/**
 		 * Placement entity — reserved to match the renderer contract.
 		 *
@@ -115,6 +117,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+		/* eslint-enable vue/no-unused-properties */
 	},
 
 	data() {

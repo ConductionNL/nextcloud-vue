@@ -62,9 +62,7 @@ describe('CnFilesTab.openFile — safeHref protection (C4)', () => {
 		wrapper.vm.openFile({ accessUrl: 'javascript:alert(document.cookie)' })
 
 		// window.open must NOT have been called with a javascript: URL
-		const unsafeCalls = windowOpenSpy.mock.calls.filter(
-			(args) => typeof args[0] === 'string' && args[0].startsWith('javascript:'),
-		)
+		const unsafeCalls = windowOpenSpy.mock.calls.filter((args) => typeof args[0] === 'string' && args[0].startsWith('javascript:'))
 		expect(unsafeCalls).toHaveLength(0)
 		wrapper.unmount()
 	})
@@ -73,9 +71,7 @@ describe('CnFilesTab.openFile — safeHref protection (C4)', () => {
 		const wrapper = mountTab()
 		wrapper.vm.openFile({ accessUrl: 'data:text/html,<script>alert(1)</script>' })
 
-		const unsafeCalls = windowOpenSpy.mock.calls.filter(
-			(args) => typeof args[0] === 'string' && args[0].startsWith('data:'),
-		)
+		const unsafeCalls = windowOpenSpy.mock.calls.filter((args) => typeof args[0] === 'string' && args[0].startsWith('data:'))
 		expect(unsafeCalls).toHaveLength(0)
 		wrapper.unmount()
 	})

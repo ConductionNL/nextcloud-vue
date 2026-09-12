@@ -6,19 +6,19 @@
 <template>
 	<div class="cn-banner-form">
 		<NcTextField
-			:model-value="text"
+			:modelValue="text"
 			:label="t('nextcloud-vue', 'Banner text')"
-			@update:model-value="update('text', $event)" />
+			@update:modelValue="update('text', $event)" />
 		<NcSelect
-			:model-value="variant"
+			:modelValue="variant"
 			:options="variantOptions"
-			:input-label="t('nextcloud-vue', 'Variant')"
+			:inputLabel="t('nextcloud-vue', 'Variant')"
 			:clearable="false"
-			@update:model-value="update('variant', $event)" />
+			@update:modelValue="update('variant', $event)" />
 		<NcTextField
-			:model-value="route"
+			:modelValue="route"
 			:label="t('nextcloud-vue', 'Route (page id, optional)')"
-			@update:model-value="update('route', $event)" />
+			@update:modelValue="update('route', $event)" />
 		<p class="cn-banner-form__hint">
 			{{ t('nextcloud-vue', 'A conditional banner (visibleWhen) is declared in the manifest.') }}
 		</p>
@@ -26,8 +26,8 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 
 /**
  * CnBannerWidgetForm — the config sub-form for a `banner` widget.
@@ -55,6 +55,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values when not editing (registry defaults).
 		 *
@@ -92,6 +93,7 @@ export default {
 		variantOptions() {
 			return ['info', 'warning', 'error']
 		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {
@@ -110,7 +112,7 @@ export default {
 		 * Set one field and emit the assembled content.
 		 *
 		 * @param {string} field The data field name.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 */
 		update(field, value) {
 			this[field] = value

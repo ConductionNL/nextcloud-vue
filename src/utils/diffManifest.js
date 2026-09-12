@@ -25,7 +25,7 @@
  * @module utils/diffManifest
  */
 
-import { KEYED_ARRAYS, DELTA_REMOVE } from './mergeManifestDelta.js'
+import { DELTA_REMOVE, KEYED_ARRAYS } from './mergeManifestDelta.js'
 
 /**
  * Compute the minimal delta from `base` to `edited`.
@@ -42,13 +42,15 @@ export function diffManifest(base, edited) {
 /**
  * Diff two values; return `undefined` when equal, else the minimal delta.
  *
- * @param {*} base Base value.
- * @param {*} edited Edited value.
+ * @param {unknown} base Base value.
+ * @param {unknown} edited Edited value.
  * @param {string} path Current path (for warnings).
- * @return {*} Minimal delta value, or `undefined` if unchanged.
+ * @return {unknown} Minimal delta value, or `undefined` if unchanged.
  */
 function diffValue(base, edited, path) {
-	if (deepEqual(base, edited)) return undefined
+	if (deepEqual(base, edited)) {
+		return undefined
+	}
 	if (!isPlainObject(base) || !isPlainObject(edited)) {
 		return clone(edited)
 	}
@@ -68,14 +70,20 @@ function diffValue(base, edited, path) {
 			} else if (result.entries.length > 0) {
 				out[key] = result.entries
 			}
-			if (result.order) orderMap[key] = result.order
+			if (result.order) {
+				orderMap[key] = result.order
+			}
 		} else {
 			const childDelta = diffValue(baseChild, editedChild, childPath)
-			if (childDelta !== undefined) out[key] = childDelta
+			if (childDelta !== undefined) {
+				out[key] = childDelta
+			}
 		}
 	}
 
-	if (Object.keys(orderMap).length > 0) out.__order = orderMap
+	if (Object.keys(orderMap).length > 0) {
+		out.__order = orderMap
+	}
 	return Object.keys(out).length > 0 ? out : undefined
 }
 
@@ -89,16 +97,12 @@ function diffValue(base, edited, path) {
  * @return {{ entries: object[], order: (string[]|null), replaceWhole: boolean }}
  */
 function diffKeyedArray(baseArr, editedArr, keyField, path) {
-	const idless = [...baseArr, ...editedArr].some(
-		(e) => !isPlainObject(e) || e[keyField] === undefined,
-	)
+	const idless = [...baseArr, ...editedArr].some((e) => !isPlainObject(e) || e[keyField] === undefined)
 	if (idless) {
 		// eslint-disable-next-line no-console
-		console.warn(
-			`[diffManifest] Array at "${path}" has entries without "${keyField}" — `
+		console.warn(`[diffManifest] Array at "${path}" has entries without "${keyField}" — `
 			+ 'emitting a whole-array replacement instead of a keyed delta. '
-			+ 'Add stable ids to enable fine-grained deltas.',
-		)
+			+ 'Add stable ids to enable fine-grained deltas.')
 		return { entries: [], order: null, replaceWhole: true }
 	}
 
@@ -110,7 +114,9 @@ function diffKeyedArray(baseArr, editedArr, keyField, path) {
 		const key = editedEntry[keyField]
 		if (baseByKey.has(key)) {
 			const patch = diffValue(baseByKey.get(key), editedEntry, `${path}/${key}`)
-			if (patch !== undefined) entries.push({ [keyField]: key, ...patch })
+			if (patch !== undefined) {
+				entries.push({ [keyField]: key, ...patch })
+			}
 		} else {
 			entries.push(clone(editedEntry))
 		}
@@ -146,24 +152,34 @@ function isPlainObject(value) {
 }
 
 function deepEqual(a, b) {
-	if (a === b) return true
+	if (a === b) {
+		return true
+	}
 	if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
 		return false
 	}
 	const aArr = Array.isArray(a)
 	const bArr = Array.isArray(b)
-	if (aArr !== bArr) return false
+	if (aArr !== bArr) {
+		return false
+	}
 	if (aArr) {
 		return a.length === b.length && a.every((v, i) => deepEqual(v, b[i]))
 	}
 	const aKeys = Object.keys(a)
 	const bKeys = Object.keys(b)
-	if (aKeys.length !== bKeys.length) return false
-	return aKeys.every((k) => Object.prototype.hasOwnProperty.call(b, k) && deepEqual(a[k], b[k]))
+	if (aKeys.length !== bKeys.length) {
+		return false
+	}
+	return aKeys.every((k) => Object.hasOwn(b, k) && deepEqual(a[k], b[k]))
 }
 
 function clone(value) {
-	if (value === undefined) return undefined
-	if (value === null || typeof value !== 'object') return value
+	if (value === undefined) {
+		return undefined
+	}
+	if (value === null || typeof value !== 'object') {
+		return value
+	}
 	return JSON.parse(JSON.stringify(value))
 }

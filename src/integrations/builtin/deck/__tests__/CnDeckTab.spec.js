@@ -9,7 +9,7 @@
  *  - overdue marking when duedate is in the past.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnDeckTab = require('../CnDeckTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -43,8 +43,7 @@ describe('CnDeckTab', () => {
 	it('renders the empty state with an "Open Deck" CTA when no cards', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnDeckTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No cards linked yet')
 		expect(wrapper.text()).toContain('Open Deck')
 		wrapper.unmount()
@@ -63,8 +62,7 @@ describe('CnDeckTab', () => {
 			}),
 		})
 		const wrapper = mount(CnDeckTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const columns = wrapper.findAll('.cn-deck-tab__column')
 		expect(columns).toHaveLength(2)
 		expect(wrapper.text()).toContain('To Do')
@@ -86,8 +84,7 @@ describe('CnDeckTab', () => {
 			}),
 		})
 		const wrapper = mount(CnDeckTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const overdue = wrapper.findAll('.cn-deck-tab__card--overdue')
 		expect(overdue).toHaveLength(1)
 		wrapper.unmount()
@@ -96,8 +93,7 @@ describe('CnDeckTab', () => {
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnDeckTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Deck is currently unavailable.')
 		expect(wrapper.find('.cn-deck-tab__card').exists()).toBe(false)
 		wrapper.unmount()
@@ -107,8 +103,7 @@ describe('CnDeckTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnDeckTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load cards.')
 		wrapper.unmount()
 		spy.mockRestore()
@@ -117,8 +112,7 @@ describe('CnDeckTab', () => {
 	it('exposes Link and Create action buttons (Tier-2)', async () => {
 		global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnDeckTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Link existing card')
 		expect(wrapper.text()).toContain('Create new card')
 		wrapper.unmount()
@@ -127,8 +121,7 @@ describe('CnDeckTab', () => {
 	it('opens the picker when "Link existing card" is clicked', async () => {
 		global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnDeckTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		wrapper.vm.openPicker()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.pickerOpen).toBe(true)
@@ -138,8 +131,7 @@ describe('CnDeckTab', () => {
 	it('opens the create dialog when "Create new card" is clicked', async () => {
 		global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnDeckTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		wrapper.vm.openCreate()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.createOpen).toBe(true)
@@ -153,10 +145,9 @@ describe('CnDeckTab', () => {
 			return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		})
 		const wrapper = mount(CnDeckTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		await wrapper.vm.onLinkPick({ cardId: 42 })
-		expect(calls.some(c => /\/deck$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')).toBe(true)
+		expect(calls.some((c) => /\/deck$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')).toBe(true)
 		wrapper.unmount()
 	})
 
@@ -167,10 +158,9 @@ describe('CnDeckTab', () => {
 			return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		})
 		const wrapper = mount(CnDeckTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		await wrapper.vm.onCreatePick({ boardId: 1, stackId: 2, title: 'X' })
-		expect(calls.some(c => /\/deck\/new$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')).toBe(true)
+		expect(calls.some((c) => /\/deck\/new$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')).toBe(true)
 		wrapper.unmount()
 	})
 })

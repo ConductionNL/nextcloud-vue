@@ -71,9 +71,9 @@
 			v-if="missingApp"
 			:title="widgetTitle"
 			:chromeless="isBare"
-			title-icon-position="left"
-			:show-refresh="false"
-			:show-request-feature="false">
+			titleIconPosition="left"
+			:showRefresh="false"
+			:showRequestFeature="false">
 			<template v-if="widget && widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
@@ -88,16 +88,16 @@
 			v-else-if="isData && schemaObject"
 			:title="resolvedTitle"
 			:chromeless="isBare"
-			:show-actions="!isBare"
+			:showActions="!isBare"
 			:icon="widget.icon || null"
 			:schema="schemaObject"
-			:object-data="object"
-			:object-type="objectType"
+			:objectData="object"
+			:objectType="objectType"
 			:store="store"
 			:overrides="content.overrides || {}"
 			:include="content.include || null"
 			:exclude="content.exclude || []"
-			:hide-empty="content.hideEmpty === true || hideEmpty"
+			:hideEmpty="content.hideEmpty === true || hideEmpty"
 			:columns="content.columns || 3"
 			:editable="content.editable !== false" />
 
@@ -107,34 +107,34 @@
 			v-else-if="isRelated"
 			:title="resolvedTitle"
 			:bare="isBare"
-			:object-type="objectType"
-			:object-id="objectId"
-			:object-data="object"
+			:objectType="objectType"
+			:objectId="objectId"
+			:objectData="object"
 			:register="register"
 			:schema="schema"
 			:store="store"
-			:include-groups="content.groups || []"
-			:hide-single-tab-title="content.hideSingleTabTitle !== false"
-			:show-total-count="content.showTotalCount !== false"
-			@open-integration="onOpenIntegration" />
+			:includeGroups="content.groups || []"
+			:hideSingleTabTitle="content.hideSingleTabTitle !== false"
+			:showTotalCount="content.showTotalCount !== false"
+			@openIntegration="onOpenIntegration" />
 
 		<!-- `type: 'object-geo'` — view/edit the object's `@self.geo` on a map. -->
 		<CnObjectGeoWidget
 			v-else-if="isGeo"
 			:title="resolvedTitle"
-			:object-id="objectId"
-			:object-data="object"
+			:objectId="objectId"
+			:objectData="object"
 			:register="register"
 			:schema="schema"
 			:editable="content.editable !== false"
-			:address-search="content.addressSearch === true"
+			:addressSearch="content.addressSearch === true"
 			:basemap="content.basemap || 'standard'"
-			:allow-basemap-switch="content.allowBasemapSwitch === true"
-			:fit-control="content.fitControl !== false"
-			:locate-control="content.locateControl !== false"
-			:fullscreen-control="content.fullscreenControl !== false"
+			:allowBasemapSwitch="content.allowBasemapSwitch === true"
+			:fitControl="content.fitControl !== false"
+			:locateControl="content.locateControl !== false"
+			:fullscreenControl="content.fullscreenControl !== false"
 			:height="content.height || '360px'"
-			:default-zoom="content.defaultZoom || 7"
+			:defaultZoom="content.defaultZoom || 7"
 			@saved="onGeoSaved" />
 
 		<!-- Mount-mode integration leaf (openregister#2127): a bare host-owned
@@ -142,7 +142,7 @@
 		<CnLeafMountHost
 			v-else-if="isMountIntegration"
 			:provider="integrationProvider"
-			:mount-props="integrationMountProps" />
+			:mountProps="integrationMountProps" />
 
 		<!-- Integration leaf, component mode. In BARE mode this renders the
 		     provider's `tab` (its bare content) rather than its `widget` (which
@@ -166,9 +166,9 @@
 		<CnWidgetWrapper
 			v-else-if="renderer && isContentOnly && !isBare"
 			:title="widget.title || ''"
-			title-icon-position="left"
-			:show-refresh="false"
-			:show-request-feature="false"
+			titleIconPosition="left"
+			:showRefresh="false"
+			:showRequestFeature="false"
 			class="cn-detail-page__catalog-card">
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
@@ -195,11 +195,11 @@
 		<CnWidgetWrapper
 			v-else-if="renderer && isCard && !isBare"
 			:title="widget.title || content.title || ''"
-			:show-title="effectiveShowCardTitle"
-			title-icon-position="left"
+			:showTitle="effectiveShowCardTitle"
+			titleIconPosition="left"
 			flush
-			:show-refresh="false"
-			:show-request-feature="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
 			class="cn-detail-page__card-fit">
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
@@ -237,11 +237,9 @@ import CnLeafMountHost from '../CnLeafMountHost/CnLeafMountHost.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
-import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
-import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
-import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import {
 	isCardWidgetDef,
 	isContentOnlyWidgetDef,
@@ -253,6 +251,8 @@ import {
 	widgetContentOf,
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
+import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
 /**
  * CnDetailWidgetHost — renders ONE detail-page widget definition.
@@ -346,9 +346,9 @@ export default {
 		return {
 			[PANEL_ACTION_SINK]: sink
 				? {
-					set: (items) => sink.set(this.widget?.id, items, 'widget'),
-					clear: () => sink.clear(this.widget?.id, 'widget'),
-				}
+						set: (items) => sink.set(this.widget?.id, items, 'widget'),
+						clear: () => sink.clear(this.widget?.id, 'widget'),
+					}
 				: null,
 		}
 	},
@@ -368,6 +368,7 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/**
 		 * How much chrome to draw around the widget.
 		 * - `'card'` — a titled `CnWidgetWrapper`, the detail-page grid default.
@@ -378,56 +379,67 @@ export default {
 			default: 'card',
 			validator: (v) => ['card', 'bare'].includes(v),
 		},
+
 		/** The bound record's id. Present on the first render; `object` is not. */
 		objectId: {
 			type: [String, Number],
 			default: '',
 		},
+
 		/** The loaded record, or null while it is still being fetched. */
 		object: {
 			type: Object,
 			default: null,
 		},
+
 		/** The resolved object-type slug. */
 		objectType: {
 			type: String,
 			default: '',
 		},
+
 		/** The resolved JSON Schema object, needed by the `data` widget. */
 		schemaObject: {
 			type: Object,
 			default: null,
 		},
+
 		/** OpenRegister register slug of the surface. */
 		register: {
 			type: [String, Object],
 			default: '',
 		},
+
 		/** OpenRegister schema slug of the surface. */
 		schema: {
 			type: [String, Object],
 			default: '',
 		},
+
 		/** The effective object store. */
 		store: {
 			type: Object,
 			default: null,
 		},
+
 		/** Rendering surface forwarded to integration widgets (AD-19). */
 		surface: {
 			type: String,
 			default: 'detail-page',
 		},
+
 		/** Object context forwarded to integration widgets. */
 		integrationContext: {
 			type: Object,
 			default: null,
 		},
+
 		/** Hide empty properties in the `data` widget. */
 		hideEmpty: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Every widget definition on the surface, for a CONTAINER widget to
 		 * resolve the children it references by id.
@@ -441,6 +453,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Whether a card widget (stat / gauge / delta) draws the wrapper header.
 		 *
@@ -459,6 +472,7 @@ export default {
 			type: Boolean,
 			default: null,
 		},
+
 		/**
 		 * The consumer's component registry, consulted before the built-in
 		 * catalog so a custom widget type overrides a built-in (REQ-MVR-005).
@@ -577,12 +591,12 @@ export default {
 		missingAppDescription() {
 			return this.widgetTitle
 				? t('nextcloud-vue', '{title} needs the {app} app. Install and enable it to see this.', {
-					title: this.widgetTitle,
-					app: this.requiredAppLabel,
-				})
+						title: this.widgetTitle,
+						app: this.requiredAppLabel,
+					})
 				: t('nextcloud-vue', 'Install and enable the {app} app to see this.', {
-					app: this.requiredAppLabel,
-				})
+						app: this.requiredAppLabel,
+					})
 		},
 
 		/**
@@ -687,7 +701,9 @@ export default {
 		 * @return {object|null} The component, or null.
 		 */
 		integrationComponent() {
-			if (!this.isIntegration) return null
+			if (!this.isIntegration) {
+				return null
+			}
 			const id = this.widget.integrationId
 			// `bareWidget` lets a provider say its WIDGET is already bare, so a
 			// tab panel gets the widget surface instead of the sidebar one.
@@ -705,7 +721,9 @@ export default {
 			if (this.isBare && this.integrationProvider?.tab && typeof this.resolveRegistryTab === 'function') {
 				return this.resolveRegistryTab(id)
 			}
-			if (typeof this.resolveRegistryWidget !== 'function') return null
+			if (typeof this.resolveRegistryWidget !== 'function') {
+				return null
+			}
 			return this.resolveRegistryWidget(id, this.surface)
 		},
 
@@ -800,7 +818,9 @@ export default {
 		 * @return {boolean} true for a widget that renders other widgets.
 		 */
 		isContainer() {
-			if (!this.widget?.type) return false
+			if (!this.widget?.type) {
+				return false
+			}
 			const entry = getWidgetTypeEntry(this.widget.type)
 			return Boolean(entry && entry.container === true)
 		},
@@ -813,7 +833,9 @@ export default {
 		 * @return {boolean} true when Add should render.
 		 */
 		catalogAddEnabled() {
-			if (!['object-list', 'table'].includes(this.widget?.type)) return false
+			if (!['object-list', 'table'].includes(this.widget?.type)) {
+				return false
+			}
 			return this.content.allowCreate !== false
 		},
 
@@ -824,7 +846,9 @@ export default {
 		 * @return {boolean} true when the wrapper header renders.
 		 */
 		effectiveShowCardTitle() {
-			if (this.showCardTitle !== null) return this.showCardTitle
+			if (this.showCardTitle !== null) {
+				return this.showCardTitle
+			}
 			return this.widget?.title !== undefined || this.content.title !== undefined
 		},
 
@@ -849,7 +873,9 @@ export default {
 		 * @return {object[]} PanelAction descriptors.
 		 */
 		ownPanelActions() {
-			if (!this.isBare || !this.catalogAddEnabled) return []
+			if (!this.isBare || !this.catalogAddEnabled) {
+				return []
+			}
 			return [{
 				key: 'catalog-add',
 				label: this.addLabel,
@@ -861,7 +887,9 @@ export default {
 
 	watch: {
 		ownPanelActions: {
-			handler() { this.publishOwnPanelActions() },
+			handler() {
+				this.publishOwnPanelActions()
+			},
 		},
 	},
 
@@ -872,7 +900,9 @@ export default {
 	beforeUnmount() {
 		// A closed tab's panel can be torn down while the strip lives on, and an
 		// item whose host is gone would call into nothing.
-		if (this.panelActionSink) this.panelActionSink.clear(this.widget?.id, 'host')
+		if (this.panelActionSink) {
+			this.panelActionSink.clear(this.widget?.id, 'host')
+		}
 	},
 
 	methods: {
@@ -885,9 +915,13 @@ export default {
 		 * @return {void}
 		 */
 		publishOwnPanelActions() {
-			if (!this.panelActionSink) return
+			if (!this.panelActionSink) {
+				return
+			}
 			const id = this.widget?.id
-			if (!id) return
+			if (!id) {
+				return
+			}
 			if (this.ownPanelActions.length) {
 				this.panelActionSink.set(id, this.ownPanelActions, 'host')
 			} else {

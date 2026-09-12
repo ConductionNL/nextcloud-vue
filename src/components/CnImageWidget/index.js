@@ -6,8 +6,8 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
-import CnImageWidget from './CnImageWidget.vue'
 import CnImageWidgetForm from '../CnImageWidgetForm/CnImageWidgetForm.vue'
+import CnImageWidget from './CnImageWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('image', {

@@ -148,7 +148,7 @@
 </template>
 
 <script>
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import AccountCircleOutline from 'vue-material-design-icons/AccountCircleOutline.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -197,6 +197,7 @@ export default {
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+
 		/** Optional single-entity reference (work-package id). */
 		value: { type: [String, Number], default: '' },
 		/** Pre-translated card title. */
@@ -212,26 +213,31 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'No work packages linked yet'),
 		},
+
 		/** Pre-translated unavailable label. */
 		unavailableLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'OpenProject is currently unavailable.'),
 		},
+
 		/** Pre-translated auth-expired label. */
 		authExpiredLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Authorisation for OpenProject expired.'),
 		},
+
 		/** Pre-translated unconfigured label. */
 		unconfiguredLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'OpenProject not configured in Integriq.'),
 		},
+
 		/** Pre-translated "configured" badge label. */
 		authConfiguredLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Connected'),
 		},
+
 		/** Fallback URL of the OpenProject app entry. */
 		openprojectAppUrl: {
 			type: String,
@@ -303,9 +309,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler() { this.fetch() } },
-		surface() { this.fetch() },
-		value() { if (this.surface === 'single-entity') { this.fetchSingle() } },
+		objectId: { immediate: true, handler() {
+			this.fetch()
+		} },
+
+		surface() {
+			this.fetch()
+		},
+
+		value() {
+			if (this.surface === 'single-entity') {
+				this.fetchSingle()
+			}
+		},
 	},
 
 	methods: {

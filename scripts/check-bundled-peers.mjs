@@ -82,7 +82,7 @@
  *   node scripts/check-bundled-peers.mjs [repoRoot]
  */
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
 
 const root = resolve(process.argv[2] || '.')

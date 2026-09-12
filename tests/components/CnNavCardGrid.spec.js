@@ -187,9 +187,7 @@ describe('CnNavCardGrid — accessibility: no aria-label anywhere', () => {
 	})
 
 	it('a card with a description carries aria-describedby pointing at the description element id', () => {
-		const wrapper = mountGrid(
-			{ entries: [{ id: 'a', label: 'A', description: 'desc a' }], widgetId: 'test-widget' },
-		)
+		const wrapper = mountGrid({ entries: [{ id: 'a', label: 'A', description: 'desc a' }], widgetId: 'test-widget' })
 		const card = wrapper.find('.cn-nav-card-grid__card')
 		const describedBy = card.attributes('aria-describedby')
 		expect(describedBy).toBeTruthy()

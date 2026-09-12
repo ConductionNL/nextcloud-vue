@@ -6,7 +6,7 @@
  * state-transition machine.
  */
 
-import { nextSortState, MAX_SORT_KEYS } from '../../src/utils/multiColumnSort.js'
+import { MAX_SORT_KEYS, nextSortState } from '../../src/utils/multiColumnSort.js'
 
 describe('nextSortState — plain click (single-sort, backward compatible)', () => {
 	it('unsorted -> plain click becomes the sole ascending key', () => {

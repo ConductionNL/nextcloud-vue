@@ -40,11 +40,10 @@ import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
  * recover it, and that is how a 404-vs-403 distinction gets lost.
  */
 export class CnHttpError extends Error {
-
 	/**
 	 * @param {string} message Human-readable message.
 	 * @param {number} status  HTTP status code.
-	 * @param {*}      body    Parsed response body, or the raw text when it was not JSON.
+	 * @param {unknown}      body    Parsed response body, or the raw text when it was not JSON.
 	 * @param {string} url     The requested URL, for logs.
 	 */
 	constructor(message, status, body, url) {
@@ -54,7 +53,6 @@ export class CnHttpError extends Error {
 		this.body = body
 		this.url = url
 	}
-
 }
 
 /**
@@ -94,7 +92,7 @@ export async function cnFetch(url, options = {}) {
  * @param {string} url       App-absolute path.
  * @param {object} [options] As {@link cnFetch}.
  * @throws {CnHttpError} When the response status is not 2xx.
- * @return {Promise<*>} Parsed JSON body, or null for an empty body.
+ * @return {Promise<unknown>} Parsed JSON body, or null for an empty body.
  */
 export async function cnFetchJson(url, options = {}) {
 	const response = await cnFetch(url, options)
@@ -107,7 +105,7 @@ export async function cnFetchJson(url, options = {}) {
 	if (raw !== '') {
 		try {
 			parsed = JSON.parse(raw)
-		} catch (e) {
+		} catch {
 			parsed = raw
 		}
 	}

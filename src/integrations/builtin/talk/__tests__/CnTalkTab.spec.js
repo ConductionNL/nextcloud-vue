@@ -12,7 +12,7 @@
  *  - DELETE /talk/{token} on unlink.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnTalkTab = require('../CnTalkTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -46,8 +46,7 @@ describe('CnTalkTab', () => {
 	it('renders the empty state with an "Open Talk" CTA when no rooms', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No conversations linked yet')
 		expect(wrapper.text()).toContain('Open Talk')
 		wrapper.unmount()
@@ -65,8 +64,7 @@ describe('CnTalkTab', () => {
 			}),
 		})
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		// Each conversation renders as an NcListItem row.
 		const rows = wrapper.findAll('.cn-talk-tab__row')
 		expect(rows).toHaveLength(2)
@@ -85,8 +83,7 @@ describe('CnTalkTab', () => {
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Talk is currently unavailable.')
 		wrapper.unmount()
 	})
@@ -95,8 +92,7 @@ describe('CnTalkTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load conversations.')
 		wrapper.unmount()
 		spy.mockRestore()
@@ -105,8 +101,7 @@ describe('CnTalkTab', () => {
 	it('exposes Link and Create action buttons (Tier-2)', async () => {
 		global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Link existing room')
 		expect(wrapper.text()).toContain('Create new room')
 		wrapper.unmount()
@@ -115,8 +110,7 @@ describe('CnTalkTab', () => {
 	it('opens the picker when "Link existing room" is clicked', async () => {
 		global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		wrapper.vm.openPicker()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.pickerOpen).toBe(true)
@@ -126,8 +120,7 @@ describe('CnTalkTab', () => {
 	it('opens the create dialog when "Create new room" is clicked', async () => {
 		global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		wrapper.vm.openCreate()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.createOpen).toBe(true)
@@ -141,10 +134,9 @@ describe('CnTalkTab', () => {
 			return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		})
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		await wrapper.vm.onPickerLink({ roomToken: 'tok-42' })
-		const linkCall = calls.find(c => /\/talk$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')
+		const linkCall = calls.find((c) => /\/talk$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')
 		expect(linkCall).toBeTruthy()
 		expect(JSON.parse(linkCall.opts.body)).toEqual({ roomToken: 'tok-42' })
 		wrapper.unmount()
@@ -157,10 +149,9 @@ describe('CnTalkTab', () => {
 			return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		})
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		await wrapper.vm.onCreateSubmit({ name: 'Sprint', description: 'd', type: 2 })
-		const createCall = calls.find(c => /\/talk\/new$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')
+		const createCall = calls.find((c) => /\/talk\/new$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')
 		expect(createCall).toBeTruthy()
 		expect(JSON.parse(createCall.opts.body)).toEqual({ name: 'Sprint', description: 'd', type: 2 })
 		wrapper.unmount()
@@ -171,8 +162,7 @@ describe('CnTalkTab', () => {
 			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) }) // initial fetch
 			.mockResolvedValueOnce({ ok: false, status: 409, json: () => Promise.resolve({}) }) // link POST
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		await wrapper.vm.onPickerLink({ roomToken: 'dup' })
 		expect(wrapper.vm.error).toContain('already linked')
 		wrapper.unmount()
@@ -185,10 +175,9 @@ describe('CnTalkTab', () => {
 			return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		})
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		await wrapper.vm.unlinkRoom({ roomToken: 'tok-x' })
-		const delCall = calls.find(c => /\/talk\/tok-x$/.test(String(c.url)) && c.opts && c.opts.method === 'DELETE')
+		const delCall = calls.find((c) => /\/talk\/tok-x$/.test(String(c.url)) && c.opts && c.opts.method === 'DELETE')
 		expect(delCall).toBeTruthy()
 		wrapper.unmount()
 	})

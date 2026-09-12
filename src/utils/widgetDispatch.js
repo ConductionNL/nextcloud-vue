@@ -23,8 +23,8 @@
  * @module utils/widgetDispatch
  */
 
-import { getWidgetTypeEntry } from '../components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { BUILT_IN_WIDGETS } from '../components/CnWidgetGrid/builtInWidgets.js'
+import { getWidgetTypeEntry } from '../components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { canonicalWidgetType } from './widgetTypeAliases.js'
 
 /**
@@ -112,7 +112,9 @@ export function isContentOnlyWidgetDef(def) {
  * @return {boolean} true when the registry entry declares `card`.
  */
 export function isCardWidgetDef(def) {
-	if (!def || !def.type) return false
+	if (!def || !def.type) {
+		return false
+	}
 	const entry = getWidgetTypeEntry(def.type)
 	return Boolean(entry && entry.card === true)
 }
@@ -138,13 +140,19 @@ export function isCardWidgetDef(def) {
  * @return {object|null} The renderer component, or null.
  */
 export function resolveRegistryRenderer(def, cnRegistry = {}) {
-	if (!def || !def.type || def.type === 'integration' || def.type === 'data') return null
+	if (!def || !def.type || def.type === 'integration' || def.type === 'data') {
+		return null
+	}
 	// Consumer registry FIRST — the order REQ-MVR-005 mandates ("Custom widget
 	// overrides built-in"), and the order CnWidgetGrid already uses.
 	const consumer = (cnRegistry || {})[def.type]
-	if (consumer) return consumer.component ?? consumer
+	if (consumer) {
+		return consumer.component ?? consumer
+	}
 	const entry = getWidgetTypeEntry(canonicalWidgetType(def.type))
-	if (entry && entry.renderer) return entry.renderer
+	if (entry && entry.renderer) {
+		return entry.renderer
+	}
 	return BUILT_IN_WIDGETS[canonicalWidgetType(def.type)] || BUILT_IN_WIDGETS[def.type] || null
 }
 
@@ -160,7 +168,9 @@ export function resolveRegistryRenderer(def, cnRegistry = {}) {
  * @return {string|undefined} The title, or undefined to let the widget default.
  */
 export function widgetTitleOf(def) {
-	if (!def) return undefined
+	if (!def) {
+		return undefined
+	}
 	const content = widgetContentOf(def)
 	const entry = getWidgetTypeEntry(def.type)
 	if (entry && entry.ownsTitle) {

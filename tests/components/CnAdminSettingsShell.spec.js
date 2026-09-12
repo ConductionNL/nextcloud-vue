@@ -118,7 +118,6 @@ describe('CnAdminSettingsShell', () => {
 	// app. It now renders here, on the app's Nextcloud admin page, where the
 	// access decision is made server-side for /settings/admin/<app>.
 	describe('organisation credential broker (ADR-079 Step 2)', () => {
-
 		it('does not render the broker by default', () => {
 			const wrapper = mountShell()
 			expect(wrapper.findComponent({ name: 'CnCredentials' }).exists()).toBe(false)

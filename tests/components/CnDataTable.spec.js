@@ -84,8 +84,12 @@ describe('CnDataTable — columns[].aggregate', () => {
 		let resolveA
 		let resolveB
 		axios.get
-			.mockReturnValueOnce(new Promise((resolve) => { resolveA = resolve }))
-			.mockReturnValueOnce(new Promise((resolve) => { resolveB = resolve }))
+			.mockReturnValueOnce(new Promise((resolve) => {
+				resolveA = resolve
+			}))
+			.mockReturnValueOnce(new Promise((resolve) => {
+				resolveB = resolve
+			}))
 		const wrapper = mountTable({ rows, columns: [{ key: 'name', label: 'Name' }, aggregateCol] })
 		await wrapper.vm.$nextTick()
 		expect(wrapper.findAll('.cell').map((w) => w.text())).toContain('…')
@@ -364,7 +368,9 @@ describe('CnDataTable — built-in "View all" footer control', () => {
 	})
 
 	it('never renders an href-less anchor, even when the router cannot resolve the route', () => {
-		const $router = { resolve: jest.fn(() => { throw new Error('unknown route') }), push: jest.fn() }
+		const $router = { resolve: jest.fn(() => {
+			throw new Error('unknown route')
+		}), push: jest.fn() }
 		const wrapper = mountLimited({ $router })
 		expect(wrapper.find('a.cn-data-table__view-all').exists()).toBe(false)
 		expect(wrapper.find('button.cn-data-table__view-all[type="button"]').exists()).toBe(true)

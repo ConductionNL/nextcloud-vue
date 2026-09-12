@@ -22,8 +22,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnContactsTab from './contacts/CnContactsTab.vue'
 import CnContactsCard from './contacts/CnContactsCard.vue'
+import CnContactsTab from './contacts/CnContactsTab.vue'
 
 /**
  * `contacts` integration descriptor.

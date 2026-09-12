@@ -42,7 +42,7 @@
 				:label="t('nextcloud-vue', 'URL')"
 				placeholder="https://"
 				:error="urlTouched && !urlValid"
-				:helper-text="urlTouched && !urlValid ? t('nextcloud-vue', 'Enter a valid http(s) URL.') : ''"
+				:helperText="urlTouched && !urlValid ? t('nextcloud-vue', 'Enter a valid http(s) URL.') : ''"
 				required
 				@blur="urlTouched = true" />
 
@@ -122,7 +122,7 @@ export default {
 			try {
 				const parsed = new URL(value)
 				return parsed.protocol === 'http:' || parsed.protocol === 'https:'
-			} catch (e) {
+			} catch {
 				return false
 			}
 		},

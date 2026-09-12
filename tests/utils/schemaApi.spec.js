@@ -11,32 +11,38 @@
  * contract itself, so both consumers inherit the same behaviour.
  */
 import {
-	saveSchema,
 	deleteSchema,
 	describeSchemaChange,
+	saveSchema,
 	SchemaBreakingChangeError,
 	SchemaHasObjectsError,
 } from '../../src/utils/schemaApi.js'
 
 const axios = require('@nextcloud/axios').default
 
-const breaking409 = () => ({
-	response: {
-		status: 409,
-		data: {
-			error: 'Schema change classified breaking; acknowledgeBreaking required.',
-			classification: 'breaking',
-			changes: [{ property: 'barn', kind: 'type_changed', old: 'string', new: 'object' }],
+function breaking409() {
+	return {
+		response: {
+			status: 409,
+			data: {
+				error: 'Schema change classified breaking; acknowledgeBreaking required.',
+				classification: 'breaking',
+				changes: [{ property: 'barn', kind: 'type_changed', old: 'string', new: 'object' }],
+			},
 		},
-	},
-})
+	}
+}
 
-const hasObjects409 = (objectCount = 2) => ({
-	response: { status: 409, data: { error: 'schema-has-objects', objectCount } },
-})
+function hasObjects409(objectCount = 2) {
+	return {
+		response: { status: 409, data: { error: 'schema-has-objects', objectCount } },
+	}
+}
 
 describe('saveSchema', () => {
-	beforeEach(() => { jest.resetAllMocks() })
+	beforeEach(() => {
+		jest.resetAllMocks()
+	})
 
 	it('PUTs when an id is given, POSTs when it is not', async () => {
 		axios.put = jest.fn().mockResolvedValue({ data: { id: 7 } })
@@ -97,7 +103,9 @@ describe('saveSchema', () => {
 })
 
 describe('deleteSchema', () => {
-	beforeEach(() => { jest.resetAllMocks() })
+	beforeEach(() => {
+		jest.resetAllMocks()
+	})
 
 	it('does not cascade by default', async () => {
 		axios.delete = jest.fn().mockResolvedValue({ data: {} })
@@ -138,7 +146,8 @@ describe('describeSchemaChange', () => {
 
 	it('reads as a sentence, with no raw placeholders or snake_case', () => {
 		const text = describeSchemaChange(
-			{ property: 'barn', kind: 'type_changed', old: 'string', new: 'object' }, t,
+			{ property: 'barn', kind: 'type_changed', old: 'string', new: 'object' },
+			t,
 		)
 		expect(text).toBe('barn: type changed (from string to object)')
 		expect(text).not.toContain('{property}')
@@ -147,7 +156,8 @@ describe('describeSchemaChange', () => {
 
 	it('handles a null "old" and an object "new"', () => {
 		const text = describeSchemaChange(
-			{ property: 'size', kind: 'constraint_tightened', old: null, new: { enum: ['small'] } }, t,
+			{ property: 'size', kind: 'constraint_tightened', old: null, new: { enum: ['small'] } },
+			t,
 		)
 		expect(text).toContain('none')
 		expect(text).toContain('{"enum":["small"]}')

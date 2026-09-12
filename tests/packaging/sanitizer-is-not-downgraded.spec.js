@@ -54,9 +54,13 @@ function installedCopies(name) {
 	 * @return {void}
 	 */
 	const walk = (dir) => {
-		if (!fs.existsSync(dir)) return
+		if (!fs.existsSync(dir)) {
+			return
+		}
 		for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-			if (!entry.isDirectory()) continue
+			if (!entry.isDirectory()) {
+				continue
+			}
 			const full = path.join(dir, entry.name)
 			// Scoped packages hold their own directory level.
 			if (entry.name.startsWith('@')) {
@@ -67,7 +71,9 @@ function installedCopies(name) {
 			if (fs.existsSync(manifest)) {
 				try {
 					const pkg = JSON.parse(fs.readFileSync(manifest, 'utf8'))
-					if (pkg.name === name && pkg.version) found.push({ dir: full, version: pkg.version })
+					if (pkg.name === name && pkg.version) {
+						found.push({ dir: full, version: pkg.version })
+					}
 				} catch {
 					// An unreadable manifest is not this test's business.
 				}

@@ -122,14 +122,16 @@ const sampleManifest = {
 
 const createClientContactAware = jest.fn().mockResolvedValue({ id: 'c-1' })
 
-const defaultRegistry = () => ({
-	SettingsPage: SettingsPageStub,
-	MyHeader: HeaderStub,
-	MyActions: ActionsStub,
-	CreateDialog: CreateDialogStub,
-	FormFields: FormFieldsStub,
-	createClientContactAware,
-})
+function defaultRegistry() {
+	return {
+		SettingsPage: SettingsPageStub,
+		MyHeader: HeaderStub,
+		MyActions: ActionsStub,
+		CreateDialog: CreateDialogStub,
+		FormFields: FormFieldsStub,
+		createClientContactAware,
+	}
+}
 
 function mountRenderer(routeName, {
 	useProps = false,
@@ -139,16 +141,16 @@ function mountRenderer(routeName, {
 	const provide = useProps
 		? {}
 		: {
-			cnManifest: manifest,
-			cnCustomComponents: customComponents,
-			cnTranslate: (k) => k,
-		}
+				cnManifest: manifest,
+				cnCustomComponents: customComponents,
+				cnTranslate: (k) => k,
+			}
 	const propsData = useProps
 		? {
-			manifest,
-			customComponents,
-			translate: (k) => k,
-		}
+				manifest,
+				customComponents,
+				translate: (k) => k,
+			}
 		: {}
 	return shallowMount(CnPageRenderer, {
 		propsData,
@@ -182,9 +184,7 @@ describe('CnPageRenderer', () => {
 			const wrapper = mountRenderer('does-not-exist')
 			expect(wrapper.vm.currentPage).toBeNull()
 			expect(wrapper.find('[data-page-id]').exists()).toBe(false)
-			expect(warnSpy).toHaveBeenCalledWith(
-				expect.stringContaining('No page found for $route.name = "does-not-exist"'),
-			)
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('No page found for $route.name = "does-not-exist"'))
 		})
 	})
 
@@ -253,9 +253,7 @@ describe('CnPageRenderer', () => {
 		it('logs a warning and renders an empty wrapper when a custom component is missing from the registry', () => {
 			const wrapper = mountRenderer('broken', { customComponents: {} })
 			expect(wrapper.vm.resolvedComponent).toBeNull()
-			expect(warnSpy).toHaveBeenCalledWith(
-				expect.stringContaining('Custom component "NonExistent" not found in registry'),
-			)
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Custom component "NonExistent" not found in registry'))
 			// Wrapper still renders (page exists), but no inner content.
 			expect(wrapper.attributes('data-page-id')).toBe('broken')
 		})
@@ -721,9 +719,7 @@ describe('CnPageRenderer', () => {
 		it('logs a warning when a referenced override component is missing from the registry', () => {
 			const wrapper = mountRenderer('home-bad-header')
 			expect(wrapper.vm.headerOverride).toBeNull()
-			expect(warnSpy).toHaveBeenCalledWith(
-				expect.stringContaining('Slot-override component "NonExistent"'),
-			)
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Slot-override component "NonExistent"'))
 		})
 	})
 
@@ -808,9 +804,7 @@ describe('CnPageRenderer', () => {
 		it('skips and warns on a slot whose component is missing from the registry', () => {
 			const wrapper = mountRenderer('home-bad-slot')
 			expect(wrapper.vm.resolvedSlotEntries).toEqual([])
-			expect(warnSpy).toHaveBeenCalledWith(
-				expect.stringContaining('slot "create-dialog"'),
-			)
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('slot "create-dialog"'))
 		})
 	})
 

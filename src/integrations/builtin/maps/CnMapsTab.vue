@@ -99,7 +99,7 @@
 				:name="pointName(point)"
 				:href="pointUrl(point)"
 				target="_blank"
-				:force-display-actions="true">
+				:forceDisplayActions="true">
 				<template #icon>
 					<span class="cn-maps-tab__pin" aria-hidden="true">
 						<MapMarker :size="22" class="cn-maps-tab__pin-icon" />
@@ -139,13 +139,13 @@
 					</span>
 				</template>
 				<template #actions>
-					<NcActionButton :close-after-click="true" @click="openPoint(point)">
+					<NcActionButton :closeAfterClick="true" @click="openPoint(point)">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
 						{{ openOnMapLabel }}
 					</NcActionButton>
-					<NcActionButton :close-after-click="true" @click="unlinkPoint(point)">
+					<NcActionButton :closeAfterClick="true" @click="unlinkPoint(point)">
 						<template #icon>
 							<LinkOff :size="20" />
 						</template>
@@ -157,7 +157,7 @@
 
 		<CnMapPoiPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 
@@ -212,8 +212,10 @@ export default {
 	},
 
 	props: {
+		/* eslint-disable vue/no-unused-properties -- the integration dispatch binds integrationId on every integration component (see CnIntegrationWidgetGrid), so declaring it keeps it out of $attrs */
 		/** Stable integration id (forwarded from the registry — always `'maps'`). */
 		integrationId: { type: String, default: 'maps' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Parent object id. */
 		objectId: { type: String, required: true },
 		/** OpenRegister register id (slug or uuid). */
@@ -246,9 +248,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchPoints() } } },
-		register() { this.fetchPoints() },
-		schema() { this.fetchPoints() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchPoints()
+			}
+		} },
+
+		register() {
+			this.fetchPoints()
+		},
+
+		schema() {
+			this.fetchPoints()
+		},
 	},
 
 	methods: {

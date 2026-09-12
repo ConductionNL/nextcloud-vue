@@ -13,12 +13,12 @@
 			:title="title"
 			:description="description"
 			:icon="resolvedIcon"
-			:show-title="showTitle">
+			:showTitle="showTitle">
 			<CnPageHeader
 				:title="title"
 				:description="description"
 				:icon="resolvedIcon"
-				:visually-hidden="!showTitle" />
+				:visuallyHidden="!showTitle" />
 		</slot>
 
 		<!-- Optional content below header, above actions bar -->
@@ -29,59 +29,59 @@
 		<!-- Actions bar -->
 		<CnActionsBar
 			:pagination="effectivePagination"
-			:object-count="effectiveObjects.length"
+			:objectCount="effectiveObjects.length"
 			:selectable="selectable"
-			:selected-ids="internalSelectedIds"
-			:add-label="resolvedAddLabel"
-			:add-icon="resolvedIcon"
-			:inline-action-count="inlineActionCount"
-			:show-mass-import="showMassImport"
-			:show-mass-export="showMassExport"
-			:show-mass-copy="showMassCopy"
-			:show-mass-delete="showMassDelete"
-			:view-mode="currentViewMode"
-			:show-view-toggle="showViewToggle"
-			:available-view-modes="effectiveToggleModes"
-			:cards-label="cardsLabel"
-			:table-label="tableLabel"
-			:list-label="listLabel"
-			:cards-icon="cardsIcon"
-			:table-icon="tableIcon"
-			:show-map="showMapSegment"
-			:map-label="mapLabel"
-			:map-icon="mapIcon"
-			:list-icon="listIcon"
-			:show-sort-select="showSortSelect"
-			:sort-options="sortSelectOptions"
-			:sort-value="sortSelectValue"
-			:show-search="inlineSearch"
-			:search-value="effectiveSearchValue"
-			:search-placeholder="searchPlaceholder"
+			:selectedIds="internalSelectedIds"
+			:addLabel="resolvedAddLabel"
+			:addIcon="resolvedIcon"
+			:inlineActionCount="inlineActionCount"
+			:showMassImport="showMassImport"
+			:showMassExport="showMassExport"
+			:showMassCopy="showMassCopy"
+			:showMassDelete="showMassDelete"
+			:viewMode="currentViewMode"
+			:showViewToggle="showViewToggle"
+			:availableViewModes="effectiveToggleModes"
+			:cardsLabel="cardsLabel"
+			:tableLabel="tableLabel"
+			:listLabel="listLabel"
+			:cardsIcon="cardsIcon"
+			:tableIcon="tableIcon"
+			:showMap="showMapSegment"
+			:mapLabel="mapLabel"
+			:mapIcon="mapIcon"
+			:listIcon="listIcon"
+			:showSortSelect="showSortSelect"
+			:sortOptions="sortSelectOptions"
+			:sortValue="sortSelectValue"
+			:showSearch="inlineSearch"
+			:searchValue="effectiveSearchValue"
+			:searchPlaceholder="searchPlaceholder"
 			:refreshing="effectiveRefreshing"
-			:refresh-disabled="refreshDisabled"
-			:add-disabled="addDisabled"
-			:show-add="effectiveShowAdd"
-			:show-sidebar-toggle="hasSidebar"
-			:sidebar-open="sidebarOpen"
-			:header-actions="mergedHeaderActions"
-			:bulk-actions="mergedBulkActions"
-			:documentation-url="documentationUrl"
-			:documentation-label="documentationLabel || undefined"
-			@sort-change="$emit('sort-change', $event)"
+			:refreshDisabled="refreshDisabled"
+			:addDisabled="addDisabled"
+			:showAdd="effectiveShowAdd"
+			:showSidebarToggle="hasSidebar"
+			:sidebarOpen="sidebarOpen"
+			:headerActions="mergedHeaderActions"
+			:bulkActions="mergedBulkActions"
+			:documentationUrl="documentationUrl"
+			:documentationLabel="documentationLabel || undefined"
+			@sortChange="$emit('sort-change', $event)"
 			@add="onAddClick"
-			@clear-selection="onSelect([])"
-			@toggle-sidebar="sidebarOpen = !sidebarOpen"
+			@clearSelection="onSelect([])"
+			@toggleSidebar="sidebarOpen = !sidebarOpen"
 			@refresh="onRefreshEvent"
-			@header-action="onHeaderAction"
-			@bulk-action="onBulkAction"
-			@show-import="showImportDialog = true"
-			@show-export="showExportDialog = true"
-			@show-copy="showMassCopyDialog = true"
-			@show-delete="showMassDeleteDialog = true"
+			@headerAction="onHeaderAction"
+			@bulkAction="onBulkAction"
+			@showImport="showImportDialog = true"
+			@showExport="showExportDialog = true"
+			@showCopy="showMassCopyDialog = true"
+			@showDelete="showMassDeleteDialog = true"
 			@search="onSearchEvent"
-			@view-mode-change="onViewModeChange">
+			@viewModeChange="onViewModeChange">
 			<template v-if="$slots['mass-actions']" #mass-actions="{ count, selectedIds: ids }">
-				<slot name="mass-actions" :count="count" :selected-ids="ids" />
+				<slot name="mass-actions" :count="count" :selectedIds="ids" />
 			</template>
 			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
@@ -92,7 +92,7 @@
 			<template
 				v-if="$slots['selection-actions']"
 				#selection-actions="{ count, selectedIds: ids }">
-				<slot name="selection-actions" :count="count" :selected-ids="ids" />
+				<slot name="selection-actions" :count="count" :selectedIds="ids" />
 			</template>
 			<template v-if="$slots['header-actions'] || $slots['actions'] || isEditMode || showExportMenu || allowSavedViews" #actions>
 				<!--
@@ -108,17 +108,17 @@
 					v-if="allowSavedViews"
 					:views="savedViews"
 					:loading="savedViewsLoading"
-					:current-user-id="currentSavedViewsUserId"
+					:currentUserId="currentSavedViewsUserId"
 					@apply="onApplySavedView"
-					@save-request="showSaveViewDialog = true"
-					@delete-request="onDeleteViewRequest" />
+					@saveRequest="showSaveViewDialog = true"
+					@deleteRequest="onDeleteViewRequest" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
 				     CSV/Excel entries navigate to OR's export-leaf URL, passing the
 				     current route's query params through as filters. -->
 				<NcActions
 					v-if="showExportMenu"
-					:force-name="true"
-					:menu-name="t('nextcloud-vue', 'Export')"
+					:forceName="true"
+					:menuName="t('nextcloud-vue', 'Export')"
 					data-testid="cn-index-export-menu"
 					:aria-label="t('nextcloud-vue', 'Export')">
 					<template #icon>
@@ -158,10 +158,10 @@
 					:tabs="effectiveQuickFilters"
 					:mode="quickFilterMode"
 					:multiple="quickFilterMultiple"
-					:active-index="activeQuickFilterIndex"
-					:selected-indices="selectedQuickFilterIndices"
-					@update:active-index="onQuickFilterChange"
-					@update:selected-indices="onQuickFilterMultiChange" />
+					:activeIndex="activeQuickFilterIndex"
+					:selectedIndices="selectedQuickFilterIndices"
+					@update:activeIndex="onQuickFilterChange"
+					@update:selectedIndices="onQuickFilterMultiChange" />
 			</template>
 		</CnActionsBar>
 
@@ -170,8 +170,8 @@
 			v-if="showMassDeleteDialog"
 			ref="massDeleteDialog"
 			:items="selectedObjects"
-			:name-field="massActionNameField"
-			:name-formatter="nameFormatter"
+			:nameField="massActionNameField"
+			:nameFormatter="nameFormatter"
 			@confirm="onMassDeleteConfirm"
 			@close="showMassDeleteDialog = false" />
 
@@ -180,8 +180,8 @@
 			v-if="showMassCopyDialog"
 			ref="massCopyDialog"
 			:items="selectedObjects"
-			:name-field="massActionNameField"
-			:name-formatter="nameFormatter"
+			:nameField="massActionNameField"
+			:nameFormatter="nameFormatter"
 			@confirm="onMassCopyConfirm"
 			@close="showMassCopyDialog = false" />
 
@@ -217,9 +217,9 @@
 			v-if="viewPendingDelete"
 			ref="deleteViewConfirmDialog"
 			variant="error"
-			:dialog-title="t('nextcloud-vue', 'Delete view')"
+			:dialogTitle="t('nextcloud-vue', 'Delete view')"
 			:message="deleteViewMessage"
-			:confirm-label="t('nextcloud-vue', 'Delete')"
+			:confirmLabel="t('nextcloud-vue', 'Delete')"
 			@confirm="onDeleteViewConfirm"
 			@close="viewPendingDelete = null" />
 
@@ -240,8 +240,8 @@
 				v-if="showSingleDeleteDialog && actionTargetItem"
 				ref="singleDeleteDialog"
 				:item="actionTargetItem"
-				:name-field="massActionNameField"
-				:name-formatter="nameFormatter"
+				:nameField="massActionNameField"
+				:nameFormatter="nameFormatter"
 				@confirm="onSingleDeleteConfirm"
 				@close="closeSingleDelete" />
 		</slot>
@@ -263,8 +263,8 @@
 				v-if="showSingleCopyDialog && actionTargetItem"
 				ref="singleCopyDialog"
 				:item="actionTargetItem"
-				:name-field="massActionNameField"
-				:name-formatter="nameFormatter"
+				:nameField="massActionNameField"
+				:nameFormatter="nameFormatter"
 				@confirm="onSingleCopyConfirm"
 				@close="closeSingleCopy" />
 		</slot>
@@ -296,10 +296,10 @@
 				:schema="effectiveSchema"
 				:item="editItem"
 				:register="register"
-				:exclude-fields="excludeFields"
-				:include-fields="includeFields"
-				:field-overrides="fieldOverrides"
-				:name-field="massActionNameField"
+				:excludeFields="excludeFields"
+				:includeFields="includeFields"
+				:fieldOverrides="fieldOverrides"
+				:nameField="massActionNameField"
 				:size="formSize"
 				:columns="formColumns"
 				@confirm="onFormConfirm"
@@ -313,10 +313,10 @@
 				ref="formDialog"
 				:schema="effectiveSchema"
 				:item="editItem"
-				:exclude-fields="excludeFields"
-				:include-fields="includeFields"
-				:field-overrides="fieldOverrides"
-				:name-field="massActionNameField"
+				:excludeFields="excludeFields"
+				:includeFields="includeFields"
+				:fieldOverrides="fieldOverrides"
+				:nameField="massActionNameField"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog" />
 		</slot>
@@ -331,16 +331,16 @@
 					:source="folderSidebarSource"
 					:folders="folderSidebarFolders"
 					:objects="effectiveObjects"
-					:group-by="folderSidebar.groupBy || folderSidebar.field || ''"
-					:facet-values="folderSidebarFacetValues"
+					:groupBy="folderSidebar.groupBy || folderSidebar.field || ''"
+					:facetValues="folderSidebarFacetValues"
 					:partial="folderSidebarPartial"
-					:files-path="folderSidebar.filesPath || '/'"
-					:selected-id="selectedFolderId"
-					:all-label="folderSidebar.allLabel || undefined"
+					:filesPath="folderSidebar.filesPath || '/'"
+					:selectedId="selectedFolderId"
+					:allLabel="folderSidebar.allLabel || undefined"
 					:title="folderSidebar.title || ''"
-					:id-field="folderPassthroughIdField"
-					:name-field="folderPassthroughNameField"
-					:allow-create="Boolean(folderSidebar.allowCreate)"
+					:idField="folderPassthroughIdField"
+					:nameField="folderPassthroughNameField"
+					:allowCreate="Boolean(folderSidebar.allowCreate)"
 					@select="onFolderSelect"
 					@create="$emit('folder-create', $event)" />
 			</div>
@@ -377,24 +377,24 @@
 					v-else-if="currentViewMode === 'table'"
 					:schema="effectiveSchema"
 					:columns="tableColumns"
-					:row-icon="rowIcon"
+					:rowIcon="rowIcon"
 					:rows="displayObjects"
-					:sort-key="effectiveSortKey"
-					:sort-order="effectiveSortOrder"
-					:sort-keys="effectiveSortKeys"
+					:sortKey="effectiveSortKey"
+					:sortOrder="effectiveSortOrder"
+					:sortKeys="effectiveSortKeys"
 					:selectable="selectable"
-					:row-click-to-view="rowClickToView"
-					:selected-ids="internalSelectedIds"
-					:row-key="rowKey"
-					:empty-text="emptyText"
-					:exclude-columns="excludeColumns"
-					:include-columns="includeColumns"
-					:column-overrides="columnOverrides"
-					:row-class="rowClass"
+					:rowClickToView="rowClickToView"
+					:selectedIds="internalSelectedIds"
+					:rowKey="rowKey"
+					:emptyText="emptyText"
+					:excludeColumns="excludeColumns"
+					:includeColumns="includeColumns"
+					:columnOverrides="columnOverrides"
+					:rowClass="rowClass"
 					@sort="onSortEvent"
 					@select="onSelect"
-					@row-click="onRowClick"
-					@row-context-menu="onRowContextMenu">
+					@rowClick="onRowClick"
+					@rowContextMenu="onRowContextMenu">
 					<!-- Pass through column slots -->
 					<template
 						v-for="col in slotColumns"
@@ -422,7 +422,7 @@
 						#actions-header>
 						<NcActions
 							v-if="filterMenu && filterableFields.length"
-							:force-menu="true"
+							:forceMenu="true"
 							:aria-label="t('nextcloud-vue', 'Filter')">
 							<template #icon>
 								<FilterOutline :size="20" />
@@ -432,15 +432,15 @@
 								<NcActionCheckbox
 									v-for="val in field.values"
 									:key="`${field.key}-${val}`"
-									:model-value="isFilterActive(field.key, val)"
-									@update:model-value="toggleFilter(field.key, val)">
+									:modelValue="isFilterActive(field.key, val)"
+									@update:modelValue="toggleFilter(field.key, val)">
 									{{ val }}
 								</NcActionCheckbox>
 							</template>
 						</NcActions>
 						<NcActions
 							v-if="columnMenu && governedColumns.length"
-							:force-menu="true"
+							:forceMenu="true"
 							:aria-label="t('nextcloud-vue', 'Columns')">
 							<template #icon>
 								<ViewColumnOutline :size="20" />
@@ -449,8 +449,8 @@
 							<NcActionCheckbox
 								v-for="col in governedColumns"
 								:key="`col-${col.key}`"
-								:model-value="isColumnVisible(col.key)"
-								@update:model-value="toggleColumn(col.key)">
+								:modelValue="isColumnVisible(col.key)"
+								@update:modelValue="toggleColumn(col.key)">
 								{{ cnTranslate(col.label || col.key) }}
 							</NcActionCheckbox>
 						</NcActions>
@@ -469,9 +469,9 @@
 					:layers="mapLayers"
 					:basemaps="mapBasemaps"
 					:markers="mapMarkers"
-					:auto-fit="true"
+					:autoFit="true"
 					height="100%"
-					@marker-click="onMarkerClick" />
+					@markerClick="onMarkerClick" />
 
 				<!-- List view -->
 				<CnObjectList
@@ -480,9 +480,9 @@
 					:schema="effectiveSchema"
 					:config="listConfig"
 					:selectable="selectable"
-					:selected-ids="internalSelectedIds"
-					:row-key="rowKey"
-					:empty-text="emptyText"
+					:selectedIds="internalSelectedIds"
+					:rowKey="rowKey"
+					:emptyText="emptyText"
 					@click="onRowClick"
 					@select="onSelect">
 					<!--
@@ -531,10 +531,10 @@
 					:objects="displayObjects"
 					:schema="effectiveSchema"
 					:selectable="selectable"
-					:click-to-view="rowClickToView"
-					:selected-ids="internalSelectedIds"
-					:row-key="rowKey"
-					:empty-text="emptyText"
+					:clickToView="rowClickToView"
+					:selectedIds="internalSelectedIds"
+					:rowKey="rowKey"
+					:emptyText="emptyText"
 					@click="onRowClick"
 					@select="onSelect">
 					<!--
@@ -572,20 +572,20 @@
 				<CnContextMenu
 					v-model:open="contextMenuOpen"
 					:actions="mergedActions"
-					:target-item="contextMenuRow"
+					:targetItem="contextMenuRow"
 					@action="onRowAction"
 					@close="closeContextMenu" />
 
 				<!-- Pagination -->
 				<CnPagination
 					v-if="effectivePagination && effectivePagination.pages > 1"
-					:current-page="effectivePagination.page || 1"
-					:total-pages="effectivePagination.pages || 1"
-					:total-items="effectivePagination.total || 0"
-					:current-page-size="effectivePagination.limit || 20"
+					:currentPage="effectivePagination.page || 1"
+					:totalPages="effectivePagination.pages || 1"
+					:totalItems="effectivePagination.total || 0"
+					:currentPageSize="effectivePagination.limit || 20"
 					class="cn-index-page__pagination"
-					@page-changed="onPageEvent"
-					@page-size-changed="$emit('page-size-changed', $event)" />
+					@pageChanged="onPageEvent"
+					@pageSizeChanged="$emit('page-size-changed', $event)" />
 			</div>
 		</div>
 
@@ -608,49 +608,47 @@
 			:schema="effectiveSchema"
 			:title="title"
 			:icon="resolvedIcon"
-			:search-value="effectiveSearchValue"
-			:visible-columns="effectiveVisibleColumns"
-			:active-filters="effectiveActiveFilters"
-			:column-groups="resolvedSidebar.columnGroups || []"
-			:facet-data="resolvedSidebar.facets || {}"
-			:show-metadata="resolvedSidebar.showMetadata !== false"
+			:searchValue="effectiveSearchValue"
+			:visibleColumns="effectiveVisibleColumns"
+			:activeFilters="effectiveActiveFilters"
+			:columnGroups="resolvedSidebar.columnGroups || []"
+			:facetData="effectiveFacetData"
+			:showMetadata="resolvedSidebar.showMetadata !== false"
 			v-bind="sidebarSearchProps"
 			@update:open="sidebarOpen = $event"
 			@search="onSearchEvent"
-			@columns-change="onColumnsEvent"
-			@filter-change="onFilterEvent" />
+			@columnsChange="onColumnsEvent"
+			@filterChange="onFilterEvent" />
 	</div>
 </template>
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActions, NcActionButton, NcActionCaption, NcActionCheckbox, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import Cog from 'vue-material-design-icons/Cog.vue'
+import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { getCurrentInstance, inject } from 'vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Export from 'vue-material-design-icons/Export.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
+import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
-import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { multiKeySort } from '../../utils/multiKeySort.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema } from '../../utils/schema.js'
-import { useNamedSource } from './useNamedSource.js'
-import { multiKeySort } from '../../utils/multiKeySort.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
-import { CnObjectList } from '../CnObjectList/index.js'
-import { CnFolderSidebar } from '../CnFolderSidebar/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
+import { CnFolderSidebar } from '../CnFolderSidebar/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
@@ -659,6 +657,7 @@ import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
 import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { CnMassImportDialog } from '../CnMassImportDialog/index.js'
+import { CnObjectList } from '../CnObjectList/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
 import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
@@ -669,6 +668,7 @@ import { applyAiContext } from './aiContext.js'
 import { buildDefaultActions } from './defaultActions.js'
 import { dispatchAction } from './manifestActionDispatch.js'
 import { createSelfModeActions } from './selfModeActions.js'
+import { useNamedSource } from './useNamedSource.js'
 import { useSelfFetchList } from './useSelfFetchList.js'
 
 /**
@@ -742,7 +742,7 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * @event {object} apply-view — A saved view was applied (saved-views-ui). Payload: the View API object. Only emitted when `allowSavedViews`.
  * @event {string} search — Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  * @event {string[]} columns-change — Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
- * @event {{ key: string, values: any[] }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event {{ key: string, values: Array<unknown> }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  *
  * @slot mass-actions — Extra mass action buttons (shown when items are selected)
  * @slot action-items — Extra action bar buttons
@@ -936,6 +936,7 @@ export default {
 		 * How the quick filters render: `'chips'` (pill strip, default) or
 		 * `'dropdown'` (a single `NcSelect`). Sourced from the manifest as
 		 * `pages[].config.quickFilterMode`.
+		 *
 		 * @type {'chips'|'dropdown'}
 		 */
 		quickFilterMode: {
@@ -972,7 +973,7 @@ export default {
 		 * carries for dashboard widgets, which is where it shipped first;
 		 * index pages could not ask for it at all.
 		 */
-		extend: {
+		extend: { // eslint-disable-line vue/no-unused-properties -- read by useSelfFetchList.js off the props object, which this rule does not follow.
 			type: Array,
 			default: () => [],
 		},
@@ -995,7 +996,7 @@ export default {
 		 * Non-empty `:objects` still wins, and an entity source wins over
 		 * register/schema. See `src/composables/indexSources.js`.
 		 */
-		entitySource: { type: String, default: '' },
+		entitySource: { type: String, default: '' }, // eslint-disable-line vue/no-unused-properties -- read by useNamedSource.js and useSelfFetchList.js off the props object, which this rule does not follow.
 
 		/**
 		 * Route name a clicked row opens, overriding a named source's own
@@ -1048,6 +1049,7 @@ export default {
 		 * Manifest-driven index pages set this when a matching detail page
 		 * exists, so clicking a row opens its detail. Default false preserves
 		 * the legacy select-on-click behaviour.
+		 *
 		 * @type {boolean}
 		 */
 		rowClickToView: {
@@ -1086,6 +1088,7 @@ export default {
 		 * - `popupField` — object property rendered in the marker popup.
 		 * - `center` — optional `[lat, lng]` fallback centre when the filtered set
 		 *   has no plottable rows.
+		 *
 		 * @type {{ latField?: string, lngField?: string, geoField?: string, popupField?: string, center?: [number, number] }}
 		 */
 		mapConfig: {
@@ -1111,6 +1114,7 @@ export default {
 		 * `pages[].config.viewModes`. When set it takes precedence over the
 		 * inferred availability (map otherwise appears iff `mapConfig` is
 		 * non-empty). Cards/table always render regardless of this list.
+		 *
 		 * @type {Array<'table' | 'cards' | 'list' | 'map'>}
 		 */
 		viewModes: {
@@ -1123,6 +1127,7 @@ export default {
 		 * Defaults to the historical Cards/Table pair; include `'list'` to offer the
 		 * list view. Fed from the manifest as `pages[].config.availableViewModes`.
 		 * Map is added separately via `mapConfig` / `viewModes`.
+		 *
 		 * @type {Array<'cards' | 'table' | 'list' | 'map'>}
 		 */
 		availableViewModes: {
@@ -1149,6 +1154,7 @@ export default {
 		 * pair but for more than one active key. Ignored in self-fetch mode
 		 * (register + schema), which manages its own multi-sort state via
 		 * `useSelfFetchList`/`useListView` and persists it in the route query.
+		 *
 		 * @type {Array<{key: string, order: 'asc'|'desc'}>}
 		 */
 		sortKeys: {
@@ -1166,6 +1172,7 @@ export default {
 		 * by timestamp, strings via `localeCompare`). Clicking a sortable header
 		 * takes over and suppresses this default. Useful for a fixed presentation
 		 * order such as "group by type, then name".
+		 *
 		 * @type {Array<{field: string, order?: 'asc'|'desc'}>}
 		 */
 		defaultSort: {
@@ -1183,6 +1190,7 @@ export default {
 		 * Optional leading icon for every table row — a static MDI icon name or
 		 * a `(row) => iconName` function. Forwarded to CnDataTable. Fed from the
 		 * manifest as `pages[].config.rowIcon`. Unset = no icon column.
+		 *
 		 * @type {string | ((row: object) => string) | null}
 		 */
 		rowIcon: {
@@ -1387,7 +1395,7 @@ export default {
 		 *
 		 * When absent, create behaviour is unchanged (store / self-store save).
 		 *
-		 * @type {?(formData: object, ctx: { register: string, schema: (object|string), objectType: string, effectiveSchema: object }) => Promise<object>}
+		 * @type {((formData: object, ctx: { register: string, schema: (object|string), objectType: string, effectiveSchema: object }) => Promise<object>)|null}
 		 */
 		createOverride: {
 			type: Function,
@@ -1550,6 +1558,7 @@ export default {
 
 		/**
 		 * Options for the standalone sort dropdown (manifest `config.sortSelectOptions`).
+		 *
 		 * @type {Array<{ value: string, label: string }>}
 		 */
 		sortSelectOptions: {
@@ -1573,6 +1582,7 @@ export default {
 		 * Field mapping for the default list-view rows (CnObjectRow). Overrides
 		 * the schema-configuration defaults. Fed from the manifest as
 		 * `pages[].config.listConfig`.
+		 *
 		 * @type {{ titleField?: string, subtitleField?: string, imageField?: string, iconField?: string, iconName?: string, badgeField?: string, badgeVariantField?: string, badgeVariant?: string, badgeColorMap?: object }}
 		 */
 		listConfig: {
@@ -1595,6 +1605,7 @@ export default {
 		 *   defaults to `field`).
 		 * - `folders` — explicit folder list for `source:'custom'`.
 		 * - `allLabel` / `title` / `allowCreate` — passed to CnFolderSidebar.
+		 *
 		 * @type {object}
 		 */
 		folderSidebar: {
@@ -1644,7 +1655,7 @@ export default {
 		 *
 		 * @type {boolean}
 		 */
-		subscribe: {
+		subscribe: { // eslint-disable-line vue/no-unused-properties -- read by useSelfFetchList.js off the props object, which this rule does not follow.
 			type: Boolean,
 			default: true,
 		},
@@ -1816,7 +1827,7 @@ export default {
 		 * `import`, `export`, `copy`, `delete`) are dropped from the
 		 * merged list with a `console.warn`.
 		 *
-		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|Function, route?: string, disabled?: boolean }>}
+		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|(() => void), route?: string, disabled?: boolean }>}
 		 */
 		headerActions: {
 			type: Array,
@@ -1840,7 +1851,7 @@ export default {
 		 * strip already ships those two as built-ins, and a second button with
 		 * the same name doing something else is worse than no button.
 		 *
-		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|Function, target?: string, props?: object, disabled?: boolean }>}
+		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|((scope: { actionId: string, selectedIds: Array<string>, count: number }) => void), target?: string, props?: object, disabled?: boolean }>}
 		 */
 		bulkActions: {
 			type: Array,
@@ -2006,6 +2017,7 @@ export default {
 			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
 			return this.emptyText ? fn(this.emptyText) : this.emptyText
 		},
+
 		/**
 		 * Whether the host manifest editor is in edit mode (unwraps the injected
 		 * `cnEditingBody`, which may be a Vue ref or a plain boolean). Drives the
@@ -2017,6 +2029,7 @@ export default {
 			const e = this.cnEditingBody
 			return !!(e && typeof e === 'object' && 'value' in e ? e.value : e)
 		},
+
 		/**
 		 * Effective customComponents registry — the explicit prop wins
 		 * over the injected `cnCustomComponents`. Mirrors the priority
@@ -2028,6 +2041,7 @@ export default {
 		resolvedCustomComponents() {
 			return this.customComponents || this.cnCustomComponents || {}
 		},
+
 		/**
 		 * Merged page-level header actions: drops reserved ids and
 		 * resolves declarative `handler` keywords (`navigate` / `emit`
@@ -2052,6 +2066,7 @@ export default {
 			}
 			return merged
 		},
+
 		/**
 		 * Declarative bulk actions, validated and normalised.
 		 *
@@ -2085,16 +2100,23 @@ export default {
 			}
 			return merged
 		},
+
 		// ── Self-fetch ↔ consumer-managed: the "effective" source of each
 		//    list datum is the useListView instance in self-fetch mode, the
 		//    prop otherwise. The template binds to these.
 		/** True when self-fetch mode is active and the useListView instance exists. */
-		isSelfFetchMode() { return this.isSelfFetch && !!this.list },
+		isSelfFetchMode() {
+			return this.isSelfFetch && !!this.list
+		},
+
 		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
 		effectiveObjects() {
-			if (this.isNamedSource) return this.namedRows
+			if (this.isNamedSource) {
+				return this.namedRows
+			}
 			return this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects
 		},
+
 		/**
 		 * Rows handed to the table / card grid — `effectiveObjects` re-sorted by
 		 * the declarative `defaultSort` spec whenever no explicit user column
@@ -2105,8 +2127,12 @@ export default {
 		 * @return {object[]}
 		 */
 		displayObjects() {
-			if (!this.defaultSort || this.defaultSort.length === 0) return this.effectiveObjects
-			if (this.effectiveSortKey) return this.effectiveObjects
+			if (!this.defaultSort || this.defaultSort.length === 0) {
+				return this.effectiveObjects
+			}
+			if (this.effectiveSortKey) {
+				return this.effectiveObjects
+			}
 			return multiKeySort(this.effectiveObjects, this.defaultSort)
 		},
 
@@ -2118,7 +2144,9 @@ export default {
 		 * @return {boolean}
 		 */
 		showMapSegment() {
-			if (Array.isArray(this.viewModes)) return this.viewModes.includes('map')
+			if (Array.isArray(this.viewModes)) {
+				return this.viewModes.includes('map')
+			}
 			return Object.keys(this.mapConfig || {}).length > 0
 		},
 
@@ -2156,8 +2184,12 @@ export default {
 		 * @return {Array<object>} The folder list.
 		 */
 		folderSidebarFolders() {
-			if (!this.folderSidebar) return []
-			if (this.folderSidebar.source === 'register') return this.folderRegisterList
+			if (!this.folderSidebar) {
+				return []
+			}
+			if (this.folderSidebar.source === 'register') {
+				return this.folderRegisterList
+			}
 			return this.folderSidebar.folders || []
 		},
 
@@ -2167,7 +2199,9 @@ export default {
 		 * @return {string} The property the folders group by, or ''.
 		 */
 		folderSidebarGroupBy() {
-			if (!this.folderSidebar) return ''
+			if (!this.folderSidebar) {
+				return ''
+			}
 			return this.folderSidebar.groupBy || this.folderSidebar.field || ''
 		},
 
@@ -2189,15 +2223,61 @@ export default {
 		 */
 		folderSidebarFacetValues() {
 			const field = this.folderSidebarGroupBy
-			if (!field) return []
+			if (!field) {
+				return []
+			}
 
-			const fromStore = this.isSelfFetchMode ? (this.list.facets?.value || null) : null
-			const facets = fromStore
+			const facets = this.storeFacets
 				|| (this.folderSidebar && this.folderSidebar.facets)
 				|| this.resolvedSidebar.facets
 				|| {}
 
 			return facets[field]?.values || []
+		},
+
+		/**
+		 * The facet buckets OpenRegister computed for THIS page's query, or
+		 * null when this page does not fetch its own rows.
+		 *
+		 * Only self-fetch mode has them: the store keys facets by object type
+		 * and rewrites that entry from the same response the rows came from, so
+		 * what this returns always describes the query currently on screen.
+		 * Consumer-managed, named-source and entity-source pages never fetch
+		 * through the store, so there is nothing here to read and the caller
+		 * falls back to whatever the consumer passed in.
+		 *
+		 * @return {object|null} The live facet map, or null.
+		 */
+		storeFacets() {
+			return this.isSelfFetchMode ? (this.list.facets?.value || null) : null
+		},
+
+		/**
+		 * Facet data for the index sidebar.
+		 *
+		 * The `sidebar.facets` key is a DATA channel, not a declaration of
+		 * which facets exist: its docblock calls it "live facet data" and it
+		 * feeds CnIndexSidebar's `facetData` prop unchanged. Which filters the
+		 * sidebar offers comes from the schema (`filtersFromSchema` over the
+		 * facetable properties), and a filter with no bucket falls back to its
+		 * own declarative `options`. So there is nothing to merge here — the
+		 * two sources answer the same question, and the fresher one wins.
+		 *
+		 * A manifest-driven page has no consumer to fill `sidebar.facets`, so
+		 * before this read the sidebar was handed the manifest's sidebar config
+		 * and every facet rendered "No results" while the response body carried
+		 * the buckets.
+		 *
+		 * Note the store wins even when it is empty (`{}` is truthy), which is
+		 * deliberate and the conservative direction: until the first response
+		 * lands, offering no options is right, and offering options left over
+		 * from a config that never described this query would be worse. Same
+		 * precedence `folderSidebarFacetValues` has always used.
+		 *
+		 * @return {object} `{ fieldName: { values: [...] } }`, possibly empty.
+		 */
+		effectiveFacetData() {
+			return this.storeFacets || this.resolvedSidebar.facets || {}
 		},
 
 		/**
@@ -2209,7 +2289,9 @@ export default {
 		 * @return {boolean} True when the folder list is knowingly incomplete.
 		 */
 		folderSidebarPartial() {
-			if (this.folderSidebarFacetValues.length > 0) return false
+			if (this.folderSidebarFacetValues.length > 0) {
+				return false
+			}
 			const total = Number(this.effectivePagination?.total ?? 0)
 			return total > this.effectiveObjects.length
 		},
@@ -2223,7 +2305,9 @@ export default {
 		 * @return {string} The id field key.
 		 */
 		folderPassthroughIdField() {
-			if (this.folderSidebar && this.folderSidebar.source === 'register') return 'id'
+			if (this.folderSidebar && this.folderSidebar.source === 'register') {
+				return 'id'
+			}
 			return (this.folderSidebar && this.folderSidebar.idField) || 'id'
 		},
 
@@ -2231,7 +2315,9 @@ export default {
 		 * @return {string} The name field key for CnFolderSidebar's custom list.
 		 */
 		folderPassthroughNameField() {
-			if (this.folderSidebar && this.folderSidebar.source === 'register') return 'name'
+			if (this.folderSidebar && this.folderSidebar.source === 'register') {
+				return 'name'
+			}
 			return (this.folderSidebar && this.folderSidebar.nameField) || 'name'
 		},
 
@@ -2247,7 +2333,9 @@ export default {
 			const features = []
 			for (const row of this.displayObjects) {
 				const geometry = this.resolveRowGeometry(row)
-				if (!geometry) continue
+				if (!geometry) {
+					continue
+				}
 				features.push({
 					type: 'Feature',
 					geometry,
@@ -2310,7 +2398,11 @@ export default {
 				let sumLat = 0
 				let sumLng = 0
 				for (const f of feats) {
-					const _p = this.firstLatLng(f.geometry); if (!_p) continue; sumLng += _p.lng
+					const _p = this.firstLatLng(f.geometry)
+					if (!_p) {
+						continue
+					}
+					sumLng += _p.lng
 					sumLat += _p.lat
 				}
 				return [sumLat / feats.length, sumLng / feats.length]
@@ -2320,11 +2412,15 @@ export default {
 			}
 			return [0, 0]
 		},
+
 		/** Loading flag: store loading in self-fetch mode, else the `loading` prop. */
 		effectiveLoading() {
-			if (this.isNamedSource) return this.namedLoading
+			if (this.isNamedSource) {
+				return this.namedLoading
+			}
 			return this.isSelfFetchMode ? !!this.list.loading.value : this.loading
 		},
+
 		/**
 		 * Whether to replace the page with the full loading spinner. Only on an
 		 * INITIAL fetch — i.e. while loading AND there is no data to show yet.
@@ -2333,19 +2429,30 @@ export default {
 		 * the spinner over already-rendered content (fetchCollection preserves
 		 * the prior collection until the new results arrive).
 		 */
-		showInitialLoader() { return this.effectiveLoading && this.effectiveObjects.length === 0 },
+		showInitialLoader() {
+			return this.effectiveLoading && this.effectiveObjects.length === 0
+		},
+
 		/**
 		 * Refresh-spinner flag for the Actions menu: the `refreshing` prop
 		 * OR (self-fetch mode) the internally-tracked refresh. Lets manifest
 		 * and self-fetch pages spin the Refresh action without the host
 		 * wiring `:refreshing` (it has no fetch promise to await).
 		 */
-		effectiveRefreshing() { return this.refreshing || this.internalRefreshing },
+		effectiveRefreshing() {
+			return this.refreshing || this.internalRefreshing
+		},
+
 		/** Pagination: store pagination in self-fetch mode, else the `pagination` prop. */
-		effectivePagination() { return this.isSelfFetchMode ? this.list.pagination.value : this.pagination },
+		effectivePagination() {
+			return this.isSelfFetchMode ? this.list.pagination.value : this.pagination
+		},
+
 		/** Resolved schema OBJECT (for column generation / icons / labels). */
 		effectiveSchema() {
-			if (this.isSelfFetchMode) return this.list.schema.value
+			if (this.isSelfFetchMode) {
+				return this.list.schema.value
+			}
 			return (this.schema && typeof this.schema === 'object') ? this.schema : null
 		},
 
@@ -2355,7 +2462,9 @@ export default {
 		 * resolved schema object's `slug`/`name`.
 		 */
 		exportSchemaSlug() {
-			if (typeof this.schema === 'string') return this.schema
+			if (typeof this.schema === 'string') {
+				return this.schema
+			}
 			return this.effectiveSchema?.slug || this.effectiveSchema?.name || ''
 		},
 
@@ -2385,13 +2494,21 @@ export default {
 		 * @return {string}
 		 */
 		deleteViewMessage() {
-			if (!this.viewPendingDelete) return ''
+			if (!this.viewPendingDelete) {
+				return ''
+			}
 			return t('nextcloud-vue', 'Delete the view "{name}"? This cannot be undone.', { name: this.viewPendingDelete.name })
 		},
 
 		/** Sort key / order: list state in self-fetch mode, else the props. */
-		effectiveSortKey() { return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey },
-		effectiveSortOrder() { return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder },
+		effectiveSortKey() {
+			return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey
+		},
+
+		effectiveSortOrder() {
+			return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder
+		},
+
 		/**
 		 * Ordered multi-column sort state fed to CnDataTable: the self-fetch
 		 * list's `sortKeys` in self-fetch mode, else the host-controlled
@@ -2399,11 +2516,22 @@ export default {
 		 *
 		 * @return {Array<{key: string, order: 'asc'|'desc'}>}
 		 */
-		effectiveSortKeys() { return this.isSelfFetchMode ? (this.list.sortKeys.value || []) : this.sortKeys },
+		effectiveSortKeys() {
+			return this.isSelfFetchMode ? (this.list.sortKeys.value || []) : this.sortKeys
+		},
+
 		/** Search term / visible columns / active facet filters for the embedded sidebar. */
-		effectiveSearchValue() { return this.isSelfFetchMode ? (this.list.searchTerm.value || '') : (this.searchValue || '') },
-		effectiveVisibleColumns() { return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns },
-		effectiveActiveFilters() { return this.isSelfFetchMode ? (this.list.activeFilters.value || {}) : (this.activeFilters || {}) },
+		effectiveSearchValue() {
+			return this.isSelfFetchMode ? (this.list.searchTerm.value || '') : (this.searchValue || '')
+		},
+
+		effectiveVisibleColumns() {
+			return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns
+		},
+
+		effectiveActiveFilters() {
+			return this.isSelfFetchMode ? (this.list.activeFilters.value || {}) : (this.activeFilters || {})
+		},
 
 		/**
 		 * Enum schema columns offered in the header filter menu: one entry per
@@ -2438,6 +2566,7 @@ export default {
 			}
 			return out
 		},
+
 		/**
 		 * Ordered column definitions the sidebar's Columns tab governs:
 		 * schema-derived columns, the built-in Metadata group (when shown),
@@ -2503,7 +2632,9 @@ export default {
 				))
 			}
 			const visible = this.effectiveVisibleColumns
-			if (!Array.isArray(visible)) return cols
+			if (!Array.isArray(visible)) {
+				return cols
+			}
 
 			const governed = this.sidebarGovernedColumnKeys
 			cols = cols.filter((c) => {
@@ -2514,7 +2645,9 @@ export default {
 			const present = new Set(cols.map((c) => (typeof c === 'string' ? c : c.key)))
 			const byKey = new Map(this.governedColumns.map((c) => [c.key, c]))
 			visible.forEach((key) => {
-				if (present.has(key)) return
+				if (present.has(key)) {
+					return
+				}
 				const def = byKey.get(key)
 				if (def) {
 					cols.push({ ...def })
@@ -2526,7 +2659,9 @@ export default {
 
 		/** Resolved icon — explicit prop overrides schema.icon */
 		resolvedIcon() {
-			if (this.icon) return this.icon
+			if (this.icon) {
+				return this.icon
+			}
 			return this.effectiveSchema?.icon || ''
 		},
 
@@ -2553,21 +2688,21 @@ export default {
 			return buildDefaultActions({
 				flags: this.isNamedSource && this.namedSource
 					? {
-						view: this.hasExplicitProp('showViewAction') && this.showViewAction,
-						edit: this.hasExplicitProp('showEditAction') && this.showEditAction,
-						copy: this.hasExplicitProp('showCopyAction')
-							? this.showCopyAction
-							: typeof this.namedSource.copyRow === 'function',
-						del: this.hasExplicitProp('showDeleteAction')
-							? this.showDeleteAction
-							: typeof this.namedSource.deleteRow === 'function',
-					}
+							view: this.hasExplicitProp('showViewAction') && this.showViewAction,
+							edit: this.hasExplicitProp('showEditAction') && this.showEditAction,
+							copy: this.hasExplicitProp('showCopyAction')
+								? this.showCopyAction
+								: typeof this.namedSource.copyRow === 'function',
+							del: this.hasExplicitProp('showDeleteAction')
+								? this.showDeleteAction
+								: typeof this.namedSource.deleteRow === 'function',
+						}
 					: {
-						view: this.showViewAction,
-						edit: this.showEditAction,
-						copy: this.showCopyAction,
-						del: this.showDeleteAction,
-					},
+							view: this.showViewAction,
+							edit: this.showEditAction,
+							copy: this.showCopyAction,
+							del: this.showDeleteAction,
+						},
 				// The View action is always an eye — a universal "view" affordance,
 				// independent of the object's schema icon (which is the header icon).
 				viewIcon: Eye,
@@ -2678,6 +2813,7 @@ export default {
 					declared.push(dispatchAction(a, ctx))
 					continue
 				}
+				// eslint-disable-next-line no-console
 				console.warn(`[CnIndexPage] Ignoring action ${JSON.stringify(a)}: actions must be objects with an id and a label. To show a built-in action use the showViewAction / showEditAction / showCopyAction / showDeleteAction props.`)
 			}
 			return [...declared, ...this.defaultActions]
@@ -2718,7 +2854,9 @@ export default {
 
 		/** Whether all visible items are selected */
 		allSelected() {
-			if (this.effectiveObjects.length === 0 || this.internalSelectedIds.length === 0) return false
+			if (this.effectiveObjects.length === 0 || this.internalSelectedIds.length === 0) {
+				return false
+			}
 			return this.effectiveObjects.every((o) => this.internalSelectedIds.includes(o[this.rowKey]))
 		},
 
@@ -2736,7 +2874,9 @@ export default {
 
 		/** Add button label — derived from schema.title if not explicitly set */
 		resolvedAddLabel() {
-			if (this.addLabel) return this.cnTranslate(this.addLabel)
+			if (this.addLabel) {
+				return this.cnTranslate(this.addLabel)
+			}
 			// A named source names its own create action. Without this the button
 			// falls back to a schema-derived noun, and a named source has no
 			// schema — so the control the migration was supposed to preserve
@@ -2818,7 +2958,7 @@ export default {
 				visibleColumns: this.effectiveVisibleColumns,
 				activeFilters: this.effectiveActiveFilters,
 				columnGroups: this.resolvedSidebar.columnGroups || [],
-				facetData: this.resolvedSidebar.facets || {},
+				facetData: this.effectiveFacetData,
 				showMetadata: this.resolvedSidebar.showMetadata !== false,
 				...this.sidebarSearchProps,
 			}
@@ -2840,6 +2980,7 @@ export default {
 			}
 			const resolved = this.effectiveCustomComponents[this.cardComponent]
 			if (!resolved) {
+				// eslint-disable-next-line no-console
 				console.warn(`[CnIndexPage] cardComponent "${this.cardComponent}" not found in customComponents registry. Falling back to CnObjectCard.`)
 				return null
 			}
@@ -2859,6 +3000,7 @@ export default {
 			}
 			const resolved = this.effectiveCustomComponents[this.listComponent]
 			if (!resolved) {
+				// eslint-disable-next-line no-console
 				console.warn(`[CnIndexPage] listComponent "${this.listComponent}" not found in customComponents registry. Falling back to CnObjectRow.`)
 				return null
 			}
@@ -2884,7 +3026,9 @@ export default {
 		 */
 		activeOrganisation: {
 			handler(next) {
-				if (!next) return
+				if (!next) {
+					return
+				}
 				const uuid = next.uuid || null
 				// Update the object store when one is bound — sub-store
 				// methods may not exist on non-OR stores; guard with typeof.
@@ -2893,6 +3037,7 @@ export default {
 					store.setActiveTenantOrganisation(uuid)
 				}
 			},
+
 			deep: false,
 		},
 
@@ -2918,8 +3063,14 @@ export default {
 		},
 
 		// Re-push AI context when relevant props change
-		register() { this.pushAiContext() },
-		schema() { this.pushAiContext() },
+		register() {
+			this.pushAiContext()
+		},
+
+		schema() {
+			this.pushAiContext()
+		},
+
 		// In self-fetch mode, a same-component route-param change (e.g. the
 		// `:id` of `/forms/:id/submissions`) must re-resolve `config.filter`
 		// and re-fetch. useListView's `fixedFilters` getter re-reads $route on
@@ -2927,16 +3078,21 @@ export default {
 		'$route.params': {
 			deep: true,
 			handler() {
-				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh(1)
+				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') {
+					this.list.refresh(1)
+				}
 			},
 		},
+
 		// A same-path `$route.query` change (e.g. a dashboard deep-link
 		// `/cases?caseType=X`) must also re-fetch — `fixedFilters` merges the
 		// query into the fetch (see useSelfFetchList.resolveQueryFilters).
 		'$route.query': {
 			deep: true,
 			handler() {
-				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh(1)
+				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') {
+					this.list.refresh(1)
+				}
 			},
 		},
 
@@ -2945,7 +3101,9 @@ export default {
 		// so the user lands on the index page with the form already open.
 		'$route.query.action': {
 			handler(val) {
-				if (val === 'create') this.maybeOpenCreateFromQuery()
+				if (val === 'create') {
+					this.maybeOpenCreateFromQuery()
+				}
 			},
 		},
 	},
@@ -2959,13 +3117,17 @@ export default {
 			// Reflect a deep-link filter (e.g. ?caseType=<id>) as the active folder.
 			const key = this.folderSidebar.filterField || this.folderSidebar.field
 			const active = key && this.effectiveActiveFilters[key]
-			if (active) this.selectedFolderId = Array.isArray(active) ? active[0] : active
+			if (active) {
+				this.selectedFolderId = Array.isArray(active) ? active[0] : active
+			}
 		}
 	},
 
 	created() {
 		this.pushAiContext()
-		if (this.allowSavedViews) this.fetchSavedViews()
+		if (this.allowSavedViews) {
+			this.fetchSavedViews()
+		}
 		this.selfActions = createSelfModeActions({
 			isSelfFetchMode: () => this.isSelfFetchMode,
 			selfObjectStore: () => this.selfObjectStore,
@@ -3018,7 +3180,9 @@ export default {
 		 *   `fn({ actionId })` thunk.
 		 */
 		resolveHeaderHandler(entry) {
-			if (!entry) return entry
+			if (!entry) {
+				return entry
+			}
 			const handler = entry.handler
 			if (typeof handler === 'function') {
 				return { ...entry }
@@ -3070,6 +3234,7 @@ export default {
 			const { handler: _ignored, ...rest } = entry
 			return { ...rest }
 		},
+
 		/**
 		 * Click dispatch from CnActionsBar's `@bulk-action`.
 		 *
@@ -3125,6 +3290,7 @@ export default {
 			 */
 			this.$emit('bulk-action', { action: id, id, selectedIds, count })
 		},
+
 		/**
 		 * Open a bulk action's modal with the selection in its props.
 		 *
@@ -3146,7 +3312,7 @@ export default {
 				return
 			}
 			const own = (entry.props && typeof entry.props === 'object') ? entry.props : {}
-			if (Object.prototype.hasOwnProperty.call(own, 'selectedIds')) {
+			if (Object.hasOwn(own, 'selectedIds')) {
 				// eslint-disable-next-line no-console
 				console.warn(`CnIndexPage: bulkActions[].id "${entry.id}" declares its own "selectedIds" prop, which shadows the live selection; the modal will not see what the user selected.`)
 			}
@@ -3155,6 +3321,7 @@ export default {
 			 */
 			this.$emit('open-modal', { target, props: { selectedIds, count, ...own } })
 		},
+
 		/**
 		 * Click dispatch from CnActionsBar's `@header-action`. Looks
 		 * up the resolved entry by id, invokes its handler if any,
@@ -3174,6 +3341,7 @@ export default {
 			}
 			this.$emit('header-action', { action: id, id })
 		},
+
 		pushAiContext() {
 			applyAiContext(this.cnAiContext, 'index', {
 				register: this.register,
@@ -3191,7 +3359,9 @@ export default {
 		 * @return {void}
 		 */
 		onSearchEvent(value) {
-			if (this.isSelfFetchMode && typeof this.list.onSearch === 'function') this.list.onSearch(value)
+			if (this.isSelfFetchMode && typeof this.list.onSearch === 'function') {
+				this.list.onSearch(value)
+			}
 			this.$emit('search', value)
 		},
 
@@ -3228,7 +3398,9 @@ export default {
 		 * @return {void}
 		 */
 		onSortEvent(payload) {
-			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') this.list.onSort(payload)
+			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') {
+				this.list.onSort(payload)
+			}
 			if (this.isSelfFetchMode) {
 				const keys = Array.isArray(payload.keys)
 					? payload.keys
@@ -3250,7 +3422,9 @@ export default {
 		 * @return {void}
 		 */
 		persistSortToRoute(keys) {
-			if (!this.$router || !this.$route) return
+			if (!this.$router || !this.$route) {
+				return
+			}
 			const query = { ...this.$route.query }
 			if (Array.isArray(keys) && keys.length > 0) {
 				query._order = JSON.stringify(keys)
@@ -3265,7 +3439,9 @@ export default {
 		 * @return {void}
 		 */
 		onPageEvent(page) {
-			if (this.isSelfFetchMode && typeof this.list.onPageChange === 'function') this.list.onPageChange(page)
+			if (this.isSelfFetchMode && typeof this.list.onPageChange === 'function') {
+				this.list.onPageChange(page)
+			}
 			this.$emit('page-changed', page)
 		},
 
@@ -3274,7 +3450,9 @@ export default {
 		 * @return {void}
 		 */
 		onFilterEvent(payload) {
-			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload.key, payload.values)
+			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') {
+				this.list.onFilterChange(payload.key, payload.values)
+			}
 			this.$emit('filter-change', payload)
 		},
 
@@ -3307,7 +3485,9 @@ export default {
 		 */
 		async loadFolderRegister() {
 			const cfg = this.folderSidebar
-			if (!cfg || cfg.source !== 'register' || !cfg.register || !cfg.schema) return
+			if (!cfg || cfg.source !== 'register' || !cfg.register || !cfg.schema) {
+				return
+			}
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
@@ -3320,9 +3500,10 @@ export default {
 				const nameField = cfg.nameField || 'title'
 				this.folderRegisterList = rows
 					.map((row) => ({ id: this.getByPath(row, idField), name: this.getByPath(row, nameField) || this.getByPath(row, idField) }))
-					.filter((f) => f.id != null)
+					.filter((f) => f.id !== null && f.id !== undefined)
 					.sort((a, b) => String(a.name).localeCompare(String(b.name)))
 			} catch (e) {
+				// eslint-disable-next-line no-console
 				console.error('[CnIndexPage] failed to load folder register', e)
 				this.folderRegisterList = []
 			}
@@ -3386,7 +3567,9 @@ export default {
 		 * @return {void}
 		 */
 		onColumnsEvent(columns) {
-			if (this.isSelfFetchMode && this.list.visibleColumns) this.list.visibleColumns.value = columns
+			if (this.isSelfFetchMode && this.list.visibleColumns) {
+				this.list.visibleColumns.value = columns
+			}
 			this.$emit('columns-change', columns)
 		},
 
@@ -3411,7 +3594,9 @@ export default {
 		 * the inline render alive.
 		 */
 		publishHoistedSidebar() {
-			if (!this.cnHostsIndexSidebar || !this.cnIndexSidebarConfig) return
+			if (!this.cnHostsIndexSidebar || !this.cnIndexSidebarConfig) {
+				return
+			}
 			if (!this.resolvedSidebar.enabled || this.resolvedSidebar.show === false) {
 				this.cnIndexSidebarConfig.value = null
 				return
@@ -3420,7 +3605,10 @@ export default {
 				component: CnIndexSidebar,
 				props: this.hoistedSidebarProps,
 				listeners: {
-					'update:open': (val) => { this.sidebarOpen = val },
+					'update:open': (val) => {
+						this.sidebarOpen = val
+					},
+
 					search: (event) => this.onSearchEvent(event),
 					'columns-change': (event) => this.onColumnsEvent(event),
 					'filter-change': (event) => this.onFilterEvent(event),
@@ -3436,7 +3624,9 @@ export default {
 		 */
 		onRowAction(payload) {
 			const matched = this.mergedActions.find((a) => a.label === payload.action)
-			if (matched && matched._dispatchSuppress) return
+			if (matched && matched._dispatchSuppress) {
+				return
+			}
 			this.$emit('action', payload)
 		},
 
@@ -3501,9 +3691,13 @@ export default {
 		onMarkerClick(payload) {
 			const feature = payload && payload.feature
 			const key = feature && feature.properties ? feature.properties[this.rowKey] : undefined
-			if (key === undefined || key === null) return
+			if (key === undefined || key === null) {
+				return
+			}
 			const row = this.displayObjects.find((o) => o[this.rowKey] === key)
-			if (row) this.onRowClick(row)
+			if (row) {
+				this.onRowClick(row)
+			}
 		},
 
 		/**
@@ -3516,7 +3710,9 @@ export default {
 		 * @return {{ lat: number, lng: number } | null}
 		 */
 		resolveRowLatLng(row) {
-			if (!row) return null
+			if (!row) {
+				return null
+			}
 			const cfg = this.mapConfig || {}
 			if (cfg.geoField) {
 				let geo = this.getByPath(row, cfg.geoField)
@@ -3536,7 +3732,9 @@ export default {
 			}
 			const lat = Number(this.getByPath(row, cfg.latField))
 			const lng = Number(this.getByPath(row, cfg.lngField))
-			if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng }
+			if (Number.isFinite(lat) && Number.isFinite(lng)) {
+				return { lat, lng }
+			}
 			return null
 		},
 
@@ -3552,19 +3750,27 @@ export default {
 		 * @return {object|null} A GeoJSON geometry object, or null.
 		 */
 		resolveRowGeometry(row) {
-			if (!row) return null
+			if (!row) {
+				return null
+			}
 			const cfg = this.mapConfig || {}
 			const GEO_TYPES = ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon', 'GeometryCollection']
 			if (cfg.geoField) {
 				let geo = this.getByPath(row, cfg.geoField)
 				if (typeof geo === 'string') {
-					try { geo = JSON.parse(geo) } catch { geo = null }
+					try {
+						geo = JSON.parse(geo)
+					} catch {
+						geo = null
+					}
 				}
 				if (geo && GEO_TYPES.includes(geo.type)) {
 					const hasShape = geo.type === 'GeometryCollection'
 						? Array.isArray(geo.geometries)
 						: Array.isArray(geo.coordinates)
-					if (hasShape) return geo
+					if (hasShape) {
+						return geo
+					}
 				}
 			}
 			const lat = Number(this.getByPath(row, cfg.latField))
@@ -3583,16 +3789,22 @@ export default {
 		 * @return {{lat: number, lng: number}|null}
 		 */
 		firstLatLng(geometry) {
-			if (!geometry) return null
+			if (!geometry) {
+				return null
+			}
 			if (geometry.type === 'GeometryCollection') {
 				for (const g of (geometry.geometries || [])) {
 					const p = this.firstLatLng(g)
-					if (p) return p
+					if (p) {
+						return p
+					}
 				}
 				return null
 			}
 			let c = geometry.coordinates
-			while (Array.isArray(c) && Array.isArray(c[0])) c = c[0]
+			while (Array.isArray(c) && Array.isArray(c[0])) {
+				c = c[0]
+			}
 			if (Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1])) {
 				return { lat: Number(c[1]), lng: Number(c[0]) }
 			}
@@ -3605,12 +3817,16 @@ export default {
 		 *
 		 * @param {object} obj The object to read from.
 		 * @param {string} path Dot-separated property path.
-		 * @return {*} The resolved value or undefined.
+		 * @return {unknown} The resolved value or undefined.
 		 */
 		getByPath(obj, path) {
-			if (!obj || !path) return undefined
-			if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path]
-			return path.split('.').reduce((acc, seg) => (acc == null ? undefined : acc[seg]), obj)
+			if (!obj || !path) {
+				return undefined
+			}
+			if (Object.hasOwn(obj, path)) {
+				return obj[path]
+			}
+			return path.split('.').reduce((acc, seg) => (acc === null || acc === undefined ? undefined : acc[seg]), obj)
 		},
 
 		/**
@@ -3670,7 +3886,7 @@ export default {
 		},
 
 		/**
-		 * Handle the Add button click. If the consumer listens to @add,
+		 * Handle the Add button click. If the consumer listens to `@add`,
 		 * emit the event (backward compatible). Otherwise open the form dialog.
 		 */
 		onAddClick() {
@@ -3710,8 +3926,12 @@ export default {
 		 * absent / not `'create'`.
 		 */
 		maybeOpenCreateFromQuery() {
-			if (!this.$route || !this.$route.query || this.$route.query.action !== 'create') return
-			if (!this.showFormDialog) return
+			if (!this.$route || !this.$route.query || this.$route.query.action !== 'create') {
+				return
+			}
+			if (!this.showFormDialog) {
+				return
+			}
 			this.openFormDialog(null)
 			// Clear the query param; guard against redundant navigation errors.
 			if (this.$router) {
@@ -3720,7 +3940,9 @@ export default {
 				const nav = this.$router.replace({ query })
 				// $router.replace returns a Promise in Vue Router 3 but may
 				// return undefined in mocked / legacy environments — guard.
-				if (nav && typeof nav.catch === 'function') nav.catch(() => {})
+				if (nav && typeof nav.catch === 'function') {
+					nav.catch(() => {})
+				}
 			}
 		},
 
@@ -3748,17 +3970,23 @@ export default {
 		// --- Mass action handlers ---
 
 		async onMassDeleteConfirm(ids) {
-			if (await this.selfActions.handleMassDelete(ids)) return
+			if (await this.selfActions.handleMassDelete(ids)) {
+				return
+			}
 			this.$emit('mass-delete', ids)
 		},
 
 		async onMassCopyConfirm(payload) {
-			if (await this.selfActions.handleMassCopy(payload)) return
+			if (await this.selfActions.handleMassCopy(payload)) {
+				return
+			}
 			this.$emit('mass-copy', payload)
 		},
 
 		async onMassExportConfirm(payload) {
-			if (await this.selfActions.handleMassExport(payload)) return
+			if (await this.selfActions.handleMassExport(payload)) {
+				return
+			}
 			this.$emit('mass-export', payload)
 		},
 
@@ -3806,11 +4034,15 @@ export default {
 		 */
 		onApplySavedView(view) {
 			const query = buildRouteQueryFromViewState(extractViewState(view))
-			if (!this.$router) return
+			if (!this.$router) {
+				return
+			}
 			const nav = this.$router.replace({ query })
 			// Swallow the duplicate-navigation rejection (Vue Router 3)
 			// when the applied view matches the current query.
-			if (nav && typeof nav.catch === 'function') nav.catch(() => {})
+			if (nav && typeof nav.catch === 'function') {
+				nav.catch(() => {})
+			}
 			this.$emit('apply-view', view)
 		},
 
@@ -3827,7 +4059,9 @@ export default {
 			const payload = buildViewCreatePayload({ name, description: '', isPublic, isDefault: false, state })
 			try {
 				const view = await useSavedViewsApi().createView(payload)
-				if (view) this.savedViews = [...this.savedViews, view]
+				if (view) {
+					this.savedViews = [...this.savedViews, view]
+				}
 				this.showSaveViewDialog = false
 			} catch (error) {
 				// eslint-disable-next-line no-console
@@ -3853,7 +4087,9 @@ export default {
 		 */
 		async onDeleteViewConfirm() {
 			const view = this.viewPendingDelete
-			if (!view) return
+			if (!view) {
+				return
+			}
 			try {
 				await useSavedViewsApi().deleteView(view.id)
 				this.savedViews = this.savedViews.filter((v) => v.id !== view.id)
@@ -3866,7 +4102,9 @@ export default {
 		},
 
 		async onMassImportConfirm(payload) {
-			if (await this.selfActions.handleMassImport(payload)) return
+			if (await this.selfActions.handleMassImport(payload)) {
+				return
+			}
 			this.$emit('mass-import', payload)
 		},
 
@@ -3875,35 +4113,52 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setMassDeleteResult(resultData) { this._setResult('massDeleteDialog', resultData) },
+		setMassDeleteResult(resultData) {
+			this._setResult('massDeleteDialog', resultData)
+		},
+
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setMassCopyResult(resultData) { this._setResult('massCopyDialog', resultData) },
+		setMassCopyResult(resultData) {
+			this._setResult('massCopyDialog', resultData)
+		},
+
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setExportResult(resultData) { this._setResult('exportDialog', resultData) },
+		setExportResult(resultData) {
+			this._setResult('exportDialog', resultData)
+		},
+
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setImportResult(resultData) { this._setResult('importDialog', resultData) },
+		setImportResult(resultData) {
+			this._setResult('importDialog', resultData)
+		},
+
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setDeleteResult(resultData) { this._setResult('massDeleteDialog', resultData) },
+		setDeleteResult(resultData) {
+			this._setResult('massDeleteDialog', resultData)
+		},
+
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setCopyResult(resultData) { this._setResult('massCopyDialog', resultData) },
+		setCopyResult(resultData) {
+			this._setResult('massCopyDialog', resultData)
+		},
 
 		// --- Single-object dialog handlers ---
 
@@ -3922,7 +4177,9 @@ export default {
 				}
 				return
 			}
-			if (await this.selfActions.handleSingleDelete(id)) return
+			if (await this.selfActions.handleSingleDelete(id)) {
+				return
+			}
 			this.$emit('delete', id)
 		},
 
@@ -3943,7 +4200,9 @@ export default {
 				}
 				return
 			}
-			if (await this.selfActions.handleSingleCopy(payload)) return
+			if (await this.selfActions.handleSingleCopy(payload)) {
+				return
+			}
 			this.$emit('copy', payload)
 		},
 
@@ -3980,6 +4239,7 @@ export default {
 			}
 			if (this.store) {
 				if (!this.objectType) {
+					// eslint-disable-next-line no-console
 					console.warn('[CnIndexPage] store prop is set but objectType is missing. Cannot save to store.')
 					return
 				}
@@ -3998,7 +4258,9 @@ export default {
 				}
 				return
 			}
-			if (await this.selfActions.handleFormSave(formData)) return
+			if (await this.selfActions.handleFormSave(formData)) {
+				return
+			}
 			this.$emit(this.editItem ? 'edit' : 'create', formData)
 		},
 
@@ -4018,20 +4280,29 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setSingleDeleteResult(resultData) { this._setResult('singleDeleteDialog', resultData) },
+		setSingleDeleteResult(resultData) {
+			this._setResult('singleDeleteDialog', resultData)
+		},
+
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setSingleCopyResult(resultData) { this._setResult('singleCopyDialog', resultData) },
+		setSingleCopyResult(resultData) {
+			this._setResult('singleCopyDialog', resultData)
+		},
+
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setFormResult(resultData) { this._setResult('formDialog', resultData) },
+		setFormResult(resultData) {
+			this._setResult('formDialog', resultData)
+		},
+
 		/**
 		 * Show a validation error in the form dialog while keeping the form
 		 * visible (so the user can fix the data), instead of replacing it with
@@ -4042,7 +4313,9 @@ export default {
 		 * @param {string} [message] Form-level message shown above the fields
 		 * @public
 		 */
-		setFormValidationErrors(fieldErrors, message) { this.$refs.formDialog?.setValidationErrors(fieldErrors || {}, message) },
+		setFormValidationErrors(fieldErrors, message) {
+			this.$refs.formDialog?.setValidationErrors(fieldErrors || {}, message)
+		},
 
 		// --- Context menu handlers ---
 

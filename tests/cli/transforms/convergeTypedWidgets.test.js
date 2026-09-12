@@ -29,7 +29,12 @@ describe('convergeTypedWidgets', () => {
 		expect(out.config.register).toBe('petstore')
 		expect(out.widgets).toHaveLength(2)
 		expect(out.widgets[0]).toMatchObject({
-			widgetKey: 'data', slot: 'body', gridX: 0, gridY: 0, gridWidth: 8, gridHeight: 4,
+			widgetKey: 'data',
+			slot: 'body',
+			gridX: 0,
+			gridY: 0,
+			gridWidth: 8,
+			gridHeight: 4,
 		})
 		expect(out.widgets[0].props).toEqual({ title: 'Details', content: { columns: 2 } })
 		expect(out.widgets[1].widgetKey).toBe('related')

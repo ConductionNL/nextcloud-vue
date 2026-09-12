@@ -9,8 +9,8 @@
  * `CnAddWidgetModal` create flow and the cog `CnWidgetStyleEditorModal`.
  */
 
-import CnStatWidget from './CnStatWidget.vue'
 import CnStatWidgetForm from '../CnStatWidgetForm/CnStatWidgetForm.vue'
+import CnStatWidget from './CnStatWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('stat', {

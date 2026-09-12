@@ -64,6 +64,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Optional `object-fit` override; restricted to the four supported CSS
 		 * values. An unknown value falls back to `'cover'`.

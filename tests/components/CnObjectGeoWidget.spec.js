@@ -10,6 +10,7 @@
 
 import { mount } from '@vue/test-utils'
 import CnObjectGeoWidget from '../../src/components/CnObjectGeoWidget/CnObjectGeoWidget.vue'
+import { settleUntil } from '../support/settleUntil.js'
 
 const stubs = {
 	// Render the chrome default + footer slots so the map stub and footer
@@ -32,7 +33,7 @@ const stubs = {
 	MapMarkerOff: true,
 }
 
-const flush = async () => {
+async function flush() {
 	await new Promise((resolve) => setTimeout(resolve, 0))
 }
 
@@ -233,7 +234,9 @@ describe('CnObjectGeoWidget — address search', () => {
 
 	it('surfaces a message instead of throwing when the lookup fails (e.g. CSP-blocked)', async () => {
 		jest.spyOn(console, 'warn').mockImplementation(() => {})
-		global.fetch = jest.fn(async () => { throw new Error('blocked by CSP') })
+		global.fetch = jest.fn(async () => {
+			throw new Error('blocked by CSP')
+		})
 		const wrapper = mountWidget({ editable: true, addressSearch: true })
 		wrapper.vm.query = 'utrecht'
 		await wrapper.vm.geocode()
@@ -266,13 +269,30 @@ describe('CnObjectGeoWidget — address search', () => {
 	})
 
 	it('does not fire a lookup for a query under three characters', async () => {
-		global.fetch = jest.fn()
-		const wrapper = mountWidget({ editable: true, addressSearch: true })
-		wrapper.vm.onQueryInput('ut')
-		// Past the debounce window — still nothing, the query is too short.
-		await new Promise((resolve) => setTimeout(resolve, 700))
-		expect(wrapper.vm.results).toEqual([])
-		expect(global.fetch).not.toHaveBeenCalled()
-		wrapper.unmount()
+		global.fetch = jest.fn(async () => ({ ok: true, json: async () => ([]) }))
+		const short = mountWidget({ editable: true, addressSearch: true })
+		short.vm.onQueryInput('ut')
+
+		// EVERY assertion below is a negative, and a negative cannot be waited
+		// for: it holds before the component has done anything at all, so the
+		// 700 ms sleep this replaces proved nothing except that 700 ms passed.
+		// So anchor it to a positive. A second widget gets a query that IS long
+		// enough at the same moment, and we wait for ITS lookup to land. Once
+		// that has fired, the 600 ms GEOCODE_DEBOUNCE_MS window has provably
+		// elapsed in this environment, so the short query having produced no
+		// call means it was refused rather than merely still pending.
+		const control = mountWidget({ editable: true, addressSearch: true })
+		control.vm.onQueryInput('utr')
+		await settleUntil(
+			() => global.fetch.mock.calls.length > 0,
+			'the control widget\'s debounced lookup',
+		)
+
+		// One call in total, and it is the control's — the short query added none.
+		expect(global.fetch).toHaveBeenCalledTimes(1)
+		expect(global.fetch.mock.calls[0][0]).toContain('q=utr')
+		expect(short.vm.results).toEqual([])
+		short.unmount()
+		control.unmount()
 	})
 })

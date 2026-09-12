@@ -29,7 +29,7 @@
 				:clearable="false"
 				:reduce="o => o.id"
 				label="label"
-				:input-label="t('nextcloud-vue', 'Trigger')" />
+				:inputLabel="t('nextcloud-vue', 'Trigger')" />
 		</label>
 
 		<h3 class="cn-edit-walkthrough__steps-title">
@@ -57,8 +57,8 @@
 				<NcTextField v-model="step.task"
 					:label="t('nextcloud-vue', 'Task (the one action for this step)')" />
 				<NcTextField :label="t('nextcloud-vue', 'Target (optional CSS selector to spotlight; blank = centred)')"
-					:model-value="targetRef(step)"
-					@update:model-value="setTarget(step, $event)" />
+					:modelValue="targetRef(step)"
+					@update:modelValue="setTarget(step, $event)" />
 			</li>
 		</ul>
 
@@ -81,16 +81,17 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
+import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 export default {
 	name: 'CnEditWalkthroughModal',
 
-	components: { NcDialog, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect, Plus, Delete },
+	components: { NcDialog, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect, Plus, Delete, ContentSaveOutline },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -113,14 +114,17 @@ export default {
 		walkthrough() {
 			return (this.working && this.working.walkthrough) ? this.working.walkthrough : { enabled: true, tours: [] }
 		},
+
 		/** The primary (first) tour. */
 		tour() {
 			return this.walkthrough.tours[0] || { id: 'getting-started', title: '', trigger: 'first-visit', steps: [] }
 		},
+
 		/** The primary tour's steps. */
 		steps() {
 			return this.tour.steps
 		},
+
 		/** Selectable triggers. */
 		triggerOptions() {
 			return [
@@ -134,7 +138,9 @@ export default {
 		// Lazily create the walkthrough block + primary tour reactively. New
 		// properties on the working manifest must go through $set, or Vue 2 won't
 		// track later mutations (added steps wouldn't render).
-		if (!this.working) return
+		if (!this.working) {
+			return
+		}
 		if (!this.working.walkthrough || typeof this.working.walkthrough !== 'object') {
 			this.working.walkthrough = { enabled: true, tours: [] }
 		}
@@ -142,7 +148,6 @@ export default {
 			this.working.walkthrough.tours = []
 		}
 		if (this.working.walkthrough.tours.length === 0) {
-			// eslint-disable-next-line vue/no-mutating-props
 			this.working.walkthrough.tours.push({ id: 'getting-started', title: '', trigger: 'first-visit', steps: [] })
 		}
 		if (!Array.isArray(this.working.walkthrough.tours[0].steps)) {
@@ -156,6 +161,7 @@ export default {
 		add() {
 			this.steps.push({ id: `wt-${this.steps.length + 1}`, title: '', body: '', task: '' })
 		},
+
 		/**
 		 * Remove the step at index.
 		 *
@@ -164,6 +170,7 @@ export default {
 		remove(index) {
 			this.steps.splice(index, 1)
 		},
+
 		/**
 		 * Read a step's target CSS selector (empty string when unset).
 		 *
@@ -171,11 +178,14 @@ export default {
 		 * @return {string} The target selector.
 		 */
 		targetRef(step) {
-			if (!step.target) return ''
+			if (!step.target) {
+				return ''
+			}
 			// `selector` is what CnWalkthrough resolves for kind:"selector";
 			// fall back to the older `ref` for steps authored before that.
 			return step.target.selector || step.target.ref || ''
 		},
+
 		/**
 		 * Set a step's target as a CSS selector (cleared when blank).
 		 *

@@ -46,7 +46,7 @@ With appName and custom link labels:
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `appName` | String | `''` | Optional name of the host app included in the default heading |
+| `appName` | String | `''` | Optional name of the host app. Accepted but not rendered yet: the default heading is a fixed sentence, so set `heading` to name the app |
 | `installLabel` | String | `'Install and enable'` | Label shown on the action for apps that are not yet installed |
 | `enableLabel` | String | `'Enable'` | Label shown on the action for apps that are installed but disabled |
 | `askAdminLabel` | String | `'Ask your administrator to enable {name}'` | Non-admin copy shown in place of the action; `{name}` is replaced by the dependency's display name |

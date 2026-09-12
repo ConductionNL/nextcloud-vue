@@ -39,11 +39,11 @@
 		</p>
 
 		<NcTextField
-			:model-value="url"
+			:modelValue="url"
 			:label="t('nextcloud-vue', 'Image URL')"
 			:placeholder="t('nextcloud-vue', 'Or paste an image URL')"
 			:disabled="!!pendingFile"
-			@update:model-value="updateField('url', $event)" />
+			@update:modelValue="updateField('url', $event)" />
 
 		<div v-if="previewSrc" class="cn-image-widget-form__preview-wrap">
 			<img
@@ -57,20 +57,20 @@
 		</div>
 
 		<NcTextField
-			:model-value="alt"
+			:modelValue="alt"
 			:label="t('nextcloud-vue', 'Alt text')"
-			@update:model-value="updateField('alt', $event)" />
+			@update:modelValue="updateField('alt', $event)" />
 
 		<NcTextField
-			:model-value="link"
+			:modelValue="link"
 			:label="t('nextcloud-vue', 'Link (optional)')"
 			placeholder="https://example.com"
-			@update:model-value="updateField('link', $event)" />
+			@update:modelValue="updateField('link', $event)" />
 
 		<NcSelect
-			:model-value="fit"
+			:modelValue="fit"
 			:options="fitOptions"
-			:input-label="t('nextcloud-vue', 'Fit')"
+			:inputLabel="t('nextcloud-vue', 'Fit')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
@@ -79,10 +79,10 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcButton } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
-import { extractTransportUrl, readFileAsDataUrl, embedAsDataUrl, warnUploadFnDeprecated } from '../../utils/widgetUpload.js'
+import { embedAsDataUrl, extractTransportUrl, readFileAsDataUrl, warnUploadFnDeprecated } from '../../utils/widgetUpload.js'
 
 const ALLOWED_FITS = Object.freeze(['cover', 'contain', 'fill', 'none'])
 
@@ -124,6 +124,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values — used when not editing and the parent
 		 * supplies registry defaults.
@@ -134,6 +135,7 @@ export default {
 			type: Object,
 			default: () => ({ ...DEFAULT_CONTENT }),
 		},
+
 		/**
 		 * Optional raw-file upload transport: `async (file: File) => ({ url })`.
 		 * Deliberately named `fileUploadFn` (not `uploadFn`) to avoid colliding
@@ -145,12 +147,13 @@ export default {
 		 * base64-encoded and stored), so the browser tab can't be frozen by a huge
 		 * inline blob. Wire a transport for anything larger.
 		 *
-		 * @type {Function|null}
+		 * @type {((file: File) => Promise<{url: string}>)|null}
 		 */
 		fileUploadFn: {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Legacy base64 upload transport, superseded by `fileUploadFn`.
 		 *
@@ -160,7 +163,7 @@ export default {
 		 * a data URL and hands that to this function (emitting a one-time
 		 * console.warn). `fileUploadFn` takes precedence when both are provided.
 		 *
-		 * @type {Function|null}
+		 * @type {((dataUrl: string) => Promise<{url: string}>)|null}
 		 */
 		uploadFn: {
 			type: Function,
@@ -341,6 +344,7 @@ export default {
 				this.updateField('url', resolvedUrl)
 			} catch (err) {
 				this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload image')
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error('Image upload failed:', err)
 				throw err
 			} finally {

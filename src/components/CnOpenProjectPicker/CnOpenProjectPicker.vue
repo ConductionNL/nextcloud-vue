@@ -76,7 +76,7 @@
 					:label="t('nextcloud-vue', 'Search work packages')"
 					:placeholder="t('nextcloud-vue', 'Type to filter…')"
 					class="cn-openproject-picker__search"
-					@update:model-value="onSearch" />
+					@update:modelValue="onSearch" />
 
 				<NcLoadingIcon v-if="loading" />
 				<NcEmptyContent
@@ -193,7 +193,7 @@ export default {
 		 * @return {Array} The project option rows.
 		 */
 		projectOptions() {
-			return this.projects.map(name => ({ id: name, label: name }))
+			return this.projects.map((name) => ({ id: name, label: name }))
 		},
 
 		/**

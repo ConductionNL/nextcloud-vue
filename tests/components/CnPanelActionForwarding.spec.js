@@ -48,7 +48,9 @@ function mountWithSink(props = {}) {
 			provide: {
 				[PANEL_ACTION_SINK]: {
 					set: (items) => published.push(items),
-					clear: () => { state.cleared += 1 },
+					clear: () => {
+						state.cleared += 1
+					},
 				},
 			},
 		},

@@ -7,7 +7,7 @@
  *
  * Spec: scoped-theme-applier (REQ-STA-1, REQ-STA-2).
  */
-import { useScopedTheme, rewriteRootScope, clearScopedThemeCache, SCOPE_ATTR } from '../../src/composables/useScopedTheme.js'
+import { clearScopedThemeCache, rewriteRootScope, SCOPE_ATTR, useScopedTheme } from '../../src/composables/useScopedTheme.js'
 
 /*
  * `generateFilePath` needs Nextcloud's `OC.appswebroots` to put `/apps/<id>/`
@@ -36,7 +36,11 @@ function fakeDoc() {
 	const doc = {
 		head,
 		createElement() {
-			return { _attrs: {}, setAttribute(k, v) { this._attrs[k] = v }, getAttribute(k) { return this._attrs[k] }, textContent: '', parentNode: null }
+			return { _attrs: {}, setAttribute(k, v) {
+				this._attrs[k] = v
+			}, getAttribute(k) {
+				return this._attrs[k]
+			}, textContent: '', parentNode: null }
 		},
 		querySelectorAll(sel) {
 			const m = /style\[data-nldesign-theme="([^"]+)"\]/.exec(sel)
@@ -44,7 +48,12 @@ function fakeDoc() {
 			return head.children.filter((el) => el._attrs['data-nldesign-theme'] === slug)
 		},
 	}
-	head.appendChild = (el) => { el.parentNode = { removeChild: (c) => { head.children = head.children.filter((x) => x !== c) } }; head.children.push(el) }
+	head.appendChild = (el) => {
+		el.parentNode = { removeChild: (c) => {
+			head.children = head.children.filter((x) => x !== c)
+		} }
+		head.children.push(el)
+	}
 	return doc
 }
 
@@ -168,7 +177,6 @@ describe('useScopedTheme — apply/teardown', () => {
 		const injected = await theme.apply(manifest('gemeente-blauw'), '')
 		expect(injected).toBe(false)
 	})
-
 })
 
 describe('useScopedTheme — listTokenSets', () => {

@@ -12,7 +12,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(() => ({})),
@@ -53,13 +53,15 @@ function setupState(steps, loading = false) {
 	}
 }
 
-const manifestWith = (steps, version = 1) => ({
-	version: '1.0.0',
-	menu: [{ id: 'home', label: 'Home', route: 'home' }],
-	pages: [{ id: 'home', route: '/', type: 'index', title: 'Home' }],
-	dependencies: [],
-	setup: { enabled: true, version, steps: steps.map(({ id, type, required }) => ({ id, type, required })) },
-})
+function manifestWith(steps, version = 1) {
+	return {
+		version: '1.0.0',
+		menu: [{ id: 'home', label: 'Home', route: 'home' }],
+		pages: [{ id: 'home', route: '/', type: 'index', title: 'Home' }],
+		dependencies: [],
+		setup: { enabled: true, version, steps: steps.map(({ id, type, required }) => ({ id, type, required })) },
+	}
+}
 
 function mountRoot(manifest) {
 	return mount(CnAppRoot, {
@@ -91,7 +93,9 @@ const wizardOf = (wrapper) => wrapper.findComponent({ name: 'CnSetupWizard' })
 describe('CnAppRoot setup wizard', () => {
 	beforeEach(() => {
 		mockRefresh.mockReset()
-		try { window.localStorage.clear() } catch (e) { /* noop */ }
+		try {
+			window.localStorage.clear()
+		} catch { /* noop */ }
 	})
 
 	describe('gating phase (required step unmet)', () => {

@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<draggable v-model="tree"
+	<Draggable v-model="tree"
 		tag="ul"
 		class="cn-page-tree"
 		:group="group"
@@ -13,15 +13,15 @@
 		@end="flatten">
 		<li v-for="node in tree" :key="nodeKey(node.ref)" class="cn-page-tree__node">
 			<CnPageTreeRow :page="node.ref"
-				:can-add-child="maxDepth > 0"
-				@add-child="addChild(node)"
+				:canAddChild="maxDepth > 0"
+				@addChild="addChild(node)"
 				@rename="(id) => renamePage(node.ref, id)"
 				@navigate="bubbleNavigate"
 				@remove="removeNode(node, null)" />
 
 			<!-- One level of children: a drop target on every top page so a row
 			     can be dragged IN (to nest) or OUT (to top level). -->
-			<draggable v-if="maxDepth > 0"
+			<Draggable v-if="maxDepth > 0"
 				v-model="node.children"
 				tag="ul"
 				class="cn-page-tree__children"
@@ -32,19 +32,19 @@
 				@end="flatten">
 				<li v-for="child in node.children" :key="nodeKey(child.ref)" class="cn-page-tree__node">
 					<CnPageTreeRow :page="child.ref"
-						:can-add-child="false"
+						:canAddChild="false"
 						@rename="(id) => renamePage(child.ref, id)"
 						@navigate="bubbleNavigate"
 						@remove="removeNode(child, node)" />
 				</li>
-			</draggable>
+			</Draggable>
 		</li>
-	</draggable>
+	</Draggable>
 </template>
 
 <script>
-import draggable from 'vuedraggable'
 import { translate as t } from '@nextcloud/l10n'
+import draggable from 'vuedraggable'
 import CnPageTreeRow from './CnPageTreeRow.vue'
 
 // Stable per-page-object render keys, independent of the mutable `id`. Keyed by
@@ -70,7 +70,7 @@ const pageKeys = new WeakMap()
 export default {
 	name: 'CnPageTreeNode',
 
-	components: { draggable, CnPageTreeRow },
+	components: { Draggable: draggable, CnPageTreeRow },
 
 	props: {
 		/**
@@ -83,11 +83,13 @@ export default {
 			type: Array,
 			required: true,
 		},
+
 		/** Maximum nesting depth that may gain children (one level: index → detail). */
 		maxDepth: {
 			type: Number,
 			default: 1,
 		},
+
 		/**
 		 * The working manifest's `menu[]`, used to re-point menu links (whose
 		 * `route` is a page id) when a page's slug is renamed. Optional — when
@@ -119,9 +121,12 @@ export default {
 	watch: {
 		list: {
 			handler() {
-				if (this.suppressRebuild) return
+				if (this.suppressRebuild) {
+					return
+				}
 				this.tree = this.buildTree()
 			},
+
 			deep: false,
 		},
 	},
@@ -146,6 +151,7 @@ export default {
 			}
 			return key
 		},
+
 		/**
 		 * Bubble a row's "Go to page" request up to the modal, which navigates.
 		 *
@@ -159,6 +165,7 @@ export default {
 			 */
 			this.$emit('navigate', route)
 		},
+
 		/**
 		 * Build the nested mirror from the flat `list`: top-level pages (no
 		 * `parent`) each carry their children (`parent === id`). Pages whose
@@ -172,7 +179,9 @@ export default {
 			const childrenByParent = {}
 			const top = []
 			for (const p of list) {
-				if (!p) continue
+				if (!p) {
+					continue
+				}
 				if (p.parent && topIds.has(p.parent)) {
 					(childrenByParent[p.parent] || (childrenByParent[p.parent] = [])).push(p)
 				} else {
@@ -194,7 +203,9 @@ export default {
 		flatten() {
 			const flat = []
 			for (const node of this.tree) {
-				if (node.ref.parent) delete node.ref.parent
+				if (node.ref.parent) {
+					delete node.ref.parent
+				}
 				flat.push(node.ref)
 				for (const child of node.children) {
 					child.ref.parent = node.ref.id
@@ -206,7 +217,9 @@ export default {
 			// mutated by reference so diffManifest captures the reorder/nesting.
 			// eslint-disable-next-line vue/no-mutating-props
 			this.list.splice(0, this.list.length, ...flat)
-			this.$nextTick(() => { this.suppressRebuild = false })
+			this.$nextTick(() => {
+				this.suppressRebuild = false
+			})
 		},
 
 		/**
@@ -230,12 +243,15 @@ export default {
 
 		/**
 		 * Generate a unique `page-N` id not already used in `list`.
+		 *
 		 * @return {string}
 		 */
 		nextId() {
 			const ids = new Set(this.list.map((p) => p && p.id))
 			let n = this.list.length + 1
-			while (ids.has(`page-${n}`)) n++
+			while (ids.has(`page-${n}`)) {
+				n++
+			}
 			return `page-${n}`
 		},
 
@@ -244,21 +260,32 @@ export default {
 		 * `parent` and to any `menu[]` links whose `route` targets the old id, so
 		 * nesting and navigation keep working. No-op when the new id collides with
 		 * another page. The page id is the vue-router route name.
+		 *
 		 * @param {object} ref The page being renamed (mutated in place).
 		 * @param {string} newId The sanitised new id.
 		 * @return {void}
 		 */
 		renamePage(ref, newId) {
 			const oldId = ref.id
-			if (!newId || newId === oldId) return
-			if (this.list.some((p) => p && p.id === newId)) return
+			if (!newId || newId === oldId) {
+				return
+			}
+			if (this.list.some((p) => p && p.id === newId)) {
+				return
+			}
 			for (const p of this.list) {
-				if (p && p.parent === oldId) p.parent = newId
+				if (p && p.parent === oldId) {
+					p.parent = newId
+				}
 			}
 			if (Array.isArray(this.menu)) {
 				const walk = (items) => (items || []).forEach((it) => {
-					if (!it) return
-					if (it.route === oldId) it.route = newId
+					if (!it) {
+						return
+					}
+					if (it.route === oldId) {
+						it.route = newId
+					}
 					walk(it.children)
 				})
 				walk(this.menu)
@@ -270,6 +297,7 @@ export default {
 
 		/**
 		 * Append a detail sub-page under a top node (route built from the parent).
+		 *
 		 * @param {object} node The parent tree node.
 		 * @return {void}
 		 */
@@ -283,6 +311,7 @@ export default {
 		/**
 		 * Remove a node. A removed top node's children are lifted to top level so
 		 * none orphan.
+		 *
 		 * @param {object} node The node to remove.
 		 * @param {object|null} parent The parent node, or null for a top node.
 		 * @return {void}
@@ -290,10 +319,14 @@ export default {
 		removeNode(node, parent) {
 			if (parent) {
 				const i = parent.children.indexOf(node)
-				if (i !== -1) parent.children.splice(i, 1)
+				if (i !== -1) {
+					parent.children.splice(i, 1)
+				}
 			} else {
 				const i = this.tree.indexOf(node)
-				if (i !== -1) this.tree.splice(i, 1, ...node.children)
+				if (i !== -1) {
+					this.tree.splice(i, 1, ...node.children)
+				}
 			}
 			this.flatten()
 		},

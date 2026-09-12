@@ -27,13 +27,15 @@ const stubs = {
 	NcLoadingIcon: { template: '<div />' },
 }
 
-const mountItem = (type, extra = {}) => mount(CnDashboardPage, {
-	propsData: {
-		widgets: [{ id: 'w', type }],
-		layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 4, ...extra }],
-	},
-	stubs,
-})
+function mountItem(type, extra = {}) {
+	return mount(CnDashboardPage, {
+		propsData: {
+			widgets: [{ id: 'w', type }],
+			layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 4, ...extra }],
+		},
+		stubs,
+	})
+}
 
 describe('CnDashboardPage — flush by default', () => {
 	it('a registry widget renders flush by default (no content padding)', () => {

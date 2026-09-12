@@ -20,7 +20,9 @@ jest.mock('@nextcloud/router', () => ({
 	__esModule: true,
 	generateUrl: jest.fn((p, params) => {
 		let out = p
-		for (const [k, v] of Object.entries(params || {})) out = out.replace(`{${k}}`, v)
+		for (const [k, v] of Object.entries(params || {})) {
+			out = out.replace(`{${k}}`, v)
+		}
 		return `/nc${out}`
 	}),
 }))
@@ -41,14 +43,12 @@ jest.mock('../../src/store/useObjectStore.js', () => ({
 	},
 }))
 
-/* eslint-disable import/first -- these imports sit BELOW the jest.mock() above
+/* These imports sit BELOW the jest.mock() above
    on purpose: the mock documents the "no active pinia" branch these specs
    exercise, and keeping the two adjacent is what makes that readable. */
 import axios from '@nextcloud/axios'
 import { shallowMount } from '@vue/test-utils'
-
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
-/* eslint-enable import/first */
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
@@ -343,7 +343,9 @@ describe('CnChartWidget — dataSource.aggregate (Wave 3)', () => {
 
 	it('client-side fallback sums sumField when metric is sum', async () => {
 		axios.get.mockImplementation((url) => {
-			if (url === GROUPED_URL) return Promise.reject(new Error('404'))
+			if (url === GROUPED_URL) {
+				return Promise.reject(new Error('404'))
+			}
 			return Promise.resolve({
 				data: {
 					results: [

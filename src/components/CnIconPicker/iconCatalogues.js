@@ -52,7 +52,7 @@ export function dedupeCatalogue(entries) {
 	const seen = new Set()
 	const out = []
 	for (const entry of entries || []) {
-		if (!entry || entry.value == null || entry.value === '') {
+		if (!entry || entry.value === null || entry.value === undefined || entry.value === '') {
 			continue
 		}
 		const value = String(entry.value)

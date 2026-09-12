@@ -122,7 +122,7 @@ export default {
 		/** Resolved whitespace size preset key. */
 		whitespaceSize() {
 			const value = this.content?.whitespaceSize
-			if (Object.prototype.hasOwnProperty.call(WHITESPACE_SIZES, value)) {
+			if (Object.hasOwn(WHITESPACE_SIZES, value)) {
 				return value
 			}
 			return 'medium'

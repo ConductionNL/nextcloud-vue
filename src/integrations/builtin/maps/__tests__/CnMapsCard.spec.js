@@ -9,7 +9,7 @@
  * Plus unavailable / error handling that mirrors CnIntegrationCard.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnMapsCard = require('../CnMapsCard.vue').default
 
 const DEFAULT_PROPS = {
@@ -40,8 +40,7 @@ describe('CnMapsCard', () => {
 	it('renders the empty label when there are no linked points', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnMapsCard, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No locations linked yet')
 		wrapper.unmount()
 	})
@@ -59,8 +58,7 @@ describe('CnMapsCard', () => {
 			}),
 		})
 		const wrapper = mount(CnMapsCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const txt = wrapper.text()
 		expect(txt).toContain('3')
 		expect(wrapper.find('.cn-maps-card__headline').exists()).toBe(true)
@@ -86,8 +84,7 @@ describe('CnMapsCard', () => {
 			}),
 		})
 		const wrapper = mount(CnMapsCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-maps-card__row')
 		// COMPACT_LIMIT = 5
 		expect(rows).toHaveLength(5)
@@ -102,8 +99,7 @@ describe('CnMapsCard', () => {
 			json: () => Promise.resolve(makePoint({ id: 7, data: { id: 7, name: 'Field office', lat: 52.0, lng: 4.0, category: 'site' } })),
 		})
 		const wrapper = mount(CnMapsCard, { propsData: { ...DEFAULT_PROPS, surface: 'single-entity', value: '7' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const chip = wrapper.find('.cn-maps-card__chip')
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Field office')
@@ -114,8 +110,7 @@ describe('CnMapsCard', () => {
 	it('shows the unavailable label when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnMapsCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Location is currently unavailable.')
 		wrapper.unmount()
 	})
@@ -124,8 +119,7 @@ describe('CnMapsCard', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnMapsCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No locations linked yet')
 		wrapper.unmount()
 		spy.mockRestore()

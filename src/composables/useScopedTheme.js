@@ -117,18 +117,23 @@ function cssAttrEscape(value) {
  * Scoped-theme applier bound to one nldesign app slug.
  *
  * @param {object} [opts] - options.
- * @param {Function} [opts.client] - axios-like client injection for tests.
+ * @param {object} [opts.client] - axios-like client injection for tests.
  * @param {Document|object} [opts.doc] - document injection for tests / SSR safety.
- * @param {Function} [opts.warn] - console.warn injection for tests.
+ * @param {(message: string) => void} [opts.warn] - console.warn injection for tests.
  * @param {string} [opts.appSlug] - Pin the theme app's Nextcloud id (URL-building only). Omitted, the id is resolved across `nldesign` and `thematiq` — see the note in the body.
- * @return {{apply: Function, teardown: Function, fetchTokenCss: Function, listTokenSets: Function, evaluateContrast: Function}}
+ * @return {{ apply: (manifest: object, scopeId: string) => Promise<boolean>, teardown: (scopeId: string) => void, fetchTokenCss: (tokenSet: string) => Promise<string|null>, listTokenSets: () => Promise<Array<object>>, evaluateContrast: (candidates: Array<object>, background: string) => Promise<Array<object>|null> }}
  * @spec openspec/changes/scoped-theme-applier/specs/scoped-theme-applier/spec.md#req-sta-1
  * @spec openspec/changes/scoped-theme-applier/specs/scoped-theme-applier/spec.md#req-sta-2
  */
 export function useScopedTheme(opts = {}) {
 	const client = opts.client || axios
 	const doc = opts.doc || (typeof document !== 'undefined' ? document : null)
-	const warn = opts.warn || ((m) => { try { console.warn(m) } catch { /* noop */ } })
+	const warn = opts.warn || ((m) => {
+		try {
+			// eslint-disable-next-line no-console
+			console.warn(m)
+		} catch { /* noop */ }
+	})
 	/*
 	 * The theme app's Nextcloud id is RENAMING (`nldesign` -> `thematiq`), and
 	 * the two ids will be live at the same time: an instance running the
@@ -161,7 +166,7 @@ export function useScopedTheme(opts = {}) {
 	 * page) with a 200 in several situations, and a token stylesheet that is
 	 * really a login page would be injected as CSS and style nothing.
 	 *
-	 * @param {*} body - the response body.
+	 * @param {unknown} body - the response body.
 	 * @return {boolean} True when the body is not an HTML document.
 	 */
 	function looksLikeApp(body) {
@@ -174,8 +179,8 @@ export function useScopedTheme(opts = {}) {
 	/**
 	 * Run a request against each candidate app id until one answers.
 	 *
-	 * @param {Function} attempt - `(slug) => Promise<*>`, resolving to the body.
-	 * @return {Promise<*>} The first usable body.
+	 * @param {(slug: string) => Promise<object>} attempt - `(slug) => Promise<*>`, resolving to the body.
+	 * @return {Promise<unknown>} The first usable body.
 	 * @throws {Error} When no candidate answers, so callers keep degrading as before.
 	 */
 	async function withResolvedSlug(attempt) {

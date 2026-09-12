@@ -5,7 +5,7 @@
 //   Covers scenarios: Opt-in WYSIWYG mode, Lazy-loaded editor dependency,
 //   Preserved v-model contract.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
 	await page.goto('/')

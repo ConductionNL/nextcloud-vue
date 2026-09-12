@@ -84,12 +84,12 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
-import PuzzleOutline from 'vue-material-design-icons/PuzzleOutline.vue'
 import CheckCircleOutline from 'vue-material-design-icons/CheckCircleOutline.vue'
 import Download from 'vue-material-design-icons/Download.vue'
+import PuzzleOutline from 'vue-material-design-icons/PuzzleOutline.vue'
 import CnSettingsSection from '../CnSettingsSection/CnSettingsSection.vue'
-import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
+import { useAppStatus } from '../../composables/useAppStatus.js'
 
 /**
  * CnLeafDependencySettings — admin-settings section for an app's leaf
@@ -143,11 +143,16 @@ export default {
 	},
 
 	props: {
-		/** The consuming app's id (e.g. `dossiq`). Used for status lookups. */
-		appId: {
+		/**
+		 * The consuming app's id (e.g. `dossiq`). Not read here: a status
+		 * lookup is keyed on the DEPENDENCY's id, which `useAppStatus(id)`
+		 * takes from each declared entry. Kept as published API.
+		 */
+		appId: { // eslint-disable-line vue/no-unused-properties -- published prop; status is looked up per dependency id, never per consuming app
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Dependency declarations, in the manifest's own shape: a list of
 		 * app-id strings, or `{ id, name?, required? }` objects. `required`
@@ -159,6 +164,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Whether the current user may install/enable apps. When false the
 		 * row shows an "ask your administrator" line instead of the button.
@@ -167,6 +173,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Also list dependencies that are present and enabled. Off by
 		 * default — an admin section about what is missing should be empty
@@ -176,11 +183,13 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Pre-translated section heading. */
 		sectionName: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Optional integrations'),
 		},
+
 		/** Pre-translated section description. */
 		sectionDescription: {
 			type: String,
@@ -220,7 +229,9 @@ export default {
 				.map((entry) => {
 					const isObject = entry && typeof entry === 'object'
 					const id = isObject ? entry.id : entry
-					if (typeof id !== 'string' || id === '') return null
+					if (typeof id !== 'string' || id === '') {
+						return null
+					}
 					return {
 						id,
 						name: (isObject && entry.name) || id,
@@ -257,12 +268,29 @@ export default {
 				.sort((a, b) => (Number(b.required) - Number(a.required)) || a.name.localeCompare(b.name))
 		},
 
-		loadingLabel() { return t('nextcloud-vue', 'Checking apps…') },
-		allResolvedLabel() { return t('nextcloud-vue', 'All integrations this app can use are installed and enabled.') },
-		installLabel() { return t('nextcloud-vue', 'Install and enable') },
-		enableLabel() { return t('nextcloud-vue', 'Enable') },
-		requiredTagLabel() { return t('nextcloud-vue', 'Required') },
-		optionalTagLabel() { return t('nextcloud-vue', 'Optional') },
+		loadingLabel() {
+			return t('nextcloud-vue', 'Checking apps…')
+		},
+
+		allResolvedLabel() {
+			return t('nextcloud-vue', 'All integrations this app can use are installed and enabled.')
+		},
+
+		installLabel() {
+			return t('nextcloud-vue', 'Install and enable')
+		},
+
+		enableLabel() {
+			return t('nextcloud-vue', 'Enable')
+		},
+
+		requiredTagLabel() {
+			return t('nextcloud-vue', 'Required')
+		},
+
+		optionalTagLabel() {
+			return t('nextcloud-vue', 'Optional')
+		},
 	},
 
 	methods: {
@@ -317,7 +345,7 @@ export default {
 				 * @type {{ id: string }}
 				 */
 				this.$emit('installed', { id: dep.id })
-			} catch (e) {
+			} catch {
 				this.erroredId = dep.id
 			} finally {
 				this.busyId = ''

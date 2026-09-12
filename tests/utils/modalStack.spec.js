@@ -32,11 +32,11 @@
 import fs from 'fs'
 import path from 'path'
 import {
-	MODAL_STACK_BASE_Z_INDEX,
-	MODAL_STACK_STEP,
 	acquireModalLayer,
 	installModalStack,
 	isModalStackInstalled,
+	MODAL_STACK_BASE_Z_INDEX,
+	MODAL_STACK_STEP,
 	modalStackDepth,
 	releaseModalLayer,
 	resetModalStack,

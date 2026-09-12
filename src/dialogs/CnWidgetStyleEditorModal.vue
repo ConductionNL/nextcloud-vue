@@ -23,7 +23,7 @@
 					:is="typeFormComponent"
 					ref="typeForm"
 					:key="(widget.widgetId || widget.id || 'w') + '-' + show"
-					:editing-widget="widget"
+					:editingWidget="widget"
 					@update:content="draftContent = $event" />
 				<ul v-if="contentErrors.length" class="cn-widget-style-editor__errors">
 					<li v-for="(err, i) in contentErrors" :key="i">
@@ -42,19 +42,19 @@
 				</h3>
 
 				<NcCheckboxRadioSwitch
-					:model-value="draft.showTitle"
+					:modelValue="draft.showTitle"
 					data-testid="cn-widget-style-show-title"
-					@update:model-value="draft.showTitle = $event">
+					@update:modelValue="draft.showTitle = $event">
 					{{ t('nextcloud-vue', 'Show title') }}
 				</NcCheckboxRadioSwitch>
 
 				<NcTextField
 					v-if="draft.showTitle"
-					:model-value="draft.customTitle"
+					:modelValue="draft.customTitle"
 					:label="t('nextcloud-vue', 'Custom title')"
 					:placeholder="titlePlaceholder"
 					data-testid="cn-widget-style-custom-title"
-					@update:model-value="draft.customTitle = $event" />
+					@update:modelValue="draft.customTitle = $event" />
 			</div>
 
 			<!-- Background section: colour picker over the chrome background. -->
@@ -91,7 +91,7 @@
 				<CnIconBrowser
 					:value="draft.customIcon || null"
 					:icons="builtinCatalogue"
-					:url-icons="legacyExtraIcons"
+					:urlIcons="legacyExtraIcons"
 					clearable
 					data-testid="cn-widget-style-icon"
 					@input="draft.customIcon = $event || ''" />
@@ -102,7 +102,7 @@
 		<template #actions>
 			<NcButton
 				v-if="deletable"
-				type="error"
+				variant="error"
 				data-testid="cn-widget-style-delete"
 				@click="onDelete">
 				{{ t('nextcloud-vue', 'Delete') }}
@@ -123,10 +123,10 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcTextField, NcSelect, NcColorPicker, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import { getWidgetTypeEntry } from '../components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { NcButton, NcCheckboxRadioSwitch, NcColorPicker, NcDialog, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
+import { getWidgetTypeEntry } from '../components/CnWidgetGrid/dashboardWidgetRegistry.js'
 
 // Hardcoded @mdi/js icon path strings (matching CnNoteCard's precedent) to
 // avoid pulling @mdi/js into this library's dependency tree and bundle.
@@ -158,14 +158,16 @@ const mdiConnection = 'M21.4 7.5C22.2 8.3 22.2 9.6 21.4 10.3L18.6 13.1L10.8 5.3L
 
 // The shape a freshly-reset widget chrome falls back to. Kept as a factory so
 // callers of resetDraft() always get a deep copy (never a shared reference).
-const defaultStyleConfig = () => ({
-	backgroundColor: '',
-	borderStyle: 'none',
-	borderColor: '',
-	borderWidth: 1,
-	borderRadius: 12,
-	padding: { top: 0, right: 0, bottom: 0, left: 0 },
-})
+function defaultStyleConfig() {
+	return {
+		backgroundColor: '',
+		borderStyle: 'none',
+		borderColor: '',
+		borderWidth: 1,
+		borderRadius: 12,
+		padding: { top: 0, right: 0, bottom: 0, left: 0 },
+	}
+}
 
 /**
  * CnWidgetStyleEditorModal — isolated host (ADR-004) for editing a single
@@ -197,6 +199,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * The widget chrome being edited. Its `styleConfig` and chrome fields
 		 * (`showTitle`, `customTitle`, `customIcon`) are mutated in place on Save.
@@ -207,11 +210,13 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** Whether to show the Delete button (false for compulsory widgets). */
 		deletable: {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Extra icon options appended to the built-in set, e.g. an app's own
 		 * icon pack. Each `{ id, label, icon }` where `icon` may be an MDI path
@@ -297,7 +302,9 @@ export default {
 		 */
 		typeFormComponent() {
 			const type = this.widget && this.widget.type
-			if (!type) return null
+			if (!type) {
+				return null
+			}
 			const entry = getWidgetTypeEntry(type)
 			return (entry && entry.form) || null
 		},
@@ -316,7 +323,9 @@ export default {
 		 */
 		isCardWidget() {
 			const type = this.widget && this.widget.type
-			if (!type) return false
+			if (!type) {
+				return false
+			}
 			const entry = getWidgetTypeEntry(type)
 			return Boolean(entry && entry.card === true)
 		},

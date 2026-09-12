@@ -16,6 +16,7 @@
  */
 import { mount } from '@vue/test-utils'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
+
 // Importing the widget's index self-registers `stat` (card: true) into the
 // shared dashboard widget registry that isCardWidget consults.
 import '../../src/components/CnStatWidget/index.js'

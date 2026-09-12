@@ -11,7 +11,7 @@
  * to a fresh, test-seeded registry.
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { h } from 'vue'
 
 /**
@@ -100,10 +100,19 @@ describe('CnAddWidgetModal', () => {
 		const registry = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
 		const Modal = require('../../src/dialogs/CnAddWidgetModal.vue').default
 		registry.registerDashboardWidget('owns-title-test', {
-			renderer: { name: 'R' }, form: fakeForm(), defaultContent: {}, displayName: 'Owns title', icon: 'Star', ownsTitle: true,
+			renderer: { name: 'R' },
+			form: fakeForm(),
+			defaultContent: {},
+			displayName: 'Owns title',
+			icon: 'Star',
+			ownsTitle: true,
 		})
 		registry.registerDashboardWidget('plain-title-test', {
-			renderer: { name: 'R' }, form: fakeForm(), defaultContent: {}, displayName: 'Plain', icon: 'Star',
+			renderer: { name: 'R' },
+			form: fakeForm(),
+			defaultContent: {},
+			displayName: 'Plain',
+			icon: 'Star',
 		})
 		const wrapper = mount(Modal, { propsData: { show: true } })
 		wrapper.vm.state.type = 'owns-title-test'
@@ -125,7 +134,12 @@ describe('CnAddWidgetModal', () => {
 		const { CnAddWidgetModal, registry } = loadModal({ label: { displayName: 'Label' } })
 		// A detail-only type (mirrors the real `data` widget).
 		registry.registerDashboardWidget('data', {
-			renderer: { name: 'R' }, form: fakeForm(), defaultContent: {}, displayName: 'Object data', icon: 'Star', surfaces: ['detail-page'],
+			renderer: { name: 'R' },
+			form: fakeForm(),
+			defaultContent: {},
+			displayName: 'Object data',
+			icon: 'Star',
+			surfaces: ['detail-page'],
 		})
 		// Default (dashboard) surface excludes it.
 		const dash = mount(CnAddWidgetModal, { propsData: { show: true } })
@@ -224,8 +238,7 @@ describe('CnAddWidgetModal', () => {
 		await wrapper.vm.$nextTick()
 		// Open in edit mode via the `show` watcher (not initial mount).
 		wrapper.setProps({ show: true, editingWidget: { type: 'label', content: { text: 'hi' } } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		// Valid, but unchanged → Save disabled.
 		expect(wrapper.vm.isValid).toBe(true)
@@ -312,7 +325,9 @@ describe('CnAddWidgetModal', () => {
 
 	it('awaits the sub-form commit() before emitting submit', async () => {
 		const order = []
-		const commit = jest.fn(async () => { order.push('commit') })
+		const commit = jest.fn(async () => {
+			order.push('commit')
+		})
 		const { CnAddWidgetModal } = loadModal({
 			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' }, commit }) },
 		})
@@ -341,7 +356,9 @@ describe('CnAddWidgetModal', () => {
 
 	it('does not close (cancel/Esc) while a commit() is in flight', async () => {
 		let resolveCommit
-		const commit = jest.fn(() => new Promise((res) => { resolveCommit = res }))
+		const commit = jest.fn(() => new Promise((res) => {
+			resolveCommit = res
+		}))
 		const { CnAddWidgetModal } = loadModal({
 			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' }, commit }) },
 		})

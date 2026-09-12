@@ -27,8 +27,8 @@
  * @spec openspec/changes/cn-detail-form-dialog-slot/specs/detail-page-form-dialog-slot/spec.md
  */
 
-import { h } from 'vue'
 import { mount, shallowMount } from '@vue/test-utils'
+import { h } from 'vue'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
 const mockPost = jest.fn(async () => ({ status: 200, data: { '@self': { id: 'new-1' } } }))

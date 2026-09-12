@@ -26,16 +26,20 @@ const SCHEMA = {
 	},
 }
 
-const makeTransition = (inputs, extra = {}) => ({
-	action: 'reject',
-	label: 'Reject request',
-	inputs,
-	...extra,
-})
+function makeTransition(inputs, extra = {}) {
+	return {
+		action: 'reject',
+		label: 'Reject request',
+		inputs,
+		...extra,
+	}
+}
 
-const mountDialog = (transition, schema = SCHEMA) => mount(CnTransitionInputDialog, {
-	propsData: { transition, schema },
-})
+function mountDialog(transition, schema = SCHEMA) {
+	return mount(CnTransitionInputDialog, {
+		propsData: { transition, schema },
+	})
+}
 
 describe('CnTransitionInputDialog — field resolution', () => {
 	it('resolves labels and widgets from the schema (text / textarea / number / checkbox)', () => {

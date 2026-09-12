@@ -45,10 +45,9 @@
 
 const fs = require('fs')
 const path = require('path')
-const { mountOnce, componentExports } = require('./support/sweep.js')
-const realNc = require('../support/realNextcloudVue.js')
-
 const barrel = require('../../src/index.js')
+const realNc = require('../support/realNextcloudVue.js')
+const { mountOnce, componentExports } = require('./support/sweep.js')
 const components = componentExports(barrel)
 
 const BASELINE_PATH = path.join(__dirname, '.smoke-baseline.json')
@@ -76,17 +75,17 @@ describe('real-render smoke sweep', () => {
 
 	it.each(components)('%s mounts and renders clean', async (name, Component) => {
 		const { ok, messages, threw, empty } = await mountOnce(name, Component)
-		const isKnown = Object.prototype.hasOwnProperty.call(known, name)
+		const isKnown = Object.hasOwn(known, name)
 
-		if (empty) renderedEmpty.push(name)
+		if (empty) {
+			renderedEmpty.push(name)
+		}
 
 		if (ok && isKnown) {
-			throw new Error(
-				name + ' now renders clean but is still listed in '
+			throw new Error(name + ' now renders clean but is still listed in '
 				+ 'tests/smoke/.smoke-baseline.json.\n'
 				+ 'Remove the entry (or run `npm run smoke-baseline:update`) so the '
-				+ 'baseline keeps shrinking.\nBaselined reason was: ' + known[name],
-			)
+				+ 'baseline keeps shrinking.\nBaselined reason was: ' + known[name])
 		}
 
 		if (ok || isKnown) {
@@ -94,13 +93,11 @@ describe('real-render smoke sweep', () => {
 		}
 
 		const detail = threw ? 'threw: ' + threw : 'warned: ' + messages.join(' | ')
-		throw new Error(
-			name + ' did not render clean.\n  ' + detail + '\n\n'
+		throw new Error(name + ' did not render clean.\n  ' + detail + '\n\n'
 			+ 'If this is a real defect, fix the component. If it is a harness gap '
 			+ 'that affects every component, add a pattern to IGNORE_PATTERNS in '
 			+ 'tests/smoke/support/sweep.js. Do NOT add it to the baseline unless '
-			+ 'you are deliberately deferring a known component defect.',
-		)
+			+ 'you are deliberately deferring a known component defect.')
 	})
 
 	it('reports which @nextcloud/vue components are real vs stubbed', () => {
@@ -109,15 +106,13 @@ describe('real-render smoke sweep', () => {
 		// looks exactly as green as one that stubs none of it.
 		const real = realNc.__cnRealNames || []
 		const stubbed = realNc.__cnStubbedNames || []
-		process.stdout.write(
-			'\n[smoke] @nextcloud/vue: ' + real.length + ' real, '
+		process.stdout.write('\n[smoke] @nextcloud/vue: ' + real.length + ' real, '
 			+ stubbed.length + ' stubbed (' + stubbed.join(', ') + ')\n'
 			+ '[smoke] components swept: ' + components.length
 			+ ', baselined as known-failing: ' + Object.keys(known).length + '\n'
 			+ '[smoke] rendered EMPTY under minimal props (mounted clean, but'
 			+ ' internals not exercised): ' + renderedEmpty.length + '\n'
-			+ (renderedEmpty.length ? '          ' + renderedEmpty.join(', ') + '\n' : ''),
-		)
+			+ (renderedEmpty.length ? '          ' + renderedEmpty.join(', ') + '\n' : ''))
 		expect(real.length).toBeGreaterThan(stubbed.length)
 	})
 })

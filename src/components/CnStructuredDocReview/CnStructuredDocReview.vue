@@ -37,7 +37,7 @@
 			<CnJsonViewer
 				:value="contentText"
 				:language="language"
-				:read-only="true"
+				:readOnly="true"
 				data-testid="doc-viewer" />
 		</div>
 
@@ -158,6 +158,7 @@ export default {
 				pending: 'Pending',
 			}),
 		},
+
 		/** Hide the bottom decision row entirely (read-only mode). */
 		showDecision: { type: Boolean, default: true },
 		/** Label for the reviewer-comment textarea. */
@@ -175,6 +176,7 @@ export default {
 		/** Disable buttons + comment (mid-submit). */
 		loading: { type: Boolean, default: false },
 	},
+
 	emits: ['decision'],
 	data() {
 		return {
@@ -182,6 +184,7 @@ export default {
 			commentFieldId: 'cn-structured-doc-review-comment-' + Math.random().toString(36).slice(2, 8),
 		}
 	},
+
 	computed: {
 		/**
 		 * `content` as the plain string `CnJsonViewer` expects. Objects and
@@ -197,10 +200,11 @@ export default {
 			}
 			try {
 				return JSON.stringify(this.content, null, 2)
-			} catch (e) {
+			} catch {
 				return String(this.content)
 			}
 		},
+
 		/**
 		 * BEM modifier class derived from `status`.
 		 *
@@ -211,6 +215,7 @@ export default {
 			const norm = known.includes(this.status) ? this.status : 'unknown'
 			return `cn-structured-doc-review__status--${norm}`
 		},
+
 		/**
 		 * Rendered status label. Falls back to the raw status when
 		 * the map has no override.
@@ -220,6 +225,7 @@ export default {
 		statusLabel() {
 			return this.statusLabels[this.status] || this.status
 		},
+
 		/**
 		 * Whether any issue's severity is `error` (blocks approval).
 		 *
@@ -229,6 +235,7 @@ export default {
 			return this.issues.some((i) => (i.severity || 'error') === 'error')
 		},
 	},
+
 	methods: {
 		/**
 		 * Emit `@decision` with the verdict + reviewer comment.
@@ -245,6 +252,7 @@ export default {
 			 */
 			this.$emit('decision', { verdict, comment: this.comment })
 		},
+
 		/**
 		 * Public method to reset the reviewer comment field
 		 * (consumers call this after a successful decision so the

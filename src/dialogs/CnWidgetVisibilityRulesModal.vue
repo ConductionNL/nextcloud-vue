@@ -85,11 +85,11 @@
 			<div class="cn-visibility-rules__field">
 				<NcSelect
 					v-model="conditionDraft.kind"
-					:input-label="t('nextcloud-vue', 'Condition kind')"
+					:inputLabel="t('nextcloud-vue', 'Condition kind')"
 					:aria-label-combobox="t('nextcloud-vue', 'Condition kind')"
 					:options="kindOptions"
 					label="label"
-					track-by="id"
+					trackBy="id"
 					:clearable="false" />
 			</div>
 
@@ -97,7 +97,7 @@
 			<div v-if="activeKind === 'group'" class="cn-visibility-rules__field">
 				<NcSelect
 					v-model="conditionDraft.groups"
-					:input-label="t('nextcloud-vue', 'Groups')"
+					:inputLabel="t('nextcloud-vue', 'Groups')"
 					:aria-label-combobox="t('nextcloud-vue', 'Groups')"
 					:options="availableGroups"
 					:multiple="true"
@@ -108,17 +108,17 @@
 			<template v-else-if="activeKind === 'time'">
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:model-value="conditionDraft.startTime"
+						:modelValue="conditionDraft.startTime"
 						:label="t('nextcloud-vue', 'Start time (HH:MM)')"
 						placeholder="09:00"
-						@update:model-value="conditionDraft.startTime = $event" />
+						@update:modelValue="conditionDraft.startTime = $event" />
 				</div>
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:model-value="conditionDraft.endTime"
+						:modelValue="conditionDraft.endTime"
 						:label="t('nextcloud-vue', 'End time (HH:MM)')"
 						placeholder="17:00"
-						@update:model-value="conditionDraft.endTime = $event" />
+						@update:modelValue="conditionDraft.endTime = $event" />
 				</div>
 			</template>
 
@@ -126,17 +126,17 @@
 			<template v-else-if="activeKind === 'date'">
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:model-value="conditionDraft.startDate"
+						:modelValue="conditionDraft.startDate"
 						:label="t('nextcloud-vue', 'Start date (YYYY-MM-DD)')"
 						placeholder="2026-12-01"
-						@update:model-value="conditionDraft.startDate = $event" />
+						@update:modelValue="conditionDraft.startDate = $event" />
 				</div>
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:model-value="conditionDraft.endDate"
+						:modelValue="conditionDraft.endDate"
 						:label="t('nextcloud-vue', 'End date (YYYY-MM-DD)')"
 						placeholder="2026-12-31"
-						@update:model-value="conditionDraft.endDate = $event" />
+						@update:modelValue="conditionDraft.endDate = $event" />
 				</div>
 			</template>
 
@@ -144,17 +144,17 @@
 			<template v-else-if="activeKind === 'attribute'">
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:model-value="conditionDraft.attribute"
+						:modelValue="conditionDraft.attribute"
 						:label="t('nextcloud-vue', 'Attribute')"
 						placeholder="language"
-						@update:model-value="conditionDraft.attribute = $event" />
+						@update:modelValue="conditionDraft.attribute = $event" />
 				</div>
 				<div class="cn-visibility-rules__field">
 					<NcTextField
-						:model-value="conditionDraft.value"
+						:modelValue="conditionDraft.value"
 						:label="t('nextcloud-vue', 'Equals value')"
 						placeholder="nl"
-						@update:model-value="conditionDraft.value = $event" />
+						@update:modelValue="conditionDraft.value = $event" />
 				</div>
 			</template>
 
@@ -181,8 +181,8 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton, NcDialog, NcSelect, NcTextField } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 
 let titleIdCounter = 0
@@ -217,6 +217,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * The rule set to edit. Each rule ANDs its `conditions`; the array ORs
 		 * its rules. A condition is `{ kind, ...config }`. The prop is not
@@ -228,6 +229,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Group options for the `group` condition picker. */
 		availableGroups: {
 			type: Array,
@@ -285,16 +287,16 @@ export default {
 		 */
 		canAddCondition() {
 			switch (this.activeKind) {
-			case 'group':
-				return Array.isArray(this.conditionDraft.groups) && this.conditionDraft.groups.length > 0
-			case 'time':
-				return this.conditionDraft.startTime !== '' && this.conditionDraft.endTime !== ''
-			case 'date':
-				return this.conditionDraft.startDate !== '' || this.conditionDraft.endDate !== ''
-			case 'attribute':
-				return this.conditionDraft.attribute !== '' && this.conditionDraft.value !== ''
-			default:
-				return false
+				case 'group':
+					return Array.isArray(this.conditionDraft.groups) && this.conditionDraft.groups.length > 0
+				case 'time':
+					return this.conditionDraft.startTime !== '' && this.conditionDraft.endTime !== ''
+				case 'date':
+					return this.conditionDraft.startDate !== '' || this.conditionDraft.endDate !== ''
+				case 'attribute':
+					return this.conditionDraft.attribute !== '' && this.conditionDraft.value !== ''
+				default:
+					return false
 			}
 		},
 	},
@@ -416,16 +418,16 @@ export default {
 		 */
 		buildCondition() {
 			switch (this.activeKind) {
-			case 'group':
-				return { kind: 'group', groups: [...this.conditionDraft.groups] }
-			case 'time':
-				return { kind: 'time', startTime: this.conditionDraft.startTime, endTime: this.conditionDraft.endTime }
-			case 'date':
-				return { kind: 'date', startDate: this.conditionDraft.startDate, endDate: this.conditionDraft.endDate }
-			case 'attribute':
-				return { kind: 'attribute', attribute: this.conditionDraft.attribute, operator: 'equals', value: this.conditionDraft.value }
-			default:
-				return null
+				case 'group':
+					return { kind: 'group', groups: [...this.conditionDraft.groups] }
+				case 'time':
+					return { kind: 'time', startTime: this.conditionDraft.startTime, endTime: this.conditionDraft.endTime }
+				case 'date':
+					return { kind: 'date', startDate: this.conditionDraft.startDate, endDate: this.conditionDraft.endDate }
+				case 'attribute':
+					return { kind: 'attribute', attribute: this.conditionDraft.attribute, operator: 'equals', value: this.conditionDraft.value }
+				default:
+					return null
 			}
 		},
 
@@ -482,16 +484,16 @@ export default {
 		 */
 		summariseCondition(condition) {
 			switch (condition.kind) {
-			case 'group':
-				return (condition.groups || []).join(', ')
-			case 'time':
-				return `${condition.startTime || ''}–${condition.endTime || ''}`
-			case 'date':
-				return `${condition.startDate || '…'} → ${condition.endDate || '…'}`
-			case 'attribute':
-				return `${condition.attribute || ''} = ${condition.value || ''}`
-			default:
-				return ''
+				case 'group':
+					return (condition.groups || []).join(', ')
+				case 'time':
+					return `${condition.startTime || ''}–${condition.endTime || ''}`
+				case 'date':
+					return `${condition.startDate || '…'} → ${condition.endDate || '…'}`
+				case 'attribute':
+					return `${condition.attribute || ''} = ${condition.value || ''}`
+				default:
+					return ''
 			}
 		},
 

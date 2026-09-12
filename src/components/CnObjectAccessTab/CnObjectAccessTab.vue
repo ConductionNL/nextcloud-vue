@@ -58,10 +58,10 @@
 					{{ scopeHeadingLabel }}
 				</h4>
 				<NcCheckboxRadioSwitch
-					:model-value="isPrivate"
+					:modelValue="isPrivate"
 					:disabled="readOnly || savingScope"
 					type="switch"
-					@update:model-value="onScopeToggle">
+					@update:modelValue="onScopeToggle">
 					{{ privateLabel }}
 				</NcCheckboxRadioSwitch>
 				<p class="cn-object-access-tab__hint">
@@ -127,7 +127,7 @@
 					:clearable="false"
 					:aria-label="typeLabel"
 					label="label"
-					track-by="value" />
+					trackBy="value" />
 
 				<NcTextField
 					v-if="needsPrincipal"
@@ -137,9 +137,9 @@
 
 				<NcCheckboxRadioSwitch
 					v-if="newTypeValue !== 'link'"
-					:model-value="allowEditing"
+					:modelValue="allowEditing"
 					type="checkbox"
-					@update:model-value="allowEditing = $event">
+					@update:modelValue="allowEditing = $event">
 					{{ allowEditingLabel }}
 				</NcCheckboxRadioSwitch>
 
@@ -167,10 +167,10 @@ import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue
 import Close from 'vue-material-design-icons/Close.vue'
 import Email from 'vue-material-design-icons/Email.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
-import { buildHeaders } from '../../utils/index.js'
 // prefixUrl lives in headers.js and is NOT re-exported by the utils barrel;
 // src/utils/visibleWhen.js imports it the same way.
 import { prefixUrl } from '../../utils/headers.js'
+import { buildHeaders } from '../../utils/index.js'
 
 /** Core permission bits. PERMISSION_SHARE (16) is deliberately never sent. */
 const PERMISSION_READ = 1
@@ -422,7 +422,7 @@ export default {
 				} else if (this.readOnly === false) {
 					this.degraded = t('nextcloud-vue', 'Sharing is currently unavailable for this item.')
 				}
-			} catch (e) {
+			} catch {
 				this.error = t('nextcloud-vue', 'Could not load sharing information.')
 			} finally {
 				this.loading = false
@@ -451,7 +451,7 @@ export default {
 				 * @type {string} `'private'` or `'organisation'`.
 				 */
 				this.$emit('scope-changed', scope)
-			} catch (e) {
+			} catch {
 				// Revert the switch rather than leaving the UI asserting a change
 				// the server refused.
 				this.scope = previous
@@ -517,7 +517,7 @@ export default {
 				 */
 				this.$emit('granted', created)
 				await this.reload()
-			} catch (e) {
+			} catch {
 				this.error = t('nextcloud-vue', 'Could not share this item.')
 			} finally {
 				this.submitting = false
@@ -552,7 +552,7 @@ export default {
 				 */
 				this.$emit('revoked', grant)
 				await this.reload()
-			} catch (e) {
+			} catch {
 				this.error = t('nextcloud-vue', 'Could not revoke access.')
 			} finally {
 				this.revokingId = null

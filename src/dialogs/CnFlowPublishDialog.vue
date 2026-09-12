@@ -69,9 +69,9 @@
 				</ul>
 
 				<NcCheckboxRadioSwitch v-if="preview.verdict !== 'major'"
-					:model-value="forceMajor"
+					:modelValue="forceMajor"
 					data-testid="flow-publish-force-major"
-					@update:model-value="forceMajor = $event">
+					@update:modelValue="forceMajor = $event">
 					{{ t('nextcloud-vue', 'Publish as a breaking change anyway') }}
 				</NcCheckboxRadioSwitch>
 				<p v-if="preview.verdict !== 'major'" class="cn-flow-publish__note">
@@ -159,9 +159,7 @@ export default {
 				{ field: 'removedKeys', label: this.t('nextcloud-vue', 'Setting') },
 			]
 
-			return kinds.flatMap(({ field, label }) =>
-				(preview[field] || []).map((name) => ({ key: `${field}:${name}`, kind: label, name })),
-			)
+			return kinds.flatMap(({ field, label }) => (preview[field] || []).map((name) => ({ key: `${field}:${name}`, kind: label, name })))
 		},
 	},
 

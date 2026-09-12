@@ -23,7 +23,6 @@ jest.mock('@nextcloud/router', () => ({
 import axios from '@nextcloud/axios'
 import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
-
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
 import { invalidateEndpointSourceCache } from '../../src/composables/useEndpointSource.js'
 
@@ -152,7 +151,9 @@ describe('CnChartWidget — endpointSource (Wave 2)', () => {
 
 	it('falls back to the static series/labels props while the endpoint has not resolved', async () => {
 		let resolveFetch
-		axios.get.mockReturnValue(new Promise((resolve) => { resolveFetch = resolve }))
+		axios.get.mockReturnValue(new Promise((resolve) => {
+			resolveFetch = resolve
+		}))
 		const wrapper = mountChart({
 			type: 'line',
 			series: [{ name: 'Static', data: [1] }],

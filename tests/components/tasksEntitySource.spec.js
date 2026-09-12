@@ -23,12 +23,11 @@ jest.mock('@nextcloud/axios', () => ({
 	},
 }))
 
-import { mount } from '@vue/test-utils'
-import { ref, nextTick } from 'vue'
-
+import { flushPromises, mount } from '@vue/test-utils'
+import { nextTick, ref } from 'vue'
+const { useNamedSource } = require('../../src/components/CnIndexPage/useNamedSource.js')
 const { indexSources, resolveIndexSource, taskDueLabel, taskDeepLink } = require('../../src/composables/indexSources.js')
 const { useTaskInboxStore } = require('../../src/composables/useTaskInboxStore.js')
-const { useNamedSource } = require('../../src/components/CnIndexPage/useNamedSource.js')
 
 /** @return {object} The params of the most recent GET. */
 function lastParams() {
@@ -50,9 +49,7 @@ describe('the tasks source is registered', () => {
 		expect(typeof source.loading).toBe('function')
 		expect(typeof source.openRow).toBe('function')
 		expect(source.showAdd).toBe(false)
-		expect(source.columns.map((c) => c.key)).toEqual(
-			['title', 'subjectLabel', 'stateLabel', 'priorityLabel', 'dueLabel', 'assignee'],
-		)
+		expect(source.columns.map((c) => c.key)).toEqual(['title', 'subjectLabel', 'stateLabel', 'priorityLabel', 'dueLabel', 'assignee'])
 	})
 
 	it('supplies the scope tabs with assigned as the default', () => {
@@ -229,8 +226,7 @@ describe('named-source quick filters', () => {
 		await nextTick()
 
 		activeIndex.value = 1
-		await nextTick()
-		await nextTick()
+		await flushPromises()
 
 		expect(mockGet).toHaveBeenCalledTimes(2)
 		expect(lastParams()).toEqual({ scope: 'pooled', sort: '-dueAt', limit: 10 })

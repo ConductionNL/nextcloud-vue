@@ -7,7 +7,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnFeaturesAndRoadmapSidebar from '../../src/components/CnFeaturesAndRoadmapSidebar/CnFeaturesAndRoadmapSidebar.vue'
 
 const stubs = { ArrowRight: true, OpenInNew: true }

@@ -9,7 +9,9 @@ export class Marked {
 	parse(src) { return src || '' }
 	use() {}
 }
-export function marked(src) { return src || '' }
+export function marked(src) {
+	return src || ''
+}
 
 // `@nextcloud/dialogs` — toast helpers fire on user actions (e.g. re-import in
 // CnAdminSettingsShell), never at module-init, so no-ops keep the build clean.
@@ -40,11 +42,20 @@ export function getFilePickerBuilder() {
 // stubs (mirroring the real signatures) satisfy the named imports so the module
 // builds without warnings. Values are unused in the sandbox.
 export function addPasswordConfirmationInterceptors() {}
-export function confirmPassword() { return Promise.resolve() }
+export function confirmPassword() {
+	return Promise.resolve()
+}
 export const PwdConfirmationMode = { Lax: 'lax', Strict: 'strict' }
 
 export default {
-	Marked, marked, showSuccess, showError,
-	FilePickerClosed, FilePickerType, getFilePickerBuilder,
-	addPasswordConfirmationInterceptors, confirmPassword, PwdConfirmationMode,
+	Marked,
+	marked,
+	showSuccess,
+	showError,
+	FilePickerClosed,
+	FilePickerType,
+	getFilePickerBuilder,
+	addPasswordConfirmationInterceptors,
+	confirmPassword,
+	PwdConfirmationMode,
 }

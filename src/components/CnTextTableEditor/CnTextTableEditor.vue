@@ -123,17 +123,17 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import {
-	emptyTable,
-	addRow,
 	addColumn,
-	deleteRow,
+	addRow,
 	deleteColumn,
-	mergeCells,
-	splitCell,
-	setHeaderRow,
-	setColumnAlignment,
-	setCellText,
+	deleteRow,
+	emptyTable,
 	isPlaceholderCell,
+	mergeCells,
+	setCellText,
+	setColumnAlignment,
+	setHeaderRow,
+	splitCell,
 	validateTable,
 } from '../../utils/textTable.js'
 
@@ -165,6 +165,7 @@ export default {
 			type: Object,
 			default: () => emptyTable(),
 		},
+
 		/**
 		 * The same value as `value`, under Vue 3's own v-model name.
 		 *
@@ -201,11 +202,12 @@ export default {
 		/**
 		 * The value the consumer actually bound, whichever prop they used.
 		 *
-		 * @return {*} The bound value.
+		 * @return {unknown} The bound value.
 		 */
 		boundValue() {
 			return this.modelValue !== undefined ? this.modelValue : this.value
 		},
+
 		/**
 		 * Whether the table currently has a selectable cell (non-empty grid).
 		 *
@@ -250,23 +252,24 @@ export default {
 		 * `v-model` are the same consumer as far as this component knows, and
 		 * emitting only one silently breaks half of them.
 		 *
-		 * @param {*} next The new value.
+		 * @param {unknown} next The new value.
 		 * @return {void}
 		 */
 		emitValue(next) {
 			/**
 			 * @event input The value changed. Vue 2's v-model dialect, kept for
 			 *   existing consumers.
-			 * @type {*}
+			 * @type {unknown}
 			 */
 			this.$emit('input', next)
 			/**
 			 * @event update:modelValue The value changed. Vue 3's v-model
 			 *   dialect — what a plain `v-model` listens for.
-			 * @type {*}
+			 * @type {unknown}
 			 */
 			this.$emit('update:modelValue', next)
 		},
+
 		t,
 
 		/**
@@ -461,9 +464,7 @@ export default {
 		 */
 		onDeleteColumn() {
 			const cIdx = this.anchor.cIdx
-			const hasText = this.boundValue.rows.some(
-				(row) => row[cIdx] && typeof row[cIdx].text === 'string' && row[cIdx].text.trim() !== '',
-			)
+			const hasText = this.boundValue.rows.some((row) => row[cIdx] && typeof row[cIdx].text === 'string' && row[cIdx].text.trim() !== '')
 			if (hasText) {
 				const proceed = typeof window !== 'undefined' && typeof window.confirm === 'function'
 					? window.confirm(t('nextcloud-vue', 'This column contains text. Delete?'))

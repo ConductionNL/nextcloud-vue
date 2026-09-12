@@ -17,8 +17,8 @@
  * the descriptor's `tab` / `widget`.
  */
 
-const { createIntegrationRegistry } = require('../../src/integrations/registry.js')
 const { leafIntegrations, registerLeafIntegrations } = require('../../src/integrations/builtin/leaves.js')
+const { createIntegrationRegistry } = require('../../src/integrations/registry.js')
 
 /**
  * The expected per-leaf metadata, sourced from

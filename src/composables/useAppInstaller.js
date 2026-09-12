@@ -1,17 +1,19 @@
-import { ref } from 'vue'
 // Namespace import + explicit default-unwrap: @nextcloud/axios stays external, so
-// a consumer that resolves its ESM build makes `require('@nextcloud/axios')` a
-// namespace `{default: axiosInstance, …}`. A plain `import axios from …` compiles
-// to a bare require in our CJS dist, so `axios.interceptors` would be undefined
+// a consumer that resolves its ESM build gets a CommonJS require of that package,
+// which resolves to a namespace `{default: axiosInstance, …}`. A plain
+// `import axios from …` compiles to a bare require in our CJS dist, so
+// `axios.interceptors` would be undefined
 // → `addPasswordConfirmationInterceptors(axios)` crashes ("reading 'request'").
 // Unwrap the default ourselves so it works under either resolution.
 import * as axiosModule from '@nextcloud/axios'
-import { generateOcsUrl, generateUrl } from '@nextcloud/router'
 import {
 	addPasswordConfirmationInterceptors,
 	confirmPassword,
 	PwdConfirmationMode,
 } from '@nextcloud/password-confirmation'
+import { generateOcsUrl, generateUrl } from '@nextcloud/router'
+import { ref } from 'vue'
+
 import '@nextcloud/password-confirmation/style.css'
 // password-confirmation renders its prompt via @nextcloud/dialogs'
 // `spawnDialog`, and this composable also fires `showSuccess`/`showError`
@@ -122,7 +124,7 @@ const DIALOG_CANCELLED = 'Dialog closed'
  * dialog (strict interceptor or session `confirmPassword()`), as opposed to
  * a real enable failure. Cancels are quiet aborts — no `error` is surfaced.
  *
- * @param {*} err The rejected error.
+ * @param {unknown} err The rejected error.
  * @return {boolean} True when the admin cancelled the password prompt.
  */
 function isPasswordDialogCancelled(err) {
@@ -137,7 +139,7 @@ function isPasswordDialogCancelled(err) {
  * - OCS error:    `err.response.data.ocs.meta.message`
  * - legacy error: `err.response.data.data.message` or `err.response.data.message`
  *
- * @param {*} err The rejected axios error.
+ * @param {unknown} err The rejected axios error.
  * @return {string} A message safe to surface inline.
  */
 function extractErrorMessage(err) {

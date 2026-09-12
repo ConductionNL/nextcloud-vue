@@ -54,9 +54,9 @@
  *
  * @param {object} args
  * @param {object} args.field   The formField shape.
- * @param {*}      args.value   Current value for `field.key`.
- * @param {Function} args.onInput Callback invoked with the new value.
- * @param {Function} [args.t]   Optional translator for `field.label`.
+ * @param {unknown}      args.value   Current value for `field.key`.
+ * @param {(value: unknown) => void} args.onInput Callback invoked with the new value.
+ * @param {(key: string) => string} [args.t]   Optional translator for `field.label`.
  * @param {string|null} [args.error] Optional validation failure message (REQ-MFL-11).
  * @param {object}  [args.componentMap] Optional override map from
  *   widget id → Vue component. Defaults to the library's standard
@@ -98,8 +98,8 @@ import {
 	NcTextArea,
 	NcTextField,
 } from '@nextcloud/vue'
-import CnJsonViewer from '../components/CnJsonViewer/CnJsonViewer.vue'
 import CnFileField from '../components/CnFileField/CnFileField.vue'
+import CnJsonViewer from '../components/CnJsonViewer/CnJsonViewer.vue'
 
 /**
  * Whether the installed `@nextcloud/vue` actually provided `NcTextArea`.
@@ -137,7 +137,7 @@ const warned = new Set()
  *
  * @param {object} field A formField descriptor carrying its choices on either
  *   `field.enum` (preferred) or the legacy `field.options`.
- * @return {Array<{label: string, value: *}>} The NcSelect options; bare literals
+ * @return {Array<{label: string, value: unknown}>} The NcSelect options; bare literals
  *   become `{label: String(entry), value: entry}`.
  */
 function resolveEnumOptions(field) {
@@ -157,9 +157,9 @@ function resolveEnumOptions(field) {
  *
  * @param {object} args See module docblock.
  * @param {object} args.field The formField shape.
- * @param {*} args.value Current value for `field.key`.
- * @param {Function} args.onInput Callback invoked with the new value.
- * @param {Function} [args.t] Optional translator for `field.label`.
+ * @param {unknown} args.value Current value for `field.key`.
+ * @param {(value: unknown) => void} args.onInput Callback invoked with the new value.
+ * @param {(key: string) => string} [args.t] Optional translator for `field.label`.
  * @param {string|null} [args.error] Optional validation failure message (REQ-MFL-11).
  * @param {object} [args.componentMap] Optional override map from widget id to Vue component.
  * @return {{ tag: object|string, props: object, listeners: object, kind: string }}
@@ -285,13 +285,11 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 			if (!map['string-textarea'] && !warned.has('__no-nc-textarea')) {
 				warned.add('__no-nc-textarea')
 				// eslint-disable-next-line no-console
-				console.warn(
-					'[cnRenderFormField] NcTextArea is unavailable from @nextcloud/vue; '
+				console.warn('[cnRenderFormField] NcTextArea is unavailable from @nextcloud/vue; '
 					+ 'falling back to a bare <textarea> for `widget: "textarea"` fields. '
 					+ 'The fallback has no label wiring and no error/helperText state. '
 					+ 'Check that @nextcloud/vue satisfies the peer range, or pass '
-					+ 'componentMap["string-textarea"] explicitly.',
-				)
+					+ 'componentMap["string-textarea"] explicitly.')
 			}
 			result = {
 				kind: 'string-textarea',
@@ -328,9 +326,7 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 		if (!warned.has(field.type)) {
 			warned.add(field.type)
 			// eslint-disable-next-line no-console
-			console.warn(
-				`[cnRenderFormField] Unknown field.type "${field.type}" for field "${field.key}". Falling back to NcTextField. Known types: ${KNOWN_TYPES.join(', ')}.`,
-			)
+			console.warn(`[cnRenderFormField] Unknown field.type "${field.type}" for field "${field.key}". Falling back to NcTextField. Known types: ${KNOWN_TYPES.join(', ')}.`)
 		}
 		result = {
 			kind: 'fallback',
@@ -346,7 +342,9 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 	}
 
 	// Should be unreachable given the KNOWN_TYPES check above.
-	if (!result) return null
+	if (!result) {
+		return null
+	}
 
 	// manifest-form-logic (REQ-MFL-11): NcInputField-family kinds get the
 	// NC-standard error props. `string-textarea` only qualifies when

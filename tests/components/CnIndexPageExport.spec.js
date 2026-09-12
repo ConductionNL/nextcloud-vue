@@ -74,16 +74,12 @@ describe('CnIndexPage — native Export menu', () => {
 	it('navigates to the CSV export URL with route-query filters on click', async () => {
 		const wrapper = mountPage({ schema: exportableSchema, allowExport: true }, { status: 'open', assignee: 'me' })
 		await wrapper.find('[data-testid="cn-index-export-csv"]').trigger('click')
-		expect(assignSpy).toHaveBeenCalledWith(
-			'/apps/openregister/api/objects/procest/case/export?format=csv&status=open&assignee=me',
-		)
+		expect(assignSpy).toHaveBeenCalledWith('/apps/openregister/api/objects/procest/case/export?format=csv&status=open&assignee=me')
 	})
 
 	it('navigates to the Excel export URL on click', async () => {
 		const wrapper = mountPage({ schema: exportableSchema, allowExport: true })
 		await wrapper.find('[data-testid="cn-index-export-excel"]').trigger('click')
-		expect(assignSpy).toHaveBeenCalledWith(
-			'/apps/openregister/api/objects/procest/case/export?format=excel',
-		)
+		expect(assignSpy).toHaveBeenCalledWith('/apps/openregister/api/objects/procest/case/export?format=excel')
 	})
 })

@@ -1,4 +1,3 @@
-/* eslint-disable no-console, n/no-process-exit */
 /**
  * JSDoc completeness ratchet (G2 of the auto-update guarantee).
  *
@@ -36,17 +35,15 @@ const DOCGEN_API_PATH = path.join(ROOT, 'docusaurus/node_modules/vue-docgen-api'
 let parse
 try {
 	parse = require(DOCGEN_API_PATH).parse
-} catch (err) {
+} catch {
 	// `npm ci` — NOT `npm install --legacy-peer-deps`, which this hint used to
 	// recommend and which CLAUDE.md forbids outright. The lockfile resolves
 	// cleanly and CI installs these deps with a plain `npm ci`
 	// (code-quality.yml: `frontend-setup-command: cd docusaurus && npm ci`), so
 	// the flag was never needed. A hint pointing at a banned workaround makes
 	// the gate look unrunnable, which gets it skipped rather than fixed.
-	console.error(
-		'[check-jsdoc] Failed to load vue-docgen-api from docusaurus/node_modules.\n'
-		+ '             Run `cd docusaurus && npm ci` first.',
-	)
+	console.error('[check-jsdoc] Failed to load vue-docgen-api from docusaurus/node_modules.\n'
+		+ '             Run `cd docusaurus && npm ci` first.')
 	process.exit(2)
 }
 
@@ -59,10 +56,10 @@ const JSON_MODE = args.includes('--json')
  */
 function findCnSfcs() {
 	const dirs = fs.readdirSync(COMPONENTS_DIR, { withFileTypes: true })
-		.filter(d => d.isDirectory() && d.name.startsWith('Cn'))
+		.filter((d) => d.isDirectory() && d.name.startsWith('Cn'))
 	return dirs
-		.map(d => path.join(COMPONENTS_DIR, d.name, `${d.name}.vue`))
-		.filter(p => fs.existsSync(p))
+		.map((d) => path.join(COMPONENTS_DIR, d.name, `${d.name}.vue`))
+		.filter((p) => fs.existsSync(p))
 }
 
 /**
@@ -75,6 +72,7 @@ function findCnSfcs() {
  *  - Event: non-empty description (incl. JSDoc on $emit site).
  *  - Slot: non-empty description.
  *
+ * @param {string} sfcPath Path to the single-file component to score.
  * @returns {{component, score, total, documented, missing}}
  */
 async function scoreSfc(sfcPath) {
@@ -122,15 +120,17 @@ async function scoreSfc(sfcPath) {
 	}
 
 	const total = items.length
-	const documented = items.filter(i => i.documented).length
+	const documented = items.filter((i) => i.documented).length
 	const score = total === 0 ? 1.0 : documented / total
-	const missing = items.filter(i => !i.documented).map(i => `${i.kind}:${i.name}`)
+	const missing = items.filter((i) => !i.documented).map((i) => `${i.kind}:${i.name}`)
 
 	return { component: componentName, score, total, documented, missing }
 }
 
 /**
  * Round to 2 decimals so baseline diffs are stable across reruns.
+ *
+ * @param {number} n The value to round.
  */
 function round(n) {
 	return Math.round(n * 100) / 100
@@ -156,7 +156,9 @@ async function main() {
 
 	if (UPDATE_MODE) {
 		const baseline = {}
-		for (const r of results) baseline[r.component] = round(r.score)
+		for (const r of results) {
+			baseline[r.component] = round(r.score)
+		}
 		baseline.__schema__ = {
 			generatedBy: 'scripts/check-jsdoc.js --update',
 			rule: 'CI fails if any component score < baseline. New components require 1.0.',
@@ -183,7 +185,7 @@ async function main() {
 	}
 
 	// Pretty print: per-component score table.
-	const longestName = Math.max(0, ...results.map(r => r.component.length))
+	const longestName = Math.max(0, ...results.map((r) => r.component.length))
 	console.log('\nJSDoc completeness scores (Cn* components):')
 	console.log('─'.repeat(longestName + 30))
 	for (const r of results) {
@@ -210,7 +212,7 @@ async function main() {
 			: `${f.component} score dropped from baseline ${expectedPct}% to ${observedPct}%`
 		console.error(`  • ${lead}`)
 		console.error(`    File: src/components/${f.component}/${f.component}.vue`)
-		console.error(`    Missing JSDoc on:`)
+		console.error('    Missing JSDoc on:')
 		for (const m of f.missing) {
 			console.error(`      - ${m}`)
 		}
@@ -224,7 +226,7 @@ async function main() {
 	process.exit(1)
 }
 
-main().catch(err => {
+main().catch((err) => {
 	console.error(err)
 	process.exit(2)
 })

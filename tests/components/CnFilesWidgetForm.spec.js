@@ -5,9 +5,9 @@
  * renderer's self-registering index.
  */
 
+import { FilePickerClosed } from '@nextcloud/dialogs'
 import { mount } from '@vue/test-utils'
 import CnFilesWidgetForm from '@/components/CnFilesWidgetForm/CnFilesWidgetForm.vue'
-import { FilePickerClosed } from '@nextcloud/dialogs'
 
 // The folder picker is driven by @nextcloud/dialogs' builder. Mock it so the
 // builder chain is inert and `pickNodes()` resolves with a canned node.

@@ -109,11 +109,13 @@ const DEFAULT_MAP = {
  * @param {object} record The definition record.
  * @param {object} map The resolved field-name map.
  * @param {string} role The map role (`title`, `type`, …).
- * @return {*} The value, or undefined when the role is unmapped or absent.
+ * @return {unknown} The value, or undefined when the role is unmapped or absent.
  */
 function mapped(record, map, role) {
 	const field = map[role]
-	if (!field) return undefined
+	if (!field) {
+		return undefined
+	}
 	return record[field]
 }
 
@@ -128,7 +130,9 @@ function mapped(record, map, role) {
  * @return {Array<{key: string, config: object}>} The declarations, in property order.
  */
 export function extendsFormDeclarations(schema) {
-	if (!schema || !schema.properties) return []
+	if (!schema || !schema.properties) {
+		return []
+	}
 	const out = []
 	for (const [key, prop] of Object.entries(schema.properties)) {
 		const config = prop && prop[EXTENDS_FORM_KEY]
@@ -156,7 +160,9 @@ export function extendsFormDeclarations(schema) {
  */
 function humaniseName(name) {
 	const value = String(name || '')
-	if (!value || value.includes(' ')) return value
+	if (!value || value.includes(' ')) {
+		return value
+	}
 
 	const words = value
 		// `camelCase` and `snake_case` / `kebab-case` both become words. The
@@ -168,13 +174,17 @@ function humaniseName(name) {
 		.trim()
 		.split(/\s+/)
 		.filter(Boolean)
-	if (words.length === 0) return value
+	if (words.length === 0) {
+		return value
+	}
 
 	// Sentence case, not Title Case: splitting `auditorsStatementThreshold`
 	// leaves each word capitalised, and shipping that would put a Title Case
 	// label on every form. An all-caps word is an acronym and keeps its shape.
 	const cased = words.map((word, index) => {
-		if (word.length > 1 && word === word.toUpperCase()) return word
+		if (word.length > 1 && word === word.toUpperCase()) {
+			return word
+		}
 		const lower = word.toLowerCase()
 		return index === 0 ? lower.charAt(0).toUpperCase() + lower.slice(1) : lower
 	})
@@ -193,7 +203,9 @@ function humaniseName(name) {
  * @return {Array<{key: string, config: object}>} The declarations, in property order.
  */
 export function prefillDeclarations(schema) {
-	if (!schema || !schema.properties) return []
+	if (!schema || !schema.properties) {
+		return []
+	}
 	const out = []
 	for (const [key, prop] of Object.entries(schema.properties)) {
 		const config = prop && prop[PREFILL_KEY]
@@ -220,14 +232,22 @@ export function prefillDeclarations(schema) {
  */
 export function prefillValues(record, config) {
 	const fields = (config && config.fields) || null
-	if (!record || !fields) return {}
+	if (!record || !fields) {
+		return {}
+	}
 
 	const out = {}
 	for (const [target, source] of Object.entries(fields)) {
-		if (typeof source !== 'string' || !source) continue
+		if (typeof source !== 'string' || !source) {
+			continue
+		}
 		const value = record[source]
-		if (value === undefined || value === null || value === '') continue
-		if (Array.isArray(value) && value.length === 0) continue
+		if (value === undefined || value === null || value === '') {
+			continue
+		}
+		if (Array.isArray(value) && value.length === 0) {
+			continue
+		}
 		out[target] = value
 	}
 	return out
@@ -244,14 +264,16 @@ export function prefillValues(record, config) {
  * case type that has no extra properties.
  *
  * @param {object} config The `x-openregister-extends-form` block.
- * @param {*} value The driving property's current value.
+ * @param {unknown} value The driving property's current value.
  * @param {object} [formData] The full form data, for `@object.<field>` tokens.
  * @return {object} Query parameters for `fetchCollection`.
  */
 export function definitionQueryParams(config, value, formData = {}) {
 	const params = { _limit: 100 }
 	const raw = (config && config.definitions && config.definitions.filter) || null
-	if (!raw || typeof raw !== 'object') return params
+	if (!raw || typeof raw !== 'object') {
+		return params
+	}
 
 	// `$value` is the driving property itself; substitute it before token
 	// resolution so the generic resolver never sees a token it cannot answer.
@@ -261,9 +283,13 @@ export function definitionQueryParams(config, value, formData = {}) {
 	}
 	const resolved = resolveFilterTokens(seeded, { object: { ...formData }, objectId: formData.id })
 	for (const [key, entry] of Object.entries(resolved)) {
-		if (typeof entry === 'string' && entry.charAt(0) === '@') continue
+		if (typeof entry === 'string' && entry.charAt(0) === '@') {
+			continue
+		}
 		if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
-			for (const [op, operand] of Object.entries(entry)) params[`${key}[${op}]`] = operand
+			for (const [op, operand] of Object.entries(entry)) {
+				params[`${key}[${op}]`] = operand
+			}
 		} else if (entry !== '' && entry !== null && entry !== undefined) {
 			params[key] = entry
 		}
@@ -298,7 +324,9 @@ export function propertiesFromDefinitions(definitions, config = {}, options = {}
 	const list = Array.isArray(definitions) ? definitions : []
 
 	list.forEach((record, index) => {
-		if (!record || !record.id) return
+		if (!record || !record.id) {
+			return
+		}
 		const key = DYNAMIC_KEY_PREFIX + record.id
 		const declaredType = mapped(record, map, 'type')
 		const base = typeMap[declaredType] || typeMap.string
@@ -321,16 +349,24 @@ export function propertiesFromDefinitions(definitions, config = {}, options = {}
 		// An explicitly mapped format wins over the one the type shorthand
 		// implied, so a definition can say `string` + `date` and still get a
 		// date picker.
-		if (format) prop.format = format
-		if (typeof maxLength === 'number' && maxLength > 0) prop.maxLength = maxLength
-		if (Array.isArray(enumValues) && enumValues.length > 0) prop.enum = [...enumValues]
+		if (format) {
+			prop.format = format
+		}
+		if (typeof maxLength === 'number' && maxLength > 0) {
+			prop.maxLength = maxLength
+		}
+		if (Array.isArray(enumValues) && enumValues.length > 0) {
+			prop.enum = [...enumValues]
+		}
 		if (defaultValue !== undefined && defaultValue !== null && defaultValue !== '') {
 			prop.default = defaultValue
 		}
 		prop.order = orderFrom + index
 
 		properties[key] = prop
-		if (mapped(record, map, 'required') === true) required.push(key)
+		if (mapped(record, map, 'required') === true) {
+			required.push(key)
+		}
 	})
 
 	return { properties, required }
@@ -366,7 +402,7 @@ export function definitionIdFromKey(key) {
  * silently, so an unsplit payload loses every answer with a 200 and no error.
  *
  * @param {object} formData The dialog's confirmed payload.
- * @return {{base: object, answers: Array<{definitionId: string, value: *}>}} The parent's fields, and one answer per dynamic field.
+ * @return {{base: object, answers: Array<{definitionId: string, value: unknown}>}} The parent's fields, and one answer per dynamic field.
  */
 export function splitDynamicFormData(formData) {
 	const base = {}
@@ -411,7 +447,9 @@ export function usesArrayValues(config) {
  * @return {Array<object>} Entries for the parent's array property.
  */
 export function valueArrayFor(answers, config, definitions = []) {
-	if (!usesArrayValues(config)) return []
+	if (!usesArrayValues(config)) {
+		return []
+	}
 	const values = config.values
 	const definitionRef = values.definitionRef || 'definition'
 	const valueKey = values.valueKey || 'value'
@@ -440,14 +478,16 @@ export function valueArrayFor(answers, config, definitions = []) {
  * mean the same thing to every reader, and not writing it keeps the value
  * schema free of rows that only record that someone opened the form.
  *
- * @param {Array<{definitionId: string, value: *}>} answers The answers from `splitDynamicFormData`.
+ * @param {Array<{definitionId: string, value: unknown}>} answers The answers from `splitDynamicFormData`.
  * @param {object} config The `x-openregister-extends-form` block (needs `values`).
  * @param {string} objectId The saved parent object's id.
  * @return {Array<object>} One payload per row to create; empty when nothing is to be written.
  */
 export function valueRecordsFor(answers, config, objectId) {
 	const values = (config && config.values) || null
-	if (!values || !values.schema || !objectId) return []
+	if (!values || !values.schema || !objectId) {
+		return []
+	}
 	const objectRef = values.objectRef || 'object'
 	const definitionRef = values.definitionRef || 'definition'
 	const valueKey = values.valueKey || 'value'

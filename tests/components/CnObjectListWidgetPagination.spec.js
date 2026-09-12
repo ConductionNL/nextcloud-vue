@@ -13,7 +13,7 @@
  * would be claiming a range it is not showing.
  */
 
-import { shallowMount, flushPromises } from '@vue/test-utils'
+import { flushPromises, shallowMount } from '@vue/test-utils'
 
 // `mock`-prefixed so jest's hoisted factory may close over it.
 const mockGet = jest.fn()

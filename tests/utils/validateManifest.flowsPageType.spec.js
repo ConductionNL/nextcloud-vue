@@ -51,14 +51,21 @@ describe('page type — flows / flow-detail', () => {
 
 	it('accepts a flows page with no app (the fleet-wide surface)', () => {
 		const r = validateManifestV2(manifestWithPage({
-			id: 'Flows', route: '/flows', type: 'flows', title: 'Flows', config: {},
+			id: 'Flows',
+			route: '/flows',
+			type: 'flows',
+			title: 'Flows',
+			config: {},
 		}))
 		expect(r.valid).toBe(true)
 	})
 
 	it('still rejects an unknown page type', () => {
 		const r = validateManifestV2(manifestWithPage({
-			id: 'X', route: '/x', type: 'flowchart', title: 'X',
+			id: 'X',
+			route: '/x',
+			type: 'flowchart',
+			title: 'X',
 		}))
 		expect(r.valid).toBe(false)
 	})

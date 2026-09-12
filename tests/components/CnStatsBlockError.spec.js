@@ -17,7 +17,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnStatsBlock from '../../src/components/CnStatsBlock/CnStatsBlock.vue'
 
 const stubs = {

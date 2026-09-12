@@ -17,13 +17,13 @@
  *  - the helper is idempotent.
  */
 
+const { ICON_MAP, registerIcons } = require('../../src/components/CnIcon/CnIcon.vue')
+const { builtinIntegrations } = require('../../src/integrations/builtin/index.js')
+const { leafIntegrations } = require('../../src/integrations/builtin/leaves.js')
 const {
 	INTEGRATION_ICON_COMPONENTS,
 	registerIntegrationIcons,
 } = require('../../src/integrations/icons.js')
-const { builtinIntegrations } = require('../../src/integrations/builtin/index.js')
-const { leafIntegrations } = require('../../src/integrations/builtin/leaves.js')
-const { ICON_MAP, registerIcons } = require('../../src/components/CnIcon/CnIcon.vue')
 
 describe('integration icon registration', () => {
 	test('every descriptor icon has a registered component', () => {

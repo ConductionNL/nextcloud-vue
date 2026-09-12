@@ -45,8 +45,8 @@
 			     boundary so a throwing section degrades inline. -->
 			<CnSectionBoundary
 				v-if="entry.component"
-				:section-id="entry.id"
-				:error-label="errorLabel">
+				:sectionId="entry.id"
+				:errorLabel="errorLabel">
 				<component
 					:is="entry.component"
 					v-bind="entry.props"
@@ -64,8 +64,8 @@
 </template>
 
 <script>
-import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
+import { provide, ref, watch } from 'vue'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import CnSectionBoundary from './CnSectionBoundary.js'
 
@@ -150,7 +150,9 @@ export default {
 		provide('cnSectionContext', cnSectionContext)
 		watch(
 			() => props.context,
-			(next) => { cnSectionContext.value = { ...(next || {}) } },
+			(next) => {
+				cnSectionContext.value = { ...(next || {}) }
+			},
 			{ deep: true },
 		)
 		return {}
@@ -218,9 +220,13 @@ export default {
 		 * @return {object|null} The resolved Vue component, or null.
 		 */
 		resolveSectionComponent(name) {
-			if (typeof name !== 'string' || name === '') return null
+			if (typeof name !== 'string' || name === '') {
+				return null
+			}
 			const reg = (this.cnRegistry && this.cnRegistry[name]) || null
-			if (reg && reg.component) return reg.component
+			if (reg && reg.component) {
+				return reg.component
+			}
 			const legacy = this.cnCustomComponents && this.cnCustomComponents[name]
 			return legacy || null
 		},
@@ -261,7 +267,9 @@ export default {
 		 * @return {object} An inline-style object.
 		 */
 		sectionStyle(entry) {
-			if (!this.useGrid || typeof entry.colSpan !== 'number') return {}
+			if (!this.useGrid || typeof entry.colSpan !== 'number') {
+				return {}
+			}
 			const span = Math.max(1, Math.min(12, entry.colSpan))
 			return { gridColumn: `span ${span}` }
 		},

@@ -35,18 +35,22 @@ function dropUnrenderableActions(page) {
 	/**
 	 * Keep only entries that can render.
 	 *
-	 * @param {*} actions The declared actions.
-	 * @return {*} The filtered actions, or the input when it is not an array.
+	 * @param {unknown} actions The declared actions.
+	 * @return {unknown} The filtered actions, or the input when it is not an array.
 	 */
 	function keepRenderable(actions) {
-		if (!Array.isArray(actions)) return actions
+		if (!Array.isArray(actions)) {
+			return actions
+		}
 		return actions.filter((action) => {
 			const renderable = Boolean(action)
 				&& typeof action === 'object'
 				&& !Array.isArray(action)
 				&& typeof action.label === 'string'
 				&& action.label !== ''
-			if (!renderable) count++
+			if (!renderable) {
+				count++
+			}
 			return renderable
 		})
 	}

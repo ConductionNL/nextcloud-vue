@@ -67,17 +67,17 @@
 </template>
 
 <script>
-import { inject, ref } from 'vue'
-import { translate as t, getLanguage } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { getLanguage, translate as t } from '@nextcloud/l10n'
+import { inject, ref } from 'vue'
 import VueApexCharts from 'vue3-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
-import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
-import { safeCurrencyCode } from '../../utils/formatMetric.js'
+import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { safeCurrencyCode } from '../../utils/formatMetric.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 /**
  * Nice-ceiling ladder. Deliberately fine-grained: a coarse one (1 / 2 / 5 / 10)
@@ -95,11 +95,15 @@ const NICE_CEIL_STEPS = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]
  * @return {number} The next nice ceiling at or above `value`.
  */
 function niceCeil(value) {
-	if (!Number.isFinite(value) || value <= 0) return 1
+	if (!Number.isFinite(value) || value <= 0) {
+		return 1
+	}
 	const magnitude = 10 ** Math.floor(Math.log10(value))
 	for (const step of NICE_CEIL_STEPS) {
 		const candidate = step * magnitude
-		if (value <= candidate) return candidate
+		if (value <= candidate) {
+			return candidate
+		}
 	}
 	return 10 * magnitude
 }
@@ -214,6 +218,7 @@ export default {
 	props: {
 		/**
 		 * Chart type: area, line, bar, pie, donut, radialBar
+		 *
 		 * @type {string}
 		 */
 		type: {
@@ -221,32 +226,39 @@ export default {
 			default: 'area',
 			validator: (v) => ['area', 'line', 'bar', 'pie', 'donut', 'radialBar'].includes(v),
 		},
+
 		/**
 		 * Chart data series. Format depends on chart type.
 		 * For line/area/bar: [{ name: string, data: number[] }]
 		 * For pie/donut: number[]
+		 *
 		 * @type {Array}
 		 */
 		series: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * X-axis categories (for line, area, bar charts)
+		 *
 		 * @type {Array<string>}
 		 */
 		categories: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Labels (for pie, donut charts)
+		 *
 		 * @type {Array<string>}
 		 */
 		labels: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Chart height. A number (or `'250px'`) pins the height in pixels. A
 		 * percentage — `'100%'` — fits the chart to its container instead, which
@@ -254,70 +266,86 @@ export default {
 		 * pinned height taller than the tile turns the tile into a scroll
 		 * region. `'auto'` derives the height from the width (16:10 for axis
 		 * charts). Container fitting needs an ancestor with a resolved height.
+		 *
 		 * @type {number|string}
 		 */
 		height: {
 			type: [Number, String],
 			default: 250,
 		},
+
 		/**
 		 * Chart width. Defaults to '100%' (fills container).
+		 *
 		 * @type {number|string}
 		 */
 		width: {
 			type: [Number, String],
 			default: '100%',
 		},
+
 		/**
 		 * Custom ApexCharts options (deep-merged with defaults).
+		 *
 		 * @type {object}
 		 */
 		options: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Chart color palette. Defaults to Nextcloud theme colors.
+		 *
 		 * @type {Array<string>}
 		 */
 		colors: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Show or hide the toolbar (zoom, download, etc.)
+		 *
 		 * @type {boolean}
 		 */
 		toolbar: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Show or hide the legend
+		 *
 		 * @type {boolean}
 		 */
 		legend: {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Label shown when ApexCharts is not available
+		 *
 		 * @type {string}
 		 */
 		unavailableLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Chart library not available'),
 		},
+
 		/**
 		 * Render bar charts horizontally (row bars instead of columns).
 		 * Only meaningful for `type: "bar"`; an explicit
 		 * `options.plotOptions.bar.horizontal` still wins (deep-merge).
+		 *
 		 * @type {boolean}
 		 */
 		horizontal: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * How the value axis picks its baseline — the guard against a chart
 		 * that turns a trivial difference into a dramatic one.
@@ -332,6 +360,7 @@ export default {
 		 *
 		 * An explicit `options.yaxis.min` / `max` still wins through the
 		 * deep-merge.
+		 *
 		 * @type {string}
 		 */
 		valueAxisBaseline: {
@@ -339,10 +368,12 @@ export default {
 			default: 'auto',
 			validator: (v) => ['auto', 'zero', 'fit'].includes(v),
 		},
+
 		/**
 		 * Legend placement override: `top | bottom | left | right`. Empty (the
 		 * default) keeps the pre-existing automatic placement (bottom for
 		 * pie-family charts, top otherwise).
+		 *
 		 * @type {string}
 		 */
 		legendPosition: {
@@ -350,6 +381,7 @@ export default {
 			default: '',
 			validator: (v) => ['', 'top', 'bottom', 'left', 'right'].includes(v),
 		},
+
 		/**
 		 * Named value formatter applied to the VALUE axis labels and the
 		 * tooltip: `"currency"` (Intl currency, 0 decimals), `"currency-compact"`
@@ -357,33 +389,39 @@ export default {
 		 * object form `{ name, currency?, decimals? }` overrides the ISO-4217
 		 * currency code (EUR default, guarded) and the fraction digits.
 		 * `null` (the default) keeps raw values.
+		 *
 		 * @type {string|{name: string, currency?: string, decimals?: number}|null}
 		 */
 		valueFormat: {
 			type: [String, Object],
 			default: null,
 		},
+
 		/**
 		 * Per-category colour map (`{ categoryLabel: cssColor }`) applied to
 		 * pie / donut / radialBar slices and (distributed) bar categories.
 		 * Categories without an entry keep the default palette colour. `null`
 		 * (the default) keeps the palette-based colouring.
+		 *
 		 * @type {Record<string, string>|null}
 		 */
 		colorMap: {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Empty-state message rendered INSTEAD of the chart when the resolved
 		 * series contain no data points. Empty (the default) keeps the
 		 * pre-existing behaviour (an empty chart canvas).
+		 *
 		 * @type {string}
 		 */
 		emptyLabel: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Manifest dataSource block. When set, `series` /
 		 * `categories` / `labels` are resolved from the GraphQL
@@ -442,6 +480,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Endpoint data binding (Wave 2, #91). Reads `series` / `categories` /
 		 * `labels` from an arbitrary app REST endpoint through the shared
@@ -478,6 +517,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * In-widget view switcher (the Wave-4 amendment folded into Wave 3,
 		 * #91): each entry declares a named display view —
@@ -496,6 +536,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Widget id used to match `cn:widget:refresh` event-bus events
 		 * (broadcast by CnWidgetWrapper's Refresh action). When the bus
@@ -537,8 +578,12 @@ export default {
 		// the STRING `aggregate: 'count'` still flow through it).
 		const dsForGraphql = () => {
 			const ds = props.dataSource
-			if (ds && (ds.bucket || ds.groupBy)) return null
-			if (ds && ds.aggregate && typeof ds.aggregate === 'object') return null
+			if (ds && (ds.bucket || ds.groupBy)) {
+				return null
+			}
+			if (ds && ds.aggregate && typeof ds.aggregate === 'object') {
+				return null
+			}
 			return ds
 		}
 		const { data, refetch } = useDataSource(dsForGraphql, { range })
@@ -616,12 +661,15 @@ export default {
 		fitToContainer() {
 			return typeof this.height === 'string' && this.height.trim().endsWith('%')
 		},
+
 		computedHeight() {
 			return this.height
 		},
+
 		computedWidth() {
 			return this.width
 		},
+
 		/**
 		 * Series/categories/labels mapped from a resolved `endpointSource`
 		 * payload (Wave 2), or null while the source is absent / unresolved.
@@ -637,12 +685,16 @@ export default {
 		 */
 		endpointChartData() {
 			const es = this.endpointSource
-			if (!es || !es.url) return null
+			if (!es || !es.url) {
+				return null
+			}
 			const payload = this.epData
-			if (payload === null || payload === undefined) return null
+			if (payload === null || payload === undefined) {
+				return null
+			}
 			const seriesDefs = Array.isArray(es.series) ? es.series.filter((s) => s && s.path) : []
 			let labels = []
-			let mapped = []
+			let mapped
 			if (Array.isArray(payload)) {
 				if (es.labelsPath) {
 					labels = payload.map((pt) => {
@@ -672,6 +724,7 @@ export default {
 			}
 			return { series: mapped, categories: labels, labels }
 		},
+
 		/**
 		 * Series shown to ApexCharts. An `endpointSource` (Wave 2) wins,
 		 * then the REST aggregate/bucket/groupBy data, then `dsData.series`
@@ -681,28 +734,43 @@ export default {
 		 */
 		resolvedSeries() {
 			const ep = this.endpointChartData
-			if (ep) return ep.series
+			if (ep) {
+				return ep.series
+			}
 			const rest = this.aggregateData || this.bucketData || this.groupByData
-			if (rest?.series !== undefined) return rest.series
+			if (rest?.series !== undefined) {
+				return rest.series
+			}
 			const fromDs = this.dsData?.series
 			return fromDs !== undefined ? fromDs : this.series
 		},
+
 		resolvedCategories() {
 			const ep = this.endpointChartData
-			if (ep) return ep.categories
+			if (ep) {
+				return ep.categories
+			}
 			const rest = this.aggregateData || this.bucketData || this.groupByData
-			if (rest?.categories !== undefined) return rest.categories
+			if (rest?.categories !== undefined) {
+				return rest.categories
+			}
 			const fromDs = this.dsData?.categories
 			return fromDs !== undefined ? fromDs : this.categories
 		},
+
 		resolvedLabels() {
 			const ep = this.endpointChartData
-			if (ep) return ep.labels
+			if (ep) {
+				return ep.labels
+			}
 			const rest = this.aggregateData || this.bucketData || this.groupByData
-			if (rest?.labels !== undefined) return rest.labels
+			if (rest?.labels !== undefined) {
+				return rest.labels
+			}
 			const fromDs = this.dsData?.labels
 			return fromDs !== undefined ? fromDs : this.labels
 		},
+
 		/**
 		 * The OBJECT-form `dataSource.aggregate` block (Wave 3), or null —
 		 * the STRING form (`aggregate: 'count'`) stays on the GraphQL path.
@@ -713,6 +781,7 @@ export default {
 			const agg = this.dataSource && this.dataSource.aggregate
 			return (agg && typeof agg === 'object' && agg.groupBy) ? agg : null
 		},
+
 		/**
 		 * The `dataSource.drilldown` block (Wave 3) when it is actionable —
 		 * both `route` and `filterParam` set — else null.
@@ -723,6 +792,7 @@ export default {
 			const d = this.dataSource && this.dataSource.drilldown
 			return (d && d.route && d.filterParam) ? d : null
 		},
+
 		/**
 		 * The RAW (unresolved) category keys backing the rendered
 		 * slices/bars, index-aligned with the resolved labels — what a
@@ -734,16 +804,21 @@ export default {
 		 */
 		drilldownKeys() {
 			const rest = this.aggregateData || this.groupByData
-			if (rest && Array.isArray(rest.rawKeys)) return rest.rawKeys
+			if (rest && Array.isArray(rest.rawKeys)) {
+				return rest.rawKeys
+			}
 			const keys = ['pie', 'donut', 'radialBar'].includes(this.type)
 				? this.resolvedLabels
 				: this.resolvedCategories
 			return Array.isArray(keys) ? keys.map((k) => String(k)) : []
 		},
+
 		/** Stable signature of the aggregate source (else null). */
 		aggregateKey() {
 			const agg = this.aggregateDef
-			if (!agg || !this.dataSource.schema) return null
+			if (!agg || !this.dataSource.schema) {
+				return null
+			}
 			return JSON.stringify({
 				register: this.dataSource.register || '',
 				schema: this.dataSource.schema,
@@ -751,10 +826,13 @@ export default {
 				aggregate: agg,
 			})
 		},
+
 		/** Stable signature of a categorical groupBy source (else null). */
 		groupByKey() {
 			const gb = this.dataSource && this.dataSource.groupBy
-			if (!gb || !this.dataSource.schema) return null
+			if (!gb || !this.dataSource.schema) {
+				return null
+			}
 			return JSON.stringify({
 				register: this.dataSource.register || '',
 				schema: this.dataSource.schema,
@@ -762,6 +840,7 @@ export default {
 				groupBy: gb,
 			})
 		},
+
 		/**
 		 * The injected dashboard date range as a plain `{from, to, preset}`
 		 * object, or null.
@@ -778,13 +857,18 @@ export default {
 		 */
 		activeRange() {
 			const r = this.cnDashboardDateRange
-			if (!r || typeof r !== 'object') return null
+			if (!r || typeof r !== 'object') {
+				return null
+			}
 			return ('value' in r) ? (r.value || null) : r
 		},
+
 		/** Stable signature of a time-bucket source + the active range (else null). */
 		bucketKey() {
 			const b = this.dataSource && this.dataSource.bucket
-			if (!b || !this.dataSource.schema) return null
+			if (!b || !this.dataSource.schema) {
+				return null
+			}
 			const r = this.activeRange
 			return JSON.stringify({
 				register: this.dataSource.register || '',
@@ -794,8 +878,11 @@ export default {
 				range: r ? { from: r.from, to: r.to } : null,
 			})
 		},
+
 		defaultColors() {
-			if (this.colors.length > 0) return this.colors
+			if (this.colors.length > 0) {
+				return this.colors
+			}
 			// Nextcloud-themed color palette
 			return [
 				'var(--color-primary-element, #0082c9)',
@@ -806,6 +893,7 @@ export default {
 				'var(--color-text-maxcontrast, #767676)',
 			]
 		},
+
 		/**
 		 * The active `views[]` entry: the one matching `activeViewKey`,
 		 * else the FIRST configured view, else null (no switcher).
@@ -813,9 +901,12 @@ export default {
 		 * @return {{key: string, label?: string, series?: string[], valueFormat?: (string|object)}|null}
 		 */
 		activeView() {
-			if (!Array.isArray(this.views) || this.views.length === 0) return null
+			if (!Array.isArray(this.views) || this.views.length === 0) {
+				return null
+			}
 			return this.views.find((v) => v && v.key === this.activeViewKey) || this.views[0]
 		},
+
 		/**
 		 * The series actually handed to ApexCharts: the resolved series,
 		 * filtered to the active view's named `series` when the view
@@ -829,12 +920,19 @@ export default {
 		displayedSeries() {
 			const series = this.resolvedSeries
 			const view = this.activeView
-			if (!view || !Array.isArray(view.series) || view.series.length === 0) return series
-			if (['pie', 'donut', 'radialBar'].includes(this.type)) return series
-			if (!Array.isArray(series)) return series
+			if (!view || !Array.isArray(view.series) || view.series.length === 0) {
+				return series
+			}
+			if (['pie', 'donut', 'radialBar'].includes(this.type)) {
+				return series
+			}
+			if (!Array.isArray(series)) {
+				return series
+			}
 			const filtered = series.filter((s) => s && view.series.includes(s.name))
 			return filtered.length > 0 ? filtered : series
 		},
+
 		/**
 		 * Every plotted number across the displayed series, flattened.
 		 * Handles both cartesian (`[{name, data: []}]`) and flat
@@ -851,18 +949,28 @@ export default {
 				// Without the tuple case an `[x, y]` series read as all-NaN and
 				// dropped every point, which silently disabled `valueAxisBounds`.
 				let raw = v
-				if (Array.isArray(v)) raw = v[1]
-				else if (typeof v === 'object' && v !== null) raw = v.y
+				if (Array.isArray(v)) {
+					raw = v[1]
+				} else if (typeof v === 'object' && v !== null) {
+					raw = v.y
+				}
 				const n = Number(raw)
-				if (Number.isFinite(n)) out.push(n)
+				if (Number.isFinite(n)) {
+					out.push(n)
+				}
 			}
 			for (const s of (Array.isArray(this.displayedSeries) ? this.displayedSeries : [])) {
-				if (Array.isArray(s)) s.forEach(push)
-				else if (s && Array.isArray(s.data)) s.data.forEach(push)
-				else push(s)
+				if (Array.isArray(s)) {
+					s.forEach(push)
+				} else if (s && Array.isArray(s.data)) {
+					s.data.forEach(push)
+				} else {
+					push(s)
+				}
 			}
 			return out
 		},
+
 		/**
 		 * Value-axis bounds that keep a small difference looking small.
 		 *
@@ -888,11 +996,19 @@ export default {
 		 * @return {{min: number, max: number}|null} Axis bounds, or null to autoscale.
 		 */
 		valueAxisBounds() {
-			if (this.valueAxisBaseline === 'fit') return null
-			if (['pie', 'donut', 'radialBar'].includes(this.type)) return null
-			if (this.options?.chart?.stacked) return null
+			if (this.valueAxisBaseline === 'fit') {
+				return null
+			}
+			if (['pie', 'donut', 'radialBar'].includes(this.type)) {
+				return null
+			}
+			if (this.options?.chart?.stacked) {
+				return null
+			}
 			const values = this.plottedValues
-			if (values.length === 0) return null
+			if (values.length === 0) {
+				return null
+			}
 			// A single pass, not `Math.min(...values)`: the spread passes one
 			// ARGUMENT per datapoint, which throws RangeError once the series
 			// outgrows the engine's argument limit (~65k). Minute buckets over
@@ -900,38 +1016,53 @@ export default {
 			let dataMin = values[0]
 			let dataMax = values[0]
 			for (const v of values) {
-				if (v < dataMin) dataMin = v
-				if (v > dataMax) dataMax = v
+				if (v < dataMin) {
+					dataMin = v
+				}
+				if (v > dataMax) {
+					dataMax = v
+				}
 			}
 			// Negative values: a zero floor would crop them. Leave the framing
 			// to ApexCharts, which already spans zero for magnitude marks.
-			if (dataMin < 0) return null
+			if (dataMin < 0) {
+				return null
+			}
 			// A flat all-zero series has no scale to infer — give it a token
 			// ceiling so the axis renders instead of collapsing.
-			if (dataMax === 0) return { min: 0, max: 1 }
+			if (dataMax === 0) {
+				return { min: 0, max: 1 }
+			}
 			const zeroBaseline = this.valueAxisBaseline === 'zero'
 				|| ['bar', 'area'].includes(this.type)
-			if (zeroBaseline) return { min: 0, max: niceCeil(dataMax) }
+			if (zeroBaseline) {
+				return { min: 0, max: niceCeil(dataMax) }
+			}
 			// Line/scatter: keep a non-zero baseline, but require the visible
 			// window to cover at least a quarter of the data's magnitude so a
 			// 1-in-1000 wiggle can't fill the plot.
 			const spread = dataMax - dataMin
 			const minSpread = dataMax * 0.25
-			if (spread >= minSpread) return null
+			if (spread >= minSpread) {
+				return null
+			}
 			const pad = (minSpread - spread) / 2
 			return { min: Math.max(0, dataMin - pad), max: niceCeil(dataMax + pad) }
 		},
+
 		/**
 		 * The value-formatter function derived from `valueFormat` (the
 		 * active `views[]` entry's `valueFormat` wins when set), or null.
 		 * Applied to the value-axis labels and the tooltip so both read
 		 * identically. Non-numeric values pass through untouched.
 		 *
-		 * @return {(function(*): string)|null}
+		 * @return {((value: unknown) => string)|null}
 		 */
 		valueFormatterFn() {
 			const vf = (this.activeView && this.activeView.valueFormat) || this.valueFormat
-			if (!vf) return null
+			if (!vf) {
+				return null
+			}
 			const name = typeof vf === 'string' ? vf : vf.name
 			const currency = safeCurrencyCode(typeof vf === 'object' ? vf.currency : undefined)
 			const decimals = (typeof vf === 'object' && Number.isFinite(vf.decimals)) ? vf.decimals : null
@@ -963,6 +1094,7 @@ export default {
 			}
 			return null
 		},
+
 		/**
 		 * The effective per-category colour map: the explicit `colorMap`
 		 * prop wins; otherwise the map an aggregate `labelResolve.colorField`
@@ -972,10 +1104,13 @@ export default {
 		 * @return {Record<string, string>|null}
 		 */
 		effectiveColorMap() {
-			if (this.colorMap && typeof this.colorMap === 'object') return this.colorMap
+			if (this.colorMap && typeof this.colorMap === 'object') {
+				return this.colorMap
+			}
 			const fromAggregate = this.aggregateData && this.aggregateData.colorMap
 			return (fromAggregate && typeof fromAggregate === 'object') ? fromAggregate : null
 		},
+
 		/**
 		 * Palette with the effective per-category colour map applied: one
 		 * colour per resolved label/category (map hit, else the default
@@ -986,14 +1121,19 @@ export default {
 		 */
 		mappedColors() {
 			const map = this.effectiveColorMap
-			if (!map) return null
+			if (!map) {
+				return null
+			}
 			const keys = ['pie', 'donut', 'radialBar'].includes(this.type)
 				? this.resolvedLabels
 				: this.resolvedCategories
-			if (!Array.isArray(keys) || keys.length === 0) return null
+			if (!Array.isArray(keys) || keys.length === 0) {
+				return null
+			}
 			const palette = this.defaultColors
 			return keys.map((key, i) => map[key] || palette[i % palette.length])
 		},
+
 		/**
 		 * Whether the resolved series carry any data point (pie-family charts
 		 * use a flat value array; cartesian charts use `[{ data: [...] }]`).
@@ -1002,10 +1142,15 @@ export default {
 		 */
 		hasChartData() {
 			const series = this.resolvedSeries
-			if (!Array.isArray(series) || series.length === 0) return false
-			if (['pie', 'donut', 'radialBar'].includes(this.type)) return true
+			if (!Array.isArray(series) || series.length === 0) {
+				return false
+			}
+			if (['pie', 'donut', 'radialBar'].includes(this.type)) {
+				return true
+			}
 			return series.some((s) => Array.isArray(s && s.data) && s.data.length > 0)
 		},
+
 		/**
 		 * Whether the declarative empty state renders instead of the chart —
 		 * only when an `emptyLabel` is configured (default keeps the
@@ -1016,6 +1161,7 @@ export default {
 		showEmptyState() {
 			return this.emptyLabel !== '' && !this.hasChartData
 		},
+
 		mergedOptions() {
 			const isPieType = ['pie', 'donut', 'radialBar'].includes(this.type)
 
@@ -1028,26 +1174,30 @@ export default {
 					foreColor: 'var(--color-main-text, #222)',
 					background: 'transparent',
 				},
+
 				colors: this.mappedColors || this.defaultColors,
 				stroke: {
 					curve: 'smooth',
 					width: this.type === 'area' ? 2 : (this.type === 'bar' ? 0 : 2),
 				},
+
 				fill: this.type === 'area'
 					? {
-						type: 'gradient',
-						gradient: {
-							shade: 'light',
-							type: 'vertical',
-							opacityFrom: 0.5,
-							opacityTo: 0.1,
-						},
-					}
+							type: 'gradient',
+							gradient: {
+								shade: 'light',
+								type: 'vertical',
+								opacityFrom: 0.5,
+								opacityTo: 0.1,
+							},
+						}
 					: { opacity: 1 },
+
 				grid: {
 					borderColor: 'var(--color-border, #ededed)',
 					strokeDashArray: 4,
 				},
+
 				legend: {
 					show: this.legend,
 					position: this.legendPosition || (isPieType ? 'bottom' : 'top'),
@@ -1055,9 +1205,11 @@ export default {
 						colors: 'var(--color-main-text, #222)',
 					},
 				},
+
 				dataLabels: {
 					enabled: isPieType,
 				},
+
 				tooltip: {
 					// Nominal: it only decides which class apexcharts stamps on
 					// the tooltip, and BOTH of its themes are restyled with
@@ -1086,7 +1238,9 @@ export default {
 				defaults.chart.events = {
 					dataPointSelection: this.onDataPointSelection,
 					dataPointMouseEnter: (event) => {
-						if (event && event.target) event.target.style.cursor = 'pointer'
+						if (event && event.target) {
+							event.target.style.cursor = 'pointer'
+						}
 					},
 				}
 			}
@@ -1164,9 +1318,11 @@ export default {
 		groupByKey() {
 			this.fetchGroupBy()
 		},
+
 		bucketKey() {
 			this.fetchTimeBucket()
 		},
+
 		aggregateKey() {
 			this.fetchAggregateSource()
 		},
@@ -1184,8 +1340,12 @@ export default {
 		// FIRST, before the ResizeObserver early-return — environments
 		// without ResizeObserver (jsdom) must still get the subscription.
 		this._onWidgetRefresh = (payload) => {
-			if (!this.widgetId) return
-			if (payload?.widgetId !== this.widgetId) return
+			if (!this.widgetId) {
+				return
+			}
+			if (payload?.widgetId !== this.widgetId) {
+				return
+			}
 			this.refresh()
 		}
 		subscribe(REFRESH_BUS_CHANNEL, this._onWidgetRefresh)
@@ -1206,7 +1366,9 @@ export default {
 		}
 		subscribe(PAGE_REFRESH_BUS_CHANNEL, this._onPageRefresh)
 
-		if (typeof ResizeObserver === 'undefined') return
+		if (typeof ResizeObserver === 'undefined') {
+			return
+		}
 		this._lastWidth = this.$el.offsetWidth
 		this._lastHeight = this.$el.offsetHeight
 		this._resizeTimer = null
@@ -1223,7 +1385,9 @@ export default {
 			// Pinned-height charts keep the width-only behaviour: their height
 			// never depends on the box.
 			const heightChanged = this.fitToContainer && newHeight !== this._lastHeight
-			if (newWidth === this._lastWidth && !heightChanged) return
+			if (newWidth === this._lastWidth && !heightChanged) {
+				return
+			}
 			this._lastWidth = newWidth
 			this._lastHeight = newHeight
 			clearTimeout(this._resizeTimer)
@@ -1266,6 +1430,7 @@ export default {
 				this.epRefetch()
 			}
 		},
+
 		/**
 		 * Re-measure and redraw the chart after its box changed size, without
 		 * rebuilding it.
@@ -1298,6 +1463,7 @@ export default {
 				this.$refs.chart.refresh()
 			}
 		},
+
 		/**
 		 * Re-query every source this component fetches ITSELF: the `dataSource`
 		 * GraphQL path plus the three REST aggregations (time bucket, group-by,
@@ -1315,6 +1481,7 @@ export default {
 			this.fetchTimeBucket()
 			this.fetchAggregateSource()
 		},
+
 		/**
 		 * Fetch a time series from OpenRegister's REST `/timeseries` aggregation
 		 * when `dataSource.bucket` is set, mapping `{groups:[{key,value}]}` into
@@ -1374,27 +1541,36 @@ export default {
 					from,
 					to,
 				}
-				if (b.metricField) params.metricField = b.metricField
+				if (b.metricField) {
+					params.metricField = b.metricField
+				}
 				const _f = resolveFilterTokens(ds.filter || {}, this.chartTokenCtx())
 				if (_f && typeof _f === 'object') {
 					for (const [k, v] of Object.entries(_f)) {
 						if (v && typeof v === 'object') {
-							for (const [op, ov] of Object.entries(v)) params[`filter[${k}][${op}]`] = ov
+							for (const [op, ov] of Object.entries(v)) {
+								params[`filter[${k}][${op}]`] = ov
+							}
 						} else if (v !== '' && v !== null && v !== undefined) {
 							params[`filter[${k}]`] = v
 						}
 					}
 				}
 				const res = await axios.get(url, { params })
-				if (requestKey !== this.bucketKey) return
+				if (requestKey !== this.bucketKey) {
+					return
+				}
 				const groups = (res && res.data && res.data.groups) || []
 				const categories = groups.map((g) => this.formatBucketKey(g.key, b.interval))
 				const values = groups.map((g) => Number(g.value) || 0)
 				this.bucketData = { series: [{ name: b.metricField || b.metric || 'count', data: values }], categories, labels: categories }
-			} catch (e) {
-				if (requestKey === this.bucketKey) this.bucketData = null
+			} catch {
+				if (requestKey === this.bucketKey) {
+					this.bucketData = null
+				}
 			}
 		},
+
 		/**
 		 * Format a time-bucket key (ISO date) into a short axis label, at the
 		 * granularity of the bucket's own interval. Without the interval every
@@ -1410,25 +1586,30 @@ export default {
 		 * @return {string} A short, locale-aware label.
 		 */
 		formatBucketKey(key, interval) {
-			if (!key) return ''
+			if (!key) {
+				return ''
+			}
 			const d = parseBucketKey(key)
-			if (!d) return String(key)
+			if (!d) {
+				return String(key)
+			}
 			const thisYear = new Date().getFullYear()
 			const year = d.getFullYear() === thisYear ? {} : { year: 'numeric' }
 			switch (String(interval || '').toLowerCase()) {
-			case 'minute':
-				return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-			case 'hour':
-				return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit' })
-			case 'day':
-			case 'week':
-				return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...year })
-			case 'year':
-				return d.toLocaleDateString(undefined, { year: 'numeric' })
-			default:
-				return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
+				case 'minute':
+					return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+				case 'hour':
+					return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit' })
+				case 'day':
+				case 'week':
+					return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...year })
+				case 'year':
+					return d.toLocaleDateString(undefined, { year: 'numeric' })
+				default:
+					return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
 			}
 		},
+
 		/**
 		 * Fetch a categorical breakdown from OpenRegister's REST `/grouped`
 		 * aggregation when `dataSource.groupBy` is set, mapping `{groups}` into
@@ -1460,27 +1641,39 @@ export default {
 					{ register: ds.register, schema: ds.schema },
 				)
 				const params = { groupBy: gb.field, metric: gb.metric || 'count' }
-				if (gb.metricField) params.field = gb.metricField
-				if (gb.sort === 'asc' || gb.sort === 'desc') params.sort = gb.sort
-				if (gb.limit) params.limit = gb.limit
+				if (gb.metricField) {
+					params.field = gb.metricField
+				}
+				if (gb.sort === 'asc' || gb.sort === 'desc') {
+					params.sort = gb.sort
+				}
+				if (gb.limit) {
+					params.limit = gb.limit
+				}
 				const _f = resolveFilterTokens(ds.filter || {}, this.chartTokenCtx())
 				if (_f && typeof _f === 'object') {
 					for (const [k, v] of Object.entries(_f)) {
 						if (v && typeof v === 'object') {
-							for (const [op, ov] of Object.entries(v)) params[`filter[${k}][${op}]`] = ov
+							for (const [op, ov] of Object.entries(v)) {
+								params[`filter[${k}][${op}]`] = ov
+							}
 						} else if (v !== '' && v !== null && v !== undefined) {
 							params[`filter[${k}]`] = v
 						}
 					}
 				}
 				const res = await axios.get(url, { params })
-				if (requestKey !== this.groupByKey) return
+				if (requestKey !== this.groupByKey) {
+					return
+				}
 				let groups = (res && res.data && res.data.groups) || []
 				// Client-side sort + top-N (robust even if the backend ignored them).
 				if (gb.sort === 'asc' || gb.sort === 'desc') {
 					groups = [...groups].sort((a, b) => (gb.sort === 'desc' ? b.value - a.value : a.value - b.value))
 				}
-				if (gb.limit) groups = groups.slice(0, gb.limit)
+				if (gb.limit) {
+					groups = groups.slice(0, gb.limit)
+				}
 				let keys = groups.map((g) => (g.key === null || g.key === undefined ? '—' : String(g.key)))
 				// Raw (unresolved) keys, index-aligned with the display labels —
 				// a `dataSource.drilldown` click navigates with these (Wave 3).
@@ -1490,17 +1683,22 @@ export default {
 				// the referenced objects' display labels (e.g. client name).
 				if (gb.reference && gb.reference.schema) {
 					keys = await this.resolveGroupByLabels(ds.register, gb.reference, groups)
-					if (requestKey !== this.groupByKey) return
+					if (requestKey !== this.groupByKey) {
+						return
+					}
 				}
 				if (['pie', 'donut', 'radialBar'].includes(this.type)) {
 					this.groupByData = { series: values, labels: keys, categories: keys, rawKeys }
 				} else {
 					this.groupByData = { series: [{ name: gb.metricField || gb.metric || 'count', data: values }], categories: keys, labels: keys, rawKeys }
 				}
-			} catch (e) {
-				if (requestKey === this.groupByKey) this.groupByData = null
+			} catch {
+				if (requestKey === this.groupByKey) {
+					this.groupByData = null
+				}
 			}
 		},
+
 		/**
 		 * Resolve the OBJECT-form `dataSource.aggregate` (Wave 3, #91) into
 		 * chart data: a categorical group-by over the schema's objects with
@@ -1532,7 +1730,7 @@ export default {
 				return
 			}
 			const requestKey = this.aggregateKey
-			let groups = null
+			let groups
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
@@ -1543,12 +1741,16 @@ export default {
 					{ register: ds.register, schema: ds.schema },
 				)
 				const params = { groupBy: agg.groupBy, metric }
-				if (metric === 'sum') params.field = agg.sumField
+				if (metric === 'sum') {
+					params.field = agg.sumField
+				}
 				const _f = resolveFilterTokens(ds.filter || {}, this.chartTokenCtx())
 				if (_f && typeof _f === 'object') {
 					for (const [k, v] of Object.entries(_f)) {
 						if (v && typeof v === 'object') {
-							for (const [op, ov] of Object.entries(v)) params[`filter[${k}][${op}]`] = ov
+							for (const [op, ov] of Object.entries(v)) {
+								params[`filter[${k}][${op}]`] = ov
+							}
 						} else if (v !== '' && v !== null && v !== undefined) {
 							params[`filter[${k}]`] = v
 						}
@@ -1556,18 +1758,22 @@ export default {
 				}
 				const res = await axios.get(url, { params })
 				groups = (res && res.data && res.data.groups) || []
-			} catch (e) {
+			} catch {
 				// Facet endpoint unavailable → client-side fallback aggregation.
 				groups = await this.aggregateFromCollection(ds, agg, metric)
 			}
 			if (!groups) {
-				if (requestKey === this.aggregateKey) this.aggregateData = null
+				if (requestKey === this.aggregateKey) {
+					this.aggregateData = null
+				}
 				return
 			}
 			const built = await this.buildAggregateData(groups, agg)
 			// Guard against a stale (slower) response overwriting a newer
 			// source signature — mirrors the endpoint-source seq guard.
-			if (requestKey === this.aggregateKey) this.aggregateData = built
+			if (requestKey === this.aggregateKey) {
+				this.aggregateData = built
+			}
 		},
 
 		/**
@@ -1582,7 +1788,7 @@ export default {
 		 * @param {object} ds The dataSource block.
 		 * @param {object} agg The aggregate block.
 		 * @param {string} metric Normalised metric (`count` | `sum`).
-		 * @return {Promise<Array<{key: *, value: number}>|null>}
+		 * @return {Promise<Array<{ key: string|number|null, value: number }>|null>}
 		 */
 		async aggregateFromCollection(ds, agg, metric) {
 			try {
@@ -1599,7 +1805,9 @@ export default {
 				if (_f && typeof _f === 'object') {
 					for (const [k, v] of Object.entries(_f)) {
 						if (v && typeof v === 'object' && !Array.isArray(v)) {
-							for (const [op, ov] of Object.entries(v)) params[`${k}[${op}]`] = ov
+							for (const [op, ov] of Object.entries(v)) {
+								params[`${k}[${op}]`] = ov
+							}
 						} else if (v !== '' && v !== null && v !== undefined) {
 							params[k] = v
 						}
@@ -1615,7 +1823,7 @@ export default {
 					totals.set(key, (totals.get(key) || 0) + increment)
 				}
 				return Array.from(totals.entries()).map(([key, value]) => ({ key, value }))
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -1628,9 +1836,9 @@ export default {
 		 * shape series/labels per chart family. `rawKeys` keeps the
 		 * UNRESOLVED keys index-aligned for drilldown.
 		 *
-		 * @param {Array<{key: *, value: number}>} groups The raw groups.
+		 * @param {Array<{ key: string|number|null, value: number }>} groups The raw groups.
 		 * @param {object} agg The aggregate block.
-		 * @return {Promise<{series: *, categories: string[], labels: string[], rawKeys: string[], colorMap?: Record<string, string>}>}
+		 * @return {Promise<{series: Array<{ name: string, data: Array<number> }>, categories: string[], labels: string[], rawKeys: string[], colorMap?: Record<string, string>}>}
 		 */
 		async buildAggregateData(groups, agg) {
 			let sorted = [...groups].sort((a, b) => (Number(b.value) || 0) - (Number(a.value) || 0))
@@ -1663,14 +1871,18 @@ export default {
 				// deleted, or never existed), which resolves to an empty label.
 				// Empty keys keep their existing '—' placeholder.
 				labels = resolved.map((r, i) => {
-					if (r.label) return r.label
+					if (r.label) {
+						return r.label
+					}
 					return rawKeys[i] === '' ? labels[i] : t('nextcloud-vue', 'Unknown')
 				})
 				const withColor = resolved.filter((r) => r.color)
 				if (withColor.length > 0) {
 					colorMap = {}
 					resolved.forEach((r, i) => {
-						if (r.color) colorMap[labels[i]] = r.color
+						if (r.color) {
+							colorMap[labels[i]] = r.color
+						}
 					})
 				}
 			}
@@ -1684,7 +1896,7 @@ export default {
 				const order = []
 				const acc = {}
 				labels.forEach((lab, i) => {
-					if (!Object.prototype.hasOwnProperty.call(acc, lab)) {
+					if (!Object.hasOwn(acc, lab)) {
 						acc[lab] = { value: 0, key: rawKeys[i] }
 						order.push(lab)
 					}
@@ -1695,7 +1907,11 @@ export default {
 				rawKeys = order.map((l) => acc[l].key)
 				if (colorMap) {
 					const merged = {}
-					order.forEach((l) => { if (colorMap[l]) merged[l] = colorMap[l] })
+					order.forEach((l) => {
+						if (colorMap[l]) {
+							merged[l] = colorMap[l]
+						}
+					})
 					colorMap = merged
 				}
 			}
@@ -1705,7 +1921,9 @@ export default {
 				values.push(other.value)
 			}
 			const base = { rawKeys, labels, categories: labels }
-			if (colorMap) base.colorMap = colorMap
+			if (colorMap) {
+				base.colorMap = colorMap
+			}
 			if (['pie', 'donut', 'radialBar'].includes(this.type)) {
 				return { ...base, series: values }
 			}
@@ -1736,7 +1954,7 @@ export default {
 			let store = null
 			try {
 				store = useObjectStore()
-			} catch (e) {
+			} catch {
 				store = null
 			}
 			const type = store ? resolveObjectOpType(store, { register, schema }) : null
@@ -1753,18 +1971,22 @@ export default {
 				return (res && res.data) || null
 			}
 			return Promise.all(keys.map(async (id) => {
-				if (!id) return { label: '', color: '' }
+				if (!id) {
+					return { label: '', color: '' }
+				}
 				try {
 					const cached = store && store.objects && store.objects[type] && store.objects[type][id]
 					const obj = cached || (store ? await store.fetchObject(type, id) : await fetchViaAxios(id))
-					if (!obj || typeof obj !== 'object') return { label: '', color: '' }
+					if (!obj || typeof obj !== 'object') {
+						return { label: '', color: '' }
+					}
 					let raw = obj[labelField]
 					if (raw === undefined || raw === null || raw === '') {
 						raw = obj['@self'] && obj['@self'].name
 					}
 					const color = colorField && typeof obj[colorField] === 'string' ? obj[colorField] : ''
 					return { label: this.displayString(raw), color }
-				} catch (e) {
+				} catch {
 					return { label: '', color: '' }
 				}
 			}))
@@ -1786,11 +2008,17 @@ export default {
 		 */
 		onDataPointSelection(_event, _chartContext, config) {
 			const drill = this.drilldownDef
-			if (!drill || !this.$router) return
+			if (!drill || !this.$router) {
+				return
+			}
 			const idx = config && config.dataPointIndex
-			if (typeof idx !== 'number' || idx < 0) return
+			if (typeof idx !== 'number' || idx < 0) {
+				return
+			}
 			const key = this.drilldownKeys[idx]
-			if (key === undefined || key === OTHER_BUCKET_KEY) return
+			if (key === undefined || key === OTHER_BUCKET_KEY) {
+				return
+			}
 			const query = { [drill.filterParam]: key }
 			const location = String(drill.route).startsWith('/')
 				? { path: drill.route, query }
@@ -1806,7 +2034,7 @@ export default {
 		 *
 		 * @param {string} defaultRegister Register to use when the reference omits one.
 		 * @param {{ register?: string, schema: string, labelField?: string }} reference Reference descriptor from `groupBy.reference`.
-		 * @param {Array<{ key: * }>} groups Raw grouped rows from OpenRegister.
+		 * @param {Array<{ key: string|number|null }>} groups Raw grouped rows from OpenRegister.
 		 * @return {Promise<string[]>} One resolved label per group, in order.
 		 */
 		async resolveGroupByLabels(defaultRegister, reference, groups) {
@@ -1820,7 +2048,9 @@ export default {
 				])
 				return await Promise.all(groups.map(async (g) => {
 					const key = g.key
-					if (key === null || key === undefined || key === '') return '—'
+					if (key === null || key === undefined || key === '') {
+						return '—'
+					}
 					try {
 						const url = generateUrl(
 							'/apps/openregister/api/objects/{register}/{schema}/{id}',
@@ -1833,37 +2063,46 @@ export default {
 							raw = obj['@self'] && obj['@self'].name
 						}
 						return this.displayString(raw) || String(key)
-					} catch (e) {
+					} catch {
 						return String(key)
 					}
 				}))
-			} catch (e) {
+			} catch {
 				return groups.map((g) => (g.key === null || g.key === undefined ? '—' : String(g.key)))
 			}
 		},
+
 		/**
 		 * Pick a display string from a value that may be a plain string or a
 		 * translatable `{ <lang>: value }` map — falls back to the active
 		 * Nextcloud language, then its base subtag, then the first available
 		 * translation.
 		 *
-		 * @param {*} value Raw property value (string or per-language map).
+		 * @param {string|Record<string, string>|null} value Raw property value (string or per-language map).
 		 * @return {string} A display-ready string.
 		 */
 		displayString(value) {
-			if (value === null || value === undefined) return ''
+			if (value === null || value === undefined) {
+				return ''
+			}
 			if (typeof value === 'object' && !Array.isArray(value)) {
 				const lang = getLanguage() || ''
 				const short = lang.split('-')[0]
-				if (value[lang] !== undefined) return String(value[lang])
-				if (value[short] !== undefined) return String(value[short])
+				if (value[lang] !== undefined) {
+					return String(value[lang])
+				}
+				if (value[short] !== undefined) {
+					return String(value[short])
+				}
 				const vals = Object.values(value)
 				return vals.length ? String(vals[0]) : ''
 			}
 			return String(value)
 		},
+
 		/**
 		 * Deep merge two objects (target wins on conflict)
+		 *
 		 * @param {object} base Base object
 		 * @param {object} override Override object
 		 * @return {object} Merged result

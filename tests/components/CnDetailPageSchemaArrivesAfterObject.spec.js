@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 
+import { flushPromises, mount } from '@vue/test-utils'
 /**
  * The auto-body is materialized ONCE, when the OBJECT resolves — and it drops
  * the Data widget when no schema is known at that moment:
@@ -38,7 +39,6 @@
  * a longer timeout — which would only have waited longer for the same empty page.
  */
 import { reactive } from 'vue'
-import { mount } from '@vue/test-utils'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
 /** A store whose object is present but whose schema has NOT arrived yet. */
@@ -63,8 +63,7 @@ function mountWith(objectStore) {
 	})
 }
 
-const dataIds = (wrapper) =>
-	(wrapper.vm.autoBodyLayout || []).map((l) => l.widgetId)
+const dataIds = (wrapper) => (wrapper.vm.autoBodyLayout || []).map((l) => l.widgetId)
 
 describe('CnDetailPage — the schema can arrive after the object', () => {
 	// THE PREMISE. If the auto-body stopped dropping `data` outright this file
@@ -89,8 +88,7 @@ describe('CnDetailPage — the schema can arrive after the object', () => {
 
 		// The schema fetch resolves a moment later.
 		store.schemas['r-s'] = { properties: { name: { type: 'string' } } }
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.currentSchema).toBeTruthy()
 		// The Data widget must appear once a schema is known. Without it the
@@ -119,13 +117,10 @@ describe('CnDetailPage — the schema can arrive after the object', () => {
 		moved.gridY = 7
 		// A late schema re-publish (same schema object identity replaced).
 		store.schemas['r-s'] = { properties: { name: { type: 'string' } } }
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		// An existing body must not be rebuilt from scratch by a schema
 		// re-publish, or a user's drag/resize would be silently reset.
-		expect(
-			wrapper.vm.autoBodyLayout.find((l) => l.widgetId === 'data').gridY,
-		).toBe(7)
+		expect(wrapper.vm.autoBodyLayout.find((l) => l.widgetId === 'data').gridY).toBe(7)
 	})
 })

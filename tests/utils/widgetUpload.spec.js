@@ -6,10 +6,10 @@
  */
 
 import {
-	FALLBACK_MAX_BYTES,
-	extractTransportUrl,
-	readFileAsDataUrl,
 	embedAsDataUrl,
+	extractTransportUrl,
+	FALLBACK_MAX_BYTES,
+	readFileAsDataUrl,
 	warnUploadFnDeprecated,
 } from '@/utils/widgetUpload.js'
 

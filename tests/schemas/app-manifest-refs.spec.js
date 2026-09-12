@@ -18,11 +18,10 @@
 
 import schema from '../../src/schemas/app-manifest.schema.json'
 import { validateManifest } from '../../src/utils/validateManifest.js'
-
-import valid from '../fixtures/manifest-valid.json'
 import allTypes from '../fixtures/manifest-all-types.json'
 import settingsRich from '../fixtures/manifest-settings-rich.json'
 import sidebarShow from '../fixtures/manifest-sidebar-show.json'
+import valid from '../fixtures/manifest-valid.json'
 
 /**
  * Resolve a JSON-Pointer fragment of the form "#/$defs/foo" against
@@ -84,7 +83,9 @@ function validateAgainst(def, value, path = '$') {
 		}
 		const required = Array.isArray(def.required) ? def.required : []
 		for (const key of required) {
-			if (!(key in value)) errors.push(`${path}.${key}: required`)
+			if (!(key in value)) {
+				errors.push(`${path}.${key}: required`)
+			}
 		}
 		const props = def.properties || {}
 		const allowExtra = def.additionalProperties === true || isPlainObject(def.additionalProperties)
@@ -128,7 +129,9 @@ function validateAgainst(def, value, path = '$') {
 		return { valid: errors.length === 0, errors }
 	}
 	if (def.type === 'boolean') {
-		if (typeof value !== 'boolean') errors.push(`${path}: must be boolean`)
+		if (typeof value !== 'boolean') {
+			errors.push(`${path}: must be boolean`)
+		}
 		return { valid: errors.length === 0, errors }
 	}
 	return { valid: true, errors: [] }
@@ -373,14 +376,24 @@ describe('config.layout[] — $ref layoutItem', () => {
 
 	it('accepts a known-good layout array', () => {
 		const result = validateAgainst(def, [{
-			id: 'p1', widgetId: 'kpis', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 3,
+			id: 'p1',
+			widgetId: 'kpis',
+			gridX: 0,
+			gridY: 0,
+			gridWidth: 4,
+			gridHeight: 3,
 		}], '$.layout')
 		expect(result).toEqual({ valid: true, errors: [] })
 	})
 
 	it('rejects a layoutItem with gridWidth=0', () => {
 		const result = validateAgainst(def, [{
-			id: 'p1', widgetId: 'kpis', gridX: 0, gridY: 0, gridWidth: 0, gridHeight: 3,
+			id: 'p1',
+			widgetId: 'kpis',
+			gridX: 0,
+			gridY: 0,
+			gridWidth: 0,
+			gridHeight: 3,
 		}], '$.layout')
 		expect(result.valid).toBe(false)
 		expect(result.errors.join('|')).toMatch(/gridWidth: must be >= 1/)
