@@ -338,10 +338,16 @@
 						class="cn-detail-page__grid-item"
 						:aria-labelledby="showGridTitle(item) ? `widget-title-${item.id}` : undefined">
 						<!-- In-app edit overlay (ADR-041): a configure cog appears on
-						     widgets that have a registered config form while the page
-						     is in Buildiq edit mode. The modal's own Delete affordance
-						     covers removal, so no separate remove button here. -->
-						<div v-if="editingBody && registryFormFor(item)" class="cn-detail-page__widget-edit">
+						     EVERY grid widget while the page is in Buildiq edit mode,
+						     as it does on CnDashboardPage. It was gated on the type
+						     having a registered config form, which left a `custom`
+						     widget and an `integration` leaf with no cog at all: they
+						     could be dragged and resized but never configured or
+						     removed, because the modal's own Delete affordance is the
+						     only way off the page. The modal already handles a type
+						     without a form (title, icon, style, delete), so the gate
+						     bought nothing. -->
+						<div v-if="showsCog(item)" class="cn-detail-page__widget-edit">
 							<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
 								<template #icon>
 									<Cog :size="18" />
@@ -3292,6 +3298,20 @@ export default {
 			}
 			const entry = getWidgetTypeEntry(def.type)
 			return (entry && entry.form) || null
+		},
+
+		/**
+		 * Whether a grid item shows the configure cog: the page is in edit
+		 * mode and the item resolves to a widget definition. Not gated on a
+		 * registered form: the style editor modal handles a type without one
+		 * (title, icon, style, delete), and the delete is what a custom widget
+		 * or an integration leaf needs the cog for.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the cog renders.
+		 */
+		showsCog(item) {
+			return this.editingBody === true && Boolean(this.findWidget(item))
 		},
 
 		/**

@@ -14,7 +14,7 @@ registerDashboardWidget('test-data', { renderer: {}, form: {}, defaultContent: {
 describe('CnDetailPage Buildiq edit mode', () => {
 	const widgets = [
 		{ id: 'kpi', title: 'KPI', type: 'test-stat', content: { label: 'Revenue' } },
-		{ id: 'plain', title: 'Plain' }, // no type → no cog, no renderer
+		{ id: 'plain', title: 'Plain' }, // no type → no form, no renderer; still a cog
 	]
 	const layout = [
 		{ id: 1, widgetId: 'kpi', gridX: 0, gridY: 0, gridWidth: 6 },
@@ -31,6 +31,19 @@ describe('CnDetailPage Buildiq edit mode', () => {
 		expect(mount(ref(true)).vm.editingBody).toBe(true)
 		expect(mount(ref(false)).vm.editingBody).toBe(false)
 		expect(mount(null).vm.editingBody).toBe(false)
+	})
+
+	it('shows the cog on every widget in edit mode, form or no form', () => {
+		// A custom widget or an integration leaf has no registered form, and
+		// used to get no cog: it could be dragged but never configured or
+		// removed, because the delete lives in the cog's modal. The dashboard
+		// page never gated the cog on a form; the detail page now agrees.
+		const editing = mount(ref(true))
+		expect(editing.vm.showsCog({ widgetId: 'kpi' })).toBe(true)
+		expect(editing.vm.showsCog({ widgetId: 'plain' })).toBe(true)
+		expect(editing.vm.showsCog({ widgetId: 'missing' })).toBe(false)
+		const viewing = mount(ref(false))
+		expect(viewing.vm.showsCog({ widgetId: 'kpi' })).toBe(false)
 	})
 
 	it('resolves a config form only for registered widget types', () => {
