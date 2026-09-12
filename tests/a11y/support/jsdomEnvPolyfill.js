@@ -27,6 +27,13 @@
  * `openspec/changes/wcag-a11y-anchor/design.md`, "jsdom and color contrast".
  */
 
+// This lane has its own setup and does not load `tests/setup.js`, so it needs
+// the monotonic clock installed here too: this workspace's wall clock steps
+// backwards under load, and Vue silently drops a dispatched event that looks
+// older than its listener, which turns the `trigger()` calls in this lane into
+// no-ops at random. See `tests/support/monotonicDateNow.js`.
+require('../../support/monotonicDateNow.js').installMonotonicDateNow()
+
 if (typeof HTMLCanvasElement !== 'undefined' && !HTMLCanvasElement.prototype.__cnA11yCanvasPolyfilled) {
 	HTMLCanvasElement.prototype.getContext = function getContext() {
 		return {

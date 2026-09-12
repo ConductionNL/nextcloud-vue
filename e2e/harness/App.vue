@@ -95,6 +95,24 @@
 			<input data-testid="outside-input" aria-label="Outside text">
 		</template>
 
+		<!--
+			The run sidebar, in its REAL host (?runsidebar=1).
+
+			`?flow=1` above mounts CnFlowSidebar `embedded`, which is the
+			fallback for a dialog: it renders plain blocks under a strip of its
+			own. The run's tabs are the sidebar's own tabs now, registered with
+			NcAppSidebarTabs, and that registration only happens under a real
+			NcAppSidebar. Asserting it in the embedded host would prove the
+			fallback and nothing else, so this scenario mounts the sidebar the
+			way a Nextcloud app layout does.
+		-->
+		<template v-else-if="showRunSidebar">
+			<h2>Flow run sidebar</h2>
+			<div data-testid="run-sidebar-box">
+				<CnFlowSidebar />
+			</div>
+		</template>
+
 		<!-- Cron builder (?cron=1). A schedule is the kind of value where the
 		     three views have to agree: picking a preset must rewrite the
 		     expression, and typing an expression must re-select the preset it
@@ -566,6 +584,7 @@ export default {
 			canvasConnections: [],
 			// CnDataTable horizontal-scroll harness (?dtscroll=1).
 			showFlow: (typeof window !== 'undefined' && window.location.search.includes('flow=1')),
+			showRunSidebar: (typeof window !== 'undefined' && window.location.search.includes('runsidebar')),
 			showCron: (typeof window !== 'undefined' && window.location.search.includes('cron=1')),
 			cronValue: '0 9 * * 1',
 			showDtScroll: (typeof window !== 'undefined' && window.location.search.includes('dtscroll')),
@@ -860,6 +879,26 @@ export default {
 		// the action menu and undo depend on drag-and-drop working first, so a
 		// failure there would surface as a failure here — in the wrong place.
 		// Harness-only: nothing in src/ reads this.
+		// The run sidebar scenario seeds only what a sidebar cannot invent: a
+		// saved flow to belong to. The RUN is fetched for real by the spec,
+		// through `store.inspectRun()` over routes the spec stubs, because the
+		// defect being pinned is what the store keeps off that response.
+		// Harness-only: nothing in src/ reads this.
+		if (this.showRunSidebar) {
+			const store = useFlowStore()
+			window.__cnFlowStore = store
+			store.sidebarOpen = true
+			store.flow = {
+				id: 'flow-88',
+				uuid: 'flow-88',
+				app: 'openregister',
+				name: 'Run lock demo',
+				lifecycleStatus: 'published',
+				nodes: [],
+				edges: [],
+			}
+		}
+
 		if (this.showFlow) {
 			const store = useFlowStore()
 			window.__cnFlowStore = store

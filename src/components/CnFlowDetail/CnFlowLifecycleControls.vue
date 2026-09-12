@@ -1,15 +1,19 @@
 <!--
   CnFlowLifecycleControls — which version this is, and what can be done to it.
 
-  ⚠️ THIS RENDERS THE FLOW'S NAME ITSELF, and NcAppSidebar is given no `name`.
-  That is deliberate and it is a trade. The version belongs beside the title
-  rather than on a line under it, and NcAppSidebar renders its own heading with
-  no slot to reach into — only a `name` prop. So the heading is ours: an `h2`
-  carrying the health dot, the name, the version and the lifecycle on one line.
+  ⚠️ WHO RENDERS THE NAME DEPENDS ON THE HOST, and that is what `showName` is.
 
-  The cost is that this sidebar's heading is no longer NcAppSidebar's, so a
-  change to how the fleet's sidebars render their titles will not reach here.
-  The h2 and the ordering exist to keep the semantics that prop was providing.
+  This used to render the name always, with NcAppSidebar handed no `name` at
+  all, so that the version could sit BESIDE the title instead of on the line
+  under it. The cost was not only the trade it was written as: `name` is a
+  REQUIRED prop, so the app layout logged a Vue warning on every mount and
+  NcAppSidebar rendered its own heading EMPTY. An empty `h2` above the real one
+  is a heading that names nothing, which a screen reader still announces.
+
+  So under NcAppSidebar the name is the sidebar's heading again and this row
+  carries the dot, the version and the lifecycle under it. In the embedded
+  (dialog) host there is no sidebar heading to use, so the name stays here and
+  the row stays an `h2`. One component, two hosts, one heading each.
 
   WHY THIS IS NOT PART OF A TAB
   -----------------------------
@@ -48,17 +52,22 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<h2 class="cn-flow-lifecycle" data-testid="flow-title">
+	<component :is="showName ? 'h2' : 'div'"
+		class="cn-flow-lifecycle"
+		data-testid="flow-title">
 		<CnFlowHealthDot :enabled="store.flow.enabled === true"
 			:lastRunStatus="store.flow.lastRunStatus || null" />
-		<span class="cn-flow-lifecycle__name">{{ name }}</span>
+		<!-- Only where nothing else is rendering it. Under NcAppSidebar the
+		     name is the sidebar's own heading, and printing it here too would
+		     put the flow's name on screen twice. -->
+		<span v-if="showName" class="cn-flow-lifecycle__name">{{ name }}</span>
 		<span class="cn-flow-lifecycle__pill cn-flow-lifecycle__pill--version"
 			:title="versionTitle"
 			data-testid="flow-version">v{{ store.flowVersionLabel }}</span>
 		<span class="cn-flow-lifecycle__pill"
 			:class="`cn-flow-lifecycle__pill--${store.lifecycleStatus}`"
 			data-testid="flow-lifecycle">{{ lifecycleLabel }}</span>
-	</h2>
+	</component>
 </template>
 
 <script>
@@ -70,6 +79,20 @@ export default {
 	name: 'CnFlowLifecycleControls',
 
 	components: { CnFlowHealthDot },
+
+	props: {
+		/**
+		 * Render the flow's name in this row, and make the row a heading.
+		 *
+		 * True for a host with no heading of its own, which is the embedded
+		 * dialog. Under NcAppSidebar the name is the sidebar's heading, so the
+		 * row is a plain div carrying the dot and the pills under it.
+		 */
+		showName: {
+			type: Boolean,
+			default: true,
+		},
+	},
 
 	setup() {
 		return { store: useFlowStore() }
