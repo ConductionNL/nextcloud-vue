@@ -161,7 +161,7 @@
     "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.0",
+    "@babel/core": "^8.0.5",
     "@babel/preset-env": "^7.29.0",
     "@nextcloud/browserslist-config": "^3.1.2",
     "@nextcloud/eslint-config": "^9.0.1",
