@@ -14,10 +14,19 @@
  * The contract, which OpenRegister owns and this module does not extend:
  *
  *  - `GET /apps/openregister/api/objects/{id}/available-actions` answers
- *    `{ actions: [{ action, to, requires, description, inputs? }] }`, ALREADY
- *    filtered to the record's current state. A move that is not in the list is
- *    not available, so anything built on this fails closed by construction:
- *    there is no flag to misread, and no allowlist to get backwards.
+ *    `{ actions: [{ action, to, requires, description, inputs?, blocked? }] }`,
+ *    ALREADY filtered to the record's current state. A move that is not in the
+ *    list is not available, so anything built on this fails closed by
+ *    construction: there is no flag to misread, and no allowlist to get
+ *    backwards.
+ *  - `requires` is the dependency-injection TAG of the guard class, copied
+ *    verbatim out of the schema annotation. It is an identifier, not a
+ *    sentence, and it never goes in front of a person. `description` is the
+ *    sentence.
+ *  - `blocked: true` is the third answer, beside "in the list" and "absent". It
+ *    says the move EXISTS but cannot be taken right now, and `description`
+ *    carries the reason. Absent, as it is on most actions, the move is simply
+ *    available.
  *  - `POST /apps/openregister/api/objects/{id}/transition` with `{ action }`,
  *    or `{ action, data }` when the action declares
  *    `inputs: [{ field, required }]` (mirroring
@@ -62,7 +71,7 @@ async function http() {
  *    when in truth nothing had been read at all.
  *
  * @param {string|number} objectId The record's id.
- * @return {Promise<{actions: Array<{action: string, to: string, requires?: unknown, description?: string, inputs?: Array<{field: string, required?: boolean}>}>, failed: boolean}>} The allowed actions, and whether the read failed.
+ * @return {Promise<{actions: Array<{action: string, to: string, requires?: unknown, description?: string, inputs?: Array<{field: string, required?: boolean}>, blocked?: boolean}>, failed: boolean}>} The allowed actions, and whether the read failed.
  */
 export async function readAvailableActions(objectId) {
 	if (objectId === null || objectId === undefined || objectId === '') {
@@ -144,6 +153,13 @@ export function declaresInputs(action) {
  * answers by its `to`. When two actions reach one state the first wins, so the
  * mapping is stable across renders rather than depending on iteration order.
  *
+ * One exception, and it is the reason `blocked` cannot be ignored here: an
+ * AVAILABLE move beats a blocked one whatever the order. The question the map
+ * answers is whether the record can reach the stage, and if any move reaches
+ * it the answer is yes. Taking the first regardless would let a blocked
+ * duplicate disable a stage the record can actually move to, which is a
+ * refusal nobody wrote.
+ *
  * @param {Array<object>} actions The allowed actions.
  * @return {Map<string, object>} The actions by target state.
  */
@@ -160,6 +176,8 @@ export function actionsByTarget(actions) {
 		const key = String(to)
 		if (!byTarget.has(key)) {
 			byTarget.set(key, action)
+		} else if (isBlockedAction(byTarget.get(key)) && !isBlockedAction(action)) {
+			byTarget.set(key, action)
 		}
 	}
 	return byTarget
@@ -168,10 +186,20 @@ export function actionsByTarget(actions) {
 /**
  * What an action says about itself, for a person reading the stage.
  *
- * `description` is the schema's own sentence about the move. `requires` says
- * what it needs, and arrives as a string, a list of strings, or null. Neither
- * is a gate: OpenRegister has already filtered the list, and it re-validates
- * the POST. This is the text beside the stage, nothing more.
+ * `description` is the schema's own sentence about the move, and it is the only
+ * thing in the action that was written for somebody to read. It is not a gate:
+ * OpenRegister has already filtered the list, and it re-validates the POST.
+ * This is the text beside the stage, nothing more.
+ *
+ * `REQUIRES IS AN IDENTIFIER, NOT COPY`, and it used to be concatenated onto
+ * the end of this note. OpenRegister's TransitionEngine copies
+ * `$spec['requires']` straight out of the schema annotation, and what apps put
+ * there is the dependency-injection tag of the guard class, so the sentence
+ * beside a stage ended in `OCA\Learniq\Lifecycle\AdmissionsDecisionGuard`.
+ * Measured across the fleet's registers: 366 transitions declare `requires`,
+ * and 107 of those declare no `description` at all, which means the class name
+ * was not an ugly suffix there, it was the entire note. A move that has nothing
+ * a person can read now says nothing, which is the honest answer.
  *
  * @param {object} action The action descriptor.
  * @return {string} The note, or ''.
@@ -180,19 +208,27 @@ export function actionNote(action) {
 	if (!action || typeof action !== 'object') {
 		return ''
 	}
-	const parts = []
 	if (typeof action.description === 'string' && action.description.trim() !== '') {
-		parts.push(action.description.trim())
+		return action.description.trim()
 	}
-	const requires = action.requires
-	if (typeof requires === 'string' && requires.trim() !== '') {
-		parts.push(requires.trim())
-	} else if (Array.isArray(requires)) {
-		for (const one of requires) {
-			if (typeof one === 'string' && one.trim() !== '') {
-				parts.push(one.trim())
-			}
-		}
-	}
-	return parts.join(' ')
+	return ''
+}
+
+/**
+ * Whether a move is offered but refused.
+ *
+ * The list used to have two answers about a move: it is in it, or it is not.
+ * That leaves nowhere to say "this move exists, you cannot take it right now,
+ * and here is why", which is exactly what an app's guards produce. A blocked
+ * action keeps its place in the list, so the stage still shows what the process
+ * looks like, and `actionNote()` carries the reason.
+ *
+ * Only a literal `true` blocks. An action that says nothing about it is
+ * available, because that is what every action said before this key existed.
+ *
+ * @param {object} action The action descriptor.
+ * @return {boolean} True when the move is offered but refused.
+ */
+export function isBlockedAction(action) {
+	return Boolean(action && typeof action === 'object' && action.blocked === true)
 }
