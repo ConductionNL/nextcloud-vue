@@ -86,3 +86,72 @@ describe('CnFilesTab.openFile — safeHref protection (C4)', () => {
 		wrapper.unmount()
 	})
 })
+
+describe('CnFilesTab — hands over to what Nextcloud already has on the page', () => {
+	let windowOpenSpy
+	beforeEach(() => {
+		windowOpenSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({ results: [], total: 0 }),
+		})
+	})
+	afterEach(() => {
+		windowOpenSpy.mockRestore()
+		delete global.fetch
+		delete window.OCA
+		delete window.OC
+	})
+
+	it('strips the user and files segments off an OpenRegister node path', () => {
+		const wrapper = mountTab()
+		expect(wrapper.vm.userRelativePath('/admin/files/OpenRegister/Case 1/report.pdf')).toBe('/OpenRegister/Case 1/report.pdf')
+		expect(wrapper.vm.userRelativePath('/admin/files')).toBe('/')
+		expect(wrapper.vm.userRelativePath('')).toBe('/')
+		wrapper.unmount()
+	})
+
+	it('opens a file in the Viewer, on this page, when the Viewer is there and handles the type', () => {
+		const open = jest.fn()
+		window.OCA = { Viewer: { open, mimetypes: ['application/pdf'] } }
+		const wrapper = mountTab()
+		wrapper.vm.openFile({ id: '7', path: '/admin/files/docs/report.pdf', type: 'application/pdf', accessUrl: 'https://cdn.example.com/file.pdf' })
+		expect(open).toHaveBeenCalledWith({ path: '/docs/report.pdf' })
+		// The Viewer took it, so nothing opened in a new window.
+		expect(windowOpenSpy).not.toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
+	it('falls through to the next way of opening when the Viewer cannot show the type', () => {
+		const open = jest.fn()
+		window.OCA = { Viewer: { open, mimetypes: ['image/png'] } }
+		const wrapper = mountTab()
+		wrapper.vm.openFile({ id: '7', path: '/admin/files/docs/report.pdf', type: 'application/pdf' })
+		expect(open).not.toHaveBeenCalled()
+		expect(windowOpenSpy).toHaveBeenCalledTimes(1)
+		expect(windowOpenSpy.mock.calls[0][0]).toContain('/files/7')
+		wrapper.unmount()
+	})
+
+	it('opens the Files sidebar on the file only when the Files app put it on the page', () => {
+		const wrapper = mountTab()
+		expect(wrapper.vm.canShowDetails()).toBe(false)
+		const open = jest.fn()
+		window.OCA = { Files: { Sidebar: { open } } }
+		wrapper.vm.showDetails({ id: '7', path: '/admin/files/docs/report.pdf' })
+		expect(open).toHaveBeenCalledWith('/docs/report.pdf')
+		wrapper.unmount()
+	})
+
+	it("draws the theme's own mime icon, and a preview only for a raster image", () => {
+		window.OC = { MimeType: { getIconUrl: (mime) => `/icons/${mime.replace('/', '-')}.svg` } }
+		const wrapper = mountTab()
+		expect(wrapper.vm.mimeIconFor({ type: 'application/pdf' })).toBe('/icons/application-pdf.svg')
+		expect(wrapper.vm.previewUrlFor({ id: '7', type: 'application/pdf' })).toBeNull()
+		expect(wrapper.vm.previewUrlFor({ id: '7', type: 'image/svg+xml' })).toBeNull()
+		expect(wrapper.vm.previewUrlFor({ id: '7', type: 'image/png' })).toContain('fileId=7')
+		wrapper.vm.onPreviewError({ id: '7' })
+		expect(wrapper.vm.previewUrlFor({ id: '7', type: 'image/png' })).toBeNull()
+		wrapper.unmount()
+	})
+})
