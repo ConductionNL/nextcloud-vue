@@ -31,10 +31,12 @@ const CnObjectListWidget = require('../../src/components/CnObjectListWidget/CnOb
 
 const PORTALIQ_PAGE = { id: 78, slug: 'page', required: ['title', 'route', 'portal', 'status'], properties: {} }
 
-const mountWidget = (content) => shallowMount(CnObjectListWidget, {
-	propsData: { content },
-	stubs: { CnDataTable: true },
-})
+function mountWidget(content) {
+	return shallowMount(CnObjectListWidget, {
+		propsData: { content },
+		stubs: { CnDataTable: true },
+	})
+}
 
 // The widget also lists rows on mount (`/api/objects/{register}/{schema}`);
 // only the schema lookups are under test here.
@@ -42,9 +44,7 @@ const schemaCalls = () => axios.get.mock.calls.filter(([url]) => String(url).inc
 
 beforeEach(() => {
 	axios.get.mockReset()
-	axios.get.mockImplementation((url) => Promise.resolve(
-		String(url).includes('/api/schemas/') ? { data: PORTALIQ_PAGE } : { data: { results: [], total: 0 } },
-	))
+	axios.get.mockImplementation((url) => Promise.resolve(String(url).includes('/api/schemas/') ? { data: PORTALIQ_PAGE } : { data: { results: [], total: 0 } }))
 })
 
 describe('CnObjectListWidget — create dialog resolves the schema in its own register', () => {
