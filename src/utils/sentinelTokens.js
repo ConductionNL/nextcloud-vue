@@ -196,7 +196,7 @@ const CONTEXT_RE = Object.freeze(Object.fromEntries(Object.entries(SENTINEL_TOKE
  * True when `value` is a string that begins with `@` (i.e. shaped like a
  * sentinel, regardless of membership).
  *
- * @param {*} value Candidate.
+ * @param {unknown} value Candidate.
  * @return {boolean}
  */
 export function looksLikeSentinel(value) {

@@ -349,12 +349,12 @@ export default {
 						const raw = this.choiceModel[step.id]
 						if (Array.isArray(raw)) {
 							value = raw.map((o) => this.choiceLabel(step, o)).join(', ')
-						} else if (raw != null && raw !== '') {
+						} else if (raw !== null && raw !== undefined && raw !== '') {
 							value = this.choiceLabel(step, raw)
 						}
 					} else if (step.type === 'config-fields') {
 						value = this.fieldsFor(step)
-							.map((f) => `${f.label}: ${this.configModel[f.key] != null ? this.configModel[f.key] : ''}`)
+							.map((f) => `${f.label}: ${this.configModel[f.key] !== null && this.configModel[f.key] !== undefined ? this.configModel[f.key] : ''}`)
 							.join(', ')
 					}
 					let done
@@ -472,7 +472,7 @@ export default {
 				options = this.sourcedOptions(step)
 			} else if (step.dependsOn && step.optionsByParent) {
 				const parentValue = this.choiceValues[step.dependsOn]
-				options = (parentValue == null || parentValue === '')
+				options = (parentValue === null || parentValue === undefined || parentValue === '')
 					? []
 					: (step.optionsByParent[parentValue] || [])
 			}
@@ -510,7 +510,7 @@ export default {
 		sourcedOptions(step) {
 			let node = this.setupStatus
 			for (const key of String(step.optionsSource).split('.')) {
-				if (node == null || typeof node !== 'object') {
+				if (node === null || node === undefined || typeof node !== 'object') {
 					return []
 				}
 				node = node[key]
@@ -561,7 +561,7 @@ export default {
 		 * renderers can share one `choiceModel` entry.
 		 *
 		 * @param {object} step The choice step.
-		 * @return {*} The selected value, or [] / null when nothing is picked.
+		 * @return {unknown} The selected value, or [] / null when nothing is picked.
 		 */
 		cardModel(step) {
 			const value = this.scalarChoice(step)
@@ -576,7 +576,7 @@ export default {
 				return false
 			}
 			const parentValue = this.choiceValues[step.dependsOn]
-			return parentValue == null || parentValue === ''
+			return parentValue === null || parentValue === undefined || parentValue === ''
 		},
 
 		dependsOnHint(step) {
@@ -595,7 +595,7 @@ export default {
 		 * not (yet) available.
 		 *
 		 * @param {object} step  The choice step.
-		 * @param {*}      entry One selected entry: an option object or a value.
+		 * @param {unknown}      entry One selected entry: an option object or a value.
 		 * @return {string} The label to show.
 		 */
 		choiceLabel(step, entry) {
@@ -611,7 +611,7 @@ export default {
 			if (step.multiple === true) {
 				return Array.isArray(v) && v.length > 0
 			}
-			return v != null && v !== ''
+			return v !== null && v !== undefined && v !== ''
 		},
 
 		scalarChoice(step) {
@@ -660,11 +660,11 @@ export default {
 				return
 			}
 			const parentValue = this.choiceValues[step.suggestFrom]
-			if (parentValue == null || parentValue === '') {
+			if (parentValue === null || parentValue === undefined || parentValue === '') {
 				return
 			}
 			const wanted = (step.suggestMap || {})[parentValue]
-			if (wanted == null) {
+			if (wanted === null || wanted === undefined) {
 				return
 			}
 			const opt = this.optionsFor(step).find((o) => o.value === wanted) || { value: wanted, label: String(wanted) }

@@ -240,7 +240,7 @@ import {
  * Unwrap an OpenRegister API payload (`{result}` / `{results}` / array / object).
  *
  * @param {object|Array} data The raw response body.
- * @return {*} The unwrapped payload.
+ * @return {unknown} The unwrapped payload.
  */
 function unwrap(data) {
 	if (!data) {

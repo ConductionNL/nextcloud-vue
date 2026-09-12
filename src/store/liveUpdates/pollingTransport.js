@@ -39,11 +39,11 @@ export function createPollingTransport() {
 	/**
 	 * Per event-key state: { callbacks: Set, intervalId, interval, refcount }
 	 *
-	 * @type {Map<string, { callbacks: Set<Function>, intervalId: number|null, interval: number, refcount: number }>}
+	 * @type {Map<string, { callbacks: Set<() => void>, intervalId: number|null, interval: number, refcount: number }>}
 	 */
 	const keys = new Map()
 
-	/** @type {Function[]} */
+	/** @type {Array<(status: string) => void>} */
 	const statusObservers = []
 
 	/** Visibility change handler (stored so we can remove it in destroy). */
@@ -76,7 +76,7 @@ export function createPollingTransport() {
 	/**
 	 * Invoke all callbacks for a key entry (if tab is visible).
 	 *
-	 * @param {{ callbacks: Set<Function> }} entry The per-event-key entry whose
+	 * @param {{ callbacks: Set<() => void> }} entry The per-event-key entry whose
 	 *   subscriber callbacks to run. A throwing callback is logged and does not
 	 *   stop the remaining ones.
 	 * @return {void}
@@ -89,6 +89,7 @@ export function createPollingTransport() {
 			try {
 				cb()
 			} catch (e) {
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error('pollingTransport: callback error:', e)
 			}
 		}
@@ -97,7 +98,7 @@ export function createPollingTransport() {
 	/**
 	 * Clear and restart the interval for an entry.
 	 *
-	 * @param {{ callbacks: Set<Function>, intervalId: (number|null), interval: number }} entry
+	 * @param {{ callbacks: Set<() => void>, intervalId: (number|null), interval: number }} entry
 	 *   The per-event-key entry to re-arm; any existing `intervalId` is cleared
 	 *   first so visibility changes cannot stack timers.
 	 * @return {void}
@@ -122,7 +123,7 @@ export function createPollingTransport() {
 		/**
 		 * Register a status observer (always receives `'polling'` immediately on first call).
 		 *
-		 * @param {Function} cb Observer invoked with the transport status string.
+		 * @param {(status: string) => void} cb Observer invoked with the transport status string.
 		 * @return {void}
 		 */
 		onStatusChange(cb) {
@@ -133,9 +134,9 @@ export function createPollingTransport() {
 		 * Subscribe a callback to an event key.
 		 *
 		 * @param {string} eventKey Event key to poll for
-		 * @param {Function} cb Callback invoked on each poll tick (and immediately on visibility restore)
+		 * @param {() => void} cb Callback invoked on each poll tick (and immediately on visibility restore)
 		 * @param {number} [interval] Poll interval in ms (default: 30000)
-		 * @return {{ eventKey: string, cb: Function }} Handle for unsubscribe
+		 * @return {{ eventKey: string, cb: () => void }} Handle for unsubscribe
 		 */
 		subscribe(eventKey, cb, interval = DEFAULT_POLL_INTERVAL_COLLECTION) {
 			ensureVisibilityListener()
@@ -161,7 +162,7 @@ export function createPollingTransport() {
 		/**
 		 * Unsubscribe a callback. Clears the interval when last subscriber leaves.
 		 *
-		 * @param {{ eventKey: string, cb: Function }} handle Handle from subscribe()
+		 * @param {{ eventKey: string, cb: () => void }} handle Handle from subscribe()
 		 */
 		unsubscribe(handle) {
 			const { eventKey, cb } = handle

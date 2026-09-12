@@ -79,12 +79,6 @@ describe('useTenantContext', () => {
 			let consumerCtxA
 			let consumerCtxB
 
-			const Provider = defineComponent({
-				setup() {
-					providerCtx = provideTenantContext('seed', { uuid: 'seed', name: 'Seed' })
-					return () => h('div', [h(ConsumerA), h(ConsumerB)])
-				},
-			})
 			const ConsumerA = defineComponent({
 				setup() {
 					consumerCtxA = useTenantContext()
@@ -95,6 +89,12 @@ describe('useTenantContext', () => {
 				setup() {
 					consumerCtxB = useTenantContext()
 					return () => h('span')
+				},
+			})
+			const Provider = defineComponent({
+				setup() {
+					providerCtx = provideTenantContext('seed', { uuid: 'seed', name: 'Seed' })
+					return () => h('div', [h(ConsumerA), h(ConsumerB)])
 				},
 			})
 
@@ -130,16 +130,16 @@ describe('useTenantContext', () => {
 		it('manual provide() with the same key also wires through', () => {
 			let injected
 			const externalCtx = createTenantContext('manual', { uuid: 'manual' })
-			const Provider = defineComponent({
-				setup() {
-					provide(TENANT_CONTEXT_KEY, externalCtx)
-					return () => h(Consumer)
-				},
-			})
 			const Consumer = defineComponent({
 				setup() {
 					injected = useTenantContext()
 					return () => h('span')
+				},
+			})
+			const Provider = defineComponent({
+				setup() {
+					provide(TENANT_CONTEXT_KEY, externalCtx)
+					return () => h(Consumer)
 				},
 			})
 			mount(Provider)

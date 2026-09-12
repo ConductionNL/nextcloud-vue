@@ -188,7 +188,7 @@ export default {
 					filter: agg.filter || {},
 				}, ctx)
 				this.values[i] = value
-			} catch (e) {
+			} catch {
 				this.values[i] = null
 			} finally {
 				this.loadingMap[i] = false

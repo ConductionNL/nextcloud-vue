@@ -109,7 +109,7 @@ const DEFAULT_MAP = {
  * @param {object} record The definition record.
  * @param {object} map The resolved field-name map.
  * @param {string} role The map role (`title`, `type`, …).
- * @return {*} The value, or undefined when the role is unmapped or absent.
+ * @return {unknown} The value, or undefined when the role is unmapped or absent.
  */
 function mapped(record, map, role) {
 	const field = map[role]
@@ -264,7 +264,7 @@ export function prefillValues(record, config) {
  * case type that has no extra properties.
  *
  * @param {object} config The `x-openregister-extends-form` block.
- * @param {*} value The driving property's current value.
+ * @param {unknown} value The driving property's current value.
  * @param {object} [formData] The full form data, for `@object.<field>` tokens.
  * @return {object} Query parameters for `fetchCollection`.
  */
@@ -402,7 +402,7 @@ export function definitionIdFromKey(key) {
  * silently, so an unsplit payload loses every answer with a 200 and no error.
  *
  * @param {object} formData The dialog's confirmed payload.
- * @return {{base: object, answers: Array<{definitionId: string, value: *}>}} The parent's fields, and one answer per dynamic field.
+ * @return {{base: object, answers: Array<{definitionId: string, value: unknown}>}} The parent's fields, and one answer per dynamic field.
  */
 export function splitDynamicFormData(formData) {
 	const base = {}
@@ -478,7 +478,7 @@ export function valueArrayFor(answers, config, definitions = []) {
  * mean the same thing to every reader, and not writing it keeps the value
  * schema free of rows that only record that someone opened the form.
  *
- * @param {Array<{definitionId: string, value: *}>} answers The answers from `splitDynamicFormData`.
+ * @param {Array<{definitionId: string, value: unknown}>} answers The answers from `splitDynamicFormData`.
  * @param {object} config The `x-openregister-extends-form` block (needs `values`).
  * @param {string} objectId The saved parent object's id.
  * @return {Array<object>} One payload per row to create; empty when nothing is to be written.

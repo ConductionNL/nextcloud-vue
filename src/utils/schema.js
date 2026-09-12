@@ -130,7 +130,7 @@ export function columnsFromSchema(schema, options = {}) {
  * Handles dates, booleans, arrays, numbers, UUIDs, emails, and markdown.
  * Returns a plain string suitable for display in a table cell.
  *
- * @param {*} value The raw value
+ * @param {unknown} value The raw value
  * @param {object} [property] The schema property definition `{ type, format, enum, items }`
  * @param {object} [options] Formatting options
  * @param {number} [options.truncate] Maximum string length before truncation
@@ -323,7 +323,7 @@ function truncateString(str, maxLength) {
  * dropdown rendered but came back empty. Take the tail after the last `/`, which
  * is what the editor itself does when it resolves a $ref back to a schema.
  *
- * @param {*} ref A `$ref` value (`prop.$ref` or `prop.items.$ref`).
+ * @param {unknown} ref A `$ref` value (`prop.$ref` or `prop.items.$ref`).
  * @return {string|number|null} The reference identifier, or null.
  */
 function normalizeRef(ref) {
@@ -524,7 +524,7 @@ export function splitDescription(text, max = DESCRIPTION_INLINE_MAX) {
  * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. Recognised keys: `hidden` (true → drop the field), `order` (number → wins over the schema property's `order` for sorting), `readOnly` (false on a schema-readOnly key un-skips it), plus any field props to merge (`label`, `widget`, `enum`, …). A single overrides map therefore controls visibility, ordering and rendering on every surface that consumes this pipeline (data widget + form dialog).
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
  * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each field's `label` and `description`. Schema property titles/descriptions are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered field label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
- * @return {Array<{key: string, label: string, description: string, descriptionLong: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, enumLabels: object|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean}|null, userPicker: {multiple: boolean}|null, fillFrom: object|null, validation: object, order: number}>} `description` is the inline helper text (see `splitDescription`); `descriptionLong` carries the full text when it was too long to render inline, else ''. `enumLabels` maps each raw enum value to its English display label (from the property's `x-enum-labels`), or null.
+ * @return {Array<{key: string, label: string, description: string, descriptionLong: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: unknown, enum: Array|null, enumLabels: object|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean}|null, userPicker: {multiple: boolean}|null, fillFrom: object|null, validation: object, order: number}>} `description` is the inline helper text (see `splitDescription`); `descriptionLong` carries the full text when it was too long to render inline, else ''. `enumLabels` maps each raw enum value to its English display label (from the property's `x-enum-labels`), or null.
  */
 export function fieldsFromSchema(schema, options = {}) {
 	const { exclude = [], include = null, overrides = {}, includeReadOnly = false, translate } = options
@@ -814,7 +814,7 @@ const FORMAT_PATTERNS = {
  * `options.required` is set; required-ness is typically enforced separately
  * by the form so an empty input doesn't show a redundant inline error.
  *
- * @param {*} value The value to validate.
+ * @param {unknown} value The value to validate.
  * @param {object} [property] The schema property definition.
  * @param {object} [options] Extra checks.
  * @param {boolean} [options.required] When true, an empty value is reported.

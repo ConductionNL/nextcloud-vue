@@ -911,7 +911,7 @@ export default {
 		 * The stored value is untouched — only what the user reads changes, so
 		 * inline editing still writes back the raw code.
 		 *
-		 * @return {(field: object, raw: *) => string|null} Given the resolved
+		 * @return {(field: object, raw: unknown) => string|null} Given the resolved
 		 *   field descriptor and the stored value, the label to display — or
 		 *   null to fall through to `formatValue`.
 		 */
@@ -940,7 +940,7 @@ export default {
 					? this.dirtyFields[field.key]
 					: (this.objectData || {})[field.key]
 				const prop = this.schema.properties && this.schema.properties[field.key]
-				if (this.isRelationField(prop) && raw != null && raw !== '') {
+				if (this.isRelationField(prop) && raw !== null && raw !== undefined && raw !== '') {
 					values[field.key] = this.relationLabel(raw)
 					continue
 				}
@@ -979,7 +979,7 @@ export default {
 		 */
 		collapsedGridStyle() {
 			const style = { ...this.gridStyle }
-			if (this.overflowing && !this.expanded && this.collapsedMaxHeight != null) {
+			if (this.overflowing && !this.expanded && this.collapsedMaxHeight !== null && this.collapsedMaxHeight !== undefined) {
 				style.maxHeight = this.collapsedMaxHeight + 'px'
 			}
 			return style
@@ -1132,7 +1132,9 @@ export default {
 			const grid = this.$refs.grid
 			const content = grid && grid.closest && grid.closest('.cn-widget-wrapper__content')
 			if (!grid || !content) {
-				this.overflowing = false; this.collapsedMaxHeight = null; return
+				this.overflowing = false
+				this.collapsedMaxHeight = null
+				return
 			}
 			const avail = content.clientHeight
 			// Natural (unclipped) grid height. `scrollHeight` ignores the
@@ -1277,7 +1279,7 @@ export default {
 		 * definition-list renderer.
 		 *
 		 * @param {object} raw The object value.
-		 * @return {Array<[string, *]>} The entries.
+		 * @return {Array<[string, unknown]>} The entries.
 		 */
 		objectEntries(raw) {
 			return (raw && typeof raw === 'object') ? Object.entries(raw) : []
@@ -1287,7 +1289,7 @@ export default {
 		 * Stringify a scalar cell value; a nested object/array collapses to
 		 * compact JSON (never "[object Object]").
 		 *
-		 * @param {*} v The cell value.
+		 * @param {unknown} v The cell value.
 		 * @return {string} The display string.
 		 */
 		stringifyCell(v) {
@@ -1346,8 +1348,8 @@ export default {
 			// accept both; the objects API resolves either in its path.
 			// Register comes from the detail-page object context (ADR-062:
 			// references display the target object's NAME, never a raw uuid).
-			const rawRef = prop.$ref != null ? prop.$ref : (prop.items ? prop.items.$ref : null)
-			if (rawRef != null && (typeof rawRef === 'string' || typeof rawRef === 'number')) {
+			const rawRef = prop.$ref !== null && prop.$ref !== undefined ? prop.$ref : (prop.items ? prop.items.$ref : null)
+			if (rawRef !== null && rawRef !== undefined && (typeof rawRef === 'string' || typeof rawRef === 'number')) {
 				const slug = String(rawRef).split('/').pop().replace(/\.json$/, '')
 				const reg = this.contextRegisterOf()
 				if (slug && reg) {
@@ -1382,7 +1384,7 @@ export default {
 		 * `false` and `0` are values, not absences, so they are deliberately kept —
 		 * hiding a boolean because it is false would lose information.
 		 *
-		 * @param {*} value The raw value from objectData.
+		 * @param {unknown} value The raw value from objectData.
 		 * @return {boolean} True when there is nothing to show.
 		 */
 		isEmptyValue(value) {
@@ -1532,7 +1534,7 @@ export default {
 						this.relatedLabels[o.id] = o.label
 					}
 				})
-			} catch (e) {
+			} catch {
 				this.relationOptions[key] = []
 			} finally {
 				this.relationOptionsLoading = false
@@ -1600,7 +1602,7 @@ export default {
 					const d = (res && res.data) ? res.data : {}
 					const obj = (d.results && d.results[0]) ? d.results[0] : d
 					this.relatedLabels[id] = this.objectDisplayName(obj, id)
-				} catch (e) {
+				} catch {
 					this.relatedLabels[id] = id
 				}
 			}))
@@ -1706,7 +1708,7 @@ export default {
 		 * Update the working edit value for a field.
 		 *
 		 * @param {string} key - Field key to update
-		 * @param {*} value - New value for the field
+		 * @param {unknown} value - New value for the field
 		 */
 		updateField(key, value) {
 			this.editData = { ...this.editData, [key]: value }

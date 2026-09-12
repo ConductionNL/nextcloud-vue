@@ -50,7 +50,7 @@ export function hasRenderableContent(nodes) {
  * the answer changes when the parent's own state changes (an unsaved edit
  * appearing), and a computed that reads `$slots` does not re-track that.
  *
- * @param {Function|undefined} slot A slot function off `$slots`.
+ * @param {(() => unknown)|undefined} slot A slot function off `$slots`.
  * @return {boolean} True when calling it yields visible content.
  */
 export function slotRenders(slot) {
@@ -59,7 +59,7 @@ export function slotRenders(slot) {
 	}
 	try {
 		return hasRenderableContent(slot())
-	} catch (e) {
+	} catch {
 		// A slot that throws while being probed is the caller's problem to see
 		// at render time, not a reason to decide the layout question wrongly.
 		// Treating it as filled keeps the controls' home.

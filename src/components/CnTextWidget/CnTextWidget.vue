@@ -173,7 +173,7 @@ export default {
 					if (typeof html !== 'string') {
 						html = String(html)
 					}
-				} catch (err) {
+				} catch {
 					// Defensive: fall back to the raw text rather than crash
 					// the dashboard if the parser throws.
 					html = this.text

@@ -71,12 +71,12 @@ function defaultParseListResponse(json) {
  * @param {object} config Store configuration
  * @param {string} config.endpoint API resource path segment (e.g. 'sources')
  * @param {string} [config.baseUrl] API base URL (before endpoint)
- * @param {Function|null} [config.entity] Entity class constructor for wrapping items, or null for raw data
+ * @param {(new (data: object) => object)|null} [config.entity] Entity class constructor for wrapping items, or null for raw data
  * @param {string[]} [config.cleanFields] Fields to strip in cleanForSave
  * @param {object} [config.features] Feature flags to enable optional state/getters/actions
  * @param {boolean} [config.features.loading] Add loading/error state and isLoading/getError getters
  * @param {boolean} [config.features.viewMode] Add viewMode state, getViewMode getter, setViewMode action
- * @param {Function} [config.parseListResponse] Custom response parser for refreshList.
+ * @param {(json: object) => object[]} [config.parseListResponse] Custom response parser for refreshList.
  *   Receives the parsed JSON body with the store instance as `this`.
  *   Must return an array of items. Default: `(json) => json.results`
  * @param {Array} [config.plugins] Array of plugin definitions to merge into the store.
@@ -84,10 +84,10 @@ function defaultParseListResponse(json) {
  *   plugins. Merge order is base → plugins → extend, so `extend` can still override
  *   anything a plugin provides.
  * @param {object} [config.extend] Extra state/getters/actions to merge into the store
- * @param {Function} [config.extend.state] State factory returning extra state properties
+ * @param {() => object} [config.extend.state] State factory returning extra state properties
  * @param {object} [config.extend.getters] Extra getters (or overrides of base getters)
  * @param {object} [config.extend.actions] Extra actions (or overrides of base/plugin actions)
- * @return {Function} Pinia store composable (useXxxStore)
+ * @return {() => object} Pinia store composable (useXxxStore)
  */
 export function createCrudStore(name, config = {}) {
 	const {

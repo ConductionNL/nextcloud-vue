@@ -469,7 +469,7 @@ export default {
 					const payload = await fetchEndpointSource(action.stateSource, this.tokenCtx)
 					const value = action.field ? this.readField(payload, action.field) : payload
 					this.toggleState[action.id] = Boolean(value)
-				} catch (e) {
+				} catch {
 					// Leave the default (off); a failed state read never breaks the bar.
 				}
 			}
@@ -478,15 +478,15 @@ export default {
 		/**
 		 * Read a dot-path off a payload (the toggle state field).
 		 *
-		 * @param {*} data The payload.
+		 * @param {unknown} data The payload.
 		 * @param {string} field The dot-path.
-		 * @return {*} The value at the path.
+		 * @return {unknown} The value at the path.
 		 */
 		readField(data, field) {
 			if (!field) {
 				return data
 			}
-			return String(field).split('.').reduce((o, k) => (o == null ? o : o[k]), data)
+			return String(field).split('.').reduce((o, k) => (o === null || o === undefined ? o : o[k]), data)
 		},
 
 		/**
@@ -566,7 +566,7 @@ export default {
 		 * the confirm dialog can report success/failure.
 		 *
 		 * @param {object} entry The action.
-		 * @return {Promise<*>} The dispatch result (undefined for open-form).
+		 * @return {Promise<unknown>} The dispatch result (undefined for open-form).
 		 */
 		async runAction(entry) {
 			if (entry.type === 'open-form') {
@@ -599,7 +599,7 @@ export default {
 		 * merged in (the latter localises `api-call` success/error toasts).
 		 *
 		 * @param {object} action The action to dispatch.
-		 * @return {Promise<*>} The dispatch result.
+		 * @return {Promise<unknown>} The dispatch result.
 		 */
 		dispatch(action) {
 			const extra = { tokenCtx: this.tokenCtx, translate: this.effectiveTranslate }
@@ -634,7 +634,7 @@ export default {
 				const store = useObjectStore()
 				const type = resolveObjectOpType(store, { register, schema })
 				this.formSchema = await store.fetchSchema(type)
-			} catch (e) {
+			} catch {
 				this.formSchema = null
 			}
 			if (!this.formSchema) {

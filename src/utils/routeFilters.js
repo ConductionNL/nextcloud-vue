@@ -66,7 +66,7 @@ export function parseSortKeysFromQuery(route) {
 	let parsed
 	try {
 		parsed = JSON.parse(raw)
-	} catch (e) {
+	} catch {
 		return null
 	}
 	if (!Array.isArray(parsed) || parsed.length === 0) {

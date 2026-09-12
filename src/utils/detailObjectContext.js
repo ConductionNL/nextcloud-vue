@@ -32,7 +32,7 @@
  * Unwrap a value that may be a plain object, a Vue ref, or a `{ value }`
  * holder.
  *
- * @param {*} v The injected value.
+ * @param {unknown} v The injected value.
  * @return {object|null} The unwrapped bag, or null.
  */
 function unwrap(v) {

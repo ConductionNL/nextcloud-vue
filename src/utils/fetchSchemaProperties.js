@@ -51,7 +51,7 @@ export async function fetchSchemaProperties(register, schema, options = {}) {
 		const fields = Object.keys(first).filter((k) => !k.startsWith('@') && (includeId || k !== 'id'))
 		_cache.set(key, fields)
 		return fields
-	} catch (e) {
+	} catch {
 		return []
 	}
 }

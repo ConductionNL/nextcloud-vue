@@ -75,9 +75,17 @@ export default {
 	components: { NcTextField, NcSelect, NcCheckboxRadioSwitch },
 
 	props: {
-		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
+		/**
+		 * The placement being edited (pre-fills from `editingWidget.content`), or null.
+		 *
+		 * @type {{content: object}|null}
+		 */
 		editingWidget: { type: Object, default: null },
-		/** Initial content values when not editing (registry defaults). @type {object} */
+		/**
+		 * Initial content values when not editing (registry defaults).
+		 *
+		 * @type {object}
+		 */
 		value: { type: Object, default: () => ({ ...DEFAULT_CONTENT }) },
 	},
 
@@ -136,7 +144,8 @@ export default {
 		 * @return {void}
 		 */
 		updateField(field, value) {
-			this[field] = value; this.emitChange()
+			this[field] = value
+			this.emitChange()
 		},
 
 		/**

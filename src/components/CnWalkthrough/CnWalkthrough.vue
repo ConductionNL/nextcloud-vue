@@ -39,14 +39,18 @@
 					<Close :size="20" />
 				</template>
 			</NcButton>
-			<!-- @slot coachmark Override the whole coachmark body. Scope: { step, index, total, next, back, skip }. -->
+			<!-- @slot coachmark Override the whole coachmark body. Scope: { step, index, total, next, back, skip, skipLabel }.
+			     The default body has no Skip control (ADR-062 gives that job to
+			     the corner close button), so `skipLabel` reaches the only place
+			     a Skip control can live: a host-supplied coachmark. -->
 			<slot name="coachmark"
 				:step="step"
 				:index="index"
 				:total="total"
 				:next="advance"
 				:back="back"
-				:skip="skip">
+				:skip="skip"
+				:skipLabel="skipLabel">
 				<div class="cn-walkthrough__counter">
 					{{ index + 1 }} / {{ total }}
 				</div>
@@ -435,14 +439,16 @@ export default {
 				return
 			}
 			if (this.tourId) {
-				this.wt.start(this.tourId); return
+				this.wt.start(this.tourId)
+				return
 			}
 			const auto = this.wt.autoStartTour.value
 			if (!auto) {
 				return
 			}
 			if (!this.$router) {
-				this.wt.start(auto.id); return
+				this.wt.start(auto.id)
+				return
 			}
 			const routeName = this.$route && this.$route.name
 			if (this.routeMatchesTour(auto, routeName)) {
@@ -570,7 +576,8 @@ export default {
 			if (!el) {
 				// Optional step whose target is absent → skip; else wait for it.
 				if (this.step.optional) {
-					this.wt.skip(); return
+					this.wt.skip()
+					return
 				}
 				// A nav-item/page target may be absent because it lives in a
 				// collapsed nav group (children not rendered). Best-effort expand
@@ -586,7 +593,7 @@ export default {
 			}
 			try {
 				el.scrollIntoView({ block: 'center', inline: 'center' })
-			} catch (e) { /* jsdom */ }
+			} catch { /* jsdom */ }
 			this.computeRect()
 			this.armStep(el)
 			// The ResizeObserver only fires when the target itself resizes. A nav
@@ -609,7 +616,7 @@ export default {
 			const q = (sel) => {
 				try {
 					return document.querySelector(sel)
-				} catch (e) {
+				} catch {
 					return null
 				}
 			}
@@ -642,7 +649,7 @@ export default {
 		 * children in the DOM but `display:none`, so the target can't be located or
 		 * measured and the engine would otherwise fall back to a centered coachmark.
 		 *
-		 * Scoped to the app navigation. Robust across @nextcloud/vue markup
+		 * Scoped to the app navigation. Robust across `@nextcloud/vue` markup
 		 * variants: it primarily clicks any `[aria-expanded="false"]` toggle, then
 		 * falls back to the collapse button of any collapsible group that is not in
 		 * the opened state. Attempted at most once per step (guarded by
@@ -667,7 +674,7 @@ export default {
 				clicked.add(el)
 				try {
 					el.click()
-				} catch (e) { /* jsdom / detached */ }
+				} catch { /* jsdom / detached */ }
 			}
 			// Primary signal: any collapse toggle reporting a collapsed state.
 			nav.querySelectorAll('[aria-expanded="false"]').forEach((el) => {
@@ -771,13 +778,17 @@ export default {
 				placement = 'bottom'
 			}
 			if (placement === 'bottom') {
-				top = r.top + r.height + gap; left = r.left
+				top = r.top + r.height + gap
+				left = r.left
 			} else if (placement === 'top') {
-				top = r.top - gap - ch; left = r.left
+				top = r.top - gap - ch
+				left = r.left
 			} else if (placement === 'left') {
-				top = r.top; left = r.left - gap - cw
+				top = r.top
+				left = r.left - gap - cw
 			} else {
-				top = r.top; left = r.left + r.width + gap
+				top = r.top
+				left = r.left + r.width + gap
 			}
 			// Clamp to the viewport. `left`/`top` live in overlay-relative space
 			// (this.rect was host-subtracted), so the viewport bounds must be
@@ -871,16 +882,20 @@ export default {
 		teardownStep() {
 			this._revealAttempted = false
 			if (this._observer) {
-				this._observer.disconnect(); this._observer = null
+				this._observer.disconnect()
+				this._observer = null
 			}
 			if (this._resizeObs) {
-				this._resizeObs.disconnect(); this._resizeObs = null
+				this._resizeObs.disconnect()
+				this._resizeObs = null
 			}
 			if (this._delayTimer) {
-				clearTimeout(this._delayTimer); this._delayTimer = null
+				clearTimeout(this._delayTimer)
+				this._delayTimer = null
 			}
 			if (this._settleTimers) {
-				this._settleTimers.forEach(clearTimeout); this._settleTimers = null
+				this._settleTimers.forEach(clearTimeout)
+				this._settleTimers = null
 			}
 			if (this.targetEl && this._clickHandler) {
 				this.targetEl.removeEventListener('click', this._clickHandler)
@@ -958,7 +973,7 @@ export default {
 			this.wt.complete()
 			try {
 				window.location.href = url
-			} catch (e) { /* jsdom */ }
+			} catch { /* jsdom */ }
 		},
 
 		/**

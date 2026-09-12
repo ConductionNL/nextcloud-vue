@@ -78,7 +78,7 @@ export function clearDeprecationWarnings() {
  * map. Idempotent per token for the process lifetime.
  *
  * @param {string} token The `@`-prefixed token.
- * @param {Function} warn console.warn override (tests).
+ * @param {(...args: unknown[]) => void} warn console.warn override (tests).
  * @return {boolean} True when the token is deprecated (regardless of whether a
  *   warning was emitted this call).
  */
@@ -106,15 +106,15 @@ export function warnIfDeprecated(token, warn) {
  * drop-in for a caller that previously ran `resolveRouteSentinels` then a
  * `resolveFilterTokens`-style pass by hand.
  *
- * @param {*} value The subtree (typically a `pages[].config` block). Not mutated.
+ * @param {unknown} value The subtree (typically a `pages[].config` block). Not mutated.
  * @param {object} [opts] Resolution inputs.
  * @param {object} [opts.params] vue-router params for `@route.<param>`.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [opts.ctx]
  *   Context forwarded to {@link resolveFilterValue} for filter / object /
  *   workspace / `@config.<key>` tokens.
  * @param {string} [opts.pageId] Page id for route-resolver warning dedup.
- * @param {Function} [opts.warn] console.warn override (tests).
- * @return {{value: *, unresolved: string[]}} The resolved subtree plus the
+ * @param {(...args: unknown[]) => void} [opts.warn] console.warn override (tests).
+ * @return {{value: unknown, unresolved: string[]}} The resolved subtree plus the
  *   list of tokens that stayed unresolved (excluding OPTIONAL `?` tokens, which
  *   are meant to be dropped, not waited on).
  */

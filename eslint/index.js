@@ -180,7 +180,7 @@ const ECMA_LANGUAGE_LEVEL = 'latest'
 function resolveOptional(id) {
 	try {
 		return require.resolve(id)
-	} catch (e) {
+	} catch {
 		return null
 	}
 }

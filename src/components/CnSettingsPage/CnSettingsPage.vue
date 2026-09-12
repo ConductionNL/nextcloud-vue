@@ -472,7 +472,7 @@ export default {
 		 * section titles, field labels, and other i18n-key strings
 		 * declared in the manifest. Defaults to the identity function.
 		 *
-		 * @type {Function|null}
+		 * @type {((key: string) => string)|null}
 		 */
 		translate: {
 			type: Function,

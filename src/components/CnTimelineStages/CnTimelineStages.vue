@@ -201,7 +201,7 @@ export default {
 		 * @return {number}
 		 */
 		currentStageIndex() {
-			if (this.currentStage == null) {
+			if (this.currentStage === null || this.currentStage === undefined) {
 				return -1
 			}
 			return this.stages.findIndex((s) => s.id === this.currentStage)

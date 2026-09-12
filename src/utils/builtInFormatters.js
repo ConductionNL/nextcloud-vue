@@ -34,7 +34,7 @@ import { safeCurrencyCode } from './formatMetric.js'
  * @return {Date|null} A `Date` instance, or `null` if the input is null/empty/unparseable.
  */
 function toDate(value) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return null
 	}
 	if (value instanceof Date) {
@@ -48,11 +48,11 @@ function toDate(value) {
  * Locale-formatted date (no time). Backed by `Intl.DateTimeFormat`
  * (`dateStyle: 'medium'`) using the user-agent locale.
  *
- * @param {*} value A `Date`, parseable date string, or timestamp.
+ * @param {unknown} value A `Date`, parseable date string, or timestamp.
  * @return {string} Formatted date, or `''` for null/empty, or `String(value)` for unparseable.
  */
 export function formatDate(value) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return ''
 	}
 	const d = toDate(value)
@@ -66,11 +66,11 @@ export function formatDate(value) {
  * Locale-formatted date + time. Backed by `Intl.DateTimeFormat`
  * (`dateStyle: 'medium'`, `timeStyle: 'short'`).
  *
- * @param {*} value A `Date`, parseable date string, or timestamp.
+ * @param {unknown} value A `Date`, parseable date string, or timestamp.
  * @return {string} Formatted date + time, or `''` for null/empty, or `String(value)` for unparseable.
  */
 export function formatDateTime(value) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return ''
 	}
 	const d = toDate(value)
@@ -85,11 +85,11 @@ export function formatDateTime(value) {
  * Picks the coarsest unit whose absolute delta exceeds one unit,
  * down to minutes (anything sub-minute clamps to "now"/seconds).
  *
- * @param {*} value A `Date`, parseable date string, or timestamp.
+ * @param {unknown} value A `Date`, parseable date string, or timestamp.
  * @return {string} Relative phrasing, or `''` for null/empty, or `String(value)` for unparseable.
  */
 export function formatRelativeTime(value) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return ''
 	}
 	const d = toDate(value)
@@ -140,11 +140,11 @@ function dayDiffFromToday(d) {
  * Null-safe per the built-in-formatter contract: `''` for null/empty,
  * `String(value)` for unparseable input — never throws.
  *
- * @param {*} value A `Date`, parseable date string, or timestamp.
+ * @param {unknown} value A `Date`, parseable date string, or timestamp.
  * @return {string} The relative-day phrasing (or ''/original on bad input).
  */
 export function formatDaysUntil(value) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return ''
 	}
 	const d = toDate(value)
@@ -172,11 +172,11 @@ export function formatDaysUntil(value) {
  * Null-safe per the built-in-formatter contract: `''` for null/empty,
  * `String(value)` for unparseable input — never throws.
  *
- * @param {*} value A `Date`, parseable date string, or timestamp.
+ * @param {unknown} value A `Date`, parseable date string, or timestamp.
  * @return {string} The relative-day phrasing (or ''/original on bad input).
  */
 export function formatDaysSince(value) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return ''
 	}
 	const d = toDate(value)
@@ -203,14 +203,14 @@ export function formatDaysSince(value) {
  * Null-safe per the built-in-formatter contract: `''` for null/empty,
  * `String(value)` for non-numeric input — never throws.
  *
- * @param {*} value A numeric value (or numeric string).
+ * @param {unknown} value A numeric value (or numeric string).
  * @param {object} [_row] The full row (unused).
  * @param {object} [_property] The schema property (unused).
  * @param {{currency?: string, decimals?: number}} [options] The column's `formatterOptions`.
  * @return {string} The locale currency string (or ''/original on bad input).
  */
 export function formatCurrency(value, _row, _property, options) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return ''
 	}
 	const num = Number(value)
@@ -240,14 +240,14 @@ export function formatCurrency(value, _row, _property, options) {
  * `String(value)` for non-numeric input or when the selected phrase is
  * missing — never throws.
  *
- * @param {*} value A numeric value (or numeric string).
+ * @param {unknown} value A numeric value (or numeric string).
  * @param {object} [_row] The full row (unused).
  * @param {object} [_property] The schema property (unused).
  * @param {{negative?: string, zero?: string, positive?: string}} [options] The column's `formatterOptions`.
  * @return {string} The selected phrase with `{n}` substituted (or ''/original on bad input).
  */
 export function formatConditionalPhrase(value, _row, _property, options) {
-	if (value == null || value === '') {
+	if (value === null || value === undefined || value === '') {
 		return ''
 	}
 	const num = Number(value)
@@ -272,8 +272,8 @@ export function formatConditionalPhrase(value, _row, _property, options) {
  * for a parse attempt, and a string that merely looks like JSON but isn't falls
  * back to being one entry.
  *
- * @param {*} value The raw cell value.
- * @return {*} The parsed collection, or `value` unchanged.
+ * @param {unknown} value The raw cell value.
+ * @return {unknown} The parsed collection, or `value` unchanged.
  */
 function parseCollection(value) {
 	if (typeof value !== 'string') {
@@ -286,7 +286,7 @@ function parseCollection(value) {
 	try {
 		const parsed = JSON.parse(trimmed)
 		return (parsed !== null && typeof parsed === 'object') ? parsed : value
-	} catch (e) {
+	} catch {
 		return value
 	}
 }
@@ -303,7 +303,7 @@ function parseCollection(value) {
  * Null-safe per the built-in-formatter contract: `zero` (or `''`) for
  * null/empty — never throws.
  *
- * @param {*} value An array, object, JSON-encoded collection, or scalar.
+ * @param {unknown} value An array, object, JSON-encoded collection, or scalar.
  * @param {object} [_row] The full row (unused).
  * @param {object} [_property] The schema property (unused).
  * @param {{singular?: string, plural?: string, zero?: string}} [options] The column's `formatterOptions`.
@@ -316,7 +316,7 @@ export function formatCount(value, _row, _property, options) {
 	// used to fall through to the scalar branch and count as one entry, so a
 	// column over a `0` rendered "1 retry" — the singular of a thing that isn't
 	// there.
-	if (value == null || value === '' || value === 0 || value === false) {
+	if (value === null || value === undefined || value === '' || value === 0 || value === false) {
 		return zero
 	}
 	const collection = parseCollection(value)

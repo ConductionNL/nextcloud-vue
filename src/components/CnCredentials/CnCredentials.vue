@@ -533,7 +533,7 @@ export default {
 				])
 				this.credentials = this.mapCredentials(credsRes?.data?.results)
 				this.providers = Array.isArray(provRes?.data?.results) ? provRes.data.results : []
-			} catch (e) {
+			} catch {
 				this.error = true
 				this.credentials = []
 				this.providers = []
@@ -620,7 +620,7 @@ export default {
 				await axios.post(generateUrl(CREDENTIALS_PATH), body)
 				this.cancelAdd()
 				await this.load()
-			} catch (e) {
+			} catch {
 				this.showError(t('nextcloud-vue', 'Could not save the credential'))
 			} finally {
 				this.saving = false
@@ -638,7 +638,7 @@ export default {
 			try {
 				await axios.delete(generateUrl(`${CREDENTIALS_PATH}/${encodeURIComponent(cred.id)}`))
 				await this.load()
-			} catch (e) {
+			} catch {
 				this.showError(t('nextcloud-vue', 'Could not delete the credential'))
 				cred.saving = false
 				cred.confirmingDelete = false
@@ -689,7 +689,7 @@ export default {
 			cred.saving = true
 			try {
 				await axios.put(generateUrl(`${CREDENTIALS_PATH}/${encodeURIComponent(cred.id)}`), { allowedApps: next })
-			} catch (e) {
+			} catch {
 				cred.allowedApps = previous
 				this.showError(t('nextcloud-vue', 'Could not update the credential'))
 			} finally {
@@ -712,7 +712,7 @@ export default {
 			cred.saving = true
 			try {
 				await axios.put(generateUrl(`${CREDENTIALS_PATH}/${encodeURIComponent(cred.id)}`), { allowedApps: next })
-			} catch (e) {
+			} catch {
 				cred.allowedApps = previous
 				this.showError(t('nextcloud-vue', 'Could not update allowed apps'))
 			} finally {

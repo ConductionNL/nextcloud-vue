@@ -77,10 +77,10 @@ async function stubOpenRegister(page, saved) {
 	await page.route('**/apps/openregister/api/objects/**', (route) => {
 		const req = route.request()
 		if (req.method() === 'POST' || req.method() === 'PUT') {
-			let body = null
+			let body
 			try {
 				body = JSON.parse(req.postData() || '{}')
-			} catch (e) {
+			} catch {
 				body = null
 			}
 			saved.push({ url: req.url(), body, raw: req.postData() })

@@ -268,11 +268,11 @@ export default {
 		/**
 		 * Check if an icon value is a component reference (not a string name).
 		 *
-		 * @param {*} icon - Icon value to check
+		 * @param {unknown} icon - Icon value to check
 		 * @return {boolean}
 		 */
 		isComponentIcon(icon) {
-			return icon != null && typeof icon !== 'string'
+			return icon !== null && icon !== undefined && typeof icon !== 'string'
 		},
 	},
 }

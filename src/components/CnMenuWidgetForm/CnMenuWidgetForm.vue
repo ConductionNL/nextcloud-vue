@@ -204,7 +204,7 @@ export default {
 		 * Set a field and emit.
 		 *
 		 * @param {string} field the field name.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {
@@ -244,7 +244,7 @@ export default {
 		 *
 		 * @param {object[]} items the items array to descend.
 		 * @param {number[]} path the index path.
-		 * @param {Function} mutator called with `(arr, index)`.
+		 * @param {(arr: object[], index: number) => void} mutator called with `(arr, index)`.
 		 * @return {void}
 		 */
 		setItemAtPath(items, path, mutator) {

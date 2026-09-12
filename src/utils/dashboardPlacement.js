@@ -136,7 +136,7 @@ function scanForEmptySlot(sz, nodes, columns, maxScanRows) {
  * @param {number} [options.columns] column count, defaults to {@link DEFAULT_GRID_COLUMNS}.
  * @param {number} [options.viewportRows] visible rows on first paint, defaults to {@link DEFAULT_VIEWPORT_ROWS}.
  * @param {object} [options.grid] live GridStack instance — when supplied its engine is used directly.
- * @return {{ x: number, y: number, w: number, h: number, pushed: Array<{id: any, gridY: number}> }}
+ * @return {{ x: number, y: number, w: number, h: number, pushed: Array<{id: string|number, gridY: number}> }}
  *   the chosen position + the list of existing items that must shift down.
  */
 export function placeNewWidget(spec, layout, options = {}) {

@@ -152,9 +152,17 @@ export default {
 	},
 
 	props: {
-		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
+		/**
+		 * The placement being edited (pre-fills from `editingWidget.content`), or null.
+		 *
+		 * @type {{content: object}|null}
+		 */
 		editingWidget: { type: Object, default: null },
-		/** Initial content values when not editing (registry defaults). @type {object} */
+		/**
+		 * Initial content values when not editing (registry defaults).
+		 *
+		 * @type {object}
+		 */
 		value: { type: Object, default: () => ({ ...DEFAULT_CONTENT }) },
 	},
 
@@ -272,7 +280,8 @@ export default {
 		 * @return {void}
 		 */
 		updateField(field, value) {
-			this[field] = value; this.emitChange()
+			this[field] = value
+			this.emitChange()
 		},
 
 		/**
@@ -282,7 +291,8 @@ export default {
 		 * @return {void}
 		 */
 		setColumns(value) {
-			this.columns = value; this.emitChange()
+			this.columns = value
+			this.emitChange()
 		},
 
 		/**
@@ -327,7 +337,8 @@ export default {
 		 * @return {void}
 		 */
 		updateSource(field, value) {
-			this.source[field] = value; this.emitChange()
+			this.source[field] = value
+			this.emitChange()
 		},
 
 		/**
@@ -335,7 +346,7 @@ export default {
 		 *
 		 * @param {string} key The property name.
 		 * @param {string} field The row field to set.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 * @return {void}
 		 */
 		setRow(key, field, value) {

@@ -51,7 +51,8 @@ function fakeDoc() {
 	head.appendChild = (el) => {
 		el.parentNode = { removeChild: (c) => {
 			head.children = head.children.filter((x) => x !== c)
-		} }; head.children.push(el)
+		} }
+		head.children.push(el)
 	}
 	return doc
 }

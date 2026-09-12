@@ -202,7 +202,7 @@ export function getIconComponent(name) {
  * icon instead of none. `icon-*` values are Nextcloud CSS-class icons, rendered
  * through a different path, and are never registry names.
  *
- * @param {*} name The icon value from a menu/widget icon field.
+ * @param {unknown} name The icon value from a menu/widget icon field.
  * @return {boolean} True when the registry has a component for this exact name.
  */
 export function hasRegistryIcon(name) {

@@ -264,7 +264,7 @@ export default {
 		 * reader that a sighted user could scroll to would not be the same
 		 * page.
 		 *
-		 * @param {Function} predicate Which messages belong to this region.
+		 * @param {(message: object) => boolean} predicate Which messages belong to this region.
 		 * @return {string} The announcement.
 		 */
 		announcementFor(predicate) {
