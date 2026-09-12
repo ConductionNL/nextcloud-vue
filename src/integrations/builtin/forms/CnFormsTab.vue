@@ -193,8 +193,10 @@ export default {
 	},
 
 	props: {
+		/* eslint-disable vue/no-unused-properties -- the integration dispatch binds integrationId on every integration component (see CnIntegrationWidgetGrid), so declaring it keeps it out of $attrs */
 		/** Stable integration id (forwarded from the registry — always `'forms'`). */
 		integrationId: { type: String, default: 'forms' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Parent object id. */
 		objectId: { type: String, required: true },
 		/** OpenRegister register id (slug or uuid). */
@@ -444,6 +446,7 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not load forms.')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnFormsTab] failed to fetch forms', err)
 				this.rawRows = []
 				this.error = t('nextcloud-vue', 'Could not load forms.')
@@ -455,7 +458,7 @@ export default {
 		/**
 		 * Canonical wrapper-key cascade — mirrors CnContactsTab.unwrapList.
 		 *
-		 * @param {*} data parsed JSON response body
+		 * @param {object|Array<object>|null} data parsed JSON response body
 		 *
 		 * @return {Array}
 		 */
@@ -485,12 +488,14 @@ export default {
 					body: JSON.stringify(payload),
 				})
 				if (!response.ok) {
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('[CnFormsTab] link failed', response.status, response.statusText)
 					return
 				}
 				this.showPicker = false
 				await this.fetchForms()
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnFormsTab] link error', err)
 			}
 		},
@@ -515,6 +520,7 @@ export default {
 				this.showCreate = false
 				await this.fetchForms()
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnFormsTab] create error', err)
 				this.createError = String(err?.message || err)
 			} finally {
@@ -537,11 +543,13 @@ export default {
 					headers: buildHeaders(),
 				})
 				if (!response.ok) {
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('[CnFormsTab] unlink failed', response.status, response.statusText)
 					return
 				}
 				this.rawRows = this.rawRows.filter((r) => String(r.id ?? r.formId ?? '') !== String(form.id))
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnFormsTab] unlink error', err)
 			}
 		},

@@ -177,8 +177,10 @@ export default {
 	},
 
 	props: {
+		/* eslint-disable vue/no-unused-properties -- the integration dispatch binds integrationId on every integration component (see CnIntegrationWidgetGrid), so declaring it keeps it out of $attrs */
 		/** Stable integration id (forwarded from the registry — always `'photos'`). */
 		integrationId: { type: String, default: 'photos' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Parent object id. */
 		objectId: { type: String, required: true },
 		/** OpenRegister register id (slug or uuid). */
@@ -313,7 +315,7 @@ export default {
 					return String(value)
 				}
 				return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
-			} catch (_) {
+			} catch {
 				return String(value)
 			}
 		},

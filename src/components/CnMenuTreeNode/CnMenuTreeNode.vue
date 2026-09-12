@@ -186,7 +186,7 @@ export default {
 		 * Order comparator: numeric `order` ascending, array index as tiebreak.
 		 *
 		 * @param {Array} arr The array being sorted (for index tiebreak).
-		 * @return {Function}
+		 * @return {(a: object, b: object) => number} The comparator.
 		 */
 		byOrder(arr) {
 			return (a, b) => {
@@ -280,7 +280,8 @@ export default {
 			const ids = new Set()
 			const walk = (arr) => (arr || []).forEach((it) => {
 				if (it) {
-					ids.add(it.id); walk(it.children)
+					ids.add(it.id)
+					walk(it.children)
 				}
 			})
 			walk(this.list)

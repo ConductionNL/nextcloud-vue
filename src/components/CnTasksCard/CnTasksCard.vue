@@ -248,6 +248,7 @@ export default {
 					this.allTasks = data.results || data || []
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnTasksCard: Failed to fetch tasks', err)
 			} finally {
 				this.loading = false

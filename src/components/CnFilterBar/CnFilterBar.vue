@@ -103,7 +103,7 @@ export default {
 		 * Filter definitions. Each item has `key`, `label`, `type` ('select'|'text'|'checkbox'),
 		 * optional `options` (for select), and optional `value`.
 		 *
-		 * @type {Array<{key: string, label: string, type: 'select'|'text'|'checkbox', options: Array, value: any}>}
+		 * @type {Array<{key: string, label: string, type: 'select'|'text'|'checkbox', options: Array, value: unknown}>}
 		 */
 		filters: {
 			type: Array,
@@ -149,12 +149,12 @@ export default {
 		 * Emit filter change event.
 		 *
 		 * @param {string} key Filter key
-		 * @param {*} value New filter value
+		 * @param {unknown} value New filter value
 		 */
 		onFilterChange(key, value) {
 			/**
 			 * @event filter-change Emitted when any filter changes.
-			 * @type {{ key: string, value: any }}
+			 * @type {{ key: string, value: unknown }}
 			 */
 			this.$emit('filter-change', { key, value })
 		},

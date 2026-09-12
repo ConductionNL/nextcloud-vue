@@ -157,6 +157,7 @@ export default {
 					this.emptyMessage = widgetData.emptyContentMessage || ''
 				}
 			} catch (error) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error(`[CnWidgetRenderer] Failed to load items for ${this.widget.id}:`, error)
 			} finally {
 				this.loading = false

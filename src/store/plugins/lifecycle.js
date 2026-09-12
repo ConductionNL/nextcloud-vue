@@ -12,7 +12,7 @@ import { networkError, parseResponseError } from '../../utils/errors.js'
  * State: lifecycleLoading, lifecycleError
  * Actions: lockObject, unlockObject, publishObject, depublishObject, revertObject, mergeObjects
  *
- * @return {Function} Plugin factory
+ * @return {object} The plugin definition (name, state, getters, actions)
  *
  * @example
  * const useStore = createObjectStore('object', {
@@ -64,6 +64,7 @@ export function lifecyclePlugin() {
 
 					if (!response.ok) {
 						this.lifecycleError = await parseResponseError(response, action)
+						// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 						console.error(`Error performing ${action} on ${type}/${objectId}:`, this.lifecycleError)
 						return null
 					}
@@ -81,6 +82,7 @@ export function lifecyclePlugin() {
 						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() {
 								return this.message
 							} }
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error(`Error performing ${action} on ${type}/${objectId}:`, error)
 					return null
 				} finally {

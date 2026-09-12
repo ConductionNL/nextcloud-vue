@@ -561,7 +561,7 @@ export default {
 				}
 				const res = await axios.get(url, { params })
 				return Number(res?.data?.value ?? 0) || 0
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -577,7 +577,8 @@ export default {
 		async fetchRest() {
 			const ds = this.dataSource || {}
 			if (!ds.register || !ds.schema || ds.graphql) {
-				this.restCount = null; return
+				this.restCount = null
+				return
 			}
 			this.restCount = await this.fetchValue(ds, resolveFilterTokens(ds.filter || {}))
 		},

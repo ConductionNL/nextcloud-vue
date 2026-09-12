@@ -110,7 +110,7 @@ export default {
 		 * @type {string|number|boolean|Array|null}
 		 */
 		modelValue: {
-			type: [String, Number, Boolean, Array, Object],
+			type: [Boolean, String, Number, Array, Object],
 			default: null,
 		},
 
@@ -172,7 +172,7 @@ export default {
 		 */
 		normalizedOptions() {
 			return (this.options || [])
-				.filter((option) => option != null)
+				.filter((option) => option !== null && option !== undefined)
 				.map((option) => {
 					if (typeof option !== 'object') {
 						return { value: option, label: String(option) }

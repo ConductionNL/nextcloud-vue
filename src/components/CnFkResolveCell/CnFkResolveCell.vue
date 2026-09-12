@@ -161,7 +161,7 @@ export default {
 		async fetchOne(store, type, id) {
 			try {
 				return await store.fetchObject(type, id)
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -205,7 +205,7 @@ export default {
 		getObjectStore() {
 			try {
 				return useObjectStore()
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},

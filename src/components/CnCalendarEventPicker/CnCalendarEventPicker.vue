@@ -308,7 +308,7 @@ export default {
 					return String(ev.dtstart)
 				}
 				return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-			} catch (_) {
+			} catch {
 				return String(ev.dtstart)
 			}
 		},

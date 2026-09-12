@@ -311,7 +311,7 @@ export default {
 					limit: typeof this.content.limit === 'number' ? this.content.limit : 8,
 				})
 				this.results = this.normalise(articles)
-			} catch (e) {
+			} catch {
 				// 503 / network / disabled backend — show the unavailable state.
 				this.results = []
 				this.unavailable = true
@@ -327,7 +327,7 @@ export default {
 		 * built-in default provider), so a provider MAY return a raw response
 		 * body and still normalise here.
 		 *
-		 * @param {*} data The raw provider result.
+		 * @param {object|Array<object>|null} data The raw provider result.
 		 * @return {Array<object>} The article list (possibly empty).
 		 */
 		normalise(data) {

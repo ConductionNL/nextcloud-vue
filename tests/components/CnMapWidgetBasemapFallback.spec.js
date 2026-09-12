@@ -26,10 +26,12 @@ function fakeLeaflet(created) {
 		return this
 	}, remove() {} }
 	const tileLayer = (url) => {
-		created.push(url); return layer
+		created.push(url)
+		return layer
 	}
 	tileLayer.wms = (url) => {
-		created.push(url); return layer
+		created.push(url)
+		return layer
 	}
 	return {
 		tileLayer,

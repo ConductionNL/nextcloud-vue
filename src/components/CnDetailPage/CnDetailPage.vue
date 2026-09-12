@@ -1548,7 +1548,7 @@ export default {
 		if (!subscriptionStore && props.subscribe && props.register && props.schema) {
 			try {
 				subscriptionStore = useObjectStore()
-			} catch (err) {
+			} catch {
 				// Pinia not active (stand-alone test mounts) — no live updates.
 				subscriptionStore = null
 			}
@@ -1917,6 +1917,7 @@ export default {
 				// always have Pinia active, so this branch only protects
 				// stand-alone test mounts.
 
+				// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 				console.warn('[CnDetailPage] useObjectStore() unavailable; schema-driven mode disabled.', err)
 				return null
 			}
@@ -2005,10 +2006,10 @@ export default {
 				return ''
 			}
 			const self = obj['@self'] || {}
-			const id = this.objectId != null ? String(this.objectId) : ''
+			const id = this.objectId !== null && this.objectId !== undefined ? String(this.objectId) : ''
 			const candidates = [self.name, self.title, obj.name, obj.title, obj.displayName]
 			for (const c of candidates) {
-				if (c != null && c !== '' && String(c) !== id) {
+				if (c !== null && c !== undefined && c !== '' && String(c) !== id) {
 					return String(c)
 				}
 			}
@@ -2171,6 +2172,7 @@ export default {
 			// useManifestEditor.enter() observes them in place, so a cache
 			// built pre-edit would stay frozen for in-place pushes (Add widget
 			// on a detail page / grid ejection). See CnDashboardPage.hasWidgets.
+			// eslint-disable-next-line @typescript-eslint/no-unused-expressions -- reading the flag IS the effect: the read registers the reactive dependency, and there is nothing to assign it to
 			this.editingBody
 			if (this.hasGridLayout) {
 				return this.layout
@@ -2755,6 +2757,7 @@ export default {
 				}
 				await Promise.all(tasks)
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnDetailPage] schema-driven fetch failed:', err)
 			}
 		},
@@ -2795,6 +2798,7 @@ export default {
 					await store.fetchSchema(type)
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnDetailPage] create-mode schema fetch failed:', err)
 			}
 		},
@@ -3617,6 +3621,7 @@ export default {
 				const overlap = ['title', 'subtitle', 'register', 'schema', 'hiddenTabs', 'tabs']
 					.filter((field) => objectForm[field] !== undefined && props[field] !== undefined)
 				if (overlap.length > 0) {
+					// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 					console.warn(`[CnDetailPage] :sidebar (Object) and :sidebarProps both set ${overlap.join(', ')}; the :sidebar values win. Move all fields to :sidebar to silence this warning.`)
 					this.__sidebarConflictWarned = true
 				}
@@ -3641,6 +3646,7 @@ export default {
 			}
 			this.__sidebarBooleanWarned = true
 
+			// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 			console.warn('[CnDetailPage] :sidebar=Boolean is deprecated; pass an Object — see docs/components/cn-detail-page.md for the new shape.')
 		},
 	},

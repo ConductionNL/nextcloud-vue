@@ -86,7 +86,7 @@ export function logsPlugin(options = {}) {
 
 			try {
 				const params = { ...defaultSort }
-				if (!(parentIdParam in filters) && this.item?.id != null) {
+				if (!(parentIdParam in filters) && this.item?.id !== null && this.item?.id !== undefined) {
 					params[parentIdParam] = String(this.item.id)
 				}
 				Object.assign(params, filters)
@@ -160,8 +160,9 @@ export function logsPlugin(options = {}) {
 					return
 				}
 				after(() => {
-					if (store.item?.id != null) {
+					if (store.item?.id !== null && store.item?.id !== undefined) {
 						store.refreshLogs().catch((error) => {
+							// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 							console.error('logsPlugin: auto-refresh failed:', error)
 						})
 					} else {

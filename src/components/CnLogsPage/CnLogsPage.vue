@@ -860,7 +860,7 @@ export default {
 		/**
 		 * Whether a value is a nested bag (object/array) rather than a scalar.
 		 *
-		 * @param {*} value The value to test.
+		 * @param {unknown} value The value to test.
 		 * @return {boolean} True for non-null objects and arrays.
 		 */
 		isBag(value) {
@@ -936,8 +936,8 @@ export default {
 		 * indication why. Warns in development only, once per change.
 		 *
 		 * @param {string} name The prop that changed.
-		 * @param {*} value The new value.
-		 * @param {*} previous The previous value.
+		 * @param {unknown} value The new value.
+		 * @param {unknown} previous The previous value.
 		 * @return {void}
 		 */
 		onSourcePropChange(name, value, previous) {

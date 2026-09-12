@@ -181,7 +181,7 @@ export default {
 		objectStore() {
 			try {
 				return useObjectStore()
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -241,7 +241,7 @@ export default {
 		 * the live conversation. `client` never arrives here: its control is
 		 * the `#field-client` slot, which calls onClientChange directly.
 		 *
-		 * @param {{key: string, value: *}} payload The changed field.
+		 * @param {{key: string, value: unknown}} payload The changed field.
 		 * @return {void}
 		 */
 		onFieldUpdate({ key, value }) {
@@ -288,7 +288,7 @@ export default {
 		 * Composition-API consumers.
 		 *
 		 * @param {string} key The context key.
-		 * @param {*} value The value.
+		 * @param {unknown} value The value.
 		 */
 		writeWorkspace(key, value) {
 			const holder = this.cnWorkspaceContext
@@ -346,7 +346,7 @@ export default {
 				if (typeof this.objectStore.registerObjectType === 'function') {
 					try {
 						this.objectStore.registerObjectType(this.typeSlug, this.schema, this.register)
-					} catch (e) { /* idempotent */ }
+					} catch { /* idempotent */ }
 				}
 				const result = await this.objectStore.saveObject(this.typeSlug, payload)
 				if (!result) {

@@ -169,24 +169,37 @@ export default {
 	props: {
 		/** OR object UUID — forwarded to the available-forms endpoint so each row carries a `linked` flag. */
 		objectId: { type: String, required: true },
+		/* eslint-disable vue/no-unused-properties -- CnFormsTab binds both; the available-forms endpoint keys on objectUuid alone */
 		/** OR register slug or uuid. */
 		register: { type: String, default: '' },
 		/** OR schema slug or uuid. */
 		schema: { type: String, default: '' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Base API URL — same as CnFormsTab. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 
 		// --- Pre-translated labels ---
+		/** Dialog title. */
 		dialogTitle: { type: String, default: () => t('nextcloud-vue', 'Link existing form') },
+		/** Placeholder for the search field. */
 		searchPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Search forms') },
+		/** Empty state shown when the search matches no form. */
 		emptyLabel: { type: String, default: () => t('nextcloud-vue', 'No forms found') },
+		/** Message shown when the forms could not be loaded. */
 		errorLabel: { type: String, default: () => t('nextcloud-vue', 'Could not load forms') },
+		/** Stand-in title for a form that has none. */
 		untitledLabel: { type: String, default: () => t('nextcloud-vue', 'Untitled form') },
+		/** Badge shown on a form this object already links. */
 		alreadyLinkedLabel: { type: String, default: () => t('nextcloud-vue', 'Already linked') },
+		/** Label for the button that closes the dialog without linking. */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the button that links the selection. */
 		linkLabel: { type: String, default: () => t('nextcloud-vue', 'Link') },
+		/** Label for the choice that links the form itself. */
 		linkFormModeLabel: { type: String, default: () => t('nextcloud-vue', 'Link the form') },
+		/** Label for the choice that links one submission. */
 		linkSubmissionModeLabel: { type: String, default: () => t('nextcloud-vue', 'Link a specific submission') },
+		/** Hint shown next to a form that has no submission yet. */
 		noSubmissionsHintLabel: { type: String, default: () => t('nextcloud-vue', '(no submissions yet)') },
 	},
 
@@ -309,6 +322,7 @@ export default {
 				const data = await response.json()
 				this.forms = this.unwrapList(data)
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnFormPicker: Failed to fetch forms', err)
 				this.error = String(err?.message || err)
 				this.forms = []
@@ -322,7 +336,7 @@ export default {
 		 * (see ADR-022). Accepts `{results:[...]}`, `{items:[...]}`, or
 		 * a bare array; any other shape becomes `[]`.
 		 *
-		 * @param {*} data parsed JSON response body
+		 * @param {object|Array<object>|null} data parsed JSON response body
 		 *
 		 * @return {Array}
 		 */

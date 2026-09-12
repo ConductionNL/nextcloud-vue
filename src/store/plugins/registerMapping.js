@@ -13,7 +13,7 @@ import { prefixUrl } from '../../utils/headers.js'
  * Actions: fetchRegisters, fetchSchemasForRegister, clearRegisterMapping
  * Getters: getRegisters, registerOptions, schemaOptions, isRegistersLoading, getRegistersError
  *
- * @return {Function} Plugin factory
+ * @return {object} The plugin definition (name, state, getters, actions)
  *
  * @example
  * const useStore = createObjectStore('object', {

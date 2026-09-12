@@ -151,7 +151,7 @@
 					v-model="csvDraft"
 					class="cn-quicklinks-widget-form__bulk-input"
 					rows="4"
-					:placeholder="'Docs,https://docs.example.com\nFiles,/apps/files'" />
+					:placeholder="bulkPlaceholder" />
 				<button
 					type="button"
 					class="cn-quicklinks-widget-form__bulk-apply"
@@ -256,6 +256,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Example CSV for the bulk-add textarea. A data holder rather than a
+		 * template literal because the two example rows are separated by a real
+		 * newline, which an inline attribute cannot carry.
+		 *
+		 * @return {string} Two example rows, one per line.
+		 */
+		bulkPlaceholder() {
+			return 'Docs,https://docs.example.com\nFiles,/apps/files'
+		},
+
 		/** Icon-size select options. */
 		iconSizeOptions() {
 			return [
@@ -352,7 +363,7 @@ export default {
 		 * Set a widget-level option and notify the parent.
 		 *
 		 * @param {string} field the option key.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateOption(field, value) {

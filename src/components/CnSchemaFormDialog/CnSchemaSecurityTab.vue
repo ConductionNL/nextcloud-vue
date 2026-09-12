@@ -320,8 +320,10 @@ export default {
 	props: {
 		/** The full schema item — mutates authorization directly */
 		schemaItem: { type: Object, required: true },
+		/* eslint-disable vue/no-unused-properties -- CnSchemaFormDialog binds both this and the sortedUserGroups the table actually renders */
 		/** Full user groups array */
 		userGroups: { type: Array, default: () => [] },
+		/* eslint-enable vue/no-unused-properties */
 		/** Filtered/sorted user groups (excludes admin/public/authenticated) */
 		sortedUserGroups: { type: Array, default: () => [] },
 		/** Whether groups are loading */

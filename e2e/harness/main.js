@@ -42,7 +42,7 @@ import '../../src/css/context-menu.css'
 // Minimal l10n shims so library components that call the global `t`/`n` render.
 function t(app, text, vars) {
 	return vars
-		? String(text).replace(/\{(\w+)\}/g, (_, k) => (vars[k] != null ? vars[k] : `{${k}}`))
+		? String(text).replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? `{${k}}`))
 		: text
 }
 const n = (app, s, p, count) => (count === 1 ? s : p)

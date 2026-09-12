@@ -175,14 +175,23 @@ export default {
 	},
 
 	props: {
+		/** Stable integration id (matches the PHP-side provider id, always `talk`). */
 		integrationId: { type: String, default: 'talk' },
+		/** Parent object id. */
 		objectId: { type: String, required: true },
+		/** OpenRegister register id (slug or uuid). */
 		register: { type: String, default: '' },
+		/** OpenRegister schema id (slug or uuid). */
 		schema: { type: String, default: '' },
+		/** Base API URL for OpenRegister. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
+		/** Empty state shown when no conversation is linked yet. */
 		emptyLabel: { type: String, default: () => t('nextcloud-vue', 'No conversations linked yet') },
+		/** Label for the link that opens the conversation in Talk. */
 		openTalkLabel: { type: String, default: () => t('nextcloud-vue', 'Open Talk') },
+		/** Message shown when the Talk app cannot be reached. */
 		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'NC Talk is currently unavailable.') },
+		/** Base URL of the Talk app, used to build a conversation link. */
 		talkAppUrl: { type: String, default: '/index.php/apps/spreed' },
 	},
 
@@ -283,7 +292,7 @@ export default {
 				if (trimmed.charAt(0) === '{' || trimmed.charAt(0) === '[') {
 					try {
 						msg = JSON.parse(trimmed)
-					} catch (e) {
+					} catch {
 						return this.cleanPreview(trimmed)
 					}
 				} else {
@@ -410,6 +419,7 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not link the room.')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnTalkTab] link room failed', err)
 				this.error = t('nextcloud-vue', 'Could not link the room.')
 			}
@@ -429,6 +439,7 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not create the room.')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnTalkTab] create room failed', err)
 				this.error = t('nextcloud-vue', 'Could not create the room.')
 			}
@@ -450,6 +461,7 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not unlink the room.')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnTalkTab] unlink room failed', err)
 				this.error = t('nextcloud-vue', 'Could not unlink the room.')
 			}
@@ -476,6 +488,7 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not load conversations.')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnTalkTab] failed to fetch rooms', err)
 				this.rooms = []
 				this.error = t('nextcloud-vue', 'Could not load conversations.')

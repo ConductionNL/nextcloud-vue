@@ -421,7 +421,7 @@ export default {
 					try {
 						const body = await response.json()
 						cause = String(body?.details?.cause ?? '')
-					} catch (_e) {
+					} catch {
 						cause = ''
 					}
 					this.applyDegradedFromCause(cause)
@@ -464,7 +464,7 @@ export default {
 						try {
 							const body = await response.json()
 							cause = String(body?.details?.cause ?? '')
-						} catch (_e) {
+						} catch {
 							cause = ''
 						}
 						this.bannerKind = this.bannerFromCause(cause)

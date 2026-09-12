@@ -30,11 +30,13 @@ function makeEditor(editing = false, pages = []) {
 		working: workingRef,
 		dirty: ref(false),
 		enter: jest.fn(() => {
-			editingRef.value = true; workingRef.value = { menu: [], pages }
+			editingRef.value = true
+			workingRef.value = { menu: [], pages }
 		}),
 		save: jest.fn().mockResolvedValue({ pages: [] }),
 		cancel: jest.fn(() => {
-			editingRef.value = false; workingRef.value = null
+			editingRef.value = false
+			workingRef.value = null
 		}),
 	}
 }

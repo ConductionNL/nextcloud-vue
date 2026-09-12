@@ -180,7 +180,6 @@ export default {
 		 */
 		features: {
 			type: Array,
-			required: true,
 			default: () => [],
 		},
 

@@ -43,7 +43,7 @@ function objectsUrl(register, schema) {
  */
 export async function replayOperation(operation) {
 	const db = getDb()
-	let statusCode = 0
+	let statusCode
 	let serverObject = null
 
 	const base = objectsUrl(operation.register, operation.schema)

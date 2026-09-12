@@ -362,7 +362,7 @@ export default {
 		 * The effective value for a key: formData override or the object's own value
 		 *
 		 * @param {string} key - The property key to look up
-		 * @param {*} objectValue - The fallback value from the object
+		 * @param {unknown} objectValue - The fallback value from the object
 		 */
 		resolvedValue(key, objectValue) {
 			return this.formData[key] !== undefined ? this.formData[key] : objectValue
@@ -476,7 +476,7 @@ export default {
 			const lockOnce = prop.immutable === true || prop.readOnly === true
 			if (lockOnce) {
 				const persisted = this.item && this.item[key]
-				if (persisted != null && persisted !== '') {
+				if (persisted !== null && persisted !== undefined && persisted !== '') {
 					return false
 				}
 			}

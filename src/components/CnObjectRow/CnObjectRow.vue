@@ -152,7 +152,7 @@ export default {
 
 		title() {
 			const field = this.config.titleField || this.schemaConfig.objectNameField
-			if (field && this.object[field] != null) {
+			if (field && this.object[field] !== null && this.object[field] !== undefined) {
 				return String(this.object[field])
 			}
 			return this.object.title || this.object.name || this.object.id || '—'
@@ -160,7 +160,7 @@ export default {
 
 		subtitle() {
 			const field = this.config.subtitleField || this.schemaConfig.objectDescriptionField
-			if (field && this.object[field] != null && this.object[field] !== '') {
+			if (field && this.object[field] !== null && this.object[field] !== undefined && this.object[field] !== '') {
 				return String(this.object[field])
 			}
 			return null
@@ -189,7 +189,7 @@ export default {
 
 		badgeLabel() {
 			const field = this.config.badgeField
-			if (field && this.object[field] != null && this.object[field] !== '') {
+			if (field && this.object[field] !== null && this.object[field] !== undefined && this.object[field] !== '') {
 				return String(this.object[field])
 			}
 			return null

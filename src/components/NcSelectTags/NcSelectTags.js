@@ -25,6 +25,14 @@
  * corrected.
  */
 
+/*
+ * `process.env.NODE_ENV` is not a runtime global in the browser: every
+ * consuming app's bundler substitutes it at build time (webpack's
+ * DefinePlugin, rollup's replace). Declared here so the reference is
+ * described rather than assumed.
+ */
+/* global process */
+
 import { NcSelectTags as UpstreamNcSelectTags } from '@nextcloud/vue'
 import { searchSystemTags } from './searchSystemTags.js'
 
@@ -76,6 +84,7 @@ export default {
 		// producing a wasted PROPFIND and a misleading "Loading systemtags
 		// failed" console error. We can't suppress the parent hook, so warn.
 		if (this.fetchTags === true && process.env.NODE_ENV !== 'production') {
+			// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 			console.warn('[NcSelectTags] `fetchTags` is unnecessary on this override and re-triggers upstream\'s broken systemtags parser (a harmless but logged "Loading systemtags failed" error). Remove the prop: system tags are fetched automatically when no `:options` are provided.')
 		}
 
@@ -85,7 +94,7 @@ export default {
 		}
 		try {
 			this.cnFetchedTags = await searchSystemTags()
-		} catch (error) {
+		} catch {
 			this.cnFetchedTags = []
 		}
 	},

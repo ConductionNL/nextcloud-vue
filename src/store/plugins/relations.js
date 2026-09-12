@@ -19,7 +19,7 @@ const usedBase = createSubResourcePlugin('used', 'used')
  * Combined relations plugin that registers contracts, uses, and used sub-resources.
  *
  * @param {object} [options] Plugin options
- * @return {Function} Plugin factory
+ * @return {object} The plugin definition (name, state, getters, actions)
  *
  * @example
  * const useStore = createObjectStore('object', {

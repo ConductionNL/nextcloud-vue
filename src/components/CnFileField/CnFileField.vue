@@ -281,7 +281,7 @@ export default {
 				 * @type {string|null}
 				 */
 				this.$emit('update:modelValue', dataUrl)
-			} catch (e) {
+			} catch {
 				this.readError = t('nextcloud-vue', 'The file could not be read.')
 			} finally {
 				this.reading = false

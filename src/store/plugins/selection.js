@@ -50,7 +50,7 @@ export function selectionPlugin() {
 			 *
 			 * @param {object} state pinia injected state
 			 *
-			 * @return {Function} (type: string) => boolean
+			 * @return {(type: string) => boolean} True when every object in the type's collection is selected.
 			 */
 			isAllSelected: (state) => (type) => {
 				const collection = state.collections?.[type] || []
@@ -59,7 +59,7 @@ export function selectionPlugin() {
 				}
 				return collection.every((r) => {
 					const id = r.id ?? r['@self']?.id
-					return id != null && state.selectedObjects.includes(id)
+					return id !== null && id !== undefined && state.selectedObjects.includes(id)
 				})
 			},
 		},

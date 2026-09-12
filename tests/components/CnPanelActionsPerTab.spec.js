@@ -36,10 +36,12 @@ function recordingSink() {
 		published,
 		calls,
 		set: (id, items, source) => {
-			calls.push(['set', id, source]); published[`${id}::${source}`] = items
+			calls.push(['set', id, source])
+			published[`${id}::${source}`] = items
 		},
 		clear: (id, source) => {
-			calls.push(['clear', id, source]); delete published[`${id}::${source}`]
+			calls.push(['clear', id, source])
+			delete published[`${id}::${source}`]
 		},
 	}
 }

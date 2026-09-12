@@ -374,7 +374,7 @@ export default {
 		 * Leading per-row icon: a static MDI icon name string, or a function
 		 * `(row) => iconName`. Forwarded to CnDataTable.
 		 *
-		 * @type {string|Function|null}
+		 * @type {string|((row: object) => string)|null}
 		 */
 		rowIcon: {
 			type: [String, Function],
@@ -394,7 +394,7 @@ export default {
 		 *    overdue / at-risk row can be highlighted declaratively from a
 		 *    manifest with no bespoke function. Default `null` = no row class.
 		 *
-		 * @type {Function|Array<{when: {field: string, op?: string, value: *}, class: string}>|null}
+		 * @type {((row: object) => string)|Array<{when: {field: string, op?: string, value: unknown}, class: string}>|null}
 		 */
 		rowClass: {
 			type: [Function, Array],
@@ -658,7 +658,7 @@ export default {
 		 * unset or an empty array — the widget then forwards nothing so
 		 * CnDataTable's own default applies.
 		 *
-		 * @return {Function|null}
+		 * @return {?(row: object) => string} The row-class function, or null.
 		 */
 		compiledRowClass() {
 			const rc = this.rowClass
@@ -689,7 +689,7 @@ export default {
 		 * Row-click navigation function derived from the `rowRoute` route
 		 * name (CnDataTable's `rowClickRoute` shape).
 		 *
-		 * @return {Function}
+		 * @return {(row: object) => (object|null)} A vue-router location, or null for a row with no id.
 		 */
 		rowRouteFn() {
 			return (row) => {
@@ -854,7 +854,7 @@ export default {
 			/**
 			 * @event object-op Emitted after a successful declarative mutation
 			 * so a host that supplies external `rows` can refetch them.
-			 * @type {{action: object, row: (object|null), result: *}}
+			 * @type {{action: object, row: (object|null), result: unknown}}
 			 */
 			this.$emit('object-op', { action, row, result })
 			return { ok: true }
@@ -885,7 +885,7 @@ export default {
 		getObjectStore() {
 			try {
 				return useObjectStore()
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -906,7 +906,7 @@ export default {
 						return err.message
 					}
 				}
-			} catch (e) {
+			} catch {
 				// fall through to the generic message
 			}
 			return t('nextcloud-vue', 'The operation was rejected')

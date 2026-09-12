@@ -749,7 +749,7 @@ export default {
 			if (field === 'aggregated') {
 				config.aggregated = value
 			} else if (field === 'order') {
-				config.order = value !== '' && value != null ? Number(value) : null
+				config.order = value !== '' && value !== null && value !== undefined ? Number(value) : null
 			} else {
 				config[field] = value
 			}
@@ -757,7 +757,7 @@ export default {
 			const hasCustomConfig = !config.aggregated
 				|| (config.title && config.title.trim())
 				|| (config.description && config.description.trim())
-				|| (config.order != null)
+				|| (config.order !== null && config.order !== undefined)
 
 			if (hasCustomConfig) {
 				this.schema.properties[key].facetable = {
@@ -907,6 +907,7 @@ export default {
 				const parsedValue = JSON.parse(value)
 				this.schema.properties[key].default = parsedValue
 			} catch (e) {
+				// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 				console.warn('Invalid JSON for default value:', e.message)
 			}
 		},
@@ -1619,7 +1620,10 @@ export default {
 
 			if (!this.schema.properties[key] || !this.schema.properties[key].authorization) {
 				return
-			}['create', 'read', 'update', 'delete'].forEach((action) => {
+			}
+
+			const actions = ['create', 'read', 'update', 'delete']
+			actions.forEach((action) => {
 				this.updatePropertyGroupPermission(key, groupId, action, false)
 			})
 		},

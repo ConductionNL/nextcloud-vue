@@ -177,7 +177,7 @@ export default {
 		calendarAppUrl() {
 			try {
 				return generateUrl('/apps/calendar')
-			} catch (_) {
+			} catch {
 				return '/apps/calendar'
 			}
 		},
@@ -239,7 +239,7 @@ export default {
 			}
 			try {
 				return new Date(ev.dtstart).getTime() >= Date.now()
-			} catch (_) {
+			} catch {
 				return true
 			}
 		},
@@ -323,7 +323,7 @@ export default {
 					? { dateStyle: 'medium' }
 					: { dateStyle: 'medium', timeStyle: 'short' }
 				return d.toLocaleString(undefined, opts)
-			} catch (_) {
+			} catch {
 				return String(value)
 			}
 		},

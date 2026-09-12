@@ -679,7 +679,7 @@ export default {
 				if (body && typeof body.error === 'string' && body.error !== '') {
 					return body.error
 				}
-			} catch (_) {
+			} catch {
 				// Fall through.
 			}
 			return t('nextcloud-vue', 'Could not load work packages.')

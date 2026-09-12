@@ -701,6 +701,7 @@ export default {
 					this.isCopied = false
 				}, 2000)
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('Failed to copy text:', err)
 			}
 		},
@@ -797,7 +798,7 @@ export default {
 				if (Array.isArray(cleanedSchemaItem[field])) {
 					cleanedSchemaItem[field] = cleanedSchemaItem[field]
 						.map((ref) => (typeof ref === 'object' && ref !== null ? ref.id : ref))
-						.filter((id) => id != null && id !== '')
+						.filter((id) => id !== null && id !== undefined && id !== '')
 					if (cleanedSchemaItem[field].length === 0) {
 						delete cleanedSchemaItem[field]
 					}

@@ -60,7 +60,7 @@ import { CnDetailGrid } from '../CnDetailGrid/index.js'
 
 /**
  * Known metadata fields and their labels.
- * These are the standard fields from OpenRegister's @self / system fields.
+ * These are the standard fields from OpenRegister's `@self` / system fields.
  */
 const METADATA_FIELDS = [
 	{ key: 'id', label: 'ID', group: 'identity' },
@@ -303,7 +303,7 @@ export default {
 		},
 
 		/**
-		 * Merged metadata source: combines @self block with top-level fields.
+		 * Merged metadata source: combines the `@self` block with top-level fields.
 		 *
 		 * @self fields take priority over top-level for shared keys.
 		 */
@@ -471,7 +471,7 @@ export default {
 		/**
 		 * Format a metadata value for display.
 		 *
-		 * @param {*} value - The raw metadata value.
+		 * @param {unknown} value - The raw metadata value.
 		 * @param {object} def - The metadata field definition (format, label, etc.).
 		 */
 		formatMetadataValue(value, def) {
@@ -628,7 +628,7 @@ export default {
 		 * legacy path, so only the digit form gets a link — a path would produce
 		 * a URL that 404s, which is worse than plain text.
 		 *
-		 * @param {*} raw - The raw metadata value.
+		 * @param {unknown} raw - The raw metadata value.
 		 * @param {object} def - The field definition.
 		 * @return {string|null} The href, or null when it is not linkable.
 		 */

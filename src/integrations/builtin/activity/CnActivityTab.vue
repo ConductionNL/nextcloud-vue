@@ -195,8 +195,10 @@ export default {
 	},
 
 	props: {
+		/* eslint-disable vue/no-unused-properties -- the integration dispatch binds integrationId on every integration component (see CnIntegrationWidgetGrid), so declaring it keeps it out of $attrs */
 		/** Stable integration id (forwarded from the registry — always `'activity'`). */
 		integrationId: { type: String, default: 'activity' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Parent object id. */
 		objectId: { type: String, required: true },
 		/** OpenRegister register id (slug or uuid). */
@@ -363,7 +365,7 @@ export default {
 			}
 			try {
 				return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
-			} catch (e) {
+			} catch {
 				return date.toISOString().split('T')[0]
 			}
 		},
@@ -375,7 +377,7 @@ export default {
 			}
 			try {
 				return ts.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-			} catch (e) {
+			} catch {
 				return ts.toISOString().split('T')[1].slice(0, 5)
 			}
 		},

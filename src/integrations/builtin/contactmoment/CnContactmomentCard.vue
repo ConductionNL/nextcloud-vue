@@ -76,8 +76,10 @@ export default {
 		entityType: { type: String, default: '' },
 		/** OpenRegister schema slug of the surrounding object. */
 		schema: { type: String, default: '' },
+		/* eslint-disable vue/no-unused-properties -- every integration surface is handed `surface` by its host; this card renders one layout and does not branch on it */
 		/** Rendering surface, forwarded by the registry (AD-19). */
 		surface: { type: String, default: 'detail-page' },
+		/* eslint-enable vue/no-unused-properties */
 		/** How many interactions to show before the "more" line. */
 		limit: { type: Number, default: 5 },
 		/**
@@ -87,10 +89,15 @@ export default {
 		chromeless: { type: Boolean, default: false },
 
 		// --- Pre-translated labels ---
+		/** Card title. */
 		titleLabel: { type: String, default: () => t('nextcloud-vue', 'Contact moments') },
+		/** Accessible text shown while the interactions load. */
 		loadingLabel: { type: String, default: () => t('nextcloud-vue', 'Loading contact moments') },
+		/** Empty state shown when the object has no interaction. */
 		emptyLabel: { type: String, default: () => t('nextcloud-vue', 'No contact moments recorded yet') },
+		/** Message shown when the interactions could not be loaded. */
 		errorLabel: { type: String, default: () => t('nextcloud-vue', 'Could not load contact moments') },
+		/** Stand-in title for an interaction that has none. */
 		unknownLabel: { type: String, default: () => t('nextcloud-vue', 'Untitled interaction') },
 	},
 
@@ -153,7 +160,7 @@ export default {
 				const body = await res.json()
 				this.items = Array.isArray(body.results) ? body.results : []
 				this.total = Number(body.total) || this.items.length
-			} catch (e) {
+			} catch {
 				// pipelinq absent, or the object is not visible to this user.
 				// Either way the card says so rather than rendering an empty
 				// list, which would read as "no interactions" when the truth is

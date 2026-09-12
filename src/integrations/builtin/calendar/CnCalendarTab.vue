@@ -272,8 +272,10 @@ export default {
 	},
 
 	props: {
+		/* eslint-disable vue/no-unused-properties -- the integration dispatch binds integrationId on every integration component (see CnIntegrationWidgetGrid), so declaring it keeps it out of $attrs */
 		/** Stable integration id (matches PHP-side provider id, always `calendar`). */
 		integrationId: { type: String, default: 'calendar' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Parent object id. */
 		objectId: { type: String, required: true },
 		/** OpenRegister register id (slug or uuid). */
@@ -284,14 +286,23 @@ export default {
 		apiBase: { type: String, default: '/apps/openregister/api' },
 
 		// --- Pre-translated labels (ADR-007) ---
+		/** Label for the button that creates a meeting. */
 		addEventLabel: { type: String, default: () => t('nextcloud-vue', 'Add meeting') },
+		/** Label for the button that links an existing meeting. */
 		linkExistingLabel: { type: String, default: () => t('nextcloud-vue', 'Link existing') },
+		/** Label for the action that unlinks a meeting from the object. */
 		unlinkLabel: { type: String, default: () => t('nextcloud-vue', 'Unlink') },
+		/** Label for the action that deletes a meeting. */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete meeting') },
+		/** Empty state shown when no meeting is linked yet. */
 		noEventsLabel: { type: String, default: () => t('nextcloud-vue', 'No meetings linked yet') },
+		/** Stand-in title for a meeting that has none. */
 		untitledLabel: { type: String, default: () => t('nextcloud-vue', '(no title)') },
+		/** Heading above the meetings that are still to come. */
 		upcomingLabel: { type: String, default: () => t('nextcloud-vue', 'Upcoming') },
+		/** Heading above the meetings that already happened. */
 		pastLabel: { type: String, default: () => t('nextcloud-vue', 'Past') },
+		/** Message shown when the Calendar app cannot be reached. */
 		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'Nextcloud Calendar is currently unavailable.') },
 	},
 
@@ -433,7 +444,7 @@ export default {
 						if (body && typeof body.error === 'string') {
 							message = body.error
 						}
-					} catch (_) { /* ignore */ }
+					} catch { /* ignore */ }
 					this.error = message
 				}
 			} catch (err) {

@@ -637,7 +637,7 @@ export default {
 		 * receives the clicked row and returns a vue-router route to push. When
 		 * set, a row click navigates there (the `row-click` event still fires).
 		 *
-		 * @type {Function|null}
+		 * @type {?(row: object) => object}
 		 */
 		rowClickRoute: {
 			type: Function,
@@ -718,7 +718,7 @@ export default {
 			if (this.rows && this.rows.length > 0) {
 				return this.rows
 			}
-			if (this.register != null && this.schemaId != null) {
+			if (this.register !== null && this.register !== undefined && this.schemaId !== null && this.schemaId !== undefined) {
 				return this.fetchedRows
 			}
 			return this.rows
@@ -757,7 +757,7 @@ export default {
 			try {
 				const resolved = this.$router.resolve(this.viewAllRoute)
 				return (resolved && resolved.href) || null
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -877,7 +877,7 @@ export default {
 		 * `@workspace.*`) can change after mount. External rows still win.
 		 */
 		selfFetchKey() {
-			if ((!this.rows || this.rows.length === 0) && this.register != null && this.schemaId != null) {
+			if ((!this.rows || this.rows.length === 0) && this.register !== null && this.register !== undefined && this.schemaId !== null && this.schemaId !== undefined) {
 				this.fetchData()
 			}
 		},
@@ -887,7 +887,7 @@ export default {
 		this.loadAggregates()
 		// Self-fetch mode: pull rows from OpenRegister when register + schemaId
 		// are given and no external rows were passed (folded from CnTableWidget).
-		if ((!this.rows || this.rows.length === 0) && this.register != null && this.schemaId != null) {
+		if ((!this.rows || this.rows.length === 0) && this.register !== null && this.register !== undefined && this.schemaId !== null && this.schemaId !== undefined) {
 			this.fetchData()
 		}
 		this.observeScrollOverflow()
@@ -993,7 +993,7 @@ export default {
 					...(this.fetchParams ? { params: this.fetchParams } : {}),
 				})
 				this.fetchedRows = (data && data.results) || (Array.isArray(data) ? data : [])
-			} catch (e) {
+			} catch {
 				this.fetchedRows = []
 			} finally {
 				this.selfFetchLoading = false
@@ -1047,7 +1047,7 @@ export default {
 		 *
 		 * @param {object} row The row data
 		 * @param {string} key The column key (supports dot notation: 'address.city')
-		 * @return {*} The cell value
+		 * @return {unknown} The cell value
 		 */
 		getCellValue(row, key) {
 			if (typeof key !== 'string') {
@@ -1123,7 +1123,7 @@ export default {
 		 *
 		 * @param {object} row The row data.
 		 * @param {object} col The column definition.
-		 * @return {*} The value handed to the slot / CnCellRenderer.
+		 * @return {unknown} The value handed to the slot / CnCellRenderer.
 		 */
 		cellValue(row, col) {
 			if (col && col.aggregate) {

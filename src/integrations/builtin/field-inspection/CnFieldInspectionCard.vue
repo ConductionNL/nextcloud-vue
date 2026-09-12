@@ -169,12 +169,14 @@ export default {
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'field-inspection'`). */
 		integrationId: { type: String, default: 'field-inspection' },
+		/* eslint-disable vue/no-unused-properties -- every integration surface is handed `surface` by its host; this card renders one layout and does not branch on it */
 		/** Rendering surface (AD-19). */
 		surface: {
 			type: String,
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+		/* eslint-enable vue/no-unused-properties */
 
 		/** Object context `{ register, schema, objectId }` forwarded by the host page. */
 		integrationContext: {

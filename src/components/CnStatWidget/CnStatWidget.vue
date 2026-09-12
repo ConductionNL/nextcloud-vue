@@ -303,7 +303,7 @@ export default {
 		 * deliberate, so adding a range to a dashboard cannot silently change what
 		 * an existing tile requests.
 		 *
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: *, variant: string, icon?: string}>}}
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>}}
 		 */
 		content: {
 			type: Object,
@@ -487,7 +487,7 @@ export default {
 		 * `content.valueField` (dot-path; omitted = the payload itself);
 		 * otherwise the OpenRegister-aggregated `value`.
 		 *
-		 * @return {*}
+		 * @return {unknown}
 		 */
 		displayValue() {
 			if (this.objectFieldMode) {
@@ -542,13 +542,13 @@ export default {
 		 * The resolved label replaces the uuid; an unresolvable id falls back to
 		 * the raw value rather than blanking, exactly as CnFkResolveCell does.
 		 *
-		 * @return {*} The field's value, or null.
+		 * @return {unknown} The field's value, or null.
 		 */
 		/**
 		 * The bound record's raw value for `content.objectField`, before any
 		 * reference resolution.
 		 *
-		 * @return {*} The raw field value, or null.
+		 * @return {unknown} The raw field value, or null.
 		 */
 		objectFieldRaw() {
 			const cfg = this.content.objectField
@@ -562,7 +562,7 @@ export default {
 		},
 
 		/**
-		 * @return {*} The field's value, or null.
+		 * @return {unknown} The field's value, or null.
 		 */
 		objectFieldValue() {
 			if (this.objectFieldRaw === null) {
@@ -898,10 +898,10 @@ export default {
 				return
 			}
 
-			let store = null
+			let store
 			try {
 				store = useObjectStore()
-			} catch (e) {
+			} catch {
 				// No active Pinia: the tile shows the raw value, which is correct
 				// and never blank.
 				return
@@ -919,7 +919,7 @@ export default {
 				if (label) {
 					this.referenceLabel = label
 				}
-			} catch (e) {
+			} catch {
 				// Leave the raw value showing.
 			}
 		},
@@ -990,8 +990,8 @@ export default {
 		 * comparison when both sides coerce to numbers; `eq` / `neq` fall back
 		 * to strict string equality for non-numeric values.
 		 *
-		 * @param {*} current The current display value.
-		 * @param {{op: string, value: *}} rule The threshold rule.
+		 * @param {unknown} current The current display value.
+		 * @param {{op: string, value: unknown}} rule The threshold rule.
 		 * @return {boolean} True when the rule matches.
 		 */
 		matchesRule(current, rule) {
@@ -1043,8 +1043,8 @@ export default {
 		/**
 		 * Fetch one scalar from the OpenRegister `/value` aggregation endpoint.
 		 *
-		 * @param {Function} axios The axios instance.
-		 * @param {Function} generateUrl The router helper.
+		 * @param {{get: (url: string, config?: object) => Promise<object>}} axios The axios instance.
+		 * @param {(path: string, params?: object) => string} generateUrl The router helper.
 		 * @param {object} s The source (register/schema).
 		 * @param {string} metric The aggregation metric.
 		 * @param {?string} field The numeric field (non-count metrics).
@@ -1137,8 +1137,8 @@ export default {
 		 * (no OpenRegister expression-aggregation primitive yet). Pulls the
 		 * matching objects (capped at `limit`, default 1000) and folds them.
 		 *
-		 * @param {Function} axios The axios instance.
-		 * @param {Function} generateUrl The router helper.
+		 * @param {{get: (url: string, config?: object) => Promise<object>}} axios The axios instance.
+		 * @param {(path: string, params?: object) => string} generateUrl The router helper.
 		 * @param {object} s The weighted source `{ field, weightField, divisor?, filter?, limit? }`.
 		 * @return {Promise<number|null>} The weighted sum.
 		 */
@@ -1202,7 +1202,7 @@ export default {
 		 *
 		 * @param {object} obj The source object.
 		 * @param {string} path The dot-path.
-		 * @return {*} The resolved value or undefined.
+		 * @return {unknown} The resolved value or undefined.
 		 */
 		getByPath(obj, path) {
 			// Delegates to the shared useEndpointSource util so the legacy
@@ -1219,8 +1219,8 @@ export default {
 		 * to a custom-aggregation endpoint (e.g. `/api/analytics/summary`) that
 		 * OpenRegister's per-schema aggregation can't express.
 		 *
-		 * @param {Function} axios The axios instance.
-		 * @param {Function} generateUrl The router helper.
+		 * @param {{get: (url: string, config?: object) => Promise<object>}} axios The axios instance.
+		 * @param {(path: string, params?: object) => string} generateUrl The router helper.
 		 * @param {object} s The endpoint source `{ url, path?, params?, method? }`.
 		 * @return {Promise<number|null>} The extracted value.
 		 */

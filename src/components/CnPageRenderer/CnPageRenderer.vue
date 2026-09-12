@@ -378,7 +378,7 @@ export default {
 			 *
 			 * @param {object} action The action to dispatch.
 			 * @param {object} [extraContext] Extra context merged over the pre-bound one.
-			 * @return {*} The dispatchAction return value (a promise for object-op).
+			 * @return {unknown} The dispatchAction return value (a promise for object-op).
 			 */
 			cnDispatchAction: (action, extraContext = {}) => {
 				return dispatchAction(action, {
@@ -409,8 +409,8 @@ export default {
 	 * the host passed to CnPageRenderer land on the dispatched page via
 	 * `v-bind="{ ...$attrs, ...resolvedProps }"` instead. `v-on="$listeners"`
 	 * does the same for events. Without this, built-in page components
-	 * that emit (CnDashboardPage @widget-refresh / @widget-request-feature,
-	 * CnIndexPage @create / @edit / @delete) cannot reach the host App.
+	 * that emit (CnDashboardPage `@widget-refresh` / `@widget-request-feature`,
+	 * CnIndexPage `@create` / `@edit` / `@delete`) cannot reach the host App.
 	 *
 	 * Resolved props win over `$attrs` on key collisions because the
 	 * spread order is `{ ...$attrs, ...resolvedProps }`.
@@ -449,7 +449,7 @@ export default {
 		 * components rendered by the renderer can `inject('cnTranslate')`
 		 * via the consumer's setup.
 		 *
-		 * @type {Function|null}
+		 * @type {?(text: string, placeholders?: object) => string}
 		 */
 		translate: {
 			type: Function,
@@ -505,10 +505,10 @@ export default {
 		const liveSubType = ref('')
 		const liveSubId = ref('')
 		const liveSubEnabled = ref(false)
-		let liveStore = null
+		let liveStore
 		try {
 			liveStore = useObjectStore()
-		} catch (err) {
+		} catch {
 			// Pinia not installed (stand-alone / unit-test mounts) — no
 			// live updates; loadDetailObject degrades the same way.
 			liveStore = null
@@ -675,7 +675,7 @@ export default {
 		 * Proxy for the cnOpenModal inject so the provide() closure can
 		 * reference `this._cnOpenModal` without binding issues.
 		 *
-		 * @return {Function|null}
+		 * @return {?(key: string, props?: object) => void} The injected opener, or null.
 		 */
 		_cnOpenModal() {
 			return typeof this.cnOpenModal === 'function' ? this.cnOpenModal : null
@@ -1121,6 +1121,7 @@ export default {
 				if (typeof fn === 'function') {
 					normalizedConfig = { ...rest, createOverride: fn }
 				} else {
+					// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 					console.warn(`[CnPageRenderer] config.createOverride "${name}" did not resolve to a registered function; dropping it.`)
 					normalizedConfig = rest
 				}
@@ -1551,7 +1552,7 @@ export default {
 		 *   2. legacy customComponents — a function-valued entry.
 		 *
 		 * @param {string} name The registered handler name from `config.createOverride`.
-		 * @return {?Function} The async create handler, or null if unresolved.
+		 * @return {?(formData: object, ctx: object) => Promise<object>} The async create handler, or null if unresolved.
 		 */
 		resolveCreateOverride(name) {
 			return resolveCreateOverrideHandler(name, this.effectiveRegistry, this.effectiveCustomComponents)
@@ -1609,7 +1610,7 @@ export default {
 			let store = null
 			try {
 				store = useObjectStore()
-			} catch (err) {
+			} catch {
 				// Pinia not installed (unit tests). Publish the ids so
 				// id-only widgets still work; skip the object fetch and
 				// leave the live subscription disabled.
@@ -1734,10 +1735,10 @@ export default {
 				return
 			}
 
-			let store = null
+			let store
 			try {
 				store = useObjectStore()
-			} catch (err) {
+			} catch {
 				// Pinia not installed (common in unit tests). Silently
 				// skip — the custom component can still register itself
 				// at mount time if/when it has its own store.

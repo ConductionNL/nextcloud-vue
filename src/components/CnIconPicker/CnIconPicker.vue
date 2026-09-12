@@ -59,7 +59,6 @@
 						:aria-label="t('nextcloud-vue', 'Search icons')">
 
 					<div
-						ref="grid"
 						class="cn-icon-picker__grid"
 						role="listbox"
 						:aria-label="t('nextcloud-vue', 'Icon')"
@@ -364,7 +363,7 @@ export default {
 		 * Injected upload transport: `async (dataUrl) => ({ url })`. When null,
 		 * the upload control is hidden (no transport dependency in the library).
 		 *
-		 * @type {Function|null}
+		 * @type {?(dataUrl: string) => Promise<{url: string}>}
 		 */
 		uploadFn: {
 			type: Function,
@@ -392,7 +391,7 @@ export default {
 		/**
 		 * The value the consumer actually bound, whichever prop they used.
 		 *
-		 * @return {*} The bound value.
+		 * @return {string|object|null} The bound value.
 		 */
 		boundValue() {
 			return this.modelValue !== undefined ? this.modelValue : this.value
@@ -569,20 +568,20 @@ export default {
 		 * `v-model` are the same consumer as far as this component knows, and
 		 * emitting only one silently breaks half of them.
 		 *
-		 * @param {*} next The new value.
+		 * @param {string|object|null} next The new value.
 		 * @return {void}
 		 */
 		emitValue(next) {
 			/**
 			 * @event input The value changed. Vue 2's v-model dialect, kept for
 			 *   existing consumers.
-			 * @type {*}
+			 * @type {string|object|null}
 			 */
 			this.$emit('input', next)
 			/**
 			 * @event update:modelValue The value changed. Vue 3's v-model
 			 *   dialect — what a plain `v-model` listens for.
-			 * @type {*}
+			 * @type {string|object|null}
 			 */
 			this.$emit('update:modelValue', next)
 		},
@@ -602,7 +601,7 @@ export default {
 					import('./iconCatalogues.js'),
 				])
 				this.mdiCatalogue = adapters.fromMdiJs(mdi)
-			} catch (e) {
+			} catch {
 				// @mdi/js not installed — the DASHBOARD_ICONS fallback is used.
 				this.mdiCatalogue = null
 			}
@@ -712,7 +711,7 @@ export default {
 					}
 				}
 				this.onCustomSvgInput(this.prettySvg(svgEl))
-			} catch (e) {
+			} catch {
 				// Leave content unchanged on any parse/serialize error.
 			}
 		},
@@ -813,6 +812,7 @@ export default {
 					this.emitValue(response.url)
 				} catch (err) {
 					this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload icon')
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('Icon upload failed:', err)
 				} finally {
 					this.uploading = false

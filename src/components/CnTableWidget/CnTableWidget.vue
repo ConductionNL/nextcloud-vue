@@ -78,7 +78,7 @@ export default {
 		/**
 		 * Function returning a route object for row-click navigation.
 		 *
-		 * @type {Function}
+		 * @type {(row: object) => object}
 		 */
 		rowClickRoute: { type: Function, default: null },
 		/** Pre-translated "View all" label. */

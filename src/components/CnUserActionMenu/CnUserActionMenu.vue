@@ -114,7 +114,7 @@ let _capabilitiesPromise = null
  * CnUserActionMenu — Popover with user communication actions.
  *
  * Shows contextual actions based on installed Nextcloud apps (Talk, Mail, Calendar).
- * Uses @nextcloud/capabilities when available, falls back to OCS API.
+ * Uses `@nextcloud/capabilities` when available, falls back to OCS API.
  *
  * Usage in notes/tasks cards
  * ```vue
@@ -257,6 +257,7 @@ export default {
 					return data?.ocs?.data?.capabilities || {}
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnUserActionMenu: Failed to fetch capabilities', err)
 			}
 			return {}
@@ -285,6 +286,7 @@ export default {
 					this.userEmail = data?.ocs?.data?.email || ''
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnUserActionMenu: Failed to resolve user email', err)
 				this.userEmail = ''
 			}
@@ -311,6 +313,7 @@ export default {
 					this.showActionError('Failed to create conversation')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnUserActionMenu: Failed to send message', err)
 				this.showActionError('Failed to create conversation')
 			}
@@ -342,6 +345,7 @@ export default {
 					this.showActionError('Failed to create conversation')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnUserActionMenu: Failed to start chat', err)
 				this.showActionError('Failed to create conversation')
 			}
@@ -373,6 +377,7 @@ export default {
 					showError(message)
 				})
 			} catch {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error(message)
 			}
 		},

@@ -235,8 +235,10 @@ export default {
 		initialValues: { type: Object, default: null },
 		/** Dialog title; falls back to schema.title when empty */
 		dialogTitle: { type: String, default: '' },
-		/** Schema property used as the item name in the title */
+		/* eslint-disable vue/no-unused-properties -- accepted for parity with CnFormDialog; this dialog titles itself and reports results from the schema title */
+		/** Schema property holding the item's name. Accepted for parity with CnFormDialog; this dialog builds its title and result messages from the schema title. */
 		nameField: { type: String, default: 'title' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Message shown after a successful operation */
 		successText: { type: String, default: '' },
 		/** Label for the cancel button */
@@ -411,12 +413,22 @@ export default {
 				if (!Object.hasOwn(obj, key)) {
 					let def
 					switch (prop.type) {
-						case 'string': def = prop.const ?? ''; break
+						case 'string':
+							def = prop.const ?? ''
+							break
 						case 'number':
-						case 'integer': def = 0; break
-						case 'boolean': def = false; break
-						case 'array': def = []; break
-						case 'object': def = {}; break
+						case 'integer':
+							def = 0
+							break
+						case 'boolean':
+							def = false
+							break
+						case 'array':
+							def = []
+							break
+						case 'object':
+							def = {}
+							break
 						default: def = ''
 					}
 					missing.push([key, def])
@@ -578,7 +590,7 @@ export default {
 		 * Proxy for slot consumers: exposes isPropertyEditable from the tab sub-component.
 		 *
 		 * @param {string} key - Property key
-		 * @param {*} value - Current property value
+		 * @param {unknown} value - Current property value
 		 */
 		isPropertyEditable(key, value) {
 			const tab = this.$refs.propertiesTab
@@ -605,7 +617,7 @@ export default {
 		 * Proxy for slot consumers.
 		 *
 		 * @param {string} key - Property key
-		 * @param {*} value - Current property value
+		 * @param {unknown} value - Current property value
 		 */
 		getPropertyValidationClass(key, value) {
 			const tab = this.$refs.propertiesTab
@@ -698,7 +710,7 @@ export default {
 			const newErrors = {}
 			for (const field of this.resolvedFields) {
 				const value = this.formData[field.key]
-				if (field.required && (value == null || value === '')) {
+				if (field.required && (value === null || value === undefined || value === '')) {
 					newErrors[field.key] = `${field.label} is required.`
 				}
 			}

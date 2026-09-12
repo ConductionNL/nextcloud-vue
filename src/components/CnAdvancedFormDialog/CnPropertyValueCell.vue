@@ -249,7 +249,7 @@ export default {
 		/** Full JSON schema object */
 		schema: { type: Object, default: null },
 		/** Resolved current value (formData[key] ?? objectValue) */
-		value: { type: [String, Number, Boolean, Object, Array], default: null },
+		value: { type: [Boolean, String, Number, Object, Array], default: null },
 		/** Whether this property is editable at all */
 		isEditable: { type: Boolean, default: true },
 		/** Whether this row is currently selected for editing */
@@ -618,7 +618,7 @@ export default {
 				}
 				return v.map(lookup)
 			}
-			if (v == null || v === '') {
+			if (v === null || v === undefined || v === '') {
 				return null
 			}
 			return lookup(v)
@@ -673,7 +673,7 @@ export default {
 
 		stringValue() {
 			const v = this.value
-			if (v == null) {
+			if (v === null || v === undefined) {
 				return ''
 			}
 			if (typeof v === 'string') {
@@ -687,7 +687,7 @@ export default {
 
 		objectJsonString() {
 			const v = this.value
-			if (v == null) {
+			if (v === null || v === undefined) {
 				return ''
 			}
 			if (typeof v === 'string') {
@@ -864,7 +864,7 @@ export default {
 				this.$emit('update:value', coerced)
 				return
 			}
-			this.$emit('update:value', selected == null ? null : toId(selected))
+			this.$emit('update:value', selected === null || selected === undefined ? null : toId(selected))
 		},
 
 		/**
@@ -873,9 +873,9 @@ export default {
 		 * `undefined` for entries that can't be coerced so the caller can drop
 		 * them from the array.
 		 *
-		 * @param {*} v - The raw value.
+		 * @param {unknown} v - The raw value.
 		 * @param {string} [itemType] - Schema `items.type` (string, number, integer, boolean).
-		 * @return {*}
+		 * @return {unknown}
 		 */
 		coerceItem(v, itemType) {
 			if (v === null || v === undefined) {
@@ -984,12 +984,12 @@ export default {
 			const items = this.schemaProp?.items
 			const nameField = items?.objectConfiguration?.objectNameField
 				|| items?.configuration?.objectNameField
-			if (nameField && item && item[nameField] != null && item[nameField] !== '') {
+			if (nameField && item && item[nameField] !== null && item[nameField] !== undefined && item[nameField] !== '') {
 				return String(item[nameField])
 			}
 			if (item && typeof item === 'object') {
 				for (const v of Object.values(item)) {
-					if (v == null || v === '') {
+					if (v === null || v === undefined || v === '') {
 						continue
 					}
 					if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
@@ -1151,9 +1151,15 @@ export default {
 				const d = max - min
 				s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
 				switch (max) {
-					case rN: h = (gN - bN) / d + (gN < bN ? 6 : 0); break
-					case gN: h = (bN - rN) / d + 2; break
-					case bN: h = (rN - gN) / d + 4; break
+					case rN:
+						h = (gN - bN) / d + (gN < bN ? 6 : 0)
+						break
+					case gN:
+						h = (bN - rN) / d + 2
+						break
+					case bN:
+						h = (rN - gN) / d + 4
+						break
 				}
 				h /= 6
 			}
