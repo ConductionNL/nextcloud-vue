@@ -228,7 +228,9 @@ registerDashboardWidget('stages', {
 		orientation: 'horizontal',
 		size: 'medium',
 		stagesEndpoint: { url: '', path: '' },
-		transition: { kind: 'field' },
+		// The LIFECYCLE, not a record write. OpenRegister decides what is
+		// reachable and re-validates the move; a field write has neither.
+		transition: { kind: 'lifecycle' },
 	},
 	displayName: 'Stages',
 	icon: 'Timeline',

@@ -5,7 +5,7 @@
   CnStagesWidget: the record's stages as a placeable, configurable widget,
   where clicking a stage moves the record there.
 
-  Keep this comment OUT of <template>: a comment node beside the root element
+  Keep this comment OUT of the template: a comment node beside the root element
   makes the component multi-root in Vue 3.
 -->
 <template>
@@ -38,9 +38,10 @@
 					<span v-if="stage.subtitle" class="cn-timeline-stages__subtitle">
 						{{ stage.subtitle }}
 					</span>
-					<!-- A guard's reason is shown: it tells the person what the
-					     record still needs. A stage with no route from here only
-					     tells a screen reader why it cannot be chosen. -->
+					<!-- What the move says about itself, or why the stage cannot be
+					     chosen. A note from a reachable action is shown; "no action
+					     reaches this stage" is screen-reader text, because an empty
+					     stage with a sentence under it reads as an error. -->
 					<span
 						v-if="stage.reason"
 						:class="stage.reasonVisible ? 'cn-stages-widget__reason' : 'cn-stages-widget__sr-only'"
@@ -50,11 +51,8 @@
 				</template>
 			</CnTimelineStages>
 
-			<p v-if="availabilityFailed" class="cn-stages-widget__notice" data-testid="cn-stages-widget-availability-error">
-				{{ tr('Could not check which stages can be reached') }}
-			</p>
 			<p
-				v-if="moveError && !pendingMove"
+				v-if="moveError && !pendingAction"
 				class="cn-stages-widget__error"
 				data-testid="cn-stages-widget-error"
 				role="alert">
@@ -65,16 +63,15 @@
 			</p>
 		</template>
 
-		<CnStageMoveDialog
-			v-if="pendingMove"
-			:stage-label="pendingMove.stage.label"
-			:comment-mode="pendingMove.commentMode"
-			:result-options="pendingMove.resultOptions"
-			:result-required="pendingMove.resultRequired"
-			:busy="busy"
-			:error="moveError"
-			@confirm="onDialogConfirm"
-			@close="onDialogClose" />
+		<!-- The SHARED transition input dialog, the one CnLifecycleActions uses.
+		     One dialog and one input vocabulary: a transition declares `inputs`
+		     and the dialog collects exactly those. Cancelling POSTs nothing. -->
+		<CnTransitionInputDialog
+			v-if="pendingAction"
+			:transition="pendingAction"
+			:schema="schema"
+			@confirm="onInputConfirm"
+			@close="pendingAction = null" />
 	</div>
 </template>
 
@@ -84,20 +81,25 @@ import { emit as emitBus } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import CnTimelineStages from '../CnTimelineStages/CnTimelineStages.vue'
-import CnStageMoveDialog from '../../dialogs/CnStageMoveDialog.vue'
-import { getByPath, resolveEndpointRequest, useEndpointSource } from '../../composables/useEndpointSource.js'
+import CnTransitionInputDialog from '../../dialogs/CnTransitionInputDialog.vue'
+import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
+import {
+	actionNote,
+	actionsByTarget,
+	declaresInputs,
+	fetchAvailableActions,
+	performTransition,
+	transitionError,
+} from '../../composables/useLifecycleTransitions.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import {
 	dropOptionalUnresolved,
-	dropOptionalUnresolvedDeep,
-	hasUnresolvedDeepTokens,
 	hasUnresolvedTokens,
-	resolveDeepTokens,
 	resolveFilterTokens,
 } from '../../utils/resolveFilterTokens.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
-import { buildAvailability, normalizeOptions, normalizeStages, refusalReason, stageSavePayload } from './stagesModel.js'
+import { normalizeStages, stageSavePayload } from './stagesModel.js'
 // The stepper's look lives in the global timeline stylesheet. Imported here
 // so the widget renders styled without the app's global css/index.css, the
 // same reason CnStatWidget imports kpi-card.css.
@@ -145,51 +147,73 @@ function userError(message) {
  *
  * Registered as the `stages` widget type for the detail page. It reads the
  * current stage off the bound record, draws the stage list with
- * `CnTimelineStages`, and performs the configured transition when a
- * reachable stage is clicked. Nothing about the record type is hard-coded.
+ * `CnTimelineStages`, and moves the record through OpenRegister's lifecycle
+ * when a reachable stage is clicked. Nothing about the record type is
+ * hard-coded.
+ *
+ * It is the same contract `CnLifecycleActions` speaks, rendered differently:
+ * that component draws the allowed moves as buttons, this one draws them as a
+ * timeline. Both go through `useLifecycleTransitions`, so there is one place
+ * that knows what a transition is.
  *
  * ## The stage list
  *
+ * The lifecycle says what is reachable NOW. It does not say what the whole
+ * process looks like, and a timeline that only showed the next step would not
+ * be a timeline. So the list of stages is configured, and it is display only:
+ * it grants nothing.
+ *
  * One of two sources:
  *
- * - `stagesEndpoint`: `{ url, path, params?, idField?, labelField?,
- *   descriptionField?, orderField?, finalField?, resultsPath?,
- *   resultIdField?, resultLabelField? }`. The url and params take the shared
- *   token grammar (`@objectId`, `@object.<field>`), so
+ * - `stagesEndpoint`: `{ url, method?, path, params?, idField?, labelField?,
+ *   descriptionField?, orderField?, finalField? }`. The url and params take
+ *   the shared token grammar (`@objectId`, `@object.<field>`), so
  *   `/apps/myapp/api/types/@object.type/stages` names the record's own type.
  *   `path` points at the array in the response.
- * - `stagesSource`: `{ register, schema, filter?, orderBy?, labelField?,
- *   descriptionField?, finalField?, limit? }`, an OpenRegister query whose
- *   filter takes the same tokens.
+ * - `stagesSource`: `{ register, schema, filter?, orderBy?, idField?,
+ *   labelField?, descriptionField?, finalField?, limit? }`, an OpenRegister
+ *   query whose filter takes the same tokens.
  *
- * `finalField` marks the stages that close the record. A move into one asks
- * for a result when results are on offer (`resultsPath` in the stages
- * response, or the move's own options).
+ * `finalField` marks the stages that close the record, which the timeline
+ * draws differently. It grants nothing either.
+ *
+ * ## Which stages can be reached
+ *
+ * `GET /apps/openregister/api/objects/{id}/available-actions`, the same
+ * endpoint `CnLifecycleActions` reads. It answers
+ * `{ actions: [{ action, to, requires, description, inputs? }] }` already
+ * filtered to the record's current state, so a stage is reachable exactly
+ * when an action leads to it.
+ *
+ * That is why there is no `allowed` flag to read, no field mapping to get
+ * backwards and no config that can remove the guard: a stage no action
+ * reaches is disabled because nothing said it was reachable. It fails closed
+ * by construction rather than by a check somebody has to remember to write.
+ * `description` and `requires` become the note beside the stage.
  *
  * ## Moving
  *
- * `transition` is one of:
+ * `POST /apps/openregister/api/objects/{id}/transition` with `{ action }`, or
+ * `{ action, data }` when the action declares `inputs: [{ field, required }]`,
+ * mirroring `x-openregister-lifecycle.transitions.<action>.inputs`. An action
+ * with inputs opens the shared `CnTransitionInputDialog` first, and cancelling
+ * it sends nothing. OpenRegister re-validates the move, and a 403 or 422 is
+ * shown where the click happened.
  *
- * - `{ kind: 'field' }`: save the bound record with `currentField` set to the
- *   clicked stage id, through the object store the other detail widgets use.
- * - `{ kind: 'endpoint', url, method?, bodyKey?, commentKey?, resultKey?,
- *   body?, errorField? }`: send the move to an app endpoint. The body carries
- *   the move id under `bodyKey` (default `stage`), plus the comment and
- *   result when given.
+ * `transition` selects the mode:
  *
- * ## Guards
+ * - absent: read only. The stages render and nothing is clickable.
+ * - `{ kind: 'lifecycle' }` (the registry default): the contract above.
+ * - `{ kind: 'field' }`: an EXPLICIT opt-in for a record whose schema has no
+ *   lifecycle. It writes `currentField` on the record through the object
+ *   store, sending the stage change and the record's own properties, and it
+ *   REFUSES when it cannot prove it is updating rather than creating. There is
+ *   no server-side validation on this path, which is why it is not the
+ *   default: whatever the timeline offers is what happens.
  *
- * An optional `availability` endpoint says which stages can be reached from
- * here, why the others cannot, and what a move needs: `{ url, path,
- * stageField?, moveField?, allowedField?, reasonField?, commentField?,
- * resultField?, resultOptionsField?, unlistedReason? }`. A blocked stage
- * renders disabled with its reason. A stage the answer does not list renders
- * disabled with `unlistedReason` as screen-reader text. A move that declares
- * a comment or a result opens `CnStageMoveDialog` first.
- *
- * After a successful move the widget shows the new stage at once, and fires
- * `cn:page:refresh` so the page re-reads the record and every endpoint
- * widget, the availability answer included, refetches.
+ * After a successful move the widget shows the new stage at once, fires
+ * `cn:page:refresh` so the page re-reads the record, and re-reads the allowed
+ * actions for the stage the record is now on.
  *
  * ```js
  * content: {
@@ -199,22 +223,9 @@ function userError(message) {
  *     path: 'statusTypes',
  *     orderField: 'order',
  *     finalField: 'isFinal',
- *     resultsPath: 'resultTypes',
  *   },
- *   availability: {
- *     url: '/apps/myapp/api/case/@objectId/available-transitions',
- *     path: 'transitions',
- *     stageField: 'toStatus',
- *     moveField: 'id',
- *     allowedField: 'guardsPassed',
- *     reasonField: 'failedGuards.0.failureMessage',
- *   },
- *   transition: {
- *     kind: 'endpoint',
- *     url: '/apps/myapp/api/case/@objectId/transition',
- *     bodyKey: 'transitionId',
- *     resultKey: 'resultTypeId',
- *   },
+ *   transition: { kind: 'lifecycle' },
+ *   unreachableReason: 'Not possible from the current stage',
  * }
  * ```
  */
@@ -222,8 +233,8 @@ export default {
 	name: 'CnStagesWidget',
 
 	components: {
-		CnStageMoveDialog,
 		CnTimelineStages,
+		CnTransitionInputDialog,
 		NcLoadingIcon,
 	},
 
@@ -234,11 +245,12 @@ export default {
 	props: {
 		/**
 		 * The widget's config. See the component description for every key:
-		 * `currentField`, `stagesEndpoint` or `stagesSource`, `availability`,
-		 * `transition`, `confirm` (`'declared'` by default, or `'always'`),
-		 * `orientation`, `size` and `ariaLabel`.
+		 * `currentField`, `stagesEndpoint` or `stagesSource`, `transition`
+		 * (`{ kind: 'lifecycle' }` by default, or `{ kind: 'field' }`, or
+		 * absent for a read-only strip), `unreachableReason`, `orientation`,
+		 * `size` and `ariaLabel`.
 		 *
-		 * @type {{currentField?: string, stagesEndpoint?: object, stagesSource?: object, availability?: object, transition?: object, confirm?: ('declared'|'always'), orientation?: ('horizontal'|'vertical'), size?: ('medium'|'small'), ariaLabel?: string}}
+		 * @type {{currentField?: string, stagesEndpoint?: object, stagesSource?: object, transition?: object, unreachableReason?: string, orientation?: ('horizontal'|'vertical'), size?: ('medium'|'small'), ariaLabel?: string}}
 		 */
 		content: {
 			type: Object,
@@ -278,6 +290,18 @@ export default {
 		 * @type {object|null}
 		 */
 		store: {
+			type: Object,
+			default: null,
+		},
+		/**
+		 * The record's JSON Schema, forwarded to `CnTransitionInputDialog` so a
+		 * transition's declared inputs render with the property's title and
+		 * type instead of a bare text box. Optional, exactly as on
+		 * `CnLifecycleActions`.
+		 *
+		 * @type {object|null}
+		 */
+		schema: {
 			type: Object,
 			default: null,
 		},
@@ -325,10 +349,6 @@ export default {
 			const cfg = props.content?.stagesEndpoint
 			return (cfg && cfg.url) ? { url: cfg.url, method: cfg.method, params: cfg.params } : null
 		}, { ctx: tokenCtx })
-		const availabilityRead = useEndpointSource(() => {
-			const cfg = props.content?.availability
-			return (cfg && cfg.url) ? { url: cfg.url, method: cfg.method, params: cfg.params } : null
-		}, { ctx: tokenCtx })
 
 		return {
 			detailCtxRaw,
@@ -338,10 +358,6 @@ export default {
 			stagesBody: stagesRead.data,
 			stagesBodyLoading: stagesRead.loading,
 			stagesBodyError: stagesRead.error,
-			availabilityBody: availabilityRead.data,
-			availabilityLoading: availabilityRead.loading,
-			availabilityError: availabilityRead.error,
-			refetchAvailability: availabilityRead.refetch,
 		}
 	},
 
@@ -358,18 +374,26 @@ export default {
 			 * the re-read record catches up.
 			 */
 			movedTo: null,
-			/** @type {object|null} The move waiting in the confirm dialog. */
-			pendingMove: null,
+			/**
+			 * @type {Array<object>} The moves OpenRegister allows from the
+			 * record's current state, as `/available-actions` answered them.
+			 */
+			actions: [],
+			/**
+			 * @type {boolean} Whether the allowed moves have been read at all
+			 * yet. Nothing is clickable before they have: an empty list and an
+			 * unread list look identical, and only one of them means "no move
+			 * is allowed".
+			 */
+			actionsLoaded: false,
+			/**
+			 * @type {object|null} The action whose declared inputs are being
+			 * collected. Non-null mounts CnTransitionInputDialog, and the POST
+			 * waits for its confirm.
+			 */
+			pendingAction: null,
 			/** @type {boolean} Whether a move is running. */
 			busy: false,
-			/**
-			 * @type {boolean} A move landed and the guard answer in hand is
-			 * still the one for the stage the record has just left. Until the
-			 * fresh answer arrives the strip stays blocked: the old map is
-			 * authoritative-looking and wrong, and clicking it POSTs a move the
-			 * server has already closed.
-			 */
-			awaitingGuards: false,
 			/** @type {string} Why the last move failed, or ''. */
 			moveError: '',
 			/** @type {string} The last outcome, for the polite live region. */
@@ -460,21 +484,6 @@ export default {
 		},
 
 		/**
-		 * The results a closing move may choose from, read from the stages
-		 * response at `stagesEndpoint.resultsPath`.
-		 *
-		 * @return {Array<{id: string, label: string}>} The choices.
-		 */
-		resultChoices() {
-			const cfg = this.stageConfig
-			if (!this.endpointStages || !cfg.resultsPath) return []
-			return normalizeOptions(getByPath(this.stagesBody, cfg.resultsPath), {
-				idField: cfg.resultIdField,
-				labelField: cfg.resultLabelField,
-			})
-		},
-
-		/**
 		 * Whether the stage list is still on its way.
 		 *
 		 * @return {boolean} True while loading.
@@ -496,14 +505,26 @@ export default {
 		/**
 		 * The configured transition, or null when the widget is read-only.
 		 *
+		 * An unrecognised `kind` reads as read-only rather than as lifecycle: a
+		 * typo must not silently pick a mode nobody asked for, and a strip that
+		 * does nothing is the safe end of that mistake.
+		 *
 		 * @return {object|null} The transition.
 		 */
 		transition() {
 			const tr = this.content.transition
 			if (!tr || typeof tr !== 'object') return null
-			if (tr.kind === 'field') return tr
-			if (tr.kind === 'endpoint' && tr.url) return tr
+			if (tr.kind === 'field' || tr.kind === 'lifecycle') return tr
 			return null
+		},
+
+		/**
+		 * Whether moves go through OpenRegister's lifecycle.
+		 *
+		 * @return {boolean} True on the lifecycle path.
+		 */
+		lifecycleMode() {
+			return Boolean(this.transition) && this.transition.kind !== 'field'
 		},
 
 		/**
@@ -528,56 +549,24 @@ export default {
 		 * @return {boolean} True when it is interactive and idle.
 		 */
 		canMove() {
-			return this.interactive && !this.busy && !this.awaitingGuards
+			return this.interactive && !this.busy
 		},
 
 		/**
-		 * Whether an availability block is declared at all.
+		 * The allowed moves by the stage they lead to, or null while they are
+		 * unknown.
 		 *
-		 * Presence, not usability. A block that is present but unusable (a
-		 * typo like `uri` for `url`) must BLOCK, and it can only do that if it
-		 * counts as configured. Reading usability here would have made the
-		 * typo mean "no guard", which is every stage clickable with nothing
-		 * logged and nothing on screen.
-		 *
-		 * @return {boolean} True when one is declared.
-		 */
-		availabilityConfigured() {
-			const cfg = this.content.availability
-			return Boolean(cfg && typeof cfg === 'object' && !Array.isArray(cfg) && Object.keys(cfg).length > 0)
-		},
-
-		/**
-		 * Whether the declared availability block can actually be read.
-		 *
-		 * @return {boolean} True when it names a url.
-		 */
-		availabilityUsable() {
-			return this.availabilityConfigured && Boolean(this.content.availability.url)
-		},
-
-		/**
-		 * The availability read failed, or could never be made. Every move
-		 * then stays disabled: a guard that cannot be read is not a guard
-		 * that passed.
-		 *
-		 * @return {boolean} True on a failed or impossible read.
-		 */
-		availabilityFailed() {
-			if (!this.availabilityConfigured) return false
-			return !this.availabilityUsable || Boolean(this.availabilityError)
-		},
-
-		/**
-		 * The moves the availability endpoint offers, by stage id, or null
-		 * while they are unknown.
+		 * Null is not the same as an empty map. Before `/available-actions` has
+		 * answered, nothing is known about any stage; after it has, an absent
+		 * stage is a stage no move reaches. Collapsing the two would make a
+		 * strip clickable for the length of one request.
 		 *
 		 * @return {Map<string, object>|null} The moves.
 		 */
 		moves() {
-			if (!this.availabilityUsable || this.availabilityFailed) return null
-			if (this.availabilityBody === null) return null
-			return buildAvailability(getByPath(this.availabilityBody, this.content.availability.path), this.content.availability)
+			if (!this.lifecycleMode) return null
+			if (!this.actionsLoaded) return null
+			return actionsByTarget(this.actions)
 		},
 
 		/**
@@ -635,6 +624,16 @@ export default {
 			if (this.endpointStages || !cfg || !cfg.register || !cfg.schema) return ''
 			return JSON.stringify({ cfg, filter: resolveFilterTokens(cfg.filter || {}, this.tokenCtx()) })
 		},
+
+		/**
+		 * What the allowed-moves read depends on: the record it is about, and
+		 * whether the lifecycle is in use at all.
+		 *
+		 * @return {string} The signature.
+		 */
+		actionsKey() {
+			return this.lifecycleMode ? String(this.recordId) : ''
+		},
 	},
 
 	watch: {
@@ -659,22 +658,16 @@ export default {
 		},
 		recordStageId(next, previous) {
 			if (next === previous) return
-			// The record moved without us, so the old answer about what is
-			// reachable describes a stage the record has left. After OUR move
-			// the refresh signal already triggered that refetch, and
-			// `awaitingGuards` is holding the strip until it lands.
-			if (this.availabilityUsable && previous !== null && !this.awaitingGuards) this.refetchAvailability(true)
+			// The record moved without us, so the list in hand describes a stage
+			// it has left. Our OWN move refetches inside `performMove`, while
+			// `busy` still holds, so this does not double-request it.
+			if (previous !== null && !this.busy) this.loadActions()
 		},
-		availabilityLoading(next, previous) {
-			// The fresh guard answer has landed (or failed). Either way the map
-			// in hand now describes the stage the record is on.
-			if (previous && !next) this.awaitingGuards = false
-		},
-		availabilityBody() {
-			this.awaitingGuards = false
-		},
-		availabilityError() {
-			this.awaitingGuards = false
+		actionsKey: {
+			immediate: true,
+			handler() {
+				this.loadActions()
+			},
 		},
 	},
 
@@ -693,6 +686,11 @@ export default {
 		/**
 		 * Whether a stage can be chosen and, when not, why.
 		 *
+		 * On the lifecycle path there is nothing to decide: OpenRegister has
+		 * already filtered the actions to the record's current state, so a
+		 * stage is reachable exactly when an action leads to it. There is no
+		 * flag to read and no way to configure the guard away.
+		 *
 		 * @param {{id: string}} stage The stage.
 		 * @return {{disabled: boolean, reason: string, reasonVisible: boolean}} The access.
 		 */
@@ -705,63 +703,31 @@ export default {
 			// `aria-disabled` on top said "you may not go here" about the place
 			// the record already is. `onStageClick` refuses it explicitly.
 			if (stage.id === this.currentStageId) return open
-			// A move is running, or the guard answer in hand is the one for the
+			// A move is running, or the action list in hand is the one for the
 			// stage the record has just LEFT. Everything is disabled until the
-			// fresh answer lands, and the focus stops stay.
+			// fresh list lands, and the focus stops stay.
 			if (!this.canMove) return { disabled: true, reason: '', reasonVisible: false }
-			if (!this.availabilityConfigured) return open
-			if (this.availabilityFailed) {
-				return { disabled: true, reason: this.tr('Could not check whether this stage can be reached'), reasonVisible: false }
-			}
+			// The field path has no server to ask, which is exactly why it is an
+			// explicit opt-in: every stage is offered and the write decides.
+			if (!this.lifecycleMode) return open
+			// Not read yet. Not "no moves allowed", which is why this is not the
+			// same branch as an empty list.
 			if (this.moves === null) return { disabled: true, reason: '', reasonVisible: false }
 			const move = this.moves.get(stage.id)
 			if (!move) {
-				const reason = this.content.availability.unlistedReason
-					? this.effectiveTranslate(this.content.availability.unlistedReason)
+				const reason = this.content.unreachableReason
+					? this.effectiveTranslate(this.content.unreachableReason)
 					: this.tr('Not reachable from the current stage')
 				return { disabled: true, reason, reasonVisible: false }
 			}
-			if (!move.allowed) {
-				return { disabled: true, reason: move.reason || this.tr('This move is blocked'), reasonVisible: true }
-			}
-			// A move that MUST carry a result, with nothing to choose from, is a
-			// dead end: the dialog would open with no picker and a confirm
-			// button that can never be enabled. Say so at the stage instead.
-			if (this.resultMode(stage, move) === 'required' && this.resultOptionsFor(move).length === 0) {
-				return { disabled: true, reason: this.tr('This move needs a result, and none is on offer'), reasonVisible: true }
-			}
-			return open
+			// What the move says about itself. It is not a refusal, so it is
+			// shown rather than hidden: it tells the person what happens next.
+			return { ...open, reason: actionNote(move), reasonVisible: Boolean(actionNote(move)) }
 		},
 
 		/**
-		 * The results a move may choose from: the move's own, else the ones the
-		 * stages response offered.
-		 *
-		 * @param {object|null} move The availability move.
-		 * @return {Array<{id: string, label: string}>} The choices.
-		 */
-		resultOptionsFor(move) {
-			return (move && move.resultOptions.length) ? move.resultOptions : this.resultChoices
-		},
-
-		/**
-		 * Whether a move asks for a result, and how hard.
-		 *
-		 * The move's own declaration wins. Without one, a stage that closes the
-		 * record requires a result, which is the rule the widget shipped with.
-		 *
-		 * @param {{final?: boolean}} stage The target stage.
-		 * @param {object|null} move The availability move.
-		 * @return {''|'optional'|'required'} The mode.
-		 */
-		resultMode(stage, move) {
-			if (move && move.result) return move.result
-			return (stage && stage.final) ? 'required' : ''
-		},
-
-		/**
-		 * A stage was clicked: move there, through the confirm step when the
-		 * move needs input.
+		 * A stage was clicked: move there, collecting the action's declared
+		 * inputs first when it has any.
 		 *
 		 * @param {{stage: {id: string}}} payload The CnTimelineStages event.
 		 * @return {void}
@@ -774,162 +740,116 @@ export default {
 			if (stage.id === this.currentStageId) return
 			const target = this.timelineStages.find((s) => s.id === stage.id)
 			if (!target || target.disabled) return
-			const request = this.buildRequest(target)
 			this.moveError = ''
-			if (request.needsConfirm) {
-				this.pendingMove = request
+			const move = this.moves ? this.moves.get(stage.id) : null
+			if (this.lifecycleMode && !move) return
+			const request = {
+				stage: { id: stage.id, label: target.label },
+				action: move ? move.action : stage.id,
+				inputs: (move && Array.isArray(move.inputs)) ? move.inputs : [],
+			}
+			// A transition that declares inputs collects them first, and
+			// cancelling the dialog sends nothing. `CnTransitionInputDialog`
+			// reads `transition.inputs` and `transition.label`, so the request
+			// carries the shape that dialog already understands.
+			if (this.lifecycleMode && declaresInputs(move)) {
+				this.pendingAction = {
+					action: move.action,
+					to: move.to,
+					label: this.tr('Move to {stage}', { stage: target.label }),
+					inputs: move.inputs,
+					__request: request,
+				}
 				return
 			}
-			this.performMove(request, {})
+			this.performMove(request)
 		},
 
 		/**
-		 * Work out what a move to a stage needs.
+		 * The input dialog confirmed: send the move with what it collected.
 		 *
-		 * @param {{id: string, label: string}} stage The target stage.
-		 * @return {object} The move request.
-		 */
-		buildRequest(stage) {
-			const move = this.moves ? this.moves.get(stage.id) : null
-			const row = this.stages.find((s) => s.id === stage.id)
-			const options = this.resultOptionsFor(move)
-			// `'optional'` offers a result, `'required'` holds the confirm until
-			// one is picked. Collapsing the two made every declaration force a
-			// result, which is not what an endpoint saying `'optional'` asked
-			// for.
-			const mode = this.resultMode(row, move)
-			const asksResult = mode !== '' && options.length > 0
-			const always = this.content.confirm === 'always'
-			const commentMode = (move && move.comment) || (always ? 'optional' : 'none')
-			return {
-				stage: { id: stage.id, label: stage.label },
-				moveId: move ? move.moveId : stage.id,
-				commentMode,
-				resultOptions: asksResult ? options : [],
-				resultRequired: asksResult && mode === 'required',
-				needsConfirm: always || commentMode !== 'none' || asksResult,
-			}
-		},
-
-		/**
-		 * The confirm dialog was confirmed.
-		 *
-		 * @param {{comment?: string, result?: string}} input What the person entered.
+		 * @param {object} data The collected input values.
 		 * @return {void}
 		 */
-		onDialogConfirm(input) {
-			if (!this.pendingMove) return
-			this.performMove(this.pendingMove, input || {})
+		onInputConfirm(data) {
+			const pending = this.pendingAction
+			this.pendingAction = null
+			if (!pending || !pending.__request) return
+			this.performMove(pending.__request, data)
 		},
 
 		/**
-		 * The confirm dialog was cancelled. No move is made.
+		 * Perform a move.
 		 *
-		 * @return {void}
-		 */
-		onDialogClose() {
-			if (this.busy) return
-			this.pendingMove = null
-			this.moveError = ''
-		},
-
-		/**
-		 * Perform a move through the configured transition.
-		 *
-		 * @param {object} request The move request built by `buildRequest()`.
-		 * @param {{comment?: string, result?: string}} input The confirm input.
+		 * @param {{stage: {id: string, label: string}, action: string}} request The move.
+		 * @param {object} [data] The collected transition inputs, when any.
 		 * @return {Promise<void>}
 		 */
-		async performMove(request, input) {
+		async performMove(request, data) {
 			this.busy = true
 			this.moveError = ''
 			try {
-				// RE-CHECK WHAT THE MOVE DECLARED IT NEEDS. The dialog holds its
-				// confirm button until a required comment is typed and a
-				// required result picked, but that guard lived only in the view,
-				// and a guard that lives only where the button is drawn is not
-				// enforced on the path that makes the request. Cheap here, and
-				// it means the rule is stated once where the send happens.
-				if (request.commentMode === 'required' && !String(input.comment || '').trim()) {
-					throw userError(this.tr('This move needs a comment'))
-				}
-				if (request.resultRequired && !input.result) {
-					throw userError(this.tr('This move needs a result'))
-				}
-				if (this.transition.kind === 'endpoint') {
-					await this.moveViaEndpoint(request, input)
+				if (this.lifecycleMode) {
+					await performTransition(this.recordId, request.action, data)
 				} else {
-					await this.moveViaField(request, input)
+					await this.moveViaField(request)
 				}
 				this.movedTo = request.stage.id
-				this.pendingMove = null
 				this.statusMessage = this.tr('Moved to {stage}', { stage: request.stage.label })
-				// Block the strip until the guard answer for the NEW stage
-				// arrives. `busy` is cleared in the finally below, while the
-				// endpoint engine holds the previous answer until its refetch
-				// lands, and in that window the old map rendered as if it were
-				// current. Fails closed: if the refetch never reports, the strip
-				// stays disabled rather than clickable against a stale map.
-				if (this.availabilityUsable) this.awaitingGuards = true
 				/**
 				 * @event moved The record moved to another stage.
-				 * @type {{stage: string, move: string}}
+				 * @type {{stage: string, action: string}}
 				 */
-				this.$emit('moved', { stage: request.stage.id, move: request.moveId })
-				// The page re-reads the record and every endpoint widget refetches,
-				// the availability answer for the new stage included.
+				this.$emit('moved', { stage: request.stage.id, action: request.action })
+				// The page re-reads the record and every endpoint widget
+				// refetches.
 				emitBus(PAGE_REFRESH_CHANNEL, {})
-				if (this.transition.kind === 'endpoint') this.refreshContextRecord()
+				this.refreshContextRecord()
+				// A MOVE INVALIDATES THE LIST THAT MADE IT. Awaiting the fresh
+				// list here, inside the try, is what keeps `busy` true across
+				// the whole window: until it lands, the list in hand describes
+				// the stage the record has just LEFT, and a click against it
+				// would POST a move the server has already closed. Fails
+				// closed, because `busy` only clears in the finally below.
+				if (this.lifecycleMode) await this.loadActions()
 			} catch (error) {
-				this.moveError = (error && error.userMessage) || this.tr('The move could not be made')
+				this.moveError = transitionError(error, this.tr('The move could not be made'))
 			} finally {
 				this.busy = false
 			}
 		},
 
 		/**
-		 * Send the move to the transition endpoint.
+		 * Read the moves OpenRegister allows from the record's current state.
 		 *
-		 * @param {object} request The move request.
-		 * @param {{comment?: string, result?: string}} input The confirm input.
 		 * @return {Promise<void>}
 		 */
-		async moveViaEndpoint(request, input) {
-			const tr = this.transition
-			const ctx = this.tokenCtx()
-			const target = resolveEndpointRequest({ url: tr.url }, ctx)
-			if (!target.url || target.blocked) throw userError(this.tr('The record is not loaded yet'))
-			const extra = (tr.body && typeof tr.body === 'object')
-				? dropOptionalUnresolvedDeep(resolveDeepTokens(tr.body, ctx))
-				: {}
-			if (hasUnresolvedDeepTokens(extra)) throw userError(this.tr('The record is not loaded yet'))
-			const body = { ...extra, [tr.bodyKey || 'stage']: request.moveId }
-			if (input.comment) body[tr.commentKey || 'comment'] = input.comment
-			if (input.result) body[tr.resultKey || 'result'] = input.result
-			const verb = String(tr.method || 'POST').toLowerCase()
-			const method = ['put', 'patch'].includes(verb) ? verb : 'post'
-			const [{ default: axios }, { generateUrl }] = await Promise.all([
-				import('@nextcloud/axios'),
-				import('@nextcloud/router'),
-			])
-			const url = /^https?:\/\//i.test(target.url) ? target.url : generateUrl(target.url)
-			try {
-				await axios[method](url, body)
-			} catch (error) {
-				const reason = refusalReason(error && error.response && error.response.data, tr.errorField)
-				throw userError(reason || this.tr('The move could not be made'))
+		async loadActions() {
+			if (!this.lifecycleMode || !this.recordId) {
+				this.actions = []
+				this.actionsLoaded = false
+				return
 			}
+			const id = this.recordId
+			const actions = await fetchAvailableActions(id)
+			// The record may have moved on while the read was in flight; the
+			// newer read owns the state.
+			if (String(this.recordId) !== String(id)) return
+			this.actions = actions
+			this.actionsLoaded = true
 		},
 
 		/**
 		 * Save the bound record with the stage field set to the target stage.
 		 *
-		 * @param {object} request The move request.
-		 * @param {{comment?: string, result?: string}} input The confirm input.
+		 * The `{ kind: 'field' }` opt-in, for a record whose schema declares no
+		 * lifecycle. Nothing validates this move but the schema itself, which
+		 * is why it is not the default.
+		 *
+		 * @param {{stage: {id: string}}} request The move request.
 		 * @return {Promise<void>}
 		 */
-		async moveViaField(request, input) {
-			const tr = this.transition
+		async moveViaField(request) {
 			const record = this.record
 			if (!record) throw userError(this.tr('The record is not loaded yet'))
 			const store = this.resolveStore()
@@ -948,10 +868,7 @@ export default {
 			if (id === '') {
 				throw userError(this.tr('Cannot move: this record has no id, so the move would create a duplicate instead of updating it.'))
 			}
-			const extra = {}
-			if (input.comment) extra[tr.commentKey || 'comment'] = input.comment
-			if (input.result) extra[tr.resultKey || 'result'] = input.result
-			const payload = stageSavePayload(record, id, this.content.currentField, request.stage.id, extra)
+			const payload = stageSavePayload(record, id, this.content.currentField, request.stage.id)
 			const saved = await store.saveObject(type, payload)
 			if (!saved) {
 				const error = typeof store.getError === 'function' ? store.getError(type) : null

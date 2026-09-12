@@ -28,26 +28,9 @@ const DOSSIQ_TIMELINE = {
 		descriptionField: 'description',
 		orderField: 'order',
 		finalField: 'isFinal',
-		resultsPath: 'resultTypes',
 	},
-	availability: {
-		url: '/apps/dossiq/api/case/@objectId/available-transitions',
-		path: 'transitions',
-		stageField: 'toStatus',
-		moveField: 'id',
-		allowedField: 'guardsPassed',
-		reasonField: 'failedGuards.0.failureMessage',
-	},
-	transition: {
-		kind: 'endpoint',
-		url: '/apps/dossiq/api/case/@objectId/transition',
-		method: 'POST',
-		bodyKey: 'transitionId',
-		commentKey: 'comment',
-		resultKey: 'resultTypeId',
-		errorField: 'failedGuards.0.failureMessage',
-	},
-	confirm: 'always',
+	transition: { kind: 'lifecycle' },
+	unreachableReason: 'Not possible from the current stage',
 }
 
 /**
@@ -73,7 +56,10 @@ describe('the stages registry entry', () => {
 	})
 
 	it('seeds a new placement with a usable default', () => {
-		expect(getDefaultContent('stages')).toMatchObject({ currentField: 'status', transition: { kind: 'field' } })
+		// THE LIFECYCLE IS THE DEFAULT. A field write has no server deciding
+		// what is reachable and nothing re-validating the move, so it is an
+		// opt-in rather than what an app gets by not choosing.
+		expect(getDefaultContent('stages')).toMatchObject({ currentField: 'status', transition: { kind: 'lifecycle' } })
 	})
 })
 
@@ -86,10 +72,10 @@ describe('CnStagesWidgetForm', () => {
 	})
 
 	it('keeps keys it does not show', () => {
-		const w = mountForm({ ...DOSSIQ_TIMELINE, availability: { ...DOSSIQ_TIMELINE.availability, unlistedReason: 'Not from here' } })
+		const w = mountForm({ ...DOSSIQ_TIMELINE, stagesEndpoint: { ...DOSSIQ_TIMELINE.stagesEndpoint, idField: 'uuid' } })
 		w.vm.setPath('size', 'small')
 
-		expect(w.emitted('update:content').at(-1)[0].availability.unlistedReason).toBe('Not from here')
+		expect(w.emitted('update:content').at(-1)[0].stagesEndpoint.idField).toBe('uuid')
 	})
 
 	it('writes only the chosen stage source', () => {
@@ -111,22 +97,39 @@ describe('CnStagesWidgetForm', () => {
 		expect(w.emitted('update:content').at(-1)[0].stagesSource.filter).toEqual({ caseType: '@object.caseType' })
 	})
 
-	it('drops the transition, guards and confirm for a read-only strip', () => {
+	it('drops the transition and its text for a read-only strip', () => {
 		const w = mountForm(DOSSIQ_TIMELINE)
 		w.vm.setTransitionKind('none')
 
 		const emitted = w.emitted('update:content').at(-1)[0]
 		expect(emitted.transition).toBeUndefined()
-		expect(emitted.availability).toBeUndefined()
-		expect(emitted.confirm).toBeUndefined()
+		expect(emitted.unreachableReason).toBeUndefined()
+		expect(emitted.stagesEndpoint).toBeDefined()
+	})
+
+	// The field path never marks a stage unreachable, so the words for one
+	// would never show.
+	it('drops the unreachable text on the field opt-in', () => {
+		const w = mountForm(DOSSIQ_TIMELINE)
+		w.vm.setTransitionKind('field')
+
+		const emitted = w.emitted('update:content').at(-1)[0]
+		expect(emitted.transition).toEqual({ kind: 'field' })
+		expect(emitted.unreachableReason).toBeUndefined()
+	})
+
+	// A TYPO MUST NOT SELECT A MODE NOBODY ASKED FOR, in the form as in the
+	// widget: an unknown kind reads as read only.
+	it('opens an unknown transition kind as read only', () => {
+		const w = mountForm({ ...DOSSIQ_TIMELINE, transition: { kind: 'lifecyle' } })
+		expect(w.vm.transitionKind).toBe('none')
 	})
 
 	it('validates the required keys', () => {
-		const w = mountForm({ currentField: '', stagesEndpoint: { url: '' }, transition: { kind: 'endpoint' } })
+		const w = mountForm({ currentField: '', stagesEndpoint: { url: '' }, transition: { kind: 'lifecycle' } })
 		expect(w.vm.validate()).toEqual([
 			'The property holding the current stage is required',
 			'An address for the stages is required',
-			'An address for the transition is required',
 		])
 		expect(mountForm(DOSSIQ_TIMELINE).vm.validate()).toEqual([])
 	})

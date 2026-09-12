@@ -98,18 +98,11 @@
 					placeholder="description"
 					@update:model-value="setPath('stagesEndpoint.descriptionField', $event)" />
 			</div>
-			<div class="cn-stages-form__row">
-				<NcTextField
-					:model-value="draft.stagesEndpoint.finalField || ''"
-					:label="t('nextcloud-vue', 'Closing-stage property')"
-					placeholder="isFinal"
-					@update:model-value="setPath('stagesEndpoint.finalField', $event)" />
-				<NcTextField
-					:model-value="draft.stagesEndpoint.resultsPath || ''"
-					:label="t('nextcloud-vue', 'Results in the response')"
-					placeholder="resultTypes"
-					@update:model-value="setPath('stagesEndpoint.resultsPath', $event)" />
-			</div>
+			<NcTextField
+				:model-value="draft.stagesEndpoint.finalField || ''"
+				:label="t('nextcloud-vue', 'Closing-stage property')"
+				placeholder="isFinal"
+				@update:model-value="setPath('stagesEndpoint.finalField', $event)" />
 			<p class="cn-stages-form__hint">
 				{{ t('nextcloud-vue', 'Use @objectId or @object.<property> in the address to name this record.') }}
 			</p>
@@ -162,7 +155,7 @@
 		</h4>
 		<NcSelect
 			:model-value="transitionKind"
-			:options="['none', 'field', 'endpoint']"
+			:options="['lifecycle', 'field', 'none']"
 			:input-label="t('nextcloud-vue', 'Clicking a stage')"
 			:clearable="false"
 			@update:model-value="setTransitionKind">
@@ -174,108 +167,19 @@
 			</template>
 		</NcSelect>
 
-		<template v-if="transitionKind === 'endpoint'">
-			<div class="cn-stages-form__row">
-				<NcTextField
-					:model-value="draft.transition.url || ''"
-					:label="t('nextcloud-vue', 'Address')"
-					placeholder="/apps/myapp/api/case/@objectId/transition"
-					@update:model-value="setPath('transition.url', $event)" />
-				<NcSelect
-					:model-value="draft.transition.method || 'POST'"
-					:options="['POST', 'PUT', 'PATCH']"
-					:input-label="t('nextcloud-vue', 'Method')"
-					:clearable="false"
-					@update:model-value="setPath('transition.method', $event)" />
-			</div>
-			<div class="cn-stages-form__row">
-				<NcTextField
-					:model-value="draft.transition.bodyKey || ''"
-					:label="t('nextcloud-vue', 'Send the stage as')"
-					placeholder="stage"
-					@update:model-value="setPath('transition.bodyKey', $event)" />
-				<NcTextField
-					:model-value="draft.transition.commentKey || ''"
-					:label="t('nextcloud-vue', 'Send the comment as')"
-					placeholder="comment"
-					@update:model-value="setPath('transition.commentKey', $event)" />
-				<NcTextField
-					:model-value="draft.transition.resultKey || ''"
-					:label="t('nextcloud-vue', 'Send the result as')"
-					placeholder="result"
-					@update:model-value="setPath('transition.resultKey', $event)" />
-			</div>
-		</template>
+		<p v-if="transitionKind === 'lifecycle'" class="cn-stages-form__hint">
+			{{ t('nextcloud-vue', 'Open Register decides which stages can be reached and checks every move. Nothing to configure here.') }}
+		</p>
+		<p v-else-if="transitionKind === 'field'" class="cn-stages-form__hint">
+			{{ t('nextcloud-vue', 'For a record whose schema has no lifecycle. Every stage is offered and nothing checks the move, so use it only where that is what you want.') }}
+		</p>
 
-		<NcSelect
-			v-if="transitionKind !== 'none'"
-			:model-value="draft.confirm === 'always' ? 'always' : 'declared'"
-			:options="['declared', 'always']"
-			:input-label="t('nextcloud-vue', 'Ask to confirm')"
-			:clearable="false"
-			@update:model-value="setPath('confirm', $event)">
-			<template #option="{ label: id }">
-				{{ confirmLabel(id) }}
-			</template>
-			<template #selected-option="{ label: id }">
-				{{ confirmLabel(id) }}
-			</template>
-		</NcSelect>
-
-		<!-- Which stages can be reached, and why not. -->
-		<template v-if="transitionKind !== 'none'">
-			<h4 class="cn-stages-form__section">
-				{{ t('nextcloud-vue', 'Guards (optional)') }}
-			</h4>
-			<NcTextField
-				:model-value="draft.availability.url || ''"
-				:label="t('nextcloud-vue', 'Address that lists the reachable stages')"
-				placeholder="/apps/myapp/api/case/@objectId/available-transitions"
-				@update:model-value="setPath('availability.url', $event)" />
-			<template v-if="draft.availability.url">
-				<div class="cn-stages-form__row">
-					<NcTextField
-						:model-value="draft.availability.path || ''"
-						:label="t('nextcloud-vue', 'List in the response')"
-						placeholder="transitions"
-						@update:model-value="setPath('availability.path', $event)" />
-					<NcTextField
-						:model-value="draft.availability.stageField || ''"
-						:label="t('nextcloud-vue', 'Target stage property')"
-						placeholder="stage"
-						@update:model-value="setPath('availability.stageField', $event)" />
-					<NcTextField
-						:model-value="draft.availability.moveField || ''"
-						:label="t('nextcloud-vue', 'Move id property')"
-						placeholder="id"
-						@update:model-value="setPath('availability.moveField', $event)" />
-				</div>
-				<div class="cn-stages-form__row">
-					<NcTextField
-						:model-value="draft.availability.allowedField || ''"
-						:label="t('nextcloud-vue', 'Allowed property')"
-						placeholder="allowed"
-						@update:model-value="setPath('availability.allowedField', $event)" />
-					<NcTextField
-						:model-value="draft.availability.reasonField || ''"
-						:label="t('nextcloud-vue', 'Reason property')"
-						placeholder="reason"
-						@update:model-value="setPath('availability.reasonField', $event)" />
-				</div>
-				<div class="cn-stages-form__row">
-					<NcTextField
-						:model-value="draft.availability.commentField || ''"
-						:label="t('nextcloud-vue', 'Needs a comment property')"
-						placeholder="requiresComment"
-						@update:model-value="setPath('availability.commentField', $event)" />
-					<NcTextField
-						:model-value="draft.availability.resultField || ''"
-						:label="t('nextcloud-vue', 'Needs a result property')"
-						placeholder="requiresResult"
-						@update:model-value="setPath('availability.resultField', $event)" />
-				</div>
-			</template>
-		</template>
+		<NcTextField
+			v-if="transitionKind === 'lifecycle'"
+			:model-value="draft.unreachableReason || ''"
+			:label="t('nextcloud-vue', 'Text for a stage that cannot be reached (optional)')"
+			:placeholder="t('nextcloud-vue', 'Not reachable from the current stage')"
+			@update:model-value="setPath('unreachableReason', $event)" />
 	</div>
 </template>
 
@@ -296,7 +200,9 @@ const DEFAULT_CONTENT = Object.freeze({
 	orientation: 'horizontal',
 	size: 'medium',
 	stagesEndpoint: { url: '', path: '' },
-	transition: { kind: 'field' },
+	// The LIFECYCLE, not a record write. Open Register decides what is
+	// reachable and re-validates the move; a field write has neither.
+	transition: { kind: 'lifecycle' },
 })
 
 /**
@@ -315,14 +221,19 @@ function clone(value) {
  *
  * Edits the property holding the current stage, where the stage list comes
  * from (an app endpoint or an OpenRegister query), what clicking a stage
- * does (save the record's stage field, or call a transition endpoint),
- * whether to always confirm, and the optional availability endpoint whose
- * answer gates each move.
+ * does: move the record through Open Register's lifecycle (the default),
+ * write the stage onto the record for a schema that has no lifecycle, or
+ * nothing at all.
+ *
+ * There is no guard section, because there is no guard to configure. Open
+ * Register answers which stages are reachable and re-validates every move, so
+ * the only thing an app may say here is the words to show beside a stage the
+ * record cannot reach.
  *
  * Emits `update:content` on every change. Keys the form does not show pass
  * through unchanged, and empty text fields are left out rather than written
  * as empty strings. `validate()` requires the current-stage property, a
- * stage source, and a url for an endpoint transition. Used by both
+ * stage source. Used by both
  * `CnAddWidgetModal` and the cog `CnWidgetStyleEditorModal`.
  */
 export default {
@@ -371,7 +282,6 @@ export default {
 		const draft = clone(this.editingWidget?.content || this.value || DEFAULT_CONTENT)
 		draft.stagesEndpoint = draft.stagesEndpoint || {}
 		draft.stagesSource = draft.stagesSource || {}
-		draft.availability = draft.availability || {}
 		draft.transition = draft.transition || {}
 		return {
 			draft,
@@ -384,11 +294,14 @@ export default {
 		/**
 		 * The transition kind shown in the picker.
 		 *
-		 * @return {'none'|'field'|'endpoint'} The kind.
+		 * An unrecognised kind reads as `none`, matching the widget: a typo
+		 * must not silently select a mode nobody asked for.
+		 *
+		 * @return {'none'|'field'|'lifecycle'} The kind.
 		 */
 		transitionKind() {
 			const kind = this.draft.transition.kind
-			return (kind === 'field' || kind === 'endpoint') ? kind : 'none'
+			return (kind === 'field' || kind === 'lifecycle') ? kind : 'none'
 		},
 
 		/**
@@ -417,9 +330,11 @@ export default {
 			else delete out.stagesEndpoint
 			if (this.transitionKind === 'none') {
 				delete out.transition
-				delete out.availability
-				delete out.confirm
+				delete out.unreachableReason
 			}
+			// The reachable-stage text belongs to the lifecycle path; the field
+			// path never marks a stage unreachable, so it would never show.
+			if (this.transitionKind === 'field') delete out.unreachableReason
 			return out
 		},
 	},
@@ -460,7 +375,7 @@ export default {
 		/**
 		 * Switch what clicking a stage does.
 		 *
-		 * @param {'none'|'field'|'endpoint'} kind The chosen transition kind.
+		 * @param {'none'|'field'|'lifecycle'} kind The chosen transition kind.
 		 * @return {void}
 		 */
 		setTransitionKind(kind) {
@@ -517,19 +432,9 @@ export default {
 		 * @return {string} The label.
 		 */
 		transitionKindLabel(id) {
+			if (id === 'lifecycle') return t('nextcloud-vue', 'Moves the record through its lifecycle')
 			if (id === 'field') return t('nextcloud-vue', 'Saves the stage on the record')
-			if (id === 'endpoint') return t('nextcloud-vue', 'Calls a transition endpoint')
 			return t('nextcloud-vue', 'Does nothing (read only)')
-		},
-
-		/**
-		 * Human label for a confirm mode.
-		 *
-		 * @param {string} id The confirm mode.
-		 * @return {string} The label.
-		 */
-		confirmLabel(id) {
-			return id === 'always' ? t('nextcloud-vue', 'Before every move') : t('nextcloud-vue', 'Only when a move needs input')
 		},
 
 		/**
@@ -556,9 +461,6 @@ export default {
 			}
 			if (this.stagesKind === 'source' && (!this.draft.stagesSource.register || !this.draft.stagesSource.schema)) {
 				errors.push(t('nextcloud-vue', 'A register and schema for the stages are required'))
-			}
-			if (this.transitionKind === 'endpoint' && !this.draft.transition.url) {
-				errors.push(t('nextcloud-vue', 'An address for the transition is required'))
 			}
 			return errors
 		},
