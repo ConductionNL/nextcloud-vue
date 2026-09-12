@@ -44,7 +44,7 @@
     "path-browserify": "^1.0.1",
     "pinia": "^2.1.7",
     "url": "^0.11.4",
-    "vue": "^2.7.16",
+    "vue": "^3.0.0",
     "vue-apexcharts": "~1.6.2",
     "vue-codemirror6": "^1.4.3",
     "vue-demi": "^0.14.10",
@@ -54,7 +54,7 @@
     "vue-styleguidist": "^4.72.4",
     "vue-template-compiler": "^2.7.16",
     "webpack": "^4.47.0",
-    "webpack-dev-server": "^5.2.6"
+    "webpack-dev-server": "^6.0.0"
   },
   "devDependencies": {
     "@babel/plugin-proposal-nullish-coalescing-operator": "^7.18.6",
