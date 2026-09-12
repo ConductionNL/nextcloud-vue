@@ -46,6 +46,7 @@ jest.mock('@nextcloud/auth', () => ({
 
 import { showError } from '@nextcloud/dialogs'
 import { mount } from '@vue/test-utils'
+import { stubLocationMethod } from '../support/stubLocation.js'
 
 const CnTasksWidget = require('../../src/components/CnTasksWidget/CnTasksWidget.vue').default
 
@@ -226,15 +227,13 @@ describe('CnTasksWidget', () => {
 		})
 
 		it('falls back to the openregister deep link without a route', () => {
-			const original = window.location
-			delete window.location
-			window.location = { assign: jest.fn(), href: original.href, pathname: original.pathname }
+			const assign = stubLocationMethod('assign')
 			try {
 				const w = mountWidget({ payload: { results: [task()], total: 1 } })
 				w.vm.onRowClick(task({ uuid: 'task-4' }))
-				expect(window.location.assign.mock.calls[0][0]).toContain('/apps/openregister/flow-tasks/task-4')
+				expect(assign.mock.calls[0][0]).toContain('/apps/openregister/flow-tasks/task-4')
 			} finally {
-				window.location = original
+				assign.mockRestore()
 			}
 		})
 	})

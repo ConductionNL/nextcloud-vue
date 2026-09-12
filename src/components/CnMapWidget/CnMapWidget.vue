@@ -19,9 +19,11 @@
       (falling back to `latField` / `lngField` on the object itself).
       Objects with no usable location are skipped, not plotted at (0, 0).
 
-  `leaflet.markercluster` lazy-loads only when `clustering: true`
-  (or `markers.clustering: true`) — consumers without clustering
-  do NOT pay the cluster bundle cost.
+  `leaflet.markercluster`'s JS lazy-loads only when `clustering: true`
+  (or `markers.clustering: true`), so a consumer without clustering does
+  not pay the cluster bundle cost. Its two stylesheets are imported
+  eagerly with Leaflet's own, because a cluster with no CSS paints as a
+  bare number in the corner of the map.
 
   This component is the page's primitive — `CnMapPage` wraps it for
   manifest-driven `type: "map"` routes. Apps that want to embed a map
@@ -80,6 +82,13 @@ import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurif
 // Import it here so the widget is self-styling for every consumer rather
 // than relying on another component (e.g. a location picker) to pull it in.
 import 'leaflet/dist/leaflet.css'
+// The cluster plugin's JS stays lazy, but its CSS cannot be: a cluster is a
+// `<div class="marker-cluster">` with a count in it, and with no stylesheet it
+// paints as a bare number in the top-left corner of the map instead of a
+// bubble on the cluster's position. Two small files, ~2 KB together, and
+// `leaflet.markercluster` is a declared dependency either way.
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
 
@@ -748,14 +757,47 @@ export default {
 
 			if (this.clusteringEnabled) {
 				try {
-					// `leaflet.markercluster` is a soft optional dep — declared in our
-					// `dependencies` so npm installs it for direct consumers, but the
-					// `webpackIgnore: true` magic comment stops the bundler from trying
-					// to resolve the literal string against `node_modules/@conduction/
-					// nextcloud-vue/dist/` in downstream apps (which would fail with
-					// "Module not found"). The runtime catch handles the case where the
-					// dep genuinely isn't installed.
-					await import(/* webpackIgnore: true */ 'leaflet.markercluster')
+					// TWO THINGS HAVE TO BE TRUE BEFORE THIS PLUGIN CAN RUN, AND
+					// NEITHER OF THEM WAS.
+					//
+					// 1. The import has to reach a file. This line used to carry a
+					//    `webpackIgnore: true` magic comment, on the stated
+					//    reasoning that it stopped a downstream bundler resolving
+					//    the specifier against
+					//    `node_modules/@conduction/nextcloud-vue/dist/` and failing
+					//    with "Module not found". That reasoning does not hold, and
+					//    the marker is what broke it. `webpackIgnore` does not mean
+					//    "skip the resolution"; it means "leave this import for the
+					//    BROWSER", and a browser on a Nextcloud page cannot resolve
+					//    a module specifier. Rollup had already rewritten the
+					//    specifier in the published ESM build to
+					//    `../../node_modules/leaflet.markercluster/dist/
+					//    leaflet.markercluster-src.js` and emitted that file inside
+					//    the package, so every consumer requested
+					//    `node_modules/leaflet.markercluster/...` off the page URL
+					//    and got a 404. Clustering has never run in any app.
+					//    Without the marker, webpack resolves the relative path
+					//    against the file the package actually ships and emits it
+					//    as a lazy chunk, so the import stays lazy and clustering
+					//    costs nothing to a consumer that does not ask for it.
+					//
+					// 2. The plugin has to find Leaflet. leaflet.markercluster is a
+					//    CLASSIC Leaflet plugin: it exports nothing and instead
+					//    writes `L.MarkerClusterGroup` onto the GLOBAL `L`. This
+					//    widget imports Leaflet as an ES module and keeps it on
+					//    `this.L`, so there was no global for the plugin to attach
+					//    to, and even a plugin that loaded would have left
+					//    `L.markerClusterGroup` undefined. Publishing our own
+					//    instance on `window.L` first is what makes the plugin
+					//    augment the same object this component then reads.
+					//
+					// An existing `window.L` is left alone: if the page already has
+					// Leaflet, the plugin must extend THAT one, and overwriting it
+					// would break whatever put it there.
+					if (typeof window !== 'undefined' && !window.L) {
+						window.L = L
+					}
+					await import('leaflet.markercluster')
 					if (typeof L.markerClusterGroup === 'function') {
 						this.clusterGroup = L.markerClusterGroup()
 						this.clusterGroup.addLayer(layer)

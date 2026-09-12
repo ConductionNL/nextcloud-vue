@@ -40,13 +40,29 @@ The read goes through the shared [`useEndpointSource`](../utilities/composables/
 
 ## Which stages can be reached
 
-`GET /apps/openregister/api/objects/{id}/available-actions`, the same endpoint `CnLifecycleActions` reads. It answers `{ actions: [{ action, to, requires, description, inputs? }] }` already filtered to the record's current state, so a stage is reachable exactly when an action leads to it.
+`GET /apps/openregister/api/objects/{id}/available-actions`, the same endpoint `CnLifecycleActions` reads. It answers `{ actions: [{ action, to, requires, description, inputs?, blocked? }] }` already filtered to the record's current state, so a stage is reachable exactly when an action leads to it.
 
 That is the whole guard, and it is why there is nothing here to configure. There is no `allowed` flag to read, no field mapping to get backwards, and no config that can remove the guard: a stage no action reaches is disabled because nothing said it was reachable. It fails closed by construction rather than by a check somebody has to remember to write.
 
-`description` and `requires` from a reachable action become the note beside the stage, so the person can see what the move does before making it. Neither is a gate: OpenRegister has already filtered the list, and it re-validates the move.
+`description` from a reachable action becomes the note beside the stage, so the person can see what the move does before making it. It is not a gate: OpenRegister has already filtered the list, and it re-validates the move.
+
+`requires` is never shown. OpenRegister copies it verbatim out of the schema annotation, and what apps write there is the dependency-injection tag of the guard class, so putting it beside a stage printed `OCA\Learniq\Lifecycle\AdmissionsDecisionGuard` at somebody trying to close a case. A move that carries a guard and no `description` now says nothing at all, which is the honest answer and leaves no empty line under the stage.
 
 A stage no action reaches is dimmed and carries its reason on screen, not only for a screen reader, and clicking it repeats that reason in a live region under the strip. A control that silently does nothing reads as broken, and a blocked stage that looks the same as one further down the process tells nobody anything. `unreachableReason` replaces the default wording when an app has better words for its own process.
+
+### A move that is offered but refused
+
+An action may answer `blocked: true`, with `description` as the reason. It is the third case, and the three are three different claims:
+
+| The answer | What it means | What the person sees |
+| --- | --- | --- |
+| The action is in the list | The record can move there now | The stage is clickable, with the move's `description` beside it |
+| The action is in the list with `blocked: true` | The move exists, a guard refuses it right now | The stage is dimmed, carrying the guard's own reason, and a click repeats it below the strip |
+| No action reaches the stage | Nothing moves the record there from here | The stage is dimmed, carrying `unreachableReason` or "Not reachable from the current stage" |
+
+Without `blocked`, an app's guard had only two answers to choose between, so "the decision document is missing" arrived as the generic "not reachable from the current stage": a claim about the process, where the truth was about this one record. A blocked stage keeps its place in the strip and only loses its click, and no path through the widget POSTs a move a guard has already refused. A guard that blocks without saying why falls back to "This move is not possible right now", because a dimmed stage that explains nothing is what the visible reason exists to prevent.
+
+`CnLifecycleActions` reads the same endpoint and ignores the key: it maps `action`, `to`, `description` and `inputs` by name and passes nothing else through, so a blocked action still renders as a button there and the server refuses the POST with its own sentence.
 
 ### When the guard cannot be read
 

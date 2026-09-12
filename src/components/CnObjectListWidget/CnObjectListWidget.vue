@@ -972,6 +972,19 @@ export default {
 			this.page = 1
 			this.fetchRows()
 		},
+
+		// The create-dialog schema is cached per instance, and an instance can
+		// be retargeted (CnRelatedCollections keys its children by index, so a
+		// reordered entry reuses the component). A schema resolved for the OLD
+		// register is exactly the wrong-app schema the register scoping above
+		// exists to prevent — drop it so the next open resolves it again.
+		'content.register': function() {
+			this.forgetCreateSchema()
+		},
+
+		'content.schema': function() {
+			this.forgetCreateSchema()
+		},
 	},
 
 	mounted() {
@@ -1134,6 +1147,17 @@ export default {
 		},
 
 		/**
+		 * Drop the cached create-dialog schema (and close the dialog if it is
+		 * open) when the list points at another register or schema.
+		 *
+		 * @return {void}
+		 */
+		forgetCreateSchema() {
+			this.createSchema = null
+			this.showCreate = false
+		},
+
+		/**
 		 * Open the create dialog for the list's target schema. PUBLIC — the
 		 * host card's Actions-menu "Add" entry calls this through a ref, the
 		 * widget's own footer button calls it directly (ADR-062: both
@@ -1152,8 +1176,17 @@ export default {
 						import('@nextcloud/axios'),
 						import('@nextcloud/router'),
 					])
+					// A slug is NOT a namespace (same rule as useObjectStore.fetchSchema,
+					// #725): on an instance where two apps both own a `page` schema the
+					// bare endpoint resolves instance-wide and serves the OTHER app's
+					// schema into this form — the dialog then asks for fields the
+					// register-scoped POST does not know and refuses the ones it
+					// requires (portaliq + opencatalogi, WOO-564: a 400 on every
+					// "Add page"/"Add menu"). Name the list's own register whenever it
+					// has one; a backend that does not know the parameter ignores it.
 					const url = generateUrl('/apps/openregister/api/schemas/{sch}', { sch: c.schema })
-					const res = await axios.get(url)
+					const params = c.register ? { register: c.register } : undefined
+					const res = await axios.get(url, params ? { params } : undefined)
 					this.createSchema = (res && res.data) || null
 				}
 				this.showCreate = true

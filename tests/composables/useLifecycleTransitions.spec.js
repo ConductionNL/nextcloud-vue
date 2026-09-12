@@ -21,6 +21,7 @@ import {
 	actionNote,
 	actionsByTarget,
 	declaresInputs,
+	isBlockedAction,
 	performTransition,
 	readAvailableActions,
 	transitionError,
@@ -154,6 +155,45 @@ describe('actionsByTarget', () => {
 		expect(actionsByTarget([{ action: 'x' }, { action: 'y', to: '' }, null]).size).toBe(0)
 		expect(actionsByTarget(null).size).toBe(0)
 	})
+
+	// AN AVAILABLE MOVE BEATS A BLOCKED ONE, whichever came first. The map
+	// answers whether the record can reach the stage, and taking the first
+	// entry regardless would let a blocked duplicate disable a stage the record
+	// can actually move to: a refusal nobody wrote.
+	it('prefers an available move over a blocked one reaching the same stage', () => {
+		expect(actionsByTarget([
+			{ action: 'blockedOne', to: 'open', blocked: true },
+			{ action: 'openOne', to: 'open' },
+		]).get('open').action).toBe('openOne')
+
+		expect(actionsByTarget([
+			{ action: 'openOne', to: 'open' },
+			{ action: 'blockedOne', to: 'open', blocked: true },
+		]).get('open').action).toBe('openOne')
+	})
+
+	it('keeps the first of two blocked moves reaching one stage', () => {
+		expect(actionsByTarget([
+			{ action: 'first', to: 'open', blocked: true },
+			{ action: 'second', to: 'open', blocked: true },
+		]).get('open').action).toBe('first')
+	})
+})
+
+describe('isBlockedAction', () => {
+	it('is true only for an action that says so literally', () => {
+		expect(isBlockedAction({ action: 'close', blocked: true })).toBe(true)
+		expect(isBlockedAction({ action: 'close', blocked: false })).toBe(false)
+		expect(isBlockedAction({ action: 'close' })).toBe(false)
+		expect(isBlockedAction(null)).toBe(false)
+	})
+
+	// A MOVE THAT SAYS NOTHING IS AVAILABLE. Every action predates this key, so
+	// a truthy-but-not-true value must not start refusing moves that work.
+	it('does not block on a value that is merely truthy', () => {
+		expect(isBlockedAction({ action: 'close', blocked: 'yes' })).toBe(false)
+		expect(isBlockedAction({ action: 'close', blocked: 1 })).toBe(false)
+	})
 })
 
 describe('declaresInputs', () => {
@@ -166,15 +206,43 @@ describe('declaresInputs', () => {
 })
 
 describe('actionNote', () => {
-	it('reads the description and what the move requires', () => {
+	it('reads the description, which is the only part written for a person', () => {
 		expect(actionNote({ description: 'Close the case.' })).toBe('Close the case.')
-		expect(actionNote({ requires: 'A decision document.' })).toBe('A decision document.')
-		expect(actionNote({ description: 'Close the case.', requires: ['A document.', 'A result.'] }))
-			.toBe('Close the case. A document. A result.')
+		expect(actionNote({ description: '  Close the case.  ' })).toBe('Close the case.')
+	})
+
+	// REQUIRES IS A GUARD ID, NOT COPY. OpenRegister copies it verbatim out of
+	// the schema annotation, and what apps write there is the class's
+	// dependency-injection tag, so this note used to end in a PHP class name on
+	// screen beside a stage. 366 transitions across the fleet declare one.
+	it('never shows what the move requires, because that is a class name', () => {
+		expect(actionNote({
+			action: 'completeIntake',
+			to: 'enrolled',
+			description: 'Admit the applicant.',
+			requires: 'OCA\\Learniq\\Lifecycle\\AdmissionsDecisionGuard',
+		})).toBe('Admit the applicant.')
+
+		expect(actionNote({
+			description: 'Close the case.',
+			requires: ['OCA\\Dossiq\\Lifecycle\\VoorstelSubmitGuard', 'OCA\\Dossiq\\Lifecycle\\BezwaarDeadlineGuard'],
+		})).toBe('Close the case.')
+	})
+
+	// 107 of those 366 declare no description at all, so the class name was not
+	// an ugly suffix there, it was the WHOLE note. Saying nothing is the honest
+	// answer, and the widget renders no element for an empty note.
+	it('says nothing for a move whose only annotation is its guard', () => {
+		expect(actionNote({
+			action: 'enable',
+			to: 'enabled',
+			requires: 'OCA\\Hermiq\\Lifecycle\\AiFeatureDpoAckGuard',
+		})).toBe('')
 	})
 
 	it('says nothing when the action says nothing', () => {
 		expect(actionNote({ action: 'close', to: 'closed', requires: null, description: null })).toBe('')
+		expect(actionNote({ action: 'close', to: 'closed', description: '   ' })).toBe('')
 		expect(actionNote(null)).toBe('')
 	})
 })

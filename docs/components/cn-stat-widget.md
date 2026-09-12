@@ -123,6 +123,54 @@ The badge takes its colour from the first rule that names one: an `overrides` ma
 
 `emptyText` replaces the dash for a value that is empty or that the lookup could not resolve. It is translated like `label` and `caption`. Without it the raw value stays visible, because a blank tile says nothing at all.
 
+## Counting down to a date (`display: countdown`)
+
+`display: "countdown"` reads the tile's value as a date and renders the time remaining, so a deadline is a configured KPI tile like any other rather than a component an app writes by hand. It reads whatever the tile already resolves: a property off the record through `objectField`, or a payload field through `endpointSource` + `valueField`.
+
+```json
+{
+  "type": "stat",
+  "content": {
+    "label": "Deadline",
+    "icon": "CalendarClock",
+    "display": "countdown",
+    "objectField": "dueDate",
+    "countdown": {
+      "unit": "days",
+      "warnAt": 14,
+      "dangerAt": 5,
+      "pastLabel": "Overdue by {n} days",
+      "emptyText": "No deadline"
+    }
+  }
+}
+```
+
+| Key | What it does |
+|-----|--------------|
+| `unit` | `days` is the only unit, and the tile says so rather than pretending otherwise. Any other value is read as days. |
+| `warnAt` | The tile turns warning at or below this many days left. Inclusive. |
+| `dangerAt` | The tile turns error at or below this many days left. Inclusive, and it wins over `warnAt`. |
+| `futureLabel` | Wording for a date still to come. `{n}` is the number of days. Defaults to `1 day left` / `{n} days left`. |
+| `todayLabel` | Wording for a date due today. Defaults to `Today`. |
+| `pastLabel` | Wording for a date that has passed. `{n}` is how many days past. Defaults to `Overdue by 1 day` / `Overdue by {n} days`. |
+| `emptyText` | Wording for an absent or unreadable date. Falls back to the top-level `emptyText`, then to the dash. |
+
+Every one of these is translated the way `label` and `caption` are, so a wording written in a manifest still reaches the reader in their own language.
+
+Six things this mode decides on your behalf, each of them a way a deadline tile goes wrong:
+
+- **A date that has passed is not a negative number.** It reads as overdue in its own words, and it is the error colour whether or not `dangerAt` is set. `-3 days left` is the failure the mode exists to prevent.
+- **Today is zero.** Not one, which would claim a day that is already being spent, and not minus one, which would call a deadline that has not passed overdue. Zero renders `todayLabel`, so a reader sees `Today` rather than `0 days left`.
+- **A date the tile cannot read renders `emptyText`.** Absent, empty, and unparseable are the same answer, and none of them is `NaN` or `Invalid Date`. With no `emptyText` anywhere the tile keeps the dash.
+- **Both thresholds include their own day, and `dangerAt` wins.** At exactly 5 days with `dangerAt: 5` the tile is error, not warning, even though `warnAt: 14` also matches.
+- **`overrides` still win.** A suspended case shows its override label and its override colour, not its deadline colour, exactly as it does in badge mode. The full order is: an `overrides` match, a `variantWhen` rule, the countdown threshold, the limit warning, the resolved row, the static `variant`.
+- **Days are counted between calendar days, not as elapsed milliseconds.** A deadline is a day on a calendar, not an instant. Subtracting timestamps would make a deadline at 23:00 tonight and one at 01:00 tomorrow two hours apart while 09:00 tomorrow is a whole day, so the same calendar distance would render as two different answers because of a time somebody happened to type. Both ends are collapsed onto the local calendar day they fall on and then subtracted.
+
+  A bare `YYYY-MM-DD`, which is how OpenRegister stores a date property, is read as the local day it names. `new Date("2026-09-13")` is specified to parse a date-only string as UTC midnight, so west of Greenwich it lands on the 12th and every countdown built on it would be a day short.
+
+The day count is taken when the tile renders. A tile left open across midnight keeps the number it was drawn with until something else on the page re-renders it.
+
 ## Recolouring from the record (`overrides`)
 
 `overrides` tests the bound record and replaces the label, the colour and the icon of the tile. The first match wins.
@@ -141,12 +189,13 @@ The badge takes its colour from the first rule that names one: an `overrides` ma
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | The KPI config blob (`label`, `icon`, `format`, `source` or `endpointSource` + `valueField`/`limitField`/`dateRange`/`previousField`/`deltaField`/`variantWhen`/`clickRoute`, …). |
+| `content` | `object` | `{}` | The KPI config blob (`label`, `icon`, `format`, `source` or `endpointSource` + `valueField`/`limitField`/`dateRange`/`previousField`/`deltaField`/`variantWhen`/`clickRoute`/`display`/`countdown`, …). |
 | `translate` | `function` | `null` | Translate function for the `label` / `caption` source strings. Falls back to the injected `cnTranslate` (identity by default). |
 
 ## Notes
 
 - **An unresolvable reference shows the raw uuid, not a blank.** A blank KPI says nothing at all, so an id the store cannot resolve stays visible, the same way `CnFkResolveCell` behaves.
+- **A countdown reads calendar days, so the answer never depends on the time of day somebody typed.** The reasoning, and the UTC-midnight parse it avoids, are in the `calendarDay` docblock in `CnStatWidget.vue`.
 
 
 - `source` supports the OpenRegister-backed kinds (`metric: 'count' \| 'sum' \| 'avg' \| …`) and a legacy `{ kind: 'endpoint', url }` form for arbitrary endpoints (uncached; prefer `endpointSource`).
