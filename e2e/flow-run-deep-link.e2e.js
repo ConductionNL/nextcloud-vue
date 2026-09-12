@@ -169,6 +169,60 @@ test.describe('the run deep link, all the way through', () => {
 		await expect(page.locator('[data-testid="flow-message-viewing-version"]')).toContainText(String(RUN_VERSION))
 	})
 
+	/**
+	 * ⚠️ THE LOADING WINDOW, IN A BROWSER. The flow list is held open, so every
+	 * assertion here is taken while the requests are still in the air. That
+	 * window used to show the flow EDITOR over "No steps yet": the whole
+	 * toolbar on a page the URL had already said was a run, and an empty state
+	 * that is indistinguishable from a flow that really has no steps.
+	 */
+	test('shows the run opening rather than an editor over an empty flow', async ({ page }) => {
+		await stubOpenRegister(page)
+		await page.goto(HARNESS)
+
+		// Held from here on, so the destination page renders mid-load.
+		let releaseFlows = () => {}
+		const held = new Promise((resolve) => { releaseFlows = resolve })
+		await page.route('**/apps/openregister/api/flows?**', async (route) => {
+			await held
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({
+					results: [{
+						id: FLOW_ID,
+						uuid: FLOW_ID,
+						app: 'openregister',
+						name: 'Mandaatbesluit, verkorte route',
+						version: 4,
+						lifecycleStatus: 'draft',
+						nodes: [{ id: 'start', type: 'openregister.trigger-manual', position: { x: 40, y: 60 }, name: 'Manual start' }],
+						edges: [],
+					}],
+					total: 1,
+				}),
+			})
+		})
+
+		await page.locator('[data-testid="runlink-widget"] .cn-flow-runs-widget__row').first().click()
+
+		await expect(page.locator('[data-testid="flow-toolbar-opening-run"]')).toBeVisible()
+		await expect(page.locator('[data-testid="flow-canvas-loading"]')).toBeVisible()
+		// The claim that was false: the flow has no steps.
+		await expect(page.locator('[data-testid="flow-canvas-empty"]')).toHaveCount(0)
+		// And none of the editing verbs, on a page about to be read only.
+		await expect(page.locator('[data-testid="flow-add-step"]')).toHaveCount(0)
+		await expect(page.locator('[data-testid="flow-save-button"]')).toHaveCount(0)
+
+		// Let it finish, and the settled state is the one that was always right.
+		releaseFlows()
+		await expect(
+			page.locator('[data-testid="runlink-page"] .cn-flow-detail__node-label', { hasText: SINCE_DELETED }),
+		).toBeVisible()
+		await expect(page.locator('[data-testid="flow-canvas-loading"]')).toHaveCount(0)
+		await expect(page.locator('[data-testid="flow-add-step"]')).toBeVisible()
+	})
+
 	test('a row with no run uuid still opens the flow, with no empty ?run=', async ({ page }) => {
 		await stubOpenRegister(page, { uuid: '' })
 		await page.goto(HARNESS)

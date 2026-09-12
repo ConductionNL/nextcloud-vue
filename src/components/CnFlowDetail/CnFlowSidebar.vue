@@ -41,6 +41,7 @@
 	<component :is="embedded ? 'div' : 'NcAppSidebar'"
 		v-if="store.sidebarOpen"
 		:class="embedded ? 'cn-flow-sidebar cn-flow-sidebar--embedded' : 'cn-flow-sidebar'"
+		:name="embedded ? undefined : flowName"
 		:active="embedded ? undefined : tab"
 		@update:active="tab = $event"
 		@close="onClose">
@@ -56,15 +57,17 @@
 			trigger to an author who was not about to change it from there, and
 			it is edited in the settings modal with every other field.
 
-			⚠️ AND NO `name` EITHER. The version belongs BESIDE the title, and
-			NcAppSidebar renders its own heading with no slot to reach into. So
-			the heading is CnFlowLifecycleControls' own h2, and this component
-			hands the sidebar nothing to render above it — passing both would
-			put the flow's name on screen twice.
+			⚠️ THE NAME IS THE SIDEBAR'S, THE REST IS OURS. `name` is a REQUIRED
+			prop, and this component used to pass none so that the version could
+			sit beside the title in CnFlowLifecycleControls' own h2. NcAppSidebar
+			then rendered its heading EMPTY, above ours: a heading naming
+			nothing, announced as such, with a Vue warning on every mount. So the
+			flow's name is handed over, the lifecycle row renders under it
+			without a name of its own, and there is one heading again.
 		-->
 		<template v-if="!embedded" #description>
 			<div class="cn-flow-sidebar__header">
-				<CnFlowLifecycleControls />
+				<CnFlowLifecycleControls :show-name="false" />
 			</div>
 		</template>
 
@@ -115,7 +118,12 @@
 			swapped the panel while leaving the canvas painted with that run's
 			badges, so the graph and the sidebar described different things.
 		-->
-		<CnRunDetailSidebar v-if="inRunView" />
+		<!--
+			`embedded` travels: inside a dialog there is no NcAppSidebar to
+			register a tab with, so the run's panels render as plain blocks
+			under a strip of their own rather than injecting into nothing.
+		-->
+		<CnRunDetailSidebar v-if="inRunView" :embedded="embedded" />
 
 		<!--
 			THE SIDEBAR IS THE FLOW'S RUNS. The palette moved to a modal off the
@@ -288,12 +296,31 @@ export default {
 		},
 
 		/**
+		 * What NcAppSidebar puts in its heading.
+		 *
+		 * The same fallback CnFlowLifecycleControls uses for the embedded host,
+		 * so a flow with no name yet reads the same either way rather than
+		 * leaving the sidebar's required heading empty.
+		 *
+		 * @return {string} The flow's name.
+		 */
+		flowName() {
+			return this.store.flow.name || this.t('nextcloud-vue', 'Flow')
+		},
+
+		/**
 		 * Whether the sidebar is showing a RUN rather than the flow.
 		 *
-		 * @return {boolean} True while a run is open.
+		 * 🔑 THE STORE'S GETTER, WHICH ALSO COUNTS A RUN BEING OPENED. Reading
+		 * `inspectedRunUuid` alone meant the sidebar stayed on the flow for the
+		 * length of the load, so a visitor following a run link was told to
+		 * "save the flow first" on a flow that had run many times, while the
+		 * canvas beside it had already entered run view.
+		 *
+		 * @return {boolean} True while a run is open or being opened.
 		 */
 		inRunView() {
-			return Boolean(this.store.inspectedRunUuid)
+			return this.store.inRunView
 		},
 
 		/**
