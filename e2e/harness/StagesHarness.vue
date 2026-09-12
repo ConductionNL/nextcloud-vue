@@ -38,6 +38,10 @@ import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetail
 const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams()
 
 // dossiq's case page, as the two placements would be declared in its manifest.
+//
+// There is no guard config, and that is the point: Open Register's
+// `/available-actions` decides what is reachable, so a manifest cannot get the
+// guard wrong by mapping a field name badly.
 const STAGES_CONTENT = {
 	currentField: 'status',
 	ariaLabel: 'Case progress',
@@ -48,25 +52,8 @@ const STAGES_CONTENT = {
 		descriptionField: 'description',
 		orderField: 'order',
 		finalField: 'isFinal',
-		resultsPath: 'resultTypes',
 	},
-	availability: {
-		url: '/apps/dossiq/api/case/@objectId/available-transitions',
-		path: 'transitions',
-		stageField: 'toStatus',
-		moveField: 'id',
-		allowedField: 'guardsPassed',
-		reasonField: 'failedGuards.0.failureMessage',
-	},
-	transition: {
-		kind: 'endpoint',
-		url: '/apps/dossiq/api/case/@objectId/transition',
-		bodyKey: 'transitionId',
-		commentKey: 'comment',
-		resultKey: 'resultTypeId',
-		errorField: 'failedGuards.0.failureMessage',
-	},
-	...(params.get('confirm') === '1' ? { confirm: 'always' } : {}),
+	transition: { kind: 'lifecycle' },
 }
 
 const STATUS_CONTENT = {
