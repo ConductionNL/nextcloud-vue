@@ -536,6 +536,11 @@ export default {
 .cn-tabs-widget__tabs {
 	display: flex;
 	flex-direction: column;
+	/* Grow to the widget's height, so the panel fills the grid cell the
+	   layout gave it. Without this the strip plus the open panel took only
+	   the height of the panel's content, and a cell of nine rows ended in
+	   130px of nothing under a sheet that stopped short of its own card. */
+	flex: 1 1 auto;
 	min-height: 0;
 }
 
@@ -553,9 +558,12 @@ export default {
 	   tab which the tab cannot paint over. */
 	border: 1px solid var(--color-border);
 	border-top: none;
-	/* Bottom corners only. Rounding the top would curl the sheet away from the
-	   tab that is supposed to be joined to it. */
-	border-radius: 0 0 var(--border-radius-large) var(--border-radius-large);
+	/* Three rounded corners. The top-left stays square because the first tab
+	   is drawn joined to the panel there, and a curve under it would curl the
+	   sheet away from that tab. The top-right has no tab above it: the strip
+	   ends where the last tab ends and the Actions menu floats free, so a
+	   square corner there read as a sheet cut off, not as a tab's edge. */
+	border-radius: 0 var(--border-radius-large) var(--border-radius-large) var(--border-radius-large);
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow: auto;
