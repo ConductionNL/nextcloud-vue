@@ -145,9 +145,27 @@ test.describe('the stages widget', () => {
 
 		const blocked = stage(page, 'st-done')
 		await expect(blocked).toHaveAttribute('aria-disabled', 'true')
-		await expect(page.getByTestId('cn-stages-widget-reason-st-done')).toHaveText('Not reachable from the current stage')
+
+		// VISIBLE, not merely present. `toHaveText` reads textContent, so this
+		// assertion passed while the reason sat in a screen-reader-only node
+		// that no sighted person could read. toBeVisible is what separates the
+		// two.
+		const reason = page.getByTestId('cn-stages-widget-reason-st-done')
+		await expect(reason).toBeVisible()
+		await expect(reason).toHaveText('Not reachable from the current stage')
+
+		// And the stage has to LOOK different from one that is merely later in
+		// the process, which a class name alone does not prove.
+		const dimmed = await blocked.evaluate((el) => Number(getComputedStyle(el).opacity))
+		const notNext = await stage(page, 'st-new').evaluate((el) => Number(getComputedStyle(el).opacity))
+		expect(dimmed).toBeLessThan(notNext)
 
 		await blocked.click()
+		// THE CLICK SAYS SOMETHING. It used to be silent: no move, no message,
+		// nothing but screen-reader text a pointer user never reaches.
+		await expect(page.getByTestId('cn-stages-widget-blocked')).toBeVisible()
+		await expect(page.getByTestId('cn-stages-widget-blocked')).toHaveText('Not reachable from the current stage')
+
 		await blocked.press('Enter')
 		// Give a wrongly sent request the time to leave before counting.
 		await page.waitForTimeout(500)
@@ -162,8 +180,8 @@ test.describe('the stages widget', () => {
 		await stubCase(page)
 		await openHarness(page, '?stageswidget=1', STRIP)
 
-		await expect(page.getByTestId('cn-stages-widget-reason-st-work')).toHaveText('Take the case into treatment.')
 		await expect(page.getByTestId('cn-stages-widget-reason-st-work')).toBeVisible()
+		await expect(page.getByTestId('cn-stages-widget-reason-st-work')).toHaveText('Take the case into treatment.')
 	})
 
 	// A REFUSED MOVE MUST LEAVE THE RECORD WHERE IT WAS. Open Register
@@ -177,6 +195,29 @@ test.describe('the stages widget', () => {
 		await expect(page.getByTestId('cn-stages-widget-error')).toHaveText('Only a coordinator may close a case.')
 		await expect(stage(page, 'st-new')).toHaveAttribute('aria-current', 'step')
 		await expect(page.getByTestId('stages-harness-record-status')).toHaveText('st-new')
+	})
+})
+
+test.describe('the guard could not be read', () => {
+	// A FAILED READ IS NOT A POLICY DECISION. Swallowed into an empty list, a
+	// 500 rendered every stage explaining it was "not reachable from the
+	// current stage", which nobody had checked.
+	test('says the guard could not be checked, rather than claiming every stage is unreachable', async ({ page }) => {
+		const json = (route, body) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
+		await page.route('**/apps/dossiq/api/case-types/ct-1/blueprint', (route) => json(route, BLUEPRINT))
+		await page.route('**/apps/openregister/api/objects/case-1/available-actions', (route) => route.fulfill({
+			status: 500, contentType: 'application/json', body: '{}',
+		}))
+		await page.route('**/apps/openregister/api/objects/dossiq/case/case-1', (route) => json(route, {
+			id: 'case-1', caseType: 'ct-1', status: 'st-new', suspended: false,
+		}))
+
+		await openHarness(page, '?stageswidget=1', STRIP)
+
+		await expect(page.getByTestId('cn-stages-widget-actions-error')).toBeVisible()
+		await expect(page.getByTestId('cn-stages-widget-reason-st-work'))
+			.toHaveText('Could not check whether this stage can be reached')
+		await expect(stage(page, 'st-work')).toHaveAttribute('aria-disabled', 'true')
 	})
 })
 
