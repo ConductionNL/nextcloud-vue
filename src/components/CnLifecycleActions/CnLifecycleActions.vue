@@ -279,7 +279,7 @@ export default {
 				)
 				const res = await axios.get(url)
 				this.serverActions = (res && res.data && Array.isArray(res.data.actions)) ? res.data.actions : []
-			} catch (e) {
+			} catch {
 				// A missing lifecycle / 404 simply means "no transitions" — render nothing.
 				this.serverActions = []
 			}
@@ -309,7 +309,7 @@ export default {
 		 * Input dialog confirmed: close it and POST the transition with the
 		 * collected `data` payload.
 		 *
-		 * @param {{[key: string]: *}} data The collected input values (exactly the declared keys).
+		 * @param {{[key: string]: unknown}} data The collected input values (exactly the declared keys).
 		 * @return {Promise<void>}
 		 */
 		async onInputConfirm(data) {
@@ -328,7 +328,7 @@ export default {
 		 * pre-inputs behaviour.
 		 *
 		 * @param {object} tr The chosen transition descriptor.
-		 * @param {{[key: string]: *}} [data] Collected transition inputs, sent as `data`.
+		 * @param {{[key: string]: unknown}} [data] Collected transition inputs, sent as `data`.
 		 * @return {Promise<void>}
 		 */
 		async postTransition(tr, data) {

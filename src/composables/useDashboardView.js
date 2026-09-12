@@ -26,8 +26,8 @@ import { filterWidgetsByVisibility } from '../utils/widgetVisibility.js'
  * @param {object} [options] Configuration options
  * @param {Array} [options.widgets] Static widget definitions from the app
  * @param {Array} [options.defaultLayout] Default layout if no saved layout exists
- * @param {Function} [options.loadLayout] Async function that returns saved layout array, or null
- * @param {Function} [options.saveLayout] Async function that persists layout: (layout) => Promise
+ * @param {() => Promise<Array<object>|null>} [options.loadLayout] Async function that returns saved layout array, or null
+ * @param {(layout: Array<object>) => Promise<void>} [options.saveLayout] Async function that persists layout: (layout) => Promise
  * @param {boolean} [options.includeNcWidgets] Whether to also load NC Dashboard API widgets
  * @param {number} [options.columns] Grid columns
  * @return {object} Reactive state and methods for CnDashboardPage
@@ -141,6 +141,7 @@ export function useDashboardView(options = {}) {
 				type: 'nc-widget',
 			}))
 		} catch (error) {
+			// eslint-disable-next-line no-console
 			console.error('[useDashboardView] Failed to load NC widgets:', error)
 			ncWidgets.value = []
 		}
@@ -175,6 +176,7 @@ export function useDashboardView(options = {}) {
 			// Apply visibility filtering after all data is loaded
 			await applyVisibilityFilter()
 		} catch (error) {
+			// eslint-disable-next-line no-console
 			console.error('[useDashboardView] Init failed:', error)
 			layout.value = [...opts.defaultLayout]
 		} finally {
@@ -195,6 +197,7 @@ export function useDashboardView(options = {}) {
 			try {
 				await opts.saveLayout(newLayout)
 			} catch (error) {
+				// eslint-disable-next-line no-console
 				console.error('[useDashboardView] Failed to save layout:', error)
 			} finally {
 				saving.value = false

@@ -271,6 +271,7 @@ export default {
 				// `$.vnode.props`, not `$attrs`: `click` is a declared emit, and
 				// Vue keeps declared emits out of `$attrs`.
 				if (this.$.vnode.props?.onClick) {
+					// eslint-disable-next-line no-console
 					console.warn('[CnObjectCard] @click on selectable cards is deprecated; use @select instead.')
 					this.$emit('click', this.object)
 				}

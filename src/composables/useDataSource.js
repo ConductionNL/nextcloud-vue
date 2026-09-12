@@ -396,7 +396,7 @@ function normaliseMetric(metric) {
  * Stringify a filter object as a GraphQL literal — keys unquoted,
  * values JSON-encoded. Recurses into nested objects.
  *
- * @param {*} value The filter value or sub-tree.
+ * @param {unknown} value The filter value or sub-tree.
  * @return {string} The GraphQL literal representation.
  */
 function stringifyFilter(value) {

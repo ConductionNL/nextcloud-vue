@@ -88,6 +88,7 @@ import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
 import { filterToRows, rowsToFilter } from '../CnFilterRowsEditor/filterRows.js'
 
@@ -111,12 +112,20 @@ const DEFAULT_CONTENT = Object.freeze({
 export default {
 	name: 'CnDeltaWidgetForm',
 
-	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnIconBrowser },
+	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnIconBrowser, CnRegisterSchemaSelect },
 
 	props: {
-		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
+		/**
+		 * The placement being edited (pre-fills from `editingWidget.content`), or null.
+		 *
+		 * @type {{content: object}|null}
+		 */
 		editingWidget: { type: Object, default: null },
-		/** Initial content values when not editing (registry defaults). @type {object} */
+		/**
+		 * Initial content values when not editing (registry defaults).
+		 *
+		 * @type {object}
+		 */
 		value: { type: Object, default: () => ({ ...DEFAULT_CONTENT }) },
 	},
 
@@ -209,7 +218,8 @@ export default {
 		 * @return {void}
 		 */
 		updateField(field, value) {
-			this[field] = value; this.emitChange()
+			this[field] = value
+			this.emitChange()
 		},
 
 		/**
@@ -220,7 +230,8 @@ export default {
 		 * @return {void}
 		 */
 		updateSource(field, value) {
-			this.source[field] = value; this.emitChange()
+			this.source[field] = value
+			this.emitChange()
 		},
 
 		/**
@@ -231,7 +242,8 @@ export default {
 		 * @return {void}
 		 */
 		onCurrentRows(rows) {
-			this.currentRows = rows; this.emitChange()
+			this.currentRows = rows
+			this.emitChange()
 		},
 
 		/**
@@ -242,7 +254,8 @@ export default {
 		 * @return {void}
 		 */
 		onPreviousRows(rows) {
-			this.previousRows = rows; this.emitChange()
+			this.previousRows = rows
+			this.emitChange()
 		},
 
 		/** Emit the assembled content. */

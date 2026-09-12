@@ -68,7 +68,6 @@
 					{{ filesLabel }}<span v-if="filesRequired" class="cn-rich-submit__required">*</span>
 				</label>
 				<input :id="fieldIdFor('files')"
-					ref="fileInput"
 					type="file"
 					:accept="filesAccept"
 					:multiple="maxFiles !== 1"
@@ -336,7 +335,7 @@ export default {
 		},
 
 		/**
-		 * Confirm handler. Emits @confirm with the current form data
+		 * Confirm handler. Emits `@confirm` with the current form data
 		 * + sets `loading` until `setResult()` is called.
 		 *
 		 * @return {void}
@@ -371,7 +370,7 @@ export default {
 		},
 
 		/**
-		 * Reset state and emit @close.
+		 * Reset state and emit `@close`.
 		 *
 		 * @return {void}
 		 */

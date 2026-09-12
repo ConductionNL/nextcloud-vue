@@ -87,8 +87,8 @@ export const tenantContextMixin = {
 		/**
 		 * Subscribe to tenant-switch events.
 		 *
-		 * @param {Function} cb Callback receiving `{ previousUuid, uuid, organisation }`
-		 * @return {Function} Unsubscribe handle
+		 * @param {(event: { previousUuid: string|null, uuid: string|null, organisation: object|null }) => void} cb Callback receiving `{ previousUuid, uuid, organisation }`
+		 * @return {() => void} Unsubscribe handle
 		 */
 		onTenantSwitch(cb) {
 			return this._resolvedTenantContext.onTenantSwitch(cb)

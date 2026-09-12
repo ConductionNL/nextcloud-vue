@@ -584,7 +584,7 @@ export default {
 		 * @deprecated No longer rendered — tabbed mode deep-links each item to its
 		 * owning Nextcloud app instead of offering an open-in-sidebar action.
 		 */
-		openInSidebarLabel: {
+		openInSidebarLabel: { // eslint-disable-line vue/no-unused-properties -- deprecated no-op, kept so apps still passing it do not leak it onto the DOM through $attrs.
 			type: String,
 			default: () => t('nextcloud-vue', 'Open in sidebar'),
 		},
@@ -648,7 +648,11 @@ export default {
 
 	data() {
 		return {
-			/** The file input element, set by the template's function ref (kept off `$refs` so the ref stays dynamic — see the template). @type {HTMLInputElement|null} */
+			/**
+			 * The file input element, set by the template's function ref (kept off `$refs` so the ref stays dynamic — see the template).
+			 *
+			 * @type {HTMLInputElement|null}
+			 */
 			fileInputEl: null,
 			/** Whether any section/tab is currently fetching. */
 			loading: false,
@@ -1008,7 +1012,7 @@ export default {
 				 */
 				this.$emit('file-uploaded', files)
 				await this.loadAll()
-			} catch (e) {
+			} catch {
 				this.addError = t('nextcloud-vue', 'Upload failed')
 			} finally {
 				this.uploading = false
@@ -1051,7 +1055,7 @@ export default {
 				 */
 				this.$emit('note-added', message)
 				await this.loadAll()
-			} catch (e) {
+			} catch {
 				this.addError = t('nextcloud-vue', 'Could not add note')
 			}
 		},
@@ -1173,7 +1177,7 @@ export default {
 			}
 			// Contacts → open the contact card in the Contacts app.
 			if (groupKey === 'contacts' && raw.contactUid) {
-				const key = raw.addressbookId != null ? `${raw.contactUid}~${raw.addressbookId}` : String(raw.contactUid)
+				const key = raw.addressbookId !== null && raw.addressbookId !== undefined ? `${raw.contactUid}~${raw.addressbookId}` : String(raw.contactUid)
 				return generateUrl('/apps/contacts/All contacts/{key}', { key })
 			}
 			// Deck → open the card on its board.
@@ -1346,7 +1350,7 @@ export default {
 		toFileRow(raw) {
 			const id = raw.id || raw.fileid || raw.name || ''
 			const label = raw.name || raw.title || raw.basename || String(id)
-			const size = raw.size != null ? this.formatSize(raw.size) : ''
+			const size = raw.size !== null && raw.size !== undefined ? this.formatSize(raw.size) : ''
 			return { id, label, meta: size, raw }
 		},
 
@@ -1394,7 +1398,8 @@ export default {
 			let n = bytes
 			let u = 0
 			while (n >= 1024 && u < units.length - 1) {
-				n /= 1024; u++
+				n /= 1024
+				u++
 			}
 			return `${n.toFixed(u === 0 ? 0 : 1)} ${units[u]}`
 		},
@@ -1535,6 +1540,7 @@ export default {
 		async loadViaStore() {
 			if (!legacyWarned) {
 				legacyWarned = true
+				// eslint-disable-next-line no-console
 				console.warn('[CnRelatedObjectsWidget] The store-action list path is deprecated; pass an object with `@self` (or register/schema props) to use the tabbed self-fetch path.')
 			}
 

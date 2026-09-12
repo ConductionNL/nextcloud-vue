@@ -126,6 +126,7 @@ export default {
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 		/** Text shown when there are no notes */
 		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
+		/** Text shown while the notes are being fetched */
 		loadingLabel: { type: String, default: () => t('nextcloud-vue', 'Loading notes…') },
 	},
 
@@ -185,6 +186,7 @@ export default {
 					this.resolveMentionNames()
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnNotesTab: Failed to fetch notes', err)
 			} finally {
 				this.loading = false
@@ -197,7 +199,7 @@ export default {
 		 * via `searchNextcloudUsers` (fail-soft: errors resolve to []).
 		 *
 		 * @param {string} search The partial id/name typed after `@`.
-		 * @param {Function} callback Receives the suggestion array.
+		 * @param {(suggestions: Array<object>) => void} callback Receives the suggestion array.
 		 */
 		async fetchMentionSuggestions(search, callback) {
 			const users = await searchNextcloudUsers(search)
@@ -313,6 +315,7 @@ export default {
 				this.newNoteText = ''
 				await this.fetchNotes()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnNotesTab: Failed to add note', err)
 			} finally {
 				this.saving = false
@@ -350,6 +353,7 @@ export default {
 				this.newNoteText = ''
 				await this.fetchNotes()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnNotesTab: Failed to update note', err)
 			} finally {
 				this.saving = false
@@ -368,6 +372,7 @@ export default {
 				)
 				this.notes = this.notes.filter((n) => n.id !== note.id)
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnNotesTab: Failed to delete note', err)
 			}
 		},

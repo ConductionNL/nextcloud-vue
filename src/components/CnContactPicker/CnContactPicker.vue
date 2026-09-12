@@ -279,6 +279,7 @@ export default {
 			} catch (err) {
 				// Search is best-effort — surface an empty list so the
 				// "create new" fallback button stays usable.
+				// eslint-disable-next-line no-console
 				console.error('CnContactPicker: search failed', err)
 				this.results = []
 			} finally {
@@ -290,7 +291,7 @@ export default {
 		 * Normalise a list response (`{results:[...]}`, `{items:[...]}`,
 		 * or bare array).
 		 *
-		 * @param {*} data parsed JSON
+		 * @param {unknown} data parsed JSON
 		 *
 		 * @return {Array}
 		 */

@@ -167,7 +167,7 @@ export default {
 		 * `useSupportDialog`. Required so two apps mounted in the same
 		 * Nextcloud session don't share a "shown" flag.
 		 */
-		appSlug: {
+		appSlug: { // eslint-disable-line vue/no-unused-properties -- the host reads it, not this component: it is the namespace handed to useSupportDialog().
 			type: String,
 			required: true,
 		},

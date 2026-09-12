@@ -43,7 +43,7 @@ export function walkthroughPreferenceUrl(appId, configKey) {
  * truthiness check would misread as a fresh user and re-open the tour on every
  * visit. This is the read-side counterpart of `persistWalkthroughSeenVersion`.
  *
- * @param {*} value The raw stored / API value.
+ * @param {unknown} value The raw stored / API value.
  * @return {string} The last-seen version, or `''` when never seen.
  */
 export function normaliseSeenVersion(value) {
@@ -72,7 +72,7 @@ function resolveStorage(injected) {
 	}
 	try {
 		return window.localStorage
-	} catch (e) {
+	} catch {
 		return null
 	}
 }
@@ -92,7 +92,7 @@ export function readLocalWalkthroughSeenVersion(appId, storage) {
 	}
 	try {
 		return normaliseSeenVersion(s.getItem(WALKTHROUGH_SEEN_STORAGE_PREFIX + appId))
-	} catch (e) {
+	} catch {
 		return ''
 	}
 }
@@ -112,7 +112,7 @@ function writeLocalWalkthroughSeenVersion(appId, version, storage) {
 	}
 	try {
 		s.setItem(WALKTHROUGH_SEEN_STORAGE_PREFIX + appId, version)
-	} catch (e) {
+	} catch {
 		/* quota / private mode — persistence is best-effort */
 	}
 }
@@ -122,7 +122,7 @@ function writeLocalWalkthroughSeenVersion(appId, version, storage) {
  * the SPA index HTML Nextcloud returns (with status 200) when an app does not
  * actually serve `/api/preferences/{key}`.
  *
- * @param {*} value Candidate.
+ * @param {unknown} value Candidate.
  * @return {boolean} True when value is a plain object.
  */
 function isPlainObject(value) {
@@ -163,7 +163,7 @@ export async function loadWalkthroughSeenVersion(appId, configKey, options = {})
 			return seen
 		}
 		return local
-	} catch (e) {
+	} catch {
 		// Unauthenticated / endpoint missing / offline.
 		return local
 	}
@@ -194,7 +194,7 @@ export function persistWalkthroughSeenVersion(appId, configKey, version, options
 		return Promise.resolve(http.put(walkthroughPreferenceUrl(appId, configKey), { value }))
 			.then(() => true)
 			.catch(() => false)
-	} catch (e) {
+	} catch {
 		return Promise.resolve(false)
 	}
 }
@@ -231,7 +231,7 @@ export function interpolateTokens(input, context) {
 		return input
 	}
 	return input.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (m, key) => {
-		if (context && Object.hasOwn(context, key) && context[key] != null) {
+		if (context && Object.hasOwn(context, key) && context[key] !== null && context[key] !== undefined) {
 			return String(context[key])
 		}
 		return m
@@ -414,7 +414,7 @@ export function useWalkthrough(appId, manifest, options = {}) {
 				} else if (source.object) {
 					value = (key === 'id') ? (source.object.id ?? source.object['@self']?.id ?? source.object.uuid) : source.object[key]
 				}
-				if (value != null) {
+				if (value !== null && value !== undefined) {
 					next[varName] = value
 				}
 			}

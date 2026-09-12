@@ -1069,7 +1069,7 @@ export default {
 		 * still updates the rendered manifest in memory but persists nothing —
 		 * wire this to the Buildiq app-override endpoint to make edits durable.
 		 *
-		 * @type {Function|null}
+		 * @type {((delta: object) => void|Promise<void>)|null}
 		 */
 		persistManifestDelta: {
 			type: Function,
@@ -1105,7 +1105,7 @@ export default {
 		 * both props are given, `dataSources` seeds the initial list and
 		 * the loader's result replaces it on the first refresh.
 		 *
-		 * @type {Function|null}
+		 * @type {(() => Promise<{ registers: Array<object> }>)|null}
 		 */
 		dataSourcesLoader: {
 			type: Function,
@@ -1294,7 +1294,7 @@ export default {
 		 * install via `Vue.mixin({ methods: { t, n } })`. The provide
 		 * key is `cnTranslate`.
 		 *
-		 * @type {Function}
+		 * @type {(key: string) => string}
 		 */
 		translate: {
 			type: Function,
@@ -1687,7 +1687,7 @@ export default {
 							out.push(id)
 						}
 					}
-				} catch (e) {
+				} catch {
 					// localStorage unavailable (private mode) — nothing dismissed.
 				}
 				return out
@@ -2412,7 +2412,7 @@ export default {
 					return null
 				}
 				return { tourId, stepId: p.get('cn_resume_step') || '' }
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -2463,7 +2463,7 @@ export default {
 		isAdmin() {
 			try {
 				return getCurrentUser()?.isAdmin === true
-			} catch (e) {
+			} catch {
 				return false
 			}
 		},
@@ -2969,7 +2969,7 @@ export default {
 			try {
 				await this.appInstaller.installAndEnable(id)
 				window.location.reload()
-			} catch (e) {
+			} catch {
 				// Error is surfaced inline via `depInstallError`; the store
 				// link remains available as a manual fallback. A cancelled
 				// password confirmation also lands here (no error text).
@@ -2990,7 +2990,7 @@ export default {
 		dismissSoftDep(id) {
 			try {
 				window.localStorage.setItem('cn-soft-dep-dismissed:' + this.appId + ':' + id, '1')
-			} catch (e) {
+			} catch {
 				// Best-effort persistence (private mode / no storage).
 			}
 			if (!this.dismissedSoftDeps.includes(id)) {
@@ -3114,7 +3114,7 @@ export default {
 			}
 			try {
 				return window.localStorage.getItem(this.setupWizardDismissKey()) === '1'
-			} catch (e) {
+			} catch {
 				return false
 			}
 		},
@@ -3128,7 +3128,7 @@ export default {
 		persistSetupWizardDismissal() {
 			try {
 				window.localStorage.setItem(this.setupWizardDismissKey(), '1')
-			} catch (e) {
+			} catch {
 				// Best-effort persistence (private mode / no storage).
 			}
 			this.setupWizardDismissed = true
@@ -3416,7 +3416,7 @@ export default {
 			let store
 			try {
 				store = useObjectStore()
-			} catch (err) {
+			} catch {
 				// No Pinia plugin installed (tests, isolated mounts) —
 				// silently skip; CnAppNav renders no badge.
 				return
@@ -3468,7 +3468,7 @@ export default {
 					}
 					this.cnMenuCounts[register][schema] = total
 				}
-			} catch (err) {
+			} catch {
 				// Non-fatal — leave the badge unrendered.
 			}
 		},

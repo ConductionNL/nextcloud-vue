@@ -694,7 +694,7 @@ export default {
 			}
 			const seriesDefs = Array.isArray(es.series) ? es.series.filter((s) => s && s.path) : []
 			let labels = []
-			let mapped = []
+			let mapped
 			if (Array.isArray(payload)) {
 				if (es.labelsPath) {
 					labels = payload.map((pt) => {
@@ -1056,7 +1056,7 @@ export default {
 		 * Applied to the value-axis labels and the tooltip so both read
 		 * identically. Non-numeric values pass through untouched.
 		 *
-		 * @return {(function(*): string)|null}
+		 * @return {((value: unknown) => string)|null}
 		 */
 		valueFormatterFn() {
 			const vf = (this.activeView && this.activeView.valueFormat) || this.valueFormat
@@ -1564,7 +1564,7 @@ export default {
 				const categories = groups.map((g) => this.formatBucketKey(g.key, b.interval))
 				const values = groups.map((g) => Number(g.value) || 0)
 				this.bucketData = { series: [{ name: b.metricField || b.metric || 'count', data: values }], categories, labels: categories }
-			} catch (e) {
+			} catch {
 				if (requestKey === this.bucketKey) {
 					this.bucketData = null
 				}
@@ -1692,7 +1692,7 @@ export default {
 				} else {
 					this.groupByData = { series: [{ name: gb.metricField || gb.metric || 'count', data: values }], categories: keys, labels: keys, rawKeys }
 				}
-			} catch (e) {
+			} catch {
 				if (requestKey === this.groupByKey) {
 					this.groupByData = null
 				}
@@ -1730,7 +1730,7 @@ export default {
 				return
 			}
 			const requestKey = this.aggregateKey
-			let groups = null
+			let groups
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
@@ -1758,7 +1758,7 @@ export default {
 				}
 				const res = await axios.get(url, { params })
 				groups = (res && res.data && res.data.groups) || []
-			} catch (e) {
+			} catch {
 				// Facet endpoint unavailable → client-side fallback aggregation.
 				groups = await this.aggregateFromCollection(ds, agg, metric)
 			}
@@ -1788,7 +1788,7 @@ export default {
 		 * @param {object} ds The dataSource block.
 		 * @param {object} agg The aggregate block.
 		 * @param {string} metric Normalised metric (`count` | `sum`).
-		 * @return {Promise<Array<{key: *, value: number}>|null>}
+		 * @return {Promise<Array<{ key: string|number|null, value: number }>|null>}
 		 */
 		async aggregateFromCollection(ds, agg, metric) {
 			try {
@@ -1823,7 +1823,7 @@ export default {
 					totals.set(key, (totals.get(key) || 0) + increment)
 				}
 				return Array.from(totals.entries()).map(([key, value]) => ({ key, value }))
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -1836,9 +1836,9 @@ export default {
 		 * shape series/labels per chart family. `rawKeys` keeps the
 		 * UNRESOLVED keys index-aligned for drilldown.
 		 *
-		 * @param {Array<{key: *, value: number}>} groups The raw groups.
+		 * @param {Array<{ key: string|number|null, value: number }>} groups The raw groups.
 		 * @param {object} agg The aggregate block.
-		 * @return {Promise<{series: *, categories: string[], labels: string[], rawKeys: string[], colorMap?: Record<string, string>}>}
+		 * @return {Promise<{series: Array<{ name: string, data: Array<number> }>, categories: string[], labels: string[], rawKeys: string[], colorMap?: Record<string, string>}>}
 		 */
 		async buildAggregateData(groups, agg) {
 			let sorted = [...groups].sort((a, b) => (Number(b.value) || 0) - (Number(a.value) || 0))
@@ -1954,7 +1954,7 @@ export default {
 			let store = null
 			try {
 				store = useObjectStore()
-			} catch (e) {
+			} catch {
 				store = null
 			}
 			const type = store ? resolveObjectOpType(store, { register, schema }) : null
@@ -1986,7 +1986,7 @@ export default {
 					}
 					const color = colorField && typeof obj[colorField] === 'string' ? obj[colorField] : ''
 					return { label: this.displayString(raw), color }
-				} catch (e) {
+				} catch {
 					return { label: '', color: '' }
 				}
 			}))
@@ -2034,7 +2034,7 @@ export default {
 		 *
 		 * @param {string} defaultRegister Register to use when the reference omits one.
 		 * @param {{ register?: string, schema: string, labelField?: string }} reference Reference descriptor from `groupBy.reference`.
-		 * @param {Array<{ key: * }>} groups Raw grouped rows from OpenRegister.
+		 * @param {Array<{ key: string|number|null }>} groups Raw grouped rows from OpenRegister.
 		 * @return {Promise<string[]>} One resolved label per group, in order.
 		 */
 		async resolveGroupByLabels(defaultRegister, reference, groups) {
@@ -2063,11 +2063,11 @@ export default {
 							raw = obj['@self'] && obj['@self'].name
 						}
 						return this.displayString(raw) || String(key)
-					} catch (e) {
+					} catch {
 						return String(key)
 					}
 				}))
-			} catch (e) {
+			} catch {
 				return groups.map((g) => (g.key === null || g.key === undefined ? '—' : String(g.key)))
 			}
 		},
@@ -2078,7 +2078,7 @@ export default {
 		 * Nextcloud language, then its base subtag, then the first available
 		 * translation.
 		 *
-		 * @param {*} value Raw property value (string or per-language map).
+		 * @param {string|Record<string, string>|null} value Raw property value (string or per-language map).
 		 * @return {string} A display-ready string.
 		 */
 		displayString(value) {

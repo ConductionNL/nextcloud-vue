@@ -756,7 +756,8 @@ export default {
 		measureFit() {
 			const cell = this.$el && this.$el.closest && this.$el.closest('.grid-stack-item-content')
 			if (!cell) {
-				this.fitRows = null; return
+				this.fitRows = null
+				return
 			}
 			const table = this.$el.querySelector('.cn-object-list-widget__table table')
 			if (!table) {
@@ -1022,7 +1023,8 @@ export default {
 				return
 			}
 			if (!this.dragHasFiles(event)) {
-				this.dragDepth = 0; return
+				this.dragDepth = 0
+				return
 			}
 			event.preventDefault()
 			this.dragDepth = 0

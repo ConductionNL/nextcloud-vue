@@ -404,7 +404,7 @@ export default {
 		 * Injected upload transport: `async (dataUrl) => ({ url })`. When null,
 		 * the upload control is hidden.
 		 *
-		 * @type {Function|null}
+		 * @type {((dataUrl: string) => Promise<{ url: string }>)|null}
 		 */
 		uploadFn: {
 			type: Function,
@@ -489,7 +489,7 @@ export default {
 		/**
 		 * The value the consumer actually bound, whichever prop they used.
 		 *
-		 * @return {*} The bound value.
+		 * @return {unknown} The bound value.
 		 */
 		boundValue() {
 			return this.modelValue !== undefined ? this.modelValue : this.value
@@ -623,7 +623,7 @@ export default {
 		 * empty and fills in without the tab disappearing. Groups that are neither
 		 * populated nor loadable drop out.
 		 *
-		 * @return {Array<{ key: string, label: string, icons: Array<object>, lazy: boolean, load: Function|null }>} the groups.
+		 * @return {Array<{ key: string, label: string, icons: Array<object>, lazy: boolean, load: (() => Promise<Array<object>>)|null }>} the groups.
 		 */
 		resolvedGroups() {
 			const groups = this.urlIconGroups.length > 0
@@ -862,20 +862,20 @@ export default {
 		 * `v-model` are the same consumer as far as this component knows, and
 		 * emitting only one silently breaks half of them.
 		 *
-		 * @param {*} next The new value.
+		 * @param {unknown} next The new value.
 		 * @return {void}
 		 */
 		emitValue(next) {
 			/**
 			 * @event input The value changed. Vue 2's v-model dialect, kept for
 			 *   existing consumers.
-			 * @type {*}
+			 * @type {unknown}
 			 */
 			this.$emit('input', next)
 			/**
 			 * @event update:modelValue The value changed. Vue 3's v-model
 			 *   dialect — what a plain `v-model` listens for.
-			 * @type {*}
+			 * @type {unknown}
 			 */
 			this.$emit('update:modelValue', next)
 		},
@@ -907,6 +907,7 @@ export default {
 				this.groupIcons[group.key] = Array.isArray(icons) ? icons : []
 			} catch (error) {
 				this.groupError[group.key] = t('nextcloud-vue', 'Could not load this icon set.')
+				// eslint-disable-next-line no-console
 				console.error('Icon set "' + group.key + '" failed to load:', error)
 			} finally {
 				this.groupLoading[group.key] = false
@@ -985,7 +986,7 @@ export default {
 					import('../CnIconPicker/iconCatalogues.js'),
 				])
 				this.mdiCatalogue = adapters.fromMdiJs(mdi)
-			} catch (error) {
+			} catch {
 				// @mdi/js not installed — the `icons` fallback stands.
 				this.mdiCatalogue = null
 			}
@@ -1066,11 +1067,19 @@ export default {
 			let next = index
 			switch (event.key) {
 				case 'ArrowRight':
-				case 'ArrowDown': next = index === last ? 0 : index + 1; break
+				case 'ArrowDown':
+					next = index === last ? 0 : index + 1
+					break
 				case 'ArrowLeft':
-				case 'ArrowUp': next = index === 0 ? last : index - 1; break
-				case 'Home': next = 0; break
-				case 'End': next = last; break
+				case 'ArrowUp':
+					next = index === 0 ? last : index - 1
+					break
+				case 'Home':
+					next = 0
+					break
+				case 'End':
+					next = last
+					break
 				default: return
 			}
 			event.preventDefault()
@@ -1123,12 +1132,24 @@ export default {
 			const cols = this.gridColumns()
 			let next = index
 			switch (event.key) {
-				case 'ArrowRight': next = Math.min(index + 1, last); break
-				case 'ArrowLeft': next = Math.max(index - 1, 0); break
-				case 'ArrowDown': next = Math.min(index + cols, last); break
-				case 'ArrowUp': next = Math.max(index - cols, 0); break
-				case 'Home': next = 0; break
-				case 'End': next = last; break
+				case 'ArrowRight':
+					next = Math.min(index + 1, last)
+					break
+				case 'ArrowLeft':
+					next = Math.max(index - 1, 0)
+					break
+				case 'ArrowDown':
+					next = Math.min(index + cols, last)
+					break
+				case 'ArrowUp':
+					next = Math.max(index - cols, 0)
+					break
+				case 'Home':
+					next = 0
+					break
+				case 'End':
+					next = last
+					break
 				default: return
 			}
 			event.preventDefault()
@@ -1209,6 +1230,7 @@ export default {
 					this.$emit('pick')
 				} catch (err) {
 					this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload icon')
+					// eslint-disable-next-line no-console
 					console.error('Icon upload failed:', err)
 				} finally {
 					this.uploading = false

@@ -243,7 +243,7 @@ export default {
 					return iso
 				}
 				return d.toLocaleString()
-			} catch (e) {
+			} catch {
 				return iso
 			}
 		},

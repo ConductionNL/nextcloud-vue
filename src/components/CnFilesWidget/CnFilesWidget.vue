@@ -236,13 +236,13 @@ export default {
 		},
 
 		/** Whether the dashboard shell is in admin mode. */
-		isAdmin: {
+		isAdmin: { // eslint-disable-line vue/no-unused-properties -- the dashboard shell passes this to every widget; declared so it does not fall through to $attrs.
 			type: Boolean,
 			default: false,
 		},
 
 		/** Whether the dashboard shell is in edit mode. */
-		canEdit: {
+		canEdit: { // eslint-disable-line vue/no-unused-properties -- the dashboard shell passes this to every widget; declared so it does not fall through to $attrs.
 			type: Boolean,
 			default: false,
 		},
@@ -315,7 +315,11 @@ export default {
 
 	data() {
 		return {
-			/** The hidden file input, set by the template's function ref (kept off `$refs` so the ref stays dynamic — see the template). @type {HTMLInputElement|null} */
+			/**
+			 * The hidden file input, set by the template's function ref (kept off `$refs` so the ref stays dynamic — see the template).
+			 *
+			 * @type {HTMLInputElement|null}
+			 */
 			fileInputEl: null,
 			items: [],
 			currentSubPath: '/',
@@ -860,7 +864,7 @@ export default {
 						)
 				await axios.delete(url)
 				this.items = this.items.filter((item) => item.fileId !== target.fileId)
-			} catch (err) {
+			} catch {
 				this.fetchContents()
 			} finally {
 				this.confirmTarget = null
@@ -929,7 +933,7 @@ export default {
 					})
 				}
 				this.fetchContents()
-			} catch (err) {
+			} catch {
 				this.fetchContents()
 			}
 		},

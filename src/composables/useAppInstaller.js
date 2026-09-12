@@ -124,7 +124,7 @@ const DIALOG_CANCELLED = 'Dialog closed'
  * dialog (strict interceptor or session `confirmPassword()`), as opposed to
  * a real enable failure. Cancels are quiet aborts — no `error` is surfaced.
  *
- * @param {*} err The rejected error.
+ * @param {unknown} err The rejected error.
  * @return {boolean} True when the admin cancelled the password prompt.
  */
 function isPasswordDialogCancelled(err) {
@@ -139,7 +139,7 @@ function isPasswordDialogCancelled(err) {
  * - OCS error:    `err.response.data.ocs.meta.message`
  * - legacy error: `err.response.data.data.message` or `err.response.data.message`
  *
- * @param {*} err The rejected axios error.
+ * @param {unknown} err The rejected axios error.
  * @return {string} A message safe to surface inline.
  */
 function extractErrorMessage(err) {

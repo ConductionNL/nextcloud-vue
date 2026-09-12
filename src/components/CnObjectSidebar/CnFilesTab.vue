@@ -239,6 +239,7 @@ export default {
 					this.total = data.total || this.files.length
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnFilesTab: Failed to fetch files', err)
 			} finally {
 				this.loading = false
@@ -284,6 +285,7 @@ export default {
 			} catch (err) {
 				// Non-fatal — keep the safe default, but surface the
 				// failure so a missing toggle default isn't silent.
+				// eslint-disable-next-line no-console
 				console.error('CnFilesTab: Failed to fetch schema default for share toggle', err)
 			}
 		},
@@ -351,6 +353,7 @@ export default {
 				}
 				await this.fetchFiles()
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnFilesTab: Failed to upload file', err)
 				this.uploadError = 'Upload failed: could not connect to server'
 			} finally {
@@ -387,6 +390,7 @@ export default {
 				)
 				this.files = this.files.filter((f) => f.id !== file.id)
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnFilesTab: Failed to delete file', err)
 			}
 		},

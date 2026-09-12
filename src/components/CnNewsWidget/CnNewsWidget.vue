@@ -125,7 +125,7 @@ export default {
 		 * a builder `(placementId, { limit }) => string`. When `null` the
 		 * widget renders the empty state without making a request.
 		 *
-		 * @type {string|Function|null}
+		 * @type {string|((placementId: string, options: { limit: number }) => string)|null}
 		 */
 		itemsEndpoint: {
 			type: [String, Function],
@@ -235,7 +235,7 @@ export default {
 		/**
 		 * The placement id used to build the items request.
 		 *
-		 * @return {*} the placement id, or `null`.
+		 * @return {unknown} the placement id, or `null`.
 		 */
 		placementId() {
 			return this.placement && this.placement.id ? this.placement.id : null
@@ -313,7 +313,7 @@ export default {
 				this.items = Array.isArray(data.items) ? data.items : []
 				this.failedCount = typeof data.feedsFailed === 'number' ? data.feedsFailed : 0
 				this.failedUrls = Array.isArray(data.failedUrls) ? data.failedUrls : []
-			} catch (err) {
+			} catch {
 				this.hasError = true
 				this.items = []
 			} finally {

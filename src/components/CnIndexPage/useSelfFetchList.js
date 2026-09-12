@@ -58,7 +58,7 @@ function unionFilterMaps(filterMaps) {
  *
  * @param {object} props CnIndexPage props.
  * @param {import('vue').ComponentInternalInstance|null} instance Pass `getCurrentInstance()`.
- * @param {Function} inject Pass Vue's `inject`.
+ * @param {typeof import('vue').inject} inject Pass Vue's `inject`.
  * @return {object} { isSelfFetch, list, selfObjectStore, selfObjectType, activeQuickFilterIndex }
  */
 export function useSelfFetchList(props, instance, inject) {

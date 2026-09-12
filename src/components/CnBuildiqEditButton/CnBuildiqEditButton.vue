@@ -425,8 +425,8 @@ export default {
 		/**
 		 * Read a value that may be a Vue ref or a plain value.
 		 *
-		 * @param {*} maybeRef A Vue ref or plain value.
-		 * @return {*} The unwrapped value.
+		 * @param {unknown} maybeRef A Vue ref or plain value.
+		 * @return {unknown} The unwrapped value.
 		 */
 		unref(maybeRef) {
 			return maybeRef && typeof maybeRef === 'object' && 'value' in maybeRef ? maybeRef.value : maybeRef

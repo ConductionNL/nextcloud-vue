@@ -69,8 +69,8 @@ export function buildBrokerPath(path, query) {
  * JSON (an object or array) and fall back to the raw string otherwise, so a
  * `text/plain` upstream still resolves cleanly.
  *
- * @param {*} body The `response.data.body` value (usually a string).
- * @return {*} The parsed payload, the raw string, or null.
+ * @param {unknown} body The `response.data.body` value (usually a string).
+ * @return {unknown} The parsed payload, the raw string, or null.
  */
 export function parseBrokeredBody(body) {
 	if (body === null || body === undefined) {
@@ -86,7 +86,7 @@ export function parseBrokeredBody(body) {
 	if (trimmed[0] === '{' || trimmed[0] === '[') {
 		try {
 			return JSON.parse(trimmed)
-		} catch (e) {
+		} catch {
 			return body
 		}
 	}
@@ -156,7 +156,7 @@ function cleanBrokerError(status, origin, cause) {
  *   - `responsePath` (string, optional): dot-path slice of the parsed body.
  * @param {object} [options] Optional config.
  * @param {boolean} [options.immediate] Fetch on creation (default true).
- * @return {{ data: import('vue').Ref<*>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<Error|null>, refetch: () => Promise<void> }}
+ * @return {{ data: import('vue').Ref<unknown>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<Error|null>, refetch: () => Promise<void> }}
  *   Reactive state — the SAME contract as `useGraphQL` / `useDataSource`.
  */
 export function useBrokeredCall(config, options = {}) {

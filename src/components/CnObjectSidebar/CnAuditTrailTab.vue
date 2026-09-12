@@ -260,6 +260,7 @@ export default {
 					this.userOptions = [...users].sort()
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnAuditTrailTab: Failed to fetch audit trails', err)
 			} finally {
 				this.loading = false

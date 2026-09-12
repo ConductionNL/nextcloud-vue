@@ -589,9 +589,6 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  * with the form data. The parent performs the actual API call and calls
  * `setResult()` via a ref.
  *
- * @event confirm Emitted when the user confirms the form. Payload: formData object (includes `id` in edit mode).
- * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
- *
  * ```vue
  * <CnFormDialog
  *   v-if="showFormDialog"
@@ -638,6 +635,9 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  *   </template>
  * </CnFormDialog>
  * ```
+ *
+ * @event confirm Emitted when the user confirms the form. Payload: formData object (includes `id` in edit mode).
+ * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
  */
 export default {
 	name: 'CnFormDialog',
@@ -773,8 +773,13 @@ export default {
 			default: null,
 		},
 
-		/** Which field is the "name" (used in result messages) */
-		nameField: {
+		/**
+		 * Which field is the "name".
+		 *
+		 * @deprecated Never read. The result note card renders whatever message the
+		 * parent hands to `setResult()`, so this field names nothing.
+		 */
+		nameField: { // eslint-disable-line vue/no-unused-properties -- deprecated no-op, kept so apps still passing it do not leak it onto the DOM through $attrs.
 			type: String,
 			default: 'title',
 		},
@@ -1399,11 +1404,12 @@ export default {
 						resolved: true,
 						registerSlug: String(data.registerSlug),
 						schemaSlug: String(data.schemaSlug),
-						appId: data.appId != null ? String(data.appId) : null,
+						appId: data.appId !== null && data.appId !== undefined ? String(data.appId) : null,
 					}
 				}
 				return empty
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error(`CnFormDialog: semantic reference resolve failed for "${uri}":`, err)
 				return empty
 			}
@@ -1951,7 +1957,7 @@ export default {
 		 * normalised.
 		 *
 		 * @param {string} widget The field widget ('date' | 'datetime').
-		 * @param {*} raw The stored value.
+		 * @param {unknown} raw The stored value.
 		 * @return {boolean} True when the value needs no rewrite.
 		 */
 		isCanonicalDateValue(widget, raw) {
@@ -1973,7 +1979,7 @@ export default {
 		 * every other string is Dutch.
 		 *
 		 * @param {object} field The field descriptor.
-		 * @param {*} val The raw enum value.
+		 * @param {unknown} val The raw enum value.
 		 * @return {string} The label to render.
 		 */
 		enumOptionLabel(field, val) {
@@ -2246,6 +2252,7 @@ export default {
 					}
 					obj = await store.fetchObject(slug, String(source))
 				} catch (err) {
+					// eslint-disable-next-line no-console
 					console.error(`CnFormDialog: template fill fetch failed for "${field.key}":`, err)
 					return
 				}
@@ -2283,7 +2290,7 @@ export default {
 		 *
 		 * @param {object}  field The switch field descriptor (carries `enum`).
 		 * @param {boolean} on    The new switch state.
-		 * @return {*} The enum value to store.
+		 * @return {unknown} The enum value to store.
 		 */
 		switchValueFor(field, on) {
 			const values = Array.isArray(field.enum) ? field.enum : []
@@ -2334,7 +2341,7 @@ export default {
 		 * merely opening an existing record would look like a change and
 		 * refetch its definitions.
 		 *
-		 * @param {*} value The raw form value.
+		 * @param {unknown} value The raw form value.
 		 * @return {string} The value's identity, '' when unset.
 		 */
 		dynamicDriverValue(value) {
@@ -2418,6 +2425,7 @@ export default {
 					}
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnFormDialog: could not load the fields for this selection:', err)
 			}
 			// A slower earlier fetch must not overwrite a later selection's
@@ -2510,6 +2518,7 @@ export default {
 			} catch (err) {
 				// A prefill that fails leaves the person typing the values
 				// themselves, which is exactly where they were before.
+				// eslint-disable-next-line no-console
 				console.error('CnFormDialog: could not prefill from this selection:', err)
 				return
 			}
@@ -2602,6 +2611,7 @@ export default {
 				}
 				return options
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error(`CnFormDialog: reference fetch failed for field "${field.key}":`, err)
 				return []
 			}
@@ -2633,6 +2643,7 @@ export default {
 					this.referenceLabels = { ...this.referenceLabels, [obj.id]: this.displayLabel(obj) }
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error(`CnFormDialog: reference label resolve failed for "${uuid}":`, err)
 			}
 		},
@@ -2708,6 +2719,7 @@ export default {
 				}
 				state.options = Array.isArray(results) ? results : []
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error(`CnFormDialog: async enum error for field "${field.key}":`, err)
 				state.options = []
 			} finally {
@@ -2941,8 +2953,7 @@ export default {
 							if (!new RegExp(v.pattern).test(value)) {
 								newErrors[field.key] = 'Invalid format.'
 							}
-						// TODO: restore to `catch {` (optional catch binding) once on Vue 3 (buble doesn't support it)
-						} catch (_e) {
+						} catch {
 							// Ignore invalid regex patterns
 						}
 					}

@@ -1474,7 +1474,7 @@ export default {
 			 * would otherwise leave its wrapper card and reserved grid row
 			 * behind as a tall empty box.
 			 *
-			 * @type {Record<string, {met: boolean, value: any}>}
+			 * @type {Record<string, {met: boolean, value: unknown}>}
 			 */
 			widgetConditionOutcome: {},
 			/**
@@ -1747,6 +1747,7 @@ export default {
 			// built pre-edit has no reactive deps and would stay frozen forever,
 			// keeping the empty state on screen after the first Add widget.
 			// Re-evaluating post-enter re-subscribes against the reactive graph.
+			// eslint-disable-next-line @typescript-eslint/no-unused-expressions -- the read IS the effect: it registers the reactive dependency.
 			this.gridEditable
 			return this.layout.length > 0 || this.widgetRefItems.length > 0
 		},
@@ -1967,7 +1968,7 @@ export default {
 		 * per-widget menus emit.
 		 *
 		 * @param {{ widgetId: string, title: string }} payload Action payload.
-		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @param {{ defaultPrevented: boolean, preventDefault: () => void }} ev Synthetic event.
 		 * @return {void}
 		 */
 		onActionsRefresh(payload, ev) {
@@ -1986,7 +1987,7 @@ export default {
 		 * host. Distinct from `@widget-request-feature`.
 		 *
 		 * @param {{ widgetId: string, title: string }} payload Action payload.
-		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @param {{ defaultPrevented: boolean, preventDefault: () => void }} ev Synthetic event.
 		 * @return {void}
 		 */
 		onActionsRequestFeature(payload, ev) {
@@ -2140,7 +2141,7 @@ export default {
 		 *
 		 * @param {{ label: string, value: string }} preset Preset descriptor.
 		 * @param {object} _item Layout item (unused — included so the
-		 *   binding shape matches the template's @click signature).
+		 *   binding shape matches the template's `@click` signature).
 		 * @return {void}
 		 */
 		onChipPresetPick(preset, _item) {
@@ -2416,7 +2417,7 @@ export default {
 					to: parsed.to,
 					preset: typeof parsed.preset === 'string' ? parsed.preset : 'custom',
 				}
-			} catch (_e) {
+			} catch {
 				return null
 			}
 		},
@@ -2435,7 +2436,7 @@ export default {
 					return
 				}
 				localStorage.setItem(key, JSON.stringify(value))
-			} catch (_e) {
+			} catch {
 				// Intentionally swallowed — non-fatal.
 			}
 		},
@@ -2580,7 +2581,7 @@ export default {
 				try {
 					const value = await readVisibleWhenValue(cond)
 					outcome = { met: compareVisibleWhen(value, cond.op || 'eq', cond.value), value }
-				} catch (e) {
+				} catch {
 					// fail-safe: hidden
 				}
 				// A newer run owns the map now — a stale verdict (possibly for

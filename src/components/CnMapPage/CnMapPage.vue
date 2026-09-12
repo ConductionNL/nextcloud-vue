@@ -164,68 +164,112 @@ export default {
 	},
 
 	props: {
-		/** Page title. Forwarded to `CnPageHeader`. @type {string} */
+		/**
+		 * Page title. Forwarded to `CnPageHeader`.
+		 *
+		 * @type {string}
+		 */
 		title: {
 			type: String,
 			default: '',
 		},
 
-		/** Page description. Forwarded to `CnPageHeader`. @type {string} */
+		/**
+		 * Page description. Forwarded to `CnPageHeader`.
+		 *
+		 * @type {string}
+		 */
 		description: {
 			type: String,
 			default: '',
 		},
 
-		/** Initial map center as `[latitude, longitude]`. @type {[number, number]} */
+		/**
+		 * Initial map center as `[latitude, longitude]`.
+		 *
+		 * @type {[number, number]}
+		 */
 		center: {
 			type: Array,
 			required: true,
 			validator: (v) => Array.isArray(v) && v.length === 2 && v.every((n) => typeof n === 'number' && Number.isFinite(n)),
 		},
 
-		/** Initial zoom level. @type {number} */
+		/**
+		 * Initial zoom level.
+		 *
+		 * @type {number}
+		 */
 		zoom: {
 			type: Number,
 			default: 7,
 		},
 
-		/** Layer definitions. See CnMapWidget docs. @type {Array<object>} */
+		/**
+		 * Layer definitions. See CnMapWidget docs.
+		 *
+		 * @type {Array<object>}
+		 */
 		layers: {
 			type: Array,
 			default: () => [],
 		},
 
-		/** Marker config. See CnMapWidget docs. @type {object|null} */
+		/**
+		 * Marker config. See CnMapWidget docs.
+		 *
+		 * @type {object|null}
+		 */
 		markers: {
 			type: Object,
 			default: null,
 		},
 
-		/** Enable marker clustering. @type {boolean} */
+		/**
+		 * Enable marker clustering.
+		 *
+		 * @type {boolean}
+		 */
 		clustering: {
 			type: Boolean,
 			default: false,
 		},
 
-		/** Map container height. @type {string|number} */
+		/**
+		 * Map container height.
+		 *
+		 * @type {string|number}
+		 */
 		height: {
 			type: [String, Number],
 			default: 'calc(100vh - 200px)',
 		},
 
-		/** Auto-fit bounds to loaded features. @type {boolean} */
+		/**
+		 * Auto-fit bounds to loaded features.
+		 *
+		 * @type {boolean}
+		 */
 		autoFit: {
 			type: Boolean,
 			default: true,
 		},
 
-		/** Aria-label for the map application region. @type {string} */
+		/**
+		 * Aria-label for the map application region.
+		 *
+		 * @type {string}
+		 */
 		ariaLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Map'),
 		},
 
-		/** Label shown when Leaflet is unavailable. @type {string} */
+		/**
+		 * Label shown when Leaflet is unavailable.
+		 *
+		 * @type {string}
+		 */
 		unavailableLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Map library not available'),

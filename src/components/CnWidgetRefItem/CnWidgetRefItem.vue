@@ -173,7 +173,7 @@ export default {
 			const { schemaSlug, widgetSlug } = parsed
 			const url = `/index.php/apps/openregister/api/schemas/${schemaSlug}/widgets/${widgetSlug}`
 
-			let apiData = {}
+			let apiData
 			try {
 				const response = await axios.get(url)
 				apiData = response.data ?? {}

@@ -742,7 +742,7 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * @event {object} apply-view — A saved view was applied (saved-views-ui). Payload: the View API object. Only emitted when `allowSavedViews`.
  * @event {string} search — Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  * @event {string[]} columns-change — Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
- * @event {{ key: string, values: any[] }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event {{ key: string, values: Array<unknown> }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  *
  * @slot mass-actions — Extra mass action buttons (shown when items are selected)
  * @slot action-items — Extra action bar buttons
@@ -973,7 +973,7 @@ export default {
 		 * carries for dashboard widgets, which is where it shipped first;
 		 * index pages could not ask for it at all.
 		 */
-		extend: {
+		extend: { // eslint-disable-line vue/no-unused-properties -- read by useSelfFetchList.js off the props object, which this rule does not follow.
 			type: Array,
 			default: () => [],
 		},
@@ -996,7 +996,7 @@ export default {
 		 * Non-empty `:objects` still wins, and an entity source wins over
 		 * register/schema. See `src/composables/indexSources.js`.
 		 */
-		entitySource: { type: String, default: '' },
+		entitySource: { type: String, default: '' }, // eslint-disable-line vue/no-unused-properties -- read by useNamedSource.js and useSelfFetchList.js off the props object, which this rule does not follow.
 
 		/**
 		 * Route name a clicked row opens, overriding a named source's own
@@ -1655,7 +1655,7 @@ export default {
 		 *
 		 * @type {boolean}
 		 */
-		subscribe: {
+		subscribe: { // eslint-disable-line vue/no-unused-properties -- read by useSelfFetchList.js off the props object, which this rule does not follow.
 			type: Boolean,
 			default: true,
 		},
@@ -1827,7 +1827,7 @@ export default {
 		 * `import`, `export`, `copy`, `delete`) are dropped from the
 		 * merged list with a `console.warn`.
 		 *
-		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|Function, route?: string, disabled?: boolean }>}
+		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|(() => void), route?: string, disabled?: boolean }>}
 		 */
 		headerActions: {
 			type: Array,
@@ -1851,7 +1851,7 @@ export default {
 		 * strip already ships those two as built-ins, and a second button with
 		 * the same name doing something else is worse than no button.
 		 *
-		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|Function, target?: string, props?: object, disabled?: boolean }>}
+		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|((scope: { actionId: string, selectedIds: Array<string>, count: number }) => void), target?: string, props?: object, disabled?: boolean }>}
 		 */
 		bulkActions: {
 			type: Array,
@@ -2354,9 +2354,11 @@ export default {
 				let sumLat = 0
 				let sumLng = 0
 				for (const f of feats) {
-					const _p = this.firstLatLng(f.geometry); if (!_p) {
+					const _p = this.firstLatLng(f.geometry)
+					if (!_p) {
 						continue
-					} sumLng += _p.lng
+					}
+					sumLng += _p.lng
 					sumLat += _p.lat
 				}
 				return [sumLat / feats.length, sumLng / feats.length]
@@ -2767,6 +2769,7 @@ export default {
 					declared.push(dispatchAction(a, ctx))
 					continue
 				}
+				// eslint-disable-next-line no-console
 				console.warn(`[CnIndexPage] Ignoring action ${JSON.stringify(a)}: actions must be objects with an id and a label. To show a built-in action use the showViewAction / showEditAction / showCopyAction / showDeleteAction props.`)
 			}
 			return [...declared, ...this.defaultActions]
@@ -2933,6 +2936,7 @@ export default {
 			}
 			const resolved = this.effectiveCustomComponents[this.cardComponent]
 			if (!resolved) {
+				// eslint-disable-next-line no-console
 				console.warn(`[CnIndexPage] cardComponent "${this.cardComponent}" not found in customComponents registry. Falling back to CnObjectCard.`)
 				return null
 			}
@@ -2952,6 +2956,7 @@ export default {
 			}
 			const resolved = this.effectiveCustomComponents[this.listComponent]
 			if (!resolved) {
+				// eslint-disable-next-line no-console
 				console.warn(`[CnIndexPage] listComponent "${this.listComponent}" not found in customComponents registry. Falling back to CnObjectRow.`)
 				return null
 			}
@@ -3451,9 +3456,10 @@ export default {
 				const nameField = cfg.nameField || 'title'
 				this.folderRegisterList = rows
 					.map((row) => ({ id: this.getByPath(row, idField), name: this.getByPath(row, nameField) || this.getByPath(row, idField) }))
-					.filter((f) => f.id != null)
+					.filter((f) => f.id !== null && f.id !== undefined)
 					.sort((a, b) => String(a.name).localeCompare(String(b.name)))
 			} catch (e) {
+				// eslint-disable-next-line no-console
 				console.error('[CnIndexPage] failed to load folder register', e)
 				this.folderRegisterList = []
 			}
@@ -3767,7 +3773,7 @@ export default {
 		 *
 		 * @param {object} obj The object to read from.
 		 * @param {string} path Dot-separated property path.
-		 * @return {*} The resolved value or undefined.
+		 * @return {unknown} The resolved value or undefined.
 		 */
 		getByPath(obj, path) {
 			if (!obj || !path) {
@@ -3776,7 +3782,7 @@ export default {
 			if (Object.hasOwn(obj, path)) {
 				return obj[path]
 			}
-			return path.split('.').reduce((acc, seg) => (acc == null ? undefined : acc[seg]), obj)
+			return path.split('.').reduce((acc, seg) => (acc === null || acc === undefined ? undefined : acc[seg]), obj)
 		},
 
 		/**
@@ -3836,7 +3842,7 @@ export default {
 		},
 
 		/**
-		 * Handle the Add button click. If the consumer listens to @add,
+		 * Handle the Add button click. If the consumer listens to `@add`,
 		 * emit the event (backward compatible). Otherwise open the form dialog.
 		 */
 		onAddClick() {
@@ -4063,7 +4069,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setMassDeleteResult(resultData) {
@@ -4071,7 +4077,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setMassCopyResult(resultData) {
@@ -4079,7 +4085,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setExportResult(resultData) {
@@ -4087,7 +4093,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setImportResult(resultData) {
@@ -4095,7 +4101,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setDeleteResult(resultData) {
@@ -4103,7 +4109,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setCopyResult(resultData) {
@@ -4189,6 +4195,7 @@ export default {
 			}
 			if (this.store) {
 				if (!this.objectType) {
+					// eslint-disable-next-line no-console
 					console.warn('[CnIndexPage] store prop is set but objectType is missing. Cannot save to store.')
 					return
 				}
@@ -4229,7 +4236,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setSingleDeleteResult(resultData) {
@@ -4237,7 +4244,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setSingleCopyResult(resultData) {
@@ -4245,7 +4252,7 @@ export default {
 		},
 
 		/**
-		 * @param {*} resultData Result data to pass to the dialog
+		 * @param {{ success?: boolean, error?: string }} resultData Result data to pass to the dialog
 		 * @public
 		 */
 		setFormResult(resultData) {

@@ -35,7 +35,7 @@ export const TENANT_CONTEXT_KEY = Symbol('cn:tenantContext')
 /**
  * Minimal event bus matching the public API consumers reach for.
  *
- * @return {{ on: Function, off: Function, emit: Function }}
+ * @return {{ on: (cb: (event: { previousUuid: string|null, uuid: string|null, organisation: object|null }) => void) => (() => void), off: (cb: (event: { previousUuid: string|null, uuid: string|null, organisation: object|null }) => void) => void, emit: (payload: { previousUuid: string|null, uuid: string|null, organisation: object|null }) => void }}
  */
 function createBus() {
 	const listeners = new Set()
@@ -88,8 +88,8 @@ export function createTenantContext(initialUuid = null, initialOrg = null) {
 	 * @param {object} [organisation] Full org entity when calling with (uuid, org)
 	 */
 	function setActiveTenant(uuidOrPayload, organisation) {
-		let uuid = null
-		let org = null
+		let uuid
+		let org
 
 		if (uuidOrPayload && typeof uuidOrPayload === 'object') {
 			uuid = uuidOrPayload.uuid ?? null

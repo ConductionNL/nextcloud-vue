@@ -192,7 +192,8 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 				return
 			}
 			if (!lockedByMe.value) {
-				stopRenewTimer(); return
+				stopRenewTimer()
+				return
 			}
 			// Re-issue acquire; idempotent on the server (resets TTL).
 			acquire().catch(() => stopRenewTimer())

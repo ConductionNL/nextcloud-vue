@@ -388,7 +388,7 @@ export default {
 		 * field labels, success messages, `validation.message`, etc.
 		 * Defaults to identity.
 		 *
-		 * @type {Function|null}
+		 * @type {((key: string) => string)|null}
 		 */
 		translate: {
 			type: Function,
@@ -593,7 +593,7 @@ export default {
 		cloneInitial() {
 			try {
 				return JSON.parse(JSON.stringify(this.initialValue || {}))
-			} catch (_e) {
+			} catch {
 				return {}
 			}
 		},
@@ -824,7 +824,7 @@ export default {
 			 * Field-level update event.
 			 *
 			 * @event input
-			 * @type {{key: string, value: any}}
+			 * @type {{key: string, value: unknown}}
 			 */
 			this.$emit('input', { key, value })
 		},

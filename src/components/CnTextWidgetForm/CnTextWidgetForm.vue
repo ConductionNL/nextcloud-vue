@@ -184,7 +184,7 @@ export default {
 		const initial = this.editingWidget?.content || this.value || {}
 		// Existing widgets with no contentMode default to 'html' to preserve
 		// their rendering; new widgets (registry default) get 'markdown'.
-		const isEditingExisting = this.editingWidget != null
+		const isEditingExisting = this.editingWidget !== null && this.editingWidget !== undefined
 		const fallback = isEditingExisting ? 'html' : DEFAULT_CONTENT.contentMode
 		const requested = initial.contentMode
 		const contentMode = VALID_CONTENT_MODES.includes(requested)

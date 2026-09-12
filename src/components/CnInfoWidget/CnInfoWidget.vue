@@ -176,7 +176,7 @@ export default {
 		/**
 		 * Format a field value for display based on its schema type.
 		 *
-		 * @param {*} value - The raw value.
+		 * @param {unknown} value - The raw value.
 		 * @return {string} Formatted display value.
 		 */
 		formatFieldValue(value) {

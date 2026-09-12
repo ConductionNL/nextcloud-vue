@@ -18,9 +18,9 @@ function isExternalUrl(target) {
  * (`"new"`) pass through verbatim — that is what keeps a literal
  * `params: { id: "new" }` working.
  *
- * @param {*} value The declared param value.
+ * @param {unknown} value The declared param value.
  * @param {object} row The row the action was triggered on.
- * @return {{ resolved: boolean, value: * }} `resolved` is false when a token names a field the row does not carry.
+ * @return {{ resolved: boolean, value: unknown }} `resolved` is false when a token names a field the row does not carry.
  */
 function resolveRowToken(value, row) {
 	if (typeof value !== 'string' || !value.includes('{')) {
@@ -73,7 +73,7 @@ function resolveRowToken(value, row) {
  *
  * @param {object} action Manifest action descriptor.
  * @param {{ router: object, rowKey: string, customComponents: object }} ctx Dispatch context (router, rowKey, customComponents registry).
- * @return {Function|null}
+ * @return {((row?: object) => void)|null}
  */
 export function resolveActionHandler(action, ctx) {
 	const type = (typeof action.type === 'string' && action.type.length > 0) ? action.type : 'handler'
@@ -82,6 +82,7 @@ export function resolveActionHandler(action, ctx) {
 	if (type === 'navigate') {
 		const target = action.target
 		if (typeof target !== 'string' || target.length === 0) {
+			// eslint-disable-next-line no-console
 			console.warn(`[CnIndexPage] action "${action.id}" declares type:"navigate" `
 				+ 'but target is missing; falling back to @action-only.')
 			return null
@@ -95,6 +96,7 @@ export function resolveActionHandler(action, ctx) {
 	if (type === 'open-page') {
 		const target = action.target
 		if (typeof target !== 'string' || target.length === 0) {
+			// eslint-disable-next-line no-console
 			console.warn(`[CnIndexPage] action "${action.id}" declares type:"open-page" `
 				+ 'but target is missing; falling back to @action-only.')
 			return null
@@ -103,6 +105,7 @@ export function resolveActionHandler(action, ctx) {
 	}
 
 	if (type === 'open-modal') {
+		// eslint-disable-next-line no-console
 		console.warn(`[CnIndexPage] action "${action.id}" type:"open-modal" is not `
 			+ 'supported for index-page actions; falling back to @action-only.')
 		return null
@@ -117,6 +120,7 @@ export function resolveActionHandler(action, ctx) {
 	if (name === 'navigate') {
 		const route = action.route
 		if (typeof route !== 'string' || route.length === 0) {
+			// eslint-disable-next-line no-console
 			console.warn(`[CnIndexPage] action "${action.id}" declares handler:"navigate" `
 				+ 'but route is missing; falling back to @action-only.')
 			return null
@@ -133,6 +137,7 @@ export function resolveActionHandler(action, ctx) {
 				if (resolved) {
 					params[key] = value
 				} else {
+					// eslint-disable-next-line no-console
 					console.warn(`[CnIndexPage] action "${action.id}" param "${key}" references `
 						+ `"${declared}" but the row carries no such field; dropping the param`
 						+ (key === 'id' ? ' ("id" falls back to the row id).' : '.'))
@@ -154,6 +159,7 @@ export function resolveActionHandler(action, ctx) {
 		return (row) => fn({ actionId: action.id, item: row })
 	}
 	if (fn !== undefined) {
+		// eslint-disable-next-line no-console
 		console.warn(`[CnIndexPage] action.handler "${name}" resolved to a non-function in `
 			+ 'customComponents — components belong to slot overrides; falling '
 			+ 'back to @action-only.')

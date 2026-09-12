@@ -250,7 +250,7 @@ export default {
 		 * cannot trigger a re-fetch on its own (no built-in WebDAV
 		 * client), so consumers pass their own re-fetch function in.
 		 *
-		 * @type {Function|null}
+		 * @type {(() => void|Promise<void>)|null}
 		 */
 		onRefresh: {
 			type: Function,

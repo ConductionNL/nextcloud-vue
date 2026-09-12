@@ -52,10 +52,10 @@ export function readCapabilityProviders(getCapabilities) {
 	if (typeof accessor !== 'function') {
 		return null
 	}
-	let caps = null
+	let caps
 	try {
 		caps = accessor()
-	} catch (e) {
+	} catch {
 		return null
 	}
 	if (caps === null || typeof caps !== 'object') {

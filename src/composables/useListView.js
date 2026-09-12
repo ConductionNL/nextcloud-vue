@@ -21,8 +21,8 @@ import { useObjectStore } from '../store/index.js'
  * @param {object} [options.defaultSort] Default sort applied on mount e.g. `{ key: 'createdAt', order: 'desc' }`
  * @param {Array<{key: string, order: 'asc'|'desc'}>} [options.defaultSortKeys] Default MULTI-column sort applied on mount (ordered priority list). Takes precedence over `defaultSort` when both are given; used e.g. to restore a sort persisted in the route query.
  * @param {Array<string>|null} [options.defaultVisibleColumns] Initial visible-column key set. Seeds the sidebar's Columns tab with the curated default (e.g. a manifest `columns` list) so toggles add/remove from it. Omit (or `null`) for schema-driven tables where every column starts visible.
- * @param {object|Function} [options.fixedFilters] A filter map (or getter returning one) merged into every fetch AFTER the user's facet filters, so the fixed entries always win. Used e.g. by `CnIndexPage` to apply a route-param-scoped `pages[].config.filter`. Default `{}` — omitting it is behaviourally identical to before.
- * @param {Array<string>|Function} [options.extend] OpenRegister `_extend[]` values (or a getter returning them) forwarded on every fetch, e.g. `['calculations']` so a schema's `materialise: false` calculations are evaluated and can be shown as columns. Default `[]` — omitting it sends no `_extend` at all, exactly as before.
+ * @param {object|(() => object)} [options.fixedFilters] A filter map (or getter returning one) merged into every fetch AFTER the user's facet filters, so the fixed entries always win. Used e.g. by `CnIndexPage` to apply a route-param-scoped `pages[].config.filter`. Default `{}` — omitting it is behaviourally identical to before.
+ * @param {Array<string>|(() => Array<string>)} [options.extend] OpenRegister `_extend[]` values (or a getter returning them) forwarded on every fetch, e.g. `['calculations']` so a schema's `materialise: false` calculations are evaluated and can be shown as columns. Default `[]` — omitting it sends no `_extend` at all, exactly as before.
  * @return {object} Reactive state and event handlers
  *
  * @example
@@ -348,7 +348,7 @@ export function useListView(objectTypeOrOptions, options) {
  *
  * @param {object} options Legacy options object
  * @param {string} [options.objectType] The registered object type slug
- * @param {Function} [options.fetchFn] Function to call: (type, params) => Promise<Array>
+ * @param {(type: string, params: object) => Promise<Array<object>>} [options.fetchFn] Function to call: (type, params) => Promise<Array>
  * @param {number} [options.debounceMs] Search debounce in milliseconds
  * @param {number} [options.pageSize] Default page size
  * @param {object} [options.defaultSort] Default sort: { key: string, order: 'asc'|'desc' }

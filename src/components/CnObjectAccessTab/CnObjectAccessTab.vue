@@ -422,7 +422,7 @@ export default {
 				} else if (this.readOnly === false) {
 					this.degraded = t('nextcloud-vue', 'Sharing is currently unavailable for this item.')
 				}
-			} catch (e) {
+			} catch {
 				this.error = t('nextcloud-vue', 'Could not load sharing information.')
 			} finally {
 				this.loading = false
@@ -451,7 +451,7 @@ export default {
 				 * @type {string} `'private'` or `'organisation'`.
 				 */
 				this.$emit('scope-changed', scope)
-			} catch (e) {
+			} catch {
 				// Revert the switch rather than leaving the UI asserting a change
 				// the server refused.
 				this.scope = previous
@@ -517,7 +517,7 @@ export default {
 				 */
 				this.$emit('granted', created)
 				await this.reload()
-			} catch (e) {
+			} catch {
 				this.error = t('nextcloud-vue', 'Could not share this item.')
 			} finally {
 				this.submitting = false
@@ -552,7 +552,7 @@ export default {
 				 */
 				this.$emit('revoked', grant)
 				await this.reload()
-			} catch (e) {
+			} catch {
 				this.error = t('nextcloud-vue', 'Could not revoke access.')
 			} finally {
 				this.revokingId = null

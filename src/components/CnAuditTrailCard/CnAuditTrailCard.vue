@@ -11,7 +11,11 @@
   forwarded so the component can branch internally if desired.
 -->
 <template>
-	<CnDetailCard :title="resolvedTitle" :icon="History" :collapsible="collapsible">
+	<CnDetailCard
+		:title="resolvedTitle"
+		:icon="History"
+		:collapsible="collapsible"
+		:data-surface="surface">
 		<NcLoadingIcon v-if="loading" />
 		<div v-else-if="entries.length === 0" class="cn-audit-card__empty">
 			{{ noEntriesLabel }}

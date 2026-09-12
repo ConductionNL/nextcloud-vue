@@ -109,7 +109,7 @@ export default {
 		 * free-text box is replaced by a multiselect picker. Supplied by the
 		 * consuming app (which owns the calendar backend) via `CnAddWidgetModal`.
 		 *
-		 * @type {Function|null}
+		 * @type {(() => Promise<Array<{ key: string, name: string, color: string }>>)|null}
 		 */
 		calendarsFetcher: {
 			type: Function,
@@ -216,7 +216,7 @@ export default {
 		 * Set a field and notify the parent.
 		 *
 		 * @param {string} field the reactive key.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {
@@ -267,6 +267,7 @@ export default {
 				const list = await this.calendarsFetcher()
 				this.availableCalendars = Array.isArray(list) ? list.filter((c) => c && c.key) : []
 			} catch (e) {
+				// eslint-disable-next-line no-console
 				console.error('CnCalendarWidgetForm: failed to fetch calendars', e)
 			} finally {
 				this.loadingCalendars = false

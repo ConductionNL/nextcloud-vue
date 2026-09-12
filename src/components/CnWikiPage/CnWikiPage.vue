@@ -188,7 +188,7 @@ export default {
 		 * manifest-driven prop forwarder in CnPageRenderer surfaces it
 		 * for child components / debugging.
 		 */
-		register: {
+		register: { // eslint-disable-line vue/no-unused-properties -- informational at this layer; CnPageRenderer forwards it from the manifest for child components.
 			type: String,
 			default: '',
 		},
@@ -197,7 +197,7 @@ export default {
 		 * OpenRegister schema slug. Informational at this layer —
 		 * see `register` above.
 		 */
-		schema: {
+		schema: { // eslint-disable-line vue/no-unused-properties -- informational at this layer; CnPageRenderer forwards it from the manifest for child components.
 			type: String,
 			default: '',
 		},
@@ -225,7 +225,7 @@ export default {
 		 * this layer; declared so the consumer's data store can wire
 		 * the same default the validator and renderer both reference.
 		 */
-		idParam: {
+		idParam: { // eslint-disable-line vue/no-unused-properties -- informational at this layer; CnPageRenderer forwards it from the manifest for child components.
 			type: String,
 			default: 'id',
 		},
@@ -244,7 +244,7 @@ export default {
 		 * Register slug for the sidebar tree. Defaults to `register`
 		 * when unset (the common case).
 		 */
-		sidebarRegister: {
+		sidebarRegister: { // eslint-disable-line vue/no-unused-properties -- informational at this layer; CnPageRenderer forwards it from the manifest for child components.
 			type: String,
 			default: '',
 		},

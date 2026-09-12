@@ -12,7 +12,11 @@
   openspec change's design notes.
 -->
 <template>
-	<CnDetailCard :title="resolvedTitle" :icon="FileCompare" :collapsible="collapsible">
+	<CnDetailCard
+		:title="resolvedTitle"
+		:icon="FileCompare"
+		:collapsible="collapsible"
+		:data-surface="surface">
 		<NcLoadingIcon v-if="loading && entries.length === 0" />
 		<div v-else-if="entries.length === 0" class="cn-version-history__empty">
 			{{ noEntriesLabel }}
@@ -134,8 +138,8 @@ import { buildHeaders } from '../../utils/index.js'
  * @typedef {object} FieldDiffRow
  * @property {string} path Field name.
  * @property {'added'|'removed'|'changed'|'unchanged'} type Classification.
- * @property {*} oldValue Value before.
- * @property {*} newValue Value after.
+ * @property {unknown} oldValue Value before.
+ * @property {unknown} newValue Value after.
  */
 
 /**

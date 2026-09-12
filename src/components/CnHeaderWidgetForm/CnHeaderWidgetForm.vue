@@ -242,7 +242,7 @@ export default {
 		 * (~1.37 MB once base64-encoded and stored) so a huge inline blob can't
 		 * freeze the tab. Wire a transport for anything larger.
 		 *
-		 * @type {Function|null}
+		 * @type {((file: File) => Promise<{ url: string }>)|null}
 		 */
 		fileUploadFn: {
 			type: Function,
@@ -258,7 +258,7 @@ export default {
 		 * a data URL and hands that to this function (emitting a one-time
 		 * console.warn). `fileUploadFn` takes precedence when both are provided.
 		 *
-		 * @type {Function|null}
+		 * @type {((dataUrl: string) => Promise<{ url: string }>)|null}
 		 */
 		uploadFn: {
 			type: Function,
@@ -421,7 +421,7 @@ export default {
 		 * Set a top-level field and re-emit the assembled payload.
 		 *
 		 * @param {string} field one of the top-level content keys.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {
@@ -481,6 +481,7 @@ export default {
 				this.updateField('backgroundImageUrl', resolvedUrl)
 			} catch (err) {
 				this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload image')
+				// eslint-disable-next-line no-console
 				console.error('Header image upload failed:', err)
 				throw err
 			} finally {
