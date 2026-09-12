@@ -20,14 +20,14 @@
  *
  * @param {object} row The row object.
  * @param {string} field The field key (supports dot notation).
- * @return {*} The value, or undefined.
+ * @return {unknown} The value, or undefined.
  */
 function readField(row, field) {
 	if (!row || typeof field !== 'string') {
 		return undefined
 	}
 	if (field.includes('.')) {
-		return field.split('.').reduce((obj, k) => (obj == null ? undefined : obj[k]), row)
+		return field.split('.').reduce((obj, k) => (obj === null || obj === undefined ? undefined : obj[k]), row)
 	}
 	if (row[field] === undefined && row['@self'] && typeof row['@self'] === 'object') {
 		return row['@self'][field]
@@ -38,7 +38,7 @@ function readField(row, field) {
 /**
  * Whether a value is "empty" for sort purposes (always sorts last).
  *
- * @param {*} v The value.
+ * @param {unknown} v The value.
  * @return {boolean}
  */
 function isEmpty(v) {
@@ -48,8 +48,8 @@ function isEmpty(v) {
 /**
  * Compare two raw values type-aware. Returns <0, 0, or >0.
  *
- * @param {*} a Left value.
- * @param {*} b Right value.
+ * @param {unknown} a Left value.
+ * @param {unknown} b Right value.
  * @return {number}
  */
 function compareValues(a, b) {

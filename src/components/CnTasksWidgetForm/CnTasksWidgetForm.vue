@@ -77,9 +77,17 @@ export default {
 	components: { NcSelect, NcTextField },
 
 	props: {
-		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
+		/**
+		 * The placement being edited (pre-fills from `editingWidget.content`), or null.
+		 *
+		 * @type {{content: object}|null}
+		 */
 		editingWidget: { type: Object, default: null },
-		/** Initial content values when not editing (registry defaults). @type {object} */
+		/**
+		 * Initial content values when not editing (registry defaults).
+		 *
+		 * @type {object}
+		 */
 		value: { type: Object, default: () => ({ ...DEFAULT_CONTENT }) },
 	},
 
@@ -149,7 +157,7 @@ export default {
 		 * Set one field and re-emit the whole content blob.
 		 *
 		 * @param {string} key   The field name.
-		 * @param {*}      value The new value.
+		 * @param {unknown}      value The new value.
 		 * @return {void}
 		 */
 		updateField(key, value) {

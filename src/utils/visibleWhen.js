@@ -57,13 +57,13 @@ export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte']
  *
  * @param {object} data The source object.
  * @param {string} [field] Dot-path into the object.
- * @return {*} The value at the path (undefined on a missing segment).
+ * @return {unknown} The value at the path (undefined on a missing segment).
  */
 export function readVisibleWhenPath(data, field) {
 	if (!field) {
 		return data
 	}
-	return String(field).split('.').reduce((obj, key) => (obj == null ? obj : obj[key]), data)
+	return String(field).split('.').reduce((obj, key) => (obj === null || obj === undefined ? obj : obj[key]), data)
 }
 
 /**
@@ -72,9 +72,9 @@ export function readVisibleWhenPath(data, field) {
  * (`String(a) === String(b)` when types differ) so `"3" eq 3` holds for
  * JSON round-trips.
  *
- * @param {*} actual The resolved left-hand value.
+ * @param {unknown} actual The resolved left-hand value.
  * @param {string} op The operator (`eq` when unknown).
- * @param {*} expected The declared right-hand value.
+ * @param {unknown} expected The declared right-hand value.
  * @return {boolean} Whether the comparison holds.
  */
 export function compareVisibleWhen(actual, op, expected) {
@@ -108,7 +108,7 @@ export function compareVisibleWhen(actual, op, expected) {
  *
  * @param {{endpoint?: string, source?: {register: string, schema: string, filter?: object}, field?: string}} cond The visibleWhen condition.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The caller's token / object context.
- * @return {Promise<*>} The value `field` points at.
+ * @return {Promise<unknown>} The value `field` points at.
  */
 export async function readVisibleWhenValue(cond, ctx) {
 	if (cond.endpoint) {
@@ -148,7 +148,7 @@ export async function readVisibleWhenValue(cond, ctx) {
  * A `null` / `undefined` condition resolves `true` (no condition = always
  * visible) so callers can pass the raw config value straight through.
  *
- * @param {{endpoint?: string, source?: object, field?: string, op?: string, value?: *}|null} cond The condition (or null).
+ * @param {{endpoint?: string, source?: object, field?: string, op?: string, value?: unknown}|null} cond The condition (or null).
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The caller's token / object context.
  * @return {Promise<boolean>} Whether the guarded element should show.
  */
@@ -177,7 +177,7 @@ export async function evaluateVisibleWhen(cond, ctx) {
 		}
 		const actual = await readVisibleWhenValue(cond, ctx)
 		return compareVisibleWhen(actual, cond.op || 'eq', cond.value)
-	} catch (e) {
+	} catch {
 		return false
 	}
 }
@@ -194,7 +194,7 @@ export async function evaluateVisibleWhen(cond, ctx) {
  * `endpoint` / `source` (those are NOT local-mode conditions) — resolves
  * `false` (hidden).
  *
- * @param {{field?: string, op?: string, value?: *}|null} cond The LOCAL visibleWhen condition (or null).
+ * @param {{field?: string, op?: string, value?: unknown}|null} cond The LOCAL visibleWhen condition (or null).
  * @param {object} data The live data object `field` dot-paths into (e.g. formData).
  * @return {boolean} Whether the guarded element should show.
  */
@@ -222,7 +222,7 @@ export function evaluateVisibleWhenLocal(cond, data) {
 	try {
 		const actual = readVisibleWhenPath(data, cond.field)
 		return compareVisibleWhen(actual, cond.op || 'eq', cond.value)
-	} catch (e) {
+	} catch {
 		return false
 	}
 }

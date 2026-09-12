@@ -590,8 +590,8 @@ export default {
 		/**
 		 * Build a `{ lat, lng }` when both are finite numbers, else null.
 		 *
-		 * @param {*} lat Candidate latitude.
-		 * @param {*} lng Candidate longitude.
+		 * @param {unknown} lat Candidate latitude.
+		 * @param {unknown} lng Candidate longitude.
 		 * @return {?{lat: number, lng: number}} The point, or null.
 		 */
 		finitePoint(lat, lng) {
@@ -707,7 +707,7 @@ export default {
 				 * @type {object|null}
 				 */
 				this.$emit('update:geo', newGeo)
-			} catch (e) {
+			} catch {
 				this.error = t('nextcloud-vue', 'Could not save the location.')
 			} finally {
 				this.saving = false

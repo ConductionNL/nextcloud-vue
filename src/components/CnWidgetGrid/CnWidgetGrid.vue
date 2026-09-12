@@ -381,7 +381,7 @@ export default {
 		 * @param {number} index The entry's position in the slot.
 		 */
 		gsId(widget, index) {
-			return widget.id != null ? widget.id : `idx-${index}`
+			return widget.id !== null && widget.id !== undefined ? widget.id : `idx-${index}`
 		},
 
 		/** Initialise the GridStack engine on the editable body container. */

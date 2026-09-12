@@ -37,7 +37,7 @@ import { translate as ncTranslate } from '@nextcloud/l10n'
  * Whether `required` passes for the given field type + value.
  *
  * @param {string} type `field.type`.
- * @param {*} value Current value.
+ * @param {unknown} value Current value.
  * @return {boolean} True when the required constraint is satisfied.
  */
 function passesRequired(type, value) {
@@ -68,7 +68,7 @@ function passesRequired(type, value) {
  * presence.
  *
  * @param {string} type `field.type`.
- * @param {*} value Current value.
+ * @param {unknown} value Current value.
  * @return {boolean}
  */
 function isEmptyValue(type, value) {
@@ -82,8 +82,8 @@ function isEmptyValue(type, value) {
  * Validate a single field's current value against its `validation` shape.
  *
  * @param {object} field The formField shape (`{ key, type, validation? }`).
- * @param {*} value The current field value.
- * @param {Function} [translate] Optional single-arg translator applied to
+ * @param {unknown} value The current field value.
+ * @param {(message: string) => string} [translate] Optional single-arg translator applied to
  *   `validation.message` (mirrors how `field.label` is resolved by the
  *   page's `translate` prop). Defaults to identity.
  * @return {string|null} The failure message, or `null` when the value is valid.
@@ -144,10 +144,10 @@ export function validateFieldValue(field, value, translate) {
 
 	// 3. pattern — string/password only.
 	if ((type === 'string' || type === 'password') && typeof validation.pattern === 'string' && !isEmptyValue(type, value)) {
-		let matches = true
+		let matches
 		try {
 			matches = new RegExp(validation.pattern).test(String(value))
-		} catch (e) {
+		} catch {
 			// An uncompilable pattern is a schema-authoring error caught by
 			// validateManifestV2() post-schema — never block the end user here.
 			matches = true

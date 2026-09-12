@@ -183,7 +183,7 @@ export default {
 		 * control is hidden and the picker still offers its catalogues, NL sets,
 		 * and a URL field.
 		 *
-		 * @type {Function|null}
+		 * @type {((dataUrl: string) => Promise<{url: string}>)|null}
 		 */
 		uploadFn: {
 			type: Function,
@@ -199,7 +199,7 @@ export default {
 		 * image widget defer the upload to submit and hand over the raw `File`.
 		 * When null, sub-forms fall back to their own no-transport behaviour.
 		 *
-		 * @type {Function|null}
+		 * @type {((file: File) => Promise<{url: string}>)|null}
 		 */
 		fileUploadFn: {
 			type: Function,
@@ -212,7 +212,7 @@ export default {
 		 * by the consuming app (which owns the calendar backend); when null the
 		 * calendar form falls back to free-text principal entry.
 		 *
-		 * @type {Function|null}
+		 * @type {(() => Promise<Array<{key: string, name: string, color: string}>>)|null}
 		 */
 		calendarsFetcher: {
 			type: Function,
@@ -371,8 +371,9 @@ export default {
 		 * @return {string[]} the validation error messages.
 		 */
 		validationErrors() {
-			// touch the tick so Vue tracks it as a dependency
-			this.validationTick
+			// Read the tick, discard the value: `$refs` is not reactive, so the
+			// tick is what Vue can track as this computed's dependency.
+			void this.validationTick
 			return this.form.validate(this.$refs.activeSubForm)
 		},
 
@@ -394,8 +395,8 @@ export default {
 		 * @return {boolean} true when something changed since open.
 		 */
 		isDirty() {
-			// touch the tick so content edits re-run this computed
-			this.validationTick
+			// Read the tick, discard the value, so content edits re-run this.
+			void this.validationTick
 			return this.currentSnapshot() !== this.initialSnapshot
 		},
 
@@ -672,6 +673,7 @@ export default {
 				} catch (error) {
 					// The sub-form surfaces its own inline error; keep the modal
 					// open so the author can retry or pick another file.
+					// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 					console.error('[CnAddWidgetModal] Widget commit failed:', error)
 					return
 				} finally {

@@ -229,12 +229,13 @@ export async function expectAccessible(target, options = {}) {
 	// helper without having installed axe-core themselves.
 	let axe
 	try {
+		// eslint-disable-next-line no-undef -- test-only helper, always run under jest (CommonJS), where `require` exists
 		axe = require('axe-core')
 	} catch (err) {
 		throw new Error('expectAccessible() requires the "axe-core" package. Add it to your '
 			+ 'devDependencies (`npm install --save-dev axe-core`) — it is an '
 			+ 'optional peerDependency of @conduction/nextcloud-vue, never a '
-			+ 'transitive install.')
+			+ 'transitive install.', { cause: err })
 	}
 
 	const node = resolveNode(target)

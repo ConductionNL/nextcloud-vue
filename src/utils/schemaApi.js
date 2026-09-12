@@ -72,7 +72,7 @@ export class SchemaHasObjectsError extends Error {
  * Unwrap an OpenRegister API payload (`{result}` / `{results}` / array / object).
  *
  * @param {object|Array} data The raw response body.
- * @return {*} The unwrapped payload.
+ * @return {unknown} The unwrapped payload.
  */
 function unwrap(data) {
 	if (!data) {
@@ -167,7 +167,7 @@ export async function deleteSchema(id, options = {}) {
  * Lives here so both editors word the warning identically.
  *
  * @param {object} change One change descriptor from the server.
- * @param {Function} translate A `t`-style translator: `(app, text, vars) => string`.
+ * @param {(app: string, text: string, vars?: object) => string} translate A `t`-style translator.
  * @return {string} The description.
  */
 export function describeSchemaChange(change, translate) {

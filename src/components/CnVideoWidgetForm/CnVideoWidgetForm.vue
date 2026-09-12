@@ -244,7 +244,7 @@ export default {
 		 * Set a field and emit `update:content`.
 		 *
 		 * @param {string} field the field name.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {

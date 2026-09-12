@@ -144,7 +144,7 @@ export default {
 		 * When the entire array is empty (or all entries are filtered out), only
 		 * the default slot content is rendered.
 		 *
-		 * @type {Array<{label: string, icon: object | string, handler: Function, disabled: boolean | Function, visible: boolean | Function, title: string | Function, destructive: boolean}>}
+		 * @type {Array<{label: string, icon: object | string, handler: (targetItem: object) => void, disabled: boolean | ((targetItem: object) => boolean), visible: boolean | ((targetItem: object) => boolean), title: string | ((targetItem: object) => string), destructive: boolean}>}
 		 */
 		actions: {
 			type: Array,
@@ -360,7 +360,7 @@ export default {
 		 *
 		 * NcActions has to run in `manual-open` mode here (the menu is opened
 		 * from a right-click via the `open` prop, not by activating the trigger
-		 * button). @nextcloud/vue 9 couples that mode to
+		 * button). `@nextcloud/vue` 9 couples that mode to
 		 * `noCloseOnClickOutside: this.manualOpen`, and NcPopover derives
 		 * `autoHide: !noCloseOnClickOutside && closeOnClickOutside` — so the
 		 * popper's own outside-click dismissal is switched off and nothing else
@@ -484,7 +484,7 @@ export default {
 		 * Meant to fire after the popper's hide animation completes, clearing
 		 * the cursor-position CSS vars.
 		 *
-		 * **Currently dead.** @nextcloud/vue 9 binds `onAfterClose` on its
+		 * **Currently dead.** `@nextcloud/vue` 9 binds `onAfterClose` on its
 		 * NcPopover while NcPopover only emits `afterHide`, so NcActions never
 		 * emits `closed` and neither do we. Nothing depends on it any more —
 		 * positioning is scoped to this menu's own popper (see `tagPopper`), the
@@ -496,7 +496,7 @@ export default {
 		onClosed() {
 			clearContextMenuPositionDom()
 			/**
-			 * @event closed Intended to fire after the popper's hide animation completes. Does not currently fire — @nextcloud/vue 9's NcActions listens for an `afterClose` event NcPopover never emits. Use `close` instead.
+			 * @event closed Intended to fire after the popper's hide animation completes. Does not currently fire — `@nextcloud/vue` 9's NcActions listens for an `afterClose` event NcPopover never emits. Use `close` instead.
 			 */
 			this.$emit('closed')
 		},

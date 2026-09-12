@@ -133,7 +133,7 @@ export default {
 		objectStore() {
 			try {
 				return useObjectStore()
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},

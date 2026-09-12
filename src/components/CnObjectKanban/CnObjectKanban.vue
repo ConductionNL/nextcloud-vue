@@ -328,7 +328,7 @@ export default {
 		 * distinct values observed in `objects`. Mirrors
 		 * `ViewPresentationService::deriveColumnValues()`.
 		 *
-		 * @return {Array<*>}
+		 * @return {Array<unknown>}
 		 */
 		deriveColumnValues() {
 			if (Array.isArray(this.columnOrder) && this.columnOrder.length > 0) {
@@ -346,7 +346,7 @@ export default {
 		/**
 		 * Distinct `groupByField` values observed in `objects`, in first-seen order.
 		 *
-		 * @return {Array<*>}
+		 * @return {Array<unknown>}
 		 */
 		discoverDistinctValues() {
 			const seen = new Set()
@@ -365,7 +365,7 @@ export default {
 		 * Stable string key for a column value (used as a `:key` and as the
 		 * `fullCardsByColumn` index — object/array values are unlikely but guarded).
 		 *
-		 * @param {*} value The column value.
+		 * @param {unknown} value The column value.
 		 * @return {string}
 		 */
 		columnKey(value) {
@@ -376,7 +376,7 @@ export default {
 		 * The card's identity, per `rowKey`.
 		 *
 		 * @param {object} card The card object.
-		 * @return {*}
+		 * @return {unknown}
 		 */
 		cardKey(card) {
 			return card?.[this.rowKey]
@@ -475,7 +475,7 @@ export default {
 			}
 			/**
 			 * @event load-more Emitted when a column's "load more" is clicked.
-			 * @type {{ value: *, offset: number }}
+			 * @type {{ value: unknown, offset: number }}
 			 */
 			this.$emit('load-more', { value: column.value, offset: column.cards.length })
 		},
@@ -536,8 +536,8 @@ export default {
 		 * has already been moved optimistically by vuedraggable's v-model splice.
 		 *
 		 * @param {object} card The moved object.
-		 * @param {*} fromValue The origin column's value.
-		 * @param {*} toValue The destination column's value.
+		 * @param {unknown} fromValue The origin column's value.
+		 * @param {unknown} toValue The destination column's value.
 		 * @param {number} originIndex The index the card is currently at in the destination column (used only for logging/debugging).
 		 * @return {void}
 		 */
@@ -554,7 +554,7 @@ export default {
 			 * column. The host performs the actual object write through the
 			 * existing guarded PATCH/PUT endpoint and calls `resolveMove`/
 			 * `rejectMove` on this component to confirm or roll back.
-			 * @type {{ object: object, groupByField: string, fromValue: *, toValue: * }}
+			 * @type {{ object: object, groupByField: string, fromValue: unknown, toValue: unknown }}
 			 */
 			this.$emit('move', {
 				object: card,
@@ -569,7 +569,7 @@ export default {
 		 * The card already sits in the destination column (optimistic UI); no
 		 * further mutation is needed.
 		 *
-		 * @param {*} objectId The moved object's `rowKey` value.
+		 * @param {unknown} objectId The moved object's `rowKey` value.
 		 * @return {void}
 		 * @public
 		 */
@@ -581,7 +581,7 @@ export default {
 		 * Roll back a rejected move: the card returns to its origin column and
 		 * `move-rejected` fires with the server's reason.
 		 *
-		 * @param {*} objectId The moved object's `rowKey` value.
+		 * @param {unknown} objectId The moved object's `rowKey` value.
 		 * @param {string} [reason] The rejection reason (e.g. an illegal lifecycle
 		 *   transition message) to surface to the user.
 		 * @return {void}
@@ -611,7 +611,7 @@ export default {
 			/**
 			 * @event move-rejected Emitted after `rejectMove()` rolls a card back
 			 * to its origin column.
-			 * @type {{ object: object, fromValue: *, toValue: *, reason: (string|undefined) }}
+			 * @type {{ object: object, fromValue: unknown, toValue: unknown, reason: (string|undefined) }}
 			 */
 			this.$emit('move-rejected', {
 				object: pending.card,
@@ -625,7 +625,7 @@ export default {
 		 * Remove a move from the pending map and, once none remain, allow
 		 * prop-driven rebuilds again.
 		 *
-		 * @param {*} objectId The moved object's `rowKey` value.
+		 * @param {unknown} objectId The moved object's `rowKey` value.
 		 * @return {void}
 		 */
 		clearPending(objectId) {

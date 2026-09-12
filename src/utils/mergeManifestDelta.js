@@ -71,11 +71,11 @@ export function mergeManifestDelta(base, delta) {
 /**
  * Recursively merge `delta` onto `base` at `path`, collecting orphan paths.
  *
- * @param {*} base Base value.
- * @param {*} delta Delta value (takes precedence).
+ * @param {unknown} base Base value.
+ * @param {unknown} delta Delta value (takes precedence).
  * @param {string} path Current JSON-ish path (for orphan reporting).
  * @param {string[]} orphans Accumulator for orphaned delta paths.
- * @return {*} Merged value.
+ * @return {unknown} Merged value.
  */
 function mergeValue(base, delta, path, orphans) {
 	// Delta absent → keep base. Base absent / scalar mismatch → delta wins.
@@ -228,9 +228,9 @@ function isPlainObject(value) {
 /**
  * Structured clone via JSON (manifests are plain JSON — no cycles/functions).
  *
- * @param {*} value Any manifest fragment. `undefined` and primitives are
+ * @param {unknown} value Any manifest fragment. `undefined` and primitives are
  *   returned as-is; objects and arrays are deep-copied.
- * @return {*} The deep copy, or `value` itself when it is not an object.
+ * @return {unknown} The deep copy, or `value` itself when it is not an object.
  */
 function clone(value) {
 	if (value === undefined) {

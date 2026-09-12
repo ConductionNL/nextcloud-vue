@@ -139,7 +139,7 @@ export default {
 
 	data() {
 		return {
-			/** @type {{[key: string]: *}} Collected input values, keyed by declared field name. */
+			/** @type {{[key: string]: unknown}} Collected input values, keyed by declared field name. */
 			values: this.initialValues(),
 		}
 	},
@@ -246,7 +246,7 @@ export default {
 		 * Store one input's value.
 		 *
 		 * @param {string} key The declared field name.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 */
 		setValue(key, value) {
 			this.values = { ...this.values, [key]: value }
@@ -287,7 +287,7 @@ export default {
 			 * @event confirm Emitted when the user confirms with all required
 			 * inputs filled. Payload holds exactly the declared input keys; the
 			 * parent POSTs `{ action, data }`.
-			 * @type {{[key: string]: *}}
+			 * @type {{[key: string]: unknown}}
 			 */
 			this.$emit('confirm', data)
 		},

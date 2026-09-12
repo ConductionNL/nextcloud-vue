@@ -268,6 +268,7 @@ export default {
 					this.allNotes = data.results || data || []
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error('CnNotesCard: Failed to fetch notes', err)
 			} finally {
 				this.loading = false
@@ -294,6 +295,7 @@ export default {
 					this.showError('Failed to add note')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error('CnNotesCard: Failed to add note', err)
 				this.showError('Failed to add note')
 			} finally {
@@ -314,6 +316,7 @@ export default {
 					this.$emit('note-deleted')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error('CnNotesCard: Failed to delete note', err)
 			}
 		},
@@ -341,6 +344,7 @@ export default {
 					showError(message)
 				})
 			} catch {
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error(message)
 			}
 		},

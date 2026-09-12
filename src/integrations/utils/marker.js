@@ -40,7 +40,7 @@ const BARE = /\s*or:[0-9a-f-]{8,}\s*/gi
  * form) from a string. Returns the input coerced to string and
  * trimmed; never returns `null`/`undefined`.
  *
- * @param {*} raw any value that should be rendered as a string
+ * @param {unknown} raw any value that should be rendered as a string
  *
  * @return {string}
  */
@@ -60,7 +60,7 @@ export function stripMarker(raw) {
  * the marker is stripped the remainder is empty). Useful for hiding
  * chip-style affordances when the field is "just the marker".
  *
- * @param {*} raw any value
+ * @param {unknown} raw any value
  *
  * @return {boolean}
  */

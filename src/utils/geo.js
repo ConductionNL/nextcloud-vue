@@ -21,8 +21,8 @@
  * Guards the whole module: a NaN or a string sneaking through here would surface as
  * an invisible marker or a Leaflet exception far from the cause.
  *
- * @param {*} lat Candidate latitude.
- * @param {*} lng Candidate longitude.
+ * @param {unknown} lat Candidate latitude.
+ * @param {unknown} lng Candidate longitude.
  * @return {?{lat: number, lng: number}} The point, or null when either is not finite.
  */
 export function finitePoint(lat, lng) {
@@ -45,7 +45,7 @@ export function finitePoint(lat, lng) {
  * Whether a value is a real number or a numeric string — excluding the empty shapes
  * (`null`, `undefined`, `''`, `[]`) that `Number()` silently turns into 0.
  *
- * @param {*} value The candidate.
+ * @param {unknown} value The candidate.
  * @return {boolean} True when it can be safely coerced to a coordinate.
  */
 function isNumeric(value) {
@@ -65,7 +65,7 @@ function isNumeric(value) {
  * plain lat/lng object. Returns null for anything it cannot make sense of — callers
  * skip those rather than plotting a marker at (0, 0).
  *
- * @param {*} geo The raw value (typically `object['@self'].geo`).
+ * @param {unknown} geo The raw value (typically `object['@self'].geo`).
  * @return {?{lat: number, lng: number}} The point, or null.
  */
 export function parseGeoPoint(geo) {

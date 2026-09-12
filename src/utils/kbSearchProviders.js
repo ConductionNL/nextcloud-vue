@@ -41,7 +41,7 @@ import { buildHeaders, prefixUrl } from './headers.js'
  * Normalise an assortment of likely response shapes into an article list:
  * a bare array, `{ results }`, `{ items }`, or `{ articles }`.
  *
- * @param {*} data The raw response body.
+ * @param {unknown} data The raw response body.
  * @return {Array<object>} The article list (possibly empty).
  */
 export function normaliseKbResults(data) {

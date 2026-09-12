@@ -213,7 +213,7 @@ export default {
 		 * Set one top-level config field.
 		 *
 		 * @param {string} key The field name.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 * @return {void}
 		 */
 		updateField(key, value) {

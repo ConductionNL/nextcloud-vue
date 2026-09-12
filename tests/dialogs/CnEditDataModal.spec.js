@@ -46,7 +46,11 @@ beforeEach(() => {
 	// Reset it between cases so each test loads from its own axios mocks instead
 	// of a previous case's cached list/schemas.
 	invalidateDataCache()
-	axios.get.mockReset(); axios.post.mockReset(); axios.put.mockReset(); axios.patch.mockReset(); axios.delete.mockReset()
+	axios.get.mockReset()
+	axios.post.mockReset()
+	axios.put.mockReset()
+	axios.patch.mockReset()
+	axios.delete.mockReset()
 })
 
 describe('CnEditDataModal', () => {

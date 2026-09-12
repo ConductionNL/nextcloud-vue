@@ -151,7 +151,7 @@ export function savedObjectId(saved) {
  * @param {string} name The registered handler name.
  * @param {object} registry The v2 component registry.
  * @param {object} customComponents The legacy customComponents map.
- * @return {?Function} The async create handler, or null when unresolved.
+ * @return {?((context: object) => unknown)} The async create handler, or null when unresolved.
  */
 export function resolveCreateOverrideHandler(name, registry, customComponents) {
 	if (typeof name !== 'string' || name === '') {
@@ -228,9 +228,9 @@ export function buildOnSuccessRoute(onSuccessRoute, saved) {
  * lacks the key, the message is returned byte-identical. Server-supplied
  * messages are data and are never routed through here.
  *
- * @param {*} message The manifest-authored message (may be undefined).
+ * @param {unknown} message The manifest-authored message (may be undefined).
  * @param {object} context The dispatch context (`context.translate` optional).
- * @return {*} The translated message, or the input unchanged.
+ * @return {unknown} The translated message, or the input unchanged.
  */
 function translateMessage(message, context) {
 	const fn = context && context.translate
@@ -295,7 +295,7 @@ function interpolateActionString(str, ctx) {
  * @param {object} context Runtime context; `context.tokenCtx` is the token
  *   context (`{ objectId?, object?, workspace?, config? }`) the URL/body
  *   resolve against.
- * @return {Promise<{ok: boolean, data?: *, error?: *}>} The call outcome.
+ * @return {Promise<{ok: boolean, data?: unknown, error?: unknown}>} The call outcome.
  */
 async function executeApiCall(action, context) {
 	const tokenCtx = context.tokenCtx || {}
@@ -361,8 +361,8 @@ async function executeApiCall(action, context) {
  * to the server); a `{ slug | id }` object (a schema holder) is flattened to its
  * slug/id.
  *
- * @param {*} actionVal The action's explicit value (may be undefined or an @-token).
- * @param {*} ctxDefault The page-context default (`tokenCtx.<field>`).
+ * @param {unknown} actionVal The action's explicit value (may be undefined or an @-token).
+ * @param {unknown} ctxDefault The page-context default (`tokenCtx.<field>`).
  * @param {object} tokenCtx The token context the @-tokens resolve against.
  * @return {string} The resolved reference, or '' when unresolved/absent.
  */
@@ -408,7 +408,7 @@ function resolveAgentRef(actionVal, ctxDefault, tokenCtx) {
  *   `errorMessage?`, `refresh?`).
  * @param {object} context Runtime context; `context.tokenCtx` is the token
  *   context (`{ objectId?, object?, register?, schema?, workspace?, config? }`).
- * @return {Promise<{ok: boolean, data?: *, error?: *}>} The call outcome.
+ * @return {Promise<{ok: boolean, data?: unknown, error?: unknown}>} The call outcome.
  */
 async function executeAgentAction(action, context) {
 	const tokenCtx = context.tokenCtx || {}
@@ -541,12 +541,12 @@ async function executeAgentAction(action, context) {
  * @param {object} [context.registry] Component registry (Record<string, { kind, component }>).
  *   Required for "open-modal" type.
  * @param {object} [context.handlers] Map of handler name → function. Required for "handler" type.
- * @param {Function} [context.openModal] Function `(key, props)` that opens a modal.
+ * @param {(key: string, props: object) => void} [context.openModal] Opens a modal.
  *   Required for "open-modal" type.
- * @param {Function} [context.openExport] Function `(action)` that opens the shared
+ * @param {(action: object) => void} [context.openExport] Opens the shared
  *   CnMassExportDialog configured from the action. Required for "export" type —
  *   CnPageRenderer pre-binds it in the `cnDispatchAction` context.
- * @param {Function} [context.openForm] Function `(action)` that opens the schema-driven
+ * @param {(action: object) => void} [context.openForm] Opens the schema-driven
  *   create dialog. Required for "open-form" type — the rendering surface
  *   (CnActionButtons) provides it, mirroring `openExport`. On a successful save the
  *   surface navigates to `action.onSuccessRoute` (a route NAME string, or
@@ -556,7 +556,7 @@ async function executeAgentAction(action, context) {
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [context.tokenCtx]
  *   Token context "api-call" URLs/params resolve against (the same shape
  *   `resolveFilterTokens` / `interpolateUrlTokens` take).
- * @param {Function} [context.translate] The consumer's bound `t()` — the same
+ * @param {(app: string, text: string, vars?: object) => string} [context.translate] The consumer's bound `t()` — the same
  *   `cnTranslate` CnAppRoot provides to the page chrome. Applied to the
  *   manifest-authored `successMessage` / `errorMessage` of "api-call" and
  *   "agent" so their toasts follow the user's language. Omitted (or a

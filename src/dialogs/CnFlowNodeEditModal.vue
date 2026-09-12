@@ -567,7 +567,7 @@ export default {
 						}
 					})
 					.filter((option) => option.value !== '')
-			} catch (error) {
+			} catch {
 				// A failed lookup must not clear what is already picked: the
 				// selected options are synthesised from the document, not from
 				// this list.
@@ -599,7 +599,7 @@ export default {
 					.filter((row) => row.source === 'users')
 					.map((row) => ({ id: String(row.id ?? ''), label: String(row.label ?? row.id ?? '') }))
 					.filter((row) => row.id !== '')
-			} catch (error) {
+			} catch {
 				this.users = []
 			} finally {
 				this.usersLoading = false
@@ -741,6 +741,7 @@ export default {
 			} catch (error) {
 				// A picker that could not load degrades to showing the stored
 				// value; the Advanced editor still reaches everything.
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error(`cn-flow: could not load options for "${key}"`, error)
 			} finally {
 				this.selectLoading = { ...this.selectLoading, [key]: false }
@@ -794,7 +795,7 @@ export default {
 
 		/**
 		 * @param {string} key   The config key.
-		 * @param {*}      value The new value.
+		 * @param {unknown}      value The new value.
 		 * @return {void}
 		 */
 		setKey(key, value) {
@@ -840,7 +841,7 @@ export default {
 				delete rest[key]
 				this.jsonErrors = rest
 				this.setKey(key, parsed)
-			} catch (e) {
+			} catch {
 				this.jsonErrors = {
 					...this.jsonErrors,
 					[key]: this.t('nextcloud-vue', 'Not valid JSON, so this option keeps its previous value.'),
@@ -867,7 +868,7 @@ export default {
 				this.draft.config = parsed
 				this.jsonDrafts = {}
 				this.jsonErrors = {}
-			} catch (e) {
+			} catch {
 				this.advancedError = this.t('nextcloud-vue', 'Not valid JSON, so the configuration keeps its previous value.')
 			}
 		},

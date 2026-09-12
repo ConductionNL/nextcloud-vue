@@ -39,7 +39,7 @@
  *   a `push(state, label)` within `coalesceMs` of the previous push, at the
  *   top of the stack, carrying the same non-empty `label`, replaces the top
  *   entry instead of appending. `0` (the default) disables coalescing.
- * @param {Function} [options.now] Injectable clock used to timestamp pushes
+ * @param {() => number} [options.now] Injectable clock used to timestamp pushes
  *   and evaluate the coalescing window. Default `Date.now`. Exists so tests
  *   can simulate elapsed time deterministically without real timers.
  * @return {{
@@ -190,9 +190,9 @@ export function createManifestEditHistory(options = {}) {
  * `prev` is assumed to already be fully frozen (it is always a previously
  * stored snapshot), so reusing a subtree of it is safe.
  *
- * @param {*} value The raw value to clone/freeze.
- * @param {*} [prev] The previous stored (frozen) snapshot to share against.
- * @return {*} A frozen value equal to `value`.
+ * @param {unknown} value The raw value to clone/freeze.
+ * @param {unknown} [prev] The previous stored (frozen) snapshot to share against.
+ * @return {unknown} A frozen value equal to `value`.
  */
 function shareOrClone(value, prev) {
 	if (prev !== undefined && deepEqual(value, prev)) {
@@ -218,8 +218,8 @@ function shareOrClone(value, prev) {
  * Structural deep-equality check (JSON-safe plain data only — the contract
  * this history is built for).
  *
- * @param {*} a First value.
- * @param {*} b Second value.
+ * @param {unknown} a First value.
+ * @param {unknown} b Second value.
  * @return {boolean} Whether `a` and `b` are deeply equal.
  */
 function deepEqual(a, b) {

@@ -10,7 +10,7 @@
  *
  * @param {object} obj An OpenRegister object.
  * @param {string} key A field key. Dot notation ('address.city') walks nested objects.
- * @return {*} The value, or undefined when the object carries no such field.
+ * @return {unknown} The value, or undefined when the object carries no such field.
  */
 export function objectFieldValue(obj, key) {
 	if (!obj || typeof key !== 'string') {

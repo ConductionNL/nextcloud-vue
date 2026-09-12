@@ -167,7 +167,7 @@ export default {
 		 * `({ path, depth }) => Promise<folders>`. Defaults to a built-in
 		 * WebDAV PROPFIND loader. Inject in tests.
 		 *
-		 * @type {Function}
+		 * @type {(opts: {path: string, depth: number}) => Promise<object[]>}
 		 */
 		fetcher: {
 			type: Function,
@@ -278,7 +278,7 @@ export default {
 			list.forEach((f) => {
 				const node = byId[f[this.idField]]
 				const parent = f[this.parentField]
-				if (parent != null && byId[parent]) {
+				if (parent !== null && parent !== undefined && byId[parent]) {
 					byId[parent].children.push(node)
 				} else {
 					roots.push(node)
@@ -324,7 +324,7 @@ export default {
 			const counts = new Map()
 			this.objects.forEach((obj) => {
 				const value = obj[this.groupBy]
-				if (value == null || value === '') {
+				if (value === null || value === undefined || value === '') {
 					return
 				}
 				counts.set(value, (counts.get(value) || 0) + 1)
@@ -412,6 +412,7 @@ export default {
 				const load = this.fetcher || fetchWebdavFolderTree
 				this.fileTree = await load({ path: this.filesPath, depth: this.maxDepth })
 			} catch (e) {
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error('[CnFolderSidebar] failed to load folders', e)
 				this.fileTree = []
 			} finally {

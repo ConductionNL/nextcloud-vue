@@ -186,7 +186,8 @@ export function validateManifestV2(manifest) {
 				const gx = widget.gridX
 				const gw = widget.gridWidth
 				if (typeof gx === 'number' && typeof gw === 'number') {
-					const resolved = resolveSlotColumns(widget.slot, isPlainObject(page.config) ? page.config.slotColumns : null); if (gx + gw > resolved) {
+					const resolved = resolveSlotColumns(widget.slot, isPlainObject(page.config) ? page.config.slotColumns : null)
+					if (gx + gw > resolved) {
 						errors.push(`pages[${pIndex}]/widgets[${wIndex}]: Widget '${widget.widgetKey}' in slot '${widget.slot}': gridX (${gx}) + gridWidth (${gw}) exceeds ${resolved}`)
 					}
 				}
@@ -699,7 +700,7 @@ const SENTINEL_PATTERN = /^@resolve:[a-z][a-z0-9_-]*$/
 /**
  * Test whether a string is a manifest `@resolve:` sentinel.
  *
- * @param {*} value Candidate value.
+ * @param {unknown} value Candidate value.
  * @return {boolean} True when the value is a fully-matched sentinel.
  */
 function isSentinel(value) {
@@ -961,6 +962,11 @@ export function validateManifest(manifest, options = {}) {
 function isPlainObject(value) {
 	return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
+
+// The accepted `type` values for `fields[]` entries: the settings-page set,
+// and the form-page set, which also accepts `file` (see validateFieldsArray).
+const FORM_FIELD_TYPES = ['boolean', 'number', 'string', 'enum', 'password', 'json']
+const FORM_PAGE_FIELD_TYPES = [...FORM_FIELD_TYPES, 'file']
 
 /**
  * Validate a page's `config` object against per-type rules for the
@@ -1404,7 +1410,7 @@ function validateSidebarConfig(page, pageIndex, errors) {
  * `config.sidebar.tabs` path (manifest-detail-sidebar-config) reuse
  * the same rules.
  *
- * @param {*} tabs The candidate tabs value (expected: array of tab defs)
+ * @param {unknown} tabs The candidate tabs value (expected: array of tab defs)
  * @param {string} tabsPath JSON-pointer-shaped path prefix for errors
  * @param {string[]} errors Accumulator
  */
@@ -1599,6 +1605,14 @@ function validateConfigMode(cfg, pathSlash, pathBracket, errors) {
 }
 
 /**
+ * REQ-MAD-1 — Allowed shapes for `actions[].handler`. Either a
+ * reserved keyword (`navigate` | `emit` | `none`) or a JS-identifier
+ * registry name (alphanumeric + underscore, leading letter). Mirrors
+ * the schema's `pattern` on the `handler` property.
+ */
+const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
+
+/**
  * Validate `config.actions[]` for index page type
  * (`manifest-config-refs` REQ-MCR). Each entry MUST be an object with
  * non-empty `id` and `label` strings — matches the `action` $def's
@@ -1646,14 +1660,6 @@ function validateActionsArray(cfg, pathSlash, pathBracket, errors) {
 		}
 	})
 }
-
-/**
- * REQ-MAD-1 — Allowed shapes for `actions[].handler`. Either a
- * reserved keyword (`navigate` | `emit` | `none`) or a JS-identifier
- * registry name (alphanumeric + underscore, leading letter). Mirrors
- * the schema's `pattern` on the `handler` property.
- */
-const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
 
 /**
  * Validate `config.actionToggles` for index page type
@@ -1908,7 +1914,7 @@ function validateLayoutArray(cfg, pathSlash, pathBracket, errors) {
  * `widget.type === "component"` discriminator (REQ-MSO-6) requires
  * `componentName: <non-empty string>`.
  *
- * @param {*} section The section under validation
+ * @param {unknown} section The section under validation
  * @param {string} pathSlash JSON-pointer-style path prefix for errors
  * @param {string} pathBracket Human-readable bracket-path for errors
  * @param {string[]} errors Accumulator
@@ -2121,14 +2127,12 @@ function validateContentArray(cfg, pathSlash, pathBracket, errors) {
  * app config, which has no place for file content, and CnSettingsPage has
  * no file input to render.
  *
- * @param {*} fields The candidate fields value
+ * @param {unknown} fields The candidate fields value
  * @param {string} fieldsPath JSON-pointer-style path prefix for errors
  * @param {string[]} errors Accumulator
  * @param {string[]} [allowedTypes] The accepted `type` values. Defaults to
  *   the settings set, `FORM_FIELD_TYPES`.
  */
-const FORM_FIELD_TYPES = ['boolean', 'number', 'string', 'enum', 'password', 'json']
-const FORM_PAGE_FIELD_TYPES = [...FORM_FIELD_TYPES, 'file']
 function validateFieldsArray(fields, fieldsPath, errors, allowedTypes = FORM_FIELD_TYPES) {
 	if (!Array.isArray(fields)) {
 		return

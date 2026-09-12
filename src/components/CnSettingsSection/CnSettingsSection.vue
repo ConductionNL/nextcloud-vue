@@ -1,6 +1,8 @@
 <template>
 	<NcSettingsSection
 		:name="name"
+		:description="description"
+		:docUrl="docUrl"
 		data-testid="cn-settings-section"
 		v-bind="$attrs">
 		<!-- Action buttons positioned top-right -->

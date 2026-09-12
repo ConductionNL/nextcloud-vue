@@ -478,7 +478,7 @@ export default {
 				}
 				const parsed = new URL(url)
 				return parsed.hostname
-			} catch (_err) {
+			} catch {
 				return ''
 			}
 		},

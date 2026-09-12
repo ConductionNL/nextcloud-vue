@@ -72,6 +72,7 @@ async function _fetchGroups(userId) {
 		const groups = response.data?.ocs?.data?.groups || []
 		return groups
 	} catch (error) {
+		// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 		console.error('[widgetVisibility] Failed to fetch user groups:', error)
 		return []
 	}

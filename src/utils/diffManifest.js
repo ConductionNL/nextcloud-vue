@@ -42,10 +42,10 @@ export function diffManifest(base, edited) {
 /**
  * Diff two values; return `undefined` when equal, else the minimal delta.
  *
- * @param {*} base Base value.
- * @param {*} edited Edited value.
+ * @param {unknown} base Base value.
+ * @param {unknown} edited Edited value.
  * @param {string} path Current path (for warnings).
- * @return {*} Minimal delta value, or `undefined` if unchanged.
+ * @return {unknown} Minimal delta value, or `undefined` if unchanged.
  */
 function diffValue(base, edited, path) {
 	if (deepEqual(base, edited)) {

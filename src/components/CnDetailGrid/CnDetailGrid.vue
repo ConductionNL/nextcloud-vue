@@ -300,7 +300,7 @@ export default {
 		 * The item's value as rendered, with the empty placeholder.
 		 *
 		 * @param {object} item - The item definition.
-		 * @return {*} The value, or a dash when it carries none.
+		 * @return {unknown} The value, or a dash when it carries none.
 		 */
 		displayValue(item) {
 			if (item.value === undefined || item.value === null) {

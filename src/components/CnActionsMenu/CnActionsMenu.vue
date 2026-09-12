@@ -159,7 +159,7 @@ export function resolveDocsUrl(base, anchor) {
 	if (a.startsWith('/')) {
 		try {
 			return new URL(a, b).toString()
-		} catch (e) {
+		} catch {
 			return `${b.replace(/\/+$/, '')}${a}`
 		}
 	}
@@ -175,7 +175,7 @@ export function resolveDocsUrl(base, anchor) {
  * re-emitting `@refresh`), so a host listener on the outer component can
  * still suppress the default.
  *
- * @return {{defaultPrevented: boolean, preventDefault: Function}}
+ * @return {{defaultPrevented: boolean, preventDefault: () => void}}
  */
 function createSyntheticEvent() {
 	const ev = {
@@ -418,7 +418,7 @@ export default {
 		 *
 		 * @type {string}
 		 */
-		specRef: {
+		specRef: { // eslint-disable-line vue/no-unused-properties -- published prop kept so hosts that still bind it do not leak it into $attrs
 			type: String,
 			default: '',
 		},
@@ -543,7 +543,7 @@ export default {
 			}
 			try {
 				return String(resolve(this.widgetId) || '').trim()
-			} catch (e) {
+			} catch {
 				// A host resolver that throws must not take the menu with it —
 				// the link degrades to the surface slug.
 				return ''
