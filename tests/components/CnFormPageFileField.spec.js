@@ -17,7 +17,29 @@ import { mount } from '@vue/test-utils'
 import CnFormPage from '@/components/CnFormPage/CnFormPage.vue'
 import { readFileAsDataUrl } from '@/utils/widgetUpload.js'
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 20))
+/**
+ * Wait until `check()` is true, polling rather than guessing at a duration.
+ *
+ * The submit path a test asserts on is asynchronous in the same way the read
+ * is: a fixed sleep passes on a quiet machine and loses on a loaded one, and
+ * when it loses the assertion reports zero calls, naming the submit rather
+ * than the wait that was too short. Both spellings of that mistake are gone
+ * from this file now.
+ *
+ * @param {Function} check Predicate that becomes true once the work has landed.
+ * @param {string} what What we are waiting for, named in the timeout message.
+ * @param {number} [timeoutMs] How long to wait before giving up.
+ * @return {Promise<void>} Resolves once the predicate holds.
+ */
+async function settleUntil(check, what, timeoutMs = 5000) {
+	const deadline = Date.now() + timeoutMs
+	while (!check() && Date.now() < deadline) {
+		await new Promise((resolve) => setTimeout(resolve, 5))
+	}
+	if (!check()) {
+		throw new Error(`${what} had not happened after ${timeoutMs} ms`)
+	}
+}
 
 /**
  * Wait until the mounted CnFileField has finished with the picked file.
@@ -95,7 +117,7 @@ describe('CnFormPage: file field', () => {
 		}, { saveAdvice: handler })
 		await pick(wrapper, file)
 		await wrapper.find('form').trigger('submit')
-		await settle()
+		await settleUntil(() => handler.mock.calls.length > 0, 'the submit handler call')
 		expect(handler).toHaveBeenCalledTimes(1)
 		expect(handler.mock.calls[0][0]).toEqual({ title: 'Advice', report: expected })
 	})
@@ -110,7 +132,7 @@ describe('CnFormPage: file field', () => {
 		})
 		await pick(wrapper, file)
 		await wrapper.find('form').trigger('submit')
-		await settle()
+		await settleUntil(() => axios.post.mock.calls.length > 0, 'the submit POST')
 		expect(axios.post).toHaveBeenCalledWith('/apps/openregister/api/objects/dossiq/advice/case-1', { report: expected })
 	})
 
@@ -121,7 +143,12 @@ describe('CnFormPage: file field', () => {
 			submitHandler: 'saveAdvice',
 		}, { saveAdvice: handler })
 		await wrapper.find('form').trigger('submit')
-		await settle()
+		// The assertion below is a negative, so it would pass before the submit
+		// had done anything at all. Wait for the thing that DOES appear.
+		await settleUntil(
+			() => wrapper.find('#cn-form-page__field-error-report').exists(),
+			'the required-file alert',
+		)
 		expect(handler).not.toHaveBeenCalled()
 		const alert = wrapper.find('#cn-form-page__field-error-report')
 		expect(alert.exists()).toBe(true)
