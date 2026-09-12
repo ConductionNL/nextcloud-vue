@@ -85,6 +85,66 @@ describe('CnObjectListWidget — groupBy', () => {
 		expect(w.vm.isGrouped).toBe(false)
 		expect(w.vm.groupedRows).toEqual([])
 	})
+
+	it('resolves the group heading through fkResolve when groupLabelResolve is set, for a group key one hop past what extend inlined', async () => {
+		// `informatieobjecttype` here is a raw uuid string: only `informatieobject`
+		// was extended, not its own `informatieobjecttype` reference, so
+		// `objectFieldValue` cannot read a human label off the row at all —
+		// exactly the case documents-on-the-case task 2.2 hit.
+		mockGet.mockResolvedValue({
+			data: {
+				results: [
+					{ id: '1', informatieobject: { informatieobjecttype: 'type-uuid-1' } },
+				],
+				total: 1,
+			},
+		})
+		const w = mountWidget({
+			extend: ['informatieobject'],
+			groupBy: 'informatieobject.informatieobjecttype',
+			groupLabelResolve: { register: 'dossiq', schema: 'informatieobjecttype', labelField: 'description' },
+		})
+		await flushPromises()
+
+		expect(w.vm.groupLabelResolveConfig).toEqual({
+			register: 'dossiq', schema: 'informatieobjecttype', labelField: 'description',
+		})
+		const cell = w.findComponent({ name: 'CnFkResolveCell' })
+		expect(cell.exists()).toBe(true)
+		expect(cell.props()).toMatchObject({
+			value: 'type-uuid-1', register: 'dossiq', schema: 'informatieobjecttype', labelField: 'description',
+		})
+	})
+
+	it('renders no groupLabelResolveConfig, and falls back to the plain group.label, when the key is absent', async () => {
+		mockGet.mockResolvedValue({
+			data: { results: [{ id: '1', informatieobjecttype: 'besluit' }], total: 1 },
+		})
+		const w = mountWidget({ groupBy: 'informatieobjecttype' })
+		await flushPromises()
+
+		expect(w.vm.groupLabelResolveConfig).toBeNull()
+		expect(w.findComponent({ name: 'CnFkResolveCell' }).exists()).toBe(false)
+	})
+
+	it('treats a groupLabelResolve missing register or schema as absent, not a half-configured resolver', async () => {
+		mockGet.mockResolvedValue({
+			data: { results: [{ id: '1', informatieobjecttype: 'besluit' }], total: 1 },
+		})
+		// MUTATION CHECK (red half): a guard that accepts any truthy object
+		// would pass this straight to CnFkResolveCell with an empty schema,
+		// which resolves nothing and silently shows the raw uuid instead of
+		// the correct fallback ("besluit" here has no readable label of its
+		// own, but the point holds for any malformed config).
+		const w = mountWidget({
+			groupBy: 'informatieobjecttype',
+			groupLabelResolve: { register: 'dossiq' },
+		})
+		await flushPromises()
+
+		expect(w.vm.groupLabelResolveConfig).toBeNull()
+		expect(w.findComponent({ name: 'CnFkResolveCell' }).exists()).toBe(false)
+	})
 })
 
 describe('CnObjectListWidget — selectable + bulkActions', () => {
