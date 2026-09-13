@@ -13,9 +13,14 @@
 		class="cn-stages-widget"
 		data-testid="cn-stages-widget"
 		:aria-busy="busy ? 'true' : null">
-		<p v-if="stagesError" class="cn-stages-widget__notice" data-testid="cn-stages-widget-load-error">
+		<!-- EVERY MESSAGE IS A NOTE CARD, the way the other 60-odd components in
+		     this library say something went wrong. Loose coloured prose under a
+		     strip reads as part of the record, not as a message about it, which
+		     is exactly how it looked on a live case: an orange sentence floating
+		     under the stages with nothing to say it was a notice. -->
+		<NcNoteCard v-if="stagesError" type="error" data-testid="cn-stages-widget-load-error">
 			{{ tr('Could not load the stages') }}
-		</p>
+		</NcNoteCard>
 		<div v-else-if="stagesPending && stages.length === 0" class="cn-stages-widget__loading">
 			<NcLoadingIcon :size="24" :name="tr('Loading stages')" />
 		</div>
@@ -40,9 +45,19 @@
 						{{ stage.subtitle }}
 					</span>
 					<!-- What the move says about itself, or why the stage cannot be
-					     chosen. A note from a reachable action is shown; "no action
-					     reaches this stage" is screen-reader text, because an empty
-					     stage with a sentence under it reads as an error. -->
+					     chosen.
+					     A note from a reachable action is SHOWN: it tells the
+					     person what happens if they click, and there is nowhere
+					     else for that to live.
+					     A REFUSAL is not shown here. It went on screen beside
+					     every stage the record could not reach, which on a real
+					     case page meant the same sentence printed three times
+					     over and once more under the strip. It is now reachable
+					     three ways instead: the stage's `title` on hover, the
+					     live region under the strip on a click or an Enter, and
+					     this node, which stays in the DOM inside the stage so it
+					     is part of the stage's accessible name and a screen
+					     reader reads it without any interaction at all. -->
 					<span
 						v-if="stage.reason"
 						:class="stage.reasonVisible ? 'cn-stages-widget__reason' : 'cn-stages-widget__sr-only'"
@@ -53,31 +68,37 @@
 			</CnTimelineStages>
 
 			<!-- The guard could not be read at all. Said once, here, rather than
-			     by every stage claiming it is not reachable. -->
-			<p
+			     by every stage claiming it is not reachable.
+			     AN ERROR, not a warning: nothing refused anything, a request
+			     failed. It must not wear the same colour as a stage a guard
+			     declined, or a broken instance and a guarded record would look
+			     like the same situation. -->
+			<NcNoteCard
 				v-if="actionsFailed"
-				class="cn-stages-widget__notice"
-				data-testid="cn-stages-widget-actions-error"
-				role="status">
+				type="error"
+				data-testid="cn-stages-widget-actions-error">
 				{{ tr('Could not check which stages can be reached') }}
-			</p>
-			<p
+			</NcNoteCard>
+			<NcNoteCard
 				v-if="moveError && !pendingAction"
-				class="cn-stages-widget__error"
-				data-testid="cn-stages-widget-error"
-				role="alert">
+				type="error"
+				data-testid="cn-stages-widget-error">
 				{{ moveError }}
-			</p>
-			<!-- What a click on a stage that cannot be chosen answered. Visible
-			     AND announced: a pointer user learned nothing from that click
-			     before, because the only explanation was screen-reader text. -->
-			<p
+			</NcNoteCard>
+			<!-- What a click on a stage that cannot be chosen answered.
+			     A WARNING, the level Ruben named for a move that cannot be made:
+			     the same colour the refused stage itself carries, so the sentence
+			     and the stage it belongs to read as one thing.
+			     `role="status"` stays on it. NcNoteCard gives a warning card
+			     `role="note"`, which is not announced, and this card appears in
+			     answer to a click: somebody who cannot see it has to hear it. -->
+			<NcNoteCard
 				v-if="blockedMessage && !moveError"
-				class="cn-stages-widget__blocked"
-				data-testid="cn-stages-widget-blocked"
-				role="status">
+				type="warning"
+				role="status"
+				data-testid="cn-stages-widget-blocked">
 				{{ blockedMessage }}
-			</p>
+			</NcNoteCard>
 			<p class="cn-stages-widget__sr-only" aria-live="polite">
 				{{ statusMessage }}
 			</p>
@@ -98,7 +119,7 @@
 <script>
 import { emit as emitBus } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon } from '@nextcloud/vue'
+import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import CnTransitionInputDialog from '../../dialogs/CnTransitionInputDialog.vue'
 import CnTimelineStages from '../CnTimelineStages/CnTimelineStages.vue'
@@ -269,6 +290,7 @@ export default {
 		CnTimelineStages,
 		CnTransitionInputDialog,
 		NcLoadingIcon,
+		NcNoteCard,
 	},
 
 	// The detail host spreads `content` onto the widget as attributes. They are
@@ -647,12 +669,20 @@ export default {
 		 * @return {Array<object>} The timeline stages.
 		 */
 		timelineStages() {
-			return this.stages.map((stage) => ({
-				id: stage.id,
-				label: stage.label,
-				subtitle: stage.subtitle,
-				...this.stageAccess(stage),
-			}))
+			return this.stages.map((stage) => {
+				const access = this.stageAccess(stage)
+				return {
+					id: stage.id,
+					label: stage.label,
+					subtitle: stage.subtitle,
+					...access,
+					// The hover route to a reason that is no longer printed
+					// beside the stage. Only where the stage cannot be chosen: a
+					// reachable move's note is already on screen, and a tooltip
+					// repeating visible text is noise.
+					hint: access.disabled ? access.reason : '',
+				}
+			})
 		},
 
 		/**
@@ -780,11 +810,16 @@ export default {
 		 * FAILED READ is not an answer at all, and says so. Collapsing any two
 		 * of them tells somebody something nobody checked.
 		 *
+		 * Only ONE of the three earns colour, and `blocked` in the returned shape
+		 * is what carries it: the guard that refused THIS record. The other two
+		 * stay grey. A strip where every stage is orange says nothing, and the
+		 * failed read is not a refusal at all.
+		 *
 		 * @param {{id: string}} stage The stage.
-		 * @return {{disabled: boolean, reason: string, reasonVisible: boolean}} The access.
+		 * @return {{disabled: boolean, reason: string, reasonVisible: boolean, blocked: boolean}} The access.
 		 */
 		stageAccess(stage) {
-			const open = { disabled: false, reason: '', reasonVisible: false }
+			const open = { disabled: false, reason: '', reasonVisible: false, blocked: false }
 			if (!this.transition) {
 				return open
 			}
@@ -800,7 +835,7 @@ export default {
 			// stage the record has just LEFT. Everything is disabled until the
 			// fresh list lands, and the focus stops stay.
 			if (!this.canMove) {
-				return { disabled: true, reason: '', reasonVisible: false }
+				return { disabled: true, reason: '', reasonVisible: false, blocked: false }
 			}
 			// The field path has no server to ask, which is exactly why it is an
 			// explicit opt-in: every stage is offered and the write decides.
@@ -810,41 +845,93 @@ export default {
 			// A FAILED READ IS NOT A POLICY DECISION. Saying "not reachable from
 			// the current stage" about every stage would state, confidently and
 			// wrongly, something nobody has checked.
+			// NOT `blocked` either: nothing refused this move, the question was
+			// never answered. Colouring it would dress a broken request up as a
+			// policy decision.
 			if (this.actionsFailed) {
-				return { disabled: true, reason: this.tr('Could not check whether this stage can be reached'), reasonVisible: false }
+				return {
+					disabled: true,
+					// Nothing is claimed about a stage the record has already
+					// left: the card above says the read failed, once, and a
+					// sentence about reaching somewhere the record has been
+					// would be a third claim nobody made.
+					reason: this.isPastStage(stage) ? '' : this.tr('Could not check whether this stage can be reached'),
+					reasonVisible: false,
+					blocked: false,
+				}
 			}
 			// Not read yet. Not "no moves allowed", which is why this is not the
 			// same branch as an empty list.
 			if (this.moves === null) {
-				return { disabled: true, reason: '', reasonVisible: false }
+				return { disabled: true, reason: '', reasonVisible: false, blocked: false }
 			}
 			const move = this.moves.get(stage.id)
 			if (!move) {
+				// A STAGE THE RECORD HAS ALREADY PASSED IS NOT A REFUSAL. On a
+				// live case the first stage carried "Not possible from the
+				// current status" beside a green, completed circle, which reads
+				// as something having gone wrong with something that already
+				// happened. History needs no excuse: it says nothing at all.
+				// A past stage an action DOES reach, a reopen, never gets here:
+				// it has a move, so it stays clickable with its own note.
+				if (this.isPastStage(stage)) {
+					return { disabled: true, reason: '', reasonVisible: false, blocked: false }
+				}
 				const reason = this.content.unreachableReason
 					? this.effectiveTranslate(this.content.unreachableReason)
 					: this.tr('Not reachable from the current stage')
-				// VISIBLE, not screen-reader-only. Hidden, the only feedback a
-				// pointer user got from a blocked stage was nothing at all: no
-				// cursor change they would notice, no message, no move. A
-				// control that silently does nothing reads as broken.
-				return { disabled: true, reason, reasonVisible: true }
+				// NOT printed beside the stage. This is the generic sentence, and
+				// it lands on EVERY stage no action reaches, so on a case with
+				// three stages ahead of it the strip printed one sentence three
+				// times over. It is still reachable: `title` on hover, the live
+				// region under the strip on a click or an Enter, and the
+				// screen-reader node inside the stage, which puts it in the
+				// stage's accessible name with no interaction at all.
+				// NOT `blocked`: nothing refused this record, the process simply
+				// does not lead here from where it stands. Colouring it would
+				// make a normal timeline look like a wall of refusals.
+				return { disabled: true, reason, reasonVisible: false, blocked: false }
 			}
 			// OFFERED AND REFUSED. The move exists, so the stage keeps its place
 			// in the process, but a guard says not now. The app's own reason is
-			// the point of this branch, so it is shown rather than replaced by
+			// the point of this branch, so it is carried rather than replaced by
 			// wording of ours; the fallback is only for a guard that gave none.
-			// Visible, like the unreachable reason and for the same cause: a
-			// dimmed stage that explains nothing reads as broken.
+			// THE ONE CASE THAT IS COLOURED. This is a refusal about this record,
+			// so the stage reads as refused at a glance instead of looking like
+			// one that is merely further down the process, and the reason is one
+			// hover or one click away rather than printed beside it.
 			if (isBlockedAction(move)) {
 				return {
 					disabled: true,
 					reason: actionNote(move) || this.tr('This move is not possible right now'),
-					reasonVisible: true,
+					reasonVisible: false,
+					blocked: true,
 				}
 			}
 			// What the move says about itself. It is not a refusal, so it is
 			// shown rather than hidden: it tells the person what happens next.
 			return { ...open, reason: actionNote(move), reasonVisible: Boolean(actionNote(move)) }
+		},
+
+		/**
+		 * Whether the record has already passed a stage.
+		 *
+		 * Position in the configured list, which is the same thing
+		 * `CnTimelineStages` draws as "completed", so the two cannot disagree
+		 * about what is history.
+		 *
+		 * @param {{id: string}} stage The stage.
+		 * @return {boolean} Whether it sits behind the record's current stage.
+		 */
+		isPastStage(stage) {
+			const current = this.stages.findIndex((s) => s.id === this.currentStageId)
+			// -1: the record is on no stage we know, so nothing is behind it.
+			// 0: it is on the first one, and there is nothing behind that either.
+			if (current <= 0) {
+				return false
+			}
+			const index = this.stages.findIndex((s) => s.id === stage.id)
+			return index !== -1 && index < current
 		},
 
 		/**
@@ -1210,24 +1297,15 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-stages-widget__error {
-	margin: 0;
-	color: var(--color-error-text, var(--color-error));
-}
-
-/* A guard's reason, under the stage it blocks: what the record still needs. */
+/* What a reachable move says it will do, beside the stage it leads to. The
+   REFUSALS no longer come through here: they are a tooltip, a note card and a
+   screen-reader node, which is why there is no colour variant of this rule.
+   The rules for the two coloured states are NcNoteCard's own. */
 .cn-stages-widget__reason {
 	display: block;
 	margin-top: 2px;
 	font-size: 0.8em;
 	line-height: 1.3;
-	color: var(--color-text-maxcontrast);
-}
-
-/* What a click on a stage that cannot be chosen answered. */
-.cn-stages-widget__blocked {
-	margin: 0;
-	font-size: 0.9em;
 	color: var(--color-text-maxcontrast);
 }
 

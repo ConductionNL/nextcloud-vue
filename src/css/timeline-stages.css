@@ -36,10 +36,18 @@
 	transition: background-color 0.15s ease;
 }
 
-/* Vertical stages: row layout */
+/* Vertical stages: row layout, TOP aligned.
+   It used to be `center`, which centred the indicator and the label against the
+   tallest thing in the row. A stage carrying a reason is taller than one
+   without, so the label of that one stage slid down out of line with every
+   other label on the strip, and the indicator with it. Top alignment makes the
+   indicator, the label and anything under it start on the same line whatever
+   the row contains. The horizontal variant is unaffected: there the stage is a
+   COLUMN, so its `align-items: center` centres the label under the indicator
+   horizontally and has nothing to do with vertical drift. */
 .cn-timeline-stages--vertical .cn-timeline-stages__stage {
 	flex-direction: row;
-	align-items: center;
+	align-items: flex-start;
 	text-align: left;
 	min-width: 0;
 	gap: calc(var(--default-grid-baseline, 4px) * 3);
@@ -67,28 +75,37 @@
 }
 
 /* ---------- Track line (vertical) ---------- */
-/* Connect this indicator's center to the previous indicator's center.
-   With align-items: center on the stage row, the indicator center aligns
-   with the stage's vertical midpoint. Spanning from -50% (one half-stage
-   above this stage's top) down to 50% (this stage's center) reaches the
-   previous indicator's center when neighboring stages share the same
-   height — close enough for the typical row of similar labels. The gap
-   (12px) between stages is bridged because the line starts at -50% minus
-   the gap distance. */
-.cn-timeline-stages--vertical .cn-timeline-stages__stage + .cn-timeline-stages__stage::before {
+/* THE LINE HAS TO STAY ON THE CIRCLES, and top alignment is what makes that
+   possible rather than what breaks it.
+   It used to hang off the FOLLOWING stage and reach upwards by a percentage of
+   that stage's own height, which only found the previous circle when every row
+   was exactly as tall as its neighbour. It was written that way because
+   `align-items: center` put the circle at 50% of a row whose height nothing
+   controlled, so there was no fixed number to aim at. One stage carrying a
+   reason was enough to slide the line off the circles.
+   Top aligned, the circle's centre is a CONSTANT: the row's top padding (4px)
+   plus the indicator's radius (16px). So each stage draws the segment BELOW
+   itself, from its own centre (20px down from its top edge) to the next stage's
+   centre (20px past its bottom edge, where the next row begins, since the
+   vertical container has no gap between stages). Both ends are exact numbers,
+   the line runs down the middle of every circle whatever a row contains, and
+   the last stage draws nothing because there is nothing under it to reach. */
+.cn-timeline-stages--vertical .cn-timeline-stages__stage:not(:last-child)::before {
 	content: '';
 	position: absolute;
 	left: calc(var(--default-grid-baseline, 4px) * 1 + 16px - 1px); /* center of 32px indicator, minus half line width */
-	top: calc(-50% - var(--default-grid-baseline, 4px) * 3); /* reach previous indicator's center, plus the 12px gap */
-	bottom: 50%;
+	top: calc(var(--default-grid-baseline, 4px) * 1 + 16px); /* this indicator's center */
+	bottom: calc((var(--default-grid-baseline, 4px) * 1 + 16px) * -1); /* the next indicator's center */
 	width: 2px;
 	background-color: var(--color-border, #ededed);
 	z-index: 0;
 }
 
-/* Completed + current track segments: filled (vertical) */
-.cn-timeline-stages--vertical .cn-timeline-stages__stage--completed + .cn-timeline-stages__stage::before,
-.cn-timeline-stages--vertical .cn-timeline-stages__stage--completed + .cn-timeline-stages__stage--current::before {
+/* Completed track segments: filled (vertical). The segment under a completed
+   stage is the one the record has travelled, which is what it was before as
+   well: the rule moved with the pseudo-element, from "the stage after a
+   completed one" to "the completed stage itself". */
+.cn-timeline-stages--vertical .cn-timeline-stages__stage--completed:not(:last-child)::before {
 	background-color: var(--color-success-text, var(--color-success, #46ba61));
 }
 
@@ -203,9 +220,12 @@
 	left: calc(-50% + 10px + 4px);
 }
 
-/* Small vertical track line offset */
-.cn-timeline-stages--small.cn-timeline-stages--vertical .cn-timeline-stages__stage + .cn-timeline-stages__stage::before {
+/* Small vertical track line offset: the same three numbers with a 20px
+   indicator, so its 10px radius replaces the 16px one. */
+.cn-timeline-stages--small.cn-timeline-stages--vertical .cn-timeline-stages__stage:not(:last-child)::before {
 	left: calc(var(--default-grid-baseline, 4px) * 1 + 10px - 1px); /* center of 20px indicator, minus half line width */
+	top: calc(var(--default-grid-baseline, 4px) * 1 + 10px);
+	bottom: calc((var(--default-grid-baseline, 4px) * 1 + 10px) * -1);
 }
 
 /* ---------- Clickable mode ---------- */
@@ -222,7 +242,7 @@
    process: dimmed, with a not-allowed cursor. Without the dimming the only
    difference a sighted person could perceive was the cursor, which nobody
    notices, so a blocked stage and an upcoming one were the same picture. */
-.cn-timeline-stages--clickable .cn-timeline-stages__stage--disabled {
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--disabled:not(.cn-timeline-stages__stage--blocked) {
 	cursor: not-allowed;
 	opacity: 0.55;
 }
@@ -249,8 +269,48 @@
 	background-color: transparent;
 }
 
-.cn-timeline-stages--clickable .cn-timeline-stages__stage--upcoming.cn-timeline-stages__stage--disabled .cn-timeline-stages__indicator {
+/* Dashed says "later in the process". A refused stage is not that, and takes
+   the warning treatment below instead. */
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--upcoming.cn-timeline-stages__stage--disabled:not(.cn-timeline-stages__stage--blocked) .cn-timeline-stages__indicator {
 	border-style: dashed;
+}
+
+/* ---------- Refused: a guard said no ---------- */
+/* A STAGE A GUARD REFUSED IS NOT A STAGE THAT IS SIMPLY NEXT WEEK, and it must
+   not look like one. On a real case page every stage the record could not reach
+   rendered in the same grey, so the one the person was aiming at was the
+   faintest thing on the strip and the whole timeline read as broken rather than
+   as guarded.
+   Dimming is right for "not your step yet" and wrong here, so a refused stage
+   keeps full contrast and takes the warning colour. Only the stages a guard
+   actually refused get it: if everything is orange, nothing reads as refused,
+   which is why the merely-unreachable ones are deliberately left grey.
+   There is no error-coloured variant, because `available-actions` answers one
+   boolean, `blocked: true`, and no severity beside it. Splitting the colour
+   into "refused" and "refused harder" would encode a distinction nobody sent. */
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--blocked {
+	cursor: not-allowed;
+}
+
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--blocked .cn-timeline-stages__indicator {
+	border-color: var(--color-warning-text, var(--color-warning, #e9a300));
+	color: var(--color-warning-text, var(--color-warning, #e9a300));
+}
+
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--blocked .cn-timeline-stages__label {
+	color: var(--color-warning-text, var(--color-warning, #e9a300));
+}
+
+/* The exclamation mark inside a refused indicator: the part of the signal that
+   survives a reader who cannot tell orange from grey. */
+.cn-timeline-stages__alert {
+	width: 16px;
+	height: 16px;
+}
+
+.cn-timeline-stages--small .cn-timeline-stages__alert {
+	width: 12px;
+	height: 12px;
 }
 
 /* Focus ring (keyboard only) */

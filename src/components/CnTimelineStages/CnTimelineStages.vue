@@ -20,6 +20,7 @@
 			ref="stageNodes"
 			:class="stageClasses(index)"
 			role="listitem"
+			:title="stageHint(index)"
 			:aria-current="stageStates[index] === 'current' ? 'step' : undefined"
 			:aria-disabled="clickable && stage.disabled ? 'true' : undefined"
 			:tabindex="clickable ? (focusedIndex === index ? 0 : -1) : undefined"
@@ -47,6 +48,19 @@
 					<span
 						v-else-if="stageStates[index] === 'current'"
 						class="cn-timeline-stages__dot" />
+					<!-- Refused: an exclamation mark. The warning colour alone
+					     would leave a colour-blind reader with a stage that
+					     looks like every other one it cannot reach, so the
+					     refusal carries a shape too (WCAG 2.2 AA, 1.4.1). -->
+					<svg
+						v-else-if="stageBlocked(index)"
+						aria-hidden="true"
+						viewBox="0 0 24 24"
+						class="cn-timeline-stages__alert">
+						<path
+							fill="currentColor"
+							d="M11 7h2v7h-2V7m0 9h2v2h-2v-2Z" />
+					</svg>
 				</slot>
 			</span>
 			<!-- Label + Subtitle -->
@@ -111,7 +125,20 @@ export default {
 		 * `stage-blocked` instead of `stage-click`, so the consumer can tell
 		 * the person why nothing happened.
 		 *
-		 * @type {{ id: string, label: string, subtitle?: string, disabled?: boolean }[]}
+		 * Optional `blocked` says WHY it cannot be chosen: a guard refused this
+		 * record, rather than the stage merely sitting further down the process.
+		 * Those are different claims and they must not look alike, so a blocked
+		 * stage keeps full contrast and takes the warning colour and an
+		 * exclamation mark, where a merely-upcoming one stays dimmed. Set it on
+		 * the stages a guard actually refused: if every stage is orange, none of
+		 * them reads as refused.
+		 *
+		 * Optional `hint` is the explanation, put on the stage's `title` so a
+		 * mouse-over reveals it. It is the pointer route to a reason that is not
+		 * printed on screen; it is not the only route, because a tooltip reaches
+		 * neither touch nor keyboard.
+		 *
+		 * @type {{ id: string, label: string, subtitle?: string, disabled?: boolean, blocked?: boolean, hint?: string }[]}
 		 */
 		stages: {
 			type: Array,
@@ -258,7 +285,42 @@ export default {
 				'cn-timeline-stages__stage': true,
 				[`cn-timeline-stages__stage--${state}`]: true,
 				'cn-timeline-stages__stage--disabled': this.clickable && this.stages[index]?.disabled === true,
+				'cn-timeline-stages__stage--blocked': this.stageBlocked(index),
 			}
+		},
+
+		/**
+		 * Whether a stage reads as REFUSED rather than merely later in the
+		 * process. A guard said no about this record, which is the one case that
+		 * earns colour.
+		 *
+		 * The stage the record is ON is never refused, whatever the consumer
+		 * passes: painting a refusal on the place the record already sits would
+		 * say no to a move nobody is making. `CnStagesWidget` never marks it,
+		 * and this refuses it again, because a lie about the current stage is
+		 * the one that would be believed.
+		 *
+		 * @param {number} index Stage index
+		 * @return {boolean} Whether the stage is refused.
+		 */
+		stageBlocked(index) {
+			return this.clickable
+				&& this.stages[index]?.blocked === true
+				&& this.stageState(index) !== 'current'
+		},
+
+		/**
+		 * The stage's explanation, for the `title` attribute.
+		 *
+		 * Returns undefined rather than an empty string, so a stage with nothing
+		 * to explain renders no `title` at all instead of an empty tooltip.
+		 *
+		 * @param {number} index Stage index
+		 * @return {string|undefined} The hint, or undefined when there is none.
+		 */
+		stageHint(index) {
+			const hint = this.stages[index]?.hint
+			return (typeof hint === 'string' && hint !== '') ? hint : undefined
 		},
 
 		/**
