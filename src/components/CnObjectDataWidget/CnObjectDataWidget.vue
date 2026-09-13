@@ -2059,11 +2059,17 @@ export default {
 	padding-right: 20px;
 }
 
+/* The hover box bleeds 4px past the text on the top, bottom and start so the
+   fill reads as a hit area rather than a highlight. Not on the end: the cell is
+   the last column's full width, and 4px past it is 4px past the scroll region,
+   which drew a horizontal scrollbar under every data widget in a tab (dossiq's
+   case page, Data tab). The end padding drops by the same 4px so the text and
+   the edit icon sit where they sat. */
 .cn-object-data-widget__value--editable {
 	cursor: pointer;
 	border-radius: var(--border-radius);
-	padding: 4px 24px 4px 4px;
-	margin: -4px;
+	padding: 4px 20px 4px 4px;
+	margin: -4px 0 -4px -4px;
 }
 
 .cn-object-data-widget__value--editable:hover {
