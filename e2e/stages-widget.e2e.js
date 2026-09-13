@@ -155,13 +155,14 @@ test.describe('the stages widget', () => {
 		const blocked = stage(page, 'st-done')
 		await expect(blocked).toHaveAttribute('aria-disabled', 'true')
 
-		// VISIBLE, not merely present. `toHaveText` reads textContent, so this
-		// assertion passed while the reason sat in a screen-reader-only node
-		// that no sighted person could read. toBeVisible is what separates the
-		// two.
+		// REACHABLE, not printed. The sentence used to be rendered beside the
+		// stage, which put one generic line next to every stage ahead of the
+		// record. It is a screen-reader node now, so it is still in the stage's
+		// accessible name, and the hover route is the `title`.
 		const reason = page.getByTestId('cn-stages-widget-reason-st-done')
-		await expect(reason).toBeVisible()
 		await expect(reason).toHaveText('Not reachable from the current stage')
+		await expect(reason).toHaveClass(/cn-stages-widget__sr-only/)
+		await expect(blocked).toHaveAttribute('title', 'Not reachable from the current stage')
 
 		// And the stage has to LOOK different from one that is merely later in
 		// the process, which a class name alone does not prove.

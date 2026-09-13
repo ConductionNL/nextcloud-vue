@@ -163,4 +163,80 @@ describe('CnFilesBrowser', () => {
 		expect(wrapper.vm.crumbs.map((crumb) => crumb.name)).toEqual(['Open Registers', 'Cases', 'abc', 'Scans'])
 		wrapper.unmount()
 	})
+
+	it('offers the host\'s own actions on files, never on folders, and dispatches them with the file merged in', async () => {
+		const dispatched = []
+		const wrapper = mount(CnFilesBrowser, {
+			propsData: {
+				rootPath: '/Open Registers/Cases/abc',
+				rowActions: [
+					{ id: 'document-properties', label: 'Document properties', icon: 'FileDocumentEditOutline', type: 'open-modal', target: 'DocumentMetadataDialog', props: { caseId: 'abc' } },
+					{ id: 'stamp', label: 'Stamp', type: 'handler', handler: 'stamp', args: ['first'] },
+				],
+			},
+			global: {
+				stubs: { NcDateTime: { template: '<time />' }, NcIconSvgWrapper: { template: '<i />' }, CnIcon: { template: '<i />' } },
+				provide: { cnDispatchAction: (action) => dispatched.push(action) },
+			},
+		})
+		await flushPromises()
+
+		const rows = wrapper.findAll('[data-testid="cn-files-browser-row"]')
+		const folderRow = rows.find((row) => row.attributes('data-name') === 'Scans')
+		const fileRow = rows.find((row) => row.attributes('data-name') === 'report.pdf')
+		expect(folderRow.find('[data-testid="cn-files-browser-host-action-document-properties"]').exists()).toBe(false)
+		expect(fileRow.find('[data-testid="cn-files-browser-host-action-document-properties"]').text()).toBe('Document properties')
+
+		await fileRow.find('[data-testid="cn-files-browser-host-action-document-properties"]').trigger('click')
+		await fileRow.find('[data-testid="cn-files-browser-host-action-stamp"]').trigger('click')
+
+		expect(dispatched).toHaveLength(2)
+		expect(dispatched[0].type).toBe('open-modal')
+		expect(dispatched[0].target).toBe('DocumentMetadataDialog')
+		expect(dispatched[0].props).toMatchObject({ caseId: 'abc', fileId: 12, fileName: 'report.pdf' })
+		expect(dispatched[1].type).toBe('handler')
+		expect(dispatched[1].args[0]).toBe('first')
+		expect(dispatched[1].args[1].basename).toBe('report.pdf')
+		wrapper.unmount()
+	})
+
+	it('lists the host\'s linked items after the folder\'s rows, with open and download and nothing that changes the file', async () => {
+		const wrapper = mount(CnFilesBrowser, {
+			propsData: {
+				rootPath: '/Open Registers/Cases/abc',
+				linkedItems: [
+					{ id: 'io-1', name: 'besluit.pdf', mime: 'application/pdf', size: 1024, href: '/f/900', downloadHref: '/download/900', note: 'In case 2026-0042', noteHref: '/apps/dossiq/cases/other' },
+				],
+			},
+			global: { stubs: { NcDateTime: { template: '<time />' }, NcIconSvgWrapper: { template: '<i />' } } },
+		})
+		await flushPromises()
+
+		const own = wrapper.findAll('[data-testid="cn-files-browser-row"]').map((row) => row.attributes('data-name'))
+		expect(own).toEqual(['Scans', 'photo.png', 'report.pdf'])
+		const linked = wrapper.findAll('[data-testid="cn-files-browser-linked-row"]')
+		expect(linked).toHaveLength(1)
+		expect(linked[0].text()).toContain('besluit.pdf')
+		expect(linked[0].find('.cn-files-browser__note-link').attributes('href')).toBe('/apps/dossiq/cases/other')
+		expect(linked[0].find('[data-testid="cn-files-browser-linked-open"]').attributes('href')).toBe('/f/900')
+		expect(linked[0].find('[data-testid="cn-files-browser-linked-download"]').attributes('href')).toBe('/download/900')
+		expect(linked[0].find('[data-testid="cn-files-browser-action-rename"]').exists()).toBe(false)
+		expect(linked[0].find('[data-testid^="cn-files-browser-host-action-"]').exists()).toBe(false)
+		// The rows come after the folder's own rows in document order.
+		const all = wrapper.findAll('tbody tr').map((row) => row.attributes('data-testid'))
+		expect(all.at(-1)).toBe('cn-files-browser-linked-row')
+		wrapper.unmount()
+	})
+
+	it('shows the linked items instead of the empty state when the folder itself is empty', async () => {
+		global.__cnDavContents = [listing()[0]]
+		const wrapper = mount(CnFilesBrowser, {
+			propsData: { rootPath: '/Open Registers/Cases/abc', linkedItems: [{ id: 'io-1', name: 'besluit.pdf', href: '/f/900' }] },
+			global: { stubs: { NcDateTime: { template: '<time />' }, NcIconSvgWrapper: { template: '<i />' } } },
+		})
+		await flushPromises()
+		expect(wrapper.findAll('[data-testid="cn-files-browser-linked-row"]')).toHaveLength(1)
+		expect(wrapper.text()).not.toContain('This folder is empty')
+		wrapper.unmount()
+	})
 })
