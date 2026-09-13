@@ -14,7 +14,7 @@
 			{{ emptyText }}
 		</NcNoteCard>
 
-		<div v-else class="cn-choice-cards__grid">
+		<div v-else class="cn-choice-cards__grid" :style="gridStyle">
 			<label
 				v-for="option in normalizedOptions"
 				:key="String(option.value)"
@@ -199,6 +199,26 @@ export default {
 			return (this.modelValue === null || this.modelValue === undefined || this.modelValue === '')
 				? []
 				: [this.modelValue]
+		},
+
+		/**
+		 * Inline override for the grid's column count. `auto-fit` with a
+		 * 260px minimum wraps a small option count onto its own row well
+		 * before the container is actually too narrow for them side by
+		 * side — two cards would stack at ~550px wide even though halving
+		 * the available width still leaves each one legible. A binary (or
+		 * near-binary) choice should always sit in one row and fill the
+		 * available width; a larger option count keeps the responsive
+		 * `auto-fit` wrapping from the stylesheet (`{}` leaves it alone).
+		 *
+		 * @return {object} A `gridTemplateColumns` override, or `{}`.
+		 */
+		gridStyle() {
+			const count = this.normalizedOptions.length
+			if (count > 0 && count <= 2) {
+				return { gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }
+			}
+			return {}
 		},
 	},
 

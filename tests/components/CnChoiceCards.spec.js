@@ -88,6 +88,25 @@ describe('CnChoiceCards', () => {
 		expect(wrapper.find('legend').text()).toBe('Which kind of organisation is this for?')
 	})
 
+	describe('grid layout — a small option count always fills one row', () => {
+		it('forces two equal columns for a binary choice, so they never wrap into a stack', () => {
+			const wrapper = mountCards({ options: options.slice(0, 2) })
+			expect(wrapper.find('.cn-choice-cards__grid').attributes('style'))
+				.toContain('grid-template-columns: repeat(2, minmax(0, 1fr))')
+		})
+
+		it('forces a single column for one option', () => {
+			const wrapper = mountCards({ options: options.slice(0, 1) })
+			expect(wrapper.find('.cn-choice-cards__grid').attributes('style'))
+				.toContain('grid-template-columns: repeat(1, minmax(0, 1fr))')
+		})
+
+		it('leaves the responsive auto-fit column rule alone for three or more options', () => {
+			const wrapper = mountCards()
+			expect(wrapper.find('.cn-choice-cards__grid').attributes('style') || '').not.toContain('grid-template-columns')
+		})
+	})
+
 	it('renders option titles as spans, so six choices are not six headings', () => {
 		const wrapper = mountCards()
 		expect(wrapper.findAll('h2')).toHaveLength(0)

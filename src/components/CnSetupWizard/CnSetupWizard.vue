@@ -4,7 +4,7 @@
 	<CnWizardDialog
 		ref="wizard"
 		:steps="wizardSteps"
-		:dialogTitle="dialogTitle"
+		:dialogTitle="resolvedDialogTitle"
 		:submitLabel="submitLabel"
 		:cancelLabel="cancelLabel"
 		:nextLabel="nextLabel"
@@ -102,19 +102,25 @@
 					<NcNoteCard v-if="step.body" type="info">
 						{{ stepBody(step) }}
 					</NcNoteCard>
-					<NcNoteCard
-						v-if="actionResult[step.id]"
-						:type="actionResult[step.id].success ? 'success' : 'error'">
-						{{ actionResult[step.id].message }}
-					</NcNoteCard>
-					<div class="cn-setup-step__nav">
-						<NcButton variant="primary" :disabled="running[step.id]" @click="runAction(step)">
-							<template v-if="running[step.id]" #icon>
-								<NcLoadingIcon :size="20" />
-							</template>
-							{{ runLabel }}
-						</NcButton>
+					<!-- The action starts automatically on entering this step
+					     (see `maybeAutoRunStep`), so the default state is the
+					     spinner, not an idle button. -->
+					<div v-if="running[step.id]" class="cn-setup-step__running">
+						<NcLoadingIcon :size="20" />
+						<span>{{ runningLabel }}</span>
 					</div>
+					<template v-else>
+						<NcNoteCard
+							v-if="actionResult[step.id]"
+							:type="actionResult[step.id].success ? 'success' : 'error'">
+							{{ actionResult[step.id].message }}
+						</NcNoteCard>
+						<div class="cn-setup-step__nav">
+							<NcButton :variant="actionResult[step.id] ? 'secondary' : 'primary'" @click="runAction(step)">
+								{{ actionResult[step.id] ? rerunLabel : runLabel }}
+							</NcButton>
+						</div>
+					</template>
 				</template>
 
 				<!-- summary -->
@@ -210,10 +216,21 @@ export default {
 			default: () => [],
 		},
 
-		/** Dialog title. */
+		/** Dialog title. Overridden by `appName` when that prop is set. */
 		dialogTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Set up this app'),
+		},
+
+		/**
+		 * The app's human-readable display name. When set, the dialog title
+		 * becomes "Set up {appName}" instead of the generic `dialogTitle`
+		 * default — pass the same display name CnAppRoot already resolves
+		 * (`appDisplayName || manifest.name || appId`).
+		 */
+		appName: {
+			type: String,
+			default: '',
 		},
 
 		/** Final-step submit button label. */
@@ -240,10 +257,22 @@ export default {
 			default: () => t('nextcloud-vue', 'Back'),
 		},
 
-		/** Run-action button label. */
+		/** Run-action button label (shown before the first automatic run). */
 		runLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Run'),
+		},
+
+		/** Run-action button label offered after a run already finished. */
+		rerunLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Run again'),
+		},
+
+		/** Label shown next to the spinner while a run-action step is running. */
+		runningLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Loading…'),
 		},
 
 		/** Result-phase success text. */
@@ -320,6 +349,19 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The title actually rendered by CnWizardDialog: "Set up {appName}"
+		 * when a display name was passed, otherwise whatever `dialogTitle`
+		 * resolves to (a caller override, or its own generic default).
+		 *
+		 * @return {string}
+		 */
+		resolvedDialogTitle() {
+			return this.appName
+				? t('nextcloud-vue', 'Set up {app}', { app: this.appName })
+				: this.dialogTitle
+		},
+
 		setupSteps() {
 			return (this.steps || []).filter((s) => s && s.id && s.type)
 		},
@@ -396,7 +438,32 @@ export default {
 		},
 	},
 
+	mounted() {
+		// Covers a RESUMED wizard opening straight onto its run-action step
+		// (`initialStepId`) — `onStepChange` only fires on later navigation,
+		// so a step already active at mount time needs its own trigger.
+		this.maybeAutoRunStep(this.initialStepId || (this.setupSteps[0] && this.setupSteps[0].id))
+	},
+
 	methods: {
+		/**
+		 * Start a `run-action` step's action automatically the moment it
+		 * becomes current, instead of waiting for a manual "Run" click —
+		 * the step has nothing else for the user to decide by then (the
+		 * choice it acts on was already made on an earlier step), so
+		 * requiring a click before showing progress just adds a stall.
+		 * No-ops for any other step type, or one already run/running.
+		 *
+		 * @param {string} stepId The step id becoming current.
+		 * @return {void}
+		 */
+		maybeAutoRunStep(stepId) {
+			const step = this.setupSteps.find((s) => s.id === stepId)
+			if (step && step.type === 'run-action' && !this.isStepDone(step.id) && !this.running[step.id]) {
+				this.runAction(step)
+			}
+		},
+
 		/**
 		 * The visible title for a step, resolved through the host app's
 		 * translation function.
@@ -804,6 +871,7 @@ export default {
 			if (step && step.suggestFrom) {
 				this.applySuggestion(step)
 			}
+			this.maybeAutoRunStep(payload.stepId)
 			/**
 			 * @event step-change Emitted when the active step changes.
 			 * @type {{ stepId: string, stepIndex: number, direction: string }}
@@ -841,6 +909,15 @@ export default {
 	justify-content: flex-end;
 	gap: 8px;
 	margin-top: 8px;
+}
+
+.cn-setup-step__running {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 24px 0;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-setup-field {
