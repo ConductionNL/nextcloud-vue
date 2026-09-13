@@ -106,3 +106,76 @@ describe('CnTimelineStages: a blocked stage reports the attempt', () => {
 		expect(w.emitted('stage-blocked')).toBeUndefined()
 	})
 })
+
+// A REFUSED STAGE MUST LOOK REFUSED. On a real case page every stage the record
+// could not reach rendered in the same grey, so the stage the person was aiming
+// at was the faintest thing on the strip and the timeline read as broken rather
+// than as guarded. `blocked` is the stage a guard refused; `disabled` alone is a
+// stage that is simply further down the process, and it stays grey on purpose.
+describe('CnTimelineStages: a refused stage looks refused', () => {
+	const REFUSED = [
+		{ id: 'a', label: 'Received' },
+		{
+			id: 'b',
+			label: 'In review',
+			disabled: true,
+			blocked: true,
+			hint: 'Vereist veld ontbreekt: description',
+		},
+		{ id: 'c', label: 'Closed', disabled: true },
+	]
+
+	/**
+	 * Mount a timeline holding one refused stage and one merely later one.
+	 *
+	 * @param {object} props Extra props.
+	 * @return {object} The wrapper.
+	 */
+	function mountRefused(props = {}) {
+		return mount(CnTimelineStages, { props: { stages: REFUSED, currentStage: 'a', clickable: true, ...props } })
+	}
+
+	it('gives the refused stage its own class', () => {
+		const w = mountRefused()
+		expect(node(w, 1).classes()).toContain('cn-timeline-stages__stage--blocked')
+	})
+
+	it('leaves a stage that is merely later in the process uncoloured', () => {
+		const w = mountRefused()
+		expect(node(w, 2).classes()).toContain('cn-timeline-stages__stage--disabled')
+		expect(node(w, 2).classes()).not.toContain('cn-timeline-stages__stage--blocked')
+	})
+
+	// COLOUR IS NOT ENOUGH ON ITS OWN (WCAG 2.2 AA, 1.4.1): orange against grey
+	// is exactly the pair a colour-blind reader cannot separate.
+	it('marks the refused indicator with a shape as well as a colour', () => {
+		const w = mountRefused()
+		expect(node(w, 1).find('.cn-timeline-stages__alert').exists()).toBe(true)
+		expect(node(w, 2).find('.cn-timeline-stages__alert').exists()).toBe(false)
+	})
+
+	it('puts the reason on the title attribute, so a mouse-over reveals it', () => {
+		const w = mountRefused()
+		expect(node(w, 1).attributes('title')).toBe('Vereist veld ontbreekt: description')
+	})
+
+	it('renders no title at all for a stage with nothing to explain', () => {
+		const w = mountRefused()
+		expect(node(w, 2).attributes('title')).toBeUndefined()
+	})
+
+	// THE STAGE THE RECORD IS ON IS NEVER REFUSED. Painting a refusal on the
+	// place the record already sits says no to a move nobody is making, so the
+	// component refuses it even when a consumer asks for it.
+	it('never styles the current stage as refused', () => {
+		const w = mountRefused({ currentStage: 'b' })
+		expect(node(w, 1).classes()).toContain('cn-timeline-stages__stage--current')
+		expect(node(w, 1).classes()).not.toContain('cn-timeline-stages__stage--blocked')
+		expect(node(w, 1).find('.cn-timeline-stages__alert').exists()).toBe(false)
+	})
+
+	it('colours nothing when the timeline is not clickable', () => {
+		const w = mountRefused({ clickable: false })
+		expect(node(w, 1).classes()).not.toContain('cn-timeline-stages__stage--blocked')
+	})
+})

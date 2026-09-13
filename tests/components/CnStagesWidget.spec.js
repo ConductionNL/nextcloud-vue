@@ -217,18 +217,41 @@ describe('CnStagesWidget: reachability comes from the lifecycle', () => {
 		expect(stageNode(w, 'st-done').attributes('aria-disabled')).toBe('true')
 	})
 
-	// VISIBLE, NOT SCREEN-READER-ONLY. Hidden, the only feedback a pointer user
-	// got from a blocked stage was nothing at all: no message, no move, no
-	// explanation. A control that silently does nothing reads as broken.
-	it('says why a stage cannot be chosen, on screen', async () => {
+	// REACHABLE, NOT PRINTED. It used to be printed beside the stage, which on a
+	// case with three stages ahead of it meant one generic sentence rendered
+	// three times over and once more under the strip. It is now one hover or one
+	// click away, and still in the stage's accessible name, so no route to it is
+	// lost: what goes is the repetition.
+	it('says why a stage cannot be chosen, on hover and in the accessible name', async () => {
 		allowActions([{ action: 'start', to: 'st-work' }])
 		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
 		await flush()
 
 		const reason = w.find('[data-testid="cn-stages-widget-reason-st-done"]')
 		expect(reason.text()).toBe('Not reachable from the current stage')
-		expect(reason.classes()).toContain('cn-stages-widget__reason')
-		expect(reason.classes()).not.toContain('cn-stages-widget__sr-only')
+		// The screen-reader node sits INSIDE the stage, so it is part of what a
+		// screen reader announces for it.
+		expect(reason.classes()).toContain('cn-stages-widget__sr-only')
+		expect(stageNode(w, 'st-done').text()).toContain('Not reachable from the current stage')
+		// And the pointer route: a mouse-over reveals the same sentence.
+		expect(stageNode(w, 'st-done').attributes('title')).toBe('Not reachable from the current stage')
+	})
+
+	// ONE COPY, NOT TWO. The strip printed the sentence beside every unreachable
+	// stage AND repeated it below the list, which is what a real case page looked
+	// like: the same words four times on one card.
+	it('prints the reason nowhere twice', async () => {
+		allowActions([{ action: 'start', to: 'st-work' }])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(w.findAll('.cn-stages-widget__reason')).toHaveLength(0)
+		await stageNode(w, 'st-done').trigger('click')
+		await flush()
+
+		// After the click the sentence is on screen exactly once, under the strip.
+		expect(w.findAll('.cn-stages-widget__reason')).toHaveLength(0)
+		expect(w.findAll('[data-testid="cn-stages-widget-blocked"]')).toHaveLength(1)
 	})
 
 	it('uses the app’s own words for an unreachable stage when it gave any', async () => {
@@ -300,7 +323,7 @@ describe('CnStagesWidget: a move that is offered but refused', () => {
 		description: 'The decision document is missing.',
 	}
 
-	it('disables the stage and shows the guard’s own reason on screen', async () => {
+	it('disables the stage and carries the guard’s own reason', async () => {
 		allowActions([BLOCKED])
 		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
 		await flush()
@@ -308,8 +331,98 @@ describe('CnStagesWidget: a move that is offered but refused', () => {
 		expect(stageNode(w, 'st-done').attributes('aria-disabled')).toBe('true')
 		const reason = w.find('[data-testid="cn-stages-widget-reason-st-done"]')
 		expect(reason.text()).toBe('The decision document is missing.')
-		expect(reason.classes()).toContain('cn-stages-widget__reason')
-		expect(reason.classes()).not.toContain('cn-stages-widget__sr-only')
+		// Hover, and the accessible name of the stage. The click route is its
+		// own test below.
+		expect(stageNode(w, 'st-done').attributes('title')).toBe('The decision document is missing.')
+		expect(reason.classes()).toContain('cn-stages-widget__sr-only')
+	})
+
+	// THE COLOUR IS THE POINT. A refused stage used to render in exactly the grey
+	// of a stage that is merely further down the process, so the one the person
+	// was aiming at was the faintest thing on the strip.
+	it('marks the refused stage so it looks refused', async () => {
+		allowActions([BLOCKED])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(stageNode(w, 'st-done').classes()).toContain('cn-timeline-stages__stage--blocked')
+		// And not by colour alone: the indicator carries a mark as well.
+		expect(stageNode(w, 'st-done').find('.cn-timeline-stages__alert').exists()).toBe(true)
+	})
+
+	// AND ONLY THAT STAGE. st-work has no action leading to it, which is a claim
+	// about the process rather than a refusal about this record. If everything is
+	// orange, nothing reads as refused.
+	it('leaves a stage that is merely unreachable uncoloured', async () => {
+		allowActions([BLOCKED])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(stageNode(w, 'st-work').attributes('aria-disabled')).toBe('true')
+		expect(stageNode(w, 'st-work').classes()).not.toContain('cn-timeline-stages__stage--blocked')
+		expect(stageNode(w, 'st-work').find('.cn-timeline-stages__alert').exists()).toBe(false)
+	})
+
+	// NOR THE STAGE THE RECORD IS ON. A refusal painted on the place the record
+	// already sits says no to a move nobody is making.
+	it('never colours the current stage as refused', async () => {
+		allowActions([BLOCKED])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(stageNode(w, 'st-new').attributes('aria-current')).toBe('step')
+		expect(stageNode(w, 'st-new').classes()).not.toContain('cn-timeline-stages__stage--blocked')
+		expect(stageNode(w, 'st-new').attributes('title')).toBeUndefined()
+	})
+
+	// A FAILED READ IS NOT A REFUSAL. It is the case where nobody answered, and
+	// dressing it in the refusal colour would present a broken request as a
+	// policy decision.
+	it('does not colour a stage when the availability read failed', async () => {
+		axios.get.mockImplementation((url) => {
+			if (url.includes('blueprint')) {
+				return Promise.resolve({ data: BLUEPRINT })
+			}
+			return Promise.reject(axiosError(500))
+		})
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		expect(w.find('[data-testid="cn-stages-widget-actions-error"]').exists()).toBe(true)
+		expect(stageNode(w, 'st-work').classes()).not.toContain('cn-timeline-stages__stage--blocked')
+		expect(stageNode(w, 'st-done').classes()).not.toContain('cn-timeline-stages__stage--blocked')
+	})
+
+	// The click still REFUSES THE MOVE, and still answers. The colour replaced
+	// the printed sentence, not the behaviour behind it.
+	it('still refuses the move and still says why when the refused stage is clicked', async () => {
+		allowActions([BLOCKED])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		await stageNode(w, 'st-done').trigger('click')
+		await flush()
+
+		expect(axios.post).not.toHaveBeenCalled()
+		expect(stageNode(w, 'st-new').attributes('aria-current')).toBe('step')
+		const said = w.find('[data-testid="cn-stages-widget-blocked"]')
+		expect(said.text()).toBe('The decision document is missing.')
+		expect(said.attributes('role')).toBe('status')
+	})
+
+	// The keyboard route to the same answer, because a tooltip reaches neither a
+	// keyboard nor a touch screen.
+	it('answers an Enter on the refused stage too', async () => {
+		allowActions([BLOCKED])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		await stageNode(w, 'st-done').trigger('keydown', { key: 'Enter' })
+		await flush()
+
+		expect(axios.post).not.toHaveBeenCalled()
+		expect(w.find('[data-testid="cn-stages-widget-blocked"]').text())
+			.toBe('The decision document is missing.')
 	})
 
 	// The three refusals are three different claims and must not read alike.
@@ -477,7 +590,14 @@ describe('CnStagesWidget: moving the record', () => {
 
 		const error = w.find('[data-testid="cn-stages-widget-error"]')
 		expect(error.text()).toBe('Only a coordinator may close a case.')
-		expect(error.attributes('role')).toBe('alert')
+		// A REFUSED POST IS AN ERROR CARD, not a warning: the server said no to
+		// something that was attempted, where a warning is a move not offered in
+		// the first place. `role="alert"` is no longer asserted here because the
+		// card is no longer a paragraph of ours; NcNoteCard gives every `error`
+		// card `role="alert"` itself, and the stub in tests/__mocks__ renders no
+		// role at all, so asserting it here would only test the stub.
+		expect(error.attributes('type')).toBe('error')
+		expect(error.classes()).toContain('NcNoteCard')
 		expect(stageNode(w, 'st-new').attributes('aria-current')).toBe('step')
 		expect(w.emitted('moved')).toBeUndefined()
 	})
@@ -927,6 +1047,116 @@ describe('CnStagesWidget: a failed read is not a policy decision', () => {
 		expect(w.find('[data-testid="cn-stages-widget-actions-error"]').exists()).toBe(false)
 		expect(w.find('[data-testid="cn-stages-widget-reason-st-work"]').text())
 			.toBe('Not reachable from the current stage')
+	})
+})
+
+// HISTORY EXPLAINS ITSELF. On a live case the first stage sat under a green,
+// completed circle carrying "Not possible from the current status", which reads
+// as something having gone wrong with something that already happened.
+describe('CnStagesWidget: a stage the record has already passed', () => {
+	/** The record has moved on: it sits on the second of three stages. */
+	const ON_SECOND = { id: 'case-1', caseType: 'ct-1', status: 'st-work' }
+
+	it('says nothing about a stage that is behind the record', async () => {
+		allowActions([{ action: 'close', to: 'st-done' }])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE }, ON_SECOND)
+		await flush()
+
+		expect(stageNode(w, 'st-new').classes()).toContain('cn-timeline-stages__stage--completed')
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-new"]').exists()).toBe(false)
+		expect(stageNode(w, 'st-new').attributes('title')).toBeUndefined()
+	})
+
+	it('says nothing about it under a configured wording either', async () => {
+		allowActions([{ action: 'close', to: 'st-done' }])
+		const w = mountWidget({
+			currentField: 'status',
+			stagesEndpoint: STAGES_ENDPOINT,
+			transition: LIFECYCLE,
+			unreachableReason: 'Niet mogelijk vanaf de huidige status',
+		}, ON_SECOND)
+		await flush()
+
+		expect(w.text()).not.toContain('Niet mogelijk vanaf de huidige status')
+	})
+
+	// AND IT IS STILL SILENT WHEN NOTHING COULD BE READ. The card says the read
+	// failed, once; a stage the record has left does not repeat it.
+	it('says nothing about it when the availability read failed', async () => {
+		axios.get.mockImplementation((url) => {
+			if (url.includes('blueprint')) {
+				return Promise.resolve({ data: BLUEPRINT })
+			}
+			return Promise.reject(axiosError(500))
+		})
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE }, ON_SECOND)
+		await flush()
+
+		expect(w.find('[data-testid="cn-stages-widget-actions-error"]').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-new"]').exists()).toBe(false)
+	})
+
+	// A PAST STAGE AN ACTION REACHES IS A REOPEN, and that is a move like any
+	// other: it keeps its click and its note. Silence is for the stages nothing
+	// leads back to, not for every stage behind the record.
+	it('leaves a past stage an action reaches alone', async () => {
+		allowActions([{ action: 'reopen', to: 'st-new', description: 'Reopen the case.' }])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE }, ON_SECOND)
+		await flush()
+
+		expect(stageNode(w, 'st-new').attributes('aria-disabled')).toBeUndefined()
+		expect(w.find('[data-testid="cn-stages-widget-reason-st-new"]').text()).toBe('Reopen the case.')
+	})
+})
+
+// MESSAGES ARE NOTE CARDS, not loose prose under the strip. A coloured sentence
+// with nothing around it reads as part of the record rather than as a message
+// about it, which is how it looked on a live case.
+describe('CnStagesWidget: how the widget says something', () => {
+	it('answers a refused stage with a warning card', async () => {
+		allowActions([{ action: 'start', to: 'st-work' }])
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+		await stageNode(w, 'st-done').trigger('click')
+		await flush()
+
+		const said = w.find('[data-testid="cn-stages-widget-blocked"]')
+		expect(said.classes()).toContain('NcNoteCard')
+		// WARNING, the level Ruben named: a move that cannot be made is not a
+		// broken instance.
+		expect(said.attributes('type')).toBe('warning')
+		// NcNoteCard gives a warning card `role="note"`, which is announced to
+		// nobody, and this card is the answer to a click.
+		expect(said.attributes('role')).toBe('status')
+	})
+
+	// A FAILED READ IS THE ONE THAT IS ACTUALLY BROKEN, so it is the one that
+	// gets the error level. If it wore the warning colour, a guarded record and
+	// an unreachable server would look like the same situation.
+	it('reports a failed availability read as an error card', async () => {
+		axios.get.mockImplementation((url) => {
+			if (url.includes('blueprint')) {
+				return Promise.resolve({ data: BLUEPRINT })
+			}
+			return Promise.reject(axiosError(500))
+		})
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		const failed = w.find('[data-testid="cn-stages-widget-actions-error"]')
+		expect(failed.classes()).toContain('NcNoteCard')
+		expect(failed.attributes('type')).toBe('error')
+	})
+
+	it('reports stages it could not load as an error card', async () => {
+		axios.get.mockRejectedValue(axiosError(500))
+		global.fetch.mockRejectedValue(new Error('nope'))
+		const w = mountWidget({ currentField: 'status', stagesEndpoint: STAGES_ENDPOINT, transition: LIFECYCLE })
+		await flush()
+
+		const failed = w.find('[data-testid="cn-stages-widget-load-error"]')
+		expect(failed.exists()).toBe(true)
+		expect(failed.attributes('type')).toBe('error')
 	})
 })
 

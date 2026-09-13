@@ -8,7 +8,9 @@
 			v-if="browserRoot !== null"
 			:rootPath="browserRoot"
 			:rootLabel="browserRootLabel"
-			@changed="fetchFiles" />
+			:rowActions="rowActions"
+			:linkedItems="linkedItems"
+			@changed="onBrowserChanged" />
 		<template v-else>
 			<!-- Upload error -->
 			<div v-if="uploadError" class="cn-sidebar-tab__upload-error">
@@ -191,6 +193,7 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
+import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateRemoteUrl, generateUrl } from '@nextcloud/router'
 import {
@@ -262,6 +265,23 @@ export default {
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 		/** What the files browser's root crumb reads; null shows the folder's own name, as the Files app does. */
 		browserRootLabel: { type: String, default: null },
+		/**
+		 * The host's own actions on each file row of the browser, forwarded
+		 * to CnFilesBrowser's `rowActions`: declared like any manifest action
+		 * and dispatched with the file's id, name and path merged in.
+		 *
+		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object}>}
+		 */
+		rowActions: { type: Array, default: () => [] },
+		/**
+		 * An app endpoint that answers the object's linked files, rows the
+		 * browser shows after the folder's own (files the host joined from
+		 * another object's folder). App-relative; `{objectId}` is replaced.
+		 * The response is an array (or `{ items: [] }`) of
+		 * `{ id, name, mime?, size?, mtime?, href?, downloadHref?, note?, noteHref? }`.
+		 * Null fetches nothing.
+		 */
+		linkedItemsUrl: { type: String, default: null },
 		/** Label of the Download action. */
 		downloadLabel: { type: String, default: () => t('nextcloud-vue', 'Download') },
 		/** Label of the action that opens the Files sidebar on the file. */
@@ -304,6 +324,7 @@ export default {
 			share: false,
 			/** The object's folder as a user-relative path, or null while unresolved or absent. */
 			browserRoot: null,
+			linkedItems: [],
 			/** File ids whose preview request failed, so the row falls back to the mime icon. */
 			previewFailed: {},
 			/**
@@ -332,7 +353,12 @@ export default {
 				}
 				this.applyShareDefault()
 				this.resolveBrowserRoot()
+				this.fetchLinkedItems()
 			},
+		},
+
+		linkedItemsUrl() {
+			this.fetchLinkedItems()
 		},
 	},
 
@@ -357,6 +383,41 @@ export default {
 		 *
 		 * @return {Promise<void>}
 		 */
+		/**
+		 * The browser changed the folder: refresh the object's file list and
+		 * the linked rows, since a join or a move can change either.
+		 *
+		 * @return {void}
+		 */
+		onBrowserChanged() {
+			this.fetchFiles()
+			this.fetchLinkedItems()
+		},
+
+		/**
+		 * Read the object's linked files from the host's endpoint, if any.
+		 *
+		 * A failure leaves the last list in place and logs at debug: the
+		 * folder's own rows are the surface, the linked rows a supplement.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchLinkedItems() {
+			if (!this.linkedItemsUrl || !this.objectId) {
+				this.linkedItems = []
+				return
+			}
+			try {
+				const url = generateUrl(this.linkedItemsUrl.replace('{objectId}', encodeURIComponent(this.objectId)))
+				const { data } = await axios.get(url)
+				const items = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : [])
+				this.linkedItems = items.filter((item) => item && typeof item === 'object')
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.debug('[CnFilesTab] linked items not read', error)
+			}
+		},
+
 		async resolveBrowserRoot() {
 			this.browserRoot = null
 			if (!this.objectId || !this.register || !this.schema) {
