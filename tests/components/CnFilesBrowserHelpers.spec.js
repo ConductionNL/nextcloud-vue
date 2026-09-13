@@ -56,7 +56,7 @@ describe('CnFilesBrowser helpers', () => {
 	})
 
 	it('names the actions that need the Files page by their registered ids', () => {
-		expect(ACTIONS_NEEDING_THE_FILES_PAGE).toEqual(expect.arrayContaining(['details', 'open-folder', 'view-in-folder']))
+		expect(ACTIONS_NEEDING_THE_FILES_PAGE).toEqual(expect.arrayContaining(['details', 'open-folder', 'view-in-folder', 'rename']))
 		expect(ACTIONS_NEEDING_THE_FILES_PAGE).not.toContain('download')
 		expect(ACTIONS_NEEDING_THE_FILES_PAGE).not.toContain('delete')
 	})

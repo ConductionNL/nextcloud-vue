@@ -13,12 +13,15 @@ import { generateUrl } from '@nextcloud/router'
 /**
  * Actions the Files app registers that cannot run on a page without the Files
  * app's own list: the details action opens the Files sidebar, which on
- * Nextcloud 34 is a store bound to the Files router and node list, and the
- * folder-navigation actions route through that list.
+ * Nextcloud 34 is a store bound to the Files router and node list; the
+ * folder-navigation actions route through that list; and rename turns the
+ * list's own name cell into an input, which is not here. Verified on a case
+ * page: Rename ran and nothing happened. The browser offers its own rename
+ * instead, a dialog over a DAV move.
  *
  * @type {string[]}
  */
-export const ACTIONS_NEEDING_THE_FILES_PAGE = ['details', 'sidebar', 'open-folder', 'view-in-folder']
+export const ACTIONS_NEEDING_THE_FILES_PAGE = ['details', 'sidebar', 'open-folder', 'view-in-folder', 'rename']
 
 /**
  * A DAV href for a node under the user's files root, as a path relative to

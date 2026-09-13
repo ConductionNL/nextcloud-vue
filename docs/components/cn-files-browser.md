@@ -65,6 +65,7 @@ It reads the object's `@self.folder` file id and turns it into a path with a DAV
 | `newLabel` | `String` | `'New'` | Label of the New menu. |
 | `uploadLabel` | `String` | `'Upload files'` | Label of the upload entry in the New menu. |
 | `newFolderLabel` | `String` | `'New folder'` | Label of the new-folder entry and its dialog. |
+| `renameLabel` | `String` | `'Rename'` | Label of the rename action and its dialog. The Files app's own rename is its list's inline input, so the browser renames through a dialog and a DAV move. |
 | `showInFilesLabel` | `String` | `'Show in Files'` | Label of the link that opens the file in the Files app. |
 | `emptyLabel` | `String` | `'This folder is empty'` | Title of the empty state. |
 | `emptyHint` | `String` | `'Drop files here, or use New'` | Line under the empty state's title. |

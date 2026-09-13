@@ -65,6 +65,7 @@ describe('CnFilesBrowser', () => {
 				},
 			},
 			{ id: 'download', order: 30, displayName: () => 'Download', iconSvgInline: () => '<svg/>', exec: async () => true },
+			{ id: 'rename', order: 10, displayName: () => 'Rename', iconSvgInline: () => '<svg/>', exec: async () => true },
 			{ id: 'folder-only', order: 5, displayName: () => 'Folders', iconSvgInline: () => '<svg/>', enabled: (ctx) => ctx.nodes[0].type === 'folder', exec: async () => true },
 			{ id: 'badge', order: 1, displayName: () => 'Badge', iconSvgInline: () => '<svg/>', inline: () => true, exec: async () => true },
 			{ id: 'child', parent: 'delete', order: 2, displayName: () => 'Child', iconSvgInline: () => '<svg/>', exec: async () => true },
@@ -127,6 +128,28 @@ describe('CnFilesBrowser', () => {
 		expect(axios.__puts[0].options.headers['If-None-Match']).toBe('*')
 		expect(wrapper.vm.uploads[0].progress).toBe(100)
 		expect(wrapper.emitted('changed')).toHaveLength(1)
+		wrapper.unmount()
+	})
+
+	it('renames through a DAV move within the folder, and refuses a taken name or a slash', async () => {
+		const { __calls } = require('../../tests/__mocks__/nextcloud-files-dav.js')
+		__calls.moveFile.length = 0
+		const wrapper = mountBrowser()
+		await flushPromises()
+		const pdf = wrapper.vm.nodes.find((node) => node.basename === 'report.pdf')
+		wrapper.vm.askRename(pdf)
+		expect(wrapper.vm.renameName).toBe('report.pdf')
+		wrapper.vm.renameName = 'photo.png'
+		await wrapper.vm.rename()
+		expect(wrapper.vm.renameError).not.toBe('')
+		wrapper.vm.renameName = 'a/b.pdf'
+		await wrapper.vm.rename()
+		expect(wrapper.vm.renameError).not.toBe('')
+		expect(__calls.moveFile).toEqual([])
+		wrapper.vm.renameName = 'final report.pdf'
+		await wrapper.vm.rename()
+		expect(__calls.moveFile).toEqual([['/files/admin/Open Registers/Cases/abc/report.pdf', '/files/admin/Open Registers/Cases/abc/final report.pdf']])
+		expect(wrapper.vm.renaming).toBeNull()
 		wrapper.unmount()
 	})
 

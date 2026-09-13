@@ -185,6 +185,14 @@
 								{{ labelOf(action, node) }}
 							</NcActionButton>
 							<NcActionSeparator v-if="actionsFor(node).length > 0" />
+							<!-- The Files app's own rename is its list's inline input,
+							     which is not here; this one is a dialog over a DAV move. -->
+							<NcActionButton :closeAfterClick="true" data-testid="cn-files-browser-action-rename" @click="askRename(node)">
+								<template #icon>
+									<Pencil :size="20" />
+								</template>
+								{{ renameLabel }}
+							</NcActionButton>
 							<NcActionLink
 								v-if="node.fileid"
 								:href="permalink(node)"
@@ -201,6 +209,33 @@
 				</tr>
 			</tbody>
 		</table>
+
+		<NcDialog
+			v-if="renaming !== null"
+			:name="renameLabel"
+			size="small"
+			data-testid="cn-files-browser-rename"
+			@closing="renaming = null">
+			<form class="cn-files-browser__new-folder" @submit.prevent="rename">
+				<NcTextField
+					v-model="renameName"
+					:label="t('nextcloud-vue', 'New name')"
+					:error="renameError !== ''"
+					:helperText="renameError"
+					data-testid="cn-files-browser-rename-name" />
+			</form>
+			<template #actions>
+				<NcButton @click="renaming = null">
+					{{ t('nextcloud-vue', 'Cancel') }}
+				</NcButton>
+				<NcButton variant="primary"
+					:disabled="renameName.trim() === '' || renameName.trim() === renaming.basename"
+					data-testid="cn-files-browser-rename-confirm"
+					@click="rename">
+					{{ renameLabel }}
+				</NcButton>
+			</template>
+		</NcDialog>
 
 		<NcDialog
 			v-if="newFolderOpen"
@@ -298,6 +333,7 @@ import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import { ACTIONS_NEEDING_THE_FILES_PAGE, crumbsFor, joinPath } from './filesBrowser.js'
@@ -329,6 +365,7 @@ export default {
 		NcProgressBar,
 		NcTextField,
 		OpenInNew,
+		Pencil,
 		Plus,
 		Upload,
 	},
@@ -367,6 +404,12 @@ export default {
 		newFolderLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'New folder'),
+		},
+
+		/** Label of the rename action and its dialog. */
+		renameLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Rename'),
 		},
 
 		/** Label of the link that opens the file in the Files app. */
@@ -413,6 +456,10 @@ export default {
 			newFolderOpen: false,
 			newFolderName: '',
 			newFolderError: '',
+			/** The node being renamed, or null. */
+			renaming: null,
+			renameName: '',
+			renameError: '',
 			fileInputEl: null,
 			/**
 			 * The view the Files app's actions are handed. They read `view.id`
@@ -748,6 +795,47 @@ export default {
 				this.$emit('changed')
 			} catch (err) {
 				this.newFolderError = err?.message || t('nextcloud-vue', 'The folder could not be created')
+			}
+		},
+
+		/**
+		 * Open the rename dialog on a node.
+		 *
+		 * @param {object} node The node.
+		 * @return {void}
+		 */
+		askRename(node) {
+			this.renaming = node
+			this.renameName = node.basename
+			this.renameError = ''
+		},
+
+		/**
+		 * Rename the node named in the dialog, as a DAV move within its folder.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async rename() {
+			const node = this.renaming
+			const name = this.renameName.trim()
+			if (node === null || name === '' || name === node.basename) {
+				return
+			}
+			if (name.includes('/')) {
+				this.renameError = t('nextcloud-vue', 'A name cannot contain a slash')
+				return
+			}
+			if (this.nodes.some((other) => other !== node && other.basename === name)) {
+				this.renameError = t('nextcloud-vue', 'A file or folder with that name is already here')
+				return
+			}
+			try {
+				await getClient().moveFile(this.davPath(node.path), this.davPath(joinPath(this.currentPath, name)))
+				this.renaming = null
+				await this.refresh()
+				this.$emit('changed')
+			} catch (err) {
+				this.renameError = err?.message || t('nextcloud-vue', 'The name could not be changed')
 			}
 		},
 

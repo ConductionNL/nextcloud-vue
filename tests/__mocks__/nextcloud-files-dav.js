@@ -21,7 +21,7 @@ function getDefaultPropfind() {
 	return '<propfind/>'
 }
 
-const calls = { createDirectory: [], putFileContents: [] }
+const calls = { createDirectory: [], putFileContents: [], moveFile: [] }
 
 function getClient() {
 	return {
@@ -30,6 +30,9 @@ function getClient() {
 		},
 		async createDirectory(path) {
 			calls.createDirectory.push(path)
+		},
+		async moveFile(from, to) {
+			calls.moveFile.push([from, to])
 		},
 		async putFileContents(path, data, options) {
 			calls.putFileContents.push(path)
