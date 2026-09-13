@@ -1,30 +1,40 @@
 <template>
 	<div class="cn-sidebar-tab">
-		<!-- Upload error -->
-		<div v-if="uploadError" class="cn-sidebar-tab__upload-error">
-			{{ uploadError }}
-		</div>
+		<!-- The object's folder as a real files browser, on the Files app's own
+		     primitives (its actions, its New menu, its breadcrumbs), when the
+		     folder resolves for this user. The list below is the fallback for an
+		     object with no folder, or a user the folder is not shared with. -->
+		<CnFilesBrowser
+			v-if="browserRoot !== null"
+			:rootPath="browserRoot"
+			:rootLabel="browserRootLabel"
+			@changed="fetchFiles" />
+		<template v-else>
+			<!-- Upload error -->
+			<div v-if="uploadError" class="cn-sidebar-tab__upload-error">
+				{{ uploadError }}
+			</div>
 
-		<!-- Share toggle — seeds from schema config (defaultAutoShare) or
+			<!-- Share toggle — seeds from schema config (defaultAutoShare) or
 		     from the `defaultShare` prop. Hidden via `showShareToggle=false`. -->
-		<NcCheckboxRadioSwitch
-			v-if="showShareToggle"
-			v-model="share"
-			class="cn-sidebar-tab__share"
-			:disabled="loading"
-			type="switch">
-			{{ shareLabel }}
-		</NcCheckboxRadioSwitch>
+			<NcCheckboxRadioSwitch
+				v-if="showShareToggle"
+				v-model="share"
+				class="cn-sidebar-tab__share"
+				:disabled="loading"
+				type="switch">
+				{{ shareLabel }}
+			</NcCheckboxRadioSwitch>
 
-		<!-- File drop zone -->
-		<div
-			class="cn-sidebar-tab__dropzone"
-			:class="{ 'cn-sidebar-tab__dropzone--active': isDragOver }"
-			@click="triggerFileInput"
-			@dragover.prevent="onDragOver"
-			@dragleave.prevent="onDragLeave"
-			@drop.prevent="onDrop">
-			<!--
+			<!-- File drop zone -->
+			<div
+				class="cn-sidebar-tab__dropzone"
+				:class="{ 'cn-sidebar-tab__dropzone--active': isDragOver }"
+				@click="triggerFileInput"
+				@dragover.prevent="onDragOver"
+				@dragleave.prevent="onDragLeave"
+				@drop.prevent="onDrop">
+				<!--
 				`:ref` (dynamic), not `ref` (static), and this is load-bearing.
 
 				Every other binding on this input is static, and Vue caches the
@@ -49,138 +59,140 @@
 				vnode is created inside the render function and owns a proper
 				instance.
 			-->
-			<input
-				:ref="fileInputRef"
-				type="file"
-				multiple
-				class="cn-sidebar-tab__file-input"
-				@change="onFileUpload">
-			<Upload :size="24" class="cn-sidebar-tab__dropzone-icon" />
-			<span class="cn-sidebar-tab__dropzone-text">{{ dropZoneLabel }}</span>
-		</div>
+				<input
+					:ref="fileInputRef"
+					type="file"
+					multiple
+					class="cn-sidebar-tab__file-input"
+					@change="onFileUpload">
+				<Upload :size="24" class="cn-sidebar-tab__dropzone-icon" />
+				<span class="cn-sidebar-tab__dropzone-text">{{ dropZoneLabel }}</span>
+			</div>
 
-		<!-- File list. Each row borrows what Nextcloud already has on this
+			<!-- File list. Each row borrows what Nextcloud already has on this
 		     page: the theme's own mime icon (OC.MimeType), the core preview
 		     endpoint for images, the Viewer for opening, and the Files sidebar
 		     for details, sharing and versions. Nothing of the Files app is
 		     rebuilt here; the row hands over to it. -->
-		<NcLoadingIcon v-if="loading" />
-		<NcEmptyContent
-			v-else-if="files.length === 0"
-			class="cn-sidebar-tab__empty"
-			:name="noFilesLabel"
-			:description="dropZoneLabel">
-			<template #icon>
-				<Paperclip :size="44" />
-			</template>
-		</NcEmptyContent>
-		<div v-else class="cn-sidebar-tab__list">
-			<NcListItem
-				v-for="file in files"
-				:key="file.id"
-				:name="file.name || file.title"
-				:bold="false"
-				:forceDisplayActions="true"
-				@click="openFile(file)">
+			<NcLoadingIcon v-if="loading" />
+			<NcEmptyContent
+				v-else-if="files.length === 0"
+				class="cn-sidebar-tab__empty"
+				:name="noFilesLabel"
+				:description="dropZoneLabel">
 				<template #icon>
-					<img
-						v-if="previewUrlFor(file)"
-						class="cn-sidebar-tab__thumb"
-						:src="previewUrlFor(file)"
-						alt=""
-						loading="lazy"
-						@error="onPreviewError(file)">
-					<img
-						v-else-if="mimeIconFor(file)"
-						class="cn-sidebar-tab__mime"
-						:src="mimeIconFor(file)"
-						alt="">
-					<FileOutline v-else :size="32" />
+					<Paperclip :size="44" />
 				</template>
-				<template #subname>
-					<span class="cn-sidebar-tab__meta">
-						<span>{{ formatFileSize(file.size) }}</span>
-						<template v-if="modifiedAt(file)">
-							<span aria-hidden="true"> · </span>
-							<NcDateTime :timestamp="modifiedAt(file)" :ignoreSeconds="true" />
-						</template>
-						<template v-if="labelsOf(file)">
-							<span aria-hidden="true"> · </span>
-							<span>{{ labelsOf(file) }}</span>
-						</template>
-					</span>
+			</NcEmptyContent>
+			<div v-else class="cn-sidebar-tab__list">
+				<NcListItem
+					v-for="file in files"
+					:key="file.id"
+					:name="file.name || file.title"
+					:bold="false"
+					:forceDisplayActions="true"
+					@click="openFile(file)">
+					<template #icon>
+						<img
+							v-if="previewUrlFor(file)"
+							class="cn-sidebar-tab__thumb"
+							:src="previewUrlFor(file)"
+							alt=""
+							loading="lazy"
+							@error="onPreviewError(file)">
+						<img
+							v-else-if="mimeIconFor(file)"
+							class="cn-sidebar-tab__mime"
+							:src="mimeIconFor(file)"
+							alt="">
+						<FileOutline v-else :size="32" />
+					</template>
+					<template #subname>
+						<span class="cn-sidebar-tab__meta">
+							<span>{{ formatFileSize(file.size) }}</span>
+							<template v-if="modifiedAt(file)">
+								<span aria-hidden="true"> · </span>
+								<NcDateTime :timestamp="modifiedAt(file)" :ignoreSeconds="true" />
+							</template>
+							<template v-if="labelsOf(file)">
+								<span aria-hidden="true"> · </span>
+								<span>{{ labelsOf(file) }}</span>
+							</template>
+						</span>
+					</template>
+					<template #actions>
+						<NcActionButton :closeAfterClick="true" @click="openFile(file)">
+							<template #icon>
+								<OpenInNew :size="20" />
+							</template>
+							{{ openLabel }}
+						</NcActionButton>
+						<NcActionLink
+							v-if="file.id"
+							:href="downloadUrlFor(file)"
+							:download="file.name || file.title || ''"
+							:closeAfterClick="true">
+							<template #icon>
+								<Download :size="20" />
+							</template>
+							{{ downloadLabel }}
+						</NcActionLink>
+						<NcActionButton
+							v-if="canShowDetails() && file.path"
+							:closeAfterClick="true"
+							@click="showDetails(file)">
+							<template #icon>
+								<InformationOutline :size="20" />
+							</template>
+							{{ detailsLabel }}
+						</NcActionButton>
+						<NcActionLink
+							v-if="file.id"
+							:href="showInFilesUrl(file)"
+							target="_blank"
+							rel="noopener noreferrer"
+							:closeAfterClick="true">
+							<template #icon>
+								<FolderOutline :size="20" />
+							</template>
+							{{ showInFilesLabel }}
+						</NcActionLink>
+						<NcActionButton v-if="file.id" :closeAfterClick="true" @click="copyLink(file)">
+							<template #icon>
+								<LinkVariant :size="20" />
+							</template>
+							{{ copyLinkLabel }}
+						</NcActionButton>
+						<NcActionSeparator />
+						<NcActionButton :closeAfterClick="true" @click="deleteFile(file)">
+							<template #icon>
+								<Delete :size="20" />
+							</template>
+							{{ deleteLabel }}
+						</NcActionButton>
+					</template>
+				</NcListItem>
+			</div>
+			<NcButton
+				v-if="files.length < total"
+				variant="tertiary"
+				:wide="true"
+				:disabled="loadingMore"
+				class="cn-sidebar-tab__load-more"
+				@click="loadMore">
+				<template v-if="loadingMore" #icon>
+					<NcLoadingIcon :size="20" />
 				</template>
-				<template #actions>
-					<NcActionButton :closeAfterClick="true" @click="openFile(file)">
-						<template #icon>
-							<OpenInNew :size="20" />
-						</template>
-						{{ openLabel }}
-					</NcActionButton>
-					<NcActionLink
-						v-if="file.id"
-						:href="downloadUrlFor(file)"
-						:download="file.name || file.title || ''"
-						:closeAfterClick="true">
-						<template #icon>
-							<Download :size="20" />
-						</template>
-						{{ downloadLabel }}
-					</NcActionLink>
-					<NcActionButton
-						v-if="canShowDetails() && file.path"
-						:closeAfterClick="true"
-						@click="showDetails(file)">
-						<template #icon>
-							<InformationOutline :size="20" />
-						</template>
-						{{ detailsLabel }}
-					</NcActionButton>
-					<NcActionLink
-						v-if="file.id"
-						:href="showInFilesUrl(file)"
-						target="_blank"
-						rel="noopener noreferrer"
-						:closeAfterClick="true">
-						<template #icon>
-							<FolderOutline :size="20" />
-						</template>
-						{{ showInFilesLabel }}
-					</NcActionLink>
-					<NcActionButton v-if="file.id" :closeAfterClick="true" @click="copyLink(file)">
-						<template #icon>
-							<LinkVariant :size="20" />
-						</template>
-						{{ copyLinkLabel }}
-					</NcActionButton>
-					<NcActionSeparator />
-					<NcActionButton :closeAfterClick="true" @click="deleteFile(file)">
-						<template #icon>
-							<Delete :size="20" />
-						</template>
-						{{ deleteLabel }}
-					</NcActionButton>
-				</template>
-			</NcListItem>
-		</div>
-		<NcButton
-			v-if="files.length < total"
-			variant="tertiary"
-			:wide="true"
-			:disabled="loadingMore"
-			class="cn-sidebar-tab__load-more"
-			@click="loadMore">
-			<template v-if="loadingMore" #icon>
-				<NcLoadingIcon :size="20" />
-			</template>
-			{{ loadMoreLabel }}
-		</NcButton>
+				{{ loadMoreLabel }}
+			</NcButton>
+		</template>
 	</div>
 </template>
 
 <script>
+import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
+import { generateRemoteUrl, generateUrl } from '@nextcloud/router'
 import {
 	NcActionButton,
 	NcActionLink,
@@ -201,13 +213,16 @@ import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
+import CnFilesBrowser from '../CnFilesBrowser/CnFilesBrowser.vue'
 import { buildHeaders } from '../../utils/index.js'
 import { safeHref } from '../../utils/safeHref.js'
+import { resolveObjectFolder } from '../CnFilesBrowser/filesBrowser.js'
 
 export default {
 	name: 'CnFilesTab',
 
 	components: {
+		CnFilesBrowser,
 		NcActionButton,
 		NcActionLink,
 		NcActionSeparator,
@@ -245,6 +260,8 @@ export default {
 		openLabel: { type: String, default: () => t('nextcloud-vue', 'Open') },
 		/** Label for the delete action */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		/** What the files browser's root crumb reads; the folder on disk is a uuid. */
+		browserRootLabel: { type: String, default: () => t('nextcloud-vue', 'Files') },
 		/** Label of the Download action. */
 		downloadLabel: { type: String, default: () => t('nextcloud-vue', 'Download') },
 		/** Label of the action that opens the Files sidebar on the file. */
@@ -285,6 +302,8 @@ export default {
 			total: 0,
 			limit: 20,
 			share: false,
+			/** The object's folder as a user-relative path, or null while unresolved or absent. */
+			browserRoot: null,
 			/** File ids whose preview request failed, so the row falls back to the mime icon. */
 			previewFailed: {},
 			/**
@@ -312,6 +331,7 @@ export default {
 					this.fetchFiles()
 				}
 				this.applyShareDefault()
+				this.resolveBrowserRoot()
 			},
 		},
 	},
@@ -330,6 +350,32 @@ export default {
 		 */
 		fileInputRef(el) {
 			this.fileInputEl = el || null
+		},
+
+		/**
+		 * Find the object's folder for the browser, or leave the legacy list.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async resolveBrowserRoot() {
+			this.browserRoot = null
+			if (!this.objectId || !this.register || !this.schema) {
+				return
+			}
+			let remoteUrl
+			try {
+				remoteUrl = generateRemoteUrl('dav')
+			} catch {
+				return
+			}
+			this.browserRoot = await resolveObjectFolder({
+				apiBase: this.apiBase,
+				register: this.register,
+				schema: this.schema,
+				objectId: this.objectId,
+				uid: getCurrentUser()?.uid || '',
+				remoteUrl,
+			})
 		},
 
 		async fetchFiles(append = false) {
