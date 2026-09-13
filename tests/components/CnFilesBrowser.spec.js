@@ -164,6 +164,36 @@ describe('CnFilesBrowser', () => {
 		wrapper.unmount()
 	})
 
+	it('offers the host\'s own New menu entries, dispatched with the folder rather than a row', async () => {
+		const dispatched = []
+		const wrapper = mount(CnFilesBrowser, {
+			propsData: {
+				rootPath: '/Open Registers/Cases/abc',
+				newActions: [
+					{ id: 'request-file', label: 'Request a file from a party', icon: 'AccountArrowRightOutline', type: 'open-modal', target: 'FileRequestDialog', props: { caseId: 'abc' } },
+				],
+			},
+			global: {
+				stubs: { NcDateTime: { template: '<time />' }, NcIconSvgWrapper: { template: '<i />' }, CnIcon: { template: '<i />' } },
+				provide: { cnDispatchAction: (action) => dispatched.push(action) },
+			},
+		})
+		await flushPromises()
+
+		const entry = wrapper.find('[data-testid="cn-files-browser-new-host-request-file"]')
+		expect(entry.text()).toBe('Request a file from a party')
+
+		await entry.trigger('click')
+
+		expect(dispatched).toHaveLength(1)
+		expect(dispatched[0].target).toBe('FileRequestDialog')
+		// No row was clicked, so the folder is the context: the caller's own
+		// props survive and the path is the folder's, with no file id.
+		expect(dispatched[0].props).toMatchObject({ caseId: 'abc', path: '/Open Registers/Cases/abc' })
+		expect(dispatched[0].props.fileId).toBeUndefined()
+		wrapper.unmount()
+	})
+
 	it('offers the host\'s own actions on files, never on folders, and dispatches them with the file merged in', async () => {
 		const dispatched = []
 		const wrapper = mount(CnFilesBrowser, {
