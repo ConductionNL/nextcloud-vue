@@ -44,7 +44,7 @@
     "path-browserify": "^1.0.1",
     "pinia": "^2.1.7",
     "url": "^0.11.4",
-    "vue": "^2.7.16",
+    "vue": "^3.0.0",
     "vue-apexcharts": "~1.6.2",
     "vue-codemirror6": "^1.4.3",
     "vue-demi": "^0.14.10",

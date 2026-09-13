@@ -1124,6 +1124,18 @@ export default {
 		 * @return {void}
 		 */
 		measureFit() {
+			// `content.fit: false` opts out of the cell budget: render every row
+			// fetched and let the container scroll. The budget below assumes the
+			// list OWNS its cell, measuring from where the table starts to the
+			// cell's bottom. That is wrong for a list stacked below other content
+			// in the same cell (a section of a tabbed panel, say): it starts near
+			// the bottom, the budget floors to one row, and the rest are clipped.
+			// Only an explicit `false` opts out, so a manifest that never sets the
+			// key keeps the ADR-062 behaviour unchanged.
+			if (this.content && this.content.fit === false) {
+				this.fitRows = null
+				return
+			}
 			const cell = this.$el && this.$el.closest && this.$el.closest('.grid-stack-item-content')
 			if (!cell) {
 				this.fitRows = null

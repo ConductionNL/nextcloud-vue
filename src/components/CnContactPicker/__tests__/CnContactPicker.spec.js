@@ -105,4 +105,97 @@ describe('CnContactPicker', () => {
 		expect(global.fetch.mock.calls.length).toBe(initialCalls)
 		wrapper.unmount()
 	})
+
+	it('offers Nextcloud users beside contacts once the handler types, and emits a user link', async () => {
+		// Two sources, one search: the sharee autocomplete for users, the OR
+		// proxy for contacts. Users come first.
+		global.fetch = jest.fn().mockImplementation((url) => {
+			if (String(url).includes('sharees')) {
+				return Promise.resolve({
+					ok: true,
+					json: () => Promise.resolve({
+						ocs: {
+							data: {
+								users: [{ label: 'Jan de Vries', value: { shareWith: 'jan' } }],
+								exact: { users: [{ label: 'Jan de Vries', value: { shareWith: 'jan' } }] },
+							},
+						},
+					}),
+				})
+			}
+			return Promise.resolve({
+				ok: true,
+				json: () => Promise.resolve({ results: [{ contactUid: 'piet-uid', addressbookId: 1, contactUri: 'piet.vcf', displayName: 'Piet', email: 'piet@example.nl' }] }),
+			})
+		})
+
+		const wrapper = mount(CnContactPicker)
+		await flushPromises()
+		await wrapper.vm.fetchContacts('jan')
+		await flushPromises()
+
+		const rows = wrapper.findAll('[data-testid="cn-contact-picker-row"]')
+		// The exact match repeats the account; it is listed once.
+		expect(rows).toHaveLength(2)
+		expect(rows[0].attributes('data-kind')).toBe('user')
+		expect(rows[0].find('[data-testid="cn-contact-picker-user-badge"]').exists()).toBe(true)
+		expect(rows[1].attributes('data-kind')).toBe('contact')
+
+		wrapper.vm.select(wrapper.vm.results[0])
+		wrapper.vm.role = { label: 'Handler', value: 'handler' }
+		wrapper.vm.validFrom = '2026-03-01'
+		wrapper.vm.note = '  Stands in for Piet  '
+		wrapper.vm.confirm()
+
+		const payload = wrapper.emitted('link')[0][0]
+		expect(payload).toMatchObject({
+			kind: 'user',
+			userId: 'jan',
+			displayName: 'Jan de Vries',
+			role: 'handler',
+			validFrom: '2026-03-01',
+			validUntil: null,
+			note: 'Stands in for Piet',
+		})
+		expect(payload.addressbookId).toBeUndefined()
+		wrapper.unmount()
+	})
+
+	it('does not search users on an empty term, and asks for none when they are off', async () => {
+		const calls = []
+		global.fetch = jest.fn().mockImplementation((url) => {
+			calls.push(String(url))
+			return Promise.resolve({ ok: true, json: () => Promise.resolve({ results: [] }) })
+		})
+
+		const wrapper = mount(CnContactPicker, { propsData: { includeUsers: false } })
+		await flushPromises()
+		await wrapper.vm.fetchContacts('jan')
+		await flushPromises()
+
+		expect(calls.some((url) => url.includes('sharees'))).toBe(false)
+		wrapper.unmount()
+	})
+
+	it('keeps the contacts when the user search fails', async () => {
+		global.fetch = jest.fn().mockImplementation((url) => {
+			if (String(url).includes('sharees')) {
+				return Promise.reject(new Error('no sharees here'))
+			}
+			return Promise.resolve({
+				ok: true,
+				json: () => Promise.resolve({ results: [{ contactUid: 'piet-uid', addressbookId: 1, contactUri: 'piet.vcf', displayName: 'Piet' }] }),
+			})
+		})
+		const quiet = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+		const wrapper = mount(CnContactPicker)
+		await flushPromises()
+		await wrapper.vm.fetchContacts('piet')
+		await flushPromises()
+
+		expect(wrapper.findAll('[data-testid="cn-contact-picker-row"]')).toHaveLength(1)
+		quiet.mockRestore()
+		wrapper.unmount()
+	})
 })

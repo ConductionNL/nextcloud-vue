@@ -64,6 +64,18 @@
 					</template>
 					{{ entry.displayName }}
 				</NcActionButton>
+				<!-- The host's own entries, after the Files app's. -->
+				<NcActionButton
+					v-for="action in newActions"
+					:key="`host-${action.id}`"
+					:closeAfterClick="true"
+					:data-testid="`cn-files-browser-new-host-${action.id}`"
+					@click="runHostAction(action, null)">
+					<template #icon>
+						<CnIcon :name="action.icon || 'Plus'" :size="20" />
+					</template>
+					{{ action.label }}
+				</NcActionButton>
 			</NcActions>
 		</div>
 
@@ -478,6 +490,21 @@ export default {
 		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object, handler?: string, args?: Array}>}
 		 */
 		rowActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The host's own entries in the New menu, after the ones the Files
+		 * app and its plugins register. Each is dispatched like a row action
+		 * (`type: 'open-modal' | 'handler' | …`) through the page's
+		 * `cnDispatchAction`, carrying the current folder rather than a row,
+		 * so a host can offer "new from template" or "request a file from a
+		 * party" here.
+		 *
+		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object, handler?: string, args?: Array}>}
+		 */
+		newActions: {
 			type: Array,
 			default: () => [],
 		},
@@ -1197,10 +1224,14 @@ export default {
 			}
 			const type = action.type || 'handler'
 			let wrapped = action
+			// A New-menu entry carries no row, only the folder it was opened in.
+			const context = node === null
+				? { path: this.currentPath }
+				: { fileId: node.fileid, fileName: node.basename, path: node.path }
 			if (type === 'open-modal') {
-				wrapped = { ...action, props: { ...(action.props || {}), fileId: node.fileid, fileName: node.basename, path: node.path } }
+				wrapped = { ...action, props: { ...(action.props || {}), ...context } }
 			} else if (type === 'handler') {
-				wrapped = { ...action, args: [...(action.args || []), node] }
+				wrapped = { ...action, args: [...(action.args || []), node ?? this.folder] }
 			}
 			if (typeof this.cnDispatchAction === 'function') {
 				this.cnDispatchAction(wrapped)
