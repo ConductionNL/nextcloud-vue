@@ -86,7 +86,9 @@ describe('CnSetupWizard', () => {
 
 		it('does not start a second run while one is already in flight', async () => {
 			let resolvePost
-			axios.post.mockReturnValue(new Promise((resolve) => { resolvePost = resolve }))
+			axios.post.mockReturnValue(new Promise((resolve) => {
+				resolvePost = resolve
+			}))
 			const wrapper = shallowMount(CnSetupWizard, {
 				propsData: { appId: 'procest', steps, completedStepIds: ['region'] },
 			})
