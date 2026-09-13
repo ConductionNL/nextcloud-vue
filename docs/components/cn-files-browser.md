@@ -12,7 +12,7 @@ A folder of Nextcloud files, on any page, built from the Files app's own primiti
 - **Rows** are `@nextcloud/files` nodes read over WebDAV with the same PROPFIND the Files app sends, so a node here carries what a node there carries: id, mime, size, mtime, permissions, attributes.
 - **Each row's menu** is `getFileActions()`: the actions the Files app and its plugins registered on the page (download, delete, rename, favourite, move and copy, sharing status, tags, lock, open in Files). They run with the context the Files app hands them, so a plugin's action does what it does in the Files app.
 - **The New menu** is `getNewFileMenuEntries(folder)`: new folder, a template, a file request, whatever the plugins offer for this folder, beside a plain upload that PUTs over DAV.
-- **Crumbs** are `NcBreadcrumbs`; icons are the theme's own mime icons through `OC.MimeType`; image previews come from the core preview endpoint.
+- **Crumbs** are `NcBreadcrumbs`, drawing the whole trail from the user's files root the way the Files app does: the folders above the browser's root link into the Files app, the root and everything beneath it navigate in place. Icons are the theme's own mime icons through `OC.MimeType`; image previews come from the core preview endpoint.
 
 ## What the host page has to do
 
@@ -33,7 +33,6 @@ The Files app's list itself (column filters, selection bar, inline rename) is a 
 ```vue
 <CnFilesBrowser
 	root-path="/Open Registers/Cases/6c0d…"
-	root-label="Files"
 	@changed="onFilesChanged" />
 ```
 
@@ -61,7 +60,7 @@ It reads the object's `@self.folder` file id and turns it into a path with a DAV
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `rootPath` | `String` | required | The folder the browser is rooted at, relative to the current user's files root. The browser never navigates above it. |
-| `rootLabel` | `String` | `'Files'` | What the root crumb reads; the folder on disk is usually a uuid. |
+| `rootLabel` | `String` | `null` | What the root crumb reads. Null shows the folder's own name, as the Files app does; pass a label when the folder on disk is a uuid and the host knows a better name. |
 | `newLabel` | `String` | `'New'` | Label of the New menu. |
 | `uploadLabel` | `String` | `'Upload files'` | Label of the upload entry in the New menu. |
 | `newFolderLabel` | `String` | `'New folder'` | Label of the new-folder entry and its dialog. |
@@ -83,6 +82,6 @@ Exported alongside the component:
 
 - `resolveObjectFolder({ apiBase, register, schema, objectId, uid, remoteUrl })` — the object's folder as a user-relative path, or `null`.
 - `userRelativePathFromHref(href, uid)` — a DAV href as a path under the user's files root.
-- `crumbsFor(rootPath, currentPath, rootLabel)` — the breadcrumb trail from the root to the open folder.
+- `crumbsFor(rootPath, currentPath, rootLabel?)` — the whole trail, outermost first; crumbs above the root carry `aboveRoot: true`.
 - `joinPath(dir, name)` — one slash between.
 - `ACTIONS_NEEDING_THE_FILES_PAGE` — the registered action ids that cannot run away from the Files page.

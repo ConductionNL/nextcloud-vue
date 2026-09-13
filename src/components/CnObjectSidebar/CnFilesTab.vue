@@ -260,8 +260,8 @@ export default {
 		openLabel: { type: String, default: () => t('nextcloud-vue', 'Open') },
 		/** Label for the delete action */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
-		/** What the files browser's root crumb reads; the folder on disk is a uuid. */
-		browserRootLabel: { type: String, default: () => t('nextcloud-vue', 'Files') },
+		/** What the files browser's root crumb reads; null shows the folder's own name, as the Files app does. */
+		browserRootLabel: { type: String, default: null },
 		/** Label of the Download action. */
 		downloadLabel: { type: String, default: () => t('nextcloud-vue', 'Download') },
 		/** Label of the action that opens the Files sidebar on the file. */

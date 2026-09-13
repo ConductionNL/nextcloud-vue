@@ -58,29 +58,43 @@ export function joinPath(dir, name) {
 }
 
 /**
- * The breadcrumb trail from the browser's root down to the current folder.
+ * The breadcrumb trail: every folder from the user's files root down to the
+ * open folder, the way the Files app draws it.
  *
- * The root is named by the caller (the object's folder is a uuid on disk,
- * which is not a name a person reads), and every segment beneath it is the
- * folder's own basename.
+ * The folders ABOVE the browser's root are part of the trail too (a reader
+ * wants to see where this folder lives), but the browser never navigates
+ * above its root, so those crumbs carry `aboveRoot: true` and the component
+ * links them into the Files app instead. The root reads `rootLabel` when the
+ * caller gave one and its own basename otherwise; every other crumb is the
+ * folder's basename.
  *
  * @param {string} rootPath The browser's root, user-relative.
  * @param {string} currentPath The open folder, user-relative, at or below the root.
- * @param {string} rootLabel What the root crumb reads.
- * @return {Array<{name: string, path: string}>} The crumbs, root first.
+ * @param {string|null} [rootLabel] What the root crumb reads; null for its basename.
+ * @return {Array<{name: string, path: string, aboveRoot: boolean}>} The crumbs, outermost first.
  */
-export function crumbsFor(rootPath, currentPath, rootLabel) {
+export function crumbsFor(rootPath, currentPath, rootLabel = null) {
 	const root = String(rootPath || '/').replace(/\/+$/, '') || '/'
 	const current = String(currentPath || root).replace(/\/+$/, '') || '/'
-	const crumbs = [{ name: rootLabel, path: root }]
+	const crumbs = []
+	let path = ''
+	for (const segment of root.split('/').filter(Boolean)) {
+		path = joinPath(path, segment)
+		crumbs.push({ name: segment, path, aboveRoot: path !== root })
+	}
+	if (root === '/') {
+		crumbs.push({ name: rootLabel || '/', path: '/', aboveRoot: false })
+	} else if (rootLabel) {
+		crumbs[crumbs.length - 1].name = rootLabel
+	}
 	if (current === root || !current.startsWith(root === '/' ? '/' : `${root}/`)) {
 		return crumbs
 	}
 	const below = root === '/' ? current.slice(1) : current.slice(root.length + 1)
-	let path = root
+	path = root
 	for (const segment of below.split('/').filter(Boolean)) {
 		path = joinPath(path, segment)
-		crumbs.push({ name: segment, path })
+		crumbs.push({ name: segment, path, aboveRoot: false })
 	}
 	return crumbs
 }

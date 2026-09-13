@@ -28,18 +28,25 @@ describe('CnFilesBrowser helpers', () => {
 		expect(joinPath('/', 'c')).toBe('/c')
 	})
 
-	it('names the root and every folder beneath it, and never a folder above it', () => {
-		expect(crumbsFor('/Open Registers/Cases/abc', '/Open Registers/Cases/abc', 'Files'))
-			.toEqual([{ name: 'Files', path: '/Open Registers/Cases/abc' }])
-		expect(crumbsFor('/Open Registers/Cases/abc', '/Open Registers/Cases/abc/Scans/2026', 'Files'))
+	it('draws the whole trail: the folders above the root as links out, the root and what is beneath it in place', () => {
+		expect(crumbsFor('/Open Registers/Cases/abc', '/Open Registers/Cases/abc'))
 			.toEqual([
-				{ name: 'Files', path: '/Open Registers/Cases/abc' },
-				{ name: 'Scans', path: '/Open Registers/Cases/abc/Scans' },
-				{ name: '2026', path: '/Open Registers/Cases/abc/Scans/2026' },
+				{ name: 'Open Registers', path: '/Open Registers', aboveRoot: true },
+				{ name: 'Cases', path: '/Open Registers/Cases', aboveRoot: true },
+				{ name: 'abc', path: '/Open Registers/Cases/abc', aboveRoot: false },
+			])
+		expect(crumbsFor('/Open Registers/Cases/abc', '/Open Registers/Cases/abc/Scans/2026', 'Case 12'))
+			.toEqual([
+				{ name: 'Open Registers', path: '/Open Registers', aboveRoot: true },
+				{ name: 'Cases', path: '/Open Registers/Cases', aboveRoot: true },
+				{ name: 'Case 12', path: '/Open Registers/Cases/abc', aboveRoot: false },
+				{ name: 'Scans', path: '/Open Registers/Cases/abc/Scans', aboveRoot: false },
+				{ name: '2026', path: '/Open Registers/Cases/abc/Scans/2026', aboveRoot: false },
 			])
 		// A path outside the root is not a trail below it.
-		expect(crumbsFor('/Open Registers/Cases/abc', '/Other', 'Files'))
-			.toEqual([{ name: 'Files', path: '/Open Registers/Cases/abc' }])
+		expect(crumbsFor('/Open Registers/Cases/abc', '/Other').map((crumb) => crumb.name))
+			.toEqual(['Open Registers', 'Cases', 'abc'])
+		expect(crumbsFor('/', '/', 'Files')).toEqual([{ name: 'Files', path: '/', aboveRoot: false }])
 	})
 
 	it('searches by file id under the user root, with the id as digits only', () => {

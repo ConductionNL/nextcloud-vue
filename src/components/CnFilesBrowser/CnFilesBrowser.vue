@@ -17,17 +17,23 @@
 		     a template, a file request) beside a plain upload. -->
 		<div class="cn-files-browser__bar">
 			<NcBreadcrumbs class="cn-files-browser__crumbs">
-				<!-- NcBreadcrumbs draws its first crumb as a home icon and keeps the
-				     name for screen readers; forceIconText puts the name beside
-				     the icon, so the root reads as what it is. -->
+				<!-- The whole trail from the user's files root, as the Files app
+				     draws it. A crumb above the browser's root links into the Files
+				     app (the browser never leaves its root); the root and everything
+				     beneath it navigate in place. NcBreadcrumbs draws its first
+				     crumb as a home icon and keeps the name for screen readers;
+				     forceIconText puts the name beside the icon. -->
 				<NcBreadcrumb
 					v-for="(crumb, index) in crumbs"
 					:key="crumb.path"
 					:name="crumb.name"
 					:forceIconText="index === 0"
 					:disableDrop="true"
+					:href="crumb.aboveRoot ? filesAppUrl(crumb.path) : undefined"
+					:target="crumb.aboveRoot ? '_blank' : undefined"
+					:data-above-root="crumb.aboveRoot ? 'true' : undefined"
 					data-testid="cn-files-browser-crumb"
-					@click="navigate(crumb.path)" />
+					@click="crumb.aboveRoot ? undefined : navigate(crumb.path)" />
 			</NcBreadcrumbs>
 			<NcActions
 				:menuName="newLabel"
@@ -382,10 +388,14 @@ export default {
 			required: true,
 		},
 
-		/** What the root crumb reads; the folder on disk is usually a uuid. */
+		/**
+		 * What the root crumb reads. Null shows the folder's own name, which
+		 * is what the Files app shows; pass a label when the folder on disk is
+		 * a uuid and the host knows a better name.
+		 */
 		rootLabel: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Files'),
+			default: null,
 		},
 
 		/** Label of the New menu. */
@@ -1013,6 +1023,16 @@ export default {
 		 */
 		onPreviewError(node) {
 			this.previewFailed = { ...this.previewFailed, [node.fileid]: true }
+		},
+
+		/**
+		 * The Files app opened on a folder, for the crumbs above the root.
+		 *
+		 * @param {string} path The user-relative folder path.
+		 * @return {string} The url.
+		 */
+		filesAppUrl(path) {
+			return generateUrl('/apps/files/files?dir={dir}', { dir: path })
 		},
 
 		/**

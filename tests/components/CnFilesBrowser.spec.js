@@ -19,7 +19,7 @@ function listing() {
 
 function mountBrowser() {
 	return mount(CnFilesBrowser, {
-		propsData: { rootPath: '/Open Registers/Cases/abc', rootLabel: 'Files' },
+		propsData: { rootPath: '/Open Registers/Cases/abc' },
 		global: { stubs: { NcDateTime: { template: '<time />' }, NcIconSvgWrapper: { template: '<i />' } } },
 	})
 }
@@ -43,7 +43,7 @@ describe('CnFilesBrowser', () => {
 		await flushPromises()
 		const rows = wrapper.findAll('[data-testid="cn-files-browser-row"]')
 		expect(rows.map((row) => row.attributes('data-name'))).toEqual(['Scans', 'photo.png', 'report.pdf'])
-		expect(wrapper.vm.crumbs).toEqual([{ name: 'Files', path: '/Open Registers/Cases/abc' }])
+		expect(wrapper.vm.crumbs.map((crumb) => [crumb.name, crumb.aboveRoot])).toEqual([['Open Registers', true], ['Cases', true], ['abc', false]])
 		expect(wrapper.vm.folder.basename).toBe('abc')
 		// The view handed to the Files app's actions carries the SVG icon its constructor demands.
 		expect(wrapper.vm.view.icon).toMatch(/^<svg/)
@@ -160,7 +160,7 @@ describe('CnFilesBrowser', () => {
 		expect(wrapper.vm.currentPath).toBe('/Open Registers/Cases/abc')
 		wrapper.vm.navigate('/Open Registers/Cases/abc/Scans')
 		expect(wrapper.vm.currentPath).toBe('/Open Registers/Cases/abc/Scans')
-		expect(wrapper.vm.crumbs.map((crumb) => crumb.name)).toEqual(['Files', 'Scans'])
+		expect(wrapper.vm.crumbs.map((crumb) => crumb.name)).toEqual(['Open Registers', 'Cases', 'abc', 'Scans'])
 		wrapper.unmount()
 	})
 })
