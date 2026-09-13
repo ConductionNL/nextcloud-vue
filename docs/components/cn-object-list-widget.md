@@ -2,7 +2,7 @@
 
 Object list / table widget. Fetches a page of OpenRegister objects (register + schema + filter + sort + limit) at runtime and renders them as a compact column table. Registered under the `object-list` type (and aliased as `table`) and configured by [`CnObjectListWidgetForm`](./cn-object-list-widget-form.md).
 
-On detail pages the widget is **cell-budgeted** (ADR-062): it renders as many rows as fit its grid cell, then a "View all (N)" footer instead of a nested scrollbar. On surfaces without a fixed-height cell (dashboards) every fetched row renders, as before.
+On detail pages the widget is **cell-budgeted** (ADR-062): it renders as many rows as fit its grid cell, then a "View all (N)" footer instead of a nested scrollbar. On surfaces without a fixed-height cell (dashboards) every fetched row renders, as before. A list that shares its cell with other content opts out with `"fit": false`; see [Stacked lists](#stacked-lists-fit-false) below.
 
 ## Content shape
 
@@ -21,7 +21,8 @@ On detail pages the widget is **cell-budgeted** (ADR-062): it renders as many ro
   "dropZone": { "type": "open-modal", "target": "DocumentMetadataDialog", "label": "Drop documents here" },
   "emptyText": "No leads yet",
   "viewAllRoute": "leads-index",
-  "viewAllQuery": { "customer": "@objectId" }
+  "viewAllQuery": { "customer": "@objectId" },
+  "fit": true
 }
 ```
 
@@ -29,7 +30,7 @@ On detail pages the widget is **cell-budgeted** (ADR-062): it renders as many ro
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | The list config blob (`register`, `schema`, `filter`, `sort`, `limit`, `extend`, `columns`, `rowActions`, `dropZone`, `rowRoute`, `prompt`, `emptyText`, `viewAllRoute`, `viewAllQuery`). |
+| `content` | `object` | `{}` | The list config blob (`register`, `schema`, `filter`, `sort`, `limit`, `extend`, `columns`, `rowActions`, `dropZone`, `rowRoute`, `prompt`, `emptyText`, `viewAllRoute`, `viewAllQuery`, `fit`). |
 
 ## Events
 
@@ -42,7 +43,7 @@ On detail pages the widget is **cell-budgeted** (ADR-062): it renders as many ro
 ## Notes
 
 - `columns[]` maps object property keys to table headers; each row links through to the object when a route is resolvable.
-- `limit` is a **fetch cap** (default 25), not a render promise — the visible row count fits the host cell.
+- `limit` is a **fetch cap** (default 25), not a render promise — the visible row count fits the host cell, unless `fit` is `false`.
 - An empty collection renders a compact one-line empty state (`emptyText`), never a full-height void.
 - `viewAllRoute` names a page id; `viewAllQuery` values are token-resolved (`@objectId` / `@object.<field>` / `@workspace.<key>`) so the target index opens pre-scoped.
 - The `table` registry alias uses the same renderer.
@@ -63,6 +64,27 @@ Use `extend` when you need **several fields** off the same reference. For a
 single label, the cheaper answer is the built-in `fkResolve` cell widget
 (`widget: "fkResolve"`, `widgetProps: { register, schema, labelField }`), which
 resolves one label per column through the shared object store.
+
+### Stacked lists: `fit: false`
+
+The cell budget measures from where the **table starts** to the bottom of the
+grid cell. That is right for a list that owns its cell. It is wrong for a list
+stacked below other content in the same cell, such as the second or third
+section of a tabbed panel: the table starts near the bottom, the budget floors
+to one row, and the rest are clipped.
+
+It fails quietly. On one live case page an Objects table began 584px down a
+696px cell, showed one of the two objects the server had returned, and no
+"+1 more" footer was visible to say a row had been hidden.
+
+`"fit": false` renders every fetched row and lets the container scroll. Only an
+explicit `false` opts out, so a manifest that never sets the key keeps the
+ADR-062 behaviour unchanged. `limit` still caps the fetch and the pager still
+pages, so a long collection stays bounded.
+
+A container that stacks several widgets in one cell should set it on each child
+rather than leaving it to each manifest author: the next list moved below
+another one is the one that forgets.
 
 ### Row actions
 
