@@ -527,10 +527,37 @@ export default {
 /* No inset, so the first tab starts at the panel's own left edge. The 8px
    here was there to clear the card's rounded top corner; that corner is gone
    from the strip now, and the inset it existed for left the first tab floating
-   8px inside the sheet it opens. The bar's bottom rule closes the panel either
-   way: padding sits inside the border box, so it never shortened the rule. */
+   8px inside the sheet it opens.
+
+   The bar's own bottom rule is switched off and redrawn as a pseudo-element
+   that stops one corner radius short of the right edge. CnTabs draws its rule
+   across the bar's whole width, which is the sheet's top edge everywhere
+   except at the far right, where the panel's top-right corner curves away
+   below it: the rule ran straight on to the widget's edge and read as a
+   border sticking out past a rounded corner (Ruben, 2026-09-13). Ending it
+   where the curve begins makes the rule and the curve one continuous edge. */
 .cn-tabs-widget__tabs :deep(.cn-tabs__bar) {
+	border-bottom: none;
 	padding: 0;
+	position: relative;
+}
+
+.cn-tabs-widget__tabs :deep(.cn-tabs__bar::after) {
+	border-bottom: 1px solid var(--color-border);
+	content: '';
+	inset-block-end: 0;
+	inset-inline: 0 var(--border-radius-large);
+	pointer-events: none;
+	position: absolute;
+}
+
+/* The open tab erases the slice of the rule directly above the panel with its
+   own background-coloured bottom edge, which only works if it paints ABOVE the
+   pseudo-element: a positioned pseudo-element otherwise paints over every
+   in-flow sibling, rule included. */
+.cn-tabs-widget__tabs :deep(.cn-tabs__nav-item--active) {
+	position: relative;
+	z-index: 1;
 }
 
 .cn-tabs-widget__tabs {
@@ -552,10 +579,11 @@ export default {
    above content it is supposed to be attached to. */
 .cn-tabs-widget__tabs :deep(.cn-tabs__content) {
 	background-color: var(--color-main-background);
-	/* Three sides only: the bar's own bottom rule is this sheet's top edge, and
-	   the open tab erases the slice of it directly above the panel so the two
-	   read as one surface. A border-top here would put a second line under that
-	   tab which the tab cannot paint over. */
+	/* Three sides only: the bar's rule (redrawn above, stopping at the corner)
+	   is this sheet's top edge, and the open tab erases the slice of it
+	   directly above the panel so the two read as one surface. A border-top
+	   here would put a second line under that tab which the tab cannot paint
+	   over. */
 	border: 1px solid var(--color-border);
 	border-top: none;
 	/* Three rounded corners. The top-left stays square because the first tab
