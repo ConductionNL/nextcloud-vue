@@ -49,5 +49,9 @@ All optional, pre-translated overrides:
 | `emptyDescription` | String | Description for the empty/no-results state. |
 | `unknownLabel` | String | Fallback label for a contact with no display name. |
 | `roleLabel` | String | Label for the contact role field. |
+| `userBadgeLabel` | String | Badge marking a row as a Nextcloud user. |
+| `validFromLabel` | String | Label for the first day of the role. |
+| `validUntilLabel` | String | Label for the last day of the role. |
+| `noteLabel` | String | Label for the note on the link. |
 | `cancelLabel` | String | Cancel button label. |
 | `confirmLabel` | String | Confirm/link button label. |
