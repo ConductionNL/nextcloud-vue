@@ -1353,7 +1353,7 @@ describe('CnAppNav', () => {
 			expect(wrapper.vm.isItemOpen(groupManifest.menu[0])).toBe(false)
 		})
 
-		it('does not toggle on title click when the item has a route', () => {
+		it('opens (without toggling) on title click when the item has a route', () => {
 			const item = {
 				id: 'parent',
 				label: 'app.p',
@@ -1363,14 +1363,41 @@ describe('CnAppNav', () => {
 			const wrapper = mountNav({
 				manifest: { version: '1.0.0', pages: [], menu: [item] },
 				useProps: true,
-				routeName: 'parent',
+				routeName: 'home',
 			})
 			const event = { preventDefault: jest.fn() }
+			expect(wrapper.vm.isItemOpen(item)).toBe(false)
 			wrapper.vm.onItemClick(item, event)
 			// Routed parents navigate via :to — the click handler must not
-			// hijack them into a collapse toggle.
+			// hijack the click into preventing that navigation.
 			expect(event.preventDefault).not.toHaveBeenCalled()
+			// But it DOES reveal the children, so a reader who clicks the
+			// group's own page is not left to find the collapse chevron
+			// separately to see what else the group holds.
+			expect(wrapper.vm.isItemOpen(item)).toBe(true)
+			// And it does not TOGGLE: a second click while already open
+			// stays open — only the collapse chevron can close it again.
+			wrapper.vm.onItemClick(item, event)
+			expect(wrapper.vm.isItemOpen(item)).toBe(true)
+		})
+
+		it('opens (without toggling) on title click when the item has an href', () => {
+			const item = {
+				id: 'parent',
+				label: 'app.p',
+				href: 'https://example.test/parent',
+				children: [{ id: 'child', label: 'app.c', route: 'child' }],
+			}
+			const wrapper = mountNav({
+				manifest: { version: '1.0.0', pages: [], menu: [item] },
+				useProps: true,
+				routeName: 'home',
+			})
+			const event = { preventDefault: jest.fn() }
 			expect(wrapper.vm.isItemOpen(item)).toBe(false)
+			wrapper.vm.onItemClick(item, event)
+			expect(event.preventDefault).not.toHaveBeenCalled()
+			expect(wrapper.vm.isItemOpen(item)).toBe(true)
 		})
 
 		it('auto-expands a group when the active route is one of its children', () => {
