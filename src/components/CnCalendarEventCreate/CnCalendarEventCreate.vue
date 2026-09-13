@@ -189,6 +189,9 @@ export default {
 		 * on every meeting this dialog created. The type is fixed, and this stops
 		 * the same class of mistake reaching the calendar if it ever regresses.
 		 *
+		 * (VTODOs are a different matter and are not affected: a task legitimately
+		 * carries DUE and no DTSTART.)
+		 *
 		 * @return {boolean} true when dtstart parses to a real date
 		 */
 		hasValidStart() {
