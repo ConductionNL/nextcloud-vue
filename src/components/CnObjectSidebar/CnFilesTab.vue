@@ -9,6 +9,7 @@
 			:rootPath="browserRoot"
 			:rootLabel="browserRootLabel"
 			:rowActions="rowActions"
+			:newActions="newActions"
 			:linkedItems="linkedItems"
 			@changed="onBrowserChanged" />
 		<template v-else>
@@ -273,6 +274,15 @@ export default {
 		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object}>}
 		 */
 		rowActions: { type: Array, default: () => [] },
+		/**
+		 * The host's own entries in the browser's New menu, forwarded to
+		 * CnFilesBrowser's `newActions`: declared like a row action and
+		 * dispatched with the folder rather than a row, for things like
+		 * "new from template" or "request a file from a party".
+		 *
+		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object}>}
+		 */
+		newActions: { type: Array, default: () => [] },
 		/**
 		 * An app endpoint that answers the object's linked files, rows the
 		 * browser shows after the folder's own (files the host joined from
