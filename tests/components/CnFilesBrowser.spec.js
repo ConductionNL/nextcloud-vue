@@ -45,6 +45,8 @@ describe('CnFilesBrowser', () => {
 		expect(rows.map((row) => row.attributes('data-name'))).toEqual(['Scans', 'photo.png', 'report.pdf'])
 		expect(wrapper.vm.crumbs).toEqual([{ name: 'Files', path: '/Open Registers/Cases/abc' }])
 		expect(wrapper.vm.folder.basename).toBe('abc')
+		// The view handed to the Files app's actions carries the SVG icon its constructor demands.
+		expect(wrapper.vm.view.icon).toMatch(/^<svg/)
 		wrapper.unmount()
 	})
 

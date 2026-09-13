@@ -13,6 +13,15 @@ const FileType = { File: 'file', Folder: 'folder' }
 class View {
 	constructor(data) {
 		this._data = data || {}
+		// The real constructor refuses anything but an SVG string, and throws
+		// from wherever the view is built; a mock that accepted '' hid that.
+		if (typeof this._data.icon !== 'string' || !this._data.icon.startsWith('<svg')) {
+			throw new Error('View icon is required and must be a valid svg string')
+		}
+	}
+
+	get icon() {
+		return this._data.icon
 	}
 
 	get id() {
