@@ -55,6 +55,19 @@ const rootPath = await resolveObjectFolder({
 
 It reads the object's `@self.folder` file id and turns it into a path with a DAV search; `null` means the object has no folder or the user cannot see it, and the caller falls back to the object's files endpoint. `CnFilesTab` does exactly this.
 
+## The host's actions and linked rows
+
+A host that keeps a record about each file (dossiq's ZGW document record, say) can put its own action on every file row and show files that belong to the object without living in its folder:
+
+```vue
+<CnFilesBrowser
+	root-path="/Open Registers/Cases/6c0d…"
+	:row-actions="[{ id: 'document-properties', label: 'Document properties', icon: 'FileDocumentEditOutline', type: 'open-modal', target: 'DocumentMetadataDialog' }]"
+	:linked-items="linkedDocuments" />
+```
+
+A row action is dispatched the way a widget's row action is: through the page's `cnDispatchAction` when the browser sits in a `CnPageRenderer` tree, else through the bare dispatcher. Folders get no host action. A linked row is read-only here; what changes it lives where the file does.
+
 ## Props
 
 | Prop | Type | Default | Description |
@@ -69,6 +82,10 @@ It reads the object's `@self.folder` file id and turns it into a path with a DAV
 | `emptyLabel` | `String` | `'This folder is empty'` | Title of the empty state. |
 | `emptyHint` | `String` | `'Drop files here, or use New'` | Line under the empty state's title. |
 | `retryLabel` | `String` | `'Try again'` | Label of the retry button on a failed listing. |
+| `rowActions` | `Array` | `[]` | The host's own actions on each file row (never on a folder), declared like any manifest action: `{ id, label, icon?, type, target?, props?, handler?, args? }`. Dispatched through the page's action runner (`cnDispatchAction`, provided by `CnPageRenderer`) with the file merged in: an `open-modal` action's props gain `fileId`, `fileName` and `path`; a `handler` action's args gain the node. `icon` is an MDI icon name. |
+| `linkedItems` | `Array` | `[]` | Rows that are not nodes of this folder: files the host joined from another object's folder, shown after the folder's own rows with open and download only. Each is `{ id, name, mime?, size?, mtime?, href?, downloadHref?, note?, noteHref? }`; `note` says where the file lives, `noteHref` links there. |
+| `openLinkedLabel` | `String` | `'Open'` | Label of a linked row's open action. |
+| `downloadLabel` | `String` | `'Download'` | Label of a linked row's download action. |
 
 ## Events
 

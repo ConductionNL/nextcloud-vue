@@ -100,7 +100,7 @@
 		</NcEmptyContent>
 
 		<NcEmptyContent
-			v-else-if="sorted.length === 0"
+			v-else-if="sorted.length === 0 && linkedItems.length === 0"
 			:name="emptyLabel"
 			:description="emptyHint"
 			class="cn-files-browser__state">
@@ -190,7 +190,23 @@
 								</template>
 								{{ labelOf(action, node) }}
 							</NcActionButton>
-							<NcActionSeparator v-if="actionsFor(node).length > 0" />
+							<!-- The host's own actions on a file (never on a folder): declared
+							     in its manifest, dispatched through the page's action runner
+							     with the node's file id, name and path merged in. -->
+							<template v-if="!isFolder(node)">
+								<NcActionButton
+									v-for="action in rowActions"
+									:key="`host-${action.id}`"
+									:closeAfterClick="true"
+									:data-testid="`cn-files-browser-host-action-${action.id}`"
+									@click="runHostAction(action, node)">
+									<template #icon>
+										<CnIcon :name="action.icon || 'FileDocumentEditOutline'" :size="20" />
+									</template>
+									{{ action.label }}
+								</NcActionButton>
+							</template>
+							<NcActionSeparator v-if="actionsFor(node).length > 0 || (!isFolder(node) && rowActions.length > 0)" />
 							<!-- The Files app's own rename is its list's inline input,
 							     which is not here; this one is a dialog over a DAV move. -->
 							<NcActionButton :closeAfterClick="true" data-testid="cn-files-browser-action-rename" @click="askRename(node)">
@@ -209,6 +225,69 @@
 									<OpenInNew :size="20" />
 								</template>
 								{{ showInFilesLabel }}
+							</NcActionLink>
+						</NcActions>
+					</td>
+				</tr>
+				<!-- Rows that are not nodes of this folder: documents the host
+				     joined from elsewhere (another object's folder). Open and
+				     download only; nothing here can change the file. -->
+				<tr
+					v-for="item in linkedItems"
+					:key="`linked-${item.id}`"
+					class="cn-files-browser__row cn-files-browser__row--linked"
+					data-testid="cn-files-browser-linked-row"
+					:data-name="item.name"
+					@click="openLinked(item)">
+					<td class="cn-files-browser__col-icon">
+						<img
+							v-if="mimeIconFor({ mime: item.mime })"
+							class="cn-files-browser__mime"
+							:src="mimeIconFor({ mime: item.mime })"
+							alt="">
+						<FileOutline v-else :size="32" />
+					</td>
+					<td class="cn-files-browser__col-name">
+						<span class="cn-files-browser__name">{{ item.name }}</span>
+						<span v-if="item.note" class="cn-files-browser__note">
+							<a
+								v-if="item.noteHref"
+								:href="item.noteHref"
+								class="cn-files-browser__note-link"
+								@click.stop>{{ item.note }}</a>
+							<template v-else>{{ item.note }}</template>
+						</span>
+					</td>
+					<td class="cn-files-browser__col-size">
+						{{ item.size ? formatSize(item.size) : '' }}
+					</td>
+					<td class="cn-files-browser__col-mtime">
+						<NcDateTime v-if="item.mtime" :timestamp="item.mtime" :ignoreSeconds="true" />
+					</td>
+					<td class="cn-files-browser__col-actions" @click.stop>
+						<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: item.name })">
+							<NcActionLink
+								v-if="item.href"
+								:href="item.href"
+								target="_blank"
+								rel="noopener noreferrer"
+								:closeAfterClick="true"
+								data-testid="cn-files-browser-linked-open">
+								<template #icon>
+									<OpenInNew :size="20" />
+								</template>
+								{{ openLinkedLabel }}
+							</NcActionLink>
+							<NcActionLink
+								v-if="item.downloadHref"
+								:href="item.downloadHref"
+								:download="item.name"
+								:closeAfterClick="true"
+								data-testid="cn-files-browser-linked-download">
+								<template #icon>
+									<Download :size="20" />
+								</template>
+								{{ downloadLabel }}
 							</NcActionLink>
 						</NcActions>
 					</td>
@@ -336,12 +415,15 @@ import {
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
+import Download from 'vue-material-design-icons/Download.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
+import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { ACTIONS_NEEDING_THE_FILES_PAGE, crumbsFor, joinPath } from './filesBrowser.js'
 
 let uploadSeq = 0
@@ -354,6 +436,8 @@ export default {
 
 	components: {
 		AlertCircleOutline,
+		CnIcon,
+		Download,
 		FileOutline,
 		FolderOutline,
 		NcActionButton,
@@ -376,7 +460,57 @@ export default {
 		Upload,
 	},
 
+	inject: {
+		// The page's pre-bound action runner (CnPageRenderer provides it);
+		// absent outside a page tree, in which case the bare dispatcher runs.
+		cnDispatchAction: { default: null },
+	},
+
 	props: {
+		/**
+		 * The host's own actions on each file row, declared the way a
+		 * manifest declares any action (`open-modal`, `handler`, ...), and
+		 * dispatched through the page's action runner with the node's
+		 * `fileId`, `fileName` and `path` merged into an `open-modal` action's
+		 * props (or appended as the node to a `handler` action's args). Folders
+		 * get none. `icon` is an MDI icon name.
+		 *
+		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object, handler?: string, args?: Array}>}
+		 */
+		rowActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Rows that are not nodes of this folder: files the host joined from
+		 * another object's folder. Rendered after the folder's own rows with
+		 * open and download only. `note` (and its optional `noteHref`) says
+		 * where the file lives.
+		 *
+		 * @type {Array<{id: string|number, name: string, mime?: string, size?: number, mtime?: Date|number, href?: string, downloadHref?: string, note?: string, noteHref?: string}>}
+		 */
+		linkedItems: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Label of a linked row's open action.
+		 */
+		openLinkedLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Open'),
+		},
+
+		/**
+		 * Label of a linked row's download action.
+		 */
+		downloadLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Download'),
+		},
+
 		/**
 		 * The folder this browser is rooted at, relative to the current user's
 		 * files root (`/Open Registers/Cases/<uuid>`). The browser never
@@ -1046,6 +1180,48 @@ export default {
 		},
 
 		/**
+		 * Run one of the host's declared actions on a file.
+		 *
+		 * An `open-modal` action gets the node merged onto its props as
+		 * `fileId`, `fileName` and `path`, the same way a widget's row action
+		 * hands a modal its row; a `handler` action gets the node appended to
+		 * its args. Everything else is dispatched as declared.
+		 *
+		 * @param {object} action The declared action.
+		 * @param {object} node The file it was clicked on.
+		 * @return {void}
+		 */
+		runHostAction(action, node) {
+			if (!action || typeof action !== 'object') {
+				return
+			}
+			const type = action.type || 'handler'
+			let wrapped = action
+			if (type === 'open-modal') {
+				wrapped = { ...action, props: { ...(action.props || {}), fileId: node.fileid, fileName: node.basename, path: node.path } }
+			} else if (type === 'handler') {
+				wrapped = { ...action, args: [...(action.args || []), node] }
+			}
+			if (typeof this.cnDispatchAction === 'function') {
+				this.cnDispatchAction(wrapped)
+				return
+			}
+			dispatchAction(wrapped, { router: this.$router || null })
+		},
+
+		/**
+		 * A click on a linked row opens the file where it lives.
+		 *
+		 * @param {object} item The linked item.
+		 * @return {void}
+		 */
+		openLinked(item) {
+			if (item.href && typeof window !== 'undefined') {
+				window.open(item.href, '_blank', 'noopener')
+			}
+		},
+
+		/**
 		 * The current user's id, for callers resolving a root path.
 		 *
 		 * @return {string} The uid, or the empty string.
@@ -1191,6 +1367,21 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.cn-files-browser__row--linked {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-files-browser__note {
+	color: var(--color-text-maxcontrast);
+	display: block;
+	font-size: var(--font-size-small, 13px);
+}
+
+.cn-files-browser__note-link {
+	color: inherit;
+	text-decoration: underline;
 }
 
 .cn-files-browser__row--folder .cn-files-browser__name {
