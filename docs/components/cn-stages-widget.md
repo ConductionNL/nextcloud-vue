@@ -48,7 +48,13 @@ That is the whole guard, and it is why there is nothing here to configure. There
 
 `requires` is never shown. OpenRegister copies it verbatim out of the schema annotation, and what apps write there is the dependency-injection tag of the guard class, so putting it beside a stage printed `OCA\Learniq\Lifecycle\AdmissionsDecisionGuard` at somebody trying to close a case. A move that carries a guard and no `description` now says nothing at all, which is the honest answer and leaves no empty line under the stage.
 
-A stage no action reaches is dimmed and carries its reason on screen, not only for a screen reader, and clicking it repeats that reason in a live region under the strip. A control that silently does nothing reads as broken, and a blocked stage that looks the same as one further down the process tells nobody anything. `unreachableReason` replaces the default wording when an app has better words for its own process.
+A stage no action reaches is dimmed and cannot be clicked. Its reason is not printed beside it. It used to be, and on a live case that meant one generic sentence rendered next to every stage ahead of the record, plus a fourth copy under the strip. Three routes replace the printed copy:
+
+- **hover**: the reason is the stage's `title`.
+- **click, tap or Enter**: the reason appears once in a note card under the strip.
+- **screen reader**: a copy stays inside the stage, so the reason is part of what is announced for it, with no interaction at all.
+
+`unreachableReason` replaces the default wording when an app has better words for its own process. A stage the record has already passed says nothing at all: a reason under a completed stage reads as something having gone wrong with something that already happened. A past stage an action does reach, a reopen, keeps its click and its note like any other move.
 
 ### A move that is offered but refused
 
@@ -57,10 +63,12 @@ An action may answer `blocked: true`, with `description` as the reason. It is th
 | The answer | What it means | What the person sees |
 | --- | --- | --- |
 | The action is in the list | The record can move there now | The stage is clickable, with the move's `description` beside it |
-| The action is in the list with `blocked: true` | The move exists, a guard refuses it right now | The stage is dimmed, carrying the guard's own reason, and a click repeats it below the strip |
-| No action reaches the stage | Nothing moves the record there from here | The stage is dimmed, carrying `unreachableReason` or "Not reachable from the current stage" |
+| The action is in the list with `blocked: true` | The move exists, a guard refuses it right now | The stage takes the **warning** colour and an exclamation mark, at full contrast. The guard's own reason is on its `title`, and a click puts it in a warning note card below the strip |
+| No action reaches the stage | Nothing moves the record there from here | The stage is dimmed and stays grey, with `unreachableReason` or "Not reachable from the current stage" on its `title` |
 
-Without `blocked`, an app's guard had only two answers to choose between, so "the decision document is missing" arrived as the generic "not reachable from the current stage": a claim about the process, where the truth was about this one record. A blocked stage keeps its place in the strip and only loses its click, and no path through the widget POSTs a move a guard has already refused. A guard that blocks without saying why falls back to "This move is not possible right now", because a dimmed stage that explains nothing is what the visible reason exists to prevent.
+Without `blocked`, an app's guard had only two answers to choose between, so "the decision document is missing" arrived as the generic "not reachable from the current stage": a claim about the process, where the truth was about this one record. A blocked stage keeps its place in the strip and only loses its click, and no path through the widget POSTs a move a guard has already refused. A guard that blocks without saying why falls back to "This move is not possible right now", because a refused stage that explains nothing is what this whole branch exists to prevent.
+
+Only this one case is coloured. A stage further down the process stays grey on purpose: if every stage the record cannot reach were orange, a normal timeline would read as a wall of refusals and nothing on it would stand out. Warning is also the level, not error. A move a guard declines is a guarded record, and an error colour there would look like a broken instance.
 
 `CnLifecycleActions` reads the same endpoint and ignores the key: it maps `action`, `to`, `description` and `inputs` by name and passes nothing else through, so a blocked action still renders as a button there and the server refuses the POST with its own sentence.
 
@@ -68,7 +76,21 @@ Without `blocked`, an app's guard had only two answers to choose between, so "th
 
 A 404 means the schema declares no lifecycle. That is an answer: there are no moves, and each stage says it is not reachable.
 
-A 500, a timeout or a dropped connection is not an answer. The widget says the guard could not be checked, once, under the strip, and every stage stays disabled without claiming anything about itself. Saying "not reachable from the current stage" there would state confidently something nobody has checked.
+A 500, a timeout or a dropped connection is not an answer. The widget says the guard could not be checked, once, in an error note card under the strip, and every stage stays disabled without claiming anything about itself. Saying "not reachable from the current stage" there would state confidently something nobody has checked.
+
+This is the state that gets the **error** level, and it is the reason a refused stage does not. A failed request is broken; a guarded record is working exactly as its app intends. They must not wear the same colour, or an admin cannot tell the two apart from the card.
+
+### What the widget says, and how
+
+| Message | Level | Component |
+| --- | --- | --- |
+| A stage that cannot be chosen was clicked | warning | `NcNoteCard type="warning"`, with `role="status"` so it is announced |
+| OpenRegister refused the move | error | `NcNoteCard type="error"` |
+| The allowed actions could not be read | error | `NcNoteCard type="error"` |
+| The stages themselves could not be loaded | error | `NcNoteCard type="error"` |
+| No stages to show | none | A plain paragraph. An empty list is not a problem |
+
+Every message is a note card, the way the rest of this library reports one. They were paragraphs of coloured text before, which on a card under a timeline read as part of the record rather than as a message about it.
 
 ## Moving the record
 
@@ -114,7 +136,8 @@ A `kind` the widget does not know reads as read only, so a typo cannot silently 
 
 - Nothing is clickable before the allowed actions have been read, and a stage says nothing about itself while the answer is unknown. "Not read yet" and "no move allowed" are different states, and collapsing them would both leave the strip clickable for the length of one request and let it make a claim nobody has checked.
 - The list stops being authoritative the moment a re-read starts, not when the replacement lands. That covers a move made somewhere else, by another widget or another person, which reaches the widget with no move of its own in flight.
-- The current stage carries `aria-current="step"` and nothing else. It is not a move, and it is not blocked either, so it is not announced as blocked. Clicking it does nothing, which stops a stray click re-firing the move that just landed.
+- The current stage carries `aria-current="step"` and nothing else. It is not a move, and it is not blocked either, so it is not announced as blocked and never takes the warning colour. Clicking it does nothing, which stops a stray click re-firing the move that just landed.
+- A vertical strip is top aligned, and the connector runs through the centre of every circle. Both matter once a stage carries a longer sentence than its neighbours: centring slid that one label out of line, and the line that reached upwards by a percentage of the following stage's height slid off the circles.
 - A move in flight keeps every stage's focus stop and marks the stages disabled. Taking the stops away would drop a keyboard user's focus to the page body with nothing to restore it to.
 - A re-read record is authoritative whatever it says, so a call the server accepted without moving anything does not leave the strip claiming a stage.
 - On the `field` opt-in the save carries the record's own properties, minus the `@self` envelope and minus anything holding `null` or `{}`, which OpenRegister refuses on an object property. An empty list is kept: emptying it was a decision, and dropping it would only be safe if the write replaced rather than merged. A record with no id at all is refused rather than saved, because the save would create a duplicate instead of updating it.

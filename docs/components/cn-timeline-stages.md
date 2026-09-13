@@ -48,7 +48,7 @@ function onStageClick({ stage, index }) {
 
 | Prop | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
-| `stages` | Array | ✓ | — | Stage objects: `{ id, label, subtitle? }`. `id` must be unique; `subtitle` is optional secondary text |
+| `stages` | Array | ✓ | — | Stage objects: `{ id, label, subtitle?, disabled?, blocked?, hint? }`. `id` must be unique; `subtitle` is optional secondary text. See [a stage that cannot be chosen](#a-stage-that-cannot-be-chosen) for the last three |
 | `currentStage` | String \| Number | | `null` | `id` of the active stage. Stages before it are completed, stages after are upcoming. `null` = all upcoming |
 | `orientation` | String | | `'horizontal'` | Layout direction: `'horizontal'` or `'vertical'` |
 | `size` | String | | `'medium'` | Indicator size: `'medium'` (32px) or `'small'` (20px) |
@@ -60,6 +60,7 @@ function onStageClick({ stage, index }) {
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `stage-click` | `{ stage, index }` | Emitted when a clickable stage is activated via click, Enter, or Space |
+| `stage-blocked` | `{ stage, index }` | Emitted instead of `stage-click` when the activated stage is `disabled`. Answer it, or a click on a refused stage does nothing and says nothing |
 
 ### Slots
 
@@ -75,6 +76,41 @@ function onStageClick({ stage, index }) {
 | `'completed'` | Stage index < current stage index |
 | `'current'` | Stage matches `currentStage` |
 | `'upcoming'` | Stage index > current stage index |
+
+### A stage that cannot be chosen
+
+Three keys on a stage object, and they answer three different questions.
+
+| Key | What it says | What the person sees |
+|-----|--------------|----------------------|
+| `disabled` | This stage cannot be chosen | Dimmed, a dashed indicator, a not-allowed cursor. It keeps its focus stop, carries `aria-disabled="true"` and emits `stage-blocked` instead of `stage-click` |
+| `blocked` | A guard refused it for this record | Full contrast, the warning colour, an exclamation mark in the indicator. Still refused, still emits `stage-blocked` |
+| `hint` | Why | The stage's `title`, so a mouse-over reveals it |
+
+```vue
+<CnTimelineStages
+  :stages="[
+    { id: 'intake', label: 'Ontvangen' },
+    { id: 'work', label: 'In behandeling' },
+    {
+      id: 'done',
+      label: 'Afgehandeld',
+      disabled: true,
+      blocked: true,
+      hint: 'Vereist veld ontbreekt: description',
+    },
+  ]"
+  current-stage="work"
+  orientation="vertical"
+  :clickable="true"
+  @stage-blocked="say($event.stage.hint)" />
+```
+
+Set `blocked` only on the stages a guard actually refused. A stage further down the process is not a refusal, and if every stage is orange then none of them reads as refused. The stage the record is on never takes the colour, whatever you pass: a refusal on the place the record already sits says no to a move nobody is making.
+
+`hint` is one route to the reason, not the only one. A tooltip reaches neither a touch screen nor a keyboard, so answer `stage-blocked` as well. `CnStagesWidget` does both: it shows the sentence in a warning note card under the strip, and it keeps a copy inside the stage for a screen reader.
+
+Vertical stages are top aligned. A stage carrying a long reason is taller than its neighbours, and centring it slid that one label out of line with the others. The connector line runs from each circle's centre to the next one down, which is a fixed distance from the top of each row, so the line stays on the circles whatever a row contains.
 
 ## Reference (auto-generated)
 
