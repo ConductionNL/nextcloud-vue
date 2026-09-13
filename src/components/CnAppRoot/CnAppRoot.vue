@@ -169,6 +169,7 @@
 				<div class="cn-app-root__setup">
 					<CnSetupWizard
 						:appId="appId"
+						:appName="appDisplayName || (manifest && manifest.name) || appId"
 						:steps="manifest.setup.steps"
 						:cancellable="false"
 						:completedStepIds="setupCompletedStepIds"
@@ -418,6 +419,7 @@
 			<div v-if="setupWizardOpen" class="cn-app-root__setup-optional">
 				<CnSetupWizard
 					:appId="appId"
+					:appName="appDisplayName || (manifest && manifest.name) || appId"
 					:steps="manifest.setup.steps"
 					:cancellable="true"
 					:completedStepIds="setupCompletedStepIds"
