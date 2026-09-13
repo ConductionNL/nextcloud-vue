@@ -17,10 +17,14 @@
 		     a template, a file request) beside a plain upload. -->
 		<div class="cn-files-browser__bar">
 			<NcBreadcrumbs class="cn-files-browser__crumbs">
+				<!-- NcBreadcrumbs draws its first crumb as a home icon and keeps the
+				     name for screen readers; forceIconText puts the name beside
+				     the icon, so the root reads as what it is. -->
 				<NcBreadcrumb
-					v-for="crumb in crumbs"
+					v-for="(crumb, index) in crumbs"
 					:key="crumb.path"
 					:name="crumb.name"
+					:forceIconText="index === 0"
 					:disableDrop="true"
 					data-testid="cn-files-browser-crumb"
 					@click="navigate(crumb.path)" />
@@ -229,8 +233,9 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
+import axios from '@nextcloud/axios'
 import { FileType, formatFileSize, getFileActions, getNewFileMenuEntries, sortNodes, View } from '@nextcloud/files'
-import { getClient, getDefaultPropfind, getRootPath, resultToNode } from '@nextcloud/files/dav'
+import { getClient, getDefaultPropfind, getRemoteURL, getRootPath, resultToNode } from '@nextcloud/files/dav'
 /**
  * CnFilesBrowser — a folder of Nextcloud files, on any page, built from the
  * Files app's own primitives rather than a copy of its screen.
@@ -796,13 +801,20 @@ export default {
 			if (this.folder === null) {
 				return
 			}
-			const client = getClient()
+			// A PUT through axios rather than the DAV client: the client's
+			// putFileContents refuses a browser File ("Cannot calculate data
+			// length"), and fetch reports no upload progress anyway. axios
+			// carries the session and the request token, and its XHR reports
+			// progress per file. If-None-Match: * refuses to overwrite.
 			const batch = [...files].map((file) => ({ key: `u${++uploadSeq}`, name: file.name, progress: 0, error: '', file }))
 			this.uploads = [...this.uploads, ...batch]
 			for (const upload of batch) {
 				try {
-					await client.putFileContents(this.davPath(joinPath(this.currentPath, upload.name)), upload.file, {
-						overwrite: false,
+					await axios.put(`${getRemoteURL()}${this.davPath(joinPath(this.currentPath, upload.name))}`, upload.file, {
+						headers: {
+							'Content-Type': upload.file.type || 'application/octet-stream',
+							'If-None-Match': '*',
+						},
 						onUploadProgress: (progress) => {
 							if (progress?.total) {
 								upload.progress = Math.round((progress.loaded / progress.total) * 100)

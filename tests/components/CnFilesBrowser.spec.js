@@ -116,13 +116,16 @@ describe('CnFilesBrowser', () => {
 		wrapper.unmount()
 	})
 
-	it('uploads into the open folder over DAV and reports the folder changed', async () => {
-		const { __calls } = require('../../tests/__mocks__/nextcloud-files-dav.js')
-		__calls.putFileContents.length = 0
+	it('uploads into the open folder with a DAV PUT that refuses to overwrite, and reports the folder changed', async () => {
+		const axios = require('@nextcloud/axios').default
+		axios.__puts.length = 0
 		const wrapper = mountBrowser()
 		await flushPromises()
 		await wrapper.vm.uploadFiles([new File(['x'], 'note.txt', { type: 'text/plain' })])
-		expect(__calls.putFileContents).toEqual(['/files/admin/Open Registers/Cases/abc/note.txt'])
+		expect(axios.__puts).toHaveLength(1)
+		expect(axios.__puts[0].url).toBe('http://localhost/remote.php/dav/files/admin/Open Registers/Cases/abc/note.txt')
+		expect(axios.__puts[0].options.headers['If-None-Match']).toBe('*')
+		expect(wrapper.vm.uploads[0].progress).toBe(100)
 		expect(wrapper.emitted('changed')).toHaveLength(1)
 		wrapper.unmount()
 	})
