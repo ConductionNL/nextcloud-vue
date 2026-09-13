@@ -24,16 +24,24 @@
 					required />
 
 				<div class="cn-calendar-event-create__grid">
+					<!--
+						`datetime-local`, not `datetime`. NcDateTimePickerNative
+						recognises date / datetime-local / month / time and passes the
+						value straight to `<input type>`. `datetime` is not an HTML
+						input type, so the browser silently rendered a plain text box:
+						no picker, and nothing bound back to the model. See the note on
+						`hasValidStart` below for what that cost.
+					-->
 					<NcDateTimePickerNative
 						id="cn-cec-start"
 						v-model="form.dtstart"
 						:label="startLabel"
-						type="datetime" />
+						type="datetime-local" />
 					<NcDateTimePickerNative
 						id="cn-cec-end"
 						v-model="form.dtend"
 						:label="endLabel"
-						type="datetime" />
+						type="datetime-local" />
 				</div>
 
 				<NcTextField
@@ -167,8 +175,31 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the form holds a start time that will produce a valid VEVENT.
+		 *
+		 * This guard is not defensive tidiness. A VEVENT written without DTSTART
+		 * is not merely incomplete, it is unreachable: its `firstoccurence` is
+		 * NULL so it matches no time-range query and no calendar view can show
+		 * it, and Sabre's ITip plugin rejects both DELETE and PUT on it with
+		 * "An event MUST have a DTSTART property". Nothing can remove it but a
+		 * SQL delete.
+		 *
+		 * `type="datetime"` on the pickers above produced exactly that, silently,
+		 * on every meeting this dialog created. The type is fixed, and this stops
+		 * the same class of mistake reaching the calendar if it ever regresses.
+		 *
+		 * @return {boolean} true when dtstart parses to a real date
+		 */
+		hasValidStart() {
+			if (!this.form.dtstart) {
+				return false
+			}
+			return !Number.isNaN(new Date(this.form.dtstart).getTime())
+		},
+
 		canSubmit() {
-			return this.form.summary.trim().length > 0
+			return this.form.summary.trim().length > 0 && this.hasValidStart
 		},
 	},
 
