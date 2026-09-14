@@ -205,3 +205,16 @@ The colour is published once as `--cn-widget-icon-color` on the header and casca
 | `titleIconVariant` | String | `'primary'` | Semantic header-icon colour (`primary`/`success`/`warning`/`error`/`info`/`neutral`). |
 
 Request a feature / Report a bug / Documentation render on every widget.
+
+## High contrast
+
+`highContrast` (Boolean, default `false`) declares that this widget wants a high contrast treatment. The flag reaches the theme as `data-cn-high-contrast="true"` and a `cn-widget-wrapper--high-contrast` class.
+
+The component picks no colour of its own (ADR-003). A theme that says nothing about the flag renders the widget unchanged, which is what makes the flag safe to declare on any widget.
+
+```css
+/* In the theme, not in the component. */
+[data-cn-high-contrast='true'] {
+  --color-border: var(--color-main-text);
+}
+```

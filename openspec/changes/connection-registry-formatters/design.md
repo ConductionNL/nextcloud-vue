@@ -10,8 +10,12 @@ A label resolved at module load would be English for every reader, because the c
 
 ## Decision 3: unknown status values pass through
 
-A status value added to the registry later must still show something. The formatter returns `String(value)` for anything outside the five, and `''` for null or undefined. Only own keys of the label map count, so `toString` is not read as a status.
+A status value added to the registry later must still show something. The formatter returns `String(value)` for anything outside the six, and `''` for null or undefined. Only own keys of the label map count, so `toString` is not read as a status.
 
 ## Decision 4: app copies keep winning
 
 Integriq and dossiq register their own `connectionStatus` and `connectionSettingsLabel`. Consumer formatters override built-ins, so those apps render exactly as before until they drop the copy.
+
+## Decision 5: `limited` joins the map
+
+Hydra#673 (connection-registry design D12) adds a sixth status, `limited`, for a connection that works in part. `unavailable` would say it does not work at all. The formatter renders it as "Limited", and "Beperkt" for a Dutch reader. Before this change `limited` fell through as the raw value.

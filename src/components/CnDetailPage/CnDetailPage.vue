@@ -22,6 +22,21 @@
 -->
 <template>
 	<div class="cn-detail-page" data-testid="cn-detail-page" :style="{ maxWidth: maxWidth }">
+		<!-- Skip link to the page's primary action. Off screen until it takes
+		     focus, so it costs a sighted mouse user nothing and saves a
+		     keyboard user every widget on the page. Targets the action the
+		     page DECLARES rather than a guessed first button: a skip link
+		     that lands somewhere arbitrary is worse than none, because it is
+		     the one link a keyboard user is told to trust. -->
+		<a
+			v-if="primaryActionLabel"
+			:href="`#${primaryActionAnchorId}`"
+			class="cn-detail-page__skip-link"
+			data-testid="cn-detail-page-skip-link"
+			@click="onSkipToPrimaryAction">
+			{{ skipLinkLabel }}
+		</a>
+
 		<!-- Header -->
 		<div class="cn-detail-page__header" data-testid="cn-detail-page-header">
 			<!-- Header (left block) — overridable via #header slot. Default
@@ -94,6 +109,52 @@
 				</div>
 			</slot>
 			<div class="cn-detail-page__header-actions">
+				<!-- Next and previous inside the list this record was opened
+				     from. Rendered only when the address names that list: a
+				     record reached by a bare link offers neither, rather than
+				     stepping through an order nobody chose. Both ends say so
+				     instead of wrapping. -->
+				<div
+					v-if="listNavigation && listNavigation.available"
+					class="cn-detail-page__list-nav"
+					data-testid="cn-detail-page-list-nav">
+					<NcButton
+						variant="tertiary"
+						:disabled="listNavigation.isFirst"
+						:aria-label="previousRecordLabel"
+						:title="previousRecordLabel"
+						data-testid="cn-detail-page-previous"
+						@click="$emit('previous-record')">
+						<template #icon>
+							<ChevronLeft :size="20" />
+						</template>
+					</NcButton>
+					<span class="cn-detail-page__list-nav-position" data-testid="cn-detail-page-list-position">
+						{{ listPositionLabel }}
+					</span>
+					<NcButton
+						variant="tertiary"
+						:disabled="listNavigation.isLast"
+						:aria-label="nextRecordLabel"
+						:title="nextRecordLabel"
+						data-testid="cn-detail-page-next"
+						@click="$emit('next-record')">
+						<template #icon>
+							<ChevronRight :size="20" />
+						</template>
+					</NcButton>
+				</div>
+				<!-- The action the page declares as its primary one, and the
+				     target the skip link above lands on. -->
+				<NcButton
+					v-if="primaryActionLabel"
+					:id="primaryActionAnchorId"
+					ref="primaryActionButton"
+					variant="primary"
+					data-testid="cn-detail-page-primary-action"
+					@click="$emit('primary-action', primaryAction)">
+					{{ primaryActionLabel }}
+				</NcButton>
 				<!-- Declarative lifecycle/transition buttons (manifest
 				     `config.lifecycleActions`). Status-gated; driven by the
 				     object's x-openregister-lifecycle. Renders nothing when no
@@ -482,7 +543,10 @@
 				<table class="cn-detail-page__stats-table">
 					<thead v-if="statsColumns.length > 0">
 						<tr>
-							<th v-for="col in statsColumns" :key="col.key" :class="col.align ? 'cn-detail-page__stats-cell--' + col.align : ''">
+							<th v-for="col in statsColumns"
+								:key="col.key"
+								scope="col"
+								:class="col.align ? 'cn-detail-page__stats-cell--' + col.align : ''">
 								{{ col.label }}
 							</th>
 						</tr>
@@ -695,6 +759,8 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { provide, ref, watch } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
@@ -822,6 +888,8 @@ export default {
 	name: 'CnDetailPage',
 
 	components: {
+		ChevronLeft,
+		ChevronRight,
 		NcActionButton,
 		NcActionLink,
 		NcActionSeparator,
@@ -1530,6 +1598,44 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
+		/**
+		 * Next and previous within the list this record was opened from, as
+		 * returned by `useListNavigation`. Omit it and neither control
+		 * renders, which is what a record reached by a bare link must do:
+		 * stepping through an order the reader never chose is worse than
+		 * offering no step at all.
+		 *
+		 * @type {{ available: boolean, isFirst: boolean, isLast: boolean, position: number, total: number }}
+		 */
+		listNavigation: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * The page's primary action, as declared on its manifest page. Renders
+		 * as the header's primary button and is the target the skip link
+		 * lands on. Omit it and neither renders.
+		 *
+		 * @type {{ id?: string, label: string, icon?: string, route?: string, href?: string }}
+		 */
+		primaryAction: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Puts the active tab in the address as `?_tab=<id>`, so a link points
+		 * at a tab of this record rather than at the record. Off by default,
+		 * which leaves the address exactly as it is today.
+		 *
+		 * @type {boolean}
+		 */
+		tabInAddress: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: [
@@ -1546,6 +1652,20 @@ export default {
 		'transitioned',
 		'update:layout',
 		'widget-config-change',
+		/**
+		 * The reader asked for the next record of the list this one was
+		 * opened from. The host steps, because the host owns the router.
+		 */
+		'next-record',
+		/** The reader asked for the previous record of that same list. */
+		'previous-record',
+		/** The page's declared primary action was pressed. Payload is the declaration. */
+		'primary-action',
+		/**
+		 * The active tab changed. Payload is the tab id. Emitted whether or
+		 * not `tabInAddress` is set, so a host may mirror it somewhere else.
+		 */
+		'tab-change',
 	],
 
 	setup(props) {
@@ -1723,6 +1843,88 @@ export default {
 	},
 
 	computed: {
+		// ── The record as a place (case-page-and-list-as-a-place) ───────
+
+		/**
+		 * The primary action's label, run through the host's translate
+		 * function. Empty when the page declares no primary action, which is
+		 * what gates both the button and the skip link.
+		 *
+		 * @return {string} The label, or an empty string.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		primaryActionLabel() {
+			const label = this.primaryAction?.label
+			return typeof label === 'string' && label !== '' ? this.effectiveTranslate(label) : ''
+		},
+
+		/**
+		 * The id the skip link's anchor points at.
+		 *
+		 * Namespaced by the page so two detail pages in one document, which
+		 * the split view makes possible, cannot both answer to `#primary`.
+		 *
+		 * @return {string} The element id.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		primaryActionAnchorId() {
+			const scope = this.primaryAction?.id || this.pageId || this.objectId || 'record'
+			return `cn-primary-action-${String(scope).replace(/[^A-Za-z0-9_-]/g, '-')}`
+		},
+
+		/**
+		 * What the skip link says.
+		 *
+		 * It names the action rather than saying "skip to main content",
+		 * because a keyboard user who cannot see the page needs to know what
+		 * they are being offered before they take it.
+		 *
+		 * @return {string} The link text.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		skipLinkLabel() {
+			return `${this.effectiveTranslate('Skip to')} ${this.primaryActionLabel}`
+		},
+
+		/**
+		 * Where this record sits in the list it was opened from, as text.
+		 *
+		 * @return {string} For example "4 of 40".
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		listPositionLabel() {
+			const nav = this.listNavigation
+			if (!nav || !nav.total) {
+				return ''
+			}
+			return `${nav.position} ${this.effectiveTranslate('of')} ${nav.total}`
+		},
+
+		/**
+		 * Accessible name for the previous control, which says what list it
+		 * steps through rather than only which direction it goes.
+		 *
+		 * @return {string} The label.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		previousRecordLabel() {
+			return this.listNavigation?.isFirst
+				? this.effectiveTranslate('This is the first record in the list')
+				: this.effectiveTranslate('Previous record in the list')
+		},
+
+		/**
+		 * Accessible name for the next control.
+		 *
+		 * @return {string} The label.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		nextRecordLabel() {
+			return this.listNavigation?.isLast
+				? this.effectiveTranslate('This is the last record in the list')
+				: this.effectiveTranslate('Next record in the list')
+		},
+
 		/**
 		 * Stable id for the page-header Actions menu. Prefers the explicit
 		 * `pageId` prop; falls back to a slugified `title` so the menu still
@@ -2605,6 +2807,88 @@ export default {
 		// Expose the shared grid helpers to the template (grid mode + auto-body).
 		cnGridCellStyle,
 		hasGridRow,
+
+		/**
+		 * Move focus to the primary action when the skip link is followed.
+		 *
+		 * The `href` anchor alone moves the DOCUMENT to the element without
+		 * moving FOCUS to it in every browser, which is the difference
+		 * between a skip link that works and one that scrolls and then hands
+		 * the next tab press back to the top of the page.
+		 *
+		 * @param {Event} event The click event.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		onSkipToPrimaryAction(event) {
+			const target = this.$refs.primaryActionButton?.$el ?? this.$refs.primaryActionButton
+			const focusable = target?.matches?.('button, a') ? target : target?.querySelector?.('button, a')
+			if (focusable?.focus) {
+				event.preventDefault()
+				focusable.focus()
+			}
+		},
+
+		/**
+		 * The active tab changed: tell the host, and put it in the address
+		 * when the page declares that its tab is part of its address.
+		 *
+		 * `replace`, never `push`, for the FIRST tab of a visit: an address
+		 * that arrived without a tab is being corrected to its canonical form
+		 * (ADR-052), and a correction must not become a history entry the
+		 * back button walks into. Later changes push, so back and forward
+		 * walk the tabs the reader actually visited.
+		 *
+		 * @param {string} tabId The tab now active.
+		 * @param {boolean} [canonicalising] Whether this is the arrival correction rather than a reader's choice.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		onTabChange(tabId, canonicalising = false) {
+			if (typeof tabId !== 'string' || tabId === '') {
+				return
+			}
+			/**
+			 * @event tab-change Emitted when the active tab changes.
+			 * @type {string}
+			 */
+			this.$emit('tab-change', tabId)
+			if (!this.tabInAddress || !this.$router || !this.$route) {
+				return
+			}
+			if (this.$route.query?._tab === tabId) {
+				return
+			}
+			const to = { name: this.$route.name, params: { ...this.$route.params }, query: { ...this.$route.query, _tab: tabId } }
+			const navigate = canonicalising ? this.$router.replace : this.$router.push
+			navigate.call(this.$router, to).catch(() => {})
+		},
+
+		/**
+		 * The tab the address asks for, or null.
+		 *
+		 * @return {string|null} The tab id.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		requestedTabFromAddress() {
+			const tab = this.$route?.query?._tab
+			return typeof tab === 'string' && tab !== '' ? tab : null
+		},
+
+		/**
+		 * The sidebar settled on a tab: put it in the address.
+		 *
+		 * The sidebar reports the tab it actually shows, not the one that was
+		 * asked for, so an address naming a tab this reader may not see is
+		 * corrected to the one they can. `canonicalising` is true for that
+		 * correction and for the tabless arrival, so neither becomes a
+		 * history entry the back button walks into (ADR-052).
+		 *
+		 * @param {string} tabId The tab now showing.
+		 * @param {boolean} [canonicalising] Whether this is a correction rather than a reader's choice.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		onSidebarTabChange(tabId, canonicalising = false) {
+			this.onTabChange(tabId, canonicalising || this.requestedTabFromAddress() === null)
+		},
 
 		/**
 		 * Release the lock the current user holds on this record.
@@ -3570,6 +3854,8 @@ export default {
 		 * Suppression (`show: false` or `enabled: false`) clears
 		 * `tabs` so a hidden detail page does not leak prior tab
 		 * state to the next mount.
+		 *
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		syncSidebarState() {
 			if (!this.hasExternalSidebar) {
@@ -3668,6 +3954,13 @@ export default {
 					// suppress a provider it does not want.
 					useRegistry: merged.useRegistry === true,
 					excludeIntegrations: merged.excludeIntegrations || [],
+					// The tab the address asks for, and the way back. The
+					// sidebar lives outside this component's tree (the host
+					// mounts it at NcContent level), so the address and the
+					// tab strip can only meet on this shared channel.
+					...(this.tabInAddress
+						? { requestedTab: this.requestedTabFromAddress(), onTabChange: this.onSidebarTabChange }
+						: {}),
 				})
 			} else {
 				this.assignSidebarState({ active: false, tabs: undefined })

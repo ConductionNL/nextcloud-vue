@@ -7,9 +7,9 @@ The fleet connection registry (hydra#667, design D8) shows each app's connection
 ## What changes
 
 - `BUILT_IN_FORMATTERS` gains `connectionStatus` and `connectionSettingsLabel`.
-- `connectionStatus` renders `configured`, `unconfigured`, `simulated`, `unavailable` and `error` as Configured, Not configured, Simulated, Not available and Error. Any other value passes through unchanged.
+- `connectionStatus` renders `configured`, `limited`, `unconfigured`, `simulated`, `unavailable` and `error` as Configured, Limited, Not configured, Simulated, Not available and Error. `limited` comes from hydra#673 (design D12). Any other value passes through unchanged.
 - `connectionSettingsLabel` renders "Open settings" for a non-empty `settingsUrl`, and an empty string otherwise.
-- Labels go through the library catalogue (`nextcloud-vue` slug). `l10n/en.json` and `l10n/nl.json` gain the three strings the catalogue lacked.
+- Labels go through the library catalogue (`nextcloud-vue` slug). `l10n/en.json` and `l10n/nl.json` gain the four strings the catalogue lacked, "Limited" included.
 - The docs tables of built-in formatters list both.
 
 ## Impact

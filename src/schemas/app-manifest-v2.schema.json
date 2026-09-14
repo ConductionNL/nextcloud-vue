@@ -217,6 +217,10 @@
 				}
 			}
 		},
+		"personalisation": {
+			"$ref": "#/$defs/personalisation",
+			"description": "App defaults for the per-user options CnPersonalPreferences renders, and the switch that turns the personal layer off instance wide."
+		},
 		"nav": {
 			"type": "object",
 			"additionalProperties": false,
@@ -710,6 +714,65 @@
 							}
 						}
 					}
+				}
+			}
+		},
+		"splitView": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "The list and one open record, side by side. Declared on an index page; buildManifestRoutes() then emits a second route <route>/split/:id under the name <pageId>__split, carrying meta.cnSplitOf so CnPageRenderer still resolves it to this page and the list never unmounts.",
+			"properties": {
+				"enabled": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether opening a row opens it beside the list. False renders exactly as today: a full page list and a full page detail."
+				},
+				"breakpoint": {
+					"type": "integer",
+					"minimum": 320,
+					"maximum": 2560,
+					"default": 1024,
+					"description": "Viewport width in pixels below which the split address renders the full detail page instead of the pane, so a link sent from a laptop opens on a phone."
+				},
+				"paneWidth": {
+					"type": "string",
+					"description": "CSS width of the detail pane, e.g. '38%' or '520px'. Defaults to '42%'."
+				}
+			}
+		},
+		"personalisation": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "The app's own defaults for the per-user options CnPersonalPreferences renders. The values a person chooses are stored in their Nextcloud preferences, never here; this block is only the bottom layer of the app default, administered value, personal value order.",
+			"properties": {
+				"enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Whether the personal layer applies at all. An administrator setting this false collapses it: the options render as unavailable with the reason, rather than being silently ignored."
+				},
+				"disabledReason": {
+					"type": "string",
+					"description": "What to tell a person when the personal layer is off. Shown beside the unavailable options."
+				},
+				"landingPage": {
+					"type": "string",
+					"description": "Page id the app opens on when a person has chosen nothing."
+				},
+				"dateDisplay": {
+					"type": "string",
+					"enum": ["absolute", "relative"],
+					"default": "absolute",
+					"description": "How dates read by default. A relative date always carries its absolute date in the accessible name and the tooltip, because a term read as '3 dagen geleden' hides the date the term runs to."
+				},
+				"rememberLastView": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether each list reopens in the view mode that person last used on it."
+				},
+				"pinnedMenu": {
+					"type": "array",
+					"items": { "type": "string" },
+					"description": "Menu ids pinned to the top of the navigation by default. A person may reorder and repin their own."
 				}
 			}
 		},
@@ -2248,7 +2311,26 @@
 				},
 				"primaryAction": {
 					"$ref": "#/$defs/primaryAction",
-					"description": "Active-page-scoped primary action rendered as an NcAppNavigationNew button above the menu list when the current route resolves to this page. Page-scoped declarations win over nav.primaryAction."
+					"description": "Active-page-scoped primary action rendered as an NcAppNavigationNew button above the menu list when the current route resolves to this page. Page-scoped declarations win over nav.primaryAction. Also the target of the detail page's skip link: a keyboard user tabs in, follows the link and lands on this action."
+				},
+				"splitView": {
+					"$ref": "#/$defs/splitView",
+					"description": "Index pages only. Opens a row beside the list rather than instead of it, at the sibling route <route>/split/:id that buildManifestRoutes() emits. Refused on any other page type."
+				},
+				"manualOrder": {
+					"type": "boolean",
+					"default": false,
+					"description": "Index pages only. Lets a person drag the rows into an order of their own, held per user and per list in their Nextcloud preferences and never written onto the records. Refused on any other page type."
+				},
+				"tabInAddress": {
+					"type": "boolean",
+					"default": false,
+					"description": "Detail pages only. Puts the active tab in the address as ?_tab=<id> so a link points at a tab of a record rather than at the record. The underscore prefix keeps it out of resolveQueryFilters(), which reads every other query key as a filter. Refused on any other page type."
+				},
+				"referencePreview": {
+					"type": "boolean",
+					"default": false,
+					"description": "Lets a reference on this page show a summary of the record it points at, on focus and on hover, without leaving the page. Rendered by CnReferencePreview."
 				},
 				"widgets": {
 					"type": "array",
@@ -2632,6 +2714,35 @@
 				}
 			},
 			"allOf": [
+				{
+					"description": "splitView and manualOrder are index-page mechanics. splitView emits a second route beside an index route and mounts the detail pane inside CnIndexPage; manualOrder holds a per-user row order for a list. Declared on a detail, dashboard or custom page they would validate and then do nothing, which is the failure this branch refuses out loud (case-page-and-list-as-a-place).",
+					"if": {
+						"not": {
+							"properties": { "type": { "const": "index" } },
+							"required": ["type"]
+						}
+					},
+					"then": {
+						"not": {
+							"anyOf": [
+								{ "required": ["splitView"] },
+								{ "required": ["manualOrder"] }
+							]
+						}
+					}
+				},
+				{
+					"description": "tabInAddress puts the active tab of a record in the address. Only a detail page has a record and a tab strip, so the key is refused elsewhere rather than validating into a no-op (case-page-and-list-as-a-place).",
+					"if": {
+						"not": {
+							"properties": { "type": { "const": "detail" } },
+							"required": ["type"]
+						}
+					},
+					"then": {
+						"not": { "required": ["tabInAddress"] }
+					}
+				},
 				{
 					"description": "type='wiki' (CnWikiPage) renders one manifest-declared markdown article. It MUST declare both config.register and config.schema as non-empty strings so the manifest stays the source of truth for which OpenRegister register/schema the article body is read from (manifest-wiki-page-type).",
 					"if": {

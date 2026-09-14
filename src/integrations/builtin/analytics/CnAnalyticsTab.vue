@@ -170,7 +170,7 @@ import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
 import CnAnalyticsReportCreate from '../../../components/CnAnalyticsReportCreate/CnAnalyticsReportCreate.vue'
 import CnAnalyticsReportPicker from '../../../components/CnAnalyticsReportPicker/CnAnalyticsReportPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * CnAnalyticsTab — bespoke dataset list for the `analytics` integration.
@@ -266,7 +266,7 @@ export default {
 		 * @return {string} The endpoint URL.
 		 */
 		analyticsEndpoint() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/analytics`
+			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/analytics`)
 		},
 
 		reportKey(report) {

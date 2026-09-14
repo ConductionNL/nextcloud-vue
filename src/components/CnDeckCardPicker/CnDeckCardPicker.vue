@@ -148,7 +148,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 export default {
 	name: 'CnDeckCardPicker',
@@ -219,7 +219,7 @@ export default {
 			this.loading = true
 			this.error = ''
 			try {
-				const response = await fetch(`${this.apiBase}/integrations/deck/boards`, {
+				const response = await fetch(prefixUrl(`${this.apiBase}/integrations/deck/boards`), {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {
@@ -241,7 +241,7 @@ export default {
 			this.loading = true
 			this.error = ''
 			try {
-				const response = await fetch(`${this.apiBase}/integrations/deck/boards/${boardId}/stacks`, {
+				const response = await fetch(prefixUrl(`${this.apiBase}/integrations/deck/boards/${boardId}/stacks`), {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {

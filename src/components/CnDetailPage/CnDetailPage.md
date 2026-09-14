@@ -400,3 +400,7 @@ The page header's overflow menu carries Refresh plus the mandatory trio Request 
 |---|---|---|---|
 | `showReportBug` | Boolean | `true` | Whether the Report-a-bug entry renders in the page-header menu. |
 | `showDocumentation` | Boolean | `true` | Whether the Documentation entry renders. Its target is resolved by the shared menu from the app-wide documentation base plus this page's id, so leaving it on costs the host nothing. |
+
+## The record as a place
+
+`listNavigation`, `primaryAction` and `tabInAddress` make a record somewhere a handler stays. All three are off by default. See [the reference page](../../../docs/components/cn-detail-page.md#the-record-as-a-place).

@@ -171,7 +171,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import CnCospendCreate from '../../../components/CnCospendCreate/CnCospendCreate.vue'
 import CnCospendPicker from '../../../components/CnCospendPicker/CnCospendPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * CnCospendTab — bespoke sidebar tab for the `cospend` integration.
@@ -279,7 +279,7 @@ export default {
 
 	methods: {
 		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`)
 		},
 
 		/**
@@ -288,7 +288,7 @@ export default {
 		 * @return {string} The endpoint URL.
 		 */
 		cospendEndpoint() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/cospend`
+			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/cospend`)
 		},
 
 		rowKey(row) {

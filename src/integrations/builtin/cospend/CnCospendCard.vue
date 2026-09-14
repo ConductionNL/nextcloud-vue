@@ -108,7 +108,7 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import CurrencyEur from 'vue-material-design-icons/CurrencyEur.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
@@ -333,7 +333,7 @@ export default {
 			this.loading = true
 			this.degraded = ''
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.baseUrl()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					this.rows = data.results || data.items || (Array.isArray(data) ? data : []) || []
@@ -360,7 +360,7 @@ export default {
 			this.loading = true
 			this.degraded = ''
 			try {
-				const response = await fetch(`${this.baseUrl()}/${encodeURIComponent(this.value)}`, { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(`${this.baseUrl()}/${encodeURIComponent(this.value)}`), { headers: buildHeaders() })
 				if (response.ok) {
 					this.entity = await response.json()
 				} else if (response.status === 503) {

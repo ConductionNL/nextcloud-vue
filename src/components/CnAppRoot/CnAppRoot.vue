@@ -650,6 +650,7 @@ import { useScopedTheme } from '../../composables/useScopedTheme.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
+import { useUserPreferences } from '../../composables/useUserPreferences.js'
 import {
 	loadWalkthroughSeenVersion,
 	normaliseSeenVersion,
@@ -741,6 +742,12 @@ export default {
 		CnTenantBadge,
 	},
 
+	/**
+	 * What every descendant of this app shell can reach: the manifest,
+	 * the registries, and this person's own preferences.
+	 *
+	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+	 */
 	provide() {
 		// `self` is load-bearing: the returned object exposes `cnManifest` as a
 		// GETTER, and inside a getter on that literal `this` is the literal —
@@ -756,6 +763,15 @@ export default {
 			// not editing it returns the live manifest, identical to before.
 			get cnManifest() {
 				return self.manifestEditor ? self.manifestEditor.source.value : self.manifest
+			},
+
+			// The per-user preference reader and writer, so any descendant can
+			// hold something against THIS person rather than against the
+			// records. A getter for the same reason as cnManifest above: the
+			// group is built from the manifest's `personalisation` block, and
+			// provide() runs once while the manifest arrives later.
+			get cnUserPreferences() {
+				return self.userPreferences
 			},
 
 			// The same manifest as a REF. The getter above is NOT enough on its
@@ -1818,6 +1834,23 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The per-user preference reader and writer for this app, built from
+		 * the manifest's `personalisation` block.
+		 *
+		 * One group per app, shared by every descendant through the
+		 * `cnUserPreferences` provide, so a list holding a row order and the
+		 * preferences screen showing it are looking at the same thing.
+		 *
+		 * @return {object} The group from useUserPreferences.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		userPreferences() {
+			return useUserPreferences(this.appId, {
+				personalisation: this.manifest?.personalisation || {},
+			})
+		},
+
 		/**
 		 * The component to render as this page's sidebar.
 		 *
