@@ -71,6 +71,7 @@ describe('registerTranslations', () => {
 		readAs('nl')
 
 		expect(formatConnectionStatus('configured')).toBe('Geconfigureerd')
+		expect(formatConnectionStatus('limited')).toBe('Beperkt')
 		expect(formatConnectionStatus('unconfigured')).toBe('Niet geconfigureerd')
 		expect(formatConnectionStatus('simulated')).toBe('Gesimuleerd')
 		expect(formatConnectionStatus('unavailable')).toBe('Niet beschikbaar')
