@@ -41,7 +41,7 @@
 					:aria-expanded="open ? 'true' : 'false'"
 					:aria-describedby="open ? cardId : undefined"
 					data-testid="cn-reference-preview-trigger"
-					@click="$emit('open-record', recordId)"
+					@click="onActivate"
 					@focus="onShow"
 					@blur="onHide"
 					@mouseenter="onShow"
@@ -354,6 +354,21 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The reference itself was activated. Emitted rather than navigated,
+		 * because the host owns the router. A reference given an `href` is a
+		 * real anchor and needs none of this.
+		 *
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		onActivate() {
+			/**
+			 * @event open-record The reference itself was activated. Emitted only when no `href` was given.
+			 * @type {string}
+			 */
+			this.$emit('open-record', this.recordId)
+		},
+
 		/**
 		 * Open the card, after the hover delay, and load the record once.
 		 *

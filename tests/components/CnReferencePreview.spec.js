@@ -145,6 +145,17 @@ describe('CnReferencePreview — focus, not only hover', () => {
 			.toContain('Vergunning Kerkstraat')
 	})
 
+	it('asks the host to open the record when the reference is activated', () => {
+		// The emit moved out of the template so vue-docgen could see its
+		// @event docblock. Nothing asserted it before that move, so a
+		// mis-wired handler would have been silent.
+		const w = mountReference()
+
+		w.find('[data-testid="cn-reference-preview-trigger"]').trigger('click')
+
+		expect(w.emitted('open-record')[0]).toEqual(['case-9'])
+	})
+
 	it('points the trigger at the card it describes', async () => {
 		const w = mountReference()
 		w.vm.onShow()
