@@ -160,7 +160,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnFormCreate from './CnFormCreate.vue'
 import CnFormPicker from './CnFormPicker.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * CnFormsTab — bespoke linked-forms list for the Tier-2 `forms` leaf.
@@ -290,7 +290,7 @@ export default {
 
 	methods: {
 		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/forms`
+			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/forms`)
 		},
 
 		normaliseFormRow(row) {

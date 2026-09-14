@@ -239,7 +239,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import CnCalendarEventCreate from '../../../components/CnCalendarEventCreate/CnCalendarEventCreate.vue'
 import CnCalendarEventPicker from '../../../components/CnCalendarEventPicker/CnCalendarEventPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 const MAX_AVATARS = 3
 
@@ -365,7 +365,7 @@ export default {
 
 	methods: {
 		baseObjectUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}`
+			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}`)
 		},
 
 		rowKey(ev) {

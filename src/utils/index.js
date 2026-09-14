@@ -1,4 +1,4 @@
-export { buildHeaders, buildQueryString } from './headers.js'
+export { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
 export { cnFetch, cnFetchJson, CnHttpError } from './cnFetch.js'
 export { genericError, networkError, parseAxiosError, parseResponseError } from './errors.js'
 export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, formatValue, validateValue } from './schema.js'

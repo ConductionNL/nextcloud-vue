@@ -175,7 +175,7 @@ import Poll from 'vue-material-design-icons/Poll.vue'
 import CnPollCreate from '../../../components/CnPollCreate/CnPollCreate.vue'
 import CnPollPicker from '../../../components/CnPollPicker/CnPollPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
 /**
@@ -261,7 +261,7 @@ export default {
 		t,
 
 		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`)
 		},
 
 		/**
@@ -270,7 +270,7 @@ export default {
 		 * @return {string}
 		 */
 		pollsEndpoint() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/polls`
+			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/polls`)
 		},
 
 		openPicker() {

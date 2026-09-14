@@ -194,7 +194,7 @@ import Phone from 'vue-material-design-icons/Phone.vue'
 import CnContactCreate from '../../../components/CnContactCreate/CnContactCreate.vue'
 import CnContactPicker from '../../../components/CnContactPicker/CnContactPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * Normalised role keys for grouping. Free-text vCard roles are
@@ -494,7 +494,7 @@ export default {
 			this.loading = true
 			this.error = null
 			try {
-				const response = await fetch(this.baseUrl, { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.baseUrl), { headers: buildHeaders() })
 				if (!response.ok) {
 					this.error = `${response.status} ${response.statusText}`
 					this.contacts = []
@@ -592,7 +592,7 @@ export default {
 				// people-on-objects: a person can hold several roles on one
 				// object, so removing a row removes that role, not the person.
 				const role = contact.role ? `?role=${encodeURIComponent(contact.role)}` : ''
-				const url = `${this.baseUrl}/${encodeURIComponent(contact.contactUid)}${role}`
+				const url = prefixUrl(`${this.baseUrl}/${encodeURIComponent(contact.contactUid)}${role}`)
 				await fetch(url, { method: 'DELETE', headers: buildHeaders() })
 				this.contacts = this.contactsArray.filter((c) => c.id !== contact.id)
 				this.serverGroups = null
@@ -612,7 +612,7 @@ export default {
 		 */
 		async onPickerLink(payload) {
 			try {
-				const response = await fetch(this.baseUrl, {
+				const response = await fetch(prefixUrl(this.baseUrl), {
 					method: 'POST',
 					headers: {
 						...buildHeaders(),
@@ -644,7 +644,7 @@ export default {
 		async onCreateSubmit(payload) {
 			this.createLoading = true
 			try {
-				const response = await fetch(`${this.baseUrl}/new`, {
+				const response = await fetch(prefixUrl(`${this.baseUrl}/new`), {
 					method: 'POST',
 					headers: {
 						...buildHeaders(),

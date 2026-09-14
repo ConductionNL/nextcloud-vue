@@ -160,7 +160,7 @@ import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import Timeline from 'vue-material-design-icons/Timeline.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 const DEFAULT_PAGE_SIZE = 25
 const SECONDS_PER_DAY = 86400
@@ -299,12 +299,12 @@ export default {
 
 	methods: {
 		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/activity`
+			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/activity`)
 		},
 
 		dropdownUrl(kind) {
 			const object = `${this.register}/${this.schema}/${this.objectId}`
-			return `${this.apiBase}/integrations/activity/${kind}?object=${encodeURIComponent(object)}`
+			return prefixUrl(`${this.apiBase}/integrations/activity/${kind}?object=${encodeURIComponent(object)}`)
 		},
 
 		buildQuery() {
