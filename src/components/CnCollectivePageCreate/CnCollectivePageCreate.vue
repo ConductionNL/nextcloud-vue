@@ -71,7 +71,7 @@
  */
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 export default {
 	name: 'CnCollectivePageCreate',
@@ -128,7 +128,7 @@ export default {
 		async fetchCollectives() {
 			this.error = ''
 			try {
-				const response = await fetch(`${this.apiBase}/integrations/collectives/list`, {
+				const response = await fetch(prefixUrl(`${this.apiBase}/integrations/collectives/list`), {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {

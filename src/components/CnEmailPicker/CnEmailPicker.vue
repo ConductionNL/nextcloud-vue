@@ -170,7 +170,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
 import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 export default {
 	name: 'CnEmailPicker',
@@ -239,7 +239,7 @@ export default {
 			this.loading = true
 			this.error = ''
 			try {
-				const response = await fetch(`${this.apiBase}/integrations/email/accounts`, {
+				const response = await fetch(prefixUrl(`${this.apiBase}/integrations/email/accounts`), {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {
@@ -263,7 +263,7 @@ export default {
 			this.loading = true
 			this.error = ''
 			try {
-				const response = await fetch(`${this.apiBase}/integrations/email/accounts/${accountId}/mailboxes`, {
+				const response = await fetch(prefixUrl(`${this.apiBase}/integrations/email/accounts/${accountId}/mailboxes`), {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {
@@ -299,7 +299,7 @@ export default {
 					params.set('cursor', String(this.nextCursor))
 				}
 				const response = await fetch(
-					`${this.apiBase}/integrations/email/accounts/${accountId}/messages?${params.toString()}`,
+					prefixUrl(`${this.apiBase}/integrations/email/accounts/${accountId}/messages?${params.toString()}`),
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {

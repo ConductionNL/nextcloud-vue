@@ -225,7 +225,7 @@ import StarFourPointsOutline from 'vue-material-design-icons/StarFourPointsOutli
 import CnOpenProjectCreate from '../../../components/CnOpenProjectCreate/CnOpenProjectCreate.vue'
 import CnOpenProjectPicker from '../../../components/CnOpenProjectPicker/CnOpenProjectPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
  * CnOpenprojectTab — bespoke sidebar tab for the `openproject` integration.
@@ -362,7 +362,7 @@ export default {
 		t,
 
 		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`)
 		},
 
 		/**
@@ -371,7 +371,7 @@ export default {
 		 * @return {string} The endpoint URL.
 		 */
 		openProjectEndpoint() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/openproject`
+			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/openproject`)
 		},
 
 		openPicker() {

@@ -60,6 +60,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import PhoneOutline from 'vue-material-design-icons/PhoneOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
+import { prefixUrl } from '../../../utils/index.js'
 
 export default {
 	name: 'CnContactmomentCard',
@@ -153,7 +154,7 @@ export default {
 			try {
 				const url = `/apps/pipelinq/api/activity/${encodeURIComponent(this.resolvedEntityType)}/${encodeURIComponent(this.objectId)}`
 					+ `?type=contactmomenten&_limit=${encodeURIComponent(this.limit)}`
-				const res = await fetch(url, { headers: { Accept: 'application/json' } })
+				const res = await fetch(prefixUrl(url), { headers: { Accept: 'application/json' } })
 				if (!res.ok) {
 					throw new Error(String(res.status))
 				}

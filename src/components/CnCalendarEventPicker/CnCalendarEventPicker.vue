@@ -119,7 +119,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 /**
  * CnCalendarEventPicker — 2-step calendar/event picker modal for the
@@ -215,7 +215,7 @@ export default {
 			this.loadingCalendars = true
 			this.errorCalendars = ''
 			try {
-				const response = await fetch(`${this.apiBase}/integrations/calendar/calendars`, {
+				const response = await fetch(prefixUrl(`${this.apiBase}/integrations/calendar/calendars`), {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {
@@ -250,7 +250,7 @@ export default {
 					limit: String(this.eventsLimit),
 				})
 				const response = await fetch(
-					`${this.apiBase}/integrations/calendar/calendars/${encodeURIComponent(calendarUri)}/events?${params.toString()}`,
+					prefixUrl(`${this.apiBase}/integrations/calendar/calendars/${encodeURIComponent(calendarUri)}/events?${params.toString()}`),
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {

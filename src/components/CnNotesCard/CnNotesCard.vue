@@ -93,7 +93,7 @@ import Delete from 'vue-material-design-icons/Delete.vue'
 import Send from 'vue-material-design-icons/Send.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import CnUserActionMenu from '../CnUserActionMenu/CnUserActionMenu.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 /**
  * CnNotesCard — Inline notes widget for detail pages.
@@ -262,7 +262,7 @@ export default {
 			this.loading = true
 			try {
 				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes`
-				const response = await fetch(url, { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(url), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					this.allNotes = data.results || data || []
@@ -282,7 +282,7 @@ export default {
 			this.noteSaving = true
 			try {
 				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes`
-				const response = await fetch(url, {
+				const response = await fetch(prefixUrl(url), {
 					method: 'POST',
 					headers: buildHeaders(),
 					body: JSON.stringify({ message: this.newNoteText.trim() }),
@@ -307,7 +307,7 @@ export default {
 			// Simple inline confirmation — delete directly
 			try {
 				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes/${note.id}`
-				const response = await fetch(url, {
+				const response = await fetch(prefixUrl(url), {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})

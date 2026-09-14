@@ -114,7 +114,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcEmptyContent, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import Briefcase from 'vue-material-design-icons/Briefcase.vue'
 import CogOutline from 'vue-material-design-icons/CogOutline.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 export default {
 	name: 'CnOpenProjectCreate',
@@ -188,7 +188,7 @@ export default {
 		async fetchProjects() {
 			this.error = ''
 			try {
-				const response = await fetch(`${this.apiBase}/integrations/openproject/available`, {
+				const response = await fetch(prefixUrl(`${this.apiBase}/integrations/openproject/available`), {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {

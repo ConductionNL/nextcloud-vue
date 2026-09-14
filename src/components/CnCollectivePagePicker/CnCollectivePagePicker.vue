@@ -111,7 +111,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import BookOpenPageVariant from 'vue-material-design-icons/BookOpenPageVariant.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 export default {
 	name: 'CnCollectivePagePicker',
@@ -200,7 +200,7 @@ export default {
 
 		async fetchCollectives() {
 			try {
-				const response = await fetch(`${this.apiBase}/integrations/collectives/list`, {
+				const response = await fetch(prefixUrl(`${this.apiBase}/integrations/collectives/list`), {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {
@@ -218,7 +218,7 @@ export default {
 			this.error = ''
 			try {
 				const query = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : ''
-				const response = await fetch(`${this.apiBase}/integrations/collectives/available${query}`, {
+				const response = await fetch(prefixUrl(`${this.apiBase}/integrations/collectives/available${query}`), {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {
