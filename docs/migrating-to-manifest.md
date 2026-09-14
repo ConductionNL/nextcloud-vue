@@ -812,6 +812,8 @@ If you want a few of the read-only defaults overridden, mix them in:
 | `currency` | `Intl.NumberFormat` currency — EUR default; the column's `formatterOptions` may set `currency` (ISO-4217, guarded — an invalid code falls back to EUR) and `decimals` (default 2). |
 | `conditionalPhrase` | Sign/zero-based phrase selection over a numeric field (generalizes `daysUntil`): `formatterOptions { negative, zero, positive }` supply pre-translated phrases; `{n}` is replaced by the absolute value (e.g. `-3` + `"{n} days overdue"` → "3 days overdue"). |
 | `count` | Summarises a collection-valued cell as an entry count instead of a truncated JSON blob — array entries or object keys, a collection persisted as a JSON string, or a present scalar counting as 1. Every empty value (`null`, `''`, `0`, `false`, an empty collection) takes the zero phrase. `formatterOptions { singular, plural, zero }` supply pre-translated phrases with `{n}` substituted; without them it renders the bare count. |
+| `connectionStatus` | Renders a connection registry status as its label: `configured` is Configured, `unconfigured` is Not configured, `simulated` is Simulated, `unavailable` is Not available, `error` is Error. Any other value passes through unchanged. Translated through the library catalogue, Dutch included. |
+| `connectionSettingsLabel` | Renders "Open settings" when the row's `settingsUrl` is a non-empty string, and nothing otherwise. Pair it with the `link` cell widget so a connection without a settings section offers no link. |
 
 ```jsonc
 "columns": [

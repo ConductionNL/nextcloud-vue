@@ -17,7 +17,17 @@
 import { mount } from '@vue/test-utils'
 import CnMenuTreeNode from '../../src/components/CnMenuTreeNode/CnMenuTreeNode.vue'
 
-const DraggableStub = { name: 'draggable', props: ['value', 'list', 'group', 'move'], template: '<ul><slot /></ul>' }
+// Mirrors vuedraggable@4 — see the note in CnPageTreeNode.spec.js.
+const DraggableStub = {
+	name: 'draggable',
+	props: ['modelValue', 'value', 'list', 'group', 'move', 'itemKey', 'tag'],
+	computed: {
+		items() {
+			return this.modelValue || this.value || this.list || []
+		},
+	},
+	template: '<ul><template v-for="(element, index) in items" :key="index"><slot name="item" :element="element" :index="index" /></template></ul>',
+}
 const RowStub = { name: 'CnMenuTreeRow', props: ['item', 'pages', 'canAddChild'], template: '<div class="row-stub" />' }
 
 function mountNode(list, section = null) {

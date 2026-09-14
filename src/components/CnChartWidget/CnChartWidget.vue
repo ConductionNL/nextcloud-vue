@@ -69,7 +69,7 @@
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { getLanguage, translate as t } from '@nextcloud/l10n'
-import { inject, ref } from 'vue'
+import { inject, markRaw, ref } from 'vue'
 import VueApexCharts from 'vue3-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
 import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
@@ -1329,7 +1329,8 @@ export default {
 	},
 
 	created() {
-		this.chartComponent = VueApexCharts
+		// markRaw: `data()` is deeply reactive and would proxy the component.
+		this.chartComponent = markRaw(VueApexCharts)
 	},
 
 	mounted() {

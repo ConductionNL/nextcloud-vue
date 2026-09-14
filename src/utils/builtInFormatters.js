@@ -339,6 +339,58 @@ export function formatCount(value, _row, _property, options) {
 }
 
 /**
+ * The five stored connection status values and their English source labels.
+ *
+ * The label is translated on each call, not here. A module-level `t()` runs
+ * before the catalogue is registered and would freeze every label in English.
+ */
+const CONNECTION_STATUS_LABELS = {
+	configured: 'Configured',
+	unconfigured: 'Not configured',
+	simulated: 'Simulated',
+	unavailable: 'Not available',
+	error: 'Error',
+}
+
+/**
+ * Connection status formatter (`connectionStatus` registry key) for the
+ * fleet connection registry. Renders one of the five stored status values
+ * as its translated label through the library's own slug (`nextcloud-vue`).
+ *
+ * An unknown value passes through unchanged, so a status added later still
+ * shows as its raw value instead of an empty cell. Null and undefined render
+ * as `''`. Never throws.
+ *
+ * @param {unknown} value The stored status value.
+ * @return {string} The translated label, or the value itself when it is not one of the five.
+ */
+export function formatConnectionStatus(value) {
+	if (value === null || value === undefined) {
+		return ''
+	}
+	const label = Object.hasOwn(CONNECTION_STATUS_LABELS, value)
+		? CONNECTION_STATUS_LABELS[value]
+		: null
+	return label ? t('nextcloud-vue', label) : String(value)
+}
+
+/**
+ * Connection settings label formatter (`connectionSettingsLabel` registry
+ * key). Renders "Open settings" when the row's `settingsUrl` is a non-empty
+ * string, and `''` otherwise. Paired with the built-in `link` cell widget, an
+ * empty label and href fall through to plain empty text, so a connection with
+ * no settings section offers nothing to click.
+ *
+ * @param {unknown} value The row's `settingsUrl`.
+ * @return {string} The translated link text, or `''`.
+ */
+export function formatConnectionSettingsLabel(value) {
+	return typeof value === 'string' && value !== ''
+		? t('nextcloud-vue', 'Open settings')
+		: ''
+}
+
+/**
  * Built-in formatter registry merged under any consumer-registered
  * `formatters` in `CnAppRoot`'s `cnFormatters` provide.
  */
@@ -351,4 +403,6 @@ export const BUILT_IN_FORMATTERS = {
 	currency: formatCurrency,
 	conditionalPhrase: formatConditionalPhrase,
 	count: formatCount,
+	connectionStatus: formatConnectionStatus,
+	connectionSettingsLabel: formatConnectionSettingsLabel,
 }

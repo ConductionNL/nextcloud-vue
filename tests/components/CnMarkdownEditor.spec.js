@@ -117,6 +117,53 @@ describe('CnMarkdownEditor', () => {
 	})
 
 	// `@toast-ui/vue-editor` is published for Vue 2 only, so the Vue-3 line
+	// A toolbar press, the way a user makes it: invoke the tool, then let the
+	// component restore the selection before the next press reads it.
+	async function press(wrapper, id) {
+		wrapper.vm.invokeTool(wrapper.vm.toolbar.find((t) => t.id === id))
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+	}
+
+	// Toggling used to look only at the delimiters immediately against the
+	// selection, so a marker from another tool nested in between hid this
+	// tool's pair and every press added one more.
+	describe('toggling through nested markers', () => {
+		it('alternating bold and italic toggles off instead of stacking', async () => {
+			const wrapper = mount(CnMarkdownEditor, { propsData: { value: 'hello world' } })
+			wrapper.find('textarea').element.setSelectionRange(6, 11) // "world"
+
+			await press(wrapper, 'bold')
+			expect(wrapper.emitted('input').pop()[0]).toBe('hello **world**')
+			await press(wrapper, 'italic')
+			expect(wrapper.emitted('input').pop()[0]).toBe('hello **_world_**')
+			await press(wrapper, 'bold')
+			expect(wrapper.emitted('input').pop()[0]).toBe('hello _world_')
+			await press(wrapper, 'italic')
+			expect(wrapper.emitted('input').pop()[0]).toBe('hello world')
+		})
+
+		it('reaches the outermost pair through two nested markers', async () => {
+			const wrapper = mount(CnMarkdownEditor, { propsData: { value: 'hi' } })
+			wrapper.find('textarea').element.setSelectionRange(0, 2)
+
+			await press(wrapper, 'bold')
+			await press(wrapper, 'italic')
+			await press(wrapper, 'code')
+			expect(wrapper.emitted('input').pop()[0]).toBe('**_`hi`_**')
+			// Drop the bold from the middle of the stack; the rest stays put.
+			await press(wrapper, 'bold')
+			expect(wrapper.emitted('input').pop()[0]).toBe('_`hi`_')
+		})
+
+		it('a marker on one side only is not treated as a pair', async () => {
+			const wrapper = mount(CnMarkdownEditor, { propsData: { value: 'a_b cd' } })
+			wrapper.find('textarea').element.setSelectionRange(4, 6) // "cd"
+			await press(wrapper, 'italic')
+			expect(wrapper.emitted('input').pop()[0]).toBe('a_b _cd_')
+		})
+	})
+
 	// drives the framework-agnostic `@toast-ui/editor` CLASS imperatively
 	// against a plain host element instead of rendering a wrapper COMPONENT.
 	// The editor is therefore no longer reachable as `vm.toastEditorComponent`

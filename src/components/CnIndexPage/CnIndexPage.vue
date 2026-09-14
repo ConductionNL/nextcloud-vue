@@ -626,7 +626,7 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import { getCurrentInstance, inject } from 'vue'
+import { getCurrentInstance, inject, markRaw } from 'vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Export from 'vue-material-design-icons/Export.vue'
@@ -3062,6 +3062,16 @@ export default {
 			this.publishHoistedSidebar()
 		},
 
+		// The gate itself, which neither watcher above catches: under a
+		// CnAppRoot host `shouldRenderInlineSidebar` is false in BOTH states,
+		// and `hoistedSidebarProps` carries none of `enabled` / `show`. So
+		// toggling the sidebar on or off in CnEditSidebarModal — which mutates
+		// `config.sidebar` in place — left the hoisted panel exactly as it was
+		// until the page was reloaded.
+		hasSidebar() {
+			this.publishHoistedSidebar()
+		},
+
 		// Re-push AI context when relevant props change
 		register() {
 			this.pushAiContext()
@@ -3602,7 +3612,9 @@ export default {
 				return
 			}
 			this.cnIndexSidebarConfig.value = {
-				component: CnIndexSidebar,
+				// markRaw: the holder is CnAppRoot `data()`, so it is deeply
+				// reactive and would proxy the component definition itself.
+				component: markRaw(CnIndexSidebar),
 				props: this.hoistedSidebarProps,
 				listeners: {
 					'update:open': (val) => {

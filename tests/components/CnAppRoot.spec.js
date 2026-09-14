@@ -259,6 +259,24 @@ describe('CnAppRoot', () => {
 			expect(provided.cnTranslate('key')).toBe('key')
 		})
 
+		it('provides the connection formatters built in, and an app formatter of the same name wins', () => {
+			const builtIn = getProvided(mountRoot()).cnFormatters
+			expect(builtIn.connectionStatus('simulated')).toBe('Simulated')
+			expect(builtIn.connectionSettingsLabel('/settings/admin/dossiq#section-zgw')).toBe('Open settings')
+
+			// dossiq and integriq still register local copies until they bump.
+			// Those must keep rendering, so the app's entry replaces the built-in.
+			const appCopy = (value) => `app:${value}`
+			const wrapper = mount(CnAppRoot, {
+				propsData: { manifest: baseManifest, appId: 'myapp', requiresApps: [], formatters: { connectionStatus: appCopy } },
+				mocks: { $route: { name: 'home' } },
+				stubs: { 'router-view': true },
+			})
+			const provided = getProvided(wrapper)
+			expect(provided.cnFormatters.connectionStatus).toBe(appCopy)
+			expect(provided.cnFormatters.connectionSettingsLabel('/x')).toBe('Open settings')
+		})
+
 		it('provides an empty registry when no customComponents prop is given', () => {
 			const wrapper = mount(CnAppRoot, {
 				propsData: { manifest: baseManifest, appId: 'myapp', requiresApps: [] },

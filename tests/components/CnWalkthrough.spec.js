@@ -112,6 +112,49 @@ describe('CnWalkthrough', () => {
 		expect(w.find('.cn-walkthrough__live').text()).toContain('Welcome')
 	})
 
+	it('re-places and re-focuses the card when the next step targets identical geometry (regression)', async () => {
+		// computeRect() bails when the measured rect is unchanged, to stop
+		// trackTargetLayout()'s remeasure from stealing focus mid-step. Without
+		// clearing `rect` in teardownStep(), that bail also fired on a step
+		// change to same-geometry target, so placeCard() (and its focusCard())
+		// never ran for the new step.
+		const rect = { top: 100, left: 100, width: 50, height: 20 }
+		const elA = document.createElement('button')
+		elA.setAttribute('data-walkthrough-id', 'a')
+		elA.getBoundingClientRect = () => ({ ...rect })
+		const elB = document.createElement('button')
+		elB.setAttribute('data-walkthrough-id', 'b')
+		elB.getBoundingClientRect = () => ({ ...rect })
+		document.body.appendChild(elA)
+		document.body.appendChild(elB)
+
+		const custom = manifest([
+			{ id: 'step-a', title: 'A', target: { kind: 'element', ref: 'a' }, advanceOn: { type: 'manual' } },
+			{ id: 'step-b', title: 'B', target: { kind: 'element', ref: 'b' }, advanceOn: { type: 'manual' } },
+		])
+		const flush = () => new Promise((r) => setTimeout(r, 0))
+		const w = mount(CnWalkthrough, { propsData: { appId: 'pq-regress', manifest: custom }, attachTo: document.body })
+		// Drain every nested nextTick from the initial locateTarget() (the settle
+		// remeasures re-schedule their own placeCard) before arming the spy below.
+		await flush()
+		await flush()
+		await flush()
+		expect(w.vm.step.id).toBe('step-a')
+		expect(w.vm.targetEl).toBe(elA)
+
+		const placeCardSpy = jest.spyOn(w.vm, 'placeCard')
+		w.vm.wt.next()
+		await flush()
+
+		expect(w.vm.step.id).toBe('step-b')
+		expect(w.vm.targetEl).toBe(elB)
+		expect(placeCardSpy).toHaveBeenCalled()
+
+		w.unmount()
+		document.body.removeChild(elA)
+		document.body.removeChild(elB)
+	})
+
 	it('falls back to a centered coachmark when the target is present but zero-size (collapsed nav)', () => {
 		const w = factory()
 		w.vm.wt.next() // → click-it (anchored)
