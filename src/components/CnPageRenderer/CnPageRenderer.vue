@@ -272,6 +272,7 @@ import { useObjectStore } from '../../store/index.js'
 import { dispatchAction, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { pageHasSplitView, pageIdForRoute, splitIdForRoute, splitRouteName } from '../../utils/buildManifestRoutes.js'
+import { listContextToQuery } from '../../utils/listNavigation.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { buildRouteParams, routePathFor } from '../../utils/routeParams.js'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
@@ -319,6 +320,24 @@ const READ_ONLY_DEFAULTS = Object.freeze({
 	showMassCopy: false,
 	showMassDelete: false,
 })
+
+/**
+ * Parse the `_order` query value an index page writes, without throwing.
+ *
+ * @param {string|undefined} raw The raw query value.
+ * @return {Array<{key: string, order: string}>} The sort, or an empty list.
+ */
+function safeSortKeys(raw) {
+	if (typeof raw !== 'string' || raw === '') {
+		return []
+	}
+	try {
+		const parsed = JSON.parse(raw)
+		return Array.isArray(parsed) ? parsed : []
+	} catch {
+		return []
+	}
+}
 
 export default {
 	name: 'CnPageRenderer',
@@ -1646,7 +1665,36 @@ export default {
 			// registered outside the manifest.
 			const path = this.pageById.get(target)?.route ?? routePathFor(router, target)
 			const params = buildRouteParams(path, id, this.$route?.params)
-			router.push({ name: target, params }).catch(() => {})
+			// The record carries the list it came from, so its detail page can
+			// offer next and previous within THAT list, in the filter and the
+			// sort the handler was looking at. Without this the detail page
+			// has an id and nothing else, and "next" could only ever mean
+			// next in some order nobody chose.
+			router.push({ name: target, params, query: this.rowOpenQuery() }).catch(() => {})
+		},
+
+		/**
+		 * The query a record's address carries so it can step through the list
+		 * it was opened from.
+		 *
+		 * Read off the CURRENT route, which is the list's own address and
+		 * already holds its search, its sort and its filters.
+		 *
+		 * @return {object} The query for the record's route.
+		 */
+		rowOpenQuery() {
+			const page = this.currentPage
+			const route = this.$route
+			if (!page || page.type !== 'index' || !route) {
+				return {}
+			}
+			const query = route.query || {}
+			return listContextToQuery({
+				pageId: page.id,
+				search: typeof query._search === 'string' ? query._search : '',
+				sortKeys: safeSortKeys(query._order),
+				filters: query,
+			})
 		},
 
 		/**
