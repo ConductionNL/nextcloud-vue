@@ -106,6 +106,7 @@ const sidebars = {
 			link: { type: 'doc', id: 'utilities/index' },
 			items: [
 				'utilities/build-headers',
+				'utilities/build-manifest-routes',
 				'utilities/build-query-string',
 				'utilities/columns-from-schema',
 				'utilities/default-page-types',

@@ -98,3 +98,8 @@ export default {
 | `useRegistry` (`use-registry`) | Boolean | `true` | Use the pluggable integration registry (ADR-019) — renders one tab per provider registered on `window.OCA.OpenRegister.integrations`. The canonical five built-ins (files / notes / tags / tasks / audit-trail) ship as providers in `builtinIntegrations`, registered by OpenRegister's bootstrap, so the default surface is unchanged. Set `false` to opt back into the legacy hardcoded-tabs path (renders the five built-in tabs directly and supports `#tab-<id>` slot overrides) — for consumers that don't call `registerBuiltinIntegrations()`. `hiddenTabs` / `excludeIntegrations` apply in both modes. Mutually exclusive with `tabs` (which wins when both are set). |
 | `excludeIntegrations` (`exclude-integrations`) | String[] | `[]` | Integration ids to exclude when rendering registry-driven tabs. Mirrors `hiddenTabs` for the legacy mode. |
 | `requested-tab` | String | `null` | Externally-requested active tab id — lets a host deep-link into a specific leaf, e.g. a 'Linked apps' row opening the Mails tab. |
+
+
+## A tab you can link to
+
+`requested-tab` in, `on-tab-change` out. The callback fires with `(tabId, canonicalising)` whenever the sidebar settles on a tab, so a host keeping the tab in the address writes the tab that is really showing. See [the reference page](../../../docs/components/cn-object-sidebar.md#a-tab-you-can-link-to).

@@ -53,6 +53,40 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `bodyWidgets` | Array | `[]` | **Declarative IN-BODY sections.** Each entry `{ id?, component, title?, props?, placement?, colSpan? }` renders a REGISTERED host-app component as a titled section in the page **body** (not the sidebar), with the object/page context injected. `component` is a registry name resolved from the app's v2 `registry` (any kind exposing a `.component`, e.g. `kind:"section"` / `kind:"widget"`) or the legacy `customComponents` map — **no sidebar tab is required**. `props` values are token-resolved (`@objectId`, `@object.<field>`, `@workspace.<key>`, `@config.<key>`; unset optional `@…?` tokens are dropped). `placement` is `before-body` \| `after-data` \| `after-related` \| `end` (default `end`). `colSpan` (1–12) lays sections out on a grid when several share a placement. The loaded object + objectId are also `provide`d on `cnSectionContext` so a host component can inject them instead of taking props. A section whose component can't be resolved, or that throws while rendering, degrades to an inline error and never breaks the page. See [CnBodySections](./cn-body-sections.md). |
 | `appConfig` | Object | `{}` | **Page-level app config** exposed to declarative widget / section config via the **`@config.<key>` token** and `provide`d on `cnAppConfig`. Lets a stat widget's `format: { style: 'currency', currency: '@config.currency' }` format with a configured value (e.g. the reporting currency a setup wizard captures) instead of a hard-coded `EUR`, and an endpoint KPI's URL / params + filter values interpolate `@config.<key>`. A manifest renderer typically seeds it from `loadState(appId, 'config', {})`. Backwards-compatible: a literal `"EUR"` still works, and an unset required `@config.<key>` falls back to the format default. |
 
+## The record as a place
+
+These three are what make a record somewhere a handler stays, rather than somewhere they pass through. Each is off by default, so a page that declares none renders exactly as it does today.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `listNavigation` | Object | `null` | Next and previous within the list this record was opened from, as returned by [`useListNavigation`](../utilities/composables/use-list-navigation.md). Shape: `{ available, isFirst, isLast, position, total }`. Omit it and neither control renders, which is what a record reached by a bare link must do. |
+| `primaryAction` | Object | `null` | The page's primary action, as declared on its manifest page. Renders as the header's primary button and is where the skip link lands. Shape: `{ id?, label, icon?, route?, href? }`. |
+| `tabInAddress` | Boolean | `false` | Puts the active tab in the address as `?_tab=<id>`, so a link points at a tab of this record rather than at the record. |
+
+Wire the navigation in the host, because the host owns the router:
+
+```js
+const nav = useListNavigation({
+  route: useRoute(),
+  router: useRouter(),
+  currentId: toRef(props, 'objectId'),
+  objectType: 'case',
+})
+```
+
+```vue
+<CnDetailPage
+  :listNavigation="nav"
+  :primaryAction="{ id: 'afhandelen', label: 'Zaak afhandelen' }"
+  tabInAddress
+  @next-record="nav.goNext"
+  @previous-record="nav.goPrevious" />
+```
+
+Three refusals are deliberate. A record opened without list context offers no next and no previous, rather than inferring an order nobody chose. The first and the last record say so rather than wrapping. An address naming a tab that does not exist, or one this reader may not see, falls back to the first tab they can see and says so once.
+
+The tabless address is corrected with `replace`, not `push`, so the back button does not walk into the address the reader was just moved off (ADR-052). Later tab changes push, so back and forward walk the tabs they actually visited.
+
 ## Events
 
 | Event | Payload | Description |
@@ -63,6 +97,10 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `related-row-click` | `{ collection, row, index }` | A row in a `relatedCollections` section was clicked. |
 | `layout-change` | `Array` | A widget in the body grid was dragged or resized in edit mode. Payload is the updated layout array. The sibling `update:layout` event fires with the same payload so an explicit-layout page can use `:layout.sync`. |
 | `widget-config-change` | `object \| null` | A body-grid widget's config was saved via the cog editor (the widget def), or the widget was removed (`null`). |
+| `next-record` | | The reader asked for the next record of the list this one was opened from. |
+| `previous-record` | | The reader asked for the previous record of that same list. |
+| `primary-action` | `object` | The declared primary action was pressed. Payload is the declaration. |
+| `tab-change` | `string` | The active tab changed. Fires whether or not `tabInAddress` is set. |
 
 ## Slots
 

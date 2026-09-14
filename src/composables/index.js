@@ -17,6 +17,7 @@ export {
 	conversationsUrl,
 	DEFAULT_CHAT_APP_ID,
 } from './aiChatConfig.js'
+export { useListNavigation } from './useListNavigation.js'
 export { useListView } from './useListView.js'
 export { useDetailView } from './useDetailView.js'
 export { useSubResource } from './useSubResource.js'

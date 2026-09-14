@@ -1,0 +1,57 @@
+/* CnReferencePreview — a reference that shows what it points at. */
+
+.cn-reference-preview {
+	display: inline;
+}
+
+/* The trigger stays a reference: it reads and behaves like the link or the
+   text it replaced, and only the dotted underline says there is more. */
+.cn-reference-preview__trigger {
+	padding: 0;
+	border: none;
+	background: none;
+	color: var(--color-primary-element);
+	font: inherit;
+	text-decoration-line: underline;
+	text-decoration-style: dotted;
+	cursor: pointer;
+}
+
+.cn-reference-preview__trigger:hover,
+.cn-reference-preview__trigger:focus-visible {
+	text-decoration-style: solid;
+}
+
+.cn-reference-preview__plain {
+	color: inherit;
+}
+
+.cn-reference-preview__card {
+	max-width: 22rem;
+	padding: calc(3 * var(--default-grid-baseline));
+}
+
+.cn-reference-preview__card-title {
+	margin: 0 0 var(--default-grid-baseline);
+	font-weight: bold;
+}
+
+.cn-reference-preview__card-empty {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-reference-preview__lines {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: var(--default-grid-baseline) calc(2 * var(--default-grid-baseline));
+	margin: 0;
+}
+
+.cn-reference-preview__lines dt {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-reference-preview__lines dd {
+	margin: 0;
+}
