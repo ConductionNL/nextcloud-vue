@@ -1078,9 +1078,13 @@ export default {
 		/**
 		 * Effective property definition handed to CnCellRenderer for a column:
 		 * the schema property augmented with the column's own `type`/`format`/
-		 * `enum` hints. Lets synthesized columns that have no schema property
-		 * (e.g. metadata fields with `format: 'date-time'` / `'uri'`) still get
-		 * type-aware rendering.
+		 * `enum`/`enumLabels` hints. Lets synthesized columns that have no
+		 * schema property (e.g. metadata fields with `format: 'date-time'` /
+		 * `'uri'`, or a dotted path into a reference this table was never
+		 * handed a `:schema` for at all) still get type-aware rendering.
+		 * `enumLabels` rides with `enum` rather than getting its own `if`
+		 * branch: a column can't usefully declare labels without also
+		 * declaring the codes they label.
 		 *
 		 * @param {object} col Column definition.
 		 * @return {object} Property definition for CnCellRenderer.
@@ -1092,7 +1096,7 @@ export default {
 					...base,
 					...(col.type ? { type: col.type } : {}),
 					...(col.format ? { format: col.format } : {}),
-					...(col.enum ? { enum: col.enum } : {}),
+					...(col.enum ? { enum: col.enum, enumLabels: col.enumLabels || base.enumLabels } : {}),
 				}
 			}
 			return base

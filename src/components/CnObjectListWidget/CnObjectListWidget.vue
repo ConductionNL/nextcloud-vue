@@ -545,6 +545,18 @@ export default {
 		 * (badge / link / swatch), `widgetProps`, `formatter`, `align`, and
 		 * `width`. Without this pass-through a `relatedCollections` column's
 		 * `format: 'currency'` / `'date'` would silently render as plain text.
+		 *
+		 * `enumLabels` travels alongside `enum` for the same reason `enum`
+		 * itself is here: a list column often addresses a DOTTED path into an
+		 * `extend`-inlined reference (e.g. `informatieobject.direction`), and
+		 * this widget never fetches that reference's own schema to feed
+		 * CnDataTable's live `:schema` prop — only `openCreate()`'s create-form
+		 * schema is ever fetched. A column that needs its raw enum code
+		 * (`"incoming"`) to render as a human label (`"Incoming"`) has to carry
+		 * that mapping itself, the same way it already carries `enum`. This is
+		 * the same generic mechanism CnCellRenderer already applies to a real
+		 * schema property's `x-enum-labels`, completed here for the
+		 * manifest-column path rather than special-cased per column.
 		 */
 		resolvedColumns() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
@@ -554,7 +566,7 @@ export default {
 					return { key: c, label: c }
 				}
 				const out = { key: c.key, label: c.label || c.key }
-				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'sortable']) {
+				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable']) {
 					if (c[k] !== undefined) {
 						out[k] = c[k]
 					}
