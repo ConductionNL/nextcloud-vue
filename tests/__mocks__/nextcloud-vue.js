@@ -349,6 +349,7 @@ export const NcDateTime = {
 export const NcActionLink = createStub('NcActionLink')
 export const NcActionText = createStub('NcActionText')
 export const NcAppNavigationCaption = createStub('NcAppNavigationCaption')
+export const NcAppNavigationList = createStub('NcAppNavigationList')
 export const NcAppNavigationNew = createStub('NcAppNavigationNew')
 export const NcAppNavigationSettings = createStub('NcAppNavigationSettings')
 export const NcAppSettingsDialog = createStub('NcAppSettingsDialog')
@@ -363,6 +364,7 @@ export default {
 	NcActionLink,
 	NcActionText,
 	NcAppNavigationCaption,
+	NcAppNavigationList,
 	NcAppNavigationNew,
 	NcAppNavigationSettings,
 	NcAppSettingsDialog,

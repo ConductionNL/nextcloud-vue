@@ -137,8 +137,10 @@ describe('CnDashTileWidgetForm', () => {
 		expect(payload).toMatchObject({
 			title: 'My Tile',
 			iconType: 'class',
-			backgroundColor: '#3b82f6',
-			textColor: '#ffffff',
+			// Empty, so an untouched colour picker stores nothing and the tile
+			// follows the instance theme instead of a hardcoded blue.
+			backgroundColor: '',
+			textColor: '',
 			linkType: 'app',
 			linkValue: '',
 		})
@@ -173,8 +175,8 @@ describe('tile registry registration', () => {
 			title: '',
 			icon: '',
 			iconType: 'class',
-			backgroundColor: '#3b82f6',
-			textColor: '#ffffff',
+			backgroundColor: '',
+			textColor: '',
 			linkType: 'app',
 			linkValue: '',
 		})

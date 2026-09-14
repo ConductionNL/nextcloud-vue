@@ -136,3 +136,52 @@ describe('CnActionButtons — menu mode', () => {
 		expect(entries.map((e) => e.id)).toEqual(['add-party', 'copy-case'])
 	})
 })
+
+// REGRESSION. A `type: "navigate"` action pointing at an external URL was
+// dispatched through the router, which matched no route and fell back to the
+// app's landing page carrying the URL's own query string. It is a link, and the
+// menu must render it as one so the browser owns the navigation.
+//
+// @nextcloud/vue is auto-stubbed here, so NcActionLink renders as a div with
+// its attributes spread on — the component identity plus href/target is what
+// distinguishes a link from a button, not the tag name.
+describe('CnDetailPage — an external navigate action is a link in the menu', () => {
+	const WATCH = {
+		id: 'watch',
+		type: 'navigate',
+		label: 'Watch',
+		icon: 'Heart',
+		target: 'https://www.youtube.com/watch?v=MM60juTPkSM',
+	}
+
+	const itemsNamed = (wrapper, name) => wrapper.findAllComponents({ name })
+		.filter((c) => c.attributes('data-testid')?.startsWith('cn-action-'))
+
+	it('renders an NcActionLink to the target, opening in a new tab', async () => {
+		const wrapper = mountPage([WATCH])
+		await flush()
+		const links = itemsNamed(wrapper, 'NcActionLink')
+		expect(links).toHaveLength(1)
+		expect(links[0].attributes('href')).toBe(WATCH.target)
+		expect(links[0].attributes('target')).toBe('_blank')
+		expect(links[0].attributes('data-testid')).toBe('cn-action-watch')
+		expect(itemsNamed(wrapper, 'NcActionButton')).toHaveLength(0)
+	})
+
+	it('keeps an in-app navigate a button, so the router still handles it', async () => {
+		const wrapper = mountPage([{ ...WATCH, id: 'dogs', target: '/dogs' }])
+		await flush()
+		expect(itemsNamed(wrapper, 'NcActionLink')).toHaveLength(0)
+		expect(itemsNamed(wrapper, 'NcActionButton')).toHaveLength(1)
+	})
+
+	it('renders links and buttons side by side in one menu', async () => {
+		const wrapper = mountPage([WATCH, ...ACTIONS])
+		await flush()
+		expect(itemsNamed(wrapper, 'NcActionLink').map((c) => c.attributes('data-testid')))
+			.toEqual(['cn-action-watch'])
+		expect(itemsNamed(wrapper, 'NcActionButton').map((c) => c.attributes('data-testid')))
+			.toEqual(['cn-action-add-party', 'cn-action-copy-case'])
+		expect(wrapper.vm.menuHeaderActions.map((e) => e.id)).toEqual(['watch', 'add-party', 'copy-case'])
+	})
+})

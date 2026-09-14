@@ -388,6 +388,7 @@
 				v-if="shouldAutoMountObjectSidebar"
 				:open="effectiveObjectSidebarState.open === true"
 				:tabs="effectiveObjectSidebarState.tabs"
+				:useRegistry="objectSidebarUseRegistry"
 				:objectType="effectiveObjectSidebarState.objectType"
 				:objectId="effectiveObjectSidebarState.objectId"
 				:objectData="effectiveObjectSidebarState.object"
@@ -757,6 +758,13 @@ export default {
 				return self.manifestEditor ? self.manifestEditor.source.value : self.manifest
 			},
 
+			// The same manifest as a REF. The getter above is NOT enough on its
+			// own: Options-API `inject` resolves a provided value once, at the
+			// descendant's creation, so a renderer created before edit mode gets
+			// the pre-edit manifest and never re-derives from an in-app edit —
+			// which is why adding a widget to a page that had none appeared to do
+			// nothing. `inject` unwraps a ref into a reactive getter instead.
+			cnManifestSource: this.manifestEditor ? this.manifestEditor.source : null,
 			cnManifestEditor: this.manifestEditor,
 			// App registers/schemas for the in-app pages editor (index/detail
 			// data source). Plain value (not a getter) so deep descendants —
@@ -1969,6 +1977,23 @@ export default {
 		 */
 		effectiveObjectSidebarState() {
 			return this.localObjectSidebarState
+		},
+
+		/**
+		 * Which mode the auto-mounted CnObjectSidebar runs in.
+		 *
+		 * CnObjectSidebar treats `tabs` and `useRegistry` as mutually
+		 * exclusive and warns when it gets both. This mount site passes
+		 * `:tabs` unconditionally, so leaving `useRegistry` at its default
+		 * `true` warned on every detail page that publishes tabs — advice no
+		 * consumer could act on, since they never see this element. Published
+		 * tabs mean tabs mode, which is what the sidebar picks anyway.
+		 *
+		 * @return {boolean}
+		 */
+		objectSidebarUseRegistry() {
+			const tabs = this.effectiveObjectSidebarState?.tabs
+			return !(Array.isArray(tabs) && tabs.length > 0)
 		},
 
 		/**

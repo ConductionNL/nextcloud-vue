@@ -76,6 +76,60 @@ describe('CnPageRenderer.onRowOpen', () => {
 		const { wrapper } = mountAt('Meetings', noDetail)
 		expect(wrapper.vm.resolvedProps.rowClickToView).toBeUndefined()
 	})
+
+	describe('the target route names its own id param', () => {
+		// A manifest is free to write `/applications/:objectId`. Pushing a
+		// hardcoded `{ id }` there makes vue-router discard the param and throw
+		// `Missing required param "objectId"`, so the row click dies in an
+		// unhandled error instead of navigating (seen on buildiq's Apps page).
+		const objectIdManifest = {
+			...manifest,
+			pages: [
+				{ id: 'Apps', route: '/applications', type: 'index', title: 'Apps', config: { register: 'buildiq', schema: 'built-app' } },
+				{ id: 'AppDetail', route: '/applications/:objectId', type: 'detail', title: 'App', config: { register: 'buildiq', schema: 'built-app' } },
+			],
+		}
+
+		it('uses the param the detail route declares, not `id`', () => {
+			const { wrapper, push } = mountAt('Apps', objectIdManifest)
+			wrapper.vm.onRowOpen({ id: 'pet-store' })
+			expect(push).toHaveBeenCalledWith({ name: 'AppDetail', params: { objectId: 'pet-store' } })
+		})
+
+		it('carries the parent params of a nested detail route over', () => {
+			const nested = {
+				...manifest,
+				pages: [
+					{ id: 'Schemas', route: '/builder/:slug/schemas', type: 'index', title: 'Schemas', config: { register: 'b', schema: 's' } },
+					{ id: 'SchemaDetail', route: '/builder/:slug/schemas/:schemaId', type: 'detail', title: 'Schema', config: { register: 'b', schema: 's' } },
+				],
+			}
+			const push = jest.fn(() => Promise.resolve())
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: { manifest: nested, pageTypes },
+				mocks: { $route: { name: 'Schemas', params: { slug: 'pet-store' } }, $router: { push } },
+			})
+			wrapper.vm.onRowOpen({ id: 'sch-4' })
+			expect(push).toHaveBeenCalledWith({ name: 'SchemaDetail', params: { slug: 'pet-store', schemaId: 'sch-4' } })
+		})
+
+		it('reads the path off the router for a rowRoute outside the manifest', () => {
+			const external = {
+				...manifest,
+				pages: [
+					{ id: 'Apps', route: '/applications', type: 'index', title: 'Apps', config: { register: 'buildiq', schema: 'built-app', rowRoute: 'Canvas' } },
+				],
+			}
+			const push = jest.fn(() => Promise.resolve())
+			const getRoutes = () => [{ name: 'Canvas', path: '/canvas/:canvasId' }]
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: { manifest: external, pageTypes },
+				mocks: { $route: { name: 'Apps', params: {} }, $router: { push, getRoutes } },
+			})
+			wrapper.vm.onRowOpen({ id: 'c-1' })
+			expect(push).toHaveBeenCalledWith({ name: 'Canvas', params: { canvasId: 'c-1' } })
+		})
+	})
 })
 
 /**

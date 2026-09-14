@@ -10,7 +10,20 @@ import { mount } from '@vue/test-utils'
 import { toRaw } from 'vue'
 import CnMenuTreeNode from '../../src/components/CnMenuTreeNode/CnMenuTreeNode.vue'
 
-const DraggableStub = { name: 'draggable', props: ['value', 'list', 'group', 'move'], template: '<ul><slot /></ul>' }
+// Mirrors vuedraggable@4: rows come from the `#item` slot, one per element,
+// not from the default slot. See the note in CnPageTreeNode.spec.js — the old
+// `<slot />` stub let a component written against vuedraggable's Vue 2 API
+// pass here while throwing in the browser.
+const DraggableStub = {
+	name: 'draggable',
+	props: ['modelValue', 'value', 'list', 'group', 'move', 'itemKey', 'tag'],
+	computed: {
+		items() {
+			return this.modelValue || this.value || this.list || []
+		},
+	},
+	template: '<ul><template v-for="(element, index) in items" :key="index"><slot name="item" :element="element" :index="index" /></template></ul>',
+}
 const RowStub = { name: 'CnMenuTreeRow', props: ['item', 'pages', 'canAddChild'], template: '<div class="row-stub" />' }
 
 function mountNode(list, section = null) {
@@ -90,5 +103,18 @@ describe('CnMenuTreeNode', () => {
 		const wrapper = mountNode(list)
 		wrapper.vm.removeNode(wrapper.vm.tree[0], null)
 		expect(list.map((it) => it.id)).toEqual(['c'])
+	})
+
+	it('renders a row per item through the #item slot, nested children included', () => {
+		// Every other test here is vm-level, so the suite passed while the
+		// component was still written against vuedraggable's Vue 2 API and
+		// threw on render in the browser.
+		const list = [
+			{ id: 'a', label: 'A' },
+			{ id: 'b', label: 'B', children: [{ id: 'b1', label: 'B1' }] },
+		]
+		const wrapper = mountNode(list)
+		expect(wrapper.findAll('.row-stub').length).toBe(3)
+		expect(wrapper.findAll('.cn-menu-tree__node').length).toBe(3)
 	})
 })

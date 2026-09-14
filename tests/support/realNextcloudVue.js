@@ -125,6 +125,7 @@ const REAL_COMPONENT_NAMES = [
 	'NcActionText',
 	'NcAppContent',
 	'NcAppNavigationCaption',
+	'NcAppNavigationList',
 	'NcAppNavigationNew',
 	'NcAppNavigationSearch',
 	'NcAppNavigationSettings',

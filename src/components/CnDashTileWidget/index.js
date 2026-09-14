@@ -18,8 +18,11 @@ registerDashboardWidget('tile', {
 		title: '',
 		icon: '',
 		iconType: 'class',
-		backgroundColor: '#3b82f6',
-		textColor: '#ffffff',
+		// Empty, not a hex: an author who never opened the colour picker had a
+		// Tailwind blue stored for them, so every tile came out deliberately
+		// coloured. Empty lets the renderer fall back to the instance theme.
+		backgroundColor: '',
+		textColor: '',
 		linkType: 'app',
 		linkValue: '',
 	},

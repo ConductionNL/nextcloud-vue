@@ -63,6 +63,30 @@ import {
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /**
+ * Whether a `navigate` target leaves the app: it is `http(s)://`,
+ * protocol-relative (`//`), or a `mailto:` / `tel:` link. Anything else is an
+ * in-app path for the router.
+ *
+ * vue-router happily accepts an absolute URL as a PATH — `router.push` on
+ * `https://youtu.be/x?v=1` matches no route and lands on the fallback with the
+ * query carried over, which reads as the app ignoring the link.
+ *
+ * An allowlist, not a generic `<scheme>://` match: manifests are
+ * admin-editable app-wide config, and an external target renders into an
+ * anchor `href` and a dispatcher `window.open` — a generic scheme match would
+ * accept `javascript://` too.
+ *
+ * @param {unknown} target The action target to test.
+ * @return {boolean} True when the target is external.
+ */
+export function isExternalActionTarget(target) {
+	if (typeof target !== 'string') {
+		return false
+	}
+	return /^\/\//.test(target) || /^(https?|mailto|tel):/i.test(target)
+}
+
+/**
  * Resolve the object-store type slug for a widget `source` register/schema
  * pair. Reuses an already-registered type whose config matches (so an app's
  * own caches stay coherent); otherwise registers a deterministic
@@ -724,6 +748,14 @@ export function dispatchAction(action, context = {}) {
 		}
 
 		case 'navigate': {
+			// An external target is not a route. Rendering surfaces should give it
+			// to the browser as a real link (CnActionButtons does); this is the
+			// fallback for a programmatic dispatch, and it must not reach the
+			// router — see isExternalActionTarget.
+			if (isExternalActionTarget(action.target)) {
+				window.open(action.target, '_blank', 'noopener,noreferrer')
+				break
+			}
 			if (!context.router) {
 			// eslint-disable-next-line no-console
 				console.warn('[dispatchAction] navigate requires context.router to be a Vue Router instance.')
