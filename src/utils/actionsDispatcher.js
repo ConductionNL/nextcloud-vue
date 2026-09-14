@@ -63,13 +63,18 @@ import {
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /**
- * Whether a `navigate` target leaves the app: it carries a scheme + `//`, is
- * protocol-relative, or is a `mailto:` / `tel:` link. Anything else is an
+ * Whether a `navigate` target leaves the app: it is `http(s)://`,
+ * protocol-relative (`//`), or a `mailto:` / `tel:` link. Anything else is an
  * in-app path for the router.
  *
  * vue-router happily accepts an absolute URL as a PATH — `router.push` on
  * `https://youtu.be/x?v=1` matches no route and lands on the fallback with the
  * query carried over, which reads as the app ignoring the link.
+ *
+ * An allowlist, not a generic `<scheme>://` match: manifests are
+ * admin-editable app-wide config, and an external target renders into an
+ * anchor `href` and a dispatcher `window.open` — a generic scheme match would
+ * accept `javascript://` too.
  *
  * @param {unknown} target The action target to test.
  * @return {boolean} True when the target is external.
@@ -78,7 +83,7 @@ export function isExternalActionTarget(target) {
 	if (typeof target !== 'string') {
 		return false
 	}
-	return /^([a-z][a-z0-9+.-]*:)?\/\//i.test(target) || /^(mailto|tel):/i.test(target)
+	return /^\/\//.test(target) || /^(https?|mailto|tel):/i.test(target)
 }
 
 /**

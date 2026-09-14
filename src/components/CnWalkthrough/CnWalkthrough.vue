@@ -932,6 +932,10 @@ export default {
 		 */
 		teardownStep() {
 			this._revealAttempted = false
+			// computeRect()'s bail-when-unchanged optimisation must not survive
+			// into the next step, or a same-geometry target never re-runs
+			// placeCard()/focusCard() on step change.
+			this.rect = null
 			if (this._observer) {
 				this._observer.disconnect()
 				this._observer = null

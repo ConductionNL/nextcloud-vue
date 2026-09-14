@@ -112,4 +112,17 @@ describe('CnDashboardPage — tile config', () => {
 		// The modal resolves the header title, so that one stays authoritative.
 		expect(tile.title).toBe('Header title')
 	})
+
+	it('falls through to content.title when the top-level title is an empty string', () => {
+		// `??` does not fall through on '', so an empty top-level title masked a
+		// populated content.title (which the form validates as required).
+		const tile = tileProp([{
+			id: 't',
+			type: 'tile',
+			title: '',
+			content: { title: 'Docs' },
+		}])
+
+		expect(tile.title).toBe('Docs')
+	})
 })

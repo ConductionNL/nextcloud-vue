@@ -214,6 +214,11 @@ describe('isExternalActionTarget', () => {
 		['', false],
 		[undefined, false],
 		[{ path: '/dogs' }, false],
+		// Allowlisted schemes only — a generic `<scheme>://` match would also
+		// classify javascript: as external, landing it in an anchor href.
+		['javascript://%0aalert(1)', false],
+		['javascript:alert(1)', false],
+		['ftp://example.test', false],
 	])('%s → %s', (target, expected) => {
 		expect(isExternalActionTarget(target)).toBe(expected)
 	})

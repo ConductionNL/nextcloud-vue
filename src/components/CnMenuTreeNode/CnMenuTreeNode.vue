@@ -149,6 +149,10 @@ export default {
 		// component's own mutations land in `flatten()`, which holds
 		// `suppressRebuild` across the splice.
 		'list.length': 'rebuild',
+		// Bypasses `rebuild()`'s suppressRebuild guard deliberately: a section
+		// switch is never concurrent with this component's own flatten() write
+		// (that guard exists only for the list/list.length watchers above), and
+		// the new section's tree must always be rebuilt regardless of the flag.
 		section() {
 			this.tree = this.buildTree()
 		},

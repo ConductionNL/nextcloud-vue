@@ -1883,7 +1883,7 @@
 				},
 				"children": {
 					"type": "array",
-					"description": "Sub-actions, rendered by CnActionButtons as this action's OWN chevron dropdown beside its button — deliberately not folded into the page's single overflow menu, because NcActions cannot nest and a list that grows per record (app versions, say) would swamp it. Children take the same shape as any action, `visibleWhen` included, and an action carrying them consumes none of the `inline` slots.",
+					"description": "Sub-actions, rendered by CnActionButtons as this action's OWN chevron dropdown beside its button — deliberately not folded into the page's single overflow menu, because NcActions cannot nest and a list that grows per record (app versions, say) would swamp it. Children take the same shape as any action, `visibleWhen` included, and an action carrying them consumes none of the `inline` slots. The parent itself still renders its own button beside the chevron (`type` defaults to 'handler' when omitted), so a parent meant only to group its children needs a `handler` that does something meaningful — an untyped, handler-less parent renders a button that dispatches to nothing.",
 					"items": { "$ref": "#/$defs/action" }
 				},
 				"childrenLabel": {

@@ -3233,7 +3233,10 @@ export default {
 			const c = (def.content && typeof def.content === 'object') ? def.content : {}
 			return {
 				// The modal resolves the header title, so the top level wins here.
-				title: def.title ?? c.title,
+				// `||`, not `??`: an empty-string def.title (never actually chosen
+				// by the modal) must still fall through to content.title, which the
+				// form validates as required and so is always populated.
+				title: def.title || c.title,
 				icon: c.icon ?? def.icon,
 				iconType: c.iconType ?? def.iconType,
 				backgroundColor: c.backgroundColor ?? def.backgroundColor,

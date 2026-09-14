@@ -307,6 +307,10 @@ export default {
 				return []
 			}
 			if (!Array.isArray(s.columnGroups)) {
+				// Same in-place normalisation as `actions` below, on the local `s`
+				// alias — vue/no-side-effects-in-computed-properties only matches a
+				// direct `this.foo = ` chain, so it doesn't fire through the alias
+				// and no eslint-disable is needed (or would lint-clean) here.
 				s.columnGroups = []
 			}
 			return s.columnGroups

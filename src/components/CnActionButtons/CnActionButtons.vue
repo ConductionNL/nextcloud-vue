@@ -76,7 +76,10 @@
 			<!-- Sub-actions. Its OWN chevron rather than entries folded into the
 			     overflow below, because NcActions cannot nest — and a grouped
 			     dropdown is the point of declaring children (a version list
-			     flattened into the page's one menu grows without bound). -->
+			     flattened into the page's one menu grows without bound). The
+			     parent's own button above still renders alongside this chevron —
+			     a parent meant only to group children needs a real `handler` (or
+			     `href`/other type) of its own, or its button dispatches nothing. -->
 			<NcActions
 				v-if="hasChildren(entry)"
 				:key="`${entry.id}-children`"
@@ -319,6 +322,13 @@ export default {
 		 * is never dispatched. Use it for anything that ends in a URL, so the
 		 * browser keeps middle-click, "open in new tab" and the link semantics
 		 * assistive tech announces.
+		 *
+		 * `href` is JS-composition-only, like `onSelect` — manifest JSON cannot
+		 * carry it (the schema's `target` field already names the `navigate`
+		 * destination URL, and `additionalProperties: false` rejects an
+		 * unlisted `href`). A manifest author reaching for a link should use
+		 * `type: "navigate"` with an external `target`, which auto-derives the
+		 * anchor/`window.open` behaviour instead.
 		 *
 		 * @type {Array<object>}
 		 */
