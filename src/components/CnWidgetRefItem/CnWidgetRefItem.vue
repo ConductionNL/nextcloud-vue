@@ -53,6 +53,7 @@
 <script>
 import axios from '@nextcloud/axios'
 import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { markRaw } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 
 /**
@@ -205,7 +206,8 @@ export default {
 				return
 			}
 
-			this.resolvedComponent = component
+			// markRaw: `data()` is deeply reactive and would proxy the component.
+			this.resolvedComponent = markRaw(component)
 			// Forward any extra keys from the API response as props to the
 			// resolved component (excluding `component` itself).
 			const { component: _omit, ...rest } = apiData

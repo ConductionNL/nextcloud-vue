@@ -12,10 +12,19 @@ import CnObjectKanban from '../../src/components/CnObjectKanban/CnObjectKanban.v
 
 // Stub vuedraggable so the board mounts without Sortable; keeps `:list` bound
 // so template card iteration and vm-level drag helpers are still exercised.
+// Mirrors vuedraggable@4: cards come from the `#item` slot, one per element,
+// not from the default slot. The old `<slot />` stub was the Vue 2 contract,
+// so the board rendered here while the real component threw "draggable
+// element must have an item slot" in the browser.
 const DraggableStub = {
 	name: 'draggable',
-	props: ['list', 'group'],
-	template: '<div><slot /></div>',
+	props: ['list', 'modelValue', 'group', 'itemKey', 'tag'],
+	computed: {
+		items() {
+			return this.modelValue || this.list || []
+		},
+	},
+	template: '<div><template v-for="(element, index) in items" :key="index"><slot name="item" :element="element" :index="index" /></template></div>',
 }
 
 function mountKanban(propsData) {
@@ -196,5 +205,22 @@ describe('CnObjectKanban — move + rollback', () => {
 		const wrapper = mountKanban({ objects, groupByField: 'status', columnOrder: ['todo', 'doing'] })
 		expect(() => wrapper.vm.rejectMove('does-not-exist', 'nope')).not.toThrow()
 		expect(wrapper.emitted('move-rejected')).toBeFalsy()
+	})
+
+	it('renders a card per object through the #item slot', () => {
+		// The rest of this suite is vm-level, so it passed while the board was
+		// still written against vuedraggable's Vue 2 API and threw on render.
+		// Its OWN fixture: the shared `objects` array is spliced in place by
+		// the drag tests above (mirroring what vuedraggable does), so counting
+		// against it here would depend on test order.
+		const own = [
+			{ id: 'k1', status: 'todo', title: 'One' },
+			{ id: 'k2', status: 'todo', title: 'Two' },
+			{ id: 'k3', status: 'doing', title: 'Three' },
+		]
+		const wrapper = mountKanban({ objects: own, groupByField: 'status' })
+		expect(wrapper.findAll('.cn-object-kanban__card').length).toBe(3)
+		expect(wrapper.text()).toContain('One')
+		expect(wrapper.text()).toContain('Two')
 	})
 })

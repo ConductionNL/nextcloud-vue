@@ -4,38 +4,47 @@
 -->
 
 <template>
+	<!-- `#item` + `item-key`: see the same note on CnPageTreeNode. vuedraggable@4
+	     renders the rows itself from this slot; a `v-for` in the default slot
+	     throws "draggable element must have an item slot". -->
 	<Draggable v-model="tree"
 		tag="ul"
 		class="cn-menu-tree"
+		:itemKey="keyOf"
 		:group="group"
 		handle=".cn-menu-tree__handle"
 		:move="onMove"
 		@end="flatten">
-		<li v-for="node in tree" :key="keyOf(node)" class="cn-menu-tree__node">
-			<CnMenuTreeRow :item="node.ref"
-				:pages="pages"
-				:canAddChild="maxDepth > 0"
-				@addChild="addChild(node)"
-				@remove="removeNode(node, null)" />
+		<template #item="{ element: node }">
+			<li class="cn-menu-tree__node">
+				<CnMenuTreeRow :item="node.ref"
+					:pages="pages"
+					:canAddChild="maxDepth > 0"
+					@addChild="addChild(node)"
+					@remove="removeNode(node, null)" />
 
-			<!-- One level of children: a drop target on every top item. -->
-			<Draggable v-if="maxDepth > 0"
-				v-model="node.children"
-				tag="ul"
-				class="cn-menu-tree__children"
-				:class="{ 'cn-menu-tree__children--empty': !node.children.length }"
-				:group="group"
-				handle=".cn-menu-tree__handle"
-				:move="onMove"
-				@end="flatten">
-				<li v-for="child in node.children" :key="keyOf(child)" class="cn-menu-tree__node">
-					<CnMenuTreeRow :item="child.ref"
-						:pages="pages"
-						:canAddChild="false"
-						@remove="removeNode(child, node)" />
-				</li>
-			</Draggable>
-		</li>
+				<!-- One level of children: a drop target on every top item. -->
+				<Draggable v-if="maxDepth > 0"
+					v-model="node.children"
+					tag="ul"
+					class="cn-menu-tree__children"
+					:class="{ 'cn-menu-tree__children--empty': !node.children.length }"
+					:itemKey="keyOf"
+					:group="group"
+					handle=".cn-menu-tree__handle"
+					:move="onMove"
+					@end="flatten">
+					<template #item="{ element: child }">
+						<li class="cn-menu-tree__node">
+							<CnMenuTreeRow :item="child.ref"
+								:pages="pages"
+								:canAddChild="false"
+								@remove="removeNode(child, node)" />
+						</li>
+					</template>
+				</Draggable>
+			</li>
+		</template>
 	</Draggable>
 </template>
 
@@ -124,17 +133,26 @@ export default {
 	},
 
 	watch: {
+		// The prop's IDENTITY, for a host that swaps the array wholesale.
 		list: {
-			handler() {
-				if (this.suppressRebuild) {
-					return
-				}
-				this.tree = this.buildTree()
-			},
-
+			handler: 'rebuild',
 			deep: false,
 		},
 
+		// ...and its LENGTH, for a host that pushes or splices in place. The
+		// modal's "Add menu item" does exactly that — `list` IS the working
+		// manifest's `menu[]`, so its reference never changes and the watcher
+		// above never fired: the item was appended and never appeared.
+		//
+		// Length rather than `deep: true`, which would fire on every keystroke
+		// in a row's field and rebuild the tree under the user. This
+		// component's own mutations land in `flatten()`, which holds
+		// `suppressRebuild` across the splice.
+		'list.length': 'rebuild',
+		// Bypasses `rebuild()`'s suppressRebuild guard deliberately: a section
+		// switch is never concurrent with this component's own flatten() write
+		// (that guard exists only for the list/list.length watchers above), and
+		// the new section's tree must always be rebuilt regardless of the flag.
 		section() {
 			this.tree = this.buildTree()
 		},
@@ -142,6 +160,19 @@ export default {
 
 	methods: {
 		t,
+		/**
+		 * Re-seed the local tree from `list`, unless our own `flatten()` is
+		 * mid-write.
+		 *
+		 * @return {void}
+		 */
+		rebuild() {
+			if (this.suppressRebuild) {
+				return
+			}
+			this.tree = this.buildTree()
+		},
+
 		/**
 		 * Stable-ish v-for key for a node.
 		 *

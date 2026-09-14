@@ -100,6 +100,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcEmptyContent, NcNoteCard } from '@nextcloud/vue'
+import { markRaw } from 'vue'
 import FormatListBulleted from 'vue-material-design-icons/FormatListBulleted.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -499,7 +500,9 @@ export default {
 				return
 			}
 			this.cnIndexSidebarConfig.value = {
-				component: CnFeaturesAndRoadmapSidebar,
+				// markRaw: see CnIndexPage's publishHoistedSidebar — the holder
+				// is deeply reactive and would proxy the component definition.
+				component: markRaw(CnFeaturesAndRoadmapSidebar),
 				props: {
 					openbuiltUrl: this.resolvedOpenbuiltUrl,
 					llmSkillsUrl: this.resolvedLlmSkillsUrl,
