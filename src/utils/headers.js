@@ -21,12 +21,20 @@
  * @return {string} Path with optional /index.php prefix
  */
 export function prefixUrl(path) {
-	if (typeof path !== 'string' || path === '') return path
+	if (typeof path !== 'string' || path === '') {
+		return path
+	}
 	// Absolute URL, protocol-relative URL, or any scheme (data:, blob:, mailto:).
-	if (/^[a-z][a-z0-9+.-]*:/i.test(path) || path.startsWith('//')) return path
+	if (/^[a-z][a-z0-9+.-]*:/i.test(path) || path.startsWith('//')) {
+		return path
+	}
 	// Only app-absolute paths are ours to prefix.
-	if (!path.startsWith('/')) return path
-	if (path.startsWith('/index.php')) return path
+	if (!path.startsWith('/')) {
+		return path
+	}
+	if (path.startsWith('/index.php')) {
+		return path
+	}
 	if (typeof window !== 'undefined' && window.location.pathname.includes('/index.php')) {
 		return `/index.php${path}`
 	}

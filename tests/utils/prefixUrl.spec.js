@@ -26,13 +26,15 @@ const { prefixUrl } = require('../../src/utils/headers.js')
 /**
  * Point `window.location.pathname` at a page URL.
  *
- * jsdom's `window.location` is not writable, so replace the whole object.
+ * jsdom's `window.location` is neither writable nor configurable: `delete`
+ * fails silently and `Object.defineProperty` throws. Navigating with
+ * `history.pushState` is the one supported way to move the pathname, and it
+ * works on every jsdom version.
  *
  * @param {string} pathname The pathname the page is served under.
  */
 function servePageAt(pathname) {
-	delete window.location
-	window.location = { pathname }
+	window.history.pushState({}, '', pathname)
 }
 
 describe('prefixUrl', () => {

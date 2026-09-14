@@ -31,11 +31,6 @@
  * reason, which keeps the escape hatch auditable instead of silent.
  */
 
-/* eslint-disable no-template-curly-in-string -- the ALLOWED keys below are
- * VERBATIM source text, matched character-for-character against the URL
- * argument the scanner extracts. A `${…}` inside one is the thing being
- * matched, not a template literal that forgot its backticks. */
-
 const fs = require('fs')
 const path = require('path')
 
@@ -151,38 +146,88 @@ function blankComments(source) {
 		const c = source[i]
 		const n = source[i + 1]
 		if (state === null) {
-			if (c === '/' && n === '*') { state = 'block'; out += '  '; i += 2; continue }
-			if (c === '/' && n === '/') { state = 'line'; out += '  '; i += 2; continue }
-			if (c === '"' || c === "'" || c === '`') { state = c; out += c; i++; continue }
+			if (c === '/' && n === '*') {
+				state = 'block'
+				out += '  '
+				i += 2
+				continue
+			}
+			if (c === '/' && n === '/') {
+				state = 'line'
+				out += '  '
+				i += 2
+				continue
+			}
+			if (c === '"' || c === "'" || c === '`') {
+				state = c
+				out += c
+				i++
+				continue
+			}
 			if (c === '/' && EXPRESSION_POSITION.test(out.trimEnd())) {
 				// Regex literal: copy to the unescaped closing delimiter.
 				let j = i + 1
 				let inClass = false
 				for (; j < source.length; j++) {
 					const r = source[j]
-					if (r === '\\') { j++; continue }
-					if (r === '\n') break
-					if (r === '[') inClass = true
-					else if (r === ']') inClass = false
-					else if (r === '/' && !inClass) break
+					if (r === '\\') {
+						j++
+						continue
+					}
+					if (r === '\n') {
+						break
+					}
+					if (r === '[') {
+						inClass = true
+					} else if (r === ']') {
+						inClass = false
+					} else if (r === '/' && !inClass) {
+						break
+					}
 				}
 				out += source.slice(i, j + 1)
 				i = j + 1
 				continue
 			}
-			out += c; i++; continue
+			out += c
+			i++
+			continue
 		}
 		if (state === 'block') {
-			if (c === '*' && n === '/') { state = null; out += '  '; i += 2; continue }
-			out += c === '\n' ? '\n' : ' '; i++; continue
+			if (c === '*' && n === '/') {
+				state = null
+				out += '  '
+				i += 2
+				continue
+			}
+			out += c === '\n' ? '\n' : ' '
+			i++
+			continue
 		}
 		if (state === 'line') {
-			if (c === '\n') { state = null; out += '\n'; i++; continue }
-			out += ' '; i++; continue
+			if (c === '\n') {
+				state = null
+				out += '\n'
+				i++
+				continue
+			}
+			out += ' '
+			i++
+			continue
 		}
-		if (c === '\\') { out += c + (source[i + 1] || ''); i += 2; continue }
-		if (c === state) { state = null; out += c; i++; continue }
-		out += c; i++
+		if (c === '\\') {
+			out += c + (source[i + 1] || '')
+			i += 2
+			continue
+		}
+		if (c === state) {
+			state = null
+			out += c
+			i++
+			continue
+		}
+		out += c
+		i++
 	}
 	return out
 }
@@ -211,15 +256,25 @@ function firstArgument(source, start) {
 	for (; i < source.length; i++) {
 		const c = source[i]
 		if (quote) {
-			if (c === '\\') { i++; continue }
-			if (c === quote) quote = null
+			if (c === '\\') {
+				i++
+				continue
+			}
+			if (c === quote) {
+				quote = null
+			}
 			continue
 		}
-		if (c === '"' || c === "'" || c === '`') { quote = c; continue }
+		if (c === '"' || c === "'" || c === '`') {
+			quote = c
+			continue
+		}
 		if ('([{'.includes(c)) {
 			depth++
 		} else if (')]}'.includes(c)) {
-			if (depth === 0) break
+			if (depth === 0) {
+				break
+			}
 			depth--
 		} else if (c === ',' && depth === 0) {
 			break
@@ -239,7 +294,9 @@ function sourceFiles(dir) {
 	for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
 		const full = path.join(dir, entry.name)
 		if (entry.isDirectory()) {
-			if (entry.name !== '__tests__') out.push(...sourceFiles(full))
+			if (entry.name !== '__tests__') {
+				out.push(...sourceFiles(full))
+			}
 		} else if (/\.(vue|js)$/.test(entry.name)
 			&& !/\.spec\.js$/.test(entry.name)
 			// Generated bundle — a compiled schema validator carries megabytes
@@ -261,7 +318,9 @@ function sourceFiles(dir) {
  * @return {string} Same-length string with non-script regions blanked.
  */
 function scriptRegion(source, file) {
-	if (!file.endsWith('.vue')) return source
+	if (!file.endsWith('.vue')) {
+		return source
+	}
 	const open = /<script\b[^>]*>/g
 	let out = ''
 	let cursor = 0
@@ -307,10 +366,14 @@ function declarationValue(source, name, before) {
 	let match
 	let start = -1
 	while ((match = declaration.exec(source)) !== null) {
-		if (match.index >= before) break
+		if (match.index >= before) {
+			break
+		}
 		start = match.index + match[0].length
 	}
-	if (start === -1) return null
+	if (start === -1) {
+		return null
+	}
 
 	// `?`, `:` and `.` continue a ternary or a member chain onto the next line;
 	// a trailing operator or open bracket continues an expression too.
@@ -323,19 +386,41 @@ function declarationValue(source, name, before) {
 	for (; i < source.length && i < start + 1200; i++) {
 		const c = source[i]
 		if (quote) {
-			if (c === '\\') { i++; continue }
-			if (c === quote) quote = null
+			if (c === '\\') {
+				i++
+				continue
+			}
+			if (c === quote) {
+				quote = null
+			}
 			continue
 		}
-		if (c === '"' || c === "'" || c === '`') { quote = c; continue }
-		if ('([{'.includes(c)) { depth++; continue }
-		if (')]}'.includes(c)) { depth--; continue }
-		if (c !== '\n') continue
-		if (depth > 0) continue
+		if (c === '"' || c === "'" || c === '`') {
+			quote = c
+			continue
+		}
+		if ('([{'.includes(c)) {
+			depth++
+			continue
+		}
+		if (')]}'.includes(c)) {
+			depth--
+			continue
+		}
+		if (c !== '\n') {
+			continue
+		}
+		if (depth > 0) {
+			continue
+		}
 		const sofar = source.slice(start, i).trimEnd()
-		if (CONTINUES_AFTER.test(sofar)) continue
+		if (CONTINUES_AFTER.test(sofar)) {
+			continue
+		}
 		const rest = source.slice(i + 1).replace(/^[ \t]+/, '')
-		if (CONTINUES_BEFORE.test(rest)) continue
+		if (CONTINUES_BEFORE.test(rest)) {
+			continue
+		}
 		break
 	}
 	return source.slice(start, i)
@@ -353,21 +438,33 @@ function declarationValue(source, name, before) {
  * @return {boolean} True when the expression provably flows from a helper.
  */
 function resolvesToHelper(source, before, expression, depth = 3) {
-	if (depth <= 0) return false
+	if (depth <= 0) {
+		return false
+	}
 	const identifiers = [...expression.matchAll(/(?:^|[^\w$.])([a-zA-Z_$][\w$]*)\b(?!\s*\()/g)].map((m) => m[1])
 	for (const id of identifiers) {
 		const value = declarationValue(source, id, before)
-		if (value === null) continue
-		if (usesUrlHelper(value)) return true
-		if (resolvesToHelper(source, before, value, depth - 1)) return true
+		if (value === null) {
+			continue
+		}
+		if (usesUrlHelper(value)) {
+			return true
+		}
+		if (resolvesToHelper(source, before, value, depth - 1)) {
+			return true
+		}
 	}
 	const callees = [...expression.matchAll(/(?:this\.)?([a-zA-Z_$][\w$]*)\s*\(/g)].map((m) => m[1])
 	for (const callee of callees) {
 		const body = new RegExp('\\b' + callee + '\\s*\\([^)]*\\)\\s*\\{([\\s\\S]{0,600}?)\\n\\t*\\}', 'g')
 		let match
 		while ((match = body.exec(source)) !== null) {
-			if (usesUrlHelper(match[1])) return true
-			if (resolvesToHelper(source, before, match[1], depth - 1)) return true
+			if (usesUrlHelper(match[1])) {
+				return true
+			}
+			if (resolvesToHelper(source, before, match[1], depth - 1)) {
+				return true
+			}
 		}
 	}
 	return false
@@ -389,9 +486,15 @@ function unprefixedCallSites() {
 		while ((match = calls.exec(source)) !== null) {
 			const start = match.index + match[0].length
 			const argument = firstArgument(source, start).trim().replace(/\s+/g, ' ')
-			if (argument === '') continue
-			if (usesUrlHelper(argument)) continue
-			if (resolvesToHelper(source, match.index, argument)) continue
+			if (argument === '') {
+				continue
+			}
+			if (usesUrlHelper(argument)) {
+				continue
+			}
+			if (resolvesToHelper(source, match.index, argument)) {
+				continue
+			}
 			offenders.push({
 				key: `${relative}:${argument}`,
 				file: relative,
