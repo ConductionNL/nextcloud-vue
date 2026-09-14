@@ -177,6 +177,58 @@ export interface TManifestPage {
 	 * the `cn-app-nav-shell-refactor` change for the resolution rules.
 	 */
 	primaryAction?: TManifestPrimaryAction
+	/**
+	 * Index pages only. Opens a row beside the list rather than instead of
+	 * it. `buildManifestRoutes()` emits the second route this needs; the
+	 * schema refuses the key on any other page type, because there it would
+	 * validate and then do nothing.
+	 */
+	splitView?: TManifestSplitView
+	/**
+	 * Index pages only. Lets a person drag the rows into an order of their
+	 * own, held per user and per list, never written onto the records.
+	 */
+	manualOrder?: boolean
+	/**
+	 * Detail pages only. Puts the active tab in the address as `?_tab=<id>`,
+	 * so a link points at a tab of a record rather than at the record.
+	 */
+	tabInAddress?: boolean
+	/**
+	 * Lets a reference on this page show a summary of the record it points
+	 * at, on focus and on hover, without leaving the page.
+	 */
+	referencePreview?: boolean
+}
+
+/** The list and one open record, side by side. Declared on an index page. */
+export interface TManifestSplitView {
+	/** Whether opening a row opens it beside the list. */
+	enabled?: boolean
+	/** Viewport width in px below which the split address renders the full detail page. */
+	breakpoint?: number
+	/** CSS width of the detail pane, e.g. `'38%'`. Defaults to `'42%'`. */
+	paneWidth?: string
+}
+
+/**
+ * The app's own defaults for the per-user options `CnPersonalPreferences`
+ * renders, and the switch that turns the personal layer off instance wide.
+ * What a person chooses lives in their Nextcloud preferences, never here.
+ */
+export interface TManifestPersonalisation {
+	/** Whether the personal layer applies at all. */
+	enabled?: boolean
+	/** What to tell a person when the personal layer is off. */
+	disabledReason?: string
+	/** Page id the app opens on when a person has chosen nothing. */
+	landingPage?: string
+	/** How dates read by default. */
+	dateDisplay?: 'absolute' | 'relative'
+	/** Whether each list reopens in the view mode that person last used on it. */
+	rememberLastView?: boolean
+	/** Menu ids pinned to the top of the navigation by default. */
+	pinnedMenu?: string[]
 }
 
 /**
@@ -325,6 +377,11 @@ export interface TManifest {
 	version: string
 	dependencies?: string[]
 	nav?: TManifestNav
+	/**
+	 * App defaults for the per-user options `CnPersonalPreferences` renders,
+	 * and the switch that turns the personal layer off instance wide.
+	 */
+	personalisation?: TManifestPersonalisation
 	/**
 	 * Required for a UI manifest. Omitted only by an observability-only
 	 * manifest (an ADR-040 Tier-0 adopter with no manifest-driven UI —
