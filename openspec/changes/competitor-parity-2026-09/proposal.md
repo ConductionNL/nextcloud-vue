@@ -138,6 +138,60 @@ Wave 2 continues the same list.
 8. `notification-preferences-ui`. After openregister's per-user routing
    under ADR-031, for the same reason.
 
+Wave 4 adds one more, and it waits on nothing in this repository.
+
+9. `offline-capture-queue-and-conflicts`. The core it completes already
+   ships, and dossiq's `syncQueue` and `conflictRecord` schemas are
+   already declared, so the change can start whenever a lane is free.
+
+## Wave 4, the pending proposals
+
+Three rows of the pending half reach nextcloud-vue. The source of record
+is the corpus batch file
+`procest/_round4/compare/proposed-rows-dossiq-2026-09-10.md` in
+ConductionNL/market-intelligence, where every competitor column of every
+row reads `unread`, and the dossiq rating and its evidence are carried
+over from dossiq#2314. One row needed a change of its own. Two are
+already covered, in substance, by work on `development`.
+
+| change | rows | size | basis | dossiq consumer |
+|---|---|---|---|---|
+| `offline-capture-queue-and-conflicts` | 16.1 | L | new | to be specified in dossiq: `queueSchema`, `conflictSchema` and the register in the `field-inspection` `offlineConfig`, and the worker served at its own scope |
+| `status-board-and-date-axis` | 3.26 | M | already covers it | `board` in `viewModes` on `#Cases`, and a drop that runs a transition |
+| `command-palette` (archived 2026-07-16) with `working-list-row-actions` | 2.42 | M | already cover it | `commandPalette` on `CnAppRoot`, and the actions dossiq registers on it |
+
+**16.1 needed a change** because the offline core in
+`src/integrations/offline/` ships with no OpenSpec requirement of any
+kind behind it, and its conflict path has no caller outside its own unit
+test. `classifyConflict`, `isConflictRetryable` and
+`resolveConflictChoice` are all exported, all tested and all unreached,
+so dossiq's `conflictRecord` schema has nothing writing to it. The
+change gives the leaf a queue somebody can read, a conflict that becomes
+an object, a resolution an inspector can choose, and a shell that opens
+with no signal.
+
+**3.26 is already carried** by two requirements of
+`status-board-and-date-axis`. "A board groups into rows by a second
+field" is the swimlane half. "Moving a card runs a transition and a
+refusal is shown" is the drag restricted per role: the board asks the
+host to run the transition, never writes the status field itself, and
+renders the guard's own refusal in the guard's own words. dossiq's half
+stays dossiq's, and the register names it: `WorkflowBoard.vue` writes
+`case.status` straight to OpenRegister and never reaches
+`TransitionAuthorizer`.
+
+**2.42 is already carried** by the archived `command-palette` change,
+whose spec is live at `openspec/specs/command-palette/spec.md`. "The
+palette MUST open on Ctrl/Cmd+shortcut and close on Escape" is the
+shortcut, and "Apps MUST be able to register actions declaratively via
+`useCommandPalette()`" is how an app puts its own work in it. The rest of
+keyboard-first operation is in `working-list-row-actions`, whose
+requirement "The repeated actions run from the keyboard and are
+discoverable" gives every repeated action a shortcut and requires each
+one to be listed in the palette and reachable from a help key. dossiq
+reaches all of it by setting `commandPalette` on `CnAppRoot`, which is
+off by default.
+
 ## The halves the consuming apps carry
 
 Wave 1's two changes end at the component. dossiq declares the columns on its
