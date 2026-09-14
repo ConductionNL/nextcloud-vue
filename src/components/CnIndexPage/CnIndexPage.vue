@@ -3300,9 +3300,15 @@ export default {
 			},
 		},
 
-		// Leaving the narrow full-detail layout puts the list back where it
-		// was. The element was hidden, so the browser kept no scroll height
-		// for it and would otherwise return the handler to row 1 of 400.
+		/**
+		 * Leaving the narrow full-detail layout puts the list back where it
+		 * was. The element was hidden, so the browser kept no scroll height
+		 * for it and would otherwise return the handler to row 1 of 400.
+		 *
+		 * @param {string} next The layout now.
+		 * @param {string} previous The layout before it.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
 		splitLayout(next, previous) {
 			if (previous === 'detail' && next !== 'detail') {
 				this.restoreListScroll()

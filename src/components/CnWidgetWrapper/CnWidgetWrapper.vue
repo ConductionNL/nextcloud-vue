@@ -516,13 +516,6 @@ export default {
 		},
 
 		/**
-		 * Optional `specRef` slug, forwarded to the Actions menu. Accepted
-		 * for backward compatibility with the removed in-product suggestion
-		 * modal; the forge issue form asks for its own context.
-		 *
-		 * @type {string}
-		 */
-		/**
 		 * Declares that this widget wants a high contrast treatment. The flag
 		 * reaches the theme as `data-cn-high-contrast` and a `--high-contrast`
 		 * class; the component picks no colour of its own (ADR-003). A theme
@@ -535,6 +528,13 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Optional `specRef` slug, forwarded to the Actions menu. Accepted
+		 * for backward compatibility with the removed in-product suggestion
+		 * modal; the forge issue form asks for its own context.
+		 *
+		 * @type {string}
+		 */
 		specRef: {
 			type: String,
 			default: '',

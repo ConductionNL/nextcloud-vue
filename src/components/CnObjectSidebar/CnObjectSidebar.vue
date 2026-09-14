@@ -753,8 +753,14 @@ export default {
 			},
 		},
 
+		/**
+		 * Host deep-link: settle on the requested tab when it changes, which
+		 * is how an address naming a tab reaches the tab strip.
+		 *
+		 * @param {string} id The tab asked for.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
 		requestedTab(id) {
-			// Host deep-link: switch to the requested tab when it changes.
 			if (id) {
 				this.settleOnTab(id)
 			}
