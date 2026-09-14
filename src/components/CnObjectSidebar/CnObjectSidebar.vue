@@ -537,6 +537,8 @@ export default {
 		 * the sidebar switches to that tab — lets a host deep-link into a
 		 * specific leaf (e.g. a "Linked apps" row on the detail page that
 		 * opens the Mails tab). Leave null for normal internal tracking.
+		 *
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		requestedTab: {
 			type: String,
@@ -737,6 +739,12 @@ export default {
 	watch: {
 		tabs: {
 			immediate: false,
+			/**
+			 * Re-anchor the active tab when the tab set changes, so the
+			 * active id stays one the reader can actually see.
+			 *
+			 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+			 */
 			handler() {
 				// Re-anchor activeTab when the tab set changes so the
 				// active id stays valid (otherwise NcAppSidebar shows no
@@ -752,8 +760,14 @@ export default {
 			}
 		},
 
-		// The reader clicked a tab. Reported back so a host keeping the tab in
-		// the address writes it there, which is what makes the tab linkable.
+		/**
+		 * The reader clicked a tab. Reported back so a host keeping the tab
+		 * in the address writes it there, which is what makes a tab linkable.
+		 *
+		 * @param {string} id The tab now active.
+		 * @param {string} previous The tab before it.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
 		activeTab(id, previous) {
 			if (id && previous !== undefined && id !== previous && typeof this.onTabChange === 'function') {
 				this.onTabChange(id, false)
@@ -761,6 +775,12 @@ export default {
 		},
 	},
 
+	/**
+	 * Settle on a tab on arrival, and warn about a tab set the consumer
+	 * declared two ways.
+	 *
+	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+	 */
 	mounted() {
 		// Settle on arrival, so an address carrying no tab is corrected to
 		// its canonical form once rather than staying tabless until the
@@ -839,6 +859,7 @@ export default {
 		 * a different one.
 		 *
 		 * @return {Array<string>} The visible tab ids.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		visibleTabIds() {
 			if (this.isRegistryMode) {
@@ -861,6 +882,7 @@ export default {
 		 *
 		 * @param {string|null} requested The tab the address asked for.
 		 * @return {{ tabId: string, canonicalising: boolean }} The tab to show.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		resolveTabRequest(requested) {
 			const visible = this.visibleTabIds
@@ -883,6 +905,7 @@ export default {
 		 * Show a tab and tell the host, so the address can follow.
 		 *
 		 * @param {string|null} requested The tab asked for.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		settleOnTab(requested) {
 			const { tabId, canonicalising } = this.resolveTabRequest(requested)

@@ -270,6 +270,7 @@ export default {
 		 * Whether this reference offers a preview at all.
 		 *
 		 * @return {boolean} False for an unreadable reference, or one with no way to load anything.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		previewable() {
 			return this.readable === true
@@ -281,6 +282,7 @@ export default {
 		 * Stable id joining the trigger's `aria-describedby` to the card.
 		 *
 		 * @return {string} The element id.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		cardId() {
 			return `cn-reference-preview-${String(this.recordId).replace(/[^A-Za-z0-9_-]/g, '-')}`
@@ -290,6 +292,7 @@ export default {
 		 * The card's heading.
 		 *
 		 * @return {string} The record's title, falling back to the reference's own label.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		cardTitle() {
 			const title = this.record?.[this.titleField]
@@ -302,6 +305,7 @@ export default {
 		 * the record's name twice and is told nothing about where it is.
 		 *
 		 * @return {string} The accessible name.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		cardLabel() {
 			return `${t('nextcloud-vue', 'Summary of')} ${this.cardTitle}`
@@ -311,6 +315,7 @@ export default {
 		 * The summary lines the card renders.
 		 *
 		 * @return {Array<{key: string, label: string, value: string}>} The lines.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		lines() {
 			return summaryLines(this.record, this.summaryFields)
@@ -320,6 +325,7 @@ export default {
 		 * What the card says while it is loading.
 		 *
 		 * @return {string} The label.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		loadingLabel() {
 			return t('nextcloud-vue', 'Loading the summary')
@@ -329,12 +335,19 @@ export default {
 		 * What the card says when the record could not be read.
 		 *
 		 * @return {string} The label.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		unreadableLabel() {
 			return t('nextcloud-vue', 'This reference has no summary.')
 		},
 	},
 
+	/**
+	 * Drop the open and close timers, so a reference unmounted mid-hover
+	 * cannot open a card on a component that is gone.
+	 *
+	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+	 */
 	beforeUnmount() {
 		clearTimeout(this.openTimer)
 		clearTimeout(this.closeTimer)
@@ -343,6 +356,8 @@ export default {
 	methods: {
 		/**
 		 * Open the card, after the hover delay, and load the record once.
+		 *
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		onShow() {
 			if (!this.previewable) {
@@ -359,6 +374,8 @@ export default {
 		/**
 		 * Close the card, after the leave delay so the pointer can travel
 		 * from the reference onto the card.
+		 *
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		onHide() {
 			clearTimeout(this.openTimer)
@@ -371,6 +388,8 @@ export default {
 		/**
 		 * Escape closes the card at once, and focus stays where it was. The
 		 * card never took focus, so there is nothing to give back.
+		 *
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		onEscape() {
 			clearTimeout(this.openTimer)
@@ -382,6 +401,7 @@ export default {
 		 * Load the referenced record, at most once per page.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		async load() {
 			if (this.record || !this.previewable) {
@@ -405,6 +425,7 @@ export default {
 		 * The caller's loader, or the object store.
 		 *
 		 * @return {Promise<object|null>} The record.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		loadRecord() {
 			if (typeof this.fetchRecord === 'function') {

@@ -48,6 +48,7 @@ import { listContextFromRoute, listContextToParams, listContextToQuery, neighbou
  * })
  * // nav.available.value → false on a link with no list context
  * // nav.goNext()        → opens the next case of that same filtered list
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function useListNavigation(options = {}) {
 	const {

@@ -2246,6 +2246,7 @@ export default {
 		 * the server / prop order wins. No-op when `defaultSort` is empty.
 		 *
 		 * @return {object[]}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		displayObjects() {
 			// The pane's saves and this person's own order are applied over
@@ -2264,6 +2265,7 @@ export default {
 		 * each re-deriving it.
 		 *
 		 * @return {object[]}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		sortedObjects() {
 			if (!this.defaultSort || this.defaultSort.length === 0) {
@@ -2279,6 +2281,7 @@ export default {
 		 * Whether this page declares a working split view.
 		 *
 		 * @return {boolean}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		splitViewEnabled() {
 			return this.splitView?.enabled === true
@@ -2290,6 +2293,7 @@ export default {
 		 * breakpoint.
 		 *
 		 * @return {'list'|'split'|'detail'}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		splitLayout() {
 			return splitLayoutFor({
@@ -2305,6 +2309,7 @@ export default {
 		 * the browser would drop.
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		splitPaneWidth() {
 			return normalisePaneWidth(this.splitView?.paneWidth)
@@ -2317,6 +2322,7 @@ export default {
 		 * list ignoring them.
 		 *
 		 * @return {boolean}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		manualOrderActive() {
 			return this.manualOrder === true
@@ -3315,6 +3321,12 @@ export default {
 		},
 	},
 
+	/**
+	 * Measure the viewport, follow a resize, and read this person's own
+	 * row order for this list.
+	 *
+	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+	 */
 	mounted() {
 		this.measureSplitViewport()
 		if (this.splitViewEnabled && typeof window !== 'undefined') {
@@ -3365,6 +3377,11 @@ export default {
 		})
 	},
 
+	/**
+	 * Drop the resize listener and the hoisted sidebar.
+	 *
+	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+	 */
 	beforeUnmount() {
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('resize', this.measureSplitViewport)
@@ -3384,6 +3401,8 @@ export default {
 		 * Measure the viewport so the narrow fallback follows a resize and
 		 * not only a reload. Measured rather than read off a media query
 		 * because the breakpoint is the page's own declaration, not a global.
+		 *
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		measureSplitViewport() {
 			if (typeof window !== 'undefined' && Number.isFinite(window.innerWidth)) {
@@ -3400,6 +3419,7 @@ export default {
 		 * all, so the position is held here and put back on the way out.
 		 *
 		 * @param {Event} [event] The scroll event.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		onListScroll(event) {
 			const top = event?.target?.scrollTop
@@ -3412,6 +3432,7 @@ export default {
 		 * Put the list back where it was.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		async restoreListScroll() {
 			await this.$nextTick()
@@ -3426,6 +3447,8 @@ export default {
 		 *
 		 * The list is already mounted and already at row 180, so this is a
 		 * route change and nothing else: no refetch, no remount, no reset.
+		 *
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		closeSplitPane() {
 			/**
@@ -3448,6 +3471,7 @@ export default {
 		 * cases, which is the failure the split view was built to end.
 		 *
 		 * @param {object} saved The saved record.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		onSplitPaneSaved(saved) {
 			const id = rowIdOf(saved, this.rowKey) ?? (this.splitId || null)
@@ -3468,6 +3492,7 @@ export default {
 		 * The key this list's manual order is held under.
 		 *
 		 * @return {string} The preference key.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		manualOrderPreferenceKey() {
 			return manualOrderKey(this.manualOrderId || this.objectType || this.schema || 'default')
@@ -3481,6 +3506,7 @@ export default {
 		 * refuses to render because of one is not.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		async loadManualOrder() {
 			if (!this.manualOrder) {
@@ -3503,6 +3529,7 @@ export default {
 		 *
 		 * @param {Array<string>} ids The new order.
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		async persistManualOrder(ids) {
 			this.manualOrderIds = ids
@@ -3530,6 +3557,7 @@ export default {
 		 * @param {string} id The row being moved.
 		 * @param {number} delta -1 for up, 1 for down.
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		moveRowByHand(id, delta) {
 			return this.persistManualOrder(moveInOrder(visibleIdsOf(this.displayObjects, this.rowKey), id, delta))
@@ -3541,6 +3569,7 @@ export default {
 		 * @param {string} id The row being dragged.
 		 * @param {number} toIndex The index it was dropped at.
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		dropRowByHand(id, toIndex) {
 			return this.persistManualOrder(dropInOrder(visibleIdsOf(this.displayObjects, this.rowKey), id, toIndex))

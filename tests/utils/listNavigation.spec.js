@@ -112,7 +112,13 @@ describe('neighboursOf', () => {
 
 	it('steps to the next record of that same list', () => {
 		expect(neighboursOf(ids, 'b')).toEqual({
-			position: 2, total: 4, previousId: 'a', nextId: 'c', isFirst: false, isLast: false, known: true,
+			position: 2,
+			total: 4,
+			previousId: 'a',
+			nextId: 'c',
+			isFirst: false,
+			isLast: false,
+			known: true,
 		})
 	})
 
@@ -132,7 +138,13 @@ describe('neighboursOf', () => {
 
 	it('offers nothing for a record that is not in the list, rather than a position it guessed', () => {
 		expect(neighboursOf(ids, 'zz')).toEqual({
-			position: 0, total: 4, previousId: null, nextId: null, isFirst: false, isLast: false, known: false,
+			position: 0,
+			total: 4,
+			previousId: null,
+			nextId: null,
+			isFirst: false,
+			isLast: false,
+			known: false,
 		})
 	})
 

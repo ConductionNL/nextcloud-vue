@@ -26,8 +26,8 @@ import {
 	readUserPreference,
 	resolvePreference,
 	USER_PREFERENCE_KEYS,
-	useUserPreferences,
 	userPreferenceUrl,
+	useUserPreferences,
 	writeUserPreference,
 } from '../../src/composables/useUserPreferences.js'
 

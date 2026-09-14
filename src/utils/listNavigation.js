@@ -36,6 +36,7 @@ const RESERVED_QUERY_KEYS = new Set([LIST_CONTEXT_QUERY_KEY, '_search', '_page',
  *
  * @param {object} route A vue-router route object (`$route`).
  * @return {{ pageId: string, search: string, sortKeys: Array<{key: string, order: string}>, filters: object }|null} The context, or null when the address carries none.
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function listContextFromRoute(route) {
 	const query = route?.query || {}
@@ -69,6 +70,7 @@ export function listContextFromRoute(route) {
  * @param {Array<{key: string, order: string}>} [context.sortKeys] The list's sort.
  * @param {object} [context.filters] The list's active filters.
  * @return {object} The query to merge into the record's route.
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function listContextToQuery({ pageId, search, sortKeys, filters } = {}) {
 	if (typeof pageId !== 'string' || pageId === '') {
@@ -115,6 +117,7 @@ function parseSortKeys(raw) {
  * @param {object|null} context The list context.
  * @param {number} [limit] How many records to ask for.
  * @return {object} Params for `fetchCollection`.
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function listContextToParams(context, limit = 200) {
 	if (!context) {
@@ -144,6 +147,7 @@ export function listContextToParams(context, limit = 200) {
  * @param {Array<string>} ids The record ids, in the list's order.
  * @param {string} currentId The record open now.
  * @return {{ position: number, total: number, previousId: string|null, nextId: string|null, isFirst: boolean, isLast: boolean, known: boolean }} The neighbours. `known` is false when the record is not in the list at all.
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function neighboursOf(ids, currentId) {
 	const list = (Array.isArray(ids) ? ids : []).map(String)

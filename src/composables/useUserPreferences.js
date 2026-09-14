@@ -59,6 +59,7 @@ export const USER_PREFERENCE_KEYS = {
  * @param {string} appId The Nextcloud app id.
  * @param {string} key The preference key.
  * @return {string} The generated URL.
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function userPreferenceUrl(appId, key) {
 	return generateUrl('/apps/' + appId + '/api/preferences/' + key)
@@ -79,6 +80,7 @@ export function userPreferenceUrl(appId, key) {
  * @param {string|number|boolean|Array|object|null|undefined} [layers.personal] What this person set.
  * @param {boolean} [layers.personalisationEnabled] Whether the personal layer applies at all.
  * @return {{ value: string|number|boolean|Array|object|null|undefined, source: 'personal'|'administered'|'app'|'none', personalApplies: boolean }} The resolved value and where it came from.
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function resolvePreference({ appDefault, administered, personal, personalisationEnabled = true } = {}) {
 	const personalApplies = personalisationEnabled !== false
@@ -122,6 +124,7 @@ function isSet(value) {
  * @param {object} [options.http] An axios-shaped client, for tests.
  * @param {object} [options.storage] A localStorage-shaped store, for tests.
  * @return {Promise<string|number|boolean|Array|object|null|undefined>} The stored value, or the fallback.
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export async function readUserPreference(appId, key, fallback = null, options = {}) {
 	const local = readLocal(appId, key, options.storage)
@@ -158,6 +161,7 @@ export async function readUserPreference(appId, key, fallback = null, options = 
  * @param {object} [options.http] An axios-shaped client, for tests.
  * @param {object} [options.storage] A localStorage-shaped store, for tests.
  * @return {Promise<boolean>} Whether it reached the server.
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export async function writeUserPreference(appId, key, value, options = {}) {
 	writeLocal(appId, key, value, options.storage)
@@ -191,6 +195,7 @@ export async function writeUserPreference(appId, key, value, options = {}) {
  * const prefs = useUserPreferences('dossiq', { personalisation: manifest.personalisation })
  * const landing = await prefs.read(USER_PREFERENCE_KEYS.landingPage, 'Cases')
  * await prefs.write(USER_PREFERENCE_KEYS.dateDisplay, 'relative')
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function useUserPreferences(appId, options = {}) {
 	const { personalisation = {}, administered = {}, http, storage } = options

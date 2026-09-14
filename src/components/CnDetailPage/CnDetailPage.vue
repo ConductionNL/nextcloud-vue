@@ -543,7 +543,10 @@
 				<table class="cn-detail-page__stats-table">
 					<thead v-if="statsColumns.length > 0">
 						<tr>
-							<th v-for="col in statsColumns" :key="col.key" :class="col.align ? 'cn-detail-page__stats-cell--' + col.align : ''">
+							<th v-for="col in statsColumns"
+								:key="col.key"
+								scope="col"
+								:class="col.align ? 'cn-detail-page__stats-cell--' + col.align : ''">
 								{{ col.label }}
 							</th>
 						</tr>
@@ -1848,6 +1851,7 @@ export default {
 		 * what gates both the button and the skip link.
 		 *
 		 * @return {string} The label, or an empty string.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		primaryActionLabel() {
 			const label = this.primaryAction?.label
@@ -1861,6 +1865,7 @@ export default {
 		 * the split view makes possible, cannot both answer to `#primary`.
 		 *
 		 * @return {string} The element id.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		primaryActionAnchorId() {
 			const scope = this.primaryAction?.id || this.pageId || this.objectId || 'record'
@@ -1875,6 +1880,7 @@ export default {
 		 * they are being offered before they take it.
 		 *
 		 * @return {string} The link text.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		skipLinkLabel() {
 			return `${this.effectiveTranslate('Skip to')} ${this.primaryActionLabel}`
@@ -1884,6 +1890,7 @@ export default {
 		 * Where this record sits in the list it was opened from, as text.
 		 *
 		 * @return {string} For example "4 of 40".
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		listPositionLabel() {
 			const nav = this.listNavigation
@@ -1898,6 +1905,7 @@ export default {
 		 * steps through rather than only which direction it goes.
 		 *
 		 * @return {string} The label.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		previousRecordLabel() {
 			return this.listNavigation?.isFirst
@@ -1909,6 +1917,7 @@ export default {
 		 * Accessible name for the next control.
 		 *
 		 * @return {string} The label.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		nextRecordLabel() {
 			return this.listNavigation?.isLast
@@ -2808,6 +2817,7 @@ export default {
 		 * the next tab press back to the top of the page.
 		 *
 		 * @param {Event} event The click event.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		onSkipToPrimaryAction(event) {
 			const target = this.$refs.primaryActionButton?.$el ?? this.$refs.primaryActionButton
@@ -2830,6 +2840,7 @@ export default {
 		 *
 		 * @param {string} tabId The tab now active.
 		 * @param {boolean} [canonicalising] Whether this is the arrival correction rather than a reader's choice.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		onTabChange(tabId, canonicalising = false) {
 			if (typeof tabId !== 'string' || tabId === '') {
@@ -2855,6 +2866,7 @@ export default {
 		 * The tab the address asks for, or null.
 		 *
 		 * @return {string|null} The tab id.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		requestedTabFromAddress() {
 			const tab = this.$route?.query?._tab
@@ -2872,6 +2884,7 @@ export default {
 		 *
 		 * @param {string} tabId The tab now showing.
 		 * @param {boolean} [canonicalising] Whether this is a correction rather than a reader's choice.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		onSidebarTabChange(tabId, canonicalising = false) {
 			this.onTabChange(tabId, canonicalising || this.requestedTabFromAddress() === null)
@@ -3841,6 +3854,8 @@ export default {
 		 * Suppression (`show: false` or `enabled: false`) clears
 		 * `tabs` so a hidden detail page does not leak prior tab
 		 * state to the next mount.
+		 *
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		syncSidebarState() {
 			if (!this.hasExternalSidebar) {

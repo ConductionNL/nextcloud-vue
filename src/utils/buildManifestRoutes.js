@@ -38,6 +38,7 @@ export const SPLIT_ROUTE_SUFFIX = '__split'
  *
  * @param {string} pageId The manifest page id.
  * @return {string} The split route's name.
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function splitRouteName(pageId) {
 	return `${pageId}${SPLIT_ROUTE_SUFFIX}`
@@ -53,6 +54,7 @@ export function splitRouteName(pageId) {
  *
  * @param {object} page A manifest page entry.
  * @return {boolean} True when a split route should be emitted.
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function pageHasSplitView(page) {
 	return page?.type === 'index' && page?.splitView?.enabled === true
@@ -68,6 +70,7 @@ export function pageHasSplitView(page) {
  *
  * @param {string} route The page's own path pattern, e.g. `/cases`.
  * @return {string} The split path, e.g. `/cases/split/:id`.
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function splitRoutePath(route) {
 	const base = typeof route === 'string' ? route.replace(/\/+$/, '') : ''
@@ -104,6 +107,7 @@ export function splitRoutePath(route) {
  *     props: { manifest, customComponents },
  *   }),
  * })
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function buildManifestRoutes(manifest, options = {}) {
 	const pages = Array.isArray(manifest?.pages) ? manifest.pages : []
@@ -168,6 +172,7 @@ function finish(page, record, decorate) {
  *
  * @param {object} route A vue-router route object (`$route`).
  * @return {string|null} The page id, or null when the route names none.
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function pageIdForRoute(route) {
 	const fromMeta = route?.meta?.cnPageId
@@ -183,6 +188,7 @@ export function pageIdForRoute(route) {
  *
  * @param {object} route A vue-router route object (`$route`).
  * @return {string|null} The id from the path, or null when this is not a split route.
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function splitIdForRoute(route) {
 	if (!route?.meta?.cnSplitOf) {

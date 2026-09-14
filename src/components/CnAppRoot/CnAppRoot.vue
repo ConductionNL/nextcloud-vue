@@ -742,6 +742,12 @@ export default {
 		CnTenantBadge,
 	},
 
+	/**
+	 * What every descendant of this app shell can reach: the manifest,
+	 * the registries, and this person's own preferences.
+	 *
+	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+	 */
 	provide() {
 		// `self` is load-bearing: the returned object exposes `cnManifest` as a
 		// GETTER, and inside a getter on that literal `this` is the literal —
@@ -1837,6 +1843,7 @@ export default {
 		 * preferences screen showing it are looking at the same thing.
 		 *
 		 * @return {object} The group from useUserPreferences.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		userPreferences() {
 			return useUserPreferences(this.appId, {

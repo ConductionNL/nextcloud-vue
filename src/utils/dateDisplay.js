@@ -44,6 +44,7 @@ const UNITS = [
  * @param {Date|number} [options.now] What counts as now, for tests.
  * @param {object} [options.dateOptions] `Intl.DateTimeFormat` options for the absolute form.
  * @return {{ text: string, title: string, accessibleName: string, iso: string }|null} The three renderings, or null when the value is not a date.
+ * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function formatDateForDisplay(value, options = {}) {
 	const date = toDate(value)

@@ -861,7 +861,12 @@ export default {
 			return this.tr('This page needs the following app to be installed and enabled.')
 		},
 
-		/** Page definition matching the current route name, or null. */
+		/**
+		 * Page definition matching the current route name, or null.
+		 *
+		 * @return {object|null} The manifest page entry.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
 		currentPage() {
 			// `meta.cnPageId` first, the route name second. The split route
 			// `/<page>/split/:id` is registered under `<pageId>__split`, so
@@ -881,6 +886,7 @@ export default {
 		 * split route.
 		 *
 		 * @return {string|null} The record id.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		currentSplitId() {
 			return splitIdForRoute(this.$route)
@@ -986,6 +992,7 @@ export default {
 		 * first thing to drift is always the thing only one of them has.
 		 *
 		 * @return {object|null} The manifest page entry, or null when the index has no detail page.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		splitDetailPage() {
 			const page = this.currentPage
@@ -1003,6 +1010,7 @@ export default {
 		 * The component the split pane renders.
 		 *
 		 * @return {object|null} The page component, or null.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		splitPaneComponent() {
 			const detail = this.splitDetailPage
@@ -1023,6 +1031,7 @@ export default {
 		 * names.
 		 *
 		 * @return {object} The prop bag.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		splitPaneProps() {
 			const detail = this.splitDetailPage
@@ -1031,7 +1040,11 @@ export default {
 				return {}
 			}
 			const config = detail.config || {}
-			const props = { ...config, objectId: id, id }
+			// `objectId` only, never a bare `id`. CnDetailPage declares no
+			// `id` prop, so a bare one falls through onto the pane's root
+			// element as a plain HTML attribute, and the page then answers to
+			// `#case-1` alongside the skip link's own anchor.
+			const props = { ...config, objectId: id }
 			if (props.objectType === undefined && typeof config.schema === 'string' && config.schema !== '') {
 				props.objectType = config.schema
 			}
@@ -1099,6 +1112,7 @@ export default {
 		 *      as a default-overrides layer.
 		 *
 		 * Per-type prop validation lives on the target components.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		resolvedProps() {
 			const page = this.currentPage
@@ -1602,6 +1616,7 @@ export default {
 		 *
 		 * @param {object} row The clicked / viewed row object.
 		 * @return {void}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		onRowOpen(row) {
 			const page = this.currentPage
@@ -1681,6 +1696,7 @@ export default {
 		 * already holds its search, its sort and its filters.
 		 *
 		 * @return {object} The query for the record's route.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		rowOpenQuery() {
 			const page = this.currentPage
