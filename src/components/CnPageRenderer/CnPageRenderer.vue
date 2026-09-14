@@ -145,6 +145,16 @@
 						:key="entry.name"
 						v-bind="slotProps" />
 				</template>
+				<!-- The open record, beside the list. The host never writes
+				     this slot: the renderer already knows which detail page
+				     the index opens into, so it mounts that one. -->
+				<template v-if="splitPaneComponent" #split-pane="splitScope">
+					<component
+						:is="splitPaneComponent"
+						v-bind="splitPaneProps"
+						@edited="splitScope.saved"
+						@created="splitScope.saved" />
+				</template>
 				<!-- eslint-enable vue/no-v-for-template-key-on-child -->
 			</component>
 			<!-- header-actions slot -->
@@ -194,6 +204,16 @@
 					:is="entry.component"
 					:key="entry.name"
 					v-bind="slotProps" />
+			</template>
+			<!-- The open record, beside the list. The host never writes
+			     this slot: the renderer already knows which detail page
+			     the index opens into, so it mounts that one. -->
+			<template v-if="splitPaneComponent" #split-pane="splitScope">
+				<component
+					:is="splitPaneComponent"
+					v-bind="splitPaneProps"
+					@edited="splitScope.saved"
+					@created="splitScope.saved" />
 			</template>
 			<!-- eslint-enable vue/no-v-for-template-key-on-child -->
 		</component>
@@ -251,6 +271,7 @@ import { useObjectSubscription } from '../../composables/useObjectSubscription.j
 import { useObjectStore } from '../../store/index.js'
 import { dispatchAction, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { pageHasSplitView, pageIdForRoute, splitIdForRoute, splitRouteName } from '../../utils/buildManifestRoutes.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { buildRouteParams, routePathFor } from '../../utils/routeParams.js'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
@@ -823,11 +844,27 @@ export default {
 
 		/** Page definition matching the current route name, or null. */
 		currentPage() {
-			const routeName = this.$route?.name
-			if (!routeName) {
+			// `meta.cnPageId` first, the route name second. The split route
+			// `/<page>/split/:id` is registered under `<pageId>__split`, so
+			// matching on the name alone would resolve it to no page at all
+			// and render a blank screen at a perfectly valid address.
+			// `buildManifestRoutes()` stamps the meta; a hand-written router
+			// has none, and there the route name IS the page id.
+			const pageId = pageIdForRoute(this.$route)
+			if (!pageId) {
 				return null
 			}
-			return this.pageById.get(routeName) ?? null
+			return this.pageById.get(pageId) ?? null
+		},
+
+		/**
+		 * The record the split pane is showing, or null when this is not a
+		 * split route.
+		 *
+		 * @return {string|null} The record id.
+		 */
+		currentSplitId() {
+			return splitIdForRoute(this.$route)
 		},
 
 		/**
@@ -919,6 +956,78 @@ export default {
 				return true
 			}
 			return false
+		},
+
+		/**
+		 * The detail page a split pane mounts, resolved the same way the full
+		 * route resolves it.
+		 *
+		 * The SAME component, deliberately. A second detail implementation
+		 * for the pane would drift from the full page within a month, and the
+		 * first thing to drift is always the thing only one of them has.
+		 *
+		 * @return {object|null} The manifest page entry, or null when the index has no detail page.
+		 */
+		splitDetailPage() {
+			const page = this.currentPage
+			if (!pageHasSplitView(page)) {
+				return null
+			}
+			const cfg = page.config || {}
+			const named = typeof cfg.rowRoute === 'string' && cfg.rowRoute !== ''
+				? this.pageById.get(cfg.rowRoute)
+				: null
+			return named ?? this.detailPageByRegisterSchema.get(`${cfg.register} ${cfg.schema}`) ?? null
+		},
+
+		/**
+		 * The component the split pane renders.
+		 *
+		 * @return {object|null} The page component, or null.
+		 */
+		splitPaneComponent() {
+			const detail = this.splitDetailPage
+			if (!detail) {
+				return null
+			}
+			if (detail.type === 'custom') {
+				return this.resolveCustomComponent(detail.component || detail.slots?.main, 'page') || null
+			}
+			return this.effectivePageTypes[detail.type] || null
+		},
+
+		/**
+		 * The props the split pane's detail component is mounted with.
+		 *
+		 * Built from the detail page's own declaration, so the pane shows
+		 * what the full route would show, plus the id the split address
+		 * names.
+		 *
+		 * @return {object} The prop bag.
+		 */
+		splitPaneProps() {
+			const detail = this.splitDetailPage
+			const id = this.currentSplitId
+			if (!detail || !id) {
+				return {}
+			}
+			const config = detail.config || {}
+			const props = { ...config, objectId: id, id }
+			if (props.objectType === undefined && typeof config.schema === 'string' && config.schema !== '') {
+				props.objectType = config.schema
+			}
+			for (const key of ['title', 'description', 'icon']) {
+				if (detail[key] !== undefined) {
+					props[key] = detail[key]
+				}
+			}
+			if (detail.tabInAddress === true) {
+				props.tabInAddress = true
+			}
+			if (detail.primaryAction) {
+				props.primaryAction = detail.primaryAction
+			}
+			return props
 		},
 
 		resolvedComponent() {
@@ -1067,6 +1176,19 @@ export default {
 			//      shipped an index whose rows were simply dead on click
 			//      (observed on hermiq GraphIndex → GraphDetail).
 			//   2. A matching `type:"detail"` page (same register + schema).
+			if (isIndex && pageHasSplitView(page)) {
+				// The split view and the record it is showing. `splitId` comes
+				// from the route rather than from config, because the address
+				// is the source of truth for which record is open: that is
+				// what makes the split view a place you can link to.
+				topLevel.splitView = page.splitView
+				topLevel.splitId = this.currentSplitId || ''
+				topLevel.splitCloseRoute = page.id
+			}
+			if (isIndex && page?.manualOrder === true) {
+				topLevel.manualOrder = true
+				topLevel.manualOrderId = page.id
+			}
 			if (isIndex) {
 				const hasRowRoute = typeof config.rowRoute === 'string' && config.rowRoute !== ''
 				const hasDetail = this.detailPageByRegisterSchema.has(`${config.register} ${config.schema}`)
@@ -1098,6 +1220,12 @@ export default {
 			// prop is unset, so `config.objectType` or
 			// `params.objectId` still wins.
 			const isDetail = page?.type === 'detail'
+			if (isDetail && page.tabInAddress === true) {
+				topLevel.tabInAddress = true
+			}
+			if (isDetail && page.primaryAction) {
+				topLevel.primaryAction = page.primaryAction
+			}
 			if (isDetail) {
 				// The other half of the index rule above: a schema-bound detail
 				// page gets its own Edit affordance. Set unconditionally for
@@ -1463,6 +1591,29 @@ export default {
 				return
 			}
 			const cfg = page.config || {}
+			const self0 = row['@self'] || {}
+			const rowId = row.id ?? self0.id ?? self0.uuid ?? row.uuid
+			// A page declaring a split view opens the row BESIDE the list, at
+			// its own address, rather than navigating away from it. This
+			// branch comes first and is deliberately unconditional on
+			// `config.rowRoute`: the split view is the page saying where its
+			// rows open, and it is a stronger statement than a route name,
+			// because it also says the list must not unmount.
+			if (pageHasSplitView(page) && rowId !== undefined && rowId !== null && rowId !== '') {
+				const splitName = splitRouteName(page.id)
+				if (this.routeNameIsKnown(splitName) === false) {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnPageRenderer] Index page "${page.id}" declares splitView, but the router has no "${splitName}" route. Build the routes with buildManifestRoutes() or the split view cannot open.`)
+				} else {
+					const splitPath = routePathFor(router, splitName)
+					router.push({
+						name: splitName,
+						params: buildRouteParams(splitPath, rowId, this.$route?.params),
+						query: this.$route?.query || {},
+					}).catch(() => {})
+					return
+				}
+			}
 			// `config.rowRoute` names the target explicitly and WINS: it is the
 			// only way to reach a detail surface that is not a `type:"detail"`
 			// page (an authoring canvas, a form page), and an author who named

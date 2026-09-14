@@ -345,12 +345,20 @@
 					@create="$emit('folder-create', $event)" />
 			</div>
 
+			<!-- The list. `v-show`, never `v-if`: the narrow layout hides it
+			     but must not unmount it, because unmounting throws away the
+			     scroll position, the selection and the loaded page, which is
+			     the whole thing the split view exists to keep. -->
 			<div
+				v-show="splitLayout !== 'detail'"
+				ref="listScroll"
 				class="cn-index-page__main"
 				:class="{
 					'cn-index-page__main--map': currentViewMode === 'map',
 					'cn-index-page__main--table': currentViewMode === 'table',
-				}">
+					'cn-index-page__main--split': splitLayout === 'split',
+				}"
+				@scroll="onListScroll">
 				<!-- @slot before-collection Content rendered above the collection in EVERY view mode (table, cards, list, map) — e.g. a folder/group strip that must stay visually separate from the objects instead of masquerading as rows or cards. -->
 				<slot name="before-collection" />
 
@@ -587,6 +595,30 @@
 					@pageChanged="onPageEvent"
 					@pageSizeChanged="$emit('page-size-changed', $event)" />
 			</div>
+
+			<!-- The open record, beside the list on a wide screen and instead
+			     of it on a narrow one. Same slot either way, and the host
+			     mounts the same detail component in it that the full route
+			     mounts: two detail implementations drift within a month. -->
+			<div
+				v-if="splitLayout !== 'list'"
+				class="cn-index-page__split-pane"
+				:class="{ 'cn-index-page__split-pane--full': splitLayout === 'detail' }"
+				:style="splitLayout === 'split' ? { width: splitPaneWidth } : null"
+				data-testid="cn-index-page-split-pane"
+				:data-split-layout="splitLayout">
+				<!-- @slot split-pane The open record, rendered beside the list. Mount the SAME detail component the full route mounts. -->
+				<!-- @binding {string} id The record the address names. -->
+				<!-- @binding {string} layout Either `split` (beside the list) or `detail` (the full page, below the breakpoint). -->
+				<!-- @binding {Function} close Closes the pane and returns to the list, at the list's own address. -->
+				<!-- @binding {Function} saved Call with the saved record to replace its row in the list without refetching the page. -->
+				<slot
+					:id="splitId"
+					name="split-pane"
+					:layout="splitLayout"
+					:close="closeSplitPane"
+					:saved="onSplitPaneSaved" />
+			</div>
 		</div>
 
 		<!-- Manifest-driven sidebar — auto-mounted when sidebar.enabled
@@ -667,7 +699,9 @@ import { CnSaveViewDialog } from '../CnSaveViewDialog/index.js'
 import { applyAiContext } from './aiContext.js'
 import { buildDefaultActions } from './defaultActions.js'
 import { dispatchAction } from './manifestActionDispatch.js'
+import { applyManualOrder, dropInOrder, manualOrderKey, moveInOrder, visibleIdsOf } from './manualOrder.js'
 import { createSelfModeActions } from './selfModeActions.js'
+import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { useNamedSource } from './useNamedSource.js'
 import { useSelfFetchList } from './useSelfFetchList.js'
 
@@ -817,6 +851,14 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/**
+		 * The per-user preference reader and writer, provided by CnAppRoot.
+		 * Used for the manual row order, which belongs to the person and the
+		 * list rather than to the records. The default is null, and every read
+		 * and write is guarded, so a page mounted with no CnAppRoot ancestor
+		 * simply has no held order instead of failing to render.
+		 */
+		cnUserPreferences: { default: null },
 		/**
 		 * Consumer translation function, provided by CnAppRoot as
 		 * `cnTranslate: this.translate` (bound to the host app's id). Column and
@@ -1055,6 +1097,67 @@ export default {
 		rowClickToView: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * The page's `splitView` declaration: `{ enabled, breakpoint, paneWidth }`.
+		 * With `enabled`, opening a row renders it beside the list in the
+		 * `#split-pane` slot instead of navigating away, and the list keeps its
+		 * scroll position, its selection and its loaded page. Omit it and the
+		 * page renders exactly as it does today.
+		 *
+		 * @type {{ enabled?: boolean, breakpoint?: number, paneWidth?: string }}
+		 */
+		splitView: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * The record the split pane is showing, taken from the split address.
+		 * Empty closes the pane. Ignored unless `splitView.enabled`.
+		 *
+		 * @type {string}
+		 */
+		splitId: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Route name the pane's close button returns to. Defaults to the
+		 * current route's own list address when omitted.
+		 *
+		 * @type {string}
+		 */
+		splitCloseRoute: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Lets this person drag the rows into an order of their own, held
+		 * against them and this list and never written onto the records. The
+		 * order stands down while a sort is active, because a sort the person
+		 * just chose is them asking for a different order.
+		 *
+		 * @type {boolean}
+		 */
+		manualOrder: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Stable id this list's manual order is held under. Defaults to the
+		 * object type or the schema, so two lists of one schema on different
+		 * pages share an order only when the host says they should.
+		 *
+		 * @type {string}
+		 */
+		manualOrderId: {
+			type: String,
+			default: '',
 		},
 
 		/** Currently selected IDs */
@@ -1920,6 +2023,9 @@ export default {
 		'sort-change',
 		'view',
 		'view-mode-change',
+		'split-close',
+		'split-saved',
+		'manual-order-change',
 	],
 
 	setup(props) {
@@ -1999,6 +2105,21 @@ export default {
 			savedViewsLoading: false,
 			showSaveViewDialog: false,
 			viewPendingDelete: null,
+			// Split view (case-page-and-list-as-a-place). `splitRowPatches` holds
+			// records saved in the pane, keyed by row id, so a save lands on the
+			// row without refetching the page and losing the scroll position.
+			// `splitViewportWidth` is measured rather than guessed, so the narrow
+			// fallback follows a window resize and not only a reload.
+			splitRowPatches: {},
+			// Measured here rather than in `mounted`, so the FIRST render is
+			// already the right layout. Measuring after the mount rendered
+			// the split pane once on a phone and then swapped it for the full
+			// page, which reads as the page flickering on every open.
+			splitViewportWidth: (typeof window !== 'undefined' && Number.isFinite(window.innerWidth)) ? window.innerWidth : 0,
+			splitScrollTop: 0,
+			// Manual order: the row ids this person dragged into an order, read
+			// from and written to their own preferences. Never on the records.
+			manualOrderIds: [],
 		}
 	},
 
@@ -2127,6 +2248,24 @@ export default {
 		 * @return {object[]}
 		 */
 		displayObjects() {
+			// The pane's saves and this person's own order are applied over
+			// the loaded rows, in that order, so neither needs a refetch and
+			// neither writes anything onto the records.
+			const patched = applyRowPatches(this.sortedObjects, this.splitRowPatches, this.rowKey)
+			return this.manualOrderActive
+				? applyManualOrder(patched, this.manualOrderIds, this.rowKey)
+				: patched
+		},
+
+		/**
+		 * The rows in the order the server, the props or `defaultSort` put
+		 * them. Split out of `displayObjects` so the pane's patches and this
+		 * person's manual order stack on top of one sorted list rather than
+		 * each re-deriving it.
+		 *
+		 * @return {object[]}
+		 */
+		sortedObjects() {
 			if (!this.defaultSort || this.defaultSort.length === 0) {
 				return this.effectiveObjects
 			}
@@ -2134,6 +2273,55 @@ export default {
 				return this.effectiveObjects
 			}
 			return multiKeySort(this.effectiveObjects, this.defaultSort)
+		},
+
+		/**
+		 * Whether this page declares a working split view.
+		 *
+		 * @return {boolean}
+		 */
+		splitViewEnabled() {
+			return this.splitView?.enabled === true
+		},
+
+		/**
+		 * Which of the three layouts the page is in: the plain list, the list
+		 * with the pane beside it, or the record on its own below the
+		 * breakpoint.
+		 *
+		 * @return {'list'|'split'|'detail'}
+		 */
+		splitLayout() {
+			return splitLayoutFor({
+				enabled: this.splitViewEnabled,
+				splitId: this.splitId || null,
+				viewportWidth: this.splitViewportWidth,
+				breakpoint: this.splitView?.breakpoint,
+			})
+		},
+
+		/**
+		 * The pane's CSS width, falling back when the page declared something
+		 * the browser would drop.
+		 *
+		 * @return {string}
+		 */
+		splitPaneWidth() {
+			return normalisePaneWidth(this.splitView?.paneWidth)
+		},
+
+		/**
+		 * Whether a manual row order applies right now. A search, a filter or
+		 * a sort the person just chose all mean they asked for a different
+		 * order, and a held order that quietly overruled it would read as the
+		 * list ignoring them.
+		 *
+		 * @return {boolean}
+		 */
+		manualOrderActive() {
+			return this.manualOrder === true
+				&& this.manualOrderIds.length > 0
+				&& !this.effectiveSortKey
 		},
 
 		/**
@@ -3106,6 +3294,15 @@ export default {
 			},
 		},
 
+		// Leaving the narrow full-detail layout puts the list back where it
+		// was. The element was hidden, so the browser kept no scroll height
+		// for it and would otherwise return the handler to row 1 of 400.
+		splitLayout(next, previous) {
+			if (previous === 'detail' && next !== 'detail') {
+				this.restoreListScroll()
+			}
+		},
+
 		// When `?action=create` is injected into the query via router navigation
 		// (e.g. a "New Case" button on another page), auto-open the create dialog
 		// so the user lands on the index page with the form already open.
@@ -3119,6 +3316,11 @@ export default {
 	},
 
 	mounted() {
+		this.measureSplitViewport()
+		if (this.splitViewEnabled && typeof window !== 'undefined') {
+			window.addEventListener('resize', this.measureSplitViewport)
+		}
+		this.loadManualOrder()
 		this.publishHoistedSidebar()
 		this.pushAiContext()
 		this.maybeOpenCreateFromQuery()
@@ -3164,6 +3366,9 @@ export default {
 	},
 
 	beforeUnmount() {
+		if (typeof window !== 'undefined') {
+			window.removeEventListener('resize', this.measureSplitViewport)
+		}
 		// Clear the holder so the hoisted sidebar disappears when
 		// the user navigates away from the index page.
 		if (this.cnHostsIndexSidebar && this.cnIndexSidebarConfig) {
@@ -3173,6 +3378,174 @@ export default {
 	},
 
 	methods: {
+		// ── Split view (case-page-and-list-as-a-place) ──────────────────
+
+		/**
+		 * Measure the viewport so the narrow fallback follows a resize and
+		 * not only a reload. Measured rather than read off a media query
+		 * because the breakpoint is the page's own declaration, not a global.
+		 */
+		measureSplitViewport() {
+			if (typeof window !== 'undefined' && Number.isFinite(window.innerWidth)) {
+				this.splitViewportWidth = window.innerWidth
+			}
+		},
+
+		/**
+		 * Remember where the list is scrolled to.
+		 *
+		 * The list never unmounts, so the browser keeps the scroll on its
+		 * own in the split layout. It does NOT keep it across the narrow
+		 * layout, where the element is hidden and has no scroll height at
+		 * all, so the position is held here and put back on the way out.
+		 *
+		 * @param {Event} [event] The scroll event.
+		 */
+		onListScroll(event) {
+			const top = event?.target?.scrollTop
+			if (Number.isFinite(top)) {
+				this.splitScrollTop = top
+			}
+		},
+
+		/**
+		 * Put the list back where it was.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async restoreListScroll() {
+			await this.$nextTick()
+			const el = this.$refs.listScroll
+			if (el && Number.isFinite(this.splitScrollTop) && this.splitScrollTop > 0) {
+				el.scrollTop = this.splitScrollTop
+			}
+		},
+
+		/**
+		 * Close the pane and go back to the list's own address.
+		 *
+		 * The list is already mounted and already at row 180, so this is a
+		 * route change and nothing else: no refetch, no remount, no reset.
+		 */
+		closeSplitPane() {
+			/**
+			 * @event split-close Emitted when the split pane is closed. The host returns to the list address.
+			 */
+			this.$emit('split-close')
+			const router = this.$router
+			const target = this.splitCloseRoute || this.$route?.meta?.cnPageId || null
+			if (router && target) {
+				router.push({ name: target, query: this.$route?.query || {} }).catch(() => {})
+			}
+			this.restoreListScroll()
+		},
+
+		/**
+		 * A record was saved in the pane: replace its row where it sits.
+		 *
+		 * Deliberately not a refetch. Refetching the page would be correct
+		 * and would also scroll the handler back to the top of four hundred
+		 * cases, which is the failure the split view was built to end.
+		 *
+		 * @param {object} saved The saved record.
+		 */
+		onSplitPaneSaved(saved) {
+			const id = rowIdOf(saved, this.rowKey) ?? (this.splitId || null)
+			if (id === null || !saved || typeof saved !== 'object') {
+				return
+			}
+			this.splitRowPatches = { ...this.splitRowPatches, [id]: saved }
+			/**
+			 * @event split-saved Emitted after a record saved in the pane was written onto its row in the list.
+			 * @type {object}
+			 */
+			this.$emit('split-saved', saved)
+		},
+
+		// ── Manual order (case-page-and-list-as-a-place) ────────────────
+
+		/**
+		 * The key this list's manual order is held under.
+		 *
+		 * @return {string} The preference key.
+		 */
+		manualOrderPreferenceKey() {
+			return manualOrderKey(this.manualOrderId || this.objectType || this.schema || 'default')
+		},
+
+		/**
+		 * Read this person's order for this list out of their preferences.
+		 *
+		 * A read that fails leaves the list in its loaded order rather than
+		 * blocking it: an order nobody can read is a nicety, and a list that
+		 * refuses to render because of one is not.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadManualOrder() {
+			if (!this.manualOrder) {
+				return
+			}
+			const read = this.cnUserPreferences?.read
+			if (typeof read !== 'function') {
+				return
+			}
+			try {
+				const stored = await read(this.manualOrderPreferenceKey(), [])
+				this.manualOrderIds = Array.isArray(stored) ? stored.map(String) : []
+			} catch {
+				this.manualOrderIds = []
+			}
+		},
+
+		/**
+		 * Write this person's order back, and tell the host.
+		 *
+		 * @param {Array<string>} ids The new order.
+		 * @return {Promise<void>}
+		 */
+		async persistManualOrder(ids) {
+			this.manualOrderIds = ids
+			/**
+			 * @event manual-order-change Emitted when this person reorders the list by hand. Payload is the row ids in their order.
+			 * @type {Array<string>}
+			 */
+			this.$emit('manual-order-change', ids)
+			const write = this.cnUserPreferences?.write
+			if (typeof write === 'function') {
+				try {
+					await write(this.manualOrderPreferenceKey(), ids)
+				} catch {
+					// A preference that could not be written is a preference
+					// that will not survive the reload. The list is still in
+					// the order the person just chose, so nothing is said.
+				}
+			}
+		},
+
+		/**
+		 * Move a row one place up or down. The keyboard half of the drag, and
+		 * the one the drag itself calls, so the two cannot disagree.
+		 *
+		 * @param {string} id The row being moved.
+		 * @param {number} delta -1 for up, 1 for down.
+		 * @return {Promise<void>}
+		 */
+		moveRowByHand(id, delta) {
+			return this.persistManualOrder(moveInOrder(visibleIdsOf(this.displayObjects, this.rowKey), id, delta))
+		},
+
+		/**
+		 * Place a dragged row at an index.
+		 *
+		 * @param {string} id The row being dragged.
+		 * @param {number} toIndex The index it was dropped at.
+		 * @return {Promise<void>}
+		 */
+		dropRowByHand(id, toIndex) {
+			return this.persistManualOrder(dropInOrder(visibleIdsOf(this.displayObjects, this.rowKey), id, toIndex))
+		},
+
 		/**
 		 * Resolve a declarative `headerActions[]` entry's `handler`
 		 * field into the final dispatchable shape. Mirrors the
