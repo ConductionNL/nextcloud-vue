@@ -22,8 +22,8 @@
  */
 
 import { computed, isRef, ref, unref, watch } from 'vue'
-import { listContextFromRoute, listContextToParams, listContextToQuery, neighboursOf } from '../utils/listNavigation.js'
 import { rowIdOf } from '../components/CnIndexPage/splitView.js'
+import { listContextFromRoute, listContextToParams, listContextToQuery, neighboursOf } from '../utils/listNavigation.js'
 
 /**
  * Give a detail view next and previous within the list it was opened from.

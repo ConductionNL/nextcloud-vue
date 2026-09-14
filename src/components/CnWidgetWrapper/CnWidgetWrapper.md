@@ -159,3 +159,7 @@ The colour is published once as `--cn-widget-icon-color` on the header, so it ca
 | `reportBugUrl` | String | `''` | Explicit bug-report target. Empty builds a new-issue deep-link on the app's own forge. |
 
 Request a feature / Report a bug / Documentation render on every widget; the shared menu resolves their targets itself.
+
+## High contrast
+
+`high-contrast` declares that this widget wants a high contrast treatment. The flag reaches the theme; the component picks no colour. See [the reference page](../../../docs/components/cn-widget-wrapper.md#high-contrast).

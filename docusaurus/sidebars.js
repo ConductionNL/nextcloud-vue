@@ -113,6 +113,7 @@ const sidebars = {
 				'utilities/fields-from-schema',
 				'utilities/filter-widgets-by-visibility',
 				'utilities/filters-from-schema',
+				'utilities/format-date-for-display',
 				'utilities/format-value',
 				'utilities/generic-error',
 				'utilities/get-current-user-groups',
