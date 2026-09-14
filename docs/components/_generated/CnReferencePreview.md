@@ -26,7 +26,7 @@
 
 ### Slots
 
-| Name      | Bindings          | Description                                                 |
-| --------- | ----------------- | ----------------------------------------------------------- |
-| `default` | —                 | default The reference itself. Defaults to the `label` prop. |
-| `card`    | `record`, `lines` | card The summary body. Receives the loaded record.          |
+| Name      | Bindings          | Description                                                  |
+| --------- | ----------------- | ------------------------------------------------------------ |
+| `default` | —                 | The reference itself. Defaults to the `label` prop.          |
+| `card`    | `record`, `lines` | The summary body (`#card`), scoped with \{ record, lines \}. |

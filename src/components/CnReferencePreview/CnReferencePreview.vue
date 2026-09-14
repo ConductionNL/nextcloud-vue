@@ -47,7 +47,7 @@
 					@mouseenter="onShow"
 					@mouseleave="onHide"
 					@keydown.esc="onEscape">
-					<!-- @slot default The reference itself. Defaults to the `label` prop. -->
+					<!-- @slot The reference itself. Defaults to the `label` prop. -->
 					<slot>{{ label }}</slot>
 				</component>
 			</template>
@@ -66,7 +66,7 @@
 					<p class="cn-reference-preview__card-title">
 						{{ cardTitle }}
 					</p>
-					<!-- @slot card The summary body. Receives the loaded record. -->
+					<!-- @slot The summary body (`#card`), scoped with { record, lines }. -->
 					<!-- @binding {object} record The referenced record. -->
 					<!-- @binding {Array<{key: string, label: string, value: string}>} lines The summary lines built from `summaryFields`. -->
 					<slot name="card" :record="record" :lines="lines">
