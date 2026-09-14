@@ -290,6 +290,7 @@ describe('builtInFormatters', () => {
 	describe('formatConnectionStatus', () => {
 		it.each([
 			['configured', 'Configured'],
+			['limited', 'Limited'],
 			['unconfigured', 'Not configured'],
 			['simulated', 'Simulated'],
 			['unavailable', 'Not available'],
@@ -300,6 +301,7 @@ describe('builtInFormatters', () => {
 
 		it('passes an unknown value through unchanged', () => {
 			expect(formatConnectionStatus('degraded')).toBe('degraded')
+			expect(formatConnectionStatus('partial')).toBe('partial')
 			expect(formatConnectionStatus('')).toBe('')
 		})
 

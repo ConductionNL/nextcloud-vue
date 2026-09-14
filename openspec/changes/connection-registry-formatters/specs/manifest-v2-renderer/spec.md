@@ -4,7 +4,7 @@
 
 The `cnFormatters` registry (`BUILT_IN_FORMATTERS` in `builtInFormatters.js`) SHALL provide `connectionStatus` and `connectionSettingsLabel`, resolvable by a column's `formatter` name. Both SHALL translate through the library's own slug (`nextcloud-vue`) at call time, and SHALL NOT throw on any input.
 
-- `connectionStatus(value)` SHALL render `configured` as "Configured", `unconfigured` as "Not configured", `simulated` as "Simulated", `unavailable` as "Not available" and `error` as "Error". Any other value SHALL pass through as `String(value)`. Null and undefined SHALL render as an empty string.
+- `connectionStatus(value)` SHALL render `configured` as "Configured", `limited` as "Limited", `unconfigured` as "Not configured", `simulated` as "Simulated", `unavailable` as "Not available" and `error` as "Error". Any other value SHALL pass through as `String(value)`. Null and undefined SHALL render as an empty string.
 - `connectionSettingsLabel(value)` SHALL render "Open settings" when `value` is a non-empty string, and an empty string otherwise.
 - A consumer formatter registered under the same name SHALL override the built-in.
 
@@ -12,6 +12,11 @@ The `cnFormatters` registry (`BUILT_IN_FORMATTERS` in `builtInFormatters.js`) SH
 
 - **WHEN** a column declares `{ key: "status", formatter: "connectionStatus" }` and a row carries `status: "simulated"`
 - **THEN** the cell SHALL render "Simulated", or "Gesimuleerd" for a Dutch reader
+
+#### Scenario: A connection that works in part renders as limited
+
+- **WHEN** a column declares `{ key: "status", formatter: "connectionStatus" }` and a row carries `status: "limited"`
+- **THEN** the cell SHALL render "Limited", or "Beperkt" for a Dutch reader
 
 #### Scenario: An unknown status passes through
 
