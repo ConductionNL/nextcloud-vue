@@ -39,7 +39,7 @@
 //  - @e2e Save cannot be pressed while a stored version is on the canvas
 //  - @e2e going back to the flow restores the live graph and re-enables Save
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const EDITOR = '/?flow=1'
 

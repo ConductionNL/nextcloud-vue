@@ -11,7 +11,7 @@
 		:open="open"
 		:name="t('nextcloud-vue', 'Delete file')"
 		size="small"
-		:close-on-click-outside="true"
+		:closeOnClickOutside="true"
 		@update:open="$emit('update:open', $event)">
 		<p class="cn-files-widget-delete-dialog__message">
 			{{ t('nextcloud-vue', 'Are you sure you want to delete {name}?', { name: fileName }) }}
@@ -30,7 +30,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton } from '@nextcloud/vue'
+import { NcButton, NcDialog } from '@nextcloud/vue'
 
 export default {
 	name: 'CnFilesWidgetDeleteDialog',
@@ -46,6 +46,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Name of the file pending deletion, shown in the confirmation prompt. */
 		fileName: {
 			type: String,

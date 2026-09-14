@@ -44,7 +44,6 @@ jest.mock('@nextcloud/router', () => ({
 }))
 
 // Import AFTER the mocks are registered.
-// eslint-disable-next-line import/first
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0))

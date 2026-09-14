@@ -9,7 +9,7 @@
 		v-if="childRenderer"
 		:content="childContent"
 		:placement="placement"
-		:edit-mode="editMode" />
+		:editMode="editMode" />
 	<div v-else class="cn-container-child cn-container-child--unknown">
 		<span class="cn-container-child__missing">{{ unknownLabel }}</span>
 	</div>
@@ -40,6 +40,7 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** Whether the surrounding container is in edit mode. */
 		editMode: {
 			type: Boolean,

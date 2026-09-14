@@ -33,13 +33,13 @@
 				:update="(v) => onUpdate(field, v)">
 				<NcSelect
 					v-if="field.type === 'select'"
-					:model-value="selectedOption(field)"
+					:modelValue="selectedOption(field)"
 					:options="field.options || []"
-					:input-label="field.label"
+					:inputLabel="field.label"
 					:label="field.optionLabel || 'label'"
 					:clearable="field.clearable === true"
 					:disabled="field.disabled === true"
-					@update:model-value="(o) => onUpdate(field, o ? o[field.optionValue || 'value'] : '')" />
+					@update:modelValue="(o) => onUpdate(field, o ? o[field.optionValue || 'value'] : '')" />
 
 				<!-- The textarea is the one control with no NC component behind
 				     it, so the base draws its own label — hence __label, which
@@ -63,13 +63,13 @@
 
 				<NcTextField
 					v-else
-					:model-value="valueOf(field)"
+					:modelValue="valueOf(field)"
 					:label="field.label"
 					:type="field.inputType || 'text'"
 					:error="Boolean(errorFor(field))"
-					:helper-text="errorFor(field)"
+					:helperText="errorFor(field)"
 					:disabled="field.disabled === true"
-					@update:model-value="(v) => onUpdate(field, v)" />
+					@update:modelValue="(v) => onUpdate(field, v)" />
 			</slot>
 		</div>
 
@@ -101,6 +101,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import { nextUid } from '../../utils/uid.js'
+
 import '../../css/form-widget.css'
 
 /**
@@ -160,6 +161,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Field descriptors, in render order. See the component description
 		 * for the shape.
@@ -170,6 +172,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * The form values, keyed by field key. Read-only here: the base emits
 		 * `update:field` and the host owns the mutation.
@@ -180,6 +183,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Per-field validation messages, keyed by field key. A non-empty entry
 		 * puts its field into the error state and shows the text as helper
@@ -191,26 +195,31 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether the submit button is enabled (before `submitting`). */
 		canSubmit: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether a submit is in flight — disables the button and swaps its label. */
 		submitting: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Pre-translated submit button label. */
 		submitLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Save'),
 		},
+
 		/** Pre-translated label shown while `submitting`. */
 		submittingLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Saving…'),
 		},
+
 		/** Form-level error message, shown as one line below the actions. */
 		errorMessage: {
 			type: String,
@@ -244,7 +253,7 @@ export default {
 		 * The current value for a field.
 		 *
 		 * @param {object} field Field descriptor.
-		 * @return {*} The model value, or '' when unset.
+		 * @return {unknown} The model value, or '' when unset.
 		 */
 		valueOf(field) {
 			const v = (this.model || {})[field.key]
@@ -310,13 +319,13 @@ export default {
 		 * rather than only store it.
 		 *
 		 * @param {object} field Field descriptor.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 * @return {void}
 		 */
 		onUpdate(field, value) {
 			/**
 			 * @event update:field A field's value changed.
-			 * @type {{ key: string, value: * }}
+			 * @type {{ key: string, value: unknown }}
 			 */
 			this.$emit('update:field', { key: field.key, value })
 		},

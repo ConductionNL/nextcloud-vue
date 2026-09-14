@@ -11,7 +11,7 @@ jest.mock('@nextcloud/router', () => ({
 }))
 
 const axios = require('@nextcloud/axios').default
-const { shallowMount, mount } = require('@vue/test-utils')
+const { shallowMount, mount, flushPromises } = require('@vue/test-utils')
 const CnSetupWizard = require('../../src/components/CnSetupWizard/CnSetupWizard.vue').default
 const { __resetSetupStatusCacheForTests } = require('../../src/composables/useSetupStatus.js')
 
@@ -56,6 +56,75 @@ describe('CnSetupWizard', () => {
 		expect(wrapper.vm.actionResult.seed).toMatchObject({ success: false, message: 'Not allowed' })
 	})
 
+	describe('a run-action step starts itself (no manual "Run" click needed)', () => {
+		it('auto-runs on mount when the wizard resumes straight onto the step', async () => {
+			axios.post.mockResolvedValue({ data: { success: true, message: 'Seeded' } })
+			shallowMount(CnSetupWizard, {
+				propsData: { appId: 'procest', steps, completedStepIds: ['region'] },
+			})
+			await flushPromises()
+			expect(axios.post).toHaveBeenCalledWith('/index.php/apps/procest/api/setup/action/seed')
+		})
+
+		it('does not auto-run again once the server already reports it done', async () => {
+			shallowMount(CnSetupWizard, {
+				propsData: { appId: 'procest', steps, completedStepIds: ['region', 'seed'] },
+			})
+			await flushPromises()
+			expect(axios.post).not.toHaveBeenCalled()
+		})
+
+		it('auto-runs on navigating forward onto the step', async () => {
+			axios.post.mockResolvedValue({ data: { success: true } })
+			const wrapper = shallowMount(CnSetupWizard, { propsData: { appId: 'procest', steps } })
+			await flushPromises()
+			axios.post.mockClear()
+			wrapper.vm.onStepChange({ stepId: 'seed', stepIndex: 2, direction: 'next' })
+			await flushPromises()
+			expect(axios.post).toHaveBeenCalledWith('/index.php/apps/procest/api/setup/action/seed')
+		})
+
+		it('does not start a second run while one is already in flight', async () => {
+			let resolvePost
+			axios.post.mockReturnValue(new Promise((resolve) => {
+				resolvePost = resolve
+			}))
+			const wrapper = shallowMount(CnSetupWizard, {
+				propsData: { appId: 'procest', steps, completedStepIds: ['region'] },
+			})
+			// Let the auto-run reach its (mocked, still-pending) axios.post call
+			// without resolving it — `running.seed` stays true meanwhile.
+			await flushPromises()
+			expect(axios.post).toHaveBeenCalledTimes(1)
+			expect(wrapper.vm.running.seed).toBe(true)
+			wrapper.vm.onStepChange({ stepId: 'seed', stepIndex: 2, direction: 'jump' })
+			expect(axios.post).toHaveBeenCalledTimes(1)
+			resolvePost({ data: { success: true } })
+			await flushPromises()
+		})
+	})
+
+	describe('the dialog title names the app', () => {
+		it('falls back to the generic dialogTitle default when no appName is given', () => {
+			const wrapper = shallowMount(CnSetupWizard, { propsData: { appId: 'procest', steps } })
+			expect(wrapper.vm.resolvedDialogTitle).toBe(wrapper.vm.dialogTitle)
+		})
+
+		it('becomes "Set up {appName}" once appName is set', () => {
+			const wrapper = shallowMount(CnSetupWizard, {
+				propsData: { appId: 'procest', steps, appName: 'Open Register' },
+			})
+			expect(wrapper.vm.resolvedDialogTitle).toBe('Set up Open Register')
+		})
+
+		it('a caller-supplied dialogTitle still wins when there is no appName', () => {
+			const wrapper = shallowMount(CnSetupWizard, {
+				propsData: { appId: 'procest', steps, dialogTitle: 'Bespoke title' },
+			})
+			expect(wrapper.vm.resolvedDialogTitle).toBe('Bespoke title')
+		})
+	})
+
 	describe('resuming from server state (completedStepIds)', () => {
 		const mountWizard = (completedStepIds) => shallowMount(CnSetupWizard, {
 			propsData: { appId: 'procest', steps, completedStepIds },
@@ -72,6 +141,14 @@ describe('CnSetupWizard', () => {
 
 		it('falls back to step one when every actionable step is done', () => {
 			expect(mountWizard(['region', 'seed']).vm.initialStepId).toBe('')
+		})
+
+		it('starts at step one when only LATER steps are done, not earlier ones', () => {
+			// An app whose install-time repair step pre-satisfies `seed` reports it
+			// done on the very first visit, before anyone has opened the wizard.
+			// Nothing before the outstanding `region` step is finished, so there is
+			// nothing to resume past and the welcome step must still be shown.
+			expect(mountWizard(['seed']).vm.initialStepId).toBe('')
 		})
 
 		it('skips info/summary steps when resuming', () => {

@@ -32,8 +32,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnOpenprojectTab from './openproject/CnOpenprojectTab.vue'
 import CnOpenprojectCard from './openproject/CnOpenprojectCard.vue'
+import CnOpenprojectTab from './openproject/CnOpenprojectTab.vue'
 
 /**
  * `openproject` integration descriptor.

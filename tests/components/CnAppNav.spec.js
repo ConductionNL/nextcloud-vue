@@ -20,7 +20,6 @@ jest.mock('@nextcloud/capabilities', () => ({
 }))
 
 const { getCapabilities } = require('@nextcloud/capabilities')
-
 // Import the cache-reset helper so each test starts with a clean slate.
 const { __resetAppInstalledCacheForTests } = require('../../src/utils/appInstalled.js')
 
@@ -62,12 +61,12 @@ function mountNav({
 	const provide = useProps
 		? {}
 		: {
-			cnManifest: manifest,
-			cnTranslate: translate ?? ((k) => k),
-			...(openUserSettings ? { cnOpenUserSettings: openUserSettings } : {}),
-			...(replayWalkthrough ? { cnReplayWalkthrough: replayWalkthrough } : {}),
-			...(cnAppId !== undefined ? { cnAppId } : {}),
-		}
+				cnManifest: manifest,
+				cnTranslate: translate ?? ((k) => k),
+				...(openUserSettings ? { cnOpenUserSettings: openUserSettings } : {}),
+				...(replayWalkthrough ? { cnReplayWalkthrough: replayWalkthrough } : {}),
+				...(cnAppId !== undefined ? { cnAppId } : {}),
+			}
 	const propsData = {
 		permissions,
 		...(isOwner !== undefined ? { isOwner } : {}),
@@ -75,9 +74,9 @@ function mountNav({
 		...(appId !== undefined ? { appId } : {}),
 		...(useProps
 			? {
-				manifest,
-				translate: translate ?? ((k) => k),
-			}
+					manifest,
+					translate: translate ?? ((k) => k),
+				}
 			: {}),
 	}
 	return mount(CnAppNav, {
@@ -308,29 +307,41 @@ describe('CnAppNav', () => {
 			expect(wrapper.vm.isActive({ route: 'posTenderTypes' })).toBe(false)
 		})
 
-		// An ancestor entry overruled by a more specific sibling owner must use
-		// exact matching so the router-link's inclusive active state can't
-		// independently light it up.
-		it('forces exact matching on an ancestor namespace owned by a more specific sibling', () => {
+		// WHAT A READER SEES, not a helper's return value.
+		//
+		// These two used to assert `isExact()`, a helper feeding an `exact` prop
+		// on NcAppNavigationItem. @nextcloud/vue 9 removed that prop, so the
+		// helper had been inert, and the assertions kept passing anyway because
+		// they never looked at what rendered.
+		//
+		// Nothing was lost with it: the component renders its RouterLink with
+		// `custom`, so Vue Router applies no active class of its own, and the
+		// highlight comes only from the `active` prop this nav passes. That is
+		// what these now assert.
+		it('lights only the owning entry when a more specific sibling owns the route', () => {
 			const wrapper = mountNav({
 				manifest: posManifest,
 				routeName: 'posTenderTypes',
 				routePath: '/pos/tender-types',
 			})
-			expect(wrapper.vm.isExact({ route: 'pos' })).toBe(true)
-			// The owner itself keeps inclusive matching.
-			expect(wrapper.vm.isExact({ route: 'posTenderTypes' })).toBe(false)
+			const activeOf = (route) => wrapper
+				.findAll('[data-cn-route]')
+				.filter((w) => w.attributes('data-cn-route') === route)
+				.map((w) => w.attributes('data-testid'))
+			expect(activeOf('posTenderTypes').length).toBeGreaterThan(0)
+			expect(wrapper.vm.isActive({ route: 'posTenderTypes' })).toBe(true)
+			// The ancestor namespace must NOT light up for its sibling's route.
+			expect(wrapper.vm.isActive({ route: 'pos' })).toBe(false)
 		})
 
-		// Backwards compatible: an index entry on its OWN nested route (no
-		// dedicated menu entry) keeps inclusive matching so it still lights up.
-		it('keeps inclusive matching for an index entry on its own nested detail route', () => {
+		it('still lights an index entry on its own nested detail route', () => {
 			const wrapper = mountNav({
 				manifest: posManifest,
 				routeName: 'posDetail',
 				routePath: '/pos/42',
 			})
-			expect(wrapper.vm.isExact({ route: 'pos' })).toBe(false)
+			// `posDetail` has no menu entry of its own, so the index entry owns it.
+			expect(wrapper.vm.isActive({ route: 'pos' })).toBe(true)
 		})
 	})
 
@@ -377,7 +388,11 @@ describe('CnAppNav', () => {
 			const group = wrapper.vm.visibleItems.find((i) => i.id === 'group')
 
 			expect(wrapper.vm.visibleChildren(group).map((c) => c.id)).toEqual([
-				'queue', 'mywork', 'tickets', 'projects', 'tasks',
+				'queue',
+				'mywork',
+				'tickets',
+				'projects',
+				'tasks',
 			])
 		})
 
@@ -402,7 +417,9 @@ describe('CnAppNav', () => {
 			const group = wrapper.vm.visibleItems.find((i) => i.id === 'group')
 
 			expect(wrapper.vm.visibleChildren(group).map((c) => c.id)).toEqual([
-				'ordered', 'first-unordered', 'second-unordered',
+				'ordered',
+				'first-unordered',
+				'second-unordered',
 			])
 		})
 
@@ -963,7 +980,7 @@ describe('CnAppNav', () => {
 
 		it('renders footer-section items in the #footer slot, outside the scroll list', () => {
 			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
-			// Footer items live in the .cn-app-nav__footer-list <ul> inside
+			// Footer items live in the .cn-app-nav__footer-list inside
 			// NcAppNavigation's #footer slot so they stay visible above the
 			// settings foldout even when the main list overflows (the pinned
 			// prop only bottom-pins while the list does not scroll).
@@ -971,6 +988,16 @@ describe('CnAppNav', () => {
 			expect(footerList.exists()).toBe(true)
 			expect(footerList.find('[data-testid="cn-nav-entry-docs"]').exists()).toBe(true)
 			expect(footerList.find('[data-testid="cn-nav-entry-roadmap"]').exists()).toBe(true)
+		})
+
+		it('builds the footer list out of NcAppNavigationList, not a bare <ul>', () => {
+			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
+			// The entries' edge inset rides on this component's own scoped
+			// padding; a bare <ul> leaves them flush against the navigation.
+			// Asserted on the component because jsdom shows no padding.
+			const footerList = wrapper.findComponent({ name: 'NcAppNavigationList' })
+			expect(footerList.exists()).toBe(true)
+			expect(footerList.classes()).toContain('cn-app-nav__footer-list')
 		})
 
 		it('mounts the settings foldout with the settings items inside', () => {
@@ -1336,7 +1363,7 @@ describe('CnAppNav', () => {
 			expect(wrapper.vm.isItemOpen(groupManifest.menu[0])).toBe(false)
 		})
 
-		it('does not toggle on title click when the item has a route', () => {
+		it('opens (without toggling) on title click when the item has a route', () => {
 			const item = {
 				id: 'parent',
 				label: 'app.p',
@@ -1346,14 +1373,41 @@ describe('CnAppNav', () => {
 			const wrapper = mountNav({
 				manifest: { version: '1.0.0', pages: [], menu: [item] },
 				useProps: true,
-				routeName: 'parent',
+				routeName: 'home',
 			})
 			const event = { preventDefault: jest.fn() }
+			expect(wrapper.vm.isItemOpen(item)).toBe(false)
 			wrapper.vm.onItemClick(item, event)
 			// Routed parents navigate via :to — the click handler must not
-			// hijack them into a collapse toggle.
+			// hijack the click into preventing that navigation.
 			expect(event.preventDefault).not.toHaveBeenCalled()
+			// But it DOES reveal the children, so a reader who clicks the
+			// group's own page is not left to find the collapse chevron
+			// separately to see what else the group holds.
+			expect(wrapper.vm.isItemOpen(item)).toBe(true)
+			// And it does not TOGGLE: a second click while already open
+			// stays open — only the collapse chevron can close it again.
+			wrapper.vm.onItemClick(item, event)
+			expect(wrapper.vm.isItemOpen(item)).toBe(true)
+		})
+
+		it('opens (without toggling) on title click when the item has an href', () => {
+			const item = {
+				id: 'parent',
+				label: 'app.p',
+				href: 'https://example.test/parent',
+				children: [{ id: 'child', label: 'app.c', route: 'child' }],
+			}
+			const wrapper = mountNav({
+				manifest: { version: '1.0.0', pages: [], menu: [item] },
+				useProps: true,
+				routeName: 'home',
+			})
+			const event = { preventDefault: jest.fn() }
 			expect(wrapper.vm.isItemOpen(item)).toBe(false)
+			wrapper.vm.onItemClick(item, event)
+			expect(event.preventDefault).not.toHaveBeenCalled()
+			expect(wrapper.vm.isItemOpen(item)).toBe(true)
 		})
 
 		it('auto-expands a group when the active route is one of its children', () => {

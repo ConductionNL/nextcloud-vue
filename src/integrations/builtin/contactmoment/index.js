@@ -7,8 +7,8 @@
  * @module integrations/builtin/contactmoment
  */
 
-import CnContactmomentTab from './CnContactmomentTab.vue'
 import CnContactmomentCard from './CnContactmomentCard.vue'
+import CnContactmomentTab from './CnContactmomentTab.vue'
 
-export { CnContactmomentTab, CnContactmomentCard }
+export { CnContactmomentCard, CnContactmomentTab }
 export default { CnContactmomentTab, CnContactmomentCard }

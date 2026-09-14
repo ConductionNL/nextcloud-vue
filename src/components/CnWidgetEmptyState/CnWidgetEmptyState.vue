@@ -81,21 +81,24 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Nothing here yet'),
 		},
+
 		/** Optional second line explaining what would fill the widget. */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Icon component rendered inside the circle. Defaults to an
 		 * empty-tray outline.
 		 *
-		 * @type {object|Function|null}
+		 * @type {import('vue').Component|null}
 		 */
 		icon: {
 			type: [Object, Function],
 			default: null,
 		},
+
 		/**
 		 * Semantic colour for the icon and its tint, matching the widget
 		 * header's `titleIconVariant` so an empty widget still reads as the
@@ -108,6 +111,7 @@ export default {
 			default: 'neutral',
 			validator: (v) => ['primary', 'success', 'warning', 'error', 'neutral'].includes(v),
 		},
+
 		/**
 		 * Shrink to a single quiet line-height block — for short tiles where
 		 * a full empty state would be taller than the widget.
@@ -122,7 +126,7 @@ export default {
 		/**
 		 * The icon component to render (the `icon` prop, else the default).
 		 *
-		 * @return {object|Function}
+		 * @return {import('vue').Component}
 		 */
 		iconComponent() {
 			return this.icon || TrayRemove

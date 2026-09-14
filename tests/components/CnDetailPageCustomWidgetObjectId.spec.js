@@ -1,3 +1,4 @@
+import { mount } from '@vue/test-utils'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -16,7 +17,6 @@
  * exactly the silence the bug depended on.
  */
 import { h } from 'vue'
-import { mount } from '@vue/test-utils'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
 /**

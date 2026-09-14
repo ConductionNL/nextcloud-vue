@@ -13,11 +13,11 @@
  */
 
 import schema from '../../src/schemas/app-manifest.schema.json'
-import valid from '../fixtures/manifest-valid.json'
-import invalid from '../fixtures/manifest-invalid.json'
+import { validateManifest } from '../../src/utils/validateManifest.js'
 import allTypes from '../fixtures/manifest-all-types.json'
 import invalidTypeConfig from '../fixtures/manifest-invalid-type-config.json'
-import { validateManifest } from '../../src/utils/validateManifest.js'
+import invalid from '../fixtures/manifest-invalid.json'
+import valid from '../fixtures/manifest-valid.json'
 
 describe('app-manifest.schema.json (metadata)', () => {
 	it('declares JSON Schema draft 2020-12', () => {
@@ -25,9 +25,7 @@ describe('app-manifest.schema.json (metadata)', () => {
 	})
 
 	it('uses the GitHub raw URL on `main` as $id', () => {
-		expect(schema.$id).toBe(
-			'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json',
-		)
+		expect(schema.$id).toBe('https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json')
 	})
 
 	it('has a title and description', () => {
@@ -873,7 +871,6 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 	})
 
 	describe('manifest-sidebar-show.json fixture', () => {
-		// eslint-disable-next-line global-require
 		const fixture = require('../fixtures/manifest-sidebar-show.json')
 
 		it('passes validateManifest end-to-end', () => {
@@ -1271,9 +1268,7 @@ describe('validateManifest — settings orchestration (manifest-settings-orchest
 		const config = schema.$defs.page.properties.config
 		expect(config.properties.tabs).toBeDefined()
 		expect(config.properties.tabs.type).toBe('array')
-		expect(config.properties.tabs.items.required).toEqual(
-			expect.arrayContaining(['id', 'label', 'sections']),
-		)
+		expect(config.properties.tabs.items.required).toEqual(expect.arrayContaining(['id', 'label', 'sections']))
 	})
 
 	it('REQ-MSO-8: schema top-level version field is at the current schema version (1.8.0)', () => {
@@ -1314,6 +1309,33 @@ describe('validateManifest — manifest-form-page-type', () => {
 		}))
 		expect(result.valid).toBe(true)
 		expect(result.errors).toEqual([])
+	})
+
+	it('accepts a type=file field on a type=form page', () => {
+		const result = validateManifest(wrap({
+			id: 'advice',
+			route: '/advice',
+			type: 'form',
+			title: 'Advice',
+			config: {
+				fields: [baseField, { key: 'report', label: 'i18n.report', type: 'file', accept: '.pdf', maxSize: 10485760 }],
+				submitHandler: 'saveAdvice',
+			},
+		}))
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('rejects a type=file field on a type=settings page, which saves to app config', () => {
+		const result = validateManifest(wrap({
+			id: 'app-settings',
+			route: '/settings',
+			type: 'settings',
+			title: 'Settings',
+			config: { sections: [{ title: 'g', fields: [{ key: 'logo', label: 'Logo', type: 'file' }] }] },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors).toContain('/pages/0/config/sections/0/fields/0/type: must be one of boolean, number, string, enum, password, json')
 	})
 
 	it('rejects a type=form page missing fields', () => {

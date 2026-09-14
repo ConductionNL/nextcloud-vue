@@ -1,3 +1,6 @@
+// CnFlowDetail and the flow store are Pinia-backed, so the harness needs a
+// pinia instance to mount them at all.
+import { createPinia } from 'pinia'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -20,9 +23,8 @@
  * add one.
  */
 import { createApp } from 'vue'
-// CnFlowDetail and the flow store are Pinia-backed, so the harness needs a
-// pinia instance to mount them at all.
-import { createPinia } from 'pinia'
+import App from './App.vue'
+
 // Nextcloud CSS custom properties so the harness reflects real theming
 // (the library styles everything with var(--color-*) tokens).
 import '../../styleguide/nextcloud-tokens.css'
@@ -36,12 +38,13 @@ import '../../src/css/patches.css'
 // stayed parked at its off-screen -9999px trigger, which reads in a spec as
 // "the menu never opened".
 import '../../src/css/context-menu.css'
-import App from './App.vue'
 
 // Minimal l10n shims so library components that call the global `t`/`n` render.
-const t = (app, text, vars) => (vars
-	? String(text).replace(/\{(\w+)\}/g, (_, k) => (vars[k] != null ? vars[k] : `{${k}}`))
-	: text)
+function t(app, text, vars) {
+	return vars
+		? String(text).replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? `{${k}}`))
+		: text
+}
 const n = (app, s, p, count) => (count === 1 ? s : p)
 
 const app = createApp(App)

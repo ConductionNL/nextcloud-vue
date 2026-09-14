@@ -15,7 +15,7 @@
 // z-index must be strictly GREATER than the parent's. Asserting only "it looks right"
 // would pass on a lucky DOM order and guard nothing.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const REGISTER = { id: 1, slug: 'harness-register', title: 'Harness register', schemas: [10] }
 const SCHEMA = { id: 10, slug: 'hello-message', title: 'Hello Message', properties: { greeting: { type: 'string' } } }
@@ -45,26 +45,30 @@ async function stubOpenRegister(page) {
  * that its own fix is still present — it would go red if the bug were fixed a
  * different way, and it would never have caught the original tie-on-one-layer bug.
  */
-const stackingOf = (page, parentName, nestedName) => page.evaluate(([p, n]) => {
-	const masks = [...document.querySelectorAll('.modal-mask')]
-	const all = [...document.body.querySelectorAll('*')]
-	const read = (name) => {
-		const m = masks.find((x) => ((x.querySelector('h2, .dialog__name') || {}).textContent || '').includes(name))
-		if (!m) return null
-		const dialog = m.querySelector('.dialog, .modal-container') || m
-		const box = dialog.getBoundingClientRect()
-		return { zIndex: Number(getComputedStyle(m).zIndex), domIndex: all.indexOf(m), box: { x: box.x, y: box.y, w: box.width, h: box.height } }
-	}
-	const parent = read(p)
-	const nested = read(n)
-	let topAtNestedCentre = null
-	if (nested) {
-		const el = document.elementFromPoint(nested.box.x + nested.box.w / 2, nested.box.y + nested.box.h / 2)
-		const mask = el && el.closest('.modal-mask')
-		topAtNestedCentre = mask ? ((mask.querySelector('h2, .dialog__name') || {}).textContent || '').trim() : null
-	}
-	return { parent, nested, topAtNestedCentre }
-}, [parentName, nestedName])
+function stackingOf(page, parentName, nestedName) {
+	return page.evaluate(([p, n]) => {
+		const masks = [...document.querySelectorAll('.modal-mask')]
+		const all = [...document.body.querySelectorAll('*')]
+		const read = (name) => {
+			const m = masks.find((x) => ((x.querySelector('h2, .dialog__name') || {}).textContent || '').includes(name))
+			if (!m) {
+				return null
+			}
+			const dialog = m.querySelector('.dialog, .modal-container') || m
+			const box = dialog.getBoundingClientRect()
+			return { zIndex: Number(getComputedStyle(m).zIndex), domIndex: all.indexOf(m), box: { x: box.x, y: box.y, w: box.width, h: box.height } }
+		}
+		const parent = read(p)
+		const nested = read(n)
+		let topAtNestedCentre = null
+		if (nested) {
+			const el = document.elementFromPoint(nested.box.x + nested.box.w / 2, nested.box.y + nested.box.h / 2)
+			const mask = el && el.closest('.modal-mask')
+			topAtNestedCentre = mask ? ((mask.querySelector('h2, .dialog__name') || {}).textContent || '').trim() : null
+		}
+		return { parent, nested, topAtNestedCentre }
+	}, [parentName, nestedName])
+}
 
 test.describe('a dialog opened from a dialog stacks above it', () => {
 	test('the nested schema editor outranks the dialog that opened it', async ({ page }) => {

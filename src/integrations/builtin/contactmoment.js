@@ -16,8 +16,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnContactmomentTab from './contactmoment/CnContactmomentTab.vue'
 import CnContactmomentCard from './contactmoment/CnContactmomentCard.vue'
+import CnContactmomentTab from './contactmoment/CnContactmomentTab.vue'
 
 /**
  * `contactmoment` integration descriptor.

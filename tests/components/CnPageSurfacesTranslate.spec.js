@@ -71,12 +71,12 @@ jest.mock('../../src/utils/visibleWhen.js', () => ({
 }))
 
 import { mount } from '@vue/test-utils'
+import CnActionButtons from '../../src/components/CnActionButtons/CnActionButtons.vue'
+import CnActionsBar from '../../src/components/CnActionsBar/CnActionsBar.vue'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
-import CnActionButtons from '../../src/components/CnActionButtons/CnActionButtons.vue'
 import CnObjectListWidget from '../../src/components/CnObjectListWidget/CnObjectListWidget.vue'
-import CnActionsBar from '../../src/components/CnActionsBar/CnActionsBar.vue'
 import { dispatchAction } from '../../src/utils/actionsDispatcher.js'
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))

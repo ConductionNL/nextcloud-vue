@@ -1,13 +1,4 @@
-/**
- * True when `target` is an external/absolute URL (has a scheme + `//`, is
- * protocol-relative, or is a `mailto:`/`tel:` link) rather than an in-app path.
- *
- * @param {string} target The action target to test.
- * @return {boolean}
- */
-function isExternalUrl(target) {
-	return /^([a-z][a-z0-9+.-]*:)?\/\//i.test(target) || /^(mailto|tel):/i.test(target)
-}
+import { isExternalActionTarget } from '../../utils/actionsDispatcher.js'
 
 /**
  * Substitute `{field}` row tokens in a single manifest param value.
@@ -18,12 +9,14 @@ function isExternalUrl(target) {
  * (`"new"`) pass through verbatim — that is what keeps a literal
  * `params: { id: "new" }` working.
  *
- * @param {*} value The declared param value.
+ * @param {unknown} value The declared param value.
  * @param {object} row The row the action was triggered on.
- * @return {{ resolved: boolean, value: * }} `resolved` is false when a token names a field the row does not carry.
+ * @return {{ resolved: boolean, value: unknown }} `resolved` is false when a token names a field the row does not carry.
  */
 function resolveRowToken(value, row) {
-	if (typeof value !== 'string' || !value.includes('{')) return { resolved: true, value }
+	if (typeof value !== 'string' || !value.includes('{')) {
+		return { resolved: true, value }
+	}
 
 	const exact = value.match(/^\{([^{}]+)\}$/)
 	if (exact) {
@@ -71,7 +64,7 @@ function resolveRowToken(value, row) {
  *
  * @param {object} action Manifest action descriptor.
  * @param {{ router: object, rowKey: string, customComponents: object }} ctx Dispatch context (router, rowKey, customComponents registry).
- * @return {Function|null}
+ * @return {((row?: object) => void)|null}
  */
 export function resolveActionHandler(action, ctx) {
 	const type = (typeof action.type === 'string' && action.type.length > 0) ? action.type : 'handler'
@@ -80,11 +73,12 @@ export function resolveActionHandler(action, ctx) {
 	if (type === 'navigate') {
 		const target = action.target
 		if (typeof target !== 'string' || target.length === 0) {
+			// eslint-disable-next-line no-console
 			console.warn(`[CnIndexPage] action "${action.id}" declares type:"navigate" `
 				+ 'but target is missing; falling back to @action-only.')
 			return null
 		}
-		if (isExternalUrl(target)) {
+		if (isExternalActionTarget(target)) {
 			return () => window.open(target, '_blank', 'noopener,noreferrer')
 		}
 		return () => ctx.router.push(target)
@@ -93,6 +87,7 @@ export function resolveActionHandler(action, ctx) {
 	if (type === 'open-page') {
 		const target = action.target
 		if (typeof target !== 'string' || target.length === 0) {
+			// eslint-disable-next-line no-console
 			console.warn(`[CnIndexPage] action "${action.id}" declares type:"open-page" `
 				+ 'but target is missing; falling back to @action-only.')
 			return null
@@ -101,6 +96,7 @@ export function resolveActionHandler(action, ctx) {
 	}
 
 	if (type === 'open-modal') {
+		// eslint-disable-next-line no-console
 		console.warn(`[CnIndexPage] action "${action.id}" type:"open-modal" is not `
 			+ 'supported for index-page actions; falling back to @action-only.')
 		return null
@@ -108,11 +104,14 @@ export function resolveActionHandler(action, ctx) {
 
 	// type === 'handler' (default): the v1.3.0 handler-string path.
 	const name = action.handler
-	if (typeof name !== 'string' || name.length === 0) return null
+	if (typeof name !== 'string' || name.length === 0) {
+		return null
+	}
 
 	if (name === 'navigate') {
 		const route = action.route
 		if (typeof route !== 'string' || route.length === 0) {
+			// eslint-disable-next-line no-console
 			console.warn(`[CnIndexPage] action "${action.id}" declares handler:"navigate" `
 				+ 'but route is missing; falling back to @action-only.')
 			return null
@@ -129,6 +128,7 @@ export function resolveActionHandler(action, ctx) {
 				if (resolved) {
 					params[key] = value
 				} else {
+					// eslint-disable-next-line no-console
 					console.warn(`[CnIndexPage] action "${action.id}" param "${key}" references `
 						+ `"${declared}" but the row carries no such field; dropping the param`
 						+ (key === 'id' ? ' ("id" falls back to the row id).' : '.'))
@@ -138,14 +138,19 @@ export function resolveActionHandler(action, ctx) {
 		}
 	}
 
-	if (name === 'emit') return null
-	if (name === 'none') return () => {}
+	if (name === 'emit') {
+		return null
+	}
+	if (name === 'none') {
+		return () => {}
+	}
 
 	const fn = ctx.customComponents[name]
 	if (typeof fn === 'function') {
 		return (row) => fn({ actionId: action.id, item: row })
 	}
 	if (fn !== undefined) {
+		// eslint-disable-next-line no-console
 		console.warn(`[CnIndexPage] action.handler "${name}" resolved to a non-function in `
 			+ 'customComponents — components belong to slot overrides; falling '
 			+ 'back to @action-only.')
@@ -164,7 +169,9 @@ export function resolveActionHandler(action, ctx) {
  * @return {object} The action with its handler resolved (or stripped on failure).
  */
 export function dispatchAction(action, ctx) {
-	if (typeof action.handler === 'function') return action
+	if (typeof action.handler === 'function') {
+		return action
+	}
 
 	const type = (typeof action.type === 'string' && action.type.length > 0) ? action.type : 'handler'
 	// Nothing to resolve: the default `handler` type with no handler string

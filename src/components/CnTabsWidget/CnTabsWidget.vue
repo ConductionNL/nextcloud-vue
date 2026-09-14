@@ -8,21 +8,47 @@
 		<CnTabs
 			:aria-label="stripLabel"
 			class="cn-tabs-widget__tabs"
-			@update:active-index="onTabChange">
+			@update:activeIndex="onTabChange">
 			<!-- One Actions menu for the whole widget, bound to whichever child
 			     is showing. This is the point of the component: six tabbed
 			     widgets used to mean six card headers stacked down the page. -->
 			<template #nav-end>
 				<CnActionsMenu
-					:show-refresh="showRefresh"
-					:show-request-feature="showRequestFeature"
-					:show-documentation="showDocumentation"
-					:documentation-url="documentationUrl"
-					:widget-id="activeWidgetId"
+					:showRefresh="showRefresh"
+					:showRequestFeature="showRequestFeature"
+					:showDocumentation="showDocumentation"
+					:documentationUrl="documentationUrl"
+					:widgetId="activeWidgetId"
 					:title="activeTitle"
 					:surface="`widget:${activeWidgetId}`"
-					refresh-channel="cn:widget:refresh"
-					testid-base="cn-tabs-widget" />
+					refreshChannel="cn:widget:refresh"
+					testidBase="cn-tabs-widget">
+					<!-- The open panel's own items, below the built-in trio.
+					     A panel draws no header, so these would otherwise have
+					     nowhere to go: the data widget's Metadata and full edit
+					     dialog vanished outright when the panel stopped drawing
+					     a card. They are rendered here rather than rebuilt here
+					     because `run` closes over the widget that published it,
+					     which is what keeps the dialog's per-widget config and
+					     the widget's own save path. See utils/panelActions.js.
+
+					     Only the ACTIVE panel's items. `lazy` keeps a visited
+					     tab mounted, so several panels publish at once and an
+					     unfiltered list would offer actions for a sheet nobody
+					     is looking at. -->
+					<template v-if="activePanelActions.length" #action-items>
+						<NcActionButton
+							v-for="action in activePanelActions"
+							:key="action.key"
+							:closeAfterClick="true"
+							@click="action.run()">
+							<template #icon>
+								<CnIcon :name="action.icon" :size="20" />
+							</template>
+							{{ action.label }}
+						</NcActionButton>
+					</template>
+				</CnActionsMenu>
 			</template>
 
 			<CnTab
@@ -46,18 +72,18 @@
 					v-if="entry.widget"
 					:widget="entry.widget"
 					chrome="bare"
-					:object-id="objectId"
+					:objectId="objectId"
 					:object="objectData"
-					:object-type="objectType"
-					:schema-object="schemaObject"
+					:objectType="objectType"
+					:schemaObject="schemaObject"
 					:register="register"
 					:schema="schema"
 					:store="store"
 					:surface="surface"
-					:integration-context="integrationContext"
-					:cn-registry="cnRegistry"
-					@geo-saved="onGeoSaved"
-					@open-integration="onOpenIntegration" />
+					:integrationContext="integrationContext"
+					:cnRegistry="cnRegistry"
+					@geoSaved="onGeoSaved"
+					@openIntegration="onOpenIntegration" />
 				<NcEmptyContent v-else :name="missingLabel(entry)" />
 			</CnTab>
 		</CnTabs>
@@ -66,13 +92,14 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcEmptyContent } from '@nextcloud/vue'
-import CnIcon from '../CnIcon/CnIcon.vue'
+import { NcActionButton, NcEmptyContent } from '@nextcloud/vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
-import { CnActionsMenu } from '../CnActionsMenu/index.js'
-import CnTabs from '../CnTabs/CnTabs.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTab from '../CnTabs/CnTab.vue'
+import CnTabs from '../CnTabs/CnTabs.vue'
+import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { widgetTitleOf } from '../../utils/widgetDispatch.js'
+import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
 /**
  * CnTabsWidget — a widget that holds other widgets, one per tab.
@@ -133,7 +160,71 @@ export default {
 		CnIcon,
 		CnTab,
 		CnTabs,
+		NcActionButton,
 		NcEmptyContent,
+	},
+
+	/**
+	 * Offer the panels a way to put their own menu items in the strip's menu.
+	 *
+	 * Re-provided one level down by `CnDetailWidgetHost`, which knows the id to
+	 * key by; see utils/panelActions.js for why the items travel up instead of
+	 * being rebuilt here.
+	 *
+	 * @return {object} The provided sink.
+	 */
+	provide() {
+		return {
+			[PANEL_ACTION_SINK]: {
+				/**
+				 * Publish a panel's items, under one SOURCE.
+				 *
+				 * A panel has two possible publishers: the host, for an action
+				 * the host itself would have drawn (the catalog Add), and the
+				 * widget inside it, for its own menu items. Keyed by source so
+				 * the two coexist; a single slot per widget meant whichever
+				 * published last silently replaced the other.
+				 *
+				 * Replaces the map rather than mutating it so the computed that
+				 * reads it re-evaluates on any change.
+				 *
+				 * @param {string} id The publishing widget's id.
+				 * @param {object[]} items Its PanelAction descriptors.
+				 * @param {string} [source] Who is publishing: `host` or `widget`.
+				 * @return {void}
+				 */
+				set: (id, items, source = 'widget') => {
+					if (!id) {
+						return
+					}
+					const forId = { ...(this.panelActionsByWidget[id] || {}), [source]: items }
+					this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: forId }
+				},
+
+				/**
+				 * Withdraw one source's items, on unmount or when that
+				 * publisher's own menu comes back. The other source's items
+				 * stay.
+				 *
+				 * @param {string} id The publishing widget's id.
+				 * @param {string} [source] Who is withdrawing.
+				 * @return {void}
+				 */
+				clear: (id, source = 'widget') => {
+					const forId = this.panelActionsByWidget[id]
+					if (!forId || !(source in forId)) {
+						return
+					}
+					const { [source]: _removed, ...keptSources } = forId
+					if (Object.keys(keptSources).length) {
+						this.panelActionsByWidget = { ...this.panelActionsByWidget, [id]: keptSources }
+						return
+					}
+					const { [id]: _gone, ...rest } = this.panelActionsByWidget
+					this.panelActionsByWidget = rest
+				},
+			},
+		}
 	},
 
 	props: {
@@ -149,6 +240,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Every widget definition available on the surface, for `content.tabs[]`
 		 * to reference by id.
@@ -163,71 +255,85 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** The bound record's id. */
 		objectId: {
 			type: [String, Number],
 			default: '',
 		},
+
 		/** The loaded record, or null while it is still being fetched. */
 		objectData: {
 			type: Object,
 			default: null,
 		},
+
 		/** The resolved object-type slug. */
 		objectType: {
 			type: String,
 			default: '',
 		},
+
 		/** The resolved JSON Schema object, needed by a `data` child. */
 		schemaObject: {
 			type: Object,
 			default: null,
 		},
+
 		/** OpenRegister register slug of the surface. */
 		register: {
 			type: [String, Object],
 			default: '',
 		},
+
 		/** OpenRegister schema slug of the surface. */
 		schema: {
 			type: [String, Object],
 			default: '',
 		},
+
 		/** The effective object store. */
 		store: {
 			type: Object,
 			default: null,
 		},
+
 		/** Rendering surface forwarded to integration children (AD-19). */
 		surface: {
 			type: String,
 			default: 'detail-page',
 		},
+
 		/** Object context forwarded to integration children. */
 		integrationContext: {
 			type: Object,
 			default: null,
 		},
+
 		/** The consumer's component registry, for custom child widget types. */
 		cnRegistry: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Show the Refresh entry in the hoisted Actions menu. */
 		showRefresh: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Show the Request-a-feature entry in the hoisted Actions menu. */
 		showRequestFeature: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Show the Documentation entry in the hoisted Actions menu. */
 		showDocumentation: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Documentation URL for the hoisted Actions menu. */
 		documentationUrl: {
 			type: String,
@@ -240,10 +346,29 @@ export default {
 	data() {
 		return {
 			activeIndex: 0,
+			// Items published by the panels, keyed by widget id. Keyed rather
+			// than a flat list because `lazy` keeps a visited tab mounted, so
+			// more than one panel publishes at a time.
+			panelActionsByWidget: {},
 		}
 	},
 
 	computed: {
+		/**
+		 * The open panel's own menu items, or an empty list.
+		 *
+		 * @return {object[]} PanelAction descriptors for the active tab.
+		 */
+		activePanelActions() {
+			const forId = this.panelActionsByWidget[this.activeWidgetId]
+			if (!forId) {
+				return []
+			}
+			// Host first, then the widget's own: the catalog Add is about the
+			// panel as a whole, the widget's items about what is in it.
+			return [...(forId.host || []), ...(forId.widget || [])]
+		},
+
 		/**
 		 * The configured tabs, each paired with the widget definition it names.
 		 *
@@ -402,15 +527,47 @@ export default {
 /* No inset, so the first tab starts at the panel's own left edge. The 8px
    here was there to clear the card's rounded top corner; that corner is gone
    from the strip now, and the inset it existed for left the first tab floating
-   8px inside the sheet it opens. The bar's bottom rule closes the panel either
-   way: padding sits inside the border box, so it never shortened the rule. */
+   8px inside the sheet it opens.
+
+   The bar's own bottom rule is switched off and redrawn as a pseudo-element
+   that stops one corner radius short of the right edge. CnTabs draws its rule
+   across the bar's whole width, which is the sheet's top edge everywhere
+   except at the far right, where the panel's top-right corner curves away
+   below it: the rule ran straight on to the widget's edge and read as a
+   border sticking out past a rounded corner (Ruben, 2026-09-13). Ending it
+   where the curve begins makes the rule and the curve one continuous edge. */
 .cn-tabs-widget__tabs :deep(.cn-tabs__bar) {
+	border-bottom: none;
 	padding: 0;
+	position: relative;
+}
+
+.cn-tabs-widget__tabs :deep(.cn-tabs__bar::after) {
+	border-bottom: 1px solid var(--color-border);
+	content: '';
+	inset-block-end: 0;
+	inset-inline: 0 var(--border-radius-large);
+	pointer-events: none;
+	position: absolute;
+}
+
+/* The open tab erases the slice of the rule directly above the panel with its
+   own background-coloured bottom edge, which only works if it paints ABOVE the
+   pseudo-element: a positioned pseudo-element otherwise paints over every
+   in-flow sibling, rule included. */
+.cn-tabs-widget__tabs :deep(.cn-tabs__nav-item--active) {
+	position: relative;
+	z-index: 1;
 }
 
 .cn-tabs-widget__tabs {
 	display: flex;
 	flex-direction: column;
+	/* Grow to the widget's height, so the panel fills the grid cell the
+	   layout gave it. Without this the strip plus the open panel took only
+	   the height of the panel's content, and a cell of nine rows ended in
+	   130px of nothing under a sheet that stopped short of its own card. */
+	flex: 1 1 auto;
 	min-height: 0;
 }
 
@@ -422,15 +579,19 @@ export default {
    above content it is supposed to be attached to. */
 .cn-tabs-widget__tabs :deep(.cn-tabs__content) {
 	background-color: var(--color-main-background);
-	/* Three sides only: the bar's own bottom rule is this sheet's top edge, and
-	   the open tab erases the slice of it directly above the panel so the two
-	   read as one surface. A border-top here would put a second line under that
-	   tab which the tab cannot paint over. */
+	/* Three sides only: the bar's rule (redrawn above, stopping at the corner)
+	   is this sheet's top edge, and the open tab erases the slice of it
+	   directly above the panel so the two read as one surface. A border-top
+	   here would put a second line under that tab which the tab cannot paint
+	   over. */
 	border: 1px solid var(--color-border);
 	border-top: none;
-	/* Bottom corners only. Rounding the top would curl the sheet away from the
-	   tab that is supposed to be joined to it. */
-	border-radius: 0 0 var(--border-radius-large) var(--border-radius-large);
+	/* Three rounded corners. The top-left stays square because the first tab
+	   is drawn joined to the panel there, and a curve under it would curl the
+	   sheet away from that tab. The top-right has no tab above it: the strip
+	   ends where the last tab ends and the Actions menu floats free, so a
+	   square corner there read as a sheet cut off, not as a tab's edge. */
+	border-radius: 0 var(--border-radius-large) var(--border-radius-large) var(--border-radius-large);
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow: auto;

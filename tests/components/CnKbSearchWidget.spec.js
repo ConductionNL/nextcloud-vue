@@ -86,7 +86,9 @@ describe('CnKbSearchWidget', () => {
 			w.setData({ term: 'printer down' })
 			await w.vm.runSearch()
 			expect(xwiki.search).toHaveBeenCalledWith('printer down', expect.objectContaining({
-				space: 'Support', tags: ['printer'], limit: 4,
+				space: 'Support',
+				tags: ['printer'],
+				limit: 4,
 			}))
 			expect(w.vm.results).toEqual([{ title: 'From xWiki' }])
 			expect(w.vm.unavailable).toBe(false)

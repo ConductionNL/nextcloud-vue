@@ -4,9 +4,9 @@
  */
 
 import {
+	groupRankedResultsBySection,
 	MATCH_TIER,
 	rankCommandPaletteItems,
-	groupRankedResultsBySection,
 } from '@/utils/commandPaletteRanking.js'
 
 describe('commandPaletteRanking — rankCommandPaletteItems', () => {

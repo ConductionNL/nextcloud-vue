@@ -39,7 +39,9 @@ function manifestWith(widgets, config) {
 		title: 'Home',
 		widgets,
 	}
-	if (config) page.config = config
+	if (config) {
+		page.config = config
+	}
 	return {
 		$schema: V2_SCHEMA_URL,
 		version: '2.1.0',

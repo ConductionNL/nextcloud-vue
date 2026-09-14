@@ -7,26 +7,40 @@
  * prop and rendered as `<img>`, so multi-path / illustrative icons render
  * faithfully (the single-path catalogue path cannot represent them).
  */
-import { readdirSync, readFileSync, writeFileSync, statSync, mkdirSync } from 'node:fs'
-import { join, basename, extname } from 'node:path'
+import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { basename, extname, join } from 'node:path'
 
 const SRC = process.env.SRC_ROOT
 const OUT = process.env.OUT_DIR
-if (!SRC || !OUT) { throw new Error('SRC_ROOT and OUT_DIR required') }
+if (!SRC || !OUT) {
+	throw new Error('SRC_ROOT and OUT_DIR required')
+}
 mkdirSync(OUT, { recursive: true })
 
-/** Recursively collect *.svg files under dir. */
+/**
+ * Recursively collect *.svg files under dir.
+ *
+ * @param {string} dir Directory to walk.
+ */
 function walk(dir) {
 	const out = []
 	for (const name of readdirSync(dir)) {
 		const p = join(dir, name)
 		const st = statSync(p)
-		if (st.isDirectory()) { out.push(...walk(p)) } else if (extname(name).toLowerCase() === '.svg') { out.push(p) }
+		if (st.isDirectory()) {
+			out.push(...walk(p))
+		} else if (extname(name).toLowerCase() === '.svg') {
+			out.push(p)
+		}
 	}
 	return out
 }
 
-/** Humanise a file base name into a label. */
+/**
+ * Humanise a file base name into a label.
+ *
+ * @param {string} name File base name.
+ */
 function humanize(name) {
 	return name
 		.replace(/\.svg$/i, '')
@@ -37,7 +51,11 @@ function humanize(name) {
 		.replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-/** Slug for a stable key. */
+/**
+ * Slug for a stable key.
+ *
+ * @param {string} s Text to slugify.
+ */
 function slug(s) {
 	return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
@@ -46,6 +64,8 @@ function slug(s) {
  * Mini SVG → data-URI (Taylor Hunt / tigt "mini-svg-data-uri" algorithm):
  * single-quote attrs, collapse whitespace, encodeURIComponent, then decode
  * the handful of hex pairs that are safe & shorter unencoded.
+ *
+ * @param {string} svg The SVG markup to encode.
  */
 function svgToTinyDataUri(svg) {
 	const reWs = /\s+/g
@@ -78,11 +98,15 @@ for (const set of SETS) {
 	let bytes = 0
 	for (const f of files) {
 		const raw = readFileSync(f, 'utf8')
-		if (!raw.includes('<svg')) { continue }
+		if (!raw.includes('<svg')) {
+			continue
+		}
 		const label = humanize(basename(f))
 		let id = `${set.keyPrefix}-${slug(basename(f).replace(/\.svg$/i, ''))}`
 		let n = 2
-		while (seen.has(id)) { id = `${set.keyPrefix}-${slug(basename(f).replace(/\.svg$/i, ''))}-${n++}` }
+		while (seen.has(id)) {
+			id = `${set.keyPrefix}-${slug(basename(f).replace(/\.svg$/i, ''))}-${n++}`
+		}
 		seen.add(id)
 		const url = svgToTinyDataUri(raw)
 		bytes += url.length
@@ -94,5 +118,5 @@ for (const set of SETS) {
 	writeFileSync(join(OUT, `${set.name}.js`), header + body)
 	summary.push({ set: set.name, icons: entries.length, kb: Math.round(bytes / 1024) })
 }
-writeFileSync(join(OUT, 'index.js'), `/**\n * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>\n * SPDX-License-Identifier: EUPL-1.2\n *\n * Barrel for the bundled NL-government icon catalogues.\n *\n * Prefer a per-set subpath import (\`@conduction/nextcloud-vue/src/icons/rvo.js\`)\n * so bundlers only pull the set you use. \`NL_DESIGN_ICON_GROUPS\` and the combined\n * \`NL_DESIGN_ICONS\` reference all three sets, so importing them pulls every set.\n *\n * Group shape: { key, label, icons: [{ id, label, url }] } — feed straight to\n * CnIconBrowser's \`url-icon-groups\` prop for a tab per set.\n */\nimport { rvoIcons } from './rvo.js'\nimport { openGemeentenIcons } from './openGemeenten.js'\nimport { denHaagIcons } from './denHaag.js'\n\nexport { rvoIcons, openGemeentenIcons, denHaagIcons }\n\nexport const NL_DESIGN_ICON_GROUPS = [\n\t{ key: 'rvo', label: 'RVO', icons: rvoIcons },\n\t{ key: 'open-gemeenten', label: 'Gemeente', icons: openGemeentenIcons },\n\t{ key: 'den-haag', label: 'Den Haag', icons: denHaagIcons },\n]\n\n/** Flat combined list of every bundled NL-government icon ({ id, label, url }). */\nexport const NL_DESIGN_ICONS = [...rvoIcons, ...openGemeentenIcons, ...denHaagIcons]\n`)
+writeFileSync(join(OUT, 'index.js'), '/**\n * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>\n * SPDX-License-Identifier: EUPL-1.2\n *\n * Barrel for the bundled NL-government icon catalogues.\n *\n * Prefer a per-set subpath import (`@conduction/nextcloud-vue/src/icons/rvo.js`)\n * so bundlers only pull the set you use. `NL_DESIGN_ICON_GROUPS` and the combined\n * `NL_DESIGN_ICONS` reference all three sets, so importing them pulls every set.\n *\n * Group shape: { key, label, icons: [{ id, label, url }] } — feed straight to\n * CnIconBrowser\'s `url-icon-groups` prop for a tab per set.\n */\nimport { rvoIcons } from \'./rvo.js\'\nimport { openGemeentenIcons } from \'./openGemeenten.js\'\nimport { denHaagIcons } from \'./denHaag.js\'\n\nexport { rvoIcons, openGemeentenIcons, denHaagIcons }\n\nexport const NL_DESIGN_ICON_GROUPS = [\n\t{ key: \'rvo\', label: \'RVO\', icons: rvoIcons },\n\t{ key: \'open-gemeenten\', label: \'Gemeente\', icons: openGemeentenIcons },\n\t{ key: \'den-haag\', label: \'Den Haag\', icons: denHaagIcons },\n]\n\n/** Flat combined list of every bundled NL-government icon ({ id, label, url }). */\nexport const NL_DESIGN_ICONS = [...rvoIcons, ...openGemeentenIcons, ...denHaagIcons]\n')
 console.log(JSON.stringify(summary, null, 2))

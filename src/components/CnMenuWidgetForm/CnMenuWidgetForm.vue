@@ -6,9 +6,9 @@
 <template>
 	<div class="cn-menu-form">
 		<NcSelect
-			:model-value="style"
+			:modelValue="style"
 			:options="styleOptions"
-			:input-label="t('nextcloud-vue', 'Menu Style')"
+			:inputLabel="t('nextcloud-vue', 'Menu Style')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
@@ -16,18 +16,18 @@
 
 		<NcSelect
 			v-if="style !== 'tree'"
-			:model-value="orientation"
+			:modelValue="orientation"
 			:options="orientationOptions"
-			:input-label="t('nextcloud-vue', 'Orientation')"
+			:inputLabel="t('nextcloud-vue', 'Orientation')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('orientation', $event)" />
 
 		<NcSelect
-			:model-value="activeItemHighlight"
+			:modelValue="activeItemHighlight"
 			:options="highlightOptions"
-			:input-label="t('nextcloud-vue', 'Active Item Highlight')"
+			:inputLabel="t('nextcloud-vue', 'Active Item Highlight')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
@@ -59,10 +59,10 @@
 				:item="item"
 				:depth="1"
 				:path="[idx]"
-				:show-icons="showIcons"
-				@update-item="onUpdateItem"
-				@remove-item="onRemoveItem"
-				@add-child="onAddChild" />
+				:showIcons="showIcons"
+				@updateItem="onUpdateItem"
+				@removeItem="onRemoveItem"
+				@addChild="onAddChild" />
 			<button
 				type="button"
 				class="cn-menu-form__add-top"
@@ -113,6 +113,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Initial content values (registry defaults when not editing). */
 		value: {
 			type: Object,
@@ -203,7 +204,7 @@ export default {
 		 * Set a field and emit.
 		 *
 		 * @param {string} field the field name.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {
@@ -243,7 +244,7 @@ export default {
 		 *
 		 * @param {object[]} items the items array to descend.
 		 * @param {number[]} path the index path.
-		 * @param {Function} mutator called with `(arr, index)`.
+		 * @param {(arr: object[], index: number) => void} mutator called with `(arr, index)`.
 		 * @return {void}
 		 */
 		setItemAtPath(items, path, mutator) {

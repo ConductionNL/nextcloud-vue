@@ -3,11 +3,9 @@ import { createCrudStore } from '../../src/store/createCrudStore.js'
 
 // Simple entity class for testing
 class TestEntity {
-
 	constructor(data) {
 		Object.assign(this, data)
 	}
-
 }
 
 describe('createCrudStore', () => {
@@ -641,8 +639,12 @@ describe('createCrudStore', () => {
 		})
 
 		it('multiple plugins merge side by side', () => {
-			const a = { name: 'a', state: () => ({ a: 1 }), actions: { incA() { this.a += 1 } } }
-			const b = { name: 'b', state: () => ({ b: 10 }), actions: { incB() { this.b += 1 } } }
+			const a = { name: 'a', state: () => ({ a: 1 }), actions: { incA() {
+				this.a += 1
+			} } }
+			const b = { name: 'b', state: () => ({ b: 10 }), actions: { incB() {
+				this.b += 1
+			} } }
 			const useStore = createCrudStore('p-multi', {
 				endpoint: 'items',
 				plugins: [a, b],
@@ -740,7 +742,9 @@ describe('createCrudStore', () => {
 				name: 'a',
 				setup(s) {
 					s.$onAction(({ name, after }) => {
-						if (name === 'setItem') after(aAfter)
+						if (name === 'setItem') {
+							after(aAfter)
+						}
 					})
 				},
 			}
@@ -748,7 +752,9 @@ describe('createCrudStore', () => {
 				name: 'b',
 				setup(s) {
 					s.$onAction(({ name, after }) => {
-						if (name === 'setItem') after(bAfter)
+						if (name === 'setItem') {
+							after(bAfter)
+						}
 					})
 				},
 			}
@@ -770,7 +776,9 @@ describe('createCrudStore', () => {
 				name: 'p',
 				setup(s) {
 					s.$onAction(({ name, after: afterCb }) => {
-						if (name === 'setItem') afterCb(after)
+						if (name === 'setItem') {
+							afterCb(after)
+						}
 					})
 				},
 			}

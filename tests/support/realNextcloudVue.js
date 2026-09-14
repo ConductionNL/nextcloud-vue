@@ -125,6 +125,7 @@ const REAL_COMPONENT_NAMES = [
 	'NcActionText',
 	'NcAppContent',
 	'NcAppNavigationCaption',
+	'NcAppNavigationList',
 	'NcAppNavigationNew',
 	'NcAppNavigationSearch',
 	'NcAppNavigationSettings',
@@ -179,7 +180,6 @@ const real = {}
 for (const name of REAL_COMPONENT_NAMES) {
 	// Babel has transformed the `.mjs` to CJS, so the component sits on
 	// `.default` (`index.mjs` is `export { N as default }`).
-	// eslint-disable-next-line global-require, import/no-dynamic-require
 	const mod = require(path.join(COMPONENTS_DIR, name, 'index.mjs'))
 	real[name] = mod.default ?? mod
 }
@@ -194,7 +194,6 @@ for (const name of REAL_COMPONENT_NAMES) {
  * duplicated, since it already renders a real, correctly-labelled
  * `<textarea>` with a `placeholder`.
  */
-// eslint-disable-next-line import/no-dynamic-require, global-require
 const genericStubs = require('../__mocks__/nextcloud-vue.js')
 
 /**

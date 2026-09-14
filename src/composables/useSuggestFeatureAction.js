@@ -24,7 +24,7 @@ import { useSpecRef } from './useSpecRef.js'
  * @typedef {object} SuggestFeatureAction
  * @property {string}      label  Localized action label.
  * @property {string}      icon   Material-design-icon name suitable for `<NcActions>`.
- * @property {Function}    action Callback that should open the suggestion modal.
+ * @property {() => void}    action Callback that should open the suggestion modal.
  * @property {string}      specRef The resolved kebab-case slug.
  */
 
@@ -34,7 +34,7 @@ import { useSpecRef } from './useSpecRef.js'
  * cleanly: `<NcActionButton v-if="suggestAction" ... />`.
  *
  * @param {object}   vm                The Vue component instance (typically `this`).
- * @param {Function} onOpenModal       Callback invoked when the action is clicked.
+ * @param {(slug: string) => void} onOpenModal       Callback invoked when the action is clicked.
  *                                     Receives the resolved slug.
  * @return {SuggestFeatureAction|null} Descriptor or `null` when no specRef present.
  *

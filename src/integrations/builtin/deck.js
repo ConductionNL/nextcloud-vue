@@ -23,8 +23,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnDeckTab from './deck/CnDeckTab.vue'
 import CnDeckCard from './deck/CnDeckCard.vue'
+import CnDeckTab from './deck/CnDeckTab.vue'
 
 /**
  * `deck` integration descriptor.

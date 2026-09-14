@@ -132,7 +132,9 @@ describe('wiki page-type validation — optional typed config fields (stabilise)
 
 	it('v1: well-formed wiki config with all optional fields validates', () => {
 		const config = { register: 'pipelinq', schema: 'article' }
-		OPTIONAL_STRING_FIELDS.forEach((f) => { config[f] = `${f}-value` })
+		OPTIONAL_STRING_FIELDS.forEach((f) => {
+			config[f] = `${f}-value`
+		})
 		const result = validateManifest(v1Wiki(config))
 		expect(result.valid).toBe(true)
 		expect(result.errors).toEqual([])
@@ -153,7 +155,9 @@ describe('wiki page-type validation — optional typed config fields (stabilise)
 
 	it('v2: well-formed wiki config with all optional fields validates', () => {
 		const config = { register: 'pipelinq', schema: 'article' }
-		OPTIONAL_STRING_FIELDS.forEach((f) => { config[f] = `${f}-value` })
+		OPTIONAL_STRING_FIELDS.forEach((f) => {
+			config[f] = `${f}-value`
+		})
 		const result = validateManifest(v2Wiki(config))
 		expect(result.valid).toBe(true)
 		expect(result.errors).toEqual([])

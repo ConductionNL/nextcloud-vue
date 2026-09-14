@@ -31,18 +31,18 @@
 		</div>
 
 		<NcSelect
-			:model-value="viewMode"
+			:modelValue="viewMode"
 			:options="viewModeOptions"
-			:input-label="t('nextcloud-vue', 'View mode')"
+			:inputLabel="t('nextcloud-vue', 'View mode')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('viewMode', $event)" />
 
 		<NcSelect
-			:model-value="sortBy"
+			:modelValue="sortBy"
 			:options="sortByOptions"
-			:input-label="t('nextcloud-vue', 'Sort by')"
+			:inputLabel="t('nextcloud-vue', 'Sort by')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
@@ -65,10 +65,10 @@
 		</label>
 
 		<NcTextField
-			:model-value="mimeTypeFilterString"
+			:modelValue="mimeTypeFilterString"
 			:label="t('nextcloud-vue', 'MIME type filter (comma separated)')"
 			:placeholder="t('nextcloud-vue', 'e.g. image/*, application/pdf')"
-			@update:model-value="updateMimeFilter" />
+			@update:modelValue="updateMimeFilter" />
 
 		<label class="cn-files-widget-form__toggle">
 			<input
@@ -89,14 +89,15 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcButton } from '@nextcloud/vue'
+import { FilePickerClosed, getFilePickerBuilder, showError } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
-import { getFilePickerBuilder, showError, FilePickerClosed } from '@nextcloud/dialogs'
+import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
+import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
+
 // The native file-picker modal ships its chrome styles here; without this the
 // spawned picker renders unstyled. Rules are scoped to the picker/dialog
 // classes, so this adds no app-wide restyling.
 import '@nextcloud/dialogs/style.css'
-import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 
 const VIEW_MODES = Object.freeze(['list', 'grid', 'tree'])
 const SORT_FIELDS = Object.freeze(['name', 'modified', 'size', 'type'])
@@ -162,6 +163,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values — used when not editing and the parent
 		 * supplies registry defaults.
@@ -267,7 +269,7 @@ export default {
 		/**
 		 * Coerce an arbitrary value into a positive integer file id or null.
 		 *
-		 * @param {*} raw the candidate value.
+		 * @param {unknown} raw the candidate value.
 		 * @return {number|null} a positive integer, or `null`.
 		 */
 		coerceFileId(raw) {
@@ -285,7 +287,7 @@ export default {
 		 * Set a field and notify the parent via `update:content`.
 		 *
 		 * @param {string} field one of the nine content keys.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {

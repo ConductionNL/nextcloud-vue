@@ -5,8 +5,8 @@
 
 import { mount } from '@vue/test-utils'
 import CnCommandPalette from '@/components/CnCommandPalette/CnCommandPalette.vue'
-import { useCommandPalette } from '@/composables/useCommandPalette.js'
 import { createCommandRegistry } from '@/commandPalette/registry.js'
+import { useCommandPalette } from '@/composables/useCommandPalette.js'
 
 const manifest = {
 	menu: [
@@ -262,7 +262,9 @@ describe('CnCommandPalette', () => {
 
 		it('never blocks navigation/action results while an object search is in flight', async () => {
 			let resolveSearch
-			const objectSearch = jest.fn(() => new Promise((resolve) => { resolveSearch = resolve }))
+			const objectSearch = jest.fn(() => new Promise((resolve) => {
+				resolveSearch = resolve
+			}))
 			const { wrapper, cp } = mountPalette({ objectSearch })
 			cp.register({ id: 'settings-action', title: 'Settings action', run: () => {} })
 			cp.open()
@@ -285,7 +287,9 @@ describe('CnCommandPalette', () => {
 		it('discards object results that arrive for a stale (already-changed) query', async () => {
 			let firstResolve
 			const objectSearch = jest.fn()
-				.mockImplementationOnce(() => new Promise((resolve) => { firstResolve = resolve }))
+				.mockImplementationOnce(() => new Promise((resolve) => {
+					firstResolve = resolve
+				}))
 				.mockImplementationOnce(() => Promise.resolve([
 					{ id: 'obj:2', title: 'Second query result', section: 'Objects', run: () => {} },
 				]))

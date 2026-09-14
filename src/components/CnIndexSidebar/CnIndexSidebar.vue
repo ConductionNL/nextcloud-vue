@@ -31,10 +31,10 @@
 
 				<div class="cn-index-sidebar__section">
 					<NcTextField
-						:model-value="searchValue || ''"
+						:modelValue="searchValue || ''"
 						:placeholder="searchPlaceholder"
 						:label="searchLabel"
-						@update:model-value="$emit('search', $event)" />
+						@update:modelValue="$emit('search', $event)" />
 				</div>
 
 				<div v-if="schemaFilters.length > 0" class="cn-index-sidebar__section">
@@ -45,10 +45,10 @@
 						class="cn-index-sidebar__filter-group">
 						<div class="cn-index-sidebar__filter-header">
 							<span class="cn-index-sidebar__filter-label">{{ filter.label }}</span>
-							<NcPopover v-if="filter.description" popup-role="dialog">
+							<NcPopover v-if="filter.description" popupRole="dialog">
 								<template #trigger>
 									<NcButton
-										type="tertiary-no-background"
+										variant="tertiary-no-background"
 										:aria-label="filter.label + ' info'"
 										class="cn-index-sidebar__info-btn">
 										<template #icon>
@@ -63,14 +63,14 @@
 						</div>
 						<NcSelect
 							class="cn-index-sidebar__select"
-							:model-value="getSelectedFilterOptions(filter)"
+							:modelValue="getSelectedFilterOptions(filter)"
 							:options="getFilterOptions(filter)"
 							placeholder="Select..."
-							:input-label="filter.label"
+							:inputLabel="filter.label"
 							:multiple="true"
-							:keep-open="true"
+							:keepOpen="true"
 							:clearable="true"
-							@update:model-value="onFilterChange(filter.key, $event)" />
+							@update:modelValue="onFilterChange(filter.key, $event)" />
 					</div>
 				</div>
 
@@ -89,6 +89,7 @@
 
 			<div class="cn-index-sidebar__tab-content">
 				<div class="cn-sidebar-columns">
+					<h3>{{ columnsHeading }}</h3>
 					<p class="cn-sidebar-columns__description">
 						{{ columnsDescription }}
 					</p>
@@ -101,10 +102,10 @@
 								<ChevronRight v-else :size="20" />
 								<h4>{{ resolvedPropertiesLabel }}</h4>
 								<NcCheckboxRadioSwitch
-									:model-value="isGroupAllVisible(allColumns)"
+									:modelValue="isGroupAllVisible(allColumns)"
 									class="cn-sidebar-columns__select-all"
 									@click.stop
-									@update:model-value="toggleGroupAll(allColumns)">
+									@update:modelValue="toggleGroupAll(allColumns)">
 									All
 								</NcCheckboxRadioSwitch>
 							</div>
@@ -112,8 +113,8 @@
 								<NcCheckboxRadioSwitch
 									v-for="col in allColumns"
 									:key="col.key"
-									:model-value="isColumnVisible(col.key)"
-									@update:model-value="toggleColumn(col.key)">
+									:modelValue="isColumnVisible(col.key)"
+									@update:modelValue="toggleColumn(col.key)">
 									{{ col.label }}
 								</NcCheckboxRadioSwitch>
 							</div>
@@ -129,10 +130,10 @@
 								<ChevronRight v-else :size="20" />
 								<h4>{{ group.label }}</h4>
 								<NcCheckboxRadioSwitch
-									:model-value="isGroupAllVisible(group.columns)"
+									:modelValue="isGroupAllVisible(group.columns)"
 									class="cn-sidebar-columns__select-all"
 									@click.stop
-									@update:model-value="toggleGroupAll(group.columns)">
+									@update:modelValue="toggleGroupAll(group.columns)">
 									All
 								</NcCheckboxRadioSwitch>
 							</div>
@@ -140,8 +141,8 @@
 								<NcCheckboxRadioSwitch
 									v-for="col in group.columns"
 									:key="col.key"
-									:model-value="isColumnVisible(col.key)"
-									@update:model-value="toggleColumn(col.key)">
+									:modelValue="isColumnVisible(col.key)"
+									@update:modelValue="toggleColumn(col.key)">
 									{{ col.label }}
 								</NcCheckboxRadioSwitch>
 							</div>
@@ -164,16 +165,16 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcAppSidebar, NcAppSidebarTab, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcPopover, NcButton } from '@nextcloud/vue'
-import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
-import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
+import { NcAppSidebar, NcAppSidebarTab, NcButton, NcCheckboxRadioSwitch, NcPopover, NcSelect, NcTextField } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
-import { CnIcon } from '../CnIcon/index.js'
-import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
-import { facetOptionLabel } from '../../utils/facets.js'
+import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
+import { facetOptionLabel } from '../../utils/facets.js'
+import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
+import { CnIcon } from '../CnIcon/index.js'
 
 /**
  * CnIndexSidebar — Reusable NcAppSidebar wrapper with Search + Columns tabs.
@@ -225,41 +226,49 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** MDI icon name or emoji. Defaults to schema.icon when not set. */
 		icon: {
 			type: String,
 			default: '',
 		},
+
 		/** Schema object for auto-generating filters, columns, and labels */
 		schema: {
 			type: Object,
 			default: null,
 		},
+
 		/** Array of currently visible column keys */
 		visibleColumns: {
 			type: Array,
 			default: null,
 		},
+
 		/** Current search term */
 		searchValue: {
 			type: String,
 			default: '',
 		},
+
 		/** Whether sidebar is open */
 		open: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Current active facet filters: { fieldName: [values] } */
 		activeFilters: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Live facet data from the API: `{ fieldName: { values: [{ value, count?, label? }] } }` */
 		facetData: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Additional column groups beyond schema properties and the built-in Metadata.
 		 * Each group: { id: string, label: string, columns: Array<{key, label}>, expanded?: boolean }
@@ -268,51 +277,61 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Whether to include the built-in Metadata column group */
 		showMetadata: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Search input placeholder */
 		searchPlaceholder: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Type to search...'),
+			default: () => t('nextcloud-vue', 'Type to search…'),
 		},
+
 		/** Search tab label */
 		searchTabLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Search'),
 		},
+
 		/** Columns tab label */
 		columnsTabLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Columns'),
 		},
+
 		/** Search section heading */
 		searchLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Search'),
 		},
+
 		/** Filters section heading */
 		filtersLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Filters'),
 		},
+
 		/** Columns section heading */
 		columnsHeading: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Column visibility'),
 		},
+
 		/** Columns section description */
 		columnsDescription: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Select which columns to display in the table'),
 		},
+
 		/** Override label for the schema properties group. Defaults to schema.title. */
 		propertiesGroupLabel: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * ID of the tab that should be active when the sidebar opens.
 		 * Built-in IDs are 'search-tab' and 'columns-tab'.
@@ -322,6 +341,7 @@ export default {
 			type: String,
 			default: 'search-tab',
 		},
+
 		/**
 		 * Whether the current user is an admin.
 		 * When false, schema properties with `adminOnly: true` are hidden from filters.
@@ -351,7 +371,9 @@ export default {
 
 		/** Sidebar name — schema title, shown as the h2 header */
 		resolvedName() {
-			if (this.title) return this.title
+			if (this.title) {
+				return this.title
+			}
 			return this.schema?.title || 'Search'
 		},
 
@@ -362,19 +384,25 @@ export default {
 
 		/** Properties group label — derived from schema.title if not explicitly set */
 		resolvedPropertiesLabel() {
-			if (this.propertiesGroupLabel) return this.propertiesGroupLabel
+			if (this.propertiesGroupLabel) {
+				return this.propertiesGroupLabel
+			}
 			return this.schema?.title || 'Properties'
 		},
 
 		/** All available columns from schema */
 		allColumns() {
-			if (!this.schema) return []
+			if (!this.schema) {
+				return []
+			}
 			return columnsFromSchema(this.schema, { translate: this.cnTranslate })
 		},
 
 		/** Filter definitions from schema (facetable properties, respecting RBAC) */
 		schemaFilters() {
-			if (!this.schema) return []
+			if (!this.schema) {
+				return []
+			}
 			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin, translate: this.cnTranslate })
 		},
 
@@ -405,12 +433,15 @@ export default {
 		open(val) {
 			this.internalOpen = val
 		},
+
 		internalOpen(val) {
 			this.$emit('update:open', val)
 		},
+
 		defaultTab(val) {
 			this.internalActiveTab = val
 		},
+
 		allGroups: {
 			immediate: true,
 			handler(groups) {
@@ -426,6 +457,7 @@ export default {
 	methods: {
 		/**
 		 * Handle tab change from NcAppSidebar
+		 *
 		 * @param {string} tabId Tab identifier
 		 */
 		onTabChange(tabId) {
@@ -435,15 +467,19 @@ export default {
 
 		/**
 		 * Check if a column is currently visible
+		 *
 		 * @param {string} key Column key
 		 */
 		isColumnVisible(key) {
-			if (this.visibleColumns === null) return true
+			if (this.visibleColumns === null) {
+				return true
+			}
 			return this.visibleColumns.includes(key)
 		},
 
 		/**
 		 * Check if all columns in a group are visible
+		 *
 		 * @param {string[]} columns Array of column keys
 		 */
 		isGroupAllVisible(columns) {
@@ -452,6 +488,7 @@ export default {
 
 		/**
 		 * Toggle a single column's visibility
+		 *
 		 * @param {string} key Column key
 		 */
 		toggleColumn(key) {
@@ -468,6 +505,7 @@ export default {
 
 		/**
 		 * Select or deselect all columns in a group
+		 *
 		 * @param {string[]} columns Array of column keys
 		 */
 		toggleGroupAll(columns) {
@@ -492,6 +530,7 @@ export default {
 
 		/**
 		 * Toggle a group's expanded state
+		 *
 		 * @param {string} groupId Filter group identifier
 		 */
 		toggleGroup(groupId) {
@@ -500,6 +539,7 @@ export default {
 
 		/**
 		 * Get filter options for a filter definition
+		 *
 		 * @param {object} filter Filter object
 		 */
 		getFilterOptions(filter) {
@@ -515,11 +555,14 @@ export default {
 
 		/**
 		 * Get currently selected options for a filter
+		 *
 		 * @param {object} filter Filter object
 		 */
 		getSelectedFilterOptions(filter) {
 			const value = this.activeFilters[filter.key]
-			if (!value) return []
+			if (!value) {
+				return []
+			}
 			const values = Array.isArray(value) ? value : [value]
 			const options = this.getFilterOptions(filter)
 			return values.map((v) => options.find((o) => o.id === v) || { id: v, label: String(v) })
@@ -527,6 +570,7 @@ export default {
 
 		/**
 		 * Handle filter select change
+		 *
 		 * @param {string} key Filter key
 		 * @param {Array} selected Selected values
 		 */

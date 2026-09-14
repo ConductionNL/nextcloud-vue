@@ -64,9 +64,9 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
 import { Marked } from 'marked'
-import { translate as t } from '@nextcloud/l10n'
 import { isPlaceholderCell } from '../../utils/textTable.js'
 
 // Per-module `Marked` instance so configuration is scoped here and does NOT
@@ -173,7 +173,7 @@ export default {
 					if (typeof html !== 'string') {
 						html = String(html)
 					}
-				} catch (err) {
+				} catch {
 					// Defensive: fall back to the raw text rather than crash
 					// the dashboard if the parser throws.
 					html = this.text
@@ -372,7 +372,6 @@ export default {
 	/* Safety net — ensures long URLs / words inside the sanitised HTML wrap
 	   rather than overflowing horizontally. */
 	overflow-wrap: break-word;
-	word-wrap: break-word;
 	max-width: 100%;
 }
 
@@ -512,7 +511,6 @@ export default {
 .cn-text-widget__table th,
 .cn-text-widget__table td {
 	overflow-wrap: break-word;
-	word-wrap: break-word;
 	vertical-align: top;
 }
 

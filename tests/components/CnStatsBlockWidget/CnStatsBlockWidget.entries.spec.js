@@ -56,8 +56,12 @@ beforeEach(() => {
 describe('CnStatsBlockWidget — multi-entry mode', () => {
 	it('renders one CnStatsBlock per entry, each with its own fetched count', async () => {
 		axios.get.mockImplementation((url) => {
-			if (url.includes('/expiring/')) return Promise.resolve({ data: { value: 3 } })
-			if (url.includes('/review/')) return Promise.resolve({ data: { value: 7 } })
+			if (url.includes('/expiring/')) {
+				return Promise.resolve({ data: { value: 3 } })
+			}
+			if (url.includes('/review/')) {
+				return Promise.resolve({ data: { value: 7 } })
+			}
 			return Promise.resolve({ data: { value: 0 } })
 		})
 		const wrapper = mountWidget({
@@ -97,7 +101,9 @@ describe('CnStatsBlockWidget — multi-entry mode', () => {
 
 	it('omits an entry whose resolved count is 0 when hideWhenZero is set', async () => {
 		axios.get.mockImplementation((url) => {
-			if (url.includes('/archived/')) return Promise.resolve({ data: { value: 0 } })
+			if (url.includes('/archived/')) {
+				return Promise.resolve({ data: { value: 0 } })
+			}
 			return Promise.resolve({ data: { value: 5 } })
 		})
 		const wrapper = mountWidget({

@@ -27,7 +27,9 @@ jest.mock('@nextcloud/router', () => ({
 	generateUrl: jest.fn((p, params) => {
 		let out = p
 		if (params) {
-			for (const [k, v] of Object.entries(params)) out = out.replace(`{${k}}`, v)
+			for (const [k, v] of Object.entries(params)) {
+				out = out.replace(`{${k}}`, v)
+			}
 		}
 		return `/nc${out}`
 	}),
@@ -78,6 +80,30 @@ describe('CnLifecycleActions', () => {
 			expect(wrapper.find('[data-testid="cn-lifecycle-action-close"]').text()).toBe('Close')
 			// description wins over derived label
 			expect(wrapper.find('[data-testid="cn-lifecycle-action-void"]').text()).toBe('Void shift')
+		})
+
+		// CONFIRMED, NOT ASSUMED. `visibleTransitions` names the keys it maps,
+		// so `blocked` arriving beside them changes nothing here: this
+		// component was not asked to grow a third state alongside
+		// CnStagesWidget, and it must not silently grow one either by passing
+		// an unknown key through to a button.
+		it('ignores a key it does not know, rather than passing it through', async () => {
+			axios.get.mockResolvedValue({
+				data: {
+					actions: [
+						{ action: 'close', to: 'closed', blocked: true, description: 'Close shift' },
+					],
+				},
+			})
+			const wrapper = mount(CnLifecycleActions, {
+				propsData: { objectId: 'shift-1', config: { field: 'status' } },
+				stubs,
+			})
+			await flush()
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.find('[data-testid="cn-lifecycle-action-close"]').text()).toBe('Close shift')
+			expect(wrapper.vm.visibleTransitions[0].blocked).toBeUndefined()
 		})
 
 		it('renders nothing when the object has no available actions', async () => {

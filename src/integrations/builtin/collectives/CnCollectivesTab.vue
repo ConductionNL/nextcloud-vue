@@ -95,7 +95,7 @@
 						:bold="true"
 						:href="pageUrl(page)"
 						target="_blank"
-						:force-display-actions="true">
+						:forceDisplayActions="true">
 						<template #icon>
 							<span class="cn-collectives-tab__emoji" :aria-hidden="true">
 								<template v-if="pageEmoji(page)">{{ pageEmoji(page) }}</template>
@@ -112,16 +112,16 @@
 							<NcDateTime
 								class="cn-collectives-tab__time"
 								:timestamp="modifiedMs(page)"
-								:relative-time="'short'" />
+								relativeTime="short" />
 						</template>
 						<template #actions>
-							<NcActionButton :close-after-click="true" @click="openPage(page)">
+							<NcActionButton :closeAfterClick="true" @click="openPage(page)">
 								<template #icon>
 									<OpenInNew :size="20" />
 								</template>
 								{{ t('nextcloud-vue', 'Open in Knowledge') }}
 							</NcActionButton>
-							<NcActionButton :close-after-click="true" @click="unlinkPage(page)">
+							<NcActionButton :closeAfterClick="true" @click="unlinkPage(page)">
 								<template #icon>
 									<LinkOff :size="20" />
 								</template>
@@ -135,13 +135,13 @@
 
 		<CnCollectivePagePicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 
 		<CnCollectivePageCreate
 			v-if="createOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="createOpen = false"
 			@create="onCreatePick" />
 	</div>
@@ -243,9 +243,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchPages() } } },
-		register() { this.fetchPages() },
-		schema() { this.fetchPages() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchPages()
+			}
+		} },
+
+		register() {
+			this.fetchPages()
+		},
+
+		schema() {
+			this.fetchPages()
+		},
 	},
 
 	methods: {

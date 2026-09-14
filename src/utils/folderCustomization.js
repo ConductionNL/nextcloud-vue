@@ -157,10 +157,16 @@ const FOLDER_ICON_MAP = Object.fromEntries(FOLDER_ICONS.map((e) => [e.key, e.com
  * @return {string|null} A hex color string, or null when unset/unknown.
  */
 export function resolveFolderColor(value, theme) {
-	if (!value) return null
-	if (value.startsWith('#')) return value
+	if (!value) {
+		return null
+	}
+	if (value.startsWith('#')) {
+		return value
+	}
 	const entry = FOLDER_COLOR_MAP[value]
-	if (!entry) return null
+	if (!entry) {
+		return null
+	}
 	return theme === 'dark' ? entry.dark : entry.light
 }
 
@@ -172,7 +178,9 @@ export function resolveFolderColor(value, theme) {
  *   the caller falls back to its default glyph.
  */
 export function resolveFolderIcon(key) {
-	if (!key) return null
+	if (!key) {
+		return null
+	}
 	return FOLDER_ICON_MAP[key] ?? null
 }
 
@@ -191,15 +199,17 @@ export function resolveFolderIcon(key) {
  */
 export function folderColorTint(value, theme, alpha = 0.15) {
 	const hex = resolveFolderColor(value, theme)
-	if (!hex) return null
+	if (!hex) {
+		return null
+	}
 	const match = /^#([0-9a-f]{6})$/i.exec(hex)
-	if (!match) return null
+	if (!match) {
+		return null
+	}
 	const int = parseInt(match[1], 16)
-	/* eslint-disable no-bitwise */
 	const r = (int >> 16) & 0xff
 	const g = (int >> 8) & 0xff
 	const b = int & 0xff
-	/* eslint-enable no-bitwise */
 	return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
@@ -218,12 +228,11 @@ export function folderColorTint(value, theme, alpha = 0.15) {
  */
 export function searchFolderIcons(query, translate) {
 	const q = String(query || '').trim().toLowerCase()
-	if (q === '') return FOLDER_ICONS
+	if (q === '') {
+		return FOLDER_ICONS
+	}
 	const tr = typeof translate === 'function' ? translate : (s) => s
-	return FOLDER_ICONS.filter(
-		(e) =>
-			e.key.toLowerCase().includes(q)
-			|| e.label.toLowerCase().includes(q)
-			|| String(tr(e.label)).toLowerCase().includes(q),
-	)
+	return FOLDER_ICONS.filter((e) => e.key.toLowerCase().includes(q)
+		|| e.label.toLowerCase().includes(q)
+		|| String(tr(e.label)).toLowerCase().includes(q))
 }

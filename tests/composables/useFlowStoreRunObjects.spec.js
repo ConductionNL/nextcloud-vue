@@ -1,3 +1,4 @@
+import axios from '@nextcloud/axios'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
  * SPDX-License-Identifier: EUPL-1.2
@@ -14,7 +15,6 @@
  * is worse than an empty list.
  */
 import { createPinia, setActivePinia } from 'pinia'
-import axios from '@nextcloud/axios'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
 
 jest.mock('@nextcloud/axios', () => ({
@@ -105,6 +105,55 @@ describe('useFlowStore — objects touched by a run', () => {
 
 		expect(store.steps).toEqual([])
 		expect(store.runObjects).toHaveLength(1)
+	})
+
+	it('keeps the run’s own record, which holds what the audit read cannot', async () => {
+		// The record carries `subjects` and `placeItems`: the objects the run is
+		// ABOUT. `inspectRun` used to take the log and the version off it and
+		// drop the rest, so a run that changed nothing had nothing to show even
+		// though its own error named the object it was waiting for.
+		axios.get
+			.mockResolvedValueOnce({
+				data: {
+					uuid: 'run-7',
+					status: 'failed',
+					flowVersion: 1,
+					log: [],
+					subjects: { trigger: { uuid: 'case-1' } },
+					placeItems: { lock: [{ json: { id: 'case-1', title: 'A case' } }] },
+				},
+			})
+			.mockResolvedValueOnce({ data: { nodes: [] } })
+			.mockResolvedValueOnce({ data: { results: [] } })
+
+		await store.inspectRun('run-7')
+
+		expect(store.runDetail?.uuid).toBe('run-7')
+		expect(store.runDetail?.subjects?.trigger?.uuid).toBe('case-1')
+	})
+
+	it('drops the record when the run cannot be read, rather than keeping the last one', async () => {
+		store.runDetail = { uuid: 'run-from-before', status: 'completed' }
+
+		axios.get
+			.mockRejectedValueOnce(new Error('network'))
+			.mockResolvedValueOnce({ data: { nodes: [] } })
+			.mockResolvedValueOnce({ data: { results: [] } })
+
+		await store.inspectRun('run-8')
+
+		// Showing the previous run's status and error under this run's number
+		// is a wrong answer rendered exactly like a right one.
+		expect(store.runDetail).toBeNull()
+	})
+
+	it('closing the run clears its record with the rest of the run state', async () => {
+		store.runDetail = { uuid: 'run-9', status: 'failed' }
+		store.inspectedRunUuid = 'run-9'
+
+		store.closeRun()
+
+		expect(store.runDetail).toBeNull()
 	})
 
 	it('opening another flow clears the objects with the rest of the run state', async () => {

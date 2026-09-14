@@ -30,108 +30,112 @@ const REPO_ROOT = path.resolve(__dirname, '..')
  *
  * Inside backticks (single inline-code spans) the content is left as-is —
  * MDX treats it as code and skips JSX/expression parsing.
+ *
+ * @param {string} text The text to escape.
  */
 function escapeMdxBraces(text) {
-  if (!text) return text
-  let out = ''
-  let inCode = false
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i]
-    if (c === '`') {
-      inCode = !inCode
-      out += c
-    } else if (c === '$' && text[i + 1] === '{') {
-      // Escape ${...} template literal expressions everywhere — MDX executes
-      // them as JavaScript during SSG even inside backtick code spans.
-      out += '\\$'
-    } else if (!inCode && (c === '{' || c === '}')) {
-      out += '\\' + c
-    } else if (c === '<') {
-      // Escape < everywhere — Docusaurus MDX parses JSX tags even inside
-      // backtick code spans in table cells, so we must escape unconditionally.
-      out += '&lt;'
-    } else if (c === '>') {
-      out += '&gt;'
-    } else {
-      out += c
-    }
-  }
-  return out
+	if (!text) {
+		return text
+	}
+	let out = ''
+	let inCode = false
+	for (let i = 0; i < text.length; i++) {
+		const c = text[i]
+		if (c === '`') {
+			inCode = !inCode
+			out += c
+		} else if (c === '$' && text[i + 1] === '{') {
+			// Escape ${...} template literal expressions everywhere — MDX executes
+			// them as JavaScript during SSG even inside backtick code spans.
+			out += '\\$'
+		} else if (!inCode && (c === '{' || c === '}')) {
+			out += '\\' + c
+		} else if (c === '<') {
+			// Escape < everywhere — Docusaurus MDX parses JSX tags even inside
+			// backtick code spans in table cells, so we must escape unconditionally.
+			out += '&lt;'
+		} else if (c === '>') {
+			out += '&gt;'
+		} else {
+			out += c
+		}
+	}
+	return out
 }
 
 module.exports = {
-  componentsRoot: path.join(REPO_ROOT, 'src/components'),
-  // Phase 3: walk every Cn*/Cn*.vue. The CI freshness gate (`git diff
-  // --exit-code docs/components/_generated/`) treats this as the
-  // authoritative set, so any new Cn* component will land its own
-  // partial in the same PR.
-  //
-  // CnIconBrowserPanel is an internal-only subcomponent (not exported from
-  // src/index.js and has no parent doc page), so it's excluded to avoid an
-  // orphaned partial Docusaurus would flag as unreferenced.
-  //
-  // CnMenuWidget/CnMenuTreeNode.vue is the private subcomponent of
-  // CnMenuWidget (imported only from CnMenuWidget.vue). Its basename
-  // collides with the public CnMenuTreeNode/CnMenuTreeNode.vue editor
-  // — both would write to _generated/CnMenuTreeNode.md, corrupting the
-  // file with a partial overwrite. Excluding the private one keeps the
-  // public editor's partial clean.
-  components: [
-    'Cn*/Cn*.vue',
-    '!**/CnIconBrowserPanel.vue',
-    '!**/CnMenuWidget/CnMenuTreeNode.vue',
-  ],
-  outDir: path.join(REPO_ROOT, 'docs/components/_generated'),
+	componentsRoot: path.join(REPO_ROOT, 'src/components'),
+	// Phase 3: walk every Cn*/Cn*.vue. The CI freshness gate (`git diff
+	// --exit-code docs/components/_generated/`) treats this as the
+	// authoritative set, so any new Cn* component will land its own
+	// partial in the same PR.
+	//
+	// CnIconBrowserPanel is an internal-only subcomponent (not exported from
+	// src/index.js and has no parent doc page), so it's excluded to avoid an
+	// orphaned partial Docusaurus would flag as unreferenced.
+	//
+	// CnMenuWidget/CnMenuTreeNode.vue is the private subcomponent of
+	// CnMenuWidget (imported only from CnMenuWidget.vue). Its basename
+	// collides with the public CnMenuTreeNode/CnMenuTreeNode.vue editor
+	// — both would write to _generated/CnMenuTreeNode.md, corrupting the
+	// file with a partial overwrite. Excluding the private one keeps the
+	// public editor's partial clean.
+	components: [
+		'Cn*/Cn*.vue',
+		'!**/CnIconBrowserPanel.vue',
+		'!**/CnMenuWidget/CnMenuTreeNode.vue',
+	],
+	outDir: path.join(REPO_ROOT, 'docs/components/_generated'),
 
-  // Each component gets its own .md file.
-  getDestFile: (file, config) => {
-    const componentName = path.basename(file, '.vue')
-    return path.join(config.outDir, `${componentName}.md`)
-  },
+	// Each component gets its own .md file.
+	getDestFile: (file, config) => {
+		const componentName = path.basename(file, '.vue')
+		return path.join(config.outDir, `${componentName}.md`)
+	},
 
-  templates: {
-    // Top-level component template. Reference tables only — no top-level H1
-    // and no narrative description. The Docusaurus page that imports this
-    // partial owns the narrative and headings; this partial slots into a
-    // ## Reference section on that page.
-    component(renderedUsage, doc, config, fileName, requiresMd, subComponent) {
-      const { props, events, slots, methods } = doc
-      // Use the actual SFC path so nested components (e.g.
-      // `CnObjectSidebar/CnFilesTab.vue`) stamp the correct location
-      // rather than the assumed `src/components/<displayName>/...` path.
-      // vue-docgen-cli passes `fileName` relative to `componentsRoot`,
-      // so resolve against that to get an absolute path before making
-      // it repo-relative.
-      const absFile = path.isAbsolute(fileName)
-        ? fileName
-        : path.resolve(config.componentsRoot, fileName)
-      const relPath = path.relative(REPO_ROOT, absFile).split(path.sep).join('/')
-      const stamp = `<!-- AUTO-GENERATED by vue-docgen-cli — do not edit. Source: ${relPath} -->`
-      const blocks = [stamp]
+	templates: {
+		// Top-level component template. Reference tables only — no top-level H1
+		// and no narrative description. The Docusaurus page that imports this
+		// partial owns the narrative and headings; this partial slots into a
+		// ## Reference section on that page.
+		component(renderedUsage, doc, config, fileName, _requiresMd, _subComponent) {
+			const { props, events, slots, methods } = doc
+			// Use the actual SFC path so nested components (e.g.
+			// `CnObjectSidebar/CnFilesTab.vue`) stamp the correct location
+			// rather than the assumed `src/components/<displayName>/...` path.
+			// vue-docgen-cli passes `fileName` relative to `componentsRoot`,
+			// so resolve against that to get an absolute path before making
+			// it repo-relative.
+			const absFile = path.isAbsolute(fileName)
+				? fileName
+				: path.resolve(config.componentsRoot, fileName)
+			const relPath = path.relative(REPO_ROOT, absFile).split(path.sep).join('/')
+			const stamp = `<!-- AUTO-GENERATED by vue-docgen-cli — do not edit. Source: ${relPath} -->`
+			const blocks = [stamp]
 
-      if (props && props.length) {
-        blocks.push('### Props')
-        blocks.push(renderProps(props))
-      }
+			if (props && props.length) {
+				blocks.push('### Props')
+				blocks.push(renderProps(props))
+			}
 
-      if (events && events.length) {
-        blocks.push('### Events')
-        blocks.push(renderEvents(events))
-      }
+			if (events && events.length) {
+				blocks.push('### Events')
+				blocks.push(renderEvents(events))
+			}
 
-      if (slots && slots.length) {
-        blocks.push('### Slots')
-        blocks.push(renderSlots(slots))
-      }
+			if (slots && slots.length) {
+				blocks.push('### Slots')
+				blocks.push(renderSlots(slots))
+			}
 
-      if (methods && methods.length) {
-        blocks.push('### Methods')
-        blocks.push(renderMethods(methods))
-      }
+			if (methods && methods.length) {
+				blocks.push('### Methods')
+				blocks.push(renderMethods(methods))
+			}
 
-      return blocks.join('\n\n') + '\n'
-    },
-  },
+			return blocks.join('\n\n') + '\n'
+		},
+	},
 }
 
 /**
@@ -142,26 +146,28 @@ module.exports = {
  * (CodeQL js/incomplete-sanitization). The MDX-brace step then adds its own
  * `\{` / `\}` markers — those are intentional and must NOT be re-doubled,
  * so the source-backslash escape runs before escapeMdxBraces, not after.
+ *
+ * @param {string} text The cell text, straight from the docblock.
  */
 function cell(text) {
-  // Single-pass markdown-cell escape: backslash AND pipe both get
-  // prefixed with a backslash in one substitution so CodeQL
-  // (js/incomplete-sanitization) sees no asymmetry between the two.
-  // This runs BEFORE escapeMdxBraces so the `\{` / `\}` markers MDX
-  // needs verbatim aren't themselves re-escaped — escapeMdxBraces is
-  // append-only on `{`/`}`/`<`/`>` characters and never touches
-  // existing backslashes.
-  const escaped = String(text || '').replace(/[\\|]/g, '\\$&')
-  return escapeMdxBraces(escaped)
-    // Strip CR before collapsing LF: on a Windows (CRLF) checkout the
-    // extracted source of a multiline default carries \r\n, and a bare \r
-    // surviving into the cell breaks the table row — the committer's
-    // pre-commit regeneration then differs from CI's Linux output and
-    // fails the freshness gate. With CRs stripped, both produce the same
-    // bytes.
-    .replace(/\r/g, '')
-    .replace(/\n/g, ' ')
-    .trim()
+	// Single-pass markdown-cell escape: backslash AND pipe both get
+	// prefixed with a backslash in one substitution so CodeQL
+	// (js/incomplete-sanitization) sees no asymmetry between the two.
+	// This runs BEFORE escapeMdxBraces so the `\{` / `\}` markers MDX
+	// needs verbatim aren't themselves re-escaped — escapeMdxBraces is
+	// append-only on `{`/`}`/`<`/`>` characters and never touches
+	// existing backslashes.
+	const escaped = String(text || '').replace(/[\\|]/g, '\\$&')
+	return escapeMdxBraces(escaped)
+	// Strip CR before collapsing LF: on a Windows (CRLF) checkout the
+	// extracted source of a multiline default carries \r\n, and a bare \r
+	// surviving into the cell breaks the table row — the committer's
+	// pre-commit regeneration then differs from CI's Linux output and
+	// fails the freshness gate. With CRs stripped, both produce the same
+	// bytes.
+		.replace(/\r/g, '')
+		.replace(/\n/g, ' ')
+		.trim()
 }
 
 /**
@@ -169,84 +175,88 @@ function cell(text) {
  * (non-standard JSDoc). vue-docgen-api treats the whole "eventName Description"
  * as the event's `name`. Split on first whitespace so we get a clean name +
  * description.
+ *
+ * @param {string} rawName The event name as docgen read it, description included.
  */
 function splitMashedEventName(rawName) {
-  const m = rawName.match(/^([\w-]+)\s+(.+)$/s)
-  if (m) return { name: m[1], extraDesc: m[2] }
-  return { name: rawName, extraDesc: '' }
+	const m = rawName.match(/^([\w-]+)\s+(.+)$/s)
+	if (m) {
+		return { name: m[1], extraDesc: m[2] }
+	}
+	return { name: rawName, extraDesc: '' }
 }
 
 function renderProps(props) {
-  const rows = props.map(p => {
-    const name = `\`${p.name}\``
-    const type = p.type ? `\`${String(p.type.name).replace(/\|/g, '&#124;')}\`` : '—'
-    const required = p.required ? '✓' : ''
-    const defaultValue = p.defaultValue ? `\`${cell(p.defaultValue.value)}\`` : '—'
-    const desc = cell(p.description)
-    return `| ${name} | ${type} | ${required} | ${defaultValue} | ${desc} |`
-  })
-  return [
-    '| Name | Type | Required | Default | Description |',
-    '|------|------|----------|---------|-------------|',
-    ...rows,
-  ].join('\n')
+	const rows = props.map((p) => {
+		const name = `\`${p.name}\``
+		const type = p.type ? `\`${String(p.type.name).replace(/\|/g, '&#124;')}\`` : '—'
+		const required = p.required ? '✓' : ''
+		const defaultValue = p.defaultValue ? `\`${cell(p.defaultValue.value)}\`` : '—'
+		const desc = cell(p.description)
+		return `| ${name} | ${type} | ${required} | ${defaultValue} | ${desc} |`
+	})
+	return [
+		'| Name | Type | Required | Default | Description |',
+		'|------|------|----------|---------|-------------|',
+		...rows,
+	].join('\n')
 }
 
 function renderEvents(events) {
-  // Dedupe by clean name — vue-docgen-api emits a separate entry for each
-  // template `$emit` site as well as the JSDoc tag. Keep the entry with the
-  // richer description.
-  const byName = new Map()
-  for (const e of events) {
-    const { name: cleanName, extraDesc } = splitMashedEventName(e.name)
-    const desc = [e.description, extraDesc].filter(Boolean).join(' — ')
-    const existing = byName.get(cleanName)
-    if (!existing || (desc && desc.length > (existing.desc || '').length)) {
-      byName.set(cleanName, { event: e, desc })
-    }
-  }
-  const rows = [...byName.entries()].map(([cleanName, { event: e, desc }]) => {
-    const name = `\`${cleanName}\``
-    const payload = e.properties && e.properties.length
-      ? e.properties.map(p => `\`${p.type.names ? p.type.names.join('\\|') : p.type.name}\``).join(', ')
-      : '—'
-    return `| ${name} | ${payload} | ${cell(desc)} |`
-  })
-  return [
-    '| Name | Payload | Description |',
-    '|------|---------|-------------|',
-    ...rows,
-  ].join('\n')
+	// Dedupe by clean name — vue-docgen-api emits a separate entry for each
+	// template `$emit` site as well as the JSDoc tag. Keep the entry with the
+	// richer description.
+	const byName = new Map()
+	for (const e of events) {
+		const { name: cleanName, extraDesc } = splitMashedEventName(e.name)
+		const desc = [e.description, extraDesc].filter(Boolean).join(' — ')
+		const existing = byName.get(cleanName)
+		if (!existing || (desc && desc.length > (existing.desc || '').length)) {
+			byName.set(cleanName, { event: e, desc })
+		}
+	}
+	const rows = [...byName.entries()].map(([cleanName, { event: e, desc }]) => {
+		const name = `\`${cleanName}\``
+		const payload = e.properties && e.properties.length
+			? e.properties.map((p) => `\`${p.type.names ? p.type.names.join('\\|') : p.type.name}\``).join(', ')
+			: '—'
+		return `| ${name} | ${payload} | ${cell(desc)} |`
+	})
+	return [
+		'| Name | Payload | Description |',
+		'|------|---------|-------------|',
+		...rows,
+	].join('\n')
 }
 
 function renderSlots(slots) {
-  // vue-docgen-api sometimes returns dynamic slot expressions (e.g.
-  // "'column-' + col.key") as the slot name. Wrap in code; consumers can
-  // override with hand-written narrative if a friendlier label is needed.
-  const rows = slots.map(s => {
-    const name = `\`${String(s.name).replace(/\|/g, '&#124;')}\``
-    const desc = cell(s.description)
-    const bindings = s.bindings && s.bindings.length
-      ? s.bindings.map(b => `\`${b.name}\``).join(', ')
-      : '—'
-    return `| ${name} | ${bindings} | ${desc} |`
-  })
-  return [
-    '| Name | Bindings | Description |',
-    '|------|----------|-------------|',
-    ...rows,
-  ].join('\n')
+	// vue-docgen-api sometimes returns dynamic slot expressions (e.g.
+	// "'column-' + col.key") as the slot name. Wrap in code; consumers can
+	// override with hand-written narrative if a friendlier label is needed.
+	const rows = slots.map((s) => {
+		const name = `\`${String(s.name).replace(/\|/g, '&#124;')}\``
+		const desc = cell(s.description)
+		const bindings = s.bindings && s.bindings.length
+			? s.bindings.map((b) => `\`${b.name}\``).join(', ')
+			: '—'
+		return `| ${name} | ${bindings} | ${desc} |`
+	})
+	return [
+		'| Name | Bindings | Description |',
+		'|------|----------|-------------|',
+		...rows,
+	].join('\n')
 }
 
 function renderMethods(methods) {
-  const rows = methods.map(m => {
-    const name = `\`${m.name}\``
-    const desc = cell(m.description)
-    return `| ${name} | ${desc} |`
-  })
-  return [
-    '| Name | Description |',
-    '|------|-------------|',
-    ...rows,
-  ].join('\n')
+	const rows = methods.map((m) => {
+		const name = `\`${m.name}\``
+		const desc = cell(m.description)
+		return `| ${name} | ${desc} |`
+	})
+	return [
+		'| Name | Description |',
+		'|------|-------------|',
+		...rows,
+	].join('\n')
 }

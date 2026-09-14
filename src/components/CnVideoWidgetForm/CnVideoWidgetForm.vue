@@ -6,11 +6,11 @@
 <template>
 	<div class="cn-video-form">
 		<NcTextField
-			:model-value="videoUrl"
+			:modelValue="videoUrl"
 			:label="t('nextcloud-vue', 'Video URL')"
 			placeholder="https://www.youtube.com/watch?v=..."
 			required
-			@update:model-value="onUrlInput" />
+			@update:modelValue="onUrlInput" />
 
 		<div v-if="detectedSource" class="cn-video-form__hint">
 			{{ detectedSourceLabel }}
@@ -21,23 +21,23 @@
 
 		<NcTextField
 			v-if="sourceType === 'nc-file'"
-			:model-value="String(fileId || '')"
+			:modelValue="String(fileId || '')"
 			:label="t('nextcloud-vue', 'Nextcloud File ID')"
 			placeholder="12345"
-			@update:model-value="onFileIdInput" />
+			@update:modelValue="onFileIdInput" />
 
 		<NcSelect
-			:model-value="aspectRatio"
+			:modelValue="aspectRatio"
 			:options="aspectRatioOptions"
-			:input-label="t('nextcloud-vue', 'Aspect Ratio')"
+			:inputLabel="t('nextcloud-vue', 'Aspect Ratio')"
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
 			@update:modelValue="updateField('aspectRatio', $event)" />
 
 		<NcCheckboxRadioSwitch
-			:model-value="autoplay"
-			@update:model-value="onAutoplayToggle">
+			:modelValue="autoplay"
+			@update:modelValue="onAutoplayToggle">
 			{{ t('nextcloud-vue', 'Autoplay') }}
 		</NcCheckboxRadioSwitch>
 		<div v-if="autoplay" class="cn-video-form__hint">
@@ -45,35 +45,35 @@
 		</div>
 
 		<NcCheckboxRadioSwitch
-			:model-value="muted"
+			:modelValue="muted"
 			:disabled="autoplay"
-			@update:model-value="updateField('muted', $event)">
+			@update:modelValue="updateField('muted', $event)">
 			{{ t('nextcloud-vue', 'Muted') }}
 		</NcCheckboxRadioSwitch>
 
 		<NcCheckboxRadioSwitch
-			:model-value="loop"
-			@update:model-value="updateField('loop', $event)">
+			:modelValue="loop"
+			@update:modelValue="updateField('loop', $event)">
 			{{ t('nextcloud-vue', 'Loop') }}
 		</NcCheckboxRadioSwitch>
 
 		<NcCheckboxRadioSwitch
-			:model-value="controls"
-			@update:model-value="updateField('controls', $event)">
+			:modelValue="controls"
+			@update:modelValue="updateField('controls', $event)">
 			{{ t('nextcloud-vue', 'Show controls') }}
 		</NcCheckboxRadioSwitch>
 
 		<NcTextField
-			:model-value="posterUrl"
+			:modelValue="posterUrl"
 			:label="t('nextcloud-vue', 'Poster Image URL (optional)')"
 			placeholder="https://example.com/poster.jpg"
-			@update:model-value="updateField('posterUrl', $event)" />
+			@update:modelValue="updateField('posterUrl', $event)" />
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 import { detectVideoSource, normalizeEmbedUrl } from '../CnVideoWidget/videoUrlParser.js'
 
 const VALID_ASPECT_RATIOS = ['16:9', '4:3', '1:1', '9:16']
@@ -115,6 +115,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Initial content values (registry defaults when not editing). */
 		value: {
 			type: Object,
@@ -144,6 +145,7 @@ export default {
 			aspectRatio: VALID_ASPECT_RATIOS.includes(initial.aspectRatio)
 				? initial.aspectRatio
 				: DEFAULT_CONTENT.aspectRatio,
+
 			posterUrl: typeof initial.posterUrl === 'string' ? initial.posterUrl : DEFAULT_CONTENT.posterUrl,
 		}
 	},
@@ -177,16 +179,16 @@ export default {
 		 */
 		detectedSourceLabel() {
 			switch (this.detectedSource) {
-			case 'youtube':
-				return t('nextcloud-vue', 'Detected: YouTube')
-			case 'vimeo':
-				return t('nextcloud-vue', 'Detected: Vimeo')
-			case 'peertube':
-				return t('nextcloud-vue', 'Detected: PeerTube')
-			case 'nc-file':
-				return t('nextcloud-vue', 'Detected: Nextcloud File')
-			default:
-				return ''
+				case 'youtube':
+					return t('nextcloud-vue', 'Detected: YouTube')
+				case 'vimeo':
+					return t('nextcloud-vue', 'Detected: Vimeo')
+				case 'peertube':
+					return t('nextcloud-vue', 'Detected: PeerTube')
+				case 'nc-file':
+					return t('nextcloud-vue', 'Detected: Nextcloud File')
+				default:
+					return ''
 			}
 		},
 
@@ -242,7 +244,7 @@ export default {
 		 * Set a field and emit `update:content`.
 		 *
 		 * @param {string} field the field name.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {

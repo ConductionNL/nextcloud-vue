@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<CnSiteSection variant="hero" :background-image="backgroundImage">
+	<CnSiteSection variant="hero" :backgroundImage="backgroundImage">
 		<!--
 			THE HEADING IS REAL BUT NOT NECESSARILY PAINTED, and that is a
 			deliberate improvement on the reference rather than a copy of it.
@@ -55,11 +55,11 @@
 			<div class="ac-card__content">
 				<CnSiteSearch
 					:label="effectiveSearchLabel"
-					:label-visible="true"
+					:labelVisible="true"
 					:placeholder="searchPlaceholder"
-					:submit-label="searchSubmitLabel"
+					:submitLabel="searchSubmitLabel"
 					:value="searchValue"
-					:input-id="searchInputId"
+					:inputId="searchInputId"
 					@search="$emit('search', $event)" />
 			</div>
 		</div>

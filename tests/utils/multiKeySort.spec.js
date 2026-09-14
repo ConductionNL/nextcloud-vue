@@ -37,7 +37,10 @@ describe('multiKeySort', () => {
 			{ field: 'name', order: 'asc' },
 		])
 		expect(out.map((r) => `${r.type}:${r.name}`)).toEqual([
-			'a:Alpha', 'a:Yankee', 'b:Beta', 'b:Zeta',
+			'a:Alpha',
+			'a:Yankee',
+			'b:Beta',
+			'b:Zeta',
 		])
 	})
 

@@ -34,9 +34,9 @@
 					<NcAvatar
 						class="cn-email-card__avatar"
 						:size="32"
-						:display-name="row.sender"
+						:displayName="row.sender"
 						:user="row.avatarUser"
-						:is-no-user="true" />
+						:isNoUser="true" />
 					<div class="cn-email-card__text">
 						<div class="cn-email-card__row-head">
 							<strong class="cn-email-card__subject">{{ row.subject }}</strong>
@@ -109,6 +109,7 @@ export default {
 			default: 'detail-page',
 			validator: (value) => ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity'].includes(value),
 		},
+
 		/** Base API URL. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Maximum rows to render. */
@@ -147,12 +148,15 @@ export default {
 		resolvedTitle() {
 			return this.title || t('nextcloud-vue', 'Emails')
 		},
+
 		effectiveMax() {
 			return this.surface === 'single-entity' ? 1 : this.maxDisplay
 		},
+
 		displayedMessages() {
 			return this.messages.slice(0, this.effectiveMax)
 		},
+
 		/**
 		 * Template-safe view rows; keeps `?.`/`??` out of the buble template.
 		 *
@@ -175,7 +179,11 @@ export default {
 	watch: {
 		objectId: {
 			immediate: true,
-			handler(id) { if (id) { this.fetchMessages() } },
+			handler(id) {
+				if (id) {
+					this.fetchMessages()
+				}
+			},
 		},
 	},
 

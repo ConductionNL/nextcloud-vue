@@ -9,7 +9,7 @@
  *  - generic-error path when fetch throws.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnTalkTab = require('../../src/integrations/builtin/talk/CnTalkTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -42,8 +42,7 @@ describe('CnTalkTab', () => {
 	it('renders the empty state with an "Open Talk" CTA when no rooms', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No conversations linked yet')
 		expect(wrapper.text()).toContain('Open Talk')
 		wrapper.unmount()
@@ -61,8 +60,7 @@ describe('CnTalkTab', () => {
 			}),
 		})
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-talk-tab__row')
 		expect(rows).toHaveLength(2)
 		// Assert the component's own responsibility: derive each room's
@@ -90,8 +88,7 @@ describe('CnTalkTab', () => {
 			}),
 		})
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const badges = wrapper.findAll('.cn-talk-tab__badge')
 		expect(badges).toHaveLength(2)
 		const texts = badges.map((b) => b.text())
@@ -103,8 +100,7 @@ describe('CnTalkTab', () => {
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Talk is currently unavailable.')
 		// Also still renders the empty state (rooms cleared)
 		expect(wrapper.find('.cn-talk-tab__row').exists()).toBe(false)
@@ -116,8 +112,7 @@ describe('CnTalkTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load conversations.')
 		wrapper.unmount()
 		spy.mockRestore()

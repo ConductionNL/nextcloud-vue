@@ -80,35 +80,35 @@ export async function parseResponseError(response, type) {
 	}
 
 	switch (true) {
-	case status === 400 || status === 422:
-		message = extractValidationMessage(details) || `Validation failed for ${type}`
-		return {
-			status,
-			message,
-			details,
-			isValidation: true,
-			fields,
-			toString() {
-				return this.message
-			},
-		}
-	case status === 401:
-		message = 'Session expired, please log in again'
-		break
-	case status === 403:
-		message = 'You do not have permission to perform this action'
-		break
-	case status === 404:
-		message = `The requested ${type} could not be found`
-		break
-	case status === 409:
-		message = `This ${type} was modified by another user. Please reload.`
-		break
-	case status >= 500:
-		message = 'An unexpected server error occurred. Please try again.'
-		break
-	default:
-		message = response.statusText || 'An unexpected error occurred'
+		case status === 400 || status === 422:
+			message = extractValidationMessage(details) || `Validation failed for ${type}`
+			return {
+				status,
+				message,
+				details,
+				isValidation: true,
+				fields,
+				toString() {
+					return this.message
+				},
+			}
+		case status === 401:
+			message = 'Session expired, please log in again'
+			break
+		case status === 403:
+			message = 'You do not have permission to perform this action'
+			break
+		case status === 404:
+			message = `The requested ${type} could not be found`
+			break
+		case status === 409:
+			message = `This ${type} was modified by another user. Please reload.`
+			break
+		case status >= 500:
+			message = 'An unexpected server error occurred. Please try again.'
+			break
+		default:
+			message = response.statusText || 'An unexpected error occurred'
 	}
 
 	return {
@@ -153,7 +153,9 @@ export function parseAxiosError(error) {
 	if (typeof data === 'string' && data !== '') {
 		message = data
 	} else if (data && typeof data === 'object') {
-		if (typeof data.error === 'string') code = data.error
+		if (typeof data.error === 'string') {
+			code = data.error
+		}
 		message = (typeof data.message === 'string' && data.message)
 			|| (typeof data.error === 'string' && data.error)
 			|| null
@@ -175,7 +177,9 @@ export function networkError(error) {
 		details: null,
 		isValidation: false,
 		fields: null,
-		toString() { return this.message },
+		toString() {
+			return this.message
+		},
 	}
 }
 
@@ -192,6 +196,8 @@ export function genericError(error) {
 		details: null,
 		isValidation: false,
 		fields: null,
-		toString() { return this.message },
+		toString() {
+			return this.message
+		},
 	}
 }

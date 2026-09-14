@@ -38,19 +38,19 @@
 		@closing="$emit('close')">
 		<div class="cn-step-picker">
 			<div class="cn-step-picker__controls">
-				<NcTextField :model-value="search"
+				<NcTextField :modelValue="search"
 					:label="t('nextcloud-vue', 'Search steps')"
-					trailing-button-icon="close"
-					:show-trailing-button="search !== ''"
+					trailingButtonIcon="close"
+					:showTrailingButton="search !== ''"
 					data-testid="flow-step-picker-search"
-					@trailing-button-click="search = ''"
-					@update:model-value="search = $event" />
+					@trailingButtonClick="search = ''"
+					@update:modelValue="search = $event" />
 
-				<NcSelect :model-value="roleOption"
+				<NcSelect :modelValue="roleOption"
 					:options="roleOptions"
-					:input-label="t('nextcloud-vue', 'Type')"
+					:inputLabel="t('nextcloud-vue', 'Type')"
 					:clearable="false"
-					@update:model-value="role = $event ? $event.id : null" />
+					@update:modelValue="role = $event ? $event.id : null" />
 			</div>
 
 			<p v-if="store.catalogLoading && !store.nodeCatalog.length" class="cn-step-picker__hint">
@@ -384,6 +384,7 @@ export default {
 }
 
 .cn-step-picker__role--trigger { color: var(--color-primary-element); }
+
 .cn-step-picker__role--end { color: var(--color-warning-text, var(--color-warning)); }
 
 .cn-step-picker__description {

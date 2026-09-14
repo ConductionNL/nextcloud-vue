@@ -5,7 +5,7 @@
  * Tests for the shared responsive grid engine helper.
  */
 
-import { cnGridCellStyle, hasGridRow, GRID_COLUMNS, GRID_COLUMNS_MD } from '../../src/utils/grid.js'
+import { cnGridCellStyle, GRID_COLUMNS, GRID_COLUMNS_MD, hasGridRow } from '../../src/utils/grid.js'
 
 describe('cnGridCellStyle', () => {
 	it('emits column start + span vars (1-based)', () => {

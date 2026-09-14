@@ -50,8 +50,15 @@
 				</slot>
 			</div>
 
-			<!-- Value -->
-			<div class="cn-detail-grid__value">
+			<!-- Value. A row that is present but holds nothing carries the
+			     --empty modifier, the same one CnObjectDataWidget uses, so a
+			     reader and a test can tell "present and blank" from "present
+			     with a value" rather than reading a lone dash. -->
+			<div
+				class="cn-detail-grid__value"
+				:class="{
+					'cn-detail-grid__value--empty': isEmptyValue(item),
+				}">
 				<!-- @slot item-{index} Per-item value override (e.g. `#item-0`). Defaults to `item.value` or the AD-18 reference widget. -->
 				<!-- @binding {object} item The item definition being rendered. -->
 				<!-- @binding {number} index The item's position in `items`. -->
@@ -63,8 +70,19 @@
 						:is="resolveReferenceWidget(item)"
 						v-if="resolveReferenceWidget(item)"
 						v-bind="referenceWidgetProps(item)" />
+					<!-- An item carrying `href` renders as a link. Used for a
+					     folder, which is a place you go to rather than a number
+					     you read. A URL that does not survive the scheme guard
+					     falls through to plain text: a dead `href="#"` looks
+					     clickable and is not, which is worse than no link. -->
+					<a
+						v-else-if="linkHref(item)"
+						:href="linkHref(item)"
+						class="cn-detail-grid__link">
+						{{ displayValue(item) }}
+					</a>
 					<template v-else>
-						{{ item.value !== undefined && item.value !== null ? item.value : '-' }}
+						{{ displayValue(item) }}
 					</template>
 				</slot>
 			</div>
@@ -85,8 +103,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { safeHref } from '../../utils/safeHref.js'
 
 /**
  * CnDetailGrid — Data-driven label-value grid for detail/info sections.
@@ -140,6 +159,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Array of detail items to render.
 		 *
@@ -154,6 +174,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Object context forwarded to integration single-entity
 		 * widgets rendered for items that declare a `referenceType`:
@@ -165,6 +186,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Layout mode.
 		 * - 'grid': Responsive card grid, label stacked above value
@@ -175,6 +197,7 @@ export default {
 			default: 'grid',
 			validator: (v) => ['grid', 'horizontal'].includes(v),
 		},
+
 		/**
 		 * Number of fixed grid columns. Set to 0 (default) for responsive auto-fit.
 		 * Only applies to layout="grid".
@@ -183,6 +206,7 @@ export default {
 			type: Number,
 			default: 0,
 		},
+
 		/**
 		 * Minimum width (px) for auto-fit grid items.
 		 * Only applies when columns is 0 and layout is 'grid'.
@@ -191,6 +215,7 @@ export default {
 			type: Number,
 			default: 250,
 		},
+
 		/**
 		 * Minimum width (px) for labels in horizontal mode.
 		 */
@@ -198,6 +223,7 @@ export default {
 			type: Number,
 			default: 150,
 		},
+
 		/**
 		 * Whether to show the left accent border on items.
 		 */
@@ -205,6 +231,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Text shown when the items array is empty.
 		 */
@@ -234,6 +261,7 @@ export default {
 				'cn-detail-grid--accent': this.accent,
 			}
 		},
+
 		rootStyles() {
 			if (this.layout === 'grid') {
 				if (this.columns > 0) {
@@ -246,6 +274,7 @@ export default {
 			}
 			return {}
 		},
+
 		itemClasses() {
 			return {
 				'cn-detail-grid__item--horizontal': this.layout === 'horizontal',
@@ -254,6 +283,50 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether the item is present but carries no value.
+		 *
+		 * `empty: true` lets a caller say so explicitly when it has already
+		 * formatted the absence into a placeholder of its own.
+		 *
+		 * @param {object} item - The item definition.
+		 * @return {boolean} True when the row is blank.
+		 */
+		isEmptyValue(item) {
+			return item.empty === true || item.value === undefined || item.value === null
+		},
+
+		/**
+		 * The item's value as rendered, with the empty placeholder.
+		 *
+		 * @param {object} item - The item definition.
+		 * @return {unknown} The value, or a dash when it carries none.
+		 */
+		displayValue(item) {
+			if (item.value === undefined || item.value === null) {
+				return '-'
+			}
+			return item.value
+		},
+
+		/**
+		 * An item's link target, once the scheme guard has passed it.
+		 *
+		 * `safeHref` answers '#' rather than nothing for a `javascript:` or
+		 * `data:` URL, so the '#' is treated here as a refusal: the item
+		 * renders as plain text instead of as a link that goes nowhere.
+		 *
+		 * @param {object} item - The item definition.
+		 * @return {string|null} The href to render, or null for no link.
+		 */
+		linkHref(item) {
+			if (!item.href) {
+				return null
+			}
+			const href = safeHref(item.href)
+			return href === '#' ? null : href
+		},
+
 		/**
 		 * Resolve an item's reference integration widget, if any.
 		 * Returns the integration's single-entity widget component
@@ -343,12 +416,28 @@ export default {
 	flex-shrink: 0;
 }
 
+/* ===== Link ===== */
+.cn-detail-grid__link {
+	color: var(--color-primary-element);
+	text-decoration: underline;
+}
+
+.cn-detail-grid__link:hover,
+.cn-detail-grid__link:focus-visible {
+	text-decoration: none;
+}
+
 /* ===== Value ===== */
 .cn-detail-grid__value {
 	font-size: 1em;
 	color: var(--color-main-text);
-	word-break: break-word;
+	overflow-wrap: anywhere;
 	margin: 0.5rem;
+}
+
+.cn-detail-grid__value--empty {
+	color: var(--color-text-maxcontrast);
+	font-style: italic;
 }
 
 .cn-detail-grid--horizontal .cn-detail-grid__value {

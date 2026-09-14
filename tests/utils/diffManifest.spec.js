@@ -12,14 +12,16 @@
 const { diffManifest } = require('../../src/utils/diffManifest.js')
 const { mergeManifestDelta } = require('../../src/utils/mergeManifestDelta.js')
 
-const base = () => ({
-	version: '1.0.0',
-	menu: [],
-	pages: [
-		{ id: 'a', title: 'A', widgets: [{ id: 'w1', widgetKey: 'k1' }, { id: 'w2', widgetKey: 'k2' }] },
-		{ id: 'b', title: 'B' },
-	],
-})
+function base() {
+	return {
+		version: '1.0.0',
+		menu: [],
+		pages: [
+			{ id: 'a', title: 'A', widgets: [{ id: 'w1', widgetKey: 'k1' }, { id: 'w2', widgetKey: 'k2' }] },
+			{ id: 'b', title: 'B' },
+		],
+	}
+}
 
 function roundTrip(b, edited) {
 	const delta = diffManifest(b, edited)

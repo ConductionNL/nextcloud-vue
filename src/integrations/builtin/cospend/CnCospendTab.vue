@@ -88,7 +88,7 @@
 					:class="rowClass(row)"
 					:href="rowUrl(row)"
 					target="_blank"
-					:force-display-actions="true">
+					:forceDisplayActions="true">
 					<template #icon>
 						<span class="cn-cospend-tab__row-icon" :class="iconClass(row)">
 							<CashMultiple v-if="rowType(row) === 'bill'" :size="20" />
@@ -119,7 +119,7 @@
 					<template #actions>
 						<NcActionButton
 							v-if="entryIdOf(row)"
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="unlinkEntry(row)">
 							<template #icon>
 								<LinkOff :size="20" />
@@ -146,13 +146,13 @@
 
 		<CnCospendPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 
 		<CnCospendCreate
 			v-if="createOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="createOpen = false"
 			@create="onCreatePick" />
 	</div>
@@ -168,9 +168,9 @@ import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import LinkOff from 'vue-material-design-icons/LinkOff.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnCospendCreate from '../../../components/CnCospendCreate/CnCospendCreate.vue'
 import CnCospendPicker from '../../../components/CnCospendPicker/CnCospendPicker.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
@@ -262,14 +262,24 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchRows() } } },
-		register() { this.fetchRows() },
-		schema() { this.fetchRows() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchRows()
+			}
+		} },
+
+		register() {
+			this.fetchRows()
+		},
+
+		schema() {
+			this.fetchRows()
+		},
 	},
 
 	methods: {
 		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`)
 		},
 
 		/**
@@ -278,7 +288,7 @@ export default {
 		 * @return {string} The endpoint URL.
 		 */
 		cospendEndpoint() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/cospend`
+			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/cospend`)
 		},
 
 		rowKey(row) {
@@ -309,7 +319,7 @@ export default {
 		async onLinkPick(payload) {
 			this.pickerOpen = false
 			try {
-				const response = await fetch(prefixUrl(this.cospendEndpoint()), {
+				const response = await fetch(this.cospendEndpoint(), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -331,7 +341,7 @@ export default {
 		async onCreatePick(payload) {
 			this.createOpen = false
 			try {
-				const response = await fetch(prefixUrl(`${this.cospendEndpoint()}/new`), {
+				const response = await fetch(`${this.cospendEndpoint()}/new`, {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -354,7 +364,7 @@ export default {
 				return
 			}
 			try {
-				const response = await fetch(prefixUrl(`${this.cospendEndpoint()}/${id}`), {
+				const response = await fetch(`${this.cospendEndpoint()}/${id}`, {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})
@@ -531,7 +541,7 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(prefixUrl(this.baseUrl()), { headers: buildHeaders() })
+				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []

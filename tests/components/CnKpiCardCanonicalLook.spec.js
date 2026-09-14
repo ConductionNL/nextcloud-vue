@@ -17,11 +17,11 @@
  */
 
 import { mount } from '@vue/test-utils'
+import CnDeltaWidget from '@/components/CnDeltaWidget/CnDeltaWidget.vue'
 import CnStatsBlock from '@/components/CnStatsBlock/CnStatsBlock.vue'
 import CnStatWidget from '@/components/CnStatWidget/CnStatWidget.vue'
-import CnDeltaWidget from '@/components/CnDeltaWidget/CnDeltaWidget.vue'
 
-const mountStat = async (content = {}) => {
+async function mountStat(content = {}) {
 	const w = mount(CnStatWidget, {
 		propsData: { content: { label: 'Revenue', icon: 'Cash', ...content } },
 		stubs: { NcLoadingIcon: { template: '<div />' }, CnWidgetIcon: { template: '<div />' } },

@@ -33,7 +33,7 @@
 				v-model="collective"
 				:options="collectiveOptions"
 				:placeholder="t('nextcloud-vue', 'Select a collective')"
-				:input-label="t('nextcloud-vue', 'Collective')"
+				:inputLabel="t('nextcloud-vue', 'Collective')"
 				label="label"
 				class="cn-collective-page-create__collective"
 				required />
@@ -98,7 +98,7 @@ export default {
 
 	computed: {
 		collectiveOptions() {
-			return this.collectives.map(c => ({ id: c.id, label: c.emoji ? `${c.emoji} ${c.name}` : c.name }))
+			return this.collectives.map((c) => ({ id: c.id, label: c.emoji ? `${c.emoji} ${c.name}` : c.name }))
 		},
 
 		canSubmit() {

@@ -16,9 +16,9 @@
 
 ### Slots
 
-| Name           | Bindings                                    | Description |
-| -------------- | ------------------------------------------- | ----------- |
-| `header`       | `title`, `description`, `icon`              |             |
-| `actions`      | —                                           |             |
-| `conversation` | `conversation-source`, `post-url`, `schema` |             |
-| `empty`        | —                                           |             |
+| Name           | Bindings                                  | Description |
+| -------------- | ----------------------------------------- | ----------- |
+| `header`       | `title`, `description`, `icon`            |             |
+| `actions`      | —                                         |             |
+| `conversation` | `conversationSource`, `postUrl`, `schema` |             |
+| `empty`        | —                                         |             |

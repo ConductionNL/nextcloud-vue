@@ -15,6 +15,7 @@
 
 const { mount } = require('@vue/test-utils')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
+const { stubLocationMethod } = require('../support/stubLocation.js')
 
 const stubs = {
 	CnDataTable: true,
@@ -49,9 +50,14 @@ describe('CnIndexPage — native Export menu', () => {
 	let assignSpy
 
 	beforeEach(() => {
-		assignSpy = jest.fn()
-		delete window.location
-		window.location = { pathname: '/', assign: assignSpy }
+		// jsdom's own `pathname` is already `/`, which is what this spec used
+		// to set by hand, so only `assign` needs faking. See
+		// `tests/support/stubLocation.js`.
+		assignSpy = stubLocationMethod('assign')
+	})
+
+	afterEach(() => {
+		assignSpy.mockRestore()
 	})
 
 	it('does not render the Export menu when allowExport is unset (default false)', () => {
@@ -74,16 +80,12 @@ describe('CnIndexPage — native Export menu', () => {
 	it('navigates to the CSV export URL with route-query filters on click', async () => {
 		const wrapper = mountPage({ schema: exportableSchema, allowExport: true }, { status: 'open', assignee: 'me' })
 		await wrapper.find('[data-testid="cn-index-export-csv"]').trigger('click')
-		expect(assignSpy).toHaveBeenCalledWith(
-			'/apps/openregister/api/objects/procest/case/export?format=csv&status=open&assignee=me',
-		)
+		expect(assignSpy).toHaveBeenCalledWith('/apps/openregister/api/objects/procest/case/export?format=csv&status=open&assignee=me')
 	})
 
 	it('navigates to the Excel export URL on click', async () => {
 		const wrapper = mountPage({ schema: exportableSchema, allowExport: true })
 		await wrapper.find('[data-testid="cn-index-export-excel"]').trigger('click')
-		expect(assignSpy).toHaveBeenCalledWith(
-			'/apps/openregister/api/objects/procest/case/export?format=excel',
-		)
+		expect(assignSpy).toHaveBeenCalledWith('/apps/openregister/api/objects/procest/case/export?format=excel')
 	})
 })

@@ -53,9 +53,15 @@ describe('useSupportDialog', () => {
 
 	it('treats a throwing storage as already-shown (SSR-safe)', () => {
 		const broken = {
-			getItem() { throw new Error('SecurityError') },
-			setItem() { throw new Error('QuotaExceeded') },
-			removeItem() { throw new Error('SecurityError') },
+			getItem() {
+				throw new Error('SecurityError')
+			},
+			setItem() {
+				throw new Error('QuotaExceeded')
+			},
+			removeItem() {
+				throw new Error('SecurityError')
+			},
 		}
 		const handle = useSupportDialog('ssr-test', { storage: broken })
 		expect(handle.visible.value).toBe(false)

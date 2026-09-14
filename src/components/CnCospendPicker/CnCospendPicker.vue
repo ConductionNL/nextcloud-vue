@@ -47,7 +47,7 @@
 				:label="t('nextcloud-vue', 'Search projects')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-cospend-picker__search"
-				@update:model-value="onSearch" />
+				@update:modelValue="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent
@@ -141,7 +141,7 @@ export default {
 			if (term === '') {
 				return this.projects
 			}
-			return this.projects.filter(project => (project.name || '').toLowerCase().includes(term))
+			return this.projects.filter((project) => (project.name || '').toLowerCase().includes(term))
 		},
 	},
 

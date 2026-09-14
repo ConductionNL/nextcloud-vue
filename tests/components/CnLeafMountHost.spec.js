@@ -7,7 +7,7 @@
  * leaf mount is confined to its own container and never propagates).
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnLeafMountHost from '../../src/components/CnLeafMountHost/CnLeafMountHost.vue'
 
 function makeProvider() {
@@ -79,8 +79,7 @@ describe('CnLeafMountHost', () => {
 		expect(provider.mount).toHaveBeenCalledTimes(1)
 
 		await wrapper.setProps({ mountProps: { register: 'r', schema: 's', objectId: 'obj-2' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(provider.unmount).toHaveBeenCalledTimes(1)
 		expect(provider.mount).toHaveBeenCalledTimes(2)
@@ -107,7 +106,9 @@ describe('CnLeafMountHost', () => {
 		const provider = {
 			id: 'broken',
 			renderMode: 'mount',
-			mount: jest.fn(() => { throw new Error('leaf boom') }),
+			mount: jest.fn(() => {
+				throw new Error('leaf boom')
+			}),
 			unmount: jest.fn(),
 		}
 		// mount() must NOT throw — the error is caught inside the host.
@@ -127,7 +128,9 @@ describe('CnLeafMountHost', () => {
 		const provider = {
 			id: 'broken',
 			renderMode: 'mount',
-			mount: jest.fn(() => { throw new Error('nope') }),
+			mount: jest.fn(() => {
+				throw new Error('nope')
+			}),
 			unmount: jest.fn(),
 		}
 		const wrapper = mount(CnLeafMountHost, {

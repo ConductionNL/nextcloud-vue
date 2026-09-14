@@ -12,7 +12,7 @@
  *  - single-entity surface: fallback chip showing the raw `value` on lookup failure.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnXwikiCard = require('../CnXwikiCard.vue').default
 
 const DEFAULT_PROPS = {
@@ -65,8 +65,7 @@ describe('CnXwikiCard', () => {
 				json: () => Promise.resolve({ results: [makePage(), makePage({ id: 'X.A', reference: 'X.A', title: 'Page A', modified: new Date(Date.now() - (24 * 60 * 60 * 1000)).toISOString() })] }),
 			})
 			const wrapper = mount(CnXwikiCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 			const text = wrapper.text()
 			expect(text).toContain('2 linked pages')
 			// Most-recent = the 2-hours-old one (Policy Manual), not the 24-hours-old one.
@@ -82,9 +81,7 @@ describe('CnXwikiCard', () => {
 		it('shows "Not configured" badge on dashboard when Integriq source is missing', async () => {
 			global.fetch = jest.fn().mockResolvedValueOnce(unavailable('openconnector-source-missing'))
 			const wrapper = mount(CnXwikiCard, { propsData: { ...DEFAULT_PROPS, surface: 'app-dashboard' } })
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 			const badge = wrapper.find('.cn-xwiki-card__auth-badge')
 			expect(badge.exists()).toBe(true)
 			expect(badge.text()).toBe('Not configured')
@@ -96,9 +93,7 @@ describe('CnXwikiCard', () => {
 		it('shows "Auth failed" badge on dashboard when credentials are bad', async () => {
 			global.fetch = jest.fn().mockResolvedValueOnce(unavailable('provider-auth'))
 			const wrapper = mount(CnXwikiCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 			const badge = wrapper.find('.cn-xwiki-card__auth-badge')
 			expect(badge.exists()).toBe(true)
 			expect(badge.text()).toBe('Auth failed')
@@ -119,8 +114,7 @@ describe('CnXwikiCard', () => {
 				json: () => Promise.resolve({ results: [makePage({ content: macroBody })] }),
 			})
 			const wrapper = mount(CnXwikiCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 			const preview = wrapper.find('.cn-xwiki-card__preview p')
 			expect(preview.exists()).toBe(true)
 			const text = preview.text()
@@ -145,8 +139,7 @@ describe('CnXwikiCard', () => {
 				json: () => Promise.resolve({ results: [makePage()] }),
 			})
 			const wrapper = mount(CnXwikiCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 			const link = wrapper.find('a.cn-xwiki-card__open-link')
 			expect(link.exists()).toBe(true)
 			expect(link.text()).toBe('Open in XWiki')
@@ -158,9 +151,7 @@ describe('CnXwikiCard', () => {
 		it('shows the unconfigured banner on detail-page when source is missing', async () => {
 			global.fetch = jest.fn().mockResolvedValueOnce(unavailable('openconnector-source-missing'))
 			const wrapper = mount(CnXwikiCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 			const banner = wrapper.find('.cn-xwiki-card__banner')
 			expect(banner.exists()).toBe(true)
 			expect(banner.classes()).toContain('cn-xwiki-card__banner--unconfigured')
@@ -179,8 +170,7 @@ describe('CnXwikiCard', () => {
 			const wrapper = mount(CnXwikiCard, {
 				propsData: { ...DEFAULT_PROPS, surface: 'single-entity', value: 'Knowledge.PolicyManual' },
 			})
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 			const chip = wrapper.find('.cn-xwiki-card__chip')
 			expect(chip.exists()).toBe(true)
 			expect(chip.classes()).not.toContain('cn-xwiki-card__chip--fallback')
@@ -194,9 +184,7 @@ describe('CnXwikiCard', () => {
 			const wrapper = mount(CnXwikiCard, {
 				propsData: { ...DEFAULT_PROPS, surface: 'single-entity', value: 'Knowledge.PolicyManual' },
 			})
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
-			await wrapper.vm.$nextTick()
+			await flushPromises()
 			const chip = wrapper.find('.cn-xwiki-card__chip--fallback')
 			expect(chip.exists()).toBe(true)
 			expect(chip.text()).toContain('Knowledge.PolicyManual')

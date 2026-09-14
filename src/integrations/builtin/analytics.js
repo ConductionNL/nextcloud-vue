@@ -27,8 +27,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnAnalyticsTab from './analytics/CnAnalyticsTab.vue'
 import CnAnalyticsCard from './analytics/CnAnalyticsCard.vue'
+import CnAnalyticsTab from './analytics/CnAnalyticsTab.vue'
 
 /**
  * `analytics` integration descriptor.

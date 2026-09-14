@@ -10,8 +10,8 @@
  * from the component so importing it doesn't force the registration.
  */
 
-import CnAuditTrailWidget from './CnAuditTrailWidget.vue'
 import CnAuditTrailWidgetForm from '../CnAuditTrailWidgetForm/CnAuditTrailWidgetForm.vue'
+import CnAuditTrailWidget from './CnAuditTrailWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('audit-trail', {

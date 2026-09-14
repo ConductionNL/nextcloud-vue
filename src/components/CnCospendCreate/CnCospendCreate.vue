@@ -38,7 +38,7 @@
 				v-model="currency"
 				:options="currencyOptions"
 				:placeholder="t('nextcloud-vue', 'Select a currency')"
-				:input-label="t('nextcloud-vue', 'Currency')"
+				:inputLabel="t('nextcloud-vue', 'Currency')"
 				label="label"
 				class="cn-cospend-create__currency" />
 		</form>
@@ -78,8 +78,11 @@ export default {
 	components: { NcButton, NcDialog, NcNoteCard, NcSelect, NcTextField },
 
 	props: {
-		/** Base API URL for OR. */
-		apiBase: { type: String, default: '/apps/openregister/api' },
+		/**
+		 * Base API URL for OR. Accepted for a uniform dialog API; this dialog
+		 * only emits `create` and the parent owns the request.
+		 */
+		apiBase: { type: String, default: '/apps/openregister/api' }, // eslint-disable-line vue/no-unused-properties -- published prop, read by nothing here because the parent makes the call
 		/** Pre-translated dialog title. */
 		dialogTitle: { type: String, default: () => t('nextcloud-vue', 'Create a new project') },
 	},
@@ -96,7 +99,7 @@ export default {
 
 	computed: {
 		currencyOptions() {
-			return DEFAULT_CURRENCIES.map(code => ({ id: code, label: code }))
+			return DEFAULT_CURRENCIES.map((code) => ({ id: code, label: code }))
 		},
 
 		canSubmit() {

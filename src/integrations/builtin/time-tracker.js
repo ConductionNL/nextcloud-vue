@@ -37,8 +37,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnTimeTrackerTab from './time-tracker/CnTimeTrackerTab.vue'
 import CnTimeTrackerCard from './time-tracker/CnTimeTrackerCard.vue'
+import CnTimeTrackerTab from './time-tracker/CnTimeTrackerTab.vue'
 
 /**
  * `time-tracker` integration descriptor.

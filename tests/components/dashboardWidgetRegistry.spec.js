@@ -21,14 +21,16 @@ function freshRegistry() {
 	return mod
 }
 
-const stubEntry = (overrides = {}) => ({
-	renderer: { name: 'StubRenderer' },
-	form: { name: 'StubForm' },
-	defaultContent: { foo: 'bar' },
-	displayName: 'Stub',
-	icon: 'Star',
-	...overrides,
-})
+function stubEntry(overrides = {}) {
+	return {
+		renderer: { name: 'StubRenderer' },
+		form: { name: 'StubForm' },
+		defaultContent: { foo: 'bar' },
+		displayName: 'Stub',
+		icon: 'Star',
+		...overrides,
+	}
+}
 
 describe('dashboardWidgetRegistry', () => {
 	it('ships empty (no widgets self-register in Wave 0)', () => {

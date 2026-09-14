@@ -7,11 +7,11 @@
  */
 
 import {
-	parseMentions,
-	extractMentionedIds,
-	serializeMentionToken,
 	detectMentionQuery,
+	extractMentionedIds,
 	insertMentionToken,
+	parseMentions,
+	serializeMentionToken,
 } from '../../src/utils/mentions.js'
 
 describe('parseMentions', () => {

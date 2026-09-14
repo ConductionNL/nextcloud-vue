@@ -87,6 +87,12 @@ const ALLOWED = new Map([
 	["src/components/CnUserActionMenu/CnUserActionMenu.vue:'/ocs/v2.php/cloud/capabilities?format=json'", 'OCS entry point is a real file'],
 	['src/components/CnUserActionMenu/CnUserActionMenu.vue:`/ocs/v2.php/cloud/users/${encodeURIComponent(this.userId)}?format=json`', 'OCS entry point is a real file'],
 	["src/components/CnUserActionMenu/CnUserActionMenu.vue:'/ocs/v2.php/apps/spreed/api/v4/room'", 'OCS entry point is a real file'],
+	['src/components/CnContactPicker/CnContactPicker.vue:url', "userSearchUrl defaults to the sharees OCS entry point ('/ocs/v2.php/apps/files_sharing/api/v1/sharees'), a real file, and is caller-overridable"],
+
+	// ── DAV entry points (`remote.php/dav`) are real files on disk, same
+	//    reasoning as the OCS entries above.
+	['src/components/CnFilesBrowser/CnFilesBrowser.vue:`${getRemoteURL()}${this.davPath(joinPath(this.currentPath, upload.name))}`', 'getRemoteURL() resolves the DAV entry point, a real file'],
+	["src/components/CnFilesBrowser/filesBrowser.js:{ method: 'SEARCH', url: `${remoteUrl.replace(/\\/+$/, '')}/`, headers: { 'Content-Type': 'application/xml' }, data: fileIdSearchBody(folderId, uid), responseType: 'text', }", 'remoteUrl is the DAV entry point passed in by the caller, a real file'],
 
 	// ── Literals that already carry the `/index.php` prefix.
 	['src/components/CnDeckCardPicker/CnDeckCardPicker.vue:url', "literal already starts with '/index.php'"],
@@ -99,7 +105,6 @@ const ALLOWED = new Map([
 	['src/components/CnLogsPage/CnLogsPage.vue:this.source', 'log source URL comes from the page config'],
 	['src/components/CnMapWidget/CnMapWidget.vue:url', 'GeoJSON endpoint is a widget-config value (often absolute)'],
 	['src/components/CnMapWidget/CnMapWidget.vue:ds.url', 'GeoJSON endpoint is a widget-config value (often absolute)'],
-	['src/components/CnNewsWidget/CnNewsWidget.vue:url', 'resolveEndpoint() returns the itemsEndpoint prop verbatim'],
 	['src/components/CnObjectGeoWidget/CnObjectGeoWidget.vue:url', 'Nominatim is an absolute third-party URL'],
 	['src/components/CnAiCompanion/CnAiChatPanel.vue:approval.resolveUrl', 'approval URL comes from the server payload'],
 	['src/components/CnAdminSettingsShell/CnAdminSettingsShell.vue:this.resolvedReimportUrl', 'falls back to generateUrl(); an explicit reimportUrl prop wins'],

@@ -36,12 +36,14 @@
 
 /**
  * Error code: the input was not nine digits.
+ *
  * @type {string}
  */
 export const BSN_ERROR_LENGTH = 'length'
 
 /**
  * Error code: nine digits, but the elfproef checksum did not hold.
+ *
  * @type {string}
  */
 export const BSN_ERROR_CHECKSUM = 'checksum'

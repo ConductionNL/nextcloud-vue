@@ -25,8 +25,8 @@
 </template>
 
 <script>
-import { getIconComponent, isCustomIconUrl } from './dashboardIcons.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
+import { getIconComponent, isCustomIconUrl } from './dashboardIcons.js'
 
 /**
  * CnDashboardIcon — renders an icon for any value following the dashboard
@@ -49,6 +49,7 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * Icon size in pixels — the `size` prop on built-in MDI components and
 		 * `width`/`height` on `<img>`.
@@ -59,6 +60,7 @@ export default {
 			type: Number,
 			default: 20,
 		},
+
 		/**
 		 * Alt text for `<img>` (URL icons); falls back to `'icon'` so screen
 		 * readers always have something. Ignored for decorative MDI icons.
@@ -80,6 +82,7 @@ export default {
 		isUrl() {
 			return isCustomIconUrl(this.name)
 		},
+
 		/**
 		 * Whether `name` is a raw SVG path string (render via inline `<svg>`).
 		 * Registry keys are PascalCase words and never match this shape.
@@ -89,6 +92,7 @@ export default {
 		isPath() {
 			return !this.isUrl && isSvgPath(this.name)
 		},
+
 		/**
 		 * The resolved MDI component for a registry name (null for URLs).
 		 *

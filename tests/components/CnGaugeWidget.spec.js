@@ -55,8 +55,7 @@ describe('CnGaugeWidget', () => {
 })
 
 describe('CnGaugeWidget — @config.currency token', () => {
-	const mountCfg = (content, config) =>
-		shallowMount(CnGaugeWidget, { propsData: { content }, provide: { cnAppConfig: config || {} } })
+	const mountCfg = (content, config) => shallowMount(CnGaugeWidget, { propsData: { content }, provide: { cnAppConfig: config || {} } })
 
 	it('resolves @config.currency into the format spec', () => {
 		const w = mountCfg(

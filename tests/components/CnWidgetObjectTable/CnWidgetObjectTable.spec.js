@@ -35,7 +35,10 @@ function makeStore(overrides = {}) {
 		errors: {},
 		registerObjectType: jest.fn(function(slug, schemaId, registerId) {
 			this.objectTypeRegistry[slug] = {
-				schema: schemaId, register: registerId, registerSlug: null, schemaSlug: null,
+				schema: schemaId,
+				register: registerId,
+				registerSlug: null,
+				schemaSlug: null,
 			}
 		}),
 		saveObject: jest.fn().mockResolvedValue({ id: '1' }),
@@ -331,7 +334,9 @@ describe('CnWidgetObjectTable — declarative actions[]', () => {
 		})
 		await wrapper.vm.onActionTriggered(wrapper.vm.actions[0], rows[0])
 		expect(store.saveObject).toHaveBeenCalledWith('pipelinq/case', {
-			id: '42', title: 'A case', status: 'accepted',
+			id: '42',
+			title: 'A case',
+			status: 'accepted',
 		})
 		expect(wrapper.findComponent(CnConfirmDialog).exists()).toBe(false)
 	})
@@ -349,7 +354,9 @@ describe('CnWidgetObjectTable — declarative actions[]', () => {
 		// Confirming runs the dispatch and reports success into the dialog.
 		await wrapper.vm.onConfirmConfirmed()
 		expect(store.saveObject).toHaveBeenCalledWith('pipelinq/case', {
-			id: '42', title: 'A case', status: 'accepted',
+			id: '42',
+			title: 'A case',
+			status: 'accepted',
 		})
 		expect(dialog.vm.result).toEqual({ success: true })
 	})
@@ -406,7 +413,10 @@ describe('CnWidgetObjectTable — declarative actions[]', () => {
 		})
 		await wrapper.vm.runAction(action, rows[0])
 		expect(cnDispatchAction).toHaveBeenCalledWith({
-			id: 'open', label: 'Open', handler: 'openCase', args: ['x', rows[0]],
+			id: 'open',
+			label: 'Open',
+			handler: 'openCase',
+			args: ['x', rows[0]],
 		})
 	})
 })

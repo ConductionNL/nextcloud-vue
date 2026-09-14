@@ -4,8 +4,8 @@
 			v-model:shown="open"
 			:disabled="disabled"
 			:triggers="[]"
-			popup-role="dialog"
-			popover-base-class="cn-color-picker__popper">
+			popupRole="dialog"
+			popoverBaseClass="cn-color-picker__popper">
 			<template #trigger>
 				<button
 					type="button"
@@ -24,12 +24,18 @@
 				     undefined and the picker throws on its first colour
 				     change. `value` is kept as this component's own public
 				     prop name so consumers are unaffected. -->
+				<!-- `@ckpack/vue-color` emits `update:modelValue`, never
+				     `input`. Re-emitting is what keeps this component's own
+				     documented `@input` contract working; forwarding a
+				     consumer's listener through `$attrs` did not, because
+				     nothing downstream ever fires that event. -->
 				<ChromeColorPicker
 					ref="picker"
 					v-bind="$attrs"
 					class="cn-color-picker__chrome"
 					:class="{ 'cn-color-picker__chrome--locked-mode': mode !== null }"
-					:model-value="value || '#000000'" />
+					:modelValue="value || '#000000'"
+					@update:modelValue="onPick" />
 			</div>
 		</NcPopover>
 		<!-- Inline clear affordance: sits next to the swatch and only appears
@@ -48,9 +54,9 @@
 </template>
 
 <script>
+import { Chrome as ChromeColorPicker } from '@ckpack/vue-color'
 import { translate as t } from '@nextcloud/l10n'
 import { NcPopover } from '@nextcloud/vue'
-import { Chrome as ChromeColorPicker } from '@ckpack/vue-color'
 import Close from 'vue-material-design-icons/Close.vue'
 
 /**
@@ -61,11 +67,11 @@ import Close from 'vue-material-design-icons/Close.vue'
  *
  * ### Prop forwarding
  *
- * `CnColorPicker` declares only `value`, `disabled`, and `mode` itself. **All
- * other props and listeners are forwarded** to the underlying `Chrome` picker
- * via `v-bind="$attrs"` and `v-on="$listeners"`, so the full vue-color API
- * stays available even though those props aren't listed in the auto-generated
- * table above.
+ * `CnColorPicker` declares only `value`, `disabled`, `mode` and `clearable`
+ * itself. **Every other attribute is forwarded** to the underlying `Chrome`
+ * picker via `v-bind="$attrs"`, so the full vue-color API stays available even
+ * though those props aren't listed in the auto-generated table above. The two
+ * events below are this component's own and are not forwarded.
  *
  * Most commonly used forwarded props:
  *
@@ -86,8 +92,8 @@ import Close from 'vue-material-design-icons/Close.vue'
  * `$event.rgba`, or the whole object) when you want alpha to round-trip —
  * `$event.hex` is the 6-char form and silently strips transparency.
  *
- * @event input Forwarded from `Chrome`. Payload: vue-color color object
- *              `{ hex, hex8, rgba, hsl, hsv, a, source }`.
+ * @event input Re-emitted from `Chrome`'s `update:modelValue`. Payload:
+ *              vue-color color object `{ hex, hex8, rgba, hsl, hsv, a, source }`.
  * @event clear Emitted when the user presses the inline clear (×) button
  *              shown next to the swatch (only rendered when `clearable`). No payload — the parent decides what "no color"
  *              means (e.g. set the bound value to `''`/`null`).
@@ -112,11 +118,13 @@ export default {
 			type: [String, Object],
 			default: null,
 		},
+
 		/** Disables the swatch trigger and prevents the popover from opening. */
 		disabled: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Lock the picker's numeric input fields to a single mode and hide the
 		 * mode-toggle button. One of `'hex'`, `'rgb'`, `'hsl'`. When `null`
@@ -129,6 +137,7 @@ export default {
 			default: null,
 			validator: (v) => v === null || ['hex', 'rgb', 'hsl'].includes(v),
 		},
+
 		/**
 		 * When `true`, an inline clear (×) button is shown next to the swatch
 		 * whenever a color is set, letting the user reset back to "no color"
@@ -142,7 +151,9 @@ export default {
 		},
 	},
 
-	emits: ['clear'],
+	// `input` must be declared: an undeclared listener stays in `$attrs` and
+	// falls through to the Chrome picker, which never emits it.
+	emits: ['clear', 'input'],
 
 	data() {
 		return {
@@ -160,7 +171,9 @@ export default {
 			const c = typeof this.value === 'string'
 				? this.value
 				: (this.value?.hex8 || this.value?.hex)
-			if (!c) return {}
+			if (!c) {
+				return {}
+			}
 			// Layer the solid fill on top of the four-gradient checker. Each
 			// checker layer needs its own offset so the squares alternate; if
 			// they all share `0 0` the pattern collapses to a single square.
@@ -182,10 +195,13 @@ export default {
 				this.$nextTick(() => this.applyMode())
 			},
 		},
+
 		open(isOpen) {
 			// Re-apply on every open: vue-color resets `fieldsIndex` if the
 			// component is unmounted/remounted by the popover.
-			if (isOpen) this.$nextTick(() => this.applyMode())
+			if (isOpen) {
+				this.$nextTick(() => this.applyMode())
+			}
 		},
 	},
 
@@ -207,9 +223,26 @@ export default {
 			this.open = false
 		},
 
+		/**
+		 * Re-emit the Chrome picker's colour under this component's own event
+		 * name.
+		 *
+		 * @param {object} color vue-color colour object `{ hex, hex8, rgba, … }`.
+		 * @return {void}
+		 */
+		onPick(color) {
+			/**
+			 * @event input Payload: vue-color colour object
+			 *              `{ hex, hex8, rgba, hsl, hsv, a, source }`.
+			 */
+			this.$emit('input', color)
+		},
+
 		/** Pin the Chrome picker's `fieldsIndex` to the requested mode. */
 		applyMode() {
-			if (!this.mode) return
+			if (!this.mode) {
+				return
+			}
 			const idx = { hex: 0, rgb: 1, hsl: 2 }[this.mode]
 			const picker = this.$refs.picker
 			if (picker && picker.fieldsIndex !== idx) {

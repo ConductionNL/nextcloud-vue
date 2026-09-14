@@ -31,8 +31,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnCospendTab from './cospend/CnCospendTab.vue'
 import CnCospendCard from './cospend/CnCospendCard.vue'
+import CnCospendTab from './cospend/CnCospendTab.vue'
 
 /**
  * `cospend` integration descriptor.

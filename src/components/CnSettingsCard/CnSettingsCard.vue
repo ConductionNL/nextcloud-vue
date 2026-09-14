@@ -57,16 +57,19 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Icon emoji or text displayed before the title */
 		icon: {
 			type: String,
 			default: '',
 		},
+
 		/** Whether the card can be collapsed */
 		collapsible: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether the card starts collapsed (only applies when collapsible) */
 		defaultCollapsed: {
 			type: Boolean,

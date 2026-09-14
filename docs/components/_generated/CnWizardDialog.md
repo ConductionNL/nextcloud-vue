@@ -28,7 +28,7 @@
 
 ### Slots
 
-| Name                       | Bindings                                                                                                                                      | Description                                     |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `result-extra`             | `result`                                                                                                                                      | result-extra Optional extra content (e.g. batch |
-| `'step-' + currentStep.id` | `name`, `next`, `back`, `jump-to`, `submit`, `current-step`, `step-index`, `total-steps`, `step-data`, `set-step-data`, `is-first`, `is-last` | step-\{id\} Per-step body. Scope: \{ next,      |
+| Name                       | Bindings                                                                                                                             | Description                                     |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
+| `result-extra`             | `result`                                                                                                                             | result-extra Optional extra content (e.g. batch |
+| `'step-' + currentStep.id` | `name`, `next`, `back`, `jumpTo`, `submit`, `currentStep`, `stepIndex`, `totalSteps`, `stepData`, `setStepData`, `isFirst`, `isLast` | step-\{id\} Per-step body. Scope: \{ next,      |

@@ -15,8 +15,8 @@
  *    leaves.spec.js cross-check).
  */
 
-const { createIntegrationRegistry } = require('../../src/integrations/registry.js')
 const { builtinIntegrations, registerBuiltinIntegrations } = require('../../src/integrations/builtin/index.js')
+const { createIntegrationRegistry } = require('../../src/integrations/registry.js')
 
 // Canonical PHP-backed built-ins (group 'core', requiredApp null) — the
 // ordering for `registerBuiltinIntegrations()` output cross-checks

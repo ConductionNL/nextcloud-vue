@@ -11,9 +11,9 @@
 			:title="card.title"
 			:description="card.description"
 			:link="card.link"
-			:link-label="card.linkLabel"
+			:linkLabel="card.linkLabel"
 			:icon="card.icon"
-			:heading-level="headingLevel"
+			:headingLevel="headingLevel"
 			:variant="card.variant || variant"
 			:padding="padding" />
 		<slot />

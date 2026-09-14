@@ -19,13 +19,13 @@
 				:node="node"
 				:depth="0"
 				:indent="indent"
-				:expanded-ids="expandedMap"
-				:selected-id="selectedId"
-				:id-key="idKey"
-				:label-key="labelKey"
-				:children-key="childrenKey"
-				:expand-label="expandLabel"
-				:collapse-label="collapseLabel"
+				:expandedIds="expandedMap"
+				:selectedId="selectedId"
+				:idKey="idKey"
+				:labelKey="labelKey"
+				:childrenKey="childrenKey"
+				:expandLabel="expandLabel"
+				:collapseLabel="collapseLabel"
 				@toggle="toggleNode"
 				@select="selectNode">
 				<template #actions="scope">
@@ -125,6 +125,7 @@ export default {
 		/** Expand all nodes on mount. */
 		expandAllOnMount: { type: Boolean, default: false },
 	},
+
 	emits: ['select', 'update:expanded-ids', 'update:selected-id'],
 	computed: {
 		/**
@@ -139,6 +140,7 @@ export default {
 		safeNodes() {
 			return Array.isArray(this.nodes) ? this.nodes : []
 		},
+
 		/**
 		 * `expandedIds[]` lifted to an object map for O(1) lookups
 		 * inside the recursive node.
@@ -147,17 +149,22 @@ export default {
 		 */
 		expandedMap() {
 			const out = {}
-			for (const id of this.expandedIds) out[id] = true
+			for (const id of this.expandedIds) {
+				out[id] = true
+			}
 			return out
 		},
 	},
+
 	mounted() {
 		if (this.expandAllOnMount) {
 			const ids = []
 			const walk = (n) => {
 				ids.push(n[this.idKey])
 				const cs = n[this.childrenKey]
-				if (Array.isArray(cs)) cs.forEach(walk)
+				if (Array.isArray(cs)) {
+					cs.forEach(walk)
+				}
 			}
 			this.safeNodes.forEach(walk)
 			// Description goes ABOVE `@event`, not inline after it:
@@ -172,12 +179,13 @@ export default {
 			this.$emit('update:expanded-ids', ids)
 		}
 	},
+
 	methods: {
 		/**
 		 * Toggle a node's expanded state by id. Emits
 		 * `update:expanded-ids` with the new array.
 		 *
-		 * @param {*} id Node id.
+		 * @param {string|number} id Node id.
 		 * @return {void}
 		 */
 		toggleNode(id) {
@@ -199,6 +207,7 @@ export default {
 			 */
 			this.$emit('update:expanded-ids', next)
 		},
+
 		/**
 		 * Select a node. Emits `@select` + `update:selected-id`.
 		 *
@@ -220,6 +229,7 @@ export default {
 			 */
 			this.$emit('select', node)
 		},
+
 		/**
 		 * Programmatically expand every node in the tree.
 		 *
@@ -230,7 +240,9 @@ export default {
 			const walk = (n) => {
 				ids.push(n[this.idKey])
 				const cs = n[this.childrenKey]
-				if (Array.isArray(cs)) cs.forEach(walk)
+				if (Array.isArray(cs)) {
+					cs.forEach(walk)
+				}
 			}
 			this.safeNodes.forEach(walk)
 			// Description goes ABOVE `@event`, not inline after it:
@@ -244,6 +256,7 @@ export default {
 			 */
 			this.$emit('update:expanded-ids', ids)
 		},
+
 		/**
 		 * Programmatically collapse every node.
 		 *

@@ -56,11 +56,13 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** UUID of the currently active conversation (for the active-card indicator). */
 		activeConversationUuid: {
 			type: String,
 			default: null,
 		},
+
 		/** Whether the parent's conversation fetch is still in flight. */
 		loading: {
 			type: Boolean,

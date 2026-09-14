@@ -13,7 +13,9 @@ jest.mock('@nextcloud/router', () => ({
 	__esModule: true,
 	generateUrl: jest.fn((p, params) => {
 		let out = p
-		for (const [k, v] of Object.entries(params || {})) out = out.replace(`{${k}}`, v)
+		for (const [k, v] of Object.entries(params || {})) {
+			out = out.replace(`{${k}}`, v)
+		}
 		return `/nc${out}`
 	}),
 }))
@@ -23,8 +25,8 @@ jest.mock('../../src/composables/useEndpointSource.js', () => ({
 }))
 
 import axios from '@nextcloud/axios'
-import { ref } from 'vue'
 import { mount } from '@vue/test-utils'
+import { ref } from 'vue'
 import CnWorkspaceFilterWidget from '../../src/components/CnWorkspaceFilterWidget/CnWorkspaceFilterWidget.vue'
 import { fetchEndpointSource } from '../../src/composables/useEndpointSource.js'
 

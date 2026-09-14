@@ -5,19 +5,51 @@
 
 <template>
 	<div class="cn-detail-widget-host" :class="`cn-detail-widget-host--${chrome}`">
-		<!-- `type: 'data'` — the schema-driven data widget. In bare mode it drops
-		     its title, border and padding so a tab panel holds the content
-		     directly instead of a card inside a card.
+		<!-- `type: 'data'` — the schema-driven data widget. In bare mode it is
+		     `chromeless`: no border, no background, no padding, no title row and
+		     no header divider, so the tab panel holds the content directly
+		     instead of a card inside a card.
+
+		     One prop, not three. `chromeless` is the word this component already
+		     used for the same thing on the integration path (`bareWidget`), and
+		     the three it replaces (`show-title`, `borderless`, `flush`) were a
+		     decomposition every caller had to remember in full — miss one and
+		     the panel keeps half a card.
+
+		     Chromeless does NOT mean no wrapper element. The wrapper's content
+		     node is what `CnObjectDataWidget` measures its overflow against and
+		     what the library's table and detail-page CSS key on; removing it
+		     would take the whole-row clip out silently, because a `closest()`
+		     that finds nothing reads as "nothing overflows".
 
 		     It used to keep the whole card here, because its Save button lives
 		     in CnWidgetWrapper's header and hiding the header hid Save with it.
-		     The wrapper now renders its header whenever there are actions, with
-		     or without a title, so the two can be asked for separately and the
-		     panel gets no title while an inline edit stays committable.
+		     The wrapper renders its header whenever there are actions, with or
+		     without a title, so the panel gets no title while an inline edit
+		     stays committable. Controls are not chrome.
 
 		     Passing `undefined` was never enough on its own: `title` carries a
 		     DEFAULT of "Data", so an unset title became a "Data" heading that
-		     nobody chose. -->
+		     nobody chose. The title is still passed, and now names the content
+		     region for a screen reader instead of printing a second heading.
+
+		     The overflow menu goes too, which `chromeless` does not cover. It
+		     left a 59px band whose only content was an Actions menu about eight
+		     pixels from the tab strip's own, and two menus on one row read as the
+		     same card inside a card in miniature.
+
+		     Nothing is lost, but that took a second piece of work rather than
+		     being true on its own. Suppressing the menu takes its two items with
+		     it, and Metadata had no other home anywhere: the page header carries
+		     no equivalent, so it became unreachable inside a panel. Edit is the
+		     softer case. CnDetailPage does carry a record Edit button, but it
+		     opens the form the PAGE configures, not the subset THIS widget
+		     declares through `overrides`, `include` and `exclude`, so a tabbed
+		     widget showing eight of forty fields lost the form scoped to its
+		     eight. Both items are now published to the host surface and render in
+		     its menu; see utils/panelActions.js. Inline editing was never
+		     affected: a cell opens its editor when clicked, and Save and Discard
+		     arrive in the header the moment there is an edit to commit. -->
 		<!-- `requiredApp` names another Nextcloud app this widget leans on. When
 		     that app is absent the widget renders its NORMAL chrome plus a
 		     set-up state, and asks its backend NOTHING.
@@ -27,14 +59,21 @@
 		     query run — is worse: an aggregation over an absent app's register
 		     404s and the tile shows `0`, which is exactly what a real zero
 		     shows. dossiq's hours tile did that on every install without
-		     humaniq, and looked correct doing it. -->
+		     humaniq, and looked correct doing it.
+
+		     "NORMAL chrome" means the chrome of the surface it is on. In a tab
+		     panel that is no chrome, same as every other widget there: a set-up
+		     state is still a widget, and a bordered card around it inside the
+		     panel is the same doubled card this file removes below. The title
+		     is now passed in bare mode too, where it names the content region
+		     rather than printing a heading the tab already carries. -->
 		<CnWidgetWrapper
 			v-if="missingApp"
-			:title="isBare ? '' : widgetTitle"
-			:show-title="!isBare"
-			title-icon-position="left"
-			:show-refresh="false"
-			:show-request-feature="false">
+			:title="widgetTitle"
+			:chromeless="isBare"
+			titleIconPosition="left"
+			:showRefresh="false"
+			:showRequestFeature="false">
 			<template v-if="widget && widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
@@ -48,18 +87,17 @@
 		<CnObjectDataWidget
 			v-else-if="isData && schemaObject"
 			:title="resolvedTitle"
-			:show-title="!isBare"
-			:borderless="isBare"
-			:flush="isBare"
+			:chromeless="isBare"
+			:showActions="!isBare"
 			:icon="widget.icon || null"
 			:schema="schemaObject"
-			:object-data="object"
-			:object-type="objectType"
+			:objectData="object"
+			:objectType="objectType"
 			:store="store"
 			:overrides="content.overrides || {}"
 			:include="content.include || null"
 			:exclude="content.exclude || []"
-			:hide-empty="content.hideEmpty === true || hideEmpty"
+			:hideEmpty="content.hideEmpty === true || hideEmpty"
 			:columns="content.columns || 3"
 			:editable="content.editable !== false" />
 
@@ -69,34 +107,34 @@
 			v-else-if="isRelated"
 			:title="resolvedTitle"
 			:bare="isBare"
-			:object-type="objectType"
-			:object-id="objectId"
-			:object-data="object"
+			:objectType="objectType"
+			:objectId="objectId"
+			:objectData="object"
 			:register="register"
 			:schema="schema"
 			:store="store"
-			:include-groups="content.groups || []"
-			:hide-single-tab-title="content.hideSingleTabTitle !== false"
-			:show-total-count="content.showTotalCount !== false"
-			@open-integration="onOpenIntegration" />
+			:includeGroups="content.groups || []"
+			:hideSingleTabTitle="content.hideSingleTabTitle !== false"
+			:showTotalCount="content.showTotalCount !== false"
+			@openIntegration="onOpenIntegration" />
 
 		<!-- `type: 'object-geo'` — view/edit the object's `@self.geo` on a map. -->
 		<CnObjectGeoWidget
 			v-else-if="isGeo"
 			:title="resolvedTitle"
-			:object-id="objectId"
-			:object-data="object"
+			:objectId="objectId"
+			:objectData="object"
 			:register="register"
 			:schema="schema"
 			:editable="content.editable !== false"
-			:address-search="content.addressSearch === true"
+			:addressSearch="content.addressSearch === true"
 			:basemap="content.basemap || 'standard'"
-			:allow-basemap-switch="content.allowBasemapSwitch === true"
-			:fit-control="content.fitControl !== false"
-			:locate-control="content.locateControl !== false"
-			:fullscreen-control="content.fullscreenControl !== false"
+			:allowBasemapSwitch="content.allowBasemapSwitch === true"
+			:fitControl="content.fitControl !== false"
+			:locateControl="content.locateControl !== false"
+			:fullscreenControl="content.fullscreenControl !== false"
 			:height="content.height || '360px'"
-			:default-zoom="content.defaultZoom || 7"
+			:defaultZoom="content.defaultZoom || 7"
 			@saved="onGeoSaved" />
 
 		<!-- Mount-mode integration leaf (openregister#2127): a bare host-owned
@@ -104,7 +142,7 @@
 		<CnLeafMountHost
 			v-else-if="isMountIntegration"
 			:provider="integrationProvider"
-			:mount-props="integrationMountProps" />
+			:mountProps="integrationMountProps" />
 
 		<!-- Integration leaf, component mode. In BARE mode this renders the
 		     provider's `tab` (its bare content) rather than its `widget` (which
@@ -128,9 +166,9 @@
 		<CnWidgetWrapper
 			v-else-if="renderer && isContentOnly && !isBare"
 			:title="widget.title || ''"
-			title-icon-position="left"
-			:show-refresh="false"
-			:show-request-feature="false"
+			titleIconPosition="left"
+			:showRefresh="false"
+			:showRequestFeature="false"
 			class="cn-detail-page__catalog-card">
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
@@ -157,11 +195,11 @@
 		<CnWidgetWrapper
 			v-else-if="renderer && isCard && !isBare"
 			:title="widget.title || content.title || ''"
-			:show-title="effectiveShowCardTitle"
-			title-icon-position="left"
+			:showTitle="effectiveShowCardTitle"
+			titleIconPosition="left"
 			flush
-			:show-refresh="false"
-			:show-request-feature="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
 			class="cn-detail-page__card-fit">
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
@@ -199,10 +237,9 @@ import CnLeafMountHost from '../CnLeafMountHost/CnLeafMountHost.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
-import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
-import { isAppInstalled } from '../../utils/appInstalled.js'
-import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import {
 	isCardWidgetDef,
 	isContentOnlyWidgetDef,
@@ -214,6 +251,8 @@ import {
 	widgetContentOf,
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
+import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
 /**
  * CnDetailWidgetHost — renders ONE detail-page widget definition.
@@ -276,6 +315,44 @@ export default {
 		Plus,
 	},
 
+	inject: {
+		/**
+		 * The surface's panel-action channel, when this host sits inside one.
+		 *
+		 * Absent on every other surface, which is why the default is null
+		 * rather than a required injection.
+		 */
+		panelActionSink: {
+			from: PANEL_ACTION_SINK,
+			default: null,
+		},
+	},
+
+	/**
+	 * Re-provide the channel with this panel's widget id baked in.
+	 *
+	 * The widget below does not know its own id on the surface and should not
+	 * have to, so the id is supplied here, where it is already known. Read at
+	 * CALL time rather than captured, so a host whose `widget` changes keeps
+	 * publishing under the right key.
+	 *
+	 * Provides null when there is no surface to publish to, so the widget's own
+	 * injection resolves to null instead of finding a channel that goes nowhere.
+	 *
+	 * @return {object} The narrowed sink, or null.
+	 */
+	provide() {
+		const sink = this.panelActionSink
+		return {
+			[PANEL_ACTION_SINK]: sink
+				? {
+						set: (items) => sink.set(this.widget?.id, items, 'widget'),
+						clear: () => sink.clear(this.widget?.id, 'widget'),
+					}
+				: null,
+		}
+	},
+
 	props: {
 		/**
 		 * The resolved widget definition: `{ id, type, title, icon, content }`,
@@ -291,6 +368,7 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/**
 		 * How much chrome to draw around the widget.
 		 * - `'card'` — a titled `CnWidgetWrapper`, the detail-page grid default.
@@ -301,56 +379,67 @@ export default {
 			default: 'card',
 			validator: (v) => ['card', 'bare'].includes(v),
 		},
+
 		/** The bound record's id. Present on the first render; `object` is not. */
 		objectId: {
 			type: [String, Number],
 			default: '',
 		},
+
 		/** The loaded record, or null while it is still being fetched. */
 		object: {
 			type: Object,
 			default: null,
 		},
+
 		/** The resolved object-type slug. */
 		objectType: {
 			type: String,
 			default: '',
 		},
+
 		/** The resolved JSON Schema object, needed by the `data` widget. */
 		schemaObject: {
 			type: Object,
 			default: null,
 		},
+
 		/** OpenRegister register slug of the surface. */
 		register: {
 			type: [String, Object],
 			default: '',
 		},
+
 		/** OpenRegister schema slug of the surface. */
 		schema: {
 			type: [String, Object],
 			default: '',
 		},
+
 		/** The effective object store. */
 		store: {
 			type: Object,
 			default: null,
 		},
+
 		/** Rendering surface forwarded to integration widgets (AD-19). */
 		surface: {
 			type: String,
 			default: 'detail-page',
 		},
+
 		/** Object context forwarded to integration widgets. */
 		integrationContext: {
 			type: Object,
 			default: null,
 		},
+
 		/** Hide empty properties in the `data` widget. */
 		hideEmpty: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Every widget definition on the surface, for a CONTAINER widget to
 		 * resolve the children it references by id.
@@ -364,6 +453,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Whether a card widget (stat / gauge / delta) draws the wrapper header.
 		 *
@@ -382,6 +472,7 @@ export default {
 			type: Boolean,
 			default: null,
 		},
+
 		/**
 		 * The consumer's component registry, consulted before the built-in
 		 * catalog so a custom widget type overrides a built-in (REQ-MVR-005).
@@ -500,12 +591,12 @@ export default {
 		missingAppDescription() {
 			return this.widgetTitle
 				? t('nextcloud-vue', '{title} needs the {app} app. Install and enable it to see this.', {
-					title: this.widgetTitle,
-					app: this.requiredAppLabel,
-				})
+						title: this.widgetTitle,
+						app: this.requiredAppLabel,
+					})
 				: t('nextcloud-vue', 'Install and enable the {app} app to see this.', {
-					app: this.requiredAppLabel,
-				})
+						app: this.requiredAppLabel,
+					})
 		},
 
 		/**
@@ -610,7 +701,9 @@ export default {
 		 * @return {object|null} The component, or null.
 		 */
 		integrationComponent() {
-			if (!this.isIntegration) return null
+			if (!this.isIntegration) {
+				return null
+			}
 			const id = this.widget.integrationId
 			// `bareWidget` lets a provider say its WIDGET is already bare, so a
 			// tab panel gets the widget surface instead of the sidebar one.
@@ -628,7 +721,9 @@ export default {
 			if (this.isBare && this.integrationProvider?.tab && typeof this.resolveRegistryTab === 'function') {
 				return this.resolveRegistryTab(id)
 			}
-			if (typeof this.resolveRegistryWidget !== 'function') return null
+			if (typeof this.resolveRegistryWidget !== 'function') {
+				return null
+			}
 			return this.resolveRegistryWidget(id, this.surface)
 		},
 
@@ -723,7 +818,9 @@ export default {
 		 * @return {boolean} true for a widget that renders other widgets.
 		 */
 		isContainer() {
-			if (!this.widget?.type) return false
+			if (!this.widget?.type) {
+				return false
+			}
 			const entry = getWidgetTypeEntry(this.widget.type)
 			return Boolean(entry && entry.container === true)
 		},
@@ -736,7 +833,9 @@ export default {
 		 * @return {boolean} true when Add should render.
 		 */
 		catalogAddEnabled() {
-			if (!['object-list', 'table'].includes(this.widget?.type)) return false
+			if (!['object-list', 'table'].includes(this.widget?.type)) {
+				return false
+			}
 			return this.content.allowCreate !== false
 		},
 
@@ -747,7 +846,9 @@ export default {
 		 * @return {boolean} true when the wrapper header renders.
 		 */
 		effectiveShowCardTitle() {
-			if (this.showCardTitle !== null) return this.showCardTitle
+			if (this.showCardTitle !== null) {
+				return this.showCardTitle
+			}
 			return this.widget?.title !== undefined || this.content.title !== undefined
 		},
 
@@ -755,9 +856,79 @@ export default {
 		addLabel() {
 			return t('nextcloud-vue', 'Add')
 		},
+
+		/**
+		 * The items THIS HOST offers to the surface, as opposed to the ones the
+		 * widget inside it publishes.
+		 *
+		 * There is one: the catalog Add. It is drawn in the host's own card
+		 * header, and that header only exists off a panel, so a Documents or
+		 * Files tab simply had no way to add anything. The data widget's
+		 * Metadata went the same way until it was published, and this is the
+		 * same defect one widget type along.
+		 *
+		 * Empty off a panel, where the header draws the item itself and
+		 * publishing would put it in two menus at once.
+		 *
+		 * @return {object[]} PanelAction descriptors.
+		 */
+		ownPanelActions() {
+			if (!this.isBare || !this.catalogAddEnabled) {
+				return []
+			}
+			return [{
+				key: 'catalog-add',
+				label: this.addLabel,
+				icon: 'Plus',
+				run: () => this.invokeCatalogAdd(),
+			}]
+		},
+	},
+
+	watch: {
+		ownPanelActions: {
+			handler() {
+				this.publishOwnPanelActions()
+			},
+		},
+	},
+
+	mounted() {
+		this.publishOwnPanelActions()
+	},
+
+	beforeUnmount() {
+		// A closed tab's panel can be torn down while the strip lives on, and an
+		// item whose host is gone would call into nothing.
+		if (this.panelActionSink) {
+			this.panelActionSink.clear(this.widget?.id, 'host')
+		}
 	},
 
 	methods: {
+		/**
+		 * Publish or withdraw this host's OWN items on the surface.
+		 *
+		 * Published under the `host` source so the widget inside the panel can
+		 * publish its own without either replacing the other.
+		 *
+		 * @return {void}
+		 */
+		publishOwnPanelActions() {
+			if (!this.panelActionSink) {
+				return
+			}
+			const id = this.widget?.id
+			if (!id) {
+				return
+			}
+			if (this.ownPanelActions.length) {
+				this.panelActionSink.set(id, this.ownPanelActions, 'host')
+			} else {
+				this.panelActionSink.clear(id, 'host')
+			}
+		},
+
 		/**
 		 * Re-emit the geo widget's save so the surface can reload the record.
 		 *

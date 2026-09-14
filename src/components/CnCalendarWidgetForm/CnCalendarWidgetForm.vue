@@ -6,11 +6,11 @@
 <template>
 	<div class="cn-calendar-widget-form">
 		<NcSelect
-			:model-value="viewMode"
+			:modelValue="viewMode"
 			:options="viewModeOptions"
-			:input-label="t('nextcloud-vue', 'View mode')"
+			:inputLabel="t('nextcloud-vue', 'View mode')"
 			:clearable="false"
-			@update:model-value="updateField('viewMode', $event)" />
+			@update:modelValue="updateField('viewMode', $event)" />
 
 		<!-- Calendar picker (when the consuming app provides a fetcher); falls
 		     back to free-text principal entry otherwise. -->
@@ -18,15 +18,15 @@
 			<span class="cn-calendar-widget-form__label">{{ t('nextcloud-vue', 'Calendars') }}</span>
 			<NcSelect
 				v-if="hasCalendarPicker"
-				:model-value="selectedCalendarOptions"
+				:modelValue="selectedCalendarOptions"
 				:options="calendarOptions"
 				:multiple="true"
-				:close-on-select="false"
+				keepOpen
 				:loading="loadingCalendars"
-				:input-label="t('nextcloud-vue', 'Calendars')"
+				:inputLabel="t('nextcloud-vue', 'Calendars')"
 				:placeholder="t('nextcloud-vue', 'Select calendars…')"
 				label="label"
-				@update:model-value="onCalendarsChange" />
+				@update:modelValue="onCalendarsChange" />
 			<textarea
 				v-else
 				class="cn-calendar-widget-form__textarea"
@@ -47,22 +47,22 @@
 		</label>
 
 		<NcTextField
-			:model-value="String(daysAhead)"
+			:modelValue="String(daysAhead)"
 			:label="t('nextcloud-vue', 'Days ahead')"
 			placeholder="14"
-			@update:model-value="updateNumber('daysAhead', $event)" />
+			@update:modelValue="updateNumber('daysAhead', $event)" />
 
 		<NcCheckboxRadioSwitch
-			:model-value="colorByCalendar"
-			@update:model-value="updateField('colorByCalendar', $event)">
+			:modelValue="colorByCalendar"
+			@update:modelValue="updateField('colorByCalendar', $event)">
 			{{ t('nextcloud-vue', 'Color by calendar') }}
 		</NcCheckboxRadioSwitch>
 	</div>
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 
 const VIEW_MODES = ['month', 'week', 'agenda']
 
@@ -96,18 +96,20 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Initial content values when not editing (registry defaults). */
 		value: {
 			type: Object,
 			default: () => ({ ...DEFAULT_CONTENT }),
 		},
+
 		/**
 		 * Optional async fetcher returning the user's calendars
 		 * (`[{key, name, color}]`). When provided, the internal-calendar
 		 * free-text box is replaced by a multiselect picker. Supplied by the
 		 * consuming app (which owns the calendar backend) via `CnAddWidgetModal`.
 		 *
-		 * @type {Function|null}
+		 * @type {(() => Promise<Array<{ key: string, name: string, color: string }>>)|null}
 		 */
 		calendarsFetcher: {
 			type: Function,
@@ -131,9 +133,11 @@ export default {
 			internalCalendars: Array.isArray(initial.internalCalendars)
 				? [...initial.internalCalendars]
 				: [],
+
 			externalIcsUrls: Array.isArray(initial.externalIcsUrls)
 				? [...initial.externalIcsUrls]
 				: [],
+
 			viewMode: VIEW_MODES.includes(initial.viewMode) ? initial.viewMode : DEFAULT_CONTENT.viewMode,
 			daysAhead: this.coerceNumber(initial.daysAhead, DEFAULT_CONTENT.daysAhead),
 			colorByCalendar: initial.colorByCalendar !== false,
@@ -212,7 +216,7 @@ export default {
 		 * Set a field and notify the parent.
 		 *
 		 * @param {string} field the reactive key.
-		 * @param {*} value the new value.
+		 * @param {unknown} value the new value.
 		 * @return {void}
 		 */
 		updateField(field, value) {
@@ -263,6 +267,7 @@ export default {
 				const list = await this.calendarsFetcher()
 				this.availableCalendars = Array.isArray(list) ? list.filter((c) => c && c.key) : []
 			} catch (e) {
+				// eslint-disable-next-line no-console
 				console.error('CnCalendarWidgetForm: failed to fetch calendars', e)
 			} finally {
 				this.loadingCalendars = false

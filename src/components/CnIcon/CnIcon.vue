@@ -5,6 +5,7 @@
 <script>
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import { DASHBOARD_ICONS } from '../CnIconPicker/dashboardIcons.js'
+import { bridgedMdiForCssIcon } from './cssIconBridge.js'
 import { SEMANTIC_ICON_COMPONENTS } from './semanticIcons.js'
 
 /**
@@ -69,11 +70,13 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** Icon pixel size */
 		size: {
 			type: Number,
 			default: 20,
 		},
+
 		/** Fallback icon name if `name` is not found in the registry */
 		fallback: {
 			type: String,
@@ -90,9 +93,16 @@ export default {
 			// set); then the fallback. A direct map lookup (not getIconComponent)
 			// returns undefined for unknown names so they still fall through to
 			// the help-circle fallback.
+			// ...then a legacy Nextcloud `icon-*` class name through the bridge.
+			// Manifests written against NC's class names are everywhere — the
+			// menu-item picker offers them and the seeded fixtures use them — and
+			// before this, only CnAppNav could resolve one. The very same
+			// `icon-comment` drew a proper glyph in the live menu and a
+			// help-circle "?" in the menu editor, which comes through here.
 			return _registry[this.name]
 				|| SEMANTIC_ICON_COMPONENTS[this.name]
 				|| DASHBOARD_ICONS[this.name]
+				|| bridgedMdiForCssIcon(this.name)
 				|| _registry[this.fallback]
 				|| HelpCircleOutline
 		},

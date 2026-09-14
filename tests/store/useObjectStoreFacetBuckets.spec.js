@@ -12,8 +12,8 @@
  */
 
 import { createPinia, setActivePinia } from 'pinia'
-import { createObjectStore } from '../../src/store/useObjectStore.js'
 import { searchPlugin } from '../../src/store/plugins/search.js'
+import { createObjectStore } from '../../src/store/useObjectStore.js'
 
 const TEAM_ALPHA = '9d3f2b1a-4c5e-4a71-b8d2-1e6f0a7c3b45'
 const TEAM_BETA = 'c71e5d84-2f9b-4e13-9a06-8b4d2c1f7e90'

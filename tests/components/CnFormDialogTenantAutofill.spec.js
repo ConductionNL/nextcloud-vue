@@ -6,7 +6,6 @@
 
 import { mount } from '@vue/test-utils'
 import { defineComponent, h } from 'vue'
-
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 import { provideTenantContext } from '../../src/composables/useTenantContext.js'
 
@@ -97,6 +96,6 @@ describe('CnFormDialog — tenant auto-fill', () => {
 		const dialog = wrapper.findComponent(CnFormDialog).vm
 		// `null` (initFormData default) or undefined are both acceptable —
 		// the autofill must not touch the field.
-		expect(dialog.formData.organisation == null).toBe(true)
+		expect(dialog.formData.organisation === null || dialog.formData.organisation === undefined).toBe(true)
 	})
 })

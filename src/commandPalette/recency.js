@@ -33,7 +33,9 @@ const MAX_TRACKED_IDS = 200
 function readUsageCounts(appId) {
 	try {
 		const raw = window.localStorage.getItem(STORAGE_PREFIX + appId)
-		if (!raw) return {}
+		if (!raw) {
+			return {}
+		}
 		const parsed = JSON.parse(raw)
 		return (parsed && typeof parsed === 'object') ? parsed : {}
 	} catch {
@@ -73,7 +75,9 @@ export function createRecencyTracker(appId = 'default') {
 		 * @return {void}
 		 */
 		recordUse(id) {
-			if (typeof id !== 'string' || id === '') return
+			if (typeof id !== 'string' || id === '') {
+				return
+			}
 			const counts = readUsageCounts(appId)
 			counts[id] = (counts[id] || 0) + 1
 

@@ -10,7 +10,7 @@
 // rows need the parent's id, so it writes afterwards and can leave answers
 // behind if that second write fails.
 
-import { valueArrayFor, usesArrayValues, valueRecordsFor } from '../../src/utils/dynamicProperties.js'
+import { usesArrayValues, valueArrayFor, valueRecordsFor } from '../../src/utils/dynamicProperties.js'
 
 const ARRAY_CONFIG = {
 	map: { title: 'name' },

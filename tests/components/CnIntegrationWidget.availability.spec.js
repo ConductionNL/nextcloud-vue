@@ -7,7 +7,7 @@
  * (with reason) → isAppInstalled fallback.
  */
 
-import { resolveProviderAvailability, readCapabilityProviders } from '../../src/components/CnIntegrationWidget/availability.js'
+import { readCapabilityProviders, resolveProviderAvailability } from '../../src/components/CnIntegrationWidget/availability.js'
 
 describe('resolveProviderAvailability', () => {
 	it('honours a descriptor-carried available flag first', () => {

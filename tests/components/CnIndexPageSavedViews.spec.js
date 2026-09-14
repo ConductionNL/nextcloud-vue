@@ -152,6 +152,11 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 		)
 		await flush()
 		await wrapper.find('[data-testid="cn-saved-views-save"]').trigger('click')
+		// `trigger` awaits one scheduler tick, which is not enough: opening this
+		// dialog goes through the handler's own promise, so under load the
+		// component is not mounted yet and `exists()` is false. Failed once in
+		// six full runs before this line existed.
+		await flush()
 		const dialog = wrapper.findComponent({ name: 'CnSaveViewDialog' })
 		expect(dialog.exists()).toBe(true)
 		await dialog.setData({ name: 'Saved', isPublic: true })

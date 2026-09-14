@@ -5,6 +5,42 @@ title: Shared ESLint preset
 
 # Shared ESLint preset (`@conduction/nextcloud-vue/eslint`)
 
+:::warning Deprecated
+
+Use `@nextcloud/eslint-config` 9 instead: `recommendedLibrary` for a library,
+`recommended` for an app, `recommendedJavascript` for an app with no
+TypeScript. Upstream now ships what this preset was written to guarantee.
+Measured with `--print-config` on this repository, all 21
+`vue/no-deprecated-*` rules are armed at error, including the two that are
+missing from `plugin:vue/vue3-essential` and were the reason for writing the
+list out by hand here; `ecmaVersion` resolves to the current year rather than a
+pin; and the SFC script parser is configured in the object form, so neither
+parsing defect described below can occur. The three inverted Vue 2 rules this
+preset switches off are simply absent upstream.
+
+This library moved to `recommendedLibrary` itself, which is the point: a preset
+its publisher does not use is a preset nobody tests.
+
+Nothing is removed. The preset still loads, still carries its guarantees, and
+its peer range accepts ESLint 8, 9 and 10, so an app on it keeps working. To
+migrate, replace the import in `eslint.config.mjs`:
+
+```js
+// before
+import conduction from '@conduction/nextcloud-vue/eslint'
+export default [...conduction]
+
+// after
+import { recommended } from '@nextcloud/eslint-config'
+export default [...recommended]
+```
+
+`@nextcloud/eslint-config` 9 is ESM only and its engines field asks for Node
+`^22.14 || ^24 || >=26`, so the config file has to be `eslint.config.mjs`
+rather than `.js`.
+
+:::
+
 `@conduction/nextcloud-vue` publishes the Conduction fleet's Vue 3 ESLint
 configuration, so fourteen apps stop maintaining fourteen copies of it.
 

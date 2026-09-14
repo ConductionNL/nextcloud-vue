@@ -12,9 +12,8 @@
  */
 
 import { createPinia, setActivePinia } from 'pinia'
-
-import { createObjectStore } from '../../src/store/useObjectStore.js'
 import { auditTrailsPlugin } from '../../src/store/plugins/auditTrails.js'
+import { createObjectStore } from '../../src/store/useObjectStore.js'
 
 global.OC = { requestToken: 'token-test' }
 
@@ -101,7 +100,9 @@ describe('i18n language negotiation / object store', () => {
 
 	it('omits ?_lang and does not throw when the languageGetter throws', async () => {
 		const useStore = createObjectStore('i18n-throw', {
-			languageGetter: () => { throw new Error('boom') },
+			languageGetter: () => {
+				throw new Error('boom')
+			},
 		})
 		const store = useStore()
 		store.registerObjectType('case', 'sch-1', 'reg-1')
@@ -211,7 +212,9 @@ describe('i18n language negotiation / object store', () => {
 
 	it('omits the target-language header and does not throw when the getter throws', async () => {
 		const useStore = createObjectStore('i18n-write-throw', {
-			targetLanguageGetter: () => { throw new Error('boom') },
+			targetLanguageGetter: () => {
+				throw new Error('boom')
+			},
 		})
 		const store = useStore()
 		store.registerObjectType('case', 'sch-1', 'reg-1')

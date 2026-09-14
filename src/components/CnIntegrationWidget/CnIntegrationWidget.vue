@@ -95,11 +95,11 @@
 					<span class="cn-integration-widget__header-label">{{ singleProvider.label }}</span>
 					<div class="cn-integration-widget__header-actions">
 						<CnActionsMenu
-							:documentation-url="documentationUrl"
-							:widget-id="resolvedWidgetId"
+							:documentationUrl="documentationUrl"
+							:widgetId="resolvedWidgetId"
 							:title="singleProvider.label"
 							:surface="`widget:${resolvedWidgetId}`"
-							testid-base="cn-integration-widget" />
+							testidBase="cn-integration-widget" />
 					</div>
 				</header>
 				<div class="cn-integration-widget__panel">
@@ -152,11 +152,11 @@
 					</div>
 					<div class="cn-integration-widget__header-actions">
 						<CnActionsMenu
-							:documentation-url="documentationUrl"
-							:widget-id="resolvedWidgetId"
+							:documentationUrl="documentationUrl"
+							:widgetId="resolvedWidgetId"
 							:title="headerTitle"
 							:surface="`widget:${resolvedWidgetId}`"
-							testid-base="cn-integration-widget" />
+							testidBase="cn-integration-widget" />
 					</div>
 				</div>
 
@@ -186,11 +186,11 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcEmptyContent } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnIntegrationWidgetEmpty from './CnIntegrationWidgetEmpty.vue'
-import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
-import { isAppInstalled } from '../../utils/appInstalled.js'
-import { resolveProviderAvailability } from './availability.js'
 import { registerIntegrationIcons } from '../../integrations/icons.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import { CnActionsMenu } from '../CnActionsMenu/index.js'
+import { resolveProviderAvailability } from './availability.js'
 
 // Ensure every descriptor's MDI icon resolves through CnIcon regardless
 // of what the host app registered at bootstrap — otherwise tabs fall
@@ -217,6 +217,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * OpenRegister register id — a slug/uuid string, or the register
 		 * OBJECT a detail page injects. Accepts both for the same reason
@@ -256,6 +257,7 @@ export default {
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+
 		/**
 		 * Explicit allowlist of leaf ids to show as tabs. When omitted,
 		 * all registered integrations eligible for `surface` are shown.
@@ -533,6 +535,7 @@ export default {
 				objectId: this.objectId !== '' && this.objectId !== null && this.objectId !== undefined
 					? String(this.objectId)
 					: '',
+
 				objectType: this.objectType,
 				apiBase: this.apiBase,
 				surface: this.surface,

@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:no-close="loading"
+		:noClose="loading"
 		data-testid="cn-modal"
 		data-testid-modal="cn-export-wizard"
 		@closing="onClose">
@@ -52,9 +52,9 @@
 			<div v-if="scopes.includes('regulation')" class="cn-export-wizard__field">
 				<label :for="fieldIdFor('regulation')">{{ labelOr('regulation', regulationLabel) }}</label>
 				<NcSelect v-if="regulations.length > 0"
-					:input-id="fieldIdFor('regulation')"
+					:inputId="fieldIdFor('regulation')"
 					:options="regulations"
-					:model-value="formData.regulation"
+					:modelValue="formData.regulation"
 					:clearable="false"
 					@update:modelValue="formData.regulation = $event" />
 				<input v-else
@@ -76,21 +76,21 @@
 			<!-- Format. -->
 			<div v-if="formats.length > 0" class="cn-export-wizard__field">
 				<label :for="fieldIdFor('format')">{{ labelOr('format', formatLabel) }}</label>
-				<NcSelect :input-id="fieldIdFor('format')"
+				<NcSelect :inputId="fieldIdFor('format')"
 					:options="formats"
-					:model-value="formData.format"
+					:modelValue="formData.format"
 					:clearable="false"
-					@update:model-value="formData.format = $event" />
+					@update:modelValue="formData.format = $event" />
 			</div>
 
 			<!-- Delivery channel. -->
 			<div v-if="deliveries.length > 0" class="cn-export-wizard__field">
 				<label :for="fieldIdFor('delivery')">{{ labelOr('delivery', deliveryLabel) }}</label>
-				<NcSelect :input-id="fieldIdFor('delivery')"
+				<NcSelect :inputId="fieldIdFor('delivery')"
 					:options="deliveries"
-					:model-value="formData.delivery"
+					:modelValue="formData.delivery"
 					:clearable="false"
-					@update:model-value="formData.delivery = $event" />
+					@update:modelValue="formData.delivery = $event" />
 				<input v-if="formData.delivery === 'email'"
 					:id="fieldIdFor('emailRecipient')"
 					v-model="formData.emailRecipient"
@@ -119,7 +119,7 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcSelect, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import ExportIcon from 'vue-material-design-icons/Export.vue'
 
 /**
@@ -178,6 +178,7 @@ export default {
 			type: String,
 			default: 'Export',
 		},
+
 		/**
 		 * Optional description shown above the form fields.
 		 *
@@ -187,6 +188,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Scope pickers to render. Recognised values:
 		 * `'date-range'`, `'regulation'`, `'schema'`. Unknown values
@@ -198,6 +200,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Format options for the format select. Each entry can be a
 		 * string (the value, used as the label too) or an object
@@ -209,6 +212,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Delivery options. Recognised values include `'download'`,
 		 * `'email'`, `'api'`. `'email'` reveals an additional
@@ -220,6 +224,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Optional list of regulation values (e.g. `['GDPR', 'AVG']`).
 		 * When non-empty the regulation field renders as a select;
@@ -231,6 +236,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Override-map for the built-in field labels.
 		 * Keys: `'dateFrom' | 'dateTo' | 'regulation' | 'schema' | 'format' | 'delivery'`.
@@ -241,6 +247,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Confirm-button label. */
 		confirmLabel: { type: String, default: 'Export' },
 		/** Cancel-button label (form phase). */
@@ -259,6 +266,7 @@ export default {
 			default: () => ({}),
 		},
 	},
+
 	emits: ['close', 'confirm'],
 	data() {
 		return {
@@ -267,6 +275,7 @@ export default {
 			formData: this.buildEmptyForm(),
 		}
 	},
+
 	computed: {
 		/**
 		 * Default label for the "Date from" input. Consumers override
@@ -274,38 +283,56 @@ export default {
 		 *
 		 * @return {string} The default label.
 		 */
-		dateFromLabel() { return 'From' },
+		dateFromLabel() {
+			return 'From'
+		},
+
 		/**
 		 * Default label for the "Date to" input.
 		 *
 		 * @return {string} The default label.
 		 */
-		dateToLabel() { return 'To' },
+		dateToLabel() {
+			return 'To'
+		},
+
 		/**
 		 * Default label for the regulation field.
 		 *
 		 * @return {string} The default label.
 		 */
-		regulationLabel() { return 'Regulation' },
+		regulationLabel() {
+			return 'Regulation'
+		},
+
 		/**
 		 * Default label for the schema field.
 		 *
 		 * @return {string} The default label.
 		 */
-		schemaLabel() { return 'Schema' },
+		schemaLabel() {
+			return 'Schema'
+		},
+
 		/**
 		 * Default label for the format select.
 		 *
 		 * @return {string} The default label.
 		 */
-		formatLabel() { return 'Format' },
+		formatLabel() {
+			return 'Format'
+		},
+
 		/**
 		 * Default label for the delivery select.
 		 *
 		 * @return {string} The default label.
 		 */
-		deliveryLabel() { return 'Delivery' },
+		deliveryLabel() {
+			return 'Delivery'
+		},
 	},
+
 	methods: {
 		/**
 		 * Build a fresh form-data object with default values applied.
@@ -324,6 +351,7 @@ export default {
 				...this.defaults,
 			}
 		},
+
 		/**
 		 * Pick the consumer-override label for a field, falling back
 		 * to the prop-level default.
@@ -336,6 +364,7 @@ export default {
 		labelOr(key, fallback) {
 			return this.fieldLabels[key] || fallback
 		},
+
 		/**
 		 * Stable DOM id helper so labels link to the right input.
 		 *
@@ -345,8 +374,9 @@ export default {
 		fieldIdFor(key) {
 			return `cn-export-wizard-${key}`
 		},
+
 		/**
-		 * Confirm handler. Emits @confirm with the current form data
+		 * Confirm handler. Emits `@confirm` with the current form data
 		 * and sets `loading` until `setResult` is called.
 		 *
 		 * @return {void}
@@ -360,6 +390,7 @@ export default {
 			 */
 			this.$emit('confirm', { ...this.formData })
 		},
+
 		/**
 		 * Public method called by the parent to switch the dialog
 		 * into the result phase.
@@ -371,6 +402,7 @@ export default {
 			this.result = result || { success: true }
 			this.loading = false
 		},
+
 		/**
 		 * Close-button handler. Resets local state so the next open
 		 * starts fresh.

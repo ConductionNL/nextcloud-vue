@@ -15,6 +15,7 @@
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import CnMapWidget from '@/components/CnMapWidget/CnMapWidget.vue'
+import { settleUntil } from '../support/settleUntil.js'
 
 jest.mock('leaflet', () => {
 	const layerInstances = []
@@ -42,14 +43,19 @@ jest.mock('leaflet', () => {
 			const m = {
 				_added: [],
 				_handlers: {},
-				on: jest.fn(function(evt, cb) { this._handlers[evt] = cb }),
+				on: jest.fn(function(evt, cb) {
+					this._handlers[evt] = cb
+				}),
 				off: jest.fn(),
 				removeLayer: jest.fn(function(layer) {
 					this._added = this._added.filter((l) => l !== layer)
 				}),
 				invalidateSize: jest.fn(),
 				getBounds: jest.fn(() => ({
-					getNorth: () => 53, getSouth: () => 51, getEast: () => 6, getWest: () => 4,
+					getNorth: () => 53,
+					getSouth: () => 51,
+					getEast: () => 6,
+					getWest: () => 4,
 				})),
 				getZoom: jest.fn(() => 7),
 				fitBounds: jest.fn(),
@@ -92,22 +98,24 @@ jest.mock('leaflet', () => {
 	// Control plumbing — enough of L.Control / L.DomUtil / L.DomEvent for the
 	// custom control bar (fit / locate / fullscreen) and the base-map switcher.
 	L.Control = class {
+		constructor(opts) {
+			this.options = opts || {}
+		}
 
-		constructor(opts) { this.options = opts || {} }
 		addTo(map) {
 			map._controls = map._controls || []
 			this._container = this.onAdd(map)
 			map._controls.push(this)
 			return this
 		}
-
 	}
 	L.Control.extend = (proto) => {
 		const Base = L.Control
 		return class extends Base {
-
-			constructor(opts) { super(opts); Object.assign(this, proto) }
-
+			constructor(opts) {
+				super(opts)
+				Object.assign(this, proto)
+			}
 		}
 	}
 	L.control = Object.assign(
@@ -130,8 +138,12 @@ jest.mock('leaflet', () => {
 		// over out-of-scope variables.
 		create: jest.fn((tag, className, parent) => {
 			const el = globalThis.document.createElement(tag)
-			if (className) el.className = className
-			if (parent) parent.appendChild(el)
+			if (className) {
+				el.className = className
+			}
+			if (parent) {
+				parent.appendChild(el)
+			}
 			return el
 		}),
 	}
@@ -158,18 +170,24 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
  */
 const tileUrls = (L) => L.tileLayer.mock.calls.map(([url]) => url)
 
-const mountWidget = (propsData) => mount(CnMapWidget, {
-	propsData: {
-		center: [52, 5],
-		...propsData,
-	},
-	mocks: {},
-})
+function mountWidget(propsData) {
+	return mount(CnMapWidget, {
+		propsData: {
+			center: [52, 5],
+			...propsData,
+		},
+		mocks: {},
+	})
+}
 
 beforeEach(() => {
 	const L = require('leaflet').default
-	if (L && L.__instances) L.__instances.length = 0
-	if (L && L.__lastMap) L.__lastMap.current = null
+	if (L && L.__instances) {
+		L.__instances.length = 0
+	}
+	if (L && L.__lastMap) {
+		L.__lastMap.current = null
+	}
 	jest.clearAllMocks()
 	global.fetch = undefined
 })
@@ -179,7 +197,8 @@ describe('CnMapWidget — layer dispatch', () => {
 		const wrapper = mountWidget({
 			layers: [{ type: 'tile', url: 'https://x/{z}/{x}/{y}.png', options: { maxZoom: 19 } }],
 		})
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		const L = require('leaflet').default
 		expect(L.tileLayer).toHaveBeenCalledTimes(1)
 		expect(L.tileLayer).toHaveBeenCalledWith(
@@ -193,7 +212,8 @@ describe('CnMapWidget — layer dispatch', () => {
 		const wrapper = mountWidget({
 			layers: [{ type: 'wms', url: 'https://x/wms', options: { layers: 'pand' } }],
 		})
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		const L = require('leaflet').default
 		expect(L.tileLayer.wms).toHaveBeenCalledWith(
 			'https://x/wms',
@@ -210,7 +230,8 @@ describe('CnMapWidget — layer dispatch', () => {
 				options: { style: { color: 'red' } },
 			}],
 		})
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		const L = require('leaflet').default
 		expect(L.geoJSON).toHaveBeenCalledWith(
 			expect.objectContaining({ type: 'FeatureCollection' }),
@@ -224,7 +245,8 @@ describe('CnMapWidget — layer dispatch', () => {
 		const wrapper = mountWidget({
 			layers: [{ type: 'kml', url: 'https://x/layer.kml' }],
 		})
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('Unknown layer type "kml"'))
 		const L = require('leaflet').default
 		// The unknown def creates no layer. A basemap still appears — a map with a
@@ -238,7 +260,8 @@ describe('CnMapWidget — layer dispatch', () => {
 		const wrapper = mountWidget({
 			layers: [{ type: 'tile', url: '' }],
 		})
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		const L = require('leaflet').default
 		// Same: the empty-url def is not turned into a layer...
 		expect(tileUrls(L)).not.toContain('')
@@ -254,7 +277,9 @@ describe('CnMapWidget — layer dispatch', () => {
 		const wrapper = mountWidget({
 			layers: [{ type: 'wfs', url: 'https://x/wfs?service=WFS&typeName=foo' }],
 		})
-		await flush(); await nextTick(); await flush()
+		await flush()
+		await nextTick()
+		await flush()
 		expect(global.fetch).toHaveBeenCalledWith('https://x/wfs?service=WFS&typeName=foo')
 		wrapper.unmount()
 	})
@@ -271,7 +296,9 @@ describe('CnMapWidget — markers', () => {
 				popupField: 'title',
 			},
 		})
-		await flush(); await nextTick(); await flush()
+		await flush()
+		await nextTick()
+		await flush()
 		const L = require('leaflet').default
 		const geojsonCalls = L.geoJSON.mock.calls.filter((c) => c[0]?.features?.length === 2)
 		expect(geojsonCalls.length).toBe(1)
@@ -291,7 +318,9 @@ describe('CnMapWidget — markers', () => {
 				],
 			},
 		})
-		await flush(); await nextTick(); await flush()
+		await flush()
+		await nextTick()
+		await flush()
 		const L = require('leaflet').default
 		const layer = L.geoJSON.mock.results.map((r) => r.value).find((v) => v._children)
 		expect(layer).toBeTruthy()
@@ -307,7 +336,9 @@ describe('CnMapWidget — markers', () => {
 				],
 			},
 		})
-		await flush(); await nextTick(); await flush()
+		await flush()
+		await nextTick()
+		await flush()
 		const L = require('leaflet').default
 		const layer = L.geoJSON.mock.results.map((r) => r.value).find((v) => v._children)
 		expect(layer._children[0].bindTooltip).not.toHaveBeenCalled()
@@ -326,7 +357,10 @@ describe('CnMapWidget — markers', () => {
 		const wrapper = mountWidget({
 			markers: { dataSource: { url: '/api/cases/geo' } },
 		})
-		await flush(); await nextTick(); await flush(); await nextTick()
+		await flush()
+		await nextTick()
+		await flush()
+		await nextTick()
 		expect(global.fetch).toHaveBeenCalledWith('/api/cases/geo')
 		wrapper.unmount()
 	})
@@ -342,7 +376,10 @@ describe('CnMapWidget — markers', () => {
 		const wrapper = mountWidget({
 			markers: { dataSource: { url: '/api/x' }, latField: 'lat', lngField: 'lng', popupField: 'title' },
 		})
-		await flush(); await nextTick(); await flush(); await nextTick()
+		await flush()
+		await nextTick()
+		await flush()
+		await nextTick()
 		const L = require('leaflet').default
 		const lastFeatureCollection = L.geoJSON.mock.calls
 			.map((c) => c[0])
@@ -354,7 +391,8 @@ describe('CnMapWidget — markers', () => {
 
 	it('returns empty features when dataSource has neither url nor register', async () => {
 		const wrapper = mountWidget({ markers: { dataSource: {} } })
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		const L = require('leaflet').default
 		// No FeatureCollection geoJSON call should have been made for markers
 		expect(L.geoJSON).not.toHaveBeenCalled()
@@ -371,7 +409,9 @@ describe('CnMapWidget — markers', () => {
 				],
 			},
 		})
-		await flush(); await nextTick(); await flush()
+		await flush()
+		await nextTick()
+		await flush()
 		expect(L.markerClusterGroup).not.toHaveBeenCalled()
 		wrapper.unmount()
 	})
@@ -386,7 +426,10 @@ describe('CnMapWidget — markers', () => {
 				],
 			},
 		})
-		await flush(); await nextTick(); await flush(); await nextTick()
+		await flush()
+		await nextTick()
+		await flush()
+		await nextTick()
 		expect(L.markerClusterGroup).toHaveBeenCalled()
 		wrapper.unmount()
 	})
@@ -402,7 +445,10 @@ describe('CnMapWidget — markers', () => {
 				],
 			},
 		})
-		await flush(); await nextTick(); await flush(); await nextTick()
+		await flush()
+		await nextTick()
+		await flush()
+		await nextTick()
 		expect(L.markerClusterGroup).toHaveBeenCalled()
 		wrapper.unmount()
 	})
@@ -411,7 +457,8 @@ describe('CnMapWidget — markers', () => {
 describe('CnMapWidget — events', () => {
 	it('emits @map-ready once Leaflet has mounted', async () => {
 		const wrapper = mountWidget({})
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		expect(wrapper.emitted('map-ready')).toBeTruthy()
 		expect(wrapper.emitted('map-ready')[0][0]).toHaveProperty('map')
 		wrapper.unmount()
@@ -419,7 +466,8 @@ describe('CnMapWidget — events', () => {
 
 	it('emits @click on map click', async () => {
 		const wrapper = mountWidget({})
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		// trigger Leaflet click handler stored under map._handlers
 		require('leaflet').default.__lastMap.current._handlers.click({ latlng: { lat: 52.1, lng: 5.2 } })
 		expect(wrapper.emitted('click')[0][0]).toEqual({ lat: 52.1, lng: 5.2 })
@@ -428,13 +476,23 @@ describe('CnMapWidget — events', () => {
 
 	it('emits @bounds-change on debounced moveend', async () => {
 		const wrapper = mountWidget({})
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		require('leaflet').default.__lastMap.current._handlers.moveend()
-		// Wait past the 100ms debounce window
-		await new Promise((resolve) => setTimeout(resolve, 150))
+		// The moveend debounce is a real 100 ms in the product, so the emit is a
+		// macrotask away. This used to sleep 150 ms for it, which is 50 ms of
+		// headroom on a loaded runner and reports "expected truthy, got
+		// undefined" when it runs out — a message about the event rather than
+		// about the wait. The debounce stays a duration in the product; the
+		// assertion wants the emit, so wait for the emit.
+		await settleUntil(() => wrapper.emitted('bounds-change'), 'the debounced bounds-change emit')
 		expect(wrapper.emitted('bounds-change')).toBeTruthy()
 		expect(wrapper.emitted('bounds-change')[0][0]).toEqual({
-			north: 53, south: 51, east: 6, west: 4, zoom: 7,
+			north: 53,
+			south: 51,
+			east: 6,
+			west: 4,
+			zoom: 7,
 		})
 		wrapper.unmount()
 	})
@@ -468,7 +526,9 @@ describe('CnMapWidget — popup XSS sanitization (C1)', () => {
 				popupField: 'desc',
 			},
 		})
-		await flush(); await nextTick(); await flush()
+		await flush()
+		await nextTick()
+		await flush()
 
 		const callbacks = getOnEachFeatureCallbacks()
 		expect(callbacks.length).toBeGreaterThan(0)
@@ -502,7 +562,9 @@ describe('CnMapWidget — popup XSS sanitization (C1)', () => {
 				popupField: 'desc',
 			},
 		})
-		await flush(); await nextTick(); await flush()
+		await flush()
+		await nextTick()
+		await flush()
 
 		const callbacks = getOnEachFeatureCallbacks()
 		expect(callbacks.length).toBeGreaterThan(0)
@@ -539,7 +601,8 @@ describe('CnMapWidget — fallback', () => {
 		// the slot. This exercises the same template branch the
 		// catch-block triggers.
 		wrapper.setData({ leafletAvailable: false })
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		expect(wrapper.find('.custom-fallback').exists()).toBe(true)
 		warn.mockRestore()
 		wrapper.unmount()
@@ -554,7 +617,8 @@ describe('CnMapWidget — base maps', () => {
 				{ name: 'Terrain', url: 'https://b/{z}/{x}/{y}.png' },
 			],
 		})
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		const L = require('leaflet').default
 		expect(L.tileLayer).toHaveBeenCalledTimes(2)
 		// Only the first base map goes live on load.
@@ -567,7 +631,8 @@ describe('CnMapWidget — base maps', () => {
 
 	it('renders no switcher for a single basemap', async () => {
 		const wrapper = mountWidget({ basemaps: [{ name: 'Standard', url: 'https://a/{z}/{x}/{y}.png' }] })
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		const L = require('leaflet').default
 		expect(L.tileLayer).toHaveBeenCalledTimes(1)
 		expect(L.control.layers).not.toHaveBeenCalled()
@@ -582,7 +647,8 @@ describe('CnMapWidget — base maps', () => {
 	// as a grey box.
 	it('falls back to a basemap when none is configured, so the map is never blank', async () => {
 		const wrapper = mountWidget({})
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		const L = require('leaflet').default
 		expect(tileUrls(L).some((u) => u.includes('openstreetmap'))).toBe(true)
 		wrapper.unmount()
@@ -590,7 +656,8 @@ describe('CnMapWidget — base maps', () => {
 
 	it('does not stack the fallback under a consumer-supplied tile layer', async () => {
 		const wrapper = mountWidget({ layers: [{ type: 'tile', url: 'https://pdok/{z}/{x}/{y}.png' }] })
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		const L = require('leaflet').default
 		expect(tileUrls(L)).toEqual(['https://pdok/{z}/{x}/{y}.png'])
 		wrapper.unmount()
@@ -602,7 +669,8 @@ describe('CnMapWidget — controls', () => {
 
 	it('mounts fit / locate / fullscreen buttons by default', async () => {
 		const wrapper = mountWidget({})
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		const bar = controlBar(require('leaflet').default)
 		expect(bar).toBeTruthy()
 		expect(bar.querySelector('.cn-map-widget__control--fit')).toBeTruthy()
@@ -613,7 +681,8 @@ describe('CnMapWidget — controls', () => {
 
 	it('omits the buttons that are switched off', async () => {
 		const wrapper = mountWidget({ fitControl: false, locateControl: false, fullscreenControl: false })
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		expect(controlBar(require('leaflet').default)).toBeFalsy()
 		wrapper.unmount()
 	})
@@ -623,7 +692,8 @@ describe('CnMapWidget — controls', () => {
 			markers: { features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [5, 52] }, properties: {} }] },
 			autoFit: false,
 		})
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		const L = require('leaflet').default
 		const map = L.__lastMap.current
 		// A valid bounds set so fitBounds is reached.
@@ -640,7 +710,8 @@ describe('CnMapWidget — controls', () => {
 
 	it('locateMe() asks Leaflet to locate and recentre', async () => {
 		const wrapper = mountWidget({})
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		const map = require('leaflet').default.__lastMap.current
 		wrapper.vm.locateMe()
 		expect(map.locate).toHaveBeenCalledWith({ setView: true, maxZoom: 16 })
@@ -649,7 +720,8 @@ describe('CnMapWidget — controls', () => {
 
 	it('toggleFullscreen() flips the overlay class and re-flows the map', async () => {
 		const wrapper = mountWidget({})
-		await flush(); await nextTick()
+		await flush()
+		await nextTick()
 		const map = require('leaflet').default.__lastMap.current
 		expect(wrapper.classes()).not.toContain('cn-map-widget--fullscreen')
 

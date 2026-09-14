@@ -12,13 +12,13 @@
  */
 
 import { validateManifest } from '../../src/utils/validateManifest.js'
-import valid from '../fixtures/manifest-valid.json'
-import invalid from '../fixtures/manifest-invalid.json'
 import allTypes from '../fixtures/manifest-all-types.json'
 import invalidTypeConfig from '../fixtures/manifest-invalid-type-config.json'
+import invalid from '../fixtures/manifest-invalid.json'
 import settingsRich from '../fixtures/manifest-settings-rich.json'
 import settingsTabs from '../fixtures/manifest-settings-tabs.json'
 import sidebarShow from '../fixtures/manifest-sidebar-show.json'
+import valid from '../fixtures/manifest-valid.json'
 
 describe('v1 regression — valid fixtures still pass (REQ-MV2S-011)', () => {
 	it('manifest-valid.json still passes', () => {

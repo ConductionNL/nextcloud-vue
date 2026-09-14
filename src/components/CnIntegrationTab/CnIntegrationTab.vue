@@ -50,7 +50,7 @@
 				</div>
 				<NcButton
 					v-if="allowUnlink"
-					type="tertiary-no-background"
+					variant="tertiary-no-background"
 					:aria-label="unlinkLabel"
 					:disabled="unlinkingKey === rowKey(row)"
 					@click="unlink(row)">
@@ -118,8 +118,15 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchRows() } } },
-		integrationId() { this.fetchRows() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchRows()
+			}
+		} },
+
+		integrationId() {
+			this.fetchRows()
+		},
 	},
 
 	methods: {

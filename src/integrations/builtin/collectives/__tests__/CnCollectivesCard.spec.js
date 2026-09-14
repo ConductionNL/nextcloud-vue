@@ -9,7 +9,7 @@
  * Plus unavailable / error handling that mirrors CnIntegrationCard.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnCollectivesCard = require('../CnCollectivesCard.vue').default
 
 const DEFAULT_PROPS = {
@@ -40,8 +40,7 @@ describe('CnCollectivesCard', () => {
 	it('renders the empty label when there are no linked pages', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnCollectivesCard, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No Knowledge pages linked yet')
 		wrapper.unmount()
 	})
@@ -59,8 +58,7 @@ describe('CnCollectivesCard', () => {
 			}),
 		})
 		const wrapper = mount(CnCollectivesCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const txt = wrapper.text()
 		expect(txt).toContain('3')
 		expect(wrapper.find('.cn-collectives-card__headline').exists()).toBe(true)
@@ -85,8 +83,7 @@ describe('CnCollectivesCard', () => {
 			}),
 		})
 		const wrapper = mount(CnCollectivesCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-collectives-card__row')
 		// COMPACT_LIMIT = 5
 		expect(rows).toHaveLength(5)
@@ -101,8 +98,7 @@ describe('CnCollectivesCard', () => {
 			json: () => Promise.resolve(makePage({ id: 7, title: 'Onboarding handbook' })),
 		})
 		const wrapper = mount(CnCollectivesCard, { propsData: { ...DEFAULT_PROPS, surface: 'single-entity', value: '7' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const chip = wrapper.find('.cn-collectives-card__chip')
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Onboarding handbook')
@@ -113,8 +109,7 @@ describe('CnCollectivesCard', () => {
 	it('shows the unavailable label when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnCollectivesCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Knowledge is currently unavailable.')
 		wrapper.unmount()
 	})
@@ -123,8 +118,7 @@ describe('CnCollectivesCard', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnCollectivesCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No Knowledge pages linked yet')
 		wrapper.unmount()
 		spy.mockRestore()

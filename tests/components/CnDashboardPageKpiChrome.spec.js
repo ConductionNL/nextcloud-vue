@@ -26,6 +26,7 @@
 
 import { mount } from '@vue/test-utils'
 import CnDashboardPage from '@/components/CnDashboardPage/CnDashboardPage.vue'
+
 // The widget types self-register into the shared registry on import. Without
 // these, `stat` / `delta` resolve to no renderer and the page falls through to
 // its unknown-widget branch, which would make every assertion below vacuous.
@@ -48,13 +49,15 @@ const stubs = {
 	NcLoadingIcon: { template: '<div />' },
 }
 
-const mountWith = (type, placement = {}) => mount(CnDashboardPage, {
-	propsData: {
-		widgets: [{ id: 'w', type, title: 'Open cases' }],
-		layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 3, gridHeight: 2, ...placement }],
-	},
-	stubs,
-})
+function mountWith(type, placement = {}) {
+	return mount(CnDashboardPage, {
+		propsData: {
+			widgets: [{ id: 'w', type, title: 'Open cases' }],
+			layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 3, gridHeight: 2, ...placement }],
+		},
+		stubs,
+	})
+}
 
 describe('CnDashboardPage — who draws the KPI card', () => {
 	it('wraps a stats-block, so a flat block still has chrome', () => {

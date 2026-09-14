@@ -22,8 +22,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnFieldInspectionTab from './field-inspection/CnFieldInspectionTab.vue'
 import CnFieldInspectionCard from './field-inspection/CnFieldInspectionCard.vue'
+import CnFieldInspectionTab from './field-inspection/CnFieldInspectionTab.vue'
 
 /**
  * Default offline configuration for the field-inspection leaf.

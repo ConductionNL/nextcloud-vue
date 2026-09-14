@@ -109,7 +109,9 @@ describe('CnFkResolveCell', () => {
 	})
 
 	it('degrades to the raw id when no Pinia store is active', () => {
-		useObjectStore.mockImplementation(() => { throw new Error('no pinia') })
+		useObjectStore.mockImplementation(() => {
+			throw new Error('no pinia')
+		})
 		const wrapper = mount(CnFkResolveCell, { propsData: { ...baseProps, value: 'uuid-x' } })
 		expect(wrapper.text()).toBe('uuid-x')
 	})

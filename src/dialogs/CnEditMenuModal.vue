@@ -10,7 +10,7 @@
 <template>
 	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit menu')" @closing="$emit('close')">
 		<CnMenuTreeNode :list="menu"
-			:max-depth="1"
+			:maxDepth="1"
 			:pages="pageOptions" />
 
 		<template #actions>
@@ -32,10 +32,10 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcDialog, NcLoadingIcon } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnMenuTreeNode from '../components/CnMenuTreeNode/CnMenuTreeNode.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
@@ -67,8 +67,10 @@ export default {
 			// Lazily normalise the working copy's `menu` to an array so the tree
 			// editor always has a mutable list to edit in place (the working
 			// manifest is ours to mutate by design — never the base).
-			// eslint-disable-next-line vue/no-mutating-props, vue/no-side-effects-in-computed-properties
-			if (this.working && !Array.isArray(this.working.menu)) this.working.menu = []
+			if (this.working && !Array.isArray(this.working.menu)) {
+				// eslint-disable-next-line vue/no-mutating-props, vue/no-side-effects-in-computed-properties
+				this.working.menu = []
+			}
 			return this.working ? this.working.menu : []
 		},
 

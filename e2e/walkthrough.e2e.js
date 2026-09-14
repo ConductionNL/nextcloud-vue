@@ -4,7 +4,7 @@
 // @spec CnWalkthrough footer (PR #125): close X top-right, Back (left, ←) /
 //   Next (right, →), standalone Skip removed.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
 	// ?wt=1 renders the walkthrough harness (its overlay would otherwise block

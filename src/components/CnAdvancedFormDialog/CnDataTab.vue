@@ -1,6 +1,6 @@
 <template>
 	<div class="cn-advanced-form-dialog__json-editor">
-		<div :class="['cn-advanced-form-dialog__codemirror-container', dark ? 'cn-advanced-form-dialog__codemirror-container--dark' : 'cn-advanced-form-dialog__codemirror-container--light']">
+		<div class="cn-advanced-form-dialog__codemirror-container" :class="[dark ? 'cn-advanced-form-dialog__codemirror-container--dark' : 'cn-advanced-form-dialog__codemirror-container--light']">
 			<CodeMirror
 				v-model="localValue"
 				:basic="true"
@@ -9,7 +9,7 @@
 				:linter="jsonLinterExtension"
 				:lang="jsonLangExtension"
 				:extensions="[jsonLangExtension]"
-				:tab-size="2"
+				:tabSize="2"
 				style="height: 400px" />
 			<NcButton
 				class="cn-advanced-form-dialog__format-btn"
@@ -26,9 +26,9 @@
 </template>
 
 <script>
+import { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
 import { NcButton } from '@nextcloud/vue'
 import CodeMirror from 'vue-codemirror6'
-import { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
 
 export default {
 	name: 'CnDataTab',
@@ -56,8 +56,13 @@ export default {
 
 	computed: {
 		localValue: {
-			get() { return this.value },
-			set(v) { this.$emit('update:value', v) },
+			get() {
+				return this.value
+			},
+
+			set(v) {
+				this.$emit('update:value', v)
+			},
 		},
 	},
 
@@ -75,7 +80,9 @@ export default {
 		},
 
 		isValidJson(str) {
-			if (!str || !str.trim()) return false
+			if (!str || !str.trim()) {
+				return false
+			}
 			try {
 				JSON.parse(str)
 				return true
@@ -128,6 +135,7 @@ export default {
 .cn-advanced-form-dialog__codemirror-container--light :deep(.ͼe) {
 	color: #448c27;
 }
+
 .cn-advanced-form-dialog__codemirror-container--dark :deep(.ͼe) {
 	color: #88c379;
 }
@@ -136,6 +144,7 @@ export default {
 .cn-advanced-form-dialog__codemirror-container--light :deep(.ͼc) {
 	color: #221199;
 }
+
 .cn-advanced-form-dialog__codemirror-container--dark :deep(.ͼc) {
 	color: #8d64f7;
 }
@@ -144,6 +153,7 @@ export default {
 .cn-advanced-form-dialog__codemirror-container--light :deep(.ͼb) {
 	color: #770088;
 }
+
 .cn-advanced-form-dialog__codemirror-container--dark :deep(.ͼb) {
 	color: #be55cd;
 }
@@ -152,6 +162,7 @@ export default {
 .cn-advanced-form-dialog__codemirror-container--light :deep(.ͼd) {
 	color: #d19a66;
 }
+
 .cn-advanced-form-dialog__codemirror-container--dark :deep(.ͼd) {
 	color: #9d6c3a;
 }
@@ -167,6 +178,7 @@ export default {
 	background-color: #d7eaff !important;
 	color: black;
 }
+
 .cn-advanced-form-dialog__codemirror-container--dark :deep(.cm-line)::selection,
 .cn-advanced-form-dialog__codemirror-container--dark :deep(.cm-line) ::selection {
 	background-color: #8fb3e6 !important;
@@ -177,6 +189,7 @@ export default {
 .cn-advanced-form-dialog__codemirror-container--light :deep(.cm-line .ͼe)::selection {
 	color: #2d770f;
 }
+
 .cn-advanced-form-dialog__codemirror-container--dark :deep(.cm-line .ͼe)::selection {
 	color: #104e0c;
 }
@@ -185,6 +198,7 @@ export default {
 .cn-advanced-form-dialog__codemirror-container--light :deep(.cm-line .ͼc)::selection {
 	color: #221199;
 }
+
 .cn-advanced-form-dialog__codemirror-container--dark :deep(.cm-line .ͼc)::selection {
 	color: #4026af;
 }
@@ -193,6 +207,7 @@ export default {
 .cn-advanced-form-dialog__codemirror-container--light :deep(.cm-line .ͼb)::selection {
 	color: #770088;
 }
+
 .cn-advanced-form-dialog__codemirror-container--dark :deep(.cm-line .ͼb)::selection {
 	color: #770088;
 }
@@ -201,6 +216,7 @@ export default {
 .cn-advanced-form-dialog__codemirror-container--light :deep(.cm-line .ͼd)::selection {
 	color: #8c5c2c;
 }
+
 .cn-advanced-form-dialog__codemirror-container--dark :deep(.cm-line .ͼd)::selection {
 	color: #623907;
 }

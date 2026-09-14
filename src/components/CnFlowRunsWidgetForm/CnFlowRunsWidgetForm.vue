@@ -15,24 +15,24 @@
 		<div class="cn-flow-runs-form__row2">
 			<NcTextField
 				type="number"
-				:value="String(limit)"
+				:modelValue="String(limit)"
 				:label="t('nextcloud-vue', 'Rows to show')"
 				@update:value="updateField('limit', Number($event))" />
 			<NcTextField
 				type="number"
-				:value="String(pollSeconds)"
+				:modelValue="String(pollSeconds)"
 				:label="t('nextcloud-vue', 'Refresh every (seconds, 0 = off)')"
 				@update:value="updateField('pollSeconds', Number($event))" />
 		</div>
 
 		<NcTextField
-			:value="rowRoute"
+			:modelValue="rowRoute"
 			:label="t('nextcloud-vue', 'Open route on row click (optional)')"
 			placeholder="GraphDetail"
 			@update:value="updateField('rowRoute', $event)" />
 
 		<NcTextField
-			:value="runRoute"
+			:modelValue="runRoute"
 			:label="t('nextcloud-vue', 'Open route on run click (optional, receives the run id)')"
 			placeholder="RunDetail"
 			@update:value="updateField('runRoute', $event)" />
@@ -41,13 +41,13 @@
 		     @objectId binds the current object, so a manifest never hardcodes
 		     a uuid. Empty keeps the org-wide dashboard behaviour. -->
 		<NcTextField
-			:value="subject"
+			:modelValue="subject"
 			:label="t('nextcloud-vue', 'Subject object (uuid or @objectId, optional)')"
 			placeholder="@objectId"
 			@update:value="updateField('subject', $event)" />
 
 		<NcTextField
-			:value="emptyText"
+			:modelValue="emptyText"
 			:label="t('nextcloud-vue', 'Text when nothing is running')"
 			placeholder="No flows are running"
 			@update:value="updateField('emptyText', $event)" />
@@ -55,8 +55,8 @@
 </template>
 
 <script>
-import { NcTextField } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcTextField } from '@nextcloud/vue'
 
 const DEFAULT_CONTENT = Object.freeze({
 	limit: 6,
@@ -87,15 +87,24 @@ export default {
 	components: { NcTextField },
 
 	props: {
-		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
+		/**
+		 * The placement being edited (pre-fills from `editingWidget.content`), or null.
+		 *
+		 * @type {{content: object}|null}
+		 */
 		editingWidget: { type: Object, default: null },
-		/** Initial content values when not editing (registry defaults). @type {object} */
+		/**
+		 * Initial content values when not editing (registry defaults).
+		 *
+		 * @type {object}
+		 */
 		value: { type: Object, default: () => ({ ...DEFAULT_CONTENT }) },
 	},
 
 	emits: [
 		/**
 		 * Emitted with the assembled content blob on every field change.
+		 *
 		 * @event update:content
 		 * @type {object}
 		 */
@@ -135,7 +144,7 @@ export default {
 		 * Set one field and re-emit the whole content blob.
 		 *
 		 * @param {string} key   The field name.
-		 * @param {*}      value The new value.
+		 * @param {unknown}      value The new value.
 		 * @return {void}
 		 */
 		updateField(key, value) {

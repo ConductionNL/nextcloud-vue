@@ -4,7 +4,7 @@
  * overflow control, and the actor/when formatters.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnAuditTrailCard = require('../../src/components/CnAuditTrailCard/CnAuditTrailCard.vue').default
 
 describe('CnAuditTrailCard', () => {
@@ -21,8 +21,7 @@ describe('CnAuditTrailCard', () => {
 		const wrapper = mount(CnAuditTrailCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No audit entries yet')
 		wrapper.unmount()
 	})
@@ -44,8 +43,7 @@ describe('CnAuditTrailCard', () => {
 		const wrapper = mount(CnAuditTrailCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1', maxDisplay: 5 },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.findAll('.cn-audit-card__row')).toHaveLength(5)
 		expect(wrapper.text()).toContain('alice')
 		expect(wrapper.text()).toContain('Show all')
@@ -62,8 +60,7 @@ describe('CnAuditTrailCard', () => {
 		const wrapper = mount(CnAuditTrailCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		await wrapper.find('.cn-audit-card__show-all').trigger('click')
 		expect(wrapper.emitted('show-all')).toBeTruthy()
 		wrapper.unmount()
@@ -82,8 +79,7 @@ describe('CnAuditTrailCard', () => {
 		const wrapper = mount(CnAuditTrailCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Display Name')
 		expect(wrapper.text()).toContain('uid')
 		wrapper.unmount()

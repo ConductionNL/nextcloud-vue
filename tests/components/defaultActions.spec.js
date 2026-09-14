@@ -9,9 +9,9 @@
  * catalog entry to resolve against.
  */
 
-import { buildDefaultActions } from '../../src/components/CnIndexPage/defaultActions.js'
 import en from '../../l10n/en.json'
 import nl from '../../l10n/nl.json'
+import { buildDefaultActions } from '../../src/components/CnIndexPage/defaultActions.js'
 
 jest.mock('@nextcloud/l10n', () => ({
 	...jest.requireActual('@nextcloud/l10n'),

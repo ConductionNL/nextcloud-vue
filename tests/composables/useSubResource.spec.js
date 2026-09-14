@@ -105,7 +105,9 @@ describe('useSubResource', () => {
 			status: 404,
 			statusText: 'Not Found',
 			text: async () => 'not found',
-			json: async () => { throw new Error('no json') },
+			json: async () => {
+				throw new Error('no json')
+			},
 		})
 
 		const sub = useSubResource(makeStore(), 'tasks')
@@ -125,7 +127,9 @@ describe('useSubResource', () => {
 			status: 503,
 			statusText: 'Service Unavailable',
 			text: async () => 'down',
-			json: async () => { throw new Error('no json') },
+			json: async () => {
+				throw new Error('no json')
+			},
 		})
 
 		const sub = useSubResource(makeStore(), 'tasks')
@@ -143,7 +147,9 @@ describe('useSubResource', () => {
 			ok: false,
 			status: 500,
 			text: async () => 'boom',
-			json: async () => { throw new Error('no json') },
+			json: async () => {
+				throw new Error('no json')
+			},
 		})
 
 		const sub = useSubResource(makeStore(), 'tasks')

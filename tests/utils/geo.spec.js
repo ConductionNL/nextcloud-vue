@@ -12,7 +12,7 @@
  * SKIPS the object. Coercing it to 0 would plant a marker in the Gulf of Guinea, and
  * a confidently wrong marker is worse than an absent one.
  */
-import { parseGeoPoint, finitePoint, objectToGeoFeature } from '../../src/utils/geo.js'
+import { finitePoint, objectToGeoFeature, parseGeoPoint } from '../../src/utils/geo.js'
 
 describe('finitePoint', () => {
 	it('accepts finite numbers, including 0 and negatives', () => {

@@ -13,7 +13,6 @@
  * had drifted apart, which is the one failure worth catching.
  */
 import { shallowMount } from '@vue/test-utils'
-
 import CnPageRenderer from '../../src/components/CnPageRenderer/CnPageRenderer.vue'
 import { __resetAppInstalledCacheForTests } from '../../src/utils/appInstalled.js'
 

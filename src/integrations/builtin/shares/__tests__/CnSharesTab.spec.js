@@ -11,7 +11,7 @@
  *  - generic-error path when fetch throws.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnSharesTab = require('../CnSharesTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -48,8 +48,7 @@ describe('CnSharesTab', () => {
 	it('renders the empty state with a "Manage in Files" CTA when no shares', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnSharesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No shares on this object yet')
 		expect(wrapper.text()).toContain('Manage in Files')
 		wrapper.unmount()
@@ -68,8 +67,7 @@ describe('CnSharesTab', () => {
 			}),
 		})
 		const wrapper = mount(CnSharesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const groups = wrapper.findAll('.cn-shares-tab__group')
 		expect(groups).toHaveLength(3)
 		expect(wrapper.text()).toContain('Users')
@@ -97,8 +95,7 @@ describe('CnSharesTab', () => {
 			}),
 		})
 		const wrapper = mount(CnSharesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-shares-tab__permissions')
 		const texts = rows.map((r) => r.text())
 		// read-only share -> "Read only" badge.
@@ -124,8 +121,7 @@ describe('CnSharesTab', () => {
 			}),
 		})
 		const wrapper = mount(CnSharesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		// Just count the rendered share rows.
 		const rows = wrapper.findAll('.cn-shares-tab__row')
 		expect(rows.length).toBe(2)
@@ -149,8 +145,7 @@ describe('CnSharesTab', () => {
 			.mockResolvedValueOnce({ ok: true, status: 204, json: () => Promise.resolve({}) })
 
 		const wrapper = mount(CnSharesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.vm.revoke({ id: 'sh-77' })
 		await wrapper.vm.$nextTick()
@@ -169,8 +164,7 @@ describe('CnSharesTab', () => {
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnSharesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC sharing is currently unavailable.')
 		expect(wrapper.find('.cn-shares-tab__row').exists()).toBe(false)
 		wrapper.unmount()
@@ -180,8 +174,7 @@ describe('CnSharesTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnSharesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load shares.')
 		wrapper.unmount()
 		spy.mockRestore()
@@ -190,8 +183,7 @@ describe('CnSharesTab', () => {
 	it('renders a "Share file" toolbar button', async () => {
 		global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnSharesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.find('[data-testid="cn-shares-tab-share-file"]').exists()).toBe(true)
 		wrapper.unmount()
 	})

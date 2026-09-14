@@ -17,7 +17,6 @@
  * those positions become real boxes on the sides claimed.
  */
 import { mount } from '@vue/test-utils'
-
 import CnFlowNode from '../../src/components/CnGraphCanvas/CnFlowNode.vue'
 import CnGraphCanvas from '../../src/components/CnGraphCanvas/CnGraphCanvas.vue'
 

@@ -6,9 +6,9 @@
 	<div class="cn-kb-search-widget">
 		<div class="cn-kb-search-widget__search">
 			<NcTextField
-				:model-value="term"
+				:modelValue="term"
 				:label="searchLabel"
-				@update:model-value="onTermInput" />
+				@update:modelValue="onTermInput" />
 		</div>
 
 		<p v-if="boundLabel" class="cn-kb-search-widget__bound">
@@ -58,7 +58,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcTextField } from '@nextcloud/vue'
-import { BUILT_IN_KB_PROVIDERS, resolveKbProvider, normaliseKbResults } from '../../utils/kbSearchProviders.js'
+import { BUILT_IN_KB_PROVIDERS, normaliseKbResults, resolveKbProvider } from '../../utils/kbSearchProviders.js'
 
 /**
  * CnKbSearchWidget — a summary-driven knowledge-base search widget.
@@ -129,6 +129,7 @@ export default {
 	props: {
 		/**
 		 * Persisted configuration blob.
+		 *
 		 * @type {{endpoint?: string, queryParam?: string, bindTo?: string, minChars?: number, limit?: number}}
 		 */
 		content: {
@@ -154,58 +155,79 @@ export default {
 		/** The workspace context bag, unwrapped (or null). */
 		workspaceCtx() {
 			const c = this.cnWorkspaceContext
-			if (!c) return null
+			if (!c) {
+				return null
+			}
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
+
 		/** Workspace key this widget follows (default `activeSummary`). */
 		bindKey() {
 			return this.content.bindTo || 'activeSummary'
 		},
+
 		/** The summary text the page wrote, if any. */
 		boundSummary() {
 			const ws = this.workspaceCtx
-			if (!ws) return ''
+			if (!ws) {
+				return ''
+			}
 			const v = ws[this.bindKey]
 			return typeof v === 'string' ? v : ''
 		},
+
 		/** Minimum characters before a search fires. */
 		minChars() {
 			return typeof this.content.minChars === 'number' ? this.content.minChars : 3
 		},
+
 		/** Whether there is a query long enough to have searched. */
 		hasQuery() {
 			return this.term.trim().length >= this.minChars
 		},
+
 		/** Label noting the search is following the live summary. */
 		boundLabel() {
-			if (this.manual || !this.boundSummary) return ''
+			if (this.manual || !this.boundSummary) {
+				return ''
+			}
 			return t('nextcloud-vue', 'Suggested from the active summary')
 		},
+
 		/** The resolved provider (content.provider → registry → default). */
 		resolvedProvider() {
 			return resolveKbProvider(this.content.provider, this.cnKbSearchProviders || BUILT_IN_KB_PROVIDERS)
 		},
+
 		/**
 		 * Whether result links open in a new tab: the provider's `externalOpen`
 		 * default, overridden by an explicit `content.externalOpen`.
+		 *
 		 * @return {boolean}
 		 */
 		externalOpen() {
-			if (typeof this.content.externalOpen === 'boolean') return this.content.externalOpen
+			if (typeof this.content.externalOpen === 'boolean') {
+				return this.content.externalOpen
+			}
 			return Boolean(this.resolvedProvider && this.resolvedProvider.externalOpen)
 		},
+
 		searchLabel() {
 			return t('nextcloud-vue', 'Search the knowledge base')
 		},
+
 		searchingLabel() {
 			return t('nextcloud-vue', 'Searching…')
 		},
+
 		unavailableLabel() {
 			return this.content.unavailableFallback || t('nextcloud-vue', 'Knowledge base unavailable')
 		},
+
 		emptyLabel() {
 			return t('nextcloud-vue', 'No articles found')
 		},
+
 		hintLabel() {
 			return t('nextcloud-vue', 'Type to search, or fill in a summary to get suggestions.')
 		},
@@ -219,13 +241,17 @@ export default {
 		 * @param {string} val The new summary text.
 		 */
 		boundSummary(val) {
-			if (this.manual) return
+			if (this.manual) {
+				return
+			}
 			this.scheduleSearch(val || '')
 		},
 	},
 
 	beforeUnmount() {
-		if (this.debounceHandle) clearTimeout(this.debounceHandle)
+		if (this.debounceHandle) {
+			clearTimeout(this.debounceHandle)
+		}
 	},
 
 	methods: {
@@ -248,7 +274,9 @@ export default {
 		 */
 		scheduleSearch(text) {
 			this.term = text
-			if (this.debounceHandle) clearTimeout(this.debounceHandle)
+			if (this.debounceHandle) {
+				clearTimeout(this.debounceHandle)
+			}
 			if (text.trim().length < this.minChars) {
 				this.results = []
 				this.unavailable = false
@@ -283,7 +311,7 @@ export default {
 					limit: typeof this.content.limit === 'number' ? this.content.limit : 8,
 				})
 				this.results = this.normalise(articles)
-			} catch (e) {
+			} catch {
 				// 503 / network / disabled backend — show the unavailable state.
 				this.results = []
 				this.unavailable = true
@@ -299,7 +327,7 @@ export default {
 		 * built-in default provider), so a provider MAY return a raw response
 		 * body and still normalise here.
 		 *
-		 * @param {*} data The raw provider result.
+		 * @param {object|Array<object>|null} data The raw provider result.
 		 * @return {Array<object>} The article list (possibly empty).
 		 */
 		normalise(data) {

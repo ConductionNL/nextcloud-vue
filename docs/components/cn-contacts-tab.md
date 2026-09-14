@@ -13,6 +13,15 @@ Tier-2: the tab hosts two header actions — **Link existing contact** (opens [`
   :schema="schemaId" />
 ```
 
+## People on objects
+
+Since the people-on-objects change a linked person is a Nextcloud user or a vCard contact, and the listing carries more than a flat list:
+
+- `byRole` groups the people the way the server sees them. When it is present the tab renders those groups in that order, labelled by the schema's vocabulary; when it is absent the tab keeps its own buckets (Applicants / Handlers / Advisors / Other).
+- `roles` is the schema's `linkRoles` vocabulary. The tab passes it to the picker as `roleOptions`, so a handler picks a declared role instead of typing one.
+- `kind` says `user` or `contact`, `active` says whether today falls inside the link's validity window, and `validFrom` / `validUntil` / `note` describe it. A link that is not active keeps its row and gains a badge, because a past handler is still a fact about the object.
+- Removing a row removes that role, not the person: the tab sends `DELETE …/contacts/{contactUid}?role=<role>`, since one person may hold several roles on one object.
+
 ## Props
 
 | Prop | Type | Default | Description |

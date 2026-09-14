@@ -83,8 +83,13 @@ describe('CnOpenprojectTab', () => {
 		expect(text).toContain('New')
 		expect(text).toContain('Closed')
 		// Assignees render as NcAvatar; their names live in the avatar's
-		// display-name attribute, not as visible row text.
-		const avatarNames = wrapper.findAll('.cn-openproject-tab__assignee').map((w) => w.attributes('display-name'))
+		// displayName binding, not as visible row text.
+		//
+		// Read as `displayname`, all lowercase. The ruleset writes component
+		// attributes in camelCase, and the jest lane mocks @nextcloud/vue down to
+		// a bare stub, so the binding reaches the DOM as a plain attribute and the
+		// DOM lowercases it. A real NcAvatar takes the prop either way.
+		const avatarNames = wrapper.findAll('.cn-openproject-tab__assignee').map((w) => w.attributes('displayname'))
 		expect(avatarNames).toContain('Bob')
 		expect(avatarNames).toContain('Carol')
 		const bug = wrapper.find('.cn-openproject-tab__type-badge--bug')
@@ -122,7 +127,7 @@ describe('CnOpenprojectTab', () => {
 		const row = wrapper.find('.cn-openproject-tab__row')
 		expect(wrapper.findAll('.cn-openproject-tab__row')).toHaveLength(1)
 		expect(row.attributes('name')).toBe('HAL-shaped WP')
-		expect(wrapper.find('.cn-openproject-tab__assignee').attributes('display-name')).toBe('Dora')
+		expect(wrapper.find('.cn-openproject-tab__assignee').attributes('displayname')).toBe('Dora')
 		wrapper.unmount()
 	})
 

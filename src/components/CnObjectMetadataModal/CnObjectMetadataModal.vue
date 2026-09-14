@@ -1,6 +1,10 @@
 <!--
   CnObjectMetadataModal — Read-only object metadata in a small dialog.
 
+  Sized `large`, not `small`: the panel carries five grouped categories now
+  (Identity, Location, Ownership, Lifecycle, Archiving), and at `small` a URI
+  wrapped over four lines while every label took a row of its own.
+
   A thin NcDialog wrapper around CnObjectMetadataWidget. Surfaces an
   object's @self / system metadata (id, uuid, uri, register, schema,
   created, updated, owner, …) on demand — e.g. from the "Metadata" item
@@ -11,11 +15,11 @@
 	<NcDialog
 		:open="open"
 		:name="name"
-		size="small"
+		size="large"
 		@update:open="onUpdateOpen">
 		<CnObjectMetadataWidget
 			title=""
-			:object-data="objectData"
+			:objectData="objectData"
 			:include="include"
 			:exclude="exclude" />
 	</NcDialog>
@@ -54,11 +58,13 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Dialog title. */
 		name: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Metadata'),
 		},
+
 		/**
 		 * The object whose metadata to display. Supports flat objects and
 		 * objects carrying a `@self` metadata block.
@@ -67,17 +73,21 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/**
 		 * Metadata fields to include (whitelist). When null, all available
 		 * fields are shown.
+		 *
 		 * @type {string[]|null}
 		 */
 		include: {
 			type: Array,
 			default: null,
 		},
+
 		/**
 		 * Metadata fields to exclude.
+		 *
 		 * @type {string[]}
 		 */
 		exclude: {
@@ -92,6 +102,7 @@ export default {
 		/**
 		 * Forward NcDialog's open-state change. Re-emits `update:open` for
 		 * `:open`-bound hosts and `close` for `v-if`-mounted hosts.
+		 *
 		 * @param {boolean} value - The new open state.
 		 */
 		onUpdateOpen(value) {

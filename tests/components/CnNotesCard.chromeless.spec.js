@@ -15,7 +15,7 @@
 // The assertions below are about what is RENDERED, not about which class names
 // carry which declarations, so the same mistake cannot pass again.
 
-import { shallowMount, mount } from '@vue/test-utils'
+import { mount, shallowMount } from '@vue/test-utils'
 import CnNotesCard from '../../src/components/CnNotesCard/CnNotesCard.vue'
 
 /**

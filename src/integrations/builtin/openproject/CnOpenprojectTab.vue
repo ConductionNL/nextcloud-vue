@@ -115,7 +115,7 @@
 				:bold="true"
 				:href="wpUrl(wp)"
 				target="_blank"
-				:force-display-actions="true">
+				:forceDisplayActions="true">
 				<!-- Type indicator: a coloured square chip echoing OpenProject's
 				     type colour-coding (Task / Bug / Feature / Milestone). -->
 				<template #icon>
@@ -166,19 +166,19 @@
 							v-if="wpAssignee(wp)"
 							class="cn-openproject-tab__assignee"
 							:size="24"
-							:display-name="wpAssignee(wp)"
+							:displayName="wpAssignee(wp)"
 							:user="assigneeSeed(wp)"
-							:is-no-user="true"
-							:disable-menu="true"
-							:disable-tooltip="false"
-							:show-user-status="false"
+							:isNoUser="true"
+							:disableMenu="true"
+							:disableTooltip="false"
+							hideStatus
 							:title="assigneeTitle(wp)" />
 					</span>
 				</template>
 				<template #actions>
 					<NcActionButton
 						class="cn-openproject-tab__unlink"
-						:close-after-click="true"
+						:closeAfterClick="true"
 						@click="unlinkWorkPackage(wp)">
 						<template #icon>
 							<LinkOff :size="20" />
@@ -191,15 +191,15 @@
 
 		<CnOpenProjectPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
-			:openconnector-url="openconnectorUrl"
+			:apiBase="apiBase"
+			:openconnectorUrl="openconnectorUrl"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 
 		<CnOpenProjectCreate
 			v-if="createOpen"
-			:api-base="apiBase"
-			:openconnector-url="openconnectorUrl"
+			:apiBase="apiBase"
+			:openconnectorUrl="openconnectorUrl"
 			@close="createOpen = false"
 			@create="onCreatePick" />
 	</div>
@@ -222,9 +222,9 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import RhombusOutline from 'vue-material-design-icons/RhombusOutline.vue'
 import StarFourPointsOutline from 'vue-material-design-icons/StarFourPointsOutline.vue'
-import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnOpenProjectCreate from '../../../components/CnOpenProjectCreate/CnOpenProjectCreate.vue'
 import CnOpenProjectPicker from '../../../components/CnOpenProjectPicker/CnOpenProjectPicker.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
@@ -279,41 +279,49 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'No work packages linked yet'),
 		},
+
 		/** Pre-translated label for the "Open OpenProject" CTA. */
 		openOpenprojectLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Open OpenProject'),
 		},
+
 		/** Pre-translated label for the "Configure OpenProject connection" CTA. */
 		configureLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Configure OpenProject connection'),
 		},
+
 		/** Pre-translated label shown when the integration is unconfigured. */
 		unconfiguredLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'OpenProject is not configured yet. Add an `openproject` source in Integriq to start linking work packages.'),
 		},
+
 		/** Pre-translated banner when OpenProject is unavailable. */
 		unavailableLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'OpenProject is currently unavailable.'),
 		},
+
 		/** Pre-translated banner when the OAuth/API token has expired. */
 		authExpiredLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Authorisation for OpenProject expired. Reconnect the source in Integriq to restore access.'),
 		},
+
 		/** Pre-translated link label to the Integriq admin. */
 		openconnectorLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Open Integriq'),
 		},
+
 		/** URL of the Integriq source admin page (for the `openproject` source). */
 		openconnectorUrl: {
 			type: String,
 			default: '/index.php/apps/openconnector/sources/openproject',
 		},
+
 		/** Fallback URL of the OpenProject app entry. */
 		openprojectAppUrl: {
 			type: String,
@@ -335,16 +343,26 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchWorkPackages() } } },
-		register() { this.fetchWorkPackages() },
-		schema() { this.fetchWorkPackages() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchWorkPackages()
+			}
+		} },
+
+		register() {
+			this.fetchWorkPackages()
+		},
+
+		schema() {
+			this.fetchWorkPackages()
+		},
 	},
 
 	methods: {
 		t,
 
 		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`)
 		},
 
 		/**
@@ -353,7 +371,7 @@ export default {
 		 * @return {string} The endpoint URL.
 		 */
 		openProjectEndpoint() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/openproject`
+			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/openproject`)
 		},
 
 		openPicker() {
@@ -367,7 +385,7 @@ export default {
 		async onLinkPick(payload) {
 			this.pickerOpen = false
 			try {
-				const response = await fetch(prefixUrl(this.openProjectEndpoint()), {
+				const response = await fetch(this.openProjectEndpoint(), {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -389,7 +407,7 @@ export default {
 		async onCreatePick(payload) {
 			this.createOpen = false
 			try {
-				const response = await fetch(prefixUrl(`${this.openProjectEndpoint()}/new`), {
+				const response = await fetch(`${this.openProjectEndpoint()}/new`, {
 					method: 'POST',
 					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
@@ -412,7 +430,7 @@ export default {
 				return
 			}
 			try {
-				const response = await fetch(prefixUrl(`${this.openProjectEndpoint()}/${id}`), {
+				const response = await fetch(`${this.openProjectEndpoint()}/${id}`, {
 					method: 'DELETE',
 					headers: buildHeaders(),
 				})
@@ -616,7 +634,7 @@ export default {
 			this.authBanner = ''
 			this.unconfigured = false
 			try {
-				const response = await fetch(prefixUrl(this.baseUrl()), { headers: buildHeaders() })
+				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results
@@ -661,7 +679,7 @@ export default {
 				if (body && typeof body.error === 'string' && body.error !== '') {
 					return body.error
 				}
-			} catch (_) {
+			} catch {
 				// Fall through.
 			}
 			return t('nextcloud-vue', 'Could not load work packages.')

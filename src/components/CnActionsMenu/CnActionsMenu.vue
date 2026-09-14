@@ -22,9 +22,9 @@
 	     vue-frag <Fragment>) so NcActions stays in its host's flex/grid flow. -->
 	<template v-if="hasOverflowMenu">
 		<NcActions
-			:force-menu="true"
-			:force-name="true"
-			:menu-name="actionsMenuLabel"
+			:forceMenu="true"
+			:forceName="true"
+			:menuName="actionsMenuLabel"
 			:data-testid="`${testidBase}-actions`">
 			<template #icon>
 				<DotsHorizontal :size="20" />
@@ -33,7 +33,7 @@
 				v-if="showRefresh"
 				:data-testid="`${testidBase}-action-refresh`"
 				:disabled="refreshing"
-				:close-after-click="true"
+				:closeAfterClick="true"
 				@click="onRefreshClick">
 				<template #icon>
 					<NcLoadingIcon v-if="refreshing" :size="20" />
@@ -62,7 +62,7 @@
 			<NcActionButton
 				v-if="showRequestFeature"
 				:data-testid="`${testidBase}-action-request-feature`"
-				:close-after-click="true"
+				:closeAfterClick="true"
 				@click="onRequestFeatureClick">
 				<template #icon>
 					<LightbulbOutline :size="20" />
@@ -75,7 +75,7 @@
 				target="_blank"
 				rel="noopener noreferrer"
 				:data-testid="`${testidBase}-action-report-bug`"
-				:close-after-click="true">
+				:closeAfterClick="true">
 				<template #icon>
 					<BugOutline :size="20" />
 				</template>
@@ -87,7 +87,7 @@
 				target="_blank"
 				rel="noopener noreferrer"
 				:data-testid="`${testidBase}-action-documentation`"
-				:close-after-click="true">
+				:closeAfterClick="true">
 				<template #icon>
 					<BookOpenVariant :size="20" />
 				</template>
@@ -103,14 +103,14 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
-import { NcActions, NcActionButton, NcActionLink, NcLoadingIcon } from '@nextcloud/vue'
 import { emit as emitOnBus } from '@nextcloud/event-bus'
-import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
-import Refresh from 'vue-material-design-icons/Refresh.vue'
-import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
+import { translate as t } from '@nextcloud/l10n'
+import { NcActionButton, NcActionLink, NcActions, NcLoadingIcon } from '@nextcloud/vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import BugOutline from 'vue-material-design-icons/BugOutline.vue'
+import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
+import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
 import { buildBugReportUrl, buildFeatureRequestUrl, DEFAULT_FORGE } from '../../utils/forge.js'
 
 /**
@@ -124,7 +124,9 @@ import { buildBugReportUrl, buildFeatureRequestUrl, DEFAULT_FORGE } from '../../
  */
 function defaultDocsBase(appId) {
 	const id = String(appId || '').trim()
-	if (!id) return ''
+	if (!id) {
+		return ''
+	}
 	return `https://${id}.conduction.nl/docs/`
 }
 
@@ -141,15 +143,23 @@ function defaultDocsBase(appId) {
  */
 export function resolveDocsUrl(base, anchor) {
 	const a = String(anchor || '').trim()
-	if (a.includes('://')) return a
+	if (a.includes('://')) {
+		return a
+	}
 	const b = String(base || '').trim()
-	if (!b) return ''
-	if (!a) return b
-	if (a.startsWith('#')) return `${b.replace(/#.*$/, '')}${a}`
+	if (!b) {
+		return ''
+	}
+	if (!a) {
+		return b
+	}
+	if (a.startsWith('#')) {
+		return `${b.replace(/#.*$/, '')}${a}`
+	}
 	if (a.startsWith('/')) {
 		try {
 			return new URL(a, b).toString()
-		} catch (e) {
+		} catch {
 			return `${b.replace(/\/+$/, '')}${a}`
 		}
 	}
@@ -165,7 +175,7 @@ export function resolveDocsUrl(base, anchor) {
  * re-emitting `@refresh`), so a host listener on the outer component can
  * still suppress the default.
  *
- * @return {{defaultPrevented: boolean, preventDefault: Function}}
+ * @return {{defaultPrevented: boolean, preventDefault: () => void}}
  */
 function createSyntheticEvent() {
 	const ev = {
@@ -263,6 +273,7 @@ export default {
 		 */
 		cnDocumentationBaseUrl: { default: () => '' },
 	},
+
 	inheritAttrs: false,
 
 	props: {
@@ -277,6 +288,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Whether the Request-a-feature item renders.
 		 *
@@ -286,6 +298,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Explicit documentation link target, opened in a new tab. Wins over
 		 * the `cnDocumentationBaseUrl` + `docsAnchor` pair. Leave empty (the
@@ -297,6 +310,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * This surface's own section in the app's documentation, appended to
 		 * the app-wide `cnDocumentationBaseUrl`. A bare slug (`open-cases`)
@@ -311,6 +325,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Whether the Documentation item renders. Defaults to true — the
 		 * canonical trio is meant to be present on every surface; set false
@@ -322,6 +337,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Whether the "Report a bug" item renders.
 		 *
@@ -331,6 +347,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Explicit "Report a bug" target. Empty (the default) builds a
 		 * new-issue deep-link on the app's forge from the injected
@@ -343,11 +360,13 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Pre-translated label for the Report-a-bug action. */
 		reportBugLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Report a bug'),
 		},
+
 		/**
 		 * Pre-translated label for the Documentation item. Defaults to the
 		 * lib's translation of "Documentation".
@@ -356,6 +375,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Documentation'),
 		},
+
 		/**
 		 * Stable id forwarded on the `@refresh` / `@request-feature`
 		 * payloads (as `widgetId`) and on the `cn:widget:refresh`
@@ -368,6 +388,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Human-readable title carried on action payloads.
 		 */
@@ -375,6 +396,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Stable `surface` slug naming where the menu sits (e.g.
 		 * `widget:<id>`, `detail:<id>`, `dashboard:<id>`). Used as the
@@ -387,6 +409,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional `specRef` slug. Accepted for backward compatibility with
 		 * hosts that bound it for the removed in-product suggestion modal;
@@ -395,10 +418,11 @@ export default {
 		 *
 		 * @type {string}
 		 */
-		specRef: {
+		specRef: { // eslint-disable-line vue/no-unused-properties -- published prop kept so hosts that still bind it do not leak it into $attrs
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Whether a refresh is currently in flight. While true, the Refresh
 		 * item is disabled and shows a loading spinner for exactly as long as
@@ -410,6 +434,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Event-bus channel the default Refresh handler emits on when no
 		 * host listener suppresses it. Widgets use `cn:widget:refresh`;
@@ -419,21 +444,25 @@ export default {
 			type: String,
 			default: 'cn:widget:refresh',
 		},
+
 		/** Pre-translated label for the Refresh action. */
 		refreshLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Refresh'),
 		},
+
 		/** Pre-translated label for the Request-a-feature action. */
 		requestFeatureLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Request a feature'),
 		},
+
 		/** Pre-translated aria-label / tooltip for the overflow trigger. */
 		actionsMenuLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Actions'),
 		},
+
 		/**
 		 * Prefix for the `data-testid`s emitted on the menu container and
 		 * its items: `<base>-actions` (container), `<base>-action-refresh`,
@@ -458,11 +487,21 @@ export default {
 		 * @return {boolean}
 		 */
 		hasOverflowMenu() {
-			if (this.showRefresh) return true
-			if (this.showDocumentation && this.resolvedDocumentationUrl) return true
-			if (this.showReportBug && this.resolvedReportBugUrl) return true
-			if (this.showRequestFeature) return true
-			if (this.$slots['primary-items']) return true
+			if (this.showRefresh) {
+				return true
+			}
+			if (this.showDocumentation && this.resolvedDocumentationUrl) {
+				return true
+			}
+			if (this.showReportBug && this.resolvedReportBugUrl) {
+				return true
+			}
+			if (this.showRequestFeature) {
+				return true
+			}
+			if (this.$slots['primary-items']) {
+				return true
+			}
 			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
 		},
 
@@ -499,10 +538,12 @@ export default {
 		 */
 		sourceTitle() {
 			const resolve = this.cnWidgetTitleSource
-			if (typeof resolve !== 'function' || !this.widgetId) return ''
+			if (typeof resolve !== 'function' || !this.widgetId) {
+				return ''
+			}
 			try {
 				return String(resolve(this.widgetId) || '').trim()
-			} catch (e) {
+			} catch {
 				// A host resolver that throws must not take the menu with it —
 				// the link degrades to the surface slug.
 				return ''
@@ -517,9 +558,13 @@ export default {
 		 * @return {string}
 		 */
 		resolvedReportBugUrl() {
-			if (this.reportBugUrl) return this.reportBugUrl
+			if (this.reportBugUrl) {
+				return this.reportBugUrl
+			}
 			const repo = String(this.cnFeatureRequestRepo || '').trim()
-			if (!repo) return ''
+			if (!repo) {
+				return ''
+			}
 			// buildBugReportUrl owns both the host (one resolveForge for the
 			// whole suggestion flow) and the bug-report issue FORM. This was
 			// hand-rolled here against a local copy of the forge host map that
@@ -560,7 +605,9 @@ export default {
 		 */
 		resolvedRequestFeatureUrl() {
 			const repo = String(this.cnFeatureRequestRepo || '').trim()
-			if (!repo) return ''
+			if (!repo) {
+				return ''
+			}
 			return buildFeatureRequestUrl(this.cnFeatureRequestForge, repo, {
 				title: this.sourceTitle,
 				surface: this.surface || this.widgetId,
@@ -586,7 +633,9 @@ export default {
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('refresh', { widgetId: this.widgetId, title: this.title }, ev)
-			if (ev.defaultPrevented) return
+			if (ev.defaultPrevented) {
+				return
+			}
 			emitOnBus(this.refreshChannel, {
 				widgetId: this.widgetId,
 				title: this.title,
@@ -612,12 +661,12 @@ export default {
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('request-feature', { widgetId: this.widgetId, title: this.title }, ev)
-			if (ev.defaultPrevented) return
+			if (ev.defaultPrevented) {
+				return
+			}
 			if (!this.resolvedRequestFeatureUrl) {
 				// eslint-disable-next-line no-console
-				console.warn(
-					'[CnActionsMenu] Cannot open the feature-request form: missing cnFeatureRequestRepo inject (mount under CnAppRoot or bind a custom @request-feature listener).',
-				)
+				console.warn('[CnActionsMenu] Cannot open the feature-request form: missing cnFeatureRequestRepo inject (mount under CnAppRoot or bind a custom @request-feature listener).')
 				return
 			}
 			window.open(this.resolvedRequestFeatureUrl, '_blank', 'noopener,noreferrer')

@@ -4,10 +4,14 @@
   -
   - CnContactsTab — bespoke sidebar tab for the `contacts` integration leaf.
   -
-  - Renders the vCard contacts linked to an OR object grouped by role
-  - (Applicants / Handlers / Advisors / Other) per AD-1 of
-  - `openspec/changes/integration-contacts/design.md`. Each contact card
-  - shows initials avatar + display name + primary email + role.
+  - Renders the people linked to an OR object grouped by role. Since
+  - people-on-objects a person is a Nextcloud user or a vCard contact, and
+  - the grouping is the server's when it sends one: the listing carries
+  - `byRole` and the schema's `roles`, and the tab falls back to its own
+  - buckets (Applicants / Handlers / Advisors / Other, AD-1 of
+  - `openspec/changes/integration-contacts/design.md`) for a server that
+  - does not. Each card shows avatar, display name, email and role, and a
+  - link whose validity has passed reads as inactive.
   -
   - Clicking a contact opens the reverse-lookup flyout (AD-3) listing every
   - OR object linked to that vCard.
@@ -97,13 +101,13 @@
 						<div class="cn-contacts-tab__avatar">
 							<NcAvatar
 								:size="40"
-								:display-name="contact.displayName || unknownLabel"
+								:displayName="contact.displayName || unknownLabel"
 								:user="avatarSeed(contact)"
 								:url="contact.avatarUrl || undefined"
-								:is-no-user="true"
-								:disable-menu="true"
-								:disable-tooltip="true"
-								:show-user-status="false" />
+								:isNoUser="true"
+								:disableMenu="true"
+								:disableTooltip="true"
+								hideStatus />
 						</div>
 						<div class="cn-contacts-tab__details">
 							<div class="cn-contacts-tab__name-row">
@@ -115,6 +119,12 @@
 									:label="roleLabel(contact)"
 									:variant="roleVariant(contact)"
 									size="small" />
+								<CnStatusBadge
+									v-if="contact.active === false"
+									:label="inactiveLabel"
+									variant="default"
+									size="small"
+									data-testid="cn-contacts-tab-inactive" />
 							</div>
 							<div v-if="contact.email" class="cn-contacts-tab__sub">
 								<Email :size="14" class="cn-contacts-tab__sub-icon" />
@@ -127,6 +137,16 @@
 							<div v-if="contact.org" class="cn-contacts-tab__sub">
 								<OfficeBuildingOutline :size="14" class="cn-contacts-tab__sub-icon" />
 								<span class="cn-contacts-tab__sub-text">{{ contact.org }}</span>
+							</div>
+							<div
+								v-if="periodOf(contact)"
+								class="cn-contacts-tab__sub"
+								data-testid="cn-contacts-tab-period">
+								<CalendarRange :size="14" class="cn-contacts-tab__sub-icon" />
+								<span class="cn-contacts-tab__sub-text">{{ periodOf(contact) }}</span>
+							</div>
+							<div v-if="contact.note" class="cn-contacts-tab__sub">
+								<span class="cn-contacts-tab__sub-text">{{ contact.note }}</span>
 							</div>
 						</div>
 						<button
@@ -145,7 +165,8 @@
 		<!-- Link existing contact dialog -->
 		<CnContactPicker
 			v-if="showLinkDialog"
-			:api-base="apiBase"
+			:apiBase="apiBase"
+			v-bind="pickerRoleOptions"
 			@link="onPickerLink"
 			@close="showLinkDialog = false" />
 
@@ -161,18 +182,18 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import AccountPlus from 'vue-material-design-icons/AccountPlus.vue'
 import AccountMultipleOutline from 'vue-material-design-icons/AccountMultipleOutline.vue'
+import AccountPlus from 'vue-material-design-icons/AccountPlus.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Email from 'vue-material-design-icons/Email.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import OfficeBuildingOutline from 'vue-material-design-icons/OfficeBuildingOutline.vue'
 import Phone from 'vue-material-design-icons/Phone.vue'
-
-import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import CnContactPicker from '../../../components/CnContactPicker/CnContactPicker.vue'
 import CnContactCreate from '../../../components/CnContactCreate/CnContactCreate.vue'
+import CnContactPicker from '../../../components/CnContactPicker/CnContactPicker.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 /**
@@ -209,6 +230,7 @@ export default {
 		AccountPlus,
 		AccountMultipleOutline,
 		AlertCircleOutline,
+		CalendarRange,
 		Close,
 		Email,
 		LinkVariant,
@@ -220,25 +242,49 @@ export default {
 	},
 
 	props: {
+		/** Parent object id. */
 		objectId: { type: String, required: true },
+		/** OpenRegister register id (slug or uuid). */
 		register: { type: String, default: '' },
+		/** OpenRegister schema id (slug or uuid). */
 		schema: { type: String, default: '' },
+		/** Base API URL for OpenRegister. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 
 		// --- Pre-translated labels (consumer-overridable for i18n flexibility) ---
+		/** Label for the button that links an existing contact. */
 		linkExistingLabel: { type: String, default: () => t('nextcloud-vue', 'Link contact') },
+		/** Label for the button that creates a contact. */
 		addNewLabel: { type: String, default: () => t('nextcloud-vue', 'Add new contact') },
+		/** Title of the empty state shown when no contact is linked. */
 		emptyTitleLabel: { type: String, default: () => t('nextcloud-vue', 'No contacts linked') },
+		/** Body of the empty state shown when no contact is linked. */
 		emptyDescriptionLabel: { type: String, default: () => t('nextcloud-vue', 'Link a contact from your address book.') },
+		/** Message shown when the contacts could not be loaded. */
 		errorLabel: { type: String, default: () => t('nextcloud-vue', 'Could not load contacts') },
+		/** Stand-in name for a contact whose name is missing. */
 		unknownLabel: { type: String, default: () => t('nextcloud-vue', 'Unknown contact') },
+		/** Label for the action that unlinks a contact from the object. */
 		unlinkLabel: { type: String, default: () => t('nextcloud-vue', 'Unlink contact') },
+		/** Heading above the contacts grouped as applicants. */
 		applicantsLabel: { type: String, default: () => t('nextcloud-vue', 'Applicants') },
+		/** Heading above the contacts grouped as handlers. */
 		handlersLabel: { type: String, default: () => t('nextcloud-vue', 'Handlers') },
+		/** Heading above the contacts grouped as advisors. */
 		advisorsLabel: { type: String, default: () => t('nextcloud-vue', 'Advisors') },
+		/** Heading above the contacts with no recognised role. */
 		otherLabel: { type: String, default: () => t('nextcloud-vue', 'Other') },
+		/** Badge on a link whose validity window has passed or not yet begun. */
+		inactiveLabel: { type: String, default: () => t('nextcloud-vue', 'Not active') },
+		/** Prefix for a validity window with an open end. */
+		fromLabel: { type: String, default: () => t('nextcloud-vue', 'From') },
+		/** Prefix for a validity window with an open start. */
+		untilLabel: { type: String, default: () => t('nextcloud-vue', 'Until') },
+		/** Role badge shown on an applicant. */
 		applicantRoleLabel: { type: String, default: () => t('nextcloud-vue', 'Applicant') },
+		/** Role badge shown on a handler. */
 		handlerRoleLabel: { type: String, default: () => t('nextcloud-vue', 'Handler') },
+		/** Role badge shown on an advisor. */
 		advisorRoleLabel: { type: String, default: () => t('nextcloud-vue', 'Advisor') },
 	},
 
@@ -246,6 +292,9 @@ export default {
 
 	data() {
 		return {
+			// The server's grouping and role vocabulary, when it sends them.
+			serverGroups: null,
+			roleVocabulary: [],
 			contacts: [],
 			loading: false,
 			error: null,
@@ -276,6 +325,33 @@ export default {
 		 * @return {Array<{key: string, label: string, items: Array}>}
 		 */
 		groupedContacts() {
+			if (this.serverGroups !== null) {
+				return this.groupsFromServer()
+			}
+			return this.groupsFromBuckets
+		},
+
+		/**
+		 * The role vocabulary as CnContactPicker options, or nothing when
+		 * the schema declares none (the picker keeps its own defaults).
+		 *
+		 * @return {object} Props to bind onto the picker.
+		 */
+		pickerRoleOptions() {
+			if (this.roleVocabulary.length === 0) {
+				return {}
+			}
+			return {
+				roleOptions: this.roleVocabulary.map((role) => ({ label: role.label || role.key, value: role.key })),
+			}
+		},
+
+		/**
+		 * Group by the tab's own role buckets, for a server that does not group.
+		 *
+		 * @return {Array<{key: string, label: string, items: Array}>}
+		 */
+		groupsFromBuckets() {
 			const labelMap = {
 				applicant: this.applicantsLabel,
 				handler: this.handlersLabel,
@@ -326,9 +402,13 @@ export default {
 		 */
 		initialsFor(contact) {
 			const name = (contact?.displayName || '').trim()
-			if (name === '') return '?'
+			if (name === '') {
+				return '?'
+			}
 			const parts = name.split(/\s+/).filter(Boolean)
-			if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+			if (parts.length === 1) {
+				return parts[0].charAt(0).toUpperCase()
+			}
 			return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
 		},
 
@@ -408,7 +488,9 @@ export default {
 		},
 
 		async fetchContacts() {
-			if (!this.register || !this.schema || !this.objectId) return
+			if (!this.register || !this.schema || !this.objectId) {
+				return
+			}
 			this.loading = true
 			this.error = null
 			try {
@@ -425,7 +507,13 @@ export default {
 				// falls back to `[]` rather than letting a non-iterable
 				// object reach `groupedContacts` (Phase A / D-1 bug).
 				this.contacts = this.unwrapList(data)
+				// people-on-objects: the server groups by role and names the
+				// schema's vocabulary. Both optional, so a server that sends
+				// neither keeps the tab's own buckets.
+				this.serverGroups = (data && typeof data === 'object' && data.byRole) ? data.byRole : null
+				this.roleVocabulary = (data && Array.isArray(data.roles)) ? data.roles : []
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnContactsTab: Failed to fetch contacts', err)
 				this.error = String(err?.message || err)
 				this.contacts = []
@@ -439,7 +527,7 @@ export default {
 		 * `{results:[...]}`, `{items:[...]}`, or a bare array; any
 		 * other shape (object, null, undefined) becomes `[]`.
 		 *
-		 * @param {*} data parsed JSON response body
+		 * @param {object|Array<object>|null} data parsed JSON response body
 		 *
 		 * @return {Array}
 		 */
@@ -458,13 +546,58 @@ export default {
 			return []
 		},
 
+		/**
+		 * The server's own grouping, labelled by the schema's vocabulary.
+		 *
+		 * @return {Array<{key: string, label: string, items: Array}>}
+		 */
+		groupsFromServer() {
+			const labels = new Map(this.roleVocabulary.map((role) => [role.key, role.label || role.key]))
+			return Object.entries(this.serverGroups)
+				.filter(([, items]) => Array.isArray(items) && items.length > 0)
+				.map(([key, items]) => ({
+					key,
+					label: labels.get(key) || (key === 'other' ? this.otherLabel : key),
+					items,
+				}))
+		},
+
+		/**
+		 * The validity window of a link as a line, or '' when it is open.
+		 *
+		 * @param {object} contact The link.
+		 *
+		 * @return {string} The window.
+		 */
+		periodOf(contact) {
+			const from = contact?.validFrom || ''
+			const until = contact?.validUntil || ''
+			if (from === '' && until === '') {
+				return ''
+			}
+			if (until === '') {
+				return `${this.fromLabel} ${from}`
+			}
+			if (from === '') {
+				return `${this.untilLabel} ${until}`
+			}
+			return `${from} – ${until}`
+		},
+
 		async unlink(contact) {
-			if (!contact?.contactUid) return
+			if (!contact?.contactUid) {
+				return
+			}
 			try {
-				const url = `${this.baseUrl}/${encodeURIComponent(contact.contactUid)}`
-				await fetch(prefixUrl(url), { method: 'DELETE', headers: buildHeaders() })
+				// people-on-objects: a person can hold several roles on one
+				// object, so removing a row removes that role, not the person.
+				const role = contact.role ? `?role=${encodeURIComponent(contact.role)}` : ''
+				const url = prefixUrl(`${this.baseUrl}/${encodeURIComponent(contact.contactUid)}${role}`)
+				await fetch(url, { method: 'DELETE', headers: buildHeaders() })
 				this.contacts = this.contactsArray.filter((c) => c.id !== contact.id)
+				this.serverGroups = null
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnContactsTab: Failed to unlink contact', err)
 			}
 		},
@@ -488,12 +621,14 @@ export default {
 					body: JSON.stringify(payload),
 				})
 				if (!response.ok) {
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('CnContactsTab: Failed to link picked contact', response.status)
 					return
 				}
 				this.showLinkDialog = false
 				await this.fetchContacts()
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnContactsTab: Failed to link picked contact', err)
 			}
 		},
@@ -518,12 +653,14 @@ export default {
 					body: JSON.stringify(payload),
 				})
 				if (!response.ok) {
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('CnContactsTab: Failed to create+link contact', response.status)
 					return
 				}
 				this.showCreateDialog = false
 				await this.fetchContacts()
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnContactsTab: Failed to create+link contact', err)
 			} finally {
 				this.createLoading = false

@@ -5,8 +5,15 @@
  * Tests for the daily-planning fetch contract and the queue replay service.
  */
 
+/* eslint-disable perfectionist/sort-imports -- `fake-indexeddb/auto` is a
+   POLYFILL and has to run before the module under test imports Dexie. The
+   rule groups side-effect imports last, which moved it to the bottom and left
+   Dexie with no indexedDB: three specs here then failed with an EMPTY error,
+   which is what a store that never opened looks like. */
 import 'fake-indexeddb/auto'
+
 import Dexie from 'dexie'
+/* eslint-enable perfectionist/sort-imports */
 
 jest.mock('@nextcloud/router', () => ({
 	generateUrl: (p) => p,
@@ -15,9 +22,9 @@ jest.mock('@nextcloud/router', () => ({
 const mockAxios = { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() }
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: mockAxios }))
 
+const offlineDb = require('../../../src/integrations/offline/offlineDb.js')
 const { buildPlanningQuery, fetchPlanning, fetchReferences, toDayString } = require('../../../src/integrations/offline/planningFetch.js')
 const { drainQueue } = require('../../../src/integrations/offline/syncReplayService.js')
-const offlineDb = require('../../../src/integrations/offline/offlineDb.js')
 
 describe('planningFetch', () => {
 	beforeEach(() => {

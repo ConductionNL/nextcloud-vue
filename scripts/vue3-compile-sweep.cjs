@@ -22,7 +22,7 @@ const path = require('path')
 let sfc
 try {
 	sfc = require('@vue/compiler-sfc')
-} catch (e) {
+} catch {
 	console.error('[vue3-compile-sweep] @vue/compiler-sfc not found — install the Vue 3 toolchain first (npm i -D @vue/compiler-sfc@^3.5).')
 	process.exit(2)
 }
@@ -33,8 +33,11 @@ const compat = { compatConfig: { MODE: 2, COMPILER_FILTERS: true } }
 function walk(dir, out = []) {
 	for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
 		const p = path.join(dir, e.name)
-		if (e.isDirectory()) walk(p, out)
-		else if (e.name.endsWith('.vue')) out.push(p)
+		if (e.isDirectory()) {
+			walk(p, out)
+		} else if (e.name.endsWith('.vue')) {
+			out.push(p)
+		}
 	}
 	return out
 }
@@ -63,8 +66,11 @@ for (const f of files) {
 	} catch (e) {
 		errs.push('fatal: ' + (e.message || String(e)).slice(0, 100))
 	}
-	if (errs.length === 0) clean++
-	else failed.push({ f: path.relative(root, f), errs })
+	if (errs.length === 0) {
+		clean++
+	} else {
+		failed.push({ f: path.relative(root, f), errs })
+	}
 }
 
 console.log(`Vue 3 compile sweep (compat MODE 2) — ${files.length} components`)
@@ -72,6 +78,8 @@ console.log(`  clean : ${clean}`)
 console.log(`  failed: ${failed.length}`)
 if (failed.length) {
 	console.log('')
-	for (const x of failed) console.log(`  ✗ ${x.f}\n      ${x.errs[0]}`)
+	for (const x of failed) {
+		console.log(`  ✗ ${x.f}\n      ${x.errs[0]}`)
+	}
 }
 process.exit(failed.length)

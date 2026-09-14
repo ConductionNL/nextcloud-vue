@@ -4,9 +4,9 @@
 -->
 <template>
 	<NcActions
-		:force-menu="true"
-		:force-name="true"
-		:menu-name="menuLabel"
+		:forceMenu="true"
+		:forceName="true"
+		:menuName="menuLabel"
 		data-testid="cn-saved-views-control"
 		:aria-label="menuLabel">
 		<template #icon>
@@ -71,7 +71,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActions, NcActionButton, NcActionCaption, NcActionSeparator } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActions, NcActionSeparator } from '@nextcloud/vue'
 import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'

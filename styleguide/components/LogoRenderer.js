@@ -86,7 +86,9 @@ function LanguageSwitcher() {
 	const [current, setCurrent] = React.useState(getCurrentLang())
 
 	const select = (code) => {
-		if (code === current) return
+		if (code === current) {
+			return
+		}
 		// switchLanguage is exposed by setup.js
 		if (typeof window.switchLanguage === 'function') {
 			window.switchLanguage(code)
@@ -115,18 +117,16 @@ function LanguageSwitcher() {
 	return React.createElement(
 		'div',
 		{ style: { display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 8 } },
-		...LANGUAGES.map(lang =>
-			React.createElement(
-				'button',
-				{
-					key: lang.code,
-					onClick: () => select(lang.code),
-					style: current === lang.code ? activeBtn : baseBtn,
-					'aria-pressed': current === lang.code,
-				},
-				lang.label,
-			),
-		),
+		...LANGUAGES.map((lang) => React.createElement(
+			'button',
+			{
+				key: lang.code,
+				onClick: () => select(lang.code),
+				style: current === lang.code ? activeBtn : baseBtn,
+				'aria-pressed': current === lang.code,
+			},
+			lang.label,
+		)),
 		React.createElement(InfoIcon),
 	)
 }

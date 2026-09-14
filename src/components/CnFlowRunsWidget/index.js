@@ -10,8 +10,8 @@
  * cog `CnWidgetStyleEditorModal`.
  */
 
-import CnFlowRunsWidget from './CnFlowRunsWidget.vue'
 import CnFlowRunsWidgetForm from '../CnFlowRunsWidgetForm/CnFlowRunsWidgetForm.vue'
+import CnFlowRunsWidget from './CnFlowRunsWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('flow-runs', {

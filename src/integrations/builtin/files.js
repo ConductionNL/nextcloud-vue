@@ -13,8 +13,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnFilesTab from '../../components/CnObjectSidebar/CnFilesTab.vue'
 import CnFilesCard from '../../components/CnFilesCard/CnFilesCard.vue'
+import CnFilesTab from '../../components/CnObjectSidebar/CnFilesTab.vue'
 
 /**
  * `files` integration descriptor — pass to `integrations.register()`.

@@ -22,7 +22,7 @@ const facets = [
 	},
 ]
 const results = [
-	{ id: '1', title: 'Hello world', snippet: 'A short snippet …', schema: 'article' },
+	{ id: '1', title: 'Hello world', snippet: 'A short snippet …', schema: 'article' },
 	{ id: '2', title: 'About us', schema: 'page', subtitle: '/about' },
 ]
 

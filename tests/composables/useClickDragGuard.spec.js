@@ -6,7 +6,7 @@
  * text-selection drag, shared by CnDataTable (rows) and CnObjectCard (cards).
  */
 
-import { useClickDragGuard, CLICK_DRAG_THRESHOLD } from '../../src/composables/useClickDragGuard.js'
+import { CLICK_DRAG_THRESHOLD, useClickDragGuard } from '../../src/composables/useClickDragGuard.js'
 
 describe('useClickDragGuard', () => {
 	it('treats a click with no preceding mousedown as not-a-drag', () => {

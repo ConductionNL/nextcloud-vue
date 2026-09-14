@@ -15,8 +15,11 @@
 }
 
 .cn-text-success { color: var(--color-success); }
+
 .cn-text-error { color: var(--color-error); }
+
 .cn-text-warning { color: var(--color-warning); }
+
 .cn-text-muted { color: var(--color-text-maxcontrast); }
 
 /* Vue Transition Animations */
@@ -41,6 +44,9 @@
 
 /* Backwards compatibility aliases */
 .textEllipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .textDescription { font-size: 0.9em; color: var(--color-text-maxcontrast); }
+
 .successMessage { color: var(--color-success); }
+
 .errorMessage { color: var(--color-error); }

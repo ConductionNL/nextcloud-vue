@@ -76,7 +76,7 @@ export function mdiCatalogue(mdiNamespace) {
  * <CnIconBrowser :icons="vmdiCatalogue(ctx)" />
  * ```
  *
- * @param {Function & {keys: Function}} requireContext a Webpack require-context over the icon `.vue` files.
+ * @param {((file: string) => object) & { keys: () => Array<string> }} requireContext a Webpack require-context over the icon `.vue` files.
  * @return {Array<{key: string, label: string, value: string, search: string, component: object}>}
  *   the normalized, alphabetically-sorted catalogue.
  */
@@ -85,9 +85,7 @@ export function vmdiCatalogue(requireContext) {
 		.map((file) => {
 			const key = file.replace(/^\.\//, '').replace(/\.vue$/, '')
 			const label = deCamel(key)
-			const component = defineAsyncComponent(() =>
-				Promise.resolve(requireContext(file)).then((m) => (m && m.default) || m),
-			)
+			const component = defineAsyncComponent(() => Promise.resolve(requireContext(file)).then((m) => (m && m.default) || m))
 			return { key, label, value: key, search: label.toLowerCase(), component }
 		})
 		.sort((a, b) => a.label.localeCompare(b.label))

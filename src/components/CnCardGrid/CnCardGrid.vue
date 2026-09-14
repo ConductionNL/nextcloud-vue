@@ -31,7 +31,7 @@
 						:object="object"
 						:schema="schema"
 						:selectable="selectable"
-						:click-to-view="clickToView"
+						:clickToView="clickToView"
 						:selected="isSelected(object)"
 						v-on="cardListeners(object)">
 						<template v-if="$slots['card-actions']" #actions="{ object: obj }">
@@ -49,7 +49,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon, NcEmptyContent } from '@nextcloud/vue'
+import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import ViewGrid from 'vue-material-design-icons/ViewGrid.vue'
 import { CnObjectCard } from '../CnObjectCard/index.js'
 
@@ -99,41 +99,49 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Schema definition (passed through to CnObjectCard) */
 		schema: {
 			type: Object,
 			default: null,
 		},
+
 		/** Whether data is loading */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether cards can be selected */
 		selectable: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * When true, a body click on a selectable card emits `click`
 		 * (navigation) and selection happens via the checkbox only — the
 		 * card-grid counterpart of CnIndexPage's `rowClickToView`.
+		 *
 		 * @type {boolean}
 		 */
 		clickToView: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Array of currently selected object IDs */
 		selectedIds: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Property name used as unique identifier */
 		rowKey: {
 			type: String,
 			default: 'id',
 		},
+
 		/** Text shown when there are no objects */
 		emptyText: {
 			type: String,

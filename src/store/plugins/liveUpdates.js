@@ -79,8 +79,8 @@
 // permanently null, and auto-cleanup on scope dispose silently never happened —
 // subscriptions leaked with no warning anywhere.
 import { tryOnScopeDispose as _tryOnScopeDispose } from '@vueuse/core'
+import { buildCollectionKey, buildObjectKey } from '../liveUpdates/eventKeys.js'
 import { getLiveUpdates } from '../liveUpdates/transport.js'
-import { buildObjectKey, buildCollectionKey } from '../liveUpdates/eventKeys.js'
 
 /**
  * Compute a stable cache key for dedup of fetchCollection calls.
@@ -115,9 +115,9 @@ function objectDedupKey(type, id) {
  * `cancel()` clears any pending trailing dispatch — called on
  * unsubscribe so a torn-down subscription never fires a late refetch.
  *
- * @param {Function} fn The refetch dispatcher.
+ * @param {() => void} fn The refetch dispatcher.
  * @param {number} waitMs Coalescing window in ms; `<= 0` disables (every run dispatches).
- * @return {{run: Function, cancel: Function}} The coalesced dispatcher.
+ * @return {{run: () => void, cancel: () => void}} The coalesced dispatcher.
  */
 function createHintCoalescer(fn, waitMs) {
 	let timer = null
@@ -143,7 +143,9 @@ function createHintCoalescer(fn, waitMs) {
 	}
 
 	function cancel() {
-		if (timer) clearTimeout(timer)
+		if (timer) {
+			clearTimeout(timer)
+		}
 		timer = null
 		pending = false
 	}
@@ -274,7 +276,7 @@ export function liveUpdatesPlugin(opts = {}) {
 								[type]: { ...config, registerSlug, schemaSlug },
 							}
 						} catch (err) {
-							throw new Error(`liveUpdatesPlugin: cannot subscribe to "${type}" collection — ${err.message}`)
+							throw new Error(`liveUpdatesPlugin: cannot subscribe to "${type}" collection — ${err.message}`, { cause: err })
 						}
 					}
 
@@ -295,13 +297,13 @@ export function liveUpdatesPlugin(opts = {}) {
 				const dispatch = isObject
 					? () => {
 						// Dispatch fetchObject with dedup
-						store.fetchObject(type, id)
-					}
+							store.fetchObject(type, id)
+						}
 					: () => {
 						// Dispatch fetchCollection with last stashed params + dedup
-						const lastParams = store.__lastCollectionParams?.get(type) || {}
-						store.fetchCollection(type, lastParams)
-					}
+							const lastParams = store.__lastCollectionParams?.get(type) || {}
+							store.fetchCollection(type, lastParams)
+						}
 				const coalesced = createHintCoalescer(dispatch, debounceMs)
 
 				const callback = () => {
@@ -359,7 +361,9 @@ export function liveUpdatesPlugin(opts = {}) {
 			 * @param {object} handle Handle returned by subscribe()
 			 */
 			unsubscribe(handle) {
-				if (!handle || !handle._livePlugin || handle._released) return
+				if (!handle || !handle._livePlugin || handle._released) {
+					return
+				}
 				handle._released = true
 
 				// Cancel any pending coalesced refetch before tearing down the

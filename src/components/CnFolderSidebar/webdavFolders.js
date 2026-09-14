@@ -1,5 +1,5 @@
-import axios from '@nextcloud/axios'
 import { getCurrentUser } from '@nextcloud/auth'
+import axios from '@nextcloud/axios'
 import { generateRemoteUrl } from '@nextcloud/router'
 
 /**
@@ -20,7 +20,9 @@ import { generateRemoteUrl } from '@nextcloud/router'
  */
 export async function fetchWebdavFolderTree({ path, depth = 1 }) {
 	const user = getCurrentUser()
-	if (!user) return []
+	if (!user) {
+		return []
+	}
 	const root = `/files/${user.uid}`
 	return listChildren(root, normalizePath(path), depth)
 }
@@ -54,16 +56,22 @@ async function listChildren(davRoot, relPath, depth) {
 
 	for (const res of responses) {
 		const href = text(res, 'href')
-		if (!href) continue
+		if (!href) {
+			continue
+		}
 		const isCollection = res.getElementsByTagNameNS('DAV:', 'collection').length > 0
-		if (!isCollection) continue
+		if (!isCollection) {
+			continue
+		}
 
 		const childPath = decodeURIComponent(href)
 			.replace(/^https?:\/\/[^/]+/, '')
 			.replace(basePrefix, '')
 			.replace(/\/$/, '')
 		// Skip the queried folder itself (PROPFIND includes it).
-		if (childPath === relPath.replace(/\/$/, '') || childPath === '') continue
+		if (childPath === relPath.replace(/\/$/, '') || childPath === '') {
+			continue
+		}
 
 		const name = decodeURIComponent(href.replace(/\/$/, '').split('/').pop())
 		nodes.push({

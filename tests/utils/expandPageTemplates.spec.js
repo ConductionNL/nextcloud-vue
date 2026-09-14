@@ -24,7 +24,9 @@ const { expandPageTemplates } = require('../../src/utils/expandPageTemplates.js'
  * @return {*} The canonicalised value.
  */
 function canonical(value) {
-	if (Array.isArray(value)) return value.map(canonical)
+	if (Array.isArray(value)) {
+		return value.map(canonical)
+	}
 	if (value !== null && typeof value === 'object') {
 		return Object.keys(value).sort().reduce((acc, k) => {
 			acc[k] = canonical(value[k])
@@ -34,64 +36,66 @@ function canonical(value) {
 	return value
 }
 
-const detailTemplateManifest = () => ({
-	$schema: 'x/app-manifest-v2.schema.json',
-	version: '1.0.0',
-	pageTemplates: [
-		{
-			id: 'detailScaffold',
-			params: [
-				{ name: 'id', required: true },
-				{ name: 'route', required: true },
-				{ name: 'label', required: true },
-				{ name: 'schema', required: true },
-				{ name: 'fields', required: true },
-				{ name: 'documentationUrl', required: false },
-			],
-			page: {
-				id: '{{id}}',
-				route: '{{route}}',
-				type: 'detail',
-				title: '{{label}}',
-				config: {
-					register: 'shillinq',
-					schema: '{{schema}}',
-					auditTrail: true,
-					fields: '{{fields}}',
-					sidebarProps: '{{set:auditSidebar}}',
-					documentationUrl: '{{documentationUrl}}',
+function detailTemplateManifest() {
+	return {
+		$schema: 'x/app-manifest-v2.schema.json',
+		version: '1.0.0',
+		pageTemplates: [
+			{
+				id: 'detailScaffold',
+				params: [
+					{ name: 'id', required: true },
+					{ name: 'route', required: true },
+					{ name: 'label', required: true },
+					{ name: 'schema', required: true },
+					{ name: 'fields', required: true },
+					{ name: 'documentationUrl', required: false },
+				],
+				page: {
+					id: '{{id}}',
+					route: '{{route}}',
+					type: 'detail',
+					title: '{{label}}',
+					config: {
+						register: 'shillinq',
+						schema: '{{schema}}',
+						auditTrail: true,
+						fields: '{{fields}}',
+						sidebarProps: '{{set:auditSidebar}}',
+						documentationUrl: '{{documentationUrl}}',
+					},
 				},
 			},
+		],
+		sets: {
+			auditSidebar: { tabs: [{ id: 'audit', label: 'Audit Trail', order: 90 }] },
 		},
-	],
-	sets: {
-		auditSidebar: { tabs: [{ id: 'audit', label: 'Audit Trail', order: 90 }] },
-	},
-	pageInstances: [
-		{
-			templateRef: 'detailScaffold',
-			schema: 'Barcode',
-			label: 'Barcode',
-			params: {
-				id: 'BarcodeDetail',
-				route: '/inventory/barcodes/:id',
-				fields: [{ key: 'barcode', label: 'Barcode', type: 'string' }],
-				documentationUrl: 'https://shillinq.conduction.nl/barcodes',
+		pageInstances: [
+			{
+				templateRef: 'detailScaffold',
+				schema: 'Barcode',
+				label: 'Barcode',
+				params: {
+					id: 'BarcodeDetail',
+					route: '/inventory/barcodes/:id',
+					fields: [{ key: 'barcode', label: 'Barcode', type: 'string' }],
+					documentationUrl: 'https://shillinq.conduction.nl/barcodes',
+				},
 			},
-		},
-		{
-			templateRef: 'detailScaffold',
-			schema: 'Invoice',
-			label: 'Invoice',
-			params: {
-				id: 'InvoiceDetail',
-				route: '/finance/invoices/:id',
-				fields: [{ key: 'total', label: 'Total', type: 'number' }],
+			{
+				templateRef: 'detailScaffold',
+				schema: 'Invoice',
+				label: 'Invoice',
+				params: {
+					id: 'InvoiceDetail',
+					route: '/finance/invoices/:id',
+					fields: [{ key: 'total', label: 'Total', type: 'number' }],
 				// documentationUrl omitted → optional key dropped
+				},
 			},
-		},
-	],
-})
+		],
+	}
+}
 
 describe('expandPageTemplates — substitution', () => {
 	it('substitutes exact-match placeholders preserving value type', () => {

@@ -9,6 +9,16 @@
  * global mount config instead.
  */
 
+// Make `Date.now()` non-decreasing before anything else runs.
+//
+// This workspace's wall clock steps BACKWARDS under load, and Vue drops any
+// DOM event that looks older than the listener it is about to reach, so a
+// backwards step turns a `trigger()` into a no-op with no error and no warning.
+// See the module's docblock for the measurements and for how the guard works.
+// Installed first, because every listener Vue attaches from here on stamps
+// itself with this clock.
+require('./support/monotonicDateNow.js').installMonotonicDateNow()
+
 // Polyfill structuredClone for Node < 17 / jsdom
 if (typeof global.structuredClone === 'undefined') {
 	global.structuredClone = (obj) => JSON.parse(JSON.stringify(obj))
@@ -28,9 +38,9 @@ if (!global.fetch) {
 	global.fetch = jest.fn()
 }
 
-const { config } = require('@vue/test-utils')
-const { createPinia, setActivePinia } = require('pinia')
 const { translate, translatePlural } = require('@nextcloud/l10n')
+const { config, enableAutoUnmount } = require('@vue/test-utils')
+const { createPinia, setActivePinia } = require('pinia')
 
 // A fresh pinia per test keeps store state from leaking across specs. It is
 // both installed into every mounted component (`global.plugins`) and made the
@@ -71,7 +81,6 @@ config.global.mocks = {
 // out.
 if (typeof globalThis.ResizeObserver === 'undefined') {
 	globalThis.ResizeObserver = class ResizeObserver {
-
 		/** @return {void} */
 		observe() {}
 
@@ -80,6 +89,58 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
 
 		/** @return {void} */
 		disconnect() {}
-
 	}
 }
+
+// Object URL APIs — jsdom implements neither, and a component's TEARDOWN needs
+// them as much as its setup does. `CnImageWidgetForm.revokePreview()` runs on
+// unmount and calls `URL.revokeObjectURL`, which no test reached while nothing
+// was ever unmounted.
+//
+// Stubbed here rather than per spec so a component that revokes a preview
+// during teardown works in any test that mounts it, including the ones that
+// never mention previews. A spec that asserts ON these calls still replaces
+// them with its own `jest.fn()`; it just has to put a no-op back rather than
+// delete the property, or the unmount that follows its own cleanup finds
+// nothing there.
+if (typeof URL.createObjectURL !== 'function') {
+	URL.createObjectURL = () => 'blob:jsdom-stub'
+}
+if (typeof URL.revokeObjectURL !== 'function') {
+	URL.revokeObjectURL = () => {}
+}
+
+// Unmount every component a test mounted, after that test.
+//
+// 361 specs mount components and 81 unmount them, so most tests leave a live
+// component attached to the jsdom document for the rest of the file. Each one
+// keeps its watchers, its timers and its event listeners, and each one stays in
+// the DOM that the next test's queries and clicks run against.
+//
+// THE SYMPTOM IS A CLICK THAT DOES NOTHING. `wrapper.emitted('select')` comes
+// back undefined, so the assertion reads a property of undefined and the spec
+// fails on a line that is not the bug. Seen on CnIconPicker, CnWidgetWrapper,
+// CnDataTableSort and CnDataTable, one per full run, each passing in isolation
+// and on a re-run of the same tree. The specs have nothing in common except
+// that they click.
+//
+// jest.config.js's header already named this: a worker that misses its exit
+// grace period "can perturb scheduling enough to surface an order-dependent
+// flake", and "the lead worth pulling is per-suite teardown of mounted
+// components, not this config". This is that teardown. It is Vue Test Utils'
+// own API for it, so it tracks every wrapper `mount()` created without each
+// spec having to remember.
+//
+// Nothing here depends on a wrapper surviving between tests: the one spec that
+// mounts outside a test body registers widgets in `beforeAll` and mounts inside
+// each `it`.
+//
+// ⚠️ THE "CLICK THAT DOES NOTHING" ABOVE WAS ATTRIBUTED HERE ON A GUESS, AND
+// THE MEASURED CAUSE IS THE CLOCK. A backwards step of the wall clock makes
+// Vue drop the dispatched event before any handler runs, which is why the
+// affected specs had nothing in common except that they click. The shim at the
+// top of this file is what addresses that; see `tests/support/monotonicDateNow.js`
+// and nextcloud-vue#1102. Unmounting still earns its place on its own terms, a
+// live component between tests is state the next test did not ask for, so it
+// stays, but it is not the reason those four specs stopped flaking.
+enableAutoUnmount(afterEach)

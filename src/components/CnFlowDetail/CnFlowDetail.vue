@@ -24,88 +24,116 @@
 	<div class="cn-flow-detail">
 		<!-- The editor's controls, ON the canvas: the actions that concern the
 		     graph live with the graph, the way every flow tool draws it. -->
-		<div class="cn-flow-detail__toolbar" role="toolbar" :aria-label="t('nextcloud-vue', 'Flow editor')">
+		<div class="cn-flow-detail__toolbar" role="toolbar" :aria-label="toolbarLabel">
 			<!--
-				FIRST, because it is the first thing a new flow needs and the
-				palette it replaced was three clicks away in a sidebar tab.
-			-->
-			<!--
-				⚠️ NOT DISABLED ON A LOCKED GRAPH, and that is deliberate. A
-				published version cannot be changed, and the obvious move is to
-				grey this out — but the refusal on the canvas is the thing that
-				TELLS the author so, and offers "Create draft version" next to
-				it. A silent grey button says only that something is wrong.
+				🔴 NOT OFFERED WHILE A RUN IS BEING OPENED.
 
-				Different from Run, which IS disabled: pressing Run on a flow
-				with no manual start produced a slow, confusing engine error
-				several seconds later. Pressing this produces an immediate
-				message beside the graph it is about.
+				A visitor arriving on `/flows/{id}?run={uuid}` was given the whole
+				editor for the length of three requests: Add a step, Save, Run and
+				Check, on a page the URL had already said was a run. Every one of
+				them was about to become read-only, and Save was the dangerous one:
+				`save()` picks PUT from `flow.id`, and the graph underneath was
+				about to be replaced by a historic snapshot.
+
+				Hidden rather than disabled, and only for this window. A row of
+				greyed buttons is a claim that the actions exist and are refused;
+				what is true here is that the page is not the editor yet. Once the
+				run is open the toolbar comes back exactly as it was, with the
+				snapshot lock doing the refusing, and that part was already right.
 			-->
-			<NcButton data-testid="flow-add-step"
-				@click="stepPickerOpen = true">
-				<template #icon>
-					<Plus :size="20" />
-				</template>
-				{{ t('nextcloud-vue', 'Add a step') }}
-			</NcButton>
-			<!-- Disabled on a locked graph, which is a published or deprecated
-			     flow and now also a version snapshot. It was enabled on both
-			     before: pressing it on a published flow spent a request to be
-			     told no, and pressing it on a snapshot would have written the
-			     snapshot over the live flow. The store refuses the snapshot case
-			     outright; this is the half that says so before the click. -->
-			<NcButton type="primary"
-				:disabled="store.saving || !store.flow.name || store.graphLocked"
-				:title="saveDisabledReason"
-				data-testid="flow-save-button"
-				@click="onSaveClick">
-				<template #icon>
-					<NcLoadingIcon v-if="store.saving" :size="20" />
-					<ContentSave v-else :size="20" />
-				</template>
-				{{ t('nextcloud-vue', 'Save') }}
-			</NcButton>
-			<NcButton :disabled="store.running || !store.flow.id || !hasManualStart"
-				:title="runDisabledReason"
-				data-testid="flow-run-button"
-				@click="onRunClick">
-				<template #icon>
-					<Play :size="20" />
-				</template>
-				{{ t('nextcloud-vue', 'Run') }}
-			</NcButton>
-			<NcButton type="tertiary"
-				:disabled="store.checking || !store.nodes.length"
-				@click="store.check()">
-				<template #icon>
-					<NcLoadingIcon v-if="store.checking" :size="20" />
-					<CheckDecagram v-else :size="20" />
-				</template>
-				{{ t('nextcloud-vue', 'Check') }}
-			</NcButton>
-			<NcButton type="tertiary"
-				:disabled="!store.nodes.length"
-				:aria-label="t('nextcloud-vue', 'Arrange steps automatically')"
-				:title="t('nextcloud-vue', 'Arrange steps automatically')"
-				@click="store.autoSort()">
-				<template #icon>
-					<SortVariant :size="20" />
-				</template>
-			</NcButton>
-			<!-- Undo has a BUTTON as well as Ctrl+Z. A shortcut nobody is told
-			     about is a feature only its author has: the affordance is what
-			     tells a user the canvas is safe to experiment on. -->
-			<NcButton type="tertiary"
-				:disabled="!store.canUndo"
-				:aria-label="t('nextcloud-vue', 'Undo the last change')"
-				:title="t('nextcloud-vue', 'Undo the last change')"
-				@click="store.undo()">
-				<template #icon>
-					<UndoVariant :size="20" />
-				</template>
-			</NcButton>
+			<template v-if="!openingRun">
+				<!--
+					FIRST, because it is the first thing a new flow needs and the
+					palette it replaced was three clicks away in a sidebar tab.
+				-->
+				<!--
+					⚠️ NOT DISABLED ON A LOCKED GRAPH, and that is deliberate. A
+					published version cannot be changed, and the obvious move is to
+					grey this out — but the refusal on the canvas is the thing that
+					TELLS the author so, and offers "Create draft version" next to
+					it. A silent grey button says only that something is wrong.
+
+					Different from Run, which IS disabled: pressing Run on a flow
+					with no manual start produced a slow, confusing engine error
+					several seconds later. Pressing this produces an immediate
+					message beside the graph it is about.
+				-->
+				<NcButton data-testid="flow-add-step"
+					@click="stepPickerOpen = true">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Add a step') }}
+				</NcButton>
+				<!-- Disabled on a locked graph, which is a published or deprecated
+				     flow and now also a version snapshot. It was enabled on both
+				     before: pressing it on a published flow spent a request to be
+				     told no, and pressing it on a snapshot would have written the
+				     snapshot over the live flow. The store refuses the snapshot case
+				     outright; this is the half that says so before the click. -->
+				<NcButton variant="primary"
+					:disabled="store.saving || !store.flow.name || store.graphLocked"
+					:title="saveDisabledReason"
+					data-testid="flow-save-button"
+					@click="onSaveClick">
+					<template #icon>
+						<NcLoadingIcon v-if="store.saving" :size="20" />
+						<ContentSave v-else :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Save') }}
+				</NcButton>
+				<NcButton :disabled="store.running || !store.flow.id || !hasManualStart"
+					:title="runDisabledReason"
+					data-testid="flow-run-button"
+					@click="onRunClick">
+					<template #icon>
+						<Play :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Run') }}
+				</NcButton>
+				<NcButton variant="tertiary"
+					:disabled="store.checking || !store.nodes.length"
+					@click="store.check()">
+					<template #icon>
+						<NcLoadingIcon v-if="store.checking" :size="20" />
+						<CheckDecagram v-else :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Check') }}
+				</NcButton>
+				<NcButton variant="tertiary"
+					:disabled="!store.nodes.length"
+					:aria-label="t('nextcloud-vue', 'Arrange steps automatically')"
+					:title="t('nextcloud-vue', 'Arrange steps automatically')"
+					@click="store.autoSort()">
+					<template #icon>
+						<SortVariant :size="20" />
+					</template>
+				</NcButton>
+				<!-- Undo has a BUTTON as well as Ctrl+Z. A shortcut nobody is told
+				     about is a feature only its author has: the affordance is what
+				     tells a user the canvas is safe to experiment on. -->
+				<NcButton variant="tertiary"
+					:disabled="!store.canUndo"
+					:aria-label="t('nextcloud-vue', 'Undo the last change')"
+					:title="t('nextcloud-vue', 'Undo the last change')"
+					@click="store.undo()">
+					<template #icon>
+						<UndoVariant :size="20" />
+					</template>
+				</NcButton>
+			</template>
+
+			<!-- What the toolbar says instead: a run is being opened. Silence
+			     here would leave the strip empty apart from the zoom controls,
+			     and an empty toolbar reads as a broken page rather than as a
+			     page mid-load. -->
+			<span v-else class="cn-flow-detail__toolbar-status" data-testid="flow-toolbar-opening-run">
+				<NcLoadingIcon :size="20" />
+				{{ t('nextcloud-vue', 'Opening the run') }}
+			</span>
+
 			<div class="cn-flow-detail__toolbar-group">
-				<NcButton type="tertiary"
+				<NcButton variant="tertiary"
 					:disabled="zoom <= minZoom"
 					:aria-label="t('nextcloud-vue', 'Zoom out')"
 					@click="zoomBy(-0.1)">
@@ -113,12 +141,12 @@
 						<Minus :size="20" />
 					</template>
 				</NcButton>
-				<NcButton type="tertiary"
+				<NcButton variant="tertiary"
 					:aria-label="t('nextcloud-vue', 'Reset zoom')"
 					@click="zoom = 1">
 					{{ Math.round(zoom * 100) }}%
 				</NcButton>
-				<NcButton type="tertiary"
+				<NcButton variant="tertiary"
 					:disabled="zoom >= maxZoom"
 					:aria-label="t('nextcloud-vue', 'Zoom in')"
 					@click="zoomBy(0.1)">
@@ -130,7 +158,7 @@
 
 			<!-- The way back to a closed sidebar has to live OUTSIDE it. -->
 			<NcButton v-if="!store.sidebarOpen"
-				type="tertiary"
+				variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Show the flow controls')"
 				:title="t('nextcloud-vue', 'Show the flow controls')"
 				@click="store.sidebarOpen = true">
@@ -167,18 +195,18 @@
 		<CnGraphCanvas
 			:nodes="canvasNodes"
 			:edges="canvasEdgesWithRunState"
-			:min-zoom="minZoom"
-			:max-zoom="maxZoom"
-			@node-select="onNodeSelect"
-			@edge-select="onEdgeSelect"
-			@edge-label-click="onEdgeLabelClick"
-			@edge-label-context="onEdgeLabelContext"
-			@edge-label-move="onEdgeLabelMove"
-			@canvas-click="onCanvasClick"
-			@nodes-change="onNodesChange"
-			@node-remove="store.removeNode($event)"
+			:minZoom="minZoom"
+			:maxZoom="maxZoom"
+			@nodeSelect="onNodeSelect"
+			@edgeSelect="onEdgeSelect"
+			@edgeLabelClick="onEdgeLabelClick"
+			@edgeLabelContext="onEdgeLabelContext"
+			@edgeLabelMove="onEdgeLabelMove"
+			@canvasClick="onCanvasClick"
+			@nodesChange="onNodesChange"
+			@nodeRemove="store.removeNode($event)"
 			@connect="store.connect($event)"
-			@canvas-drop="onCanvasDrop">
+			@canvasDrop="onCanvasDrop">
 			<!-- The step's own chrome. `node.data` carries the flow node, because
 			     Vue Flow's `type` selects a COMPONENT while the flow's own type
 			     is domain data — conflating the two would make every new step
@@ -233,7 +261,7 @@
 		<CnContextMenu
 			v-model:open="nodeMenuOpen"
 			:actions="nodeMenuActions"
-			:target-item="nodeMenuTarget"
+			:targetItem="nodeMenuTarget"
 			@close="closeNodeMenu" />
 
 		<!-- The line's own actions, at the line. A connection was the one thing
@@ -243,14 +271,37 @@
 		<CnContextMenu
 			v-model:open="edgeMenuOpen"
 			:actions="edgeMenuActions"
-			:target-item="edgeMenuTarget"
+			:targetItem="edgeMenuTarget"
 			@close="closeEdgeMenu" />
 
 		<CnFlowEdgeEditModal v-if="store.editingEdge !== null" />
 
+		<!-- 🔴 A LOADING STATE FIRST, BECAUSE THE EMPTY ONE IS AN ANSWER.
+
+		     "No steps yet" used to render on `nodes.length === 0` alone, which is
+		     also true of a flow that has not arrived yet. So the canvas told a
+		     visitor following a run link that the flow had no steps, while it was
+		     still fetching the flow, the run and the graph that run executed. It
+		     is the worst shape an empty state can have: a finished-looking answer
+		     that is indistinguishable from the real one, so nobody waits and
+		     nobody reloads.
+
+		     `store.canvasLoading` spans all three requests. `store.loading` does
+		     not: it is set around the flow LIST call only. -->
 		<NcEmptyContent
-			v-if="store.nodes.length === 0"
+			v-if="store.canvasLoading"
 			class="cn-flow-detail__empty"
+			data-testid="flow-canvas-loading"
+			:name="loadingName"
+			:description="loadingDescription">
+			<template #icon>
+				<NcLoadingIcon :size="20" />
+			</template>
+		</NcEmptyContent>
+		<NcEmptyContent
+			v-else-if="store.nodes.length === 0"
+			class="cn-flow-detail__empty"
+			data-testid="flow-canvas-empty"
 			:name="t('nextcloud-vue', 'No steps yet')"
 			:description="t('nextcloud-vue', 'Add a step from the sidebar to start building this flow.')">
 			<template #icon>
@@ -265,6 +316,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import CheckDecagram from 'vue-material-design-icons/CheckDecagram.vue'
+import ContentPaste from 'vue-material-design-icons/ContentPaste.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import DockRight from 'vue-material-design-icons/DockRight.vue'
 import Minus from 'vue-material-design-icons/Minus.vue'
@@ -276,16 +328,15 @@ import UndoVariant from 'vue-material-design-icons/UndoVariant.vue'
 import VectorCurve from 'vue-material-design-icons/VectorCurve.vue'
 import VectorLine from 'vue-material-design-icons/VectorLine.vue'
 import VectorPolyline from 'vue-material-design-icons/VectorPolyline.vue'
-import ContentPaste from 'vue-material-design-icons/ContentPaste.vue'
 import CnFlowEdgeEditModal from '../../dialogs/CnFlowEdgeEditModal.vue'
 import CnFlowNodeEditModal from '../../dialogs/CnFlowNodeEditModal.vue'
-import CnContextMenu from '../CnContextMenu/CnContextMenu.vue'
-import CnFlowCanvasMessages from './CnFlowCanvasMessages.vue'
-import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
-import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
-import { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from '../../composables/useFlowEdgeStyles.js'
-import { useContextMenu } from '../../composables/useContextMenu.js'
 import CnFlowStepPickerModal from '../../dialogs/CnFlowStepPickerModal.vue'
+import CnContextMenu from '../CnContextMenu/CnContextMenu.vue'
+import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
+import CnFlowCanvasMessages from './CnFlowCanvasMessages.vue'
+import { useContextMenu } from '../../composables/useContextMenu.js'
+import { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from '../../composables/useFlowEdgeStyles.js'
+import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
 import { useFlowStore } from '../../composables/useFlowStore.js'
 
 /**
@@ -487,6 +538,58 @@ export default {
 
 	computed: {
 		/**
+		 * Whether a run named by the URL is still being opened.
+		 *
+		 * The window this component used to spend in flow-edit mode. It starts
+		 * in `created()`, before the first paint, and ends when the run, its
+		 * objects and the graph it executed have all come back.
+		 *
+		 * @return {boolean} True while the run is being fetched.
+		 */
+		openingRun() {
+			return this.store.openingRunUuid !== null
+		},
+
+		/**
+		 * What the toolbar calls itself.
+		 *
+		 * A screen reader reaching a toolbar labelled "Flow editor" on a page
+		 * that is about to be a read-only run has been told the wrong thing,
+		 * and it is the only label the strip has.
+		 *
+		 * @return {string} The toolbar's accessible name.
+		 */
+		toolbarLabel() {
+			return this.openingRun
+				? this.t('nextcloud-vue', 'Flow run')
+				: this.t('nextcloud-vue', 'Flow editor')
+		},
+
+		/**
+		 * The heading of the canvas loading state.
+		 *
+		 * Two sentences rather than one generic "Loading", because the two
+		 * cases are reached by different links and a reader who followed a run
+		 * link needs to see that the run is what is coming.
+		 *
+		 * @return {string} The heading.
+		 */
+		loadingName() {
+			return this.store.inRunView
+				? this.t('nextcloud-vue', 'Opening the run')
+				: this.t('nextcloud-vue', 'Loading the flow')
+		},
+
+		/**
+		 * @return {string} The line under the canvas loading heading.
+		 */
+		loadingDescription() {
+			return this.store.inRunView
+				? this.t('nextcloud-vue', 'Reading the run and the graph it used.')
+				: this.t('nextcloud-vue', 'Reading the steps of this flow.')
+		},
+
+		/**
 		 * Whether the graph carries a step that says a person starts this flow.
 		 *
 		 * Running by hand is not a property of the flow row, it is a step on
@@ -600,6 +703,7 @@ export default {
 				},
 			]
 		},
+
 		/**
 		 * What can be done to a connection, as CnContextMenu's action list.
 		 *
@@ -1219,8 +1323,16 @@ export default {
 				return
 			}
 
-			await this.store.load({ app: this.app, id: next })
-			await this.openRunFromRoute()
+			// The same arrival as a fresh mount, so it gets the same loading
+			// state: the flow on the canvas belongs to the previous route and
+			// counting its steps would answer a question about this one.
+			this.store.beginBootstrap(this.run)
+			try {
+				await this.store.load({ app: this.app, id: next })
+				await this.openRunFromRoute()
+			} finally {
+				this.store.endBootstrap()
+			}
 		},
 
 		/**
@@ -1249,7 +1361,7 @@ export default {
 		 * @param {string|null} next The newly watched run's uuid.
 		 * @return {void}
 		 */
-		'store.watchedRunUuid'(next) {
+		'store.watchedRunUuid': function(next) {
 			if (next === null) {
 				return
 			}
@@ -1266,7 +1378,7 @@ export default {
 		 * @param {Array<object>} steps The watched run's log so far.
 		 * @return {void}
 		 */
-		'store.watchedSteps'(steps) {
+		'store.watchedSteps': function(steps) {
 			if (this.runAnimation.mode !== 'watch') {
 				return
 			}
@@ -1288,7 +1400,7 @@ export default {
 		 *
 		 * @return {void}
 		 */
-		'store.replayToken'() {
+		'store.replayToken': function() {
 			this.startRunAnimation('replay')
 			this.runAnimation.queue.push(...this.store.steps)
 			this.drainRunQueue()
@@ -1302,21 +1414,46 @@ export default {
 		 * @param {boolean} next Whether the flow now has unsaved changes.
 		 * @return {void}
 		 */
-		'store.dirty'(next) {
+		'store.dirty': function(next) {
 			if (next === true) {
 				this.cancelRunAnimation()
 			}
 		},
 	},
 
+	/**
+	 * Say that the editor is loading BEFORE it renders for the first time.
+	 *
+	 * 🔴 `mounted` IS TOO LATE, AND THAT IS THE WHOLE DEFECT. Vue paints the
+	 * component and then calls `mounted`, so a flag raised there is false for
+	 * the first frame. That frame is what a user who followed a run link saw:
+	 * the flow editor's toolbar over "No steps yet", on a URL that already
+	 * named a run. `created` runs before the first render, so the mode the URL
+	 * describes is known to every surface from the first paint, and the
+	 * requests below only fill it in.
+	 *
+	 * @return {void}
+	 */
+	created() {
+		this.store.beginBootstrap(this.run)
+	},
+
 	async mounted() {
 		document.addEventListener('keydown', this.onDocumentKeydown)
-		await this.store.load({ app: this.app, id: this.id })
 
-		// AFTER the load, never before. `inspectRun` reads the run and its
-		// objects; doing it first would fill the panel and then have the flow
-		// arrive underneath it.
-		await this.openRunFromRoute()
+		// `finally`, because a canvas stuck on "loading" forever is worse than
+		// the empty state this replaced. `load()` swallows its own request
+		// errors, but a throw anywhere else in the chain would strand the flag.
+		try {
+			await this.store.load({ app: this.app, id: this.id })
+
+			// AFTER the load, never before. `inspectRun` reads the run and its
+			// objects; doing it first would fill the panel and then have the flow
+			// arrive underneath it.
+			await this.openRunFromRoute()
+		} finally {
+			this.store.endBootstrap()
+		}
 	},
 
 	beforeUnmount() {
@@ -1347,7 +1484,17 @@ export default {
 				return
 			}
 
-			await this.store.inspectRun(this.run)
+			// Synchronously, before the fetch. `inspectRun()` sets
+			// `inspectedRunUuid` itself, but only once it is called, and on a
+			// fresh arrival that is behind the whole flow load. Recording the
+			// run here means every surface reading `inRunView` agrees with the
+			// address bar for the length of the load instead of after it.
+			this.store.beginOpeningRun(this.run)
+			try {
+				await this.store.inspectRun(this.run)
+			} finally {
+				this.store.endOpeningRun()
+			}
 		},
 
 		/**
@@ -1751,9 +1898,7 @@ export default {
 			// which already normalises `{from, to}` and list endpoints.
 			anim.traceLineId = null
 			if (previous !== null && previous !== nodeId) {
-				const line = this.store.canvasEdges.find(
-					(candidate) => candidate.source === previous && candidate.target === nodeId,
-				)
+				const line = this.store.canvasEdges.find((candidate) => candidate.source === previous && candidate.target === nodeId)
 				if (line !== undefined) {
 					anim.traceLineId = line.id
 					if (anim.tracedLineIds.includes(line.id) === false) {
@@ -1994,6 +2139,17 @@ export default {
 	border-radius: var(--border-radius-large);
 	background: var(--color-main-background);
 	box-shadow: 0 1px 4px var(--color-box-shadow);
+}
+
+/* The toolbar while a run is being opened: the spinner and its sentence sit
+   where the editor's buttons were, so the strip keeps its height and the zoom
+   controls do not jump sideways when the run arrives. */
+.cn-flow-detail__toolbar-status {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+	padding-inline: 8px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-flow-detail__toolbar-group {

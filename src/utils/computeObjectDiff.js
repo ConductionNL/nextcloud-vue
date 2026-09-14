@@ -17,14 +17,14 @@
  * @typedef {object} DiffEntry
  * @property {string} path Dotted/bracketed path, e.g. `'user.tags[1]'`. The root value itself uses `''`.
  * @property {'added'|'removed'|'changed'|'unchanged'} type Classification of the path.
- * @property {*} oldValue The value at this path in `oldValue` (root argument); `undefined` when `type === 'added'`.
- * @property {*} newValue The value at this path in `newValue` (root argument); `undefined` when `type === 'removed'`.
+ * @property {unknown} oldValue The value at this path in `oldValue` (root argument); `undefined` when `type === 'added'`.
+ * @property {unknown} newValue The value at this path in `newValue` (root argument); `undefined` when `type === 'removed'`.
  */
 
 /**
  * Check whether a value is a plain, diffable object (not `null`, not an array).
  *
- * @param {*} value Value to check.
+ * @param {unknown} value Value to check.
  * @return {boolean} `true` when `value` is a plain object.
  */
 function isPlainObject(value) {
@@ -39,8 +39,8 @@ function isPlainObject(value) {
  * NOT to be a matching pair of plain-objects or a matching pair of
  * arrays (those are recursed into separately).
  *
- * @param {*} a First value.
- * @param {*} b Second value.
+ * @param {unknown} a First value.
+ * @param {unknown} b Second value.
  * @return {boolean} `true` when the two values are deeply equal.
  */
 function leavesEqual(a, b) {
@@ -67,8 +67,8 @@ function leavesEqual(a, b) {
  * Recursive worker: diffs `oldVal` vs `newVal` at `path`, pushing
  * results onto `results`.
  *
- * @param {*} oldVal Value from the old side (`undefined` = absent key).
- * @param {*} newVal Value from the new side (`undefined` = absent key).
+ * @param {unknown} oldVal Value from the old side (`undefined` = absent key).
+ * @param {unknown} newVal Value from the new side (`undefined` = absent key).
  * @param {string} path Current path.
  * @param {DiffEntry[]} results Accumulator array (mutated in place).
  * @return {void}
@@ -134,8 +134,8 @@ function diffValue(oldVal, newVal, path, results) {
  * rather than a partial recursive diff. Neither `oldValue` nor
  * `newValue` is mutated.
  *
- * @param {*} oldValue The "before" value (object, array, or primitive).
- * @param {*} newValue The "after" value (object, array, or primitive).
+ * @param {unknown} oldValue The "before" value (object, array, or primitive).
+ * @param {unknown} newValue The "after" value (object, array, or primitive).
  * @return {DiffEntry[]} Flat array of diff entries, one per leaf/root path.
  */
 export function computeObjectDiff(oldValue, newValue) {

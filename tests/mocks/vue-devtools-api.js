@@ -13,7 +13,7 @@
  * stubbed out entirely. `setupDevtoolsPlugin` is the only entry point pinia
  * calls; the rest are here so an unexpected import does not throw.
  */
-const noop = () => {}
+function noop() {}
 
 module.exports = {
 	setupDevtoolsPlugin: noop,

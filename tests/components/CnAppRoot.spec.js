@@ -201,9 +201,7 @@ describe('CnAppRoot', () => {
 			})
 
 			expect(seen).not.toBeNull()
-			expect(Object.keys(seen)).toEqual(
-				expect.arrayContaining(['manifest', 'permissions', 'isOwner', 'isAdmin', 'appId']),
-			)
+			expect(Object.keys(seen)).toEqual(expect.arrayContaining(['manifest', 'permissions', 'isOwner', 'isAdmin', 'appId']))
 			expect(typeof seen.isAdmin).toBe('boolean')
 		})
 
@@ -259,6 +257,24 @@ describe('CnAppRoot', () => {
 			const provided = getProvided(wrapper)
 			expect(typeof provided.cnTranslate).toBe('function')
 			expect(provided.cnTranslate('key')).toBe('key')
+		})
+
+		it('provides the connection formatters built in, and an app formatter of the same name wins', () => {
+			const builtIn = getProvided(mountRoot()).cnFormatters
+			expect(builtIn.connectionStatus('simulated')).toBe('Simulated')
+			expect(builtIn.connectionSettingsLabel('/settings/admin/dossiq#section-zgw')).toBe('Open settings')
+
+			// dossiq and integriq still register local copies until they bump.
+			// Those must keep rendering, so the app's entry replaces the built-in.
+			const appCopy = (value) => `app:${value}`
+			const wrapper = mount(CnAppRoot, {
+				propsData: { manifest: baseManifest, appId: 'myapp', requiresApps: [], formatters: { connectionStatus: appCopy } },
+				mocks: { $route: { name: 'home' } },
+				stubs: { 'router-view': true },
+			})
+			const provided = getProvided(wrapper)
+			expect(provided.cnFormatters.connectionStatus).toBe(appCopy)
+			expect(provided.cnFormatters.connectionSettingsLabel('/x')).toBe('Open settings')
 		})
 
 		it('provides an empty registry when no customComponents prop is given', () => {
@@ -350,11 +366,15 @@ describe('CnAppRoot', () => {
 		// compiler at runtime.
 		const NamedSidebar = {
 			name: 'NamedSidebar',
-			render() { return h('div', { class: 'named-sidebar' }, 'named') },
+			render() {
+				return h('div', { class: 'named-sidebar' }, 'named')
+			},
 		}
 		const ConsumerSidebar = {
 			name: 'ConsumerSidebar',
-			render() { return h('div', { class: 'consumer-sidebar' }, 'consumer') },
+			render() {
+				return h('div', { class: 'consumer-sidebar' }, 'consumer')
+			},
 		}
 
 		it('mounts the resolved component as the slot default content when no #sidebar override', () => {
@@ -524,7 +544,9 @@ describe('CnAppRoot', () => {
 		// the returns-null path below — an unverifiable dependency is treated as
 		// missing rather than silently hidden.
 		it('treats a getCapabilities() throw as a missing dependency (REQ-OR-7)', async () => {
-			getCapabilities.mockImplementation(() => { throw new Error('capabilities-api-down') })
+			getCapabilities.mockImplementation(() => {
+				throw new Error('capabilities-api-down')
+			})
 			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 			const wrapper = mountWithGuard()
 			await wrapper.vm.$nextTick()
@@ -701,7 +723,9 @@ describe('CnAppRoot', () => {
 		it('swallows errors from _fetchAndCacheCount and leaves the map empty', async () => {
 			const fakeStore = {
 				objectTypeRegistry: {},
-				registerObjectType: () => { throw new Error('nope') },
+				registerObjectType: () => {
+					throw new Error('nope')
+				},
 				fetchCollection: jest.fn(),
 				getPagination: jest.fn(),
 			}

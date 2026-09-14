@@ -40,7 +40,7 @@
 				:label="t('nextcloud-vue', 'Search rooms')"
 				:placeholder="t('nextcloud-vue', 'Search rooms')"
 				class="cn-talk-room-picker__search"
-				@update:model-value="onSearchInput" />
+				@update:modelValue="onSearchInput" />
 
 			<!-- Room list -->
 			<section class="cn-talk-room-picker__panel">

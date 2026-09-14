@@ -1,8 +1,8 @@
-import { createSubResourcePlugin } from '../createSubResourcePlugin.js'
 // `buildHeaders` is no longer imported directly — every fetch goes
 // through `this._buildHeaders()` so the active tenant UUID (when set)
 // is stamped on every outbound request (multi-tenancy-context).
-import { parseResponseError, networkError } from '../../utils/errors.js'
+import { networkError, parseResponseError } from '../../utils/errors.js'
+import { createSubResourcePlugin } from '../createSubResourcePlugin.js'
 
 /**
  * Files plugin for the object store.
@@ -16,7 +16,7 @@ import { parseResponseError, networkError } from '../../utils/errors.js'
  *
  * @param {object} [options={}] Plugin options
  * @param {number} [options.limit=20] Default page size
- * @return {Function} Plugin factory
+ * @return {object} The plugin definition (name, state, getters, actions)
  *
  * @example
  * const useStore = createObjectStore('object', {
@@ -81,6 +81,7 @@ export function filesPlugin(options = {}) {
 
 					if (!response.ok) {
 						this.tagsError = await parseResponseError(response, 'tags')
+						// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 						console.error('Error fetching tags:', this.tagsError)
 						return []
 					}
@@ -92,7 +93,10 @@ export function filesPlugin(options = {}) {
 				} catch (error) {
 					this.tagsError = error.name === 'TypeError'
 						? networkError(error)
-						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() { return this.message } }
+						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() {
+								return this.message
+							} }
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error('Error fetching tags:', error)
 					return []
 				} finally {
@@ -123,6 +127,7 @@ export function filesPlugin(options = {}) {
 
 					if (!response.ok) {
 						this.filesError = await parseResponseError(response, 'files')
+						// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 						console.error(`Error uploading files for ${type}/${objectId}:`, this.filesError)
 						return null
 					}
@@ -135,7 +140,10 @@ export function filesPlugin(options = {}) {
 				} catch (error) {
 					this.filesError = error.name === 'TypeError'
 						? networkError(error)
-						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() { return this.message } }
+						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() {
+								return this.message
+							} }
+					// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 					console.error(`Error uploading files for ${type}/${objectId}:`, error)
 					return null
 				} finally {

@@ -4,9 +4,9 @@
 -->
 <template>
 	<NcSelect
-		:input-id="inputId"
-		:input-label="inputLabel"
-		:model-value="selectedOption"
+		:inputId="inputId"
+		:inputLabel="inputLabel"
+		:modelValue="selectedOption"
 		:options="displayOptions"
 		:loading="loading"
 		:clearable="clearable"
@@ -15,7 +15,7 @@
 		:filterable="false"
 		label="label"
 		@search="onSearch"
-		@update:model-value="onInput">
+		@update:modelValue="onInput">
 		<template #option="{ label: optLabel, __create }">
 			<span v-if="__create" class="cn-resource-select__create">
 				<Plus :size="16" />
@@ -86,41 +86,49 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** OpenRegister schema slug to search/create in. */
 		schema: {
 			type: String,
 			required: true,
 		},
+
 		/** Currently-selected object id (v-model). */
 		modelValue: {
 			type: [String, Number],
 			default: '',
 		},
+
 		/** Object field used as the option label AND written on create. */
 		labelField: {
 			type: String,
 			default: 'name',
 		},
+
 		/** Accessible input label for the underlying NcSelect. */
 		inputLabel: {
 			type: String,
 			default: '',
 		},
+
 		/** DOM id for the input (a11y association). */
 		inputId: {
 			type: String,
 			default: '',
 		},
+
 		/** Whether the selection can be cleared. */
 		clearable: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Minimum characters before searching / offering create. */
 		minChars: {
 			type: Number,
 			default: 2,
 		},
+
 		/**
 		 * Whether to offer the inline "Create '<term>'" option when the search
 		 * yields no exact match. Off → behaves like a plain async object select.
@@ -129,15 +137,18 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Extra fields merged into the payload when creating a new object (e.g.
 		 * a fixed `type` or `status`). The `labelField` is always set to the term.
+		 *
 		 * @type {object}
 		 */
 		createDefaults: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Field filters merged into the search query, so the option list can be
 		 * SCOPED to a parent selection — the cascading-select case (pick a
@@ -146,12 +157,14 @@ export default {
 		 * the new scope.
 		 *
 		 * Example: `:filters="{ client: form.client }"`.
+		 *
 		 * @type {object}
 		 */
 		filters: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Load a first page of options on mount (and whenever `filters`
 		 * change) instead of waiting for `minChars` of typing. Lets the field
@@ -163,6 +176,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Disable the input — e.g. a dependent select waiting on its parent.
 		 */
@@ -170,11 +184,13 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Placeholder text for the underlying NcSelect. */
 		placeholder: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Override how a new object is created from the typed term. Receives
 		 * `(term, payload)` and MUST resolve to the created object (or a falsy
@@ -184,7 +200,8 @@ export default {
 		 * `objectStore.saveObject`, which is wrong whenever the schema requires
 		 * a field the term cannot supply — a server-minted foreign key, say, or
 		 * anything the consumer would rather collect in a full create dialog.
-		 * @type {Function|null}
+		 *
+		 * @type {((term: string, payload: object) => Promise<object|null>)|null}
 		 */
 		createHandler: {
 			type: Function,
@@ -210,14 +227,16 @@ export default {
 		objectStore() {
 			try {
 				return useObjectStore()
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
+
 		/** The `${register}-${schema}` object-type slug used by the store. */
 		typeSlug() {
 			return `${this.register}-${this.schema}`
 		},
+
 		/** The currently-selected option, for NcSelect's model-value. */
 		selectedOption() {
 			if (this.localSelected && this.localSelected.value === this.modelValue) {
@@ -225,6 +244,7 @@ export default {
 			}
 			return this.options.find((o) => o.value === this.modelValue) || null
 		},
+
 		/**
 		 * The option list shown in the dropdown — the search results, plus a
 		 * synthetic "Create '<term>'" entry when create is allowed and the term
@@ -243,6 +263,7 @@ export default {
 			}
 			return opts
 		},
+
 		/**
 		 * Stable string identity for `filters`. Watching the object itself
 		 * would re-fire on every parent re-render (a fresh object literal is a
@@ -254,6 +275,7 @@ export default {
 		filtersKey() {
 			return JSON.stringify(this.filters || {})
 		},
+
 		/**
 		 * `filters` with empty entries dropped. A parent that has not been
 		 * chosen yet holds `null`, and forwarding `client=` as a query param
@@ -280,8 +302,11 @@ export default {
 				this.ensureSelectedLoaded()
 			},
 		},
+
 		filtersKey(next, prev) {
-			if (next === prev) return
+			if (next === prev) {
+				return
+			}
 			// The scope moved, so anything already selected may no longer be
 			// in it. Drop the stale options + selection, then re-seed.
 			this.options = []
@@ -309,7 +334,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async loadInitialOptions() {
-			if (!this.preload || !this.objectStore) return
+			if (!this.preload || !this.objectStore) {
+				return
+			}
 			this.loading = true
 			try {
 				this.ensureRegistered()
@@ -321,7 +348,7 @@ export default {
 					? collection
 					: (this.objectStore.collections[this.typeSlug] || [])
 				this.options = items.map((o) => this.toOption(o))
-			} catch (e) {
+			} catch {
 				this.options = []
 			} finally {
 				this.loading = false
@@ -366,7 +393,7 @@ export default {
 					? collection
 					: (this.objectStore.collections[this.typeSlug] || [])
 				this.options = items.map((o) => this.toOption(o))
-			} catch (e) {
+			} catch {
 				this.options = []
 			} finally {
 				this.loading = false
@@ -405,9 +432,13 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async createFromTerm(term) {
-			if (!this.objectStore && !this.createHandler) return
+			if (!this.objectStore && !this.createHandler) {
+				return
+			}
 			const name = (term || '').trim()
-			if (!name) return
+			if (!name) {
+				return
+			}
 			this.loading = true
 			try {
 				// The active scope is part of the new object's identity: a
@@ -424,7 +455,9 @@ export default {
 					this.ensureRegistered()
 					created = await this.objectStore.saveObject(this.typeSlug, payload)
 				}
-				if (!created) return
+				if (!created) {
+					return
+				}
 				const option = this.toOption(created)
 				this.options = [option, ...this.options.filter((o) => o.value !== option.value)]
 				this.localSelected = option
@@ -462,7 +495,7 @@ export default {
 			if (this.objectStore && typeof this.objectStore.registerObjectType === 'function') {
 				try {
 					this.objectStore.registerObjectType(this.typeSlug, this.schema, this.register)
-				} catch (e) {
+				} catch {
 					// Already registered or store not ready — non-fatal.
 				}
 			}
@@ -475,13 +508,19 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async ensureSelectedLoaded() {
-			if (!this.modelValue || this.selectedOption || !this.objectStore) return
+			if (!this.modelValue || this.selectedOption || !this.objectStore) {
+				return
+			}
 			try {
 				this.ensureRegistered()
-				if (typeof this.objectStore.fetchObject !== 'function') return
+				if (typeof this.objectStore.fetchObject !== 'function') {
+					return
+				}
 				const obj = await this.objectStore.fetchObject(this.typeSlug, String(this.modelValue))
-				if (obj) this.localSelected = this.toOption(obj)
-			} catch (e) {
+				if (obj) {
+					this.localSelected = this.toOption(obj)
+				}
+			} catch {
 				// Leave the id un-labelled rather than crash.
 			}
 		},

@@ -31,8 +31,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnSharesTab from './shares/CnSharesTab.vue'
 import CnSharesCard from './shares/CnSharesCard.vue'
+import CnSharesTab from './shares/CnSharesTab.vue'
 
 /**
  * `shares` integration descriptor.

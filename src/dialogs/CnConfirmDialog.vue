@@ -6,7 +6,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:no-close="loading"
+		:noClose="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -58,7 +58,7 @@
 					<NcLoadingIcon
 						v-if="loading"
 						:size="20"
-						:name="t('nextcloud-vue', 'Loading …')" />
+						:name="t('nextcloud-vue', 'Loading …')" />
 				</template>
 				{{ confirmLabel }}
 			</NcButton>
@@ -68,7 +68,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 
 /**
  * CnConfirmDialog — generic, verb-agnostic confirmation dialog.
@@ -116,11 +116,13 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Confirm action'),
 		},
+
 		/** Confirmation question shown in the confirm phase's note card. */
 		message: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Are you sure you want to continue?'),
 		},
+
 		/**
 		 * Visual variant of the primary confirm button. Use `error` for
 		 * destructive operations (delete) — the confirm-phase note card then
@@ -131,21 +133,25 @@ export default {
 			default: 'primary',
 			validator: (v) => ['primary', 'error', 'warning', 'success'].includes(v),
 		},
+
 		/** Label of the primary button that fires the `confirm` event. */
 		confirmLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Confirm'),
 		},
+
 		/** Label of the cancel button (visible during the confirm phase). */
 		cancelLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Cancel'),
 		},
+
 		/** Label of the close button (visible during the result phase). */
 		closeLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Close'),
 		},
+
 		/** Success message shown in the result phase after `setResult({ success: true })`. */
 		successText: {
 			type: String,
@@ -167,7 +173,9 @@ export default {
 	},
 
 	beforeUnmount() {
-		if (this.closeTimeout) clearTimeout(this.closeTimeout)
+		if (this.closeTimeout) {
+			clearTimeout(this.closeTimeout)
+		}
 	},
 
 	methods: {

@@ -64,11 +64,17 @@
 
 /* Backwards compatibility aliases */
 .viewPagination { display: flex; justify-content: space-between; align-items: center; gap: calc(4 * var(--default-grid-baseline)); margin-top: calc(8 * var(--default-grid-baseline)); padding: calc(5 * var(--default-grid-baseline)); flex-wrap: nowrap; }
+
 .viewPaginationInfo { display: flex; align-items: center; flex-shrink: 0; }
+
 .viewPageInfo { color: var(--color-text-maxcontrast); font-size: 0.9rem; }
+
 .viewPaginationNav { display: flex; align-items: center; gap: calc(2 * var(--default-grid-baseline)); flex-grow: 1; justify-content: center; }
+
 .viewPaginationNumbers { display: flex; align-items: center; gap: var(--default-grid-baseline); }
+
 .viewPaginationEllipsis { padding: 0 var(--default-grid-baseline); color: var(--color-text-maxcontrast); font-size: 0.9rem; }
+
 .viewPaginationPageSize { display: flex; align-items: center; gap: calc(2 * var(--default-grid-baseline)); flex-shrink: 0; min-width: 0; }
 
 /* Compact pagination — the widget-sized variant (`:compact="true"`). Sized to

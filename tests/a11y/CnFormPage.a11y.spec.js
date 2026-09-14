@@ -16,8 +16,8 @@ jest.mock('@nextcloud/axios', () => ({
 	default: { post: jest.fn(), put: jest.fn() },
 }))
 
-const { mountAttached } = require('./support/mountAttached.js')
 const { expectAccessible } = require('../../src/testing/a11y.js')
+const { mountAttached } = require('./support/mountAttached.js')
 const CnFormPage = require('../../src/components/CnFormPage/CnFormPage.vue').default
 
 /**

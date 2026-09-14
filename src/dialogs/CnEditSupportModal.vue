@@ -26,8 +26,8 @@
 			:placeholder="t('nextcloud-vue', 'Support {appName}', { appName: appName })" />
 		<NcTextArea class="cn-edit-support__field"
 			:label="t('nextcloud-vue', 'Body (one paragraph per line, blank for the default note)')"
-			:model-value="bodyText"
-			@update:model-value="setBody" />
+			:modelValue="bodyText"
+			@update:modelValue="setBody" />
 
 		<h3 class="cn-edit-support__section">
 			{{ t('nextcloud-vue', 'Signature') }}
@@ -104,7 +104,7 @@
 						:clearable="false"
 						:reduce="o => o.id"
 						label="label"
-						:input-label="t('nextcloud-vue', 'Button style')" />
+						:inputLabel="t('nextcloud-vue', 'Button style')" />
 				</label>
 				<NcTextField v-model="buttonFor(def.id).icon"
 					:label="t('nextcloud-vue', 'Icon (PascalCase MDI name)')"
@@ -125,10 +125,10 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import Upload from 'vue-material-design-icons/Upload.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 /** The four built-in buttons, in display order, with their shell defaults. */
@@ -178,24 +178,29 @@ export default {
 		support() {
 			return (this.working && this.working.support) ? this.working.support : { enabled: true }
 		},
+
 		/** The app's display name, for the title placeholder. */
 		appName() {
 			return (this.support && this.support.appName)
 				|| (this.working && this.working.name)
 				|| t('nextcloud-vue', 'this app')
 		},
+
 		/** The body paragraphs joined to one-per-line text for editing. */
 		bodyText() {
 			return Array.isArray(this.support.bodyParagraphs) ? this.support.bodyParagraphs.join('\n') : ''
 		},
+
 		/** The avatar to preview: the override if set, else nothing (default applies). */
 		avatarPreview() {
 			return this.support.founderAvatarUrl || ''
 		},
+
 		/** The four built-in button definitions (for labels + placeholders). */
 		buttonDefs() {
 			return BUTTON_DEFS
 		},
+
 		/** Selectable button styles. */
 		variantOptions() {
 			return [
@@ -212,7 +217,9 @@ export default {
 		// Vue 2 won't track later edits. The buttons are seeded with their
 		// defaults so all four are visible and can be toggled, relabelled,
 		// re-styled, re-iconed or dropped.
-		if (!this.working) return
+		if (!this.working) {
+			return
+		}
 		if (!this.working.support || typeof this.working.support !== 'object') {
 			this.working.support = { enabled: true }
 		}
@@ -245,6 +252,7 @@ export default {
 		avatarFileRef(el) {
 			this.avatarFileEl = el || null
 		},
+
 		/**
 		 * The override object for a button id. Falls back to an empty object
 		 * during the modal's close transition, when `working` (and thus
@@ -256,6 +264,7 @@ export default {
 		buttonFor(id) {
 			return (this.support.buttons && this.support.buttons[id]) || {}
 		},
+
 		/**
 		 * Store the body as an array of paragraphs (one per non-blank line).
 		 *
@@ -269,6 +278,7 @@ export default {
 				this.support.bodyParagraphs = paras
 			}
 		},
+
 		/**
 		 * Read the chosen image file and store it as a data-URI avatar so the
 		 * portrait travels in the manifest with no external request.
@@ -277,7 +287,9 @@ export default {
 		 */
 		onAvatarFile(event) {
 			const file = event.target && event.target.files && event.target.files[0]
-			if (!file) return
+			if (!file) {
+				return
+			}
 			const reader = new FileReader()
 			reader.onload = () => {
 				this.support.founderAvatarUrl = String(reader.result)
@@ -285,6 +297,7 @@ export default {
 			reader.readAsDataURL(file)
 			event.target.value = ''
 		},
+
 		/** Clear the avatar override so the bundled default portrait applies. */
 		clearAvatar() {
 			delete this.support.founderAvatarUrl

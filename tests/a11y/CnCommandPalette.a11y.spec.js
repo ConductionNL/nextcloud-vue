@@ -14,8 +14,8 @@
  * and RESULTS (a query with matches rendered, across sections).
  */
 
-const { mountAttached } = require('./support/mountAttached.js')
 const { expectAccessible } = require('../../src/testing/a11y.js')
+const { mountAttached } = require('./support/mountAttached.js')
 const CnCommandPalette = require('../../src/components/CnCommandPalette/CnCommandPalette.vue').default
 const { createCommandRegistry } = require('../../src/commandPalette/registry.js')
 const { useCommandPalette } = require('../../src/composables/useCommandPalette.js')

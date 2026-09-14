@@ -11,7 +11,6 @@
  */
 
 import { shallowMount } from '@vue/test-utils'
-
 import CnWidgetObjectTable from '../../../src/components/CnWidgetObjectTable/CnWidgetObjectTable.vue'
 
 describe('CnWidgetObjectTable — Wave 3 (#91)', () => {
