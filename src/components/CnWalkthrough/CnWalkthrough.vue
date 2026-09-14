@@ -721,7 +721,9 @@ export default {
 			const isMenuTrigger = (el) => el.closest('.action-item, .app-navigation-entry__actions') !== null
 			// Primary signal: any collapse toggle reporting a collapsed state.
 			nav.querySelectorAll('[aria-expanded="false"]').forEach((el) => {
-				if (isMenuTrigger(el)) return
+				if (isMenuTrigger(el)) {
+					return
+				}
 				// Prefer a real button toggle inside the same COLLAPSIBLE GROUP over
 				// the link that carries the state. With no collapsible ancestor the
 				// element IS the toggle — an NcAppNavigationSettings foldout button
