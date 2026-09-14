@@ -10,8 +10,8 @@
  * hand it to CnCellRenderer alongside `enum`.
  */
 import { shallowMount } from '@vue/test-utils'
-import CnObjectListWidget from '../../src/components/CnObjectListWidget/CnObjectListWidget.vue'
 import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
+import CnObjectListWidget from '../../src/components/CnObjectListWidget/CnObjectListWidget.vue'
 
 describe('manifest column enumLabels', () => {
 	it('CnObjectListWidget passes enumLabels through with enum', async () => {
