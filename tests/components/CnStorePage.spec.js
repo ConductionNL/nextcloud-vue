@@ -14,7 +14,6 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import { showSuccess } from '@nextcloud/dialogs'
 import { flushPromises, mount } from '@vue/test-utils'
-
 import CnStorePage from '../../src/components/CnStorePage/CnStorePage.vue'
 
 jest.mock('@nextcloud/auth', () => ({
@@ -319,7 +318,12 @@ describe('CnStorePage', () => {
 		const def = mountPage()
 		await flushPromises()
 		expect(def.vm.kindOptions.map((o) => o.value)).toEqual([
-			'', 'app-template', 'adapter', 'source-template', 'configuration-template', 'agent-template',
+			'',
+			'app-template',
+			'adapter',
+			'source-template',
+			'configuration-template',
+			'agent-template',
 		])
 
 		const own = mountPage({ kinds: ['case-type'] })
@@ -338,8 +342,6 @@ describe('CnStorePage', () => {
 		await w.vm.selectKind('adapter')
 		await flushPromises()
 
-		expect(urls[urls.length - 1]).toBe(
-			'/apps/dossiq/api/store/items?q=enforcement&kind=adapter',
-		)
+		expect(urls[urls.length - 1]).toBe('/apps/dossiq/api/store/items?q=enforcement&kind=adapter')
 	})
 })

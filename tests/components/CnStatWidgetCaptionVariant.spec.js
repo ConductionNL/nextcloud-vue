@@ -26,7 +26,6 @@
 
 import axios from '@nextcloud/axios'
 import { mount } from '@vue/test-utils'
-
 import CnStatWidget from '../../src/components/CnStatWidget/CnStatWidget.vue'
 
 // Written after the imports for `import/first`; babel-plugin-jest-hoist lifts

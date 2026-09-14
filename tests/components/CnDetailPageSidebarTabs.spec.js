@@ -119,10 +119,18 @@ describe('CnDetailPage — sidebarProps.tabs forwarding', () => {
 			schemas: {},
 			loading: {},
 			registerObjectType() {},
-			fetchObject() { return Promise.resolve(null) },
-			fetchSchema() { return Promise.resolve(null) },
-			getObject() { return null },
-			getSchema() { return null },
+			fetchObject() {
+				return Promise.resolve(null)
+			},
+			fetchSchema() {
+				return Promise.resolve(null)
+			},
+			getObject() {
+				return null
+			},
+			getSchema() {
+				return null
+			},
 		}
 		function mountSchemaDriven(extra, state) {
 			return mountDetailPage({

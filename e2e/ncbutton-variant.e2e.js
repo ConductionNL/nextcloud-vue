@@ -22,7 +22,7 @@
 // CnWalkthrough is the vehicle because its footer buttons were part of the
 // migrated set and the harness already mounts the real component behind ?wt=1.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
 	await page.goto('/?wt=1')

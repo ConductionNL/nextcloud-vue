@@ -28,7 +28,6 @@ jest.mock('../../src/utils/index.js', () => ({
 }))
 
 import { mount } from '@vue/test-utils'
-
 import CnIntegrationTab from '../../src/components/CnIntegrationTab/CnIntegrationTab.vue'
 
 const flush = () => new Promise((r) => setTimeout(r, 0))

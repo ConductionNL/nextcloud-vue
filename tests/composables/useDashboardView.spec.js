@@ -21,11 +21,10 @@ jest.mock('../../src/utils/widgetVisibility.js', () => ({
 }))
 
 const axios = require('@nextcloud/axios').default
-const { filterWidgetsByVisibility } = require('../../src/utils/widgetVisibility.js')
-const { useDashboardView } = require('../../src/composables/useDashboardView.js')
-
-const { defineComponent, h } = require('vue')
 const { mount } = require('@vue/test-utils')
+const { defineComponent, h } = require('vue')
+const { useDashboardView } = require('../../src/composables/useDashboardView.js')
+const { filterWidgetsByVisibility } = require('../../src/utils/widgetVisibility.js')
 
 /**
  * Flush microtasks + onMounted callbacks.
@@ -49,7 +48,9 @@ function mountDash(opts) {
 			const dash = useDashboardView(opts)
 			return { dash }
 		},
-		render() { return h('div') },
+		render() {
+			return h('div')
+		},
 	})
 	return mount(Comp)
 }

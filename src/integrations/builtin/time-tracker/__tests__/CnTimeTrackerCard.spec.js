@@ -10,7 +10,7 @@
  * Plus error / unavailable handling.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnTimeTrackerCard = require('../CnTimeTrackerCard.vue').default
 
 const DEFAULT_PROPS = {
@@ -55,8 +55,7 @@ describe('CnTimeTrackerCard', () => {
 	it('renders the empty label when there are no linked rows', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnTimeTrackerCard, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No tracked time linked yet')
 		wrapper.unmount()
 	})
@@ -74,8 +73,7 @@ describe('CnTimeTrackerCard', () => {
 			}),
 		})
 		const wrapper = mount(CnTimeTrackerCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const txt = wrapper.text()
 		// 3 rows
 		expect(txt).toContain('3')
@@ -95,8 +93,7 @@ describe('CnTimeTrackerCard', () => {
 			}),
 		})
 		const wrapper = mount(CnTimeTrackerCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page', value: '2' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-time-tracker-card__row')
 		expect(rows).toHaveLength(2)
 		const highlighted = wrapper.findAll('.cn-time-tracker-card__row--highlight')
@@ -113,8 +110,7 @@ describe('CnTimeTrackerCard', () => {
 			json: () => Promise.resolve(makeTask({ id: 42, name: 'Code review', duration: 5400 })),
 		})
 		const wrapper = mount(CnTimeTrackerCard, { propsData: { ...DEFAULT_PROPS, surface: 'single-entity', value: 42 } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const chip = wrapper.find('.cn-time-tracker-card__chip')
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Code review')
@@ -125,8 +121,7 @@ describe('CnTimeTrackerCard', () => {
 	it('shows the unavailable label when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnTimeTrackerCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC TimeManager is currently unavailable.')
 		wrapper.unmount()
 	})
@@ -135,8 +130,7 @@ describe('CnTimeTrackerCard', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnTimeTrackerCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No tracked time linked yet')
 		wrapper.unmount()
 		spy.mockRestore()

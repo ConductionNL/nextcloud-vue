@@ -6,8 +6,8 @@
  * the shared dashboardWidgetRegistry at module load.
  */
 
-import CnContainerWidget from './CnContainerWidget.vue'
 import CnContainerWidgetForm from '../CnContainerWidgetForm/CnContainerWidgetForm.vue'
+import CnContainerWidget from './CnContainerWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('container', {

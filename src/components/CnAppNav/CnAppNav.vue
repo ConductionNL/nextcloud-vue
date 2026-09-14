@@ -114,11 +114,10 @@
 					:name="resolveLabel(item)"
 					:to="itemTo(item)"
 					:href="itemHref(item)"
-					:exact="isExact(item)"
 					:icon="cssIconClass(item)"
 					:active="isActive(item)"
 					:pinned="Boolean(item.pinned)"
-					:allow-collapse="visibleChildren(item).length > 0"
+					:allowCollapse="visibleChildren(item).length > 0"
 					:open="isItemOpen(item)"
 					:data-testid="`cn-nav-entry-${item.id}`"
 					:data-cn-route="item.route"
@@ -151,7 +150,6 @@
 						:name="resolveLabel(child)"
 						:to="itemTo(child)"
 						:href="itemHref(child)"
-						:exact="isExact(child)"
 						:icon="cssIconClass(child)"
 						:active="isActive(child)"
 						:pinned="Boolean(child.pinned)"
@@ -190,7 +188,6 @@
 					:name="resolveLabel(item)"
 					:to="itemTo(item)"
 					:href="itemHref(item)"
-					:exact="isExact(item)"
 					:icon="cssIconClass(item)"
 					:active="isActive(item)"
 					:data-testid="`cn-nav-entry-${item.id}`"
@@ -277,7 +274,6 @@
 							:name="resolveLabel(item)"
 							:to="itemTo(item)"
 							:href="itemHref(item)"
-							:exact="isExact(item)"
 							:icon="cssIconClass(item)"
 							:active="isActive(item)"
 							:data-cn-route="item.route"
@@ -302,30 +298,29 @@
 </template>
 
 <script>
-import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcCounterBubble } from '@nextcloud/vue'
-import Cog from 'vue-material-design-icons/Cog.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
-import MapMarkerPath from 'vue-material-design-icons/MapMarkerPath.vue'
-// ADR-077 rule 4: visible fallback for an unresolvable icon name.
-import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
-import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
-import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
+import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcCounterBubble } from '@nextcloud/vue'
+import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
+// ADR-077 rule 4: visible fallback for an unresolvable icon name.
+import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
+import MapMarkerPath from 'vue-material-design-icons/MapMarkerPath.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
 import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
-import { isCustomIconUrl, hasRegistryIcon } from '../CnWidgetGrid/widgetIcons.js'
-import { getSemanticIconComponent } from '../CnIcon/semanticIcons.js'
-import { isSvgPath } from '../../utils/iconUtils.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { isSvgPath } from '../../utils/iconUtils.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
-
 // The legacy `icon-*` → MDI bridge lives beside CnIcon now, so the menu EDITOR
 // resolves a seeded `icon-comment` the same way this nav does. It used to be a
 // map local to this file, which is why the nav drew a proper glyph and the
 // editor drew a help-circle "?" for the very same manifest value.
 import { bridgedMdiForCssIcon } from '../CnIcon/cssIconBridge.js'
-import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import { getSemanticIconComponent } from '../CnIcon/semanticIcons.js'
+import { hasRegistryIcon, isCustomIconUrl } from '../CnWidgetGrid/widgetIcons.js'
 
 /**
  * Order two menu entries by their manifest `order`.
@@ -341,9 +336,15 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 function byManifestOrder(a, b) {
 	const aHas = typeof a.order === 'number'
 	const bHas = typeof b.order === 'number'
-	if (aHas && !bHas) return -1
-	if (!aHas && bHas) return 1
-	if (!aHas && !bHas) return 0
+	if (aHas && !bHas) {
+		return -1
+	}
+	if (!aHas && bHas) {
+		return 1
+	}
+	if (!aHas && !bHas) {
+		return 0
+	}
 	return a.order - b.order
 }
 
@@ -417,6 +418,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Translate function. Falls back to injected `cnTranslate`,
 		 * which itself defaults to an identity function.
@@ -427,6 +429,7 @@ export default {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * List of permission strings the current user holds. Items
 		 * declaring a `permission` only render when their permission
@@ -439,22 +442,25 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Whether the current user is an OWNER of this app
 		 * (admin-settings-owner-gating capability). Computed by CnAppRoot
 		 * from `currentUserGroups` ∩ `permissions.owners` and/or a manifest
 		 * `runtime.user` owner signal — deliberately NOT `OC.isUserAdmin()`.
-		 * Gates the auto-included "Admin settings" entry together with
-		 * `hasAdminSettings`. Defaults to `false` so CnAppNav mounted
-		 * standalone (without a CnAppRoot ancestor computing the value)
-		 * never shows the entry.
+		 * Read by nothing in this component: the auto-included "Admin
+		 * settings" entry is gated on `isAdmin` alone (see the file header
+		 * and `showAdminSettingsLink`). The prop stays because CnAppRoot
+		 * binds it as published API and owner-gating is its own question,
+		 * not the instance-admin one.
 		 *
 		 * @type {boolean}
 		 */
-		isOwner: {
+		isOwner: { // eslint-disable-line vue/no-unused-properties -- published prop bound by CnAppRoot; owner-gating is decided upstream, not here
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Whether the current user administers this Nextcloud instance.
 		 * Computed by CnAppRoot from `getCurrentUser()?.isAdmin`
@@ -474,6 +480,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * App id used to build the "Admin settings" link target
 		 * (`/settings/admin/<appId>`). Falls back to the injected
@@ -486,6 +493,7 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * Accessible name for the navigation landmark, forwarded to
 		 * `NcAppNavigation`'s `aria-label`.
@@ -514,8 +522,10 @@ export default {
 			 * Per-item expand/collapse state for menu groups, keyed by
 			 * item id. Seeded lazily from the manifest's `item.open` by
 			 * `isItemOpen`; written by the collapse chevron (via
-			 * `@update:open`) and by title clicks on route-less group
-			 * items (via `onItemClick`).
+			 * `@update:open`), by title clicks on route-less group items
+			 * (which TOGGLE open/closed), and by title clicks on a group
+			 * that ALSO carries a route or href (which force it OPEN,
+			 * alongside the navigation — see `onItemClick`).
 			 */
 			openState: {},
 		}
@@ -525,9 +535,11 @@ export default {
 		effectiveManifest() {
 			return this.manifest ?? this.cnManifest
 		},
+
 		effectiveTranslate() {
 			return this.translate ?? this.cnTranslate
 		},
+
 		/**
 		 * Manifest-declared root-level primary action (`nav.primaryAction`)
 		 * — retained for backwards compatibility with code that reads this
@@ -539,6 +551,7 @@ export default {
 		primaryAction() {
 			return this.effectiveManifest?.nav?.primaryAction ?? null
 		},
+
 		/**
 		 * Resolved primary action for the current route. Resolution order:
 		 *  1. The current route's matching `pages[].primaryAction`
@@ -554,10 +567,13 @@ export default {
 			const routeName = this.$route?.name
 			if (routeName) {
 				const page = pages.find((p) => p.id === routeName)
-				if (page && page.primaryAction) return page.primaryAction
+				if (page && page.primaryAction) {
+					return page.primaryAction
+				}
 			}
 			return this.effectiveManifest?.nav?.primaryAction ?? null
 		},
+
 		/**
 		 * MDI icon component for the resolved primary action. Honors the
 		 * action's `icon` field when set; falls back to the canonical
@@ -568,6 +584,7 @@ export default {
 		primaryActionIconComponent() {
 			return this.mdiIconComponent(this.activePrimaryAction) ?? Plus
 		},
+
 		/**
 		 * All visible items (filtered by permission and visibleIf conditions,
 		 * sorted by order). Retained for backwards-compat with the previous
@@ -581,6 +598,7 @@ export default {
 				.slice()
 				.sort(byManifestOrder)
 		},
+
 		/**
 		 * Items that render in the top list (default placement).
 		 *
@@ -596,6 +614,7 @@ export default {
 		mainItems() {
 			return this.visibleItems.filter((item) => (item.section ?? 'main') === 'main')
 		},
+
 		/**
 		 * Items pinned to the bottom of the navigation (section:
 		 * "footer") — rendered as flat NcAppNavigationItems above the
@@ -605,6 +624,7 @@ export default {
 		footerItems() {
 			return this.visibleItems.filter((item) => item.section === 'footer')
 		},
+
 		/**
 		 * Items that render INSIDE the NcAppNavigationSettings foldout
 		 * (section: "settings"). The foldout is the NC-native gear-icon
@@ -614,6 +634,7 @@ export default {
 		settingsItems() {
 			return this.visibleItems.filter((item) => item.section === 'settings')
 		},
+
 		/**
 		 * Whether the settings foldout mounts. Mounts when there is at
 		 * least one `section: "settings"` item OR personal settings is
@@ -628,6 +649,7 @@ export default {
 			return this.settingsItems.length > 0 || this.includePersonalSettings
 				|| this.roadmapEntry !== null || this.documentationEntry !== null
 		},
+
 		/**
 		 * Whether to auto-prepend the "Personal settings" entry at the top
 		 * of the foldout. On by default; opt out with
@@ -640,6 +662,7 @@ export default {
 		includePersonalSettings() {
 			return this.effectiveManifest?.nav?.includePersonalSettings !== false
 		},
+
 		/**
 		 * Label for the foldout's gear button. Manifest override:
 		 * `nav.settingsLabel`; defaults to "Settings".
@@ -653,6 +676,7 @@ export default {
 			}
 			return t('nextcloud-vue', 'Settings')
 		},
+
 		/**
 		 * Label for the auto-prepended Personal-settings entry.
 		 *
@@ -661,6 +685,7 @@ export default {
 		personalSettingsLabel() {
 			return t('nextcloud-vue', 'Personal settings')
 		},
+
 		/**
 		 * Optional "Features & roadmap" foldout entry. Enabled via
 		 * `nav.includeRoadmap`; `nav.roadmapUrl` is treated as an external link
@@ -670,7 +695,9 @@ export default {
 		 */
 		roadmapEntry() {
 			const nav = this.effectiveManifest?.nav
-			if (!nav || nav.includeRoadmap !== true) return null
+			if (!nav || nav.includeRoadmap !== true) {
+				return null
+			}
 			const label = (typeof nav.roadmapLabel === 'string' && nav.roadmapLabel)
 				? this.effectiveTranslate(nav.roadmapLabel)
 				: t('nextcloud-vue', 'Features & roadmap')
@@ -678,6 +705,7 @@ export default {
 			const external = /^(https?:)?\/\//.test(target)
 			return { label, to: (target && !external) ? target : null, href: external ? target : null }
 		},
+
 		/**
 		 * Optional "Documentation" foldout entry. Enabled via
 		 * `nav.includeDocumentation`; always an external link (`nav.documentationUrl`).
@@ -686,14 +714,19 @@ export default {
 		 */
 		documentationEntry() {
 			const nav = this.effectiveManifest?.nav
-			if (!nav || nav.includeDocumentation !== true) return null
+			if (!nav || nav.includeDocumentation !== true) {
+				return null
+			}
 			const target = typeof nav.documentationUrl === 'string' ? nav.documentationUrl.trim() : ''
-			if (!target) return null
+			if (!target) {
+				return null
+			}
 			const label = (typeof nav.documentationLabel === 'string' && nav.documentationLabel)
 				? this.effectiveTranslate(nav.documentationLabel)
 				: t('nextcloud-vue', 'Documentation')
 			return { label, href: target }
 		},
+
 		/**
 		 * Label for the auto-prepended Admin-settings entry.
 		 *
@@ -702,6 +735,7 @@ export default {
 		adminSettingsLabel() {
 			return t('nextcloud-vue', 'Admin settings')
 		},
+
 		/**
 		 * Accessible name (and hover tooltip) of the open-in-new marker on
 		 * the Admin-settings entry — the visual cue that the link leaves
@@ -712,6 +746,7 @@ export default {
 		opensInNewTabHint() {
 			return t('nextcloud-vue', 'Opens in a new tab')
 		},
+
 		/**
 		 * Resolved app id for the Admin-settings link — the explicit
 		 * `appId` prop, else the `cnAppId` provided by CnAppRoot.
@@ -722,6 +757,7 @@ export default {
 			const id = this.appId || this.cnAppId
 			return (typeof id === 'string' && id.trim()) ? id.trim() : ''
 		},
+
 		/**
 		 * Target of the Admin-settings entry: the app's section in
 		 * Nextcloud's own admin settings (ADR-079 §1). This is a LINK, not
@@ -732,7 +768,9 @@ export default {
 		 * @return {string}
 		 */
 		adminSettingsHref() {
-			if (!this.effectiveAppId) return ''
+			if (!this.effectiveAppId) {
+				return ''
+			}
 			// ABSOLUTE (same-origin) on purpose: NcAppNavigationItem renders
 			// target="_blank" only for hrefs its isExternal() deems external
 			// (scheme-prefixed) and ignores a passed `target` — a relative
@@ -743,6 +781,7 @@ export default {
 			const origin = (typeof window !== 'undefined' && window.location && window.location.origin) || ''
 			return origin + path
 		},
+
 		/**
 		 * Whether to show the Admin-settings link: the user administers the
 		 * instance AND we can build a target. Visibility only — see the
@@ -753,6 +792,7 @@ export default {
 		showAdminSettingsLink() {
 			return this.isAdmin === true && this.adminSettingsHref !== ''
 		},
+
 		/**
 		 * Route name of the menu item that best matches the current route.
 		 * A direct match (current route name IS a menu target) wins;
@@ -771,16 +811,26 @@ export default {
 			const flat = []
 			for (const item of this.visibleItems) {
 				flat.push(item)
-				for (const child of this.visibleChildren(item)) flat.push(child)
+				for (const child of this.visibleChildren(item)) {
+					flat.push(child)
+				}
 			}
-			if (routeName && flat.some((it) => it.route === routeName)) return routeName
-			if (!path) return routeName ?? null
+			if (routeName && flat.some((it) => it.route === routeName)) {
+				return routeName
+			}
+			if (!path) {
+				return routeName ?? null
+			}
 			let best = null
 			let bestLen = -1
 			for (const it of flat) {
-				if (!it.route) continue
+				if (!it.route) {
+					continue
+				}
 				const pagePath = this.pageForItem(it)?.route
-				if (!pagePath || pagePath === '/' || pagePath.includes(':')) continue
+				if (!pagePath || pagePath === '/' || pagePath.includes(':')) {
+					continue
+				}
 				if (path === pagePath || path.startsWith(pagePath + '/')) {
 					if (pagePath.length > bestLen) {
 						best = it.route
@@ -818,8 +868,12 @@ export default {
 		 */
 		mdiIconComponent(item) {
 			const icon = item?.icon
-			if (typeof icon !== 'string' || icon.length === 0) return null
-			if (icon.startsWith('icon-')) return bridgedMdiForCssIcon(icon) || null
+			if (typeof icon !== 'string' || icon.length === 0) {
+				return null
+			}
+			if (icon.startsWith('icon-')) {
+				return bridgedMdiForCssIcon(icon) || null
+			}
 			// ADR-077: the app's own registerIcons() entries win (so an app can
 			// override), then the shared semantic vocabulary — which resolves
 			// WITHOUT the app having registered anything. Before the vocabulary
@@ -827,6 +881,7 @@ export default {
 			// and the entry rendered with no icon at all.
 			return ICON_MAP[icon] || getSemanticIconComponent(icon) || null
 		},
+
 		/**
 		 * Whether the item declares an icon that NOTHING can resolve — not the
 		 * app registry, not the semantic vocabulary, not the widget registry, and
@@ -846,12 +901,17 @@ export default {
 		 */
 		isUnresolvedIcon(item) {
 			const icon = item?.icon
-			if (typeof icon !== 'string' || icon.length === 0) return false
-			if (icon.startsWith('icon-')) return false
+			if (typeof icon !== 'string' || icon.length === 0) {
+				return false
+			}
+			if (icon.startsWith('icon-')) {
+				return false
+			}
 			return !this.mdiIconComponent(item)
 				&& !this.isRichIcon(item)
 				&& !this.isRegistryIcon(item)
 		},
+
 		/**
 		 * Whether the item's icon is a raw SVG path or an image URL (incl. the
 		 * `data:` URIs the bundled NL-government sets emit) — neither of which is a
@@ -871,6 +931,7 @@ export default {
 			}
 			return isCustomIconUrl(icon) || isSvgPath(icon)
 		},
+
 		/**
 		 * Whether the item's icon is a plain MDI *name* that the shared widget-icon
 		 * registry can render (e.g. "Heart", "Home" — what CnIconBrowser emits from
@@ -893,6 +954,7 @@ export default {
 		isRegistryIcon(item) {
 			return hasRegistryIcon(item?.icon)
 		},
+
 		/**
 		 * Pass-through for the `:icon` prop on NcAppNavigationItem when
 		 * the manifest declares a Nextcloud CSS-class icon (`icon-*`).
@@ -905,15 +967,25 @@ export default {
 		 */
 		cssIconClass(item) {
 			const icon = item?.icon
-			if (typeof icon !== 'string' || icon.length === 0) return ''
-			if (!icon.startsWith('icon-')) return ''
+			if (typeof icon !== 'string' || icon.length === 0) {
+				return ''
+			}
+			if (!icon.startsWith('icon-')) {
+				return ''
+			}
 			return bridgedMdiForCssIcon(icon) ? '' : icon
 		},
+
 		passesPermission(item) {
-			if (!item.permission) return true
-			if (!this.permissions || this.permissions.length === 0) return true
+			if (!item.permission) {
+				return true
+			}
+			if (!this.permissions || this.permissions.length === 0) {
+				return true
+			}
 			return this.permissions.includes(item.permission)
 		},
+
 		/**
 		 * Evaluate a menu item's `visibleIf` condition block.
 		 *
@@ -939,20 +1011,27 @@ export default {
 		 */
 		passesVisibleIf(item) {
 			const condition = item.visibleIf
-			if (!condition || typeof condition !== 'object') return true
+			if (!condition || typeof condition !== 'object') {
+				return true
+			}
 
 			// Specialised condition: appInstalled.
 			if (condition.appInstalled) {
-				if (!isAppInstalled(condition.appInstalled)) return false
+				if (!isAppInstalled(condition.appInstalled)) {
+					return false
+				}
 			}
 
 			// Context-path predicates: any non-reserved key is a dot-path
 			// into manifest.runtime evaluated by passesContextPredicates.
 			const runtime = this.effectiveManifest?.runtime ?? null
-			if (!passesContextPredicates(condition, runtime)) return false
+			if (!passesContextPredicates(condition, runtime)) {
+				return false
+			}
 
 			return true
 		},
+
 		/**
 		 * A group's visible children, in `order`.
 		 *
@@ -973,18 +1052,25 @@ export default {
 		 * @return {Array<object>} Visible children, ordered.
 		 */
 		visibleChildren(item) {
-			if (!Array.isArray(item.children)) return []
+			if (!Array.isArray(item.children)) {
+				return []
+			}
 			return item.children
 				.filter((c) => this.passesPermission(c) && this.passesVisibleIf(c))
 				.sort(byManifestOrder)
 		},
+
 		resolveLabel(item) {
 			return this.effectiveTranslate(item.label)
 		},
+
 		isActive(item) {
-			if (item.href || !item.route) return false
+			if (item.href || !item.route) {
+				return false
+			}
 			return item.route === this.activeRouteName
 		},
+
 		/**
 		 * Whether a menu entry renders as a `NcAppNavigationCaption`
 		 * (`type: "caption"`) rather than a clickable
@@ -997,6 +1083,7 @@ export default {
 		isCaption(item) {
 			return item?.type === 'caption'
 		},
+
 		/**
 		 * Whether the host has registered a scoped slot named
 		 * `item-${id}-actions` for this menu item. Used to gate template
@@ -1007,13 +1094,14 @@ export default {
 		 * @return {boolean}
 		 */
 		hasItemActionsSlot(item) {
-			if (!item?.id) return false
+			if (!item?.id) {
+				return false
+			}
 			const name = `item-${item.id}-actions`
-			return Boolean(
-				(this.$slots && this.$slots[name])
-				|| (this.$slots && this.$slots[name]),
-			)
+			return Boolean((this.$slots && this.$slots[name])
+				|| (this.$slots && this.$slots[name]))
 		},
+
 		/**
 		 * Resolve the count value to render in this entry's
 		 * `NcCounterBubble` (in the `#counter` slot of
@@ -1037,11 +1125,15 @@ export default {
 		 */
 		resolveCount(item) {
 			const raw = item?.count
-			if (raw === undefined || raw === null) return null
+			if (raw === undefined || raw === null) {
+				return null
+			}
 			if (typeof raw === 'number') {
 				return raw > 0 ? raw : null
 			}
-			if (raw !== 'auto') return null
+			if (raw !== 'auto') {
+				return null
+			}
 			const page = this.pageForItem(item)
 			const register = page?.config?.register
 			const schema = page?.config?.schema
@@ -1050,9 +1142,12 @@ export default {
 				return null
 			}
 			const value = this.cnMenuCounts?.[register]?.[schema]
-			if (typeof value !== 'number' || value <= 0) return null
+			if (typeof value !== 'number' || value <= 0) {
+				return null
+			}
 			return value
 		},
+
 		/**
 		 * One-shot `console.warn` per menu-item id for misconfigured
 		 * `count: "auto"` entries (no resolvable index page). Keeps the
@@ -1063,13 +1158,14 @@ export default {
 		 * @private
 		 */
 		warnAutoCountMisconfigured(item) {
-			if (this._autoCountWarned.has(item.id)) return
+			if (this._autoCountWarned.has(item.id)) {
+				return
+			}
 			this._autoCountWarned.add(item.id)
 			// eslint-disable-next-line no-console
-			console.warn(
-				`[CnAppNav] Menu entry "${item.id}" declares count: "auto" but has no resolvable index-type page with register + schema config — no badge will render.`,
-			)
+			console.warn(`[CnAppNav] Menu entry "${item.id}" declares count: "auto" but has no resolvable index-type page with register + schema config — no badge will render.`)
 		},
+
 		/**
 		 * Look up an item's resolved page (`pages[]` entry whose `id`
 		 * matches the menu item's `route`) — used to decide whether the
@@ -1080,45 +1176,13 @@ export default {
 		 *   has no `route` or no page matches.
 		 */
 		pageForItem(item) {
-			if (!item.route) return null
+			if (!item.route) {
+				return null
+			}
 			const pages = this.effectiveManifest?.pages ?? []
 			return pages.find((p) => p.id === item.route) ?? null
 		},
-		/**
-		 * Pass-through for `NcAppNavigationItem`'s router-link `exact`.
-		 *
-		 * `NcAppNavigationItem` folds the router-link's `isActive` into its
-		 * highlight as `to && isActive || active`. When `exact` is false that
-		 * `isActive` is an INCLUSIVE prefix match, so an ancestor-namespace
-		 * entry (`/pos`) lights up on any `/pos/...` path — which is correct
-		 * for an index entry's own nested routes (e.g. `/pos/:id` detail), but
-		 * wrong when the deeper path is itself an independent menu entry
-		 * (`/pos/tender-types`).
-		 *
-		 * So default to inclusive (the backwards-compatible behaviour) and only
-		 * force exact when a MORE SPECIFIC sibling entry owns the current route:
-		 * `activeRouteName` (longest-prefix-wins) names that owner, so when it
-		 * is a different entry and this entry's path is merely an ancestor
-		 * prefix of the current path, exact matching stops the router-link from
-		 * also lighting up this ancestor. Root (`/`) is always exact — it would
-		 * otherwise prefix-match every route.
-		 *
-		 * @param {object} item Menu item being rendered.
-		 * @return {boolean} Whether to enable exact router-link matching.
-		 */
-		isExact(item) {
-			const pagePath = this.pageForItem(item)?.route
-			if (pagePath === '/') return true
-			const active = this.activeRouteName
-			// No owner, or this entry IS the owner → keep inclusive matching so
-			// the entry still lights up for its own nested routes.
-			if (!active || item.route === active) return false
-			const path = this.$route?.path
-			if (!path || !pagePath || pagePath.includes(':')) return false
-			// A different entry owns the route; force exact only when this entry
-			// is an ancestor prefix that inclusive matching would falsely light.
-			return path === pagePath || path.startsWith(pagePath + '/')
-		},
+
 		/**
 		 * Build the `:to` value for an `NcAppNavigationItem`. Action
 		 * items (`action: "user-settings"`) and `href` items return
@@ -1131,13 +1195,20 @@ export default {
 		 *   action / href / route-less items.
 		 */
 		itemTo(item) {
-			if (item.action) return null
-			if (item.href) return null
-			if (!item.route) return null
+			if (item.action) {
+				return null
+			}
+			if (item.href) {
+				return null
+			}
+			if (!item.route) {
+				return null
+			}
 			// Carry optional query params so a nav entry can deep-link to a
 			// pre-filtered index page (e.g. one entry per case type → Cases?caseType=…).
 			return item.query ? { name: item.route, query: item.query } : { name: item.route }
 		},
+
 		/**
 		 * Build the `:href` value for an `NcAppNavigationItem`. Returns
 		 * the item's `href` so the entry renders as a real anchor whose
@@ -1153,9 +1224,12 @@ export default {
 		 * @return {string|null} The destination URL, or null.
 		 */
 		itemHref(item) {
-			if (item.action) return null
+			if (item.action) {
+				return null
+			}
 			return item.href || null
 		},
+
 		/**
 		 * Whether a menu group renders expanded. Local `openState` (set
 		 * by the chevron or a title click) wins; otherwise the group
@@ -1168,10 +1242,15 @@ export default {
 		 */
 		isItemOpen(item) {
 			const local = this.openState[item.id]
-			if (local !== undefined) return local
-			if (this.hasActiveChild(item)) return true
+			if (local !== undefined) {
+				return local
+			}
+			if (this.hasActiveChild(item)) {
+				return true
+			}
 			return Boolean(item.open)
 		},
+
 		/**
 		 * Whether any of a group's visible children is the active route.
 		 * Drives auto-expansion of the parent group on page load.
@@ -1182,6 +1261,7 @@ export default {
 		hasActiveChild(item) {
 			return this.visibleChildren(item).some((child) => this.isActive(child))
 		},
+
 		/**
 		 * Record a group's expand/collapse state. Bound to
 		 * NcAppNavigationItem's `@update:open` (chevron clicks) and
@@ -1194,21 +1274,31 @@ export default {
 		setItemOpen(item, value) {
 			this.openState[item.id] = value
 		},
+
 		/**
-		 * Click handler. Dispatch order: action keyword → group toggle.
-		 * For `action: "user-settings"` invokes the injected
+		 * Click handler. Dispatch order: action keyword → group
+		 * open/toggle. For `action: "user-settings"` invokes the injected
 		 * `cnOpenUserSettings` (provided by CnAppRoot) and prevents
 		 * default; for `action: "admin-settings"` opens
 		 * `/settings/admin/<appId>` in a new tab and prevents default; for `action:
 		 * "replay-walkthrough"` invokes the injected
 		 * `cnReplayWalkthrough(item.tourId)` and prevents default. `href`
-		 * items are NOT handled here — they render a real anchor via
-		 * `itemHref`, so the browser navigates natively (external URLs open
-		 * in a new tab, internal app paths in the same tab). Route-less
-		 * items with visible children are pure group headers: their anchor
-		 * is a dead `#` link, so clicking the title toggles the children
-		 * open/closed (same effect as the collapse chevron). Route items
-		 * are handled by `:to` and skip this path.
+		 * items with no children are NOT handled here — they render a real
+		 * anchor via `itemHref`, so the browser navigates natively
+		 * (external URLs open in a new tab, internal app paths in the same
+		 * tab).
+		 *
+		 * A group's children visibility on click depends on whether the
+		 * group ITSELF has a destination:
+		 *  - Route-less, href-less: a pure group header, so its anchor is
+		 *    a dead `#` link and the click's only job is to TOGGLE the
+		 *    children open/closed (same effect as the collapse chevron).
+		 *  - Carries a `route` or `href`: the click is a real navigation
+		 *    (handled natively by `:to` / the anchor, not prevented here),
+		 *    and this additionally forces the group OPEN — never closed —
+		 *    so the reader lands on the group's own page without a second
+		 *    click to see what else it holds. The collapse chevron is the
+		 *    only control that can close such a group again.
 		 *
 		 * @param {object} item Menu item being clicked.
 		 * @param {Event} [event] Native click event (used to call
@@ -1243,13 +1333,21 @@ export default {
 				this.cnReplayWalkthrough(item.tourId)
 				return
 			}
-			if (!item.route && !item.href && this.visibleChildren(item).length > 0) {
+			if (this.visibleChildren(item).length === 0) {
+				return
+			}
+			if (!item.route && !item.href) {
 				if (event && typeof event.preventDefault === 'function') {
 					event.preventDefault()
 				}
 				this.setItemOpen(item, !this.isItemOpen(item))
+				return
 			}
+			// The item is ALSO a real destination: let the click navigate
+			// natively and reveal the children alongside it.
+			this.setItemOpen(item, true)
 		},
+
 		/**
 		 * Click handler for the auto-prepended Personal-settings entry in
 		 * the settings foldout. Invokes the injected `cnOpenUserSettings`
@@ -1261,6 +1359,7 @@ export default {
 		onPersonalSettingsClick() {
 			this.cnOpenUserSettings()
 		},
+
 		/**
 		 * Click handler for the manifest-declared primary action. Emits
 		 * `@primary-action` AND the back-compat `@primary-action-click`
@@ -1275,7 +1374,9 @@ export default {
 		 */
 		onPrimaryActionClick(event) {
 			const action = this.activePrimaryAction
-			if (!action) return
+			if (!action) {
+				return
+			}
 			const payload = {
 				id: action.id,
 				label: action.label,

@@ -15,7 +15,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnContactsTab from '../../../src/integrations/builtin/contacts/CnContactsTab.vue'
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))

@@ -31,7 +31,7 @@
 
 | Name      | Bindings           | Description |
 | --------- | ------------------ | ----------- |
-| `sidebar` | `tree`, `on-click` | sidebar     |
+| `sidebar` | `tree`, `onClick`  | sidebar     |
 | `header`  | `title`, `article` | header      |
 | `empty`   | —                  | empty       |
 | `body`    | `article`, `html`  | body        |

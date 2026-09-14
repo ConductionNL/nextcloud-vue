@@ -46,18 +46,22 @@ const layout = [
 ]
 const widgets = [{ id: 'alpha', title: 'Alpha', type: 'custom' }, { id: 'beta', title: 'Beta', type: 'custom' }]
 
-const mountPage = (propsData = {}) => mount(CnDashboardPage, {
-	propsData: { widgets, layout, ...propsData },
-	stubs,
-	scopedSlots: {
-		'widget-alpha': '<div class="body" />',
-		'widget-beta': '<div class="body" />',
-	},
-})
+function mountPage(propsData = {}) {
+	return mount(CnDashboardPage, {
+		propsData: { widgets, layout, ...propsData },
+		stubs,
+		scopedSlots: {
+			'widget-alpha': '<div class="body" />',
+			'widget-beta': '<div class="body" />',
+		},
+	})
+}
 
-const refreshOf = (wrapper, title) => wrapper.findAll('.cn-widget-wrapper-stub')
-	.find((w) => w.attributes('data-title') === title)
-	.attributes('data-show-refresh')
+function refreshOf(wrapper, title) {
+	return wrapper.findAll('.cn-widget-wrapper-stub')
+		.find((w) => w.attributes('data-title') === title)
+		.attributes('data-show-refresh')
+}
 
 describe('CnDashboardPage — per-widget Refresh visibility', () => {
 	it('custom widgets hide Refresh by default (no listener / widgetShowRefresh)', () => {

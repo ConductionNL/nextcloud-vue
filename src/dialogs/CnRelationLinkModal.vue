@@ -13,10 +13,10 @@
 			<CnResourceSelect
 				:register="register"
 				:schema="schema"
-				:label-field="labelField"
-				:allow-create="allowCreate"
-				:model-value="selectedId"
-				:input-label="selectLabel"
+				:labelField="labelField"
+				:allowCreate="allowCreate"
+				:modelValue="selectedId"
+				:inputLabel="selectLabel"
 				@update:modelValue="selectedId = $event" />
 			<p v-if="error" class="cn-relation-link__error" data-testid="cn-relation-link-error">
 				{{ error }}
@@ -39,7 +39,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon, NcDialog } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcLoadingIcon } from '@nextcloud/vue'
 import CnResourceSelect from '../components/CnResourceSelect/CnResourceSelect.vue'
 import { useObjectStore } from '../store/index.js'
 
@@ -65,31 +65,37 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Link related object'),
 		},
+
 		/** Accessible label for the picker. */
 		selectLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Search…'),
 		},
+
 		/** Target register slug to search. */
 		register: {
 			type: String,
 			required: true,
 		},
+
 		/** Target schema slug to search. */
 		schema: {
 			type: String,
 			required: true,
 		},
+
 		/** Field used as the option label. */
 		labelField: {
 			type: String,
 			default: 'name',
 		},
+
 		/** Whether the picker offers inline create from the search term. */
 		allowCreate: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * The object-type slug of the CURRENT object being patched
 		 * (`${register}-${schema}`). Required to save through the store.
@@ -98,11 +104,13 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** The CURRENT object being patched (must carry an `id`). */
 		currentObject: {
 			type: Object,
 			required: true,
 		},
+
 		/** The foreign-key field on the current object to write the chosen id into. */
 		fkField: {
 			type: String,
@@ -125,7 +133,7 @@ export default {
 		objectStore() {
 			try {
 				return useObjectStore()
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -138,7 +146,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async onConfirm() {
-			if (!this.selectedId || !this.objectStore) return
+			if (!this.selectedId || !this.objectStore) {
+				return
+			}
 			this.saving = true
 			this.error = ''
 			try {

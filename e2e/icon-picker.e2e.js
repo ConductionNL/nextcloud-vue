@@ -6,7 +6,7 @@
 //   fallback, Multi-source icon selection, Custom SVG authoring, Icon placement,
 //   Backward-compatible additions.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
 	await page.goto('/')
@@ -25,8 +25,7 @@ test.describe('CnIconPicker — enriched (real browser)', () => {
 
 		await search.fill('account')
 		await expect.poll(async () => {
-			const labels = await sec.locator('.cn-icon-picker__icon').evaluateAll(
-				(els) => els.map((e) => (e.getAttribute('aria-label') || '').toLowerCase()))
+			const labels = await sec.locator('.cn-icon-picker__icon').evaluateAll((els) => els.map((e) => (e.getAttribute('aria-label') || '').toLowerCase()))
 			return labels.length > 0 && labels.every((l) => l.includes('account') || l === 'no icon')
 		}).toBe(true)
 	})
@@ -41,7 +40,9 @@ test.describe('CnIconPicker — enriched (real browser)', () => {
 		await expect(sec.locator('.cn-icon-picker__hint')).toContainText('scroll for more')
 		// Scroll the grid to its bottom a few times to load further batches.
 		for (let i = 0; i < 3; i++) {
-			await grid.evaluate((el) => { el.scrollTop = el.scrollHeight })
+			await grid.evaluate((el) => {
+				el.scrollTop = el.scrollHeight
+			})
 			await page.waitForTimeout(150)
 		}
 		await expect.poll(async () => grid.locator('.cn-icon-picker__icon').count()).toBeGreaterThan(before)

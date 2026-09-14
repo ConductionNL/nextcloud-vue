@@ -74,6 +74,12 @@ module.exports = {
 		'^@microsoft/fetch-event-source$': '<rootDir>/tests/__mocks__/fetch-event-source.js',
 		'^@nextcloud/notify_push$': '<rootDir>/tests/__mocks__/nextcloud-notify-push.js',
 		'^@nextcloud/dialogs$': '<rootDir>/tests/__mocks__/nextcloud-dialogs.js',
+		// @nextcloud/files 4 is ESM only and reads a versioned window scope, so
+		// the smoke and a11y trees take the same small mock the unit tree does;
+		// without it CnFilesBrowser fails to resolve and every suite that
+		// imports the barrel goes down with it.
+		'^@nextcloud/files$': '<rootDir>/tests/__mocks__/nextcloud-files.js',
+		'^@nextcloud/files/dav$': '<rootDir>/tests/__mocks__/nextcloud-files-dav.js',
 		// `@vueuse/core` is DELIBERATELY not mapped here (jest.config.js maps it
 		// to a one-function stub). It is a real installed dependency now, and
 		// the real `@nextcloud/vue` components these lanes mount call a wide

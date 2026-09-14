@@ -4,8 +4,8 @@
 			v-model:shown="open"
 			:disabled="disabled"
 			:triggers="[]"
-			popup-role="dialog"
-			popover-base-class="cn-color-picker__popper">
+			popupRole="dialog"
+			popoverBaseClass="cn-color-picker__popper">
 			<template #trigger>
 				<button
 					type="button"
@@ -34,8 +34,8 @@
 					v-bind="$attrs"
 					class="cn-color-picker__chrome"
 					:class="{ 'cn-color-picker__chrome--locked-mode': mode !== null }"
-					:model-value="value || '#000000'"
-					@update:model-value="onPick" />
+					:modelValue="value || '#000000'"
+					@update:modelValue="onPick" />
 			</div>
 		</NcPopover>
 		<!-- Inline clear affordance: sits next to the swatch and only appears
@@ -54,9 +54,9 @@
 </template>
 
 <script>
+import { Chrome as ChromeColorPicker } from '@ckpack/vue-color'
 import { translate as t } from '@nextcloud/l10n'
 import { NcPopover } from '@nextcloud/vue'
-import { Chrome as ChromeColorPicker } from '@ckpack/vue-color'
 import Close from 'vue-material-design-icons/Close.vue'
 
 /**
@@ -118,11 +118,13 @@ export default {
 			type: [String, Object],
 			default: null,
 		},
+
 		/** Disables the swatch trigger and prevents the popover from opening. */
 		disabled: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Lock the picker's numeric input fields to a single mode and hide the
 		 * mode-toggle button. One of `'hex'`, `'rgb'`, `'hsl'`. When `null`
@@ -135,6 +137,7 @@ export default {
 			default: null,
 			validator: (v) => v === null || ['hex', 'rgb', 'hsl'].includes(v),
 		},
+
 		/**
 		 * When `true`, an inline clear (×) button is shown next to the swatch
 		 * whenever a color is set, letting the user reset back to "no color"
@@ -168,7 +171,9 @@ export default {
 			const c = typeof this.value === 'string'
 				? this.value
 				: (this.value?.hex8 || this.value?.hex)
-			if (!c) return {}
+			if (!c) {
+				return {}
+			}
 			// Layer the solid fill on top of the four-gradient checker. Each
 			// checker layer needs its own offset so the squares alternate; if
 			// they all share `0 0` the pattern collapses to a single square.
@@ -190,10 +195,13 @@ export default {
 				this.$nextTick(() => this.applyMode())
 			},
 		},
+
 		open(isOpen) {
 			// Re-apply on every open: vue-color resets `fieldsIndex` if the
 			// component is unmounted/remounted by the popover.
-			if (isOpen) this.$nextTick(() => this.applyMode())
+			if (isOpen) {
+				this.$nextTick(() => this.applyMode())
+			}
 		},
 	},
 
@@ -232,7 +240,9 @@ export default {
 
 		/** Pin the Chrome picker's `fieldsIndex` to the requested mode. */
 		applyMode() {
-			if (!this.mode) return
+			if (!this.mode) {
+				return
+			}
 			const idx = { hex: 0, rgb: 1, hsl: 2 }[this.mode]
 			const picker = this.$refs.picker
 			if (picker && picker.fieldsIndex !== idx) {

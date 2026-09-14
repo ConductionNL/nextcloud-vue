@@ -15,7 +15,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnContactsCard from '../../../src/integrations/builtin/contacts/CnContactsCard.vue'
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))

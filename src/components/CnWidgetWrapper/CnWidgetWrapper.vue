@@ -72,26 +72,26 @@
 				<slot name="actions" />
 				<CnActionsMenu
 					v-if="showActions"
-					:show-refresh="effectiveShowRefresh"
-					:show-request-feature="effectiveShowRequestFeature"
-					:show-report-bug="showReportBug"
-					:show-documentation="showDocumentation"
-					:documentation-url="documentationUrl"
-					:docs-anchor="docsAnchor"
-					:report-bug-url="reportBugUrl"
-					:documentation-label="documentationLabel"
-					:refresh-label="refreshLabel"
-					:request-feature-label="requestFeatureLabel"
-					:actions-menu-label="actionsMenuLabel"
+					:showRefresh="effectiveShowRefresh"
+					:showRequestFeature="effectiveShowRequestFeature"
+					:showReportBug="showReportBug"
+					:showDocumentation="showDocumentation"
+					:documentationUrl="documentationUrl"
+					:docsAnchor="docsAnchor"
+					:reportBugUrl="reportBugUrl"
+					:documentationLabel="documentationLabel"
+					:refreshLabel="refreshLabel"
+					:requestFeatureLabel="requestFeatureLabel"
+					:actionsMenuLabel="actionsMenuLabel"
 					:refreshing="refreshing"
-					:widget-id="resolvedWidgetId"
+					:widgetId="resolvedWidgetId"
 					:title="displayTitle"
 					:surface="`widget:${resolvedWidgetId}`"
-					:spec-ref="specRef"
-					refresh-channel="cn:widget:refresh"
-					testid-base="cn-widget-wrapper"
+					:specRef="specRef"
+					refreshChannel="cn:widget:refresh"
+					testidBase="cn-widget-wrapper"
 					@refresh="onActionsRefresh"
-					@request-feature="onActionsRequestFeature">
+					@requestFeature="onActionsRequestFeature">
 					<!-- @slot action-items Additional NcActionButton-family
 					     items rendered inside the overflow menu, after the
 					     built-in Refresh / Documentation / Request-a-feature
@@ -155,8 +155,8 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import { slotRenders } from '../../utils/slotContent.js'
+import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
 /**
  * CnWidgetWrapper — Widget container with header, content, and footer.
@@ -220,11 +220,13 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Widget'),
 		},
+
 		/** Whether to show the header with title */
 		showTitle: {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Chrome variant for the wrapper card.
 		 * - `'default'` — the library's own card chrome (opaque background,
@@ -244,6 +246,7 @@ export default {
 			default: 'default',
 			validator: (v) => ['default', 'nc-dashboard'].includes(v),
 		},
+
 		/**
 		 * Remove border and background — makes the wrapper transparent.
 		 * Useful for widgets that are self-contained cards (e.g. CnStatsBlock).
@@ -252,6 +255,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Remove content padding — allows content to go edge-to-edge.
 		 * Useful for list-style widgets where items should span the full width.
@@ -260,6 +264,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Draw NO card of this widget's own: no border, no background, no
 		 * content padding, no title row and no header divider. For a surface
@@ -287,16 +292,19 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Icon URL (image) */
 		iconUrl: {
 			type: String,
 			default: null,
 		},
+
 		/** Icon CSS class (e.g., Nextcloud icon class) */
 		iconClass: {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * Position of the title-icon slot in the header.
 		 * 'left' places it before the title; 'right' places it after the actions.
@@ -306,6 +314,7 @@ export default {
 			default: 'right',
 			validator: (v) => ['left', 'right'].includes(v),
 		},
+
 		/**
 		 * Explicit CSS colour for the header icon. Overrides `titleIconVariant`.
 		 * Must be a CSS custom property or a theme token — never a literal hex
@@ -318,6 +327,7 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * Semantic colour for the header icon. Every widget's icon is
 		 * coloured — `primary` (the theme colour) is the default, and a
@@ -332,11 +342,13 @@ export default {
 			default: 'primary',
 			validator: (v) => ['primary', 'success', 'warning', 'error', 'info', 'neutral'].includes(v),
 		},
+
 		/** Footer action buttons: [{ text, link }] */
 		buttons: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Whether the header's overflow action menu (Refresh / Documentation /
 		 * Request-a-feature + any `#action-items`) renders. Shown by default;
@@ -347,14 +359,17 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Style configuration for the wrapper.
+		 *
 		 * @type {{ backgroundColor: string, borderStyle: string, borderWidth: number, borderColor: string, borderRadius: number, padding: { top: number, right: number, bottom: number, left: number } }}
 		 */
 		styleConfig: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Hide the built-in Refresh item from the overflow action menu.
 		 * The Refresh item is shown by default — set this when the widget
@@ -365,6 +380,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Hide the built-in Request-a-feature item from the overflow
 		 * action menu. Shown by default; set when the consuming app has
@@ -375,6 +391,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Whether to show the built-in Refresh item. Tri-state:
 		 * - `true` / `false` — force the action on or off.
@@ -394,6 +411,7 @@ export default {
 			type: Boolean,
 			default: null,
 		},
+
 		/**
 		 * Inverse of `hideRequestFeature`. Defaults to `true` so the
 		 * action renders. Set `:show-request-feature="false"` to hide it.
@@ -405,6 +423,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Whether the built-in "Report a bug" item renders. On by default —
 		 * the trio Request a feature / Report a bug / Documentation is the
@@ -417,6 +436,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Whether the built-in "Documentation" item renders. On by default,
 		 * for the same reason as `showReportBug`. The item's target is
@@ -429,6 +449,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Explicit documentation link for this widget, opened in a new tab.
 		 * Usually unnecessary: leave it empty and set `docsAnchor` instead,
@@ -441,6 +462,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional pre-translated label for the Documentation action.
 		 * Defaults to the lib's translation of "Documentation".
@@ -449,6 +471,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Documentation'),
 		},
+
 		/**
 		 * Widget id for the built-in default Refresh / Request-a-feature
 		 * handlers (B2). Forwarded as the `surface: "widget:<id>"` value
@@ -464,6 +487,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * This widget's own section in the app's documentation, appended to
 		 * the app-wide documentation base URL (provided by CnAppRoot) to build
@@ -477,6 +501,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Explicit "Report a bug" target for the Actions menu. Empty (the
 		 * default) builds a new-issue deep-link on the app's own forge.
@@ -487,6 +512,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional `specRef` slug, forwarded to the Actions menu. Accepted
 		 * for backward compatibility with the removed in-product suggestion
@@ -498,6 +524,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Whether a refresh is currently in flight. When bound by the host
 		 * (e.g. `:refreshing="loading"` around its refetch), the Refresh
@@ -510,6 +537,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Optional pre-translated label for the Refresh action. Defaults
 		 * to the lib's translation of "Refresh" so callers usually don't
@@ -519,6 +547,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Refresh'),
 		},
+
 		/**
 		 * Optional pre-translated label for the Request-a-feature action.
 		 * Defaults to the lib's translation of "Request a feature".
@@ -527,6 +556,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Request a feature'),
 		},
+
 		/**
 		 * Pre-translated aria-label / tooltip for the overflow menu
 		 * trigger. Defaults to "Actions".
@@ -535,6 +565,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Actions'),
 		},
+
 		/**
 		 * Translate function. Falls back to the injected `cnTranslate`,
 		 * which itself defaults to an identity function.
@@ -624,12 +655,17 @@ export default {
 		 * @return {boolean}
 		 */
 		effectiveShowRefresh() {
-			if (this.hideRefresh) return false
-			if (this.showRefresh !== null) return this.showRefresh
+			if (this.hideRefresh) {
+				return false
+			}
+			if (this.showRefresh !== null) {
+				return this.showRefresh
+			}
 			// `$.vnode.props`, not `$attrs`: `refresh` is a declared emit, and
 			// Vue keeps declared emits out of `$attrs`.
 			return Boolean(this.$.vnode.props?.onRefresh)
 		},
+
 		/**
 		 * Effective Request-a-feature visibility — same OR-of-opt-outs
 		 * pattern as `effectiveShowRefresh`.
@@ -650,7 +686,9 @@ export default {
 		 * @return {string}
 		 */
 		resolvedWidgetId() {
-			if (this.widgetId) return this.widgetId
+			if (this.widgetId) {
+				return this.widgetId
+			}
 			return this.displayTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 		},
 
@@ -805,8 +843,12 @@ export default {
 		 * @return {boolean} True when the header should render.
 		 */
 		headerIsWorthIt() {
-			if (this.titleVisible) return true
-			if (this.actionsSlotRenders()) return true
+			if (this.titleVisible) {
+				return true
+			}
+			if (this.actionsSlotRenders()) {
+				return true
+			}
 			return this.showActions && this.hasActionsSlot
 		},
 
@@ -830,7 +872,7 @@ export default {
 		 * `cn:widget:refresh`).
 		 *
 		 * @param {{ widgetId: string, title: string }} payload Action payload.
-		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @param {{ defaultPrevented: boolean, preventDefault: () => void }} ev Synthetic event.
 		 * @return {void}
 		 */
 		onActionsRefresh(payload, ev) {
@@ -851,7 +893,7 @@ export default {
 		 * feature-request issue form).
 		 *
 		 * @param {{ widgetId: string, title: string }} payload Action payload.
-		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @param {{ defaultPrevented: boolean, preventDefault: () => void }} ev Synthetic event.
 		 * @return {void}
 		 */
 		onActionsRequestFeature(payload, ev) {

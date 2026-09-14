@@ -9,7 +9,9 @@
  * @return {string} Path with optional /index.php prefix
  */
 export function prefixUrl(path) {
-	if (path.startsWith('/index.php')) return path
+	if (path.startsWith('/index.php')) {
+		return path
+	}
 	if (typeof window !== 'undefined' && window.location.pathname.includes('/index.php')) {
 		return `/index.php${path}`
 	}
@@ -58,7 +60,7 @@ export function buildHeaders(opts = 'application/json') {
 		contentType = null
 	} else if (opts && typeof opts === 'object') {
 		// Options-object signature
-		if (Object.prototype.hasOwnProperty.call(opts, 'contentType')) {
+		if (Object.hasOwn(opts, 'contentType')) {
 			contentType = opts.contentType
 		}
 		if (typeof opts.organisationUuid === 'string' && opts.organisationUuid.length > 0) {
@@ -111,9 +113,15 @@ export function buildQueryString(params = {}) {
 	const queryParams = new URLSearchParams()
 
 	for (const [key, value] of Object.entries(params)) {
-		if (value === undefined || value === null || value === '') continue
-		if (Array.isArray(value) && value.length === 0) continue
-		if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) continue
+		if (value === undefined || value === null || value === '') {
+			continue
+		}
+		if (Array.isArray(value) && value.length === 0) {
+			continue
+		}
+		if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) {
+			continue
+		}
 		if (Array.isArray(value)) {
 			// PHP needs `key[]` to receive repeated params as an array;
 			// without the brackets only the last value survives server-side.

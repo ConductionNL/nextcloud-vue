@@ -6,8 +6,8 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
-import CnVideoWidget from './CnVideoWidget.vue'
 import CnVideoWidgetForm from '../CnVideoWidgetForm/CnVideoWidgetForm.vue'
+import CnVideoWidget from './CnVideoWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('video', {

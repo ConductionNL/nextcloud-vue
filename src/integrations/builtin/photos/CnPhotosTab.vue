@@ -115,7 +115,7 @@
 					</div>
 				</a>
 				<NcButton
-					type="tertiary-no-background"
+					variant="tertiary-no-background"
 					:aria-label="t('nextcloud-vue', 'Unlink album')"
 					class="cn-photos-tab__unlink"
 					@click="unlinkAlbum(album)">
@@ -128,7 +128,7 @@
 
 		<CnPhotoAlbumPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 
@@ -140,7 +140,7 @@
 </template>
 
 <script>
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ImageIcon from 'vue-material-design-icons/Image.vue'
@@ -177,8 +177,10 @@ export default {
 	},
 
 	props: {
+		/* eslint-disable vue/no-unused-properties -- the integration dispatch binds integrationId on every integration component (see CnIntegrationWidgetGrid), so declaring it keeps it out of $attrs */
 		/** Stable integration id (forwarded from the registry — always `'photos'`). */
 		integrationId: { type: String, default: 'photos' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Parent object id. */
 		objectId: { type: String, required: true },
 		/** OpenRegister register id (slug or uuid). */
@@ -210,9 +212,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchAlbums() } } },
-		register() { this.fetchAlbums() },
-		schema() { this.fetchAlbums() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchAlbums()
+			}
+		} },
+
+		register() {
+			this.fetchAlbums()
+		},
+
+		schema() {
+			this.fetchAlbums()
+		},
 	},
 
 	methods: {
@@ -303,7 +315,7 @@ export default {
 					return String(value)
 				}
 				return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
-			} catch (_) {
+			} catch {
 				return String(value)
 			}
 		},

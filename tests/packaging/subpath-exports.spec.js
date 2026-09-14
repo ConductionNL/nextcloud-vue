@@ -190,7 +190,6 @@ function hasEntry(name) {
  * @return {string[]} Exported names.
  */
 function exportsOf(relative) {
-	// eslint-disable-next-line n/global-require
 	const loaded = require(path.join(packageRoot, relative))
 	return Object.keys(loaded)
 }
@@ -204,7 +203,7 @@ describe('packaging — the tarball is not the source tree', () => {
 		expect(hasEntry('package/package.json')).toBe(true)
 	})
 
-	it('CONTROL: …and no to one that certainly is not', () => {
+	it('CONTROL: …and no to one that certainly is not', () => {
 		// A matcher that answers "yes" to everything would sail through every
 		// assertion below and re-ship the exact bug this file guards.
 		expect(hasEntry('package/eslint/this-file-does-not-exist.js')).toBe(false)
@@ -289,7 +288,9 @@ describe('packaging — the packed code is the FIXED code', () => {
 			async addInitScript() {},
 			pages: () => [],
 			async newPage() {},
-			async storageState() { return { origins: [] } },
+			async storageState() {
+				return { origins: [] }
+			},
 		}
 		await expect(seedSupportDialogSeen(context, '*')).rejects.toThrow(/cannot be persisted/)
 	})
@@ -323,11 +324,9 @@ function requireCallsIn(source) {
  * @return {string[]} Tar entry paths.
  */
 function firstPartyEsmEntries() {
-	return entries.filter((name) =>
-		name.startsWith('package/dist/esm/')
+	return entries.filter((name) => name.startsWith('package/dist/esm/')
 		&& name.endsWith('.js')
-		&& !name.startsWith('package/dist/esm/node_modules/'),
-	)
+		&& !name.startsWith('package/dist/esm/node_modules/'))
 }
 
 /**
@@ -368,7 +367,7 @@ describe('packaging — no CommonJS require() survives in dist/esm', () => {
 		expect(requireCallsIn('const y = require ("b")')).toHaveLength(1)
 	})
 
-	it('CONTROL: …and reports none for a module that has no such call', () => {
+	it('CONTROL: …and reports none for a module that has no such call', () => {
 		// A detector that answered "yes" to everything would fail the sweep for
 		// the wrong reason; one that answered "no" to everything would pass it
 		// for the wrong reason. Both are covered.
@@ -465,12 +464,8 @@ describe('packaging — every redistributed dependency is under an OSI licence',
 		}
 		const normalised = expression.replace(/[()]/g, ' ').trim()
 		// OR binds loosest: any alternative may satisfy the whole expression.
-		return normalised.split(/\s+OR\s+/i).some((alternative) =>
-			// Within an alternative, every AND-ed part must be allowed.
-			alternative.split(/\s+AND\s+/i).every((part) =>
-				ALLOWED_LICENCES.has(part.trim().replace(/\+$/, '')),
-			),
-		)
+		// Within an alternative, every AND-ed part must be allowed.
+		return normalised.split(/\s+OR\s+/i).some((alternative) => alternative.split(/\s+AND\s+/i).every((part) => ALLOWED_LICENCES.has(part.trim().replace(/\+$/, ''))))
 	}
 
 	/**
@@ -554,7 +549,6 @@ describe('packaging — every redistributed dependency is under an OSI licence',
 		// Named explicitly, because the sweep above only sees the version that
 		// happens to be installed. This is the assertion a future `npm update`
 		// has to get past.
-		// eslint-disable-next-line n/no-extraneous-require
 		const semver = require('semver')
 		const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'))
 		const range = pkg.dependencies['vue3-apexcharts']
@@ -566,9 +560,7 @@ describe('packaging — every redistributed dependency is under an OSI licence',
 	})
 
 	it('resolves an MIT vue3-apexcharts in the tree that gets bundled', () => {
-		const wrapper = JSON.parse(
-			fs.readFileSync(path.join(REPO, 'node_modules', 'vue3-apexcharts', 'package.json'), 'utf8'),
-		)
+		const wrapper = JSON.parse(fs.readFileSync(path.join(REPO, 'node_modules', 'vue3-apexcharts', 'package.json'), 'utf8'))
 		expect(wrapper.license).toBe('MIT')
 		expect(semverMajorMinor(wrapper.version)).toBe('1.8')
 	})
@@ -577,12 +569,9 @@ describe('packaging — every redistributed dependency is under an OSI licence',
 		// Core relicensed at 5.x. `^4.x` cannot reach it; assert both the range
 		// and what actually resolved, since either alone can be wrong.
 		const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'))
-		// eslint-disable-next-line n/no-extraneous-require
 		const semver = require('semver')
 		expect(semver.satisfies('5.0.0', pkg.dependencies.apexcharts)).toBe(false)
-		const core = JSON.parse(
-			fs.readFileSync(path.join(REPO, 'node_modules', 'apexcharts', 'package.json'), 'utf8'),
-		)
+		const core = JSON.parse(fs.readFileSync(path.join(REPO, 'node_modules', 'apexcharts', 'package.json'), 'utf8'))
 		expect(core.license).toBe('MIT')
 	})
 })

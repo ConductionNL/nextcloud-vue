@@ -9,7 +9,7 @@
  * Plus error / unavailable handling that mirrors CnIntegrationCard.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnTalkCard = require('../../src/integrations/builtin/talk/CnTalkCard.vue').default
 
 const DEFAULT_PROPS = {
@@ -42,8 +42,7 @@ describe('CnTalkCard', () => {
 	it('renders the empty label when there are no linked conversations', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnTalkCard, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No conversations linked yet')
 		wrapper.unmount()
 	})
@@ -61,8 +60,7 @@ describe('CnTalkCard', () => {
 			}),
 		})
 		const wrapper = mount(CnTalkCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		// 7 unread across 3 conversations
 		const txt = wrapper.text()
 		expect(txt).toContain('7')
@@ -84,8 +82,7 @@ describe('CnTalkCard', () => {
 			}),
 		})
 		const wrapper = mount(CnTalkCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const txt = wrapper.text()
 		// "2 conversations" should appear; no "unread" headline word.
 		expect(txt).toContain('2')
@@ -105,8 +102,7 @@ describe('CnTalkCard', () => {
 			}),
 		})
 		const wrapper = mount(CnTalkCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-talk-card__row')
 		expect(rows).toHaveLength(2)
 		const badges = wrapper.findAll('.cn-talk-card__badge')
@@ -122,8 +118,7 @@ describe('CnTalkCard', () => {
 			json: () => Promise.resolve(makeRoom({ id: 'tok-z', title: 'Status updates', unreadMessages: 5 })),
 		})
 		const wrapper = mount(CnTalkCard, { propsData: { ...DEFAULT_PROPS, surface: 'single-entity', value: 'tok-z' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const chip = wrapper.find('.cn-talk-card__chip')
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Status updates')
@@ -134,8 +129,7 @@ describe('CnTalkCard', () => {
 	it('shows the unavailable label when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnTalkCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Talk is currently unavailable.')
 		wrapper.unmount()
 	})
@@ -144,8 +138,7 @@ describe('CnTalkCard', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnTalkCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No conversations linked yet')
 		wrapper.unmount()
 		spy.mockRestore()

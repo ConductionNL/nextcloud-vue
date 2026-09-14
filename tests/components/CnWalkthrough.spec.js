@@ -141,7 +141,9 @@ describe('CnWalkthrough', () => {
 		document.body.appendChild(nav)
 		const toggle = nav.querySelector('button.icon-collapse')
 		let clicks = 0
-		toggle.addEventListener('click', () => { clicks++ })
+		toggle.addEventListener('click', () => {
+			clicks++
+		})
 
 		const navSteps = [
 			{ id: 'open-ar', sinceVersion: '1.0.0', title: 'Open it', task: 'Click Accounts Receivable', target: { kind: 'nav-item', ref: 'accounts-receivable' }, advanceOn: { type: 'click-target' } },

@@ -32,10 +32,10 @@
 
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
-import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
-import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import widgetLink from '../../mixins/widgetLink.js'
+import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 
 /**
  * CnGaugeWidget — an abstract utilization / progress-to-target gauge.
@@ -94,12 +94,14 @@ export default {
 		 * The widget's persisted configuration blob. An optional `route`
 		 * (vue-router location) or `link` (external href) turns the whole
 		 * tile into a click-through target (see the widgetLink mixin).
+		 *
 		 * @type {{label?: string, route?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {register?: string, schema?: string, metric?: string, field?: string, filter?: object}, target?: {kind?: ('static'|'aggregate'), value?: number, metric?: string, field?: string, filter?: object}, thresholds?: {warn?: number, danger?: number, invert?: boolean}}}
 		 */
 		content: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Translate function. Falls back to the injected `cnTranslate`
 		 * (itself an identity function by default). Provide explicitly when
@@ -148,6 +150,7 @@ export default {
 		configCtx() {
 			return unwrapAppConfig(this.cnAppConfig)
 		},
+
 		/**
 		 * The `content.format` spec with its `currency` / `prefix` / `suffix`
 		 * `@config.<key>` tokens resolved against the page-level app config. A
@@ -163,53 +166,80 @@ export default {
 			const out = { ...fmt }
 			for (const key of ['currency', 'prefix', 'suffix']) {
 				const raw = fmt[key]
-				if (typeof raw !== 'string' || raw.charAt(0) !== '@') continue
+				if (typeof raw !== 'string' || raw.charAt(0) !== '@') {
+					continue
+				}
 				const resolved = resolveFilterValue(raw, ctx)
 				out[key] = (typeof resolved === 'string' && resolved.charAt(0) === '@') ? undefined : resolved
 			}
 			return out
 		},
+
 		/** Utilization ratio (0–n) of value to target, or null. */
 		ratio() {
 			const t = Number(this.target)
 			const v = Number(this.value)
-			if (!Number.isFinite(t) || t === 0 || !Number.isFinite(v)) return null
+			if (!Number.isFinite(t) || t === 0 || !Number.isFinite(v)) {
+				return null
+			}
 			return v / t
 		},
+
 		/** Percentage label, e.g. "83%". */
 		pctLabel() {
-			if (this.ratio === null) return '—'
+			if (this.ratio === null) {
+				return '—'
+			}
 			return Math.round(this.ratio * 100) + '%'
 		},
+
 		/** Bar fill width, clamped to 100%. */
 		fillWidth() {
-			if (this.ratio === null) return '0%'
+			if (this.ratio === null) {
+				return '0%'
+			}
 			return Math.min(100, Math.max(0, this.ratio * 100)) + '%'
 		},
+
 		/** Bar colour from the threshold bands (invert flips good/bad). */
 		barColor() {
-			if (this.ratio === null) return 'var(--color-primary-element)'
+			if (this.ratio === null) {
+				return 'var(--color-primary-element)'
+			}
 			const th = this.content.thresholds || {}
 			const pct = this.ratio * 100
 			const warn = Number.isFinite(th.warn) ? th.warn : 80
 			const danger = Number.isFinite(th.danger) ? th.danger : 100
 			let level
-			if (pct >= danger) level = 'danger'
-			else if (pct >= warn) level = 'warn'
-			else level = 'ok'
-			if (th.invert) level = level === 'ok' ? 'danger' : level === 'danger' ? 'ok' : 'warn'
-			if (level === 'danger') return 'var(--color-error)'
-			if (level === 'warn') return 'var(--color-warning)'
+			if (pct >= danger) {
+				level = 'danger'
+			} else if (pct >= warn) {
+				level = 'warn'
+			} else {
+				level = 'ok'
+			}
+			if (th.invert) {
+				level = level === 'ok' ? 'danger' : level === 'danger' ? 'ok' : 'warn'
+			}
+			if (level === 'danger') {
+				return 'var(--color-error)'
+			}
+			if (level === 'warn') {
+				return 'var(--color-warning)'
+			}
 			return 'var(--color-success)'
 		},
+
 		/** The value, number-formatted per content.format. */
 		formattedValue() {
 			return this.formatNumber(this.value)
 		},
+
 		/** The target, number-formatted per content.format. */
 		formattedTarget() {
 			return this.formatNumber(this.target)
 		},
+
 		/** Stable signature so the watcher only refetches on real change. */
 		sourceKey() {
 			return JSON.stringify({ s: this.content.source || {}, t: this.content.target || {} })
@@ -230,12 +260,13 @@ export default {
 		/**
 		 * Format a number per the content.format spec (number/currency/percent).
 		 *
-		 * @param {*} value The raw value.
+		 * @param {unknown} value The raw value.
 		 * @return {string} The formatted string.
 		 */
 		formatNumber(value) {
 			return formatMetricValue(value, this.resolvedFormat, this.configCtx)
 		},
+
 		/**
 		 * Fetch the value and resolve the target (static or aggregate).
 		 *

@@ -12,15 +12,14 @@
  */
 import fs from 'fs'
 import path from 'path'
-
 import {
+	conceptForIcon,
+	getSemanticIconComponent,
+	SEMANTIC_ICON_COMPONENTS,
+	SEMANTIC_ICON_TIERS,
 	SEMANTIC_ICONS,
 	SEMANTIC_ICONS_TIER_A,
 	SEMANTIC_ICONS_TIER_B,
-	SEMANTIC_ICON_TIERS,
-	SEMANTIC_ICON_COMPONENTS,
-	conceptForIcon,
-	getSemanticIconComponent,
 } from '../../src/components/CnIcon/semanticIcons.js'
 
 // jest transpiles this spec to CommonJS, so __dirname is provided natively.
@@ -31,10 +30,8 @@ describe('ADR-077 semantic icon vocabulary', () => {
 	it('is not empty and covers both tiers', () => {
 		expect(Object.keys(SEMANTIC_ICONS_TIER_A).length).toBeGreaterThan(0)
 		expect(Object.keys(SEMANTIC_ICONS_TIER_B).length).toBeGreaterThan(0)
-		expect(Object.keys(SEMANTIC_ICONS)).toHaveLength(
-			Object.keys(SEMANTIC_ICONS_TIER_A).length
-			+ Object.keys(SEMANTIC_ICONS_TIER_B).length,
-		)
+		expect(Object.keys(SEMANTIC_ICONS)).toHaveLength(Object.keys(SEMANTIC_ICONS_TIER_A).length
+			+ Object.keys(SEMANTIC_ICONS_TIER_B).length)
 	})
 
 	// The check that would have caught `LedgerOutline` before it shipped.

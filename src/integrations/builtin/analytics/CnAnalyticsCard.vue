@@ -114,7 +114,7 @@
 </template>
 
 <script>
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import ChartBar from 'vue-material-design-icons/ChartBar.vue'
 import ChartLine from 'vue-material-design-icons/ChartLine.vue'
@@ -155,6 +155,7 @@ export default {
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+
 		/** Optional single-entity reference (report id). */
 		value: { type: [String, Number], default: '' },
 		/** Pre-translated card title. */
@@ -219,9 +220,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler() { this.fetch() } },
-		surface() { this.fetch() },
-		value() { if (this.surface === 'single-entity') { this.fetchSingle() } },
+		objectId: { immediate: true, handler() {
+			this.fetch()
+		} },
+
+		surface() {
+			this.fetch()
+		},
+
+		value() {
+			if (this.surface === 'single-entity') {
+				this.fetchSingle()
+			}
+		},
 	},
 
 	methods: {
@@ -250,24 +261,24 @@ export default {
 		reportTypeLabel(report) {
 			const type = this.reportType(report)
 			switch (type) {
-			case 1: return t('nextcloud-vue', 'Group')
-			case 2: return t('nextcloud-vue', 'Remote')
-			case 3: return t('nextcloud-vue', 'File')
-			case 4: return t('nextcloud-vue', 'Internal')
-			case 5: return t('nextcloud-vue', 'Database')
-			case 6: return t('nextcloud-vue', 'External')
-			default: return t('nextcloud-vue', 'Report')
+				case 1: return t('nextcloud-vue', 'Group')
+				case 2: return t('nextcloud-vue', 'Remote')
+				case 3: return t('nextcloud-vue', 'File')
+				case 4: return t('nextcloud-vue', 'Internal')
+				case 5: return t('nextcloud-vue', 'Database')
+				case 6: return t('nextcloud-vue', 'External')
+				default: return t('nextcloud-vue', 'Report')
 			}
 		},
 
 		reportIcon(report) {
 			const type = this.reportType(report)
 			switch (type) {
-			case 3: return TableIcon
-			case 4: return ViewDashboard
-			case 2: return ChartLine
-			case 5: return ChartPie
-			default: return ChartBar
+				case 3: return TableIcon
+				case 4: return ViewDashboard
+				case 2: return ChartLine
+				case 5: return ChartPie
+				default: return ChartBar
 			}
 		},
 

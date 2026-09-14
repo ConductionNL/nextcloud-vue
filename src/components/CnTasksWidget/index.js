@@ -10,8 +10,8 @@
  * `CnWidgetStyleEditorModal`.
  */
 
-import CnTasksWidget from './CnTasksWidget.vue'
 import CnTasksWidgetForm from '../CnTasksWidgetForm/CnTasksWidgetForm.vue'
+import CnTasksWidget from './CnTasksWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('tasks', {

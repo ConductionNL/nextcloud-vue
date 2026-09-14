@@ -73,6 +73,7 @@ export default {
 			required: true,
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+
 		/**
 		 * Number of columns at >=1200px screens. Tablets fall back to 2,
 		 * mobile to 1 via CSS media queries.
@@ -81,6 +82,7 @@ export default {
 			type: Number,
 			default: 3,
 		},
+
 		/**
 		 * Optional reference context forwarded to widgets that need a
 		 * concrete object — irrelevant for true dashboard surfaces but
@@ -92,6 +94,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Pre-translated empty-state label. */
 		emptyLabel: {
 			type: String,
@@ -119,7 +122,7 @@ export default {
 		 * @return {object[]} Integration descriptors that resolve a widget for this surface.
 		 */
 		visibleIntegrations() {
-			return (this.registryIntegrations || []).filter(integration => {
+			return (this.registryIntegrations || []).filter((integration) => {
 				// Backward-compat: honor an optional `surfaces` array on the
 				// descriptor when present (matches the PHP-side IntegrationsCapability
 				// shape). When absent (the JS leaf descriptors as of Phase E),
@@ -134,6 +137,7 @@ export default {
 				return this.resolveWidget(integration.id, this.surface) !== null
 			})
 		},
+
 		/**
 		 * Grid styles. Three columns desktop, tablet/mobile fall back via media queries.
 		 */
@@ -162,6 +166,7 @@ export default {
 				'--cn-iwg-min-height': minH > 0 ? `${minH}px` : 'auto',
 			}
 		},
+
 		/**
 		 * Props forwarded to each widget. We pass the integration id,
 		 * surface, and pre-translated title; reference context fields

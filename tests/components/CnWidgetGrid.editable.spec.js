@@ -7,8 +7,8 @@
  */
 
 import { shallowMount } from '@vue/test-utils'
-import CnWidgetGrid from '../../src/components/CnWidgetGrid/CnWidgetGrid.vue'
 import { GridStack } from 'gridstack'
+import CnWidgetGrid from '../../src/components/CnWidgetGrid/CnWidgetGrid.vue'
 
 jest.mock('../../src/components/CnWidgetGrid/builtInWidgets.js', () => ({
 	BUILT_IN_WIDGETS: {

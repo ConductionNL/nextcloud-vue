@@ -10,10 +10,10 @@
 		</h4>
 
 		<NcTextField
-			:model-value="label"
+			:modelValue="label"
 			:label="t('nextcloud-vue', 'Label')"
 			placeholder="Pipeline coverage"
-			@update:model-value="updateField('label', $event)" />
+			@update:modelValue="updateField('label', $event)" />
 
 		<div class="cn-gauge-form__row2">
 			<CnRegisterSchemaSelect
@@ -25,11 +25,11 @@
 
 		<div class="cn-gauge-form__row2">
 			<NcSelect
-				:model-value="metric"
+				:modelValue="metric"
 				:options="metricOptions"
-				:input-label="t('nextcloud-vue', 'Aggregation')"
+				:inputLabel="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@update:model-value="updateField('metric', $event)" />
+				@update:modelValue="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric !== 'count'"
 				:value="field"
@@ -47,27 +47,27 @@
 
 		<div class="cn-gauge-form__row2">
 			<NcSelect
-				:model-value="targetKind"
+				:modelValue="targetKind"
 				:options="targetKindOptions"
-				:input-label="t('nextcloud-vue', 'Target type')"
+				:inputLabel="t('nextcloud-vue', 'Target type')"
 				:clearable="false"
-				@update:model-value="updateField('targetKind', $event)" />
+				@update:modelValue="updateField('targetKind', $event)" />
 			<NcTextField
 				v-if="targetKind === 'static'"
 				type="number"
-				:model-value="String(targetValue)"
+				:modelValue="String(targetValue)"
 				:label="t('nextcloud-vue', 'Target value')"
 				placeholder="500000"
-				@update:model-value="updateField('targetValue', Number($event))" />
+				@update:modelValue="updateField('targetValue', Number($event))" />
 		</div>
 
 		<div v-if="targetKind === 'aggregate'" class="cn-gauge-form__row2">
 			<NcSelect
-				:model-value="targetMetric"
+				:modelValue="targetMetric"
 				:options="metricOptions"
-				:input-label="t('nextcloud-vue', 'Target aggregation')"
+				:inputLabel="t('nextcloud-vue', 'Target aggregation')"
 				:clearable="false"
-				@update:model-value="updateField('targetMetric', $event)" />
+				@update:modelValue="updateField('targetMetric', $event)" />
 			<CnFieldPicker
 				v-if="targetMetric !== 'count'"
 				:value="targetField"
@@ -84,41 +84,41 @@
 		<div class="cn-gauge-form__row2">
 			<NcTextField
 				type="number"
-				:model-value="String(warn)"
+				:modelValue="String(warn)"
 				:label="t('nextcloud-vue', 'Warning at %')"
-				@update:model-value="updateField('warn', Number($event))" />
+				@update:modelValue="updateField('warn', Number($event))" />
 			<NcTextField
 				type="number"
-				:model-value="String(danger)"
+				:modelValue="String(danger)"
 				:label="t('nextcloud-vue', 'Danger at %')"
-				@update:model-value="updateField('danger', Number($event))" />
+				@update:modelValue="updateField('danger', Number($event))" />
 		</div>
 
 		<div class="cn-gauge-form__row2">
 			<NcCheckboxRadioSwitch
-				:model-value="invert"
+				:modelValue="invert"
 				type="switch"
-				@update:model-value="updateField('invert', $event)">
+				@update:modelValue="updateField('invert', $event)">
 				{{ t('nextcloud-vue', 'Low is bad (invert colours)') }}
 			</NcCheckboxRadioSwitch>
 			<NcSelect
-				:model-value="formatStyle"
+				:modelValue="formatStyle"
 				:options="formatOptions"
-				:input-label="t('nextcloud-vue', 'Number format')"
+				:inputLabel="t('nextcloud-vue', 'Number format')"
 				:clearable="false"
-				@update:model-value="updateField('formatStyle', $event)" />
+				@update:modelValue="updateField('formatStyle', $event)" />
 		</div>
 	</div>
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
+import { NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
-import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
+import { filterToRows, rowsToFilter } from '../CnFilterRowsEditor/filterRows.js'
 
 const DEFAULT_CONTENT = Object.freeze({
 	label: '',
@@ -143,15 +143,24 @@ export default {
 	components: { NcTextField, NcSelect, NcCheckboxRadioSwitch, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect },
 
 	props: {
-		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
+		/**
+		 * The placement being edited (pre-fills from `editingWidget.content`), or null.
+		 *
+		 * @type {{content: object}|null}
+		 */
 		editingWidget: { type: Object, default: null },
-		/** Initial content values when not editing (registry defaults). @type {object} */
+		/**
+		 * Initial content values when not editing (registry defaults).
+		 *
+		 * @type {object}
+		 */
 		value: { type: Object, default: () => ({ ...DEFAULT_CONTENT }) },
 	},
 
 	emits: [
 		/**
 		 * Emitted with the assembled content blob on every field change.
+		 *
 		 * @event update:content
 		 * @type {object}
 		 */
@@ -186,11 +195,20 @@ export default {
 
 	computed: {
 		/** Aggregation metric options. */
-		metricOptions() { return ['count', 'sum', 'avg', 'min', 'max'] },
+		metricOptions() {
+			return ['count', 'sum', 'avg', 'min', 'max']
+		},
+
 		/** Target kinds: a fixed number or a second aggregate. */
-		targetKindOptions() { return ['static', 'aggregate'] },
+		targetKindOptions() {
+			return ['static', 'aggregate']
+		},
+
 		/** Number-format styles. */
-		formatOptions() { return ['number', 'currency', 'percent'] },
+		formatOptions() {
+			return ['number', 'currency', 'percent']
+		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {
@@ -203,6 +221,7 @@ export default {
 					field: this.field,
 					filter: rowsToFilter(this.filterRows),
 				},
+
 				target: {
 					kind: this.targetKind,
 					value: this.targetValue,
@@ -210,6 +229,7 @@ export default {
 					field: this.targetField,
 					filter: rowsToFilter(this.filterRows),
 				},
+
 				thresholds: { warn: this.warn, danger: this.danger, invert: this.invert },
 			}
 		},
@@ -230,6 +250,7 @@ export default {
 		async loadFields() {
 			this.availableFields = await fetchSchemaProperties(this.source.register, this.source.schema)
 		},
+
 		/**
 		 * Set a top-level field and emit.
 		 *
@@ -239,7 +260,11 @@ export default {
 		 *   otherwise a string.
 		 * @return {void}
 		 */
-		updateField(field, value) { this[field] = value; this.emitChange() },
+		updateField(field, value) {
+			this[field] = value
+			this.emitChange()
+		},
+
 		/**
 		 * Set a source sub-field and emit.
 		 *
@@ -247,7 +272,11 @@ export default {
 		 * @param {string} value The chosen register or schema slug.
 		 * @return {void}
 		 */
-		updateSource(field, value) { this.source[field] = value; this.emitChange() },
+		updateSource(field, value) {
+			this.source[field] = value
+			this.emitChange()
+		},
+
 		/**
 		 * Receive updated filter rows.
 		 *
@@ -256,11 +285,19 @@ export default {
 		 *   target aggregates.
 		 * @return {void}
 		 */
-		onFilterRows(rows) { this.filterRows = rows; this.emitChange() },
+		onFilterRows(rows) {
+			this.filterRows = rows
+			this.emitChange()
+		},
+
 		/** Emit the assembled content. */
-		emitChange() { this.$emit('update:content', this.assembledContent) },
+		emitChange() {
+			this.$emit('update:content', this.assembledContent)
+		},
+
 		/**
 		 * Validate the form; an empty array means valid.
+		 *
 		 * @return {string[]} the validation errors.
 		 */
 		validate() {

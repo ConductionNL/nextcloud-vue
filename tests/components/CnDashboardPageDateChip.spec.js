@@ -24,7 +24,7 @@
  * stylesheet actually installed rather than against a copied-out constant.
  */
 
-import { readFileSync, readdirSync } from 'fs'
+import { readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 
 const ASSETS = join(__dirname, '../../node_modules/@nextcloud/vue/dist/assets')

@@ -16,12 +16,12 @@
 		<template v-else>
 			<NcSelect v-if="surfaceOptions.length > 1"
 				class="cn-edit-actions__surface"
-				:model-value="selectedSurface"
+				:modelValue="selectedSurface"
 				:options="surfaceOptions"
 				:clearable="false"
 				label="label"
-				:input-label="t('nextcloud-vue', 'Where these actions appear')"
-				@update:model-value="setSurface" />
+				:inputLabel="t('nextcloud-vue', 'Where these actions appear')"
+				@update:modelValue="setSurface" />
 			<p class="cn-edit-actions__hint">
 				{{ surfaceHint }}
 			</p>
@@ -45,7 +45,7 @@
 						<NcTextField
 							v-model="action.label"
 							:label="t('nextcloud-vue', 'Label')"
-							:label-visible="true" />
+							:labelVisible="true" />
 						<CnIconBrowser
 							:value="action.icon || null"
 							:label="t('nextcloud-vue', 'Icon')"
@@ -54,12 +54,12 @@
 						<NcSelect
 							v-model="action.type"
 							:options="actionTypes"
-							:input-label="t('nextcloud-vue', 'Type')"
+							:inputLabel="t('nextcloud-vue', 'Type')"
 							:clearable="false" />
 						<NcTextField
 							v-model="action.target"
 							:label="targetLabel(action)"
-							:label-visible="true" />
+							:labelVisible="true" />
 					</div>
 					<div class="cn-edit-actions__row-actions">
 						<NcButton variant="tertiary"
@@ -107,12 +107,13 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcTextField, NcSelect, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
-import Plus from 'vue-material-design-icons/Plus.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
-import ArrowUp from 'vue-material-design-icons/ArrowUp.vue'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import ArrowDown from 'vue-material-design-icons/ArrowDown.vue'
+import ArrowUp from 'vue-material-design-icons/ArrowUp.vue'
+import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
@@ -121,7 +122,7 @@ const ACTION_TYPES = ['open-page', 'navigate', 'open-modal', 'handler']
 export default {
 	name: 'CnEditActionsModal',
 
-	components: { NcDialog, NcButton, NcTextField, NcSelect, NcEmptyContent, NcLoadingIcon, NcNoteCard, CnIconBrowser, Plus, Delete, ArrowUp, ArrowDown },
+	components: { NcDialog, NcButton, NcTextField, NcSelect, NcEmptyContent, NcLoadingIcon, NcNoteCard, CnIconBrowser, Plus, Delete, ArrowUp, ArrowDown, ContentSaveOutline },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -135,6 +136,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * The active page's id; selects which page's actions to edit.
 		 *
@@ -160,15 +162,18 @@ export default {
 		actionTypes() {
 			return ACTION_TYPES
 		},
+
 		/** The active page object from the working manifest, or null. */
 		page() {
 			const pages = this.working && Array.isArray(this.working.pages) ? this.working.pages : []
 			return pages.find((p) => p && p.id === this.pageId) ?? pages[0] ?? null
 		},
+
 		/** Whether the active page is an index page — the only type with rows. */
 		isIndexPage() {
 			return this.page?.type === 'index'
 		},
+
 		/**
 		 * The surfaces this page type can actually render. `headerActions` is
 		 * the page's Actions menu and is read by the dashboard, index and
@@ -177,38 +182,52 @@ export default {
 		 */
 		surfaceOptions() {
 			const options = [{ id: 'headerActions', label: t('nextcloud-vue', 'Page actions menu') }]
-			if (this.isIndexPage) options.push({ id: 'actions', label: t('nextcloud-vue', 'Row actions') })
+			if (this.isIndexPage) {
+				options.push({ id: 'actions', label: t('nextcloud-vue', 'Row actions') })
+			}
 			return options
 		},
+
 		/** The surface being edited, as a select option. */
 		selectedSurface() {
 			return this.surfaceOptions.find((o) => o.id === this.surface) || this.surfaceOptions[0]
 		},
+
 		/** What the surface being edited renders as, for the empty-state hint. */
 		surfaceHint() {
 			return this.surface === 'actions'
 				? t('nextcloud-vue', 'Shown in the ⋯ menu on every row.')
 				: t('nextcloud-vue', 'Shown in the Actions menu in the page header.')
 		},
+
 		/** The edited surface's array on the working page (ensured to exist). */
 		actions() {
-			if (!this.page) return []
+			if (!this.page) {
+				return []
+			}
 			// Normalise the working page in place so the editor can bind to it —
 			// the working manifest is ours to mutate by design (see CnEditPagesModal).
-			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!this.page.config || typeof this.page.config !== 'object') this.page.config = {}
+			if (!this.page.config || typeof this.page.config !== 'object') {
+				// eslint-disable-next-line vue/no-side-effects-in-computed-properties
+				this.page.config = {}
+			}
 			const key = this.selectedSurface.id
-			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
-			if (!Array.isArray(this.page.config[key])) this.page.config[key] = []
+			if (!Array.isArray(this.page.config[key])) {
+				// eslint-disable-next-line vue/no-side-effects-in-computed-properties
+				this.page.config[key] = []
+			}
 			return this.page.config[key]
 		},
+
 		/**
 		 * Actions stored under `config.actions` on a page type that renders no
 		 * rows, so nothing reads them. They were written here by this modal
 		 * before it knew the difference.
 		 */
 		strandedActions() {
-			if (this.isIndexPage) return []
+			if (this.isIndexPage) {
+				return []
+			}
 			const stored = this.page?.config?.actions
 			return Array.isArray(stored) ? stored : []
 		},
@@ -226,12 +245,13 @@ export default {
 		 */
 		targetLabel(action) {
 			switch (action.type) {
-			case 'open-page': return t('nextcloud-vue', 'Target page id')
-			case 'navigate': return t('nextcloud-vue', 'URL or route')
-			case 'open-modal': return t('nextcloud-vue', 'Modal key')
-			default: return t('nextcloud-vue', 'Handler name')
+				case 'open-page': return t('nextcloud-vue', 'Target page id')
+				case 'navigate': return t('nextcloud-vue', 'URL or route')
+				case 'open-modal': return t('nextcloud-vue', 'Modal key')
+				default: return t('nextcloud-vue', 'Handler name')
 			}
 		},
+
 		/**
 		 * Switch the surface being edited.
 		 *
@@ -241,6 +261,7 @@ export default {
 		setSurface(option) {
 			this.surface = option ? option.id : 'headerActions'
 		},
+
 		/**
 		 * Move actions stranded under `config.actions` into the page's Actions
 		 * menu, where this page type can render them.
@@ -249,11 +270,14 @@ export default {
 		 */
 		adoptStranded() {
 			const stranded = this.strandedActions
-			if (!stranded.length) return
+			if (!stranded.length) {
+				return
+			}
 			this.surface = 'headerActions'
 			this.actions.push(...stranded)
 			delete this.page.config.actions
 		},
+
 		/**
 		 * Set an action's icon from the icon browser, which emits `null` on clear
 		 * while the manifest stores an absent icon as `''`.
@@ -265,10 +289,12 @@ export default {
 		setIcon(action, value) {
 			action.icon = value || ''
 		},
+
 		/** Append a new blank action to the working page. */
 		add() {
 			this.actions.push({ id: `action-${this.actions.length + 1}`, label: '', icon: '', type: 'open-page', target: '' })
 		},
+
 		/**
 		 * Remove the action at `index`.
 		 *
@@ -278,6 +304,7 @@ export default {
 		remove(index) {
 			this.actions.splice(index, 1)
 		},
+
 		/**
 		 * Move the action at `index` by `delta` positions (reorder).
 		 *
@@ -288,7 +315,9 @@ export default {
 		 */
 		move(index, delta) {
 			const to = index + delta
-			if (to < 0 || to >= this.actions.length) return
+			if (to < 0 || to >= this.actions.length) {
+				return
+			}
 			const [item] = this.actions.splice(index, 1)
 			this.actions.splice(to, 0, item)
 		},

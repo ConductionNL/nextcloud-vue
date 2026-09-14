@@ -24,7 +24,7 @@
 // would have been a silent no-op — it is already the default. Checking the built
 // bundle is what caught it, so this spec asserts behaviour rather than props.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const HARNESS = '/?selz=1'
 
@@ -82,7 +82,9 @@ test.describe('NcSelect inside a dialog', () => {
 		await page.goto('/?selz=1&nodialog=1')
 		await page.evaluate(() => {
 			// Drop the mask so the select is on a bare page; nothing else changes.
-			document.querySelectorAll('.modal-mask').forEach((m) => { m.style.zIndex = '0' })
+			document.querySelectorAll('.modal-mask').forEach((m) => {
+				m.style.zIndex = '0'
+			})
 		})
 		await page.locator('.vs__dropdown-toggle').click()
 		await page.getByRole('option', { name: 'Cherry' }).click({ timeout: 5000 })

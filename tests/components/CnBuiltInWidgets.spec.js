@@ -8,8 +8,7 @@
  * - card-grid: resolves; renders CnObjectCard per object
  */
 
-import { shallowMount, mount } from '@vue/test-utils'
-
+import { mount, shallowMount } from '@vue/test-utils'
 // We test the built-in registry directly
 const { BUILT_IN_WIDGETS } = require('../../src/components/CnWidgetGrid/builtInWidgets.js')
 

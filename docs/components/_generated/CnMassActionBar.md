@@ -27,6 +27,6 @@
 
 ### Slots
 
-| Name      | Bindings                | Description                                                                                |
-| --------- | ----------------------- | ------------------------------------------------------------------------------------------ |
-| `actions` | `count`, `selected-ids` | actions Additional app-specific mass-action buttons. Slot scope: `{ count, selectedIds }`. |
+| Name      | Bindings               | Description                                                                                |
+| --------- | ---------------------- | ------------------------------------------------------------------------------------------ |
+| `actions` | `count`, `selectedIds` | actions Additional app-specific mass-action buttons. Slot scope: `{ count, selectedIds }`. |

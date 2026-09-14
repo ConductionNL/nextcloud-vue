@@ -37,7 +37,7 @@ import { translate as ncTranslate } from '@nextcloud/l10n'
  * Whether `required` passes for the given field type + value.
  *
  * @param {string} type `field.type`.
- * @param {*} value Current value.
+ * @param {unknown} value Current value.
  * @return {boolean} True when the required constraint is satisfied.
  */
 function passesRequired(type, value) {
@@ -68,11 +68,13 @@ function passesRequired(type, value) {
  * presence.
  *
  * @param {string} type `field.type`.
- * @param {*} value Current value.
+ * @param {unknown} value Current value.
  * @return {boolean}
  */
 function isEmptyValue(type, value) {
-	if (type === 'number') return value === null || value === undefined || value === ''
+	if (type === 'number') {
+		return value === null || value === undefined || value === ''
+	}
 	return value === null || value === undefined || (typeof value === 'string' && value.trim().length === 0)
 }
 
@@ -80,16 +82,20 @@ function isEmptyValue(type, value) {
  * Validate a single field's current value against its `validation` shape.
  *
  * @param {object} field The formField shape (`{ key, type, validation? }`).
- * @param {*} value The current field value.
- * @param {Function} [translate] Optional single-arg translator applied to
+ * @param {unknown} value The current field value.
+ * @param {(message: string) => string} [translate] Optional single-arg translator applied to
  *   `validation.message` (mirrors how `field.label` is resolved by the
  *   page's `translate` prop). Defaults to identity.
  * @return {string|null} The failure message, or `null` when the value is valid.
  */
 export function validateFieldValue(field, value, translate) {
-	if (!field || typeof field !== 'object') return null
+	if (!field || typeof field !== 'object') {
+		return null
+	}
 	const validation = field.validation
-	if (!validation || typeof validation !== 'object') return null
+	if (!validation || typeof validation !== 'object') {
+		return null
+	}
 
 	const type = field.type
 	const tr = typeof translate === 'function' ? translate : (key) => key
@@ -113,14 +119,24 @@ export function validateFieldValue(field, value, translate) {
 			const belowMin = hasMin && measured < validation.min
 			const aboveMax = hasMax && measured > validation.max
 			if (belowMin || aboveMax) {
-				if (customMessage) return customMessage
+				if (customMessage) {
+					return customMessage
+				}
 				if (type === 'number') {
-					if (hasMin && hasMax) return ncTranslate('nextcloud-vue', 'Must be between {min} and {max}', { min: validation.min, max: validation.max })
-					if (belowMin) return ncTranslate('nextcloud-vue', 'Must be at least {min}', { min: validation.min })
+					if (hasMin && hasMax) {
+						return ncTranslate('nextcloud-vue', 'Must be between {min} and {max}', { min: validation.min, max: validation.max })
+					}
+					if (belowMin) {
+						return ncTranslate('nextcloud-vue', 'Must be at least {min}', { min: validation.min })
+					}
 					return ncTranslate('nextcloud-vue', 'Must be at most {max}', { max: validation.max })
 				}
-				if (hasMin && hasMax) return ncTranslate('nextcloud-vue', 'Must be between {min} and {max} characters', { min: validation.min, max: validation.max })
-				if (belowMin) return ncTranslate('nextcloud-vue', 'Must be at least {min} characters', { min: validation.min })
+				if (hasMin && hasMax) {
+					return ncTranslate('nextcloud-vue', 'Must be between {min} and {max} characters', { min: validation.min, max: validation.max })
+				}
+				if (belowMin) {
+					return ncTranslate('nextcloud-vue', 'Must be at least {min} characters', { min: validation.min })
+				}
 				return ncTranslate('nextcloud-vue', 'Must be at most {max} characters', { max: validation.max })
 			}
 		}
@@ -128,10 +144,10 @@ export function validateFieldValue(field, value, translate) {
 
 	// 3. pattern — string/password only.
 	if ((type === 'string' || type === 'password') && typeof validation.pattern === 'string' && !isEmptyValue(type, value)) {
-		let matches = true
+		let matches
 		try {
 			matches = new RegExp(validation.pattern).test(String(value))
-		} catch (e) {
+		} catch {
 			// An uncompilable pattern is a schema-authoring error caught by
 			// validateManifestV2() post-schema — never block the end user here.
 			matches = true

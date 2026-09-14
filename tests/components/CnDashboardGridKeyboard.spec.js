@@ -18,10 +18,12 @@
 import { mount } from '@vue/test-utils'
 import CnDashboardGrid from '@/components/CnDashboardGrid/CnDashboardGrid.vue'
 
-const layout = () => [
-	{ id: 'a', title: 'Open tickets', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 2 },
-	{ id: 'b', title: 'Revenue', gridX: 4, gridY: 0, gridWidth: 4, gridHeight: 2 },
-]
+function layout() {
+	return [
+		{ id: 'a', title: 'Open tickets', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 2 },
+		{ id: 'b', title: 'Revenue', gridX: 4, gridY: 0, gridWidth: 4, gridHeight: 2 },
+	]
+}
 
 /**
  * Mount the grid with a slot child so "focus is inside the widget" cases
@@ -30,14 +32,16 @@ const layout = () => [
  * @param {object} [props] Extra props merged over the defaults.
  * @return {object} The Vue Test Utils wrapper.
  */
-const mountGrid = (props = {}) => mount(CnDashboardGrid, {
-	propsData: { layout: layout(), editable: true, columns: 12, minWidth: 2, minHeight: 2, ...props },
-	slots: {
-		widget: '<div class="slot-root"><button class="inner">go</button></div>',
-	},
-})
+function mountGrid(props = {}) {
+	return mount(CnDashboardGrid, {
+		propsData: { layout: layout(), editable: true, columns: 12, minWidth: 2, minHeight: 2, ...props },
+		slots: {
+			widget: '<div class="slot-root"><button class="inner">go</button></div>',
+		},
+	})
+}
 
-const items = wrapper => wrapper.findAll('.grid-stack-item')
+const items = (wrapper) => wrapper.findAll('.grid-stack-item')
 
 describe('CnDashboardGrid — grid items are named, focusable groups', () => {
 	it('exposes role=group, tabindex=0 and an accessible name in edit mode', () => {
@@ -95,7 +99,7 @@ describe('CnDashboardGrid — grid items are named, focusable groups', () => {
 				],
 			},
 		})
-		const labels = [0, 1, 2].map(i => items(wrapper).at(i).attributes('aria-label'))
+		const labels = [0, 1, 2].map((i) => items(wrapper).at(i).attributes('aria-label'))
 
 		expect(labels[0]).toContain('Named')
 		expect(labels[1]).toContain('weather')
@@ -103,7 +107,7 @@ describe('CnDashboardGrid — grid items are named, focusable groups', () => {
 	})
 
 	it('uses a custom itemLabel verbatim', () => {
-		const wrapper = mountGrid({ itemLabel: item => `Card ${item.id}` })
+		const wrapper = mountGrid({ itemLabel: (item) => `Card ${item.id}` })
 		expect(items(wrapper).at(0).attributes('aria-label')).toBe('Card a')
 	})
 })
@@ -252,7 +256,7 @@ describe('CnDashboardGrid — keyboard activation', () => {
 	it('dispatches a bubbling contextmenu from inside the item so pointer menus become keyboard-reachable', async () => {
 		const wrapper = mountGrid()
 		const seen = []
-		wrapper.find('.slot-root').element.addEventListener('contextmenu', e => seen.push(e))
+		wrapper.find('.slot-root').element.addEventListener('contextmenu', (e) => seen.push(e))
 
 		await items(wrapper).at(0).trigger('keydown', { key: 'Enter' })
 
@@ -264,7 +268,7 @@ describe('CnDashboardGrid — keyboard activation', () => {
 	it('skips the synthetic contextmenu when activateOpensContextMenu is false', async () => {
 		const wrapper = mountGrid({ activateOpensContextMenu: false })
 		const seen = []
-		wrapper.find('.slot-root').element.addEventListener('contextmenu', e => seen.push(e))
+		wrapper.find('.slot-root').element.addEventListener('contextmenu', (e) => seen.push(e))
 
 		await items(wrapper).at(0).trigger('keydown', { key: 'Enter' })
 

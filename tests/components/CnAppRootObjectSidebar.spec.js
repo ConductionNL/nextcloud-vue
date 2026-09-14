@@ -126,9 +126,13 @@ describe('CnAppRoot — CnObjectSidebar auto-mount', () => {
 		}
 		const Parent = {
 			components: { CnAppRoot },
-			provide() { return { objectSidebarState: ancestorState } },
+			provide() {
+				return { objectSidebarState: ancestorState }
+			},
 			template: '<CnAppRoot :manifest="manifest" :requires-apps="[]" />',
-			data() { return { manifest } },
+			data() {
+				return { manifest }
+			},
 		}
 		const wrapper = shallowMount(Parent, {
 			stubs: { CnObjectSidebar: true, CnAppNav: true, CnAiCompanion: true, NcContent: { template: '<div><slot/></div>' }, NcAppContent: { template: '<div><slot/></div>' } },
@@ -159,9 +163,13 @@ describe('CnAppRoot — CnObjectSidebar auto-mount', () => {
 		}
 		const Parent = {
 			components: { CnAppRoot },
-			provide() { return { objectSidebarState: ancestorState } },
+			provide() {
+				return { objectSidebarState: ancestorState }
+			},
 			template: '<CnAppRoot :manifest="manifest" :requires-apps="[]" />',
-			data() { return { manifest } },
+			data() {
+				return { manifest }
+			},
 		}
 		const wrapper = shallowMount(Parent, {
 			stubs: { CnObjectSidebar: true, CnAppNav: true, CnAiCompanion: true, NcContent: { template: '<div><slot/></div>' }, NcAppContent: { template: '<div><slot/></div>' } },

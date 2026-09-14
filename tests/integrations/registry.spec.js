@@ -115,7 +115,9 @@ describe('createIntegrationRegistry', () => {
 	it('isolates subscribers that throw', () => {
 		const reg = createIntegrationRegistry()
 		const good = jest.fn()
-		reg.onChange(() => { throw new Error('boom') })
+		reg.onChange(() => {
+			throw new Error('boom')
+		})
 		reg.onChange(good)
 		// Suppress the dev-mode console.error from the throwing subscriber.
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})

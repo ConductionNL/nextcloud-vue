@@ -9,12 +9,12 @@
  */
 
 import {
+	buildBugReportUrl,
+	buildFeatureRequestUrl,
 	DEFAULT_FORGE,
 	FORGE_DEFAULT_BASE_URLS,
-	resolveForge,
 	forgeDisplayName,
-	buildFeatureRequestUrl,
-	buildBugReportUrl,
+	resolveForge,
 } from '../../src/utils/forge.js'
 
 const payload = {
@@ -163,7 +163,8 @@ describe('buildBugReportUrl', () => {
 	// translated prop.
 	it('falls back to the surface slug, not the display title', () => {
 		const u = new URL(buildBugReportUrl({ type: 'github' }, 'ConductionNL/keepiq', {
-			surface: 'dashboard:secrets', displayTitle: 'Секреты',
+			surface: 'dashboard:secrets',
+			displayTitle: 'Секреты',
 		}))
 		expect(u.searchParams.get('title')).toBe('[BUG] dashboard:secrets')
 		expect(u.searchParams.get('title')).not.toContain('Секреты')
@@ -178,7 +179,8 @@ describe('buildBugReportUrl', () => {
 	// the prefill then had to re-state verbatim just to break even.
 	it('prefills nothing beyond the template and the title', () => {
 		const u = new URL(buildBugReportUrl({ type: 'github' }, 'ConductionNL/keepiq', {
-			title: 'Recent activity', surface: 'widget:recent-activity-feed',
+			title: 'Recent activity',
+			surface: 'widget:recent-activity-feed',
 		}))
 		expect([...u.searchParams.keys()].sort()).toEqual(['template', 'title'])
 		expect(u.searchParams.has('environment')).toBe(false)
@@ -186,7 +188,8 @@ describe('buildBugReportUrl', () => {
 
 	it('stays short enough to read in an address bar', () => {
 		const url = buildBugReportUrl({ type: 'github' }, 'ConductionNL/keepiq', {
-			title: 'Applications awaiting approval', surface: 'widget:pending-apps-queue',
+			title: 'Applications awaiting approval',
+			surface: 'widget:pending-apps-queue',
 		})
 		expect(url.length).toBeLessThan(150)
 	})

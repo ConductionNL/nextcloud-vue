@@ -43,8 +43,8 @@ jest.mock('../../src/store/index.js', () => ({
 	createObjectStore: () => () => mockStore,
 }))
 
-const { mountAttached } = require('./support/mountAttached.js')
 const { expectAccessible } = require('../../src/testing/a11y.js')
+const { mountAttached } = require('./support/mountAttached.js')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
 
 const schema = { title: 'Item', properties: { name: { type: 'string', title: 'Name' } } }

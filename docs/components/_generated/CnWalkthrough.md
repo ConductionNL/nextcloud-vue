@@ -29,6 +29,6 @@
 
 ### Slots
 
-| Name        | Bindings                                         | Description                                                                                     |
-| ----------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| `coachmark` | `step`, `index`, `total`, `next`, `back`, `skip` | coachmark Override the whole coachmark body. Scope: \{ step, index, total, next, back, skip \}. |
+| Name        | Bindings                                                      | Description                                                                                                |
+| ----------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `coachmark` | `step`, `index`, `total`, `next`, `back`, `skip`, `skipLabel` | coachmark Override the whole coachmark body. Scope: \{ step, index, total, next, back, skip, skipLabel \}. |

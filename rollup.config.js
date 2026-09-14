@@ -1,11 +1,11 @@
-import vue from 'rollup-plugin-vue'
-import postcss from 'rollup-plugin-postcss'
-import postcssImport from 'postcss-import'
-import { nodeResolve } from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
 import json from '@rollup/plugin-json'
-import path from 'path'
+import { nodeResolve } from '@rollup/plugin-node-resolve'
 import fs from 'fs'
+import path from 'path'
+import postcssImport from 'postcss-import'
+import postcss from 'rollup-plugin-postcss'
+import vue from 'rollup-plugin-vue'
 import { fileURLToPath } from 'url'
 import { isSingletonExternal } from './rollup.singleton-externals.mjs'
 
@@ -98,6 +98,7 @@ function copyLeafletImages() {
 
 /**
  * Unwrap a `:deep( … )` token, honouring nested parens (e.g. `:deep(.x:not(.y))`).
+ *
  * @param {string} selector A CSS selector (or selector list) string.
  * @return {string} The selector with every `:deep(X)` replaced by `X`.
  */
@@ -110,8 +111,12 @@ function unwrapDeepSelector(selector) {
 			let inner = ''
 			while (i < selector.length && depth > 0) {
 				const ch = selector[i]
-				if (ch === '(') depth++
-				else if (ch === ')' && --depth === 0) { i++; break }
+				if (ch === '(') {
+					depth++
+				} else if (ch === ')' && --depth === 0) {
+					i++
+					break
+				}
 				inner += ch
 				i++
 			}
@@ -134,14 +139,16 @@ function unwrapDeepSelector(selector) {
  * Since the outer compound is already scoped, unwrapping `:deep(.btn)` → `.btn`
  * yields the correct `… [data-v-*] .btn` descendant selector.
  */
-const unwrapVueDeep = () => ({
-	postcssPlugin: 'unwrap-vue-deep',
-	Rule(rule) {
-		if (rule.selector.includes(':deep(')) {
-			rule.selector = unwrapDeepSelector(rule.selector)
-		}
-	},
-})
+function unwrapVueDeep() {
+	return {
+		postcssPlugin: 'unwrap-vue-deep',
+		Rule(rule) {
+			if (rule.selector.includes(':deep(')) {
+				rule.selector = unwrapDeepSelector(rule.selector)
+			}
+		},
+	}
+}
 unwrapVueDeep.postcss = true
 
 /**

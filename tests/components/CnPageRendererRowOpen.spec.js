@@ -60,7 +60,7 @@ describe('CnPageRenderer.onRowOpen', () => {
 	})
 
 	it('no-ops when no matching detail page exists', () => {
-		const noDetail = { ...manifest, pages: manifest.pages.filter(p => p.type !== 'detail') }
+		const noDetail = { ...manifest, pages: manifest.pages.filter((p) => p.type !== 'detail') }
 		const { wrapper, push } = mountAt('Meetings', noDetail)
 		wrapper.vm.onRowOpen({ id: 'abc-123' })
 		expect(push).not.toHaveBeenCalled()
@@ -72,7 +72,7 @@ describe('CnPageRenderer.onRowOpen', () => {
 	})
 
 	it('resolvedProps omits rowClickToView when no matching detail page exists', () => {
-		const noDetail = { ...manifest, pages: manifest.pages.filter(p => p.type !== 'detail') }
+		const noDetail = { ...manifest, pages: manifest.pages.filter((p) => p.type !== 'detail') }
 		const { wrapper } = mountAt('Meetings', noDetail)
 		expect(wrapper.vm.resolvedProps.rowClickToView).toBeUndefined()
 	})

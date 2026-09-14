@@ -10,8 +10,8 @@
  */
 
 import { mount } from '@vue/test-utils'
-import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 import CnActionButtons from '../../src/components/CnActionButtons/CnActionButtons.vue'
+import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
 const ACTIONS = [
 	{ id: 'add-party', type: 'open-form', label: 'Add party', icon: 'AccountPlusOutline', register: 'r', schema: 'role' },

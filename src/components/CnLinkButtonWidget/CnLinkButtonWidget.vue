@@ -148,6 +148,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Whether the current user is an admin. Combined with `canEdit` to
 		 * suppress click handlers in edit mode.
@@ -158,6 +159,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Whether the surrounding dashboard shell is in edit mode. Suppresses
 		 * click handlers when both this and `isAdmin` are true.
@@ -394,17 +396,17 @@ export default {
 		 */
 		dispatchAction({ actionType, url, value }) {
 			switch (actionType) {
-			case ACTION_TYPES.EXTERNAL:
-				this.handleExternal(url)
-				break
-			case ACTION_TYPES.INTERNAL:
-				this.$emit('internal-action', url)
-				break
-			case ACTION_TYPES.CREATE_FILE:
+				case ACTION_TYPES.EXTERNAL:
+					this.handleExternal(url)
+					break
+				case ACTION_TYPES.INTERNAL:
+					this.$emit('internal-action', url)
+					break
+				case ACTION_TYPES.CREATE_FILE:
 				// For list items the extension lives in `value`; for the
 				// single button it lives in `url`.
-				this.$emit('create-file', value !== '' ? value : url)
-				break
+					this.$emit('create-file', value !== '' ? value : url)
+					break
 			}
 		},
 

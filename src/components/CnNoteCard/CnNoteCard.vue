@@ -45,12 +45,14 @@ export default {
 	components: {
 		NcIconSvgWrapper,
 	},
+
 	props: {
 		/** Optional text to show as a heading of the note card */
 		heading: {
 			type: String,
 			default: undefined,
 		},
+
 		/**
 		 * Enforce the `alert` role on the note card.
 		 *
@@ -62,34 +64,37 @@ export default {
 			type: Boolean,
 			default: undefined,
 		},
+
 		/** The message text of the note card */
 		text: {
 			type: String,
 			default: undefined,
 		},
+
 		/** Type or severity of the message */
 		type: {
 			type: String,
 			default: 'warning',
-			validator: (value) =>
-				['success', 'info', 'warning', 'error'].includes(value),
+			validator: (value) => ['success', 'info', 'warning', 'error'].includes(value),
 		},
 	},
+
 	computed: {
 		shouldShowAlert() {
 			return this.showAlert || this.type === 'error'
 		},
+
 		iconPath() {
 			switch (this.type) {
-			case 'error':
-				return mdiAlertDecagram
-			case 'success':
-				return mdiCheckboxMarkedCircle
-			case 'info':
-				return mdiInformation
-			case 'warning':
-			default:
-				return mdiAlert
+				case 'error':
+					return mdiAlertDecagram
+				case 'success':
+					return mdiCheckboxMarkedCircle
+				case 'info':
+					return mdiInformation
+				case 'warning':
+				default:
+					return mdiAlert
 			}
 		},
 	},

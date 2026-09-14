@@ -1,6 +1,6 @@
 <template>
 	<div class="cn-advanced-form-dialog__json-editor">
-		<div :class="['cn-advanced-form-dialog__codemirror-container', dark ? 'cn-advanced-form-dialog__codemirror-container--dark' : 'cn-advanced-form-dialog__codemirror-container--light']">
+		<div class="cn-advanced-form-dialog__codemirror-container" :class="[dark ? 'cn-advanced-form-dialog__codemirror-container--dark' : 'cn-advanced-form-dialog__codemirror-container--light']">
 			<CodeMirror
 				v-model="localValue"
 				:basic="true"
@@ -9,7 +9,7 @@
 				:linter="jsonLinterExtension"
 				:lang="jsonLangExtension"
 				:extensions="[jsonLangExtension]"
-				:tab-size="2"
+				:tabSize="2"
 				style="height: 400px" />
 			<NcButton
 				class="cn-advanced-form-dialog__format-btn"
@@ -26,9 +26,9 @@
 </template>
 
 <script>
+import { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
 import { NcButton } from '@nextcloud/vue'
 import CodeMirror from 'vue-codemirror6'
-import { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
 
 export default {
 	name: 'CnDataTab',
@@ -56,8 +56,13 @@ export default {
 
 	computed: {
 		localValue: {
-			get() { return this.value },
-			set(v) { this.$emit('update:value', v) },
+			get() {
+				return this.value
+			},
+
+			set(v) {
+				this.$emit('update:value', v)
+			},
 		},
 	},
 
@@ -75,7 +80,9 @@ export default {
 		},
 
 		isValidJson(str) {
-			if (!str || !str.trim()) return false
+			if (!str || !str.trim()) {
+				return false
+			}
 			try {
 				JSON.parse(str)
 				return true

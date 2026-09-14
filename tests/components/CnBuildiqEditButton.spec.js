@@ -8,7 +8,7 @@
  * - Edit data opens the data editor WITHOUT entering manifest edit mode
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { ref } from 'vue'
 import CnBuildiqEditButton from '../../src/components/CnBuildiqEditButton/CnBuildiqEditButton.vue'
 
@@ -29,9 +29,15 @@ function makeEditor(editing = false, pages = []) {
 		editing: editingRef,
 		working: workingRef,
 		dirty: ref(false),
-		enter: jest.fn(() => { editingRef.value = true; workingRef.value = { menu: [], pages } }),
+		enter: jest.fn(() => {
+			editingRef.value = true
+			workingRef.value = { menu: [], pages }
+		}),
 		save: jest.fn().mockResolvedValue({ pages: [] }),
-		cancel: jest.fn(() => { editingRef.value = false; workingRef.value = null }),
+		cancel: jest.fn(() => {
+			editingRef.value = false
+			workingRef.value = null
+		}),
 	}
 }
 
@@ -90,14 +96,15 @@ describe('CnBuildiqEditButton', () => {
 	it('shows a saving state while the async save is in flight, then clears it', async () => {
 		let resolveSave
 		const editor = makeEditor(true)
-		editor.save = jest.fn(() => new Promise((resolve) => { resolveSave = resolve }))
+		editor.save = jest.fn(() => new Promise((resolve) => {
+			resolveSave = resolve
+		}))
 		const wrapper = mountButton({ editor })
 		btn(wrapper, 'Save page').trigger('click')
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.saving).toBe(true)
 		resolveSave({ pages: [] })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.vm.saving).toBe(false)
 		expect(wrapper.vm.menuOpen).toBe(false)
 	})

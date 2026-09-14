@@ -14,10 +14,10 @@
  */
 
 import {
-	BASE_URL_ENV_VARS,
-	resolveBaseUrl,
 	absoluteUrl,
+	BASE_URL_ENV_VARS,
 	baseUrlParts,
+	resolveBaseUrl,
 } from '../../testing/playwright.js'
 
 describe('resolveBaseUrl', () => {

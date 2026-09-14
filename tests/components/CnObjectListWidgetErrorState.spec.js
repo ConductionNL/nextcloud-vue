@@ -43,9 +43,7 @@ describe('CnObjectListWidget — error + empty copy', () => {
 	})
 
 	it('keeps the master-detail prompt on a dashboard (no object context)', () => {
-		const w = mountWidget(
-			{ content: { register: 'r', schema: 's', filter: { case: '@workspace.selected' } } },
-		)
+		const w = mountWidget({ content: { register: 'r', schema: 's', filter: { case: '@workspace.selected' } } })
 		expect(w.vm.promptText).toBe('Select an item to see related records')
 	})
 })

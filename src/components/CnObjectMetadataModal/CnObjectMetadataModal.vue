@@ -19,7 +19,7 @@
 		@update:open="onUpdateOpen">
 		<CnObjectMetadataWidget
 			title=""
-			:object-data="objectData"
+			:objectData="objectData"
 			:include="include"
 			:exclude="exclude" />
 	</NcDialog>
@@ -58,11 +58,13 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Dialog title. */
 		name: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Metadata'),
 		},
+
 		/**
 		 * The object whose metadata to display. Supports flat objects and
 		 * objects carrying a `@self` metadata block.
@@ -71,17 +73,21 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/**
 		 * Metadata fields to include (whitelist). When null, all available
 		 * fields are shown.
+		 *
 		 * @type {string[]|null}
 		 */
 		include: {
 			type: Array,
 			default: null,
 		},
+
 		/**
 		 * Metadata fields to exclude.
+		 *
 		 * @type {string[]}
 		 */
 		exclude: {
@@ -96,6 +102,7 @@ export default {
 		/**
 		 * Forward NcDialog's open-state change. Re-emits `update:open` for
 		 * `:open`-bound hosts and `close` for `v-if`-mounted hosts.
+		 *
 		 * @param {boolean} value - The new open state.
 		 */
 		onUpdateOpen(value) {

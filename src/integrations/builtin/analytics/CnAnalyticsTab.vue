@@ -97,7 +97,7 @@
 				:bold="true"
 				:href="reportUrl(report)"
 				target="_blank"
-				:force-display-actions="true">
+				:forceDisplayActions="true">
 				<template #icon>
 					<span class="cn-analytics-tab__row-icon">
 						<component :is="reportIcon(report)" :size="22" />
@@ -124,13 +124,13 @@
 					</span>
 				</template>
 				<template #actions>
-					<NcActionButton :close-after-click="true" @click="openReport(report)">
+					<NcActionButton :closeAfterClick="true" @click="openReport(report)">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
 						{{ t('nextcloud-vue', 'Open in Analytics') }}
 					</NcActionButton>
-					<NcActionButton :close-after-click="true" @click="unlinkReport(report)">
+					<NcActionButton :closeAfterClick="true" @click="unlinkReport(report)">
 						<template #icon>
 							<LinkOff :size="20" />
 						</template>
@@ -142,7 +142,7 @@
 
 		<CnAnalyticsReportPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 
@@ -167,9 +167,9 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import TableIcon from 'vue-material-design-icons/Table.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
-import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnAnalyticsReportCreate from '../../../components/CnAnalyticsReportCreate/CnAnalyticsReportCreate.vue'
 import CnAnalyticsReportPicker from '../../../components/CnAnalyticsReportPicker/CnAnalyticsReportPicker.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**
@@ -208,8 +208,10 @@ export default {
 	},
 
 	props: {
+		/* eslint-disable vue/no-unused-properties -- the integration dispatch binds integrationId on every integration component (see CnIntegrationWidgetGrid), so declaring it keeps it out of $attrs */
 		/** Stable integration id (forwarded from the registry — always `'analytics'`). */
 		integrationId: { type: String, default: 'analytics' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Parent object id. */
 		objectId: { type: String, required: true },
 		/** OpenRegister register id (slug or uuid). */
@@ -240,9 +242,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchReports() } } },
-		register() { this.fetchReports() },
-		schema() { this.fetchReports() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchReports()
+			}
+		} },
+
+		register() {
+			this.fetchReports()
+		},
+
+		schema() {
+			this.fetchReports()
+		},
 	},
 
 	methods: {
@@ -309,13 +321,13 @@ export default {
 		reportTypeLabel(report) {
 			const type = this.reportType(report)
 			switch (type) {
-			case 0: return t('nextcloud-vue', 'Group')
-			case 1: return t('nextcloud-vue', 'File')
-			case 2: return t('nextcloud-vue', 'Database')
-			case 3: return t('nextcloud-vue', 'Git')
-			case 4: return t('nextcloud-vue', 'External')
-			case 6: return t('nextcloud-vue', 'JSON')
-			default: return t('nextcloud-vue', 'Report')
+				case 0: return t('nextcloud-vue', 'Group')
+				case 1: return t('nextcloud-vue', 'File')
+				case 2: return t('nextcloud-vue', 'Database')
+				case 3: return t('nextcloud-vue', 'Git')
+				case 4: return t('nextcloud-vue', 'External')
+				case 6: return t('nextcloud-vue', 'JSON')
+				default: return t('nextcloud-vue', 'Report')
 			}
 		},
 
@@ -331,11 +343,11 @@ export default {
 		badgeVariant(report) {
 			const type = this.reportType(report)
 			switch (type) {
-			case 1: return 'primary'
-			case 2: return 'success'
-			case 4: return 'warning'
-			case 6: return 'info'
-			default: return 'default'
+				case 1: return 'primary'
+				case 2: return 'success'
+				case 4: return 'warning'
+				case 6: return 'info'
+				default: return 'default'
 			}
 		},
 
@@ -350,12 +362,12 @@ export default {
 		reportIcon(report) {
 			const type = this.reportType(report)
 			switch (type) {
-			case 1: return TableIcon
-			case 0: return ViewDashboard
-			case 2: return DatabaseOutline
-			case 4: return ChartLine
-			case 6: return ChartPie
-			default: return ChartBar
+				case 1: return TableIcon
+				case 0: return ViewDashboard
+				case 2: return DatabaseOutline
+				case 4: return ChartLine
+				case 6: return ChartPie
+				default: return ChartBar
 			}
 		},
 
@@ -376,7 +388,7 @@ export default {
 			if (Number.isFinite(num) && String(raw).trim() !== '') {
 				try {
 					return num.toLocaleString()
-				} catch (_) {
+				} catch {
 					return String(num)
 				}
 			}
@@ -417,7 +429,7 @@ export default {
 					return String(value)
 				}
 				return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
-			} catch (_) {
+			} catch {
 				return String(value)
 			}
 		},

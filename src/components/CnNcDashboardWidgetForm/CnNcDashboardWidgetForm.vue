@@ -88,6 +88,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Initial content values when not editing (registry defaults). */
 		value: {
 			type: Object,
@@ -120,8 +121,8 @@ export default {
 			const list = Array.isArray(this.widgetsCatalog)
 				? this.widgetsCatalog
 				: (this.widgetsCatalog && typeof this.widgetsCatalog === 'object'
-					? Object.values(this.widgetsCatalog)
-					: [])
+						? Object.values(this.widgetsCatalog)
+						: [])
 			return list
 				.filter((w) => w && typeof w.id === 'string' && w.id !== '')
 				.map((w) => ({
@@ -137,9 +138,7 @@ export default {
 			if (q === '') {
 				return this.widgetOptions
 			}
-			return this.widgetOptions.filter((w) =>
-				w.title.toLowerCase().includes(q) || w.id.toLowerCase().includes(q),
-			)
+			return this.widgetOptions.filter((w) => w.title.toLowerCase().includes(q) || w.id.toLowerCase().includes(q))
 		},
 
 		/** The content blob assembled from the current field values. */

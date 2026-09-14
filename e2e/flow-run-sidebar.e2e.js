@@ -21,7 +21,7 @@
 // The run is fetched for real over stubbed routes rather than written into the
 // store, because the defect was in what `inspectRun()` kept off that response.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const HARNESS = '/?runsidebar=1'
 

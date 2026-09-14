@@ -41,7 +41,7 @@
 				:label="t('nextcloud-vue', 'Search locations')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-map-poi-picker__search"
-				@update:model-value="onSearch" />
+				@update:modelValue="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent
@@ -137,7 +137,7 @@ export default {
 			if (term === '') {
 				return this.pois
 			}
-			return this.pois.filter(poi => (poi.name || '').toLowerCase().includes(term))
+			return this.pois.filter((poi) => (poi.name || '').toLowerCase().includes(term))
 		},
 	},
 

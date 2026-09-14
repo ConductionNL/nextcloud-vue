@@ -1,6 +1,7 @@
-import { expectType, expectAssignable } from 'tsd'
-import { createCrudStore } from '../src/store/createCrudStore'
-import type { BaseActions } from '../src/store/createCrudStore'
+import type { BaseActions } from '../src/store/createCrudStore.js'
+
+import { expectAssignable, expectType } from 'tsd'
+import { createCrudStore } from '../src/store/createCrudStore.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fixtures
@@ -12,7 +13,7 @@ class Source {
 	constructor(_d: any) { /* noop */ }
 }
 
-interface LogShape { id: number; message: string }
+interface LogShape { id: number, message: string }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Entity inference
@@ -30,7 +31,7 @@ expectType<Source[]>(source.list)
 
 // base actions typed
 expectType<(id: string | number) => Promise<Source>>(source.getOne)
-expectType<(item: Partial<Source>) => Promise<{ response: Response; data: Source }>>(source.save)
+expectType<(item: Partial<Source>) => Promise<{ response: Response, data: Source }>>(source.save)
 
 // deleteOne accepts both id and item
 expectAssignable<Parameters<typeof source.deleteOne>[0]>(1)
@@ -67,17 +68,27 @@ expectType<string>(useViewMode.getViewMode)
 expectType<(mode: string) => void>(useViewMode.setViewMode)
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Feature flags absent → feature-specific properties absent
-// Note: PluginActionContribution adds a string-index signature to MergedActions
-// so action names like setViewMode resolve to `any`-returning callables even
-// without the viewMode flag. The state properties (loading, viewMode) ARE
-// correctly absent when the flags are not set.
+// Feature flags absent → nothing is narrowed, which is not what we want
+//
+// `PluginActionContribution` puts a string-index signature on MergedActions, so
+// ANY name resolves to an `any`-returning callable on a store that never asked
+// for the feature. This section used to say the state properties were "correctly
+// absent" and asserted nothing, so the claim was never checked; it is false.
+// `useBare.viewMode` and `useBare.loading` both resolve, as callables.
+//
+// Pinned as it actually behaves rather than as we wish, so that narrowing the
+// index signature turns these two lines red on purpose. See issue #1112.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const useBare = createCrudStore('b', {
 	endpoint: 'x',
 	entity: Source,
 })()
+
+// Asserted, not merely asserted about: without the flags the two state
+// properties do not exist, and nothing here checked that until now.
+expectType<(...args: any[]) => any>(useBare.viewMode)
+expectType<(...args: any[]) => any>(useBare.loading)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // extend.state merges

@@ -15,7 +15,7 @@ describe('CnTalkRoomCreate', () => {
 	it('defaults to group type and excludes one2one', () => {
 		const wrapper = mount(CnTalkRoomCreate)
 		expect(wrapper.vm.selectedType.id).toBe(2)
-		const ids = wrapper.vm.typeOptions.map(o => o.id)
+		const ids = wrapper.vm.typeOptions.map((o) => o.id)
 		expect(ids).toEqual(expect.arrayContaining([2, 3]))
 		expect(ids).not.toContain(1)
 		wrapper.unmount()

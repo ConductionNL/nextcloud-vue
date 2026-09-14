@@ -7,8 +7,8 @@
  * avoid clobbering the library's existing quick-access `CnTileWidget`.
  */
 
-import CnDashTileWidget from './CnDashTileWidget.vue'
 import CnDashTileWidgetForm from '../CnDashTileWidgetForm/CnDashTileWidgetForm.vue'
+import CnDashTileWidget from './CnDashTileWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('tile', {

@@ -6,7 +6,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { ref, defineComponent, h } from 'vue'
+import { defineComponent, h, ref } from 'vue'
 import { useObjectSubscription } from '../../src/composables/useObjectSubscription.js'
 
 function makeStore() {
@@ -17,21 +17,23 @@ function makeStore() {
 	}
 }
 
-const Host = (composable) => defineComponent({
-	props: ['store', 'type', 'id', 'enabled'],
-	setup(props) {
-		composable(props)
-		return () => h('div')
-	},
-	render() { return h('div') },
-})
+function Host(composable) {
+	return defineComponent({
+		props: ['store', 'type', 'id', 'enabled'],
+		setup(props) {
+			composable(props)
+			return () => h('div')
+		},
+		render() {
+			return h('div')
+		},
+	})
+}
 
 describe('useObjectSubscription', () => {
 	test('subscribes on mount, unsubscribes on unmount', async () => {
 		const store = makeStore()
-		const Comp = Host((props) =>
-			useObjectSubscription(store, props.type, props.id),
-		)
+		const Comp = Host((props) => useObjectSubscription(store, props.type, props.id))
 		const w = mount(Comp, { propsData: { store, type: 'meeting', id: 'uuid-1' } })
 		await Promise.resolve()
 		await w.vm.$nextTick()
@@ -50,7 +52,9 @@ describe('useObjectSubscription', () => {
 				useObjectSubscription(store, 'meeting', idRef)
 				return () => h('div')
 			},
-			render() { return h('div') },
+			render() {
+				return h('div')
+			},
 		})
 		const w = mount(Comp)
 		await Promise.resolve()
@@ -74,7 +78,9 @@ describe('useObjectSubscription', () => {
 				useObjectSubscription(store, 'meeting', 'uuid-1', { enabled: false })
 				return () => h('div')
 			},
-			render() { return h('div') },
+			render() {
+				return h('div')
+			},
 		})
 		const w = mount(Comp)
 		await Promise.resolve()
@@ -91,7 +97,9 @@ describe('useObjectSubscription', () => {
 				useObjectSubscription(store, 'meeting', 'uuid-1', { enabled })
 				return () => h('div')
 			},
-			render() { return h('div') },
+			render() {
+				return h('div')
+			},
 		})
 		const w = mount(Comp)
 		await Promise.resolve()
@@ -119,7 +127,9 @@ describe('useObjectSubscription', () => {
 				)
 				return () => h('div')
 			},
-			render() { return h('div') },
+			render() {
+				return h('div')
+			},
 		})
 		const w = mount(Comp)
 		await Promise.resolve()
@@ -144,7 +154,9 @@ describe('useObjectSubscription', () => {
 				useObjectSubscription(store, 'meeting', 'uuid-1')
 				return () => h('div')
 			},
-			render() { return h('div') },
+			render() {
+				return h('div')
+			},
 		})
 		const w = mount(Comp)
 		await Promise.resolve()
@@ -161,7 +173,9 @@ describe('useObjectSubscription', () => {
 		let resolveSubscribe
 		const store = {
 			liveLastEventAt: null,
-			subscribe: jest.fn(() => new Promise((res) => { resolveSubscribe = res })),
+			subscribe: jest.fn(() => new Promise((res) => {
+				resolveSubscribe = res
+			})),
 			unsubscribe: jest.fn().mockResolvedValue(undefined),
 		}
 		const Comp = defineComponent({
@@ -169,7 +183,9 @@ describe('useObjectSubscription', () => {
 				useObjectSubscription(store, 'meeting', 'uuid-1')
 				return () => h('div')
 			},
-			render() { return h('div') },
+			render() {
+				return h('div')
+			},
 		})
 		const w = mount(Comp)
 		await w.vm.$nextTick()
@@ -191,7 +207,9 @@ describe('useObjectSubscription', () => {
 		const resolvers = []
 		const store = {
 			liveLastEventAt: null,
-			subscribe: jest.fn(() => new Promise((res) => { resolvers.push(res) })),
+			subscribe: jest.fn(() => new Promise((res) => {
+				resolvers.push(res)
+			})),
 			unsubscribe: jest.fn().mockResolvedValue(undefined),
 		}
 		const idRef = ref('uuid-1')
@@ -200,7 +218,9 @@ describe('useObjectSubscription', () => {
 				useObjectSubscription(store, 'meeting', idRef)
 				return () => h('div')
 			},
-			render() { return h('div') },
+			render() {
+				return h('div')
+			},
 		})
 		const w = mount(Comp)
 		await w.vm.$nextTick()

@@ -27,13 +27,13 @@
 		:title="chipTitle">
 		<NcAvatar
 			:size="28"
-			:display-name="(primaryContact && primaryContact.displayName) || unknownLabel"
+			:displayName="(primaryContact && primaryContact.displayName) || unknownLabel"
 			:user="avatarSeed(primaryContact)"
 			:url="(primaryContact && primaryContact.avatarUrl) || undefined"
-			:is-no-user="true"
-			:disable-menu="true"
-			:disable-tooltip="true"
-			:show-user-status="false" />
+			:isNoUser="true"
+			:disableMenu="true"
+			:disableTooltip="true"
+			hideStatus />
 		<div class="cn-contacts-card__chip-text">
 			<span class="cn-contacts-card__chip-name">
 				{{ (primaryContact && primaryContact.displayName) || unknownLabel }}
@@ -74,13 +74,13 @@
 				class="cn-contacts-card__item">
 				<NcAvatar
 					:size="32"
-					:display-name="item.displayName || unknownLabel"
+					:displayName="item.displayName || unknownLabel"
 					:user="avatarSeed(item)"
 					:url="item.avatarUrl || undefined"
-					:is-no-user="true"
-					:disable-menu="true"
-					:disable-tooltip="true"
-					:show-user-status="false" />
+					:isNoUser="true"
+					:disableMenu="true"
+					:disableTooltip="true"
+					hideStatus />
 				<div class="cn-contacts-card__item-text">
 					<span class="cn-contacts-card__item-name">{{ item.displayName || unknownLabel }}</span>
 					<span v-if="item.email" class="cn-contacts-card__item-email">{{ item.email }}</span>
@@ -109,7 +109,6 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcLoadingIcon } from '@nextcloud/vue'
 import AccountMultiple from 'vue-material-design-icons/AccountMultiple.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
-
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
@@ -141,9 +140,13 @@ export default {
 	},
 
 	props: {
+		/** OpenRegister register id (slug or uuid). */
 		register: { type: String, default: '' },
+		/** OpenRegister schema id (slug or uuid). */
 		schema: { type: String, default: '' },
+		/** Parent object id. */
 		objectId: { type: [String, Number], default: '' },
+		/** Base API URL for OpenRegister. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 
 		/**
@@ -160,13 +163,19 @@ export default {
 		 */
 		contact: { type: Object, default: null },
 
+		/** How many contacts to show before the "view all" line. */
 		displayMax: { type: Number, default: 2 },
 
 		// --- Pre-translated labels ---
+		/** Card title. */
 		titleLabel: { type: String, default: () => t('nextcloud-vue', 'Contacts') },
+		/** Empty state shown when no contact is linked. */
 		emptyLabel: { type: String, default: () => t('nextcloud-vue', 'No contacts linked') },
+		/** Message shown when the contacts could not be loaded. */
 		errorLabel: { type: String, default: () => t('nextcloud-vue', 'Could not load contacts') },
+		/** Stand-in name for a contact whose name is missing. */
 		unknownLabel: { type: String, default: () => t('nextcloud-vue', 'Unknown contact') },
+		/** Label for the link that opens the full contact list. */
 		viewAllLabel: { type: String, default: () => t('nextcloud-vue', 'View all') },
 	},
 
@@ -214,7 +223,9 @@ export default {
 
 		chipTitle() {
 			const c = this.primaryContact
-			if (!c) return ''
+			if (!c) {
+				return ''
+			}
 			const bits = [c.displayName, c.email, c.role].filter(Boolean)
 			return bits.join(' — ')
 		},
@@ -239,9 +250,13 @@ export default {
 	methods: {
 		initialsFor(contact) {
 			const name = (contact?.displayName || '').trim()
-			if (name === '') return '?'
+			if (name === '') {
+				return '?'
+			}
 			const parts = name.split(/\s+/).filter(Boolean)
-			if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+			if (parts.length === 1) {
+				return parts[0].charAt(0).toUpperCase()
+			}
 			return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
 		},
 
@@ -253,12 +268,16 @@ export default {
 		 * @return {string}
 		 */
 		avatarSeed(contact) {
-			if (!contact) return '?'
+			if (!contact) {
+				return '?'
+			}
 			return contact.contactUid || contact.email || contact.displayName || '?'
 		},
 
 		async fetchContacts() {
-			if (!this.register || !this.schema || !this.objectId) return
+			if (!this.register || !this.schema || !this.objectId) {
+				return
+			}
 			this.loading = true
 			this.error = null
 			try {
@@ -272,6 +291,7 @@ export default {
 				const data = await response.json()
 				this.contacts = this.unwrapList(data)
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnContactsCard: Failed to fetch contacts', err)
 				this.error = String(err?.message || err)
 				this.contacts = []
@@ -285,7 +305,7 @@ export default {
 		 * CnContactsTab.unwrapList for the same canonical cascade
 		 * (results → items → bare array → []).
 		 *
-		 * @param {*} data parsed JSON response body
+		 * @param {object|Array<object>|null} data parsed JSON response body
 		 *
 		 * @return {Array}
 		 */

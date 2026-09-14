@@ -20,7 +20,7 @@
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { getDb } from './offlineDb.js'
-import { orderForReplay, nextState } from './syncQueueEngine.js'
+import { nextState, orderForReplay } from './syncQueueEngine.js'
 
 /**
  * Build the OR object-collection URL for a register/schema.
@@ -43,7 +43,7 @@ function objectsUrl(register, schema) {
  */
 export async function replayOperation(operation) {
 	const db = getDb()
-	let statusCode = 0
+	let statusCode
 	let serverObject = null
 
 	const base = objectsUrl(operation.register, operation.schema)

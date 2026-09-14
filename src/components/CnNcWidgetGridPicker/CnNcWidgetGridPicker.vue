@@ -12,7 +12,6 @@
 		</div>
 		<div
 			v-else
-			ref="grid"
 			class="cn-nc-widget-grid-picker__grid"
 			role="radiogroup"
 			:aria-label="t('nextcloud-vue', 'Pick a widget')">
@@ -35,7 +34,7 @@
 						v-if="widget.iconUrl"
 						class="cn-nc-widget-grid-picker__icon"
 						:src="widget.iconUrl"
-						:alt="''"
+						alt=""
 						aria-hidden="true">
 					<span
 						v-else
@@ -99,6 +98,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * The Nextcloud-discovered widgets to pick from. Accepts an array or an
 		 * object map (PHP may serialise a sequential array as an object).
@@ -133,8 +133,8 @@ export default {
 			const list = Array.isArray(this.widgets)
 				? this.widgets
 				: (this.widgets && typeof this.widgets === 'object'
-					? Object.values(this.widgets)
-					: [])
+						? Object.values(this.widgets)
+						: [])
 			return list
 				.filter((w) => w && typeof w.id === 'string' && w.id !== '')
 				.map((w) => ({

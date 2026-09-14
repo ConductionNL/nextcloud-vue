@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: EUPL-1.2
  */
 
-import { ref, computed } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { computed, ref } from 'vue'
 
 /**
  * Per-`appId` cache so all consumers of one app share a single walkthrough
@@ -43,12 +43,16 @@ export function walkthroughPreferenceUrl(appId, configKey) {
  * truthiness check would misread as a fresh user and re-open the tour on every
  * visit. This is the read-side counterpart of `persistWalkthroughSeenVersion`.
  *
- * @param {*} value The raw stored / API value.
+ * @param {unknown} value The raw stored / API value.
  * @return {string} The last-seen version, or `''` when never seen.
  */
 export function normaliseSeenVersion(value) {
-	if (value === null || value === undefined) return ''
-	if (typeof value === 'string') return value
+	if (value === null || value === undefined) {
+		return ''
+	}
+	if (typeof value === 'string') {
+		return value
+	}
 	return String(value)
 }
 
@@ -60,11 +64,15 @@ export function normaliseSeenVersion(value) {
  * @return {Storage|null} The storage backend or null.
  */
 function resolveStorage(injected) {
-	if (injected) return injected
-	if (typeof window === 'undefined') return null
+	if (injected) {
+		return injected
+	}
+	if (typeof window === 'undefined') {
+		return null
+	}
 	try {
 		return window.localStorage
-	} catch (e) {
+	} catch {
 		return null
 	}
 }
@@ -79,10 +87,12 @@ function resolveStorage(injected) {
  */
 export function readLocalWalkthroughSeenVersion(appId, storage) {
 	const s = resolveStorage(storage)
-	if (!s) return ''
+	if (!s) {
+		return ''
+	}
 	try {
 		return normaliseSeenVersion(s.getItem(WALKTHROUGH_SEEN_STORAGE_PREFIX + appId))
-	} catch (e) {
+	} catch {
 		return ''
 	}
 }
@@ -97,10 +107,12 @@ export function readLocalWalkthroughSeenVersion(appId, storage) {
  */
 function writeLocalWalkthroughSeenVersion(appId, version, storage) {
 	const s = resolveStorage(storage)
-	if (!s) return
+	if (!s) {
+		return
+	}
 	try {
 		s.setItem(WALKTHROUGH_SEEN_STORAGE_PREFIX + appId, version)
-	} catch (e) {
+	} catch {
 		/* quota / private mode — persistence is best-effort */
 	}
 }
@@ -110,7 +122,7 @@ function writeLocalWalkthroughSeenVersion(appId, version, storage) {
  * the SPA index HTML Nextcloud returns (with status 200) when an app does not
  * actually serve `/api/preferences/{key}`.
  *
- * @param {*} value Candidate.
+ * @param {unknown} value Candidate.
  * @return {boolean} True when value is a plain object.
  */
 function isPlainObject(value) {
@@ -133,21 +145,25 @@ function isPlainObject(value) {
  */
 export async function loadWalkthroughSeenVersion(appId, configKey, options = {}) {
 	const local = readLocalWalkthroughSeenVersion(appId, options.storage)
-	if (!configKey) return local
+	if (!configKey) {
+		return local
+	}
 	const http = options.http || axios
 	try {
 		const { data } = await http.get(walkthroughPreferenceUrl(appId, configKey))
 		// Only a real preferences payload counts. An HTML string (SPA fallback
 		// from an app that doesn't serve the route) is NOT a "never seen"
 		// signal — fall back to the local mirror instead.
-		if (!isPlainObject(data) || !('value' in data)) return local
+		if (!isPlainObject(data) || !('value' in data)) {
+			return local
+		}
 		const seen = normaliseSeenVersion(data.value)
 		if (seen) {
 			writeLocalWalkthroughSeenVersion(appId, seen, options.storage)
 			return seen
 		}
 		return local
-	} catch (e) {
+	} catch {
 		// Unauthenticated / endpoint missing / offline.
 		return local
 	}
@@ -170,13 +186,15 @@ export async function loadWalkthroughSeenVersion(appId, configKey, options = {})
 export function persistWalkthroughSeenVersion(appId, configKey, version, options = {}) {
 	const value = normaliseSeenVersion(version)
 	writeLocalWalkthroughSeenVersion(appId, value, options.storage)
-	if (!configKey) return Promise.resolve(false)
+	if (!configKey) {
+		return Promise.resolve(false)
+	}
 	const http = options.http || axios
 	try {
 		return Promise.resolve(http.put(walkthroughPreferenceUrl(appId, configKey), { value }))
 			.then(() => true)
 			.catch(() => false)
-	} catch (e) {
+	} catch {
 		return Promise.resolve(false)
 	}
 }
@@ -193,7 +211,9 @@ export function compareSemver(a, b) {
 	const pb = String(b || '0').split('.').map((n) => parseInt(n, 10) || 0)
 	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
 		const d = (pa[i] || 0) - (pb[i] || 0)
-		if (d !== 0) return d < 0 ? -1 : 1
+		if (d !== 0) {
+			return d < 0 ? -1 : 1
+		}
 	}
 	return 0
 }
@@ -207,9 +227,11 @@ export function compareSemver(a, b) {
  * @return {string} The interpolated string.
  */
 export function interpolateTokens(input, context) {
-	if (typeof input !== 'string' || input.indexOf('{{') === -1) return input
+	if (typeof input !== 'string' || input.indexOf('{{') === -1) {
+		return input
+	}
 	return input.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (m, key) => {
-		if (context && Object.prototype.hasOwnProperty.call(context, key) && context[key] != null) {
+		if (context && Object.hasOwn(context, key) && context[key] !== null && context[key] !== undefined) {
 			return String(context[key])
 		}
 		return m
@@ -274,16 +296,24 @@ export function useWalkthrough(appId, manifest, options = {}) {
 			const all = Array.isArray(tour.steps) ? tour.steps : []
 			return all.filter((s) => {
 				const since = s.sinceVersion || '0.0.0'
-				if (compareSemver(since, appVersion) > 0) return false
-				if (!replaying.value && seenVersion && compareSemver(since, seenVersion) <= 0) return false
+				if (compareSemver(since, appVersion) > 0) {
+					return false
+				}
+				if (!replaying.value && seenVersion && compareSemver(since, seenVersion) <= 0) {
+					return false
+				}
 				return true
 			})
 		}
 
 		const activeTour = computed(() => {
-			if (!activeTourId.value) return null
+			if (!activeTourId.value) {
+				return null
+			}
 			const tour = tours.find((t) => t.id === activeTourId.value)
-			if (!tour) return null
+			if (!tour) {
+				return null
+			}
 			return { ...tour, steps: composeSteps(tour) }
 		})
 
@@ -295,22 +325,36 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		 * @return {object|null} The auto-start tour (raw definition) or null.
 		 */
 		const autoStartTour = computed(() => {
-			if (!enabled) return null
+			if (!enabled) {
+				return null
+			}
 			for (const tour of tours) {
-				if (tour.minAppVersion && compareSemver(appVersion, tour.minAppVersion) < 0) continue
+				if (tour.minAppVersion && compareSemver(appVersion, tour.minAppVersion) < 0) {
+					continue
+				}
 				const steps = composeSteps(tour)
-				if (steps.length === 0) continue
-				if (tour.trigger === 'first-visit' && !seenVersion) return tour
-				if (tour.trigger === 'version-bump' && seenVersion && compareSemver(appVersion, seenVersion) > 0) return tour
+				if (steps.length === 0) {
+					continue
+				}
+				if (tour.trigger === 'first-visit' && !seenVersion) {
+					return tour
+				}
+				if (tour.trigger === 'version-bump' && seenVersion && compareSemver(appVersion, seenVersion) > 0) {
+					return tour
+				}
 			}
 			return null
 		})
 
 		const currentStep = computed(() => {
 			const t = activeTour.value
-			if (!t) return null
+			if (!t) {
+				return null
+			}
 			const raw = t.steps[currentIndex.value]
-			if (!raw) return null
+			if (!raw) {
+				return null
+			}
 			return interpolateStep(raw, context.value)
 		})
 		const totalSteps = computed(() => (activeTour.value ? activeTour.value.steps.length : 0))
@@ -327,16 +371,24 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		function interpolateStep(step, ctx) {
 			const out = { ...step }
 			for (const k of ['title', 'body', 'task']) {
-				if (out[k]) out[k] = interpolateTokens(out[k], ctx)
+				if (out[k]) {
+					out[k] = interpolateTokens(out[k], ctx)
+				}
 			}
 			if (out.target) {
 				out.target = { ...out.target }
-				if (out.target.ref) out.target.ref = interpolateTokens(out.target.ref, ctx)
-				if (out.target.selector) out.target.selector = interpolateTokens(out.target.selector, ctx)
+				if (out.target.ref) {
+					out.target.ref = interpolateTokens(out.target.ref, ctx)
+				}
+				if (out.target.selector) {
+					out.target.selector = interpolateTokens(out.target.selector, ctx)
+				}
 			}
 			if (out.advanceOn) {
 				out.advanceOn = { ...out.advanceOn }
-				if (out.advanceOn.route) out.advanceOn.route = interpolateTokens(out.advanceOn.route, ctx)
+				if (out.advanceOn.route) {
+					out.advanceOn.route = interpolateTokens(out.advanceOn.route, ctx)
+				}
 			}
 			return out
 		}
@@ -350,14 +402,21 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		 */
 		function runCapture(step, source) {
 			const cap = step && step.advanceOn && step.advanceOn.capture
-			if (!cap) return
+			if (!cap) {
+				return
+			}
 			const next = { ...context.value }
 			for (const [varName, token] of Object.entries(cap)) {
 				const key = String(token).replace(/^:/, '')
 				let value
-				if (source.params && key in source.params) value = source.params[key]
-				else if (source.object) value = (key === 'id') ? (source.object.id ?? source.object['@self']?.id ?? source.object.uuid) : source.object[key]
-				if (value != null) next[varName] = value
+				if (source.params && key in source.params) {
+					value = source.params[key]
+				} else if (source.object) {
+					value = (key === 'id') ? (source.object.id ?? source.object['@self']?.id ?? source.object.uuid) : source.object[key]
+				}
+				if (value !== null && value !== undefined) {
+					next[varName] = value
+				}
 			}
 			context.value = next
 		}
@@ -369,7 +428,9 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		 * @return {void}
 		 */
 		function next() {
-			if (!activeTour.value) return
+			if (!activeTour.value) {
+				return
+			}
 			if (currentIndex.value >= totalSteps.value - 1) {
 				complete()
 				return
@@ -382,7 +443,9 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		 * @return {void}
 		 */
 		function back() {
-			if (currentIndex.value > 0) currentIndex.value -= 1
+			if (currentIndex.value > 0) {
+				currentIndex.value -= 1
+			}
 		}
 		/**
 		 * Skip the active step (advance without satisfying its condition).
@@ -399,9 +462,13 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		 * @return {void}
 		 */
 		function jumpTo(stepId) {
-			if (!activeTour.value) return
+			if (!activeTour.value) {
+				return
+			}
 			const idx = activeTour.value.steps.findIndex((s) => s.id === stepId)
-			if (idx >= 0) currentIndex.value = idx
+			if (idx >= 0) {
+				currentIndex.value = idx
+			}
 		}
 		/**
 		 * Start a tour by id at its first (resume) step.
@@ -450,7 +517,9 @@ export function useWalkthrough(appId, manifest, options = {}) {
 			running.value = false
 			activeTourId.value = null
 			replaying.value = false
-			if (typeof options.onComplete === 'function') options.onComplete(appVersion)
+			if (typeof options.onComplete === 'function') {
+				options.onComplete(appVersion)
+			}
 		}
 
 		/**
@@ -462,18 +531,24 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		 */
 		function notify(signal) {
 			const step = activeTour.value && activeTour.value.steps[currentIndex.value]
-			if (!step || !step.advanceOn) return false
+			if (!step || !step.advanceOn) {
+				return false
+			}
 			const a = step.advanceOn
 			let match = false
 			if (signal.kind === 'route' && a.type === 'route-match') {
 				match = signal.route === a.route
-				if (match) runCapture(step, { params: signal.params || {} })
+				if (match) {
+					runCapture(step, { params: signal.params || {} })
+				}
 			} else if (signal.kind === 'object-created' && a.type === 'object-created') {
 				const obj = signal.object || {}
 				const reg = obj.register ?? obj['@self']?.register
 				const sch = obj.schema ?? obj['@self']?.schema
 				match = (!a.register || reg === a.register) && (!a.schema || sch === a.schema)
-				if (match) runCapture(step, { object: obj })
+				if (match) {
+					runCapture(step, { object: obj })
+				}
 			} else if (signal.kind === 'element' && a.type === 'element-appears') {
 				match = true
 			} else if (signal.kind === 'click' && a.type === 'click-target') {
@@ -481,7 +556,9 @@ export function useWalkthrough(appId, manifest, options = {}) {
 			} else if (signal.kind === 'delay' && a.type === 'delay') {
 				match = true
 			}
-			if (match) next()
+			if (match) {
+				next()
+			}
 			return match
 		}
 

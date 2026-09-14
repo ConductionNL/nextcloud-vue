@@ -51,8 +51,8 @@
 
 'use strict'
 
-const path = require('path')
 const fs = require('fs')
+const path = require('path')
 
 /**
  * Run the parity gate: the HARD tab/widget check on this repo's built-in
@@ -73,9 +73,8 @@ function main() {
 	// without spinning up Vue.
 	let builtinIntegrations
 	try {
-		// eslint-disable-next-line global-require, import/no-unresolved
 		builtinIntegrations = require(path.resolve(__dirname, '../src/integrations/builtin/index.js')).builtinIntegrations
-	} catch (e) {
+	} catch {
 		// Fall back to a source scan if the module can't be required in
 		// this environment (e.g. ESM-only toolchains). We look for the
 		// per-id descriptor files and verify each names a `tab:` and
@@ -159,11 +158,9 @@ function main() {
 		// crash means NOTHING was correlated, so say that in the same words the
 		// not-run path uses; the previous "(… skipped: …)" note read as a
 		// harmless aside next to a `✓` hard-check line.
-		// eslint-disable-next-line no-console
-		console.error(
-			'⚠ server↔JS leaf parity (ADR-066): the cross-reference CRASHED and correlated NOTHING '
-			+ `— this is NOT a pass: ${e && e.message}`,
-		)
+
+		console.error('⚠ server↔JS leaf parity (ADR-066): the cross-reference CRASHED and correlated NOTHING '
+			+ `— this is NOT a pass: ${e && e.message}`)
 	}
 
 	process.exit(failures.length === 0 ? 0 : 1)
@@ -232,10 +229,8 @@ function checkBarrelExports() {
 			.replace(/(^|[^:])\/\/.*$/gm, '$1')
 		for (const name of names) {
 			if (!new RegExp(`\\b${name}\\b`).test(code)) {
-				failures.push(
-					`${name} is in builtinIntegrations[] but is not exported from ${label} — `
-					+ 'consumers importing it get `undefined` and register nothing, silently',
-				)
+				failures.push(`${name} is in builtinIntegrations[] but is not exported from ${label} — `
+					+ 'consumers importing it get `undefined` and register nothing, silently')
 			}
 		}
 	}
@@ -267,7 +262,7 @@ function collectFiles(root, test, maxDepth = 6) {
 		let entries
 		try {
 			entries = fs.readdirSync(dir, { withFileTypes: true })
-		} catch (e) {
+		} catch {
 			return
 		}
 		for (const ent of entries) {
@@ -502,7 +497,7 @@ function collectServerDescriptors(repoRoot) {
 		let src
 		try {
 			src = stripPhpComments(fs.readFileSync(file, 'utf8'))
-		} catch (e) {
+		} catch {
 			continue
 		}
 		const rel = path.relative(repoRoot, file)
@@ -592,7 +587,7 @@ function collectJsRegistrationSites(repoRoot) {
 		let src
 		try {
 			src = stripJsComments(fs.readFileSync(file, 'utf8'))
-		} catch (e) {
+		} catch {
 			continue
 		}
 		const rel = path.relative(repoRoot, file)
@@ -639,9 +634,7 @@ function collectJsRegistrationSites(repoRoot) {
 			// registration at all" — a false ABSENCE claim about a leaf that is
 			// live in the registry. Resolve a bare identifier argument against
 			// its declaration in the same file.
-			const byName = /^\(\s*([A-Za-z_$][\w$]*)\s*[),]/.exec(
-				src.slice(cm.index + cm[0].length - 1, cm.index + cm[0].length + 80),
-			)
+			const byName = /^\(\s*([A-Za-z_$][\w$]*)\s*[),]/.exec(src.slice(cm.index + cm[0].length - 1, cm.index + cm[0].length + 80))
 			if (byName !== null) {
 				const declRe = new RegExp(`\\b(?:const|let|var)\\s+${byName[1]}\\s*=\\s*\\{`)
 				const dm = declRe.exec(src)
@@ -769,7 +762,7 @@ function collectLibraryRegistrations(repoRoot) {
 			// with parentheses ("registerLeafIntegrations() in OpenRegister's
 			// bootstrap"), and a mention is not a call.
 			src = stripJsComments(fs.readFileSync(file, 'utf8'))
-		} catch (e) {
+		} catch {
 			continue
 		}
 		for (const [helper] of helperSources) {
@@ -799,7 +792,7 @@ function collectLibraryRegistrations(repoRoot) {
 		let src
 		try {
 			src = fs.readFileSync(file, 'utf8')
-		} catch (e) {
+		} catch {
 			continue
 		}
 		const declRe = /export\s+const\s+(\w+)\s*=\s*\{/g
@@ -821,12 +814,10 @@ function collectLibraryRegistrations(repoRoot) {
 		let source
 		try {
 			source = fs.readFileSync(abs, 'utf8')
-		} catch (e) {
-			problems.push(
-				`this repo calls ${helper}() but the library's src/integrations/builtin/${fileName} `
+		} catch {
+			problems.push(`this repo calls ${helper}() but the library's src/integrations/builtin/${fileName} `
 				+ 'could not be read, so the ids it registers are UNKNOWN — every server descriptor '
-				+ 'whose only JS face comes from that helper will be reported as a phantom below.',
-			)
+				+ 'whose only JS face comes from that helper will be reported as a phantom below.')
 			continue
 		}
 		if (fileName === 'leaves.js') {
@@ -863,10 +854,8 @@ function collectLibraryRegistrations(repoRoot) {
 			ids.add(nameToId[name])
 		}
 		if (unresolved.length > 0) {
-			problems.push(
-				`${unresolved.length} descriptor(s) in the library's \`${arrayName}\` could not be resolved to an id `
-				+ `(${unresolved.join(', ')}) — a server descriptor matching one of them may be reported as a phantom below.`,
-			)
+			problems.push(`${unresolved.length} descriptor(s) in the library's \`${arrayName}\` could not be resolved to an id `
+				+ `(${unresolved.join(', ')}) — a server descriptor matching one of them may be reported as a phantom below.`)
 		}
 	}
 
@@ -962,11 +951,9 @@ function crossReferenceServerLeaves(repoRoot) {
 		}
 		const jsMode = jsModeById.get(d.id)
 		if (d.renderMode !== jsMode) {
-			warnings.push(
-				`render-surface leaf "${d.id}" (${d.file}) declares renderMode `
+			warnings.push(`render-surface leaf "${d.id}" (${d.file}) declares renderMode `
 				+ `"${d.renderMode}" server-side but "${jsMode}" in its JS `
-				+ 'registration — renderMode MUST match across layers (ADR-066).',
-			)
+				+ 'registration — renderMode MUST match across layers (ADR-066).')
 		}
 	}
 
@@ -975,13 +962,11 @@ function crossReferenceServerLeaves(repoRoot) {
 	// via a library helper this repo calls.
 	for (const d of descriptors) {
 		if (d.renderSurface && !allJsIds.has(d.id)) {
-			warnings.push(
-				`render-surface leaf ${d.face} "${d.id}" (${d.file}) has NO matching JS `
+			warnings.push(`render-surface leaf ${d.face} "${d.id}" (${d.file}) has NO matching JS `
 				+ 'registration — neither registerIntegration({ id }) nor '
 				+ 'integrations.register({ id }) in src/**, and no descriptor of that id '
 				+ 'contributed by @conduction/nextcloud-vue. Phantom render surface: the '
-				+ 'capability advertises a tab/widget that never mounts.',
-			)
+				+ 'capability advertises a tab/widget that never mounts.')
 		}
 	}
 	// Orphan JS: a registration with no server descriptor of any kind — the
@@ -991,13 +976,11 @@ function crossReferenceServerLeaves(repoRoot) {
 	// collectLibraryRegistrations).
 	for (const r of registrations) {
 		if (!phpIds.has(r.id)) {
-			warnings.push(
-				`JS registration id "${r.id}" (${r.file}) has NO matching server-side leaf `
+			warnings.push(`JS registration id "${r.id}" (${r.file}) has NO matching server-side leaf `
 				+ 'face in lib/** — neither a `new LeafDescriptor(` nor an IntegrationProvider '
 				+ 'class with that getId(). Orphan JS registration (mounts on '
 				+ 'window.OCA.OpenRegister.integrations but is not discoverable via the '
-				+ 'openregister.integrations.leaves capability).',
-			)
+				+ 'openregister.integrations.leaves capability).')
 		}
 	}
 	return { ran: true, warnings, summary, notRun: null }
@@ -1012,19 +995,17 @@ function crossReferenceServerLeaves(repoRoot) {
  */
 function report(list) {
 	if (list.length === 0) {
-		// eslint-disable-next-line no-console
 		console.log('✓ integration parity: every registered integration has both a tab and a widget')
 		return
 	}
-	// eslint-disable-next-line no-console
+
 	console.error('✗ integration parity gate failed:')
 	for (const f of list) {
-		// eslint-disable-next-line no-console
 		console.error(`  - ${f}`)
 	}
-	// eslint-disable-next-line no-console
+
 	console.error('\nEvery integration registered on window.OCA.OpenRegister.integrations')
-	// eslint-disable-next-line no-console
+
 	console.error('must declare BOTH a `tab` and a `widget` component (AD-11/AD-13).')
 }
 
@@ -1040,7 +1021,7 @@ function report(list) {
 function coverageLine(summary) {
 	const lib = summary.libraryRegistrations > 0
 		? ` + ${summary.libraryRegistrations} contributed by @conduction/nextcloud-vue `
-			+ `(${summary.libraryHelpers.join(', ')})`
+		+ `(${summary.libraryHelpers.join(', ')})`
 		: ''
 	return `  correlated ${summary.serverDescriptors} server-side leaf face(s) `
 		+ `[${summary.leafDescriptorFaces} new LeafDescriptor(, ${summary.integrationProviderFaces} IntegrationProvider class] `
@@ -1073,14 +1054,10 @@ function reportCrossRef(result) {
 	// recover. Printed on every path — a correlation that skipped one of these
 	// has a hole in it, and the hole is named.
 	if (summary.unresolvedJsSites.length > 0) {
-		// eslint-disable-next-line no-console
-		console.warn(
-			`⚠ server↔JS leaf parity (ADR-066): ${summary.unresolvedJsSites.length} JS registration call site(s) `
+		console.warn(`⚠ server↔JS leaf parity (ADR-066): ${summary.unresolvedJsSites.length} JS registration call site(s) `
 			+ 'whose id could not be read statically (spread from an imported descriptor, or a computed id). '
-			+ 'They are registrations, they are NOT correlated by this run, and they are NOT counted as absent:',
-		)
+			+ 'They are registrations, they are NOT correlated by this run, and they are NOT counted as absent:')
 		for (const u of summary.unresolvedJsSites) {
-			// eslint-disable-next-line no-console
 			console.warn(`  - ${u.file}: ${u.snippet}`)
 		}
 	}
@@ -1089,67 +1066,58 @@ function reportCrossRef(result) {
 		if (summary.jsRegistrations === 0 && summary.unresolvedJsSites.length === 0) {
 			// Both sides empty: genuinely not applicable, and said so rather
 			// than left blank. Mirrors hydra gate-24's `na` classification.
-			// eslint-disable-next-line no-console
-			console.log(
-				'i server↔JS leaf parity (ADR-066): NOT APPLICABLE — this repo declares no server-side '
+
+			console.log('i server↔JS leaf parity (ADR-066): NOT APPLICABLE — this repo declares no server-side '
 				+ 'leaf face under lib/** (no `new LeafDescriptor(` and no IntegrationProvider class with '
 				+ 'a getId()) and no JS integration registration under src/**. There is no server↔JS pair '
-				+ 'to correlate.',
-			)
+				+ 'to correlate.')
 			if (path.resolve(process.cwd()) === path.resolve(__dirname, '..')) {
 				// Do not let the library's own CI read that as "the descriptors
 				// in src/integrations/ are verified". They are not verified
 				// HERE — their server faces live in the consuming app repos.
-				// eslint-disable-next-line no-console
-				console.log(
-					'  This is @conduction/nextcloud-vue itself. The built-in and leaf descriptors it '
+
+				console.log('  This is @conduction/nextcloud-vue itself. The built-in and leaf descriptors it '
 					+ 'DEFINES are correlated against a server face inside each consuming app repo, not '
 					+ 'here; the cross-repo join is a documented ADR-066 follow-up (see '
-					+ 'crossReferenceServerLeaves).',
-				)
+					+ 'crossReferenceServerLeaves).')
 			}
 			return
 		}
 		// One side present, the other empty: NOTHING was correlated, and that
 		// is not a pass. Mirrors hydra gate-24's `structural` classification.
-		// eslint-disable-next-line no-console
+
 		console.warn('⚠ server↔JS leaf parity (ADR-066): NOTHING was correlated — this is NOT a pass.')
-		// eslint-disable-next-line no-console
+
 		console.warn(`  - ${notRun.reason}: 0 found under lib/** (looked for \`new LeafDescriptor(\` and for classes extending/implementing IntegrationProvider with a getId()).`)
 		const named = notRun.jsIds.length > 0 ? `: ${notRun.jsIds.join(', ')}` : ''
-		// eslint-disable-next-line no-console
-		console.warn(
-			`  - ${summary.jsRegistrations} JS registration(s) with a readable id${named}`
-			+ `, plus ${summary.unresolvedJsSites.length} call site(s) listed above, went UNVERIFIED.`,
-		)
-		// eslint-disable-next-line no-console
+
+		console.warn(`  - ${summary.jsRegistrations} JS registration(s) with a readable id${named}`
+			+ `, plus ${summary.unresolvedJsSites.length} call site(s) listed above, went UNVERIFIED.`)
+
 		console.warn('  An orphan JS registration (a widget that mounts with no server face) is invisible to this run, and no phantom render surface can be detected either.')
 		return
 	}
 
 	if (summary.libraryProblems.length > 0) {
 		for (const p of summary.libraryProblems) {
-			// eslint-disable-next-line no-console
 			console.warn(`⚠ server↔JS leaf parity (ADR-066): ${p}`)
 		}
 	}
 
 	if (warnings.length === 0) {
-		// eslint-disable-next-line no-console
 		console.log('✓ server↔JS leaf parity (ADR-066): every render-surface descriptor has a JS registration and vice-versa')
-		// eslint-disable-next-line no-console
+
 		console.log(coverageLine(summary))
 		return
 	}
-	// eslint-disable-next-line no-console
+
 	console.warn('⚠ server↔JS leaf parity (ADR-066) — advisory (WARN-only, does not fail the gate):')
 	for (const w of warnings) {
-		// eslint-disable-next-line no-console
 		console.warn(`  - ${w}`)
 	}
-	// eslint-disable-next-line no-console
+
 	console.warn(coverageLine(summary))
-	// eslint-disable-next-line no-console
+
 	console.warn('\nThe server leaf id (LeafDescriptor `id:` or IntegrationProvider `getId()`) MUST equal the JS registration id (ADR-019 / ADR-066).')
 }
 

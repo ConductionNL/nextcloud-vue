@@ -25,8 +25,8 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import CnFlowDetail from '../../src/components/CnFlowDetail/CnFlowDetail.vue'
-import CnFlowEditorPage from '../../src/components/CnFlowsPage/CnFlowEditorPage.vue'
 import CnFlowSidebar from '../../src/components/CnFlowDetail/CnFlowSidebar.vue'
+import CnFlowEditorPage from '../../src/components/CnFlowsPage/CnFlowEditorPage.vue'
 
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,

@@ -14,7 +14,7 @@
 			{{ emptyText }}
 		</NcNoteCard>
 
-		<div v-else class="cn-choice-cards__grid">
+		<div v-else class="cn-choice-cards__grid" :style="gridStyle">
 			<label
 				v-for="option in normalizedOptions"
 				:key="String(option.value)"
@@ -36,13 +36,13 @@
 				<CnCard
 					class="cn-choice-cards__card"
 					:title="option.label"
-					title-tag="span"
+					titleTag="span"
 					:description="option.description"
 					:stats="option.stats || []"
 					:tags="option.tags || []"
 					:active="isSelected(option)"
-					active-variant="primary"
-					:description-lines="descriptionLines">
+					activeVariant="primary"
+					:descriptionLines="descriptionLines">
 					<template v-if="option.icon" #icon>
 						<CnIcon :name="option.icon" :size="20" />
 					</template>
@@ -103,40 +103,47 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * The selected value: a scalar, or an array when `multiple`.
 		 *
 		 * @type {string|number|boolean|Array|null}
 		 */
 		modelValue: {
-			type: [String, Number, Boolean, Array, Object],
+			type: [Boolean, String, Number, Array, Object],
 			default: null,
 		},
+
 		/** Allow selecting several cards; the model becomes an array. */
 		multiple: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Group label, rendered as the fieldset's legend. */
 		label: {
 			type: String,
 			default: '',
 		},
+
 		/** Disable every card (e.g. a dependent choice with no parent value yet). */
 		disabled: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Show a spinner instead of the grid while options are being fetched. */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Message shown when there is nothing to choose from. */
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Nothing to choose from here.'),
 		},
+
 		/** Lines of description shown before clamping. */
 		descriptionLines: {
 			type: Number,
@@ -165,7 +172,7 @@ export default {
 		 */
 		normalizedOptions() {
 			return (this.options || [])
-				.filter((option) => option != null)
+				.filter((option) => option !== null && option !== undefined)
 				.map((option) => {
 					if (typeof option !== 'object') {
 						return { value: option, label: String(option) }
@@ -179,6 +186,7 @@ export default {
 				})
 				.filter((option) => option.value !== undefined)
 		},
+
 		/**
 		 * The current selection as an array of values, whatever the model shape.
 		 *
@@ -191,6 +199,26 @@ export default {
 			return (this.modelValue === null || this.modelValue === undefined || this.modelValue === '')
 				? []
 				: [this.modelValue]
+		},
+
+		/**
+		 * Inline override for the grid's column count. `auto-fit` with a
+		 * 260px minimum wraps a small option count onto its own row well
+		 * before the container is actually too narrow for them side by
+		 * side — two cards would stack at ~550px wide even though halving
+		 * the available width still leaves each one legible. A binary (or
+		 * near-binary) choice should always sit in one row and fill the
+		 * available width; a larger option count keeps the responsive
+		 * `auto-fit` wrapping from the stylesheet (`{}` leaves it alone).
+		 *
+		 * @return {object} A `gridTemplateColumns` override, or `{}`.
+		 */
+		gridStyle() {
+			const count = this.normalizedOptions.length
+			if (count > 0 && count <= 2) {
+				return { gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }
+			}
+			return {}
 		},
 	},
 
@@ -207,6 +235,7 @@ export default {
 		isSelected(option) {
 			return this.selectedValues.some((v) => String(v) === String(option.value))
 		},
+
 		/**
 		 * Select (single) or toggle (multiple) an option and emit the new model.
 		 *

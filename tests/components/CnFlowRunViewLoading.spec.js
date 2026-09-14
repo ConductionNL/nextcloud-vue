@@ -26,8 +26,8 @@
  * open, and the first paint is what is being read.
  */
 
-import { mount } from '@vue/test-utils'
 import axios from '@nextcloud/axios'
+import { mount } from '@vue/test-utils'
 import CnFlowDetail from '../../src/components/CnFlowDetail/CnFlowDetail.vue'
 
 jest.mock('@nextcloud/axios', () => ({

@@ -15,7 +15,7 @@
  * The OpenRegister lookups CnResourceSelect issues are stubbed to an empty
  * result set so the rendering is deterministic and offline.
  */
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.describe('CnInteractionFormWidget', () => {
 	test.beforeEach(async ({ page }) => {

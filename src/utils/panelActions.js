@@ -70,5 +70,5 @@ export const PANEL_ACTION_SINK = 'cnPanelActionSink'
  * @property {string} key Stable identity for the list rendering it.
  * @property {string} label The user-facing item text, already translated.
  * @property {string} icon A `CnIcon` name.
- * @property {Function} run Invoked on click, with no arguments.
+ * @property {() => void} run Invoked on click, with no arguments.
  */

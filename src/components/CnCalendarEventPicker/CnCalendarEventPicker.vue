@@ -117,7 +117,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcTextField, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import { buildHeaders } from '../../utils/index.js'
 
@@ -187,14 +187,19 @@ export default {
 	computed: {
 		filteredEvents() {
 			const needle = this.filterText.trim().toLowerCase()
-			if (!needle) return this.events
+			if (!needle) {
+				return this.events
+			}
 			return this.events.filter((ev) => {
 				const summary = (ev.summary || '').toLowerCase()
 				return summary.includes(needle)
 			})
 		},
+
 		defaultAfter() {
-			if (this.eventsAfter) return this.eventsAfter
+			if (this.eventsAfter) {
+				return this.eventsAfter
+			}
 			const d = new Date()
 			d.setDate(d.getDate() - 7)
 			return d.toISOString()
@@ -274,7 +279,9 @@ export default {
 		},
 
 		confirmSelection() {
-			if (!this.selectedEventUid || !this.activeCalendar) return
+			if (!this.selectedEventUid || !this.activeCalendar) {
+				return
+			}
 			/**
 			 * @event link
 			 *   Emitted when the user confirms an event selection.
@@ -292,12 +299,16 @@ export default {
 		},
 
 		formatWhen(ev) {
-			if (!ev.dtstart) return ''
+			if (!ev.dtstart) {
+				return ''
+			}
 			try {
 				const d = new Date(ev.dtstart)
-				if (Number.isNaN(d.getTime())) return String(ev.dtstart)
+				if (Number.isNaN(d.getTime())) {
+					return String(ev.dtstart)
+				}
 				return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-			} catch (_) {
+			} catch {
 				return String(ev.dtstart)
 			}
 		},

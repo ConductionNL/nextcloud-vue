@@ -9,7 +9,7 @@
  * - FAB hidden when cnAiContext.pageKind === 'chat'
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
@@ -24,7 +24,6 @@ jest.mock('@microsoft/fetch-event-source', () => ({
 	fetchEventSource: jest.fn(),
 }))
 
-// eslint-disable-next-line n/no-missing-require -- ESM-only package; jest resolves it via moduleNameMapper (tests/__mocks__/nextcloud-axios.js)
 const axios = require('@nextcloud/axios').default
 const CnAiCompanion = require('../../src/components/CnAiCompanion/CnAiCompanion.vue').default
 
@@ -57,9 +56,8 @@ describe('CnAiCompanion', () => {
 
 	it('health probe targets the default backend app id (hermiq)', async () => {
 		axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
-		const wrapper = mountCompanion()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		mountCompanion()
+		await flushPromises()
 
 		expect(axios.get).toHaveBeenCalledWith(
 			'/index.php/apps/hermiq/api/chat/health',
@@ -69,12 +67,11 @@ describe('CnAiCompanion', () => {
 
 	it('health probe targets an overridden chatAppId (openregister compat window)', async () => {
 		axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
-		const wrapper = mount(CnAiCompanion, {
+		mount(CnAiCompanion, {
 			propsData: { chatAppId: 'openregister' },
 			provide: {},
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(axios.get).toHaveBeenCalledWith(
 			'/index.php/apps/openregister/api/chat/health',
@@ -85,8 +82,7 @@ describe('CnAiCompanion', () => {
 	it('renders FAB when health probe returns 200', async () => {
 		axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
 		const wrapper = mountCompanion()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.probeSucceeded).toBe(true)
 		expect(wrapper.find('.cn-ai-floating-button').exists()).toBe(true)
@@ -101,8 +97,7 @@ describe('CnAiCompanion', () => {
 		const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
 
 		const wrapper = mountCompanion()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.probeSucceeded).toBe(false)
 		expect(wrapper.find('.cn-ai-floating-button').exists()).toBe(false)
@@ -120,8 +115,7 @@ describe('CnAiCompanion', () => {
 		const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
 
 		const wrapper = mountCompanion()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.probeSucceeded).toBe(false)
 		expect(wrapper.find('.cn-ai-companion').exists()).toBe(false)
@@ -135,8 +129,7 @@ describe('CnAiCompanion', () => {
 	it('FAB click sets isPanelOpen to true', async () => {
 		axios.get.mockResolvedValue({ status: 200, data: {} })
 		const wrapper = mountCompanion()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.isPanelOpen).toBe(false)
 		const fab = wrapper.find('.cn-ai-floating-button')
@@ -154,8 +147,7 @@ describe('CnAiCompanion', () => {
 		const wrapper = mount(CnAiCompanion, {
 			provide: { cnAiContext: aiContext },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.isChatPage).toBe(true)
 		// The entire cn-ai-companion div should not render when isChatPage
@@ -172,10 +164,7 @@ describe('CnAiCompanion', () => {
 
 			const first = mountCompanion()
 			const second = mountCompanion()
-			for (let i = 0; i < 4; i++) {
-				await first.vm.$nextTick()
-				await second.vm.$nextTick()
-			}
+			await flushPromises()
 
 			expect(first.find('.cn-ai-companion').exists()).toBe(true)
 			expect(second.find('.cn-ai-companion').exists()).toBe(false)
@@ -217,6 +206,9 @@ describe('CnAiCompanion', () => {
 			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
 
 			const wrapper = mountCompanion({ attachTo: document.body })
+			// Ticks, not flushPromises(): this test runs on FAKE timers, and
+			// flushPromises() resolves from a scheduler callback that fake
+			// timers never fire, so it would hang rather than settle.
 			for (let i = 0; i < 4; i++) {
 				await wrapper.vm.$nextTick()
 			}
@@ -245,6 +237,9 @@ describe('CnAiCompanion', () => {
 			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
 
 			const wrapper = mountCompanion({ attachTo: document.body })
+			// Ticks, not flushPromises(): this test runs on FAKE timers, and
+			// flushPromises() resolves from a scheduler callback that fake
+			// timers never fire, so it would hang rather than settle.
 			for (let i = 0; i < 4; i++) {
 				await wrapper.vm.$nextTick()
 			}
@@ -264,9 +259,7 @@ describe('CnAiCompanion', () => {
 			first.unmount()
 
 			const next = mountCompanion()
-			for (let i = 0; i < 4; i++) {
-				await next.vm.$nextTick()
-			}
+			await flushPromises()
 
 			expect(next.find('.cn-ai-companion').exists()).toBe(true)
 		})
@@ -279,15 +272,12 @@ describe('CnAiCompanion', () => {
 
 			const holder = mountCompanion()
 			const stoodDown = mountCompanion()
-			await holder.vm.$nextTick()
-			await stoodDown.vm.$nextTick()
+			await flushPromises()
 
 			stoodDown.unmount()
 
 			const third = mountCompanion()
-			for (let i = 0; i < 4; i++) {
-				await third.vm.$nextTick()
-			}
+			await flushPromises()
 
 			expect(holder.find('.cn-ai-companion').exists()).toBe(true)
 			expect(third.find('.cn-ai-companion').exists()).toBe(false)

@@ -37,8 +37,8 @@
 					:is="registryIcon"
 					v-if="registryIcon"
 					:size="32"
-					:fill-color="resolvedTextColor" />
-				<span v-else-if="tile.iconType === 'class'" :class="['icon', tile.icon]" />
+					:fillColor="resolvedTextColor" />
+				<span v-else-if="tile.iconType === 'class'" class="icon" :class="[tile.icon]" />
 				<img v-else-if="tile.iconType === 'url'" :src="tile.icon" alt="">
 				<span v-else-if="tile.iconType === 'emoji'" class="cn-tile-widget__emoji">{{ tile.icon }}</span>
 			</div>
@@ -88,6 +88,7 @@ export default {
 		 * external link, and `route` pushes `linkValue` through the host
 		 * app's vue-router so SPA state (e.g. an in-memory vault key)
 		 * survives the navigation.
+		 *
 		 * @type {{ title: string, icon: string, iconType: 'svg'|'class'|'url'|'emoji', backgroundColor: string, textColor: string, linkType: 'app'|'url'|'route', linkValue: string }}
 		 */
 		tile: {

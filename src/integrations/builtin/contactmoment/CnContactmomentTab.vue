@@ -12,8 +12,8 @@
 	<CnContactmomentCard
 		class="cn-contactmoment-tab"
 		chromeless
-		:object-id="objectId"
-		:entity-type="entityType"
+		:objectId="objectId"
+		:entityType="entityType"
 		:schema="schema"
 		:limit="limit"
 		surface="detail-page" />
@@ -32,8 +32,10 @@ export default {
 		objectId: { type: String, required: true },
 		/** The entity type pipelinq keys its link field on. */
 		entityType: { type: String, default: '' },
+		/* eslint-disable vue/no-unused-properties -- accepted for registry parity, as its own comment says; only schema and objectId reach the endpoint */
 		/** OpenRegister register slug, accepted for registry parity. */
 		register: { type: String, default: '' },
+		/* eslint-enable vue/no-unused-properties */
 		/** OpenRegister schema slug of the surrounding object. */
 		schema: { type: String, default: '' },
 		/** How many interactions to show. The sidebar has room for more. */

@@ -49,12 +49,12 @@
 					<NcActions
 						v-if="canClaim(task) || canComplete(task)"
 						class="cn-tasks-widget__actions"
-						:force-menu="true"
+						:forceMenu="true"
 						:aria-label="tr('Task actions')"
 						@click.stop>
 						<NcActionButton
 							v-if="canClaim(task)"
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="claim(task)">
 							{{ tr('Claim') }}
 						</NcActionButton>
@@ -62,7 +62,7 @@
 							<NcActionButton
 								v-for="outcome in outcomesOf(task)"
 								:key="outcomeId(outcome)"
-								:close-after-click="true"
+								:closeAfterClick="true"
 								@click="complete(task, outcomeId(outcome))">
 								{{ completeLabel(outcome) }}
 							</NcActionButton>
@@ -79,15 +79,15 @@
 </template>
 
 <script>
-import { inject, ref } from 'vue'
-import { NcActions, NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
-import { translate as t } from '@nextcloud/l10n'
-import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
 import { getCurrentUser } from '@nextcloud/auth'
+import axios from '@nextcloud/axios'
 import { showError } from '@nextcloud/dialogs'
-import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
+import { NcActionButton, NcActions, NcLoadingIcon } from '@nextcloud/vue'
+import { inject, ref } from 'vue'
 import { taskDeepLink, taskDueLabel } from '../../composables/indexSources.js'
+import { useEndpointSource } from '../../composables/useEndpointSource.js'
 
 /**
  * The OpenRegister inbox read (openregister flow-task-entity). One endpoint
@@ -589,7 +589,7 @@ export default {
 /**
  * Clamp a configured row limit into the range the endpoint accepts.
  *
- * @param {*} raw The configured limit.
+ * @param {unknown} raw The configured limit.
  * @return {number} A limit between 1 and 50 (default 6).
  */
 function normaliseLimit(raw) {
@@ -603,7 +603,7 @@ function normaliseLimit(raw) {
 /**
  * Clamp a configured scope onto the endpoint's vocabulary.
  *
- * @param {*} raw The configured scope.
+ * @param {unknown} raw The configured scope.
  * @return {string} One of assigned, pooled, watched, all (default assigned).
  */
 function normaliseScope(raw) {

@@ -206,6 +206,7 @@ export default {
 			default: 'split',
 			validator: (v) => MODES.includes(v),
 		},
+
 		/** Placeholder for the textarea. */
 		placeholder: { type: String, default: 'Write Markdown…' },
 		/** Aria-label for the textarea. */
@@ -241,6 +242,7 @@ export default {
 		/** WYSIWYG mode only: editor height (any CSS length). */
 		wysiwygHeight: { type: String, default: '300px' },
 	},
+
 	// Declaring the emitted events is not cosmetic under Vue 3: an UNdeclared
 	// event name also stays in `$attrs` and falls through to the root element,
 	// so the NATIVE `input` event the `<textarea>` bubbles up is re-emitted by
@@ -256,6 +258,7 @@ export default {
 			toastEditorReady: false,
 		}
 	},
+
 	computed: {
 		/**
 		 * BEM modifier for the current layout mode.
@@ -265,6 +268,7 @@ export default {
 		modeClass() {
 			return `cn-markdown-editor--${this.mode}`
 		},
+
 		/**
 		 * Every wrap delimiter the active toolbar can produce, longest first.
 		 * Toggling has to recognise the OTHER tools' markers, not just its own,
@@ -302,6 +306,7 @@ export default {
 		renderedHtml() {
 			return cnRenderMarkdown(this.localValue || '')
 		},
+
 		/**
 		 * Label for the mode-switch button (shows the NEXT mode).
 		 *
@@ -310,6 +315,7 @@ export default {
 		currentModeLabel() {
 			return `▦ ${this.mode}`
 		},
+
 		/**
 		 * Toast UI editor options (WYSIWYG mode) — the configured toolbar plus
 		 * fixed WYSIWYG defaults.
@@ -326,26 +332,31 @@ export default {
 			}
 		},
 	},
+
 	watch: {
 		// Both spellings watched, because either may be the one the consumer
 		// bound. `boundValue` collapses them so the body is written once.
 		modelValue() {
 			this.onBoundValueChange(this.boundValue)
 		},
+
 		value() {
 			this.onBoundValueChange(this.boundValue)
 		},
+
 		mode(next) {
 			if (next === 'wysiwyg') {
 				this.loadWysiwyg()
 			}
 		},
 	},
+
 	mounted() {
 		if (this.mode === 'wysiwyg') {
 			this.loadWysiwyg()
 		}
 	},
+
 	beforeUnmount() {
 		// The editor is created imperatively, so Vue will not tear it down.
 		if (this.toastEditor && typeof this.toastEditor.destroy === 'function') {
@@ -353,6 +364,7 @@ export default {
 		}
 		this.toastEditor = null
 	},
+
 	methods: {
 		t,
 		/**
@@ -399,9 +411,11 @@ export default {
 				})
 				this.toastEditorReady = true
 			} catch (e) {
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error('CnMarkdownEditor: failed to load the WYSIWYG editor', e)
 			}
 		},
+
 		/**
 		 * Toast UI change handler — read the current markdown and emit it via
 		 * v-model.
@@ -420,6 +434,7 @@ export default {
 			 */
 			this.emitValue(markdown)
 		},
+
 		/**
 		 * Adopt a value pushed in from outside.
 		 *
@@ -455,13 +470,13 @@ export default {
 			/**
 			 * @event input The value changed. Vue 2's v-model dialect, kept for
 			 *   existing consumers.
-			 * @type {*}
+			 * @type {unknown}
 			 */
 			this.$emit('input', next)
 			/**
 			 * @event update:modelValue The value changed. Vue 3's v-model
 			 *   dialect — what a plain `v-model` listens for.
-			 * @type {*}
+			 * @type {unknown}
 			 */
 			this.$emit('update:modelValue', next)
 		},
@@ -481,6 +496,7 @@ export default {
 			 */
 			this.emitValue(this.localValue)
 		},
+
 		/**
 		 * Keyboard handler. Ctrl/Cmd+B / Ctrl/Cmd+I trigger bold / italic;
 		 * Enter continues (or exits) a list; Tab / Shift+Tab indent / dedent a
@@ -491,25 +507,37 @@ export default {
 		 */
 		onKeydown(event) {
 			const ta = this.$refs.textarea
-			if (!ta) return
+			if (!ta) {
+				return
+			}
 			if (event.ctrlKey || event.metaKey) {
 				let toolId = null
-				if (event.key === 'b' || event.key === 'B') toolId = 'bold'
-				else if (event.key === 'i' || event.key === 'I') toolId = 'italic'
-				if (!toolId) return
+				if (event.key === 'b' || event.key === 'B') {
+					toolId = 'bold'
+				} else if (event.key === 'i' || event.key === 'I') {
+					toolId = 'italic'
+				}
+				if (!toolId) {
+					return
+				}
 				const tool = this.toolbar.find((t) => t.id === toolId)
-				if (!tool) return
+				if (!tool) {
+					return
+				}
 				event.preventDefault()
 				this.invokeTool(tool)
 				return
 			}
-			if (event.altKey) return
+			if (event.altKey) {
+				return
+			}
 			if (event.key === 'Enter' && !event.shiftKey) {
 				this.handleListEnter(event, ta)
 			} else if (event.key === 'Tab') {
 				this.handleListTab(event, ta)
 			}
 		},
+
 		/**
 		 * Smart Enter inside a list: continue with the next marker (incrementing
 		 * ordered / alpha markers), or — when the current item is empty — break
@@ -523,15 +551,21 @@ export default {
 		handleListEnter(event, ta) {
 			const value = this.localValue
 			const selStart = ta.selectionStart
-			if (selStart !== ta.selectionEnd) return
+			if (selStart !== ta.selectionEnd) {
+				return
+			}
 			const lineStart = value.slice(0, selStart).lastIndexOf('\n') + 1
 			const nl = value.indexOf('\n', selStart)
 			const lineEnd = nl === -1 ? value.length : nl
 			const m = value.slice(lineStart, lineEnd).match(LIST_ITEM_RE)
-			if (!m) return
+			if (!m) {
+				return
+			}
 			const [, indent, marker, gap, content] = m
 			// Only act once the caret is past the marker (in the item body).
-			if (selStart < lineStart + indent.length + marker.length + gap.length) return
+			if (selStart < lineStart + indent.length + marker.length + gap.length) {
+				return
+			}
 			event.preventDefault()
 			if (content.trim() === '') {
 				// Empty item → exit the list: drop the marker, leave a blank line.
@@ -544,6 +578,7 @@ export default {
 			const caret = selStart + insertion.length
 			this.applyTextChange(next, caret, caret)
 		},
+
 		/**
 		 * Smart Tab inside a list: Tab indents the current line (or every line
 		 * spanned by the selection) by one level; Shift+Tab dedents it. Only
@@ -561,7 +596,9 @@ export default {
 			const firstLineStart = value.slice(0, selStart).lastIndexOf('\n') + 1
 			const firstNl = value.indexOf('\n', firstLineStart)
 			const firstLineEnd = firstNl === -1 ? value.length : firstNl
-			if (!LIST_ITEM_RE.test(value.slice(firstLineStart, firstLineEnd))) return
+			if (!LIST_ITEM_RE.test(value.slice(firstLineStart, firstLineEnd))) {
+				return
+			}
 			event.preventDefault()
 			const endRef = selEnd > selStart ? selEnd - 1 : selEnd
 			const lastNl = value.indexOf('\n', endRef)
@@ -575,9 +612,13 @@ export default {
 					if (ln.startsWith('\t')) {
 						strip = 1
 					} else {
-						while (strip < 2 && ln[strip] === ' ') strip++
+						while (strip < 2 && ln[strip] === ' ') {
+							strip++
+						}
 					}
-					if (i === 0) firstDelta = -strip
+					if (i === 0) {
+						firstDelta = -strip
+					}
 					return ln.slice(strip)
 				})
 			} else {
@@ -593,6 +634,7 @@ export default {
 				this.applyTextChange(next, firstLineStart, firstLineStart + newBlock.length)
 			}
 		},
+
 		/**
 		 * Commit a programmatic edit: update the model, emit `input`, then
 		 * restore focus + selection on the next tick.
@@ -607,11 +649,14 @@ export default {
 			this.emitValue(next)
 			this.$nextTick(() => {
 				const ta = this.$refs.textarea
-				if (!ta) return
+				if (!ta) {
+					return
+				}
 				ta.focus()
 				ta.setSelectionRange(selStart, selEnd)
 			})
 		},
+
 		/**
 		 * Cycle the layout mode `edit → split → preview → edit`.
 		 *
@@ -626,6 +671,7 @@ export default {
 			 */
 			this.$emit('update:mode', next)
 		},
+
 		/**
 		 * Apply a toolbar action — either prefix the current line
 		 * (`linePrefix: true`) or wrap the current selection.
@@ -635,7 +681,9 @@ export default {
 		 */
 		invokeTool(tool) {
 			const ta = this.$refs.textarea
-			if (!ta) return
+			if (!ta) {
+				return
+			}
 			const before = this.localValue.slice(0, ta.selectionStart)
 			const selected = this.localValue.slice(ta.selectionStart, ta.selectionEnd)
 			const after = this.localValue.slice(ta.selectionEnd)
@@ -725,6 +773,7 @@ export default {
 				ta.setSelectionRange(nextSelStart, nextSelEnd)
 			})
 		},
+
 		/**
 		 * Programmatic insert helper — exposed publicly so parents
 		 * can drop content at the caret (e.g. from a file-picker

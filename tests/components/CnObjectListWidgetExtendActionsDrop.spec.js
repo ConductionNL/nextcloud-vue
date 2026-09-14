@@ -14,7 +14,7 @@
  * matters is on the OUTGOING PARAMS, not on anything the component renders.
  */
 
-import { shallowMount, flushPromises } from '@vue/test-utils'
+import { flushPromises, shallowMount } from '@vue/test-utils'
 
 // `mock`-prefixed so jest's hoisted factory may close over it.
 const mockGet = jest.fn()
@@ -128,15 +128,23 @@ describe('CnObjectListWidget — rowActions', () => {
 		expect(typeof mapped.handler).toBe('function')
 	})
 
-	it('dispatches an open-modal row action unchanged through the page dispatcher', async () => {
+	it('merges the clicked row onto an open-modal row action as props.row', async () => {
+		// Without this, "Versions" or "Delete" on a row opens a modal that
+		// cannot say WHICH row it was clicked on — action.props is otherwise
+		// forwarded verbatim (no per-click information at all), same reason a
+		// drop hands a modal props.files and a bulk action hands props.selectedIds.
 		const cnDispatchAction = jest.fn()
 		const action = { label: 'Versions', type: 'open-modal', target: 'VersionHistoryPanel', props: { a: 1 } }
+		const row = { id: '1' }
 		const w = mountWidget({ rowActions: [action] }, { cnDispatchAction })
 		await flushPromises()
 
-		w.vm.mappedRowActions[0].handler({ id: '1' })
+		w.vm.mappedRowActions[0].handler(row)
 
-		expect(cnDispatchAction).toHaveBeenCalledWith(action)
+		expect(cnDispatchAction).toHaveBeenCalledWith(expect.objectContaining({
+			target: 'VersionHistoryPanel',
+			props: { a: 1, row },
+		}))
 	})
 
 	it('appends the row to a handler action so a registry function receives it', async () => {

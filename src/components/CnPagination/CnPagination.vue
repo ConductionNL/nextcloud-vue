@@ -58,7 +58,7 @@
 					<NcButton
 						v-else
 						:key="page"
-						:type="page === currentPage ? 'primary' : 'secondary'"
+						:variant="page === currentPage ? 'primary' : 'secondary'"
 						:disabled="page === currentPage"
 						@click="changePage(page)">
 						{{ page }}
@@ -83,12 +83,12 @@
 		<div v-if="!compact" class="cn-pagination__page-size">
 			<label :for="pageSizeId">{{ itemsPerPageLabel }}</label>
 			<NcSelect
-				:input-id="pageSizeId"
+				:inputId="pageSizeId"
 				class="cn-pagination__page-size-select"
-				:model-value="currentPageSizeOption"
+				:modelValue="currentPageSizeOption"
 				:options="pageSizeOptions"
 				:clearable="false"
-				:input-label="itemsPerPageLabel"
+				:inputLabel="itemsPerPageLabel"
 				@option:selected="changePageSize" />
 		</div>
 	</div>
@@ -137,21 +137,25 @@ export default {
 			type: Number,
 			default: 1,
 		},
+
 		/** Total number of pages */
 		totalPages: {
 			type: Number,
 			default: 1,
 		},
+
 		/** Total number of items across all pages */
 		totalItems: {
 			type: Number,
 			default: 0,
 		},
+
 		/** Current items per page */
 		currentPageSize: {
 			type: Number,
 			default: 20,
 		},
+
 		/** Available page size options */
 		pageSizeOptions: {
 			type: Array,
@@ -165,6 +169,7 @@ export default {
 				{ value: 1000, label: '1000' },
 			],
 		},
+
 		/**
 		 * Compact mode — one Previous / Next pair and the item range, sized to
 		 * sit inside a dashboard widget's footer. Drops the First/Last
@@ -177,36 +182,43 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Minimum items before pagination is shown */
 		minItemsToShow: {
 			type: Number,
 			default: 10,
 		},
+
 		/** Label for "First" button */
 		firstLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'First'),
 		},
+
 		/** Label for "Previous" button */
 		previousLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Previous'),
 		},
+
 		/** Label for "Next" button */
 		nextLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Next'),
 		},
+
 		/** Label for "Last" button */
 		lastLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Last'),
 		},
+
 		/** Label for "Items per page:" */
 		itemsPerPageLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Items per page:'),
 		},
+
 		/**
 		 * Page info format string. Use {current} and {total} as placeholders.
 		 * "Page {current} of {total}"
@@ -215,6 +227,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Page {current} of {total}'),
 		},
+
 		/**
 		 * Page info format used in `compact` mode. Placeholders: {from}, {to},
 		 * {total} — the item range rather than the page number.
@@ -242,9 +255,7 @@ export default {
 		},
 
 		currentPageSizeOption() {
-			return this.pageSizeOptions.find(
-				(option) => option.value === this.currentPageSize,
-			) || this.pageSizeOptions[1]
+			return this.pageSizeOptions.find((option) => option.value === this.currentPageSize) || this.pageSizeOptions[1]
 		},
 
 		pageInfoText() {
@@ -308,6 +319,7 @@ export default {
 	methods: {
 		/**
 		 * Navigate to a specific page.
+		 *
 		 * @param {number} page Target page number
 		 */
 		changePage(page) {
@@ -319,6 +331,7 @@ export default {
 
 		/**
 		 * Change the page size.
+		 *
 		 * @param {object} option Selected page size option { value, label }
 		 */
 		changePageSize(option) {

@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
-import CnRowActions from '@/components/CnRowActions/CnRowActions.vue'
 import CnIcon from '@/components/CnIcon/CnIcon.vue'
+import CnRowActions from '@/components/CnRowActions/CnRowActions.vue'
 
 const baseActions = [
 	{ label: 'Edit', handler: jest.fn() },
@@ -16,7 +16,7 @@ describe('CnRowActions visible predicate', () => {
 		const wrapper = mount(CnRowActions, {
 			propsData: { actions: baseActions, row: { published: false } },
 		})
-		const labels = wrapper.vm.visibleActions.map(a => a.label)
+		const labels = wrapper.vm.visibleActions.map((a) => a.label)
 		expect(labels).toContain('Edit')
 		expect(labels).toContain('Publish')
 		expect(labels).not.toContain('Depublish')
@@ -28,7 +28,7 @@ describe('CnRowActions visible predicate', () => {
 		const wrapper = mount(CnRowActions, {
 			propsData: { actions: baseActions, row: { published: true } },
 		})
-		const labels = wrapper.vm.visibleActions.map(a => a.label)
+		const labels = wrapper.vm.visibleActions.map((a) => a.label)
 		expect(labels).toContain('Depublish')
 		expect(labels).not.toContain('Publish')
 	})
@@ -53,7 +53,7 @@ describe('CnRowActions visible predicate', () => {
 				],
 			},
 		})
-		const labels = wrapper.vm.visibleActions.map(a => a.label)
+		const labels = wrapper.vm.visibleActions.map((a) => a.label)
 		expect(labels).toEqual(['Shown'])
 	})
 })

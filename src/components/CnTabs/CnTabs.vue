@@ -27,7 +27,7 @@
 			<div v-if="$slots['nav-end']" class="cn-tabs__nav-end">
 				<!-- @slot nav-end Rendered at the right-hand end of the tab bar, deliberately OUTSIDE the `role="tablist"` element. A widget Actions menu belongs beside the strip, not inside it: anything nested in the tablist is announced as one of the tabs, so a screen-reader user counting six tabs would hear seven. -->
 				<!-- @binding {number} active-index Index of the currently selected tab. -->
-				<slot name="nav-end" :active-index="activeIndex" />
+				<slot name="nav-end" :activeIndex="activeIndex" />
 			</div>
 		</div>
 		<div class="cn-tabs__content" :class="contentClass">
@@ -117,16 +117,19 @@ export default defineComponent({
 			type: String,
 			default: '',
 		},
+
 		/** Stretch the nav items to fill the strip (bootstrap-vue's `justified`). */
 		justified: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Card-style chrome (border + padding) around the panel area. */
 		card: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Accessible name for the tab strip, applied to the `role="tablist"`
 		 * element. Screen readers announce it when focus enters the strip.

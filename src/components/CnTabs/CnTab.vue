@@ -58,16 +58,19 @@ export default defineComponent({
 			type: String,
 			default: '',
 		},
+
 		/** Select this tab. Honoured on mount and on every later change. */
 		active: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Render the nav button disabled and skip this tab in keyboard navigation. */
 		disabled: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Hold the panel body back until this tab is first activated, then keep
 		 * it mounted for the rest of the strip's life.
@@ -114,9 +117,11 @@ export default defineComponent({
 				tabsApi?.select(uid)
 				emit('click')
 			},
+
 			get active() {
 				return props.active
 			},
+
 			get disabled() {
 				return props.disabled
 			},

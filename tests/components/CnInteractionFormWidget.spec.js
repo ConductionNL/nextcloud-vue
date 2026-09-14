@@ -14,7 +14,6 @@ jest.mock('../../src/store/index.js', () => ({
 	useObjectStore: () => mockStore,
 }))
 
-// eslint-disable-next-line import/first
 import CnInteractionFormWidget from '../../src/components/CnInteractionFormWidget/CnInteractionFormWidget.vue'
 
 describe('CnInteractionFormWidget', () => {

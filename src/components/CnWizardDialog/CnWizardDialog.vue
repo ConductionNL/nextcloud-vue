@@ -3,7 +3,7 @@
 		:name="dialogTitle"
 		size="large"
 		:open="dialogOpen"
-		:no-close="loading || !cancellable"
+		:noClose="loading || !cancellable"
 		data-testid="cn-modal"
 		data-testid-modal="cn-wizard-dialog"
 		@update:open="dialogOpen = $event"
@@ -69,15 +69,15 @@
 					:name="'step-' + currentStep.id"
 					:next="next"
 					:back="back"
-					:jump-to="jumpTo"
+					:jumpTo="jumpTo"
 					:submit="submit"
-					:current-step="currentStep"
-					:step-index="currentIndex"
-					:total-steps="steps.length"
-					:step-data="stepData"
-					:set-step-data="setStepData"
-					:is-first="isFirst"
-					:is-last="isLast" />
+					:currentStep="currentStep"
+					:stepIndex="currentIndex"
+					:totalSteps="steps.length"
+					:stepData="stepData"
+					:setStepData="setStepData"
+					:isFirst="isFirst"
+					:isLast="isLast" />
 			</div>
 		</div>
 
@@ -118,7 +118,7 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 
 /**
  * CnWizardDialog — Multi-step modal with per-step slots,
@@ -195,6 +195,7 @@ export default {
 			validator: (v) => Array.isArray(v) && v.length > 0
 				&& v.every((s) => s && typeof s.id === 'string' && typeof s.label === 'string'),
 		},
+
 		/**
 		 * Dialog title shown in the NcDialog header.
 		 *
@@ -204,6 +205,7 @@ export default {
 			type: String,
 			default: 'Wizard',
 		},
+
 		/**
 		 * Step id to start on. Defaults to the first step in `steps[]`.
 		 *
@@ -213,6 +215,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Per-step validator. Async function returning `true` to
 		 * advance, a string to surface as an error banner + block
@@ -226,6 +229,7 @@ export default {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Whether the progress indicator allows jumping back to a
 		 * completed step via click. Forward jumps are NEVER allowed
@@ -238,6 +242,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Seed values for `stepData` (the cross-step object passed
 		 * to every slot scope). Useful for prefilling on edit-style
@@ -249,6 +254,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Cancel-button label (wizard phase). */
 		cancelLabel: { type: String, default: 'Cancel' },
 		/** Back-button label. */
@@ -275,6 +281,7 @@ export default {
 			default: true,
 		},
 	},
+
 	emits: ['close', 'step-change', 'submit'],
 	data() {
 		const initialIndex = this.resolveInitialIndex()
@@ -295,6 +302,7 @@ export default {
 			dialogOpen: true,
 		}
 	},
+
 	computed: {
 		/**
 		 * The currently-active step object from `steps[]`.
@@ -304,6 +312,7 @@ export default {
 		currentStep() {
 			return this.steps[this.currentIndex] || this.steps[0]
 		},
+
 		/**
 		 * Whether the current step is the first one.
 		 *
@@ -312,6 +321,7 @@ export default {
 		isFirst() {
 			return this.currentIndex === 0
 		},
+
 		/**
 		 * Whether the current step is the last one (drives the
 		 * Next → Submit label flip).
@@ -322,6 +332,7 @@ export default {
 			return this.currentIndex === this.steps.length - 1
 		},
 	},
+
 	methods: {
 		/**
 		 * Resolve the index of `initialStep` (falling back to 0 when
@@ -330,10 +341,13 @@ export default {
 		 * @return {number} Step index in the range [0, steps.length).
 		 */
 		resolveInitialIndex() {
-			if (!this.initialStep) return 0
+			if (!this.initialStep) {
+				return 0
+			}
 			const idx = this.steps.findIndex((s) => s.id === this.initialStep)
 			return idx >= 0 ? idx : 0
 		},
+
 		/**
 		 * Merge a partial step-data object onto the shared state.
 		 * Each slot scope receives this so consumers can write their
@@ -346,6 +360,7 @@ export default {
 		setStepData(partial) {
 			this.stepData = { ...this.stepData, ...partial }
 		},
+
 		/**
 		 * Run the consumer's `validate` prop (if provided) for the
 		 * current step. Returns true on pass; sets `validationError`
@@ -355,10 +370,14 @@ export default {
 		 */
 		async runValidation() {
 			this.validationError = ''
-			if (typeof this.validate !== 'function') return true
+			if (typeof this.validate !== 'function') {
+				return true
+			}
 			try {
 				const outcome = await this.validate(this.currentStep.id, this.stepData)
-				if (outcome === true) return true
+				if (outcome === true) {
+					return true
+				}
 				if (typeof outcome === 'string') {
 					this.validationError = outcome
 					return false
@@ -369,6 +388,7 @@ export default {
 				return false
 			}
 		},
+
 		/**
 		 * Advance to the next step after validation. Emits
 		 * `@step-change` with the new step id.
@@ -380,7 +400,9 @@ export default {
 				return this.submit()
 			}
 			const ok = await this.runValidation()
-			if (!ok) return
+			if (!ok) {
+				return
+			}
 			this.currentIndex += 1
 			/**
 			 * @event step-change Emitted on every step navigation
@@ -393,6 +415,7 @@ export default {
 				direction: 'next',
 			})
 		},
+
 		/**
 		 * Step back to the previous step. No validation runs on
 		 * back navigation — consumers can reach back without
@@ -401,7 +424,9 @@ export default {
 		 * @return {void}
 		 */
 		back() {
-			if (this.isFirst) return
+			if (this.isFirst) {
+				return
+			}
 			this.validationError = ''
 			this.currentIndex -= 1
 			this.$emit('step-change', {
@@ -410,6 +435,7 @@ export default {
 				direction: 'back',
 			})
 		},
+
 		/**
 		 * Jump to an arbitrary step by id. Validation is skipped
 		 * (the consumer is responsible for re-running it before
@@ -420,7 +446,9 @@ export default {
 		 */
 		jumpTo(stepId) {
 			const idx = this.steps.findIndex((s) => s.id === stepId)
-			if (idx < 0) return
+			if (idx < 0) {
+				return
+			}
 			this.validationError = ''
 			this.currentIndex = idx
 			this.$emit('step-change', {
@@ -429,6 +457,7 @@ export default {
 				direction: 'jump',
 			})
 		},
+
 		/**
 		 * Submit the wizard. Runs the current step's validation;
 		 * on pass flips `loading` on and emits `@submit` with the
@@ -439,7 +468,9 @@ export default {
 		 */
 		async submit() {
 			const ok = await this.runValidation()
-			if (!ok) return
+			if (!ok) {
+				return
+			}
 			this.loading = true
 			/**
 			 * @event submit Emitted when the user reaches the final
@@ -450,6 +481,7 @@ export default {
 			 */
 			this.$emit('submit', { ...this.stepData })
 		},
+
 		/**
 		 * Public method called by the parent to switch the wizard
 		 * into the result phase.
@@ -477,6 +509,7 @@ export default {
 			this.loading = false
 			this.validationError = message || ''
 		},
+
 		/**
 		 * Close-button handler. Resets local state so the next open
 		 * starts fresh and emits `@close`.

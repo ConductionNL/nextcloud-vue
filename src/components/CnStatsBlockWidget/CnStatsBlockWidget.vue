@@ -16,7 +16,8 @@
 -->
 <template>
 	<div
-		:class="['cn-stats-block-widget', iconClass, { 'cn-stats-block-widget--multi': hasEntries }]">
+		class="cn-stats-block-widget"
+		:class="[iconClass, { 'cn-stats-block-widget--multi': hasEntries }]">
 		<!-- Multi-entry mode: one KPI per entry, all inside this widget card.
 		     An entry with hideWhenZero whose resolved count is 0 is omitted. -->
 		<template v-if="hasEntries">
@@ -25,10 +26,10 @@
 				:key="view.key"
 				:title="view.entry.title || ''"
 				:count="view.count"
-				:count-label="view.entry.countLabel || ''"
+				:countLabel="view.entry.countLabel || ''"
 				:loading="view.loading"
 				:variant="view.entry.variant || 'default'"
-				:show-zero-count="showZeroCount"
+				:showZeroCount="showZeroCount"
 				:horizontal="horizontal"
 				:vertical="vertical"
 				:filled="filled"
@@ -41,10 +42,10 @@
 			v-else
 			:title="title"
 			:count="resolvedCount"
-			:count-label="countLabel"
+			:countLabel="countLabel"
 			:loading="loading"
 			:variant="variant"
-			:show-zero-count="showZeroCount"
+			:showZeroCount="showZeroCount"
 			:horizontal="horizontal"
 			:vertical="vertical"
 			:filled="filled"
@@ -54,14 +55,15 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
+import { useDataSource } from '../../composables/useDataSource.js'
+import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+
 // The canonical KPI scale (`--cn-kpi-*`) lives in one stylesheet. Imported
 // here as well as from css/index.css so the tokens resolve even when the
 // consuming app pulls in components individually.
 import '../../css/kpi-card.css'
-import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
-import { useDataSource } from '../../composables/useDataSource.js'
-import { resolveFilterTokens, dropOptionalUnresolved, hasUnresolvedTokens } from '../../utils/resolveFilterTokens.js'
 
 /**
  * Event-bus channel the PAGE-level Refresh action broadcasts on
@@ -231,6 +233,7 @@ export default {
 		/**
 		 * Vue-router location to navigate to on click. When set, the
 		 * inner CnStatsBlock renders as a `<router-link>`.
+		 *
 		 * @type {object|null}
 		 */
 		route: {
@@ -267,7 +270,9 @@ export default {
 		// robust than the GraphQL count shorthand. Raw `graphql` still flows here.
 		const dsForGraphql = () => {
 			const ds = props.dataSource
-			if (ds && ds.register && ds.schema && !ds.graphql) return null
+			if (ds && ds.register && ds.schema && !ds.graphql) {
+				return null
+			}
 			return ds
 		}
 		const { data, loading, error, refetch } = useDataSource(dsForGraphql)
@@ -295,6 +300,7 @@ export default {
 		hasEntries() {
 			return Array.isArray(this.entries) && this.entries.length > 0
 		},
+
 		/**
 		 * The unwrapped detail-page object context for token resolution, or
 		 * null on surfaces (dashboards) that don't provide one.
@@ -303,9 +309,12 @@ export default {
 		 */
 		objectCtx() {
 			const c = this.cnObjectContext
-			if (!c) return null
+			if (!c) {
+				return null
+			}
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
+
 		/**
 		 * The unwrapped workspace context bag (or null). Vue 2.7 inject may
 		 * hand back a raw ref; unwrap `.value` for token resolution.
@@ -314,9 +323,12 @@ export default {
 		 */
 		workspaceCtx() {
 			const c = this.cnWorkspaceContext
-			if (!c) return null
+			if (!c) {
+				return null
+			}
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
+
 		/**
 		 * Token-resolution context for entry filters, merged from the
 		 * detail-page object context and the page-level workspace bag.
@@ -328,6 +340,7 @@ export default {
 			base.workspace = this.workspaceCtx || {}
 			return base
 		},
+
 		/**
 		 * Renderable view models for multi-entry mode: each entry paired with
 		 * its fetched count and loading flag, with `hideWhenZero` entries
@@ -355,6 +368,7 @@ export default {
 				})
 				.filter((view) => !(view.entry.hideWhenZero && view.resolved && view.count === 0))
 		},
+
 		/**
 		 * Stable signature of a REST-fetchable source (else null).
 		 *
@@ -362,7 +376,9 @@ export default {
 		 */
 		restKey() {
 			const ds = this.dataSource || {}
-			if (!ds.register || !ds.schema || ds.graphql) return null
+			if (!ds.register || !ds.schema || ds.graphql) {
+				return null
+			}
 			return JSON.stringify({
 				register: ds.register,
 				schema: ds.schema,
@@ -371,6 +387,7 @@ export default {
 				filter: ds.filter || {},
 			})
 		},
+
 		/**
 		 * Stable signature of the multi-entry sources INCLUDING their
 		 * token-resolved filters, so the watcher refetches when page-level
@@ -379,7 +396,9 @@ export default {
 		 * @return {string|null}
 		 */
 		entriesKey() {
-			if (!this.hasEntries) return null
+			if (!this.hasEntries) {
+				return null
+			}
 			return JSON.stringify(this.entries.map((entry) => ({
 				register: (entry && entry.register) || '',
 				schema: (entry && entry.schema) || '',
@@ -388,10 +407,15 @@ export default {
 				filter: this.resolvedEntryFilter(entry),
 			})))
 		},
+
 		resolvedCount() {
-			if (typeof this.restCount === 'number') return this.restCount
+			if (typeof this.restCount === 'number') {
+				return this.restCount
+			}
 			const value = this.dsData?.count
-			if (typeof value === 'number') return value
+			if (typeof value === 'number') {
+				return value
+			}
 			if (typeof value === 'string') {
 				const parsed = Number(value)
 				return Number.isFinite(parsed) ? parsed : 0
@@ -401,8 +425,13 @@ export default {
 	},
 
 	watch: {
-		restKey() { this.fetchRest() },
-		entriesKey() { this.fetchEntries() },
+		restKey() {
+			this.fetchRest()
+		},
+
+		entriesKey() {
+			this.fetchEntries()
+		},
 	},
 
 	created() {
@@ -459,6 +488,7 @@ export default {
 			this.fetchRest()
 			this.fetchEntries()
 		},
+
 		/**
 		 * An entry's `route` deep link with `@`-tokens in `query` / `params`
 		 * resolved against `tokenCtx` (same treatment as `entry.filter`), so
@@ -472,7 +502,9 @@ export default {
 		 * @return {object|string|null} The token-resolved route.
 		 */
 		resolveEntryRoute(route) {
-			if (!route || typeof route !== 'object') return route || null
+			if (!route || typeof route !== 'object') {
+				return route || null
+			}
 			const out = { ...route }
 			if (out.query && typeof out.query === 'object') {
 				out.query = dropOptionalUnresolved(resolveFilterTokens(out.query, this.tokenCtx))
@@ -515,17 +547,21 @@ export default {
 					{ register: src.register, schema: src.schema },
 				)
 				const params = { metric: src.metric || (src.aggregate === 'count' ? 'count' : 'count') }
-				if (src.field) params.field = src.field
+				if (src.field) {
+					params.field = src.field
+				}
 				for (const [k, v] of Object.entries(filter || {})) {
 					if (v && typeof v === 'object') {
-						for (const [op, ov] of Object.entries(v)) params[`filter[${k}][${op}]`] = ov
+						for (const [op, ov] of Object.entries(v)) {
+							params[`filter[${k}][${op}]`] = ov
+						}
 					} else if (v !== '' && v !== null && v !== undefined) {
 						params[`filter[${k}]`] = v
 					}
 				}
 				const res = await axios.get(url, { params })
 				return Number(res?.data?.value ?? 0) || 0
-			} catch (e) {
+			} catch {
 				return null
 			}
 		},
@@ -540,7 +576,10 @@ export default {
 		 */
 		async fetchRest() {
 			const ds = this.dataSource || {}
-			if (!ds.register || !ds.schema || ds.graphql) { this.restCount = null; return }
+			if (!ds.register || !ds.schema || ds.graphql) {
+				this.restCount = null
+				return
+			}
 			this.restCount = await this.fetchValue(ds, resolveFilterTokens(ds.filter || {}))
 		},
 
@@ -563,12 +602,18 @@ export default {
 			const entries = this.entries
 			this.entryFetching = entries.map(() => true)
 			const counts = await Promise.all(entries.map(async (entry) => {
-				if (!entry || !entry.register || !entry.schema) return null
+				if (!entry || !entry.register || !entry.schema) {
+					return null
+				}
 				const filter = this.resolvedEntryFilter(entry)
-				if (hasUnresolvedTokens(filter)) return null
+				if (hasUnresolvedTokens(filter)) {
+					return null
+				}
 				return this.fetchValue(entry, filter)
 			}))
-			if (id !== this.entriesRequestId) return
+			if (id !== this.entriesRequestId) {
+				return
+			}
 			this.entryCounts = counts
 			this.entryFetching = entries.map(() => false)
 		},

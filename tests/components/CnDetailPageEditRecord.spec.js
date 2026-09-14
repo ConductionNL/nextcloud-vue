@@ -157,9 +157,7 @@ describe('CnDetailPage — record edit', () => {
 		await wrapper.vm.onEditFormConfirm({ title: 'Gewijzigd' })
 
 		expect(store.saveObject).not.toHaveBeenCalled()
-		expect(setResult).toHaveBeenCalledWith(
-			expect.objectContaining({ error: expect.stringContaining('duplicate') }),
-		)
+		expect(setResult).toHaveBeenCalledWith(expect.objectContaining({ error: expect.stringContaining('duplicate') }))
 		expect(wrapper.vm.editFormOpen).toBe(true)
 	})
 

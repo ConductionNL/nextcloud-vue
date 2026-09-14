@@ -110,7 +110,7 @@ function hoistGlobalOptions(options) {
 	// through `scopedSlots` therefore mounts with no body at all, and fails on
 	// some far-away assertion about what the parent rendered. 28 specs here
 	// use it. Merge it into `slots`, with an explicit `slots` entry winning.
-	if (Object.prototype.hasOwnProperty.call(options, 'scopedSlots')) {
+	if (Object.hasOwn(options, 'scopedSlots')) {
 		options = { ...options, slots: { ...options.scopedSlots, ...(options.slots || {}) } }
 		delete options.scopedSlots
 	}
@@ -153,7 +153,7 @@ function hoistGlobalOptions(options) {
 	// The camelized alias is added too, because `emit()` accepts either and some
 	// components detect the camelCase form instead. Only one ever fires: `emit`
 	// resolves `toHandlerKey(event)` first and stops.
-	if (Object.prototype.hasOwnProperty.call(options, 'listeners')) {
+	if (Object.hasOwn(options, 'listeners')) {
 		const handlers = {}
 		const toHandlerKey = (s) => `on${s.charAt(0).toUpperCase()}${s.slice(1)}`
 		for (const [event, handler] of Object.entries(options.listeners || {})) {
@@ -169,7 +169,7 @@ function hoistGlobalOptions(options) {
 	const hoisted = {}
 	let found = false
 	for (const key of HOISTED_KEYS) {
-		if (Object.prototype.hasOwnProperty.call(options, key)) {
+		if (Object.hasOwn(options, key)) {
 			hoisted[key] = key === 'stubs' ? nameObjectStubs(options[key]) : options[key]
 			found = true
 		}

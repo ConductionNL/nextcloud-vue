@@ -21,6 +21,7 @@
 import { mount } from '@vue/test-utils'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
 import { BUILT_IN_WIDGETS } from '../../src/components/CnWidgetGrid/builtInWidgets.js'
+
 // Populates the dashboard catalog (`chart`, `table`, `object-list`, …) so the
 // consumer-override and catalog-fallback tests have real entries to work with.
 // `chart` and `table` are registered INLINE in this module rather than by their

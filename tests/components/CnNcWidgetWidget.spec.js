@@ -5,8 +5,8 @@
  * via the `OCA.Dashboard` global, and the self-registering registry entry.
  */
 
-import { mount, flushPromises } from '@vue/test-utils'
 import axios from '@nextcloud/axios'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnNcWidgetWidget from '@/components/CnNcWidgetWidget/CnNcWidgetWidget.vue'
 
 jest.mock('@nextcloud/axios', () => ({

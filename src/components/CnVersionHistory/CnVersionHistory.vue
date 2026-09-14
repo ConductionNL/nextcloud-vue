@@ -12,7 +12,11 @@
   openspec change's design notes.
 -->
 <template>
-	<CnDetailCard :title="resolvedTitle" :icon="FileCompare" :collapsible="collapsible">
+	<CnDetailCard
+		:title="resolvedTitle"
+		:icon="FileCompare"
+		:collapsible="collapsible"
+		:data-surface="surface">
 		<NcLoadingIcon v-if="loading && entries.length === 0" />
 		<div v-else-if="entries.length === 0" class="cn-version-history__empty">
 			{{ noEntriesLabel }}
@@ -24,10 +28,10 @@
 					:key="entry.id"
 					class="cn-version-history__row">
 					<NcCheckboxRadioSwitch
-						:model-value="isSelected(entry.id)"
+						:modelValue="isSelected(entry.id)"
 						:disabled="isSelected(entry.id) === false && selectedIds.length >= 2"
 						:aria-label="selectForCompareLabel"
-						@update:model-value="toggleSelected(entry.id, $event)" />
+						@update:modelValue="toggleSelected(entry.id, $event)" />
 					<button class="cn-version-history__row-main" type="button" @click="openSingleDiff(entry)">
 						<span class="cn-version-history__version">{{ entry.version || fallbackVersionLabel }}</span>
 						<span class="cn-version-history__action">{{ entry.action || '' }}</span>
@@ -60,7 +64,7 @@
 				<NcButton variant="tertiary" @click="closeDiff">
 					{{ backLabel }}
 				</NcButton>
-				<NcCheckboxRadioSwitch :model-value="showAllFields" @update:model-value="showAllFields = $event">
+				<NcCheckboxRadioSwitch :modelValue="showAllFields" @update:modelValue="showAllFields = $event">
 					{{ showAllFieldsLabel }}
 				</NcCheckboxRadioSwitch>
 			</div>
@@ -120,13 +124,13 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcLoadingIcon, NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
-import FileCompare from 'vue-material-design-icons/FileCompare.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import Compare from 'vue-material-design-icons/Compare.vue'
+import FileCompare from 'vue-material-design-icons/FileCompare.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
-import { buildHeaders } from '../../utils/index.js'
-import { computeObjectDiff } from '../../utils/computeObjectDiff.js'
 import { foldAuditTrailEntries } from '../../utils/auditTrailDiff.js'
+import { computeObjectDiff } from '../../utils/computeObjectDiff.js'
+import { buildHeaders } from '../../utils/index.js'
 
 /**
  * A single row rendered in the top-level diff table.
@@ -134,8 +138,8 @@ import { foldAuditTrailEntries } from '../../utils/auditTrailDiff.js'
  * @typedef {object} FieldDiffRow
  * @property {string} path Field name.
  * @property {'added'|'removed'|'changed'|'unchanged'} type Classification.
- * @property {*} oldValue Value before.
- * @property {*} newValue Value after.
+ * @property {unknown} oldValue Value before.
+ * @property {unknown} newValue Value after.
  */
 
 /**
@@ -149,8 +153,8 @@ import { foldAuditTrailEntries } from '../../utils/auditTrailDiff.js'
  * @return {FieldDiffRow} The classified row.
  */
 function classifyField(key, oldState, newState) {
-	const oldMissing = Object.prototype.hasOwnProperty.call(oldState, key) === false
-	const newMissing = Object.prototype.hasOwnProperty.call(newState, key) === false
+	const oldMissing = Object.hasOwn(oldState, key) === false
+	const newMissing = Object.hasOwn(newState, key) === false
 	const oldValue = oldState[key]
 	const newValue = newState[key]
 
@@ -210,6 +214,7 @@ export default {
 			default: 'detail-page',
 			validator: (value) => ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity'].includes(value),
 		},
+
 		/** Base API URL. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Number of history entries to fetch per page. */
@@ -261,15 +266,18 @@ export default {
 		resolvedTitle() {
 			return this.title || t('nextcloud-vue', 'Version history')
 		},
+
 		hasMore() {
 			return this.entries.length < this.total
 		},
+
 		diffRows() {
 			if (this.activeDiff === null) {
 				return []
 			}
 			return buildFieldRows(this.activeDiff.oldState, this.activeDiff.newState)
 		},
+
 		visibleDiffRows() {
 			if (this.showAllFields === true) {
 				return this.diffRows

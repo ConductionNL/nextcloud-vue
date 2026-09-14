@@ -14,7 +14,7 @@
 			<CnFolderTree
 				v-if="folder.children && folder.children.length"
 				:folders="folder.children"
-				:selected-id="selectedId"
+				:selectedId="selectedId"
 				class="cn-folder-tree__children"
 				@select="select" />
 		</li>
@@ -47,12 +47,14 @@ export default {
 	props: {
 		/**
 		 * Folders at this level. Each may carry a `children` array for nesting.
+		 *
 		 * @type {Array<{ id: (string|number), name: string, icon?: string, count?: number, children?: Array }>}
 		 */
 		folders: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** The currently selected folder id. */
 		selectedId: {
 			type: [String, Number],

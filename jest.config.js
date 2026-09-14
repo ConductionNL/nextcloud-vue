@@ -101,6 +101,12 @@ module.exports = {
 		'^@codemirror/lang-html$': '<rootDir>/tests/__mocks__/codemirror-lang-html.js',
 		'^@nextcloud/vue$': '<rootDir>/tests/__mocks__/nextcloud-vue.js',
 		'^@nextcloud/axios$': '<rootDir>/tests/__mocks__/nextcloud-axios.js',
+		// `@nextcloud/files` 4.x ships ESM only, with an `import` condition and
+		// no `require`, so jest's CommonJS resolver cannot load it. The mock
+		// is the small surface CnFilesBrowser uses (see the file for the
+		// globals a test sets to feed it).
+		'^@nextcloud/files$': '<rootDir>/tests/__mocks__/nextcloud-files.js',
+		'^@nextcloud/files/dav$': '<rootDir>/tests/__mocks__/nextcloud-files-dav.js',
 		'^@nextcloud/password-confirmation$': '<rootDir>/tests/__mocks__/nextcloud-password-confirmation.js',
 		'^@microsoft/fetch-event-source$': '<rootDir>/tests/__mocks__/fetch-event-source.js',
 		'^@nextcloud/notify_push$': '<rootDir>/tests/__mocks__/nextcloud-notify-push.js',

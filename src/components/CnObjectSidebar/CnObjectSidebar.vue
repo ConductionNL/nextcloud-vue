@@ -48,7 +48,7 @@
 					v-if="isMountProvider(provider)"
 					:provider="provider"
 					:active="activeTab === provider.id"
-					:mount-props="sidebarMountProps" />
+					:mountProps="sidebarMountProps" />
 				<component
 					:is="resolveRegistryTab(provider)"
 					v-else
@@ -73,12 +73,12 @@
 				<template #icon>
 					<Paperclip :size="20" />
 				</template>
-				<slot name="tab-files" :object-id="objectId" :object-type="objectType">
+				<slot name="tab-files" :objectId="objectId" :objectType="objectType">
 					<CnFilesTab
-						:object-id="objectId"
+						:objectId="objectId"
 						:register="register"
 						:schema="schema"
-						:api-base="apiBase" />
+						:apiBase="apiBase" />
 				</slot>
 			</NcAppSidebarTab>
 
@@ -92,15 +92,15 @@
 				<template #icon>
 					<CommentTextOutline :size="20" />
 				</template>
-				<slot name="tab-notes" :object-id="objectId" :object-type="objectType">
+				<slot name="tab-notes" :objectId="objectId" :objectType="objectType">
 					<!-- The `mention` passthrough is the notification hook: apps
 					     mounting the full sidebar receive the mentioned user ids
 					     and dispatch NC notifications from their own backend. -->
 					<CnNotesTab
-						:object-id="objectId"
+						:objectId="objectId"
 						:register="register"
 						:schema="schema"
-						:api-base="apiBase"
+						:apiBase="apiBase"
 						@mention="$emit('mention', $event)" />
 				</slot>
 			</NcAppSidebarTab>
@@ -115,12 +115,12 @@
 				<template #icon>
 					<TagOutline :size="20" />
 				</template>
-				<slot name="tab-tags" :object-id="objectId" :object-type="objectType">
+				<slot name="tab-tags" :objectId="objectId" :objectType="objectType">
 					<CnTagsTab
-						:object-id="objectId"
+						:objectId="objectId"
 						:register="register"
 						:schema="schema"
-						:api-base="apiBase" />
+						:apiBase="apiBase" />
 				</slot>
 			</NcAppSidebarTab>
 
@@ -134,12 +134,12 @@
 				<template #icon>
 					<CheckboxMarkedOutline :size="20" />
 				</template>
-				<slot name="tab-tasks" :object-id="objectId" :object-type="objectType">
+				<slot name="tab-tasks" :objectId="objectId" :objectType="objectType">
 					<CnTasksTab
-						:object-id="objectId"
+						:objectId="objectId"
 						:register="register"
 						:schema="schema"
-						:api-base="apiBase" />
+						:apiBase="apiBase" />
 				</slot>
 			</NcAppSidebarTab>
 
@@ -153,12 +153,12 @@
 				<template #icon>
 					<History :size="20" />
 				</template>
-				<slot name="tab-audit-trail" :object-id="objectId" :object-type="objectType">
+				<slot name="tab-audit-trail" :objectId="objectId" :objectType="objectType">
 					<CnAuditTrailTab
-						:object-id="objectId"
+						:objectId="objectId"
 						:register="register"
 						:schema="schema"
-						:api-base="apiBase" />
+						:apiBase="apiBase" />
 				</slot>
 			</NcAppSidebarTab>
 
@@ -211,29 +211,26 @@
 </template>
 
 <script>
-import { inject, provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcAppSidebar, NcAppSidebarTab } from '@nextcloud/vue'
-
-import Paperclip from 'vue-material-design-icons/Paperclip.vue'
-import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
-import TagOutline from 'vue-material-design-icons/TagOutline.vue'
+import { inject, provide, ref, watch } from 'vue'
 import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
+import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
 import History from 'vue-material-design-icons/History.vue'
-import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
-import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
-
+import Paperclip from 'vue-material-design-icons/Paperclip.vue'
+import TagOutline from 'vue-material-design-icons/TagOutline.vue'
+import CnWidgetObjectTable from '../CnWidgetObjectTable/CnWidgetObjectTable.vue'
+import CnAuditTrailTab from './CnAuditTrailTab.vue'
 import CnFilesTab from './CnFilesTab.vue'
 import CnNotesTab from './CnNotesTab.vue'
 import CnTagsTab from './CnTagsTab.vue'
 import CnTasksTab from './CnTasksTab.vue'
-import CnAuditTrailTab from './CnAuditTrailTab.vue'
-
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import { CnObjectDataWidget } from '../CnObjectDataWidget/index.js'
 import { CnObjectMetadataWidget } from '../CnObjectMetadataWidget/index.js'
-import CnWidgetObjectTable from '../CnWidgetObjectTable/CnWidgetObjectTable.vue'
 
 /**
  * Built-in widget registry used by the open-enum `tabs` prop.
@@ -334,21 +331,25 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** The object UUID */
 		objectId: {
 			type: String,
 			required: true,
 		},
+
 		/** OpenRegister register ID */
 		register: {
 			type: String,
 			default: '',
 		},
+
 		/** OpenRegister schema ID */
 		schema: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * The loaded object, forwarded to prop-driven sidebar-tab widgets
 		 * (the `data` / `metadata` built-ins) as `objectData`. The sidebar is
@@ -362,6 +363,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * The resolved JSON Schema OBJECT (with a `properties` field), forwarded
 		 * to the `data` built-in tab widget (CnObjectDataWidget), which needs the
@@ -374,11 +376,13 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Array of tab IDs to hide: 'files', 'notes', 'tags', 'tasks', 'auditTrail' */
 		hiddenTabs: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Use the pluggable integration registry to drive the sidebar
 		 * tabs. Defaults to `true` (ADR-019): tabs are rendered one per
@@ -407,6 +411,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Integration ids to exclude when rendering registry-driven
 		 * tabs. Mirrors `hiddenTabs` for the legacy mode.
@@ -417,31 +422,37 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Whether the sidebar is open */
 		open: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Sidebar title (defaults to objectType) */
 		title: {
 			type: String,
 			default: '',
 		},
+
 		/** Sidebar subtitle */
 		subtitle: {
 			type: String,
 			default: '',
 		},
+
 		/** @deprecated Use `subtitle` instead. Alias kept for backwards compatibility. */
 		subtitleProp: {
 			type: String,
 			default: '',
 		},
+
 		/** Base API URL for OpenRegister */
 		apiBase: {
 			type: String,
 			default: '/apps/openregister/api',
 		},
+
 		/**
 		 * Whether to auto-subscribe to live updates for the
 		 * current object. Defaults to true. The sidebar calls
@@ -454,6 +465,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Optional explicit Pinia store instance. When omitted,
 		 * the sidebar skips auto-subscribe (Pinia not yet active
@@ -617,13 +629,16 @@ export default {
 		sidebarTitle() {
 			return this.title || this.objectType || 'Details'
 		},
+
 		sidebarSubtitle() {
 			return this.subtitle || this.subtitleProp || ''
 		},
+
 		/** Whether the consumer has supplied a custom `tabs` array. */
 		hasCustomTabs() {
 			return Array.isArray(this.tabs) && this.tabs.length > 0
 		},
+
 		/**
 		 * Whether registry mode is active. Custom `tabs` always wins
 		 * (with a warning at mount) so consumers don't get a surprise
@@ -632,6 +647,7 @@ export default {
 		isRegistryMode() {
 			return this.useRegistry === true && this.hasCustomTabs === false
 		},
+
 		/**
 		 * Filtered registry snapshot: drops providers whose id is in
 		 * `excludeIntegrations` or `hiddenTabs`. Stays reactive on
@@ -645,10 +661,12 @@ export default {
 			const all = this.registryIntegrations || []
 			return all.filter((p) => excluded.has(p.id) === false)
 		},
+
 		/** Effective customComponents registry: prop wins, inject fallback. */
 		effectiveCustomComponents() {
 			return this.customComponents || this.cnCustomComponents || {}
 		},
+
 		/**
 		 * Effective v2 component registry (ADR-036). Kind-tagged entries
 		 * keyed by component name. Consulted by `resolveTabComponent` so a
@@ -658,6 +676,7 @@ export default {
 		effectiveRegistry() {
 			return this.cnRegistry || {}
 		},
+
 		/**
 		 * Shared object context forwarded to every widget / component
 		 * mounted inside a custom tab — same context the built-in tabs
@@ -672,6 +691,7 @@ export default {
 				apiBase: this.apiBase,
 			}
 		},
+
 		/**
 		 * Context forwarded to a mount-mode leaf's `mount(el, props)` for the
 		 * single-entity sidebar surface — the same shape an SFC tab receives,
@@ -701,9 +721,12 @@ export default {
 				this.activeTab = this.requestedTab || this.computeInitialActiveTab()
 			},
 		},
+
 		requestedTab(id) {
 			// Host deep-link: switch to the requested tab when it changes.
-			if (id) this.activeTab = id
+			if (id) {
+				this.activeTab = id
+			}
 		},
 	},
 
@@ -804,9 +827,13 @@ export default {
 		 * @return {object|null} Vue component, or null when unresolved
 		 */
 		resolveWidgetComponent(type) {
-			if (BUILTIN_WIDGETS[type]) return BUILTIN_WIDGETS[type]
+			if (BUILTIN_WIDGETS[type]) {
+				return BUILTIN_WIDGETS[type]
+			}
 			const reg = this.effectiveCustomComponents
-			if (reg && reg[type]) return reg[type]
+			if (reg && reg[type]) {
+				return reg[type]
+			}
 			// eslint-disable-next-line no-console
 			console.warn(`[CnObjectSidebar] Unknown widget type "${type}" — not in built-ins (data, metadata, audit, audit-trail, object-table) and not in customComponents registry.`)
 			return null

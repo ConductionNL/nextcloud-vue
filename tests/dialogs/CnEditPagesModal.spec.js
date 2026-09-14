@@ -51,7 +51,9 @@ describe('CnEditPagesModal', () => {
 	// closing, so an in-app edit isn't silently left unsaved (manifestModalDoneMixin).
 	it('Done persists via the injected editor, then closes', async () => {
 		let resolveSave
-		const save = jest.fn(() => new Promise((resolve) => { resolveSave = resolve }))
+		const save = jest.fn(() => new Promise((resolve) => {
+			resolveSave = resolve
+		}))
 		const wrapper = mountModal({ pages: [] }, { cnManifestEditor: { save } })
 
 		const done = wrapper.vm.onDone()

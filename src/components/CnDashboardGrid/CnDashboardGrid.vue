@@ -142,36 +142,43 @@ export default {
 			type: Array,
 			required: true,
 		},
+
 		/** Whether drag and resize are enabled */
 		editable: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Number of grid columns */
 		columns: {
 			type: Number,
 			default: 12,
 		},
+
 		/** Cell height in pixels */
 		cellHeight: {
 			type: Number,
 			default: 80,
 		},
+
 		/** Grid margin in pixels */
 		margin: {
 			type: Number,
 			default: 12,
 		},
+
 		/** Minimum widget width in grid units */
 		minWidth: {
 			type: Number,
 			default: 2,
 		},
+
 		/** Minimum widget height in grid units */
 		minHeight: {
 			type: Number,
 			default: 2,
 		},
+
 		/**
 		 * GridStack v12 responsive `columnOpts` bag (breakpoints + reflow
 		 * layout). When set, the grid reflows column count across screen sizes.
@@ -184,6 +191,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * When set, `cellHeight` is mirrored into this CSS custom property on
 		 * the document root at init (e.g. `'--app-cell-height'`), so app CSS can
@@ -195,18 +203,20 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * Optional `(item) => string|number` to derive each item's render key.
 		 * Use it to force a re-render when an item changes in a way its `id`
 		 * doesn't capture (e.g. style edits — return `${item.id}:${item.updatedAt}`).
 		 * Default `null` = key on `item.id`.
 		 *
-		 * @type {Function|null}
+		 * @type {((item: object) => (string|number))|null}
 		 */
 		itemKey: {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Whether grid items are keyboard-operable: focusable in edit mode and
 		 * repositionable/resizable with the arrow keys (WCAG 2.1 SC 2.1.1 —
@@ -217,6 +227,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Optional `(item, index) => string` returning the accessible name for
 		 * a grid item. Use it when the layout items don't carry a human-readable
@@ -224,12 +235,13 @@ export default {
 		 * `widgetTitle` → `widgetId`, then a positional "Widget N"). The returned
 		 * string is used verbatim — no coordinates are appended.
 		 *
-		 * @type {Function|null}
+		 * @type {((item: object, index: number) => string)|null}
 		 */
 		itemLabel: {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Whether a keyboard activation (`Enter` / `Space` on a focused grid
 		 * item) also dispatches a bubbling `contextmenu` event from inside the
@@ -333,7 +345,9 @@ export default {
 
 	watch: {
 		editable(val) {
-			if (!this.grid) return
+			if (!this.grid) {
+				return
+			}
 			if (val) {
 				this.grid.enable()
 			} else {
@@ -450,10 +464,12 @@ export default {
 		},
 
 		handleGridChange(items) {
-			if (!items || items.length === 0) return
+			if (!items || items.length === 0) {
+				return
+			}
 
-			const updated = this.layout.map(item => {
-				const gridItem = items.find(gi => String(gi.id) === String(item.id))
+			const updated = this.layout.map((item) => {
+				const gridItem = items.find((gi) => String(gi.id) === String(item.id))
 				if (gridItem) {
 					return {
 						...item,
@@ -482,9 +498,15 @@ export default {
 		 * @return {void}
 		 */
 		onItemKeydown(event, item) {
-			if (!this.keyboardRepositioning) return
-			if (event.target !== event.currentTarget) return
-			if (event.altKey || event.ctrlKey || event.metaKey) return
+			if (!this.keyboardRepositioning) {
+				return
+			}
+			if (event.target !== event.currentTarget) {
+				return
+			}
+			if (event.altKey || event.ctrlKey || event.metaKey) {
+				return
+			}
 
 			if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
 				event.preventDefault()
@@ -492,7 +514,9 @@ export default {
 				return
 			}
 
-			if (!this.editable) return
+			if (!this.editable) {
+				return
+			}
 
 			const handled = this.applyKey(event.key, event.shiftKey, item)
 			if (handled) {
@@ -516,28 +540,28 @@ export default {
 			const rect = this.currentRect(item)
 
 			switch (key) {
-			case 'ArrowLeft':
-				return shift
-					? this.applyGeometry(item, { w: rect.w - 1 }, 'resize')
-					: this.applyGeometry(item, { x: rect.x - 1 }, 'move')
-			case 'ArrowRight':
-				return shift
-					? this.applyGeometry(item, { w: rect.w + 1 }, 'resize')
-					: this.applyGeometry(item, { x: rect.x + 1 }, 'move')
-			case 'ArrowUp':
-				return shift
-					? this.applyGeometry(item, { h: rect.h - 1 }, 'resize')
-					: this.applyGeometry(item, { y: rect.y - 1 }, 'move')
-			case 'ArrowDown':
-				return shift
-					? this.applyGeometry(item, { h: rect.h + 1 }, 'resize')
-					: this.applyGeometry(item, { y: rect.y + 1 }, 'move')
-			case 'Home':
-				return this.applyGeometry(item, { x: 0 }, 'move')
-			case 'End':
-				return this.applyGeometry(item, { x: this.effectiveColumns - rect.w }, 'move')
-			default:
-				return false
+				case 'ArrowLeft':
+					return shift
+						? this.applyGeometry(item, { w: rect.w - 1 }, 'resize')
+						: this.applyGeometry(item, { x: rect.x - 1 }, 'move')
+				case 'ArrowRight':
+					return shift
+						? this.applyGeometry(item, { w: rect.w + 1 }, 'resize')
+						: this.applyGeometry(item, { x: rect.x + 1 }, 'move')
+				case 'ArrowUp':
+					return shift
+						? this.applyGeometry(item, { h: rect.h - 1 }, 'resize')
+						: this.applyGeometry(item, { y: rect.y - 1 }, 'move')
+				case 'ArrowDown':
+					return shift
+						? this.applyGeometry(item, { h: rect.h + 1 }, 'resize')
+						: this.applyGeometry(item, { y: rect.y + 1 }, 'move')
+				case 'Home':
+					return this.applyGeometry(item, { x: 0 }, 'move')
+				case 'End':
+					return this.applyGeometry(item, { x: this.effectiveColumns - rect.w }, 'move')
+				default:
+					return false
 			}
 		},
 
@@ -627,15 +651,15 @@ export default {
 
 			this.announce(kind === 'resize'
 				? t('nextcloud-vue', '{label} resized to {width} columns by {height} rows', {
-					label: this.announcementLabel(item),
-					width: next.w,
-					height: next.h,
-				})
+						label: this.announcementLabel(item),
+						width: next.w,
+						height: next.h,
+					})
 				: t('nextcloud-vue', '{label} moved to column {column}, row {row}', {
-					label: this.announcementLabel(item),
-					column: next.x + 1,
-					row: next.y + 1,
-				}))
+						label: this.announcementLabel(item),
+						column: next.x + 1,
+						row: next.y + 1,
+					}))
 
 			return true
 		},
@@ -649,14 +673,12 @@ export default {
 		 * @return {string} the short name.
 		 */
 		announcementLabel(item) {
-			return String(
-				item.title
+			return String(item.title
 				|| item.name
 				|| item.label
 				|| item.widgetTitle
 				|| item.widgetId
-				|| t('nextcloud-vue', 'Widget'),
-			)
+				|| t('nextcloud-vue', 'Widget'))
 		},
 
 		/**
@@ -712,7 +734,9 @@ export default {
 		 * @return {void}
 		 */
 		dispatchContextMenu(el, clientX, clientY) {
-			if (typeof MouseEvent !== 'function') return
+			if (typeof MouseEvent !== 'function') {
+				return
+			}
 			const content = el.querySelector('.grid-stack-item-content')
 			const target = (content && content.firstElementChild) || content || el
 			target.dispatchEvent(new MouseEvent('contextmenu', {
@@ -732,7 +756,9 @@ export default {
 		 */
 		itemElement(id) {
 			const container = this.$refs.gridContainer
-			if (!container) return null
+			if (!container) {
+				return null
+			}
 			return container.querySelector(`[gs-id="${id}"]`)
 		},
 
@@ -744,8 +770,10 @@ export default {
 		 */
 		gridNode(id) {
 			const nodes = this.grid && this.grid.engine && this.grid.engine.nodes
-			if (!Array.isArray(nodes)) return null
-			return nodes.find(n => String(n.id) === String(id)) || null
+			if (!Array.isArray(nodes)) {
+				return null
+			}
+			return nodes.find((n) => String(n.id) === String(id)) || null
 		},
 
 		syncGridItems(newLayout) {
@@ -761,9 +789,7 @@ export default {
 					if (!el) {
 						return
 					}
-					const node = this.grid.engine.nodes.find(
-						n => String(n.id) === String(item.id),
-					)
+					const node = this.grid.engine.nodes.find((n) => String(n.id) === String(item.id))
 					if (!node) {
 						this.grid.makeWidget(el)
 					} else if (node.el !== el) {
@@ -776,10 +802,8 @@ export default {
 			}
 
 			// Remove items no longer in layout
-			const ids = newLayout.map(i => String(i.id))
-			const toRemove = this.grid.engine.nodes.filter(
-				n => !ids.includes(String(n.id)),
-			)
+			const ids = newLayout.map((i) => String(i.id))
+			const toRemove = this.grid.engine.nodes.filter((n) => !ids.includes(String(n.id)))
 			for (const node of toRemove) {
 				const el = this.$refs.gridContainer.querySelector(`[gs-id="${node.id}"]`)
 				if (el) {

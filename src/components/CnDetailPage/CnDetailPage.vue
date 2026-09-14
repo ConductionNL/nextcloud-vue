@@ -41,7 +41,7 @@
 				:title="title"
 				:description="description"
 				:icon="icon"
-				:icon-size="iconSize">
+				:iconSize="iconSize">
 				<div class="cn-detail-page__header-left">
 					<!--
 						@slot icon
@@ -100,7 +100,7 @@
 				     transitions apply. -->
 				<CnLifecycleActions
 					v-if="lifecycleActions && (objectId || currentObject)"
-					:object-id="objectId"
+					:objectId="objectId"
 					:object="currentObject"
 					:config="lifecycleActions"
 					:schema="currentSchema"
@@ -143,12 +143,12 @@
 				<slot
 					name="actions"
 					:object="resolvedObject"
-					:object-id="objectId"
+					:objectId="objectId"
 					:schema="currentSchema"
-					:object-type="resolvedObjectType"
+					:objectType="resolvedObjectType"
 					:store="effectiveObjectStore"
-					:open-edit-form="openEditForm"
-					:can-edit-record="canEditRecord" />
+					:openEditForm="openEditForm"
+					:canEditRecord="canEditRecord" />
 				<!-- Record edit (ADR-062): the detail page's own way to change the
 				     record it is showing. Without it a `type:"detail"` page is
 				     read-only and the ONLY edit surface is the modal launched
@@ -177,21 +177,21 @@
 				<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
 				<CnBuildiqEditButton />
 				<CnActionsMenu
-					:show-refresh="effectiveHeaderShowRefresh"
+					:showRefresh="effectiveHeaderShowRefresh"
 					:refreshing="effectiveRefreshing"
-					:show-request-feature="showRequestFeature"
-					:show-report-bug="showReportBug"
-					:show-documentation="showDocumentation"
-					:documentation-url="documentationUrl"
-					:docs-anchor="resolvedPageId"
-					:documentation-label="documentationLabel || undefined"
-					:widget-id="resolvedPageId"
+					:showRequestFeature="showRequestFeature"
+					:showReportBug="showReportBug"
+					:showDocumentation="showDocumentation"
+					:documentationUrl="documentationUrl"
+					:docsAnchor="resolvedPageId"
+					:documentationLabel="documentationLabel || undefined"
+					:widgetId="resolvedPageId"
 					:title="title"
 					:surface="`detail:${resolvedPageId}`"
-					refresh-channel="cn:page:refresh"
-					testid-base="cn-detail-page"
+					refreshChannel="cn:page:refresh"
+					testidBase="cn-detail-page"
 					@refresh="onHeaderRefresh"
-					@request-feature="onHeaderRequestFeature">
+					@requestFeature="onHeaderRequestFeature">
 					<template v-if="menuHeaderActions.length" #primary-items>
 						<template v-for="entry in menuHeaderActions">
 							<!-- An action that goes to a URL is a LINK. The browser
@@ -216,7 +216,7 @@
 								:data-testid="entry.testid"
 								:disabled="entry.disabled"
 								:aria-pressed="entry.pressed === null ? null : String(entry.pressed)"
-								:close-after-click="true"
+								:closeAfterClick="true"
 								@click="entry.run()">
 								<template v-if="entry.iconName || entry.iconClass" #icon>
 									<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
@@ -239,9 +239,9 @@
 		     neutral notice plus Unlock for your own. -->
 		<CnLockedBanner
 			v-if="lockState && lockState.locked.value"
-			:locked-by="lockState.lockedBy.value"
-			:locked-by-me="lockState.lockedByMe.value"
-			:expires-at="lockState.expiresAt.value"
+			:lockedBy="lockState.lockedBy.value"
+			:lockedByMe="lockState.lockedByMe.value"
+			:expiresAt="lockState.expiresAt.value"
 			:unlocking="releasingLock"
 			@unlock="onReleaseLock" />
 
@@ -324,8 +324,8 @@
 					name="before-body"
 					:object="resolvedObject"
 					:schema="currentSchema"
-					:object-type="resolvedObjectType"
-					:object-id="objectId"
+					:objectType="resolvedObjectType"
+					:objectId="objectId"
 					:store="effectiveObjectStore" />
 			</div>
 
@@ -358,16 +358,22 @@
 				:editable="editingBody"
 				:columns="12"
 				class="cn-detail-page__grid"
-				@layout-change="onBodyLayoutChange">
+				@layoutChange="onBodyLayoutChange">
 				<template #widget="{ item }">
 					<div
 						class="cn-detail-page__grid-item"
 						:aria-labelledby="showGridTitle(item) ? `widget-title-${item.id}` : undefined">
 						<!-- In-app edit overlay (ADR-041): a configure cog appears on
-						     widgets that have a registered config form while the page
-						     is in Buildiq edit mode. The modal's own Delete affordance
-						     covers removal, so no separate remove button here. -->
-						<div v-if="editingBody && registryFormFor(item)" class="cn-detail-page__widget-edit">
+						     EVERY grid widget while the page is in Buildiq edit mode,
+						     as it does on CnDashboardPage. It was gated on the type
+						     having a registered config form, which left a `custom`
+						     widget and an `integration` leaf with no cog at all: they
+						     could be dragged and resized but never configured or
+						     removed, because the modal's own Delete affordance is the
+						     only way off the page. The modal already handles a type
+						     without a form (title, icon, style, delete), so the gate
+						     bought nothing. -->
+						<div v-if="showsCog(item)" class="cn-detail-page__widget-edit">
 							<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
 								<template #icon>
 									<Cog :size="18" />
@@ -432,30 +438,30 @@
 							:name="`widget-${item.widgetId}`"
 							:item="item"
 							:widget="findWidget(item)"
-							:object-id="objectId"
+							:objectId="objectId"
 							:object="resolvedObject"
-							:object-data="resolvedObject"
-							:object-type="resolvedObjectType"
+							:objectData="resolvedObject"
+							:objectType="resolvedObjectType"
 							:register="register"
 							:schema="schema">
 							<CnDetailWidgetHost
 								:widget="findWidget(item)"
 								chrome="card"
-								:show-card-title="showCardTitle(item)"
-								:object-id="objectId"
+								:showCardTitle="showCardTitle(item)"
+								:objectId="objectId"
 								:object="currentObject"
-								:object-type="resolvedObjectType"
-								:schema-object="currentSchema"
+								:objectType="resolvedObjectType"
+								:schemaObject="currentSchema"
 								:register="register"
 								:schema="schema"
 								:store="effectiveObjectStore"
 								:surface="surface"
-								:integration-context="effectiveIntegrationContext"
-								:hide-empty="hideEmpty"
-								:cn-registry="cnRegistry"
-								:available-widgets="bodyGridWidgets"
-								@geo-saved="onGeoSaved"
-								@open-integration="onAutoBodyOpenIntegration" />
+								:integrationContext="effectiveIntegrationContext"
+								:hideEmpty="hideEmpty"
+								:cnRegistry="cnRegistry"
+								:availableWidgets="bodyGridWidgets"
+								@geoSaved="onGeoSaved"
+								@openIntegration="onAutoBodyOpenIntegration" />
 						</slot>
 					</div>
 				</template>
@@ -557,7 +563,7 @@
 				<CnRelatedCollections
 					v-if="relatedCollections && relatedCollections.length > 0"
 					:collections="relatedCollections"
-					@row-click="onRelatedRowClick" />
+					@rowClick="onRelatedRowClick" />
 			</div>
 
 			<!-- Declarative in-body sections, `placement: "after-related"` —
@@ -637,7 +643,7 @@
 				:schema="currentSchema"
 				:item="createPrefill"
 				:register="register"
-				:dialog-title="title || undefined"
+				:dialogTitle="title || undefined"
 				:size="formSize"
 				:columns="formColumns"
 				@confirm="onCreateFormConfirm"
@@ -658,7 +664,7 @@
 				:schema="currentSchema"
 				:item="currentObject"
 				:register="register"
-				:dialog-title="editActionLabel"
+				:dialogTitle="editActionLabel"
 				:size="formSize"
 				:columns="formColumns"
 				@confirm="onEditFormConfirm"
@@ -670,44 +676,51 @@
 		<CnRelationLinkModal
 			v-if="activeRelationLink"
 			:title="activeRelationLink.title || undefined"
-			:select-label="activeRelationLink.selectLabel || undefined"
+			:selectLabel="activeRelationLink.selectLabel || undefined"
 			:register="activeRelationLink.register"
 			:schema="activeRelationLink.schema"
-			:label-field="activeRelationLink.labelField || 'name'"
-			:allow-create="activeRelationLink.allowCreate === true"
-			:current-type="resolvedObjectType"
-			:current-object="currentObject || {}"
-			:fk-field="activeRelationLink.fkField"
+			:labelField="activeRelationLink.labelField || 'name'"
+			:allowCreate="activeRelationLink.allowCreate === true"
+			:currentType="resolvedObjectType"
+			:currentObject="currentObject || {}"
+			:fkField="activeRelationLink.fkField"
 			@linked="onRelationLinked"
 			@close="activeRelationLink = null" />
 	</div>
 </template>
 
 <script>
-import { provide, ref, watch } from 'vue'
-import { translate as t } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { provide, ref, watch } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
-import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
-import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
-import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
-import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
-import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
-import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
-import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
-import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
-import { CnActionButtons } from '../CnActionButtons/index.js'
-import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
-import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.vue'
-import CnBodySections from '../CnBodySections/CnBodySections.vue'
-import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
 import CnRelationLinkModal from '../../dialogs/CnRelationLinkModal.vue'
+import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
+import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
+import CnBodySections from '../CnBodySections/CnBodySections.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
-import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
+import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
+import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
+import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.vue'
+import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
+import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { useObjectLock } from '../../composables/useObjectLock.js'
+import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import { gridLayout } from '../../mixins/gridLayout.js'
+import { useObjectStore } from '../../store/index.js'
+import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
+import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
+import { slotRenders } from '../../utils/slotContent.js'
 import {
 	isCardWidgetDef,
 	isContentOnlyWidgetDef,
@@ -718,17 +731,11 @@ import {
 	widgetContentOf,
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
-import '../CnWidgetGrid/registerDashboardWidgets.js'
-import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
-import { useObjectLock } from '../../composables/useObjectLock.js'
-import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
-import { gridLayout } from '../../mixins/gridLayout.js'
-import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
-import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
-import { slotRenders } from '../../utils/slotContent.js'
-import { useObjectStore } from '../../store/index.js'
+import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnIcon } from '../CnIcon/index.js'
-import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
+import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+
+import '../CnWidgetGrid/registerDashboardWidgets.js'
 
 /**
  * Event-bus channel a page-level refresh is announced on. The page's own
@@ -1331,6 +1338,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Whether the "Report a bug" entry renders in the page-header menu.
 		 * On by default — the trio Request a feature / Report a bug /
@@ -1342,6 +1350,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Whether the Documentation entry renders in the page-header menu. On
 		 * by default; the shared menu resolves the target itself, so leaving
@@ -1490,6 +1499,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Vue-router route NAME to navigate to after a create-form save (the
 		 * create archetype: a `type:"detail"` page whose route carries no `:id`).
@@ -1564,7 +1574,9 @@ export default {
 		registryExposed.cnAppConfigRef = cnAppConfig
 		watch(
 			() => props.appConfig,
-			(next) => { cnAppConfig.value = { ...(next || {}) } },
+			(next) => {
+				cnAppConfig.value = { ...(next || {}) }
+			},
 			{ deep: true },
 		)
 
@@ -1588,7 +1600,7 @@ export default {
 		if (!subscriptionStore && props.subscribe && props.register && props.schema) {
 			try {
 				subscriptionStore = useObjectStore()
-			} catch (err) {
+			} catch {
 				// Pinia not active (stand-alone test mounts) — no live updates.
 				subscriptionStore = null
 			}
@@ -1736,13 +1748,17 @@ export default {
 		 * @return {object|null}
 		 */
 		configWidget() {
-			if (!this.configWidgetId) return null
+			if (!this.configWidgetId) {
+				return null
+			}
 			const def = this.bodyGridWidgets.find((w) => w.id === this.configWidgetId)
 			return def || null
 		},
 
 		resolvedPageId() {
-			if (this.pageId) return this.pageId
+			if (this.pageId) {
+				return this.pageId
+			}
 			return String(this.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 		},
 
@@ -1822,6 +1838,7 @@ export default {
 		foldsEditIntoActions() {
 			return typeof this.inlineActions === 'number'
 		},
+
 		/**
 		 * The header actions actually handed to CnActionButtons: the declared
 		 * ones, plus this page's Edit appended when `inlineActions` folds it
@@ -1832,7 +1849,9 @@ export default {
 		 */
 		effectiveHeaderActions() {
 			const declared = Array.isArray(this.headerActions) ? this.headerActions : []
-			if (!(this.foldsEditIntoActions && this.canEditRecord)) return declared
+			if (!(this.foldsEditIntoActions && this.canEditRecord)) {
+				return declared
+			}
 			return [
 				...declared,
 				{
@@ -1845,6 +1864,7 @@ export default {
 				},
 			]
 		},
+
 		canEditRecord() {
 			return this.showEditAction
 				&& !this.isCreateMode
@@ -1898,7 +1918,9 @@ export default {
 			const props = (this.currentSchema && this.currentSchema.properties) || {}
 			const out = {}
 			for (const [k, v] of Object.entries(q)) {
-				if (Object.prototype.hasOwnProperty.call(props, k)) out[k] = v
+				if (Object.hasOwn(props, k)) {
+					out[k] = v
+				}
 			}
 			return Object.keys(out).length ? out : null
 		},
@@ -1919,8 +1941,12 @@ export default {
 		 * @return {boolean}
 		 */
 		formDialogVisible() {
-			if (!this.currentSchema) return false
-			if (this.isCreateMode) return true
+			if (!this.currentSchema) {
+				return false
+			}
+			if (this.isCreateMode) {
+				return true
+			}
 			return this.editFormOpen && !this.editFormAwaitingRecord
 		},
 
@@ -1945,7 +1971,9 @@ export default {
 		 * @return {boolean}
 		 */
 		effectiveHeaderShowRefresh() {
-			if (this.showRefresh !== null) return this.showRefresh
+			if (this.showRefresh !== null) {
+				return this.showRefresh
+			}
 			// `$.vnode.props`, not `$attrs`: `refresh` is a declared emit, and
 			// Vue keeps declared emits out of `$attrs`.
 			return Boolean(this.$.vnode.props?.onRefresh) || this.hasSchemaDrivenFetch
@@ -1977,6 +2005,7 @@ export default {
 				// always have Pinia active, so this branch only protects
 				// stand-alone test mounts.
 
+				// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 				console.warn('[CnDetailPage] useObjectStore() unavailable; schema-driven mode disabled.', err)
 				return null
 			}
@@ -1992,9 +2021,13 @@ export default {
 		 */
 		currentObject() {
 			const store = this.effectiveObjectStore
-			if (!store) return null
+			if (!store) {
+				return null
+			}
 			const type = this.resolvedObjectType
-			if (!type || !this.objectId) return null
+			if (!type || !this.objectId) {
+				return null
+			}
 			return store.objects?.[type]?.[this.objectId] ?? null
 		},
 
@@ -2008,7 +2041,9 @@ export default {
 		 * @return {boolean}
 		 */
 		editFormAwaitingRecord() {
-			if (!this.effectiveObjectStore || !this.objectId) return false
+			if (!this.effectiveObjectStore || !this.objectId) {
+				return false
+			}
 			return !this.currentObject
 		},
 
@@ -2028,13 +2063,19 @@ export default {
 			// Schema-driven path: reuse what `currentObject` already
 			// computed.
 			const fromSchemaDriven = this.currentObject
-			if (fromSchemaDriven) return fromSchemaDriven
+			if (fromSchemaDriven) {
+				return fromSchemaDriven
+			}
 			// Direct-mount fallback: legacy callers pass `objectType` +
 			// `objectId`. Read the same cache shape but keyed off the
 			// explicit slug.
 			const store = this.effectiveObjectStore
-			if (!store) return null
-			if (!this.objectType || !this.objectId) return null
+			if (!store) {
+				return null
+			}
+			if (!this.objectType || !this.objectId) {
+				return null
+			}
 			return store.objects?.[this.objectType]?.[this.objectId] ?? null
 		},
 
@@ -2049,12 +2090,16 @@ export default {
 		 */
 		objectDisplayName() {
 			const obj = this.resolvedObject
-			if (!obj || typeof obj !== 'object') return ''
+			if (!obj || typeof obj !== 'object') {
+				return ''
+			}
 			const self = obj['@self'] || {}
-			const id = this.objectId != null ? String(this.objectId) : ''
+			const id = this.objectId !== null && this.objectId !== undefined ? String(this.objectId) : ''
 			const candidates = [self.name, self.title, obj.name, obj.title, obj.displayName]
 			for (const c of candidates) {
-				if (c != null && c !== '' && String(c) !== id) return String(c)
+				if (c !== null && c !== undefined && c !== '' && String(c) !== id) {
+					return String(c)
+				}
 			}
 			const composed = ((obj.firstName || '') + ' ' + (obj.lastName || '')).trim()
 			return composed || ''
@@ -2122,7 +2167,9 @@ export default {
 		 */
 		typeEyebrow() {
 			const name = this.objectDisplayName
-			if (!name || !this.title || name === this.title) return ''
+			if (!name || !this.title || name === this.title) {
+				return ''
+			}
 			return this.resolvedTitle
 		},
 
@@ -2136,9 +2183,13 @@ export default {
 		 */
 		currentSchema() {
 			const store = this.effectiveObjectStore
-			if (!store) return null
+			if (!store) {
+				return null
+			}
 			const type = this.resolvedObjectType
-			if (!type) return null
+			if (!type) {
+				return null
+			}
 			return store.schemas?.[type] ?? null
 		},
 
@@ -2185,7 +2236,9 @@ export default {
 		 * @return {object} `{ register, schema, objectId }`.
 		 */
 		effectiveIntegrationContext() {
-			if (this.integrationContext) return this.integrationContext
+			if (this.integrationContext) {
+				return this.integrationContext
+			}
 			const resolved = this.resolvedSidebar || {}
 			return {
 				register: resolved.register || this.sidebarProps?.register || this.register || '',
@@ -2207,10 +2260,14 @@ export default {
 			// useManifestEditor.enter() observes them in place, so a cache
 			// built pre-edit would stay frozen for in-place pushes (Add widget
 			// on a detail page / grid ejection). See CnDashboardPage.hasWidgets.
-			// eslint-disable-next-line no-unused-expressions
+			// eslint-disable-next-line @typescript-eslint/no-unused-expressions -- reading the flag IS the effect: the read registers the reactive dependency, and there is nothing to assign it to
 			this.editingBody
-			if (this.hasGridLayout) return this.layout
-			if (this.shouldRenderAutoBody) return this.autoBodyLayout || []
+			if (this.hasGridLayout) {
+				return this.layout
+			}
+			if (this.shouldRenderAutoBody) {
+				return this.autoBodyLayout || []
+			}
 			return []
 		},
 
@@ -2222,8 +2279,12 @@ export default {
 		 * @return {Array} Widget definitions.
 		 */
 		bodyGridWidgets() {
-			if (this.hasGridLayout) return this.widgets
-			if (this.shouldRenderAutoBody) return this.autoBodyWidgets || []
+			if (this.hasGridLayout) {
+				return this.widgets
+			}
+			if (this.shouldRenderAutoBody) {
+				return this.autoBodyWidgets || []
+			}
 			return []
 		},
 
@@ -2271,7 +2332,9 @@ export default {
 			// (the explicit Object form below still overrides show/enabled).
 			const hasTabs = Array.isArray(this.sidebarTabs) && this.sidebarTabs.length > 0
 			if (typeof cfg === 'boolean') {
-				if (cfg) return { show: true, enabled: true }
+				if (cfg) {
+					return { show: true, enabled: true }
+				}
 				return hasTabs ? { show: true, enabled: true } : { show: false, enabled: false }
 			}
 			if (cfg && typeof cfg === 'object') {
@@ -2296,7 +2359,9 @@ export default {
 			// non-empty `sidebarTabs` opt-in activates it even past the prop's
 			// default `{ enabled: false }` — the procest CaseDetail manifest
 			// pattern, where a page declares only `config.sidebarTabs`.
-			if (r.show === false) return false
+			if (r.show === false) {
+				return false
+			}
 			if (r.enabled === false) {
 				return Array.isArray(this.sidebarTabs) && this.sidebarTabs.length > 0
 			}
@@ -2321,7 +2386,9 @@ export default {
 		 * @return {Array}
 		 */
 		endPlacementSections() {
-			if (!this.hasBodyWidgets) return []
+			if (!this.hasBodyWidgets) {
+				return []
+			}
 			const named = ['before-body', 'after-data', 'after-related']
 			return this.bodyWidgets.filter((s) => !s || !s.placement || !named.includes(s.placement))
 		},
@@ -2369,7 +2436,9 @@ export default {
 		sidebar: {
 			immediate: true,
 			deep: true,
-			handler() { this.syncSidebarState() },
+			handler() {
+				this.syncSidebarState()
+			},
 		},
 
 		// Keep the provided object context current so detail-page abstract
@@ -2411,7 +2480,9 @@ export default {
 		shouldRenderAutoBody: {
 			immediate: true,
 			handler(active) {
-				if (active && !this.autoBodyLayout) this.materializeAutoBody()
+				if (active && !this.autoBodyLayout) {
+					this.materializeAutoBody()
+				}
 			},
 		},
 
@@ -2426,9 +2497,18 @@ export default {
 			this.dataWidgetDeferred = false
 		},
 
-		title() { this.syncSidebarState() },
-		subtitle() { this.syncSidebarState() },
-		objectType() { this.syncSidebarState() },
+		title() {
+			this.syncSidebarState()
+		},
+
+		subtitle() {
+			this.syncSidebarState()
+		},
+
+		objectType() {
+			this.syncSidebarState()
+		},
+
 		// Schema-driven props feed both the sidebar state (via
 		// resolvedObjectType) and the auto-fetch path. Re-sync + re-fetch
 		// whenever any of the three move so the page stays consistent if
@@ -2454,12 +2534,16 @@ export default {
 
 		sidebarTabs: {
 			deep: true,
-			handler() { this.syncSidebarState() },
+			handler() {
+				this.syncSidebarState()
+			},
 		},
 
 		sidebarProps: {
 			deep: true,
-			handler() { this.syncSidebarState() },
+			handler() {
+				this.syncSidebarState()
+			},
 		},
 	},
 
@@ -2534,7 +2618,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async onReleaseLock() {
-			if (!this.lockState || this.releasingLock) return
+			if (!this.lockState || this.releasingLock) {
+				return
+			}
 			this.releasingLock = true
 			try {
 				await this.lockState.release()
@@ -2545,6 +2631,7 @@ export default {
 
 		/**
 		 * Re-emit the page-header menu's Refresh to the host.
+		 *
 		 * @param {{ widgetId: string, title: string }} payload - Action payload.
 		 * @param {object} event - Synthetic event (host may preventDefault).
 		 */
@@ -2557,7 +2644,9 @@ export default {
 			// Schema-driven (manifest) detail pages self-fetch — without this
 			// the Refresh action has no host listener to act on and does
 			// nothing. Re-fetch the object + schema and spin the action.
-			if (!this.hasSchemaDrivenFetch) return
+			if (!this.hasSchemaDrivenFetch) {
+				return
+			}
 			this.internalRefreshing = true
 			try {
 				await this.fetchObjectIfNeeded()
@@ -2579,8 +2668,12 @@ export default {
 		 * @return {void}
 		 */
 		onPageRefreshBus() {
-			if (!this.hasSchemaDrivenFetch) return
-			if (this.internalRefreshing) return
+			if (!this.hasSchemaDrivenFetch) {
+				return
+			}
+			if (this.internalRefreshing) {
+				return
+			}
 			this.internalRefreshing = true
 			Promise.resolve(this.fetchObjectIfNeeded()).finally(() => {
 				this.internalRefreshing = false
@@ -2589,6 +2682,7 @@ export default {
 
 		/**
 		 * Re-emit the page-header menu's Request-a-feature to the host.
+		 *
 		 * @param {{ widgetId: string, title: string }} payload - Action payload.
 		 * @param {object} event - Synthetic event (host may preventDefault).
 		 */
@@ -2718,11 +2812,15 @@ export default {
 			// Create archetype: no object to fetch, but the create form needs
 			// the schema — register the type and fetch its schema, then stop.
 			if (!this.hasSchemaDrivenFetch) {
-				if (this.isCreateMode) await this.fetchSchemaForCreate()
+				if (this.isCreateMode) {
+					await this.fetchSchemaForCreate()
+				}
 				return
 			}
 			const store = this.effectiveObjectStore
-			if (!store) return
+			if (!store) {
+				return
+			}
 			const type = this.resolvedObjectType
 			// (slug, schemaId, registerId, slugs) — same shape as the
 			// CnIndexPage / CnLogsPage fix. Passing the slug strings into
@@ -2754,6 +2852,7 @@ export default {
 				}
 				await Promise.all(tasks)
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnDetailPage] schema-driven fetch failed:', err)
 			}
 		},
@@ -2776,7 +2875,9 @@ export default {
 		 */
 		async fetchSchemaForCreate() {
 			const store = this.effectiveObjectStore
-			if (!store) return
+			if (!store) {
+				return
+			}
 			const type = this.resolvedObjectType
 			if (typeof store.registerObjectType === 'function'
 				&& !store.objectTypeRegistry?.[type]) {
@@ -2788,8 +2889,11 @@ export default {
 				)
 			}
 			try {
-				if (typeof store.fetchSchema === 'function') await store.fetchSchema(type)
+				if (typeof store.fetchSchema === 'function') {
+					await store.fetchSchema(type)
+				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnDetailPage] create-mode schema fetch failed:', err)
 			}
 		},
@@ -2821,7 +2925,9 @@ export default {
 				const res = await axios.post(url, formData)
 				const created = (res && res.data) ? res.data : {}
 				const newId = (created['@self'] && created['@self'].id) || created.id
-				if (this.$refs.createFormDialog) this.$refs.createFormDialog.setResult({ success: true })
+				if (this.$refs.createFormDialog) {
+					this.$refs.createFormDialog.setResult({ success: true })
+				}
 				/**
 				 * @event created Emitted after a successful create-form save.
 				 * @type {object}
@@ -2835,7 +2941,9 @@ export default {
 				return { success: true, data: created }
 			} catch (e) {
 				const error = (e && e.message) || 'error'
-				if (this.$refs.createFormDialog) this.$refs.createFormDialog.setResult({ error })
+				if (this.$refs.createFormDialog) {
+					this.$refs.createFormDialog.setResult({ error })
+				}
 				return { error }
 			}
 		},
@@ -2942,7 +3050,9 @@ export default {
 					if (!saved) {
 						const err = store.getError?.(this.resolvedObjectType)
 						const error = (err && err.message) || t('nextcloud-vue', 'Save failed')
-						if (dialog) dialog.setResult({ error })
+						if (dialog) {
+							dialog.setResult({ error })
+						}
 						return { error }
 					}
 				} else {
@@ -2957,7 +3067,9 @@ export default {
 					const res = await axios.put(url, payload)
 					saved = (res && res.data) ? res.data : payload
 				}
-				if (dialog) dialog.setResult({ success: true })
+				if (dialog) {
+					dialog.setResult({ success: true })
+				}
 				this.editFormOpen = false
 				/**
 				 * @event edited Emitted after the record edit form saves successfully.
@@ -2968,7 +3080,9 @@ export default {
 				return { success: true, data: saved }
 			} catch (e) {
 				const error = (e && e.message) || t('nextcloud-vue', 'Save failed')
-				if (dialog) dialog.setResult({ error })
+				if (dialog) {
+					dialog.setResult({ error })
+				}
 				return { error }
 			}
 		},
@@ -2984,7 +3098,9 @@ export default {
 			 * @event create-cancel Emitted when the create form is dismissed.
 			 */
 			this.$emit('create-cancel')
-			if (this.$router) this.$router.back()
+			if (this.$router) {
+				this.$router.back()
+			}
 		},
 
 		/**
@@ -3058,7 +3174,9 @@ export default {
 		 * @return {void}
 		 */
 		scheduleCellOverflowAudit() {
-			if (process.env.NODE_ENV === 'production') return
+			if (process.env.NODE_ENV === 'production') {
+				return
+			}
 			clearTimeout(this._cellAuditTimer)
 			this._cellAuditTimer = setTimeout(() => this.auditCellOverflow(), 800)
 		},
@@ -3071,10 +3189,14 @@ export default {
 		 * @return {void}
 		 */
 		auditCellOverflow() {
-			if (!this.$el || !this.$el.querySelectorAll) return
+			if (!this.$el || !this.$el.querySelectorAll) {
+				return
+			}
 			this.$el.querySelectorAll('.grid-stack-item').forEach((cell) => {
 				const content = cell.querySelector('.grid-stack-item-content')
-				if (!content) return
+				if (!content) {
+					return
+				}
 				if (content.scrollHeight > content.clientHeight + 8) {
 					const inner = cell.querySelector('.cn-detail-page__grid-item')
 					const label = (inner && inner.getAttribute('aria-labelledby')) || cell.getAttribute('gs-id') || ''
@@ -3096,7 +3218,9 @@ export default {
 		 * @return {boolean} true when the grid heading should render.
 		 */
 		showGridTitle(item) {
-			if (item.showTitle === false || !this.findWidget(item)) return false
+			if (item.showTitle === false || !this.findWidget(item)) {
+				return false
+			}
 			return Boolean(this.$slots[`widget-${item.widgetId}`] || this.$slots[`widget-${item.widgetId}`])
 		},
 
@@ -3125,7 +3249,9 @@ export default {
 		 * @return {boolean} true when the wrapper header renders.
 		 */
 		showCardTitle(item) {
-			if (item.showTitle === false) return false
+			if (item.showTitle === false) {
+				return false
+			}
 			const def = this.findWidget(item)
 			return def?.title !== undefined || widgetContentOf(def).title !== undefined
 		},
@@ -3256,9 +3382,25 @@ export default {
 		 */
 		registryFormFor(item) {
 			const def = this.findWidget(item)
-			if (!def || !def.type) return null
+			if (!def || !def.type) {
+				return null
+			}
 			const entry = getWidgetTypeEntry(def.type)
 			return (entry && entry.form) || null
+		},
+
+		/**
+		 * Whether a grid item shows the configure cog: the page is in edit
+		 * mode and the item resolves to a widget definition. Not gated on a
+		 * registered form: the style editor modal handles a type without one
+		 * (title, icon, style, delete), and the delete is what a custom widget
+		 * or an integration leaf needs the cog for.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the cog renders.
+		 */
+		showsCog(item) {
+			return this.editingBody === true && Boolean(this.findWidget(item))
 		},
 
 		/**
@@ -3330,8 +3472,12 @@ export default {
 		onWidgetConfigSave(edited) {
 			const def = this.bodyGridWidgets.find((w) => w.id === this.configWidgetId)
 			if (def) {
-				if (edited.title !== undefined) def.title = edited.title
-				if (edited.content !== undefined) def.content = edited.content
+				if (edited.title !== undefined) {
+					def.title = edited.title
+				}
+				if (edited.content !== undefined) {
+					def.content = edited.content
+				}
 				def.styleConfig = edited.styleConfig || {}
 			}
 			this.showWidgetConfig = false
@@ -3363,11 +3509,15 @@ export default {
 			const layoutArr = this.hasGridLayout ? this.layout : this.autoBodyLayout
 			if (Array.isArray(widgetArr)) {
 				const wIdx = widgetArr.findIndex((w) => w.id === id)
-				if (wIdx !== -1) widgetArr.splice(wIdx, 1)
+				if (wIdx !== -1) {
+					widgetArr.splice(wIdx, 1)
+				}
 			}
 			if (Array.isArray(layoutArr)) {
 				const lIdx = layoutArr.findIndex((l) => l.widgetId === id)
-				if (lIdx !== -1) layoutArr.splice(lIdx, 1)
+				if (lIdx !== -1) {
+					layoutArr.splice(lIdx, 1)
+				}
 			}
 			this.showWidgetConfig = false
 			this.$emit('widget-config-change', null)
@@ -3379,7 +3529,9 @@ export default {
 		 * what object the user is viewing.
 		 */
 		pushAiContext() {
-			if (!this.cnAiContext) return
+			if (!this.cnAiContext) {
+				return
+			}
 			const resolved = this.resolvedSidebar || {}
 			this.cnAiContext.pageKind = 'detail'
 			this.cnAiContext.objectUuid = this.objectId ? String(this.objectId) : undefined
@@ -3394,7 +3546,9 @@ export default {
 		 * (standalone / read-only mounts).
 		 */
 		syncObjectContext() {
-			if (!this.cnObjectContextRef) return
+			if (!this.cnObjectContextRef) {
+				return
+			}
 			const resolved = this.resolvedSidebar || {}
 			this.cnObjectContextRef.value = {
 				objectId: this.objectId !== undefined && this.objectId !== null ? String(this.objectId) : null,
@@ -3418,7 +3572,9 @@ export default {
 		 * state to the next mount.
 		 */
 		syncSidebarState() {
-			if (!this.hasExternalSidebar) return
+			if (!this.hasExternalSidebar) {
+				return
+			}
 			this.warnIfDeprecatedSidebarShape()
 			// During a background refresh (content stays in place — see
 			// `hasLoadedOnce`), a transient loading-driven `enabled: false`
@@ -3427,7 +3583,9 @@ export default {
 			// refresh unmounts the host's CnObjectSidebar and re-fetches all
 			// its sub-resources (files/notes/tags/tasks/audit). Skip the sync
 			// while refreshing; the `loading` watcher re-syncs once it settles.
-			if (this.loading && this.hasLoadedOnce) return
+			if (this.loading && this.hasLoadedOnce) {
+				return
+			}
 			const r = this.resolvedSidebar
 			if (this.sidebarActive && this.resolvedObjectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
@@ -3517,6 +3675,7 @@ export default {
 				this.sidebarSeeded = false
 			}
 		},
+
 		/**
 		 * Apply fields onto the shared `objectSidebarState` only when they
 		 * actually change. Writing the same logical value — notably a fresh
@@ -3571,6 +3730,7 @@ export default {
 				const overlap = ['title', 'subtitle', 'register', 'schema', 'hiddenTabs', 'tabs']
 					.filter((field) => objectForm[field] !== undefined && props[field] !== undefined)
 				if (overlap.length > 0) {
+					// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 					console.warn(`[CnDetailPage] :sidebar (Object) and :sidebarProps both set ${overlap.join(', ')}; the :sidebar values win. Move all fields to :sidebar to silence this warning.`)
 					this.__sidebarConflictWarned = true
 				}
@@ -3587,10 +3747,15 @@ export default {
 		 * don't spam the console.
 		 */
 		warnIfDeprecatedSidebarShape() {
-			if (typeof this.sidebar !== 'boolean') return
-			if (this.__sidebarBooleanWarned) return
+			if (typeof this.sidebar !== 'boolean') {
+				return
+			}
+			if (this.__sidebarBooleanWarned) {
+				return
+			}
 			this.__sidebarBooleanWarned = true
 
+			// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 			console.warn('[CnDetailPage] :sidebar=Boolean is deprecated; pass an Object — see docs/components/cn-detail-page.md for the new shape.')
 		},
 	},

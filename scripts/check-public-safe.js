@@ -43,7 +43,9 @@ let filesInspected = 0
  * @return {string|null} Resolved path, or null when not a local file.
  */
 function resolveLocal(spec, from) {
-	if (!spec.startsWith('.')) return null
+	if (!spec.startsWith('.')) {
+		return null
+	}
 	const base = path.resolve(path.dirname(from), spec)
 	const candidates = [
 		base,
@@ -64,7 +66,9 @@ function resolveLocal(spec, from) {
  * @return {void}
  */
 function walk(file, chain) {
-	if (visited.has(file)) return
+	if (visited.has(file)) {
+		return
+	}
 	visited.add(file)
 	filesInspected++
 
@@ -78,7 +82,9 @@ function walk(file, chain) {
 			continue
 		}
 		const local = resolveLocal(spec, file)
-		if (local) walk(local, here)
+		if (local) {
+			walk(local, here)
+		}
 	}
 }
 
@@ -92,10 +98,8 @@ walk(ENTRY, [])
 // A run that inspected one file read the entry and no components: that is a
 // broken resolver, not a clean bill of health.
 if (filesInspected < 2) {
-	console.error(
-		`::error::check-public-safe inspected only ${filesInspected} file(s). `
-		+ 'The entry point resolves no local imports, so this run proves nothing.',
-	)
+	console.error(`::error::check-public-safe inspected only ${filesInspected} file(s). `
+		+ 'The entry point resolves no local imports, so this run proves nothing.')
 	process.exit(1)
 }
 

@@ -16,7 +16,7 @@
 // shapes crossing a real network boundary, stubbed with the exact payloads a
 // Nextcloud 34 instance returned.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
 	await page.route('**/apps/dashboard/api/v2/widget-items**', async (route) => {

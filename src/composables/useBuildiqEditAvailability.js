@@ -35,9 +35,7 @@ import { useAppStatus } from './useAppStatus.js'
  * // <CnBuildiqEditButton :available="available" ... />
  */
 export function useBuildiqEditAvailability() {
-	const available = computed(() =>
-		useAppStatus('buildiq').enabled.value || useAppStatus('openbuild').enabled.value,
-	)
+	const available = computed(() => useAppStatus('buildiq').enabled.value || useAppStatus('openbuild').enabled.value)
 
 	return { available }
 }

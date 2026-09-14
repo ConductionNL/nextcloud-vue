@@ -50,7 +50,9 @@ function mergeDashboardWidgetsAndLayout(page) {
 	let autoRow = 0
 
 	for (const widgetDef of legacyWidgets) {
-		if (!widgetDef) continue
+		if (!widgetDef) {
+			continue
+		}
 
 		const layoutItem = layoutById[widgetDef.id] || {}
 

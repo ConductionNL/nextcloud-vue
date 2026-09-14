@@ -103,10 +103,8 @@ function withPublicPath(config, options = {}) {
 	}
 
 	if (config === null || typeof config !== 'object') {
-		throw new TypeError(
-			'withPublicPath() expects a webpack config object or an array of them, got '
-			+ (config === null ? 'null' : typeof config),
-		)
+		throw new TypeError('withPublicPath() expects a webpack config object or an array of them, got '
+			+ (config === null ? 'null' : typeof config))
 	}
 
 	return {

@@ -20,7 +20,9 @@ const ForeignLeaf = {
 		return h('div', { class: 'foreign-leaf' }, [h('ncbutton', 'Add contact')])
 	},
 }
-const CustomLeaf = { name: 'CustomLeaf', render() { return h('div', { class: 'custom-leaf' }) } }
+const CustomLeaf = { name: 'CustomLeaf', render() {
+	return h('div', { class: 'custom-leaf' })
+} }
 
 function mountWidget(registry, props = {}) {
 	return mount(CnIntegrationWidget, {

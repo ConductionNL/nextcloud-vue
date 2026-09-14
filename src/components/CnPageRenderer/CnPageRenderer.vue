@@ -30,7 +30,8 @@
 		:data-page-id="currentPage.id"
 		data-testid="cn-page"
 		:data-testid-page-id="currentPage.id"
-		:class="['cn-page-renderer', { 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
+		class="cn-page-renderer"
+		:class="[{ 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
 		<!--
 		  A page whose `requiresApp` is not installed renders the missing-
 		  dependency screen INSTEAD of its body.
@@ -119,15 +120,15 @@
 				v-if="widgetsBySlot.has('body')"
 				:widgets="widgetsBySlot.get('body')"
 				:editable="bodyEditable"
-				slot-name="body" />
+				slotName="body" />
 			<component
 				:is="resolvedComponent"
 				v-else-if="resolvedComponent"
 				:key="pageRenderKey"
 				v-bind="{ ...$attrs, ...resolvedProps }"
 				@view="onRowOpen"
-				@row-click="onRowOpen"
-				@edit-open="onRowOpen"
+				@rowClick="onRowOpen"
+				@editOpen="onRowOpen"
 				@configure="showConfigModal = true">
 				<!-- This `<template v-for>` defines dynamic SLOTS, not a
 				     rendered list, so the rule's advice is inverted here:
@@ -150,27 +151,27 @@
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('header-actions')"
 				:widgets="widgetsBySlot.get('header-actions')"
-				slot-name="header-actions" />
+				slotName="header-actions" />
 			<!-- footer slot -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('footer')"
 				:widgets="widgetsBySlot.get('footer')"
-				slot-name="footer" />
+				slotName="footer" />
 			<!-- modal slot -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('modal')"
 				:widgets="widgetsBySlot.get('modal')"
-				slot-name="modal" />
+				slotName="modal" />
 			<!-- sidebar slot (gated by cnPageSidebarVisible) -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('sidebar') && pageSidebarVisibleValue"
 				:widgets="widgetsBySlot.get('sidebar')"
-				slot-name="sidebar" />
+				slotName="sidebar" />
 			<!-- dynamic tab:* and section:* slots -->
 			<template v-for="dynamicSlot in dynamicSlotKeys" :key="dynamicSlot">
 				<CnWidgetGrid
 					:widgets="widgetsBySlot.get(dynamicSlot)"
-					:slot-name="dynamicSlot" />
+					:slotName="dynamicSlot" />
 			</template>
 		</template>
 
@@ -180,8 +181,8 @@
 			:key="pageRenderKey"
 			v-bind="{ ...$attrs, ...resolvedProps }"
 			@view="onRowOpen"
-			@row-click="onRowOpen"
-			@edit-open="onRowOpen"
+			@rowClick="onRowOpen"
+			@editOpen="onRowOpen"
 			@configure="showConfigModal = true">
 			<!-- Dynamic slot definition, not a rendered list — see the note on
 			     the identical block above. -->
@@ -237,23 +238,23 @@
 </template>
 
 <script>
-import { ref } from 'vue'
-import { NcEmptyContent } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
+import { NcEmptyContent } from '@nextcloud/vue'
+import { ref } from 'vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
-import { defaultPageTypes } from './pageTypes.js'
-import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
-import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
-import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
 import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
-import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
+import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
+import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import { useObjectStore } from '../../store/index.js'
 import { dispatchAction, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { buildRouteParams, routePathFor } from '../../utils/routeParams.js'
-import { useObjectStore } from '../../store/index.js'
-import { isAppInstalled } from '../../utils/appInstalled.js'
-import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
+import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
+import { defaultPageTypes } from './pageTypes.js'
 
 /** Recognised fixed slot names for v2 manifests. */
 const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'modal'])
@@ -265,10 +266,18 @@ const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'mod
  * @return {boolean}
  */
 function isKnownSlot(slotName) {
-	if (!slotName) return false
-	if (KNOWN_SLOTS.has(slotName)) return true
-	if (/^tab:[^\s]+$/.test(slotName)) return true
-	if (/^section:[^\s]+$/.test(slotName)) return true
+	if (!slotName) {
+		return false
+	}
+	if (KNOWN_SLOTS.has(slotName)) {
+		return true
+	}
+	if (/^tab:[^\s]+$/.test(slotName)) {
+		return true
+	}
+	if (/^section:[^\s]+$/.test(slotName)) {
+		return true
+	}
 	return false
 }
 
@@ -363,6 +372,7 @@ export default {
 			get cnSlotColumns() {
 				return self.currentPage?.config?.slotColumns ?? null
 			},
+
 			cnPageSidebarVisible: this.pageSidebarVisible,
 			cnPageSidebarComponent: this.pageSidebarComponent,
 			// Loaded object for a type:"detail" page (reactive holder). See
@@ -381,7 +391,7 @@ export default {
 			 *
 			 * @param {object} action The action to dispatch.
 			 * @param {object} [extraContext] Extra context merged over the pre-bound one.
-			 * @return {*} The dispatchAction return value (a promise for object-op).
+			 * @return {unknown} The dispatchAction return value (a promise for object-op).
 			 */
 			cnDispatchAction: (action, extraContext = {}) => {
 				return dispatchAction(action, {
@@ -391,7 +401,9 @@ export default {
 					openModal: this._cnOpenModal,
 					// `type:"export"` opens the shared CnMassExportDialog this
 					// component mounts (Wave 1, nextcloud-vue#91).
-					openExport: (exportAction) => { this.exportAction = exportAction },
+					openExport: (exportAction) => {
+						this.exportAction = exportAction
+					},
 					// The host translate function, so an api-call/agent action's
 					// manifest-authored success/error toast localises exactly
 					// like the rest of the page chrome. Identity by default.
@@ -410,8 +422,8 @@ export default {
 	 * the host passed to CnPageRenderer land on the dispatched page via
 	 * `v-bind="{ ...$attrs, ...resolvedProps }"` instead. `v-on="$listeners"`
 	 * does the same for events. Without this, built-in page components
-	 * that emit (CnDashboardPage @widget-refresh / @widget-request-feature,
-	 * CnIndexPage @create / @edit / @delete) cannot reach the host App.
+	 * that emit (CnDashboardPage `@widget-refresh` / `@widget-request-feature`,
+	 * CnIndexPage `@create` / `@edit` / `@delete`) cannot reach the host App.
 	 *
 	 * Resolved props win over `$attrs` on key collisions because the
 	 * spread order is `{ ...$attrs, ...resolvedProps }`.
@@ -430,6 +442,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Custom-component registry. Keys are the names referenced by
 		 * `page.component` (for `type: "custom"` pages). When omitted,
@@ -441,6 +454,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Translate function. When omitted, falls back to the injected
 		 * `cnTranslate`. Currently not used directly by the renderer
@@ -448,12 +462,13 @@ export default {
 		 * components rendered by the renderer can `inject('cnTranslate')`
 		 * via the consumer's setup.
 		 *
-		 * @type {Function|null}
+		 * @type {((text: string, placeholders?: object) => string)|null}
 		 */
 		translate: {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Page-type registry. Map of `pages[].type` value → Vue
 		 * component to mount. Consumers extend the library defaults by
@@ -503,10 +518,10 @@ export default {
 		const liveSubType = ref('')
 		const liveSubId = ref('')
 		const liveSubEnabled = ref(false)
-		let liveStore = null
+		let liveStore
 		try {
 			liveStore = useObjectStore()
-		} catch (err) {
+		} catch {
 			// Pinia not installed (stand-alone / unit-test mounts) — no
 			// live updates; loadDetailObject degrades the same way.
 			liveStore = null
@@ -561,6 +576,7 @@ export default {
 			const e = this.cnEditingBody
 			return Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
 		},
+
 		/**
 		 * Convenience accessor on the reactive holder so the template
 		 * `v-bind:class` reads a primitive boolean. Vue 2 templates
@@ -570,6 +586,7 @@ export default {
 		pageSidebarVisibleValue() {
 			return this.pageSidebarVisible.value !== false
 		},
+
 		/**
 		 * Entity options for the export launcher, from the active export
 		 * action's `entities[]` (empty hides the picker).
@@ -578,11 +595,14 @@ export default {
 		 */
 		exportDialogEntities() {
 			const entities = this.exportAction && this.exportAction.entities
-			if (!Array.isArray(entities)) return []
+			if (!Array.isArray(entities)) {
+				return []
+			}
 			return entities
 				.map((e) => (typeof e === 'string' ? { id: e, label: e } : e))
 				.filter((e) => e && e.id)
 		},
+
 		/**
 		 * Format options for the export launcher, from the active export
 		 * action's `formats[]` (bare ids are lifted to `{id, label}`).
@@ -593,11 +613,14 @@ export default {
 		 */
 		exportDialogFormats() {
 			const formats = this.exportAction && this.exportAction.formats
-			if (!Array.isArray(formats) || formats.length === 0) return undefined
+			if (!Array.isArray(formats) || formats.length === 0) {
+				return undefined
+			}
 			return formats
 				.map((f) => (typeof f === 'string' ? { id: f, label: f.toUpperCase() } : f))
 				.filter((f) => f && f.id)
 		},
+
 		/**
 		 * Effective manifest: explicit prop wins, then the reactive injected
 		 * source, then the one-shot `cnManifest` snapshot for hosts that
@@ -606,6 +629,7 @@ export default {
 		effectiveManifest() {
 			return this.manifest ?? this.cnManifestSource ?? this.cnManifest
 		},
+
 		/**
 		 * True when the effective manifest is a v2 manifest.
 		 * Detected by `manifest.$schema` containing `app-manifest-v2`.
@@ -616,6 +640,7 @@ export default {
 			const schema = this.effectiveManifest?.$schema
 			return typeof schema === 'string' && schema.includes('app-manifest-v2')
 		},
+
 		/**
 		 * Groups the current page's `widgets[]` by slot value into a
 		 * `Map<string, WidgetEntry[]>`. Entries with unrecognised slot
@@ -626,15 +651,15 @@ export default {
 		widgetsBySlot() {
 			const page = this.currentPage
 			const map = new Map()
-			if (!page || !Array.isArray(page.widgets)) return map
+			if (!page || !Array.isArray(page.widgets)) {
+				return map
+			}
 
 			for (const widget of page.widgets) {
 				const slot = widget?.slot
 				if (!slot || !isKnownSlot(slot)) {
 					// eslint-disable-next-line no-console
-					console.warn(
-						`[CnPageRenderer] Widget "${widget?.widgetKey}" in page "${page.id}" has unrecognised slot "${slot}". Skipping.`,
-					)
+					console.warn(`[CnPageRenderer] Widget "${widget?.widgetKey}" in page "${page.id}" has unrecognised slot "${slot}". Skipping.`)
 					continue
 				}
 				if (!map.has(slot)) {
@@ -645,6 +670,7 @@ export default {
 
 			return map
 		},
+
 		/**
 		 * Dynamic slot keys from widgetsBySlot that are not fixed known
 		 * slot names (i.e. `tab:*` and `section:*` patterns).
@@ -661,19 +687,22 @@ export default {
 			}
 			return result
 		},
+
 		/**
 		 * Proxy for the cnOpenModal inject so the provide() closure can
 		 * reference `this._cnOpenModal` without binding issues.
 		 *
-		 * @return {Function|null}
+		 * @return {?(key: string, props?: object) => void} The injected opener, or null.
 		 */
 		_cnOpenModal() {
 			return typeof this.cnOpenModal === 'function' ? this.cnOpenModal : null
 		},
+
 		/** Effective custom-component registry. */
 		effectiveCustomComponents() {
 			return this.customComponents ?? this.cnCustomComponents ?? {}
 		},
+
 		/**
 		 * Effective v2 component registry. Provided by CnAppRoot via the
 		 * `registry` prop (kind-tagged entries: `widget`, `modal`, `page`,
@@ -685,6 +714,7 @@ export default {
 		effectiveRegistry() {
 			return this.cnRegistry ?? {}
 		},
+
 		/**
 		 * Effective page-type registry. Prop wins over inject; both
 		 * fall back to the library's `defaultPageTypes`. Apps that want
@@ -694,6 +724,7 @@ export default {
 		effectivePageTypes() {
 			return this.pageTypes ?? this.cnPageTypes ?? defaultPageTypes
 		},
+
 		/**
 		 * The app this page needs but that is not installed, or null.
 		 *
@@ -761,6 +792,7 @@ export default {
 				name: (typeof required === 'object' && required.name) || id,
 			}
 		},
+
 		/**
 		 * Heading for the page-level missing-dependency screen.
 		 *
@@ -774,6 +806,7 @@ export default {
 		missingDependencyHeading() {
 			return this.tr('This feature needs another app')
 		},
+
 		/**
 		 * Intro for the page-level missing-dependency screen.
 		 *
@@ -782,15 +815,12 @@ export default {
 		missingDependencyIntro() {
 			const title = (this.currentPage?.title || '')
 			if (title) {
-				return this.tr(
-					'"{page}" needs the following app to be installed and enabled.',
-				).replace('{page}', title)
+				return this.tr('"{page}" needs the following app to be installed and enabled.').replace('{page}', title)
 			}
 
-			return this.tr(
-				'This page needs the following app to be installed and enabled.',
-			)
+			return this.tr('This page needs the following app to be installed and enabled.')
 		},
+
 		/** Page definition matching the current route name, or null. */
 		currentPage() {
 			const routeName = this.$route?.name
@@ -799,6 +829,7 @@ export default {
 			}
 			return this.pageById.get(routeName) ?? null
 		},
+
 		/**
 		 * `Map<pageId, page>` built once per manifest identity (Vue caches this
 		 * computed until `effectiveManifest` changes), replacing per-recompute
@@ -817,6 +848,7 @@ export default {
 			}
 			return index
 		},
+
 		/**
 		 * `Map<"register schema", detailPage>` — the first detail page bound to
 		 * each register+schema pair. Backs the index→detail row-click wiring
@@ -828,14 +860,19 @@ export default {
 			const index = new Map()
 			if (Array.isArray(pages)) {
 				for (const page of pages) {
-					if (!page || page.type !== 'detail') continue
+					if (!page || page.type !== 'detail') {
+						continue
+					}
 					const cfg = page.config || {}
 					const key = `${cfg.register} ${cfg.schema}`
-					if (!index.has(key)) index.set(key, page)
+					if (!index.has(key)) {
+						index.set(key, page)
+					}
 				}
 			}
 			return index
 		},
+
 		/**
 		 * Remount key for the dispatched page component. Includes the data source
 		 * (register + schema) so changing it in the page-config modal remounts the
@@ -847,10 +884,13 @@ export default {
 		 */
 		pageRenderKey() {
 			const page = this.currentPage
-			if (!page) return 'none'
+			if (!page) {
+				return 'none'
+			}
 			const cfg = (page.config && typeof page.config === 'object' && !Array.isArray(page.config)) ? page.config : {}
 			return [page.id, cfg.register || '', cfg.schema || ''].join(':')
 		},
+
 		/**
 		 * Component to render for the current page. Looked up in
 		 * `effectivePageTypes` for built-in / library / consumer-extended
@@ -872,10 +912,15 @@ export default {
 		 * @return {boolean}
 		 */
 		hasRenderableBody() {
-			if (this.resolvedComponent) return true
-			if (this.isV2Manifest && this.widgetsBySlot && this.widgetsBySlot.has('body')) return true
+			if (this.resolvedComponent) {
+				return true
+			}
+			if (this.isV2Manifest && this.widgetsBySlot && this.widgetsBySlot.has('body')) {
+				return true
+			}
 			return false
 		},
+
 		resolvedComponent() {
 			const page = this.currentPage
 			if (!page) {
@@ -895,9 +940,7 @@ export default {
 				const resolved = this.resolveCustomComponent(name, 'page')
 				if (!resolved) {
 					// eslint-disable-next-line no-console
-					console.warn(
-						`[CnPageRenderer] Custom component "${name}" not found in registry for page id "${page.id}".`,
-					)
+					console.warn(`[CnPageRenderer] Custom component "${name}" not found in registry for page id "${page.id}".`)
 					return null
 				}
 				return resolved
@@ -905,13 +948,12 @@ export default {
 			const component = this.effectivePageTypes[page.type]
 			if (!component) {
 				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnPageRenderer] Unknown page type "${page.type}" for page id "${page.id}". Add it to the pageTypes registry (e.g. via the pageTypes prop on CnAppRoot or CnPageRenderer).`,
-				)
+				console.warn(`[CnPageRenderer] Unknown page type "${page.type}" for page id "${page.id}". Add it to the pageTypes registry (e.g. via the pageTypes prop on CnAppRoot or CnPageRenderer).`)
 				return null
 			}
 			return component
 		},
+
 		/**
 		 * Props forwarded to the dispatched page component. Merges:
 		 *
@@ -1096,6 +1138,7 @@ export default {
 				if (typeof fn === 'function') {
 					normalizedConfig = { ...rest, createOverride: fn }
 				} else {
+					// eslint-disable-next-line no-console -- a deliberate warning to the developer integrating this component
 					console.warn(`[CnPageRenderer] config.createOverride "${name}" did not resolve to a registered function; dropping it.`)
 					normalizedConfig = rest
 				}
@@ -1118,6 +1161,7 @@ export default {
 			// top-level so per-route config still beats the page default.
 			return { ...topLevel, ...normalizedConfig, ...params }
 		},
+
 		/**
 		 * Resolved `{ register, schema, objectId, slug }` for a
 		 * `type:"detail"` page, or `null` for any other page (or when the
@@ -1151,6 +1195,7 @@ export default {
 			}
 			return { register, schema, objectId, slug: `${register}-${schema}` }
 		},
+
 		/**
 		 * Combined slot-override map for the dispatched page component.
 		 * Sources:
@@ -1165,7 +1210,9 @@ export default {
 		 */
 		resolvedSlotEntries() {
 			const page = this.currentPage
-			if (!page) return []
+			if (!page) {
+				return []
+			}
 			const map = { ...(page.slots ?? {}) }
 			// For a custom page that has no explicit `component`, `slots.main`
 			// is promoted to the page BODY by `resolvedComponent`, so drop it
@@ -1174,15 +1221,22 @@ export default {
 			if (page.type === 'custom' && !page.component && map.main) {
 				delete map.main
 			}
-			if (page.headerComponent) map.header = page.headerComponent
-			if (page.actionsComponent) map.actions = page.actionsComponent
+			if (page.headerComponent) {
+				map.header = page.headerComponent
+			}
+			if (page.actionsComponent) {
+				map.actions = page.actionsComponent
+			}
 			const entries = []
 			for (const [name, registryName] of Object.entries(map)) {
 				const component = this.resolveRegistryName(registryName, name)
-				if (component) entries.push({ name, component })
+				if (component) {
+					entries.push({ name, component })
+				}
 			}
 			return entries
 		},
+
 		/**
 		 * Per-page sidebar visibility flag derived from the page
 		 * entry's top-level `sidebar.show` field (sibling of `config`).
@@ -1197,6 +1251,7 @@ export default {
 			}
 			return page.sidebar.show !== false
 		},
+
 		/**
 		 * Per-page sidebar component derived from the page entry's
 		 * top-level `sidebarComponent` field (sibling of `config`).
@@ -1221,13 +1276,12 @@ export default {
 			const resolved = this.resolveCustomComponent(name, 'page')
 			if (!resolved) {
 				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnPageRenderer] Sidebar component "${name}" referenced by page id "${page.id}" not found in registry or customComponents.`,
-				)
+				console.warn(`[CnPageRenderer] Sidebar component "${name}" referenced by page id "${page.id}" not found in registry or customComponents.`)
 				return null
 			}
 			return resolved
 		},
+
 		/**
 		 * @deprecated Use `resolvedSlotEntries` for general slot
 		 * resolution. Retained for compatibility with code that read the
@@ -1236,6 +1290,7 @@ export default {
 		headerOverride() {
 			return this.resolvedSlotEntries.find((e) => e.name === 'header')?.component ?? null
 		},
+
 		/**
 		 * @deprecated See `headerOverride`.
 		 */
@@ -1279,6 +1334,7 @@ export default {
 				this.autoRegisterCustomTypes()
 			},
 		},
+
 		currentPageSidebarVisible: {
 			immediate: true,
 			handler(visible) {
@@ -1293,12 +1349,11 @@ export default {
 				// for downstream consumers that inspect it directly.
 				if (visible === false && this.currentPage?.sidebarComponent) {
 					// eslint-disable-next-line no-console
-					console.warn(
-						`[CnPageRenderer] Page id "${this.currentPage.id}" declares both sidebar.show: false and sidebarComponent "${this.currentPage.sidebarComponent}". Visibility wins; the sidebarComponent will not render.`,
-					)
+					console.warn(`[CnPageRenderer] Page id "${this.currentPage.id}" declares both sidebar.show: false and sidebarComponent "${this.currentPage.sidebarComponent}". Visibility wins; the sidebarComponent will not render.`)
 				}
 			},
 		},
+
 		currentPageSidebarComponent: {
 			immediate: true,
 			handler(component) {
@@ -1308,6 +1363,7 @@ export default {
 				this.pageSidebarComponent.value = component
 			},
 		},
+
 		/**
 		 * Load (and reload on change) the object backing a `type:"detail"`
 		 * page so its body/sidebar widgets can render it. Runs
@@ -1334,9 +1390,7 @@ export default {
 		} else if (this.$route) {
 			// Router is present but no page matches — warn so developers notice misconfigured routes.
 			// eslint-disable-next-line no-console
-			console.warn(
-				`[CnPageRenderer] No page found for $route.name = "${this.$route.name}". The renderer will mount nothing.`,
-			)
+			console.warn(`[CnPageRenderer] No page found for $route.name = "${this.$route.name}". The renderer will mount nothing.`)
 		}
 	},
 
@@ -1369,7 +1423,9 @@ export default {
 			const action = this.exportAction
 			const dialog = this.$refs.exportDialog
 			const setResult = (result) => {
-				if (dialog && typeof dialog.setResult === 'function') dialog.setResult(result)
+				if (dialog && typeof dialog.setResult === 'function') {
+					dialog.setResult(result)
+				}
 			}
 			const handlers = this.effectiveManifest?.actions ?? {}
 			const fn = action && action.handler && handlers[action.handler]
@@ -1414,10 +1470,14 @@ export default {
 			const rowRoute = (typeof cfg.rowRoute === 'string' && cfg.rowRoute !== '') ? cfg.rowRoute : null
 			const detail = this.detailPageByRegisterSchema.get(`${cfg.register} ${cfg.schema}`)
 			const target = rowRoute ?? detail?.id ?? null
-			if (!target) return
+			if (!target) {
+				return
+			}
 			const self = row['@self'] || {}
 			const id = row.id ?? self.id ?? self.uuid ?? row.uuid
-			if (id === undefined || id === null || id === '') return
+			if (id === undefined || id === null || id === '') {
+				return
+			}
 			// A name the router does not have makes every row click a no-op that
 			// looks exactly like a broken table, so name the mistake instead of
 			// letting push() reject into a silent catch. Feature-detected: only
@@ -1449,7 +1509,9 @@ export default {
 		 */
 		routeNameIsKnown(name) {
 			const router = this.$router
-			if (!router) return false
+			if (!router) {
+				return false
+			}
 			if (typeof router.hasRoute === 'function') {
 				return router.hasRoute(name)
 			}
@@ -1492,8 +1554,7 @@ export default {
 			if (registryEntry !== undefined
 				&& registryEntry !== null
 				&& registryEntry.component
-				&& (requireKind === null || registryEntry.kind === requireKind)
-			) {
+				&& (requireKind === null || registryEntry.kind === requireKind)) {
 				return registryEntry.component
 			}
 
@@ -1516,7 +1577,7 @@ export default {
 		 *   2. legacy customComponents — a function-valued entry.
 		 *
 		 * @param {string} name The registered handler name from `config.createOverride`.
-		 * @return {?Function} The async create handler, or null if unresolved.
+		 * @return {?(formData: object, ctx: object) => Promise<object>} The async create handler, or null if unresolved.
 		 */
 		resolveCreateOverride(name) {
 			return resolveCreateOverrideHandler(name, this.effectiveRegistry, this.effectiveCustomComponents)
@@ -1574,7 +1635,7 @@ export default {
 			let store = null
 			try {
 				store = useObjectStore()
-			} catch (err) {
+			} catch {
 				// Pinia not installed (unit tests). Publish the ids so
 				// id-only widgets still work; skip the object fetch and
 				// leave the live subscription disabled.
@@ -1610,6 +1671,7 @@ export default {
 				get objectData() {
 					return store.getObject?.(ctx.slug, ctx.objectId) ?? null
 				},
+
 				// Explicit no-op setters keep a consumer's stray write harmless.
 				// Under Vue 2 the getter-only accessor was enough: `defineReactive`
 				// replaced each property with its own get/set pair that delegated
@@ -1624,6 +1686,7 @@ export default {
 				get schema() {
 					return store.getSchema?.(ctx.slug) ?? null
 				},
+
 				set schema(_ignored) {},
 				objectType: ctx.slug,
 				objectId: ctx.objectId,
@@ -1660,6 +1723,7 @@ export default {
 			}
 			await Promise.all(tasks)
 		},
+
 		/**
 		 * Auto-register object types declared on the current
 		 * `type:"custom"` page's `config`. No-op for any other page
@@ -1688,14 +1752,18 @@ export default {
 		 */
 		autoRegisterCustomTypes() {
 			const page = this.currentPage
-			if (!page || page.type !== 'custom') return
+			if (!page || page.type !== 'custom') {
+				return
+			}
 			const config = page.config
-			if (!config || typeof config !== 'object') return
+			if (!config || typeof config !== 'object') {
+				return
+			}
 
-			let store = null
+			let store
 			try {
 				store = useObjectStore()
-			} catch (err) {
+			} catch {
 				// Pinia not installed (common in unit tests). Silently
 				// skip — the custom component can still register itself
 				// at mount time if/when it has its own store.
@@ -1729,16 +1797,16 @@ export default {
 				// likely a manifest typo. Warn but keep going so
 				// types[] (below) still gets a chance.
 				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnPageRenderer] Custom page id "${page.id}" declares only one of config.register / config.schema; auto-registration skipped. Set both (or use config.types[]) to opt in.`,
-				)
+				console.warn(`[CnPageRenderer] Custom page id "${page.id}" declares only one of config.register / config.schema; auto-registration skipped. Set both (or use config.types[]) to opt in.`)
 			}
 
 			// Multi-type shape: config.types: [{ name, register, schema }, ...].
 			const types = config.types
 			if (Array.isArray(types)) {
 				for (const entry of types) {
-					if (!entry || typeof entry !== 'object') continue
+					if (!entry || typeof entry !== 'object') {
+						continue
+					}
 					const name = entry.name
 					const r = entry.register
 					const s = entry.schema
@@ -1748,9 +1816,7 @@ export default {
 						|| typeof s !== 'string' || s.length === 0
 					) {
 						// eslint-disable-next-line no-console
-						console.warn(
-							`[CnPageRenderer] Skipping invalid entry in config.types on custom page id "${page.id}" — each entry needs non-empty name, register, and schema.`,
-						)
+						console.warn(`[CnPageRenderer] Skipping invalid entry in config.types on custom page id "${page.id}" — each entry needs non-empty name, register, and schema.`)
 						continue
 					}
 					try {
@@ -1765,6 +1831,7 @@ export default {
 				}
 			}
 		},
+
 		/**
 		 * Resolve a registry component name. Logs a single console.warn
 		 * naming the slot if the name is not in the registry.
@@ -1779,9 +1846,7 @@ export default {
 			const resolved = this.resolveCustomComponent(registryName)
 			if (!resolved) {
 				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnPageRenderer] Slot-override component "${registryName}" referenced by page id "${this.currentPage.id}" (slot "${slotName}") not found in registry.`,
-				)
+				console.warn(`[CnPageRenderer] Slot-override component "${registryName}" referenced by page id "${this.currentPage.id}" (slot "${slotName}") not found in registry.`)
 				return null
 			}
 			return resolved

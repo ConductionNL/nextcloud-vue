@@ -46,7 +46,7 @@ function handleCustomPage(page, customComponents) {
 
 	const isTrivial = typeof componentName === 'string'
 		&& componentName.length > 0
-		&& Object.prototype.hasOwnProperty.call(cm, componentName)
+		&& Object.hasOwn(cm, componentName)
 
 	let updatedPage
 	let reportEntry

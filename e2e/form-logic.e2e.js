@@ -9,7 +9,7 @@
 //   REQ-MFL-11 — accessible error surfacing
 //   REQ-MFL-12 — public-mode success banner fires only after the final step
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
 	// ?fl=1 renders the CnFormPage harness: a 2-step wizard (who/details) with

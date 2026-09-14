@@ -24,7 +24,7 @@
 			<CnIconBrowser
 				v-if="showIcons"
 				:value="item.icon || null"
-				allow-url
+				allowUrl
 				clearable
 				@input="emitFieldChange('icon', $event || '')" />
 			<button
@@ -49,10 +49,10 @@
 				:item="child"
 				:depth="depth + 1"
 				:path="[...path, idx]"
-				:show-icons="showIcons"
-				@update-item="$emit('update-item', $event)"
-				@remove-item="$emit('remove-item', $event)"
-				@add-child="$emit('add-child', $event)" />
+				:showIcons="showIcons"
+				@updateItem="$emit('update-item', $event)"
+				@removeItem="$emit('remove-item', $event)"
+				@addChild="$emit('add-child', $event)" />
 		</div>
 	</div>
 </template>
@@ -97,11 +97,13 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** 1-indexed depth — drives the indent and the depth label. */
 		depth: {
 			type: Number,
 			default: 1,
 		},
+
 		/**
 		 * Path of indices from the root to this item (e.g. `[0, 2]`).
 		 *
@@ -111,6 +113,7 @@ export default {
 			type: Array,
 			required: true,
 		},
+
 		/**
 		 * Whether the widget's "Show Icons" option is enabled. Hides the icon
 		 * picker (and stops it wasting row space) when icons won't render at

@@ -22,8 +22,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnCalendarTab from './calendar/CnCalendarTab.vue'
 import CnCalendarCard from './calendar/CnCalendarCard.vue'
+import CnCalendarTab from './calendar/CnCalendarTab.vue'
 
 /**
  * `calendar` integration descriptor.

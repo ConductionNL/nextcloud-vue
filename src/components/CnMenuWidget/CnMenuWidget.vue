@@ -32,12 +32,12 @@
 				:key="`tree-${idx}`"
 				:item="item"
 				:depth="1"
-				:show-icons="showIcons"
-				:expanded-by-default="expandedByDefault"
-				:active-path="activePath"
-				:active-leaf-key="activeLeafKey"
-				:current-key="`${idx}`"
-				:active-highlight="activeItemHighlight"
+				:showIcons="showIcons"
+				:expandedByDefault="expandedByDefault"
+				:activePath="activePath"
+				:activeLeafKey="activeLeafKey"
+				:currentKey="`${idx}`"
+				:activeHighlight="activeItemHighlight"
 				@navigate="onNavigate" />
 		</ul>
 
@@ -197,9 +197,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import CnMenuTreeNode from './CnMenuTreeNode.vue'
 import CnMenuItemIcon from './CnMenuItemIcon.vue'
-import { isActiveItem, computeActivePath } from './menuActive.js'
+import CnMenuTreeNode from './CnMenuTreeNode.vue'
+import { computeActivePath, isActiveItem } from './menuActive.js'
 
 const VALID_STYLES = ['dropdown', 'megamenu', 'tree']
 const VALID_ORIENTATIONS = ['horizontal', 'vertical']
@@ -243,11 +243,13 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether the current user is an admin (pairs with `canEdit`). */
 		isAdmin: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether the surrounding shell is in edit mode. */
 		canEdit: {
 			type: Boolean,
@@ -628,7 +630,7 @@ export default {
 				try {
 					this.$router.push(url)
 					return
-				} catch (e) {
+				} catch {
 					// Fall through to location assignment.
 				}
 			}

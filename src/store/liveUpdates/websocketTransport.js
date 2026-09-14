@@ -25,11 +25,11 @@ export function createWebsocketTransport() {
 	/**
 	 * Map from eventKey to Set of callbacks registered by plugin subscribers.
 	 *
-	 * @type {Map<string, Set<Function>>}
+	 * @type {Map<string, Set<(event: string, body: object) => void>>}
 	 */
 	const listeners = new Map()
 
-	/** @type {Function[]} Status change observers */
+	/** @type {Array<(status: string) => void>} Status change observers */
 	const statusObservers = []
 
 	/** @type {'connecting'|'live'|'reconnecting'|'offline'|'polling'} */
@@ -95,7 +95,9 @@ export function createWebsocketTransport() {
 	 * Schedule a reconnect attempt with exponential backoff + jitter.
 	 */
 	function scheduleReconnect() {
-		if (reconnectTimer !== null) return
+		if (reconnectTimer !== null) {
+			return
+		}
 
 		reconnectFailures += 1
 
@@ -147,7 +149,7 @@ export function createWebsocketTransport() {
 		/**
 		 * Register a status change observer.
 		 *
-		 * @param {Function} cb Callback receiving the new status string
+		 * @param {(status: string) => void} cb Callback receiving the new status string
 		 */
 		onStatusChange(cb) {
 			statusObservers.push(cb)
@@ -158,8 +160,8 @@ export function createWebsocketTransport() {
 		 * Multiple subscribers to the same key share one underlying listen() call.
 		 *
 		 * @param {string} eventKey Event key (e.g. `'or-object-uuid-abc'`)
-		 * @param {Function} cb Callback invoked when the event fires
-		 * @return {{ eventKey: string, cb: Function }} Handle for unsubscribe
+		 * @param {(event: string, body: object) => void} cb Callback invoked when the event fires
+		 * @return {{ eventKey: string, cb: (event: string, body: object) => void }} Handle for unsubscribe
 		 */
 		subscribe(eventKey, cb) {
 			if (!listeners.has(eventKey)) {
@@ -186,12 +188,14 @@ export function createWebsocketTransport() {
 		 * the key is cleaned up (the underlying notify_push listener cannot be
 		 * individually removed per the library's API, but our fan-out stops).
 		 *
-		 * @param {{ eventKey: string, cb: Function }} handle Handle from subscribe()
+		 * @param {{ eventKey: string, cb: (event: string, body: object) => void }} handle Handle from subscribe()
 		 */
 		unsubscribe(handle) {
 			const { eventKey, cb } = handle
 			const cbs = listeners.get(eventKey)
-			if (!cbs) return
+			if (!cbs) {
+				return
+			}
 
 			cbs.delete(cb)
 			if (cbs.size === 0) {

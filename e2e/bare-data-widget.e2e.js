@@ -28,7 +28,7 @@
 // produce it, so any other correct implementation also passes and only a
 // regression fails.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const URL = '/?baredata=1'
 

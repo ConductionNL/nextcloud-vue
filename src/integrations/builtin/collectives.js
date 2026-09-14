@@ -25,8 +25,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnCollectivesTab from './collectives/CnCollectivesTab.vue'
 import CnCollectivesCard from './collectives/CnCollectivesCard.vue'
+import CnCollectivesTab from './collectives/CnCollectivesTab.vue'
 
 /**
  * `collectives` integration descriptor.

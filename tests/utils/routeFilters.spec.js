@@ -56,8 +56,7 @@ describe('resolveQueryFilters', () => {
 	})
 
 	it('resolves an "@workspace.<key>" token against the supplied context', () => {
-		expect(resolveQueryFilters({ administrationId: '@workspace.activeAdministrationId' },
-			{ workspace: { activeAdministrationId: 'adm-1' } }))
+		expect(resolveQueryFilters({ administrationId: '@workspace.activeAdministrationId' }, { workspace: { activeAdministrationId: 'adm-1' } }))
 			.toEqual({ administrationId: 'adm-1' })
 	})
 

@@ -105,7 +105,9 @@ export function pluralEntries(bundle) {
 	const entries = {}
 	for (const [singular, forms] of Object.entries(bundle.plurals ?? {})) {
 		const englishPlural = en.plurals?.[singular]?.[1]
-		if (!englishPlural || !Array.isArray(forms)) continue
+		if (!englishPlural || !Array.isArray(forms)) {
+			continue
+		}
 		entries[`_${singular}_::_${englishPlural}_`] = forms
 	}
 	return entries

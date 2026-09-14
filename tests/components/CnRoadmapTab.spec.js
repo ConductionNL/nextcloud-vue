@@ -17,7 +17,6 @@ jest.mock('@nextcloud/axios', () => ({
 
 import axios from '@nextcloud/axios'
 import { mount } from '@vue/test-utils'
-
 import CnRoadmapTab from '../../src/components/CnRoadmapTab/CnRoadmapTab.vue'
 
 // flushPromises — let the mounted() async fetch settle.

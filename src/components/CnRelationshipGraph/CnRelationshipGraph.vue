@@ -141,6 +141,7 @@ export default {
 			default: 'radial',
 			validator: (v) => ['radial', 'grid', 'manual'].includes(v),
 		},
+
 		/** SVG viewBox size (square). */
 		size: { type: Number, default: 400 },
 		/** Default node radius (px). Each node may override via its `radius`. */
@@ -169,6 +170,7 @@ export default {
 		 */
 		legend: { type: Array, default: () => [] },
 	},
+
 	emits: ['node-click'],
 	computed: {
 		/**
@@ -178,9 +180,12 @@ export default {
 		 * @return {object|null} The root node or null.
 		 */
 		rootNode() {
-			if (this.nodes.length === 0) return null
+			if (this.nodes.length === 0) {
+				return null
+			}
 			return this.nodes.find((n) => n.isRoot) || this.nodes[0]
 		},
+
 		/**
 		 * Layout-computed nodes — original entries with `x` / `y`
 		 * coords filled in.
@@ -188,7 +193,9 @@ export default {
 		 * @return {Array<object>} Positioned nodes.
 		 */
 		resolvedNodes() {
-			if (this.nodes.length === 0) return []
+			if (this.nodes.length === 0) {
+				return []
+			}
 			if (this.layout === 'manual') {
 				return this.nodes.map((n) => ({
 					...n,
@@ -222,6 +229,7 @@ export default {
 			})
 			return out
 		},
+
 		/**
 		 * Map of node id → resolved (x, y, ...) for edge lookups.
 		 *
@@ -229,9 +237,12 @@ export default {
 		 */
 		nodeMap() {
 			const out = {}
-			for (const n of this.resolvedNodes) out[n.id] = n
+			for (const n of this.resolvedNodes) {
+				out[n.id] = n
+			}
 			return out
 		},
+
 		/**
 		 * Edges resolved to `{ x1, y1, x2, y2, ...edge }`. Edges
 		 * referencing unknown ids drop out.
@@ -243,11 +254,14 @@ export default {
 				.map((e) => {
 					const s = this.nodeMap[e.source]
 					const t = this.nodeMap[e.target]
-					if (!s || !t) return null
+					if (!s || !t) {
+						return null
+					}
 					return { ...e, x1: s.x, y1: s.y, x2: t.x, y2: t.y }
 				})
 				.filter(Boolean)
 		},
+
 		/**
 		 * Edges that carry a `label` — derived second time over
 		 * with mid-point coordinates for text placement.
@@ -260,6 +274,7 @@ export default {
 				.map((e) => ({ ...e, lx: (e.x1 + e.x2) / 2, ly: (e.y1 + e.y2) / 2 - 4 }))
 		},
 	},
+
 	methods: {
 		/**
 		 * Emit `@node-click` with the original (un-positioned) node.

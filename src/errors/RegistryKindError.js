@@ -14,19 +14,15 @@
  * @extends Error
  */
 export class RegistryKindError extends Error {
-
 	/**
 	 * @param {string} registryKey The key in the registry that has the unknown kind.
 	 * @param {string} unknownKind The unrecognised kind value.
 	 */
 	constructor(registryKey, unknownKind) {
-		super(
-			`[CnAppRoot] Registry entry "${registryKey}" has an unrecognised kind "${unknownKind}". `
-			+ 'Recognised kinds are: widget, modal, page, form-field, cell-renderer, header, actions, tab, section, create-override.',
-		)
+		super(`[CnAppRoot] Registry entry "${registryKey}" has an unrecognised kind "${unknownKind}". `
+			+ 'Recognised kinds are: widget, modal, page, form-field, cell-renderer, header, actions, tab, section, create-override.')
 		this.name = 'RegistryKindError'
 		this.registryKey = registryKey
 		this.unknownKind = unknownKind
 	}
-
 }

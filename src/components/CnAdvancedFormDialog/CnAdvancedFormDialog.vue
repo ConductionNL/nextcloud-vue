@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="resolvedTitle"
 		size="large"
-		:no-close="loading"
+		:noClose="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -28,12 +28,12 @@
 			<slot
 				v-if="$slots.form"
 				name="form"
-				:form-data="formData"
-				:update-field="updateField"
-				:object-properties="objectPropertiesForSlot"
-				:json-data="jsonData"
-				:update-json="updateJsonFromExternal"
-				:is-valid-json="isValidJson(jsonData)" />
+				:formData="formData"
+				:updateField="updateField"
+				:objectProperties="objectPropertiesForSlot"
+				:jsonData="jsonData"
+				:updateJson="updateJsonFromExternal"
+				:isValidJson="isValidJson(jsonData)" />
 
 			<!-- Default content -->
 			<template v-else>
@@ -56,7 +56,8 @@
 								role="tab"
 								:aria-selected="activeTab === idx"
 								:disabled="tab.disabled"
-								:class="['cn-advanced-form-dialog__tab-button', { 'is-active': activeTab === idx }]"
+								class="cn-advanced-form-dialog__tab-button"
+								:class="[{ 'is-active': activeTab === idx }]"
 								@click="activeTab = idx">
 								{{ tab.title }}
 							</button>
@@ -73,26 +74,26 @@
 						class="cn-advanced-form-dialog__tab-content">
 						<slot
 							name="tab-properties"
-							:form-data="formData"
-							:update-field="updateField"
-							:object-properties="objectPropertiesForSlot"
-							:selected-property="selectedProperty"
-							:get-property-display-name="getPropertyDisplayName"
-							:get-property-validation-class="getPropertyValidationClass"
-							:is-property-editable="isPropertyEditable"
-							:validation-display="validationDisplay">
+							:formData="formData"
+							:updateField="updateField"
+							:objectProperties="objectPropertiesForSlot"
+							:selectedProperty="selectedProperty"
+							:getPropertyDisplayName="getPropertyDisplayName"
+							:getPropertyValidationClass="getPropertyValidationClass"
+							:isPropertyEditable="isPropertyEditable"
+							:validationDisplay="validationDisplay">
 							<CnPropertiesTab
 								ref="propertiesTab"
 								:schema="schema"
 								:item="item"
-								:form-data="formData"
-								:selected-property="selectedProperty"
-								:editable-types="editableTypes"
-								:validation-display="validationDisplay"
-								:exclude-fields="excludeFields"
-								:include-fields="includeFields"
-								@update:property-value="onPropertyValueUpdate"
-								@update:selected-property="selectedProperty = $event" />
+								:formData="formData"
+								:selectedProperty="selectedProperty"
+								:editableTypes="editableTypes"
+								:validationDisplay="validationDisplay"
+								:excludeFields="excludeFields"
+								:includeFields="includeFields"
+								@update:propertyValue="onPropertyValueUpdate"
+								@update:selectedProperty="selectedProperty = $event" />
 						</slot>
 					</div>
 
@@ -102,8 +103,8 @@
 						v-show="activeTab === tabIndex('metadata')"
 						role="tabpanel"
 						class="cn-advanced-form-dialog__tab-content">
-						<slot name="tab-metadata" :item="item" :form-data="formData">
-							<CnMetadataTab :item="item" :form-data="formData" />
+						<slot name="tab-metadata" :item="item" :formData="formData">
+							<CnMetadataTab :item="item" :formData="formData" />
 						</slot>
 					</div>
 
@@ -115,10 +116,10 @@
 						class="cn-advanced-form-dialog__tab-content">
 						<slot
 							name="tab-data"
-							:json-data="jsonData"
-							:update-json="updateJsonFromExternal"
-							:is-valid="isValidJson(jsonData)"
-							:format-json="formatJSON">
+							:jsonData="jsonData"
+							:updateJson="updateJsonFromExternal"
+							:isValid="isValidJson(jsonData)"
+							:formatJson="formatJSON">
 							<CnDataTab
 								:value="jsonData"
 								:dark="jsonEditorDark"
@@ -155,18 +156,18 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcDialog,
 	NcButton,
-	NcNoteCard,
+	NcDialog,
 	NcLoadingIcon,
+	NcNoteCard,
 } from '@nextcloud/vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
-import { fieldsFromSchema } from '../../utils/schema.js'
-import CnPropertiesTab from './CnPropertiesTab.vue'
-import CnMetadataTab from './CnMetadataTab.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDataTab from './CnDataTab.vue'
+import CnMetadataTab from './CnMetadataTab.vue'
+import CnPropertiesTab from './CnPropertiesTab.vue'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
+import { fieldsFromSchema } from '../../utils/schema.js'
 
 /** Schema types for which we have built-in inline editing support in the properties table. */
 const EDITABLE_SUPPORTED_TYPES = ['string', 'number', 'integer', 'boolean', 'array', 'object']
@@ -202,6 +203,7 @@ export default {
 			from: TENANT_CONTEXT_KEY,
 			default: null,
 		},
+
 		/**
 		 * Consumer translation function, provided by CnAppRoot as
 		 * `cnTranslate: this.translate` (bound to the host app's id). Field
@@ -227,13 +229,16 @@ export default {
 		 * subtype is chosen by the button that opened the form.
 		 *
 		 * Ignored when `item` is set: an edit already carries its own values.
+		 *
 		 * @type {object|null}
 		 */
 		initialValues: { type: Object, default: null },
 		/** Dialog title; falls back to schema.title when empty */
 		dialogTitle: { type: String, default: '' },
-		/** Schema property used as the item name in the title */
+		/* eslint-disable vue/no-unused-properties -- accepted for parity with CnFormDialog; this dialog titles itself and reports results from the schema title */
+		/** Schema property holding the item's name. Accepted for parity with CnFormDialog; this dialog builds its title and result messages from the schema title. */
 		nameField: { type: String, default: 'title' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Message shown after a successful operation */
 		successText: { type: String, default: '' },
 		/** Label for the cancel button */
@@ -318,24 +323,32 @@ export default {
 		},
 
 		resolvedTitle() {
-			if (this.dialogTitle) return this.dialogTitle
+			if (this.dialogTitle) {
+				return this.dialogTitle
+			}
 			return this.isCreateMode
 				? t('nextcloud-vue', 'Create {title}', { title: this.schemaTitle })
 				: t('nextcloud-vue', 'Edit {title}', { title: this.schemaTitle })
 		},
 
 		resolvedConfirmLabel() {
-			if (this.confirmLabel) return this.confirmLabel
+			if (this.confirmLabel) {
+				return this.confirmLabel
+			}
 			return this.isCreateMode ? t('nextcloud-vue', 'Create') : t('nextcloud-vue', 'Save')
 		},
 
 		resolvedSuccessText() {
-			if (this.successText) return this.successText
+			if (this.successText) {
+				return this.successText
+			}
 			return t('nextcloud-vue', '{title} saved successfully.', { title: this.schemaTitle })
 		},
 
 		resolvedShowMetadataTab() {
-			if (this.showMetadataTab !== null) return this.showMetadataTab
+			if (this.showMetadataTab !== null) {
+				return this.showMetadataTab
+			}
 			return !!this.item
 		},
 
@@ -349,9 +362,15 @@ export default {
 			const exclude = this.excludeFields || []
 			const include = this.includeFields
 			for (const key of Object.keys(props)) {
-				if (key === '@self' || key === 'id') continue
-				if (exclude.includes(key)) continue
-				if (include && !include.includes(key)) continue
+				if (key === '@self' || key === 'id') {
+					continue
+				}
+				if (exclude.includes(key)) {
+					continue
+				}
+				if (include && !include.includes(key)) {
+					continue
+				}
 				return true
 			}
 			return false
@@ -374,25 +393,43 @@ export default {
 			const exclude = this.excludeFields || []
 			const include = this.includeFields
 			const filterKey = (k) => {
-				if (k === '@self' || k === 'id') return false
-				if (exclude.includes(k)) return false
-				if (include && !include.includes(k)) return false
+				if (k === '@self' || k === 'id') {
+					return false
+				}
+				if (exclude.includes(k)) {
+					return false
+				}
+				if (include && !include.includes(k)) {
+					return false
+				}
 				return true
 			}
 			const existing = Object.entries(obj).filter(([k]) => filterKey(k))
 			const missing = []
 			for (const [key, prop] of Object.entries(schemaProps)) {
-				if (!filterKey(key)) continue
-				if (!Object.prototype.hasOwnProperty.call(obj, key)) {
+				if (!filterKey(key)) {
+					continue
+				}
+				if (!Object.hasOwn(obj, key)) {
 					let def
 					switch (prop.type) {
-					case 'string': def = prop.const ?? ''; break
-					case 'number':
-					case 'integer': def = 0; break
-					case 'boolean': def = false; break
-					case 'array': def = []; break
-					case 'object': def = {}; break
-					default: def = ''
+						case 'string':
+							def = prop.const ?? ''
+							break
+						case 'number':
+						case 'integer':
+							def = 0
+							break
+						case 'boolean':
+							def = false
+							break
+						case 'array':
+							def = []
+							break
+						case 'object':
+							def = {}
+							break
+						default: def = ''
 					}
 					missing.push([key, def])
 				}
@@ -402,8 +439,12 @@ export default {
 
 		dataTabIndex() {
 			let index = 0
-			if (this.showPropertiesTable) index++
-			if (this.resolvedShowMetadataTab) index++
+			if (this.showPropertiesTable) {
+				index++
+			}
+			if (this.resolvedShowMetadataTab) {
+				index++
+			}
 			return index
 		},
 
@@ -426,6 +467,7 @@ export default {
 				this.initFormData(newItem)
 			},
 		},
+
 		hasSchemaProperties: {
 			immediate: true,
 			handler(hasProps) {
@@ -436,17 +478,20 @@ export default {
 				}
 			},
 		},
+
 		jsonData(newVal) {
 			if (!this.isInternalUpdate && this.isValidJson(newVal)) {
 				this.updateFormFromJson()
 			}
 		},
+
 		formData: {
 			handler() {
 				if (!this.isInternalUpdate) {
 					this.updateJsonFromForm()
 				}
 			},
+
 			deep: true,
 		},
 	},
@@ -509,89 +554,122 @@ export default {
 		 */
 		_autofillTenant() {
 			const ctx = this._cnTenantContext
-			if (!ctx) return
+			if (!ctx) {
+				return
+			}
 			const uuid = ctx.activeOrganisationUuid && ctx.activeOrganisationUuid.value
-			if (!uuid) return
+			if (!uuid) {
+				return
+			}
 			const hasOrgField = this.resolvedFields.some((f) => f.key === 'organisation')
-			if (!hasOrgField) return
+			if (!hasOrgField) {
+				return
+			}
 			const current = this.formData.organisation
-			if (current !== null && current !== undefined && current !== '') return
+			if (current !== null && current !== undefined && current !== '') {
+				return
+			}
 			this.formData.organisation = uuid
 		},
 
 		updateField(key, value) {
 			this.formData[key] = value
-			if (this.errors[key]) delete this.errors[key]
+			if (this.errors[key]) {
+				delete this.errors[key]
+			}
 		},
 
 		onPropertyValueUpdate({ key, value }) {
 			this.formData[key] = value
-			if (this.errors[key]) delete this.errors[key]
+			if (this.errors[key]) {
+				delete this.errors[key]
+			}
 		},
 
 		/**
 		 * Proxy for slot consumers: exposes isPropertyEditable from the tab sub-component.
+		 *
 		 * @param {string} key - Property key
-		 * @param {*} value - Current property value
+		 * @param {unknown} value - Current property value
 		 */
 		isPropertyEditable(key, value) {
 			const tab = this.$refs.propertiesTab
-			if (tab) return tab.isPropertyEditable(key, value)
+			if (tab) {
+				return tab.isPropertyEditable(key, value)
+			}
 			return true
 		},
 
 		/**
 		 * Proxy for slot consumers.
+		 *
 		 * @param {string} key - Property key
 		 */
 		getPropertyDisplayName(key) {
 			const tab = this.$refs.propertiesTab
-			if (tab) return tab.getPropertyDisplayName(key)
+			if (tab) {
+				return tab.getPropertyDisplayName(key)
+			}
 			return key
 		},
 
 		/**
 		 * Proxy for slot consumers.
+		 *
 		 * @param {string} key - Property key
-		 * @param {*} value - Current property value
+		 * @param {unknown} value - Current property value
 		 */
 		getPropertyValidationClass(key, value) {
 			const tab = this.$refs.propertiesTab
-			if (tab) return tab.getPropertyValidationClass(key, value)
+			if (tab) {
+				return tab.getPropertyValidationClass(key, value)
+			}
 			return ''
 		},
 
 		updateFormFromJson() {
-			if (this.isInternalUpdate) return
+			if (this.isInternalUpdate) {
+				return
+			}
 			try {
 				this.isInternalUpdate = true
 				this.formData = JSON.parse(this.jsonData)
 			} catch {
 				// Keep previous formData
 			} finally {
-				this.$nextTick(() => { this.isInternalUpdate = false })
+				this.$nextTick(() => {
+					this.isInternalUpdate = false
+				})
 			}
 		},
 
 		updateJsonFromForm() {
-			if (this.isInternalUpdate) return
+			if (this.isInternalUpdate) {
+				return
+			}
 			try {
 				this.isInternalUpdate = true
 				this.jsonData = JSON.stringify(this.formData, null, 2)
 			} catch {
 				// Ignore
 			} finally {
-				this.$nextTick(() => { this.isInternalUpdate = false })
+				this.$nextTick(() => {
+					this.isInternalUpdate = false
+				})
 			}
 		},
 
 		updateJsonFromExternal(newJson) {
 			this.jsonData = newJson
-			if (this.isValidJson(newJson)) this.updateFormFromJson()
+			if (this.isValidJson(newJson)) {
+				this.updateFormFromJson()
+			}
 		},
 
 		isValidJson(str) {
-			if (!str || !str.trim()) return false
+			if (!str || !str.trim()) {
+				return false
+			}
 			try {
 				JSON.parse(str)
 				return true
@@ -608,7 +686,9 @@ export default {
 					if (!this.isInternalUpdate) {
 						this.isInternalUpdate = true
 						this.formData = parsed
-						this.$nextTick(() => { this.isInternalUpdate = false })
+						this.$nextTick(() => {
+							this.isInternalUpdate = false
+						})
 					}
 				}
 			} catch {
@@ -620,7 +700,9 @@ export default {
 			if (!this.isInternalUpdate) {
 				this.isInternalUpdate = true
 				this.formData = parsed
-				this.$nextTick(() => { this.isInternalUpdate = false })
+				this.$nextTick(() => {
+					this.isInternalUpdate = false
+				})
 			}
 		},
 
@@ -628,7 +710,7 @@ export default {
 			const newErrors = {}
 			for (const field of this.resolvedFields) {
 				const value = this.formData[field.key]
-				if (field.required && (value == null || value === '')) {
+				if (field.required && (value === null || value === undefined || value === '')) {
 					newErrors[field.key] = `${field.label} is required.`
 				}
 			}
@@ -637,8 +719,12 @@ export default {
 		},
 
 		executeConfirm() {
-			if (!this.validate()) return
-			if (this.isDataTabActive && !this.isValidJson(this.jsonData)) return
+			if (!this.validate()) {
+				return
+			}
+			if (this.isDataTabActive && !this.isValidJson(this.jsonData)) {
+				return
+			}
 			this.$emit('confirm', JSON.parse(JSON.stringify(this.formData)))
 		},
 

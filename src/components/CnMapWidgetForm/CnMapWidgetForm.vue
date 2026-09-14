@@ -42,26 +42,26 @@
 		</label>
 
 		<NcTextField
-			:model-value="height"
+			:modelValue="height"
 			:label="t('nextcloud-vue', 'Height')"
-			:label-visible="true"
+			:labelVisible="true"
 			placeholder="400px"
-			@update:model-value="height = $event" />
+			@update:modelValue="height = $event" />
 
 		<div class="cn-map-widget-form__row">
 			<NcTextField
-				:model-value="String(center[0])"
+				:modelValue="String(center[0])"
 				type="number"
 				:label="t('nextcloud-vue', 'Centre latitude')"
-				:label-visible="true"
-				@update:model-value="onCentre(0, $event)" />
+				:labelVisible="true"
+				@update:modelValue="onCentre(0, $event)" />
 
 			<NcTextField
-				:model-value="String(center[1])"
+				:modelValue="String(center[1])"
 				type="number"
 				:label="t('nextcloud-vue', 'Centre longitude')"
-				:label-visible="true"
-				@update:model-value="onCentre(1, $event)" />
+				:labelVisible="true"
+				@update:modelValue="onCentre(1, $event)" />
 		</div>
 
 		<NcCheckboxRadioSwitch v-model="centerMarker" type="switch">
@@ -79,10 +79,10 @@
 </template>
 
 <script>
-import { NcTextField, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
+import { NcCheckboxRadioSwitch, NcTextField } from '@nextcloud/vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 
 // The Netherlands, roughly — a sane default centre for a Dutch-government library.
 // autoFit is on by default, so this only shows before any object is plotted.
@@ -136,6 +136,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values when not editing (registry defaults).
 		 *
@@ -167,6 +168,7 @@ export default {
 				register: initial.register ?? '',
 				schema: initial.schema ?? '',
 			},
+
 			center: [Number(centre[0]), Number(centre[1])],
 			zoom: Number.isFinite(initial.zoom) ? initial.zoom : 7,
 			height: initial.height || '400px',
@@ -212,6 +214,7 @@ export default {
 			handler(content) {
 				this.$emit('update:content', content)
 			},
+
 			deep: true,
 			immediate: true,
 		},
@@ -258,7 +261,9 @@ export default {
 		 */
 		onCentre(index, value) {
 			const n = Number(value)
-			if (!Number.isFinite(n)) return
+			if (!Number.isFinite(n)) {
+				return
+			}
 			this.center[index] = n
 		},
 

@@ -1,4 +1,4 @@
-import { ref, onBeforeUnmount } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
 
 export const CTX_MENU_CSS_VAR_X = '--cn-ctx-menu-x'
 export const CTX_MENU_CSS_VAR_Y = '--cn-ctx-menu-y'
@@ -68,11 +68,11 @@ export function clearContextMenuPositionDom() {
  *
  * @return {{
  *   isOpen: import('vue').Ref<boolean>,
- *   targetItem: import('vue').Ref<any>,
- *   open: (params: { item: any, event: MouseEvent }) => void,
+ *   targetItem: import('vue').Ref<object>,
+ *   open: (params: { item: object, event: MouseEvent }) => void,
  *   close: () => void,
- *   isActionDisabled: (action: { disabled?: boolean | ((item: any) => boolean) }) => boolean,
- *   triggerAction: (action: { label: string, handler?: (item: any) => void }) => { action: string, row: any },
+ *   isActionDisabled: (action: { disabled?: boolean | ((item: object) => boolean) }) => boolean,
+ *   triggerAction: (action: { label: string, handler?: (item: object) => void }) => { action: string, row: object },
  * }}
  */
 export function useContextMenu() {
@@ -90,7 +90,7 @@ export function useContextMenu() {
 	 * positioned with fresh coordinates on the very first frame it shows.
 	 *
 	 * @param {object} params - Context menu trigger parameters.
-	 * @param {any} params.item The item associated with the right-click (row, folder, etc.)
+	 * @param {object} params.item The item associated with the right-click (row, folder, etc.)
 	 * @param {MouseEvent} params.event The native contextmenu event
 	 */
 	function open({ item, event }) {
@@ -137,7 +137,7 @@ export function useContextMenu() {
 	 * payload object the caller can pass to `$emit('action', payload)`.
 	 *
 	 * @param {object} action Action definition with `label` and optional `handler`
-	 * @return {{ action: string, row: any }}
+	 * @return {{ action: string, row: object }}
 	 */
 	function triggerAction(action) {
 		if (action.handler && typeof action.handler === 'function') {

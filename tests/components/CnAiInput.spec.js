@@ -2,7 +2,7 @@
  * Tests for CnAiInput.vue keyboard, disabled-state, and attach-file behaviour.
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
@@ -20,7 +20,6 @@ jest.mock('../../src/composables/aiLocalDictation.js', () => ({
 	})),
 }))
 
-// eslint-disable-next-line n/no-missing-require -- ESM-only package; jest resolves it via moduleNameMapper (tests/__mocks__/nextcloud-axios.js)
 const axios = require('@nextcloud/axios').default
 const { createLocalDictation } = require('../../src/composables/aiLocalDictation.js')
 const CnAiInput = require('../../src/components/CnAiCompanion/CnAiInput.vue').default
@@ -115,8 +114,7 @@ describe('CnAiInput', () => {
 		const fileInput = wrapper.find('input[type="file"]')
 		Object.defineProperty(fileInput.element, 'files', { value: [file] })
 		await fileInput.trigger('change')
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(axios.post).toHaveBeenCalledWith(
 			'/index.php/apps/hermiq/api/chat/attachments',
@@ -137,8 +135,7 @@ describe('CnAiInput', () => {
 		const fileInput = wrapper.find('input[type="file"]')
 		Object.defineProperty(fileInput.element, 'files', { value: [file] })
 		await fileInput.trigger('change')
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.attachments).toEqual([])
 		expect(wrapper.vm.uploadError).toBe('File is too large')
@@ -176,13 +173,11 @@ describe('CnAiInput', () => {
  * a correct one.
  */
 describe('CnAiInput dictation', () => {
-
 	/**
 	 * A stand-in for the browser's SpeechRecognition, which jsdom does not have.
 	 * Records what the component did to it, and lets a test push results in.
 	 */
 	class FakeRecognition {
-
 		constructor() {
 			FakeRecognition.instances.push(this)
 			this.started = 0
@@ -213,7 +208,6 @@ describe('CnAiInput dictation', () => {
 			results.length = 1
 			this.onresult({ resultIndex: 0, results })
 		}
-
 	}
 
 	FakeRecognition.instances = []
@@ -375,9 +369,7 @@ describe('CnAiInput dictation', () => {
  * it is how confidential audio reaches Google.
  */
 describe('CnAiInput speech engines', () => {
-
 	class FakeRecognition {
-
 		constructor() {
 			FakeRecognition.instances.push(this)
 			this.started = 0
@@ -391,7 +383,6 @@ describe('CnAiInput speech engines', () => {
 		stop() {
 			this.stopped += 1
 		}
-
 	}
 
 	FakeRecognition.instances = []
@@ -507,9 +498,7 @@ describe('CnAiInput speech engines', () => {
  * answers itself hands-free until somebody notices.
  */
 describe('CnAiInput conversation mode', () => {
-
 	class FakeRecognition {
-
 		constructor() {
 			FakeRecognition.instances.push(this)
 			this.stopped = 0
@@ -526,7 +515,6 @@ describe('CnAiInput conversation mode', () => {
 			results[0].isFinal = true
 			this.onresult({ resultIndex: 0, results })
 		}
-
 	}
 
 	FakeRecognition.instances = []
@@ -545,9 +533,7 @@ describe('CnAiInput conversation mode', () => {
 
 	it('offers no conversation control unless the agent allows it', () => {
 		expect(mountInput().find('[data-testid="cn-ai-input-converse"]').exists()).toBe(false)
-		expect(
-			mountInput({ conversationEnabled: true }).find('[data-testid="cn-ai-input-converse"]').exists(),
-		).toBe(true)
+		expect(mountInput({ conversationEnabled: true }).find('[data-testid="cn-ai-input-converse"]').exists()).toBe(true)
 	})
 
 	it('sends the turn on a silence — the difference from dictation', async () => {
@@ -639,7 +625,6 @@ describe('CnAiInput conversation mode', () => {
  * that tells somebody their agent's private engine is unavailable.
  */
 describe('CnAiInput blocked microphone', () => {
-
 	beforeEach(() => {
 		jest.clearAllMocks()
 		// A browser with no speech recognition and no recorder: nothing can run,

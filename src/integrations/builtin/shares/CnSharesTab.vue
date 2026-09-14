@@ -71,7 +71,7 @@
 						class="cn-shares-tab__row"
 						:name="shareTarget(share)"
 						:bold="true"
-						:force-display-actions="true">
+						:forceDisplayActions="true">
 						<template #icon>
 							<span class="cn-shares-tab__avatar" :aria-hidden="true">
 								<component :is="iconFor(shareType(share))" :size="20" />
@@ -105,20 +105,20 @@
 								<ClockOutline :size="13" />
 								<NcDateTime
 									:timestamp="shareExpiryMs(share)"
-									:relative-time="'short'" />
+									relativeTime="short" />
 							</span>
 						</template>
 						<template #actions>
 							<NcActionButton
 								v-if="canRevoke(share)"
-								:close-after-click="true"
+								:closeAfterClick="true"
 								@click="revoke(share)">
 								<template #icon>
 									<CloseCircleOutline :size="20" />
 								</template>
 								{{ revokeLabel }}
 							</NcActionButton>
-							<NcActionButton :close-after-click="true" @click="openFilesApp">
+							<NcActionButton :closeAfterClick="true" @click="openFilesApp">
 								<template #icon>
 									<FolderOutline :size="20" />
 								</template>
@@ -141,11 +141,11 @@
 		<CnShareCreate
 			v-if="showCreate"
 			:files="shareableFiles"
-			:files-loading="filesLoading"
+			:filesLoading="filesLoading"
 			:principals="principals"
-			:principals-loading="principalsLoading"
+			:principalsLoading="principalsLoading"
 			@close="showCreate = false"
-			@search-principals="searchPrincipals"
+			@searchPrincipals="searchPrincipals"
 			@create="createShare" />
 	</div>
 </template>
@@ -153,18 +153,18 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
-import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
-import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
 import AccountGroupOutline from 'vue-material-design-icons/AccountGroupOutline.vue'
-import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
-import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
-import Earth from 'vue-material-design-icons/Earth.vue'
-import LockOutline from 'vue-material-design-icons/LockOutline.vue'
+import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
+import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import CloseCircleOutline from 'vue-material-design-icons/CloseCircleOutline.vue'
+import Earth from 'vue-material-design-icons/Earth.vue'
+import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
 import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
-import Share from 'vue-material-design-icons/Share.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import Share from 'vue-material-design-icons/Share.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { CnShareCreate } from '../../../components/CnShareCreate/index.js'
 import { buildHeaders } from '../../../utils/index.js'
@@ -236,8 +236,10 @@ export default {
 		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'NC sharing is currently unavailable.') },
 		/** Pre-translated revoke button label. */
 		revokeLabel: { type: String, default: () => t('nextcloud-vue', 'Revoke share') },
+		/* eslint-disable vue/no-unused-properties -- the row hides the revoke button when canRevoke is false rather than disabling it, so the tooltip has no anchor today */
 		/** Pre-translated tooltip shown when the current user cannot revoke. */
 		revokeDisabledLabel: { type: String, default: () => t('nextcloud-vue', 'Only the share owner can revoke') },
+		/* eslint-enable vue/no-unused-properties */
 		/** Pre-translated label for the password-protected indicator. */
 		passwordProtectedLabel: { type: String, default: () => t('nextcloud-vue', 'Password protected') },
 		/** Pre-translated label for the expiry row. */
@@ -280,9 +282,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchShares() } } },
-		register() { this.fetchShares() },
-		schema() { this.fetchShares() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchShares()
+			}
+		} },
+
+		register() {
+			this.fetchShares()
+		},
+
+		schema() {
+			this.fetchShares()
+		},
 	},
 
 	methods: {

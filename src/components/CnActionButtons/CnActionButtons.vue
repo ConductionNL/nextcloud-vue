@@ -80,7 +80,7 @@
 			<NcActions
 				v-if="hasChildren(entry)"
 				:key="`${entry.id}-children`"
-				:menu-name="childMenuName(entry)"
+				:menuName="childMenuName(entry)"
 				:data-testid="`cn-action-children-${entry.id}`">
 				<template v-for="child in visibleChildren(entry)">
 					<NcActionLink
@@ -115,8 +115,8 @@
 		     that never asked for a limit keeps every action as a button. -->
 		<NcActions
 			v-if="overflowActions.length > 0"
-			:menu-name="overflowMenuName"
-			:force-menu="true"
+			:menuName="overflowMenuName"
+			:forceMenu="true"
 			data-testid="cn-action-buttons-overflow">
 			<template v-for="entry in overflowActions">
 				<NcActionLink
@@ -150,7 +150,7 @@
 		<CnConfirmDialog
 			v-if="confirmEntry"
 			ref="confirmDialog"
-			:dialog-title="tr(confirmEntry.confirmTitle || confirmEntry.label)"
+			:dialogTitle="tr(confirmEntry.confirmTitle || confirmEntry.label)"
 			:message="tr(confirmEntry.confirmMessage) || defaultConfirmMessage"
 			:variant="confirmEntry.variant === 'error' ? 'error' : 'primary'"
 			@confirm="onConfirmProceed"
@@ -167,11 +167,11 @@
 			:schema="formSchema"
 			:item="null"
 			:register="formRegister"
-			:initial-data="formInitialValues || {}"
-			:dialog-title="tr(formEntry.formTitle) || ''"
-			:include-fields="formEntry.includeFields || null"
-			:exclude-fields="formEntry.excludeFields || []"
-			:field-overrides="formEntry.fieldOverrides || {}"
+			:initialData="formInitialValues || {}"
+			:dialogTitle="tr(formEntry.formTitle) || ''"
+			:includeFields="formEntry.includeFields || null"
+			:excludeFields="formEntry.excludeFields || []"
+			:fieldOverrides="formEntry.fieldOverrides || {}"
 			:size="formEntry.size || 'normal'"
 			:columns="formEntry.columns || 1"
 			@confirm="onFormConfirm"
@@ -181,27 +181,43 @@
 			ref="formDialog"
 			:schema="formSchema"
 			:item="null"
-			:initial-values="formInitialValues"
+			:initialValues="formInitialValues"
 			@confirm="onFormConfirm"
 			@close="closeForm" />
+
+		<!-- run-node's config dialog (manifest-run-node-action): only mounted
+		     when the target node declared at least one field AND that
+		     describe call succeeded — an empty/no form runs immediately with
+		     no dialog at all (openRunNode below), and a describe FAILURE also
+		     skips the dialog (toasts instead) rather than showing an empty,
+		     confusing one. -->
+		<CnRunNodeDialog
+			v-if="runNodeEntry && runNodeFields.length"
+			:title="tr(runNodeEntry.formTitle) || tr(runNodeEntry.label)"
+			:fields="runNodeFields"
+			:loading="Boolean(actionPending[runNodeEntry.id])"
+			:translate="effectiveTranslate"
+			@confirm="onRunNodeConfirm"
+			@close="closeRunNode" />
 	</div>
 </template>
 
 <script>
-import { inject } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcButton } from '@nextcloud/vue'
-import { CnIcon } from '../CnIcon/index.js'
+import { inject } from 'vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
-import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
-import { CnFormDialog } from '../CnFormDialog/index.js'
-import { valueRecordsFor, valueArrayFor, usesArrayValues } from '../../utils/dynamicProperties.js'
-import { dispatchAction, isExternalActionTarget, resolveObjectOpType, buildOnSuccessRoute, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
-import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
-import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import CnRunNodeDialog from '../../dialogs/CnRunNodeDialog.vue'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
+import { buildOnSuccessRoute, dispatchAction, isExternalActionTarget, postRunNode, resolveCreateOverrideHandler, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { usesArrayValues, valueArrayFor, valueRecordsFor } from '../../utils/dynamicProperties.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
+import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
+import { CnFormDialog } from '../CnFormDialog/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 
 /**
  * CnActionButtons — declarative header-actions surface (#91 Wave 3).
@@ -225,6 +241,13 @@ import { useObjectStore } from '../../store/useObjectStore.js'
  *  - **`toggle`** — a two-way state button: `GET`s `stateSource` on mount,
  *    renders `labelOn` / `labelOff`, and on click `writes` the flipped
  *    value OPTIMISTICALLY, reverting on failure.
+ *  - **`run-node`** (manifest-run-node-action) — GETs the target flow node's
+ *    describe endpoint (OpenRegister's `or-flow-run-node`); a node with
+ *    declared fields mounts `CnRunNodeDialog` (its own small field renderer —
+ *    see that component's docblock for why it is not `CnFlowNodeEditModal`'s),
+ *    a node with none runs immediately. Either way `postRunNode()`
+ *    (`actionsDispatcher.js`) makes the actual call, subject-token-resolved
+ *    exactly like `agent`.
  *
  * Every other type (`api-call`, `navigate`, `open-modal`, `open-page`,
  * `refresh`, `handler`) routes through the shared `dispatchAction` — with
@@ -257,7 +280,7 @@ import { useObjectStore } from '../../store/useObjectStore.js'
 export default {
 	name: 'CnActionButtons',
 
-	components: { NcActions, NcActionButton, NcActionLink, NcButton, CnIcon, CnConfirmDialog, CnFormDialog, CnAdvancedFormDialog },
+	components: { NcActions, NcActionButton, NcActionLink, NcButton, CnIcon, CnConfirmDialog, CnFormDialog, CnAdvancedFormDialog, CnRunNodeDialog },
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -296,12 +319,14 @@ export default {
 		 * is never dispatched. Use it for anything that ends in a URL, so the
 		 * browser keeps middle-click, "open in new tab" and the link semantics
 		 * assistive tech announces.
+		 *
 		 * @type {Array<object>}
 		 */
 		actions: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * How many collapsible actions stay as buttons; the rest fall into a
 		 * single `···` overflow menu.
@@ -322,6 +347,7 @@ export default {
 			type: Number,
 			default: 0,
 		},
+
 		/**
 		 * Name for the overflow menu. Empty falls back to a translated
 		 * "Actions".
@@ -332,21 +358,25 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Explicit Vue Router instance for `navigate` / `open-page` /
 		 * `onSuccessRoute`. Falls back to `this.$router`. Only needed for
 		 * standalone mounts outside a router tree.
+		 *
 		 * @type {object|null}
 		 */
 		router: {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Where the actions are drawn. `buttons` (the default) puts one
 		 * NcButton per action in the host's header. `menu` draws none and
 		 * emits `entries` instead, so the host can render them inside an
 		 * overflow menu while this component keeps owning the dialogs.
+		 *
 		 * @type {'buttons'|'menu'}
 		 */
 		display: {
@@ -384,6 +414,10 @@ export default {
 			formEntry: null,
 			/** The fetched schema object for the open-form dialog (null until loaded). */
 			formSchema: null,
+			/** The run-node action currently in flight / showing its dialog (null = closed). */
+			runNodeEntry: null,
+			/** The target node's declared config-form fields, from the describe GET. */
+			runNodeFields: [],
 			/** Default confirm-dialog message. */
 			defaultConfirmMessage: t('nextcloud-vue', 'Are you sure you want to continue?'),
 		}
@@ -399,6 +433,7 @@ export default {
 		effectiveTranslate() {
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
 		},
+
 		/**
 		 * Create-form seed values for the open `open-form` action. An action
 		 * declares them as `props`, which is how a single schema backs several
@@ -409,7 +444,9 @@ export default {
 		 */
 		formInitialValues() {
 			const props = this.formEntry && this.formEntry.props
-			if (!props || typeof props !== 'object' || Array.isArray(props)) return null
+			if (!props || typeof props !== 'object' || Array.isArray(props)) {
+				return null
+			}
 			// Seed values go through the SAME token grammar as filters, so an
 			// action on a detail page can stamp the record it belongs to:
 			// `{ "domainObjectRef": "@objectId" }`. Without this the literal
@@ -417,6 +454,7 @@ export default {
 			// is a defect that only shows up in whatever reads it later.
 			return resolveFilterTokens(props, this.tokenCtx)
 		},
+
 		/**
 		 * The register the open dialog reads and writes against. The plain
 		 * form needs it to resolve `$ref` pickers into real dropdowns; without
@@ -428,6 +466,7 @@ export default {
 		formRegister() {
 			return (this.formEntry && this.formEntry.register) || this.objectCtx.register || ''
 		},
+
 		/**
 		 * The actions whose visibleWhen evaluated true (or carry no predicate).
 		 *
@@ -446,6 +485,7 @@ export default {
 					? { ...a, href: a.target, target: '_blank' }
 					: a))
 		},
+
 		/**
 		 * The actions rendered in the bar itself: every non-collapsible one,
 		 * plus the first `inline` collapsible ones. Declaration order is kept,
@@ -457,16 +497,19 @@ export default {
 		 * @return {Array<object>} Actions to render as buttons / chevrons.
 		 */
 		barActions() {
-			if (this.display === 'menu') return []
-			if (!(this.inline > 0)) return this.visibleActions
-			const promoted = new Set(
-				this.visibleActions
-					.filter((a) => this.isCollapsible(a))
-					.slice(0, this.inline)
-					.map((a) => a.id),
-			)
+			if (this.display === 'menu') {
+				return []
+			}
+			if (!(this.inline > 0)) {
+				return this.visibleActions
+			}
+			const promoted = new Set(this.visibleActions
+				.filter((a) => this.isCollapsible(a))
+				.slice(0, this.inline)
+				.map((a) => a.id))
 			return this.visibleActions.filter((a) => !this.isCollapsible(a) || promoted.has(a.id))
 		},
+
 		/**
 		 * The actions that did not fit, for the `···` menu. Always empty while
 		 * `inline` is 0, and in `display: "menu"` where the host owns the menu.
@@ -474,10 +517,13 @@ export default {
 		 * @return {Array<object>} Actions to render as menu items.
 		 */
 		overflowActions() {
-			if (this.display === 'menu' || !(this.inline > 0)) return []
+			if (this.display === 'menu' || !(this.inline > 0)) {
+				return []
+			}
 			const shown = new Set(this.barActions.map((a) => a.id))
 			return this.visibleActions.filter((a) => !shown.has(a.id))
 		},
+
 		/**
 		 * Name for the overflow trigger.
 		 *
@@ -486,6 +532,7 @@ export default {
 		overflowMenuName() {
 			return this.tr(this.overflowLabel) || t('nextcloud-vue', 'Actions')
 		},
+
 		/**
 		 * The visible actions flattened for a host that draws them as menu
 		 * items. Everything the item needs to render is resolved here — the
@@ -528,22 +575,26 @@ export default {
 				}
 			})
 		},
+
 		/** Unwrapped page workspace bag. */
 		workspaceCtx() {
 			const c = this.workspaceRaw
 			const v = (c && typeof c === 'object' && 'value' in c) ? c.value : c
 			return (v && typeof v === 'object') ? v : {}
 		},
+
 		/** Unwrapped app-config bag. */
 		configCtx() {
 			const c = this.appConfigRaw
 			const v = (c && typeof c === 'object' && 'value' in c) ? c.value : c
 			return (v && typeof v === 'object') ? v : {}
 		},
+
 		/** The merged object token context (both detail-surface injects). */
 		objectCtx() {
 			return resolveObjectTokenContext(this.objectCtxRaw, this.detailCtxRaw) || {}
 		},
+
 		/** The full token context for url/param interpolation + local visibleWhen. */
 		tokenCtx() {
 			return {
@@ -552,6 +603,7 @@ export default {
 				config: this.configCtx,
 			}
 		},
+
 		/** The effective router (explicit prop wins, else this.$router). */
 		effectiveRouter() {
 			return this.router || this.$router || null
@@ -566,11 +618,13 @@ export default {
 				this.initToggles()
 			},
 		},
+
 		// Re-evaluate local (object-context) visibleWhen when the record loads.
 		objectCtx: {
 			deep: true,
 			handler() { this.evaluateVisibility() },
 		},
+
 		// Push the menu-ready descriptors at a `display: "menu"` host. It fires
 		// immediately so the host has the list on first paint, and again on
 		// every change of visibility, toggle state or pending flag — the three
@@ -578,10 +632,12 @@ export default {
 		menuEntries: {
 			immediate: true,
 			handler(entries) {
-				/**
-				 * @event entries Emitted in `display: "menu"` only, whenever the visible actions, their toggle state or their pending flags change. Payload: one menu-ready descriptor per visible action, each carrying `id`, `label`, `iconName`, `iconClass`, `disabled`, `pressed`, `testid` and a pre-bound `run()`.
-				 */
-				if (this.display === 'menu') this.$emit('entries', entries)
+				if (this.display === 'menu') {
+					/**
+					 * @event entries Emitted in `display: "menu"` only, whenever the visible actions, their toggle state or their pending flags change. Payload: one menu-ready descriptor per visible action, each carrying `id`, `label`, `iconName`, `iconClass`, `disabled`, `pressed`, `testid` and a pre-bound `run()`.
+					 */
+					this.$emit('entries', entries)
+				}
 			},
 		},
 	},
@@ -609,7 +665,9 @@ export default {
 			// evaluated would read as visible and render regardless.
 			const flat = []
 			for (const action of this.actions || []) {
-				if (!action || !action.id) continue
+				if (!action || !action.id) {
+					continue
+				}
 				flat.push(action)
 				if (Array.isArray(action.children)) {
 					flat.push(...action.children.filter((c) => c && c.id))
@@ -634,14 +692,18 @@ export default {
 		 */
 		async initToggles() {
 			for (const action of this.actions || []) {
-				if (!action || action.type !== 'toggle' || !action.id) continue
+				if (!action || action.type !== 'toggle' || !action.id) {
+					continue
+				}
 				this.toggleState[action.id] = false
-				if (!action.stateSource || !action.stateSource.url) continue
+				if (!action.stateSource || !action.stateSource.url) {
+					continue
+				}
 				try {
 					const payload = await fetchEndpointSource(action.stateSource, this.tokenCtx)
 					const value = action.field ? this.readField(payload, action.field) : payload
 					this.toggleState[action.id] = Boolean(value)
-				} catch (e) {
+				} catch {
 					// Leave the default (off); a failed state read never breaks the bar.
 				}
 			}
@@ -659,6 +721,7 @@ export default {
 				&& entry.variant !== 'primary'
 				&& entry.type !== 'toggle'
 		},
+
 		/**
 		 * Whether an action declares sub-actions worth a chevron.
 		 *
@@ -668,6 +731,7 @@ export default {
 		hasChildren(entry) {
 			return this.visibleChildren(entry).length > 0
 		},
+
 		/**
 		 * An action's sub-actions, minus any hidden by `visibleWhen`.
 		 *
@@ -675,9 +739,12 @@ export default {
 		 * @return {Array<object>} The renderable children.
 		 */
 		visibleChildren(entry) {
-			if (!Array.isArray(entry?.children)) return []
+			if (!Array.isArray(entry?.children)) {
+				return []
+			}
 			return entry.children.filter((c) => c && c.id && this.visibility[c.id] !== false)
 		},
+
 		/**
 		 * Name for a sub-action chevron. `childrenLabel` when set, else the
 		 * parent's own label, so the dropdown is never announced unlabelled.
@@ -692,13 +759,15 @@ export default {
 		/**
 		 * Read a dot-path off a payload (the toggle state field).
 		 *
-		 * @param {*} data The payload.
+		 * @param {unknown} data The payload.
 		 * @param {string} field The dot-path.
-		 * @return {*} The value at the path.
+		 * @return {unknown} The value at the path.
 		 */
 		readField(data, field) {
-			if (!field) return data
-			return String(field).split('.').reduce((o, k) => (o == null ? o : o[k]), data)
+			if (!field) {
+				return data
+			}
+			return String(field).split('.').reduce((o, k) => (o === null || o === undefined ? o : o[k]), data)
 		},
 
 		/**
@@ -710,13 +779,17 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async onToggleClick(entry) {
-			if (this.togglePending[entry.id]) return
+			if (this.togglePending[entry.id]) {
+				return
+			}
 			const previous = Boolean(this.toggleState[entry.id])
 			const next = !previous
 			this.toggleState[entry.id] = next
 			this.togglePending[entry.id] = true
 			const writeParams = { ...(entry.params || {}) }
-			if (entry.field) writeParams[entry.field] = next
+			if (entry.field) {
+				writeParams[entry.field] = next
+			}
 			const result = await this.dispatch({
 				type: 'api-call',
 				url: entry.writeUrl,
@@ -755,7 +828,9 @@ export default {
 		 */
 		async onConfirmProceed() {
 			const entry = this.confirmEntry
-			if (!entry) return
+			if (!entry) {
+				return
+			}
 			const result = await this.runAction(entry)
 			const dialog = this.$refs.confirmDialog
 			if (dialog && typeof dialog.setResult === 'function') {
@@ -772,7 +847,7 @@ export default {
 		 * the confirm dialog can report success/failure.
 		 *
 		 * @param {object} entry The action.
-		 * @return {Promise<*>} The dispatch result (undefined for open-form).
+		 * @return {Promise<unknown>} The dispatch result (undefined for open-form).
 		 */
 		async runAction(entry) {
 			// A function on the descriptor, for a PARENT COMPONENT composing
@@ -786,6 +861,10 @@ export default {
 			}
 			if (entry.type === 'open-form') {
 				await this.openForm(entry)
+				return undefined
+			}
+			if (entry.type === 'run-node') {
+				await this.openRunNode(entry)
 				return undefined
 			}
 			this.actionPending[entry.id] = true
@@ -814,7 +893,7 @@ export default {
 		 * merged in (the latter localises `api-call` success/error toasts).
 		 *
 		 * @param {object} action The action to dispatch.
-		 * @return {Promise<*>} The dispatch result.
+		 * @return {Promise<unknown>} The dispatch result.
 		 */
 		dispatch(action) {
 			const extra = { tokenCtx: this.tokenCtx, translate: this.effectiveTranslate }
@@ -824,6 +903,7 @@ export default {
 			return dispatchAction(action, {
 				router: this.effectiveRouter,
 				openForm: (a) => this.openForm(a),
+				openRunNode: (a) => this.openRunNode(a),
 				...extra,
 			})
 		},
@@ -849,14 +929,113 @@ export default {
 				const store = useObjectStore()
 				const type = resolveObjectOpType(store, { register, schema })
 				this.formSchema = await store.fetchSchema(type)
-			} catch (e) {
+			} catch {
 				this.formSchema = null
 			}
 			if (!this.formSchema) {
 				const { showError } = await import('@nextcloud/dialogs')
-				if (typeof showError === 'function') showError(t('nextcloud-vue', 'Could not open the form.'))
+				if (typeof showError === 'function') {
+					showError(t('nextcloud-vue', 'Could not open the form.'))
+				}
 				this.formEntry = null
 			}
+		},
+
+		/**
+		 * Open (or skip) the `run-node` config dialog: GET the target node's
+		 * describe endpoint (`or-flow-run-node`'s `GET .../{flowId}/{nodeId}/run`),
+		 * and either mount `CnRunNodeDialog` with its declared fields, or —
+		 * for a node with none — run immediately with an empty config. A
+		 * failed describe call toasts and does neither (RN-4: this resolves
+		 * as soon as the decision is made, never waiting on the person).
+		 *
+		 * @param {object} entry The run-node action (`flowId`, `nodeId`, ...).
+		 * @return {Promise<void>}
+		 *
+		 * @spec openspec/changes/manifest-run-node-action/specs/manifest-run-node-action/spec.md#requirement-the-nodes-own-config-form-drives-the-dialog-not-a-new-token
+		 */
+		async openRunNode(entry) {
+			const flowId = entry.flowId
+			const nodeId = entry.nodeId
+			if (!flowId || !nodeId) {
+				// eslint-disable-next-line no-console
+				console.warn('[CnActionButtons] run-node requires flowId and nodeId.', entry)
+				return
+			}
+
+			// The try assigns it and the catch returns, so an initialiser here
+			// would never be read.
+			let fields
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl(`/apps/openregister/api/flows/${encodeURIComponent(flowId)}/nodes/${encodeURIComponent(nodeId)}/run`)
+				const response = await axios.get(url)
+				fields = Array.isArray(response.data && response.data.configForm) ? response.data.configForm : []
+			} catch (error) {
+				const { showError } = await import('@nextcloud/dialogs')
+				const serverMessage = error && error.response && error.response.data
+					&& (error.response.data.error || error.response.data.message)
+				if (typeof showError === 'function') {
+					showError(serverMessage || t('nextcloud-vue', 'Could not open this action.'))
+				}
+				return
+			}
+
+			if (!fields.length) {
+				// Empty (or undeclared) form: the "empty form is itself
+				// information" rule flow-node-config-forms already established
+				// for the editor — run immediately, no dialog.
+				this.actionPending[entry.id] = true
+				await this.runNodePost(entry, {})
+				this.actionPending[entry.id] = false
+				return
+			}
+
+			this.runNodeFields = fields
+			this.runNodeEntry = entry
+		},
+
+		/**
+		 * The run-node dialog's confirm: POST the collected config, close the
+		 * dialog either way (success or failure both end the interaction —
+		 * a failure already toasted its own message).
+		 *
+		 * @param {object} config The dialog's collected field values.
+		 * @return {Promise<void>}
+		 *
+		 * @spec openspec/changes/manifest-run-node-action/specs/manifest-run-node-action/spec.md#requirement-a-run-node-action-invokes-one-flow-node-against-the-page-object
+		 */
+		async onRunNodeConfirm(config) {
+			const entry = this.runNodeEntry
+			if (!entry) {
+				return
+			}
+			this.actionPending[entry.id] = true
+			await this.runNodePost(entry, config)
+			this.actionPending[entry.id] = false
+			this.closeRunNode()
+		},
+
+		/**
+		 * POST the run-node call through the shared dispatcher's `postRunNode`
+		 * (subject/register/schema resolution, fail-closed, toast + refresh —
+		 * see its own docblock in actionsDispatcher.js).
+		 *
+		 * @param {object} entry The run-node action.
+		 * @param {object} config The node's collected config.
+		 * @return {Promise<{ok: boolean}>}
+		 */
+		runNodePost(entry, config) {
+			return postRunNode(entry, { tokenCtx: this.tokenCtx, translate: this.effectiveTranslate }, config)
+		},
+
+		/** Close the run-node dialog without running anything. */
+		closeRunNode() {
+			this.runNodeEntry = null
+			this.runNodeFields = []
 		},
 
 		/**
@@ -897,9 +1076,13 @@ export default {
 				const saved = override
 					? await override(payload, { register, schema, type })
 					: await store.saveObject(type, payload)
-				if (!saved) throw new Error('save rejected')
+				if (!saved) {
+					throw new Error('save rejected')
+				}
 				await this.saveDynamicAnswers(store, register, dynamic, saved)
-				if (dialog && typeof dialog.setResult === 'function') dialog.setResult({ success: true })
+				if (dialog && typeof dialog.setResult === 'function') {
+					dialog.setResult({ success: true })
+				}
 				const { showSuccess } = await import('@nextcloud/dialogs')
 				if (typeof showSuccess === 'function') {
 					showSuccess((entry && entry.successMessage) || t('nextcloud-vue', 'Saved.'))
@@ -912,7 +1095,9 @@ export default {
 				this.$emit('created', saved)
 				if (entry && entry.onSuccessRoute && this.effectiveRouter) {
 					const location = buildOnSuccessRoute(entry.onSuccessRoute, saved)
-					if (location) this.effectiveRouter.push(location).catch(() => {})
+					if (location) {
+						this.effectiveRouter.push(location).catch(() => {})
+					}
 				}
 			} catch (e) {
 				if (dialog && typeof dialog.setResult === 'function') {
@@ -938,15 +1123,23 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async saveDynamicAnswers(store, register, dynamic, saved) {
-			if (!dynamic || !Array.isArray(dynamic.answers) || dynamic.answers.length === 0) return
+			if (!dynamic || !Array.isArray(dynamic.answers) || dynamic.answers.length === 0) {
+				return
+			}
 			const objectId = saved && (saved.id || saved.uuid)
-			if (!objectId) return
+			if (!objectId) {
+				return
+			}
 			const declarations = dynamic.declarations || []
 			for (const { key, config } of declarations) {
 				const values = config && config.values
-				if (!values || !values.schema) continue
+				if (!values || !values.schema) {
+					continue
+				}
 				// Already written as part of the parent payload.
-				if (usesArrayValues(config)) continue
+				if (usesArrayValues(config)) {
+					continue
+				}
 				// An answer belongs to exactly one declaration. With a single
 				// declaration every answer carries its key anyway; the filter
 				// only matters once a schema has two, where writing an answer
@@ -955,7 +1148,9 @@ export default {
 					? dynamic.answers
 					: dynamic.answers.filter((a) => a.declarationKey === key)
 				const rows = valueRecordsFor(mine, config, objectId)
-				if (rows.length === 0) continue
+				if (rows.length === 0) {
+					continue
+				}
 				const valueRegister = values.register || register
 				const type = resolveObjectOpType(store, { register: valueRegister, schema: values.schema })
 				for (const row of rows) {
@@ -972,15 +1167,21 @@ export default {
 		 * @return {void}
 		 */
 		foldArrayAnswers(payload, dynamic) {
-			if (!dynamic || !Array.isArray(dynamic.answers) || dynamic.answers.length === 0) return
+			if (!dynamic || !Array.isArray(dynamic.answers) || dynamic.answers.length === 0) {
+				return
+			}
 			const declarations = dynamic.declarations || []
 			for (const { key, config } of declarations) {
-				if (!usesArrayValues(config)) continue
+				if (!usesArrayValues(config)) {
+					continue
+				}
 				const mine = declarations.length === 1
 					? dynamic.answers
 					: dynamic.answers.filter((a) => a.declarationKey === key)
 				const entries = valueArrayFor(mine, config, dynamic.definitions || [])
-				if (entries.length) payload[config.values.arrayKey] = entries
+				if (entries.length) {
+					payload[config.values.arrayKey] = entries
+				}
 			}
 		},
 

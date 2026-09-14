@@ -21,8 +21,8 @@
 	-->
 	<button
 		v-if="visible"
+		class="cn-ai-floating-button"
 		:class="[
-			'cn-ai-floating-button',
 			`cn-ai-floating-button--${position}`,
 		]"
 		:aria-label="cnTranslate('Open AI chat')"
@@ -55,6 +55,7 @@ export default {
 	props: {
 		/**
 		 * Viewport corner at which to anchor the button.
+		 *
 		 * @type {'bottom-right'|'bottom-left'|'top-right'|'top-left'}
 		 */
 		position: {
@@ -62,6 +63,7 @@ export default {
 			default: 'bottom-right',
 			validator: (v) => ['bottom-right', 'bottom-left', 'top-right', 'top-left'].includes(v),
 		},
+
 		/**
 		 * Controls button visibility. Set to false when the chat panel is open
 		 * so the FAB does not visually compete.

@@ -26,8 +26,8 @@
 
 ### Slots
 
-| Name                 | Bindings                                                                                                                                  | Description |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `row-actions-header` | —                                                                                                                                         |             |
-| `value-cell`         | `property-key`, `value`, `resolved-value`, `is-editing`, `is-editable`, `display-name`, `schema-prop`, `editability-warning`, `on-update` |             |
-| `row-actions`        | `property-key`, `value`, `resolved-value`, `is-editable`, `is-schema-property`                                                            |             |
+| Name                 | Bindings                                                                                                                          | Description |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `row-actions-header` | —                                                                                                                                 |             |
+| `value-cell`         | `propertyKey`, `value`, `resolvedValue`, `isEditing`, `isEditable`, `displayName`, `schemaProp`, `editabilityWarning`, `onUpdate` |             |
+| `row-actions`        | `propertyKey`, `value`, `resolvedValue`, `isEditable`, `isSchemaProperty`                                                         |             |

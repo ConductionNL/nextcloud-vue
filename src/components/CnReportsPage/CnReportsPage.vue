@@ -410,7 +410,7 @@ export default {
 
 			try {
 				return this.$router.resolve({ name: card.route }).href
-			} catch (e) {
+			} catch {
 				return '#'
 			}
 		},

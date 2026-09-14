@@ -8,17 +8,17 @@
 					v-model="filterAction"
 					:options="actionOptions"
 					:placeholder="actionFilterLabel"
-					:input-label="actionFilterLabel"
+					:inputLabel="actionFilterLabel"
 					:multiple="true"
-					:keep-open="true"
+					:keepOpen="true"
 					class="cn-audit-filters__select" />
 				<NcSelect
 					v-model="filterUser"
 					:options="userOptions"
 					:placeholder="userFilterLabel"
-					:input-label="userFilterLabel"
+					:inputLabel="userFilterLabel"
 					:multiple="true"
-					:keep-open="true"
+					:keepOpen="true"
 					class="cn-audit-filters__select" />
 				<NcDateTimePickerNative
 					id="audit-date-from"
@@ -43,7 +43,7 @@
 						:name="formatDate(entry.created)"
 						:bold="false"
 						:details="entry.action"
-						:counter-number="changedCount(entry)"
+						:counterNumber="changedCount(entry)"
 						@click="toggleExpand(entry.id)">
 						<template #icon>
 							<History :size="32" />
@@ -119,7 +119,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcButton, NcListItem, NcLoadingIcon, NcSelect, NcDateTimePickerNative } from '@nextcloud/vue'
+import { NcButton, NcDateTimePickerNative, NcListItem, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import History from 'vue-material-design-icons/History.vue'
 import { buildHeaders } from '../../utils/index.js'
 
@@ -180,12 +180,28 @@ export default {
 	watch: {
 		objectId: {
 			immediate: true,
-			handler(id) { if (id) this.fetchAuditTrails() },
+			handler(id) {
+				if (id) {
+					this.fetchAuditTrails()
+				}
+			},
 		},
-		filterAction() { this.resetAndFetch() },
-		filterUser() { this.resetAndFetch() },
-		filterDateFrom() { this.resetAndFetch() },
-		filterDateTo() { this.resetAndFetch() },
+
+		filterAction() {
+			this.resetAndFetch()
+		},
+
+		filterUser() {
+			this.resetAndFetch()
+		},
+
+		filterDateFrom() {
+			this.resetAndFetch()
+		},
+
+		filterDateTo() {
+			this.resetAndFetch()
+		},
 	},
 
 	methods: {
@@ -200,8 +216,12 @@ export default {
 			params.set('limit', this.limit)
 			params.set('_page', this.page)
 			params.set('_sort[created]', 'DESC')
-			if (this.filterAction?.length) params.set('action', this.filterAction.join(','))
-			if (this.filterUser?.length) params.set('user_name', this.filterUser.join(','))
+			if (this.filterAction?.length) {
+				params.set('action', this.filterAction.join(','))
+			}
+			if (this.filterUser?.length) {
+				params.set('user_name', this.filterUser.join(','))
+			}
 			if (this.filterDateFrom) {
 				params.set('_dateFrom', new Date(this.filterDateFrom).toISOString().split('T')[0])
 			}
@@ -212,7 +232,9 @@ export default {
 		},
 
 		async fetchAuditTrails() {
-			if (!this.register || !this.schema) return
+			if (!this.register || !this.schema) {
+				return
+			}
 			this.loading = this.page === 1
 			this.loadingMore = this.page > 1
 			try {
@@ -234,10 +256,11 @@ export default {
 					}
 					this.total = data.total || this.entries.length
 					// Build user options from all seen entries
-					const users = new Set(this.entries.map(e => e.userName || e.user).filter(Boolean))
+					const users = new Set(this.entries.map((e) => e.userName || e.user).filter(Boolean))
 					this.userOptions = [...users].sort()
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('CnAuditTrailTab: Failed to fetch audit trails', err)
 			} finally {
 				this.loading = false
@@ -255,7 +278,9 @@ export default {
 		},
 
 		changedCount(entry) {
-			if (!entry.changed || typeof entry.changed !== 'object') return 0
+			if (!entry.changed || typeof entry.changed !== 'object') {
+				return 0
+			}
 			return Object.keys(entry.changed).length
 		},
 
@@ -264,13 +289,19 @@ export default {
 		},
 
 		formatValue(val) {
-			if (val === null || val === undefined) return 'null'
-			if (typeof val === 'object') return JSON.stringify(val)
+			if (val === null || val === undefined) {
+				return 'null'
+			}
+			if (typeof val === 'object') {
+				return JSON.stringify(val)
+			}
 			return String(val)
 		},
 
 		formatDate(dateStr) {
-			if (!dateStr) return ''
+			if (!dateStr) {
+				return ''
+			}
 			try {
 				return new Date(dateStr).toLocaleString(undefined, {
 					year: 'numeric',
@@ -279,7 +310,9 @@ export default {
 					hour: '2-digit',
 					minute: '2-digit',
 				})
-			} catch { return dateStr }
+			} catch {
+				return dateStr
+			}
 		},
 	},
 }

@@ -46,8 +46,8 @@
  * @module composables/useEndpointSource
  */
 
-import { computed, getCurrentScope, onScopeDispose, ref, unref, watch } from 'vue'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { computed, getCurrentScope, onScopeDispose, ref, unref, watch } from 'vue'
 import {
 	dropOptionalUnresolved,
 	hasUnresolvedTokens,
@@ -86,7 +86,7 @@ const WIDGET_REFRESH_CHANNEL = 'cn:widget:refresh'
  * dedupe to one in-flight promise (pipelinq `cached()` semantics: an
  * errored fetch drops its entry so the next mount retries).
  *
- * @type {Map<string, {promise: Promise<*>, timestamp: number}>}
+ * @type {Map<string, {promise: Promise<unknown>, timestamp: number}>}
  */
 const responseCache = new Map()
 
@@ -95,14 +95,16 @@ const responseCache = new Map()
  * Returns the object itself for an empty path and `undefined` when any
  * segment is missing.
  *
- * @param {*} obj The source object.
+ * @param {unknown} obj The source object.
  * @param {string} [path] The dot-path.
- * @return {*} The resolved value or undefined.
+ * @return {unknown} The resolved value or undefined.
  */
 export function getByPath(obj, path) {
-	if (path === undefined || path === null || path === '') return obj
+	if (path === undefined || path === null || path === '') {
+		return obj
+	}
 	return String(path).split('.').reduce(
-		(o, k) => (o == null ? undefined : o[k]),
+		(o, k) => (o === null || o === undefined ? undefined : o[k]),
 		obj,
 	)
 }
@@ -119,7 +121,9 @@ export function getByPath(obj, path) {
  * @return {string} The interpolated string.
  */
 export function interpolateUrlTokens(str, ctx) {
-	if (typeof str !== 'string') return str
+	if (typeof str !== 'string') {
+		return str
+	}
 	const c = ctx || {}
 	const workspace = c.workspace || {}
 	const config = c.config || {}
@@ -183,12 +187,16 @@ export function resolveEndpointRequest(config, ctx) {
  * @return {boolean} true when a token collapsed into an empty path segment.
  */
 function hasEmptyPathSegment(rawUrl, resolvedUrl) {
-	if (typeof rawUrl !== 'string' || rawUrl.indexOf('@') === -1) return false
+	if (typeof rawUrl !== 'string' || rawUrl.indexOf('@') === -1) {
+		return false
+	}
 	const path = String(resolvedUrl).split('?')[0].split('#')[0]
 	// A trailing slash on a URL that HAD no trailing slash before interpolation,
 	// or any `//` inside the path, is a segment that resolved to nothing.
 	const rawPath = rawUrl.split('?')[0].split('#')[0]
-	if (path.includes('//') && !rawPath.includes('//')) return true
+	if (path.includes('//') && !rawPath.includes('//')) {
+		return true
+	}
 	return path.length > 1 && path.endsWith('/') && !rawPath.endsWith('/')
 }
 
@@ -221,12 +229,14 @@ export function invalidateEndpointSourceCache() {
  *
  * @param {{url: string, method: string, params: object}} request The resolved request.
  * @param {{force?: boolean}} [opts] `force: true` bypasses (and replaces) the cache entry.
- * @return {Promise<*>} The raw response body (`res.data`).
+ * @return {Promise<unknown>} The raw response body (`res.data`).
  */
 async function fetchSharedResponse(request, opts) {
 	const key = endpointCacheKey(request)
 	const now = Date.now()
-	if (opts && opts.force) responseCache.delete(key)
+	if (opts && opts.force) {
+		responseCache.delete(key)
+	}
 	const entry = responseCache.get(key)
 	if (entry && (now - entry.timestamp) < ENDPOINT_SOURCE_TTL_MS) {
 		return entry.promise
@@ -263,12 +273,16 @@ async function fetchSharedResponse(request, opts) {
  * @param {{url: string, method?: string, params?: object, responsePath?: string}} config The endpointSource block.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The token context.
  * @param {{force?: boolean}} [opts] `force: true` bypasses the shared cache.
- * @return {Promise<*>} The plucked payload (or null).
+ * @return {Promise<unknown>} The plucked payload (or null).
  */
 export async function fetchEndpointSource(config, ctx, opts) {
-	if (!config || !config.url) return null
+	if (!config || !config.url) {
+		return null
+	}
 	const request = resolveEndpointRequest(config, ctx)
-	if (request.blocked) return null
+	if (request.blocked) {
+		return null
+	}
 	const body = await fetchSharedResponse(request, opts)
 	const payload = getByPath(body, config.responsePath)
 	return payload === undefined ? null : payload
@@ -277,8 +291,8 @@ export async function fetchEndpointSource(config, ctx, opts) {
 /**
  * Unwrap a value that may be a plain value, a ref, or a getter function.
  *
- * @param {*} v The wrapped value.
- * @return {*} The unwrapped value.
+ * @param {unknown} v The wrapped value.
+ * @return {unknown} The unwrapped value.
  */
 function read(v) {
 	return typeof v === 'function' ? v() : unref(v)
@@ -302,12 +316,12 @@ function read(v) {
  *  - a bump of the optional reactive `refreshKey` → force-refetch (escape
  *    hatch for app-local refresh signals the library cannot observe).
  *
- * @param {object|import('vue').Ref<object>|Function} source The endpointSource block (object, ref, or getter).
+ * @param {object|import('vue').Ref<object>|(() => object)} source The endpointSource block (object, ref, or getter).
  * @param {object} [options] Options.
- * @param {object|import('vue').Ref<object>|Function} [options.ctx] Token context `{ objectId?, object?, workspace?, config? }` (object, ref, or getter).
- * @param {string|import('vue').Ref<string>|Function} [options.widgetId] Widget id matched against `cn:widget:refresh` payloads (empty disables widget-scoped refresh).
- * @param {*} [options.refreshKey] Reactive value (ref or getter) whose changes force a refetch.
- * @return {{data: import('vue').Ref<*>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, refetch: Function}} Reactive state + a `refetch(force = true)` trigger.
+ * @param {object|import('vue').Ref<object>|(() => object)} [options.ctx] Token context `{ objectId?, object?, workspace?, config? }` (object, ref, or getter).
+ * @param {string|import('vue').Ref<string>|(() => string)} [options.widgetId] Widget id matched against `cn:widget:refresh` payloads (empty disables widget-scoped refresh).
+ * @param {import('vue').Ref<unknown>|(() => unknown)} [options.refreshKey] Reactive value (ref or getter) whose changes force a refetch.
+ * @return {{data: import('vue').Ref<unknown>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger.
  */
 export function useEndpointSource(source, options) {
 	const opts = options || {}
@@ -327,7 +341,9 @@ export function useEndpointSource(source, options) {
 	 */
 	const requestKey = computed(() => {
 		const cfg = read(source)
-		if (!cfg || !cfg.url) return null
+		if (!cfg || !cfg.url) {
+			return null
+		}
 		const request = resolveEndpointRequest(cfg, readCtx())
 		return JSON.stringify({
 			u: request.url,
@@ -366,11 +382,15 @@ export function useEndpointSource(source, options) {
 		error.value = ''
 		try {
 			const body = await fetchSharedResponse(request, { force: force === true })
-			if (seq !== fetchSeq) return
+			if (seq !== fetchSeq) {
+				return
+			}
 			const payload = getByPath(body, cfg.responsePath)
 			data.value = payload === undefined ? null : payload
 		} catch (e) {
-			if (seq !== fetchSeq) return
+			if (seq !== fetchSeq) {
+				return
+			}
 			error.value = (e && e.message) || 'error'
 			data.value = null
 		} finally {
@@ -381,7 +401,9 @@ export function useEndpointSource(source, options) {
 				const hold = force === true ? MIN_FORCED_LOADING_MS - (Date.now() - startedAt) : 0
 				if (hold > 0) {
 					setTimeout(() => {
-						if (seq === fetchSeq) loading.value = false
+						if (seq === fetchSeq) {
+							loading.value = false
+						}
 					}, hold)
 				} else {
 					loading.value = false
@@ -399,17 +421,27 @@ export function useEndpointSource(source, options) {
 	 */
 	const refetch = (force = true) => load(force)
 
-	watch(requestKey, () => { load(false) }, { immediate: true })
+	watch(requestKey, () => {
+		load(false)
+	}, { immediate: true })
 
 	if (opts.refreshKey !== undefined) {
-		watch(() => read(opts.refreshKey), () => { load(true) })
+		watch(() => read(opts.refreshKey), () => {
+			load(true)
+		})
 	}
 
-	const onPageRefresh = () => { load(true) }
+	const onPageRefresh = () => {
+		load(true)
+	}
 	const onWidgetRefresh = (payload) => {
 		const id = read(opts.widgetId)
-		if (!id) return
-		if (!payload || payload.widgetId !== id) return
+		if (!id) {
+			return
+		}
+		if (!payload || payload.widgetId !== id) {
+			return
+		}
 		load(true)
 	}
 	subscribe(PAGE_REFRESH_CHANNEL, onPageRefresh)

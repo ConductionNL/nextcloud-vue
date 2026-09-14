@@ -149,6 +149,7 @@ export function useNamedSource(props, options = {}) {
 		} catch (error) {
 			// Surfaced, not swallowed: a failed load and an empty source look
 			// identical in the table, and only one of them is a problem.
+			// eslint-disable-next-line no-console
 			console.error(`[CnIndexPage] entitySource "${props.entitySource}" failed to load`, error)
 		}
 	}

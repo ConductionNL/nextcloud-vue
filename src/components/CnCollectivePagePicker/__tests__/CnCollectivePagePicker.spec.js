@@ -12,7 +12,7 @@
  *  - no link is emitted when nothing is selected.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnCollectivePagePicker = require('../CnCollectivePagePicker.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -47,9 +47,7 @@ describe('CnCollectivePagePicker', () => {
 		)
 
 		const wrapper = mount(CnCollectivePagePicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		const rows = wrapper.findAll('.cn-collective-page-picker__row-button')
 		expect(rows).toHaveLength(2)
@@ -65,9 +63,7 @@ describe('CnCollectivePagePicker', () => {
 		)
 
 		const wrapper = mount(CnCollectivePagePicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.find('.cn-collective-page-picker__row-button').trigger('click')
 		await wrapper.vm.$nextTick()
@@ -87,9 +83,7 @@ describe('CnCollectivePagePicker', () => {
 			.mockRejectedValueOnce(new Error('boom'))
 
 		const wrapper = mount(CnCollectivePagePicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('Could not load pages.')
 		wrapper.unmount()
@@ -100,9 +94,7 @@ describe('CnCollectivePagePicker', () => {
 		mockMount({ results: [] }, { error: 'nope' }, 501)
 
 		const wrapper = mount(CnCollectivePagePicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('NC Collectives is not installed.')
 		wrapper.unmount()
@@ -120,9 +112,7 @@ describe('CnCollectivePagePicker', () => {
 		)
 
 		const wrapper = mount(CnCollectivePagePicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.vm.search = 'runbook'
 		await wrapper.vm.$nextTick()
@@ -144,9 +134,7 @@ describe('CnCollectivePagePicker', () => {
 		)
 
 		const wrapper = mount(CnCollectivePagePicker)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.vm.collectiveFilter = { id: 2, label: 'HR' }
 		await wrapper.vm.$nextTick()

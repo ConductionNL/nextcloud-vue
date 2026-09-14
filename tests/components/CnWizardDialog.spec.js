@@ -101,7 +101,9 @@ describe('CnWizardDialog', () => {
 	})
 
 	it('surfaces a thrown validation error as the banner text', async () => {
-		const validate = jest.fn(() => { throw new Error('Network down') })
+		const validate = jest.fn(() => {
+			throw new Error('Network down')
+		})
 		const wrapper = mount(CnWizardDialog, {
 			propsData: { steps, validate },
 			scopedSlots: buildSlots(),

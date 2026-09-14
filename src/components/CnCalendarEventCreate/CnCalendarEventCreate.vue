@@ -24,16 +24,24 @@
 					required />
 
 				<div class="cn-calendar-event-create__grid">
+					<!--
+						`datetime-local`, not `datetime`. NcDateTimePickerNative
+						recognises date / datetime-local / month / time and passes the
+						value straight to `<input type>`. `datetime` is not an HTML
+						input type, so the browser silently rendered a plain text box:
+						no picker, and nothing bound back to the model. See the note on
+						`hasValidStart` below for what that cost.
+					-->
 					<NcDateTimePickerNative
 						id="cn-cec-start"
 						v-model="form.dtstart"
 						:label="startLabel"
-						type="datetime" />
+						type="datetime-local" />
 					<NcDateTimePickerNative
 						id="cn-cec-end"
 						v-model="form.dtend"
 						:label="endLabel"
-						type="datetime" />
+						type="datetime-local" />
 				</div>
 
 				<NcTextField
@@ -85,12 +93,12 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcDialog,
 	NcButton,
-	NcTextField,
-	NcTextArea,
-	NcLoadingIcon,
 	NcDateTimePickerNative,
+	NcDialog,
+	NcLoadingIcon,
+	NcTextArea,
+	NcTextField,
 } from '@nextcloud/vue'
 import { buildHeaders } from '../../utils/index.js'
 
@@ -160,20 +168,49 @@ export default {
 				location: '',
 				description: '',
 			},
+
 			error: '',
 			saving: false,
 		}
 	},
 
 	computed: {
+		/**
+		 * Whether the form holds a start time that will produce a valid VEVENT.
+		 *
+		 * This guard is not defensive tidiness. A VEVENT written without DTSTART
+		 * is not merely incomplete, it is unreachable: its `firstoccurence` is
+		 * NULL so it matches no time-range query and no calendar view can show
+		 * it, and Sabre's ITip plugin rejects both DELETE and PUT on it with
+		 * "An event MUST have a DTSTART property". Nothing can remove it but a
+		 * SQL delete.
+		 *
+		 * `type="datetime"` on the pickers above produced exactly that, silently,
+		 * on every meeting this dialog created. The type is fixed, and this stops
+		 * the same class of mistake reaching the calendar if it ever regresses.
+		 *
+		 * (VTODOs are a different matter and are not affected: a task legitimately
+		 * carries DUE and no DTSTART.)
+		 *
+		 * @return {boolean} true when dtstart parses to a real date
+		 */
+		hasValidStart() {
+			if (!this.form.dtstart) {
+				return false
+			}
+			return !Number.isNaN(new Date(this.form.dtstart).getTime())
+		},
+
 		canSubmit() {
-			return this.form.summary.trim().length > 0
+			return this.form.summary.trim().length > 0 && this.hasValidStart
 		},
 	},
 
 	methods: {
 		async submit() {
-			if (!this.canSubmit || this.saving) return
+			if (!this.canSubmit || this.saving) {
+				return
+			}
 			this.saving = true
 			this.error = ''
 			try {
@@ -192,8 +229,12 @@ export default {
 						payload.dtend = end.toISOString()
 					}
 				}
-				if (this.form.location.trim()) payload.location = this.form.location.trim()
-				if (this.form.description.trim()) payload.description = this.form.description.trim()
+				if (this.form.location.trim()) {
+					payload.location = this.form.location.trim()
+				}
+				if (this.form.description.trim()) {
+					payload.description = this.form.description.trim()
+				}
 
 				const response = await fetch(
 					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/events`,
@@ -214,8 +255,10 @@ export default {
 					let message = t('nextcloud-vue', 'Could not create the meeting.')
 					try {
 						const body = await response.json()
-						if (body && typeof body.error === 'string') message = body.error
-					} catch (_) { /* ignore */ }
+						if (body && typeof body.error === 'string') {
+							message = body.error
+						}
+					} catch { /* ignore */ }
 					this.error = message
 				}
 			} catch (err) {

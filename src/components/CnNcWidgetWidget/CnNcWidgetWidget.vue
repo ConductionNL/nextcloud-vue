@@ -81,8 +81,8 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
 import { generateOcsUrl } from '@nextcloud/router'
 
 const API_ITEM_LIMIT = 7
@@ -272,7 +272,7 @@ export default {
 		/**
 		 * Look up a native render callback on the `OCA.Dashboard` global.
 		 *
-		 * @return {Function|null} the callback, or `null` when none is registered.
+		 * @return {((el: HTMLElement, ctx: {widget: object}) => unknown)|null} the callback, or `null` when none is registered.
 		 */
 		resolveNativeCallback() {
 			const dashboard = getDashboardGlobal()
@@ -292,7 +292,7 @@ export default {
 		 * Mount the widget natively by invoking its registered callback with
 		 * our render container.
 		 *
-		 * @param {Function} callback the native render callback.
+		 * @param {(el: HTMLElement, ctx: {widget: object}) => unknown} callback the native render callback.
 		 * @return {void}
 		 */
 		mountNative(callback) {
@@ -319,7 +319,7 @@ export default {
 					if (result && typeof result.then === 'function') {
 						result.catch(fallback)
 					}
-				} catch (e) {
+				} catch {
 					fallback()
 				}
 			})
@@ -352,7 +352,7 @@ export default {
 				// failed request says nothing about the widget, so it keeps
 				// the ordinary empty state rather than a claim about the app.
 				this.unsupported = data !== null && (widgetData === null || widgetData === undefined)
-			} catch (e) {
+			} catch {
 				this.items = []
 				this.unsupported = false
 			} finally {
@@ -377,7 +377,7 @@ export default {
 		 * Normalise a per-widget OCS payload to an items array, tolerating both
 		 * the flat array and the `{items}` envelope shapes.
 		 *
-		 * @param {*} widgetData the per-widget payload.
+		 * @param {unknown} widgetData the per-widget payload.
 		 * @return {object[]} the items array (possibly empty).
 		 */
 		extractItems(widgetData) {

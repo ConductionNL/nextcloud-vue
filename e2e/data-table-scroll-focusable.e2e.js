@@ -23,12 +23,11 @@
 // asserting that my own fix is still written the way I wrote it; asserting the
 // rule means any other correct fix also passes, and a regression fails.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 // Playwright transpiles these specs to CJS, so `require` is available and
 // `import.meta` is not. Resolving the real installed axe-core keeps the spec
 // running the same engine version as the jest a11y lane.
-// eslint-disable-next-line no-undef
 const AXE_PATH = require.resolve('axe-core')
 
 /**
@@ -56,9 +55,7 @@ async function axeRule(page, testId, ruleId) {
 test.describe('CnDataTable horizontal scrollport', () => {
 	test('really does overflow in the harness (precondition)', async ({ page }) => {
 		await page.goto('/?dtscroll=1')
-		const overflow = await page.locator('[data-testid="dt-overflowing"] .cn-data-table__scroll').evaluate(
-			(el) => el.scrollWidth - el.clientWidth,
-		)
+		const overflow = await page.locator('[data-testid="dt-overflowing"] .cn-data-table__scroll').evaluate((el) => el.scrollWidth - el.clientWidth)
 		// If this ever reaches 0 the two tests below would pass vacuously —
 		// axe skips the rule entirely on a region that does not scroll.
 		expect(overflow).toBeGreaterThan(1)

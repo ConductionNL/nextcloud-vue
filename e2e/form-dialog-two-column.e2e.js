@@ -22,7 +22,7 @@
 // rendered fields instead, which is also what keeps it from breaking the next
 // time a field is added to the harness schema.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const FORM = '.cn-form-dialog__form'
 const FIELD = '.cn-form-dialog__field'

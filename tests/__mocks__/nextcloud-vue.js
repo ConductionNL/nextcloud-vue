@@ -27,10 +27,30 @@ import { h } from 'vue'
  * left alone: "false" is a meaningful value there and several specs assert it.
  */
 const NATIVE_BOOLEAN_ATTRS = new Set([
-	'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'controls',
-	'default', 'defer', 'disabled', 'formnovalidate', 'hidden', 'ismap',
-	'itemscope', 'loop', 'multiple', 'muted', 'nomodule', 'novalidate', 'open',
-	'playsinline', 'readonly', 'required', 'reversed', 'selected',
+	'allowfullscreen',
+	'async',
+	'autofocus',
+	'autoplay',
+	'checked',
+	'controls',
+	'default',
+	'defer',
+	'disabled',
+	'formnovalidate',
+	'hidden',
+	'ismap',
+	'itemscope',
+	'loop',
+	'multiple',
+	'muted',
+	'nomodule',
+	'novalidate',
+	'open',
+	'playsinline',
+	'readonly',
+	'required',
+	'reversed',
+	'selected',
 ])
 
 /**
@@ -40,7 +60,7 @@ const NATIVE_BOOLEAN_ATTRS = new Set([
  * @param {object} attrs the fallthrough attributes.
  * @return {object} attributes safe to spread onto the stub's `<div>`.
  */
-const withBooleanAttrSemantics = (attrs) => {
+function withBooleanAttrSemantics(attrs) {
 	const out = {}
 	for (const [key, value] of Object.entries(attrs)) {
 		if (value === false && NATIVE_BOOLEAN_ATTRS.has(key)) {
@@ -51,31 +71,35 @@ const withBooleanAttrSemantics = (attrs) => {
 	return out
 }
 
-const createStub = (name) => ({
-	name,
-	inheritAttrs: false,
-	setup(props, { slots, attrs }) {
-		return () => {
-			const children = []
-			if (slots.default) {
-				children.push(slots.default())
+function createStub(name) {
+	return {
+		name,
+		inheritAttrs: false,
+		setup(props, { slots, attrs }) {
+			return () => {
+				const children = []
+				if (slots.default) {
+					children.push(slots.default())
+				}
+				for (const key of Object.keys(slots)) {
+					if (key === 'default') {
+						continue
+					}
+					children.push(slots[key]())
+				}
+				// `class` must be MERGED, not spread over. Vue 2 kept class/style out
+				// of `$attrs` (they lived in the vnode's own `data.class` /
+				// `data.staticClass`), so `{ class: [...], ...attrs }` was safe.
+				// Vue 3 folds class and style INTO `$attrs`, so a consumer writing
+				// `<NcNoteCard class="cn-banner-widget__card">` silently replaced the
+				// stub's own `stub NcNoteCard` marker and every `find('.stub.NcX')`
+				// in the suite stopped matching.
+				const { class: consumerClass, ...rest } = withBooleanAttrSemantics(attrs)
+				return h('div', { class: ['stub', name, consumerClass], ...rest }, children)
 			}
-			for (const key of Object.keys(slots)) {
-				if (key === 'default') continue
-				children.push(slots[key]())
-			}
-			// `class` must be MERGED, not spread over. Vue 2 kept class/style out
-			// of `$attrs` (they lived in the vnode's own `data.class` /
-			// `data.staticClass`), so `{ class: [...], ...attrs }` was safe.
-			// Vue 3 folds class and style INTO `$attrs`, so a consumer writing
-			// `<NcNoteCard class="cn-banner-widget__card">` silently replaced the
-			// stub's own `stub NcNoteCard` marker and every `find('.stub.NcX')`
-			// in the suite stopped matching.
-			const { class: consumerClass, ...rest } = withBooleanAttrSemantics(attrs)
-			return h('div', { class: ['stub', name, consumerClass], ...rest }, children)
-		}
-	},
-})
+		},
+	}
+}
 
 export const NcDialog = createStub('NcDialog')
 export const NcModal = createStub('NcModal')
@@ -125,7 +149,10 @@ export const NcActionInput = {
 	render() {
 		return h('li', { class: ['stub', 'NcActionInput'] }, [
 			h('form', {
-				onSubmit: (event) => { event.preventDefault(); this.$emit('submit', event) },
+				onSubmit: (event) => {
+					event.preventDefault()
+					this.$emit('submit', event)
+				},
 			}, [
 				h('input', {
 					value: this.modelValue,
@@ -184,7 +211,9 @@ export const NcRichContenteditable = {
 			}
 		},
 		onKeydown(event) {
-			if (!this.open) return
+			if (!this.open) {
+				return
+			}
 			if (event.key === 'ArrowDown') {
 				event.preventDefault()
 				this.activeIndex = Math.min(this.activeIndex + 1, this.suggestions.length - 1)
@@ -200,7 +229,9 @@ export const NcRichContenteditable = {
 			}
 		},
 		select(suggestion) {
-			if (!suggestion) return
+			if (!suggestion) {
+				return
+			}
 			const id = String(suggestion.id)
 			const token = /^[A-Za-z0-9_.'-]+$/.test(id) ? `@${id}` : `@"${id}"`
 			const newText = this.modelValue.replace(/@[A-Za-z0-9_.'-]*$/, `${token} `)
@@ -266,7 +297,9 @@ export const NcPopover = {
 			vnodes.push(this.$slots.default())
 		}
 		for (const name of Object.keys(this.$slots)) {
-			if (name === 'default' || name === 'trigger') continue
+			if (name === 'default' || name === 'trigger') {
+				continue
+			}
 			vnodes.push(this.$slots[name]())
 		}
 		return h('div', { class: ['stub', 'NcPopover'] }, vnodes)

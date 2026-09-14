@@ -1,3 +1,11 @@
+// Single source of truth for "which widget keys does the library render
+// itself?", bound to the runtime registries by
+// tests/utils/libraryWidgetKeys.spec.js so the two cannot drift apart again.
+import { LIBRARY_WIDGET_KEYS } from './libraryWidgetKeys.js'
+// Shared slot→columns resolution so the validator's grid bound matches the
+// renderer (CnWidgetGrid) exactly. A mismatch would let a manifest pass
+// validation yet clip at render time.
+import { resolveSlotColumns } from './resolveSlotColumns.js'
 // The standalone validator is pre-compiled at build time by
 // scripts/build-validators.js. It does NOT use new Function() at
 // runtime, which is required because Nextcloud's CSP blocks unsafe-eval
@@ -5,16 +13,7 @@
 //
 // The file is regenerated on every `npm run build` and `npm test`
 // via the `build:validators` script, and is gitignored.
-// eslint-disable-next-line import/no-unresolved
 import _compiledValidateV2 from './validateManifestV2.compiled.js'
-// Shared slot→columns resolution so the validator's grid bound matches the
-// renderer (CnWidgetGrid) exactly. A mismatch would let a manifest pass
-// validation yet clip at render time.
-import { resolveSlotColumns } from './resolveSlotColumns.js'
-// Single source of truth for "which widget keys does the library render
-// itself?", bound to the runtime registries by
-// tests/utils/libraryWidgetKeys.spec.js so the two cannot drift apart again.
-import { LIBRARY_WIDGET_KEYS } from './libraryWidgetKeys.js'
 
 // CJS/ESM interop: compiled file exports default via module.exports.default
 // in some bundlers. Unwrap when present.
@@ -150,7 +149,9 @@ export function validateManifestV2(manifest) {
 		const templateIds = new Set()
 		if (Array.isArray(clone.pageTemplates)) {
 			clone.pageTemplates.forEach((tpl, index) => {
-				if (!tpl || typeof tpl.id !== 'string') return
+				if (!tpl || typeof tpl.id !== 'string') {
+					return
+				}
 				if (templateIds.has(tpl.id)) {
 					errors.push(`pageTemplates[${index}]/id: "${tpl.id}" must be unique within pageTemplates[]`)
 				} else {
@@ -160,7 +161,9 @@ export function validateManifestV2(manifest) {
 		}
 		if (Array.isArray(clone.pageInstances)) {
 			clone.pageInstances.forEach((inst, index) => {
-				if (!inst || typeof inst.templateRef !== 'string') return
+				if (!inst || typeof inst.templateRef !== 'string') {
+					return
+				}
 				if (!templateIds.has(inst.templateRef)) {
 					errors.push(`pageInstances[${index}]/templateRef: "${inst.templateRef}" references no pageTemplates[] entry`)
 				}
@@ -173,16 +176,19 @@ export function validateManifestV2(manifest) {
 	//    sidebar; we still run the arithmetic check for clarity).
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page || !Array.isArray(page.widgets)) return
+			if (!page || !Array.isArray(page.widgets)) {
+				return
+			}
 			page.widgets.forEach((widget, wIndex) => {
-				if (!widget) return
+				if (!widget) {
+					return
+				}
 				const gx = widget.gridX
 				const gw = widget.gridWidth
 				if (typeof gx === 'number' && typeof gw === 'number') {
-					const resolved = resolveSlotColumns(widget.slot, isPlainObject(page.config) ? page.config.slotColumns : null); if (gx + gw > resolved) {
-						errors.push(
-							`pages[${pIndex}]/widgets[${wIndex}]: Widget '${widget.widgetKey}' in slot '${widget.slot}': gridX (${gx}) + gridWidth (${gw}) exceeds ${resolved}`,
-						)
+					const resolved = resolveSlotColumns(widget.slot, isPlainObject(page.config) ? page.config.slotColumns : null)
+					if (gx + gw > resolved) {
+						errors.push(`pages[${pIndex}]/widgets[${wIndex}]: Widget '${widget.widgetKey}' in slot '${widget.slot}': gridX (${gx}) + gridWidth (${gw}) exceeds ${resolved}`)
 					}
 				}
 			})
@@ -202,10 +208,16 @@ export function validateManifestV2(manifest) {
 	//    went stale.
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page || page.type !== 'dashboard') return
-			if (!Array.isArray(page.widgets) || page.widgets.length !== 1) return
+			if (!page || page.type !== 'dashboard') {
+				return
+			}
+			if (!Array.isArray(page.widgets) || page.widgets.length !== 1) {
+				return
+			}
 			const widget = page.widgets[0]
-			if (!widget) return
+			if (!widget) {
+				return
+			}
 			// Normalise omitted grid coords against the body-slot defaults
 			// (gridX/Y → 0, gridWidth/Height → 12) so authors cannot
 			// circumvent the rule by omitting fields. Required-field
@@ -216,17 +228,19 @@ export function validateManifestV2(manifest) {
 			const gy = typeof widget.gridY === 'number' ? widget.gridY : 0
 			const gw = typeof widget.gridWidth === 'number' ? widget.gridWidth : 12
 			const gh = typeof widget.gridHeight === 'number' ? widget.gridHeight : 12
-			if (slot !== 'body' || gx !== 0 || gy !== 0 || gw !== 12 || gh !== 12) return
+			if (slot !== 'body' || gx !== 0 || gy !== 0 || gw !== 12 || gh !== 12) {
+				return
+			}
 			const widgetKey = typeof widget.widgetKey === 'string' ? widget.widgetKey : ''
-			if (!widgetKey || LIBRARY_BUILT_IN_WIDGET_KEYS.has(widgetKey)) return
+			if (!widgetKey || LIBRARY_BUILT_IN_WIDGET_KEYS.has(widgetKey)) {
+				return
+			}
 			const pageId = typeof page.id === 'string' ? page.id : `[${pIndex}]`
-			errors.push(
-				`pages[${pageId}]/widgets[0]: pages[${pageId}] is type:"dashboard" with a single 12×12 custom widget — this is always a custom page in disguise.\n`
+			errors.push(`pages[${pageId}]/widgets[0]: pages[${pageId}] is type:"dashboard" with a single 12×12 custom widget — this is always a custom page in disguise.\n`
 				+ 'Valid alternatives:\n'
 				+ `  (a) declare as type:"custom" with component:"${widgetKey}" and register the component with kind:"page"\n`
 				+ '  (b) split into N>1 widgets if this is genuinely a multi-widget dashboard\n'
-				+ 'See ADR-036 Decision 1 (single-widget dashboard anti-pattern).',
-			)
+				+ 'See ADR-036 Decision 1 (single-widget dashboard anti-pattern).')
 		})
 	}
 
@@ -234,10 +248,14 @@ export function validateManifestV2(manifest) {
 	//     merge key, so duplicates would make a patch ambiguous.
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page || !Array.isArray(page.widgets)) return
+			if (!page || !Array.isArray(page.widgets)) {
+				return
+			}
 			const seen = new Set()
 			page.widgets.forEach((widget, wIndex) => {
-				if (!widget || typeof widget.id !== 'string') return
+				if (!widget || typeof widget.id !== 'string') {
+					return
+				}
 				if (seen.has(widget.id)) {
 					errors.push(`pages[${pIndex}]/widgets[${wIndex}]/id: "${widget.id}" must be unique within the page's widgets[]`)
 				} else {
@@ -251,17 +269,21 @@ export function validateManifestV2(manifest) {
 	//     $op / __order are markers consumed by mergeManifestDelta; their
 	//     presence means a delta was loaded as a manifest. (props subtrees
 	//     are free-form user data and are not scanned.)
-	;(function walkReserved(node, path) {
+	(function walkReserved(node, path) {
 		if (Array.isArray(node)) {
 			node.forEach((v, i) => walkReserved(v, `${path}[${i}]`))
 			return
 		}
-		if (!isPlainObject(node)) return
+		if (!isPlainObject(node)) {
+			return
+		}
 		for (const k of Object.keys(node)) {
 			if (k === '$op' || k === '__order') {
 				errors.push(`${path || ''}/${k}: reserved delta marker "${k}" is not allowed in a manifest (only inside a delta payload consumed by mergeManifestDelta)`)
 			}
-			if (k === 'props') continue
+			if (k === 'props') {
+				continue
+			}
 			walkReserved(node[k], `${path}/${k}`)
 		}
 	})(clone, '')
@@ -272,7 +294,9 @@ export function validateManifestV2(manifest) {
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
 			const sc = isPlainObject(page && page.config) ? page.config.slotColumns : undefined
-			if (sc === undefined) return
+			if (sc === undefined) {
+				return
+			}
 			if (!isPlainObject(sc)) {
 				errors.push(`pages[${pIndex}]/config/slotColumns: must be an object mapping slot name to a positive integer`)
 				return
@@ -295,17 +319,19 @@ export function validateManifestV2(manifest) {
 	//     in-app widget editor legitimately creates not-yet-configured widgets.
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page || !Array.isArray(page.widgets)) return
+			if (!page || !Array.isArray(page.widgets)) {
+				return
+			}
 			page.widgets.forEach((widget, wIndex) => {
-				if (!widget || widget.widgetKey !== 'stats-block') return
+				if (!widget || widget.widgetKey !== 'stats-block') {
+					return
+				}
 				const props = isPlainObject(widget.props) ? widget.props : {}
 				const hasEntries = Array.isArray(props.entries) && props.entries.length > 0
 				const hasDataSource = (widget.dataSource !== undefined && widget.dataSource !== null)
 					|| (props.dataSource !== undefined && props.dataSource !== null)
 				if (hasEntries && hasDataSource) {
-					errors.push(
-						`pages[${pIndex}]/widgets[${wIndex}]: stats-block widget declares BOTH a dataSource and props.entries[] — exactly one of the two source forms is allowed (single-KPI dataSource OR multi-entry entries[])`,
-					)
+					errors.push(`pages[${pIndex}]/widgets[${wIndex}]: stats-block widget declares BOTH a dataSource and props.entries[] — exactly one of the two source forms is allowed (single-KPI dataSource OR multi-entry entries[])`)
 				}
 			})
 		})
@@ -335,20 +361,24 @@ export function validateManifestV2(manifest) {
 	// Shared with the v1 path — see `validateChartBaseline`.
 	const _checkChartBaseline = (bag, path) => validateChartBaseline(bag, path, errors)
 	const _checkKpiContent = (content, path) => {
-		if (!isPlainObject(content)) return
+		if (!isPlainObject(content)) {
+			return
+		}
 		if (_hasConfiguredOrSource(content.source) && _hasEndpointSource(content.endpointSource)) {
-			errors.push(
-				`${path}: widget content declares BOTH a source and an endpointSource — exactly one of the two data bindings is allowed (OpenRegister source OR endpointSource)`,
-			)
+			errors.push(`${path}: widget content declares BOTH a source and an endpointSource — exactly one of the two data bindings is allowed (OpenRegister source OR endpointSource)`)
 		}
 	}
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page) return
+			if (!page) {
+				return
+			}
 			// v2 grid placement: pages[].widgets[]
 			if (Array.isArray(page.widgets)) {
 				page.widgets.forEach((widget, wIndex) => {
-					if (!widget) return
+					if (!widget) {
+						return
+					}
 					const props = isPlainObject(widget.props) ? widget.props : {}
 					if (widget.widgetKey === 'stat' || widget.widgetKey === 'delta') {
 						_checkKpiContent(props.content, `pages[${pIndex}]/widgets[${wIndex}]`)
@@ -357,9 +387,7 @@ export function validateManifestV2(manifest) {
 						const hasDataSource = (widget.dataSource !== undefined && widget.dataSource !== null)
 							|| (props.dataSource !== undefined && props.dataSource !== null)
 						if (hasDataSource && _hasEndpointSource(props.endpointSource)) {
-							errors.push(
-								`pages[${pIndex}]/widgets[${wIndex}]: chart widget declares BOTH a dataSource and props.endpointSource — exactly one of the two data bindings is allowed`,
-							)
+							errors.push(`pages[${pIndex}]/widgets[${wIndex}]: chart widget declares BOTH a dataSource and props.endpointSource — exactly one of the two data bindings is allowed`)
 						}
 						// Both bags, in the same precedence CnDashboardPage's
 						// getChartProps reads them: `content` (in-app editor) then `props`.
@@ -368,9 +396,7 @@ export function validateManifestV2(manifest) {
 					}
 					if (widget.widgetKey === 'object-table') {
 						if (_hasConfiguredOrSource(props.source) && _hasEndpointSource(props.endpointSource)) {
-							errors.push(
-								`pages[${pIndex}]/widgets[${wIndex}]: object-table widget declares BOTH a props.source and a props.endpointSource — exactly one of the two data bindings is allowed`,
-							)
+							errors.push(`pages[${pIndex}]/widgets[${wIndex}]: object-table widget declares BOTH a props.source and a props.endpointSource — exactly one of the two data bindings is allowed`)
 						}
 					}
 				})
@@ -379,7 +405,9 @@ export function validateManifestV2(manifest) {
 			const legacy = page.config && Array.isArray(page.config.widgets) ? page.config.widgets : null
 			if (legacy) {
 				legacy.forEach((def, wIndex) => {
-					if (!def) return
+					if (!def) {
+						return
+					}
 					if (def.type === 'stat' || def.type === 'delta') {
 						_checkKpiContent(def.content, `pages[${pIndex}]/config/widgets[${wIndex}]`)
 					}
@@ -388,9 +416,7 @@ export function validateManifestV2(manifest) {
 						const hasDataSource = (def.dataSource !== undefined && def.dataSource !== null)
 							|| (props.dataSource !== undefined && props.dataSource !== null)
 						if (hasDataSource && _hasEndpointSource(props.endpointSource)) {
-							errors.push(
-								`pages[${pIndex}]/config/widgets[${wIndex}]: chart widget declares BOTH a dataSource and props.endpointSource — exactly one of the two data bindings is allowed`,
-							)
+							errors.push(`pages[${pIndex}]/config/widgets[${wIndex}]: chart widget declares BOTH a dataSource and props.endpointSource — exactly one of the two data bindings is allowed`)
 						}
 						_checkChartBaseline(def.content, `pages[${pIndex}]/config/widgets[${wIndex}]/content`)
 						_checkChartBaseline(props, `pages[${pIndex}]/config/widgets[${wIndex}]/props`)
@@ -416,7 +442,9 @@ export function validateManifestV2(manifest) {
 	}
 	if (Array.isArray(clone.menu)) {
 		clone.menu.forEach((item, index) => {
-			if (!item) return
+			if (!item) {
+				return
+			}
 			if (typeof item.id === 'string' && _v2Sentinel.test(item.id)) {
 				errors.push(`/menu/${index}/id must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
 			}
@@ -427,7 +455,9 @@ export function validateManifestV2(manifest) {
 	}
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, index) => {
-			if (!page) return
+			if (!page) {
+				return
+			}
 			const _isS = (v) => typeof v === 'string' && _v2Sentinel.test(v)
 			if (_isS(page.id)) {
 				errors.push(`/pages/${index}/id must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
@@ -467,7 +497,9 @@ export function validateManifestV2(manifest) {
 	//    ConductionNL/nextcloud-vue#445.)
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, index) => {
-			if (!page || page.type !== 'detail') return
+			if (!page || page.type !== 'detail') {
+				return
+			}
 			const cfg = isPlainObject(page.config) ? page.config : null
 			const pathSlash = `/pages/${index}/config`
 			const pathBracket = `pages[${index}].config`
@@ -496,37 +528,41 @@ export function validateManifestV2(manifest) {
 	//    gate-22 (schema-only) reported the manifest clean.
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page || page.type !== 'dashboard') return
+			if (!page || page.type !== 'dashboard') {
+				return
+			}
 			const config = isPlainObject(page.config) ? page.config : null
-			if (!config || !Array.isArray(config.widgets)) return
+			if (!config || !Array.isArray(config.widgets)) {
+				return
+			}
 			const pageId = typeof page.id === 'string' ? page.id : `[${pIndex}]`
 			const topSlots = isPlainObject(page.slots) ? page.slots : {}
 			const configSlots = isPlainObject(config.slots) ? config.slots : null
 
 			// (a) slots map misplaced under config
 			if (configSlots) {
-				errors.push(
-					`pages[${pageId}]/config/slots: the dashboard widget slots map must be at the page top level (pages[${pIndex}]/slots, a sibling of "config"), not under "config". `
+				errors.push(`pages[${pageId}]/config/slots: the dashboard widget slots map must be at the page top level (pages[${pIndex}]/slots, a sibling of "config"), not under "config". `
 					+ 'CnPageRenderer reads page.slots; a slots map under config is never wired, so every custom widget renders the unavailable placeholder. '
-					+ 'Move "slots" up one level to sit beside "config".',
-				)
+					+ 'Move "slots" up one level to sit beside "config".')
 			}
 
 			// (b) each custom widget needs a top-level slots entry
 			config.widgets.forEach((widget, wIndex) => {
-				if (!widget || widget.type !== 'custom') return
+				if (!widget || widget.type !== 'custom') {
+					return
+				}
 				const id = typeof widget.id === 'string' ? widget.id : null
-				if (!id) return
+				if (!id) {
+					return
+				}
 				const slotKey = `widget-${id}`
 				const wiredTop = typeof topSlots[slotKey] === 'string' && topSlots[slotKey].length > 0
 				// If it is (only) under config.slots, (a) already named the
 				// real fix — don't double-report the same widget.
 				const underConfig = configSlots && typeof configSlots[slotKey] === 'string'
 				if (!wiredTop && !underConfig) {
-					errors.push(
-						`pages[${pageId}]/config/widgets[${wIndex}]: custom widget "${id}" has no slot-component mapping at pages[${pIndex}]/slots["${slotKey}"]. `
-						+ `It will render the unavailable placeholder. Add "${slotKey}": "<ComponentName>" to the page-top-level slots map, or use a built-in widget type.`,
-					)
+					errors.push(`pages[${pageId}]/config/widgets[${wIndex}]: custom widget "${id}" has no slot-component mapping at pages[${pIndex}]/slots["${slotKey}"]. `
+						+ `It will render the unavailable placeholder. Add "${slotKey}": "<ComponentName>" to the page-top-level slots map, or use a built-in widget type.`)
 				}
 			})
 		})
@@ -542,23 +578,27 @@ export function validateManifestV2(manifest) {
 	//    branch is untouched.
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page || page.type !== 'form') return
+			if (!page || page.type !== 'form') {
+				return
+			}
 			const config = isPlainObject(page.config) ? page.config : null
-			if (!config) return
+			if (!config) {
+				return
+			}
 			const pathBase = `/pages/${pIndex}/config`
 
 			const fieldList = Array.isArray(config.fields) ? config.fields : []
-			const declaredKeys = new Set(
-				fieldList
-					.filter((f) => f && typeof f.key === 'string')
-					.map((f) => f.key),
-			)
+			const declaredKeys = new Set(fieldList
+				.filter((f) => f && typeof f.key === 'string')
+				.map((f) => f.key))
 			// steps[] cross-shape rules
 			if (Array.isArray(config.steps)) {
 				const seenStepIds = new Set()
 				const assignmentCount = new Map()
 				config.steps.forEach((step, sIndex) => {
-					if (!step) return
+					if (!step) {
+						return
+					}
 					if (typeof step.id === 'string') {
 						if (seenStepIds.has(step.id)) {
 							errors.push(`${pathBase}/steps[${sIndex}]/id: duplicate step id "${step.id}" — step ids must be unique within the page`)
@@ -582,8 +622,11 @@ export function validateManifestV2(manifest) {
 				const duplicated = []
 				declaredKeys.forEach((key) => {
 					const count = assignmentCount.get(key) || 0
-					if (count === 0) unassigned.push(key)
-					else if (count > 1) duplicated.push(key)
+					if (count === 0) {
+						unassigned.push(key)
+					} else if (count > 1) {
+						duplicated.push(key)
+					}
 				})
 				if (unassigned.length > 0) {
 					errors.push(`${pathBase}/steps: field key(s) ${unassigned.map((k) => `"${k}"`).join(', ')} are not assigned to any step — every declared field must appear in exactly one step when steps is present`)
@@ -595,7 +638,9 @@ export function validateManifestV2(manifest) {
 
 			// fields[].validation / fields[].visibleWhen cross-shape rules
 			fieldList.forEach((field, fIndex) => {
-				if (!field || typeof field !== 'object') return
+				if (!field || typeof field !== 'object') {
+					return
+				}
 				const fieldPath = `${pathBase}/fields[${fIndex}]`
 				const fieldType = field.type
 
@@ -606,7 +651,6 @@ export function validateManifestV2(manifest) {
 					}
 					if (typeof validation.pattern === 'string') {
 						try {
-							// eslint-disable-next-line no-new
 							new RegExp(validation.pattern)
 						} catch (e) {
 							errors.push(`${fieldPath}/validation/pattern: "${validation.pattern}" does not compile as a regular expression (${e.message})`)
@@ -656,7 +700,7 @@ const SENTINEL_PATTERN = /^@resolve:[a-z][a-z0-9_-]*$/
 /**
  * Test whether a string is a manifest `@resolve:` sentinel.
  *
- * @param {*} value Candidate value.
+ * @param {unknown} value Candidate value.
  * @return {boolean} True when the value is a fully-matched sentinel.
  */
 function isSentinel(value) {
@@ -715,11 +759,9 @@ export function validateManifest(manifest, options = {}) {
 		if (!manifest.$schema.endsWith(knownV1Suffix)) {
 			if (!_unknownSchemaWarned) {
 				// eslint-disable-next-line no-console
-				console.warn(
-					`[validateManifest] Unknown $schema URL "${manifest.$schema}". `
+				console.warn(`[validateManifest] Unknown $schema URL "${manifest.$schema}". `
 					+ 'Expected one of: app-manifest.schema.json (v1) or app-manifest-v2.schema.json (v2). '
-					+ 'Falling back to v1 validator.',
-				)
+					+ 'Falling back to v1 validator.')
 				_unknownSchemaWarned = true
 			}
 		}
@@ -756,7 +798,9 @@ export function validateManifest(manifest, options = {}) {
 			} else if (isSentinel(item.id)) {
 				errors.push(`/menu/${index}/id must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
 			}
-			if (typeof item.label !== 'string') errors.push(`/menu/${index}/label must be a string`)
+			if (typeof item.label !== 'string') {
+				errors.push(`/menu/${index}/label must be a string`)
+			}
 			if (item.route !== undefined && isSentinel(item.route)) {
 				errors.push(`/menu/${index}/route must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
 			}
@@ -817,7 +861,9 @@ export function validateManifest(manifest, options = {}) {
 			} else if (isSentinel(page.route)) {
 				errors.push(`/pages/${index}/route must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
 			}
-			if (typeof page.title !== 'string') errors.push(`/pages/${index}/title must be a string`)
+			if (typeof page.title !== 'string') {
+				errors.push(`/pages/${index}/title must be a string`)
+			}
 			if (typeof page.type !== 'string' || page.type.length === 0) {
 				errors.push(`/pages/${index}/type must be a non-empty string`)
 			} else if (allowedTypes && !allowedTypes.includes(page.type)) {
@@ -917,6 +963,11 @@ function isPlainObject(value) {
 	return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
+// The accepted `type` values for `fields[]` entries: the settings-page set,
+// and the form-page set, which also accepts `file` (see validateFieldsArray).
+const FORM_FIELD_TYPES = ['boolean', 'number', 'string', 'enum', 'password', 'json']
+const FORM_PAGE_FIELD_TYPES = [...FORM_FIELD_TYPES, 'file']
+
 /**
  * Validate a page's `config` object against per-type rules for the
  * built-in extended types: `logs`, `settings`, `chat`, `files`, `map`.
@@ -935,265 +986,267 @@ function isPlainObject(value) {
  * @param {string[]} errors The error array to push to (mutated).
  */
 function validateTypeConfig(page, index, errors) {
-	if (!page || typeof page.type !== 'string') return
+	if (!page || typeof page.type !== 'string') {
+		return
+	}
 	const cfg = isPlainObject(page.config) ? page.config : null
 	const pathBracket = `pages[${index}].config`
 	const pathSlash = `/pages/${index}/config`
 
 	switch (page.type) {
-	case 'index': {
+		case 'index': {
 		// `manifest-config-refs` REQ-MCR — surface column / action shape
 		// errors with sharp messages so consumers can locate the offending
 		// field. Both arrays are OPTIONAL; only validated when present.
-		validateColumnsArray(cfg, pathSlash, pathBracket, errors)
-		validateActionsArray(cfg, pathSlash, pathBracket, errors)
-		// `manifest-index-action-toggles` — typed config.actions block.
-		// Schema-validated, but cross-check structure here for sharp
-		// error paths (consumer typo in actions.<key> surfaces with
-		// the path rather than a JSON Schema enum mismatch).
-		validateIndexActionToggles(cfg, pathSlash, pathBracket, errors)
-		break
-	}
-	case 'detail': {
+			validateColumnsArray(cfg, pathSlash, pathBracket, errors)
+			validateActionsArray(cfg, pathSlash, pathBracket, errors)
+			// `manifest-index-action-toggles` — typed config.actions block.
+			// Schema-validated, but cross-check structure here for sharp
+			// error paths (consumer typo in actions.<key> surfaces with
+			// the path rather than a JSON Schema enum mismatch).
+			validateIndexActionToggles(cfg, pathSlash, pathBracket, errors)
+			break
+		}
+		case 'detail': {
 		// `manifest-detail-sidebartabs` — typed validation for the
 		// human-authored sidebar-tab declaration. Tab entries lift to
 		// `widgets[]` with `slot:"sidebar"` + `tabGroup` via the CLI
 		// transform; this validator catches authoring mistakes (missing
 		// id/label, duplicate ids, non-array shape) before that.
-		validateDetailSidebarTabs(cfg, pathSlash, pathBracket, errors)
-		validateSidebarTabGroupRefs(page, index, errors)
-		// `manifest-public-mode` — type='detail' supports the same
-		// mode enum (`edit | create | public`) as type='form'. The
-		// 'public' value marks unauthenticated token-scoped detail
-		// pages — pair with @route.<param> token binding.
-		validateConfigMode(cfg, pathSlash, pathBracket, errors)
-		break
-	}
-	case 'logs': {
-		const hasRegisterSchema = cfg && typeof cfg.register === 'string' && typeof cfg.schema === 'string'
-		const hasSource = cfg && typeof cfg.source === 'string'
-		if (!hasRegisterSchema && !hasSource) {
-			errors.push(`${pathSlash}: ${pathBracket}: must declare register+schema or source`)
+			validateDetailSidebarTabs(cfg, pathSlash, pathBracket, errors)
+			validateSidebarTabGroupRefs(page, index, errors)
+			// `manifest-public-mode` — type='detail' supports the same
+			// mode enum (`edit | create | public`) as type='form'. The
+			// 'public' value marks unauthenticated token-scoped detail
+			// pages — pair with @route.<param> token binding.
+			validateConfigMode(cfg, pathSlash, pathBracket, errors)
+			break
 		}
-		// Same column shorthand support as index.
-		validateColumnsArray(cfg, pathSlash, pathBracket, errors)
-		break
-	}
-	case 'dashboard': {
+		case 'logs': {
+			const hasRegisterSchema = cfg && typeof cfg.register === 'string' && typeof cfg.schema === 'string'
+			const hasSource = cfg && typeof cfg.source === 'string'
+			if (!hasRegisterSchema && !hasSource) {
+				errors.push(`${pathSlash}: ${pathBracket}: must declare register+schema or source`)
+			}
+			// Same column shorthand support as index.
+			validateColumnsArray(cfg, pathSlash, pathBracket, errors)
+			break
+		}
+		case 'dashboard': {
 		// `manifest-config-refs` REQ-MCR — surface widgetDef / layoutItem
 		// shape errors. Both arrays are OPTIONAL; only validated when
 		// present.
-		validateWidgetsArray(cfg, pathSlash, pathBracket, errors)
-		validateLayoutArray(cfg, pathSlash, pathBracket, errors)
-		// `manifest-widget-ref-page-content-type` — validate the
-		// declarative content[] array. Each item MUST be a `widget-ref`
-		// object with a valid `ref` URI. OPTIONAL — only validated when
-		// the `content` key is present.
-		validateContentArray(cfg, pathSlash, pathBracket, errors)
-		break
-	}
-	case 'settings': {
+			validateWidgetsArray(cfg, pathSlash, pathBracket, errors)
+			validateLayoutArray(cfg, pathSlash, pathBracket, errors)
+			// `manifest-widget-ref-page-content-type` — validate the
+			// declarative content[] array. Each item MUST be a `widget-ref`
+			// object with a valid `ref` URI. OPTIONAL — only validated when
+			// the `content` key is present.
+			validateContentArray(cfg, pathSlash, pathBracket, errors)
+			break
+		}
+		case 'settings': {
 		// `manifest-settings-orchestration` REQ-MSO-1: a settings page
 		// MUST declare EXACTLY ONE of `sections` | `tabs`. When both
 		// are set, emit the orchestration mutex error. When neither is
 		// set, fall through to the legacy `sections required` error
 		// (back-compat — REQ-MSO-7 / REQ-MSO-1 last scenario).
-		const hasSections = cfg && Array.isArray(cfg.sections)
-		const hasTabs = cfg && Array.isArray(cfg.tabs)
+			const hasSections = cfg && Array.isArray(cfg.sections)
+			const hasTabs = cfg && Array.isArray(cfg.tabs)
 
-		if (hasSections && hasTabs) {
-			errors.push(`${pathSlash}: ${pathBracket}: must declare exactly one of sections | tabs`)
-			break
-		}
-
-		if (hasTabs) {
-			// `manifest-settings-orchestration` REQ-MSO-2..4: validate
-			// the `tabs[]` orchestration shape.
-			if (cfg.tabs.length === 0) {
-				errors.push(`${pathSlash}/tabs: ${pathBracket}.tabs: must contain at least 1 tab`)
+			if (hasSections && hasTabs) {
+				errors.push(`${pathSlash}: ${pathBracket}: must declare exactly one of sections | tabs`)
 				break
 			}
-			const seenTabIds = Object.create(null)
-			cfg.tabs.forEach((tab, tIndex) => {
-				if (!isPlainObject(tab)) {
-					errors.push(`${pathSlash}/tabs/${tIndex}: must be an object`)
-					return
+
+			if (hasTabs) {
+			// `manifest-settings-orchestration` REQ-MSO-2..4: validate
+			// the `tabs[]` orchestration shape.
+				if (cfg.tabs.length === 0) {
+					errors.push(`${pathSlash}/tabs: ${pathBracket}.tabs: must contain at least 1 tab`)
+					break
 				}
-				if (typeof tab.id !== 'string' || tab.id.length === 0) {
-					errors.push(`${pathSlash}/tabs/${tIndex}/id: required, must be a non-empty string`)
-				}
-				if (typeof tab.label !== 'string' || tab.label.length === 0) {
-					errors.push(`${pathSlash}/tabs/${tIndex}/label: required, must be a non-empty string`)
-				}
-				// REQ-MSO-3: tab IDs must be unique within a page.
-				if (typeof tab.id === 'string' && tab.id.length > 0) {
-					if (seenTabIds[tab.id]) {
-						errors.push(`${pathSlash}/tabs/${tIndex}/id: ${pathBracket}.tabs[${tIndex}].id: duplicate id "${tab.id}" — tab IDs must be unique within a page`)
+				const seenTabIds = Object.create(null)
+				cfg.tabs.forEach((tab, tIndex) => {
+					if (!isPlainObject(tab)) {
+						errors.push(`${pathSlash}/tabs/${tIndex}: must be an object`)
+						return
 					}
-					seenTabIds[tab.id] = true
-				}
-				// `tab.sections` MUST be a non-empty array.
-				if (!Array.isArray(tab.sections)) {
-					errors.push(`${pathSlash}/tabs/${tIndex}/sections: ${pathBracket}.tabs[${tIndex}].sections: required, must be an array`)
-					return
-				}
-				if (tab.sections.length === 0) {
-					errors.push(`${pathSlash}/tabs/${tIndex}/sections: ${pathBracket}.tabs[${tIndex}].sections: must contain at least 1 section`)
-					return
-				}
-				// REQ-MSO-4: each tab's sections follow the same rules
-				// as the flat case — share the per-section validator.
-				tab.sections.forEach((section, sIndex) => {
-					validateSettingsSection(
-						section,
-						`${pathSlash}/tabs/${tIndex}/sections/${sIndex}`,
-						`${pathBracket}.tabs[${tIndex}].sections[${sIndex}]`,
-						errors,
-					)
+					if (typeof tab.id !== 'string' || tab.id.length === 0) {
+						errors.push(`${pathSlash}/tabs/${tIndex}/id: required, must be a non-empty string`)
+					}
+					if (typeof tab.label !== 'string' || tab.label.length === 0) {
+						errors.push(`${pathSlash}/tabs/${tIndex}/label: required, must be a non-empty string`)
+					}
+					// REQ-MSO-3: tab IDs must be unique within a page.
+					if (typeof tab.id === 'string' && tab.id.length > 0) {
+						if (seenTabIds[tab.id]) {
+							errors.push(`${pathSlash}/tabs/${tIndex}/id: ${pathBracket}.tabs[${tIndex}].id: duplicate id "${tab.id}" — tab IDs must be unique within a page`)
+						}
+						seenTabIds[tab.id] = true
+					}
+					// `tab.sections` MUST be a non-empty array.
+					if (!Array.isArray(tab.sections)) {
+						errors.push(`${pathSlash}/tabs/${tIndex}/sections: ${pathBracket}.tabs[${tIndex}].sections: required, must be an array`)
+						return
+					}
+					if (tab.sections.length === 0) {
+						errors.push(`${pathSlash}/tabs/${tIndex}/sections: ${pathBracket}.tabs[${tIndex}].sections: must contain at least 1 section`)
+						return
+					}
+					// REQ-MSO-4: each tab's sections follow the same rules
+					// as the flat case — share the per-section validator.
+					tab.sections.forEach((section, sIndex) => {
+						validateSettingsSection(
+							section,
+							`${pathSlash}/tabs/${tIndex}/sections/${sIndex}`,
+							`${pathBracket}.tabs[${tIndex}].sections[${sIndex}]`,
+							errors,
+						)
+					})
 				})
+				break
+			}
+
+			// Flat `sections[]` (existing path — REQ-MSRS-* + back-compat).
+			if (!hasSections) {
+				errors.push(`${pathSlash}/sections: ${pathBracket}.sections: required, must be an array`)
+				break
+			}
+			if (cfg.sections.length === 0) {
+				errors.push(`${pathSlash}/sections: ${pathBracket}.sections: must contain at least 1 section`)
+				break
+			}
+			cfg.sections.forEach((section, sIndex) => {
+				validateSettingsSection(
+					section,
+					`${pathSlash}/sections/${sIndex}`,
+					`${pathBracket}.sections[${sIndex}]`,
+					errors,
+				)
 			})
 			break
 		}
-
-		// Flat `sections[]` (existing path — REQ-MSRS-* + back-compat).
-		if (!hasSections) {
-			errors.push(`${pathSlash}/sections: ${pathBracket}.sections: required, must be an array`)
+		case 'chat': {
+			const hasConversationSource = cfg && typeof cfg.conversationSource === 'string'
+			const hasPostUrl = cfg && typeof cfg.postUrl === 'string'
+			if (!hasConversationSource && !hasPostUrl) {
+				errors.push(`${pathSlash}: ${pathBracket}: must declare conversationSource or postUrl`)
+			}
 			break
 		}
-		if (cfg.sections.length === 0) {
-			errors.push(`${pathSlash}/sections: ${pathBracket}.sections: must contain at least 1 section`)
+		case 'files': {
+			if (!cfg || typeof cfg.folder !== 'string' || cfg.folder.length === 0) {
+				errors.push(`${pathSlash}/folder: ${pathBracket}.folder: required`)
+			}
 			break
 		}
-		cfg.sections.forEach((section, sIndex) => {
-			validateSettingsSection(
-				section,
-				`${pathSlash}/sections/${sIndex}`,
-				`${pathBracket}.sections[${sIndex}]`,
-				errors,
-			)
-		})
-		break
-	}
-	case 'chat': {
-		const hasConversationSource = cfg && typeof cfg.conversationSource === 'string'
-		const hasPostUrl = cfg && typeof cfg.postUrl === 'string'
-		if (!hasConversationSource && !hasPostUrl) {
-			errors.push(`${pathSlash}: ${pathBracket}: must declare conversationSource or postUrl`)
-		}
-		break
-	}
-	case 'files': {
-		if (!cfg || typeof cfg.folder !== 'string' || cfg.folder.length === 0) {
-			errors.push(`${pathSlash}/folder: ${pathBracket}.folder: required`)
-		}
-		break
-	}
-	case 'form': {
+		case 'form': {
 		// `manifest-form-page-type` REQ-MFPT-* — runtime form pages
 		// MUST declare a non-empty fields[] array and exactly one of
 		// submitHandler | submitEndpoint as the dispatch destination.
 		// Optional submitMethod and mode are constrained to closed
 		// enums so manifest typos surface at validate time.
-		const hasFields = cfg && Array.isArray(cfg.fields) && cfg.fields.length > 0
-		if (!hasFields) {
-			errors.push(`${pathSlash}/fields: ${pathBracket}: form pages must declare a non-empty fields[] array`)
-		} else {
-			validateFieldsArray(cfg.fields, `${pathSlash}/fields`, errors, FORM_PAGE_FIELD_TYPES)
-		}
-
-		const hasHandler = cfg && typeof cfg.submitHandler === 'string' && cfg.submitHandler.length > 0
-		const hasEndpoint = cfg && typeof cfg.submitEndpoint === 'string' && cfg.submitEndpoint.length > 0
-		const dispatchCount = (hasHandler ? 1 : 0) + (hasEndpoint ? 1 : 0)
-		if (dispatchCount !== 1) {
-			errors.push(`${pathSlash}: ${pathBracket}: form pages must declare exactly one of submitHandler | submitEndpoint`)
-		}
-
-		if (cfg && cfg.submitMethod !== undefined) {
-			const allowed = ['POST', 'PUT', 'PATCH']
-			const upper = typeof cfg.submitMethod === 'string' ? cfg.submitMethod.toUpperCase() : null
-			if (!upper || !allowed.includes(upper)) {
-				errors.push(`${pathSlash}/submitMethod: ${pathBracket}.submitMethod: must be one of POST | PUT | PATCH`)
+			const hasFields = cfg && Array.isArray(cfg.fields) && cfg.fields.length > 0
+			if (!hasFields) {
+				errors.push(`${pathSlash}/fields: ${pathBracket}: form pages must declare a non-empty fields[] array`)
+			} else {
+				validateFieldsArray(cfg.fields, `${pathSlash}/fields`, errors, FORM_PAGE_FIELD_TYPES)
 			}
-		}
 
-		validateConfigMode(cfg, pathSlash, pathBracket, errors)
-		break
-	}
-	case 'map': {
+			const hasHandler = cfg && typeof cfg.submitHandler === 'string' && cfg.submitHandler.length > 0
+			const hasEndpoint = cfg && typeof cfg.submitEndpoint === 'string' && cfg.submitEndpoint.length > 0
+			const dispatchCount = (hasHandler ? 1 : 0) + (hasEndpoint ? 1 : 0)
+			if (dispatchCount !== 1) {
+				errors.push(`${pathSlash}: ${pathBracket}: form pages must declare exactly one of submitHandler | submitEndpoint`)
+			}
+
+			if (cfg && cfg.submitMethod !== undefined) {
+				const allowed = ['POST', 'PUT', 'PATCH']
+				const upper = typeof cfg.submitMethod === 'string' ? cfg.submitMethod.toUpperCase() : null
+				if (!upper || !allowed.includes(upper)) {
+					errors.push(`${pathSlash}/submitMethod: ${pathBracket}.submitMethod: must be one of POST | PUT | PATCH`)
+				}
+			}
+
+			validateConfigMode(cfg, pathSlash, pathBracket, errors)
+			break
+		}
+		case 'map': {
 		// `manifest-map-widget` REQ-MMW-* — Leaflet map pages MUST
 		// declare a length-2 finite-number `center`; `layers[]`
 		// entries MUST have a closed-enum `type` and (except inline
 		// geojson) a non-empty `url`; `markers.dataSource` MUST
 		// declare exactly one of `url` OR `register + schema`.
-		const allowedLayerTypes = ['tile', 'wms', 'wfs', 'geojson']
-		const center = cfg && cfg.center
-		const validCenter = Array.isArray(center)
-			&& center.length === 2
-			&& center.every((n) => typeof n === 'number' && Number.isFinite(n))
-		if (!validCenter) {
-			errors.push(`${pathSlash}/center: ${pathBracket}.center: must be a length-2 array of finite numbers`)
-		}
-		if (cfg && cfg.zoom !== undefined && (typeof cfg.zoom !== 'number' || !Number.isFinite(cfg.zoom))) {
-			errors.push(`${pathSlash}/zoom: ${pathBracket}.zoom: must be a finite number`)
-		}
-		if (cfg && cfg.layers !== undefined) {
-			if (!Array.isArray(cfg.layers)) {
-				errors.push(`${pathSlash}/layers: ${pathBracket}.layers: must be an array`)
-			} else {
-				cfg.layers.forEach((layer, lIdx) => {
-					const lPath = `${pathSlash}/layers[${lIdx}]`
-					if (!layer || typeof layer !== 'object') {
-						errors.push(`${lPath}: must be an object`)
-						return
-					}
-					if (!allowedLayerTypes.includes(layer.type)) {
-						errors.push(`${lPath}/type: must be one of tile | wms | wfs | geojson`)
-					}
-					const hasUrl = typeof layer.url === 'string' && layer.url.length > 0
-					const hasInlineGeojson = layer.type === 'geojson'
-						&& layer.data
-						&& typeof layer.data === 'object'
-					if (!hasUrl && !hasInlineGeojson) {
-						errors.push(`${lPath}/url: must be a non-empty string`)
-					}
-				})
+			const allowedLayerTypes = ['tile', 'wms', 'wfs', 'geojson']
+			const center = cfg && cfg.center
+			const validCenter = Array.isArray(center)
+				&& center.length === 2
+				&& center.every((n) => typeof n === 'number' && Number.isFinite(n))
+			if (!validCenter) {
+				errors.push(`${pathSlash}/center: ${pathBracket}.center: must be a length-2 array of finite numbers`)
 			}
-		}
-		if (cfg && cfg.markers && typeof cfg.markers === 'object' && cfg.markers.dataSource) {
-			const ds = cfg.markers.dataSource
-			const hasUrl = typeof ds.url === 'string' && ds.url.length > 0
-			const hasReg = typeof ds.register === 'string' && ds.register.length > 0
-				&& typeof ds.schema === 'string' && ds.schema.length > 0
-			const count = (hasUrl ? 1 : 0) + (hasReg ? 1 : 0)
-			if (count !== 1) {
-				errors.push(`${pathSlash}/markers/dataSource: ${pathBracket}.markers.dataSource: must declare exactly one of url | (register + schema)`)
+			if (cfg && cfg.zoom !== undefined && (typeof cfg.zoom !== 'number' || !Number.isFinite(cfg.zoom))) {
+				errors.push(`${pathSlash}/zoom: ${pathBracket}.zoom: must be a finite number`)
 			}
+			if (cfg && cfg.layers !== undefined) {
+				if (!Array.isArray(cfg.layers)) {
+					errors.push(`${pathSlash}/layers: ${pathBracket}.layers: must be an array`)
+				} else {
+					cfg.layers.forEach((layer, lIdx) => {
+						const lPath = `${pathSlash}/layers[${lIdx}]`
+						if (!layer || typeof layer !== 'object') {
+							errors.push(`${lPath}: must be an object`)
+							return
+						}
+						if (!allowedLayerTypes.includes(layer.type)) {
+							errors.push(`${lPath}/type: must be one of tile | wms | wfs | geojson`)
+						}
+						const hasUrl = typeof layer.url === 'string' && layer.url.length > 0
+						const hasInlineGeojson = layer.type === 'geojson'
+							&& layer.data
+							&& typeof layer.data === 'object'
+						if (!hasUrl && !hasInlineGeojson) {
+							errors.push(`${lPath}/url: must be a non-empty string`)
+						}
+					})
+				}
+			}
+			if (cfg && cfg.markers && typeof cfg.markers === 'object' && cfg.markers.dataSource) {
+				const ds = cfg.markers.dataSource
+				const hasUrl = typeof ds.url === 'string' && ds.url.length > 0
+				const hasReg = typeof ds.register === 'string' && ds.register.length > 0
+					&& typeof ds.schema === 'string' && ds.schema.length > 0
+				const count = (hasUrl ? 1 : 0) + (hasReg ? 1 : 0)
+				if (count !== 1) {
+					errors.push(`${pathSlash}/markers/dataSource: ${pathBracket}.markers.dataSource: must declare exactly one of url | (register + schema)`)
+				}
+			}
+			break
 		}
-		break
-	}
-	case 'wiki': {
+		case 'wiki': {
 		// `manifest-wiki-page-type` REQ — a wiki page renders one
 		// manifest-declared markdown article (CnWikiPage). It MUST
 		// declare both `register` and `schema` as non-empty strings so
 		// the manifest stays the source of truth for which OpenRegister
 		// register/schema the article body is read from.
-		const hasRegister = cfg && typeof cfg.register === 'string' && cfg.register.length > 0
-		const hasSchema = cfg && typeof cfg.schema === 'string' && cfg.schema.length > 0
-		if (!hasRegister || !hasSchema) {
-			errors.push(`${pathBracket}: wiki pages must declare register and schema`)
+			const hasRegister = cfg && typeof cfg.register === 'string' && cfg.register.length > 0
+			const hasSchema = cfg && typeof cfg.schema === 'string' && cfg.schema.length > 0
+			if (!hasRegister || !hasSchema) {
+				errors.push(`${pathBracket}: wiki pages must declare register and schema`)
+			}
+			// `manifest-wiki-stabilise` REQ — the remaining typed config
+			// fields the CnWikiPage component accepts MUST be strings when
+			// present. Omitted fields are tolerated (runtime defaults take
+			// over); unknown keys pass for forward-compat.
+			validateWikiConfigFields(cfg, pathSlash, errors)
+			break
 		}
-		// `manifest-wiki-stabilise` REQ — the remaining typed config
-		// fields the CnWikiPage component accepts MUST be strings when
-		// present. Omitted fields are tolerated (runtime defaults take
-		// over); unknown keys pass for forward-compat.
-		validateWikiConfigFields(cfg, pathSlash, errors)
-		break
-	}
-	default:
+		default:
 		// No per-type rules for index/detail/dashboard/custom or
 		// consumer-defined types; their `config` shape is enforced
 		// by the target component at runtime (or by a future spec).
-		break
+			break
 	}
 }
 
@@ -1210,7 +1263,9 @@ function validateTypeConfig(page, index, errors) {
  * @param {string[]} errors Accumulator for error messages.
  */
 function validateWikiConfigFields(cfg, pathSlash, errors) {
-	if (!isPlainObject(cfg)) return
+	if (!isPlainObject(cfg)) {
+		return
+	}
 	const stringFields = [
 		'contentField',
 		'titleField',
@@ -1262,7 +1317,9 @@ function validateWikiConfigFields(cfg, pathSlash, errors) {
  */
 function validateSidebarConfig(page, pageIndex, errors) {
 	const config = page.config
-	if (!isPlainObject(config)) return
+	if (!isPlainObject(config)) {
+		return
+	}
 
 	// --- Index sidebar ---
 	if (page.type === 'index' && config.sidebar !== undefined) {
@@ -1353,7 +1410,7 @@ function validateSidebarConfig(page, pageIndex, errors) {
  * `config.sidebar.tabs` path (manifest-detail-sidebar-config) reuse
  * the same rules.
  *
- * @param {*} tabs The candidate tabs value (expected: array of tab defs)
+ * @param {unknown} tabs The candidate tabs value (expected: array of tab defs)
  * @param {string} tabsPath JSON-pointer-shaped path prefix for errors
  * @param {string[]} errors Accumulator
  */
@@ -1431,7 +1488,9 @@ function validateDetailTabsArray(tabs, tabsPath, errors) {
  * @return {void}
  */
 function validatePageRequiresApp(page, pageIndex, errors) {
-	if (page.requiresApp === undefined) return
+	if (page.requiresApp === undefined) {
+		return
+	}
 
 	const path = `/pages/${pageIndex}/requiresApp`
 
@@ -1460,7 +1519,9 @@ function validatePageRequiresApp(page, pageIndex, errors) {
 }
 
 function validatePageSidebar(page, pageIndex, errors) {
-	if (page.sidebar === undefined) return
+	if (page.sidebar === undefined) {
+		return
+	}
 	const path = `/pages/${pageIndex}/sidebar`
 	if (!isPlainObject(page.sidebar)) {
 		errors.push(`${path} must be an object`)
@@ -1489,7 +1550,9 @@ function validatePageSidebar(page, pageIndex, errors) {
  * @param {string[]} errors Accumulator
  */
 function validateColumnsArray(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.columns === undefined) return
+	if (!cfg || cfg.columns === undefined) {
+		return
+	}
 	if (!Array.isArray(cfg.columns)) {
 		errors.push(`${pathSlash}/columns: ${pathBracket}.columns: must be an array when set`)
 		return
@@ -1533,11 +1596,21 @@ const ALLOWED_CONFIG_MODES = ['edit', 'create', 'public']
  * @param {string[]} errors Accumulator
  */
 function validateConfigMode(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.mode === undefined) return
+	if (!cfg || cfg.mode === undefined) {
+		return
+	}
 	if (typeof cfg.mode !== 'string' || !ALLOWED_CONFIG_MODES.includes(cfg.mode)) {
 		errors.push(`${pathSlash}/mode: ${pathBracket}.mode: must be one of ${ALLOWED_CONFIG_MODES.join(' | ')}`)
 	}
 }
+
+/**
+ * REQ-MAD-1 — Allowed shapes for `actions[].handler`. Either a
+ * reserved keyword (`navigate` | `emit` | `none`) or a JS-identifier
+ * registry name (alphanumeric + underscore, leading letter). Mirrors
+ * the schema's `pattern` on the `handler` property.
+ */
+const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
 
 /**
  * Validate `config.actions[]` for index page type
@@ -1551,7 +1624,9 @@ function validateConfigMode(cfg, pathSlash, pathBracket, errors) {
  * @param {string[]} errors Accumulator
  */
 function validateActionsArray(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.actions === undefined) return
+	if (!cfg || cfg.actions === undefined) {
+		return
+	}
 	if (!Array.isArray(cfg.actions)) {
 		errors.push(`${pathSlash}/actions: ${pathBracket}.actions: must be an array when set`)
 		return
@@ -1575,10 +1650,8 @@ function validateActionsArray(cfg, pathSlash, pathBracket, errors) {
 			if (typeof action.handler !== 'string') {
 				errors.push(`${actionPath}/handler: must be a string when set`)
 			} else if (!HANDLER_PATTERN.test(action.handler)) {
-				errors.push(
-					`${actionPath}/handler: "${action.handler}" must match `
-					+ '"navigate" | "emit" | "none" | [A-Za-z][A-Za-z0-9_]*',
-				)
+				errors.push(`${actionPath}/handler: "${action.handler}" must match `
+					+ '"navigate" | "emit" | "none" | [A-Za-z][A-Za-z0-9_]*')
 			}
 			if (action.handler === 'navigate'
 				&& (typeof action.route !== 'string' || action.route.length === 0)) {
@@ -1587,14 +1660,6 @@ function validateActionsArray(cfg, pathSlash, pathBracket, errors) {
 		}
 	})
 }
-
-/**
- * REQ-MAD-1 — Allowed shapes for `actions[].handler`. Either a
- * reserved keyword (`navigate` | `emit` | `none`) or a JS-identifier
- * registry name (alphanumeric + underscore, leading letter). Mirrors
- * the schema's `pattern` on the `handler` property.
- */
-const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
 
 /**
  * Validate `config.actionToggles` for index page type
@@ -1613,7 +1678,9 @@ const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
  * @param {string[]} errors Accumulator
  */
 function validateIndexActionToggles(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.actionToggles === undefined) return
+	if (!cfg || cfg.actionToggles === undefined) {
+		return
+	}
 	if (!isPlainObject(cfg.actionToggles)) {
 		errors.push(`${pathSlash}/actionToggles: ${pathBracket}.actionToggles: must be an object`)
 		return
@@ -1638,7 +1705,9 @@ function validateIndexActionToggles(cfg, pathSlash, pathBracket, errors) {
  * @param {string[]} errors Accumulator
  */
 function validateDetailSidebarTabs(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.sidebarTabs === undefined) return
+	if (!cfg || cfg.sidebarTabs === undefined) {
+		return
+	}
 	if (!Array.isArray(cfg.sidebarTabs)) {
 		errors.push(`${pathSlash}/sidebarTabs: ${pathBracket}.sidebarTabs: must be an array`)
 		return
@@ -1691,7 +1760,9 @@ function validateDetailSidebarTabs(cfg, pathSlash, pathBracket, errors) {
  * @param {string[]} errors Accumulator
  */
 function validateSidebarTabGroupRefs(page, index, errors) {
-	if (!page || !Array.isArray(page.widgets) || page.widgets.length === 0) return
+	if (!page || !Array.isArray(page.widgets) || page.widgets.length === 0) {
+		return
+	}
 	const cfg = isPlainObject(page.config) ? page.config : null
 	const declaredIds = new Set()
 	if (cfg && Array.isArray(cfg.sidebarTabs)) {
@@ -1702,9 +1773,15 @@ function validateSidebarTabGroupRefs(page, index, errors) {
 		}
 	}
 	page.widgets.forEach((widget, wIndex) => {
-		if (!isPlainObject(widget)) return
-		if (widget.slot !== 'sidebar') return
-		if (typeof widget.tabGroup !== 'string' || widget.tabGroup.length === 0) return
+		if (!isPlainObject(widget)) {
+			return
+		}
+		if (widget.slot !== 'sidebar') {
+			return
+		}
+		if (typeof widget.tabGroup !== 'string' || widget.tabGroup.length === 0) {
+			return
+		}
 		if (declaredIds.size === 0) {
 			errors.push(`pages[${index}]/widgets/${wIndex}/tabGroup: "${widget.tabGroup}" referenced but config.sidebarTabs[] is empty or missing — declare the tab to silence this error`)
 			return
@@ -1725,7 +1802,9 @@ function validateSidebarTabGroupRefs(page, index, errors) {
  * @param {string[]} errors Accumulator
  */
 function validateWidgetsArray(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.widgets === undefined) return
+	if (!cfg || cfg.widgets === undefined) {
+		return
+	}
 	if (!Array.isArray(cfg.widgets)) {
 		errors.push(`${pathSlash}/widgets: ${pathBracket}.widgets: must be an array when set`)
 		return
@@ -1767,9 +1846,13 @@ function validateWidgetsArray(cfg, pathSlash, pathBracket, errors) {
  * @return {void}
  */
 function validateChartBaseline(bag, path, errors) {
-	if (!isPlainObject(bag)) return
+	if (!isPlainObject(bag)) {
+		return
+	}
 	const value = bag.valueAxisBaseline
-	if (value === undefined || value === null) return
+	if (value === undefined || value === null) {
+		return
+	}
 	if (typeof value !== 'string' || !CHART_VALUE_AXIS_BASELINES.includes(value)) {
 		errors.push(`${path}/valueAxisBaseline: must be one of ${CHART_VALUE_AXIS_BASELINES.join(' | ')}`)
 	}
@@ -1787,7 +1870,9 @@ function validateChartBaseline(bag, path, errors) {
  * @param {string[]} errors Accumulator
  */
 function validateLayoutArray(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.layout === undefined) return
+	if (!cfg || cfg.layout === undefined) {
+		return
+	}
 	if (!Array.isArray(cfg.layout)) {
 		errors.push(`${pathSlash}/layout: ${pathBracket}.layout: must be an array when set`)
 		return
@@ -1829,7 +1914,7 @@ function validateLayoutArray(cfg, pathSlash, pathBracket, errors) {
  * `widget.type === "component"` discriminator (REQ-MSO-6) requires
  * `componentName: <non-empty string>`.
  *
- * @param {*} section The section under validation
+ * @param {unknown} section The section under validation
  * @param {string} pathSlash JSON-pointer-style path prefix for errors
  * @param {string} pathBracket Human-readable bracket-path for errors
  * @param {string[]} errors Accumulator
@@ -1910,7 +1995,9 @@ const MENU_ACTIONS = ['user-settings']
  * @param {string[]} errors Error array to push to (mutated).
  */
 function validateMenuAction(item, path, errors) {
-	if (item.action === undefined) return
+	if (item.action === undefined) {
+		return
+	}
 	if (typeof item.action !== 'string' || !MENU_ACTIONS.includes(item.action)) {
 		errors.push(`${path}/action must be one of: ${MENU_ACTIONS.join(', ')}`)
 	}
@@ -1935,7 +2022,9 @@ function validateMenuAction(item, path, errors) {
  * @param {string[]} errors Accumulator
  */
 function validateMenuItemVisibleIf(visibleIf, path, errors) {
-	if (visibleIf === undefined) return
+	if (visibleIf === undefined) {
+		return
+	}
 	if (!isPlainObject(visibleIf)) {
 		errors.push(`${path} must be an object when set`)
 		return
@@ -1949,7 +2038,9 @@ function validateMenuItemVisibleIf(visibleIf, path, errors) {
 	// Validate context-path predicate keys (any non-reserved key).
 	const RESERVED = new Set(['appInstalled'])
 	for (const key of Object.keys(visibleIf)) {
-		if (RESERVED.has(key)) continue
+		if (RESERVED.has(key)) {
+			continue
+		}
 		// Context path key must be dot-separated with non-empty segments.
 		const segments = key.split('.')
 		if (segments.some((s) => s.length === 0) || key.length === 0) {
@@ -1960,13 +2051,13 @@ function validateMenuItemVisibleIf(visibleIf, path, errors) {
 		const predicate = visibleIf[key]
 		if (predicate !== null && typeof predicate === 'object') {
 			if (
-				Object.prototype.hasOwnProperty.call(predicate, 'in')
+				Object.hasOwn(predicate, 'in')
 				&& !Array.isArray(predicate.in)
 			) {
 				errors.push(`${path}/${key}/in: "in" operator value must be an array`)
 			}
 			if (
-				Object.prototype.hasOwnProperty.call(predicate, 'notIn')
+				Object.hasOwn(predicate, 'notIn')
 				&& !Array.isArray(predicate.notIn)
 			) {
 				errors.push(`${path}/${key}/notIn: "notIn" operator value must be an array`)
@@ -2000,7 +2091,9 @@ const WIDGET_REF_URI_PATTERN = /^openregister:\/\/widget\/[a-z0-9-]+\/[a-zA-Z][a
  * @param {string[]} errors Accumulator
  */
 function validateContentArray(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg || cfg.content === undefined) return
+	if (!cfg || cfg.content === undefined) {
+		return
+	}
 	if (!Array.isArray(cfg.content)) {
 		errors.push(`${pathSlash}/content: ${pathBracket}.content: must be an array when set`)
 		return
@@ -2017,10 +2110,8 @@ function validateContentArray(cfg, pathSlash, pathBracket, errors) {
 		if (typeof item.ref !== 'string' || item.ref.length === 0) {
 			errors.push(`${itemPath}/ref: must be a non-empty string`)
 		} else if (!WIDGET_REF_URI_PATTERN.test(item.ref)) {
-			errors.push(
-				`${itemPath}/ref: "${item.ref}" must match openregister://widget/<schemaSlug>/<widgetSlug> `
-				+ '(slugs: lowercase letters, digits, hyphens; widgetSlug must start with a letter)',
-			)
+			errors.push(`${itemPath}/ref: "${item.ref}" must match openregister://widget/<schemaSlug>/<widgetSlug> `
+				+ '(slugs: lowercase letters, digits, hyphens; widgetSlug must start with a letter)')
 		}
 	})
 }
@@ -2036,16 +2127,16 @@ function validateContentArray(cfg, pathSlash, pathBracket, errors) {
  * app config, which has no place for file content, and CnSettingsPage has
  * no file input to render.
  *
- * @param {*} fields The candidate fields value
+ * @param {unknown} fields The candidate fields value
  * @param {string} fieldsPath JSON-pointer-style path prefix for errors
  * @param {string[]} errors Accumulator
  * @param {string[]} [allowedTypes] The accepted `type` values. Defaults to
  *   the settings set, `FORM_FIELD_TYPES`.
  */
-const FORM_FIELD_TYPES = ['boolean', 'number', 'string', 'enum', 'password', 'json']
-const FORM_PAGE_FIELD_TYPES = [...FORM_FIELD_TYPES, 'file']
 function validateFieldsArray(fields, fieldsPath, errors, allowedTypes = FORM_FIELD_TYPES) {
-	if (!Array.isArray(fields)) return
+	if (!Array.isArray(fields)) {
+		return
+	}
 	fields.forEach((field, fIndex) => {
 		const fieldPath = `${fieldsPath}/${fIndex}`
 		if (!isPlainObject(field)) {

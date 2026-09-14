@@ -146,6 +146,7 @@ export default {
 		 */
 		sort: { type: String, default: 'status' },
 	},
+
 	emits: ['node-click'],
 	computed: {
 		/**
@@ -161,13 +162,16 @@ export default {
 			}
 			return out
 		},
+
 		/**
 		 * Nodes sorted per the `sort` prop.
 		 *
 		 * @return {Array} The sorted nodes.
 		 */
 		sortedNodes() {
-			if (this.sort === 'none') return this.nodes
+			if (this.sort === 'none') {
+				return this.nodes
+			}
 			const arr = [...this.nodes]
 			if (this.sort === 'name') {
 				arr.sort((a, b) => (a.name || a.id || '').localeCompare(b.name || b.id || ''))
@@ -182,6 +186,7 @@ export default {
 			return arr
 		},
 	},
+
 	methods: {
 		/**
 		 * Map a free-form status string to the normalised
@@ -192,11 +197,18 @@ export default {
 		 */
 		normaliseStatus(status) {
 			const s = (status || '').toLowerCase()
-			if (['up', 'online', 'ok', 'healthy', 'available'].includes(s)) return 'up'
-			if (['degraded', 'partial', 'slow', 'warning'].includes(s)) return 'degraded'
-			if (['down', 'offline', 'error', 'failed', 'unhealthy'].includes(s)) return 'down'
+			if (['up', 'online', 'ok', 'healthy', 'available'].includes(s)) {
+				return 'up'
+			}
+			if (['degraded', 'partial', 'slow', 'warning'].includes(s)) {
+				return 'degraded'
+			}
+			if (['down', 'offline', 'error', 'failed', 'unhealthy'].includes(s)) {
+				return 'down'
+			}
 			return 'unknown'
 		},
+
 		/**
 		 * Render-friendly label for a status value.
 		 *
@@ -205,11 +217,18 @@ export default {
 		 */
 		statusLabel(status) {
 			const norm = this.normaliseStatus(status)
-			if (norm === 'up') return this.upLabel
-			if (norm === 'degraded') return this.degradedLabel
-			if (norm === 'down') return this.downLabel
+			if (norm === 'up') {
+				return this.upLabel
+			}
+			if (norm === 'degraded') {
+				return this.degradedLabel
+			}
+			if (norm === 'down') {
+				return this.downLabel
+			}
 			return this.unknownLabel
 		},
+
 		/**
 		 * Format an ISO timestamp into a short locale string.
 		 *
@@ -220,12 +239,15 @@ export default {
 		formatTimestamp(iso) {
 			try {
 				const d = new Date(iso)
-				if (Number.isNaN(d.getTime())) return iso
+				if (Number.isNaN(d.getTime())) {
+					return iso
+				}
 				return d.toLocaleString()
-			} catch (e) {
+			} catch {
 				return iso
 			}
 		},
+
 		/**
 		 * Forward a node click as a `@node-click` event.
 		 *

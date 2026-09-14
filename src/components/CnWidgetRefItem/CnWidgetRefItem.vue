@@ -51,10 +51,10 @@
 </template>
 
 <script>
-import { markRaw } from 'vue'
-import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import axios from '@nextcloud/axios'
+import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { markRaw } from 'vue'
+import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 
 /**
  * Pattern for `openregister://widget/<schemaSlug>/<widgetSlug>`.
@@ -126,9 +126,13 @@ export default {
 		 * @return {{ schemaSlug: string, widgetSlug: string }|null}
 		 */
 		parsedRef() {
-			if (!this.refUri) return null
+			if (!this.refUri) {
+				return null
+			}
 			const match = WIDGET_REF_PATTERN.exec(this.refUri)
-			if (!match) return null
+			if (!match) {
+				return null
+			}
 			return { schemaSlug: match[1], widgetSlug: match[2] }
 		},
 	},
@@ -170,7 +174,7 @@ export default {
 			const { schemaSlug, widgetSlug } = parsed
 			const url = `/index.php/apps/openregister/api/schemas/${schemaSlug}/widgets/${widgetSlug}`
 
-			let apiData = {}
+			let apiData
 			try {
 				const response = await axios.get(url)
 				apiData = response.data ?? {}

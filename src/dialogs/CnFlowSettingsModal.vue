@@ -55,23 +55,23 @@
 		data-testid="flow-settings-modal"
 		@closing="$emit('close')">
 		<div class="cn-flow-settings">
-			<NcTextField :model-value="store.flow.name"
+			<NcTextField :modelValue="store.flow.name"
 				:label="t('nextcloud-vue', 'Name')"
 				data-testid="flow-settings-name"
-				@update:model-value="store.setFlowField('name', $event)" />
+				@update:modelValue="store.setFlowField('name', $event)" />
 
-			<NcTextField :model-value="store.flow.description || ''"
+			<NcTextField :modelValue="store.flow.description || ''"
 				:label="t('nextcloud-vue', 'Description')"
-				@update:model-value="store.setFlowField('description', $event)" />
+				@update:modelValue="store.setFlowField('description', $event)" />
 
 			<p class="cn-flow-settings__note" data-testid="flow-settings-trigger-note">
 				{{ t('nextcloud-vue', 'What starts this flow is a step on the canvas. Add a trigger step to give it a way in.') }}
 			</p>
 
 			<NcCheckboxRadioSwitch type="switch"
-				:model-value="store.runsSynchronously"
+				:modelValue="store.runsSynchronously"
 				data-testid="flow-settings-sync"
-				@update:model-value="store.setFlowField('executionMode', $event ? 'sync' : 'async')">
+				@update:modelValue="store.setFlowField('executionMode', $event ? 'sync' : 'async')">
 				{{ t('nextcloud-vue', 'Run immediately instead of queueing') }}
 			</NcCheckboxRadioSwitch>
 			<p class="cn-flow-settings__note">

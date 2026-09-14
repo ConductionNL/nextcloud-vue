@@ -48,6 +48,8 @@ export const WIDGET_TYPE_ALIASES = Object.freeze({
  * @return {string} The canonical type name.
  */
 export function canonicalWidgetType(type) {
-	if (typeof type !== 'string' || type === '') return type
+	if (typeof type !== 'string' || type === '') {
+		return type
+	}
 	return WIDGET_TYPE_ALIASES[type] || type
 }

@@ -134,11 +134,9 @@ function renderReport(items, opts = {}) {
 	if (suggestions.length > 0) {
 		lines.push('## Registry Suggestions')
 		lines.push('')
-		lines.push(
-			'The following `type: "custom"` pages have components that were found in '
+		lines.push('The following `type: "custom"` pages have components that were found in '
 			+ '`customComponents`. The codemod has migrated `customComponents` to `registry` '
-			+ '(see below). Review each suggested entry and confirm the `kind` is correct:',
-		)
+			+ '(see below). Review each suggested entry and confirm the `kind` is correct:')
 		lines.push('')
 		for (const sug of suggestions) {
 			lines.push(`### Page: \`${sug.pageId}\``)
@@ -161,11 +159,9 @@ function renderReport(items, opts = {}) {
 	if (ccMigrations.length > 0) {
 		lines.push('## customComponents → registry Migration')
 		lines.push('')
-		lines.push(
-			'The top-level `customComponents` map has been migrated to `registry`. '
+		lines.push('The top-level `customComponents` map has been migrated to `registry`. '
 			+ 'Each entry now has `"kind": "component"` added. Pass the `registry` '
-			+ 'map to `CnAppRoot` as the `registry` prop (replacing `customComponents`):',
-		)
+			+ 'map to `CnAppRoot` as the `registry` prop (replacing `customComponents`):')
 		lines.push('')
 		for (const cc of ccMigrations) {
 			if (cc.data && cc.data.registry) {
@@ -182,10 +178,8 @@ function renderReport(items, opts = {}) {
 	if (carried.length > 0) {
 		lines.push('## Carried-Forward Fields')
 		lines.push('')
-		lines.push(
-			'The following fields were preserved verbatim in the output manifest '
-			+ '(no transformation applied):',
-		)
+		lines.push('The following fields were preserved verbatim in the output manifest '
+			+ '(no transformation applied):')
 		lines.push('')
 		const allFields = carried.flatMap((i) => i.data || [])
 		if (allFields.length > 0) {
@@ -237,36 +231,36 @@ function renderReport(items, opts = {}) {
  */
 function formatItemMessage(item) {
 	switch (item.kind) {
-	case 'merge-dashboard':
-		return `Merged ${item.data?.count || 0} dashboard widget(s) with layout into top-level widgets[]`
-	case 'lift-sidebar':
-		return `Lifted ${item.data?.count || 0} sidebar tab widget(s) to slot "sidebar"`
-	case 'flatten-section':
-		return `Flattened ${item.data?.count || 0} settings section widget(s) to slot "section:*"`
-	case 'flatten-tab':
-		return `Flattened ${item.data?.count || 0} settings tab widget(s) to slot "tab:*"`
-	case 'migrate-card':
-		return 'Migrated cardComponent to card-grid widget entry'
-	case 'normalize-action':
-		return `Normalized ${item.data?.count || 0} action(s) to explicit type: "handler"`
-	case 'drop-unrenderable-action':
-		return `Dropped ${item.data?.count || 0} action(s) with no label — they would have rendered as blank menu rows. Built-ins are enabled with config.actionToggles / the show*Action keys.`
-	case 'registry-suggestion':
-		return `Registry suggestion for component "${item.componentName}": add to registry with kind: "page"`
-	case 'todo':
-		return `TODO: ${item.reason || 'Manual migration required'}`
-	case 'carried-forward':
-		return `Carried forward ${item.data?.length || 0} verbatim field(s)`
-	case 'converge-widgets':
-		return `Converged ${item.data?.count || 0} dialect-B widget(s) to canonical widgets[]`
-	case 'rename-datasource':
-		return `Renamed ${item.data?.count || 0} data-binding key(s) to dataSource`
-	case 'normalize-sidebar':
-		return `Normalised ${item.data?.count || 0} sidebar tab widget(s) to slot "sidebar"`
-	case 'promote-dashboard':
-		return 'Promoted custom-dashboard page to type: "dashboard"'
-	default:
-		return item.message || String(item.kind)
+		case 'merge-dashboard':
+			return `Merged ${item.data?.count || 0} dashboard widget(s) with layout into top-level widgets[]`
+		case 'lift-sidebar':
+			return `Lifted ${item.data?.count || 0} sidebar tab widget(s) to slot "sidebar"`
+		case 'flatten-section':
+			return `Flattened ${item.data?.count || 0} settings section widget(s) to slot "section:*"`
+		case 'flatten-tab':
+			return `Flattened ${item.data?.count || 0} settings tab widget(s) to slot "tab:*"`
+		case 'migrate-card':
+			return 'Migrated cardComponent to card-grid widget entry'
+		case 'normalize-action':
+			return `Normalized ${item.data?.count || 0} action(s) to explicit type: "handler"`
+		case 'drop-unrenderable-action':
+			return `Dropped ${item.data?.count || 0} action(s) with no label — they would have rendered as blank menu rows. Built-ins are enabled with config.actionToggles / the show*Action keys.`
+		case 'registry-suggestion':
+			return `Registry suggestion for component "${item.componentName}": add to registry with kind: "page"`
+		case 'todo':
+			return `TODO: ${item.reason || 'Manual migration required'}`
+		case 'carried-forward':
+			return `Carried forward ${item.data?.length || 0} verbatim field(s)`
+		case 'converge-widgets':
+			return `Converged ${item.data?.count || 0} dialect-B widget(s) to canonical widgets[]`
+		case 'rename-datasource':
+			return `Renamed ${item.data?.count || 0} data-binding key(s) to dataSource`
+		case 'normalize-sidebar':
+			return `Normalised ${item.data?.count || 0} sidebar tab widget(s) to slot "sidebar"`
+		case 'promote-dashboard':
+			return 'Promoted custom-dashboard page to type: "dashboard"'
+		default:
+			return item.message || String(item.kind)
 	}
 }
 

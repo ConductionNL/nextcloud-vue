@@ -58,6 +58,29 @@ export default {
 </script>
 ```
 
+A stage a guard refused. `blocked` gives it the warning colour and an exclamation mark, so it does not look like the stage below it, which is simply later in the process. `hint` is the reason, on hover:
+
+```vue
+<CnTimelineStages
+  orientation="vertical"
+  :clickable="true"
+  :stages="[
+    { id: 'intake', label: 'Ontvangen' },
+    { id: 'work', label: 'In behandeling' },
+    {
+      id: 'done',
+      label: 'Afgehandeld',
+      disabled: true,
+      blocked: true,
+      hint: 'Vereist veld ontbreekt: description',
+    },
+    { id: 'archive', label: 'Gearchiveerd', disabled: true },
+  ]"
+  current-stage="work" />
+```
+
+Answer `stage-blocked` as well. A tooltip reaches neither a touch screen nor a keyboard, so the hint alone leaves both of them with a stage that does nothing and says nothing.
+
 Small size:
 
 ```vue

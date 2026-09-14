@@ -12,7 +12,7 @@
  * CnIntegrationCard.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnFlowCard = require('../CnFlowCard.vue').default
 
 const DEFAULT_PROPS = {
@@ -55,8 +55,7 @@ describe('CnFlowCard', () => {
 	it('renders the empty label when there are no linked operations', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnFlowCard, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No automations linked yet')
 		wrapper.unmount()
 	})
@@ -73,8 +72,7 @@ describe('CnFlowCard', () => {
 			}),
 		})
 		const wrapper = mount(CnFlowCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const txt = wrapper.text()
 		expect(txt).toContain('2')
 		expect(txt).toContain('Rule A')
@@ -95,8 +93,7 @@ describe('CnFlowCard', () => {
 			}),
 		})
 		const wrapper = mount(CnFlowCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const txt = wrapper.text().toLowerCase()
 		expect(txt).toContain('active')
 		wrapper.unmount()
@@ -114,8 +111,7 @@ describe('CnFlowCard', () => {
 			}),
 		})
 		const wrapper = mount(CnFlowCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-flow-card__row')
 		expect(rows).toHaveLength(2)
 		expect(wrapper.findAll('.cn-flow-card__enabled--on').length).toBe(2)
@@ -132,8 +128,7 @@ describe('CnFlowCard', () => {
 			json: () => Promise.resolve(makeOp({ id: '99', title: 'Approve uploads' })),
 		})
 		const wrapper = mount(CnFlowCard, { propsData: { ...DEFAULT_PROPS, surface: 'single-entity', value: '99' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const chip = wrapper.find('.cn-flow-card__chip')
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Approve uploads')
@@ -144,8 +139,7 @@ describe('CnFlowCard', () => {
 	it('shows the admin-only banner when the provider returns 403', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 403, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnFlowCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Flow operations are only visible to administrators.')
 		wrapper.unmount()
 	})
@@ -153,8 +147,7 @@ describe('CnFlowCard', () => {
 	it('shows the unavailable label when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnFlowCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Flow is currently unavailable.')
 		wrapper.unmount()
 	})
@@ -163,8 +156,7 @@ describe('CnFlowCard', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnFlowCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No automations linked yet')
 		wrapper.unmount()
 		spy.mockRestore()
@@ -179,8 +171,7 @@ describe('CnFlowCard', () => {
 			}),
 		})
 		const wrapper = mount(CnFlowCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.find('.cn-flow-card__row--disabled').exists()).toBe(true)
 		expect(wrapper.find('.cn-flow-card__enabled--off').exists()).toBe(true)
 		wrapper.unmount()

@@ -85,6 +85,11 @@ export const siteBlockRegistry = {
 }
 
 /**
+ * @type {Array<string>} The band block keys.
+ */
+export const SITE_BAND_BLOCKS = ['hero', 'section']
+
+/**
  * Blocks that are FULL-BLEED BANDS and carry their own container.
  *
  * A band paints edge to edge and constrains its content itself. Rendering one
@@ -103,11 +108,6 @@ export const siteBlockRegistry = {
 export function siteBlockIsBand(key) {
 	return SITE_BAND_BLOCKS.includes(key)
 }
-
-/**
- * @type {Array<string>} The band block keys.
- */
-export const SITE_BAND_BLOCKS = ['hero', 'section']
 
 /**
  * Resolve a block component by key.

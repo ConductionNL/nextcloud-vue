@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="large"
-		:no-close="loading"
+		:noClose="loading"
 		@closing="$emit('close')">
 		<!-- Success/error messages -->
 		<NcNoteCard v-if="result && result.success && !hasErrors" type="success">
@@ -135,9 +135,9 @@
 				<NcCheckboxRadioSwitch
 					v-for="opt in options"
 					:key="opt.key"
-					:model-value="optionValues[opt.key]"
+					:modelValue="optionValues[opt.key]"
 					type="switch"
-					@update:model-value="setOption(opt.key, $event)">
+					@update:modelValue="setOption(opt.key, $event)">
 					{{ opt.label }}
 					<template v-if="opt.description" #helper>
 						{{ opt.description }}
@@ -172,10 +172,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcCheckboxRadioSwitch } from '@nextcloud/vue'
-import Upload from 'vue-material-design-icons/Upload.vue'
-import ImportIcon from 'vue-material-design-icons/Import.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import ImportIcon from 'vue-material-design-icons/Import.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
 
 /**
  * CnMassImportDialog — File import dialog with options and results summary.
@@ -243,16 +243,19 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Import data'),
 		},
+
 		/** Accepted file types (input accept attribute) */
 		acceptedTypes: {
 			type: String,
 			default: '.json,.xlsx,.xls,.csv',
 		},
+
 		/** Import option definitions */
 		options: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** File type help entries */
 		fileTypeHelp: {
 			type: Array,
@@ -262,26 +265,31 @@ export default {
 				{ label: 'CSV', description: 'Single table of objects data.' },
 			],
 		},
+
 		/** Whether the form is ready to submit (parent can control via slot logic) */
 		canSubmit: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Success text when all rows imported without errors */
 		successText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Import completed successfully!'),
 		},
+
 		/** Text when import partially succeeded */
 		partialSuccessText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Import completed with errors. Check the details below.'),
 		},
+
 		/** Text shown while importing */
 		loadingText: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Importing data — this may take a moment for large files...'),
+			default: () => t('nextcloud-vue', 'Importing data — this may take a moment for large files…'),
 		},
+
 		/** Heading rendered above the per-sheet results table. */
 		summaryTitle: { type: String, default: () => t('nextcloud-vue', 'Import summary') },
 		/** Label for the "Supported file types" intro line. */
@@ -326,10 +334,10 @@ export default {
 
 	computed: {
 		hasErrors() {
-			if (!this.result || !this.result.summary) return false
-			return Object.values(this.result.summary).some(
-				(sheet) => sheet.errors && sheet.errors.length > 0,
-			)
+			if (!this.result || !this.result.summary) {
+				return false
+			}
+			return Object.values(this.result.summary).some((sheet) => sheet.errors && sheet.errors.length > 0)
 		},
 	},
 
@@ -344,7 +352,9 @@ export default {
 		},
 
 		formatFileSize(bytes) {
-			if (bytes === 0) return '0 B'
+			if (bytes === 0) {
+				return '0 B'
+			}
 			const k = 1024
 			const sizes = ['B', 'KB', 'MB', 'GB']
 			const i = Math.floor(Math.log(bytes) / Math.log(k))
@@ -352,8 +362,12 @@ export default {
 		},
 
 		getCount(val) {
-			if (Array.isArray(val)) return val.length
-			if (typeof val === 'number') return val
+			if (Array.isArray(val)) {
+				return val.length
+			}
+			if (typeof val === 'number') {
+				return val
+			}
 			return 0
 		},
 
@@ -371,6 +385,7 @@ export default {
 
 		/**
 		 * Set the result of the import operation.
+		 *
 		 * @param {{ success?: boolean, error?: string, summary?: object }} resultData - Result data to pass to the dialog
 		 * @public
 		 */

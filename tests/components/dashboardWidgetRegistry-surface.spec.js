@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: EUPL-1.2
  */
 import {
-	registerDashboardWidget,
 	listWidgetTypes,
+	registerDashboardWidget,
 	widgetTypeAllowsSurface,
 } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 
