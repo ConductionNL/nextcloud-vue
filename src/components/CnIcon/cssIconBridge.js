@@ -168,6 +168,8 @@ export const CSS_ICON_TO_MDI = {
  * @return {import('vue').Component|undefined} The MDI component, or undefined.
  */
 export function bridgedMdiForCssIcon(icon) {
-	if (typeof icon !== 'string' || icon.length === 0) return undefined
+	if (typeof icon !== 'string' || icon.length === 0) {
+		return undefined
+	}
 	return CSS_ICON_TO_MDI[icon] || CSS_ICON_TO_MDI[icon.replace(/-(dark|white)$/, '')]
 }

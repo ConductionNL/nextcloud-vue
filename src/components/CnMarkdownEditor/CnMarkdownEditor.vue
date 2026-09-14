@@ -125,9 +125,7 @@ function nextListMarker(marker) {
 function peelMarkers(text, markers, fromEnd) {
 	const found = []
 	let rest = text
-	const nextMarker = () => markers.find((m) =>
-		m !== '' && (fromEnd ? rest.endsWith(m) : rest.startsWith(m)),
-	)
+	const nextMarker = () => markers.find((m) => m !== '' && (fromEnd ? rest.endsWith(m) : rest.startsWith(m)))
 	for (let hit = nextMarker(); hit; hit = nextMarker()) {
 		found.push(hit)
 		rest = fromEnd ? rest.slice(0, rest.length - hit.length) : rest.slice(hit.length)
@@ -287,6 +285,7 @@ export default {
 			}
 			return [...out].sort((a, b) => b.length - a.length)
 		},
+
 		/**
 		 * The value the consumer actually bound, whichever prop they used.
 		 *

@@ -390,7 +390,10 @@ describe('CnDetailPage — sidebar Object form + show flag', () => {
 			// manifest, so an in-place edit is tracked. A plain object is not.
 			const sidebar = reactive({ register: 'r', schema: 's' })
 			const wrapper = mountDetailPage({
-				title: 'Lead', sidebar, objectType: 'lead', objectId: '1',
+				title: 'Lead',
+				sidebar,
+				objectType: 'lead',
+				objectId: '1',
 			}, state)
 			expect(state.active).toBe(true)
 
@@ -407,7 +410,10 @@ describe('CnDetailPage — sidebar Object form + show flag', () => {
 			const state = makeState()
 			const sidebar = reactive({ enabled: false, register: 'r', schema: 's' })
 			const wrapper = mountDetailPage({
-				title: 'Lead', sidebar, objectType: 'lead', objectId: '1',
+				title: 'Lead',
+				sidebar,
+				objectType: 'lead',
+				objectId: '1',
 			}, state)
 			expect(state.active).toBe(false)
 

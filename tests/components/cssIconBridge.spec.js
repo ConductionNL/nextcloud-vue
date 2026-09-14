@@ -12,10 +12,10 @@
  * help-circle "?" in the menu EDITOR, whose row renders through CnIcon.
  */
 import { mount } from '@vue/test-utils'
-import CnIcon from '../../src/components/CnIcon/CnIcon.vue'
-import { CSS_ICON_TO_MDI, bridgedMdiForCssIcon } from '../../src/components/CnIcon/cssIconBridge.js'
-import { NEXTCLOUD_ICONS } from '../../src/components/CnMenuTreeNode/nextcloudIcons.js'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
+import CnIcon from '../../src/components/CnIcon/CnIcon.vue'
+import { bridgedMdiForCssIcon, CSS_ICON_TO_MDI } from '../../src/components/CnIcon/cssIconBridge.js'
+import { NEXTCLOUD_ICONS } from '../../src/components/CnMenuTreeNode/nextcloudIcons.js'
 
 describe('cssIconBridge', () => {
 	it('resolves a Nextcloud class name to a component', () => {

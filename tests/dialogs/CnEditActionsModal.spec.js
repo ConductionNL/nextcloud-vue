@@ -86,7 +86,9 @@ describe('CnEditActionsModal', () => {
 
 		it('appends after any actions the menu already had', () => {
 			const wrapper = mountModal(
-				pageOf('detail', { headerActions: [action('kept')], actions: [action('moved')] }), 'p')
+				pageOf('detail', { headerActions: [action('kept')], actions: [action('moved')] }),
+				'p',
+			)
 			wrapper.vm.adoptStranded()
 			expect(configOf(wrapper).headerActions.map((a) => a.id)).toEqual(['kept', 'moved'])
 		})
@@ -136,7 +138,9 @@ describe('CnEditActionsModal', () => {
 
 		it('remove and move edit the working page in place', () => {
 			const wrapper = mountModal(
-				pageOf('detail', { headerActions: [action('a1'), action('a2'), action('a3')] }), 'p')
+				pageOf('detail', { headerActions: [action('a1'), action('a2'), action('a3')] }),
+				'p',
+			)
 			wrapper.vm.move(2, -1)
 			expect(configOf(wrapper).headerActions.map((a) => a.id)).toEqual(['a1', 'a3', 'a2'])
 			wrapper.vm.remove(0)

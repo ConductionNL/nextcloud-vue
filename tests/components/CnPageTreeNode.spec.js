@@ -1,3 +1,4 @@
+import { mount } from '@vue/test-utils'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -7,7 +8,6 @@
  * the depth-1 drag guard, and add/remove with child reparenting.
  */
 import { reactive } from 'vue'
-import { mount } from '@vue/test-utils'
 import CnPageTreeNode from '../../src/components/CnPageTreeNode/CnPageTreeNode.vue'
 
 // Stub vuedraggable + the row so the node mounts without Sortable / child deps.

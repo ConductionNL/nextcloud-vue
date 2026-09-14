@@ -19,10 +19,12 @@ const SwitchStub = {
 	template: '<div><slot /></div>',
 }
 
-const mountModal = (page) => mount(CnEditSidebarModal, {
-	propsData: { working: reactive({ pages: [page] }), pageId: page.id },
-	stubs: { NcCheckboxRadioSwitch: SwitchStub },
-})
+function mountModal(page) {
+	return mount(CnEditSidebarModal, {
+		propsData: { working: reactive({ pages: [page] }), pageId: page.id },
+		stubs: { NcCheckboxRadioSwitch: SwitchStub },
+	})
+}
 
 const indexPage = (sidebar) => ({ id: 'dogs', type: 'index', config: sidebar ? { sidebar } : {} })
 const detailPage = (sidebar) => ({ id: 'dog', type: 'detail', config: sidebar ? { sidebar } : {} })

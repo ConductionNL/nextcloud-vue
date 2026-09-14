@@ -5,8 +5,8 @@
 <script>
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import { DASHBOARD_ICONS } from '../CnIconPicker/dashboardIcons.js'
-import { SEMANTIC_ICON_COMPONENTS } from './semanticIcons.js'
 import { bridgedMdiForCssIcon } from './cssIconBridge.js'
+import { SEMANTIC_ICON_COMPONENTS } from './semanticIcons.js'
 
 /**
  * Mutable icon registry.

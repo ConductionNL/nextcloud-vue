@@ -19,7 +19,9 @@
  * @return {Array<string>} Param names without the colon; empty when the path declares none.
  */
 export function routeParamNames(path) {
-	if (typeof path !== 'string') return []
+	if (typeof path !== 'string') {
+		return []
+	}
 	return (path.match(/:[A-Za-z0-9_]+/g) || []).map((token) => token.slice(1))
 }
 
@@ -31,7 +33,9 @@ export function routeParamNames(path) {
  * @return {string|null} The path, or null when the router cannot be asked.
  */
 export function routePathFor(router, name) {
-	if (!router || typeof router.getRoutes !== 'function') return null
+	if (!router || typeof router.getRoutes !== 'function') {
+		return null
+	}
 	const record = (router.getRoutes() || []).find((r) => r && r.name === name)
 	return typeof record?.path === 'string' ? record.path : null
 }
@@ -52,12 +56,18 @@ export function routePathFor(router, name) {
  *   in the manifest.
  */
 export function buildRouteParams(path, id, currentParams = {}) {
-	if (typeof path !== 'string') return { id: String(id) }
+	if (typeof path !== 'string') {
+		return { id: String(id) }
+	}
 	const names = routeParamNames(path)
-	if (names.length === 0) return {}
+	if (names.length === 0) {
+		return {}
+	}
 	const params = {}
 	for (const name of names.slice(0, -1)) {
-		if (currentParams?.[name] !== undefined) params[name] = currentParams[name]
+		if (currentParams?.[name] !== undefined) {
+			params[name] = currentParams[name]
+		}
 	}
 	params[names[names.length - 1]] = String(id)
 	return params
