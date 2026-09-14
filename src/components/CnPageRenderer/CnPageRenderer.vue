@@ -1112,6 +1112,7 @@ export default {
 		 *      as a default-overrides layer.
 		 *
 		 * Per-type prop validation lives on the target components.
+		 *
 		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		resolvedProps() {

@@ -92,8 +92,8 @@ export function splitRoutePath(route) {
  *
  * @param {object} manifest The app manifest (v1 or v2; only `pages[]` is read).
  * @param {object} [options] Options.
- * @param {object|Function} [options.component] Component every route mounts. Normally CnPageRenderer.
- * @param {object|Function|boolean} [options.props] `props` for each record, passed straight through to vue-router.
+ * @param {object} [options.component] Component every route mounts. Normally CnPageRenderer.
+ * @param {object|boolean|((route: object) => object)} [options.props] `props` for each record, passed straight through to vue-router.
  * @param {(page: object, record: object) => object} [options.decorate] Called with each page and its record; the returned record is used. Lets a host add `beforeEnter`, extra `meta` or a per-page component without re-implementing the builder.
  * @return {Array<object>} Route records, in manifest order, each split route directly after its page.
  *
@@ -153,7 +153,7 @@ export function buildManifestRoutes(manifest, options = {}) {
  *
  * @param {object} page The page the record was built from.
  * @param {object} record The record.
- * @param {Function|null} decorate The hook, or null.
+ * @param {((page: object, record: object) => object)|null} decorate The hook, or null.
  * @return {object} The record to register.
  */
 function finish(page, record, decorate) {

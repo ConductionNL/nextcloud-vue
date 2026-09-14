@@ -139,7 +139,7 @@ export function useListNavigation(options = {}) {
 	/**
 	 * The function that loads the list, from the options or the store.
 	 *
-	 * @return {Function|null} The fetcher, or null when there is none.
+	 * @return {((params: object) => Promise<Array>)|null} The fetcher, or null when there is none.
 	 */
 	function resolveFetcher() {
 		if (typeof fetchList === 'function') {
