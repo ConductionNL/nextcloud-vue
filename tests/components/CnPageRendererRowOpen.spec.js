@@ -38,19 +38,19 @@ describe('CnPageRenderer.onRowOpen', () => {
 	it('navigates to the matching detail page with the row id', () => {
 		const { wrapper, push } = mountAt('Meetings')
 		wrapper.vm.onRowOpen({ id: 'abc-123', title: 'A meeting' })
-		expect(push).toHaveBeenCalledWith({ name: 'MeetingDetail', params: { id: 'abc-123' } })
+		expect(push).toHaveBeenCalledWith(expect.objectContaining({ name: 'MeetingDetail', params: { id: 'abc-123' } }))
 	})
 
 	it('picks the detail page matching THIS index page register+schema', () => {
 		const { wrapper, push } = mountAt('Decisions')
 		wrapper.vm.onRowOpen({ id: 'dec-9' })
-		expect(push).toHaveBeenCalledWith({ name: 'DecisionDetail', params: { id: 'dec-9' } })
+		expect(push).toHaveBeenCalledWith(expect.objectContaining({ name: 'DecisionDetail', params: { id: 'dec-9' } }))
 	})
 
 	it('falls back to @self.id / @self.uuid for the id', () => {
 		const { wrapper, push } = mountAt('Meetings')
 		wrapper.vm.onRowOpen({ '@self': { uuid: 'uuid-7' } })
-		expect(push).toHaveBeenCalledWith({ name: 'MeetingDetail', params: { id: 'uuid-7' } })
+		expect(push).toHaveBeenCalledWith(expect.objectContaining({ name: 'MeetingDetail', params: { id: 'uuid-7' } }))
 	})
 
 	it('no-ops when the row has no resolvable id', () => {
@@ -93,7 +93,7 @@ describe('CnPageRenderer.onRowOpen', () => {
 		it('uses the param the detail route declares, not `id`', () => {
 			const { wrapper, push } = mountAt('Apps', objectIdManifest)
 			wrapper.vm.onRowOpen({ id: 'pet-store' })
-			expect(push).toHaveBeenCalledWith({ name: 'AppDetail', params: { objectId: 'pet-store' } })
+			expect(push).toHaveBeenCalledWith(expect.objectContaining({ name: 'AppDetail', params: { objectId: 'pet-store' } }))
 		})
 
 		it('carries the parent params of a nested detail route over', () => {
@@ -110,7 +110,7 @@ describe('CnPageRenderer.onRowOpen', () => {
 				mocks: { $route: { name: 'Schemas', params: { slug: 'pet-store' } }, $router: { push } },
 			})
 			wrapper.vm.onRowOpen({ id: 'sch-4' })
-			expect(push).toHaveBeenCalledWith({ name: 'SchemaDetail', params: { slug: 'pet-store', schemaId: 'sch-4' } })
+			expect(push).toHaveBeenCalledWith(expect.objectContaining({ name: 'SchemaDetail', params: { slug: 'pet-store', schemaId: 'sch-4' } }))
 		})
 
 		it('reads the path off the router for a rowRoute outside the manifest', () => {
@@ -127,7 +127,7 @@ describe('CnPageRenderer.onRowOpen', () => {
 				mocks: { $route: { name: 'Apps', params: {} }, $router: { push, getRoutes } },
 			})
 			wrapper.vm.onRowOpen({ id: 'c-1' })
-			expect(push).toHaveBeenCalledWith({ name: 'Canvas', params: { canvasId: 'c-1' } })
+			expect(push).toHaveBeenCalledWith(expect.objectContaining({ name: 'Canvas', params: { canvasId: 'c-1' } }))
 		})
 	})
 })
@@ -168,7 +168,7 @@ describe('CnPageRenderer.onRowOpen with config.rowRoute', () => {
 	it('opens the named custom page even though no detail page matches', () => {
 		const { wrapper, push } = mountGraphs()
 		wrapper.vm.onRowOpen({ id: 'graph-1' })
-		expect(push).toHaveBeenCalledWith({ name: 'GraphDetail', params: { id: 'graph-1' } })
+		expect(push).toHaveBeenCalledWith(expect.objectContaining({ name: 'GraphDetail', params: { id: 'graph-1' } }))
 	})
 
 	it('enables rowClickToView from rowRoute alone', () => {
@@ -186,7 +186,7 @@ describe('CnPageRenderer.onRowOpen with config.rowRoute', () => {
 		}
 		const { wrapper, push } = mountGraphs(both)
 		wrapper.vm.onRowOpen({ id: 'graph-2' })
-		expect(push).toHaveBeenCalledWith({ name: 'GraphDetail', params: { id: 'graph-2' } })
+		expect(push).toHaveBeenCalledWith(expect.objectContaining({ name: 'GraphDetail', params: { id: 'graph-2' } }))
 	})
 
 	it('reports an unregistered route name instead of navigating', () => {
@@ -212,6 +212,64 @@ describe('CnPageRenderer.onRowOpen with config.rowRoute', () => {
 			getRoutes: () => [{ name: 'GraphIndex' }, { name: 'GraphDetail' }],
 		})
 		wrapper.vm.onRowOpen({ id: 'graph-5' })
-		expect(push).toHaveBeenCalledWith({ name: 'GraphDetail', params: { id: 'graph-5' } })
+		expect(push).toHaveBeenCalledWith(expect.objectContaining({ name: 'GraphDetail', params: { id: 'graph-5' } }))
+	})
+})
+
+describe('the record carries the list it was opened from', () => {
+	// The list, its filter and its sort travel in the record's address, so its
+	// detail page can step to the next record of THAT list rather than guessing
+	// an order. Asserted here because the row open is where the context is
+	// attached; what the detail page does with it is
+	// tests/composables/useListNavigation.spec.js.
+	//
+	// @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+
+	/**
+	 * Mount the renderer on an index page whose address carries list state.
+	 *
+	 * @param {object} query The list's own query.
+	 * @return {object} The wrapper and the router's push spy.
+	 */
+	function mountWithQuery(query) {
+		const push = jest.fn(() => Promise.resolve())
+		const wrapper = shallowMount(CnPageRenderer, {
+			propsData: { manifest, pageTypes },
+			mocks: { $route: { name: 'Meetings', params: {}, query }, $router: { push } },
+		})
+		return { wrapper, push }
+	}
+
+	it('names the list, its search, its sort and its filters in the query', () => {
+		const { wrapper, push } = mountWithQuery({
+			_search: 'vergunning',
+			_order: '[{"key":"createdAt","order":"desc"}]',
+			status: 'open',
+		})
+
+		wrapper.vm.onRowOpen({ id: 'abc-123' })
+
+		expect(push.mock.calls[0][0].query).toEqual({
+			_from: 'Meetings',
+			_search: 'vergunning',
+			_order: '[{"key":"createdAt","order":"desc"}]',
+			status: 'open',
+		})
+	})
+
+	it('names the list even when it had no filter, so next and previous still work', () => {
+		const { wrapper, push } = mountWithQuery({})
+
+		wrapper.vm.onRowOpen({ id: 'abc-123' })
+
+		expect(push.mock.calls[0][0].query).toEqual({ _from: 'Meetings' })
+	})
+
+	it('does not carry the tab of the list page into the record, which has its own', () => {
+		const { wrapper, push } = mountWithQuery({ _tab: 'documents', _page: '3' })
+
+		wrapper.vm.onRowOpen({ id: 'abc-123' })
+
+		expect(push.mock.calls[0][0].query).toEqual({ _from: 'Meetings' })
 	})
 })

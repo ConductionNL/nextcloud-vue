@@ -107,6 +107,54 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the `customComponents` registry on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log a `console.warn` once and fall back to the default so a misconfigured manifest never blanks the grid. See [Bespoke card-grid](#bespoke-card-grid-via-cardcomponent) below. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 
+## Split view
+
+A page declaring `splitView` opens a row beside the list rather than instead of it. The list keeps its scroll position, its selection and its loaded page, because it is hidden rather than unmounted. A handler at row 180 of 400 opens a case, closes it, and is still at row 180.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `splitView` | Object | `{}` | `{ enabled, breakpoint, paneWidth }`. Without `enabled` the page renders exactly as it does today. |
+| `splitId` | String | `''` | The record the pane shows, taken from the split address. Empty closes the pane. |
+| `splitCloseRoute` | String | `''` | Route name the pane's close button returns to. Defaults to the page the route names. |
+| `manualOrder` | Boolean | `false` | Lets this person drag the rows into an order of their own, held per user and per list. |
+| `manualOrderId` | String | `''` | Stable id the order is held under. Defaults to the object type or the schema. |
+
+Declare it on the manifest page and build the routes with [`buildManifestRoutes`](../utilities/build-manifest-routes.md), which emits the second route the pane needs:
+
+```json
+{
+  "id": "Cases",
+  "route": "/cases",
+  "type": "index",
+  "title": "Cases",
+  "splitView": { "enabled": true, "breakpoint": 900 },
+  "manualOrder": true
+}
+```
+
+```js
+const router = createRouter({
+  history: createWebHashHistory(),
+  routes: buildManifestRoutes(manifest, { component: CnPageRenderer, props: { manifest } }),
+})
+```
+
+`CnPageRenderer` then mounts the same detail component the full route mounts into the `#split-pane` slot. Mounting your own is a second detail implementation, and it will drift from the full page within a month.
+
+Below `breakpoint` the same address renders the record on its own, so a link sent from a laptop opens on a phone rather than as a narrow column. It falls back to the record, never to the list: answering a colleague's link with a list is the one thing the sender did not mean.
+
+| Slot | Bindings | Description |
+|------|----------|-------------|
+| `split-pane` | `id`, `layout`, `close`, `saved` | The open record. `layout` is `split` or `detail`. Call `saved(record)` after a save and the row updates in place, with no refetch and no scroll reset. |
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `split-close` | | The pane was closed. |
+| `split-saved` | `object` | A record saved in the pane was written onto its row. |
+| `manual-order-change` | `Array<string>` | This person reordered the list. Payload is the row ids in their order. |
+
+A manual order is stored against the person and the list, never onto the records, so two people ordering one shared list do not fight and an export carries no ordering field. The order stands down while a sort is active, because a sort the person just chose is them asking for a different order.
+
 ## Events
 
 | Event | Payload | Description |

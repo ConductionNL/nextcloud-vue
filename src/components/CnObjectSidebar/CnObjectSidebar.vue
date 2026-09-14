@@ -537,15 +537,37 @@ export default {
 		 * the sidebar switches to that tab — lets a host deep-link into a
 		 * specific leaf (e.g. a "Linked apps" row on the detail page that
 		 * opens the Mails tab). Leave null for normal internal tracking.
+		 *
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		requestedTab: {
 			type: String,
+			default: null,
+		},
+
+		/**
+		 * Called with the tab this sidebar actually settled on, and whether
+		 * that was a correction rather than a reader's choice. A host that
+		 * keeps the tab in the address uses it to write the address, so the
+		 * address always names a tab this reader can actually see.
+		 *
+		 * @type {(tabId: string, canonicalising: boolean) => void}
+		 */
+		onTabChange: {
+			type: Function,
 			default: null,
 		},
 	},
 
 	emits: [
 		'update:open',
+		/**
+		 * The active tab changed. Payload is `{ tabId, canonicalising }`:
+		 * `canonicalising` is true when the sidebar corrected an address
+		 * naming a tab that does not exist or that this reader may not see,
+		 * rather than the reader choosing one.
+		 */
+		'tab-change',
 		/**
 		 * Forwarded unchanged from the built-in CnNotesTab after a note with
 		 * at least one `@mention` was saved. Payload:
@@ -622,6 +644,9 @@ export default {
 	data() {
 		return {
 			activeTab: this.requestedTab || this.computeInitialActiveTab(),
+			// The tab id already warned about, so an address naming a tab the
+			// reader cannot see says so once rather than on every render.
+			warnedTabId: null,
 		}
 	},
 
@@ -714,23 +739,61 @@ export default {
 	watch: {
 		tabs: {
 			immediate: false,
+			/**
+			 * Re-anchor the active tab when the tab set changes, so the
+			 * active id stays one the reader can actually see.
+			 *
+			 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+			 */
 			handler() {
 				// Re-anchor activeTab when the tab set changes so the
 				// active id stays valid (otherwise NcAppSidebar shows no
 				// active tab when the consumer swaps in a fresh array).
-				this.activeTab = this.requestedTab || this.computeInitialActiveTab()
+				this.settleOnTab(this.requestedTab)
 			},
 		},
 
+		/**
+		 * Host deep-link: settle on the requested tab when it changes, which
+		 * is how an address naming a tab reaches the tab strip.
+		 *
+		 * @param {string} id The tab asked for.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
 		requestedTab(id) {
-			// Host deep-link: switch to the requested tab when it changes.
 			if (id) {
-				this.activeTab = id
+				this.settleOnTab(id)
+			}
+		},
+
+		/**
+		 * The reader clicked a tab. Reported back so a host keeping the tab
+		 * in the address writes it there, which is what makes a tab linkable.
+		 *
+		 * @param {string} id The tab now active.
+		 * @param {string} previous The tab before it.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		activeTab(id, previous) {
+			if (id && previous !== undefined && id !== previous && typeof this.onTabChange === 'function') {
+				this.onTabChange(id, false)
 			}
 		},
 	},
 
+	/**
+	 * Settle on a tab on arrival, and warn about a tab set the consumer
+	 * declared two ways.
+	 *
+	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+	 */
 	mounted() {
+		// Settle on arrival, so an address carrying no tab is corrected to
+		// its canonical form once rather than staying tabless until the
+		// reader happens to click something (ADR-052).
+		if (typeof this.onTabChange === 'function') {
+			this.settleOnTab(this.requestedTab)
+		}
 		if (this.useRegistry === true && this.hasCustomTabs === true) {
 			// eslint-disable-next-line no-console
 			console.warn('[CnObjectSidebar] `useRegistry` is true but `tabs` is also set — falling back to `tabs` (registry mode ignored). Pass one or the other.')
@@ -791,6 +854,76 @@ export default {
 				return this.tabs[0].id
 			}
 			return 'files'
+		},
+
+		/**
+		 * The tab ids this reader can actually see, in the order shown.
+		 *
+		 * Three tab sources, one answer. Without this the address could name
+		 * a tab that is hidden, excluded or simply not registered, and the
+		 * sidebar would show its first tab while the address went on claiming
+		 * a different one.
+		 *
+		 * @return {Array<string>} The visible tab ids.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		visibleTabIds() {
+			if (this.isRegistryMode) {
+				return (this.filteredRegistryIntegrations || []).map((p) => p.id)
+			}
+			if (Array.isArray(this.tabs) && this.tabs.length > 0) {
+				return this.tabs.filter((tab) => tab && !this.isTabHidden(tab.id)).map((tab) => tab.id)
+			}
+			return ['files', 'notes', 'tags', 'tasks', 'auditTrail'].filter((id) => !this.isTabHidden(id))
+		},
+
+		/**
+		 * Settle on a tab, and say whether the address had to be corrected.
+		 *
+		 * An address naming a tab that does not exist, or one this reader may
+		 * not see, falls back to the first tab they can see and says so ONCE.
+		 * Silently showing a different tab than the address names is the
+		 * failure here: the reader then sends a colleague a link that opens
+		 * somewhere else again.
+		 *
+		 * @param {string|null} requested The tab the address asked for.
+		 * @return {{ tabId: string, canonicalising: boolean }} The tab to show.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		resolveTabRequest(requested) {
+			const visible = this.visibleTabIds
+			const fallback = visible[0] || this.computeInitialActiveTab()
+			if (!requested) {
+				return { tabId: fallback, canonicalising: true }
+			}
+			if (visible.length === 0 || visible.includes(requested)) {
+				return { tabId: requested, canonicalising: false }
+			}
+			if (this.warnedTabId !== requested) {
+				this.warnedTabId = requested
+				// eslint-disable-next-line no-console
+				console.warn(`[CnObjectSidebar] The address asks for the "${requested}" tab, which is not available here. Showing "${fallback}" instead.`)
+			}
+			return { tabId: fallback, canonicalising: true }
+		},
+
+		/**
+		 * Show a tab and tell the host, so the address can follow.
+		 *
+		 * @param {string|null} requested The tab asked for.
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		settleOnTab(requested) {
+			const { tabId, canonicalising } = this.resolveTabRequest(requested)
+			this.activeTab = tabId
+			if (typeof this.onTabChange === 'function') {
+				this.onTabChange(tabId, canonicalising)
+			}
+			/**
+			 * @event tab-change Emitted when the active tab settles, including when the sidebar corrected the address.
+			 * @type {{ tabId: string, canonicalising: boolean }}
+			 */
+			this.$emit('tab-change', { tabId, canonicalising })
 		},
 
 		/**
