@@ -8,7 +8,7 @@
  * value for unparseable input, empty string for null/empty).
  */
 
-const { formatDate, formatDateTime, formatRelativeTime, formatDaysSince, formatDaysUntil, formatCurrency, formatConditionalPhrase, formatCount, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
+const { formatDate, formatDateTime, formatRelativeTime, formatDaysSince, formatDaysUntil, formatCurrency, formatConditionalPhrase, formatCount, formatConnectionStatus, formatConnectionSettingsLabel, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
 
 /**
  * A date `days` whole days from today, at local noon so DST shifts and
@@ -287,7 +287,56 @@ describe('builtInFormatters', () => {
 		})
 	})
 
+	describe('formatConnectionStatus', () => {
+		it.each([
+			['configured', 'Configured'],
+			['unconfigured', 'Not configured'],
+			['simulated', 'Simulated'],
+			['unavailable', 'Not available'],
+			['error', 'Error'],
+		])('renders %s as %s', (value, label) => {
+			expect(formatConnectionStatus(value)).toBe(label)
+		})
+
+		it('passes an unknown value through unchanged', () => {
+			expect(formatConnectionStatus('degraded')).toBe('degraded')
+			expect(formatConnectionStatus('')).toBe('')
+		})
+
+		it('does not read an inherited object key as a status', () => {
+			expect(formatConnectionStatus('toString')).toBe('toString')
+			expect(formatConnectionStatus('constructor')).toBe('constructor')
+		})
+
+		it('renders null and undefined as an empty string', () => {
+			expect(formatConnectionStatus(null)).toBe('')
+			expect(formatConnectionStatus(undefined)).toBe('')
+		})
+	})
+
+	describe('formatConnectionSettingsLabel', () => {
+		it('renders Open settings when the row has a settings url', () => {
+			expect(formatConnectionSettingsLabel('/settings/admin/dossiq#section-zgw')).toBe('Open settings')
+		})
+
+		it('renders nothing when the settings url is empty or missing', () => {
+			expect(formatConnectionSettingsLabel('')).toBe('')
+			expect(formatConnectionSettingsLabel(null)).toBe('')
+			expect(formatConnectionSettingsLabel(undefined)).toBe('')
+		})
+
+		it('renders nothing for a value that is not a string', () => {
+			expect(formatConnectionSettingsLabel(42)).toBe('')
+			expect(formatConnectionSettingsLabel({ href: '/x' })).toBe('')
+		})
+	})
+
 	describe('BUILT_IN_FORMATTERS map', () => {
+		it('exports connectionStatus / connectionSettingsLabel entries resolvable by a column formatter name', () => {
+			expect(BUILT_IN_FORMATTERS.connectionStatus).toBe(formatConnectionStatus)
+			expect(BUILT_IN_FORMATTERS.connectionSettingsLabel).toBe(formatConnectionSettingsLabel)
+		})
+
 		it('exports date / datetime / relative-time entries', () => {
 			expect(typeof BUILT_IN_FORMATTERS.date).toBe('function')
 			expect(typeof BUILT_IN_FORMATTERS.datetime).toBe('function')

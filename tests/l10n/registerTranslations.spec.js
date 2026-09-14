@@ -17,6 +17,7 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { mount } from '@vue/test-utils'
 import CnObjectMetadataWidget from '../../src/components/CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
 import { pluralEntries, registerTranslations } from '../../src/l10n/index.js'
+import { formatConnectionSettingsLabel, formatConnectionStatus } from '../../src/utils/builtInFormatters.js'
 
 /**
  * Register the library's bundle as a reader of the given language would.
@@ -64,6 +65,17 @@ describe('registerTranslations', () => {
 		expect(labels).toContain('Bewaartermijn')
 		expect(labels).toContain('Archiefactiedatum')
 		expect(wrapper.text()).toContain('10 jaar')
+	})
+
+	it('gives a Dutch reader the connection formatters in Dutch', () => {
+		readAs('nl')
+
+		expect(formatConnectionStatus('configured')).toBe('Geconfigureerd')
+		expect(formatConnectionStatus('unconfigured')).toBe('Niet geconfigureerd')
+		expect(formatConnectionStatus('simulated')).toBe('Gesimuleerd')
+		expect(formatConnectionStatus('unavailable')).toBe('Niet beschikbaar')
+		expect(formatConnectionStatus('error')).toBe('Fout')
+		expect(formatConnectionSettingsLabel('/settings/admin/dossiq#section-zgw')).toBe('Instellingen openen')
 	})
 
 	it('still answers in English for an English reader', () => {
