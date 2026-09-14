@@ -671,8 +671,10 @@ export default {
 			 * Per-item expand/collapse state for menu groups, keyed by
 			 * item id. Seeded lazily from the manifest's `item.open` by
 			 * `isItemOpen`; written by the collapse chevron (via
-			 * `@update:open`) and by title clicks on route-less group
-			 * items (via `onItemClick`).
+			 * `@update:open`), by title clicks on route-less group items
+			 * (which TOGGLE open/closed), and by title clicks on a group
+			 * that ALSO carries a route or href (which force it OPEN,
+			 * alongside the navigation — see `onItemClick`).
 			 */
 			openState: {},
 		}
@@ -1423,20 +1425,29 @@ export default {
 		},
 
 		/**
-		 * Click handler. Dispatch order: action keyword → group toggle.
-		 * For `action: "user-settings"` invokes the injected
+		 * Click handler. Dispatch order: action keyword → group
+		 * open/toggle. For `action: "user-settings"` invokes the injected
 		 * `cnOpenUserSettings` (provided by CnAppRoot) and prevents
 		 * default; for `action: "admin-settings"` opens
 		 * `/settings/admin/<appId>` in a new tab and prevents default; for `action:
 		 * "replay-walkthrough"` invokes the injected
 		 * `cnReplayWalkthrough(item.tourId)` and prevents default. `href`
-		 * items are NOT handled here — they render a real anchor via
-		 * `itemHref`, so the browser navigates natively (external URLs open
-		 * in a new tab, internal app paths in the same tab). Route-less
-		 * items with visible children are pure group headers: their anchor
-		 * is a dead `#` link, so clicking the title toggles the children
-		 * open/closed (same effect as the collapse chevron). Route items
-		 * are handled by `:to` and skip this path.
+		 * items with no children are NOT handled here — they render a real
+		 * anchor via `itemHref`, so the browser navigates natively
+		 * (external URLs open in a new tab, internal app paths in the same
+		 * tab).
+		 *
+		 * A group's children visibility on click depends on whether the
+		 * group ITSELF has a destination:
+		 *  - Route-less, href-less: a pure group header, so its anchor is
+		 *    a dead `#` link and the click's only job is to TOGGLE the
+		 *    children open/closed (same effect as the collapse chevron).
+		 *  - Carries a `route` or `href`: the click is a real navigation
+		 *    (handled natively by `:to` / the anchor, not prevented here),
+		 *    and this additionally forces the group OPEN — never closed —
+		 *    so the reader lands on the group's own page without a second
+		 *    click to see what else it holds. The collapse chevron is the
+		 *    only control that can close such a group again.
 		 *
 		 * @param {object} item Menu item being clicked.
 		 * @param {Event} [event] Native click event (used to call
@@ -1471,12 +1482,19 @@ export default {
 				this.cnReplayWalkthrough(item.tourId)
 				return
 			}
-			if (!item.route && !item.href && this.visibleChildren(item).length > 0) {
+			if (this.visibleChildren(item).length === 0) {
+				return
+			}
+			if (!item.route && !item.href) {
 				if (event && typeof event.preventDefault === 'function') {
 					event.preventDefault()
 				}
 				this.setItemOpen(item, !this.isItemOpen(item))
+				return
 			}
+			// The item is ALSO a real destination: let the click navigate
+			// natively and reveal the children alongside it.
+			this.setItemOpen(item, true)
 		},
 
 		/**

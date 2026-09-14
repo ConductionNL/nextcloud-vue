@@ -167,4 +167,80 @@ describe('CnContactsTab', () => {
 		skipped.unmount()
 		fetching.unmount()
 	})
+
+	it('takes the server\'s grouping and role vocabulary when the listing carries them', async () => {
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({
+				results: [
+					{ id: 1, contactUid: 'user:jan', kind: 'user', displayName: 'Jan de Vries', role: 'handler', active: true },
+					{ id: 2, contactUid: 'piet-uid', kind: 'contact', displayName: 'Piet', role: 'initiator', active: false, validUntil: '2026-01-31' },
+				],
+				total: 2,
+				byRole: {
+					handler: [{ id: 1, contactUid: 'user:jan', kind: 'user', displayName: 'Jan de Vries', role: 'handler', active: true }],
+					initiator: [{ id: 2, contactUid: 'piet-uid', kind: 'contact', displayName: 'Piet', role: 'initiator', active: false, validUntil: '2026-01-31' }],
+				},
+				roles: [
+					{ key: 'initiator', label: 'Indiener' },
+					{ key: 'handler', label: 'Behandelaar' },
+				],
+			}),
+		})
+
+		const wrapper = mount(CnContactsTab, {
+			propsData: { objectId: 'o1', register: 'r1', schema: 's1' },
+		})
+		await flushPromises()
+
+		// The server grouped, so the tab does not re-bucket: its own buckets
+		// would have called both of these "Other".
+		expect(wrapper.vm.groupedContacts.map((group) => group.label)).toEqual(['Behandelaar', 'Indiener'])
+		// And the picker is offered the schema's vocabulary, not the defaults.
+		expect(wrapper.vm.pickerRoleOptions.roleOptions).toEqual([
+			{ label: 'Indiener', value: 'initiator' },
+			{ label: 'Behandelaar', value: 'handler' },
+		])
+		expect(wrapper.find('[data-testid="cn-contacts-tab-inactive"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-contacts-tab-period"]').text()).toContain('2026-01-31')
+		wrapper.unmount()
+	})
+
+	it('falls back to its own buckets when the server sends a bare list', async () => {
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({
+				results: [{ id: 1, contactUid: 'jan-uid', displayName: 'Jan', role: 'applicant' }],
+				total: 1,
+			}),
+		})
+
+		const wrapper = mount(CnContactsTab, {
+			propsData: { objectId: 'o1', register: 'r1', schema: 's1' },
+		})
+		await flushPromises()
+
+		expect(wrapper.vm.groupedContacts.map((group) => group.key)).toEqual(['applicant'])
+		expect(wrapper.vm.pickerRoleOptions).toEqual({})
+		wrapper.unmount()
+	})
+
+	it('removes the row\'s role, not the person, when a person holds several', async () => {
+		const calls = []
+		global.fetch = jest.fn().mockImplementation((url, options) => {
+			calls.push({ url: String(url), method: options?.method ?? 'GET' })
+			return Promise.resolve({ ok: true, json: () => Promise.resolve({ results: [], total: 0 }) })
+		})
+
+		const wrapper = mount(CnContactsTab, {
+			propsData: { objectId: 'o1', register: 'r1', schema: 's1' },
+		})
+		await flushPromises()
+		await wrapper.vm.unlink({ id: 7, contactUid: 'user:jan', role: 'advisor' })
+
+		const deletes = calls.filter((call) => call.method === 'DELETE')
+		expect(deletes).toHaveLength(1)
+		expect(deletes[0].url).toContain('/contacts/user%3Ajan?role=advisor')
+		wrapper.unmount()
+	})
 })

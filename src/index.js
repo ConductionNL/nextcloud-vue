@@ -110,6 +110,7 @@ export {
 	CnFieldHelper,
 	CnFileField,
 	CnFileManager,
+	CnFilesBrowser,
 	CnFilesCard,
 	CnFilesPage,
 	CnFilesWidget,
