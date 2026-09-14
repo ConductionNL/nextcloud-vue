@@ -45,7 +45,7 @@
 				<NcButton @click="confirmDiscard = false">
 					{{ t('nextcloud-vue', 'Keep editing') }}
 				</NcButton>
-				<NcButton type="error" @click="discard">
+				<NcButton variant="error" @click="discard">
 					{{ t('nextcloud-vue', 'Discard') }}
 				</NcButton>
 			</template>

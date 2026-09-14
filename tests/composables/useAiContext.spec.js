@@ -8,7 +8,7 @@
  */
 
 const Vue = require('vue').default || require('vue')
-const { useAiContext, defaultContext } = require('../../src/composables/useAiContext.js')
+const { useAiContext } = require('../../src/composables/useAiContext.js')
 
 describe('useAiContext', () => {
 	it('returns default object when called with null instance (no CnAppRoot ancestor)', () => {

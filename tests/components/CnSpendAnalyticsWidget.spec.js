@@ -19,7 +19,12 @@ describe('CnSpendAnalyticsWidget renderer', () => {
 	it('shows the "financeq is not installed" empty state when finance is unavailable', async () => {
 		const dataSource = {
 			fetchSummary: jest.fn().mockResolvedValue({
-				available: false, empty: false, total: 0, currency: 'EUR', byCategory: [], trend: [],
+				available: false,
+				empty: false,
+				total: 0,
+				currency: 'EUR',
+				byCategory: [],
+				trend: [],
 			}),
 		}
 		const wrapper = mount(CnSpendAnalyticsWidget, { propsData: { content: {}, dataSource } })
@@ -33,8 +38,12 @@ describe('CnSpendAnalyticsWidget renderer', () => {
 	it('renders the total when the source provides finance data', async () => {
 		const dataSource = {
 			fetchSummary: jest.fn().mockResolvedValue({
-				available: true, empty: false, total: 1000, currency: 'EUR',
-				byCategory: [{ category: 'IT', amount: 1000 }], trend: [],
+				available: true,
+				empty: false,
+				total: 1000,
+				currency: 'EUR',
+				byCategory: [{ category: 'IT', amount: 1000 }],
+				trend: [],
 			}),
 		}
 		const wrapper = mount(CnSpendAnalyticsWidget, { propsData: { content: {}, dataSource } })

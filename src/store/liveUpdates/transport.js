@@ -14,8 +14,8 @@
  *   failures) → switches to pollingTransport automatically.
  */
 
-import { createWebsocketTransport } from './websocketTransport.js'
 import { createPollingTransport, DEFAULT_POLL_INTERVAL_COLLECTION, DEFAULT_POLL_INTERVAL_OBJECT } from './pollingTransport.js'
+import { createWebsocketTransport } from './websocketTransport.js'
 
 /** @type {object|null} Module-level singleton instance */
 let instance = null
@@ -28,7 +28,7 @@ let instance = null
  *   pollTransport: object|null,
  *   activeTransport: object|null,
  *   handles: Map<object, object>,
- *   statusObservers: Function[],
+ *   statusObservers: Array<(status: string) => void>,
  *   pollIntervalCollection: number,
  *   pollIntervalObject: number,
  * }}
@@ -62,7 +62,7 @@ function notifyStatus(newStatus) {
  * Switch all active subscriptions from websocket to polling transport.
  * Called when the websocket transport emits `'polling'` status.
  *
- * @param {Array<{ handle: object, eventKey: string, cb: Function, interval: number }>} activeSubscriptions
+ * @param {Array<{ handle: object, eventKey: string, cb: (event?: string, body?: object) => void, interval: number }>} activeSubscriptions
  *   Every live subscription, re-registered one-for-one against the polling
  *   transport; `handle` is the caller-facing handle whose mapping is rewritten
  *   to the new internal handle so `unsubscribe` keeps working.
@@ -92,10 +92,16 @@ function switchToPolling(activeSubscriptions) {
  * @return {object} The singleton live-updates instance
  */
 export function getLiveUpdates(opts = {}) {
-	if (instance) return instance
+	if (instance) {
+		return instance
+	}
 
-	if (opts.pollIntervalCollection) state.pollIntervalCollection = opts.pollIntervalCollection
-	if (opts.pollIntervalObject) state.pollIntervalObject = opts.pollIntervalObject
+	if (opts.pollIntervalCollection) {
+		state.pollIntervalCollection = opts.pollIntervalCollection
+	}
+	if (opts.pollIntervalObject) {
+		state.pollIntervalObject = opts.pollIntervalObject
+	}
 
 	/**
 	 * Determine which transport to use by probing notify_push availability.
@@ -148,14 +154,16 @@ export function getLiveUpdates(opts = {}) {
 		 * @return {string}
 		 */
 		getStatus() {
-			if (state.activeTransport) return state.activeTransport.getStatus()
+			if (state.activeTransport) {
+				return state.activeTransport.getStatus()
+			}
 			return 'offline'
 		},
 
 		/**
 		 * Register a status observer.
 		 *
-		 * @param {Function} cb Callback receiving the new status string
+		 * @param {(status: string) => void} cb Callback receiving the new status string
 		 */
 		onStatusChange(cb) {
 			state.statusObservers.push(cb)
@@ -165,7 +173,7 @@ export function getLiveUpdates(opts = {}) {
 		 * Subscribe to an event key.
 		 *
 		 * @param {string} eventKey Event key (from eventKeys.js)
-		 * @param {Function} cb Callback invoked when the event fires
+		 * @param {(event?: string, body?: object) => void} cb Callback invoked when the event fires
 		 * @param {object} [opts] Options
 		 * @param {number} [opts.interval] Poll interval override (polling transport only)
 		 * @param {boolean} [opts.isObject] Whether this is an object (vs collection) subscription
@@ -205,7 +213,9 @@ export function getLiveUpdates(opts = {}) {
 		 */
 		unsubscribe(handle) {
 			const internalHandle = state.handles.get(handle)
-			if (!internalHandle) return
+			if (!internalHandle) {
+				return
+			}
 
 			state.handles.delete(handle)
 
@@ -218,8 +228,12 @@ export function getLiveUpdates(opts = {}) {
 		 * Reset singleton state (for testing).
 		 */
 		_reset() {
-			if (state.wsTransport) state.wsTransport.destroy()
-			if (state.pollTransport) state.pollTransport.destroy()
+			if (state.wsTransport) {
+				state.wsTransport.destroy()
+			}
+			if (state.pollTransport) {
+				state.pollTransport.destroy()
+			}
 			state.wsTransport = null
 			state.pollTransport = null
 			state.activeTransport = null
@@ -240,8 +254,12 @@ export function resetLiveUpdates() {
 		instance._reset()
 	} else {
 		// Still reset module state
-		if (state.wsTransport) state.wsTransport.destroy()
-		if (state.pollTransport) state.pollTransport.destroy()
+		if (state.wsTransport) {
+			state.wsTransport.destroy()
+		}
+		if (state.pollTransport) {
+			state.pollTransport.destroy()
+		}
 		state.wsTransport = null
 		state.pollTransport = null
 		state.activeTransport = null

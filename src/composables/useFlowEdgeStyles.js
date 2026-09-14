@@ -19,7 +19,7 @@
 import { translate as t } from '@nextcloud/l10n'
 
 /**
- * @type {Array<{id: string, label: Function}>}
+ * @type {Array<{id: string, label: () => string}>}
  */
 export const EDGE_LINE_TYPES = Object.freeze([
 	{

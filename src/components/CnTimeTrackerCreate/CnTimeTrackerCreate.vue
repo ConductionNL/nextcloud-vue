@@ -71,8 +71,10 @@ export default {
 	components: { NcButton, NcDialog, NcNoteCard, NcTextField },
 
 	props: {
+		/* eslint-disable vue/no-unused-properties -- CnTimeTrackerTab binds it on every child; this dialog emits create and lets the tab make the request */
 		/** Base API URL for OR. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
+		/* eslint-enable vue/no-unused-properties */
 		/** Pre-translated dialog title. */
 		dialogTitle: { type: String, default: () => t('nextcloud-vue', 'Create a new client') },
 	},

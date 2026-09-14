@@ -37,6 +37,7 @@ export function selectionPlugin() {
 		state: () => ({
 			/**
 			 * IDs of currently selected objects.
+			 *
 			 * @type {string[]}
 			 */
 			selectedObjects: [],
@@ -49,14 +50,16 @@ export function selectionPlugin() {
 			 *
 			 * @param {object} state pinia injected state
 			 *
-			 * @return {Function} (type: string) => boolean
+			 * @return {(type: string) => boolean} True when every object in the type's collection is selected.
 			 */
 			isAllSelected: (state) => (type) => {
 				const collection = state.collections?.[type] || []
-				if (!collection.length) return false
+				if (!collection.length) {
+					return false
+				}
 				return collection.every((r) => {
 					const id = r.id ?? r['@self']?.id
-					return id != null && state.selectedObjects.includes(id)
+					return id !== null && id !== undefined && state.selectedObjects.includes(id)
 				})
 			},
 		},
@@ -95,7 +98,9 @@ export function selectionPlugin() {
 				} else {
 					// Add this type's IDs to existing selection (deduplicated)
 					const existing = new Set(this.selectedObjects)
-					for (const id of ids) existing.add(id)
+					for (const id of ids) {
+						existing.add(id)
+					}
 					this.selectedObjects = [...existing]
 				}
 			},

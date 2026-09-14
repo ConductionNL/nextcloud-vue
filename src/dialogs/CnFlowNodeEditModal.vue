@@ -15,11 +15,11 @@
 				{{ node.type }}
 			</p>
 
-			<NcTextField :model-value="draft.name"
+			<NcTextField :modelValue="draft.name"
 				:label="t('nextcloud-vue', 'Step name')"
 				:placeholder="typeLabel"
-				:helper-text="t('nextcloud-vue', 'Shown on the card. Leave empty to show the step type.')"
-				@update:model-value="draft.name = $event" />
+				:helperText="t('nextcloud-vue', 'Shown on the card. Leave empty to show the step type.')"
+				@update:modelValue="draft.name = $event" />
 
 			<!-- One field per option the ENGINE declares for this step
 			     (`configKeys`), plus any key already set on the node. The
@@ -27,55 +27,55 @@
 			     field for numbers, a JSON area for structured values. -->
 			<div v-for="key in formKeys" :key="key" class="cn-flow-node-edit__field">
 				<NcCheckboxRadioSwitch v-if="widgetFor(key) === 'switch'"
-					:model-value="draft.config[key] === true"
+					:modelValue="draft.config[key] === true"
 					type="switch"
-					@update:model-value="setKey(key, $event)">
+					@update:modelValue="setKey(key, $event)">
 					{{ labelFor(key) }}
 				</NcCheckboxRadioSwitch>
 
 				<NcSelect v-else-if="widgetFor(key) === 'method'"
-					:model-value="draft.config[key] || null"
+					:modelValue="draft.config[key] || null"
 					:options="HTTP_METHODS"
-					:input-label="labelFor(key)"
+					:inputLabel="labelFor(key)"
 					:placeholder="t('nextcloud-vue', 'GET')"
-					@update:model-value="setKey(key, $event)" />
+					@update:modelValue="setKey(key, $event)" />
 
 				<!-- A `select` field with `optionsFrom` renders as a picker fed
 				     by the URL the OWNING APP declared — never a bare uuid
 				     text box. -->
 				<NcSelect v-else-if="widgetFor(key) === 'select'"
-					:model-value="selectedOption(key)"
+					:modelValue="selectedOption(key)"
 					:options="selectOptions[key] || []"
-					:input-label="labelFor(key)"
+					:inputLabel="labelFor(key)"
 					:loading="selectLoading[key] === true"
 					:placeholder="t('nextcloud-vue', 'Pick one…')"
-					@update:model-value="setKey(key, $event ? $event.id : '')" />
+					@update:modelValue="setKey(key, $event ? $event.id : '')" />
 
 				<NcTextArea v-else-if="widgetFor(key) === 'textarea'"
-					:model-value="String(draft.config[key] ?? '')"
+					:modelValue="String(draft.config[key] ?? '')"
 					:label="labelFor(key)"
-					:helper-text="hintFor(key)"
+					:helperText="hintFor(key)"
 					rows="4"
-					@update:model-value="setKey(key, $event)" />
+					@update:modelValue="setKey(key, $event)" />
 
 				<NcTextField v-else-if="widgetFor(key) === 'number'"
-					:model-value="String(draft.config[key] ?? '')"
+					:modelValue="String(draft.config[key] ?? '')"
 					type="number"
 					:label="labelFor(key)"
-					@update:model-value="setNumberKey(key, $event)" />
+					@update:modelValue="setNumberKey(key, $event)" />
 
 				<NcTextArea v-else-if="widgetFor(key) === 'json'"
-					:model-value="jsonDraftFor(key)"
+					:modelValue="jsonDraftFor(key)"
 					:label="labelFor(key)"
 					:error="jsonErrors[key] !== undefined"
-					:helper-text="jsonErrors[key] || t('nextcloud-vue', 'A structured value, as JSON.')"
+					:helperText="jsonErrors[key] || t('nextcloud-vue', 'A structured value, as JSON.')"
 					rows="4"
-					@update:model-value="setJsonKey(key, $event)" />
+					@update:modelValue="setJsonKey(key, $event)" />
 
 				<CnCronField v-else-if="widgetFor(key) === 'cron'"
-					:model-value="String(draft.config[key] ?? '')"
+					:modelValue="String(draft.config[key] ?? '')"
 					:label="labelFor(key)"
-					@update:model-value="setKey(key, $event)" />
+					@update:modelValue="setKey(key, $event)" />
 
 				<!-- `runAs` is a Nextcloud user id, and the SERVER decides
 				     whether this saver may act as that user — see
@@ -89,30 +89,30 @@
 				     `{type: 'group', id: 'bezwaar'}` is stored as a group and
 				     nothing has to guess later. -->
 				<NcSelect v-else-if="widgetFor(key) === 'principal'"
-					:model-value="principalOptions(key)"
+					:modelValue="principalOptions(key)"
 					:options="principalChoices"
-					:input-label="labelFor(key)"
+					:inputLabel="labelFor(key)"
 					:loading="principalsLoading"
 					:multiple="true"
-					:close-on-select="false"
+					keepOpen
 					:placeholder="t('nextcloud-vue', 'Search people and groups…')"
 					:data-testid="`flow-node-principal-${key}`"
 					@search="searchPrincipals"
-					@update:model-value="setPrincipals(key, $event)" />
+					@update:modelValue="setPrincipals(key, $event)" />
 
 				<NcSelect v-else-if="widgetFor(key) === 'user'"
-					:model-value="userOption(key)"
+					:modelValue="userOption(key)"
 					:options="userOptions"
-					:input-label="labelFor(key)"
+					:inputLabel="labelFor(key)"
 					:loading="usersLoading"
 					:placeholder="t('nextcloud-vue', 'Pick a user…')"
-					@update:model-value="setKey(key, $event ? $event.id : '')" />
+					@update:modelValue="setKey(key, $event ? $event.id : '')" />
 
 				<NcTextField v-else
-					:model-value="String(draft.config[key] ?? '')"
+					:modelValue="String(draft.config[key] ?? '')"
 					:label="labelFor(key)"
-					:helper-text="hintFor(key)"
-					@update:model-value="setKey(key, $event)" />
+					:helperText="hintFor(key)"
+					@update:modelValue="setKey(key, $event)" />
 			</div>
 
 			<p v-if="!formKeys.length" class="cn-flow-node-edit__hint">
@@ -133,12 +133,12 @@
 			     simplest step in the editor. -->
 			<details v-if="canEditAsJson" class="cn-flow-node-edit__advanced">
 				<summary>{{ t('nextcloud-vue', 'Advanced: edit as JSON') }}</summary>
-				<NcTextArea :model-value="advancedJson"
+				<NcTextArea :modelValue="advancedJson"
 					:label="t('nextcloud-vue', 'Configuration (JSON)')"
 					:error="advancedError !== null"
-					:helper-text="advancedError || t('nextcloud-vue', 'The full configuration document. The fields above update along.')"
+					:helperText="advancedError || t('nextcloud-vue', 'The full configuration document. The fields above update along.')"
 					rows="8"
-					@update:model-value="onAdvancedInput" />
+					@update:modelValue="onAdvancedInput" />
 			</details>
 		</div>
 
@@ -371,9 +371,7 @@ export default {
 				...fromForm,
 				...(this.entry?.configKeys || []).filter((k) => !fromForm.includes(k)),
 			]
-			const present = Object.keys(this.draft.config).filter(
-				(k) => !k.startsWith('$') && !declared.includes(k),
-			)
+			const present = Object.keys(this.draft.config).filter((k) => !k.startsWith('$') && !declared.includes(k))
 
 			return [...declared, ...present]
 		},
@@ -569,7 +567,7 @@ export default {
 						}
 					})
 					.filter((option) => option.value !== '')
-			} catch (error) {
+			} catch {
 				// A failed lookup must not clear what is already picked: the
 				// selected options are synthesised from the document, not from
 				// this list.
@@ -601,7 +599,7 @@ export default {
 					.filter((row) => row.source === 'users')
 					.map((row) => ({ id: String(row.id ?? ''), label: String(row.label ?? row.id ?? '') }))
 					.filter((row) => row.id !== '')
-			} catch (error) {
+			} catch {
 				this.users = []
 			} finally {
 				this.usersLoading = false
@@ -743,6 +741,7 @@ export default {
 			} catch (error) {
 				// A picker that could not load degrades to showing the stored
 				// value; the Advanced editor still reaches everything.
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error(`cn-flow: could not load options for "${key}"`, error)
 			} finally {
 				this.selectLoading = { ...this.selectLoading, [key]: false }
@@ -796,7 +795,7 @@ export default {
 
 		/**
 		 * @param {string} key   The config key.
-		 * @param {*}      value The new value.
+		 * @param {unknown}      value The new value.
 		 * @return {void}
 		 */
 		setKey(key, value) {
@@ -842,7 +841,7 @@ export default {
 				delete rest[key]
 				this.jsonErrors = rest
 				this.setKey(key, parsed)
-			} catch (e) {
+			} catch {
 				this.jsonErrors = {
 					...this.jsonErrors,
 					[key]: this.t('nextcloud-vue', 'Not valid JSON, so this option keeps its previous value.'),
@@ -869,7 +868,7 @@ export default {
 				this.draft.config = parsed
 				this.jsonDrafts = {}
 				this.jsonErrors = {}
-			} catch (e) {
+			} catch {
 				this.advancedError = this.t('nextcloud-vue', 'Not valid JSON, so the configuration keeps its previous value.')
 			}
 		},

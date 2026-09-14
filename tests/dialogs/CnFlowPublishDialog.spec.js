@@ -15,8 +15,8 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { useFlowStore } from '../../src/composables/useFlowStore.js'
 import CnFlowPublishDialog from '../../src/dialogs/CnFlowPublishDialog.vue'
+import { useFlowStore } from '../../src/composables/useFlowStore.js'
 
 const preview = {
 	verdict: 'major',
@@ -83,9 +83,11 @@ async function mountDialog(storeOverrides = {}) {
 				},
 				NcLoadingIcon: true,
 			},
-			mocks: { t: (app, s, vars) => (vars
-				? Object.entries(vars).reduce((out, [k, v]) => out.replace(`{${k}}`, v), s)
-				: s) },
+			mocks: {
+				t: (app, s, vars) => (vars
+					? Object.entries(vars).reduce((out, [k, v]) => out.replace(`{${k}}`, v), s)
+					: s),
+			},
 		},
 	})
 

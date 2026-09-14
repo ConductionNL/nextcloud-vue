@@ -28,7 +28,7 @@
 				<img
 					v-if="coverUrl(entity)"
 					:src="coverUrl(entity)"
-					:alt="''"
+					alt=""
 					class="cn-photos-card__chip-cover"
 					@error="onCoverError(entity)">
 				<ImageIcon v-else :size="14" />
@@ -60,7 +60,7 @@
 						<img
 							v-if="coverUrl(firstAlbum)"
 							:src="coverUrl(firstAlbum)"
-							:alt="''"
+							alt=""
 							class="cn-photos-card__headline-cover-img"
 							@error="onCoverError(firstAlbum)">
 						<ImageMultiple v-else :size="18" />
@@ -103,7 +103,7 @@
 						<img
 							v-if="coverUrl(album)"
 							:src="coverUrl(album)"
-							:alt="''"
+							alt=""
 							class="cn-photos-card__tile-cover-img"
 							loading="lazy"
 							@error="onCoverError(album)">
@@ -123,7 +123,7 @@
 </template>
 
 <script>
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import ImageIcon from 'vue-material-design-icons/Image.vue'
 import ImageMultiple from 'vue-material-design-icons/ImageMultiple.vue'
@@ -161,6 +161,7 @@ export default {
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+
 		/** Optional single-entity reference (album id). */
 		value: { type: [String, Number], default: '' },
 		/** Pre-translated card title. */
@@ -234,9 +235,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler() { this.fetch() } },
-		surface() { this.fetch() },
-		value() { if (this.surface === 'single-entity') { this.fetchSingle() } },
+		objectId: { immediate: true, handler() {
+			this.fetch()
+		} },
+
+		surface() {
+			this.fetch()
+		},
+
+		value() {
+			if (this.surface === 'single-entity') {
+				this.fetchSingle()
+			}
+		},
 	},
 
 	methods: {

@@ -20,7 +20,7 @@
 	<NcDialog
 		:name="title"
 		size="normal"
-		:no-close="loading"
+		:noClose="loading"
 		data-testid="cn-modal"
 		data-testid-modal="cn-contact-create"
 		@closing="onClose">
@@ -28,43 +28,43 @@
 			<NcTextField
 				v-model="form.displayName"
 				:label="displayNameLabel"
-				:input-label="displayNameLabel"
+				:inputLabel="displayNameLabel"
 				:error="displayNameError !== ''"
-				:helper-text="displayNameError || displayNameHelper"
+				:helperText="displayNameError || displayNameHelper"
 				:maxlength="255"
 				required />
 
 			<NcTextField
 				v-model="form.email"
 				:label="emailLabel"
-				:input-label="emailLabel"
+				:inputLabel="emailLabel"
 				type="email"
 				:error="emailError !== ''"
-				:helper-text="emailError || emailHelper"
+				:helperText="emailError || emailHelper"
 				:maxlength="255" />
 
 			<NcTextField
 				v-model="form.phone"
 				:label="phoneLabel"
-				:input-label="phoneLabel"
+				:inputLabel="phoneLabel"
 				:maxlength="64" />
 
 			<NcTextField
 				v-model="form.org"
 				:label="orgLabel"
-				:input-label="orgLabel"
+				:inputLabel="orgLabel"
 				:maxlength="255" />
 
 			<div class="cn-contact-create__role">
 				<label for="cn-contact-create-role">{{ roleLabel }}</label>
 				<NcSelect
-					input-id="cn-contact-create-role"
+					inputId="cn-contact-create-role"
 					:options="roleOptions"
-					:model-value="form.role"
+					:modelValue="form.role"
 					:clearable="true"
 					:taggable="true"
-					:input-label="roleLabel"
-					@update:model-value="form.role = $event" />
+					:inputLabel="roleLabel"
+					@update:modelValue="form.role = $event" />
 			</div>
 		</div>
 
@@ -160,6 +160,7 @@ export default {
 		emailInvalidMsg: { type: String, default: () => t('nextcloud-vue', 'Email is not a valid address.') },
 		/**
 		 * Role options for the role dropdown.
+		 *
 		 * @type {Array<{ label: string, value: string }>}
 		 */
 		roleOptions: {
@@ -197,8 +198,12 @@ export default {
 
 		emailError() {
 			const value = this.form.email.trim()
-			if (value === '') return ''
-			if (!EMAIL_REGEX.test(value)) return this.emailInvalidMsg
+			if (value === '') {
+				return ''
+			}
+			if (!EMAIL_REGEX.test(value)) {
+				return this.emailInvalidMsg
+			}
 			return ''
 		},
 
@@ -221,7 +226,9 @@ export default {
 		},
 
 		submit() {
-			if (!this.canSubmit) return
+			if (!this.canSubmit) {
+				return
+			}
 			/**
 			 * @event create Emitted on submit. Payload: `{ displayName, email, phone, org, role }`.
 			 */

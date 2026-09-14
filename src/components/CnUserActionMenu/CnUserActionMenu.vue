@@ -25,7 +25,7 @@
 			v-model:shown="isOpen"
 			:trigger="triggerElements"
 			placement="bottom-start"
-			@after-hide="onClose">
+			@afterHide="onClose">
 			<div
 				class="cn-user-action-menu__popover"
 				role="menu"
@@ -35,9 +35,9 @@
 				<div class="cn-user-action-menu__header">
 					<NcAvatar
 						:user="userId"
-						:display-name="displayName"
+						:displayName="displayName"
 						:size="36"
-						:show-user-status="false" />
+						hideStatus />
 					<div class="cn-user-action-menu__user-info">
 						<span class="cn-user-action-menu__display-name">{{ displayName }}</span>
 						<span v-if="userEmail" class="cn-user-action-menu__email">{{ userEmail }}</span>
@@ -99,13 +99,11 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcPopover, NcActionButton, NcAvatar } from '@nextcloud/vue'
-
-import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
+import { NcActionButton, NcAvatar, NcPopover } from '@nextcloud/vue'
+import CalendarOutline from 'vue-material-design-icons/CalendarOutline.vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
 import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
-import CalendarOutline from 'vue-material-design-icons/CalendarOutline.vue'
-
+import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
 import { buildHeaders } from '../../utils/index.js'
 
 // Module-level capabilities cache (shared across all instances, fetched once per session)
@@ -116,7 +114,7 @@ let _capabilitiesPromise = null
  * CnUserActionMenu — Popover with user communication actions.
  *
  * Shows contextual actions based on installed Nextcloud apps (Talk, Mail, Calendar).
- * Uses @nextcloud/capabilities when available, falls back to OCS API.
+ * Uses `@nextcloud/capabilities` when available, falls back to OCS API.
  *
  * Usage in notes/tasks cards
  * ```vue
@@ -144,11 +142,13 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** The user's display name */
 		displayName: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Unknown'),
 		},
+
 		/** Whether the menu is interactive (false for current user or system accounts) */
 		interactive: {
 			type: Boolean,
@@ -195,7 +195,9 @@ export default {
 
 	methods: {
 		openMenu() {
-			if (!this.interactive) return
+			if (!this.interactive) {
+				return
+			}
 			this.isOpen = true
 			// Resolve email on first open if not yet done
 			if (!this.emailResolved) {
@@ -223,7 +225,6 @@ export default {
 
 			// Try @nextcloud/capabilities first (synchronous, from initial state)
 			try {
-				// eslint-disable-next-line n/no-missing-import
 				const { getCapabilities } = await import('@nextcloud/capabilities')
 				const caps = getCapabilities()
 				if (caps) {
@@ -256,6 +257,7 @@ export default {
 					return data?.ocs?.data?.capabilities || {}
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnUserActionMenu: Failed to fetch capabilities', err)
 			}
 			return {}
@@ -284,6 +286,7 @@ export default {
 					this.userEmail = data?.ocs?.data?.email || ''
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnUserActionMenu: Failed to resolve user email', err)
 				this.userEmail = ''
 			}
@@ -310,6 +313,7 @@ export default {
 					this.showActionError('Failed to create conversation')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnUserActionMenu: Failed to send message', err)
 				this.showActionError('Failed to create conversation')
 			}
@@ -341,6 +345,7 @@ export default {
 					this.showActionError('Failed to create conversation')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('CnUserActionMenu: Failed to start chat', err)
 				this.showActionError('Failed to create conversation')
 			}
@@ -348,7 +353,9 @@ export default {
 		},
 
 		sendEmail() {
-			if (!this.userEmail) return
+			if (!this.userEmail) {
+				return
+			}
 			if (this.hasMail) {
 				window.location.href = `/apps/mail/compose?to=${encodeURIComponent(this.userEmail)}`
 			} else {
@@ -366,11 +373,11 @@ export default {
 
 		showActionError(message) {
 			try {
-				// eslint-disable-next-line n/no-missing-import
 				import('@nextcloud/dialogs').then(({ showError }) => {
 					showError(message)
 				})
 			} catch {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error(message)
 			}
 		},

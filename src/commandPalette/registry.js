@@ -63,7 +63,7 @@ export function createCommandRegistry() {
 	 * @param {string[]} [entry.keywords] Extra ranked search terms beyond the title.
 	 * @param {string} [entry.icon] MDI icon name resolved against `CnIcon`'s ICON_MAP.
 	 * @param {number} [entry.order] Numeric ordering hint used for the empty-query idle list; lower sorts first (default 100).
-	 * @param {Function} entry.run Invoked (no arguments) when the command is activated — REQUIRED.
+	 * @param {() => void} entry.run Invoked (no arguments) when the command is activated — REQUIRED.
 	 * @return {object} The normalised, stored entry.
 	 */
 	function register(entry) {
@@ -103,7 +103,9 @@ export function createCommandRegistry() {
 	 */
 	function unregister(id) {
 		const removed = commands.delete(id)
-		if (removed) notify()
+		if (removed) {
+			notify()
+		}
 		return removed
 	}
 
@@ -115,7 +117,9 @@ export function createCommandRegistry() {
 	 */
 	function list() {
 		return Array.from(commands.values()).sort((a, b) => {
-			if (a.order !== b.order) return a.order - b.order
+			if (a.order !== b.order) {
+				return a.order - b.order
+			}
 			return a.title.localeCompare(b.title)
 		})
 	}

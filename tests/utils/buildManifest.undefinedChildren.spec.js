@@ -30,7 +30,7 @@ describe('mergeMenuItems — no undefined children key', () => {
 	it('omits `children` entirely for a leaf', () => {
 		const target = []
 		mergeMenuItems(target, [{ id: 'a', label: 'A', route: 'A' }])
-		expect(Object.prototype.hasOwnProperty.call(target[0], 'children')).toBe(false)
+		expect(Object.hasOwn(target[0], 'children')).toBe(false)
 	})
 
 	it('still copies a real children array', () => {

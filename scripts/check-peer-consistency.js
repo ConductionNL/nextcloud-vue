@@ -95,7 +95,6 @@ function main() {
 
 	let semver
 	try {
-		// eslint-disable-next-line global-require
 		semver = require('semver')
 	} catch {
 		console.error('  (peer-consistency gate skipped: `semver` is not installed)')
@@ -120,16 +119,14 @@ function main() {
 		const constraints = { ...(manifest.peerDependencies || {}), ...(manifest.dependencies || {}) }
 
 		for (const [other, range] of Object.entries(constraints)) {
-			if (!Object.prototype.hasOwnProperty.call(peers, other)) {
+			if (!Object.hasOwn(peers, other)) {
 				continue
 			}
 			if (!rangesIntersect(semver, range, peers[other])) {
-				failures.push(
-					`${name}@${manifest.version} requires ${other}@${range}, `
+				failures.push(`${name}@${manifest.version} requires ${other}@${range}, `
 					+ `but we declare ${other}@${peers[other]} — no version satisfies both.\n`
 					+ `      Widen our ${other} peer (e.g. "${peers[other]} || ${range}") `
-					+ 'or lower the peer that demands it.',
-				)
+					+ 'or lower the peer that demands it.')
 			}
 		}
 	}
@@ -147,10 +144,8 @@ function main() {
 		for (const failure of failures) {
 			console.error(`  - ${failure}`)
 		}
-		console.error(
-			'\nA contradictory peer block makes `npm install` fail with ERESOLVE for every\n'
-			+ 'consumer that does not add an override. See scripts/check-peer-consistency.js.',
-		)
+		console.error('\nA contradictory peer block makes `npm install` fail with ERESOLVE for every\n'
+			+ 'consumer that does not add an override. See scripts/check-peer-consistency.js.')
 		process.exit(1)
 	}
 

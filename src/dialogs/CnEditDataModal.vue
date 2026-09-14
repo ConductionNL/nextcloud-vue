@@ -38,7 +38,7 @@
 					<NcButton variant="tertiary" :disabled="busy" @click="cancelCascade">
 						{{ t('nextcloud-vue', 'Cancel') }}
 					</NcButton>
-					<NcButton type="error" :disabled="busy" @click="confirmCascade">
+					<NcButton variant="error" :disabled="busy" @click="confirmCascade">
 						{{ cascadeConfirmLabel }}
 					</NcButton>
 				</div>
@@ -66,7 +66,7 @@
 					<NcButton variant="tertiary" :disabled="busy" @click="cancelBreaking">
 						{{ t('nextcloud-vue', 'Back to editing') }}
 					</NcButton>
-					<NcButton type="warning" :disabled="busy" @click="confirmBreaking">
+					<NcButton variant="warning" :disabled="busy" @click="confirmBreaking">
 						{{ t('nextcloud-vue', 'Save anyway') }}
 					</NcButton>
 				</div>
@@ -75,11 +75,11 @@
 			<!-- No register yet → offer to create one. -->
 			<div v-else-if="!registers.length" class="cn-edit-data__empty">
 				<p>{{ t('nextcloud-vue', 'This app has no data register yet. Create one to start adding schemas.') }}</p>
-				<NcTextField :model-value="newRegisterTitle"
+				<NcTextField :modelValue="newRegisterTitle"
 					:label="t('nextcloud-vue', 'Register name')"
-					:label-visible="true"
+					:labelVisible="true"
 					:placeholder="t('nextcloud-vue', 'My data')"
-					@update:model-value="(v) => newRegisterTitle = v" />
+					@update:modelValue="(v) => newRegisterTitle = v" />
 				<NcButton variant="primary" :disabled="busy || !newRegisterTitle.trim()" @click="createRegister">
 					<template v-if="busy" #icon>
 						<NcLoadingIcon :size="20" />
@@ -93,10 +93,10 @@
 				<div class="cn-edit-data__register">
 					<template v-if="renamingRegister">
 						<NcTextField class="cn-edit-data__register-rename"
-							:model-value="renameTitle"
+							:modelValue="renameTitle"
 							:label="t('nextcloud-vue', 'Register name')"
 							:disabled="busy"
-							@update:model-value="(v) => renameTitle = v"
+							@update:modelValue="(v) => renameTitle = v"
 							@keydown.enter="renameRegister"
 							@keydown.esc="renamingRegister = false" />
 						<NcButton variant="primary"
@@ -120,9 +120,9 @@
 					<template v-else>
 						<NcSelect v-if="registers.length > 1"
 							class="cn-edit-data__register-select"
-							:model-value="selectedRegisterOption"
+							:modelValue="selectedRegisterOption"
 							:options="registerOptions"
-							:input-label="t('nextcloud-vue', 'Register')"
+							:inputLabel="t('nextcloud-vue', 'Register')"
 							label="label"
 							:clearable="false"
 							@update:modelValue="onSelectRegister" />
@@ -197,12 +197,12 @@
 		<CnSchemaFormDialog
 			v-if="showSchemaDialog"
 			:item="editingSchema"
-			:dialog-title="editingSchema ? t('nextcloud-vue', 'Edit schema') : t('nextcloud-vue', 'New schema')"
-			:available-registers="registerOptions"
-			:available-schemas="schemas"
-			:show-delete="!!editingSchema"
+			:dialogTitle="editingSchema ? t('nextcloud-vue', 'Edit schema') : t('nextcloud-vue', 'New schema')"
+			:availableRegisters="registerOptions"
+			:availableSchemas="schemas"
+			:showDelete="!!editingSchema"
 			@confirm="onSchemaConfirm"
-			@delete-schema="onSchemaDelete"
+			@deleteSchema="onSchemaDelete"
 			@close="showSchemaDialog = false" />
 
 		<template #actions>
@@ -214,39 +214,50 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon } from '@nextcloud/vue'
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
-import Plus from 'vue-material-design-icons/Plus.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
+import { NcButton, NcDialog, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnSchemaFormDialog from '../components/CnSchemaFormDialog/CnSchemaFormDialog.vue'
-import { buildHeaders } from '../utils/headers.js'
 import { parseAxiosError } from '../utils/errors.js'
+import { buildHeaders } from '../utils/headers.js'
 // The OpenRegister schema API contract lives in one place so this dialog and
 // OpenRegister's own editor cannot drift on what a 409 means.
 import {
-	saveSchema,
 	deleteSchema,
 	describeSchemaChange,
+	saveSchema,
 	SchemaBreakingChangeError,
 	SchemaHasObjectsError,
 } from '../utils/schemaApi.js'
 
 /**
  * Unwrap an OpenRegister API payload (`{result}` / `{results}` / array / object).
+ *
  * @param {object|Array} data The raw response body.
- * @return {*} The unwrapped payload.
+ * @return {unknown} The unwrapped payload.
  */
 function unwrap(data) {
-	if (!data) return data
-	if (data.result !== undefined) return data.result
-	if (data.results !== undefined) return data.results
-	if (data.registers !== undefined) return data.registers
-	if (data.schemas !== undefined) return data.schemas
+	if (!data) {
+		return data
+	}
+	if (data.result !== undefined) {
+		return data.result
+	}
+	if (data.results !== undefined) {
+		return data.results
+	}
+	if (data.registers !== undefined) {
+		return data.registers
+	}
+	if (data.schemas !== undefined) {
+		return data.schemas
+	}
 	return data
 }
 
@@ -345,7 +356,9 @@ export default {
 		 */
 		cascadeWarning() {
 			const p = this.pendingCascade
-			if (!p) return ''
+			if (!p) {
+				return ''
+			}
 			const name = (p.schema && (p.schema.title || p.schema.slug)) || ''
 			return n(
 				'nextcloud-vue',
@@ -355,6 +368,7 @@ export default {
 				{ name },
 			)
 		},
+
 		/** Label for the destructive confirm button, carrying the count. */
 		cascadeConfirmLabel() {
 			const count = (this.pendingCascade && this.pendingCascade.objectCount) || 0
@@ -365,10 +379,12 @@ export default {
 				count,
 			)
 		},
+
 		/** The changes the server flagged as breaking, for the confirmation list. */
 		breakingChanges() {
 			return (this.pendingBreaking && this.pendingBreaking.changes) || []
 		},
+
 		/** Distinct, non-empty register slugs referenced by the manifest's pages. */
 		manifestRegisterSlugs() {
 			const pages = (this.manifest && Array.isArray(this.manifest.pages)) ? this.manifest.pages : []
@@ -377,14 +393,17 @@ export default {
 				.filter((s) => typeof s === 'string' && s.length > 0)
 			return [...new Set(slugs)]
 		},
+
 		/** The selected register object. */
 		selectedRegister() {
 			return this.registers.find((r) => r.id === this.selectedRegisterId) || this.registers[0] || null
 		},
+
 		/** Register options for the selector + CnSchemaFormDialog. */
 		registerOptions() {
 			return this.registers.map((r) => ({ id: r.id, value: r.id, label: r.title || r.slug, title: r.title, slug: r.slug }))
 		},
+
 		/** The selected register as an option. */
 		selectedRegisterOption() {
 			const r = this.selectedRegister
@@ -402,9 +421,11 @@ export default {
 		headers() {
 			return buildHeaders()
 		},
+
 		/**
 		 * Load the app's registers (filtered to the manifest's slugs) and the
 		 * selected register's schemas.
+		 *
 		 * @return {Promise<void>}
 		 */
 		async load() {
@@ -437,8 +458,10 @@ export default {
 				this.loading = false
 			}
 		},
+
 		/**
 		 * Resolve the selected register's schema ids into full schema objects.
+		 *
 		 * @return {Promise<void>}
 		 */
 		async loadSchemas() {
@@ -446,11 +469,15 @@ export default {
 			const ids = (reg && Array.isArray(reg.schemas)) ? reg.schemas.filter((x) => typeof x === 'number' || typeof x === 'string') : []
 			const resolved = await Promise.all(ids.map(async (id) => {
 				const cached = dataCache.schemas.get(id)
-				if (cached) return cached
+				if (cached) {
+					return cached
+				}
 				try {
 					const { data } = await axios.get(generateUrl(`/apps/openregister/api/schemas/${id}`), { headers: this.headers() })
 					const schema = unwrap(data)
-					if (schema) dataCache.schemas.set(id, schema)
+					if (schema) {
+						dataCache.schemas.set(id, schema)
+					}
 					return schema
 				} catch {
 					return null
@@ -459,26 +486,34 @@ export default {
 			this.schemas = resolved.filter(Boolean)
 			this.syncDataSources()
 		},
+
 		/**
 		 * Mirror the selected register's current schemas into the shared
 		 * `cnDataSources` map (same object the page-config pickers read), so a
 		 * schema added/removed here shows up there without an app reload.
+		 *
 		 * @return {void}
 		 */
 		syncDataSources() {
 			const ds = this.cnDataSources
 			const reg = this.selectedRegister
-			if (!ds || !Array.isArray(ds.registers) || !reg) return
+			if (!ds || !Array.isArray(ds.registers) || !reg) {
+				return
+			}
 			const dsReg = ds.registers.find((r) => r.value === reg.slug)
-			if (!dsReg) return
+			if (!dsReg) {
+				return
+			}
 			dsReg.schemas = this.schemas.map((s) => ({
 				value: s.slug,
 				label: s.title || s.slug,
 				columns: (s.properties && typeof s.properties === 'object') ? Object.keys(s.properties) : [],
 			}))
 		},
+
 		/**
 		 * Switch the selected register and reload its schemas.
+		 *
 		 * @param {{id: number}} option The chosen register option.
 		 * @return {Promise<void>}
 		 */
@@ -487,23 +522,30 @@ export default {
 			this.renamingRegister = false
 			await this.loadSchemas()
 		},
+
 		/** Open the inline rename field pre-filled with the current title. */
 		startRename() {
 			const reg = this.selectedRegister
-			if (!reg) return
+			if (!reg) {
+				return
+			}
 			this.renameTitle = reg.title || reg.slug || ''
 			this.renamingRegister = true
 		},
+
 		/**
 		 * Persist the new register title (PATCH — the slug and schema links are
 		 * untouched, so manifest pages keep resolving) and mirror it into the
 		 * shared data-source map so pickers show the new name without a reload.
+		 *
 		 * @return {Promise<void>}
 		 */
 		async renameRegister() {
 			const reg = this.selectedRegister
 			const title = this.renameTitle.trim()
-			if (!reg || !title) return
+			if (!reg || !title) {
+				return
+			}
 			if (title === (reg.title || '')) {
 				this.renamingRegister = false
 				return
@@ -521,7 +563,9 @@ export default {
 				const ds = this.cnDataSources
 				if (ds && Array.isArray(ds.registers)) {
 					const dsReg = ds.registers.find((r) => r.value === reg.slug)
-					if (dsReg) dsReg.label = title
+					if (dsReg) {
+						dsReg.label = title
+					}
 				}
 				this.renamingRegister = false
 			} catch (e) {
@@ -530,8 +574,10 @@ export default {
 				this.busy = false
 			}
 		},
+
 		/**
 		 * Human-readable property count for a schema.
+		 *
 		 * @param {object} schema The schema object.
 		 * @return {string} A localised "{n} properties" label.
 		 */
@@ -539,13 +585,16 @@ export default {
 			const props = (schema && schema.properties && typeof schema.properties === 'object') ? Object.keys(schema.properties) : []
 			return t('nextcloud-vue', '{count} properties', { count: props.length })
 		},
+
 		/** Open the editor to create a new schema. */
 		openCreate() {
 			this.editingSchema = null
 			this.showSchemaDialog = true
 		},
+
 		/**
 		 * Open the editor for an existing schema.
+		 *
 		 * @param {object} schema The schema to edit.
 		 * @return {void}
 		 */
@@ -553,6 +602,7 @@ export default {
 			this.editingSchema = schema
 			this.showSchemaDialog = true
 		},
+
 		/**
 		 * Persist a schema from the editor: PUT when editing, else POST + link
 		 * the new schema id onto the register.
@@ -576,7 +626,9 @@ export default {
 					acknowledgeBreaking,
 					headers: this.headers(),
 				})
-				if (!id && saved && saved.id) await this.linkSchema(saved.id)
+				if (!id && saved && saved.id) {
+					await this.linkSchema(saved.id)
+				}
 
 				this.pendingBreaking = null
 				this.showSchemaDialog = false
@@ -606,6 +658,7 @@ export default {
 				this.busy = false
 			}
 		},
+
 		/**
 		 * Re-save the pending schema, this time acknowledging the breaking change.
 		 *
@@ -613,9 +666,12 @@ export default {
 		 */
 		async confirmBreaking() {
 			const pending = this.pendingBreaking
-			if (!pending) return
+			if (!pending) {
+				return
+			}
 			await this.onSchemaConfirm(pending.schema, true)
 		},
+
 		/**
 		 * Abandon the acknowledgement and drop the user back into the editor with the
 		 * edits they made — cancelling must not throw their work away.
@@ -624,6 +680,7 @@ export default {
 			this.pendingBreaking = null
 			this.showSchemaDialog = true
 		},
+
 		/**
 		 * Human-readable line for one entry of the server's `changes[]`, e.g.
 		 * `{property: 'barn', kind: 'type_changed', old: 'string', new: 'object'}`
@@ -636,6 +693,7 @@ export default {
 			// Shared wording — OpenRegister's editor renders the same warning.
 			return describeSchemaChange(change, t)
 		},
+
 		/** Delete the schema currently open in the editor (editor Delete button). */
 		async onSchemaDelete() {
 			if (this.editingSchema) {
@@ -643,16 +701,22 @@ export default {
 				await this.removeSchema(this.editingSchema)
 			}
 		},
+
 		/**
 		 * Append a schema id to the selected register's schemas list.
+		 *
 		 * @param {number} schemaId The new schema id.
 		 * @return {Promise<void>}
 		 */
 		async linkSchema(schemaId) {
 			const reg = this.selectedRegister
-			if (!reg) return
+			if (!reg) {
+				return
+			}
 			const ids = Array.isArray(reg.schemas) ? [...reg.schemas] : []
-			if (!ids.includes(schemaId)) ids.push(schemaId)
+			if (!ids.includes(schemaId)) {
+				ids.push(schemaId)
+			}
 			await axios.patch(
 				generateUrl(`/apps/openregister/api/registers/${reg.id}`),
 				{ schemas: ids },
@@ -660,6 +724,7 @@ export default {
 			)
 			reg.schemas = ids
 		},
+
 		/**
 		 * Delete a schema, then unlink it from the register.
 		 *
@@ -678,7 +743,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async removeSchema(schema, deleteObjects = false) {
-			if (!schema || !schema.id) return
+			if (!schema || !schema.id) {
+				return
+			}
 			this.busy = true
 			this.error = ''
 			try {
@@ -721,27 +788,36 @@ export default {
 				this.busy = false
 			}
 		},
+
 		/**
 		 * Run the cascade the user just confirmed: delete the schema AND its objects.
+		 *
 		 * @return {Promise<void>}
 		 */
 		async confirmCascade() {
 			const pending = this.pendingCascade
-			if (!pending) return
+			if (!pending) {
+				return
+			}
 			this.pendingCascade = null
 			await this.removeSchema(pending.schema, true)
 		},
+
 		/** Back out of the cascade confirmation, changing nothing. */
 		cancelCascade() {
 			this.pendingCascade = null
 		},
+
 		/**
 		 * Create a register for this app and select it.
+		 *
 		 * @return {Promise<void>}
 		 */
 		async createRegister() {
 			const title = this.newRegisterTitle.trim()
-			if (!title) return
+			if (!title) {
+				return
+			}
 			this.busy = true
 			this.error = ''
 			try {

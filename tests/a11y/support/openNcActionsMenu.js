@@ -20,7 +20,6 @@
 async function openNcActionsMenu(wrapper) {
 	await wrapper.find('button').trigger('click')
 	await wrapper.vm.$nextTick()
-	// eslint-disable-next-line no-promise-executor-return
 	await new Promise((resolve) => setTimeout(resolve, 30))
 
 	const menu = document.querySelector('[role="menu"]')

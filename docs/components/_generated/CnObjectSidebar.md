@@ -38,11 +38,11 @@
 
 ### Slots
 
-| Name              | Bindings                   | Description |
-| ----------------- | -------------------------- | ----------- |
-| `extra-tabs`      | —                          |             |
-| `tab-files`       | `object-id`, `object-type` |             |
-| `tab-notes`       | `object-id`, `object-type` |             |
-| `tab-tags`        | `object-id`, `object-type` |             |
-| `tab-tasks`       | `object-id`, `object-type` |             |
-| `tab-audit-trail` | `object-id`, `object-type` |             |
+| Name              | Bindings                 | Description |
+| ----------------- | ------------------------ | ----------- |
+| `extra-tabs`      | —                        |             |
+| `tab-files`       | `objectId`, `objectType` |             |
+| `tab-notes`       | `objectId`, `objectType` |             |
+| `tab-tags`        | `objectId`, `objectType` |             |
+| `tab-tasks`       | `objectId`, `objectType` |             |
+| `tab-audit-trail` | `objectId`, `objectType` |             |

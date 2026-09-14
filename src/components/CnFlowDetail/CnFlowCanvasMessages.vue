@@ -135,7 +135,7 @@
 </template>
 
 <script>
-import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import Alert from 'vue-material-design-icons/Alert.vue'
 import AlertDecagram from 'vue-material-design-icons/AlertDecagram.vue'
@@ -264,7 +264,7 @@ export default {
 		 * reader that a sighted user could scroll to would not be the same
 		 * page.
 		 *
-		 * @param {Function} predicate Which messages belong to this region.
+		 * @param {(message: object) => boolean} predicate Which messages belong to this region.
 		 * @return {string} The announcement.
 		 */
 		announcementFor(predicate) {

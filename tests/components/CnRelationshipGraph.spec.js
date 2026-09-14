@@ -31,7 +31,8 @@ describe('CnRelationshipGraph', () => {
 		const wrapper = mount(CnRelationshipGraph, { propsData: { nodes, edges, size: 400 } })
 		const others = wrapper.vm.resolvedNodes.filter((n) => !n.isRoot)
 		// All on a circle of radius (size/2 - nodeRadius - 24)
-		const cx = 200; const cy = 200
+		const cx = 200
+		const cy = 200
 		for (const o of others) {
 			const dist = Math.sqrt((o.x - cx) ** 2 + (o.y - cy) ** 2)
 			expect(Math.round(dist)).toBe(400 / 2 - 18 - 24)

@@ -4,7 +4,7 @@
  * the show-all overflow control, and the surface prop validator.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnFilesCard = require('../../src/components/CnFilesCard/CnFilesCard.vue').default
 
 function mockFetchOnce(payload) {
@@ -28,8 +28,7 @@ describe('CnFilesCard', () => {
 		const wrapper = mount(CnFilesCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No files attached')
 		wrapper.unmount()
 	})
@@ -48,8 +47,7 @@ describe('CnFilesCard', () => {
 		const wrapper = mount(CnFilesCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1', maxDisplay: 5 },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.findAll('.cn-files-card__row')).toHaveLength(5)
 		// Footer overflow shows the total
 		expect(wrapper.text()).toContain('Show all')
@@ -59,15 +57,18 @@ describe('CnFilesCard', () => {
 	it('emits show-all when the overflow control is clicked', async () => {
 		mockFetchOnce({
 			results: [
-				{ id: '1', name: 'a' }, { id: '2', name: 'b' }, { id: '3', name: 'c' },
-				{ id: '4', name: 'd' }, { id: '5', name: 'e' }, { id: '6', name: 'f' },
+				{ id: '1', name: 'a' },
+				{ id: '2', name: 'b' },
+				{ id: '3', name: 'c' },
+				{ id: '4', name: 'd' },
+				{ id: '5', name: 'e' },
+				{ id: '6', name: 'f' },
 			],
 		})
 		const wrapper = mount(CnFilesCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		await wrapper.find('.cn-files-card__show-all').trigger('click')
 		expect(wrapper.emitted('show-all')).toBeTruthy()
 		wrapper.unmount()
@@ -80,11 +81,9 @@ describe('CnFilesCard', () => {
 		const wrapper = mount(CnFilesCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		await wrapper.setProps({ objectId: 'o2' })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(global.fetch).toHaveBeenCalledTimes(2)
 		wrapper.unmount()
 	})
@@ -94,8 +93,7 @@ describe('CnFilesCard', () => {
 		const wrapper = mount(CnFilesCard, {
 			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
 		})
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No files attached')
 		wrapper.unmount()
 	})

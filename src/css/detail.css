@@ -29,7 +29,7 @@
 .cn-detail-item__value {
 	font-size: 1em;
 	color: var(--color-main-text);
-	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 
 /* Detail Layout */
@@ -64,5 +64,7 @@
 
 /* Backwards compatibility aliases */
 .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: calc(4 * var(--default-grid-baseline)); margin-bottom: calc(5 * var(--default-grid-baseline)); }
+
 .detail-item { display: flex; flex-direction: column; gap: var(--default-grid-baseline); padding: calc(2 * var(--default-grid-baseline)) calc(3 * var(--default-grid-baseline)); border-left: 3px solid var(--color-primary-element); background: var(--color-background-hover); border-radius: 0 var(--border-radius) var(--border-radius) 0; }
+
 .detailContainer { margin-block-start: calc(5 * var(--default-grid-baseline)); margin-inline-start: calc(5 * var(--default-grid-baseline)); margin-inline-end: calc(5 * var(--default-grid-baseline)); }

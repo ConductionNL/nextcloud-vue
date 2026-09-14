@@ -41,7 +41,9 @@ const stubs = {
 describe('CnDashboardPage — dateRange prop', () => {
 	beforeEach(() => {
 		// jest-jsdom provides localStorage; reset between tests.
-		try { localStorage.clear() } catch (_e) { /* ignore */ }
+		try {
+			localStorage.clear()
+		} catch { /* ignore */ }
 	})
 
 	it('omitted prop → no header rendered (backwards compat)', () => {

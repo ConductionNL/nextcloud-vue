@@ -1,3 +1,6 @@
+import commonjs from '@rollup/plugin-commonjs'
+import json from '@rollup/plugin-json'
+import { nodeResolve } from '@rollup/plugin-node-resolve'
 /**
  * Vue 3 build for @conduction/nextcloud-vue (ADR-066, openspec vue-3-migration).
  *
@@ -22,13 +25,10 @@
  * preserveModules output, leaflet image copy, apexcharts resolve).
  */
 import vue from '@vitejs/plugin-vue'
-import postcss from 'rollup-plugin-postcss'
-import postcssImport from 'postcss-import'
-import { nodeResolve } from '@rollup/plugin-node-resolve'
-import commonjs from '@rollup/plugin-commonjs'
-import json from '@rollup/plugin-json'
-import path from 'path'
 import fs from 'fs'
+import path from 'path'
+import postcssImport from 'postcss-import'
+import postcss from 'rollup-plugin-postcss'
 import { fileURLToPath } from 'url'
 import { isSingletonExternal } from './rollup.singleton-externals.mjs'
 

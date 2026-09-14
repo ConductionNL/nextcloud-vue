@@ -35,7 +35,9 @@ function manifestWithDetail(config, widgets) {
 		title: 'Item',
 		config,
 	}
-	if (widgets) page.widgets = widgets
+	if (widgets) {
+		page.widgets = widgets
+	}
 	return {
 		$schema: V2_SCHEMA_URL,
 		version: '2.2.0',

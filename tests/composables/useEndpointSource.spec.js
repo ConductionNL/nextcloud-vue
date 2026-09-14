@@ -26,8 +26,12 @@ jest.mock('@nextcloud/router', () => ({
 // hoisted `var` above is assigned — those early subscriptions are dropped.
 jest.mock('@nextcloud/event-bus', () => ({
 	subscribe: jest.fn((channel, cb) => {
-		if (!mockBusHandlers) return
-		if (!mockBusHandlers[channel]) mockBusHandlers[channel] = []
+		if (!mockBusHandlers) {
+			return
+		}
+		if (!mockBusHandlers[channel]) {
+			mockBusHandlers[channel] = []
+		}
 		mockBusHandlers[channel].push(cb)
 	}),
 	unsubscribe: jest.fn(),
@@ -37,23 +41,30 @@ jest.mock('@nextcloud/event-bus', () => ({
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { ref } from 'vue'
-
 import {
-	useEndpointSource,
-	fetchEndpointSource,
-	resolveEndpointRequest,
-	interpolateUrlTokens,
 	endpointCacheKey,
-	invalidateEndpointSourceCache,
+	fetchEndpointSource,
 	getByPath,
+	interpolateUrlTokens,
+	invalidateEndpointSourceCache,
 	MIN_FORCED_LOADING_MS,
+	resolveEndpointRequest,
+	useEndpointSource,
 } from '../../src/composables/useEndpointSource.js'
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
-/** Fire every captured handler on a bus channel. */
-const fireBus = (channel, payload) => {
-	for (const cb of (mockBusHandlers[channel] || [])) cb(payload)
+/**
+ * Fire every captured handler on a bus channel.
+ *
+ * @param {string} channel The event-bus channel.
+ * @param {*} payload The payload handed to each handler.
+ * @return {void}
+ */
+function fireBus(channel, payload) {
+	for (const cb of (mockBusHandlers[channel] || [])) {
+		cb(payload)
+	}
 }
 
 beforeEach(() => {
@@ -61,7 +72,9 @@ beforeEach(() => {
 	axios.post.mockReset()
 	generateUrl.mockClear()
 	invalidateEndpointSourceCache()
-	for (const k of Object.keys(mockBusHandlers)) delete mockBusHandlers[k]
+	for (const k of Object.keys(mockBusHandlers)) {
+		delete mockBusHandlers[k]
+	}
 })
 
 describe('getByPath', () => {

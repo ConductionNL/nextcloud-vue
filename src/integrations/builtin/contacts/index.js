@@ -18,8 +18,8 @@
  * @spec openspec/changes/integration-contacts/specs/integrations/contacts/spec.md
  */
 
-import CnContactsTab from './CnContactsTab.vue'
 import CnContactsCard from './CnContactsCard.vue'
+import CnContactsTab from './CnContactsTab.vue'
 
-export { CnContactsTab, CnContactsCard }
+export { CnContactsCard, CnContactsTab }
 export default { CnContactsTab, CnContactsCard }

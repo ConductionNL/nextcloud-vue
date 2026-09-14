@@ -27,14 +27,16 @@ const stubs = {
 }
 
 // A custom-slot widget: the family that lost its card when its header was off.
-const mountWith = (placement = {}) => mount(CnDashboardPage, {
-	propsData: {
-		widgets: [{ id: 'w', type: 'custom', title: 'Quota' }],
-		layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 3, gridHeight: 2, ...placement }],
-	},
-	slots: { 'widget-w': '<div class="mine" />' },
-	stubs,
-})
+function mountWith(placement = {}) {
+	return mount(CnDashboardPage, {
+		propsData: {
+			widgets: [{ id: 'w', type: 'custom', title: 'Quota' }],
+			layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 3, gridHeight: 2, ...placement }],
+		},
+		slots: { 'widget-w': '<div class="mine" />' },
+		stubs,
+	})
+}
 
 describe('CnDashboardPage — borderless', () => {
 	it('keeps the card when the header is shown', () => {

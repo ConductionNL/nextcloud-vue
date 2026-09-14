@@ -34,40 +34,45 @@
 					</slot>
 				</div>
 
-				<draggable
+				<!-- `#item` + `item-key`: vuedraggable@4 (the Vue 3 build)
+				     renders the cards itself from this slot. A `v-for` in the
+				     default slot throws "draggable element must have an item
+				     slot" the moment the column paints. -->
+				<Draggable
 					:list="column.cards"
 					tag="div"
 					class="cn-object-kanban__column-cards"
+					:itemKey="cardKey"
 					group="cn-object-kanban-cards"
 					:data-column-value="columnKey(column.value)"
 					@start="onDragStart(column)"
 					@change="onColumnChange($event, column)">
-					<div
-						v-for="card in column.cards"
-						:key="cardKey(card)"
-						class="cn-object-kanban__card"
-						:class="{ 'cn-object-kanban__card--pending': isPending(card) }">
-						<!-- @slot card Fully replace the default card rendering. -->
-						<!-- @binding {object} object The card's object. -->
-						<!-- @binding {object} column The column the card currently sits in. -->
-						<slot name="card" :object="card" :column="column">
-							<div class="cn-object-kanban__card-title" @click="onCardClick(card)">
-								{{ cardTitle(card) }}
-							</div>
-							<div v-if="cardFields.length" class="cn-object-kanban__card-fields">
-								<div
-									v-for="field in cardFields"
-									:key="field"
-									class="cn-object-kanban__card-field">
-									<CnCellRenderer
-										:value="card[field]"
-										:property="schemaProperty(field)"
-										:truncate="40" />
+					<template #item="{ element: card }">
+						<div
+							class="cn-object-kanban__card"
+							:class="{ 'cn-object-kanban__card--pending': isPending(card) }">
+							<!-- @slot card Fully replace the default card rendering. -->
+							<!-- @binding {object} object The card's object. -->
+							<!-- @binding {object} column The column the card currently sits in. -->
+							<slot name="card" :object="card" :column="column">
+								<div class="cn-object-kanban__card-title" @click="onCardClick(card)">
+									{{ cardTitle(card) }}
 								</div>
-							</div>
-						</slot>
-					</div>
-				</draggable>
+								<div v-if="cardFields.length" class="cn-object-kanban__card-fields">
+									<div
+										v-for="field in cardFields"
+										:key="field"
+										class="cn-object-kanban__card-field">
+										<CnCellRenderer
+											:value="card[field]"
+											:property="schemaProperty(field)"
+											:truncate="40" />
+									</div>
+								</div>
+							</slot>
+						</div>
+					</template>
+				</Draggable>
 
 				<div v-if="hasMore(column)" class="cn-object-kanban__load-more">
 					<NcButton :disabled="isColumnLoading(column)" @click="onLoadMore(column)">
@@ -83,9 +88,9 @@
 </template>
 
 <script>
-import draggable from 'vuedraggable'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon, NcEmptyContent } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import draggable from 'vuedraggable'
 import ViewColumn from 'vue-material-design-icons/ViewColumn.vue'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 
@@ -144,7 +149,7 @@ export default {
 	name: 'CnObjectKanban',
 
 	components: {
-		draggable,
+		Draggable: draggable,
 		NcButton,
 		NcLoadingIcon,
 		NcEmptyContent,
@@ -162,6 +167,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Pre-built columns, e.g. the response of `GET /api/views/{id}/kanban`.
 		 *
@@ -171,41 +177,49 @@ export default {
 			type: Array,
 			default: null,
 		},
+
 		/** The schema property whose distinct values become columns. */
 		groupByField: {
 			type: String,
 			required: true,
 		},
+
 		/** Explicit column order. Takes precedence over the schema's enum order. */
 		columnOrder: {
 			type: Array,
 			default: null,
 		},
+
 		/** Object fields rendered on each card (in order). */
 		cardFields: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Schema definition, used to resolve enum column order and card field types. */
 		schema: {
 			type: Object,
 			default: null,
 		},
+
 		/** Overall loading state (initial board fetch). */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Column values currently loading more cards (drives the per-column spinner). */
 		loadingColumns: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Cards shown per column before "load more", in local (`objects`-driven) mode. */
 		pageSize: {
 			type: Number,
 			default: 20,
 		},
+
 		/** Object property used as each card's identity. */
 		rowKey: {
 			type: String,
@@ -242,23 +256,33 @@ export default {
 	watch: {
 		objects: {
 			handler() {
-				if (!this.suppressRebuild) this.rebuild()
+				if (!this.suppressRebuild) {
+					this.rebuild()
+				}
 			},
+
 			deep: false,
 		},
+
 		columns: {
 			handler() {
-				if (!this.suppressRebuild) this.rebuild()
+				if (!this.suppressRebuild) {
+					this.rebuild()
+				}
 			},
+
 			deep: false,
 		},
+
 		groupByField() {
 			this.rebuild()
 		},
+
 		columnOrder: {
 			handler() {
 				this.rebuild()
 			},
+
 			deep: true,
 		},
 	},
@@ -309,7 +333,7 @@ export default {
 		 * distinct values observed in `objects`. Mirrors
 		 * `ViewPresentationService::deriveColumnValues()`.
 		 *
-		 * @return {Array<*>}
+		 * @return {Array<unknown>}
 		 */
 		deriveColumnValues() {
 			if (Array.isArray(this.columnOrder) && this.columnOrder.length > 0) {
@@ -327,7 +351,7 @@ export default {
 		/**
 		 * Distinct `groupByField` values observed in `objects`, in first-seen order.
 		 *
-		 * @return {Array<*>}
+		 * @return {Array<unknown>}
 		 */
 		discoverDistinctValues() {
 			const seen = new Set()
@@ -346,7 +370,7 @@ export default {
 		 * Stable string key for a column value (used as a `:key` and as the
 		 * `fullCardsByColumn` index — object/array values are unlikely but guarded).
 		 *
-		 * @param {*} value The column value.
+		 * @param {unknown} value The column value.
 		 * @return {string}
 		 */
 		columnKey(value) {
@@ -357,7 +381,7 @@ export default {
 		 * The card's identity, per `rowKey`.
 		 *
 		 * @param {object} card The card object.
-		 * @return {*}
+		 * @return {unknown}
 		 */
 		cardKey(card) {
 			return card?.[this.rowKey]
@@ -374,7 +398,9 @@ export default {
 			const oneOf = this.schema?.properties?.[this.groupByField]?.oneOf
 			if (Array.isArray(oneOf)) {
 				const match = oneOf.find((entry) => entry?.const === column.value)
-				if (match?.title) return match.title
+				if (match?.title) {
+					return match.title
+				}
 			}
 			return String(column.value)
 		},
@@ -388,7 +414,9 @@ export default {
 		 */
 		cardTitle(card) {
 			const nameField = this.schema?.configuration?.objectNameField
-			if (nameField && card[nameField]) return String(card[nameField])
+			if (nameField && card[nameField]) {
+				return String(card[nameField])
+			}
 			return String(card.title || card.name || card[this.rowKey] || '—')
 		},
 
@@ -434,7 +462,7 @@ export default {
 		 * @return {boolean}
 		 */
 		isPending(card) {
-			return Object.prototype.hasOwnProperty.call(this.pendingMoves, this.cardKey(card))
+			return Object.hasOwn(this.pendingMoves, this.cardKey(card))
 		},
 
 		/**
@@ -452,7 +480,7 @@ export default {
 			}
 			/**
 			 * @event load-more Emitted when a column's "load more" is clicked.
-			 * @type {{ value: *, offset: number }}
+			 * @type {{ value: unknown, offset: number }}
 			 */
 			this.$emit('load-more', { value: column.value, offset: column.cards.length })
 		},
@@ -492,14 +520,18 @@ export default {
 		 * @return {void}
 		 */
 		onColumnChange(evt, column) {
-			if (!evt.added) return
+			if (!evt.added) {
+				return
+			}
 
 			const card = evt.added.element
 			const fromValue = this.dragOriginValue
 			const toValue = column.value
 			this.dragOriginValue = null
 
-			if (fromValue === toValue) return
+			if (fromValue === toValue) {
+				return
+			}
 
 			this.commitMove(card, fromValue, toValue, evt.added.newIndex)
 		},
@@ -509,8 +541,8 @@ export default {
 		 * has already been moved optimistically by vuedraggable's v-model splice.
 		 *
 		 * @param {object} card The moved object.
-		 * @param {*} fromValue The origin column's value.
-		 * @param {*} toValue The destination column's value.
+		 * @param {unknown} fromValue The origin column's value.
+		 * @param {unknown} toValue The destination column's value.
 		 * @param {number} originIndex The index the card is currently at in the destination column (used only for logging/debugging).
 		 * @return {void}
 		 */
@@ -527,7 +559,7 @@ export default {
 			 * column. The host performs the actual object write through the
 			 * existing guarded PATCH/PUT endpoint and calls `resolveMove`/
 			 * `rejectMove` on this component to confirm or roll back.
-			 * @type {{ object: object, groupByField: string, fromValue: *, toValue: * }}
+			 * @type {{ object: object, groupByField: string, fromValue: unknown, toValue: unknown }}
 			 */
 			this.$emit('move', {
 				object: card,
@@ -542,7 +574,7 @@ export default {
 		 * The card already sits in the destination column (optimistic UI); no
 		 * further mutation is needed.
 		 *
-		 * @param {*} objectId The moved object's `rowKey` value.
+		 * @param {unknown} objectId The moved object's `rowKey` value.
 		 * @return {void}
 		 * @public
 		 */
@@ -554,7 +586,7 @@ export default {
 		 * Roll back a rejected move: the card returns to its origin column and
 		 * `move-rejected` fires with the server's reason.
 		 *
-		 * @param {*} objectId The moved object's `rowKey` value.
+		 * @param {unknown} objectId The moved object's `rowKey` value.
 		 * @param {string} [reason] The rejection reason (e.g. an illegal lifecycle
 		 *   transition message) to surface to the user.
 		 * @return {void}
@@ -562,14 +594,18 @@ export default {
 		 */
 		rejectMove(objectId, reason) {
 			const pending = this.pendingMoves[objectId]
-			if (!pending) return
+			if (!pending) {
+				return
+			}
 
 			const toColumn = this.localColumns.find((c) => c.value === pending.toValue)
 			const fromColumn = this.localColumns.find((c) => c.value === pending.fromValue)
 
 			if (toColumn) {
 				const idx = toColumn.cards.findIndex((c) => this.cardKey(c) === objectId)
-				if (idx !== -1) toColumn.cards.splice(idx, 1)
+				if (idx !== -1) {
+					toColumn.cards.splice(idx, 1)
+				}
 			}
 			if (fromColumn) {
 				fromColumn.cards.push(pending.card)
@@ -580,7 +616,7 @@ export default {
 			/**
 			 * @event move-rejected Emitted after `rejectMove()` rolls a card back
 			 * to its origin column.
-			 * @type {{ object: object, fromValue: *, toValue: *, reason: (string|undefined) }}
+			 * @type {{ object: object, fromValue: unknown, toValue: unknown, reason: (string|undefined) }}
 			 */
 			this.$emit('move-rejected', {
 				object: pending.card,
@@ -594,13 +630,15 @@ export default {
 		 * Remove a move from the pending map and, once none remain, allow
 		 * prop-driven rebuilds again.
 		 *
-		 * @param {*} objectId The moved object's `rowKey` value.
+		 * @param {unknown} objectId The moved object's `rowKey` value.
 		 * @return {void}
 		 */
 		clearPending(objectId) {
 			const { [objectId]: _removed, ...rest } = this.pendingMoves
 			this.pendingMoves = rest
-			if (Object.keys(rest).length === 0) this.suppressRebuild = false
+			if (Object.keys(rest).length === 0) {
+				this.suppressRebuild = false
+			}
 		},
 	},
 }

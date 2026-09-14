@@ -229,11 +229,17 @@ export default {
 		 * empty string when no `expiresAt` is set.
 		 */
 		expiresLabel() {
-			if (!this.expiresAt) return ''
+			if (!this.expiresAt) {
+				return ''
+			}
 			const ms = this.expiresAt.getTime() - Date.now()
-			if (ms <= 0) return t('nextcloud-vue', 'Lock has expired')
+			if (ms <= 0) {
+				return t('nextcloud-vue', 'Lock has expired')
+			}
 			const min = Math.round(ms / 60000)
-			if (min < 1) return t('nextcloud-vue', 'Expires in less than a minute')
+			if (min < 1) {
+				return t('nextcloud-vue', 'Expires in less than a minute')
+			}
 			return t('nextcloud-vue', 'Expires in {min} min', { min })
 		},
 

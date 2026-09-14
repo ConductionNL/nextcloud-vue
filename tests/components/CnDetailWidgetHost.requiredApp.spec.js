@@ -61,7 +61,12 @@ function setupState(wrapper) {
 	}
 }
 
-/** Declare which apps this page load can see. */
+/**
+ * Declare which apps this page load can see.
+ *
+ * @param {...string} ids The app ids to report as installed.
+ * @return {void}
+ */
 function installApps(...ids) {
 	global.OC = { appswebroots: Object.fromEntries(ids.map((id) => [id, `/apps/${id}`])) }
 	__resetAppInstalledCacheForTests()
@@ -96,9 +101,7 @@ describe('CnDetailWidgetHost — requiredApp', () => {
 			// into both the chrome and the description.
 			const w = mountHost(guarded)
 			expect(w.text()).toContain('Hours booked')
-			expect(setupState(w).description).toBe(
-				'Hours booked needs the Humaniq app. Install and enable it to see this.',
-			)
+			expect(setupState(w).description).toBe('Hours booked needs the Humaniq app. Install and enable it to see this.')
 		})
 
 		it('reads requiredApp from `content` as well as the definition', () => {

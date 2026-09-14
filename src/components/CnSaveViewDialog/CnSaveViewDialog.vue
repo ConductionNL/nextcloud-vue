@@ -6,7 +6,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:no-close="loading"
+		:noClose="loading"
 		@closing="onClose">
 		<div
 			class="cn-save-view"
@@ -17,17 +17,17 @@
 			</NcNoteCard>
 
 			<NcTextField
-				:model-value="name"
+				:modelValue="name"
 				:label="t('nextcloud-vue', 'View name')"
-				:label-visible="true"
+				:labelVisible="true"
 				:placeholder="t('nextcloud-vue', 'My view')"
 				data-testid="cn-save-view-name-input"
-				@update:model-value="(v) => name = v" />
+				@update:modelValue="(v) => name = v" />
 
 			<NcCheckboxRadioSwitch
-				:model-value="isPublic"
+				:modelValue="isPublic"
 				data-testid="cn-save-view-public-toggle"
-				@update:model-value="(v) => isPublic = v">
+				@update:modelValue="(v) => isPublic = v">
 				{{ t('nextcloud-vue', 'Share with other users (public)') }}
 			</NcCheckboxRadioSwitch>
 		</div>
@@ -53,7 +53,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcTextField, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 
 /**
@@ -117,7 +117,9 @@ export default {
 		 * and either closes the dialog or reports back via `setError()`.
 		 */
 		onConfirm() {
-			if (!this.name.trim()) return
+			if (!this.name.trim()) {
+				return
+			}
 			this.loading = true
 			this.error = ''
 			/**

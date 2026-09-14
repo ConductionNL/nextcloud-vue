@@ -1,4 +1,4 @@
-import { ref, computed, isRef, watch, onMounted } from 'vue'
+import { computed, isRef, onMounted, ref, watch } from 'vue'
 import { useObjectStore } from '../store/index.js'
 
 /**
@@ -14,7 +14,7 @@ import { useObjectStore } from '../store/index.js'
  * @param {string|object} [objectTypeOrOptions] Object type slug (new API) or legacy options object
  * @param {string|import('vue').Ref<string>} [id] Object ID or `'new'` for a new object
  * @param {object} [options] Options (new API only)
- * @param {Function} [options.objectStore] Custom object store instance (from createObjectStore)
+ * @param {() => object} [options.objectStore] Custom object store instance (from createObjectStore)
  * @param {object|null} [options.router] Vue Router instance — enables post-save/delete navigation
  * @param {string|null} [options.listRouteName] Route name to navigate to after successful delete
  * @param {string|null} [options.detailRouteName] Route name to navigate to after successful create
@@ -69,7 +69,9 @@ export function useDetailView(objectTypeOrOptions, id, options) {
 	const isNew = computed(() => !idRef.value || idRef.value === 'new')
 
 	const object = computed(() => {
-		if (isNew.value) return {}
+		if (isNew.value) {
+			return {}
+		}
 		return objectStore.getObject(objectType, idRef.value) || {}
 	})
 
@@ -150,7 +152,9 @@ export function useDetailView(objectTypeOrOptions, id, options) {
 	// ── Lifecycle ────────────────────────────────────────────────────────
 
 	async function fetchIfNeeded(currentId) {
-		if (!currentId || currentId === 'new') return
+		if (!currentId || currentId === 'new') {
+			return
+		}
 		await objectStore.fetchObject(objectType, currentId)
 	}
 
@@ -190,11 +194,11 @@ export function useDetailView(objectTypeOrOptions, id, options) {
  *
  * @param {object} options Legacy options object
  * @param {string} [options.objectType] The registered object type slug
- * @param {Function} [options.fetchFn] (type, id) => Promise<object>
- * @param {Function} [options.saveFn] (type, data) => Promise<object>
- * @param {Function} [options.deleteFn] (type, id) => Promise<boolean>
- * @param {Function} [options.onSaved] Callback after successful save
- * @param {Function} [options.onDeleted] Callback after successful delete
+ * @param {(type: string, id: string) => Promise<object>} [options.fetchFn] (type, id) => Promise<object>
+ * @param {(type: string, data: object) => Promise<object>} [options.saveFn] (type, data) => Promise<object>
+ * @param {(type: string, id: string) => Promise<boolean>} [options.deleteFn] (type, id) => Promise<boolean>
+ * @param {(saved: object) => void} [options.onSaved] Callback after successful save
+ * @param {() => void} [options.onDeleted] Callback after successful delete
  * @return {object} Reactive state and methods
  */
 function useLegacyDetailView(options) {

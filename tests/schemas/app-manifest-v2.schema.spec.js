@@ -1141,7 +1141,6 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 	})
 
 	it('the manifest schema version reads 2.33.0', () => {
-		// eslint-disable-next-line global-require
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
 		expect(schema.version).toBe('2.33.0')
 	})

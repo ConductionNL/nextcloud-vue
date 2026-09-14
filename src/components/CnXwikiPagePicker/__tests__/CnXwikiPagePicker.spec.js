@@ -14,17 +14,11 @@
  *  - no link is emitted when nothing is selected.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnXwikiPagePicker = require('../CnXwikiPagePicker.vue').default
 
 function resolveOnce(payload, status = 200) {
 	return Promise.resolve({ ok: status >= 200 && status < 300, status, json: () => Promise.resolve(payload) })
-}
-
-async function flush(wrapper) {
-	await wrapper.vm.$nextTick()
-	await wrapper.vm.$nextTick()
-	await wrapper.vm.$nextTick()
 }
 
 describe('CnXwikiPagePicker', () => {
@@ -45,7 +39,7 @@ describe('CnXwikiPagePicker', () => {
 		}))
 
 		const wrapper = mount(CnXwikiPagePicker)
-		await flush(wrapper)
+		await flushPromises()
 
 		const rows = wrapper.findAll('.cn-xwiki-page-picker__row-button')
 		expect(rows).toHaveLength(2)
@@ -60,7 +54,7 @@ describe('CnXwikiPagePicker', () => {
 		}))
 
 		const wrapper = mount(CnXwikiPagePicker)
-		await flush(wrapper)
+		await flushPromises()
 
 		await wrapper.find('.cn-xwiki-page-picker__row-button').trigger('click')
 		expect(wrapper.vm.selectedReference).toBe('Sales.Pitch')
@@ -78,7 +72,7 @@ describe('CnXwikiPagePicker', () => {
 		))
 
 		const wrapper = mount(CnXwikiPagePicker)
-		await flush(wrapper)
+		await flushPromises()
 
 		expect(wrapper.vm.unconfigured).toBe(true)
 		expect(wrapper.find('.cn-xwiki-page-picker__unconfigured').exists()).toBe(true)
@@ -94,7 +88,7 @@ describe('CnXwikiPagePicker', () => {
 		))
 
 		const wrapper = mount(CnXwikiPagePicker)
-		await flush(wrapper)
+		await flushPromises()
 
 		expect(wrapper.vm.degradedCause).toBe('auth')
 		expect(wrapper.text()).toContain('XWiki authentication failed')
@@ -105,7 +99,7 @@ describe('CnXwikiPagePicker', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ error: 'boom' }, 500))
 
 		const wrapper = mount(CnXwikiPagePicker)
-		await flush(wrapper)
+		await flushPromises()
 
 		expect(wrapper.vm.error).toBeTruthy()
 		expect(wrapper.vm.unconfigured).toBe(false)
@@ -121,7 +115,7 @@ describe('CnXwikiPagePicker', () => {
 		}))
 
 		const wrapper = mount(CnXwikiPagePicker)
-		await flush(wrapper)
+		await flushPromises()
 
 		wrapper.vm.search = 'hand'
 		await wrapper.vm.$nextTick()
@@ -134,7 +128,7 @@ describe('CnXwikiPagePicker', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ results: [] }))
 
 		const wrapper = mount(CnXwikiPagePicker)
-		await flush(wrapper)
+		await flushPromises()
 
 		wrapper.vm.confirm()
 		expect(wrapper.emitted().link).toBeFalsy()

@@ -67,9 +67,7 @@ describe('CnFilesWidget — object-bound mode', () => {
 
 		expect(wrapper.vm.objectBound).toBe(true)
 		expect(axios.get).toHaveBeenCalledTimes(1)
-		expect(axios.get.mock.calls[0][0]).toBe(
-			'/index.php/apps/openregister/api/objects/petstore/pet/pet-123/files',
-		)
+		expect(axios.get.mock.calls[0][0]).toBe('/index.php/apps/openregister/api/objects/petstore/pet/pet-123/files')
 		expect(wrapper.vm.items).toEqual([
 			expect.objectContaining({ name: 'a.pdf', fileId: 11, isFolder: false, size: 100 }),
 		])
@@ -82,9 +80,7 @@ describe('CnFilesWidget — object-bound mode', () => {
 		await flush(wrapper)
 
 		expect(wrapper.vm.schemaSlug).toBe('pet')
-		expect(axios.get.mock.calls[0][0]).toBe(
-			'/index.php/apps/openregister/api/objects/petstore/pet/pet-123/files',
-		)
+		expect(axios.get.mock.calls[0][0]).toBe('/index.php/apps/openregister/api/objects/petstore/pet/pet-123/files')
 	})
 
 	it('uploads via filesMultipart with a files[] body', async () => {
@@ -97,9 +93,7 @@ describe('CnFilesWidget — object-bound mode', () => {
 
 		expect(axios.post).toHaveBeenCalledTimes(1)
 		const [url, body] = axios.post.mock.calls[0]
-		expect(url).toBe(
-			'/index.php/apps/openregister/api/objects/petstore/pet/pet-123/filesMultipart',
-		)
+		expect(url).toBe('/index.php/apps/openregister/api/objects/petstore/pet/pet-123/filesMultipart')
 		expect(body).toBeInstanceOf(FormData)
 		expect(body.getAll('files[]')).toHaveLength(1)
 	})
@@ -113,9 +107,7 @@ describe('CnFilesWidget — object-bound mode', () => {
 		await flush(wrapper)
 
 		expect(axios.delete).toHaveBeenCalledTimes(1)
-		expect(axios.delete.mock.calls[0][0]).toBe(
-			'/index.php/apps/openregister/api/objects/petstore/pet/pet-123/files/11',
-		)
+		expect(axios.delete.mock.calls[0][0]).toBe('/index.php/apps/openregister/api/objects/petstore/pet/pet-123/files/11')
 	})
 
 	it('opens the extracted delete dialog on confirmDelete and clears the target on close', async () => {
@@ -170,9 +162,7 @@ describe('CnFilesWidget — dashboard mode (regression)', () => {
 
 		expect(wrapper.vm.objectBound).toBe(false)
 		expect(axios.get).toHaveBeenCalledTimes(1)
-		expect(axios.get.mock.calls[0][0]).toBe(
-			'/index.php/apps/files/api/widgets/files/5/contents',
-		)
+		expect(axios.get.mock.calls[0][0]).toBe('/index.php/apps/files/api/widgets/files/5/contents')
 	})
 
 	it('does not fetch when no placement and no object context', async () => {
@@ -186,9 +176,13 @@ describe('CnFilesWidget — dashboard mode (regression)', () => {
 
 describe('CnFilesWidget — thumbnails', () => {
 	it('renders the backend thumbnailUrl as an <img> in dashboard mode', async () => {
-		axios.get.mockResolvedValue({ data: { items: [
-			{ fileId: 1, name: 'pic.png', isFolder: false, thumbnailUrl: 'https://nc/preview/1' },
-		] } })
+		axios.get.mockResolvedValue({
+			data: {
+				items: [
+					{ fileId: 1, name: 'pic.png', isFolder: false, thumbnailUrl: 'https://nc/preview/1' },
+				],
+			},
+		})
 		const wrapper = mount(CnFilesWidget, { propsData: { placement: { id: 5 } } })
 		await flush(wrapper)
 
@@ -198,9 +192,13 @@ describe('CnFilesWidget — thumbnails', () => {
 	})
 
 	it('falls back to the icon when showThumbnails is false', async () => {
-		axios.get.mockResolvedValue({ data: { items: [
-			{ fileId: 1, name: 'pic.png', isFolder: false, thumbnailUrl: 'https://nc/preview/1' },
-		] } })
+		axios.get.mockResolvedValue({
+			data: {
+				items: [
+					{ fileId: 1, name: 'pic.png', isFolder: false, thumbnailUrl: 'https://nc/preview/1' },
+				],
+			},
+		})
 		const wrapper = mount(CnFilesWidget, {
 			propsData: { placement: { id: 5 }, content: { showThumbnails: false } },
 		})
@@ -211,9 +209,13 @@ describe('CnFilesWidget — thumbnails', () => {
 	})
 
 	it('falls back to the icon after the thumbnail <img> errors', async () => {
-		axios.get.mockResolvedValue({ data: { items: [
-			{ fileId: 1, name: 'pic.png', isFolder: false, thumbnailUrl: 'https://nc/preview/1' },
-		] } })
+		axios.get.mockResolvedValue({
+			data: {
+				items: [
+					{ fileId: 1, name: 'pic.png', isFolder: false, thumbnailUrl: 'https://nc/preview/1' },
+				],
+			},
+		})
 		const wrapper = mount(CnFilesWidget, { propsData: { placement: { id: 5 } } })
 		await flush(wrapper)
 
@@ -225,9 +227,13 @@ describe('CnFilesWidget — thumbnails', () => {
 	})
 
 	it('builds an image preview URL for object-bound files', async () => {
-		axios.get.mockResolvedValue({ data: { results: [
-			{ id: 9, name: 'photo.jpg', size: 10, mimeType: 'image/jpeg' },
-		] } })
+		axios.get.mockResolvedValue({
+			data: {
+				results: [
+					{ id: 9, name: 'photo.jpg', size: 10, mimeType: 'image/jpeg' },
+				],
+			},
+		})
 		const wrapper = mount(CnFilesWidget, { propsData: { ...OBJECT_PROPS } })
 		await flush(wrapper)
 
@@ -237,9 +243,13 @@ describe('CnFilesWidget — thumbnails', () => {
 	})
 
 	it('renders no thumbnail for a non-image object-bound file', async () => {
-		axios.get.mockResolvedValue({ data: { results: [
-			{ id: 9, name: 'notes.txt', size: 10, mimeType: 'text/plain' },
-		] } })
+		axios.get.mockResolvedValue({
+			data: {
+				results: [
+					{ id: 9, name: 'notes.txt', size: 10, mimeType: 'text/plain' },
+				],
+			},
+		})
 		const wrapper = mount(CnFilesWidget, { propsData: { ...OBJECT_PROPS } })
 		await flush(wrapper)
 

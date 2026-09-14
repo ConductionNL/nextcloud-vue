@@ -4,16 +4,16 @@
  */
 
 import {
-	orderForReplay,
-	delayForAttempt,
+	BACKOFF_SCHEDULE_MS,
 	canRetry,
 	classifyConflict,
-	isConflictRetryable,
-	nextState,
-	resolveConflictChoice,
+	delayForAttempt,
 	diffVersions,
-	BACKOFF_SCHEDULE_MS,
+	isConflictRetryable,
 	MAX_ATTEMPTS,
+	nextState,
+	orderForReplay,
+	resolveConflictChoice,
 } from '../../../src/integrations/offline/syncQueueEngine.js'
 
 describe('syncQueueEngine', () => {

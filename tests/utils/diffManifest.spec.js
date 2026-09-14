@@ -12,14 +12,16 @@
 const { diffManifest } = require('../../src/utils/diffManifest.js')
 const { mergeManifestDelta } = require('../../src/utils/mergeManifestDelta.js')
 
-const base = () => ({
-	version: '1.0.0',
-	menu: [],
-	pages: [
-		{ id: 'a', title: 'A', widgets: [{ id: 'w1', widgetKey: 'k1' }, { id: 'w2', widgetKey: 'k2' }] },
-		{ id: 'b', title: 'B' },
-	],
-})
+function base() {
+	return {
+		version: '1.0.0',
+		menu: [],
+		pages: [
+			{ id: 'a', title: 'A', widgets: [{ id: 'w1', widgetKey: 'k1' }, { id: 'w2', widgetKey: 'k2' }] },
+			{ id: 'b', title: 'B' },
+		],
+	}
+}
 
 function roundTrip(b, edited) {
 	const delta = diffManifest(b, edited)
@@ -80,10 +82,13 @@ describe('diffManifest', () => {
 
 		it('emits a minimal per-child delta for an added child and round-trips', () => {
 			const edited = {
-				menu: [{ id: 'CasesGroup', children: [
-					{ id: 'AllCases', label: 'All cases' },
-					{ id: 'ct-new', label: 'Objections', route: 'Cases' },
-				] }],
+				menu: [{
+					id: 'CasesGroup',
+					children: [
+						{ id: 'AllCases', label: 'All cases' },
+						{ id: 'ct-new', label: 'Objections', route: 'Cases' },
+					],
+				}],
 			}
 			const delta = diffManifest(menuBase(), edited)
 			// Only the new child travels in the delta, keyed under the group.

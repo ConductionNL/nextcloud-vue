@@ -41,7 +41,7 @@
 				:label="t('nextcloud-vue', 'Search polls')"
 				:placeholder="t('nextcloud-vue', 'Type to filter…')"
 				class="cn-poll-picker__search"
-				@update:model-value="onSearch" />
+				@update:modelValue="onSearch" />
 
 			<NcLoadingIcon v-if="loading" />
 			<NcEmptyContent
@@ -132,7 +132,7 @@ export default {
 			if (term === '') {
 				return this.polls
 			}
-			return this.polls.filter(poll => (poll.title || '').toLowerCase().includes(term))
+			return this.polls.filter((poll) => (poll.title || '').toLowerCase().includes(term))
 		},
 	},
 

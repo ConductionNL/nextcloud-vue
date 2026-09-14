@@ -60,15 +60,9 @@ describe('CnIconColorPicker', () => {
 
 	it('marks the current selection with aria-pressed', () => {
 		const w = factory({ color: 'green', icon: 'home' })
-		expect(
-			w.find('[data-testid="cn-icon-color-picker-color-green"]').attributes('aria-pressed'),
-		).toBe('true')
-		expect(
-			w.find('[data-testid="cn-icon-color-picker-icon-home"]').attributes('aria-pressed'),
-		).toBe('true')
-		expect(
-			w.find('[data-testid="cn-icon-color-picker-color-default"]').attributes('aria-pressed'),
-		).toBe('false')
+		expect(w.find('[data-testid="cn-icon-color-picker-color-green"]').attributes('aria-pressed')).toBe('true')
+		expect(w.find('[data-testid="cn-icon-color-picker-icon-home"]').attributes('aria-pressed')).toBe('true')
+		expect(w.find('[data-testid="cn-icon-color-picker-color-default"]').attributes('aria-pressed')).toBe('false')
 	})
 
 	it('filters the grid on search and hides the Default cell while searching', async () => {
@@ -96,12 +90,8 @@ describe('CnIconColorPicker', () => {
 		const w = factory({ translate: (s) => `NL:${s}` })
 		expect(w.text()).toContain('NL:Color')
 		expect(w.text()).toContain('NL:Icon')
-		expect(
-			w.find('[data-testid="cn-icon-color-picker-color-red"]').attributes('aria-label'),
-		).toBe('NL:Red')
-		expect(
-			w.find('[data-testid="cn-icon-color-picker-icon-briefcase"]').attributes('aria-label'),
-		).toBe('NL:Work')
+		expect(w.find('[data-testid="cn-icon-color-picker-color-red"]').attributes('aria-label')).toBe('NL:Red')
+		expect(w.find('[data-testid="cn-icon-color-picker-icon-briefcase"]').attributes('aria-label')).toBe('NL:Work')
 	})
 
 	it('offers no Default icon cell without a fallback glyph', () => {
@@ -118,29 +108,19 @@ describe('CnIconColorPicker', () => {
 			.findAll('.cn-icon-color-picker__swatch')
 			.filter((b) => b.attributes('tabindex') === '0')
 		expect(inTabOrder).toHaveLength(1)
-		expect(
-			w.find('[data-testid="cn-icon-color-picker-color-default"]').attributes('tabindex'),
-		).toBe('0')
+		expect(w.find('[data-testid="cn-icon-color-picker-color-default"]').attributes('tabindex')).toBe('0')
 
 		// ArrowRight moves the stop onto the first palette swatch.
 		await w
 			.find('[data-testid="cn-icon-color-picker-color-default"]')
 			.trigger('keydown', { key: 'ArrowRight' })
-		expect(
-			w.find(`[data-testid="cn-icon-color-picker-color-${FOLDER_COLORS[0].key}"]`).attributes('tabindex'),
-		).toBe('0')
-		expect(
-			w.find('[data-testid="cn-icon-color-picker-color-default"]').attributes('tabindex'),
-		).toBe('-1')
+		expect(w.find(`[data-testid="cn-icon-color-picker-color-${FOLDER_COLORS[0].key}"]`).attributes('tabindex')).toBe('0')
+		expect(w.find('[data-testid="cn-icon-color-picker-color-default"]').attributes('tabindex')).toBe('-1')
 	})
 
 	it('parks the icon grid Tab stop on the selected icon', () => {
 		const w = factory({ icon: 'home' })
-		expect(
-			w.find('[data-testid="cn-icon-color-picker-icon-home"]').attributes('tabindex'),
-		).toBe('0')
-		expect(
-			w.find('[data-testid="cn-icon-color-picker-icon-default"]').attributes('tabindex'),
-		).toBe('-1')
+		expect(w.find('[data-testid="cn-icon-color-picker-icon-home"]').attributes('tabindex')).toBe('0')
+		expect(w.find('[data-testid="cn-icon-color-picker-icon-default"]').attributes('tabindex')).toBe('-1')
 	})
 })

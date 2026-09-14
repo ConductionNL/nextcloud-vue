@@ -4,16 +4,16 @@
 	<CnWizardDialog
 		ref="wizard"
 		:steps="wizardSteps"
-		:dialog-title="dialogTitle"
-		:submit-label="submitLabel"
-		:cancel-label="cancelLabel"
-		:next-label="nextLabel"
-		:back-label="backLabel"
-		:success-text="successText"
+		:dialogTitle="resolvedDialogTitle"
+		:submitLabel="submitLabel"
+		:cancelLabel="cancelLabel"
+		:nextLabel="nextLabel"
+		:backLabel="backLabel"
+		:successText="successText"
 		:validate="validateStep"
 		:cancellable="cancellable"
-		:initial-step="initialStepId"
-		@step-change="onStepChange"
+		:initialStep="initialStepId"
+		@stepChange="onStepChange"
 		@submit="onSubmit"
 		@close="onClose">
 		<!-- This `<template v-for>` defines dynamic SLOTS, not a rendered list.
@@ -32,8 +32,8 @@
 					:name="stepSlot(step)"
 					v-bind="scope"
 					:step="step"
-					:run-action="() => runAction(step)"
-					:save-config="(patch) => saveConfig(patch)" />
+					:runAction="() => runAction(step)"
+					:saveConfig="(patch) => saveConfig(patch)" />
 
 				<!-- info -->
 				<template v-else-if="step.type === 'info'">
@@ -54,17 +54,17 @@
 						:multiple="step.multiple === true"
 						:disabled="isChoiceDisabled(step)"
 						:loading="isOptionsLoading(step)"
-						:model-value="cardModel(step)"
-						@update:model-value="(v) => onChoice(step, v)" />
+						:modelValue="cardModel(step)"
+						@update:modelValue="(v) => onChoice(step, v)" />
 					<NcSelect
 						v-else
-						:input-label="stepTitle(step)"
+						:inputLabel="stepTitle(step)"
 						:options="optionsFor(step)"
 						:multiple="step.multiple === true"
 						:disabled="isChoiceDisabled(step)"
 						label="label"
-						:model-value="choiceModel[step.id]"
-						@update:model-value="(v) => onChoice(step, v)" />
+						:modelValue="choiceModel[step.id]"
+						@update:modelValue="(v) => onChoice(step, v)" />
 					<NcNoteCard v-if="isChoiceDisabled(step)" type="warning">
 						{{ dependsOnHint(step) }}
 					</NcNoteCard>
@@ -78,22 +78,22 @@
 						class="cn-setup-field">
 						<NcCheckboxRadioSwitch
 							v-if="field.widget === 'checkbox'"
-							:model-value="!!configModel[field.key]"
-							@update:model-value="(v) => configModel[field.key] = v">
+							:modelValue="!!configModel[field.key]"
+							@update:modelValue="(v) => configModel[field.key] = v">
 							{{ field.label }}
 						</NcCheckboxRadioSwitch>
 						<NcSelect
 							v-else-if="field.widget === 'select'"
-							:input-label="field.label"
+							:inputLabel="field.label"
 							:options="field.enum || []"
-							:model-value="configModel[field.key]"
-							@update:model-value="(v) => configModel[field.key] = v" />
+							:modelValue="configModel[field.key]"
+							@update:modelValue="(v) => configModel[field.key] = v" />
 						<NcTextField
 							v-else
 							:label="field.label"
 							:type="field.widget === 'number' ? 'number' : 'text'"
-							:model-value="configModel[field.key] != null ? String(configModel[field.key]) : ''"
-							@update:model-value="(v) => configModel[field.key] = v" />
+							:modelValue="configModel[field.key] != null ? String(configModel[field.key]) : ''"
+							@update:modelValue="(v) => configModel[field.key] = v" />
 					</div>
 				</template>
 
@@ -102,19 +102,25 @@
 					<NcNoteCard v-if="step.body" type="info">
 						{{ stepBody(step) }}
 					</NcNoteCard>
-					<NcNoteCard
-						v-if="actionResult[step.id]"
-						:type="actionResult[step.id].success ? 'success' : 'error'">
-						{{ actionResult[step.id].message }}
-					</NcNoteCard>
-					<div class="cn-setup-step__nav">
-						<NcButton variant="primary" :disabled="running[step.id]" @click="runAction(step)">
-							<template v-if="running[step.id]" #icon>
-								<NcLoadingIcon :size="20" />
-							</template>
-							{{ runLabel }}
-						</NcButton>
+					<!-- The action starts automatically on entering this step
+					     (see `maybeAutoRunStep`), so the default state is the
+					     spinner, not an idle button. -->
+					<div v-if="running[step.id]" class="cn-setup-step__running">
+						<NcLoadingIcon :size="20" />
+						<span>{{ runningLabel }}</span>
 					</div>
+					<template v-else>
+						<NcNoteCard
+							v-if="actionResult[step.id]"
+							:type="actionResult[step.id].success ? 'success' : 'error'">
+							{{ actionResult[step.id].message }}
+						</NcNoteCard>
+						<div class="cn-setup-step__nav">
+							<NcButton :variant="actionResult[step.id] ? 'secondary' : 'primary'" @click="runAction(step)">
+								{{ actionResult[step.id] ? rerunLabel : runLabel }}
+							</NcButton>
+						</div>
+					</template>
 				</template>
 
 				<!-- summary -->
@@ -142,9 +148,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcNoteCard, NcSelect, NcTextField, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
-import CnWizardDialog from '../CnWizardDialog/CnWizardDialog.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnChoiceCards from '../CnChoiceCards/CnChoiceCards.vue'
+import CnWizardDialog from '../CnWizardDialog/CnWizardDialog.vue'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
 
@@ -203,46 +209,78 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** The `manifest.setup.steps` array to render. */
 		steps: {
 			type: Array,
 			default: () => [],
 		},
-		/** Dialog title. */
+
+		/** Dialog title. Overridden by `appName` when that prop is set. */
 		dialogTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Set up this app'),
 		},
+
+		/**
+		 * The app's human-readable display name. When set, the dialog title
+		 * becomes "Set up {appName}" instead of the generic `dialogTitle`
+		 * default — pass the same display name CnAppRoot already resolves
+		 * (`appDisplayName || manifest.name || appId`).
+		 */
+		appName: {
+			type: String,
+			default: '',
+		},
+
 		/** Final-step submit button label. */
 		submitLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Finish'),
 		},
+
 		/** Cancel button label. */
 		cancelLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Cancel'),
 		},
+
 		/** Next button label. */
 		nextLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Next'),
 		},
+
 		/** Back button label. */
 		backLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Back'),
 		},
-		/** Run-action button label. */
+
+		/** Run-action button label (shown before the first automatic run). */
 		runLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Run'),
 		},
+
+		/** Run-action button label offered after a run already finished. */
+		rerunLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Run again'),
+		},
+
+		/** Label shown next to the spinner while a run-action step is running. */
+		runningLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Loading…'),
+		},
+
 		/** Result-phase success text. */
 		successText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Setup complete.'),
 		},
+
 		/**
 		 * Whether the wizard can be dismissed before finishing (Cancel
 		 * button, ESC, backdrop click). Pass `false` when a REQUIRED step
@@ -256,6 +294,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Ids of steps the SERVER already reports as done (e.g.
 		 * `useSetupStatus(...).steps` filtered to `done === true`), passed by
@@ -310,9 +349,23 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The title actually rendered by CnWizardDialog: "Set up {appName}"
+		 * when a display name was passed, otherwise whatever `dialogTitle`
+		 * resolves to (a caller override, or its own generic default).
+		 *
+		 * @return {string}
+		 */
+		resolvedDialogTitle() {
+			return this.appName
+				? t('nextcloud-vue', 'Set up {app}', { app: this.appName })
+				: this.dialogTitle
+		},
+
 		setupSteps() {
 			return (this.steps || []).filter((s) => s && s.id && s.type)
 		},
+
 		wizardSteps() {
 			return this.setupSteps.map((s) => ({
 				id: s.id,
@@ -320,6 +373,7 @@ export default {
 				optional: s.required !== true,
 			}))
 		},
+
 		/**
 		 * Recap rows for the `summary` step — one per non-summary step, with
 		 * the value the user selected (choice label / config field values) and
@@ -337,12 +391,12 @@ export default {
 						const raw = this.choiceModel[step.id]
 						if (Array.isArray(raw)) {
 							value = raw.map((o) => this.choiceLabel(step, o)).join(', ')
-						} else if (raw != null && raw !== '') {
+						} else if (raw !== null && raw !== undefined && raw !== '') {
 							value = this.choiceLabel(step, raw)
 						}
 					} else if (step.type === 'config-fields') {
 						value = this.fieldsFor(step)
-							.map((f) => `${f.label}: ${this.configModel[f.key] != null ? this.configModel[f.key] : ''}`)
+							.map((f) => `${f.label}: ${this.configModel[f.key] !== null && this.configModel[f.key] !== undefined ? this.configModel[f.key] : ''}`)
 							.join(', ')
 					}
 					let done
@@ -356,6 +410,7 @@ export default {
 					return { id: step.id, title: this.stepTitle(step), value, done }
 				})
 		},
+
 		/**
 		 * Id of the step the wizard should open on when RESUMING: the first
 		 * non-`info`/`summary` step not already done, per the CURRENT session's
@@ -373,15 +428,49 @@ export default {
 				return ''
 			}
 			const actionable = this.setupSteps.filter((s) => s.type !== 'info' && s.type !== 'summary')
-			const firstUnmet = actionable.find((s) => {
-				if (s.type === 'choice') return !(this.hasChoice(s) || this.isServerDone(s.id))
+			const firstUnmetIndex = actionable.findIndex((s) => {
+				if (s.type === 'choice') {
+					return !(this.hasChoice(s) || this.isServerDone(s.id))
+				}
 				return !this.isStepDone(s.id)
 			})
-			return firstUnmet ? firstUnmet.id : ''
+			// Done is not the same as seen: an app that pre-satisfies a step at
+			// install time (buildiq seeds templates from a repair step) reports it
+			// done before anyone opens the wizard. Only finished work BEFORE the
+			// outstanding step means there is something to resume past.
+			if (firstUnmetIndex <= 0) {
+				return ''
+			}
+			return actionable[firstUnmetIndex].id
 		},
 	},
 
+	mounted() {
+		// Covers a RESUMED wizard opening straight onto its run-action step
+		// (`initialStepId`) — `onStepChange` only fires on later navigation,
+		// so a step already active at mount time needs its own trigger.
+		this.maybeAutoRunStep(this.initialStepId || (this.setupSteps[0] && this.setupSteps[0].id))
+	},
+
 	methods: {
+		/**
+		 * Start a `run-action` step's action automatically the moment it
+		 * becomes current, instead of waiting for a manual "Run" click —
+		 * the step has nothing else for the user to decide by then (the
+		 * choice it acts on was already made on an earlier step), so
+		 * requiring a click before showing progress just adds a stall.
+		 * No-ops for any other step type, or one already run/running.
+		 *
+		 * @param {string} stepId The step id becoming current.
+		 * @return {void}
+		 */
+		maybeAutoRunStep(stepId) {
+			const step = this.setupSteps.find((s) => s.id === stepId)
+			if (step && step.type === 'run-action' && !this.isStepDone(step.id) && !this.running[step.id]) {
+				this.runAction(step)
+			}
+		},
+
 		/**
 		 * The visible title for a step, resolved through the host app's
 		 * translation function.
@@ -404,6 +493,7 @@ export default {
 			const raw = (step && step.title) || (step && step.id) || ''
 			return raw === '' ? '' : this.cnTranslate(raw)
 		},
+
 		/**
 		 * The visible body for a step, resolved through the host app's
 		 * translation function.
@@ -423,12 +513,15 @@ export default {
 			const raw = (step && step.body) || ''
 			return raw === '' ? '' : this.cnTranslate(raw)
 		},
+
 		stepSlot(step) {
 			return 'step-' + step.id
 		},
+
 		hasCustomSlot(id) {
 			return !!this.$slots['step-' + id] || !!this.$slots['step-' + id]
 		},
+
 		fieldsFor(step) {
 			if (step.schema && typeof step.schema === 'object') {
 				return fieldsFromSchema(step.schema, { translate: this.cnTranslate })
@@ -436,6 +529,7 @@ export default {
 			// Fallback: a plain text field per declared config key.
 			return (step.configKeys || []).map((key) => ({ key, label: key, widget: 'text' }))
 		},
+
 		/**
 		 * Options for a `choice` step. When the step declares `dependsOn`
 		 * (a parent step's configKey) + `optionsByParent`, the option list
@@ -452,7 +546,7 @@ export default {
 				options = this.sourcedOptions(step)
 			} else if (step.dependsOn && step.optionsByParent) {
 				const parentValue = this.choiceValues[step.dependsOn]
-				options = (parentValue == null || parentValue === '')
+				options = (parentValue === null || parentValue === undefined || parentValue === '')
 					? []
 					: (step.optionsByParent[parentValue] || [])
 			}
@@ -473,6 +567,7 @@ export default {
 				return translated
 			})
 		},
+
 		/**
 		 * The option list a `choice` step declares `optionsSource` for, read
 		 * from the setup status document the app already serves.
@@ -489,7 +584,7 @@ export default {
 		sourcedOptions(step) {
 			let node = this.setupStatus
 			for (const key of String(step.optionsSource).split('.')) {
-				if (node == null || typeof node !== 'object') {
+				if (node === null || node === undefined || typeof node !== 'object') {
 					return []
 				}
 				node = node[key]
@@ -513,6 +608,7 @@ export default {
 				})
 				.filter((option) => option.value !== undefined)
 		},
+
 		/**
 		 * Whether a choice step renders as a card grid rather than a dropdown.
 		 *
@@ -522,6 +618,7 @@ export default {
 		isCardChoice(step) {
 			return step.display === 'cards'
 		},
+
 		/**
 		 * Whether this step is still waiting for its live option list.
 		 *
@@ -531,13 +628,14 @@ export default {
 		isOptionsLoading(step) {
 			return !!step.optionsSource && this.setupStatusLoading === true
 		},
+
 		/**
 		 * The card grid's model: plain values, not the option objects NcSelect
 		 * binds. `scalarChoice` already reduces either shape to values, so both
 		 * renderers can share one `choiceModel` entry.
 		 *
 		 * @param {object} step The choice step.
-		 * @return {*} The selected value, or [] / null when nothing is picked.
+		 * @return {unknown} The selected value, or [] / null when nothing is picked.
 		 */
 		cardModel(step) {
 			const value = this.scalarChoice(step)
@@ -546,16 +644,21 @@ export default {
 			}
 			return value === undefined ? null : value
 		},
+
 		isChoiceDisabled(step) {
-			if (!step.dependsOn) return false
+			if (!step.dependsOn) {
+				return false
+			}
 			const parentValue = this.choiceValues[step.dependsOn]
-			return parentValue == null || parentValue === ''
+			return parentValue === null || parentValue === undefined || parentValue === ''
 		},
+
 		dependsOnHint(step) {
 			const parent = this.setupSteps.find((s) => s.configKey === step.dependsOn)
 			const label = parent ? (parent.title || parent.id) : step.dependsOn
 			return t('nextcloud-vue', 'Select "{step}" first.', { step: label })
 		},
+
 		/**
 		 * The visible label for one selected choice entry.
 		 *
@@ -566,7 +669,7 @@ export default {
 		 * not (yet) available.
 		 *
 		 * @param {object} step  The choice step.
-		 * @param {*}      entry One selected entry: an option object or a value.
+		 * @param {unknown}      entry One selected entry: an option object or a value.
 		 * @return {string} The label to show.
 		 */
 		choiceLabel(step, entry) {
@@ -576,13 +679,15 @@ export default {
 			const match = this.optionsFor(step).find((o) => o && String(o.value) === String(entry))
 			return (match && match.label) ? match.label : String(entry)
 		},
+
 		hasChoice(step) {
 			const v = this.choiceModel[step.id]
 			if (step.multiple === true) {
 				return Array.isArray(v) && v.length > 0
 			}
-			return v != null && v !== ''
+			return v !== null && v !== undefined && v !== ''
 		},
+
 		scalarChoice(step) {
 			const raw = this.choiceModel[step.id]
 			if (step.multiple === true) {
@@ -590,6 +695,7 @@ export default {
 			}
 			return raw && raw.value !== undefined ? raw.value : raw
 		},
+
 		onChoice(step, value) {
 			this.userTouched[step.id] = true
 			this.choiceModel[step.id] = value
@@ -601,7 +707,9 @@ export default {
 				if (child.dependsOn && child.dependsOn === step.configKey) {
 					this.choiceModel[child.id] = child.multiple === true ? [] : null
 					this.userTouched[child.id] = false
-					if (child.configKey) this.choiceValues[child.configKey] = ''
+					if (child.configKey) {
+						this.choiceValues[child.configKey] = ''
+					}
 				}
 			}
 			// Re-apply auto-suggestions for steps that derive a default from this one.
@@ -611,6 +719,7 @@ export default {
 				}
 			}
 		},
+
 		/**
 		 * Auto-fill a `choice` step's suggested default from an earlier choice
 		 * (its `suggestFrom` configKey → `suggestMap[parentValue]`). No-op once
@@ -621,15 +730,24 @@ export default {
 		 * @return {void}
 		 */
 		applySuggestion(step) {
-			if (this.userTouched[step.id] === true) return
+			if (this.userTouched[step.id] === true) {
+				return
+			}
 			const parentValue = this.choiceValues[step.suggestFrom]
-			if (parentValue == null || parentValue === '') return
+			if (parentValue === null || parentValue === undefined || parentValue === '') {
+				return
+			}
 			const wanted = (step.suggestMap || {})[parentValue]
-			if (wanted == null) return
+			if (wanted === null || wanted === undefined) {
+				return
+			}
 			const opt = this.optionsFor(step).find((o) => o.value === wanted) || { value: wanted, label: String(wanted) }
 			this.choiceModel[step.id] = opt
-			if (step.configKey) this.choiceValues[step.configKey] = wanted
+			if (step.configKey) {
+				this.choiceValues[step.configKey] = wanted
+			}
 		},
+
 		/**
 		 * CnWizardDialog `validate` hook — intercepts Next/Submit to persist
 		 * the active step before advancing. `choice`/`config-fields` steps
@@ -643,7 +761,9 @@ export default {
 		 */
 		async validateStep(stepId) {
 			const step = this.setupSteps.find((s) => s.id === stepId)
-			if (!step) return true
+			if (!step) {
+				return true
+			}
 			if (step.type === 'choice') {
 				if (!this.hasChoice(step)) {
 					// Already persisted server-side and the user only back-navigated
@@ -682,6 +802,7 @@ export default {
 			}
 			return true
 		},
+
 		/**
 		 * Persist one or more app-config values via the setup contract.
 		 *
@@ -695,6 +816,7 @@ export default {
 			])
 			await axios.post(generateUrl(`/apps/${this.appId}/api/setup/config`), patch)
 		},
+
 		async runAction(step) {
 			this.running[step.id] = true
 			this.actionResult[step.id] = null
@@ -703,9 +825,7 @@ export default {
 					import('@nextcloud/axios'),
 					import('@nextcloud/router'),
 				])
-				const { data } = await axios.post(
-					generateUrl(`/apps/${this.appId}/api/setup/action/${step.action}`),
-				)
+				const { data } = await axios.post(generateUrl(`/apps/${this.appId}/api/setup/action/${step.action}`))
 				const result = {
 					success: data && data.success !== false,
 					message: (data && data.message) || t('nextcloud-vue', 'Done.'),
@@ -726,9 +846,11 @@ export default {
 				this.running[step.id] = false
 			}
 		},
+
 		isStepDone(id) {
 			return this.isServerDone(id) || this.localDone[id] === true || (this.actionResult[id] && this.actionResult[id].success)
 		},
+
 		/**
 		 * Whether the server already reported this step done in a prior
 		 * session, via the `completedStepIds` prop.
@@ -739,6 +861,7 @@ export default {
 		isServerDone(id) {
 			return this.completedStepIds.includes(id)
 		},
+
 		onSubmit() {
 			if (this.$refs.wizard && this.$refs.wizard.setResult) {
 				this.$refs.wizard.setResult({ success: true, message: this.successText })
@@ -748,24 +871,28 @@ export default {
 			 */
 			this.$emit('complete')
 		},
+
 		onStepChange(payload) {
 			// Pre-fill a suggested default when entering a step that derives one.
 			const step = this.setupSteps.find((s) => s.id === payload.stepId)
 			if (step && step.suggestFrom) {
 				this.applySuggestion(step)
 			}
+			this.maybeAutoRunStep(payload.stepId)
 			/**
 			 * @event step-change Emitted when the active step changes.
 			 * @type {{ stepId: string, stepIndex: number, direction: string }}
 			 */
 			this.$emit('step-change', payload)
 		},
+
 		onClose() {
 			/**
 			 * @event close Emitted when the dialog should close.
 			 */
 			this.$emit('close')
 		},
+
 		errorMessage(err) {
 			const data = err && err.response && err.response.data
 			if (data && (data.message || data.error)) {
@@ -789,6 +916,15 @@ export default {
 	justify-content: flex-end;
 	gap: 8px;
 	margin-top: 8px;
+}
+
+.cn-setup-step__running {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 24px 0;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-setup-field {

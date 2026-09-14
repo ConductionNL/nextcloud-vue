@@ -12,7 +12,7 @@
 // A jsdom unit test can't: this repo's jest setup stubs @nextcloud/vue, so the
 // NcActionInput <form>/submit wiring that this bug lives in isn't present there.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 /**
  * Type a value into the enum field and click its arrow until the chip appears.
@@ -27,6 +27,7 @@ import { test, expect } from '@playwright/test'
  * and the ARROW CLICK — the wiring this spec guards — stays real.
  * Retrying via toPass is safe: addEnumValue() has an enum.includes() duplicate
  * guard, so a repeated set+click is idempotent.
+ *
  * @param {import('@playwright/test').Page} page The test page.
  * @param {import('@playwright/test').Locator} enumField The "Add enum value" textbox.
  * @param {string} value The enum value to add.

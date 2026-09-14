@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: EUPL-1.2
  */
 
-const { dropUnrenderableActions } = require('../../../src/cli/transforms/dropUnrenderableActions')
+const { dropUnrenderableActions } = require('../../../src/cli/transforms/dropUnrenderableActions.js')
 
 describe('dropUnrenderableActions', () => {
 	it('drops bare-string actions', () => {

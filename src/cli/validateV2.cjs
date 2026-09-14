@@ -15,8 +15,8 @@
 
 'use strict'
 
-const Ajv = require('ajv/dist/2020.js')
 const addFormats = require('ajv-formats')
+const Ajv = require('ajv/dist/2020.js')
 const v2Schema = require('../../src/schemas/app-manifest-v2.schema.json')
 
 const ajvV2 = new Ajv({ useDefaults: true, allErrors: true, strict: false })
@@ -73,15 +73,17 @@ function validateManifestV2(manifest) {
 	// gridX + gridWidth <= 12
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, pIndex) => {
-			if (!page || !Array.isArray(page.widgets)) return
+			if (!page || !Array.isArray(page.widgets)) {
+				return
+			}
 			page.widgets.forEach((widget, wIndex) => {
-				if (!widget) return
+				if (!widget) {
+					return
+				}
 				const gx = widget.gridX
 				const gw = widget.gridWidth
 				if (typeof gx === 'number' && typeof gw === 'number' && gx + gw > 12) {
-					errors.push(
-						`pages[${pIndex}]/widgets[${wIndex}]: Widget '${widget.widgetKey}' in slot '${widget.slot}': gridX (${gx}) + gridWidth (${gw}) exceeds 12`,
-					)
+					errors.push(`pages[${pIndex}]/widgets[${wIndex}]: Widget '${widget.widgetKey}' in slot '${widget.slot}': gridX (${gx}) + gridWidth (${gw}) exceeds 12`)
 				}
 			})
 		})
@@ -96,19 +98,37 @@ function validateManifestV2(manifest) {
 	}
 	if (Array.isArray(clone.menu)) {
 		clone.menu.forEach((item, i) => {
-			if (!item) return
-			if (isSentinel(item.id)) errors.push(`/menu/${i}/id must not be a @resolve: sentinel`)
-			if (isSentinel(item.route)) errors.push(`/menu/${i}/route must not be a @resolve: sentinel`)
+			if (!item) {
+				return
+			}
+			if (isSentinel(item.id)) {
+				errors.push(`/menu/${i}/id must not be a @resolve: sentinel`)
+			}
+			if (isSentinel(item.route)) {
+				errors.push(`/menu/${i}/route must not be a @resolve: sentinel`)
+			}
 		})
 	}
 	if (Array.isArray(clone.pages)) {
 		clone.pages.forEach((page, i) => {
-			if (!page) return
-			if (isSentinel(page.id)) errors.push(`/pages/${i}/id must not be a @resolve: sentinel`)
-			if (isSentinel(page.route)) errors.push(`/pages/${i}/route must not be a @resolve: sentinel`)
-			if (isSentinel(page.component)) errors.push(`/pages/${i}/component must not be a @resolve: sentinel`)
-			if (isSentinel(page.headerComponent)) errors.push(`/pages/${i}/headerComponent must not be a @resolve: sentinel`)
-			if (isSentinel(page.actionsComponent)) errors.push(`/pages/${i}/actionsComponent must not be a @resolve: sentinel`)
+			if (!page) {
+				return
+			}
+			if (isSentinel(page.id)) {
+				errors.push(`/pages/${i}/id must not be a @resolve: sentinel`)
+			}
+			if (isSentinel(page.route)) {
+				errors.push(`/pages/${i}/route must not be a @resolve: sentinel`)
+			}
+			if (isSentinel(page.component)) {
+				errors.push(`/pages/${i}/component must not be a @resolve: sentinel`)
+			}
+			if (isSentinel(page.headerComponent)) {
+				errors.push(`/pages/${i}/headerComponent must not be a @resolve: sentinel`)
+			}
+			if (isSentinel(page.actionsComponent)) {
+				errors.push(`/pages/${i}/actionsComponent must not be a @resolve: sentinel`)
+			}
 			if (page.slots && typeof page.slots === 'object') {
 				for (const [slotName, slotValue] of Object.entries(page.slots)) {
 					if (isSentinel(slotValue)) {

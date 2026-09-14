@@ -13,8 +13,8 @@
  * public barrel export) so importing the component doesn't force registration.
  */
 
-import CnObjectGeoWidget from './CnObjectGeoWidget.vue'
 import CnObjectGeoWidgetForm from '../CnObjectGeoWidgetForm/CnObjectGeoWidgetForm.vue'
+import CnObjectGeoWidget from './CnObjectGeoWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('object-geo', {

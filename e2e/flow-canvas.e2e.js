@@ -23,7 +23,7 @@
 // keyboard regression without noticing, so `keyboard only` below uses NO
 // pointer events at all.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const CANVAS = '/?canvas=1'
 const READONLY = '/?canvas=1&readonly=1'
@@ -335,8 +335,7 @@ test.describe('flow canvas — keyboard only', () => {
 		// `<Handle>` and re-emits it as `data-handleid`. Reading `id` returns
 		// null for every port, which would collapse to a single distinct value
 		// and let this test pass while stepping was broken.
-		const armedPort = async () =>
-			await page.locator('.cn-flow-node:focus [aria-pressed="true"]').getAttribute('data-handleid')
+		const armedPort = async () => await page.locator('.cn-flow-node:focus [aria-pressed="true"]').getAttribute('data-handleid')
 
 		await page.keyboard.press('c')
 		const first = await armedPort()
@@ -354,7 +353,6 @@ test.describe('flow canvas — keyboard only', () => {
 
 test.describe('flow canvas — accessibility', () => {
 	test('axe finds no violations, in light and dark', async ({ page }) => {
-		// eslint-disable-next-line
 		const axePath = require.resolve('axe-core')
 
 		for (const theme of ['light', 'dark']) {
@@ -364,16 +362,11 @@ test.describe('flow canvas — accessibility', () => {
 
 			await page.addScriptTag({ path: axePath })
 			const result = await page.evaluate(async () => {
-				// eslint-disable-next-line
 				return await window.axe.run(document.querySelector('[data-testid="canvas-box"]'))
 			})
 
-			const serious = result.violations.filter(
-				(violation) => violation.impact === 'serious' || violation.impact === 'critical',
-			)
-			expect(
-				serious.map((violation) => `${violation.id}: ${violation.nodes.map((n) => n.html).join(' | ')}`),
-			).toEqual([])
+			const serious = result.violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+			expect(serious.map((violation) => `${violation.id}: ${violation.nodes.map((n) => n.html).join(' | ')}`)).toEqual([])
 		}
 	})
 })

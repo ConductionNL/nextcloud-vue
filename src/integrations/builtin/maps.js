@@ -31,8 +31,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnMapsTab from './maps/CnMapsTab.vue'
 import CnMapsCard from './maps/CnMapsCard.vue'
+import CnMapsTab from './maps/CnMapsTab.vue'
 
 /**
  * `maps` integration descriptor.

@@ -14,6 +14,7 @@
  */
 import { mount } from '@vue/test-utils'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
+
 import '../../src/components/CnStatWidget/index.js'
 
 function mountPage() {

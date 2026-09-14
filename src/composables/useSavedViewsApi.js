@@ -21,7 +21,7 @@ import { generateUrl } from '@nextcloud/router'
  * Business logic (state serialization, ownership gating, user feedback)
  * lives in the caller; network errors propagate to the caller's try/catch.
  *
- * @return {{ fetchViews: Function, createView: Function, updateView: Function, deleteView: Function }} The API surface.
+ * @return {{ fetchViews: () => Promise<Array<object>>, createView: (payload: object) => Promise<object>, updateView: (id: string|number, payload: object) => Promise<object>, deleteView: (id: string|number) => Promise<void> }} The API surface.
  */
 export function useSavedViewsApi() {
 	const base = '/apps/openregister/api/views'

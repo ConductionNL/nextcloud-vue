@@ -23,16 +23,19 @@ const stubs = {
 	CnDashboardGrid: { template: '<div><div v-for="it in layout" :key="it.id"><slot name="widget" :item="it" /></div></div>', props: ['layout', 'editable', 'columns', 'cellHeight', 'margin'] },
 	CnWidgetWrapper: { props: ['flush', 'showTitle', 'showActions', 'title'], template: '<div class="ww" :data-flush="String(flush)"><slot /></div>' },
 	NcButton: { template: '<button><slot /></button>' },
-	NcEmptyContent: { template: '<div />' }, NcLoadingIcon: { template: '<div />' },
+	NcEmptyContent: { template: '<div />' },
+	NcLoadingIcon: { template: '<div />' },
 }
 
-const mountItem = (type, extra = {}) => mount(CnDashboardPage, {
-	propsData: {
-		widgets: [{ id: 'w', type }],
-		layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 4, ...extra }],
-	},
-	stubs,
-})
+function mountItem(type, extra = {}) {
+	return mount(CnDashboardPage, {
+		propsData: {
+			widgets: [{ id: 'w', type }],
+			layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 4, ...extra }],
+		},
+		stubs,
+	})
+}
 
 describe('CnDashboardPage — flush by default', () => {
 	it('a registry widget renders flush by default (no content padding)', () => {

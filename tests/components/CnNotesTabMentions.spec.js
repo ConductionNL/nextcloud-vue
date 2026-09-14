@@ -31,7 +31,13 @@ const DEFAULT_PROPS = {
 	schema: 'note',
 }
 
-/** Flush pending promise callbacks a few times. */
+/**
+ * Flush pending promise callbacks a few times.
+ *
+ * @param {object} wrapper The mounted wrapper to settle.
+ * @param {number} times How many tick/flush rounds to run.
+ * @return {Promise<void>}
+ */
 async function flush(wrapper, times = 4) {
 	for (let i = 0; i < times; i++) {
 		await wrapper.vm.$nextTick()

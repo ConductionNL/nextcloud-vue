@@ -12,8 +12,7 @@ jest.mock('@nextcloud/router', () => ({
 }))
 
 // Import AFTER the router mock is registered.
-// eslint-disable-next-line import/first
-import { searchNextcloudUsers, resolveNextcloudUser } from '@/utils/userAutocomplete.js'
+import { resolveNextcloudUser, searchNextcloudUsers } from '@/utils/userAutocomplete.js'
 
 beforeEach(() => {
 	axios.get = jest.fn()

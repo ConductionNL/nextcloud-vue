@@ -15,8 +15,8 @@
 
 jest.mock('@nextcloud/router', () => ({ generateUrl: (p) => `/index.php${p}` }))
 
-const { mountAttached } = require('./support/mountAttached.js')
 const { expectAccessible } = require('../../src/testing/a11y.js')
+const { mountAttached } = require('./support/mountAttached.js')
 const CnNotesTab = require('../../src/components/CnObjectSidebar/CnNotesTab.vue').default
 
 describe('CnNotesTab — accessibility', () => {

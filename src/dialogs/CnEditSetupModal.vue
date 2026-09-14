@@ -41,14 +41,14 @@
 							:clearable="false"
 							:reduce="o => o.id"
 							label="label"
-							:input-label="t('nextcloud-vue', 'Step type')" />
+							:inputLabel="t('nextcloud-vue', 'Step type')" />
 					</label>
 					<NcTextArea v-model="step.body"
 						:label="t('nextcloud-vue', 'Body')" />
 					<NcTextField v-if="step.type === 'config-fields'"
 						:label="t('nextcloud-vue', 'Fields to ask for (comma-separated keys, e.g. store_name, contact_email)')"
-						:model-value="configKeysText(step)"
-						@update:model-value="(v) => setConfigKeys(step, v)" />
+						:modelValue="configKeysText(step)"
+						@update:modelValue="(v) => setConfigKeys(step, v)" />
 					<NcCheckboxRadioSwitch v-model="step.required">
 						{{ t('nextcloud-vue', 'Required (must be completed to enter the app)') }}
 					</NcCheckboxRadioSwitch>
@@ -74,10 +74,10 @@
 </template>
 
 <script>
-import { NcDialog, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 export default {
@@ -106,10 +106,12 @@ export default {
 		setup() {
 			return (this.working && this.working.setup) ? this.working.setup : { enabled: true, steps: [] }
 		},
+
 		/** The setup steps array. */
 		steps() {
 			return this.setup.steps
 		},
+
 		/** Selectable step types. */
 		typeOptions() {
 			return [
@@ -126,7 +128,9 @@ export default {
 		// Lazily create the setup block reactively. Assigning a brand-new
 		// property on the working manifest must go through $set, or Vue 2 won't
 		// track later mutations (added steps wouldn't render).
-		if (!this.working) return
+		if (!this.working) {
+			return
+		}
 		if (!this.working.setup || typeof this.working.setup !== 'object') {
 			this.working.setup = { enabled: true, steps: [] }
 		}
@@ -141,6 +145,7 @@ export default {
 		add() {
 			this.steps.push({ id: `step-${this.steps.length + 1}`, type: 'info', title: '', body: '', required: false })
 		},
+
 		/**
 		 * Remove the step at index.
 		 *
@@ -149,6 +154,7 @@ export default {
 		remove(index) {
 			this.steps.splice(index, 1)
 		},
+
 		/**
 		 * The comma-separated config keys for a config-fields step.
 		 *
@@ -158,6 +164,7 @@ export default {
 		configKeysText(step) {
 			return Array.isArray(step.configKeys) ? step.configKeys.join(', ') : ''
 		},
+
 		/**
 		 * Store the config keys (the fields the wizard collects) for a step.
 		 * The wizard renders a text field per key and saves them to app config.

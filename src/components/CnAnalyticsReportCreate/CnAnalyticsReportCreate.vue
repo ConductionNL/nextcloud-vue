@@ -100,6 +100,7 @@ export default {
 				{ value: 6, label: t('nextcloud-vue', 'JSON') },
 				{ value: 4, label: t('nextcloud-vue', 'External') },
 			],
+
 			selectedType: { value: 0, label: t('nextcloud-vue', 'Group') },
 		}
 	},

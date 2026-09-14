@@ -2,10 +2,10 @@
 
 ### Props
 
-| Name          | Type     | Required | Default                                               | Description                  |
-| ------------- | -------- | -------- | ----------------------------------------------------- | ---------------------------- |
-| `apiBase`     | `string` |          | `'/apps/openregister/api'`                            | Base API URL for OR.         |
-| `dialogTitle` | `string` |          | `() =&gt; t('nextcloud-vue', 'Create a new project')` | Pre-translated dialog title. |
+| Name          | Type     | Required | Default                                               | Description                                                                                                              |
+| ------------- | -------- | -------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `apiBase`     | `string` |          | `'/apps/openregister/api'`                            | Base API URL for OR. Accepted for a uniform dialog API; this dialog only emits `create` and the parent owns the request. |
+| `dialogTitle` | `string` |          | `() =&gt; t('nextcloud-vue', 'Create a new project')` | Pre-translated dialog title.                                                                                             |
 
 ### Events
 

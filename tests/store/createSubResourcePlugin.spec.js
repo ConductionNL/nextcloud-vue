@@ -39,13 +39,17 @@ function makeContext() {
 	})
 }
 
-const notOk = (status, statusText) => ({
-	ok: false,
-	status,
-	statusText,
-	text: async () => 'body',
-	json: async () => { throw new Error('no json') },
-})
+function notOk(status, statusText) {
+	return {
+		ok: false,
+		status,
+		statusText,
+		text: async () => 'body',
+		json: async () => {
+			throw new Error('no json')
+		},
+	}
+}
 
 describe('createSubResourcePlugin — console contract on non-ok responses', () => {
 	afterEach(() => {

@@ -1,9 +1,9 @@
 export {
-	integrations,
 	createIntegrationRegistry,
-	installIntegrationRegistry,
-	registerIntegration,
 	getSharedRegistry,
+	installIntegrationRegistry,
+	integrations,
+	registerIntegration,
 	sharedRegistryIfInstalled,
 	VALID_SURFACES,
 } from './registry.js'
@@ -24,38 +24,38 @@ export {
 // asserts the two lists agree, so the next descriptor added to
 // `builtin/index.js` fails CI until it is listed here too.
 export {
-	builtinIntegrations,
-	registerBuiltinIntegrations,
-	// canonical five (mirror OpenRegister's PHP IntegrationProviders)
-	filesIntegration,
-	notesIntegration,
-	tagsIntegration,
-	tasksIntegration,
-	auditTrailIntegration,
-	versionHistoryIntegration,
-	// comms
-	calendarIntegration,
-	contactsIntegration,
-	contactmomentIntegration,
-	emailIntegration,
-	talkIntegration,
-	// docs
-	bookmarksIntegration,
-	collectivesIntegration,
-	mapsIntegration,
-	photosIntegration,
-	// workflow
-	deckIntegration,
-	pollsIntegration,
-	sharesIntegration,
 	activityIntegration,
 	analyticsIntegration,
+	auditTrailIntegration,
+	// docs
+	bookmarksIntegration,
+	builtinIntegrations,
+	// comms
+	calendarIntegration,
+	collectivesIntegration,
+	contactmomentIntegration,
+	contactsIntegration,
 	cospendIntegration,
+	// workflow
+	deckIntegration,
+	emailIntegration,
+	// canonical five (mirror OpenRegister's PHP IntegrationProviders)
+	filesIntegration,
 	flowIntegration,
 	formsIntegration,
-	timeTrackerIntegration,
+	mapsIntegration,
+	notesIntegration,
 	// external
 	openprojectIntegration,
+	photosIntegration,
+	pollsIntegration,
+	registerBuiltinIntegrations,
+	sharesIntegration,
+	tagsIntegration,
+	talkIntegration,
+	tasksIntegration,
+	timeTrackerIntegration,
+	versionHistoryIntegration,
 	xwikiIntegration,
 } from './builtin/index.js'
 
@@ -70,7 +70,7 @@ export { leafIntegrations, registerLeafIntegrations } from './builtin/leaves.js'
 // Field-inspection leaf (offline field data-collection) + its descriptor's
 // default config. A consuming app overrides `offlineConfig` to point the leaf
 // at its own checklist/planning schemas.
-export { fieldInspectionIntegration, DEFAULT_FIELD_INSPECTION_CONFIG } from './builtin/field-inspection.js'
+export { DEFAULT_FIELD_INSPECTION_CONFIG, fieldInspectionIntegration } from './builtin/field-inspection.js'
 
 // Generic offline data-collection core, namespaced as a single object so the
 // whole reusable surface (IndexedDB cache + mutation queue, pure sync-queue
@@ -83,4 +83,4 @@ export * as offlineCollection from './offline/index.js'
 // Integration icon set — registers every descriptor's MDI glyph with
 // CnIcon so the tabbed widget renders per-app icons (not the generic
 // fallback) regardless of the host app's registerIcons() call.
-export { registerIntegrationIcons, INTEGRATION_ICON_COMPONENTS } from './icons.js'
+export { INTEGRATION_ICON_COMPONENTS, registerIntegrationIcons } from './icons.js'

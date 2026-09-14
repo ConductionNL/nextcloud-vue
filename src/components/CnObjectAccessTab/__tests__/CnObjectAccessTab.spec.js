@@ -48,7 +48,7 @@ function stubFetch(handlers) {
 }
 
 async function settle(wrapper) {
-	await new Promise(resolve => setTimeout(resolve, 0))
+	await new Promise((resolve) => setTimeout(resolve, 0))
 	await wrapper.vm.$nextTick()
 }
 
@@ -85,7 +85,7 @@ describe('CnObjectAccessTab', () => {
 		expect(wrapper.vm.scope).toBe('private')
 		expect(wrapper.emitted('scope-changed')).toBeTruthy()
 
-		const put = global.fetch.mock.calls.find(c => (c[1]?.method === 'PUT'))
+		const put = global.fetch.mock.calls.find((c) => (c[1]?.method === 'PUT'))
 		expect(JSON.parse(put[1].body)).toEqual({ scope: 'private' })
 	})
 
@@ -161,7 +161,7 @@ describe('CnObjectAccessTab', () => {
 		await wrapper.vm.revoke({ id: 'ocinternal:1' })
 		await settle(wrapper)
 
-		const del = global.fetch.mock.calls.find(c => (c[1]?.method === 'DELETE'))
+		const del = global.fetch.mock.calls.find((c) => (c[1]?.method === 'DELETE'))
 		expect(del).toBeTruthy()
 		expect(del[0]).toContain(encodeURIComponent('ocinternal:1'))
 		expect(wrapper.emitted('revoked')).toBeTruthy()
@@ -183,7 +183,7 @@ describe('CnObjectAccessTab', () => {
 		await wrapper.vm.submit()
 		await settle(wrapper)
 
-		const post = global.fetch.mock.calls.find(c => (c[1]?.method === 'POST'))
+		const post = global.fetch.mock.calls.find((c) => (c[1]?.method === 'POST'))
 		const body = JSON.parse(post[1].body)
 
 		// read|update = 3. The server strips 16 anyway; sending it would be a
@@ -220,7 +220,7 @@ describe('CnObjectAccessTab', () => {
 		await wrapper.vm.submit()
 		await settle(wrapper)
 
-		const post = global.fetch.mock.calls.find(c => (c[1]?.method === 'POST'))
+		const post = global.fetch.mock.calls.find((c) => (c[1]?.method === 'POST'))
 		expect(JSON.parse(post[1].body)).toEqual({
 			type: 'user',
 			shareWith: 'bob',
@@ -243,7 +243,7 @@ describe('CnObjectAccessTab', () => {
 		await wrapper.vm.submit()
 		await settle(wrapper)
 
-		const post = global.fetch.mock.calls.find(c => (c[1]?.method === 'POST'))
+		const post = global.fetch.mock.calls.find((c) => (c[1]?.method === 'POST'))
 		const body = JSON.parse(post[1].body)
 		expect(body.type).toBe('group')
 		// The discriminating half: with the old code this key was present and

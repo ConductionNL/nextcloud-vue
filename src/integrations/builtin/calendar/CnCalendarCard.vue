@@ -102,9 +102,8 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import Calendar from 'vue-material-design-icons/Calendar.vue'
-import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
 import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
-
+import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
@@ -138,6 +137,7 @@ export default {
 			default: 'detail-page',
 			validator: (v) => ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity'].includes(v),
 		},
+
 		/** Base API URL for OpenRegister. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Maximum rows on list surfaces (ignored on single-entity). */
@@ -173,13 +173,15 @@ export default {
 		resolvedTitle() {
 			return this.title || t('nextcloud-vue', 'Meetings')
 		},
+
 		calendarAppUrl() {
 			try {
 				return generateUrl('/apps/calendar')
-			} catch (_) {
+			} catch {
 				return '/apps/calendar'
 			}
 		},
+
 		displayedEvents() {
 			if (this.surface === 'single-entity') {
 				return this.allEvents.slice(0, 1)
@@ -194,7 +196,9 @@ export default {
 			if (this.surface === 'user-dashboard' || this.surface === 'app-dashboard') {
 				const now = Date.now()
 				const upcoming = sorted.filter((ev) => {
-					if (!ev.dtstart) return true
+					if (!ev.dtstart) {
+						return true
+					}
 					return new Date(ev.dtstart).getTime() >= now
 				})
 				return upcoming.slice(0, this.maxDisplay)
@@ -204,9 +208,17 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler() { this.refresh() } },
-		entityId() { this.refresh() },
-		surface() { this.refresh() },
+		objectId: { immediate: true, handler() {
+			this.refresh()
+		} },
+
+		entityId() {
+			this.refresh()
+		},
+
+		surface() {
+			this.refresh()
+		},
 	},
 
 	methods: {
@@ -222,10 +234,12 @@ export default {
 		},
 
 		isUpcoming(ev) {
-			if (!ev.dtstart) return true
+			if (!ev.dtstart) {
+				return true
+			}
 			try {
 				return new Date(ev.dtstart).getTime() >= Date.now()
-			} catch (_) {
+			} catch {
 				return true
 			}
 		},
@@ -297,15 +311,19 @@ export default {
 		},
 
 		formatShort(value) {
-			if (!value) return ''
+			if (!value) {
+				return ''
+			}
 			try {
 				const d = new Date(value)
-				if (Number.isNaN(d.getTime())) return String(value)
+				if (Number.isNaN(d.getTime())) {
+					return String(value)
+				}
 				const opts = this.surface === 'single-entity'
 					? { dateStyle: 'medium' }
 					: { dateStyle: 'medium', timeStyle: 'short' }
 				return d.toLocaleString(undefined, opts)
-			} catch (_) {
+			} catch {
 				return String(value)
 			}
 		},
@@ -350,6 +368,7 @@ export default {
 }
 
 .cn-calendar-card__icon--upcoming { color: var(--color-primary-element); }
+
 .cn-calendar-card__icon--past     { color: var(--color-text-maxcontrast); }
 
 .cn-calendar-card__row-main {
@@ -423,7 +442,9 @@ export default {
 }
 
 .cn-calendar-card__chip-status--confirmed { background: var(--color-success); color: var(--color-main-background); }
+
 .cn-calendar-card__chip-status--tentative { background: var(--color-warning, #e9a40f); color: var(--color-main-background); }
+
 .cn-calendar-card__chip-status--cancelled { background: var(--color-error); color: var(--color-main-background); }
 
 .cn-calendar-card__cta,

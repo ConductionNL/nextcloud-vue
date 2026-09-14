@@ -1,8 +1,8 @@
-import { ref, shallowRef } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
+import { ref, shallowRef } from 'vue'
 import { mergeManifestDelta } from '../utils/mergeManifestDelta.js'
+import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
 
 /**
  * Lazily import the manifest validator. The validator plus its compiled Ajv
@@ -10,7 +10,7 @@ import { mergeManifestDelta } from '../utils/mergeManifestDelta.js'
  * a static import makes every consumer bundle carry them. The dynamic import
  * splits them into an async chunk fetched on first validation only.
  *
- * @return {Promise<Function>} The validateManifest function.
+ * @return {Promise<(manifest: object) => { valid: boolean, errors: Array<string> }>} The validateManifest function.
  */
 function loadValidator() {
 	return import(/* webpackChunkName: "cn-manifest-validator" */ '../utils/validateManifest.js')
@@ -83,11 +83,11 @@ function loadValidator() {
  *   legacy signature; ignored in the in-memory signature.
  * @param {string} [options.endpoint] Override the backend fetch URL.
  *   Useful for tests and alternative-host deployments.
- * @param {Function} [options.fetcher] Override the fetch function. Must
+ * @param {(url: string) => Promise<{ status: number, data: object }>} [options.fetcher] Override the fetch function. Must
  *   return a promise resolving to `{ status: number, data: object }`.
  *   Defaults to `axios.get` from `@nextcloud/axios` (which inherits the
  *   Nextcloud CSRF token automatically).
- * @param {Function} [options.getAppConfigValue] Override the
+ * @param {(appId: string, key: string) => Promise<string|null>} [options.getAppConfigValue] Override the
  *   IAppConfig resolver consumed by `resolveManifestSentinels`. Useful
  *   for tests that want to mount a fixture-driven config map.
  * @return {{ manifest: import('vue').Ref<object>, isLoading: import('vue').Ref<boolean>, validationErrors: import('vue').Ref<string[]|null>, unresolvedSentinels: import('vue').Ref<string[]> }}
@@ -244,7 +244,7 @@ function loadFromBackend(appId, bundledManifest, options) {
 						base = deepMerge(bundledManifest, response.data)
 					}
 				}
-			} catch (fetchErr) {
+			} catch {
 				// Network / 404 / unauthenticated — keep the bundled manifest.
 			}
 
@@ -284,7 +284,7 @@ function loadFromBackend(appId, bundledManifest, options) {
 			// The shallowRef reassignment is what re-renders consumers; the new
 			// object stays shallow (not deep-observed) unless CnAppRoot upgrades it.
 			manifest.value = resolved
-		} catch (err) {
+		} catch {
 			// Defensive: any unexpected error leaves the bundled manifest in
 			// place. Apps without a backend endpoint keep working.
 		} finally {
@@ -305,8 +305,12 @@ function loadFromBackend(appId, bundledManifest, options) {
  * @return {object} New merged object.
  */
 function deepMerge(target, source) {
-	if (!isPlainObject(target)) return source
-	if (!isPlainObject(source)) return source
+	if (!isPlainObject(target)) {
+		return source
+	}
+	if (!isPlainObject(source)) {
+		return source
+	}
 	const out = { ...target }
 	for (const key of Object.keys(source)) {
 		if (isPlainObject(source[key]) && isPlainObject(target[key])) {

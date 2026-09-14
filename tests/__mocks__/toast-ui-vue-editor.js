@@ -14,10 +14,10 @@ export const Editor = {
 	methods: {
 		invoke(method) {
 			if (method === 'getMarkdown') {
-				return this._markdown != null ? this._markdown : (this.initialValue || '')
+				return this._markdown !== null && this._markdown !== undefined ? this._markdown : (this.initialValue || '')
 			}
 			if (method === 'getHTML') {
-				return `<p>${this._markdown != null ? this._markdown : (this.initialValue || '')}</p>`
+				return `<p>${this._markdown !== null && this._markdown !== undefined ? this._markdown : (this.initialValue || '')}</p>`
 			}
 			return ''
 		},

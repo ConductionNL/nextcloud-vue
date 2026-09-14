@@ -52,9 +52,9 @@
 				<NcAvatar
 					class="cn-email-tab__avatar"
 					:size="36"
-					:display-name="row.avatarName"
+					:displayName="row.avatarName"
 					:user="row.avatarUser"
-					:is-no-user="true" />
+					:isNoUser="true" />
 				<div class="cn-email-tab__body">
 					<div class="cn-email-tab__line">
 						<span class="cn-email-tab__subject" :title="row.subject">{{ row.subject }}</span>
@@ -62,7 +62,7 @@
 							<NcDateTime
 								v-if="row.dateValid"
 								:timestamp="row.dateMs"
-								:relative-time="'short'" />
+								relativeTime="short" />
 							<template v-else>{{ row.dateRaw }}</template>
 						</span>
 					</div>
@@ -90,7 +90,7 @@
 
 		<CnEmailPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 	</div>

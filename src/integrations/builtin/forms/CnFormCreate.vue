@@ -22,30 +22,30 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:no-close="submitting"
+		:noClose="submitting"
 		data-testid="cn-modal"
 		data-testid-modal="cn-form-create"
 		@closing="$emit('close')">
 		<div class="cn-form-create">
 			<NcTextField
-				:model-value="title"
+				:modelValue="title"
 				:label="titleLabel"
 				:placeholder="titlePlaceholder"
-				:show-trailing-button="false"
+				:showTrailingButton="false"
 				:required="true"
 				:error="titleError !== ''"
-				:helper-text="titleError"
+				:helperText="titleError"
 				class="cn-form-create__field"
 				data-testid="cn-form-create-title"
-				@update:model-value="onTitleChange" />
+				@update:modelValue="onTitleChange" />
 			<NcTextArea
-				:model-value="description"
+				:modelValue="description"
 				:label="descriptionLabel"
 				:placeholder="descriptionPlaceholder"
 				class="cn-form-create__field"
 				rows="3"
 				data-testid="cn-form-create-description"
-				@update:model-value="description = $event" />
+				@update:modelValue="description = $event" />
 
 			<!-- TODO(v2): Starter question set. Out of scope for Tier-2 v1 —
 			     spec carries this as a follow-up; surfacing here so the
@@ -110,14 +110,23 @@ export default {
 		submitError: { type: String, default: '' },
 
 		// --- Pre-translated labels ---
+		/** Dialog title. */
 		dialogTitle: { type: String, default: () => t('nextcloud-vue', 'Create new form') },
+		/** Field label for the form title. */
 		titleLabel: { type: String, default: () => t('nextcloud-vue', 'Title') },
+		/** Placeholder for the form title field. */
 		titlePlaceholder: { type: String, default: () => t('nextcloud-vue', 'My new form') },
+		/** Field label for the form description. */
 		descriptionLabel: { type: String, default: () => t('nextcloud-vue', 'Description') },
+		/** Placeholder for the form description field. */
 		descriptionPlaceholder: { type: String, default: () => t('nextcloud-vue', 'What is this form for?') },
+		/** Label for the button that closes the dialog without creating. */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the button that creates the form and links it. */
 		createLabel: { type: String, default: () => t('nextcloud-vue', 'Create + link') },
+		/** Label the create button shows while the POST is in flight. */
 		creatingLabel: { type: String, default: () => t('nextcloud-vue', 'Creating…') },
+		/** Validation message shown when the title is empty. */
 		titleRequiredLabel: { type: String, default: () => t('nextcloud-vue', 'Title is required') },
 	},
 

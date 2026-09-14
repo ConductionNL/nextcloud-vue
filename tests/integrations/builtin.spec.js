@@ -15,8 +15,8 @@
  *    leaves.spec.js cross-check).
  */
 
-const { createIntegrationRegistry } = require('../../src/integrations/registry.js')
 const { builtinIntegrations, registerBuiltinIntegrations } = require('../../src/integrations/builtin/index.js')
+const { createIntegrationRegistry } = require('../../src/integrations/registry.js')
 
 // Canonical PHP-backed built-ins (group 'core', requiredApp null) — the
 // ordering for `registerBuiltinIntegrations()` output cross-checks
@@ -31,7 +31,7 @@ const BESPOKE_LEAF_IDS = [
 	// comms
 	'calendar',
 	'contacts',
-			'contactmoment',
+	'contactmoment',
 	'email',
 	'talk',
 	// docs
@@ -75,7 +75,7 @@ const SORTED_IDS = [
 	'shares', // 10
 	'calendar', // 20
 	'contacts',
-			'contactmoment', // 21
+	'contactmoment', // 21
 	'email', // 22
 	'talk', // 23
 	'openproject', // 31

@@ -10,8 +10,8 @@
  * as `widgetKey: "banner"` (see CnWidgetGrid/builtInWidgets.js).
  */
 
-import CnBannerWidget from './CnBannerWidget.vue'
 import CnBannerWidgetForm from '../CnBannerWidgetForm/CnBannerWidgetForm.vue'
+import CnBannerWidget from './CnBannerWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('banner', {

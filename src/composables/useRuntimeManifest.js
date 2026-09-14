@@ -19,9 +19,9 @@
  * Spec: REQ-MVR-001 (manifest-v2-renderer) / ADR-036 Decision 8 + Amendment
  */
 
-import { ref } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { ref } from 'vue'
 import { mergeManifestDelta } from '../utils/mergeManifestDelta.js'
 
 /**
@@ -30,7 +30,7 @@ import { mergeManifestDelta } from '../utils/mergeManifestDelta.js'
  * a static import makes every consumer bundle carry them. The dynamic import
  * splits them into an async chunk fetched on first validation only.
  *
- * @return {Promise<Function>} The validateManifest function.
+ * @return {Promise<(manifest: object) => { valid: boolean, errors: Array<string> }>} The validateManifest function.
  */
 function loadValidator() {
 	return import(/* webpackChunkName: "cn-manifest-validator" */ '../utils/validateManifest.js')
@@ -45,7 +45,7 @@ function loadValidator() {
  *   In `delta` mode this is ALSO the merge base. When omitted, `manifest.value`
  *   stays `null` on failure.
  * @param {object} [options] Optional configuration.
- * @param {Function} [options.fetcher] Override the fetch function. Must return a promise
+ * @param {(url: string) => Promise<{ status: number, data: object }>} [options.fetcher] Override the fetch function. Must return a promise
  *   resolving to `{ status: number, data: object }`. Defaults to `axios.get`.
  * @param {('replace'|'delta')} [options.mergeStrategy] How to combine the fetched
  *   payload with the stub. Defaults to `'replace'` (full replace, unchanged).
@@ -97,7 +97,7 @@ export function useRuntimeManifest(appId, stubManifest = null, options = {}) {
 
 			manifest.value = resolved
 			validationErrors.value = null
-		} catch (err) {
+		} catch {
 			// 404, network errors, etc. — fall back to stub
 			manifest.value = stubManifest
 		} finally {

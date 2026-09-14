@@ -1,6 +1,6 @@
+import { mount } from '@vue/test-utils'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { mount } from '@vue/test-utils'
 import CnContextMenu from '@/components/CnContextMenu/CnContextMenu.vue'
 import { CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR } from '@/composables/useContextMenu.js'
 
@@ -16,7 +16,7 @@ describe('CnContextMenu visible predicate', () => {
 				targetItem: { published: true },
 			},
 		})
-		const labels = wrapper.vm.visibleActions.map(a => a.label)
+		const labels = wrapper.vm.visibleActions.map((a) => a.label)
 		expect(labels).toEqual(['Edit', 'Depublish'])
 	})
 
@@ -30,7 +30,7 @@ describe('CnContextMenu visible predicate', () => {
 				targetItem: { published: false },
 			},
 		})
-		const labels = wrapper.vm.visibleActions.map(a => a.label)
+		const labels = wrapper.vm.visibleActions.map((a) => a.label)
 		expect(labels).toEqual(['Publish'])
 	})
 
@@ -54,7 +54,7 @@ describe('CnContextMenu visible predicate', () => {
 				targetItem: null,
 			},
 		})
-		const labels = wrapper.vm.visibleActions.map(a => a.label)
+		const labels = wrapper.vm.visibleActions.map((a) => a.label)
 		expect(labels).toEqual(['Shown'])
 	})
 })

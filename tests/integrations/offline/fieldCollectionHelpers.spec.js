@@ -4,11 +4,11 @@
  */
 
 import {
-	classifyGps,
-	validateChecklistAnswers,
 	checklistProgress,
-	syncIndicator,
+	classifyGps,
 	GPS_POOR_ACCURACY_M,
+	syncIndicator,
+	validateChecklistAnswers,
 } from '../../../src/integrations/offline/fieldCollectionHelpers.js'
 
 describe('fieldCollectionHelpers', () => {

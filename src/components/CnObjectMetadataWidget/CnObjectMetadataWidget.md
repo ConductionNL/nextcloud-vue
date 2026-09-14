@@ -125,6 +125,8 @@ export default {
 | `columns` | Number | `0` | Number of grid columns (only relevant for `layout="grid"`; `0` = auto) |
 | `labelWidth` | Number | `150` | Minimum label width in pixels for `layout="horizontal"` |
 | `exclude` | Array | `[]` | Metadata field keys to hide |
+| `grouped` | Boolean | `true` | Sort the fields into categories (Identity, Location, Ownership, Lifecycle, Archiving), each under its own heading. `false` renders one flat grid. |
+| `otherLabel` | String | `'Other'` | Heading for `extraItems`, which carry no category of their own |
 | `emptyLabel` | String | `'No metadata available'` | Text shown when no metadata fields are present |
 
 ## Slots

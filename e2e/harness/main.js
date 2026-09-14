@@ -1,3 +1,6 @@
+// CnFlowDetail and the flow store are Pinia-backed, so the harness needs a
+// pinia instance to mount them at all.
+import { createPinia } from 'pinia'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -20,9 +23,8 @@
  * add one.
  */
 import { createApp } from 'vue'
-// CnFlowDetail and the flow store are Pinia-backed, so the harness needs a
-// pinia instance to mount them at all.
-import { createPinia } from 'pinia'
+import App from './App.vue'
+
 // Nextcloud CSS custom properties so the harness reflects real theming
 // (the library styles everything with var(--color-*) tokens).
 import '../../styleguide/nextcloud-tokens.css'
@@ -36,16 +38,56 @@ import '../../src/css/patches.css'
 // stayed parked at its off-screen -9999px trigger, which reads in a spec as
 // "the menu never opened".
 import '../../src/css/context-menu.css'
-import App from './App.vue'
 
 // Minimal l10n shims so library components that call the global `t`/`n` render.
-const t = (app, text, vars) => (vars
-	? String(text).replace(/\{(\w+)\}/g, (_, k) => (vars[k] != null ? vars[k] : `{${k}}`))
-	: text)
+function t(app, text, vars) {
+	return vars
+		? String(text).replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? `{${k}}`))
+		: text
+}
 const n = (app, s, p, count) => (count === 1 ? s : p)
 
 const app = createApp(App)
 app.use(createPinia())
+
+// A ROUTER, FOR ONE SCENARIO ONLY (?runlink=1).
+//
+// The run deep link is a claim about NAVIGATION: clicking a run must route to
+// the flow with the run in the query, and the flow page must open that run. A
+// stubbed $router would let that pass on a push that never routed, so this
+// scenario needs the real one.
+//
+// It is installed behind the flag rather than globally because every other
+// spec in this suite runs without a router today, and adding one would change
+// 37 spec files' environment to serve one of them. Hash history keeps the
+// harness reachable at `/` while still putting `?run=` where a spec can read
+// it back off the URL.
+if (typeof window !== 'undefined' && window.location.search.includes('runlink')) {
+	const { createRouter, createWebHashHistory } = await import('vue-router')
+	const { default: CnPageRenderer } = await import('../../src/components/CnPageRenderer/CnPageRenderer.vue')
+
+	// The destination is CnPageRenderer on a `type: "flow"` page, not
+	// CnFlowDetail directly: the renderer is the layer a real app routes
+	// through, and it is where the manifest's page type is resolved.
+	const manifest = {
+		version: '1.0.0',
+		menu: [],
+		pages: [{ id: 'FlowDetail', route: '/flows/:id', type: 'flow', title: 'Flow', config: { app: 'openregister' } }],
+	}
+
+	app.use(createRouter({
+		history: createWebHashHistory(),
+		routes: [
+			{ path: '/', name: 'Home', component: { template: '<p data-testid="runlink-home">No flow open.</p>' } },
+			{
+				path: '/flows/:id',
+				name: 'FlowDetail',
+				component: CnPageRenderer,
+				props: () => ({ manifest }),
+			},
+		],
+	}))
+}
 // Vue 3's replacement for Vue.prototype.
 app.config.globalProperties.t = t
 app.config.globalProperties.n = n

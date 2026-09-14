@@ -19,7 +19,7 @@
 // makes the fix possible — and it does — but only a real browser can say
 // whether the footer is actually where a user would see it.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
 	await page.goto('/?dash=1')
@@ -48,7 +48,9 @@ test('the "View all" footer stays inside the visible card while the rows scroll'
 
 	expect(await within(), 'footer must be visible before scrolling').toBe(true)
 
-	await card.evaluate((el) => { el.scrollTop = el.scrollHeight })
+	await card.evaluate((el) => {
+		el.scrollTop = el.scrollHeight
+	})
 	await page.waitForTimeout(150)
 
 	expect(await within(), 'footer must STILL be inside the card after scrolling to the bottom').toBe(true)

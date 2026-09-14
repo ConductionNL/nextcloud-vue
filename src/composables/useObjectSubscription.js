@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Conduction B.V.
 
-import { ref, watch, isRef, onMounted, onBeforeUnmount } from 'vue'
 import { tryOnScopeDispose } from '@vueuse/core'
+import { isRef, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 /**
  * useObjectSubscription — auto-managed live-update subscription.
@@ -20,10 +20,10 @@ import { tryOnScopeDispose } from '@vueuse/core'
  * Use inside a Vue component `setup()` (or any active effect scope).
  *
  * @param {object} objectStore   The Pinia store instance (typically the result of `useObjectStore()`).
- * @param {string|import('vue').Ref<string>|Function}      type    Object type slug (e.g. `'meeting'`), a ref, or a getter.
- * @param {string|import('vue').Ref<string>|Function|null} [id]    Object UUID for per-object subscription (plain, ref, or getter), or `null` for collection.
+ * @param {string|import('vue').Ref<string>|(() => string)}      type    Object type slug (e.g. `'meeting'`), a ref, or a getter.
+ * @param {string|import('vue').Ref<string>|(() => string)|null} [id]    Object UUID for per-object subscription (plain, ref, or getter), or `null` for collection.
  * @param {object}      [options]              Optional config.
- * @param {boolean|import('vue').Ref<boolean>|Function} [options.enabled]  Reactive gate (plain, ref, or getter); subscribe only when true.
+ * @param {boolean|import('vue').Ref<boolean>|(() => boolean)} [options.enabled]  Reactive gate (plain, ref, or getter); subscribe only when true.
  * @return {{ status: import('vue').Ref<'connecting'|'open'|'closed'>, lastEventAt: import('vue').Ref<Date|null> }}
  *   Reactive subscription diagnostics.
  */
@@ -47,15 +47,21 @@ export function useObjectSubscription(objectStore, type, id, options = {}) {
 	// `() => props.objectId`-style getters so the resolution stays
 	// reactive without materialising intermediate refs.
 	const readSource = (v) => {
-		if (isRef(v)) return v.value
-		if (typeof v === 'function') return v()
+		if (isRef(v)) {
+			return v.value
+		}
+		if (typeof v === 'function') {
+			return v()
+		}
 		return v
 	}
 	const readType = () => readSource(type)
 	const readId = () => readSource(id)
 	const readEnabled = () => {
 		const v = options.enabled
-		if (v === undefined) return true
+		if (v === undefined) {
+			return true
+		}
 		return Boolean(readSource(v))
 	}
 
@@ -63,20 +69,26 @@ export function useObjectSubscription(objectStore, type, id, options = {}) {
 		// Stores without live-updates support (created with
 		// `liveUpdates: false`, or plain mocks) have no `subscribe`
 		// action — stay inert instead of warning on every attach.
-		if (typeof objectStore?.subscribe !== 'function') return
+		if (typeof objectStore?.subscribe !== 'function') {
+			return
+		}
 		const t = readType()
 		if (!t || !readEnabled()) {
 			// The reactive scope became invalid — the type cleared or the
 			// `enabled` gate closed (e.g. a persistent CnPageRenderer
 			// navigating off a detail page while staying mounted). Release
 			// any held subscription instead of leaking it until unmount.
-			if (currentHandle) await detach()
+			if (currentHandle) {
+				await detach()
+			}
 			return
 		}
 		// Idempotent: if we already hold a handle, release it before
 		// taking a fresh one. Plugin dedups by event key but the
 		// composable's own handle bookkeeping needs the swap.
-		if (currentHandle) await detach()
+		if (currentHandle) {
+			await detach()
+		}
 		const myEpoch = ++epoch
 		try {
 			const handle = await objectStore.subscribe(t, readId() ?? undefined)
@@ -98,7 +110,9 @@ export function useObjectSubscription(objectStore, type, id, options = {}) {
 			// liveUpdatesPlugin throws on unknown type; surface in diagnostics
 			// without escalating to a render error — most consumers shouldn't
 			// crash the page over a subscription failure.
-			if (myEpoch === epoch) status.value = 'closed'
+			if (myEpoch === epoch) {
+				status.value = 'closed'
+			}
 			// eslint-disable-next-line no-console
 			console.warn('[useObjectSubscription] subscribe failed:', e?.message ?? e)
 		}
@@ -108,7 +122,9 @@ export function useObjectSubscription(objectStore, type, id, options = {}) {
 		// Invalidate any in-flight attach() so its late resolution
 		// releases its handle instead of storing it (see `epoch`).
 		epoch++
-		if (!currentHandle) return
+		if (!currentHandle) {
+			return
+		}
 		const h = currentHandle
 		currentHandle = null
 		status.value = 'closed'
@@ -131,7 +147,9 @@ export function useObjectSubscription(objectStore, type, id, options = {}) {
 		() => [readType(), readId(), readEnabled()],
 		(_next, prev) => {
 			// Skip the initial run — `onMounted` already attached.
-			if (prev === undefined) return
+			if (prev === undefined) {
+				return
+			}
 			attach()
 		},
 	)
@@ -149,7 +167,11 @@ export function useObjectSubscription(objectStore, type, id, options = {}) {
 	// reaching for the store.
 	watch(
 		() => objectStore.liveLastEventAt,
-		(t) => { if (t) lastEventAt.value = t },
+		(t) => {
+			if (t) {
+				lastEventAt.value = t
+			}
+		},
 		{ immediate: true },
 	)
 

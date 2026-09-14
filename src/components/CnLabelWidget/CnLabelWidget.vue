@@ -120,7 +120,6 @@ export default {
 	/* Safety net — keeps long single words wrapping even if the inline
 	   overflow-wrap style is overridden by host styles. */
 	overflow-wrap: break-word;
-	word-wrap: break-word;
 	max-width: 100%;
 }
 </style>

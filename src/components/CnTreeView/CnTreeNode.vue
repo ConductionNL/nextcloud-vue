@@ -35,13 +35,13 @@
 				:node="child"
 				:depth="depth + 1"
 				:indent="indent"
-				:expanded-ids="expandedIds"
-				:selected-id="selectedId"
-				:id-key="idKey"
-				:label-key="labelKey"
-				:children-key="childrenKey"
-				:expand-label="expandLabel"
-				:collapse-label="collapseLabel"
+				:expandedIds="expandedIds"
+				:selectedId="selectedId"
+				:idKey="idKey"
+				:labelKey="labelKey"
+				:childrenKey="childrenKey"
+				:expandLabel="expandLabel"
+				:collapseLabel="collapseLabel"
 				@toggle="$emit('toggle', $event)"
 				@select="$emit('select', $event)">
 				<template #actions="scope">
@@ -83,6 +83,7 @@ export default {
 		/** A11y label for the collapse button. */
 		collapseLabel: { type: String, default: 'Collapse' },
 	},
+
 	emits: ['select', 'toggle'],
 	computed: {
 		/**
@@ -94,6 +95,7 @@ export default {
 			const c = this.node[this.childrenKey]
 			return Array.isArray(c) && c.length > 0
 		},
+
 		/**
 		 * Whether this node is currently expanded.
 		 *
@@ -102,6 +104,7 @@ export default {
 		isExpanded() {
 			return Boolean(this.expandedIds[this.node[this.idKey]])
 		},
+
 		/**
 		 * Whether this node is the currently-selected one.
 		 *
@@ -111,10 +114,12 @@ export default {
 			return this.selectedId === this.node[this.idKey]
 		},
 	},
+
 	methods: {
 		toggle() {
 			this.$emit('toggle', this.node[this.idKey])
 		},
+
 		onRowClick() {
 			this.$emit('select', this.node)
 		},

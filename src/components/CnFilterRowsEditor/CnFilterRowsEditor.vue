@@ -17,11 +17,11 @@
 				placeholder="status"
 				@update="update(i, 'key', $event)" />
 			<NcSelect
-				:model-value="row.op"
+				:modelValue="row.op"
 				:options="opIds"
-				:input-label="t('nextcloud-vue', 'Operator')"
+				:inputLabel="t('nextcloud-vue', 'Operator')"
 				:clearable="false"
-				@update:model-value="update(i, 'op', $event)">
+				@update:modelValue="update(i, 'op', $event)">
 				<template #option="{ label: opId }">
 					{{ opLabel(opId) }}
 				</template>
@@ -30,10 +30,10 @@
 				</template>
 			</NcSelect>
 			<NcTextField
-				:model-value="row.value"
+				:modelValue="row.value"
 				:label="t('nextcloud-vue', 'Value')"
 				placeholder="won"
-				@update:model-value="update(i, 'value', $event)" />
+				@update:modelValue="update(i, 'value', $event)" />
 			<NcButton
 				variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Remove filter')"
@@ -53,10 +53,10 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcButton } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
 import { FILTER_OPERATORS } from './filterRows.js'
 
@@ -83,6 +83,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * The same value as `value`, under Vue 3's own v-model name.
 		 *
@@ -132,11 +133,12 @@ export default {
 		/**
 		 * The value the consumer actually bound, whichever prop they used.
 		 *
-		 * @return {*} The bound value.
+		 * @return {Array} The bound value.
 		 */
 		boundValue() {
 			return this.modelValue !== undefined ? this.modelValue : this.value
 		},
+
 		/** Operator ids for the select. */
 		opIds() {
 			return FILTER_OPERATORS.map((o) => o.id)
@@ -151,23 +153,24 @@ export default {
 		 * `v-model` are the same consumer as far as this component knows, and
 		 * emitting only one silently breaks half of them.
 		 *
-		 * @param {*} next The new value.
+		 * @param {Array} next The new value.
 		 * @return {void}
 		 */
 		emitValue(next) {
 			/**
 			 * @event input The value changed. Vue 2's v-model dialect, kept for
 			 *   existing consumers.
-			 * @type {*}
+			 * @type {Array}
 			 */
 			this.$emit('input', next)
 			/**
 			 * @event update:modelValue The value changed. Vue 3's v-model
 			 *   dialect — what a plain `v-model` listens for.
-			 * @type {*}
+			 * @type {Array}
 			 */
 			this.$emit('update:modelValue', next)
 		},
+
 		t,
 
 		/**

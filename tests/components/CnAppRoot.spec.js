@@ -49,13 +49,14 @@ const baseManifest = {
  * interfere with the existing manifest-dependency / phase tests — those
  * scenarios are independent of the capabilities-API guard. Tests that
  * exercise the guard explicitly opt in via `requiresApps`.
- * @param root0
- * @param root0.manifest
- * @param root0.isLoading
- * @param root0.slots
- * @param root0.customComponents
- * @param root0.t
- * @param root0.requiresApps
+ * @param {object} options Overrides for the mount.
+ * @param {object} options.manifest The manifest to render.
+ * @param {boolean} options.isLoading Whether the root renders its loading state.
+ * @param {object} options.slots Slot content passed to the mount.
+ * @param {object} options.customComponents The consumer's component registry.
+ * @param {Function} options.t The translate function the root is given.
+ * @param {Array<string>} options.requiresApps App ids the availability guard checks.
+ * @return {object} The wrapper.
  */
 function mountRoot({
 	manifest = baseManifest,
@@ -200,9 +201,7 @@ describe('CnAppRoot', () => {
 			})
 
 			expect(seen).not.toBeNull()
-			expect(Object.keys(seen)).toEqual(
-				expect.arrayContaining(['manifest', 'permissions', 'isOwner', 'isAdmin', 'appId']),
-			)
+			expect(Object.keys(seen)).toEqual(expect.arrayContaining(['manifest', 'permissions', 'isOwner', 'isAdmin', 'appId']))
 			expect(typeof seen.isAdmin).toBe('boolean')
 		})
 
@@ -258,6 +257,24 @@ describe('CnAppRoot', () => {
 			const provided = getProvided(wrapper)
 			expect(typeof provided.cnTranslate).toBe('function')
 			expect(provided.cnTranslate('key')).toBe('key')
+		})
+
+		it('provides the connection formatters built in, and an app formatter of the same name wins', () => {
+			const builtIn = getProvided(mountRoot()).cnFormatters
+			expect(builtIn.connectionStatus('simulated')).toBe('Simulated')
+			expect(builtIn.connectionSettingsLabel('/settings/admin/dossiq#section-zgw')).toBe('Open settings')
+
+			// dossiq and integriq still register local copies until they bump.
+			// Those must keep rendering, so the app's entry replaces the built-in.
+			const appCopy = (value) => `app:${value}`
+			const wrapper = mount(CnAppRoot, {
+				propsData: { manifest: baseManifest, appId: 'myapp', requiresApps: [], formatters: { connectionStatus: appCopy } },
+				mocks: { $route: { name: 'home' } },
+				stubs: { 'router-view': true },
+			})
+			const provided = getProvided(wrapper)
+			expect(provided.cnFormatters.connectionStatus).toBe(appCopy)
+			expect(provided.cnFormatters.connectionSettingsLabel('/x')).toBe('Open settings')
 		})
 
 		it('provides an empty registry when no customComponents prop is given', () => {
@@ -349,11 +366,15 @@ describe('CnAppRoot', () => {
 		// compiler at runtime.
 		const NamedSidebar = {
 			name: 'NamedSidebar',
-			render() { return h('div', { class: 'named-sidebar' }, 'named') },
+			render() {
+				return h('div', { class: 'named-sidebar' }, 'named')
+			},
 		}
 		const ConsumerSidebar = {
 			name: 'ConsumerSidebar',
-			render() { return h('div', { class: 'consumer-sidebar' }, 'consumer') },
+			render() {
+				return h('div', { class: 'consumer-sidebar' }, 'consumer')
+			},
 		}
 
 		it('mounts the resolved component as the slot default content when no #sidebar override', () => {
@@ -413,11 +434,12 @@ describe('CnAppRoot', () => {
 		 * Mount helper that exercises the guard. Unlike mountRoot above,
 		 * this one defaults `requiresApps` to its production default
 		 * `['openregister']` so the test asserts the as-shipped behaviour.
-		 * @param root0
-		 * @param root0.manifest
-		 * @param root0.requiresApps
-		 * @param root0.slots
-		 * @param root0.t
+		 * @param {object} options Overrides for the mount.
+		 * @param {object} options.manifest The manifest to render.
+		 * @param {Array<string>} options.requiresApps App ids the guard checks.
+		 * @param {object} options.slots Slot content passed to the mount.
+		 * @param {Function} options.t The translate function the root is given.
+		 * @return {object} The wrapper.
 		 */
 		function mountWithGuard({
 			manifest = baseManifest,
@@ -522,7 +544,9 @@ describe('CnAppRoot', () => {
 		// the returns-null path below — an unverifiable dependency is treated as
 		// missing rather than silently hidden.
 		it('treats a getCapabilities() throw as a missing dependency (REQ-OR-7)', async () => {
-			getCapabilities.mockImplementation(() => { throw new Error('capabilities-api-down') })
+			getCapabilities.mockImplementation(() => {
+				throw new Error('capabilities-api-down')
+			})
 			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 			const wrapper = mountWithGuard()
 			await wrapper.vm.$nextTick()
@@ -699,7 +723,9 @@ describe('CnAppRoot', () => {
 		it('swallows errors from _fetchAndCacheCount and leaves the map empty', async () => {
 			const fakeStore = {
 				objectTypeRegistry: {},
-				registerObjectType: () => { throw new Error('nope') },
+				registerObjectType: () => {
+					throw new Error('nope')
+				},
 				fetchCollection: jest.fn(),
 				getPagination: jest.fn(),
 			}

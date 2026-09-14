@@ -47,14 +47,22 @@ export function buildManifest(base, fragments = [], menuLayout = {}) {
 		if (frag && Array.isArray(frag.menu)) {
 			mergeMenuItems(merged.menu, frag.menu)
 		}
-		if (frag && Array.isArray(frag.pageTemplates)) fragTemplates.push(...frag.pageTemplates)
-		if (frag && Array.isArray(frag.pageInstances)) fragInstances.push(...frag.pageInstances)
+		if (frag && Array.isArray(frag.pageTemplates)) {
+			fragTemplates.push(...frag.pageTemplates)
+		}
+		if (frag && Array.isArray(frag.pageInstances)) {
+			fragInstances.push(...frag.pageInstances)
+		}
 		if (frag && frag.sets && typeof frag.sets === 'object') {
 			merged.sets = { ...(merged.sets || {}), ...frag.sets }
 		}
 	}
-	if (fragTemplates.length) merged.pageTemplates = [...(merged.pageTemplates || []), ...fragTemplates]
-	if (fragInstances.length) merged.pageInstances = [...(merged.pageInstances || []), ...fragInstances]
+	if (fragTemplates.length) {
+		merged.pageTemplates = [...(merged.pageTemplates || []), ...fragTemplates]
+	}
+	if (fragInstances.length) {
+		merged.pageInstances = [...(merged.pageInstances || []), ...fragInstances]
+	}
 	merged.menu = applyMenuLayout(merged.menu, menuLayout)
 
 	// Entity-scaffold expansion (runtime/boot path). No-op unless the manifest
@@ -184,7 +192,9 @@ export function mergePages(target, incoming) {
  * @return {Array<object>} The menu with relocations applied.
  */
 export function applyMenuRelocations(menu, relocations) {
-	if (!relocations || typeof relocations !== 'object') return menu
+	if (!relocations || typeof relocations !== 'object') {
+		return menu
+	}
 	for (let pass = 0; pass < 5; pass++) {
 		const moves = []
 		for (let i = menu.length - 1; i >= 0; i--) {
@@ -195,24 +205,34 @@ export function applyMenuRelocations(menu, relocations) {
 				moves.push({ node, target })
 				continue
 			}
-			if (!Array.isArray(node.children)) continue
+			if (!Array.isArray(node.children)) {
+				continue
+			}
 			for (let j = node.children.length - 1; j >= 0; j--) {
 				const child = node.children[j]
 				const childTarget = relocations[child.id]
-				if (!childTarget) continue
-				if (childTarget === node.id && !Array.isArray(child.children)) continue
+				if (!childTarget) {
+					continue
+				}
+				if (childTarget === node.id && !Array.isArray(child.children)) {
+					continue
+				}
 				node.children.splice(j, 1)
 				moves.push({ node: child, target: childTarget })
 			}
 		}
-		if (moves.length === 0) break
+		if (moves.length === 0) {
+			break
+		}
 		moves.forEach(({ node, target }) => {
 			const group = menu.find((m) => m.id === target)
 			if (!group) {
 				menu.push(node)
 				return
 			}
-			if (!Array.isArray(group.children)) group.children = []
+			if (!Array.isArray(group.children)) {
+				group.children = []
+			}
 			if (Array.isArray(node.children)) {
 				mergeMenuItems(group.children, node.children)
 			} else {
@@ -240,16 +260,22 @@ export function applyMenuRelocations(menu, relocations) {
  * @return {Array<object>} The menu without the removed entries.
  */
 export function applyMenuRemovals(menu, removals) {
-	if (!Array.isArray(removals) || removals.length === 0) return menu
+	if (!Array.isArray(removals) || removals.length === 0) {
+		return menu
+	}
 	const drop = new Set(removals)
 	const wasGroup = (n) => Array.isArray(n.children) && n.children.length > 0
 	const isClickable = (n) => n.route !== undefined || n.href !== undefined || n.action !== undefined
 	const prune = (nodes) => nodes.reduce((acc, n) => {
-		if (drop.has(n.id) && !wasGroup(n)) return acc
+		if (drop.has(n.id) && !wasGroup(n)) {
+			return acc
+		}
 		if (Array.isArray(n.children)) {
 			const children = prune(n.children)
 			const hadChildren = wasGroup(n)
-			if (children.length === 0 && hadChildren && !isClickable(n)) return acc
+			if (children.length === 0 && hadChildren && !isClickable(n)) {
+				return acc
+			}
 			acc.push({ ...n, children })
 			return acc
 		}
@@ -275,7 +301,9 @@ export function applyMenuRemovals(menu, removals) {
  * @return {Array<object>} The menu with the listed entries lifted out.
  */
 function liftToSection(menu, ids, section) {
-	if (!Array.isArray(ids) || ids.length === 0) return menu
+	if (!Array.isArray(ids) || ids.length === 0) {
+		return menu
+	}
 	const want = new Set(ids)
 	const isClickable = (n) => n.route !== undefined || n.href !== undefined || n.action !== undefined
 	const lifted = []
@@ -287,7 +315,9 @@ function liftToSection(menu, ids, section) {
 		}
 		if (Array.isArray(n.children)) {
 			const children = strip(n.children)
-			if (children.length === 0 && n.children.length > 0 && !isClickable(n)) return acc
+			if (children.length === 0 && n.children.length > 0 && !isClickable(n)) {
+				return acc
+			}
 			acc.push({ ...n, children })
 			return acc
 		}

@@ -23,17 +23,18 @@
  * the list exists to produce, so it is the behaviour under test.
  */
 
-// Populates `dashboardWidgetRegistry` by side effect — every catalog widget
-// self-registers on import. Must run before the registry is read.
-import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
-import { dashboardWidgetRegistry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { BUILT_IN_WIDGETS } from '../../src/components/CnWidgetGrid/builtInWidgets.js'
+import { dashboardWidgetRegistry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import {
 	BUILT_IN_WIDGET_KEYS,
 	DASHBOARD_CATALOG_WIDGET_KEYS,
 	LIBRARY_WIDGET_KEYS,
 } from '../../src/utils/libraryWidgetKeys.js'
 import { validateManifest } from '../../src/utils/validateManifest.js'
+
+// Populates `dashboardWidgetRegistry` by side effect — every catalog widget
+// self-registers on import. Must run before the registry is read.
+import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
 
 const V2_SCHEMA_URL = 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json'
 

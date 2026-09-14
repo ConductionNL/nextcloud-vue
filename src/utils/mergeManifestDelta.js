@@ -71,22 +71,26 @@ export function mergeManifestDelta(base, delta) {
 /**
  * Recursively merge `delta` onto `base` at `path`, collecting orphan paths.
  *
- * @param {*} base Base value.
- * @param {*} delta Delta value (takes precedence).
+ * @param {unknown} base Base value.
+ * @param {unknown} delta Delta value (takes precedence).
  * @param {string} path Current JSON-ish path (for orphan reporting).
  * @param {string[]} orphans Accumulator for orphaned delta paths.
- * @return {*} Merged value.
+ * @return {unknown} Merged value.
  */
 function mergeValue(base, delta, path, orphans) {
 	// Delta absent → keep base. Base absent / scalar mismatch → delta wins.
-	if (delta === undefined) return clone(base)
+	if (delta === undefined) {
+		return clone(base)
+	}
 	if (!isPlainObject(base) || !isPlainObject(delta)) {
 		return clone(delta)
 	}
 
 	const out = { ...clone(base) }
 	for (const key of Object.keys(delta)) {
-		if (key === ORDER_KEY) continue
+		if (key === ORDER_KEY) {
+			continue
+		}
 		const childPath = path ? `${path}/${key}` : key
 		const baseChild = base[key]
 		const deltaChild = delta[key]
@@ -132,7 +136,9 @@ function mergeKeyedArray(baseArr, deltaArr, keyField, path, orphans) {
 	})
 
 	for (const deltaEntry of deltaArr) {
-		if (!isPlainObject(deltaEntry)) continue
+		if (!isPlainObject(deltaEntry)) {
+			continue
+		}
 		const key = deltaEntry[keyField]
 		const op = deltaEntry[OP_KEY]
 		const entryPath = `${path}/${key}`
@@ -182,7 +188,9 @@ function applyOrder(entries, order, keyField) {
 		}
 	}
 	for (const e of entries) {
-		if (!used.has(e && e[keyField])) result.push(e)
+		if (!used.has(e && e[keyField])) {
+			result.push(e)
+		}
 	}
 	return result
 }
@@ -220,12 +228,16 @@ function isPlainObject(value) {
 /**
  * Structured clone via JSON (manifests are plain JSON — no cycles/functions).
  *
- * @param {*} value Any manifest fragment. `undefined` and primitives are
+ * @param {unknown} value Any manifest fragment. `undefined` and primitives are
  *   returned as-is; objects and arrays are deep-copied.
- * @return {*} The deep copy, or `value` itself when it is not an object.
+ * @return {unknown} The deep copy, or `value` itself when it is not an object.
  */
 function clone(value) {
-	if (value === undefined) return undefined
-	if (value === null || typeof value !== 'object') return value
+	if (value === undefined) {
+		return undefined
+	}
+	if (value === null || typeof value !== 'object') {
+		return value
+	}
 	return JSON.parse(JSON.stringify(value))
 }

@@ -39,10 +39,10 @@
 				:is="activeSubFormComponent"
 				ref="activeSubForm"
 				:key="state.type"
-				:editing-widget="state.editingWidget"
+				:editingWidget="state.editingWidget"
 				:value="state.content"
-				:file-upload-fn="fileUploadFn"
-				:calendars-fetcher="calendarsFetcher"
+				:fileUploadFn="fileUploadFn"
+				:calendarsFetcher="calendarsFetcher"
 				@update:content="onContentUpdate" />
 		</div>
 		<div v-else class="cn-add-widget-modal__empty">
@@ -61,15 +61,15 @@
 			     title inputs. -->
 			<template v-if="!activeTypeOwnsTitle">
 				<NcCheckboxRadioSwitch
-					:model-value="chrome.showTitle"
-					@update:model-value="chrome.showTitle = $event">
+					:modelValue="chrome.showTitle"
+					@update:modelValue="chrome.showTitle = $event">
 					{{ t('nextcloud-vue', 'Show title') }}
 				</NcCheckboxRadioSwitch>
 				<NcTextField
 					v-if="chrome.showTitle"
-					:model-value="chrome.customTitle"
+					:modelValue="chrome.customTitle"
 					:label="t('nextcloud-vue', 'Custom title')"
-					@update:model-value="chrome.customTitle = $event" />
+					@update:modelValue="chrome.customTitle = $event" />
 			</template>
 			<div class="cn-add-widget-modal__chrome-row">
 				<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Background') }}</span>
@@ -86,8 +86,8 @@
 				<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Icon') }}</span>
 				<CnIconBrowser
 					:value="chrome.customIcon"
-					:upload-fn="uploadFn"
-					allow-url
+					:uploadFn="uploadFn"
+					allowUrl
 					clearable
 					@input="chrome.customIcon = $event" />
 			</div>
@@ -110,15 +110,14 @@
 </template>
 
 <script>
-import { computed, provide } from 'vue'
-import { NcDialog, NcButton, NcTextField, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-
-import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcTextField } from '@nextcloud/vue'
+import { computed, provide } from 'vue'
 import CnColorPicker from '../components/CnColorPicker/CnColorPicker.vue'
+import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
 import {
-	listWidgetTypes,
 	getWidgetTypeEntry,
+	listWidgetTypes,
 } from '../components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { useWidgetForm } from '../composables/useWidgetForm.js'
 
@@ -155,6 +154,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * When set, the type `<select>` is hidden and the form opens directly
 		 * on this type (toolbar deep-links).
@@ -163,6 +163,7 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * When set, the modal opens in edit mode: the type select is hidden
 		 * (placement type is immutable) and the sub-form is pre-filled from
@@ -174,6 +175,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Optional upload transport for the Appearance icon picker:
 		 * `async (dataUrl: string) => ({ url })`. The icon picker reads the chosen
@@ -181,12 +183,13 @@ export default {
 		 * control is hidden and the picker still offers its catalogues, NL sets,
 		 * and a URL field.
 		 *
-		 * @type {Function|null}
+		 * @type {((dataUrl: string) => Promise<{url: string}>)|null}
 		 */
 		uploadFn: {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Optional raw-file upload transport forwarded to the active sub-form as
 		 * its `file-upload-fn`: `async (file: File) => ({ url })`. Deliberately a
@@ -196,24 +199,26 @@ export default {
 		 * image widget defer the upload to submit and hand over the raw `File`.
 		 * When null, sub-forms fall back to their own no-transport behaviour.
 		 *
-		 * @type {Function|null}
+		 * @type {((file: File) => Promise<{url: string}>)|null}
 		 */
 		fileUploadFn: {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Optional async fetcher returning the user's calendars
 		 * (`[{key, name, color}]`) for the calendar widget's picker. Provided
 		 * by the consuming app (which owns the calendar backend); when null the
 		 * calendar form falls back to free-text principal entry.
 		 *
-		 * @type {Function|null}
+		 * @type {(() => Promise<Array<{key: string, name: string, color: string}>>)|null}
 		 */
 		calendarsFetcher: {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * The surface the picker offers types for. `'detail-page'` surfaces
 		 * detail-only types (e.g. a second `data` widget) alongside the universal
@@ -226,6 +231,7 @@ export default {
 			type: String,
 			default: 'app-dashboard',
 		},
+
 		/**
 		 * Authoritative object context `{ register, schema }` for the page hosting
 		 * the picker (supplied by the Buildiq edit button from the ACTIVE page's
@@ -365,9 +371,9 @@ export default {
 		 * @return {string[]} the validation error messages.
 		 */
 		validationErrors() {
-			// touch the tick so Vue tracks it as a dependency
-			// eslint-disable-next-line no-unused-expressions
-			this.validationTick
+			// Read the tick, discard the value: `$refs` is not reactive, so the
+			// tick is what Vue can track as this computed's dependency.
+			void this.validationTick
 			return this.form.validate(this.$refs.activeSubForm)
 		},
 
@@ -389,9 +395,8 @@ export default {
 		 * @return {boolean} true when something changed since open.
 		 */
 		isDirty() {
-			// touch the tick so content edits re-run this computed
-			// eslint-disable-next-line no-unused-expressions
-			this.validationTick
+			// Read the tick, discard the value, so content edits re-run this.
+			void this.validationTick
 			return this.currentSnapshot() !== this.initialSnapshot
 		},
 
@@ -433,6 +438,7 @@ export default {
 				this.openLifecycle()
 			}
 		},
+
 		editingWidget: {
 			immediate: false,
 			/**
@@ -447,6 +453,7 @@ export default {
 				}
 			},
 		},
+
 		/**
 		 * Re-seed the form when the preselected type changes while open.
 		 *
@@ -551,6 +558,7 @@ export default {
 				showTitle: showRaw === undefined
 					? !this.isCardType(w.type || this.state.type)
 					: Boolean(Number(showRaw) || showRaw === true),
+
 				customTitle: pick(w.customTitle, c.customTitle, c.title) || '',
 				backgroundColor: pick(w.backgroundColor, w.styleConfig?.backgroundColor, c.styleConfig?.backgroundColor) || '',
 				customIcon: pick(w.customIcon, c.customIcon, c.icon) || '',
@@ -586,7 +594,9 @@ export default {
 		 * @return {boolean} true when the registry entry is a card.
 		 */
 		isCardType(type) {
-			if (!type) return false
+			if (!type) {
+				return false
+			}
 			const entry = getWidgetTypeEntry(type)
 			return Boolean(entry && entry.card === true)
 		},
@@ -663,6 +673,7 @@ export default {
 				} catch (error) {
 					// The sub-form surfaces its own inline error; keep the modal
 					// open so the author can retry or pick another file.
+					// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 					console.error('[CnAddWidgetModal] Widget commit failed:', error)
 					return
 				} finally {

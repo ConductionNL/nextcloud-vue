@@ -1,3 +1,6 @@
+import vue from '@vitejs/plugin-vue'
+import path from 'path'
+import { fileURLToPath } from 'url'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -19,9 +22,6 @@
  * command both name this file; keep all three in step.
  */
 import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import path from 'path'
-import { fileURLToPath } from 'url'
 
 const dir = path.dirname(fileURLToPath(import.meta.url))
 

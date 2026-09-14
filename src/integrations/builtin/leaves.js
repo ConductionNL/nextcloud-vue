@@ -25,9 +25,9 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import { integrations as defaultRegistry } from '../registry.js'
-import CnIntegrationTab from '../../components/CnIntegrationTab/CnIntegrationTab.vue'
 import CnIntegrationCard from '../../components/CnIntegrationCard/CnIntegrationCard.vue'
+import CnIntegrationTab from '../../components/CnIntegrationTab/CnIntegrationTab.vue'
+import { integrations as defaultRegistry } from '../registry.js'
 
 /**
  * Build a leaf descriptor wiring the generic tab + card components.

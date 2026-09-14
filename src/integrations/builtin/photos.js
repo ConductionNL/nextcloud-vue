@@ -24,8 +24,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnPhotosTab from './photos/CnPhotosTab.vue'
 import CnPhotosCard from './photos/CnPhotosCard.vue'
+import CnPhotosTab from './photos/CnPhotosTab.vue'
 
 /**
  * `photos` integration descriptor.

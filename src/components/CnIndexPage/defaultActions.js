@@ -10,7 +10,7 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
  * @param {{ view: boolean, edit: boolean, copy: boolean, del: boolean }} opts.flags
  *   Which built-in actions to include, from the page's `show*Action` props.
  * @param {object} opts.viewIcon Component to use as the View action icon.
- * @param {{ onView: Function, onEdit: Function, onCopy: Function, onDelete: Function }} opts.handlers
+ * @param {{ onView: (row: object) => void, onEdit: (row: object) => void, onCopy: (row: object) => void, onDelete: (row: object) => void }} opts.handlers
  *   Click handlers bound to each emitted action, in the same order as `flags`.
  * @return {Array<object>} The enabled actions in menu order (view, edit, copy,
  *   delete), each `{label, icon, handler}` — delete additionally `destructive`.

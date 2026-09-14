@@ -1,9 +1,10 @@
-import Vue from 'vue'
-import { PiniaVuePlugin, createPinia } from 'pinia'
+import { setLanguage, translate, translatePlural } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
-import { translate, translatePlural, setLanguage } from '@nextcloud/l10n'
+import { createPinia, PiniaVuePlugin } from 'pinia'
+import Vue from 'vue'
+import { registerTranslations } from '../src/index.js'
+
 import '../src/css/index.css'
-import { registerTranslations } from '../src'
 
 // --- Translations -----------------------------------------------------------
 
@@ -20,8 +21,8 @@ registerTranslations()
 window.__nclLang = initialLang
 
 window.switchLanguage = (lang) => {
-    setLanguage(lang)
-    registerTranslations()
+	setLanguage(lang)
+	registerTranslations()
 	window.__nclLang = lang
 }
 

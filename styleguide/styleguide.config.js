@@ -1,7 +1,7 @@
-const path = require('path')
 const fs = require('fs')
-const webpack = require('webpack')
+const path = require('path')
 const { VueLoaderPlugin } = require('vue-loader')
+const webpack = require('webpack')
 
 // Root of the library — one level up from this styleguide/ directory
 const ROOT = path.resolve(__dirname, '..')
@@ -23,11 +23,15 @@ module.exports = {
 
 		// Co-located example file takes priority — pure live demos, no narrative prose
 		const colocated = path.join(path.dirname(componentPath), `${name}.md`)
-		if (fs.existsSync(colocated)) return colocated
+		if (fs.existsSync(colocated)) {
+			return colocated
+		}
 
 		// docs/components/ is the fallback for components without a co-located example
 		const inComponents = path.join(docsRoot, 'components', `${kebab}.md`)
-		if (fs.existsSync(inComponents)) return inComponents
+		if (fs.existsSync(inComponents)) {
+			return inComponents
+		}
 
 		// Last resort: recursive search across all docs/ subdirectories
 		const findInDir = (dir) => {
@@ -35,7 +39,9 @@ module.exports = {
 				const full = path.join(dir, entry.name)
 				if (entry.isDirectory()) {
 					const found = findInDir(full)
-					if (found) return found
+					if (found) {
+						return found
+					}
 				} else if (entry.name === `${kebab}.md`) {
 					return full
 				}
@@ -47,13 +53,13 @@ module.exports = {
 	},
 
 	template: {
-        head: {
-            raw: `<script>
+		head: {
+			raw: `<script>
                 window.OC = { config: { version: '30.0.0' } };
                 window.appName = 'nextcloud-vue-styleguide';
             </script>`,
-        },
-    },
+		},
+	},
 
 	usageMode: 'collapse',
 	exampleMode: 'collapse',

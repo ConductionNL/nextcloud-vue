@@ -1,9 +1,9 @@
 import { toRaw } from 'vue'
-import { buildQueryString, capitalize } from '../utils/headers.js'
 // `buildHeaders` is reached via `this._buildHeaders()` (declared on
 // the base object store) so sub-resource fetches inherit the active
 // tenant UUID (multi-tenancy-context).
-import { parseResponseError, networkError } from '../utils/errors.js'
+import { networkError, parseResponseError } from '../utils/errors.js'
+import { buildQueryString, capitalize } from '../utils/headers.js'
 
 /**
  * Standard empty paginated response shape used by all sub-resource plugins.
@@ -26,7 +26,7 @@ export function emptyPaginated(limit = 20) {
  * @param {string} endpoint URL path segment appended to the object URL (e.g. 'audit-trails')
  * @param {object} [options] Plugin options
  * @param {number} [options.limit] Default page size
- * @return {Function} Plugin factory that returns the plugin definition
+ * @return {() => object} Plugin factory that returns the plugin definition
  *
  * @example
  * // Simple read-only sub-resource
@@ -104,6 +104,7 @@ export function createSubResourcePlugin(name, endpoint, options = {}) {
 						// which the console renders as an unreadable
 						// `Proxy(Object)`.
 						if (response.status !== 404) {
+							// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 							console.error(
 								`Error fetching ${name} for ${type}/${objectId}: `
 								+ `${response.status} ${response.statusText}`,
@@ -128,7 +129,10 @@ export function createSubResourcePlugin(name, endpoint, options = {}) {
 				} catch (error) {
 					this[`${name}Error`] = error.name === 'TypeError'
 						? networkError(error)
-						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() { return this.message } }
+						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() {
+								return this.message
+							} }
+					// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 					console.error(`Error fetching ${name} for ${type}/${objectId}:`, error)
 					return []
 				} finally {

@@ -25,11 +25,21 @@ const STUBS = {
 		template: '<textarea class="cn-text-area" :value="value" @input="$emit(\'input\', $event.target.value)" />',
 	},
 	NcLoadingIcon: { template: '<div class="cn-loading" />' },
+	// The stub forwards `type` on purpose. It used to swallow it, and that is
+	// why "POSTs the new meeting" passed for months while every meeting the
+	// real dialog created had no start time: the real component only knows
+	// date / datetime-local / month / time, the template asked for `datetime`,
+	// and the value went to `<input type="datetime">`, which is not an HTML
+	// input type. The browser fell back to a text box, nothing bound, and the
+	// stub knew nothing about any of it.
 	NcDateTimePickerNative: {
-		props: ['value'],
-		template: '<input class="cn-dt" :value="value" />',
+		props: ['value', 'type'],
+		template: '<input class="cn-dt" :type="type" :value="value" />',
 	},
 }
+
+/** The input types NcDateTimePickerNative understands. */
+const PICKER_TYPES = ['date', 'datetime-local', 'month', 'time']
 
 function flush() {
 	return new Promise((resolve) => Promise.resolve().then(() => Promise.resolve().then(resolve)))
@@ -50,6 +60,45 @@ describe('CnCalendarEventCreate', () => {
 			stubs: STUBS,
 		})
 	}
+
+	it('asks the pickers for a type they actually understand', async () => {
+		const wrapper = mountCreate()
+		await wrapper.vm.$nextTick()
+
+		const pickers = wrapper.findAll('.cn-dt')
+		expect(pickers.length).toBe(2)
+		pickers.forEach((picker, index) => {
+			const type = picker.attributes('type')
+			expect(PICKER_TYPES).toContain(type)
+			// Named explicitly as well as range-checked: `date` is in the list
+			// and would drop the time of day, which is not what a meeting wants.
+			expect(type).toBe('datetime-local')
+			expect(index).toBeLessThan(2)
+		})
+		wrapper.unmount()
+	})
+
+	it('refuses to submit a meeting with no usable start time', async () => {
+		const wrapper = mountCreate()
+		wrapper.vm.form.summary = 'Hearing'
+		expect(wrapper.vm.canSubmit).toBe(true)
+
+		// A VEVENT with no DTSTART shows in no calendar view and cannot be
+		// deleted or updated by any CalDAV client. Never post one.
+		wrapper.vm.form.dtstart = null
+		expect(wrapper.vm.hasValidStart).toBe(false)
+		expect(wrapper.vm.canSubmit).toBe(false)
+
+		await wrapper.vm.submit()
+		expect(global.fetch).not.toHaveBeenCalled()
+
+		wrapper.vm.form.dtstart = 'not a date'
+		expect(wrapper.vm.canSubmit).toBe(false)
+		await wrapper.vm.submit()
+		expect(global.fetch).not.toHaveBeenCalled()
+
+		wrapper.unmount()
+	})
 
 	it('disables submit when summary is empty', async () => {
 		const wrapper = mountCreate()

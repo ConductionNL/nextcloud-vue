@@ -61,16 +61,16 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import ClipboardCheckOutline from 'vue-material-design-icons/ClipboardCheckOutline.vue'
 import Sync from 'vue-material-design-icons/Sync.vue'
+import { syncIndicator } from '../../offline/fieldCollectionHelpers.js'
 import {
-	storePlanning,
+	countPending,
 	getPlannedItems,
 	getPlanningMeta,
-	countPending,
 	resolveDeviceId,
+	storePlanning,
 } from '../../offline/offlineDb.js'
 import { fetchPlanning, fetchReferences } from '../../offline/planningFetch.js'
 import { drainQueue } from '../../offline/syncReplayService.js'
-import { syncIndicator } from '../../offline/fieldCollectionHelpers.js'
 import { DEFAULT_FIELD_INSPECTION_CONFIG } from '../field-inspection.js'
 
 /**
@@ -137,7 +137,9 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler() { this.loadLocal() } },
+		objectId: { immediate: true, handler() {
+			this.loadLocal()
+		} },
 	},
 
 	/**
@@ -293,7 +295,9 @@ export default {
 }
 
 .cn-field-inspection-tab__sync--success .cn-field-inspection-tab__dot { background: var(--color-success); }
+
 .cn-field-inspection-tab__sync--warning .cn-field-inspection-tab__dot { background: var(--color-warning); }
+
 .cn-field-inspection-tab__sync--error .cn-field-inspection-tab__dot { background: var(--color-error); }
 
 .cn-field-inspection-tab__actions {

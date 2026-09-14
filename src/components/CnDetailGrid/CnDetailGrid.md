@@ -73,6 +73,19 @@ Layout tuning — narrow `minItemWidth` for compact grids; wider `labelWidth` fo
   ]" />
 ```
 
+Linked value: an item carrying `href` renders its value as a link, for a value
+that is a place you go to rather than a fact you read:
+
+```vue
+<CnDetailGrid :items="[
+  { label: 'Folder', value: '4213', href: '/apps/files/?fileid=4213&opendetails=true' },
+  { label: 'Owner', value: 'admin' },
+]" />
+```
+
+The URL passes through the library's scheme guard. A `javascript:`, `data:` or
+protocol-relative URL is refused and the item renders as plain text instead.
+
 Empty state — custom message via the `empty` slot when `items` is empty:
 
 ```vue

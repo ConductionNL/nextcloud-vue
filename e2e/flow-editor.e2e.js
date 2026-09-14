@@ -14,7 +14,7 @@
 // which is exactly the state a new flow starts in. Stubbing them added nothing
 // these assertions depend on.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const EDITOR = '/?flow=1'
 

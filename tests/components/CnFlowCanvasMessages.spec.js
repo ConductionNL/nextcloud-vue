@@ -146,7 +146,9 @@ describe('CnFlowCanvasMessages', () => {
 
 		it('caps how many it draws, and says how many it is not drawing', () => {
 			const many = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({
-				id, severity: 'warning', text: `message ${id}`,
+				id,
+				severity: 'warning',
+				text: `message ${id}`,
 			}))
 
 			const wrapper = mountArea(many, { max: 4 })

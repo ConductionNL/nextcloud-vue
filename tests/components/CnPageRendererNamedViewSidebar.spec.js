@@ -114,9 +114,7 @@ describe('CnPageRenderer — per-page sidebarComponent (REQ-MNVS)', () => {
 			// Filter to warns mentioning the missing key — other unrelated
 			// warnings (none expected here, but defensive) MUST NOT fail
 			// the assertion.
-			const matched = warnSpy.mock.calls.find(([msg]) =>
-				typeof msg === 'string' && msg.includes('NotInRegistry') && msg.includes('unknown-sidebar'),
-			)
+			const matched = warnSpy.mock.calls.find(([msg]) => typeof msg === 'string' && msg.includes('NotInRegistry') && msg.includes('unknown-sidebar'))
 			expect(matched).toBeTruthy()
 		})
 
@@ -155,20 +153,16 @@ describe('CnPageRenderer — per-page sidebarComponent (REQ-MNVS)', () => {
 
 		it('logs a console.warn about dead config when both sidebar.show: false and sidebarComponent are set', () => {
 			mountRenderer('hidden-with-sidebar')
-			const matched = warnSpy.mock.calls.find(([msg]) =>
-				typeof msg === 'string'
+			const matched = warnSpy.mock.calls.find(([msg]) => typeof msg === 'string'
 				&& msg.includes('hidden-with-sidebar')
 				&& msg.includes('sidebar.show')
-				&& msg.includes('sidebarComponent'),
-			)
+				&& msg.includes('sidebarComponent'))
 			expect(matched).toBeTruthy()
 		})
 
 		it('does NOT log the dead-config warning on pages without sidebarComponent', () => {
 			mountRenderer('plain')
-			const matched = warnSpy.mock.calls.find(([msg]) =>
-				typeof msg === 'string' && msg.includes('Visibility wins'),
-			)
+			const matched = warnSpy.mock.calls.find(([msg]) => typeof msg === 'string' && msg.includes('Visibility wins'))
 			expect(matched).toBeFalsy()
 		})
 	})

@@ -2,12 +2,12 @@
 	<CnSettingsSection
 		:name="name"
 		:description="description"
-		:doc-url="docUrl"
+		:docUrl="docUrl"
 		:loading="registersLoading"
-		loading-message="Loading registers..."
+		loadingMessage="Loading registers..."
 		:error="!!registersError"
-		:error-message="registersError || ''"
-		:on-retry="loadRegisters">
+		:errorMessage="registersError || ''"
+		:onRetry="loadRegisters">
 		<!-- Action buttons -->
 		<template #actions>
 			<NcButton
@@ -44,8 +44,8 @@
 				<!-- Group header -->
 				<slot name="group-header"
 					:group="group"
-					:configured-count="configuredCount(groupIdx)"
-					:total-count="group.types.length">
+					:configuredCount="configuredCount(groupIdx)"
+					:totalCount="group.types.length">
 					<div class="cn-register-mapping__group-header">
 						<h4 class="cn-register-mapping__group-title">
 							{{ group.name }}
@@ -65,14 +65,14 @@
 				<div class="cn-register-mapping__register-select">
 					<label class="cn-register-mapping__label">{{ labels.register }}</label>
 					<NcSelect
-						:model-value="selectedRegister(groupIdx)"
+						:modelValue="selectedRegister(groupIdx)"
 						:options="registerSelectOptions"
 						:placeholder="labels.selectRegister"
-						:input-label="labels.register"
+						:inputLabel="labels.register"
 						:loading="registersLoading"
 						label="label"
-						track-by="value"
-						@update:model-value="handleRegisterChange(groupIdx, $event)" />
+						trackBy="value"
+						@update:modelValue="handleRegisterChange(groupIdx, $event)" />
 				</div>
 
 				<!-- Type list -->
@@ -117,13 +117,13 @@
 									{{ type.description }}
 								</p>
 								<NcSelect
-									:model-value="selectedSchema(groupIdx, type)"
+									:modelValue="selectedSchema(groupIdx, type)"
 									:options="schemaSelectOptions(groupIdx)"
 									:placeholder="labels.selectSchema"
-									:input-label="labels.schema"
+									:inputLabel="labels.schema"
 									label="label"
-									track-by="value"
-									@update:model-value="handleSchemaChange(groupIdx, type, $event)" />
+									trackBy="value"
+									@update:modelValue="handleSchemaChange(groupIdx, type, $event)" />
 							</div>
 						</transition>
 					</template>
@@ -361,8 +361,12 @@ export default {
 		 */
 		registerConfigKey(groupIdx) {
 			const group = this.groups[groupIdx]
-			if (group.registerConfigKey) return group.registerConfigKey
-			if (this.groups.length === 1) return 'register'
+			if (group.registerConfigKey) {
+				return group.registerConfigKey
+			}
+			if (this.groups.length === 1) {
+				return 'register'
+			}
 			return group.name.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '_register'
 		},
 
@@ -385,7 +389,9 @@ export default {
 		selectedRegister(groupIdx) {
 			const key = this.registerConfigKey(groupIdx)
 			const value = String(this.localConfig[key] || '')
-			if (!value) return null
+			if (!value) {
+				return null
+			}
 			return this.registerSelectOptions.find((o) => o.value === value) || null
 		},
 
@@ -399,7 +405,9 @@ export default {
 		selectedSchema(groupIdx, type) {
 			const key = this.schemaConfigKey(type)
 			const value = String(this.localConfig[key] || '')
-			if (!value) return null
+			if (!value) {
+				return null
+			}
 			const options = this.schemaSelectOptions(groupIdx)
 			return options.find((o) => o.value === value) || null
 		},
@@ -425,7 +433,9 @@ export default {
 		 */
 		schemaLabel(groupIdx, type) {
 			const selected = this.selectedSchema(groupIdx, type)
-			if (selected) return selected.label
+			if (selected) {
+				return selected.label
+			}
 			const value = this.schemaValue(groupIdx, type)
 			return value ? `Schema ${value}` : ''
 		},
@@ -438,7 +448,9 @@ export default {
 		 */
 		schemaSelectOptions(groupIdx) {
 			const reg = this.selectedRegister(groupIdx)
-			if (!reg) return []
+			if (!reg) {
+				return []
+			}
 			const schemas = this.schemasByRegister[reg.value] || []
 			return schemas.map((s) => ({
 				label: s.title || s.slug || `Schema ${s.id}`,
@@ -541,7 +553,9 @@ export default {
 			for (const type of group.types) {
 				const schemaKey = this.schemaConfigKey(type)
 				// Skip if already has a value
-				if (this.localConfig[schemaKey]) continue
+				if (this.localConfig[schemaKey]) {
+					continue
+				}
 
 				const slug = type.slug.toLowerCase()
 				const label = type.label.toLowerCase()
@@ -613,14 +627,18 @@ export default {
 			const id = String(registerId)
 
 			// Return cached
-			if (this.schemasByRegister[id]?.length > 0) return
+			if (this.schemasByRegister[id]?.length > 0) {
+				return
+			}
 
 			try {
 				const response = await fetch(
 					prefixUrl(`/apps/openregister/api/registers/${encodeURIComponent(id)}?_extend[]=schemas`),
 					{ method: 'GET', headers: buildHeaders() },
 				)
-				if (!response.ok) return
+				if (!response.ok) {
+					return
+				}
 
 				const data = await response.json()
 				const schemas = (data.schemas || []).filter((s) => s && typeof s === 'object' && s.id)

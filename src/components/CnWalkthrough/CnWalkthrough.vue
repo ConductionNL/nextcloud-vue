@@ -61,14 +61,18 @@
 					<Close :size="20" />
 				</template>
 			</NcButton>
-			<!-- @slot coachmark Override the whole coachmark body. Scope: { step, index, total, next, back, skip }. -->
+			<!-- @slot coachmark Override the whole coachmark body. Scope: { step, index, total, next, back, skip, skipLabel }.
+			     The default body has no Skip control (ADR-062 gives that job to
+			     the corner close button), so `skipLabel` reaches the only place
+			     a Skip control can live: a host-supplied coachmark. -->
 			<slot name="coachmark"
 				:step="step"
 				:index="index"
 				:total="total"
 				:next="advance"
 				:back="back"
-				:skip="skip">
+				:skip="skip"
+				:skipLabel="skipLabel">
 				<div class="cn-walkthrough__counter">
 					{{ index + 1 }} / {{ total }}
 				</div>
@@ -118,9 +122,9 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
-import Close from 'vue-material-design-icons/Close.vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import { useWalkthrough } from '../../composables/useWalkthrough.js'
 
 /**
@@ -203,24 +207,31 @@ export default {
 		active() {
 			return this.wt.running.value && !!this.step
 		},
+
 		step() {
 			return this.wt.currentStep.value
 		},
+
 		index() {
 			return this.wt.activeTour.value ? this.wt.activeTour.value.steps.findIndex((s) => s.id === (this.step && this.step.id)) : 0
 		},
+
 		total() {
 			return this.wt.totalSteps.value
 		},
+
 		isFirst() {
 			return this.wt.isFirst.value
 		},
+
 		isLast() {
 			return this.wt.isLast.value
 		},
+
 		isCentered() {
 			return this.step && this.step.placement === 'center'
 		},
+
 		/**
 		 * Whether the Next control is shown. Hidden on an enforced action step
 		 * (a task + a non-manual advanceOn) unless `allowManualNext` is set.
@@ -228,10 +239,13 @@ export default {
 		 * @return {boolean} True when Next should render.
 		 */
 		showNext() {
-			if (!this.step) return false
+			if (!this.step) {
+				return false
+			}
 			const enforced = !!this.step.task && this.step.advanceOn && this.step.advanceOn.type !== 'manual'
 			return !enforced || this.step.allowManualNext === true
 		},
+
 		/**
 		 * Whether the active step is a cross-app hand-off (declares `handoff.url`).
 		 *
@@ -240,16 +254,20 @@ export default {
 		isHandoff() {
 			return !!(this.step && this.step.handoff && this.step.handoff.url)
 		},
+
 		handoffLabel() {
 			const app = this.step && this.step.handoff && this.step.handoff.app
 			return app ? t('nextcloud-vue', 'Continue in {app}', { app }) : t('nextcloud-vue', 'Continue')
 		},
+
 		stepTitle() {
 			return this.tr(this.step && this.step.title)
 		},
+
 		stepBody() {
 			return this.tr(this.step && this.step.body)
 		},
+
 		/**
 		 * The task line, through the same `translate` prop as title/body — a
 		 * raw `step.task` shipped English even in fully translated locales.
@@ -259,15 +277,22 @@ export default {
 		stepTask() {
 			return this.tr(this.step && this.step.task)
 		},
+
 		dialogLabel() {
 			return this.stepTitle || t('nextcloud-vue', 'Walkthrough')
 		},
+
 		liveText() {
-			if (!this.step) return ''
+			if (!this.step) {
+				return ''
+			}
 			return t('nextcloud-vue', 'Step {n} of {total}', { n: this.index + 1, total: this.total }) + ': ' + (this.stepTitle || '')
 		},
+
 		ringStyle() {
-			if (!this.rect) return {}
+			if (!this.rect) {
+				return {}
+			}
 			const pad = 6
 			return {
 				top: (this.rect.top - pad) + 'px',
@@ -276,9 +301,12 @@ export default {
 				height: (this.rect.height + pad * 2) + 'px',
 			}
 		},
+
 		strip() {
 			const r = this.rect
-			if (!r) return {}
+			if (!r) {
+				return {}
+			}
 			const pad = 6
 			const top = Math.max(0, r.top - pad)
 			const bottom = r.top + r.height + pad
@@ -291,6 +319,7 @@ export default {
 				right: { top: top + 'px', left: right + 'px', right: 0, height: (bottom - top) + 'px' },
 			}
 		},
+
 		cardStyle() {
 			if (this.isCentered || !this.rect) {
 				return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
@@ -301,7 +330,9 @@ export default {
 
 	watch: {
 		step(newStep, oldStep) {
-			if (!newStep) return
+			if (!newStep) {
+				return
+			}
 			if (!oldStep || newStep.id !== oldStep.id) {
 				/**
 				 * @event step-change Emitted when the active step changes.
@@ -311,6 +342,7 @@ export default {
 				this.$nextTick(() => this.locateTarget())
 			}
 		},
+
 		active(now) {
 			if (now) {
 				this.$nextTick(() => this.locateTarget())
@@ -338,6 +370,10 @@ export default {
 		this._onKey = null
 		this._onObjectCreated = null
 		this._routeUnhook = null
+		// Layout watchers for the ACTIVE step's target (see trackTargetLayout).
+		this._layoutObs = null
+		this._bodyResizeObs = null
+		this._remeasureRaf = null
 		// A qualifying auto-start tour whose first-step page is NOT the current
 		// route — held here until the user navigates to that page (see hookRouter).
 		this._pendingAutoTour = null
@@ -349,12 +385,18 @@ export default {
 		this._onScroll = () => this.computeRect()
 		window.addEventListener('scroll', this._onScroll, true)
 		window.addEventListener('resize', this._onScroll)
-		this._onKey = (e) => { if (e.key === 'Escape') this.onBackdrop() }
+		this._onKey = (e) => {
+			if (e.key === 'Escape') {
+				this.onBackdrop()
+			}
+		}
 		window.addEventListener('keydown', this._onKey)
 		this._onObjectCreated = (e) => this.wt.notify({ kind: 'object-created', object: (e && e.detail) || {} })
 		window.addEventListener('cn-walkthrough:object-created', this._onObjectCreated)
 		this.hookRouter()
-		if (this.active) this.$nextTick(() => this.locateTarget())
+		if (this.active) {
+			this.$nextTick(() => this.locateTarget())
+		}
 	},
 
 	beforeUnmount() {
@@ -362,7 +404,9 @@ export default {
 		window.removeEventListener('resize', this._onScroll)
 		window.removeEventListener('keydown', this._onKey)
 		window.removeEventListener('cn-walkthrough:object-created', this._onObjectCreated)
-		if (typeof this._routeUnhook === 'function') this._routeUnhook()
+		if (typeof this._routeUnhook === 'function') {
+			this._routeUnhook()
+		}
 		this.teardownStep()
 	},
 
@@ -374,9 +418,12 @@ export default {
 		 * @return {string} The resolved string.
 		 */
 		tr(value) {
-			if (!value) return ''
+			if (!value) {
+				return ''
+			}
 			return typeof this.translate === 'function' ? this.translate(value) : value
 		},
+
 		/**
 		 * Hook `$router.afterEach` (when a router is present) to feed route signals.
 		 *
@@ -384,7 +431,9 @@ export default {
 		 */
 		hookRouter() {
 			const router = this.$router
-			if (!router || typeof router.afterEach !== 'function') return
+			if (!router || typeof router.afterEach !== 'function') {
+				return
+			}
 			this._routeUnhook = router.afterEach((to) => {
 				this.wt.notify({ kind: 'route', route: to.name, params: to.params || {} })
 				// A first-visit tour deferred because the user deep-linked onto a
@@ -398,6 +447,7 @@ export default {
 				this.$nextTick(() => this.locateTarget())
 			})
 		},
+
 		/**
 		 * Start a qualifying auto-start tour — but a `first-visit` tour whose
 		 * first step SPOTLIGHTS something on a specific page only opens when the
@@ -411,11 +461,21 @@ export default {
 		 * @return {void}
 		 */
 		maybeAutoStart() {
-			if (this.wt.running.value) return
-			if (this.tourId) { this.wt.start(this.tourId); return }
+			if (this.wt.running.value) {
+				return
+			}
+			if (this.tourId) {
+				this.wt.start(this.tourId)
+				return
+			}
 			const auto = this.wt.autoStartTour.value
-			if (!auto) return
-			if (!this.$router) { this.wt.start(auto.id); return }
+			if (!auto) {
+				return
+			}
+			if (!this.$router) {
+				this.wt.start(auto.id)
+				return
+			}
 			const routeName = this.$route && this.$route.name
 			if (this.routeMatchesTour(auto, routeName)) {
 				this.wt.start(auto.id)
@@ -423,6 +483,7 @@ export default {
 				this._pendingAutoTour = auto
 			}
 		},
+
 		/**
 		 * The route name a tour's FIRST step is anchored to, or null when the
 		 * first step is not page-anchored (a centered welcome step, or a
@@ -497,6 +558,7 @@ export default {
 			}
 			return null
 		},
+
 		/**
 		 * Whether a tour may auto-open on the given route. True when the tour's
 		 * first step is not page-anchored — which includes every `center`-placed
@@ -515,9 +577,12 @@ export default {
 		 */
 		routeMatchesTour(tour, routeName) {
 			const page = this.firstStepPage(tour)
-			if (!page) return true
+			if (!page) {
+				return true
+			}
 			return !!routeName && String(routeName) === page
 		},
+
 		/**
 		 * Resolve, scroll to, and measure the active step's target, then install
 		 * the step's advance watcher.
@@ -536,26 +601,36 @@ export default {
 			this.targetEl = el
 			if (!el) {
 				// Optional step whose target is absent → skip; else wait for it.
-				if (this.step.optional) { this.wt.skip(); return }
+				if (this.step.optional) {
+					this.wt.skip()
+					return
+				}
 				// A nav-item/page target may be absent because it lives in a
 				// collapsed nav group (children not rendered). Best-effort expand
 				// the group so the MutationObserver below catches the now-rendered
 				// target and re-locates it.
 				const tgtKind = (this.step.target && this.step.target.kind) || ''
-				if (tgtKind === 'nav-item' || tgtKind === 'page') this.revealTarget()
+				if (tgtKind === 'nav-item' || tgtKind === 'page') {
+					this.revealTarget()
+				}
 				this.observeForTarget()
 				this.rect = null
 				return
 			}
-			try { el.scrollIntoView({ block: 'center', inline: 'center' }) } catch (e) { /* jsdom */ }
+			try {
+				el.scrollIntoView({ block: 'center', inline: 'center' })
+			} catch { /* jsdom */ }
 			this.computeRect()
 			this.armStep(el)
 			// The ResizeObserver only fires when the target itself resizes. A nav
 			// item can MOVE (siblings render/settle after mount) without resizing,
 			// leaving a stale cutout one row off. Re-measure across the next few
-			// frames so the spotlight tracks the settled position.
+			// frames so the spotlight tracks the settled position, and keep
+			// tracking it afterwards for content that arrives later still.
 			this.scheduleSettleRemeasure()
+			this.trackTargetLayout()
 		},
+
 		/**
 		 * Resolve a step's `target` to a DOM element, preferring stable manifest
 		 * identities, then `data-walkthrough-id`/`data-testid`, then raw CSS.
@@ -566,26 +641,43 @@ export default {
 		resolveTarget(step) {
 			const tgt = step.target || {}
 			const ref = tgt.ref
-			const q = (sel) => { try { return document.querySelector(sel) } catch (e) { return null } }
+			const q = (sel) => {
+				try {
+					return document.querySelector(sel)
+				} catch {
+					return null
+				}
+			}
 			const esc = (v) => (window.CSS && CSS.escape ? CSS.escape(v) : String(v).replace(/"/g, '\\"'))
-			if (tgt.kind === 'selector' && tgt.selector) return q(tgt.selector)
-			if (!ref) return null
+			if (tgt.kind === 'selector' && tgt.selector) {
+				return q(tgt.selector)
+			}
+			if (!ref) {
+				return null
+			}
 			const byId = q(`[data-walkthrough-id="${esc(ref)}"]`) || q(`[data-testid="${esc(ref)}"]`)
-			if (byId) return byId
+			if (byId) {
+				return byId
+			}
 			if (tgt.kind === 'nav-item' || tgt.kind === 'page') {
 				return q(`[data-cn-route="${esc(ref)}"]`) || q(`a[href$="#/${esc(ref)}"]`) || q(`[data-route="${esc(ref)}"]`)
 			}
-			if (tgt.kind === 'widget') return q(`[data-widget-key="${esc(ref)}"]`) || q(`[data-widget-id="${esc(ref)}"]`)
-			if (tgt.kind === 'action') return q(`[data-action-id="${esc(ref)}"]`)
+			if (tgt.kind === 'widget') {
+				return q(`[data-widget-key="${esc(ref)}"]`) || q(`[data-widget-id="${esc(ref)}"]`)
+			}
+			if (tgt.kind === 'action') {
+				return q(`[data-action-id="${esc(ref)}"]`)
+			}
 			return null
 		},
+
 		/**
 		 * Best-effort expand collapsed NcAppNavigation groups so a target nested
 		 * inside one renders (and becomes measurable). A collapsed group keeps its
 		 * children in the DOM but `display:none`, so the target can't be located or
 		 * measured and the engine would otherwise fall back to a centered coachmark.
 		 *
-		 * Scoped to the app navigation. Robust across @nextcloud/vue markup
+		 * Scoped to the app navigation. Robust across `@nextcloud/vue` markup
 		 * variants: it primarily clicks any `[aria-expanded="false"]` toggle that
 		 * is not a menu trigger (an NcActions button reports the same state and
 		 * would pop a menu over the navigation), then falls back to the collapse
@@ -595,15 +687,23 @@ export default {
 		 * @return {void}
 		 */
 		revealTarget() {
-			if (this._revealAttempted) return
+			if (this._revealAttempted) {
+				return
+			}
 			this._revealAttempted = true
 			const nav = document.querySelector('.app-navigation') || document.querySelector('#app-navigation')
-			if (!nav) return
+			if (!nav) {
+				return
+			}
 			const clicked = new Set()
 			const click = (el) => {
-				if (!el || clicked.has(el) || typeof el.click !== 'function') return
+				if (!el || clicked.has(el) || typeof el.click !== 'function') {
+					return
+				}
 				clicked.add(el)
-				try { el.click() } catch (e) { /* jsdom / detached */ }
+				try {
+					el.click()
+				} catch { /* jsdom / detached */ }
 			}
 			// A collapsed-looking control that is NOT a navigation-group or
 			// foldout toggle: an NcActions trigger carries
@@ -641,30 +741,79 @@ export default {
 			// aria-expanded on the toggle — collapsed state is the absent
 			// `--opened` / `open` class on the wrapper).
 			nav.querySelectorAll('.app-navigation-entry--collapsible').forEach((group) => {
-				if (group.classList.contains('app-navigation-entry--opened') || group.classList.contains('open')) return
+				if (group.classList.contains('app-navigation-entry--opened') || group.classList.contains('open')) {
+					return
+				}
 				const btn = group.querySelector('button.icon-collapse, .app-navigation-entry__children-toggle, .app-navigation-entry__collapse')
-				if (btn) click(btn)
+				if (btn) {
+					click(btn)
+				}
 			})
 		},
+
 		/**
 		 * Re-measure the target a few times after arming, to catch post-mount
 		 * layout settling (sibling nav items rendering, fonts, etc.) that moves
 		 * the target without resizing it. Cleared in teardownStep.
 		 *
+		 * Fast path only; later movement is caught by `trackTargetLayout()`.
+		 *
 		 * @return {void}
 		 */
 		scheduleSettleRemeasure() {
-			const again = () => { if (this.targetEl && !this.isCentered) this.computeRect() }
+			const again = () => {
+				if (this.targetEl && !this.isCentered) {
+					this.computeRect()
+				}
+			}
 			this._settleTimers = (this._settleTimers || [])
 			this._settleTimers.push(setTimeout(again, 100), setTimeout(again, 300), setTimeout(again, 600))
 		},
+
+		/**
+		 * Re-measure on any layout change for as long as the step is active.
+		 *
+		 * The settle timers above stop at 600ms; a target on a page whose content
+		 * arrives from the network keeps moving after that, leaving the cutout on
+		 * empty space. The MutationObserver catches inserted content, the
+		 * ResizeObserver catches reflows that insert no nodes.
+		 *
+		 * @return {void}
+		 */
+		trackTargetLayout() {
+			const remeasure = () => {
+				if (this._remeasureRaf) {
+					return
+				}
+				const raf = typeof window.requestAnimationFrame === 'function'
+					? window.requestAnimationFrame
+					: (fn) => setTimeout(fn, 16)
+				this._remeasureRaf = raf(() => {
+					this._remeasureRaf = null
+					if (this.targetEl && !this.isCentered) {
+						this.computeRect()
+					}
+				})
+			}
+			if (window.MutationObserver) {
+				this._layoutObs = new MutationObserver(remeasure)
+				this._layoutObs.observe(document.body, { childList: true, subtree: true })
+			}
+			if (window.ResizeObserver) {
+				this._bodyResizeObs = new ResizeObserver(remeasure)
+				this._bodyResizeObs.observe(document.body)
+			}
+		},
+
 		/**
 		 * Measure the target into a viewport rect.
 		 *
 		 * @return {void}
 		 */
 		computeRect() {
-			if (!this.targetEl) return
+			if (!this.targetEl) {
+				return
+			}
 			const r = this.targetEl.getBoundingClientRect()
 			// Target present but not laid out (e.g. a nav item inside a collapsed
 			// group, or a hidden element): fall back to an anchorless centered
@@ -688,9 +837,18 @@ export default {
 			// the coachmark against the REAL viewport even when a transformed
 			// ancestor makes the position:fixed origin non-zero.
 			this._hostOffset = { top: host.top, left: host.left }
-			this.rect = { top: r.top - host.top, left: r.left - host.left, width: r.width, height: r.height }
+			const next = { top: r.top - host.top, left: r.left - host.left, width: r.width, height: r.height }
+			// Bail when nothing moved: trackTargetLayout() calls this on every
+			// layout change, and placeCard()'s focusCard() would otherwise steal
+			// focus back from whatever the user is typing in.
+			const p = this.rect
+			if (p && p.top === next.top && p.left === next.left && p.width === next.width && p.height === next.height) {
+				return
+			}
+			this.rect = next
 			this.$nextTick(() => this.placeCard())
 		},
+
 		/**
 		 * Position the coachmark near the target with a simple flip so it stays
 		 * on-screen.
@@ -700,7 +858,9 @@ export default {
 		 */
 		placeCard() {
 			const card = this.$refs.card
-			if (!card || !this.rect) return
+			if (!card || !this.rect) {
+				return
+			}
 			const cw = card.offsetWidth || 320
 			const ch = card.offsetHeight || 160
 			const gap = 12
@@ -710,9 +870,25 @@ export default {
 			let placement = this.step.placement && this.step.placement !== 'auto' ? this.step.placement : 'bottom'
 			let top
 			let left
-			if (placement === 'bottom' && r.top + r.height + gap + ch > vh) placement = 'top'
-			if (placement === 'top' && r.top - gap - ch < 0) placement = 'bottom'
-			if (placement === 'bottom') { top = r.top + r.height + gap; left = r.left } else if (placement === 'top') { top = r.top - gap - ch; left = r.left } else if (placement === 'left') { top = r.top; left = r.left - gap - cw } else { top = r.top; left = r.left + r.width + gap }
+			if (placement === 'bottom' && r.top + r.height + gap + ch > vh) {
+				placement = 'top'
+			}
+			if (placement === 'top' && r.top - gap - ch < 0) {
+				placement = 'bottom'
+			}
+			if (placement === 'bottom') {
+				top = r.top + r.height + gap
+				left = r.left
+			} else if (placement === 'top') {
+				top = r.top - gap - ch
+				left = r.left
+			} else if (placement === 'left') {
+				top = r.top
+				left = r.left - gap - cw
+			} else {
+				top = r.top
+				left = r.left + r.width + gap
+			}
 			// Clamp to the viewport. `left`/`top` live in overlay-relative space
 			// (this.rect was host-subtracted), so the viewport bounds must be
 			// host-subtracted too — otherwise a scrolled/transformed host would
@@ -725,6 +901,7 @@ export default {
 			this.cardPos = { top, left }
 			this.focusCard()
 		},
+
 		/**
 		 * Move focus to the coachmark's first control (focus management / a11y).
 		 *
@@ -733,9 +910,12 @@ export default {
 		focusCard() {
 			this.$nextTick(() => {
 				const btn = this.$refs.firstBtn && this.$refs.firstBtn.$el
-				if (btn && typeof btn.focus === 'function') btn.focus()
+				if (btn && typeof btn.focus === 'function') {
+					btn.focus()
+				}
 			})
 		},
+
 		/**
 		 * Install the advance watcher for the active step (click / element / delay;
 		 * route + object-created are global listeners installed at mount).
@@ -758,6 +938,7 @@ export default {
 			}
 			this.armDelay()
 		},
+
 		/**
 		 * Arm the delay timer for a `delay` advance.
 		 *
@@ -769,6 +950,7 @@ export default {
 				this._delayTimer = setTimeout(() => this.wt.notify({ kind: 'delay' }), a.ms || 1500)
 			}
 		},
+
 		/**
 		 * Watch the DOM until an `element-appears` (or a not-yet-mounted) target
 		 * resolves, then re-locate.
@@ -790,6 +972,7 @@ export default {
 			})
 			this._observer.observe(document.body, { childList: true, subtree: true })
 		},
+
 		/**
 		 * Tear down the current step's watchers/timers/listeners.
 		 *
@@ -797,15 +980,45 @@ export default {
 		 */
 		teardownStep() {
 			this._revealAttempted = false
-			if (this._observer) { this._observer.disconnect(); this._observer = null }
-			if (this._resizeObs) { this._resizeObs.disconnect(); this._resizeObs = null }
-			if (this._delayTimer) { clearTimeout(this._delayTimer); this._delayTimer = null }
-			if (this._settleTimers) { this._settleTimers.forEach(clearTimeout); this._settleTimers = null }
+			// computeRect()'s bail-when-unchanged optimisation must not survive
+			// into the next step, or a same-geometry target never re-runs
+			// placeCard()/focusCard() on step change.
+			this.rect = null
+			if (this._observer) {
+				this._observer.disconnect()
+				this._observer = null
+			}
+			if (this._resizeObs) {
+				this._resizeObs.disconnect()
+				this._resizeObs = null
+			}
+			if (this._layoutObs) {
+				this._layoutObs.disconnect()
+				this._layoutObs = null
+			}
+			if (this._bodyResizeObs) {
+				this._bodyResizeObs.disconnect()
+				this._bodyResizeObs = null
+			}
+			if (this._remeasureRaf) {
+				const cancel = typeof window.cancelAnimationFrame === 'function' ? window.cancelAnimationFrame : clearTimeout
+				cancel(this._remeasureRaf)
+				this._remeasureRaf = null
+			}
+			if (this._delayTimer) {
+				clearTimeout(this._delayTimer)
+				this._delayTimer = null
+			}
+			if (this._settleTimers) {
+				this._settleTimers.forEach(clearTimeout)
+				this._settleTimers = null
+			}
 			if (this.targetEl && this._clickHandler) {
 				this.targetEl.removeEventListener('click', this._clickHandler)
 				this._clickHandler = null
 			}
 		},
+
 		/**
 		 * Advance the tour one step, completing on the last step.
 		 *
@@ -826,9 +1039,11 @@ export default {
 				this.$emit('complete')
 			}
 		},
+
 		back() {
 			this.wt.back()
 		},
+
 		/**
 		 * The coachmark's "Skip" control — ENDS the tour (it does not advance a
 		 * step). Marks the tour complete so the seen-version is persisted and it
@@ -847,6 +1062,7 @@ export default {
 			this.$emit('dismiss')
 			this.$emit('complete')
 		},
+
 		/**
 		 * Execute a cross-app hand-off: complete this tour locally, then navigate
 		 * the browser to the destination URL carrying a `cn_resume_tour` /
@@ -856,10 +1072,14 @@ export default {
 		 */
 		doHandoff() {
 			const h = (this.step && this.step.handoff) || {}
-			if (!h.url) return
+			if (!h.url) {
+				return
+			}
 			const tour = h.tour || (this.wt.activeTour.value && this.wt.activeTour.value.id) || ''
 			let url = h.url + (h.url.indexOf('?') === -1 ? '?' : '&') + 'cn_resume_tour=' + encodeURIComponent(tour)
-			if (h.step) url += '&cn_resume_step=' + encodeURIComponent(h.step)
+			if (h.step) {
+				url += '&cn_resume_step=' + encodeURIComponent(h.step)
+			}
 			/**
 			 * @event handoff Emitted just before navigating to a cross-app destination.
 			 * @type {{ app: string, url: string }}
@@ -867,8 +1087,11 @@ export default {
 			this.$emit('handoff', { app: h.app, url })
 			this.$emit('complete')
 			this.wt.complete()
-			try { window.location.href = url } catch (e) { /* jsdom */ }
+			try {
+				window.location.href = url
+			} catch { /* jsdom */ }
 		},
+
 		/**
 		 * End the tour for good from the corner close button: mark it complete so
 		 * the seen-version is persisted and it does not auto-show again.
@@ -879,6 +1102,7 @@ export default {
 			this.wt.complete()
 			this.$emit('complete')
 		},
+
 		/**
 		 * Dismiss the tour from a backdrop click or ESC.
 		 *
@@ -907,7 +1131,7 @@ export default {
 	width: 1px;
 	height: 1px;
 	overflow: hidden;
-	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
 }
 
 .cn-walkthrough__dim {

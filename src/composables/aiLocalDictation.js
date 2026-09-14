@@ -47,13 +47,13 @@ const SAMPLE_INTERVAL = 100
  * Create a local-engine dictation session.
  *
  * @param {object} options Options.
- * @param {Function} options.transcribe `(Blob) => Promise<{text: string}>`.
+ * @param {(clip: Blob) => Promise<{ text: string }>} options.transcribe `(Blob) => Promise<{text: string}>`.
  * @param {number} options.silenceTimeout Pause before the clip is closed, ms. 0 disables.
- * @param {Function} options.onTranscript Called with the transcribed text.
- * @param {Function} options.onError Called with a human-readable failure.
- * @param {Function} options.onStateChange Called with 'recording' | 'transcribing' | 'idle'.
+ * @param {(text: string) => void} options.onTranscript Called with the transcribed text.
+ * @param {(message: string) => void} options.onError Called with a human-readable failure.
+ * @param {(state: 'recording'|'transcribing'|'idle') => void} options.onStateChange Called with 'recording' | 'transcribing' | 'idle'.
  * @param {object} [options.media] Injectable browser plumbing, for tests.
- * @return {{start: Function, stop: Function, isActive: Function}} The session.
+ * @return {{ start: () => Promise<void>, stop: () => void, isActive: () => boolean }} The session.
  */
 export function createLocalDictation(options) {
 	const {
@@ -86,7 +86,7 @@ export function createLocalDictation(options) {
 		}
 		try {
 			stream = await media.getUserMedia({ audio: true })
-		} catch (e) {
+		} catch {
 			// A denied permission and an absent microphone arrive the same way.
 			onError('Microphone access was refused')
 
@@ -235,7 +235,7 @@ export function createLocalDictation(options) {
 			if (text !== '') {
 				onTranscript(text)
 			}
-		} catch (e) {
+		} catch {
 			onError('Could not transcribe the recording')
 		} finally {
 			chunks = []

@@ -9,7 +9,7 @@
  *  - no create is emitted when the form is incomplete.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnCollectivePageCreate = require('../CnCollectivePageCreate.vue').default
 
 function resolveOnce(payload, status = 200) {
@@ -31,8 +31,7 @@ describe('CnCollectivePageCreate', () => {
 		}))
 
 		const wrapper = mount(CnCollectivePageCreate)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.collectives).toHaveLength(2)
 		expect(wrapper.vm.collectiveOptions[1].label).toBe('🧑 HR')
@@ -43,8 +42,7 @@ describe('CnCollectivePageCreate', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ results: [{ id: 1, name: 'Ops' }] }))
 
 		const wrapper = mount(CnCollectivePageCreate)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.vm.canSubmit).toBe(false)
 
@@ -62,8 +60,7 @@ describe('CnCollectivePageCreate', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ results: [{ id: 5, name: 'Ops' }] }))
 
 		const wrapper = mount(CnCollectivePageCreate)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.vm.collective = { id: 5, label: 'Ops' }
 		wrapper.vm.title = '  Runbook  '
@@ -79,8 +76,7 @@ describe('CnCollectivePageCreate', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ error: 'nope' }, 501))
 
 		const wrapper = mount(CnCollectivePageCreate)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		expect(wrapper.text()).toContain('NC Collectives is not installed.')
 		wrapper.unmount()
@@ -90,8 +86,7 @@ describe('CnCollectivePageCreate', () => {
 		global.fetch.mockReturnValueOnce(resolveOnce({ results: [{ id: 1, name: 'Ops' }] }))
 
 		const wrapper = mount(CnCollectivePageCreate)
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		wrapper.vm.submit()
 		expect(wrapper.emitted('create')).toBeFalsy()

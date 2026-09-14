@@ -17,7 +17,8 @@
 		<div
 			v-for="(message, index) in messages"
 			:key="index"
-			:class="['cn-ai-message-list__item', `cn-ai-message-list__item--${message.role}`]">
+			class="cn-ai-message-list__item"
+			:class="[`cn-ai-message-list__item--${message.role}`]">
 			<!-- System message -->
 			<div v-if="message.role === 'system'" class="cn-ai-message-list__system-text">
 				{{ message.content }}
@@ -44,25 +45,27 @@
 				<NcRichText
 					v-if="message.content"
 					:text="message.content"
-					:use-markdown="true"
-					:use-extended-markdown="true" />
+					:useMarkdown="true"
+					:useExtendedMarkdown="true" />
 
 				<!-- Tool calls / results -->
 				<div
 					v-for="(tool, tIdx) in (message.toolCalls || [])"
 					:key="tIdx"
-					:class="['cn-ai-message-list__tool', { 'cn-ai-message-list__tool--error': tool.isError }]">
+					class="cn-ai-message-list__tool"
+					:class="[{ 'cn-ai-message-list__tool--error': tool.isError }]">
 					<button
 						type="button"
 						class="cn-ai-message-list__tool-summary"
-						:aria-expanded="!!tool._expanded"
+						:aria-expanded="isToolExpanded(index, tIdx) ? 'true' : 'false'"
 						@click="toggleTool(index, tIdx)">
 						<ChevronDown
 							:size="16"
-							:class="['cn-ai-message-list__tool-chevron', { 'cn-ai-message-list__tool-chevron--open': tool._expanded }]" />
+							class="cn-ai-message-list__tool-chevron"
+							:class="[{ 'cn-ai-message-list__tool-chevron--open': isToolExpanded(index, tIdx) }]" />
 						{{ cnTranslate('Tool: {toolId}').replace('{toolId}', tool.toolId) }}
 					</button>
-					<div v-if="tool._expanded" class="cn-ai-message-list__tool-detail">
+					<div v-if="isToolExpanded(index, tIdx)" class="cn-ai-message-list__tool-detail">
 						<pre class="cn-ai-message-list__tool-json">{{ formatToolPayload(tool) }}</pre>
 					</div>
 				</div>
@@ -76,8 +79,8 @@
 				     as pipes while streaming and reflow into a table at the end. -->
 				<NcRichText
 					:text="currentText"
-					:use-markdown="true"
-					:use-extended-markdown="true" />
+					:useMarkdown="true"
+					:useExtendedMarkdown="true" />
 			</div>
 		</div>
 
@@ -126,6 +129,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Partial streaming text from the current token stream.
 		 */
@@ -133,6 +137,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Streaming/request-in-flight flag. When true AND `currentText` is
 		 * empty, the component renders a "Thinking..." placeholder bubble
@@ -149,9 +154,20 @@ export default {
 	},
 
 	data() {
-		// We mutate tool entries to track expanded state.
-		// Keep a local copy to avoid mutating prop.
-		return {}
+		return {
+			// Which tool calls are open, keyed `message:tool` by position.
+			//
+			// 🔴 LOCAL, NEVER WRITTEN ONTO THE PROP. This used to set
+			// `_expanded` on the tool entry inside `messages`, under a
+			// comment claiming it kept a local copy. It did not: it mutated
+			// the caller's array in place. Vue 3 props are shallow reactive,
+			// so a write that deep is not something a re-render can rely on,
+			// and the entry it wrote to belongs to whoever owns the
+			// conversation. The symptom was a test that passed alone and
+			// failed under load, which is what an update riding on some
+			// other render looks like.
+			expandedTools: {},
+		}
 	},
 
 	computed: {
@@ -169,19 +185,40 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether one tool call's detail is open.
+		 *
+		 * @param {number} messageIndex Position of the message.
+		 * @param {number} toolIndex Position of the tool call in it.
+		 * @return {boolean} True when expanded.
+		 */
+		isToolExpanded(messageIndex, toolIndex) {
+			return this.expandedTools[`${messageIndex}:${toolIndex}`] === true
+		},
+
+		/**
+		 * Open or close one tool call's detail.
+		 *
+		 * Replaces the map rather than writing a key into it, so the change
+		 * is a plain reactive assignment whatever the Vue version.
+		 *
+		 * @param {number} messageIndex Position of the message.
+		 * @param {number} toolIndex Position of the tool call in it.
+		 * @return {void}
+		 */
 		toggleTool(messageIndex, toolIndex) {
-			const msg = this.messages[messageIndex]
-			if (!msg || !msg.toolCalls) return
-			const tool = msg.toolCalls[toolIndex]
-			if (!tool) return
-			// Vue 2: use $set for reactivity on new properties
-			msg.toolCalls[toolIndex] = { ...tool, _expanded: !tool._expanded }
+			const key = `${messageIndex}:${toolIndex}`
+			this.expandedTools = { ...this.expandedTools, [key]: !this.expandedTools[key] }
 		},
 
 		formatToolPayload(tool) {
 			const payload = {}
-			if (tool.arguments !== undefined) payload.arguments = tool.arguments
-			if (tool.result !== undefined) payload.result = tool.result
+			if (tool.arguments !== undefined) {
+				payload.arguments = tool.arguments
+			}
+			if (tool.result !== undefined) {
+				payload.result = tool.result
+			}
 			const json = JSON.stringify(payload, null, 2)
 			// Truncate at 10KB
 			if (json.length > 10240) {
@@ -232,7 +269,7 @@ export default {
 	max-width: 80%;
 	padding: 8px 12px;
 	border-radius: var(--border-radius-large, 12px);
-	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 
 .cn-ai-message-list__bubble--user {

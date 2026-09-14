@@ -58,7 +58,9 @@ describe('isAppInstalled', () => {
 		it('returns false and warns when getCapabilities throws', () => {
 			delete global.OC
 			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
-			getCapabilities.mockImplementation(() => { throw new Error('boom') })
+			getCapabilities.mockImplementation(() => {
+				throw new Error('boom')
+			})
 			expect(isAppInstalled('launchpad')).toBe(false)
 			expect(warnSpy).toHaveBeenCalledWith(
 				expect.stringContaining('[appInstalled]'),

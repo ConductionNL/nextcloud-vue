@@ -53,6 +53,7 @@ Container shell around a dashboard widget. Provides a header with icon and title
 | `showActions` | Boolean | `true` | Whether the header's overflow action menu (Refresh / Documentation / Request-a-feature + `#action-items`) renders. Set `false` for compact surfaces (e.g. a KPI tile) to drop the menu and free header width. |
 | `borderless` | Boolean | `false` | Remove border and background — makes the wrapper transparent |
 | `flush` | Boolean | `false` | Remove content padding — lets content extend edge-to-edge |
+| `chromeless` | Boolean | `false` | Draw no card at all: no border, no background, no content padding, no title row, no header divider. Use it wherever the surface around the widget already drew the card and named it, a tab panel above all. It implies `borderless` and `flush`, and it overrides `showTitle`, so one prop says the whole thing. Controls in the `actions` slot keep their header: a control is not chrome, and the Save button that commits an inline edit lives there. The wrapper element still renders, because `CnObjectDataWidget` measures its overflow against `.cn-widget-wrapper__content` and the library's table and detail-page CSS size their content areas through that node. |
 | `iconUrl` | String | `null` | Image URL for the header icon |
 | `iconClass` | String | `null` | CSS class for the header icon (e.g. Nextcloud icon class) |
 | `titleIconPosition` | String | `'right'` | Position of the `title-icon` slot in the header: `'left'` places it before the title group; `'right'` places it after the actions |

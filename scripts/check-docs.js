@@ -1,4 +1,3 @@
-/* eslint-disable no-console, n/no-process-exit */
 /**
  * Verifies that every public export of @conduction/nextcloud-vue has
  * corresponding documentation under docs/.
@@ -117,6 +116,7 @@ const SKIP_PARAMS = new Set(['options', 'params', 'e', 'err', 'error', 'cb', 'fn
  * Returns null when the file cannot be determined (e.g. store constants that
  * live in the same file as a plugin — those are covered by mention-only checks
  * in Phase 1 and don't need an accuracy check).
+ *
  * @param {string} exportName identifier from src/index.js
  * @param {string} category classification returned by classify()
  * @return {string|null} absolute path to the source file, or null
@@ -143,12 +143,16 @@ function findSourceFile(exportName, category) {
 		// Search every utils/*.js file (excluding the barrel) for this export
 		const utilDir = path.join(ROOT, 'src', 'utils')
 		for (const file of fs.readdirSync(utilDir)) {
-			if (!file.endsWith('.js') || file === 'index.js') continue
+			if (!file.endsWith('.js') || file === 'index.js') {
+				continue
+			}
 			const filePath = path.join(utilDir, file)
 			const content = fs.readFileSync(filePath, 'utf8')
 			const funcRe = new RegExp(`export\\s+(?:async\\s+)?function\\s+${exportName}\\b`)
 			const constRe = new RegExp(`export\\s+const\\s+${exportName}\\b`)
-			if (funcRe.test(content) || constRe.test(content)) return filePath
+			if (funcRe.test(content) || constRe.test(content)) {
+				return filePath
+			}
 		}
 		return null
 	}
@@ -159,20 +163,23 @@ function findSourceFile(exportName, category) {
  * Extract @param names from the JSDoc block immediately preceding the named
  * export declaration in a JS file. Only looks at the JSDoc for that specific
  * function so params from sibling exports don't pollute results.
+ *
  * @param {string} filePath absolute path to the .js source file
  * @param {string} exportName identifier to look up (function or const name)
  * @return {string[]} @param identifiers (may include 'options.subKey' dotted forms)
  */
 function extractFunctionParams(filePath, exportName) {
-	if (!filePath || !fs.existsSync(filePath)) return []
+	if (!filePath || !fs.existsSync(filePath)) {
+		return []
+	}
 	const source = fs.readFileSync(filePath, 'utf8')
 
 	// Locate the export declaration for this specific function
-	const funcRe = new RegExp(
-		`export\\s+(?:async\\s+)?function\\s+${exportName}\\b|export\\s+const\\s+${exportName}\\s*=`,
-	)
+	const funcRe = new RegExp(`export\\s+(?:async\\s+)?function\\s+${exportName}\\b|export\\s+const\\s+${exportName}\\s*=`)
 	const funcMatch = funcRe.exec(source)
-	if (!funcMatch) return []
+	if (!funcMatch) {
+		return []
+	}
 
 	// Find the last /** ... */ JSDoc block that sits before this declaration
 	const before = source.slice(0, funcMatch.index)
@@ -182,7 +189,9 @@ function extractFunctionParams(filePath, exportName) {
 	while ((jsdocMatch = jsdocRe.exec(before)) !== null) {
 		lastJsdoc = jsdocMatch[0]
 	}
-	if (!lastJsdoc) return []
+	if (!lastJsdoc) {
+		return []
+	}
 
 	// Pull out every @param identifier (handles both plain and [optional] forms)
 	const paramRe = /@param\s+\{[^}]+\}\s+\[?([a-zA-Z][a-zA-Z0-9._]*)\]?/g
@@ -198,16 +207,21 @@ function extractFunctionParams(filePath, exportName) {
  * Accuracy check for a non-component JS export: verifies that every
  * meaningful @param name from the JSDoc appears in the export's doc file
  * (by exact match or, for `options.subKey` dotted paths, by the leaf name).
+ *
  * @param {string} exportName identifier from src/index.js
  * @param {string|null} srcPath absolute path to the source file
  * @param {string} docPath absolute path to the expected .md doc file
  * @return {string[]} plain-English issue strings (empty when all covered)
  */
 function checkJsAccuracy(exportName, srcPath, docPath) {
-	if (!srcPath || !fs.existsSync(srcPath) || !fs.existsSync(docPath)) return []
+	if (!srcPath || !fs.existsSync(srcPath) || !fs.existsSync(docPath)) {
+		return []
+	}
 
 	const params = extractFunctionParams(srcPath, exportName)
-	if (params.length === 0) return []
+	if (params.length === 0) {
+		return []
+	}
 
 	const docContent = fs.readFileSync(docPath, 'utf8')
 	const issues = []
@@ -217,9 +231,13 @@ function checkJsAccuracy(exportName, srcPath, docPath) {
 		const leaf = parts[parts.length - 1]
 
 		// Skip generic placeholder names
-		if (SKIP_PARAMS.has(leaf) || SKIP_PARAMS.has(param)) continue
+		if (SKIP_PARAMS.has(leaf) || SKIP_PARAMS.has(param)) {
+			continue
+		}
 		// Skip single-character params and dual-form implementation names
-		if (leaf.length <= 1 || param.endsWith('OrOptions') || param.endsWith('OrString')) continue
+		if (leaf.length <= 1 || param.endsWith('OrOptions') || param.endsWith('OrString')) {
+			continue
+		}
 
 		// Check: the exact param name OR (for dotted paths) just the leaf must appear in the doc
 		if (!docContent.includes(param) && !docContent.includes(leaf)) {
@@ -239,11 +257,14 @@ function checkJsAccuracy(exportName, srcPath, docPath) {
  * Handles both object form (`props: { name: { ... } }`) and array form
  * (`props: ['name1', 'name2']`). Uses brace-depth tracking so prop option
  * keys (type, default, required, validator) are not mistaken for prop names.
+ *
  * @param {string} sfcPath absolute path to the .vue file
  * @return {string[]} camelCase prop names, or empty array when none found
  */
 function extractSfcProps(sfcPath) {
-	if (!fs.existsSync(sfcPath)) return []
+	if (!fs.existsSync(sfcPath)) {
+		return []
+	}
 	const source = fs.readFileSync(sfcPath, 'utf8')
 	// Locate the SFC <script> block by hand instead of a single regex so
 	// CodeQL (js/bad-tag-filter) can't construct adversarial close-tag
@@ -251,14 +272,20 @@ function extractSfcProps(sfcPath) {
 	// regex (no `[^>]` ambiguity beyond the `>` itself); the close tag is
 	// found by case-insensitive string search after the opener.
 	const openMatch = source.match(/<script\b[^>]*>/i)
-	if (!openMatch) return []
+	if (!openMatch) {
+		return []
+	}
 	const openEnd = openMatch.index + openMatch[0].length
 	const closeIdx = source.toLowerCase().indexOf('</script', openEnd)
-	if (closeIdx === -1) return []
+	if (closeIdx === -1) {
+		return []
+	}
 	const script = source.slice(openEnd, closeIdx)
 
 	const propsIdx = script.search(/\bprops\s*:/)
-	if (propsIdx === -1) return []
+	if (propsIdx === -1) {
+		return []
+	}
 	const afterProps = script.slice(propsIdx)
 
 	// Array form: props: ['a', 'b']
@@ -267,7 +294,9 @@ function extractSfcProps(sfcPath) {
 		const names = []
 		const re = /['"]([^'"]+)['"]/g
 		let m
-		while ((m = re.exec(arrMatch[1])) !== null) names.push(m[1])
+		while ((m = re.exec(arrMatch[1])) !== null) {
+			names.push(m[1])
+		}
 		return names
 	}
 
@@ -276,7 +305,9 @@ function extractSfcProps(sfcPath) {
 	//   - Right before a `{` opens a sub-object (e.g. `title: {`)
 	//   - At end of line for flat props (e.g. `name: String,`)
 	const braceIdx = afterProps.indexOf('{')
-	if (braceIdx === -1) return []
+	if (braceIdx === -1) {
+		return []
+	}
 
 	const propNames = []
 	let depth = 0
@@ -288,17 +319,23 @@ function extractSfcProps(sfcPath) {
 			// Capture key immediately before its options object opens
 			if (depth === 1) {
 				const key = lineText.match(/^\s+([a-zA-Z][a-zA-Z0-9]*)\s*:/)
-				if (key) propNames.push(key[1])
+				if (key) {
+					propNames.push(key[1])
+				}
 			}
 			depth++
 		} else if (ch === '}') {
 			depth--
-			if (depth === 0) break
+			if (depth === 0) {
+				break
+			}
 		} else if (ch === '\n') {
 			// Capture flat prop (no sub-object) at end of its line
 			if (depth === 1) {
 				const key = lineText.match(/^\s+([a-zA-Z][a-zA-Z0-9]*)\s*:/)
-				if (key) propNames.push(key[1])
+				if (key) {
+					propNames.push(key[1])
+				}
 			}
 			lineText = ''
 			continue
@@ -313,23 +350,33 @@ function extractSfcProps(sfcPath) {
  * Extract names of all statically-named `<slot>` elements from a Vue SFC
  * template. Dynamic `:name="..."` bindings are intentionally skipped since
  * the slot name is only known at runtime and cannot be literally checked.
+ *
  * @param {string} sfcPath absolute path to the .vue file
  * @return {string[]} static slot names (the implicit default slot is excluded)
  */
 function extractSfcNamedSlots(sfcPath) {
-	if (!fs.existsSync(sfcPath)) return []
+	if (!fs.existsSync(sfcPath)) {
+		return []
+	}
 	const source = fs.readFileSync(sfcPath, 'utf8')
 	const templateMatch = source.match(/<template\b[^>]*>([\s\S]*?)<\/template>/m)
-	if (!templateMatch) return []
+	if (!templateMatch) {
+		return []
+	}
 
 	const slots = new Set()
 	const slotRe = /<slot\b([^>]*?)(?:\s*\/?>)/g
 	let m
 	while ((m = slotRe.exec(templateMatch[1])) !== null) {
 		const attrs = m[1]
-		if (attrs.includes(':name=')) continue // skip dynamic slot names
+		// Skip dynamic slot names.
+		if (attrs.includes(':name=')) {
+			continue
+		}
 		const nameM = attrs.match(/\bname="([^"]+)"/)
-		if (nameM) slots.add(nameM[1])
+		if (nameM) {
+			slots.add(nameM[1])
+		}
 	}
 	return [...slots]
 }
@@ -338,13 +385,16 @@ function extractSfcNamedSlots(sfcPath) {
  * Accuracy check for one Component export: verifies that every prop name and
  * every static named slot defined in the SFC is mentioned at least once in
  * the component's doc file (by camelCase or kebab-case name).
+ *
  * @param {string} componentName PascalCase name (e.g. 'CnWidgetWrapper')
  * @param {string} docPath absolute path to the component's .md file
  * @return {string[]} plain-English issue strings (empty when all covered)
  */
 function checkComponentDetail(componentName, docPath) {
 	const sfcPath = path.join(ROOT, 'src', 'components', componentName, `${componentName}.vue`)
-	if (!fs.existsSync(sfcPath) || !fs.existsSync(docPath)) return []
+	if (!fs.existsSync(sfcPath) || !fs.existsSync(docPath)) {
+		return []
+	}
 
 	const docContent = fs.readFileSync(docPath, 'utf8')
 	const issues = []
@@ -394,6 +444,7 @@ function toKebab(name) {
 /**
  * Collect all .md file stems under a directory. By default recurses into
  * subdirectories; pass { recursive: false } to limit to the immediate dir.
+ *
  * @param {string} dir absolute directory to walk
  * @param {object} [options] options bag
  * @param {boolean} [options.recursive] when false, only read the top level
@@ -425,6 +476,7 @@ function collectDocStems(dir, { recursive = true } = {}) {
  *   export { a, b } from '...'
  *   export { a } from '...'
  * forms (with optional trailing commas and newlines inside the braces).
+ *
  * @param {string} filePath absolute path to the barrel file
  * @return {string[]} deduped list of re-exported identifiers
  */
@@ -448,6 +500,7 @@ function parsePublicExports(filePath) {
 
 /**
  * Categorize a public export name and return how to satisfy its doc requirement.
+ *
  * @param {string} name identifier from src/index.js
  * @return {object} category descriptor used by isCovered()
  */
@@ -531,6 +584,7 @@ function classify(name) {
 
 /**
  * Verify coverage for a single classified export. Returns true when covered.
+ *
  * @param {object} info classify() result
  * @return {boolean} whether the export's documentation requirement is satisfied
  */
@@ -707,7 +761,9 @@ if (jsDetailFailed > 0) {
 	console.error(`\n✗ ${jsDetailFailed} JS export doc(s) are missing @param coverage:\n`)
 	for (const cat of JS_ORDER) {
 		const { failures } = jsDetailByCategory.get(cat)
-		if (failures.length === 0) continue
+		if (failures.length === 0) {
+			continue
+		}
 		console.error(`${cat}:`)
 		for (const { name, issues, docPath } of failures) {
 			const rel = path.relative(ROOT, docPath).replace(/\\/g, '/')

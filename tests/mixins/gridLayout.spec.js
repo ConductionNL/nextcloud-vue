@@ -11,7 +11,7 @@ describe('gridLayout mixin', () => {
 			...gridLayout.methods,
 		}
 		// Bind computed properties to use instance context
-		Object.keys(gridLayout.computed).forEach(key => {
+		Object.keys(gridLayout.computed).forEach((key) => {
 			Object.defineProperty(instance, key, {
 				get: gridLayout.computed[key].bind(instance),
 				configurable: true,
@@ -41,7 +41,12 @@ describe('gridLayout mixin', () => {
 				{ id: 2, widgetId: 'a', gridX: 0, gridY: 0 },
 			]
 			const instance = createInstance(layout)
-			instance.sortedLayout
+			// Read into a binding and assert on it. A bare `instance.sortedLayout`
+			// statement reads as dead code to anyone scanning the file, and if the
+			// getter ever stopped sorting, this test would still pass on the
+			// non-mutation claim alone.
+			const sorted = instance.sortedLayout
+			expect(sorted[0].widgetId).toBe('a') // the getter really did sort
 
 			expect(layout[0].widgetId).toBe('b') // original unchanged
 		})
@@ -89,7 +94,10 @@ describe('gridLayout mixin', () => {
 		it('includes grid-row when gridHeight is provided', () => {
 			const instance = createInstance()
 			const style = instance.widgetGridStyle({
-				gridX: 0, gridWidth: 12, gridY: 2, gridHeight: 3,
+				gridX: 0,
+				gridWidth: 12,
+				gridY: 2,
+				gridHeight: 3,
 			})
 
 			expect(style.gridRow).toBe('3 / 6')

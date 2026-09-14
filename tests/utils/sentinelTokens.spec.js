@@ -6,14 +6,14 @@
  */
 
 import {
-	SENTINEL_CONTEXTS,
-	SENTINEL_DEPRECATIONS,
+	classifyToken,
 	contextOf,
 	isKnownToken,
-	matchDeprecation,
-	classifyToken,
 	looksLikeSentinel,
+	matchDeprecation,
 	scanManifestTokens,
+	SENTINEL_CONTEXTS,
+	SENTINEL_DEPRECATIONS,
 } from '../../src/utils/sentinelTokens.js'
 
 describe('contextOf / isKnownToken', () => {

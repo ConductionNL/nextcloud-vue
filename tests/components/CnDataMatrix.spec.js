@@ -8,7 +8,7 @@ const columns = [
 ]
 const rows = [
 	{ id: 1, label: 'Alpha', q1: 10, q2: 20, note: 'ok' },
-	{ id: 2, label: 'Bravo', q1: 5,  q2: 15, note: '' },
+	{ id: 2, label: 'Bravo', q1: 5, q2: 15, note: '' },
 ]
 
 describe('CnDataMatrix', () => {
@@ -32,8 +32,11 @@ describe('CnDataMatrix', () => {
 	it('shows row + column + grand totals when enabled', () => {
 		const wrapper = mount(CnDataMatrix, {
 			propsData: {
-				rows, columns: [columns[0], columns[1]],
-				rowHeader: 'Group', showRowTotals: true, showColumnTotals: true,
+				rows,
+				columns: [columns[0], columns[1]],
+				rowHeader: 'Group',
+				showRowTotals: true,
+				showColumnTotals: true,
 			},
 		})
 		// Per-row totals: 30, 20
@@ -85,7 +88,9 @@ describe('CnDataMatrix', () => {
 		const wrapper = mount(CnDataMatrix, {
 			propsData: {
 				rows: [
-					{ id: 1, x: 10 }, { id: 2, x: 20 }, { id: 3, x: 60 },
+					{ id: 1, x: 10 },
+					{ id: 2, x: 20 },
+					{ id: 3, x: 60 },
 				],
 				columns: [{ key: 'x', label: 'X', type: 'number', aggregate: 'avg' }],
 			},
@@ -97,7 +102,9 @@ describe('CnDataMatrix', () => {
 		const wrapper = mount(CnDataMatrix, {
 			propsData: {
 				rows: [
-					{ id: 1, x: 10 }, { id: 2, x: null }, { id: 3, x: 20 },
+					{ id: 1, x: 10 },
+					{ id: 2, x: null },
+					{ id: 3, x: 20 },
 				],
 				columns: [{ key: 'x', label: 'X', type: 'number', aggregate: 'count' }],
 			},

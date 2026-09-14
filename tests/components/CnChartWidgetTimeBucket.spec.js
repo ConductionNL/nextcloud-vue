@@ -22,20 +22,20 @@ jest.mock('@nextcloud/router', () => ({
 	__esModule: true,
 	generateUrl: jest.fn((p, params) => {
 		let out = p
-		for (const [k, v] of Object.entries(params || {})) out = out.replace(`{${k}}`, v)
+		for (const [k, v] of Object.entries(params || {})) {
+			out = out.replace(`{${k}}`, v)
+		}
 		return `/nc${out}`
 	}),
 }))
 
-/* eslint-disable import/first -- these imports sit BELOW the jest.mock() calls
+/* These imports sit BELOW the jest.mock() calls
    on purpose: the widget lazily `import()`s axios/router inside
    fetchTimeBucket, so the mocks must be registered first. */
 import axios from '@nextcloud/axios'
 import { shallowMount } from '@vue/test-utils'
 import { ref } from 'vue'
-
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
-/* eslint-enable import/first */
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 

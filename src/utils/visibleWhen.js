@@ -44,10 +44,9 @@
  * @module utils/visibleWhen
  */
 
+import { isAppInstalled } from './appInstalled.js'
 import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
 import { resolveFilterTokens } from './resolveFilterTokens.js'
-
-import { isAppInstalled } from './appInstalled.js'
 
 /** Supported visibleWhen comparison operators. */
 export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte']
@@ -58,11 +57,13 @@ export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte']
  *
  * @param {object} data The source object.
  * @param {string} [field] Dot-path into the object.
- * @return {*} The value at the path (undefined on a missing segment).
+ * @return {unknown} The value at the path (undefined on a missing segment).
  */
 export function readVisibleWhenPath(data, field) {
-	if (!field) return data
-	return String(field).split('.').reduce((obj, key) => (obj == null ? obj : obj[key]), data)
+	if (!field) {
+		return data
+	}
+	return String(field).split('.').reduce((obj, key) => (obj === null || obj === undefined ? obj : obj[key]), data)
 }
 
 /**
@@ -71,9 +72,9 @@ export function readVisibleWhenPath(data, field) {
  * (`String(a) === String(b)` when types differ) so `"3" eq 3` holds for
  * JSON round-trips.
  *
- * @param {*} actual The resolved left-hand value.
+ * @param {unknown} actual The resolved left-hand value.
  * @param {string} op The operator (`eq` when unknown).
- * @param {*} expected The declared right-hand value.
+ * @param {unknown} expected The declared right-hand value.
  * @return {boolean} Whether the comparison holds.
  */
 export function compareVisibleWhen(actual, op, expected) {
@@ -84,10 +85,18 @@ export function compareVisibleWhen(actual, op, expected) {
 	}
 	const a = Number(actual)
 	const b = Number(expected)
-	if (!Number.isFinite(a) || !Number.isFinite(b)) return false
-	if (operator === 'gt') return a > b
-	if (operator === 'gte') return a >= b
-	if (operator === 'lt') return a < b
+	if (!Number.isFinite(a) || !Number.isFinite(b)) {
+		return false
+	}
+	if (operator === 'gt') {
+		return a > b
+	}
+	if (operator === 'gte') {
+		return a >= b
+	}
+	if (operator === 'lt') {
+		return a < b
+	}
 	return a <= b
 }
 
@@ -99,12 +108,14 @@ export function compareVisibleWhen(actual, op, expected) {
  *
  * @param {{endpoint?: string, source?: {register: string, schema: string, filter?: object}, field?: string}} cond The visibleWhen condition.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The caller's token / object context.
- * @return {Promise<*>} The value `field` points at.
+ * @return {Promise<unknown>} The value `field` points at.
  */
 export async function readVisibleWhenValue(cond, ctx) {
 	if (cond.endpoint) {
 		const response = await fetch(prefixUrl(cond.endpoint), { headers: buildHeaders() })
-		if (!response.ok) throw new Error(`endpoint returned ${response.status}`)
+		if (!response.ok) {
+			throw new Error(`endpoint returned ${response.status}`)
+		}
 		const data = await response.json()
 		return readVisibleWhenPath(data, cond.field)
 	}
@@ -114,7 +125,9 @@ export async function readVisibleWhenValue(cond, ctx) {
 		const qs = buildQueryString({ ...filter, _limit: 1 })
 		const url = prefixUrl(`/apps/openregister/api/objects/${src.register}/${src.schema}${qs}`)
 		const response = await fetch(url, { headers: buildHeaders() })
-		if (!response.ok) throw new Error(`source returned ${response.status}`)
+		if (!response.ok) {
+			throw new Error(`source returned ${response.status}`)
+		}
 		const data = await response.json()
 		if (!cond.field || cond.field === '@total') {
 			return data.total ?? (Array.isArray(data.results) ? data.results.length : 0)
@@ -135,12 +148,14 @@ export async function readVisibleWhenValue(cond, ctx) {
  * A `null` / `undefined` condition resolves `true` (no condition = always
  * visible) so callers can pass the raw config value straight through.
  *
- * @param {{endpoint?: string, source?: object, field?: string, op?: string, value?: *}|null} cond The condition (or null).
+ * @param {{endpoint?: string, source?: object, field?: string, op?: string, value?: unknown}|null} cond The condition (or null).
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The caller's token / object context.
  * @return {Promise<boolean>} Whether the guarded element should show.
  */
 export async function evaluateVisibleWhen(cond, ctx) {
-	if (!cond) return true
+	if (!cond) {
+		return true
+	}
 	try {
 		// `appInstalled` is checked FIRST and on its own: it answers "is the app
 		// that backs this action even here", which has to settle before any of
@@ -150,15 +165,19 @@ export async function evaluateVisibleWhen(cond, ctx) {
 		// `field` — which the local mode rejects as malformed and hides. The
 		// button then never appeared, and nothing said why.
 		if (typeof cond.appInstalled === 'string' && cond.appInstalled !== '') {
-			if (!isAppInstalled(cond.appInstalled)) return false
+			if (!isAppInstalled(cond.appInstalled)) {
+				return false
+			}
 			// `appInstalled` on its own IS the whole condition. Combined with a
 			// field/endpoint/source it acts as a precondition, and evaluation
 			// falls through to that.
-			if (!cond.field && !cond.endpoint && !cond.source) return true
+			if (!cond.field && !cond.endpoint && !cond.source) {
+				return true
+			}
 		}
 		const actual = await readVisibleWhenValue(cond, ctx)
 		return compareVisibleWhen(actual, cond.op || 'eq', cond.value)
-	} catch (e) {
+	} catch {
 		return false
 	}
 }
@@ -175,23 +194,35 @@ export async function evaluateVisibleWhen(cond, ctx) {
  * `endpoint` / `source` (those are NOT local-mode conditions) — resolves
  * `false` (hidden).
  *
- * @param {{field?: string, op?: string, value?: *}|null} cond The LOCAL visibleWhen condition (or null).
+ * @param {{field?: string, op?: string, value?: unknown}|null} cond The LOCAL visibleWhen condition (or null).
  * @param {object} data The live data object `field` dot-paths into (e.g. formData).
  * @return {boolean} Whether the guarded element should show.
  */
 export function evaluateVisibleWhenLocal(cond, data) {
-	if (cond === null || cond === undefined) return true
-	if (typeof cond !== 'object' || Array.isArray(cond)) return false
-	if (cond.endpoint || cond.source) return false
-	if (typeof cond.appInstalled === 'string' && cond.appInstalled !== '') {
-		if (!isAppInstalled(cond.appInstalled)) return false
-		if (!cond.field) return true
+	if (cond === null || cond === undefined) {
+		return true
 	}
-	if (typeof cond.field !== 'string' || cond.field.length === 0) return false
+	if (typeof cond !== 'object' || Array.isArray(cond)) {
+		return false
+	}
+	if (cond.endpoint || cond.source) {
+		return false
+	}
+	if (typeof cond.appInstalled === 'string' && cond.appInstalled !== '') {
+		if (!isAppInstalled(cond.appInstalled)) {
+			return false
+		}
+		if (!cond.field) {
+			return true
+		}
+	}
+	if (typeof cond.field !== 'string' || cond.field.length === 0) {
+		return false
+	}
 	try {
 		const actual = readVisibleWhenPath(data, cond.field)
 		return compareVisibleWhen(actual, cond.op || 'eq', cond.value)
-	} catch (e) {
+	} catch {
 		return false
 	}
 }

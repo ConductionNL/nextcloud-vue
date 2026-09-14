@@ -28,8 +28,8 @@
 
 ### Slots
 
-| Name           | Bindings                                   | Description |
-| -------------- | ------------------------------------------ | ----------- |
-| `actions`      | —                                          |             |
-| `group-header` | `group`, `configured-count`, `total-count` |             |
-| `footer`       | —                                          |             |
+| Name           | Bindings                                 | Description |
+| -------------- | ---------------------------------------- | ----------- |
+| `actions`      | —                                        |             |
+| `group-header` | `group`, `configuredCount`, `totalCount` |             |
+| `footer`       | —                                        |             |

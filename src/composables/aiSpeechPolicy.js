@@ -77,7 +77,7 @@ export function normalizeAgentSpeechPolicy(agent) {
  * ENABLE the private-only path either, because that would read as working
  * while being the wrong answer for a value that was meant to say `off`.
  *
- * @param {*} value The raw field.
+ * @param {unknown} value The raw field.
  * @return {string} A known engine value.
  */
 function readEngine(value) {
@@ -96,7 +96,7 @@ function readEngine(value) {
  * here ("never close the mic"), so silently turning `-1` into it would switch
  * off a safety behaviour on the strength of a typo.
  *
- * @param {*} value The raw field.
+ * @param {unknown} value The raw field.
  * @return {number} Milliseconds.
  */
 function readTimeout(value) {

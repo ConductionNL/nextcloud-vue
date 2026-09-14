@@ -17,6 +17,11 @@ Schema-driven editable data grid widget. Displays object properties in a CSS gri
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `title` | `String` | `'Data'` | Widget title in the card header |
+| `show-title` | `Boolean` | `true` | Draw the header's title row. Set `false` in a tab panel, where the open tab already names the panel. The header still renders whenever the `actions` slot is filled, so the Save button an inline edit needs does not vanish with the title. Needed because `title` carries a DEFAULT of `'Data'`: a host that wanted no title passed `undefined` and got the default instead. |
+| `show-actions` | `Boolean` | `true` | Draw the overflow Actions menu in the header. Set `false` where the host already offers one within a few pixels, a tab panel being that case: the strip carries its own menu, so a second copy inside the panel bought a header band to hold it and nothing else. Switching it off costs nothing, because the two items it holds travel instead of vanishing. **Metadata** and the full-form **Edit** are published to the host surface and render in its menu, each still opening this widget's own dialog with this widget's `overrides`, `include` and `exclude` applied. That scoping is why they are published rather than left to the page: a detail page carries its own record Edit, but it opens the form the page configures, not the subset declared here. Inline editing never used the menu, because a cell opens its editor when clicked and Save and Discard arrive in the `actions` slot as soon as there is an edit to commit. |
+| `borderless` | `Boolean` | `false` | Drop the card border and background, for a host that draws its own. |
+| `flush` | `Boolean` | `false` | Drop the content padding, for a host that supplies its own inset. |
+| `chromeless` | `Boolean` | `false` | Draw no card at all: what a tab panel wants, in one prop instead of three. Implies `show-title="false"`, `borderless` and `flush`, and drops the header divider too. The Save button keeps its header. Forwarded to `CnWidgetWrapper`. |
 | `icon` | `Object\|Function` | `null` | Optional MDI icon component for the header |
 | `object-data` | `Object` | `null` | The object to display and edit. Keys must match the schema property keys. Optional — `null` while the object is still loading (internal reads are null-guarded). |
 | `schema` | `Object` | `null` | JSON Schema defining properties. Must have a `properties` field. Optional — `null` renders the empty state (e.g. before the schema is fetched). |
@@ -29,6 +34,8 @@ Schema-driven editable data grid widget. Displays object properties in a CSS gri
 | `hide-empty` | `Boolean` | `false` | Hide fields that have no value instead of rendering them with an em dash. Read grid only — a field being edited, a field with an unsaved change, and the full Edit form stay visible. |
 | `exclude` | `Array` | `[]` | Property keys to hide from display |
 | `include` | `Array` | `null` | Property keys to show (whitelist — all others hidden) |
+| `formSize` (`form-size`) | String | `'normal'` | NcDialog size for the full-form **Edit** dialog (`'small'`, `'normal'`, `'large'`). The widget already scopes that form with `include` / `exclude`, but a scoped form can still be long enough to want the room. |
+| `formColumns` (`form-columns`) | Number | `1` | How many columns the **Edit** form flows its fields into (`1` or `2`). Pair `2` with `formSize: 'large'`, or the two columns are merely two narrow ones. Collapses back to one column below 700px. |
 | `save-label` | `String` | `'Save'` | Label for the save button |
 | `discard-label` | `String` | `'Discard'` | Label for the discard button |
 | `empty-label` | `String` | `'No data available'` | Label when no properties are found |

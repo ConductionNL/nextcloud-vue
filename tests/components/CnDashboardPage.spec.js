@@ -210,9 +210,9 @@ describe('CnDashboardPage — chart widget dispatcher', () => {
 })
 
 describe('CnDashboardPage — integration widget dispatcher', () => {
+	const { h } = require('vue')
 	// CnDashboardPage's setup() consumes the default registry singleton.
 	const { integrations } = require('@/integrations/registry.js')
-	const { h } = require('vue')
 
 	const IntegrationWidget = {
 		name: 'IntegrationWidget',
@@ -221,7 +221,9 @@ describe('CnDashboardPage — integration widget dispatcher', () => {
 			return h('div', { class: 'integration-widget' }, `${this.surface}|${this.objectId || ''}|${this.extraProp || ''}`)
 		},
 	}
-	const RegistryTab = { name: 'RegistryTab', render() { return h('div') } }
+	const RegistryTab = { name: 'RegistryTab', render() {
+		return h('div')
+	} }
 
 	afterEach(() => integrations.__resetForTests())
 
@@ -242,7 +244,8 @@ describe('CnDashboardPage — integration widget dispatcher', () => {
 		const layout = [{ id: 1, widgetId: 'w1', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 3 }]
 		const wrapper = mount(CnDashboardPage, {
 			propsData: {
-				widgets, layout,
+				widgets,
+				layout,
 				surface: 'detail-page',
 				integrationContext: { register: 'r', schema: 's', objectId: 'obj-1' },
 			},
@@ -458,14 +461,16 @@ describe('CnDashboardPage — per-widget configure cog (ADR-041)', () => {
 })
 
 describe('CnDashboardPage — card-fit registry widgets', () => {
-	// eslint-disable-next-line global-require
-	const { registerDashboardWidget } = require('@/components/CnWidgetGrid/dashboardWidgetRegistry.js')
-	// eslint-disable-next-line global-require
 	const { h } = require('vue')
+	const { registerDashboardWidget } = require('@/components/CnWidgetGrid/dashboardWidgetRegistry.js')
 	// Render functions (not `template:` strings) so they mount under the
 	// runtime-only Vue build the dynamic `<component :is>` uses.
-	const CardRenderer = { name: 'CardRenderer', props: ['content'], render() { return h('div', { class: 'card-renderer-stub' }) } }
-	const PlainRenderer = { name: 'PlainRenderer', props: ['content'], render() { return h('div', { class: 'plain-renderer-stub' }) } }
+	const CardRenderer = { name: 'CardRenderer', props: ['content'], render() {
+		return h('div', { class: 'card-renderer-stub' })
+	} }
+	const PlainRenderer = { name: 'PlainRenderer', props: ['content'], render() {
+		return h('div', { class: 'plain-renderer-stub' })
+	} }
 
 	beforeAll(() => {
 		registerDashboardWidget('test-card', { renderer: CardRenderer, form: null, defaultContent: {}, displayName: 'Card', icon: 'X', card: true })

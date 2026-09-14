@@ -8,13 +8,13 @@
  */
 
 import {
-	resolveManifestSubtree,
-	warnIfDeprecated,
 	clearDeprecationWarnings,
+	resolveManifestSubtree,
 	SENTINEL_RESOLVERS,
+	warnIfDeprecated,
 } from '../../src/utils/resolveManifestTokens.js'
-import { SENTINEL_CONTEXTS } from '../../src/utils/sentinelTokens.js'
 import { clearRouteSentinelWarnings } from '../../src/utils/resolveRouteSentinels.js'
+import { SENTINEL_CONTEXTS } from '../../src/utils/sentinelTokens.js'
 
 beforeEach(() => {
 	clearDeprecationWarnings()

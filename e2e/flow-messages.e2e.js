@@ -23,7 +23,7 @@
 // embedded form, CnFlowSidebar — because this journey crosses them: the click
 // happens in the palette and the answer has to appear on the canvas.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 const EDITOR = '/?flow=1'
 

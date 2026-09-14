@@ -32,7 +32,7 @@
 				:title="title"
 				:description="description"
 				:icon="icon"
-				:visually-hidden="!showTitle" />
+				:visuallyHidden="!showTitle" />
 		</slot>
 
 		<!-- Actions slot -->
@@ -55,7 +55,7 @@
 		<slot
 			name="files-view"
 			:folder="folder"
-			:allowed-types="allowedTypes"
+			:allowedTypes="allowedTypes"
 			:files="filteredFiles"
 			:loading="loading"
 			:error="error"
@@ -86,8 +86,8 @@
 					v-else
 					:columns="columns"
 					:rows="filteredFiles"
-					row-key="path"
-					:empty-text="emptyText" />
+					rowKey="path"
+					:emptyText="emptyText" />
 			</div>
 		</slot>
 	</div>
@@ -101,9 +101,9 @@ import {
 	NcEmptyContent,
 	NcLoadingIcon,
 } from '@nextcloud/vue'
-import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
-import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 
@@ -155,11 +155,13 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Files'),
 		},
+
 		/** Description shown under the title when `showTitle` is set. */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Whether to render the inline page header VISIBLY. When false the
 		 * `<h1>` is still rendered visually-hidden, so the `<main>` landmark
@@ -169,11 +171,13 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** MDI icon name for the header. */
 		icon: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Folder path within the user's Nextcloud filesystem. Required
 		 * for the "Open in Files" link to work; the spec marks this
@@ -183,6 +187,7 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * MIME types to filter on. Each entry is matched literally OR
 		 * as a wildcard with a trailing `/*`. Examples:
@@ -195,6 +200,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Pre-loaded file listing — used when the consumer wants to
 		 * provide their own data fetch (e.g. via the consuming app's
@@ -208,37 +214,43 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Whether a fetch is in progress (rendered as a spinner). */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Error object/message — when truthy the error state shows. */
 		error: {
 			type: [Error, String, Object],
 			default: null,
 		},
+
 		/** Empty-state text. */
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No files in this folder'),
 		},
+
 		/** Error-state text. */
 		errorText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Could not load folder contents'),
 		},
+
 		/** Label for the "Open in Files" button. */
 		openInFilesLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Open in Files'),
 		},
+
 		/**
 		 * Optional refresh callback wired to the slot scope. The library
 		 * cannot trigger a re-fetch on its own (no built-in WebDAV
 		 * client), so consumers pass their own re-fetch function in.
 		 *
-		 * @type {Function|null}
+		 * @type {(() => void|Promise<void>)|null}
 		 */
 		onRefresh: {
 			type: Function,
@@ -268,12 +280,18 @@ export default {
 
 	methods: {
 		matchesAllowedTypes(mime) {
-			if (!mime) return false
+			if (!mime) {
+				return false
+			}
 			for (const pattern of this.allowedTypes) {
-				if (pattern === mime) return true
+				if (pattern === mime) {
+					return true
+				}
 				if (pattern.endsWith('/*')) {
 					const prefix = pattern.slice(0, -1) // keep trailing slash
-					if (mime.startsWith(prefix)) return true
+					if (mime.startsWith(prefix)) {
+						return true
+					}
 				}
 			}
 			return false

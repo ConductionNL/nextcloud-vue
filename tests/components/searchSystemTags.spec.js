@@ -41,6 +41,11 @@ const collectionRoot = `
  * A 200 tag response.
  *
  * @param {object} tag The tag values to render into the response body.
+ * @param {string} tag.id The tag's id.
+ * @param {string} tag.displayName The tag's visible name.
+ * @param {boolean} tag.canAssign Whether the caller may assign it.
+ * @param {boolean} tag.userAssignable Whether users may assign it.
+ * @param {boolean} tag.userVisible Whether users may see it.
  * @return {string} The `<d:response>` XML fragment.
  */
 function tagResponse({ id, displayName, canAssign = true, userAssignable = true, userVisible = true }) {
@@ -90,12 +95,10 @@ describe('parseSystemTags', () => {
 	})
 
 	it('parses many tags in document order', () => {
-		const xml = multistatus(
-			collectionRoot
+		const xml = multistatus(collectionRoot
 			+ tagResponse({ id: 1, displayName: 'Alpha', userVisible: true })
 			+ tagResponse({ id: 2, displayName: 'Beta', canAssign: false })
-			+ tagResponse({ id: 3, displayName: 'Gamma', userAssignable: false, userVisible: false }),
-		)
+			+ tagResponse({ id: 3, displayName: 'Gamma', userAssignable: false, userVisible: false }))
 		expect(parseSystemTags(xml)).toEqual([
 			{ id: 1, displayName: 'Alpha', canAssign: true, userAssignable: true, userVisible: true },
 			{ id: 2, displayName: 'Beta', canAssign: false, userAssignable: true, userVisible: true },
@@ -105,7 +108,11 @@ describe('parseSystemTags', () => {
 
 	it('coerces the boolean flags from their string form', () => {
 		const xml = multistatus(tagResponse({
-			id: 7, displayName: 'Mixed', canAssign: false, userAssignable: true, userVisible: false,
+			id: 7,
+			displayName: 'Mixed',
+			canAssign: false,
+			userAssignable: true,
+			userVisible: false,
 		}))
 		const [tag] = parseSystemTags(xml)
 		expect(tag.canAssign).toBe(false)

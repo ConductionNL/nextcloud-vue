@@ -8,7 +8,7 @@
  * - Edit data opens the data editor WITHOUT entering manifest edit mode
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { ref } from 'vue'
 import CnBuildiqEditButton from '../../src/components/CnBuildiqEditButton/CnBuildiqEditButton.vue'
 
@@ -29,9 +29,15 @@ function makeEditor(editing = false, pages = []) {
 		editing: editingRef,
 		working: workingRef,
 		dirty: ref(false),
-		enter: jest.fn(() => { editingRef.value = true; workingRef.value = { menu: [], pages } }),
+		enter: jest.fn(() => {
+			editingRef.value = true
+			workingRef.value = { menu: [], pages }
+		}),
 		save: jest.fn().mockResolvedValue({ pages: [] }),
-		cancel: jest.fn(() => { editingRef.value = false; workingRef.value = null }),
+		cancel: jest.fn(() => {
+			editingRef.value = false
+			workingRef.value = null
+		}),
 	}
 }
 
@@ -48,7 +54,13 @@ function mountButton(props = {}) {
 	})
 }
 
-/** Find an action button by (a substring of) its visible label. */
+/**
+ * Find an action button by (a substring of) its visible label.
+ *
+ * @param {object} wrapper The mounted wrapper to search.
+ * @param {string} label A substring of the button's visible label.
+ * @return {object|undefined} The button, or undefined when none matches.
+ */
 function btn(wrapper, label) {
 	return wrapper.findAllComponents(NcActionButtonStub).find((b) => b.text().includes(label))
 }
@@ -84,14 +96,15 @@ describe('CnBuildiqEditButton', () => {
 	it('shows a saving state while the async save is in flight, then clears it', async () => {
 		let resolveSave
 		const editor = makeEditor(true)
-		editor.save = jest.fn(() => new Promise((resolve) => { resolveSave = resolve }))
+		editor.save = jest.fn(() => new Promise((resolve) => {
+			resolveSave = resolve
+		}))
 		const wrapper = mountButton({ editor })
 		btn(wrapper, 'Save page').trigger('click')
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.saving).toBe(true)
 		resolveSave({ pages: [] })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.vm.saving).toBe(false)
 		expect(wrapper.vm.menuOpen).toBe(false)
 	})

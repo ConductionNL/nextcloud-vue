@@ -13,7 +13,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 const { ref } = require('vue')
 
 const mockInstallAndEnable = jest.fn()
@@ -54,10 +53,12 @@ const stubs = {
 	Download: true,
 }
 
-const mountSection = (propsData = {}) => mount(CnLeafDependencySettings, {
-	propsData: { appId: 'dossiq', ...propsData },
-	stubs,
-})
+function mountSection(propsData = {}) {
+	return mount(CnLeafDependencySettings, {
+		propsData: { appId: 'dossiq', ...propsData },
+		stubs,
+	})
+}
 
 describe('CnLeafDependencySettings', () => {
 	beforeEach(() => {

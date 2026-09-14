@@ -10,7 +10,7 @@
  * Plus error / unavailable handling that mirrors CnIntegrationCard.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnFormsCard = require('../CnFormsCard.vue').default
 
 const DEFAULT_PROPS = {
@@ -65,8 +65,7 @@ describe('CnFormsCard', () => {
 	it('renders the empty label when there are no linked forms', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnFormsCard, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No forms linked yet')
 		wrapper.unmount()
 	})
@@ -86,8 +85,7 @@ describe('CnFormsCard', () => {
 			}),
 		})
 		const wrapper = mount(CnFormsCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const txt = wrapper.text()
 		// "2 forms" + "1 open"
 		expect(txt).toContain('2')
@@ -109,8 +107,7 @@ describe('CnFormsCard', () => {
 			}),
 		})
 		const wrapper = mount(CnFormsCard, { propsData: { ...DEFAULT_PROPS, surface: 'user-dashboard' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text().toLowerCase()).toContain('all closed')
 		wrapper.unmount()
 	})
@@ -127,8 +124,7 @@ describe('CnFormsCard', () => {
 			}),
 		})
 		const wrapper = mount(CnFormsCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-forms-card__row')
 		expect(rows).toHaveLength(2)
 		expect(wrapper.find('.cn-forms-card__status--open').exists()).toBe(true)
@@ -144,8 +140,7 @@ describe('CnFormsCard', () => {
 			json: () => Promise.resolve(makeForm({ id: '99', title: 'Charter intake' })),
 		})
 		const wrapper = mount(CnFormsCard, { propsData: { ...DEFAULT_PROPS, surface: 'single-entity', value: '99' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const chip = wrapper.find('.cn-forms-card__chip')
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Charter intake')
@@ -156,8 +151,7 @@ describe('CnFormsCard', () => {
 	it('shows the unavailable label when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnFormsCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Forms is currently unavailable.')
 		wrapper.unmount()
 	})
@@ -166,8 +160,7 @@ describe('CnFormsCard', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnFormsCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No forms linked yet')
 		wrapper.unmount()
 		spy.mockRestore()
@@ -182,8 +175,7 @@ describe('CnFormsCard', () => {
 			}),
 		})
 		const wrapper = mount(CnFormsCard, { propsData: { ...DEFAULT_PROPS, surface: 'detail-page' } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.find('.cn-forms-card__row--closed').exists()).toBe(true)
 		expect(wrapper.text()).toContain('Closed')
 		wrapper.unmount()

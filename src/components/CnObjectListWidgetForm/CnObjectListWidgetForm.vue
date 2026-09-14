@@ -26,17 +26,17 @@
 				placeholder="expectedCloseDate"
 				@update="updateSort('field', $event)" />
 			<NcSelect
-				:model-value="sort.dir"
+				:modelValue="sort.dir"
 				:options="dirOptions"
-				:input-label="t('nextcloud-vue', 'Direction')"
+				:inputLabel="t('nextcloud-vue', 'Direction')"
 				:clearable="false"
-				@update:model-value="updateSort('dir', $event)" />
+				@update:modelValue="updateSort('dir', $event)" />
 			<NcTextField
 				class="cn-object-list-form__limit"
-				:model-value="String(limit)"
+				:modelValue="String(limit)"
 				type="number"
 				:label="t('nextcloud-vue', 'Max rows')"
-				@update:model-value="updateLimit($event)" />
+				@update:modelValue="updateLimit($event)" />
 		</div>
 
 		<!-- Filters with operators. -->
@@ -57,11 +57,11 @@
 				:placeholder="t('nextcloud-vue', 'Select a property')"
 				@update="updateColumn(i, 'key', $event)" />
 			<NcTextField
-				:model-value="col.label"
+				:modelValue="col.label"
 				:label="t('nextcloud-vue', 'Header')"
 				placeholder="Deal"
 				class="cn-object-list-form__col-row__header"
-				@update:model-value="updateColumn(i, 'label', $event)" />
+				@update:modelValue="updateColumn(i, 'label', $event)" />
 			<NcButton
 				variant="tertiary"
 				:aria-label="t('nextcloud-vue', 'Remove column')"
@@ -81,15 +81,15 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect, NcButton } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
-import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
-import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
+import { filterToRows, rowsToFilter } from '../CnFilterRowsEditor/filterRows.js'
 
 const DEFAULT_CONTENT = Object.freeze({
 	register: '',
@@ -125,6 +125,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Initial content values when not editing (registry defaults).
 		 *
@@ -153,14 +154,17 @@ export default {
 				register: initial.register ?? '',
 				schema: initial.schema ?? '',
 			},
+
 			sort: {
 				field: initial.sort?.field ?? '',
 				dir: initial.sort?.dir ?? 'asc',
 			},
+
 			limit: Number.isFinite(initial.limit) ? initial.limit : 5,
 			columns: Array.isArray(initial.columns) && initial.columns.length
 				? initial.columns.map((c) => (typeof c === 'string' ? { key: c, label: c } : { key: c.key, label: c.label || c.key }))
 				: [{ key: '', label: '' }],
+
 			filterRows: filterToRows(initial.filter || {}),
 			availableFields: [],
 		}
@@ -171,6 +175,7 @@ export default {
 		dirOptions() {
 			return ['asc', 'desc']
 		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {

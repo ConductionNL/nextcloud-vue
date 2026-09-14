@@ -24,7 +24,7 @@ shell while a `required` step is unmet.
 | `info` | a note card (`title` + `body`) | — |
 | `config-fields` | fields from a JSON Schema (`fieldsFromSchema`) | `POST /api/setup/config` |
 | `choice` | an `NcSelect` bound to `configKey` (`options[]`, `multiple?`) | `POST /api/setup/config` |
-| `run-action` | a "Run" button → `POST /api/setup/action/{action}` + result | the action itself |
+| `run-action` | auto-starts `POST /api/setup/action/{action}` on entry (spinner), result + a "Run again" button | the action itself |
 | `summary` | a recap of step completion | — |
 | `component` | the parent's `#step-<id>` slot (escape hatch) | up to the slot |
 
@@ -47,12 +47,15 @@ shell while a `required` step is unmet.
 |------|------|---------|-------------|
 | `appId` | `string` | — (required) | App id; builds the `/apps/{appId}/api/setup/*` URLs. |
 | `steps` | `Array` | `[]` | The `manifest.setup.steps` array to render. |
-| `dialogTitle` | `string` | `"Set up this app"` | Dialog header. |
+| `dialogTitle` | `string` | `"Set up this app"` | Dialog header. Overridden by `appName` when that prop is set. |
+| `appName` | `string` | `''` | The app's display name. When set, the title becomes "Set up {appName}" instead of the generic `dialogTitle` default — pass the same display name `CnAppRoot` already resolves (`appDisplayName \|\| manifest.name \|\| appId`). |
 | `submitLabel` | `string` | `"Finish"` | Final-step submit label. |
 | `cancelLabel` | `string` | `"Cancel"` | Cancel label. |
 | `nextLabel` | `string` | `"Next"` | Next label. |
 | `backLabel` | `string` | `"Back"` | Back label. |
-| `runLabel` | `string` | `"Run"` | Run-action button label. |
+| `runLabel` | `string` | `"Run"` | Run-action button label, shown only as a manual fallback — the action itself starts automatically the moment the step becomes current. |
+| `rerunLabel` | `string` | `"Run again"` | Run-action button label offered after a run has already finished. |
+| `runningLabel` | `string` | `"Loading…"` | Label shown beside the spinner while a run-action step's action is in flight. |
 | `successText` | `string` | `"Setup complete."` | Result-phase success text. |
 | `cancellable` | `boolean` | `true` | Whether the wizard can be dismissed before finishing. Pass `false` when a REQUIRED step is unmet and the host is gating its shell behind this wizard — an offered-but-non-functional Cancel would be misleading. |
 | `completedStepIds` | `Array<string>` | `[]` | Ids of steps the server already reports done (e.g. from `useSetupStatus(...).steps`). Lets a freshly (re)mounted wizard resume at the first actually-unmet step and show correct done-markers, instead of restarting from the top — this component's own local state only tracks the current session. |

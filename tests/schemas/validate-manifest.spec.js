@@ -59,9 +59,7 @@ describe('validateManifest() dispatch (REQ-MV2S-009)', () => {
 		const result = validateManifest(manifest)
 		// Falls back to v1 validator — manifest is otherwise valid v1
 		expect(result.valid).toBe(true)
-		expect(warnSpy).toHaveBeenCalledWith(
-			expect.stringContaining('Unknown $schema URL'),
-		)
+		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown $schema URL'))
 		warnSpy.mockRestore()
 	})
 

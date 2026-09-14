@@ -10,14 +10,14 @@
 		</h4>
 
 		<NcSelect
-			:model-value="selectedOptions"
+			:modelValue="selectedOptions"
 			:options="widgetOptions"
 			:multiple="true"
-			:close-on-select="false"
+			keepOpen
 			label="label"
-			:input-label="t('nextcloud-vue', 'Widgets to show as tabs')"
+			:inputLabel="t('nextcloud-vue', 'Widgets to show as tabs')"
 			:placeholder="t('nextcloud-vue', 'Pick the widgets')"
-			@update:model-value="onWidgetsInput" />
+			@update:modelValue="onWidgetsInput" />
 		<p class="cn-tabs-form__hint">
 			{{ t('nextcloud-vue', 'Each widget becomes one tab, in the order you pick them. They lose their own header here: the tab carries the title.') }}
 		</p>
@@ -34,18 +34,18 @@
 				:key="tab.widgetId + '-' + index"
 				class="cn-tabs-form__row">
 				<NcTextField
-					:model-value="tab.label || ''"
+					:modelValue="tab.label || ''"
 					:label="widgetLabel(tab.widgetId)"
 					:placeholder="widgetLabel(tab.widgetId)"
-					@update:model-value="updateLabel(index, $event)" />
+					@update:modelValue="updateLabel(index, $event)" />
 			</div>
 		</template>
 
 		<NcTextField
-			:model-value="ariaLabel"
+			:modelValue="ariaLabel"
 			:label="t('nextcloud-vue', 'Accessible name for the tab strip')"
 			:placeholder="t('nextcloud-vue', 'Details')"
-			@update:model-value="updateField('ariaLabel', $event)" />
+			@update:modelValue="updateField('ariaLabel', $event)" />
 		<p class="cn-tabs-form__hint">
 			{{ t('nextcloud-vue', 'Screen readers announce this when focus enters the tabs.') }}
 		</p>
@@ -53,8 +53,8 @@
 </template>
 
 <script>
-import { NcSelect, NcTextField } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 
 /**
  * CnTabsWidgetForm — the config sub-form for a `tabs` widget
@@ -86,6 +86,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Every widget definition on the surface, so the picker can offer the
 		 * siblings this widget may hold.
@@ -96,6 +97,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * This widget's own id, so the picker cannot offer the tabs widget
 		 * itself and produce a widget that contains itself.
@@ -193,7 +195,9 @@ export default {
 		 */
 		updateLabel(index, label) {
 			const tabs = this.tabs.map((tab, i) => {
-				if (i !== index) return { ...tab }
+				if (i !== index) {
+					return { ...tab }
+				}
 				const next = { ...tab }
 				if (label && label.trim() !== '') {
 					next.label = label
@@ -209,7 +213,7 @@ export default {
 		 * Set one top-level config field.
 		 *
 		 * @param {string} key The field name.
-		 * @param {*} value The new value.
+		 * @param {unknown} value The new value.
 		 * @return {void}
 		 */
 		updateField(key, value) {

@@ -15,11 +15,11 @@
 import { mount } from '@vue/test-utils'
 import { defineComponent, h, toRaw } from 'vue'
 import {
-	useContextMenu,
 	clearContextMenuPositionDom,
 	CTX_MENU_CSS_VAR_X,
 	CTX_MENU_CSS_VAR_Y,
 	CTX_MENU_DATA_ATTR,
+	useContextMenu,
 } from '../../src/composables/useContextMenu.js'
 
 function readPosition() {

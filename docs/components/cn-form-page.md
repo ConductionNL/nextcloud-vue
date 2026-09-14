@@ -6,14 +6,14 @@ sidebar_position: 14
 
 A manifest-driven runtime form. Renders a flat `fields[]` array plus a submit button declared in `pages[].config` for `type: "form"` pages. Closes the gap that forces every consumer's runtime-form route (public surveys, "request a quote" pages, ticket-create routes that don't need a detail-page round-trip) onto `type: "custom"`.
 
-Mounted automatically by `CnPageRenderer` when a manifest page declares `type: "form"`. Field rendering is delegated to `cnRenderFormField` from `@conduction/nextcloud-vue/composables` so the same input set `CnSettingsPage` uses (boolean, number, string, password, enum, json) is available without duplication. Submit dispatch picks one of two paths depending on which prop is set:
+Mounted automatically by `CnPageRenderer` when a manifest page declares `type: "form"`. Field rendering is delegated to `cnRenderFormField` from `@conduction/nextcloud-vue/composables` so the same input set `CnSettingsPage` uses (boolean, number, string, password, enum, json) is available without duplication, plus a form-only `file` type (see "File fields" below). Submit dispatch picks one of two paths depending on which prop is set:
 
 - `submitEndpoint` — the page calls `axios[method](url, payload)` with `:paramName` segments resolved against `$route.params`.
 - `submitHandler` — the page resolves the name in the customComponents registry and calls the resolved value with `(payload, $route, $router)`.
 
 `payload` above is the **effective payload** — `formData` with any field currently hidden by a `visibleWhen` condition removed (see "Conditional fields" below).
 
-**Wraps**: `CnPageHeader`, `NcButton`, `NcLoadingIcon`, plus the input components the field-renderer dispatches to (`NcCheckboxRadioSwitch`, `NcTextField`, `NcSelect`, `CnJsonViewer`, optionally `NcTextArea`).
+**Wraps**: `CnPageHeader`, `NcButton`, `NcLoadingIcon`, plus the input components the field-renderer dispatches to (`NcCheckboxRadioSwitch`, `NcTextField`, `NcSelect`, `CnJsonViewer`, `CnFileField`, optionally `NcTextArea`).
 
 Since manifest-form-logic, `type: "form"` pages also support multi-step wizards (`config.steps[]`), conditional field visibility (`fields[].visibleWhen`), and per-field validation rules (`fields[].validation`) — all three are additive: a manifest with none of them renders exactly as before.
 
@@ -189,12 +189,13 @@ The first dot-segment of a LOCAL `field` must match a declared field key — a t
 | `boolean` | value is `true` (consent checkboxes) | not applicable | not applicable |
 | `enum` | a value is selected | not applicable | not applicable |
 | `json` | value is non-null | not applicable | not applicable |
+| `file` | a file is present | not applicable | not applicable |
 
 `message` (i18n-able, resolved through the same `translate` prop as `field.label`) replaces the built-in default message for whichever rule fails. Built-in defaults are English msgids translated via `t('nextcloud-vue', …)`.
 
 Cross-shape rules the JSON Schema can't express are checked post-schema by `validateManifestV2()`: `min <= max` when both are set, `pattern` must compile, and type-inapplicable rules are errors (`pattern` only on `string`/`password`; `min`/`max` only on `string`/`password`/`number`).
 
-Errors render through the pure `validateFieldValue(field, value, translate)` helper (`src/utils/formValidation.js`) on Next / Submit; editing a field clears its error immediately. For `NcTextField`/`NcTextArea`-family widgets the error surfaces via the native `error` + `helperText` props; for widgets without native error support (`boolean`, `enum`, `json`, the native-`<textarea>` fallback, and `#field-<key>` slot overrides) `CnFormPage` renders an adjacent `role="alert"` element wired to the input via `aria-describedby`.
+Errors render through the pure `validateFieldValue(field, value, translate)` helper (`src/utils/formValidation.js`) on Next / Submit; editing a field clears its error immediately. For `NcTextField`/`NcTextArea`-family widgets the error surfaces via the native `error` + `helperText` props; for widgets without native error support (`boolean`, `enum`, `json`, `file`, the native-`<textarea>` fallback, and `#field-<key>` slot overrides) `CnFormPage` renders an adjacent `role="alert"` element wired to the input via `aria-describedby`.
 
 **A caveat**: a `validation.pattern` beginning with a literal `@` (e.g. `"@[a-z]+"`) trips the manifest's sentinel-token guard, which walks every string leaf under `pages[].config`. Regex authors anchor with `^` anyway (`"^@[a-z]+$"` starts with `^`, not `@`), so this is theoretical in practice.
 
@@ -210,8 +211,28 @@ The renderer delegates to `cnRenderFormField` from `@conduction/nextcloud-vue/co
 | `password` | `NcTextField` (type=password) | |
 | `enum` | `NcSelect` | Options from `field.enum` (preferred) or `field.options` |
 | `json` | `CnJsonViewer` | Read-only display in this revision |
+| `file` | `CnFileField` | The value is the picked file as a `data:` URL. Form pages only. See "File fields" |
 
 Unknown `field.type` values fall back to `NcTextField` and emit a one-shot `console.warn` so the manifest typo surfaces during development.
+
+## File fields
+
+A `file` field lets the person filling in the form attach one file.
+
+```json
+{ "key": "report", "label": "Advice report", "type": "file", "accept": ".pdf,.docx", "maxSize": 10485760 }
+```
+
+The field reads the file in the browser and holds its content as a `data:` URL. That string travels in the payload like any other value. Nothing is uploaded when the file is picked, so a cancelled form writes nothing.
+
+The field never holds a path or a URL. It cannot choose where the file ends up: the receiver of the payload does. Point `submitEndpoint` at an OpenRegister object whose schema has a property of `type: "file"`, and OpenRegister stores the content in that object's own folder, under a name it generates itself. It checks the property's allowed types and size limit first, and refuses executable content. A `submitHandler` receives the same `data:` URL and decides for itself.
+
+- `accept` narrows the picker, in HTML `accept` syntax: `.pdf`, `application/pdf`, `image/*`. The field checks it again after the pick, because the picker's filter can be switched off.
+- `maxSize` is the largest file the field reads, in bytes. It defaults to 1 MB, the library's cap for a file carried inline. Raise it when the form expects scanned documents.
+- Both checks help the person filling in the form. The server still decides what it accepts.
+- A value that is not a `data:` URL, such as a file the object already holds in `mode: "edit"`, shows by its title and is sent back untouched until the user replaces or removes it. Remove file sets the value to `null`.
+
+`type: "file"` is rejected on `type: "settings"` pages: those save to app config, which has no place for file content.
 
 ## Why `type: "form"` is its own page type
 

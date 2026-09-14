@@ -10,7 +10,6 @@
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
-
 const { integrations } = require('../../src/integrations/registry.js')
 
 const IntegrationWidget = {
@@ -31,7 +30,9 @@ const TitledWidget = {
 		return h('div', { class: 'titled-widget' }, this.title || this.integrationId)
 	},
 }
-const RegistryTab = { name: 'RegistryTab', render() { return h('div') } }
+const RegistryTab = { name: 'RegistryTab', render() {
+	return h('div')
+} }
 
 const layout = [{ id: 1, widgetId: 'files-w', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 3 }]
 const widgets = [{ id: 'files-w', title: 'Files', type: 'integration', integrationId: 'files' }]

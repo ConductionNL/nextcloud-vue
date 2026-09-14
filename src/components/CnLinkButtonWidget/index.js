@@ -6,8 +6,8 @@
  * the shared dashboardWidgetRegistry at module load.
  */
 
-import CnLinkButtonWidget from './CnLinkButtonWidget.vue'
 import CnLinkButtonWidgetForm from '../CnLinkButtonWidgetForm/CnLinkButtonWidgetForm.vue'
+import CnLinkButtonWidget from './CnLinkButtonWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('link', {

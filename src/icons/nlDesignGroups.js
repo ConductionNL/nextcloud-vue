@@ -1,3 +1,4 @@
+import { denHaagIcons } from './denHaag.js'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
  * SPDX-License-Identifier: EUPL-1.2
@@ -15,7 +16,6 @@
  * otherwise. Keep this module free of any static `./rvo.js` import.
  */
 import { openGemeentenIcons } from './openGemeenten.js'
-import { denHaagIcons } from './denHaag.js'
 
 /**
  * The default icon sets offered by every CnIconBrowser.

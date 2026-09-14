@@ -25,16 +25,19 @@ const stubs = {
 	CnDashboardGrid: { template: '<div><div v-for="it in layout" :key="it.id"><slot name="widget" :item="it" /></div></div>', props: ['layout', 'editable', 'columns', 'cellHeight', 'margin'] },
 	CnWidgetWrapper: { props: ['flush', 'showTitle', 'showActions', 'title'], template: '<div class="ww" :data-show-title="String(showTitle)" :data-show-actions="String(showActions)"><slot /></div>' },
 	NcButton: { template: '<button><slot /></button>' },
-	NcEmptyContent: { template: '<div />' }, NcLoadingIcon: { template: '<div />' },
+	NcEmptyContent: { template: '<div />' },
+	NcLoadingIcon: { template: '<div />' },
 }
 
-const mountWith = ({ def = {}, placement = {} } = {}) => mount(CnDashboardPage, {
-	propsData: {
-		widgets: [{ id: 'w', type: 'test-showtitle', ...def }],
-		layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 4, ...placement }],
-	},
-	stubs,
-})
+function mountWith({ def = {}, placement = {} } = {}) {
+	return mount(CnDashboardPage, {
+		propsData: {
+			widgets: [{ id: 'w', type: 'test-showtitle', ...def }],
+			layout: [{ id: '1', widgetId: 'w', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 4, ...placement }],
+		},
+		stubs,
+	})
+}
 
 describe('CnDashboardPage — showTitle / showActions def fallback', () => {
 	it('shows the header by default', () => {

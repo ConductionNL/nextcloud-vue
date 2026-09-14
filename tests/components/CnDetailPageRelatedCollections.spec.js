@@ -95,7 +95,10 @@ describe('CnDetailPage — Primitive 2', () => {
 		const store = makeFakeStore({ id: 'o1', status: 'open' })
 		const wrapper = mount(CnDetailPage, {
 			propsData: {
-				register: 'r', schema: 's', objectId: 'o1', objectStore: store,
+				register: 'r',
+				schema: 's',
+				objectId: 'o1',
+				objectStore: store,
 				relationLinks: [{ register: 'r', schema: 'client', fkField: 'client' }],
 			},
 			stubs,

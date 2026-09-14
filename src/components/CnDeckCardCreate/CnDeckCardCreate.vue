@@ -34,7 +34,7 @@
 			<NcSelect
 				v-model="selectedBoard"
 				:label="t('nextcloud-vue', 'Board')"
-				:input-label="t('nextcloud-vue', 'Board')"
+				:inputLabel="t('nextcloud-vue', 'Board')"
 				:options="boardOptions"
 				:loading="loadingBoards"
 				:disabled="loadingBoards"
@@ -45,7 +45,7 @@
 			<NcSelect
 				v-model="selectedStack"
 				:label="t('nextcloud-vue', 'Stack')"
-				:input-label="t('nextcloud-vue', 'Stack')"
+				:inputLabel="t('nextcloud-vue', 'Stack')"
 				:options="stackOptions"
 				:loading="loadingStacks"
 				:disabled="!selectedBoard || loadingStacks"
@@ -132,11 +132,13 @@ export default {
 
 	computed: {
 		boardOptions() {
-			return this.boards.map(board => ({ id: board.id, label: board.title }))
+			return this.boards.map((board) => ({ id: board.id, label: board.title }))
 		},
+
 		stackOptions() {
-			return this.stacks.map(stack => ({ id: stack.id, label: stack.title }))
+			return this.stacks.map((stack) => ({ id: stack.id, label: stack.title }))
 		},
+
 		canSubmit() {
 			return Boolean(this.selectedBoard && this.selectedStack && this.title.trim())
 		},

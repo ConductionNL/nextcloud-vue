@@ -126,6 +126,8 @@ export default {
 | `hideEmpty` | Boolean | `false` | Hide fields with no value instead of rendering an em dash. For discriminated supertypes (one `ticket` schema holding request/complaint/contactmoment), so the grid is type-aware without the schema enumerating which fields belong to which variant. Read grid only — the field being edited, a field with unsaved changes, and the Edit form stay visible; `false`/`0` are values and are never hidden. |
 | `exclude` | Array | `[]` | Property keys to hide |
 | `include` | Array | `null` | Property keys to show (whitelist; shows all when `null`) |
+| `formSize` (`form-size`) | String | `'normal'` | NcDialog size for the full-form **Edit** dialog (`'small'`, `'normal'`, `'large'`). The widget already scopes that form with `include` / `exclude`, but a scoped form can still be long enough to want the room. |
+| `formColumns` (`form-columns`) | Number | `1` | How many columns the **Edit** form flows its fields into (`1` or `2`). Pair `2` with `formSize: 'large'`, or the two columns are merely two narrow ones. Collapses back to one column below 700px. |
 | `saveLabel` | String | `'Save'` | Label for the save button |
 | `discardLabel` | String | `'Discard'` | Label for the discard button |
 | `emptyLabel` | String | `'No data available'` | Label shown when no properties are displayable |
@@ -133,3 +135,8 @@ export default {
 | `widget-id` | String | `''` | Stable id forwarded to the widget chrome (falls back to `object-type`) |
 | `metadata-label` | String | `'Metadata'` | Label for the Metadata item in the overflow Actions menu |
 | `edit-label` | String | `'Edit'` | Label for the Edit action item that opens the full-form edit dialog |
+| `show-title` | Boolean | `true` | Draw the header's title row. Set `false` in a tab panel, where the open tab already names the panel. The header still renders whenever the `actions` slot is filled, so the Save button an inline edit needs does not vanish with the title. It is needed because `title` carries a DEFAULT of `'Data'`: a host that wanted no title passed `undefined` and got the default instead. |
+| `show-actions` | Boolean | `true` | Draw the overflow Actions menu in the header. Set `false` where the host already offers one within a few pixels, a tab panel being that case: the strip carries its own menu and the page header carries Edit, so the copy inside the panel bought a second menu and a header band to hold it. Inline editing does not depend on it, because a cell opens its editor when clicked and Save and Discard arrive in the `actions` slot as soon as there is an edit to commit. |
+| `borderless` | Boolean | `false` | Drop the card border and background, for a host that draws its own (a tab panel). |
+| `flush` | Boolean | `false` | Drop the content padding, for a host that supplies its own inset. |
+| `chromeless` | Boolean | `false` | Draw no card at all: what a tab panel wants, in one prop instead of three. Implies `show-title="false"`, `borderless` and `flush`, and drops the header divider too. The Save button keeps its header. Forwarded to `CnWidgetWrapper`. |

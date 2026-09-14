@@ -14,7 +14,7 @@
  * set must not get the tour rendered.
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
 jest.mock('@nextcloud/capabilities', () => ({
@@ -65,10 +65,7 @@ const walkthroughManifest = {
  * @return {Promise<void>}
  */
 async function settle() {
-	await Promise.resolve()
-	await Promise.resolve()
-	await nextTick()
-	await nextTick()
+	await flushPromises()
 }
 
 /**
@@ -112,9 +109,7 @@ describe('CnAppRoot walkthrough completion persistence', () => {
 	it('reads the declared completionConfigKey on mount', async () => {
 		const w = mountRoot('wt-read')
 		await settle()
-		expect(axios.get).toHaveBeenCalledWith(
-			expect.stringContaining('/apps/wt-read' + PREF_PATH),
-		)
+		expect(axios.get).toHaveBeenCalledWith(expect.stringContaining('/apps/wt-read' + PREF_PATH))
 		w.unmount()
 	})
 
@@ -187,7 +182,9 @@ describe('CnAppRoot walkthrough completion persistence', () => {
 	it('holds the overlay back until the preference answer arrives (no flash for a returning user)', async () => {
 		let resolveGet
 		axios.get.mockImplementation((url) => (String(url).includes(PREF_PATH)
-			? new Promise((res) => { resolveGet = res })
+			? new Promise((res) => {
+					resolveGet = res
+				})
 			: Promise.reject(new Error('no route'))))
 
 		const w = mountRoot('wt-noflash')

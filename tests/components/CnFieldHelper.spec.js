@@ -23,9 +23,7 @@ describe('CnFieldHelper', () => {
 
 	it('keeps the legacy helper class so existing stylesheets still apply', () => {
 		const wrapper = mountHelper({ text: 'Human-readable name' })
-		expect(wrapper.find('span').classes()).toEqual(
-			expect.arrayContaining(['cn-field-helper', 'cn-form-dialog__helper']),
-		)
+		expect(wrapper.find('span').classes()).toEqual(expect.arrayContaining(['cn-field-helper', 'cn-form-dialog__helper']))
 	})
 
 	it('offers an info button carrying the full text when one was split off', () => {

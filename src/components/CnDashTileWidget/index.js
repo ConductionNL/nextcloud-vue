@@ -7,8 +7,8 @@
  * avoid clobbering the library's existing quick-access `CnTileWidget`.
  */
 
-import CnDashTileWidget from './CnDashTileWidget.vue'
 import CnDashTileWidgetForm from '../CnDashTileWidgetForm/CnDashTileWidgetForm.vue'
+import CnDashTileWidget from './CnDashTileWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('tile', {
@@ -18,8 +18,11 @@ registerDashboardWidget('tile', {
 		title: '',
 		icon: '',
 		iconType: 'class',
-		backgroundColor: '#3b82f6',
-		textColor: '#ffffff',
+		// Empty, not a hex: an author who never opened the colour picker had a
+		// Tailwind blue stored for them, so every tile came out deliberately
+		// coloured. Empty lets the renderer fall back to the instance theme.
+		backgroundColor: '',
+		textColor: '',
 		linkType: 'app',
 		linkValue: '',
 	},

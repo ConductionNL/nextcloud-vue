@@ -45,7 +45,12 @@ const stubs = {
 	NcLoadingIcon: { template: '<div class="nc-loading-icon-stub" />' },
 }
 
-/** A tile widget — a built-in type that renders without a registry lookup. */
+/**
+ * A tile widget — a built-in type that renders without a registry lookup.
+ *
+ * @param {string} id The widget id.
+ * @return {object} The widget definition.
+ */
 const tile = (id) => ({ id, type: 'tile', title: `Tile ${id}`, linkType: 'app', linkValue: 'files' })
 const place = (n, widgetId) => ({ id: n, widgetId, gridX: 0, gridY: (n - 1) * 3, gridWidth: 6, gridHeight: 3 })
 

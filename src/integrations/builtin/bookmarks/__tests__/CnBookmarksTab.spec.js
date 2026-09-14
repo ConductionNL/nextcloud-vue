@@ -11,7 +11,7 @@
  *  - generic-error path when fetch throws.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnBookmarksTab = require('../CnBookmarksTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -44,8 +44,7 @@ describe('CnBookmarksTab', () => {
 	it('renders the empty state with an "Open Bookmarks" CTA when no bookmarks', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnBookmarksTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No bookmarks linked yet')
 		expect(wrapper.text()).toContain('Open Bookmarks')
 		wrapper.unmount()
@@ -63,8 +62,7 @@ describe('CnBookmarksTab', () => {
 			}),
 		})
 		const wrapper = mount(CnBookmarksTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-bookmarks-tab__row')
 		expect(rows).toHaveLength(2)
 		// Titles are bound to the NcListItem `name` attribute (the stub
@@ -88,8 +86,7 @@ describe('CnBookmarksTab', () => {
 			}),
 		})
 		const wrapper = mount(CnBookmarksTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const chips = wrapper.findAll('.cn-bookmarks-tab__chip')
 		const chipTexts = chips.map((c) => c.text())
 		expect(chipTexts).toContain('legal')
@@ -111,8 +108,7 @@ describe('CnBookmarksTab', () => {
 			}),
 		})
 		const wrapper = mount(CnBookmarksTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.findAll('.cn-bookmarks-tab__row')).toHaveLength(3)
 		const chips = wrapper.findAll('.cn-bookmarks-tab__chip')
 		const legalChip = chips.find((c) => c.text() === 'legal')
@@ -130,8 +126,7 @@ describe('CnBookmarksTab', () => {
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnBookmarksTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Bookmarks is currently unavailable.')
 		expect(wrapper.find('.cn-bookmarks-tab__row').exists()).toBe(false)
 		wrapper.unmount()
@@ -141,8 +136,7 @@ describe('CnBookmarksTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnBookmarksTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load bookmarks.')
 		wrapper.unmount()
 		spy.mockRestore()

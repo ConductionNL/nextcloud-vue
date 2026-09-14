@@ -9,9 +9,8 @@
  */
 
 import { createPinia, setActivePinia } from 'pinia'
-
-import { createObjectStore } from '../../src/store/useObjectStore.js'
 import { auditTrailsPlugin } from '../../src/store/plugins/auditTrails.js'
+import { createObjectStore } from '../../src/store/useObjectStore.js'
 
 // jsdom defaults `OC.requestToken` to undefined; make it deterministic
 global.OC = { requestToken: 'token-test' }
@@ -108,7 +107,9 @@ describe('multi-tenancy / object store', () => {
 
 	it('errors thrown by the getter are downgraded to "no header"', async () => {
 		const useStore = createObjectStore('mt-erroring', {
-			organisationUuidGetter: () => { throw new Error('boom') },
+			organisationUuidGetter: () => {
+				throw new Error('boom')
+			},
 		})
 		const store = useStore()
 		store.registerObjectType('case', 'sch-1', 'reg-1')

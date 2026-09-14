@@ -34,10 +34,10 @@
 		<NcTextField v-if="editing === 'label'"
 			ref="labelField"
 			class="cn-menu-tree__inline-field"
-			:model-value="item.label || ''"
+			:modelValue="item.label || ''"
 			:label="t('nextcloud-vue', 'Label')"
-			:label-outside="true"
-			@update:model-value="setLabel"
+			:labelOutside="true"
+			@update:modelValue="setLabel"
 			@keydown.enter="stopEdit"
 			@blur="stopEdit" />
 		<button v-else
@@ -51,13 +51,13 @@
 		<!-- Target page: click to change inline. -->
 		<NcSelect v-if="editing === 'page'"
 			class="cn-menu-tree__inline-select"
-			:model-value="selectedPage"
+			:modelValue="selectedPage"
 			:options="pages"
-			:input-label="t('nextcloud-vue', 'Page')"
+			:inputLabel="t('nextcloud-vue', 'Page')"
 			label="label"
 			:clearable="true"
 			:placeholder="pages.length ? t('nextcloud-vue', 'Pick a page') : t('nextcloud-vue', 'No pages')"
-			@update:model-value="onPage"
+			@update:modelValue="onPage"
 			@close="stopEdit" />
 		<button v-else
 			type="button"
@@ -67,7 +67,7 @@
 		</button>
 
 		<!-- Cog → actions popover (add sub-item + delete). -->
-		<NcPopover v-model:shown="popoverOpen" :focus-trap="false">
+		<NcPopover v-model:shown="popoverOpen" noFocusTrap>
 			<template #trigger="{ attrs }">
 				<NcButton v-bind="attrs"
 					variant="tertiary"
@@ -99,14 +99,14 @@
 </template>
 
 <script>
-import { NcButton, NcTextField, NcSelect, NcPopover } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
-import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
+import { NcButton, NcPopover, NcSelect, NcTextField } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import DragVertical from 'vue-material-design-icons/DragVertical.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
 
 /**
  * CnMenuTreeRow — one editable menu-item row for CnMenuTreeNode (ADR-041).
@@ -135,6 +135,7 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/**
 		 * Selectable target pages as `{ value: routeName, label }` options.
 		 *
@@ -144,6 +145,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Whether this row may gain a sub-item (top level only). */
 		canAddChild: {
 			type: Boolean,
@@ -166,9 +168,12 @@ export default {
 		/** The chosen target page as an option (synthetic fallback for a custom route). */
 		selectedPage() {
 			const route = this.item && this.item.route
-			if (!route) return null
+			if (!route) {
+				return null
+			}
 			return this.pages.find((o) => o.value === route) || { value: route, label: route }
 		},
+
 		/** Human label for the current target page (falls back to the raw route). */
 		pageLabel() {
 			const sel = this.selectedPage
@@ -180,6 +185,7 @@ export default {
 		t,
 		/**
 		 * Enter inline-edit mode for a field, focusing the label input when relevant.
+		 *
 		 * @param {string} field 'icon' | 'label' | 'page'.
 		 * @return {void}
 		 */
@@ -188,22 +194,28 @@ export default {
 			if (field === 'label') {
 				this.$nextTick(() => {
 					const el = this.$refs.labelField && this.$refs.labelField.$el && this.$refs.labelField.$el.querySelector('input')
-					if (el) el.focus()
+					if (el) {
+						el.focus()
+					}
 				})
 			}
 		},
+
 		/** Leave inline-edit mode. */
 		stopEdit() {
 			this.editing = null
 		},
+
 		/**
 		 * Write the item label in place.
+		 *
 		 * @param {string} value The new label.
 		 * @return {void}
 		 */
 		setLabel(value) {
 			this.item.label = value
 		},
+
 		/**
 		 * Set the item icon. CnIconBrowser emits the value directly (a registry
 		 * key, SVG path, or URL) — not an option object.
@@ -214,8 +226,10 @@ export default {
 		onIcon(icon) {
 			this.item.icon = icon || ''
 		},
+
 		/**
 		 * Set the item's target page (route name) and leave edit mode.
+		 *
 		 * @param {{value: string}|null} option The selected page option.
 		 * @return {void}
 		 */

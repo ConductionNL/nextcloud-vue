@@ -15,7 +15,7 @@
 // Drives the REAL CnSchemaFormDialog in Chromium — the jest setup stubs
 // @nextcloud/vue, so the NcSelect option rendering these bugs live in isn't present.
 
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.describe('CnSchemaFormDialog — Schema reference dropdown', () => {
 	// ⚠️ SCOPE NOTE — read before adding assertions here.

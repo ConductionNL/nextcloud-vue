@@ -10,7 +10,7 @@
  *  - generic-error path when fetch throws.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnCollectivesTab = require('../CnCollectivesTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -46,8 +46,7 @@ describe('CnCollectivesTab', () => {
 	it('renders the empty state with an "Open Knowledge" CTA when no pages', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No Knowledge pages linked yet')
 		expect(wrapper.text()).toContain('Open Knowledge')
 		wrapper.unmount()
@@ -65,8 +64,7 @@ describe('CnCollectivesTab', () => {
 			}),
 		})
 		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const rows = wrapper.findAll('.cn-collectives-tab__row')
 		expect(rows).toHaveLength(2)
 		// Page titles are bound to the NcListItem `name` attribute.
@@ -91,8 +89,7 @@ describe('CnCollectivesTab', () => {
 			}),
 		})
 		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const groups = wrapper.findAll('.cn-collectives-tab__group')
 		expect(groups).toHaveLength(2)
 		const headers = wrapper.findAll('.cn-collectives-tab__group-header').map((h) => h.text())
@@ -113,8 +110,7 @@ describe('CnCollectivesTab', () => {
 			}),
 		})
 		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const row = wrapper.find('.cn-collectives-tab__row')
 		expect(row.exists()).toBe(true)
 		expect(row.attributes('name')).toBe('release-notes')
@@ -141,8 +137,7 @@ describe('CnCollectivesTab', () => {
 			}),
 		})
 		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const row = wrapper.find('.cn-collectives-tab__row')
 		expect(row.exists()).toBe(true)
 		expect(row.attributes('name')).toBe('phase-d1-page')
@@ -154,8 +149,7 @@ describe('CnCollectivesTab', () => {
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Knowledge is currently unavailable.')
 		expect(wrapper.find('.cn-collectives-tab__row').exists()).toBe(false)
 		wrapper.unmount()
@@ -165,8 +159,7 @@ describe('CnCollectivesTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load Knowledge pages.')
 		wrapper.unmount()
 		spy.mockRestore()
@@ -175,8 +168,7 @@ describe('CnCollectivesTab', () => {
 	it('renders the Tier-2 link/create action buttons', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Link existing page')
 		expect(wrapper.text()).toContain('Create new page')
 		wrapper.unmount()
@@ -189,8 +181,7 @@ describe('CnCollectivesTab', () => {
 			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 
 		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.vm.onLinkPick({ pageId: 77 })
 		await wrapper.vm.$nextTick()
@@ -209,8 +200,7 @@ describe('CnCollectivesTab', () => {
 			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 
 		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.vm.onCreatePick({ collectiveId: 3, title: 'New page' })
 		await wrapper.vm.$nextTick()
@@ -233,8 +223,7 @@ describe('CnCollectivesTab', () => {
 			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 
 		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 
 		await wrapper.vm.unlinkPage({ pageId: 55 })
 		await wrapper.vm.$nextTick()
@@ -256,8 +245,7 @@ describe('CnCollectivesTab', () => {
 			}),
 		})
 		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.find('.cn-collectives-tab__row').attributes('name')).toBe('Runbook')
 		expect(wrapper.text()).toContain('Ops')
 		wrapper.unmount()

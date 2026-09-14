@@ -185,7 +185,11 @@ describe('CnIndexPage — multi-sort restored from a deep-linked route on mount'
 
 	it('falls back to the legacy sortKey/sortOrder props when no route _order is present', async () => {
 		const { wrapper } = mountPage({
-			title: 'Decisions', register: 'decidesk', schema: 'decision', sortKey: 'title', sortOrder: 'desc',
+			title: 'Decisions',
+			register: 'decidesk',
+			schema: 'decision',
+			sortKey: 'title',
+			sortOrder: 'desc',
 		})
 		await new Promise((resolve) => setTimeout(resolve))
 

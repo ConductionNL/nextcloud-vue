@@ -88,7 +88,7 @@
 					:class="rowClass(row)"
 					:href="rowUrl(row)"
 					target="_blank"
-					:force-display-actions="true">
+					:forceDisplayActions="true">
 					<template #icon>
 						<span class="cn-cospend-tab__row-icon" :class="iconClass(row)">
 							<CashMultiple v-if="rowType(row) === 'bill'" :size="20" />
@@ -119,7 +119,7 @@
 					<template #actions>
 						<NcActionButton
 							v-if="entryIdOf(row)"
-							:close-after-click="true"
+							:closeAfterClick="true"
 							@click="unlinkEntry(row)">
 							<template #icon>
 								<LinkOff :size="20" />
@@ -146,13 +146,13 @@
 
 		<CnCospendPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onLinkPick" />
 
 		<CnCospendCreate
 			v-if="createOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="createOpen = false"
 			@create="onCreatePick" />
 	</div>
@@ -168,9 +168,9 @@ import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import LinkOff from 'vue-material-design-icons/LinkOff.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnCospendCreate from '../../../components/CnCospendCreate/CnCospendCreate.vue'
 import CnCospendPicker from '../../../components/CnCospendPicker/CnCospendPicker.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**
@@ -262,9 +262,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchRows() } } },
-		register() { this.fetchRows() },
-		schema() { this.fetchRows() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchRows()
+			}
+		} },
+
+		register() {
+			this.fetchRows()
+		},
+
+		schema() {
+			this.fetchRows()
+		},
 	},
 
 	methods: {

@@ -13,7 +13,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnFeaturesAndRoadmapView from '../../src/components/CnFeaturesAndRoadmapView/CnFeaturesAndRoadmapView.vue'
 
 const stubs = {
@@ -41,7 +40,7 @@ const headerButtons = (wrapper) => wrapper.findAll('.cn-features-and-roadmap-vie
 
 // Mount with a CnAppRoot-style provide: `cnHostsIndexSidebar=true` +
 // a reactive holder mimicking the one CnAppRoot publishes.
-const mountWithHost = (extraProps = {}) => {
+function mountWithHost(extraProps = {}) {
 	const sidebarHolder = { value: null }
 	const wrapper = mount(CnFeaturesAndRoadmapView, {
 		stubs,

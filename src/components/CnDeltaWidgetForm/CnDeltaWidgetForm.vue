@@ -10,10 +10,10 @@
 		</h4>
 
 		<NcTextField
-			:model-value="label"
+			:modelValue="label"
 			:label="t('nextcloud-vue', 'Label')"
 			placeholder="Revenue (MTD)"
-			@update:model-value="updateField('label', $event)" />
+			@update:modelValue="updateField('label', $event)" />
 
 		<div class="cn-delta-form__row2">
 			<CnRegisterSchemaSelect
@@ -25,11 +25,11 @@
 
 		<div class="cn-delta-form__row2">
 			<NcSelect
-				:model-value="metric"
+				:modelValue="metric"
 				:options="metricOptions"
-				:input-label="t('nextcloud-vue', 'Aggregation')"
+				:inputLabel="t('nextcloud-vue', 'Aggregation')"
 				:clearable="false"
-				@update:model-value="updateField('metric', $event)" />
+				@update:modelValue="updateField('metric', $event)" />
 			<CnFieldPicker
 				v-if="metric !== 'count'"
 				:value="field"
@@ -55,25 +55,25 @@
 
 		<div class="cn-delta-form__row2">
 			<NcSelect
-				:model-value="goodDirection"
+				:modelValue="goodDirection"
 				:options="directionOptions"
-				:input-label="t('nextcloud-vue', 'Good direction')"
+				:inputLabel="t('nextcloud-vue', 'Good direction')"
 				:clearable="false"
-				@update:model-value="updateField('goodDirection', $event)" />
+				@update:modelValue="updateField('goodDirection', $event)" />
 			<NcSelect
-				:model-value="formatStyle"
+				:modelValue="formatStyle"
 				:options="formatOptions"
-				:input-label="t('nextcloud-vue', 'Number format')"
+				:inputLabel="t('nextcloud-vue', 'Number format')"
 				:clearable="false"
-				@update:model-value="updateField('formatStyle', $event)" />
+				@update:modelValue="updateField('formatStyle', $event)" />
 		</div>
 
 		<div class="cn-delta-form__row2">
 			<NcTextField
 				type="number"
-				:model-value="String(decimals)"
+				:modelValue="String(decimals)"
 				:label="t('nextcloud-vue', 'Decimals')"
-				@update:model-value="updateField('decimals', Number($event))" />
+				@update:modelValue="updateField('decimals', Number($event))" />
 			<CnIconBrowser
 				:value="icon"
 				:label="t('nextcloud-vue', 'Icon')"
@@ -83,13 +83,14 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
-import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
+import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
-import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
+import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
+import { filterToRows, rowsToFilter } from '../CnFilterRowsEditor/filterRows.js'
 
 const DEFAULT_CONTENT = Object.freeze({
 	label: '',
@@ -111,18 +112,27 @@ const DEFAULT_CONTENT = Object.freeze({
 export default {
 	name: 'CnDeltaWidgetForm',
 
-	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnIconBrowser },
+	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnIconBrowser, CnRegisterSchemaSelect },
 
 	props: {
-		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
+		/**
+		 * The placement being edited (pre-fills from `editingWidget.content`), or null.
+		 *
+		 * @type {{content: object}|null}
+		 */
 		editingWidget: { type: Object, default: null },
-		/** Initial content values when not editing (registry defaults). @type {object} */
+		/**
+		 * Initial content values when not editing (registry defaults).
+		 *
+		 * @type {object}
+		 */
 		value: { type: Object, default: () => ({ ...DEFAULT_CONTENT }) },
 	},
 
 	emits: [
 		/**
 		 * Emitted with the assembled content blob on every field change.
+		 *
 		 * @event update:content
 		 * @type {object}
 		 */
@@ -151,11 +161,20 @@ export default {
 
 	computed: {
 		/** Aggregation metric options. */
-		metricOptions() { return ['count', 'sum', 'avg', 'min', 'max'] },
+		metricOptions() {
+			return ['count', 'sum', 'avg', 'min', 'max']
+		},
+
 		/** Which direction of change is "good" (green). */
-		directionOptions() { return ['up', 'down'] },
+		directionOptions() {
+			return ['up', 'down']
+		},
+
 		/** Number-format styles. */
-		formatOptions() { return ['number', 'currency', 'percent'] },
+		formatOptions() {
+			return ['number', 'currency', 'percent']
+		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {
@@ -190,6 +209,7 @@ export default {
 		async loadFields() {
 			this.availableFields = await fetchSchemaProperties(this.source.register, this.source.schema)
 		},
+
 		/**
 		 * Set a top-level field and emit.
 		 *
@@ -197,7 +217,11 @@ export default {
 		 * @param {string|number} value The new value for that key (`decimals` is numeric; the rest are strings).
 		 * @return {void}
 		 */
-		updateField(field, value) { this[field] = value; this.emitChange() },
+		updateField(field, value) {
+			this[field] = value
+			this.emitChange()
+		},
+
 		/**
 		 * Set a source sub-field and emit.
 		 *
@@ -205,7 +229,11 @@ export default {
 		 * @param {string} value The chosen register or schema slug.
 		 * @return {void}
 		 */
-		updateSource(field, value) { this.source[field] = value; this.emitChange() },
+		updateSource(field, value) {
+			this.source[field] = value
+			this.emitChange()
+		},
+
 		/**
 		 * Receive updated current-period filter rows.
 		 *
@@ -213,7 +241,11 @@ export default {
 		 *   full row list for the current period, serialised by `rowsToFilter()`.
 		 * @return {void}
 		 */
-		onCurrentRows(rows) { this.currentRows = rows; this.emitChange() },
+		onCurrentRows(rows) {
+			this.currentRows = rows
+			this.emitChange()
+		},
+
 		/**
 		 * Receive updated previous-period filter rows.
 		 *
@@ -221,11 +253,19 @@ export default {
 		 *   full row list for the comparison period, serialised by `rowsToFilter()`.
 		 * @return {void}
 		 */
-		onPreviousRows(rows) { this.previousRows = rows; this.emitChange() },
+		onPreviousRows(rows) {
+			this.previousRows = rows
+			this.emitChange()
+		},
+
 		/** Emit the assembled content. */
-		emitChange() { this.$emit('update:content', this.assembledContent) },
+		emitChange() {
+			this.$emit('update:content', this.assembledContent)
+		},
+
 		/**
 		 * Validate the form; an empty array means valid.
+		 *
 		 * @return {string[]} the validation errors.
 		 */
 		validate() {

@@ -15,9 +15,9 @@
  */
 
 import { createPinia, setActivePinia } from 'pinia'
-import { createObjectStore } from '../../../src/store/useObjectStore.js'
-import { liveUpdatesPlugin } from '../../../src/store/plugins/liveUpdates.js'
 import { resetLiveUpdates } from '../../../src/store/liveUpdates/transport.js'
+import { liveUpdatesPlugin } from '../../../src/store/plugins/liveUpdates.js'
+import { createObjectStore } from '../../../src/store/useObjectStore.js'
 
 // --- Mocks ---
 
@@ -210,7 +210,9 @@ describe('liveUpdatesPlugin', () => {
 			await store.subscribe('melding', 'uuid-sub')
 
 			let resolveFirst
-			const pending = new Promise((res) => { resolveFirst = res })
+			const pending = new Promise((res) => {
+				resolveFirst = res
+			})
 			global.fetch = jest.fn().mockReturnValue(pending.then(() => okJson({ id: 'uuid-abc', title: 'test' })))
 
 			// Three concurrent fetchObject calls
@@ -293,10 +295,10 @@ describe('liveUpdatesPlugin', () => {
 			await store.subscribe('melding', 'uuid-sub')
 
 			let resolve
-			const pending = new Promise((res) => { resolve = res })
-			global.fetch = jest.fn().mockReturnValue(
-				pending.then(() => okJson({ results: [], total: 0, page: 1, pages: 1 })),
-			)
+			const pending = new Promise((res) => {
+				resolve = res
+			})
+			global.fetch = jest.fn().mockReturnValue(pending.then(() => okJson({ results: [], total: 0, page: 1, pages: 1 })))
 
 			const params = { _limit: 10, _search: 'test' }
 			const p1 = store.fetchCollection('melding', params)
@@ -489,9 +491,7 @@ describe('liveUpdatesPlugin', () => {
 				schemaSlug: 'meldingen',
 			})
 			const handle = await store.subscribe('melding', undefined, subscribeOpts)
-			const call = mockListenFn.mock.calls.find(
-				(args) => args[0] === 'or-collection-zaken-meldingen',
-			)
+			const call = mockListenFn.mock.calls.find((args) => args[0] === 'or-collection-zaken-meldingen')
 			expect(call).toBeTruthy()
 			return { handle, fire: () => call[1]('or-collection-zaken-meldingen', {}) }
 		}

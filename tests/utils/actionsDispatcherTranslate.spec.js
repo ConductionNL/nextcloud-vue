@@ -13,8 +13,8 @@
  * before. Server-supplied error messages are DATA and are never translated.
  */
 
-import { showSuccess, showError } from '@nextcloud/dialogs'
 import axios from '@nextcloud/axios'
+import { showError, showSuccess } from '@nextcloud/dialogs'
 import { dispatchAction } from '../../src/utils/actionsDispatcher.js'
 
 jest.mock('@nextcloud/event-bus', () => ({

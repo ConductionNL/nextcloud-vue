@@ -6,8 +6,8 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
-import CnTextWidget from './CnTextWidget.vue'
 import CnTextWidgetForm from '../CnTextWidgetForm/CnTextWidgetForm.vue'
+import CnTextWidget from './CnTextWidget.vue'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 registerDashboardWidget('text', {

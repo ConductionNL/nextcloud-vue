@@ -10,7 +10,7 @@
  *  - amount + currency formatting when the row carries an amount.
  */
 
-const { mount } = require('@vue/test-utils')
+const { flushPromises, mount } = require('@vue/test-utils')
 const CnCospendTab = require('../CnCospendTab.vue').default
 
 const DEFAULT_PROPS = {
@@ -55,8 +55,7 @@ describe('CnCospendTab', () => {
 	it('renders the empty state with an "Open Costs" CTA when no rows', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnCospendTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('No costs linked yet')
 		expect(wrapper.text()).toContain('Open Costs')
 		wrapper.unmount()
@@ -69,8 +68,7 @@ describe('CnCospendTab', () => {
 			json: () => Promise.resolve({ results: [makeProject()] }),
 		})
 		const wrapper = mount(CnCospendTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Office trip')
 		expect(wrapper.text()).toContain('Project')
 		expect(wrapper.find('.cn-cospend-tab__type-chip--project').exists()).toBe(true)
@@ -84,8 +82,7 @@ describe('CnCospendTab', () => {
 			json: () => Promise.resolve({ results: [makeBill()] }),
 		})
 		const wrapper = mount(CnCospendTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Train ticket')
 		expect(wrapper.text()).toContain('Bill')
 		expect(wrapper.text()).toContain('42.50 EUR')
@@ -108,8 +105,7 @@ describe('CnCospendTab', () => {
 			}),
 		})
 		const wrapper = mount(CnCospendTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		const totals = wrapper.find('.cn-cospend-tab__totals')
 		expect(totals.exists()).toBe(true)
 		expect(totals.text()).toContain('Total')
@@ -124,8 +120,11 @@ describe('CnCospendTab', () => {
 			json: () => Promise.resolve({ results: [makeProject()] }),
 		})
 		const wrapper = mount(CnCospendTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
+		// Anchor the negative below: the row proves the fetch landed and the
+		// component rendered it, so an absent totals footer means it was
+		// omitted rather than not yet drawn.
+		expect(wrapper.find('.cn-cospend-tab__row').exists()).toBe(true)
 		expect(wrapper.find('.cn-cospend-tab__totals').exists()).toBe(false)
 		wrapper.unmount()
 	})
@@ -139,8 +138,7 @@ describe('CnCospendTab', () => {
 			json: () => Promise.resolve({ results: [{ id: 7, title: 'Legacy', data: { currency_name: 'EUR' } }] }),
 		})
 		const wrapper = mount(CnCospendTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.find('.cn-cospend-tab__type-chip--project').exists()).toBe(true)
 		expect(wrapper.text()).toContain('Legacy')
 		wrapper.unmount()
@@ -149,8 +147,7 @@ describe('CnCospendTab', () => {
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnCospendTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('NC Costs is currently unavailable.')
 		expect(wrapper.find('.cn-cospend-tab__row').exists()).toBe(false)
 		wrapper.unmount()
@@ -160,8 +157,7 @@ describe('CnCospendTab', () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnCospendTab, { propsData: { ...DEFAULT_PROPS } })
-		await wrapper.vm.$nextTick()
-		await wrapper.vm.$nextTick()
+		await flushPromises()
 		expect(wrapper.text()).toContain('Could not load costs.')
 		wrapper.unmount()
 		spy.mockRestore()

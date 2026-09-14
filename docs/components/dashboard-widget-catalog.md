@@ -32,9 +32,9 @@ at the `CnWidgetGrid` resolution boundary. See the
 [widget library overview](./cn-widget-grid.md) and
 `docs/architecture/cards-and-widgets.md`.
 
-Two further types — `kb-search` and `interaction-form` — are registered for the
-**detail-page** surface and so do not appear in the dashboard Add-widget picker.
-The `data` type is likewise detail-page only.
+Three further types, `kb-search`, `interaction-form` and `stages`, are registered
+for the **detail-page** surface and so do not appear in the dashboard Add-widget
+picker. The `data` type is likewise detail-page only.
 
 ---
 
@@ -159,15 +159,6 @@ supplied by the consuming app via `calendarsFetcher`) instead of free-text
 principal URIs; external ICS URLs must be `https://`.
 → [`CnCalendarWidget`](./cn-calendar-widget.md) · [`CnCalendarWidgetForm`](./cn-calendar-widget-form.md)
 
-### News · `news`
-
-![news widget rendering RSS headlines](/img/screenshots/widget-news.png)
-
-RSS/Atom news aggregator widget; items fetched via the consumer-supplied
-`itemsEndpoint`. The consuming app's backend fetches and parses the feed URLs
-stored in the placement `content`.
-→ [`CnNewsWidget`](./cn-news-widget.md) · [`CnNewsWidgetForm`](./cn-news-widget-form.md)
-
 ### Nextcloud widget · `nc-widget`
 
 ![nc-widget proxy rendering a native Nextcloud dashboard widget](/img/screenshots/widget-nc-widget.png)
@@ -241,6 +232,15 @@ Compact data table with a card wrapper, title header, and optional "View all" fo
 Supports external rows (`rows`) or self-fetch (`register` + `schemaId`). Shares the
 `object-list` sub-form.
 → [`CnTableWidget`](./cn-table-widget.md) · [`CnObjectListWidgetForm`](./cn-object-list-widget-form.md)
+
+### Stages · `stages`
+
+The stages a record moves through, read from an app endpoint or an OpenRegister
+query. Which of them can be reached comes from Open Register's lifecycle
+(`/available-actions`), and clicking one performs that transition. The same
+contract `CnLifecycleActions` renders as buttons. **Detail-page surface only**: it
+reads and moves the bound record, which only a detail page has.
+→ [`CnStagesWidget`](./cn-stages-widget.md) · [`CnStagesWidgetForm`](./cn-stages-widget-form.md) · [`CnLifecycleActions`](./cn-lifecycle-actions.md)
 
 ---
 

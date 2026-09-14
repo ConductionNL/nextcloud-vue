@@ -41,14 +41,22 @@ import { buildHeaders, prefixUrl } from './headers.js'
  * Normalise an assortment of likely response shapes into an article list:
  * a bare array, `{ results }`, `{ items }`, or `{ articles }`.
  *
- * @param {*} data The raw response body.
+ * @param {unknown} data The raw response body.
  * @return {Array<object>} The article list (possibly empty).
  */
 export function normaliseKbResults(data) {
-	if (Array.isArray(data)) return data
-	if (data && Array.isArray(data.results)) return data.results
-	if (data && Array.isArray(data.items)) return data.items
-	if (data && Array.isArray(data.articles)) return data.articles
+	if (Array.isArray(data)) {
+		return data
+	}
+	if (data && Array.isArray(data.results)) {
+		return data.results
+	}
+	if (data && Array.isArray(data.items)) {
+		return data.items
+	}
+	if (data && Array.isArray(data.articles)) {
+		return data.articles
+	}
 	return []
 }
 
@@ -77,14 +85,20 @@ export const defaultKbProvider = {
 		const params = new URLSearchParams()
 		params.set(queryParam, query)
 		params.set('limit', String(limit))
-		if (o.space) params.set('space', String(o.space))
+		if (o.space) {
+			params.set('space', String(o.space))
+		}
 		if (o.tags !== undefined && o.tags !== null && o.tags !== '') {
 			const tags = Array.isArray(o.tags) ? o.tags.join(',') : String(o.tags)
-			if (tags) params.set('tags', tags)
+			if (tags) {
+				params.set('tags', tags)
+			}
 		}
 		const url = prefixUrl(`${endpoint}?${params.toString()}`)
 		const response = await fetch(url, { headers: buildHeaders() })
-		if (!response.ok) throw new Error(`kb search returned ${response.status}`)
+		if (!response.ok) {
+			throw new Error(`kb search returned ${response.status}`)
+		}
 		const data = await response.json()
 		return normaliseKbResults(data)
 	},

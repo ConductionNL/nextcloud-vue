@@ -15,7 +15,7 @@
  * burst it invites: one write must not become a queue of overlapping reads.
  */
 
-import { shallowMount, flushPromises } from '@vue/test-utils'
+import { flushPromises, shallowMount } from '@vue/test-utils'
 
 // `mock`-prefixed so jest's hoisted factory may close over them.
 const mockGet = jest.fn()
@@ -95,7 +95,9 @@ describe('CnObjectListWidget — cn:page:refresh', () => {
 
 	it('does not stack a second read on top of one already in flight', async () => {
 		let release
-		const pending = new Promise((resolve) => { release = resolve })
+		const pending = new Promise((resolve) => {
+			release = resolve
+		})
 		mockGet.mockImplementation(() => pending)
 		const w = mountWidget()
 		// Let the lazy axios/router imports resolve so the mount fetch has

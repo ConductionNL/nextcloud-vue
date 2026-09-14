@@ -10,7 +10,6 @@
  */
 
 import { mount } from '@vue/test-utils'
-
 import CnReportsPage from '../../src/components/CnReportsPage/CnReportsPage.vue'
 
 /**

@@ -27,10 +27,10 @@
 
 'use strict'
 
+const { execFileSync } = require('child_process')
+const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
-const crypto = require('crypto')
-const { execFileSync } = require('child_process')
 
 const REPO_ROOT = path.resolve(__dirname, '..')
 const FLEET_ROOT = process.argv[2]
@@ -74,13 +74,13 @@ function main() {
 			try {
 				raw = execFileSync('git', ['-C', appDir, 'show', `${ref}:src/manifest.json`], { maxBuffer: 32 * 1024 * 1024 })
 				break
-			} catch (_) { /* try next ref */ }
+			} catch { /* try next ref */ }
 		}
 		if (raw === null) {
 			try {
 				raw = fs.readFileSync(manifestPath)
 				console.error(`  (note: ${app} — no origin/development|main blob, snapshotting working tree)`)
-			} catch (_) {
+			} catch {
 				continue
 			}
 		}

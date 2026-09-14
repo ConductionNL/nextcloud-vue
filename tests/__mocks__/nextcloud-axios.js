@@ -10,5 +10,16 @@
  */
 module.exports = {
 	__esModule: true,
-	default: { get: () => Promise.resolve({ status: 200, data: {} }) },
+	default: {
+		get: () => Promise.resolve({ status: 200, data: {} }),
+		/** PUTs made through the mock, for a test to read back; each is `{ url, options }`. */
+		__puts: [],
+		put(url, data, options) {
+			this.__puts.push({ url, options })
+			if (options && typeof options.onUploadProgress === 'function') {
+				options.onUploadProgress({ loaded: 1, total: 1 })
+			}
+			return Promise.resolve({ status: 201, data: '' })
+		},
+	},
 }

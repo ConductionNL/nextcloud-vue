@@ -3,9 +3,9 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
  */
 
-import { defineStore } from 'pinia'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { defineStore } from 'pinia'
 
 /**
  * The OpenRegister inbox read behind the `tasks` entity source.
@@ -28,7 +28,14 @@ export const FLOW_TASKS_URL = '/apps/openregister/api/flow-tasks'
  *
  * @type {string[]}
  */
-const ALLOWED_PARAMS = ['scope', 'state', 'priority', 'overdue', 'objectUuid', 'sort', 'limit', 'offset']
+// `isTerminal` is in the list because the SERVER has always accepted it
+// (`TaskController`: "'true'|'false' to restrict on terminality") and only
+// this allowlist withheld it. Without it an app cannot express "closed" or
+// "my open work" as a scope tab: dossiq's task lenses are
+// All / Mine / Unclaimed / Closed / Overdue, and two of those are exactly
+// this filter. Boolean-ish, like `overdue`, so it is stringified on the way
+// out.
+const ALLOWED_PARAMS = ['scope', 'state', 'isTerminal', 'priority', 'overdue', 'dueAfter', 'dueBefore', 'objectUuid', 'sort', 'limit', 'offset']
 
 /**
  * Internal Pinia store for the `tasks` index source (cn-tasks-entity-source).
@@ -78,7 +85,7 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 				}
 				// The endpoint reads `overdue` as a boolean-ish string; a quick
 				// filter authors it as `true` for legibility.
-				params[key] = (key === 'overdue') ? String(value) : value
+				params[key] = (key === 'overdue' || key === 'isTerminal') ? String(value) : value
 			}
 
 			this.loading = true
@@ -93,6 +100,7 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 				this.error = error?.message || String(error)
 				this.tasks = []
 				this.total = 0
+				// eslint-disable-next-line no-console
 				console.error('[useTaskInboxStore] Loading the task inbox failed', error)
 			} finally {
 				this.loading = false

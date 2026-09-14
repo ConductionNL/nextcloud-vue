@@ -4,4 +4,4 @@
 
 | Name       | Type                                                                     | Required | Default | Description                                                                                                               |
 | ---------- | ------------------------------------------------------------------------ | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `features` | `Array<{slug: string, title: string, summary: string, docsUrl: string}>` | ✓        | `[]`    | Array of feature objects to render. Sorted alphabetically by title (locale-aware, case-insensitive) inside the component. |
+| `features` | `Array<{slug: string, title: string, summary: string, docsUrl: string}>` |          | `[]`    | Array of feature objects to render. Sorted alphabetically by title (locale-aware, case-insensitive) inside the component. |

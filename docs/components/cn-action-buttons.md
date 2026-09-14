@@ -152,8 +152,44 @@ current record without extra wiring.
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `actions` | `Array` | `[]` | The declarative `headerActions[]` entries. |
+| `inline` | `Number` | `0` | How many collapsible actions stay as buttons; the rest fall into one `···` menu. `0` renders every action as a button (the pre-existing behaviour). |
+| `overflowLabel` | `String` | `''` | Name for the overflow menu. Empty falls back to a translated "Actions". |
 | `router` | `Object` | `null` | Explicit Vue Router for `navigate` / `onSuccessRoute` (falls back to `this.$router`). |
 | `display` | `String` | `'buttons'` | Where the actions are drawn. `buttons` puts one `NcButton` per action in the host's header. `menu` draws none and emits `entries` instead, so the host can render them inside an overflow menu while this component keeps owning the dialogs. |
+
+## Overflow and sub-actions
+
+`inline` caps how many actions stay visible as buttons. It defaults to `0`,
+meaning no cap — so a consumer that never sets it keeps every action as a
+button and no `···` menu is rendered at all.
+
+Three shapes are never collapsed, and never consume one of the N slots:
+
+| Shape | Why |
+|-------|-----|
+| `variant: "primary"` | `NcActions` paints all of its inline actions with one shared `variant`, so a single primary among them cannot be expressed. |
+| carries `children` | `NcActions` cannot nest another `NcActions`. |
+| `type: "toggle"` | Its state lives in its own button. |
+
+An action with `children[]` renders its own chevron dropdown beside its
+button — deliberately not folded into the page's one overflow menu, since a
+list that grows per record (app versions, say) would swamp it. Children take
+the same descriptor shape, including `visibleWhen`, and `childrenLabel` names
+the dropdown when the parent's own label is not what you want announced.
+
+```json
+{ "id": "open-app", "label": "Open app", "variant": "primary",
+  "type": "open-page", "target": "/apps/petstore",
+  "childrenLabel": "Open a version",
+  "children": [
+    { "id": "v-1-2", "label": "Open v1.2", "type": "open-page", "target": "/apps/petstore?v=1.2" }
+  ] }
+```
+
+A parent component composing entries in JS may set `onSelect` to a function
+instead of a dispatch `type`; it runs after the confirm gate like any
+dispatched action. Manifest JSON cannot carry a function, so the declarative
+path is unaffected — `CnDetailPage` uses it to fold its own Edit button in.
 
 ## Events
 

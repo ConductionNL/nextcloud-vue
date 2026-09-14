@@ -115,7 +115,9 @@ describe('CnPageRenderer — the halves ship together', () => {
 		const indexes = manifest.pages.filter((p) => p.type === 'index')
 		for (const idx of indexes) {
 			const props = mountAt(idx.id).vm.resolvedProps
-			if (!props.editOpensDetail) continue
+			if (!props.editOpensDetail) {
+				continue
+			}
 			const cfg = idx.config || {}
 			const target = cfg.rowRoute
 				|| manifest.pages.find((p) => p.type === 'detail' && (p.config || {}).register === cfg.register && (p.config || {}).schema === cfg.schema)?.id
@@ -123,7 +125,9 @@ describe('CnPageRenderer — the halves ship together', () => {
 			const targetPage = manifest.pages.find((p) => p.id === target)
 			// A custom row surface owns its own editing; only a type:"detail"
 			// page is the library's to wire.
-			if (targetPage.type !== 'detail') continue
+			if (targetPage.type !== 'detail') {
+				continue
+			}
 			expect(mountAt(target).vm.resolvedProps.showEditAction).toBe(true)
 		}
 	})

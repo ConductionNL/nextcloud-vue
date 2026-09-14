@@ -6,17 +6,17 @@
 <template>
 	<NcSelect
 		v-if="options.length"
-		:model-value="value"
+		:modelValue="value"
 		:options="options"
-		:input-label="label"
+		:inputLabel="label"
 		:clearable="clearable"
-		@update:model-value="$emit('update', $event || '')" />
+		@update:modelValue="$emit('update', $event || '')" />
 	<NcTextField
 		v-else
-		:model-value="value"
+		:modelValue="value"
 		:label="label"
 		:placeholder="placeholder"
-		@update:model-value="$emit('update', $event)" />
+		@update:modelValue="$emit('update', $event)" />
 </template>
 
 <script>
@@ -44,6 +44,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * The visible label for the control.
 		 *
@@ -53,6 +54,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Available field names (schema properties); empty falls back to text.
 		 *
@@ -62,6 +64,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Placeholder for the text fallback.
 		 *
@@ -71,6 +74,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Whether the dropdown may be cleared back to empty.
 		 *

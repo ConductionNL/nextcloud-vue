@@ -10,12 +10,16 @@
 
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
-
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
 /**
  * Build a minimal fake store cache that mimics the Pinia object-store
  * shape the page reads via `effectiveObjectStore.objects[type][id]`.
+ * @param {object} options The object to seed the cache with.
+ * @param {string} options.type The object type key.
+ * @param {string} options.id The object id.
+ * @param {object} options.obj The cached object.
+ * @return {object} The fake store.
  */
 function makeStore({ type, id, obj }) {
 	return {

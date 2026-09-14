@@ -74,13 +74,13 @@
 				:bold="hasUnread(room)"
 				:href="roomUrl(room)"
 				target="_blank"
-				:force-display-actions="true">
+				:forceDisplayActions="true">
 				<template #icon>
 					<NcAvatar
-						:display-name="roomTitle(room)"
+						:displayName="roomTitle(room)"
 						:size="40"
-						:is-no-user="true"
-						:show-user-status="false" />
+						:isNoUser="true"
+						hideStatus />
 				</template>
 				<template #subname>
 					<span class="cn-talk-tab__preview">{{ roomSubname(room) }}</span>
@@ -89,7 +89,7 @@
 					<NcDateTime
 						class="cn-talk-tab__time"
 						:timestamp="roomTimestamp(room)"
-						:relative-time="'short'" />
+						relativeTime="short" />
 				</template>
 				<template v-if="hasUnread(room)" #indicator>
 					<NcCounterBubble
@@ -100,13 +100,13 @@
 					</NcCounterBubble>
 				</template>
 				<template #actions>
-					<NcActionButton :close-after-click="true" @click="openRoom(room)">
+					<NcActionButton :closeAfterClick="true" @click="openRoom(room)">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
 						{{ t('nextcloud-vue', 'Open in Talk') }}
 					</NcActionButton>
-					<NcActionButton :close-after-click="true" @click="unlinkRoom(room)">
+					<NcActionButton :closeAfterClick="true" @click="unlinkRoom(room)">
 						<template #icon>
 							<Close :size="20" />
 						</template>
@@ -119,7 +119,7 @@
 		<!-- Picker + Create modals (mounted lazily) -->
 		<CnTalkRoomPicker
 			v-if="pickerOpen"
-			:api-base="apiBase"
+			:apiBase="apiBase"
 			@close="pickerOpen = false"
 			@link="onPickerLink" />
 
@@ -175,14 +175,23 @@ export default {
 	},
 
 	props: {
+		/** Stable integration id (matches the PHP-side provider id, always `talk`). */
 		integrationId: { type: String, default: 'talk' },
+		/** Parent object id. */
 		objectId: { type: String, required: true },
+		/** OpenRegister register id (slug or uuid). */
 		register: { type: String, default: '' },
+		/** OpenRegister schema id (slug or uuid). */
 		schema: { type: String, default: '' },
+		/** Base API URL for OpenRegister. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
+		/** Empty state shown when no conversation is linked yet. */
 		emptyLabel: { type: String, default: () => t('nextcloud-vue', 'No conversations linked yet') },
+		/** Label for the link that opens the conversation in Talk. */
 		openTalkLabel: { type: String, default: () => t('nextcloud-vue', 'Open Talk') },
+		/** Message shown when the Talk app cannot be reached. */
 		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'NC Talk is currently unavailable.') },
+		/** Base URL of the Talk app, used to build a conversation link. */
 		talkAppUrl: { type: String, default: '/index.php/apps/spreed' },
 	},
 
@@ -198,9 +207,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.fetchRooms() } } },
-		register() { this.fetchRooms() },
-		schema() { this.fetchRooms() },
+		objectId: { immediate: true, handler(id) {
+			if (id) {
+				this.fetchRooms()
+			}
+		} },
+
+		register() {
+			this.fetchRooms()
+		},
+
+		schema() {
+			this.fetchRooms()
+		},
 	},
 
 	methods: {
@@ -273,7 +292,7 @@ export default {
 				if (trimmed.charAt(0) === '{' || trimmed.charAt(0) === '[') {
 					try {
 						msg = JSON.parse(trimmed)
-					} catch (e) {
+					} catch {
 						return this.cleanPreview(trimmed)
 					}
 				} else {
@@ -400,6 +419,7 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not link the room.')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnTalkTab] link room failed', err)
 				this.error = t('nextcloud-vue', 'Could not link the room.')
 			}
@@ -419,6 +439,7 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not create the room.')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnTalkTab] create room failed', err)
 				this.error = t('nextcloud-vue', 'Could not create the room.')
 			}
@@ -440,6 +461,7 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not unlink the room.')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnTalkTab] unlink room failed', err)
 				this.error = t('nextcloud-vue', 'Could not unlink the room.')
 			}
@@ -466,6 +488,7 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not load conversations.')
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnTalkTab] failed to fetch rooms', err)
 				this.rooms = []
 				this.error = t('nextcloud-vue', 'Could not load conversations.')

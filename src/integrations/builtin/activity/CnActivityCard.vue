@@ -100,14 +100,14 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
-import CalendarOutline from 'vue-material-design-icons/CalendarOutline.vue'
-import Timeline from 'vue-material-design-icons/Timeline.vue'
-import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
+import CalendarClockOutline from 'vue-material-design-icons/CalendarClockOutline.vue'
+import CalendarOutline from 'vue-material-design-icons/CalendarOutline.vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
+import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
-import CalendarClockOutline from 'vue-material-design-icons/CalendarClockOutline.vue'
+import Timeline from 'vue-material-design-icons/Timeline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
@@ -151,6 +151,7 @@ export default {
 			default: 'detail-page',
 			validator: (s) => VALID_SURFACES.includes(s),
 		},
+
 		/** Optional single-entity reference (event id). */
 		value: { type: [String, Number], default: '' },
 		/** Pre-translated card title. */
@@ -233,9 +234,19 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler() { this.fetch() } },
-		surface() { this.fetch() },
-		value() { if (this.surface === 'single-entity') { this.fetchSingle() } },
+		objectId: { immediate: true, handler() {
+			this.fetch()
+		} },
+
+		surface() {
+			this.fetch()
+		},
+
+		value() {
+			if (this.surface === 'single-entity') {
+				this.fetchSingle()
+			}
+		},
 	},
 
 	methods: {
@@ -282,7 +293,7 @@ export default {
 			}
 			try {
 				return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
-			} catch (e) {
+			} catch {
 				return date.toISOString().split('T')[0]
 			}
 		},
@@ -294,7 +305,7 @@ export default {
 			}
 			try {
 				return ts.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-			} catch (e) {
+			} catch {
 				return ts.toISOString().split('T')[1].slice(0, 5)
 			}
 		},

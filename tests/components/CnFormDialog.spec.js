@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import CnFormDialog from '@/components/CnFormDialog/CnFormDialog.vue'
 
-const flushPromises = () => new Promise(resolve => setTimeout(resolve, 0))
+const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 const stubs = {
 	NcDialog: {
@@ -59,7 +59,7 @@ describe('CnFormDialog', () => {
 			propsData: { schema: testSchema, item: null },
 			stubs,
 		})
-		const field = wrapper.vm.resolvedFields.find(f => f.key === 'status')
+		const field = wrapper.vm.resolvedFields.find((f) => f.key === 'status')
 		const options = wrapper.vm.getEnumOptions(field)
 		expect(options).toEqual([
 			{ id: 'draft', label: 'draft' },
@@ -72,7 +72,7 @@ describe('CnFormDialog', () => {
 			propsData: { schema: testSchema, item: null },
 			stubs,
 		})
-		const field = wrapper.vm.resolvedFields.find(f => f.key === 'status')
+		const field = wrapper.vm.resolvedFields.find((f) => f.key === 'status')
 		wrapper.vm.onEffectiveSelectChange(field, { id: 'published', label: 'published' })
 		expect(wrapper.vm.formData.status).toBe('published')
 	})
@@ -171,7 +171,9 @@ describe('CnFormDialog', () => {
 
 	it('isFieldLoading returns true while async enum is pending', async () => {
 		let resolveEnum
-		const enumFn = jest.fn().mockImplementation(() => new Promise(r => { resolveEnum = r }))
+		const enumFn = jest.fn().mockImplementation(() => new Promise((r) => {
+			resolveEnum = r
+		}))
 
 		const wrapper = mount(CnFormDialog, {
 			propsData: {
@@ -345,7 +347,7 @@ describe('CnFormDialog', () => {
 			propsData: { schema: testSchema, item: null },
 			stubs,
 		})
-		const field = wrapper.vm.resolvedFields.find(f => f.key === 'status')
+		const field = wrapper.vm.resolvedFields.find((f) => f.key === 'status')
 		const options = wrapper.vm.getEffectiveOptions(field)
 		expect(options).toEqual([
 			{ id: 'draft', label: 'draft' },
@@ -539,7 +541,7 @@ describe('CnFormDialog', () => {
 		// Nothing selected yet → submit disabled.
 		expect(wrapper.vm.requiredFieldsFilled).toBe(false)
 
-		const field = wrapper.vm.resolvedFields.find(f => f.key === 'meetingType')
+		const field = wrapper.vm.resolvedFields.find((f) => f.key === 'meetingType')
 		// Simulate the NcSelect @input firing with the chosen option object.
 		wrapper.vm.onEffectiveSelectChange(field, { id: 'special', label: 'special' })
 
@@ -553,11 +555,11 @@ describe('CnFormDialog', () => {
 			properties: { mode: { type: 'string', title: 'Mode', enum: ['in-person', 'remote'] } },
 		}
 		const wrapper = mount(CnFormDialog, { propsData: { schema, item: { mode: 'remote' } }, stubs })
-		const field = wrapper.vm.resolvedFields.find(f => f.key === 'mode')
+		const field = wrapper.vm.resolvedFields.find((f) => f.key === 'mode')
 		const options = wrapper.vm.getEnumOptions(field)
 		const selected = wrapper.vm.getSelectedEnumOption(field)
 		// Identity match — must be the very object from the option list.
-		expect(selected).toBe(options.find(o => o.id === 'remote'))
+		expect(selected).toBe(options.find((o) => o.id === 'remote'))
 	})
 
 	// === BUG 2a: edit dialog accepts persisted (space-separated) date-time ===
@@ -702,8 +704,8 @@ describe('CnFormDialog', () => {
 })
 
 describe('CnFormDialog — referenceType (pluggable integration registry)', () => {
-	const { integrations } = require('@/integrations/registry.js')
 	const { h } = require('vue')
+	const { integrations } = require('@/integrations/registry.js')
 
 	const ContactEntityWidget = {
 		name: 'ContactEntityWidget',
@@ -712,7 +714,9 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 			return h('div', { class: 'contact-entity-widget' }, `${this.surface}|${this.value || ''}`)
 		},
 	}
-	const RegistryTab = { name: 'RegistryTab', render() { return h('div') } }
+	const RegistryTab = { name: 'RegistryTab', render() {
+		return h('div')
+	} }
 
 	const refSchema = {
 		title: 'Lead',
@@ -786,7 +790,7 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 				propsData: { fields: conditionFields, item: { jobClass: 'PingAction' } },
 				stubs,
 			})
-			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['jobClass'])
+			expect(wrapper.vm.visibleFields.map((f) => f.key)).toEqual(['jobClass'])
 		})
 
 		it('shows a field whose equals predicate matches', () => {
@@ -794,7 +798,7 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 				propsData: { fields: conditionFields, item: { jobClass: 'SyncAction' } },
 				stubs,
 			})
-			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['jobClass', 'arguments', 'syncId'])
+			expect(wrapper.vm.visibleFields.map((f) => f.key)).toEqual(['jobClass', 'arguments', 'syncId'])
 		})
 
 		it('clears form-data for fields that transition visible → hidden', async () => {
@@ -805,8 +809,8 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 			expect(wrapper.vm.formData.arguments).toEqual({ a: 1 })
 			wrapper.vm.updateField('jobClass', 'PingAction')
 			await wrapper.vm.$nextTick()
-			expect(Object.prototype.hasOwnProperty.call(wrapper.vm.formData, 'arguments')).toBe(false)
-			expect(Object.prototype.hasOwnProperty.call(wrapper.vm.formData, 'syncId')).toBe(false)
+			expect(Object.hasOwn(wrapper.vm.formData, 'arguments')).toBe(false)
+			expect(Object.hasOwn(wrapper.vm.formData, 'syncId')).toBe(false)
 		})
 
 		it('skips hidden required fields in requiredFieldsFilled', () => {
@@ -833,9 +837,9 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 				{ key: 'note', widget: 'text', condition: { field: 'mode', notEquals: 'a' } },
 			]
 			const wrapper = mount(CnFormDialog, { propsData: { fields, item: { mode: 'a' } }, stubs })
-			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['mode'])
+			expect(wrapper.vm.visibleFields.map((f) => f.key)).toEqual(['mode'])
 			wrapper.vm.updateField('mode', 'b')
-			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['mode', 'note'])
+			expect(wrapper.vm.visibleFields.map((f) => f.key)).toEqual(['mode', 'note'])
 		})
 
 		it('supports in / notIn predicates', () => {
@@ -845,10 +849,10 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 				{ key: 'guestOpts', widget: 'text', condition: { field: 'role', notIn: ['admin'] } },
 			]
 			const wrapper = mount(CnFormDialog, { propsData: { fields, item: { role: 'admin' } }, stubs })
-			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['role', 'adminOpts'])
+			expect(wrapper.vm.visibleFields.map((f) => f.key)).toEqual(['role', 'adminOpts'])
 			wrapper.vm.updateField('role', 'viewer')
 			// adminOpts hides (viewer ∉ [admin, editor]) and guestOpts shows (viewer ∉ [admin])
-			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['role', 'guestOpts'])
+			expect(wrapper.vm.visibleFields.map((f) => f.key)).toEqual(['role', 'guestOpts'])
 		})
 
 		it('supports truthy / falsy predicates', () => {
@@ -858,9 +862,9 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 				{ key: 'altReason', widget: 'text', condition: { field: 'optIn', falsy: true } },
 			]
 			const wrapper = mount(CnFormDialog, { propsData: { fields, item: { optIn: false } }, stubs })
-			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['optIn', 'altReason'])
+			expect(wrapper.vm.visibleFields.map((f) => f.key)).toEqual(['optIn', 'altReason'])
 			wrapper.vm.updateField('optIn', true)
-			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['optIn', 'reason'])
+			expect(wrapper.vm.visibleFields.map((f) => f.key)).toEqual(['optIn', 'reason'])
 		})
 
 		it('accepts the visibleWhen alias', () => {
@@ -869,7 +873,7 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 				{ key: 'note', widget: 'text', visibleWhen: { field: 'mode', equals: 'b' } },
 			]
 			const wrapper = mount(CnFormDialog, { propsData: { fields, item: { mode: 'b' } }, stubs })
-			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['mode', 'note'])
+			expect(wrapper.vm.visibleFields.map((f) => f.key)).toEqual(['mode', 'note'])
 		})
 
 		it('keeps the field visible (and warns) when condition has no recognised predicate', () => {
@@ -879,7 +883,7 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 				{ key: 'note', widget: 'text', condition: { field: 'mode' } },
 			]
 			const wrapper = mount(CnFormDialog, { propsData: { fields, item: { mode: 'x' } }, stubs })
-			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['mode', 'note'])
+			expect(wrapper.vm.visibleFields.map((f) => f.key)).toEqual(['mode', 'note'])
 			expect(spy).toHaveBeenCalled()
 			spy.mockRestore()
 		})

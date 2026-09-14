@@ -8,7 +8,6 @@
 
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
-
 import CnDetailGrid from '../../src/components/CnDetailGrid/CnDetailGrid.vue'
 
 describe('CnDetailGrid — translation-aware surfacing', () => {

@@ -62,7 +62,9 @@ describe('CnDataTable — plain click (single-sort regression)', () => {
 		const wrapper = mountTable({ sortKeys: [{ key: 'name', order: 'asc' }, { key: 'createdAt', order: 'desc' }] })
 		await headerFor(wrapper, 'Status').trigger('click')
 		expect(wrapper.emitted('sort')[0][0]).toEqual({
-			key: 'status', order: 'asc', keys: [{ key: 'status', order: 'asc' }],
+			key: 'status',
+			order: 'asc',
+			keys: [{ key: 'status', order: 'asc' }],
 		})
 	})
 })

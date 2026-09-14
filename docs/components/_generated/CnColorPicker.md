@@ -14,3 +14,4 @@
 | Name    | Payload | Description                                                                                                |
 | ------- | ------- | ---------------------------------------------------------------------------------------------------------- |
 | `clear` | —       | Emitted when the user presses the inline clear (×) button. No payload — the parent clears the bound value. |
+| `input` | —       | Payload: vue-color colour object `{ hex, hex8, rgba, hsl, hsv, a, source }`.                               |

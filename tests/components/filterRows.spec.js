@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  */
-import { rowsToFilter, filterToRows } from '../../src/components/CnFilterRowsEditor/filterRows.js'
+import { filterToRows, rowsToFilter } from '../../src/components/CnFilterRowsEditor/filterRows.js'
 
 describe('filterRows', () => {
 	it('serialises an equality row to a bare filter value', () => {

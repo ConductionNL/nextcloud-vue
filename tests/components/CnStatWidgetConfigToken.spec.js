@@ -21,7 +21,6 @@ jest.mock('@nextcloud/router', () => ({
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { mount } from '@vue/test-utils'
-
 import CnStatWidget from '../../src/components/CnStatWidget/CnStatWidget.vue'
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))

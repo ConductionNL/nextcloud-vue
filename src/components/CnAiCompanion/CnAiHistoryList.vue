@@ -26,11 +26,11 @@
 		<NcTextField
 			v-if="searchable"
 			class="cn-ai-history-list__search"
-			:model-value="searchQuery"
+			:modelValue="searchQuery"
 			:label="cnTranslate('Search conversations')"
 			:placeholder="cnTranslate('Search by name or description')"
 			data-testid="cn-ai-history-list-search"
-			@update:model-value="searchQuery = $event" />
+			@update:modelValue="searchQuery = $event" />
 
 		<div v-if="loading" class="cn-ai-history-list__loading" data-testid="cn-ai-history-list-loading">
 			<NcLoadingIcon :size="32" />
@@ -57,19 +57,19 @@
 			<li
 				v-for="conv in filteredConversations"
 				:key="conv.uuid"
+				class="cn-ai-history-list__item"
 				:class="[
-					'cn-ai-history-list__item',
 					{ 'cn-ai-history-list__item--active': conv.uuid === activeConversationUuid },
 				]">
 				<div v-if="editingUuid === conv.uuid" class="cn-ai-history-list__edit" data-testid="cn-ai-history-list-edit">
 					<NcTextField
-						:model-value="editTitle"
+						:modelValue="editTitle"
 						:label="cnTranslate('Name')"
-						@update:model-value="editTitle = $event" />
+						@update:modelValue="editTitle = $event" />
 					<NcTextField
-						:model-value="editDescription"
+						:modelValue="editDescription"
 						:label="cnTranslate('Description')"
-						@update:model-value="editDescription = $event" />
+						@update:modelValue="editDescription = $event" />
 					<div class="cn-ai-history-list__edit-actions">
 						<NcButton variant="primary" :disabled="saving" @click="saveEdit(conv)">
 							{{ cnTranslate('Save') }}
@@ -104,12 +104,12 @@
 </template>
 
 <script>
-import { NcTextField, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
+import { NcButton, NcEmptyContent, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
-import { DEFAULT_CHAT_APP_ID, conversationUrl } from '../../composables/aiChatConfig.js'
+import { conversationUrl, DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 
 export default {
 	name: 'CnAiHistoryList',
@@ -134,26 +134,31 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Whether the parent's conversation fetch is still in flight. */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether the parent's conversation fetch failed. */
 		fetchError: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** UUID of the currently active conversation (for the active-row indicator). */
 		activeConversationUuid: {
 			type: String,
 			default: null,
 		},
+
 		/** Backend app id the rename/describe PATCH resolves against. */
 		chatAppId: {
 			type: String,
 			default: DEFAULT_CHAT_APP_ID,
 		},
+
 		/** Whether to show the name/description search field. */
 		searchable: {
 			type: Boolean,
@@ -230,7 +235,9 @@ export default {
 		},
 
 		formatRelative(dateStr) {
-			if (!dateStr) return ''
+			if (!dateStr) {
+				return ''
+			}
 			try {
 				const date = new Date(dateStr)
 				const now = new Date()
@@ -238,9 +245,15 @@ export default {
 				const diffMinutes = Math.floor(diffMs / 60000)
 				const diffHours = Math.floor(diffMinutes / 60)
 				const diffDays = Math.floor(diffHours / 24)
-				if (diffMinutes < 2) return 'just now'
-				if (diffMinutes < 60) return `${diffMinutes}m ago`
-				if (diffHours < 24) return `${diffHours}h ago`
+				if (diffMinutes < 2) {
+					return 'just now'
+				}
+				if (diffMinutes < 60) {
+					return `${diffMinutes}m ago`
+				}
+				if (diffHours < 24) {
+					return `${diffHours}h ago`
+				}
 				return `${diffDays}d ago`
 			} catch {
 				return ''

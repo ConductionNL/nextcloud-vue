@@ -11,18 +11,32 @@
 	<div
 		class="cn-widget-wrapper"
 		:class="{
-			'cn-widget-wrapper--borderless': borderless,
-			'cn-widget-wrapper--flush': flush,
+			'cn-widget-wrapper--borderless': noBorder,
+			'cn-widget-wrapper--flush': noPadding,
+			'cn-widget-wrapper--chromeless': chromeless,
 			'cn-widget-wrapper--nc-dashboard': chrome === 'nc-dashboard',
 		}"
 		:style="wrapperStyles">
-		<!-- Header -->
-		<div v-if="showTitle" class="cn-widget-wrapper__header" :style="[headerStyles, titleIconStyle]">
+		<!-- Header.
+		     Rendered when a title earns it, or when controls that are actually
+		     on screen need a home. Three conditions rather than one, and each of
+		     the three is a bug this component has already shipped: gating on the
+		     title alone took the Save button for an inline edit away along with
+		     the doubled title; reading `showActions`, which defaults to true,
+		     handed a header to every headerless KPI tile; and reading the
+		     `actions` slot's mere PRESENCE gave a chromeless panel a 59px band
+		     holding nothing, because `CnObjectDataWidget` provides that template
+		     always and fills it only while an edit is unsaved.
+		     `headerIsWorthIt()` carries the reasoning. -->
+		<div v-if="headerIsWorthIt()"
+			class="cn-widget-wrapper__header"
+			:class="{ 'cn-widget-wrapper__header--actions-only': !titleVisible }"
+			:style="[headerStyles, titleIconStyle]">
 			<!-- Title icon — left: rendered before the title group. Moved
 			     INSIDE header-left so the header's `space-between` cannot pull
 			     it away from the title it belongs to; header-left's `gap` is
 			     what now separates icon from title (they used to touch). -->
-			<div class="cn-widget-wrapper__header-left">
+			<div v-if="titleVisible" class="cn-widget-wrapper__header-left">
 				<div v-if="$slots['title-icon'] && titleIconPosition === 'left'"
 					class="cn-widget-wrapper__title-icon">
 					<slot name="title-icon" />
@@ -49,31 +63,35 @@
 					<slot name="title-meta" />
 				</div>
 			</div>
-			<div v-if="showActions" class="cn-widget-wrapper__actions">
+			<!-- `showActions` gates the overflow MENU, not the slot beside it.
+			     It used to gate both, so a caller who switched the menu off
+			     also lost the Save button for an inline edit, silently. -->
+			<div v-if="actionsAreVisible()" class="cn-widget-wrapper__actions">
 				<!-- @slot actions Custom action buttons rendered before the
 				     built-in overflow menu. -->
 				<slot name="actions" />
 				<CnActionsMenu
-					:show-refresh="effectiveShowRefresh"
-					:show-request-feature="effectiveShowRequestFeature"
-					:show-report-bug="showReportBug"
-					:show-documentation="showDocumentation"
-					:documentation-url="documentationUrl"
-					:docs-anchor="docsAnchor"
-					:report-bug-url="reportBugUrl"
-					:documentation-label="documentationLabel"
-					:refresh-label="refreshLabel"
-					:request-feature-label="requestFeatureLabel"
-					:actions-menu-label="actionsMenuLabel"
+					v-if="showActions"
+					:showRefresh="effectiveShowRefresh"
+					:showRequestFeature="effectiveShowRequestFeature"
+					:showReportBug="showReportBug"
+					:showDocumentation="showDocumentation"
+					:documentationUrl="documentationUrl"
+					:docsAnchor="docsAnchor"
+					:reportBugUrl="reportBugUrl"
+					:documentationLabel="documentationLabel"
+					:refreshLabel="refreshLabel"
+					:requestFeatureLabel="requestFeatureLabel"
+					:actionsMenuLabel="actionsMenuLabel"
 					:refreshing="refreshing"
-					:widget-id="resolvedWidgetId"
+					:widgetId="resolvedWidgetId"
 					:title="displayTitle"
 					:surface="`widget:${resolvedWidgetId}`"
-					:spec-ref="specRef"
-					refresh-channel="cn:widget:refresh"
-					testid-base="cn-widget-wrapper"
+					:specRef="specRef"
+					refreshChannel="cn:widget:refresh"
+					testidBase="cn-widget-wrapper"
 					@refresh="onActionsRefresh"
-					@request-feature="onActionsRequestFeature">
+					@requestFeature="onActionsRequestFeature">
 					<!-- @slot action-items Additional NcActionButton-family
 					     items rendered inside the overflow menu, after the
 					     built-in Refresh / Documentation / Request-a-feature
@@ -96,7 +114,7 @@
 		     compact flush KPI tile can carry a date-range chip without growing a
 		     full header bar. -->
 		<div
-			v-if="!showTitle && $slots['title-meta']"
+			v-if="!titleVisible && $slots['title-meta']"
 			class="cn-widget-wrapper__floating-meta">
 			<slot name="title-meta" />
 		</div>
@@ -115,8 +133,8 @@
 			class="cn-widget-wrapper__content"
 			tabindex="0"
 			role="region"
-			:aria-labelledby="showTitle ? titleId : null"
-			:aria-label="showTitle ? null : resolvedTitle">
+			:aria-labelledby="titleVisible ? titleId : null"
+			:aria-label="titleVisible ? null : resolvedTitle">
 			<slot />
 		</div>
 
@@ -137,6 +155,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { slotRenders } from '../../utils/slotContent.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
 /**
@@ -201,11 +220,13 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Widget'),
 		},
+
 		/** Whether to show the header with title */
 		showTitle: {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Chrome variant for the wrapper card.
 		 * - `'default'` — the library's own card chrome (opaque background,
@@ -225,6 +246,7 @@ export default {
 			default: 'default',
 			validator: (v) => ['default', 'nc-dashboard'].includes(v),
 		},
+
 		/**
 		 * Remove border and background — makes the wrapper transparent.
 		 * Useful for widgets that are self-contained cards (e.g. CnStatsBlock).
@@ -233,6 +255,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Remove content padding — allows content to go edge-to-edge.
 		 * Useful for list-style widgets where items should span the full width.
@@ -241,16 +264,47 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * Draw NO card of this widget's own: no border, no background, no
+		 * content padding, no title row and no header divider. For a surface
+		 * that already supplies the card and the heading — a tab panel being
+		 * the case that matters, where a nested card repeats both.
+		 *
+		 * The wrapper ELEMENT still renders. That is the contract, not an
+		 * oversight: `CnObjectDataWidget` measures its overflow against
+		 * `.cn-widget-wrapper__content` (`closest()` plus a ResizeObserver on
+		 * that node), `src/css/table.css` gives a table inside it its
+		 * edge-to-edge treatment, and `src/css/detail-page.css` and
+		 * `dashboard.css` size their content areas through it. Dropping the
+		 * node would take all of that out silently — `closest()` returning
+		 * null reads as "nothing overflows", never as an error.
+		 *
+		 * Controls in the `actions` slot are NOT chrome and keep their header:
+		 * the Save button that commits an inline edit lives there, and a panel
+		 * that hides it is silently unsaveable.
+		 *
+		 * `chromeless` is what an integration provider already asks for through
+		 * `CnDetailWidgetHost` (`bareWidget`), so this is the same word for the
+		 * same thing on every path into the wrapper.
+		 */
+		chromeless: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Icon URL (image) */
 		iconUrl: {
 			type: String,
 			default: null,
 		},
+
 		/** Icon CSS class (e.g., Nextcloud icon class) */
 		iconClass: {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * Position of the title-icon slot in the header.
 		 * 'left' places it before the title; 'right' places it after the actions.
@@ -260,6 +314,7 @@ export default {
 			default: 'right',
 			validator: (v) => ['left', 'right'].includes(v),
 		},
+
 		/**
 		 * Explicit CSS colour for the header icon. Overrides `titleIconVariant`.
 		 * Must be a CSS custom property or a theme token — never a literal hex
@@ -272,6 +327,7 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * Semantic colour for the header icon. Every widget's icon is
 		 * coloured — `primary` (the theme colour) is the default, and a
@@ -286,11 +342,13 @@ export default {
 			default: 'primary',
 			validator: (v) => ['primary', 'success', 'warning', 'error', 'info', 'neutral'].includes(v),
 		},
+
 		/** Footer action buttons: [{ text, link }] */
 		buttons: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Whether the header's overflow action menu (Refresh / Documentation /
 		 * Request-a-feature + any `#action-items`) renders. Shown by default;
@@ -301,14 +359,17 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Style configuration for the wrapper.
+		 *
 		 * @type {{ backgroundColor: string, borderStyle: string, borderWidth: number, borderColor: string, borderRadius: number, padding: { top: number, right: number, bottom: number, left: number } }}
 		 */
 		styleConfig: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Hide the built-in Refresh item from the overflow action menu.
 		 * The Refresh item is shown by default — set this when the widget
@@ -319,6 +380,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Hide the built-in Request-a-feature item from the overflow
 		 * action menu. Shown by default; set when the consuming app has
@@ -329,6 +391,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Whether to show the built-in Refresh item. Tri-state:
 		 * - `true` / `false` — force the action on or off.
@@ -348,6 +411,7 @@ export default {
 			type: Boolean,
 			default: null,
 		},
+
 		/**
 		 * Inverse of `hideRequestFeature`. Defaults to `true` so the
 		 * action renders. Set `:show-request-feature="false"` to hide it.
@@ -359,6 +423,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Whether the built-in "Report a bug" item renders. On by default —
 		 * the trio Request a feature / Report a bug / Documentation is the
@@ -371,6 +436,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Whether the built-in "Documentation" item renders. On by default,
 		 * for the same reason as `showReportBug`. The item's target is
@@ -383,6 +449,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Explicit documentation link for this widget, opened in a new tab.
 		 * Usually unnecessary: leave it empty and set `docsAnchor` instead,
@@ -395,6 +462,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional pre-translated label for the Documentation action.
 		 * Defaults to the lib's translation of "Documentation".
@@ -403,6 +471,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Documentation'),
 		},
+
 		/**
 		 * Widget id for the built-in default Refresh / Request-a-feature
 		 * handlers (B2). Forwarded as the `surface: "widget:<id>"` value
@@ -418,6 +487,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * This widget's own section in the app's documentation, appended to
 		 * the app-wide documentation base URL (provided by CnAppRoot) to build
@@ -431,6 +501,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Explicit "Report a bug" target for the Actions menu. Empty (the
 		 * default) builds a new-issue deep-link on the app's own forge.
@@ -441,6 +512,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional `specRef` slug, forwarded to the Actions menu. Accepted
 		 * for backward compatibility with the removed in-product suggestion
@@ -452,6 +524,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Whether a refresh is currently in flight. When bound by the host
 		 * (e.g. `:refreshing="loading"` around its refetch), the Refresh
@@ -464,6 +537,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Optional pre-translated label for the Refresh action. Defaults
 		 * to the lib's translation of "Refresh" so callers usually don't
@@ -473,6 +547,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Refresh'),
 		},
+
 		/**
 		 * Optional pre-translated label for the Request-a-feature action.
 		 * Defaults to the lib's translation of "Request a feature".
@@ -481,6 +556,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Request a feature'),
 		},
+
 		/**
 		 * Pre-translated aria-label / tooltip for the overflow menu
 		 * trigger. Defaults to "Actions".
@@ -489,6 +565,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Actions'),
 		},
+
 		/**
 		 * Translate function. Falls back to the injected `cnTranslate`,
 		 * which itself defaults to an identity function.
@@ -578,12 +655,17 @@ export default {
 		 * @return {boolean}
 		 */
 		effectiveShowRefresh() {
-			if (this.hideRefresh) return false
-			if (this.showRefresh !== null) return this.showRefresh
+			if (this.hideRefresh) {
+				return false
+			}
+			if (this.showRefresh !== null) {
+				return this.showRefresh
+			}
 			// `$.vnode.props`, not `$attrs`: `refresh` is a declared emit, and
 			// Vue keeps declared emits out of `$attrs`.
 			return Boolean(this.$.vnode.props?.onRefresh)
 		},
+
 		/**
 		 * Effective Request-a-feature visibility — same OR-of-opt-outs
 		 * pattern as `effectiveShowRefresh`.
@@ -604,7 +686,9 @@ export default {
 		 * @return {string}
 		 */
 		resolvedWidgetId() {
-			if (this.widgetId) return this.widgetId
+			if (this.widgetId) {
+				return this.widgetId
+			}
 			return this.displayTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 		},
 
@@ -619,6 +703,59 @@ export default {
 		 */
 		hasActionItemsSlot() {
 			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
+		},
+
+		/**
+		 * Whether the caller put controls in the `actions` slot.
+		 *
+		 * Gates the header together with `showTitle`, so a surface that wants no
+		 * title still keeps controls that have nowhere else to go — the Save
+		 * button `CnObjectDataWidget` renders there being the case that matters.
+		 *
+		 * Deliberately NOT `showActions`: that prop defaults to true and governs
+		 * the overflow menu, so reading it here would give a header to every
+		 * headerless KPI tile that never had one.
+		 *
+		 * @return {boolean} true when the slot is filled.
+		 */
+		hasActionsSlot() {
+			return Boolean(this.$slots.actions)
+		},
+
+		/**
+		 * Whether the card outline is drawn. `chromeless` implies `borderless`
+		 * so a caller names the intent once instead of remembering the three
+		 * props it decomposes into.
+		 *
+		 * @return {boolean} true when border and background are suppressed.
+		 */
+		noBorder() {
+			return this.borderless || this.chromeless
+		},
+
+		/**
+		 * Whether the content area goes edge to edge. `chromeless` implies
+		 * `flush` for the same reason as `noBorder`.
+		 *
+		 * @return {boolean} true when content padding is suppressed.
+		 */
+		noPadding() {
+			return this.flush || this.chromeless
+		},
+
+		/**
+		 * Whether the title row renders. `chromeless` overrides `showTitle`,
+		 * which defaults to true: a surface that already names the widget must
+		 * not have to also remember to turn the title off.
+		 *
+		 * Read everywhere the template used to read `showTitle` directly,
+		 * including the two ARIA bindings on the content region — a hidden
+		 * title cannot be the region's `aria-labelledby` target.
+		 *
+		 * @return {boolean} true when the header's title group renders.
+		 */
+		titleVisible() {
+			return this.showTitle && !this.chromeless
 		},
 
 		wrapperStyles() {
@@ -670,13 +807,72 @@ export default {
 
 	methods: {
 		/**
+		 * Whether the `actions` slot renders anything a reader can see.
+		 *
+		 * `CnObjectDataWidget` always PROVIDES the template and fills it only
+		 * while an edit is unsaved, so the slot has to be called and its vnodes
+		 * inspected. Reading `$slots.actions` as a boolean counts the template
+		 * itself as content, which is what gave a titleless tab panel a 59px
+		 * band holding nothing but a second Actions menu.
+		 *
+		 * A method rather than a computed on purpose. The answer changes when the
+		 * PARENT's state changes, and a computed reading `$slots` does not
+		 * re-track that; a method re-runs on every render, and a slot whose
+		 * content depends on parent state already forces this component to
+		 * re-render.
+		 *
+		 * @return {boolean} True when the slot yields visible content.
+		 */
+		actionsSlotRenders() {
+			return slotRenders(this.$slots.actions)
+		},
+
+		/**
+		 * Whether the header band is worth the vertical space it costs.
+		 *
+		 * A VISIBLE title always earns it, which `chromeless` rules out. Otherwise
+		 * it is earned by controls that are actually on screen: content in the
+		 * `actions` slot, or the overflow menu when a caller both asked for it and
+		 * provided the slot it sits beside.
+		 *
+		 * That last clause looks redundant and is not. `showActions` defaults to
+		 * TRUE, so reading it alone hands a header to every headerless KPI tile
+		 * in the fleet, which is what the floating title-meta test caught when
+		 * this was first written the short way.
+		 *
+		 * @return {boolean} True when the header should render.
+		 */
+		headerIsWorthIt() {
+			if (this.titleVisible) {
+				return true
+			}
+			if (this.actionsSlotRenders()) {
+				return true
+			}
+			return this.showActions && this.hasActionsSlot
+		},
+
+		/**
+		 * Whether the actions group holds anything.
+		 *
+		 * The overflow menu and the slot beside it are separate conditions now.
+		 * `showActions` used to gate both, so a caller who only wanted the menu
+		 * gone also lost the button that commits an inline edit.
+		 *
+		 * @return {boolean} True when the group would hold a visible control.
+		 */
+		actionsAreVisible() {
+			return this.showActions || this.actionsSlotRenders()
+		},
+
+		/**
 		 * Re-emit the shared CnActionsMenu `@refresh` to the host, passing
 		 * the synthetic event through unchanged so a host listener can
 		 * still `preventDefault()` the built-in default (event-bus emit on
 		 * `cn:widget:refresh`).
 		 *
 		 * @param {{ widgetId: string, title: string }} payload Action payload.
-		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @param {{ defaultPrevented: boolean, preventDefault: () => void }} ev Synthetic event.
 		 * @return {void}
 		 */
 		onActionsRefresh(payload, ev) {
@@ -697,7 +893,7 @@ export default {
 		 * feature-request issue form).
 		 *
 		 * @param {{ widgetId: string, title: string }} payload Action payload.
-		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @param {{ defaultPrevented: boolean, preventDefault: () => void }} ev Synthetic event.
 		 * @return {void}
 		 */
 		onActionsRequestFeature(payload, ev) {
@@ -776,6 +972,17 @@ export default {
 	padding: 0;
 }
 
+/* `chromeless` — border and background are already gone through borderless,
+   and the content padding through flush. What is left on the root is the
+   corner radius, which still clips: with `overflow: hidden` above, a child
+   that paints its own background (a table header) gets rounded corners inside
+   a square panel, which is the last visible piece of a card that is supposed
+   to be absent. `CnDetailCard.cn-detail-card--chromeless` zeroes the same
+   thing for the same reason. */
+.cn-widget-wrapper--chromeless {
+	border-radius: 0;
+}
+
 /*
  * `chrome="nc-dashboard"` — reproduce the native Nextcloud Dashboard panel
  * (apps/dashboard) exactly, using the same design tokens so an un-customised
@@ -795,6 +1002,30 @@ export default {
 	padding: 12px 16px;
 	border-bottom: 1px solid var(--color-border);
 	flex-shrink: 0;
+}
+
+/* Actions with no title beside them. `header-left` is not rendered at all in
+   this mode, and the header is `space-between`, so a single child would sit
+   flush LEFT where every other surface puts its actions on the right. */
+.cn-widget-wrapper__header--actions-only {
+	justify-content: flex-end;
+}
+
+/* `chromeless` — the surface around this widget already drew the card, so
+   nothing here may draw a second one. Border, background and content padding
+   are already gone (chromeless implies borderless + flush); what is left is
+   the header, which still renders when there are controls to hold. Its bottom
+   rule is the card's own divider and reads as a second card edge inside the
+   panel, and its 16px side inset leaves those controls hanging off the grid
+   that now starts at the panel's edge. Both go.
+
+   Placed AFTER the rules it overrides, which is what stylelint's
+   no-descending-specificity asks for. The cascade did not need it (this
+   selector is more specific either way), a reader does: an override written
+   above the thing it overrides has to be read twice. */
+.cn-widget-wrapper--chromeless .cn-widget-wrapper__header {
+	border-bottom: none;
+	padding-inline: 0;
 }
 
 .cn-widget-wrapper__header-left {

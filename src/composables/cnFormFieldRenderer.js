@@ -22,6 +22,15 @@
  *  |               | `field.widget === "textarea"`                      |
  *  | `enum`        | NcSelect, options shaped from `field.enum`/`field.options` |
  *  | `json`        | CnJsonViewer (read-only display in this rev)       |
+ *  | `file`        | CnFileField, value is the picked file's `data:` URL |
+ *
+ * A `file` field reads the file in the browser and holds its content as a
+ * `data:` URL. It never holds a path or a URL, so the field cannot choose
+ * where the file ends up: the receiver of the form payload does. For a
+ * schema property of `type: "file"`, OpenRegister stores the content in the
+ * object's own folder under a name it generates. `field.accept` narrows the
+ * picker (HTML `accept` syntax) and `field.maxSize` caps the size in bytes
+ * (default 1 MB, the library's inline-file cap).
  *
  * Unknown `field.type` values fall back to NcTextField and emit a
  * single `console.warn` so the consumer notices the typo.
@@ -45,9 +54,9 @@
  *
  * @param {object} args
  * @param {object} args.field   The formField shape.
- * @param {*}      args.value   Current value for `field.key`.
- * @param {Function} args.onInput Callback invoked with the new value.
- * @param {Function} [args.t]   Optional translator for `field.label`.
+ * @param {unknown}      args.value   Current value for `field.key`.
+ * @param {(value: unknown) => void} args.onInput Callback invoked with the new value.
+ * @param {(key: string) => string} [args.t]   Optional translator for `field.label`.
  * @param {string|null} [args.error] Optional validation failure message (REQ-MFL-11).
  * @param {object}  [args.componentMap] Optional override map from
  *   widget id → Vue component. Defaults to the library's standard
@@ -89,6 +98,7 @@ import {
 	NcTextArea,
 	NcTextField,
 } from '@nextcloud/vue'
+import CnFileField from '../components/CnFileField/CnFileField.vue'
 import CnJsonViewer from '../components/CnJsonViewer/CnJsonViewer.vue'
 
 /**
@@ -111,9 +121,10 @@ const DEFAULT_COMPONENT_MAP = Object.freeze({
 	'string-textarea': NcTextArea,
 	enum: NcSelect,
 	json: CnJsonViewer,
+	file: CnFileField,
 })
 
-const KNOWN_TYPES = ['boolean', 'number', 'password', 'string', 'enum', 'json']
+const KNOWN_TYPES = ['boolean', 'number', 'password', 'string', 'enum', 'json', 'file']
 
 const warned = new Set()
 
@@ -126,7 +137,7 @@ const warned = new Set()
  *
  * @param {object} field A formField descriptor carrying its choices on either
  *   `field.enum` (preferred) or the legacy `field.options`.
- * @return {Array<{label: string, value: *}>} The NcSelect options; bare literals
+ * @return {Array<{label: string, value: unknown}>} The NcSelect options; bare literals
  *   become `{label: String(entry), value: entry}`.
  */
 function resolveEnumOptions(field) {
@@ -146,9 +157,9 @@ function resolveEnumOptions(field) {
  *
  * @param {object} args See module docblock.
  * @param {object} args.field The formField shape.
- * @param {*} args.value Current value for `field.key`.
- * @param {Function} args.onInput Callback invoked with the new value.
- * @param {Function} [args.t] Optional translator for `field.label`.
+ * @param {unknown} args.value Current value for `field.key`.
+ * @param {(value: unknown) => void} args.onInput Callback invoked with the new value.
+ * @param {(key: string) => string} [args.t] Optional translator for `field.label`.
  * @param {string|null} [args.error] Optional validation failure message (REQ-MFL-11).
  * @param {object} [args.componentMap] Optional override map from widget id to Vue component.
  * @return {{ tag: object|string, props: object, listeners: object, kind: string }}
@@ -236,6 +247,28 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 			},
 			listeners: {},
 		}
+	} else if (field.type === 'file') {
+		// The value is content, never a location: CnFileField emits the
+		// picked file as a `data:` URL (or null on Remove file), and only
+		// forwards `accept` / `maxSize`. Where the content is stored is the
+		// payload receiver's decision, not the manifest's. A validation
+		// `error` is NOT bound here: CnFileField is not an NcInputField, so
+		// CnFormPage renders its adjacent role="alert" for it, as it does for
+		// `enum` and `json`.
+		const maxSize = Number(field.maxSize)
+		result = {
+			kind: 'file',
+			tag: map.file,
+			props: {
+				label,
+				modelValue: value ?? null,
+				accept: typeof field.accept === 'string' ? field.accept : '',
+				...(Number.isFinite(maxSize) && maxSize > 0 ? { maxSize } : {}),
+			},
+			listeners: {
+				'update:modelValue': (next) => onInput(next),
+			},
+		}
 	} else if (field.type === 'string') {
 		const isTextarea = field.widget === 'textarea'
 		if (isTextarea) {
@@ -252,13 +285,11 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 			if (!map['string-textarea'] && !warned.has('__no-nc-textarea')) {
 				warned.add('__no-nc-textarea')
 				// eslint-disable-next-line no-console
-				console.warn(
-					'[cnRenderFormField] NcTextArea is unavailable from @nextcloud/vue; '
+				console.warn('[cnRenderFormField] NcTextArea is unavailable from @nextcloud/vue; '
 					+ 'falling back to a bare <textarea> for `widget: "textarea"` fields. '
 					+ 'The fallback has no label wiring and no error/helperText state. '
 					+ 'Check that @nextcloud/vue satisfies the peer range, or pass '
-					+ 'componentMap["string-textarea"] explicitly.',
-				)
+					+ 'componentMap["string-textarea"] explicitly.')
 			}
 			result = {
 				kind: 'string-textarea',
@@ -295,9 +326,7 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 		if (!warned.has(field.type)) {
 			warned.add(field.type)
 			// eslint-disable-next-line no-console
-			console.warn(
-				`[cnRenderFormField] Unknown field.type "${field.type}" for field "${field.key}". Falling back to NcTextField. Known types: ${KNOWN_TYPES.join(', ')}.`,
-			)
+			console.warn(`[cnRenderFormField] Unknown field.type "${field.type}" for field "${field.key}". Falling back to NcTextField. Known types: ${KNOWN_TYPES.join(', ')}.`)
 		}
 		result = {
 			kind: 'fallback',
@@ -313,7 +342,9 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 	}
 
 	// Should be unreachable given the KNOWN_TYPES check above.
-	if (!result) return null
+	if (!result) {
+		return null
+	}
 
 	// manifest-form-logic (REQ-MFL-11): NcInputField-family kinds get the
 	// NC-standard error props. `string-textarea` only qualifies when

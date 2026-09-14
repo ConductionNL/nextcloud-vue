@@ -30,32 +30,32 @@
  */
 
 import { integrations as defaultRegistry } from '../registry.js'
-import { filesIntegration } from './files.js'
-import { notesIntegration } from './notes.js'
-import { tagsIntegration } from './tags.js'
-import { tasksIntegration } from './tasks.js'
-import { auditTrailIntegration } from './audit-trail.js'
-import { versionHistoryIntegration } from './version-history.js'
-import { calendarIntegration } from './calendar.js'
-import { contactsIntegration } from './contacts.js'
-import { contactmomentIntegration } from './contactmoment.js'
-import { emailIntegration } from './email.js'
-import { talkIntegration } from './talk.js'
-import { bookmarksIntegration } from './bookmarks.js'
-import { collectivesIntegration } from './collectives.js'
-import { mapsIntegration } from './maps.js'
-import { photosIntegration } from './photos.js'
-import { deckIntegration } from './deck.js'
-import { pollsIntegration } from './polls.js'
-import { sharesIntegration } from './shares.js'
 import { activityIntegration } from './activity.js'
 import { analyticsIntegration } from './analytics.js'
+import { auditTrailIntegration } from './audit-trail.js'
+import { bookmarksIntegration } from './bookmarks.js'
+import { calendarIntegration } from './calendar.js'
+import { collectivesIntegration } from './collectives.js'
+import { contactmomentIntegration } from './contactmoment.js'
+import { contactsIntegration } from './contacts.js'
 import { cospendIntegration } from './cospend.js'
+import { deckIntegration } from './deck.js'
+import { emailIntegration } from './email.js'
+import { fieldInspectionIntegration } from './field-inspection.js'
+import { filesIntegration } from './files.js'
 import { flowIntegration } from './flow.js'
 import { formsIntegration } from './forms.js'
-import { timeTrackerIntegration } from './time-tracker.js'
+import { mapsIntegration } from './maps.js'
+import { notesIntegration } from './notes.js'
 import { openprojectIntegration } from './openproject.js'
-import { fieldInspectionIntegration } from './field-inspection.js'
+import { photosIntegration } from './photos.js'
+import { pollsIntegration } from './polls.js'
+import { sharesIntegration } from './shares.js'
+import { tagsIntegration } from './tags.js'
+import { talkIntegration } from './talk.js'
+import { tasksIntegration } from './tasks.js'
+import { timeTrackerIntegration } from './time-tracker.js'
+import { versionHistoryIntegration } from './version-history.js'
 import { xwikiIntegration } from './xwiki.js'
 
 /**
@@ -133,31 +133,31 @@ export function registerBuiltinIntegrations(registry) {
 }
 
 export {
-	filesIntegration,
-	notesIntegration,
-	tagsIntegration,
-	tasksIntegration,
-	auditTrailIntegration,
-	versionHistoryIntegration,
-	calendarIntegration,
-	contactsIntegration,
-	contactmomentIntegration,
-	emailIntegration,
-	talkIntegration,
-	bookmarksIntegration,
-	collectivesIntegration,
-	mapsIntegration,
-	photosIntegration,
-	deckIntegration,
-	pollsIntegration,
-	sharesIntegration,
 	activityIntegration,
 	analyticsIntegration,
+	auditTrailIntegration,
+	bookmarksIntegration,
+	calendarIntegration,
+	collectivesIntegration,
+	contactmomentIntegration,
+	contactsIntegration,
 	cospendIntegration,
+	deckIntegration,
+	emailIntegration,
+	fieldInspectionIntegration,
+	filesIntegration,
 	flowIntegration,
 	formsIntegration,
-	timeTrackerIntegration,
-	fieldInspectionIntegration,
+	mapsIntegration,
+	notesIntegration,
 	openprojectIntegration,
+	photosIntegration,
+	pollsIntegration,
+	sharesIntegration,
+	tagsIntegration,
+	talkIntegration,
+	tasksIntegration,
+	timeTrackerIntegration,
+	versionHistoryIntegration,
 	xwikiIntegration,
 }

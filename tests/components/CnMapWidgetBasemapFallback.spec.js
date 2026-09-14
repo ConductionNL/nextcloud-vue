@@ -15,12 +15,24 @@ import CnMapWidget from '../../src/components/CnMapWidget/CnMapWidget.vue'
 
 /**
  * Records every tileLayer(url) Leaflet is asked to create.
- * @param created
+ *
+ * @param {Array<string>} created The array each requested url is pushed onto.
+ * @return {object} The fake Leaflet namespace.
  */
 function fakeLeaflet(created) {
-	const layer = { addTo() { return this }, on() { return this }, remove() {} }
-	const tileLayer = (url) => { created.push(url); return layer }
-	tileLayer.wms = (url) => { created.push(url); return layer }
+	const layer = { addTo() {
+		return this
+	}, on() {
+		return this
+	}, remove() {} }
+	const tileLayer = (url) => {
+		created.push(url)
+		return layer
+	}
+	tileLayer.wms = (url) => {
+		created.push(url)
+		return layer
+	}
 	return {
 		tileLayer,
 		geoJSON: () => layer,

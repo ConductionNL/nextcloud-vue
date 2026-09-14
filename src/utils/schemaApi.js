@@ -41,7 +41,6 @@ import { parseAxiosError } from './errors.js'
  *   `{property, kind, old, new}` — show these to the user verbatim.
  */
 export class SchemaBreakingChangeError extends Error {
-
 	/**
 	 * @param {Array<object>} changes The changes the server flagged.
 	 */
@@ -51,7 +50,6 @@ export class SchemaBreakingChangeError extends Error {
 		this.breaking = true
 		this.changes = Array.isArray(changes) ? changes : []
 	}
-
 }
 
 /**
@@ -60,7 +58,6 @@ export class SchemaBreakingChangeError extends Error {
  * @property {number} objectCount How many objects would be orphaned.
  */
 export class SchemaHasObjectsError extends Error {
-
 	/**
 	 * @param {number} objectCount The number of objects still attached.
 	 */
@@ -69,19 +66,24 @@ export class SchemaHasObjectsError extends Error {
 		this.name = 'SchemaHasObjectsError'
 		this.objectCount = Number(objectCount) || 0
 	}
-
 }
 
 /**
  * Unwrap an OpenRegister API payload (`{result}` / `{results}` / array / object).
  *
  * @param {object|Array} data The raw response body.
- * @return {*} The unwrapped payload.
+ * @return {unknown} The unwrapped payload.
  */
 function unwrap(data) {
-	if (!data) return data
-	if (data.result !== undefined) return data.result
-	if (data.results !== undefined) return data.results
+	if (!data) {
+		return data
+	}
+	if (data.result !== undefined) {
+		return data.result
+	}
+	if (data.results !== undefined) {
+		return data.results
+	}
 	return data
 }
 
@@ -165,11 +167,13 @@ export async function deleteSchema(id, options = {}) {
  * Lives here so both editors word the warning identically.
  *
  * @param {object} change One change descriptor from the server.
- * @param {Function} translate A `t`-style translator: `(app, text, vars) => string`.
+ * @param {(app: string, text: string, vars?: object) => string} translate A `t`-style translator.
  * @return {string} The description.
  */
 export function describeSchemaChange(change, translate) {
-	if (!change || typeof change !== 'object') return ''
+	if (!change || typeof change !== 'object') {
+		return ''
+	}
 	const t = typeof translate === 'function' ? translate : (app, text) => text
 
 	const property = change.property || t('nextcloud-vue', 'schema')

@@ -12,7 +12,7 @@ jest.mock('@nextcloud/l10n', () => ({
 	translate: (app, text, params = {}) => text.replace(/\{(\w+)\}/g, (_, k) => params[k] ?? `{${k}}`),
 }))
 
-const { shallowMount, flushPromises } = require('@vue/test-utils')
+const { shallowMount } = require('@vue/test-utils')
 const axios = require('@nextcloud/axios').default
 const { loadState } = require('@nextcloud/initial-state')
 const CnAdminSettingsShell = require('../../src/components/CnAdminSettingsShell/CnAdminSettingsShell.vue').default
@@ -118,7 +118,6 @@ describe('CnAdminSettingsShell', () => {
 	// app. It now renders here, on the app's Nextcloud admin page, where the
 	// access decision is made server-side for /settings/admin/<app>.
 	describe('organisation credential broker (ADR-079 Step 2)', () => {
-
 		it('does not render the broker by default', () => {
 			const wrapper = mountShell()
 			expect(wrapper.findComponent({ name: 'CnCredentials' }).exists()).toBe(false)
