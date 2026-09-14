@@ -100,7 +100,7 @@ import {
 	NcTextArea,
 	NcTextField,
 } from '@nextcloud/vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 /**
  * Build a default start time at the next round hour.
@@ -237,7 +237,7 @@ export default {
 				}
 
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/events`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/events`),
 					{
 						method: 'POST',
 						headers: buildHeaders(),

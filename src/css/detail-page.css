@@ -322,3 +322,41 @@
 		width: 100%;
 	}
 }
+
+/* The record as a place (case-page-and-list-as-a-place) */
+
+/* A skip link that reaches the page's declared primary action. Off screen
+   until it takes focus, so it costs a sighted mouse user nothing and saves a
+   keyboard user every widget between the top of the page and the one action
+   they came for (WCAG 2.4.1). */
+.cn-detail-page__skip-link {
+	position: absolute;
+	inset-block-start: calc(2 * var(--default-grid-baseline));
+	inset-inline-start: calc(2 * var(--default-grid-baseline));
+	z-index: 10;
+	transform: translateY(-200%);
+	padding: calc(2 * var(--default-grid-baseline)) calc(3 * var(--default-grid-baseline));
+	border-radius: var(--border-radius-element, var(--border-radius-large));
+	background-color: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+	text-decoration: none;
+}
+
+.cn-detail-page__skip-link:focus,
+.cn-detail-page__skip-link:focus-visible {
+	transform: translateY(0);
+	outline: 2px solid var(--color-main-text);
+}
+
+/* Next and previous inside the list this record was opened from. */
+.cn-detail-page__list-nav {
+	display: flex;
+	gap: var(--default-grid-baseline);
+	align-items: center;
+}
+
+.cn-detail-page__list-nav-position {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+	white-space: nowrap;
+}

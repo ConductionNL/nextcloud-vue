@@ -42,6 +42,7 @@
 @import './index-sidebar.css';
 @import './dashboard.css';
 @import './detail-page.css';
+@import './reference-preview.css';
 @import './CnSchemaFormDialog.css';
 @import './timeline-stages.css';
 @import './context-menu.css';

@@ -218,7 +218,7 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import CnFilesBrowser from '../CnFilesBrowser/CnFilesBrowser.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { resolveObjectFolder } from '../CnFilesBrowser/filesBrowser.js'
 
@@ -461,7 +461,7 @@ export default {
 			try {
 				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files?${params}`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files?${params}`),
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {
@@ -504,7 +504,7 @@ export default {
 			}
 			try {
 				const response = await fetch(
-					`${this.apiBase}/schemas/${this.schema}`,
+					prefixUrl(`${this.apiBase}/schemas/${this.schema}`),
 					{ headers: buildHeaders() },
 				)
 				if (!response.ok) {
@@ -571,7 +571,7 @@ export default {
 			this.loading = true
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/filesMultipart`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/filesMultipart`),
 					{
 						method: 'POST',
 						headers: { requesttoken: OC?.requestToken || '', 'OCS-APIREQUEST': 'true' },
@@ -798,7 +798,7 @@ export default {
 			}
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files/${file.id}`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files/${file.id}`),
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
 				this.files = this.files.filter((f) => f.id !== file.id)

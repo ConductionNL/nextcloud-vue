@@ -156,7 +156,7 @@ import Briefcase from 'vue-material-design-icons/Briefcase.vue'
 import CheckCircleOutline from 'vue-material-design-icons/CheckCircleOutline.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { buildHeaders } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
@@ -394,7 +394,7 @@ export default {
 			this.authBanner = ''
 			this.unconfigured = false
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.baseUrl()), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					this.workPackages = data.results
@@ -433,7 +433,7 @@ export default {
 			this.authBanner = ''
 			this.unconfigured = false
 			try {
-				const response = await fetch(`${this.baseUrl()}/${encodeURIComponent(this.value)}`, { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(`${this.baseUrl()}/${encodeURIComponent(this.value)}`), { headers: buildHeaders() })
 				if (response.ok) {
 					this.entity = await response.json()
 				} else if (response.status === 401 || response.status === 403) {

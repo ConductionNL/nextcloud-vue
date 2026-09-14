@@ -23,6 +23,12 @@
 jest.mock('../../src/utils/index.js', () => ({
 	__esModule: true,
 	buildHeaders: jest.fn(() => ({ requesttoken: 'stub-token' })),
+	// The component routes its URLs through prefixUrl() (WOO-560). A module
+	// mock that omits it leaves `prefixUrl` undefined, the call throws inside
+	// the component's try/catch, and every test here sees the empty state
+	// with fetch never called. Identity: these assertions are about the bare
+	// path, not the instance's /index.php prefix — prefixUrl has its own spec.
+	prefixUrl: jest.fn((path) => path),
 }))
 
 import { mount } from '@vue/test-utils'

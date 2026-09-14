@@ -79,6 +79,13 @@ Right sidebar for entity detail pages. Provides standardized tabs — Files, Not
 | `tabs` | Array | | `null` | Open-enum tab definitions `[\{ id, label, icon?, widgets?, component?, order? \}]`. When set with at least one entry, REPLACES the hard-coded built-in tab set. See [Custom tabs](#custom-tabs) below. |
 | `customComponents` | Object | | `null` | Custom-component registry for tab `component` names and unknown widget `type` values. Falls back to the injected `cnCustomComponents` from a `CnAppRoot` ancestor. |
 | `requested-tab` | String | | `null` | Externally-requested active tab id — lets a host deep-link into a specific leaf, e.g. a 'Linked apps' row opening the Mails tab. |
+| `on-tab-change` | Function | | `null` | Called with `(tabId, canonicalising)` when the sidebar settles on a tab. `canonicalising` is `true` when the sidebar corrected the request rather than the reader choosing. A host that keeps the tab in the address uses this to write it, so the address always names a tab this reader can see. `CnDetailPage` wires it for you when the page declares `tabInAddress`. |
+
+### A tab you can link to
+
+`requested-tab` in, `on-tab-change` out. The pair is what makes a tab linkable: without the callback the address can ask for a tab but never learn which one actually rendered.
+
+An address naming a tab that does not exist, or one this reader may not see, falls back to the first tab they can see and warns once. That fallback reports `canonicalising: true`, so the host rewrites the address to the tab that is really showing. Silently showing a different tab than the address names is the failure here, because the reader then sends a colleague a link that opens somewhere else again.
 
 A tab's `component` name is resolved against the v2 component registry (`cnRegistry` inject from `CnAppRoot`, ADR-036) **first** — any kind-tagged entry with a `component` field resolves, including `kind: "page"` tab components — then falls back to the legacy `customComponents` map. This lets apps that migrated their sidebar-tab components into `registry.js` (the procest pattern) keep rendering tabs without duplicating them in `customComponents`.
 

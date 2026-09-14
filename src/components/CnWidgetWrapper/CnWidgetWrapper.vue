@@ -15,7 +15,9 @@
 			'cn-widget-wrapper--flush': noPadding,
 			'cn-widget-wrapper--chromeless': chromeless,
 			'cn-widget-wrapper--nc-dashboard': chrome === 'nc-dashboard',
+			'cn-widget-wrapper--high-contrast': highContrast,
 		}"
+		:data-cn-high-contrast="highContrast ? 'true' : undefined"
 		:style="wrapperStyles">
 		<!-- Header.
 		     Rendered when a title earns it, or when controls that are actually
@@ -511,6 +513,19 @@ export default {
 		reportBugUrl: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Declares that this widget wants a high contrast treatment. The flag
+		 * reaches the theme as `data-cn-high-contrast` and a `--high-contrast`
+		 * class; the component picks no colour of its own (ADR-003). A theme
+		 * that says nothing about the flag renders the widget unchanged.
+		 *
+		 * @type {boolean}
+		 */
+		highContrast: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**

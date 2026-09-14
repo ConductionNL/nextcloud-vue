@@ -203,6 +203,7 @@ export {
 	CnQuickFilterBar,
 	CnQuicklinksWidget,
 	CnQuicklinksWidgetForm,
+	CnReferencePreview,
 	CnRegisterMapping,
 	CnRegisterSchemaSelect,
 	CnRelatedCollections,
@@ -339,7 +340,7 @@ export {
 export { useAiChatStream, useAiContext } from './composables/index.js'
 // AI Chat Companion backend config (single point for the chat backend app id)
 export { chatApiBase, chatHealthUrl, chatSendUrl, chatStreamUrl, conversationMessagesUrl, conversationsUrl, DEFAULT_CHAT_APP_ID } from './composables/index.js'
-export { buildBucketQuery, buildCountQuery, clearContextMenuPositionDom, cnRenderMarkdown, createTenantContext, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, fetchEndpointSource, invalidateEndpointSourceCache, loadWalkthroughSeenVersion, LockConflictError, PermissionError, persistWalkthroughSeenVersion, provideTenantContext, selectByPath, TENANT_CONTEXT_KEY, useAppInstaller, useAppManifest, useAppStatus, useBrokeredCall, useBuildiqEditAvailability, useClickDragGuard, useCommandPalette, useContextMenu, useDashboardView, useDataSource, useDetailView, useEndpointSource, useGraphQL, useIntegrationRegistry, useListView, useManifestEditHistory, useManifestEditor, useObjectLock, useObjectSubscription, useRuntimeManifest, useScopedTheme, useSetupStatus, useSubResource, useSupportDialog, useTenantContext, useWalkthrough } from './composables/index.js'
+export { buildBucketQuery, buildCountQuery, clearContextMenuPositionDom, cnRenderMarkdown, createTenantContext, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, fetchEndpointSource, invalidateEndpointSourceCache, loadWalkthroughSeenVersion, LockConflictError, PermissionError, persistWalkthroughSeenVersion, provideTenantContext, selectByPath, TENANT_CONTEXT_KEY, useAppInstaller, useAppManifest, useAppStatus, useBrokeredCall, useBuildiqEditAvailability, useClickDragGuard, useCommandPalette, useContextMenu, useDashboardView, useDataSource, useDetailView, useEndpointSource, useGraphQL, useIntegrationRegistry, useListNavigation, useListView, useManifestEditHistory, useManifestEditor, useObjectLock, useObjectSubscription, useRuntimeManifest, useScopedTheme, useSetupStatus, useSubResource, useSupportDialog, useTenantContext, useUserPreferences, useWalkthrough } from './composables/index.js'
 // Deprecated alias kept for consumers: OpenBuild was renamed to Buildiq in the
 // fleet-wide rename of 2026-08-21. `useBuildiqEditAvailability` above is the
 // canonical name; this alias keeps the ~18 consuming apps that still call
@@ -509,6 +510,8 @@ export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from
 export { dedupeCatalogue, fromFontAwesome, fromMdiJs, fromOpenGemeenten } from './components/CnIconPicker/index.js'
 export { mergeManifestDelta } from './utils/mergeManifestDelta.js'
 export { applyIntegrationsSection, applyMenuLayout, applyMenuRelocations, applyMenuRemovals, applySettingsSection, buildManifest, mergeMenuItems, mergePages } from './utils/buildManifest.js'
+export { buildManifestRoutes } from './utils/buildManifestRoutes.js'
+export { formatDateForDisplay } from './utils/dateDisplay.js'
 export { expandPageTemplates } from './utils/expandPageTemplates.js'
 export { diffManifest } from './utils/diffManifest.js'
 export { createManifestEditHistory } from './utils/manifestEditHistory.js'

@@ -115,7 +115,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import Bookmark from 'vue-material-design-icons/Bookmark.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 export default {
 	name: 'CnBookmarkPicker',
@@ -194,7 +194,7 @@ export default {
 			this.error = ''
 			try {
 				const query = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : ''
-				const response = await fetch(`${this.apiBase}/integrations/bookmarks/available${query}`, {
+				const response = await fetch(prefixUrl(`${this.apiBase}/integrations/bookmarks/available${query}`), {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {

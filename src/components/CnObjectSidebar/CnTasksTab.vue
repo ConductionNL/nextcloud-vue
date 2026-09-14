@@ -136,7 +136,7 @@ import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 export default {
 	name: 'CnTasksTab',
@@ -254,7 +254,7 @@ export default {
 			try {
 				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks?${params}`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks?${params}`),
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {
@@ -320,7 +320,7 @@ export default {
 					taskData.description = 'Assigned to: ' + this.newTaskAssignee.displayName
 				}
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks`),
 					{
 						method: 'POST',
 						headers: buildHeaders(),
@@ -368,7 +368,7 @@ export default {
 					taskData.description = ''
 				}
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(this.editingTaskId)}`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(this.editingTaskId)}`),
 					{
 						method: 'PUT',
 						headers: buildHeaders(),
@@ -396,7 +396,7 @@ export default {
 			const newStatus = task.status === 'completed' ? 'NEEDS-ACTION' : 'COMPLETED'
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(task.id)}`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(task.id)}`),
 					{
 						method: 'PUT',
 						headers: buildHeaders(),
@@ -413,7 +413,7 @@ export default {
 		async completeTask(task) {
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(task.id)}`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(task.id)}`),
 					{
 						method: 'PUT',
 						headers: buildHeaders(),
@@ -430,7 +430,7 @@ export default {
 		async deleteTask(task) {
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(task.id)}`,
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(task.id)}`),
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
 				this.tasks = this.tasks.filter((t) => t.id !== task.id)

@@ -1279,3 +1279,50 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(true)
 	})
 })
+
+describe('case-page-and-list-as-a-place — the keys are refused off their page type', () => {
+	const page = (extra) => ({
+		$schema: V2_SCHEMA_URL,
+		version: '2.0.0',
+		menu: [],
+		pages: [{ id: 'p', route: '/p', type: 'index', title: 'P', ...extra }],
+	})
+	const detail = (extra) => ({
+		$schema: V2_SCHEMA_URL,
+		version: '2.0.0',
+		menu: [],
+		pages: [{ id: 'p', route: '/p/:id', type: 'detail', title: 'P', ...extra }],
+	})
+
+	it('accepts splitView on an index page', () => {
+		expect(validateManifestV2(page({ splitView: { enabled: true, breakpoint: 900 } })).valid).toBe(true)
+	})
+
+	it('accepts an index page that declares none of the new keys, unchanged', () => {
+		expect(validateManifestV2(page({})).valid).toBe(true)
+	})
+
+	it('refuses splitView on a detail page, where it would validate and do nothing', () => {
+		expect(validateManifestV2(detail({ splitView: { enabled: true } })).valid).toBe(false)
+	})
+
+	it('refuses manualOrder on a dashboard page', () => {
+		const manifest = page({})
+		manifest.pages[0] = { id: 'd', route: '/d', type: 'dashboard', title: 'D', manualOrder: true }
+		expect(validateManifestV2(manifest).valid).toBe(false)
+	})
+
+	it('accepts tabInAddress on a detail page and refuses it on an index page', () => {
+		expect(validateManifestV2(detail({ tabInAddress: true })).valid).toBe(true)
+		expect(validateManifestV2(page({ tabInAddress: true })).valid).toBe(false)
+	})
+
+	it('refuses a breakpoint no viewport has', () => {
+		expect(validateManifestV2(page({ splitView: { enabled: true, breakpoint: 10 } })).valid).toBe(false)
+	})
+
+	it('accepts the root personalisation block and refuses a date display it does not offer', () => {
+		expect(validateManifestV2({ ...page({}), personalisation: { enabled: true, dateDisplay: 'relative' } }).valid).toBe(true)
+		expect(validateManifestV2({ ...page({}), personalisation: { dateDisplay: 'fuzzy' } }).valid).toBe(false)
+	})
+})
