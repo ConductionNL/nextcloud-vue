@@ -293,6 +293,7 @@ describe('builtInFormatters', () => {
 			['limited', 'Limited'],
 			['unconfigured', 'Not configured'],
 			['simulated', 'Simulated'],
+			['disabled', 'Switched off'],
 			['unavailable', 'Not available'],
 			['error', 'Error'],
 		])('renders %s as %s', (value, label) => {
@@ -302,6 +303,7 @@ describe('builtInFormatters', () => {
 		it('passes an unknown value through unchanged', () => {
 			expect(formatConnectionStatus('degraded')).toBe('degraded')
 			expect(formatConnectionStatus('partial')).toBe('partial')
+			expect(formatConnectionStatus('paused')).toBe('paused')
 			expect(formatConnectionStatus('')).toBe('')
 		})
 

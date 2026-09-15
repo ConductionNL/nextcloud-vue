@@ -339,7 +339,7 @@ export function formatCount(value, _row, _property, options) {
 }
 
 /**
- * The six stored connection status values and their English source labels.
+ * The seven stored connection status values and their English source labels.
  *
  * The label is translated on each call, not here. A module-level `t()` runs
  * before the catalogue is registered and would freeze every label in English.
@@ -349,13 +349,14 @@ const CONNECTION_STATUS_LABELS = {
 	limited: 'Limited',
 	unconfigured: 'Not configured',
 	simulated: 'Simulated',
+	disabled: 'Switched off',
 	unavailable: 'Not available',
 	error: 'Error',
 }
 
 /**
  * Connection status formatter (`connectionStatus` registry key) for the
- * fleet connection registry. Renders one of the six stored status values
+ * fleet connection registry. Renders one of the seven stored status values
  * as its translated label through the library's own slug (`nextcloud-vue`).
  *
  * An unknown value passes through unchanged, so a status added later still
@@ -363,7 +364,7 @@ const CONNECTION_STATUS_LABELS = {
  * as `''`. Never throws.
  *
  * @param {unknown} value The stored status value.
- * @return {string} The translated label, or the value itself when it is not one of the six.
+ * @return {string} The translated label, or the value itself when it is not one of the seven.
  */
 export function formatConnectionStatus(value) {
 	if (value === null || value === undefined) {
