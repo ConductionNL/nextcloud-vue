@@ -681,15 +681,27 @@ export default {
 				return
 			}
 			this._revealAttempted = true
-			let group = this.targetEl.closest('.app-navigation-entry--collapsible')
-			while (group) {
-				const btn = group.querySelector('button.icon-collapse, .app-navigation-entry__children-toggle, .app-navigation-entry__collapse')
+			const click = (btn) => {
 				if (btn && typeof btn.click === 'function') {
 					try {
 						btn.click()
 					} catch { /* jsdom / detached */ }
 				}
-				group = group.parentElement ? group.parentElement.closest('.app-navigation-entry--collapsible') : null
+			}
+			// Walk every ancestor (not just .closest() jumps) since a nav group
+			// and the Settings foldout use different container markup and can
+			// nest either way.
+			let node = this.targetEl.parentElement
+			while (node) {
+				if (node.classList.contains('app-navigation-entry--collapsible')) {
+					click(node.querySelector('button.icon-collapse, .app-navigation-entry__children-toggle, .app-navigation-entry__collapse'))
+				} else if (node.matches?.('[data-testid="cn-nav-settings"]')) {
+					// NcAppNavigationSettings: CSS-module classes are hashed at
+					// build time, so aria-expanded is the only stable handle on
+					// its own toggle button.
+					click(node.querySelector('button[aria-expanded]'))
+				}
+				node = node.parentElement
 			}
 		},
 
