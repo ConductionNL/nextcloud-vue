@@ -4626,6 +4626,19 @@ export default {
 			this.$emit('copy', payload)
 		},
 
+		// Lets an `advanceOn: "object-created"` walkthrough step auto-advance.
+		// No dispatch site existed anywhere before this, so that advanceOn
+		// type could never fire. `@self.register`/`@self.schema` are numeric
+		// DB ids, not the slugs a manifest's advanceOn declares, so override
+		// them with this page's own slug props before dispatching.
+		notifyWalkthroughObjectCreated(created) {
+			if (typeof window === 'undefined' || !created) {
+				return
+			}
+			const detail = { ...created, register: this.register, schema: this.exportSchemaSlug }
+			window.dispatchEvent(new CustomEvent('cn-walkthrough:object-created', { detail }))
+		},
+
 		async onFormConfirm(formData) {
 			// Opt-in create-override hook: an app supplies a custom async create
 			// handler (e.g. a contact-aware endpoint that fills a required FK)
@@ -4646,6 +4659,7 @@ export default {
 						 * @type {object} The created object.
 						 */
 						this.$emit('create', created)
+						this.notifyWalkthroughObjectCreated(created)
 						if (this.list && typeof this.list.refresh === 'function') {
 							this.list.refresh()
 						}
@@ -4667,6 +4681,9 @@ export default {
 				if (saved) {
 					this.setFormResult({ success: true })
 					this.$emit(this.editItem ? 'edit' : 'create', saved)
+					if (!this.editItem) {
+						this.notifyWalkthroughObjectCreated(saved)
+					}
 				} else {
 					const err = this.store.getError?.(this.objectType)
 					if (err && err.isValidation) {

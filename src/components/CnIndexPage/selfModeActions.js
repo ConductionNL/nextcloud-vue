@@ -191,7 +191,15 @@ export function createSelfModeActions(ctx) {
 			const saved = await ctx.selfObjectStore().saveObject(ctx.selfObjectType(), formData)
 			if (saved) {
 				ctx.setResults.form({ success: true })
-				ctx.emit(ctx.editItem() ? 'edit' : 'create', saved)
+				const isCreate = !ctx.editItem()
+				ctx.emit(isCreate ? 'create' : 'edit', saved)
+				// @self.register/@self.schema are numeric DB ids, not slugs, so
+				// override with this page's own slug props (self-fetch mode
+				// guarantees ctx.schema() is already a string).
+				if (isCreate && typeof window !== 'undefined') {
+					const detail = { ...saved, register: ctx.register(), schema: ctx.schema() }
+					window.dispatchEvent(new CustomEvent('cn-walkthrough:object-created', { detail }))
+				}
 				refreshList(ctx)
 			} else {
 				const err = storeError(ctx)
