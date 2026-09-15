@@ -37,6 +37,15 @@
 						@update:modelValue="$emit('search', $event)" />
 				</div>
 
+				<div v-if="hasActiveFilters" class="cn-index-sidebar__section">
+					<NcButton variant="tertiary" @click="onClearAll">
+						<template #icon>
+							<FilterRemoveOutline :size="20" />
+						</template>
+						{{ clearAllLabel }}
+					</NcButton>
+				</div>
+
 				<div v-if="schemaFilters.length > 0" class="cn-index-sidebar__section">
 					<h3>{{ filtersLabel }}</h3>
 					<div
@@ -169,6 +178,7 @@ import { NcAppSidebar, NcAppSidebarTab, NcButton, NcCheckboxRadioSwitch, NcPopov
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
+import FilterRemoveOutline from 'vue-material-design-icons/FilterRemoveOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
@@ -202,6 +212,7 @@ export default {
 		NcButton,
 		CnIcon,
 		FilterOutline,
+		FilterRemoveOutline,
 		ViewColumnOutline,
 		ChevronDown,
 		ChevronRight,
@@ -314,6 +325,12 @@ export default {
 			default: () => t('nextcloud-vue', 'Filters'),
 		},
 
+		/** "Clear all" button label, shown when search or a filter is active */
+		clearAllLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Clear all'),
+		},
+
 		/** Columns section heading */
 		columnsHeading: {
 			type: String,
@@ -352,7 +369,7 @@ export default {
 		},
 	},
 
-	emits: ['columns-change', 'filter-change', 'search', 'tab-change', 'update:open'],
+	emits: ['clear-filters', 'columns-change', 'filter-change', 'search', 'tab-change', 'update:open'],
 
 	data() {
 		return {
@@ -404,6 +421,14 @@ export default {
 				return []
 			}
 			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin, translate: this.cnTranslate })
+		},
+
+		/** Whether a search term or any facet filter is currently active. */
+		hasActiveFilters() {
+			if ((this.searchValue || '').length > 0) {
+				return true
+			}
+			return Object.values(this.activeFilters || {}).some((v) => (Array.isArray(v) ? v.length > 0 : !!v))
 		},
 
 		/** Combined column groups: built-in Metadata + external groups */
@@ -577,6 +602,17 @@ export default {
 		onFilterChange(key, selected) {
 			const values = selected ? selected.map((o) => o.id) : []
 			this.$emit('filter-change', { key, values })
+		},
+
+		/**
+		 * "Clear all" click: reset search and every active facet filter in
+		 * one shot, so the parent does one fetch instead of one per field.
+		 */
+		onClearAll() {
+			/**
+			 * @event clear-filters "Clear all" clicked; reset search and every active filter.
+			 */
+			this.$emit('clear-filters')
 		},
 	},
 }

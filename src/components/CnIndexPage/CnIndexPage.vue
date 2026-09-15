@@ -650,7 +650,8 @@
 			@update:open="sidebarOpen = $event"
 			@search="onSearchEvent"
 			@columnsChange="onColumnsEvent"
-			@filterChange="onFilterEvent" />
+			@filterChange="onFilterEvent"
+			@clearFilters="onClearFilters" />
 	</div>
 </template>
 
@@ -777,6 +778,7 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * @event {string} search — Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  * @event {string[]} columns-change — Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  * @event {{ key: string, values: Array<unknown> }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event {void} clear-filters — "Clear all" clicked in the embedded sidebar. Search, every active filter and the folder-sidebar selection are reset (self-fetch mode); a consumer-managed page gets the bare event to handle itself.
  *
  * @slot mass-actions — Extra mass action buttons (shown when items are selected)
  * @slot action-items — Extra action bar buttons
@@ -1997,6 +1999,7 @@ export default {
 		'add',
 		'apply-view',
 		'bulk-action',
+		'clear-filters',
 		'columns-change',
 		'configure',
 		'copy',
@@ -3779,6 +3782,7 @@ export default {
 		onSearchEvent(value) {
 			if (this.isSelfFetchMode && typeof this.list.onSearch === 'function') {
 				this.list.onSearch(value)
+				this.persistViewStateToRoute(this.currentViewState())
 			}
 			this.$emit('search', value)
 		},
@@ -3818,38 +3822,91 @@ export default {
 		onSortEvent(payload) {
 			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') {
 				this.list.onSort(payload)
-			}
-			if (this.isSelfFetchMode) {
-				const keys = Array.isArray(payload.keys)
-					? payload.keys
-					: (payload.key ? [{ key: payload.key, order: payload.order || 'asc' }] : [])
-				this.persistSortToRoute(keys)
+				this.persistViewStateToRoute(this.currentViewState())
 			}
 			this.$emit('sort', payload)
 		},
 
 		/**
-		 * Persist the active multi-column sort to `$route.query._order`
-		 * (JSON-encoded ordered array) so a reload or a shared/bookmarked
-		 * link reproduces the same sort. An empty `keys` list removes the
-		 * param entirely. Best-effort: a duplicate-navigation rejection
-		 * (same resulting path/query) is swallowed, matching every other
-		 * `$router.replace` call in this component.
+		 * Self-fetch mode's current filters/search/sort, straight from
+		 * useListView's own reactive state — the shape `persistViewStateToRoute`
+		 * and the saved-views helpers (`buildViewCreatePayload`,
+		 * `extractViewState`) all share.
 		 *
-		 * @param {Array<{key: string, order: string}>} keys The active ordered sort-key list.
+		 * @return {{filters: object, search: string, sortKey: ?string, sortOrder: string}}
+		 */
+		currentViewState() {
+			return {
+				filters: this.list.activeFilters.value,
+				search: this.list.searchTerm.value,
+				sortKey: this.list.sortKey.value,
+				sortOrder: this.list.sortOrder.value,
+			}
+		},
+
+		/**
+		 * Persist filters + search + sort into `$route.query` in one replace,
+		 * so a reload or a shared/bookmarked link reproduces the exact same
+		 * view. Self-fetch mode only. Every non-reserved key is a filter, so
+		 * they're cleared and re-applied wholesale each call rather than
+		 * merged (otherwise a cleared filter would never leave the query).
+		 * Best-effort: a duplicate-navigation rejection (same resulting
+		 * path/query) is swallowed.
+		 *
+		 * @param {{filters?: object, search?: string, sortKey?: ?string, sortOrder?: string}} state Current view state.
 		 * @return {void}
 		 */
-		persistSortToRoute(keys) {
+		persistViewStateToRoute(state) {
 			if (!this.$router || !this.$route) {
 				return
 			}
 			const query = { ...this.$route.query }
-			if (Array.isArray(keys) && keys.length > 0) {
-				query._order = JSON.stringify(keys)
+			for (const key of Object.keys(query)) {
+				if (!key.startsWith('_')) {
+					delete query[key]
+				}
+			}
+			for (const [key, value] of Object.entries(state.filters || {})) {
+				if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
+					continue
+				}
+				query[key] = value
+			}
+			if (state.search) {
+				query._search = state.search
+			} else {
+				delete query._search
+			}
+			if (state.sortKey) {
+				query._order = JSON.stringify([{ key: state.sortKey, order: state.sortOrder || 'asc' }])
 			} else {
 				delete query._order
 			}
 			this.$router.replace({ query }).catch(() => {})
+		},
+
+		/**
+		 * "Clear all" from the sidebar: reset search, every active filter and
+		 * the folder-sidebar selection in one fetch + one route replace,
+		 * rather than one of each per field. Sort is left as-is — this clears
+		 * filters, not the whole view. Self-fetch mode only; a consumer-
+		 * managed page gets the bare event to handle itself.
+		 *
+		 * @return {void}
+		 */
+		onClearFilters() {
+			if (!this.isSelfFetchMode) {
+				this.$emit('clear-filters')
+				return
+			}
+			this.list.activeFilters.value = {}
+			this.list.searchTerm.value = ''
+			if (this.folderSidebar) {
+				this.selectedFolderId = null
+			}
+			this.list.refresh(1)
+			this.persistViewStateToRoute(this.currentViewState())
+			this.$emit('clear-filters')
 		},
 
 		/**
@@ -3870,6 +3927,7 @@ export default {
 		onFilterEvent(payload) {
 			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') {
 				this.list.onFilterChange(payload.key, payload.values)
+				this.persistViewStateToRoute(this.currentViewState())
 			}
 			this.$emit('filter-change', payload)
 		},
@@ -4032,6 +4090,7 @@ export default {
 					search: (event) => this.onSearchEvent(event),
 					'columns-change': (event) => this.onColumnsEvent(event),
 					'filter-change': (event) => this.onFilterEvent(event),
+					'clear-filters': () => this.onClearFilters(),
 				},
 			}
 		},
@@ -4444,20 +4503,37 @@ export default {
 		},
 
 		/**
-		 * Apply a saved view: replace the route query with the view's
-		 * stored filters/search/sort. `$router.replace` (not push) so the
-		 * browser Back button doesn't step through every applied view —
-		 * same precedent as the `?action=create` query cleanup. Dropping
-		 * the whole previous query implicitly resets `_page` to 1.
+		 * Apply a saved view. Self-fetch mode's facet/folder filters and
+		 * search/sort live in useListView's own reactive state, not the route
+		 * query, so apply them there directly. Otherwise (consumer-managed
+		 * store mode) fall back to `$router.replace` — same precedent as the
+		 * `?action=create` query cleanup, and dropping the whole previous
+		 * query implicitly resets `_page` to 1.
 		 *
 		 * @param {object} view The View API object to apply.
 		 */
 		onApplySavedView(view) {
-			const query = buildRouteQueryFromViewState(extractViewState(view))
+			const state = extractViewState(view)
+			if (this.isSelfFetchMode) {
+				// Set state directly (not via onFilterEvent/onSearchEvent per key)
+				// so applying a view is one fetch + one route replace, not one
+				// of each per changed field — and a filter the view doesn't
+				// carry is actually cleared, not left over from before.
+				this.list.activeFilters.value = { ...state.filters }
+				this.list.searchTerm.value = state.search || ''
+				const keys = state.sortKey ? [{ key: state.sortKey, order: state.sortOrder }] : []
+				this.list.sortKeys.value = keys
+				this.list.sortKey.value = keys[0]?.key ?? null
+				this.list.sortOrder.value = keys[0]?.order ?? 'asc'
+				this.list.refresh(1)
+				this.persistViewStateToRoute(state)
+				this.$emit('apply-view', view)
+				return
+			}
 			if (!this.$router) {
 				return
 			}
-			const nav = this.$router.replace({ query })
+			const nav = this.$router.replace({ query: buildRouteQueryFromViewState(state) })
 			// Swallow the duplicate-navigation rejection (Vue Router 3)
 			// when the applied view matches the current query.
 			if (nav && typeof nav.catch === 'function') {
@@ -4467,15 +4543,19 @@ export default {
 		},
 
 		/**
-		 * Persist the current route-query state as a named view via
-		 * OpenRegister's views API (CnSaveViewDialog `@confirm`). On
-		 * success the new view joins the list and the dialog closes; on
-		 * failure the dialog stays open with the error surfaced.
+		 * Persist the current state as a named view via OpenRegister's views
+		 * API (CnSaveViewDialog `@confirm`). Self-fetch mode reads its active
+		 * filters/search/sort straight from useListView's own state (they
+		 * never reach the route query); otherwise falls back to the route
+		 * query. On success the new view joins the list and the dialog
+		 * closes; on failure the dialog stays open with the error surfaced.
 		 *
 		 * @param {{ name: string, isPublic: boolean }} payload Dialog payload.
 		 */
 		async onSaveViewConfirm({ name, isPublic }) {
-			const state = extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
+			const state = this.isSelfFetchMode
+				? this.currentViewState()
+				: extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
 			const payload = buildViewCreatePayload({ name, description: '', isPublic, isDefault: false, state })
 			try {
 				const view = await useSavedViewsApi().createView(payload)
