@@ -19,6 +19,7 @@
 | `columnsTabLabel`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'Columns')`                                      | Columns tab label                                                                                                                                                                  |
 | `searchLabel`          | `string`  |          | `() =&gt; t('nextcloud-vue', 'Search')`                                       | Search section heading                                                                                                                                                             |
 | `filtersLabel`         | `string`  |          | `() =&gt; t('nextcloud-vue', 'Filters')`                                      | Filters section heading                                                                                                                                                            |
+| `clearAllLabel`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'Clear all')`                                    | "Clear all" button label, shown when search or a filter is active                                                                                                                  |
 | `columnsHeading`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Column visibility')`                            | Columns section heading                                                                                                                                                            |
 | `columnsDescription`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'Select which columns to display in the table')` | Columns section description                                                                                                                                                        |
 | `propertiesGroupLabel` | `string`  |          | `''`                                                                          | Override label for the schema properties group. Defaults to schema.title.                                                                                                          |
@@ -27,13 +28,14 @@
 
 ### Events
 
-| Name             | Payload | Description |
-| ---------------- | ------- | ----------- |
-| `update:open`    | —       |             |
-| `search`         | —       |             |
-| `columns-change` | —       |             |
-| `filter-change`  | —       |             |
-| `tab-change`     | —       |             |
+| Name             | Payload | Description                                                |
+| ---------------- | ------- | ---------------------------------------------------------- |
+| `update:open`    | —       |                                                            |
+| `search`         | —       |                                                            |
+| `clear-filters`  | —       | "Clear all" clicked; reset search and every active filter. |
+| `columns-change` | —       |                                                            |
+| `filter-change`  | —       |                                                            |
+| `tab-change`     | —       |                                                            |
 
 ### Slots
 

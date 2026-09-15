@@ -2779,7 +2779,10 @@ export default {
 				if (uuid === null || uuid === undefined || uuid === '') {
 					return null
 				}
-				return { id: uuid, label: this.referenceLabels[uuid] || String(uuid) }
+				const label = this.referenceLabels[uuid] || String(uuid)
+				// NcSelectUsers reads `displayName`, not `label` — a user field's
+				// selected option needs both.
+				return this.isUserField(field) ? { id: uuid, label, displayName: label } : { id: uuid, label }
 			}
 			if (this.isAsyncEnum(field)) {
 				// For async fields, formData stores the full option object
