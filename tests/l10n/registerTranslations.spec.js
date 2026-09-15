@@ -74,6 +74,7 @@ describe('registerTranslations', () => {
 		expect(formatConnectionStatus('limited')).toBe('Beperkt')
 		expect(formatConnectionStatus('unconfigured')).toBe('Niet geconfigureerd')
 		expect(formatConnectionStatus('simulated')).toBe('Gesimuleerd')
+		expect(formatConnectionStatus('disabled')).toBe('Uitgeschakeld')
 		expect(formatConnectionStatus('unavailable')).toBe('Niet beschikbaar')
 		expect(formatConnectionStatus('error')).toBe('Fout')
 		expect(formatConnectionSettingsLabel('/settings/admin/dossiq#section-zgw')).toBe('Instellingen openen')
