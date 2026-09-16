@@ -1778,7 +1778,7 @@
 				},
 				"handler": {
 					"type": "string",
-					"description": "Registry key for type: 'handler'. Resolved against the customComponents map passed to CnAppRoot. Also the built-in dispatch verb when paired with `route` (handler: 'navigate' → $router.push to `route`)."
+					"description": "Registry key for type: 'handler'. Resolved across both registries passed to CnAppRoot: a v2 `registry` entry of `kind: 'handler'` exposing the function as `.handler` (or `.fn`), a directly function-valued registry entry, or a function-valued entry in the deprecated `customComponents` map. The same resolution serves actions[], bulkActions[] and headerActions[]. Also the built-in dispatch verb when paired with `route` (handler: 'navigate' → $router.push to `route`)."
 				},
 				"route": {
 					"type": "string",

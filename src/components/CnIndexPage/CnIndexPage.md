@@ -382,7 +382,7 @@ export default {
 | `excludeFields` | Array | `[]` | Field keys to exclude from the form dialog |
 | `includeFields` | Array | `null` | Field keys to include in the form dialog (whitelist) |
 | `fieldOverrides` | Object | `{}` | Per-field config overrides passed to `CnFormDialog` |
-| `customComponents` | Object | `null` | Custom-component / handler registry. When set, takes precedence over the injected `cnCustomComponents` from CnAppRoot. Used to resolve `actions[].handler` registry names declared in the manifest (manifest-actions-dispatch). |
+| `customComponents` | Object | `null` | Custom-component / handler registry. When set, takes precedence over the injected `cnCustomComponents` from CnAppRoot. Used to resolve `actions[].handler` registry names declared in the manifest (manifest-actions-dispatch). Named handlers resolve out of the v2 `registry` (a `kind: "handler"` entry) FIRST and fall back to this map. |
 | `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table view toggle |
 | `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (in addition to / instead of the sidebar search). Fed from the manifest as `pages[].config.inlineSearch`. |
 | `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest `config.searchPlaceholder`). |
@@ -408,7 +408,7 @@ export default {
 | `quickFilterMode` | String | `'chips'` | How the quick filters render: `'chips'` (pill strip) or `'dropdown'` (a single `NcSelect`). Fed from `pages[].config.quickFilterMode`. |
 | `quickFilterMultiple` | Boolean | `false` | Allow several quick filters active at once; selected tabs' filters are OR-ed into the fetch (same field → `field[]=` array). Fed from `pages[].config.quickFilterMultiple`. |
 | `quickFilterMaxVisible` | Number | `0` | Chips mode only — how many quick-filter pills render inline before the rest move behind one more chip — a `⋯` pill that opens a panel of the hidden lenses. `0` renders every tab, which wraps the actions bar onto a second line once a page declares more than a handful. The visible set is the first *n* entries of `quickFilters`. Fed from `pages[].config.quickFilterMaxVisible`. |
-| `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the `customComponents` registry on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log `console.warn` once and fall back to the default. |
+| `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the v2 `registry` — any kind carrying a `component` — or in the legacy `customComponents` map on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log `console.warn` once and fall back to the default. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 | `subscribe` | Boolean | `true` | Self-fetch mode only. When `register` + `schema` are set (and no `objects` prop), the page subscribes to the collection's `or-collection-{register}-{schema}` live-update scope on mount and refetches on an update event; released on unmount. Set `false` (manifest: `config.subscribe: false`) for static / read-once views. No-op in consumer-managed mode or on stores without live-updates support. |
 
@@ -534,14 +534,14 @@ logo, contactpersoon block, and a CTA button — register the card
 component on `CnAppRoot` and reference it by name in the manifest:
 
 ```js {static}
-// src/customComponents.js
+// src/registry.js
 import OrganisatieCard from './components/cards/OrganisatieCard.vue'
-export const customComponents = { OrganisatieCard }
+export default { OrganisatieCard: { kind: 'page', component: OrganisatieCard } }
 ```
 
 ```vue {static}
 <!-- App.vue -->
-<CnAppRoot :manifest="manifest" app-id="softwarecatalog" :custom-components="customComponents">
+<CnAppRoot :manifest="manifest" app-id="softwarecatalog" :registry="registry">
     <router-view />
 </CnAppRoot>
 ```
@@ -645,7 +645,7 @@ Handler dispatch keywords (same as row-level `actions[].handler`):
 | `navigate` | `$router.push({ name: action.route })` (no `params.id`) AND `@header-action` emits |
 | `emit` | Only `@header-action({ action: id, id })` emits (no handler call) |
 | `none` | No-op + suppresses the `@header-action` emit |
-| Registry name | `customComponents[name]({ actionId: id })` is called AND `@header-action` emits |
+| Registry name | The registered function is called as `fn({ actionId: id })` — the v2 `registry` first, then `customComponents` — AND `@header-action` emits |
 | Unknown registry name | Silent fall-through to emit-only |
 
 Reserved built-in ids (`refresh`, `import`, `export`, `copy`, `delete`)
@@ -666,14 +666,23 @@ CnIndexPage no longer carries its own Request-a-feature entry (the former `showR
 
 ## Action handlers (manifest-actions-dispatch)
 
-Each row-action object in `actions[]` may declare a string `handler`. The value resolves through CnIndexPage's `effectiveCustomComponents` registry (the same one driving `type:'custom'` pages and the `cardComponent` prop). Reserved keywords short-circuit registry lookup:
+Each row-action object in `actions[]` may declare a string `handler`, and so may `bulkActions[]` and `headerActions[]`. All three resolve the name the same way: the v2 `registry` first — an entry of `kind: "handler"` exposing the function as `.handler` (or `.fn`), or a directly function-valued entry — then the deprecated `customComponents` map, which keeps an app that has not migrated working unchanged.
+
+```js
+// registry.js — the v2 home for a manifest-named behaviour
+export default {
+  queueProcessHandler: { kind: 'handler', handler: queueProcessHandler },
+}
+```
+
+Reserved keywords short-circuit the lookup:
 
 | `handler` value | Behaviour |
 |-----------------|-----------|
 | `"navigate"` | Calls `$router.push({ name: action.route, params: { id: row[rowKey] } })`. `route` is required. An optional `action.params` object is merged over the default (see [Navigate params](#navigate-params)). |
 | `"emit"` | Skips any registry call; CnIndexPage still bubbles `@action`. |
 | `"none"` | Disables the click entirely. CnIndexPage suppresses both the call AND the `@action` emit. |
-| Registry name (`/^[A-Za-z][A-Za-z0-9_]*$/`) | Looked up in `customComponents`. If a function, invoked as `fn({ actionId, item })` on row click. If a non-function or missing, falls back to `@action`-only with a `console.warn`. |
+| Registry name (`/^[A-Za-z][A-Za-z0-9_]*$/`) | Looked up in the v2 `registry`, then `customComponents`. If a function, invoked as `fn({ actionId, item })` on row click. A name that matches something UNCALLABLE falls back to `@action`-only with a `console.warn`; a name that matches nothing falls back silently. |
 | Function (programmatic) | Used as-is. Back-compat for v1 row-action APIs that pass a function directly. |
 | Unset | Default — CnIndexPage emits `@action` with the click payload and the consumer decides. |
 
@@ -702,12 +711,14 @@ Each row-action object in `actions[]` may declare a string `handler`. The value 
 ```
 
 ```js
-// src/customComponents.js — passed to CnAppRoot
+// src/registry.js — passed to CnAppRoot
+function queueProcessHandler({ actionId, item }) {
+	// Fires when the row-action button is clicked.
+	console.log('processing queue', item.id, '(from', actionId, ')')
+}
+
 export default {
-	queueProcessHandler({ actionId, item }) {
-		// Fires when the row-action button is clicked.
-		console.log('processing queue', item.id, '(from', actionId, ')')
-	},
+	queueProcessHandler: { kind: 'handler', handler: queueProcessHandler },
 }
 ```
 
@@ -748,7 +759,7 @@ The list view (`view-mode="list"`) and standalone sort dropdown add these props:
 | `listLabel` | String | `''` | Label for the list view-toggle option. |
 | `listIcon` | String | `''` | MDI icon for the list view-toggle option. |
 | `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
-| `listComponent` | String | `''` | Custom row component (customComponents registry). |
+| `listComponent` | String | `''` | Custom row component, resolved against the v2 `registry` (any kind carrying a `component`) and then the legacy `customComponents` map. |
 | `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown in the actions bar. |
 | `sortSelectOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
 | `sortSelectValue` | String | `''` | Selected sort dropdown value (controlled). |

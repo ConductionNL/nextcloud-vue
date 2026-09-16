@@ -59,8 +59,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `excludeColumns` | Array | `[]` | Schema columns to hide |
 | `includeColumns` | Array | `null` | Schema columns to show (whitelist) |
 | `columnOverrides` | Object | `\{\}` | Per-column overrides |
-| `actions` | Array | `[]` | Custom row action definitions. Each entry accepts the runtime `{label, icon, handler, …}` shape (function-typed `handler` fires directly) AND the manifest shape with a string `handler` resolved through `customComponents` — see "Action handlers" below. |
-| `customComponents` | Object | `null` | Custom-component / handler registry. When set takes precedence over the injected `cnCustomComponents` from a CnAppRoot ancestor. Used to resolve `actions[].handler` registry names (manifest-actions-dispatch). |
+| `actions` | Array | `[]` | Custom row action definitions. Each entry accepts the runtime `{label, icon, handler, …}` shape (function-typed `handler` fires directly) AND the manifest shape with a string `handler` resolved through the v2 `registry` first, then `customComponents` — see "Action handlers" below. |
+| `customComponents` | Object | `null` | Custom-component / handler registry. When set takes precedence over the injected `cnCustomComponents` from a CnAppRoot ancestor. Used to resolve `actions[].handler` registry names (manifest-actions-dispatch). Named handlers resolve out of the v2 `registry` (a `kind: "handler"` entry) FIRST and fall back to this map. |
 | `emptyText` | String | `'No items found'` | Empty state message |
 | `rowClass` | Function | `null` | CSS class provider for rows |
 | `addLabel` | String | `''` | Add button label |
@@ -110,7 +110,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `visibleColumns` | Array | `null` | Currently visible column keys forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
 | `activeFilters` | Object | `\{\}` | Currently active facet filters `\{ fieldName: [values] \}` forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
 | `register` | String | `''` | Effective register slug for the page. Forwarded as a prop to the resolved `cardComponent` so bespoke card UIs can match the schema → register pair. Manifest-driven path: `pages[].config.register` flows in via `CnPageRenderer`. |
-| `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the `customComponents` registry on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log a `console.warn` once and fall back to the default so a misconfigured manifest never blanks the grid. See [Bespoke card-grid](#bespoke-card-grid-via-cardcomponent) below. |
+| `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the v2 `registry` — any kind carrying a `component` — or in the legacy `customComponents` map on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log a `console.warn` once and fall back to the default so a misconfigured manifest never blanks the grid. See [Bespoke card-grid](#bespoke-card-grid-via-cardcomponent) below. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 
 ## Split view
@@ -638,7 +638,14 @@ flips.
 
 ## Action handlers (manifest-actions-dispatch)
 
-`actions[]` items declared in `pages[].config.actions` (manifest path) accept a string `handler` that resolves through the `customComponents` registry passed to `CnAppRoot` / `CnPageRenderer`. The same registry already used to resolve `headerComponent` / `actionsComponent` / slot overrides.
+`actions[]` items declared in `pages[].config.actions` (manifest path) accept a string `handler`, and so do `bulkActions[]` and `headerActions[]`. All three resolve the name the same way: the v2 `registry` first — an entry of `kind: "handler"` exposing the function as `.handler` (or `.fn`), or a directly function-valued entry — then the deprecated `customComponents` map, which keeps an app that has not migrated working unchanged. A name that matches something registered but uncallable (a component where a function belongs) warns and falls back to emit-only; an unknown name falls back silently.
+
+```js
+// registry.js — the v2 home for a manifest-named behaviour
+export default {
+  claimCase: { kind: 'handler', handler: claimCase },
+}
+```
 
 ### Registry-name handler
 
@@ -660,7 +667,7 @@ Manifest declaration:
 }
 ```
 
-Registry entry (e.g. `src/customComponents.js`):
+Registry entry (`src/registry.js`):
 
 ```js
 export function queueProcessHandler({ actionId, item }) {
@@ -670,7 +677,7 @@ export function queueProcessHandler({ actionId, item }) {
 
 export default {
   // …existing component entries…
-  queueProcessHandler,
+  queueProcessHandler: { kind: 'handler', handler: queueProcessHandler },
 }
 ```
 
@@ -714,9 +721,9 @@ contactpersoon block, and a CTA button — point the manifest at a
 consumer-provided card component:
 
 ```js
-// src/customComponents.js
+// src/registry.js
 import OrganisatieCard from './components/cards/OrganisatieCard.vue'
-export const customComponents = \{ OrganisatieCard \}
+export default \{ OrganisatieCard: \{ kind: 'page', component: OrganisatieCard \} \}
 ```
 
 ```vue
@@ -724,7 +731,7 @@ export const customComponents = \{ OrganisatieCard \}
 <CnAppRoot
   :manifest="manifest"
   app-id="softwarecatalog"
-  :custom-components="customComponents">
+  :registry="registry">
   <router-view />
 </CnAppRoot>
 ```
@@ -809,7 +816,7 @@ The list view (`view-mode="list"`) and standalone sort dropdown add these props:
 | `listLabel` | String | `''` | Label for the list view-toggle option. |
 | `listIcon` | String | `''` | MDI icon for the list view-toggle option. |
 | `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
-| `listComponent` | String | `''` | Custom row component (customComponents registry). |
+| `listComponent` | String | `''` | Custom row component, resolved against the v2 `registry` (any kind carrying a `component`) and then the legacy `customComponents` map. |
 | `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown in the actions bar. |
 | `sortSelectOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
 | `sortSelectValue` | String | `''` | Selected sort dropdown value (controlled). |

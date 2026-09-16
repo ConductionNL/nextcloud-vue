@@ -680,7 +680,7 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
-import { buildOnSuccessRoute } from '../../utils/actionsDispatcher.js'
+import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
@@ -865,6 +865,14 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/**
+		 * The v2 component registry, provided by CnAppRoot. Named handlers
+		 * (`actions[].handler`, `bulkActions[].handler`,
+		 * `headerActions[].handler`) resolve here first and fall back to
+		 * `cnCustomComponents`, so an app can register a `kind: 'handler'`
+		 * entry instead of a bare function in the legacy map.
+		 */
+		cnRegistry: { default: () => ({}) },
 		/**
 		 * The per-user preference reader and writer, provided by CnAppRoot.
 		 * Used for the manual row order, which belongs to the person and the
@@ -1931,8 +1939,9 @@ export default {
 		 *
 		 * Resolution priority (highest first):
 		 *   1. The parent's `#card` scoped slot (always wins).
-		 *   2. The component resolved from `cardComponent` against the
-		 *      effective customComponents registry.
+		 *   2. The component resolved from `cardComponent` against the v2
+		 *      `registry` (any kind carrying a `component`), then the legacy
+		 *      customComponents map.
 		 *   3. The library default (`CnObjectCard`).
 		 *
 		 * Unknown names log `console.warn` once and fall back to the
@@ -1946,8 +1955,9 @@ export default {
 		},
 
 		/**
-		 * Name of a custom row component for list view, resolved against the
-		 * customComponents registry (manifest `pages[].config.listComponent`).
+		 * Name of a custom row component for list view, resolved against the v2
+		 * `registry` and then the legacy customComponents map (manifest
+		 * `pages[].config.listComponent`).
 		 * Same resolution priority as `cardComponent`: the `#list-item` slot
 		 * wins, then this component, then the default `CnObjectRow`. Unknown
 		 * names warn once and fall back to the default.
@@ -1984,8 +1994,9 @@ export default {
 		 * `{ id, label, icon?, handler?, route?, disabled? }`. The
 		 * `handler` field mirrors the row-level
 		 * `actions[].handler` pattern: a function, the keyword
-		 * `'navigate'`, `'emit'`, `'none'`, or a string registry
-		 * lookup against the resolved `customComponents`. The page
+		 * `'navigate'`, `'emit'`, `'none'`, or a string name looked
+		 * up in the v2 `registry` (a `kind: 'handler'` entry) and
+		 * then in the legacy `customComponents`. The page
 		 * dispatches the resolved handler via `onHeaderAction` AND
 		 * (unless the handler is the `'none'` keyword) emits
 		 * `@header-action({ action: id, id })`.
@@ -2217,15 +2228,15 @@ export default {
 		},
 
 		/**
-		 * Effective customComponents registry — the explicit prop wins
-		 * over the injected `cnCustomComponents`. Mirrors the priority
-		 * used by `cardComponent` resolution and `actions[].handler`
-		 * dispatch.
+		 * The same map as `effectiveCustomComponents`, under the name the
+		 * header-action and bulk-action paths have always used. One of the two
+		 * computeds has to be the other, or a change to the resolution order
+		 * lands on half the surfaces.
 		 *
 		 * @return {object}
 		 */
 		resolvedCustomComponents() {
-			return this.customComponents || this.cnCustomComponents || {}
+			return this.effectiveCustomComponents
 		},
 
 		/**
@@ -3009,6 +3020,16 @@ export default {
 		},
 
 		/**
+		 * The v2 registry a named handler resolves against before the legacy
+		 * customComponents map.
+		 *
+		 * @return {object}
+		 */
+		effectiveRegistry() {
+			return this.cnRegistry ?? {}
+		},
+
+		/**
 		 * Merged actions: app-provided first, then built-in defaults.
 		 *
 		 * REQ-MAD-3 / REQ-MAD-4 / REQ-MAD-5 / REQ-MAD-6 / REQ-MAD-7
@@ -3022,6 +3043,7 @@ export default {
 			const ctx = {
 				router: this.$router,
 				rowKey: this.rowKey,
+				registry: this.effectiveRegistry,
 				customComponents: this.effectiveCustomComponents,
 			}
 			// Drop anything that is not an action OBJECT. A bare string — the
@@ -3252,10 +3274,10 @@ export default {
 			if (!this.cardComponent) {
 				return null
 			}
-			const resolved = this.effectiveCustomComponents[this.cardComponent]
+			const resolved = this.resolveNamedComponent(this.cardComponent)
 			if (!resolved) {
 				// eslint-disable-next-line no-console
-				console.warn(`[CnIndexPage] cardComponent "${this.cardComponent}" not found in customComponents registry. Falling back to CnObjectCard.`)
+				console.warn(`[CnIndexPage] cardComponent "${this.cardComponent}" not found in the registry or customComponents. Falling back to CnObjectCard.`)
 				return null
 			}
 			return resolved
@@ -3272,10 +3294,10 @@ export default {
 			if (!this.listComponent) {
 				return null
 			}
-			const resolved = this.effectiveCustomComponents[this.listComponent]
+			const resolved = this.resolveNamedComponent(this.listComponent)
 			if (!resolved) {
 				// eslint-disable-next-line no-console
-				console.warn(`[CnIndexPage] listComponent "${this.listComponent}" not found in customComponents registry. Falling back to CnObjectRow.`)
+				console.warn(`[CnIndexPage] listComponent "${this.listComponent}" not found in the registry or customComponents. Falling back to CnObjectRow.`)
 				return null
 			}
 			return resolved
@@ -3663,11 +3685,41 @@ export default {
 		},
 
 		/**
+		 * Resolve a component the page config names — `cardComponent`,
+		 * `listComponent` — out of the v2 registry (any kind carrying a
+		 * `component`, as a slot lookup does) and then the legacy
+		 * customComponents map.
+		 *
+		 * @param {string} name The registered component name.
+		 * @return {object|null} The component, or null when nothing answers.
+		 */
+		resolveNamedComponent(name) {
+			const entry = this.effectiveRegistry[name]
+			if (entry && entry.component) {
+				return entry.component
+			}
+			return this.effectiveCustomComponents[name] || null
+		},
+
+		/**
+		 * Whether a handler name matches something registered that is not
+		 * callable — a named component where a function belongs. Tells a
+		 * typo (silent emit-only) apart from a mis-registration (warned).
+		 *
+		 * @param {string} name The handler name from the manifest.
+		 * @return {boolean}
+		 */
+		namesSomethingUnusable(name) {
+			const candidates = [this.effectiveRegistry[name], this.resolvedCustomComponents[name]]
+			return candidates.some((v) => v !== undefined && v !== null)
+		},
+
+		/**
 		 * Resolve a declarative `headerActions[]` entry's `handler`
 		 * field into the final dispatchable shape. Mirrors the
 		 * row-level `actions[].handler` keyword set used by
 		 * manifest-actions-dispatch — `navigate`, `emit`, `none`, or a
-		 * registry name (looked up against `resolvedCustomComponents`).
+		 * registry name (resolved through `resolveRegisteredHandler`).
 		 *
 		 * @param {object} entry Raw headerActions entry.
 		 * @return {object} Possibly-mutated copy: function-typed
@@ -3718,14 +3770,14 @@ export default {
 				return { ...entry, handler: () => {}, _dispatchSuppress: true }
 			}
 			// Registry name lookup.
-			const resolved = this.resolvedCustomComponents[handler]
+			const resolved = resolveRegisteredHandler(handler, this.effectiveRegistry, this.resolvedCustomComponents)
 			if (typeof resolved === 'function') {
 				const id = entry.id
 				return { ...entry, handler: () => resolved({ actionId: id }) }
 			}
-			if (resolved !== undefined && resolved !== null) {
+			if (this.namesSomethingUnusable(handler)) {
 				// eslint-disable-next-line no-console
-				console.warn(`CnIndexPage: headerActions[].handler "${handler}" resolved to a non-function in customComponents; falling back to emit-only`)
+				console.warn(`CnIndexPage: headerActions[].handler "${handler}" resolved to a non-function in the registry or customComponents; falling back to emit-only`)
 				const { handler: _ignored, ...rest } = entry
 				return { ...rest }
 			}
@@ -3747,7 +3799,8 @@ export default {
 		 *   - a function handler is called with `{ actionId, selectedIds, count }`
 		 *   - `open-modal` (with `target`) opens the registered modal, with the
 		 *     selection merged into its props
-		 *   - a registry name resolves against `customComponents`
+		 *   - a registry name resolves through the v2 registry, then the
+		 *     legacy `customComponents`
 		 *   - anything else falls through to emit-only
 		 *
 		 * `bulk-action` is emitted either way, so a host can listen instead of
@@ -3770,12 +3823,12 @@ export default {
 				} else if (handler === 'open-modal' || (!handler && entry.target)) {
 					this.openBulkModal(entry, selectedIds, count)
 				} else if (typeof handler === 'string' && handler !== 'emit' && handler !== 'none') {
-					const resolved = this.resolvedCustomComponents[handler]
+					const resolved = resolveRegisteredHandler(handler, this.effectiveRegistry, this.resolvedCustomComponents)
 					if (typeof resolved === 'function') {
 						resolved(scope)
-					} else if (resolved !== undefined && resolved !== null) {
+					} else if (this.namesSomethingUnusable(handler)) {
 						// eslint-disable-next-line no-console
-						console.warn(`CnIndexPage: bulkActions[].handler "${handler}" resolved to a non-function in customComponents; falling back to emit-only`)
+						console.warn(`CnIndexPage: bulkActions[].handler "${handler}" resolved to a non-function in the registry or customComponents; falling back to emit-only`)
 					}
 				}
 
