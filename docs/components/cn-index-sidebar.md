@@ -93,6 +93,7 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 | `filtersLabel` | String | `'Filters'` | Heading above the filter controls |
 | `fromLabel` | String | `'From'` | Start-of-window label on a `date-range` filter |
 | `toLabel` | String | `'To'` | End-of-window label on a `date-range` filter |
+| `filterFields` | Object | `null` | Filter declarations for a page with no schema of its own. Wins over `schema`, and feeds the Search tab only |
 | `columnsHeading` | String | `'Column Visibility'` | Heading inside the Columns tab |
 | `columnsDescription` | String | `'Select which columns to display in the table'` | Subtitle inside the Columns tab |
 | `userIsAdmin` | Boolean | `true` | Whether the current user is an admin. When `false`, schema properties with `adminOnly: true` are hidden from the filter list in the Search tab. |

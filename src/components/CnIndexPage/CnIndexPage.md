@@ -518,24 +518,27 @@ What the source brings, all overridable by the manifest:
 A tab answers one of a few fixed questions. A search field lets the reader
 ask their own, and on a named source it reaches the same loader.
 
-Declare the fields on the page's own `config.schema` and switch the sidebar
-on. A property is offered as a filter when it is `facetable`, and it picks
-its control with `inputControl` (see CnIndexSidebar). Give a filter-only
-property `visible: false` so it stays out of the Columns tab.
+Declare them under `sidebar.fields`, in the shape a schema property has. A
+field is offered when it is `facetable`, and it picks its control with
+`inputControl` (see CnIndexSidebar).
+
+`sidebar.fields` and **not** `config.schema`: the schema key names the
+OpenRegister schema a page self-fetches from, which is why the manifest
+schema types it as a string, and a named source has none. It also keeps a
+filter out of the Columns tab, where it would offer a column the table does
+not have.
 
 ```json
 {
   "config": {
     "entitySource": "tasks",
-    "sidebar": { "enabled": true },
-    "schema": {
-      "title": "Tasks",
-      "properties": {
+    "sidebar": {
+      "enabled": true,
+      "fields": {
         "priority": {
           "type": "string",
           "title": "Priority",
           "facetable": true,
-          "visible": false,
           "inputControl": "select",
           "enum": ["low", "normal", "high", "urgent"]
         }
@@ -551,9 +554,9 @@ Three things follow from that one block:
   the active tab's filter, so the tab sets the question and the field
   narrows the answer, in ONE request. Nothing is reduced over a fetched page.
 - **The URL carries it.** `?priority=high`, a window as `?dueAt=<from>..<to>`,
-  several values comma separated. A link lands filtered, and only properties
-  this page declares facetable are read back, so a hand-edited link cannot
-  invent a field.
+  several values comma separated. A link lands filtered, and only fields this
+  page declares facetable are read back, so a hand-edited link cannot invent
+  one.
 - **A field with no argument is loud.** A source maps sidebar fields to its
   own arguments with `searchFields`; a chosen field that maps to nothing
   logs at ERROR naming itself, because a filter that narrows nothing renders

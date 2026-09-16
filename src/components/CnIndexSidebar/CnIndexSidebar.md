@@ -210,6 +210,7 @@ With admin-only filter control:
 | `propertiesGroupLabel` | String | `''` | Override label for the schema properties group. Falls back to `schema.title` |
 | `defaultTab` | String | `'search-tab'` | Tab id that is active when the sidebar opens. Built-in ids: `'search-tab'`, `'columns-tab'` |
 | `userIsAdmin` | Boolean | `true` | When `false`, schema properties with `adminOnly: true` are hidden from filters |
+| `filterFields` | Object | `null` | Filter declarations for a page with no schema of its own. Wins over `schema`, and feeds the Search tab only |
 
 ## How a filter picks its control
 
@@ -254,5 +255,9 @@ A `reference` filter needs `optionsSource` beside it:
 
 The rows load once and are cached. The VALUE is the referenced object's uuid,
 because that is what the server filters on; the label is only what the person
-reads. `visible: false` keeps a filter-only property out of the Columns tab,
-where it would offer to show a column the table does not have.
+reads.
+
+A page with no schema of its own passes the same declarations as
+`filterFields`, `{ propertyName: declaration }`. They reach the Search tab
+and nothing else, which is the point: a schema feeds both tabs, so filters
+declared there would also offer columns the table does not have.

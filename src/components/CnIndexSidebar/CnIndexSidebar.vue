@@ -337,6 +337,23 @@ export default {
 			default: () => t('nextcloud-vue', 'Filters'),
 		},
 
+		/**
+		 * Filter declarations for a page with no schema of its own: `{ name: declaration }`, the same shape a schema property has. Wins over `schema`, and feeds the Search tab only.
+		 *
+		 * 🔑 A FILTER IS NOT A COLUMN, which is the whole reason this is its
+		 * own prop rather than a synthetic `schema`. The schema feeds BOTH
+		 * tabs, so a page that declared its filters there would also offer
+		 * them in the Columns tab: the toggle would tick and no column would
+		 * appear, because the table's columns come from somewhere else
+		 * entirely. These reach the Search tab and nothing else.
+		 *
+		 * @type {object|null}
+		 */
+		filterFields: {
+			type: Object,
+			default: null,
+		},
+
 		/** Start-of-window label on a date-range filter. */
 		fromLabel: {
 			type: String,
@@ -448,6 +465,16 @@ export default {
 
 		/** Filter definitions from schema (facetable properties, respecting RBAC) */
 		schemaFilters() {
+			// An explicitly declared filter set wins: it is the page saying
+			// "these are the questions", where a schema only says "these are
+			// the properties" and the sidebar has to guess which of them are
+			// worth asking about.
+			if (this.filterFields && Object.keys(this.filterFields).length > 0) {
+				return filtersFromSchema(
+					{ properties: this.filterFields },
+					{ isAdmin: this.userIsAdmin, translate: this.cnTranslate },
+				)
+			}
 			if (!this.schema) {
 				return []
 			}

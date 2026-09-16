@@ -644,6 +644,7 @@
 			:visibleColumns="effectiveVisibleColumns"
 			:activeFilters="effectiveActiveFilters"
 			:columnGroups="resolvedSidebar.columnGroups || []"
+			:filterFields="resolvedSidebar.fields || null"
 			:facetData="effectiveFacetData"
 			:showMetadata="resolvedSidebar.showMetadata !== false"
 			v-bind="sidebarSearchProps"
@@ -729,6 +730,23 @@ function isRangeControl(prop) {
 }
 
 /**
+ * The filter declarations a page carries on its sidebar config.
+ *
+ * `sidebar.fields` and not `config.schema`: the schema key names the
+ * OpenRegister schema a page self-fetches from, and a named source has no
+ * register or schema to point at. The manifest schema types it as a string
+ * for exactly that reason.
+ *
+ * @param {object} props The CnIndexPage props.
+ *
+ * @return {object} `{ propertyName: declaration }`, empty when none.
+ */
+function declaredFilterFields(props) {
+	const fields = props.sidebar && props.sidebar.fields
+	return (fields && typeof fields === 'object') ? fields : {}
+}
+
+/**
  * Read a named-source page's sidebar filters back out of `$route.query`.
  *
  * Only properties the page's own schema declares `facetable` are read, so an
@@ -747,7 +765,7 @@ function namedFiltersFromRoute(instance, props) {
 	}
 	const route = instance && instance.proxy && instance.proxy.$route
 	const query = (route && route.query) || {}
-	const properties = (props.schema && typeof props.schema === 'object' && props.schema.properties) || {}
+	const properties = declaredFilterFields(props)
 	const out = {}
 
 	for (const [key, prop] of Object.entries(properties)) {
@@ -3269,6 +3287,7 @@ export default {
 				visibleColumns: this.effectiveVisibleColumns,
 				activeFilters: this.effectiveActiveFilters,
 				columnGroups: this.resolvedSidebar.columnGroups || [],
+				filterFields: this.resolvedSidebar.fields || null,
 				facetData: this.effectiveFacetData,
 				showMetadata: this.resolvedSidebar.showMetadata !== false,
 				...this.sidebarSearchProps,
@@ -4043,7 +4062,7 @@ export default {
 			if (!this.$router || !this.$route) {
 				return
 			}
-			const properties = (this.schema && typeof this.schema === 'object' && this.schema.properties) || {}
+			const properties = declaredFilterFields(this)
 			const query = { ...this.$route.query }
 			for (const key of Object.keys(properties)) {
 				if (properties[key] && properties[key].facetable === true) {

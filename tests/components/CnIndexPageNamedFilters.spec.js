@@ -22,14 +22,11 @@ jest.mock('@nextcloud/axios', () => ({
 	default: { get: () => Promise.resolve({ data: { results: [], total: 0 } }) },
 }))
 
-const taskSchema = {
-	title: 'Tasks',
-	properties: {
-		objectUuid: { type: 'string', title: 'Case', facetable: true, order: 1, inputControl: 'reference' },
-		state: { type: 'string', title: 'State', facetable: true, order: 2, inputControl: 'multiselect', enum: ['available', 'active'] },
-		dueAt: { type: 'string', title: 'Due between', facetable: true, order: 3, inputControl: 'date-range' },
-		notAFilter: { type: 'string', title: 'Title' },
-	},
+const taskFields = {
+	objectUuid: { type: 'string', title: 'Case', facetable: true, order: 1, inputControl: 'reference' },
+	state: { type: 'string', title: 'State', facetable: true, order: 2, inputControl: 'multiselect', enum: ['available', 'active'] },
+	dueAt: { type: 'string', title: 'Due between', facetable: true, order: 3, inputControl: 'date-range' },
+	notAFilter: { type: 'string', title: 'Title' },
 }
 
 /**
@@ -45,8 +42,7 @@ function mountTasksPage(query = {}) {
 		propsData: {
 			title: 'Tasks',
 			entitySource: 'tasks',
-			schema: taskSchema,
-			sidebar: { enabled: true },
+			sidebar: { enabled: true, fields: taskFields },
 		},
 		global: {
 			mocks: {
@@ -164,10 +160,10 @@ describe('a shared link lands filtered', () => {
 	})
 
 	/**
-	 * A hand-edited link must not be able to invent a field. Only a property
-	 * the page's own schema declares facetable is read back.
+	 * A hand-edited link must not be able to invent a field. Only a field the
+	 * page's own sidebar declares facetable is read back.
 	 */
-	it('ignores a query parameter the schema does not declare facetable', () => {
+	it('ignores a query parameter the page does not declare facetable', () => {
 		const { wrapper } = mountTasksPage({ notAFilter: 'anything', somethingElse: 'x' })
 
 		expect(wrapper.vm.namedActiveFilters).toEqual({})
