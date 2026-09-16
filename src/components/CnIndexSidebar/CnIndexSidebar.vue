@@ -195,7 +195,7 @@ import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { facetOptionLabel } from '../../utils/facets.js'
 import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
-import { CnDateRangePicker } from '../CnDateRangePicker/index.js'
+import { CnDateRangePicker, DEFAULT_DATE_RANGE_PRESETS } from '../CnDateRangePicker/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -515,7 +515,12 @@ export default {
 		 * @return {Array<object>} The preset list.
 		 */
 		rangePresets() {
-			return [{ id: 'custom', label: this.cnTranslate('Custom range'), days: null }]
+			// Taken FROM the picker's own list rather than written out again, so
+			// the one preset a filter offers carries the same id and the same
+			// label as everywhere else it appears.
+			return DEFAULT_DATE_RANGE_PRESETS
+				.filter((preset) => preset.id === 'custom')
+				.map((preset) => ({ ...preset }))
 		},
 	},
 
