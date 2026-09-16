@@ -6,6 +6,7 @@
 import { computed, inject, onMounted, watch } from 'vue'
 import { resolveIndexSource } from '../../composables/indexSources.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { searchFieldParams } from '../../utils/searchFieldParams.js'
 
 /**
  * Third data mode for CnIndexPage: a NAMED source.
@@ -52,6 +53,10 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
  * @param {import('vue').Ref<number|null>} [options.activeQuickFilterIndex]
  *   The shared tab-index ref `useSelfFetchList` owns (it exists even when
  *   self-fetch is off); this composable seeds and watches it.
+ * @param {import('vue').Ref<object>} [options.activeFilters] The sidebar's
+ *   chosen values, `{ fieldKey: values }`. Mapped through the source's
+ *   `searchFields` declaration into loader arguments and merged into every
+ *   load, so a manifest page's sidebar narrows the SERVER's query.
  *
  * @return {object} { isNamedSource, namedSource, namedRows, namedLoading, namedQuickFilters }
  */
@@ -94,6 +99,7 @@ export function useNamedSource(props, options = {}) {
 		: null
 	const tabs = manifestTabs || sourceTabs
 	const activeIndex = options.activeQuickFilterIndex || null
+	const activeFilters = options.activeFilters || null
 
 	// Seed the default tab before the watcher below registers: the mount load
 	// already carries this tab's filter, so the seed must not fire a second
@@ -140,8 +146,21 @@ export function useNamedSource(props, options = {}) {
 	const loadActive = async () => {
 		const idx = activeIndex ? activeIndex.value : null
 		const tab = (tabs && idx !== null && idx !== undefined) ? tabs[idx] : null
+		// 🔑 THE FIELD NARROWS WITHIN THE LENS, SO IT IS MERGED LAST. A lens
+		// sets the question ("unclaimed work"); a field narrows the answer
+		// ("on this case"). On the rare colliding key the field wins, because
+		// it is the thing the person just chose and can see selected. Both
+		// reach the SERVER: nothing here reduces a fetched page.
 		const config = resolveFilterTokens(
-			{ ...(props.sourceConfig || {}), ...((tab && tab.filter) || {}) },
+			{
+				...(props.sourceConfig || {}),
+				...((tab && tab.filter) || {}),
+				...searchFieldParams(
+					source.searchFields,
+					activeFilters ? activeFilters.value : null,
+					props.entitySource,
+				),
+			},
 			tokenCtx(),
 		)
 		try {
@@ -160,6 +179,13 @@ export function useNamedSource(props, options = {}) {
 	// reloads. Without tabs there is nothing to watch.
 	if (tabs && activeIndex) {
 		watch(activeIndex, loadActive)
+	}
+
+	// A sidebar choice is a new QUERY, not a new view of the page already
+	// fetched, so it reloads. `deep` because the map is rewritten key by key
+	// and a shallow watch misses a second value added to the same field.
+	if (activeFilters) {
+		watch(activeFilters, loadActive, { deep: true })
 	}
 
 	// No manual invalidation tick here on purpose. The adapters read from a
