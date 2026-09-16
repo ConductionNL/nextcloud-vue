@@ -99,7 +99,12 @@
 				</template>
 			</NcButton>
 
-			<!-- Add button (primary) -->
+			<!--
+				@slot actions
+				@description Custom buttons rendered between the sidebar toggle and the primary Add button.
+			-->
+			<slot name="actions" />
+
 			<!--
 				@event add
 				@description User clicked the primary Add button. No payload.
@@ -118,10 +123,10 @@
 			</NcButton>
 
 			<!--
-				@slot actions
-				@description Custom buttons rendered between the Add button and the overflow Actions menu.
+				@slot actions-end
+				@description Custom buttons (e.g. CnIndexPage's saved-views control) rendered AFTER the primary Add button, immediately before the overflow menu — for content that belongs grouped with "browse/manage" controls rather than with the app-specific buttons in `#actions`.
 			-->
-			<slot name="actions" />
+			<slot name="actions-end" />
 
 			<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
 			<CnBuildiqEditButton />

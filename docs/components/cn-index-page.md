@@ -86,6 +86,11 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `excludeFields` | Array | `[]` | Form fields to hide |
 | `includeFields` | Array | `null` | Form fields to show (whitelist) |
 | `fieldOverrides` | Object | `\{\}` | Per-field overrides |
+| `formSize` | String | `'normal'` | NcDialog size for the built-in Add/Edit form dialog (`'small'`/`'normal'`/`'large'`) |
+| `formColumns` | Number | `1` | How many columns the built-in Add/Edit form flows its fields into (`1` or `2`) |
+| `createDefaults` | Object | `null` | Seed values for the built-in create dialog only (never edit). Resolves `@me`/`@now`/`@today` at any depth; `@object.*`/`@workspace.*`/`@config.*` are not resolved here and pass through unchanged. |
+| `createSuccessRoute` | String \| Object | `null` | Route opened after a successful create from the built-in Add dialog; the created object's id is merged into the params. |
+| `createSuccessMessage` | String | `''` | Toast shown after a successful create from the built-in Add dialog. |
 | `showAdd` | Boolean | `true` | Show the Add button in the actions bar |
 | `addDisabled` | Boolean | `false` | Disable the Add button (e.g. when required selections are missing) |
 | `refreshDisabled` | Boolean | `false` | Disable the refresh button (e.g. when required selections are missing) |

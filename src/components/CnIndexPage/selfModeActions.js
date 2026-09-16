@@ -201,6 +201,9 @@ export function createSelfModeActions(ctx) {
 					window.dispatchEvent(new CustomEvent('cn-walkthrough:object-created', { detail }))
 				}
 				refreshList(ctx)
+				if (isCreate && typeof ctx.afterCreateSuccess === 'function') {
+					ctx.afterCreateSuccess(saved)
+				}
 			} else {
 				const err = storeError(ctx)
 				if (err && err.isValidation) {

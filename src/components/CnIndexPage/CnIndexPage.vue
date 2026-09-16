@@ -94,13 +94,20 @@
 				#selection-actions="{ count, selectedIds: ids }">
 				<slot name="selection-actions" :count="count" :selectedIds="ids" />
 			</template>
-			<template v-if="$slots['header-actions'] || $slots['actions'] || isEditMode || showExportMenu || allowSavedViews" #actions>
+			<template v-if="$slots['header-actions'] || $slots['actions']" #actions>
 				<!--
 					@slot header-actions
 					@description Extra buttons in the page header, inline next to the Add button. Documented since the beginning but wired up only later — consumers passing it (hermiq's flow list's "New flow" button) rendered nothing while the page looked fine.
 				-->
 				<slot name="header-actions" />
 				<slot name="actions" />
+			</template>
+			<!-- Rendered AFTER the primary Add button (CnActionsBar's `actions-end`
+			     slot), not before it: these are "browse/manage" controls — saved
+			     views, export, page config — grouped together and kept apart from
+			     the app-specific buttons in `#actions`, with Add sitting between
+			     the two groups rather than before both (dossiq Cases/Queue). -->
+			<template v-if="isEditMode || showExportMenu || allowSavedViews" #actions-end>
 				<!-- Saved views (opt-in via `allowSavedViews`): lists the user's
 				     OpenRegister saved-search views; applying one writes its stored
 				     filters/search/sort into the route query. -->
@@ -302,6 +309,7 @@
 				:nameField="massActionNameField"
 				:size="formSize"
 				:columns="formColumns"
+				:initialData="resolvedCreateDefaults"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog">
 				<template v-if="$slots['form-fields']" #form="scope">
@@ -317,6 +325,7 @@
 				:includeFields="includeFields"
 				:fieldOverrides="fieldOverrides"
 				:nameField="massActionNameField"
+				:initialValues="resolvedCreateDefaults"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog" />
 		</slot>
@@ -670,8 +679,10 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
+import { buildOnSuccessRoute } from '../../utils/actionsDispatcher.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
+import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -1481,6 +1492,43 @@ export default {
 			type: Number,
 			default: 1,
 			validator: (value) => value === 1 || value === 2,
+		},
+
+		/**
+		 * Seed values for the built-in create dialog. Never applied on edit:
+		 * both dialogs consult `initialData` / `initialValues` only when there
+		 * is no item. Values resolve `@me` / `@now` / `@today` at any depth;
+		 * `@object.*` / `@workspace.*` / `@config.*` need a context this page
+		 * does not carry, so they pass through unresolved.
+		 *
+		 * @type {object|null}
+		 */
+		createDefaults: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Where to go after a successful create from the built-in Add dialog.
+		 * A route name, or `{ name, paramField?, objectParam? }`; the created
+		 * object's id is merged into the params. Empty stays on the list.
+		 *
+		 * @type {string|object|null}
+		 */
+		createSuccessRoute: {
+			type: [String, Object],
+			default: null,
+		},
+
+		/**
+		 * Toast shown after a successful create from the built-in Add dialog,
+		 * run through the host `cnTranslate`. Empty shows none.
+		 *
+		 * @type {string}
+		 */
+		createSuccessMessage: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -3069,6 +3117,21 @@ export default {
 				.map((name) => name.replace('column-', ''))
 		},
 
+		/**
+		 * `createDefaults`, token-resolved. `resolveDeepTokens` rather than the
+		 * shallow filter-map resolver: a seed record is arbitrary JSON, so a
+		 * token can sit inside a nested object or an array of them.
+		 *
+		 * @return {object|null}
+		 */
+		resolvedCreateDefaults() {
+			const seed = this.createDefaults
+			if (!seed || typeof seed !== 'object' || Array.isArray(seed)) {
+				return null
+			}
+			return resolveDeepTokens(seed, {})
+		},
+
 		/** Add button label — derived from schema.title if not explicitly set */
 		resolvedAddLabel() {
 			if (this.addLabel) {
@@ -3373,6 +3436,7 @@ export default {
 			massActionNameField: () => this.massActionNameField,
 			editItem: () => this.editItem,
 			emit: (event, payload) => this.$emit(event, payload),
+			afterCreateSuccess: (saved) => this.afterCreateSuccess(saved),
 			setResults: {
 				singleDelete: (r) => this.setSingleDeleteResult(r),
 				massDelete: (r) => this.setMassDeleteResult(r),
@@ -4719,6 +4783,46 @@ export default {
 			window.dispatchEvent(new CustomEvent('cn-walkthrough:object-created', { detail }))
 		},
 
+		/**
+		 * Toast and navigate after a create the built-in dialog confirmed, per
+		 * `createSuccessMessage` / `createSuccessRoute`. Both default off, so a
+		 * page that declares neither behaves exactly as before.
+		 *
+		 * Runs on every create path (store, self-store, `createOverride`), which
+		 * is what makes the built-in Add button a peer of a manifest
+		 * `open-form` header action: that action has always toasted and
+		 * navigated, so the same create reached two different endings depending
+		 * on which button opened it.
+		 *
+		 * @param {object} saved The created object, as the save path returned it.
+		 * @return {Promise<void>}
+		 */
+		async afterCreateSuccess(saved) {
+			// Callers do not await this — a toast and a navigation are not the
+			// save — so nothing here may reject: an unhandled rejection from a
+			// failed chunk load would surface as an error on a create that
+			// actually succeeded.
+			if (this.createSuccessMessage) {
+				try {
+					const { showSuccess } = await import('@nextcloud/dialogs')
+					if (typeof showSuccess === 'function') {
+						showSuccess(this.cnTranslate(this.createSuccessMessage))
+					}
+				} catch {
+					// No toast; the record is saved either way.
+				}
+			}
+			if (!this.createSuccessRoute) {
+				return
+			}
+			// `buildOnSuccessRoute` reads the id through `savedObjectId`, so a
+			// response that carries it as `uuid` or `@self.id` still deep-links.
+			const location = buildOnSuccessRoute(this.createSuccessRoute, saved)
+			if (location && this.$router) {
+				this.$router.push(location).catch(() => {})
+			}
+		},
+
 		async onFormConfirm(formData) {
 			// Opt-in create-override hook: an app supplies a custom async create
 			// handler (e.g. a contact-aware endpoint that fills a required FK)
@@ -4743,6 +4847,7 @@ export default {
 						if (this.list && typeof this.list.refresh === 'function') {
 							this.list.refresh()
 						}
+						this.afterCreateSuccess(created)
 					} else {
 						this.setFormResult({ error: 'Save failed' })
 					}
@@ -4759,10 +4864,12 @@ export default {
 				}
 				const saved = await this.store.saveObject(this.objectType, formData)
 				if (saved) {
+					const wasCreate = !this.editItem
 					this.setFormResult({ success: true })
-					this.$emit(this.editItem ? 'edit' : 'create', saved)
-					if (!this.editItem) {
+					this.$emit(wasCreate ? 'create' : 'edit', saved)
+					if (wasCreate) {
 						this.notifyWalkthroughObjectCreated(saved)
+						this.afterCreateSuccess(saved)
 					}
 				} else {
 					const err = this.store.getError?.(this.objectType)

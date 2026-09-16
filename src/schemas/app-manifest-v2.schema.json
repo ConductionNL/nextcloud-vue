@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.33.0",
+	"version": "2.34.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -2628,6 +2628,46 @@
 							"enum": [1, 2],
 							"default": 1,
 							"description": "How many columns the page's built-in Add/Edit form flows its fields into. Pair 2 with formSize 'large', or the two columns are merely two narrow ones. CnFormDialog collapses back to one column below 700px, and a textarea or JSON editor spans both columns regardless. Maps to CnIndexPage / CnDetailPage `formColumns`."
+						},
+						"excludeFields": {
+							"type": "array",
+							"items": { "type": "string" },
+							"description": "Property names kept OUT of the page's built-in Add/Edit form dialog. Maps to CnIndexPage / CnDetailPage `excludeFields`."
+						},
+						"includeFields": {
+							"type": "array",
+							"items": { "type": "string" },
+							"description": "Property names the page's built-in Add/Edit form dialog shows, in this order — a whitelist, so anything absent is hidden regardless of excludeFields. Maps to CnIndexPage / CnDetailPage `includeFields`."
+						},
+						"fieldOverrides": {
+							"type": "object",
+							"additionalProperties": true,
+							"description": "Per-field overrides merged over the schema-derived field descriptors in the page's built-in Add/Edit form dialog (e.g. `{ \"description\": { \"widget\": \"textarea\" } }`). Which widget a field renders as belongs to the surface, not to the schema. Maps to CnIndexPage / CnDetailPage `fieldOverrides`."
+						},
+						"createDefaults": {
+							"type": "object",
+							"additionalProperties": true,
+							"description": "type='index': seed values for the page's built-in create dialog, never applied on edit. Resolves `@me`/`@now`/`@today` at any depth; `@object.*`/`@workspace.*`/`@config.*` need a context the page does not carry and pass through unchanged. Maps to CnIndexPage `createDefaults`."
+						},
+						"createSuccessRoute": {
+							"oneOf": [
+								{ "type": "string" },
+								{
+									"type": "object",
+									"properties": {
+										"name": { "type": "string" },
+										"paramField": { "type": "string" },
+										"objectParam": { "type": "string" }
+									},
+									"required": ["name"],
+									"additionalProperties": false
+								}
+							],
+							"description": "type='index': route opened after a successful create from the page's built-in Add dialog; the created object's id is merged into the params. Maps to CnIndexPage `createSuccessRoute`."
+						},
+						"createSuccessMessage": {
+							"type": "string",
+							"description": "type='index': toast shown after a successful create from the page's built-in Add dialog. Maps to CnIndexPage `createSuccessMessage`."
 						},
 						"actionToggles": {
 							"type": "object",
