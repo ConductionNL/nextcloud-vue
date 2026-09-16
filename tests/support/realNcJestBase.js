@@ -42,11 +42,12 @@ module.exports = {
 	//   debounce       — NcAppSidebar / NcAppNavigation
 	//   perfect-debounce — NcActions / NcContent
 	//   tributejs      — NcRichContenteditable's @mention autocomplete
+	//   marked         — cnRenderMarkdown / CnTextWidget, ESM-only from marked 16
 	// Each was added only after it actually blocked a component; see
 	// `tests/support/realNextcloudVue.js` for the chains that are NOT
 	// resolvable this way (unist-builder, string-length) and are stubbed.
 	transformIgnorePatterns: [
-		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|vue-codemirror6|codemirror|@codemirror|@ckpack|nostics|debounce|perfect-debounce|tributejs)/)',
+		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|vue-codemirror6|codemirror|@codemirror|@ckpack|nostics|debounce|perfect-debounce|tributejs|marked)/)',
 	],
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/src/$1',
