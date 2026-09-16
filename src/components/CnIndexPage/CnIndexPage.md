@@ -513,6 +513,67 @@ What the source brings, all overridable by the manifest:
 - Scope stays the endpoint's session decision. The loader drops any
   user-naming key, so a manifest cannot ask for someone else's inbox.
 
+### Search fields on a named source
+
+A tab answers one of a few fixed questions. A search field lets the reader
+ask their own, and on a named source it reaches the same loader.
+
+Declare the fields on the page's own `config.schema` and switch the sidebar
+on. A property is offered as a filter when it is `facetable`, and it picks
+its control with `inputControl` (see CnIndexSidebar). Give a filter-only
+property `visible: false` so it stays out of the Columns tab.
+
+```json
+{
+  "config": {
+    "entitySource": "tasks",
+    "sidebar": { "enabled": true },
+    "schema": {
+      "title": "Tasks",
+      "properties": {
+        "priority": {
+          "type": "string",
+          "title": "Priority",
+          "facetable": true,
+          "visible": false,
+          "inputControl": "select",
+          "enum": ["low", "normal", "high", "urgent"]
+        }
+      }
+    }
+  }
+}
+```
+
+Three things follow from that one block:
+
+- **A choice reloads the source.** It is merged into the loader config above
+  the active tab's filter, so the tab sets the question and the field
+  narrows the answer, in ONE request. Nothing is reduced over a fetched page.
+- **The URL carries it.** `?priority=high`, a window as `?dueAt=<from>..<to>`,
+  several values comma separated. A link lands filtered, and only properties
+  this page declares facetable are read back, so a hand-edited link cannot
+  invent a field.
+- **A field with no argument is loud.** A source maps sidebar fields to its
+  own arguments with `searchFields`; a chosen field that maps to nothing
+  logs at ERROR naming itself, because a filter that narrows nothing renders
+  exactly like one that matched every row.
+
+The `tasks` source declares four: `objectUuid`, `state`, `priority` and
+`dueAt` (which becomes the `dueAfter`/`dueBefore` pair). It does **not**
+declare `assignee`: the inbox has no assignee predicate, so a picker would
+answer about everybody.
+
+A source declares its map like this:
+
+```js
+searchFields: {
+  objectUuid: { param: 'objectUuid', single: true },
+  state: { param: 'state', join: ',' },
+  dueAt: { range: ['dueAfter', 'dueBefore'] },
+}
+```
+
 ### Source-supplied page hooks
 
 A source adapter may also declare, each one optional:

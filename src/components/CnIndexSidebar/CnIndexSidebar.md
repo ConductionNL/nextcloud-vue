@@ -203,8 +203,56 @@ With admin-only filter control:
 | `columnsTabLabel` | String | `'Columns'` | Label for the Columns tab |
 | `searchLabel` | String | `'Search'` | Heading for the search field section |
 | `filtersLabel` | String | `'Filters'` | Heading for the filters section |
+| `fromLabel` | String | `'From'` | Start-of-window label on a `date-range` filter |
+| `toLabel` | String | `'To'` | End-of-window label on a `date-range` filter |
 | `columnsHeading` | String | `'Column visibility'` | Heading for the column visibility section |
 | `columnsDescription` | String | `'Select which columns to display in the table'` | Description below the column visibility heading |
 | `propertiesGroupLabel` | String | `''` | Override label for the schema properties group. Falls back to `schema.title` |
 | `defaultTab` | String | `'search-tab'` | Tab id that is active when the sidebar opens. Built-in ids: `'search-tab'`, `'columns-tab'` |
 | `userIsAdmin` | Boolean | `true` | When `false`, schema properties with `adminOnly: true` are hidden from filters |
+
+## How a filter picks its control
+
+A facetable property renders as a multi-select unless it says otherwise.
+`inputControl` is how it says otherwise, and it is the same word openregister
+answers under `?_facetable=true`, so one declaration serves the list, the
+facet, the API and the portal.
+
+| `inputControl` | Renders | Emits as `values` |
+|---|---|---|
+| `text` | `NcTextField` | `[typed]`, or `[]` when cleared |
+| `select` | `NcSelect`, one value | `[chosen]` |
+| `multiselect` | `NcSelect`, several values | `[chosen, …]` |
+| `date-range` / `range` | `CnDateRangePicker` | `{ from, to }`, or `[]` when both are cleared |
+| `boolean` | checkbox | `[true]` |
+| `reference` | `NcSelect` over another list | `[uuid]` |
+
+A property that declares no control keeps the widget its type implies, which
+is what every schema written before this did. An unknown control falls back
+to the same guess rather than rendering nothing: a widget this version has
+not learned must degrade to a working one, not to an empty box.
+
+A `reference` filter needs `optionsSource` beside it:
+
+```json
+{
+  "objectUuid": {
+    "type": "string",
+    "title": "Case",
+    "facetable": true,
+    "visible": false,
+    "inputControl": "reference",
+    "optionsSource": {
+      "register": "dossiq",
+      "schema": "case",
+      "labelField": "title",
+      "limit": 200
+    }
+  }
+}
+```
+
+The rows load once and are cached. The VALUE is the referenced object's uuid,
+because that is what the server filters on; the label is only what the person
+reads. `visible: false` keeps a filter-only property out of the Columns tab,
+where it would offer to show a column the table does not have.
