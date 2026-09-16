@@ -83,7 +83,7 @@ const KLACHT = {
 function mockStore(records = { 'ct-subsidie': SUBSIDIE, 'ct-klacht': KLACHT }) {
 	const fetchObject = jest.fn((type, id) => Promise.resolve(records[id] || null))
 	useObjectStore.mockReturnValue({
-		fetchCollection: jest.fn(() => Promise.resolve([])),
+		fetchCollectionForOptions: jest.fn(() => Promise.resolve([])),
 		createObjectTypeSlug: (register, schema) => `${register}/${schema}`,
 		registerObjectType: jest.fn(),
 		objectTypeRegistry: {},
@@ -202,7 +202,7 @@ describe('CnFormDialog prefill from the chosen record', () => {
 	it('leaves the form usable when the fetch fails', async () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
 		useObjectStore.mockReturnValue({
-			fetchCollection: jest.fn(() => Promise.resolve([])),
+			fetchCollectionForOptions: jest.fn(() => Promise.resolve([])),
 			createObjectTypeSlug: (register, schema) => `${register}/${schema}`,
 			registerObjectType: jest.fn(),
 			objectTypeRegistry: {},

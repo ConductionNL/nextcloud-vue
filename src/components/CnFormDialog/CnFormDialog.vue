@@ -2403,7 +2403,7 @@ export default {
 						this.dynamicDriverValue(this.formData[key]),
 						this.formData,
 					)
-					const records = await store.fetchCollection(slug, params)
+					const records = await store.fetchCollectionForOptions(slug, params)
 					// Kept for the confirm payload. Array-mode declarations
 					// store the definition's NAME beside its value on the
 					// parent, and the answers alone carry only ids.
@@ -2596,7 +2596,7 @@ export default {
 				if (!store.objectTypeRegistry[slug]) {
 					store.registerObjectType(slug, field.reference.schema, register)
 				}
-				const results = await store.fetchCollection(slug, params)
+				const results = await store.fetchCollectionForOptions(slug, params)
 				const list = Array.isArray(results) ? results : []
 				const labels = {}
 				const options = list
