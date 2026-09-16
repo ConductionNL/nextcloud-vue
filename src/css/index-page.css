@@ -164,6 +164,25 @@
 	padding-inline-start: calc(3 * var(--default-grid-baseline));
 }
 
+/* A detail page mounted in the pane is a FLEX ITEM of the column above, so its
+   own `margin-inline: auto` — a no-op on the full route, where it is a block in
+   a block — stops it stretching (an auto cross-axis margin disables stretch) and
+   centres a shrink-to-fit box in the pane instead. Undo it here rather than
+   there: the auto margin is what centres the page under its 1800px cap on a wide
+   screen, which is still what it should do on its own route. */
+.cn-index-page__split-pane > .cn-detail-page {
+	width: 100%;
+	margin-inline: 0;
+}
+
+/* The header indent clears the Nextcloud navigation toggle, absolutely positioned
+   at the left edge of `.app-content` — not of this pane. Beside the list it is
+   56px of blank gutter left of the title, so drop it. NOT in `--full`: there the
+   pane IS the content area and the toggle really is over that edge. */
+.cn-index-page__split-pane:not(.cn-index-page__split-pane--full) > .cn-detail-page > .cn-detail-page__header {
+	padding-inline-start: 0;
+}
+
 /* Below the page's declared breakpoint the same address renders the record on
    its own, so a link sent from a laptop opens on a phone. The list is hidden
    rather than unmounted, which is what keeps its scroll position and its

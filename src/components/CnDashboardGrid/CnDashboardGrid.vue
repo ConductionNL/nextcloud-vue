@@ -42,6 +42,7 @@
 				:gs-h="item.gridHeight"
 				:gs-min-w="minWidth"
 				:gs-min-h="minHeight"
+				:gs-size-to-content="sizeToContentAttr(item)"
 				@keydown="onItemKeydown($event, item)">
 				<div class="grid-stack-item-content">
 					<slot name="widget" :item="item">
@@ -385,6 +386,36 @@ export default {
 		 */
 		resolveItemKey(item) {
 			return this.itemKey ? this.itemKey(item) : item.id
+		},
+
+		/**
+		 * The `gs-size-to-content` attribute for a layout item, or `undefined` to
+		 * leave the item on its authored `gridHeight`.
+		 *
+		 * A widget that decides AT RUNTIME it has nothing to show — a banner whose
+		 * condition is false, a list that came back empty — still costs its whole
+		 * authored row, because the row is reserved from the layout before the
+		 * component renders and the engine positions items absolutely, so no CSS
+		 * can reclaim it. `sizeToContent` hands the row's height to the content, so
+		 * an empty widget collapses and the grid closes up behind it.
+		 *
+		 * Opt-in per item: it makes `gridHeight` advisory for that widget, which is
+		 * wrong for anything with a deliberate size (a map, a chart) and right for
+		 * anything whose height is whatever it turned out to have.
+		 *
+		 * @param {object} item the layout item.
+		 * @return {string|undefined} `'true'`, a row minimum as a string, or undefined.
+		 */
+		sizeToContentAttr(item) {
+			const v = item && item.sizeToContent
+			if (v === true) {
+				return 'true'
+			}
+			// A number is GridStack's "size to content, but never below N rows".
+			if (Number.isFinite(v) && v > 0) {
+				return String(v)
+			}
+			return undefined
 		},
 
 		/**

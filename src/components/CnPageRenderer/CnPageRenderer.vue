@@ -153,7 +153,16 @@
 						:is="splitPaneComponent"
 						v-bind="splitPaneProps"
 						@edited="splitScope.saved"
-						@created="splitScope.saved" />
+						@created="splitScope.saved">
+						<template
+							v-for="entry in splitPaneSlotEntries"
+							#[entry.name]="paneSlotProps">
+							<component
+								:is="entry.component"
+								:key="entry.name"
+								v-bind="paneSlotProps" />
+						</template>
+					</component>
 				</template>
 				<!-- eslint-enable vue/no-v-for-template-key-on-child -->
 			</component>
@@ -213,7 +222,16 @@
 					:is="splitPaneComponent"
 					v-bind="splitPaneProps"
 					@edited="splitScope.saved"
-					@created="splitScope.saved" />
+					@created="splitScope.saved">
+					<template
+						v-for="entry in splitPaneSlotEntries"
+						#[entry.name]="paneSlotProps">
+						<component
+							:is="entry.component"
+							:key="entry.name"
+							v-bind="paneSlotProps" />
+					</template>
+				</component>
 			</template>
 			<!-- eslint-enable vue/no-v-for-template-key-on-child -->
 		</component>
@@ -1370,6 +1388,34 @@ export default {
 		 * as an array of `{ name, component }` entries to make the
 		 * `<template v-for>` + dynamic-slot-name pattern work in Vue 2.
 		 */
+		/**
+		 * The DETAIL page's own slot components, for the record mounted in the
+		 * split pane.
+		 *
+		 * `resolvedSlotEntries` belongs to the index page and cannot serve here:
+		 * the pane mounts a different manifest page, and a `type: "custom"` widget
+		 * resolves through its host page's `slots` map and nothing else. Without
+		 * this the pane drew an empty grid cell wherever the detail page declared
+		 * one — the same widget renders correctly on its own route, so the record
+		 * silently lost content by being opened beside the list instead of from it.
+		 *
+		 * @return {Array<{name: string, component: object}>}
+		 */
+		splitPaneSlotEntries() {
+			const page = this.splitDetailPage
+			if (!page || !page.slots) {
+				return []
+			}
+			const entries = []
+			for (const [name, registryName] of Object.entries(page.slots)) {
+				const component = this.resolveRegistryName(registryName, name)
+				if (component) {
+					entries.push({ name, component })
+				}
+			}
+			return entries
+		},
+
 		resolvedSlotEntries() {
 			const page = this.currentPage
 			if (!page) {

@@ -418,6 +418,7 @@
 				:layout="bodyGridLayout"
 				:editable="editingBody"
 				:columns="12"
+				:columnOpts="columnOpts"
 				class="cn-detail-page__grid"
 				@layoutChange="onBodyLayoutChange">
 				<template #widget="{ item }">
@@ -784,6 +785,7 @@ import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { useObjectStore } from '../../store/index.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { slotRenders } from '../../utils/slotContent.js'
@@ -802,6 +804,38 @@ import { CnIcon } from '../CnIcon/index.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 import '../CnWidgetGrid/registerDashboardWidgets.js'
+
+/**
+ * Responsive column table for a detail body, measured against the GRID element.
+ *
+ * ONE threshold, and deliberately no steps between. `moveScale` rescales the
+ * authored geometry into the new count, so an intermediate width turns a
+ * 12-column record into fractional positions nobody placed: a `gridWidth: 3`
+ * tile becomes 1 of 4, a `gridWidth: 9` panel becomes 3 of 4, and widgets land
+ * left, centre or right depending purely on how the division rounded. That reads
+ * as a broken page rather than a narrow one. A record is authored at 12 columns
+ * or it is a single stacked column; the sizes in between are not designs.
+ *
+ * 1000px is where the 12-column geometry stops working rather than merely
+ * tightening: it puts a `gridWidth: 3` side panel — Timeline, Flow runs — under
+ * 250px, which is below its own title.
+ *
+ * `breakpointForWindow` is FALSE, unlike `getDashboardColumnOpts()`: a page in a
+ * split pane sits in a narrow container on a wide window, so measuring the window
+ * is measuring the wrong box and the grid would never reflow.
+ *
+ * `columnMax` is set EXPLICITLY. Above the top breakpoint GridStack assigns
+ * `newColumn = columnOpts.columnMax`, and `column(undefined)` silently no-ops, so
+ * a grid that once narrowed would never widen again.
+ */
+const DEFAULT_DETAIL_COLUMN_OPTS = Object.freeze({
+	columnMax: 12,
+	breakpoints: [
+		{ w: 1000, c: 1 },
+	],
+	layout: 'moveScale',
+	breakpointForWindow: false,
+})
 
 /**
  * Event-bus channel a page-level refresh is announced on. The page's own
@@ -1217,6 +1251,20 @@ export default {
 		maxWidth: {
 			type: String,
 			default: '1800px',
+		},
+
+		/**
+		 * Responsive `columnOpts` for the body grid, measured against the GRID's own
+		 * width rather than the window's — so a page rendered in a narrow container
+		 * (a split pane beside a list) reflows even though the viewport is wide.
+		 * Defaults to a table that stacks to one column below ~560px. Pass `null`
+		 * for a fixed 12-column grid at every size.
+		 *
+		 * @type {object|null}
+		 */
+		columnOpts: {
+			type: Object,
+			default: () => ({ ...DEFAULT_DETAIL_COLUMN_OPTS }),
 		},
 
 		/**
@@ -2465,10 +2513,10 @@ export default {
 			// eslint-disable-next-line @typescript-eslint/no-unused-expressions -- reading the flag IS the effect: the read registers the reactive dependency, and there is nothing to assign it to
 			this.editingBody
 			if (this.hasGridLayout) {
-				return this.layout
+				return this.layout.filter((item) => this.layoutItemCanDraw(item))
 			}
 			if (this.shouldRenderAutoBody) {
-				return this.autoBodyLayout || []
+				return (this.autoBodyLayout || []).filter((item) => this.layoutItemCanDraw(item))
 			}
 			return []
 		},
@@ -3551,6 +3599,52 @@ export default {
 		 */
 		findWidget(item) {
 			return this.bodyGridWidgets.find((w) => w.id === item.widgetId)
+		},
+
+		/**
+		 * Whether a layout item has anything to draw, so a grid cell is worth
+		 * spending on it.
+		 *
+		 * ONLY `integration` widgets are judged, and only the case where nothing
+		 * can ever appear: a leaf from another app that is not registered, with no
+		 * `requiredApp` to fall back on. A cross-app feature is normally optional —
+		 * humaniq's hours leaf on a dossiq case — and without this the host still
+		 * renders its wrapper, so the absent app costs a bordered, full-height
+		 * ghost card in the grid. An app nobody installed should cost nothing.
+		 *
+		 * A widget that declares `requiredApp` is KEPT: the host answers a missing
+		 * app with a set-up state, which is content, and hiding it would turn an
+		 * actionable "install humaniq" into silence.
+		 *
+		 * Deliberately NOT generalised to "anything that resolves to nothing".
+		 * A `custom` widget whose `#widget-<id>` slot is missing also draws an
+		 * empty host, but that is a WIRING FAULT rather than an absent optional
+		 * feature, and quietly dropping it would hide the bug instead of showing
+		 * it — CnPageRenderer's split pane forwards no slots, which is exactly
+		 * that fault and wants fixing, not concealing.
+		 *
+		 * @param {object} item A layout item.
+		 * @return {boolean} False only when the item provably draws nothing.
+		 */
+		layoutItemCanDraw(item) {
+			// In edit mode nothing is hidden: an author has to see the placement to
+			// move or delete it, and a widget that vanished from the editor while
+			// staying in the manifest would be unmanageable.
+			if (this.editingBody) {
+				return true
+			}
+			const widget = this.findWidget(item)
+			if (!widget || widget.type !== 'integration') {
+				return true
+			}
+			const requiredApp = widget.requiredApp || (widget.content || {}).requiredApp || ''
+			if (requiredApp !== '' && !isAppInstalled(requiredApp)) {
+				return true
+			}
+			if (typeof this.getRegistryProvider !== 'function') {
+				return true
+			}
+			return !!this.getRegistryProvider(widget.integrationId)
 		},
 
 		/**
