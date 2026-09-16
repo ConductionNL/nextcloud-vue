@@ -197,6 +197,13 @@
 - HARD vs SOFT dependency model: manifest `dependencies` entries may now be objects `{ id, required, name }` — `required: false` marks an optional dependency that no longer blocks the app shell and instead shows a dismissible in-shell notice (dismissal persisted per app+dependency); plain string entries stay hard/blocking (fully backward-compatible, schemas v1 1.8.0 / v2 2.18.0)
 
 ### Changed
+- **The library now tests against marked 18, the version most apps install.** The tests, smoke and accessibility runs used marked 12. Portaliq, dossiq, hermiq, pipelinq and shillinq ship 18, so a break on 18 could pass here unseen. The devDependency moves to `^18.0.13`.
+
+  The peer range stays `>=12 <19`. opencatalogi still pins 12, and nothing in this library needs 18. Both call sites use `new Marked({ gfm: true, breaks: false })` and a synchronous `parse()`. That API is the same on 12 and 18. The renderer, `async` and list token changes in 13, 14 and 17 touch nothing we call.
+
+  marked 16 dropped its CommonJS build, so Jest now transforms `marked` like the other ESM-only packages. Without that, `check:smoke`, `check:a11y` and every markdown suite failed to load on 18. `tests/composables/cnRenderMarkdown.spec.js` now pins one exact HTML string for a document with headings, lists, a table, code, a quote and a rule. It passes on 12.0.2 and on 18.0.13.
+
+  **Consumer impact:** none. The published code and the peer range are unchanged.
 - **A detail page's `headerActions` are entries in its Actions menu, not a row of buttons.** `CnDetailPage` used to render every manifest `config.headerActions[]` entry as its own `NcButton` beside the title. On a dossiq case that is twelve buttons, and the case title was squeezed to a truncated stub to make room. The manifest schema has always described this key as living in the overflow menu, and `CnIndexPage` already put it there, so the two page types had quietly drifted apart. They agree again.
 
   Edit and the Buildiq edit button stay inline. Those are the two controls a handler reaches for on nearly every visit.
