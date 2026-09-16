@@ -956,7 +956,15 @@
     "Add a step": "Add a step",
     "Version number. A semantic version appears once the flow is published.": "Version number. A semantic version appears once the flow is published.",
     "Numbered when semantic versions were introduced, not derived from a comparison.": "Numbered when semantic versions were introduced, not derived from a comparison.",
-    "A major version means a step, a connection or a setting was removed.": "A major version means a step, a connection or a setting was removed."
+    "A major version means a step, a connection or a setting was removed.": "A major version means a step, a connection or a setting was removed.",
+    "Earlier versions": "Earlier versions",
+    "Loading earlier versions…": "Loading earlier versions…",
+    "Nobody has changed this note": "Nobody has changed this note",
+    "The earlier versions could not be loaded": "The earlier versions could not be loaded",
+    "Written by {author}, replaced by {editor} on {date}": "Written by {author}, replaced by {editor} on {date}",
+    "Show earlier versions": "Show earlier versions",
+    "Edited": "Edited",
+    "Edited by {editor}": "Edited by {editor}"
   },
   "plurals": {
     "%n year": ["%n year", "%n years"],

@@ -974,7 +974,15 @@
     "A file is attached.": "Er is een bestand toegevoegd.",
     "This file type is not accepted.": "Dit bestandstype wordt niet geaccepteerd.",
     "This file is larger than {size}.": "Dit bestand is groter dan {size}.",
-    "The file could not be read.": "Het bestand kon niet worden gelezen."
+    "The file could not be read.": "Het bestand kon niet worden gelezen.",
+    "Earlier versions": "Eerdere versies",
+    "Loading earlier versions…": "Eerdere versies laden…",
+    "Nobody has changed this note": "Niemand heeft deze notitie gewijzigd",
+    "The earlier versions could not be loaded": "De eerdere versies konden niet worden geladen",
+    "Written by {author}, replaced by {editor} on {date}": "Geschreven door {author}, vervangen door {editor} op {date}",
+    "Show earlier versions": "Toon eerdere versies",
+    "Edited": "Bewerkt",
+    "Edited by {editor}": "Bewerkt door {editor}"
   },
   "plurals": {
     "%n year": ["%n jaar", "%n jaar"],
