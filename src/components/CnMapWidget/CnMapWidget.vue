@@ -92,6 +92,25 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
 
+// Nextcloud sends `Referrer-Policy: no-referrer` on every page, and OpenStreetMap's
+// tile CDN answers a refererless request with a "not following the tile usage policy"
+// tile instead of the map. An `<img>`-level policy overrides the document's, and
+// `origin` sends only the scheme+host, never the path a case id could sit in.
+const TILE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
+/**
+ * Apply the tile defaults a consumer did not set.
+ *
+ * @param {object} opts Leaflet layer options, already shallow-copied.
+ * @return {object} The same object, with `referrerPolicy` defaulted.
+ */
+function withTileDefaults(opts) {
+	if (opts.referrerPolicy === undefined) {
+		opts.referrerPolicy = TILE_REFERRER_POLICY
+	}
+	return opts
+}
+
 // Fallback background used when the consumer configures no `basemaps` and no
 // `tile`/`wms` entry in `layers` — otherwise the map paints white. Consuming
 // apps MUST allow this host in their Content-Security-Policy `img-src`
@@ -618,12 +637,12 @@ export default {
 					if (typeof def.url !== 'string' || def.url.length === 0) {
 						continue
 					}
-					instance = L.tileLayer(def.url, opts)
+					instance = L.tileLayer(def.url, withTileDefaults(opts))
 				} else if (def.type === 'wms') {
 					if (typeof def.url !== 'string' || def.url.length === 0) {
 						continue
 					}
-					instance = L.tileLayer.wms(def.url, opts)
+					instance = L.tileLayer.wms(def.url, withTileDefaults(opts))
 				} else if (def.type === 'wfs') {
 					if (typeof def.url !== 'string' || def.url.length === 0) {
 						continue
@@ -846,7 +865,7 @@ export default {
 					&& (l.type === 'tile' || l.type === 'wms')
 					&& typeof l.url === 'string' && l.url.length > 0)
 				if (!hasTileLayer) {
-					const fallback = L.tileLayer(DEFAULT_BASEMAP.url, { ...DEFAULT_BASEMAP.options })
+					const fallback = L.tileLayer(DEFAULT_BASEMAP.url, withTileDefaults({ ...DEFAULT_BASEMAP.options }))
 					fallback.addTo(this.map)
 					this.layerInstances.push(fallback)
 				}
@@ -859,7 +878,7 @@ export default {
 				if (bm.attribution && !opts.attribution) {
 					opts.attribution = bm.attribution
 				}
-				const instance = L.tileLayer(bm.url, opts)
+				const instance = L.tileLayer(bm.url, withTileDefaults(opts))
 				baseLayers[bm.name || `${index + 1}`] = instance
 				// Only the first base map is live on load; the switcher swaps in the rest.
 				if (index === 0) {

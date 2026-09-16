@@ -487,6 +487,7 @@
 					:layers="mapLayers"
 					:basemaps="mapBasemaps"
 					:markers="mapMarkers"
+					:clustering="mapClustering"
 					:autoFit="true"
 					height="100%"
 					@markerClick="onMarkerClick" />
@@ -2616,6 +2617,26 @@ export default {
 				})
 			}
 			return { features, popupField: this.mapConfig.popupField }
+		},
+
+		/**
+		 * Whether to cluster the plotted markers. ON unless `mapConfig.clustering`
+		 * says otherwise, which is the opposite of `CnMapWidget`'s own default.
+		 *
+		 * An index map plots the whole filtered result set, and rows sharing one
+		 * address is the normal case here, not an edge case — several permits on a
+		 * building, a street of complaints. Unclustered, those markers stack at
+		 * identical pixels: the topmost swallows every click and the rest are
+		 * unreachable with nothing on screen saying they exist. Clustering shows the
+		 * count and, since all children stay in one cluster down to max zoom,
+		 * markercluster spiderfies them into a fan on click instead of zooming
+		 * uselessly. Non-point geometry skips the cluster group entirely, so areas
+		 * are unaffected.
+		 *
+		 * @return {boolean}
+		 */
+		mapClustering() {
+			return this.mapConfig.clustering !== false
 		},
 
 		/**
