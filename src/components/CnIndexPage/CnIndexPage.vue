@@ -164,6 +164,7 @@
 					inline
 					:tabs="effectiveQuickFilters"
 					:mode="quickFilterMode"
+					:maxVisible="quickFilterMaxVisible"
 					:multiple="quickFilterMultiple"
 					:activeIndex="activeQuickFilterIndex"
 					:selectedIndices="selectedQuickFilterIndices"
@@ -1008,6 +1009,19 @@ export default {
 		quickFilterMultiple: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Chips mode only: how many quick-filter pills render inline before the
+		 * rest move into an overflow menu. `0` (the default) renders every tab.
+		 * A long strip wraps the actions bar onto a second line and squeezes the
+		 * "Showing X of Y" count, so a page with many lenses caps this and keeps
+		 * the everyday few in view. Sourced from
+		 * `pages[].config.quickFilterMaxVisible`.
+		 */
+		quickFilterMaxVisible: {
+			type: Number,
+			default: 0,
 		},
 
 		/** Manual column definitions (used instead of schema when provided) */

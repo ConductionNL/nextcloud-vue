@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.34.0",
+	"version": "2.35.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -2668,6 +2668,12 @@
 						"createSuccessMessage": {
 							"type": "string",
 							"description": "type='index': toast shown after a successful create from the page's built-in Add dialog. Maps to CnIndexPage `createSuccessMessage`."
+						},
+						"quickFilterMaxVisible": {
+							"type": "integer",
+							"minimum": 0,
+							"default": 0,
+							"description": "type='index', chips mode: how many quickFilters render as pills before the rest move behind one more chip — a `⋯` pill that opens a panel of the hidden lenses, and that wears the label and the active fill of whichever one is on. 0 (the default) renders every lens, which wraps the actions bar onto a second line once a page declares more than a handful. The visible set is the FIRST n entries of quickFilters, so reorder that array to change which lenses stay out. Maps to CnIndexPage `quickFilterMaxVisible`."
 						},
 						"actionToggles": {
 							"type": "object",
