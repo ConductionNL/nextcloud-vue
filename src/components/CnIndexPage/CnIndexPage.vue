@@ -644,6 +644,7 @@
 			:visibleColumns="effectiveVisibleColumns"
 			:activeFilters="effectiveActiveFilters"
 			:columnGroups="resolvedSidebar.columnGroups || []"
+			:filterFields="resolvedSidebar.fields || null"
 			:facetData="effectiveFacetData"
 			:showMetadata="resolvedSidebar.showMetadata !== false"
 			v-bind="sidebarSearchProps"
@@ -658,7 +659,7 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import { getCurrentInstance, inject, markRaw } from 'vue'
+import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Export from 'vue-material-design-icons/Export.vue'
@@ -704,6 +705,121 @@ import { createSelfModeActions } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { useNamedSource } from './useNamedSource.js'
 import { useSelfFetchList } from './useSelfFetchList.js'
+
+/**
+ * The separator a date-range filter uses in the URL: `2026-09-21..2026-09-25`.
+ *
+ * One query parameter per FIELD, not per bound, so the link reads as the
+ * question the person asked and an open-ended window still round-trips
+ * (`..2026-09-25` is "due before Friday").
+ *
+ * @type {string}
+ */
+const RANGE_SEPARATOR = '..'
+
+/**
+ * Whether a schema property wants a from/to pair rather than a value list.
+ *
+ * @param {object} prop The schema property.
+ *
+ * @return {boolean} True for a range control.
+ */
+function isRangeControl(prop) {
+	const control = String((prop && prop.inputControl) || '')
+	return control === 'date-range' || control === 'range'
+}
+
+/**
+ * The filter declarations a page carries on its sidebar config.
+ *
+ * `sidebar.fields` and not `config.schema`: the schema key names the
+ * OpenRegister schema a page self-fetches from, and a named source has no
+ * register or schema to point at. The manifest schema types it as a string
+ * for exactly that reason.
+ *
+ * @param {object} props The CnIndexPage props.
+ *
+ * @return {object} `{ propertyName: declaration }`, empty when none.
+ */
+function declaredFilterFields(props) {
+	const fields = props.sidebar && props.sidebar.fields
+	return (fields && typeof fields === 'object') ? fields : {}
+}
+
+/**
+ * Read a named-source page's sidebar filters back out of `$route.query`.
+ *
+ * Only properties the page's own schema declares `facetable` are read, so an
+ * unrelated query parameter (`?action=create`, a saved-view key) never
+ * becomes a filter, and a hand-edited link cannot invent a field the source
+ * has no argument for.
+ *
+ * @param {import('vue').ComponentInternalInstance|null} instance The instance, for `$route`.
+ * @param {object} props The CnIndexPage props.
+ *
+ * @return {object} The `{ fieldKey: values }` map, empty when the link carries none.
+ */
+function namedFiltersFromRoute(instance, props) {
+	if (!props.entitySource) {
+		return {}
+	}
+	const route = instance && instance.proxy && instance.proxy.$route
+	const query = (route && route.query) || {}
+	const properties = declaredFilterFields(props)
+	const out = {}
+
+	for (const [key, prop] of Object.entries(properties)) {
+		if (!prop || prop.facetable !== true) {
+			continue
+		}
+		const raw = query[key]
+		if (raw === undefined || raw === null || raw === '') {
+			continue
+		}
+		const value = Array.isArray(raw) ? raw.join(',') : String(raw)
+
+		if (isRangeControl(prop)) {
+			const [from, to] = value.split(RANGE_SEPARATOR)
+			const range = {}
+			if (from) {
+				range.from = from
+			}
+			if (to) {
+				range.to = to
+			}
+			if (Object.keys(range).length > 0) {
+				out[key] = range
+			}
+			continue
+		}
+
+		const values = value.split(',').filter((entry) => entry !== '')
+		if (values.length > 0) {
+			out[key] = values
+		}
+	}
+
+	return out
+}
+
+/**
+ * The query-parameter spelling of one named-source filter value.
+ *
+ * @param {unknown} values The chosen values, or a `{ from, to }` range.
+ *
+ * @return {string} The parameter value, or '' when nothing is chosen.
+ */
+function namedFilterToQuery(values) {
+	if (values && typeof values === 'object' && !Array.isArray(values)) {
+		const from = values.from || ''
+		const to = values.to || ''
+		return (from === '' && to === '') ? '' : `${from}${RANGE_SEPARATOR}${to}`
+	}
+	const list = (Array.isArray(values) ? values : [values])
+		.map((entry) => ((entry && typeof entry === 'object' && 'id' in entry) ? entry.id : entry))
+		.filter((entry) => entry !== undefined && entry !== null && String(entry) !== '')
+	return list.join(',')
+}
 
 /**
  * CnIndexPage — Top-level schema-driven index page component.
@@ -1038,7 +1154,7 @@ export default {
 		 * Non-empty `:objects` still wins, and an entity source wins over
 		 * register/schema. See `src/composables/indexSources.js`.
 		 */
-		entitySource: { type: String, default: '' }, // eslint-disable-line vue/no-unused-properties -- read by useNamedSource.js and useSelfFetchList.js off the props object, which this rule does not follow.
+		entitySource: { type: String, default: '' },
 
 		/**
 		 * Route name a clicked row opens, overriding a named source's own
@@ -2045,13 +2161,22 @@ export default {
 			selectedQuickFilterIndices,
 		} = useSelfFetchList(props, getCurrentInstance(), inject)
 
+		// The sidebar's chosen values on a NAMED-SOURCE page. Self-fetch keeps
+		// its own in `useSelfFetchList`; a named source had nowhere to put
+		// them, so `activeFilters` was a prop only a consumer could fill and a
+		// manifest page's sidebar rendered controls that narrowed nothing.
+		//
+		// Seeded from the route query so a shared link lands filtered, the
+		// same way `_order` and a deep-link filter already do for self-fetch.
+		const namedActiveFilters = ref(namedFiltersFromRoute(getCurrentInstance(), props))
+
 		const {
 			isNamedSource,
 			namedSource,
 			namedRows,
 			namedLoading,
 			namedQuickFilters,
-		} = useNamedSource(props, { activeQuickFilterIndex })
+		} = useNamedSource(props, { activeQuickFilterIndex, activeFilters: namedActiveFilters })
 
 		return {
 			isNamedSource,
@@ -2059,6 +2184,7 @@ export default {
 			namedRows,
 			namedLoading,
 			namedQuickFilters,
+			namedActiveFilters,
 			contextMenuOpen,
 			contextMenuRow,
 			openContextMenu,
@@ -2724,7 +2850,16 @@ export default {
 		},
 
 		effectiveActiveFilters() {
-			return this.isSelfFetchMode ? (this.list.activeFilters.value || {}) : (this.activeFilters || {})
+			if (this.isSelfFetchMode) {
+				return this.list.activeFilters.value || {}
+			}
+			// A named source's own state wins over the prop, and only once it
+			// holds something: a consumer-managed page that ALSO names a
+			// source keeps its `activeFilters` until the sidebar is used.
+			if (this.isNamedSource && Object.keys(this.namedActiveFilters || {}).length > 0) {
+				return this.namedActiveFilters
+			}
+			return this.activeFilters || {}
 		},
 
 		/**
@@ -3152,6 +3287,7 @@ export default {
 				visibleColumns: this.effectiveVisibleColumns,
 				activeFilters: this.effectiveActiveFilters,
 				columnGroups: this.resolvedSidebar.columnGroups || [],
+				filterFields: this.resolvedSidebar.fields || null,
 				facetData: this.effectiveFacetData,
 				showMetadata: this.resolvedSidebar.showMetadata !== false,
 				...this.sidebarSearchProps,
@@ -3871,7 +4007,75 @@ export default {
 			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') {
 				this.list.onFilterChange(payload.key, payload.values)
 			}
+			// A named source keeps its own filter state: nothing else holds it,
+			// and the `activeFilters` PROP only reaches pages with a consumer
+			// component behind them. A manifest page has none, which is why
+			// its sidebar used to render controls that narrowed nothing.
+			if (this.isNamedSource) {
+				this.setNamedFilter(payload.key, payload.values)
+			}
 			this.$emit('filter-change', payload)
+		},
+
+		/**
+		 * Record one sidebar choice on a named-source page and mirror it into
+		 * the URL.
+		 *
+		 * The ref is REPLACED rather than mutated in place so the watcher in
+		 * `useNamedSource` fires on the first change too, and the reload it
+		 * triggers is the only place the new query is built.
+		 *
+		 * @param {string} key The sidebar field key.
+		 * @param {Array|object|null} values The chosen values, or a `{ from, to }` range.
+		 *
+		 * @return {void}
+		 */
+		setNamedFilter(key, values) {
+			const next = { ...(this.namedActiveFilters || {}) }
+			const asQuery = namedFilterToQuery(values)
+			if (asQuery === '') {
+				delete next[key]
+			} else {
+				next[key] = values
+			}
+			this.namedActiveFilters = next
+			this.persistNamedFiltersToRoute(next)
+		},
+
+		/**
+		 * Write the active named-source filters into `$route.query`.
+		 *
+		 * So a filtered view can be SHARED, which is half of what a search
+		 * field is for: the colleague who opens the link sees the same list,
+		 * because `namedFiltersFromRoute` reads it back on mount.
+		 *
+		 * `replace`, not `push`: narrowing a list is not a place in the
+		 * history, and a back button that steps through six filter choices
+		 * never reaches the page before them. A rejected navigation (the same
+		 * path and query) is swallowed, matching `persistSortToRoute`.
+		 *
+		 * @param {object} filters The active `{ key: values }` map.
+		 *
+		 * @return {void}
+		 */
+		persistNamedFiltersToRoute(filters) {
+			if (!this.$router || !this.$route) {
+				return
+			}
+			const properties = declaredFilterFields(this)
+			const query = { ...this.$route.query }
+			for (const key of Object.keys(properties)) {
+				if (properties[key] && properties[key].facetable === true) {
+					delete query[key]
+				}
+			}
+			for (const [key, values] of Object.entries(filters || {})) {
+				const value = namedFilterToQuery(values)
+				if (value !== '') {
+					query[key] = value
+				}
+			}
+			this.$router.replace({ query }).catch(() => {})
 		},
 
 		/**
