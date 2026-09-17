@@ -72,8 +72,10 @@ module.exports = {
 		// `SyntaxError: Unexpected token 'export'` the moment a consumer's pinia
 		// major moves. `nostics` is the same story from an earlier pinia bump.
 		// Listed so the peer range this package advertises stays actually
-		// runnable here.
-		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|nostics|@vue/devtools-api|@vue/devtools-kit|@vue/devtools-shared|perfect-debounce|birpc|hookable|vue-codemirror6|codemirror|@codemirror|@ckpack)/)',
+		// runnable here. `marked` is the same story: from 16 on it ships ESM
+		// only (`lib/marked.esm.js`), so the markdown suites fail to load
+		// against the marked 18 the fleet installs unless it is transformed.
+		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|nostics|@vue/devtools-api|@vue/devtools-kit|@vue/devtools-shared|perfect-debounce|birpc|hookable|vue-codemirror6|codemirror|@codemirror|@ckpack|marked)/)',
 	],
 	moduleNameMapper: {
 		// pinia >= 4 loads @vue/devtools-api, which registers a devtools backend

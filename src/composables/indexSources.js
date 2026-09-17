@@ -306,6 +306,24 @@ function tasksSource() {
 			window.location.assign(taskDeepLink(String(uuid)))
 		},
 
+		// The sidebar fields this inbox can answer, and the argument each one
+		// becomes. Measured against `TaskController::index()` and
+		// `TaskInboxCriteria`, which take the same predicates for the page and
+		// for the total, so a filter that narrows the list narrows the count.
+		//
+		// 🔴 `assignee` IS DELIBERATELY ABSENT, AND IT IS THE ONE FIELD A TASK
+		// SEARCH IS EXPECTED TO HAVE. The inbox has no assignee predicate at
+		// all: `scope` is the only assignee-shaped narrowing and it resolves
+		// to the CALLING user. Declaring it here would put a picker on screen
+		// that quietly answers about everybody. It lands when openregister
+		// grows the parameter, and not before.
+		searchFields: {
+			objectUuid: { param: 'objectUuid', single: true },
+			state: { param: 'state', join: ',' },
+			priority: { param: 'priority', single: true },
+			dueAt: { range: ['dueAfter', 'dueBefore'] },
+		},
+
 		// A task is created by a flow, never by a person clicking Add. Without
 		// this the index falls back to its OpenRegister form dialog, which
 		// would build an object the task store never reads.
