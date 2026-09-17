@@ -164,6 +164,31 @@
 	padding-inline-start: calc(3 * var(--default-grid-baseline));
 }
 
+/* Static on purpose: a sticky one was tried and rejected for hanging over the
+   content while scrolling. */
+.cn-index-page__split-close {
+	align-self: flex-start;
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: var(--default-grid-baseline);
+	padding: var(--default-grid-baseline) 0;
+	border: none;
+	background: transparent;
+	color: var(--color-text-maxcontrast);
+	font-size: inherit;
+	cursor: pointer;
+}
+
+.cn-index-page__split-close > span {
+	text-decoration: underline;
+}
+
+.cn-index-page__split-close:hover,
+.cn-index-page__split-close:focus-visible {
+	color: var(--color-main-text);
+}
+
 /* A detail page mounted in the pane is a FLEX ITEM of the column above, so its
    own `margin-inline: auto` — a no-op on the full route, where it is a block in
    a block — stops it stretching (an auto cross-axis margin disables stretch) and

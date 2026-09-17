@@ -122,6 +122,8 @@ A page declaring `splitView` opens a row beside the list rather than instead of 
 | `splitView` | Object | `{}` | `{ enabled, breakpoint, paneWidth }`. Without `enabled` the page renders exactly as it does today. |
 | `splitId` | String | `''` | The record the pane shows, taken from the split address. Empty closes the pane. |
 | `splitCloseRoute` | String | `''` | Route name the pane's close button returns to. Defaults to the page the route names. |
+| `splitCloseButton` | Boolean | `true` | Whether the pane draws its own close button, at the top of the pane on the inline end. Set false only when the `#split-pane` slot draws one from the slot's `close`. |
+| `splitCloseLabel` | String | `''` | Accessible name and tooltip for that button. Defaults to `Close`. |
 | `manualOrder` | Boolean | `false` | Lets this person drag the rows into an order of their own, held per user and per list. |
 | `manualOrderId` | String | `''` | Stable id the order is held under. Defaults to the object type or the schema. |
 

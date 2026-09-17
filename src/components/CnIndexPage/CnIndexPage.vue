@@ -618,6 +618,19 @@
 				:style="splitLayout === 'split' ? { width: splitPaneWidth } : null"
 				data-testid="cn-index-page-split-pane"
 				:data-split-layout="splitLayout">
+				<!-- An <a>, not a button: closing the pane pushes the list's
+				     route, so the browser supplies middle-click and open-in-new-tab
+				     while `.prevent` keeps the plain click in-app. -->
+				<a
+					v-if="splitCloseVisible"
+					class="cn-index-page__split-close"
+					:href="splitCloseHref"
+					:title="splitCloseTitle"
+					data-testid="cn-index-page-split-close"
+					@click.prevent="closeSplitPane">
+					<Close :size="16" />
+					<span>{{ splitCloseTitle }}</span>
+				</a>
 				<!-- @slot split-pane The open record, rendered beside the list. Mount the SAME detail component the full route mounts. -->
 				<!-- @binding {string} id The record the address names. -->
 				<!-- @binding {string} layout Either `split` (beside the list) or `detail` (the full page, below the breakpoint). -->
@@ -672,6 +685,7 @@ import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Export from 'vue-material-design-icons/Export.vue'
@@ -936,6 +950,7 @@ export default {
 		NcActionCaption,
 		NcActionCheckbox,
 		NcButton,
+		Close,
 		Cog,
 		DatabaseSearch,
 		Export,
@@ -1283,6 +1298,27 @@ export default {
 		 * @type {string}
 		 */
 		splitCloseRoute: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Whether the pane draws its own close link. Set false when the
+		 * `#split-pane` slot draws one from the slot's `close`.
+		 *
+		 * @type {boolean}
+		 */
+		splitCloseButton: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Accessible name and tooltip for the pane's close button.
+		 *
+		 * @type {string}
+		 */
+		splitCloseLabel: {
 			type: String,
 			default: '',
 		},
@@ -2516,6 +2552,45 @@ export default {
 		 */
 		splitPaneWidth() {
 			return normalisePaneWidth(this.splitView?.paneWidth)
+		},
+
+		/**
+		 * Whether to draw the pane's close link. Needs a router: closing pushes
+		 * the list route, so without one it would do nothing.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		splitCloseVisible() {
+			return this.splitCloseButton && Boolean(this.$router)
+		},
+
+		/**
+		 * Accessible name and tooltip for the pane's close link.
+		 *
+		 * @return {string}
+		 */
+		splitCloseTitle() {
+			return this.splitCloseLabel || t('nextcloud-vue', 'Close')
+		},
+
+		/**
+		 * The list's own address. Falls back to `#` rather than no href: an
+		 * `<a>` without one is not focusable.
+		 *
+		 * @return {string}
+		 */
+		splitCloseHref() {
+			const target = this.splitCloseRoute || this.$route?.meta?.cnPageId || null
+			if (!target || typeof this.$router?.resolve !== 'function') {
+				return '#'
+			}
+			try {
+				return this.$router.resolve({ name: target, query: this.$route?.query || {} }).href || '#'
+			} catch {
+				// An unknown route name throws rather than answering.
+				return '#'
+			}
 		},
 
 		/**
