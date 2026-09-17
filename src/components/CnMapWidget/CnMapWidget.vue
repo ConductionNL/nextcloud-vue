@@ -92,6 +92,11 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
 
+// Raw input on the map container, which is what tells a user's pan or zoom from
+// ours. Leaflet's own `movestart` / `zoomstart` fire for `fitBounds` too, so
+// they cannot separate the two; these events Leaflet never synthesises.
+const VIEW_GESTURE_EVENTS = ['mousedown', 'touchstart', 'wheel', 'keydown']
+
 // Nextcloud sends `Referrer-Policy: no-referrer` on every page, and OpenStreetMap's
 // tile CDN answers a refererless request with a "not following the tile usage policy"
 // tile instead of the map. An `<img>`-level policy overrides the document's, and
@@ -260,7 +265,9 @@ export default {
 		},
 
 		/**
-		 * Auto-fit map bounds to all loaded features after first load.
+		 * Frame the map on every loaded feature. Applies on load and on each
+		 * marker update until the user pans or zooms themselves, after which
+		 * their view is kept and only the `Fit all markers` control re-frames.
 		 *
 		 * @type {boolean}
 		 */
@@ -388,6 +395,8 @@ export default {
 			clusterGroup: null,
 			leafletAvailable: true,
 			boundsTimer: null,
+			// Set once the user has framed the view themselves; stops autoFit.
+			userFramedView: false,
 			// Controls / sizing
 			isFullscreen: false,
 			controlBar: null,
@@ -494,6 +503,11 @@ export default {
 	beforeUnmount() {
 		clearTimeout(this.boundsTimer)
 		clearTimeout(this.resizeTimer)
+		if (this.$refs.mapEl) {
+			for (const type of VIEW_GESTURE_EVENTS) {
+				this.$refs.mapEl.removeEventListener(type, this.onViewGesture, { capture: true })
+			}
+		}
 		if (this.resizeObserver) {
 			this.resizeObserver.disconnect()
 			this.resizeObserver = null
@@ -517,6 +531,13 @@ export default {
 				zoomControl: true,
 				attributionControl: true,
 			})
+
+			// Capture, because Leaflet stops propagation on its own handles.
+			if (this.$refs.mapEl) {
+				for (const type of VIEW_GESTURE_EVENTS) {
+					this.$refs.mapEl.addEventListener(type, this.onViewGesture, { capture: true, passive: true })
+				}
+			}
 
 			this.map.on('click', (e) => {
 				/**
@@ -836,7 +857,12 @@ export default {
 				this.markerLayer = layer
 			}
 
-			if (this.cfg.autoFit) {
+			// Not once per render: a consumer that reloads its markers (a filter,
+			// a poll, a save) re-renders them, and fitting again threw away
+			// whatever the user had panned or zoomed to. Their framing wins from
+			// the moment they touch the map; the Fit all markers control brings
+			// this one back on request.
+			if (this.cfg.autoFit && !this.userFramedView) {
 				// Wait a tick so the container has its final box — fill-height layouts
 				// and the hidden→visible view toggle both settle after render.
 				// fitToMarkers() then measures before it fits.
@@ -948,6 +974,13 @@ export default {
 
 			this.controlBar = new ControlBar({ position: 'topleft' })
 			this.controlBar.addTo(this.map)
+		},
+
+		/**
+		 * Hand the view to the user: `autoFit` stops re-framing from here on.
+		 */
+		onViewGesture() {
+			this.userFramedView = true
 		},
 
 		/**
