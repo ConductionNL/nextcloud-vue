@@ -13,7 +13,8 @@
  * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 
-import { shallowMount } from '@vue/test-utils'
+import { mount, shallowMount } from '@vue/test-utils'
+import { h } from 'vue'
 import CnPageRenderer from '../../src/components/CnPageRenderer/CnPageRenderer.vue'
 import { buildManifestRoutes, splitRouteName } from '../../src/utils/buildManifestRoutes.js'
 
@@ -42,7 +43,22 @@ const manifest = {
 }
 
 const IndexStub = { name: 'IndexStub', render: () => null }
-const DetailStub = { name: 'DetailStub', render: () => null }
+const DetailStub = {
+	name: 'DetailStub',
+	// Declared so `props()` can be asserted on rather than `$attrs`.
+	props: { objectStore: { type: Object, default: null }, register: { type: String, default: '' } },
+	render: () => null,
+}
+/** An index stub that actually renders the pane slot, so the pane mounts. */
+const SlotRenderingIndexStub = {
+	name: 'SlotRenderingIndexStub',
+	render() {
+		const slot = this.$slots['split-pane']
+		return h('div', typeof slot === 'function'
+			? [slot({ id: 'case-9', layout: 'split', close: () => {}, saved: () => {} })]
+			: [])
+	},
+}
 const pageTypes = { index: IndexStub, detail: DetailStub }
 
 /**
@@ -117,6 +133,64 @@ describe('the split route resolves to its list page', () => {
 		const { wrapper } = mountOn(splitRoute)
 
 		expect('id' in wrapper.vm.splitPaneProps).toBe(false)
+	})
+
+	// The pane mounts the same component the full route does, so it has to be
+	// mounted the same way.
+	it('hands the pane what the HOST passes the page, not only the manifest', () => {
+		const { records } = { records: buildManifestRoutes(manifest, { component: CnPageRenderer }) }
+		const store = { id: 'the-host-store' }
+		const wrapper = mount(CnPageRenderer, {
+			propsData: { manifest, pageTypes: { index: SlotRenderingIndexStub, detail: DetailStub } },
+			// An attr, which is how a host hands the page its store.
+			attrs: { objectStore: store },
+			mocks: {
+				$route: splitRoute,
+				$router: {
+					push: jest.fn(() => Promise.resolve()),
+					hasRoute: (name) => records.some((r) => r.name === name),
+					getRoutes: () => records,
+				},
+			},
+		})
+
+		const pane = wrapper.findComponent(DetailStub)
+		expect(pane.exists()).toBe(true)
+		// `toEqual`: what arrives is a reactive proxy, so identity differs.
+		expect(pane.props('objectStore')).toEqual(store)
+		// The manifest still wins over an attr of the same name.
+		expect(pane.props('register')).toBe('zaken')
+	})
+
+	it('mounts the detail page own actions and header components in the pane', () => {
+		const withComponents = {
+			...manifest,
+			pages: manifest.pages.map((p) => (p.id === 'CaseDetail'
+				? { ...p, actionsComponent: 'CaseActions', headerComponent: 'CaseHeader' }
+				: p)),
+		}
+		const records = buildManifestRoutes(withComponents, { component: CnPageRenderer })
+		const wrapper = shallowMount(CnPageRenderer, {
+			propsData: {
+				manifest: withComponents,
+				pageTypes,
+				customComponents: {
+					CaseActions: { name: 'CaseActions', render: () => null },
+					CaseHeader: { name: 'CaseHeader', render: () => null },
+				},
+			},
+			mocks: {
+				$route: splitRoute,
+				$router: {
+					push: jest.fn(() => Promise.resolve()),
+					hasRoute: (name) => records.some((r) => r.name === name),
+					getRoutes: () => records,
+				},
+			},
+		})
+
+		const names = wrapper.vm.splitPaneSlotEntries.map((e) => e.name).sort()
+		expect(names).toEqual(['actions', 'header'])
 	})
 })
 

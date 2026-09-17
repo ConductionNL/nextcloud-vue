@@ -147,11 +147,13 @@
 				</template>
 				<!-- The open record, beside the list. The host never writes
 				     this slot: the renderer already knows which detail page
-				     the index opens into, so it mounts that one. -->
+				     the index opens into, so it mounts that one. `$attrs` too:
+				     the host passes the page its `objectStore` as an attribute,
+				     not through the manifest. -->
 				<template v-if="splitPaneComponent" #split-pane="splitScope">
 					<component
 						:is="splitPaneComponent"
-						v-bind="splitPaneProps"
+						v-bind="{ ...$attrs, ...splitPaneProps }"
 						@edited="splitScope.saved"
 						@created="splitScope.saved">
 						<template
@@ -220,7 +222,7 @@
 			<template v-if="splitPaneComponent" #split-pane="splitScope">
 				<component
 					:is="splitPaneComponent"
-					v-bind="splitPaneProps"
+					v-bind="{ ...$attrs, ...splitPaneProps }"
 					@edited="splitScope.saved"
 					@created="splitScope.saved">
 					<template
@@ -1359,7 +1361,15 @@ export default {
 		 * @return {{register: string, schema: string, objectId: string, slug: string}|null}
 		 */
 		detailLoadContext() {
-			const page = this.currentPage
+			// A split address resolves to the INDEX page, so the pane's record
+			// needs the detail page the pane mounts. Without it the pane got no
+			// object context at all and every `@object.<field>` token in it
+			// resolved against nothing.
+			const onDetailRoute = this.currentPage?.type === 'detail'
+			const splitId = this.currentSplitId
+			const page = onDetailRoute
+				? this.currentPage
+				: (splitId ? this.splitDetailPage : null)
 			if (!page || page.type !== 'detail') {
 				return null
 			}
@@ -1367,7 +1377,10 @@ export default {
 			const config = resolveRouteSentinels(page.config ?? {}, params, page.id ?? '<unknown>')
 			const register = config.register
 			const schema = config.schema
-			const objectId = config.idParam || config.objectId || params.objectId || params.id
+			// The split address names the record, not the detail page's idParam.
+			const objectId = onDetailRoute
+				? (config.idParam || config.objectId || params.objectId || params.id)
+				: splitId
 			if (typeof register !== 'string' || register.length === 0
 				|| typeof schema !== 'string' || schema.length === 0
 				|| typeof objectId !== 'string' || objectId.length === 0) {
@@ -1403,11 +1416,20 @@ export default {
 		 */
 		splitPaneSlotEntries() {
 			const page = this.splitDetailPage
-			if (!page || !page.slots) {
+			if (!page) {
 				return []
 			}
+			// Same two sugar keys `resolvedSlotEntries` maps for the full route,
+			// or the pane silently drops the page's actions component.
+			const map = { ...(page.slots ?? {}) }
+			if (page.headerComponent) {
+				map.header = page.headerComponent
+			}
+			if (page.actionsComponent) {
+				map.actions = page.actionsComponent
+			}
 			const entries = []
-			for (const [name, registryName] of Object.entries(page.slots)) {
+			for (const [name, registryName] of Object.entries(map)) {
 				const component = this.resolveRegistryName(registryName, name)
 				if (component) {
 					entries.push({ name, component })
@@ -1913,12 +1935,13 @@ export default {
 				return
 			}
 
-			// Register the object type (idempotent — registerObjectType
-			// replaces the entry each call). Must precede the subscription
-			// re-scope below: the plugin's subscribe() rejects unregistered
-			// types.
+			// Must precede the subscription re-scope below: subscribe() rejects
+			// unregistered types. Once only — registerObjectType also blanks
+			// `objects[slug]` and `schemas[slug]`, so re-running it empties the
+			// content until the re-fetch lands.
 			try {
-				if (typeof store.registerObjectType === 'function') {
+				if (typeof store.registerObjectType === 'function'
+					&& !store.objectTypeRegistry?.[ctx.slug]) {
 					store.registerObjectType(ctx.slug, ctx.schema, ctx.register)
 				}
 			} catch (err) {
