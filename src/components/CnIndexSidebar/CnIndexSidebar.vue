@@ -70,14 +70,35 @@
 								</p>
 							</NcPopover>
 						</div>
+						<!-- A window, not a list of values: two bounds and a
+						     preset, emitted as the `{ from, to }` the range
+						     filters upstream are already spelled in. -->
+						<CnDateRangePicker
+							v-if="filter.type === 'date-range'"
+							class="cn-index-sidebar__date-range"
+							:modelValue="getRangeValue(filter)"
+							:presets="filter.presets || rangePresets"
+							:fromLabel="filter.fromLabel || fromLabel"
+							:toLabel="filter.toLabel || toLabel"
+							:presetLabel="filter.label"
+							@update:modelValue="onRangeChange(filter.key, $event)" />
+						<NcTextField
+							v-else-if="filter.type === 'text'"
+							class="cn-index-sidebar__filter-text"
+							:modelValue="getTextValue(filter)"
+							:label="filter.label"
+							:placeholder="filter.label"
+							@update:modelValue="onTextChange(filter.key, $event)" />
 						<NcSelect
+							v-else
 							class="cn-index-sidebar__select"
 							:modelValue="getSelectedFilterOptions(filter)"
 							:options="getFilterOptions(filter)"
+							:loading="isLoadingOptions(filter)"
 							placeholder="Select..."
 							:inputLabel="filter.label"
-							:multiple="true"
-							:keepOpen="true"
+							:multiple="filter.multiple !== false"
+							:keepOpen="filter.multiple !== false"
 							:clearable="true"
 							@update:modelValue="onFilterChange(filter.key, $event)" />
 					</div>
@@ -184,6 +205,7 @@ import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { facetOptionLabel } from '../../utils/facets.js'
 import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
+import { CnDateRangePicker, DEFAULT_DATE_RANGE_PRESETS } from '../CnDateRangePicker/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -207,6 +229,7 @@ export default {
 		NcAppSidebarTab,
 		NcTextField,
 		NcSelect,
+		CnDateRangePicker,
 		NcCheckboxRadioSwitch,
 		NcPopover,
 		NcButton,
@@ -331,6 +354,35 @@ export default {
 			default: () => t('nextcloud-vue', 'Clear all'),
 		},
 
+		/**
+		 * Filter declarations for a page with no schema of its own: `{ name: declaration }`, the same shape a schema property has. Wins over `schema`, and feeds the Search tab only.
+		 *
+		 * 🔑 A FILTER IS NOT A COLUMN, which is the whole reason this is its
+		 * own prop rather than a synthetic `schema`. The schema feeds BOTH
+		 * tabs, so a page that declared its filters there would also offer
+		 * them in the Columns tab: the toggle would tick and no column would
+		 * appear, because the table's columns come from somewhere else
+		 * entirely. These reach the Search tab and nothing else.
+		 *
+		 * @type {object|null}
+		 */
+		filterFields: {
+			type: Object,
+			default: null,
+		},
+
+		/** Start-of-window label on a date-range filter. */
+		fromLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'From'),
+		},
+
+		/** End-of-window label on a date-range filter. */
+		toLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'To'),
+		},
+
 		/** Columns section heading */
 		columnsHeading: {
 			type: String,
@@ -377,6 +429,19 @@ export default {
 			internalActiveTab: this.defaultTab,
 			propertiesExpanded: true,
 			expandedGroups: {},
+			/**
+			 * Options loaded for a `reference` filter, keyed by field.
+			 *
+			 * A reference picker lists rows from ANOTHER list (the cases a
+			 * task can hang off, say), and neither the schema nor a facet
+			 * bucket carries them. Loaded once per field and cached, because
+			 * the sidebar re-renders on every keystroke in the search box.
+			 *
+			 * @type {Record<string, Array<{id: string, label: string}>>}
+			 */
+			referenceOptions: {},
+			/** @type {Record<string, boolean>} Which reference loads are in flight. */
+			referenceLoading: {},
 		}
 	},
 
@@ -417,6 +482,16 @@ export default {
 
 		/** Filter definitions from schema (facetable properties, respecting RBAC) */
 		schemaFilters() {
+			// An explicitly declared filter set wins: it is the page saying
+			// "these are the questions", where a schema only says "these are
+			// the properties" and the sidebar has to guess which of them are
+			// worth asking about.
+			if (this.filterFields && Object.keys(this.filterFields).length > 0) {
+				return filtersFromSchema(
+					{ properties: this.filterFields },
+					{ isAdmin: this.userIsAdmin, translate: this.cnTranslate },
+				)
+			}
 			if (!this.schema) {
 				return []
 			}
@@ -452,6 +527,26 @@ export default {
 				...this.allGroups.flatMap((g) => g.columns.map((c) => c.key)),
 			]
 		},
+
+		/**
+		 * The presets a date-range filter offers when it declares none.
+		 *
+		 * Just `custom`. Every shipped preset rolls BACKWARDS from today
+		 * ("Last 30 days"), and a sidebar filter is as often a forward window
+		 * ("due next week") as a backward one. Offering a preset that answers
+		 * the wrong direction is worse than offering none: it is one click and
+		 * it looks deliberate.
+		 *
+		 * @return {Array<object>} The preset list.
+		 */
+		rangePresets() {
+			// Taken FROM the picker's own list rather than written out again, so
+			// the one preset a filter offers carries the same id and the same
+			// label as everywhere else it appears.
+			return DEFAULT_DATE_RANGE_PRESETS
+				.filter((preset) => preset.id === 'custom')
+				.map((preset) => ({ ...preset }))
+		},
 	},
 
 	watch: {
@@ -475,6 +570,16 @@ export default {
 						this.expandedGroups[group.id] = group.expanded !== false
 					}
 				}
+			},
+		},
+
+		// A reference picker's rows load once the schema naming them arrives,
+		// which on a manifest page is after mount. Watching the FILTERS rather
+		// than calling from `mounted()` covers both orders.
+		schemaFilters: {
+			immediate: true,
+			handler() {
+				this.loadReferenceOptions()
 			},
 		},
 	},
@@ -575,7 +680,164 @@ export default {
 					label: facetOptionLabel(v),
 				}))
 			}
+			// A reference picker's rows come from another list, and neither a
+			// schema enum nor a facet bucket can carry them.
+			if (filter.type === 'reference') {
+				return this.referenceOptions[filter.key] || []
+			}
 			return filter.options || []
+		},
+
+		/**
+		 * Whether a reference filter is still fetching its rows.
+		 *
+		 * Shown rather than hidden: an empty picker that is still loading and
+		 * one that genuinely has nothing to pick look identical, and only one
+		 * of them means the person should stop waiting.
+		 *
+		 * @param {object} filter The filter definition.
+		 *
+		 * @return {boolean} True while the load is in flight.
+		 */
+		isLoadingOptions(filter) {
+			return this.referenceLoading[filter.key] === true
+		},
+
+		/**
+		 * The `{ from, to }` window a date-range filter currently holds.
+		 *
+		 * @param {object} filter The filter definition.
+		 *
+		 * @return {object|null} The window, or null when none is set.
+		 */
+		getRangeValue(filter) {
+			const value = this.activeFilters[filter.key]
+			if (value && typeof value === 'object' && !Array.isArray(value)) {
+				return value
+			}
+			return null
+		},
+
+		/**
+		 * A date-range filter changed.
+		 *
+		 * Emitted in the SAME `filter-change` shape every other control uses,
+		 * with the window as the payload's `values`, so a consumer has one
+		 * event to listen to and not two.
+		 *
+		 * @param {string} key The filter key.
+		 * @param {object|null} window The `{ from, to, preset }` value.
+		 *
+		 * @return {void}
+		 */
+		onRangeChange(key, window) {
+			const from = (window && window.from) || ''
+			const to = (window && window.to) || ''
+			if (from === '' && to === '') {
+				this.$emit('filter-change', { key, values: [] })
+				return
+			}
+			this.$emit('filter-change', { key, values: { from, to } })
+		},
+
+		/**
+		 * The text a `text` filter currently holds.
+		 *
+		 * @param {object} filter The filter definition.
+		 *
+		 * @return {string} The current value.
+		 */
+		getTextValue(filter) {
+			const value = this.activeFilters[filter.key]
+			if (Array.isArray(value)) {
+				return value.length > 0 ? String(value[0]) : ''
+			}
+			return (value === undefined || value === null) ? '' : String(value)
+		},
+
+		/**
+		 * A text filter changed.
+		 *
+		 * @param {string} key The filter key.
+		 * @param {string} value The typed value.
+		 *
+		 * @return {void}
+		 */
+		onTextChange(key, value) {
+			const text = String(value ?? '').trim()
+			this.$emit('filter-change', { key, values: text === '' ? [] : [text] })
+		},
+
+		/**
+		 * Load the rows a `reference` filter picks from.
+		 *
+		 * Reads `optionsSource` off the schema property:
+		 * `{ register, schema, labelField, valueField, limit }`. The VALUE is
+		 * the referenced object's uuid, because that is what the server
+		 * filters on; the label is only what the person reads.
+		 *
+		 * Failures are logged and leave the picker empty rather than throwing:
+		 * one unreachable list must not take the whole sidebar with it.
+		 *
+		 * @return {Promise<void>} Resolves when every reference filter settled.
+		 */
+		async loadReferenceOptions() {
+			const pending = this.schemaFilters.filter((filter) => filter.type === 'reference'
+				&& filter.optionsSource
+				&& this.referenceOptions[filter.key] === undefined
+				&& this.referenceLoading[filter.key] !== true)
+			if (pending.length === 0) {
+				return
+			}
+
+			const [{ default: axios }, { generateUrl }] = await Promise.all([
+				import('@nextcloud/axios'),
+				import('@nextcloud/router'),
+			])
+
+			await Promise.all(pending.map(async (filter) => {
+				const source = filter.optionsSource
+				if (!source.register || !source.schema) {
+					return
+				}
+				this.referenceLoading = { ...this.referenceLoading, [filter.key]: true }
+				try {
+					const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', {
+						register: source.register,
+						schema: source.schema,
+					})
+					const response = await axios.get(url, { params: { _limit: source.limit || 200 } })
+					const rows = response?.data?.results || response?.data || []
+					const valueField = source.valueField || '@self.uuid'
+					const labelField = source.labelField || 'title'
+					const options = rows
+						.map((row) => ({
+							id: this.readPath(row, valueField),
+							label: String(this.readPath(row, labelField) ?? this.readPath(row, valueField) ?? ''),
+						}))
+						.filter((option) => option.id !== null && option.id !== undefined && option.id !== '')
+						.sort((a, b) => a.label.localeCompare(b.label))
+					this.referenceOptions = { ...this.referenceOptions, [filter.key]: options }
+				} catch (error) {
+					// eslint-disable-next-line no-console
+					console.error(`[CnIndexSidebar] the reference filter "${filter.key}" could not load its options`, error)
+					this.referenceOptions = { ...this.referenceOptions, [filter.key]: [] }
+				} finally {
+					this.referenceLoading = { ...this.referenceLoading, [filter.key]: false }
+				}
+			}))
+		},
+
+		/**
+		 * Read a dotted path off a row (`@self.uuid`, `title`).
+		 *
+		 * @param {object} row The row.
+		 * @param {string} path The dotted path.
+		 *
+		 * @return {unknown} The value, or undefined.
+		 */
+		readPath(row, path) {
+			return String(path).split('.').reduce((acc, part) => ((acc === null || acc === undefined) ? acc : acc[part]), row)
 		},
 
 		/**
@@ -600,7 +862,13 @@ export default {
 		 * @param {Array} selected Selected values
 		 */
 		onFilterChange(key, selected) {
-			const values = selected ? selected.map((o) => o.id) : []
+			// 🔴 A SINGLE-VALUED SELECT EMITS AN OBJECT, NOT AN ARRAY. NcSelect
+			// changes the SHAPE of its payload with `multiple`, and `.map` on
+			// the object shape throws inside an event handler, where Vue logs
+			// it and carries on: the picker looks inert and the console says
+			// why in a place nobody is looking.
+			const chosen = Array.isArray(selected) ? selected : (selected ? [selected] : [])
+			const values = chosen.map((o) => ((o && typeof o === 'object' && 'id' in o) ? o.id : o))
 			this.$emit('filter-change', { key, values })
 		},
 

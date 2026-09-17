@@ -6,7 +6,36 @@
  * and passes all output through DOMPurify to prevent XSS.
  */
 
+import { version as markedVersion } from 'marked/package.json'
 import { cnRenderMarkdown } from '@/composables/cnRenderMarkdown.js'
+
+// The peer range allows marked 12 up to 18, and the apps install either end
+// (opencatalogi 12, most of the fleet 18). This document crosses the block
+// types whose tokenizers changed between those majors (blank-line trimming in
+// 18, list tokens in 17, renderer tokens in 13), so one exact string pins the
+// HTML on both ends. Run it on the other end with
+// `npm install --no-save marked@12 && npx jest tests/composables/cnRenderMarkdown.spec.js`,
+// then `npm ci`.
+const PEER_RANGE_DOCUMENT = '# Title\n\nSome **bold** text.\n\n\n- one\n- two\n\n'
+	+ '| a | b |\n| - | - |\n| 1 | 2 |\n\n\n```\nconst x = 1\n```\n\n\n> quote\n\n---\n\nend'
+const PEER_RANGE_HTML = '<h1>Title</h1>\n<p>Some <strong>bold</strong> text.</p>\n'
+	+ '<ul>\n<li>one</li>\n<li>two</li>\n</ul>\n'
+	+ '<table>\n<thead>\n<tr>\n<th>a</th>\n<th>b</th>\n</tr>\n</thead>\n'
+	+ '<tbody><tr>\n<td>1</td>\n<td>2</td>\n</tr>\n</tbody></table>\n'
+	+ '<pre><code>const x = 1\n</code></pre>\n'
+	+ '<blockquote>\n<p>quote</p>\n</blockquote>\n<hr>\n<p>end</p>\n'
+
+describe(`cnRenderMarkdown on marked ${markedVersion}`, () => {
+	it('returns a string synchronously, not a promise', () => {
+		// marked 14 made the return type follow the `async` option. The
+		// instance leaves it unset, so a `v-html` binding gets a string.
+		expect(typeof cnRenderMarkdown('# Hello')).toBe('string')
+	})
+
+	it('renders the same HTML on every marked major the peer range allows', () => {
+		expect(cnRenderMarkdown(PEER_RANGE_DOCUMENT)).toBe(PEER_RANGE_HTML)
+	})
+})
 
 describe('cnRenderMarkdown', () => {
 	it('parses an H1 heading', () => {
