@@ -321,13 +321,17 @@ function read(v) {
  * @param {object|import('vue').Ref<object>|(() => object)} [options.ctx] Token context `{ objectId?, object?, workspace?, config? }` (object, ref, or getter).
  * @param {string|import('vue').Ref<string>|(() => string)} [options.widgetId] Widget id matched against `cn:widget:refresh` payloads (empty disables widget-scoped refresh).
  * @param {import('vue').Ref<unknown>|(() => unknown)} [options.refreshKey] Reactive value (ref or getter) whose changes force a refetch.
- * @return {{data: import('vue').Ref<unknown>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger.
+ * @return {{data: import('vue').Ref<unknown>, loading: import('vue').Ref<boolean>, error: import('vue').Ref<string>, blocked: import('vue').Ref<boolean>, refetch: (force?: boolean) => Promise<void>}} Reactive state + a `refetch(force = true)` trigger. `blocked` is true when the last read was NOT ATTEMPTED because a required token is unset — distinct from loading, and the only way to tell "nothing asked" from "asked, still waiting".
  */
 export function useEndpointSource(source, options) {
 	const opts = options || {}
 	const data = ref(null)
 	const loading = ref(false)
 	const error = ref('')
+	// Whether the last read was not attempted because a required token is
+	// unset. The three refs above cannot express it: a blocked read looks
+	// exactly like the instant before the first request.
+	const blocked = ref(false)
 	// Monotonic fetch id so a stale (slower) response never overwrites a
 	// newer one after the request signature changed.
 	let fetchSeq = 0
@@ -367,6 +371,7 @@ export function useEndpointSource(source, options) {
 			data.value = null
 			error.value = ''
 			loading.value = false
+			blocked.value = false
 			return
 		}
 		const request = resolveEndpointRequest(cfg, readCtx())
@@ -375,8 +380,10 @@ export function useEndpointSource(source, options) {
 			data.value = null
 			error.value = ''
 			loading.value = false
+			blocked.value = true
 			return
 		}
+		blocked.value = false
 		const startedAt = Date.now()
 		loading.value = true
 		error.value = ''
@@ -453,5 +460,5 @@ export function useEndpointSource(source, options) {
 		})
 	}
 
-	return { data, loading, error, refetch }
+	return { data, loading, error, blocked, refetch }
 }

@@ -248,11 +248,16 @@
 	flex-direction: column;
 }
 
+/* Plain `center` puts an overflowing tile's excess out of BOTH ends, and flex
+   overflow at the start cannot be scrolled back to — a tall stages strip lost
+   its first rows above the widget. `safe center` centres only what fits;
+   `auto` lets the rest scroll. */
 .cn-detail-page__card-fit .cn-widget-wrapper__content {
-	overflow: hidden;
+	overflow: auto;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
+	justify-content: safe center;
 	padding: 8px 14px;
 }
 

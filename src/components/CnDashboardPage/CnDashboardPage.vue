@@ -3706,12 +3706,15 @@ export default {
    and a horizontal scrollbar when a long currency value met the icon. Here
    we drop the inner scroll, add comfortable padding back (flush removed it),
    and centre the card. */
+/* `safe` centre so an overflowing tile does not spill out of the top, where
+   flex overflow cannot be scrolled back to. Same as detail-page.css. */
 .cn-dashboard-page__card-fit :deep(.cn-widget-wrapper__content),
 .cn-dashboard-page__card-fit.cn-widget-wrapper--flush :deep(.cn-widget-wrapper__content) {
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
+	justify-content: safe center;
 	padding: 8px 14px;
 }
 

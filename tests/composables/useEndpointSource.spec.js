@@ -311,6 +311,30 @@ describe('useEndpointSource — reactive binding', () => {
 		expect(axios.get.mock.calls[0][1]).toEqual({ params: { client: 'c-1' } })
 	})
 
+	// A blocked read looks exactly like the instant before the first request,
+	// so consumers need a way to tell them apart.
+	it('says it is BLOCKED while a required token is unresolved, and stops saying so once it fetches', async () => {
+		axios.get.mockResolvedValue({ data: { v: 1 } })
+		const workspace = ref({})
+		const { blocked, loading } = useEndpointSource(
+			{ url: '/api/x', params: { client: '@workspace.selectedClient' } },
+			{ ctx: () => ({ workspace: workspace.value }) },
+		)
+		await flush()
+		expect(blocked.value).toBe(true)
+		expect(loading.value).toBe(false)
+
+		workspace.value = { selectedClient: 'c-1' }
+		await flush()
+		expect(blocked.value).toBe(false)
+	})
+
+	it('is not blocked for a config it simply has no url for', async () => {
+		const { blocked } = useEndpointSource(null)
+		await flush()
+		expect(blocked.value).toBe(false)
+	})
+
 	it('surfaces fetch errors as a message and clears data', async () => {
 		axios.get.mockRejectedValue(new Error('nope'))
 		const { data, error } = useEndpointSource({ url: '/api/x' })
