@@ -712,6 +712,11 @@ export function fieldsFromSchema(schema, options = {}) {
  * marked with `facetable: true`. Maps property types to appropriate filter
  * widget types (select, checkbox, text).
  *
+ * A property may say how it wants to be asked for, with `inputControl` —
+ * the same word openregister answers under `?_facetable=true`. One of
+ * `text`, `select`, `multiselect`, `range`, `date-range`, `boolean` or
+ * `reference`. It wins over the type guess; an unknown one falls back to it.
+ *
  * @param {object} schema The schema object with a `properties` field
  * @param {object} [options] Configuration options
  * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each filter's `label` and `description`. Schema property titles are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered filter label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
@@ -766,6 +771,49 @@ export function filtersFromSchema(schema, options = {}) {
 				// Default to select — options loaded dynamically from facet API
 				filter.type = 'select'
 			}
+
+			// 🔑 `inputControl` IS THE PROPERTY'S OWN ANSWER TO "HOW DO I ASK
+			// FOR THIS", and it wins over the type guess above. It is the same
+			// word openregister's PropertySearchProfile reads
+			// (`searchable_fields[<prop>].inputControl` under `?_facetable=true`),
+			// so a property declared once is asked for the same way on the
+			// list, the facet, the API and the portal. Before this, a date
+			// property rendered as a multi-select of nothing: the sidebar had
+			// exactly two widgets and every non-boolean landed on one of them.
+			//
+			// An unknown control falls through to the type guess rather than
+			// rendering nothing, because a widget this version has not learned
+			// yet must degrade to a working one, not to an empty box.
+			const control = String(prop.inputControl || '').trim()
+			if (control === 'date-range' || control === 'range') {
+				filter.type = 'date-range'
+				if (Array.isArray(prop.presets)) {
+					filter.presets = prop.presets.map((preset) => ({
+						...preset,
+						label: tr(preset.label || preset.id),
+					}))
+				}
+			} else if (control === 'text') {
+				filter.type = 'text'
+			} else if (control === 'reference') {
+				// A picker over another list. `optionsSource` says where the
+				// rows come from; the VALUE is the referenced object's uuid,
+				// never its title.
+				filter.type = 'reference'
+			} else if (control === 'boolean') {
+				filter.type = 'checkbox'
+			}
+
+			if (prop.optionsSource && typeof prop.optionsSource === 'object') {
+				filter.optionsSource = prop.optionsSource
+			}
+
+			// A single-valued filter is one the server answers with ONE
+			// argument (`priority`, `objectUuid`). Declared rather than
+			// inferred: `multiselect` and `select` differ in nothing a widget
+			// can see, and sending two values to an endpoint that reads one
+			// silently answers about the last of them.
+			filter.multiple = control !== 'select' && control !== 'reference'
 
 			return filter
 		})
