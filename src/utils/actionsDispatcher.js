@@ -15,7 +15,7 @@
  * open-form (Wave 3 — schema-driven create dialog; the rendering host
  * provides `context.openForm`) | refresh (Wave 3 — bumps the page-level
  * refresh signal on the `cn:page:refresh` event-bus channel) | api-call
- * (Wave 3 — POST/PUT a configured app endpoint with success/error toasts
+ * (Wave 3 — POST/PUT/PATCH/DELETE a configured app endpoint with success/error toasts
  * and an automatic page refresh; any `confirm` on the action is INTENT
  * consumed by the rendering surface BEFORE dispatch, like object-op) |
  * agent (run a governed hermiq agent against the page object via
@@ -38,9 +38,10 @@
  * `'download.pdf'`; no auto-refresh unless `refresh: true` is explicit).
  *
  * `toggle` (Wave 3) is deliberately NOT dispatchable: a toggle is a
- * stateful two-way control (GET state on mount, write on click) rendered
- * by the header-actions surface (CnActionButtons); dispatching it here
- * warns and no-ops.
+ * stateful two-way control (state read from an endpoint or from the page
+ * object, write on click, one verb for both directions or one verb each)
+ * rendered by the header-actions surface (CnActionButtons), which sends its
+ * writes back through `api-call`; dispatching a toggle here warns and no-ops.
  *
  * Spec: REQ-MVR-011 (manifest-v2-renderer) — unified actions dispatcher
  * / ADR-036 Decision 7 / ADR-049 Decision 2 / #91 Wave 3
@@ -295,7 +296,67 @@ function interpolateActionString(str, ctx) {
 }
 
 /**
- * Execute a Wave-3 `api-call` action: POST/PUT the configured app endpoint
+ * The HTTP verbs an `api-call` may use, mapped to their axios method name.
+ * The ONE place the verb vocabulary lives: the manifest schema's `method`
+ * enum mirrors these keys, and a unit test keeps the two in step.
+ */
+export const API_CALL_METHODS = Object.freeze({
+	POST: 'post',
+	PUT: 'put',
+	PATCH: 'patch',
+	DELETE: 'delete',
+})
+
+/**
+ * Resolve an action's `method` to an axios method name. Case-insensitive.
+ * Absent means POST. An unknown verb also falls back to POST, which is
+ * exactly what every verb other than PUT did before PATCH and DELETE
+ * existed, so a manifest that slipped an odd verb past validation behaves
+ * as it always did.
+ *
+ * @param {unknown} method The action's declared method.
+ * @return {string} The axios method name (`post` | `put` | `patch` | `delete`).
+ */
+export function resolveApiCallMethod(method) {
+	const key = String(method || 'POST').toUpperCase()
+	return Object.prototype.hasOwnProperty.call(API_CALL_METHODS, key) ? API_CALL_METHODS[key] : 'post'
+}
+
+/**
+ * Send one api-call request. POST, PUT and PATCH carry the body as axios's
+ * second argument. DELETE has no body argument in axios, so its body rides
+ * in the config's `data`, and only when there is one: a DELETE with an
+ * empty body sends none at all rather than `{}`.
+ *
+ * The config argument is passed only when something needs it. An explicit
+ * `undefined` third argument would change the call shape every existing
+ * POST/PUT consumer and test relies on.
+ *
+ * @param {object} axios The axios instance.
+ * @param {string} method The axios method name from {@link resolveApiCallMethod}.
+ * @param {string} target The absolute request URL.
+ * @param {object} body The resolved request body.
+ * @param {boolean} isDownload Whether to ask for a blob response.
+ * @return {Promise<object>} The axios response.
+ */
+function sendApiCall(axios, method, target, body, isDownload) {
+	if (method === 'delete') {
+		const config = {}
+		if (body && typeof body === 'object' && Object.keys(body).length > 0) {
+			config.data = body
+		}
+		if (isDownload) {
+			config.responseType = 'blob'
+		}
+		return Object.keys(config).length > 0 ? axios.delete(target, config) : axios.delete(target)
+	}
+	return isDownload
+		? axios[method](target, body, { responseType: 'blob' })
+		: axios[method](target, body)
+}
+
+/**
+ * Execute a Wave-3 `api-call` action: POST/PUT/PATCH/DELETE the configured app endpoint
  * (URL + body run the SAME @-token grammar endpoint sources use), toast the
  * outcome via @nextcloud/dialogs, then — unless `action.refresh` is `false`
  * (or, for a `download` action, unless `action.refresh` is explicitly
@@ -341,7 +402,7 @@ async function executeApiCall(action, context) {
 		console.warn('[dispatchAction] api-call is missing its url or a required token is unresolved — skipping.', action)
 		return { ok: false, error: new Error('api-call blocked') }
 	}
-	const method = String(action.method || 'POST').toUpperCase() === 'PUT' ? 'put' : 'post'
+	const method = resolveApiCallMethod(action.method)
 	const isDownload = action.download === true
 	const [{ default: axios }, { generateUrl }, dialogs] = await Promise.all([
 		import('@nextcloud/axios'),
@@ -353,9 +414,7 @@ async function executeApiCall(action, context) {
 		// Only pass a third axios config arg for a download call — an
 		// explicit `undefined` third argument would otherwise change the
 		// call shape for every existing (non-download) api-call consumer/test.
-		const res = isDownload
-			? await axios[method](target, body, { responseType: 'blob' })
-			: await axios[method](target, body)
+		const res = await sendApiCall(axios, method, target, body, isDownload)
 		if (isDownload) {
 			const filename = parseDispositionFilename(
 				res && res.headers && res.headers['content-disposition'],
@@ -606,7 +665,9 @@ export async function postRunNode(action, context, config = {}) {
  *   through generateUrl) or absolute. May interpolate the shared URL tokens
  *   (`@objectId`, `@object.<field>`, `@workspace.<key>`, `@config.<key>`, and the
  *   `{objectId}` brace form).
- * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT".
+ * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT" | "PATCH" |
+ *   "DELETE" (see {@link API_CALL_METHODS}). A DELETE sends its body, when it has one, as
+ *   the axios config's `data`.
  * @param {object} [action.payload] "api-call" only: the JSON body — preferred over `params`.
  *   Values resolve the shared `@`-token grammar RECURSIVELY at any nesting depth (objects
  *   and arrays of objects, e.g. `{ dataRefs: [{ id: '@objectId' }] }`); optional (`…?`)
@@ -824,7 +885,7 @@ export function dispatchAction(action, context = {}) {
 		}
 
 		case 'api-call': {
-		// POST/PUT an app endpoint + toast + refresh (Wave 3). Any
+		// POST/PUT/PATCH/DELETE an app endpoint + toast + refresh (Wave 3). Any
 		// `confirm` on the action is INTENT the rendering surface consumed
 		// BEFORE calling the dispatcher (object-op precedent) — no gating
 		// happens here.

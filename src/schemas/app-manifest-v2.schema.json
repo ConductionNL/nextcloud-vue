@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.33.0",
+	"version": "2.34.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1696,7 +1696,7 @@
 			"type": "object",
 			"required": ["id", "label"],
 			"additionalProperties": false,
-			"description": "A typed page action with a discriminator field. The type field determines behaviour: handler (registry function), open-modal (modal by id), open-page (named route), navigate (URL), object-op (declarative OpenRegister mutation via useObjectStore), export (opens the shared CnMassExportDialog export launcher), open-form (schema-driven create dialog — CnActionButtons), refresh (bumps the cn:page:refresh signal), api-call (POST/PUT an app endpoint + toast + refresh — CnActionButtons/dispatchAction), agent (run a governed hermiq agent), run-node (invoke one OpenRegister flow node against the page object, config collected via a dialog sourced from the node's own declared form — CnActionButtons/dispatchAction, or-flow-run-node; distinct from the UNRELATED setup-wizard step type of a similar name, 'run-action'), toggle (two-way state button — CnActionButtons only, NOT dispatchable). When type is omitted, it defaults to 'handler' (back-compatibility with v1.3.0 action declarations). The Ajv instance is compiled with useDefaults: true so the default is applied during validation.",
+			"description": "A typed page action with a discriminator field. The type field determines behaviour: handler (registry function), open-modal (modal by id), open-page (named route), navigate (URL), object-op (declarative OpenRegister mutation via useObjectStore), export (opens the shared CnMassExportDialog export launcher), open-form (schema-driven create dialog — CnActionButtons), refresh (bumps the cn:page:refresh signal), api-call (POST/PUT/PATCH/DELETE an app endpoint + toast + refresh — CnActionButtons/dispatchAction), agent (run a governed hermiq agent), run-node (invoke one OpenRegister flow node against the page object, config collected via a dialog sourced from the node's own declared form — CnActionButtons/dispatchAction, or-flow-run-node; distinct from the UNRELATED setup-wizard step type of a similar name, 'run-action'), toggle (two-way state button with its state read from an endpoint or from the page object, written with one verb or with one verb each way — CnActionButtons only, NOT dispatchable). When type is omitted, it defaults to 'handler' (back-compatibility with v1.3.0 action declarations). The Ajv instance is compiled with useDefaults: true so the default is applied during validation.",
 			"properties": {
 				"id": {
 					"type": "string",
@@ -1710,7 +1710,7 @@
 					"type": "string",
 					"enum": ["handler", "open-modal", "open-page", "navigate", "object-op", "export", "open-form", "refresh", "api-call", "agent", "run-node", "toggle"],
 					"default": "handler",
-					"description": "Action behaviour discriminator. Defaults to 'handler' when omitted (back-compat with v1.3.0). handler: calls a registry function; open-modal: opens a modal by target id; open-page: navigates to a named route; navigate: navigates to a URL; object-op: dispatches a declarative mutation (patch | delete | create) of an OpenRegister object via the shared object store; export: opens the shared CnMassExportDialog export launcher configured via entities[]/formats[] — the confirm payload ({format, entity?}) routes to the action's `handler` in the manifest actions map (the app's export service does the download). open-form (#91 Wave 3): CnActionButtons opens a schema-driven create dialog (CnAdvancedFormDialog) for the action's register/schema, saves + toasts + refreshes + optionally navigates to onSuccessRoute. refresh (#91 Wave 3): bumps the page-level cn:page:refresh event-bus signal so every endpoint-bound widget refetches. api-call (#91 Wave 3): POST/PUT the token-interpolated url with payload/params (JSON body, payload resolves @-tokens recursively at any depth) + success/error toast + auto page-refresh (unless refresh:false); confirm gating is surface-consumed intent (object-op precedent); download:true requests a binary blob and triggers a browser file download instead (auto-refresh defaults to OFF in that mode). agent (hermiq#41): run a governed hermiq agent against the page object — POSTs { register, schema, objectId, resultField?, skill?, prompt? } to /apps/hermiq/api/agents/{agent}/run-on-object (object-RBAC-scoped; dispatches the governed AgentRunRequestedEvent). register/schema/objectId default to the page's @register/@schema/@objectId object context. A first-class companion to api-call (which remains the fallback for a bespoke body); hermiq is NOT hard-required — an app-level 404 surfaces a graceful 'agent runtime unavailable' toast. toggle (#91 Wave 3): a stateful two-way state button rendered by CnActionButtons (GET stateSource on mount, optimistic write on click) — NOT dispatchable through dispatchAction. object-op declares mutation INTENT only — authority is enforced server-side by OpenRegister RBAC (ADR-022/ADR-023); authorization-shaped fields have no client-side effect and are not accepted here."
+					"description": "Action behaviour discriminator. Defaults to 'handler' when omitted (back-compat with v1.3.0). handler: calls a registry function; open-modal: opens a modal by target id; open-page: navigates to a named route; navigate: navigates to a URL; object-op: dispatches a declarative mutation (patch | delete | create) of an OpenRegister object via the shared object store; export: opens the shared CnMassExportDialog export launcher configured via entities[]/formats[] — the confirm payload ({format, entity?}) routes to the action's `handler` in the manifest actions map (the app's export service does the download). open-form (#91 Wave 3): CnActionButtons opens a schema-driven create dialog (CnAdvancedFormDialog) for the action's register/schema, saves + toasts + refreshes + optionally navigates to onSuccessRoute. refresh (#91 Wave 3): bumps the page-level cn:page:refresh event-bus signal so every endpoint-bound widget refetches. api-call (#91 Wave 3): POST/PUT/PATCH/DELETE (method, default POST) the token-interpolated url with payload/params (JSON body, payload resolves @-tokens recursively at any depth) + success/error toast + auto page-refresh (unless refresh:false); confirm gating is surface-consumed intent (object-op precedent); download:true requests a binary blob and triggers a browser file download instead (auto-refresh defaults to OFF in that mode). agent (hermiq#41): run a governed hermiq agent against the page object — POSTs { register, schema, objectId, resultField?, skill?, prompt? } to /apps/hermiq/api/agents/{agent}/run-on-object (object-RBAC-scoped; dispatches the governed AgentRunRequestedEvent). register/schema/objectId default to the page's @register/@schema/@objectId object context. A first-class companion to api-call (which remains the fallback for a bespoke body); hermiq is NOT hard-required — an app-level 404 surfaces a graceful 'agent runtime unavailable' toast. toggle (#91 Wave 3): a stateful two-way state button rendered by CnActionButtons (state from stateFrom on the page object, else GET stateSource on mount; optimistic write on click, either writeUrl+method for both directions or on/off with a verb each) — NOT dispatchable through dispatchAction. object-op declares mutation INTENT only — authority is enforced server-side by OpenRegister RBAC (ADR-022/ADR-023); authorization-shaped fields have no client-side effect and are not accepted here."
 				},
 				"op": {
 					"type": "string",
@@ -1825,12 +1825,12 @@
 				},
 				"url": {
 					"type": "string",
-					"description": "api-call / toggle only: the app endpoint (POST/PUT). App-relative (routed through generateUrl) or absolute (http/https). May interpolate @objectId / @object.<field> / @workspace.<key> / @config.<key> tokens inline, as well as the literal {objectId} brace placeholder (unresolved tokens collapse to empty)."
+					"description": "api-call / toggle only: the app endpoint (POST/PUT/PATCH/DELETE). App-relative (routed through generateUrl) or absolute (http/https). May interpolate @objectId / @object.<field> / @workspace.<key> / @config.<key> tokens inline, as well as the literal {objectId} brace placeholder (unresolved tokens collapse to empty)."
 				},
 				"method": {
 					"type": "string",
-					"enum": ["POST", "PUT"],
-					"description": "api-call: HTTP method (default POST). toggle writeUrl: default PUT."
+					"enum": ["POST", "PUT", "PATCH", "DELETE"],
+					"description": "api-call: HTTP method (default POST). A DELETE sends its body, when it has one, as the request body of the DELETE. toggle writeUrl: default PUT. The verbs mirror API_CALL_METHODS in actionsDispatcher.js."
 				},
 				"payload": {
 					"type": "object",
@@ -1938,7 +1938,31 @@
 				},
 				"field": {
 					"type": "string",
-					"description": "toggle only: the state field — read off the stateSource payload on mount AND sent (as the flipped boolean) in the write body under this key."
+					"description": "toggle only: the state field — read off the stateSource payload on mount AND sent (as the flipped boolean) in the write body under this key. Not sent when the toggle writes through on/off."
+				},
+				"stateFrom": {
+					"type": "object",
+					"additionalProperties": false,
+					"required": ["field"],
+					"description": "toggle only: read the state off the loaded page object instead of fetching stateSource (wins when both are set, and is re-read whenever the object reloads). Without `contains` the state is whether `field` holds a true value (an empty list is false). With `contains` the field is a list and the state is whether it holds that value; a list entry matches when it is the value or an object whose id, uid or userId is. A missing object or field, or a `contains` token that does not resolve, reads as off.",
+					"properties": {
+						"field": {
+							"type": "string",
+							"minLength": 1,
+							"description": "Dot-path into the page object, e.g. `starred`, `@self.favourite` or `followers`."
+						},
+						"contains": {
+							"description": "Value the list at `field` must hold for the toggle to read as on. Strings run the shared token grammar, so `@me` is the signed-in user."
+						}
+					}
+				},
+				"on": {
+					"$ref": "#/$defs/toggleWrite",
+					"description": "toggle only: the request that switches the toggle on, e.g. { \"method\": \"PUT\", \"url\": \"…/favourite\" }. Declare it together with `off`; the pair replaces the single writeUrl+method write."
+				},
+				"off": {
+					"$ref": "#/$defs/toggleWrite",
+					"description": "toggle only: the request that switches the toggle off, e.g. { \"method\": \"DELETE\", \"url\": \"…/favourite\" }. Declare it together with `on`."
 				},
 				"variant": {
 					"type": "string",
@@ -1992,12 +2016,27 @@
 					"then": { "required": ["agent"] }
 				},
 				{
-					"description": "toggle actions MUST declare their write endpoint via `writeUrl`.",
+					"description": "toggle actions MUST say where they write: a `writeUrl` (one verb for both directions, and the fallback url for on/off), or both `on` and `off` each carrying its own `url`. Declaring only one of `on` / `off` is rejected, because the other direction would have no verb.",
 					"if": {
 						"properties": { "type": { "const": "toggle" } },
 						"required": ["type"]
 					},
-					"then": { "required": ["writeUrl"] }
+					"then": {
+						"anyOf": [
+							{ "required": ["writeUrl"] },
+							{
+								"required": ["on", "off"],
+								"properties": {
+									"on": { "required": ["url"] },
+									"off": { "required": ["url"] }
+								}
+							}
+						],
+						"dependentRequired": {
+							"on": ["off"],
+							"off": ["on"]
+						}
+					}
 				},
 				{
 					"description": "run-node actions MUST declare which flow and which node within it (RN-3, or-flow-run-node) — a node's config and eligibility are properties of the flow it lives in, so neither can be inferred.",
@@ -2008,6 +2047,33 @@
 					"then": { "required": ["flowId", "nodeId"] }
 				}
 			]
+		},
+		"toggleWrite": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["method"],
+			"description": "One direction of a two-verb toggle: the api-call CnActionButtons sends when the toggle switches that way. No state field is added to the body; the verb carries the meaning.",
+			"properties": {
+				"method": {
+					"type": "string",
+					"enum": ["POST", "PUT", "PATCH", "DELETE"],
+					"description": "HTTP method for this direction."
+				},
+				"url": {
+					"type": "string",
+					"description": "Endpoint for this direction, with the same token grammar as an api-call `url`. Falls back to the action's `writeUrl`."
+				},
+				"payload": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "JSON body, resolved like an api-call `payload` (deep token resolution). Wins over `params`."
+				},
+				"params": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "Legacy flat JSON body, resolved like an api-call `params`."
+				}
+			}
 		},
 		"fieldValidation": {
 			"type": "object",

@@ -17,15 +17,18 @@
 		     both answer empty for it — so `inline` only means anything while
 		     this component is the one drawing. -->
 		<template v-for="entry in barActions">
-			<!-- Toggle: a stateful two-way state button (GET on mount, write on
-			     click, optimistic + revert). Rendered inline, never dispatched. -->
+			<!-- Toggle: a stateful two-way state button (state from an endpoint
+			     or from the page object, write on click, optimistic + revert).
+			     Rendered inline, never dispatched. NcButton's own `pressed` prop
+			     carries the state: it sets aria-pressed and paints the pressed
+			     button primary, so neither is hand-rolled here. -->
 			<NcButton
 				v-if="entry.type === 'toggle'"
 				:key="entry.id"
-				:variant="toggleState[entry.id] ? 'primary' : 'secondary'"
+				:variant="entry.variant || 'secondary'"
+				:pressed="Boolean(toggleState[entry.id])"
 				:disabled="Boolean(togglePending[entry.id])"
 				:data-testid="`cn-action-toggle-${entry.id}`"
-				:aria-pressed="String(Boolean(toggleState[entry.id]))"
 				@click="onToggleClick(entry)">
 				<template v-if="entry.icon" #icon>
 					<CnIcon v-if="isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
@@ -216,7 +219,7 @@ import { useObjectStore } from '../../store/useObjectStore.js'
 import { buildOnSuccessRoute, dispatchAction, isExternalActionTarget, postRunNode, resolveCreateOverrideHandler, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { usesArrayValues, valueArrayFor, valueRecordsFor } from '../../utils/dynamicProperties.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
@@ -241,9 +244,15 @@ import { CnIcon } from '../CnIcon/index.js'
  *    `excludeFields` / `fieldOverrides` narrow what the button asks for, which
  *    is how one schema serves both a full editor and a quick-create button.
  *    `advanced: true` swaps in the properties/JSON table for a power user.
- *  - **`toggle`** — a two-way state button: `GET`s `stateSource` on mount,
- *    renders `labelOn` / `labelOff`, and on click `writes` the flipped
- *    value OPTIMISTICALLY, reverting on failure.
+ *  - **`toggle`** — a two-way state button. Its state comes from
+ *    `stateFrom` (a field on the page object, or whether a list on it
+ *    contains a value such as `@me`) or from `stateSource` (a `GET` on
+ *    mount). It renders `labelOn` / `labelOff`, passes the state to
+ *    NcButton's `pressed` prop, and on click writes the flipped value
+ *    OPTIMISTICALLY, reverting on failure. The write is either one verb for
+ *    both directions (`writeUrl` + `method`, the flipped boolean sent under
+ *    `field`) or one verb each way (`on` / `off`, e.g. PUT to star and
+ *    DELETE to unstar).
  *  - **`run-node`** (manifest-run-node-action) — GETs the target flow node's
  *    describe endpoint (OpenRegister's `or-flow-run-node`); a node with
  *    declared fields mounts `CnRunNodeDialog` (its own small field renderer —
@@ -276,7 +285,11 @@ import { CnIcon } from '../CnIcon/index.js'
  *     "visibleWhen": { "field": "state", "op": "eq", "value": "pending" } },
  *   { "id": "toggle-open", "type": "toggle", "labelOn": "Open", "labelOff": "Closed",
  *     "stateSource": { "url": "/apps/pipelinq/api/werkplek/@objectId/state", "responsePath": "open" },
- *     "field": "open", "writeUrl": "/apps/pipelinq/api/werkplek/@objectId/state", "method": "PUT" }
+ *     "field": "open", "writeUrl": "/apps/pipelinq/api/werkplek/@objectId/state", "method": "PUT" },
+ *   { "id": "follow", "type": "toggle", "labelOn": "Following", "labelOff": "Follow",
+ *     "stateFrom": { "field": "followers", "contains": "@me" },
+ *     "on": { "method": "POST", "url": "/apps/dossiq/api/cases/@objectId/followers" },
+ *     "off": { "method": "DELETE", "url": "/apps/dossiq/api/cases/@objectId/followers" } }
  * ]
  * ```
  */
@@ -629,10 +642,14 @@ export default {
 			},
 		},
 
-		// Re-evaluate local (object-context) visibleWhen when the record loads.
+		// Re-evaluate local (object-context) visibleWhen when the record loads,
+		// and re-read every toggle whose state lives on that record.
 		objectCtx: {
 			deep: true,
-			handler() { this.evaluateVisibility() },
+			handler() {
+				this.evaluateVisibility()
+				this.seedObjectToggles()
+			},
 		},
 
 		// Push the menu-ready descriptors at a `display: "menu"` host. It fires
@@ -706,6 +723,10 @@ export default {
 					continue
 				}
 				this.toggleState[action.id] = false
+				if (this.hasObjectState(action)) {
+					this.toggleState[action.id] = this.readObjectState(action)
+					continue
+				}
 				if (!action.stateSource || !action.stateSource.url) {
 					continue
 				}
@@ -716,6 +737,83 @@ export default {
 				} catch {
 					// Leave the default (off); a failed state read never breaks the bar.
 				}
+			}
+		},
+
+		/**
+		 * Whether a toggle reads its state off the page object (`stateFrom`)
+		 * rather than from an endpoint. `stateFrom` wins when both are set: the
+		 * object is already loaded, so it costs no request.
+		 *
+		 * @param {object} action The toggle action.
+		 * @return {boolean} True when `stateFrom.field` is declared.
+		 */
+		hasObjectState(action) {
+			return Boolean(action && action.stateFrom && typeof action.stateFrom.field === 'string' && action.stateFrom.field !== '')
+		},
+
+		/**
+		 * Read a toggle's state off the loaded page object.
+		 *
+		 * Without `contains`, the state is whether the field holds a true
+		 * value (an empty list counts as false). With `contains`, the field is a list and the state is whether
+		 * that list holds the value, after the shared token grammar resolves it
+		 * (so `@me` means the signed-in user). A list entry matches when it is
+		 * the value itself or an object whose `id`, `uid` or `userId` is. A
+		 * missing object, a missing field, or a `contains` token that does not
+		 * resolve all read as OFF: a toggle that cannot tell stays unpressed
+		 * rather than claiming a state nobody confirmed.
+		 *
+		 * @param {object} action The toggle action (with `stateFrom`).
+		 * @return {boolean} The state.
+		 */
+		readObjectState(action) {
+			const object = this.objectCtx && this.objectCtx.object
+			if (!object || typeof object !== 'object') {
+				return false
+			}
+			const value = this.readField(object, action.stateFrom.field)
+			if (!Object.prototype.hasOwnProperty.call(action.stateFrom, 'contains')) {
+				return Array.isArray(value) ? value.length > 0 : Boolean(value)
+			}
+			if (!Array.isArray(value)) {
+				return false
+			}
+			const raw = action.stateFrom.contains
+			const wanted = resolveFilterValue(raw, this.tokenCtx)
+			// An empty answer, or a token handed back unchanged, is a token
+			// that did not resolve.
+			const unresolved = wanted === '' || wanted === null || wanted === undefined
+				|| (typeof raw === 'string' && raw.startsWith('@') && wanted === raw)
+			if (unresolved) {
+				return false
+			}
+			const key = String(wanted)
+			return value.some((item) => {
+				if (item && typeof item === 'object') {
+					return [item.id, item.uid, item.userId].some((v) => v !== undefined && v !== null && String(v) === key)
+				}
+				return item !== undefined && item !== null && String(item) === key
+			})
+		},
+
+		/**
+		 * Re-read every object-backed toggle after the page object changes,
+		 * for instance after the refresh a successful write triggers. A toggle
+		 * with a write in flight keeps its optimistic state until the write
+		 * settles.
+		 *
+		 * @return {void}
+		 */
+		seedObjectToggles() {
+			for (const action of this.actions || []) {
+				if (!action || action.type !== 'toggle' || !action.id || !this.hasObjectState(action)) {
+					continue
+				}
+				if (this.togglePending[action.id]) {
+					continue
+				}
+				this.toggleState[action.id] = this.readObjectState(action)
 			}
 		},
 
@@ -781,6 +879,54 @@ export default {
 		},
 
 		/**
+		 * Build the api-call a toggle click sends.
+		 *
+		 * With both `on` and `off` declared, the verb carries the meaning:
+		 * switching on sends `on`, switching off sends `off`, each with its
+		 * own method, its own url (falling back to `writeUrl`) and its own
+		 * `payload` / `params`. No state field is added to that body.
+		 *
+		 * Otherwise the toggle keeps its original single-verb shape: `writeUrl`
+		 * with `method` (default PUT) and the flipped boolean under `field`.
+		 *
+		 * @param {object} entry The toggle action.
+		 * @param {boolean} next The state being switched to.
+		 * @return {object} The api-call action to dispatch.
+		 */
+		toggleWriteAction(entry, next) {
+			const common = {
+				type: 'api-call',
+				successMessage: entry.successMessage,
+				errorMessage: entry.errorMessage,
+				refresh: entry.refresh,
+			}
+			const verb = next ? entry.on : entry.off
+			if (entry.on && entry.off && verb && typeof verb === 'object') {
+				const write = {
+					...common,
+					url: verb.url || entry.writeUrl,
+					method: verb.method,
+				}
+				if (verb.payload && typeof verb.payload === 'object') {
+					write.payload = verb.payload
+				} else {
+					write.params = { ...(verb.params || {}) }
+				}
+				return write
+			}
+			const writeParams = { ...(entry.params || {}) }
+			if (entry.field) {
+				writeParams[entry.field] = next
+			}
+			return {
+				...common,
+				url: entry.writeUrl,
+				method: entry.method || 'PUT',
+				params: writeParams,
+			}
+		},
+
+		/**
 		 * Toggle click: flip the state OPTIMISTICALLY, write it, and revert on
 		 * failure. Success/error toast via the api-call dispatch path (which
 		 * also refreshes the page unless `refresh: false`).
@@ -796,19 +942,7 @@ export default {
 			const next = !previous
 			this.toggleState[entry.id] = next
 			this.togglePending[entry.id] = true
-			const writeParams = { ...(entry.params || {}) }
-			if (entry.field) {
-				writeParams[entry.field] = next
-			}
-			const result = await this.dispatch({
-				type: 'api-call',
-				url: entry.writeUrl,
-				method: entry.method || 'PUT',
-				params: writeParams,
-				successMessage: entry.successMessage,
-				errorMessage: entry.errorMessage,
-				refresh: entry.refresh,
-			})
+			const result = await this.dispatch(this.toggleWriteAction(entry, next))
 			if (!result || result.ok === false) {
 				// Revert the optimistic flip.
 				this.toggleState[entry.id] = previous
