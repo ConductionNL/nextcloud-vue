@@ -67,15 +67,32 @@
 				</template>
 				<template #details>
 					{{ formatDate(note.creationDateTime || note.created) }}
+					<!-- An edited note says so where its time is, because that
+					     is where a reader already looks to date what they are
+					     reading. The line names the editor, so nobody has to
+					     open the history to learn who changed it. -->
+					<span
+						v-if="wasEdited(note)"
+						class="cn-notes-tab__edited"
+						data-testid="cn-note-edited">{{ editedLine(note) }}</span>
 				</template>
-				<template v-if="canDelete(note)" #actions>
-					<NcActionButton @click="startEdit(note)">
+				<template v-if="canDelete(note) || wasEdited(note)" #actions>
+					<NcActionButton v-if="canDelete(note)" @click="startEdit(note)">
 						<template #icon>
 							<Pencil :size="20" />
 						</template>
 						{{ editLabel }}
 					</NcActionButton>
-					<NcActionButton @click="deleteNote(note)">
+					<NcActionButton
+						v-if="wasEdited(note)"
+						data-testid="cn-note-history-action"
+						@click="openHistory(note)">
+						<template #icon>
+							<HistoryIcon :size="20" />
+						</template>
+						{{ historyLabel }}
+					</NcActionButton>
+					<NcActionButton v-if="canDelete(note)" @click="deleteNote(note)">
 						<template #icon>
 							<Delete :size="20" />
 						</template>
@@ -84,6 +101,16 @@
 				</template>
 			</NcListItem>
 		</ul>
+
+		<CnNoteHistoryDialog
+			v-if="historyNoteId"
+			:open="true"
+			:noteId="historyNoteId"
+			:objectId="objectId"
+			:register="register"
+			:schema="schema"
+			:apiBase="apiBase"
+			@update:open="historyNoteId = null" />
 	</div>
 </template>
 
@@ -92,8 +119,10 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcButton, NcListItem, NcLoadingIcon, NcRichContenteditable } from '@nextcloud/vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import HistoryIcon from 'vue-material-design-icons/History.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Send from 'vue-material-design-icons/Send.vue'
+import CnNoteHistoryDialog from '../../dialogs/CnNoteHistoryDialog.vue'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { extractMentionedIds, parseMentions } from '../../utils/mentions.js'
 import { searchNextcloudUsers } from '../../utils/userAutocomplete.js'
@@ -101,7 +130,7 @@ import { searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 export default {
 	name: 'CnNotesTab',
 
-	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, NcRichContenteditable, CommentTextOutline, Send, Pencil, Delete },
+	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, NcRichContenteditable, CnNoteHistoryDialog, CommentTextOutline, Send, Pencil, Delete, HistoryIcon },
 
 	props: {
 		/** ID of the object this tab belongs to */
@@ -128,6 +157,8 @@ export default {
 		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
 		/** Text shown while the notes are being fetched */
 		loadingLabel: { type: String, default: () => t('nextcloud-vue', 'Loading notes…') },
+		/** Label for the action that opens a note's earlier versions */
+		historyLabel: { type: String, default: () => t('nextcloud-vue', 'Show earlier versions') },
 	},
 
 	emits: [
@@ -149,6 +180,8 @@ export default {
 			newNoteText: '',
 			saving: false,
 			editingNoteId: null,
+			/** The note whose earlier versions are open, or null. */
+			historyNoteId: null,
 			/**
 			 * Per-instance cache of mentioned-user display names, keyed by
 			 * user id. `null` marks an id that could not be resolved (unknown
@@ -364,6 +397,43 @@ export default {
 			return note.actorId === OC?.currentUser || note.author === OC?.currentUser
 		},
 
+		/**
+		 * Whether this note carries a history to show.
+		 *
+		 * Read off `versionCount` rather than off `editedAt`: a note edited by
+		 * a since-deleted account still has its prior texts, and a marker that
+		 * depended on the editor still existing would quietly vanish.
+		 *
+		 * @param {object} note The note from the backend.
+		 * @return {boolean} True when at least one earlier version exists.
+		 */
+		wasEdited(note) {
+			return Number(note.versionCount || 0) > 0
+		},
+
+		/**
+		 * The "edited" line beside a note's time.
+		 *
+		 * @param {object} note The note from the backend.
+		 * @return {string} The rendered line.
+		 */
+		editedLine(note) {
+			const editor = note.editedByDisplayName || note.editedBy
+			if (!editor) {
+				return t('nextcloud-vue', 'Edited')
+			}
+			return t('nextcloud-vue', 'Edited by {editor}', { editor })
+		},
+
+		/**
+		 * Open the earlier versions of one note.
+		 *
+		 * @param {object} note The note to open.
+		 */
+		openHistory(note) {
+			this.historyNoteId = note.id
+		},
+
 		async deleteNote(note) {
 			try {
 				await fetch(
@@ -424,6 +494,12 @@ export default {
 	background-color: var(--color-primary-element-light);
 	color: var(--color-main-text);
 	font-weight: bold;
+}
+
+.cn-notes-tab__edited {
+	color: var(--color-text-maxcontrast);
+	margin-inline-start: 6px;
+	font-style: italic;
 }
 
 .cn-notes-tab__mention--unknown {
