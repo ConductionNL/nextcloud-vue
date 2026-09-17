@@ -2611,7 +2611,7 @@
 						},
 						"editOpensDetail": {
 							"type": "boolean",
-							"description": "type='index': send the Edit row action to the record's detail page instead of opening the edit modal. Set automatically by CnPageRenderer when a type='detail' page exists for the same register+schema (or config.rowRoute is set); declare it explicitly only to override that. Maps to CnIndexPage `editOpensDetail`."
+							"description": "type='index': send the Edit row action to the record's detail page instead of opening the edit modal. OPT-IN — CnPageRenderer used to set this wherever a type='detail' page or config.rowRoute existed, and it no longer does: @edit-open is bound to the same navigation as a row click, so a routed Edit just repeats the row click (the split pane, or the detail page) and the form is no longer reachable from the list. Declare true per page when the modal cannot express the record. Maps to CnIndexPage `editOpensDetail`."
 						},
 						"showEditAction": {
 							"type": "boolean",

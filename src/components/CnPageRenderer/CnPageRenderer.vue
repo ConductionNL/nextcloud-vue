@@ -1248,15 +1248,16 @@ export default {
 				const hasDetail = this.detailPageByRegisterSchema.has(`${config.register} ${config.schema}`)
 				if (hasRowRoute || hasDetail) {
 					topLevel.rowClickToView = true
-					// Same signal, second consequence: a record with a detail page
-					// is edited THERE, not in a modal launched from the table. The
-					// modal renders the schema's flat scalars only, so on a record
-					// that composes anything — a case type's statuses, results,
-					// roles and properties — it is not merely a duplicate surface
-					// but one that cannot express the record. An explicit
-					// `config.editOpensDetail` still wins (merged below).
-					topLevel.editOpensDetail = true
 				}
+				// `editOpensDetail` is NOT derived from that signal. It used to be,
+				// on the reasoning that a record with a detail page is better edited
+				// there than in a modal of flat scalars. But `@editOpen` is bound to
+				// the same `onRowOpen` as `@rowClick`, so the result was an Edit that
+				// did precisely what clicking the row does — the pane on a split
+				// view, the detail page otherwise — and no way left to reach the
+				// form. Opening a record and editing it are different acts and get
+				// different affordances. A page that does want the old routing asks
+				// for it with `config.editOpensDetail: true`.
 			}
 			let normalizedConfig = config
 			if (isIndex && config.actionToggles && typeof config.actionToggles === 'object' && !Array.isArray(config.actionToggles)) {

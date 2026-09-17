@@ -1764,17 +1764,15 @@ export default {
 		 * opening the edit modal, by emitting `edit-open` rather than showing
 		 * the form dialog.
 		 *
-		 * A record that HAS a detail page has two places to be edited, and the
-		 * modal is the worse of them: it shows the schema's flat scalar fields
-		 * and nothing else, so anything the record composes — related rows,
-		 * sub-resources, tabs — is uneditable from the index and invisible
-		 * while you edit. `CnPageRenderer` sets this automatically when the
-		 * manifest declares a `type:"detail"` page for the same
-		 * register+schema (or the index sets `config.rowRoute`), which is the
-		 * same signal that already makes a row click open the record.
+		 * OFF by default, and `CnPageRenderer` no longer derives it: the host
+		 * binds `@edit-open` to the same navigation as a row click, so an Edit
+		 * that routes is an Edit that does what clicking the row does — the
+		 * split pane, or the detail page — while the form it names becomes
+		 * unreachable from the list.
 		 *
-		 * Leave false when there is nowhere to go: the modal is then the only
-		 * edit surface and removing it would make the record read-only.
+		 * Set it when the modal genuinely cannot express the record and you
+		 * accept the duplication: it renders the schema's flat scalars only, so
+		 * related rows, sub-resources and tabs stay uneditable there.
 		 */
 		editOpensDetail: {
 			type: Boolean,
