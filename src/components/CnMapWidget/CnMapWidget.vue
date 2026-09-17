@@ -116,6 +116,21 @@ function withTileDefaults(opts) {
 	return opts
 }
 
+/**
+ * A comparable snapshot of one config value, for the render watchers.
+ *
+ * @param {*} value The config value.
+ * @return {string|object} A stable string; a fresh object when it will not
+ *   serialise, which always compares unequal and so keeps rendering.
+ */
+function configKey(value) {
+	try {
+		return JSON.stringify(value ?? null)
+	} catch {
+		return {}
+	}
+}
+
 // Fallback background used when the consumer configures no `basemaps` and no
 // `tile`/`wms` entry in `layers` — otherwise the map paints white. Consuming
 // apps MUST allow this host in their Content-Security-Policy `img-src`
@@ -448,29 +463,37 @@ export default {
 			}
 			return this.cfg.clustering
 		},
+
+		/**
+		 * Comparable snapshot of the layer config.
+		 *
+		 * The render watchers read `cfg`, which reads every prop, and a `deep`
+		 * watcher fires whenever its effect re-runs rather than when its value
+		 * changes — so a new marker set rebuilt the base tile layer and the map
+		 * went white until the tiles came back. A key the watcher can actually
+		 * compare renders only on a real change.
+		 */
+		layersKey() {
+			return configKey(this.cfg.layers)
+		},
+
+		markersKey() {
+			return configKey(this.cfg.markers)
+		},
 	},
 
 	watch: {
-		// Watch the resolved config so both flat-prop and `content`-blob updates
-		// re-render the affected layer set.
-		'cfg.layers': {
-			handler() {
-				if (this.map) {
-					this.renderLayers()
-				}
-			},
-
-			deep: true,
+		// Keyed, never `deep: true` — see `layersKey`.
+		layersKey() {
+			if (this.map) {
+				this.renderLayers()
+			}
 		},
 
-		'cfg.markers': {
-			handler() {
-				if (this.map) {
-					this.renderMarkers()
-				}
-			},
-
-			deep: true,
+		markersKey() {
+			if (this.map) {
+				this.renderMarkers()
+			}
 		},
 
 		// Re-plot when the centre moves, but only while the centre pin is on —
@@ -1198,6 +1221,9 @@ export default {
 .cn-map-widget__leaflet {
 	width: 100%;
 	height: 100%;
+	/* Leaflet paints its container #ddd, which reads as a white flash before the
+	   tiles arrive — and a bright one in a dark theme. */
+	background: var(--color-background-dark);
 }
 
 .cn-map-widget__fallback {
