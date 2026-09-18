@@ -113,7 +113,7 @@
 				     filters/search/sort into the route query. -->
 				<CnSavedViewsControl
 					v-if="allowSavedViews"
-					:views="savedViews"
+					:views="visibleSavedViews"
 					:loading="savedViewsLoading"
 					:currentUserId="currentSavedViewsUserId"
 					@apply="onApplySavedView"
@@ -700,7 +700,7 @@ import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actio
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
-import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery } from '../../utils/savedViewHelpers.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
@@ -1598,6 +1598,20 @@ export default {
 		allowSavedViews: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Which pages share this page's saved views. By default a view is
+		 * shared by every page over the same register and schema and by no
+		 * other page, because a view is filters over one schema's fields. Set
+		 * this to share views across pages over different sources, or to
+		 * keep two pages over the same source apart. Written into the saved
+		 * view's `query.scope`; views saved before scoping stay visible
+		 * everywhere.
+		 */
+		savedViewsScope: {
+			type: String,
+			default: '',
 		},
 
 		/** Property name used to display item names in dialogs */
@@ -2973,6 +2987,24 @@ export default {
 		 *
 		 * @return {string}
 		 */
+		/**
+		 * The page as `savedViewScope` and `viewMatchesScope` take it.
+		 *
+		 * @return {{ scope: string, register: string, schema: object|string|null }} The page's source.
+		 */
+		savedViewsPage() {
+			return { scope: this.savedViewsScope, register: this.register, schema: this.schema }
+		},
+
+		/**
+		 * The fetched views that belong on this page.
+		 *
+		 * @return {Array<object>} The views to offer.
+		 */
+		visibleSavedViews() {
+			return this.savedViews.filter((view) => viewMatchesScope(view, this.savedViewsPage))
+		},
+
 		currentSavedViewsUserId() {
 			const user = getCurrentUser()
 			return (user && user.uid) || ''
@@ -4985,7 +5017,16 @@ export default {
 			const state = this.isSelfFetchMode
 				? this.currentViewState()
 				: extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
-			const payload = buildViewCreatePayload({ name, description: '', isPublic, isDefault: false, state })
+			const payload = buildViewCreatePayload({
+				name,
+				description: '',
+				isPublic,
+				isDefault: false,
+				state,
+				scope: savedViewScope(this.savedViewsPage),
+				register: this.register,
+				schema: this.schema,
+			})
 			try {
 				const view = await useSavedViewsApi().createView(payload)
 				if (view) {
