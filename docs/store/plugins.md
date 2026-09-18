@@ -10,6 +10,7 @@ Plugins extend `createObjectStore` (and, as of the CRUD plugin support update, `
 import {
   createObjectStore,
   auditTrailsPlugin,
+  dashboardLayoutsPlugin,
   relationsPlugin,
   filesPlugin,
   lifecyclePlugin,
@@ -21,6 +22,7 @@ import {
 const useObjectStore = createObjectStore('myapp', {
   plugins: [
     auditTrailsPlugin(),
+    dashboardLayoutsPlugin(),
     relationsPlugin(),
     filesPlugin(),
     lifecyclePlugin(),
@@ -36,6 +38,7 @@ Each plugin ships with its own dedicated reference page:
 | Plugin | Purpose |
 |--------|---------|
 | [auditTrailsPlugin](./plugins/audit-trails.md) | Object-scoped + global audit trails, statistics, and delete |
+| [dashboardLayoutsPlugin](./plugins/dashboard-layouts.md) | A user's own arrangement of a manifest dashboard, over the admin's layout |
 | [relationsPlugin](./plugins/relations.md) | `contracts`, `uses`, `used` sub-resources |
 | [filesPlugin](./plugins/files.md) | File attachments (upload, publish, delete) + shared tags list |
 | [lifecyclePlugin](./plugins/lifecycle.md) | Object lifecycle actions: lock, publish, revert, merge |
