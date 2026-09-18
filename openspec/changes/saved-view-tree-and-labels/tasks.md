@@ -35,8 +35,8 @@
   - A label filter narrows the list, and the labels already in use are offered before a new one
   - A view whose parent the user may not read renders at the root with its inherited parts noted
   - Keyboard operation reaches every node, and the tree carries the right ARIA roles
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 4: A slug, and calling a view by it
 - **spec_ref**: `openspec/changes/saved-view-tree-and-labels/specs/saved-views-ui/spec.md#requirement-a-view-is-named-once-and-called-by-name`

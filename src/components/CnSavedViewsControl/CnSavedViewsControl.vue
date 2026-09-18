@@ -27,43 +27,75 @@
 			data-testid="cn-saved-views-empty"
 			:name="t('nextcloud-vue', 'No saved views yet')" />
 
-		<!-- One entry per view: apply on click; own views get a delete entry. -->
-		<template v-else>
-			<template v-for="view in views" :key="`view-${view.id}`">
+		<!-- The labels already in use, offered before anybody types a new one. -->
+		<template v-if="!loading && offeredLabels.length > 0">
+			<NcActionButton
+				v-for="label in offeredLabels"
+				:key="`label-${label}`"
+				data-testid="cn-saved-views-label"
+				:data-label="label"
+				:modelValue="labelFilter === label"
+				type="checkbox"
+				:aria-label="labelFilterLabel(label)"
+				@click="onLabelFilter(label)">
+				<template #icon>
+					<TagOutline :size="20" />
+				</template>
+				{{ label }}
+			</NcActionButton>
+			<NcActionSeparator />
+		</template>
+
+		<!--
+			A label that matches nothing says so. Chained to the ROWS rather
+			than to the label list: written as an else-if of the labels block
+			it only ever rendered on a page with no labels at all, which is
+			the one case it cannot be about.
+		-->
+		<NcActionCaption
+			v-if="!loading && views.length > 0 && rows.length === 0"
+			data-testid="cn-saved-views-none-for-label"
+			:name="t('nextcloud-vue', 'No views with this label')" />
+
+		<!-- One entry per view, in tree order: apply on click; own views get a delete entry. -->
+		<template v-if="!loading">
+			<template v-for="row in rows" :key="`view-${row.view.id || row.view.slug}`">
 				<NcActionButton
 					data-testid="cn-saved-views-item"
-					:data-view-id="view.id"
-					:aria-label="view.name"
-					@click="onApply(view)">
+					:data-view-id="row.view.id || row.view.slug"
+					:data-depth="row.depth"
+					:data-group="row.group"
+					:aria-label="rowLabel(row)"
+					@click="onApply(row.view)">
 					<template #icon>
 						<EyeOutline :size="20" />
 					</template>
-					{{ view.name }}
+					{{ rowName(row) }}
 				</NcActionButton>
 				<NcActionButton
 					v-if="allowPinning"
-					:key="`pin-${view.id}`"
+					:key="`pin-${row.view.id || row.view.slug}`"
 					data-testid="cn-saved-views-pin"
-					:data-view-id="view.id"
-					:aria-label="pinLabel(view)"
-					@click="onPinRequest(view)">
+					:data-view-id="row.view.id || row.view.slug"
+					:aria-label="pinLabel(row.view)"
+					@click="onPinRequest(row.view)">
 					<template #icon>
-						<Pin v-if="isPinned(view)" :size="20" />
+						<Pin v-if="isPinned(row.view)" :size="20" />
 						<PinOutline v-else :size="20" />
 					</template>
-					{{ pinLabel(view) }}
+					{{ pinLabel(row.view) }}
 				</NcActionButton>
 				<NcActionButton
-					v-if="isOwn(view)"
-					:key="`delete-${view.id}`"
+					v-if="isOwn(row.view) && row.group !== SEEDED_GROUP"
+					:key="`delete-${row.view.id || row.view.slug}`"
 					data-testid="cn-saved-views-delete"
-					:data-view-id="view.id"
-					:aria-label="deleteLabel(view)"
-					@click="onDeleteRequest(view)">
+					:data-view-id="row.view.id || row.view.slug"
+					:aria-label="deleteLabel(row.view)"
+					@click="onDeleteRequest(row.view)">
 					<template #icon>
 						<TrashCanOutline :size="20" />
 					</template>
-					{{ deleteLabel(view) }}
+					{{ deleteLabel(row.view) }}
 				</NcActionButton>
 			</template>
 		</template>
@@ -90,7 +122,9 @@ import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue
 import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'
 import Pin from 'vue-material-design-icons/Pin.vue'
 import PinOutline from 'vue-material-design-icons/PinOutline.vue'
+import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import { buildViewTree, labelsInUse, VIEW_GROUPS } from '../../utils/buildViewTree.js'
 import { isOwnView } from '../../utils/savedViewHelpers.js'
 import { isPinnedView } from '../../utils/savedViewPlaces.js'
 
@@ -129,6 +163,7 @@ export default {
 		EyeOutline,
 		Pin,
 		PinOutline,
+		TagOutline,
 		TrashCanOutline,
 	},
 
@@ -161,19 +196,129 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * How deep the tree indents before it flattens. Mirrors
+		 * `savedViewTree.maxDepth` in the manifest. Flattening is about
+		 * indentation only: a view past the bound still renders.
+		 */
+		maxDepth: {
+			type: Number,
+			default: 3,
+		},
 	},
 
 	emits: ['apply', 'delete-request', 'pin-request', 'save-request'],
+
+	data() {
+		return {
+			/** The label currently filtering the list, or '' for all of them. */
+			labelFilter: '',
+		}
+	},
 
 	computed: {
 		/** @return {string} The dropdown trigger label. */
 		menuLabel() {
 			return t('nextcloud-vue', 'Views')
 		},
+
+		/** @return {string} The seeded group name, for the template. */
+		SEEDED_GROUP() {
+			return VIEW_GROUPS.SEEDED
+		},
+
+		/**
+		 * The views in tree order, seeded first, filtered by the active label.
+		 *
+		 * @return {Array<object>} Rows of `{ view, depth, group, orphaned }`.
+		 */
+		rows() {
+			return buildViewTree({
+				views: this.views,
+				labelFilter: this.labelFilter,
+				maxDepth: this.maxDepth,
+			})
+		},
+
+		/**
+		 * The labels already in use.
+		 *
+		 * Read from the UNFILTERED list on purpose: reading it from `rows`
+		 * would remove every other label from the menu the moment one was
+		 * chosen, and a filter you cannot change without clearing it first is
+		 * a filter people stop using.
+		 *
+		 * @return {Array<string>} The labels.
+		 */
+		offeredLabels() {
+			return labelsInUse(this.views)
+		},
 	},
 
 	methods: {
 		t,
+
+		/**
+		 * The name a row shows, indented to its depth.
+		 *
+		 * Indented with figure spaces rather than CSS padding because the row
+		 * is an `NcActionButton` whose label is read out as text: a screen
+		 * reader gets the same shape a sighted reader does, and no stylesheet
+		 * has to know about the tree.
+		 *
+		 * @param {object} row The row from buildViewTree().
+		 * @return {string} The name.
+		 */
+		rowName(row) {
+			return `${'\u2007'.repeat(row.depth * 2)}${row.view.name}`
+		},
+
+		/**
+		 * What a row is called to somebody who cannot see the indentation.
+		 *
+		 * Says the level in words, and says when a view's parent is one this
+		 * reader cannot see. A child that silently sits at the root looks
+		 * exactly like a view that never had a parent.
+		 *
+		 * @param {object} row The row from buildViewTree().
+		 * @return {string} The accessible label.
+		 */
+		rowLabel(row) {
+			const name = row.depth === 0
+				? row.view.name
+				: t('nextcloud-vue', '{name}, level {level}', { name: row.view.name, level: row.depth + 1 })
+
+			if (row.orphaned !== true) {
+				return name
+			}
+
+			return t('nextcloud-vue', '{name}. Parts of this view come from one you cannot see.', { name })
+		},
+
+		/**
+		 * The accessible label of a label filter entry.
+		 *
+		 * @param {string} label The label.
+		 * @return {string} The label.
+		 */
+		labelFilterLabel(label) {
+			return this.labelFilter === label
+				? t('nextcloud-vue', 'Stop filtering on "{label}"', { label })
+				: t('nextcloud-vue', 'Show only views labelled "{label}"', { label })
+		},
+
+		/**
+		 * Turn a label filter on, or off when it is already on.
+		 *
+		 * Clicking the active label clears it, so the way out is the way in
+		 * rather than a second control somebody has to find.
+		 *
+		 * @param {string} label The label.
+		 */
+		onLabelFilter(label) {
+			this.labelFilter = this.labelFilter === label ? '' : label
+		},
 
 		/**
 		 * Whether the delete entry renders for a view.
