@@ -1458,7 +1458,7 @@ export default {
 		 * read-only: it never writes the status field itself, so with no
 		 * transition there is nothing it can do.
 		 *
-		 * @type {?((move: {card: object, toKey: string}) => Promise<object>)}
+		 * @type {((move: { card: object, toKey: string }) => Promise<object>)|null}
 		 */
 		runTransition: {
 			type: Function,

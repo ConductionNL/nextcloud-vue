@@ -54,8 +54,8 @@
 						:draggable="canMove"
 						tabindex="0"
 						:aria-label="cardLabel(card, column)"
-						@click="$emit('card-click', card)"
-						@keydown.enter="$emit('card-click', card)"
+						@click="openCard(card)"
+						@keydown.enter="openCard(card)"
 						@dragstart="onDragStart(card, column, $event)">
 						<span
 							v-for="field in cardFields"
@@ -271,6 +271,20 @@ export default {
 		t,
 
 		/**
+		 * Open one card. The pointer and the keyboard both come through here,
+		 * so a reader on Enter reaches the same record as a reader on click.
+		 *
+		 * @param {object} card The card the reader picked.
+		 * @return {void} Nothing.
+		 */
+		openCard(card) {
+			/**
+			 * @event card-click Emitted when a reader opens a card, by click or by Enter. Payload: the card row.
+			 */
+			this.$emit('card-click', card)
+		},
+
+		/**
 		 * A card's identity.
 		 *
 		 * @param {object} card The row.
@@ -390,6 +404,9 @@ export default {
 			})
 
 			if (result.outcome === DROP_OUTCOMES.MOVED) {
+				/**
+				 * @event moved Emitted when the host's transition accepted the move and the card now sits in the new lane. Payload: `{ card, toKey }`.
+				 */
 				this.$emit('moved', { card: result.card, toKey })
 				return
 			}
@@ -398,12 +415,18 @@ export default {
 				// The guard's own sentence when it gave one. Our own only when
 				// it did not, so the two are never confused.
 				this.refusal = result.message || t('nextcloud-vue', 'That move was refused.')
+				/**
+				 * @event refused Emitted when the guard turned the move down. Payload: `{ card, message }`, the message being the guard's own sentence when it gave one.
+				 */
 				this.$emit('refused', { card: result.card, message: this.refusal })
 				return
 			}
 
 			if (result.outcome === DROP_OUTCOMES.STALE) {
 				this.refusal = t('nextcloud-vue', 'Somebody else moved this card. It is shown where it is now.')
+				/**
+				 * @event stale Emitted when somebody else moved the card first, so the board shows it where it is now. Payload: `{ card }`.
+				 */
 				this.$emit('stale', { card: result.card })
 			}
 		},

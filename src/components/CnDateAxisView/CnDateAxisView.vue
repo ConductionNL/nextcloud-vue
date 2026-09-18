@@ -34,7 +34,7 @@
 						:data-bar-id="barKey(bar)"
 						:style="barStyle(bar)"
 						:aria-label="barLabel(bar)"
-						@click="$emit('row-click', bar.row)">
+						@click="openRow(bar.row)">
 						{{ barText(bar) }}
 					</button>
 				</div>
@@ -59,7 +59,7 @@
 					data-testid="cn-date-axis-unplanned-row"
 					:data-row-id="rowKeyOf(row)"
 					:aria-label="unplannedLabelFor(row)"
-					@click="$emit('row-click', row)">
+					@click="openRow(row)">
 					{{ nameOf(row) }}
 				</button>
 			</div>
@@ -172,6 +172,20 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Open one record. Both the bar on the axis and the label of an
+		 * undated row come through here, so the two paths cannot drift.
+		 *
+		 * @param {object} row The record the reader picked.
+		 * @return {void} Nothing.
+		 */
+		openRow(row) {
+			/**
+			 * @event row-click Emitted when a reader opens a record, from its bar on the axis or from the label of an undated row. Payload: the row.
+			 */
+			this.$emit('row-click', row)
+		},
 
 		/**
 		 * A bar's identity.

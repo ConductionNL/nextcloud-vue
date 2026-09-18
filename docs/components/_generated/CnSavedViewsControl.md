@@ -8,6 +8,7 @@
 | `loading`       | `boolean` |          | `false` | True while the parent is fetching the view list.                                                                                                                                                                                       |
 | `currentUserId` | `string`  |          | `''`    | The signed-in NC user id — gates the per-view delete affordance.                                                                                                                                                                       |
 | `allowPinning`  | `boolean` |          | `false` | Whether a view can be pinned into the navigation from here (saved-view-as-a-place). True only on a page whose views are places: pinning a view that has no address of its own would put an entry in the navigation with nowhere to go. |
+| `maxDepth`      | `number`  |          | `3`     | How deep the tree indents before it flattens. Mirrors `savedViewTree.maxDepth` in the manifest. Flattening is about indentation only: a view past the bound still renders.                                                             |
 
 ### Events
 

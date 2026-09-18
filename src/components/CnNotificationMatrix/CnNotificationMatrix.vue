@@ -814,6 +814,9 @@ export default {
 		 * @param {Event} domEvent The change event.
 		 */
 		onDigestMode(channel, domEvent) {
+			/**
+			 * @event digest-change Emitted when a reader changes a channel's digest mode or its time of day. Payload: `{ channelId, mode, timeOfDay }`.
+			 */
 			this.$emit('digest-change', {
 				channelId: channel.id,
 				mode: String(domEvent?.target?.value ?? 'off'),
@@ -893,6 +896,9 @@ export default {
 		 * @param {object} channel The channel.
 		 */
 		onTestSend(channel) {
+			/**
+			 * @event test-send Emitted when a reader asks for a test notification on one channel. Payload: `{ channelId }`.
+			 */
 			this.$emit('test-send', { channelId: channel.id })
 		},
 	},
