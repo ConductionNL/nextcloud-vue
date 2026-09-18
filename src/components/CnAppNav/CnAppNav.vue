@@ -842,6 +842,20 @@ export default {
 		},
 	},
 
+	watch: {
+		activeRouteName: {
+			immediate: true,
+			handler(_current, previous) {
+				this.pinGroupsEntered(previous)
+			},
+		},
+
+		// The manifest can arrive after the route did.
+		visibleItems() {
+			this.pinGroupsEntered(this.activeRouteName)
+		},
+	},
+
 	created() {
 		// Non-reactive one-shot latch for warnAutoCountMisconfigured(). It has
 		// to be seeded here rather than lazily on first use: `resolveCount()`
@@ -1232,10 +1246,11 @@ export default {
 
 		/**
 		 * Whether a menu group renders expanded. Local `openState` (set
-		 * by the chevron or a title click) wins; otherwise the group
-		 * auto-expands when it contains the active route — so deep-linking
-		 * to a child page reveals which group it lives in — and finally
-		 * falls back to the manifest's `item.open` for the initial render.
+		 * by the chevron, a title click, or `pinGroupsEntered`) wins;
+		 * otherwise the group auto-expands when it contains the active
+		 * route — so deep-linking to a child page reveals which group it
+		 * lives in — and finally falls back to the manifest's `item.open`
+		 * for the initial render.
 		 *
 		 * @param {{ id: string, open?: boolean }} item Menu entry descriptor.
 		 * @return {boolean}
@@ -1273,6 +1288,30 @@ export default {
 		 */
 		setItemOpen(item, value) {
 			this.openState[item.id] = value
+		},
+
+		/**
+		 * Pin open every group the active route just entered.
+		 *
+		 * Auto-expansion used to be read off the route alone, so a group
+		 * opened for a deep link collapsed the moment the route left it. A
+		 * group opened for you stays open until you close it. Only a group
+		 * the route ENTERS is pinned: one you closed while on one of its
+		 * children stays closed while you move between them.
+		 *
+		 * @param {string|null} previousRoute The active route before this change, or undefined at first render.
+		 */
+		pinGroupsEntered(previousRoute) {
+			for (const item of this.visibleItems) {
+				const children = this.visibleChildren(item)
+				if (children.length === 0 || !this.hasActiveChild(item)) {
+					continue
+				}
+				const wasInside = children.some((child) => child.route === previousRoute)
+				if (!wasInside || this.openState[item.id] === undefined) {
+					this.openState[item.id] = true
+				}
+			}
 		},
 
 		/**

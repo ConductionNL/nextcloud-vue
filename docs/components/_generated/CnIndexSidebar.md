@@ -31,13 +31,14 @@
 
 ### Events
 
-| Name             | Payload | Description |
-| ---------------- | ------- | ----------- |
-| `update:open`    | —       |             |
-| `search`         | —       |             |
-| `columns-change` | —       |             |
-| `filter-change`  | —       |             |
-| `tab-change`     | —       |             |
+| Name             | Payload | Description                                                |
+| ---------------- | ------- | ---------------------------------------------------------- |
+| `update:open`    | —       |                                                            |
+| `search`         | —       |                                                            |
+| `clear-filters`  | —       | "Clear all" clicked; reset search and every active filter. |
+| `columns-change` | —       |                                                            |
+| `filter-change`  | —       |                                                            |
+| `tab-change`     | —       |                                                            |
 
 ### Slots
 
