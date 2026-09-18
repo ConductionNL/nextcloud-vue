@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.36.0",
+	"version": "2.37.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -875,6 +875,51 @@
 							}
 						]
 					}
+				}
+			}
+		},
+		"boardView": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["statusField"],
+			"description": "The board view of this list: one column per stage of a status field. Index pages only, and only offered when `viewModes` also lists `board`. The COLUMNS COME FROM THE SCHEMA, not from the values present in the loaded rows: a board built from the data would lose the stage nothing is in, which is the one you drag a card into, and would reorder itself as work moved. A move goes through the host's transition and never writes the status field, so a board can never move a case past a rule the case page enforces.",
+			"properties": {
+				"statusField": {
+					"type": "string",
+					"description": "The property the columns come from. Required: a board with no status field has nothing to be a board of. Its enum or lifecycle states are read from the register schema at RUNTIME, so a field with neither cannot be caught here; the view says so on screen instead of drawing empty columns."
+				},
+				"cardFields": {
+					"type": "array",
+					"items": { "type": "string" },
+					"description": "The fields a card shows. Keep it short: a card is scanned, not read."
+				},
+				"swimlaneField": {
+					"type": "string",
+					"description": "A second field to group the board into rows by, while the columns stay the stages. Cards with no value for it land in one named row, last, rather than being dropped: grouping by handler and hiding the unassigned work turns a board into a picture of what is already somebody's problem."
+				}
+			}
+		},
+		"dateAxisView": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["startField", "endField"],
+			"description": "The date-axis view of this list: rows on a time scale, overlaps visible. Index pages only, and only offered when `viewModes` also lists `dateAxis`. IT HIDES NOTHING AND RESCHEDULES NOTHING: overlapping bars get their own track so the lane grows taller rather than losing a bar, rows with no usable dates go to a visible unplanned lane, and the only gesture is opening a row. A view that moved a bar on drag would be changing statutory dates from a picture.",
+			"properties": {
+				"startField": {
+					"type": "string",
+					"description": "Where a row's start is. Required: a bar needs both ends, and a row missing one is unplanned rather than drawn."
+				},
+				"endField": {
+					"type": "string",
+					"description": "Where a row's end is. Required, for the same reason."
+				},
+				"laneField": {
+					"type": "string",
+					"description": "What to put in a lane together, usually the person the work is on. Omitted, everything shares one lane."
+				},
+				"labelField": {
+					"type": "string",
+					"description": "The field a bar is named by, on screen and in its accessible name. A bar positioned by percentage says nothing at all to a reader who cannot see it."
 				}
 			}
 		},
@@ -2469,6 +2514,14 @@
 					"$ref": "#/$defs/savedViewPlaces",
 					"description": "Index pages only. Makes each saved view of this page a place: its own route, the presentations its view config declares, and an entry under this page's navigation entry once a user pins it. Refused on any other page type."
 				},
+				"board": {
+					"$ref": "#/$defs/boardView",
+					"description": "Index pages only. The board view's configuration, handed to CnIndexPage as the `board` prop. The segment appears only when `viewModes` also lists `board`. Refused on any other page type."
+				},
+				"dateAxis": {
+					"$ref": "#/$defs/dateAxisView",
+					"description": "Index pages only. The date-axis view's configuration, handed to CnIndexPage as the `dateAxis` prop. The segment appears only when `viewModes` also lists `dateAxis`. Refused on any other page type."
+				},
 				"savedViewTree": {
 					"$ref": "#/$defs/savedViewTree",
 					"description": "Index pages only. Renders this page's saved views as a tree with labels, and declares the views that ship with the app. Refused on any other page type, for the same reason savedViewPlaces is: a page with no saved-view dropdown has nothing to put in a tree."
@@ -2871,7 +2924,7 @@
 			},
 			"allOf": [
 				{
-					"description": "splitView, manualOrder, savedViewPlaces and savedViewTree are index-page mechanics. splitView emits a second route beside an index route and mounts the detail pane inside CnIndexPage; manualOrder holds a per-user row order for a list; savedViewPlaces turns this page's saved views into addressable places. Declared on a detail, dashboard or custom page they would validate and then do nothing, which is the failure this branch refuses out loud (case-page-and-list-as-a-place, saved-view-as-a-place).",
+					"description": "splitView, manualOrder, savedViewPlaces, savedViewTree, board and dateAxis are index-page mechanics. splitView emits a second route beside an index route and mounts the detail pane inside CnIndexPage; manualOrder holds a per-user row order for a list; savedViewPlaces turns this page's saved views into addressable places. Declared on a detail, dashboard or custom page they would validate and then do nothing, which is the failure this branch refuses out loud (case-page-and-list-as-a-place, saved-view-as-a-place).",
 					"if": {
 						"not": {
 							"properties": { "type": { "const": "index" } },
@@ -2884,7 +2937,9 @@
 								{ "required": ["splitView"] },
 								{ "required": ["manualOrder"] },
 								{ "required": ["savedViewPlaces"] },
-								{ "required": ["savedViewTree"] }
+								{ "required": ["savedViewTree"] },
+								{ "required": ["board"] },
+								{ "required": ["dateAxis"] }
 							]
 						}
 					}

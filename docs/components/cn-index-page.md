@@ -107,6 +107,52 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the `customComponents` registry on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log a `console.warn` once and fall back to the default so a misconfigured manifest never blanks the grid. See [Bespoke card-grid](#bespoke-card-grid-via-cardcomponent) below. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 
+## Board and date axis: two more ways to look at the same list
+
+`viewMode` accepts `board` and `dateAxis` beside `table`, `cards`, `list` and
+`map`. Each needs its own config block, and each segment appears only when the
+mode can actually work: a board needs a `statusField`, a date axis needs both
+dates. A segment that opens a view saying it cannot be one is worse than no
+segment, because the reader has to click it to find out.
+
+```json
+{
+  "viewModes": ["table", "board", "dateAxis"],
+  "board": {
+    "statusField": "status",
+    "cardFields": ["title", "assignee"],
+    "swimlaneField": "assignee"
+  },
+  "dateAxis": {
+    "startField": "startDate",
+    "endField": "deadline",
+    "laneField": "assignee",
+    "labelField": "title"
+  }
+}
+```
+
+**The board never writes the status field.** A move goes through
+`runTransition`, the host's own transition, so a board can never move a case
+past a rule the case page enforces. With no `runTransition` the board is
+read-only rather than broken. A move emits `board-move` and refreshes the list,
+because a transition may have changed more than the status and a board that
+only moved the card would disagree with the table beside it.
+
+**A filter set on one mode does not follow you to another.** The two views are
+asked different questions: a board is "show me the work in flight", a table is
+"find me this case". Carrying the board's filter into the table is how somebody
+searches for a case they know exists and is told there are no results; carrying
+a table filter into a board silently empties three columns, and an empty column
+reads as "no work here" rather than "you are not being shown it". The saved
+view's own criteria *do* follow: the view is the question, the mode is how you
+look at the answer.
+
+**What the manifest cannot check.** A `statusField` naming a field with no enum
+and no lifecycle cannot be refused at validation time, because the stages live
+in the register schema and the manifest does not contain it. `CnBoardView` says
+so on screen instead of drawing empty columns.
+
 ## Saved views: the tree, the labels and what a view is called
 
 `savedViewTree` on an index page turns the flat Views dropdown into a tree.

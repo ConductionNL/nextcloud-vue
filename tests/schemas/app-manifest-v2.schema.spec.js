@@ -1254,13 +1254,13 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.36.0', () => {
+	it('the manifest schema version reads 2.37.0', () => {
 		// Moved with savedViewTree. The version is not decoration: a consumer
 		// reads it to tell a manifest key it does not know from one it got
 		// wrong, and dossiq spent a day on two Ajv failures that were an
 		// installed schema being older than the manifest it validated.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.36.0')
+		expect(schema.version).toBe('2.37.0')
 	})
 
 	it('accepts a declarative `store` block, and requires the remote schema', () => {
@@ -1523,6 +1523,26 @@ describe('case-page-and-list-as-a-place — the keys are refused off their page 
 		expect(validateManifestV2(page({
 			savedViewTree: { enabled: true, landingView: { 'not a role': 'x' } },
 		})).valid).toBe(false)
+	})
+
+	it('accepts a board and a date axis on an index page', () => {
+		expect(validateManifestV2(page({
+			board: { statusField: 'status', cardFields: ['title'], swimlaneField: 'assignee' },
+			dateAxis: { startField: 'startDate', endField: 'deadline', laneField: 'assignee', labelField: 'title' },
+		})).valid).toBe(true)
+	})
+
+	it('refuses a board with nothing to be a board of, and an axis with one end', () => {
+		// A board with no status field has no columns; an axis with one date
+		// has no bars. Both would validate and then render an explanation.
+		expect(validateManifestV2(page({ board: { cardFields: ['title'] } })).valid).toBe(false)
+		expect(validateManifestV2(page({ dateAxis: { startField: 'startDate' } })).valid).toBe(false)
+		expect(validateManifestV2(page({ board: { statusField: 'status', wat: true } })).valid).toBe(false)
+	})
+
+	it('refuses a board and a date axis on a detail page', () => {
+		expect(validateManifestV2(detail({ board: { statusField: 'status' } })).valid).toBe(false)
+		expect(validateManifestV2(detail({ dateAxis: { startField: 'a', endField: 'b' } })).valid).toBe(false)
 	})
 
 	it('refuses savedViewTree on a detail page, where there is no dropdown to put a tree in', () => {

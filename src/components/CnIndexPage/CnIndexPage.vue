@@ -483,6 +483,40 @@
 					height="100%"
 					@markerClick="onMarkerClick" />
 
+				<!--
+					Board view. The columns are the schema's stages and a move
+					goes through the host's transition; CnBoardView never
+					writes the status field, so with no runTransition it is
+					read-only rather than broken.
+				-->
+				<CnBoardView
+					v-else-if="currentViewMode === 'board'"
+					:rows="displayObjects"
+					:statusFieldSchema="boardStatusFieldSchema"
+					:statusField="board.statusField || 'status'"
+					:cardFields="board.cardFields || []"
+					:swimlaneField="board.swimlaneField || ''"
+					:rowKey="rowKey"
+					:runTransition="runTransition"
+					:paged="isPaged"
+					@cardClick="onRowClick"
+					@moved="onBoardMoved" />
+
+				<!--
+					Date axis. Reads only: nothing here reschedules, because a
+					view that moved a bar on drag would be changing statutory
+					dates from a picture.
+				-->
+				<CnDateAxisView
+					v-else-if="currentViewMode === 'dateAxis'"
+					:rows="displayObjects"
+					:startField="dateAxis.startField || ''"
+					:endField="dateAxis.endField || ''"
+					:laneField="dateAxis.laneField || ''"
+					:labelField="dateAxis.labelField || ''"
+					:rowKey="rowKey"
+					@rowClick="onRowClick" />
+
 				<!-- List view -->
 				<CnObjectList
 					v-else-if="currentViewMode === 'list'"
@@ -679,10 +713,12 @@ import { isPinnedView, LEGACY_VIEW_QUERY_KEY, resolveViewPresentation, togglePin
 import { columnsFromSchema } from '../../utils/schema.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
+import { CnBoardView } from '../CnBoardView/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
+import { CnDateAxisView } from '../CnDateAxisView/index.js'
 import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnFolderSidebar } from '../CnFolderSidebar/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
@@ -935,6 +971,8 @@ export default {
 		CnIcon,
 		CnDataTable,
 		CnCardGrid,
+		CnBoardView,
+		CnDateAxisView,
 		CnMapWidget,
 		CnObjectList,
 		CnFolderSidebar,
@@ -1286,13 +1324,15 @@ export default {
 		},
 
 		/**
-		 * View mode: 'table', 'cards', 'list', or 'map'. Default 'table'. List is
-		 * opted in via `availableViewModes`; map via `mapConfig` / `config.viewModes`.
+		 * View mode: 'table', 'cards', 'list', 'map', 'board' or 'dateAxis'.
+		 * Default 'table'. List is opted in via `availableViewModes`; map via
+		 * `mapConfig` / `config.viewModes`; board and dateAxis via
+		 * `config.viewModes` and their own config blocks.
 		 */
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'list', 'map'].includes(v),
+			validator: (v) => ['table', 'cards', 'list', 'map', 'board', 'dateAxis'].includes(v),
 		},
 
 		/**
@@ -1337,10 +1377,48 @@ export default {
 		 * inferred availability (map otherwise appears iff `mapConfig` is
 		 * non-empty). Cards/table always render regardless of this list.
 		 *
-		 * @type {Array<'table' | 'cards' | 'list' | 'map'>}
+		 * @type {Array<'table' | 'cards' | 'list' | 'map' | 'board' | 'dateAxis'>}
 		 */
 		viewModes: {
 			type: Array,
+			default: null,
+		},
+
+		/**
+		 * The board's configuration, mirroring the manifest `config.board`
+		 * block: `{ statusField, cardFields, swimlaneField }`. The board is
+		 * offered only when this names a `statusField` AND `viewModes` lists
+		 * `board`: a segment that opens a board saying it cannot be one is
+		 * worse than no segment.
+		 *
+		 * @type {object}
+		 */
+		board: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * The date axis's configuration, mirroring the manifest
+		 * `config.dateAxis` block: `{ startField, endField, laneField,
+		 * labelField }`. Offered only when both date fields are named.
+		 *
+		 * @type {object}
+		 */
+		dateAxis: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * The host's transition, handed to the board. Absent, the board is
+		 * read-only: it never writes the status field itself, so with no
+		 * transition there is nothing it can do.
+		 *
+		 * @type {?((move: {card: object, toKey: string}) => Promise<object>)}
+		 */
+		runTransition: {
+			type: Function,
 			default: null,
 		},
 
@@ -1350,12 +1428,12 @@ export default {
 		 * list view. Fed from the manifest as `pages[].config.availableViewModes`.
 		 * Map is added separately via `mapConfig` / `viewModes`.
 		 *
-		 * @type {Array<'cards' | 'table' | 'list' | 'map'>}
+		 * @type {Array<'cards' | 'table' | 'list' | 'map' | 'board' | 'dateAxis'>}
 		 */
 		availableViewModes: {
 			type: Array,
 			default: () => ['cards', 'table'],
-			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'map'].includes(m)),
+			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'map', 'board', 'dateAxis'].includes(m)),
 		},
 
 		/** Current sort key */
@@ -2155,6 +2233,7 @@ export default {
 		'action',
 		'add',
 		'apply-view',
+		'board-move',
 		'bulk-action',
 		'columns-change',
 		'configure',
@@ -2562,7 +2641,53 @@ export default {
 			const list = (Array.isArray(this.viewModes) && this.viewModes.length)
 				? this.viewModes
 				: this.availableViewModes
-			return list.filter((m) => m !== 'map')
+
+			// 🔴 A SEGMENT ONLY WHEN THE MODE CAN ACTUALLY WORK. A board needs
+			// a status field to build its columns from and a date axis needs
+			// both dates; offering a segment that opens a view saying it
+			// cannot be one is worse than not offering it, because the reader
+			// has to click it to find out.
+			return list.filter((mode) => {
+				if (mode === 'map') {
+					return false
+				}
+				if (mode === 'board') {
+					return Boolean(this.board?.statusField)
+				}
+				if (mode === 'dateAxis') {
+					return Boolean(this.dateAxis?.startField) && Boolean(this.dateAxis?.endField)
+				}
+				return true
+			})
+		},
+
+		/**
+		 * The status field's schema, for the board's columns.
+		 *
+		 * Read from the schema this page already holds rather than fetched: the
+		 * stages are a property of the type, and a second read of them could
+		 * disagree with the one the table is rendering from.
+		 *
+		 * @return {?object} The field schema, or null.
+		 */
+		boardStatusFieldSchema() {
+			const field = this.board?.statusField
+			if (!field) {
+				return null
+			}
+			return this.effectiveSchema?.properties?.[field] || null
+		},
+
+		/**
+		 * Whether the list holds one page of more.
+		 *
+		 * The board says so beside its counts: a count of a page shown as
+		 * though it were the total is a number somebody quotes in a meeting.
+		 *
+		 * @return {boolean} True when there is more than this page.
+		 */
+		isPaged() {
+			return Number(this.pagination?.pages || 1) > 1
 		},
 
 		/**
@@ -4360,6 +4485,26 @@ export default {
 		 *
 		 * @param {object} row The clicked row object
 		 */
+		/**
+		 * A card moved on the board.
+		 *
+		 * The list is refreshed rather than patched in place: the transition
+		 * may have changed more than the status (a date armed, an assignee
+		 * cleared), and a board that only moved the card would show a row that
+		 * disagrees with the table beside it.
+		 *
+		 * @param {object} move The `{ card, toKey }` the board emitted.
+		 * @return {Promise<void>} Nothing.
+		 */
+		async onBoardMoved(move) {
+			/**
+			 * @event board-move A card moved through the host's transition.
+			 * @type {object}
+			 */
+			this.$emit('board-move', move)
+			await this.onRefreshEvent()
+		},
+
 		onRowClick(row) {
 			if (this.selectable && !this.rowClickToView) {
 				this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
