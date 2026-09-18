@@ -176,6 +176,13 @@ export function formDraftMixin() {
 				draftState: 'idle',
 				/** Non-reactive handle for the debounce. */
 				draftTimeout: null,
+				/**
+				 * Whether the form's own initial population has happened.
+				 *
+				 * The first change to the values is the component building
+				 * them, not a person typing. See the watcher that reads this.
+				 */
+				draftSeeded: false,
 			}
 		},
 

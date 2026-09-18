@@ -105,6 +105,43 @@ export default {
 | `size` | `'normal'` | NcDialog size — `'small'`, `'normal'`, or `'large'`. |
 | `dynamicLoadingLabel` | `'Loading the fields this choice adds.'` | Text shown while the fields a chosen value brings with it are being fetched. See *Fields the data decides* below. |
 
+### Draft props
+
+| Prop | Default | Description |
+|---|---|---|
+| `recoverDraft` | `true` | Keep what the user typed in browser storage and offer it back when this form reopens. Local only — nothing reaches the server until they save. |
+| `allowDraft` | `false` | Offer a **Save draft** button that stores the record with a draft marker instead of validating it. Inert unless the schema declares `draftField`. |
+| `draftField` | `'isDraft'` | The boolean property that marks a record as a draft. |
+| `draftAppId` | `''` | The app the draft belongs to, for the storage key. |
+| `draftUserId` | `''` | Who is typing, for the storage key. **Pass this on any shared device.** |
+
+#### What the draft does and does not do
+
+The draft is **offered, never applied**. Reopening the form shows a bar with
+Restore and Discard; the values go in only when somebody presses Restore. A form
+that filled itself would be indistinguishable from one the server prefilled, and
+somebody would submit last week's answers without knowing they were there.
+
+`draftUserId` is part of the storage key. A shared browser profile at a service
+desk is the ordinary case in a municipality, and a draft keyed without the user
+hands the next person at the counter what the last one typed. Pass it.
+
+A draft is dropped rather than offered when it is more than seven days old, when
+the record has been saved by somebody else since it was written, or when the
+stored entry cannot be read. The local copy is cleared on a **successful** save
+only: a failed save is exactly when somebody needs their typing back.
+
+`allowDraft` needs both halves. The host asks for the button, and the schema has
+to declare `draftField` for there to be anywhere to record it — writing a
+property the schema does not carry has OpenRegister drop it with a 200 and an
+object back, so the record would read as published while the user was told it
+was a draft.
+
+Save draft is the one path around required-field validation, which is the point
+of a draft, and it is reachable only by pressing a button that says so. It emits
+`draft-saved` with the payload; the host saves it and calls `setResult()` as it
+would for a confirm.
+
 ### Slots
 
 | Slot | Description |

@@ -1291,6 +1291,17 @@ export default {
 		formData: {
 			deep: true,
 			handler(values) {
+				// 🔴 THE FIRST CHANGE IS THE COMPONENT SEEDING THE FORM, NOT
+				// SOMEBODY TYPING. Writing a draft for it stores the empty
+				// form over a real one, and the indicator announces "Saving
+				// draft" about work nobody did — an instrument reporting
+				// activity that did not happen, which is the whole class of
+				// defect this library keeps paying down.
+				if (this.draftSeeded !== true) {
+					this.draftSeeded = true
+					return
+				}
+
 				// Nothing is written while a draft is being offered: the user
 				// has not chosen yet, and overwriting the stored draft with the
 				// empty form they are looking at would destroy the thing they
