@@ -193,6 +193,7 @@ export {
 	CnObjectPresenceWidget,
 	CnObjectRow,
 	CnObjectSidebar,
+	CnOfflineQueue,
 	CnPageHeader,
 	CnPageRenderer,
 	CnPagination,
