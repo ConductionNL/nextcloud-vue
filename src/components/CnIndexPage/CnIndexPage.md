@@ -878,6 +878,88 @@ not declared, whatever it carries. A page declaring none renders its rows
 exactly as before. Start with the two flags your handlers ask about most, then
 add the rest once you know the cap is right.
 
+## Working from the row
+
+Five things a handler needs so a day of forty cases is not a day of forty page
+loads. Each is off by default and changes nothing until declared.
+
+### Quick edit
+
+```json
+"quickEditFields": ["afdeling", "behandelaar"]
+```
+
+Opens `CnQuickEditDialog` over the list on the focused row. The saved fields go
+onto the row through the same patch the split pane uses, so the list keeps its
+scroll, its selection and its page. See
+[CnQuickEditDialog](./cn-quick-edit-dialog.md) for the read-only and conflict
+rules.
+
+### A priority the list reads
+
+```json
+"priorityField": "prioriteit",
+"priorityLevels": ["low", "medium", "high"]
+```
+
+The list sorts on the priority a record carries. It never computes one: that
+belongs to whoever derives it from impact and urgency. `priorityLevels` is
+needed because a priority does not sort alphabetically into the order a person
+means.
+
+Two records sort after every ranked one, in both directions: one carrying no
+priority at all, and one carrying a value the page did not rank. Both stay in
+the list. Floating an unranked record to the top on a descending sort would
+push the ranked ones out of sight, which is the opposite of what sorting was
+asked for.
+
+### Lenses as tabs
+
+```json
+"viewTabs": ["all", "mine", "unassigned"]
+```
+
+The named saved views render as tabs over one list, through the tab strip the
+page already has. Which side decides what:
+
+- The views decide membership. An id naming a view that is gone produces no
+  tab, rather than a tab that opens nothing.
+- The page decides presentation. `viewTabs` is the tab order, and a view named
+  there leaves the views control, so the same lens is never offered twice under
+  two names.
+
+A lens can narrow to the teams this person claimed with the `@myTeams` token in
+its filter. Pass `offeredTeams` (what the instance lets them claim) and
+`claimedTeams` (what they stored, alongside their other preferences). The
+stored answer is read by walking `offeredTeams`, so a team they claimed before
+it was taken away is passed over: a preference chooses among what exists, it is
+not a second place a membership can be granted.
+
+A person who has claimed no teams gets an empty list, and the tab says so
+through `narrowsToNothing`. A lens labelled "my teams" that quietly showed
+every team would be a label stating one rule while the fetch ran another.
+
+### Row actions and indicators
+
+See the two sections below. Row actions are the intersection of what the page
+declares and what the server allows; indicators are the page's alone.
+
+### The keyboard
+
+```json
+"listShortcuts": true
+```
+
+`j` and `k` move, `Enter` opens, `p` runs the focused row's first action, `e`
+quick edits, `x` selects, `?` lists them all. Every shortcut is also a command
+in the palette, from one catalogue, so someone who has never used the list can
+find them. A shortcut the page has nothing behind is left out of both rather
+than listed as something that does nothing, and nothing fires while a person is
+typing in a field.
+
+Turn it on with `quickEditFields` and press `?` to see what the page actually
+offers.
+
 ## Folder sidebar
 
 Set the `folderSidebar` config to render a folder navigation pane left of the list. Selecting a folder filters the list by the config's `filterField` (via the self-fetch filter); "All" clears it. Emits `@folder-change` with the selected id (and `@folder-create` when the opt-in New-folder button is used).
