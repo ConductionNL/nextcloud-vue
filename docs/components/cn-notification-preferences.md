@@ -1,66 +1,81 @@
+---
+title: CnNotificationPreferences
+---
+
 # CnNotificationPreferences
 
-A self-contained `NcAppSettingsSection` that lets the current user turn the
-notifications declared by their accessible schemas on or off. It is the
-default content of `CnAppRoot`'s `#user-settings` slot, so apps adopting the
-manifest shell get a working notification-preferences panel for free.
+One screen where a person chooses what notifies them, and finds out why they
+are getting what they are getting. Events down, channels across. The catalogue
+is the host's, so the component never knows what a "term expires" event is.
 
-## What it does
+## It never shows a setting that does not apply
 
-`CnNotificationPreferences` reads the **effective** preferences (each schema's
-default merged with the user's overrides) and writes **override-only** values,
-both through OpenRegister's notification-preferences endpoint:
+This is the whole point of the screen, and the one way it can fail while
+looking perfect: somebody switches a notification off, keeps receiving it, and
+nothing on the page ever said why. Three cases, each handled rather than
+hidden.
+
+**A forced cell is locked, and says who forced it and why.** A forced channel
+is an administrator saying this kind goes out over this channel whatever
+anybody prefers, and OpenRegister applies it *above* the preference rather than
+as another default. So it is a fourth level rather than a value in the third:
 
 ```
-GET  /apps/openregister/api/notification-preferences
-     → { results: [{ schema, schemaTitle, notification, enabled, channels, source }], total }
-
-PUT  /apps/openregister/api/notification-preferences
-     → { schema, notification, enabled }            // set an override
-     → { schema, notification, reset: true }         // clear the override
+app default  →  group value  →  the person's own  →  FORCED
 ```
 
-Preferences are **override-only**: leaving an item unchanged keeps the app
-default, so apps that add new schemas or notifications keep working with no
-per-user migration. A "Reset to default" action appears on any item the user
-has overridden, removing the override.
+A toggle the person can move which then does nothing is worse than a locked
+one, because they believe they have acted. Forcing is about removing the
+choice, not about the answer being yes: a channel can be forced **off** as
+well as on.
 
-The panel groups the flat preference list by schema (`schemaTitle` as the
-heading) and renders one switch per notification. It degrades gracefully:
+**A channel the instance has not configured is disabled with the reason** the
+instance gave.
 
-- **Loading** — a spinner while the GET is in flight.
-- **Unavailable** — an empty state when OpenRegister can't be reached (the
-  feature is OpenRegister-provided, so the panel is optional per instance).
-- **No notifications** — an empty state when the user's schemas declare none.
+**A channel refused for this kind and recipient says the rule.** An internal
+notice addressed to somebody outside the organisation comes back refused with a
+reason. Rendering that as "not available" would read as a configuration gap
+somebody should go and fix, when it is a rule working correctly. When a channel
+is both unconfigured and refused, the refusal wins: it is the more specific
+answer, and fixing the configuration would not change the outcome.
 
-## Props, events, slots
+Every lock reason also goes into the toggle's accessible name. A disabled
+checkbox with no name is a dead end for a screen reader.
 
-This component is fully self-contained: it takes **no props**, emits **no
-events**, and exposes **no named slots** — it fetches and persists its own
-state. Drop it in wherever an app-settings section is rendered (most commonly
-via `CnAppRoot`'s `#user-settings` slot, which mounts it by default).
+## It is a real table
 
-## Usage
+A grid of checkboxes with no row and column headers is unreadable: every cell
+is "checkbox, checked" with no way to know which event or which channel. The
+headers are `th` with scopes, the table has a caption, and each toggle is named
+with both its event and its channel.
 
-```vue
-<template>
-  <NcAppSettingsDialog v-model:open="open" :name="t('myapp', 'Settings')">
-    <CnNotificationPreferences />
-  </NcAppSettingsDialog>
-</template>
+## Props
 
-<script>
-import { CnNotificationPreferences } from '@conduction/nextcloud-vue'
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `events` | `Array` | `[]` | `{ id, label, group, groupLabel, immediate, appDefault }`, from the host's catalogue. |
+| `channels` | `Array` | `[]` | `{ id, label, configured, unconfiguredReason }`. |
+| `groupValues` | `Object` | `{}` | `{ [eventId]: { [channelId]: boolean } }` — what an administrator set for the group. |
+| `personalValues` | `Object` | `{}` | Same shape — what this person set. An explicit `false` is a choice, not an absence. |
+| `forcedValues` | `Object` | `{}` | `{ [eventId]: { [channelId]: { value, by, reason } } }` — a level above the person's own. |
+| `refusals` | `Object` | `{}` | `{ [eventId]: { [channelId]: { reason } } }` — what the platform refuses for this recipient. |
+| `adminMode` | `Boolean` | `false` | The group-defaults screen. Says a person's own value wins, so an administrator is not surprised when somebody does not get what they set. |
 
-export default {
-  components: { CnNotificationPreferences },
-  data() {
-    return { open: false }
-  },
-}
-</script>
-```
+## Events
 
-## Related
+| Event | Payload | Description |
+|---|---|---|
+| `change` | `{ eventId, channelId, value }` | A cell was set. Never emitted for a locked cell: the `disabled` attribute is a rendering, the guard in `onToggle` is the rule. |
 
-- [CnAppRoot](./cn-app-root.md) — mounts this component in its `#user-settings` slot by default.
+## What a cell says
+
+| Level | The cell says |
+|---|---|
+| `app-default` | Follows the app default |
+| `group` | Follows your group |
+| `personal` | Your choice |
+| `forced` | Set by *who*: *why*, and cannot be changed here |
+
+## See also
+
+- `utils/notificationPreference.js` — the four levels and the channel availability, as pure functions.

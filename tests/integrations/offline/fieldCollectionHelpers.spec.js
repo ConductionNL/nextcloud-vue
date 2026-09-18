@@ -72,8 +72,11 @@ describe('fieldCollectionHelpers', () => {
 	})
 
 	describe('syncIndicator', () => {
-		it('is error when offline', () => {
-			expect(syncIndicator(2, false).tone).toBe('error')
+		it('reports waiting work rather than a fault when offline', () => {
+			const state = syncIndicator(2, false)
+
+			expect(state.tone).toBe('warning')
+			expect(state.text).toContain('2')
 		})
 
 		it('is warning when there are pending changes online', () => {
@@ -82,6 +85,24 @@ describe('fieldCollectionHelpers', () => {
 
 		it('is success when synced online', () => {
 			expect(syncIndicator(0, true).tone).toBe('success')
+		})
+
+		// 🔴 THE REGRESSION THIS PAIR EXISTS FOR. `pendingCount` counts pending,
+		// conflict and syncing; a `failed` operation is in none of them. So a
+		// device holding a stranded inspection reached the last branch and said
+		// "All changes synced" in green: the one surface that could have told
+		// the inspector their morning had not left the device said the opposite.
+		it('does not call a device with stuck work synced', () => {
+			const state = syncIndicator(0, true, 1)
+
+			expect(state.tone).toBe('error')
+			expect(state.text).toContain('1')
+		})
+
+		// Stuck outranks offline. Offline passes on its own; stuck does not.
+		it('names stuck work even while offline', () => {
+			expect(syncIndicator(4, false, 2).tone).toBe('error')
+			expect(syncIndicator(4, false, 2).text).toContain('2')
 		})
 	})
 })

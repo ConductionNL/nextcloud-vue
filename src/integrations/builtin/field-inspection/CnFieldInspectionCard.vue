@@ -37,10 +37,28 @@
 					@click="drain">
 					{{ t('nextcloud-vue', 'Sync {n} pending changes', { n: pendingCount }) }}
 				</NcButton>
+				<NcButton v-if="pendingCount > 0 || stuckCount > 0"
+					data-testid="cn-fi-open-queue"
+					@click="showQueue = !showQueue">
+					{{ showQueue
+						? t('nextcloud-vue', 'Hide what is waiting')
+						: t('nextcloud-vue', 'See what is waiting') }}
+				</NcButton>
+				<!-- 🔴 AN EXPIRED PLANNING USED TO READ AS A CURRENT ONE. This
+				     line only ever said "Ready offline until", in the past tense
+				     or not, so a planning downloaded three days ago looked the
+				     same as one downloaded an hour ago. In the field there is
+				     nothing else to check it against. -->
 				<span v-if="planningMeta" class="cn-field-inspection__meta" data-testid="cn-fi-planning-meta">
-					{{ t('nextcloud-vue', 'Ready offline until {time}', { time: formatTime(planningMeta.expiresAt) }) }}
+					{{ planningIsStale
+						? t('nextcloud-vue', 'This planning is out of date. It was downloaded on {time}.', { time: formatTime(planningMeta.syncedAt) })
+						: t('nextcloud-vue', 'Ready offline until {time}', { time: formatTime(planningMeta.expiresAt) }) }}
 				</span>
 			</div>
+
+			<!-- The card links to the queue rather than owning a second copy
+			     of it: one component, one set of statuses, one set of words. -->
+			<CnOfflineQueue v-if="showQueue" :deviceId="deviceId" @requeued="loadLocal" />
 
 			<NcLoadingIcon v-if="loading" :size="24" />
 
@@ -138,9 +156,11 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import ClipboardCheckOutline from 'vue-material-design-icons/ClipboardCheckOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
+import CnOfflineQueue from '../../../components/CnOfflineQueue/index.js'
 import { checklistProgress, classifyGps, syncIndicator, validateChecklistAnswers } from '../../offline/fieldCollectionHelpers.js'
 import {
 	countPending,
+	countStuck,
 	enqueueMutation,
 	getCachedObject,
 	getPlannedItems,
@@ -164,7 +184,7 @@ const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'singl
 export default {
 	name: 'CnFieldInspectionCard',
 
-	components: { CnDetailCard, NcButton, NcLoadingIcon, NcEmptyContent },
+	components: { CnDetailCard, CnOfflineQueue, NcButton, NcLoadingIcon, NcEmptyContent },
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'field-inspection'`). */
@@ -203,6 +223,10 @@ export default {
 			plannedItems: [],
 			planningMeta: null,
 			pendingCount: 0,
+			/** Operations that will not send again without somebody acting. */
+			stuckCount: 0,
+			/** Whether the queue list is open under the card. */
+			showQueue: false,
 			loading: true,
 			syncing: false,
 			saving: false,
@@ -257,8 +281,34 @@ export default {
 			return this.config.plannedSchema || this.schema || this.integrationContext.schema || ''
 		},
 
+		/**
+		 * Whether the cached planning has passed its offline lifetime.
+		 *
+		 * @return {boolean} True when it is past `expiresAt`.
+		 */
+		planningIsStale() {
+			const expiresAt = this.planningMeta?.expiresAt
+			if (typeof expiresAt !== 'string' || expiresAt === '') {
+				return false
+			}
+			const expiry = Date.parse(expiresAt)
+			return Number.isNaN(expiry) === false && expiry < Date.now()
+		},
+
+		/**
+		 * Where a conflict found during a drain is filed.
+		 *
+		 * @return {object} The drain config.
+		 */
+		drainConfig() {
+			return {
+				register: this.config.register || this.effectiveRegister,
+				conflictSchema: this.config.conflictSchema || '',
+			}
+		},
+
 		indicator() {
-			return syncIndicator(this.pendingCount, this.offline === false)
+			return syncIndicator(this.pendingCount, this.offline === false, this.stuckCount)
 		},
 
 		progress() {
@@ -342,6 +392,7 @@ export default {
 				this.plannedItems = await getPlannedItems(this.effectiveRegister, this.effectiveSchema)
 				this.planningMeta = await getPlanningMeta(this.effectiveRegister, this.effectiveSchema)
 				this.pendingCount = await countPending(this.deviceId)
+				this.stuckCount = await countStuck(this.deviceId)
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.error('[CnFieldInspectionCard] loadLocal failed', e)
@@ -470,6 +521,7 @@ export default {
 					payload,
 				})
 				this.pendingCount = await countPending(this.deviceId)
+				this.stuckCount = await countStuck(this.deviceId)
 				this.closeItem()
 				if (this.offline === false) {
 					await this.drain()
@@ -490,8 +542,9 @@ export default {
 		async drain() {
 			this.syncing = true
 			try {
-				await drainQueue(this.deviceId)
+				await drainQueue(this.deviceId, this.drainConfig)
 				this.pendingCount = await countPending(this.deviceId)
+				this.stuckCount = await countStuck(this.deviceId)
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.error('[CnFieldInspectionCard] drain failed', e)

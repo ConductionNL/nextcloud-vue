@@ -16,7 +16,7 @@ The leaf renders a pending badge, and `countPending()` counts `pending`,
 `conflict` and `syncing`.
 
 An operation that exhausted its retries, or whose author lost the right to write
-it, is `failed` — and `failed` is terminal for the replay loop. So it drops out
+it, is `failed`, and `failed` is terminal for the replay loop. So it drops out
 of that badge entirely while still sitting in the browser's IndexedDB. An
 inspection somebody stood next to a citizen to record is then stranded on one
 device with no reader anywhere, and nothing on any screen says so.
@@ -48,13 +48,77 @@ retry and says why. Retrying cannot restore a permission, so offering the button
 would be offering a gesture that fails every time. The entry still stays and is
 still listed, because somebody who *does* hold the right needs to see it.
 
+**And the text is recoverable.** Every failed entry offers **Copy what I wrote**,
+which puts the captured payload on the clipboard. Listing a stranded capture
+tells somebody their work is stuck; it does not give it back to them. An
+inspection is text a person wrote, and when this device will never deliver it
+they should still be able to paste it into a mail, a form or a note rather than
+retyping it from memory.
+
+The offer is made on a `permission_lost` entry too. They may no longer be
+allowed to write it here, but they still wrote it.
+
+Where the browser has no clipboard, which is ordinary on a field device with no
+secure context, the component says so and emits `copy-refused` with the text, so
+a host can render it for selection by hand. It never says "Copied" over an empty
+clipboard: that sends somebody away believing they have their words.
+
+## What happens to a conflict
+
+A conflicting row offers three choices, and they are three different sentences:
+
+- **Keep mine** puts the operation back in the queue to be sent again, attempt
+  count reset.
+- **Keep theirs** ends the row and leaves this device holding the server's
+  version. Both halves matter: marking the row done while the device still
+  renders the abandoned local text is how somebody reads their own discarded
+  answer back as the current record.
+- **Merge by hand** opens the differing fields side by side, named Mine and
+  Theirs with the actual values. Every field starts on **Theirs**, because a
+  panel pre-set to the local answer puts a colleague's edit one Save away from
+  being discarded without anybody choosing it.
+
+Merge by hand is offered only when the server sent a version to merge against.
+A target deleted server-side has one version, and a button that opens an empty
+panel is a button that cannot do what it says.
+
+A `permission_lost` row offers none of the three. No choice can re-grant a
+permission, so every button would be a gesture that fails.
+
+The choice, the uid in `resolvedBy` and the time are written onto the conflict
+object. A record that says a collision happened and not how it was settled
+cannot answer the only question anybody asks a year later.
+
+Where the leaf's `offlineConfig` names no `conflictSchema`, the row says the
+clash is recorded on this device only, so nobody waits for a colleague who will
+never see it.
+
+## What happens on a device nobody opens again
+
+Nothing, and that is the honest answer. This queue lives in one browser
+profile's IndexedDB and has no server-side twin. A phone that is wiped, reset or
+simply never opened again takes its queue with it, and no report anywhere will
+show it as missing, because nothing outside that device ever knew the capture
+existed.
+
+The shell worker does not change this. It caches a page so the queue can be
+reached with no signal; it does not hand the queue to a server. See
+`registerOfflineWorker` in the offlineCollection reference.
+
+That is why the surfaces above matter while the device *is* open, and why the
+stuck count now outranks everything on the leaf indicator. A consuming app that
+cannot accept this should drain on a schedule and treat a device silent for
+longer than its planning lifetime as an operational exception. This library
+cannot see that from inside the browser.
+
 ## Usage
 
 ```vue
 <template>
   <CnOfflineQueue
     :deviceId="deviceId"
-    @requeued="onRequeued" />
+    @requeued="onRequeued"
+    @copy-refused="showForManualCopy" />
 </template>
 
 <script>
@@ -70,6 +134,9 @@ export default {
     onRequeued(operationId) {
       // The drain will pick it up on its next pass.
     },
+    showForManualCopy({ id, text }) {
+      // The clipboard refused. Render `text` somewhere selectable.
+    },
   },
 }
 </script>
@@ -80,8 +147,8 @@ profile, which is only ever what a test wants.
 
 ## Accessibility
 
-Every status is rendered as a **word** — Waiting, Sending, Needs a decision,
-Stuck, Sent — and the colour only repeats it. This is the surface that tells
+Every status is rendered as a **word**: Waiting, Sending, Needs a decision,
+Stuck, Sent. The colour only repeats it. This is the surface that tells
 somebody their morning's work is stuck, so a coloured dot alone would leave that
 unsaid for a reader who cannot see it (WCAG 2.2 SC 1.4.1).
 

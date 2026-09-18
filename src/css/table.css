@@ -441,3 +441,31 @@
 .cn-widget-wrapper__content .cn-data-table__footer {
 	padding-inline: 16px;
 }
+
+/* Declared state indicators, beside the padlock on the first data cell.
+   Each one is an icon plus a visually hidden text alternative, so a reader
+   who cannot tell the icons apart still gets the word. */
+.cn-table-row-indicators {
+	display: inline-flex;
+	gap: 2px;
+	margin-inline-end: 4px;
+	vertical-align: middle;
+}
+
+.cn-table-row-indicator {
+	display: inline-flex;
+	align-items: center;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-table-row-indicators .hidden-visually {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}

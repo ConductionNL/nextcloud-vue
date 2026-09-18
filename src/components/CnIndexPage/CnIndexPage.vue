@@ -388,6 +388,8 @@
 					:schema="effectiveSchema"
 					:columns="tableColumns"
 					:rowIcon="rowIcon"
+					:rowIndicators="rowIndicators"
+					:rowIndicatorCap="rowIndicatorCap"
 					:rows="displayObjects"
 					:sortKey="effectiveSortKey"
 					:sortOrder="effectiveSortOrder"
@@ -416,7 +418,7 @@
 					<template v-if="hasRowActions" #row-actions="{ row }">
 						<slot name="row-actions" :row="row">
 							<CnRowActions
-								:actions="mergedActions"
+								:actions="rowActionsFor(row)"
 								:row="row"
 								@action="onRowAction" />
 						</slot>
@@ -483,6 +485,40 @@
 					height="100%"
 					@markerClick="onMarkerClick" />
 
+				<!--
+					Board view. The columns are the schema's stages and a move
+					goes through the host's transition; CnBoardView never
+					writes the status field, so with no runTransition it is
+					read-only rather than broken.
+				-->
+				<CnBoardView
+					v-else-if="currentViewMode === 'board'"
+					:rows="displayObjects"
+					:statusFieldSchema="boardStatusFieldSchema"
+					:statusField="board.statusField || 'status'"
+					:cardFields="board.cardFields || []"
+					:swimlaneField="board.swimlaneField || ''"
+					:rowKey="rowKey"
+					:runTransition="runTransition"
+					:paged="isPaged"
+					@cardClick="onRowClick"
+					@moved="onBoardMoved" />
+
+				<!--
+					Date axis. Reads only: nothing here reschedules, because a
+					view that moved a bar on drag would be changing statutory
+					dates from a picture.
+				-->
+				<CnDateAxisView
+					v-else-if="currentViewMode === 'dateAxis'"
+					:rows="displayObjects"
+					:startField="dateAxis.startField || ''"
+					:endField="dateAxis.endField || ''"
+					:laneField="dateAxis.laneField || ''"
+					:labelField="dateAxis.labelField || ''"
+					:rowKey="rowKey"
+					@rowClick="onRowClick" />
+
 				<!-- List view -->
 				<CnObjectList
 					v-else-if="currentViewMode === 'list'"
@@ -528,7 +564,7 @@
 					<template v-if="hasRowActions || $slots['row-actions']" #row-actions="{ object }">
 						<slot name="row-actions" :row="object">
 							<CnRowActions
-								:actions="mergedActions"
+								:actions="rowActionsFor(object)"
 								:row="object"
 								@action="onRowAction" />
 						</slot>
@@ -571,7 +607,7 @@
 					<template v-if="hasRowActions" #card-actions="{ object }">
 						<slot name="row-actions" :row="object">
 							<CnRowActions
-								:actions="mergedActions"
+								:actions="rowActionsFor(object)"
 								:row="object"
 								@action="onRowAction" />
 						</slot>
@@ -674,15 +710,20 @@ import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
+import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions } from '../../utils/rowActionAvailability.js'
+import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery } from '../../utils/savedViewHelpers.js'
 import { isPinnedView, LEGACY_VIEW_QUERY_KEY, resolveViewPresentation, togglePinnedBy } from '../../utils/savedViewPlaces.js'
 import { columnsFromSchema } from '../../utils/schema.js'
+import { resolveScopeLayout } from '../../utils/scopeListLayout.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
+import { CnBoardView } from '../CnBoardView/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
+import { CnDateAxisView } from '../CnDateAxisView/index.js'
 import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnFolderSidebar } from '../CnFolderSidebar/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
@@ -935,6 +976,8 @@ export default {
 		CnIcon,
 		CnDataTable,
 		CnCardGrid,
+		CnBoardView,
+		CnDateAxisView,
 		CnMapWidget,
 		CnObjectList,
 		CnFolderSidebar,
@@ -1286,13 +1329,15 @@ export default {
 		},
 
 		/**
-		 * View mode: 'table', 'cards', 'list', or 'map'. Default 'table'. List is
-		 * opted in via `availableViewModes`; map via `mapConfig` / `config.viewModes`.
+		 * View mode: 'table', 'cards', 'list', 'map', 'board' or 'dateAxis'.
+		 * Default 'table'. List is opted in via `availableViewModes`; map via
+		 * `mapConfig` / `config.viewModes`; board and dateAxis via
+		 * `config.viewModes` and their own config blocks.
 		 */
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'list', 'map'].includes(v),
+			validator: (v) => ['table', 'cards', 'list', 'map', 'board', 'dateAxis'].includes(v),
 		},
 
 		/**
@@ -1337,10 +1382,48 @@ export default {
 		 * inferred availability (map otherwise appears iff `mapConfig` is
 		 * non-empty). Cards/table always render regardless of this list.
 		 *
-		 * @type {Array<'table' | 'cards' | 'list' | 'map'>}
+		 * @type {Array<'table' | 'cards' | 'list' | 'map' | 'board' | 'dateAxis'>}
 		 */
 		viewModes: {
 			type: Array,
+			default: null,
+		},
+
+		/**
+		 * The board's configuration, mirroring the manifest `config.board`
+		 * block: `{ statusField, cardFields, swimlaneField }`. The board is
+		 * offered only when this names a `statusField` AND `viewModes` lists
+		 * `board`: a segment that opens a board saying it cannot be one is
+		 * worse than no segment.
+		 *
+		 * @type {object}
+		 */
+		board: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * The date axis's configuration, mirroring the manifest
+		 * `config.dateAxis` block: `{ startField, endField, laneField,
+		 * labelField }`. Offered only when both date fields are named.
+		 *
+		 * @type {object}
+		 */
+		dateAxis: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * The host's transition, handed to the board. Absent, the board is
+		 * read-only: it never writes the status field itself, so with no
+		 * transition there is nothing it can do.
+		 *
+		 * @type {?((move: {card: object, toKey: string}) => Promise<object>)}
+		 */
+		runTransition: {
+			type: Function,
 			default: null,
 		},
 
@@ -1350,12 +1433,12 @@ export default {
 		 * list view. Fed from the manifest as `pages[].config.availableViewModes`.
 		 * Map is added separately via `mapConfig` / `viewModes`.
 		 *
-		 * @type {Array<'cards' | 'table' | 'list' | 'map'>}
+		 * @type {Array<'cards' | 'table' | 'list' | 'map' | 'board' | 'dateAxis'>}
 		 */
 		availableViewModes: {
 			type: Array,
 			default: () => ['cards', 'table'],
-			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'map'].includes(m)),
+			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'map', 'board', 'dateAxis'].includes(m)),
 		},
 
 		/** Current sort key */
@@ -1868,11 +1951,69 @@ export default {
 		 * - `folders` — explicit folder list for `source:'custom'`.
 		 * - `allLabel` / `title` / `allowCreate` — passed to CnFolderSidebar.
 		 *
+		 * A folder entry is also a SCOPE: it may carry `columns`, `defaultSort`
+		 * and `searchFields`, and while it is selected the list is shown that
+		 * way. `columns` takes the same shapes as the `columns` prop, and the
+		 * page's own `columns` still decides which columns this page has, so a
+		 * scope naming one the page does not declare is dropped rather than
+		 * rendered. A `source: 'register'` folder list reads the same three
+		 * keys off each row's `x-index` block, which the folder entry's own
+		 * value wins over, key by key.
+		 *
 		 * @type {object}
 		 */
 		folderSidebar: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Where a row carries the actions the server says this caller may run
+		 * on it: a dotted path, read off the rows the list already fetched, so
+		 * ninety rows cost one request rather than ninety.
+		 *
+		 * A row's menu is then the INTERSECTION of what this page declares and
+		 * what the server allows. An action the server allows but this page has
+		 * stopped declaring stays out, so a row cannot bring back a button the
+		 * page removed. An action the page declares but the server refuses
+		 * stays out too, and its reason is available from
+		 * `rowActionRefusal(row, action)`.
+		 *
+		 * A row carrying nothing at this path is a server that does not answer
+		 * about actions, and the page's declaration stands unchanged.
+		 *
+		 * @type {string}
+		 */
+		rowActionField: {
+			type: String,
+			default: DEFAULT_ROW_ACTION_FIELD,
+		},
+
+		/**
+		 * State indicators this page declares for its rows, handed straight to
+		 * CnDataTable. Each entry is `{ id, field, equals?, in?, icon, text,
+		 * tooltip? }`. The page declares which indicators exist; a record
+		 * cannot add one the page has not declared. A page declaring none
+		 * renders its rows as before. Fed from the manifest as
+		 * `pages[].config.rowIndicators`.
+		 *
+		 * @type {Array<object>}
+		 */
+		rowIndicators: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * How many declared indicators render on the row itself before the
+		 * rest move into the row menu. Fed from the manifest as
+		 * `pages[].config.rowIndicatorCap`.
+		 *
+		 * @type {number}
+		 */
+		rowIndicatorCap: {
+			type: Number,
+			default: DEFAULT_ROW_INDICATOR_CAP,
 		},
 
 		/**
@@ -2155,6 +2296,7 @@ export default {
 		'action',
 		'add',
 		'apply-view',
+		'board-move',
 		'bulk-action',
 		'columns-change',
 		'configure',
@@ -2249,6 +2391,11 @@ export default {
 			// Folder-sidebar state: selected folder id + the register-fetched list.
 			selectedFolderId: null,
 			folderRegisterList: [],
+			// `x-index` blocks read off the schema rows a `source: 'register'`
+			// folder list was built from, keyed by folder id. The layout a case
+			// type carries travels with the record rather than being restated
+			// in every manifest that lists it.
+			folderRowLayouts: {},
 			// Mass action dialogs
 			showMassDeleteDialog: false,
 			showMassCopyDialog: false,
@@ -2562,7 +2709,53 @@ export default {
 			const list = (Array.isArray(this.viewModes) && this.viewModes.length)
 				? this.viewModes
 				: this.availableViewModes
-			return list.filter((m) => m !== 'map')
+
+			// 🔴 A SEGMENT ONLY WHEN THE MODE CAN ACTUALLY WORK. A board needs
+			// a status field to build its columns from and a date axis needs
+			// both dates; offering a segment that opens a view saying it
+			// cannot be one is worse than not offering it, because the reader
+			// has to click it to find out.
+			return list.filter((mode) => {
+				if (mode === 'map') {
+					return false
+				}
+				if (mode === 'board') {
+					return Boolean(this.board?.statusField)
+				}
+				if (mode === 'dateAxis') {
+					return Boolean(this.dateAxis?.startField) && Boolean(this.dateAxis?.endField)
+				}
+				return true
+			})
+		},
+
+		/**
+		 * The status field's schema, for the board's columns.
+		 *
+		 * Read from the schema this page already holds rather than fetched: the
+		 * stages are a property of the type, and a second read of them could
+		 * disagree with the one the table is rendering from.
+		 *
+		 * @return {?object} The field schema, or null.
+		 */
+		boardStatusFieldSchema() {
+			const field = this.board?.statusField
+			if (!field) {
+				return null
+			}
+			return this.effectiveSchema?.properties?.[field] || null
+		},
+
+		/**
+		 * Whether the list holds one page of more.
+		 *
+		 * The board says so beside its counts: a count of a page shown as
+		 * though it were the total is a number somebody quotes in a meeting.
+		 *
+		 * @return {boolean} True when there is more than this page.
+		 */
+		isPaged() {
+			return Number(this.pagination?.pages || 1) > 1
 		},
 
 		/**
@@ -2591,6 +2784,75 @@ export default {
 				return this.folderRegisterList
 			}
 			return this.folderSidebar.folders || []
+		},
+
+		/**
+		 * The folder entry for the folder currently selected in the sidebar,
+		 * or null while "All" is selected.
+		 *
+		 * @return {(object|null)} The active scope's folder entry.
+		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
+		 */
+		activeScope() {
+			if (this.selectedFolderId === null || this.selectedFolderId === undefined) {
+				return null
+			}
+			const idField = this.folderPassthroughIdField
+			const match = this.folderSidebarFolders
+				.find((f) => f && String(this.getByPath(f, idField)) === String(this.selectedFolderId))
+			return match || null
+		},
+
+		/**
+		 * The `x-index` block the active scope's own schema row carries, for a
+		 * folder list derived from a register. Empty for every other source:
+		 * a folder that is a distinct field value, or one written into the
+		 * manifest by hand, has no record behind it to read.
+		 *
+		 * @return {(object|null)} A row-shaped object carrying `x-index`, or null.
+		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
+		 */
+		activeScopeRow() {
+			if (this.selectedFolderId === null || this.selectedFolderId === undefined) {
+				return null
+			}
+			const carried = this.folderRowLayouts[String(this.selectedFolderId)]
+			return carried ? { 'x-index': carried } : null
+		},
+
+		/**
+		 * The list layout the active scope asks for. Two declarations meet
+		 * here and they decide different things: this page's `columns` prop
+		 * decides which columns the page HAS, and the scope decides which of
+		 * them it shows, in what order, sorted by what and searched over what.
+		 * A scope naming a column this page does not declare is dropped, so a
+		 * scope written before a column was taken out cannot bring it back.
+		 *
+		 * @return {{columns: (Array|null), sortKeys: Array, searchFields: string[]}}
+		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
+		 */
+		activeScopeLayout() {
+			if (!this.folderSidebar) {
+				return { columns: null, sortKeys: [], searchFields: [] }
+			}
+			return resolveScopeLayout({
+				scope: this.activeScope,
+				row: this.activeScopeRow,
+				pageColumns: this.declaredColumns,
+			})
+		},
+
+		/**
+		 * The fields the search box searches over while a scope declaring
+		 * `searchFields` is active. Read by `useSelfFetchList`'s fixed-filter
+		 * getter off this instance, so a scope change re-scopes the next fetch
+		 * without a second search path.
+		 *
+		 * @return {string[]} The scope's search fields, or [].
+		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
+		 */
+		activeScopeSearchFields() {
+			return this.activeScopeLayout.searchFields
 		},
 
 		/**
@@ -3012,16 +3274,15 @@ export default {
 		},
 
 		/**
-		 * Columns handed to CnDataTable. Starts from the `columns` prop (with any
-		 * `aggregate` block lacking a `register` defaulted to this page's `register`
-		 * slug, so manifests can omit `aggregate.register`). When a visible-column
-		 * set exists, governed columns the user toggled off are hidden, and governed
-		 * columns the user toggled on that aren't already in the list (metadata
-		 * fields, extra schema properties) are appended using their sidebar
-		 * definitions. Custom columns outside the sidebar's universe are untouched.
+		 * The columns this page DECLARES it has: the `columns` prop, or a named
+		 * source's own list when the manifest set none. This is the membership
+		 * list, separate from `tableColumns`, which is what ends up rendered
+		 * after the sidebar scope and the user's visible-column set have had
+		 * their say over it.
+		 *
+		 * @return {Array} The declared column list.
 		 */
-		tableColumns() {
-			const reg = typeof this.register === 'string' && this.register ? this.register : undefined
+		declaredColumns() {
 			// A NAMED SOURCE SUPPLIES ITS OWN COLUMNS when the manifest does not.
 			// Without this the adapter's `columns` were defined and never read:
 			// an `entitySource` page with no explicit `columns` fell through to
@@ -3030,9 +3291,27 @@ export default {
 			// at all, which looks like an empty list rather than a missing
 			// config. A manifest that DOES set columns still wins, which is
 			// what makes the source a default rather than a constraint.
-			let cols = (this.columns && this.columns.length > 0)
+			return (this.columns && this.columns.length > 0)
 				? this.columns
 				: ((this.isNamedSource && this.namedSource && this.namedSource.columns) || [])
+		},
+
+		/**
+		 * Columns handed to CnDataTable. Starts from `declaredColumns`, or from
+		 * the active folder-sidebar scope's selection of them (with any
+		 * `aggregate` block lacking a `register` defaulted to this page's
+		 * `register` slug, so manifests can omit `aggregate.register`). When a
+		 * visible-column set exists, governed columns the user toggled off are
+		 * hidden, and governed columns the user toggled on that aren't already
+		 * in the list (metadata fields, extra schema properties) are appended
+		 * using their sidebar definitions. Custom columns outside the sidebar's
+		 * universe are untouched.
+		 */
+		tableColumns() {
+			const reg = typeof this.register === 'string' && this.register ? this.register : undefined
+			// The active sidebar scope may narrow and reorder the page's
+			// declared columns; it cannot add to them.
+			let cols = this.activeScopeLayout.columns || this.declaredColumns
 			if (reg) {
 				cols = cols.map((c) => (
 					c && c.aggregate && !c.aggregate.register
@@ -4177,17 +4456,84 @@ export default {
 		 * @param {(string|number|null)} folderId The selected folder id (null = All).
 		 * @return {void}
 		 */
+		/**
+		 * The actions one row offers: this page's declared actions narrowed to
+		 * the ones the server says this caller may run on that record. The
+		 * order, label and icon stay the page's.
+		 *
+		 * @param {object} row The row.
+		 * @return {Array<object>} The actions to render for that row.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		rowActionsFor(row) {
+			return availableRowActions(this.mergedActions, row, this.rowActionField)
+		},
+
+		/**
+		 * Why the server refused an action on a row, when it said. Available on
+		 * request rather than rendered, because a menu that lists what you may
+		 * not do is a menu that takes longer to read.
+		 *
+		 * @param {object} row The row.
+		 * @param {object} action The declared action.
+		 * @return {string} The refusal reason, or ''.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		rowActionRefusal(row, action) {
+			return refusalReasonFor(action, row, this.rowActionField)
+		},
+
+		/**
+		 * The actions the server allowed on a row that this page does not
+		 * declare. Nothing renders them. They are here so a page can see what
+		 * it is ignoring without the menu growing a button nobody wrote.
+		 *
+		 * @param {object} row The row.
+		 * @return {string[]} The undeclared action ids.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		rowActionsNotDeclared(row) {
+			return undeclaredRowActions(this.mergedActions, row, this.rowActionField)
+		},
+
 		onFolderSelect(folderId) {
 			this.selectedFolderId = folderId
 			const key = (this.folderSidebar && (this.folderSidebar.filterField || this.folderSidebar.field)) || ''
 			if (key) {
 				this.onFilterEvent({ key, values: (folderId === null || folderId === undefined) ? [] : [folderId] })
 			}
+			this.applyScopeSort()
 			/**
 			 * @event folder-change Emitted when a folder is selected in the sidebar.
 			 * @type {(string|number|null)} The selected folder id (null = All).
 			 */
 			this.$emit('folder-change', folderId)
+		},
+
+		/**
+		 * Put the active scope's `defaultSort` on the list and refetch with it.
+		 *
+		 * The scope's sort is applied through the list's own `sortKeys`, the
+		 * same state a header click writes, rather than through a second sort
+		 * path — so the fetch carries it and the header shows it as sorted.
+		 * A scope declaring no sort leaves whatever is active alone: that is a
+		 * scope with nothing to say about sorting, not a scope asking for the
+		 * sort to be cleared.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
+		 */
+		applyScopeSort() {
+			const sortKeys = this.activeScopeLayout.sortKeys
+			if (!sortKeys.length || !this.isSelfFetchMode || !this.list) {
+				return
+			}
+			if (this.list.sortKeys) {
+				this.list.sortKeys.value = sortKeys.map((entry) => ({ ...entry }))
+			}
+			if (typeof this.list.refresh === 'function') {
+				this.list.refresh(1)
+			}
 		},
 
 		/**
@@ -4209,9 +4555,22 @@ export default {
 				])
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: cfg.register, schema: cfg.schema })
 				const res = await axios.get(url, { params: { _limit: cfg.limit || 200 } })
-				const rows = (res && res.data && (res.data.results || res.data)) || []
+				const body = (res && res.data && (res.data.results || res.data)) || []
+				// A response that is not a list is an empty folder list, not a
+				// crash: the pane then shows only "All" rather than logging a
+				// TypeError that names this component for the server's shape.
+				const rows = Array.isArray(body) ? body : []
 				const idField = cfg.idField || '@self.uuid'
 				const nameField = cfg.nameField || 'title'
+				const layouts = {}
+				rows.forEach((row) => {
+					const id = this.getByPath(row, idField)
+					const carried = row && row['x-index']
+					if (id !== null && id !== undefined && carried && typeof carried === 'object') {
+						layouts[String(id)] = carried
+					}
+				})
+				this.folderRowLayouts = layouts
 				this.folderRegisterList = rows
 					.map((row) => ({ id: this.getByPath(row, idField), name: this.getByPath(row, nameField) || this.getByPath(row, idField) }))
 					.filter((f) => f.id !== null && f.id !== undefined)
@@ -4220,6 +4579,7 @@ export default {
 				// eslint-disable-next-line no-console
 				console.error('[CnIndexPage] failed to load folder register', e)
 				this.folderRegisterList = []
+				this.folderRowLayouts = {}
 			}
 		},
 
@@ -4360,6 +4720,26 @@ export default {
 		 *
 		 * @param {object} row The clicked row object
 		 */
+		/**
+		 * A card moved on the board.
+		 *
+		 * The list is refreshed rather than patched in place: the transition
+		 * may have changed more than the status (a date armed, an assignee
+		 * cleared), and a board that only moved the card would show a row that
+		 * disagrees with the table beside it.
+		 *
+		 * @param {object} move The `{ card, toKey }` the board emitted.
+		 * @return {Promise<void>} Nothing.
+		 */
+		async onBoardMoved(move) {
+			/**
+			 * @event board-move A card moved through the host's transition.
+			 * @type {object}
+			 */
+			this.$emit('board-move', move)
+			await this.onRefreshEvent()
+		},
+
 		onRowClick(row) {
 			if (this.selectable && !this.rowClickToView) {
 				this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))

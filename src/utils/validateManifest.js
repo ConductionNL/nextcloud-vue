@@ -113,6 +113,9 @@ const CHART_VALUE_AXIS_BASELINES = ['auto', 'zero', 'fit']
  *  - A `type: 'files'` page whose `config.columns` names a built-in column
  *    that does not exist, or declares one with an unknown `source` or an
  *    `attribute` source reading no property
+ *  - A `config.folderSidebar.folders[]` scope naming a column key that the
+ *    page's own `config.columns` does not declare (the page declares which
+ *    columns it has; a scope only chooses among them)
  *
  * @spec openspec/changes/manifest-v2-schema/specs/manifest-v2-schema/spec.md
  * @param {object} manifest The v2 manifest object to validate.
@@ -717,6 +720,41 @@ export function validateManifestV2(manifest) {
 				if (entry.source === 'attribute' && (typeof entry.attribute !== 'string' || entry.attribute === '')) {
 					errors.push(`${at}/attribute: "${pageId}" column "${entry.key}" reads a DAV property but names none`)
 				}
+			})
+		})
+	}
+
+	// N. A `folderSidebar` scope may narrow and reorder the page's columns, not
+	//    add to them. `config.columns` is the page's declaration of which
+	//    columns it HAS; a scope entry decides which of them it shows. So a
+	//    scope naming a key the page does not declare is refused here, rather
+	//    than silently dropped at render time — a scope written before a column
+	//    was taken out of the page would otherwise look like it still worked.
+	//    A page declaring no columns derives them from its schema at runtime,
+	//    which this validator cannot see, so there is nothing to measure a
+	//    scope against and the check stays silent instead of guessing.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			const config = page && isPlainObject(page.config) ? page.config : null
+			const sidebar = config && isPlainObject(config.folderSidebar) ? config.folderSidebar : null
+			if (!sidebar || !Array.isArray(sidebar.folders) || !Array.isArray(config.columns) || config.columns.length === 0) {
+				return
+			}
+			const declaredKeyList = config.columns
+				.map((col) => (typeof col === 'string' ? col : (col && typeof col.key === 'string' ? col.key : '')))
+				.filter((key) => key !== '')
+			const declared = new Set(declaredKeyList)
+			sidebar.folders.forEach((scope, sIndex) => {
+				if (!isPlainObject(scope) || !Array.isArray(scope.columns)) {
+					return
+				}
+				const scopeId = typeof scope.id === 'string' && scope.id !== '' ? scope.id : `folders[${sIndex}]`
+				scope.columns.forEach((col, cIndex) => {
+					const key = typeof col === 'string' ? col : (col && typeof col.key === 'string' ? col.key : '')
+					if (key !== '' && !declared.has(key)) {
+						errors.push(`pages[${pIndex}]/config/folderSidebar/folders/${sIndex}/columns/${cIndex}: scope "${scopeId}" names column "${key}", which pages[${pIndex}].config.columns does not declare`)
+					}
+				})
 			})
 		})
 	}
