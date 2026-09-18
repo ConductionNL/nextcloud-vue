@@ -413,6 +413,18 @@ export {
 // See docs/utilities/offline-collection.md.
 export { DEFAULT_FIELD_INSPECTION_CONFIG, offlineCollection } from './integrations/index.js'
 
+// The shell service worker and its registration helper. Exported as functions
+// and never as a side effect: a service worker changes how every request from
+// an origin is answered, for every app on it, so the host opts in by calling
+// `registerOfflineWorker()` or gets no worker at all.
+//
+// The worker's own decision logic (`isCacheable`, `respondTo`, `cacheNameFor`,
+// `staleCacheNames`) is reached through `offlineCollection`, the same way the
+// rest of the offline core is, because a host configures the worker rather than
+// calling into it.
+// See docs/utilities/register-offline-worker.md.
+export { registerOfflineWorker, unregisterOfflineWorker } from './offline/registerOfflineWorker.js'
+
 // Composables — Features & roadmap menu (add-features-roadmap-menu)
 export { useSpecRef } from './composables/useSpecRef.js'
 export { useFlowStore } from './composables/useFlowStore.js'
@@ -515,7 +527,7 @@ export { dedupeCatalogue, fromFontAwesome, fromMdiJs, fromOpenGemeenten } from '
 export { mergeManifestDelta } from './utils/mergeManifestDelta.js'
 export { applyIntegrationsSection, applyMenuLayout, applyMenuRelocations, applyMenuRemovals, applySettingsSection, buildManifest, mergeMenuItems, mergePages } from './utils/buildManifest.js'
 export { buildManifestRoutes } from './utils/buildManifestRoutes.js'
-export { DEFAULT_PINNED_VIEW_CAP, DEFAULT_SAVED_VIEW_ROUTE_BASE, LEGACY_VIEW_QUERY_KEY, PRESENTATION_VIEW_MODES, SAVED_VIEW_ROUTE_SUFFIX, isPinnedView, pageHasSavedViewPlaces, pinnedViewNavChildren, resolveViewPresentation, savedViewRouteBase, savedViewRouteName, savedViewRoutePath, savedViewRouteTarget, togglePinnedBy, viewIdForRoute, withPinnedViewChildren } from './utils/savedViewPlaces.js'
+export { DEFAULT_PINNED_VIEW_CAP, DEFAULT_SAVED_VIEW_ROUTE_BASE, isPinnedView, LEGACY_VIEW_QUERY_KEY, pageHasSavedViewPlaces, pinnedViewNavChildren, PRESENTATION_VIEW_MODES, resolveViewPresentation, SAVED_VIEW_ROUTE_SUFFIX, savedViewRouteBase, savedViewRouteName, savedViewRoutePath, savedViewRouteTarget, togglePinnedBy, viewIdForRoute, withPinnedViewChildren } from './utils/savedViewPlaces.js'
 export { formatDateForDisplay } from './utils/dateDisplay.js'
 export { expandPageTemplates } from './utils/expandPageTemplates.js'
 export { diffManifest } from './utils/diffManifest.js'

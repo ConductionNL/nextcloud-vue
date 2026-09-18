@@ -62,3 +62,17 @@ export {
 	syncIndicator,
 	validateChecklistAnswers,
 } from './fieldCollectionHelpers.js'
+
+export {
+	CACHE_PREFIX,
+	cacheNameFor,
+	isCacheable,
+	NEVER_CACHED,
+	respondTo,
+	staleCacheNames,
+} from '../../offline/serviceWorker.js'
+
+export {
+	registerOfflineWorker,
+	unregisterOfflineWorker,
+} from '../../offline/registerOfflineWorker.js'
