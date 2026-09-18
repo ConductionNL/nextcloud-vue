@@ -892,3 +892,42 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 }
 ```
 
+### A column set per folder
+
+A folder is also a scope. Give it `columns`, `defaultSort` or `searchFields`
+and the list is shown that way while the folder is selected. One index page
+then shows each case type the way that type needs, instead of one column set
+that suits none of them.
+
+```json
+"columns": ["identifier", "requester", "deadline", "status"],
+"folderSidebar": {
+  "source": "custom", "filterField": "caseType", "allLabel": "All cases",
+  "folders": [
+    { "id": "permit", "name": "Permits",
+      "columns": ["identifier", "deadline"],
+      "defaultSort": { "key": "deadline", "order": "asc" },
+      "searchFields": ["identifier", "requester"] },
+    { "id": "complaint", "name": "Complaints" }
+  ]
+}
+```
+
+Two declarations meet here and they do not decide the same thing:
+
+- The page decides membership. `config.columns` is the set of columns this page
+  has, and it carries each column's label, formatter and widget.
+- A folder decides presentation. It picks from that set, orders it, and says
+  what to sort and search by.
+
+So a folder naming a column the page does not declare is refused by
+`validateManifestV2`, with the folder id and the key in the message. Take a
+column out of `config.columns` and no folder can put it back. A folder that
+declares none of the three keys shows the page's own columns, as before.
+
+A `source: "register"` folder list reads the same three keys off each row's
+`x-index` block, so a case type carries its own layout instead of every
+manifest restating it. A value on the folder entry wins over the row's, key by
+key. Try it on one folder first, then move the layouts onto the rows once the
+columns are right.
+

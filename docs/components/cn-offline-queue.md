@@ -16,7 +16,7 @@ The leaf renders a pending badge, and `countPending()` counts `pending`,
 `conflict` and `syncing`.
 
 An operation that exhausted its retries, or whose author lost the right to write
-it, is `failed` — and `failed` is terminal for the replay loop. So it drops out
+it, is `failed`, and `failed` is terminal for the replay loop. So it drops out
 of that badge entirely while still sitting in the browser's IndexedDB. An
 inspection somebody stood next to a citizen to record is then stranded on one
 device with no reader anywhere, and nothing on any screen says so.
@@ -48,13 +48,43 @@ retry and says why. Retrying cannot restore a permission, so offering the button
 would be offering a gesture that fails every time. The entry still stays and is
 still listed, because somebody who *does* hold the right needs to see it.
 
+**And the text is recoverable.** Every failed entry offers **Copy what I wrote**,
+which puts the captured payload on the clipboard. Listing a stranded capture
+tells somebody their work is stuck; it does not give it back to them. An
+inspection is text a person wrote, and when this device will never deliver it
+they should still be able to paste it into a mail, a form or a note rather than
+retyping it from memory.
+
+The offer is made on a `permission_lost` entry too. They may no longer be
+allowed to write it here, but they still wrote it.
+
+Where the browser has no clipboard, which is ordinary on a field device with no
+secure context, the component says so and emits `copy-refused` with the text, so
+a host can render it for selection by hand. It never says "Copied" over an empty
+clipboard: that sends somebody away believing they have their words.
+
+## What happens on a device nobody opens again
+
+Nothing, and that is the honest answer. This queue lives in one browser
+profile's IndexedDB and has no server-side twin. A phone that is wiped, reset or
+simply never opened again takes its queue with it, and no report anywhere will
+show it as missing, because nothing outside that device ever knew the capture
+existed.
+
+That is why the surfaces above matter while the device *is* open, and why the
+stuck count now outranks everything on the leaf indicator. A consuming app that
+cannot accept this should drain on a schedule and treat a device silent for
+longer than its planning lifetime as an operational exception. This library
+cannot see that from inside the browser.
+
 ## Usage
 
 ```vue
 <template>
   <CnOfflineQueue
     :deviceId="deviceId"
-    @requeued="onRequeued" />
+    @requeued="onRequeued"
+    @copy-refused="showForManualCopy" />
 </template>
 
 <script>
@@ -70,6 +100,9 @@ export default {
     onRequeued(operationId) {
       // The drain will pick it up on its next pass.
     },
+    showForManualCopy({ id, text }) {
+      // The clipboard refused. Render `text` somewhere selectable.
+    },
   },
 }
 </script>
@@ -80,8 +113,8 @@ profile, which is only ever what a test wants.
 
 ## Accessibility
 
-Every status is rendered as a **word** — Waiting, Sending, Needs a decision,
-Stuck, Sent — and the colour only repeats it. This is the surface that tells
+Every status is rendered as a **word**: Waiting, Sending, Needs a decision,
+Stuck, Sent. The colour only repeats it. This is the surface that tells
 somebody their morning's work is stuck, so a coloured dot alone would leave that
 unsaid for a reader who cannot see it (WCAG 2.2 SC 1.4.1).
 

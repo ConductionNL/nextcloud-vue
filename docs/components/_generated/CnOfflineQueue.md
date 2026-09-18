@@ -9,6 +9,7 @@
 
 ### Events
 
-| Name       | Payload | Description                                                                                   |
-| ---------- | ------- | --------------------------------------------------------------------------------------------- |
-| `requeued` | —       | Emitted when a failed operation was put back in the queue by hand. Payload: the operation id. |
+| Name           | Payload | Description                                                                                                         |
+| -------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| `requeued`     | —       | Emitted when a failed operation was put back in the queue by hand. Payload: the operation id.                       |
+| `copy-refused` | —       | Emitted when the clipboard refused the capture, so a host can show the text for selection. Payload: `{ id, text }`. |

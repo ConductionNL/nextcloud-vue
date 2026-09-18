@@ -83,7 +83,7 @@ DOM-free, app-name-free helpers.
 - `classifyGps(fix, available?)` — good / poor / sensorless + warning copy.
 - `validateChecklistAnswers(template, answersByQuestion)` — required-field validation.
 - `checklistProgress(template, answersByQuestion)` — N/M completion counts.
-- `syncIndicator(pendingCount, online)` — online / all-synced / queued / conflict tone + copy.
+- `syncIndicator(pendingCount, online, stuckCount)`: the indicator tone and copy. `stuckCount` outranks everything, including being offline: a device holding stranded work reads red and says so. Offline with work waiting is amber, not red, because being out of signal is the normal state of a field device. Green means nothing is waiting and nothing is stuck.
 
 ## Daily-planning fetch contract
 

@@ -13,8 +13,8 @@
   - A channel the instance has not configured renders disabled with the reason
   - Events group by the app's categories, groups collapse, and a whole row or column sets at once
   - The matrix is a table for a screen reader, with row and column headers
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Three levels, and where a value came from
 - **spec_ref**: `openspec/changes/notification-preferences-ui/specs/notification-preferences/spec.md#requirement-the-screen-says-where-each-value-came-from`
@@ -23,9 +23,15 @@
   - App default, group value and personal value resolve in that order, narrowest set value winning
   - Each cell states which level its current value came from
   - A cell the user has not set says it follows the group or the default
-  - The store reads and writes through OpenRegister and keeps no copy beyond the page
-- [ ] Implement
-- [ ] Test
+  - The store reads and writes through OpenRegister and keeps no copy beyond
+    the page — NOT DONE. The component is fed and emits; no store ships yet.
+  - A FOURTH LEVEL arrived while this was built: openregister's forced
+    channels sit ABOVE the person's own preference, and a kind refused for a
+    recipient returns a refusal rather than an empty channel list. Both are
+    resolved and rendered here, because a screen showing a setting that does
+    not apply is the failure this change exists to prevent.
+- [x] Implement
+- [x] Test
 
 ### Task 3: Scope per row, and the admin screen
 - **spec_ref**: `openspec/changes/notification-preferences-ui/specs/notification-preferences/spec.md#requirement-a-preference-is-set-for-one-case-domain-or-record-type`
