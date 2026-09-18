@@ -524,7 +524,7 @@ export { diffManifest } from './utils/diffManifest.js'
 export { createManifestEditHistory } from './utils/manifestEditHistory.js'
 export { resolveSlotColumns } from './utils/resolveSlotColumns.js'
 // Dashboard widget library (cn-widget-library) — registry helpers + form composable.
-export { dashboardWidgetRegistry, getDefaultContent, getWidgetTypeEntry, listWidgetTypes, registerDashboardWidget } from './components/CnWidgetGrid/dashboardWidgetRegistry.js'
+export { dashboardWidgetRegistry, getDefaultContent, getWidgetTypeEntry, listUserAddableWidgetTypes, listWidgetTypes, registerDashboardWidget, userWidgetPresets } from './components/CnWidgetGrid/dashboardWidgetRegistry.js'
 export { registerBuiltinDashboardWidgets } from './components/CnWidgetGrid/registerDashboardWidgets.js'
 export { useWidgetForm } from './composables/useWidgetForm.js'
 
