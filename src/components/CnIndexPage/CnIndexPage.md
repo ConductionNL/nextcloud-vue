@@ -516,6 +516,8 @@ What the source brings, all overridable by the manifest:
 
 ### Search fields on a named source
 
+Available from the release that follows 3.2.0. An app on 3.2.0 or older ignores `sidebar.fields`, so bump the dependency before declaring them.
+
 A tab answers one of a few fixed questions. A search field lets the reader
 ask their own, and on a named source it reaches the same loader.
 
