@@ -711,6 +711,7 @@ import { multiKeySort } from '../../utils/multiKeySort.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery } from '../../utils/savedViewHelpers.js'
 import { isPinnedView, LEGACY_VIEW_QUERY_KEY, resolveViewPresentation, togglePinnedBy } from '../../utils/savedViewPlaces.js'
 import { columnsFromSchema } from '../../utils/schema.js'
+import { resolveScopeLayout } from '../../utils/scopeListLayout.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnBoardView } from '../CnBoardView/index.js'
@@ -1946,6 +1947,15 @@ export default {
 		 * - `folders` — explicit folder list for `source:'custom'`.
 		 * - `allLabel` / `title` / `allowCreate` — passed to CnFolderSidebar.
 		 *
+		 * A folder entry is also a SCOPE: it may carry `columns`, `defaultSort`
+		 * and `searchFields`, and while it is selected the list is shown that
+		 * way. `columns` takes the same shapes as the `columns` prop, and the
+		 * page's own `columns` still decides which columns this page has, so a
+		 * scope naming one the page does not declare is dropped rather than
+		 * rendered. A `source: 'register'` folder list reads the same three
+		 * keys off each row's `x-index` block, which the folder entry's own
+		 * value wins over, key by key.
+		 *
 		 * @type {object}
 		 */
 		folderSidebar: {
@@ -2328,6 +2338,11 @@ export default {
 			// Folder-sidebar state: selected folder id + the register-fetched list.
 			selectedFolderId: null,
 			folderRegisterList: [],
+			// `x-index` blocks read off the schema rows a `source: 'register'`
+			// folder list was built from, keyed by folder id. The layout a case
+			// type carries travels with the record rather than being restated
+			// in every manifest that lists it.
+			folderRowLayouts: {},
 			// Mass action dialogs
 			showMassDeleteDialog: false,
 			showMassCopyDialog: false,
@@ -2716,6 +2731,75 @@ export default {
 				return this.folderRegisterList
 			}
 			return this.folderSidebar.folders || []
+		},
+
+		/**
+		 * The folder entry for the folder currently selected in the sidebar,
+		 * or null while "All" is selected.
+		 *
+		 * @return {(object|null)} The active scope's folder entry.
+		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
+		 */
+		activeScope() {
+			if (this.selectedFolderId === null || this.selectedFolderId === undefined) {
+				return null
+			}
+			const idField = this.folderPassthroughIdField
+			const match = this.folderSidebarFolders
+				.find((f) => f && String(this.getByPath(f, idField)) === String(this.selectedFolderId))
+			return match || null
+		},
+
+		/**
+		 * The `x-index` block the active scope's own schema row carries, for a
+		 * folder list derived from a register. Empty for every other source:
+		 * a folder that is a distinct field value, or one written into the
+		 * manifest by hand, has no record behind it to read.
+		 *
+		 * @return {(object|null)} A row-shaped object carrying `x-index`, or null.
+		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
+		 */
+		activeScopeRow() {
+			if (this.selectedFolderId === null || this.selectedFolderId === undefined) {
+				return null
+			}
+			const carried = this.folderRowLayouts[String(this.selectedFolderId)]
+			return carried ? { 'x-index': carried } : null
+		},
+
+		/**
+		 * The list layout the active scope asks for. Two declarations meet
+		 * here and they decide different things: this page's `columns` prop
+		 * decides which columns the page HAS, and the scope decides which of
+		 * them it shows, in what order, sorted by what and searched over what.
+		 * A scope naming a column this page does not declare is dropped, so a
+		 * scope written before a column was taken out cannot bring it back.
+		 *
+		 * @return {{columns: (Array|null), sortKeys: Array, searchFields: string[]}}
+		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
+		 */
+		activeScopeLayout() {
+			if (!this.folderSidebar) {
+				return { columns: null, sortKeys: [], searchFields: [] }
+			}
+			return resolveScopeLayout({
+				scope: this.activeScope,
+				row: this.activeScopeRow,
+				pageColumns: this.declaredColumns,
+			})
+		},
+
+		/**
+		 * The fields the search box searches over while a scope declaring
+		 * `searchFields` is active. Read by `useSelfFetchList`'s fixed-filter
+		 * getter off this instance, so a scope change re-scopes the next fetch
+		 * without a second search path.
+		 *
+		 * @return {string[]} The scope's search fields, or [].
+		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
+		 */
+		activeScopeSearchFields() {
+			return this.activeScopeLayout.searchFields
 		},
 
 		/**
@@ -3137,16 +3221,15 @@ export default {
 		},
 
 		/**
-		 * Columns handed to CnDataTable. Starts from the `columns` prop (with any
-		 * `aggregate` block lacking a `register` defaulted to this page's `register`
-		 * slug, so manifests can omit `aggregate.register`). When a visible-column
-		 * set exists, governed columns the user toggled off are hidden, and governed
-		 * columns the user toggled on that aren't already in the list (metadata
-		 * fields, extra schema properties) are appended using their sidebar
-		 * definitions. Custom columns outside the sidebar's universe are untouched.
+		 * The columns this page DECLARES it has: the `columns` prop, or a named
+		 * source's own list when the manifest set none. This is the membership
+		 * list, separate from `tableColumns`, which is what ends up rendered
+		 * after the sidebar scope and the user's visible-column set have had
+		 * their say over it.
+		 *
+		 * @return {Array} The declared column list.
 		 */
-		tableColumns() {
-			const reg = typeof this.register === 'string' && this.register ? this.register : undefined
+		declaredColumns() {
 			// A NAMED SOURCE SUPPLIES ITS OWN COLUMNS when the manifest does not.
 			// Without this the adapter's `columns` were defined and never read:
 			// an `entitySource` page with no explicit `columns` fell through to
@@ -3155,9 +3238,27 @@ export default {
 			// at all, which looks like an empty list rather than a missing
 			// config. A manifest that DOES set columns still wins, which is
 			// what makes the source a default rather than a constraint.
-			let cols = (this.columns && this.columns.length > 0)
+			return (this.columns && this.columns.length > 0)
 				? this.columns
 				: ((this.isNamedSource && this.namedSource && this.namedSource.columns) || [])
+		},
+
+		/**
+		 * Columns handed to CnDataTable. Starts from `declaredColumns`, or from
+		 * the active folder-sidebar scope's selection of them (with any
+		 * `aggregate` block lacking a `register` defaulted to this page's
+		 * `register` slug, so manifests can omit `aggregate.register`). When a
+		 * visible-column set exists, governed columns the user toggled off are
+		 * hidden, and governed columns the user toggled on that aren't already
+		 * in the list (metadata fields, extra schema properties) are appended
+		 * using their sidebar definitions. Custom columns outside the sidebar's
+		 * universe are untouched.
+		 */
+		tableColumns() {
+			const reg = typeof this.register === 'string' && this.register ? this.register : undefined
+			// The active sidebar scope may narrow and reorder the page's
+			// declared columns; it cannot add to them.
+			let cols = this.activeScopeLayout.columns || this.declaredColumns
 			if (reg) {
 				cols = cols.map((c) => (
 					c && c.aggregate && !c.aggregate.register
@@ -4308,11 +4409,38 @@ export default {
 			if (key) {
 				this.onFilterEvent({ key, values: (folderId === null || folderId === undefined) ? [] : [folderId] })
 			}
+			this.applyScopeSort()
 			/**
 			 * @event folder-change Emitted when a folder is selected in the sidebar.
 			 * @type {(string|number|null)} The selected folder id (null = All).
 			 */
 			this.$emit('folder-change', folderId)
+		},
+
+		/**
+		 * Put the active scope's `defaultSort` on the list and refetch with it.
+		 *
+		 * The scope's sort is applied through the list's own `sortKeys`, the
+		 * same state a header click writes, rather than through a second sort
+		 * path — so the fetch carries it and the header shows it as sorted.
+		 * A scope declaring no sort leaves whatever is active alone: that is a
+		 * scope with nothing to say about sorting, not a scope asking for the
+		 * sort to be cleared.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
+		 */
+		applyScopeSort() {
+			const sortKeys = this.activeScopeLayout.sortKeys
+			if (!sortKeys.length || !this.isSelfFetchMode || !this.list) {
+				return
+			}
+			if (this.list.sortKeys) {
+				this.list.sortKeys.value = sortKeys.map((entry) => ({ ...entry }))
+			}
+			if (typeof this.list.refresh === 'function') {
+				this.list.refresh(1)
+			}
 		},
 
 		/**
@@ -4334,9 +4462,22 @@ export default {
 				])
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: cfg.register, schema: cfg.schema })
 				const res = await axios.get(url, { params: { _limit: cfg.limit || 200 } })
-				const rows = (res && res.data && (res.data.results || res.data)) || []
+				const body = (res && res.data && (res.data.results || res.data)) || []
+				// A response that is not a list is an empty folder list, not a
+				// crash: the pane then shows only "All" rather than logging a
+				// TypeError that names this component for the server's shape.
+				const rows = Array.isArray(body) ? body : []
 				const idField = cfg.idField || '@self.uuid'
 				const nameField = cfg.nameField || 'title'
+				const layouts = {}
+				rows.forEach((row) => {
+					const id = this.getByPath(row, idField)
+					const carried = row && row['x-index']
+					if (id !== null && id !== undefined && carried && typeof carried === 'object') {
+						layouts[String(id)] = carried
+					}
+				})
+				this.folderRowLayouts = layouts
 				this.folderRegisterList = rows
 					.map((row) => ({ id: this.getByPath(row, idField), name: this.getByPath(row, nameField) || this.getByPath(row, idField) }))
 					.filter((f) => f.id !== null && f.id !== undefined)
@@ -4345,6 +4486,7 @@ export default {
 				// eslint-disable-next-line no-console
 				console.error('[CnIndexPage] failed to load folder register', e)
 				this.folderRegisterList = []
+				this.folderRowLayouts = {}
 			}
 		},
 

@@ -437,6 +437,73 @@
 		}
 	},
 	"$defs": {
+		"folderSidebarScope": {
+			"type": "object",
+			"additionalProperties": true,
+			"description": "One folder in `config.folderSidebar.folders[]`, which doubles as a SCOPE: the three optional list-layout keys below let one index page show each folder the way that folder needs. Every other key (id, name, icon, ...) stays free-form, so an existing folder list validates unchanged. The page's `config.columns` still decides which columns this page HAS; a scope only decides which of them are shown, in what order, sorted by what and searched over what. A scope naming a column the page does not declare is refused by validateManifestV2, not silently rendered.",
+			"properties": {
+				"columns": {
+					"type": "array",
+					"description": "The columns this scope shows, in order. Same shapes as `config.columns`: a bare key string or a column object. Every key must be one the page's `config.columns` declares. Omit to show the page's own columns.",
+					"items": {
+						"oneOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "object",
+								"additionalProperties": true
+							}
+						]
+					}
+				},
+				"defaultSort": {
+					"description": "The sort the fetch carries while this scope is active. One `{ key, order }` entry or a list of them; `order` is 'asc' (default) or 'desc'. `field` is accepted in place of `key`, matching the CnIndexPage `defaultSort` prop.",
+					"oneOf": [
+						{
+							"$ref": "#/$defs/folderSidebarScopeSort"
+						},
+						{
+							"type": "array",
+							"items": {
+								"$ref": "#/$defs/folderSidebarScopeSort"
+							}
+						}
+					]
+				},
+				"searchFields": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"description": "The fields the search box searches over while this scope is active. Omit to search whatever the page searches by default."
+				}
+			}
+		},
+		"folderSidebarScopeSort": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "One sort entry for a `folderSidebar` scope. Name the column with `key` (manifest spelling) or `field` (the CnIndexPage prop spelling); an entry carrying neither is dropped rather than sent as an empty sort key.",
+			"properties": {
+				"key": {
+					"type": "string",
+					"minLength": 1
+				},
+				"field": {
+					"type": "string",
+					"minLength": 1
+				},
+				"order": {
+					"type": "string",
+					"enum": [
+						"asc",
+						"desc"
+					],
+					"default": "asc"
+				}
+			}
+		},
 		"supportButton": {
 			"type": "object",
 			"additionalProperties": false,
@@ -2770,6 +2837,20 @@
 										"additionalProperties": true
 									}
 								]
+							}
+						},
+						"folderSidebar": {
+							"type": "object",
+							"additionalProperties": true,
+							"description": "type='index': the opt-in folder navigation pane (CnFolderSidebar) rendered left of the list. Selecting a folder filters the list by `filterField` (or `field`); \"All\" clears it. Only the per-scope list-layout keys are typed here; the pane's own keys (source, register, schema, idField, nameField, folders, allLabel, title, allowCreate, ...) stay free-form. Maps to CnIndexPage `folderSidebar`.",
+							"properties": {
+								"folders": {
+									"type": "array",
+									"description": "Explicit folder list for source:'custom', and the place a folder declares its own list layout. Every other folder key stays free-form.",
+									"items": {
+										"$ref": "#/$defs/folderSidebarScope"
+									}
+								}
 							}
 						},
 						"layout": {
