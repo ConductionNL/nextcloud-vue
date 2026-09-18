@@ -32,7 +32,23 @@ share one database without colliding. Three tables: `objectCache`,
 - `getCachedObject(register, schema, collection, objectId)` — read one cached object.
 - `getPlanningMeta(register, schema, collection?)` — read the planning meta row.
 - `enqueueMutation(operation)` — queue one offline create/update/delete.
-- `countPending(deviceId?)` — count not-yet-synced queue operations.
+- `countPending(deviceId?)`: count queue operations still expected to send on
+  their own (`pending`, `conflict`, `syncing`).
+- `countStuck(deviceId?)`: count the ones that will not, which is `failed`.
+  Counted apart and never folded in, because "12 waiting" and "12 waiting, 1
+  stuck" are different sentences.
+- `listQueue(deviceId?)`: every operation, failed ones included, oldest first.
+- `requeueOperation(operationId)`: put one failed operation back by hand.
+  Refuses a `permission_lost` one, which no retry can help.
+- `recordConflict({ operation, conflictType, serverObject, register, conflictSchema })`:
+  file a classified conflict as an object of its own, through the queue. Written
+  once per conflicting operation. With no `conflictSchema` nothing is written and
+  the queue row is marked `conflictScope: 'local'`, so the list can say the clash
+  is visible on this device only.
+- `applyConflictResolution({ operationId, resolution, mergedPayload, resolvedBy })`:
+  apply a person's choice. Keep theirs also leaves the local cache holding the
+  server's version, and the resolution, the person and the time are written onto
+  the conflict object.
 - `resolveDeviceId(storage?)` — stable per-device id (IDOR scope) in localStorage.
 
 `dexie` is an **optional peer dependency**: only apps that use the offline core
@@ -84,6 +100,28 @@ DOM-free, app-name-free helpers.
 - `validateChecklistAnswers(template, answersByQuestion)` — required-field validation.
 - `checklistProgress(template, answersByQuestion)` — N/M completion counts.
 - `syncIndicator(pendingCount, online, stuckCount)`: the indicator tone and copy. `stuckCount` outranks everything, including being offline: a device holding stranded work reads red and says so. Offline with work waiting is amber, not red, because being out of signal is the normal state of a field device. Green means nothing is waiting and nothing is stuck.
+
+## What a consuming app configures
+
+`offlineConfig` on the integration descriptor. Every key is optional; the leaf
+works with none of them set.
+
+| Key               | What it decides                                                      |
+|-------------------|----------------------------------------------------------------------|
+| `plannedSchema`   | the schema holding the items to do today                             |
+| `referenceSchema` | the schema holding the checklist templates                           |
+| `resultSchema`    | the schema a completed checklist is written back to                  |
+| `register`        | the register for the leaf's own bookkeeping; defaults to the operation's |
+| `queueSchema`     | a schema holding queue records, for an app that wants the queue readable server-side |
+| `conflictSchema`  | the schema holding conflict records                                  |
+
+**Set `conflictSchema` or accept what follows.** Without it a collision is a
+status on one row in one browser's IndexedDB: the colleague whose edit it
+collided with never hears of it, the supervisor who has to decide cannot see it,
+and the audit that has to show a decision was taken has nothing to read. The
+inspector holding the phone is the only person who knows, and often the one
+person who cannot settle it. The queue row says so rather than pretending
+otherwise, but saying so is not the same as filing it.
 
 ## Daily-planning fetch contract
 

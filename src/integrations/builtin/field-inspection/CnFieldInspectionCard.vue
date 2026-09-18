@@ -295,6 +295,18 @@ export default {
 			return Number.isNaN(expiry) === false && expiry < Date.now()
 		},
 
+		/**
+		 * Where a conflict found during a drain is filed.
+		 *
+		 * @return {object} The drain config.
+		 */
+		drainConfig() {
+			return {
+				register: this.config.register || this.effectiveRegister,
+				conflictSchema: this.config.conflictSchema || '',
+			}
+		},
+
 		indicator() {
 			return syncIndicator(this.pendingCount, this.offline === false, this.stuckCount)
 		},
@@ -530,7 +542,7 @@ export default {
 		async drain() {
 			this.syncing = true
 			try {
-				await drainQueue(this.deviceId)
+				await drainQueue(this.deviceId, this.drainConfig)
 				this.pendingCount = await countPending(this.deviceId)
 				this.stuckCount = await countStuck(this.deviceId)
 			} catch (e) {

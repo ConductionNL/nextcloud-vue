@@ -189,6 +189,21 @@ export default {
 			return Number.isNaN(moment.getTime()) ? '' : moment.toLocaleString()
 		},
 
+		/**
+		 * Where a conflict found during a drain is filed.
+		 *
+		 * The register defaults to the one each queued operation already names,
+		 * so a consuming app only has to set `conflictSchema`.
+		 *
+		 * @return {object} The drain config.
+		 */
+		drainConfig() {
+			return {
+				register: this.config.register || this.register,
+				conflictSchema: this.config.conflictSchema || '',
+			}
+		},
+
 		indicator() {
 			return syncIndicator(this.pendingCount, this.offline === false, this.stuckCount)
 		},
@@ -310,7 +325,7 @@ export default {
 		async drain() {
 			this.syncing = true
 			try {
-				await drainQueue(this.deviceId)
+				await drainQueue(this.deviceId, this.drainConfig)
 				this.pendingCount = await countPending(this.deviceId)
 				// A drain is exactly when work becomes stuck, so the count that
 				// reports it is re-read here and not only on mount.

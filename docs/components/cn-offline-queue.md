@@ -63,6 +63,36 @@ secure context, the component says so and emits `copy-refused` with the text, so
 a host can render it for selection by hand. It never says "Copied" over an empty
 clipboard: that sends somebody away believing they have their words.
 
+## What happens to a conflict
+
+A conflicting row offers three choices, and they are three different sentences:
+
+- **Keep mine** puts the operation back in the queue to be sent again, attempt
+  count reset.
+- **Keep theirs** ends the row and leaves this device holding the server's
+  version. Both halves matter: marking the row done while the device still
+  renders the abandoned local text is how somebody reads their own discarded
+  answer back as the current record.
+- **Merge by hand** opens the differing fields side by side, named Mine and
+  Theirs with the actual values. Every field starts on **Theirs**, because a
+  panel pre-set to the local answer puts a colleague's edit one Save away from
+  being discarded without anybody choosing it.
+
+Merge by hand is offered only when the server sent a version to merge against.
+A target deleted server-side has one version, and a button that opens an empty
+panel is a button that cannot do what it says.
+
+A `permission_lost` row offers none of the three. No choice can re-grant a
+permission, so every button would be a gesture that fails.
+
+The choice, the uid in `resolvedBy` and the time are written onto the conflict
+object. A record that says a collision happened and not how it was settled
+cannot answer the only question anybody asks a year later.
+
+Where the leaf's `offlineConfig` names no `conflictSchema`, the row says the
+clash is recorded on this device only, so nobody waits for a colleague who will
+never see it.
+
 ## What happens on a device nobody opens again
 
 Nothing, and that is the honest answer. This queue lives in one browser
