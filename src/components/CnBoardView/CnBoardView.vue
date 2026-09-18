@@ -45,50 +45,98 @@
 						</span>
 					</h3>
 
-					<article
-						v-for="card in column.cards"
-						:key="`card-${cardKey(card)}`"
-						class="cn-board-view__card"
-						data-testid="cn-board-card"
-						:data-card-id="cardKey(card)"
-						:draggable="canMove"
-						tabindex="0"
-						:aria-label="cardLabel(card, column)"
-						@click="openCard(card)"
-						@keydown.enter="openCard(card)"
-						@dragstart="onDragStart(card, column, $event)">
-						<span
-							v-for="field in cardFields"
-							:key="`f-${cardKey(card)}-${field}`"
-							class="cn-board-view__card-field">
-							{{ card[field] }}
-						</span>
-
+					<!--
+						A list of its own, so a reader is told how many cards
+						this column holds. The column is a listitem of the
+						board's list of columns; the cards are a list inside
+						it, not more items of that same list.
+					-->
+					<div
+						v-if="column.cards.length > 0"
+						class="cn-board-view__cards"
+						role="list"
+						:aria-label="column.label">
 						<!--
-							The keyboard's way to do what a drag does. A board
-							whose only move is a drag is a board a keyboard
-							user cannot use at all, and "drag the card" is not
-							an instruction you can follow with a keyboard.
+							The card is a CONTAINER, and every action on it is
+							its own control. It carries the drag and nothing
+							else: no tabindex, no click, no key handler, and
+							never role="button".
+
+							🔴 role="button" HERE WOULD BREAK THE MOVE. An
+							element with that role has presentational children,
+							so the <select> below would be an interactive
+							control inside a button. That is invalid, and it
+							takes away the only way a keyboard user can move a
+							card. It would also collapse every field on the
+							card into one button label. See
+							openspec/changes/board-card-role-and-keyboard.
+
+							Measured rather than argued: putting role="button"
+							here makes axe report nested-interactive (serious,
+							"Interactive controls must not be nested") and
+							aria-required-children (critical), and four tests
+							in tests/a11y/CnBoardView.a11y.spec.js go red.
+							Gate 32 suggests exactly this change. The gate is a
+							mechanical floor, not the standard.
 						-->
-						<label v-if="canMove" class="cn-board-view__move">
-							<span class="cn-board-view__move-label">{{ moveLabel }}</span>
-							<select
-								data-testid="cn-board-move"
+						<article
+							v-for="card in column.cards"
+							:key="`card-${cardKey(card)}`"
+							class="cn-board-view__card"
+							role="listitem"
+							data-testid="cn-board-card"
+							:data-card-id="cardKey(card)"
+							:draggable="canMove"
+							@dragstart="onDragStart(card, column, $event)">
+							<span
+								v-for="field in cardFields"
+								:key="`f-${cardKey(card)}-${field}`"
+								class="cn-board-view__card-field">
+								{{ card[field] }}
+							</span>
+
+							<!--
+								Opening the card. A native button, so Enter and
+								Space both work: the old markup handled Enter
+								only, and Space is what most people try on
+								something that looks like a button.
+							-->
+							<button
+								type="button"
+								class="cn-board-view__card-open"
+								data-testid="cn-board-card-open"
 								:data-card-id="cardKey(card)"
-								:value="column.key"
-								@change="onMoveTo(card, column, $event)">
-								<option
-									v-for="target in lane.columns"
-									:key="`t-${cardKey(card)}-${target.key}`"
-									:value="target.key">
-									{{ target.label }}
-								</option>
-							</select>
-						</label>
-					</article>
+								:aria-label="cardLabel(card, column)"
+								@click="openCard(card)">
+								{{ openLabel }}
+							</button>
+
+							<!--
+								The keyboard's way to do what a drag does. A board
+								whose only move is a drag is a board a keyboard
+								user cannot use at all, and "drag the card" is not
+								an instruction you can follow with a keyboard.
+							-->
+							<label v-if="canMove" class="cn-board-view__move">
+								<span class="cn-board-view__move-label">{{ moveLabel }}</span>
+								<select
+									data-testid="cn-board-move"
+									:data-card-id="cardKey(card)"
+									:value="column.key"
+									@change="onMoveTo(card, column, $event)">
+									<option
+										v-for="target in lane.columns"
+										:key="`t-${cardKey(card)}-${target.key}`"
+										:value="target.key">
+										{{ target.label }}
+									</option>
+								</select>
+							</label>
+						</article>
+					</div>
 
 					<p
-						v-if="column.cards.length === 0"
+						v-else
 						class="cn-board-view__empty"
 						data-testid="cn-board-column-empty">
 						{{ emptyColumnText }}
@@ -259,6 +307,19 @@ export default {
 		/** @return {string} The Move to control's label. */
 		moveLabel() {
 			return t('nextcloud-vue', 'Move to')
+		},
+
+		/**
+		 * The visible text on a card's opening control.
+		 *
+		 * Short, because it repeats on every card. Which card it opens is
+		 * said by the control's `aria-label`, so a reader hearing a list of
+		 * buttons hears the card's own name rather than "Open" nine times.
+		 *
+		 * @return {string} The label.
+		 */
+		openLabel() {
+			return t('nextcloud-vue', 'Open')
 		},
 
 		/** @return {string} What an empty column says. */
@@ -470,11 +531,28 @@ export default {
 	border-radius: var(--border-radius);
 	padding: 8px;
 	margin-bottom: 8px;
-	cursor: pointer;
 }
 
 .cn-board-view__card-field {
 	display: block;
+}
+
+/*
+ * The card's opening control. The cursor and the focus ring live here now,
+ * on the thing that actually does something, rather than on the box.
+ */
+.cn-board-view__card-open {
+	background: none;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	color: var(--color-primary-element);
+	font-size: 0.8rem;
+}
+
+.cn-board-view__card-open:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
 }
 
 .cn-board-view__lane-header {

@@ -49,7 +49,7 @@ Dragging SHALL stay on the card container, which SHALL keep `draggable` and its
 - **WHEN** they focus a card's opening control and press Space
 - **THEN** the card opens, emitting the same `card-click` payload that Enter and a pointer click emit
 
-@e2e exclude a keyboard-only interaction on one component; asserted in tests/components/CnBoardView.spec.js.
+@e2e exclude a keyboard-only interaction on one component; asserted in tests/components/CnBoardView.spec.js as the element type, which is the guarantee. Measured while building this: dispatching keydown Enter, then keydown and keyup Space, on a native button in this jsdom fires the click handler ZERO times, because jsdom does not implement a button's activation behaviour. A test that simulated the key could only pass if the component hand-rolled key handling, which is the thing being removed, so the assertion is that the control is a native `button type="button"` and the activation is the browser's.
 
 #### Scenario: The move control is reachable from the keyboard
 
