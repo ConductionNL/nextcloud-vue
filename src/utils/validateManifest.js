@@ -1,6 +1,10 @@
 // Single source of truth for "which widget keys does the library render
 // itself?", bound to the runtime registries by
 // tests/utils/libraryWidgetKeys.spec.js so the two cannot drift apart again.
+// The built-in files-browser column names, imported from the component that
+// renders them so the validator and the browser cannot disagree about which
+// names exist.
+import { BUILT_IN_FILE_COLUMNS } from '../components/CnFilesBrowser/filesBrowserColumns.js'
 import { LIBRARY_WIDGET_KEYS } from './libraryWidgetKeys.js'
 // Shared slot→columns resolution so the validator's grid bound matches the
 // renderer (CnWidgetGrid) exactly. A mismatch would let a manifest pass
@@ -106,6 +110,9 @@ const CHART_VALUE_AXIS_BASELINES = ['auto', 'zero', 'fit']
  *    `pages[].headerComponent`, `pages[].actionsComponent`,
  *    `pages[].slots.*`, `menu[].id`, `menu[].route`,
  *    `dependencies[]`, `version`
+ *  - A `type: 'files'` page whose `config.columns` names a built-in column
+ *    that does not exist, or declares one with an unknown `source` or an
+ *    `attribute` source reading no property
  *  - A `config.folderSidebar.folders[]` scope naming a column key that the
  *    page's own `config.columns` does not declare (the page declares which
  *    columns it has; a scope only chooses among them)
@@ -679,6 +686,39 @@ export function validateManifestV2(manifest) {
 					if (!declaredKeys.has(firstSegment)) {
 						errors.push(`${fieldPath}/visibleWhen/field: "${firstSegment}" does not match any declared config.fields[].key`)
 					}
+				}
+			})
+		})
+	}
+
+	// N. A files browser's `columns` may name a built-in or declare its own.
+	//    A string naming no built-in is refused here, with the page and the
+	//    name in the message: dropping it silently would look like a column
+	//    that failed to load rather than a name that does not exist.
+	if (Array.isArray(clone.pages)) {
+		const builtIns = Object.keys(BUILT_IN_FILE_COLUMNS)
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || page.type !== 'files' || !isPlainObject(page.config) || !Array.isArray(page.config.columns)) {
+				return
+			}
+			const pageId = typeof page.id === 'string' && page.id !== '' ? page.id : `pages[${pIndex}]`
+			page.config.columns.forEach((entry, cIndex) => {
+				const at = `pages[${pIndex}]/config/columns/${cIndex}`
+				if (typeof entry === 'string') {
+					if (!builtIns.includes(entry)) {
+						errors.push(`${at}: "${pageId}" names no built-in column "${entry}". The built-ins are ${builtIns.join(', ')}; declare an object with key, label and source for anything else`)
+					}
+					return
+				}
+				if (!isPlainObject(entry) || typeof entry.key !== 'string' || entry.key === '') {
+					errors.push(`${at}: "${pageId}" has a column that is neither a built-in name nor an object with a key`)
+					return
+				}
+				if (entry.source !== undefined && !['node', 'attribute', 'row'].includes(entry.source)) {
+					errors.push(`${at}/source: "${pageId}" column "${entry.key}" has source "${entry.source}"; it must be node, attribute or row`)
+				}
+				if (entry.source === 'attribute' && (typeof entry.attribute !== 'string' || entry.attribute === '')) {
+					errors.push(`${at}/attribute: "${pageId}" column "${entry.key}" reads a DAV property but names none`)
 				}
 			})
 		})
