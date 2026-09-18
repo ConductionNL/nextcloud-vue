@@ -239,6 +239,115 @@ describe('CnTabs / CnTab', () => {
 		})
 	})
 
+	describe('scrolling strip', () => {
+		/**
+		 * Give the strip a 200px box and one tab a measured box inside or beyond it.
+		 *
+		 * @param {object} wrapper Mounted wrapper.
+		 * @param {number} index Index of the tab to measure.
+		 * @param {{left: number, right: number}} box The tab's box.
+		 *
+		 * @return {HTMLElement} The strip element.
+		 */
+		function measure(wrapper, index, box) {
+			const strip = wrapper.find('[role="tablist"]').element
+			strip.getBoundingClientRect = () => ({ left: 0, right: 200 })
+			navButtons(wrapper)[index].element.getBoundingClientRect = () => box
+			return strip
+		}
+
+		it('scrolls a tab selected beyond the right edge into view', async () => {
+			const w = await mountStrip([{ title: 'One' }, { title: 'Two' }])
+			const strip = measure(w, 1, { left: 150, right: 260 })
+			await navButtons(w)[1].trigger('click')
+			expect(strip.scrollLeft).toBe(60)
+		})
+
+		it('scrolls a tab selected beyond the left edge into view', async () => {
+			const w = await mountStrip([{ title: 'One' }, { title: 'Two', active: true }])
+			const strip = measure(w, 0, { left: -40, right: 60 })
+			strip.scrollLeft = 100
+			await w.find('[role="tablist"]').trigger('keydown', { key: 'Home' })
+			expect(strip.scrollLeft).toBe(60)
+		})
+
+		it('leaves the scroll position alone when the selected tab is in view', async () => {
+			const w = await mountStrip([{ title: 'One' }, { title: 'Two' }])
+			const strip = measure(w, 1, { left: 80, right: 160 })
+			strip.scrollLeft = 30
+			await navButtons(w)[1].trigger('click')
+			expect(strip.scrollLeft).toBe(30)
+		})
+
+		it('turns a vertical wheel into a horizontal scroll while the strip overflows', async () => {
+			const w = await mountStrip([{ title: 'One' }, { title: 'Two' }])
+			const strip = w.find('[role="tablist"]').element
+			Object.defineProperty(strip, 'scrollWidth', { value: 400, configurable: true })
+			Object.defineProperty(strip, 'clientWidth', { value: 200, configurable: true })
+			const event = new WheelEvent('wheel', { deltaY: 50, cancelable: true })
+			strip.dispatchEvent(event)
+			expect(strip.scrollLeft).toBe(50)
+			expect(event.defaultPrevented).toBe(true)
+		})
+
+		/**
+		 * Mount a strip whose two tabs need 400px in a 200px box.
+		 *
+		 * @return {Promise<{w: object, strip: HTMLElement}>} The wrapper and the strip element.
+		 */
+		async function mountOverflowing() {
+			const w = await mountStrip([{ title: 'One' }, { title: 'Two' }])
+			const strip = w.find('[role="tablist"]').element
+			Object.defineProperty(strip, 'scrollWidth', { value: 400, configurable: true })
+			Object.defineProperty(strip, 'clientWidth', { value: 200, configurable: true })
+			await w.find('[role="tablist"]').trigger('scroll')
+			return { w, strip }
+		}
+
+		it('shows a chevron and fade on the edge that hides tabs', async () => {
+			const { w, strip } = await mountOverflowing()
+			expect(w.find('.cn-tabs__strip').classes()).toContain('cn-tabs__strip--more-end')
+			expect(w.find('.cn-tabs__scroll--end').exists()).toBe(true)
+			expect(w.find('.cn-tabs__scroll--start').exists()).toBe(false)
+
+			strip.scrollLeft = 200
+			await w.find('[role="tablist"]').trigger('scroll')
+			expect(w.find('.cn-tabs__strip').classes()).toContain('cn-tabs__strip--more-start')
+			expect(w.find('.cn-tabs__scroll--start').exists()).toBe(true)
+			expect(w.find('.cn-tabs__scroll--end').exists()).toBe(false)
+		})
+
+		it('scrolls the strip when its chevron is clicked', async () => {
+			const { w, strip } = await mountOverflowing()
+			await w.find('.cn-tabs__scroll--end').trigger('click')
+			expect(strip.scrollLeft).toBe(120)
+		})
+
+		it('keeps the chevrons out of the tab order and the accessibility tree', async () => {
+			const { w } = await mountOverflowing()
+			const chevron = w.find('.cn-tabs__scroll--end')
+			expect(chevron.attributes('tabindex')).toBe('-1')
+			expect(chevron.attributes('aria-hidden')).toBe('true')
+			expect(w.find('[role="tablist"]').find('.cn-tabs__scroll').exists()).toBe(false)
+		})
+
+		it('shows no chevron when every tab fits', async () => {
+			const w = await mountStrip([{ title: 'One' }, { title: 'Two' }])
+			expect(w.find('.cn-tabs__scroll').exists()).toBe(false)
+		})
+
+		it('leaves the wheel alone when every tab fits', async () => {
+			const w = await mountStrip([{ title: 'One' }, { title: 'Two' }])
+			const strip = w.find('[role="tablist"]').element
+			Object.defineProperty(strip, 'scrollWidth', { value: 200, configurable: true })
+			Object.defineProperty(strip, 'clientWidth', { value: 200, configurable: true })
+			const event = new WheelEvent('wheel', { deltaY: 50, cancelable: true })
+			strip.dispatchEvent(event)
+			expect(strip.scrollLeft).toBe(0)
+			expect(event.defaultPrevented).toBe(false)
+		})
+	})
+
 	describe('disabled tabs', () => {
 		it('never takes the initial selection', async () => {
 			const w = await mountStrip([{ title: 'One', disabled: true }, { title: 'Two' }])
