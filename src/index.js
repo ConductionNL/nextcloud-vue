@@ -41,6 +41,7 @@ export {
 	CnAppNav,
 	CnAppRoot,
 	CnAuditTrailCard,
+	CnBoardView,
 	CnBodySections,
 	CnBreadcrumbs,
 	CnBuildiqEditButton,
@@ -75,6 +76,7 @@ export {
 	CnDashTileWidgetForm,
 	CnDataMatrix,
 	CnDataTable,
+	CnDateAxisView,
 	CnDateRangePicker,
 	CnDeckCardCreate,
 	CnDeckCardPicker,
@@ -327,12 +329,15 @@ export { createSubResourcePlugin, emptyPaginated } from './store/index.js'
 // Store plugins
 export {
 	auditTrailsPlugin,
+	dashboardLayoutKey,
+	dashboardLayoutsPlugin,
 	filesPlugin,
 	getRegisterApiUrl,
 	getSchemaApiUrl,
 	lifecyclePlugin,
 	liveUpdatesPlugin,
 	logsPlugin,
+	mergeUserLayout,
 	registerMappingPlugin,
 	relationsPlugin,
 	SEARCH_TYPE,
@@ -534,7 +539,7 @@ export { diffManifest } from './utils/diffManifest.js'
 export { createManifestEditHistory } from './utils/manifestEditHistory.js'
 export { resolveSlotColumns } from './utils/resolveSlotColumns.js'
 // Dashboard widget library (cn-widget-library) — registry helpers + form composable.
-export { dashboardWidgetRegistry, getDefaultContent, getWidgetTypeEntry, listWidgetTypes, registerDashboardWidget } from './components/CnWidgetGrid/dashboardWidgetRegistry.js'
+export { dashboardWidgetRegistry, getDefaultContent, getWidgetTypeEntry, listUserAddableWidgetTypes, listWidgetTypes, registerDashboardWidget, userWidgetPresets } from './components/CnWidgetGrid/dashboardWidgetRegistry.js'
 export { registerBuiltinDashboardWidgets } from './components/CnWidgetGrid/registerDashboardWidgets.js'
 export { useWidgetForm } from './composables/useWidgetForm.js'
 

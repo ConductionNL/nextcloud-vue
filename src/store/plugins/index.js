@@ -1,4 +1,5 @@
 export { auditTrailsPlugin } from './auditTrails.js'
+export { dashboardLayoutKey, dashboardLayoutsPlugin, mergeUserLayout } from './dashboardLayouts.js'
 export { relationsPlugin } from './relations.js'
 export { filesPlugin } from './files.js'
 export { lifecyclePlugin } from './lifecycle.js'

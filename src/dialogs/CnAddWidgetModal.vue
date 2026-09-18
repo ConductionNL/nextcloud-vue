@@ -117,7 +117,9 @@ import CnColorPicker from '../components/CnColorPicker/CnColorPicker.vue'
 import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
 import {
 	getWidgetTypeEntry,
+	listUserAddableWidgetTypes,
 	listWidgetTypes,
+	userWidgetPresets,
 } from '../components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { useWidgetForm } from '../composables/useWidgetForm.js'
 
@@ -233,6 +235,30 @@ export default {
 		},
 
 		/**
+		 * Whether this picker is being opened BY A USER for their own
+		 * dashboard, rather than by an administrator editing the page for
+		 * everybody. It narrows the type list to `userAddable` entries and
+		 * turns on the manifest presets.
+		 *
+		 * @type {boolean}
+		 */
+		userAddableOnly: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The hosting page's config, read for `userWidgets[]` when
+		 * `userAddableOnly` is on.
+		 *
+		 * @type {object|null}
+		 */
+		pageConfig: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Authoritative object context `{ register, schema }` for the page hosting
 		 * the picker (supplied by the Buildiq edit button from the ACTIVE page's
 		 * config). Provided down as `cnObjectContext` so the data sub-form resolves
@@ -304,7 +330,23 @@ export default {
 		 * @return {string[]} the form-bearing type keys.
 		 */
 		availableTypes() {
-			return listWidgetTypes(this.surface)
+			// A USER PICKING FOR THEMSELVES IS OFFERED A SMALLER LIST. An
+			// administrator configures a widget once with the register and
+			// schema in front of them; a user has neither and cannot be told
+			// about them, so they see only the types whose registry entry
+			// declares `userAddable`.
+			return this.userAddableOnly
+				? listUserAddableWidgetTypes(this.surface)
+				: listWidgetTypes(this.surface)
+		},
+
+		/**
+		 * The presets this page offers a user, from `config.userWidgets[]`.
+		 *
+		 * @return {Array<object>} The offerable presets.
+		 */
+		availablePresets() {
+			return this.userAddableOnly ? userWidgetPresets(this.pageConfig) : []
 		},
 
 		/**
