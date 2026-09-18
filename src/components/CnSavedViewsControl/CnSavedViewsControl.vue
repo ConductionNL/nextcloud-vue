@@ -41,6 +41,19 @@
 					{{ view.name }}
 				</NcActionButton>
 				<NcActionButton
+					v-if="allowPinning"
+					:key="`pin-${view.id}`"
+					data-testid="cn-saved-views-pin"
+					:data-view-id="view.id"
+					:aria-label="pinLabel(view)"
+					@click="onPinRequest(view)">
+					<template #icon>
+						<Pin v-if="isPinned(view)" :size="20" />
+						<PinOutline v-else :size="20" />
+					</template>
+					{{ pinLabel(view) }}
+				</NcActionButton>
+				<NcActionButton
 					v-if="isOwn(view)"
 					:key="`delete-${view.id}`"
 					data-testid="cn-saved-views-delete"
@@ -75,8 +88,11 @@ import { NcActionButton, NcActionCaption, NcActions, NcActionSeparator } from '@
 import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'
+import Pin from 'vue-material-design-icons/Pin.vue'
+import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import { isOwnView } from '../../utils/savedViewHelpers.js'
+import { isPinnedView } from '../../utils/savedViewPlaces.js'
 
 /**
  * CnSavedViewsControl — toolbar dropdown listing OpenRegister saved-search
@@ -98,6 +114,7 @@ import { isOwnView } from '../../utils/savedViewHelpers.js'
  * @event {object} apply — Apply the clicked view. Payload: the View API object.
  * @event {void} save-request — Open the save-current-view dialog.
  * @event {object} delete-request — Confirm-delete the clicked view. Payload: the View API object.
+ * @event {object} pin-request — Pin or unpin the clicked view. Payload: the View API object. Only rendered when `allowPinning`.
  */
 export default {
 	name: 'CnSavedViewsControl',
@@ -110,6 +127,8 @@ export default {
 		BookmarkOutline,
 		ContentSaveOutline,
 		EyeOutline,
+		Pin,
+		PinOutline,
 		TrashCanOutline,
 	},
 
@@ -131,9 +150,20 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Whether a view can be pinned into the navigation from here
+		 * (saved-view-as-a-place). True only on a page whose views are
+		 * places: pinning a view that has no address of its own would put an
+		 * entry in the navigation with nowhere to go.
+		 */
+		allowPinning: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
-	emits: ['apply', 'delete-request', 'save-request'],
+	emits: ['apply', 'delete-request', 'pin-request', 'save-request'],
 
 	computed: {
 		/** @return {string} The dropdown trigger label. */
@@ -153,6 +183,42 @@ export default {
 		 */
 		isOwn(view) {
 			return isOwnView(view, this.currentUserId)
+		},
+
+		/**
+		 * Whether the current user has pinned this view.
+		 *
+		 * @param {object} view The View API object.
+		 * @return {boolean} True when it is in this user's navigation.
+		 */
+		isPinned(view) {
+			return isPinnedView(view, this.currentUserId)
+		},
+
+		/**
+		 * Label for a view's pin entry, which says what the click will do
+		 * rather than what the state is: a menu entry is an action.
+		 *
+		 * @param {object} view The View API object.
+		 * @return {string} The label.
+		 */
+		pinLabel(view) {
+			return this.isPinned(view)
+				? t('nextcloud-vue', 'Unpin "{name}" from the navigation', { name: view.name })
+				: t('nextcloud-vue', 'Pin "{name}" to the navigation', { name: view.name })
+		},
+
+		/**
+		 * Pin-entry click: hand the view to the parent to pin or unpin.
+		 *
+		 * @param {object} view The View API object.
+		 */
+		onPinRequest(view) {
+			/**
+			 * @event pin-request A view's pin entry was clicked; toggle the pin.
+			 * @type {object}
+			 */
+			this.$emit('pin-request', view)
 		},
 
 		/**

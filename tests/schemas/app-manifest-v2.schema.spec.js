@@ -1140,9 +1140,9 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.33.0', () => {
+	it('the manifest schema version reads 2.34.0', () => {
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.33.0')
+		expect(schema.version).toBe('2.34.0')
 	})
 
 	it('accepts a declarative `store` block, and requires the remote schema', () => {
@@ -1315,6 +1315,20 @@ describe('case-page-and-list-as-a-place — the keys are refused off their page 
 	it('accepts tabInAddress on a detail page and refuses it on an index page', () => {
 		expect(validateManifestV2(detail({ tabInAddress: true })).valid).toBe(true)
 		expect(validateManifestV2(page({ tabInAddress: true })).valid).toBe(false)
+	})
+
+	it('accepts savedViewPlaces on an index page, and refuses a route base that is not a path segment', () => {
+		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, routeBase: 'views', navGroup: 'nav-cases', pinnedCap: 5 } })).valid).toBe(true)
+		// A segment a person reads and sends. 'My Views' would encode, render
+		// as %20 in the address bar and still work, which is exactly the kind
+		// of thing nobody notices until the link is in an email.
+		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, routeBase: 'My Views' } })).valid).toBe(false)
+		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, pinnedCap: 0 } })).valid).toBe(false)
+		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, wat: true } })).valid).toBe(false)
+	})
+
+	it('refuses savedViewPlaces on a detail page, where a view is not a place', () => {
+		expect(validateManifestV2(detail({ savedViewPlaces: { enabled: true } })).valid).toBe(false)
 	})
 
 	it('refuses a breakpoint no viewport has', () => {
