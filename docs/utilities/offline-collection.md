@@ -77,29 +77,7 @@ happens inside OR's own object API — no per-app outcome endpoint needed.
 - `replayOperation(operation)` — replay one mutation, return the engine patch.
 - `drainQueue(deviceId)` — drain the device's pending queue in FIFO order.
 
-### What a consuming app configures
-
-`offlineConfig` on the integration descriptor. Every key is optional; the leaf
-works with none of them set.
-
-| Key               | What it decides                                                      |
-|-------------------|----------------------------------------------------------------------|
-| `plannedSchema`   | the schema holding the items to do today                             |
-| `referenceSchema` | the schema holding the checklist templates                           |
-| `resultSchema`    | the schema a completed checklist is written back to                  |
-| `register`        | the register for the leaf's own bookkeeping; defaults to the operation's |
-| `queueSchema`     | a schema holding queue records, for an app that wants the queue readable server-side |
-| `conflictSchema`  | the schema holding conflict records                                  |
-
-**Set `conflictSchema` or accept what follows.** Without it a collision is a
-status on one row in one browser's IndexedDB: the colleague whose edit it
-collided with never hears of it, the supervisor who has to decide cannot see it,
-and the audit that has to show a decision was taken has nothing to read. The
-inspector holding the phone is the only person who knows, and often the one
-person who cannot settle it. The queue row says so rather than pretending
-otherwise, but saying so is not the same as filing it.
-
-## Daily-planning fetch contract (`planningFetch.js`)
+### Daily-planning fetch contract (`planningFetch.js`)
 
 Replaces a bespoke `/sync/daily` endpoint with a configurable query against the
 standard OR object API.
