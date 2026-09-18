@@ -10,8 +10,7 @@
  */
 
 jest.mock('@nextcloud/l10n', () => ({
-	translate: (app, text, params) =>
-		String(text).replace(/\{(\w+)\}/g, (_, key) => String((params || {})[key] ?? `{${key}}`)),
+	translate: (app, text, params) => String(text).replace(/\{(\w+)\}/g, (_, key) => String((params || {})[key] ?? `{${key}}`)),
 }))
 
 const { mount } = require('@vue/test-utils')
@@ -160,6 +159,9 @@ describe('a channel an administrator has forced', () => {
 		expect(wrapper.emitted().change[0][0]).toEqual({
 			eventId: 'assigned',
 			channelId: 'mail',
+			// The global row. Every change now names the row it was made on,
+			// because the same event and channel can carry a narrower one.
+			scope: '',
 			value: true,
 		})
 	})

@@ -30,6 +30,62 @@
 							data-testid="cn-np-channel-unusable">
 							{{ channelState(channel).reason || unavailableText }}
 						</span>
+
+						<template v-if="channelState(channel).usable !== false">
+							<label class="cn-notification-preferences__muted">
+								{{ digestLabel }}
+								<select
+									data-testid="cn-np-digest-mode"
+									:data-channel="channel.id"
+									:value="digestFor(channel).mode"
+									@change="onDigestMode(channel, $event)">
+									<option
+										v-for="mode in digestModes"
+										:key="`dm-${channel.id}-${mode.id}`"
+										:value="mode.id">
+										{{ mode.label }}
+									</option>
+								</select>
+							</label>
+
+							<label
+								v-if="digestFor(channel).mode !== 'off'"
+								class="cn-notification-preferences__muted">
+								{{ digestTimeLabel }}
+								<input
+									type="time"
+									data-testid="cn-np-digest-time"
+									:data-channel="channel.id"
+									:value="digestFor(channel).timeOfDay"
+									@change="onDigestTime(channel, $event)">
+							</label>
+
+							<span
+								v-if="digestFor(channel).mode !== 'off'"
+								class="cn-notification-preferences__muted"
+								data-testid="cn-np-digest-immediate-note">
+								{{ digestImmediateNote }}
+							</span>
+
+							<button
+								class="cn-notification-preferences__test"
+								data-testid="cn-np-test-send"
+								:data-channel="channel.id"
+								:aria-label="testSendLabel(channel)"
+								@click="onTestSend(channel)">
+								{{ testSendText }}
+							</button>
+
+							<span
+								v-if="testResultFor(channel) !== null"
+								class="cn-notification-preferences__muted"
+								data-testid="cn-np-test-result"
+								:data-channel="channel.id"
+								:data-ok="String(testResultFor(channel).ok === true)"
+								role="status">
+								{{ testResultText(channel) }}
+							</span>
+						</template>
 					</th>
 				</tr>
 			</thead>
@@ -49,39 +105,67 @@
 				</tr>
 
 				<tr
-					v-for="event in group.events"
+					v-for="row in rowsFor(group)"
 					v-show="!isCollapsed(group.key)"
-					:key="`ev-${event.id}`"
+					:key="`ev-${row.event.id}-${row.scope}`"
 					data-testid="cn-np-row"
-					:data-event="event.id">
-					<th scope="row">
-						{{ event.label }}
-						<span
-							v-if="event.immediate"
-							class="cn-notification-preferences__muted"
-							data-testid="cn-np-immediate">
-							{{ immediateText }}
-						</span>
+					:class="{ 'cn-notification-preferences__row--scoped': !row.isGlobal }"
+					:data-event="row.event.id"
+					:data-scope="row.scope">
+					<th scope="row" :class="{ 'cn-notification-preferences__scope': !row.isGlobal }">
+						<template v-if="row.isGlobal">
+							{{ row.event.label }}
+							<span
+								v-if="row.event.immediate"
+								class="cn-notification-preferences__muted"
+								data-testid="cn-np-immediate">
+								{{ immediateText }}
+							</span>
+
+							<select
+								v-if="addableScopes(row.event).length > 0"
+								class="cn-notification-preferences__muted"
+								data-testid="cn-np-add-scope"
+								:data-event="row.event.id"
+								:aria-label="addScopeLabel(row.event)"
+								value=""
+								@change="onAddScope(row.event, $event)">
+								<option value="">
+									{{ addScopeText }}
+								</option>
+								<option
+									v-for="choice in addableScopes(row.event)"
+									:key="`sc-${row.event.id}-${choice.id}`"
+									:value="choice.id">
+									{{ choice.label }}
+								</option>
+							</select>
+						</template>
+						<template v-else>
+							<span data-testid="cn-np-scope-label">{{ scopeLabel(row.scope) }}</span>
+						</template>
 					</th>
 
 					<td
 						v-for="channel in channels"
-						:key="`c-${event.id}-${channel.id}`"
+						:key="`c-${row.event.id}-${row.scope}-${channel.id}`"
 						data-testid="cn-np-cell"
-						:data-event="event.id"
+						:data-event="row.event.id"
+						:data-scope="row.scope"
 						:data-channel="channel.id"
-						:data-level="cell(event, channel).level">
+						:data-level="cellFor(row.event, channel, row.scope).level">
 						<input
 							type="checkbox"
 							data-testid="cn-np-toggle"
-							:data-event="event.id"
+							:data-event="row.event.id"
+							:data-scope="row.scope"
 							:data-channel="channel.id"
-							:checked="cell(event, channel).value"
-							:disabled="isLocked(event, channel)"
-							:aria-label="cellLabel(event, channel)"
-							@change="onToggle(event, channel, $event)">
+							:checked="cellFor(row.event, channel, row.scope).value"
+							:disabled="isLockedFor(row.event, channel, row.scope)"
+							:aria-label="cellLabelFor(row.event, channel, row.scope)"
+							@change="onToggle(row.event, channel, $event, row.scope)">
 						<span class="cn-notification-preferences__muted" data-testid="cn-np-source">
-							{{ sourceText(event, channel) }}
+							{{ sourceTextFor(row.event, channel, row.scope) }}
 						</span>
 					</td>
 				</tr>
@@ -97,6 +181,11 @@ import {
 	PREFERENCE_LEVELS,
 	resolvePreference,
 } from '../../utils/notificationPreference.js'
+import {
+	GLOBAL_SCOPE,
+	scopeRowsFor,
+	valueForScope,
+} from '../../utils/preferenceScopes.js'
 
 /**
  * CnNotificationPreferences — one screen where a person chooses what notifies
@@ -122,7 +211,25 @@ import {
  * way to know which event or which channel. The header cells are `th` with
  * scopes, and each toggle carries a name that says both.
  *
- * @event {object} change — A cell was set. Payload: `{ eventId, channelId, value }`.
+ * 🔴 A PREFERENCE IS SET GLOBALLY OR FOR ONE CASE DOMAIN. "Tell me when a term
+ * expires" is usually too much and "never" is too little, so the event row is
+ * the global one and scoped rows sit indented under it. The narrower row wins
+ * only where it applies: everywhere else the global row still stands, because
+ * a scope that replaced it would silence every other domain the moment
+ * somebody narrowed one.
+ *
+ * 🔴 ONLY EVENTS IN THE CATALOGUE ARE LISTED. A stored preference for an event
+ * that no longer exists is not rendered, because a switch for something that
+ * can no longer happen is a lie; the store drops it on the next write.
+ *
+ * 🔴 A TEST SEND REPORTS WHAT HAPPENED, INCLUDING A REFUSAL. Nobody should have
+ * to wait for a real event to find out a channel is broken, and a button that
+ * silently did nothing would read as proof the channel works.
+ *
+ * @event {object} change — A cell was set. Payload: `{ eventId, channelId, scope, value }`.
+ * @event {object} add-scope — A scope was added to a row. Payload: `{ eventId, scope }`.
+ * @event {object} digest-change — A channel's digest was set. Payload: `{ channelId, mode, timeOfDay }`.
+ * @event {object} test-send — A test was asked for. Payload: `{ channelId }`.
  */
 export default {
 	name: 'CnNotificationPreferences',
@@ -186,9 +293,51 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * This person's narrower values, as
+		 * `{ [eventId]: { [channelId]: { [scope]: boolean } } }`.
+		 *
+		 * Separate from `personalValues` rather than replacing it, so the
+		 * global row keeps the flat shape every existing caller passes. A row
+		 * left unset here falls through to the global value, which is what
+		 * makes an absent scoped row an unanswered question rather than a no.
+		 */
+		scopedValues: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * The scopes a row can be narrowed to, each `{ id, label }`. Case
+		 * domains or record types, named by whoever configured the app.
+		 */
+		scopeChoices: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The digest per channel, as `{ [channelId]: { mode, timeOfDay } }`
+		 * where mode is `off`, `daily` or `weekly`.
+		 */
+		digest: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * The last test send per channel, as
+		 * `{ [channelId]: { ok, message } }`. A refusal belongs here as much
+		 * as a success: both are results.
+		 */
+		testResults: {
+			type: Object,
+			default: () => ({}),
+		},
 	},
 
-	emits: ['change'],
+	emits: ['change', 'add-scope', 'digest-change', 'test-send'],
 
 	data() {
 		return {
@@ -240,6 +389,40 @@ export default {
 			return t('nextcloud-vue', 'Always sent straight away, never held for a digest')
 		},
 
+		/** @return {Array<object>} The digest choices, in the order they escalate. */
+		digestModes() {
+			return [
+				{ id: 'off', label: t('nextcloud-vue', 'Send each one as it happens') },
+				{ id: 'daily', label: t('nextcloud-vue', 'Once a day') },
+				{ id: 'weekly', label: t('nextcloud-vue', 'Once a week') },
+			]
+		},
+
+		/** @return {string} What the digest control is called. */
+		digestLabel() {
+			return t('nextcloud-vue', 'Bundle these')
+		},
+
+		/** @return {string} What the time control is called. */
+		digestTimeLabel() {
+			return t('nextcloud-vue', 'Time of day')
+		},
+
+		/** @return {string} What a digest says about the events it cannot hold. */
+		digestImmediateNote() {
+			return t('nextcloud-vue', 'Events marked as urgent are still sent straight away.')
+		},
+
+		/** @return {string} What the test button says. */
+		testSendText() {
+			return t('nextcloud-vue', 'Send a test')
+		},
+
+		/** @return {string} What the add-a-scope control says when nothing is chosen. */
+		addScopeText() {
+			return t('nextcloud-vue', 'Set this for one kind of case')
+		},
+
 		/** @return {string} What the admin screen says about a person's own value. */
 		adminNote() {
 			return t('nextcloud-vue', "These are the group's defaults. Somebody who has set their own value keeps it, unless a channel is forced.")
@@ -267,12 +450,81 @@ export default {
 		 * @return {object} The resolution.
 		 */
 		cell(event, channel) {
+			return this.cellFor(event, channel, GLOBAL_SCOPE)
+		},
+
+		/**
+		 * One cell on one row, resolved.
+		 *
+		 * The scoped value is a NARROWER ANSWER TO THE SAME QUESTION, not a
+		 * separate preference, so an unset scoped cell falls back to the
+		 * person's global value and from there to the group and the default.
+		 * Reading an unset scoped cell as false would override both.
+		 *
+		 * @param {object} event The event.
+		 * @param {object} channel The channel.
+		 * @param {string} scope The scope of this row.
+		 * @return {object} The resolution.
+		 */
+		cellFor(event, channel, scope = GLOBAL_SCOPE) {
+			const narrow = valueForScope({
+				values: this.scopedValues,
+				eventId: event?.id,
+				channelId: channel?.id,
+				scope,
+			})
+
 			return resolvePreference({
 				appDefault: event?.appDefault === true,
 				groupValue: this.at(this.groupValues, event, channel),
-				personalValue: this.at(this.personalValues, event, channel),
+				personalValue: narrow.value === null
+					? this.at(this.personalValues, event, channel)
+					: narrow.value,
 				forced: this.at(this.forcedValues, event, channel),
 			})
+		},
+
+		/**
+		 * The rows one group renders: each event, then its scopes.
+		 *
+		 * Only events in the catalogue. A stored preference for an event the
+		 * catalogue no longer has is not listed, because a switch for
+		 * something that can no longer happen is a lie.
+		 *
+		 * @param {object} group The group.
+		 * @return {Array<object>} `{ event, scope, isGlobal }`.
+		 */
+		rowsFor(group) {
+			const rows = []
+			for (const event of group.events) {
+				for (const row of scopeRowsFor({ values: this.scopedValues, eventId: event.id })) {
+					rows.push({ event, scope: row.scope, isGlobal: row.isGlobal })
+				}
+			}
+			return rows
+		},
+
+		/**
+		 * The scopes this row can still be narrowed to.
+		 *
+		 * @param {object} event The event.
+		 * @return {Array<object>} The remaining choices.
+		 */
+		addableScopes(event) {
+			const taken = new Set(scopeRowsFor({ values: this.scopedValues, eventId: event?.id })
+				.map((row) => row.scope))
+			return this.scopeChoices.filter((choice) => taken.has(String(choice?.id)) === false)
+		},
+
+		/**
+		 * What a scope is called on screen.
+		 *
+		 * @param {string} scope The scope.
+		 * @return {string} Its label, or the id when nobody named it.
+		 */
+		scopeLabel(scope) {
+			const choice = this.scopeChoices.find((entry) => String(entry?.id) === scope)
+			return String(choice?.label ?? scope)
 		},
 
 		/**
@@ -311,7 +563,19 @@ export default {
 		 * @return {boolean} True when it is locked.
 		 */
 		isLocked(event, channel) {
-			return this.cell(event, channel).editable === false
+			return this.isLockedFor(event, channel, GLOBAL_SCOPE)
+		},
+
+		/**
+		 * Whether a cell on one row cannot be changed.
+		 *
+		 * @param {object} event The event.
+		 * @param {object} channel The channel.
+		 * @param {string} scope The scope of this row.
+		 * @return {boolean} True when it is locked.
+		 */
+		isLockedFor(event, channel, scope = GLOBAL_SCOPE) {
+			return this.cellFor(event, channel, scope).editable === false
 				|| this.cellAvailability(event, channel).usable === false
 		},
 
@@ -326,11 +590,33 @@ export default {
 		 * @return {string} The accessible name.
 		 */
 		cellLabel(event, channel) {
-			const base = t('nextcloud-vue', '{event} over {channel}', {
-				event: event.label,
-				channel: channel.label,
-			})
-			const reason = this.lockReason(event, channel)
+			return this.cellLabelFor(event, channel, GLOBAL_SCOPE)
+		},
+
+		/**
+		 * What a cell is called, saying which row it is on.
+		 *
+		 * A scoped row is indented, and indentation is invisible to a screen
+		 * reader: without the scope in the name, two checkboxes for the same
+		 * event and channel are indistinguishable.
+		 *
+		 * @param {object} event The event.
+		 * @param {object} channel The channel.
+		 * @param {string} scope The scope of this row.
+		 * @return {string} The accessible name.
+		 */
+		cellLabelFor(event, channel, scope = GLOBAL_SCOPE) {
+			const base = scope === GLOBAL_SCOPE
+				? t('nextcloud-vue', '{event} over {channel}', {
+						event: event.label,
+						channel: channel.label,
+					})
+				: t('nextcloud-vue', '{event} over {channel}, for {scope}', {
+						event: event.label,
+						channel: channel.label,
+						scope: this.scopeLabel(scope),
+					})
+			const reason = this.lockReasonFor(event, channel, scope)
 			return reason === '' ? base : `${base}. ${reason}`
 		},
 
@@ -342,12 +628,24 @@ export default {
 		 * @return {string} The reason, or the empty string.
 		 */
 		lockReason(event, channel) {
+			return this.lockReasonFor(event, channel, GLOBAL_SCOPE)
+		},
+
+		/**
+		 * Why a cell on one row is locked, in words.
+		 *
+		 * @param {object} event The event.
+		 * @param {object} channel The channel.
+		 * @param {string} scope The scope of this row.
+		 * @return {string} The reason, or the empty string.
+		 */
+		lockReasonFor(event, channel, scope = GLOBAL_SCOPE) {
 			const availability = this.cellAvailability(event, channel)
 			if (availability.usable === false) {
 				return availability.reason || this.unavailableText
 			}
 
-			const resolved = this.cell(event, channel)
+			const resolved = this.cellFor(event, channel, scope)
 			if (resolved.editable === true) {
 				return ''
 			}
@@ -372,12 +670,37 @@ export default {
 		 * @return {string} The sentence.
 		 */
 		sourceText(event, channel) {
-			const locked = this.lockReason(event, channel)
+			return this.sourceTextFor(event, channel, GLOBAL_SCOPE)
+		},
+
+		/**
+		 * What a cell on one row says under its toggle.
+		 *
+		 * @param {object} event The event.
+		 * @param {object} channel The channel.
+		 * @param {string} scope The scope of this row.
+		 * @return {string} The sentence.
+		 */
+		sourceTextFor(event, channel, scope = GLOBAL_SCOPE) {
+			const locked = this.lockReasonFor(event, channel, scope)
 			if (locked !== '') {
 				return locked
 			}
 
-			const level = this.cell(event, channel).level
+			const narrow = valueForScope({
+				values: this.scopedValues,
+				eventId: event?.id,
+				channelId: channel?.id,
+				scope,
+			})
+			if (scope !== GLOBAL_SCOPE && narrow.scope === GLOBAL_SCOPE) {
+				// Said out loud, because an unanswered narrower question looks
+				// exactly like an answered one: the checkbox shows the same
+				// state either way.
+				return t('nextcloud-vue', 'Follows the row above')
+			}
+
+			const level = this.cellFor(event, channel, scope).level
 			if (level === PREFERENCE_LEVELS.PERSONAL) {
 				return t('nextcloud-vue', 'Your choice')
 			}
@@ -414,11 +737,12 @@ export default {
 		 * @param {object} event The event.
 		 * @param {object} channel The channel.
 		 * @param {Event} domEvent The change event.
+		 * @param {string} scope The scope of the row it is on.
 		 */
-		onToggle(event, channel, domEvent) {
+		onToggle(event, channel, domEvent, scope = GLOBAL_SCOPE) {
 			// Refuse from here too, not only in the template. A disabled
 			// attribute is a rendering; this is the rule.
-			if (this.isLocked(event, channel)) {
+			if (this.isLockedFor(event, channel, scope)) {
 				return
 			}
 
@@ -429,8 +753,137 @@ export default {
 			this.$emit('change', {
 				eventId: event.id,
 				channelId: channel.id,
+				scope,
 				value: domEvent?.target?.checked === true,
 			})
+		},
+
+		/**
+		 * A scope was added to a row, from the row itself.
+		 *
+		 * @param {object} event The event.
+		 * @param {Event} domEvent The change event.
+		 */
+		onAddScope(event, domEvent) {
+			const scope = String(domEvent?.target?.value ?? '')
+			if (scope === '') {
+				return
+			}
+
+			// Back to the placeholder, so the control reads as an action
+			// rather than as a setting that now says something.
+			if (domEvent?.target) {
+				domEvent.target.value = ''
+			}
+
+			/**
+			 * @event add-scope A row was narrowed.
+			 * @type {object}
+			 */
+			this.$emit('add-scope', { eventId: event.id, scope })
+		},
+
+		/**
+		 * What a channel's digest is set to.
+		 *
+		 * @param {object} channel The channel.
+		 * @return {object} `{ mode, timeOfDay }`.
+		 */
+		digestFor(channel) {
+			const set = this.digest?.[channel?.id]
+			return {
+				mode: String(set?.mode ?? 'off'),
+				timeOfDay: String(set?.timeOfDay ?? ''),
+			}
+		},
+
+		/**
+		 * The digest mode was changed.
+		 *
+		 * @param {object} channel The channel.
+		 * @param {Event} domEvent The change event.
+		 */
+		onDigestMode(channel, domEvent) {
+			this.$emit('digest-change', {
+				channelId: channel.id,
+				mode: String(domEvent?.target?.value ?? 'off'),
+				timeOfDay: this.digestFor(channel).timeOfDay,
+			})
+		},
+
+		/**
+		 * The digest time was changed.
+		 *
+		 * @param {object} channel The channel.
+		 * @param {Event} domEvent The change event.
+		 */
+		onDigestTime(channel, domEvent) {
+			this.$emit('digest-change', {
+				channelId: channel.id,
+				mode: this.digestFor(channel).mode,
+				timeOfDay: String(domEvent?.target?.value ?? ''),
+			})
+		},
+
+		/**
+		 * The last test send on a channel, or null when there has been none.
+		 *
+		 * @param {object} channel The channel.
+		 * @return {?object} `{ ok, message }`.
+		 */
+		testResultFor(channel) {
+			const result = this.testResults?.[channel?.id]
+			return result === undefined || result === null ? null : result
+		},
+
+		/**
+		 * What a test send reported.
+		 *
+		 * @param {object} channel The channel.
+		 * @return {string} The sentence.
+		 */
+		testResultText(channel) {
+			const result = this.testResultFor(channel)
+			if (result === null) {
+				return ''
+			}
+			if (String(result.message ?? '') !== '') {
+				return String(result.message)
+			}
+			// Only when the server sent no sentence of its own. A refusal
+			// without a reason still has to say it was a refusal.
+			return result.ok === true
+				? t('nextcloud-vue', 'The test arrived.')
+				: t('nextcloud-vue', 'The test did not arrive.')
+		},
+
+		/**
+		 * What the test button is called.
+		 *
+		 * @param {object} channel The channel.
+		 * @return {string} The accessible name.
+		 */
+		testSendLabel(channel) {
+			return t('nextcloud-vue', 'Send a test over {channel}', { channel: channel.label })
+		},
+
+		/**
+		 * What the add-a-scope control is called.
+		 *
+		 * @param {object} event The event.
+		 * @return {string} The accessible name.
+		 */
+		addScopeLabel(event) {
+			return t('nextcloud-vue', 'Set {event} for one kind of case', { event: event.label })
+		},
+
+		/**
+		 * A test send was asked for.
+		 *
+		 * @param {object} channel The channel.
+		 */
+		onTestSend(channel) {
+			this.$emit('test-send', { channelId: channel.id })
 		},
 	},
 }
@@ -468,6 +921,20 @@ export default {
 	padding: 8px 0;
 	cursor: pointer;
 	color: var(--color-main-text);
+}
+
+.cn-notification-preferences__scope {
+	padding-inline-start: 24px !important;
+	font-weight: normal;
+}
+
+.cn-notification-preferences__row--scoped th,
+.cn-notification-preferences__row--scoped td {
+	border-block-end-style: dotted;
+}
+
+.cn-notification-preferences__test {
+	margin-block-start: 4px;
 }
 
 .cn-notification-preferences__note {
