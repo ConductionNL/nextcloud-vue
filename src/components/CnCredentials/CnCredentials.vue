@@ -64,7 +64,7 @@
 					<span class="cn-credentials__tile-dot" :style="dotStyle(req.provider)">{{ providerInitial(req.provider) }}</span>
 					<span class="cn-credentials__request-body">
 						<span class="cn-credentials__request-provider">{{ providerTitle(req.provider) }}</span>
-						<span v-if="req.reason" class="cn-credentials__request-reason">{{ req.reason }}</span>
+						<span v-if="req.reason" class="cn-credentials__request-reason">{{ reasonText(req.reason) }}</span>
 					</span>
 				</li>
 			</ul>
@@ -266,17 +266,29 @@ const CREDENTIALS_PATH = '/apps/openregister/api/credentials'
 const PROVIDERS_PATH = '/apps/openregister/api/credentials/providers'
 
 /**
+ * The app ids the credential vault answers to, newest first. The app is being
+ * renamed from `doriath` to `keepiq` across the fleet, so both names are live
+ * and only the instance knows which one it runs.
+ */
+const VAULT_APP_IDS = ['keepiq', 'doriath']
+
+/**
  * Hardcoded per-provider presentation. Keyed by the OpenRegister catalogue
  * identifier. `colour` drives the tile; `setupHelp`/`setupUrl` explain how to
  * obtain the secret; `secretLabel` names the field. Providers not listed here
  * still work — they render a neutral tile from their identifier.
+ *
+ * An app that needs different access than this default describes passes
+ * `providerMeta` and overrides the keys it cares about. The catalogue here is
+ * what most apps need, not what every app needs: a token that only reads is
+ * right for browsing a catalogue and wrong for publishing to it.
  */
 const PROVIDER_META = {
 	github: {
 		title: 'GitHub',
 		colour: '#1f2328',
 		setupUrl: 'https://github.com/settings/personal-access-tokens',
-		setupHelp: 'Create a fine-grained personal access token with read-only access to the repositories or organisation this app should reach, then paste it below.',
+		setupHelp: 'Create a fine-grained personal access token for the repositories or organisation this app reaches. Publishing needs Administration and Contents set to read and write, plus Metadata read-only. Reading public repositories needs read access only. Paste the token below.',
 		secretLabel: 'Personal access token',
 	},
 	gitlab: {
@@ -359,13 +371,29 @@ export default {
 
 		/**
 		 * Optional link target explaining the Keepiq vault. Defaults to the
-		 * Keepiq app route; pass '' to hide the link.
+		 * route of whichever vault app this instance has installed; pass '' to
+		 * hide the link.
 		 *
 		 * @type {string}
 		 */
 		vaultUrl: {
 			type: String,
 			default: null,
+		},
+
+		/**
+		 * Per-provider presentation overrides, keyed by provider identifier and
+		 * merged over the built-in catalogue. An app that needs other access
+		 * than the default describes says so here, for example
+		 * `{ github: { setupHelp: 'Give the token Contents read and write.' } }`.
+		 * Recognised keys: `title`, `colour`, `setupUrl`, `setupHelp`,
+		 * `secretLabel`.
+		 *
+		 * @type {object}
+		 */
+		providerMeta: {
+			type: Object,
+			default: () => ({}),
 		},
 	},
 
@@ -410,7 +438,14 @@ export default {
 		},
 
 		/**
-		 * Resolved Keepiq link (explicit prop, or the app route by default).
+		 * Resolved vault link: the explicit prop, else the route of whichever
+		 * vault app this instance actually runs.
+		 *
+		 * The vault app is mid-rename across the fleet, so its id is `keepiq`
+		 * on one instance and `doriath` on the next. A hardcoded id is a link
+		 * that 404s wherever the other name is live, which is why the id comes
+		 * from the app roots Nextcloud publishes. When neither app is
+		 * installed there is no page to open, so the link is left out.
 		 *
 		 * @return {string} URL or ''.
 		 */
@@ -418,7 +453,12 @@ export default {
 			if (this.vaultUrl === '') {
 				return ''
 			}
-			return this.vaultUrl || generateUrl('/apps/doriath')
+			if (this.vaultUrl) {
+				return this.vaultUrl
+			}
+			const roots = (typeof window !== 'undefined' && window.OC && window.OC.appswebroots) || {}
+			const installed = VAULT_APP_IDS.find((id) => roots[id] !== undefined)
+			return installed ? generateUrl(`/apps/${installed}`) : ''
 		},
 
 		/**
@@ -430,7 +470,8 @@ export default {
 		 */
 		providerGrid() {
 			const serverIds = this.providers.map((p) => p.identifier)
-			let ids = serverIds.length ? serverIds : Object.keys(PROVIDER_META)
+			const known = Object.keys({ ...PROVIDER_META, ...(this.providerMeta || {}) })
+			let ids = serverIds.length ? serverIds : known
 			// When the app declares which providers it uses (appCredentials),
 			// only offer those — an app should not let you add a credential for
 			// a provider it has no code path to use.
@@ -493,7 +534,7 @@ export default {
 		 * @return {object} Provider meta (may be a neutral fallback).
 		 */
 		activeMeta() {
-			return PROVIDER_META[this.form.provider] || {}
+			return this.metaFor(this.form.provider)
 		},
 
 		/**
@@ -721,15 +762,53 @@ export default {
 		},
 
 		/**
-		 * Human-readable provider title — hardcoded catalogue first, then the
-		 * server title, then the raw identifier.
+		 * The app's own words for why it needs a credential, in the reader's
+		 * language.
+		 *
+		 * The reason comes from the consuming app's manifest, so its
+		 * translations live in that app's bundle, not this library's. Looking
+		 * it up under `appId` is what lets a Dutch reader see Dutch; the plain
+		 * English source was showing through on every localised instance.
+		 * Without a match the source string is returned unchanged.
+		 *
+		 * @param {string} reason The manifest reason text.
+		 * @return {string} The translated reason, or the source text.
+		 */
+		reasonText(reason) {
+			if (!reason) {
+				return ''
+			}
+			return t(this.appId || 'nextcloud-vue', reason)
+		},
+
+		/**
+		 * Presentation metadata for one provider: the built-in catalogue with
+		 * the app's `providerMeta` overrides on top.
+		 *
+		 * @param {string} identifier The provider identifier.
+		 * @return {object} Provider meta (may be empty for an unknown provider).
+		 */
+		metaFor(identifier) {
+			if (!identifier) {
+				return {}
+			}
+			return {
+				...(PROVIDER_META[identifier] || {}),
+				...((this.providerMeta || {})[identifier] || {}),
+			}
+		},
+
+		/**
+		 * Human-readable provider title — catalogue and app overrides first,
+		 * then the server title, then the raw identifier.
 		 *
 		 * @param {string} identifier The provider identifier.
 		 * @return {string} A display title.
 		 */
 		providerTitle(identifier) {
-			if (PROVIDER_META[identifier] && PROVIDER_META[identifier].title) {
-				return PROVIDER_META[identifier].title
+			const meta = this.metaFor(identifier)
+			if (meta.title) {
+				return meta.title
 			}
 			const match = this.providers.find((p) => p.identifier === identifier)
 			return (match && match.title) || identifier || ''
@@ -753,7 +832,7 @@ export default {
 		 * @return {object} A style binding.
 		 */
 		dotStyle(identifier) {
-			const colour = (PROVIDER_META[identifier] && PROVIDER_META[identifier].colour) || 'var(--color-primary-element)'
+			const colour = this.metaFor(identifier).colour || 'var(--color-primary-element)'
 			return { backgroundColor: colour }
 		},
 
