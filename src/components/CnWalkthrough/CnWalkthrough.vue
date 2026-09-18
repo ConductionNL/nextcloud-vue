@@ -605,14 +605,10 @@ export default {
 					this.wt.skip()
 					return
 				}
-				// A nav-item/page target may be absent because it lives in a
-				// collapsed nav group (children not rendered). Best-effort expand
-				// the group so the MutationObserver below catches the now-rendered
-				// target and re-locates it.
-				const tgtKind = (this.step.target && this.step.target.kind) || ''
-				if (tgtKind === 'nav-item' || tgtKind === 'page') {
-					this.revealTarget()
-				}
+				// Genuinely not in the DOM (nothing to reveal) — wait for it to
+				// appear. A target hidden by a collapsed nav group is handled by
+				// computeRect()'s zero-size check below instead, since `el` is
+				// resolvable there and revealTarget() can walk up from it.
 				this.observeForTarget()
 				this.rect = null
 				return
@@ -672,85 +668,41 @@ export default {
 		},
 
 		/**
-		 * Best-effort expand collapsed NcAppNavigation groups so a target nested
-		 * inside one renders (and becomes measurable). A collapsed group keeps its
-		 * children in the DOM but `display:none`, so the target can't be located or
-		 * measured and the engine would otherwise fall back to a centered coachmark.
-		 *
-		 * Scoped to the app navigation. Robust across `@nextcloud/vue` markup
-		 * variants: it primarily clicks any `[aria-expanded="false"]` toggle that
-		 * is not a menu trigger (an NcActions button reports the same state and
-		 * would pop a menu over the navigation), then falls back to the collapse
-		 * button of any collapsible group that is not in the opened state. Attempted at most once per step (guarded by
-		 * `_revealAttempted`, reset in teardownStep) to avoid an expand/observe loop.
+		 * Expand only the collapsed nav groups that are actual ancestors of
+		 * `this.targetEl` (already resolved, just `display:none`'d by a
+		 * collapsed parent), instead of scanning the whole navigation.
+		 * Attempted at most once per step (`_revealAttempted`, reset in
+		 * teardownStep).
 		 *
 		 * @return {void}
 		 */
 		revealTarget() {
-			if (this._revealAttempted) {
+			if (this._revealAttempted || !this.targetEl) {
 				return
 			}
 			this._revealAttempted = true
-			const nav = document.querySelector('.app-navigation') || document.querySelector('#app-navigation')
-			if (!nav) {
-				return
+			const click = (btn) => {
+				if (btn && typeof btn.click === 'function') {
+					try {
+						btn.click()
+					} catch { /* jsdom / detached */ }
+				}
 			}
-			const clicked = new Set()
-			const click = (el) => {
-				if (!el || clicked.has(el) || typeof el.click !== 'function') {
-					return
+			// Walk every ancestor (not just .closest() jumps) since a nav group
+			// and the Settings foldout use different container markup and can
+			// nest either way.
+			let node = this.targetEl.parentElement
+			while (node) {
+				if (node.classList.contains('app-navigation-entry--collapsible')) {
+					click(node.querySelector('button.icon-collapse, .app-navigation-entry__children-toggle, .app-navigation-entry__collapse'))
+				} else if (node.matches?.('[data-testid="cn-nav-settings"]')) {
+					// NcAppNavigationSettings: CSS-module classes are hashed at
+					// build time, so aria-expanded is the only stable handle on
+					// its own toggle button.
+					click(node.querySelector('button[aria-expanded]'))
 				}
-				clicked.add(el)
-				try {
-					el.click()
-				} catch { /* jsdom / detached */ }
+				node = node.parentElement
 			}
-			// A collapsed-looking control that is NOT a navigation-group or
-			// foldout toggle: an NcActions trigger carries
-			// `aria-expanded="false"` too, and clicking it pops a menu over the
-			// navigation at the moment the engine is trying to expose a target —
-			// covering the very row the spotlight is about to frame. Reveal must
-			// open containers, never menus. Two selectors are enough for the
-			// fleet: NcActions marks its own trigger `action-item__menutoggle`
-			// inside `.action-item`, and a per-entry menu sits in
-			// `.app-navigation-entry__actions`. A `.v-popper__reference` was
-			// listed here too and could never match — floating-vue emits
-			// `v-popper`, `v-popper__popper` and `v-popper__inner`, and no
-			// `__reference` class at all, so it only made the rule look wider
-			// than it was.
-			const isMenuTrigger = (el) => el.closest('.action-item, .app-navigation-entry__actions') !== null
-			// Primary signal: any collapse toggle reporting a collapsed state.
-			nav.querySelectorAll('[aria-expanded="false"]').forEach((el) => {
-				if (isMenuTrigger(el)) {
-					return
-				}
-				// Prefer a real button toggle inside the same COLLAPSIBLE GROUP over
-				// the link that carries the state. With no collapsible ancestor the
-				// element IS the toggle — an NcAppNavigationSettings foldout button
-				// is the fleet's case, and it is where `section: "settings"` menu
-				// items live. Falling back to `group = nav` there searched the whole
-				// navigation in document order and clicked the first
-				// collapsed-looking button anywhere in it (an unrelated NcActions
-				// trigger, say), leaving the real foldout shut — so the step's target
-				// never became measurable and the tour stalled on a full dim.
-				const group = el.closest('.app-navigation-entry--collapsible')
-				const btn = group
-					? group.querySelector('button.icon-collapse, .app-navigation-entry__children-toggle, .app-navigation-entry__collapse, button[aria-expanded="false"]')
-					: null
-				click(btn || el)
-			})
-			// Fallback: collapsible groups not yet opened (older markup without
-			// aria-expanded on the toggle — collapsed state is the absent
-			// `--opened` / `open` class on the wrapper).
-			nav.querySelectorAll('.app-navigation-entry--collapsible').forEach((group) => {
-				if (group.classList.contains('app-navigation-entry--opened') || group.classList.contains('open')) {
-					return
-				}
-				const btn = group.querySelector('button.icon-collapse, .app-navigation-entry__children-toggle, .app-navigation-entry__collapse')
-				if (btn) {
-					click(btn)
-				}
-			})
 		},
 
 		/**

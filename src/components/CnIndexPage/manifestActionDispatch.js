@@ -1,4 +1,4 @@
-import { isExternalActionTarget } from '../../utils/actionsDispatcher.js'
+import { isExternalActionTarget, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 
 /**
  * Substitute `{field}` row tokens in a single manifest param value.
@@ -60,10 +60,11 @@ function resolveRowToken(value, row) {
  *   - `emit` → null (page still bubbles `@action`).
  *   - `none` → no-op handler. Caller must also suppress the `@action` emit
  *     (handled via the `_dispatchSuppress` flag set in dispatchAction).
- *   - Anything else → looked up in `customComponents`; wrapped if a function.
+ *   - Anything else → looked up in the v2 registry, then `customComponents`;
+ *     wrapped if a function.
  *
  * @param {object} action Manifest action descriptor.
- * @param {{ router: object, rowKey: string, customComponents: object }} ctx Dispatch context (router, rowKey, customComponents registry).
+ * @param {{ router: object, rowKey: string, registry?: object, customComponents: object }} ctx Dispatch context (router, rowKey, the v2 registry and the legacy customComponents map).
  * @return {((row?: object) => void)|null}
  */
 export function resolveActionHandler(action, ctx) {
@@ -145,15 +146,15 @@ export function resolveActionHandler(action, ctx) {
 		return () => {}
 	}
 
-	const fn = ctx.customComponents[name]
+	const fn = resolveRegisteredHandler(name, ctx.registry, ctx.customComponents)
 	if (typeof fn === 'function') {
 		return (row) => fn({ actionId: action.id, item: row })
 	}
-	if (fn !== undefined) {
+	if ((ctx.registry || {})[name] !== undefined || (ctx.customComponents || {})[name] !== undefined) {
 		// eslint-disable-next-line no-console
 		console.warn(`[CnIndexPage] action.handler "${name}" resolved to a non-function in `
-			+ 'customComponents — components belong to slot overrides; falling '
-			+ 'back to @action-only.')
+			+ 'the registry or customComponents — components belong to slot '
+			+ 'overrides; falling back to @action-only.')
 	}
 	return null
 }

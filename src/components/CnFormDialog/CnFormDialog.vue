@@ -2403,7 +2403,7 @@ export default {
 						this.dynamicDriverValue(this.formData[key]),
 						this.formData,
 					)
-					const records = await store.fetchCollection(slug, params)
+					const records = await store.fetchCollectionForOptions(slug, params)
 					// Kept for the confirm payload. Array-mode declarations
 					// store the definition's NAME beside its value on the
 					// parent, and the answers alone carry only ids.
@@ -2596,7 +2596,7 @@ export default {
 				if (!store.objectTypeRegistry[slug]) {
 					store.registerObjectType(slug, field.reference.schema, register)
 				}
-				const results = await store.fetchCollection(slug, params)
+				const results = await store.fetchCollectionForOptions(slug, params)
 				const list = Array.isArray(results) ? results : []
 				const labels = {}
 				const options = list
@@ -2779,7 +2779,10 @@ export default {
 				if (uuid === null || uuid === undefined || uuid === '') {
 					return null
 				}
-				return { id: uuid, label: this.referenceLabels[uuid] || String(uuid) }
+				const label = this.referenceLabels[uuid] || String(uuid)
+				// NcSelectUsers reads `displayName`, not `label` — a user field's
+				// selected option needs both.
+				return this.isUserField(field) ? { id: uuid, label, displayName: label } : { id: uuid, label }
 			}
 			if (this.isAsyncEnum(field)) {
 				// For async fields, formData stores the full option object

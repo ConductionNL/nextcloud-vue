@@ -92,6 +92,45 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
 
+// Raw input on the map container, which is what tells a user's pan or zoom from
+// ours. Leaflet's own `movestart` / `zoomstart` fire for `fitBounds` too, so
+// they cannot separate the two; these events Leaflet never synthesises.
+const VIEW_GESTURE_EVENTS = ['mousedown', 'touchstart', 'wheel', 'keydown']
+
+// Nextcloud sends `Referrer-Policy: no-referrer` on every page, and OpenStreetMap's
+// tile CDN answers a refererless request with a "not following the tile usage policy"
+// tile instead of the map. An `<img>`-level policy overrides the document's, and
+// `origin` sends only the scheme+host, never the path a case id could sit in.
+const TILE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
+/**
+ * Apply the tile defaults a consumer did not set.
+ *
+ * @param {object} opts Leaflet layer options, already shallow-copied.
+ * @return {object} The same object, with `referrerPolicy` defaulted.
+ */
+function withTileDefaults(opts) {
+	if (opts.referrerPolicy === undefined) {
+		opts.referrerPolicy = TILE_REFERRER_POLICY
+	}
+	return opts
+}
+
+/**
+ * A comparable snapshot of one config value, for the render watchers.
+ *
+ * @param {*} value The config value.
+ * @return {string|object} A stable string; a fresh object when it will not
+ *   serialise, which always compares unequal and so keeps rendering.
+ */
+function configKey(value) {
+	try {
+		return JSON.stringify(value ?? null)
+	} catch {
+		return {}
+	}
+}
+
 // Fallback background used when the consumer configures no `basemaps` and no
 // `tile`/`wms` entry in `layers` — otherwise the map paints white. Consuming
 // apps MUST allow this host in their Content-Security-Policy `img-src`
@@ -241,7 +280,9 @@ export default {
 		},
 
 		/**
-		 * Auto-fit map bounds to all loaded features after first load.
+		 * Frame the map on every loaded feature. Applies on load and on each
+		 * marker update until the user pans or zooms themselves, after which
+		 * their view is kept and only the `Fit all markers` control re-frames.
 		 *
 		 * @type {boolean}
 		 */
@@ -369,6 +410,8 @@ export default {
 			clusterGroup: null,
 			leafletAvailable: true,
 			boundsTimer: null,
+			// Set once the user has framed the view themselves; stops autoFit.
+			userFramedView: false,
 			// Controls / sizing
 			isFullscreen: false,
 			controlBar: null,
@@ -420,29 +463,37 @@ export default {
 			}
 			return this.cfg.clustering
 		},
+
+		/**
+		 * Comparable snapshot of the layer config.
+		 *
+		 * The render watchers read `cfg`, which reads every prop, and a `deep`
+		 * watcher fires whenever its effect re-runs rather than when its value
+		 * changes — so a new marker set rebuilt the base tile layer and the map
+		 * went white until the tiles came back. A key the watcher can actually
+		 * compare renders only on a real change.
+		 */
+		layersKey() {
+			return configKey(this.cfg.layers)
+		},
+
+		markersKey() {
+			return configKey(this.cfg.markers)
+		},
 	},
 
 	watch: {
-		// Watch the resolved config so both flat-prop and `content`-blob updates
-		// re-render the affected layer set.
-		'cfg.layers': {
-			handler() {
-				if (this.map) {
-					this.renderLayers()
-				}
-			},
-
-			deep: true,
+		// Keyed, never `deep: true` — see `layersKey`.
+		layersKey() {
+			if (this.map) {
+				this.renderLayers()
+			}
 		},
 
-		'cfg.markers': {
-			handler() {
-				if (this.map) {
-					this.renderMarkers()
-				}
-			},
-
-			deep: true,
+		markersKey() {
+			if (this.map) {
+				this.renderMarkers()
+			}
 		},
 
 		// Re-plot when the centre moves, but only while the centre pin is on —
@@ -475,6 +526,11 @@ export default {
 	beforeUnmount() {
 		clearTimeout(this.boundsTimer)
 		clearTimeout(this.resizeTimer)
+		if (this.$refs.mapEl) {
+			for (const type of VIEW_GESTURE_EVENTS) {
+				this.$refs.mapEl.removeEventListener(type, this.onViewGesture, { capture: true })
+			}
+		}
 		if (this.resizeObserver) {
 			this.resizeObserver.disconnect()
 			this.resizeObserver = null
@@ -498,6 +554,13 @@ export default {
 				zoomControl: true,
 				attributionControl: true,
 			})
+
+			// Capture, because Leaflet stops propagation on its own handles.
+			if (this.$refs.mapEl) {
+				for (const type of VIEW_GESTURE_EVENTS) {
+					this.$refs.mapEl.addEventListener(type, this.onViewGesture, { capture: true, passive: true })
+				}
+			}
 
 			this.map.on('click', (e) => {
 				/**
@@ -618,12 +681,12 @@ export default {
 					if (typeof def.url !== 'string' || def.url.length === 0) {
 						continue
 					}
-					instance = L.tileLayer(def.url, opts)
+					instance = L.tileLayer(def.url, withTileDefaults(opts))
 				} else if (def.type === 'wms') {
 					if (typeof def.url !== 'string' || def.url.length === 0) {
 						continue
 					}
-					instance = L.tileLayer.wms(def.url, opts)
+					instance = L.tileLayer.wms(def.url, withTileDefaults(opts))
 				} else if (def.type === 'wfs') {
 					if (typeof def.url !== 'string' || def.url.length === 0) {
 						continue
@@ -817,7 +880,12 @@ export default {
 				this.markerLayer = layer
 			}
 
-			if (this.cfg.autoFit) {
+			// Not once per render: a consumer that reloads its markers (a filter,
+			// a poll, a save) re-renders them, and fitting again threw away
+			// whatever the user had panned or zoomed to. Their framing wins from
+			// the moment they touch the map; the Fit all markers control brings
+			// this one back on request.
+			if (this.cfg.autoFit && !this.userFramedView) {
 				// Wait a tick so the container has its final box — fill-height layouts
 				// and the hidden→visible view toggle both settle after render.
 				// fitToMarkers() then measures before it fits.
@@ -846,7 +914,7 @@ export default {
 					&& (l.type === 'tile' || l.type === 'wms')
 					&& typeof l.url === 'string' && l.url.length > 0)
 				if (!hasTileLayer) {
-					const fallback = L.tileLayer(DEFAULT_BASEMAP.url, { ...DEFAULT_BASEMAP.options })
+					const fallback = L.tileLayer(DEFAULT_BASEMAP.url, withTileDefaults({ ...DEFAULT_BASEMAP.options }))
 					fallback.addTo(this.map)
 					this.layerInstances.push(fallback)
 				}
@@ -859,7 +927,7 @@ export default {
 				if (bm.attribution && !opts.attribution) {
 					opts.attribution = bm.attribution
 				}
-				const instance = L.tileLayer(bm.url, opts)
+				const instance = L.tileLayer(bm.url, withTileDefaults(opts))
 				baseLayers[bm.name || `${index + 1}`] = instance
 				// Only the first base map is live on load; the switcher swaps in the rest.
 				if (index === 0) {
@@ -929,6 +997,13 @@ export default {
 
 			this.controlBar = new ControlBar({ position: 'topleft' })
 			this.controlBar.addTo(this.map)
+		},
+
+		/**
+		 * Hand the view to the user: `autoFit` stops re-framing from here on.
+		 */
+		onViewGesture() {
+			this.userFramedView = true
 		},
 
 		/**
@@ -1146,6 +1221,9 @@ export default {
 .cn-map-widget__leaflet {
 	width: 100%;
 	height: 100%;
+	/* Leaflet paints its container #ddd, which reads as a white flash before the
+	   tiles arrive — and a bright one in a dark theme. */
+	background: var(--color-background-dark);
 }
 
 .cn-map-widget__fallback {

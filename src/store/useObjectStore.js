@@ -654,6 +654,45 @@ const baseActions = {
 	},
 
 	/**
+	 * Fetch a collection of objects WITHOUT touching `collections[type]` /
+	 * `pagination[type]` / `loading[type]` / `errors[type]`.
+	 *
+	 * `fetchCollection` and this method share a `type` slug keyed only by
+	 * register+schema, not by query — so a caller fetching the SAME type
+	 * with different params (e.g. a reference-field picker loading option
+	 * results, unfiltered and unpaged) would otherwise clobber the state a
+	 * self-fetch `CnIndexPage` for that exact type is reactively bound to.
+	 * That collision is real whenever a schema references itself (a case's
+	 * "Parent case" field pointing back at `case`): opening the create
+	 * dialog silently overwrote the open list's rows and count with the
+	 * picker's own result set. Use this for any lookup whose results are
+	 * not meant to drive a list view.
+	 *
+	 * @param {string} type The registered type slug
+	 * @param {object} [params] Query parameters (_limit, _page, _search, _order, filters)
+	 * @return {Promise<Array>} The fetched results, never written to store state
+	 */
+	async fetchCollectionForOptions(type, params = {}) {
+		try {
+			const url = this._buildUrlWithParams(type, params)
+			const response = await fetch(url, {
+				method: 'GET',
+				headers: this._buildHeaders(),
+			})
+
+			if (!response.ok) {
+				discardResponseBody(response)
+				return []
+			}
+
+			const data = await response.json()
+			return data.results || data
+		} catch {
+			return []
+		}
+	},
+
+	/**
 	 * Fetch a single object by type and ID.
 	 *
 	 * @param {string} type The registered type slug

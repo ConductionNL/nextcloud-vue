@@ -70,21 +70,21 @@ const DEFINITION_TYPE = 'dossiq/propertyDefinition'
  * whole mock afterwards has no effect.
  *
  * @param {Array<object>} [records] The definition records the fetch answers with.
- * @return {{fetchCollection: Function, definitionCalls: Function, state: object}} The mock handle.
+ * @return {{fetchCollectionForOptions: Function, definitionCalls: Function, state: object}} The mock handle.
  */
 function mockStore(records = definitions) {
 	const state = { definitions: records }
-	const fetchCollection = jest.fn((type) => Promise.resolve(type === DEFINITION_TYPE ? state.definitions : []))
+	const fetchCollectionForOptions = jest.fn((type) => Promise.resolve(type === DEFINITION_TYPE ? state.definitions : []))
 	useObjectStore.mockReturnValue({
-		fetchCollection,
+		fetchCollectionForOptions,
 		createObjectTypeSlug: (register, schema) => `${register}/${schema}`,
 		registerObjectType: jest.fn(),
 		objectTypeRegistry: {},
 		fetchObject: jest.fn(() => Promise.resolve(null)),
 	})
 	/** Every call that asked for definitions, ignoring the picker's own. */
-	const definitionCalls = () => fetchCollection.mock.calls.filter(([type]) => type === DEFINITION_TYPE)
-	return { fetchCollection, definitionCalls, state }
+	const definitionCalls = () => fetchCollectionForOptions.mock.calls.filter(([type]) => type === DEFINITION_TYPE)
+	return { fetchCollectionForOptions, definitionCalls, state }
 }
 
 function mountForm(propsData = {}) {
@@ -209,11 +209,11 @@ describe('CnFormDialog data-driven fields', () => {
 			resolveFirst = resolve
 		})
 		const responses = [first, Promise.resolve([{ id: 'def-late', name: 'Locatie', propertyType: 'string' }])]
-		const fetchCollection = jest.fn((type) => (
+		const fetchCollectionForOptions = jest.fn((type) => (
 			type === DEFINITION_TYPE ? responses.shift() : Promise.resolve([])
 		))
 		useObjectStore.mockReturnValue({
-			fetchCollection,
+			fetchCollectionForOptions,
 			createObjectTypeSlug: (r, s) => `${r}/${s}`,
 			registerObjectType: jest.fn(),
 			objectTypeRegistry: {},
@@ -234,7 +234,7 @@ describe('CnFormDialog data-driven fields', () => {
 
 	it('renders no questions when the fetch fails, rather than a form missing one it never showed', async () => {
 		useObjectStore.mockReturnValue({
-			fetchCollection: jest.fn(() => Promise.reject(new Error('offline'))),
+			fetchCollectionForOptions: jest.fn(() => Promise.reject(new Error('offline'))),
 			createObjectTypeSlug: (r, s) => `${r}/${s}`,
 			registerObjectType: jest.fn(),
 			objectTypeRegistry: {},

@@ -36,6 +36,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `quickFilters` | Array | `null` | [Self-fetch mode](#self-fetch-mode) only — array of `\{ label, filter, default?, icon? \}` rendered as a tab strip above the table (see [CnQuickFilterBar](./cn-quick-filter-bar.md)). The active tab's `filter` is merged into every fetch *after* `filter` (the tab wins on a colliding key) and *before* the user's `activeFilters` (which still narrow within the active tab). String values follow the same `"@route.<name>"` resolution as `filter`. First entry with `default:true` (else index 0) is active on mount; switching tabs re-fetches at page 1 and emits `@quick-filter-change`. Fed from `pages[].config.quickFilters`. |
 | `quickFilterMode` | String | `'chips'` | How the quick filters render: `'chips'` (pill strip) or `'dropdown'` (a single `NcSelect`; the empty-filter "All" tab is dropped). Fed from `pages[].config.quickFilterMode`. |
 | `quickFilterMultiple` | Boolean | `false` | Allow several quick filters active at once. Selected tabs' filters are OR-ed together into the fetch (same field → array value → `field[]=` IN query). Fed from `pages[].config.quickFilterMultiple`. |
+| `quickFilterMaxVisible` | Number | `0` | Chips mode only: how many quick-filter pills render inline before the rest move behind one more chip — a `⋯` pill that opens a panel of the hidden lenses. `0` renders every tab, which wraps the actions bar onto a second line once a page declares more than a handful. The visible set is the first *n* entries of `quickFilters`. Fed from `pages[].config.quickFilterMaxVisible`. |
 | `pagination` | Object | `null` | Pagination state (`\{ currentPage, totalPages, totalItems, pageSize \}`) |
 | `loading` | Boolean | `false` | Loading state |
 | `loadingText` | String | `'Loading…'` | Accessible label for the loading spinner (NcLoadingIcon aria-label) |
@@ -58,8 +59,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `excludeColumns` | Array | `[]` | Schema columns to hide |
 | `includeColumns` | Array | `null` | Schema columns to show (whitelist) |
 | `columnOverrides` | Object | `\{\}` | Per-column overrides |
-| `actions` | Array | `[]` | Custom row action definitions. Each entry accepts the runtime `{label, icon, handler, …}` shape (function-typed `handler` fires directly) AND the manifest shape with a string `handler` resolved through `customComponents` — see "Action handlers" below. |
-| `customComponents` | Object | `null` | Custom-component / handler registry. When set takes precedence over the injected `cnCustomComponents` from a CnAppRoot ancestor. Used to resolve `actions[].handler` registry names (manifest-actions-dispatch). |
+| `actions` | Array | `[]` | Custom row action definitions. Each entry accepts the runtime `{label, icon, handler, …}` shape (function-typed `handler` fires directly) AND the manifest shape with a string `handler` resolved through the v2 `registry` first, then `customComponents` — see "Action handlers" below. |
+| `customComponents` | Object | `null` | Custom-component / handler registry. When set takes precedence over the injected `cnCustomComponents` from a CnAppRoot ancestor. Used to resolve `actions[].handler` registry names (manifest-actions-dispatch). Named handlers resolve out of the v2 `registry` (a `kind: "handler"` entry) FIRST and fall back to this map. |
 | `emptyText` | String | `'No items found'` | Empty state message |
 | `rowClass` | Function | `null` | CSS class provider for rows |
 | `addLabel` | String | `''` | Add button label |
@@ -70,6 +71,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showMassDelete` | Boolean | `true` | Show mass delete action |
 | `allowExport` | Boolean | `false` | Opt-in flag for the native Export menu (CSV/Excel) rendered next to the Add button. Renders only when `true` AND the resolved schema is flagged `exportable: true`; navigates to `GET /apps/openregister/api/objects/{register}/{schema}/export`, passing `$route.query` through as filters. Distinct from `showMassExport`, which exports the fetched/selected rows via a blob download instead. |
 | `allowSavedViews` | Boolean | `false` | Opt-in flag for the saved-views control (saved-views-ui): a Views dropdown listing the user's OpenRegister saved-search views (`GET /apps/openregister/api/views`). Applying a view writes its stored filters/search/sort into the route query (non-underscore keys are filters; `_search`/`_sortKey`/`_sortOrder` are reserved); "Save current view…" persists the current route-query state via `POST /apps/openregister/api/views`; own views can be deleted after confirmation. Emits `apply-view` when a view is applied. |
+| `savedViewsScope` | String | `''` | Which pages share this page's saved views. By default a view is shared by every page over the same `register` and `schema` and shown on no other page, since a view is filters over one schema's fields. Set a name to share views across pages over different sources, or to keep two pages over one source apart. Written into the saved view's `query.scope` on save; views saved before scoping existed carry no scope and stay visible everywhere. |
 | `massActionNameField` | String | `'title'` | Field for display names in mass action dialogs |
 | `nameFormatter` | Function | `null` | Optional function `(item) => string` to format item names in dialogs. Overrides `massActionNameField` when provided. Passed to all delete and copy dialogs. |
 | `exportFormats` | Array | `[]` | Available export formats |
@@ -80,12 +82,17 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `createOverride` | Function | `null` | Opt-in async create hook. When set, a **create** confirmed from the built-in form dialog calls `await createOverride(formData, ctx)` instead of the store / self-store `saveObject`. The override owns persistence (e.g. an app posting through a contact-aware endpoint that fills a required FK before saving to OpenRegister) and must return the created object on success (falsy = failure; throwing surfaces the error in the dialog). `ctx` is `{ register, schema, objectType, effectiveSchema }`. Edits are never routed here; when absent, create behaviour is unchanged. See [Per-schema create-override hook](#per-schema-create-override-hook). |
 | `showViewAction` | Boolean | `true` | Show the built-in View row action. Emits a dedicated `@view` event — independent of `@row-click`. Set to `false` when the row has no separate "open detail" target. On a named `entitySource` page the effective default is `false` — the source's own open action navigates to the detail page, which is the view; an explicit prop still wins. |
 | `showEditAction` | Boolean | `true` | Show the built-in Edit row action. On a named `entitySource` page the effective default is `false` — a source has no schema, so the form modal could only render empty; the source declares its own Edit, which navigates. An explicit prop still wins. |
-| `editOpensDetail` | Boolean | `false` | Send the Edit row action to the record's detail page (emits `@edit-open`) instead of opening the edit modal. `CnPageRenderer` sets this automatically when a `type:"detail"` page exists for the same register+schema, or when `config.rowRoute` is set — the same signal that makes a row click open the record. Leave `false` when there is nowhere to go, or the record has no edit surface at all. |
+| `editOpensDetail` | Boolean | `false` | Send the Edit row action to the record's detail page (emits `@edit-open`) instead of opening the edit modal. Opt-in only — `CnPageRenderer` does **not** derive it, because `@edit-open` is bound to the same navigation as a row click, so an Edit that routes only repeats the row click (the split pane, or the detail page) and the form stops being reachable from the list. Declare it per page when the modal cannot express the record. |
 | `showCopyAction` | Boolean | `true` | Show copy row action. On a named `entitySource` page the effective default is whether the source implements `copyRow` (the built-in copy dialog then confirms through it); an explicit prop still wins. |
 | `showDeleteAction` | Boolean | `true` | Show delete row action. On a named `entitySource` page the effective default is whether the source implements `deleteRow` (the built-in delete dialog then confirms through it); an explicit prop still wins. |
 | `excludeFields` | Array | `[]` | Form fields to hide |
 | `includeFields` | Array | `null` | Form fields to show (whitelist) |
 | `fieldOverrides` | Object | `\{\}` | Per-field overrides |
+| `formSize` | String | `'normal'` | NcDialog size for the built-in Add/Edit form dialog (`'small'`/`'normal'`/`'large'`) |
+| `formColumns` | Number | `1` | How many columns the built-in Add/Edit form flows its fields into (`1` or `2`) |
+| `createDefaults` | Object | `null` | Seed values for the built-in create dialog only (never edit). Resolves `@me`/`@now`/`@today` at any depth; `@object.*`/`@workspace.*`/`@config.*` are not resolved here and pass through unchanged. |
+| `createSuccessRoute` | String \| Object | `null` | Route opened after a successful create from the built-in Add dialog; the created object's id is merged into the params. |
+| `createSuccessMessage` | String | `''` | Toast shown after a successful create from the built-in Add dialog. |
 | `showAdd` | Boolean | `true` | Show the Add button in the actions bar |
 | `addDisabled` | Boolean | `false` | Disable the Add button (e.g. when required selections are missing) |
 | `refreshDisabled` | Boolean | `false` | Disable the refresh button (e.g. when required selections are missing) |
@@ -104,7 +111,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `visibleColumns` | Array | `null` | Currently visible column keys forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
 | `activeFilters` | Object | `\{\}` | Currently active facet filters `\{ fieldName: [values] \}` forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
 | `register` | String | `''` | Effective register slug for the page. Forwarded as a prop to the resolved `cardComponent` so bespoke card UIs can match the schema → register pair. Manifest-driven path: `pages[].config.register` flows in via `CnPageRenderer`. |
-| `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the `customComponents` registry on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log a `console.warn` once and fall back to the default so a misconfigured manifest never blanks the grid. See [Bespoke card-grid](#bespoke-card-grid-via-cardcomponent) below. |
+| `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the v2 `registry` — any kind carrying a `component` — or in the legacy `customComponents` map on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log a `console.warn` once and fall back to the default so a misconfigured manifest never blanks the grid. See [Bespoke card-grid](#bespoke-card-grid-via-cardcomponent) below. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 
 ## Split view
@@ -116,6 +123,8 @@ A page declaring `splitView` opens a row beside the list rather than instead of 
 | `splitView` | Object | `{}` | `{ enabled, breakpoint, paneWidth }`. Without `enabled` the page renders exactly as it does today. |
 | `splitId` | String | `''` | The record the pane shows, taken from the split address. Empty closes the pane. |
 | `splitCloseRoute` | String | `''` | Route name the pane's close button returns to. Defaults to the page the route names. |
+| `splitCloseButton` | Boolean | `true` | Whether the pane draws its own close button, at the top of the pane on the inline end. Set false only when the `#split-pane` slot draws one from the slot's `close`. |
+| `splitCloseLabel` | String | `''` | Accessible name and tooltip for that button. Defaults to `Close`. |
 | `manualOrder` | Boolean | `false` | Lets this person drag the rows into an order of their own, held per user and per list. |
 | `manualOrderId` | String | `''` | Stable id the order is held under. Defaults to the object type or the schema. |
 
@@ -162,7 +171,7 @@ A manual order is stored against the person and the list, never onto the records
 | `add` | — | Add button clicked (backward compat) |
 | `create` | `formData` | Form dialog create confirmed. When store integration is active, payload is the saved object returned by the store. |
 | `edit` | `formData` | Form dialog edit confirmed. When store integration is active, payload is the saved object returned by the store. |
-| `edit-open` | `row` | Emitted **instead of** opening the edit modal when `editOpensDetail` is set. The host navigates to the record's detail page, where the whole record — not just its scalar fields — can be edited. `CnPageRenderer` binds this to the same navigation as `@view`. |
+| `edit-open` | `row` | Emitted **instead of** opening the edit modal when `editOpensDetail` is set. The host navigates to the record's detail page, where the whole record — not just its scalar fields — can be edited. `CnPageRenderer` binds this to the same navigation as `@view`, which is why `editOpensDetail` is opt-in: derived, it made Edit indistinguishable from opening the row. |
 | `delete` | `id` | Single delete confirmed |
 | `copy` | `\{ id, newName \}` | Single copy confirmed |
 | `mass-delete` | `ids[]` | Mass delete confirmed |
@@ -632,7 +641,14 @@ flips.
 
 ## Action handlers (manifest-actions-dispatch)
 
-`actions[]` items declared in `pages[].config.actions` (manifest path) accept a string `handler` that resolves through the `customComponents` registry passed to `CnAppRoot` / `CnPageRenderer`. The same registry already used to resolve `headerComponent` / `actionsComponent` / slot overrides.
+`actions[]` items declared in `pages[].config.actions` (manifest path) accept a string `handler`, and so do `bulkActions[]` and `headerActions[]`. All three resolve the name the same way: the v2 `registry` first — an entry of `kind: "handler"` exposing the function as `.handler` (or `.fn`), or a directly function-valued entry — then the deprecated `customComponents` map, which keeps an app that has not migrated working unchanged. A name that matches something registered but uncallable (a component where a function belongs) warns and falls back to emit-only; an unknown name falls back silently.
+
+```js
+// registry.js — the v2 home for a manifest-named behaviour
+export default {
+  claimCase: { kind: 'handler', handler: claimCase },
+}
+```
 
 ### Registry-name handler
 
@@ -654,7 +670,7 @@ Manifest declaration:
 }
 ```
 
-Registry entry (e.g. `src/customComponents.js`):
+Registry entry (`src/registry.js`):
 
 ```js
 export function queueProcessHandler({ actionId, item }) {
@@ -664,7 +680,7 @@ export function queueProcessHandler({ actionId, item }) {
 
 export default {
   // …existing component entries…
-  queueProcessHandler,
+  queueProcessHandler: { kind: 'handler', handler: queueProcessHandler },
 }
 ```
 
@@ -708,9 +724,9 @@ contactpersoon block, and a CTA button — point the manifest at a
 consumer-provided card component:
 
 ```js
-// src/customComponents.js
+// src/registry.js
 import OrganisatieCard from './components/cards/OrganisatieCard.vue'
-export const customComponents = \{ OrganisatieCard \}
+export default \{ OrganisatieCard: \{ kind: 'page', component: OrganisatieCard \} \}
 ```
 
 ```vue
@@ -718,7 +734,7 @@ export const customComponents = \{ OrganisatieCard \}
 <CnAppRoot
   :manifest="manifest"
   app-id="softwarecatalog"
-  :custom-components="customComponents">
+  :registry="registry">
   <router-view />
 </CnAppRoot>
 ```
@@ -803,7 +819,7 @@ The list view (`view-mode="list"`) and standalone sort dropdown add these props:
 | `listLabel` | String | `''` | Label for the list view-toggle option. |
 | `listIcon` | String | `''` | MDI icon for the list view-toggle option. |
 | `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
-| `listComponent` | String | `''` | Custom row component (customComponents registry). |
+| `listComponent` | String | `''` | Custom row component, resolved against the v2 `registry` (any kind carrying a `component`) and then the legacy `customComponents` map. |
 | `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown in the actions bar. |
 | `sortSelectOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
 | `sortSelectValue` | String | `''` | Selected sort dropdown value (controlled). |
@@ -812,7 +828,7 @@ The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override 
 
 ## Folder sidebar
 
-Set the `folderSidebar` config to render a folder navigation pane left of the list. Selecting a folder filters the list by the config's `filterField` (via the self-fetch filter); "All" clears it. Emits `@folder-change` with the selected id (and `@folder-create` when the opt-in New-folder button is used).
+Set the `folderSidebar` config to render a folder navigation pane left of the list. Selecting a folder filters the list by the config's `filterField` (via the self-fetch filter); "All" clears it. Emits `@folder-change` with the selected id (and `@folder-create` when the opt-in New-folder button is used). While a folder is selected the pane keeps showing the whole set of folders it saw before the selection, so switching from one folder to another is one click; the live facet of the narrowed query would otherwise list the selected folder alone.
 
 Sources: `register` (fetch the folder list from an OpenRegister `register`/`schema`, mapping `idField`/`nameField`), `field` (distinct values of the current rows' `field`), `custom` (explicit `folders`), or `files` (Nextcloud folders). Example — case types as folders that filter cases:
 

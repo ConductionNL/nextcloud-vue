@@ -94,19 +94,26 @@
 				#selection-actions="{ count, selectedIds: ids }">
 				<slot name="selection-actions" :count="count" :selectedIds="ids" />
 			</template>
-			<template v-if="$slots['header-actions'] || $slots['actions'] || isEditMode || showExportMenu || allowSavedViews" #actions>
+			<template v-if="$slots['header-actions'] || $slots['actions']" #actions>
 				<!--
 					@slot header-actions
 					@description Extra buttons in the page header, inline next to the Add button. Documented since the beginning but wired up only later — consumers passing it (hermiq's flow list's "New flow" button) rendered nothing while the page looked fine.
 				-->
 				<slot name="header-actions" />
 				<slot name="actions" />
+			</template>
+			<!-- Rendered AFTER the primary Add button (CnActionsBar's `actions-end`
+			     slot), not before it: these are "browse/manage" controls — saved
+			     views, export, page config — grouped together and kept apart from
+			     the app-specific buttons in `#actions`, with Add sitting between
+			     the two groups rather than before both (dossiq Cases/Queue). -->
+			<template v-if="isEditMode || showExportMenu || allowSavedViews" #actions-end>
 				<!-- Saved views (opt-in via `allowSavedViews`): lists the user's
 				     OpenRegister saved-search views; applying one writes its stored
 				     filters/search/sort into the route query. -->
 				<CnSavedViewsControl
 					v-if="allowSavedViews"
-					:views="savedViews"
+					:views="visibleSavedViews"
 					:loading="savedViewsLoading"
 					:currentUserId="currentSavedViewsUserId"
 					@apply="onApplySavedView"
@@ -157,6 +164,7 @@
 					inline
 					:tabs="effectiveQuickFilters"
 					:mode="quickFilterMode"
+					:maxVisible="quickFilterMaxVisible"
 					:multiple="quickFilterMultiple"
 					:activeIndex="activeQuickFilterIndex"
 					:selectedIndices="selectedQuickFilterIndices"
@@ -302,6 +310,7 @@
 				:nameField="massActionNameField"
 				:size="formSize"
 				:columns="formColumns"
+				:initialData="resolvedCreateDefaults"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog">
 				<template v-if="$slots['form-fields']" #form="scope">
@@ -317,6 +326,7 @@
 				:includeFields="includeFields"
 				:fieldOverrides="fieldOverrides"
 				:nameField="massActionNameField"
+				:initialValues="resolvedCreateDefaults"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog" />
 		</slot>
@@ -477,6 +487,7 @@
 					:layers="mapLayers"
 					:basemaps="mapBasemaps"
 					:markers="mapMarkers"
+					:clustering="mapClustering"
 					:autoFit="true"
 					height="100%"
 					@markerClick="onMarkerClick" />
@@ -607,6 +618,19 @@
 				:style="splitLayout === 'split' ? { width: splitPaneWidth } : null"
 				data-testid="cn-index-page-split-pane"
 				:data-split-layout="splitLayout">
+				<!-- An <a>, not a button: closing the pane pushes the list's
+				     route, so the browser supplies middle-click and open-in-new-tab
+				     while `.prevent` keeps the plain click in-app. -->
+				<a
+					v-if="splitCloseVisible"
+					class="cn-index-page__split-close"
+					:href="splitCloseHref"
+					:title="splitCloseTitle"
+					data-testid="cn-index-page-split-close"
+					@click.prevent="closeSplitPane">
+					<Close :size="16" />
+					<span>{{ splitCloseTitle }}</span>
+				</a>
 				<!-- @slot split-pane The open record, rendered beside the list. Mount the SAME detail component the full route mounts. -->
 				<!-- @binding {string} id The record the address names. -->
 				<!-- @binding {string} layout Either `split` (beside the list) or `detail` (the full page, below the breakpoint). -->
@@ -651,7 +675,8 @@
 			@update:open="sidebarOpen = $event"
 			@search="onSearchEvent"
 			@columnsChange="onColumnsEvent"
-			@filterChange="onFilterEvent" />
+			@filterChange="onFilterEvent"
+			@clearFilters="onClearFilters" />
 	</div>
 </template>
 
@@ -660,6 +685,7 @@ import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Export from 'vue-material-design-icons/Export.vue'
@@ -670,9 +696,11 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
+import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
-import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery } from '../../utils/savedViewHelpers.js'
+import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
@@ -893,6 +921,7 @@ function namedFilterToQuery(values) {
  * @event {string} search — Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  * @event {string[]} columns-change — Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  * @event {{ key: string, values: Array<unknown> }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event {void} clear-filters — "Clear all" clicked in the embedded sidebar. Search, every active filter and the folder-sidebar selection are reset (self-fetch mode); a consumer-managed page gets the bare event to handle itself.
  *
  * @slot mass-actions — Extra mass action buttons (shown when items are selected)
  * @slot action-items — Extra action bar buttons
@@ -921,6 +950,7 @@ export default {
 		NcActionCaption,
 		NcActionCheckbox,
 		NcButton,
+		Close,
 		Cog,
 		DatabaseSearch,
 		Export,
@@ -967,6 +997,14 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/**
+		 * The v2 component registry, provided by CnAppRoot. Named handlers
+		 * (`actions[].handler`, `bulkActions[].handler`,
+		 * `headerActions[].handler`) resolve here first and fall back to
+		 * `cnCustomComponents`, so an app can register a `kind: 'handler'`
+		 * entry instead of a bare function in the legacy map.
+		 */
+		cnRegistry: { default: () => ({}) },
 		/**
 		 * The per-user preference reader and writer, provided by CnAppRoot.
 		 * Used for the manual row order, which belongs to the person and the
@@ -1113,6 +1151,19 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Chips mode only: how many quick-filter pills render inline before the
+		 * rest move into an overflow menu. `0` (the default) renders every tab.
+		 * A long strip wraps the actions bar onto a second line and squeezes the
+		 * "Showing X of Y" count, so a page with many lenses caps this and keeps
+		 * the everyday few in view. Sourced from
+		 * `pages[].config.quickFilterMaxVisible`.
+		 */
+		quickFilterMaxVisible: {
+			type: Number,
+			default: 0,
+		},
+
 		/** Manual column definitions (used instead of schema when provided) */
 		columns: {
 			type: Array,
@@ -1247,6 +1298,27 @@ export default {
 		 * @type {string}
 		 */
 		splitCloseRoute: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Whether the pane draws its own close link. Set false when the
+		 * `#split-pane` slot draws one from the slot's `close`.
+		 *
+		 * @type {boolean}
+		 */
+		splitCloseButton: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Accessible name and tooltip for the pane's close button.
+		 *
+		 * @type {string}
+		 */
+		splitCloseLabel: {
 			type: String,
 			default: '',
 		},
@@ -1528,6 +1600,20 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Which pages share this page's saved views. By default a view is
+		 * shared by every page over the same register and schema and by no
+		 * other page, because a view is filters over one schema's fields. Set
+		 * this to share views across pages over different sources, or to
+		 * keep two pages over the same source apart. Written into the saved
+		 * view's `query.scope`; views saved before scoping stay visible
+		 * everywhere.
+		 */
+		savedViewsScope: {
+			type: String,
+			default: '',
+		},
+
 		/** Property name used to display item names in dialogs */
 		massActionNameField: {
 			type: String,
@@ -1598,6 +1684,43 @@ export default {
 		},
 
 		/**
+		 * Seed values for the built-in create dialog. Never applied on edit:
+		 * both dialogs consult `initialData` / `initialValues` only when there
+		 * is no item. Values resolve `@me` / `@now` / `@today` at any depth;
+		 * `@object.*` / `@workspace.*` / `@config.*` need a context this page
+		 * does not carry, so they pass through unresolved.
+		 *
+		 * @type {object|null}
+		 */
+		createDefaults: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Where to go after a successful create from the built-in Add dialog.
+		 * A route name, or `{ name, paramField?, objectParam? }`; the created
+		 * object's id is merged into the params. Empty stays on the list.
+		 *
+		 * @type {string|object|null}
+		 */
+		createSuccessRoute: {
+			type: [String, Object],
+			default: null,
+		},
+
+		/**
+		 * Toast shown after a successful create from the built-in Add dialog,
+		 * run through the host `cnTranslate`. Empty shows none.
+		 *
+		 * @type {string}
+		 */
+		createSuccessMessage: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Opt-in async create hook. When provided, a **create** (not edit)
 		 * confirmed from the built-in form dialog calls
 		 * `await createOverride(formData, ctx)` INSTEAD of persisting via the
@@ -1655,17 +1778,15 @@ export default {
 		 * opening the edit modal, by emitting `edit-open` rather than showing
 		 * the form dialog.
 		 *
-		 * A record that HAS a detail page has two places to be edited, and the
-		 * modal is the worse of them: it shows the schema's flat scalar fields
-		 * and nothing else, so anything the record composes — related rows,
-		 * sub-resources, tabs — is uneditable from the index and invisible
-		 * while you edit. `CnPageRenderer` sets this automatically when the
-		 * manifest declares a `type:"detail"` page for the same
-		 * register+schema (or the index sets `config.rowRoute`), which is the
-		 * same signal that already makes a row click open the record.
+		 * OFF by default, and `CnPageRenderer` no longer derives it: the host
+		 * binds `@edit-open` to the same navigation as a row click, so an Edit
+		 * that routes is an Edit that does what clicking the row does — the
+		 * split pane, or the detail page — while the form it names becomes
+		 * unreachable from the list.
 		 *
-		 * Leave false when there is nowhere to go: the modal is then the only
-		 * edit surface and removing it would make the record read-only.
+		 * Set it when the modal genuinely cannot express the record and you
+		 * accept the duplication: it renders the schema's flat scalars only, so
+		 * related rows, sub-resources and tabs stay uneditable there.
 		 */
 		editOpensDetail: {
 			type: Boolean,
@@ -1983,8 +2104,9 @@ export default {
 		 *
 		 * Resolution priority (highest first):
 		 *   1. The parent's `#card` scoped slot (always wins).
-		 *   2. The component resolved from `cardComponent` against the
-		 *      effective customComponents registry.
+		 *   2. The component resolved from `cardComponent` against the v2
+		 *      `registry` (any kind carrying a `component`), then the legacy
+		 *      customComponents map.
 		 *   3. The library default (`CnObjectCard`).
 		 *
 		 * Unknown names log `console.warn` once and fall back to the
@@ -1998,8 +2120,9 @@ export default {
 		},
 
 		/**
-		 * Name of a custom row component for list view, resolved against the
-		 * customComponents registry (manifest `pages[].config.listComponent`).
+		 * Name of a custom row component for list view, resolved against the v2
+		 * `registry` and then the legacy customComponents map (manifest
+		 * `pages[].config.listComponent`).
 		 * Same resolution priority as `cardComponent`: the `#list-item` slot
 		 * wins, then this component, then the default `CnObjectRow`. Unknown
 		 * names warn once and fall back to the default.
@@ -2036,8 +2159,9 @@ export default {
 		 * `{ id, label, icon?, handler?, route?, disabled? }`. The
 		 * `handler` field mirrors the row-level
 		 * `actions[].handler` pattern: a function, the keyword
-		 * `'navigate'`, `'emit'`, `'none'`, or a string registry
-		 * lookup against the resolved `customComponents`. The page
+		 * `'navigate'`, `'emit'`, `'none'`, or a string name looked
+		 * up in the v2 `registry` (a `kind: 'handler'` entry) and
+		 * then in the legacy `customComponents`. The page
 		 * dispatches the resolved handler via `onHeaderAction` AND
 		 * (unless the handler is the `'none'` keyword) emits
 		 * `@header-action({ action: id, id })`.
@@ -2113,6 +2237,7 @@ export default {
 		'add',
 		'apply-view',
 		'bulk-action',
+		'clear-filters',
 		'columns-change',
 		'configure',
 		'copy',
@@ -2204,6 +2329,13 @@ export default {
 			internalSelectedIds: [...this.selectedIds],
 			// Folder-sidebar state: selected folder id + the register-fetched list.
 			selectedFolderId: null,
+			/**
+			 * The grouping field's facet as last seen with NO folder selected:
+			 * the whole set of folders, kept on screen while one is selected.
+			 *
+			 * @type {Array<object>}
+			 */
+			folderSidebarAllValues: [],
 			folderRegisterList: [],
 			// Mass action dialogs
 			showMassDeleteDialog: false,
@@ -2278,15 +2410,15 @@ export default {
 		},
 
 		/**
-		 * Effective customComponents registry — the explicit prop wins
-		 * over the injected `cnCustomComponents`. Mirrors the priority
-		 * used by `cardComponent` resolution and `actions[].handler`
-		 * dispatch.
+		 * The same map as `effectiveCustomComponents`, under the name the
+		 * header-action and bulk-action paths have always used. One of the two
+		 * computeds has to be the other, or a change to the resolution order
+		 * lands on half the surfaces.
 		 *
 		 * @return {object}
 		 */
 		resolvedCustomComponents() {
-			return this.customComponents || this.cnCustomComponents || {}
+			return this.effectiveCustomComponents
 		},
 
 		/**
@@ -2442,6 +2574,45 @@ export default {
 		},
 
 		/**
+		 * Whether to draw the pane's close link. Needs a router: closing pushes
+		 * the list route, so without one it would do nothing.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		splitCloseVisible() {
+			return this.splitCloseButton && Boolean(this.$router)
+		},
+
+		/**
+		 * Accessible name and tooltip for the pane's close link.
+		 *
+		 * @return {string}
+		 */
+		splitCloseTitle() {
+			return this.splitCloseLabel || t('nextcloud-vue', 'Close')
+		},
+
+		/**
+		 * The list's own address. Falls back to `#` rather than no href: an
+		 * `<a>` without one is not focusable.
+		 *
+		 * @return {string}
+		 */
+		splitCloseHref() {
+			const target = this.splitCloseRoute || this.$route?.meta?.cnPageId || null
+			if (!target || typeof this.$router?.resolve !== 'function') {
+				return '#'
+			}
+			try {
+				return this.$router.resolve({ name: target, query: this.$route?.query || {} }).href || '#'
+			} catch {
+				// An unknown route name throws rather than answering.
+				return '#'
+			}
+		},
+
+		/**
 		 * Whether a manual row order applies right now. A search, a filter or
 		 * a sort the person just chose all mean they asked for a different
 		 * order, and a held order that quietly overruled it would read as the
@@ -2541,7 +2712,7 @@ export default {
 		 *
 		 * @return {Array<object>} Normalised facet values, or [] when none.
 		 */
-		folderSidebarFacetValues() {
+		folderSidebarLiveFacetValues() {
 			const field = this.folderSidebarGroupBy
 			if (!field) {
 				return []
@@ -2553,6 +2724,23 @@ export default {
 				|| {}
 
 			return facets[field]?.values || []
+		},
+
+		/**
+		 * The folders to show: the live facet, except while a folder is
+		 * selected. Selecting one filters the query by the grouping field, so
+		 * the live facet then holds that one value and every other folder
+		 * would vanish, which makes switching folders impossible. The set seen
+		 * before the selection stands in until it is cleared.
+		 *
+		 * @return {Array<object>} Normalised facet values.
+		 */
+		folderSidebarFacetValues() {
+			const selected = this.selectedFolderId !== null && this.selectedFolderId !== undefined
+			if (selected && this.folderSidebarAllValues.length > 0) {
+				return this.folderSidebarAllValues
+			}
+			return this.folderSidebarLiveFacetValues
 		},
 
 		/**
@@ -2666,6 +2854,26 @@ export default {
 				})
 			}
 			return { features, popupField: this.mapConfig.popupField }
+		},
+
+		/**
+		 * Whether to cluster the plotted markers. ON unless `mapConfig.clustering`
+		 * says otherwise, which is the opposite of `CnMapWidget`'s own default.
+		 *
+		 * An index map plots the whole filtered result set, and rows sharing one
+		 * address is the normal case here, not an edge case — several permits on a
+		 * building, a street of complaints. Unclustered, those markers stack at
+		 * identical pixels: the topmost swallows every click and the rest are
+		 * unreachable with nothing on screen saying they exist. Clustering shows the
+		 * count and, since all children stay in one cluster down to max zoom,
+		 * markercluster spiderfies them into a fan on click instead of zooming
+		 * uselessly. Non-point geometry skips the cluster group entirely, so areas
+		 * are unaffected.
+		 *
+		 * @return {boolean}
+		 */
+		mapClustering() {
+			return this.mapConfig.clustering !== false
 		},
 
 		/**
@@ -2803,6 +3011,24 @@ export default {
 		 *
 		 * @return {string}
 		 */
+		/**
+		 * The page as `savedViewScope` and `viewMatchesScope` take it.
+		 *
+		 * @return {{ scope: string, register: string, schema: object|string|null }} The page's source.
+		 */
+		savedViewsPage() {
+			return { scope: this.savedViewsScope, register: this.register, schema: this.schema }
+		},
+
+		/**
+		 * The fetched views that belong on this page.
+		 *
+		 * @return {Array<object>} The views to offer.
+		 */
+		visibleSavedViews() {
+			return this.savedViews.filter((view) => viewMatchesScope(view, this.savedViewsPage))
+		},
+
 		currentSavedViewsUserId() {
 			const user = getCurrentUser()
 			return (user && user.uid) || ''
@@ -3079,6 +3305,16 @@ export default {
 		},
 
 		/**
+		 * The v2 registry a named handler resolves against before the legacy
+		 * customComponents map.
+		 *
+		 * @return {object}
+		 */
+		effectiveRegistry() {
+			return this.cnRegistry ?? {}
+		},
+
+		/**
 		 * Merged actions: app-provided first, then built-in defaults.
 		 *
 		 * REQ-MAD-3 / REQ-MAD-4 / REQ-MAD-5 / REQ-MAD-6 / REQ-MAD-7
@@ -3092,6 +3328,7 @@ export default {
 			const ctx = {
 				router: this.$router,
 				rowKey: this.rowKey,
+				registry: this.effectiveRegistry,
 				customComponents: this.effectiveCustomComponents,
 			}
 			// Drop anything that is not an action OBJECT. A bare string — the
@@ -3201,6 +3438,21 @@ export default {
 				.map((name) => name.replace('column-', ''))
 		},
 
+		/**
+		 * `createDefaults`, token-resolved. `resolveDeepTokens` rather than the
+		 * shallow filter-map resolver: a seed record is arbitrary JSON, so a
+		 * token can sit inside a nested object or an array of them.
+		 *
+		 * @return {object|null}
+		 */
+		resolvedCreateDefaults() {
+			const seed = this.createDefaults
+			if (!seed || typeof seed !== 'object' || Array.isArray(seed)) {
+				return null
+			}
+			return resolveDeepTokens(seed, {})
+		},
+
 		/** Add button label — derived from schema.title if not explicitly set */
 		resolvedAddLabel() {
 			if (this.addLabel) {
@@ -3308,10 +3560,10 @@ export default {
 			if (!this.cardComponent) {
 				return null
 			}
-			const resolved = this.effectiveCustomComponents[this.cardComponent]
+			const resolved = this.resolveNamedComponent(this.cardComponent)
 			if (!resolved) {
 				// eslint-disable-next-line no-console
-				console.warn(`[CnIndexPage] cardComponent "${this.cardComponent}" not found in customComponents registry. Falling back to CnObjectCard.`)
+				console.warn(`[CnIndexPage] cardComponent "${this.cardComponent}" not found in the registry or customComponents. Falling back to CnObjectCard.`)
 				return null
 			}
 			return resolved
@@ -3328,10 +3580,10 @@ export default {
 			if (!this.listComponent) {
 				return null
 			}
-			const resolved = this.effectiveCustomComponents[this.listComponent]
+			const resolved = this.resolveNamedComponent(this.listComponent)
 			if (!resolved) {
 				// eslint-disable-next-line no-console
-				console.warn(`[CnIndexPage] listComponent "${this.listComponent}" not found in customComponents registry. Falling back to CnObjectRow.`)
+				console.warn(`[CnIndexPage] listComponent "${this.listComponent}" not found in the registry or customComponents. Falling back to CnObjectRow.`)
 				return null
 			}
 			return resolved
@@ -3339,6 +3591,16 @@ export default {
 	},
 
 	watch: {
+		// Remember the whole folder set whenever no folder narrows the query.
+		folderSidebarLiveFacetValues: {
+			immediate: true,
+			handler(values) {
+				if (this.selectedFolderId === null || this.selectedFolderId === undefined) {
+					this.folderSidebarAllValues = values
+				}
+			},
+		},
+
 		viewMode(val) {
 			this.currentViewMode = val
 		},
@@ -3506,6 +3768,7 @@ export default {
 			massActionNameField: () => this.massActionNameField,
 			editItem: () => this.editItem,
 			emit: (event, payload) => this.$emit(event, payload),
+			afterCreateSuccess: (saved) => this.afterCreateSuccess(saved),
 			setResults: {
 				singleDelete: (r) => this.setSingleDeleteResult(r),
 				massDelete: (r) => this.setMassDeleteResult(r),
@@ -3718,11 +3981,41 @@ export default {
 		},
 
 		/**
+		 * Resolve a component the page config names — `cardComponent`,
+		 * `listComponent` — out of the v2 registry (any kind carrying a
+		 * `component`, as a slot lookup does) and then the legacy
+		 * customComponents map.
+		 *
+		 * @param {string} name The registered component name.
+		 * @return {object|null} The component, or null when nothing answers.
+		 */
+		resolveNamedComponent(name) {
+			const entry = this.effectiveRegistry[name]
+			if (entry && entry.component) {
+				return entry.component
+			}
+			return this.effectiveCustomComponents[name] || null
+		},
+
+		/**
+		 * Whether a handler name matches something registered that is not
+		 * callable — a named component where a function belongs. Tells a
+		 * typo (silent emit-only) apart from a mis-registration (warned).
+		 *
+		 * @param {string} name The handler name from the manifest.
+		 * @return {boolean}
+		 */
+		namesSomethingUnusable(name) {
+			const candidates = [this.effectiveRegistry[name], this.resolvedCustomComponents[name]]
+			return candidates.some((v) => v !== undefined && v !== null)
+		},
+
+		/**
 		 * Resolve a declarative `headerActions[]` entry's `handler`
 		 * field into the final dispatchable shape. Mirrors the
 		 * row-level `actions[].handler` keyword set used by
 		 * manifest-actions-dispatch — `navigate`, `emit`, `none`, or a
-		 * registry name (looked up against `resolvedCustomComponents`).
+		 * registry name (resolved through `resolveRegisteredHandler`).
 		 *
 		 * @param {object} entry Raw headerActions entry.
 		 * @return {object} Possibly-mutated copy: function-typed
@@ -3773,14 +4066,14 @@ export default {
 				return { ...entry, handler: () => {}, _dispatchSuppress: true }
 			}
 			// Registry name lookup.
-			const resolved = this.resolvedCustomComponents[handler]
+			const resolved = resolveRegisteredHandler(handler, this.effectiveRegistry, this.resolvedCustomComponents)
 			if (typeof resolved === 'function') {
 				const id = entry.id
 				return { ...entry, handler: () => resolved({ actionId: id }) }
 			}
-			if (resolved !== undefined && resolved !== null) {
+			if (this.namesSomethingUnusable(handler)) {
 				// eslint-disable-next-line no-console
-				console.warn(`CnIndexPage: headerActions[].handler "${handler}" resolved to a non-function in customComponents; falling back to emit-only`)
+				console.warn(`CnIndexPage: headerActions[].handler "${handler}" resolved to a non-function in the registry or customComponents; falling back to emit-only`)
 				const { handler: _ignored, ...rest } = entry
 				return { ...rest }
 			}
@@ -3802,7 +4095,8 @@ export default {
 		 *   - a function handler is called with `{ actionId, selectedIds, count }`
 		 *   - `open-modal` (with `target`) opens the registered modal, with the
 		 *     selection merged into its props
-		 *   - a registry name resolves against `customComponents`
+		 *   - a registry name resolves through the v2 registry, then the
+		 *     legacy `customComponents`
 		 *   - anything else falls through to emit-only
 		 *
 		 * `bulk-action` is emitted either way, so a host can listen instead of
@@ -3825,12 +4119,12 @@ export default {
 				} else if (handler === 'open-modal' || (!handler && entry.target)) {
 					this.openBulkModal(entry, selectedIds, count)
 				} else if (typeof handler === 'string' && handler !== 'emit' && handler !== 'none') {
-					const resolved = this.resolvedCustomComponents[handler]
+					const resolved = resolveRegisteredHandler(handler, this.effectiveRegistry, this.resolvedCustomComponents)
 					if (typeof resolved === 'function') {
 						resolved(scope)
-					} else if (resolved !== undefined && resolved !== null) {
+					} else if (this.namesSomethingUnusable(handler)) {
 						// eslint-disable-next-line no-console
-						console.warn(`CnIndexPage: bulkActions[].handler "${handler}" resolved to a non-function in customComponents; falling back to emit-only`)
+						console.warn(`CnIndexPage: bulkActions[].handler "${handler}" resolved to a non-function in the registry or customComponents; falling back to emit-only`)
 					}
 				}
 
@@ -3915,6 +4209,7 @@ export default {
 		onSearchEvent(value) {
 			if (this.isSelfFetchMode && typeof this.list.onSearch === 'function') {
 				this.list.onSearch(value)
+				this.persistViewStateToRoute(this.currentViewState())
 			}
 			this.$emit('search', value)
 		},
@@ -3954,38 +4249,91 @@ export default {
 		onSortEvent(payload) {
 			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') {
 				this.list.onSort(payload)
-			}
-			if (this.isSelfFetchMode) {
-				const keys = Array.isArray(payload.keys)
-					? payload.keys
-					: (payload.key ? [{ key: payload.key, order: payload.order || 'asc' }] : [])
-				this.persistSortToRoute(keys)
+				this.persistViewStateToRoute(this.currentViewState())
 			}
 			this.$emit('sort', payload)
 		},
 
 		/**
-		 * Persist the active multi-column sort to `$route.query._order`
-		 * (JSON-encoded ordered array) so a reload or a shared/bookmarked
-		 * link reproduces the same sort. An empty `keys` list removes the
-		 * param entirely. Best-effort: a duplicate-navigation rejection
-		 * (same resulting path/query) is swallowed, matching every other
-		 * `$router.replace` call in this component.
+		 * Self-fetch mode's current filters/search/sort, straight from
+		 * useListView's own reactive state — the shape `persistViewStateToRoute`
+		 * and the saved-views helpers (`buildViewCreatePayload`,
+		 * `extractViewState`) all share.
 		 *
-		 * @param {Array<{key: string, order: string}>} keys The active ordered sort-key list.
+		 * @return {{filters: object, search: string, sortKey: ?string, sortOrder: string}}
+		 */
+		currentViewState() {
+			return {
+				filters: this.list.activeFilters.value,
+				search: this.list.searchTerm.value,
+				sortKey: this.list.sortKey.value,
+				sortOrder: this.list.sortOrder.value,
+			}
+		},
+
+		/**
+		 * Persist filters + search + sort into `$route.query` in one replace,
+		 * so a reload or a shared/bookmarked link reproduces the exact same
+		 * view. Self-fetch mode only. Every non-reserved key is a filter, so
+		 * they're cleared and re-applied wholesale each call rather than
+		 * merged (otherwise a cleared filter would never leave the query).
+		 * Best-effort: a duplicate-navigation rejection (same resulting
+		 * path/query) is swallowed.
+		 *
+		 * @param {{filters?: object, search?: string, sortKey?: ?string, sortOrder?: string}} state Current view state.
 		 * @return {void}
 		 */
-		persistSortToRoute(keys) {
+		persistViewStateToRoute(state) {
 			if (!this.$router || !this.$route) {
 				return
 			}
 			const query = { ...this.$route.query }
-			if (Array.isArray(keys) && keys.length > 0) {
-				query._order = JSON.stringify(keys)
+			for (const key of Object.keys(query)) {
+				if (!key.startsWith('_')) {
+					delete query[key]
+				}
+			}
+			for (const [key, value] of Object.entries(state.filters || {})) {
+				if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
+					continue
+				}
+				query[key] = value
+			}
+			if (state.search) {
+				query._search = state.search
+			} else {
+				delete query._search
+			}
+			if (state.sortKey) {
+				query._order = JSON.stringify([{ key: state.sortKey, order: state.sortOrder || 'asc' }])
 			} else {
 				delete query._order
 			}
 			this.$router.replace({ query }).catch(() => {})
+		},
+
+		/**
+		 * "Clear all" from the sidebar: reset search, every active filter and
+		 * the folder-sidebar selection in one fetch + one route replace,
+		 * rather than one of each per field. Sort is left as-is — this clears
+		 * filters, not the whole view. Self-fetch mode only; a consumer-
+		 * managed page gets the bare event to handle itself.
+		 *
+		 * @return {void}
+		 */
+		onClearFilters() {
+			if (!this.isSelfFetchMode) {
+				this.$emit('clear-filters')
+				return
+			}
+			this.list.activeFilters.value = {}
+			this.list.searchTerm.value = ''
+			if (this.folderSidebar) {
+				this.selectedFolderId = null
+			}
+			this.list.refresh(1)
+			this.persistViewStateToRoute(this.currentViewState())
+			this.$emit('clear-filters')
 		},
 
 		/**
@@ -4006,6 +4354,7 @@ export default {
 		onFilterEvent(payload) {
 			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') {
 				this.list.onFilterChange(payload.key, payload.values)
+				this.persistViewStateToRoute(this.currentViewState())
 			}
 			// A named source keeps its own filter state: nothing else holds it,
 			// and the `activeFilters` PROP only reaches pages with a consumer
@@ -4236,6 +4585,7 @@ export default {
 					search: (event) => this.onSearchEvent(event),
 					'columns-change': (event) => this.onColumnsEvent(event),
 					'filter-change': (event) => this.onFilterEvent(event),
+					'clear-filters': () => this.onClearFilters(),
 				},
 			}
 		},
@@ -4648,20 +4998,37 @@ export default {
 		},
 
 		/**
-		 * Apply a saved view: replace the route query with the view's
-		 * stored filters/search/sort. `$router.replace` (not push) so the
-		 * browser Back button doesn't step through every applied view —
-		 * same precedent as the `?action=create` query cleanup. Dropping
-		 * the whole previous query implicitly resets `_page` to 1.
+		 * Apply a saved view. Self-fetch mode's facet/folder filters and
+		 * search/sort live in useListView's own reactive state, not the route
+		 * query, so apply them there directly. Otherwise (consumer-managed
+		 * store mode) fall back to `$router.replace` — same precedent as the
+		 * `?action=create` query cleanup, and dropping the whole previous
+		 * query implicitly resets `_page` to 1.
 		 *
 		 * @param {object} view The View API object to apply.
 		 */
 		onApplySavedView(view) {
-			const query = buildRouteQueryFromViewState(extractViewState(view))
+			const state = extractViewState(view)
+			if (this.isSelfFetchMode) {
+				// Set state directly (not via onFilterEvent/onSearchEvent per key)
+				// so applying a view is one fetch + one route replace, not one
+				// of each per changed field — and a filter the view doesn't
+				// carry is actually cleared, not left over from before.
+				this.list.activeFilters.value = { ...state.filters }
+				this.list.searchTerm.value = state.search || ''
+				const keys = state.sortKey ? [{ key: state.sortKey, order: state.sortOrder }] : []
+				this.list.sortKeys.value = keys
+				this.list.sortKey.value = keys[0]?.key ?? null
+				this.list.sortOrder.value = keys[0]?.order ?? 'asc'
+				this.list.refresh(1)
+				this.persistViewStateToRoute(state)
+				this.$emit('apply-view', view)
+				return
+			}
 			if (!this.$router) {
 				return
 			}
-			const nav = this.$router.replace({ query })
+			const nav = this.$router.replace({ query: buildRouteQueryFromViewState(state) })
 			// Swallow the duplicate-navigation rejection (Vue Router 3)
 			// when the applied view matches the current query.
 			if (nav && typeof nav.catch === 'function') {
@@ -4671,16 +5038,29 @@ export default {
 		},
 
 		/**
-		 * Persist the current route-query state as a named view via
-		 * OpenRegister's views API (CnSaveViewDialog `@confirm`). On
-		 * success the new view joins the list and the dialog closes; on
-		 * failure the dialog stays open with the error surfaced.
+		 * Persist the current state as a named view via OpenRegister's views
+		 * API (CnSaveViewDialog `@confirm`). Self-fetch mode reads its active
+		 * filters/search/sort straight from useListView's own state (they
+		 * never reach the route query); otherwise falls back to the route
+		 * query. On success the new view joins the list and the dialog
+		 * closes; on failure the dialog stays open with the error surfaced.
 		 *
 		 * @param {{ name: string, isPublic: boolean }} payload Dialog payload.
 		 */
 		async onSaveViewConfirm({ name, isPublic }) {
-			const state = extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
-			const payload = buildViewCreatePayload({ name, description: '', isPublic, isDefault: false, state })
+			const state = this.isSelfFetchMode
+				? this.currentViewState()
+				: extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
+			const payload = buildViewCreatePayload({
+				name,
+				description: '',
+				isPublic,
+				isDefault: false,
+				state,
+				scope: savedViewScope(this.savedViewsPage),
+				register: this.register,
+				schema: this.schema,
+			})
 			try {
 				const view = await useSavedViewsApi().createView(payload)
 				if (view) {
@@ -4830,6 +5210,59 @@ export default {
 			this.$emit('copy', payload)
 		},
 
+		// Lets an `advanceOn: "object-created"` walkthrough step auto-advance.
+		// No dispatch site existed anywhere before this, so that advanceOn
+		// type could never fire. `@self.register`/`@self.schema` are numeric
+		// DB ids, not the slugs a manifest's advanceOn declares, so override
+		// them with this page's own slug props before dispatching.
+		notifyWalkthroughObjectCreated(created) {
+			if (typeof window === 'undefined' || !created) {
+				return
+			}
+			const detail = { ...created, register: this.register, schema: this.exportSchemaSlug }
+			window.dispatchEvent(new CustomEvent('cn-walkthrough:object-created', { detail }))
+		},
+
+		/**
+		 * Toast and navigate after a create the built-in dialog confirmed, per
+		 * `createSuccessMessage` / `createSuccessRoute`. Both default off, so a
+		 * page that declares neither behaves exactly as before.
+		 *
+		 * Runs on every create path (store, self-store, `createOverride`), which
+		 * is what makes the built-in Add button a peer of a manifest
+		 * `open-form` header action: that action has always toasted and
+		 * navigated, so the same create reached two different endings depending
+		 * on which button opened it.
+		 *
+		 * @param {object} saved The created object, as the save path returned it.
+		 * @return {Promise<void>}
+		 */
+		async afterCreateSuccess(saved) {
+			// Callers do not await this — a toast and a navigation are not the
+			// save — so nothing here may reject: an unhandled rejection from a
+			// failed chunk load would surface as an error on a create that
+			// actually succeeded.
+			if (this.createSuccessMessage) {
+				try {
+					const { showSuccess } = await import('@nextcloud/dialogs')
+					if (typeof showSuccess === 'function') {
+						showSuccess(this.cnTranslate(this.createSuccessMessage))
+					}
+				} catch {
+					// No toast; the record is saved either way.
+				}
+			}
+			if (!this.createSuccessRoute) {
+				return
+			}
+			// `buildOnSuccessRoute` reads the id through `savedObjectId`, so a
+			// response that carries it as `uuid` or `@self.id` still deep-links.
+			const location = buildOnSuccessRoute(this.createSuccessRoute, saved)
+			if (location && this.$router) {
+				this.$router.push(location).catch(() => {})
+			}
+		},
+
 		async onFormConfirm(formData) {
 			// Opt-in create-override hook: an app supplies a custom async create
 			// handler (e.g. a contact-aware endpoint that fills a required FK)
@@ -4850,9 +5283,11 @@ export default {
 						 * @type {object} The created object.
 						 */
 						this.$emit('create', created)
+						this.notifyWalkthroughObjectCreated(created)
 						if (this.list && typeof this.list.refresh === 'function') {
 							this.list.refresh()
 						}
+						this.afterCreateSuccess(created)
 					} else {
 						this.setFormResult({ error: 'Save failed' })
 					}
@@ -4869,8 +5304,13 @@ export default {
 				}
 				const saved = await this.store.saveObject(this.objectType, formData)
 				if (saved) {
+					const wasCreate = !this.editItem
 					this.setFormResult({ success: true })
-					this.$emit(this.editItem ? 'edit' : 'create', saved)
+					this.$emit(wasCreate ? 'create' : 'edit', saved)
+					if (wasCreate) {
+						this.notifyWalkthroughObjectCreated(saved)
+						this.afterCreateSuccess(saved)
+					}
 				} else {
 					const err = this.store.getError?.(this.objectType)
 					if (err && err.isValidation) {

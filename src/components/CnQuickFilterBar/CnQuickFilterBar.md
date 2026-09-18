@@ -56,6 +56,7 @@ In `manifest.json` (the usual entry-point — CnIndexPage mounts the bar for you
 - `selectedIndices` (Array, default `[]`) — active tab indices when `multiple` is set (the array v-model).
 - `selectLabel` (String, default `'Filter'`) — accessible label / placeholder for the dropdown control.
 - `placeholder` (String) — placeholder text for the dropdown (falls back to `selectLabel`).
+- `maxVisible` (Number, default `0`) — chips mode only: how many pills render inline before the rest move behind one more chip, a `⋯` pill that opens a small panel of the hidden lenses (also as chips). `0` renders every tab. The visible set is the first `maxVisible` entries of `tabs`, so their declared order decides what stays in the strip; an active hidden tab moves its label and fill onto that chip. Manifest: `config.quickFilterMaxVisible`.
 
 ### Events
 

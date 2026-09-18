@@ -340,7 +340,7 @@ export default {
 			this.loading = true
 			try {
 				this.ensureRegistered()
-				const collection = await this.objectStore.fetchCollection(this.typeSlug, {
+				const collection = await this.objectStore.fetchCollectionForOptions(this.typeSlug, {
 					...this.activeFilters,
 					_limit: 20,
 				})
@@ -384,7 +384,7 @@ export default {
 			this.loading = true
 			try {
 				this.ensureRegistered()
-				const collection = await this.objectStore.fetchCollection(this.typeSlug, {
+				const collection = await this.objectStore.fetchCollectionForOptions(this.typeSlug, {
 					...this.activeFilters,
 					_search: this.search.trim(),
 					_limit: 20,

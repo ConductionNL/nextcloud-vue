@@ -27,9 +27,14 @@
 			data-testid="cn-saved-views-empty"
 			:name="t('nextcloud-vue', 'No saved views yet')" />
 
-		<!-- One entry per view: apply on click; own views get a delete entry. -->
+		<!-- One row per view: the name applies it; an inline trailing icon
+		     button deletes it (own views only). NcActions only recognises
+		     NcAction* vnodes as menu items (anything else is silently
+		     dropped), so a row with two interactive controls has to be an
+		     NcActionButtonGroup — the fleet's supported way to put more than
+		     one action in one row — not hand-rolled markup. -->
 		<template v-else>
-			<template v-for="view in views" :key="`view-${view.id}`">
+			<NcActionButtonGroup v-for="view in views" :key="`view-${view.id}`" class="cn-saved-view-row">
 				<NcActionButton
 					data-testid="cn-saved-views-item"
 					:data-view-id="view.id"
@@ -42,7 +47,6 @@
 				</NcActionButton>
 				<NcActionButton
 					v-if="isOwn(view)"
-					:key="`delete-${view.id}`"
 					data-testid="cn-saved-views-delete"
 					:data-view-id="view.id"
 					:aria-label="deleteLabel(view)"
@@ -50,9 +54,8 @@
 					<template #icon>
 						<TrashCanOutline :size="20" />
 					</template>
-					{{ deleteLabel(view) }}
 				</NcActionButton>
-			</template>
+			</NcActionButtonGroup>
 		</template>
 
 		<NcActionSeparator />
@@ -71,7 +74,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionCaption, NcActions, NcActionSeparator } from '@nextcloud/vue'
+import { NcActionButton, NcActionButtonGroup, NcActionCaption, NcActions, NcActionSeparator } from '@nextcloud/vue'
 import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'
@@ -90,8 +93,8 @@ import { isOwnView } from '../../utils/savedViewHelpers.js'
  *   stored filters/search/sort into the route query.
  * - `@save-request()` — "Save current view…" clicked; parent opens
  *   CnSaveViewDialog.
- * - `@delete-request(view)` — a view's delete entry clicked; parent opens
- *   a confirm dialog. Only rendered for views the current user owns
+ * - `@delete-request(view)` — a view's trailing delete icon clicked; parent
+ *   opens a confirm dialog. Only rendered for views the current user owns
  *   (`view.owner === currentUserId`) — OpenRegister refuses foreign
  *   deletes server-side anyway (owner-scoped 404).
  *
@@ -105,6 +108,7 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
+		NcActionButtonGroup,
 		NcActionCaption,
 		NcActionSeparator,
 		BookmarkOutline,
@@ -203,3 +207,28 @@ export default {
 	},
 }
 </script>
+
+<style scoped>
+/* NcActionButtonGroup gives every child `flex: 1 1` (equal width) by
+   default; override so the name button grows and the delete icon stays
+   compact. :deep() is required — these li's belong to NcActionButtonGroup's
+   own scope, not this component's. */
+.cn-saved-view-row :deep(.nc-button-group-content) {
+	gap: 0;
+}
+
+.cn-saved-view-row :deep(.nc-button-group-content > li) {
+	flex: 1 1 auto;
+}
+
+.cn-saved-view-row :deep(.nc-button-group-content > li:last-child) {
+	flex: 0 0 auto;
+}
+
+/* NcActionButtonGroup also centers .action-button content (fine for an
+   icon-only toolbar button, wrong for a row with a name) — restore the
+   normal left-aligned NcActionButton look for the name button. */
+.cn-saved-view-row :deep(.nc-button-group-content > li:first-child .action-button) {
+	justify-content: flex-start;
+}
+</style>

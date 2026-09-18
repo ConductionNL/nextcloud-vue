@@ -19,6 +19,7 @@
 | `columnsTabLabel`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'Columns')`                                      | Columns tab label                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `searchLabel`          | `string`  |          | `() =&gt; t('nextcloud-vue', 'Search')`                                       | Search section heading                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `filtersLabel`         | `string`  |          | `() =&gt; t('nextcloud-vue', 'Filters')`                                      | Filters section heading                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `clearAllLabel`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'Clear all')`                                    | "Clear all" button label, shown when search or a filter is active                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `filterFields`         | `union`   |          | `null`                                                                        | Filter declarations for a page with no schema of its own: `{ name: declaration }`, the same shape a schema property has. Wins over `schema`, and feeds the Search tab only. 🔑 A FILTER IS NOT A COLUMN, which is the whole reason this is its own prop rather than a synthetic `schema`. The schema feeds BOTH tabs, so a page that declared its filters there would also offer them in the Columns tab: the toggle would tick and no column would appear, because the table's columns come from somewhere else entirely. These reach the Search tab and nothing else. |
 | `fromLabel`            | `string`  |          | `() =&gt; t('nextcloud-vue', 'From')`                                         | Start-of-window label on a date-range filter.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `toLabel`              | `string`  |          | `() =&gt; t('nextcloud-vue', 'To')`                                           | End-of-window label on a date-range filter.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
@@ -30,13 +31,14 @@
 
 ### Events
 
-| Name             | Payload | Description |
-| ---------------- | ------- | ----------- |
-| `update:open`    | —       |             |
-| `search`         | —       |             |
-| `columns-change` | —       |             |
-| `filter-change`  | —       |             |
-| `tab-change`     | —       |             |
+| Name             | Payload | Description                                                |
+| ---------------- | ------- | ---------------------------------------------------------- |
+| `update:open`    | —       |                                                            |
+| `search`         | —       |                                                            |
+| `clear-filters`  | —       | "Clear all" clicked; reset search and every active filter. |
+| `columns-change` | —       |                                                            |
+| `filter-change`  | —       |                                                            |
+| `tab-change`     | —       |                                                            |
 
 ### Slots
 

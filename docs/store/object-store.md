@@ -55,6 +55,7 @@ Returns a `useObjectStore()` composable (Pinia `defineStore` result) with the fo
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `fetchCollection` | `(type, params?)` | Fetch paginated list for a type; results stored in state |
+| `fetchCollectionForOptions` | `(type, params?)` | Fetch a collection WITHOUT writing `collections[type]`/`pagination[type]`/`loading[type]`/`errors[type]`. Use for reference-picker/search-option lookups on a type that may also be driving a mounted `CnIndexPage` (e.g. a self-referencing schema) — `fetchCollection` would otherwise overwrite that list's rows and count. |
 | `fetchObject` | `(type, id)` | Fetch single object by type and ID; cached in state |
 | `saveObject` | `(type, objectData)` | Create (no `id`) or update (with `id`) an object |
 | `deleteObject` | `(type, id)` | Delete object by type and ID |

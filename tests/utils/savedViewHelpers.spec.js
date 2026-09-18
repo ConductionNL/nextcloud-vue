@@ -12,6 +12,9 @@ import {
 	extractViewState,
 	extractViewStateFromRouteQuery,
 	isOwnView,
+	savedViewScope,
+	schemaSlug,
+	viewMatchesScope,
 } from '../../src/utils/savedViewHelpers.js'
 
 describe('extractViewStateFromRouteQuery', () => {
@@ -200,5 +203,91 @@ describe('isOwnView', () => {
 		expect(isOwnView({ owner: 'alice' }, null)).toBe(false)
 		expect(isOwnView({ owner: 'alice' }, '')).toBe(false)
 		expect(isOwnView({}, 'alice')).toBe(false)
+	})
+})
+
+describe('savedViewScope', () => {
+	it('names the register and schema by default', () => {
+		expect(savedViewScope({ register: 'dossiq', schema: 'case' })).toBe('dossiq/case')
+		expect(savedViewScope({ register: 'dossiq', schema: { slug: 'case' } })).toBe('dossiq/case')
+	})
+
+	it('lets an explicit scope override the source', () => {
+		expect(savedViewScope({ scope: 'cases', register: 'dossiq', schema: 'case' })).toBe('cases')
+	})
+
+	it('is empty for a page with no source', () => {
+		expect(savedViewScope({})).toBe('')
+		expect(savedViewScope({ register: 'dossiq' })).toBe('')
+		expect(savedViewScope({ schema: 'case' })).toBe('')
+	})
+})
+
+describe('buildViewCreatePayload scope', () => {
+	it('writes the scope and the source into the query blob', () => {
+		const payload = buildViewCreatePayload({
+			name: 'Open',
+			state: { filters: { status: 'open' } },
+			scope: 'dossiq/case',
+			register: 'dossiq',
+			schema: { slug: 'case' },
+		})
+		expect(payload.query).toEqual({
+			filters: { status: 'open' },
+			search: '',
+			sort: null,
+			scope: 'dossiq/case',
+			registers: ['dossiq'],
+			schemas: ['case'],
+		})
+	})
+
+	it('leaves the blob as it was for a page with no source', () => {
+		const payload = buildViewCreatePayload({ name: 'Open', state: {} })
+		expect(payload.query).toEqual({ filters: {}, search: '', sort: null })
+	})
+})
+
+describe('viewMatchesScope', () => {
+	const casesPage = { register: 'dossiq', schema: { slug: 'case' } }
+	const organisationsPage = { register: 'dossiq', schema: { slug: 'kvkCompany' } }
+
+	it('shows a scoped view on the pages sharing its scope and nowhere else', () => {
+		const view = { query: { filters: {}, scope: 'dossiq/case' } }
+		expect(viewMatchesScope(view, casesPage)).toBe(true)
+		expect(viewMatchesScope(view, { ...casesPage, scope: '' })).toBe(true)
+		expect(viewMatchesScope(view, organisationsPage)).toBe(false)
+		expect(viewMatchesScope(view, {})).toBe(false)
+	})
+
+	it('honours an explicit page scope over the source', () => {
+		const view = { query: { scope: 'cases' } }
+		expect(viewMatchesScope(view, { ...organisationsPage, scope: 'cases' })).toBe(true)
+		expect(viewMatchesScope(view, casesPage)).toBe(false)
+	})
+
+	it("matches OpenRegister's own views by their schemas", () => {
+		const view = { query: { schemas: ['case'], registers: ['dossiq'], facetFilters: {} } }
+		expect(viewMatchesScope(view, casesPage)).toBe(true)
+		expect(viewMatchesScope(view, organisationsPage)).toBe(false)
+		expect(viewMatchesScope(view, { register: 'other', schema: 'case' })).toBe(false)
+		expect(viewMatchesScope({ query: { schemas: ['case'] } }, { register: 'other', schema: 'case' })).toBe(true)
+	})
+
+	it('keeps a view saved before scoping visible everywhere', () => {
+		const legacy = { query: { filters: { status: 'open' }, search: '', sort: null } }
+		expect(viewMatchesScope(legacy, casesPage)).toBe(true)
+		expect(viewMatchesScope(legacy, organisationsPage)).toBe(true)
+		expect(viewMatchesScope({ query: null }, casesPage)).toBe(true)
+		expect(viewMatchesScope(null, casesPage)).toBe(true)
+	})
+})
+
+describe('schemaSlug', () => {
+	it('reads a slug from a string or a schema object, and nothing else', () => {
+		expect(schemaSlug('case')).toBe('case')
+		expect(schemaSlug({ slug: 'case' })).toBe('case')
+		expect(schemaSlug({ title: 'Case' })).toBe('')
+		expect(schemaSlug(null)).toBe('')
 	})
 })

@@ -162,27 +162,28 @@ export function savedObjectId(saved) {
 }
 
 /**
- * Resolve a named create-override handler out of the v2 registry (or the
- * legacy customComponents map) by value shape.
+ * Resolve a manifest-named FUNCTION out of the v2 registry, falling back to the
+ * legacy customComponents map.
  *
- * A create-override is a plain async function that replaces the default
- * `objectStore.saveObject` persist path — needed whenever a schema requires a
- * field the create form cannot supply on its own (a server-minted foreign key,
- * say). Recognised shapes, in order:
- *   1. a `kind: 'create-override'` registry entry exposing `.handler` / `.fn`,
+ * A manifest names a behaviour the same way it names a component — by string —
+ * so every surface that dispatches one (`actions[].handler`,
+ * `bulkActions[].handler`, `headerActions[].handler`, `config.createOverride`)
+ * has to agree on where that string is looked up and what counts as a match.
+ * Recognised shapes, in order:
+ *   1. a registry entry exposing the function as `.handler` / `.fn` (the
+ *      `kind: 'handler'` and `kind: 'create-override'` entries),
  *   2. a directly function-valued registry entry,
  *   3. a function-valued legacy `customComponents` entry.
  *
- * Shared by CnPageRenderer (page-level `config.createOverride` → CnIndexPage's
- * prop) and CnActionButtons (per-action `createOverride` on an `open-form`), so
- * the two surfaces cannot drift on what counts as a valid handler.
+ * The legacy map stays last so an app that has not migrated is unchanged, and
+ * so an app mid-migration can move its handlers over one at a time.
  *
  * @param {string} name The registered handler name.
  * @param {object} registry The v2 component registry.
  * @param {object} customComponents The legacy customComponents map.
- * @return {?((props?: object) => Promise<unknown>)} The async create handler, or null when unresolved.
+ * @return {?((scope?: object) => unknown)} The handler, or null when nothing of that name is a function.
  */
-export function resolveCreateOverrideHandler(name, registry, customComponents) {
+export function resolveRegisteredHandler(name, registry, customComponents) {
 	if (typeof name !== 'string' || name === '') {
 		return null
 	}
@@ -200,6 +201,28 @@ export function resolveCreateOverrideHandler(name, registry, customComponents) {
 	}
 	const legacy = (customComponents || {})[name]
 	return typeof legacy === 'function' ? legacy : null
+}
+
+/**
+ * Resolve a named create-override handler out of the v2 registry (or the
+ * legacy customComponents map) by value shape.
+ *
+ * A create-override is a plain async function that replaces the default
+ * `objectStore.saveObject` persist path — needed whenever a schema requires a
+ * field the create form cannot supply on its own (a server-minted foreign key,
+ * say).
+ *
+ * Shared by CnPageRenderer (page-level `config.createOverride` → CnIndexPage's
+ * prop) and CnActionButtons (per-action `createOverride` on an `open-form`), so
+ * the two surfaces cannot drift on what counts as a valid handler.
+ *
+ * @param {string} name The registered handler name.
+ * @param {object} registry The v2 component registry.
+ * @param {object} customComponents The legacy customComponents map.
+ * @return {?((props?: object) => Promise<unknown>)} The async create handler, or null when unresolved.
+ */
+export function resolveCreateOverrideHandler(name, registry, customComponents) {
+	return resolveRegisteredHandler(name, registry, customComponents)
 }
 
 /**
