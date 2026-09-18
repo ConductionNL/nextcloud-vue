@@ -1500,6 +1500,31 @@ describe('case-page-and-list-as-a-place — the keys are refused off their page 
 		})).valid).toBe(true)
 	})
 
+	it('accepts templates, a landing view per role, per-role columns and a group-by', () => {
+		expect(validateManifestV2(page({
+			savedViewTree: {
+				enabled: true,
+				templates: [{ slug: 'triage', name: 'Triage', columns: ['id'], exportFields: ['id'] }],
+				landingView: { behandelaar: 'open-cases' },
+				columnsPerRole: { behandelaar: ['id', 'title'] },
+				groupBy: 'status',
+				seeded: [{ slug: 'open-cases', name: 'Open', actions: ['claim', 'assign'] }],
+			},
+		})).valid).toBe(true)
+	})
+
+	it('refuses a template nothing can name, and a stray key beside the roles', () => {
+		expect(validateManifestV2(page({
+			savedViewTree: { enabled: true, templates: [{ name: 'No slug' }] },
+		})).valid).toBe(false)
+		// patternProperties with additionalProperties false: a role key is a
+		// role name, and anything that is not one is a typo rather than a
+		// role nobody has yet.
+		expect(validateManifestV2(page({
+			savedViewTree: { enabled: true, landingView: { 'not a role': 'x' } },
+		})).valid).toBe(false)
+	})
+
 	it('refuses savedViewTree on a detail page, where there is no dropdown to put a tree in', () => {
 		expect(validateManifestV2(detail({ savedViewTree: { enabled: true } })).valid).toBe(false)
 	})

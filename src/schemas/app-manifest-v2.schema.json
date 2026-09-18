@@ -786,6 +786,42 @@
 					"default": 3,
 					"description": "How deep a parent chain may go. A bound rather than a taste: inheritance resolves by walking the chain, so an unbounded depth turns one render into an unbounded walk, and a person who can nest for ever will. Past the bound a save is refused naming the view, which is louder than a tree nobody can read."
 				},
+				"templates": {
+					"type": "array",
+					"description": "What a new view may start from. A template presets the columns, the sort and the export field set, and the person may change each. Declare none and Save current view means what it has always meant: the list as it stands.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["slug", "name"],
+						"properties": {
+							"slug": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+							"name": { "type": "string" },
+							"columns": { "type": "array", "items": { "type": "string" } },
+							"defaultSort": { "type": "string" },
+							"exportFields": { "type": "array", "items": { "type": "string" } }
+						}
+					}
+				},
+				"landingView": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Which view a role opens this page on, as { role: slug }. A personal choice always wins and Reset returns here, so this is where somebody starts rather than where they are kept. A role's landing view changing mid-session applies on the next arrival: moving a reader's list out from under them is worse than a stale default.",
+					"patternProperties": {
+						"^[A-Za-z0-9_.-]+$": { "type": "string" }
+					}
+				},
+				"columnsPerRole": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Which columns a role sees, as { role: [column] }. NARROWS index-columns-per-scope rather than replacing it: a role naming a column the scope does not offer gets nothing extra, because a per-role list that could add one would be a second, quieter way to put a field on screen the scope deliberately left off.",
+					"patternProperties": {
+						"^[A-Za-z0-9_.-]+$": { "type": "array", "items": { "type": "string" } }
+					}
+				},
+				"groupBy": {
+					"type": "string",
+					"description": "A field the list groups on, with a count per group. The counts are of the rows the list HOLDS, so on a paged list they are of the page and the surface says so; a second fetch per group is the cost this grouping exists to avoid."
+				},
 				"seeded": {
 					"type": "array",
 					"description": "Views that ship with the app. They render as their own group above the user's own, and a user may copy one but not delete it: a view the product promises is not a view one person can remove from everybody's install.",
@@ -810,6 +846,12 @@
 							"parent": {
 								"type": "string",
 								"description": "The slug of the view this one hangs under. Omitted, it sits at the root of the seeded group."
+							},
+							"actions": {
+								"type": "array",
+								"description": "The action ids this view offers, so a triage view offers three and not thirty. INTERSECTED with what the reader may run and never added to: a view declaring an action the reader has no right to does not grant it. Declare none and the view offers the page's actions, as today.",
+								"items": { "type": "string" },
+								"uniqueItems": true
 							},
 							"inherits": {
 								"type": "array",

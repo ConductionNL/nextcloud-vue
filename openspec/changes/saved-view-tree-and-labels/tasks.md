@@ -56,8 +56,8 @@
   - Save as new offers the templates the host declares
   - A template presets columns, sort and export field set, and the user may change each
   - No template declared means today's behaviour, saving the current list
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 6: Administered landing view and columns per role
 - **spec_ref**: `openspec/changes/saved-view-tree-and-labels/specs/saved-views-ui/spec.md#requirement-an-administrator-sets-the-view-and-the-columns-a-role-opens-on`
@@ -67,8 +67,8 @@
   - A personal choice wins, and Reset returns to the administered view
   - Per-role columns narrow `index-columns-per-scope` rather than replacing it
   - A role's landing view changing mid-session applies on the next arrival, never by moving the user
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 7: Group by a field, with counts, and a link to a view
 - **spec_ref**: `openspec/changes/saved-view-tree-and-labels/specs/saved-views-ui/spec.md#requirement-the-list-groups-by-one-field-with-a-count-per-group`
@@ -78,8 +78,8 @@
   - A paged list says the counts are for the page it holds
   - Copy link on a saved view yields its route from `saved-view-as-a-place`
   - An unsaved hand-filtered list offers Save and share, not a query-parameter URL
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 8: Actions declared per view, and the docs
 - **spec_ref**: `openspec/changes/saved-view-tree-and-labels/specs/saved-views-ui/spec.md#requirement-a-view-declares-the-actions-it-offers`
@@ -89,5 +89,5 @@
   - A view declaring nothing offers the page's actions, as today
   - JSDoc and the two reference docs list every new prop, event and manifest key
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
