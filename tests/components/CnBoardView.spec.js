@@ -173,3 +173,70 @@ describe('swimlanes', () => {
 		expect(wrapper.findAll('[data-testid="cn-board-lane-header"]')[0].attributes('aria-expanded')).toBe('false')
 	})
 })
+
+/**
+ * Gate 32 `semantic-controls` found the card was a tab stop with no role.
+ * `openspec/changes/board-card-role-and-keyboard` says why the gate's own
+ * one-attribute fix was refused and what was built instead.
+ *
+ * 🔑 WHY SPACE IS ASSERTED BY ELEMENT TYPE AND NOT BY A KEY EVENT. Measured in
+ * this jsdom: dispatching `keydown` Enter, then `keydown`/`keyup` Space, on a
+ * native `<button>` fires the click handler ZERO times. jsdom does not
+ * implement a button's activation behaviour, so a test that triggered a key
+ * here and expected `card-click` could only pass by the component hand-rolling
+ * key handling, which is the thing being removed. The guarantee that Enter and
+ * Space both open the card IS the native button, so that is what is asserted.
+ */
+describe('a card is a container, and its actions are controls', () => {
+	it('gives the card no role of a control and no tab stop of its own', () => {
+		const wrapper = mountBoard()
+		const card = wrapper.findAll('[data-testid="cn-board-card"]')[0]
+
+		expect(card.attributes('role')).toBe('listitem')
+		expect(card.attributes('tabindex')).toBeUndefined()
+		expect(card.attributes('aria-label')).toBeUndefined()
+		expect(card.element.tagName).toBe('ARTICLE')
+	})
+
+	it('puts the cards in a list of their own, inside the column', () => {
+		const wrapper = mountBoard()
+		const lists = wrapper.findAll('.cn-board-view__cards')
+
+		// Two of the three columns hold a card; the empty one holds a list of
+		// nothing rather than an empty list.
+		expect(lists).toHaveLength(2)
+		expect(lists[0].attributes('role')).toBe('list')
+		expect(lists[0].attributes('aria-label')).toBe('Open')
+		expect(wrapper.findAll('[data-testid="cn-board-column-empty"]')).toHaveLength(1)
+	})
+
+	it('opens a card from a native button that says which card it opens', async () => {
+		const wrapper = mountBoard()
+		const open = wrapper.findAll('[data-testid="cn-board-card-open"]')[0]
+
+		expect(open.element.tagName).toBe('BUTTON')
+		expect(open.attributes('type')).toBe('button')
+		expect(open.attributes('aria-label')).toBe('Een, in Open')
+
+		await open.trigger('click')
+
+		expect(wrapper.emitted('card-click')[0]).toEqual([ROWS[0]])
+	})
+
+	it('keeps the move control beside the opening button, never inside it', () => {
+		const wrapper = mountBoard({ runTransition: async () => ({}) })
+		const open = wrapper.findAll('[data-testid="cn-board-card-open"]')[0]
+		const move = wrapper.findAll('[data-testid="cn-board-move"]')[0]
+
+		expect(move.exists()).toBe(true)
+		expect(open.element.contains(move.element)).toBe(false)
+		expect(move.element.closest('button')).toBe(null)
+	})
+
+	it('leaves the drag on the card, which is the one thing the card still does', () => {
+		const wrapper = mountBoard({ runTransition: async () => ({}) })
+		const card = wrapper.findAll('[data-testid="cn-board-card"]')[0]
+
+		expect(card.attributes('draggable')).toBe('true')
+	})
+})

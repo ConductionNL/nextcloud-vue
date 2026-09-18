@@ -52,6 +52,19 @@ call.
 With no `runTransition` the board is read-only: no drag, no Move to. A gesture
 that cannot do anything is worse than no gesture.
 
+**A card is a container, and each thing you can do on it is its own control.**
+The card carries the drag and nothing else. Opening it is an Open button that
+announces which card it opens, and Move to is a select beside that button,
+never inside it. So Enter and Space both open a card, because a native button
+does that without being asked.
+
+The card is deliberately not one big control. Giving it `role="button"` would
+make the Move to select an interactive control inside a button, which takes
+away the only way a keyboard user can move a card, and it would collapse every
+field on the card into a single label. Gate 32 `semantic-controls` suggests
+exactly that; `tests/a11y/CnBoardView.a11y.spec.js` holds the line, and axe
+calls the suggestion `nested-interactive` when you try it.
+
 ## Props
 
 | Prop | Type | Default | Description |
