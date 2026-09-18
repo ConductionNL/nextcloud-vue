@@ -306,6 +306,19 @@
 			:unlocking="releasingLock"
 			@unlock="onReleaseLock" />
 
+		<!-- The sentence a refused acquire left behind. Shown SEPARATELY from
+		     the banner above and not folded into it: a refused acquire does not
+		     refresh the cached object, so `@self.locked` is still whatever the
+		     last read said and the banner may not have appeared yet. This
+		     carries the server's own message, which names the holder. -->
+		<p
+			v-if="editLockRefusal"
+			class="cn-detail-page__lock-refusal"
+			role="alert"
+			data-testid="cn-detail-page-lock-refusal">
+			{{ editLockRefusal }}
+		</p>
+
 		<!-- Loading state -->
 		<div v-if="showLoadingState" class="cn-detail-page__loading">
 			<NcLoadingIcon :size="32" />
@@ -1766,6 +1779,11 @@ export default {
 			() => sidebarReg,
 			() => resolveType() || sidebarSchema,
 			() => props.objectId,
+			// The third argument is the OBJECT CACHE KEY (`<register>-<schema>`)
+			// and the lock URL needs the schema SLUG. They were one string, and
+			// the acquire went to `/api/objects/<register>/<register>-<schema>/`,
+			// which no register answers.
+			{ schemaSlug: () => props.schema || sidebarSchema },
 		)
 		return {
 			...registryExposed,
@@ -1778,6 +1796,11 @@ export default {
 		return {
 			/** Whether the record edit form is open. */
 			editFormOpen: false,
+			/**
+			 * The sentence a refused lock left behind, shown in place of the
+			 * form. Empty whenever the form opened.
+			 */
+			editLockRefusal: '',
 			/**
 			 * Whether a lock release is in flight, so the locked card's Unlock
 			 * button can disable itself for the round trip. Without it a slow
@@ -2072,6 +2095,22 @@ export default {
 				&& !this.isCreateMode
 				&& this.hasSchemaDrivenFetch
 				&& Boolean(this.currentSchema)
+				&& !this.editLockedByOther
+		},
+
+		/**
+		 * Whether somebody else is editing this record right now.
+		 *
+		 * The banner above already names them, so the button is withdrawn
+		 * rather than shown and refused: an Edit that opens a form the write
+		 * will reject is a form somebody fills in twice.
+		 *
+		 * @return {boolean} True when another user holds the lock.
+		 */
+		editLockedByOther() {
+			return Boolean(this.lockState
+				&& this.lockState.locked.value
+				&& !this.lockState.lockedByMe.value)
 		},
 
 		/**
@@ -3279,7 +3318,46 @@ export default {
 		 * @return {void}
 		 */
 		openEditForm() {
+			// 🔴 OPENING TAKES THE LOCK. Two people editing one record is not
+			// resolved by whoever presses Save last: the first person's work is
+			// gone and neither of them is told. The button is already withdrawn
+			// while somebody else holds the lock (`canEditRecord`), so this is
+			// the backstop for the seconds between the last read and the click.
+			//
+			// 🔑 THE FORM OPENS SYNCHRONOUSLY, AND THE ACQUIRE RUNS BESIDE IT.
+			// Awaiting the round trip here would make `openEditForm()` async,
+			// and every consumer that calls it and then asserts or renders on
+			// the next tick would see a form that is not open yet: measured,
+			// 10 of the 17 `CnDetailPageFormDialogSlot` tests went red on
+			// exactly that. A conflict closes the form again and names the
+			// holder, which is the same outcome one tick later.
+			this.editLockRefusal = ''
 			this.editFormOpen = true
+			this.acquireEditLock()
+		},
+
+		/**
+		 * Take the lock for the edit that just opened.
+		 *
+		 * A refusal CLOSES the form and shows the holder, because a form left
+		 * open over somebody else's lock is a form that will be filled in and
+		 * then refused. Any other failure leaves the form open: the server
+		 * re-checks on the write, so a lock that could not be taken costs an
+		 * optimistic edit rather than an editor who cannot work at all.
+		 *
+		 * @return {void}
+		 */
+		acquireEditLock() {
+			if (!this.lockState) {
+				return
+			}
+			this.lockState.acquire().catch((e) => {
+				if (e?.name !== 'LockConflictError') {
+					return
+				}
+				this.editLockRefusal = e.message
+				this.editFormOpen = false
+			})
 		},
 
 		/**
@@ -3289,6 +3367,24 @@ export default {
 		 */
 		closeEditForm() {
 			this.editFormOpen = false
+			this.releaseEditLock()
+		},
+
+		/**
+		 * Hand back the lock this page took for an edit.
+		 *
+		 * Fire and forget and never throws: a release that fails must not stop
+		 * a form from closing, and the lock has a server-side TTL behind it.
+		 * `release()` is a no-op when the viewer does not hold the lock, so
+		 * calling it on a page that opened no form takes nothing from anybody.
+		 *
+		 * @return {void}
+		 */
+		releaseEditLock() {
+			if (!this.lockState || !this.lockState.lockedByMe.value) {
+				return
+			}
+			this.lockState.release().catch(() => {})
 		},
 
 		/**
@@ -3355,6 +3451,7 @@ export default {
 					dialog.setResult({ success: true })
 				}
 				this.editFormOpen = false
+				this.releaseEditLock()
 				/**
 				 * @event edited Emitted after the record edit form saves successfully.
 				 * @type {object} The saved record.
