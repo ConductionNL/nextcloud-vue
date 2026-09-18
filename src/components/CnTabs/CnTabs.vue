@@ -451,10 +451,9 @@ export default defineComponent({
 	overflow-y: hidden;
 	scroll-behavior: smooth;
 	scrollbar-width: none;
-	/* The tabs overhang the bar's rule by 1px. Give that overhang room inside
-	   the scroll box so it is not clipped, and pull the nav down to match. */
+	/* Overhang the bar's 1px rule so the open tab's own bottom edge, drawn in
+	   the panel's colour, covers it and the tab joins its panel. */
 	margin-bottom: -1px;
-	padding-bottom: 1px;
 }
 
 .cn-tabs__nav::-webkit-scrollbar {
@@ -467,13 +466,13 @@ export default defineComponent({
 	}
 }
 
-/* A fade over the clipped edge, only on the side that hides tabs. Stops above
-   the bar's rule so the open tab's join with its panel stays crisp. */
+/* A fade over the clipped edge, only on the side that hides tabs. Stops a
+   pixel above the bar's rule so the rule keeps its full colour. */
 .cn-tabs__strip::before,
 .cn-tabs__strip::after {
 	content: '';
 	display: none;
-	inset-block: 0;
+	inset-block: 0 1px;
 	pointer-events: none;
 	position: absolute;
 	width: 56px;
@@ -570,11 +569,6 @@ export default defineComponent({
 	color: var(--color-main-text);
 	cursor: pointer;
 	font-weight: normal;
-	/* Overlap the bar's 1px rule so the active tab's own bottom edge can cover
-	   it. */
-	margin-bottom: -1px;
-	/* See `.cn-tabs__nav .cn-tabs__nav-item` below for why this alone is not
-	   enough inside a Nextcloud page. */
 	padding: 8px 12px;
 	white-space: nowrap;
 	/* Match the `#nav-end` control's own height. The bar is a flex row, so
@@ -589,20 +583,12 @@ export default defineComponent({
 	min-height: var(--default-clickable-area, 34px);
 }
 
-/* Nextcloud's server stylesheet sets `margin-bottom: 3px` on every plain
-   `button`, and its selector
-   `button:not(.button-vue, [class^="vs__"]):not(.app-navigation-entry-button)`
-   scores (0,2,1) against the (0,2,0) of the scoped rule above. So inside a real
-   Nextcloud page the tabs sat 4px ABOVE the bar's rule and the open tab never
-   met its panel: the join this whole treatment is built on was only ever
-   visible outside the app.
-   Measured on a running instance, not inferred: the e2e harness is a bare vite
-   page that does not load Nextcloud's CSS, so it cannot see this conflict and
-   reported the gap as 1px while the app showed 5px.
-   Adding the parent class takes the selector to (0,3,0), which wins on
+/* Nextcloud's server stylesheet gives every plain `button` a 3px bottom margin
+   with a selector that outscores the scoped rule above, which floated the tabs
+   above the bar's rule inside a real page. The parent class wins on
    specificity rather than on `!important` or source order. */
 .cn-tabs__nav .cn-tabs__nav-item {
-	margin-bottom: -1px;
+	margin-block-end: 0;
 }
 
 .cn-tabs__nav--justified .cn-tabs__nav-item {
