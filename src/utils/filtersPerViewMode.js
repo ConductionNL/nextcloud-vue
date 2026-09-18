@@ -53,5 +53,5 @@ export function switchViewMode({ held = {}, fromMode = '', currentFilters = {}, 
  * @return {boolean} True when this mode has its own remembered filters.
  */
 export function hasOwnFilters(held = {}, mode = '') {
-	return Object.prototype.hasOwnProperty.call(held, mode)
+	return Object.hasOwn(held, mode)
 }
