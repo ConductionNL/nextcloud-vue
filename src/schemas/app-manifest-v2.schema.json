@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.35.0",
+	"version": "2.36.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -766,6 +766,73 @@
 					"maximum": 20,
 					"default": 5,
 					"description": "How many pinned views the navigation renders under that entry. Past the cap the rest stay reachable from the page itself, so a person who pins twenty views gets a navigation that still reads (ADR-097)."
+				}
+			}
+		},
+		"savedViewTree": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Saved views render as a tree rather than a flat list, carry labels, and may ship with the app. Two hundred personal views in one dropdown is the problem this solves. Index pages only, and only meaningful alongside allowSavedViews: without the dropdown there is no view to put in a tree. Absent, the page renders the flat dropdown it renders today. The view entity itself, its parent, its labels and its slug are OpenRegister's (saved-search-views); this key declares how this page presents them.",
+			"properties": {
+				"enabled": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether this page renders its saved views as a tree. False reads as a page that considered it and declined, and renders exactly as a page that never named the key."
+				},
+				"maxDepth": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 5,
+					"default": 3,
+					"description": "How deep a parent chain may go. A bound rather than a taste: inheritance resolves by walking the chain, so an unbounded depth turns one render into an unbounded walk, and a person who can nest for ever will. Past the bound a save is refused naming the view, which is louder than a tree nobody can read."
+				},
+				"seeded": {
+					"type": "array",
+					"description": "Views that ship with the app. They render as their own group above the user's own, and a user may copy one but not delete it: a view the product promises is not a view one person can remove from everybody's install.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["slug", "name"],
+						"properties": {
+							"slug": {
+								"type": "string",
+								"pattern": "^[a-z0-9][a-z0-9-]*$",
+								"description": "The stable name a dashboard widget, an export action or an API caller cites this view by. Lowercase and dash only, because it appears in an address and in a manifest somebody else writes. Required: a seeded view with no slug is a view nothing can call, which is most of the reason to seed it."
+							},
+							"name": {
+								"type": "string",
+								"description": "What the view is called in the control. Translatable."
+							},
+							"label": {
+								"type": "string",
+								"description": "One label this view carries, for the label filter. A view may carry none and stays reachable when no label filter is active."
+							},
+							"parent": {
+								"type": "string",
+								"description": "The slug of the view this one hangs under. Omitted, it sits at the root of the seeded group."
+							},
+							"inherits": {
+								"type": "array",
+								"description": "Which parts this view takes from its parent. Each part resolves independently, so a child may narrow the criteria and keep the parent's columns. Declared on a view with no parent it is a contradiction and the validator refuses it: there is nothing to inherit from.",
+								"items": {
+									"type": "string",
+									"enum": ["criteria", "columns", "sorting", "defaultSort", "exportFields"]
+								},
+								"uniqueItems": true
+							}
+						},
+						"allOf": [
+							{
+								"description": "inherits without a parent is a declaration that reads as configured and resolves to nothing. Refused here rather than silently ignored at render, which is the shape this whole change exists to stop.",
+								"if": {
+									"required": ["inherits"]
+								},
+								"then": {
+									"required": ["parent"]
+								}
+							}
+						]
+					}
 				}
 			}
 		},
@@ -2360,6 +2427,10 @@
 					"$ref": "#/$defs/savedViewPlaces",
 					"description": "Index pages only. Makes each saved view of this page a place: its own route, the presentations its view config declares, and an entry under this page's navigation entry once a user pins it. Refused on any other page type."
 				},
+				"savedViewTree": {
+					"$ref": "#/$defs/savedViewTree",
+					"description": "Index pages only. Renders this page's saved views as a tree with labels, and declares the views that ship with the app. Refused on any other page type, for the same reason savedViewPlaces is: a page with no saved-view dropdown has nothing to put in a tree."
+				},
 				"manualOrder": {
 					"type": "boolean",
 					"default": false,
@@ -2758,7 +2829,7 @@
 			},
 			"allOf": [
 				{
-					"description": "splitView, manualOrder and savedViewPlaces are index-page mechanics. splitView emits a second route beside an index route and mounts the detail pane inside CnIndexPage; manualOrder holds a per-user row order for a list; savedViewPlaces turns this page's saved views into addressable places. Declared on a detail, dashboard or custom page they would validate and then do nothing, which is the failure this branch refuses out loud (case-page-and-list-as-a-place, saved-view-as-a-place).",
+					"description": "splitView, manualOrder, savedViewPlaces and savedViewTree are index-page mechanics. splitView emits a second route beside an index route and mounts the detail pane inside CnIndexPage; manualOrder holds a per-user row order for a list; savedViewPlaces turns this page's saved views into addressable places. Declared on a detail, dashboard or custom page they would validate and then do nothing, which is the failure this branch refuses out loud (case-page-and-list-as-a-place, saved-view-as-a-place).",
 					"if": {
 						"not": {
 							"properties": { "type": { "const": "index" } },
@@ -2770,7 +2841,8 @@
 							"anyOf": [
 								{ "required": ["splitView"] },
 								{ "required": ["manualOrder"] },
-								{ "required": ["savedViewPlaces"] }
+								{ "required": ["savedViewPlaces"] },
+								{ "required": ["savedViewTree"] }
 							]
 						}
 					}

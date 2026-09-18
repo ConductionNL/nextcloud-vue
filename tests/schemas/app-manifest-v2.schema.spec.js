@@ -1254,9 +1254,13 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.35.0', () => {
+	it('the manifest schema version reads 2.36.0', () => {
+		// Moved with savedViewTree. The version is not decoration: a consumer
+		// reads it to tell a manifest key it does not know from one it got
+		// wrong, and dossiq spent a day on two Ajv failures that were an
+		// installed schema being older than the manifest it validated.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.35.0')
+		expect(schema.version).toBe('2.36.0')
 	})
 
 	it('accepts a declarative `store` block, and requires the remote schema', () => {
@@ -1439,6 +1443,65 @@ describe('case-page-and-list-as-a-place — the keys are refused off their page 
 		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, routeBase: 'My Views' } })).valid).toBe(false)
 		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, pinnedCap: 0 } })).valid).toBe(false)
 		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, wat: true } })).valid).toBe(false)
+	})
+
+	it('accepts savedViewTree on an index page, with a seeded view that carries a slug', () => {
+		expect(validateManifestV2(page({
+			savedViewTree: {
+				enabled: true,
+				maxDepth: 3,
+				seeded: [
+					{ slug: 'open-cases', name: 'Open cases', label: 'triage' },
+					{ slug: 'open-mine', name: 'Mine', parent: 'open-cases', inherits: ['columns', 'sorting'] },
+				],
+			},
+		})).valid).toBe(true)
+		// A page that names nothing keeps the flat dropdown it has today.
+		expect(validateManifestV2(page({})).valid).toBe(true)
+	})
+
+	it('refuses a seeded view nothing can call, and a depth nobody can read', () => {
+		// The slug is what a widget, an export action or an API caller cites.
+		// A seeded view without one is a view the product ships and nothing
+		// can name, which is most of the reason to seed it.
+		expect(validateManifestV2(page({
+			savedViewTree: { enabled: true, seeded: [{ name: 'No slug' }] },
+		})).valid).toBe(false)
+		// Lowercase and dash only: it appears in an address and in somebody
+		// else's manifest.
+		expect(validateManifestV2(page({
+			savedViewTree: { enabled: true, seeded: [{ slug: 'Open Cases', name: 'Open' }] },
+		})).valid).toBe(false)
+		expect(validateManifestV2(page({
+			savedViewTree: { enabled: true, maxDepth: 9 },
+		})).valid).toBe(false)
+		expect(validateManifestV2(page({
+			savedViewTree: { enabled: true, wat: true },
+		})).valid).toBe(false)
+	})
+
+	it('refuses inherits on a seeded view with no parent, rather than ignoring it at render', () => {
+		// A declaration that reads as configured and resolves to nothing is
+		// the exact failure this change exists to stop.
+		expect(validateManifestV2(page({
+			savedViewTree: { enabled: true, seeded: [{ slug: 'orphan', name: 'Orphan', inherits: ['columns'] }] },
+		})).valid).toBe(false)
+		// The same view WITH a parent is fine, which is the control: a rule
+		// that refused every `inherits` would pass the assertion above and
+		// make the key unusable.
+		expect(validateManifestV2(page({
+			savedViewTree: {
+				enabled: true,
+				seeded: [
+					{ slug: 'root', name: 'Root' },
+					{ slug: 'child', name: 'Child', parent: 'root', inherits: ['columns'] },
+				],
+			},
+		})).valid).toBe(true)
+	})
+
+	it('refuses savedViewTree on a detail page, where there is no dropdown to put a tree in', () => {
+		expect(validateManifestV2(detail({ savedViewTree: { enabled: true } })).valid).toBe(false)
 	})
 
 	it('refuses savedViewPlaces on a detail page, where a view is not a place', () => {

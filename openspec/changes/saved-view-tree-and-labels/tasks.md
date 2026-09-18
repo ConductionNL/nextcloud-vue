@@ -13,8 +13,8 @@
   - A seeded view without a slug fails validation naming the view
   - A page without the key validates and renders the flat dropdown
   - The compiled validator is regenerated from the edited schema
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Inheritance resolved over five flags
 - **spec_ref**: `openspec/changes/saved-view-tree-and-labels/specs/saved-views-ui/spec.md#requirement-a-saved-view-has-a-parent-and-inherits-what-it-does-not-override`
@@ -24,8 +24,8 @@
   - A child overriding only the criteria keeps the parent's columns
   - A cycle in the parent chain is refused and the message names both views
   - A chain deeper than `maxDepth` is refused and names the view
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: The control renders a tree, and filters by label
 - **spec_ref**: `openspec/changes/saved-view-tree-and-labels/specs/saved-views-ui/spec.md#requirement-labels-filter-the-list-of-saved-views`
