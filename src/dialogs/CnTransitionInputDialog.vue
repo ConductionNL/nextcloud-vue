@@ -11,9 +11,18 @@
 			class="cn-transition-input"
 			data-testid="cn-modal"
 			data-testid-modal="cn-transition-input-dialog">
+			<!-- A refusal keeps this dialog open with what was typed still in
+			     it. Closing first and reporting behind it loses the work and
+			     asks the person to retype it from memory. -->
+			<p v-if="error"
+				class="cn-transition-input__error"
+				data-testid="cn-transition-input-error">
+				{{ error }}
+			</p>
 			<div v-for="field in fields"
 				:key="field.key"
 				class="cn-transition-input__field"
+				:class="{ 'cn-transition-input__field--refused': isRefused(field.key) }"
 				:data-testid="`cn-transition-input-${field.key}`">
 				<NcCheckboxRadioSwitch v-if="field.widget === 'checkbox'"
 					:modelValue="values[field.key] === true"
@@ -41,7 +50,23 @@
 					:label="requiredLabel(field)"
 					:helperText="field.description || ''"
 					@update:modelValue="setValue(field.key, $event)" />
+
+				<p v-if="isRefused(field.key)"
+					class="cn-transition-input__field-error"
+					:data-testid="`cn-transition-input-error-${field.key}`">
+					{{ refusalFor(field.key) }}
+				</p>
 			</div>
+
+			<!-- A key the refusal names that this dialog never offered is not a
+			     field anybody can correct here. Saying so beats saying nothing:
+			     the request sent something the transition does not accept. -->
+			<p v-for="key in unofferedRefusals"
+				:key="key"
+				class="cn-transition-input__field-error"
+				:data-testid="`cn-transition-input-error-${key}`">
+				{{ undeclaredMessage(key) }}
+			</p>
 		</div>
 
 		<template #actions>
@@ -133,6 +158,41 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * The sentence a refused transition answered with. Present means the
+		 * dialog stayed open BECAUSE the attempt was refused, with everything
+		 * typed still in it.
+		 *
+		 * @type {string}
+		 */
+		error: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The input keys the refusal named (`fields` in the 400 body). Each one
+		 * that this dialog offers is marked on its own field; each one it does
+		 * not is reported as a key the transition does not accept.
+		 *
+		 * @type {string[]}
+		 */
+		fieldErrors: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Whether the parent is mid-POST. Keeps the confirm button from firing
+		 * a second attempt while the first is in flight.
+		 *
+		 * @type {boolean}
+		 */
+		busy: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: ['confirm', 'close'],
@@ -184,7 +244,24 @@ export default {
 
 		/** True when every `required: true` input holds a non-empty value. */
 		canConfirm() {
+			if (this.busy === true) {
+				return false
+			}
 			return this.fields.every((field) => !field.required || this.isFilled(field))
+		},
+
+		/** The refused keys this dialog offers no field for. */
+		unofferedRefusals() {
+			const offered = this.fields.map((field) => field.key)
+			return this.refusedKeys.filter((key) => !offered.includes(key))
+		},
+
+		/** The refusal's field keys, normalised to strings. */
+		refusedKeys() {
+			if (!Array.isArray(this.fieldErrors)) {
+				return []
+			}
+			return this.fieldErrors.filter((key) => typeof key === 'string' && key !== '')
 		},
 	},
 
@@ -192,6 +269,47 @@ export default {
 		// Exposed to the template for the static button labels — the same
 		// `methods: { t }` pattern the other dialogs in this folder use.
 		t,
+
+		/**
+		 * Whether the refusal named this field.
+		 *
+		 * @param {string} key The field key.
+		 * @return {boolean}
+		 */
+		isRefused(key) {
+			return this.refusedKeys.includes(key)
+		},
+
+		/**
+		 * What to say beside a refused field.
+		 *
+		 * The KIND is decided here rather than read out of the refusal's
+		 * sentence. A field this dialog offers and the person left empty is a
+		 * missing required input; one it offers that carries a value was
+		 * refused for what is in it. Parsing the server's prose to tell those
+		 * apart would break the first time the sentence is reworded, and a
+		 * reworded sentence is not a contract change.
+		 *
+		 * @param {string} key The field key.
+		 * @return {string}
+		 */
+		refusalFor(key) {
+			const field = this.fields.find((candidate) => candidate.key === key)
+			if (field && !this.isFilled(field)) {
+				return t('nextcloud-vue', 'This field is required.')
+			}
+			return t('nextcloud-vue', 'This value was not accepted.')
+		},
+
+		/**
+		 * What to say about a refused key this dialog does not offer.
+		 *
+		 * @param {string} key The field key.
+		 * @return {string}
+		 */
+		undeclaredMessage(key) {
+			return t('nextcloud-vue', 'This action does not accept the field "{field}".', { field: key })
+		},
 
 		/** Seed each declared input from its schema default (booleans start false). */
 		initialValues() {
@@ -301,5 +419,21 @@ export default {
 	flex-direction: column;
 	gap: 12px;
 	padding: 4px 0;
+}
+
+.cn-transition-input__error {
+	margin: 0;
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-transition-input__field-error {
+	margin: 4px 0 0;
+	font-size: 0.9em;
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-transition-input__field--refused {
+	border-inline-start: 2px solid var(--color-error);
+	padding-inline-start: 8px;
 }
 </style>

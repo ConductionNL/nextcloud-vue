@@ -41,6 +41,7 @@ export {
 	CnAppNav,
 	CnAppRoot,
 	CnAuditTrailCard,
+	CnBoardView,
 	CnBodySections,
 	CnBreadcrumbs,
 	CnBuildiqEditButton,
@@ -75,6 +76,7 @@ export {
 	CnDashTileWidgetForm,
 	CnDataMatrix,
 	CnDataTable,
+	CnDateAxisView,
 	CnDateRangePicker,
 	CnDeckCardCreate,
 	CnDeckCardPicker,
@@ -327,12 +329,15 @@ export { createSubResourcePlugin, emptyPaginated } from './store/index.js'
 // Store plugins
 export {
 	auditTrailsPlugin,
+	dashboardLayoutKey,
+	dashboardLayoutsPlugin,
 	filesPlugin,
 	getRegisterApiUrl,
 	getSchemaApiUrl,
 	lifecyclePlugin,
 	liveUpdatesPlugin,
 	logsPlugin,
+	mergeUserLayout,
 	registerMappingPlugin,
 	relationsPlugin,
 	SEARCH_TYPE,
@@ -515,14 +520,14 @@ export { dedupeCatalogue, fromFontAwesome, fromMdiJs, fromOpenGemeenten } from '
 export { mergeManifestDelta } from './utils/mergeManifestDelta.js'
 export { applyIntegrationsSection, applyMenuLayout, applyMenuRelocations, applyMenuRemovals, applySettingsSection, buildManifest, mergeMenuItems, mergePages } from './utils/buildManifest.js'
 export { buildManifestRoutes } from './utils/buildManifestRoutes.js'
-export { DEFAULT_PINNED_VIEW_CAP, DEFAULT_SAVED_VIEW_ROUTE_BASE, LEGACY_VIEW_QUERY_KEY, PRESENTATION_VIEW_MODES, SAVED_VIEW_ROUTE_SUFFIX, isPinnedView, pageHasSavedViewPlaces, pinnedViewNavChildren, resolveViewPresentation, savedViewRouteBase, savedViewRouteName, savedViewRoutePath, savedViewRouteTarget, togglePinnedBy, viewIdForRoute, withPinnedViewChildren } from './utils/savedViewPlaces.js'
+export { DEFAULT_PINNED_VIEW_CAP, DEFAULT_SAVED_VIEW_ROUTE_BASE, isPinnedView, LEGACY_VIEW_QUERY_KEY, pageHasSavedViewPlaces, pinnedViewNavChildren, PRESENTATION_VIEW_MODES, resolveViewPresentation, SAVED_VIEW_ROUTE_SUFFIX, savedViewRouteBase, savedViewRouteName, savedViewRoutePath, savedViewRouteTarget, togglePinnedBy, viewIdForRoute, withPinnedViewChildren } from './utils/savedViewPlaces.js'
 export { formatDateForDisplay } from './utils/dateDisplay.js'
 export { expandPageTemplates } from './utils/expandPageTemplates.js'
 export { diffManifest } from './utils/diffManifest.js'
 export { createManifestEditHistory } from './utils/manifestEditHistory.js'
 export { resolveSlotColumns } from './utils/resolveSlotColumns.js'
 // Dashboard widget library (cn-widget-library) — registry helpers + form composable.
-export { dashboardWidgetRegistry, getDefaultContent, getWidgetTypeEntry, listWidgetTypes, registerDashboardWidget } from './components/CnWidgetGrid/dashboardWidgetRegistry.js'
+export { dashboardWidgetRegistry, getDefaultContent, getWidgetTypeEntry, listUserAddableWidgetTypes, listWidgetTypes, registerDashboardWidget, userWidgetPresets } from './components/CnWidgetGrid/dashboardWidgetRegistry.js'
 export { registerBuiltinDashboardWidgets } from './components/CnWidgetGrid/registerDashboardWidgets.js'
 export { useWidgetForm } from './composables/useWidgetForm.js'
 

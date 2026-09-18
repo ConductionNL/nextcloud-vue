@@ -13,8 +13,8 @@
   - A seeded view without a slug fails validation naming the view
   - A page without the key validates and renders the flat dropdown
   - The compiled validator is regenerated from the edited schema
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Inheritance resolved over five flags
 - **spec_ref**: `openspec/changes/saved-view-tree-and-labels/specs/saved-views-ui/spec.md#requirement-a-saved-view-has-a-parent-and-inherits-what-it-does-not-override`
@@ -24,8 +24,8 @@
   - A child overriding only the criteria keeps the parent's columns
   - A cycle in the parent chain is refused and the message names both views
   - A chain deeper than `maxDepth` is refused and names the view
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: The control renders a tree, and filters by label
 - **spec_ref**: `openspec/changes/saved-view-tree-and-labels/specs/saved-views-ui/spec.md#requirement-labels-filter-the-list-of-saved-views`
@@ -35,8 +35,8 @@
   - A label filter narrows the list, and the labels already in use are offered before a new one
   - A view whose parent the user may not read renders at the root with its inherited parts noted
   - Keyboard operation reaches every node, and the tree carries the right ARIA roles
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 4: A slug, and calling a view by it
 - **spec_ref**: `openspec/changes/saved-view-tree-and-labels/specs/saved-views-ui/spec.md#requirement-a-view-is-named-once-and-called-by-name`
@@ -46,8 +46,8 @@
   - A second view claiming a slug in use fails and names the holder
   - A slug is editable only while nothing cites it
   - An unknown slug renders the empty state naming it, not a blank list
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 5: View templates
 - **spec_ref**: `openspec/changes/saved-view-tree-and-labels/specs/saved-views-ui/spec.md#requirement-a-new-view-starts-from-a-template`
@@ -56,8 +56,8 @@
   - Save as new offers the templates the host declares
   - A template presets columns, sort and export field set, and the user may change each
   - No template declared means today's behaviour, saving the current list
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 6: Administered landing view and columns per role
 - **spec_ref**: `openspec/changes/saved-view-tree-and-labels/specs/saved-views-ui/spec.md#requirement-an-administrator-sets-the-view-and-the-columns-a-role-opens-on`
@@ -67,8 +67,8 @@
   - A personal choice wins, and Reset returns to the administered view
   - Per-role columns narrow `index-columns-per-scope` rather than replacing it
   - A role's landing view changing mid-session applies on the next arrival, never by moving the user
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 7: Group by a field, with counts, and a link to a view
 - **spec_ref**: `openspec/changes/saved-view-tree-and-labels/specs/saved-views-ui/spec.md#requirement-the-list-groups-by-one-field-with-a-count-per-group`
@@ -78,8 +78,8 @@
   - A paged list says the counts are for the page it holds
   - Copy link on a saved view yields its route from `saved-view-as-a-place`
   - An unsaved hand-filtered list offers Save and share, not a query-parameter URL
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 8: Actions declared per view, and the docs
 - **spec_ref**: `openspec/changes/saved-view-tree-and-labels/specs/saved-views-ui/spec.md#requirement-a-view-declares-the-actions-it-offers`
@@ -89,5 +89,5 @@
   - A view declaring nothing offers the page's actions, as today
   - JSDoc and the two reference docs list every new prop, event and manifest key
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
