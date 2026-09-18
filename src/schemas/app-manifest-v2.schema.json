@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.34.0",
+	"version": "2.35.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1068,6 +1068,16 @@
 			"additionalProperties": false,
 			"description": "A uniform widget placement entry used on every page type in v2. Replaces the v1 widgetDef + layoutItem pair with a single shape. Its props/dataSource/filter string leaves are guarded against the closed sentinel vocabulary via the sentinelGuardedValue allOf. The cross-field constraint gridX + gridWidth <= 12 CANNOT be expressed in JSON Schema (arithmetic over sibling fields) — it is documented here and enforced at runtime by validateManifestV2() as a post-schema check. Failure message: \"Widget '{widgetKey}' in slot '{slot}': gridX ({gridX}) + gridWidth ({gridWidth}) exceeds 12\".",
 			"properties": {
+				"roles": {
+					"type": "array",
+					"items": { "type": "string", "minLength": 1 },
+					"description": "Group ids that may see this widget. A DECLARATION THE HOST APP ENFORCES, not something this library evaluates: the check belongs on the read, where the figures are, because a widget hidden in the browser still had its data in the page payload (ADR-004). Pair it with `visibleWhen` pointing at an endpoint of the app's own, which IS evaluated here and collapses the cell when the fetch or the shape fails, so the declaration and the layout cannot disagree. Omitting it means every reader of the page sees the widget. Added because the key was expressible in the legacy `config.widgets[]` array, whose items are open, and refused here, so the same declaration validated on one page and was rejected on another.",
+					"examples": [["controllers", "beheerders", "admin"]]
+				},
+				"visibleWhen": {
+					"$ref": "#/$defs/visibleWhen",
+					"description": "Render this widget only while the predicate holds. The same shape every other surface takes it in. It was already honoured at runtime for widgets (CnDashboardPage reads `def.visibleWhen`) and could not be declared in this shape, so a widget in the uniform entry had no way to express a visibility condition at all while one in the legacy array did."
+				},
 				"requiredApp": {
 					"type": "string",
 					"minLength": 1,

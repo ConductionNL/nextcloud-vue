@@ -112,6 +112,120 @@ describe('app-manifest-v2 — all 10 page types (REQ-MV2S-003)', () => {
 })
 
 describe('app-manifest-v2 — unified widgetEntry shape (REQ-MV2S-004)', () => {
+	/**
+	 * 🔴 THE SAME DECLARATION VALIDATED ON ONE PAGE AND WAS REJECTED ON ANOTHER.
+	 * `roles` and `visibleWhen` were expressible in the legacy
+	 * `config.widgets[]` array, whose items are `additionalProperties: true`,
+	 * and refused by this shape, which is closed and listed neither. Measured
+	 * on dossiq 2026-09-18: fourteen widgets declared their readers in the
+	 * legacy array, and the one widget the app had moved to the uniform entry
+	 * could not say the same thing at all.
+	 *
+	 * `visibleWhen` was the sharper half. CnDashboardPage already READS
+	 * `def.visibleWhen` on a widget definition at runtime, so the uniform entry
+	 * was refusing a key the component it feeds already honours.
+	 */
+	it('a widget entry declares who may see it, and when it is shown', () => {
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [{
+				id: 'reporting',
+				route: '/reporting',
+				type: 'dashboard',
+				title: 'app.reporting',
+				widgets: [{
+					widgetKey: 'AnnualStatementWidget',
+					slot: 'body',
+					gridX: 0,
+					gridY: 0,
+					gridWidth: 6,
+					gridHeight: 2,
+					id: 'annual-statement',
+					roles: ['controllers', 'beheerders', 'admin'],
+					visibleWhen: {
+						endpoint: '/apps/example/api/widget-visibility',
+						field: 'visible.annual-statement',
+						op: 'eq',
+						value: true,
+					},
+				}],
+			}],
+		}
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('a widget entry without them still validates, so nothing existing has to change', () => {
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [{
+				id: 'reporting',
+				route: '/reporting',
+				type: 'dashboard',
+				title: 'app.reporting',
+				widgets: [{
+					widgetKey: 'AnnualStatementWidget',
+					slot: 'body',
+					gridX: 0,
+					gridY: 0,
+					gridWidth: 6,
+					gridHeight: 2,
+				}],
+			}],
+		}
+		expect(validateManifestV2(manifest).valid).toBe(true)
+	})
+
+	it('roles is a list of strings, not a bare string', () => {
+		// The shape somebody reaches for first, and the one that would make
+		// `roles: "controllers"` iterate eleven single characters in whatever
+		// reads it downstream.
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [{
+				id: 'reporting',
+				route: '/reporting',
+				type: 'dashboard',
+				title: 'app.reporting',
+				widgets: [{
+					widgetKey: 'AnnualStatementWidget',
+					slot: 'body',
+					gridX: 0,
+					gridY: 0,
+					gridWidth: 6,
+					gridHeight: 2,
+					roles: 'controllers',
+				}],
+			}],
+		}
+		expect(validateManifestV2(manifest).valid).toBe(false)
+	})
+
+	it('a key this shape does not know is still refused', () => {
+		// The closed shape stays closed. Adding two properties is not the same
+		// as opening it, and this is what says so.
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [{
+				id: 'reporting',
+				route: '/reporting',
+				type: 'dashboard',
+				title: 'app.reporting',
+				widgets: [{
+					widgetKey: 'AnnualStatementWidget',
+					slot: 'body',
+					gridX: 0,
+					gridY: 0,
+					gridWidth: 6,
+					gridHeight: 2,
+					rolez: ['controllers'],
+				}],
+			}],
+		}
+		expect(validateManifestV2(manifest).valid).toBe(false)
+	})
+
 	it('widget entry with all required fields validates', () => {
 		const manifest = {
 			...MINIMAL_V2,
@@ -1140,9 +1254,9 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.34.0', () => {
+	it('the manifest schema version reads 2.35.0', () => {
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.34.0')
+		expect(schema.version).toBe('2.35.0')
 	})
 
 	it('accepts a declarative `store` block, and requires the remote schema', () => {
