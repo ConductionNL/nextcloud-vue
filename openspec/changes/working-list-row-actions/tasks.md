@@ -5,16 +5,24 @@
 
 ## Implementation tasks
 
-### Task 1: `CnRowActionMenu`
+> Tasks 1 and 3 are done. Tasks 2, 4, 5, 6 and 7 are open and belong to a
+> second PR: the quick edit dialog, the priority chip and sort, the lens tabs
+> and the claimed-teams preference, the list page and count per record type,
+> and the keyboard path. Task 1's shape carries over to them: the host
+> declares what exists, the server says who may run it, and neither side can
+> add what the other has not declared.
+
+### Task 1: The row menu offers what the record offers
 - **spec_ref**: `openspec/changes/working-list-row-actions/specs/index-page/spec.md#requirement-a-row-offers-the-actions-the-record-offers`
-- **files**: `src/components/CnRowActionMenu/CnRowActionMenu.vue`, `src/components/CnRowActionMenu/index.js`, `src/components/index.js`, `src/index.js`, `src/components/__tests__/CnRowActionMenu.spec.js`
+- **files**: `src/utils/rowActionAvailability.js`, `src/components/CnIndexPage/CnIndexPage.vue`, `src/schemas/app-manifest-v2.schema.json`, `tests/utils/rowActionAvailability.spec.js`, `tests/components/CnIndexPageRowActionAvailability.spec.js`
+- **note**: built on the existing `CnRowActions`, not as a new `CnRowActionMenu`. `CnRowActions` already IS the row menu, with per-row `visible` and `title` predicates; a second menu component would be a second answer to a question the library has answered.
 - **acceptance_criteria**:
   - The menu renders the actions the host returned for that record and that caller
   - An action the user may not run is absent, and the refusal reason is available on request
   - Actions arrive with the list rows in one call; only the opened row re-asks
   - The menu is reachable and operable from the keyboard
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: `CnQuickEditDialog`
 - **spec_ref**: `openspec/changes/working-list-row-actions/specs/index-page/spec.md#requirement-a-field-is-edited-from-the-row`
@@ -29,14 +37,14 @@
 
 ### Task 3: Declared state indicators
 - **spec_ref**: `openspec/changes/working-list-row-actions/specs/index-page/spec.md#requirement-a-row-shows-the-state-indicators-the-page-declares`
-- **files**: `src/components/CnDataTable/CnDataTable.vue`, `src/manifest/schema/manifest-v2.schema.json`, `src/manifest/validateManifestV2.js`, `src/components/__tests__/CnDataTableIndicators.spec.js`
+- **files**: `src/utils/rowIndicators.js`, `src/components/CnDataTable/CnDataTable.vue`, `src/components/CnIndexPage/CnIndexPage.vue`, `src/schemas/app-manifest-v2.schema.json`, `src/css/table.css`, `tests/utils/rowIndicators.spec.js`, `tests/components/CnDataTableIndicators.spec.js`
 - **acceptance_criteria**:
   - `rowIndicators` declares a field, a condition, an icon and a text, and validates on an index page
   - Every indicator carries a text alternative and a tooltip, and none relies on colour alone
   - Past the declared cap the remaining indicators move into the row menu
   - A page declaring none renders the row as today
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 4: The priority chip and the priority sort
 - **spec_ref**: `openspec/changes/working-list-row-actions/specs/index-page/spec.md#requirement-the-list-sorts-and-colours-on-a-priority-it-reads`

@@ -173,6 +173,25 @@
 								v-if="colIndex === 0"
 								:object="row"
 								:size="16" />
+							<!-- Declared state indicators ride the first data cell
+							     beside the padlock. Each one renders as an icon WITH a
+							     text alternative and a tooltip, never as colour alone,
+							     and an indicator the page did not declare cannot appear
+							     however the record is shaped. Past the cap the rest move
+							     into the row menu, because a row of nine icons is not a
+							     row anyone can triage at a glance. -->
+							<span v-if="colIndex === 0 && indicatorsFor(row).shown.length > 0"
+								class="cn-table-row-indicators"
+								data-testid="cn-row-indicators">
+								<span v-for="indicator in indicatorsFor(row).shown"
+									:key="indicator.id || indicator.field"
+									class="cn-table-row-indicator"
+									:title="indicator.tooltip || indicator.text"
+									:data-testid="`cn-row-indicator-${indicator.id || indicator.field}`">
+									<CnIcon :name="indicator.icon || 'InformationOutline'" :size="16" />
+									<span class="hidden-visually">{{ indicator.text }}</span>
+								</span>
+							</span>
 							<!-- @slot Per-column cell override (`#column-<key>`), scoped with { row, value }. Wins over CnCellRenderer. -->
 							<slot :name="'column-' + col.key" :row="row" :value="cellValue(row, col)">
 								<!-- Every column renders through CnCellRenderer: it resolves
@@ -250,6 +269,7 @@ import { generateUrl } from '@nextcloud/router'
 import { NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
+import { DEFAULT_ROW_INDICATOR_CAP, resolveRowIndicators } from '../../utils/rowIndicators.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { CnIcon } from '../CnIcon/index.js'
@@ -369,6 +389,36 @@ export default {
 		rowIcon: {
 			type: [String, Function],
 			default: null,
+		},
+
+		/**
+		 * State indicators a page declares for its rows. Each entry is
+		 * `{ id, field, equals?, in?, icon, text, tooltip? }`: `field` is a
+		 * dotted path on the row, the condition is `equals`, `in`, or plain
+		 * truthiness when neither is given, `icon` is a CnIcon name, and `text`
+		 * is the text alternative. An entry without `text` does not render,
+		 * because an icon with no text is colour and shape alone.
+		 *
+		 * The page declares which indicators exist. A record cannot add one the
+		 * page has not declared, however it is shaped. A page declaring none
+		 * renders its rows exactly as before.
+		 *
+		 * @type {Array<{id?: string, field: string, equals?: (string|number|boolean|null), in?: Array, icon?: string, text: string, tooltip?: string}>}
+		 */
+		rowIndicators: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * How many declared indicators render on the row itself. The rest are
+		 * available from `indicatorsFor(row).overflow` for the row menu.
+		 *
+		 * @type {number}
+		 */
+		rowIndicatorCap: {
+			type: Number,
+			default: DEFAULT_ROW_INDICATOR_CAP,
 		},
 
 		/**
@@ -906,6 +956,18 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The declared indicators that apply to one row, split into the ones
+		 * that fit on the row and the ones that go to the row menu.
+		 *
+		 * @param {object} row The row.
+		 * @return {{shown: Array<object>, overflow: Array<object>}}
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		indicatorsFor(row) {
+			return resolveRowIndicators(this.rowIndicators, row, this.rowIndicatorCap)
+		},
+
 		/**
 		 * Start watching the scrollport for horizontal overflow.
 		 *

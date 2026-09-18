@@ -437,6 +437,47 @@
 		}
 	},
 	"$defs": {
+		"rowIndicator": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"field",
+				"text"
+			],
+			"description": "One declared state indicator on an index page's rows. Renders as an icon with a text alternative and a tooltip, never as colour alone.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Stable id for this indicator, used as its test id and its render key. Defaults to `field`."
+				},
+				"field": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Dotted path on the row the condition reads."
+				},
+				"equals": {
+					"description": "The indicator applies when the field equals this value exactly."
+				},
+				"in": {
+					"type": "array",
+					"description": "The indicator applies when the field's value is one of these."
+				},
+				"icon": {
+					"type": "string",
+					"description": "CnIcon name (PascalCase). Defaults to InformationOutline."
+				},
+				"text": {
+					"type": "string",
+					"minLength": 1,
+					"description": "The text alternative, read out beside the icon. Required: an indicator without one does not render."
+				},
+				"tooltip": {
+					"type": "string",
+					"description": "Hover text. Defaults to `text`."
+				}
+			}
+		},
 		"folderSidebarScope": {
 			"type": "object",
 			"additionalProperties": true,
@@ -2898,6 +2939,23 @@
 								}
 							},
 							"description": "Declarative actions on a page. Governed ONLY by \"an object carrying a non-empty label\", deliberately: this key is polymorphic by page type (index rows dispatch $defs/action; detail pages also carry type='lifecycle-transition' entries), so one closed grammar here would reject working manifests. A label is what every dialect needs — CnRowActions renders an entry from its label and icon, so an entry without one became a full-height, clickable, EMPTY row in the overflow menu. Two shapes hit this, both meaning \"show the built-in\": a bare string (\"edit\") and a key-only object ({\"key\": \"edit\"}). Built-ins are enabled with config.actionToggles / the show*Action keys, never by naming them here."
+						},
+						"rowIndicators": {
+							"type": "array",
+							"description": "type='index': state indicators the page declares for its rows. Each entry names a `field` (a dotted path on the row), a condition (`equals`, `in`, or plain truthiness when neither is given), an `icon` (a CnIcon name) and a `text` (the text alternative, required). An entry without `text` does not render, because an icon with no text is colour and shape alone. The page declares which indicators exist; a record cannot add one the page has not declared. Maps to CnIndexPage `rowIndicators`.",
+							"items": {
+								"$ref": "#/$defs/rowIndicator"
+							}
+						},
+						"rowIndicatorCap": {
+							"type": "integer",
+							"minimum": 0,
+							"default": 3,
+							"description": "type='index': how many declared indicators render on the row itself before the rest move into the row menu. Maps to CnIndexPage `rowIndicatorCap`."
+						},
+						"rowActionField": {
+							"type": "string",
+							"description": "type='index': the dotted path on each row where the server lists the actions this caller may run on that record (default '@self.actions'). A row's menu is then the intersection of what `config.actions` declares and what the server allows: an action the server allows but the page does not declare stays out, and an action the page declares but the server refuses stays out with its reason kept. A row carrying nothing at this path leaves the declaration standing. Maps to CnIndexPage `rowActionField`."
 						},
 						"editOpensDetail": {
 							"type": "boolean",
