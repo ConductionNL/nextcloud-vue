@@ -2329,6 +2329,13 @@ export default {
 			internalSelectedIds: [...this.selectedIds],
 			// Folder-sidebar state: selected folder id + the register-fetched list.
 			selectedFolderId: null,
+			/**
+			 * The grouping field's facet as last seen with NO folder selected:
+			 * the whole set of folders, kept on screen while one is selected.
+			 *
+			 * @type {Array<object>}
+			 */
+			folderSidebarAllValues: [],
 			folderRegisterList: [],
 			// Mass action dialogs
 			showMassDeleteDialog: false,
@@ -2705,7 +2712,7 @@ export default {
 		 *
 		 * @return {Array<object>} Normalised facet values, or [] when none.
 		 */
-		folderSidebarFacetValues() {
+		folderSidebarLiveFacetValues() {
 			const field = this.folderSidebarGroupBy
 			if (!field) {
 				return []
@@ -2717,6 +2724,23 @@ export default {
 				|| {}
 
 			return facets[field]?.values || []
+		},
+
+		/**
+		 * The folders to show: the live facet, except while a folder is
+		 * selected. Selecting one filters the query by the grouping field, so
+		 * the live facet then holds that one value and every other folder
+		 * would vanish, which makes switching folders impossible. The set seen
+		 * before the selection stands in until it is cleared.
+		 *
+		 * @return {Array<object>} Normalised facet values.
+		 */
+		folderSidebarFacetValues() {
+			const selected = this.selectedFolderId !== null && this.selectedFolderId !== undefined
+			if (selected && this.folderSidebarAllValues.length > 0) {
+				return this.folderSidebarAllValues
+			}
+			return this.folderSidebarLiveFacetValues
 		},
 
 		/**
@@ -3567,6 +3591,16 @@ export default {
 	},
 
 	watch: {
+		// Remember the whole folder set whenever no folder narrows the query.
+		folderSidebarLiveFacetValues: {
+			immediate: true,
+			handler(values) {
+				if (this.selectedFolderId === null || this.selectedFolderId === undefined) {
+					this.folderSidebarAllValues = values
+				}
+			},
+		},
+
 		viewMode(val) {
 			this.currentViewMode = val
 		},
