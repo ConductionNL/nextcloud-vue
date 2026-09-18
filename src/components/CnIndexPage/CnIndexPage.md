@@ -823,6 +823,61 @@ The list view (`view-mode="list"`) and standalone sort dropdown add these props:
 
 The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override the list rows (see [CnObjectList](./cn-object-list.md)). Emits `@sort-change` with the chosen sort value.
 
+## Row actions the record allows
+
+Set `rowActionField` to the path where the server lists the actions this caller
+may run on a record, and a row's menu becomes the intersection of two
+declarations. The default is `@self.actions`, read off the rows the list already
+fetched, so ninety rows cost one request.
+
+```json
+"rowActionField": "@self.actions",
+"actions": [
+  { "id": "assign", "label": "Assign", "type": "open-modal", "target": "assign-case" },
+  { "id": "reject", "label": "Reject", "type": "api-call", "url": "/apps/dossiq/api/case/{objectId}/reject" }
+]
+```
+
+Which side wins on what:
+
+- The server decides who may run an action, per record and per caller. An
+  action it refuses is absent, and `rowActionRefusal(row, action)` hands the
+  reason to a caller that asks. The menu does not list what you may not do.
+- The page decides which actions exist, and how they read. An action the server
+  allows that `config.actions` does not declare stays out, so a record cannot
+  grow a button nobody wrote. `rowActionsNotDeclared(row)` names those, for a
+  page that wants to see what it is ignoring.
+
+A row carrying nothing at that path is a server that does not answer about
+actions, and the page's declaration stands as before. Wire the field on one
+list first, then check `rowActionsNotDeclared` to see what the server is
+offering that you have not declared yet.
+
+## State indicators on a row
+
+Declare `rowIndicators` and a row carries the flags a handler triages on. Each
+entry names a field, a condition, an icon and a text.
+
+```json
+"rowIndicators": [
+  { "id": "suspended", "field": "suspended", "icon": "PauseCircleOutline", "text": "Suspended" },
+  { "id": "extended", "field": "termExtended", "icon": "ClockPlusOutline", "text": "Term extended" },
+  { "id": "child", "field": "parentCase", "icon": "FileTreeOutline", "text": "Part of a parent case" },
+  { "id": "decided", "field": "decision", "icon": "GavelOutline", "text": "Decision filed" }
+],
+"rowIndicatorCap": 3
+```
+
+The condition is `equals`, `in`, or plain truthiness when neither is given.
+`text` is required: an entry without one does not render, because an icon with
+no text is colour and shape alone. Past `rowIndicatorCap` the rest move into the
+row menu, so a row stays readable at a glance.
+
+The page declares which indicators exist. A record cannot add one the page has
+not declared, whatever it carries. A page declaring none renders its rows
+exactly as before. Start with the two flags your handlers ask about most, then
+add the rest once you know the cap is right.
+
 ## Folder sidebar
 
 Set the `folderSidebar` config to render a folder navigation pane left of the list. Selecting a folder filters the list by the config's `filterField` (via the self-fetch filter); "All" clears it. Emits `@folder-change` with the selected id (and `@folder-create` when the opt-in New-folder button is used).

@@ -388,6 +388,8 @@
 					:schema="effectiveSchema"
 					:columns="tableColumns"
 					:rowIcon="rowIcon"
+					:rowIndicators="rowIndicators"
+					:rowIndicatorCap="rowIndicatorCap"
 					:rows="displayObjects"
 					:sortKey="effectiveSortKey"
 					:sortOrder="effectiveSortOrder"
@@ -416,7 +418,7 @@
 					<template v-if="hasRowActions" #row-actions="{ row }">
 						<slot name="row-actions" :row="row">
 							<CnRowActions
-								:actions="mergedActions"
+								:actions="rowActionsFor(row)"
 								:row="row"
 								@action="onRowAction" />
 						</slot>
@@ -528,7 +530,7 @@
 					<template v-if="hasRowActions || $slots['row-actions']" #row-actions="{ object }">
 						<slot name="row-actions" :row="object">
 							<CnRowActions
-								:actions="mergedActions"
+								:actions="rowActionsFor(object)"
 								:row="object"
 								@action="onRowAction" />
 						</slot>
@@ -571,7 +573,7 @@
 					<template v-if="hasRowActions" #card-actions="{ object }">
 						<slot name="row-actions" :row="object">
 							<CnRowActions
-								:actions="mergedActions"
+								:actions="rowActionsFor(object)"
 								:row="object"
 								@action="onRowAction" />
 						</slot>
@@ -674,6 +676,8 @@ import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
+import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions } from '../../utils/rowActionAvailability.js'
+import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery } from '../../utils/savedViewHelpers.js'
 import { isPinnedView, LEGACY_VIEW_QUERY_KEY, resolveViewPresentation, togglePinnedBy } from '../../utils/savedViewPlaces.js'
 import { columnsFromSchema } from '../../utils/schema.js'
@@ -1873,6 +1877,55 @@ export default {
 		folderSidebar: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Where a row carries the actions the server says this caller may run
+		 * on it: a dotted path, read off the rows the list already fetched, so
+		 * ninety rows cost one request rather than ninety.
+		 *
+		 * A row's menu is then the INTERSECTION of what this page declares and
+		 * what the server allows. An action the server allows but this page has
+		 * stopped declaring stays out, so a row cannot bring back a button the
+		 * page removed. An action the page declares but the server refuses
+		 * stays out too, and its reason is available from
+		 * `rowActionRefusal(row, action)`.
+		 *
+		 * A row carrying nothing at this path is a server that does not answer
+		 * about actions, and the page's declaration stands unchanged.
+		 *
+		 * @type {string}
+		 */
+		rowActionField: {
+			type: String,
+			default: DEFAULT_ROW_ACTION_FIELD,
+		},
+
+		/**
+		 * State indicators this page declares for its rows, handed straight to
+		 * CnDataTable. Each entry is `{ id, field, equals?, in?, icon, text,
+		 * tooltip? }`. The page declares which indicators exist; a record
+		 * cannot add one the page has not declared. A page declaring none
+		 * renders its rows as before. Fed from the manifest as
+		 * `pages[].config.rowIndicators`.
+		 *
+		 * @type {Array<object>}
+		 */
+		rowIndicators: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * How many declared indicators render on the row itself before the
+		 * rest move into the row menu. Fed from the manifest as
+		 * `pages[].config.rowIndicatorCap`.
+		 *
+		 * @type {number}
+		 */
+		rowIndicatorCap: {
+			type: Number,
+			default: DEFAULT_ROW_INDICATOR_CAP,
 		},
 
 		/**
@@ -4177,6 +4230,46 @@ export default {
 		 * @param {(string|number|null)} folderId The selected folder id (null = All).
 		 * @return {void}
 		 */
+		/**
+		 * The actions one row offers: this page's declared actions narrowed to
+		 * the ones the server says this caller may run on that record. The
+		 * order, label and icon stay the page's.
+		 *
+		 * @param {object} row The row.
+		 * @return {Array<object>} The actions to render for that row.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		rowActionsFor(row) {
+			return availableRowActions(this.mergedActions, row, this.rowActionField)
+		},
+
+		/**
+		 * Why the server refused an action on a row, when it said. Available on
+		 * request rather than rendered, because a menu that lists what you may
+		 * not do is a menu that takes longer to read.
+		 *
+		 * @param {object} row The row.
+		 * @param {object} action The declared action.
+		 * @return {string} The refusal reason, or ''.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		rowActionRefusal(row, action) {
+			return refusalReasonFor(action, row, this.rowActionField)
+		},
+
+		/**
+		 * The actions the server allowed on a row that this page does not
+		 * declare. Nothing renders them. They are here so a page can see what
+		 * it is ignoring without the menu growing a button nobody wrote.
+		 *
+		 * @param {object} row The row.
+		 * @return {string[]} The undeclared action ids.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		rowActionsNotDeclared(row) {
+			return undeclaredRowActions(this.mergedActions, row, this.rowActionField)
+		},
+
 		onFolderSelect(folderId) {
 			this.selectedFolderId = folderId
 			const key = (this.folderSidebar && (this.folderSidebar.filterField || this.folderSidebar.field)) || ''
