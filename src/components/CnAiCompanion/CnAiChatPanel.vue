@@ -277,6 +277,23 @@
 					</li>
 				</ul>
 
+				<!--
+				  Say why a turn failed, where the answer would have been.
+
+				  The stream already carries `{code, message}` for a refused or
+				  broken turn, and nothing rendered it: measured 2026-09-18 on a
+				  dev instance, an agent whose tool grants resolved to no tools
+				  answered with an SSE `error` event, and the window showed
+				  "Thinking", then nothing at all. Silence reads as a hung app.
+				-->
+				<p
+					v-if="streamState.error"
+					class="cn-ai-chat-window__error"
+					role="alert"
+					data-testid="cn-ai-panel-error">
+					{{ streamState.error.message || cnTranslate('The assistant could not answer.') }}
+				</p>
+
 				<div class="cn-ai-chat-window__input">
 					<CnAiInput
 						ref="input"
@@ -392,7 +409,7 @@ export default {
 		},
 
 		/**
-		 * Reactive state from useAiChatStream: `{ messages, currentText, isStreaming, conversationUuid }`.
+		 * Reactive state from useAiChatStream: `{ messages, currentText, isStreaming, conversationUuid, error }`.
 		 */
 		streamState: {
 			type: Object,
@@ -1386,6 +1403,15 @@ export default {
 	display: flex;
 	gap: 8px;
 	margin-top: 10px;
+}
+
+.cn-ai-chat-window__error {
+	flex: 0 0 auto;
+	margin: 0;
+	padding: 8px 12px;
+	color: var(--color-error-text, #a10000);
+	background: var(--color-error-hover, #f7e5e5);
+	font-size: 0.9em;
 }
 
 .cn-ai-chat-window__input {
