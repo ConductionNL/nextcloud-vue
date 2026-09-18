@@ -5,9 +5,19 @@
 
 ## Implementation tasks
 
-### Task 1: `CnNotificationPreferences`, the matrix
+> 🔴 THE SCREEN IS `CnNotificationMatrix`, NOT `CnNotificationPreferences`.
+> An earlier revision of this change built it under the latter name, which the
+> library has shipped since #446 as a self-contained settings pane taking NO
+> props, and `CnAppRoot` mounts that pane as the default of its
+> `#user-settings` slot. Replacing it in place left every app in the fleet
+> rendering an empty pane, with no error and no failing test. The pane is
+> restored byte-for-byte, the new screen sits beside it under its own name, and
+> `tests/components/CnNotificationPreferencesNoProps.spec.js` mounts the pane
+> with nothing and asserts it is populated, so this cannot happen again.
+
+### Task 1: `CnNotificationMatrix`, the matrix
 - **spec_ref**: `openspec/changes/notification-preferences-ui/specs/notification-preferences/spec.md#requirement-a-person-chooses-which-events-notify-them-and-over-which-channel`
-- **files**: `src/components/CnNotificationPreferences/CnNotificationPreferences.vue`, `src/components/CnNotificationPreferences/index.js`, `src/components/index.js`, `src/index.js`, `src/components/__tests__/CnNotificationPreferences.spec.js`
+- **files**: `src/components/CnNotificationMatrix/CnNotificationMatrix.vue`, `src/components/CnNotificationMatrix/index.js`, `src/components/index.js`, `src/index.js`, `tests/components/CnNotificationMatrix.spec.js`
 - **acceptance_criteria**:
   - Events render as rows and channels as columns, both taken from the host's catalogue
   - A channel the instance has not configured renders disabled with the reason
@@ -18,7 +28,7 @@
 
 ### Task 2: Three levels, and where a value came from
 - **spec_ref**: `openspec/changes/notification-preferences-ui/specs/notification-preferences/spec.md#requirement-the-screen-says-where-each-value-came-from`
-- **files**: `src/components/CnNotificationPreferences/CnNotificationPreferences.vue`, `src/stores/notificationPreferences.js`, `src/stores/__tests__/notificationPreferences.spec.js`
+- **files**: `src/components/CnNotificationMatrix/CnNotificationMatrix.vue`, `src/stores/notificationPreferences.js`, `src/stores/__tests__/notificationPreferences.spec.js`
 - **acceptance_criteria**:
   - App default, group value and personal value resolve in that order, narrowest set value winning
   - Each cell states which level its current value came from
@@ -38,7 +48,7 @@
 
 ### Task 3: Scope per row, and the admin screen
 - **spec_ref**: `openspec/changes/notification-preferences-ui/specs/notification-preferences/spec.md#requirement-a-preference-is-set-for-one-case-domain-or-record-type`
-- **files**: `src/components/CnNotificationPreferences/CnNotificationPreferences.vue`, `src/components/CnSettingsSection/`, `src/components/__tests__/CnNotificationPreferencesScope.spec.js`
+- **files**: `src/components/CnNotificationMatrix/CnNotificationMatrix.vue`, `src/components/CnSettingsSection/`, `tests/components/CnNotificationMatrixScope.spec.js`
 - **acceptance_criteria**:
   - A row is set globally or per case domain or record type, with scoped rows indented under the global one
   - The narrower setting wins, and a scope is added from the row itself
@@ -58,7 +68,7 @@
 
 ### Task 4: The digest, the test send and the docs
 - **spec_ref**: `openspec/changes/notification-preferences-ui/specs/notification-preferences/spec.md#requirement-mail-is-batched-into-a-digest-a-person-chooses`
-- **files**: `src/components/CnNotificationPreferences/CnNotificationPreferences.vue`, `docs/components/cn-notification-preferences.md`, `src/l10n/`
+- **files**: `src/components/CnNotificationMatrix/CnNotificationMatrix.vue`, `docs/components/cn-notification-matrix.md`, `src/l10n/`
 - **acceptance_criteria**:
   - The digest is off, daily or weekly with a time of day, set per channel
   - Events the app marks immediate are never held, and the screen names them —
@@ -69,7 +79,7 @@
     answer; a button that reported nothing would read as proof the channel
     works.
   - JSDoc, the reference doc, and Dutch and English strings ship; `npm test`
-    and `npm run build` pass — JSDoc, `docs/components/cn-notification-preferences.md`,
+    and `npm run build` pass — JSDoc, `docs/components/cn-notification-matrix.md`,
     `docs/utilities/composables/use-notification-preferences-store.md` and 26
     new Dutch strings ship. English is the key, so no second catalogue.
     `npm run build` was NOT RUN: this lane verifies build-first (the touched

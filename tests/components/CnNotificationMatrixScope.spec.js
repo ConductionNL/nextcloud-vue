@@ -20,7 +20,7 @@ jest.mock('@nextcloud/l10n', () => ({
 }))
 
 const { mount } = require('@vue/test-utils')
-const CnNotificationPreferences = require('../../src/components/CnNotificationPreferences/CnNotificationPreferences.vue').default
+const CnNotificationMatrix = require('../../src/components/CnNotificationMatrix/CnNotificationMatrix.vue').default
 
 const EVENTS = [
 	{ id: 'term-expires', label: 'Term expires', group: 'terms', groupLabel: 'Terms', appDefault: false },
@@ -43,7 +43,7 @@ const SCOPE_CHOICES = [
  * @return {object} The wrapper.
  */
 function mountScreen(props = {}) {
-	return mount(CnNotificationPreferences, {
+	return mount(CnNotificationMatrix, {
 		props: { events: EVENTS, channels: CHANNELS, scopeChoices: SCOPE_CHOICES, ...props },
 	})
 }
@@ -58,7 +58,7 @@ function mountScreen(props = {}) {
  * @return {object} The input.
  */
 function toggle(wrapper, eventId, channelId, scope = '') {
-	return wrapper.find(`[data-testid="cn-np-toggle"][data-event="${eventId}"][data-channel="${channelId}"][data-scope="${scope}"]`)
+	return wrapper.find(`[data-testid="cn-nm-toggle"][data-event="${eventId}"][data-channel="${channelId}"][data-scope="${scope}"]`)
 }
 
 describe('a row narrowed to one kind of case', () => {
@@ -68,7 +68,7 @@ describe('a row narrowed to one kind of case', () => {
 			scopedValues: { 'term-expires': { mail: { bezwaar: true } } },
 		})
 
-		const rows = wrapper.findAll('[data-testid="cn-np-row"][data-event="term-expires"]')
+		const rows = wrapper.findAll('[data-testid="cn-nm-row"][data-event="term-expires"]')
 		expect(rows.map((row) => row.attributes('data-scope'))).toEqual(['', 'bezwaar'])
 	})
 
@@ -77,7 +77,7 @@ describe('a row narrowed to one kind of case', () => {
 			scopedValues: { 'term-expires': { mail: { bezwaar: true } } },
 		})
 
-		expect(wrapper.find('[data-testid="cn-np-scope-label"]').text()).toBe('Objections')
+		expect(wrapper.find('[data-testid="cn-nm-scope-label"]').text()).toBe('Objections')
 	})
 
 	it('lets the narrower row win where it applies', () => {
@@ -108,9 +108,9 @@ describe('a row narrowed to one kind of case', () => {
 			scopedValues: { 'term-expires': { mail: { bezwaar: false } } },
 		})
 
-		const cells = wrapper.findAll('[data-testid="cn-np-cell"][data-event="term-expires"][data-scope="bezwaar"]')
+		const cells = wrapper.findAll('[data-testid="cn-nm-cell"][data-event="term-expires"][data-scope="bezwaar"]')
 		const push = cells.find((cell) => cell.attributes('data-channel') === 'push')
-		expect(push.find('[data-testid="cn-np-source"]').text()).toBe('Follows the row above')
+		expect(push.find('[data-testid="cn-nm-source"]').text()).toBe('Follows the row above')
 	})
 
 	it('names the scope in the accessible name of a scoped toggle', () => {
@@ -148,7 +148,7 @@ describe('adding a scope from the row', () => {
 			scopedValues: { 'term-expires': { mail: { bezwaar: true } } },
 		})
 
-		const select = wrapper.find('[data-testid="cn-np-add-scope"][data-event="term-expires"]')
+		const select = wrapper.find('[data-testid="cn-nm-add-scope"][data-event="term-expires"]')
 		const values = select.findAll('option').map((option) => option.attributes('value'))
 		expect(values).toEqual(['', 'wob'])
 	})
@@ -156,7 +156,7 @@ describe('adding a scope from the row', () => {
 	it('emits which row was narrowed, and to what', async () => {
 		const wrapper = mountScreen()
 
-		const select = wrapper.find('[data-testid="cn-np-add-scope"][data-event="term-expires"]')
+		const select = wrapper.find('[data-testid="cn-nm-add-scope"][data-event="term-expires"]')
 		select.element.value = 'wob'
 		await select.trigger('change')
 
@@ -166,7 +166,7 @@ describe('adding a scope from the row', () => {
 	it('emits nothing when the placeholder is chosen', async () => {
 		const wrapper = mountScreen()
 
-		const select = wrapper.find('[data-testid="cn-np-add-scope"][data-event="term-expires"]')
+		const select = wrapper.find('[data-testid="cn-nm-add-scope"][data-event="term-expires"]')
 		select.element.value = ''
 		await select.trigger('change')
 
@@ -176,7 +176,7 @@ describe('adding a scope from the row', () => {
 	it('offers nothing when the host configured no scopes', () => {
 		const wrapper = mountScreen({ scopeChoices: [] })
 
-		expect(wrapper.find('[data-testid="cn-np-add-scope"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-nm-add-scope"]').exists()).toBe(false)
 	})
 })
 
@@ -189,8 +189,8 @@ describe('the catalogue decides what is listed', () => {
 			scopedValues: { 'retired-event': { mail: { bezwaar: true } } },
 		})
 
-		expect(wrapper.find('[data-testid="cn-np-row"][data-event="retired-event"]').exists()).toBe(false)
-		expect(wrapper.findAll('[data-testid="cn-np-row"]').length).toBe(2)
+		expect(wrapper.find('[data-testid="cn-nm-row"][data-event="retired-event"]').exists()).toBe(false)
+		expect(wrapper.findAll('[data-testid="cn-nm-row"]').length).toBe(2)
 	})
 })
 
@@ -198,14 +198,14 @@ describe('the admin screen', () => {
 	it('says a person\'s own value wins, so an administrator is not surprised', () => {
 		const wrapper = mountScreen({ adminMode: true })
 
-		expect(wrapper.find('[data-testid="cn-np-admin-note"]').text())
+		expect(wrapper.find('[data-testid="cn-nm-admin-note"]').text())
 			.toContain('Somebody who has set their own value keeps it')
 	})
 
 	it('says nothing of the sort on a person\'s own screen, which is the control', () => {
 		const wrapper = mountScreen()
 
-		expect(wrapper.find('[data-testid="cn-np-admin-note"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-nm-admin-note"]').exists()).toBe(false)
 	})
 })
 
@@ -213,7 +213,7 @@ describe('the digest', () => {
 	it('offers off, daily and weekly per channel', () => {
 		const wrapper = mountScreen()
 
-		const select = wrapper.find('[data-testid="cn-np-digest-mode"][data-channel="mail"]')
+		const select = wrapper.find('[data-testid="cn-nm-digest-mode"][data-channel="mail"]')
 		expect(select.findAll('option').map((option) => option.attributes('value')))
 			.toEqual(['off', 'daily', 'weekly'])
 	})
@@ -221,13 +221,13 @@ describe('the digest', () => {
 	it('asks for a time of day only once something is being held', () => {
 		const wrapper = mountScreen({ digest: { mail: { mode: 'off', timeOfDay: '' } } })
 
-		expect(wrapper.find('[data-testid="cn-np-digest-time"][data-channel="mail"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-nm-digest-time"][data-channel="mail"]').exists()).toBe(false)
 	})
 
 	it('shows the time of day when the digest is on, which is the control', () => {
 		const wrapper = mountScreen({ digest: { mail: { mode: 'daily', timeOfDay: '08:00' } } })
 
-		expect(wrapper.find('[data-testid="cn-np-digest-time"][data-channel="mail"]').element.value)
+		expect(wrapper.find('[data-testid="cn-nm-digest-time"][data-channel="mail"]').element.value)
 			.toBe('08:00')
 	})
 
@@ -235,7 +235,7 @@ describe('the digest', () => {
 		// Changing the mode must not silently clear the time somebody chose.
 		const wrapper = mountScreen({ digest: { mail: { mode: 'daily', timeOfDay: '08:00' } } })
 
-		const select = wrapper.find('[data-testid="cn-np-digest-mode"][data-channel="mail"]')
+		const select = wrapper.find('[data-testid="cn-nm-digest-mode"][data-channel="mail"]')
 		select.element.value = 'weekly'
 		await select.trigger('change')
 
@@ -246,7 +246,7 @@ describe('the digest', () => {
 	it('emits the time with the mode it already had', async () => {
 		const wrapper = mountScreen({ digest: { mail: { mode: 'weekly', timeOfDay: '08:00' } } })
 
-		const input = wrapper.find('[data-testid="cn-np-digest-time"][data-channel="mail"]')
+		const input = wrapper.find('[data-testid="cn-nm-digest-time"][data-channel="mail"]')
 		input.element.value = '09:30'
 		await input.trigger('change')
 
@@ -259,23 +259,23 @@ describe('the digest', () => {
 		// somebody is deciding to switch batching on.
 		const wrapper = mountScreen({ digest: { mail: { mode: 'daily', timeOfDay: '08:00' } } })
 
-		expect(wrapper.find('[data-testid="cn-np-digest-immediate-note"]').text())
+		expect(wrapper.find('[data-testid="cn-nm-digest-immediate-note"]').text())
 			.toBe('Events marked as urgent are still sent straight away.')
 	})
 
 	it('names the urgent events on the rows themselves', () => {
 		const wrapper = mountScreen()
 
-		const badges = wrapper.findAll('[data-testid="cn-np-immediate"]')
+		const badges = wrapper.findAll('[data-testid="cn-nm-immediate"]')
 		expect(badges.length).toBe(1)
-		expect(wrapper.find('[data-testid="cn-np-row"][data-event="assigned"]').text())
+		expect(wrapper.find('[data-testid="cn-nm-row"][data-event="assigned"]').text())
 			.toContain('never held for a digest')
 	})
 
 	it('offers no digest on a channel the instance cannot use', () => {
 		const wrapper = mountScreen()
 
-		expect(wrapper.find('[data-testid="cn-np-digest-mode"][data-channel="sms"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-nm-digest-mode"][data-channel="sms"]').exists()).toBe(false)
 	})
 })
 
@@ -283,7 +283,7 @@ describe('the test send', () => {
 	it('asks for one on the channel it was pressed on', async () => {
 		const wrapper = mountScreen()
 
-		await wrapper.find('[data-testid="cn-np-test-send"][data-channel="mail"]').trigger('click')
+		await wrapper.find('[data-testid="cn-nm-test-send"][data-channel="mail"]').trigger('click')
 
 		expect(wrapper.emitted()['test-send'][0][0]).toEqual({ channelId: 'mail' })
 	})
@@ -293,7 +293,7 @@ describe('the test send', () => {
 			testResults: { mail: { ok: true, message: 'Sent to r@example.org' } },
 		})
 
-		const result = wrapper.find('[data-testid="cn-np-test-result"][data-channel="mail"]')
+		const result = wrapper.find('[data-testid="cn-nm-test-result"][data-channel="mail"]')
 		expect(result.text()).toBe('Sent to r@example.org')
 		expect(result.attributes('data-ok')).toBe('true')
 	})
@@ -305,7 +305,7 @@ describe('the test send', () => {
 			testResults: { mail: { ok: false, message: 'This kind never leaves the organisation' } },
 		})
 
-		const result = wrapper.find('[data-testid="cn-np-test-result"][data-channel="mail"]')
+		const result = wrapper.find('[data-testid="cn-nm-test-result"][data-channel="mail"]')
 		expect(result.text()).toBe('This kind never leaves the organisation')
 		expect(result.attributes('data-ok')).toBe('false')
 	})
@@ -313,20 +313,20 @@ describe('the test send', () => {
 	it('still says it failed when the server sent no sentence of its own', () => {
 		const wrapper = mountScreen({ testResults: { mail: { ok: false, message: '' } } })
 
-		expect(wrapper.find('[data-testid="cn-np-test-result"][data-channel="mail"]').text())
+		expect(wrapper.find('[data-testid="cn-nm-test-result"][data-channel="mail"]').text())
 			.toBe('The test did not arrive.')
 	})
 
 	it('says nothing before anybody has pressed it, which is the control', () => {
 		const wrapper = mountScreen()
 
-		expect(wrapper.find('[data-testid="cn-np-test-result"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-nm-test-result"]').exists()).toBe(false)
 	})
 
 	it('names the channel on the button, for somebody who cannot see the column', () => {
 		const wrapper = mountScreen()
 
-		expect(wrapper.find('[data-testid="cn-np-test-send"][data-channel="mail"]').attributes('aria-label'))
+		expect(wrapper.find('[data-testid="cn-nm-test-send"][data-channel="mail"]').attributes('aria-label'))
 			.toBe('Send a test over Mail')
 	})
 })

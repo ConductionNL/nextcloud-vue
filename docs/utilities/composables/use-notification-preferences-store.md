@@ -5,7 +5,7 @@ title: useNotificationPreferencesStore
 # useNotificationPreferencesStore
 
 Reads and writes what notifies a person, for one screen. It is what feeds
-[`CnNotificationPreferences`](../../components/cn-notification-preferences.md)
+[`CnNotificationMatrix`](../../components/cn-notification-matrix.md)
 and what receives its events.
 
 ```js
@@ -85,6 +85,6 @@ them.
 
 ## See also
 
-- [`CnNotificationPreferences`](../../components/cn-notification-preferences.md) — the screen.
+- [`CnNotificationMatrix`](../../components/cn-notification-matrix.md) — the screen.
 - `utils/preferenceScopes.js` — which row applies, and pruning, as pure functions.
 - `utils/notificationPreference.js` — the four levels and channel availability.

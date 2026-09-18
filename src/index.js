@@ -180,6 +180,7 @@ export {
 	CnNcWidgetWidget,
 	CnNoteCard,
 	CnNotesCard,
+	CnNotificationMatrix,
 	CnNotificationPreferences,
 	CnObjectAccessTab,
 	CnObjectCalendar,
