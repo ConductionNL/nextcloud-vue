@@ -267,6 +267,94 @@ export async function countPending(deviceId) {
 }
 
 /**
+ * Every queued operation, in the order they will replay.
+ *
+ * 🔴 INCLUDING THE FAILED ONES, WHICH IS THE POINT. `countPending()` counts
+ * `pending`, `conflict` and `syncing` and leaves `failed` out, so an operation
+ * that exhausted its retries or lost its permission drops out of the badge
+ * entirely. The row is still on the device; nothing tells anybody. An
+ * inspection a citizen stood beside somebody to give is then stranded in one
+ * browser's IndexedDB with no reader, which is worse than having refused it at
+ * the door.
+ *
+ * FIFO by `queuedAt`, the same order the replay loop uses, so the list reads
+ * as what will happen next rather than as a set.
+ *
+ * @param {string} [deviceId] Optional device scope.
+ *
+ * @return {Promise<object[]>} Every operation, oldest first.
+ */
+export async function listQueue(deviceId) {
+	const db = getDb()
+	let collection = db.mutationQueue.orderBy('queuedAt')
+	if (typeof deviceId === 'string' && deviceId !== '') {
+		collection = collection.and((op) => op.deviceId === deviceId)
+	}
+
+	return await collection.toArray()
+}
+
+/**
+ * How many operations will not replay again without somebody acting.
+ *
+ * Counted apart from `countPending()` rather than folded into it: "12 waiting"
+ * and "12 waiting, 1 stuck" are different sentences, and a surface that adds
+ * them together says neither. Nothing is ever dropped to make this number
+ * smaller.
+ *
+ * @param {string} [deviceId] Optional device scope.
+ *
+ * @return {Promise<number>} The number of failed operations.
+ */
+export async function countStuck(deviceId) {
+	const db = getDb()
+	let collection = db.mutationQueue.where('status').equals('failed')
+	if (typeof deviceId === 'string' && deviceId !== '') {
+		collection = collection.and((op) => op.deviceId === deviceId)
+	}
+
+	return await collection.count()
+}
+
+/**
+ * Put a failed operation back in the queue, by hand.
+ *
+ * 🔴 BY HAND, AND NEVER AUTOMATICALLY. `failed` is terminal for the replay
+ * loop on purpose: an operation the server refused five times will be refused
+ * a sixth, and a queue that retries forever is a queue that never drains. But
+ * terminal must not mean forgotten, so somebody who has fixed whatever the
+ * server was complaining about can ask for it again, and the attempt count
+ * starts over.
+ *
+ * It does NOT reset a `permission_lost` row. The right to write is gone and
+ * retrying cannot bring it back; offering the button would be offering a
+ * gesture that fails every time.
+ *
+ * @param {string} operationId The operation to retry.
+ *
+ * @return {Promise<boolean>} True when it was re-queued.
+ */
+export async function requeueOperation(operationId) {
+	const db = getDb()
+	const operation = await db.mutationQueue.get(operationId)
+	if (!operation || operation.status !== 'failed') {
+		return false
+	}
+
+	if (operation.lastError === 'permission_lost') {
+		return false
+	}
+
+	await db.mutationQueue.update(operationId, {
+		status: 'pending',
+		attemptCount: 0,
+		lastError: null,
+	})
+
+	return true
+}
+
+/**
  * Resolve a stable per-device id, persisted in localStorage.
  *
  * The device id scopes the mutation queue so the server can re-authorize that
