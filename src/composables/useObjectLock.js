@@ -53,6 +53,7 @@ export class PermissionError extends Error {
  * @param {boolean} [options.autoRenew]      Renew the lock on a fixed interval while editing + visible.
  * @param {number}  [options.renewIntervalMs]  Renew every N ms (default 10 min).
  * @param {number}  [options.lockDurationSec]   Server-side TTL requested on acquire (default 30 min).
+ * @param {string|import('vue').Ref<string>} [options.schemaSlug] The schema slug for the LOCK URL, when `schema` is the object-cache key rather than the slug (CnDetailPage passes `<register>-<schema>` as the key). Defaults to `schema`.
  * @return {{
  *   locked: import('vue').ComputedRef<boolean>,
  *   lockedByMe: import('vue').ComputedRef<boolean>,
@@ -125,11 +126,53 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 		return Number.isNaN(d.getTime()) ? null : d
 	})
 
-	function endpoint() {
+	function readSchemaSlug() {
+		return unref(options.schemaSlug ?? schema)
+	}
+
+	/**
+	 * The object's own URL, without the lock verb.
+	 *
+	 * 🔴 THE SLUG AND THE STORE KEY ARE NOT THE SAME STRING, AND THEY USED TO
+	 * BE. `schema` doubles as the key the object cache is read under, and
+	 * CnDetailPage passes it `objectType`, which is `<register>-<schema>`. Put
+	 * straight into the URL that produced
+	 * `/api/objects/dossiq/dossiq-case/<id>/lock`, a schema slug no register
+	 * has, so the acquire 404ed on every manifest-driven detail page and the
+	 * lock was never taken. `options.schemaSlug` is the URL half and defaults
+	 * to `schema`, so a caller that passes one string for both is unaffected.
+	 *
+	 * @return {string} The object's base url.
+	 */
+	function objectUrl() {
 		const r = readRegister()
-		const s = readType()
+		const s = readSchemaSlug()
 		const i = readId()
-		return generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(r)}/${encodeURIComponent(s)}/${encodeURIComponent(i)}/lock`)
+		return generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(r)}/${encodeURIComponent(s)}/${encodeURIComponent(i)}`)
+	}
+
+	function endpoint() {
+		return `${objectUrl()}/lock`
+	}
+
+	/**
+	 * Where a lock is handed back.
+	 *
+	 * 🔴 IT IS A POST TO `/unlock`, AND IT USED TO BE `DELETE /lock`.
+	 * OpenRegister declares exactly two lock routes, `objects#lock` and
+	 * `objects#unlock`, both POST (`appinfo/routes.php`, verified 2026-09-18
+	 * against `development`); there is no DELETE on `/lock` and there never
+	 * was. So every release 404ed, and `release()` reads a 404 as "already
+	 * released; idempotent" and returns without a word. The lock outlived the
+	 * editor, the holder was told nothing, and the next person was refused by a
+	 * lock whose owner had closed the page twenty minutes earlier. That is the
+	 * silent no-op this line ends, and it is why the release test asserts the
+	 * URL and the METHOD rather than only that the promise resolved.
+	 *
+	 * @return {string} The unlock url.
+	 */
+	function unlockEndpoint() {
+		return `${objectUrl()}/unlock`
 	}
 
 	async function acquire() {
@@ -166,7 +209,7 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 	async function release() {
 		stopRenewTimer()
 		try {
-			await axios.delete(endpoint())
+			await axios.post(unlockEndpoint())
 		} catch (e) {
 			const status = e?.response?.status
 			if (status === 404) {
@@ -212,7 +255,10 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 			return
 		}
 		try {
-			navigator.sendBeacon?.(endpoint() + '?_method=DELETE')
+			// A beacon is always a POST, which is what `/unlock` takes: the
+			// old `?_method=DELETE` was a query parameter on a URL that had no
+			// DELETE route to reach in the first place.
+			navigator.sendBeacon?.(unlockEndpoint())
 		} catch { /* best-effort */ }
 	}
 
