@@ -275,6 +275,7 @@ import { pageHasSplitView, pageIdForRoute, splitIdForRoute, splitRouteName } fro
 import { listContextToQuery } from '../../utils/listNavigation.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { buildRouteParams, routePathFor } from '../../utils/routeParams.js'
+import { pageHasSavedViewPlaces, savedViewRouteName, viewIdForRoute } from '../../utils/savedViewPlaces.js'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { defaultPageTypes } from './pageTypes.js'
 
@@ -893,6 +894,17 @@ export default {
 		},
 
 		/**
+		 * The saved view this address names, or null when the address names
+		 * the page's own list.
+		 *
+		 * @return {string|null} The view id.
+		 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
+		 */
+		currentSavedViewId() {
+			return viewIdForRoute(this.$route)
+		},
+
+		/**
 		 * `Map<pageId, page>` built once per manifest identity (Vue caches this
 		 * computed until `effectiveManifest` changes), replacing per-recompute
 		 * linear `pages.find()` — O(n) per navigation on large manifests
@@ -1218,6 +1230,16 @@ export default {
 				topLevel.splitView = page.splitView
 				topLevel.splitId = this.currentSplitId || ''
 				topLevel.splitCloseRoute = page.id
+			}
+			// A page whose saved views are places hands the index page three
+			// things: the declaration, the view the ADDRESS names, and the
+			// name of the route a view opens at. The id comes off the route
+			// rather than out of a store for the same reason the split id
+			// does: the address is what makes a view a place.
+			if (isIndex && pageHasSavedViewPlaces(page)) {
+				topLevel.savedViewPlaces = page.savedViewPlaces
+				topLevel.savedViewId = this.currentSavedViewId || ''
+				topLevel.savedViewRouteName = savedViewRouteName(page.id)
 			}
 			if (isIndex && page?.manualOrder === true) {
 				topLevel.manualOrder = true

@@ -109,7 +109,9 @@
 					:views="savedViews"
 					:loading="savedViewsLoading"
 					:currentUserId="currentSavedViewsUserId"
+					:allowPinning="savedViewsArePlaces"
 					@apply="onApplySavedView"
+					@pinRequest="onPinViewRequest"
 					@saveRequest="showSaveViewDialog = true"
 					@deleteRequest="onDeleteViewRequest" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
@@ -673,6 +675,7 @@ import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery } from '../../utils/savedViewHelpers.js'
+import { isPinnedView, LEGACY_VIEW_QUERY_KEY, resolveViewPresentation, togglePinnedBy } from '../../utils/savedViewPlaces.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
@@ -1528,6 +1531,46 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * The page's `savedViewPlaces` declaration, forwarded by
+		 * CnPageRenderer (saved-view-as-a-place). Present and `enabled`, each
+		 * saved view of this page is a place: it has an address of its own,
+		 * it opens in the presentation its own config declares, and the views
+		 * dropdown gains a Pin action. Absent, the dropdown behaves exactly as
+		 * it did before: apply writes the view's state into the route query
+		 * and nothing else changes.
+		 *
+		 * @type {object|null}
+		 */
+		savedViewPlaces: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * The view this address names, read off the route by CnPageRenderer.
+		 * Empty on the page's own list route.
+		 *
+		 * @type {string}
+		 */
+		savedViewId: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The name of the route a view of this page opens at, as
+		 * `buildManifestRoutes()` registered it. Forwarded by CnPageRenderer;
+		 * empty when this page declares no places, and then nothing here
+		 * navigates to a view route.
+		 *
+		 * @type {string}
+		 */
+		savedViewRouteName: {
+			type: String,
+			default: '',
+		},
+
 		/** Property name used to display item names in dialogs */
 		massActionNameField: {
 			type: String,
@@ -2128,6 +2171,7 @@ export default {
 		'mass-delete',
 		'mass-export',
 		'mass-import',
+		'pin-view',
 		'page-changed',
 		'page-size-changed',
 		'quick-filter-change',
@@ -2229,6 +2273,11 @@ export default {
 			// delete confirmation.
 			savedViews: [],
 			savedViewsLoading: false,
+			// The view an address names that no longer answers: deleted, or
+			// never readable by this user. Held so the page can SAY so rather
+			// than render an empty list, which reads as "no cases" and sends
+			// somebody looking for the filter that is not there.
+			missingSavedViewId: '',
 			showSaveViewDialog: false,
 			viewPendingDelete: null,
 			// Split view (case-page-and-list-as-a-place). `splitRowPatches` holds
@@ -2262,7 +2311,38 @@ export default {
 		 */
 		resolvedEmptyText() {
 			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			if (this.missingSavedViewId !== '') {
+				// A bookmark to a view that has gone says which view it was.
+				// "No results" would be true and useless: the reader would
+				// believe the list is empty rather than that their view is.
+				return t('nextcloud-vue', 'This saved view ({id}) is gone. Open the page to build it again.', { id: this.missingSavedViewId })
+			}
 			return this.emptyText ? fn(this.emptyText) : this.emptyText
+		},
+
+		/**
+		 * Whether this page's saved views are places (saved-view-as-a-place).
+		 *
+		 * Both halves, as everywhere else: the declaration must be there AND
+		 * enabled, so `{ enabled: false }` renders as a page that never named
+		 * the key.
+		 *
+		 * @return {boolean} True when views have routes, presentations and pins here.
+		 */
+		savedViewsArePlaces() {
+			return this.allowSavedViews && this.savedViewPlaces?.enabled === true
+		},
+
+		/**
+		 * The view this address names, as an object, once the list has loaded.
+		 *
+		 * @return {object|null} The View API object, or null.
+		 */
+		currentSavedView() {
+			if (this.savedViewId === '') {
+				return null
+			}
+			return (this.savedViews || []).find((view) => String(view?.id) === this.savedViewId || String(view?.uuid) === this.savedViewId) || null
 		},
 
 		/**
@@ -3341,6 +3421,18 @@ export default {
 	watch: {
 		viewMode(val) {
 			this.currentViewMode = val
+		},
+
+		/**
+		 * The address started naming another view, or stopped naming one.
+		 *
+		 * @param {string} val The view id, or '' on the page's own list.
+		 */
+		savedViewId(val) {
+			this.missingSavedViewId = ''
+			if (val !== '') {
+				this.applySavedViewFromRoute()
+			}
 		},
 
 		selectedIds(val) {
@@ -4645,6 +4737,121 @@ export default {
 			} finally {
 				this.savedViewsLoading = false
 			}
+			if (this.savedViewsArePlaces) {
+				// Both only make sense once the views are in hand: the address
+				// names a view by id, and until the list has loaded there is
+				// nothing to resolve that id against.
+				this.redirectLegacyViewQuery()
+				this.applySavedViewFromRoute()
+			}
+		},
+
+		/**
+		 * Send a `?view=<id>` link to the view's own address.
+		 *
+		 * Those links were already sent before views had addresses, so they
+		 * keep working. They do not keep their own spelling: two addresses for
+		 * one list drift the moment the view is edited, and the one that
+		 * survives is the one the app can render (ADR-052).
+		 *
+		 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
+		 */
+		redirectLegacyViewQuery() {
+			const query = { ...((this.$route && this.$route.query) || {}) }
+			const legacy = query[LEGACY_VIEW_QUERY_KEY]
+			if (typeof legacy !== 'string' || legacy === '' || !this.$router || this.savedViewId !== '') {
+				return
+			}
+			if (this.savedViewRouteName === '') {
+				return
+			}
+			delete query[LEGACY_VIEW_QUERY_KEY]
+			const nav = this.$router.replace({
+				name: this.savedViewRouteName,
+				params: { viewId: legacy },
+				query,
+			})
+			if (nav && typeof nav.catch === 'function') {
+				nav.catch(() => {})
+			}
+		},
+
+		/**
+		 * Render the view this address names.
+		 *
+		 * Two things follow from the id in the path. The presentation the view
+		 * declares opens, falling through to what this page can actually
+		 * render rather than failing; and the view's stored filters, search
+		 * and sort are written into the query, because that is the one channel
+		 * this component already fetches from. The path keeps naming the view,
+		 * so the address a person copies is still the view's own.
+		 *
+		 * A view that does not answer is said out loud rather than rendered as
+		 * an empty list.
+		 *
+		 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
+		 */
+		applySavedViewFromRoute() {
+			if (!this.savedViewsArePlaces || this.savedViewId === '' || this.savedViewsLoading) {
+				return
+			}
+			const view = this.currentSavedView
+			if (!view) {
+				this.missingSavedViewId = this.savedViewId
+				return
+			}
+			this.missingSavedViewId = ''
+
+			const { viewMode, warnings } = resolveViewPresentation(view, this.availableViewModes)
+			for (const warning of warnings) {
+				// eslint-disable-next-line no-console
+				console.warn(warning)
+			}
+			if (viewMode) {
+				this.currentViewMode = viewMode
+			}
+
+			const query = buildRouteQueryFromViewState(extractViewState(view))
+			const current = (this.$route && this.$route.query) || {}
+			if (!this.$router || JSON.stringify(query) === JSON.stringify(current)) {
+				return
+			}
+			const nav = this.$router.replace({
+				name: this.$route?.name,
+				params: this.$route?.params,
+				query,
+			})
+			if (nav && typeof nav.catch === 'function') {
+				nav.catch(() => {})
+			}
+		},
+
+		/**
+		 * Pin or unpin a view (CnSavedViewsControl `@pin-request`).
+		 *
+		 * Pinning writes OpenRegister's existing `favoredBy` list rather than
+		 * a second flag meaning nearly the same thing. The local copy is
+		 * updated from the response, so the navigation this page shares a
+		 * manifest with sees the pin without a reload.
+		 *
+		 * @param {object} view The View API object to pin or unpin.
+		 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
+		 */
+		async onPinViewRequest(view) {
+			if (!view || !this.savedViewsArePlaces) {
+				return
+			}
+			const userId = this.currentSavedViewsUserId
+			const next = !isPinnedView(view, userId)
+			try {
+				const updated = await useSavedViewsApi().patchView(view.id, { favoredBy: togglePinnedBy(view, userId, next) })
+				const merged = updated || { ...view, favoredBy: togglePinnedBy(view, userId, next) }
+				this.savedViews = this.savedViews.map((v) => (String(v.id) === String(view.id) ? merged : v))
+				this.$emit('pin-view', merged)
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('CnIndexPage: failed to pin the view', error)
+			}
 		},
 
 		/**
@@ -4659,6 +4866,17 @@ export default {
 		onApplySavedView(view) {
 			const query = buildRouteQueryFromViewState(extractViewState(view))
 			if (!this.$router) {
+				return
+			}
+			if (this.savedViewsArePlaces && this.savedViewRouteName !== '' && view?.id !== undefined) {
+				// The view is a place here, so applying one GOES there. Push
+				// rather than replace: a person who walked from the list to a
+				// view expects Back to return them to the list.
+				const toView = this.$router.push({ name: this.savedViewRouteName, params: { viewId: String(view.id) }, query })
+				if (toView && typeof toView.catch === 'function') {
+					toView.catch(() => {})
+				}
+				this.$emit('apply-view', view)
 				return
 			}
 			const nav = this.$router.replace({ query })

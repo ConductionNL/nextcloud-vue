@@ -24,6 +24,7 @@
  */
 
 import { routeParamNames } from './routeParams.js'
+import { pageHasSavedViewPlaces, savedViewRouteBase, savedViewRouteName, savedViewRoutePath } from './savedViewPlaces.js'
 
 /**
  * Suffix that turns a page id into the name of its split route.
@@ -82,8 +83,11 @@ export function splitRoutePath(route) {
  * Build the vue-router route records for a manifest.
  *
  * One record per page, plus one extra for every index page declaring
- * `splitView.enabled`. The extra record points at the same component with
- * the same props, so the router swaps the URL without swapping the page.
+ * `splitView.enabled`, and one more for every index page declaring
+ * `savedViewPlaces.enabled`. Each extra record points at the same component
+ * with the same props, so the router swaps the URL without swapping the page.
+ * The saved-view record carries `meta.cnSavedViewOf`, which is what tells
+ * CnIndexPage the address names a view rather than the page's own list.
  *
  * `tabInAddress` needs no record of its own: the tab travels as the `_tab`
  * query parameter on the detail page's existing route. The underscore is not
@@ -126,6 +130,19 @@ export function buildManifestRoutes(manifest, options = {}) {
 			...(props === undefined ? {} : { props }),
 			meta: { cnPageId: page.id },
 		}, decorate))
+
+		if (pageHasSavedViewPlaces(page)) {
+			records.push(finish(page, {
+				name: savedViewRouteName(page.id),
+				path: savedViewRoutePath(page.route, savedViewRouteBase(page)),
+				component,
+				...(props === undefined ? {} : { props }),
+				meta: {
+					cnPageId: page.id,
+					cnSavedViewOf: page.id,
+				},
+			}, decorate))
+		}
 
 		if (pageHasSplitView(page)) {
 			records.push(finish(page, {
