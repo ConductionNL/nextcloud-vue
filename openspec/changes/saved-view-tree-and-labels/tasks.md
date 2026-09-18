@@ -46,8 +46,8 @@
   - A second view claiming a slug in use fails and names the holder
   - A slug is editable only while nothing cites it
   - An unknown slug renders the empty state naming it, not a blank list
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 5: View templates
 - **spec_ref**: `openspec/changes/saved-view-tree-and-labels/specs/saved-views-ui/spec.md#requirement-a-new-view-starts-from-a-template`
