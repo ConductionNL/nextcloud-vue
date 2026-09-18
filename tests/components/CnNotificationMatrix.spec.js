@@ -10,12 +10,11 @@
  */
 
 jest.mock('@nextcloud/l10n', () => ({
-	translate: (app, text, params) =>
-		String(text).replace(/\{(\w+)\}/g, (_, key) => String((params || {})[key] ?? `{${key}}`)),
+	translate: (app, text, params) => String(text).replace(/\{(\w+)\}/g, (_, key) => String((params || {})[key] ?? `{${key}}`)),
 }))
 
 const { mount } = require('@vue/test-utils')
-const CnNotificationPreferences = require('../../src/components/CnNotificationPreferences/CnNotificationPreferences.vue').default
+const CnNotificationMatrix = require('../../src/components/CnNotificationMatrix/CnNotificationMatrix.vue').default
 
 const EVENTS = [
 	{ id: 'term-expires', label: 'Term expires', group: 'terms', groupLabel: 'Terms', appDefault: true },
@@ -33,7 +32,7 @@ const CHANNELS = [
  * @return {object} The wrapper.
  */
 function mountScreen(props = {}) {
-	return mount(CnNotificationPreferences, {
+	return mount(CnNotificationMatrix, {
 		props: { events: EVENTS, channels: CHANNELS, ...props },
 	})
 }
@@ -47,7 +46,7 @@ function mountScreen(props = {}) {
  * @return {object} The input.
  */
 function toggle(wrapper, eventId, channelId) {
-	return wrapper.find(`[data-testid="cn-np-toggle"][data-event="${eventId}"][data-channel="${channelId}"]`)
+	return wrapper.find(`[data-testid="cn-nm-toggle"][data-event="${eventId}"][data-channel="${channelId}"]`)
 }
 
 describe('the matrix', () => {
@@ -69,14 +68,14 @@ describe('the matrix', () => {
 
 	it('groups the events and collapses a group', async () => {
 		const wrapper = mountScreen()
-		const groups = wrapper.findAll('[data-testid="cn-np-group"]')
+		const groups = wrapper.findAll('[data-testid="cn-nm-group"]')
 
 		expect(groups.map((group) => group.attributes('data-group'))).toEqual(['terms', 'work'])
 		expect(groups[0].attributes('aria-expanded')).toBe('true')
 
 		await groups[0].trigger('click')
 
-		expect(wrapper.findAll('[data-testid="cn-np-group"]')[0].attributes('aria-expanded')).toBe('false')
+		expect(wrapper.findAll('[data-testid="cn-nm-group"]')[0].attributes('aria-expanded')).toBe('false')
 	})
 })
 
@@ -84,13 +83,13 @@ describe('where a value came from', () => {
 	it('says it follows the app default', () => {
 		const wrapper = mountScreen()
 
-		expect(wrapper.find('[data-testid="cn-np-cell"][data-event="term-expires"][data-channel="mail"]').text())
+		expect(wrapper.find('[data-testid="cn-nm-cell"][data-event="term-expires"][data-channel="mail"]').text())
 			.toContain('Follows the app default')
 	})
 
 	it('says it follows the group', () => {
 		const wrapper = mountScreen({ groupValues: { 'term-expires': { mail: false } } })
-		const cell = wrapper.find('[data-testid="cn-np-cell"][data-event="term-expires"][data-channel="mail"]')
+		const cell = wrapper.find('[data-testid="cn-nm-cell"][data-event="term-expires"][data-channel="mail"]')
 
 		expect(cell.attributes('data-level')).toBe('group')
 		expect(cell.text()).toContain('Follows your group')
@@ -103,7 +102,7 @@ describe('where a value came from', () => {
 			groupValues: { 'term-expires': { mail: true } },
 			personalValues: { 'term-expires': { mail: false } },
 		})
-		const cell = wrapper.find('[data-testid="cn-np-cell"][data-event="term-expires"][data-channel="mail"]')
+		const cell = wrapper.find('[data-testid="cn-nm-cell"][data-event="term-expires"][data-channel="mail"]')
 
 		expect(cell.attributes('data-level')).toBe('personal')
 		expect(toggle(wrapper, 'term-expires', 'mail').element.checked).toBe(false)
@@ -127,7 +126,7 @@ describe('a channel an administrator has forced', () => {
 		expect(input.element.checked).toBe(true)
 		expect(input.attributes('disabled')).toBeDefined()
 
-		const cell = wrapper.find('[data-testid="cn-np-cell"][data-event="term-expires"][data-channel="mail"]')
+		const cell = wrapper.find('[data-testid="cn-nm-cell"][data-event="term-expires"][data-channel="mail"]')
 		expect(cell.attributes('data-level')).toBe('forced')
 		expect(cell.text()).toContain('Gemeente Amsterdam')
 		expect(cell.text()).toContain('Wettelijke kennisgeving')
@@ -160,6 +159,9 @@ describe('a channel an administrator has forced', () => {
 		expect(wrapper.emitted().change[0][0]).toEqual({
 			eventId: 'assigned',
 			channelId: 'mail',
+			// The global row. Every change now names the row it was made on,
+			// because the same event and channel can carry a narrower one.
+			scope: '',
 			value: true,
 		})
 	})
@@ -169,7 +171,7 @@ describe('a channel that cannot carry this', () => {
 	it('says the instance has not configured it', () => {
 		const wrapper = mountScreen()
 
-		expect(wrapper.find('[data-testid="cn-np-channel-unusable"]').text())
+		expect(wrapper.find('[data-testid="cn-nm-channel-unusable"]').text())
 			.toBe('No SMS gateway is set up')
 		expect(toggle(wrapper, 'term-expires', 'sms').attributes('disabled')).toBeDefined()
 	})
@@ -186,7 +188,7 @@ describe('a channel that cannot carry this', () => {
 			},
 		})
 
-		const cell = wrapper.find('[data-testid="cn-np-cell"][data-event="term-expires"][data-channel="mail"]')
+		const cell = wrapper.find('[data-testid="cn-nm-cell"][data-event="term-expires"][data-channel="mail"]')
 		expect(cell.text()).toContain('internal notice is not sent to an external recipient')
 		expect(toggle(wrapper, 'term-expires', 'mail').attributes('disabled')).toBeDefined()
 	})
@@ -208,11 +210,11 @@ describe('the admin screen', () => {
 		// what they set.
 		const wrapper = mountScreen({ adminMode: true })
 
-		expect(wrapper.find('[data-testid="cn-np-admin-note"]').text()).toContain('keeps it')
+		expect(wrapper.find('[data-testid="cn-nm-admin-note"]').text()).toContain('keeps it')
 	})
 
 	it('says nothing of the sort on the personal screen', () => {
-		expect(mountScreen().find('[data-testid="cn-np-admin-note"]').exists()).toBe(false)
+		expect(mountScreen().find('[data-testid="cn-nm-admin-note"]').exists()).toBe(false)
 	})
 })
 
@@ -222,6 +224,6 @@ describe('an event the app always sends straight away', () => {
 			events: [{ ...EVENTS[0], immediate: true }],
 		})
 
-		expect(wrapper.find('[data-testid="cn-np-immediate"]').text()).toContain('never held')
+		expect(wrapper.find('[data-testid="cn-nm-immediate"]').text()).toContain('never held')
 	})
 })
