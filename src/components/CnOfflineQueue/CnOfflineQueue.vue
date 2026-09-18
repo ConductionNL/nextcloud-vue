@@ -69,12 +69,35 @@
 						{{ t('nextcloud-vue', 'Your right to write this was withdrawn. Retrying cannot restore it; ask whoever administers the register.') }}
 					</p>
 
-					<NcButton
-						v-else-if="operation.status === 'failed'"
-						:data-testid="`cn-offline-queue-retry-${operation.id}`"
-						@click="retry(operation)">
-						{{ t('nextcloud-vue', 'Try again') }}
-					</NcButton>
+					<div v-if="operation.status === 'failed'" class="cn-offline-queue__row-actions">
+						<NcButton
+							v-if="isPermissionLost(operation) === false"
+							:data-testid="`cn-offline-queue-retry-${operation.id}`"
+							@click="retry(operation)">
+							{{ t('nextcloud-vue', 'Try again') }}
+						</NcButton>
+
+						<!-- 🔴 THE WAY OUT WHEN THERE IS NO WAY THROUGH. An entry
+						     that will never replay still holds what the inspector
+						     wrote, and it is theirs. Copying it lets them paste
+						     their own observation into a mail, a form or a note
+						     instead of retyping it from memory or losing it.
+						     Offered on a lost permission TOO: they may not write
+						     it here any more, but they still wrote it. -->
+						<NcButton
+							:data-testid="`cn-offline-queue-copy-${operation.id}`"
+							@click="copyCapture(operation)">
+							{{ t('nextcloud-vue', 'Copy what I wrote') }}
+						</NcButton>
+					</div>
+
+					<p
+						v-if="copiedId === operation.id"
+						class="cn-offline-queue__meta"
+						:data-testid="`cn-offline-queue-copied-${operation.id}`"
+						role="status">
+						{{ copyMessage }}
+					</p>
 				</li>
 			</ul>
 		</template>
@@ -129,13 +152,17 @@ export default {
 		},
 	},
 
-	emits: ['requeued'],
+	emits: ['requeued', 'copy-refused'],
 
 	data() {
 		return {
 			operations: [],
 			loading: true,
 			timer: null,
+			/** The operation whose capture was last copied, for the confirmation line. */
+			copiedId: '',
+			/** What that confirmation says, which is not always success. */
+			copyMessage: '',
 		}
 	},
 
@@ -239,6 +266,39 @@ export default {
 		},
 
 		/**
+		 * Put the captured values on the clipboard.
+		 *
+		 * The payload as text, so somebody whose entry will never replay can
+		 * paste what they wrote somewhere that works.
+		 *
+		 * It reports a failure rather than claiming success. An unavailable
+		 * clipboard is ordinary on a field device: no secure context, denied
+		 * permission — and "Copied" over an empty clipboard sends somebody away
+		 * believing they have their words when they do not.
+		 *
+		 * @param {object} operation The queue row.
+		 * @return {Promise<void>} Nothing.
+		 */
+		async copyCapture(operation) {
+			const text = JSON.stringify((operation.payload ?? {}), null, 2)
+			this.copiedId = operation.id
+
+			try {
+				await navigator.clipboard.writeText(text)
+				this.copyMessage = t('nextcloud-vue', 'Copied. Paste it anywhere you can use it.')
+			} catch {
+				this.copyMessage = t(
+					'nextcloud-vue',
+					'This device would not let the app copy it, so it is shown below to copy by hand.',
+				)
+				/**
+				 * @event copy-refused Emitted when the clipboard refused the capture, so a host can show the text for selection. Payload: `{ id, text }`.
+				 */
+				this.$emit('copy-refused', { id: operation.id, text })
+			}
+		},
+
+		/**
 		 * What this operation is, in words.
 		 *
 		 * @param {object} operation The queue row.
@@ -281,6 +341,12 @@ export default {
 .cn-offline-queue__row {
 	border-block-end: 1px solid var(--color-border);
 	padding: 8px 0;
+}
+
+.cn-offline-queue__row-actions {
+	display: flex;
+	gap: 8px;
+	margin-block-start: 8px;
 }
 
 .cn-offline-queue__row-main {
