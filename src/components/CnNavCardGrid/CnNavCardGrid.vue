@@ -18,7 +18,17 @@
   Spec: openspec/specs/nav-card-grid (cn-nav-card-grid)
 -->
 <template>
+	<!-- NOTHING, not an empty card, when every entry is gated away.
+	     `visibleIf` on a card is a real gate — `permission` is declared for
+	     parity with menuItem and evaluated nowhere — so a grid whose only
+	     entries are admin-only is EMPTY for everyone else. The wrapper renders
+	     regardless: `showTitle` defaults true, so a non-admin got a titled card
+	     with an Actions menu and no content, on every page the grid sits on.
+	     The empty state is not a state worth designing here, because the cards
+	     are links: there is no list that might fill later. CnBannerWidget makes
+	     the same call with the same `v-if`. -->
 	<CnWidgetWrapper
+		v-if="visibleEntries.length"
 		:title="title"
 		:widgetId="widgetId"
 		:documentationUrl="documentationUrl"
