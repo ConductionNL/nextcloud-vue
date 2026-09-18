@@ -2,10 +2,11 @@
 
 ### Props
 
-| Name        | Type     | Required | Default | Description                                                                                                                  |
-| ----------- | -------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `deviceId`  | `string` |          | `''`    | Scope the list to one device. Empty lists every device's queue in this browser profile, which is only ever useful in a test. |
-| `refreshMs` | `number` |          | `2000`  | Poll interval in ms while a drain is running. Zero disables it.                                                              |
+| Name         | Type     | Required | Default | Description                                                                                                                                                         |
+| ------------ | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deviceId`   | `string` |          | `''`    | Scope the list to one device. Empty lists every device's queue in this browser profile, which is only ever useful in a test.                                        |
+| `resolvedBy` | `string` |          | `''`    | The uid recorded as having settled a conflict. A conflict record that says a collision happened and not who decided it cannot answer the question it was filed for. |
+| `refreshMs`  | `number` |          | `2000`  | Poll interval in ms while a drain is running. Zero disables it.                                                                                                     |
 
 ### Events
 
@@ -13,3 +14,4 @@
 | -------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
 | `requeued`     | —       | Emitted when a failed operation was put back in the queue by hand. Payload: the operation id.                       |
 | `copy-refused` | —       | Emitted when the clipboard refused the capture, so a host can show the text for selection. Payload: `{ id, text }`. |
+| `resolved`     | —       | Emitted when a conflict was settled from the list. Payload: `{ id, resolution }`.                                   |

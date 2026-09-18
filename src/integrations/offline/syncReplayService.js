@@ -19,7 +19,7 @@
 
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { getDb } from './offlineDb.js'
+import { getDb, recordConflict } from './offlineDb.js'
 import { nextState, orderForReplay } from './syncQueueEngine.js'
 
 /**
@@ -37,14 +37,17 @@ function objectsUrl(register, schema) {
 /**
  * Replay one queued mutation against the OR object API.
  *
- * @param {object} operation The queue operation row.
+ * @param {object} operation       The queue operation row.
+ * @param {object} [offlineConfig] The leaf's offline config (`register`,
+ *                                 `conflictSchema`).
  *
  * @return {Promise<object>} The applied patch from the engine.
  */
-export async function replayOperation(operation) {
+export async function replayOperation(operation, offlineConfig = {}) {
 	const db = getDb()
 	let statusCode
 	let serverObject = null
+	let responseBody = null
 
 	const base = objectsUrl(operation.register, operation.schema)
 	const payload = operation.payload ?? {}
@@ -61,24 +64,68 @@ export async function replayOperation(operation) {
 			response = await axios.post(base, payload)
 		}
 		statusCode = response.status
+		responseBody = response.data ?? null
 	} catch (error) {
 		statusCode = error?.response?.status ?? 0
 		serverObject = error?.response?.data ?? null
 	}
 
-	const { patch } = nextState(operation, { statusCode, serverObject })
+	const { patch, conflictType } = nextState(operation, { statusCode, serverObject })
+
+	// The id the server gave this object, kept so a later write can address it.
+	// Without it a conflict record is write-once: the resolution somebody makes
+	// an hour later has nowhere to go, and the register holds a collision with
+	// no outcome, which answers neither of the questions it was filed for.
+	const serverObjectId = idOf(responseBody)
+	if (patch.status === 'synced' && serverObjectId !== '') {
+		patch.serverObjectId = serverObjectId
+	}
+
 	await db.mutationQueue.update(operation.id, patch)
+
+	// A conflict is recorded where other people can see it, not only here.
+	// `permission_lost` is recorded too: it lands as `failed` rather than
+	// `conflict`, and it is precisely the case where the person holding the
+	// capture can do nothing and somebody else must.
+	if (conflictType !== null) {
+		await recordConflict({
+			operation,
+			conflictType,
+			serverObject,
+			register: offlineConfig.register ?? '',
+			conflictSchema: offlineConfig.conflictSchema ?? '',
+		})
+	}
+
 	return patch
+}
+
+/**
+ * The id inside an OpenRegister object response, wherever it is carried.
+ *
+ * @param {object|null} body The response body.
+ *
+ * @return {string} The id, or an empty string.
+ */
+function idOf(body) {
+	if (body === null || typeof body !== 'object') {
+		return ''
+	}
+	return String(body.id ?? body['@self']?.id ?? body.uuid ?? '')
 }
 
 /**
  * Drain the device's pending queue in FIFO order.
  *
- * @param {string} deviceId The owning device.
+ * @param {string} deviceId        The owning device.
+ * @param {object} [offlineConfig] The leaf's offline config; `register` and
+ *                                 `conflictSchema` decide where a conflict is
+ *                                 filed. Omitted, conflicts stay on the device
+ *                                 and the queue row says so.
  *
  * @return {Promise<{ processed: number, synced: number, conflicts: number, failed: number }>}
  */
-export async function drainQueue(deviceId) {
+export async function drainQueue(deviceId, offlineConfig = {}) {
 	if (typeof navigator !== 'undefined' && navigator.onLine === false) {
 		return { processed: 0, synced: 0, conflicts: 0, failed: 0 }
 	}
@@ -89,7 +136,7 @@ export async function drainQueue(deviceId) {
 
 	const tally = { processed: 0, synced: 0, conflicts: 0, failed: 0 }
 	for (const operation of ordered) {
-		const patch = await replayOperation(operation)
+		const patch = await replayOperation(operation, offlineConfig)
 		tally.processed += 1
 		if (patch.status === 'synced') {
 			tally.synced += 1

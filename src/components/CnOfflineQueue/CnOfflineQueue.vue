@@ -69,6 +69,73 @@
 						{{ t('nextcloud-vue', 'Your right to write this was withdrawn. Retrying cannot restore it; ask whoever administers the register.') }}
 					</p>
 
+					<!-- Where the conflict was filed, or that it was not. A row
+					     that says "Conflict" and nothing else leaves somebody
+					     believing a colleague can see it, when on this path
+					     nobody can. -->
+					<p
+						v-if="operation.status === 'conflict' && operation.conflictScope === 'local'"
+						class="cn-offline-queue__error"
+						:data-testid="`cn-offline-queue-local-${operation.id}`">
+						{{ t('nextcloud-vue', 'This clash is recorded on this device only. Nobody else can see it, so do not wait for somebody to pick it up.') }}
+					</p>
+
+					<div v-if="operation.status === 'conflict'" class="cn-offline-queue__row-actions">
+						<NcButton
+							:data-testid="`cn-offline-queue-mine-${operation.id}`"
+							@click="resolve(operation, 'client_wins')">
+							{{ t('nextcloud-vue', 'Keep mine') }}
+						</NcButton>
+						<NcButton
+							:data-testid="`cn-offline-queue-theirs-${operation.id}`"
+							@click="resolve(operation, 'server_wins')">
+							{{ t('nextcloud-vue', 'Keep theirs') }}
+						</NcButton>
+						<NcButton
+							v-if="canMerge(operation)"
+							:data-testid="`cn-offline-queue-merge-${operation.id}`"
+							@click="openMerge(operation)">
+							{{ t('nextcloud-vue', 'Merge by hand') }}
+						</NcButton>
+					</div>
+
+					<!-- The merge is field by field, and it names both sides in
+					     words. "Yours" and "Theirs" beside the actual values is
+					     the only form somebody can check before choosing; a
+					     single Merge button that guesses is a choice made for
+					     them. -->
+					<div
+						v-if="mergingId === operation.id"
+						class="cn-offline-queue__merge"
+						:data-testid="`cn-offline-queue-merge-panel-${operation.id}`">
+						<div v-for="field in mergeFields" :key="field.field" class="cn-offline-queue__merge-field">
+							<strong>{{ field.field }}</strong>
+							<label>
+								<input
+									v-model="mergeChoices[field.field]"
+									type="radio"
+									:name="`merge-${operation.id}-${field.field}`"
+									value="client"
+									:data-testid="`cn-offline-queue-merge-mine-${field.field}`">
+								{{ t('nextcloud-vue', 'Mine') }}: {{ asText(field.client) }}
+							</label>
+							<label>
+								<input
+									v-model="mergeChoices[field.field]"
+									type="radio"
+									:name="`merge-${operation.id}-${field.field}`"
+									value="server"
+									:data-testid="`cn-offline-queue-merge-theirs-${field.field}`">
+								{{ t('nextcloud-vue', 'Theirs') }}: {{ asText(field.server) }}
+							</label>
+						</div>
+						<NcButton
+							:data-testid="`cn-offline-queue-merge-apply-${operation.id}`"
+							@click="applyMerge(operation)">
+							{{ t('nextcloud-vue', 'Save this merge') }}
+						</NcButton>
+					</div>
+
 					<div v-if="operation.status === 'failed'" class="cn-offline-queue__row-actions">
 						<NcButton
 							v-if="isPermissionLost(operation) === false"
@@ -107,7 +174,12 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import { listQueue, requeueOperation } from '../../integrations/offline/offlineDb.js'
+import {
+	applyConflictResolution,
+	listQueue,
+	requeueOperation,
+} from '../../integrations/offline/offlineDb.js'
+import { diffVersions } from '../../integrations/offline/syncQueueEngine.js'
 
 /**
  * CnOfflineQueue — the work this device has captured and not yet handed over.
@@ -145,6 +217,16 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * The uid recorded as having settled a conflict. A conflict record that
+		 * says a collision happened and not who decided it cannot answer the
+		 * question it was filed for.
+		 */
+		resolvedBy: {
+			type: String,
+			default: '',
+		},
+
 		/** Poll interval in ms while a drain is running. Zero disables it. */
 		refreshMs: {
 			type: Number,
@@ -152,7 +234,7 @@ export default {
 		},
 	},
 
-	emits: ['requeued', 'copy-refused'],
+	emits: ['requeued', 'copy-refused', 'resolved'],
 
 	data() {
 		return {
@@ -163,6 +245,12 @@ export default {
 			copiedId: '',
 			/** What that confirmation says, which is not always success. */
 			copyMessage: '',
+			/** The operation whose merge panel is open. */
+			mergingId: '',
+			/** The differing fields being merged. */
+			mergeFields: [],
+			/** Per-field choice: 'client' or 'server'. */
+			mergeChoices: {},
 		}
 	},
 
@@ -245,6 +333,92 @@ export default {
 		 */
 		isPermissionLost(operation) {
 			return operation.status === 'failed' && operation.lastError === 'permission_lost'
+		},
+
+		/**
+		 * Whether a side-by-side merge is possible for this row.
+		 *
+		 * Only a concurrent edit has two versions to merge. A target deleted
+		 * server-side has one, and offering a merge against nothing is a button
+		 * that cannot do what it says.
+		 *
+		 * @param {object} operation The queue row.
+		 * @return {boolean} True when both versions are present.
+		 */
+		canMerge(operation) {
+			return operation.serverVersion !== null && operation.serverVersion !== undefined
+		},
+
+		/**
+		 * Open the field-by-field merge for one row.
+		 *
+		 * Every field starts on the server's value. A merge panel that starts
+		 * pre-set to the local answer is one Save away from silently discarding
+		 * a colleague's edit, which is the outcome the whole surface exists to
+		 * prevent.
+		 *
+		 * @param {object} operation The queue row.
+		 * @return {void}
+		 */
+		openMerge(operation) {
+			this.mergeFields = diffVersions(operation.payload ?? {}, operation.serverVersion ?? {})
+			this.mergeChoices = Object.fromEntries(this.mergeFields.map((field) => [field.field, 'server']))
+			this.mergingId = operation.id
+		},
+
+		/**
+		 * One value as something readable in a label.
+		 *
+		 * @param {unknown} value The value.
+		 * @return {string} Its text.
+		 */
+		asText(value) {
+			if (value === null || value === undefined) {
+				return t('nextcloud-vue', 'empty')
+			}
+			return typeof value === 'string' ? value : JSON.stringify(value)
+		},
+
+		/**
+		 * Settle a conflict with one of the three choices.
+		 *
+		 * @param {object} operation     The queue row.
+		 * @param {string} resolution    client_wins / server_wins / manual_merge.
+		 * @param {object} [mergedPayload] The merged body, for a manual merge.
+		 * @return {Promise<void>} Nothing.
+		 */
+		async resolve(operation, resolution, mergedPayload = null) {
+			const settled = await applyConflictResolution({
+				operationId: operation.id,
+				resolution,
+				mergedPayload,
+				resolvedBy: this.resolvedBy,
+			})
+
+			if (settled === true) {
+				/**
+				 * @event resolved Emitted when a conflict was settled from the list. Payload: `{ id, resolution }`.
+				 */
+				this.$emit('resolved', { id: operation.id, resolution })
+			}
+
+			this.mergingId = ''
+			await this.load()
+		},
+
+		/**
+		 * Apply the field choices as a manual merge.
+		 *
+		 * @param {object} operation The queue row.
+		 * @return {Promise<void>} Nothing.
+		 */
+		async applyMerge(operation) {
+			const merged = { ...(operation.payload ?? {}) }
+			for (const field of this.mergeFields) {
+				merged[field.field] = this.mergeChoices[field.field] === 'server' ? field.server : field.client
+			}
+
+			await this.resolve(operation, 'manual_merge', merged)
 		},
 
 		/**
@@ -341,6 +515,20 @@ export default {
 .cn-offline-queue__row {
 	border-block-end: 1px solid var(--color-border);
 	padding: 8px 0;
+}
+
+.cn-offline-queue__merge {
+	margin-block-start: 8px;
+	padding: 8px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+}
+
+.cn-offline-queue__merge-field {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin-block-end: 8px;
 }
 
 .cn-offline-queue__row-actions {
