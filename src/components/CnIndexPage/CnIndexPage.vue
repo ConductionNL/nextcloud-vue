@@ -1,5 +1,7 @@
 <template>
-	<div class="cn-index-page" data-testid="cn-index-page">
+	<div class="cn-index-page"
+		data-testid="cn-index-page"
+		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
 		     with showTitle it is the full visual header (icon, title,
 		     description); without it, `visuallyHidden` clips everything but the
@@ -106,7 +108,7 @@
 				     filters/search/sort into the route query. -->
 				<CnSavedViewsControl
 					v-if="allowSavedViews"
-					:views="savedViews"
+					:views="viewsForControl"
 					:loading="savedViewsLoading"
 					:currentUserId="currentSavedViewsUserId"
 					:allowPinning="savedViewsArePlaces"
@@ -154,10 +156,10 @@
 			     (between the view toggle and the actions) when the manifest
 			     declares `config.quickFilters`. Switching tabs re-fetches with
 			     the merged filter; @event quick-filter-change. -->
-			<template v-if="effectiveQuickFilters && effectiveQuickFilters.length > 0" #filters>
+			<template v-if="tabStripEntries && tabStripEntries.length > 0" #filters>
 				<CnQuickFilterBar
 					inline
-					:tabs="effectiveQuickFilters"
+					:tabs="tabStripEntries"
 					:mode="quickFilterMode"
 					:multiple="quickFilterMultiple"
 					:activeIndex="activeQuickFilterIndex"
@@ -166,6 +168,38 @@
 					@update:selectedIndices="onQuickFilterMultiChange" />
 			</template>
 		</CnActionsBar>
+
+		<!-- Quick edit: a few fields of one row, over the list, with the list
+		     keeping its place. -->
+		<CnQuickEditDialog
+			v-if="quickEditRow !== null"
+			:object="quickEditRow"
+			:schema="effectiveSchema"
+			:register="register"
+			:fields="quickEditFields"
+			:writableField="writableField"
+			:serverObject="quickEditServerRow"
+			@save="onQuickEditSave"
+			@keepTheirs="onQuickEditKeepTheirs"
+			@close="quickEditRow = null" />
+
+		<!-- The help key's sheet. Every shortcut the list offers is here and in
+		     the command palette: one that only the handler knows about is one
+		     nobody can find. -->
+		<CnConfirmDialog
+			v-if="showShortcutHelp"
+			:name="shortcutHelpTitle"
+			:confirmLabel="closeLabel"
+			data-testid="cn-list-shortcuts-help"
+			@confirm="showShortcutHelp = false"
+			@cancel="showShortcutHelp = false">
+			<dl class="cn-index-page__shortcuts">
+				<template v-for="entry in shortcutHelpEntries" :key="entry.id">
+					<dt><kbd>{{ entry.keys }}</kbd></dt>
+					<dd>{{ entry.description }}</dd>
+				</template>
+			</dl>
+		</CnConfirmDialog>
 
 		<!-- Mass delete dialog -->
 		<CnMassDeleteDialog
@@ -705,10 +739,13 @@ import Eye from 'vue-material-design-icons/Eye.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
+import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab } from '../../utils/listLenses.js'
+import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions } from '../../utils/rowActionAvailability.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
@@ -996,6 +1033,7 @@ export default {
 		CnSavedViewsControl,
 		CnSaveViewDialog,
 		CnConfirmDialog,
+		CnQuickEditDialog,
 	},
 
 	/**
@@ -2017,6 +2055,103 @@ export default {
 		},
 
 		/**
+		 * The fields a quick edit asks for, opened from a row without leaving
+		 * the list. Empty means no quick edit. The page names the fields; a
+		 * record cannot open a form on one the page did not name. Fed from the
+		 * manifest as `pages[].config.quickEditFields`.
+		 *
+		 * @type {string[]}
+		 */
+		quickEditFields: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Where a record lists the fields this caller may write. A field the
+		 * page named that is not in that list renders read-only rather than
+		 * missing, so a person sees the value and learns it is not theirs to
+		 * change. A row carrying nothing there leaves every named field
+		 * editable.
+		 *
+		 * @type {string}
+		 */
+		writableField: {
+			type: String,
+			default: '@self.writableFields',
+		},
+
+		/**
+		 * Saved view ids this page renders as tabs instead of as entries in the
+		 * views control. A view appears in one place or the other, never both.
+		 * An id naming a view that no longer exists produces no tab.
+		 *
+		 * @type {string[]}
+		 */
+		viewTabs: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The teams this person may claim. The instance decides this list; it
+		 * is the membership side of `claimedTeams`.
+		 *
+		 * @type {Array<string|object>}
+		 */
+		offeredTeams: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The teams this person stored as claimed, read as a personal
+		 * preference alongside the others. It is narrowed to `offeredTeams`, so
+		 * a team they claimed before it was taken away is passed over rather
+		 * than honoured.
+		 *
+		 * @type {string[]}
+		 */
+		claimedTeams: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The field carrying a record's DERIVED priority, and the order its
+		 * values rank in, lowest first. The list reads the value and sorts on
+		 * it; it never computes one. A record with no priority sorts after
+		 * every ranked one, in both directions, and stays in the list.
+		 *
+		 * @type {string}
+		 */
+		priorityField: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The priority values in rank order, lowest first, e.g.
+		 * `['low', 'medium', 'high']`. A value outside this list is unranked.
+		 *
+		 * @type {string[]}
+		 */
+		priorityLevels: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Offer the list's keyboard shortcuts. Every one of them is also listed
+		 * in the command palette and on the help key, because a shortcut nobody
+		 * can find does not count.
+		 */
+		listShortcuts: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Show a filter menu (funnel button) in the table header, above the
 		 * row-actions column. Its menu lists every enum/badge column's values as
 		 * toggleable facet filters — a compact alternative to the facet sidebar.
@@ -2299,6 +2434,7 @@ export default {
 		'board-move',
 		'bulk-action',
 		'columns-change',
+		'quick-edit-save',
 		'configure',
 		'copy',
 		'create',
@@ -2396,6 +2532,14 @@ export default {
 			// type carries travels with the record rather than being restated
 			// in every manifest that lists it.
 			folderRowLayouts: {},
+			/** The row the keyboard is on, or -1. */
+			focusedRowIndex: -1,
+			/** The row a quick edit is open on, or null. */
+			quickEditRow: null,
+			/** The row as the server holds it, after a stale save. */
+			quickEditServerRow: null,
+			/** Whether the shortcut help sheet is open. */
+			showShortcutHelp: false,
 			// Mass action dialogs
 			showMassDeleteDialog: false,
 			showMassCopyDialog: false,
@@ -2621,13 +2765,14 @@ export default {
 		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		sortedObjects() {
-			if (!this.defaultSort || this.defaultSort.length === 0) {
+			const spec = this.effectiveDefaultSort
+			if (!spec || spec.length === 0) {
 				return this.effectiveObjects
 			}
 			if (this.effectiveSortKey) {
 				return this.effectiveObjects
 			}
-			return multiKeySort(this.effectiveObjects, this.defaultSort)
+			return multiKeySort(this.effectiveObjects, spec)
 		},
 
 		/**
@@ -2853,6 +2998,166 @@ export default {
 		 */
 		activeScopeSearchFields() {
 			return this.activeScopeLayout.searchFields
+		},
+
+		/**
+		 * The teams this person is treated as having claimed: what they stored,
+		 * narrowed to what the instance offers them now.
+		 *
+		 * @return {string[]} The claimed team ids.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		claimedTeamIds() {
+			return resolveClaimedTeams(this.offeredTeams, this.claimedTeams)
+		},
+
+		/**
+		 * The saved views this page renders as tabs, and the ones that stay in
+		 * the views control. A view is in one or the other, never both.
+		 *
+		 * @return {{tabs: Array<object>, control: Array<object>}}
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		splitSavedViews() {
+			return splitViewsIntoTabs(this.savedViews, this.viewTabs)
+		},
+
+		/**
+		 * The lens tabs, as the tab strip this page already has understands
+		 * them, with each lens's claim tokens resolved against this person.
+		 *
+		 * @return {Array<object>} The tabs.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		lensTabs() {
+			return this.splitSavedViews.tabs.map((view) => {
+				const tab = viewAsTab(view)
+				const { filter, narrowsToNothing } = resolveClaimTokens(tab.filter, { teams: this.claimedTeamIds })
+				return { ...tab, filter, narrowsToNothing }
+			})
+		},
+
+		/**
+		 * The views the control lists: every saved view this page did not name
+		 * as a tab.
+		 *
+		 * @return {Array<object>} The views.
+		 */
+		viewsForControl() {
+			return this.splitSavedViews.control
+		},
+
+		/**
+		 * What the tab strip shows: the page's lens tabs when it named any,
+		 * else its quick filters. One strip, never two, so a person is not
+		 * offered the same narrowing twice under two names.
+		 *
+		 * @return {(Array<object>|null)} The tabs.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		tabStripEntries() {
+			if (this.lensTabs.length > 0) {
+				return this.lensTabs
+			}
+			return this.effectiveQuickFilters
+		},
+
+		/** @return {Array<object>} The shortcuts the help sheet lists. */
+		shortcutHelpEntries() {
+			return LIST_SHORTCUTS.filter((entry) => typeof this.listShortcutHandlers[entry.id] === 'function')
+		},
+
+		/** @return {string} Heading of the shortcut help sheet. */
+		shortcutHelpTitle() {
+			return t('nextcloud-vue', 'Keyboard shortcuts')
+		},
+
+		/** @return {string} Label of the help sheet's close button. */
+		closeLabel() {
+			return t('nextcloud-vue', 'Close')
+		},
+
+		/**
+		 * Whether the active lens narrowed to nothing because this person has
+		 * claimed no teams. The page says that, rather than showing an empty
+		 * list under a heading that claims to be filtering by their teams.
+		 *
+		 * @return {boolean} True when the active lens has nothing to match.
+		 */
+		activeLensNarrowsToNothing() {
+			const index = this.activeQuickFilterIndex
+			if (index === null || index === undefined || this.lensTabs.length === 0) {
+				return false
+			}
+			return Boolean(this.lensTabs[index] && this.lensTabs[index].narrowsToNothing)
+		},
+
+		/**
+		 * The declarative sort this page applies, with the priority sort folded
+		 * in when the page names a priority field. The value is READ off the
+		 * record; nothing here derives one.
+		 *
+		 * @return {Array<object>} The sort spec.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		effectiveDefaultSort() {
+			const declared = Array.isArray(this.defaultSort) ? this.defaultSort : []
+			if (this.priorityField === '') {
+				return declared
+			}
+			if (declared.some((entry) => entry && entry.field === this.priorityField)) {
+				return declared.map((entry) => (entry && entry.field === this.priorityField
+					? { ...entry, levels: this.priorityLevels }
+					: entry))
+			}
+			return [{ field: this.priorityField, order: 'desc', levels: this.priorityLevels }, ...declared]
+		},
+
+		/**
+		 * The list's keyboard shortcuts, bound to what this page can do. A
+		 * shortcut with nothing behind it is left out rather than listed.
+		 *
+		 * @return {object} Handlers by shortcut id.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		listShortcutHandlers() {
+			const handlers = {
+				'row-next': () => this.moveFocusedRow(1),
+				'row-previous': () => this.moveFocusedRow(-1),
+				'row-open': () => this.focusedRow && this.onRowClick(this.focusedRow),
+				'row-select': () => this.toggleFocusedRowSelection(),
+				'list-help': () => { this.showShortcutHelp = true },
+			}
+			if (this.quickEditFields.length > 0) {
+				handlers['row-quick-edit'] = () => this.focusedRow && this.openQuickEdit(this.focusedRow)
+			}
+			if (this.focusedRow && this.rowActionsFor(this.focusedRow).length > 0) {
+				handlers['row-primary'] = () => this.runPrimaryRowAction()
+			}
+			return handlers
+		},
+
+		/**
+		 * The shortcuts as command-palette entries, so someone who has never
+		 * used this list can find every one of them.
+		 *
+		 * @return {Array<object>} The palette entries.
+		 */
+		listPaletteEntries() {
+			return listPaletteCommands(this.listShortcutHandlers)
+		},
+
+		/**
+		 * The row the keyboard is on, or null.
+		 *
+		 * @return {(object|null)} The focused row.
+		 */
+		focusedRow() {
+			const rows = this.displayObjects || []
+			if (this.focusedRowIndex < 0 || this.focusedRowIndex >= rows.length) {
+				return null
+			}
+			return rows[this.focusedRowIndex]
 		},
 
 		/**
@@ -4465,6 +4770,148 @@ export default {
 		 * @return {Array<object>} The actions to render for that row.
 		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
 		 */
+		/**
+		 * Move the keyboard's focus one row, staying inside the list.
+		 *
+		 * @param {number} delta 1 for the next row, -1 for the previous one.
+		 * @return {void}
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		moveFocusedRow(delta) {
+			const rows = this.displayObjects || []
+			if (rows.length === 0) {
+				this.focusedRowIndex = -1
+				return
+			}
+			const next = this.focusedRowIndex + delta
+			this.focusedRowIndex = Math.min(Math.max(next, 0), rows.length - 1)
+		},
+
+		/**
+		 * Select or deselect the focused row.
+		 *
+		 * @return {void}
+		 */
+		toggleFocusedRowSelection() {
+			const row = this.focusedRow
+			if (!row) {
+				return
+			}
+			const id = row[this.rowKey]
+			const selected = this.internalSelectedIds.includes(id)
+			this.onSelect(selected
+				? this.internalSelectedIds.filter((other) => other !== id)
+				: [...this.internalSelectedIds, id])
+		},
+
+		/**
+		 * Run the first action the focused row offers. "First" is the page's
+		 * order, narrowed by what the server allows on that record, so the
+		 * primary action is never one this caller may not run.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		runPrimaryRowAction() {
+			const row = this.focusedRow
+			if (!row) {
+				return
+			}
+			const [first] = this.rowActionsFor(row)
+			if (!first) {
+				return
+			}
+			if (typeof first.handler === 'function') {
+				first.handler(row)
+			}
+			this.$emit('action', { action: first.label, row })
+		},
+
+		/**
+		 * Handle a key pressed on the list.
+		 *
+		 * @param {KeyboardEvent} event The event.
+		 * @return {void}
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		onListKeydown(event) {
+			if (!this.listShortcuts) {
+				return
+			}
+			const shortcut = shortcutFor(event)
+			if (!shortcut) {
+				return
+			}
+			const run = this.listShortcutHandlers[shortcut.id]
+			if (typeof run !== 'function') {
+				return
+			}
+			event.preventDefault()
+			run()
+		},
+
+		/**
+		 * Open the quick edit on one row.
+		 *
+		 * @param {object} row The row.
+		 * @return {void}
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		openQuickEdit(row) {
+			if (this.quickEditFields.length === 0 || !row) {
+				return
+			}
+			this.quickEditServerRow = null
+			this.quickEditRow = row
+		},
+
+		/**
+		 * Write a quick edit's patch onto its row in the list.
+		 *
+		 * The patch goes through the same row-patch map a record saved in the
+		 * split pane goes through, so the list keeps its scroll, its selection
+		 * and its page for the same reason it already did: nothing about the
+		 * list changed, one row's fields did.
+		 *
+		 * @param {object} payload The dialog's payload.
+		 * @param {(string|number)} payload.id The row id.
+		 * @param {object} payload.patch The fields to write.
+		 * @return {void}
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		onQuickEditSave({ id, patch }) {
+			if (id === undefined || id === null || !patch || Object.keys(patch).length === 0) {
+				this.quickEditRow = null
+				return
+			}
+			const current = this.splitRowPatches[id] || {}
+			this.splitRowPatches = { ...this.splitRowPatches, [id]: { ...current, ...patch } }
+			this.quickEditRow = null
+			/**
+			 * @event quick-edit-save Emitted with the fields a quick edit wrote onto a row.
+			 * @type {{id: (string|number), patch: object}}
+			 */
+			this.$emit('quick-edit-save', { id, patch })
+		},
+
+		/**
+		 * Take the server's version of a row after a conflict. Nothing of this
+		 * person's edit is written, and the row in the list is refreshed to
+		 * what the server holds, so the screen and the record agree.
+		 *
+		 * @param {object} saved The record as the server holds it.
+		 * @return {void}
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		onQuickEditKeepTheirs(saved) {
+			const id = saved && saved[this.rowKey]
+			if (id !== undefined && id !== null) {
+				this.splitRowPatches = { ...this.splitRowPatches, [id]: saved }
+			}
+			this.quickEditRow = null
+			this.quickEditServerRow = null
+		},
+
 		rowActionsFor(row) {
 			return availableRowActions(this.mergedActions, row, this.rowActionField)
 		},
