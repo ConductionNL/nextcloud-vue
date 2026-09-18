@@ -26,8 +26,11 @@
 			v-if="inputTransition"
 			:transition="inputTransition"
 			:schema="schema"
+			:error="inputError"
+			:fieldErrors="inputFieldErrors"
+			:busy="working"
 			@confirm="onInputConfirm"
-			@close="inputTransition = null" />
+			@close="closeInputDialog" />
 	</div>
 </template>
 
@@ -39,6 +42,7 @@ import {
 	performTransition,
 	readAvailableActions,
 	transitionError,
+	transitionFieldErrors,
 } from '../../composables/useLifecycleTransitions.js'
 
 /**
@@ -152,6 +156,12 @@ export default {
 			 * non-null mounts CnTransitionInputDialog; the POST waits for confirm.
 			 */
 			inputTransition: null,
+			/** @type {string} The refusal the open input dialog is showing, '' while there is none. */
+			inputError: '',
+			/** @type {string[]} The input keys that refusal named. */
+			inputFieldErrors: [],
+			/** @type {string[]} The field keys the most recent refusal named. */
+			lastFieldErrors: [],
 		}
 	},
 
@@ -295,6 +305,8 @@ export default {
 				}
 			}
 			if (Array.isArray(tr.inputs) && tr.inputs.length > 0) {
+				this.inputError = ''
+				this.inputFieldErrors = []
 				this.inputTransition = tr
 				return
 			}
@@ -302,19 +314,48 @@ export default {
 		},
 
 		/**
-		 * Input dialog confirmed: close it and POST the transition with the
-		 * collected `data` payload.
+		 * Input dialog confirmed: POST the transition with the collected `data`,
+		 * and close the dialog only once the move actually happened.
+		 *
+		 * 🔑 THE DIALOG STAYS OPEN ON A REFUSAL. It used to close first and
+		 * report the refusal behind itself, which threw away everything the
+		 * person had typed and asked them to reconstruct it from memory — and
+		 * the refusal is usually about ONE of those fields. The 400 names the
+		 * offending keys, so they are handed back to the dialog to mark.
 		 *
 		 * @param {{[key: string]: unknown}} data The collected input values (exactly the declared keys).
 		 * @return {Promise<void>}
 		 */
 		async onInputConfirm(data) {
 			const tr = this.inputTransition
-			this.inputTransition = null
 			if (!tr) {
 				return
 			}
-			await this.postTransition(tr, data)
+			this.inputError = ''
+			this.inputFieldErrors = []
+
+			const applied = await this.postTransition(tr, data)
+			if (applied === true) {
+				this.closeInputDialog()
+				return
+			}
+
+			// Refused. Move the message from the page into the dialog the
+			// person is looking at, and name the fields it is about.
+			this.inputError = this.error
+			this.inputFieldErrors = this.lastFieldErrors
+			this.error = ''
+		},
+
+		/**
+		 * Close the input dialog and forget the refusal it was showing.
+		 *
+		 * @return {void}
+		 */
+		closeInputDialog() {
+			this.inputTransition = null
+			this.inputError = ''
+			this.inputFieldErrors = []
 		},
 
 		/**
@@ -325,12 +366,13 @@ export default {
 		 *
 		 * @param {object} tr The chosen transition descriptor.
 		 * @param {{[key: string]: unknown}} [data] Collected transition inputs, sent as `data`.
-		 * @return {Promise<void>}
+		 * @return {Promise<boolean>} True when the move was applied, false when it was refused.
 		 */
 		async postTransition(tr, data) {
 			this.working = true
 			this.pendingAction = tr.action
 			this.error = ''
+			this.lastFieldErrors = []
 			try {
 				const saved = await performTransition(this.objectId, tr.action, data)
 				/**
@@ -347,8 +389,12 @@ export default {
 				if (this.useServer) {
 					await this.fetchActions()
 				}
+
+				return true
 			} catch (e) {
 				this.error = this.extractError(e)
+				this.lastFieldErrors = transitionFieldErrors(e)
+				return false
 			} finally {
 				this.working = false
 				this.pendingAction = null
