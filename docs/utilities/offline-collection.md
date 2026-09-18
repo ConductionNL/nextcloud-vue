@@ -101,6 +101,41 @@ DOM-free, app-name-free helpers.
 - `checklistProgress(template, answersByQuestion)` — N/M completion counts.
 - `syncIndicator(pendingCount, online, stuckCount)`: the indicator tone and copy. `stuckCount` outranks everything, including being offline: a device holding stranded work reads red and says so. Offline with work waiting is amber, not red, because being out of signal is the normal state of a field device. Green means nothing is waiting and nothing is stuck.
 
+## The shell worker (`offline/serviceWorker.js`, `offline/registerOfflineWorker.js`)
+
+- `registerOfflineWorker({ scriptUrl, scope?, container? })`: register the shell
+  worker. Returns the registration, or `null` where the browser has no service
+  worker support, where no script was named, or where the registration was
+  refused.
+- `unregisterOfflineWorker(container?)`: remove it again, returning how many
+  registrations went.
+- `isCacheable(url, method?)`, `respondTo(request, cache, fetchFn)`,
+  `cacheNameFor(version)`, `staleCacheNames(existing, current)`, `CACHE_PREFIX`,
+  `NEVER_CACHED`: the worker's decision logic, exported as plain functions so it
+  can be tested without a served origin.
+
+**Importing the module registers nothing.** A service worker changes how every
+request from an origin is answered, for every app on that origin, until somebody
+unregisters it. A library that installed one as a side effect of being imported
+would take that decision away from the app that owns the origin, and take it
+silently. The host calls the helper or gets no worker.
+
+**An object read is never answered from cache**, and that refusal matters as
+much as the caching does. A cached read looks exactly like a fresh one, so
+somebody would be shown a status, an address or an assignment from an earlier
+moment with nothing on screen to say how old it is. Stale data belongs in the
+planning cache, which carries an expiry and a download time and says out loud
+when it is out of date. A write is never cached either: a write that appears to
+have succeeded without reaching the server is a lie about the one thing the
+queue exists to make visible.
+
+**A new bundle version replaces the cache** rather than adding to it. Keeping one
+cache per release serves last month's bundle to whichever request hits the older
+entry, and grows without limit on a device nobody clears.
+
+A refused registration is not fatal. The leaf captures and queues perfectly well
+without a worker; the worker only decides whether the shell opens with no signal.
+
 ## What a consuming app configures
 
 `offlineConfig` on the integration descriptor. Every key is optional; the leaf
@@ -122,6 +157,19 @@ and the audit that has to show a decision was taken has nothing to read. The
 inspector holding the phone is the only person who knows, and often the one
 person who cannot settle it. The queue row says so rather than pretending
 otherwise, but saying so is not the same as filing it.
+
+## Which schemas dossiq names
+
+dossiq is the first consumer, and this is the mapping it registers:
+
+| `offlineConfig` key | The dossiq schema                                                 |
+|---------------------|--------------------------------------------------------------------|
+| `plannedSchema`     | the inspections planned for the day                                 |
+| `referenceSchema`   | the checklist templates those inspections point at                  |
+| `resultSchema`      | the completed checklist result that is queued and replayed          |
+| `conflictSchema`    | a conflict record, holding both versions and the decision made      |
+| `register`          | the register all four live in                                       |
+| `queueSchema`       | optional, and only if the queue itself should be readable server-side |
 
 ## Daily-planning fetch contract
 

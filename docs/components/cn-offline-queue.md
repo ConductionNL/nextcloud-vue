@@ -101,6 +101,10 @@ simply never opened again takes its queue with it, and no report anywhere will
 show it as missing, because nothing outside that device ever knew the capture
 existed.
 
+The shell worker does not change this. It caches a page so the queue can be
+reached with no signal; it does not hand the queue to a server. See
+`registerOfflineWorker` in the offlineCollection reference.
+
 That is why the surfaces above matter while the device *is* open, and why the
 stuck count now outranks everything on the leaf indicator. A consuming app that
 cannot accept this should drain on a schedule and treat a device silent for
