@@ -145,6 +145,11 @@ export default {
 Pass `deviceId`. Without it the list shows every device's queue in this browser
 profile, which is only ever what a test wants.
 
+`refreshMs` is how often the list re-reads itself while a drain is running, in
+milliseconds. It defaults to `2000`. Set it to `0` and the list stops polling,
+which is what a test wants and what a device on a metered connection may want
+too.
+
 ## Accessibility
 
 Every status is rendered as a **word**: Waiting, Sending, Needs a decision,

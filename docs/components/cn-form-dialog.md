@@ -42,6 +42,11 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `closeLabel` | String | | |
 | `confirmLabel` | String | | |
 | `referenceContext` (`reference-context`) | Object \| null | `null` | Object context `{ register, schema, objectId }` forwarded to the integration single-entity widget rendered for fields that declare a `referenceType` (AD-18). Optional. |
+| `recoverDraft` (`recover-draft`) | Boolean | `true` | Keep what the user typed and offer it back when this form reopens. Local only: nothing reaches the server until they save. On by default, because it changes nothing they did not type and the case it solves is a closed tab. |
+| `allowDraft` (`allow-draft`) | Boolean | `false` | Offer a "Save draft" button that stores the record with a draft marker instead of validating it. Inert unless the schema declares `draftField`: a button writing a property the schema does not declare would have OpenRegister drop it in silence, and the record would come back looking published. |
+| `draftField` (`draft-field`) | String | `'isDraft'` | The boolean property that marks a record as a draft. |
+| `draftAppId` (`draft-app-id`) | String | `''` | The app the draft belongs to. Part of the key the recovered draft is stored under. |
+| `draftUserId` (`draft-user-id`) | String | `''` | Who is typing. Also part of the draft key, and that matters: a shared browser profile at a service desk is ordinary in a municipality, and a draft keyed without the user hands the next person at the counter what the last one typed. A host that passes nothing gets `anonymous`, which is right for a single-user context and wrong for a counter. |
 
 ## Widget Types
 

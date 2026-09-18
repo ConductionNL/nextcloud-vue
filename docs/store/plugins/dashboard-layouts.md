@@ -32,6 +32,17 @@ A page opts in with one manifest key:
 
 A page without the key makes no layout request and behaves exactly as before.
 
+## Options
+
+`dashboardLayoutsPlugin(options)` takes two, and both exist for tests:
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `options.http` | `object` | An axios-shaped client. Defaults to the library's own. |
+| `options.storage` | `object` | A localStorage-shaped store. Defaults to the browser's. |
+
+Production code passes neither. A host that swaps one in production is reaching past the store, which is the shape that makes two pages disagree about what the user saved.
+
 ## State
 
 | Property | Type |
