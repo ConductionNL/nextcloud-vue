@@ -190,6 +190,7 @@ export {
 	CnObjectListWidgetForm,
 	CnObjectMetadataModal,
 	CnObjectMetadataWidget,
+	CnObjectPresenceWidget,
 	CnObjectRow,
 	CnObjectSidebar,
 	CnPageHeader,

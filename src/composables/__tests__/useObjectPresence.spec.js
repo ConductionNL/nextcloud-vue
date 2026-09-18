@@ -98,9 +98,7 @@ describe('useObjectPresence', () => {
 			await nextTick()
 		})
 
-		expect(mockAxios.put).toHaveBeenCalledWith(
-			'/apps/openregister/api/objects/dossiq/case/case-1/presence',
-		)
+		expect(mockAxios.put).toHaveBeenCalledWith('/apps/openregister/api/objects/dossiq/case/case-1/presence')
 	})
 
 	it('🔴 takes the list from the BEAT, so it works with no push at all', async () => {
@@ -196,9 +194,7 @@ describe('useObjectPresence', () => {
 			await nextTick()
 		})
 
-		expect(mockAxios.delete).toHaveBeenCalledWith(
-			'/apps/openregister/api/objects/dossiq/case/case-1/presence',
-		)
+		expect(mockAxios.delete).toHaveBeenCalledWith('/apps/openregister/api/objects/dossiq/case/case-1/presence')
 
 		// And the timer is gone: a torn-down page must not keep claiming a
 		// reader is there.
@@ -213,6 +209,41 @@ describe('useObjectPresence', () => {
 		})
 
 		expect(mockTransport.unsubscribe).toHaveBeenCalled()
+	})
+
+	it('🔴 departs the record it leaves when the address changes', async () => {
+		const { ref } = require('vue')
+		const uuid = ref('case-1')
+		const scope = effectScope()
+		scope.run(() => {
+			useObjectPresence('dossiq', 'case', uuid)
+		})
+		await nextTick()
+		await Promise.resolve()
+
+		uuid.value = 'case-2'
+		await nextTick()
+		await Promise.resolve()
+
+		// The people still on case-1 are TOLD, rather than waiting a whole
+		// window to find out the reader left.
+		expect(mockAxios.delete).toHaveBeenCalledWith('/apps/openregister/api/objects/dossiq/case/case-1/presence')
+		// And the beats have moved to the record actually on screen.
+		expect(mockAxios.put).toHaveBeenLastCalledWith('/apps/openregister/api/objects/dossiq/case/case-2/presence')
+
+		scope.stop()
+	})
+
+	it('accepts a getter for the address, the way a widget passes props', async () => {
+		const scope = effectScope()
+		scope.run(() => {
+			useObjectPresence(() => 'dossiq', () => 'case', () => 'case-9')
+		})
+		await nextTick()
+
+		expect(mockAxios.put).toHaveBeenCalledWith('/apps/openregister/api/objects/dossiq/case/case-9/presence')
+
+		scope.stop()
 	})
 
 	it('does nothing at all when disabled', async () => {

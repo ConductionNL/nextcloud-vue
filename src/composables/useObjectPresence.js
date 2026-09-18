@@ -4,7 +4,7 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { computed, getCurrentScope, onScopeDispose, ref, unref } from 'vue'
+import { computed, getCurrentScope, onScopeDispose, ref, unref, watch } from 'vue'
 import { buildObjectKey } from '../store/liveUpdates/eventKeys.js'
 import { getLiveUpdates } from '../store/liveUpdates/transport.js'
 
@@ -63,7 +63,24 @@ export function useObjectPresence(register, schema, objectUuid, options = {}) {
 	let beatSeconds = FALLBACK_BEAT_SECONDS
 
 	const enabled = () => options.enabled !== false
-	const readUuid = () => String(unref(objectUuid) || '')
+
+	/**
+	 * Read an address part that may be a value, a ref OR a getter.
+	 *
+	 * 🔑 GETTERS MATTER HERE. A detail page reuses one widget host across a
+	 * route change, so the record under a mounted consumer changes. A consumer
+	 * that could only pass a VALUE would leave this beating on the record the
+	 * reader left — the shape that puts a stranger's avatar on your page — and
+	 * `unref` alone does not call a function.
+	 *
+	 * @param {string|import('vue').Ref<string>|(() => string)} source A value, a ref or a getter.
+	 * @return {string} The part.
+	 */
+	function read(source) {
+		return String((typeof source === 'function' ? source() : unref(source)) || '')
+	}
+
+	const readUuid = () => read(objectUuid)
 
 	/**
 	 * The presence endpoint of the object currently being read.
@@ -77,8 +94,8 @@ export function useObjectPresence(register, schema, objectUuid, options = {}) {
 	 * @return {string} The url, or '' when the object is not resolved yet.
 	 */
 	function presenceUrl() {
-		const r = String(unref(register) || '')
-		const s = String(unref(schema) || '')
+		const r = read(register)
+		const s = read(schema)
 		const i = readUuid()
 		if (!r || !s || !i) {
 			return ''
@@ -145,17 +162,31 @@ export function useObjectPresence(register, schema, objectUuid, options = {}) {
 	 */
 	async function depart() {
 		stop()
-		const url = presenceUrl()
-		if (!url) {
+		await departFrom(readUuid())
+		present.value = []
+		active.value = false
+	}
+
+	/**
+	 * Leave one specific record, which may no longer be the current one.
+	 *
+	 * Takes the uuid rather than reading it, because the watcher calls this
+	 * for the record just LEFT, after the address has already moved on.
+	 *
+	 * @param {string} uuid The record to leave.
+	 * @return {Promise<void>}
+	 */
+	async function departFrom(uuid) {
+		const r = read(register)
+		const s = read(schema)
+		if (!r || !s || !uuid) {
 			return
 		}
 		try {
-			await axios.delete(url)
+			await axios.delete(generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(r)}/${encodeURIComponent(s)}/${encodeURIComponent(uuid)}/presence`))
 		} catch {
 			// Best effort: the window expires us anyway.
 		}
-		present.value = []
-		active.value = false
 	}
 
 	/**
@@ -248,6 +279,28 @@ export function useObjectPresence(register, schema, objectUuid, options = {}) {
 	// object open the moment its page is being built, not one frame later.
 	window.addEventListener('beforeunload', beaconDepart)
 	start()
+
+	// 🔴 THE RECORD CAN CHANGE UNDER A MOUNTED CONSUMER. A detail page reuses
+	// one widget host across a route change, so without this the beats would go
+	// on naming the record the reader has left: they would appear present on a
+	// page they closed, and absent on the one they are reading. Depart the old
+	// one first, so the people still on it are told, rather than waiting a whole
+	// window to find out.
+	watch(
+		() => readUuid(),
+		(next, previous) => {
+			if (next === previous) {
+				return
+			}
+			stop()
+			if (previous) {
+				departFrom(previous)
+			}
+			present.value = []
+			active.value = false
+			start()
+		},
+	)
 
 	// 🔴 VUE'S OWN `onScopeDispose`, NOT `@vueuse/core`'s `tryOnScopeDispose`.
 	// Measured in this repo's jest on 2026-09-18: a `tryOnScopeDispose`
