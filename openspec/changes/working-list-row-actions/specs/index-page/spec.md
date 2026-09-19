@@ -15,7 +15,6 @@ candidates, decision D14. Consumed by dossiq on `#Cases`, `#Queue` and
 `#Tasks`.
 
 ## ADDED Requirements
-
 ### Requirement: A row offers the actions the record offers
 
 An index page SHALL render a row action menu holding the actions the host
@@ -42,6 +41,8 @@ call, and only the row whose menu is opened SHALL re-ask.
 - **GIVEN** a list page of ninety rows
 - **WHEN** it loads
 - **THEN** the available actions arrive with the rows in one call
+
+@e2e include Load a case list whose rows carry their allowed actions; open a row menu; assert the offered actions and that a guarded one is absent.
 
 ### Requirement: A field is edited from the row
 
@@ -70,6 +71,8 @@ SHALL overwrite nothing.
 - **WHEN** the handler saves a quick edit on it
 - **THEN** both values are shown, nothing is overwritten, and the handler chooses
 
+@e2e include Open a quick edit from a row, save one field, assert the row updated and the scroll position held.
+
 ### Requirement: A row shows the state indicators the page declares
 
 An index page SHALL accept `rowIndicators`, each declaring a field, a
@@ -89,6 +92,8 @@ page declaring no indicators SHALL render its rows as today.
 - **GIVEN** a user who cannot distinguish the indicator colours
 - **WHEN** the row renders
 - **THEN** every indicator is identifiable from its icon and its text alternative
+
+@e2e include Render a case list declaring four indicators; assert two icons on a suspended decided case and read each text alternative.
 
 ### Requirement: The list sorts and colours on a priority it reads
 
@@ -116,6 +121,8 @@ the schema's own enum colour.
 - **WHEN** the row renders
 - **THEN** no chip renders and no value is computed in the component
 
+@e2e include Sort a seeded queue by priority descending; assert the order and that a case with no priority is last and still visible.
+
 ### Requirement: The page renders its lenses as tabs
 
 An index page SHALL be able to name saved views that render as tabs
@@ -135,6 +142,8 @@ claimed teams SHALL be a personal preference stored with the others.
 - **GIVEN** a user who has claimed three teams
 - **WHEN** they open the lens narrowed to their teams
 - **THEN** the list holds the cases of all three and nothing else
+
+@e2e include Render a case list naming three views as tabs; click each; assert the tab strip, the views control and the rows.
 
 ### Requirement: A record type has its own list page and a count
 
@@ -156,6 +165,8 @@ count against the app's navigation budget.
 - **WHEN** the navigation renders
 - **THEN** the entry renders with no count, not with the previous one
 
+@e2e include Declare a list page per case type; assert an entry with a count, and no count at all when the count query fails.
+
 ### Requirement: The repeated actions run from the keyboard and are discoverable
 
 The list SHALL offer keyboard shortcuts for moving between rows, opening
@@ -175,3 +186,6 @@ into the component reference.
 - **GIVEN** a handler who has never used the list
 - **WHEN** they press the help key
 - **THEN** every shortcut the list offers is listed
+
+@e2e include Move down three rows, open the row menu and run the primary action with the keyboard only; press the help key and assert every shortcut is listed.
+

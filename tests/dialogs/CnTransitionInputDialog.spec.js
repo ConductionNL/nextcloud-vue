@@ -149,3 +149,97 @@ describe('CnTransitionInputDialog — confirm / cancel', () => {
 		expect(wrapper.emitted('confirm')).toBeFalsy()
 	})
 })
+
+describe('CnTransitionInputDialog — a refusal, shown where the typing is', () => {
+	it('shows the refusal sentence inside the dialog', () => {
+		const wrapper = mount(CnTransitionInputDialog, {
+			propsData: {
+				transition: makeTransition([{ field: 'reason', required: true }]),
+				schema: SCHEMA,
+				error: 'Transition "reject" is missing required input field(s): "reason".',
+				fieldErrors: ['reason'],
+			},
+		})
+
+		expect(wrapper.find('[data-testid="cn-transition-input-error"]').text())
+			.toContain('missing required input')
+	})
+
+	it('marks the field the refusal named, and only that one', () => {
+		const wrapper = mount(CnTransitionInputDialog, {
+			propsData: {
+				transition: makeTransition([
+					{ field: 'reason', required: true },
+					{ field: 'notify', required: false },
+				]),
+				schema: SCHEMA,
+				error: 'refused',
+				fieldErrors: ['reason'],
+			},
+		})
+
+		expect(wrapper.find('[data-testid="cn-transition-input-error-reason"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-transition-input-error-notify"]').exists()).toBe(false)
+	})
+
+	it('tells a missing required input apart from a value that was not accepted', async () => {
+		const wrapper = mount(CnTransitionInputDialog, {
+			propsData: {
+				transition: makeTransition([{ field: 'reason', required: true }]),
+				schema: SCHEMA,
+				error: 'refused',
+				fieldErrors: ['reason'],
+			},
+		})
+
+		// Empty: the field is required and was not filled.
+		expect(wrapper.find('[data-testid="cn-transition-input-error-reason"]').text())
+			.toContain('required')
+
+		// Filled: the refusal is about what is IN it, not about its absence.
+		// Decided here rather than by reading the server's sentence, which is
+		// prose and may be reworded without the contract changing.
+		wrapper.vm.setValue('reason', 'No budget')
+		await wrapper.vm.$nextTick()
+		expect(wrapper.find('[data-testid="cn-transition-input-error-reason"]').text())
+			.toContain('not accepted')
+	})
+
+	it('reports a refused key the dialog offers no field for', () => {
+		const wrapper = mount(CnTransitionInputDialog, {
+			propsData: {
+				transition: makeTransition([{ field: 'reason', required: true }]),
+				schema: SCHEMA,
+				error: 'refused',
+				fieldErrors: ['smuggled'],
+			},
+		})
+
+		expect(wrapper.find('[data-testid="cn-transition-input-error-smuggled"]').text())
+			.toContain('smuggled')
+		expect(wrapper.find('[data-testid="cn-transition-input-error-reason"]').exists()).toBe(false)
+	})
+
+	it('says nothing when there is no refusal', () => {
+		const wrapper = mountDialog(makeTransition([{ field: 'reason', required: true }]))
+
+		expect(wrapper.find('[data-testid="cn-transition-input-error"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-transition-input-error-reason"]').exists()).toBe(false)
+	})
+
+	it('keeps confirm disabled while the parent is still posting', async () => {
+		const wrapper = mount(CnTransitionInputDialog, {
+			propsData: {
+				transition: makeTransition([{ field: 'notify', required: false }]),
+				schema: SCHEMA,
+				busy: true,
+			},
+		})
+
+		expect(wrapper.findComponent({ name: 'NcButton' }).exists()).toBe(true)
+		expect(wrapper.vm.canConfirm).toBe(false)
+
+		await wrapper.setProps({ busy: false })
+		expect(wrapper.vm.canConfirm).toBe(true)
+	})
+})

@@ -22,6 +22,7 @@ const { locked, lockedByMe, lockedBy, expiresAt, acquire, release } =
 | `options.autoRenew` | `boolean` | Renew the lock periodically while the doc is visible. Default `true`. |
 | `options.renewIntervalMs` | `number` | Renewal interval. Default 600000 (10 min). |
 | `options.lockDurationSec` | `number` | Server-side TTL requested on acquire. Default 1800 (30 min). |
+| `options.schemaSlug` | `string \| Ref<string>` | The schema slug for the lock URL, when `schema` is the object-cache key rather than the slug. `CnDetailPage` passes `<register>-<schema>` as the key, and a lock addressed by that key goes to a route OpenRegister does not declare. Defaults to `schema`. |
 
 ## Returns
 

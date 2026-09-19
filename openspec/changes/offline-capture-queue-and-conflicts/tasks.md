@@ -13,8 +13,8 @@
   - An empty queue renders an empty state, not a blank panel
   - The list reads the existing `mutationQueue` indexes and adds no table
   - Rows refresh while a drain is running
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: The leaf renders the queue
 - **spec_ref**: `openspec/changes/offline-capture-queue-and-conflicts/specs/offline-field-capture/spec.md#requirement-the-queued-work-is-listed-not-counted`
@@ -24,8 +24,8 @@
   - The pending count stays, as a summary of the list rather than instead of it
   - The indicator states keep their current meaning and their current colours
   - No existing prop, event or slot changes
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: A conflict is written to the register
 - **spec_ref**: `openspec/changes/offline-capture-queue-and-conflicts/specs/offline-field-capture/spec.md#requirement-a-conflict-is-written-to-the-register-not-kept-on-the-device`
@@ -35,8 +35,8 @@
   - The conflict write is queued, and a retry writes it once, not twice
   - No configured schema means no write, and the row says the conflict is local to this device
   - `offlineConfig` gains `register`, `queueSchema` and `conflictSchema`, all optional
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 4: Resolution from the queue
 - **spec_ref**: `openspec/changes/offline-capture-queue-and-conflicts/specs/offline-field-capture/spec.md#requirement-a-conflict-is-resolved-from-the-queue-and-a-lost-permission-is-not-retried`
@@ -46,8 +46,8 @@
   - A `permission_lost` row offers no resolution and says the right to write is gone
   - The resolution, the resolving user and the resolution time are written onto the conflict object
   - Keep theirs leaves the local cache holding the server's version
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 5: A day of capture with no signal
 - **spec_ref**: `openspec/changes/offline-capture-queue-and-conflicts/specs/offline-field-capture/spec.md#requirement-a-day-of-field-work-completes-with-no-signal`
@@ -57,8 +57,8 @@
   - A reload with no connection loses nothing from the queue or the cached planning
   - A planning past its offline lifetime renders as out of date with its download time
   - The indicator reports queued work rather than an error while offline
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 6: The worker, the helper and the handover
 - **spec_ref**: `openspec/changes/offline-capture-queue-and-conflicts/specs/offline-field-capture/spec.md#requirement-the-shell-opens-with-no-signal-when-the-host-opts-in`
@@ -68,5 +68,5 @@
   - The worker serves the shell and the bundle from cache offline, and never an object read
   - A new bundle version replaces the cache rather than adding to it
   - The reference doc and the JSDoc name every new export, prop and `offlineConfig` key, and dossiq is told which schemas to name
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test

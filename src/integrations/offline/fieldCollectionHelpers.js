@@ -39,7 +39,7 @@ export function classifyGps(fix, available = true) {
 		return {
 			quality: 'poor',
 			source: 'sensor',
-			warning: t('nextcloud-vue', 'Location imprecise (±{m}m) — wait for a better signal or add the address manually', { m: rounded }),
+			warning: t('nextcloud-vue', 'Location imprecise (±{m}m). Wait for a better signal, or add the address by hand.', { m: rounded }),
 		}
 	}
 
@@ -118,12 +118,40 @@ export function checklistProgress(template, answersByQuestion) {
  *
  * @param {number}  pendingCount The number of pending operations.
  * @param {boolean} online       Whether the device is online.
+ * @param {number}  [stuckCount] How many will not send again without somebody acting.
  *
  * @return {{ tone: ('success'|'warning'|'error'), text: string }} Indicator state.
  */
-export function syncIndicator(pendingCount, online) {
+export function syncIndicator(pendingCount, online, stuckCount = 0) {
+	// 🔴 STUCK WORK IS NAMED BEFORE ANYTHING ELSE, INCLUDING BEFORE BEING
+	// OFFLINE. `pendingCount` counts pending, conflict and syncing; a `failed`
+	// operation is in none of them, so a device holding a stranded inspection
+	// used to reach the last line here and report "All changes synced" in
+	// green. The one surface that could have told an inspector their morning
+	// had not left the device said the opposite.
+	//
+	// Being offline is temporary and expected in the field. Being stuck is
+	// neither, so it outranks it.
+	if (stuckCount > 0) {
+		return {
+			tone: 'error',
+			text: t(
+				'nextcloud-vue',
+				'{n} changes are stuck and will not send on their own',
+				{ n: stuckCount },
+			),
+		}
+	}
+
+	// Being offline is not a fault. A field device spends its day out of
+	// signal by design, and red said something had gone wrong every hour of
+	// every working day, which is how a palette stops being read at all. Red
+	// is now reserved for the one state that needs somebody: stuck work.
 	if (online === false) {
-		return { tone: 'error', text: t('nextcloud-vue', 'Offline — {n} changes waiting for sync', { n: pendingCount }) }
+		return {
+			tone: 'warning',
+			text: t('nextcloud-vue', 'No connection. {n} changes are waiting and will send when you are back.', { n: pendingCount }),
+		}
 	}
 	if (pendingCount > 0) {
 		return { tone: 'warning', text: t('nextcloud-vue', '{n} changes waiting for sync', { n: pendingCount }) }
