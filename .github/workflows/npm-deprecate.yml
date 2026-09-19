@@ -35,6 +35,22 @@ name: Deprecate (npm)
 # RUN `check` FIRST. The secret was created on 2026-02-27 and was wired into
 # nothing, so its validity is unknown until something asks the registry. `check`
 # asks and changes nothing.
+#
+# ⚠️ ASKED 2026-09-19, AND THE ANSWER WAS NO. The secret was wired into
+# retag.yml and both registry writes were dispatched against the package. Both
+# were refused, in the two shapes npm uses for one cause:
+#
+#     dist-tag add   npm error code E401  Unable to authenticate, your
+#                    authentication token seems to be invalid.
+#     deprecate      npm error code E404  404 Not Found - PUT
+#                    .../@conduction%2fnextcloud-vue  ('could not be found or
+#                    you do not have permission to access it')
+#
+# A 404 on a PUT is npm saying "no rights", not "no package" — the package
+# plainly exists. Read them as one problem: the February secret needs rotating
+# by a package owner (info-conduction, rubenlinde, remko48, bbrands02). Nothing
+# in this file or retag.yml is wrong; both stop with the registry's own message
+# rather than exiting 0 and looking done.
 
 on:
   workflow_dispatch:
