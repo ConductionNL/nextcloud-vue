@@ -276,7 +276,13 @@ const PROVIDER_META = {
 		title: 'GitHub',
 		colour: '#1f2328',
 		setupUrl: 'https://github.com/settings/personal-access-tokens',
-		setupHelp: 'Create a fine-grained personal access token with read-only access to the repositories or organisation this app should reach, then paste it below.',
+		// No permission level here on purpose. This text is shared by every
+		// consuming app, and the level each one needs is already on screen:
+		// the requests list above renders each app's own `reason`. Asserting
+		// "read-only" contradicted Buildiq two blocks higher, which asks for
+		// Administration and Contents at read AND write to publish an app, so a
+		// reader who followed this line made a token that cannot publish.
+		setupHelp: 'Create a fine-grained personal access token scoped to the repositories or organisation this app should reach, granting the permissions listed above, then paste it below.',
 		secretLabel: 'Personal access token',
 	},
 	gitlab: {
