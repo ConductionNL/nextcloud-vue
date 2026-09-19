@@ -277,6 +277,23 @@
 					</li>
 				</ul>
 
+				<!--
+				  Say why a turn failed, where the answer would have been.
+
+				  The stream already carries `{code, message}` for a refused or
+				  broken turn, and nothing rendered it: measured 2026-09-18 on a
+				  dev instance, an agent whose tool grants resolved to no tools
+				  answered with an SSE `error` event, and the window showed
+				  "Thinking", then nothing at all. Silence reads as a hung app.
+				-->
+				<p
+					v-if="streamState.error"
+					class="cn-ai-chat-window__error"
+					role="alert"
+					data-testid="cn-ai-panel-error">
+					{{ streamState.error.message || cnTranslate('The assistant could not answer.') }}
+				</p>
+
 				<div class="cn-ai-chat-window__input">
 					<CnAiInput
 						ref="input"
@@ -392,7 +409,7 @@ export default {
 		},
 
 		/**
-		 * Reactive state from useAiChatStream: `{ messages, currentText, isStreaming, conversationUuid }`.
+		 * Reactive state from useAiChatStream: `{ messages, currentText, isStreaming, conversationUuid, error }`.
 		 */
 		streamState: {
 			type: Object,
@@ -1108,11 +1125,22 @@ export default {
 
 		/**
 		 * Fetch the agent list for the agent menu. Defaults the selection to the
-		 * first accessible agent — the agents API has no "default agent"
+		 * first agent this page has a use for, which is the same subset the menu
+		 * shows: `relevantAgentOptions`. The agents API has no "default agent"
 		 * indicator to prefer instead (verified against hermiq's
-		 * AgentsController::index()/serializeAgent()). Degrades gracefully on
-		 * failure: the menu shows an inline notice but the rest of the window
-		 * (history, message input) stays usable.
+		 * AgentsController::index()/serializeAgent()), so page relevance is the
+		 * best signal available.
+		 *
+		 * Defaulting to the raw first agent instead, as this did, is not a
+		 * cosmetic difference. On a Buildiq page it handed the user an agent
+		 * holding no Buildiq tools, so the first thing the assistant did was
+		 * fail to do the one thing the page is for, and the fix was a settings
+		 * menu the user had no reason to open. `relevantAgentOptions` already
+		 * falls back to every agent when nothing matches, so on a page with no
+		 * relevant agent this still selects exactly what it selected before.
+		 *
+		 * Degrades gracefully on failure: the menu shows an inline notice but
+		 * the rest of the window (history, message input) stays usable.
 		 *
 		 * @returns {Promise<void>}
 		 */
@@ -1125,7 +1153,8 @@ export default {
 				const list = Array.isArray(data) ? data : (data.results || [])
 				this.agents = list
 				if (!this.selectedAgentUuid && list.length > 0) {
-					this.selectedAgentUuid = list[0].uuid || list[0].id || null
+					const preferred = this.relevantAgentOptions[0]
+					this.selectedAgentUuid = (preferred && preferred.id) || list[0].uuid || list[0].id || null
 				}
 			} catch {
 				this.agentsFetchError = true
@@ -1386,6 +1415,15 @@ export default {
 	display: flex;
 	gap: 8px;
 	margin-top: 10px;
+}
+
+.cn-ai-chat-window__error {
+	flex: 0 0 auto;
+	margin: 0;
+	padding: 8px 12px;
+	color: var(--color-error-text, #a10000);
+	background: var(--color-error-hover, #f7e5e5);
+	font-size: 0.9em;
 }
 
 .cn-ai-chat-window__input {
