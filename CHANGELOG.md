@@ -2,8 +2,26 @@
 
 ## [Unreleased]
 
+## [2.54.0] - 2026-09-19
+
+This release carries everything that 3.4.0 carried. Pin `^2.54.0`.
+
+Nobody chose a 3. A `BREAKING CHANGE:` footer on the news widget commit made
+semantic-release compute a major, and it published one. Then four more. Versions
+3.0.0 through 3.4.0 and the three 3.0.0 betas are deprecated on npm. This package
+stays on the 2.x line, and the release config now refuses anything above it.
+
+**A breaking change ships inside a minor here, on purpose.** The `news` widget
+removal below would normally force a major. It does not, and that is a decision
+rather than an oversight. The renderer never fetched anything by itself. It read
+an `itemsEndpoint` the consumer supplied, and LaunchPad was the only app that ever
+supplied one. So for every other app the widget could not have been working.
+
+If you did render `CnNewsWidget`, you are the case this note exists for. Read the
+Removed entry below before you upgrade.
+
 ### Removed
-- **BREAKING: the `news` widget moved to LaunchPad.** `CnNewsWidget` and `CnNewsWidgetForm` are gone, along with the `news` type registration and its `libraryWidgetKeys` entry. The renderer never fetched anything — it read a consumer-supplied `itemsEndpoint`, and LaunchPad was the only app that ever supplied one, so in every other app the form collected feed URLs nothing could load. LaunchPad now owns the widget alongside the backend it already had (feed fetch/parse, cache table, background refresh). **Consumer impact:** the two exports no longer resolve, and an app that renders a stored `news` placement shows the unknown-type tile unless it registers its own. The placement `content` shape is unchanged, so LaunchPad renders existing placements as before.
+- **BREAKING: the `news` widget moved to LaunchPad.** `CnNewsWidget` and `CnNewsWidgetForm` are gone, along with the `news` type registration and its `libraryWidgetKeys` entry. The renderer never fetched anything. It read a consumer-supplied `itemsEndpoint`, and LaunchPad was the only app that ever supplied one, so in every other app the form collected feed URLs nothing could load. LaunchPad now owns the widget alongside the backend it already had (feed fetch/parse, cache table, background refresh). **Consumer impact:** the two exports no longer resolve, and an app that renders a stored `news` placement shows the unknown-type tile unless it registers its own. The placement `content` shape is unchanged, so LaunchPad renders existing placements as before.
 
 ### Deprecated
 - **`@conduction/nextcloud-vue/eslint` is deprecated in favour of `@nextcloud/eslint-config` 9.** The preset was written because fourteen apps each maintained their own Vue 3 lint config and one of them armed no `vue/no-deprecated-*` rule at all, which let four `beforeDestroy` hooks survive a Vue 3 migration as live memory leaks. Upstream now covers that. Measured with `--print-config` on this repository: all 21 `vue/no-deprecated-*` rules are armed at error, including `no-deprecated-delete-set` and `no-deprecated-model-definition`, the two missing from `plugin:vue/vue3-essential` that were the reason for writing the list out by hand. `ecmaVersion` resolves to the current year rather than a pin, the SFC script parser is set in the object form, and the three inverted Vue 2 rules the preset switches off are absent upstream.
