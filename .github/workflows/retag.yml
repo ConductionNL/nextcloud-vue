@@ -34,17 +34,15 @@ name: Retag (npm dist-tag)
 # it was supposed to do on failure — it stopped with the registry's own message
 # instead of exiting 0 and looking done.
 #
-# So this workflow cannot move a tag as-is. To make it work, give it a
-# credential with publish rights on the package:
+# ⚠️ RESOLVED 2026-09-19: the trade was taken. The registry writes below run
+# with `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}`, the secret this repo has
+# carried since February. OIDC still covers the publish in release.yml; it is
+# only the dist-tag write that needs the token, so the blast radius of a
+# rotation is this workflow and deprecate.yml, not releasing.
 #
-#     env:
-#       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-#
-# and add that secret — accepting that it is a token to rotate, which is
-# exactly what the OIDC setup was adopted to avoid. Until someone decides that
-# trade, moving a tag is a one-liner from an account that already has rights:
-#
-#     npm dist-tag add @conduction/nextcloud-vue@2.8.2 vue3
+# The reading steps deliberately do NOT get the token. `npm view` needs no
+# credential, and a read that silently depends on one hides an expired token
+# until the write fails.
 #
 # The workflow is kept because the verification step below is the valuable
 # part: it re-reads the tag from the registry and fails when it did not move.
@@ -125,6 +123,8 @@ jobs:
           npx -y npm@latest dist-tag add \
             '${{ steps.resolve.outputs.pkg }}@${{ steps.resolve.outputs.want }}' \
             '${{ inputs.tag }}'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # REMOVING IS NOW THE RIGHT CALL FOR `vue3`, AND THE HEADER ABOVE SAYS WHY
       # IT WAS NOT BEFORE: "re-point rather than remove … the tag can be retired
@@ -152,6 +152,8 @@ jobs:
           npx -y npm@latest dist-tag rm \
             '${{ steps.resolve.outputs.pkg }}' \
             '${{ inputs.tag }}'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # THE TAG MUST BE RE-READ FROM THE REGISTRY.
       #
