@@ -18,7 +18,11 @@ function getRemoteURL() {
 }
 
 function getDefaultPropfind() {
-	return '<propfind/>'
+	// The real one returns a full PROPFIND with a <d:prop> block. The stub used
+	// to return a bare '<propfind/>', which no code could splice a property
+	// into, so a test of "does the browser ask for its DAV properties" could
+	// only ever pass. Keep the shape, not just the type.
+	return '<?xml version="1.0"?><d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns"><d:prop><d:getlastmodified /><d:getcontentlength /><oc:fileid /></d:prop></d:propfind>'
 }
 
 const calls = { createDirectory: [], putFileContents: [], moveFile: [] }
@@ -54,6 +58,10 @@ function resultToNode(stat) {
 		size: stat.size,
 		mtime: stat.lastmod ? new Date(stat.lastmod) : undefined,
 		fileid: stat.props && stat.props.fileid ? Number(stat.props.fileid) : undefined,
+		// The real resultToNode hangs every PROPFIND property on the node as
+		// `attributes`. The stub dropped them, so anything reading a DAV
+		// property off a node was untestable here.
+		attributes: { ...(stat.props || {}) },
 	}
 }
 

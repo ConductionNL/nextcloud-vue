@@ -154,12 +154,23 @@ describe('useObjectLock — REQ-CO-LOCK-003 (acquire / release)', () => {
 		wrapper.unmount()
 	})
 
-	test('release issues DELETE', async () => {
+	// 🔴 A RELEASE IS A POST TO `/unlock`, AND IT USED TO BE `DELETE /lock`.
+	// OpenRegister declares `objects#lock` and `objects#unlock`, both POST, and
+	// until openregister#3870 there was no DELETE on `/lock` at all — so every
+	// release 404ed at the ROUTER, `release()` read its own 404 as "already
+	// released; idempotent" and returned without a word, and every release in
+	// every app on this library freed nothing. Silently, for months.
+	//
+	// This test asserted the broken verb, which is why nothing caught it. It
+	// now asserts the URL as well as the method: `toHaveBeenCalledTimes(1)` on
+	// a bare verb passes on any endpoint at all.
+	test('release POSTs to /unlock, and never DELETEs /lock', async () => {
 		const store = makeStore({ user: 'alice', expiresAt: '2030-01-01T00:00:00Z' })
-		axios.delete.mockResolvedValue({ status: 204 })
+		axios.post.mockResolvedValue({ status: 204 })
 		const { wrapper, lock } = mountLock(store)
 		await lock().release()
-		expect(axios.delete).toHaveBeenCalledTimes(1)
+		expect(axios.post).toHaveBeenCalledWith(expect.stringMatching(/\/unlock$/))
+		expect(axios.delete).not.toHaveBeenCalled()
 		wrapper.unmount()
 	})
 })
@@ -167,12 +178,12 @@ describe('useObjectLock — REQ-CO-LOCK-003 (acquire / release)', () => {
 describe('useObjectLock — REQ-CO-LOCK-004 (auto-release lifecycle)', () => {
 	test('beforeDestroy releases the lock when held by me', async () => {
 		const store = makeStore({ user: 'alice', expiresAt: '2030-01-01T00:00:00Z' })
-		axios.delete.mockResolvedValue({ status: 204 })
+		axios.post.mockResolvedValue({ status: 204 })
 		const { wrapper } = mountLock(store)
 		wrapper.unmount()
 		// Allow any queued micro-tasks to flush
 		await Promise.resolve()
-		expect(axios.delete).toHaveBeenCalled()
+		expect(axios.post).toHaveBeenCalledWith(expect.stringMatching(/\/unlock$/))
 	})
 
 	test('beforeunload calls navigator.sendBeacon when locked by me', () => {

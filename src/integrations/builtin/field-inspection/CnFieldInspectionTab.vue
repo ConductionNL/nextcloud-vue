@@ -19,6 +19,17 @@
 			<span>{{ indicator.text }}</span>
 		</div>
 
+		<!-- 🔴 AN EXPIRED PLANNING SAID NOTHING. `getPlanningMeta()` was read and
+		     its result thrown away, so a planning downloaded on Monday rendered
+		     on Thursday exactly like one downloaded an hour ago. In a cellar
+		     with no signal there is nothing else to check it against, so the
+		     inspector works a list that may no longer be theirs. It names the
+		     download time, because "out of date" without a time cannot be
+		     judged. -->
+		<p v-if="planningIsStale" class="cn-field-inspection-tab__stale" data-testid="cn-fi-tab-stale">
+			{{ t('nextcloud-vue', 'This planning is out of date. It was downloaded on {time}.', { time: downloadedAtLabel }) }}
+		</p>
+
 		<div class="cn-field-inspection-tab__actions">
 			<NcButton variant="primary"
 				data-testid="cn-fi-tab-sync-day"
@@ -53,6 +64,19 @@
 				<span class="cn-field-inspection-tab__row-status">{{ itemStatus(item) }}</span>
 			</li>
 		</ul>
+
+		<!-- The queue under the planning, not instead of the count. The count
+		     above is the summary; this is what it summarises, and it is the only
+		     place an inspector can see WHICH capture has not left the device. -->
+		<section class="cn-field-inspection-tab__queue" data-testid="cn-fi-tab-queue">
+			<h4 class="cn-field-inspection-tab__queue-heading">
+				{{ t('nextcloud-vue', 'Waiting to send') }}
+			</h4>
+			<!-- No `data-testid` here: a fallthrough attribute overrides the
+			     component's own root attribute, which would rename the queue's
+			     test hook wherever it is embedded. -->
+			<CnOfflineQueue :deviceId="deviceId" @requeued="loadLocal" />
+		</section>
 	</div>
 </template>
 
@@ -61,9 +85,11 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import ClipboardCheckOutline from 'vue-material-design-icons/ClipboardCheckOutline.vue'
 import Sync from 'vue-material-design-icons/Sync.vue'
+import CnOfflineQueue from '../../../components/CnOfflineQueue/index.js'
 import { syncIndicator } from '../../offline/fieldCollectionHelpers.js'
 import {
 	countPending,
+	countStuck,
 	getPlannedItems,
 	getPlanningMeta,
 	resolveDeviceId,
@@ -82,7 +108,7 @@ import { DEFAULT_FIELD_INSPECTION_CONFIG } from '../field-inspection.js'
 export default {
 	name: 'CnFieldInspectionTab',
 
-	components: { NcButton, NcLoadingIcon, ClipboardCheckOutline, Sync },
+	components: { CnOfflineQueue, NcButton, NcLoadingIcon, ClipboardCheckOutline, Sync },
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'field-inspection'`). */
@@ -101,6 +127,10 @@ export default {
 		return {
 			plannedItems: [],
 			pendingCount: 0,
+			/** Operations that will not send again without somebody acting. */
+			stuckCount: 0,
+			/** The planning meta row, kept rather than discarded (see the stale banner). */
+			planningMeta: null,
 			loading: true,
 			syncing: false,
 			offline: typeof navigator !== 'undefined' ? navigator.onLine === false : false,
@@ -131,8 +161,51 @@ export default {
 			return this.config.plannedSchema || this.schema || ''
 		},
 
+		/**
+		 * Whether the cached planning has passed its offline lifetime.
+		 *
+		 * @return {boolean} True when it is past `expiresAt`.
+		 */
+		planningIsStale() {
+			const expiresAt = this.planningMeta?.expiresAt
+			if (typeof expiresAt !== 'string' || expiresAt === '') {
+				return false
+			}
+			const expiry = Date.parse(expiresAt)
+			return Number.isNaN(expiry) === false && expiry < Date.now()
+		},
+
+		/**
+		 * When this planning was downloaded, in the reader's locale.
+		 *
+		 * @return {string} The download moment, or an empty string.
+		 */
+		downloadedAtLabel() {
+			const syncedAt = this.planningMeta?.syncedAt
+			if (typeof syncedAt !== 'string' || syncedAt === '') {
+				return ''
+			}
+			const moment = new Date(syncedAt)
+			return Number.isNaN(moment.getTime()) ? '' : moment.toLocaleString()
+		},
+
+		/**
+		 * Where a conflict found during a drain is filed.
+		 *
+		 * The register defaults to the one each queued operation already names,
+		 * so a consuming app only has to set `conflictSchema`.
+		 *
+		 * @return {object} The drain config.
+		 */
+		drainConfig() {
+			return {
+				register: this.config.register || this.register,
+				conflictSchema: this.config.conflictSchema || '',
+			}
+		},
+
 		indicator() {
-			return syncIndicator(this.pendingCount, this.offline === false)
+			return syncIndicator(this.pendingCount, this.offline === false, this.stuckCount)
 		},
 	},
 
@@ -198,8 +271,9 @@ export default {
 			this.loading = true
 			try {
 				this.plannedItems = await getPlannedItems(this.register, this.effectiveSchema)
-				await getPlanningMeta(this.register, this.effectiveSchema)
+				this.planningMeta = await getPlanningMeta(this.register, this.effectiveSchema)
 				this.pendingCount = await countPending(this.deviceId)
+				this.stuckCount = await countStuck(this.deviceId)
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.error('[CnFieldInspectionTab] loadLocal failed', e)
@@ -251,8 +325,11 @@ export default {
 		async drain() {
 			this.syncing = true
 			try {
-				await drainQueue(this.deviceId)
+				await drainQueue(this.deviceId, this.drainConfig)
 				this.pendingCount = await countPending(this.deviceId)
+				// A drain is exactly when work becomes stuck, so the count that
+				// reports it is re-read here and not only on mount.
+				this.stuckCount = await countStuck(this.deviceId)
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.error('[CnFieldInspectionTab] drain failed', e)
@@ -299,6 +376,17 @@ export default {
 .cn-field-inspection-tab__sync--warning .cn-field-inspection-tab__dot { background: var(--color-warning); }
 
 .cn-field-inspection-tab__sync--error .cn-field-inspection-tab__dot { background: var(--color-error); }
+
+.cn-field-inspection-tab__stale {
+	font-size: 0.85em;
+	color: var(--color-warning-text, var(--color-text-maxcontrast));
+	margin: 0;
+}
+
+.cn-field-inspection-tab__queue-heading {
+	font-size: 0.9em;
+	margin: 0 0 4px;
+}
 
 .cn-field-inspection-tab__actions {
 	display: flex;

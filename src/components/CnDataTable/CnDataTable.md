@@ -194,6 +194,8 @@ export default {
 | `scrollable` | Boolean | `false` | Constrain height and make the table vertically scrollable |
 | `loadingText` | String | `'Loading…'` | Text shown below the spinner during loading |
 | `rowIcon` | String \| Function | `null` | Optional leading icon for every row: a static MDI name applied to all rows, or `(row) => iconName` to vary it per row (resolved via the CnIcon registry). Unset = no icon column. |
+| `rowIndicators` | Array | `[]` | State indicators the page declares for its rows: `{ id, field, equals?, in?, icon, text, tooltip? }`. The condition is `equals`, `in`, or plain truthiness when neither is given. `text` is required, so an indicator is never colour and shape alone. The page declares which indicators exist; a record cannot add one it has not declared. |
+| `rowIndicatorCap` | Number | `3` | How many declared indicators render on the row before the rest move into the row menu, reachable as `indicatorsFor(row).overflow`. |
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the header select-all checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 | `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 | `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`) — for compact dashboard list widgets that want a plain bordered-row list without column labels |

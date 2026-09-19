@@ -57,6 +57,7 @@ export {
 } from './useEndpointSource.js'
 export { useObjectSubscription } from './useObjectSubscription.js'
 export { LockConflictError, PermissionError, useObjectLock } from './useObjectLock.js'
+export { useObjectPresence } from './useObjectPresence.js'
 export { cnRenderFormField } from './cnFormFieldRenderer.js'
 export { cnRenderMarkdown } from './cnRenderMarkdown.js'
 export { useIntegrationRegistry } from './useIntegrationRegistry.js'
@@ -73,3 +74,4 @@ export {
 export { useManifestEditHistory } from './useManifestEditHistory.js'
 export { useScopedTheme } from './useScopedTheme.js'
 export { useFlowStore } from './useFlowStore.js'
+export { NOTIFICATION_PREFERENCES_URL, NOTIFICATION_TEST_SEND_URL, useNotificationPreferencesStore } from './useNotificationPreferencesStore.js'
