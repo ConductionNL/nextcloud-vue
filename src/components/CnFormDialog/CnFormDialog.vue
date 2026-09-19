@@ -25,6 +25,24 @@
 			data-testid="cn-modal"
 			data-testid-modal="cn-form-dialog"
 			data-testid-phase="form">
+			<!-- The draft this form was left in. OFFERED, never applied: a form
+			     that fills itself is indistinguishable from one the server
+			     prefilled, and somebody submits last week's answers. -->
+			<NcNoteCard
+				v-if="draftOffer !== null"
+				type="info"
+				data-testid="cn-form-dialog-draft-offer">
+				{{ t('nextcloud-vue', 'You have unsaved changes from an earlier visit.') }}
+				<div class="cn-form-dialog__draft-actions">
+					<NcButton data-testid="cn-form-dialog-draft-restore" @click="restoreDraft">
+						{{ t('nextcloud-vue', 'Restore') }}
+					</NcButton>
+					<NcButton data-testid="cn-form-dialog-draft-discard" @click="discardDraft">
+						{{ t('nextcloud-vue', 'Discard') }}
+					</NcButton>
+				</div>
+			</NcNoteCard>
+
 			<!-- Form-level error (e.g. server validation) — keeps the form visible so the user can fix the data -->
 			<NcNoteCard v-if="formError" type="error" data-testid="cn-form-dialog-error">
 				{{ formError }}
@@ -421,8 +439,21 @@
 		</div>
 
 		<template #actions>
+			<!-- One announcement per state change, so a screen reader hears
+			     "Draft saved" once rather than on every keystroke. -->
+			<span
+				class="cn-form-dialog__draft-state"
+				aria-live="polite"
+				data-testid="cn-form-dialog-draft-state">{{ draftIndicatorLabel }}</span>
 			<NcButton @click="$emit('close')">
 				{{ result !== null ? closeLabel : cancelLabel }}
+			</NcButton>
+			<NcButton
+				v-if="result === null && canSaveDraft"
+				:disabled="loading"
+				data-testid="cn-form-dialog-save-draft"
+				@click="saveDraft">
+				{{ t('nextcloud-vue', 'Save draft') }}
 			</NcButton>
 			<NcButton
 				v-if="result === null"
@@ -449,6 +480,7 @@ import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
+import { draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
@@ -660,6 +692,8 @@ export default {
 		ContentSaveOutline,
 	},
 
+	mixins: [formDraftMixin()],
+
 	inject: {
 		_cnTenantContext: {
 			from: TENANT_CONTEXT_KEY,
@@ -729,6 +763,59 @@ export default {
 		lockedFields: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Keep what the user typed and offer it back when this form reopens.
+		 *
+		 * Local only: nothing is written to the server until they save. On by
+		 * default because it changes nothing they did not type, and because the
+		 * case it solves is a closed tab.
+		 */
+		recoverDraft: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Offer a "Save draft" button that stores the record with a draft
+		 * marker instead of validating it.
+		 *
+		 * Opt-in, and inert unless the schema carries `draftField`: a button
+		 * that writes a property the schema does not declare would have
+		 * OpenRegister drop it silently, and the record would come back
+		 * looking published.
+		 */
+		allowDraft: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The boolean property that marks a record as a draft. */
+		draftField: {
+			type: String,
+			default: 'isDraft',
+		},
+
+		/**
+		 * The app the draft belongs to, and who is typing it.
+		 *
+		 * 🔴 THE USER IS PART OF THE DRAFT KEY. A shared browser profile at a
+		 * service desk is the ordinary case in a municipality, and a draft
+		 * keyed without the user hands the next person at the counter what the
+		 * last one typed. A host that passes nothing gets `anonymous`, which
+		 * is correct for a single-user context and wrong for a counter — so
+		 * the prop exists and is documented rather than guessed at.
+		 */
+		draftAppId: {
+			type: String,
+			default: '',
+		},
+
+		/** Who is typing, for the draft key. See `draftAppId`. */
+		draftUserId: {
+			type: String,
+			default: '',
 		},
 
 		/** Dialog title. Defaults to "Create {schema.title}" or "Edit {schema.title}". */
@@ -838,7 +925,7 @@ export default {
 		},
 	},
 
-	emits: ['close', 'confirm'],
+	emits: ['close', 'confirm', 'draft-saved'],
 
 	setup() {
 		// Pluggable integration registry — used to resolve fields that
@@ -925,6 +1012,59 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Where this form's draft lives, or '' when recovery is off.
+		 *
+		 * @return {string} The storage key.
+		 */
+		formDraftKey() {
+			if (this.recoverDraft !== true) {
+				return ''
+			}
+
+			return draftKey({
+				appId: this.draftAppId,
+				schema: (this.schema?.slug || this.schema?.title || ''),
+				objectId: (this.item?.id || this.item?.uuid || ''),
+				userId: this.draftUserId,
+			})
+		},
+
+		/**
+		 * Whether "Save draft" may be offered.
+		 *
+		 * Both halves are required. `allowDraft` is the host asking for it; the
+		 * schema declaring `draftField` is what makes it possible. Without the
+		 * property OpenRegister drops the marker on save with a 200 and an
+		 * object back, and the record reads as published.
+		 *
+		 * @return {boolean} True when the button is offered.
+		 */
+		canSaveDraft() {
+			if (this.allowDraft !== true || !this.draftField) {
+				return false
+			}
+
+			return Object.hasOwn((this.schema?.properties || {}), this.draftField)
+		},
+
+		/**
+		 * What the draft indicator announces, or '' when it says nothing.
+		 *
+		 * @return {string} The text.
+		 */
+		draftIndicatorLabel() {
+			if (this.draftState === 'saving') {
+				return t('nextcloud-vue', 'Saving draft')
+			}
+
+			if (this.draftState === 'saved') {
+				return t('nextcloud-vue', 'Draft saved')
+			}
+
+			return ''
+		},
+
 		isCreateMode() {
 			return !this.item
 		},
@@ -1142,6 +1282,39 @@ export default {
 
 	watch: {
 		/**
+		 * Keep the draft in step with what is typed.
+		 *
+		 * Deep, because a field writes into `formData[key]` rather than
+		 * replacing the object. Debounced in the mixin so a long form is not
+		 * one storage write per keystroke.
+		 */
+		formData: {
+			deep: true,
+			handler(values) {
+				// 🔴 THE FIRST CHANGE IS THE COMPONENT SEEDING THE FORM, NOT
+				// SOMEBODY TYPING. Writing a draft for it stores the empty
+				// form over a real one, and the indicator announces "Saving
+				// draft" about work nobody did — an instrument reporting
+				// activity that did not happen, which is the whole class of
+				// defect this library keeps paying down.
+				if (this.draftSeeded !== true) {
+					this.draftSeeded = true
+					return
+				}
+
+				// Nothing is written while a draft is being offered: the user
+				// has not chosen yet, and overwriting the stored draft with the
+				// empty form they are looking at would destroy the thing they
+				// are about to be asked about.
+				if (!this.formDraftKey || this.draftOffer !== null) {
+					return
+				}
+
+				this.scheduleDraftWrite(this.formDraftKey, values)
+			},
+		},
+
+		/**
 		 * Re-seed the form when the record changes — WITHOUT discarding
 		 * edits the user has already made to the record now arriving.
 		 *
@@ -1287,6 +1460,16 @@ export default {
 	},
 
 	created() {
+		// 🔴 OFFERED, NEVER APPLIED. The values are held and the user decides.
+		// Silently refilling a form is how somebody submits last week's answers
+		// without noticing they were there, and a form that fills itself is
+		// indistinguishable from one the server prefilled.
+		if (this.formDraftKey) {
+			this.draftOffer = readDraft(this.formDraftKey, {
+				objectUpdated: (this.item?.updated || this.item?.['@self']?.updated || ''),
+			})
+		}
+
 		// Non-reactive cache of built enum option lists, keyed by field key.
 		// Kept off `data` so Vue doesn't make the option objects reactive —
 		// stable identity is what lets NcSelect recognise the selected option.
@@ -3008,6 +3191,54 @@ export default {
 		},
 
 		/**
+		 * Take the offered draft into the form.
+		 *
+		 * @return {void}
+		 */
+		restoreDraft() {
+			if (this.draftOffer === null) {
+				return
+			}
+
+			this.formData = { ...this.formData, ...this.draftOffer.values }
+			this.draftOffer = null
+		},
+
+		/**
+		 * Decline the offered draft and forget it.
+		 *
+		 * @return {void}
+		 */
+		discardDraft() {
+			this.forgetDraft(this.formDraftKey)
+		},
+
+		/**
+		 * Save the record as a draft, without validating it.
+		 *
+		 * 🔴 THE ONE PATH AROUND VALIDATION, AND IT IS EXPLICIT. A half-filled
+		 * form is the whole point of a draft, so required fields are not
+		 * enforced. It is reachable only by pressing a button that says so, and
+		 * only on a schema that declares somewhere to record it.
+		 *
+		 * @return {void}
+		 */
+		saveDraft() {
+			if (!this.canSaveDraft) {
+				return
+			}
+
+			this.formError = null
+			this.loading = true
+			const payload = { ...this.buildSubmitPayload(), [this.draftField]: true }
+
+			/**
+			 * @event draft-saved Emitted when the user asks to store the record as a draft. Payload: the form data with the draft field set. The host saves it and calls `setResult()` as it would for a confirm.
+			 */
+			this.$emit('draft-saved', payload)
+		},
+
+		/**
 		 * Build the payload emitted on confirm. A shallow clone of formData
 		 * with one normalisation: an empty-string value on a field that
 		 * carries a `format` or `pattern` constraint is coerced to `null`.
@@ -3045,6 +3276,10 @@ export default {
 			this.loading = false
 			this.result = resultData
 			if (resultData.success) {
+				// The values are on the server now, so the local copy has
+				// nothing left to protect. Cleared only on SUCCESS: a failed
+				// save is exactly when somebody needs their typing back.
+				this.forgetDraft(this.formDraftKey)
 				this.closeTimeout = setTimeout(() => {
 					/**
 					 * @event close Emitted when the dialog should close: the user dismissed it, or a successful save auto-closed it.
@@ -3074,6 +3309,21 @@ export default {
 </script>
 
 <style scoped>
+.cn-form-dialog__draft-actions {
+	display: flex;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+/* The state is announced in WORDS, and the colour only repeats them. A
+   reader who cannot see it still hears "Draft saved" (WCAG 2.2 SC 1.4.1). */
+.cn-form-dialog__draft-state {
+	align-self: center;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+	margin-inline-end: auto;
+}
+
 .cn-form-dialog__form {
 	display: flex;
 	flex-direction: column;

@@ -97,6 +97,12 @@
 	flex-shrink: 0;
 }
 
+/* The sentence a refused lock acquire left behind, under the locked banner. */
+.cn-detail-page__lock-refusal {
+	margin: 0 0 calc(3 * var(--default-grid-baseline));
+	color: var(--color-error-text, var(--color-error));
+}
+
 /* Loading state */
 .cn-detail-page__loading {
 	display: flex;

@@ -28,6 +28,7 @@ import { nextTick, ref } from 'vue'
 const { useNamedSource } = require('../../src/components/CnIndexPage/useNamedSource.js')
 const { indexSources, resolveIndexSource, taskDueLabel, taskDeepLink } = require('../../src/composables/indexSources.js')
 const { useTaskInboxStore } = require('../../src/composables/useTaskInboxStore.js')
+const { searchFieldParams } = require('../../src/utils/searchFieldParams.js')
 const { stubLocationMethod } = require('../support/stubLocation.js')
 
 /** @return {object} The params of the most recent GET. */
@@ -51,6 +52,19 @@ describe('the tasks source is registered', () => {
 		expect(typeof source.openRow).toBe('function')
 		expect(source.showAdd).toBe(false)
 		expect(source.columns.map((c) => c.key)).toEqual(['title', 'subjectLabel', 'stateLabel', 'priorityLabel', 'dueLabel', 'assignee'])
+	})
+
+	/**
+	 * A sidebar field only narrows anything when the source declares which
+	 * inbox argument it becomes. An undeclared key logs one console error and
+	 * leaves a control on screen that filters nothing, which is the exact
+	 * shape of a feature that looks shipped and is not.
+	 */
+	it('declares the kind field, so a Tasks sidebar can ask for one sort', () => {
+		const source = indexSources.tasks()
+
+		expect(source.searchFields.kind).toEqual({ param: 'kind', single: true })
+		expect(searchFieldParams(source.searchFields, { kind: ['reminder'] }, 'tasks')).toEqual({ kind: 'reminder' })
 	})
 
 	it('supplies the scope tabs with assigned as the default', () => {
@@ -85,6 +99,31 @@ describe('the inbox request', () => {
 			sort: '-dueAt',
 			limit: 10,
 		})
+	})
+
+	/**
+	 * A kind is what sort of work a task is, as the creating app named it.
+	 * It is the one filter that lets a Tasks page say "the reminders"
+	 * without the engine learning what a reminder is, and the allowlist is
+	 * the only thing that could withhold it: the server has the argument.
+	 */
+	it('forwards the kind, so a page can ask for one sort of work', async () => {
+		const store = useTaskInboxStore()
+		await store.load({ scope: 'all', kind: 'reminder' })
+
+		expect(lastParams()).toEqual({ scope: 'all', kind: 'reminder', sort: '-dueAt' })
+	})
+
+	/**
+	 * The control for the test above. A store that forwarded everything
+	 * would pass it and would also pass `assignee`, which is the whole
+	 * reason the list is an allowlist.
+	 */
+	it('still drops a key the endpoint does not know', async () => {
+		const store = useTaskInboxStore()
+		await store.load({ scope: 'all', kindOf: 'reminder' })
+
+		expect(lastParams()).toEqual({ scope: 'all', sort: '-dueAt' })
 	})
 
 	/**

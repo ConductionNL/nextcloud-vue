@@ -65,6 +65,8 @@ const URL_HELPERS = [
 	'speechCapabilitiesUrl',
 	// Module-local builders that wrap `generateUrl()` themselves.
 	'objectsUrl',
+	// useObjectPresence's beat/depart/list URL, built by `generateUrl()`.
+	'presenceUrl',
 ]
 
 /**
@@ -103,6 +105,7 @@ const ALLOWED = new Map([
 	['src/components/CnObjectGeoWidget/CnObjectGeoWidget.vue:url', 'Nominatim is an absolute third-party URL'],
 	['src/components/CnAiCompanion/CnAiChatPanel.vue:approval.resolveUrl', 'approval URL comes from the server payload'],
 	['src/components/CnAdminSettingsShell/CnAdminSettingsShell.vue:this.resolvedReimportUrl', 'falls back to generateUrl(); an explicit reimportUrl prop wins'],
+	['src/offline/serviceWorker.js:request', "the worker re-issues the browser's own intercepted Request, whose URL the browser already resolved to an absolute one"],
 	['src/composables/useAppManifest.js:url', 'the fetcher receives a caller-resolved endpoint'],
 	['src/composables/useRuntimeManifest.js:u', 'the fetcher receives a caller-resolved endpoint'],
 

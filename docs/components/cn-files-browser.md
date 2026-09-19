@@ -68,6 +68,55 @@ A host that keeps a record about each file (dossiq's ZGW document record, say) c
 
 A row action is dispatched the way a widget's row action is: through the page's `cnDispatchAction` when the browser sits in a `CnPageRenderer` tree, else through the bare dispatcher. Folders get no host action. A linked row is read-only here; what changes it lives where the file does.
 
+## Columns the host declares
+
+Set `columns` and the table shows what this page needs rather than what a file
+manager needs. A document list on a case wants sender, recipient, direction and
+a scan verdict; none of those live on the node, and all of them can be a column.
+
+```json
+"columns": [
+  "name",
+  { "key": "sender", "label": "Sender", "source": "row" },
+  { "key": "scan", "label": "Scan", "source": "attribute",
+    "attribute": "{http://owncloud.org/ns}av-status", "formatter": "scanVerdict" },
+  "modified"
+]
+```
+
+Three sources, three places a value comes from:
+
+- `node` reads a property of the file itself, the one the DAV listing already
+  carried.
+- `attribute` reads a DAV property, and the browser adds it to the PROPFIND
+  before listing, so the value is there with the rows rather than one request
+  per file later.
+- `row` reads `rowData[fileid][key]`. Pass `rowData` as a function and it is
+  called once with the whole listing, so the host fetches its projection in one
+  request. Without `rowData` the cell is empty and nothing is thrown.
+
+Every declared cell renders through `CnCellRenderer`, so a `formatter` means
+here exactly what it means in a table.
+
+### Who decides what
+
+- The host decides membership. `columns` is the list of columns this browser
+  has, in the host's order. Declare none and you get name, size and modified,
+  as before.
+- The user decides visibility, and only downward. Give `preferenceApp` and the
+  toolbar offers a Columns chooser that hides any declared column and remembers
+  it per user. It can never add one: the chooser is built by walking the host's
+  declaration, so a column the host removed is not listed, cannot be ticked
+  back on, and does not render however an old stored choice reads.
+
+A `node` column sorts through the Files app's own sorter. A `row` or
+`attribute` column with `sortable: true` sorts on its resolved value within the
+listed folder, folders still first, and a file with no value sorts last in both
+directions rather than pushing the filled rows out of sight.
+
+Start with one declared column and `rowData` as a function, then add the
+chooser once the set is settled.
+
 ## Props
 
 | Prop | Type | Default | Description |
@@ -85,6 +134,11 @@ A row action is dispatched the way a widget's row action is: through the page's 
 | `rowActions` | `Array` | `[]` | The host's own actions on each file row (never on a folder), declared like any manifest action: `{ id, label, icon?, type, target?, props?, handler?, args? }`. Dispatched through the page's action runner (`cnDispatchAction`, provided by `CnPageRenderer`) with the file merged in: an `open-modal` action's props gain `fileId`, `fileName` and `path`; a `handler` action's args gain the node. `icon` is an MDI icon name. |
 | `newActions` | `Array` | `[]` | The host's own entries in the New menu, after the ones the Files app and its plugins register. Declared like a row action (`{ id, label, icon?, type, target?, props?, handler?, args? }`) and dispatched the same way, but with the folder rather than a row: an `open-modal` action's props gain `path`, a `handler` action's args gain the folder node. Use it for "new from template" or "request a file from a party". |
 | `linkedItems` | `Array` | `[]` | Rows that are not nodes of this folder: files the host joined from another object's folder, shown after the folder's own rows with open and download only. Each is `{ id, name, mime?, size?, mtime?, href?, downloadHref?, note?, noteHref? }`; `note` says where the file lives, `noteHref` links there. |
+| `columns` | `Array` | `[]` | The columns the browser shows, in order. A string names a built-in (`name`, `size`, `modified`, `owner`, `type`, `tags`); an object declares its own: `{ key, label, source, attribute, formatter, sortable }`, where `source` is `node`, `attribute` or `row`. Declaring none keeps today's name, size and modified. |
+| `rowData` | `Object \| Function` | `null` | The host's per-file data for `source: 'row'` columns, keyed by file id. A function is called once per folder with the listed nodes, so a projection of ninety files is one request. |
+| `preferenceApp` | `String` | `''` | The app id the Columns chooser stores this user's choice under. Unset means no chooser, and every declared column renders. |
+| `preferenceKey` | `String` | `'files-browser-columns'` | The key the choice is stored under, so two browsers in one app remember separately. |
+| `columnsLabel` | `String` | `'Columns'` | Label of the Columns chooser. |
 | `openLinkedLabel` | `String` | `'Open'` | Label of a linked row's open action. |
 | `downloadLabel` | `String` | `'Download'` | Label of a linked row's download action. |
 

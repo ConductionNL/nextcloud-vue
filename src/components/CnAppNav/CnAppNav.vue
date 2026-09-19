@@ -298,6 +298,7 @@
 </template>
 
 <script>
+import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcCounterBubble } from '@nextcloud/vue'
@@ -311,8 +312,10 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
 import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
+import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
+import { pageHasSavedViewPlaces, withPinnedViewChildren } from '../../utils/savedViewPlaces.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 // The legacy `icon-*` → MDI bridge lives beside CnIcon now, so the menu EDITOR
 // resolves a seeded `icon-comment` the same way this nav does. It used to be a
@@ -528,6 +531,16 @@ export default {
 			 * alongside the navigation — see `onItemClick`).
 			 */
 			openState: {},
+
+			/**
+			 * The saved views this user can see, fetched once when any page
+			 * declares that its views are places (saved-view-as-a-place). The
+			 * pinned ones hang under their page's entry; the rest are only in
+			 * the dropdown on the page itself. Empty on an app that declares
+			 * no places, which is every app until it says otherwise, and then
+			 * nothing here fetches anything.
+			 */
+			savedViews: [],
 		}
 	},
 
@@ -593,10 +606,29 @@ export default {
 		 */
 		visibleItems() {
 			const items = this.effectiveManifest?.menu ?? []
-			return items
+			// Pinned views join as CHILDREN of the entry their page already
+			// has, never as an entry of their own: the navigation budget is
+			// the app's to spend (ADR-097), and a user pinning eight views
+			// must not be able to spend it for them.
+			const withPinned = withPinnedViewChildren(items, {
+				manifest: this.effectiveManifest,
+				views: this.savedViews,
+				userId: this.currentUserId,
+			})
+			return withPinned
 				.filter((item) => this.passesPermission(item) && this.passesVisibleIf(item))
 				.slice()
 				.sort(byManifestOrder)
+		},
+
+		/**
+		 * The signed-in user id, used to tell this user's pins from anyone
+		 * else's. Pins are per user; the navigation is rendered per user.
+		 *
+		 * @return {string} The user id, or '' when nobody is signed in.
+		 */
+		currentUserId() {
+			return getCurrentUser()?.uid || ''
 		},
 
 		/**
@@ -852,9 +884,36 @@ export default {
 		// stays out of `data()`: a reactive Set mutated inside render would
 		// re-trigger the render effect.
 		this._autoCountWarned = new Set()
+		this.fetchPinnedViews()
 	},
 
 	methods: {
+		/**
+		 * Fetch the saved views, but only for an app that has somewhere to put
+		 * them.
+		 *
+		 * The guard is the point: an app declaring no places must not make a
+		 * request on every navigation mount for a list it would then ignore.
+		 * A failure is swallowed to a console error, because a navigation that
+		 * refuses to render because the views API is down is a far worse
+		 * outcome than a navigation without pins.
+		 *
+		 * @return {Promise<void>} Resolves once the views are in, or gave up.
+		 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
+		 */
+		async fetchPinnedViews() {
+			const pages = this.effectiveManifest?.pages ?? []
+			if (!pages.some(pageHasSavedViewPlaces)) {
+				return
+			}
+			try {
+				this.savedViews = await useSavedViewsApi().fetchViews()
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('[CnAppNav] failed to fetch the saved views for the navigation', error)
+			}
+		},
+
 		/**
 		 * Resolve a menu item's `icon` string to an MDI Vue component. MDI names
 		 * resolve via the per-app `registerIcons()` registry; legacy Nextcloud
