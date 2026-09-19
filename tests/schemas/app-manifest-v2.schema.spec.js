@@ -1562,3 +1562,82 @@ describe('case-page-and-list-as-a-place — the keys are refused off their page 
 		expect(validateManifestV2({ ...page({}), personalisation: { dateDisplay: 'fuzzy' } }).valid).toBe(false)
 	})
 })
+
+describe('app-manifest-v2 — ncDashboard, publishing a placement to the Nextcloud dashboard', () => {
+	/**
+	 * Builds a one-widget dashboard page. `gridWidth` stays at 6 deliberately:
+	 * a lone `0,0,12,12` body widget whose key is not a library built-in is
+	 * rejected by validateManifestV2 as a custom page in disguise (ADR-036
+	 * decision 1), which would redden these tests for a reason that has
+	 * nothing to do with ncDashboard.
+	 *
+	 * @param {object} widget - extra keys merged onto the placement.
+	 * @return {object} a v2 manifest carrying that one placement.
+	 */
+	const withWidget = (widget) => ({
+		...MINIMAL_V2,
+		pages: [{
+			id: 'reporting',
+			route: '/reporting',
+			type: 'dashboard',
+			title: 'app.reporting',
+			widgets: [{
+				widgetKey: 'AnnualStatementWidget',
+				slot: 'body',
+				gridX: 0,
+				gridY: 0,
+				gridWidth: 6,
+				gridHeight: 2,
+				...widget,
+			}],
+		}],
+	})
+
+	it('a placement carrying ncDashboard and an id validates', () => {
+		const result = validateManifestV2(withWidget({
+			id: 'annual-statement',
+			ncDashboard: {
+				title: 'Annual statement',
+				icon: 'ViewDashboardOutline',
+				order: 20,
+				link: '/reporting',
+			},
+		}))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('ncDashboard may declare nothing at all and still validates', () => {
+		const result = validateManifestV2(withWidget({ id: 'annual-statement', ncDashboard: {} }))
+		expect(result.valid).toBe(true)
+	})
+
+	/**
+	 * 🔴 The one-way door. The host derives a permanent Nextcloud widget id
+	 * from `id`, and Nextcloud stores each user's chosen widgets by that id in
+	 * its own namespace, which no migration of a consuming app can reach. A
+	 * placement identified by array position would move onto a different
+	 * widget the moment the array is reordered, silently changing what every
+	 * user who added the panel sees. The schema refuses the declaration rather
+	 * than letting that reach a dashboard.
+	 */
+	it('ncDashboard without an id is refused, naming id', () => {
+		const result = validateManifestV2(withWidget({ ncDashboard: { title: 'Annual statement' } }))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('id'))).toBe(true)
+	})
+
+	it('ncDashboard refuses a key it does not offer', () => {
+		const result = validateManifestV2(withWidget({
+			id: 'annual-statement',
+			ncDashboard: { title: 'Annual statement', subtitle: 'not a thing' },
+		}))
+		expect(result.valid).toBe(false)
+	})
+
+	it('a placement without ncDashboard still validates, so nothing existing has to change', () => {
+		const result = validateManifestV2(withWidget({ id: 'annual-statement' }))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+})

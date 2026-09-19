@@ -1400,10 +1400,43 @@
 				"_note": {
 					"type": "string",
 					"description": "Human-readable note. Optional on most widgets. REQUIRED when the containing page has type 'custom' — in that case this field must document why a standard page type was not feasible."
+				},
+				"ncDashboard": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Opt-in: also publish this placement as a widget on the native Nextcloud dashboard, alongside the app's own pages. An object rather than a boolean because a Nextcloud panel is a single narrow column with its own title, icon and link, none of which the grid placement carries. Presence of this key REQUIRES a non-empty `id` on the same entry (enforced in allOf below): the host derives a permanent widget id from it, and array position is not stable across edits. Omitting the key leaves the widget visible only inside the app.",
+					"properties": {
+						"title": {
+							"type": "string",
+							"description": "Panel title on the Nextcloud dashboard. Falls back to the widget's own title when omitted."
+						},
+						"icon": {
+							"type": "string",
+							"description": "MDI icon name (PascalCase), e.g. ViewDashboardOutline."
+						},
+						"order": {
+							"type": "integer",
+							"description": "Initial ordering hint, passed through as IWidget::getOrder(). It decides where the panel first appears; once a user rearranges their own dashboard their arrangement wins, so this is a hint and never a guarantee."
+						},
+						"link": {
+							"type": "string",
+							"description": "In-app route the panel header links to, so a reader can open the page where the widget's full context lives."
+						}
+					}
 				}
 			},
 			"allOf": [
 				{ "$ref": "#/$defs/sentinelGuardedValue" },
+				{
+					"description": "ncDashboard requires a stable id. The host derives a permanent Nextcloud widget id from `id`, and Nextcloud stores each user's chosen widgets by that id in its own namespace, which no migration of this app can reach. A widget identified by array position would move onto a different widget whenever the array is reordered, silently changing what a user sees.",
+					"if": {
+						"required": ["ncDashboard"]
+					},
+					"then": {
+						"required": ["id"],
+						"properties": { "id": { "minLength": 1 } }
+					}
+				},
 				{
 					"description": "sidebar slot: gridWidth MUST equal 1. The sidebar is a fixed-width panel; widgets always span the full width.",
 					"if": {
