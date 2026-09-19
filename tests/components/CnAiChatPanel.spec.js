@@ -86,6 +86,22 @@ function mountPanel(props = {}, provide = {}) {
 }
 
 describe('CnAiChatPanel', () => {
+	it('shows why a turn failed instead of going quiet', () => {
+		const wrapper = mountPanel({
+			streamState: {
+				...mockStreamState,
+				error: {
+					code: 'tool_grants_unresolved',
+					message: "This agent's tool grants resolve to no tools.",
+				},
+			},
+		})
+
+		const banner = wrapper.find('[data-testid="cn-ai-panel-error"]')
+		expect(banner.exists()).toBe(true)
+		expect(banner.text()).toContain('resolve to no tools')
+	})
+
 	it('renders a chat window, not a docked sidebar', () => {
 		const wrapper = mountPanel()
 		const win = wrapper.find('.cn-ai-chat-window')
