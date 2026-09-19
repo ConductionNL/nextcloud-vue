@@ -86,7 +86,9 @@ describe('CnObjectListWidget — column headings', () => {
 			content: { register: 'r', schema: 'repair', columns: [{ key: 'bike', label: 'Bike' }] },
 		})
 		let fetched = false
-		w.vm.ensureSchema = async () => { fetched = true }
+		w.vm.ensureSchema = async () => {
+			fetched = true
+		}
 
 		await w.vm.loadHeadingsIfNeeded()
 
@@ -96,7 +98,9 @@ describe('CnObjectListWidget — column headings', () => {
 	it('fetches a schema when a column has no label', async () => {
 		const w = mountWidget({ content: { register: 'r', schema: 'repair', columns: ['bike'] } })
 		let fetched = false
-		w.vm.ensureSchema = async () => { fetched = true }
+		w.vm.ensureSchema = async () => {
+			fetched = true
+		}
 
 		await w.vm.loadHeadingsIfNeeded()
 
