@@ -1,0 +1,134 @@
+name: Deprecate (npm)
+
+# Mark published versions of @conduction/nextcloud-vue as deprecated. Nothing is
+# built and nothing is published. `npm deprecate` only attaches a message that
+# npm prints when somebody installs that version.
+#
+# WHY THIS EXISTS
+#
+# Nobody chose a 3. Commit 0db89dc58 carried a `BREAKING CHANGE:` footer,
+# semantic-release computed a major from it, and 3.0.0 through 3.4.0 went out
+# between 14 and 19 September, plus three 3.0.0 betas. The package is going back
+# to the 2.x line as 2.54.0, so the 3.x versions need a message telling anyone
+# who lands on them where to go instead.
+#
+# Unpublishing is not an option and is not attempted here. The 72 hour window
+# closed on all of them.
+#
+# 🔴 THIS TOKEN IS FOR DEPRECATION ONLY. PUBLISHING STAYS ON OIDC.
+#
+# `release.yml` publishes through npm Trusted Publisher, so it holds no
+# credential and there is nothing to rotate. That is the better mechanism and it
+# is deliberately not traded away here.
+#
+# It cannot do this job though, and that is measured, not assumed. `retag.yml`
+# records a dispatch on 2026-08-20, run 32414935986, where `npm dist-tag add`
+# under OIDC failed with:
+#
+#     npm error code E401
+#     npm error Unable to authenticate, your authentication token seems to be invalid.
+#
+# npm mints the OIDC credential for publishing. Any other registry write, a
+# dist-tag or a deprecation, falls outside it. So this one workflow gets
+# `secrets.NPM_TOKEN` and no other workflow does.
+#
+# RUN `check` FIRST. The secret was created on 2026-02-27 and was wired into
+# nothing, so its validity is unknown until something asks the registry. `check`
+# asks and changes nothing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'check = prove the token authenticates, change nothing. deprecate = write the messages.'
+        type: choice
+        required: true
+        default: check
+        options:
+          - check
+          - deprecate
+      versions:
+        description: 'Comma separated versions to deprecate. Ignored when mode=check.'
+        type: string
+        required: false
+        default: '3.0.0,3.1.0,3.2.0,3.3.0,3.4.0,3.0.0-beta.3,3.0.0-beta.4,3.0.0-beta.5'
+      message:
+        description: 'The deprecation message.'
+        type: string
+        required: false
+        default: 'This version was published by mistake. @conduction/nextcloud-vue has no 3.x line. Use 2.54.0 or later on the 2.x line: npm i @conduction/nextcloud-vue@^2.54.0'
+
+permissions:
+  contents: read
+
+jobs:
+  deprecate:
+    name: "Deprecate versions"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # Node 24 for npm 11.x, matching the publish path in release.yml.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      # A read the registry has to answer. `npm whoami` fails with E401 on a
+      # revoked or expired token, which is exactly the question being asked.
+      - name: Prove the token authenticates
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          PKG=$(node -p "require('./package.json').name")
+          echo "Registry says this token belongs to:"
+          npm whoami
+          echo
+          echo "Maintainers of $PKG:"
+          npm owner ls "$PKG"
+
+      - name: Deprecate
+        if: ${{ inputs.mode == 'deprecate' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          PKG=$(node -p "require('./package.json').name")
+          IFS=',' read -ra VERSIONS <<< '${{ inputs.versions }}'
+          for v in "${VERSIONS[@]}"; do
+            v=$(echo "$v" | tr -d '[:space:]')
+            [ -z "$v" ] && continue
+            echo "::group::deprecate $PKG@$v"
+            npm deprecate "$PKG@$v" '${{ inputs.message }}'
+            echo "::endgroup::"
+          done
+
+      # A COMMAND EXITING 0 IS NOT EVIDENCE THE REGISTRY WROTE ANYTHING.
+      #
+      # Same trap as a green release that publishes nothing, and the same answer:
+      # read it back. `npm view <pkg>@<version> deprecated` returns the message
+      # when it landed and prints nothing when it did not.
+      - name: Verify each version reads back as deprecated
+        if: ${{ inputs.mode == 'deprecate' }}
+        run: |
+          set -euo pipefail
+          PKG=$(node -p "require('./package.json').name")
+          IFS=',' read -ra VERSIONS <<< '${{ inputs.versions }}'
+          sleep 10   # registry read-after-write is not instant
+          FAILED=0
+          for v in "${VERSIONS[@]}"; do
+            v=$(echo "$v" | tr -d '[:space:]')
+            [ -z "$v" ] && continue
+            MSG=$(npm view "$PKG@$v" deprecated 2>/dev/null || true)
+            if [ -z "$MSG" ]; then
+              echo "::error::$PKG@$v does not read back as deprecated. The command exited 0 and the registry did not take it."
+              FAILED=1
+            else
+              echo "ok  $v  ->  $MSG"
+            fi
+          done
+          exit $FAILED
