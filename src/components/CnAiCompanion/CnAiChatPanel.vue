@@ -1108,11 +1108,22 @@ export default {
 
 		/**
 		 * Fetch the agent list for the agent menu. Defaults the selection to the
-		 * first accessible agent — the agents API has no "default agent"
+		 * first agent this page has a use for, which is the same subset the menu
+		 * shows: `relevantAgentOptions`. The agents API has no "default agent"
 		 * indicator to prefer instead (verified against hermiq's
-		 * AgentsController::index()/serializeAgent()). Degrades gracefully on
-		 * failure: the menu shows an inline notice but the rest of the window
-		 * (history, message input) stays usable.
+		 * AgentsController::index()/serializeAgent()), so page relevance is the
+		 * best signal available.
+		 *
+		 * Defaulting to the raw first agent instead, as this did, is not a
+		 * cosmetic difference. On a Buildiq page it handed the user an agent
+		 * holding no Buildiq tools, so the first thing the assistant did was
+		 * fail to do the one thing the page is for, and the fix was a settings
+		 * menu the user had no reason to open. `relevantAgentOptions` already
+		 * falls back to every agent when nothing matches, so on a page with no
+		 * relevant agent this still selects exactly what it selected before.
+		 *
+		 * Degrades gracefully on failure: the menu shows an inline notice but
+		 * the rest of the window (history, message input) stays usable.
 		 *
 		 * @returns {Promise<void>}
 		 */
@@ -1125,7 +1136,8 @@ export default {
 				const list = Array.isArray(data) ? data : (data.results || [])
 				this.agents = list
 				if (!this.selectedAgentUuid && list.length > 0) {
-					this.selectedAgentUuid = list[0].uuid || list[0].id || null
+					const preferred = this.relevantAgentOptions[0]
+					this.selectedAgentUuid = (preferred && preferred.id) || list[0].uuid || list[0].id || null
 				}
 			} catch {
 				this.agentsFetchError = true

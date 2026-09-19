@@ -27,7 +27,22 @@ jest.mock('@nextcloud/axios', () => ({
 	},
 }))
 
+const axios = require('@nextcloud/axios').default
 const CnAiChatPanel = require('../../src/components/CnAiCompanion/CnAiChatPanel.vue').default
+
+/**
+ * Answer the agents endpoint with `agents` and every other GET with an empty
+ * list, so a test can describe the agent roster without also having to
+ * describe the conversations the panel fetches in the same `created()` hook.
+ *
+ * @param {Array<object>} agents Agent records as the agents API returns them.
+ * @return {void}
+ */
+function serveAgents(agents) {
+	axios.get.mockImplementation((url) => Promise.resolve({
+		data: String(url).endsWith('/agents') ? { results: agents } : { results: [] },
+	}))
+}
 
 const mockStreamState = {
 	isStreaming: false,
@@ -77,12 +92,26 @@ const stubs = {
 	},
 }
 
-function mountPanel(props = {}, provide = {}) {
+function mountPanel(props = {}, provide = {}, context = undefined) {
 	return mount(CnAiChatPanel, {
-		propsData: { visible: true, streamState: mockStreamState, ...props },
+		propsData: {
+			visible: true,
+			streamState: mockStreamState,
+			...(context ? { context } : {}),
+			...props,
+		},
 		provide: { cnTranslate: (key) => key, ...provide },
 		stubs,
 	})
+}
+
+/**
+ * Let every already-resolved promise settle, so `created()`'s fetches have run.
+ *
+ * @return {Promise<void>}
+ */
+function flushPromises() {
+	return new Promise((resolve) => setTimeout(resolve, 0))
 }
 
 describe('CnAiChatPanel', () => {
@@ -180,5 +209,58 @@ describe('CnAiChatPanel', () => {
 		wrapper.vm.onSend({ text: 'Hello from input', attachments })
 		expect(wrapper.emitted('send')).toBeTruthy()
 		expect(wrapper.emitted('send')[0]).toEqual(['Hello from input', 'agent-1', attachments])
+	})
+
+	/**
+	 * Which agent the panel starts on.
+	 *
+	 * The panel already computes `relevantAgentOptions` for the MENU. These
+	 * assert that the same judgement decides the DEFAULT, because a default
+	 * that ignores it hands the user an agent with no tools for the page they
+	 * are on, and the only cure is a settings menu they have no reason to open.
+	 */
+	describe('the agent it starts on', () => {
+		afterEach(() => {
+			axios.get.mockImplementation(() => Promise.resolve({ data: { results: [] } }))
+		})
+
+		it('starts on an agent that has tools for this page, not merely the first one', async () => {
+			serveAgents([
+				{ uuid: 'agent-general', name: 'General assistant', tools: ['docudesk.summarise'] },
+				{ uuid: 'agent-buildiq', name: 'Buildiq builder', tools: ['buildiq_listApps', 'buildiq_createApp'] },
+			])
+
+			const wrapper = mountPanel({}, {}, { appId: 'buildiq' })
+			await flushPromises()
+
+			expect(wrapper.vm.selectedAgentUuid).toBe('agent-buildiq')
+		})
+
+		it('still starts on the first agent when this page has no relevant one', async () => {
+			serveAgents([
+				{ uuid: 'agent-general', name: 'General assistant', tools: ['docudesk.summarise'] },
+				{ uuid: 'agent-other', name: 'Other', tools: ['larpinq.roll'] },
+			])
+
+			const wrapper = mountPanel({}, {}, { appId: 'buildiq' })
+			await flushPromises()
+
+			// The relevance filter fails open, so nothing relevant means the
+			// whole roster, and the first of it — exactly the old behaviour.
+			expect(wrapper.vm.selectedAgentUuid).toBe('agent-general')
+		})
+
+		it('leaves a selection the caller already made alone', async () => {
+			serveAgents([
+				{ uuid: 'agent-general', name: 'General assistant', tools: ['docudesk.summarise'] },
+				{ uuid: 'agent-buildiq', name: 'Buildiq builder', tools: ['buildiq_listApps'] },
+			])
+
+			const wrapper = mountPanel({}, {}, { appId: 'buildiq' })
+			wrapper.vm.selectedAgentUuid = 'agent-general'
+			await wrapper.vm.fetchAgents()
+
+			expect(wrapper.vm.selectedAgentUuid).toBe('agent-general')
+		})
 	})
 })
