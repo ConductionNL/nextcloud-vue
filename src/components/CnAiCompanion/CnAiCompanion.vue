@@ -50,7 +50,7 @@
 			:visible="isPanelOpen"
 			:streamState="stream.state"
 			:chatAppId="chatAppId"
-			:context="context"
+			:context="effectiveContext"
 			:position="position"
 			:fabRef="$refs.fabButton"
 			@close="closePanel"
@@ -169,6 +169,37 @@ export default {
 		isChatPage() {
 			const ctx = this.cnAiContext
 			return ctx && ctx.pageKind === 'chat'
+		},
+
+		/**
+		 * The page context the panel reasons with: the prop when a standalone
+		 * mount passed one, otherwise the context CnAppRoot provides.
+		 *
+		 * WHY THIS EXISTS
+		 * ---------------
+		 * `CnAppRoot` renders `<CnAiCompanion :chatAppId="chatAppId" />` and
+		 * passes NO `:context`, because it already provides `cnAiContext` for
+		 * descendants to inject. This component injected it for `isChatPage`
+		 * but handed the panel the raw `context` PROP, which is `null` in that
+		 * arrangement — so inside every app shell the panel ran with no
+		 * context at all.
+		 *
+		 * The panel's `relevantAgentOptions` treats an empty context as "no
+		 * page to be relevant to" and returns EVERY agent, so it selected
+		 * whichever agent the API happened to list first. Measured on the
+		 * demo instance 2026-09-20: on `/apps/buildiq/` the companion opened
+		 * as "Hydra Triage", which holds only `hydra.*` tools, and its first
+		 * answer was "This agent's tool grants resolve to no tools" — while
+		 * "Buildiq builder", holding all eight `buildiq_*` tools, sat unused
+		 * at the bottom of the same list.
+		 *
+		 * A standalone mount that passes `context` explicitly still wins, so
+		 * Hermiq's cross-app companion is unaffected.
+		 *
+		 * @return {object|null} The context to reason with.
+		 */
+		effectiveContext() {
+			return this.context || this.cnAiContext || null
 		},
 	},
 
