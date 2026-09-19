@@ -238,6 +238,7 @@ import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import Send from 'vue-material-design-icons/Send.vue'
 import { cnRenderFormField } from '../../composables/cnFormFieldRenderer.js'
 import { validateFieldValue } from '../../utils/formValidation.js'
+import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 import { evaluateVisibleWhen, evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 
@@ -883,7 +884,10 @@ export default {
 				 */
 				this.$emit('submit', this.effectivePayload)
 			} catch (err) {
-				this.lastError = err && err.message ? err.message : String(err)
+				// The server's own sentence, when it sent one. An axios message
+				// describes the transport ("Request failed with status code 400")
+				// and leaves the user to guess which field it meant.
+				this.lastError = serverErrorMessage(err)
 				/**
 				 * Submit failure event. Payload is the thrown error / rejected reason.
 				 *
