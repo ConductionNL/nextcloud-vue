@@ -203,7 +203,22 @@ module.exports = {
 				// components share the same Vue runtime.
 				// Use the full build (compiler + runtime) so examples that omit
 				// an explicit <template> wrapper can be compiled on the fly.
-				vue$: path.join(__dirname, 'node_modules/vue/dist/vue.common.js'),
+				// vue.common.js was the Vue 2 filename and Vue 3 does not ship
+				// it, so once the styleguide moved to vue@3 this alias pointed
+				// at nothing and every import of 'vue' failed to resolve. The
+				// Vue 3 equivalent, compiler included, is vue.esm-bundler.js.
+				vue$: path.join(__dirname, 'node_modules/vue/dist/vue.esm-bundler.js'),
+				// vue-demi ships one package per Vue major and picks the right
+				// one in a postinstall script. npm 11 does not run that script
+				// unless the package is in allowScripts, so the default entry
+				// stays on the Vue 2 build: its .cjs re-exports Vue's names
+				// through a runtime Object.keys(require('vue')) loop, which
+				// finds nothing on a Vue 3 module and leaves every consumer
+				// with "watch is not exported from vue-demi". Point straight at
+				// the v3 variant, which re-exports statically. rollup.config.js
+				// does the same thing for the published bundle, in its
+				// resolve-vue-demi-v3 plugin.
+				'vue-demi$': path.join(__dirname, 'node_modules/vue-demi/lib/v3/index.mjs'),
 				// Allow docs examples to import from the library by package name.
 				'@conduction/nextcloud-vue': path.resolve(ROOT, 'src/index.js'),
 				'@nextcloud/sharing/public': path.resolve(__dirname, 'mocks/empty.js'),
