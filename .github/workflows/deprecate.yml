@@ -61,10 +61,19 @@ name: Deprecate (npm versions)
 on:
   workflow_dispatch:
     inputs:
-      versions:
-        description: 'Space-separated versions to deprecate (e.g. "3.0.0 3.1.0 3.2.0")'
-        type: string
+      mode:
+        description: 'check = prove the token authenticates, change nothing. deprecate = write the messages.'
+        type: choice
         required: true
+        default: check
+        options:
+          - check
+          - deprecate
+      versions:
+        description: 'Space-separated versions to deprecate. Ignored when mode=check.'
+        type: string
+        required: false
+        default: '3.0.0 3.1.0 3.2.0 3.3.0 3.4.0 3.0.0-beta.3 3.0.0-beta.4 3.0.0-beta.5'
       message:
         description: 'Message npm prints on install. Empty string un-deprecates.'
         type: string
@@ -89,8 +98,25 @@ jobs:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
+      # RUN `check` FIRST. A write that fails on auth is indistinguishable from
+      # one that fails on anything else until something asks the registry who
+      # the token belongs to. This asks, and changes nothing.
+      - name: Prove the token authenticates
+        if: ${{ inputs.mode == 'check' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          PKG=$(node -p "require('./package.json').name")
+          echo "Registry says this token belongs to:"
+          npm whoami
+          echo
+          echo "Maintainers of $PKG:"
+          npm owner ls "$PKG"
+
       - name: Check every version exists before writing anything
         id: resolve
+        if: ${{ inputs.mode != 'check' }}
         run: |
           set -euo pipefail
           PKG=$(node -p "require('./package.json').name")
@@ -105,6 +131,7 @@ jobs:
           echo "pkg=$PKG" >> "$GITHUB_OUTPUT"
 
       - name: Deprecate
+        if: ${{ inputs.mode != 'check' }}
         run: |
           set -euo pipefail
           PKG='${{ steps.resolve.outputs.pkg }}'
@@ -122,6 +149,7 @@ jobs:
       # still returns success to the shell. Read each version's `deprecated`
       # field and fail when it does not hold what was asked for.
       - name: Verify each version actually carries the message
+        if: ${{ inputs.mode != 'check' }}
         run: |
           set -euo pipefail
           PKG='${{ steps.resolve.outputs.pkg }}'
