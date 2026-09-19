@@ -419,7 +419,13 @@ export default {
 			fitRows: null,
 			/** Whether the create dialog is open. */
 			showCreate: false,
-			/** Target schema definition fetched for the create dialog. */
+			/**
+			 * The list's own schema definition, once fetched.
+			 *
+			 * Shared by two readers: the create dialog renders its form from it,
+			 * and `resolvedColumns` takes a column's HEADING from the matching
+			 * property's `title` when the manifest gave only a key.
+			 */
 			createSchema: null,
 			/**
 			 * Depth of nested dragenter/dragleave pairs over the widget.
@@ -561,11 +567,23 @@ export default {
 		resolvedColumns() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
 			const sortableConfig = this.content.sortable
+			// A column may arrive as a bare key. Falling back to that key as the
+			// HEADING is what printed `customerName` and `dateReceived` at users
+			// on a dashboard, while the index page beside it said "Customer name"
+			// and "Date received" — the same data, labelled twice, differently.
+			// The schema already holds the answer, so ask it, and keep the key
+			// only when it has nothing to say.
+			const props = (this.createSchema && this.createSchema.properties) || {}
+			const headingFor = (key) => {
+				const prop = props[key]
+				const title = prop && typeof prop.title === 'string' ? prop.title.trim() : ''
+				return title !== '' ? title : key
+			}
 			const mapped = cols.map((c) => {
 				if (typeof c === 'string') {
-					return { key: c, label: c }
+					return { key: c, label: headingFor(c) }
 				}
-				const out = { key: c.key, label: c.label || c.key }
+				const out = { key: c.key, label: c.label || headingFor(c.key) }
 				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable']) {
 					if (c[k] !== undefined) {
 						out[k] = c[k]
@@ -1001,6 +1019,7 @@ export default {
 
 	mounted() {
 		this.fetchRows()
+		this.loadHeadingsIfNeeded()
 		// Re-read on a page-level refresh. This list fetches its own rows from
 		// OpenRegister and subscribed to nothing, so after a write elsewhere on
 		// the page it went on rendering the result set it fetched on mount —
@@ -1195,27 +1214,70 @@ export default {
 				return
 			}
 			try {
-				if (!this.createSchema) {
-					const [{ default: axios }, { generateUrl }] = await Promise.all([
-						import('@nextcloud/axios'),
-						import('@nextcloud/router'),
-					])
-					// A slug is NOT a namespace (same rule as useObjectStore.fetchSchema,
-					// #725): on an instance where two apps both own a `page` schema the
-					// bare endpoint resolves instance-wide and serves the OTHER app's
-					// schema into this form — the dialog then asks for fields the
-					// register-scoped POST does not know and refuses the ones it
-					// requires (portaliq + opencatalogi, WOO-564: a 400 on every
-					// "Add page"/"Add menu"). Name the list's own register whenever it
-					// has one; a backend that does not know the parameter ignores it.
-					const url = generateUrl('/apps/openregister/api/schemas/{sch}', { sch: c.schema })
-					const params = c.register ? { register: c.register } : undefined
-					const res = await axios.get(url, params ? { params } : undefined)
-					this.createSchema = (res && res.data) || null
-				}
+				await this.ensureSchema()
 				this.showCreate = true
 			} catch (e) {
 				this.error = (e && e.message) || 'error'
+			}
+		},
+
+		/**
+		 * Fetch this list's schema once, for whoever needs it.
+		 *
+		 * Two readers share it: the create dialog builds its form from the
+		 * properties, and `resolvedColumns` reads each property's `title` to
+		 * label a column the manifest gave only a key for.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async ensureSchema() {
+			const c = this.content || {}
+			if (this.createSchema || !c.schema) {
+				return
+			}
+
+			const [{ default: axios }, { generateUrl }] = await Promise.all([
+				import('@nextcloud/axios'),
+				import('@nextcloud/router'),
+			])
+			// A slug is NOT a namespace (same rule as useObjectStore.fetchSchema,
+			// #725): on an instance where two apps both own a `page` schema the
+			// bare endpoint resolves instance-wide and serves the OTHER app's
+			// schema into this form — the dialog then asks for fields the
+			// register-scoped POST does not know and refuses the ones it
+			// requires (portaliq + opencatalogi, WOO-564: a 400 on every
+			// "Add page"/"Add menu"). Name the list's own register whenever it
+			// has one; a backend that does not know the parameter ignores it.
+			const url = generateUrl('/apps/openregister/api/schemas/{sch}', { sch: c.schema })
+			const params = c.register ? { register: c.register } : undefined
+			const res = await axios.get(url, params ? { params } : undefined)
+			this.createSchema = (res && res.data) || null
+		},
+
+		/**
+		 * Load the schema when, and only when, a column heading needs it.
+		 *
+		 * A widget whose every column carries its own `label` never makes this
+		 * request. One that gave bare keys does, because the alternative is
+		 * printing the key at the user.
+		 *
+		 * Failure is deliberately silent: an unreachable schema costs the nicer
+		 * heading, and the column still renders under its key. It must never
+		 * cost the list itself.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadHeadingsIfNeeded() {
+			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
+			const needsHeadings = cols.some((c) => (typeof c === 'string') || !c.label)
+			if (needsHeadings === false) {
+				return
+			}
+
+			try {
+				await this.ensureSchema()
+			} catch {
+				// Headings only. Swallowed on purpose; see the docblock.
 			}
 		},
 
