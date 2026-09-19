@@ -46,8 +46,17 @@ name: Deprecate (npm versions)
 #
 # What did NOT need a credential, for the next person facing this: `latest`
 # moves by itself on the next publish, because release.yml publishes with
-# `--tag <channel || latest>`; and the `beta` tag moves by releasing on the
-# `beta` branch, which publishes with `--tag beta`.
+# `--tag <channel || latest>`. That is how 2.54.0 took `latest` back from the
+# retired line, with no token involved.
+#
+# `beta` works the same way in principle — the beta channel publishes with
+# `--tag beta` — but it needs a commit that warrants a release. Measured
+# 2026-09-19: fast-forwarding `beta` to `main` ran the Release workflow GREEN
+# and published nothing, because the only commit since v2.54.0 was a `chore:`.
+# A green release run is not evidence of a publish; read the log for "no new
+# version is released". So `beta` will come off the retired line on the next
+# real fix or feat through that channel, or immediately once the token is
+# rotated and retag.yml can be dispatched.
 
 on:
   workflow_dispatch:
