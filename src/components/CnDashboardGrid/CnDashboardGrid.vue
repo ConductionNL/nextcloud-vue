@@ -277,6 +277,7 @@ export default {
 	data() {
 		return {
 			grid: null,
+			contentObserver: null,
 			domId: `cn-dashboard-grid-${++domIdCounter}`,
 			/** Text currently held in the polite live region. */
 			announcement: '',
@@ -368,9 +369,11 @@ export default {
 
 	mounted() {
 		this.initGrid()
+		this.$nextTick(() => this.observeContentSizes())
 	},
 
 	beforeUnmount() {
+		this.disconnectContentObserver()
 		if (this.grid) {
 			this.grid.destroy(false)
 		}
@@ -799,6 +802,49 @@ export default {
 		 * @param {string|number} id the layout item id.
 		 * @return {object|null} the node, or `null` when GridStack isn't tracking it.
 		 */
+		/**
+		 * Re-measure a `sizeToContent` item when its content changes height.
+		 * GridStack watches only the grid element, so a widget that loaded its data
+		 * in `mounted()` keeps the height its empty state had.
+		 *
+		 * @return {void}
+		 */
+		observeContentSizes() {
+			this.disconnectContentObserver()
+			if (typeof ResizeObserver === 'undefined' || !this.$refs.gridContainer) {
+				return
+			}
+
+			this.contentObserver = new ResizeObserver((entries) => {
+				for (const entry of entries) {
+					const cell = entry.target.closest('.grid-stack-item')
+					if (cell && this.grid && typeof this.grid.resizeToContent === 'function') {
+						this.grid.resizeToContent(cell)
+					}
+				}
+			})
+
+			const cells = this.$refs.gridContainer.querySelectorAll('.grid-stack-item[gs-size-to-content]')
+			for (const cell of cells) {
+				const measured = cell.querySelector('.grid-stack-item-content')?.firstElementChild
+				if (measured) {
+					this.contentObserver.observe(measured)
+				}
+			}
+		},
+
+		/**
+		 * Drop the content observer, on unmount or before rebuilding it.
+		 *
+		 * @return {void}
+		 */
+		disconnectContentObserver() {
+			if (this.contentObserver) {
+				this.contentObserver.disconnect()
+				this.contentObserver = null
+			}
+		},
+
 		gridNode(id) {
 			const nodes = this.grid && this.grid.engine && this.grid.engine.nodes
 			if (!Array.isArray(nodes)) {
@@ -841,6 +887,9 @@ export default {
 					this.grid.removeWidget(el, false)
 				}
 			}
+
+			// Elements were added or replaced, so the observer's are stale.
+			this.$nextTick(() => this.observeContentSizes())
 		},
 	},
 }

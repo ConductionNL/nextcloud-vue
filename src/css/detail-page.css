@@ -228,6 +228,12 @@
 	position: relative;
 }
 
+/* GridStack measures THIS element to size an item to its content, so pinning it to
+   the cell reports the cell back and `sizeToContent` does nothing. */
+.cn-detail-page__grid-item--fit {
+	height: auto;
+}
+
 /* Content-only catalog widgets (object-list / table) rendered on the
    CnWidgetWrapper card chrome (ADR-062). The wrapper fills its grid cell so
    the widget can fit its row count to the cell height, and the table region

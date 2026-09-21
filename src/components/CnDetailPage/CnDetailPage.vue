@@ -437,6 +437,7 @@
 				<template #widget="{ item }">
 					<div
 						class="cn-detail-page__grid-item"
+						:class="{ 'cn-detail-page__grid-item--fit': !!item.sizeToContent }"
 						:aria-labelledby="showGridTitle(item) ? `widget-title-${item.id}` : undefined">
 						<!-- In-app edit overlay (ADR-041): a configure cog appears on
 						     EVERY grid widget while the page is in Buildiq edit mode,
@@ -1739,11 +1740,8 @@ export default {
 		const { resolveWidget, getById } = useIntegrationRegistry()
 		const registryExposed = { resolveRegistryWidget: resolveWidget, getRegistryProvider: getById }
 
-		// 🔑 THE HOST READS PRESENCE BECAUSE ONLY THE HOST CAN ACT ON IT. The grid
-		// reserves a widget's row before the widget renders, so a presence strip
-		// with nobody in it — almost always — costs a whole empty cell. Started
-		// only where one is actually placed, and the widget's own subscription
-		// then exists solely while the row is shown. See `layoutItemCanDraw`.
+		// The host reads presence because only the host can act on it: the grid
+		// reserves the row before the widget renders. See `layoutItemCanDraw`.
 		const presencePlaced = (props.widgets || []).some((w) => w && w.type === 'presence')
 		const { others: presentOthers } = useObjectPresence(
 			() => props.register || '',
@@ -3715,20 +3713,9 @@ export default {
 		},
 
 		/**
-		 * Drop the items that draw nothing, then close the rows they freed.
-		 *
-		 * The two halves belong together: removing a cell is only half a fix,
-		 * because GridStack floats nothing upward (`float: true`) and the next
-		 * item down keeps the `gridY` its author drew ABOVE the removed one. That
-		 * shows as a band of empty grid with no element in it — the shape this
-		 * page's presence strip left behind the moment it stopped costing a cell.
-		 *
-		 * Compaction is skipped when nothing was dropped, so an authored gap on a
-		 * complete layout stays exactly where its author put it.
-		 *
-		 * Safe against the manifest editor: this returns new objects, and filtering
-		 * never happens in edit mode (see `layoutItemCanDraw`), which is the only
-		 * mode `layout-change` writes geometry back from.
+		 * Drop the items that draw nothing, then close the rows they freed —
+		 * `float: true` leaves the item below pinned under a gap nobody owns.
+		 * Skipped when nothing was dropped, so an authored gap survives.
 		 *
 		 * @param {Array<object>} items The authored layout items.
 		 *
@@ -3760,19 +3747,9 @@ export default {
 		 * app with a set-up state, which is content, and hiding it would turn an
 		 * actionable "install humaniq" into silence.
 		 *
-		 * `presence`, whenever nobody else is on the record — which its own
-		 * docblock calls "almost always". Unlike the integration case this is a
-		 * RUNTIME fact that flips both ways, so the host holds the subscription
-		 * (see setup) and the row appears the moment somebody arrives.
-		 *
-		 * 🔴 IT IS JUDGED HERE BECAUSE NOTHING ELSE CAN REACH IT. The widget
-		 * already renders nothing and adds no wrapper, which is enough in a flow
-		 * layout and nothing at all in a grid: the row is reserved before the
-		 * component renders. `sizeToContent` does not help either — GridStack's
-		 * `resizeToContent` floors the result at the item's `gs-min-h`, which
-		 * CnDashboardGrid writes as 2 on every item, and falls back to the
-		 * authored height when the content measures zero. So the cell is only
-		 * avoidable by not authoring it.
+		 * `presence`, whenever nobody else is on the record. A runtime fact that
+		 * flips both ways, so the host holds the subscription (see setup) and the
+		 * row returns the moment somebody arrives.
 		 *
 		 * Deliberately NOT generalised to "anything that resolves to nothing".
 		 * A `custom` widget whose `#widget-<id>` slot is missing also draws an
