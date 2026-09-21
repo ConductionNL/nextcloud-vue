@@ -37,7 +37,79 @@ describe('compareVisibleWhen', () => {
 	})
 
 	it('exports the operator set', () => {
-		expect(VISIBLE_WHEN_OPS).toEqual(['eq', 'neq', 'gt', 'gte', 'lt', 'lte'])
+		expect(VISIBLE_WHEN_OPS).toEqual(['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'empty', 'notEmpty'])
+	})
+})
+
+describe('visibleWhen — empty, @me and composition', () => {
+	// The three gaps that kept dossiq's Claim and Release offered together: an
+	// unclaimed case has no value to compare, the handler is only known at read
+	// time, and a gate needed two facts at once.
+	beforeEach(() => {
+		// Same way resolveFilterTokens.spec establishes a reader under jsdom.
+		global.window = global.window || {}
+		global.window.OC = { currentUser: 'admin' }
+	})
+
+	it('treats undefined, null, an empty string and an empty array as empty', () => {
+		for (const blank of [undefined, null, '', []]) {
+			expect(compareVisibleWhen(blank, 'empty')).toBe(true)
+			expect(compareVisibleWhen(blank, 'notEmpty')).toBe(false)
+		}
+	})
+
+	it('does not call a present value empty, including a falsy one', () => {
+		for (const set of ['alice', 0, false, ['a']]) {
+			expect(compareVisibleWhen(set, 'empty')).toBe(false)
+			expect(compareVisibleWhen(set, 'notEmpty')).toBe(true)
+		}
+	})
+
+	it('resolves @me on the right-hand side, so a condition can name the reader', () => {
+		// The jest setup signs in as `admin`; `eq` against the literal proves the
+		// token was resolved rather than compared as the string "@me".
+		expect(compareVisibleWhen('admin', 'eq', '@me')).toBe(true)
+		expect(compareVisibleWhen('bob', 'eq', '@me')).toBe(false)
+		expect(compareVisibleWhen('admin', 'neq', '@me')).toBe(false)
+	})
+
+	it('leaves a literal that is not a token alone', () => {
+		expect(compareVisibleWhen('open', 'eq', 'open')).toBe(true)
+		expect(compareVisibleWhen(true, 'neq', false)).toBe(true)
+	})
+
+	it('all requires every condition, any requires one', () => {
+		const record = { isFinalStatus: false, assignee: '' }
+		const notClosed = { field: 'isFinalStatus', op: 'neq', value: true }
+		const unheld = { field: 'assignee', op: 'empty' }
+		const held = { field: 'assignee', op: 'notEmpty' }
+
+		expect(evaluateVisibleWhenLocal({ all: [notClosed, unheld] }, record)).toBe(true)
+		expect(evaluateVisibleWhenLocal({ all: [notClosed, held] }, record)).toBe(false)
+		expect(evaluateVisibleWhenLocal({ any: [notClosed, held] }, record)).toBe(true)
+		expect(evaluateVisibleWhenLocal({ any: [held] }, record)).toBe(false)
+	})
+
+	it('gates Claim and Release apart on the same record', () => {
+		const claim = { all: [{ field: 'isFinalStatus', op: 'neq', value: true }, { field: 'assignee', op: 'empty' }] }
+		const release = { all: [{ field: 'isFinalStatus', op: 'neq', value: true }, { field: 'assignee', op: 'eq', value: '@me' }] }
+
+		const unclaimed = { isFinalStatus: false, assignee: null }
+		const mine = { isFinalStatus: false, assignee: 'admin' }
+		const someoneElses = { isFinalStatus: false, assignee: 'bob' }
+		const closed = { isFinalStatus: true, assignee: null }
+
+		expect([evaluateVisibleWhenLocal(claim, unclaimed), evaluateVisibleWhenLocal(release, unclaimed)]).toEqual([true, false])
+		expect([evaluateVisibleWhenLocal(claim, mine), evaluateVisibleWhenLocal(release, mine)]).toEqual([false, true])
+		// Somebody else's: neither, because the server refuses both.
+		expect([evaluateVisibleWhenLocal(claim, someoneElses), evaluateVisibleWhenLocal(release, someoneElses)]).toEqual([false, false])
+		expect([evaluateVisibleWhenLocal(claim, closed), evaluateVisibleWhenLocal(release, closed)]).toEqual([false, false])
+	})
+
+	it('composes asynchronously too, so an endpoint condition can join one', async () => {
+		const record = { object: { isFinalStatus: false, assignee: '' } }
+		const cond = { all: [{ field: 'isFinalStatus', op: 'neq', value: true }, { field: 'assignee', op: 'empty' }] }
+		await expect(evaluateVisibleWhen(cond, record)).resolves.toBe(true)
 	})
 })
 

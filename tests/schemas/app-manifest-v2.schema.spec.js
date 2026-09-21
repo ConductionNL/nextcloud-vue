@@ -1254,13 +1254,12 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.38.0', () => {
+	it('the manifest schema version reads 2.39.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
-		// one it got wrong. 2.38.0 and not 2.35.0 or 2.37.0: two branches
-		// bumped from 2.33.0 at once, so this schema holds both their key
-		// sets and neither of their numbers names it.
+		// one it got wrong, so a vocabulary addition bumps it: 2.39.0 carries
+		// visibleWhen's `empty` / `notEmpty` ops and its `all` / `any`.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.38.0')
+		expect(schema.version).toBe('2.39.0')
 	})
 
 	it('accepts a declarative `store` block, and requires the remote schema', () => {

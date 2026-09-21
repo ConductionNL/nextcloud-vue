@@ -46,10 +46,10 @@
 
 import { isAppInstalled } from './appInstalled.js'
 import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
-import { resolveFilterTokens } from './resolveFilterTokens.js'
+import { resolveFilterTokens, resolveFilterValue } from './resolveFilterTokens.js'
 
 /** Supported visibleWhen comparison operators. */
-export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte']
+export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'empty', 'notEmpty']
 
 /**
  * Read a dot-path off an object (`'a.b.c'`); the object itself when no
@@ -79,12 +79,23 @@ export function readVisibleWhenPath(data, field) {
  */
 export function compareVisibleWhen(actual, op, expected) {
 	const operator = VISIBLE_WHEN_OPS.includes(op) ? op : 'eq'
+	// `empty` takes no `value`. It is the one question eq cannot ask: an unset
+	// field arrives as undefined, null or '' depending on the store and the
+	// serialiser, and `String(null)` is the word "null" rather than blank.
+	if (operator === 'empty' || operator === 'notEmpty') {
+		const blank = actual === undefined || actual === null || actual === ''
+			|| (Array.isArray(actual) === true && actual.length === 0)
+		return operator === 'empty' ? blank : !blank
+	}
+	// The shared @-token grammar, so a condition can name the READER (`@me`)
+	// rather than a literal only the server knows.
+	const right = resolveFilterValue(expected, {})
 	if (operator === 'eq' || operator === 'neq') {
-		const equal = actual === expected || String(actual) === String(expected)
+		const equal = actual === right || String(actual) === String(right)
 		return operator === 'eq' ? equal : !equal
 	}
 	const a = Number(actual)
-	const b = Number(expected)
+	const b = Number(right)
 	if (!Number.isFinite(a) || !Number.isFinite(b)) {
 		return false
 	}
@@ -156,6 +167,18 @@ export async function evaluateVisibleWhen(cond, ctx) {
 	if (!cond) {
 		return true
 	}
+	// `all` / `any` compose conditions, so a gate can be more than one fact.
+	// Without it a claim button could say "not closed" OR "nobody holds it",
+	// never both, and the weaker of the two is the one that ships.
+	if (Array.isArray(cond.all) === true || Array.isArray(cond.any) === true) {
+		try {
+			const parts = cond.all ?? cond.any
+			const results = await Promise.all(parts.map((part) => evaluateVisibleWhen(part, ctx)))
+			return Array.isArray(cond.all) === true ? results.every(Boolean) : results.some(Boolean)
+		} catch {
+			return false
+		}
+	}
 	try {
 		// `appInstalled` is checked FIRST and on its own: it answers "is the app
 		// that backs this action even here", which has to settle before any of
@@ -204,6 +227,11 @@ export function evaluateVisibleWhenLocal(cond, data) {
 	}
 	if (typeof cond !== 'object' || Array.isArray(cond)) {
 		return false
+	}
+	if (Array.isArray(cond.all) === true || Array.isArray(cond.any) === true) {
+		const parts = cond.all ?? cond.any
+		const results = parts.map((part) => evaluateVisibleWhenLocal(part, data))
+		return Array.isArray(cond.all) === true ? results.every(Boolean) : results.some(Boolean)
 	}
 	if (cond.endpoint || cond.source) {
 		return false

@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.38.0",
+	"version": "2.39.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -2400,12 +2400,24 @@
 				},
 				"op": {
 					"type": "string",
-					"enum": ["eq", "neq", "gt", "gte", "lt", "lte"],
+					"enum": ["eq", "neq", "gt", "gte", "lt", "lte", "empty", "notEmpty"],
 					"default": "eq",
-					"description": "Comparison operator (default eq). eq/neq compare loosely-normalised primitives; ordering operators coerce both sides to Number."
+					"description": "Comparison operator (default eq). eq/neq compare loosely-normalised primitives; ordering operators coerce both sides to Number. `empty` / `notEmpty` take no `value` and treat undefined, null, '' and an empty array alike — the one question eq cannot ask, because an unset field arrives in a shape that depends on the store and String(null) is the word 'null' rather than blank."
 				},
 				"value": {
-					"description": "The literal right-hand side of the comparison."
+					"description": "The right-hand side of the comparison, resolved through the shared @-token grammar so `@me` names the signed-in reader rather than a literal only the server knows. Omitted for `empty` / `notEmpty`."
+				},
+				"all": {
+					"type": "array",
+					"minItems": 1,
+					"items": { "$ref": "#/$defs/visibleWhen" },
+					"description": "Every listed condition must hold. Use it where a gate is more than one fact — a Claim button that is both 'not closed' and 'nobody holds it'. Each entry is a full visibleWhen and may compose again."
+				},
+				"any": {
+					"type": "array",
+					"minItems": 1,
+					"items": { "$ref": "#/$defs/visibleWhen" },
+					"description": "At least one listed condition must hold. Ignored when `all` is also present."
 				}
 			}
 		},
