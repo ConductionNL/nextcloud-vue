@@ -723,6 +723,9 @@
 				:item="createPrefill"
 				:register="register"
 				:dialogTitle="title || undefined"
+				:excludeFields="excludeFields"
+				:includeFields="includeFields"
+				:fieldOverrides="fieldOverrides"
 				:size="formSize"
 				:columns="formColumns"
 				@confirm="onCreateFormConfirm"
@@ -744,6 +747,9 @@
 				:item="currentObject"
 				:register="register"
 				:dialogTitle="editActionLabel"
+				:excludeFields="excludeFields"
+				:includeFields="includeFields"
+				:fieldOverrides="fieldOverrides"
 				:size="formSize"
 				:columns="formColumns"
 				@confirm="onEditFormConfirm"
@@ -1038,6 +1044,31 @@ export default {
 			type: Number,
 			default: 1,
 			validator: (value) => value === 1 || value === 2,
+		},
+
+		/**
+		 * Fields the create and edit forms ask for, in this order. Null asks for
+		 * every property the schema declares.
+		 *
+		 * Same three keys as CnIndexPage, so one manifest describes the record's
+		 * form wherever it opens rather than the list page and the detail page
+		 * each having their own.
+		 */
+		includeFields: {
+			type: Array,
+			default: null,
+		},
+
+		/** Fields the create and edit forms never ask for. */
+		excludeFields: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** Per-field widget / label overrides for the create and edit forms. */
+		fieldOverrides: {
+			type: Object,
+			default: () => ({}),
 		},
 
 		/** Page description (shown below title) */
