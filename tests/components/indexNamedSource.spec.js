@@ -110,11 +110,21 @@ describe('a named source supplies its columns to the table', () => {
 	 */
 	const tableColumns = (ctx) => {
 		const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
-		return CnIndexPage.computed.tableColumns.call({
+		// `tableColumns` reads two sibling computeds, so this stands them up
+		// from the component too rather than hardcoding what they return: a
+		// stub that answers for them would go on passing after the real ones
+		// changed, which is the failure this whole block exists to catch.
+		// `activeScopeLayout` is what the component itself returns when no
+		// folder sidebar is present, which is the case every test here sets up.
+		const self = {
 			register: null,
 			effectiveVisibleColumns: null,
+			folderSidebar: null,
 			...ctx,
-		})
+		}
+		self.activeScopeLayout = CnIndexPage.computed.activeScopeLayout.call(self)
+		self.declaredColumns = CnIndexPage.computed.declaredColumns.call(self)
+		return CnIndexPage.computed.tableColumns.call(self)
 	}
 
 	it('falls back to the source columns when the manifest sets none', () => {

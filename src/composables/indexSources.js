@@ -321,6 +321,9 @@ function tasksSource() {
 			objectUuid: { param: 'objectUuid', single: true },
 			state: { param: 'state', join: ',' },
 			priority: { param: 'priority', single: true },
+			// Single-valued, like `priority`: the endpoint compares one kind.
+			// Joining two into a comma string would match a kind nobody wrote.
+			kind: { param: 'kind', single: true },
 			dueAt: { range: ['dueAfter', 'dueBefore'] },
 		},
 

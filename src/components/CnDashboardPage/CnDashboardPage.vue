@@ -701,6 +701,8 @@ import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { readUserPreference, writeUserPreference } from '../../composables/useUserPreferences.js'
+import { dashboardLayoutKey, mergeUserLayout } from '../../store/plugins/dashboardLayouts.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
@@ -1331,6 +1333,48 @@ export default {
 		},
 
 		/**
+		 * Whether this page keeps a per-user layout.
+		 *
+		 * Off by default and opted into with one manifest key,
+		 * `config.userLayout: true`. A page without it makes NO layout request
+		 * and renders exactly as it did before this existed, which is the
+		 * property that makes shipping it safe on every dashboard at once.
+		 *
+		 * @type {boolean}
+		 */
+		userLayout: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The Nextcloud app id the user layout is stored under.
+		 *
+		 * Required for `userLayout` to do anything: a preference has to be
+		 * addressed to an app, and storing one under an empty app id writes a
+		 * record nothing ever reads back.
+		 *
+		 * @type {string}
+		 */
+		appId: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Reads and writes the current user's layout record. Injected so the
+		 * component needs no store of its own and a test needs no HTTP: pass
+		 * `{ load, save, reset }`, or leave it and the page falls back to the
+		 * `dashboardLayoutsPlugin` shape over user preferences.
+		 *
+		 * @type {object|null}
+		 */
+		userLayoutStore: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Optional `specRef` slug. Accepted for backward compatibility with
 		 * hosts that bound it for the removed in-product suggestion modal;
 		 * no longer forwarded anywhere (the forge issue form asks for its
@@ -1372,6 +1416,7 @@ export default {
 		'date-range-change',
 		'edit-toggle',
 		'layout-change',
+		'user-layout-reset',
 		'page-filter-change',
 		'refresh',
 		'request-feature',
@@ -1433,6 +1478,23 @@ export default {
 	data() {
 		return {
 			isEditing: false,
+			/**
+			 * This user's arranged layout, when `userLayout` is on.
+			 *
+			 * 🔴 IT IS A SEPARATE ARRAY, NOT THE `layout` PROP. Drag and resize
+			 * write into the prop IN PLACE so the in-place manifest editor can
+			 * diff them, which is right for an admin editing the page for
+			 * everyone and wrong for a user arranging it for themselves: the
+			 * same mutation would rewrite the manifest. So a user layout lives
+			 * here and the prop is never touched.
+			 *
+			 * @type {Array<object>|null}
+			 */
+			userLayoutItems: null,
+			/** Whether a stored record has been asked for yet. */
+			userLayoutLoaded: false,
+			/** Whether this edit session changed anything worth saving. */
+			userLayoutDirty: false,
 			/** Whether the per-widget style/config editor modal is open. */
 			showWidgetConfig: false,
 			/** widgetId of the widget currently being configured (drives `configWidget`). */
@@ -1572,14 +1634,33 @@ export default {
 		 */
 		displayLayout() {
 			if (this.gridEditable) {
-				return this.layout
+				return this.renderedLayout
 			}
-			const items = this.layout || []
+			const items = this.renderedLayout || []
 			const visible = items.filter((item) => !this.isCollapsedWidget(item))
 			if (visible.length === items.length) {
 				return items
 			}
 			return this.compactDisplayLayout(visible)
+		},
+
+		/**
+		 * The layout this page renders: the user's arrangement when they have
+		 * one, the manifest otherwise.
+		 *
+		 * Falling back to the manifest is what makes every failure safe. A
+		 * record that has not loaded yet, an instance with no preference
+		 * route, a user who has never arranged the page: all three render the
+		 * page the admin shipped, which is the page that was there before.
+		 *
+		 * @return {Array<object>} The layout.
+		 */
+		renderedLayout() {
+			if (this.userLayout && Array.isArray(this.userLayoutItems)) {
+				return this.userLayoutItems
+			}
+
+			return this.layout
 		},
 
 		/**
@@ -1889,6 +1970,7 @@ export default {
 		this.initDateRange()
 		this.initPageFilters()
 		this.evaluateWidgetConditions()
+		this.loadUserLayout()
 	},
 
 	beforeUnmount() {
@@ -2442,14 +2524,174 @@ export default {
 		},
 
 		toggleEdit() {
+			const leaving = this.isEditing
 			this.isEditing = !this.isEditing
+
+			// 🔴 ONE SAVE PER EDIT SESSION, ON THE WAY OUT. Saving on every
+			// drag writes a record per pixel gesture and races the next drag;
+			// the user's arrangement is finished when they say it is.
+			if (leaving) {
+				this.saveUserLayout()
+			}
+
 			/**
 			 * @event edit-toggle Emitted when the user toggles edit mode. Payload: `true` when entering edit mode, `false` when leaving.
 			 */
 			this.$emit('edit-toggle', this.isEditing)
 		},
 
+		/**
+		 * Read this user's arrangement, when the page keeps one.
+		 *
+		 * A page without `userLayout` makes NO request at all, which is the
+		 * opt-out the requirement asks for: not a request that answers
+		 * nothing, an absence of one.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadUserLayout() {
+			if (!this.userLayout || !this.appId) {
+				return
+			}
+
+			try {
+				const record = await this.userLayoutApi().load(this.appId, this.resolvedPageId)
+				this.userLayoutItems = mergeUserLayout(this.layout, record)
+			} catch {
+				// The manifest layout is the documented fallback, so a store
+				// that cannot answer leaves the page exactly as the admin
+				// shipped it rather than empty.
+				this.userLayoutItems = null
+			} finally {
+				this.userLayoutLoaded = true
+			}
+		},
+
+		/**
+		 * Store this user's arrangement, if they changed one.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async saveUserLayout() {
+			if (!this.userLayout || !this.appId || !this.userLayoutDirty) {
+				return
+			}
+
+			this.userLayoutDirty = false
+			try {
+				await this.userLayoutApi().save(
+					this.appId,
+					this.resolvedPageId,
+					this.userLayoutItems || [],
+				)
+			} catch {
+				// Nothing is said. The arrangement stands for this session and
+				// a toast on a failed layout write would be noise on an
+				// instance that simply has no preference route.
+			}
+		},
+
+		/**
+		 * Drop this user's arrangement and return to the manifest.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async resetUserLayout() {
+			if (!this.userLayout || !this.appId) {
+				return
+			}
+
+			try {
+				await this.userLayoutApi().reset(this.appId, this.resolvedPageId)
+			} catch {
+				// Same posture as the save: the grid below returns to the
+				// manifest either way, which is what the user asked for.
+			}
+
+			this.userLayoutDirty = false
+			this.userLayoutItems = mergeUserLayout(this.layout, null)
+			/**
+			 * @event user-layout-reset Emitted when the user drops their own arrangement and the page returns to the manifest layout.
+			 */
+			this.$emit('user-layout-reset')
+		},
+
+		/**
+		 * The geometry fields of one grid update, and nothing else.
+		 *
+		 * The grid emits a freshly-mapped item; copying it whole would carry
+		 * whatever else the grid put on it over the widget's own definition.
+		 *
+		 * @param {object} update One item from the grid's layout change.
+		 * @return {object} Its geometry.
+		 */
+		geometryFrom(update) {
+			const geometry = {}
+			for (const field of ['gridX', 'gridY', 'gridWidth', 'gridHeight']) {
+				if (update?.[field] !== undefined) {
+					geometry[field] = update[field]
+				}
+			}
+
+			return geometry
+		},
+
+		/**
+		 * The three calls a user layout needs, from the injected store or the
+		 * default one.
+		 *
+		 * @return {{ load: (appId: string, pageId: string) => Promise<object|null>, save: (appId: string, pageId: string, layout: Array<object>) => Promise<boolean>, reset: (appId: string, pageId: string) => Promise<boolean> }} The api.
+		 */
+		userLayoutApi() {
+			const store = this.userLayoutStore
+			if (store && typeof store.loadDashboardLayout === 'function') {
+				return {
+					load: (...a) => store.loadDashboardLayout(...a),
+					save: (...a) => store.saveDashboardLayout(...a),
+					reset: (...a) => store.resetDashboardLayout(...a),
+				}
+			}
+
+			return {
+				load: (appId, pageId) => readUserPreference(appId, dashboardLayoutKey(pageId), null),
+				save: (appId, pageId, layout) => writeUserPreference(
+					appId,
+					dashboardLayoutKey(pageId),
+					{ items: (layout || []).map((i) => ({
+						widgetId: i.widgetId,
+						gridX: i.gridX,
+						gridY: i.gridY,
+						gridWidth: i.gridWidth,
+						gridHeight: i.gridHeight,
+					})) },
+				),
+
+				reset: (appId, pageId) => writeUserPreference(
+					appId,
+					dashboardLayoutKey(pageId),
+					{ items: [] },
+				),
+			}
+		},
+
 		onLayoutChange(updated) {
+			// A USER ARRANGEMENT NEVER TOUCHES THE MANIFEST. The in-place
+			// write below is for the admin editor, which edits the page for
+			// everybody; doing it for a user rearranging their own dashboard
+			// would rewrite the page for everyone who opens it after them.
+			if (this.userLayout && Array.isArray(this.userLayoutItems)) {
+				this.userLayoutDirty = true
+				this.userLayoutItems = this.userLayoutItems.map((item) => {
+					const u = (Array.isArray(updated) ? updated : []).find((candidate) => String(candidate.id) === String(item.id)
+						|| candidate.widgetId === item.widgetId)
+
+					return (u ? { ...item, ...this.geometryFrom(u) } : item)
+				})
+				this.$emit('layout-change', this.userLayoutItems)
+
+				return
+			}
+
 			// Write the new geometry back into the layout items IN PLACE so the
 			// in-place manifest editor's diff (ADR-041) captures drag/resize —
 			// CnDashboardGrid emits a freshly-mapped array, which on its own

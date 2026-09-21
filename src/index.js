@@ -41,6 +41,7 @@ export {
 	CnAppNav,
 	CnAppRoot,
 	CnAuditTrailCard,
+	CnBoardView,
 	CnBodySections,
 	CnBreadcrumbs,
 	CnBuildiqEditButton,
@@ -75,6 +76,7 @@ export {
 	CnDashTileWidgetForm,
 	CnDataMatrix,
 	CnDataTable,
+	CnDateAxisView,
 	CnDateRangePicker,
 	CnDeckCardCreate,
 	CnDeckCardPicker,
@@ -178,6 +180,7 @@ export {
 	CnNcWidgetWidget,
 	CnNoteCard,
 	CnNotesCard,
+	CnNotificationMatrix,
 	CnNotificationPreferences,
 	CnObjectAccessTab,
 	CnObjectCalendar,
@@ -190,13 +193,16 @@ export {
 	CnObjectListWidgetForm,
 	CnObjectMetadataModal,
 	CnObjectMetadataWidget,
+	CnObjectPresenceWidget,
 	CnObjectRow,
 	CnObjectSidebar,
+	CnOfflineQueue,
 	CnPageHeader,
 	CnPageRenderer,
 	CnPagination,
 	CnPeopleWidget,
 	CnPeopleWidgetForm,
+	CnPresenceAvatars,
 	CnProgressBar,
 	CnPropertiesTab,
 	CnPropertyValueCell,
@@ -310,6 +316,7 @@ export { default as CnAiHistoryDialog } from './dialogs/CnAiHistoryDialog.vue'
 
 // Generic dialogs (NcDialog-based, one file per dialog — modal-isolation rule)
 export { default as CnConfirmDialog } from './dialogs/CnConfirmDialog.vue'
+export { default as CnQuickEditDialog } from './dialogs/CnQuickEditDialog.vue'
 export { default as CnNoteHistoryDialog } from './dialogs/CnNoteHistoryDialog.vue'
 export { default as CnTransitionInputDialog } from './dialogs/CnTransitionInputDialog.vue'
 export { default as CnFlowEditModal } from './dialogs/CnFlowEditModal.vue'
@@ -324,12 +331,15 @@ export { createSubResourcePlugin, emptyPaginated } from './store/index.js'
 // Store plugins
 export {
 	auditTrailsPlugin,
+	dashboardLayoutKey,
+	dashboardLayoutsPlugin,
 	filesPlugin,
 	getRegisterApiUrl,
 	getSchemaApiUrl,
 	lifecyclePlugin,
 	liveUpdatesPlugin,
 	logsPlugin,
+	mergeUserLayout,
 	registerMappingPlugin,
 	relationsPlugin,
 	SEARCH_TYPE,
@@ -341,7 +351,7 @@ export {
 export { useAiChatStream, useAiContext } from './composables/index.js'
 // AI Chat Companion backend config (single point for the chat backend app id)
 export { chatApiBase, chatHealthUrl, chatSendUrl, chatStreamUrl, conversationMessagesUrl, conversationsUrl, DEFAULT_CHAT_APP_ID } from './composables/index.js'
-export { buildBucketQuery, buildCountQuery, clearContextMenuPositionDom, cnRenderMarkdown, createTenantContext, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, fetchEndpointSource, invalidateEndpointSourceCache, loadWalkthroughSeenVersion, LockConflictError, PermissionError, persistWalkthroughSeenVersion, provideTenantContext, selectByPath, TENANT_CONTEXT_KEY, useAppInstaller, useAppManifest, useAppStatus, useBrokeredCall, useBuildiqEditAvailability, useClickDragGuard, useCommandPalette, useContextMenu, useDashboardView, useDataSource, useDetailView, useEndpointSource, useGraphQL, useIntegrationRegistry, useListNavigation, useListView, useManifestEditHistory, useManifestEditor, useObjectLock, useObjectSubscription, useRuntimeManifest, useScopedTheme, useSetupStatus, useSubResource, useSupportDialog, useTenantContext, useUserPreferences, useWalkthrough } from './composables/index.js'
+export { buildBucketQuery, buildCountQuery, clearContextMenuPositionDom, cnRenderMarkdown, createTenantContext, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, fetchEndpointSource, invalidateEndpointSourceCache, loadWalkthroughSeenVersion, LockConflictError, PermissionError, persistWalkthroughSeenVersion, provideTenantContext, selectByPath, TENANT_CONTEXT_KEY, useAppInstaller, useAppManifest, useAppStatus, useBrokeredCall, useBuildiqEditAvailability, useClickDragGuard, useCommandPalette, useContextMenu, useDashboardView, useDataSource, useDetailView, useEndpointSource, useGraphQL, useIntegrationRegistry, useListNavigation, useListView, useManifestEditHistory, useManifestEditor, useNotificationPreferencesStore, useObjectLock, useObjectPresence, useObjectSubscription, useRuntimeManifest, useScopedTheme, useSetupStatus, useSubResource, useSupportDialog, useTenantContext, useUserPreferences, useWalkthrough } from './composables/index.js'
 // Deprecated alias kept for consumers: OpenBuild was renamed to Buildiq in the
 // fleet-wide rename of 2026-08-21. `useBuildiqEditAvailability` above is the
 // canonical name; this alias keeps the ~18 consuming apps that still call
@@ -409,6 +419,18 @@ export {
 // curated entry points consuming apps use are re-exported here.
 // See docs/utilities/offline-collection.md.
 export { DEFAULT_FIELD_INSPECTION_CONFIG, offlineCollection } from './integrations/index.js'
+
+// The shell service worker and its registration helper. Exported as functions
+// and never as a side effect: a service worker changes how every request from
+// an origin is answered, for every app on it, so the host opts in by calling
+// `registerOfflineWorker()` or gets no worker at all.
+//
+// The worker's own decision logic (`isCacheable`, `respondTo`, `cacheNameFor`,
+// `staleCacheNames`) is reached through `offlineCollection`, the same way the
+// rest of the offline core is, because a host configures the worker rather than
+// calling into it.
+// See docs/utilities/register-offline-worker.md.
+export { registerOfflineWorker, unregisterOfflineWorker } from './offline/registerOfflineWorker.js'
 
 // Composables — Features & roadmap menu (add-features-roadmap-menu)
 export { useSpecRef } from './composables/useSpecRef.js'
@@ -512,13 +534,14 @@ export { dedupeCatalogue, fromFontAwesome, fromMdiJs, fromOpenGemeenten } from '
 export { mergeManifestDelta } from './utils/mergeManifestDelta.js'
 export { applyIntegrationsSection, applyMenuLayout, applyMenuRelocations, applyMenuRemovals, applySettingsSection, buildManifest, mergeMenuItems, mergePages } from './utils/buildManifest.js'
 export { buildManifestRoutes } from './utils/buildManifestRoutes.js'
+export { DEFAULT_PINNED_VIEW_CAP, DEFAULT_SAVED_VIEW_ROUTE_BASE, isPinnedView, LEGACY_VIEW_QUERY_KEY, pageHasSavedViewPlaces, pinnedViewNavChildren, PRESENTATION_VIEW_MODES, resolveViewPresentation, SAVED_VIEW_ROUTE_SUFFIX, savedViewRouteBase, savedViewRouteName, savedViewRoutePath, savedViewRouteTarget, togglePinnedBy, viewIdForRoute, withPinnedViewChildren } from './utils/savedViewPlaces.js'
 export { formatDateForDisplay } from './utils/dateDisplay.js'
 export { expandPageTemplates } from './utils/expandPageTemplates.js'
 export { diffManifest } from './utils/diffManifest.js'
 export { createManifestEditHistory } from './utils/manifestEditHistory.js'
 export { resolveSlotColumns } from './utils/resolveSlotColumns.js'
 // Dashboard widget library (cn-widget-library) — registry helpers + form composable.
-export { dashboardWidgetRegistry, getDefaultContent, getWidgetTypeEntry, listWidgetTypes, registerDashboardWidget } from './components/CnWidgetGrid/dashboardWidgetRegistry.js'
+export { dashboardWidgetRegistry, getDefaultContent, getWidgetTypeEntry, listUserAddableWidgetTypes, listWidgetTypes, registerDashboardWidget, userWidgetPresets } from './components/CnWidgetGrid/dashboardWidgetRegistry.js'
 export { registerBuiltinDashboardWidgets } from './components/CnWidgetGrid/registerDashboardWidgets.js'
 export { useWidgetForm } from './composables/useWidgetForm.js'
 

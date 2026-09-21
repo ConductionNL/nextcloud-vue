@@ -1,5 +1,7 @@
 <template>
-	<div class="cn-index-page" data-testid="cn-index-page">
+	<div class="cn-index-page"
+		data-testid="cn-index-page"
+		@keydown="onListKeydown">
 		<!-- Header — overridable via #header slot. CnPageHeader ALWAYS renders:
 		     with showTitle it is the full visual header (icon, title,
 		     description); without it, `visuallyHidden` clips everything but the
@@ -113,10 +115,12 @@
 				     filters/search/sort into the route query. -->
 				<CnSavedViewsControl
 					v-if="allowSavedViews"
-					:views="visibleSavedViews"
+					:views="viewsForControl"
 					:loading="savedViewsLoading"
 					:currentUserId="currentSavedViewsUserId"
+					:allowPinning="savedViewsArePlaces"
 					@apply="onApplySavedView"
+					@pinRequest="onPinViewRequest"
 					@saveRequest="showSaveViewDialog = true"
 					@deleteRequest="onDeleteViewRequest" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
@@ -159,10 +163,10 @@
 			     (between the view toggle and the actions) when the manifest
 			     declares `config.quickFilters`. Switching tabs re-fetches with
 			     the merged filter; @event quick-filter-change. -->
-			<template v-if="effectiveQuickFilters && effectiveQuickFilters.length > 0" #filters>
+			<template v-if="tabStripEntries && tabStripEntries.length > 0" #filters>
 				<CnQuickFilterBar
 					inline
-					:tabs="effectiveQuickFilters"
+					:tabs="tabStripEntries"
 					:mode="quickFilterMode"
 					:maxVisible="quickFilterMaxVisible"
 					:multiple="quickFilterMultiple"
@@ -172,6 +176,38 @@
 					@update:selectedIndices="onQuickFilterMultiChange" />
 			</template>
 		</CnActionsBar>
+
+		<!-- Quick edit: a few fields of one row, over the list, with the list
+		     keeping its place. -->
+		<CnQuickEditDialog
+			v-if="quickEditRow !== null"
+			:object="quickEditRow"
+			:schema="effectiveSchema"
+			:register="register"
+			:fields="quickEditFields"
+			:writableField="writableField"
+			:serverObject="quickEditServerRow"
+			@save="onQuickEditSave"
+			@keepTheirs="onQuickEditKeepTheirs"
+			@close="quickEditRow = null" />
+
+		<!-- The help key's sheet. Every shortcut the list offers is here and in
+		     the command palette: one that only the handler knows about is one
+		     nobody can find. -->
+		<CnConfirmDialog
+			v-if="showShortcutHelp"
+			:name="shortcutHelpTitle"
+			:confirmLabel="closeLabel"
+			data-testid="cn-list-shortcuts-help"
+			@confirm="showShortcutHelp = false"
+			@cancel="showShortcutHelp = false">
+			<dl class="cn-index-page__shortcuts">
+				<template v-for="entry in shortcutHelpEntries" :key="entry.id">
+					<dt><kbd>{{ entry.keys }}</kbd></dt>
+					<dd>{{ entry.description }}</dd>
+				</template>
+			</dl>
+		</CnConfirmDialog>
 
 		<!-- Mass delete dialog -->
 		<CnMassDeleteDialog
@@ -396,6 +432,8 @@
 					:schema="effectiveSchema"
 					:columns="tableColumns"
 					:rowIcon="rowIcon"
+					:rowIndicators="rowIndicators"
+					:rowIndicatorCap="rowIndicatorCap"
 					:rows="displayObjects"
 					:sortKey="effectiveSortKey"
 					:sortOrder="effectiveSortOrder"
@@ -424,7 +462,7 @@
 					<template v-if="hasRowActions" #row-actions="{ row }">
 						<slot name="row-actions" :row="row">
 							<CnRowActions
-								:actions="mergedActions"
+								:actions="rowActionsFor(row)"
 								:row="row"
 								@action="onRowAction" />
 						</slot>
@@ -492,6 +530,40 @@
 					height="100%"
 					@markerClick="onMarkerClick" />
 
+				<!--
+					Board view. The columns are the schema's stages and a move
+					goes through the host's transition; CnBoardView never
+					writes the status field, so with no runTransition it is
+					read-only rather than broken.
+				-->
+				<CnBoardView
+					v-else-if="currentViewMode === 'board'"
+					:rows="displayObjects"
+					:statusFieldSchema="boardStatusFieldSchema"
+					:statusField="board.statusField || 'status'"
+					:cardFields="board.cardFields || []"
+					:swimlaneField="board.swimlaneField || ''"
+					:rowKey="rowKey"
+					:runTransition="runTransition"
+					:paged="isPaged"
+					@cardClick="onRowClick"
+					@moved="onBoardMoved" />
+
+				<!--
+					Date axis. Reads only: nothing here reschedules, because a
+					view that moved a bar on drag would be changing statutory
+					dates from a picture.
+				-->
+				<CnDateAxisView
+					v-else-if="currentViewMode === 'dateAxis'"
+					:rows="displayObjects"
+					:startField="dateAxis.startField || ''"
+					:endField="dateAxis.endField || ''"
+					:laneField="dateAxis.laneField || ''"
+					:labelField="dateAxis.labelField || ''"
+					:rowKey="rowKey"
+					@rowClick="onRowClick" />
+
 				<!-- List view -->
 				<CnObjectList
 					v-else-if="currentViewMode === 'list'"
@@ -537,7 +609,7 @@
 					<template v-if="hasRowActions || $slots['row-actions']" #row-actions="{ object }">
 						<slot name="row-actions" :row="object">
 							<CnRowActions
-								:actions="mergedActions"
+								:actions="rowActionsFor(object)"
 								:row="object"
 								@action="onRowAction" />
 						</slot>
@@ -580,7 +652,7 @@
 					<template v-if="hasRowActions" #card-actions="{ object }">
 						<slot name="row-actions" :row="object">
 							<CnRowActions
-								:actions="mergedActions"
+								:actions="rowActionsFor(object)"
 								:row="object"
 								@action="onRowAction" />
 						</slot>
@@ -693,21 +765,30 @@ import Eye from 'vue-material-design-icons/Eye.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
+import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab } from '../../utils/listLenses.js'
+import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
+import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions } from '../../utils/rowActionAvailability.js'
+import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { isPinnedView, LEGACY_VIEW_QUERY_KEY, resolveViewPresentation, togglePinnedBy } from '../../utils/savedViewPlaces.js'
 import { columnsFromSchema } from '../../utils/schema.js'
+import { resolveScopeLayout } from '../../utils/scopeListLayout.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
+import { CnBoardView } from '../CnBoardView/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
+import { CnDateAxisView } from '../CnDateAxisView/index.js'
 import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnFolderSidebar } from '../CnFolderSidebar/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
@@ -962,6 +1043,8 @@ export default {
 		CnIcon,
 		CnDataTable,
 		CnCardGrid,
+		CnBoardView,
+		CnDateAxisView,
 		CnMapWidget,
 		CnObjectList,
 		CnFolderSidebar,
@@ -980,6 +1063,7 @@ export default {
 		CnSavedViewsControl,
 		CnSaveViewDialog,
 		CnConfirmDialog,
+		CnQuickEditDialog,
 	},
 
 	/**
@@ -1355,13 +1439,15 @@ export default {
 		},
 
 		/**
-		 * View mode: 'table', 'cards', 'list', or 'map'. Default 'table'. List is
-		 * opted in via `availableViewModes`; map via `mapConfig` / `config.viewModes`.
+		 * View mode: 'table', 'cards', 'list', 'map', 'board' or 'dateAxis'.
+		 * Default 'table'. List is opted in via `availableViewModes`; map via
+		 * `mapConfig` / `config.viewModes`; board and dateAxis via
+		 * `config.viewModes` and their own config blocks.
 		 */
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'list', 'map'].includes(v),
+			validator: (v) => ['table', 'cards', 'list', 'map', 'board', 'dateAxis'].includes(v),
 		},
 
 		/**
@@ -1406,10 +1492,48 @@ export default {
 		 * inferred availability (map otherwise appears iff `mapConfig` is
 		 * non-empty). Cards/table always render regardless of this list.
 		 *
-		 * @type {Array<'table' | 'cards' | 'list' | 'map'>}
+		 * @type {Array<'table' | 'cards' | 'list' | 'map' | 'board' | 'dateAxis'>}
 		 */
 		viewModes: {
 			type: Array,
+			default: null,
+		},
+
+		/**
+		 * The board's configuration, mirroring the manifest `config.board`
+		 * block: `{ statusField, cardFields, swimlaneField }`. The board is
+		 * offered only when this names a `statusField` AND `viewModes` lists
+		 * `board`: a segment that opens a board saying it cannot be one is
+		 * worse than no segment.
+		 *
+		 * @type {object}
+		 */
+		board: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * The date axis's configuration, mirroring the manifest
+		 * `config.dateAxis` block: `{ startField, endField, laneField,
+		 * labelField }`. Offered only when both date fields are named.
+		 *
+		 * @type {object}
+		 */
+		dateAxis: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * The host's transition, handed to the board. Absent, the board is
+		 * read-only: it never writes the status field itself, so with no
+		 * transition there is nothing it can do.
+		 *
+		 * @type {((move: { card: object, toKey: string }) => Promise<object>)|null}
+		 */
+		runTransition: {
+			type: Function,
 			default: null,
 		},
 
@@ -1419,12 +1543,12 @@ export default {
 		 * list view. Fed from the manifest as `pages[].config.availableViewModes`.
 		 * Map is added separately via `mapConfig` / `viewModes`.
 		 *
-		 * @type {Array<'cards' | 'table' | 'list' | 'map'>}
+		 * @type {Array<'cards' | 'table' | 'list' | 'map' | 'board' | 'dateAxis'>}
 		 */
 		availableViewModes: {
 			type: Array,
 			default: () => ['cards', 'table'],
-			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'map'].includes(m)),
+			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'map', 'board', 'dateAxis'].includes(m)),
 		},
 
 		/** Current sort key */
@@ -1610,6 +1734,46 @@ export default {
 		 * everywhere.
 		 */
 		savedViewsScope: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The page's `savedViewPlaces` declaration, forwarded by
+		 * CnPageRenderer (saved-view-as-a-place). Present and `enabled`, each
+		 * saved view of this page is a place: it has an address of its own,
+		 * it opens in the presentation its own config declares, and the views
+		 * dropdown gains a Pin action. Absent, the dropdown behaves exactly as
+		 * it did before: apply writes the view's state into the route query
+		 * and nothing else changes.
+		 *
+		 * @type {object|null}
+		 */
+		savedViewPlaces: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * The view this address names, read off the route by CnPageRenderer.
+		 * Empty on the page's own list route.
+		 *
+		 * @type {string}
+		 */
+		savedViewId: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The name of the route a view of this page opens at, as
+		 * `buildManifestRoutes()` registered it. Forwarded by CnPageRenderer;
+		 * empty when this page declares no places, and then nothing here
+		 * navigates to a view route.
+		 *
+		 * @type {string}
+		 */
+		savedViewRouteName: {
 			type: String,
 			default: '',
 		},
@@ -1946,11 +2110,166 @@ export default {
 		 * - `folders` — explicit folder list for `source:'custom'`.
 		 * - `allLabel` / `title` / `allowCreate` — passed to CnFolderSidebar.
 		 *
+		 * A folder entry is also a SCOPE: it may carry `columns`, `defaultSort`
+		 * and `searchFields`, and while it is selected the list is shown that
+		 * way. `columns` takes the same shapes as the `columns` prop, and the
+		 * page's own `columns` still decides which columns this page has, so a
+		 * scope naming one the page does not declare is dropped rather than
+		 * rendered. A `source: 'register'` folder list reads the same three
+		 * keys off each row's `x-index` block, which the folder entry's own
+		 * value wins over, key by key.
+		 *
 		 * @type {object}
 		 */
 		folderSidebar: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Where a row carries the actions the server says this caller may run
+		 * on it: a dotted path, read off the rows the list already fetched, so
+		 * ninety rows cost one request rather than ninety.
+		 *
+		 * A row's menu is then the INTERSECTION of what this page declares and
+		 * what the server allows. An action the server allows but this page has
+		 * stopped declaring stays out, so a row cannot bring back a button the
+		 * page removed. An action the page declares but the server refuses
+		 * stays out too, and its reason is available from
+		 * `rowActionRefusal(row, action)`.
+		 *
+		 * A row carrying nothing at this path is a server that does not answer
+		 * about actions, and the page's declaration stands unchanged.
+		 *
+		 * @type {string}
+		 */
+		rowActionField: {
+			type: String,
+			default: DEFAULT_ROW_ACTION_FIELD,
+		},
+
+		/**
+		 * State indicators this page declares for its rows, handed straight to
+		 * CnDataTable. Each entry is `{ id, field, equals?, in?, icon, text,
+		 * tooltip? }`. The page declares which indicators exist; a record
+		 * cannot add one the page has not declared. A page declaring none
+		 * renders its rows as before. Fed from the manifest as
+		 * `pages[].config.rowIndicators`.
+		 *
+		 * @type {Array<object>}
+		 */
+		rowIndicators: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * How many declared indicators render on the row itself before the
+		 * rest move into the row menu. Fed from the manifest as
+		 * `pages[].config.rowIndicatorCap`.
+		 *
+		 * @type {number}
+		 */
+		rowIndicatorCap: {
+			type: Number,
+			default: DEFAULT_ROW_INDICATOR_CAP,
+		},
+
+		/**
+		 * The fields a quick edit asks for, opened from a row without leaving
+		 * the list. Empty means no quick edit. The page names the fields; a
+		 * record cannot open a form on one the page did not name. Fed from the
+		 * manifest as `pages[].config.quickEditFields`.
+		 *
+		 * @type {string[]}
+		 */
+		quickEditFields: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Where a record lists the fields this caller may write. A field the
+		 * page named that is not in that list renders read-only rather than
+		 * missing, so a person sees the value and learns it is not theirs to
+		 * change. A row carrying nothing there leaves every named field
+		 * editable.
+		 *
+		 * @type {string}
+		 */
+		writableField: {
+			type: String,
+			default: '@self.writableFields',
+		},
+
+		/**
+		 * Saved view ids this page renders as tabs instead of as entries in the
+		 * views control. A view appears in one place or the other, never both.
+		 * An id naming a view that no longer exists produces no tab.
+		 *
+		 * @type {string[]}
+		 */
+		viewTabs: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The teams this person may claim. The instance decides this list; it
+		 * is the membership side of `claimedTeams`.
+		 *
+		 * @type {Array<string|object>}
+		 */
+		offeredTeams: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The teams this person stored as claimed, read as a personal
+		 * preference alongside the others. It is narrowed to `offeredTeams`, so
+		 * a team they claimed before it was taken away is passed over rather
+		 * than honoured.
+		 *
+		 * @type {string[]}
+		 */
+		claimedTeams: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The field carrying a record's DERIVED priority, and the order its
+		 * values rank in, lowest first. The list reads the value and sorts on
+		 * it; it never computes one. A record with no priority sorts after
+		 * every ranked one, in both directions, and stays in the list.
+		 *
+		 * @type {string}
+		 */
+		priorityField: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The priority values in rank order, lowest first, e.g.
+		 * `['low', 'medium', 'high']`. A value outside this list is unranked.
+		 *
+		 * @type {string[]}
+		 */
+		priorityLevels: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Offer the list's keyboard shortcuts. Every one of them is also listed
+		 * in the command palette and on the help key, because a shortcut nobody
+		 * can find does not count.
+		 */
+		listShortcuts: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -2236,9 +2555,11 @@ export default {
 		'action',
 		'add',
 		'apply-view',
+		'board-move',
 		'bulk-action',
 		'clear-filters',
 		'columns-change',
+		'quick-edit-save',
 		'configure',
 		'copy',
 		'create',
@@ -2253,6 +2574,7 @@ export default {
 		'mass-delete',
 		'mass-export',
 		'mass-import',
+		'pin-view',
 		'page-changed',
 		'page-size-changed',
 		'quick-filter-change',
@@ -2337,6 +2659,19 @@ export default {
 			 */
 			folderSidebarAllValues: [],
 			folderRegisterList: [],
+			// `x-index` blocks read off the schema rows a `source: 'register'`
+			// folder list was built from, keyed by folder id. The layout a case
+			// type carries travels with the record rather than being restated
+			// in every manifest that lists it.
+			folderRowLayouts: {},
+			/** The row the keyboard is on, or -1. */
+			focusedRowIndex: -1,
+			/** The row a quick edit is open on, or null. */
+			quickEditRow: null,
+			/** The row as the server holds it, after a stale save. */
+			quickEditServerRow: null,
+			/** Whether the shortcut help sheet is open. */
+			showShortcutHelp: false,
 			// Mass action dialogs
 			showMassDeleteDialog: false,
 			showMassCopyDialog: false,
@@ -2361,6 +2696,11 @@ export default {
 			// delete confirmation.
 			savedViews: [],
 			savedViewsLoading: false,
+			// The view an address names that no longer answers: deleted, or
+			// never readable by this user. Held so the page can SAY so rather
+			// than render an empty list, which reads as "no cases" and sends
+			// somebody looking for the filter that is not there.
+			missingSavedViewId: '',
 			showSaveViewDialog: false,
 			viewPendingDelete: null,
 			// Split view (case-page-and-list-as-a-place). `splitRowPatches` holds
@@ -2394,7 +2734,38 @@ export default {
 		 */
 		resolvedEmptyText() {
 			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			if (this.missingSavedViewId !== '') {
+				// A bookmark to a view that has gone says which view it was.
+				// "No results" would be true and useless: the reader would
+				// believe the list is empty rather than that their view is.
+				return t('nextcloud-vue', 'This saved view ({id}) is gone. Open the page to build it again.', { id: this.missingSavedViewId })
+			}
 			return this.emptyText ? fn(this.emptyText) : this.emptyText
+		},
+
+		/**
+		 * Whether this page's saved views are places (saved-view-as-a-place).
+		 *
+		 * Both halves, as everywhere else: the declaration must be there AND
+		 * enabled, so `{ enabled: false }` renders as a page that never named
+		 * the key.
+		 *
+		 * @return {boolean} True when views have routes, presentations and pins here.
+		 */
+		savedViewsArePlaces() {
+			return this.allowSavedViews && this.savedViewPlaces?.enabled === true
+		},
+
+		/**
+		 * The view this address names, as an object, once the list has loaded.
+		 *
+		 * @return {object|null} The View API object, or null.
+		 */
+		currentSavedView() {
+			if (this.savedViewId === '') {
+				return null
+			}
+			return (this.savedViews || []).find((view) => String(view?.id) === this.savedViewId || String(view?.uuid) === this.savedViewId) || null
 		},
 
 		/**
@@ -2526,13 +2897,14 @@ export default {
 		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		sortedObjects() {
-			if (!this.defaultSort || this.defaultSort.length === 0) {
+			const spec = this.effectiveDefaultSort
+			if (!spec || spec.length === 0) {
 				return this.effectiveObjects
 			}
 			if (this.effectiveSortKey) {
 				return this.effectiveObjects
 			}
-			return multiKeySort(this.effectiveObjects, this.defaultSort)
+			return multiKeySort(this.effectiveObjects, spec)
 		},
 
 		/**
@@ -2653,7 +3025,53 @@ export default {
 			const list = (Array.isArray(this.viewModes) && this.viewModes.length)
 				? this.viewModes
 				: this.availableViewModes
-			return list.filter((m) => m !== 'map')
+
+			// 🔴 A SEGMENT ONLY WHEN THE MODE CAN ACTUALLY WORK. A board needs
+			// a status field to build its columns from and a date axis needs
+			// both dates; offering a segment that opens a view saying it
+			// cannot be one is worse than not offering it, because the reader
+			// has to click it to find out.
+			return list.filter((mode) => {
+				if (mode === 'map') {
+					return false
+				}
+				if (mode === 'board') {
+					return Boolean(this.board?.statusField)
+				}
+				if (mode === 'dateAxis') {
+					return Boolean(this.dateAxis?.startField) && Boolean(this.dateAxis?.endField)
+				}
+				return true
+			})
+		},
+
+		/**
+		 * The status field's schema, for the board's columns.
+		 *
+		 * Read from the schema this page already holds rather than fetched: the
+		 * stages are a property of the type, and a second read of them could
+		 * disagree with the one the table is rendering from.
+		 *
+		 * @return {?object} The field schema, or null.
+		 */
+		boardStatusFieldSchema() {
+			const field = this.board?.statusField
+			if (!field) {
+				return null
+			}
+			return this.effectiveSchema?.properties?.[field] || null
+		},
+
+		/**
+		 * Whether the list holds one page of more.
+		 *
+		 * The board says so beside its counts: a count of a page shown as
+		 * though it were the total is a number somebody quotes in a meeting.
+		 *
+		 * @return {boolean} True when there is more than this page.
+		 */
+		isPaged() {
+			return Number(this.pagination?.pages || 1) > 1
 		},
 
 		/**
@@ -2682,6 +3100,239 @@ export default {
 				return this.folderRegisterList
 			}
 			return this.folderSidebar.folders || []
+		},
+
+		/**
+		 * The folder entry for the folder currently selected in the sidebar,
+		 * or null while "All" is selected.
+		 *
+		 * @return {(object|null)} The active scope's folder entry.
+		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
+		 */
+		activeScope() {
+			if (this.selectedFolderId === null || this.selectedFolderId === undefined) {
+				return null
+			}
+			const idField = this.folderPassthroughIdField
+			const match = this.folderSidebarFolders
+				.find((f) => f && String(this.getByPath(f, idField)) === String(this.selectedFolderId))
+			return match || null
+		},
+
+		/**
+		 * The `x-index` block the active scope's own schema row carries, for a
+		 * folder list derived from a register. Empty for every other source:
+		 * a folder that is a distinct field value, or one written into the
+		 * manifest by hand, has no record behind it to read.
+		 *
+		 * @return {(object|null)} A row-shaped object carrying `x-index`, or null.
+		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
+		 */
+		activeScopeRow() {
+			if (this.selectedFolderId === null || this.selectedFolderId === undefined) {
+				return null
+			}
+			const carried = this.folderRowLayouts[String(this.selectedFolderId)]
+			return carried ? { 'x-index': carried } : null
+		},
+
+		/**
+		 * The list layout the active scope asks for. Two declarations meet
+		 * here and they decide different things: this page's `columns` prop
+		 * decides which columns the page HAS, and the scope decides which of
+		 * them it shows, in what order, sorted by what and searched over what.
+		 * A scope naming a column this page does not declare is dropped, so a
+		 * scope written before a column was taken out cannot bring it back.
+		 *
+		 * @return {{columns: (Array|null), sortKeys: Array, searchFields: string[]}}
+		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
+		 */
+		activeScopeLayout() {
+			if (!this.folderSidebar) {
+				return { columns: null, sortKeys: [], searchFields: [] }
+			}
+			return resolveScopeLayout({
+				scope: this.activeScope,
+				row: this.activeScopeRow,
+				pageColumns: this.declaredColumns,
+			})
+		},
+
+		/**
+		 * The fields the search box searches over while a scope declaring
+		 * `searchFields` is active. Read by `useSelfFetchList`'s fixed-filter
+		 * getter off this instance, so a scope change re-scopes the next fetch
+		 * without a second search path.
+		 *
+		 * @return {string[]} The scope's search fields, or [].
+		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
+		 */
+		activeScopeSearchFields() {
+			return this.activeScopeLayout.searchFields
+		},
+
+		/**
+		 * The teams this person is treated as having claimed: what they stored,
+		 * narrowed to what the instance offers them now.
+		 *
+		 * @return {string[]} The claimed team ids.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		claimedTeamIds() {
+			return resolveClaimedTeams(this.offeredTeams, this.claimedTeams)
+		},
+
+		/**
+		 * The saved views this page renders as tabs, and the ones that stay in
+		 * the views control. A view is in one or the other, never both.
+		 *
+		 * Split out of the SCOPED views, not the fetched ones: a view made on
+		 * another page names fields this schema does not have, and is no more
+		 * use as a tab than it is as a dropdown entry.
+		 *
+		 * @return {{tabs: Array<object>, control: Array<object>}}
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		splitSavedViews() {
+			return splitViewsIntoTabs(this.visibleSavedViews, this.viewTabs)
+		},
+
+		/**
+		 * The lens tabs, as the tab strip this page already has understands
+		 * them, with each lens's claim tokens resolved against this person.
+		 *
+		 * @return {Array<object>} The tabs.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		lensTabs() {
+			return this.splitSavedViews.tabs.map((view) => {
+				const tab = viewAsTab(view)
+				const { filter, narrowsToNothing } = resolveClaimTokens(tab.filter, { teams: this.claimedTeamIds })
+				return { ...tab, filter, narrowsToNothing }
+			})
+		},
+
+		/**
+		 * The views the control lists: every saved view this page did not name
+		 * as a tab.
+		 *
+		 * @return {Array<object>} The views.
+		 */
+		viewsForControl() {
+			return this.splitSavedViews.control
+		},
+
+		/**
+		 * What the tab strip shows: the page's lens tabs when it named any,
+		 * else its quick filters. One strip, never two, so a person is not
+		 * offered the same narrowing twice under two names.
+		 *
+		 * @return {(Array<object>|null)} The tabs.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		tabStripEntries() {
+			if (this.lensTabs.length > 0) {
+				return this.lensTabs
+			}
+			return this.effectiveQuickFilters
+		},
+
+		/** @return {Array<object>} The shortcuts the help sheet lists. */
+		shortcutHelpEntries() {
+			return LIST_SHORTCUTS.filter((entry) => typeof this.listShortcutHandlers[entry.id] === 'function')
+		},
+
+		/** @return {string} Heading of the shortcut help sheet. */
+		shortcutHelpTitle() {
+			return t('nextcloud-vue', 'Keyboard shortcuts')
+		},
+
+		/** @return {string} Label of the help sheet's close button. */
+		closeLabel() {
+			return t('nextcloud-vue', 'Close')
+		},
+
+		/**
+		 * Whether the active lens narrowed to nothing because this person has
+		 * claimed no teams. The page says that, rather than showing an empty
+		 * list under a heading that claims to be filtering by their teams.
+		 *
+		 * @return {boolean} True when the active lens has nothing to match.
+		 */
+		activeLensNarrowsToNothing() {
+			const index = this.activeQuickFilterIndex
+			if (index === null || index === undefined || this.lensTabs.length === 0) {
+				return false
+			}
+			return Boolean(this.lensTabs[index] && this.lensTabs[index].narrowsToNothing)
+		},
+
+		/**
+		 * The declarative sort this page applies, with the priority sort folded
+		 * in when the page names a priority field. The value is READ off the
+		 * record; nothing here derives one.
+		 *
+		 * @return {Array<object>} The sort spec.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		effectiveDefaultSort() {
+			const declared = Array.isArray(this.defaultSort) ? this.defaultSort : []
+			if (this.priorityField === '') {
+				return declared
+			}
+			if (declared.some((entry) => entry && entry.field === this.priorityField)) {
+				return declared.map((entry) => (entry && entry.field === this.priorityField
+					? { ...entry, levels: this.priorityLevels }
+					: entry))
+			}
+			return [{ field: this.priorityField, order: 'desc', levels: this.priorityLevels }, ...declared]
+		},
+
+		/**
+		 * The list's keyboard shortcuts, bound to what this page can do. A
+		 * shortcut with nothing behind it is left out rather than listed.
+		 *
+		 * @return {object} Handlers by shortcut id.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		listShortcutHandlers() {
+			const handlers = {
+				'row-next': () => this.moveFocusedRow(1),
+				'row-previous': () => this.moveFocusedRow(-1),
+				'row-open': () => this.focusedRow && this.onRowClick(this.focusedRow),
+				'row-select': () => this.toggleFocusedRowSelection(),
+				'list-help': () => { this.showShortcutHelp = true },
+			}
+			if (this.quickEditFields.length > 0) {
+				handlers['row-quick-edit'] = () => this.focusedRow && this.openQuickEdit(this.focusedRow)
+			}
+			if (this.focusedRow && this.rowActionsFor(this.focusedRow).length > 0) {
+				handlers['row-primary'] = () => this.runPrimaryRowAction()
+			}
+			return handlers
+		},
+
+		/**
+		 * The shortcuts as command-palette entries, so someone who has never
+		 * used this list can find every one of them.
+		 *
+		 * @return {Array<object>} The palette entries.
+		 */
+		listPaletteEntries() {
+			return listPaletteCommands(this.listShortcutHandlers)
+		},
+
+		/**
+		 * The row the keyboard is on, or null.
+		 *
+		 * @return {(object|null)} The focused row.
+		 */
+		focusedRow() {
+			const rows = this.displayObjects || []
+			if (this.focusedRowIndex < 0 || this.focusedRowIndex >= rows.length) {
+				return null
+			}
+			return rows[this.focusedRowIndex]
 		},
 
 		/**
@@ -3158,16 +3809,15 @@ export default {
 		},
 
 		/**
-		 * Columns handed to CnDataTable. Starts from the `columns` prop (with any
-		 * `aggregate` block lacking a `register` defaulted to this page's `register`
-		 * slug, so manifests can omit `aggregate.register`). When a visible-column
-		 * set exists, governed columns the user toggled off are hidden, and governed
-		 * columns the user toggled on that aren't already in the list (metadata
-		 * fields, extra schema properties) are appended using their sidebar
-		 * definitions. Custom columns outside the sidebar's universe are untouched.
+		 * The columns this page DECLARES it has: the `columns` prop, or a named
+		 * source's own list when the manifest set none. This is the membership
+		 * list, separate from `tableColumns`, which is what ends up rendered
+		 * after the sidebar scope and the user's visible-column set have had
+		 * their say over it.
+		 *
+		 * @return {Array} The declared column list.
 		 */
-		tableColumns() {
-			const reg = typeof this.register === 'string' && this.register ? this.register : undefined
+		declaredColumns() {
 			// A NAMED SOURCE SUPPLIES ITS OWN COLUMNS when the manifest does not.
 			// Without this the adapter's `columns` were defined and never read:
 			// an `entitySource` page with no explicit `columns` fell through to
@@ -3176,9 +3826,27 @@ export default {
 			// at all, which looks like an empty list rather than a missing
 			// config. A manifest that DOES set columns still wins, which is
 			// what makes the source a default rather than a constraint.
-			let cols = (this.columns && this.columns.length > 0)
+			return (this.columns && this.columns.length > 0)
 				? this.columns
 				: ((this.isNamedSource && this.namedSource && this.namedSource.columns) || [])
+		},
+
+		/**
+		 * Columns handed to CnDataTable. Starts from `declaredColumns`, or from
+		 * the active folder-sidebar scope's selection of them (with any
+		 * `aggregate` block lacking a `register` defaulted to this page's
+		 * `register` slug, so manifests can omit `aggregate.register`). When a
+		 * visible-column set exists, governed columns the user toggled off are
+		 * hidden, and governed columns the user toggled on that aren't already
+		 * in the list (metadata fields, extra schema properties) are appended
+		 * using their sidebar definitions. Custom columns outside the sidebar's
+		 * universe are untouched.
+		 */
+		tableColumns() {
+			const reg = typeof this.register === 'string' && this.register ? this.register : undefined
+			// The active sidebar scope may narrow and reorder the page's
+			// declared columns; it cannot add to them.
+			let cols = this.activeScopeLayout.columns || this.declaredColumns
 			if (reg) {
 				cols = cols.map((c) => (
 					c && c.aggregate && !c.aggregate.register
@@ -3603,6 +4271,18 @@ export default {
 
 		viewMode(val) {
 			this.currentViewMode = val
+		},
+
+		/**
+		 * The address started naming another view, or stopped naming one.
+		 *
+		 * @param {string} val The view id, or '' on the page's own list.
+		 */
+		savedViewId(val) {
+			this.missingSavedViewId = ''
+			if (val !== '') {
+				this.applySavedViewFromRoute()
+			}
 		},
 
 		selectedIds(val) {
@@ -4434,17 +5114,226 @@ export default {
 		 * @param {(string|number|null)} folderId The selected folder id (null = All).
 		 * @return {void}
 		 */
+		/**
+		 * The actions one row offers: this page's declared actions narrowed to
+		 * the ones the server says this caller may run on that record. The
+		 * order, label and icon stay the page's.
+		 *
+		 * @param {object} row The row.
+		 * @return {Array<object>} The actions to render for that row.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		/**
+		 * Move the keyboard's focus one row, staying inside the list.
+		 *
+		 * @param {number} delta 1 for the next row, -1 for the previous one.
+		 * @return {void}
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		moveFocusedRow(delta) {
+			const rows = this.displayObjects || []
+			if (rows.length === 0) {
+				this.focusedRowIndex = -1
+				return
+			}
+			const next = this.focusedRowIndex + delta
+			this.focusedRowIndex = Math.min(Math.max(next, 0), rows.length - 1)
+		},
+
+		/**
+		 * Select or deselect the focused row.
+		 *
+		 * @return {void}
+		 */
+		toggleFocusedRowSelection() {
+			const row = this.focusedRow
+			if (!row) {
+				return
+			}
+			const id = row[this.rowKey]
+			const selected = this.internalSelectedIds.includes(id)
+			this.onSelect(selected
+				? this.internalSelectedIds.filter((other) => other !== id)
+				: [...this.internalSelectedIds, id])
+		},
+
+		/**
+		 * Run the first action the focused row offers. "First" is the page's
+		 * order, narrowed by what the server allows on that record, so the
+		 * primary action is never one this caller may not run.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		runPrimaryRowAction() {
+			const row = this.focusedRow
+			if (!row) {
+				return
+			}
+			const [first] = this.rowActionsFor(row)
+			if (!first) {
+				return
+			}
+			if (typeof first.handler === 'function') {
+				first.handler(row)
+			}
+			this.$emit('action', { action: first.label, row })
+		},
+
+		/**
+		 * Handle a key pressed on the list.
+		 *
+		 * @param {KeyboardEvent} event The event.
+		 * @return {void}
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		onListKeydown(event) {
+			if (!this.listShortcuts) {
+				return
+			}
+			const shortcut = shortcutFor(event)
+			if (!shortcut) {
+				return
+			}
+			const run = this.listShortcutHandlers[shortcut.id]
+			if (typeof run !== 'function') {
+				return
+			}
+			event.preventDefault()
+			run()
+		},
+
+		/**
+		 * Open the quick edit on one row.
+		 *
+		 * @param {object} row The row.
+		 * @return {void}
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		openQuickEdit(row) {
+			if (this.quickEditFields.length === 0 || !row) {
+				return
+			}
+			this.quickEditServerRow = null
+			this.quickEditRow = row
+		},
+
+		/**
+		 * Write a quick edit's patch onto its row in the list.
+		 *
+		 * The patch goes through the same row-patch map a record saved in the
+		 * split pane goes through, so the list keeps its scroll, its selection
+		 * and its page for the same reason it already did: nothing about the
+		 * list changed, one row's fields did.
+		 *
+		 * @param {object} payload The dialog's payload.
+		 * @param {(string|number)} payload.id The row id.
+		 * @param {object} payload.patch The fields to write.
+		 * @return {void}
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		onQuickEditSave({ id, patch }) {
+			if (id === undefined || id === null || !patch || Object.keys(patch).length === 0) {
+				this.quickEditRow = null
+				return
+			}
+			const current = this.splitRowPatches[id] || {}
+			this.splitRowPatches = { ...this.splitRowPatches, [id]: { ...current, ...patch } }
+			this.quickEditRow = null
+			/**
+			 * @event quick-edit-save Emitted with the fields a quick edit wrote onto a row.
+			 * @type {{id: (string|number), patch: object}}
+			 */
+			this.$emit('quick-edit-save', { id, patch })
+		},
+
+		/**
+		 * Take the server's version of a row after a conflict. Nothing of this
+		 * person's edit is written, and the row in the list is refreshed to
+		 * what the server holds, so the screen and the record agree.
+		 *
+		 * @param {object} saved The record as the server holds it.
+		 * @return {void}
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		onQuickEditKeepTheirs(saved) {
+			const id = saved && saved[this.rowKey]
+			if (id !== undefined && id !== null) {
+				this.splitRowPatches = { ...this.splitRowPatches, [id]: saved }
+			}
+			this.quickEditRow = null
+			this.quickEditServerRow = null
+		},
+
+		rowActionsFor(row) {
+			return availableRowActions(this.mergedActions, row, this.rowActionField)
+		},
+
+		/**
+		 * Why the server refused an action on a row, when it said. Available on
+		 * request rather than rendered, because a menu that lists what you may
+		 * not do is a menu that takes longer to read.
+		 *
+		 * @param {object} row The row.
+		 * @param {object} action The declared action.
+		 * @return {string} The refusal reason, or ''.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		rowActionRefusal(row, action) {
+			return refusalReasonFor(action, row, this.rowActionField)
+		},
+
+		/**
+		 * The actions the server allowed on a row that this page does not
+		 * declare. Nothing renders them. They are here so a page can see what
+		 * it is ignoring without the menu growing a button nobody wrote.
+		 *
+		 * @param {object} row The row.
+		 * @return {string[]} The undeclared action ids.
+		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
+		 */
+		rowActionsNotDeclared(row) {
+			return undeclaredRowActions(this.mergedActions, row, this.rowActionField)
+		},
+
 		onFolderSelect(folderId) {
 			this.selectedFolderId = folderId
 			const key = (this.folderSidebar && (this.folderSidebar.filterField || this.folderSidebar.field)) || ''
 			if (key) {
 				this.onFilterEvent({ key, values: (folderId === null || folderId === undefined) ? [] : [folderId] })
 			}
+			this.applyScopeSort()
 			/**
 			 * @event folder-change Emitted when a folder is selected in the sidebar.
 			 * @type {(string|number|null)} The selected folder id (null = All).
 			 */
 			this.$emit('folder-change', folderId)
+		},
+
+		/**
+		 * Put the active scope's `defaultSort` on the list and refetch with it.
+		 *
+		 * The scope's sort is applied through the list's own `sortKeys`, the
+		 * same state a header click writes, rather than through a second sort
+		 * path — so the fetch carries it and the header shows it as sorted.
+		 * A scope declaring no sort leaves whatever is active alone: that is a
+		 * scope with nothing to say about sorting, not a scope asking for the
+		 * sort to be cleared.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/index-columns-per-scope/specs/index-page/spec.md
+		 */
+		applyScopeSort() {
+			const sortKeys = this.activeScopeLayout.sortKeys
+			if (!sortKeys.length || !this.isSelfFetchMode || !this.list) {
+				return
+			}
+			if (this.list.sortKeys) {
+				this.list.sortKeys.value = sortKeys.map((entry) => ({ ...entry }))
+			}
+			if (typeof this.list.refresh === 'function') {
+				this.list.refresh(1)
+			}
 		},
 
 		/**
@@ -4466,9 +5355,22 @@ export default {
 				])
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: cfg.register, schema: cfg.schema })
 				const res = await axios.get(url, { params: { _limit: cfg.limit || 200 } })
-				const rows = (res && res.data && (res.data.results || res.data)) || []
+				const body = (res && res.data && (res.data.results || res.data)) || []
+				// A response that is not a list is an empty folder list, not a
+				// crash: the pane then shows only "All" rather than logging a
+				// TypeError that names this component for the server's shape.
+				const rows = Array.isArray(body) ? body : []
 				const idField = cfg.idField || '@self.uuid'
 				const nameField = cfg.nameField || 'title'
+				const layouts = {}
+				rows.forEach((row) => {
+					const id = this.getByPath(row, idField)
+					const carried = row && row['x-index']
+					if (id !== null && id !== undefined && carried && typeof carried === 'object') {
+						layouts[String(id)] = carried
+					}
+				})
+				this.folderRowLayouts = layouts
 				this.folderRegisterList = rows
 					.map((row) => ({ id: this.getByPath(row, idField), name: this.getByPath(row, nameField) || this.getByPath(row, idField) }))
 					.filter((f) => f.id !== null && f.id !== undefined)
@@ -4477,6 +5379,7 @@ export default {
 				// eslint-disable-next-line no-console
 				console.error('[CnIndexPage] failed to load folder register', e)
 				this.folderRegisterList = []
+				this.folderRowLayouts = {}
 			}
 		},
 
@@ -4618,6 +5521,26 @@ export default {
 		 *
 		 * @param {object} row The clicked row object
 		 */
+		/**
+		 * A card moved on the board.
+		 *
+		 * The list is refreshed rather than patched in place: the transition
+		 * may have changed more than the status (a date armed, an assignee
+		 * cleared), and a board that only moved the card would show a row that
+		 * disagrees with the table beside it.
+		 *
+		 * @param {object} move The `{ card, toKey }` the board emitted.
+		 * @return {Promise<void>} Nothing.
+		 */
+		async onBoardMoved(move) {
+			/**
+			 * @event board-move A card moved through the host's transition.
+			 * @type {object}
+			 */
+			this.$emit('board-move', move)
+			await this.onRefreshEvent()
+		},
+
 		onRowClick(row) {
 			if (this.selectable && !this.rowClickToView) {
 				this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
@@ -4995,6 +5918,121 @@ export default {
 			} finally {
 				this.savedViewsLoading = false
 			}
+			if (this.savedViewsArePlaces) {
+				// Both only make sense once the views are in hand: the address
+				// names a view by id, and until the list has loaded there is
+				// nothing to resolve that id against.
+				this.redirectLegacyViewQuery()
+				this.applySavedViewFromRoute()
+			}
+		},
+
+		/**
+		 * Send a `?view=<id>` link to the view's own address.
+		 *
+		 * Those links were already sent before views had addresses, so they
+		 * keep working. They do not keep their own spelling: two addresses for
+		 * one list drift the moment the view is edited, and the one that
+		 * survives is the one the app can render (ADR-052).
+		 *
+		 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
+		 */
+		redirectLegacyViewQuery() {
+			const query = { ...((this.$route && this.$route.query) || {}) }
+			const legacy = query[LEGACY_VIEW_QUERY_KEY]
+			if (typeof legacy !== 'string' || legacy === '' || !this.$router || this.savedViewId !== '') {
+				return
+			}
+			if (this.savedViewRouteName === '') {
+				return
+			}
+			delete query[LEGACY_VIEW_QUERY_KEY]
+			const nav = this.$router.replace({
+				name: this.savedViewRouteName,
+				params: { viewId: legacy },
+				query,
+			})
+			if (nav && typeof nav.catch === 'function') {
+				nav.catch(() => {})
+			}
+		},
+
+		/**
+		 * Render the view this address names.
+		 *
+		 * Two things follow from the id in the path. The presentation the view
+		 * declares opens, falling through to what this page can actually
+		 * render rather than failing; and the view's stored filters, search
+		 * and sort are written into the query, because that is the one channel
+		 * this component already fetches from. The path keeps naming the view,
+		 * so the address a person copies is still the view's own.
+		 *
+		 * A view that does not answer is said out loud rather than rendered as
+		 * an empty list.
+		 *
+		 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
+		 */
+		applySavedViewFromRoute() {
+			if (!this.savedViewsArePlaces || this.savedViewId === '' || this.savedViewsLoading) {
+				return
+			}
+			const view = this.currentSavedView
+			if (!view) {
+				this.missingSavedViewId = this.savedViewId
+				return
+			}
+			this.missingSavedViewId = ''
+
+			const { viewMode, warnings } = resolveViewPresentation(view, this.availableViewModes)
+			for (const warning of warnings) {
+				// eslint-disable-next-line no-console
+				console.warn(warning)
+			}
+			if (viewMode) {
+				this.currentViewMode = viewMode
+			}
+
+			const query = buildRouteQueryFromViewState(extractViewState(view))
+			const current = (this.$route && this.$route.query) || {}
+			if (!this.$router || JSON.stringify(query) === JSON.stringify(current)) {
+				return
+			}
+			const nav = this.$router.replace({
+				name: this.$route?.name,
+				params: this.$route?.params,
+				query,
+			})
+			if (nav && typeof nav.catch === 'function') {
+				nav.catch(() => {})
+			}
+		},
+
+		/**
+		 * Pin or unpin a view (CnSavedViewsControl `@pin-request`).
+		 *
+		 * Pinning writes OpenRegister's existing `favoredBy` list rather than
+		 * a second flag meaning nearly the same thing. The local copy is
+		 * updated from the response, so the navigation this page shares a
+		 * manifest with sees the pin without a reload.
+		 *
+		 * @param {object} view The View API object to pin or unpin.
+		 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
+		 */
+		async onPinViewRequest(view) {
+			if (!view || !this.savedViewsArePlaces) {
+				return
+			}
+			const userId = this.currentSavedViewsUserId
+			const next = !isPinnedView(view, userId)
+			try {
+				const updated = await useSavedViewsApi().patchView(view.id, { favoredBy: togglePinnedBy(view, userId, next) })
+				const merged = updated || { ...view, favoredBy: togglePinnedBy(view, userId, next) }
+				this.savedViews = this.savedViews.map((v) => (String(v.id) === String(view.id) ? merged : v))
+				this.$emit('pin-view', merged)
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('CnIndexPage: failed to pin the view', error)
+			}
 		},
 
 		/**
@@ -5005,10 +6043,17 @@ export default {
 		 * `?action=create` query cleanup, and dropping the whole previous
 		 * query implicitly resets `_page` to 1.
 		 *
+		 * Where views are places the two are not alternatives: the state is set
+		 * here AND the address becomes the view's, because a self-fetch page
+		 * that only navigated would show the right rows under stale sidebar
+		 * chips.
+		 *
 		 * @param {object} view The View API object to apply.
 		 */
 		onApplySavedView(view) {
 			const state = extractViewState(view)
+			const query = buildRouteQueryFromViewState(state)
+			const goesToTheView = this.savedViewsArePlaces && this.savedViewRouteName !== '' && view?.id !== undefined
 			if (this.isSelfFetchMode) {
 				// Set state directly (not via onFilterEvent/onSearchEvent per key)
 				// so applying a view is one fetch + one route replace, not one
@@ -5021,14 +6066,27 @@ export default {
 				this.list.sortKey.value = keys[0]?.key ?? null
 				this.list.sortOrder.value = keys[0]?.order ?? 'asc'
 				this.list.refresh(1)
-				this.persistViewStateToRoute(state)
-				this.$emit('apply-view', view)
-				return
+				if (!goesToTheView) {
+					this.persistViewStateToRoute(state)
+					this.$emit('apply-view', view)
+					return
+				}
 			}
 			if (!this.$router) {
 				return
 			}
-			const nav = this.$router.replace({ query: buildRouteQueryFromViewState(state) })
+			if (goesToTheView) {
+				// The view is a place here, so applying one GOES there. Push
+				// rather than replace: a person who walked from the list to a
+				// view expects Back to return them to the list.
+				const toView = this.$router.push({ name: this.savedViewRouteName, params: { viewId: String(view.id) }, query })
+				if (toView && typeof toView.catch === 'function') {
+					toView.catch(() => {})
+				}
+				this.$emit('apply-view', view)
+				return
+			}
+			const nav = this.$router.replace({ query })
 			// Swallow the duplicate-navigation rejection (Vue Router 3)
 			// when the applied view matches the current query.
 			if (nav && typeof nav.catch === 'function') {

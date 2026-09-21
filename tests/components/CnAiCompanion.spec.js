@@ -283,4 +283,41 @@ describe('CnAiCompanion', () => {
 			expect(third.find('.cn-ai-companion').exists()).toBe(false)
 		})
 	})
+	describe('the context handed to the panel', () => {
+		/**
+		 * CnAppRoot renders `<CnAiCompanion :chatAppId="chatAppId" />` and
+		 * passes no `:context`, providing `cnAiContext` for injection instead.
+		 * Handing the panel the raw prop left it with `null` inside every app
+		 * shell, and the panel treats an empty context as "no page to be
+		 * relevant to" — so it offered every agent and selected whichever the
+		 * API listed first. On the demo instance that was "Hydra Triage" on a
+		 * Buildiq page, answering "tool grants resolve to no tools".
+		 */
+		it('falls back to the injected context when no prop was passed', async () => {
+			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+			const provided = { appId: 'buildiq', pageKind: 'custom' }
+
+			const wrapper = mountCompanion({ aiContext: provided })
+			await flushPromises()
+
+			const panel = wrapper.findComponent({ name: 'CnAiChatPanel' })
+			expect(panel.exists()).toBe(true)
+			expect(panel.props('context')).toEqual(provided)
+		})
+
+		it('still prefers an explicitly passed context prop', async () => {
+			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+			const injected = { appId: 'buildiq', pageKind: 'custom' }
+			const explicit = { appId: 'hermiq', pageKind: 'file' }
+
+			const wrapper = mount(CnAiCompanion, {
+				props: { context: explicit },
+				provide: { cnAiContext: injected },
+			})
+			await flushPromises()
+
+			const panel = wrapper.findComponent({ name: 'CnAiChatPanel' })
+			expect(panel.props('context')).toEqual(explicit)
+		})
+	})
 })

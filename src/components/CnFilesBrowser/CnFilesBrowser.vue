@@ -35,6 +35,23 @@
 					data-testid="cn-files-browser-crumb"
 					@click="crumb.aboveRoot ? undefined : navigate(crumb.path)" />
 			</NcBreadcrumbs>
+			<!-- The Columns chooser hides declared columns for this user. It
+			     cannot add one: it is built by walking the host's declaration,
+			     so a column the host removed is not listed and cannot be
+			     ticked back on however the stored preference reads. -->
+			<NcActions v-if="columnsChooserEnabled"
+				:menuName="columnsLabel"
+				:forceMenu="true"
+				data-testid="cn-files-browser-columns">
+				<NcActionCheckbox
+					v-for="column in declaredColumns"
+					:key="column.key"
+					:modelValue="isColumnVisible(column)"
+					:data-testid="`cn-files-browser-column-${column.key}`"
+					@update:modelValue="toggleColumn(column)">
+					{{ columnLabel(column) }}
+				</NcActionCheckbox>
+			</NcActions>
 			<NcActions
 				:menuName="newLabel"
 				:forceMenu="true"
@@ -132,23 +149,22 @@
 					<th class="cn-files-browser__col-icon" scope="col">
 						<span class="hidden-visually">{{ t('nextcloud-vue', 'Type') }}</span>
 					</th>
-					<th scope="col" :aria-sort="ariaSort('basename')">
-						<button type="button" class="cn-files-browser__sort" @click="sortBy('basename')">
-							{{ t('nextcloud-vue', 'Name') }}
-							<component :is="sortIcon('basename')" v-if="sortKey === 'basename'" :size="16" />
+					<th v-for="column in renderedColumns"
+						:key="column.key"
+						scope="col"
+						:class="`cn-files-browser__col-${column.key}`"
+						:aria-sort="ariaSort(sortTokenOf(column))"
+						:data-testid="`cn-files-browser-header-${column.key}`">
+						<button v-if="column.sortable !== false"
+							type="button"
+							class="cn-files-browser__sort"
+							@click="sortBy(sortTokenOf(column))">
+							{{ columnLabel(column) }}
+							<component :is="sortIcon(sortTokenOf(column))" v-if="sortKey === sortTokenOf(column)" :size="16" />
 						</button>
-					</th>
-					<th scope="col" class="cn-files-browser__col-size" :aria-sort="ariaSort('size')">
-						<button type="button" class="cn-files-browser__sort" @click="sortBy('size')">
-							{{ t('nextcloud-vue', 'Size') }}
-							<component :is="sortIcon('size')" v-if="sortKey === 'size'" :size="16" />
-						</button>
-					</th>
-					<th scope="col" class="cn-files-browser__col-mtime" :aria-sort="ariaSort('mtime')">
-						<button type="button" class="cn-files-browser__sort" @click="sortBy('mtime')">
-							{{ t('nextcloud-vue', 'Modified') }}
-							<component :is="sortIcon('mtime')" v-if="sortKey === 'mtime'" :size="16" />
-						</button>
+						<template v-else>
+							{{ columnLabel(column) }}
+						</template>
 					</th>
 					<th class="cn-files-browser__col-actions" scope="col">
 						<span class="hidden-visually">{{ t('nextcloud-vue', 'Actions') }}</span>
@@ -180,14 +196,24 @@
 						<FolderOutline v-else-if="isFolder(node)" :size="32" />
 						<FileOutline v-else :size="32" />
 					</td>
-					<td class="cn-files-browser__col-name">
-						<span class="cn-files-browser__name">{{ node.basename }}</span>
-					</td>
-					<td class="cn-files-browser__col-size">
-						{{ isFolder(node) ? '' : formatSize(node.size) }}
-					</td>
-					<td class="cn-files-browser__col-mtime">
-						<NcDateTime v-if="node.mtime" :timestamp="node.mtime" :ignoreSeconds="true" />
+					<td v-for="column in renderedColumns"
+						:key="column.key"
+						:class="`cn-files-browser__col-${column.key}`"
+						:data-testid="`cn-files-browser-cell-${column.key}`">
+						<span v-if="column.key === 'name'" class="cn-files-browser__name">{{ node.basename }}</span>
+						<template v-else-if="column.key === 'size'">
+							{{ isFolder(node) ? '' : formatSize(node.size) }}
+						</template>
+						<NcDateTime v-else-if="column.key === 'modified'" :timestamp="node.mtime" :ignoreSeconds="true" />
+						<!-- Everything the host declared renders through the same
+						     cell renderer the tables use, so a `formatter` means
+						     here what it means there. -->
+						<CnCellRenderer v-else
+							:value="cellValue(column, node)"
+							:formatter="column.formatter || null"
+							:formatterOptions="column.formatterOptions || null"
+							:widget="column.widget || null"
+							:row="node" />
 					</td>
 					<td class="cn-files-browser__col-actions" @click.stop>
 						<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: node.basename })">
@@ -259,22 +285,28 @@
 							alt="">
 						<FileOutline v-else :size="32" />
 					</td>
-					<td class="cn-files-browser__col-name">
-						<span class="cn-files-browser__name">{{ item.name }}</span>
-						<span v-if="item.note" class="cn-files-browser__note">
-							<a
-								v-if="item.noteHref"
-								:href="item.noteHref"
-								class="cn-files-browser__note-link"
-								@click.stop>{{ item.note }}</a>
-							<template v-else>{{ item.note }}</template>
-						</span>
-					</td>
-					<td class="cn-files-browser__col-size">
-						{{ item.size ? formatSize(item.size) : '' }}
-					</td>
-					<td class="cn-files-browser__col-mtime">
-						<NcDateTime v-if="item.mtime" :timestamp="item.mtime" :ignoreSeconds="true" />
+					<!-- A linked item is not a node of this folder, so it can only
+					     answer for name, size and modified. It still walks the same
+					     column list, or a declared column set would shift every
+					     linked row one cell out of line with its header. -->
+					<td v-for="column in renderedColumns"
+						:key="column.key"
+						:class="`cn-files-browser__col-${column.key}`">
+						<template v-if="column.key === 'name'">
+							<span class="cn-files-browser__name">{{ item.name }}</span>
+							<span v-if="item.note" class="cn-files-browser__note">
+								<a
+									v-if="item.noteHref"
+									:href="item.noteHref"
+									class="cn-files-browser__note-link"
+									@click.stop>{{ item.note }}</a>
+								<template v-else>{{ item.note }}</template>
+							</span>
+						</template>
+						<template v-else-if="column.key === 'size'">
+							{{ item.size ? formatSize(item.size) : '' }}
+						</template>
+						<NcDateTime v-else-if="column.key === 'modified' && item.mtime" :timestamp="item.mtime" :ignoreSeconds="true" />
 					</td>
 					<td class="cn-files-browser__col-actions" @click.stop>
 						<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: item.name })">
@@ -410,6 +442,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import {
 	NcActionButton,
+	NcActionCheckbox,
 	NcActionLink,
 	NcActions,
 	NcActionSeparator,
@@ -434,9 +467,18 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
+import CnCellRenderer from '../CnCellRenderer/CnCellRenderer.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import { readUserPreference, writeUserPreference } from '../../composables/useUserPreferences.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { ACTIONS_NEEDING_THE_FILES_PAGE, crumbsFor, joinPath } from './filesBrowser.js'
+import {
+	attributePropertiesFor,
+	fileColumnValue,
+	normaliseFileColumns,
+	sortNodesByColumn,
+	visibleFileColumns,
+} from './filesBrowserColumns.js'
 
 let uploadSeq = 0
 
@@ -448,11 +490,13 @@ export default {
 
 	components: {
 		AlertCircleOutline,
+		CnCellRenderer,
 		CnIcon,
 		Download,
 		FileOutline,
 		FolderOutline,
 		NcActionButton,
+		NcActionCheckbox,
 		NcActionLink,
 		NcActionSeparator,
 		NcActions,
@@ -606,6 +650,67 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Try again'),
 		},
+
+		/**
+		 * The columns this browser shows, in order. An entry is a built-in name
+		 * (`name`, `size`, `modified`, `owner`, `type`, `tags`) or an object
+		 * declaring its own: `{ key, label, source, attribute, formatter,
+		 * sortable }`, where `source` is `node` (a property of the node),
+		 * `attribute` (a DAV property, added to the PROPFIND before listing) or
+		 * `row` (a value from `rowData`).
+		 *
+		 * Declaring none keeps today's table: name, size and modified.
+		 *
+		 * This is the membership list. The Columns chooser lets a user hide any
+		 * of these; it never adds one, and a column removed from here is gone
+		 * for every user, whatever they had stored.
+		 *
+		 * @type {Array<string|object>}
+		 */
+		columns: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The host's own per-file data for `source: 'row'` columns, keyed by
+		 * file id. Either an object, or a function of the listed nodes called
+		 * once per folder so the host can fetch its projection in one request.
+		 *
+		 * @type {object | ((nodes: Array<object>) => (object|Promise<object>))}
+		 */
+		rowData: {
+			type: [Object, Function],
+			default: null,
+		},
+
+		/**
+		 * The app id the Columns chooser stores this user's choice under. Unset
+		 * means the chooser is not offered and every declared column renders.
+		 *
+		 * @type {string}
+		 */
+		preferenceApp: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The key this browser's column choice is stored under, so two browsers
+		 * in one app remember separately.
+		 *
+		 * @type {string}
+		 */
+		preferenceKey: {
+			type: String,
+			default: 'files-browser-columns',
+		},
+
+		/** Label of the toolbar's Columns chooser. */
+		columnsLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Columns'),
+		},
 	},
 
 	emits: ['changed'],
@@ -621,6 +726,14 @@ export default {
 			error: '',
 			sortKey: 'basename',
 			sortAsc: true,
+			/** The host's per-file data for `row` columns, by file id. */
+			resolvedRowData: null,
+			/**
+			 * The column keys this user chose to see, or null while they have
+			 * chosen nothing. Never a source of membership: it is intersected
+			 * with the host's declaration, never added to it.
+			 */
+			visibleColumnKeys: null,
 			dragging: false,
 			uploads: [],
 			previewFailed: {},
@@ -666,12 +779,83 @@ export default {
 		 * @return {Array<object>} The nodes.
 		 */
 		sorted() {
+			const column = this.activeSortColumn
+			if (column && !column.sortKey) {
+				// A declared column has no meaning to the Files app's sorter, so
+				// it sorts here, within the folder that is listed.
+				return sortNodesByColumn(this.nodes, column, this.sortAsc, this.resolvedRowData, (node) => this.isFolder(node))
+			}
 			return sortNodes(this.nodes, {
 				sortingMode: this.sortKey,
 				sortingOrder: this.sortAsc ? 'asc' : 'desc',
 				sortFoldersFirst: true,
 				sortFavoritesFirst: false,
 			})
+		},
+
+		/**
+		 * The columns the host declared, resolved. This is the membership list:
+		 * a column exists because the host declared it, in the host's order.
+		 *
+		 * @return {Array<object>} The declared columns.
+		 * @spec openspec/changes/files-browser-columns/specs/files-browser/spec.md
+		 */
+		declaredColumns() {
+			return normaliseFileColumns(this.columns)
+		},
+
+		/**
+		 * The library's own word for each built-in column, used when the host
+		 * did not write a label.
+		 *
+		 * @return {object} Labels by column key.
+		 */
+		builtInColumnLabels() {
+			return {
+				name: t('nextcloud-vue', 'Name'),
+				size: t('nextcloud-vue', 'Size'),
+				modified: t('nextcloud-vue', 'Modified'),
+				owner: t('nextcloud-vue', 'Owner'),
+				type: t('nextcloud-vue', 'Type'),
+				tags: t('nextcloud-vue', 'Tags'),
+			}
+		},
+
+		/**
+		 * The columns this browser renders: the host's declaration narrowed by
+		 * what this user chose to see.
+		 *
+		 * The user's stored choice only ever takes columns away. It is applied
+		 * by walking the declaration, so a key the host no longer declares is
+		 * passed over rather than rendered, and a preference written when a
+		 * different set was declared cannot bring an old column back.
+		 *
+		 * @return {Array<object>} The columns to render.
+		 * @spec openspec/changes/files-browser-columns/specs/files-browser/spec.md
+		 */
+		renderedColumns() {
+			return visibleFileColumns(this.declaredColumns, this.visibleColumnKeys)
+		},
+
+		/**
+		 * The column the table is currently sorted on, or null when the sort
+		 * key belongs to no declared column.
+		 *
+		 * @return {(object|null)} The active column.
+		 */
+		activeSortColumn() {
+			return this.declaredColumns.find((column) => this.sortTokenOf(column) === this.sortKey) || null
+		},
+
+		/**
+		 * Whether the Columns chooser is offered: only when the host said where
+		 * to store the answer, because a chooser that forgets is worse than no
+		 * chooser.
+		 *
+		 * @return {boolean} True when the chooser renders.
+		 */
+		columnsChooserEnabled() {
+			return this.preferenceApp !== '' && this.declaredColumns.length > 0
 		},
 
 		/**
@@ -704,6 +888,7 @@ export default {
 	},
 
 	mounted() {
+		this.loadColumnChoice()
 		this.refresh()
 	},
 
@@ -742,7 +927,7 @@ export default {
 				const client = getClient()
 				const { data } = await client.getDirectoryContents(this.davPath(this.currentPath), {
 					details: true,
-					data: getDefaultPropfind(),
+					data: this.propfindBody(),
 					includeSelf: true,
 				})
 				const stats = Array.isArray(data) ? data : []
@@ -750,6 +935,9 @@ export default {
 				const self = nodes.find((node) => node.path === this.currentPath) || nodes[0] || null
 				this.folder = self
 				this.nodes = nodes.filter((node) => node !== self)
+				// One call per folder, not one per file: the host's projection
+				// is asked for the whole listing at once.
+				await this.resolveRowData(this.nodes)
 			} catch (err) {
 				const status = err?.response?.status ?? err?.status
 				this.error = status === 404
@@ -1102,13 +1290,168 @@ export default {
 		 * @param {string} key `basename`, `size` or `mtime`.
 		 * @return {void}
 		 */
+		/**
+		 * The PROPFIND this browser sends: the Files app's own body, plus one
+		 * `<prop>` for every DAV property a declared `attribute` column reads,
+		 * so that value is on the node when the folder lists rather than one
+		 * request later.
+		 *
+		 * @return {string} The PROPFIND body.
+		 * @spec openspec/changes/files-browser-columns/specs/files-browser/spec.md
+		 */
+		propfindBody() {
+			const base = getDefaultPropfind()
+			const extra = attributePropertiesFor(this.declaredColumns)
+			if (extra.length === 0) {
+				return base
+			}
+			const props = extra.map((name) => {
+				const match = /^\{(.+)\}(.+)$/.exec(name)
+				if (!match) {
+					return `<d:${name} />`
+				}
+				return `<x-cn:${match[2]} xmlns:x-cn="${match[1]}" />`
+			}).join('')
+			// Spliced into the existing <d:prop> rather than appended after it:
+			// a second <d:prop> block is not a PROPFIND any server answers.
+			return base.includes('</d:prop>')
+				? base.replace('</d:prop>', `${props}</d:prop>`)
+				: base
+		},
+
+		/**
+		 * The token a column sorts under: the Files app's own sorting mode for
+		 * a built-in, the column key for anything else.
+		 *
+		 * @param {object} column A resolved column.
+		 * @return {string} The sort token.
+		 */
+		sortTokenOf(column) {
+			return (column && (column.sortKey || column.key)) || ''
+		},
+
+		/**
+		 * The label a column's header shows: what the host wrote, else the
+		 * library's own word for a built-in, else the key.
+		 *
+		 * @param {object} column A resolved column.
+		 * @return {string} The header text.
+		 */
+		columnLabel(column) {
+			if (column && typeof column.label === 'string' && column.label !== '') {
+				return column.label
+			}
+			return this.builtInColumnLabels[column && column.key] || (column && column.key) || ''
+		},
+
+		/**
+		 * One cell's value.
+		 *
+		 * @param {object} column A resolved column.
+		 * @param {object} node The node.
+		 * @return {(Array|object|string|number|boolean|undefined)} The value.
+		 */
+		cellValue(column, node) {
+			return fileColumnValue(column, node, this.resolvedRowData)
+		},
+
+		/**
+		 * Whether a user currently sees a column, for the chooser's ticks.
+		 *
+		 * @param {object} column A resolved column.
+		 * @return {boolean} True when it renders.
+		 */
+		isColumnVisible(column) {
+			return this.renderedColumns.some((c) => c.key === column.key)
+		},
+
+		/**
+		 * Tick or untick a column for this user and remember it.
+		 *
+		 * The stored value is always rebuilt from the host's declaration, never
+		 * from the previous stored value, so a key the host has since dropped
+		 * cannot survive a toggle and reappear later.
+		 *
+		 * @param {object} column The column being toggled.
+		 * @return {void}
+		 * @spec openspec/changes/files-browser-columns/specs/files-browser/spec.md
+		 */
+		toggleColumn(column) {
+			const next = this.declaredColumns
+				.filter((c) => (c.key === column.key ? !this.isColumnVisible(c) : this.isColumnVisible(c)))
+				.map((c) => c.key)
+			this.visibleColumnKeys = next
+			this.saveColumnChoice(next)
+		},
+
+		/**
+		 * Read this user's column choice. A stored key the host no longer
+		 * declares is dropped on the way in as well as on the way out, so the
+		 * chooser never lists a column that cannot render.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadColumnChoice() {
+			if (!this.columnsChooserEnabled) {
+				return
+			}
+			const stored = await readUserPreference(this.preferenceApp, this.preferenceKey, null)
+			if (!Array.isArray(stored)) {
+				this.visibleColumnKeys = null
+				return
+			}
+			const declared = new Set(this.declaredColumns.map((c) => c.key))
+			this.visibleColumnKeys = stored.filter((key) => declared.has(key))
+		},
+
+		/**
+		 * Store this user's column choice.
+		 *
+		 * @param {string[]} keys The visible column keys.
+		 * @return {Promise<void>}
+		 */
+		async saveColumnChoice(keys) {
+			if (!this.columnsChooserEnabled) {
+				return
+			}
+			await writeUserPreference(this.preferenceApp, this.preferenceKey, keys)
+		},
+
+		/**
+		 * Resolve the host's per-file data for this folder's nodes. Called once
+		 * per listing, so a projection of ninety files is one request.
+		 *
+		 * @param {Array<object>} nodes The listed nodes.
+		 * @return {Promise<void>}
+		 */
+		async resolveRowData(nodes) {
+			if (this.rowData === null || this.rowData === undefined) {
+				this.resolvedRowData = null
+				return
+			}
+			if (typeof this.rowData !== 'function') {
+				this.resolvedRowData = this.rowData
+				return
+			}
+			try {
+				this.resolvedRowData = await this.rowData(nodes)
+			} catch {
+				// A projection that could not be fetched leaves those cells
+				// empty. It is not a reason to say the folder failed to list:
+				// the files are there and the host's extra columns are not.
+				this.resolvedRowData = null
+			}
+		},
+
 		sortBy(key) {
 			if (this.sortKey === key) {
 				this.sortAsc = !this.sortAsc
 				return
 			}
 			this.sortKey = key
-			this.sortAsc = key === 'basename'
+			// Size and modified read most usefully largest and newest first;
+			// everything else, including every declared column, starts at A.
+			this.sortAsc = key !== 'size' && key !== 'mtime'
 		},
 
 		/**

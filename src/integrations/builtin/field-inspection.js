@@ -47,6 +47,15 @@ export const DEFAULT_FIELD_INSPECTION_CONFIG = {
 	dateField: 'scheduledAt',
 	// Property on a planned item used as its display title.
 	titleField: 'caseRef',
+	// Register the leaf writes its own bookkeeping to. Empty falls back to the
+	// register each queued operation already names.
+	register: '',
+	// Schema holding queue records, for a consuming app that wants the queue
+	// itself readable server-side. Empty writes nothing.
+	queueSchema: '',
+	// Schema holding conflict records. Empty keeps a conflict on the device,
+	// and the queue row says so rather than pretending it was filed.
+	conflictSchema: '',
 }
 
 /**

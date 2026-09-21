@@ -179,23 +179,30 @@ export function useSelfFetchList(props, instance, inject) {
 			const ctx = tokenCtx()
 			const queryFilters = resolveQueryFilters(route && route.query, ctx)
 			const base = resolveFilterMap(props.filter, params, ctx)
+			// A folder-sidebar scope declaring `searchFields` narrows what the
+			// search box searches over while that scope is active. Read off the
+			// instance, like `$route` above, because the active scope is the
+			// component's own state rather than a prop — and read through the
+			// one fixed-filter getter rather than a second search path.
+			const scopeSearchFields = (instance && instance.proxy && instance.proxy.activeScopeSearchFields) || []
+			const scope = scopeSearchFields.length > 0 ? { _searchFields: scopeSearchFields } : {}
 			const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
 			if (!tabs) {
-				return { ...queryFilters, ...base }
+				return { ...queryFilters, ...scope, ...base }
 			}
 
 			// Multiple mode: OR the selected tabs' filters together (union).
 			if (isMultiQuickFilter) {
 				const maps = selectedQuickFilterIndices.value
 					.map((i) => resolveFilterMap(tabs[i]?.filter, params, ctx))
-				return { ...queryFilters, ...base, ...unionFilterMaps(maps) }
+				return { ...queryFilters, ...scope, ...base, ...unionFilterMaps(maps) }
 			}
 
 			// Single mode: the active tab's filter spread last so it wins
 			// over a colliding props.filter entry.
 			const activeIdx = activeQuickFilterIndex.value
 			const tabFilter = (activeIdx !== null && activeIdx !== undefined) ? tabs[activeIdx]?.filter : null
-			return { ...queryFilters, ...base, ...resolveFilterMap(tabFilter, params, ctx) }
+			return { ...queryFilters, ...scope, ...base, ...resolveFilterMap(tabFilter, params, ctx) }
 		},
 	})
 

@@ -112,6 +112,120 @@ describe('app-manifest-v2 — all 10 page types (REQ-MV2S-003)', () => {
 })
 
 describe('app-manifest-v2 — unified widgetEntry shape (REQ-MV2S-004)', () => {
+	/**
+	 * 🔴 THE SAME DECLARATION VALIDATED ON ONE PAGE AND WAS REJECTED ON ANOTHER.
+	 * `roles` and `visibleWhen` were expressible in the legacy
+	 * `config.widgets[]` array, whose items are `additionalProperties: true`,
+	 * and refused by this shape, which is closed and listed neither. Measured
+	 * on dossiq 2026-09-18: fourteen widgets declared their readers in the
+	 * legacy array, and the one widget the app had moved to the uniform entry
+	 * could not say the same thing at all.
+	 *
+	 * `visibleWhen` was the sharper half. CnDashboardPage already READS
+	 * `def.visibleWhen` on a widget definition at runtime, so the uniform entry
+	 * was refusing a key the component it feeds already honours.
+	 */
+	it('a widget entry declares who may see it, and when it is shown', () => {
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [{
+				id: 'reporting',
+				route: '/reporting',
+				type: 'dashboard',
+				title: 'app.reporting',
+				widgets: [{
+					widgetKey: 'AnnualStatementWidget',
+					slot: 'body',
+					gridX: 0,
+					gridY: 0,
+					gridWidth: 6,
+					gridHeight: 2,
+					id: 'annual-statement',
+					roles: ['controllers', 'beheerders', 'admin'],
+					visibleWhen: {
+						endpoint: '/apps/example/api/widget-visibility',
+						field: 'visible.annual-statement',
+						op: 'eq',
+						value: true,
+					},
+				}],
+			}],
+		}
+		const result = validateManifestV2(manifest)
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('a widget entry without them still validates, so nothing existing has to change', () => {
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [{
+				id: 'reporting',
+				route: '/reporting',
+				type: 'dashboard',
+				title: 'app.reporting',
+				widgets: [{
+					widgetKey: 'AnnualStatementWidget',
+					slot: 'body',
+					gridX: 0,
+					gridY: 0,
+					gridWidth: 6,
+					gridHeight: 2,
+				}],
+			}],
+		}
+		expect(validateManifestV2(manifest).valid).toBe(true)
+	})
+
+	it('roles is a list of strings, not a bare string', () => {
+		// The shape somebody reaches for first, and the one that would make
+		// `roles: "controllers"` iterate eleven single characters in whatever
+		// reads it downstream.
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [{
+				id: 'reporting',
+				route: '/reporting',
+				type: 'dashboard',
+				title: 'app.reporting',
+				widgets: [{
+					widgetKey: 'AnnualStatementWidget',
+					slot: 'body',
+					gridX: 0,
+					gridY: 0,
+					gridWidth: 6,
+					gridHeight: 2,
+					roles: 'controllers',
+				}],
+			}],
+		}
+		expect(validateManifestV2(manifest).valid).toBe(false)
+	})
+
+	it('a key this shape does not know is still refused', () => {
+		// The closed shape stays closed. Adding two properties is not the same
+		// as opening it, and this is what says so.
+		const manifest = {
+			...MINIMAL_V2,
+			pages: [{
+				id: 'reporting',
+				route: '/reporting',
+				type: 'dashboard',
+				title: 'app.reporting',
+				widgets: [{
+					widgetKey: 'AnnualStatementWidget',
+					slot: 'body',
+					gridX: 0,
+					gridY: 0,
+					gridWidth: 6,
+					gridHeight: 2,
+					rolez: ['controllers'],
+				}],
+			}],
+		}
+		expect(validateManifestV2(manifest).valid).toBe(false)
+	})
+
 	it('widget entry with all required fields validates', () => {
 		const manifest = {
 			...MINIMAL_V2,
@@ -1140,9 +1254,13 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.35.0', () => {
+	it('the manifest schema version reads 2.38.0', () => {
+		// A consumer reads this to tell a manifest key it does not know from
+		// one it got wrong. 2.38.0 and not 2.35.0 or 2.37.0: two branches
+		// bumped from 2.33.0 at once, so this schema holds both their key
+		// sets and neither of their numbers names it.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.35.0')
+		expect(schema.version).toBe('2.38.0')
 	})
 
 	it('accepts a declarative `store` block, and requires the remote schema', () => {
@@ -1317,6 +1435,124 @@ describe('case-page-and-list-as-a-place — the keys are refused off their page 
 		expect(validateManifestV2(page({ tabInAddress: true })).valid).toBe(false)
 	})
 
+	it('accepts savedViewPlaces on an index page, and refuses a route base that is not a path segment', () => {
+		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, routeBase: 'views', navGroup: 'nav-cases', pinnedCap: 5 } })).valid).toBe(true)
+		// A segment a person reads and sends. 'My Views' would encode, render
+		// as %20 in the address bar and still work, which is exactly the kind
+		// of thing nobody notices until the link is in an email.
+		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, routeBase: 'My Views' } })).valid).toBe(false)
+		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, pinnedCap: 0 } })).valid).toBe(false)
+		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, wat: true } })).valid).toBe(false)
+	})
+
+	it('accepts savedViewTree on an index page, with a seeded view that carries a slug', () => {
+		expect(validateManifestV2(page({
+			savedViewTree: {
+				enabled: true,
+				maxDepth: 3,
+				seeded: [
+					{ slug: 'open-cases', name: 'Open cases', label: 'triage' },
+					{ slug: 'open-mine', name: 'Mine', parent: 'open-cases', inherits: ['columns', 'sorting'] },
+				],
+			},
+		})).valid).toBe(true)
+		// A page that names nothing keeps the flat dropdown it has today.
+		expect(validateManifestV2(page({})).valid).toBe(true)
+	})
+
+	it('refuses a seeded view nothing can call, and a depth nobody can read', () => {
+		// The slug is what a widget, an export action or an API caller cites.
+		// A seeded view without one is a view the product ships and nothing
+		// can name, which is most of the reason to seed it.
+		expect(validateManifestV2(page({
+			savedViewTree: { enabled: true, seeded: [{ name: 'No slug' }] },
+		})).valid).toBe(false)
+		// Lowercase and dash only: it appears in an address and in somebody
+		// else's manifest.
+		expect(validateManifestV2(page({
+			savedViewTree: { enabled: true, seeded: [{ slug: 'Open Cases', name: 'Open' }] },
+		})).valid).toBe(false)
+		expect(validateManifestV2(page({
+			savedViewTree: { enabled: true, maxDepth: 9 },
+		})).valid).toBe(false)
+		expect(validateManifestV2(page({
+			savedViewTree: { enabled: true, wat: true },
+		})).valid).toBe(false)
+	})
+
+	it('refuses inherits on a seeded view with no parent, rather than ignoring it at render', () => {
+		// A declaration that reads as configured and resolves to nothing is
+		// the exact failure this change exists to stop.
+		expect(validateManifestV2(page({
+			savedViewTree: { enabled: true, seeded: [{ slug: 'orphan', name: 'Orphan', inherits: ['columns'] }] },
+		})).valid).toBe(false)
+		// The same view WITH a parent is fine, which is the control: a rule
+		// that refused every `inherits` would pass the assertion above and
+		// make the key unusable.
+		expect(validateManifestV2(page({
+			savedViewTree: {
+				enabled: true,
+				seeded: [
+					{ slug: 'root', name: 'Root' },
+					{ slug: 'child', name: 'Child', parent: 'root', inherits: ['columns'] },
+				],
+			},
+		})).valid).toBe(true)
+	})
+
+	it('accepts templates, a landing view per role, per-role columns and a group-by', () => {
+		expect(validateManifestV2(page({
+			savedViewTree: {
+				enabled: true,
+				templates: [{ slug: 'triage', name: 'Triage', columns: ['id'], exportFields: ['id'] }],
+				landingView: { behandelaar: 'open-cases' },
+				columnsPerRole: { behandelaar: ['id', 'title'] },
+				groupBy: 'status',
+				seeded: [{ slug: 'open-cases', name: 'Open', actions: ['claim', 'assign'] }],
+			},
+		})).valid).toBe(true)
+	})
+
+	it('refuses a template nothing can name, and a stray key beside the roles', () => {
+		expect(validateManifestV2(page({
+			savedViewTree: { enabled: true, templates: [{ name: 'No slug' }] },
+		})).valid).toBe(false)
+		// patternProperties with additionalProperties false: a role key is a
+		// role name, and anything that is not one is a typo rather than a
+		// role nobody has yet.
+		expect(validateManifestV2(page({
+			savedViewTree: { enabled: true, landingView: { 'not a role': 'x' } },
+		})).valid).toBe(false)
+	})
+
+	it('accepts a board and a date axis on an index page', () => {
+		expect(validateManifestV2(page({
+			board: { statusField: 'status', cardFields: ['title'], swimlaneField: 'assignee' },
+			dateAxis: { startField: 'startDate', endField: 'deadline', laneField: 'assignee', labelField: 'title' },
+		})).valid).toBe(true)
+	})
+
+	it('refuses a board with nothing to be a board of, and an axis with one end', () => {
+		// A board with no status field has no columns; an axis with one date
+		// has no bars. Both would validate and then render an explanation.
+		expect(validateManifestV2(page({ board: { cardFields: ['title'] } })).valid).toBe(false)
+		expect(validateManifestV2(page({ dateAxis: { startField: 'startDate' } })).valid).toBe(false)
+		expect(validateManifestV2(page({ board: { statusField: 'status', wat: true } })).valid).toBe(false)
+	})
+
+	it('refuses a board and a date axis on a detail page', () => {
+		expect(validateManifestV2(detail({ board: { statusField: 'status' } })).valid).toBe(false)
+		expect(validateManifestV2(detail({ dateAxis: { startField: 'a', endField: 'b' } })).valid).toBe(false)
+	})
+
+	it('refuses savedViewTree on a detail page, where there is no dropdown to put a tree in', () => {
+		expect(validateManifestV2(detail({ savedViewTree: { enabled: true } })).valid).toBe(false)
+	})
+
+	it('refuses savedViewPlaces on a detail page, where a view is not a place', () => {
+		expect(validateManifestV2(detail({ savedViewPlaces: { enabled: true } })).valid).toBe(false)
+	})
+
 	it('refuses a breakpoint no viewport has', () => {
 		expect(validateManifestV2(page({ splitView: { enabled: true, breakpoint: 10 } })).valid).toBe(false)
 	})
@@ -1324,5 +1560,84 @@ describe('case-page-and-list-as-a-place — the keys are refused off their page 
 	it('accepts the root personalisation block and refuses a date display it does not offer', () => {
 		expect(validateManifestV2({ ...page({}), personalisation: { enabled: true, dateDisplay: 'relative' } }).valid).toBe(true)
 		expect(validateManifestV2({ ...page({}), personalisation: { dateDisplay: 'fuzzy' } }).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — ncDashboard, publishing a placement to the Nextcloud dashboard', () => {
+	/**
+	 * Builds a one-widget dashboard page. `gridWidth` stays at 6 deliberately:
+	 * a lone `0,0,12,12` body widget whose key is not a library built-in is
+	 * rejected by validateManifestV2 as a custom page in disguise (ADR-036
+	 * decision 1), which would redden these tests for a reason that has
+	 * nothing to do with ncDashboard.
+	 *
+	 * @param {object} widget - extra keys merged onto the placement.
+	 * @return {object} a v2 manifest carrying that one placement.
+	 */
+	const withWidget = (widget) => ({
+		...MINIMAL_V2,
+		pages: [{
+			id: 'reporting',
+			route: '/reporting',
+			type: 'dashboard',
+			title: 'app.reporting',
+			widgets: [{
+				widgetKey: 'AnnualStatementWidget',
+				slot: 'body',
+				gridX: 0,
+				gridY: 0,
+				gridWidth: 6,
+				gridHeight: 2,
+				...widget,
+			}],
+		}],
+	})
+
+	it('a placement carrying ncDashboard and an id validates', () => {
+		const result = validateManifestV2(withWidget({
+			id: 'annual-statement',
+			ncDashboard: {
+				title: 'Annual statement',
+				icon: 'ViewDashboardOutline',
+				order: 20,
+				link: '/reporting',
+			},
+		}))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('ncDashboard may declare nothing at all and still validates', () => {
+		const result = validateManifestV2(withWidget({ id: 'annual-statement', ncDashboard: {} }))
+		expect(result.valid).toBe(true)
+	})
+
+	/**
+	 * 🔴 The one-way door. The host derives a permanent Nextcloud widget id
+	 * from `id`, and Nextcloud stores each user's chosen widgets by that id in
+	 * its own namespace, which no migration of a consuming app can reach. A
+	 * placement identified by array position would move onto a different
+	 * widget the moment the array is reordered, silently changing what every
+	 * user who added the panel sees. The schema refuses the declaration rather
+	 * than letting that reach a dashboard.
+	 */
+	it('ncDashboard without an id is refused, naming id', () => {
+		const result = validateManifestV2(withWidget({ ncDashboard: { title: 'Annual statement' } }))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('id'))).toBe(true)
+	})
+
+	it('ncDashboard refuses a key it does not offer', () => {
+		const result = validateManifestV2(withWidget({
+			id: 'annual-statement',
+			ncDashboard: { title: 'Annual statement', subtitle: 'not a thing' },
+		}))
+		expect(result.valid).toBe(false)
+	})
+
+	it('a placement without ncDashboard still validates, so nothing existing has to change', () => {
+		const result = validateManifestV2(withWidget({ id: 'annual-statement' }))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
 	})
 })

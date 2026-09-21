@@ -137,6 +137,29 @@ export function transitionError(e, fallback = '') {
 }
 
 /**
+ * The input fields a refusal names.
+ *
+ * A refused transition answers 400 with `{ error, fields }`, where `fields`
+ * holds the offending input keys. Reading them lets the dialog point at the
+ * field instead of putting one sentence above a form and leaving the person to
+ * find which box it is about.
+ *
+ * Anything that is not that shape answers an empty list, so a 403 or a
+ * transport failure never marks a field.
+ *
+ * @param {object} e The axios error.
+ * @return {string[]} The field keys the refusal named.
+ */
+export function transitionFieldErrors(e) {
+	const fields = e && e.response && e.response.data && e.response.data.fields
+	if (!Array.isArray(fields)) {
+		return []
+	}
+
+	return fields.filter((key) => typeof key === 'string' && key !== '')
+}
+
+/**
  * Whether an action needs input collected before it may be sent.
  *
  * @param {object} action The action descriptor.

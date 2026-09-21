@@ -98,6 +98,67 @@ export function listWidgetTypes(surface = 'app-dashboard') {
 }
 
 /**
+ * List the widget types a USER may add to their own dashboard.
+ *
+ * 🔴 IT IS AN OPT-IN, AND THAT IS THE WHOLE POINT. `listWidgetTypes()` answers
+ * what an administrator may put on a page for everybody, which is a much
+ * larger set: an admin configures a widget once, with the register and schema
+ * in front of them, and a user picking from the same list would be offered
+ * types that need configuration they cannot supply and cannot be told about.
+ * So a type is offerable to a user only when its registry entry says
+ * `userAddable: true`.
+ *
+ * @param {string} [surface] The surface key, as {@link listWidgetTypes} uses it.
+ * @return {string[]} The type keys a user may add themselves.
+ */
+export function listUserAddableWidgetTypes(surface = 'app-dashboard') {
+	return listWidgetTypes(surface).filter((type) => dashboardWidgetRegistry[type]?.userAddable === true)
+}
+
+/**
+ * The presets a manifest offers a user, from `config.userWidgets[]`.
+ *
+ * A preset is a widget an app has already configured, offered under a name a
+ * user recognises: "one of my saved views", "my tasks". It exists because the
+ * registry types a user may add are deliberately few, and the two lists a user
+ * actually wants are both `object-list` widgets that need a query the app
+ * knows and the user does not.
+ *
+ * An entry with no `id` or no `kind` is dropped rather than offered: a preset
+ * nobody can identify cannot be added, and one with no kind has nothing to
+ * render.
+ *
+ * @param {object|null} config The page config.
+ * @return {Array<{ id: string, kind: string, label: string, widget: object }>} The offerable presets.
+ */
+export function userWidgetPresets(config) {
+	const declared = config?.userWidgets
+	if (!Array.isArray(declared)) {
+		return []
+	}
+
+	const presets = []
+	for (const entry of declared) {
+		const id = String(entry?.id ?? '').trim()
+		const kind = String(entry?.kind ?? '').trim()
+		if (id === '' || kind === '') {
+			continue
+		}
+
+		presets.push({
+			id,
+			kind,
+			label: String(entry?.label ?? id),
+			// The widget definition the app configured, copied so a caller
+			// adding one twice does not hand the grid the same object twice.
+			widget: { ...(entry?.widget || {}) },
+		})
+	}
+
+	return presets
+}
+
+/**
  * Look up a widget type entry; returns `null` when the type is unknown so the
  * caller can fall back gracefully.
  *

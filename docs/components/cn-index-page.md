@@ -114,6 +114,111 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the v2 `registry` — any kind carrying a `component` — or in the legacy `customComponents` map on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log a `console.warn` once and fall back to the default so a misconfigured manifest never blanks the grid. See [Bespoke card-grid](#bespoke-card-grid-via-cardcomponent) below. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 
+## Board and date axis: two more ways to look at the same list
+
+`viewMode` accepts `board` and `dateAxis` beside `table`, `cards`, `list` and
+`map`. Each needs its own config block, and each segment appears only when the
+mode can actually work: a board needs a `statusField`, a date axis needs both
+dates. A segment that opens a view saying it cannot be one is worse than no
+segment, because the reader has to click it to find out.
+
+```json
+{
+  "viewModes": ["table", "board", "dateAxis"],
+  "board": {
+    "statusField": "status",
+    "cardFields": ["title", "assignee"],
+    "swimlaneField": "assignee"
+  },
+  "dateAxis": {
+    "startField": "startDate",
+    "endField": "deadline",
+    "laneField": "assignee",
+    "labelField": "title"
+  }
+}
+```
+
+**The board never writes the status field.** A move goes through
+`runTransition`, the host's own transition, so a board can never move a case
+past a rule the case page enforces. With no `runTransition` the board is
+read-only rather than broken. A move emits `board-move` and refreshes the list,
+because a transition may have changed more than the status and a board that
+only moved the card would disagree with the table beside it.
+
+**A filter set on one mode does not follow you to another.** The two views are
+asked different questions: a board is "show me the work in flight", a table is
+"find me this case". Carrying the board's filter into the table is how somebody
+searches for a case they know exists and is told there are no results; carrying
+a table filter into a board silently empties three columns, and an empty column
+reads as "no work here" rather than "you are not being shown it". The saved
+view's own criteria *do* follow: the view is the question, the mode is how you
+look at the answer.
+
+**What the manifest cannot check.** A `statusField` naming a field with no enum
+and no lifecycle cannot be refused at validation time, because the stages live
+in the register schema and the manifest does not contain it. `CnBoardView` says
+so on screen instead of drawing empty columns.
+
+## Saved views: the tree, the labels and what a view is called
+
+`savedViewTree` on an index page turns the flat Views dropdown into a tree.
+Two hundred personal views in one flat list is the problem it solves. Absent,
+the page renders exactly the dropdown it renders today.
+
+```json
+{
+  "savedViewTree": {
+    "enabled": true,
+    "maxDepth": 3,
+    "groupBy": "status",
+    "landingView": { "behandelaar": "open-cases" },
+    "columnsPerRole": { "behandelaar": ["id", "title", "status"] },
+    "templates": [
+      { "slug": "triage", "name": "Triage", "columns": ["id", "title"], "exportFields": ["id"] }
+    ],
+    "seeded": [
+      { "slug": "open-cases", "name": "Open cases", "label": "triage", "actions": ["claim"] },
+      { "slug": "open-mine", "name": "Mine", "parent": "open-cases", "inherits": ["columns", "sorting"] }
+    ]
+  }
+}
+```
+
+**Inheritance is five parts, resolved separately** — criteria, columns,
+sorting, defaultSort and exportFields. A child may narrow the criteria and keep
+the parent's six columns, which an all-or-nothing rule makes impossible to
+express. An absent `inherits` on a child means every part; an empty array means
+none, so a view can hang under another for grouping alone. Overriding a part
+and declaring nothing for it resolves to nothing, not to the parent's.
+
+A cycle is refused naming both views. A parent the reader may not see is not an
+error: the child renders at the root, resolved, and says which parts came from
+a view they cannot see.
+
+**A slug is the one name a view is called by** from a dashboard widget, an
+export action or the API. An unknown slug renders an empty state naming it,
+never a blank list: a blank list is indistinguishable from a query that matched
+nothing. A slug is editable only while nothing cites it.
+
+**`landingView` is where a role starts, not where it is kept.** A personal
+choice always wins and Reset returns to the administered view. A role's landing
+view changing mid-session applies on the next arrival: moving somebody's list
+out from under them is worse than a stale default.
+
+**`columnsPerRole` narrows `index-columns-per-scope`, never widens it.** A role
+naming a column the scope does not offer gets nothing extra; a per-role list
+that could add one would be a second, quieter way to put a field on screen that
+the scope deliberately left off.
+
+**`groupBy` counts the rows the list holds.** On a paged list that is a count
+of the page, and the surface says so rather than showing a page count as
+though it were the total.
+
+**A view's `actions` intersect with what the reader may run** and are never
+added to. A view is a thing any user can create, so a view that could add an
+action would let any user grant themselves one by saving a view.
+
 ## Split view
 
 A page declaring `splitView` opens a row beside the list rather than instead of it. The list keeps its scroll position, its selection and its loaded page, because it is hidden rather than unmounted. A handler at row 180 of 400 opens a case, closes it, and is still at row 180.

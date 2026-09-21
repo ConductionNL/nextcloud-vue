@@ -304,6 +304,78 @@ describe('CnLifecycleActions', () => {
 			expect(wrapper.emitted('reload')).toBeTruthy()
 		})
 
+		it('a refused completion keeps the dialog open with what was typed still in it', async () => {
+			axios.post.mockRejectedValue({
+				response: {
+					status: 400,
+					data: {
+						error: 'Transition "reject" is missing required input field(s): "reason".',
+						fields: ['reason'],
+					},
+				},
+			})
+			const wrapper = await openServerDialog()
+
+			wrapper.find('[data-testid="cn-transition-input-reason"]')
+				.findComponent({ name: 'NcTextField' }).vm.$emit('update:model-value', 'No budget')
+			await wrapper.vm.$nextTick()
+			await wrapper.find('[data-testid="cn-transition-input-confirm"]').trigger('click')
+			await flush()
+			await wrapper.vm.$nextTick()
+
+			const dialog = wrapper.findComponent({ name: 'CnTransitionInputDialog' })
+			expect(dialog.exists()).toBe(true)
+			// What was typed survived the refusal: the person does not retype it.
+			expect(dialog.vm.values.reason).toBe('No budget')
+			expect(dialog.props('error')).toContain('missing required input')
+			expect(dialog.props('fieldErrors')).toEqual(['reason'])
+			// And the refusal is not ALSO left on the page behind the dialog.
+			expect(wrapper.find('[data-testid="cn-lifecycle-actions-error"]').exists()).toBe(false)
+			expect(wrapper.emitted('transitioned')).toBeFalsy()
+		})
+
+		it('a refusal that names no fields still reports its sentence', async () => {
+			axios.post.mockRejectedValue({
+				response: { status: 403, data: { error: 'You may not reject this request.' } },
+			})
+			const wrapper = await openServerDialog()
+
+			wrapper.find('[data-testid="cn-transition-input-reason"]')
+				.findComponent({ name: 'NcTextField' }).vm.$emit('update:model-value', 'No budget')
+			await wrapper.vm.$nextTick()
+			await wrapper.find('[data-testid="cn-transition-input-confirm"]').trigger('click')
+			await flush()
+			await wrapper.vm.$nextTick()
+
+			const dialog = wrapper.findComponent({ name: 'CnTransitionInputDialog' })
+			expect(dialog.props('error')).toBe('You may not reject this request.')
+			expect(dialog.props('fieldErrors')).toEqual([])
+		})
+
+		it('reopening the dialog forgets the refusal it showed last time', async () => {
+			axios.post.mockRejectedValue({
+				response: { status: 400, data: { error: 'refused', fields: ['reason'] } },
+			})
+			const wrapper = await openServerDialog()
+
+			wrapper.find('[data-testid="cn-transition-input-reason"]')
+				.findComponent({ name: 'NcTextField' }).vm.$emit('update:model-value', 'x')
+			await wrapper.vm.$nextTick()
+			await wrapper.find('[data-testid="cn-transition-input-confirm"]').trigger('click')
+			await flush()
+			await wrapper.vm.$nextTick()
+			expect(wrapper.findComponent({ name: 'CnTransitionInputDialog' }).props('error')).toBe('refused')
+
+			await wrapper.find('[data-testid="cn-transition-input-cancel"]').trigger('click')
+			await wrapper.vm.$nextTick()
+			await wrapper.find('[data-testid="cn-lifecycle-action-reject"]').trigger('click')
+			await wrapper.vm.$nextTick()
+
+			const dialog = wrapper.findComponent({ name: 'CnTransitionInputDialog' })
+			expect(dialog.props('error')).toBe('')
+			expect(dialog.props('fieldErrors')).toEqual([])
+		})
+
 		it('cancelling the dialog POSTs nothing', async () => {
 			const wrapper = await openServerDialog()
 			await wrapper.find('[data-testid="cn-transition-input-cancel"]').trigger('click')

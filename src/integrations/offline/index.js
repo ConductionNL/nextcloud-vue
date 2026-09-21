@@ -15,13 +15,19 @@
 export {
 	__resetDbForTests,
 	__setDexie,
+	applyConflictResolution,
 	cacheKey,
+	CONFLICT_RECORD_PREFIX,
 	countPending,
+	countStuck,
 	enqueueMutation,
 	getCachedObject,
 	getDb,
 	getPlannedItems,
 	getPlanningMeta,
+	listQueue,
+	recordConflict,
+	requeueOperation,
 	resolveDeviceId,
 	storePlanning,
 } from './offlineDb.js'
@@ -56,3 +62,17 @@ export {
 	syncIndicator,
 	validateChecklistAnswers,
 } from './fieldCollectionHelpers.js'
+
+export {
+	CACHE_PREFIX,
+	cacheNameFor,
+	isCacheable,
+	NEVER_CACHED,
+	respondTo,
+	staleCacheNames,
+} from '../../offline/serviceWorker.js'
+
+export {
+	registerOfflineWorker,
+	unregisterOfflineWorker,
+} from '../../offline/registerOfflineWorker.js'

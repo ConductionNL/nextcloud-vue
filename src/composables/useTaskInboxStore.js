@@ -35,7 +35,13 @@ export const FLOW_TASKS_URL = '/apps/openregister/api/flow-tasks'
 // All / Mine / Unclaimed / Closed / Overdue, and two of those are exactly
 // this filter. Boolean-ish, like `overdue`, so it is stringified on the way
 // out.
-const ALLOWED_PARAMS = ['scope', 'state', 'isTerminal', 'priority', 'overdue', 'dueAfter', 'dueBefore', 'objectUuid', 'sort', 'limit', 'offset']
+// `kind` is in the list for the same reason `isTerminal` is: the server
+// accepts it (`TaskController`: "Restrict to one kind of work") and only this
+// allowlist would withhold it. A kind is what sort of work a task is, as the
+// creating app named it, so it is the one filter that lets a Tasks page say
+// "the reminders" without the engine learning what a reminder is. It widens
+// nothing: it narrows within the inbox the session already decides.
+const ALLOWED_PARAMS = ['scope', 'state', 'isTerminal', 'priority', 'kind', 'overdue', 'dueAfter', 'dueBefore', 'objectUuid', 'sort', 'limit', 'offset']
 
 /**
  * Internal Pinia store for the `tasks` index source (cn-tasks-entity-source).
@@ -70,7 +76,8 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 		 *
 		 * @param {object} [config] Loader config from the page (`sourceConfig`
 		 *   merged with the active quick-filter tab): `scope`, `state`,
-		 *   `priority`, `overdue`, `objectUuid`, `sort`, `limit`, `offset`.
+		 *   `priority`, `kind`, `overdue`, `objectUuid`, `sort`, `limit`,
+		 *   `offset`.
 		 *
 		 * @return {Promise<void>} Resolves when the rows are in the store.
 		 *

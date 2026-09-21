@@ -21,7 +21,7 @@ import { generateUrl } from '@nextcloud/router'
  * Business logic (state serialization, ownership gating, user feedback)
  * lives in the caller; network errors propagate to the caller's try/catch.
  *
- * @return {{ fetchViews: () => Promise<Array<object>>, createView: (payload: object) => Promise<object>, updateView: (id: string|number, payload: object) => Promise<object>, deleteView: (id: string|number) => Promise<void> }} The API surface.
+ * @return {{ fetchViews: () => Promise<Array<object>>, createView: (payload: object) => Promise<object>, updateView: (id: string|number, payload: object) => Promise<object>, patchView: (id: string|number, payload: object) => Promise<object>, deleteView: (id: string|number) => Promise<void> }} The API surface.
  */
 export function useSavedViewsApi() {
 	const base = '/apps/openregister/api/views'
@@ -61,6 +61,25 @@ export function useSavedViewsApi() {
 	}
 
 	/**
+	 * Part-update a view (`PATCH /api/views/{id}`).
+	 *
+	 * Pinning uses this rather than `updateView`: a PUT carries the whole
+	 * view, so pinning through it would rewrite the name, the query and the
+	 * presentation of a view somebody else may have edited in between, from a
+	 * copy this tab loaded minutes ago. A PATCH of `favoredBy` changes the one
+	 * field the pin is about.
+	 *
+	 * @param {string|number} id The view id (numeric id or uuid).
+	 * @param {object} payload The fields to change, e.g. `{ favoredBy: [...] }`.
+	 * @return {Promise<object>} The updated View object.
+	 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
+	 */
+	async function patchView(id, payload) {
+		const response = await axios.patch(generateUrl(`${base}/${encodeURIComponent(id)}`), payload)
+		return response?.data?.view
+	}
+
+	/**
 	 * Delete a view (owner-scoped server-side).
 	 *
 	 * @param {string|number} id The view id (numeric id or uuid).
@@ -70,5 +89,5 @@ export function useSavedViewsApi() {
 		await axios.delete(generateUrl(`${base}/${encodeURIComponent(id)}`))
 	}
 
-	return { fetchViews, createView, updateView, deleteView }
+	return { fetchViews, createView, updateView, patchView, deleteView }
 }
