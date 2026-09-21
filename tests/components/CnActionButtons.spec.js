@@ -30,6 +30,7 @@ jest.mock('../../src/utils/actionsDispatcher.js', () => {
 		postRunNode: jest.fn(() => Promise.resolve({ ok: true })),
 		resolveObjectOpType: jest.fn(() => 'crm/lead'),
 		isExternalActionTarget: actual.isExternalActionTarget,
+		interpolateActionTarget: actual.interpolateActionTarget,
 		buildOnSuccessRoute: actual.buildOnSuccessRoute,
 		savedObjectId: actual.savedObjectId,
 		resolveCreateOverrideHandler: actual.resolveCreateOverrideHandler,
@@ -46,6 +47,9 @@ jest.mock('@nextcloud/router', () => ({
 jest.mock('../../src/composables/useEndpointSource.js', () => ({
 	__esModule: true,
 	fetchEndpointSource: jest.fn(() => Promise.resolve(null)),
+	// Real: a navigate target runs the token grammar through it, and stubbing
+	// it away would hide whether the target was interpolated at all.
+	interpolateUrlTokens: jest.requireActual('../../src/composables/useEndpointSource.js').interpolateUrlTokens,
 }))
 jest.mock('../../src/utils/visibleWhen.js', () => ({
 	__esModule: true,

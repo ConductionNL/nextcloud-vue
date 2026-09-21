@@ -318,6 +318,22 @@ function interpolateActionString(str, ctx) {
 }
 
 /**
+ * Interpolate an action's `target` URL — the same grammar `url` runs.
+ *
+ * Exported because the rendering surface resolves a target BEFORE deciding
+ * whether it is an external link, and that decision happens there rather than
+ * in the dispatcher.
+ *
+ * @param {string} target The action's raw `target`.
+ * @param {object} ctx Token context (`{ objectId?, object?, workspace?, config? }`).
+ *
+ * @return {string} The interpolated target.
+ */
+export function interpolateActionTarget(target, ctx) {
+	return interpolateActionString(target || '', ctx || {})
+}
+
+/**
  * Execute a Wave-3 `api-call` action: POST/PUT the configured app endpoint
  * (URL + body run the SAME @-token grammar endpoint sources use), toast the
  * outcome via @nextcloud/dialogs, then — unless `action.refresh` is `false`
@@ -771,12 +787,17 @@ export function dispatchAction(action, context = {}) {
 		}
 
 		case 'navigate': {
+			// A target is a URL exactly as `url` is, so it runs the same token
+			// grammar. Without this a manifest's `{objectId}` reached the router
+			// as those nine literal characters and landed in the address bar.
+			const target = interpolateActionString(action.target || '', context.tokenCtx || {})
+
 			// An external target is not a route. Rendering surfaces should give it
 			// to the browser as a real link (CnActionButtons does); this is the
 			// fallback for a programmatic dispatch, and it must not reach the
 			// router — see isExternalActionTarget.
-			if (isExternalActionTarget(action.target)) {
-				window.open(action.target, '_blank', 'noopener,noreferrer')
+			if (isExternalActionTarget(target)) {
+				window.open(target, '_blank', 'noopener,noreferrer')
 				break
 			}
 			if (!context.router) {
@@ -784,7 +805,7 @@ export function dispatchAction(action, context = {}) {
 				console.warn('[dispatchAction] navigate requires context.router to be a Vue Router instance.')
 				return
 			}
-			context.router.push(action.target)
+			context.router.push(target)
 			break
 		}
 
