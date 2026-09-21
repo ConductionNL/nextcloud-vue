@@ -105,11 +105,13 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 const TILE_URL = 'https://tiles.example/{z}/{x}/{y}.png'
 
-const feature = (lng, lat) => ({
-	type: 'Feature',
-	geometry: { type: 'Point', coordinates: [lng, lat] },
-	properties: {},
-})
+function feature(lng, lat) {
+	return {
+		type: 'Feature',
+		geometry: { type: 'Point', coordinates: [lng, lat] },
+		properties: {},
+	}
+}
 
 /**
  * Mount with one tile layer and one marker, settled.

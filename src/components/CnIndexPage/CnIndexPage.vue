@@ -4940,7 +4940,7 @@ export default {
 		 * and the saved-views helpers (`buildViewCreatePayload`,
 		 * `extractViewState`) all share.
 		 *
-		 * @return {{filters: object, search: string, sortKey: ?string, sortOrder: string}}
+		 * @return {{filters: object, search: string, sortKey: ?string, sortOrder: string, sortKeys: Array<{key: string, order: string}>}}
 		 */
 		currentViewState() {
 			return {
@@ -4948,6 +4948,9 @@ export default {
 				search: this.list.searchTerm.value,
 				sortKey: this.list.sortKey.value,
 				sortOrder: this.list.sortOrder.value,
+				// Saved views keep the single `sortKey`; the route query holds
+				// every key, so a shared multi-sort link reproduces all of it.
+				sortKeys: this.list.sortKeys?.value || [],
 			}
 		},
 
@@ -4960,7 +4963,7 @@ export default {
 		 * Best-effort: a duplicate-navigation rejection (same resulting
 		 * path/query) is swallowed.
 		 *
-		 * @param {{filters?: object, search?: string, sortKey?: ?string, sortOrder?: string}} state Current view state.
+		 * @param {{filters?: object, search?: string, sortKey?: ?string, sortOrder?: string, sortKeys?: Array<{key: string, order: string}>}} state Current view state.
 		 * @return {void}
 		 */
 		persistViewStateToRoute(state) {
@@ -4984,8 +4987,11 @@ export default {
 			} else {
 				delete query._search
 			}
-			if (state.sortKey) {
-				query._order = JSON.stringify([{ key: state.sortKey, order: state.sortOrder || 'asc' }])
+			const sortKeys = Array.isArray(state.sortKeys) && state.sortKeys.length
+				? state.sortKeys
+				: (state.sortKey ? [{ key: state.sortKey, order: state.sortOrder || 'asc' }] : [])
+			if (sortKeys.length) {
+				query._order = JSON.stringify(sortKeys.map((k) => ({ key: k.key, order: k.order || 'asc' })))
 			} else {
 				delete query._order
 			}

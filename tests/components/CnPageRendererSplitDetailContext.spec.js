@@ -72,10 +72,18 @@ const splitRoute = {
 	meta: splitRecord.meta,
 }
 const detailRoute = {
-	name: 'CaseDetail', path: `/cases/${ID}`, params: { id: ID }, query: {}, meta: detailRecord.meta,
+	name: 'CaseDetail',
+	path: `/cases/${ID}`,
+	params: { id: ID },
+	query: {},
+	meta: detailRecord.meta,
 }
 const listRoute = {
-	name: 'Cases', path: '/cases', params: {}, query: {}, meta: { cnPageId: 'Cases' },
+	name: 'Cases',
+	path: '/cases',
+	params: {},
+	query: {},
+	meta: { cnPageId: 'Cases' },
 }
 
 describe('CnPageRenderer — the detail-object context on a split address', () => {

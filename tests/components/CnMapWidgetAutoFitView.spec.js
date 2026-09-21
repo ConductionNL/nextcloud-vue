@@ -107,11 +107,13 @@ jest.mock('leaflet.markercluster', () => ({}), { virtual: true })
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
-const feature = (lng, lat) => ({
-	type: 'Feature',
-	geometry: { type: 'Point', coordinates: [lng, lat] },
-	properties: {},
-})
+function feature(lng, lat) {
+	return {
+		type: 'Feature',
+		geometry: { type: 'Point', coordinates: [lng, lat] },
+		properties: {},
+	}
+}
 
 /**
  * Mount the widget with one marker and wait for the first render to settle.

@@ -29,6 +29,10 @@ const PublishingWidget = {
 	render: () => h('div', 'published'),
 }
 
+// Declared up front so the widgets below can reference it; filled in once
+// both components exist.
+const registry = {}
+
 /**
  * A panel holding one section, the section an ordinary widget in a host of its
  * own — the shape dossiq's `case-sections` renders.
@@ -46,10 +50,10 @@ const SectionsWidget = {
 	},
 }
 
-const registry = {
+Object.assign(registry, {
 	sections: { kind: 'widget', component: SectionsWidget },
 	publishing: { kind: 'widget', component: PublishingWidget },
-}
+})
 
 const WIDGETS = [{ id: 'case-data-panel', type: 'sections', title: 'Data' }]
 
