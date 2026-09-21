@@ -795,10 +795,12 @@ import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
+import { useObjectPresence } from '../../composables/useObjectPresence.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { useObjectStore } from '../../store/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { compactLayoutRows } from '../../utils/dashboardPlacement.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { slotRenders } from '../../utils/slotContent.js'
@@ -1737,6 +1739,20 @@ export default {
 		const { resolveWidget, getById } = useIntegrationRegistry()
 		const registryExposed = { resolveRegistryWidget: resolveWidget, getRegistryProvider: getById }
 
+		// 🔑 THE HOST READS PRESENCE BECAUSE ONLY THE HOST CAN ACT ON IT. The grid
+		// reserves a widget's row before the widget renders, so a presence strip
+		// with nobody in it — almost always — costs a whole empty cell. Started
+		// only where one is actually placed, and the widget's own subscription
+		// then exists solely while the row is shown. See `layoutItemCanDraw`.
+		const presencePlaced = (props.widgets || []).some((w) => w && w.type === 'presence')
+		const { others: presentOthers } = useObjectPresence(
+			() => props.register || '',
+			() => props.schema || '',
+			() => String(props.objectId || ''),
+			{ enabled: presencePlaced },
+		)
+		registryExposed.presentOthers = presentOthers
+
 		// Object context for detail-page abstract widgets (ADR-041): a reactive
 		// `{ objectId, object, register, schema }` holder kept current by the
 		// Options watcher below. Provided so CnObjectListWidget / CnStatWidget
@@ -2552,10 +2568,10 @@ export default {
 			// eslint-disable-next-line @typescript-eslint/no-unused-expressions -- reading the flag IS the effect: the read registers the reactive dependency, and there is nothing to assign it to
 			this.editingBody
 			if (this.hasGridLayout) {
-				return this.layout.filter((item) => this.layoutItemCanDraw(item))
+				return this.closeDroppedRows(this.layout)
 			}
 			if (this.shouldRenderAutoBody) {
-				return (this.autoBodyLayout || []).filter((item) => this.layoutItemCanDraw(item))
+				return this.closeDroppedRows(this.autoBodyLayout || [])
 			}
 			return []
 		},
@@ -3699,19 +3715,64 @@ export default {
 		},
 
 		/**
+		 * Drop the items that draw nothing, then close the rows they freed.
+		 *
+		 * The two halves belong together: removing a cell is only half a fix,
+		 * because GridStack floats nothing upward (`float: true`) and the next
+		 * item down keeps the `gridY` its author drew ABOVE the removed one. That
+		 * shows as a band of empty grid with no element in it — the shape this
+		 * page's presence strip left behind the moment it stopped costing a cell.
+		 *
+		 * Compaction is skipped when nothing was dropped, so an authored gap on a
+		 * complete layout stays exactly where its author put it.
+		 *
+		 * Safe against the manifest editor: this returns new objects, and filtering
+		 * never happens in edit mode (see `layoutItemCanDraw`), which is the only
+		 * mode `layout-change` writes geometry back from.
+		 *
+		 * @param {Array<object>} items The authored layout items.
+		 *
+		 * @return {Array<object>} What the grid should render.
+		 */
+		closeDroppedRows(items) {
+			const drawable = items.filter((item) => this.layoutItemCanDraw(item))
+			if (drawable.length === items.length) {
+				return drawable
+			}
+
+			return compactLayoutRows(drawable)
+		},
+
+		/**
 		 * Whether a layout item has anything to draw, so a grid cell is worth
 		 * spending on it.
 		 *
-		 * ONLY `integration` widgets are judged, and only the case where nothing
-		 * can ever appear: a leaf from another app that is not registered, with no
-		 * `requiredApp` to fall back on. A cross-app feature is normally optional —
-		 * humaniq's hours leaf on a dossiq case — and without this the host still
-		 * renders its wrapper, so the absent app costs a bordered, full-height
-		 * ghost card in the grid. An app nobody installed should cost nothing.
+		 * TWO widget types are judged, and no others.
+		 *
+		 * `integration`, in the case where nothing can ever appear: a leaf from
+		 * another app that is not registered, with no `requiredApp` to fall back
+		 * on. A cross-app feature is normally optional — humaniq's hours leaf on a
+		 * dossiq case — and without this the host still renders its wrapper, so the
+		 * absent app costs a bordered, full-height ghost card in the grid. An app
+		 * nobody installed should cost nothing.
 		 *
 		 * A widget that declares `requiredApp` is KEPT: the host answers a missing
 		 * app with a set-up state, which is content, and hiding it would turn an
 		 * actionable "install humaniq" into silence.
+		 *
+		 * `presence`, whenever nobody else is on the record — which its own
+		 * docblock calls "almost always". Unlike the integration case this is a
+		 * RUNTIME fact that flips both ways, so the host holds the subscription
+		 * (see setup) and the row appears the moment somebody arrives.
+		 *
+		 * 🔴 IT IS JUDGED HERE BECAUSE NOTHING ELSE CAN REACH IT. The widget
+		 * already renders nothing and adds no wrapper, which is enough in a flow
+		 * layout and nothing at all in a grid: the row is reserved before the
+		 * component renders. `sizeToContent` does not help either — GridStack's
+		 * `resizeToContent` floors the result at the item's `gs-min-h`, which
+		 * CnDashboardGrid writes as 2 on every item, and falls back to the
+		 * authored height when the content measures zero. So the cell is only
+		 * avoidable by not authoring it.
 		 *
 		 * Deliberately NOT generalised to "anything that resolves to nothing".
 		 * A `custom` widget whose `#widget-<id>` slot is missing also draws an
@@ -3731,7 +3792,15 @@ export default {
 				return true
 			}
 			const widget = this.findWidget(item)
-			if (!widget || widget.type !== 'integration') {
+			if (!widget) {
+				return true
+			}
+			// Presence is empty almost always, and no attribute can reclaim its
+			// row: GridStack floors `sizeToContent` at the item's `gs-min-h`.
+			if (widget.type === 'presence') {
+				return (this.presentOthers || []).length > 0
+			}
+			if (widget.type !== 'integration') {
 				return true
 			}
 			const requiredApp = widget.requiredApp || (widget.content || {}).requiredApp || ''

@@ -181,3 +181,55 @@ export function placeNewWidget(spec, layout, options = {}) {
 
 	return { x: 0, y: 0, w, h, pushed }
 }
+
+/**
+ * Close the vertical holes left when a host drops layout items.
+ *
+ * 🔴 ONLY FOR A LAYOUT SOMETHING WAS REMOVED FROM. GridStack runs with
+ * `float: true`, so every item keeps the `gridY` its author drew and a gap is a
+ * gap on purpose. That is right until the HOST removes an item — an absent
+ * app's integration leaf, an empty presence strip — because the rows it freed
+ * then belong to nobody, and the next item down is still pinned below them. A
+ * reader sees a band of nothing and there is no element to blame for it.
+ *
+ * Gravity, not a re-pack: an item rises until it meets something already
+ * placed in its own columns, and nothing ever moves sideways. Two widgets that
+ * shared a row still share it, and a row that lost only one of its two keeps
+ * the other's height.
+ *
+ * The result is a NEW array of NEW objects. The caller's authored layout is
+ * untouched, which is what makes this safe to apply to a rendered layout whose
+ * geometry a manifest editor may later write back.
+ *
+ * @param {Array<object>} items Layout items (`gridX` / `gridY` / `gridWidth` / `gridHeight`).
+ *
+ * @return {Array<object>} The same items, floated up, in top-to-bottom order.
+ */
+export function compactLayoutRows(items) {
+	const placed = []
+
+	return [...(items || [])]
+		.map((item) => ({
+			item,
+			x: Number.isFinite(item?.gridX) ? item.gridX : 0,
+			y: Number.isFinite(item?.gridY) ? item.gridY : 0,
+			w: Number.isFinite(item?.gridWidth) ? item.gridWidth : DEFAULT_WIDGET_W,
+			h: Number.isFinite(item?.gridHeight) ? item.gridHeight : DEFAULT_WIDGET_H,
+		}))
+		// Authored order decides who gets the higher row, so a tie goes to the
+		// left-most — the same reading order GridStack's own column conversion uses.
+		.sort((a, b) => (a.y - b.y) || (a.x - b.x))
+		.map((entry) => {
+			let y = 0
+			for (const other of placed) {
+				const overlaps = other.x < (entry.x + entry.w) && entry.x < (other.x + other.w)
+				if (overlaps) {
+					y = Math.max(y, other.y + other.h)
+				}
+			}
+
+			const next = { ...entry, y }
+			placed.push(next)
+			return { ...entry.item, gridY: y }
+		})
+}
