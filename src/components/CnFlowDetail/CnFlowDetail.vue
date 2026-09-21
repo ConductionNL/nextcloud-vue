@@ -143,7 +143,7 @@
 				</NcButton>
 				<NcButton variant="tertiary"
 					:aria-label="t('nextcloud-vue', 'Reset zoom')"
-					@click="zoom = 1">
+					@click="zoomTo(1)">
 					{{ Math.round(zoom * 100) }}%
 				</NcButton>
 				<NcButton variant="tertiary"
@@ -193,10 +193,12 @@
 		     line it draws, so the canvas itself stays a geometry-only renderer
 		     with no status concept (ADR-065). -->
 		<CnGraphCanvas
+			ref="canvas"
 			:nodes="canvasNodes"
 			:edges="canvasEdgesWithRunState"
 			:minZoom="minZoom"
 			:maxZoom="maxZoom"
+			@zoomChange="zoom = $event"
 			@nodeSelect="onNodeSelect"
 			@edgeSelect="onEdgeSelect"
 			@edgeLabelClick="onEdgeLabelClick"
@@ -2013,8 +2015,22 @@ export default {
 		 * @return {void}
 		 */
 		zoomBy(delta) {
-			const next = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom + delta))
-			this.zoom = Math.round(next * 100) / 100
+			this.zoomTo(this.zoom + delta)
+		},
+
+		/**
+		 * Zoom the CANVAS, which is the only thing that holds a transform.
+		 *
+		 * `zoom` here is a mirror of what the canvas reports, never the source:
+		 * setting it moved a number this component owned and nothing else, so
+		 * the toolbar counted up and down over a canvas that never moved.
+		 *
+		 * @param {number} value The wanted zoom, clamped to the declared range.
+		 * @return {void}
+		 */
+		zoomTo(value) {
+			const next = Math.max(this.minZoom, Math.min(this.maxZoom, value))
+			this.$refs.canvas?.zoomTo?.(Math.round(next * 100) / 100)
 		},
 
 		/**
