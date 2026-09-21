@@ -227,6 +227,66 @@ describe('CnDataTable — hideHeader', () => {
 
 // A #footer scoped slot lets a host render its own footer link with its own
 // handler (a "+ New" create action, or an always-shown "View all") — usable
+describe('CnDataTable — a tooltip only where the cell is cut short', () => {
+	const COLUMNS = [{ key: 'email', label: 'Email' }]
+
+	/**
+	 * Hover one cell with the given measured geometry.
+	 *
+	 * jsdom lays nothing out, so `scrollWidth` and `clientWidth` are both 0 and
+	 * have to be stated for the read to mean anything.
+	 *
+	 * @param {number} scrollWidth The content width.
+	 * @param {number} clientWidth The visible width.
+	 * @return {object} The hovered cell element and its wrapper.
+	 */
+	const hoverCell = async (scrollWidth, clientWidth) => {
+		const wrapper = mountTable({ columns: COLUMNS, rows: [{ email: 'a.very.long.address@supplier.test' }] })
+		const cell = wrapper.find('tbody td').element
+		Object.defineProperty(cell, 'scrollWidth', { value: scrollWidth, configurable: true })
+		Object.defineProperty(cell, 'clientWidth', { value: clientWidth, configurable: true })
+		await wrapper.find('tbody td').trigger('mouseenter')
+		return { wrapper, cell }
+	}
+
+	it('titles a clipped cell with its full text', async () => {
+		const { wrapper, cell } = await hoverCell(420, 200)
+
+		expect(cell.getAttribute('title')).toBe('a.very.long.address@supplier.test')
+
+		wrapper.unmount()
+	})
+
+	it('leaves a cell that fits without one, rather than repeating what is on screen', async () => {
+		const { wrapper, cell } = await hoverCell(180, 200)
+
+		expect(cell.hasAttribute('title')).toBe(false)
+
+		wrapper.unmount()
+	})
+
+	it('tolerates a pixel, so sub-pixel rounding does not read as clipped', async () => {
+		const { wrapper, cell } = await hoverCell(201, 200)
+
+		expect(cell.hasAttribute('title')).toBe(false)
+
+		wrapper.unmount()
+	})
+
+	it('drops a stale title when the cell no longer overflows', async () => {
+		const { wrapper, cell } = await hoverCell(420, 200)
+		expect(cell.hasAttribute('title')).toBe(true)
+
+		// The column was widened since the last hover; the read happens again.
+		Object.defineProperty(cell, 'clientWidth', { value: 500, configurable: true })
+		await wrapper.find('tbody td').trigger('mouseenter')
+
+		expect(cell.hasAttribute('title')).toBe(false)
+
+		wrapper.unmount()
+	})
+})
+
 // outside a vue-router context, where the built-in link's $router.push no-ops.
 describe('CnDataTable — #footer slot', () => {
 	it('renders custom footer content instead of the built-in view-all link', () => {
