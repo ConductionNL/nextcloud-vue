@@ -88,6 +88,11 @@ module.exports = {
 	// Build output — relative to this styleguide/ directory
 	styleguideDir: 'build',
 
+	// Global components, directives and plugins for every example app. Vue 3
+	// scopes these to an app instance, and styleguidist builds one app per
+	// example, so they cannot live in `require` any more.
+	enhancePreviewApp: path.join(__dirname, 'enhance-app.js'),
+
 	// Run the setup script before every example sandbox
 	require: [
 		path.join(__dirname, 'setup.js'),
@@ -100,8 +105,9 @@ module.exports = {
 	// Webpack overrides
 	webpackConfig: {
 		devServer: {
-			// Serve static files (favicon.ico, etc.) from this directory
-			contentBase: path.join(__dirname),
+			// Serve static files (favicon.ico, etc.) from this directory.
+			// `contentBase` was the webpack-dev-server 3 spelling.
+			static: { directory: path.join(__dirname) },
 		},
 		module: {
 			rules: [
@@ -203,7 +209,19 @@ module.exports = {
 				// components share the same Vue runtime.
 				// Use the full build (compiler + runtime) so examples that omit
 				// an explicit <template> wrapper can be compiled on the fly.
-				vue$: path.join(__dirname, 'node_modules/vue/dist/vue.common.js'),
+				// vue.common.js was the Vue 2 filename; the Vue 3 build with the
+				// compiler included is vue.esm-bundler.js.
+				vue$: path.join(__dirname, 'node_modules/vue/dist/vue.esm-bundler.js'),
+				// vue-demi ships one build per Vue major and picks one in a
+				// postinstall script. npm 11 does not run a dependency's install
+				// scripts unless it is approved, so the default entry stays on the
+				// Vue 2 build, whose .cjs re-exports Vue's names through a runtime
+				// Object.keys(require('vue')) loop. That loop finds nothing on a
+				// Vue 3 module, and every consumer reads "watch is not exported
+				// from vue-demi". Point at the v3 build, which re-exports
+				// statically. rollup.config.js does the same for the published
+				// bundle, in its resolve-vue-demi-v3 plugin.
+				'vue-demi$': path.join(__dirname, 'node_modules/vue-demi/lib/v3/index.mjs'),
 				// Allow docs examples to import from the library by package name.
 				'@conduction/nextcloud-vue': path.resolve(ROOT, 'src/index.js'),
 				'@nextcloud/sharing/public': path.resolve(__dirname, 'mocks/empty.js'),

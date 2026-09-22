@@ -1,11 +1,11 @@
 // In-memory implementation of @nextcloud/l10n for the styleguide.
-// Backed by a Vue.observable so translate() reads are tracked as reactive
+// Backed by a Vue reactive object so translate() reads are tracked as reactive
 // dependencies — components calling t() in templates/computeds will
 // automatically re-render when the registered translations change.
 
-const Vue = require('vue').default || require('vue')
+const { reactive } = require('vue')
 
-const state = Vue.observable({
+const state = reactive({
 	language: 'en',
 	locale: 'en_US',
 	// bumped on every register() to force re-evaluation of computeds even when
