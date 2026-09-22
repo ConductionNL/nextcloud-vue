@@ -134,6 +134,11 @@
 									:class="'cn-capability-table__provider--' + providerOf(row).kind">
 									<span class="cn-capability-table__provider-name">{{ providerOf(row).name }}</span>
 									<span
+										v-if="providerHowOf(row)"
+										class="cn-capability-table__provider-how">
+										{{ providerHowOf(row) }}
+									</span>
+									<span
 										v-if="providerKindLabel(providerOf(row).kind)"
 										class="cn-capability-table__provider-kind">
 										{{ providerKindLabel(providerOf(row).kind) }}
@@ -167,7 +172,7 @@
  *
  * Spec: features-roadmap-component — Requirement "CnCapabilityTable".
  */
-import { getLanguage, translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { getLanguage, translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcTextField } from '@nextcloud/vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
 import {
@@ -476,6 +481,23 @@ export default {
 		},
 
 		/**
+		 * The mechanism the document names for this row, rendered under the
+		 * provider name.
+		 *
+		 * It is a free-text key the audit writes, so it is shown as given
+		 * rather than translated. Rendering it is a deliberate choice: a field
+		 * the contract carries and the table quietly ignores is a field nobody
+		 * finds out is wrong.
+		 *
+		 * @param {object} row One capability row.
+		 * @return {string} The mechanism, empty when the row names none.
+		 */
+		providerHowOf(row) {
+			const how = row?.providerHow
+			return typeof how === 'string' ? how.trim() : ''
+		},
+
+		/**
 		 * @param {object} row One capability row.
 		 * @return {boolean} Whether to mark the row's feature as a judgement.
 		 */
@@ -630,12 +652,10 @@ export default {
 	position: absolute;
 	width: 1px;
 	height: 1px;
-	padding: 0;
-	margin: -1px;
 	overflow: hidden;
-	clip: rect(0, 0, 0, 0);
+	clip-path: inset(50%);
 	white-space: nowrap;
-	border: 0;
+	margin: -1px;
 }
 
 .cn-capability-table__provider {
@@ -662,7 +682,8 @@ export default {
 	border-inline-start-color: var(--color-warning);
 }
 
-.cn-capability-table__provider-kind {
+.cn-capability-table__provider-kind,
+.cn-capability-table__provider-how {
 	padding-inline-start: 9px;
 	color: var(--color-text-maxcontrast);
 	font-size: 0.8em;

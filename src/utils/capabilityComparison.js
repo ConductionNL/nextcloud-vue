@@ -73,8 +73,7 @@ export function normaliseText(value) {
 	}
 	return String(value)
 		.normalize('NFD')
-		// eslint-disable-next-line no-misleading-character-class
-		.replace(/[̀-ͯ]/g, '')
+		.replace(/[\u0300-\u036f]/g, '')
 		.toLowerCase()
 		.trim()
 }
@@ -267,9 +266,7 @@ export function overallTallies(comparison, rows = null) {
  * @return {'feature'|'area'} The opening mode.
  */
 export function defaultGroupMode(comparison) {
-	const mapped = (comparison?.capabilities ?? []).some(
-		(row) => typeof row?.feature === 'string' && row.feature.trim() !== '',
-	)
+	const mapped = (comparison?.capabilities ?? []).some((row) => typeof row?.feature === 'string' && row.feature.trim() !== '')
 	return mapped ? 'feature' : 'area'
 }
 
@@ -283,9 +280,7 @@ export function defaultGroupMode(comparison) {
  * @return {boolean} True when at least one row names a provider.
  */
 export function hasProviders(comparison) {
-	return (comparison?.capabilities ?? []).some(
-		(row) => typeof row?.provider === 'string' && row.provider.trim() !== '',
-	)
+	return (comparison?.capabilities ?? []).some((row) => typeof row?.provider === 'string' && row.provider.trim() !== '')
 }
 
 /**

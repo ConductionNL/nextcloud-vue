@@ -243,6 +243,14 @@ describe('CnCapabilityTable', () => {
 			expect(wrapper.findAll('.cn-capability-table__provider-kind')).toHaveLength(2)
 		})
 
+		it('shows the mechanism the document names rather than dropping the field', () => {
+			const document = fullDocument()
+			document.capabilities[2].providerHow = 'ledger-change'
+			const wrapper = mountTable(document)
+			const hows = wrapper.findAll('.cn-capability-table__provider-how').map((cell) => cell.text())
+			expect(hows).toEqual(['ledger-change'])
+		})
+
 		it('leaves the column out entirely for a document that names no provider', () => {
 			const wrapper = mountTable(legacyDocument())
 			const headers = wrapper.findAll('thead th').map((cell) => cell.text())
