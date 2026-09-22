@@ -76,7 +76,7 @@
 						class="cn-notes-tab__edited"
 						data-testid="cn-note-edited">{{ editedLine(note) }}</span>
 				</template>
-				<template v-if="canDelete(note) || wasEdited(note)" #actions>
+				<template v-if="canDelete(note) || wasEdited(note) || noteActions.length > 0" #actions>
 					<NcActionButton v-if="canDelete(note)" @click="startEdit(note)">
 						<template #icon>
 							<Pencil :size="20" />
@@ -97,6 +97,19 @@
 							<Delete :size="20" />
 						</template>
 						{{ deleteLabel }}
+					</NcActionButton>
+					<!-- The consuming app's own per-note actions, after the
+					     library's. They render inside this NcActions and emit
+					     `note-action`; nothing about what they DO lives here. -->
+					<NcActionButton
+						v-for="action in noteActions"
+						:key="`${note.id}-${action.id}`"
+						:data-testid="`cn-note-action-${action.id}`"
+						@click="$emit('note-action', { action: action.id, note })">
+						<template v-if="action.icon" #icon>
+							<component :is="action.icon" :size="20" />
+						</template>
+						{{ action.label }}
 					</NcActionButton>
 				</template>
 			</NcListItem>
@@ -159,6 +172,30 @@ export default {
 		loadingLabel: { type: String, default: () => t('nextcloud-vue', 'Loading notes…') },
 		/** Label for the action that opens a note's earlier versions */
 		historyLabel: { type: String, default: () => t('nextcloud-vue', 'Show earlier versions') },
+		// WHY THIS PROP EXISTS, since a seam nobody asked for is the kind that
+		// rots. An app-specific act on ONE note had nowhere to live: this
+		// component rendered edit, history and delete and offered no fourth
+		// place. Dossiq sends a single case note to a neighbouring ZGW
+		// register, and its endpoint, guard, route and tests were all in place
+		// while no page could call any of them. Its own change wrote that down
+		// as a blocker rather than declaring a prop nothing read.
+		//
+		// `label` stays the app's to write and translate, so nc-vue phrases
+		// nothing for somebody else's domain and adds no catalogue string here.
+		/**
+		 * Per-note actions the consuming app owns, `[{ id, label, icon? }]`.
+		 * Each entry renders one NcActionButton in every note's action menu,
+		 * after the library's own, and clicking it emits `note-action`. Empty
+		 * by default, and an empty list changes nothing. `icon` is optional
+		 * and takes an icon component.
+		 */
+		noteActions: {
+			type: Array,
+			default: () => [],
+			validator: (actions) => actions.every((action) => action
+				&& typeof action.id === 'string' && action.id !== ''
+				&& typeof action.label === 'string' && action.label !== ''),
+		},
 	},
 
 	emits: [
@@ -171,6 +208,13 @@ export default {
 		 * backend.
 		 */
 		'mention',
+		/**
+		 * Emitted when one of the consuming app's `noteActions` is clicked,
+		 * with payload `{ action, note }`: the entry's `id` and the whole note
+		 * as the backend answered it. The library does the rendering and
+		 * nothing else, so what the action means stays in the app.
+		 */
+		'note-action',
 	],
 
 	data() {
