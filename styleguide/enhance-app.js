@@ -45,8 +45,14 @@ export default function enhancePreviewApp(app) {
 	app.component('NcButton', NcButton)
 
 	// A link the sandbox can render, for examples that pass the `route` prop.
-	app.component('RouterLink', (props, { slots }) => h('a', { href: '#' }, slots.default?.()))
-	app.component('router-link', (props, { slots }) => h('a', { href: '#' }, slots.default?.()))
+	// `to` is declared so it does not fall through onto the anchor, where an
+	// object target would render as to="[object Object]".
+	app.component('RouterLink', {
+		props: { to: { type: [String, Object], default: '' } },
+		setup(props, { slots }) {
+			return () => h('a', { href: '#' }, slots.default?.())
+		},
+	})
 
 	// @nextcloud/vue uses v-tooltip internally. Without a directive registered,
 	// Vue logs "Failed to resolve directive: tooltip" on every render.

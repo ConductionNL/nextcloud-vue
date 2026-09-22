@@ -203,6 +203,14 @@ module.exports = {
 			],
 			extensions: ['.mjs', '.vue', '.json', '.js'],
 			mainFields: ['browser', 'main', 'module'],
+			// vue-styleguidist compiles a live example by rewriting its imports
+			// to require() calls, so webpack asks for the "require" condition.
+			// @nextcloud/vue and @nextcloud/axios publish an ESM-only exports
+			// map with no "require" key, and the request fails with
+			// '"." is not exported under the conditions [...]'. Naming both
+			// conditions lets an ESM-only package answer a require, which is
+			// what a bundler wants anyway.
+			conditionNames: ['webpack', 'production', 'browser', 'import', 'require', 'module', 'default'],
 			symlinks: false,
 			alias: {
 				// Pin vue to a single instance so vue-styleguidist and the
@@ -284,11 +292,12 @@ module.exports = {
 				// dynamically imported and still resolves normally); the styleguide
 				// has no map demo, so stubbing the stylesheet keeps the build green.
 				'leaflet/dist/leaflet.css': path.resolve(__dirname, 'mocks/empty.js'),
-				'#minpath': require.resolve('path-browserify'),
-				'#minurl': require.resolve('url/'),
-				// #minproc uses a package "imports" map that webpack 4 doesn't support;
-				// point it at the browser stub directly.
-				'#minproc': path.resolve(__dirname, 'node_modules/vfile/lib/minproc.browser.js'),
+				// The #minpath, #minurl and #minproc subpaths used to be aliased
+				// here because webpack 4 did not read a package "imports" map.
+				// webpack 5 does, and vfile's own map already points at its
+				// browser builds. The aliases were also wrong: the url package
+				// exports neither isUrl nor urlToPath, so every consumer read
+				// "isUrl is not exported".
 				// devlop uses an "exports" map with a "development" condition that
 				// webpack 4 ignores; point it at the production no-op entry directly.
 				devlop: path.resolve(__dirname, 'node_modules/devlop/lib/default.js'),
