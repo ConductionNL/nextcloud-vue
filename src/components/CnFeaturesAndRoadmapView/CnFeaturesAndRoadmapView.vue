@@ -15,7 +15,8 @@
 				<div class="cn-features-and-roadmap-view__actions">
 					<NcButton @click="toggleView">
 						<template #icon>
-							<RoadVariant v-if="activeView === 'features'" :size="20" />
+							<TableSearch v-if="nextView === 'capabilities'" :size="20" />
+							<RoadVariant v-else-if="nextView === 'roadmap'" :size="20" />
 							<FormatListBulleted v-else :size="20" />
 						</template>
 						{{ toggleLabel }}
@@ -52,6 +53,9 @@
 
 			<main class="cn-features-and-roadmap-view__panel">
 				<CnFeaturesTab v-if="activeView === 'features'" :features="features" />
+				<CnCapabilityTable
+					v-else-if="activeView === 'capabilities'"
+					:comparison="capabilityComparison" />
 				<CnRoadmapTab v-else :repo="repo" />
 			</main>
 
@@ -105,6 +109,8 @@ import FormatListBulleted from 'vue-material-design-icons/FormatListBulleted.vue
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import RoadVariant from 'vue-material-design-icons/RoadVariant.vue'
+import TableSearch from 'vue-material-design-icons/TableSearch.vue'
+import CnCapabilityTable from '../CnCapabilityTable/CnCapabilityTable.vue'
 import CnFeaturesAndRoadmapSidebar from '../CnFeaturesAndRoadmapSidebar/CnFeaturesAndRoadmapSidebar.vue'
 import CnFeaturesTab from '../CnFeaturesTab/CnFeaturesTab.vue'
 import CnRoadmapTab from '../CnRoadmapTab/CnRoadmapTab.vue'
@@ -129,6 +135,8 @@ export default {
 		LockOutline,
 		Plus,
 		RoadVariant,
+		TableSearch,
+		CnCapabilityTable,
 		CnFeaturesTab,
 		CnRoadmapTab,
 		CnSupportDialog,
@@ -191,6 +199,27 @@ export default {
 		disabled: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Optional capability comparison. When supplied, the header toggle
+		 * gains a third stop that renders `CnCapabilityTable`: a searchable
+		 * table of the rows, grouped by feature or by area, with a
+		 * provided-by column naming which app or platform delivers each one.
+		 *
+		 * Shape: `{systems, areas, features?, providers?, capabilities}`. The
+		 * rows carry the competitor ratings they already carry, plus the
+		 * optional `provider`, `providerHow`, `feature` and
+		 * `featureConfidence` fields.
+		 *
+		 * When null (default) the toggle keeps its two stops and the view
+		 * renders exactly as it does for every app that passes nothing.
+		 *
+		 * @type {object|null}
+		 */
+		capabilityComparison: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -353,14 +382,37 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The stops the header toggle cycles through. Without a capability
+		 * comparison this is the two-stop list every consumer has today, and
+		 * the toggle behaves exactly as it did.
+		 *
+		 * @return {Array<string>} The views, in cycle order.
+		 */
+		availableViews() {
+			return this.capabilityComparison
+				? ['features', 'capabilities', 'roadmap']
+				: ['features', 'roadmap']
+		},
+
+		/**
+		 * @return {string} The view the toggle moves to next.
+		 */
+		nextView() {
+			const views = this.availableViews
+			const index = views.indexOf(this.activeView)
+			return views[(index + 1) % views.length]
+		},
+
 		headerTitle() {
-			return this.activeView === 'features'
-				? t('nextcloud-vue', 'Features')
-				: t('nextcloud-vue', 'Roadmap')
+			return this.viewTitle(this.activeView)
 		},
 
 		toggleLabel() {
-			return this.activeView === 'features'
+			if (this.nextView === 'capabilities') {
+				return t('nextcloud-vue', 'Show capabilities')
+			}
+			return this.nextView === 'roadmap'
 				? t('nextcloud-vue', 'Show roadmap')
 				: t('nextcloud-vue', 'Show features')
 		},
@@ -475,8 +527,21 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * @param {string} view One of the `availableViews`.
+		 * @return {string} The heading for that view.
+		 */
+		viewTitle(view) {
+			if (view === 'capabilities') {
+				return t('nextcloud-vue', 'Capabilities')
+			}
+			return view === 'roadmap'
+				? t('nextcloud-vue', 'Roadmap')
+				: t('nextcloud-vue', 'Features')
+		},
+
 		toggleView() {
-			this.activeView = this.activeView === 'features' ? 'roadmap' : 'features'
+			this.activeView = this.nextView
 		},
 
 		openSupportDialog() {

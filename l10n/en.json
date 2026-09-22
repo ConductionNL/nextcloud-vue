@@ -964,7 +964,29 @@
     "Written by {author}, replaced by {editor} on {date}": "Written by {author}, replaced by {editor} on {date}",
     "Show earlier versions": "Show earlier versions",
     "Edited": "Edited",
-    "Edited by {editor}": "Edited by {editor}"
+    "Edited by {editor}": "Edited by {editor}",
+    "Search capabilities": "Search capabilities",
+    "Name, number, area or feature": "Name, number, area or feature",
+    "Clear the search": "Clear the search",
+    "Group the capabilities": "Group the capabilities",
+    "Group by feature": "Group by feature",
+    "Group by area": "Group by area",
+    "Not yet mapped to a feature": "Not yet mapped to a feature",
+    "No.": "No.",
+    "Capability": "Capability",
+    "Capabilities": "Capabilities",
+    "Show capabilities": "Show capabilities",
+    "Provided by": "Provided by",
+    "this app": "this app",
+    "another app": "another app",
+    "the platform": "the platform",
+    "We matched this row to its feature by judgement.": "We matched this row to its feature by judgement.",
+    "No capability matches {query}": "No capability matches {query}",
+    "Clear the search box or try another word.": "Clear the search box or try another word.",
+    "Capabilities in {group}, rated per system.": "Capabilities in {group}, rated per system.",
+    "Yes": "Yes",
+    "Partial": "Partial",
+    "No": "No"
   },
   "plurals": {
     "%n year": ["%n year", "%n years"],
@@ -978,6 +1000,7 @@
     "{count} unread message": ["{count} unread message", "{count} unread messages"],
     "across {count} conversation": ["across {count} conversation", "across {count} conversations"],
     "{count} work package": ["{count} work package", "{count} work packages"],
-    "{count} more message": ["{count} more message", "{count} more messages"]
+    "{count} more message": ["{count} more message", "{count} more messages"],
+    "You see {count} capability of {total}.": ["You see {count} capability of {total}.", "You see {count} capabilities of {total}."]
   }
 }
