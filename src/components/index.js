@@ -244,6 +244,7 @@ export { CnNotificationMatrix } from './CnNotificationMatrix/index.js'
 export { CnNotificationPreferences } from './CnNotificationPreferences/index.js'
 export { CnCredentials } from './CnCredentials/index.js'
 export { CnFeaturesTab } from './CnFeaturesTab/index.js'
+export { CnCapabilityTable } from './CnCapabilityTable/index.js'
 export { CnRoadmapTab } from './CnRoadmapTab/index.js'
 export { CnRoadmapItem } from './CnRoadmapItem/index.js'
 // Deck integration leaf (Tier-2)

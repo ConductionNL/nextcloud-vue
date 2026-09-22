@@ -50,6 +50,29 @@ describe('registerTranslations', () => {
 		expect(t('nextcloud-vue', 'Keep permanently')).toBe('Blijvend bewaren')
 	})
 
+	it('gives a Dutch reader the capability table in Dutch, plural included', () => {
+		readAs('nl')
+
+		// The library already ships "Features" as "Functies", so a feature stays
+		// a `functie` and a capability becomes a `functionaliteit`. One word for
+		// both would have made "Group by feature" and "Search capabilities" the
+		// same string in Dutch.
+		expect(t('nextcloud-vue', 'Search capabilities')).toBe('Zoek functionaliteiten')
+		expect(t('nextcloud-vue', 'Group by feature')).toBe('Groepeer per functie')
+		expect(t('nextcloud-vue', 'Group by area')).toBe('Groepeer per gebied')
+		expect(t('nextcloud-vue', 'Provided by')).toBe('Geleverd door')
+		expect(t('nextcloud-vue', 'Not yet mapped to a feature')).toBe('Nog niet aan een functie gekoppeld')
+		expect(t('nextcloud-vue', 'Capability')).toBe('Functionaliteit')
+
+		// The count line is the one string with a plural, and a plural that was
+		// never registered stays English for every Dutch reader without failing
+		// anything. This is the assertion that would catch that.
+		expect(n('nextcloud-vue', 'You see {count} capability of {total}.', 'You see {count} capabilities of {total}.', 1))
+			.toBe('Je ziet {count} functionaliteit van {total}.')
+		expect(n('nextcloud-vue', 'You see {count} capability of {total}.', 'You see {count} capabilities of {total}.', 3))
+			.toBe('Je ziet {count} functionaliteiten van {total}.')
+	})
+
 	it('renders the metadata panel in Dutch for a Dutch reader', () => {
 		// Labels are translated at USE, not at import. A label resolved when
 		// the module loaded would be English for everyone, because the
