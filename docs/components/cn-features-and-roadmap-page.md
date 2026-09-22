@@ -103,3 +103,4 @@ the page just works.
 | `llmSkillsUrl` | String | — | URL for the sidebar's "Let AI build it" CTA (opens in a new tab). |
 | `suggestUrl` | String | `''` | Optional override target for the "Suggest a feature" CTA; when empty the CTA opens the in-product modal. |
 | `documentationUrl` | String | `''` | Per-app documentation site URL surfaced in the docs info card. |
+| `capabilityComparison` | Object | `null` | Optional capability comparison document, forwarded to the view. Manifest config wins, then the `features_roadmap_capabilities` initial state, then null. |

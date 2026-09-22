@@ -576,7 +576,7 @@ answer about everybody.
 
 A source declares its map like this:
 
-```js
+```js static
 searchFields: {
   objectUuid: { param: 'objectUuid', single: true },
   state: { param: 'state', join: ',' },

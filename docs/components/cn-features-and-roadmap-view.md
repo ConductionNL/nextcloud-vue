@@ -81,6 +81,7 @@ and the Suggest modal POSTs to the same endpoint. Full backend contract:
 |------|------|---------|-------------|
 | `suggestUrl` | String | `''` | Optional override for the "Suggest a feature" CTA target. |
 | `documentationUrl` | String | `''` | Per-app documentation site URL shown in the docs info card. |
+| `capabilityComparison` | Object | `null` | Optional capability comparison document. When set, the header toggle gains a third stop rendering [CnCapabilityTable](./cn-capability-table.md). |
 | `appName` | String | `''` | Human app name used in the feature-request copy. |
 | `appSlug` | String | `''` | App slug used to build the feature-request deep-link repo. |
 | `appStoreUrl` | String | `''` | Nextcloud app-store URL for the app. |

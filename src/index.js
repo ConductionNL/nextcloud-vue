@@ -47,6 +47,7 @@ export {
 	CnBuildiqEditButton,
 	CnCalendarWidget,
 	CnCalendarWidgetForm,
+	CnCapabilityTable,
 	CnCard,
 	CnCardGrid,
 	CnCellRenderer,

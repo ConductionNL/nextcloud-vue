@@ -1008,7 +1008,29 @@
     "Send a test": "Stuur een test",
     "Send a test over {channel}": "Stuur een test via {channel}",
     "The test arrived.": "De test is aangekomen.",
-    "The test did not arrive.": "De test is niet aangekomen."
+    "The test did not arrive.": "De test is niet aangekomen.",
+    "Search capabilities": "Zoek functionaliteiten",
+    "Name, number, area or feature": "Naam, nummer, gebied of functie",
+    "Clear the search": "Wis de zoekopdracht",
+    "Group the capabilities": "Groepeer de functionaliteiten",
+    "Group by feature": "Groepeer per functie",
+    "Group by area": "Groepeer per gebied",
+    "Not yet mapped to a feature": "Nog niet aan een functie gekoppeld",
+    "No.": "Nr.",
+    "Capability": "Functionaliteit",
+    "Capabilities": "Functionaliteiten",
+    "Show capabilities": "Toon functionaliteiten",
+    "Provided by": "Geleverd door",
+    "this app": "deze app",
+    "another app": "andere app",
+    "the platform": "het platform",
+    "We matched this row to its feature by judgement.": "Wij hebben deze rij op inschatting aan een functie gekoppeld.",
+    "No capability matches {query}": "Geen functionaliteit past bij {query}",
+    "Clear the search box or try another word.": "Wis het zoekveld of probeer een ander woord.",
+    "Capabilities in {group}, rated per system.": "Functionaliteiten in {group}, beoordeeld per systeem.",
+    "Yes": "Ja",
+    "Partial": "Gedeeltelijk",
+    "No": "Nee"
   },
   "plurals": {
     "%n year": ["%n jaar", "%n jaar"],
@@ -1022,6 +1044,7 @@
     "{count} unread message": ["{count} ongelezen bericht", "{count} ongelezen berichten"],
     "across {count} conversation": ["in {count} gesprek", "in {count} gesprekken"],
     "{count} work package": ["{count} werkpakket", "{count} werkpakketten"],
-    "{count} more message": ["nog {count} melding", "nog {count} meldingen"]
+    "{count} more message": ["nog {count} melding", "nog {count} meldingen"],
+    "You see {count} capability of {total}.": ["Je ziet {count} functionaliteit van {total}.", "Je ziet {count} functionaliteiten van {total}."]
   }
 }
