@@ -80,6 +80,7 @@ function onAction({ action, row }) {
 | `handler` | Function | — | Called with the `row` value when the action is clicked: `(row) => void` |
 | `disabled` | Boolean\|Function | — | When `true`, or when a function returning `true` for the given row, the item is not clickable |
 | `visible` | Boolean\|Function | — | Controls whether the item appears in the menu at all. Omit for "always shown". Pass `false` or a function returning `false` for the row to hide it. Useful for state-dependent actions (e.g. show *Publish* only when the row is unpublished). |
+| `visibleWhen` | Object | — | The JSON form of the same question, for a manifest, which cannot hold a function: `{ field, op, value }` against the row, or an `all` / `any` composition of those. Evaluated synchronously, so only LOCAL conditions decide anything — one naming an `endpoint` or a `source` cannot be answered here and leaves the action shown rather than silently dropping it. Applied alongside `visible`; both must pass. |
 | `title` | String\|Function | — | Native tooltip shown on hover. Accepts a string or a function `(row) => string`. Useful for explaining *why* a `disabled` entry is disabled. |
 | `destructive` | Boolean | — | When `true`, renders the action in danger color |
 

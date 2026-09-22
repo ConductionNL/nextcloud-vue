@@ -774,7 +774,7 @@ import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
-import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
+import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions } from '../../utils/rowActionAvailability.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
@@ -2606,6 +2606,8 @@ export default {
 			selfObjectType,
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
+			selfFetchTokenCtx,
+			initialQueryFilterKeys,
 		} = useSelfFetchList(props, getCurrentInstance(), inject)
 
 		// The sidebar's chosen values on a NAMED-SOURCE page. Self-fetch keeps
@@ -2642,12 +2644,23 @@ export default {
 			selfObjectType,
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
+			selfFetchTokenCtx,
+			initialQueryFilterKeys,
 		}
 	},
 
 	data() {
 		return {
 			currentViewMode: this.viewMode,
+			/**
+			 * The non-`_` query keys this page owns, i.e. may clear on the next
+			 * persist. Seeded with what it adopted from the query on load, and
+			 * replaced by what it writes; a key it never claimed is somebody
+			 * else's and is left in the address bar untouched.
+			 *
+			 * @type {Array<string>}
+			 */
+			persistedFilterKeys: [...(this.initialQueryFilterKeys || [])],
 			internalSelectedIds: [...this.selectedIds],
 			// Folder-sidebar state: selected folder id + the register-fetched list.
 			selectedFolderId: null,
@@ -4955,13 +4968,33 @@ export default {
 		},
 
 		/**
+		 * The spelling a filter goes back into the query as. A value that arrived
+		 * as an `@`-token keeps the TOKEN for as long as it still resolves to
+		 * what is active — otherwise a shared `?assignee=@me` link would be
+		 * rewritten to one named uid on the first filter change and stop meaning
+		 * "me" for whoever opens it next.
+		 *
+		 * @param {string} key The filter key, as it sits in the query.
+		 * @param {unknown} value The resolved value now active.
+		 * @return {unknown} The token, or the value.
+		 */
+		filterQuerySpelling(key, value) {
+			const raw = this.$route.query[key]
+			if (typeof raw !== 'string' || raw.charAt(0) !== '@') {
+				return value
+			}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			return String(resolveFilterValue(raw, ctx)) === String(value) ? raw : value
+		},
+
+		/**
 		 * Persist filters + search + sort into `$route.query` in one replace,
 		 * so a reload or a shared/bookmarked link reproduces the exact same
-		 * view. Self-fetch mode only. Every non-reserved key is a filter, so
-		 * they're cleared and re-applied wholesale each call rather than
-		 * merged (otherwise a cleared filter would never leave the query).
-		 * Best-effort: a duplicate-navigation rejection (same resulting
-		 * path/query) is swallowed.
+		 * view. Self-fetch mode only. The page's own filter keys are cleared and
+		 * re-applied wholesale each call rather than merged (otherwise a cleared
+		 * filter would never leave the query); a non-reserved key it never
+		 * claimed is left alone. Best-effort: a duplicate-navigation rejection
+		 * (same resulting path/query) is swallowed.
 		 *
 		 * @param {{filters?: object, search?: string, sortKey?: ?string, sortOrder?: string, sortKeys?: Array<{key: string, order: string}>}} state Current view state.
 		 * @return {void}
@@ -4971,17 +5004,18 @@ export default {
 				return
 			}
 			const query = { ...this.$route.query }
-			for (const key of Object.keys(query)) {
-				if (!key.startsWith('_')) {
-					delete query[key]
-				}
+			for (const key of this.persistedFilterKeys) {
+				delete query[key]
 			}
+			const written = []
 			for (const [key, value] of Object.entries(state.filters || {})) {
 				if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
 					continue
 				}
-				query[key] = value
+				query[key] = this.filterQuerySpelling(key, value)
+				written.push(key)
 			}
+			this.persistedFilterKeys = written
 			if (state.search) {
 				query._search = state.search
 			} else {
@@ -6319,11 +6353,15 @@ export default {
 			if (!this.createSuccessRoute) {
 				return
 			}
-			// `buildOnSuccessRoute` reads the id through `savedObjectId`, so a
-			// response that carries it as `uuid` or `@self.id` still deep-links.
-			const location = buildOnSuccessRoute(this.createSuccessRoute, saved)
-			if (location && this.$router) {
-				this.$router.push(location).catch(() => {})
+			try {
+				// `buildOnSuccessRoute` reads the id through `savedObjectId`, so a
+				// response that carries it as `uuid` or `@self.id` still deep-links.
+				const location = buildOnSuccessRoute(this.createSuccessRoute, saved)
+				if (location && this.$router) {
+					this.$router.push(location).catch(() => {})
+				}
+			} catch {
+				// The record is saved; staying on the list beats an error toast.
 			}
 		},
 

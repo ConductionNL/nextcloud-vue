@@ -497,7 +497,34 @@ export default {
 			})
 		},
 
+		/**
+		 * Whether the grid is currently rescaled to a column count other than the
+		 * authored one, i.e. a `columnOpts` breakpoint is in force.
+		 *
+		 * The authored count is `columnOpts.columnMax` when there is one, not the
+		 * `columns` prop: GridStack widens to `columnMax` above the top breakpoint,
+		 * so a consumer whose two disagree is at its widest, not reflowed.
+		 *
+		 * @return {boolean} True while a responsive reflow is active.
+		 */
+		isReflowed() {
+			if (!this.grid || typeof this.grid.getColumn !== 'function') {
+				return false
+			}
+			const authored = Number.isFinite(this.columnOpts?.columnMax) ? this.columnOpts.columnMax : this.columns
+			const live = this.grid.getColumn()
+			return Number.isFinite(live) && live > 0 && live !== authored
+		},
+
 		handleGridChange(items) {
+			// GridStack fires `change` for its own responsive rescale too, and at a
+			// 12 → 1 breakpoint every item reads `gridX: 0, gridWidth: 1`. Emitting
+			// that has the host persist the reflow AS the authored layout, which
+			// widening back does not undo. A move made while reflowed is the same
+			// rescaled geometry, so it is dropped for the same reason.
+			if (this.isReflowed()) {
+				return
+			}
 			if (!items || items.length === 0) {
 				return
 			}
@@ -816,12 +843,29 @@ export default {
 			}
 
 			this.contentObserver = new ResizeObserver((entries) => {
+				const cells = new Set()
 				for (const entry of entries) {
 					const cell = entry.target.closest('.grid-stack-item')
-					if (cell && this.grid && typeof this.grid.resizeToContent === 'function') {
-						this.grid.resizeToContent(cell)
+					if (cell) {
+						cells.add(cell)
 					}
 				}
+				if (cells.size === 0) {
+					return
+				}
+				// A frame later, not inline: `resizeToContent` resizes the cell the
+				// observed child sits in, and a child that stretches to its parent
+				// grows with it. Resizing from inside the callback makes that the
+				// classic ResizeObserver loop ("undelivered notifications"); deferred,
+				// it is an ordinary second pass that settles.
+				requestAnimationFrame(() => {
+					if (!this.contentObserver || !this.grid || typeof this.grid.resizeToContent !== 'function') {
+						return
+					}
+					for (const cell of cells) {
+						this.grid.resizeToContent(cell)
+					}
+				})
 			})
 
 			const cells = this.$refs.gridContainer.querySelectorAll('.grid-stack-item[gs-size-to-content]')

@@ -1379,6 +1379,11 @@
 					"minimum": 1,
 					"description": "Row span (>= 1)."
 				},
+				"sizeToContent": {
+					"type": ["boolean", "integer"],
+					"minimum": 1,
+					"description": "Opt-in: hand this placement's height to whatever it renders, so a widget that decides AT RUNTIME it has nothing to show costs no row. `true` sizes purely to content; an integer is a row minimum. It makes gridHeight advisory for this widget — right for anything whose height is whatever it turned out to be (a banner whose condition is false, a list that came back empty), wrong for anything with a deliberate size. Maps to CnDashboardGrid's per-item `sizeToContent`."
+				},
 				"props": {
 					"type": "object",
 					"description": "Optional widget-specific props passed at render time. Shape is widget-specific; not constrained here.",
@@ -3099,6 +3104,54 @@
 						"createSuccessMessage": {
 							"type": "string",
 							"description": "type='index': toast shown after a successful create from the page's built-in Add dialog. Maps to CnIndexPage `createSuccessMessage`."
+						},
+						"savedViewsScope": {
+							"type": "string",
+							"description": "type='index': which pages share this page's saved views. By default a view is shared by every page over the same register and schema and by no other, because a view is filters over one schema's fields. Set this to share views across pages over different sources, or to keep two pages over one source apart. Written into the saved view's `query.scope`; views saved before scoping stay visible everywhere. Maps to CnIndexPage `savedViewsScope`."
+						},
+						"splitCloseButton": {
+							"type": "boolean",
+							"default": true,
+							"description": "type='index': whether the split pane draws its own close link. Set false when a `#split-pane` slot draws one from the slot's `close`. Maps to CnIndexPage `splitCloseButton`."
+						},
+						"splitCloseLabel": {
+							"type": "string",
+							"description": "type='index': accessible name and tooltip for the split pane's close button. Defaults to \"Close\". Maps to CnIndexPage `splitCloseLabel`."
+						},
+						"mapConfig": {
+							"type": "object",
+							"additionalProperties": true,
+							"description": "type='index': how rows are plotted when the Map view mode is available. Non-empty (and not excluded by an explicit viewModes) adds a Map segment to the view toggle. Maps to CnIndexPage `mapConfig`.",
+							"properties": {
+								"latField": {
+									"type": "string",
+									"description": "Object (or `@self`) property path holding the marker's latitude. Dotted paths are supported, e.g. `@self.geo.lat`."
+								},
+								"lngField": {
+									"type": "string",
+									"description": "Object (or `@self`) property path holding the marker's longitude."
+								},
+								"geoField": {
+									"type": "string",
+									"description": "Alternative single property holding a GeoJSON Point geometry (`{ type: 'Point', coordinates: [lng, lat] }`). Takes precedence over latField/lngField when present and resolvable."
+								},
+								"popupField": {
+									"type": "string",
+									"description": "Object property rendered in the marker popup."
+								},
+								"center": {
+									"type": "array",
+									"items": { "type": "number" },
+									"minItems": 2,
+									"maxItems": 2,
+									"description": "Fallback centre `[lat, lng]` when the filtered set has no plottable rows."
+								},
+								"clustering": {
+									"type": "boolean",
+									"default": true,
+									"description": "Whether coincident markers are grouped into a cluster that spiderfies on click. ON by default here — the opposite of CnMapWidget's own default — because an index map plots whatever the filter returns, and several rows at one address is the normal case: unclustered they land on identical pixels, the topmost takes every click and the rest are unreachable with nothing on screen saying they exist. Non-point geometry skips the cluster group, so areas are unaffected. Set false for the old behaviour."
+								}
+							}
 						},
 						"quickFilterMaxVisible": {
 							"type": "integer",
