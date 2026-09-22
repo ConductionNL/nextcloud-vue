@@ -211,6 +211,10 @@ module.exports = {
 			// conditions lets an ESM-only package answer a require, which is
 			// what a bundler wants anyway.
 			conditionNames: ['webpack', 'production', 'browser', 'import', 'require', 'module', 'default'],
+			// webpack 4 shipped node core polyfills; webpack 5 does not. sax,
+			// reached through @file-type/xml, requires 'stream' only to build
+			// its streaming parser API, which nothing in the sandbox calls.
+			fallback: { stream: false },
 			symlinks: false,
 			alias: {
 				// Pin vue to a single instance so vue-styleguidist and the

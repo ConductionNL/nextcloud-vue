@@ -7,6 +7,7 @@
 // calls this function with each preview app before it mounts.
 import { createPinia, setActivePinia } from 'pinia'
 import { NcButton } from '@nextcloud/vue'
+import { translate, translatePlural } from '@nextcloud/l10n'
 import { h } from 'vue'
 
 // One store instance shared by every example, which is what the Vue 2 setup did
@@ -60,4 +61,12 @@ export default function enhancePreviewApp(app) {
 
 	app.config.globalProperties.$route = route
 	app.config.globalProperties.$router = router
+
+	// Vue 2 templates ran inside `with (this)`, so a template calling t(...)
+	// fell through to window.t. A Vue 3 template compiled by @vue/compiler-sfc
+	// resolves it on the render context instead, so t and n have to be on the
+	// app. e2e/harness/main.js installs them the same way, and the migration
+	// notes record that without them every this.t(...) throws at render.
+	app.config.globalProperties.t = translate
+	app.config.globalProperties.n = translatePlural
 }
