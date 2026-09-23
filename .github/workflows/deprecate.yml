@@ -1,0 +1,169 @@
+name: Deprecate (npm versions)
+
+# Mark published versions deprecated. Nothing is built, nothing is published
+# and nothing is removed — `npm deprecate` only attaches a message that npm
+# prints when somebody installs that version.
+#
+# WHY THIS EXISTS
+#
+# 3.0.0 through 3.4.0 were cut from one honest breaking commit on 14 September
+# 2026 and then shipped where nothing could see them: every app in the fleet
+# pins `^2.x`. The line was retired on 19 September by deleting its git tags,
+# which put the baseline back at v2.53.1 and let the next release publish
+# 2.54.0 with `--tag latest`. That moved `latest` off v3 for anyone installing
+# by range. An exact-version install still resolves, silently, to a line nobody
+# maintains — which is what a deprecation message is for.
+#
+# UNPUBLISHING IS NOT THE ALTERNATIVE. npm allows it for 72 hours and refuses
+# to let the version number be reused afterwards; a lockfile pinning 3.2.0
+# would stop resolving rather than warn. Deprecation leaves every existing
+# install working and tells the next person.
+#
+# ⚠️ AUTH: the same finding retag.yml records. OIDC mints a credential for
+# PUBLISHING; `npm deprecate` is a separate registry write and the exchange
+# does not cover it, so this runs on `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}`.
+# The read-back step gets no token on purpose: `npm view` needs none, and a
+# check that quietly depends on one cannot tell an expired token from a write
+# that did not land.
+#
+# ⚠️ MEASURED AGAIN 2026-09-19: THE SECRET ITSELF IS DEAD. Wiring
+# `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` in was not enough. Both
+# maintenance workflows were dispatched against @conduction/nextcloud-vue and
+# both were refused by the registry, in the two different shapes npm uses for
+# the same cause:
+#
+#     retag.yml     npm error code E401  Unable to authenticate, your
+#                   authentication token seems to be invalid.
+#     deprecate.yml npm error code E404  404 Not Found - PUT
+#                   .../@conduction%2fnextcloud-vue  ('could not be found or
+#                   you do not have permission to access it')
+#
+# A 404 on a PUT is npm saying "no rights", not "no package" — the package
+# plainly exists. So do not read the two errors as two problems. The February
+# secret needs rotating by one of the package owners (info-conduction,
+# rubenlinde, remko48, bbrands02) with publish rights; nothing in these files
+# is wrong.
+#
+# What did NOT need a credential, for the next person facing this: `latest`
+# moves by itself on the next publish, because release.yml publishes with
+# `--tag <channel || latest>`. That is how 2.54.0 took `latest` back from the
+# retired line, with no token involved.
+#
+# `beta` works the same way in principle — the beta channel publishes with
+# `--tag beta` — but it needs a commit that warrants a release. Measured
+# 2026-09-19: fast-forwarding `beta` to `main` ran the Release workflow GREEN
+# and published nothing, because the only commit since v2.54.0 was a `chore:`.
+# A green release run is not evidence of a publish; read the log for "no new
+# version is released". So `beta` will come off the retired line on the next
+# real fix or feat through that channel, or immediately once the token is
+# rotated and retag.yml can be dispatched.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'check = prove the token authenticates, change nothing. deprecate = write the messages.'
+        type: choice
+        required: true
+        default: check
+        options:
+          - check
+          - deprecate
+      versions:
+        description: 'Space-separated versions to deprecate. Ignored when mode=check.'
+        type: string
+        required: false
+        default: '3.0.0 3.1.0 3.2.0 3.3.0 3.4.0 3.0.0-beta.3 3.0.0-beta.4 3.0.0-beta.5'
+      message:
+        description: 'Message npm prints on install. Empty string un-deprecates.'
+        type: string
+        required: true
+        default: 'Retired. This package stays on the 2.x line; install @conduction/nextcloud-vue@latest.'
+
+permissions:
+  contents: read
+
+jobs:
+  deprecate:
+    name: "Deprecate versions"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      # RUN `check` FIRST. A write that fails on auth is indistinguishable from
+      # one that fails on anything else until something asks the registry who
+      # the token belongs to. This asks, and changes nothing.
+      - name: Prove the token authenticates
+        if: ${{ inputs.mode == 'check' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          PKG=$(node -p "require('./package.json').name")
+          echo "Registry says this token belongs to:"
+          npm whoami
+          echo
+          echo "Maintainers of $PKG:"
+          npm owner ls "$PKG"
+
+      - name: Check every version exists before writing anything
+        id: resolve
+        if: ${{ inputs.mode != 'check' }}
+        run: |
+          set -euo pipefail
+          PKG=$(node -p "require('./package.json').name")
+          MISSING=''
+          for V in ${{ inputs.versions }}; do
+            npm view "$PKG@$V" version >/dev/null 2>&1 || MISSING="$MISSING $V"
+          done
+          if [ -n "$MISSING" ]; then
+            echo "::error::not published:$MISSING. Deprecating a version that does not exist fails with a registry error that reads like an auth problem."
+            exit 1
+          fi
+          echo "pkg=$PKG" >> "$GITHUB_OUTPUT"
+
+      - name: Deprecate
+        if: ${{ inputs.mode != 'check' }}
+        run: |
+          set -euo pipefail
+          PKG='${{ steps.resolve.outputs.pkg }}'
+          for V in ${{ inputs.versions }}; do
+            echo "deprecating $PKG@$V"
+            npx -y npm@latest deprecate "$PKG@$V" '${{ inputs.message }}'
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # THE MESSAGE MUST BE READ BACK FROM THE REGISTRY.
+      #
+      # `npm deprecate` exiting 0 is not evidence it landed, the same trap
+      # retag.yml records for dist-tags: the write can be refused in a way that
+      # still returns success to the shell. Read each version's `deprecated`
+      # field and fail when it does not hold what was asked for.
+      - name: Verify each version actually carries the message
+        if: ${{ inputs.mode != 'check' }}
+        run: |
+          set -euo pipefail
+          PKG='${{ steps.resolve.outputs.pkg }}'
+          WANT='${{ inputs.message }}'
+          sleep 5   # registry read-after-write is not instant
+          BAD=''
+          for V in ${{ inputs.versions }}; do
+            GOT=$(npm view "$PKG@$V" deprecated 2>/dev/null || echo '')
+            echo "$V -> ${GOT:-(not deprecated)}"
+            if [ -n "$WANT" ] && [ "$GOT" != "$WANT" ]; then BAD="$BAD $V"; fi
+            if [ -z "$WANT" ] && [ -n "$GOT" ]; then BAD="$BAD $V"; fi
+          done
+          if [ -n "$BAD" ]; then
+            echo "::error::the registry did not take the change for:$BAD"
+            exit 1
+          fi
+          echo "All versions carry the requested state."
