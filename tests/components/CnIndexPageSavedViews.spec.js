@@ -27,6 +27,9 @@ jest.mock('@nextcloud/auth', () => ({
 
 const { mount } = require('@vue/test-utils')
 const axios = require('@nextcloud/axios').default
+// Mapped to tests/__mocks__/nextcloud-dialogs.js by the jest moduleNameMapper,
+// so these are the same jest.fn()s the component's dynamic import resolves to.
+const { showError, showSuccess } = require('@nextcloud/dialogs')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
 
 const stubs = {
@@ -183,6 +186,22 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 		expect(wrapper.vm.savedViews.map((v) => v.id)).toContain(3)
 	})
 
+	// The dialog closing is the only other signal a save worked, and a dialog
+	// closing is also what a cancel looks like.
+	it('says so when a view is saved', async () => {
+		axios.post.mockResolvedValue({ data: { view: { ...ownView, id: 3, name: 'Saved' } } })
+		const wrapper = mountPage({ allowSavedViews: true })
+		await flush()
+		await wrapper.find('[data-testid="cn-saved-views-save"]').trigger('click')
+		await flush()
+		const dialog = wrapper.findComponent({ name: 'CnSaveViewDialog' })
+		await dialog.setData({ name: 'Saved' })
+		await dialog.find('[data-testid="cn-save-view-confirm"]').trigger('click')
+		await flush()
+		expect(showSuccess).toHaveBeenCalledWith('View "Saved" saved')
+		expect(showError).not.toHaveBeenCalled()
+	})
+
 	it('keeps the save dialog open and surfaces the error on a failed save', async () => {
 		axios.post.mockRejectedValue(new Error('nope'))
 		const wrapper = mountPage({ allowSavedViews: true })
@@ -195,6 +214,23 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 		expect(wrapper.findComponent({ name: 'CnSaveViewDialog' }).exists()).toBe(true)
 		expect(dialog.vm.error).toBe('nope')
 		expect(dialog.vm.loading).toBe(false)
+	})
+
+	// Both, and they carry different halves of it: the toast says the save did
+	// not happen, the dialog says why and keeps the name to retry with. A
+	// dialog that merely stayed open reads as one not yet submitted.
+	it('says so when a view could not be saved, and still names the reason in the dialog', async () => {
+		axios.post.mockRejectedValue(new Error('nope'))
+		const wrapper = mountPage({ allowSavedViews: true })
+		await flush()
+		await wrapper.find('[data-testid="cn-saved-views-save"]').trigger('click')
+		const dialog = wrapper.findComponent({ name: 'CnSaveViewDialog' })
+		await dialog.setData({ name: 'Doomed' })
+		await dialog.find('[data-testid="cn-save-view-confirm"]').trigger('click')
+		await flush()
+		expect(showError).toHaveBeenCalledWith('Could not save the view "Doomed"')
+		expect(showSuccess).not.toHaveBeenCalled()
+		expect(dialog.vm.error).toBe('nope')
 	})
 
 	it('deletes an own view after confirmation and removes it from the list', async () => {

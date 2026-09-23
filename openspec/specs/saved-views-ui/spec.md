@@ -95,6 +95,8 @@ This retracts `saved-view-as-a-place`, which gave every view of a declaring page
 
 "Save current view…" SHALL open a dialog (CnSaveViewDialog) collecting a required name and an optional public toggle, and persist the CURRENT route-query state via `POST /apps/openregister/api/views` using the direct-`query` payload shape `{ name, description, isPublic, isDefault, query: { filters, search, sort } }`. `sort` SHALL be the ordered array `[{ key, order }, …]`, so a chained sort survives the save, or `null` when there is no sort. The single-object form `{ key, order }` SHALL still be read, because every view stored before sorts could be chained carries it.
 
+A save SHALL say which way it went, by name. On success a toast SHALL name the view that was saved; a closing dialog is the only other signal, and a dialog closing is also what a cancel looks like. On failure a toast SHALL say the view was not saved, AND the dialog SHALL stay open carrying the reason — the toast is what the person notices, the dialog is where the name and the toggle still are to correct and retry, and a dialog that merely stayed open reads as one not yet submitted. Neither toast SHALL be able to fail the save it reports on.
+
 #### Scenario: save posts the exact payload derived from the route query
 
 - GIVEN the current route query is `{ status: 'open', _search: 'urgent', _order: '[{"key":"name","order":"asc"}]', _page: '2' }`
@@ -112,6 +114,19 @@ This retracts `saved-view-as-a-place`, which gave every view of a declaring page
 - GIVEN the views API rejects the POST
 - WHEN the save is confirmed
 - THEN the dialog remains open with the error shown and the form re-enabled
+
+#### Scenario: a saved view says so
+
+- GIVEN the views API accepts the POST for a view named "Saved"
+- WHEN the save is confirmed
+- THEN a success toast SHALL name "Saved" and no error toast SHALL be shown
+
+#### Scenario: a view that could not be saved says so, and still says why
+
+- GIVEN the views API rejects the POST for a view named "Doomed"
+- WHEN the save is confirmed
+- THEN an error toast SHALL name "Doomed", no success toast SHALL be shown, and
+  the dialog SHALL still carry the reason the API gave
 
 ---
 

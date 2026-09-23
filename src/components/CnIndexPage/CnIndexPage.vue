@@ -1713,8 +1713,9 @@ export default {
 		 * stored filters/search/sort into the route query (reusing the
 		 * existing deep-link contract — non-underscore keys are filters,
 		 * `_search` and `_order` are reserved), "Save current view…"
-		 * persists the current route-query state via POST, and own views can
-		 * be deleted after confirmation.
+		 * persists the current route-query state via POST and toasts either
+		 * way naming the view (a failure also keeps the dialog open with the
+		 * reason), and own views can be deleted after confirmation.
 		 */
 		allowSavedViews: {
 			type: Boolean,
@@ -5926,6 +5927,30 @@ export default {
 		 *
 		 * @param {{ name: string, isPublic: boolean }} payload Dialog payload.
 		 */
+		/**
+		 * Toast, without letting the toast fail the thing it reports on.
+		 *
+		 * The import is dynamic so a page that never toasts does not carry the
+		 * chunk, and everything is swallowed: a chunk that will not load must
+		 * not turn a save that worked into an error, nor add an unhandled
+		 * rejection on top of one that already failed.
+		 *
+		 * @param {'success'|'error'} kind Which toast to show.
+		 * @param {string} message The message, already translated.
+		 * @return {Promise<void>}
+		 */
+		async toastSavedView(kind, message) {
+			try {
+				const dialogs = await import('@nextcloud/dialogs')
+				const show = kind === 'error' ? dialogs.showError : dialogs.showSuccess
+				if (typeof show === 'function') {
+					show(message)
+				}
+			} catch {
+				// No toast. What it was reporting on happened either way.
+			}
+		},
+
 		async onSaveViewConfirm({ name, isPublic }) {
 			const state = this.isSelfFetchMode
 				? this.currentViewState()
@@ -5946,10 +5971,17 @@ export default {
 					this.savedViews = [...this.savedViews, view]
 				}
 				this.showSaveViewDialog = false
+				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" saved', { name }))
 			} catch (error) {
 				// eslint-disable-next-line no-console
 				console.error('CnIndexPage: failed to save view', error)
+				// Both, and they say different things: the dialog stays open
+				// carrying the reason, because that is where the name and the
+				// toggle still are to correct and retry; the toast says the save
+				// did not happen, because a dialog that simply stayed open reads
+				// as one that has not been submitted yet.
 				this.$refs.saveViewDialog?.setError(error?.response?.data?.error || error?.message)
+				this.toastSavedView('error', t('nextcloud-vue', 'Could not save the view "{name}"', { name }))
 			}
 		},
 
