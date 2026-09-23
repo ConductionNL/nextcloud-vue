@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunknextcloud_vue_docs=globalThis.webpackChunknextcloud_vue_docs||[]).push([[13327],{13327(e,c,s){s.d(c,{createPacketServices:()=>u.$});var u=s(73263);s(4954)}}]);

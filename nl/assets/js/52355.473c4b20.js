@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunknextcloud_vue_docs=globalThis.webpackChunknextcloud_vue_docs||[]).push([[52355],{52355(e,c,s){s.d(c,{createEventModelingServices:()=>u.g});var u=s(82688);s(4954)}}]);

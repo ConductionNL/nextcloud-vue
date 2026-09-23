@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunknextcloud_vue_docs=globalThis.webpackChunknextcloud_vue_docs||[]).push([[37632],{37632(e,c,s){s.d(c,{createWardleyServices:()=>u.J});var u=s(9427);s(4954)}}]);

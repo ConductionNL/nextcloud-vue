@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunknextcloud_vue_docs=globalThis.webpackChunknextcloud_vue_docs||[]).push([[98365],{98365(e,c,a){a.d(c,{createRadarServices:()=>s.f});var s=a(25552);a(4954)}}]);
