@@ -25,29 +25,88 @@
 	<!-- Chips mode (default): the clickable tab strip. -->
 	<div v-else
 		class="cn-quick-filter-bar"
-		:class="{ 'cn-quick-filter-bar--inline': inline }"
-		role="tablist">
-		<button
-			v-for="(tab, i) in tabs"
-			:key="tab.label + ':' + i"
-			type="button"
-			role="tab"
-			:aria-selected="isChipActive(i) ? 'true' : 'false'"
-			class="cn-quick-filter-bar__tab"
-			:class="[{ 'cn-quick-filter-bar__tab--active': isChipActive(i) }]"
-			@click="onClick(i)">
-			<CnIcon
-				v-if="tab.icon"
-				:name="tab.icon"
-				:size="16"
-				class="cn-quick-filter-bar__icon" />
-			<span class="cn-quick-filter-bar__label">{{ tab.label }}</span>
-		</button>
+		:class="{ 'cn-quick-filter-bar--inline': inline }">
+		<!-- The tablist holds ONLY tabs: the overflow chip is a sibling, not a
+		     child, because a role="tablist" may not contain a menu button. -->
+		<div class="cn-quick-filter-bar__tabs" role="tablist">
+			<button
+				v-for="entry in visibleEntries"
+				:key="entry.tab.label + ':' + entry.index"
+				type="button"
+				role="tab"
+				:aria-selected="isChipActive(entry.index) ? 'true' : 'false'"
+				class="cn-quick-filter-bar__tab"
+				:class="[{ 'cn-quick-filter-bar__tab--active': isChipActive(entry.index) }]"
+				@click="onClick(entry.index)">
+				<CnIcon
+					v-if="entry.tab.icon"
+					:name="entry.tab.icon"
+					:size="16"
+					class="cn-quick-filter-bar__icon" />
+				<span class="cn-quick-filter-bar__label">{{ entry.tab.label }}</span>
+			</button>
+		</div>
+		<!-- The overflow is a CHIP and not a toolbar button: it is one of the
+		     lenses, so it carries the same pill, the same active fill and the
+		     label of whichever hidden lens is on. -->
+		<NcPopover
+			v-if="overflowEntries.length > 0"
+			v-model:shown="moreOpen"
+			:triggers="[]"
+			popupRole="dialog"
+			placement="bottom-end"
+			popoverBaseClass="cn-quick-filter-bar__popper">
+			<template #trigger>
+				<button
+					type="button"
+					data-testid="cn-quick-filter-more"
+					class="cn-quick-filter-bar__tab cn-quick-filter-bar__more"
+					:class="{
+						'cn-quick-filter-bar__tab--active': activeOverflowEntries.length > 0,
+						'cn-quick-filter-bar__more--icon-only': !overflowLabel,
+					}"
+					:aria-expanded="moreOpen ? 'true' : 'false'"
+					aria-haspopup="dialog"
+					:aria-label="overflowAriaLabel"
+					:title="overflowAriaLabel"
+					@click="moreOpen = !moreOpen">
+					<span v-if="overflowLabel" class="cn-quick-filter-bar__label">{{ overflowLabel }}</span>
+					<DotsHorizontal :size="16" class="cn-quick-filter-bar__icon" />
+				</button>
+			</template>
+			<div
+				class="cn-quick-filter-bar__more-panel"
+				@keydown.escape.stop="moreOpen = false">
+				<p class="cn-quick-filter-bar__more-heading">
+					{{ moreHeading }}
+				</p>
+				<div class="cn-quick-filter-bar__more-list">
+					<button
+						v-for="entry in overflowEntries"
+						:key="entry.tab.label + ':' + entry.index"
+						type="button"
+						data-testid="cn-quick-filter-more-item"
+						class="cn-quick-filter-bar__tab cn-quick-filter-bar__more-item"
+						:class="{ 'cn-quick-filter-bar__tab--active': isChipActive(entry.index) }"
+						:aria-pressed="isChipActive(entry.index) ? 'true' : 'false'"
+						@click="onOverflowClick(entry.index)">
+						<CnIcon
+							v-if="entry.tab.icon"
+							:name="entry.tab.icon"
+							:size="16"
+							class="cn-quick-filter-bar__icon" />
+						<span class="cn-quick-filter-bar__label">{{ entry.tab.label }}</span>
+					</button>
+				</div>
+			</div>
+		</NcPopover>
 	</div>
 </template>
 
 <script>
-import { NcSelect } from '@nextcloud/vue'
+import { translate as t } from '@nextcloud/l10n'
+import { NcPopover, NcSelect } from '@nextcloud/vue'
+import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 
 /**
@@ -57,7 +116,8 @@ import CnIcon from '../CnIcon/CnIcon.vue'
  *
  * Two presentations, chosen by `mode`:
  * - `'chips'` (default) — a horizontal row of pill-shaped buttons; the
- *   active one is filled, the rest outlined.
+ *   active one is filled, the rest outlined. `maxVisible` caps how many
+ *   pills render and moves the rest into an overflow menu.
  * - `'dropdown'` — a single `NcSelect`. The "All" / empty-filter tab is
  *   dropped from the options (an empty selection means "all").
  *
@@ -75,7 +135,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 export default {
 	name: 'CnQuickFilterBar',
 
-	components: { CnIcon, NcSelect },
+	components: { CnIcon, DotsHorizontal, NcPopover, NcSelect },
 
 	// NO `model: { prop, event }` OPTION.
 	//
@@ -158,11 +218,106 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Chips mode only: how many pills render inline before the rest move
+		 * into an overflow menu. `0` (the default) renders every tab, which is
+		 * the behaviour this component has always had. The visible set is the
+		 * FIRST `maxVisible` tabs in declared order — reorder `tabs` to change
+		 * which ones stay out. Ignored in `dropdown` mode.
+		 */
+		maxVisible: {
+			type: Number,
+			default: 0,
+			validator: (v) => Number.isFinite(v) && v >= 0,
+		},
 	},
 
 	emits: ['update:active-index', 'update:selected-indices'],
 
+	data() {
+		return {
+			/** Whether the overflow chip's panel is open. */
+			moreOpen: false,
+		}
+	},
+
 	computed: {
+		/**
+		 * Every tab paired with its own index, so the overflow split can slice
+		 * the list without losing the index the parent's filters are keyed on.
+		 *
+		 * @return {Array<{tab: object, index: number}>}
+		 */
+		entries() {
+			return this.tabs.map((tab, index) => ({ tab, index }))
+		},
+
+		/**
+		 * The tabs rendered as pills — all of them unless `maxVisible` caps it.
+		 *
+		 * @return {Array<{tab: object, index: number}>}
+		 */
+		visibleEntries() {
+			if (!this.maxVisible || this.tabs.length <= this.maxVisible) {
+				return this.entries
+			}
+			return this.entries.slice(0, this.maxVisible)
+		},
+
+		/**
+		 * The tabs moved into the overflow menu (empty when `maxVisible` is 0
+		 * or there is nothing to hide).
+		 *
+		 * @return {Array<{tab: object, index: number}>}
+		 */
+		overflowEntries() {
+			if (!this.maxVisible || this.tabs.length <= this.maxVisible) {
+				return []
+			}
+			return this.entries.slice(this.maxVisible)
+		},
+
+		/**
+		 * The active tabs that live in the overflow menu.
+		 *
+		 * @return {Array<{tab: object, index: number}>}
+		 */
+		activeOverflowEntries() {
+			return this.overflowEntries.filter((e) => this.isChipActive(e.index))
+		},
+
+		/**
+		 * Text on the overflow chip — an active hidden tab names itself there,
+		 * so the strip never reads "All" while the list is narrowed. Nothing
+		 * active leaves the chip as the bare `⋯` glyph.
+		 *
+		 * @return {string}
+		 */
+		overflowLabel() {
+			const active = this.activeOverflowEntries
+			if (active.length === 1) {
+				return active[0].tab.label
+			}
+			if (active.length > 1) {
+				return t('nextcloud-vue', '{count} filters', { count: active.length })
+			}
+			return ''
+		},
+
+		/** @return {string} Accessible name for the overflow chip. */
+		overflowAriaLabel() {
+			if (this.overflowLabel) {
+				return t('nextcloud-vue', '{label} — show the other filters', { label: this.overflowLabel })
+			}
+			return t('nextcloud-vue', '{count} more filters', { count: this.overflowEntries.length })
+		},
+
+		/** @return {string} Heading above the hidden chips in the panel. */
+		moreHeading() {
+			return t('nextcloud-vue', 'More filters')
+		},
+
 		/**
 		 * Dropdown options: every tab that carries a non-empty `filter`,
 		 * tagged with its original index. The "All" / empty-filter tab is
@@ -243,6 +398,20 @@ export default {
 		},
 
 		/**
+		 * A chip clicked inside the overflow panel. Single-select closes the
+		 * panel on the way out; multi-select keeps it open so several lenses
+		 * can be toggled in one visit.
+		 *
+		 * @param {number} i Zero-based tab index.
+		 */
+		onOverflowClick(i) {
+			this.onClick(i)
+			if (!this.multiple) {
+				this.moreOpen = false
+			}
+		},
+
+		/**
 		 * NcSelect input handler — normalises the option object(s) back to
 		 * indices and emits the matching model event.
 		 *
@@ -264,10 +433,18 @@ export default {
 .cn-quick-filter-bar {
 	display: flex;
 	flex-wrap: wrap;
+	align-items: center;
 	gap: 8px;
 	padding: 8px 12px;
 	border-bottom: 1px solid var(--color-border);
 	background: var(--color-main-background);
+}
+
+.cn-quick-filter-bar__tabs {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
 }
 
 /* Inline variant — bare strip for embedding inside another bar (e.g. the
@@ -322,5 +499,57 @@ export default {
 
 .cn-quick-filter-bar__label {
 	line-height: 1;
+}
+
+/* NcPopover wraps its trigger in a plain `<div class="v-popper">`, which as a
+   block would drop the chip onto its own line under the strip. */
+.cn-quick-filter-bar > :deep(.v-popper) {
+	display: inline-flex;
+}
+
+/* The `⋯` glyph is the chip's whole content while no hidden lens is on, so the
+   pill tightens to a circle rather than sitting as a wide empty capsule. */
+.cn-quick-filter-bar__more {
+	gap: 4px;
+}
+
+.cn-quick-filter-bar__more--icon-only {
+	padding: 4px 8px;
+}
+
+.cn-quick-filter-bar__more[aria-expanded='true'] {
+	border-color: var(--color-primary-element, var(--color-primary, #4376fc));
+}
+
+.cn-quick-filter-bar__more-panel {
+	padding: 10px 12px 12px;
+	max-width: 280px;
+}
+
+.cn-quick-filter-bar__more-heading {
+	margin: 0 0 8px;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+}
+
+/* The hidden lenses stay chips — the panel is more of the strip, not a
+   different control that happens to hold the same filters. */
+.cn-quick-filter-bar__more-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	max-height: 320px;
+	overflow-y: auto;
+}
+
+.cn-quick-filter-bar__more-item {
+	max-width: 100%;
+}
+
+.cn-quick-filter-bar__more-item .cn-quick-filter-bar__label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 </style>

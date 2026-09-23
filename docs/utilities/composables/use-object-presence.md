@@ -18,9 +18,11 @@ const { others, count, active, depart } =
 | `register` | `string \| Ref<string>` | OpenRegister register slug. |
 | `schema` | `string \| Ref<string>` | OpenRegister schema slug. |
 | `objectUuid` | `string \| Ref<string>` | The record being read. |
-| `options.enabled` | `boolean` | Set `false` to make the whole thing inert. Default `true`. |
+| `options.enabled` | `boolean \| Ref<boolean> \| (() => boolean)` | Set `false` to make the whole thing inert. Default `true`. |
 
 Each address part may be a value, a ref or a getter. A widget host that reuses one instance across records needs the getter form, or presence stays pinned to the first record it saw.
+
+`enabled` takes the same three forms, and it is re-read rather than sampled once: a consumer whose answer depends on data that arrives after mount — a page deciding from `widgets` whether a presence row is placed at all — passes a getter, and the beat starts when it flips. A one-shot `false` would leave the subscription off for good.
 
 ## Returns
 

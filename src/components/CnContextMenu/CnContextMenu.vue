@@ -75,7 +75,7 @@
 
 <script>
 import { NcActionButton, NcActions } from '@nextcloud/vue'
-import { clearContextMenuPositionDom, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR } from '../../composables/useContextMenu.js'
+import { CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR } from '../../composables/useContextMenu.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -341,7 +341,11 @@ export default {
 			// propagating and would dismiss it again on the same gesture.
 			this.$nextTick(() => {
 				if (this.internalOpen) {
-					document.addEventListener('mousedown', this.onDocumentMouseDown)
+					// CAPTURE. A canvas that swallows its own mousedown never lets it
+					// bubble to document, so a menu opened over one could not be
+					// dismissed by clicking the canvas — Vue Flow's d3-zoom pane calls
+					// stopImmediatePropagation, which is exactly that shape.
+					document.addEventListener('mousedown', this.onDocumentMouseDown, true)
 				}
 			})
 		},
@@ -352,7 +356,7 @@ export default {
 		 * @return {void}
 		 */
 		stopOutsideWatch() {
-			document.removeEventListener('mousedown', this.onDocumentMouseDown)
+			document.removeEventListener('mousedown', this.onDocumentMouseDown, true)
 		},
 
 		/**
@@ -481,20 +485,24 @@ export default {
 		},
 
 		/**
-		 * Meant to fire after the popper's hide animation completes, clearing
-		 * the cursor-position CSS vars.
+		 * Fires after the popper's hide animation completes.
 		 *
-		 * **Currently dead.** `@nextcloud/vue` 9 binds `onAfterClose` on its
-		 * NcPopover while NcPopover only emits `afterHide`, so NcActions never
-		 * emits `closed` and neither do we. Nothing depends on it any more —
-		 * positioning is scoped to this menu's own popper (see `tagPopper`), the
-		 * data attribute is dropped in the `internalOpen` watcher, and the CSS
-		 * vars are refreshed by the next `open()` / wiped by the composable's
-		 * unmount hook. Kept wired so the tear-down lands at the correct moment
-		 * if upstream ever fixes the binding.
+		 * IT MUST NOT CLEAR THE CURSOR POSITION, and it used to. This fires LATE
+		 * — a whole hide animation late — so a second click on the same target
+		 * reopens the menu before it arrives, and the tear-down then strips the
+		 * coordinates that reopen had just written. The transform resolves
+		 * against undefined vars and the menu lands in the corner, on every open
+		 * after the first.
+		 *
+		 * It was dead code when written: `@nextcloud/vue` 9 bound `onAfterClose`
+		 * against an NcPopover that only emitted `afterHide`. 9.11.0 binds
+		 * `onAfterHide`, so it runs now, and a tear-down nothing needed became a
+		 * bug. Nothing needs it still: positioning is scoped to this menu's own
+		 * popper (see `tagPopper`), the data attribute is dropped in the
+		 * `internalOpen` watcher, the next `open()` overwrites the vars, and the
+		 * composable's unmount hook clears them for good.
 		 */
 		onClosed() {
-			clearContextMenuPositionDom()
 			/**
 			 * @event closed Intended to fire after the popper's hide animation completes. Does not currently fire — `@nextcloud/vue` 9's NcActions listens for an `afterClose` event NcPopover never emits. Use `close` instead.
 			 */

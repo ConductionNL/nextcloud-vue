@@ -95,10 +95,14 @@ Custom action items can be injected into the overflow menu:
 |------|-------|-------------|
 | `after-search` | — | Refinement controls beside the search field on the bar's LEFT side (e.g. an `NcActions` filter menu with a funnel icon) — the left side groups the visual controls (search, filters, view toggle) |
 | `filters` | — | Inline filter controls rendered inside the bar, between the view toggle and the add/actions (e.g. a `CnQuickFilterBar` segmented toggle). |
+| `actions` | — | Custom buttons rendered between the sidebar toggle and the primary Add button. |
+| `actions-end` | — | Custom buttons rendered AFTER the primary Add button, immediately before the overflow menu (e.g. `CnIndexPage`'s saved-views control) — for content that belongs grouped with "browse/manage" controls rather than with the app-specific buttons in `#actions`. |
 | `header-actions` | — | Extra buttons placed after the Add button, before the overflow menu |
 | `action-items` | — | Extra `NcActionButton` items injected into the overflow menu |
 | `mass-actions` | `{ count, selectedIds }` | Extra mass-action items at the bottom of the overflow menu (optional mirror of the strip's actions) |
 | `selection-actions` | `{ count, selectedIds }` | The host's bulk-action buttons (NcButton family) in the contextual selection strip shown while `selectable` and a selection is active — the primary bulk-actions surface, with a live `role="status"` count and a built-in Clear control |
+
+> **Upgrading:** `#actions` used to render *after* the Add button. It now renders *before* it, and the old position is the new `#actions-end`. Content passed to `#actions` therefore moves to the other side of Add — move it to `#actions-end` to keep the previous placement.
 
 ## Documentation link
 

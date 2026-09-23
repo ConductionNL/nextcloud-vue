@@ -24,7 +24,7 @@ const mockStore = {
 	registerObjectType: jest.fn((slug) => {
 		mockStore.objectTypeRegistry[slug] = {}
 	}),
-	fetchCollection: jest.fn().mockResolvedValue([
+	fetchCollectionForOptions: jest.fn().mockResolvedValue([
 		{ id: 'status-1', title: 'Received' },
 		{ id: 'status-2', title: 'In progress' },
 	]),
@@ -79,17 +79,17 @@ const plainSchema = {
 }
 
 /**
- * Every `fetchCollection` call made for one schema slug.
+ * Every `fetchCollectionForOptions` call made for one schema slug.
  *
  * @param {string} slug The referenced schema slug the call must end with.
  * @return {Array<Array>} The matching mock calls, in order.
  */
-const callsFor = (slug) => mockStore.fetchCollection.mock.calls.filter(([s]) => String(s).endsWith(slug))
+const callsFor = (slug) => mockStore.fetchCollectionForOptions.mock.calls.filter(([s]) => String(s).endsWith(slug))
 
 beforeEach(() => {
 	mockStore.objectTypeRegistry = {}
 	mockStore.registerObjectType.mockClear()
-	mockStore.fetchCollection.mockClear()
+	mockStore.fetchCollectionForOptions.mockClear()
 	mockStore.fetchObject.mockClear()
 })
 

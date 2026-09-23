@@ -185,13 +185,6 @@ export interface TManifestPage {
 	 */
 	splitView?: TManifestSplitView
 	/**
-	 * Index pages only. Makes each saved view of this page a place: its own
-	 * address, the presentation its own config declares, and an entry under
-	 * this page's navigation entry once a user pins it. The schema refuses
-	 * the key elsewhere, because elsewhere there is no view to be a place.
-	 */
-	savedViewPlaces?: TManifestSavedViewPlaces
-	/**
 	 * Index pages only. Lets a person drag the rows into an order of their
 	 * own, held per user and per list, never written onto the records.
 	 */
@@ -216,18 +209,6 @@ export interface TManifestSplitView {
 	breakpoint?: number
 	/** CSS width of the detail pane, e.g. `'38%'`. Defaults to `'42%'`. */
 	paneWidth?: string
-}
-
-/** A saved view of an index page as a place of its own. */
-export interface TManifestSavedViewPlaces {
-	/** Whether this page's saved views have addresses, presentations and pins. */
-	enabled?: boolean
-	/** The path segment between the page's route and the view id. Defaults to `'views'`. */
-	routeBase?: string
-	/** The navigation entry a pinned view hangs under. Defaults to the page's own entry. */
-	navGroup?: string
-	/** How many pinned views the navigation renders under that entry. Defaults to 5. */
-	pinnedCap?: number
 }
 
 /**

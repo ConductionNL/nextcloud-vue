@@ -24,6 +24,13 @@
 		<div v-else-if="stagesPending && stages.length === 0" class="cn-stages-widget__loading">
 			<NcLoadingIcon :size="24" :name="tr('Loading stages')" />
 		</div>
+		<!-- Not the same as a case type with no stages, and must not say so. -->
+		<NcNoteCard
+			v-else-if="stagesUnaddressable"
+			type="warning"
+			data-testid="cn-stages-widget-unaddressable">
+			{{ tr('The stages cannot be read for this record yet') }}
+		</NcNoteCard>
 		<p v-else-if="stages.length === 0" class="cn-stages-widget__notice" data-testid="cn-stages-widget-empty">
 			{{ tr('No stages to show') }}
 		</p>
@@ -423,6 +430,7 @@ export default {
 			stagesBody: stagesRead.data,
 			stagesBodyLoading: stagesRead.loading,
 			stagesBodyError: stagesRead.error,
+			stagesBodyBlocked: stagesRead.blocked,
 		}
 	},
 
@@ -572,10 +580,30 @@ export default {
 		 * @return {boolean} True while loading.
 		 */
 		stagesPending() {
-			if (this.endpointStages) {
-				return this.stagesBodyLoading || (this.stagesBody === null && !this.stagesBodyError)
+			if (!this.endpointStages) {
+				return this.sourceLoading
 			}
-			return this.sourceLoading
+			if (this.stagesBodyLoading) {
+				return true
+			}
+			// Blocked means the url has an unset token, so nothing was asked.
+			// Wait only while the record that token reads from is still coming;
+			// once it is here the endpoint will never resolve.
+			if (this.stagesBodyBlocked) {
+				return this.record === null
+			}
+			return this.stagesBody === null
+		},
+
+		/**
+		 * Whether the endpoint names a token the record does not carry, so the
+		 * stages can never be read. Kept apart from the empty state: they need
+		 * different fixes.
+		 *
+		 * @return {boolean}
+		 */
+		stagesUnaddressable() {
+			return Boolean(this.endpointStages && this.stagesBodyBlocked && this.record !== null)
 		},
 
 		/**
@@ -1284,6 +1312,9 @@ export default {
 	gap: 8px;
 	min-width: 0;
 	width: 100%;
+	/* On top of the surface's own content padding, which is sized for a KPI
+	   tile rather than a strip of 32px circles. */
+	padding: 4px;
 }
 
 .cn-stages-widget__loading {

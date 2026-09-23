@@ -693,6 +693,13 @@ const REGISTRY_KIND_REQUIRED_FIELDS = {
 	// an integration `widget`, a `section` requires NO sidebar tab and carries no
 	// grid metadata — it sits wherever the page's `placement` puts it.
 	section: [],
+	// Named behaviour: a plain function (exposed as `.handler` / `.fn`) that a
+	// manifest names from `actions[].handler`, `bulkActions[].handler` or
+	// `headerActions[].handler`. Resolved by name through
+	// `resolveRegisteredHandler`, never mounted, so it carries no component and
+	// no metadata — the registry home for what used to live in the legacy
+	// `customComponents` map as a bare function.
+	handler: [],
 	// Create-override handler: a plain async function (exposed as `.handler` /
 	// `.fn`) that CnPageRenderer resolves for CnIndexPage's `createOverride`
 	// prop so a declarative `type:"index"` page can route its generic Add
@@ -1361,8 +1368,10 @@ export default {
 		 *
 		 * Recognised kinds: `widget`, `modal`, `page`, `form-field`,
 		 * `cell-renderer`, the slot-component kinds `header`, `actions`,
-		 * `tab`, `section` (mounted into named page slots), and the handler
-		 * kind `create-override`. See spec REQ-MVR-002.
+		 * `tab`, `section` (mounted into named page slots), and the function
+		 * kinds `handler` (a manifest `actions[]` / `bulkActions[]` /
+		 * `headerActions[]` handler) and `create-override`. See spec
+		 * REQ-MVR-002.
 		 *
 		 * @type {object}
 		 */

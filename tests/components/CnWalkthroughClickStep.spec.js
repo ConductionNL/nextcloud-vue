@@ -49,7 +49,7 @@ describe('CnWalkthrough — a step that asks for a click', () => {
 							</div>
 						</li>
 					</ul>
-					<div id="settings-foldout">
+					<div id="settings-foldout" data-testid="cn-nav-settings">
 						<button id="settings-toggle" aria-expanded="false">Settings</button>
 						<div style="display: none">
 							<a data-cn-route="Flows" data-testid="nav-flows">Flows</a>

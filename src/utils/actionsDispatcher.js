@@ -162,27 +162,28 @@ export function savedObjectId(saved) {
 }
 
 /**
- * Resolve a named create-override handler out of the v2 registry (or the
- * legacy customComponents map) by value shape.
+ * Resolve a manifest-named FUNCTION out of the v2 registry, falling back to the
+ * legacy customComponents map.
  *
- * A create-override is a plain async function that replaces the default
- * `objectStore.saveObject` persist path — needed whenever a schema requires a
- * field the create form cannot supply on its own (a server-minted foreign key,
- * say). Recognised shapes, in order:
- *   1. a `kind: 'create-override'` registry entry exposing `.handler` / `.fn`,
+ * A manifest names a behaviour the same way it names a component — by string —
+ * so every surface that dispatches one (`actions[].handler`,
+ * `bulkActions[].handler`, `headerActions[].handler`, `config.createOverride`)
+ * has to agree on where that string is looked up and what counts as a match.
+ * Recognised shapes, in order:
+ *   1. a registry entry exposing the function as `.handler` / `.fn` (the
+ *      `kind: 'handler'` and `kind: 'create-override'` entries),
  *   2. a directly function-valued registry entry,
  *   3. a function-valued legacy `customComponents` entry.
  *
- * Shared by CnPageRenderer (page-level `config.createOverride` → CnIndexPage's
- * prop) and CnActionButtons (per-action `createOverride` on an `open-form`), so
- * the two surfaces cannot drift on what counts as a valid handler.
+ * The legacy map stays last so an app that has not migrated is unchanged, and
+ * so an app mid-migration can move its handlers over one at a time.
  *
  * @param {string} name The registered handler name.
  * @param {object} registry The v2 component registry.
  * @param {object} customComponents The legacy customComponents map.
- * @return {?((props?: object) => Promise<unknown>)} The async create handler, or null when unresolved.
+ * @return {?((scope?: object) => unknown)} The handler, or null when nothing of that name is a function.
  */
-export function resolveCreateOverrideHandler(name, registry, customComponents) {
+export function resolveRegisteredHandler(name, registry, customComponents) {
 	if (typeof name !== 'string' || name === '') {
 		return null
 	}
@@ -200,6 +201,28 @@ export function resolveCreateOverrideHandler(name, registry, customComponents) {
 	}
 	const legacy = (customComponents || {})[name]
 	return typeof legacy === 'function' ? legacy : null
+}
+
+/**
+ * Resolve a named create-override handler out of the v2 registry (or the
+ * legacy customComponents map) by value shape.
+ *
+ * A create-override is a plain async function that replaces the default
+ * `objectStore.saveObject` persist path — needed whenever a schema requires a
+ * field the create form cannot supply on its own (a server-minted foreign key,
+ * say).
+ *
+ * Shared by CnPageRenderer (page-level `config.createOverride` → CnIndexPage's
+ * prop) and CnActionButtons (per-action `createOverride` on an `open-form`), so
+ * the two surfaces cannot drift on what counts as a valid handler.
+ *
+ * @param {string} name The registered handler name.
+ * @param {object} registry The v2 component registry.
+ * @param {object} customComponents The legacy customComponents map.
+ * @return {?((props?: object) => Promise<unknown>)} The async create handler, or null when unresolved.
+ */
+export function resolveCreateOverrideHandler(name, registry, customComponents) {
+	return resolveRegisteredHandler(name, registry, customComponents)
 }
 
 /**
@@ -292,6 +315,22 @@ function interpolateActionString(str, ctx) {
 		return (id === undefined || id === null) ? '' : String(id)
 	})
 	return interpolateUrlTokens(braced, ctx)
+}
+
+/**
+ * Interpolate an action's `target` URL — the same grammar `url` runs.
+ *
+ * Exported because the rendering surface resolves a target BEFORE deciding
+ * whether it is an external link, and that decision happens there rather than
+ * in the dispatcher.
+ *
+ * @param {string} target The action's raw `target`.
+ * @param {object} ctx Token context (`{ objectId?, object?, workspace?, config? }`).
+ *
+ * @return {string} The interpolated target.
+ */
+export function interpolateActionTarget(target, ctx) {
+	return interpolateActionString(target || '', ctx || {})
 }
 
 /**
@@ -748,12 +787,17 @@ export function dispatchAction(action, context = {}) {
 		}
 
 		case 'navigate': {
+			// A target is a URL exactly as `url` is, so it runs the same token
+			// grammar. Without this a manifest's `{objectId}` reached the router
+			// as those nine literal characters and landed in the address bar.
+			const target = interpolateActionString(action.target || '', context.tokenCtx || {})
+
 			// An external target is not a route. Rendering surfaces should give it
 			// to the browser as a real link (CnActionButtons does); this is the
 			// fallback for a programmatic dispatch, and it must not reach the
 			// router — see isExternalActionTarget.
-			if (isExternalActionTarget(action.target)) {
-				window.open(action.target, '_blank', 'noopener,noreferrer')
+			if (isExternalActionTarget(target)) {
+				window.open(target, '_blank', 'noopener,noreferrer')
 				break
 			}
 			if (!context.router) {
@@ -761,7 +805,7 @@ export function dispatchAction(action, context = {}) {
 				console.warn('[dispatchAction] navigate requires context.router to be a Vue Router instance.')
 				return
 			}
-			context.router.push(action.target)
+			context.router.push(target)
 			break
 		}
 

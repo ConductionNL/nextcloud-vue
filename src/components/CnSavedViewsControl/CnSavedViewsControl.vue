@@ -57,9 +57,15 @@
 			data-testid="cn-saved-views-none-for-label"
 			:name="t('nextcloud-vue', 'No views with this label')" />
 
-		<!-- One entry per view, in tree order: apply on click; own views get a delete entry. -->
+		<!-- One row per view, in tree order: the name applies it, a trailing
+		     icon button deletes it. NcActions only recognises NcAction* vnodes
+		     as menu items and silently drops anything else, so a row with more
+		     than one control has to be an NcActionButtonGroup. -->
 		<template v-if="!loading">
-			<template v-for="row in rows" :key="`view-${row.view.id || row.view.slug}`">
+			<NcActionButtonGroup
+				v-for="row in rows"
+				:key="`view-${row.view.id || row.view.slug}`"
+				class="cn-saved-view-row">
 				<NcActionButton
 					data-testid="cn-saved-views-item"
 					:data-view-id="row.view.id || row.view.slug"
@@ -73,19 +79,6 @@
 					{{ rowName(row) }}
 				</NcActionButton>
 				<NcActionButton
-					v-if="allowPinning"
-					:key="`pin-${row.view.id || row.view.slug}`"
-					data-testid="cn-saved-views-pin"
-					:data-view-id="row.view.id || row.view.slug"
-					:aria-label="pinLabel(row.view)"
-					@click="onPinRequest(row.view)">
-					<template #icon>
-						<Pin v-if="isPinned(row.view)" :size="20" />
-						<PinOutline v-else :size="20" />
-					</template>
-					{{ pinLabel(row.view) }}
-				</NcActionButton>
-				<NcActionButton
 					v-if="isOwn(row.view) && row.group !== SEEDED_GROUP"
 					:key="`delete-${row.view.id || row.view.slug}`"
 					data-testid="cn-saved-views-delete"
@@ -95,9 +88,8 @@
 					<template #icon>
 						<TrashCanOutline :size="20" />
 					</template>
-					{{ deleteLabel(row.view) }}
 				</NcActionButton>
-			</template>
+			</NcActionButtonGroup>
 		</template>
 
 		<NcActionSeparator />
@@ -116,17 +108,14 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionCaption, NcActions, NcActionSeparator } from '@nextcloud/vue'
+import { NcActionButton, NcActionButtonGroup, NcActionCaption, NcActions, NcActionSeparator } from '@nextcloud/vue'
 import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'
-import Pin from 'vue-material-design-icons/Pin.vue'
-import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import { buildViewTree, labelsInUse, VIEW_GROUPS } from '../../utils/buildViewTree.js'
 import { isOwnView } from '../../utils/savedViewHelpers.js'
-import { isPinnedView } from '../../utils/savedViewPlaces.js'
 
 /**
  * CnSavedViewsControl — toolbar dropdown listing OpenRegister saved-search
@@ -140,15 +129,14 @@ import { isPinnedView } from '../../utils/savedViewPlaces.js'
  *   stored filters/search/sort into the route query.
  * - `@save-request()` — "Save current view…" clicked; parent opens
  *   CnSaveViewDialog.
- * - `@delete-request(view)` — a view's delete entry clicked; parent opens
- *   a confirm dialog. Only rendered for views the current user owns
+ * - `@delete-request(view)` — a view's trailing delete icon clicked; parent
+ *   opens a confirm dialog. Only rendered for views the current user owns
  *   (`view.owner === currentUserId`) — OpenRegister refuses foreign
  *   deletes server-side anyway (owner-scoped 404).
  *
  * @event {object} apply — Apply the clicked view. Payload: the View API object.
  * @event {void} save-request — Open the save-current-view dialog.
  * @event {object} delete-request — Confirm-delete the clicked view. Payload: the View API object.
- * @event {object} pin-request — Pin or unpin the clicked view. Payload: the View API object. Only rendered when `allowPinning`.
  */
 export default {
 	name: 'CnSavedViewsControl',
@@ -156,13 +144,12 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
+		NcActionButtonGroup,
 		NcActionCaption,
 		NcActionSeparator,
 		BookmarkOutline,
 		ContentSaveOutline,
 		EyeOutline,
-		Pin,
-		PinOutline,
 		TagOutline,
 		TrashCanOutline,
 	},
@@ -187,17 +174,6 @@ export default {
 		},
 
 		/**
-		 * Whether a view can be pinned into the navigation from here
-		 * (saved-view-as-a-place). True only on a page whose views are
-		 * places: pinning a view that has no address of its own would put an
-		 * entry in the navigation with nowhere to go.
-		 */
-		allowPinning: {
-			type: Boolean,
-			default: false,
-		},
-
-		/**
 		 * How deep the tree indents before it flattens. Mirrors
 		 * `savedViewTree.maxDepth` in the manifest. Flattening is about
 		 * indentation only: a view past the bound still renders.
@@ -208,7 +184,7 @@ export default {
 		},
 	},
 
-	emits: ['apply', 'delete-request', 'pin-request', 'save-request'],
+	emits: ['apply', 'delete-request', 'save-request'],
 
 	data() {
 		return {
@@ -331,42 +307,6 @@ export default {
 		},
 
 		/**
-		 * Whether the current user has pinned this view.
-		 *
-		 * @param {object} view The View API object.
-		 * @return {boolean} True when it is in this user's navigation.
-		 */
-		isPinned(view) {
-			return isPinnedView(view, this.currentUserId)
-		},
-
-		/**
-		 * Label for a view's pin entry, which says what the click will do
-		 * rather than what the state is: a menu entry is an action.
-		 *
-		 * @param {object} view The View API object.
-		 * @return {string} The label.
-		 */
-		pinLabel(view) {
-			return this.isPinned(view)
-				? t('nextcloud-vue', 'Unpin "{name}" from the navigation', { name: view.name })
-				: t('nextcloud-vue', 'Pin "{name}" to the navigation', { name: view.name })
-		},
-
-		/**
-		 * Pin-entry click: hand the view to the parent to pin or unpin.
-		 *
-		 * @param {object} view The View API object.
-		 */
-		onPinRequest(view) {
-			/**
-			 * @event pin-request A view's pin entry was clicked; toggle the pin.
-			 * @type {object}
-			 */
-			this.$emit('pin-request', view)
-		},
-
-		/**
 		 * Accessible label for a view's delete entry.
 		 *
 		 * @param {object} view The View API object.
@@ -414,3 +354,31 @@ export default {
 	},
 }
 </script>
+
+<style scoped>
+/* NcActionButtonGroup gives every child `flex: 1 1` (equal width) by
+   default; override so the name button grows and the delete icon stays
+   compact. :deep() is required — these li's belong to NcActionButtonGroup's
+   own scope, not this component's. */
+.cn-saved-view-row :deep(.nc-button-group-content) {
+	gap: 0;
+}
+
+/* Anchored on the FIRST child, not the last: a row carries one or two buttons
+   depending on ownership, so "the last one" is the name button on a row that
+   has only that. */
+.cn-saved-view-row :deep(.nc-button-group-content > li) {
+	flex: 0 0 auto;
+}
+
+.cn-saved-view-row :deep(.nc-button-group-content > li:first-child) {
+	flex: 1 1 auto;
+}
+
+/* NcActionButtonGroup also centers .action-button content (fine for an
+   icon-only toolbar button, wrong for a row with a name) — restore the
+   normal left-aligned NcActionButton look for the name button. */
+.cn-saved-view-row :deep(.nc-button-group-content > li:first-child .action-button) {
+	justify-content: flex-start;
+}
+</style>

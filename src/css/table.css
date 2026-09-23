@@ -134,12 +134,53 @@
 	background-color: var(--color-main-background);
 }
 
+/* ONE LINE PER CELL, CUT WITH AN ELLIPSIS WHERE IT DOES NOT FIT.
+
+   Under `table-layout: auto` a cell is free to paint past its own box, so a
+   long value did not merely widen its column — it rendered over the column
+   beside it. Clipping ends that. CnCellRenderer already puts the full value in
+   a `title`, so a cut cell is read by hovering it.
+
+   The cap is a variable: widen it, narrow it, or lift it with
+   `--cn-table-cell-max-width: none`. Per-column control is finer still — a
+   declared `width` is an inline style and wins over both.
+
+   IT DOES NOT DECIDE WHO GETS THE SURPLUS, and cannot. `table-layout: auto`
+   shares spare width content-blind, and single-line cells give it no signal at
+   all, since min-content and max-content become the same number. A column with
+   little to say can therefore still be handed more room than one that was
+   truncated. Measuring the columns in JS was tried and reverted: it fixed the
+   distribution and brought worse problems with it. Declare a `width` on the
+   columns that matter. */
 .cn-data-table th,
 .cn-data-table td {
 	padding: calc(3 * var(--default-grid-baseline));
 	text-align: left;
 	border-bottom: 1px solid var(--color-border);
 	vertical-align: middle;
+	max-width: var(--cn-table-cell-max-width, 22rem);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* The control columns hold a checkbox or an icon, not text: clipping them would
+   cut one in half. */
+.cn-data-table .cn-table-col--checkbox,
+.cn-data-table .cn-table-col--icon,
+.cn-data-table .cn-table-col--actions {
+	max-width: none;
+	overflow: visible;
+	white-space: normal;
+}
+
+/* Back to wrapping, for a column holding prose rather than a label:
+   `columns: [{ key: 'description', cellClass: 'cn-cell--wrap' }]`. */
+.cn-data-table th.cn-cell--wrap,
+.cn-data-table td.cn-cell--wrap {
+	overflow: visible;
+	white-space: normal;
+	overflow-wrap: anywhere;
 }
 
 /* Opt-in fixed layout (CnDataTable's `fixedLayout` prop).

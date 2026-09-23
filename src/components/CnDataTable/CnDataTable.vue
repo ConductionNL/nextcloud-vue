@@ -162,7 +162,8 @@
 							v-for="(col, colIndex) in effectiveColumns"
 							:key="col.key"
 							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
-							:style="col.width ? { maxWidth: col.width } : {}">
+							:style="col.width ? { maxWidth: col.width } : {}"
+							@mouseenter="titleWhenClipped">
 							<!-- The padlock rides the FIRST data cell, beside whatever
 							     names the row. Deliberately OUTSIDE the #column-<key>
 							     slot: a consumer overriding that column's rendering is
@@ -966,6 +967,39 @@ export default {
 		 */
 		indicatorsFor(row) {
 			return resolveRowIndicators(this.rowIndicators, row, this.rowIndicatorCap)
+		},
+
+		/**
+		 * Give a cell its full text on hover, and only when it is cut short.
+		 *
+		 * Cells are one line with an ellipsis, so a long value is readable only
+		 * as far as the column goes. A `title` on every cell would answer that,
+		 * and would also put a tooltip on the cells that need none — repeating
+		 * back what is already on screen.
+		 *
+		 * Read on ENTER rather than on render: `scrollWidth > clientWidth` forces
+		 * layout, and doing it per cell per paint would cost a reflow for a
+		 * tooltip almost none of them want. On enter it is one read of one cell,
+		 * and it is re-read every time, so a column resized since the last hover
+		 * answers for its new width rather than its old one.
+		 *
+		 * @param {MouseEvent} event The enter event.
+		 *
+		 * @return {void}
+		 */
+		titleWhenClipped(event) {
+			const el = event.currentTarget
+			if (!el) {
+				return
+			}
+
+			// 1px of tolerance, as the scrollport check uses: sub-pixel rounding
+			// otherwise reports a cell that visually fits as clipped.
+			if (el.scrollWidth - el.clientWidth > 1) {
+				el.setAttribute('title', (el.textContent || '').trim())
+			} else {
+				el.removeAttribute('title')
+			}
 		},
 
 		/**

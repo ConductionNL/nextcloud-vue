@@ -24,7 +24,7 @@ library owns both halves and has never joined them.
 Read against `parity/round2`.
 
 The views exist. `useSavedViewsApi.js`, `CnSavedViewsControl` and
-`savedViewPlaces.js` read `GET /apps/openregister/api/views` and list the
+`savedViewHelpers.js` read `GET /apps/openregister/api/views` and list the
 user's own views plus the public ones, scoped server side. `CnIndexPage`
 renders the control whenever `allowSavedViews` is true, and dossiq turns it
 on for two index pages already.

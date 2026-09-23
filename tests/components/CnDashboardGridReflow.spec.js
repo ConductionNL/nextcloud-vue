@@ -1,0 +1,229 @@
+/**
+ * SPDX-FileCopyrightText: 2026 Conduction B.V.
+ * SPDX-License-Identifier: EUPL-1.2
+ *
+ * A responsive reflow is not a layout edit.
+ *
+ * GridStack fires `change` when `columnOpts` rescales its nodes onto another
+ * column count, carrying the RESCALED geometry — at a 12 → 1 breakpoint every
+ * item reads `gridX: 0, gridWidth: 1`. A host that persists `layout-change`
+ * (CnDetailPage writes it straight back onto the manifest's layout items) would
+ * store that as the authored layout, and widening the window back does not
+ * restore it: the source values are already overwritten.
+ */
+import { shallowMount } from '@vue/test-utils'
+import CnDashboardGrid from '../../src/components/CnDashboardGrid/CnDashboardGrid.vue'
+
+const layout = [
+	{ id: '1', gridX: 0, gridY: 0, gridWidth: 3, gridHeight: 4 },
+	{ id: '2', gridX: 3, gridY: 0, gridWidth: 9, gridHeight: 4 },
+]
+
+/** The shape GridStack hands `change` after a 12 → 1 rescale. */
+const rescaled = [
+	{ id: '1', x: 0, y: 0, w: 1, h: 4 },
+	{ id: '2', x: 0, y: 4, w: 1, h: 4 },
+]
+
+/**
+ * @param {number} live The column count GridStack currently reports.
+ * @return {object} A grid wrapper whose engine sits at `live` columns.
+ */
+function mountAtColumns(live) {
+	const wrapper = shallowMount(CnDashboardGrid, { propsData: { layout, columns: 12 } })
+	wrapper.vm.grid = { getColumn: () => live, destroy: () => {} }
+	return wrapper
+}
+
+describe('CnDashboardGrid — responsive reflow', () => {
+	it('drops the change GridStack fires while rescaled to another column count', () => {
+		const wrapper = mountAtColumns(1)
+
+		wrapper.vm.handleGridChange(rescaled)
+
+		expect(wrapper.emitted('layout-change')).toBeUndefined()
+		wrapper.unmount()
+	})
+
+	it('emits a change made at the authored column count', () => {
+		const wrapper = mountAtColumns(12)
+
+		wrapper.vm.handleGridChange([{ id: '1', x: 2, y: 0, w: 3, h: 4 }])
+
+		const emitted = wrapper.emitted('layout-change')
+		expect(emitted).toHaveLength(1)
+		expect(emitted[0][0][0]).toMatchObject({ id: '1', gridX: 2, gridWidth: 3 })
+		wrapper.unmount()
+	})
+
+	it('reads the authored count off columnOpts.columnMax when the two disagree', () => {
+		// GridStack widens to columnMax above the top breakpoint, so a grid sitting
+		// there is at its widest — not reflowed — even though `columns` says 6.
+		const wrapper = shallowMount(CnDashboardGrid, {
+			propsData: { layout, columns: 6, columnOpts: { columnMax: 12, breakpoints: [{ w: 1000, c: 1 }] } },
+		})
+		wrapper.vm.grid = { getColumn: () => 12, destroy: () => {} }
+
+		wrapper.vm.handleGridChange([{ id: '1', x: 4, y: 0, w: 3, h: 4 }])
+
+		expect(wrapper.emitted('layout-change')).toHaveLength(1)
+		wrapper.unmount()
+	})
+
+	it('emits as before when the engine cannot report a column count', () => {
+		// No `columnOpts` means no reflow is possible, so the gate must not
+		// swallow an ordinary drag on a grid whose engine answers nothing.
+		const wrapper = shallowMount(CnDashboardGrid, { propsData: { layout, columns: 12 } })
+		wrapper.vm.grid = { destroy: () => {} }
+
+		wrapper.vm.handleGridChange([{ id: '1', x: 1, y: 0, w: 3, h: 4 }])
+
+		expect(wrapper.emitted('layout-change')).toHaveLength(1)
+		wrapper.unmount()
+	})
+})
+
+/**
+ * @param {number} live The column count GridStack currently reports.
+ * @param {object} propsData Props for the grid.
+ * @return {{wrapper: object, grid: object}} The wrapper and its fake engine.
+ */
+function mountEditable(live, propsData = {}) {
+	const wrapper = shallowMount(CnDashboardGrid, {
+		propsData: { layout, columns: 12, editable: true, ...propsData },
+	})
+	const grid = {
+		getColumn: () => live,
+		enable: jest.fn(),
+		disable: jest.fn(),
+		destroy: () => {},
+	}
+	wrapper.vm.grid = grid
+	return { wrapper, grid }
+}
+
+describe('CnDashboardGrid — the handles say what the grid will do', () => {
+	// The other half of "a reflow is not a layout edit". Dropping the change is
+	// right; offering a drag that gets dropped is the same surprise pointed the
+	// other way, and worse to diagnose because the author did nothing wrong.
+	it('takes the handles away while reflowed, even in edit mode', () => {
+		const { wrapper, grid } = mountEditable(1)
+
+		wrapper.vm.syncInteractivity()
+
+		expect(grid.disable).toHaveBeenCalled()
+		expect(grid.enable).not.toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
+	it('gives them back at the authored column count', () => {
+		const { wrapper, grid } = mountEditable(12)
+
+		wrapper.vm.syncInteractivity()
+
+		expect(grid.enable).toHaveBeenCalled()
+		expect(grid.disable).not.toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
+	it('keeps them off outside edit mode, whatever the column count', () => {
+		const { wrapper, grid } = mountEditable(12, { editable: false })
+
+		wrapper.vm.syncInteractivity()
+
+		expect(grid.disable).toHaveBeenCalled()
+		expect(grid.enable).not.toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
+	it('re-judges them on the rescale that crossed the breakpoint', () => {
+		// The widening direction matters as much as the narrowing one: a grid
+		// that took the handles away and never gave them back is edit mode that
+		// stopped working for the rest of the session.
+		const { wrapper, grid } = mountEditable(12)
+
+		wrapper.vm.handleGridChange([{ id: '1', x: 2, y: 0, w: 3, h: 4 }])
+
+		expect(grid.enable).toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
+	it('says nothing to an engine that cannot be enabled', () => {
+		const wrapper = shallowMount(CnDashboardGrid, { propsData: { layout, columns: 12, editable: true } })
+		wrapper.vm.grid = { getColumn: () => 1, destroy: () => {} }
+
+		expect(() => wrapper.vm.syncInteractivity()).not.toThrow()
+		wrapper.unmount()
+	})
+
+	it('still tracks the reflow on an engine that cannot be enabled', () => {
+		// The keyboard lane reads this whether or not the handles can be taken
+		// away, so the engine guard must not sit in front of it.
+		const wrapper = shallowMount(CnDashboardGrid, { propsData: { layout, columns: 12, editable: true } })
+		wrapper.vm.grid = { getColumn: () => 1, destroy: () => {} }
+
+		wrapper.vm.syncInteractivity()
+
+		expect(wrapper.vm.reflowed).toBe(true)
+		wrapper.unmount()
+	})
+})
+
+describe('CnDashboardGrid — the keyboard lane closes with the handles', () => {
+	// Taking the handles away leaves a sighted mouse user correctly stuck. The
+	// keyboard path had no such guard: it stayed focusable, performed the move
+	// through GridStack, and ANNOUNCED it — for a move the reflow guard then
+	// dropped. The loudest feedback on the path with the least other signal.
+	it('drops the tab stop, the help text and the arrow keys while reflowed', async () => {
+		const { wrapper } = mountEditable(1)
+
+		wrapper.vm.syncInteractivity()
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.keyboardActive).toBe(false)
+		expect(wrapper.vm.itemTabindex).toBeNull()
+		expect(wrapper.vm.itemDescribedBy).toBeNull()
+		wrapper.unmount()
+	})
+
+	it('does not move or announce on an arrow key while reflowed', () => {
+		const { wrapper, grid } = mountEditable(1)
+		grid.update = jest.fn()
+		grid.engine = { nodes: [] }
+		wrapper.vm.syncInteractivity()
+
+		const target = document.createElement('div')
+		const event = { key: 'ArrowRight', shiftKey: false, target, currentTarget: target, preventDefault() {}, stopPropagation() {} }
+		wrapper.vm.onItemKeydown(event, layout[0])
+
+		expect(grid.update).not.toHaveBeenCalled()
+		expect(wrapper.vm.announcement).toBe('')
+		wrapper.unmount()
+	})
+
+	it('gives the lane back at the authored column count', async () => {
+		const { wrapper } = mountEditable(12)
+
+		wrapper.vm.syncInteractivity()
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.keyboardActive).toBe(true)
+		expect(wrapper.vm.itemTabindex).toBe(0)
+		wrapper.unmount()
+	})
+
+	it('leaves Enter alone, because activating a widget is not repositioning it', () => {
+		const { wrapper } = mountEditable(1)
+		wrapper.vm.syncInteractivity()
+		wrapper.vm.activateItem = jest.fn()
+
+		const target = document.createElement('div')
+		wrapper.vm.onItemKeydown(
+			{ key: 'Enter', target, currentTarget: target, preventDefault() {}, stopPropagation() {} },
+			layout[0],
+		)
+
+		expect(wrapper.vm.activateItem).toHaveBeenCalled()
+		wrapper.unmount()
+	})
+})

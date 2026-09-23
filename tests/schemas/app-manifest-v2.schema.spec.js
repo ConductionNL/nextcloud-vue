@@ -1254,13 +1254,13 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.37.0', () => {
-		// Moved with savedViewTree. The version is not decoration: a consumer
-		// reads it to tell a manifest key it does not know from one it got
-		// wrong, and dossiq spent a day on two Ajv failures that were an
-		// installed schema being older than the manifest it validated.
+	it('the manifest schema version reads 2.40.0', () => {
+		// A consumer reads this to tell a manifest key it does not know from
+		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVES
+		// `savedViewPlaces`, and the bump is the only machine-readable signal
+		// a fleet app gets that the key it declares is no longer a key.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.37.0')
+		expect(schema.version).toBe('2.40.0')
 	})
 
 	it('accepts a declarative `store` block, and requires the remote schema', () => {
@@ -1435,14 +1435,12 @@ describe('case-page-and-list-as-a-place — the keys are refused off their page 
 		expect(validateManifestV2(page({ tabInAddress: true })).valid).toBe(false)
 	})
 
-	it('accepts savedViewPlaces on an index page, and refuses a route base that is not a path segment', () => {
-		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, routeBase: 'views', navGroup: 'nav-cases', pinnedCap: 5 } })).valid).toBe(true)
-		// A segment a person reads and sends. 'My Views' would encode, render
-		// as %20 in the address bar and still work, which is exactly the kind
-		// of thing nobody notices until the link is in an email.
-		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, routeBase: 'My Views' } })).valid).toBe(false)
-		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, pinnedCap: 0 } })).valid).toBe(false)
-		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, wat: true } })).valid).toBe(false)
+	// A saved view is a lens applied onto the page's own address, not a place.
+	// The key is gone from the vocabulary, so a manifest still carrying it is
+	// told so rather than validating and doing nothing.
+	it('refuses savedViewPlaces anywhere, now that a saved view is not a place', () => {
+		expect(validateManifestV2(page({ savedViewPlaces: { enabled: true, routeBase: 'views' } })).valid).toBe(false)
+		expect(validateManifestV2(detail({ savedViewPlaces: { enabled: true } })).valid).toBe(false)
 	})
 
 	it('accepts savedViewTree on an index page, with a seeded view that carries a slug', () => {
@@ -1547,10 +1545,6 @@ describe('case-page-and-list-as-a-place — the keys are refused off their page 
 
 	it('refuses savedViewTree on a detail page, where there is no dropdown to put a tree in', () => {
 		expect(validateManifestV2(detail({ savedViewTree: { enabled: true } })).valid).toBe(false)
-	})
-
-	it('refuses savedViewPlaces on a detail page, where a view is not a place', () => {
-		expect(validateManifestV2(detail({ savedViewPlaces: { enabled: true } })).valid).toBe(false)
 	})
 
 	it('refuses a breakpoint no viewport has', () => {

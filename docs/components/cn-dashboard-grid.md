@@ -45,7 +45,8 @@ function onLayoutChange(updated) {
 
 | Prop | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
-| `layout` | Array | ✓ | — | Array of layout items: `{ id, gridX, gridY, gridWidth, gridHeight, ...extra }` |
+| `layout` | Array | ✓ | — | Array of layout items: `{ id, gridX, gridY, gridWidth, gridHeight, sizeToContent?, ...extra }` |
+| ↳ `item.sizeToContent` | Boolean \| Number | | `undefined` | **Per-item**: hand this row's height to its content instead of its authored `gridHeight` (`true`, or a number as a row minimum). Use it for a widget that may decide at runtime it has nothing to show — a banner whose condition is false, a list that came back empty. Without it that widget still costs its whole row: the row is reserved from the layout before the component renders, and the engine positions items absolutely, so no CSS can reclaim the space. Leave it off for anything with a deliberate size (a map, a chart), where `gridHeight` should stay authoritative. |
 | `editable` | Boolean | | `false` | Enables drag and resize interactions |
 | `columns` | Number | | `12` | Number of grid columns |
 | `cellHeight` | Number | | `80` | Cell height in pixels |
