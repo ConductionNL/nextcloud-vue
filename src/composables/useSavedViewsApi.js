@@ -63,16 +63,18 @@ export function useSavedViewsApi() {
 	/**
 	 * Part-update a view (`PATCH /api/views/{id}`).
 	 *
-	 * Pinning uses this rather than `updateView`: a PUT carries the whole
-	 * view, so pinning through it would rewrite the name, the query and the
-	 * presentation of a view somebody else may have edited in between, from a
-	 * copy this tab loaded minutes ago. A PATCH of `favoredBy` changes the one
-	 * field the pin is about.
+	 * Prefer this over `updateView` for a one-field change: a PUT carries the
+	 * whole view, so it would rewrite the name, the query and the presentation
+	 * of a view somebody else may have edited in between, from a copy this tab
+	 * loaded minutes ago.
+	 *
+	 * No component in this library calls it since pinning was withdrawn. It
+	 * stays because it is a REST verb on a public composable a consuming app
+	 * can and does reach for.
 	 *
 	 * @param {string|number} id The view id (numeric id or uuid).
 	 * @param {object} payload The fields to change, e.g. `{ favoredBy: [...] }`.
 	 * @return {Promise<object>} The updated View object.
-	 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
 	 */
 	async function patchView(id, payload) {
 		const response = await axios.patch(generateUrl(`${base}/${encodeURIComponent(id)}`), payload)

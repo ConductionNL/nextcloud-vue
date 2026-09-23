@@ -112,17 +112,23 @@ test.describe('a data widget in a tab panel', () => {
 	})
 
 	// THE BAND. With nothing to commit there is no header at all, so the fields
-	// begin at the panel's own top edge.
+	// begin at the panel's content edge — nothing stands between the two.
 	test('no header band stands above the fields while nothing is being edited', async ({ page }) => {
 		await openDataTab(page)
 		await expect(page.locator('.cn-widget-wrapper__header')).toHaveCount(0)
 
 		// Measured, because the assertion above would also pass if the header
 		// were merely renamed. 59px of empty band is what a reader saw.
+		//
+		// Measured from the panel's CONTENT edge, so the panel's own padding
+		// is not read as a band: the claim is that nothing sits between the
+		// panel's inner edge and the first field.
 		const offset = await page.evaluate(() => {
-			const panel = document.querySelector('.cn-tabs__content').getBoundingClientRect()
+			const el = document.querySelector('.cn-tabs__content')
+			const panel = el.getBoundingClientRect()
+			const padTop = parseFloat(getComputedStyle(el).paddingTop) || 0
 			const grid = document.querySelector('.cn-object-data-widget__grid').getBoundingClientRect()
-			return Math.round(grid.top - panel.top)
+			return Math.round(grid.top - (panel.top + padTop))
 		})
 		expect(offset).toBeLessThanOrEqual(1)
 	})

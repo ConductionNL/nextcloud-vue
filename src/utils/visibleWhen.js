@@ -46,10 +46,10 @@
 
 import { isAppInstalled } from './appInstalled.js'
 import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
-import { resolveFilterTokens } from './resolveFilterTokens.js'
+import { resolveFilterTokens, resolveFilterValue } from './resolveFilterTokens.js'
 
 /** Supported visibleWhen comparison operators. */
-export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte']
+export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'empty', 'notEmpty']
 
 /**
  * Read a dot-path off an object (`'a.b.c'`); the object itself when no
@@ -75,16 +75,30 @@ export function readVisibleWhenPath(data, field) {
  * @param {unknown} actual The resolved left-hand value.
  * @param {string} op The operator (`eq` when unknown).
  * @param {unknown} expected The declared right-hand value.
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Token-resolution
+ *   context for the right-hand side, so `@object.<field>` and `@workspace.<key>` resolve
+ *   as well as `@me`. Omitted, only the context-free tokens resolve.
  * @return {boolean} Whether the comparison holds.
  */
-export function compareVisibleWhen(actual, op, expected) {
+export function compareVisibleWhen(actual, op, expected, ctx) {
 	const operator = VISIBLE_WHEN_OPS.includes(op) ? op : 'eq'
+	// `empty` takes no `value`. It is the one question eq cannot ask: an unset
+	// field arrives as undefined, null or '' depending on the store and the
+	// serialiser, and `String(null)` is the word "null" rather than blank.
+	if (operator === 'empty' || operator === 'notEmpty') {
+		const blank = actual === undefined || actual === null || actual === ''
+			|| (Array.isArray(actual) === true && actual.length === 0)
+		return operator === 'empty' ? blank : !blank
+	}
+	// The shared @-token grammar, so a condition can name the READER (`@me`)
+	// rather than a literal only the server knows.
+	const right = resolveFilterValue(expected, ctx || {})
 	if (operator === 'eq' || operator === 'neq') {
-		const equal = actual === expected || String(actual) === String(expected)
+		const equal = actual === right || String(actual) === String(right)
 		return operator === 'eq' ? equal : !equal
 	}
 	const a = Number(actual)
-	const b = Number(expected)
+	const b = Number(right)
 	if (!Number.isFinite(a) || !Number.isFinite(b)) {
 		return false
 	}
@@ -156,6 +170,21 @@ export async function evaluateVisibleWhen(cond, ctx) {
 	if (!cond) {
 		return true
 	}
+	// `all` / `any` compose conditions, so a gate can be more than one fact.
+	// Without it a claim button could say "not closed" OR "nobody holds it",
+	// never both, and the weaker of the two is the one that ships.
+	if (Array.isArray(cond.all) === true || Array.isArray(cond.any) === true) {
+		try {
+			// Read the key that IS an array: a malformed `{ all: {}, any: [] }`
+			// enters this branch on `any`, and `cond.all ?? cond.any` would hand
+			// the object to `.map`.
+			const parts = Array.isArray(cond.all) === true ? cond.all : cond.any
+			const results = await Promise.all(parts.map((part) => evaluateVisibleWhen(part, ctx)))
+			return Array.isArray(cond.all) === true ? results.every(Boolean) : results.some(Boolean)
+		} catch {
+			return false
+		}
+	}
 	try {
 		// `appInstalled` is checked FIRST and on its own: it answers "is the app
 		// that backs this action even here", which has to settle before any of
@@ -176,7 +205,7 @@ export async function evaluateVisibleWhen(cond, ctx) {
 			}
 		}
 		const actual = await readVisibleWhenValue(cond, ctx)
-		return compareVisibleWhen(actual, cond.op || 'eq', cond.value)
+		return compareVisibleWhen(actual, cond.op || 'eq', cond.value, ctx)
 	} catch {
 		return false
 	}
@@ -205,6 +234,18 @@ export function evaluateVisibleWhenLocal(cond, data) {
 	if (typeof cond !== 'object' || Array.isArray(cond)) {
 		return false
 	}
+	if (Array.isArray(cond.all) === true || Array.isArray(cond.any) === true) {
+		try {
+			const parts = Array.isArray(cond.all) === true ? cond.all : cond.any
+			const results = parts.map((part) => evaluateVisibleWhenLocal(part, data))
+			return Array.isArray(cond.all) === true ? results.every(Boolean) : results.some(Boolean)
+		} catch {
+			// Same posture as the async twin: a malformed composition hides the
+			// one element, rather than throwing out of the computed that calls it
+			// and taking the render with it.
+			return false
+		}
+	}
 	if (cond.endpoint || cond.source) {
 		return false
 	}
@@ -221,8 +262,37 @@ export function evaluateVisibleWhenLocal(cond, data) {
 	}
 	try {
 		const actual = readVisibleWhenPath(data, cond.field)
-		return compareVisibleWhen(actual, cond.op || 'eq', cond.value)
+		// The row / form record IS the object context here, so `@object.<field>`
+		// on the right-hand side compares one field against another instead of
+		// against the literal token string.
+		return compareVisibleWhen(actual, cond.op || 'eq', cond.value, { object: data })
 	} catch {
 		return false
 	}
+}
+
+/**
+ * Whether {@link evaluateVisibleWhenLocal} can actually DECIDE a condition.
+ *
+ * It answers `false` to anything naming an `endpoint` or a `source`, because it
+ * cannot fetch. That is right for a form field, where an undecidable gate should
+ * hide — and wrong for a surface that had no gate at all before, which would
+ * simply lose the element. Callers in the second group check this first and skip
+ * the gate when it returns `false`.
+ *
+ * @param {object|null} cond The condition (or null).
+ * @return {boolean} True when every leaf is a local `field` / `appInstalled` check.
+ */
+export function isLocallyDecidableVisibleWhen(cond) {
+	if (cond === null || cond === undefined) {
+		return true
+	}
+	if (typeof cond !== 'object' || Array.isArray(cond)) {
+		return false
+	}
+	if (Array.isArray(cond.all) === true || Array.isArray(cond.any) === true) {
+		const parts = Array.isArray(cond.all) === true ? cond.all : cond.any
+		return parts.every((part) => isLocallyDecidableVisibleWhen(part))
+	}
+	return !cond.endpoint && !cond.source
 }

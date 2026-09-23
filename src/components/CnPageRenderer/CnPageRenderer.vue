@@ -147,13 +147,24 @@
 				</template>
 				<!-- The open record, beside the list. The host never writes
 				     this slot: the renderer already knows which detail page
-				     the index opens into, so it mounts that one. -->
+				     the index opens into, so it mounts that one. `$attrs` too:
+				     the host passes the page its `objectStore` as an attribute,
+				     not through the manifest. -->
 				<template v-if="splitPaneComponent" #split-pane="splitScope">
 					<component
 						:is="splitPaneComponent"
-						v-bind="splitPaneProps"
+						v-bind="{ ...$attrs, ...splitPaneProps }"
 						@edited="splitScope.saved"
-						@created="splitScope.saved" />
+						@created="splitScope.saved">
+						<template
+							v-for="entry in splitPaneSlotEntries"
+							#[entry.name]="paneSlotProps">
+							<component
+								:is="entry.component"
+								:key="entry.name"
+								v-bind="paneSlotProps" />
+						</template>
+					</component>
 				</template>
 				<!-- eslint-enable vue/no-v-for-template-key-on-child -->
 			</component>
@@ -211,9 +222,18 @@
 			<template v-if="splitPaneComponent" #split-pane="splitScope">
 				<component
 					:is="splitPaneComponent"
-					v-bind="splitPaneProps"
+					v-bind="{ ...$attrs, ...splitPaneProps }"
 					@edited="splitScope.saved"
-					@created="splitScope.saved" />
+					@created="splitScope.saved">
+					<template
+						v-for="entry in splitPaneSlotEntries"
+						#[entry.name]="paneSlotProps">
+						<component
+							:is="entry.component"
+							:key="entry.name"
+							v-bind="paneSlotProps" />
+					</template>
+				</component>
 			</template>
 			<!-- eslint-enable vue/no-v-for-template-key-on-child -->
 		</component>
@@ -274,8 +294,8 @@ import { isAppInstalled } from '../../utils/appInstalled.js'
 import { pageHasSplitView, pageIdForRoute, splitIdForRoute, splitRouteName } from '../../utils/buildManifestRoutes.js'
 import { listContextToQuery } from '../../utils/listNavigation.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
+import { parseSortKeys } from '../../utils/routeFilters.js'
 import { buildRouteParams, routePathFor } from '../../utils/routeParams.js'
-import { pageHasSavedViewPlaces, savedViewRouteName, viewIdForRoute } from '../../utils/savedViewPlaces.js'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { defaultPageTypes } from './pageTypes.js'
 
@@ -321,24 +341,6 @@ const READ_ONLY_DEFAULTS = Object.freeze({
 	showMassCopy: false,
 	showMassDelete: false,
 })
-
-/**
- * Parse the `_order` query value an index page writes, without throwing.
- *
- * @param {string|undefined} raw The raw query value.
- * @return {Array<{key: string, order: string}>} The sort, or an empty list.
- */
-function safeSortKeys(raw) {
-	if (typeof raw !== 'string' || raw === '') {
-		return []
-	}
-	try {
-		const parsed = JSON.parse(raw)
-		return Array.isArray(parsed) ? parsed : []
-	} catch {
-		return []
-	}
-}
 
 export default {
 	name: 'CnPageRenderer',
@@ -894,17 +896,6 @@ export default {
 		},
 
 		/**
-		 * The saved view this address names, or null when the address names
-		 * the page's own list.
-		 *
-		 * @return {string|null} The view id.
-		 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
-		 */
-		currentSavedViewId() {
-			return viewIdForRoute(this.$route)
-		},
-
-		/**
 		 * `Map<pageId, page>` built once per manifest identity (Vue caches this
 		 * computed until `effectiveManifest` changes), replacing per-recompute
 		 * linear `pages.find()` — O(n) per navigation on large manifests
@@ -1231,16 +1222,6 @@ export default {
 				topLevel.splitId = this.currentSplitId || ''
 				topLevel.splitCloseRoute = page.id
 			}
-			// A page whose saved views are places hands the index page three
-			// things: the declaration, the view the ADDRESS names, and the
-			// name of the route a view opens at. The id comes off the route
-			// rather than out of a store for the same reason the split id
-			// does: the address is what makes a view a place.
-			if (isIndex && pageHasSavedViewPlaces(page)) {
-				topLevel.savedViewPlaces = page.savedViewPlaces
-				topLevel.savedViewId = this.currentSavedViewId || ''
-				topLevel.savedViewRouteName = savedViewRouteName(page.id)
-			}
 			if (isIndex && page?.manualOrder === true) {
 				topLevel.manualOrder = true
 				topLevel.manualOrderId = page.id
@@ -1250,15 +1231,16 @@ export default {
 				const hasDetail = this.detailPageByRegisterSchema.has(`${config.register} ${config.schema}`)
 				if (hasRowRoute || hasDetail) {
 					topLevel.rowClickToView = true
-					// Same signal, second consequence: a record with a detail page
-					// is edited THERE, not in a modal launched from the table. The
-					// modal renders the schema's flat scalars only, so on a record
-					// that composes anything — a case type's statuses, results,
-					// roles and properties — it is not merely a duplicate surface
-					// but one that cannot express the record. An explicit
-					// `config.editOpensDetail` still wins (merged below).
-					topLevel.editOpensDetail = true
 				}
+				// `editOpensDetail` is NOT derived from that signal. It used to be,
+				// on the reasoning that a record with a detail page is better edited
+				// there than in a modal of flat scalars. But `@editOpen` is bound to
+				// the same `onRowOpen` as `@rowClick`, so the result was an Edit that
+				// did precisely what clicking the row does — the pane on a split
+				// view, the detail page otherwise — and no way left to reach the
+				// form. Opening a record and editing it are different acts and get
+				// different affordances. A page that does want the old routing asks
+				// for it with `config.editOpensDetail: true`.
 			}
 			let normalizedConfig = config
 			if (isIndex && config.actionToggles && typeof config.actionToggles === 'object' && !Array.isArray(config.actionToggles)) {
@@ -1363,7 +1345,15 @@ export default {
 		 * @return {{register: string, schema: string, objectId: string, slug: string}|null}
 		 */
 		detailLoadContext() {
-			const page = this.currentPage
+			// A split address resolves to the INDEX page, so the pane's record
+			// needs the detail page the pane mounts. Without it the pane got no
+			// object context at all and every `@object.<field>` token in it
+			// resolved against nothing.
+			const onDetailRoute = this.currentPage?.type === 'detail'
+			const splitId = this.currentSplitId
+			const page = onDetailRoute
+				? this.currentPage
+				: (splitId ? this.splitDetailPage : null)
 			if (!page || page.type !== 'detail') {
 				return null
 			}
@@ -1371,7 +1361,10 @@ export default {
 			const config = resolveRouteSentinels(page.config ?? {}, params, page.id ?? '<unknown>')
 			const register = config.register
 			const schema = config.schema
-			const objectId = config.idParam || config.objectId || params.objectId || params.id
+			// The split address names the record, not the detail page's idParam.
+			const objectId = onDetailRoute
+				? (config.idParam || config.objectId || params.objectId || params.id)
+				: splitId
 			if (typeof register !== 'string' || register.length === 0
 				|| typeof schema !== 'string' || schema.length === 0
 				|| typeof objectId !== 'string' || objectId.length === 0) {
@@ -1392,6 +1385,43 @@ export default {
 		 * as an array of `{ name, component }` entries to make the
 		 * `<template v-for>` + dynamic-slot-name pattern work in Vue 2.
 		 */
+		/**
+		 * The DETAIL page's own slot components, for the record mounted in the
+		 * split pane.
+		 *
+		 * `resolvedSlotEntries` belongs to the index page and cannot serve here:
+		 * the pane mounts a different manifest page, and a `type: "custom"` widget
+		 * resolves through its host page's `slots` map and nothing else. Without
+		 * this the pane drew an empty grid cell wherever the detail page declared
+		 * one — the same widget renders correctly on its own route, so the record
+		 * silently lost content by being opened beside the list instead of from it.
+		 *
+		 * @return {Array<{name: string, component: object}>}
+		 */
+		splitPaneSlotEntries() {
+			const page = this.splitDetailPage
+			if (!page) {
+				return []
+			}
+			// Same two sugar keys `resolvedSlotEntries` maps for the full route,
+			// or the pane silently drops the page's actions component.
+			const map = { ...(page.slots ?? {}) }
+			if (page.headerComponent) {
+				map.header = page.headerComponent
+			}
+			if (page.actionsComponent) {
+				map.actions = page.actionsComponent
+			}
+			const entries = []
+			for (const [name, registryName] of Object.entries(map)) {
+				const component = this.resolveRegistryName(registryName, name)
+				if (component) {
+					entries.push({ name, component })
+				}
+			}
+			return entries
+		},
+
 		resolvedSlotEntries() {
 			const page = this.currentPage
 			if (!page) {
@@ -1731,7 +1761,7 @@ export default {
 			return listContextToQuery({
 				pageId: page.id,
 				search: typeof query._search === 'string' ? query._search : '',
-				sortKeys: safeSortKeys(query._order),
+				sortKeys: parseSortKeys(query._order),
 				filters: query,
 			})
 		},
@@ -1889,12 +1919,13 @@ export default {
 				return
 			}
 
-			// Register the object type (idempotent — registerObjectType
-			// replaces the entry each call). Must precede the subscription
-			// re-scope below: the plugin's subscribe() rejects unregistered
-			// types.
+			// Must precede the subscription re-scope below: subscribe() rejects
+			// unregistered types. Once only — registerObjectType also blanks
+			// `objects[slug]` and `schemas[slug]`, so re-running it empties the
+			// content until the re-fetch lands.
 			try {
-				if (typeof store.registerObjectType === 'function') {
+				if (typeof store.registerObjectType === 'function'
+					&& !store.objectTypeRegistry?.[ctx.slug]) {
 					store.registerObjectType(ctx.slug, ctx.schema, ctx.register)
 				}
 			} catch (err) {

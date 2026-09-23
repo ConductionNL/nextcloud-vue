@@ -8,7 +8,7 @@ export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWi
 export { isAppInstalled } from './appInstalled.js'
 export { passesContextPredicates } from './visibleIfContext.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './safeHref.js'
-export { compareVisibleWhen, evaluateVisibleWhen, evaluateVisibleWhenLocal, readVisibleWhenPath } from './visibleWhen.js'
+export { compareVisibleWhen, evaluateVisibleWhen, evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen, readVisibleWhenPath } from './visibleWhen.js'
 export { validateFieldValue } from './formValidation.js'
 export { computeObjectDiff } from './computeObjectDiff.js'
 export { foldAuditTrailEntries } from './auditTrailDiff.js'

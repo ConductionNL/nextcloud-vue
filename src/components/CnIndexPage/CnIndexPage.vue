@@ -96,13 +96,20 @@
 				#selection-actions="{ count, selectedIds: ids }">
 				<slot name="selection-actions" :count="count" :selectedIds="ids" />
 			</template>
-			<template v-if="$slots['header-actions'] || $slots['actions'] || isEditMode || showExportMenu || allowSavedViews" #actions>
+			<template v-if="$slots['header-actions'] || $slots['actions']" #actions>
 				<!--
 					@slot header-actions
 					@description Extra buttons in the page header, inline next to the Add button. Documented since the beginning but wired up only later — consumers passing it (hermiq's flow list's "New flow" button) rendered nothing while the page looked fine.
 				-->
 				<slot name="header-actions" />
 				<slot name="actions" />
+			</template>
+			<!-- Rendered AFTER the primary Add button (CnActionsBar's `actions-end`
+			     slot), not before it: these are "browse/manage" controls — saved
+			     views, export, page config — grouped together and kept apart from
+			     the app-specific buttons in `#actions`, with Add sitting between
+			     the two groups rather than before both (dossiq Cases/Queue). -->
+			<template v-if="isEditMode || showExportMenu || allowSavedViews" #actions-end>
 				<!-- Saved views (opt-in via `allowSavedViews`): lists the user's
 				     OpenRegister saved-search views; applying one writes its stored
 				     filters/search/sort into the route query. -->
@@ -111,9 +118,7 @@
 					:views="viewsForControl"
 					:loading="savedViewsLoading"
 					:currentUserId="currentSavedViewsUserId"
-					:allowPinning="savedViewsArePlaces"
 					@apply="onApplySavedView"
-					@pinRequest="onPinViewRequest"
 					@saveRequest="showSaveViewDialog = true"
 					@deleteRequest="onDeleteViewRequest" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
@@ -161,6 +166,7 @@
 					inline
 					:tabs="tabStripEntries"
 					:mode="quickFilterMode"
+					:maxVisible="quickFilterMaxVisible"
 					:multiple="quickFilterMultiple"
 					:activeIndex="activeQuickFilterIndex"
 					:selectedIndices="selectedQuickFilterIndices"
@@ -338,6 +344,7 @@
 				:nameField="massActionNameField"
 				:size="formSize"
 				:columns="formColumns"
+				:initialData="resolvedCreateDefaults"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog">
 				<template v-if="$slots['form-fields']" #form="scope">
@@ -353,6 +360,7 @@
 				:includeFields="includeFields"
 				:fieldOverrides="fieldOverrides"
 				:nameField="massActionNameField"
+				:initialValues="resolvedCreateDefaults"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog" />
 		</slot>
@@ -515,6 +523,7 @@
 					:layers="mapLayers"
 					:basemaps="mapBasemaps"
 					:markers="mapMarkers"
+					:clustering="mapClustering"
 					:autoFit="true"
 					height="100%"
 					@markerClick="onMarkerClick" />
@@ -679,6 +688,19 @@
 				:style="splitLayout === 'split' ? { width: splitPaneWidth } : null"
 				data-testid="cn-index-page-split-pane"
 				:data-split-layout="splitLayout">
+				<!-- An <a>, not a button: closing the pane pushes the list's
+				     route, so the browser supplies middle-click and open-in-new-tab
+				     while `.prevent` keeps the plain click in-app. -->
+				<a
+					v-if="splitCloseVisible"
+					class="cn-index-page__split-close"
+					:href="splitCloseHref"
+					:title="splitCloseTitle"
+					data-testid="cn-index-page-split-close"
+					@click.prevent="closeSplitPane">
+					<Close :size="16" />
+					<span>{{ splitCloseTitle }}</span>
+				</a>
 				<!-- @slot split-pane The open record, rendered beside the list. Mount the SAME detail component the full route mounts. -->
 				<!-- @binding {string} id The record the address names. -->
 				<!-- @binding {string} layout Either `split` (beside the list) or `detail` (the full page, below the breakpoint). -->
@@ -723,7 +745,8 @@
 			@update:open="sidebarOpen = $event"
 			@search="onSearchEvent"
 			@columnsChange="onColumnsEvent"
-			@filterChange="onFilterEvent" />
+			@filterChange="onFilterEvent"
+			@clearFilters="onClearFilters" />
 	</div>
 </template>
 
@@ -732,6 +755,7 @@ import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Export from 'vue-material-design-icons/Export.vue'
@@ -743,14 +767,15 @@ import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
+import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
+import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions } from '../../utils/rowActionAvailability.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
-import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery } from '../../utils/savedViewHelpers.js'
-import { isPinnedView, LEGACY_VIEW_QUERY_KEY, resolveViewPresentation, togglePinnedBy } from '../../utils/savedViewPlaces.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout } from '../../utils/scopeListLayout.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -974,6 +999,7 @@ function namedFilterToQuery(values) {
  * @event {string} search — Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  * @event {string[]} columns-change — Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  * @event {{ key: string, values: Array<unknown> }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event {void} clear-filters — "Clear all" clicked in the embedded sidebar. Search, every active filter and the folder-sidebar selection are reset (self-fetch mode); a consumer-managed page gets the bare event to handle itself.
  *
  * @slot mass-actions — Extra mass action buttons (shown when items are selected)
  * @slot action-items — Extra action bar buttons
@@ -1002,6 +1028,7 @@ export default {
 		NcActionCaption,
 		NcActionCheckbox,
 		NcButton,
+		Close,
 		Cog,
 		DatabaseSearch,
 		Export,
@@ -1051,6 +1078,14 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/**
+		 * The v2 component registry, provided by CnAppRoot. Named handlers
+		 * (`actions[].handler`, `bulkActions[].handler`,
+		 * `headerActions[].handler`) resolve here first and fall back to
+		 * `cnCustomComponents`, so an app can register a `kind: 'handler'`
+		 * entry instead of a bare function in the legacy map.
+		 */
+		cnRegistry: { default: () => ({}) },
 		/**
 		 * The per-user preference reader and writer, provided by CnAppRoot.
 		 * Used for the manual row order, which belongs to the person and the
@@ -1197,6 +1232,19 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Chips mode only: how many quick-filter pills render inline before the
+		 * rest move into an overflow menu. `0` (the default) renders every tab.
+		 * A long strip wraps the actions bar onto a second line and squeezes the
+		 * "Showing X of Y" count, so a page with many lenses caps this and keeps
+		 * the everyday few in view. Sourced from
+		 * `pages[].config.quickFilterMaxVisible`.
+		 */
+		quickFilterMaxVisible: {
+			type: Number,
+			default: 0,
+		},
+
 		/** Manual column definitions (used instead of schema when provided) */
 		columns: {
 			type: Array,
@@ -1331,6 +1379,27 @@ export default {
 		 * @type {string}
 		 */
 		splitCloseRoute: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Whether the pane draws its own close link. Set false when the
+		 * `#split-pane` slot draws one from the slot's `close`.
+		 *
+		 * @type {boolean}
+		 */
+		splitCloseButton: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Accessible name and tooltip for the pane's close button.
+		 *
+		 * @type {string}
+		 */
+		splitCloseLabel: {
 			type: String,
 			default: '',
 		},
@@ -1643,9 +1712,10 @@ export default {
 		 * (`GET /apps/openregister/api/views`); applying one writes its
 		 * stored filters/search/sort into the route query (reusing the
 		 * existing deep-link contract — non-underscore keys are filters,
-		 * `_search`/`_sortKey`/`_sortOrder` are reserved), "Save current
-		 * view…" persists the current route-query state via POST, and own
-		 * views can be deleted after confirmation.
+		 * `_search` and `_order` are reserved), "Save current view…"
+		 * persists the current route-query state via POST and toasts either
+		 * way naming the view (a failure also keeps the dialog open with the
+		 * reason), and own views can be deleted after confirmation.
 		 */
 		allowSavedViews: {
 			type: Boolean,
@@ -1653,41 +1723,15 @@ export default {
 		},
 
 		/**
-		 * The page's `savedViewPlaces` declaration, forwarded by
-		 * CnPageRenderer (saved-view-as-a-place). Present and `enabled`, each
-		 * saved view of this page is a place: it has an address of its own,
-		 * it opens in the presentation its own config declares, and the views
-		 * dropdown gains a Pin action. Absent, the dropdown behaves exactly as
-		 * it did before: apply writes the view's state into the route query
-		 * and nothing else changes.
-		 *
-		 * @type {object|null}
+		 * Which pages share this page's saved views. By default a view is
+		 * shared by every page over the same register and schema and by no
+		 * other page, because a view is filters over one schema's fields. Set
+		 * this to share views across pages over different sources, or to
+		 * keep two pages over the same source apart. Written into the saved
+		 * view's `query.scope`; views saved before scoping stay visible
+		 * everywhere.
 		 */
-		savedViewPlaces: {
-			type: Object,
-			default: null,
-		},
-
-		/**
-		 * The view this address names, read off the route by CnPageRenderer.
-		 * Empty on the page's own list route.
-		 *
-		 * @type {string}
-		 */
-		savedViewId: {
-			type: String,
-			default: '',
-		},
-
-		/**
-		 * The name of the route a view of this page opens at, as
-		 * `buildManifestRoutes()` registered it. Forwarded by CnPageRenderer;
-		 * empty when this page declares no places, and then nothing here
-		 * navigates to a view route.
-		 *
-		 * @type {string}
-		 */
-		savedViewRouteName: {
+		savedViewsScope: {
 			type: String,
 			default: '',
 		},
@@ -1762,6 +1806,43 @@ export default {
 		},
 
 		/**
+		 * Seed values for the built-in create dialog. Never applied on edit:
+		 * both dialogs consult `initialData` / `initialValues` only when there
+		 * is no item. Values resolve `@me` / `@now` / `@today` at any depth;
+		 * `@object.*` / `@workspace.*` / `@config.*` need a context this page
+		 * does not carry, so they pass through unresolved.
+		 *
+		 * @type {object|null}
+		 */
+		createDefaults: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Where to go after a successful create from the built-in Add dialog.
+		 * A route name, or `{ name, paramField?, objectParam? }`; the created
+		 * object's id is merged into the params. Empty stays on the list.
+		 *
+		 * @type {string|object|null}
+		 */
+		createSuccessRoute: {
+			type: [String, Object],
+			default: null,
+		},
+
+		/**
+		 * Toast shown after a successful create from the built-in Add dialog,
+		 * run through the host `cnTranslate`. Empty shows none.
+		 *
+		 * @type {string}
+		 */
+		createSuccessMessage: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Opt-in async create hook. When provided, a **create** (not edit)
 		 * confirmed from the built-in form dialog calls
 		 * `await createOverride(formData, ctx)` INSTEAD of persisting via the
@@ -1819,17 +1900,15 @@ export default {
 		 * opening the edit modal, by emitting `edit-open` rather than showing
 		 * the form dialog.
 		 *
-		 * A record that HAS a detail page has two places to be edited, and the
-		 * modal is the worse of them: it shows the schema's flat scalar fields
-		 * and nothing else, so anything the record composes — related rows,
-		 * sub-resources, tabs — is uneditable from the index and invisible
-		 * while you edit. `CnPageRenderer` sets this automatically when the
-		 * manifest declares a `type:"detail"` page for the same
-		 * register+schema (or the index sets `config.rowRoute`), which is the
-		 * same signal that already makes a row click open the record.
+		 * OFF by default, and `CnPageRenderer` no longer derives it: the host
+		 * binds `@edit-open` to the same navigation as a row click, so an Edit
+		 * that routes is an Edit that does what clicking the row does — the
+		 * split pane, or the detail page — while the form it names becomes
+		 * unreachable from the list.
 		 *
-		 * Leave false when there is nowhere to go: the modal is then the only
-		 * edit surface and removing it would make the record read-only.
+		 * Set it when the modal genuinely cannot express the record and you
+		 * accept the duplication: it renders the schema's flat scalars only, so
+		 * related rows, sub-resources and tabs stay uneditable there.
 		 */
 		editOpensDetail: {
 			type: Boolean,
@@ -2302,8 +2381,9 @@ export default {
 		 *
 		 * Resolution priority (highest first):
 		 *   1. The parent's `#card` scoped slot (always wins).
-		 *   2. The component resolved from `cardComponent` against the
-		 *      effective customComponents registry.
+		 *   2. The component resolved from `cardComponent` against the v2
+		 *      `registry` (any kind carrying a `component`), then the legacy
+		 *      customComponents map.
 		 *   3. The library default (`CnObjectCard`).
 		 *
 		 * Unknown names log `console.warn` once and fall back to the
@@ -2317,8 +2397,9 @@ export default {
 		},
 
 		/**
-		 * Name of a custom row component for list view, resolved against the
-		 * customComponents registry (manifest `pages[].config.listComponent`).
+		 * Name of a custom row component for list view, resolved against the v2
+		 * `registry` and then the legacy customComponents map (manifest
+		 * `pages[].config.listComponent`).
 		 * Same resolution priority as `cardComponent`: the `#list-item` slot
 		 * wins, then this component, then the default `CnObjectRow`. Unknown
 		 * names warn once and fall back to the default.
@@ -2355,8 +2436,9 @@ export default {
 		 * `{ id, label, icon?, handler?, route?, disabled? }`. The
 		 * `handler` field mirrors the row-level
 		 * `actions[].handler` pattern: a function, the keyword
-		 * `'navigate'`, `'emit'`, `'none'`, or a string registry
-		 * lookup against the resolved `customComponents`. The page
+		 * `'navigate'`, `'emit'`, `'none'`, or a string name looked
+		 * up in the v2 `registry` (a `kind: 'handler'` entry) and
+		 * then in the legacy `customComponents`. The page
 		 * dispatches the resolved handler via `onHeaderAction` AND
 		 * (unless the handler is the `'none'` keyword) emits
 		 * `@header-action({ action: id, id })`.
@@ -2433,6 +2515,7 @@ export default {
 		'apply-view',
 		'board-move',
 		'bulk-action',
+		'clear-filters',
 		'columns-change',
 		'quick-edit-save',
 		'configure',
@@ -2449,7 +2532,6 @@ export default {
 		'mass-delete',
 		'mass-export',
 		'mass-import',
-		'pin-view',
 		'page-changed',
 		'page-size-changed',
 		'quick-filter-change',
@@ -2481,6 +2563,8 @@ export default {
 			selfObjectType,
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
+			selfFetchTokenCtx,
+			initialQueryFilterKeys,
 		} = useSelfFetchList(props, getCurrentInstance(), inject)
 
 		// The sidebar's chosen values on a NAMED-SOURCE page. Self-fetch keeps
@@ -2517,15 +2601,33 @@ export default {
 			selfObjectType,
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
+			selfFetchTokenCtx,
+			initialQueryFilterKeys,
 		}
 	},
 
 	data() {
 		return {
 			currentViewMode: this.viewMode,
+			/**
+			 * The non-`_` query keys this page owns, i.e. may clear on the next
+			 * persist. Seeded with what it adopted from the query on load, and
+			 * replaced by what it writes; a key it never claimed is somebody
+			 * else's and is left in the address bar untouched.
+			 *
+			 * @type {Array<string>}
+			 */
+			persistedFilterKeys: [...(this.initialQueryFilterKeys || [])],
 			internalSelectedIds: [...this.selectedIds],
 			// Folder-sidebar state: selected folder id + the register-fetched list.
 			selectedFolderId: null,
+			/**
+			 * The grouping field's facet as last seen with NO folder selected:
+			 * the whole set of folders, kept on screen while one is selected.
+			 *
+			 * @type {Array<object>}
+			 */
+			folderSidebarAllValues: [],
 			folderRegisterList: [],
 			// `x-index` blocks read off the schema rows a `source: 'register'`
 			// folder list was built from, keyed by folder id. The layout a case
@@ -2564,11 +2666,6 @@ export default {
 			// delete confirmation.
 			savedViews: [],
 			savedViewsLoading: false,
-			// The view an address names that no longer answers: deleted, or
-			// never readable by this user. Held so the page can SAY so rather
-			// than render an empty list, which reads as "no cases" and sends
-			// somebody looking for the filter that is not there.
-			missingSavedViewId: '',
 			showSaveViewDialog: false,
 			viewPendingDelete: null,
 			// Split view (case-page-and-list-as-a-place). `splitRowPatches` holds
@@ -2602,38 +2699,7 @@ export default {
 		 */
 		resolvedEmptyText() {
 			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
-			if (this.missingSavedViewId !== '') {
-				// A bookmark to a view that has gone says which view it was.
-				// "No results" would be true and useless: the reader would
-				// believe the list is empty rather than that their view is.
-				return t('nextcloud-vue', 'This saved view ({id}) is gone. Open the page to build it again.', { id: this.missingSavedViewId })
-			}
 			return this.emptyText ? fn(this.emptyText) : this.emptyText
-		},
-
-		/**
-		 * Whether this page's saved views are places (saved-view-as-a-place).
-		 *
-		 * Both halves, as everywhere else: the declaration must be there AND
-		 * enabled, so `{ enabled: false }` renders as a page that never named
-		 * the key.
-		 *
-		 * @return {boolean} True when views have routes, presentations and pins here.
-		 */
-		savedViewsArePlaces() {
-			return this.allowSavedViews && this.savedViewPlaces?.enabled === true
-		},
-
-		/**
-		 * The view this address names, as an object, once the list has loaded.
-		 *
-		 * @return {object|null} The View API object, or null.
-		 */
-		currentSavedView() {
-			if (this.savedViewId === '') {
-				return null
-			}
-			return (this.savedViews || []).find((view) => String(view?.id) === this.savedViewId || String(view?.uuid) === this.savedViewId) || null
 		},
 
 		/**
@@ -2649,15 +2715,15 @@ export default {
 		},
 
 		/**
-		 * Effective customComponents registry — the explicit prop wins
-		 * over the injected `cnCustomComponents`. Mirrors the priority
-		 * used by `cardComponent` resolution and `actions[].handler`
-		 * dispatch.
+		 * The same map as `effectiveCustomComponents`, under the name the
+		 * header-action and bulk-action paths have always used. One of the two
+		 * computeds has to be the other, or a change to the resolution order
+		 * lands on half the surfaces.
 		 *
 		 * @return {object}
 		 */
 		resolvedCustomComponents() {
-			return this.customComponents || this.cnCustomComponents || {}
+			return this.effectiveCustomComponents
 		},
 
 		/**
@@ -2811,6 +2877,45 @@ export default {
 		 */
 		splitPaneWidth() {
 			return normalisePaneWidth(this.splitView?.paneWidth)
+		},
+
+		/**
+		 * Whether to draw the pane's close link. Needs a router: closing pushes
+		 * the list route, so without one it would do nothing.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
+		 */
+		splitCloseVisible() {
+			return this.splitCloseButton && Boolean(this.$router)
+		},
+
+		/**
+		 * Accessible name and tooltip for the pane's close link.
+		 *
+		 * @return {string}
+		 */
+		splitCloseTitle() {
+			return this.splitCloseLabel || t('nextcloud-vue', 'Close')
+		},
+
+		/**
+		 * The list's own address. Falls back to `#` rather than no href: an
+		 * `<a>` without one is not focusable.
+		 *
+		 * @return {string}
+		 */
+		splitCloseHref() {
+			const target = this.splitCloseRoute || this.$route?.meta?.cnPageId || null
+			if (!target || typeof this.$router?.resolve !== 'function') {
+				return '#'
+			}
+			try {
+				return this.$router.resolve({ name: target, query: this.$route?.query || {} }).href || '#'
+			} catch {
+				// An unknown route name throws rather than answering.
+				return '#'
+			}
 		},
 
 		/**
@@ -3015,11 +3120,15 @@ export default {
 		 * The saved views this page renders as tabs, and the ones that stay in
 		 * the views control. A view is in one or the other, never both.
 		 *
+		 * Split out of the SCOPED views, not the fetched ones: a view made on
+		 * another page names fields this schema does not have, and is no more
+		 * use as a tab than it is as a dropdown entry.
+		 *
 		 * @return {{tabs: Array<object>, control: Array<object>}}
 		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
 		 */
 		splitSavedViews() {
-			return splitViewsIntoTabs(this.savedViews, this.viewTabs)
+			return splitViewsIntoTabs(this.visibleSavedViews, this.viewTabs)
 		},
 
 		/**
@@ -3188,7 +3297,7 @@ export default {
 		 *
 		 * @return {Array<object>} Normalised facet values, or [] when none.
 		 */
-		folderSidebarFacetValues() {
+		folderSidebarLiveFacetValues() {
 			const field = this.folderSidebarGroupBy
 			if (!field) {
 				return []
@@ -3200,6 +3309,23 @@ export default {
 				|| {}
 
 			return facets[field]?.values || []
+		},
+
+		/**
+		 * The folders to show: the live facet, except while a folder is
+		 * selected. Selecting one filters the query by the grouping field, so
+		 * the live facet then holds that one value and every other folder
+		 * would vanish, which makes switching folders impossible. The set seen
+		 * before the selection stands in until it is cleared.
+		 *
+		 * @return {Array<object>} Normalised facet values.
+		 */
+		folderSidebarFacetValues() {
+			const selected = this.selectedFolderId !== null && this.selectedFolderId !== undefined
+			if (selected && this.folderSidebarAllValues.length > 0) {
+				return this.folderSidebarAllValues
+			}
+			return this.folderSidebarLiveFacetValues
 		},
 
 		/**
@@ -3313,6 +3439,26 @@ export default {
 				})
 			}
 			return { features, popupField: this.mapConfig.popupField }
+		},
+
+		/**
+		 * Whether to cluster the plotted markers. ON unless `mapConfig.clustering`
+		 * says otherwise, which is the opposite of `CnMapWidget`'s own default.
+		 *
+		 * An index map plots the whole filtered result set, and rows sharing one
+		 * address is the normal case here, not an edge case — several permits on a
+		 * building, a street of complaints. Unclustered, those markers stack at
+		 * identical pixels: the topmost swallows every click and the rest are
+		 * unreachable with nothing on screen saying they exist. Clustering shows the
+		 * count and, since all children stay in one cluster down to max zoom,
+		 * markercluster spiderfies them into a fan on click instead of zooming
+		 * uselessly. Non-point geometry skips the cluster group entirely, so areas
+		 * are unaffected.
+		 *
+		 * @return {boolean}
+		 */
+		mapClustering() {
+			return this.mapConfig.clustering !== false
 		},
 
 		/**
@@ -3450,6 +3596,24 @@ export default {
 		 *
 		 * @return {string}
 		 */
+		/**
+		 * The page as `savedViewScope` and `viewMatchesScope` take it.
+		 *
+		 * @return {{ scope: string, register: string, schema: object|string|null }} The page's source.
+		 */
+		savedViewsPage() {
+			return { scope: this.savedViewsScope, register: this.register, schema: this.schema }
+		},
+
+		/**
+		 * The fetched views that belong on this page.
+		 *
+		 * @return {Array<object>} The views to offer.
+		 */
+		visibleSavedViews() {
+			return this.savedViews.filter((view) => viewMatchesScope(view, this.savedViewsPage))
+		},
+
 		currentSavedViewsUserId() {
 			const user = getCurrentUser()
 			return (user && user.uid) || ''
@@ -3743,6 +3907,16 @@ export default {
 		},
 
 		/**
+		 * The v2 registry a named handler resolves against before the legacy
+		 * customComponents map.
+		 *
+		 * @return {object}
+		 */
+		effectiveRegistry() {
+			return this.cnRegistry ?? {}
+		},
+
+		/**
 		 * Merged actions: app-provided first, then built-in defaults.
 		 *
 		 * REQ-MAD-3 / REQ-MAD-4 / REQ-MAD-5 / REQ-MAD-6 / REQ-MAD-7
@@ -3756,6 +3930,7 @@ export default {
 			const ctx = {
 				router: this.$router,
 				rowKey: this.rowKey,
+				registry: this.effectiveRegistry,
 				customComponents: this.effectiveCustomComponents,
 			}
 			// Drop anything that is not an action OBJECT. A bare string — the
@@ -3865,6 +4040,21 @@ export default {
 				.map((name) => name.replace('column-', ''))
 		},
 
+		/**
+		 * `createDefaults`, token-resolved. `resolveDeepTokens` rather than the
+		 * shallow filter-map resolver: a seed record is arbitrary JSON, so a
+		 * token can sit inside a nested object or an array of them.
+		 *
+		 * @return {object|null}
+		 */
+		resolvedCreateDefaults() {
+			const seed = this.createDefaults
+			if (!seed || typeof seed !== 'object' || Array.isArray(seed)) {
+				return null
+			}
+			return resolveDeepTokens(seed, {})
+		},
+
 		/** Add button label — derived from schema.title if not explicitly set */
 		resolvedAddLabel() {
 			if (this.addLabel) {
@@ -3972,10 +4162,10 @@ export default {
 			if (!this.cardComponent) {
 				return null
 			}
-			const resolved = this.effectiveCustomComponents[this.cardComponent]
+			const resolved = this.resolveNamedComponent(this.cardComponent)
 			if (!resolved) {
 				// eslint-disable-next-line no-console
-				console.warn(`[CnIndexPage] cardComponent "${this.cardComponent}" not found in customComponents registry. Falling back to CnObjectCard.`)
+				console.warn(`[CnIndexPage] cardComponent "${this.cardComponent}" not found in the registry or customComponents. Falling back to CnObjectCard.`)
 				return null
 			}
 			return resolved
@@ -3992,10 +4182,10 @@ export default {
 			if (!this.listComponent) {
 				return null
 			}
-			const resolved = this.effectiveCustomComponents[this.listComponent]
+			const resolved = this.resolveNamedComponent(this.listComponent)
 			if (!resolved) {
 				// eslint-disable-next-line no-console
-				console.warn(`[CnIndexPage] listComponent "${this.listComponent}" not found in customComponents registry. Falling back to CnObjectRow.`)
+				console.warn(`[CnIndexPage] listComponent "${this.listComponent}" not found in the registry or customComponents. Falling back to CnObjectRow.`)
 				return null
 			}
 			return resolved
@@ -4003,20 +4193,18 @@ export default {
 	},
 
 	watch: {
-		viewMode(val) {
-			this.currentViewMode = val
+		// Remember the whole folder set whenever no folder narrows the query.
+		folderSidebarLiveFacetValues: {
+			immediate: true,
+			handler(values) {
+				if (this.selectedFolderId === null || this.selectedFolderId === undefined) {
+					this.folderSidebarAllValues = values
+				}
+			},
 		},
 
-		/**
-		 * The address started naming another view, or stopped naming one.
-		 *
-		 * @param {string} val The view id, or '' on the page's own list.
-		 */
-		savedViewId(val) {
-			this.missingSavedViewId = ''
-			if (val !== '') {
-				this.applySavedViewFromRoute()
-			}
+		viewMode(val) {
+			this.currentViewMode = val
 		},
 
 		selectedIds(val) {
@@ -4182,6 +4370,7 @@ export default {
 			massActionNameField: () => this.massActionNameField,
 			editItem: () => this.editItem,
 			emit: (event, payload) => this.$emit(event, payload),
+			afterCreateSuccess: (saved) => this.afterCreateSuccess(saved),
 			setResults: {
 				singleDelete: (r) => this.setSingleDeleteResult(r),
 				massDelete: (r) => this.setMassDeleteResult(r),
@@ -4394,11 +4583,41 @@ export default {
 		},
 
 		/**
+		 * Resolve a component the page config names — `cardComponent`,
+		 * `listComponent` — out of the v2 registry (any kind carrying a
+		 * `component`, as a slot lookup does) and then the legacy
+		 * customComponents map.
+		 *
+		 * @param {string} name The registered component name.
+		 * @return {object|null} The component, or null when nothing answers.
+		 */
+		resolveNamedComponent(name) {
+			const entry = this.effectiveRegistry[name]
+			if (entry && entry.component) {
+				return entry.component
+			}
+			return this.effectiveCustomComponents[name] || null
+		},
+
+		/**
+		 * Whether a handler name matches something registered that is not
+		 * callable — a named component where a function belongs. Tells a
+		 * typo (silent emit-only) apart from a mis-registration (warned).
+		 *
+		 * @param {string} name The handler name from the manifest.
+		 * @return {boolean}
+		 */
+		namesSomethingUnusable(name) {
+			const candidates = [this.effectiveRegistry[name], this.resolvedCustomComponents[name]]
+			return candidates.some((v) => v !== undefined && v !== null)
+		},
+
+		/**
 		 * Resolve a declarative `headerActions[]` entry's `handler`
 		 * field into the final dispatchable shape. Mirrors the
 		 * row-level `actions[].handler` keyword set used by
 		 * manifest-actions-dispatch — `navigate`, `emit`, `none`, or a
-		 * registry name (looked up against `resolvedCustomComponents`).
+		 * registry name (resolved through `resolveRegisteredHandler`).
 		 *
 		 * @param {object} entry Raw headerActions entry.
 		 * @return {object} Possibly-mutated copy: function-typed
@@ -4449,14 +4668,14 @@ export default {
 				return { ...entry, handler: () => {}, _dispatchSuppress: true }
 			}
 			// Registry name lookup.
-			const resolved = this.resolvedCustomComponents[handler]
+			const resolved = resolveRegisteredHandler(handler, this.effectiveRegistry, this.resolvedCustomComponents)
 			if (typeof resolved === 'function') {
 				const id = entry.id
 				return { ...entry, handler: () => resolved({ actionId: id }) }
 			}
-			if (resolved !== undefined && resolved !== null) {
+			if (this.namesSomethingUnusable(handler)) {
 				// eslint-disable-next-line no-console
-				console.warn(`CnIndexPage: headerActions[].handler "${handler}" resolved to a non-function in customComponents; falling back to emit-only`)
+				console.warn(`CnIndexPage: headerActions[].handler "${handler}" resolved to a non-function in the registry or customComponents; falling back to emit-only`)
 				const { handler: _ignored, ...rest } = entry
 				return { ...rest }
 			}
@@ -4478,7 +4697,8 @@ export default {
 		 *   - a function handler is called with `{ actionId, selectedIds, count }`
 		 *   - `open-modal` (with `target`) opens the registered modal, with the
 		 *     selection merged into its props
-		 *   - a registry name resolves against `customComponents`
+		 *   - a registry name resolves through the v2 registry, then the
+		 *     legacy `customComponents`
 		 *   - anything else falls through to emit-only
 		 *
 		 * `bulk-action` is emitted either way, so a host can listen instead of
@@ -4501,12 +4721,12 @@ export default {
 				} else if (handler === 'open-modal' || (!handler && entry.target)) {
 					this.openBulkModal(entry, selectedIds, count)
 				} else if (typeof handler === 'string' && handler !== 'emit' && handler !== 'none') {
-					const resolved = this.resolvedCustomComponents[handler]
+					const resolved = resolveRegisteredHandler(handler, this.effectiveRegistry, this.resolvedCustomComponents)
 					if (typeof resolved === 'function') {
 						resolved(scope)
-					} else if (resolved !== undefined && resolved !== null) {
+					} else if (this.namesSomethingUnusable(handler)) {
 						// eslint-disable-next-line no-console
-						console.warn(`CnIndexPage: bulkActions[].handler "${handler}" resolved to a non-function in customComponents; falling back to emit-only`)
+						console.warn(`CnIndexPage: bulkActions[].handler "${handler}" resolved to a non-function in the registry or customComponents; falling back to emit-only`)
 					}
 				}
 
@@ -4591,6 +4811,7 @@ export default {
 		onSearchEvent(value) {
 			if (this.isSelfFetchMode && typeof this.list.onSearch === 'function') {
 				this.list.onSearch(value)
+				this.persistViewStateToRoute(this.currentViewState())
 			}
 			this.$emit('search', value)
 		},
@@ -4630,38 +4851,123 @@ export default {
 		onSortEvent(payload) {
 			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') {
 				this.list.onSort(payload)
-			}
-			if (this.isSelfFetchMode) {
-				const keys = Array.isArray(payload.keys)
-					? payload.keys
-					: (payload.key ? [{ key: payload.key, order: payload.order || 'asc' }] : [])
-				this.persistSortToRoute(keys)
+				this.persistViewStateToRoute(this.currentViewState())
 			}
 			this.$emit('sort', payload)
 		},
 
 		/**
-		 * Persist the active multi-column sort to `$route.query._order`
-		 * (JSON-encoded ordered array) so a reload or a shared/bookmarked
-		 * link reproduces the same sort. An empty `keys` list removes the
-		 * param entirely. Best-effort: a duplicate-navigation rejection
-		 * (same resulting path/query) is swallowed, matching every other
-		 * `$router.replace` call in this component.
+		 * Self-fetch mode's current filters/search/sort, straight from
+		 * useListView's own reactive state — the shape `persistViewStateToRoute`
+		 * and the saved-views helpers (`buildViewCreatePayload`,
+		 * `extractViewState`) all share.
 		 *
-		 * @param {Array<{key: string, order: string}>} keys The active ordered sort-key list.
+		 * @return {{filters: object, search: string, sortKey: ?string, sortOrder: string, sortKeys: Array<{key: string, order: string}>}}
+		 */
+		currentViewState() {
+			return {
+				filters: this.list.activeFilters.value,
+				search: this.list.searchTerm.value,
+				sortKeys: this.list.sortKeys?.value || [],
+				sortKey: this.list.sortKey.value,
+				sortOrder: this.list.sortOrder.value,
+			}
+		},
+
+		/**
+		 * The spelling a filter goes back into the query as. A value that arrived
+		 * as an `@`-token keeps the TOKEN for as long as it still resolves to
+		 * what is active — otherwise a shared `?assignee=@me` link would be
+		 * rewritten to one named uid on the first filter change and stop meaning
+		 * "me" for whoever opens it next.
+		 *
+		 * @param {string} key The filter key, as it sits in the query.
+		 * @param {unknown} value The resolved value now active.
+		 * @return {unknown} The token, or the value.
+		 */
+		filterQuerySpelling(key, value) {
+			const raw = this.$route.query[key]
+			if (typeof raw !== 'string' || raw.charAt(0) !== '@') {
+				return value
+			}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			return String(resolveFilterValue(raw, ctx)) === String(value) ? raw : value
+		},
+
+		/**
+		 * Persist filters + search + sort into `$route.query` in one replace,
+		 * so a reload or a shared/bookmarked link reproduces the exact same
+		 * view. Self-fetch mode only. The page's own filter keys are cleared and
+		 * re-applied wholesale each call rather than merged (otherwise a cleared
+		 * filter would never leave the query); a non-reserved key it never
+		 * claimed is left alone. Best-effort: a duplicate-navigation rejection
+		 * (same resulting path/query) is swallowed.
+		 *
+		 * @param {{filters?: object, search?: string, sortKey?: ?string, sortOrder?: string, sortKeys?: Array<{key: string, order: string}>}} state Current view state.
 		 * @return {void}
 		 */
-		persistSortToRoute(keys) {
+		persistViewStateToRoute(state) {
 			if (!this.$router || !this.$route) {
 				return
 			}
 			const query = { ...this.$route.query }
-			if (Array.isArray(keys) && keys.length > 0) {
-				query._order = JSON.stringify(keys)
+			for (const key of this.persistedFilterKeys) {
+				delete query[key]
+			}
+			const written = []
+			for (const [key, value] of Object.entries(state.filters || {})) {
+				if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
+					continue
+				}
+				query[key] = this.filterQuerySpelling(key, value)
+				written.push(key)
+			}
+			this.persistedFilterKeys = written
+			if (state.search) {
+				query._search = state.search
+			} else {
+				delete query._search
+			}
+			const sortKeys = Array.isArray(state.sortKeys) && state.sortKeys.length
+				? state.sortKeys
+				: (state.sortKey ? [{ key: state.sortKey, order: state.sortOrder || 'asc' }] : [])
+			if (sortKeys.length) {
+				query._order = JSON.stringify(sortKeys.map((k) => ({ key: k.key, order: k.order || 'asc' })))
 			} else {
 				delete query._order
 			}
 			this.$router.replace({ query }).catch(() => {})
+		},
+
+		/**
+		 * "Clear all" from the sidebar: reset search, every active filter, the
+		 * sort and the folder-sidebar selection in one fetch + one route
+		 * replace, rather than one of each per field. Self-fetch mode only; a
+		 * consumer-managed page gets the bare event to handle itself.
+		 *
+		 * The SORT goes too, and that is the whole point: applying a saved view
+		 * sets a sort the reader never chose and cannot see the origin of, so a
+		 * clear that left it behind left the list in a state with no control
+		 * anywhere on the page to undo it.
+		 *
+		 * @return {void}
+		 */
+		onClearFilters() {
+			if (!this.isSelfFetchMode) {
+				this.$emit('clear-filters')
+				return
+			}
+			this.list.activeFilters.value = {}
+			this.list.searchTerm.value = ''
+			this.list.sortKeys.value = []
+			this.list.sortKey.value = null
+			this.list.sortOrder.value = 'asc'
+			if (this.folderSidebar) {
+				this.selectedFolderId = null
+			}
+			this.list.refresh(1)
+			this.persistViewStateToRoute(this.currentViewState())
+			this.$emit('clear-filters')
 		},
 
 		/**
@@ -4682,6 +4988,7 @@ export default {
 		onFilterEvent(payload) {
 			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') {
 				this.list.onFilterChange(payload.key, payload.values)
+				this.persistViewStateToRoute(this.currentViewState())
 			}
 			// A named source keeps its own filter state: nothing else holds it,
 			// and the `activeFilters` PROP only reaches pages with a consumer
@@ -5135,6 +5442,7 @@ export default {
 					search: (event) => this.onSearchEvent(event),
 					'columns-change': (event) => this.onColumnsEvent(event),
 					'filter-change': (event) => this.onFilterEvent(event),
+					'clear-filters': () => this.onClearFilters(),
 				},
 			}
 		},
@@ -5564,149 +5872,43 @@ export default {
 			} finally {
 				this.savedViewsLoading = false
 			}
-			if (this.savedViewsArePlaces) {
-				// Both only make sense once the views are in hand: the address
-				// names a view by id, and until the list has loaded there is
-				// nothing to resolve that id against.
-				this.redirectLegacyViewQuery()
-				this.applySavedViewFromRoute()
-			}
 		},
 
 		/**
-		 * Send a `?view=<id>` link to the view's own address.
-		 *
-		 * Those links were already sent before views had addresses, so they
-		 * keep working. They do not keep their own spelling: two addresses for
-		 * one list drift the moment the view is edited, and the one that
-		 * survives is the one the app can render (ADR-052).
-		 *
-		 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
-		 */
-		redirectLegacyViewQuery() {
-			const query = { ...((this.$route && this.$route.query) || {}) }
-			const legacy = query[LEGACY_VIEW_QUERY_KEY]
-			if (typeof legacy !== 'string' || legacy === '' || !this.$router || this.savedViewId !== '') {
-				return
-			}
-			if (this.savedViewRouteName === '') {
-				return
-			}
-			delete query[LEGACY_VIEW_QUERY_KEY]
-			const nav = this.$router.replace({
-				name: this.savedViewRouteName,
-				params: { viewId: legacy },
-				query,
-			})
-			if (nav && typeof nav.catch === 'function') {
-				nav.catch(() => {})
-			}
-		},
-
-		/**
-		 * Render the view this address names.
-		 *
-		 * Two things follow from the id in the path. The presentation the view
-		 * declares opens, falling through to what this page can actually
-		 * render rather than failing; and the view's stored filters, search
-		 * and sort are written into the query, because that is the one channel
-		 * this component already fetches from. The path keeps naming the view,
-		 * so the address a person copies is still the view's own.
-		 *
-		 * A view that does not answer is said out loud rather than rendered as
-		 * an empty list.
-		 *
-		 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
-		 */
-		applySavedViewFromRoute() {
-			if (!this.savedViewsArePlaces || this.savedViewId === '' || this.savedViewsLoading) {
-				return
-			}
-			const view = this.currentSavedView
-			if (!view) {
-				this.missingSavedViewId = this.savedViewId
-				return
-			}
-			this.missingSavedViewId = ''
-
-			const { viewMode, warnings } = resolveViewPresentation(view, this.availableViewModes)
-			for (const warning of warnings) {
-				// eslint-disable-next-line no-console
-				console.warn(warning)
-			}
-			if (viewMode) {
-				this.currentViewMode = viewMode
-			}
-
-			const query = buildRouteQueryFromViewState(extractViewState(view))
-			const current = (this.$route && this.$route.query) || {}
-			if (!this.$router || JSON.stringify(query) === JSON.stringify(current)) {
-				return
-			}
-			const nav = this.$router.replace({
-				name: this.$route?.name,
-				params: this.$route?.params,
-				query,
-			})
-			if (nav && typeof nav.catch === 'function') {
-				nav.catch(() => {})
-			}
-		},
-
-		/**
-		 * Pin or unpin a view (CnSavedViewsControl `@pin-request`).
-		 *
-		 * Pinning writes OpenRegister's existing `favoredBy` list rather than
-		 * a second flag meaning nearly the same thing. The local copy is
-		 * updated from the response, so the navigation this page shares a
-		 * manifest with sees the pin without a reload.
-		 *
-		 * @param {object} view The View API object to pin or unpin.
-		 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
-		 */
-		async onPinViewRequest(view) {
-			if (!view || !this.savedViewsArePlaces) {
-				return
-			}
-			const userId = this.currentSavedViewsUserId
-			const next = !isPinnedView(view, userId)
-			try {
-				const updated = await useSavedViewsApi().patchView(view.id, { favoredBy: togglePinnedBy(view, userId, next) })
-				const merged = updated || { ...view, favoredBy: togglePinnedBy(view, userId, next) }
-				this.savedViews = this.savedViews.map((v) => (String(v.id) === String(view.id) ? merged : v))
-				this.$emit('pin-view', merged)
-			} catch (error) {
-				// eslint-disable-next-line no-console
-				console.error('CnIndexPage: failed to pin the view', error)
-			}
-		},
-
-		/**
-		 * Apply a saved view: replace the route query with the view's
-		 * stored filters/search/sort. `$router.replace` (not push) so the
-		 * browser Back button doesn't step through every applied view —
-		 * same precedent as the `?action=create` query cleanup. Dropping
-		 * the whole previous query implicitly resets `_page` to 1.
+		 * Apply a saved view. Self-fetch mode's facet/folder filters and
+		 * search/sort live in useListView's own reactive state, not the route
+		 * query, so apply them there directly. Otherwise (consumer-managed
+		 * store mode) fall back to `$router.replace` — same precedent as the
+		 * `?action=create` query cleanup, and dropping the whole previous
+		 * query implicitly resets `_page` to 1.
 		 *
 		 * @param {object} view The View API object to apply.
 		 */
 		onApplySavedView(view) {
-			const query = buildRouteQueryFromViewState(extractViewState(view))
-			if (!this.$router) {
-				return
-			}
-			if (this.savedViewsArePlaces && this.savedViewRouteName !== '' && view?.id !== undefined) {
-				// The view is a place here, so applying one GOES there. Push
-				// rather than replace: a person who walked from the list to a
-				// view expects Back to return them to the list.
-				const toView = this.$router.push({ name: this.savedViewRouteName, params: { viewId: String(view.id) }, query })
-				if (toView && typeof toView.catch === 'function') {
-					toView.catch(() => {})
-				}
+			const state = extractViewState(view)
+			if (this.isSelfFetchMode) {
+				// Set state directly (not via onFilterEvent/onSearchEvent per key)
+				// so applying a view is one fetch + one route replace, not one
+				// of each per changed field — and a filter the view doesn't
+				// carry is actually cleared, not left over from before.
+				this.list.activeFilters.value = { ...state.filters }
+				this.list.searchTerm.value = state.search || ''
+				const keys = state.sortKeys
+				this.list.sortKeys.value = keys
+				this.list.sortKey.value = keys[0]?.key ?? null
+				this.list.sortOrder.value = keys[0]?.order ?? 'asc'
+				this.list.refresh(1)
+				// Through `persistViewStateToRoute` rather than a raw replace,
+				// because it is what records the keys this view wrote — without
+				// that, a later "clear all" has nothing to delete them by.
+				this.persistViewStateToRoute(state)
 				this.$emit('apply-view', view)
 				return
 			}
-			const nav = this.$router.replace({ query })
+			if (!this.$router) {
+				return
+			}
+			const nav = this.$router.replace({ query: buildRouteQueryFromViewState(state) })
 			// Swallow the duplicate-navigation rejection (Vue Router 3)
 			// when the applied view matches the current query.
 			if (nav && typeof nav.catch === 'function') {
@@ -5716,26 +5918,75 @@ export default {
 		},
 
 		/**
-		 * Persist the current route-query state as a named view via
-		 * OpenRegister's views API (CnSaveViewDialog `@confirm`). On
-		 * success the new view joins the list and the dialog closes; on
-		 * failure the dialog stays open with the error surfaced.
+		 * Persist the current state as a named view via OpenRegister's views
+		 * API (CnSaveViewDialog `@confirm`). Self-fetch mode reads its active
+		 * filters/search/sort straight from useListView's own state (they
+		 * never reach the route query); otherwise falls back to the route
+		 * query. On success the new view joins the list and the dialog
+		 * closes; on failure the dialog stays open with the error surfaced.
 		 *
 		 * @param {{ name: string, isPublic: boolean }} payload Dialog payload.
 		 */
+		/**
+		 * Toast, without letting the toast fail the thing it reports on.
+		 *
+		 * The import is dynamic so a page that never toasts does not carry the
+		 * chunk, and everything is swallowed: a chunk that will not load must
+		 * not turn a save that worked into an error, nor add an unhandled
+		 * rejection on top of one that already failed.
+		 *
+		 * @param {'success'|'error'} kind Which toast to show.
+		 * @param {string} message The message, already translated.
+		 * @return {Promise<void>}
+		 */
+		async toastSavedView(kind, message) {
+			try {
+				const dialogs = await import('@nextcloud/dialogs')
+				const show = kind === 'error' ? dialogs.showError : dialogs.showSuccess
+				if (typeof show === 'function') {
+					show(message)
+				}
+			} catch {
+				// No toast. What it was reporting on happened either way.
+			}
+		},
+
 		async onSaveViewConfirm({ name, isPublic }) {
-			const state = extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
-			const payload = buildViewCreatePayload({ name, description: '', isPublic, isDefault: false, state })
+			const state = this.isSelfFetchMode
+				? this.currentViewState()
+				: extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
+			const payload = buildViewCreatePayload({
+				name,
+				description: '',
+				isPublic,
+				isDefault: false,
+				state,
+				scope: savedViewScope(this.savedViewsPage),
+				register: this.register,
+				schema: this.schema,
+			})
 			try {
 				const view = await useSavedViewsApi().createView(payload)
-				if (view) {
-					this.savedViews = [...this.savedViews, view]
+				if (!view) {
+					// A 2xx carrying no view. Axios has thrown on every real error
+					// by now, so nothing else marks this one, and the list below is
+					// not appended to: claiming success sends the person looking
+					// for a view that is not in it.
+					throw new Error(t('nextcloud-vue', 'The server did not return the saved view'))
 				}
+				this.savedViews = [...this.savedViews, view]
 				this.showSaveViewDialog = false
+				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" saved', { name }))
 			} catch (error) {
 				// eslint-disable-next-line no-console
 				console.error('CnIndexPage: failed to save view', error)
+				// Both, and they say different things: the dialog stays open
+				// carrying the reason, because that is where the name and the
+				// toggle still are to correct and retry; the toast says the save
+				// did not happen, because a dialog that simply stayed open reads
+				// as one that has not been submitted yet.
 				this.$refs.saveViewDialog?.setError(error?.response?.data?.error || error?.message)
+				this.toastSavedView('error', t('nextcloud-vue', 'Could not save the view "{name}"', { name }))
 			}
 		},
 
@@ -5875,6 +6126,63 @@ export default {
 			this.$emit('copy', payload)
 		},
 
+		// Lets an `advanceOn: "object-created"` walkthrough step auto-advance.
+		// No dispatch site existed anywhere before this, so that advanceOn
+		// type could never fire. `@self.register`/`@self.schema` are numeric
+		// DB ids, not the slugs a manifest's advanceOn declares, so override
+		// them with this page's own slug props before dispatching.
+		notifyWalkthroughObjectCreated(created) {
+			if (typeof window === 'undefined' || !created) {
+				return
+			}
+			const detail = { ...created, register: this.register, schema: this.exportSchemaSlug }
+			window.dispatchEvent(new CustomEvent('cn-walkthrough:object-created', { detail }))
+		},
+
+		/**
+		 * Toast and navigate after a create the built-in dialog confirmed, per
+		 * `createSuccessMessage` / `createSuccessRoute`. Both default off, so a
+		 * page that declares neither behaves exactly as before.
+		 *
+		 * Runs on every create path (store, self-store, `createOverride`), which
+		 * is what makes the built-in Add button a peer of a manifest
+		 * `open-form` header action: that action has always toasted and
+		 * navigated, so the same create reached two different endings depending
+		 * on which button opened it.
+		 *
+		 * @param {object} saved The created object, as the save path returned it.
+		 * @return {Promise<void>}
+		 */
+		async afterCreateSuccess(saved) {
+			// Callers do not await this — a toast and a navigation are not the
+			// save — so nothing here may reject: an unhandled rejection from a
+			// failed chunk load would surface as an error on a create that
+			// actually succeeded.
+			if (this.createSuccessMessage) {
+				try {
+					const { showSuccess } = await import('@nextcloud/dialogs')
+					if (typeof showSuccess === 'function') {
+						showSuccess(this.cnTranslate(this.createSuccessMessage))
+					}
+				} catch {
+					// No toast; the record is saved either way.
+				}
+			}
+			if (!this.createSuccessRoute) {
+				return
+			}
+			try {
+				// `buildOnSuccessRoute` reads the id through `savedObjectId`, so a
+				// response that carries it as `uuid` or `@self.id` still deep-links.
+				const location = buildOnSuccessRoute(this.createSuccessRoute, saved)
+				if (location && this.$router) {
+					this.$router.push(location).catch(() => {})
+				}
+			} catch {
+				// The record is saved; staying on the list beats an error toast.
+			}
+		},
+
 		async onFormConfirm(formData) {
 			// Opt-in create-override hook: an app supplies a custom async create
 			// handler (e.g. a contact-aware endpoint that fills a required FK)
@@ -5895,9 +6203,11 @@ export default {
 						 * @type {object} The created object.
 						 */
 						this.$emit('create', created)
+						this.notifyWalkthroughObjectCreated(created)
 						if (this.list && typeof this.list.refresh === 'function') {
 							this.list.refresh()
 						}
+						this.afterCreateSuccess(created)
 					} else {
 						this.setFormResult({ error: 'Save failed' })
 					}
@@ -5914,8 +6224,13 @@ export default {
 				}
 				const saved = await this.store.saveObject(this.objectType, formData)
 				if (saved) {
+					const wasCreate = !this.editItem
 					this.setFormResult({ success: true })
-					this.$emit(this.editItem ? 'edit' : 'create', saved)
+					this.$emit(wasCreate ? 'create' : 'edit', saved)
+					if (wasCreate) {
+						this.notifyWalkthroughObjectCreated(saved)
+						this.afterCreateSuccess(saved)
+					}
 				} else {
 					const err = this.store.getError?.(this.objectType)
 					if (err && err.isValidation) {

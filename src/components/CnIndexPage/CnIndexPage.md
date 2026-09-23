@@ -366,10 +366,8 @@ export default {
 | `showMassImport` | Boolean | `true` | Whether to show the mass Import action |
 | `showMassCopy` | Boolean | `true` | Whether to show the mass Copy action |
 | `allowExport` | Boolean | `false` | Opt-in flag for the native Export menu (CSV/Excel) next to the Add button. Renders only when `true` AND the resolved schema is flagged `exportable: true`; navigates to OpenRegister's export leaf (`GET /apps/openregister/api/objects/{register}/{schema}/export`), passing `$route.query` through as filters. Distinct from `showMassExport`, which exports the fetched/selected rows via a blob download. |
-| `allowSavedViews` | Boolean | `false` | Opt-in flag for the saved-views control (saved-views-ui): a Views dropdown listing the user's OpenRegister saved-search views (`GET /apps/openregister/api/views`). Applying one writes its stored filters/search/sort into the route query (`_search`/`_sortKey`/`_sortOrder` reserved keys + plain filter keys); "Save current view…" persists the current route-query state via POST; own views can be deleted after confirmation. Emits `apply-view`. |
-| `savedViewPlaces` | Object | `null` | The page's `savedViewPlaces` declaration, forwarded by CnPageRenderer (saved-view-as-a-place). Present and `enabled`, each saved view of this page is a place: applying one navigates to `/<route>/<routeBase>/:viewId`, a `?view=<id>` link redirects there, the view opens in the presentation its own config declares, and the dropdown gains a Pin action. Absent, the dropdown behaves exactly as it did before. |
-| `savedViewId` | String | `''` | The view the address names, read off the route by CnPageRenderer. Empty on the page's own list. A view that no longer answers is named in the empty state rather than rendered as an empty list. |
-| `savedViewRouteName` | String | `''` | The name `buildManifestRoutes()` registered the view route under, normally `<pageId>__view`. Empty, nothing here navigates to a view. |
+| `allowSavedViews` | Boolean | `false` | Opt-in flag for the saved-views control (saved-views-ui): a Views dropdown listing the user's OpenRegister saved-search views (`GET /apps/openregister/api/views`). Applying one writes its stored filters/search/sort into the route query (`_search` and `_order` reserved keys + plain filter keys); "Save current view…" persists the current route-query state via POST and toasts either way, naming the view (a failure also keeps the dialog open with the reason); own views can be deleted after confirmation. Emits `apply-view`. |
+| `savedViewsScope` | String | `''` | Which pages share this page's saved views. By default a view is shared by every page over the same `register` and `schema` and shown on no other page, since a view is filters over one schema's fields. Set a name to share views across pages over different sources, or to keep two pages over one source apart. Written into the saved view's `query.scope` on save; views saved before scoping existed carry no scope and stay visible everywhere. |
 | `massActionNameField` | String | `'title'` | Property name used to display item names in dialogs |
 | `nameFormatter` | Function | `null` | Custom formatter for item names in dialogs; overrides `massActionNameField` |
 | `exportFormats` | Array | `[Excel, CSV]` | Available export formats for the export dialog |
@@ -379,13 +377,13 @@ export default {
 | `createOverride` | Function | `null` | Opt-in async create hook. When set, a **create** confirmed from the built-in form dialog calls `await createOverride(formData, ctx)` instead of the store / self-store `saveObject` — the override owns persistence (e.g. a contact-aware endpoint that fills a required FK) and returns the created object. Create-only (edits fall through). `ctx` is `{ register, schema, objectType, effectiveSchema }`. Unchanged behaviour when absent. |
 | `showViewAction` | Boolean | `true` | Whether to add a View row action |
 | `showEditAction` | Boolean | `true` | Whether to add an Edit row action |
-| `editOpensDetail` | Boolean | `false` | Send the Edit row action to the record's detail page (emits `@edit-open`) instead of opening the edit modal. Set automatically by `CnPageRenderer` when the record has a detail page. |
+| `editOpensDetail` | Boolean | `false` | Send the Edit row action to the record's detail page (emits `@edit-open`) instead of opening the edit modal. Opt-in per page; `CnPageRenderer` does not set it, since routing Edit makes it a repeat of the row click. |
 | `showCopyAction` | Boolean | `true` | Whether to add a Copy row action |
 | `showDeleteAction` | Boolean | `true` | Whether to add a Delete row action |
 | `excludeFields` | Array | `[]` | Field keys to exclude from the form dialog |
 | `includeFields` | Array | `null` | Field keys to include in the form dialog (whitelist) |
 | `fieldOverrides` | Object | `{}` | Per-field config overrides passed to `CnFormDialog` |
-| `customComponents` | Object | `null` | Custom-component / handler registry. When set, takes precedence over the injected `cnCustomComponents` from CnAppRoot. Used to resolve `actions[].handler` registry names declared in the manifest (manifest-actions-dispatch). |
+| `customComponents` | Object | `null` | Custom-component / handler registry. When set, takes precedence over the injected `cnCustomComponents` from CnAppRoot. Used to resolve `actions[].handler` registry names declared in the manifest (manifest-actions-dispatch). Named handlers resolve out of the v2 `registry` (a `kind: "handler"` entry) FIRST and fall back to this map. |
 | `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table view toggle |
 | `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (in addition to / instead of the sidebar search). Fed from the manifest as `pages[].config.inlineSearch`. |
 | `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest `config.searchPlaceholder`). |
@@ -410,7 +408,8 @@ export default {
 | `quickFilters` | Array | `null` | Self-fetch mode only — `{label, filter, default?, icon?}` tabs rendered above the table (see `CnQuickFilterBar`). The active tab's `filter` is merged into every fetch after `filter` (so the tab wins) and before user `activeFilters`. First entry with `default:true` (else index 0) is active on mount; switching tabs emits `@quick-filter-change`. Fed from `pages[].config.quickFilters`. |
 | `quickFilterMode` | String | `'chips'` | How the quick filters render: `'chips'` (pill strip) or `'dropdown'` (a single `NcSelect`). Fed from `pages[].config.quickFilterMode`. |
 | `quickFilterMultiple` | Boolean | `false` | Allow several quick filters active at once; selected tabs' filters are OR-ed into the fetch (same field → `field[]=` array). Fed from `pages[].config.quickFilterMultiple`. |
-| `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the `customComponents` registry on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log `console.warn` once and fall back to the default. |
+| `quickFilterMaxVisible` | Number | `0` | Chips mode only — how many quick-filter pills render inline before the rest move behind one more chip — a `⋯` pill that opens a panel of the hidden lenses. `0` renders every tab, which wraps the actions bar onto a second line once a page declares more than a handful. The visible set is the first *n* entries of `quickFilters`. Fed from `pages[].config.quickFilterMaxVisible`. |
+| `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the v2 `registry` — any kind carrying a `component` — or in the legacy `customComponents` map on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log `console.warn` once and fall back to the default. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 | `subscribe` | Boolean | `true` | Self-fetch mode only. When `register` + `schema` are set (and no `objects` prop), the page subscribes to the collection's `or-collection-{register}-{schema}` live-update scope on mount and refetches on an update event; released on unmount. Set `false` (manifest: `config.subscribe: false`) for static / read-once views. No-op in consumer-managed mode or on stores without live-updates support. |
 
@@ -574,7 +573,7 @@ answer about everybody.
 
 A source declares its map like this:
 
-```js
+```js static
 searchFields: {
   objectUuid: { param: 'objectUuid', single: true },
   state: { param: 'state', join: ',' },
@@ -602,14 +601,14 @@ logo, contactpersoon block, and a CTA button — register the card
 component on `CnAppRoot` and reference it by name in the manifest:
 
 ```js {static}
-// src/customComponents.js
+// src/registry.js
 import OrganisatieCard from './components/cards/OrganisatieCard.vue'
-export const customComponents = { OrganisatieCard }
+export default { OrganisatieCard: { kind: 'page', component: OrganisatieCard } }
 ```
 
 ```vue {static}
 <!-- App.vue -->
-<CnAppRoot :manifest="manifest" app-id="softwarecatalog" :custom-components="customComponents">
+<CnAppRoot :manifest="manifest" app-id="softwarecatalog" :registry="registry">
     <router-view />
 </CnAppRoot>
 ```
@@ -713,7 +712,7 @@ Handler dispatch keywords (same as row-level `actions[].handler`):
 | `navigate` | `$router.push({ name: action.route })` (no `params.id`) AND `@header-action` emits |
 | `emit` | Only `@header-action({ action: id, id })` emits (no handler call) |
 | `none` | No-op + suppresses the `@header-action` emit |
-| Registry name | `customComponents[name]({ actionId: id })` is called AND `@header-action` emits |
+| Registry name | The registered function is called as `fn({ actionId: id })` — the v2 `registry` first, then `customComponents` — AND `@header-action` emits |
 | Unknown registry name | Silent fall-through to emit-only |
 
 Reserved built-in ids (`refresh`, `import`, `export`, `copy`, `delete`)
@@ -734,14 +733,23 @@ CnIndexPage no longer carries its own Request-a-feature entry (the former `showR
 
 ## Action handlers (manifest-actions-dispatch)
 
-Each row-action object in `actions[]` may declare a string `handler`. The value resolves through CnIndexPage's `effectiveCustomComponents` registry (the same one driving `type:'custom'` pages and the `cardComponent` prop). Reserved keywords short-circuit registry lookup:
+Each row-action object in `actions[]` may declare a string `handler`, and so may `bulkActions[]` and `headerActions[]`. All three resolve the name the same way: the v2 `registry` first — an entry of `kind: "handler"` exposing the function as `.handler` (or `.fn`), or a directly function-valued entry — then the deprecated `customComponents` map, which keeps an app that has not migrated working unchanged.
+
+```js
+// registry.js — the v2 home for a manifest-named behaviour
+export default {
+  queueProcessHandler: { kind: 'handler', handler: queueProcessHandler },
+}
+```
+
+Reserved keywords short-circuit the lookup:
 
 | `handler` value | Behaviour |
 |-----------------|-----------|
 | `"navigate"` | Calls `$router.push({ name: action.route, params: { id: row[rowKey] } })`. `route` is required. An optional `action.params` object is merged over the default (see [Navigate params](#navigate-params)). |
 | `"emit"` | Skips any registry call; CnIndexPage still bubbles `@action`. |
 | `"none"` | Disables the click entirely. CnIndexPage suppresses both the call AND the `@action` emit. |
-| Registry name (`/^[A-Za-z][A-Za-z0-9_]*$/`) | Looked up in `customComponents`. If a function, invoked as `fn({ actionId, item })` on row click. If a non-function or missing, falls back to `@action`-only with a `console.warn`. |
+| Registry name (`/^[A-Za-z][A-Za-z0-9_]*$/`) | Looked up in the v2 `registry`, then `customComponents`. If a function, invoked as `fn({ actionId, item })` on row click. A name that matches something UNCALLABLE falls back to `@action`-only with a `console.warn`; a name that matches nothing falls back silently. |
 | Function (programmatic) | Used as-is. Back-compat for v1 row-action APIs that pass a function directly. |
 | Unset | Default — CnIndexPage emits `@action` with the click payload and the consumer decides. |
 
@@ -770,12 +778,14 @@ Each row-action object in `actions[]` may declare a string `handler`. The value 
 ```
 
 ```js
-// src/customComponents.js — passed to CnAppRoot
+// src/registry.js — passed to CnAppRoot
+function queueProcessHandler({ actionId, item }) {
+	// Fires when the row-action button is clicked.
+	console.log('processing queue', item.id, '(from', actionId, ')')
+}
+
 export default {
-	queueProcessHandler({ actionId, item }) {
-		// Fires when the row-action button is clicked.
-		console.log('processing queue', item.id, '(from', actionId, ')')
-	},
+	queueProcessHandler: { kind: 'handler', handler: queueProcessHandler },
 }
 ```
 
@@ -816,7 +826,7 @@ The list view (`view-mode="list"`) and standalone sort dropdown add these props:
 | `listLabel` | String | `''` | Label for the list view-toggle option. |
 | `listIcon` | String | `''` | MDI icon for the list view-toggle option. |
 | `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
-| `listComponent` | String | `''` | Custom row component (customComponents registry). |
+| `listComponent` | String | `''` | Custom row component, resolved against the v2 `registry` (any kind carrying a `component`) and then the legacy `customComponents` map. |
 | `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown in the actions bar. |
 | `sortSelectOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
 | `sortSelectValue` | String | `''` | Selected sort dropdown value (controlled). |
@@ -962,7 +972,7 @@ offers.
 
 ## Folder sidebar
 
-Set the `folderSidebar` config to render a folder navigation pane left of the list. Selecting a folder filters the list by the config's `filterField` (via the self-fetch filter); "All" clears it. Emits `@folder-change` with the selected id (and `@folder-create` when the opt-in New-folder button is used).
+Set the `folderSidebar` config to render a folder navigation pane left of the list. Selecting a folder filters the list by the config's `filterField` (via the self-fetch filter); "All" clears it. Emits `@folder-change` with the selected id (and `@folder-create` when the opt-in New-folder button is used). While a folder is selected the pane keeps showing the whole set of folders it saw before the selection, so switching from one folder to another is one click; the live facet of the narrowed query would otherwise list the selected folder alone.
 
 Sources: `register` (fetch the folder list from an OpenRegister `register`/`schema`, mapping `idField`/`nameField`), `field` (distinct values of the current rows' `field`), `custom` (explicit `folders`), or `files` (Nextcloud folders). Example — case types as folders that filter cases:
 

@@ -237,6 +237,58 @@ describe('CnContextMenu outside-click dismissal', () => {
 	})
 })
 
+describe('CnContextMenu reopening over a canvas', () => {
+	const mountOpen = () => mount(CnContextMenu, {
+		propsData: { open: true, actions: [{ label: 'Edit' }] },
+		attachTo: document.body,
+	})
+
+	// REGRESSION. `onClosed` fires after the hide ANIMATION, so a second click on
+	// the same target reopens the menu before it lands. It used to clear the
+	// cursor vars there, wiping coordinates the reopen had already written, and
+	// every menu after the first rendered in the corner.
+	it('keeps the coordinates a reopen wrote while the previous hide is still finishing', async () => {
+		const wrapper = mountOpen()
+		await wrapper.vm.$nextTick()
+
+		// The reopen: fresh coordinates, menu open again.
+		document.documentElement.style.setProperty('--cn-ctx-menu-x', '420px')
+		document.documentElement.style.setProperty('--cn-ctx-menu-y', '240px')
+
+		// The previous close's tail, arriving late.
+		wrapper.vm.onClosed()
+
+		expect(document.documentElement.style.getPropertyValue('--cn-ctx-menu-x')).toBe('420px')
+		expect(document.documentElement.style.getPropertyValue('--cn-ctx-menu-y')).toBe('240px')
+
+		document.documentElement.style.removeProperty('--cn-ctx-menu-x')
+		document.documentElement.style.removeProperty('--cn-ctx-menu-y')
+		wrapper.unmount()
+	})
+
+	// REGRESSION. A canvas that stops its own mousedown — Vue Flow's d3-zoom pane
+	// calls stopImmediatePropagation — never lets the event bubble to document,
+	// so a bubble-phase listener never saw it and the menu could not be dismissed
+	// by clicking the canvas it was opened over.
+	it('closes on a press the target swallows, because the watch captures', async () => {
+		const wrapper = mountOpen()
+		await wrapper.vm.$nextTick()
+
+		const canvas = document.createElement('div')
+		canvas.addEventListener('mousedown', (event) => event.stopImmediatePropagation())
+		document.body.appendChild(canvas)
+
+		canvas.dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true }))
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.internalOpen).toBe(false)
+		expect(wrapper.emitted('close')).toBeTruthy()
+
+		canvas.remove()
+		wrapper.unmount()
+	})
+})
+
 describe('CnContextMenu cursor-position scoping', () => {
 	// Regression: the cursor-positioning transform was keyed on the `<html>`
 	// data attribute alone, so it matched *every* `.v-popper__popper` on the

@@ -44,8 +44,8 @@ describe('searchNextcloudUsers', () => {
 		})
 		const options = await searchNextcloudUsers('')
 		expect(options).toEqual([
-			{ id: 'annemarie', label: 'Annemarie de Vries', subline: '' },
-			{ id: 'henk', label: 'Henk Bakker', subline: '' },
+			{ id: 'annemarie', label: 'Annemarie de Vries', displayName: 'Annemarie de Vries', subline: '' },
+			{ id: 'henk', label: 'Henk Bakker', displayName: 'Henk Bakker', subline: '' },
 		])
 	})
 
@@ -62,7 +62,7 @@ describe('searchNextcloudUsers', () => {
 			},
 		})
 		const options = await searchNextcloudUsers('a')
-		expect(options).toEqual([{ id: 'admin', label: 'Administrator', subline: '' }])
+		expect(options).toEqual([{ id: 'admin', label: 'Administrator', displayName: 'Administrator', subline: '' }])
 	})
 
 	it('fails soft (returns []) when the OCS call rejects', async () => {
@@ -79,7 +79,7 @@ describe('resolveNextcloudUser', () => {
 			data: { ocs: { data: [{ id: 'henk', label: 'Henk Bakker', source: 'users', shareType: 0 }] } },
 		})
 		const option = await resolveNextcloudUser('henk')
-		expect(option).toEqual({ id: 'henk', label: 'Henk Bakker', subline: '' })
+		expect(option).toEqual({ id: 'henk', label: 'Henk Bakker', displayName: 'Henk Bakker', subline: '' })
 	})
 
 	it('falls back to { id: uid, label: uid } when the name cannot be resolved', async () => {

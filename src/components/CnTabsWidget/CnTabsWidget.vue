@@ -194,7 +194,9 @@ export default {
 				 * @return {void}
 				 */
 				set: (id, items, source = 'widget') => {
-					if (!id) {
+					// `activePanelActions` spreads what is stored, so a
+					// non-array becomes one menu item per character.
+					if (!id || !Array.isArray(items)) {
 						return
 					}
 					const forId = { ...(this.panelActionsByWidget[id] || {}), [source]: items }
@@ -574,9 +576,10 @@ export default {
 /* The panel area is the scroll region, so the strip stays put while a long
    child scrolls under it.
 
-   `padding-top: 0` overrides CnTabs' own 12px: the open tab is drawn joined to
-   the panel, and a gap under it breaks that join, leaving the tab floating
-   above content it is supposed to be attached to. */
+   Padded on all four sides. The top was once zeroed to protect the join with
+   the open tab, but padding sits inside the painted box — only a margin would
+   have opened that gap, and a zero top put every panel's content against the
+   strip. */
 .cn-tabs-widget__tabs :deep(.cn-tabs__content) {
 	background-color: var(--color-main-background);
 	/* Three sides only: the bar's rule (redrawn above, stopping at the corner)
@@ -595,7 +598,7 @@ export default {
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow: auto;
-	padding: 0 12px 12px;
+	padding: 12px;
 }
 
 .cn-tabs-widget__tabs :deep(.cn-tab) {

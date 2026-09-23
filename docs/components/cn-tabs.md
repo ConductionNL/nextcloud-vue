@@ -98,6 +98,7 @@ Implements the WAI-ARIA tabs pattern:
 - **Panels stay mounted.** An inactive panel is hidden, not destroyed — matching `<BTab>`. Panels that fetch on `mounted()` would otherwise refire on every switch. Use `v-if` inside the panel if you specifically want teardown.
 - **Registration is by mount order**, which is document order for both static children and `v-for`-generated ones.
 - **Closable tabs work**: when the active tab unmounts, the selection moves to its nearest remaining neighbour.
+- **The strip is one row.** Tabs that do not fit scroll horizontally instead of wrapping. The edge that hides tabs shows a fade and a chevron that scrolls the strip, the selected tab is always scrolled into view, and the mouse wheel scrolls the strip while it overflows.
 
 ## Reference
 

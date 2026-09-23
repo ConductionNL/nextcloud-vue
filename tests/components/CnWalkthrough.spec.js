@@ -168,7 +168,9 @@ describe('CnWalkthrough', () => {
 
 	it('reveals a target hidden in a collapsed nav group by clicking its expand toggle', async () => {
 		// Build a minimal collapsed NcAppNavigation group: the child link the step
-		// targets is present in the DOM but inside a collapsed (display:none) group.
+		// targets is rendered in the DOM but inside a collapsed (display:none)
+		// group, so it resolves with a zero-size rect — the shape revealTarget()
+		// walks up from.
 		const nav = document.createElement('div')
 		nav.className = 'app-navigation'
 		nav.innerHTML = `
@@ -177,7 +179,7 @@ describe('CnWalkthrough', () => {
 					<a class="app-navigation-entry-link" aria-expanded="false" href="#">Bookkeeping</a>
 					<button class="icon-collapse" aria-label="Open menu"></button>
 					<ul class="app-navigation-entry__children" style="display:none">
-						<!-- child for 'accounts-receivable' is NOT rendered while collapsed -->
+						<li><a data-cn-route="accounts-receivable" href="#">Accounts Receivable</a></li>
 					</ul>
 				</li>
 			</ul>`

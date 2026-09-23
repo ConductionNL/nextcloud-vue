@@ -91,6 +91,7 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 | `columnsTabLabel` | String | `'Columns'` | Label for the Columns tab button |
 | `searchLabel` | String | `'Search'` | Heading inside the Search tab |
 | `filtersLabel` | String | `'Filters'` | Heading above the filter controls |
+| `clearAllLabel` | String | `'Clear all'` | Label for the "Clear all" button, shown when a search term or any filter is active. Clicking it emits `clear-filters`. |
 | `fromLabel` | String | `'From'` | Start-of-window label on a `date-range` filter |
 | `toLabel` | String | `'To'` | End-of-window label on a `date-range` filter |
 | `filterFields` | Object | `null` | Filter declarations for a page with no schema of its own. Wins over `schema`, and feeds the Search tab only |
@@ -107,6 +108,7 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 | `columns-change` | `visibleKeys[]` | Emitted when the user toggles a column; payload is the full updated array of visible column keys |
 | `update:open` | `isOpen` | Emitted when the close button is clicked; use with `v-model:open` |
 | `tab-change` | `tabId` | Emitted when the user switches tabs; payload is the new tab's `id` string |
+| `clear-filters` | — | Emitted when "Clear all" is clicked; the host resets the search term and every active filter |
 
 ### Slots
 

@@ -20,7 +20,7 @@ const mockStore = {
 	registerObjectType: jest.fn((slug) => {
 		mockStore.objectTypeRegistry[slug] = {}
 	}),
-	fetchCollection: jest.fn().mockResolvedValue([
+	fetchCollectionForOptions: jest.fn().mockResolvedValue([
 		{ id: 'org-1', title: 'Gemeente Zeist' },
 		{ id: 'org-2', title: 'Gemeente Utrecht' },
 	]),
@@ -83,7 +83,7 @@ const semanticSchema = {
 beforeEach(() => {
 	mockStore.objectTypeRegistry = {}
 	mockStore.registerObjectType.mockClear()
-	mockStore.fetchCollection.mockClear()
+	mockStore.fetchCollectionForOptions.mockClear()
 	mockStore.fetchObject.mockClear()
 	mockAxiosGet = jest.fn()
 })
@@ -192,7 +192,7 @@ describe('CnFormDialog — cross-app semantic references (ADR-048)', () => {
 				'organization',
 				'shillinq-suppliers',
 			)
-			expect(mockStore.fetchCollection).toHaveBeenCalled()
+			expect(mockStore.fetchCollectionForOptions).toHaveBeenCalled()
 		})
 
 		it('stores the chosen object UUID as the field value', async () => {

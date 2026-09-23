@@ -346,8 +346,8 @@ export default {
 		return {
 			[PANEL_ACTION_SINK]: sink
 				? {
-						set: (items) => sink.set(this.widget?.id, items, 'widget'),
-						clear: () => sink.clear(this.widget?.id, 'widget'),
+						set: (...args) => sink.set(...this.narrowPanelArgs(args, 'set')),
+						clear: (...args) => sink.clear(...this.narrowPanelArgs(args, 'clear')),
 					}
 				: null,
 		}
@@ -906,6 +906,26 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Re-key a call on the channel this host provides onto the one it holds.
+		 * A widget publishes `set(items)`; a host nested in this one speaks the
+		 * surface's `set(id, items, source)`. Items are always an array and an
+		 * id never is, which tells the two apart.
+		 *
+		 * @param {Array} args The arguments as called.
+		 * @param {'set'|'clear'} kind Which channel method was called.
+		 * @return {Array} Arguments for the held channel.
+		 */
+		narrowPanelArgs(args, kind) {
+			const id = this.widget?.id
+			if (kind === 'set') {
+				return Array.isArray(args[0])
+					? [id, args[0], 'widget']
+					: [id, args[1], args[2] || 'widget']
+			}
+			return [id, args.length > 1 ? (args[1] || 'widget') : 'widget']
+		},
+
 		/**
 		 * Publish or withdraw this host's OWN items on the surface.
 		 *

@@ -19,6 +19,8 @@
  * @module utils/listNavigation
  */
 
+import { parseSortKeys } from './routeFilters.js'
+
 /** Query key naming the list a record was opened from. */
 export const LIST_CONTEXT_QUERY_KEY = '_from'
 
@@ -89,26 +91,6 @@ export function listContextToQuery({ pageId, search, sortKeys, filters } = {}) {
 		}
 	}
 	return query
-}
-
-/**
- * Parse the `_order` query value the index page writes.
- *
- * @param {string|undefined} raw The raw query value.
- * @return {Array<{key: string, order: string}>} The sort, or an empty list.
- */
-function parseSortKeys(raw) {
-	if (typeof raw !== 'string' || raw === '') {
-		return []
-	}
-	try {
-		const parsed = JSON.parse(raw)
-		return Array.isArray(parsed) ? parsed.filter((entry) => entry && typeof entry.key === 'string') : []
-	} catch {
-		// A malformed `_order` means the list is in its default order, which
-		// is exactly what an empty list of sort keys says.
-		return []
-	}
 }
 
 /**

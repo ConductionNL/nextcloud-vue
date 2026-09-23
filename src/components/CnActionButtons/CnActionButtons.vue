@@ -213,7 +213,7 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnRunNodeDialog from '../../dialogs/CnRunNodeDialog.vue'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
-import { buildOnSuccessRoute, dispatchAction, isExternalActionTarget, postRunNode, resolveCreateOverrideHandler, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { buildOnSuccessRoute, dispatchAction, interpolateActionTarget, isExternalActionTarget, postRunNode, resolveCreateOverrideHandler, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { usesArrayValues, valueArrayFor, valueRecordsFor } from '../../utils/dynamicProperties.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -491,9 +491,18 @@ export default {
 		visibleActions() {
 			return (this.actions || [])
 				.filter((a) => a && a.id && this.visibility[a.id] !== false)
-				.map((a) => ((!a.href && a.type === 'navigate' && isExternalActionTarget(a.target))
-					? { ...a, href: a.target, target: '_blank' }
-					: a))
+				.map((a) => {
+					if (a.href || a.type !== 'navigate') {
+						return a
+					}
+					// Interpolated BEFORE the external test and before it becomes an
+					// href, so the anchor carries the record's id rather than the token.
+					const target = interpolateActionTarget(a.target, this.tokenCtx)
+					if (isExternalActionTarget(target)) {
+						return { ...a, href: target, target: '_blank' }
+					}
+					return target === a.target ? a : { ...a, target }
+				})
 		},
 
 		/**

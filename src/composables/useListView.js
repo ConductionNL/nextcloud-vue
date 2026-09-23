@@ -21,6 +21,8 @@ import { useObjectStore } from '../store/index.js'
  * @param {object} [options.defaultSort] Default sort applied on mount e.g. `{ key: 'createdAt', order: 'desc' }`
  * @param {Array<{key: string, order: 'asc'|'desc'}>} [options.defaultSortKeys] Default MULTI-column sort applied on mount (ordered priority list). Takes precedence over `defaultSort` when both are given; used e.g. to restore a sort persisted in the route query.
  * @param {Array<string>|null} [options.defaultVisibleColumns] Initial visible-column key set. Seeds the sidebar's Columns tab with the curated default (e.g. a manifest `columns` list) so toggles add/remove from it. Omit (or `null`) for schema-driven tables where every column starts visible.
+ * @param {object} [options.defaultActiveFilters] Initial facet-filter map, e.g. to restore filters persisted in the route query on mount.
+ * @param {string} [options.defaultSearchTerm] Initial search term, e.g. to restore `_search` from the route query on mount.
  * @param {object|(() => object)} [options.fixedFilters] A filter map (or getter returning one) merged into every fetch AFTER the user's facet filters, so the fixed entries always win. Used e.g. by `CnIndexPage` to apply a route-param-scoped `pages[].config.filter`. Default `{}` — omitting it is behaviourally identical to before.
  * @param {Array<string>|(() => Array<string>)} [options.extend] OpenRegister `_extend[]` values (or a getter returning them) forwarded on every fetch, e.g. `['calculations']` so a schema's `materialise: false` calculations are evaluated and can be shown as columns. Default `[]` — omitting it sends no `_extend` at all, exactly as before.
  * @return {object} Reactive state and event handlers
@@ -58,7 +60,7 @@ export function useListView(objectTypeOrOptions, options) {
 
 	// ── State refs ───────────────────────────────────────────────────────
 	const schema = ref(null)
-	const searchTerm = ref('')
+	const searchTerm = ref(opts.defaultSearchTerm || '')
 	// `sortKeys` is the source of truth (ordered multi-column priority list);
 	// `sortKey`/`sortOrder` are kept as a primary-entry mirror so every
 	// existing reader of the pre-multi-sort refs keeps working unchanged.
@@ -68,7 +70,7 @@ export function useListView(objectTypeOrOptions, options) {
 	const sortKeys = ref(initialSortKeys)
 	const sortKey = ref(initialSortKeys[0]?.key || null)
 	const sortOrder = ref(initialSortKeys[0]?.order || 'asc')
-	const activeFilters = ref({})
+	const activeFilters = ref((opts.defaultActiveFilters && typeof opts.defaultActiveFilters === 'object') ? opts.defaultActiveFilters : {})
 	// Seed the visible-column set to the configured columns so the sidebar's
 	// Columns tab reflects the curated default and toggles add/remove from it.
 	// `null` (no seed) means "all columns visible" (schema-driven tables).

@@ -21,7 +21,7 @@ import { generateOcsUrl } from '@nextcloud/router'
  * name and `source` (`users`) / `shareType` (`0`) to mark a user entry.
  *
  * @param {object} suggestion A single autocomplete suggestion object.
- * @return {{id: string, label: string, subline: string}|null} Option or null when it isn't a user.
+ * @return {{id: string, label: string, displayName: string, subline: string}|null} Option or null when it isn't a user.
  */
 function toUserOption(suggestion) {
 	if (!suggestion || typeof suggestion !== 'object') {
@@ -38,9 +38,13 @@ function toUserOption(suggestion) {
 	if (uid === undefined || uid === null || uid === '') {
 		return null
 	}
+	const name = suggestion.label || String(uid)
 	return {
 		id: String(uid),
-		label: suggestion.label || String(uid),
+		label: name,
+		// NcSelectUsers reads `displayName` specifically (label: "displayName"
+		// on the underlying NcSelect, and NcListItemIcon's `name` prop).
+		displayName: name,
 		subline: suggestion.subline || '',
 	}
 }

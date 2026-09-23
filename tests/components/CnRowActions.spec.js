@@ -58,6 +58,65 @@ describe('CnRowActions visible predicate', () => {
 	})
 })
 
+/**
+ * `visibleWhen` is the only per-row gate a JSON manifest can express, and this
+ * is the first release that evaluates it. Nothing did before, so an action
+ * whose condition this evaluator cannot decide has to stay — hiding it would
+ * silently delete an entry that has been in a shipped manifest all along.
+ */
+describe('CnRowActions visibleWhen gate', () => {
+	const row = { status: 'open', owner: 'ada', assignee: 'ada' }
+
+	/**
+	 * @param {object} visibleWhen The condition under test.
+	 * @return {Array<string>} The labels that survive the gate.
+	 */
+	function labelsFor(visibleWhen) {
+		const wrapper = mount(CnRowActions, {
+			propsData: { actions: [{ label: 'Gated', visibleWhen }, { label: 'Plain' }], row },
+		})
+		return wrapper.vm.visibleActions.map((a) => a.label)
+	}
+
+	it('hides an action whose local condition the row fails', () => {
+		expect(labelsFor({ field: 'status', op: 'eq', value: 'closed' })).toEqual(['Plain'])
+	})
+
+	it('keeps an action whose local condition the row meets', () => {
+		expect(labelsFor({ field: 'status', op: 'eq', value: 'open' })).toEqual(['Gated', 'Plain'])
+	})
+
+	it('keeps an action gated on an endpoint, which it cannot ask about', () => {
+		expect(labelsFor({ endpoint: '/apps/x/held', field: 'by', op: 'eq', value: 'nobody' })).toEqual(['Gated', 'Plain'])
+	})
+
+	it('keeps an action gated on an OpenRegister source for the same reason', () => {
+		expect(labelsFor({ source: { register: 'cases', schema: 'case' }, field: '@total', op: 'gt', value: 0 })).toEqual(['Gated', 'Plain'])
+	})
+
+	it('keeps an action whose composition mixes a local leaf with a remote one', () => {
+		expect(labelsFor({
+			all: [
+				{ field: 'status', op: 'eq', value: 'closed' },
+				{ endpoint: '/apps/x/held', field: 'by' },
+			],
+		})).toEqual(['Gated', 'Plain'])
+	})
+
+	it('still gates a composition every leaf of which is local', () => {
+		expect(labelsFor({
+			all: [
+				{ field: 'status', op: 'eq', value: 'open' },
+				{ field: 'owner', op: 'eq', value: 'bob' },
+			],
+		})).toEqual(['Plain'])
+	})
+
+	it('compares one field against another through the @object token', () => {
+		expect(labelsFor({ field: 'assignee', op: 'neq', value: '@object.owner' })).toEqual(['Plain'])
+	})
+})
+
 describe('CnRowActions icon rendering', () => {
 	it('renders a string icon as a CnIcon registry lookup (manifest actions)', () => {
 		const wrapper = mount(CnRowActions, {

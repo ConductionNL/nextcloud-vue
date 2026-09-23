@@ -4,17 +4,21 @@
  */
 
 /**
- * The renderer half of "a record with a detail page is edited on that page".
+ * Where the Edit row action goes, and where it does not.
  *
- * CnIndexPage and CnDetailPage each carry one half of the rule as an opt-in
- * prop; neither can decide on its own whether the rule applies, because
- * neither can see the manifest. CnPageRenderer can, and it already resolves
- * exactly the signal the rule needs — `detailPageByRegisterSchema`, the same
- * map that decides whether a row click opens anything.
+ * The renderer used to send Edit to the record's detail page whenever one
+ * existed, reasoning that the modal shows flat scalars only and the detail
+ * page shows the whole record. What it actually produced was an Edit bound to
+ * the same `onRowOpen` as a row click: the same destination, under a second
+ * name, with the form no longer reachable from the list at all. On a split
+ * view that was starkest — Edit opened the pane that was already open.
  *
- * The two halves MUST ship together. Turning off the index modal without
- * turning on the detail button leaves the record read-only; the reverse leaves
- * it with two edit surfaces, which is where this started.
+ * So the routing is no longer derived. Opening a record and editing it are
+ * different acts; Edit shows the form, a row click opens the record, and a
+ * page that wants the old behaviour declares `config.editOpensDetail: true`.
+ *
+ * The detail half stays: a schema-bound detail page still gains its own Edit
+ * button, which is additive rather than a replacement for the modal.
  */
 import { shallowMount } from '@vue/test-utils'
 
@@ -34,6 +38,10 @@ const manifest = {
 		{ id: 'GraphCanvas', route: '/graphs/:id', type: 'custom', title: 'Graph', component: 'GraphCanvas' },
 		// A detail page bound to no schema — nothing to build a form from.
 		{ id: 'AboutPage', route: '/about/:id', type: 'detail', title: 'About', config: {} },
+		// dossiq's cases pair: an index whose row click opens the record in a
+		// split pane rather than leaving the list.
+		{ id: 'Cases', route: '/cases', type: 'index', title: 'Cases', splitView: { enabled: true, breakpoint: 1024, paneWidth: '42%' }, config: { register: 'dossiq', schema: 'case' } },
+		{ id: 'CaseDetail', route: '/cases/:id', type: 'detail', title: 'Case', config: { register: 'dossiq', schema: 'case' } },
 	],
 }
 
@@ -54,31 +62,50 @@ function mountAt(pageId, m = manifest) {
 	})
 }
 
-describe('CnPageRenderer — the index half of the edit rule', () => {
-	it('sets editOpensDetail on an index page that has a matching detail page', () => {
-		expect(mountAt('CaseTypes').vm.resolvedProps.editOpensDetail).toBe(true)
+describe('CnPageRenderer — Edit opens the form, never a page', () => {
+	it.each([
+		['CaseTypes', 'a matching type:detail page'],
+		['Graphs', 'an explicit rowRoute to a custom canvas'],
+		['Cases', 'a split view whose pane holds the detail page'],
+		['Orphans', 'nowhere to go at all'],
+	])('leaves editOpensDetail off on an index with %s', (pageId) => {
+		expect(mountAt(pageId).vm.resolvedProps.editOpensDetail).toBeUndefined()
 	})
 
-	it('leaves editOpensDetail off when there is nowhere to send the user', () => {
-		// Otherwise Edit would emit into the void and the record would have no
-		// edit surface at all.
-		expect(mountAt('Orphans').vm.resolvedProps.editOpensDetail).toBeUndefined()
+	it('does not follow rowClickToView — the two are different acts', () => {
+		// They were one signal, and that is the whole bug: `@editOpen` and
+		// `@rowClick` are both bound to `onRowOpen`, so deriving one from the
+		// other made Edit a second row click and left the form unreachable.
+		const p = mountAt('CaseTypes').vm.resolvedProps
+		expect(p.rowClickToView).toBe(true)
+		expect(p.editOpensDetail).toBeUndefined()
 	})
 
-	it('sets editOpensDetail from an explicit rowRoute, not just a type:detail page', () => {
-		// The row surface may be a custom authoring canvas rather than a
-		// `type:"detail"` page — same rule, same signal as rowClickToView.
-		expect(mountAt('Graphs').vm.resolvedProps.editOpensDetail).toBe(true)
+	it('leaves it off at the split address too, where the pane is already open', () => {
+		// The state the report was made from: pane open, row menu used on the
+		// list beside it. A split address resolves to the INDEX page — via the
+		// `meta` the real router carries, which is why it has to be mocked here
+		// or the renderer finds no page and the case proves nothing.
+		const wrapper = shallowMount(CnPageRenderer, {
+			propsData: { manifest, pageTypes },
+			mocks: {
+				$route: { name: 'Cases__split', params: { id: 'abc' }, query: {}, meta: { cnPageId: 'Cases', cnSplitOf: 'Cases', cnSplitBreakpoint: 1024 } },
+				$router: { push: jest.fn(() => Promise.resolve()) },
+			},
+		})
+		const p = wrapper.vm.resolvedProps
+		expect(wrapper.vm.currentPage.id).toBe('Cases')
+		expect(p.rowClickToView).toBe(true)
+		expect(p.editOpensDetail).toBeUndefined()
 	})
 
-	it('tracks rowClickToView exactly — the two are one signal', () => {
-		for (const id of ['CaseTypes', 'Orphans', 'Graphs']) {
-			const p = mountAt(id).vm.resolvedProps
-			expect(Boolean(p.editOpensDetail)).toBe(Boolean(p.rowClickToView))
-		}
+	it.each(['Cases', 'CaseTypes', 'Graphs'])('lets %s ask for the old routing with an explicit true', (pageId) => {
+		const m = JSON.parse(JSON.stringify(manifest))
+		m.pages.find((p) => p.id === pageId).config.editOpensDetail = true
+		expect(mountAt(pageId, m).vm.resolvedProps.editOpensDetail).toBe(true)
 	})
 
-	it('lets an explicit config.editOpensDetail:false override the default', () => {
+	it('passes an explicit false through as false', () => {
 		const m = JSON.parse(JSON.stringify(manifest))
 		m.pages.find((p) => p.id === 'CaseTypes').config.editOpensDetail = false
 		expect(mountAt('CaseTypes', m).vm.resolvedProps.editOpensDetail).toBe(false)
@@ -108,27 +135,14 @@ describe('CnPageRenderer — the detail half of the edit rule', () => {
 	})
 })
 
-describe('CnPageRenderer — the halves ship together', () => {
-	it('every index page that stops offering the modal has a detail page that gained the button', () => {
-		// The invariant that makes the rule safe. If this ever fails, some
-		// record in the fleet has become uneditable.
-		const indexes = manifest.pages.filter((p) => p.type === 'index')
-		for (const idx of indexes) {
-			const props = mountAt(idx.id).vm.resolvedProps
-			if (!props.editOpensDetail) {
-				continue
-			}
-			const cfg = idx.config || {}
-			const target = cfg.rowRoute
-				|| manifest.pages.find((p) => p.type === 'detail' && (p.config || {}).register === cfg.register && (p.config || {}).schema === cfg.schema)?.id
-			expect(target).toBeTruthy()
-			const targetPage = manifest.pages.find((p) => p.id === target)
-			// A custom row surface owns its own editing; only a type:"detail"
-			// page is the library's to wire.
-			if (targetPage.type !== 'detail') {
-				continue
-			}
-			expect(mountAt(target).vm.resolvedProps.showEditAction).toBe(true)
+describe('CnPageRenderer — no index page loses its form', () => {
+	it('never takes the modal away from an index that did not ask', () => {
+		// The invariant this replaces read the other way round: it checked that
+		// an index which gave up its modal had a detail page to edit on. That
+		// held, and the record was still editable — just never from the list,
+		// which is where the reader was. Nothing is taken away implicitly now.
+		for (const page of manifest.pages.filter((p) => p.type === 'index')) {
+			expect(mountAt(page.id).vm.resolvedProps.editOpensDetail).toBeUndefined()
 		}
 	})
 })

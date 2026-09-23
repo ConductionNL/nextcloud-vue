@@ -32,6 +32,8 @@ const stubs = {
 	RoadVariant: true,
 	CnFeaturesTab: { name: 'CnFeaturesTab', props: ['features'], template: '<div class="features-tab" :data-count="features.length" />' },
 	CnRoadmapTab: { name: 'CnRoadmapTab', props: ['repo', 'disabled'], template: '<div class="roadmap-tab" :data-repo="repo" />' },
+	CnCapabilityTable: { name: 'CnCapabilityTable', props: ['comparison'], template: '<div class="capability-table" :data-rows="comparison.capabilities.length" />' },
+	TableSearch: true,
 }
 
 const baseProps = { repo: 'ConductionNL/openregister', features: [{ slug: 'a', title: 'Alpha' }, { slug: 'b', title: 'Beta' }] }
@@ -185,5 +187,79 @@ describe('CnFeaturesAndRoadmapView', () => {
 	it('passes suggestUrl through to the hoisted sidebar config', () => {
 		const { sidebarHolder } = mountWithHost({ suggestUrl: 'https://example.com/feedback' })
 		expect(sidebarHolder.value.props.suggestUrl).toBe('https://example.com/feedback')
+	})
+})
+
+describe('CnFeaturesAndRoadmapView with a capability comparison', () => {
+	const comparison = {
+		systems: [{ key: 'dossiq', name: 'Dossiq', isSelf: true }],
+		areas: [{ key: 'intake', name: 'Intake' }],
+		capabilities: [{ id: '1.1', area: 'intake', name: 'Citizen web form', dossiq: 'partial' }],
+	}
+
+	const withComparison = () => mount(CnFeaturesAndRoadmapView, {
+		stubs,
+		propsData: { ...baseProps, capabilityComparison: comparison },
+	})
+
+	it('adds a third stop to the toggle and reaches it from features', async () => {
+		const wrapper = withComparison()
+		expect(headerButtons(wrapper).at(0).text()).toContain('Show capabilities')
+		await headerButtons(wrapper).at(0).trigger('click')
+		expect(wrapper.findComponent({ name: 'CnCapabilityTable' }).exists()).toBe(true)
+		expect(wrapper.find('.cn-features-and-roadmap-view__title').text()).toBe('Capabilities')
+	})
+
+	it('cycles capabilities to roadmap and back to features', async () => {
+		const wrapper = withComparison()
+		await headerButtons(wrapper).at(0).trigger('click')
+		await headerButtons(wrapper).at(0).trigger('click')
+		expect(wrapper.findComponent({ name: 'CnRoadmapTab' }).exists()).toBe(true)
+		await headerButtons(wrapper).at(0).trigger('click')
+		expect(wrapper.findComponent({ name: 'CnFeaturesTab' }).exists()).toBe(true)
+	})
+
+	it('hands the whole document to the table rather than pre-filtering it', async () => {
+		const wrapper = withComparison()
+		await headerButtons(wrapper).at(0).trigger('click')
+		expect(wrapper.findComponent({ name: 'CnCapabilityTable' }).props('comparison')).toStrictEqual(comparison)
+	})
+
+	it('keeps the two-stop toggle when no comparison is supplied', async () => {
+		const wrapper = mount(CnFeaturesAndRoadmapView, { stubs, propsData: baseProps })
+		expect(headerButtons(wrapper).at(0).text()).toContain('Show roadmap')
+		await headerButtons(wrapper).at(0).trigger('click')
+		expect(wrapper.findComponent({ name: 'CnRoadmapTab' }).exists()).toBe(true)
+		expect(wrapper.findComponent({ name: 'CnCapabilityTable' }).exists()).toBe(false)
+	})
+
+	/*
+	 * 🔴 The stop can be taken away while the reader is standing on it — a host
+	 * that loads the document late, or clears it. The panel's `v-else-if` only
+	 * asks what `activeView` says, so it went on rendering the table over a
+	 * null document: an empty table under a "Capabilities" heading, on a
+	 * toggle that no longer admits the stop exists.
+	 */
+	it('moves the reader off the capabilities stop when the comparison goes away', async () => {
+		const wrapper = withComparison()
+		await headerButtons(wrapper).at(0).trigger('click')
+		expect(wrapper.findComponent({ name: 'CnCapabilityTable' }).exists()).toBe(true)
+
+		await wrapper.setProps({ capabilityComparison: null })
+
+		expect(wrapper.findComponent({ name: 'CnCapabilityTable' }).exists()).toBe(false)
+		expect(wrapper.findComponent({ name: 'CnFeaturesTab' }).exists()).toBe(true)
+		expect(wrapper.find('.cn-features-and-roadmap-view__title').text()).toBe('Features')
+	})
+
+	it('leaves a reader on roadmap where they are, since that stop survives', async () => {
+		const wrapper = withComparison()
+		await headerButtons(wrapper).at(0).trigger('click')
+		await headerButtons(wrapper).at(0).trigger('click')
+		expect(wrapper.findComponent({ name: 'CnRoadmapTab' }).exists()).toBe(true)
+
+		await wrapper.setProps({ capabilityComparison: null })
+
+		expect(wrapper.findComponent({ name: 'CnRoadmapTab' }).exists()).toBe(true)
 	})
 })

@@ -2,26 +2,53 @@
 	<div class="cn-tabs" :class="{ 'cn-tabs--card': card }">
 		<div class="cn-tabs__bar">
 			<div
-				class="cn-tabs__nav"
-				:class="{ 'cn-tabs__nav--justified': justified }"
-				role="tablist"
-				:aria-label="ariaLabel || null"
-				@keydown="onNavKeydown">
+				class="cn-tabs__strip"
+				:class="{ 'cn-tabs__strip--more-start': moreStart, 'cn-tabs__strip--more-end': moreEnd }">
+				<div
+					ref="nav"
+					class="cn-tabs__nav"
+					:class="{ 'cn-tabs__nav--justified': justified }"
+					role="tablist"
+					:aria-label="ariaLabel || null"
+					@keydown="onNavKeydown"
+					@wheel="onNavWheel"
+					@scroll="measureOverflow">
+					<button
+						v-for="tab in tabs"
+						:id="tab.tabId"
+						:key="tab.uid"
+						ref="navButtons"
+						type="button"
+						role="tab"
+						class="cn-tabs__nav-item"
+						:class="{ 'cn-tabs__nav-item--active': isActive(tab.uid) }"
+						:aria-selected="isActive(tab.uid) ? 'true' : 'false'"
+						:aria-controls="tab.panelId"
+						:tabindex="isActive(tab.uid) ? 0 : -1"
+						:disabled="tab.disabled || null"
+						@click="tab.onActivate()">
+						<component :is="tab.titleRender" />
+					</button>
+				</div>
+				<!-- Mouse-only affordances: keyboard users already have the arrow
+				     keys, and the tabs themselves stay in the accessibility tree. -->
 				<button
-					v-for="tab in tabs"
-					:id="tab.tabId"
-					:key="tab.uid"
-					ref="navButtons"
+					v-if="moreStart"
 					type="button"
-					role="tab"
-					class="cn-tabs__nav-item"
-					:class="{ 'cn-tabs__nav-item--active': isActive(tab.uid) }"
-					:aria-selected="isActive(tab.uid) ? 'true' : 'false'"
-					:aria-controls="tab.panelId"
-					:tabindex="isActive(tab.uid) ? 0 : -1"
-					:disabled="tab.disabled || null"
-					@click="tab.onActivate()">
-					<component :is="tab.titleRender" />
+					class="cn-tabs__scroll cn-tabs__scroll--start"
+					aria-hidden="true"
+					tabindex="-1"
+					@click="scrollStrip(-1)">
+					<ChevronLeft :size="20" />
+				</button>
+				<button
+					v-if="moreEnd"
+					type="button"
+					class="cn-tabs__scroll cn-tabs__scroll--end"
+					aria-hidden="true"
+					tabindex="-1"
+					@click="scrollStrip(1)">
+					<ChevronRight :size="20" />
 				</button>
 			</div>
 			<div v-if="$slots['nav-end']" class="cn-tabs__nav-end">
@@ -105,11 +132,18 @@
  * Left/Right/Home/End keyboard navigation within the strip. Pass `aria-label`
  * (or `ariaLabel`) so screen-reader users hear what the strip is for.
  */
-import { computed, defineComponent, provide, reactive, ref } from 'vue'
+import { computed, defineComponent, onBeforeUnmount, onMounted, onUpdated, provide, reactive, ref, watch } from 'vue'
+import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import { CN_TABS_INJECTION_KEY } from './tabsKey.js'
 
 export default defineComponent({
 	name: 'CnTabs',
+
+	components: {
+		ChevronLeft,
+		ChevronRight,
+	},
 
 	props: {
 		/** Extra class applied to the panel container (bootstrap-vue's `content-class`). */
@@ -272,9 +306,113 @@ export default defineComponent({
 			focusTab(next)
 		}
 
+		const nav = ref(null)
+
+		/**
+		 * Scroll the strip so the selected tab is wholly in view.
+		 *
+		 * @return {void}
+		 */
+		function revealActiveTab() {
+			const strip = nav.value
+			const button = strip?.querySelector('[role="tab"][aria-selected="true"]')
+			if (!strip || !button) {
+				return
+			}
+			const stripRect = strip.getBoundingClientRect()
+			const rect = button.getBoundingClientRect()
+			if (rect.left < stripRect.left) {
+				strip.scrollLeft -= stripRect.left - rect.left
+			} else if (rect.right > stripRect.right) {
+				strip.scrollLeft += rect.right - stripRect.right
+			}
+		}
+
+		watch(activeUid, revealActiveTab, { flush: 'post' })
+
+		// Whether tabs are hidden past the start or end edge of the strip.
+		const moreStart = ref(false)
+		const moreEnd = ref(false)
+
+		/**
+		 * Recompute which edges hide tabs; 1px of tolerance absorbs sub-pixel rounding.
+		 *
+		 * @return {void}
+		 */
+		function measureOverflow() {
+			const strip = nav.value
+			if (!strip) {
+				return
+			}
+			moreStart.value = strip.scrollLeft > 1
+			moreEnd.value = strip.scrollWidth - strip.clientWidth - strip.scrollLeft > 1
+		}
+
+		let resizeObserver = null
+
+		onMounted(() => {
+			measureOverflow()
+			if (typeof ResizeObserver === 'undefined' || !nav.value) {
+				return
+			}
+			resizeObserver = new ResizeObserver(measureOverflow)
+			resizeObserver.observe(nav.value)
+		})
+
+		// A title change or a tab added can tip the strip into overflowing without resizing it.
+		onUpdated(measureOverflow)
+
+		onBeforeUnmount(() => {
+			resizeObserver?.disconnect()
+			resizeObserver = null
+		})
+
+		/**
+		 * Scroll the strip most of a viewport towards one edge.
+		 *
+		 * @param {number} direction -1 towards the start, 1 towards the end.
+		 *
+		 * @return {void}
+		 */
+		function scrollStrip(direction) {
+			const strip = nav.value
+			if (!strip) {
+				return
+			}
+			strip.scrollLeft += direction * Math.max(1, Math.round(strip.clientWidth * 0.6))
+		}
+
+		/**
+		 * Turn a vertical wheel into a horizontal scroll while the strip overflows.
+		 *
+		 * @param {WheelEvent} event The wheel event.
+		 *
+		 * @return {void}
+		 */
+		function onNavWheel(event) {
+			const strip = event.currentTarget
+			if (strip.scrollWidth <= strip.clientWidth || event.deltaX !== 0 || event.deltaY === 0) {
+				return
+			}
+			event.preventDefault()
+			strip.scrollLeft += event.deltaY
+		}
+
 		provide(CN_TABS_INJECTION_KEY, { register, unregister, select, isActive })
 
-		return { tabs, isActive, activeIndex, navButtons, onNavKeydown }
+		return {
+			tabs,
+			isActive,
+			activeIndex,
+			nav,
+			navButtons,
+			moreStart,
+			moreEnd,
+			measureOverflow,
+			scrollStrip,
+			onNavKeydown,
+			onNavWheel,
+		}
 	},
 })
 </script>
@@ -285,28 +423,111 @@ export default defineComponent({
    nav-end content the nav is the bar's only child and the result is pixel
    identical to the rule living on the nav itself. */
 .cn-tabs__bar {
-	/* flex-START, not flex-end. The nav is a SIBLING that grows taller when its
-	   tabs wrap, so bottom-aligning drops the `#nav-end` control down beside
-	   the LAST row. Measured on a 9-tab dossiq case strip: Actions landed next
-	   to the single wrapped tab and read as that one tab's own control rather
-	   than the strip's. Top-aligning keeps it on the first row, where the
-	   widget's title used to be. */
+	/* Top-aligned so the `#nav-end` control sits on the tab row, not below it,
+	   should the two sides ever differ in height. */
 	align-items: flex-start;
 	border-bottom: 1px solid var(--color-border);
 	display: flex;
 	gap: 8px;
 }
 
+/* The strip holds the scrolling nav and the edge affordances drawn over it. */
+.cn-tabs__strip {
+	flex: 1 1 auto;
+	min-width: 0;
+	position: relative;
+}
+
 .cn-tabs__nav {
 	display: flex;
-	flex: 1 1 auto;
 	gap: 4px;
-	min-width: 0;
-	/* Wrap before scrolling. A horizontally scrolling strip hides tabs behind
-	   an edge with nothing to say they are there, and beside a `#nav-end`
-	   control the clipped tab reads as sitting UNDER the control. Wrapping
-	   keeps every tab reachable without a gesture. */
-	flex-wrap: wrap;
+	/* One row that scrolls, never a wrap: in a narrow sidebar a nine-tab strip
+	   wrapped into a stack taller than the panel under it. The scrollbar is
+	   hidden because it would sit between the tabs and the bar's rule and break
+	   the open tab's join with its panel; a fade and a chevron on the clipped
+	   edge say there is more, and the strip follows the wheel. */
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	overflow-y: hidden;
+	scroll-behavior: smooth;
+	scrollbar-width: none;
+	/* Overhang the bar's 1px rule so the open tab's own bottom edge, drawn in
+	   the panel's colour, covers it and the tab joins its panel. */
+	margin-bottom: -1px;
+}
+
+.cn-tabs__nav::-webkit-scrollbar {
+	display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-tabs__nav {
+		scroll-behavior: auto;
+	}
+}
+
+/* A fade over the clipped edge, only on the side that hides tabs. Stops a
+   pixel above the bar's rule so the rule keeps its full colour. */
+.cn-tabs__strip::before,
+.cn-tabs__strip::after {
+	content: '';
+	display: none;
+	inset-block: 0 1px;
+	pointer-events: none;
+	position: absolute;
+	width: 56px;
+	z-index: 1;
+}
+
+.cn-tabs__strip::before {
+	background: linear-gradient(to right, var(--color-main-background) 30%, transparent);
+	inset-inline-start: 0;
+}
+
+.cn-tabs__strip::after {
+	background: linear-gradient(to left, var(--color-main-background) 30%, transparent);
+	inset-inline-end: 0;
+}
+
+.cn-tabs__strip--more-start::before,
+.cn-tabs__strip--more-end::after {
+	display: block;
+}
+
+/* Doubled selector for the same reason as `.cn-tabs__nav .cn-tabs__nav-item`:
+   Nextcloud's own `button` rule would otherwise give this a border, a fill
+   and a margin. */
+.cn-tabs__strip .cn-tabs__scroll {
+	align-items: center;
+	background: none;
+	border: 0;
+	border-radius: 0;
+	color: var(--color-main-text);
+	cursor: pointer;
+	display: flex;
+	/* Pushed down a little so the chevron sits level with the tab labels. */
+	inset-block: 2px 0;
+	justify-content: center;
+	margin: 0;
+	min-height: 0;
+	padding: 0;
+	position: absolute;
+	width: 28px;
+	z-index: 2;
+}
+
+/* Nextcloud's `button:hover` rule would otherwise fill the chevron. */
+.cn-tabs__strip .cn-tabs__scroll:hover,
+.cn-tabs__strip .cn-tabs__scroll:focus {
+	background: none;
+}
+
+.cn-tabs__scroll--start {
+	inset-inline-start: 0;
+}
+
+.cn-tabs__scroll--end {
+	inset-inline-end: 0;
 }
 
 .cn-tabs__nav-end {
@@ -348,11 +569,6 @@ export default defineComponent({
 	color: var(--color-main-text);
 	cursor: pointer;
 	font-weight: normal;
-	/* Overlap the bar's 1px rule so the active tab's own bottom edge can cover
-	   it. Harmless on a wrapped second row: the 4px nav gap absorbs it. */
-	margin-bottom: -1px;
-	/* See `.cn-tabs__nav .cn-tabs__nav-item` below for why this alone is not
-	   enough inside a Nextcloud page. */
 	padding: 8px 12px;
 	white-space: nowrap;
 	/* Match the `#nav-end` control's own height. The bar is a flex row, so
@@ -367,20 +583,12 @@ export default defineComponent({
 	min-height: var(--default-clickable-area, 34px);
 }
 
-/* Nextcloud's server stylesheet sets `margin-bottom: 3px` on every plain
-   `button`, and its selector
-   `button:not(.button-vue, [class^="vs__"]):not(.app-navigation-entry-button)`
-   scores (0,2,1) against the (0,2,0) of the scoped rule above. So inside a real
-   Nextcloud page the tabs sat 4px ABOVE the bar's rule and the open tab never
-   met its panel: the join this whole treatment is built on was only ever
-   visible outside the app.
-   Measured on a running instance, not inferred: the e2e harness is a bare vite
-   page that does not load Nextcloud's CSS, so it cannot see this conflict and
-   reported the gap as 1px while the app showed 5px.
-   Adding the parent class takes the selector to (0,3,0), which wins on
+/* Nextcloud's server stylesheet gives every plain `button` a 3px bottom margin
+   with a selector that outscores the scoped rule above, which floated the tabs
+   above the bar's rule inside a real page. The parent class wins on
    specificity rather than on `!important` or source order. */
 .cn-tabs__nav .cn-tabs__nav-item {
-	margin-bottom: -1px;
+	margin-block-end: 0;
 }
 
 .cn-tabs__nav--justified .cn-tabs__nav-item {
@@ -391,6 +599,11 @@ export default defineComponent({
 .cn-tabs__nav-item:focus-visible {
 	background-color: var(--color-background-hover);
 	color: var(--color-main-text);
+}
+
+/* Inside the box: the scrolling strip clips anything drawn outside a tab. */
+.cn-tabs__nav-item:focus-visible {
+	outline-offset: -2px;
 }
 
 .cn-tabs__nav-item[disabled] {

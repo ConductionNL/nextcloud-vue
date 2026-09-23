@@ -47,7 +47,9 @@ const FALLBACK_BEAT_SECONDS = 30
  * @param {string|import('vue').Ref<string>} schema     OpenRegister schema slug.
  * @param {string|import('vue').Ref<string>} objectUuid The object being read.
  * @param {object}  [options]         Optional config.
- * @param {boolean} [options.enabled] Set false to make the whole thing inert.
+ * @param {boolean|import('vue').Ref<boolean>|(() => boolean)} [options.enabled] Set false to make the
+ *   whole thing inert. A ref or getter is read on every use, so a consumer whose answer changes
+ *   after mount turns the subscription on when it flips.
  * @return {{
  *   others: import('vue').ComputedRef<Array<object>>,
  *   count: import('vue').ComputedRef<number>,
@@ -62,7 +64,9 @@ export function useObjectPresence(register, schema, objectUuid, options = {}) {
 	let subscription = null
 	let beatSeconds = FALLBACK_BEAT_SECONDS
 
-	const enabled = () => options.enabled !== false
+	// A value, a ref or a getter, like the address parts below: a consumer whose
+	// answer changes after mount (widgets that arrive late) has to be able to say so.
+	const enabled = () => unref(typeof options.enabled === 'function' ? options.enabled() : options.enabled) !== false
 
 	/**
 	 * Read an address part that may be a value, a ref OR a getter.
@@ -299,6 +303,24 @@ export function useObjectPresence(register, schema, objectUuid, options = {}) {
 			present.value = []
 			active.value = false
 			start()
+		},
+	)
+
+	// A consumer may only learn it needs presence AFTER mount — a detail page
+	// whose `widgets` arrive with the manifest reads `false` here on the first
+	// pass. Without this the beat never starts for it, and the row it gates is
+	// dropped permanently rather than until somebody arrives.
+	watch(
+		() => enabled(),
+		(on, was) => {
+			if (on === was) {
+				return
+			}
+			if (on) {
+				start()
+			} else {
+				depart()
+			}
 		},
 	)
 

@@ -203,6 +203,7 @@ With admin-only filter control:
 | `columnsTabLabel` | String | `'Columns'` | Label for the Columns tab |
 | `searchLabel` | String | `'Search'` | Heading for the search field section |
 | `filtersLabel` | String | `'Filters'` | Heading for the filters section |
+| `clearAllLabel` | String | `'Clear all'` | Label for the "Clear all" button, shown when a search term or any filter is active. Clicking it emits `clear-filters`. |
 | `fromLabel` | String | `'From'` | Start-of-window label on a `date-range` filter |
 | `toLabel` | String | `'To'` | End-of-window label on a `date-range` filter |
 | `columnsHeading` | String | `'Column visibility'` | Heading for the column visibility section |

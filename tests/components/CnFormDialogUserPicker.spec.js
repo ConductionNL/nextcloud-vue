@@ -12,10 +12,10 @@ import { mount } from '@vue/test-utils'
 jest.mock('../../src/utils/userAutocomplete.js', () => ({
 	__esModule: true,
 	searchNextcloudUsers: jest.fn().mockResolvedValue([
-		{ id: 'annemarie', label: 'Annemarie de Vries', subline: '' },
-		{ id: 'henk', label: 'Henk Bakker', subline: '' },
+		{ id: 'annemarie', label: 'Annemarie de Vries', displayName: 'Annemarie de Vries', subline: '' },
+		{ id: 'henk', label: 'Henk Bakker', displayName: 'Henk Bakker', subline: '' },
 	]),
-	resolveNextcloudUser: jest.fn().mockResolvedValue({ id: 'henk', label: 'Henk Bakker' }),
+	resolveNextcloudUser: jest.fn().mockResolvedValue({ id: 'henk', label: 'Henk Bakker', displayName: 'Henk Bakker' }),
 }))
 
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
@@ -66,8 +66,8 @@ describe('CnFormDialog — Nextcloud user picker', () => {
 		expect(searchNextcloudUsers).toHaveBeenCalled()
 		const options = wrapper.vm.getEffectiveOptions(wrapper.vm.resolvedFields.find((f) => f.key === 'assignee'))
 		expect(options).toEqual([
-			{ id: 'annemarie', label: 'Annemarie de Vries', subline: '' },
-			{ id: 'henk', label: 'Henk Bakker', subline: '' },
+			{ id: 'annemarie', label: 'Annemarie de Vries', displayName: 'Annemarie de Vries', subline: '' },
+			{ id: 'henk', label: 'Henk Bakker', displayName: 'Henk Bakker', subline: '' },
 		])
 	})
 
@@ -96,7 +96,7 @@ describe('CnFormDialog — Nextcloud user picker', () => {
 		expect(resolveNextcloudUser).toHaveBeenCalledWith('henk')
 		const field = wrapper.vm.resolvedFields.find((f) => f.key === 'assignee')
 		const selected = wrapper.vm.getEffectiveSelectedOption(field)
-		expect(selected).toEqual({ id: 'henk', label: 'Henk Bakker' })
+		expect(selected).toEqual({ id: 'henk', label: 'Henk Bakker', displayName: 'Henk Bakker' })
 		// Stored value is still the UID.
 		expect(wrapper.vm.formData.assignee).toBe('henk')
 	})
