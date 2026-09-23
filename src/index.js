@@ -179,8 +179,6 @@ export {
 	CnNcDashboardWidgetForm,
 	CnNcWidgetGridPicker,
 	CnNcWidgetWidget,
-	CnNewsWidget,
-	CnNewsWidgetForm,
 	CnNoteCard,
 	CnNotesCard,
 	CnNotificationMatrix,

@@ -110,7 +110,8 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'map',
 	'menu',
 	'nc-widget',
-	'news',
+	// `news` was here until the widget moved to LaunchPad, which owns the feed
+	// fetching. An app that renders one now gets it from LaunchPad's registry.
 	'object-geo',
 	'object-list',
 	'object-table',
