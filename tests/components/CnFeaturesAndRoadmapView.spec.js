@@ -232,4 +232,34 @@ describe('CnFeaturesAndRoadmapView with a capability comparison', () => {
 		expect(wrapper.findComponent({ name: 'CnRoadmapTab' }).exists()).toBe(true)
 		expect(wrapper.findComponent({ name: 'CnCapabilityTable' }).exists()).toBe(false)
 	})
+
+	/*
+	 * 🔴 The stop can be taken away while the reader is standing on it — a host
+	 * that loads the document late, or clears it. The panel's `v-else-if` only
+	 * asks what `activeView` says, so it went on rendering the table over a
+	 * null document: an empty table under a "Capabilities" heading, on a
+	 * toggle that no longer admits the stop exists.
+	 */
+	it('moves the reader off the capabilities stop when the comparison goes away', async () => {
+		const wrapper = withComparison()
+		await headerButtons(wrapper).at(0).trigger('click')
+		expect(wrapper.findComponent({ name: 'CnCapabilityTable' }).exists()).toBe(true)
+
+		await wrapper.setProps({ capabilityComparison: null })
+
+		expect(wrapper.findComponent({ name: 'CnCapabilityTable' }).exists()).toBe(false)
+		expect(wrapper.findComponent({ name: 'CnFeaturesTab' }).exists()).toBe(true)
+		expect(wrapper.find('.cn-features-and-roadmap-view__title').text()).toBe('Features')
+	})
+
+	it('leaves a reader on roadmap where they are, since that stop survives', async () => {
+		const wrapper = withComparison()
+		await headerButtons(wrapper).at(0).trigger('click')
+		await headerButtons(wrapper).at(0).trigger('click')
+		expect(wrapper.findComponent({ name: 'CnRoadmapTab' }).exists()).toBe(true)
+
+		await wrapper.setProps({ capabilityComparison: null })
+
+		expect(wrapper.findComponent({ name: 'CnRoadmapTab' }).exists()).toBe(true)
+	})
 })

@@ -94,7 +94,10 @@ const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
 
 // Raw input on the map container, which is what tells a user's pan or zoom from
 // ours. Leaflet's own `movestart` / `zoomstart` fire for `fitBounds` too, so
-// they cannot separate the two; these events Leaflet never synthesises.
+// they cannot separate the two; these events Leaflet never synthesises. A
+// gesture only ARMS the flag — `moveend` / `zoomend` commits it — because half
+// of these change nothing on their own: a page scroll over a map with
+// `scrollWheelZoom` off is a wheel event, and tabbing through is a keydown.
 const VIEW_GESTURE_EVENTS = ['mousedown', 'touchstart', 'wheel', 'keydown']
 
 // Nextcloud sends `Referrer-Policy: no-referrer` on every page, and OpenStreetMap's
@@ -412,6 +415,8 @@ export default {
 			boundsTimer: null,
 			// Set once the user has framed the view themselves; stops autoFit.
 			userFramedView: false,
+			// A raw gesture has been seen; the next real view change is theirs.
+			pendingViewGesture: false,
 			// Controls / sizing
 			isFullscreen: false,
 			controlBar: null,
@@ -562,6 +567,9 @@ export default {
 				}
 			}
 
+			this.map.on('moveend', this.onViewSettled)
+			this.map.on('zoomend', this.onViewSettled)
+
 			this.map.on('click', (e) => {
 				/**
 				 * Map background click event. Fired when the user clicks the map outside any marker.
@@ -614,9 +622,7 @@ export default {
 				this.resizeObserver = new ResizeObserver(() => {
 					clearTimeout(this.resizeTimer)
 					this.resizeTimer = setTimeout(() => {
-						if (this.map) {
-							this.map.invalidateSize()
-						}
+						this.refreshMapSize()
 					}, 100)
 				})
 				this.resizeObserver.observe(this.$refs.mapEl)
@@ -632,9 +638,7 @@ export default {
 
 			// Re-flow size if the container was hidden when first mounted.
 			this.$nextTick(() => {
-				if (this.map && typeof this.map.invalidateSize === 'function') {
-					this.map.invalidateSize()
-				}
+				this.refreshMapSize()
 			})
 		},
 
@@ -1000,10 +1004,33 @@ export default {
 		},
 
 		/**
-		 * Hand the view to the user: `autoFit` stops re-framing from here on.
+		 * Arm the hand-over: the next view change the map reports is the user's.
 		 */
 		onViewGesture() {
-			this.userFramedView = true
+			this.pendingViewGesture = true
+		},
+
+		/**
+		 * Commit an armed gesture once the view has actually moved — and only
+		 * then, so a gesture that framed nothing cannot disable `autoFit`.
+		 */
+		onViewSettled() {
+			if (this.pendingViewGesture) {
+				this.pendingViewGesture = false
+				this.userFramedView = true
+			}
+		},
+
+		/**
+		 * Re-measure the container. Also drops an armed gesture: a size change is
+		 * ours, so the `moveend` it may fire is not the user framing the view.
+		 */
+		refreshMapSize() {
+			if (!this.map || typeof this.map.invalidateSize !== 'function') {
+				return
+			}
+			this.pendingViewGesture = false
+			this.map.invalidateSize()
 		},
 
 		/**
@@ -1024,7 +1051,7 @@ export default {
 					return
 				}
 				// Measure first — a stale container size yields a wrong fit.
-				this.map.invalidateSize()
+				this.refreshMapSize()
 				this.map.fitBounds(bounds, { padding: [50, 50] })
 			} catch {
 				// ignore — empty layer set means no bounds to fit
@@ -1051,9 +1078,7 @@ export default {
 				this.fullscreenButton.innerHTML = controlIcon(this.isFullscreen ? ICON_FULLSCREEN_EXIT : ICON_FULLSCREEN)
 			}
 			this.$nextTick(() => {
-				if (this.map) {
-					this.map.invalidateSize()
-				}
+				this.refreshMapSize()
 			})
 		},
 

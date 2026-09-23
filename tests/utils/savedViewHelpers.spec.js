@@ -19,7 +19,7 @@ import {
 
 describe('extractViewStateFromRouteQuery', () => {
 	it('returns the empty state for null/undefined/non-object query', () => {
-		const empty = { filters: {}, search: '', sortKey: null, sortOrder: 'asc' }
+		const empty = { filters: {}, search: '', sortKeys: [], sortKey: null, sortOrder: 'asc' }
 		expect(extractViewStateFromRouteQuery(null)).toEqual(empty)
 		expect(extractViewStateFromRouteQuery(undefined)).toEqual(empty)
 		expect(extractViewStateFromRouteQuery('status=open')).toEqual(empty)
@@ -46,18 +46,37 @@ describe('extractViewStateFromRouteQuery', () => {
 		expect(extractViewStateFromRouteQuery({}).search).toBe('')
 	})
 
-	it('maps _sortKey/_sortOrder onto sort, defaulting order to asc', () => {
-		expect(extractViewStateFromRouteQuery({ _sortKey: 'name', _sortOrder: 'desc' }))
-			.toMatchObject({ sortKey: 'name', sortOrder: 'desc' })
-		expect(extractViewStateFromRouteQuery({ _sortKey: 'name' }))
-			.toMatchObject({ sortKey: 'name', sortOrder: 'asc' })
-		expect(extractViewStateFromRouteQuery({ _sortKey: 'name', _sortOrder: 'bogus' }))
-			.toMatchObject({ sortKey: 'name', sortOrder: 'asc' })
+	it('reads _order into sortKeys, mirroring the first entry, defaulting order to asc', () => {
+		expect(extractViewStateFromRouteQuery({ _order: '[{"key":"name","order":"desc"}]' }))
+			.toMatchObject({ sortKeys: [{ key: 'name', order: 'desc' }], sortKey: 'name', sortOrder: 'desc' })
+		expect(extractViewStateFromRouteQuery({ _order: '[{"key":"name"}]' }))
+			.toMatchObject({ sortKeys: [{ key: 'name', order: 'asc' }], sortKey: 'name', sortOrder: 'asc' })
+		expect(extractViewStateFromRouteQuery({ _order: '[{"key":"name","order":"bogus"}]' }))
+			.toMatchObject({ sortKeys: [{ key: 'name', order: 'asc' }], sortKey: 'name', sortOrder: 'asc' })
 	})
 
-	it('ignores _sortOrder without a _sortKey', () => {
-		expect(extractViewStateFromRouteQuery({ _sortOrder: 'desc' }))
-			.toMatchObject({ sortKey: null, sortOrder: 'asc' })
+	it('reads every key of a chained sort, in order and uncapped', () => {
+		const raw = '[{"key":"status","order":"asc"},{"key":"created","order":"desc"},{"key":"title","order":"asc"}]'
+		expect(extractViewStateFromRouteQuery({ _order: raw }).sortKeys).toEqual([
+			{ key: 'status', order: 'asc' },
+			{ key: 'created', order: 'desc' },
+			{ key: 'title', order: 'asc' },
+		])
+	})
+
+	it('degrades a malformed _order to no sort rather than throwing', () => {
+		for (const raw of ['', 'not json', '[{"key":"name"', '{"name":"desc"}', '["name"]', '[]', '[{}]']) {
+			expect(extractViewStateFromRouteQuery({ _order: raw }))
+				.toMatchObject({ sortKeys: [], sortKey: null, sortOrder: 'asc' })
+		}
+	})
+
+	// The spelling saved views used to write. Nothing reads it any more, so a
+	// link carrying it opens in the page's default order — asserted here so the
+	// read cannot be helpfully added back.
+	it('ignores _sortKey/_sortOrder entirely', () => {
+		expect(extractViewStateFromRouteQuery({ _sortKey: 'name', _sortOrder: 'desc' }))
+			.toMatchObject({ sortKeys: [], sortKey: null, sortOrder: 'asc' })
 	})
 })
 
@@ -79,11 +98,25 @@ describe('buildRouteQueryFromViewState', () => {
 		expect(buildRouteQueryFromViewState({ search: '' })).toEqual({})
 	})
 
-	it('sets _sortKey/_sortOrder only when sortKey is truthy, defaulting order to asc', () => {
+	it('writes the sort as _order, and never as _sortKey/_sortOrder', () => {
+		expect(buildRouteQueryFromViewState({ sortKeys: [{ key: 'name', order: 'desc' }] }))
+			.toEqual({ _order: '[{"key":"name","order":"desc"}]' })
+		expect(buildRouteQueryFromViewState({ sortKeys: [{ key: 'name', order: 'bogus' }] }))
+			.toEqual({ _order: '[{"key":"name","order":"asc"}]' })
+		expect(buildRouteQueryFromViewState({ sortKeys: [] })).toEqual({})
+	})
+
+	it('writes every key of a chained sort, in order', () => {
+		expect(buildRouteQueryFromViewState({
+			sortKeys: [{ key: 'status', order: 'asc' }, { key: 'created', order: 'desc' }],
+		})).toEqual({ _order: '[{"key":"status","order":"asc"},{"key":"created","order":"desc"}]' })
+	})
+
+	// A caller holding only the single-key mirror still round-trips, and
+	// through the same normalisation, so the two spellings are byte-identical.
+	it('accepts a state carrying only sortKey/sortOrder', () => {
 		expect(buildRouteQueryFromViewState({ sortKey: 'name', sortOrder: 'desc' }))
-			.toEqual({ _sortKey: 'name', _sortOrder: 'desc' })
-		expect(buildRouteQueryFromViewState({ sortKey: 'name', sortOrder: 'bogus' }))
-			.toEqual({ _sortKey: 'name', _sortOrder: 'asc' })
+			.toEqual({ _order: '[{"key":"name","order":"desc"}]' })
 		expect(buildRouteQueryFromViewState({ sortKey: null, sortOrder: 'desc' })).toEqual({})
 	})
 
@@ -100,7 +133,7 @@ describe('buildViewCreatePayload', () => {
 			description: 'desc',
 			isPublic: true,
 			isDefault: false,
-			state: { filters: { status: 'open' }, search: 'urgent', sortKey: 'name', sortOrder: 'desc' },
+			state: { filters: { status: 'open' }, search: 'urgent', sortKeys: [{ key: 'name', order: 'desc' }] },
 		})).toEqual({
 			name: 'My open cases',
 			description: 'desc',
@@ -109,9 +142,16 @@ describe('buildViewCreatePayload', () => {
 			query: {
 				filters: { status: 'open' },
 				search: 'urgent',
-				sort: { key: 'name', order: 'desc' },
+				sort: [{ key: 'name', order: 'desc' }],
 			},
 		})
+	})
+
+	it('stores every key of a chained sort, so a tie-breaker survives the save', () => {
+		expect(buildViewCreatePayload({
+			name: 'n',
+			state: { sortKeys: [{ key: 'status', order: 'asc' }, { key: 'created', order: 'desc' }] },
+		}).query.sort).toEqual([{ key: 'status', order: 'asc' }, { key: 'created', order: 'desc' }])
 	})
 
 	it('defaults description/isPublic/isDefault and serializes no-sort as null', () => {
@@ -134,13 +174,13 @@ describe('buildViewCreatePayload', () => {
 
 	it('defaults a bogus sortOrder to asc', () => {
 		expect(buildViewCreatePayload({ name: 'n', state: { sortKey: 'name', sortOrder: 'sideways' } }).query.sort)
-			.toEqual({ key: 'name', order: 'asc' })
+			.toEqual([{ key: 'name', order: 'asc' }])
 	})
 })
 
 describe('extractViewState', () => {
 	it('returns the empty state for null/undefined/non-object views', () => {
-		const empty = { filters: {}, search: '', sortKey: null, sortOrder: 'asc' }
+		const empty = { filters: {}, search: '', sortKeys: [], sortKey: null, sortOrder: 'asc' }
 		expect(extractViewState(null)).toEqual(empty)
 		expect(extractViewState(undefined)).toEqual(empty)
 		expect(extractViewState('view')).toEqual(empty)
@@ -148,7 +188,7 @@ describe('extractViewState', () => {
 	})
 
 	it('returns the empty state when view.query is missing or malformed', () => {
-		const empty = { filters: {}, search: '', sortKey: null, sortOrder: 'asc' }
+		const empty = { filters: {}, search: '', sortKeys: [], sortKey: null, sortOrder: 'asc' }
 		expect(extractViewState({ id: 1, name: 'v', query: null })).toEqual(empty)
 		expect(extractViewState({ id: 1, name: 'v', query: 'oops' })).toEqual(empty)
 		expect(extractViewState({ id: 1, name: 'v', query: [] })).toEqual(empty)
@@ -158,13 +198,32 @@ describe('extractViewState', () => {
 		expect(extractViewState({
 			id: 1,
 			owner: 'alice',
-			query: { filters: { status: 'open' }, search: 'urgent', sort: { key: 'name', order: 'desc' } },
-		})).toEqual({ filters: { status: 'open' }, search: 'urgent', sortKey: 'name', sortOrder: 'desc' })
+			query: { filters: { status: 'open' }, search: 'urgent', sort: [{ key: 'name', order: 'desc' }] },
+		})).toEqual({
+			filters: { status: 'open' },
+			search: 'urgent',
+			sortKeys: [{ key: 'name', order: 'desc' }],
+			sortKey: 'name',
+			sortOrder: 'desc',
+		})
+	})
+
+	// Every view stored before a sort could be chained holds one object here.
+	// Those views must keep opening exactly as they do today.
+	it('reads a legacy single-object sort as a one-entry list', () => {
+		expect(extractViewState({ query: { sort: { key: 'created', order: 'desc' } } }))
+			.toMatchObject({ sortKeys: [{ key: 'created', order: 'desc' }], sortKey: 'created', sortOrder: 'desc' })
+	})
+
+	it('reads every key of a stored chained sort, in order', () => {
+		expect(extractViewState({
+			query: { sort: [{ key: 'status', order: 'asc' }, { key: 'created', order: 'desc' }] },
+		}).sortKeys).toEqual([{ key: 'status', order: 'asc' }, { key: 'created', order: 'desc' }])
 	})
 
 	it('accepts a raw query blob directly (no `query` wrapper)', () => {
 		expect(extractViewState({ filters: { status: 'open' }, search: '', sort: null }))
-			.toEqual({ filters: { status: 'open' }, search: '', sortKey: null, sortOrder: 'asc' })
+			.toEqual({ filters: { status: 'open' }, search: '', sortKeys: [], sortKey: null, sortOrder: 'asc' })
 	})
 
 	it('degrades malformed sub-fields: non-object filters, sort without key, bogus order', () => {
@@ -180,15 +239,26 @@ describe('extractViewState', () => {
 	})
 
 	it('round-trips: state → payload query → state', () => {
-		const state = { filters: { status: 'open', tags: ['a', 'b'] }, search: 'urgent', sortKey: 'created', sortOrder: 'desc' }
+		const state = {
+			filters: { status: 'open', tags: ['a', 'b'] },
+			search: 'urgent',
+			sortKeys: [{ key: 'created', order: 'desc' }],
+			sortKey: 'created',
+			sortOrder: 'desc',
+		}
 		const payload = buildViewCreatePayload({ name: 'rt', state })
 		expect(extractViewState({ query: payload.query })).toEqual(state)
 	})
 
 	it('round-trips: route query → state → route query', () => {
-		const query = { status: 'open', _search: 'urgent', _sortKey: 'created', _sortOrder: 'desc' }
+		const query = { status: 'open', _search: 'urgent', _order: '[{"key":"created","order":"desc"}]' }
 		const state = extractViewStateFromRouteQuery(query)
 		expect(buildRouteQueryFromViewState(state)).toEqual(query)
+	})
+
+	it('round-trips a chained sort through the route query unchanged', () => {
+		const query = { _order: '[{"key":"status","order":"asc"},{"key":"created","order":"desc"}]' }
+		expect(buildRouteQueryFromViewState(extractViewStateFromRouteQuery(query))).toEqual(query)
 	})
 })
 

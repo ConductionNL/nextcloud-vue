@@ -7,7 +7,12 @@
  * A consumer whose markers come from a filter, a poll or a save re-renders
  * them, and every re-render used to re-fit the bounds — so a user who had
  * zoomed into one city was thrown back to the whole country on the next
- * refresh. The fit now stops at the first gesture on the map.
+ * refresh. The fit now stops at the first gesture that actually MOVED the map.
+ *
+ * The gesture alone is not enough, and the flag is one-way: with
+ * `scrollWheelZoom` off, scrolling the page past the map is a wheel event on
+ * the container, and tabbing through it is a keydown. Either one counting would
+ * mean a stray scroll on page load disables re-framing for the whole session.
  *
  * The Leaflet mock returns VALID marker bounds, unlike the one in
  * CnMapWidget.spec.js, because `fitToMarkers()` returns early on invalid
@@ -38,7 +43,11 @@ jest.mock('leaflet', () => {
 		map: jest.fn(() => {
 			const m = {
 				_added: [],
-				on: jest.fn(),
+				_handlers: {},
+				on: jest.fn(function(type, handler) {
+					(this._handlers[type] = this._handlers[type] || []).push(handler)
+					return this
+				}),
 				off: jest.fn(),
 				removeLayer: jest.fn(function(layer) {
 					this._added = this._added.filter((l) => l !== layer)
@@ -133,6 +142,42 @@ async function mountWidget(propsData = {}) {
 
 const theMap = () => require('leaflet').default.__lastMap.current
 
+/**
+ * Raw input on the map container — what arms the hand-over.
+ *
+ * @param {object} wrapper The mounted widget.
+ * @param {string} type The event type.
+ * @return {void}
+ */
+function gesture(wrapper, type) {
+	wrapper.vm.$refs.mapEl.dispatchEvent(new Event(type, { bubbles: true }))
+}
+
+/**
+ * The map reporting that its view actually moved — what commits it.
+ *
+ * @param {object} map The Leaflet map stub.
+ * @return {void}
+ */
+function settle(map) {
+	for (const handler of map._handlers.moveend || []) {
+		handler()
+	}
+}
+
+/**
+ * Hand the widget a fresh marker set and let both render watchers run.
+ *
+ * @param {object} wrapper The mounted widget.
+ * @return {Promise<void>}
+ */
+async function reloadMarkers(wrapper) {
+	await wrapper.setProps({ markers: { features: [feature(6, 53), feature(4, 51)] } })
+	await flush()
+	await nextTick()
+	await nextTick()
+}
+
 beforeEach(() => {
 	const L = require('leaflet').default
 	L.__lastMap.current = null
@@ -165,23 +210,55 @@ describe('CnMapWidget — autoFit and the user’s own view', () => {
 		async (type) => {
 			const wrapper = await mountWidget()
 			const map = theMap()
-			wrapper.vm.$refs.mapEl.dispatchEvent(new Event(type, { bubbles: true }))
+			gesture(wrapper, type)
+			settle(map)
 			map.fitBounds.mockClear()
 
-			await wrapper.setProps({ markers: { features: [feature(6, 53), feature(4, 51)] } })
-			await flush()
-			await nextTick()
-			await nextTick()
+			await reloadMarkers(wrapper)
 
 			expect(map.fitBounds).not.toHaveBeenCalled()
 			wrapper.unmount()
 		},
 	)
 
+	it.each(['wheel', 'keydown'])(
+		'keeps re-framing after a %s that moved nothing',
+		async (type) => {
+			// The page scrolled past the map, or the reader tabbed through it.
+			const wrapper = await mountWidget()
+			const map = theMap()
+			gesture(wrapper, type)
+			map.fitBounds.mockClear()
+
+			await reloadMarkers(wrapper)
+
+			expect(map.fitBounds).toHaveBeenCalled()
+			wrapper.unmount()
+		},
+	)
+
+	it('does not count the view change its own re-frame causes', async () => {
+		// A stray gesture that moved nothing must not be committed by the NEXT
+		// programmatic fit — the flag is one-way, so that would be permanent.
+		const wrapper = await mountWidget()
+		const map = theMap()
+		gesture(wrapper, 'wheel')
+
+		wrapper.vm.fitToMarkers()
+		settle(map)
+		map.fitBounds.mockClear()
+
+		await reloadMarkers(wrapper)
+
+		expect(map.fitBounds).toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
 	it('still re-frames on request after the user has moved the map', async () => {
 		const wrapper = await mountWidget()
 		const map = theMap()
-		wrapper.vm.$refs.mapEl.dispatchEvent(new Event('wheel', { bubbles: true }))
+		gesture(wrapper, 'wheel')
+		settle(map)
 		map.fitBounds.mockClear()
 
 		wrapper.vm.fitToMarkers()

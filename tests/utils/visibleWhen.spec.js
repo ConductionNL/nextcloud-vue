@@ -12,6 +12,7 @@ import {
 	compareVisibleWhen,
 	evaluateVisibleWhen,
 	evaluateVisibleWhenLocal,
+	isLocallyDecidableVisibleWhen,
 	readVisibleWhenPath,
 	VISIBLE_WHEN_OPS,
 } from '../../src/utils/visibleWhen.js'
@@ -262,5 +263,82 @@ describe('appInstalled precondition', () => {
 
 	it('leaves a condition with no appInstalled key untouched', async () => {
 		await expect(evaluateVisibleWhen({ field: 'a', op: 'eq', value: 1 }, { object: { a: 1 } })).resolves.toBe(true)
+	})
+})
+
+/**
+ * A malformed composition must hide ONE element, not throw out of the computed
+ * that evaluates it and take the render with it. `{ all: {}, any: [] }` enters
+ * the branch on `any` while `cond.all ?? cond.any` would hand the object to
+ * `.map` — the shape that turns a bad manifest into a blank page.
+ */
+describe('visibleWhen — malformed composition', () => {
+	const broken = { all: {}, any: [] }
+
+	it('does not throw out of the sync evaluator', () => {
+		expect(() => evaluateVisibleWhenLocal(broken, {})).not.toThrow()
+		expect(evaluateVisibleWhenLocal({ all: { nope: true }, any: [{ field: 'a', value: 1 }] }, { a: 1 })).toBe(true)
+	})
+
+	it('does not reject out of the async evaluator', async () => {
+		await expect(evaluateVisibleWhen(broken, {})).resolves.toBe(false)
+	})
+})
+
+/**
+ * isLocallyDecidableVisibleWhen — the guard a surface that had NO gate before
+ * checks first, so gaining one cannot silently delete an element whose
+ * condition names an endpoint the sync evaluator simply cannot ask.
+ */
+describe('isLocallyDecidableVisibleWhen', () => {
+	it('a local field condition is decidable', () => {
+		expect(isLocallyDecidableVisibleWhen({ field: 'status', op: 'eq', value: 'open' })).toBe(true)
+		expect(isLocallyDecidableVisibleWhen({ appInstalled: 'humaniq' })).toBe(true)
+	})
+
+	it('a nullish condition is decidable — there is nothing to decide', () => {
+		expect(isLocallyDecidableVisibleWhen(null)).toBe(true)
+		expect(isLocallyDecidableVisibleWhen(undefined)).toBe(true)
+	})
+
+	it('an endpoint or source condition is not', () => {
+		expect(isLocallyDecidableVisibleWhen({ endpoint: '/x', field: 'a' })).toBe(false)
+		expect(isLocallyDecidableVisibleWhen({ source: { register: 'r', schema: 's' }, field: 'a' })).toBe(false)
+	})
+
+	it('a composition is decidable only when every leaf is', () => {
+		const local = { field: 'status', op: 'neq', value: 'closed' }
+		const remote = { endpoint: '/held', field: 'by' }
+		expect(isLocallyDecidableVisibleWhen({ all: [local, local] })).toBe(true)
+		expect(isLocallyDecidableVisibleWhen({ all: [local, remote] })).toBe(false)
+		expect(isLocallyDecidableVisibleWhen({ any: [local, remote] })).toBe(false)
+	})
+
+	it('a non-object is not decidable, so the caller falls through to visible', () => {
+		expect(isLocallyDecidableVisibleWhen('nope')).toBe(false)
+		expect(isLocallyDecidableVisibleWhen([{ field: 'a' }])).toBe(false)
+	})
+})
+
+/**
+ * The @-token grammar on the RIGHT-hand side. `@me` always resolved; the object
+ * tokens compared as their own nine literal characters, because the local
+ * evaluator passed an empty context to a function that had the record in hand.
+ */
+describe('compareVisibleWhen — token context', () => {
+	it('resolves @object.<field> against the supplied context', () => {
+		const record = { owner: 'ada', assignee: 'ada' }
+		expect(compareVisibleWhen('ada', 'eq', '@object.owner', { object: record })).toBe(true)
+		expect(compareVisibleWhen('bob', 'eq', '@object.owner', { object: record })).toBe(false)
+	})
+
+	it('the local evaluator passes the record as that context', () => {
+		const cond = { field: 'assignee', op: 'eq', value: '@object.owner' }
+		expect(evaluateVisibleWhenLocal(cond, { owner: 'ada', assignee: 'ada' })).toBe(true)
+		expect(evaluateVisibleWhenLocal(cond, { owner: 'ada', assignee: 'bob' })).toBe(false)
+	})
+
+	it('an unresolvable token still compares as its literal, as before', () => {
+		expect(compareVisibleWhen('@object.nope', 'eq', '@object.nope', {})).toBe(true)
 	})
 })

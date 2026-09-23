@@ -281,18 +281,26 @@ export default {
 			domId: `cn-dashboard-grid-${++domIdCounter}`,
 			/** Text currently held in the polite live region. */
 			announcement: '',
+			/**
+			 * Whether a `columnOpts` breakpoint is currently in force. Mirrored
+			 * from the engine by `syncInteractivity` because `isReflowed()` reads
+			 * `grid.getColumn()` imperatively, and a computed cannot re-evaluate
+			 * on that.
+			 */
+			reflowed: false,
 		}
 	},
 
 	computed: {
 		/**
 		 * @return {boolean} Whether the keyboard lane is live — items are
-		 *   focusable and the arrow keys reposition. Requires both the opt-in
-		 *   prop and edit mode (a read-only dashboard has nothing to move, so
-		 *   adding N tab stops there would be pure noise).
+		 *   focusable and the arrow keys reposition. Requires the opt-in prop,
+		 *   edit mode (a read-only dashboard has nothing to move, so adding N tab
+		 *   stops there would be pure noise), and a grid that is not reflowed,
+		 *   which is where a move cannot be kept and so must not be offered.
 		 */
 		keyboardActive() {
-			return this.keyboardRepositioning && this.editable
+			return this.keyboardRepositioning && this.editable && !this.reflowed
 		},
 
 		/**
@@ -346,15 +354,8 @@ export default {
 	},
 
 	watch: {
-		editable(val) {
-			if (!this.grid) {
-				return
-			}
-			if (val) {
-				this.grid.enable()
-			} else {
-				this.grid.disable()
-			}
+		editable() {
+			this.syncInteractivity()
 		},
 
 		layout: {
@@ -495,9 +496,76 @@ export default {
 			this.grid.on('change', (_event, items) => {
 				this.handleGridChange(items)
 			})
+
+			// A grid that mounts already narrow is reflowed before anyone touches
+			// it, so the handles have to be judged here and not only on a later
+			// change.
+			this.syncInteractivity()
+		},
+
+		/**
+		 * Keep both editing lanes in step with whether an edit could actually be
+		 * kept: the pointer's handles, and — through `reflowed` feeding
+		 * `keyboardActive` — the tab stops, the help text and the arrow keys.
+		 *
+		 * A reflowed grid drops every `change` it receives, for the reason
+		 * `handleGridChange` gives. Leaving either lane live there offers an edit
+		 * that silently snaps back, which is the same class of surprise as
+		 * persisting the reflow — pointed the other way, and harder to explain
+		 * because the author did everything right. It is worse on the keyboard,
+		 * where the move is also announced as done. The affordance has to say what
+		 * the grid will do at this width, not what edit mode does at the authored
+		 * one.
+		 *
+		 * @return {void}
+		 */
+		syncInteractivity() {
+			// Ahead of the engine guard: the keyboard lane reads this whether or
+			// not the engine can be enabled.
+			this.reflowed = this.isReflowed()
+			if (!this.grid || typeof this.grid.enable !== 'function') {
+				return
+			}
+			if (this.editable && !this.reflowed) {
+				this.grid.enable()
+			} else {
+				this.grid.disable()
+			}
+		},
+
+		/**
+		 * Whether the grid is currently rescaled to a column count other than the
+		 * authored one, i.e. a `columnOpts` breakpoint is in force.
+		 *
+		 * The authored count is `columnOpts.columnMax` when there is one, not the
+		 * `columns` prop: GridStack widens to `columnMax` above the top breakpoint,
+		 * so a consumer whose two disagree is at its widest, not reflowed.
+		 *
+		 * @return {boolean} True while a responsive reflow is active.
+		 */
+		isReflowed() {
+			if (!this.grid || typeof this.grid.getColumn !== 'function') {
+				return false
+			}
+			const authored = Number.isFinite(this.columnOpts?.columnMax) ? this.columnOpts.columnMax : this.columns
+			const live = this.grid.getColumn()
+			return Number.isFinite(live) && live > 0 && live !== authored
 		},
 
 		handleGridChange(items) {
+			// The rescale that crossed a breakpoint arrives here as a `change`, so
+			// this is also where the handles are re-judged in both directions:
+			// switched off as the grid narrows, and back on as it widens.
+			this.syncInteractivity()
+
+			// GridStack fires `change` for its own responsive rescale too, and at a
+			// 12 → 1 breakpoint every item reads `gridX: 0, gridWidth: 1`. Emitting
+			// that has the host persist the reflow AS the authored layout, which
+			// widening back does not undo. A move made while reflowed is the same
+			// rescaled geometry, so it is dropped for the same reason.
+			if (this.isReflowed()) {
+				return
+			}
 			if (!items || items.length === 0) {
 				return
 			}
@@ -548,7 +616,10 @@ export default {
 				return
 			}
 
-			if (!this.editable) {
+			// Repositioning only, and only where it can be kept — an item that
+			// still holds focus from before a reflow keeps its Enter, but its
+			// arrow keys stop moving something that would snap back.
+			if (!this.keyboardActive) {
 				return
 			}
 
@@ -816,12 +887,29 @@ export default {
 			}
 
 			this.contentObserver = new ResizeObserver((entries) => {
+				const cells = new Set()
 				for (const entry of entries) {
 					const cell = entry.target.closest('.grid-stack-item')
-					if (cell && this.grid && typeof this.grid.resizeToContent === 'function') {
-						this.grid.resizeToContent(cell)
+					if (cell) {
+						cells.add(cell)
 					}
 				}
+				if (cells.size === 0) {
+					return
+				}
+				// A frame later, not inline: `resizeToContent` resizes the cell the
+				// observed child sits in, and a child that stretches to its parent
+				// grows with it. Resizing from inside the callback makes that the
+				// classic ResizeObserver loop ("undelivered notifications"); deferred,
+				// it is an ordinary second pass that settles.
+				requestAnimationFrame(() => {
+					if (!this.contentObserver || !this.grid || typeof this.grid.resizeToContent !== 'function') {
+						return
+					}
+					for (const cell of cells) {
+						this.grid.resizeToContent(cell)
+					}
+				})
 			})
 
 			const cells = this.$refs.gridContainer.querySelectorAll('.grid-stack-item[gs-size-to-content]')

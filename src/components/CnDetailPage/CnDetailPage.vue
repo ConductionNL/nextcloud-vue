@@ -1304,8 +1304,8 @@ export default {
 		 * Responsive `columnOpts` for the body grid, measured against the GRID's own
 		 * width rather than the window's — so a page rendered in a narrow container
 		 * (a split pane beside a list) reflows even though the viewport is wide.
-		 * Defaults to a table that stacks to one column below ~560px. Pass `null`
-		 * for a fixed 12-column grid at every size.
+		 * Defaults to a table that stacks to one column at or below 1000px. Pass
+		 * `null` for a fixed 12-column grid at every size.
 		 *
 		 * @type {object|null}
 		 */
@@ -1773,7 +1773,10 @@ export default {
 
 		// The host reads presence because only the host can act on it: the grid
 		// reserves the row before the widget renders. See `layoutItemCanDraw`.
-		const presencePlaced = (props.widgets || []).some((w) => w && w.type === 'presence')
+		// A getter, not a one-shot read: a page whose widgets arrive after mount
+		// would otherwise never subscribe, and `layoutItemCanDraw` would drop the
+		// presence row for good instead of until somebody arrives.
+		const presencePlaced = () => (props.widgets || []).some((w) => w && w.type === 'presence')
 		const { others: presentOthers } = useObjectPresence(
 			() => props.register || '',
 			() => props.schema || '',

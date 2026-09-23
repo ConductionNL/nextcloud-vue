@@ -84,6 +84,8 @@ export function useSelfFetchList(props, instance, inject) {
 			selfObjectType: '',
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
+			selfFetchTokenCtx: null,
+			initialQueryFilterKeys: [],
 		}
 	}
 
@@ -239,5 +241,11 @@ export function useSelfFetchList(props, instance, inject) {
 		selfObjectType: objectType,
 		activeQuickFilterIndex,
 		selectedQuickFilterIndices,
+		// The page persists the view state back into the query, and needs both
+		// to do it without trampling the rest of it: the keys it adopted from
+		// the query on load (the only non-`_` ones it may clear), and the ctx
+		// those keys' `@`-tokens resolve against.
+		selfFetchTokenCtx: tokenCtx,
+		initialQueryFilterKeys: Object.keys(initialActiveFilters),
 	}
 }

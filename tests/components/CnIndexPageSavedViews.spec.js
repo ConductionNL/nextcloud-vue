@@ -27,6 +27,9 @@ jest.mock('@nextcloud/auth', () => ({
 
 const { mount } = require('@vue/test-utils')
 const axios = require('@nextcloud/axios').default
+// Mapped to tests/__mocks__/nextcloud-dialogs.js by the jest moduleNameMapper,
+// so these are the same jest.fn()s the component's dynamic import resolves to.
+const { showError, showSuccess } = require('@nextcloud/dialogs')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
 
 const stubs = {
@@ -124,7 +127,7 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 		await flush()
 		await wrapper.findAll('[data-testid="cn-saved-views-item"]').at(0).trigger('click')
 		expect(wrapper.vm.$router.replace).toHaveBeenCalledWith({
-			query: { status: 'open', _search: 'urgent', _sortKey: 'created', _sortOrder: 'desc' },
+			query: { status: 'open', _search: 'urgent', _order: '[{"key":"created","order":"desc"}]' },
 		})
 		expect(wrapper.emitted('apply-view')[0][0]).toEqual(ownView)
 	})
@@ -148,7 +151,7 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 		axios.post.mockResolvedValue({ data: { view: { ...ownView, id: 3, name: 'Saved' } } })
 		const wrapper = mountPage(
 			{ allowSavedViews: true },
-			{ status: 'open', _search: 'urgent', _sortKey: 'name', _sortOrder: 'asc', _page: '2' },
+			{ status: 'open', _search: 'urgent', _order: '[{"key":"name","order":"asc"}]', _page: '2' },
 		)
 		await flush()
 		await wrapper.find('[data-testid="cn-saved-views-save"]').trigger('click')
@@ -170,7 +173,7 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 			query: {
 				filters: { status: 'open' },
 				search: 'urgent',
-				sort: { key: 'name', order: 'asc' },
+				sort: [{ key: 'name', order: 'asc' }],
 				// The pages this view belongs to: every page over this register
 				// and schema, and no other.
 				scope: 'procest/case',
@@ -181,6 +184,22 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 		// Dialog closes and the created view joins the list.
 		expect(wrapper.findComponent({ name: 'CnSaveViewDialog' }).exists()).toBe(false)
 		expect(wrapper.vm.savedViews.map((v) => v.id)).toContain(3)
+	})
+
+	// The dialog closing is the only other signal a save worked, and a dialog
+	// closing is also what a cancel looks like.
+	it('says so when a view is saved', async () => {
+		axios.post.mockResolvedValue({ data: { view: { ...ownView, id: 3, name: 'Saved' } } })
+		const wrapper = mountPage({ allowSavedViews: true })
+		await flush()
+		await wrapper.find('[data-testid="cn-saved-views-save"]').trigger('click')
+		await flush()
+		const dialog = wrapper.findComponent({ name: 'CnSaveViewDialog' })
+		await dialog.setData({ name: 'Saved' })
+		await dialog.find('[data-testid="cn-save-view-confirm"]').trigger('click')
+		await flush()
+		expect(showSuccess).toHaveBeenCalledWith('View "Saved" saved')
+		expect(showError).not.toHaveBeenCalled()
 	})
 
 	it('keeps the save dialog open and surfaces the error on a failed save', async () => {
@@ -195,6 +214,42 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 		expect(wrapper.findComponent({ name: 'CnSaveViewDialog' }).exists()).toBe(true)
 		expect(dialog.vm.error).toBe('nope')
 		expect(dialog.vm.loading).toBe(false)
+	})
+
+	// Both, and they carry different halves of it: the toast says the save did
+	// not happen, the dialog says why and keeps the name to retry with. A
+	// dialog that merely stayed open reads as one not yet submitted.
+	it('says so when a view could not be saved, and still names the reason in the dialog', async () => {
+		axios.post.mockRejectedValue(new Error('nope'))
+		const wrapper = mountPage({ allowSavedViews: true })
+		await flush()
+		await wrapper.find('[data-testid="cn-saved-views-save"]').trigger('click')
+		const dialog = wrapper.findComponent({ name: 'CnSaveViewDialog' })
+		await dialog.setData({ name: 'Doomed' })
+		await dialog.find('[data-testid="cn-save-view-confirm"]').trigger('click')
+		await flush()
+		expect(showError).toHaveBeenCalledWith('Could not save the view "Doomed"')
+		expect(showSuccess).not.toHaveBeenCalled()
+		expect(dialog.vm.error).toBe('nope')
+	})
+
+	// Axios throws on every non-2xx, so a body without a view is the one failure
+	// nothing else marks. The list is not appended to either way — saying it
+	// worked sends the person looking for a view that is not in it.
+	it('treats a 2xx carrying no view as a failed save', async () => {
+		axios.post.mockResolvedValue({ data: {} })
+		const wrapper = mountPage({ allowSavedViews: true })
+		await flush()
+		await wrapper.find('[data-testid="cn-saved-views-save"]').trigger('click')
+		await flush()
+		const dialog = wrapper.findComponent({ name: 'CnSaveViewDialog' })
+		await dialog.setData({ name: 'Ghost' })
+		await dialog.find('[data-testid="cn-save-view-confirm"]').trigger('click')
+		await flush()
+		expect(showSuccess).not.toHaveBeenCalled()
+		expect(showError).toHaveBeenCalledWith('Could not save the view "Ghost"')
+		expect(wrapper.findComponent({ name: 'CnSaveViewDialog' }).exists()).toBe(true)
+		expect(dialog.vm.error).toBe('The server did not return the saved view')
 	})
 
 	it('deletes an own view after confirmation and removes it from the list', async () => {

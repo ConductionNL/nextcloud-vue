@@ -166,6 +166,10 @@ export function capabilitySearchIndex(row, comparison) {
 	const area = areas.find((entry) => entry?.key === row?.area)
 	const feature = features.find((entry) => entry?.key === row?.feature)
 	const provider = resolveProvider(row, comparison)
+	// The declared entry and not `provider.name`: that one is already resolved
+	// to a single language, so indexing it would honour the rule above for the
+	// row, the area and the feature and quietly break it for the provider.
+	const declared = providerIndex(comparison).get(provider?.key)
 	const parts = [
 		row?.id,
 		row?.name,
@@ -178,6 +182,8 @@ export function capabilitySearchIndex(row, comparison) {
 		feature?.name_nl,
 		provider?.key,
 		provider?.name,
+		declared?.name,
+		declared?.name_nl,
 	]
 	return parts.filter((part) => part !== null && part !== undefined && part !== '')
 		.map((part) => normaliseText(part))

@@ -19,6 +19,23 @@
 import { shallowMount } from '@vue/test-utils'
 import CnObjectListWidget from '../../src/components/CnObjectListWidget/CnObjectListWidget.vue'
 
+// The default stub answers every schema GET with `{}`, which is what the
+// existing tests here expect. This one lets a test hand back a real schema so
+// the heading it produces can be asserted. The `mock` prefix is jest's: a
+// factory may only close over a variable named that way.
+let mockServed = {}
+jest.mock('@nextcloud/axios', () => ({
+	__esModule: true,
+	default: { get: () => Promise.resolve({ status: 200, data: mockServed }) },
+}))
+
+/** Let every pending promise, including the dynamic imports, settle. */
+async function settle() {
+	for (let turn = 0; turn < 5; turn++) {
+		await Promise.resolve()
+	}
+}
+
 function mountWidget(propsData = {}) {
 	return shallowMount(CnObjectListWidget, {
 		propsData,
@@ -105,5 +122,63 @@ describe('CnObjectListWidget — column headings', () => {
 		await w.vm.loadHeadingsIfNeeded()
 
 		expect(fetched).toBe(true)
+	})
+
+	/*
+	 * 🔴 The headings share the create dialog's cached schema, and the
+	 * retarget watchers drop that cache — correctly, since a schema resolved
+	 * for the OLD register is the wrong-app schema the register scoping exists
+	 * to prevent. But only the dialog had a later moment that refills it. The
+	 * headings did not, so a widget CnRelatedCollections reuses (it keys its
+	 * children by index, so a reordered entry lands on a live component) went
+	 * back to printing `customerName` at the user, and stayed there until
+	 * somebody happened to open Add.
+	 */
+	describe('after the widget is retargeted at another schema', () => {
+		const LOAN_SCHEMA = { properties: { customerName: { type: 'string', title: 'Borrower' } } }
+
+		afterEach(() => {
+			mockServed = {}
+		})
+
+		/**
+		 * Mount over the repair schema, then point the widget at another one.
+		 *
+		 * @param {string} key Which of `schema` / `register` moves.
+		 * @return {object} The wrapper, once the reload has settled.
+		 */
+		const retarget = async (key) => {
+			const w = mountWidget({ content: { register: 'r', schema: 'repair', columns: ['customerName'] } })
+			// Settle the MOUNT's own fetch before anything else moves. Left in
+			// flight it resolves after the retarget, against whatever the mock
+			// serves by then, and the assertion below passes without the
+			// watcher ever having reloaded a thing.
+			await settle()
+			w.vm.createSchema = REPAIR_SCHEMA
+			await w.vm.$nextTick()
+			expect(w.vm.resolvedColumns[0].label).toBe('Customer name')
+
+			mockServed = LOAN_SCHEMA
+			await w.setProps({ content: { ...w.props('content'), [key]: 'loan' } })
+			await settle()
+			await w.vm.$nextTick()
+			return w
+		}
+
+		it('takes the heading from the schema it now points at', async () => {
+			expect((await retarget('schema')).vm.resolvedColumns[0].label).toBe('Borrower')
+		})
+
+		it('does the same when it is the register that moves', async () => {
+			expect((await retarget('register')).vm.resolvedColumns[0].label).toBe('Borrower')
+		})
+
+		it('never serves a heading from the schema it used to point at', async () => {
+			// The half that was already right: the old schema is dropped. Without
+			// the reload beside it the heading simply fell back to the raw key,
+			// which is the bug the feature was written to end.
+			const w = await retarget('schema')
+			expect(w.vm.resolvedColumns[0].label).not.toBe('Customer name')
+		})
 	})
 })

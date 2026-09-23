@@ -118,9 +118,7 @@
 					:views="viewsForControl"
 					:loading="savedViewsLoading"
 					:currentUserId="currentSavedViewsUserId"
-					:allowPinning="savedViewsArePlaces"
 					@apply="onApplySavedView"
-					@pinRequest="onPinViewRequest"
 					@saveRequest="showSaveViewDialog = true"
 					@deleteRequest="onDeleteViewRequest" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
@@ -774,11 +772,10 @@ import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
-import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
+import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions } from '../../utils/rowActionAvailability.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
-import { isPinnedView, LEGACY_VIEW_QUERY_KEY, resolveViewPresentation, togglePinnedBy } from '../../utils/savedViewPlaces.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout } from '../../utils/scopeListLayout.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -1715,9 +1712,10 @@ export default {
 		 * (`GET /apps/openregister/api/views`); applying one writes its
 		 * stored filters/search/sort into the route query (reusing the
 		 * existing deep-link contract — non-underscore keys are filters,
-		 * `_search`/`_sortKey`/`_sortOrder` are reserved), "Save current
-		 * view…" persists the current route-query state via POST, and own
-		 * views can be deleted after confirmation.
+		 * `_search` and `_order` are reserved), "Save current view…"
+		 * persists the current route-query state via POST and toasts either
+		 * way naming the view (a failure also keeps the dialog open with the
+		 * reason), and own views can be deleted after confirmation.
 		 */
 		allowSavedViews: {
 			type: Boolean,
@@ -1734,46 +1732,6 @@ export default {
 		 * everywhere.
 		 */
 		savedViewsScope: {
-			type: String,
-			default: '',
-		},
-
-		/**
-		 * The page's `savedViewPlaces` declaration, forwarded by
-		 * CnPageRenderer (saved-view-as-a-place). Present and `enabled`, each
-		 * saved view of this page is a place: it has an address of its own,
-		 * it opens in the presentation its own config declares, and the views
-		 * dropdown gains a Pin action. Absent, the dropdown behaves exactly as
-		 * it did before: apply writes the view's state into the route query
-		 * and nothing else changes.
-		 *
-		 * @type {object|null}
-		 */
-		savedViewPlaces: {
-			type: Object,
-			default: null,
-		},
-
-		/**
-		 * The view this address names, read off the route by CnPageRenderer.
-		 * Empty on the page's own list route.
-		 *
-		 * @type {string}
-		 */
-		savedViewId: {
-			type: String,
-			default: '',
-		},
-
-		/**
-		 * The name of the route a view of this page opens at, as
-		 * `buildManifestRoutes()` registered it. Forwarded by CnPageRenderer;
-		 * empty when this page declares no places, and then nothing here
-		 * navigates to a view route.
-		 *
-		 * @type {string}
-		 */
-		savedViewRouteName: {
 			type: String,
 			default: '',
 		},
@@ -2574,7 +2532,6 @@ export default {
 		'mass-delete',
 		'mass-export',
 		'mass-import',
-		'pin-view',
 		'page-changed',
 		'page-size-changed',
 		'quick-filter-change',
@@ -2606,6 +2563,8 @@ export default {
 			selfObjectType,
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
+			selfFetchTokenCtx,
+			initialQueryFilterKeys,
 		} = useSelfFetchList(props, getCurrentInstance(), inject)
 
 		// The sidebar's chosen values on a NAMED-SOURCE page. Self-fetch keeps
@@ -2642,12 +2601,23 @@ export default {
 			selfObjectType,
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
+			selfFetchTokenCtx,
+			initialQueryFilterKeys,
 		}
 	},
 
 	data() {
 		return {
 			currentViewMode: this.viewMode,
+			/**
+			 * The non-`_` query keys this page owns, i.e. may clear on the next
+			 * persist. Seeded with what it adopted from the query on load, and
+			 * replaced by what it writes; a key it never claimed is somebody
+			 * else's and is left in the address bar untouched.
+			 *
+			 * @type {Array<string>}
+			 */
+			persistedFilterKeys: [...(this.initialQueryFilterKeys || [])],
 			internalSelectedIds: [...this.selectedIds],
 			// Folder-sidebar state: selected folder id + the register-fetched list.
 			selectedFolderId: null,
@@ -2696,11 +2666,6 @@ export default {
 			// delete confirmation.
 			savedViews: [],
 			savedViewsLoading: false,
-			// The view an address names that no longer answers: deleted, or
-			// never readable by this user. Held so the page can SAY so rather
-			// than render an empty list, which reads as "no cases" and sends
-			// somebody looking for the filter that is not there.
-			missingSavedViewId: '',
 			showSaveViewDialog: false,
 			viewPendingDelete: null,
 			// Split view (case-page-and-list-as-a-place). `splitRowPatches` holds
@@ -2734,38 +2699,7 @@ export default {
 		 */
 		resolvedEmptyText() {
 			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
-			if (this.missingSavedViewId !== '') {
-				// A bookmark to a view that has gone says which view it was.
-				// "No results" would be true and useless: the reader would
-				// believe the list is empty rather than that their view is.
-				return t('nextcloud-vue', 'This saved view ({id}) is gone. Open the page to build it again.', { id: this.missingSavedViewId })
-			}
 			return this.emptyText ? fn(this.emptyText) : this.emptyText
-		},
-
-		/**
-		 * Whether this page's saved views are places (saved-view-as-a-place).
-		 *
-		 * Both halves, as everywhere else: the declaration must be there AND
-		 * enabled, so `{ enabled: false }` renders as a page that never named
-		 * the key.
-		 *
-		 * @return {boolean} True when views have routes, presentations and pins here.
-		 */
-		savedViewsArePlaces() {
-			return this.allowSavedViews && this.savedViewPlaces?.enabled === true
-		},
-
-		/**
-		 * The view this address names, as an object, once the list has loaded.
-		 *
-		 * @return {object|null} The View API object, or null.
-		 */
-		currentSavedView() {
-			if (this.savedViewId === '') {
-				return null
-			}
-			return (this.savedViews || []).find((view) => String(view?.id) === this.savedViewId || String(view?.uuid) === this.savedViewId) || null
 		},
 
 		/**
@@ -4273,18 +4207,6 @@ export default {
 			this.currentViewMode = val
 		},
 
-		/**
-		 * The address started naming another view, or stopped naming one.
-		 *
-		 * @param {string} val The view id, or '' on the page's own list.
-		 */
-		savedViewId(val) {
-			this.missingSavedViewId = ''
-			if (val !== '') {
-				this.applySavedViewFromRoute()
-			}
-		},
-
 		selectedIds(val) {
 			this.internalSelectedIds = [...val]
 		},
@@ -4946,22 +4868,40 @@ export default {
 			return {
 				filters: this.list.activeFilters.value,
 				search: this.list.searchTerm.value,
+				sortKeys: this.list.sortKeys?.value || [],
 				sortKey: this.list.sortKey.value,
 				sortOrder: this.list.sortOrder.value,
-				// Saved views keep the single `sortKey`; the route query holds
-				// every key, so a shared multi-sort link reproduces all of it.
-				sortKeys: this.list.sortKeys?.value || [],
 			}
+		},
+
+		/**
+		 * The spelling a filter goes back into the query as. A value that arrived
+		 * as an `@`-token keeps the TOKEN for as long as it still resolves to
+		 * what is active — otherwise a shared `?assignee=@me` link would be
+		 * rewritten to one named uid on the first filter change and stop meaning
+		 * "me" for whoever opens it next.
+		 *
+		 * @param {string} key The filter key, as it sits in the query.
+		 * @param {unknown} value The resolved value now active.
+		 * @return {unknown} The token, or the value.
+		 */
+		filterQuerySpelling(key, value) {
+			const raw = this.$route.query[key]
+			if (typeof raw !== 'string' || raw.charAt(0) !== '@') {
+				return value
+			}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			return String(resolveFilterValue(raw, ctx)) === String(value) ? raw : value
 		},
 
 		/**
 		 * Persist filters + search + sort into `$route.query` in one replace,
 		 * so a reload or a shared/bookmarked link reproduces the exact same
-		 * view. Self-fetch mode only. Every non-reserved key is a filter, so
-		 * they're cleared and re-applied wholesale each call rather than
-		 * merged (otherwise a cleared filter would never leave the query).
-		 * Best-effort: a duplicate-navigation rejection (same resulting
-		 * path/query) is swallowed.
+		 * view. Self-fetch mode only. The page's own filter keys are cleared and
+		 * re-applied wholesale each call rather than merged (otherwise a cleared
+		 * filter would never leave the query); a non-reserved key it never
+		 * claimed is left alone. Best-effort: a duplicate-navigation rejection
+		 * (same resulting path/query) is swallowed.
 		 *
 		 * @param {{filters?: object, search?: string, sortKey?: ?string, sortOrder?: string, sortKeys?: Array<{key: string, order: string}>}} state Current view state.
 		 * @return {void}
@@ -4971,17 +4911,18 @@ export default {
 				return
 			}
 			const query = { ...this.$route.query }
-			for (const key of Object.keys(query)) {
-				if (!key.startsWith('_')) {
-					delete query[key]
-				}
+			for (const key of this.persistedFilterKeys) {
+				delete query[key]
 			}
+			const written = []
 			for (const [key, value] of Object.entries(state.filters || {})) {
 				if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
 					continue
 				}
-				query[key] = value
+				query[key] = this.filterQuerySpelling(key, value)
+				written.push(key)
 			}
+			this.persistedFilterKeys = written
 			if (state.search) {
 				query._search = state.search
 			} else {
@@ -4999,11 +4940,15 @@ export default {
 		},
 
 		/**
-		 * "Clear all" from the sidebar: reset search, every active filter and
-		 * the folder-sidebar selection in one fetch + one route replace,
-		 * rather than one of each per field. Sort is left as-is — this clears
-		 * filters, not the whole view. Self-fetch mode only; a consumer-
-		 * managed page gets the bare event to handle itself.
+		 * "Clear all" from the sidebar: reset search, every active filter, the
+		 * sort and the folder-sidebar selection in one fetch + one route
+		 * replace, rather than one of each per field. Self-fetch mode only; a
+		 * consumer-managed page gets the bare event to handle itself.
+		 *
+		 * The SORT goes too, and that is the whole point: applying a saved view
+		 * sets a sort the reader never chose and cannot see the origin of, so a
+		 * clear that left it behind left the list in a state with no control
+		 * anywhere on the page to undo it.
 		 *
 		 * @return {void}
 		 */
@@ -5014,6 +4959,9 @@ export default {
 			}
 			this.list.activeFilters.value = {}
 			this.list.searchTerm.value = ''
+			this.list.sortKeys.value = []
+			this.list.sortKey.value = null
+			this.list.sortOrder.value = 'asc'
 			if (this.folderSidebar) {
 				this.selectedFolderId = null
 			}
@@ -5924,121 +5872,6 @@ export default {
 			} finally {
 				this.savedViewsLoading = false
 			}
-			if (this.savedViewsArePlaces) {
-				// Both only make sense once the views are in hand: the address
-				// names a view by id, and until the list has loaded there is
-				// nothing to resolve that id against.
-				this.redirectLegacyViewQuery()
-				this.applySavedViewFromRoute()
-			}
-		},
-
-		/**
-		 * Send a `?view=<id>` link to the view's own address.
-		 *
-		 * Those links were already sent before views had addresses, so they
-		 * keep working. They do not keep their own spelling: two addresses for
-		 * one list drift the moment the view is edited, and the one that
-		 * survives is the one the app can render (ADR-052).
-		 *
-		 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
-		 */
-		redirectLegacyViewQuery() {
-			const query = { ...((this.$route && this.$route.query) || {}) }
-			const legacy = query[LEGACY_VIEW_QUERY_KEY]
-			if (typeof legacy !== 'string' || legacy === '' || !this.$router || this.savedViewId !== '') {
-				return
-			}
-			if (this.savedViewRouteName === '') {
-				return
-			}
-			delete query[LEGACY_VIEW_QUERY_KEY]
-			const nav = this.$router.replace({
-				name: this.savedViewRouteName,
-				params: { viewId: legacy },
-				query,
-			})
-			if (nav && typeof nav.catch === 'function') {
-				nav.catch(() => {})
-			}
-		},
-
-		/**
-		 * Render the view this address names.
-		 *
-		 * Two things follow from the id in the path. The presentation the view
-		 * declares opens, falling through to what this page can actually
-		 * render rather than failing; and the view's stored filters, search
-		 * and sort are written into the query, because that is the one channel
-		 * this component already fetches from. The path keeps naming the view,
-		 * so the address a person copies is still the view's own.
-		 *
-		 * A view that does not answer is said out loud rather than rendered as
-		 * an empty list.
-		 *
-		 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
-		 */
-		applySavedViewFromRoute() {
-			if (!this.savedViewsArePlaces || this.savedViewId === '' || this.savedViewsLoading) {
-				return
-			}
-			const view = this.currentSavedView
-			if (!view) {
-				this.missingSavedViewId = this.savedViewId
-				return
-			}
-			this.missingSavedViewId = ''
-
-			const { viewMode, warnings } = resolveViewPresentation(view, this.availableViewModes)
-			for (const warning of warnings) {
-				// eslint-disable-next-line no-console
-				console.warn(warning)
-			}
-			if (viewMode) {
-				this.currentViewMode = viewMode
-			}
-
-			const query = buildRouteQueryFromViewState(extractViewState(view))
-			const current = (this.$route && this.$route.query) || {}
-			if (!this.$router || JSON.stringify(query) === JSON.stringify(current)) {
-				return
-			}
-			const nav = this.$router.replace({
-				name: this.$route?.name,
-				params: this.$route?.params,
-				query,
-			})
-			if (nav && typeof nav.catch === 'function') {
-				nav.catch(() => {})
-			}
-		},
-
-		/**
-		 * Pin or unpin a view (CnSavedViewsControl `@pin-request`).
-		 *
-		 * Pinning writes OpenRegister's existing `favoredBy` list rather than
-		 * a second flag meaning nearly the same thing. The local copy is
-		 * updated from the response, so the navigation this page shares a
-		 * manifest with sees the pin without a reload.
-		 *
-		 * @param {object} view The View API object to pin or unpin.
-		 * @spec openspec/changes/saved-view-as-a-place/specs/saved-views-ui/spec.md
-		 */
-		async onPinViewRequest(view) {
-			if (!view || !this.savedViewsArePlaces) {
-				return
-			}
-			const userId = this.currentSavedViewsUserId
-			const next = !isPinnedView(view, userId)
-			try {
-				const updated = await useSavedViewsApi().patchView(view.id, { favoredBy: togglePinnedBy(view, userId, next) })
-				const merged = updated || { ...view, favoredBy: togglePinnedBy(view, userId, next) }
-				this.savedViews = this.savedViews.map((v) => (String(v.id) === String(view.id) ? merged : v))
-				this.$emit('pin-view', merged)
-			} catch (error) {
-				// eslint-disable-next-line no-console
-				console.error('CnIndexPage: failed to pin the view', error)
-			}
 		},
 
 		/**
@@ -6049,17 +5882,10 @@ export default {
 		 * `?action=create` query cleanup, and dropping the whole previous
 		 * query implicitly resets `_page` to 1.
 		 *
-		 * Where views are places the two are not alternatives: the state is set
-		 * here AND the address becomes the view's, because a self-fetch page
-		 * that only navigated would show the right rows under stale sidebar
-		 * chips.
-		 *
 		 * @param {object} view The View API object to apply.
 		 */
 		onApplySavedView(view) {
 			const state = extractViewState(view)
-			const query = buildRouteQueryFromViewState(state)
-			const goesToTheView = this.savedViewsArePlaces && this.savedViewRouteName !== '' && view?.id !== undefined
 			if (this.isSelfFetchMode) {
 				// Set state directly (not via onFilterEvent/onSearchEvent per key)
 				// so applying a view is one fetch + one route replace, not one
@@ -6067,32 +5893,22 @@ export default {
 				// carry is actually cleared, not left over from before.
 				this.list.activeFilters.value = { ...state.filters }
 				this.list.searchTerm.value = state.search || ''
-				const keys = state.sortKey ? [{ key: state.sortKey, order: state.sortOrder }] : []
+				const keys = state.sortKeys
 				this.list.sortKeys.value = keys
 				this.list.sortKey.value = keys[0]?.key ?? null
 				this.list.sortOrder.value = keys[0]?.order ?? 'asc'
 				this.list.refresh(1)
-				if (!goesToTheView) {
-					this.persistViewStateToRoute(state)
-					this.$emit('apply-view', view)
-					return
-				}
+				// Through `persistViewStateToRoute` rather than a raw replace,
+				// because it is what records the keys this view wrote — without
+				// that, a later "clear all" has nothing to delete them by.
+				this.persistViewStateToRoute(state)
+				this.$emit('apply-view', view)
+				return
 			}
 			if (!this.$router) {
 				return
 			}
-			if (goesToTheView) {
-				// The view is a place here, so applying one GOES there. Push
-				// rather than replace: a person who walked from the list to a
-				// view expects Back to return them to the list.
-				const toView = this.$router.push({ name: this.savedViewRouteName, params: { viewId: String(view.id) }, query })
-				if (toView && typeof toView.catch === 'function') {
-					toView.catch(() => {})
-				}
-				this.$emit('apply-view', view)
-				return
-			}
-			const nav = this.$router.replace({ query })
+			const nav = this.$router.replace({ query: buildRouteQueryFromViewState(state) })
 			// Swallow the duplicate-navigation rejection (Vue Router 3)
 			// when the applied view matches the current query.
 			if (nav && typeof nav.catch === 'function') {
@@ -6111,6 +5927,30 @@ export default {
 		 *
 		 * @param {{ name: string, isPublic: boolean }} payload Dialog payload.
 		 */
+		/**
+		 * Toast, without letting the toast fail the thing it reports on.
+		 *
+		 * The import is dynamic so a page that never toasts does not carry the
+		 * chunk, and everything is swallowed: a chunk that will not load must
+		 * not turn a save that worked into an error, nor add an unhandled
+		 * rejection on top of one that already failed.
+		 *
+		 * @param {'success'|'error'} kind Which toast to show.
+		 * @param {string} message The message, already translated.
+		 * @return {Promise<void>}
+		 */
+		async toastSavedView(kind, message) {
+			try {
+				const dialogs = await import('@nextcloud/dialogs')
+				const show = kind === 'error' ? dialogs.showError : dialogs.showSuccess
+				if (typeof show === 'function') {
+					show(message)
+				}
+			} catch {
+				// No toast. What it was reporting on happened either way.
+			}
+		},
+
 		async onSaveViewConfirm({ name, isPublic }) {
 			const state = this.isSelfFetchMode
 				? this.currentViewState()
@@ -6127,14 +5967,26 @@ export default {
 			})
 			try {
 				const view = await useSavedViewsApi().createView(payload)
-				if (view) {
-					this.savedViews = [...this.savedViews, view]
+				if (!view) {
+					// A 2xx carrying no view. Axios has thrown on every real error
+					// by now, so nothing else marks this one, and the list below is
+					// not appended to: claiming success sends the person looking
+					// for a view that is not in it.
+					throw new Error(t('nextcloud-vue', 'The server did not return the saved view'))
 				}
+				this.savedViews = [...this.savedViews, view]
 				this.showSaveViewDialog = false
+				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" saved', { name }))
 			} catch (error) {
 				// eslint-disable-next-line no-console
 				console.error('CnIndexPage: failed to save view', error)
+				// Both, and they say different things: the dialog stays open
+				// carrying the reason, because that is where the name and the
+				// toggle still are to correct and retry; the toast says the save
+				// did not happen, because a dialog that simply stayed open reads
+				// as one that has not been submitted yet.
 				this.$refs.saveViewDialog?.setError(error?.response?.data?.error || error?.message)
+				this.toastSavedView('error', t('nextcloud-vue', 'Could not save the view "{name}"', { name }))
 			}
 		},
 
@@ -6319,11 +6171,15 @@ export default {
 			if (!this.createSuccessRoute) {
 				return
 			}
-			// `buildOnSuccessRoute` reads the id through `savedObjectId`, so a
-			// response that carries it as `uuid` or `@self.id` still deep-links.
-			const location = buildOnSuccessRoute(this.createSuccessRoute, saved)
-			if (location && this.$router) {
-				this.$router.push(location).catch(() => {})
+			try {
+				// `buildOnSuccessRoute` reads the id through `savedObjectId`, so a
+				// response that carries it as `uuid` or `@self.id` still deep-links.
+				const location = buildOnSuccessRoute(this.createSuccessRoute, saved)
+				if (location && this.$router) {
+					this.$router.push(location).catch(() => {})
+				}
+			} catch {
+				// The record is saved; staying on the list beats an error toast.
 			}
 		},
 
