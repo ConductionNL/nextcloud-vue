@@ -155,4 +155,75 @@ describe('CnDashboardGrid — the handles say what the grid will do', () => {
 		expect(() => wrapper.vm.syncInteractivity()).not.toThrow()
 		wrapper.unmount()
 	})
+
+	it('still tracks the reflow on an engine that cannot be enabled', () => {
+		// The keyboard lane reads this whether or not the handles can be taken
+		// away, so the engine guard must not sit in front of it.
+		const wrapper = shallowMount(CnDashboardGrid, { propsData: { layout, columns: 12, editable: true } })
+		wrapper.vm.grid = { getColumn: () => 1, destroy: () => {} }
+
+		wrapper.vm.syncInteractivity()
+
+		expect(wrapper.vm.reflowed).toBe(true)
+		wrapper.unmount()
+	})
+})
+
+describe('CnDashboardGrid — the keyboard lane closes with the handles', () => {
+	// Taking the handles away leaves a sighted mouse user correctly stuck. The
+	// keyboard path had no such guard: it stayed focusable, performed the move
+	// through GridStack, and ANNOUNCED it — for a move the reflow guard then
+	// dropped. The loudest feedback on the path with the least other signal.
+	it('drops the tab stop, the help text and the arrow keys while reflowed', async () => {
+		const { wrapper } = mountEditable(1)
+
+		wrapper.vm.syncInteractivity()
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.keyboardActive).toBe(false)
+		expect(wrapper.vm.itemTabindex).toBeNull()
+		expect(wrapper.vm.itemDescribedBy).toBeNull()
+		wrapper.unmount()
+	})
+
+	it('does not move or announce on an arrow key while reflowed', () => {
+		const { wrapper, grid } = mountEditable(1)
+		grid.update = jest.fn()
+		grid.engine = { nodes: [] }
+		wrapper.vm.syncInteractivity()
+
+		const target = document.createElement('div')
+		const event = { key: 'ArrowRight', shiftKey: false, target, currentTarget: target, preventDefault() {}, stopPropagation() {} }
+		wrapper.vm.onItemKeydown(event, layout[0])
+
+		expect(grid.update).not.toHaveBeenCalled()
+		expect(wrapper.vm.announcement).toBe('')
+		wrapper.unmount()
+	})
+
+	it('gives the lane back at the authored column count', async () => {
+		const { wrapper } = mountEditable(12)
+
+		wrapper.vm.syncInteractivity()
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.keyboardActive).toBe(true)
+		expect(wrapper.vm.itemTabindex).toBe(0)
+		wrapper.unmount()
+	})
+
+	it('leaves Enter alone, because activating a widget is not repositioning it', () => {
+		const { wrapper } = mountEditable(1)
+		wrapper.vm.syncInteractivity()
+		wrapper.vm.activateItem = jest.fn()
+
+		const target = document.createElement('div')
+		wrapper.vm.onItemKeydown(
+			{ key: 'Enter', target, currentTarget: target, preventDefault() {}, stopPropagation() {} },
+			layout[0],
+		)
+
+		expect(wrapper.vm.activateItem).toHaveBeenCalled()
+		wrapper.unmount()
+	})
 })

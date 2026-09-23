@@ -281,18 +281,26 @@ export default {
 			domId: `cn-dashboard-grid-${++domIdCounter}`,
 			/** Text currently held in the polite live region. */
 			announcement: '',
+			/**
+			 * Whether a `columnOpts` breakpoint is currently in force. Mirrored
+			 * from the engine by `syncInteractivity` because `isReflowed()` reads
+			 * `grid.getColumn()` imperatively, and a computed cannot re-evaluate
+			 * on that.
+			 */
+			reflowed: false,
 		}
 	},
 
 	computed: {
 		/**
 		 * @return {boolean} Whether the keyboard lane is live — items are
-		 *   focusable and the arrow keys reposition. Requires both the opt-in
-		 *   prop and edit mode (a read-only dashboard has nothing to move, so
-		 *   adding N tab stops there would be pure noise).
+		 *   focusable and the arrow keys reposition. Requires the opt-in prop,
+		 *   edit mode (a read-only dashboard has nothing to move, so adding N tab
+		 *   stops there would be pure noise), and a grid that is not reflowed,
+		 *   which is where a move cannot be kept and so must not be offered.
 		 */
 		keyboardActive() {
-			return this.keyboardRepositioning && this.editable
+			return this.keyboardRepositioning && this.editable && !this.reflowed
 		},
 
 		/**
@@ -496,24 +504,29 @@ export default {
 		},
 
 		/**
-		 * Keep the drag and resize handles in step with whether an edit could
-		 * actually be kept.
+		 * Keep both editing lanes in step with whether an edit could actually be
+		 * kept: the pointer's handles, and — through `reflowed` feeding
+		 * `keyboardActive` — the tab stops, the help text and the arrow keys.
 		 *
 		 * A reflowed grid drops every `change` it receives, for the reason
-		 * `handleGridChange` gives. Leaving the handles live there offers an edit
+		 * `handleGridChange` gives. Leaving either lane live there offers an edit
 		 * that silently snaps back, which is the same class of surprise as
 		 * persisting the reflow — pointed the other way, and harder to explain
-		 * because the author did everything right. The affordance has to say what
+		 * because the author did everything right. It is worse on the keyboard,
+		 * where the move is also announced as done. The affordance has to say what
 		 * the grid will do at this width, not what edit mode does at the authored
 		 * one.
 		 *
 		 * @return {void}
 		 */
 		syncInteractivity() {
+			// Ahead of the engine guard: the keyboard lane reads this whether or
+			// not the engine can be enabled.
+			this.reflowed = this.isReflowed()
 			if (!this.grid || typeof this.grid.enable !== 'function') {
 				return
 			}
-			if (this.editable && !this.isReflowed()) {
+			if (this.editable && !this.reflowed) {
 				this.grid.enable()
 			} else {
 				this.grid.disable()
@@ -603,7 +616,10 @@ export default {
 				return
 			}
 
-			if (!this.editable) {
+			// Repositioning only, and only where it can be kept — an item that
+			// still holds focus from before a reflow keeps its Enter, but its
+			// arrow keys stop moving something that would snap back.
+			if (!this.keyboardActive) {
 				return
 			}
 

@@ -5967,9 +5967,14 @@ export default {
 			})
 			try {
 				const view = await useSavedViewsApi().createView(payload)
-				if (view) {
-					this.savedViews = [...this.savedViews, view]
+				if (!view) {
+					// A 2xx carrying no view. Axios has thrown on every real error
+					// by now, so nothing else marks this one, and the list below is
+					// not appended to: claiming success sends the person looking
+					// for a view that is not in it.
+					throw new Error(t('nextcloud-vue', 'The server did not return the saved view'))
 				}
+				this.savedViews = [...this.savedViews, view]
 				this.showSaveViewDialog = false
 				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" saved', { name }))
 			} catch (error) {

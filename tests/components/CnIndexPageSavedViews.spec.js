@@ -233,6 +233,25 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 		expect(dialog.vm.error).toBe('nope')
 	})
 
+	// Axios throws on every non-2xx, so a body without a view is the one failure
+	// nothing else marks. The list is not appended to either way — saying it
+	// worked sends the person looking for a view that is not in it.
+	it('treats a 2xx carrying no view as a failed save', async () => {
+		axios.post.mockResolvedValue({ data: {} })
+		const wrapper = mountPage({ allowSavedViews: true })
+		await flush()
+		await wrapper.find('[data-testid="cn-saved-views-save"]').trigger('click')
+		await flush()
+		const dialog = wrapper.findComponent({ name: 'CnSaveViewDialog' })
+		await dialog.setData({ name: 'Ghost' })
+		await dialog.find('[data-testid="cn-save-view-confirm"]').trigger('click')
+		await flush()
+		expect(showSuccess).not.toHaveBeenCalled()
+		expect(showError).toHaveBeenCalledWith('Could not save the view "Ghost"')
+		expect(wrapper.findComponent({ name: 'CnSaveViewDialog' }).exists()).toBe(true)
+		expect(dialog.vm.error).toBe('The server did not return the saved view')
+	})
+
 	it('deletes an own view after confirmation and removes it from the list', async () => {
 		axios.delete.mockResolvedValue({})
 		const wrapper = mountPage({ allowSavedViews: true })
