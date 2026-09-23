@@ -82,3 +82,77 @@ describe('CnDashboardGrid — responsive reflow', () => {
 		wrapper.unmount()
 	})
 })
+
+/**
+ * @param {number} live The column count GridStack currently reports.
+ * @param {object} propsData Props for the grid.
+ * @return {{wrapper: object, grid: object}} The wrapper and its fake engine.
+ */
+function mountEditable(live, propsData = {}) {
+	const wrapper = shallowMount(CnDashboardGrid, {
+		propsData: { layout, columns: 12, editable: true, ...propsData },
+	})
+	const grid = {
+		getColumn: () => live,
+		enable: jest.fn(),
+		disable: jest.fn(),
+		destroy: () => {},
+	}
+	wrapper.vm.grid = grid
+	return { wrapper, grid }
+}
+
+describe('CnDashboardGrid — the handles say what the grid will do', () => {
+	// The other half of "a reflow is not a layout edit". Dropping the change is
+	// right; offering a drag that gets dropped is the same surprise pointed the
+	// other way, and worse to diagnose because the author did nothing wrong.
+	it('takes the handles away while reflowed, even in edit mode', () => {
+		const { wrapper, grid } = mountEditable(1)
+
+		wrapper.vm.syncInteractivity()
+
+		expect(grid.disable).toHaveBeenCalled()
+		expect(grid.enable).not.toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
+	it('gives them back at the authored column count', () => {
+		const { wrapper, grid } = mountEditable(12)
+
+		wrapper.vm.syncInteractivity()
+
+		expect(grid.enable).toHaveBeenCalled()
+		expect(grid.disable).not.toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
+	it('keeps them off outside edit mode, whatever the column count', () => {
+		const { wrapper, grid } = mountEditable(12, { editable: false })
+
+		wrapper.vm.syncInteractivity()
+
+		expect(grid.disable).toHaveBeenCalled()
+		expect(grid.enable).not.toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
+	it('re-judges them on the rescale that crossed the breakpoint', () => {
+		// The widening direction matters as much as the narrowing one: a grid
+		// that took the handles away and never gave them back is edit mode that
+		// stopped working for the rest of the session.
+		const { wrapper, grid } = mountEditable(12)
+
+		wrapper.vm.handleGridChange([{ id: '1', x: 2, y: 0, w: 3, h: 4 }])
+
+		expect(grid.enable).toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
+	it('says nothing to an engine that cannot be enabled', () => {
+		const wrapper = shallowMount(CnDashboardGrid, { propsData: { layout, columns: 12, editable: true } })
+		wrapper.vm.grid = { getColumn: () => 1, destroy: () => {} }
+
+		expect(() => wrapper.vm.syncInteractivity()).not.toThrow()
+		wrapper.unmount()
+	})
+})

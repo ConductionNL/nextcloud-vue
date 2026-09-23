@@ -346,15 +346,8 @@ export default {
 	},
 
 	watch: {
-		editable(val) {
-			if (!this.grid) {
-				return
-			}
-			if (val) {
-				this.grid.enable()
-			} else {
-				this.grid.disable()
-			}
+		editable() {
+			this.syncInteractivity()
 		},
 
 		layout: {
@@ -495,6 +488,36 @@ export default {
 			this.grid.on('change', (_event, items) => {
 				this.handleGridChange(items)
 			})
+
+			// A grid that mounts already narrow is reflowed before anyone touches
+			// it, so the handles have to be judged here and not only on a later
+			// change.
+			this.syncInteractivity()
+		},
+
+		/**
+		 * Keep the drag and resize handles in step with whether an edit could
+		 * actually be kept.
+		 *
+		 * A reflowed grid drops every `change` it receives, for the reason
+		 * `handleGridChange` gives. Leaving the handles live there offers an edit
+		 * that silently snaps back, which is the same class of surprise as
+		 * persisting the reflow — pointed the other way, and harder to explain
+		 * because the author did everything right. The affordance has to say what
+		 * the grid will do at this width, not what edit mode does at the authored
+		 * one.
+		 *
+		 * @return {void}
+		 */
+		syncInteractivity() {
+			if (!this.grid || typeof this.grid.enable !== 'function') {
+				return
+			}
+			if (this.editable && !this.isReflowed()) {
+				this.grid.enable()
+			} else {
+				this.grid.disable()
+			}
 		},
 
 		/**
@@ -517,6 +540,11 @@ export default {
 		},
 
 		handleGridChange(items) {
+			// The rescale that crossed a breakpoint arrives here as a `change`, so
+			// this is also where the handles are re-judged in both directions:
+			// switched off as the grid narrows, and back on as it widens.
+			this.syncInteractivity()
+
 			// GridStack fires `change` for its own responsive rescale too, and at a
 			// 12 → 1 breakpoint every item reads `gridX: 0, gridWidth: 1`. Emitting
 			// that has the host persist the reflow AS the authored layout, which
