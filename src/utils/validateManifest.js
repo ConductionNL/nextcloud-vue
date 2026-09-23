@@ -99,6 +99,9 @@ const CHART_VALUE_AXIS_BASELINES = ['auto', 'zero', 'fit']
  * In addition to JSON Schema validation, applies the following post-schema
  * checks that cannot be expressed in pure JSON Schema:
  *  - `pages[].id` uniqueness across the array
+ *  - `pages[].widgets[].id` uniqueness across the WHOLE manifest for every
+ *    entry declaring `ncDashboard` (Nextcloud's widget namespace is per app,
+ *    not per page)
  *  - `gridX + gridWidth <= 12` for every widget in every page (only on
  *    slots where gridColumns is 12 — i.e. all non-sidebar slots)
  *  - Single-12×12-custom-widget dashboard rule (ADR-036 Decision 1): a
@@ -200,6 +203,33 @@ export function validateManifestV2(manifest) {
 					if (gx + gw > resolved) {
 						errors.push(`pages[${pIndex}]/widgets[${wIndex}]: Widget '${widget.widgetKey}' in slot '${widget.slot}': gridX (${gx}) + gridWidth (${gw}) exceeds ${resolved}`)
 					}
+				}
+			})
+		})
+	}
+
+	// 2b. `ncDashboard` widget ids are unique across the WHOLE manifest.
+	//     The schema can require the id but not compare two pages, and the
+	//     page is the wrong scope anyway: Nextcloud keys each user's chosen
+	//     dashboard widgets per APP, so two pages both declaring id 'recent'
+	//     derive one panel and the second silently replaces the first in a
+	//     namespace no migration of this app can reach.
+	if (Array.isArray(clone.pages)) {
+		const seenDashboardIds = new Map()
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || !Array.isArray(page.widgets)) {
+				return
+			}
+			page.widgets.forEach((widget, wIndex) => {
+				if (!widget || !isPlainObject(widget.ncDashboard) || typeof widget.id !== 'string') {
+					return
+				}
+				const here = `pages[${pIndex}]/widgets[${wIndex}]`
+				const first = seenDashboardIds.get(widget.id)
+				if (first) {
+					errors.push(`${here}/id: "${widget.id}" already publishes to the Nextcloud dashboard at ${first} — an ncDashboard id must be unique across the whole manifest`)
+				} else {
+					seenDashboardIds.set(widget.id, here)
 				}
 			})
 		})

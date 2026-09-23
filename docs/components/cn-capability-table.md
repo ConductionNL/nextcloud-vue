@@ -59,6 +59,7 @@ a document without any of it renders the table your app renders today.
 
 | Field | Where | What it does |
 |-------|-------|--------------|
+| `id` | row | The audit's own number, rendered in the first column. Repeat one or leave it out and the row still renders — the table keys its rows by position, not by this. |
 | `provider` | row | Key into `providers`. Renders the provided-by column. |
 | `providerHow` | row | Free text naming the mechanism. Rendered under the provider name, as given. |
 | `feature` | row | Key into `features`. Turns on feature grouping. |
@@ -77,6 +78,12 @@ reads exactly like a row nobody wrote.
   own, headed by the raw key.
 - A row with no `feature` lands under "Not yet mapped to a feature".
 - A rating outside `yes`, `partial` and `no` counts and renders as `Unknown`.
+- A missing or repeated `id` costs the row nothing: rows are keyed by their
+  position in their group.
+
+The search matches on both languages of every label — the row's, the area's,
+the feature's and the provider's — whatever the reader's own locale, so a Dutch
+reader still finds a row by the English term they read in a tender document.
 
 ## Usage
 

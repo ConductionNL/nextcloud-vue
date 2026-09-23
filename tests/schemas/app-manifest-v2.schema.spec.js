@@ -1254,13 +1254,17 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.40.0', () => {
+	it('the manifest schema version reads 2.41.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
-		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVES
-		// `savedViewPlaces`, and the bump is the only machine-readable signal
-		// a fleet app gets that the key it declares is no longer a key.
+		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
+		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
+		// carried when it was added, and which it went out without. The bump
+		// is the only machine-readable signal a fleet app gets — the package
+		// version is not one, it reads 2.0.5 at every release tag — so a
+		// property that lands without one is invisible to the vendored-copy
+		// ratchet every consumer runs against it.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.40.0')
+		expect(schema.version).toBe('2.41.0')
 	})
 
 	it('accepts a declarative `store` block, and requires the remote schema', () => {
@@ -1633,5 +1637,92 @@ describe('app-manifest-v2 — ncDashboard, publishing a placement to the Nextclo
 		const result = validateManifestV2(withWidget({ id: 'annual-statement' }))
 		expect(result.valid).toBe(true)
 		expect(result.errors).toEqual([])
+	})
+
+	/**
+	 * Builds two dashboard pages, each with one placement, so the uniqueness
+	 * rule can be tested across pages rather than within one.
+	 *
+	 * @param {object} first - extra keys merged onto page one's placement.
+	 * @param {object} second - extra keys merged onto page two's placement.
+	 * @return {object} a v2 manifest carrying both.
+	 */
+	const withTwoPages = (first, second) => {
+		const page = (pageId, widget) => ({
+			id: pageId,
+			route: `/${pageId}`,
+			type: 'dashboard',
+			title: `app.${pageId}`,
+			widgets: [{
+				widgetKey: 'AnnualStatementWidget',
+				slot: 'body',
+				gridX: 0,
+				gridY: 0,
+				gridWidth: 6,
+				gridHeight: 2,
+				...widget,
+			}],
+		})
+		return { ...MINIMAL_V2, pages: [page('reporting', first), page('archive', second)] }
+	}
+
+	/**
+	 * 🔴 The guard the `id` requirement stops one step short of. Requiring an
+	 * id keeps a placement off array position; it does not keep two placements
+	 * off each other. Nextcloud keys a user's chosen dashboard widgets per APP,
+	 * so two pages both declaring 'recent' derive ONE panel, and whichever the
+	 * host registers second silently takes the first one's place on every
+	 * dashboard that added it. The page is the wrong scope for the rule, and
+	 * `id`'s own description said so ("unique within a page's widgets[]").
+	 */
+	it('refuses the same ncDashboard id on two different pages', () => {
+		const result = validateManifestV2(withTwoPages(
+			{ id: 'recent', ncDashboard: { title: 'Recent' } },
+			{ id: 'recent', ncDashboard: { title: 'Recent, again' } },
+		))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('unique across the whole manifest'))).toBe(true)
+	})
+
+	it('leaves a repeated id alone when neither placement publishes to the dashboard', () => {
+		// The rule is about the Nextcloud namespace, not about ids at large:
+		// `id` is also the delta merge key, where a repeat across two pages is
+		// ordinary and always has been.
+		const result = validateManifestV2(withTwoPages({ id: 'recent' }, { id: 'recent' }))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('allows two placements that publish under ids of their own', () => {
+		const result = validateManifestV2(withTwoPages(
+			{ id: 'recent-reports', ncDashboard: {} },
+			{ id: 'recent-archive', ncDashboard: {} },
+		))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('takes a link written the way a page route is', () => {
+		const result = validateManifestV2(withWidget({
+			id: 'annual-statement',
+			ncDashboard: { link: '/reporting' },
+		}))
+		expect(result.valid).toBe(true)
+	})
+
+	/**
+	 * 🔴 The panel is rendered by Nextcloud's dashboard, outside this app's
+	 * pages, and the host resolves `link` against its own app root. An
+	 * unconstrained string left every host to guess whether it had been handed
+	 * a route or a URL, and `javascript:` is what that guess costs when one of
+	 * them guesses wrong.
+	 */
+	it('refuses a link carrying a scheme or a protocol-relative host', () => {
+		for (const link of ['https://example.org/x', 'javascript:alert(1)', '//example.org/x']) {
+			expect(validateManifestV2(withWidget({
+				id: 'annual-statement',
+				ncDashboard: { link },
+			})).valid).toBe(false)
+		}
 	})
 })
