@@ -1222,3 +1222,63 @@ describe('CnStagesWidget: a list being replaced is not a list', () => {
 			.toBe('Not reachable from the current stage')
 	})
 })
+
+describe('CnStagesWidget — an endpoint whose token never resolves', () => {
+	// A record without the field the url names collapses the token, so the read
+	// is blocked — which used to look like "still loading" and never ended.
+	it('stops loading once the record is here without the field the url needs', async () => {
+		allowActions([])
+		const w = mountWidget(
+			{ stagesEndpoint: STAGES_ENDPOINT, currentField: 'status', transition: LIFECYCLE },
+			// A record, but no `caseType` — so the url can never be built.
+			{ id: 'case-1', status: 'st-new' },
+		)
+		await flush()
+
+		expect(w.vm.stagesPending).toBe(false)
+		expect(w.find('.cn-stages-widget__loading').exists()).toBe(false)
+		// It was never asked, so no request went out with an empty segment.
+		expect(axios.get.mock.calls.every(([url]) => !url.includes('case-types//'))).toBe(true)
+	})
+
+	it('says the stages cannot be read rather than claiming there are none', async () => {
+		allowActions([])
+		const w = mountWidget(
+			{ stagesEndpoint: STAGES_ENDPOINT, currentField: 'status', transition: LIFECYCLE },
+			{ id: 'case-1', status: 'st-new' },
+		)
+		await flush()
+
+		expect(w.find('[data-testid="cn-stages-widget-unaddressable"]').exists()).toBe(true)
+		expect(w.find('[data-testid="cn-stages-widget-empty"]').exists()).toBe(false)
+	})
+
+	it('keeps waiting while the record itself has not arrived', async () => {
+		allowActions([])
+		const w = mountWidget(
+			{ stagesEndpoint: STAGES_ENDPOINT, currentField: 'status', transition: LIFECYCLE },
+			null,
+		)
+		await flush()
+
+		// Nothing is wrong yet: the url resolves when the record lands.
+		expect(w.vm.stagesPending).toBe(true)
+		expect(w.find('[data-testid="cn-stages-widget-unaddressable"]').exists()).toBe(false)
+	})
+
+	it('renders the stages once the record brings the field', async () => {
+		allowActions([])
+		const w = mountWidget(
+			{ stagesEndpoint: STAGES_ENDPOINT, currentField: 'status', transition: LIFECYCLE },
+			{ id: 'case-1', status: 'st-new' },
+		)
+		await flush()
+		expect(w.vm.stages).toHaveLength(0)
+
+		w.context.value = { ...w.context.value, object: { id: 'case-1', caseType: 'ct-1', status: 'st-new' } }
+		await flush()
+
+		expect(w.vm.stagesPending).toBe(false)
+		expect(w.vm.stages.map((s) => s.id)).toEqual(['st-new', 'st-work', 'st-done'])
+	})
+})

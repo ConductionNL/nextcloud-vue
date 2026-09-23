@@ -42,7 +42,7 @@ const mockStore = {
 	registerObjectType: jest.fn((slug) => {
 		mockStore.objectTypeRegistry[slug] = {}
 	}),
-	fetchCollection: jest.fn().mockResolvedValue([PERSON]),
+	fetchCollectionForOptions: jest.fn().mockResolvedValue([PERSON]),
 	fetchObject: jest.fn().mockResolvedValue(PERSON),
 }
 

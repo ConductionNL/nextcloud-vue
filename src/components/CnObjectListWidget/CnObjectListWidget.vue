@@ -1008,12 +1008,19 @@ export default {
 		// reordered entry reuses the component). A schema resolved for the OLD
 		// register is exactly the wrong-app schema the register scoping above
 		// exists to prevent — drop it so the next open resolves it again.
+		//
+		// The headings read the same cache, and unlike the dialog they have no
+		// later moment that reloads it: without the second call a retargeted
+		// widget goes back to printing `customerName` at the user until
+		// somebody happens to open Add.
 		'content.register': function() {
 			this.forgetCreateSchema()
+			this.loadHeadingsIfNeeded()
 		},
 
 		'content.schema': function() {
 			this.forgetCreateSchema()
+			this.loadHeadingsIfNeeded()
 		},
 	},
 

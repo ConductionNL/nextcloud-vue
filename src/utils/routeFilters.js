@@ -43,38 +43,57 @@ export function resolveFilterMap(filterMap, params, ctx) {
 }
 
 /**
- * Read a persisted multi-column sort back out of `$route.query._order` (the
- * JSON-encoded ordered array `CnIndexPage.persistSortToRoute` writes), so a
+ * Parse the `_order` query value — the JSON-encoded ordered array that carries
+ * a list's sort through the address, `[{ key, order }, …]`.
+ *
+ * This is the ONE parser for that value. It used to be three near-copies (here,
+ * in `listNavigation`, and privately in `CnPageRenderer`), and a fourth
+ * component wrote a different spelling entirely; that drift is what let a saved
+ * view's sort be written in a format nothing read.
+ *
+ * Defensive by design — a hand-edited or truncated param must not break the
+ * page, so anything that is not an array of `{ key }` entries yields an empty
+ * list. Deliberately uncapped: CnDataTable caps shift+click at three keys as an
+ * affordance, but a capped parser would silently drop the third key of a link
+ * somebody sent.
+ *
+ * @param {unknown} raw The raw `_order` query value.
+ * @return {Array<{key: string, order: 'asc'|'desc'}>} The sort, or an empty list.
+ */
+export function parseSortKeys(raw) {
+	if (typeof raw !== 'string' || raw === '') {
+		return []
+	}
+	let parsed
+	try {
+		parsed = JSON.parse(raw)
+	} catch {
+		return []
+	}
+	if (!Array.isArray(parsed)) {
+		return []
+	}
+	return parsed
+		.filter((k) => k && typeof k.key === 'string' && k.key !== '')
+		.map((k) => ({ key: k.key, order: k.order === 'desc' ? 'desc' : 'asc' }))
+}
+
+/**
+ * Read a persisted multi-column sort back out of `$route.query._order`, so a
  * reload or a shared link reproduces the sort it carried.
  *
  * Shared by CnIndexPage's `useSelfFetchList` and CnLogsPage: both feed the
  * result to `useListView`'s `defaultSortKeys`, and while this lived privately in
  * the former, a `?_order=` link was silently ignored on a logs page.
  *
- * Defensive by design — a hand-edited or truncated param must not break the
- * page: anything that is not a non-empty array of `{ key }` entries returns
- * null, which callers read as "no persisted sort, use the configured default".
+ * Returns `null` rather than `[]` for nothing, because both callers fall through
+ * to a configured default with `||` and an empty array would satisfy it.
  *
  * @param {object|null} route The current `$route` (or null when there is no router).
  * @return {Array<{key: string, order: 'asc'|'desc'}>|null} The restored sort, or null.
  */
 export function parseSortKeysFromQuery(route) {
-	const raw = route && route.query && route.query._order
-	if (typeof raw !== 'string' || raw === '') {
-		return null
-	}
-	let parsed
-	try {
-		parsed = JSON.parse(raw)
-	} catch {
-		return null
-	}
-	if (!Array.isArray(parsed) || parsed.length === 0) {
-		return null
-	}
-	const keys = parsed
-		.filter((k) => k && typeof k.key === 'string')
-		.map((k) => ({ key: k.key, order: k.order === 'desc' ? 'desc' : 'asc' }))
+	const keys = parseSortKeys(route && route.query && route.query._order)
 	return keys.length > 0 ? keys : null
 }
 

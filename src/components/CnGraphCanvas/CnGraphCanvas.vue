@@ -266,6 +266,14 @@ export default {
 		'canvas-drop',
 
 		'node-remove',
+
+		/**
+		 * The canvas zoom changed, by any route — a control here, the host's own
+		 * toolbar, the wheel, or a fit-view.
+		 *
+		 * @type {number}
+		 */
+		'zoom-change',
 	],
 
 	setup() {
@@ -274,9 +282,11 @@ export default {
 		// FUNCTION of the same name. Returning both puts two `fitView` bindings
 		// on the instance — eslint's `vue/no-dupe-keys` catches it, but the
 		// symptom would have been a fit button that tries to call `true`.
-		const { project, zoomIn, zoomOut, fitView: fitViewNow } = useVueFlow()
+		// `zoomTo` and `viewport` so a HOST toolbar can drive the zoom and show
+		// the real figure — including one the wheel or a fit-view changed.
+		const { project, zoomIn, zoomOut, zoomTo, fitView: fitViewNow, viewport } = useVueFlow()
 
-		return { project, zoomIn, zoomOut, fitViewNow }
+		return { project, zoomIn, zoomOut, zoomTo, fitViewNow, viewport }
 	},
 
 	computed: {
@@ -285,6 +295,18 @@ export default {
 		 */
 		interactive() {
 			return this.readOnly === false
+		},
+	},
+
+	watch: {
+		// Reported rather than owned: Vue Flow holds the transform, so a host
+		// that mirrors it in its own toolbar must hear every change, not only
+		// the ones its own buttons caused.
+		'viewport.zoom': {
+			immediate: true,
+			handler(value) {
+				this.$emit('zoom-change', value)
+			},
 		},
 	},
 

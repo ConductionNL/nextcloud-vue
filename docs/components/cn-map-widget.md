@@ -84,6 +84,12 @@ Beyond Leaflet's own zoom and attribution controls, the widget mounts a control 
 <!-- this.$refs.map.fitToMarkers() -->
 ```
 
+### `autoFit` and the user's view
+
+`autoFit` (default `true`) frames the map on every marker it is given — on load, and again whenever the marker set changes, so a consumer that narrows its markers with a filter re-frames on the result.
+
+It stops at the first pan or zoom the visitor makes. From then on their framing is kept and the markers reload underneath it, because a map that jumps back to the whole country on every refresh cannot be read. **Fit all markers** is how they ask for the full frame again, and `fitToMarkers()` still works at any time.
+
 ## Sizing
 
 `height` accepts any CSS length (default `500px`). Pass `height="100%"` to fill a flex parent — the widget watches its own box with a `ResizeObserver` and re-flows Leaflet whenever it changes, so a map that grows, or that mounts while hidden behind a view toggle, still lays its tiles and markers out correctly.

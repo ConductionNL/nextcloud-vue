@@ -84,6 +84,8 @@ export function useSelfFetchList(props, instance, inject) {
 			selfObjectType: '',
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
+			selfFetchTokenCtx: null,
+			initialQueryFilterKeys: [],
 		}
 	}
 
@@ -154,12 +156,19 @@ export function useSelfFetchList(props, instance, inject) {
 	const initialRoute = instance && instance.proxy && instance.proxy.$route
 	const initialSortKeys = parseSortKeysFromQuery(initialRoute)
 		|| (Array.isArray(props.sortKeys) && props.sortKeys.length > 0 ? props.sortKeys : undefined)
+	// Same deep-link restore for facet filters and search, so opening a
+	// shared/bookmarked URL reproduces the same view (CnIndexPage persists
+	// both back to the route on change).
+	const initialActiveFilters = resolveQueryFilters(initialRoute && initialRoute.query, tokenCtx())
+	const initialSearchTerm = (initialRoute && typeof initialRoute.query?._search === 'string') ? initialRoute.query._search : ''
 
 	const list = useListView(objectType, {
 		objectStore,
 		sidebarState,
 		defaultSort: props.sortKey ? { key: props.sortKey, order: props.sortOrder || 'asc' } : undefined,
 		defaultSortKeys: initialSortKeys,
+		defaultActiveFilters: initialActiveFilters,
+		defaultSearchTerm: initialSearchTerm,
 		defaultPageSize: (props.pagination && props.pagination.limit) || undefined,
 		defaultVisibleColumns: configuredColumnKeys.length ? configuredColumnKeys : null,
 		// `pages[].config.extend` → OpenRegister's repeated `_extend[]`. A
@@ -232,5 +241,11 @@ export function useSelfFetchList(props, instance, inject) {
 		selfObjectType: objectType,
 		activeQuickFilterIndex,
 		selectedQuickFilterIndices,
+		// The page persists the view state back into the query, and needs both
+		// to do it without trampling the rest of it: the keys it adopted from
+		// the query on load (the only non-`_` ones it may clear), and the ctx
+		// those keys' `@`-tokens resolve against.
+		selfFetchTokenCtx: tokenCtx,
+		initialQueryFilterKeys: Object.keys(initialActiveFilters),
 	}
 }

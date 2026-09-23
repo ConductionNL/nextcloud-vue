@@ -23,6 +23,7 @@
 
 <script>
 import { NcActionButton, NcActions } from '@nextcloud/vue'
+import { evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -103,6 +104,16 @@ export default {
 		 */
 		visibleActions() {
 			return this.actions.filter((action) => {
+				// A manifest is JSON and cannot hold a function, so `visibleWhen` is
+				// the only per-row gate an app configured from one can express. Only
+				// a locally decidable condition is gated on: an endpoint/source one is
+				// not this evaluator's question, and nothing gated a row action at all
+				// before, so answering `false` to it would delete the entry outright.
+				if (action.visibleWhen
+					&& isLocallyDecidableVisibleWhen(action.visibleWhen)
+					&& evaluateVisibleWhenLocal(action.visibleWhen, this.row) === false) {
+					return false
+				}
 				if (action.visible === undefined) {
 					return true
 				}

@@ -138,6 +138,32 @@ describe('dispatchAction — navigate type', () => {
 		expect(push).toHaveBeenCalledWith('/apps/decidesk/settings')
 	})
 
+	// REGRESSION. A target is a URL exactly as `url` is, and it was the only
+	// one that did not run the token grammar — so dossiq's flow-runs button
+	// navigated to `?subjectUuid={objectId}`, those characters literally.
+	it('interpolates the token grammar into the target', () => {
+		const push = jest.fn()
+		const tokenCtx = { objectId: 'abc-123', object: { status: 'open' } }
+
+		dispatchAction(
+			{ type: 'navigate', target: '/flows/runs?subjectUuid={objectId}' },
+			{ router: { push }, tokenCtx },
+		)
+		expect(push).toHaveBeenCalledWith('/flows/runs?subjectUuid=abc-123')
+
+		dispatchAction(
+			{ type: 'navigate', target: '/flows/runs?subjectUuid=@objectId' },
+			{ router: { push }, tokenCtx },
+		)
+		expect(push).toHaveBeenCalledWith('/flows/runs?subjectUuid=abc-123')
+	})
+
+	it('leaves a target alone when it carries no token, object form included', () => {
+		const push = jest.fn()
+		dispatchAction({ type: 'navigate', target: '/plain' }, { router: { push }, tokenCtx: { objectId: 'x' } })
+		expect(push).toHaveBeenCalledWith('/plain')
+	})
+
 	it('calls router.push with route location object', () => {
 		const push = jest.fn()
 		const location = { path: '/custom', query: { tab: 'general' } }

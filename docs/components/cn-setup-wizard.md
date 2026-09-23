@@ -48,7 +48,7 @@ shell while a `required` step is unmet.
 | `appId` | `string` | — (required) | App id; builds the `/apps/{appId}/api/setup/*` URLs. |
 | `steps` | `Array` | `[]` | The `manifest.setup.steps` array to render. |
 | `dialogTitle` | `string` | `"Set up this app"` | Dialog header. Overridden by `appName` when that prop is set. |
-| `appName` | `string` | `''` | The app's display name. When set, the title becomes "Set up {appName}" instead of the generic `dialogTitle` default — pass the same display name `CnAppRoot` already resolves (`appDisplayName \|\| manifest.name \|\| appId`). |
+| `appName` | `string` | `''` | The app's display name. When set, the title becomes `Set up {appName}` instead of the generic `dialogTitle` default — pass the same display name `CnAppRoot` already resolves (`appDisplayName \|\| manifest.name \|\| appId`). |
 | `submitLabel` | `string` | `"Finish"` | Final-step submit label. |
 | `cancelLabel` | `string` | `"Cancel"` | Cancel label. |
 | `nextLabel` | `string` | `"Next"` | Next label. |

@@ -88,6 +88,11 @@ module.exports = {
 	// Build output — relative to this styleguide/ directory
 	styleguideDir: 'build',
 
+	// Global components, directives and plugins for every example app. Vue 3
+	// scopes these to an app instance, and styleguidist builds one app per
+	// example, so they cannot live in `require` any more.
+	enhancePreviewApp: path.join(__dirname, 'enhance-app.js'),
+
 	// Run the setup script before every example sandbox
 	require: [
 		path.join(__dirname, 'setup.js'),
@@ -100,8 +105,9 @@ module.exports = {
 	// Webpack overrides
 	webpackConfig: {
 		devServer: {
-			// Serve static files (favicon.ico, etc.) from this directory
-			contentBase: path.join(__dirname),
+			// Serve static files (favicon.ico, etc.) from this directory.
+			// `contentBase` was the webpack-dev-server 3 spelling.
+			static: { directory: path.join(__dirname) },
 		},
 		module: {
 			rules: [
@@ -197,13 +203,37 @@ module.exports = {
 			],
 			extensions: ['.mjs', '.vue', '.json', '.js'],
 			mainFields: ['browser', 'main', 'module'],
+			// vue-styleguidist compiles a live example by rewriting its imports
+			// to require() calls, so webpack asks for the "require" condition.
+			// @nextcloud/vue and @nextcloud/axios publish an ESM-only exports
+			// map with no "require" key, and the request fails with
+			// '"." is not exported under the conditions [...]'. Naming both
+			// conditions lets an ESM-only package answer a require, which is
+			// what a bundler wants anyway.
+			conditionNames: ['webpack', 'production', 'browser', 'import', 'require', 'module', 'default'],
+			// webpack 4 shipped node core polyfills; webpack 5 does not. sax,
+			// reached through @file-type/xml, requires 'stream' only to build
+			// its streaming parser API, which nothing in the sandbox calls.
+			fallback: { stream: false },
 			symlinks: false,
 			alias: {
 				// Pin vue to a single instance so vue-styleguidist and the
 				// components share the same Vue runtime.
 				// Use the full build (compiler + runtime) so examples that omit
 				// an explicit <template> wrapper can be compiled on the fly.
-				vue$: path.join(__dirname, 'node_modules/vue/dist/vue.common.js'),
+				// vue.common.js was the Vue 2 filename; the Vue 3 build with the
+				// compiler included is vue.esm-bundler.js.
+				vue$: path.join(__dirname, 'node_modules/vue/dist/vue.esm-bundler.js'),
+				// vue-demi ships one build per Vue major and picks one in a
+				// postinstall script. npm 11 does not run a dependency's install
+				// scripts unless it is approved, so the default entry stays on the
+				// Vue 2 build, whose .cjs re-exports Vue's names through a runtime
+				// Object.keys(require('vue')) loop. That loop finds nothing on a
+				// Vue 3 module, and every consumer reads "watch is not exported
+				// from vue-demi". Point at the v3 build, which re-exports
+				// statically. rollup.config.js does the same for the published
+				// bundle, in its resolve-vue-demi-v3 plugin.
+				'vue-demi$': path.join(__dirname, 'node_modules/vue-demi/lib/v3/index.mjs'),
 				// Allow docs examples to import from the library by package name.
 				'@conduction/nextcloud-vue': path.resolve(ROOT, 'src/index.js'),
 				'@nextcloud/sharing/public': path.resolve(__dirname, 'mocks/empty.js'),
@@ -266,11 +296,12 @@ module.exports = {
 				// dynamically imported and still resolves normally); the styleguide
 				// has no map demo, so stubbing the stylesheet keeps the build green.
 				'leaflet/dist/leaflet.css': path.resolve(__dirname, 'mocks/empty.js'),
-				'#minpath': require.resolve('path-browserify'),
-				'#minurl': require.resolve('url/'),
-				// #minproc uses a package "imports" map that webpack 4 doesn't support;
-				// point it at the browser stub directly.
-				'#minproc': path.resolve(__dirname, 'node_modules/vfile/lib/minproc.browser.js'),
+				// The #minpath, #minurl and #minproc subpaths used to be aliased
+				// here because webpack 4 did not read a package "imports" map.
+				// webpack 5 does, and vfile's own map already points at its
+				// browser builds. The aliases were also wrong: the url package
+				// exports neither isUrl nor urlToPath, so every consumer read
+				// "isUrl is not exported".
 				// devlop uses an "exports" map with a "development" condition that
 				// webpack 4 ignores; point it at the production no-op entry directly.
 				devlop: path.resolve(__dirname, 'node_modules/devlop/lib/default.js'),

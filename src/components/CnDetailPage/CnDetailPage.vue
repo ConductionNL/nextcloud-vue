@@ -431,11 +431,13 @@
 				:layout="bodyGridLayout"
 				:editable="editingBody"
 				:columns="12"
+				:columnOpts="columnOpts"
 				class="cn-detail-page__grid"
 				@layoutChange="onBodyLayoutChange">
 				<template #widget="{ item }">
 					<div
 						class="cn-detail-page__grid-item"
+						:class="{ 'cn-detail-page__grid-item--fit': !!item.sizeToContent }"
 						:aria-labelledby="showGridTitle(item) ? `widget-title-${item.id}` : undefined">
 						<!-- In-app edit overlay (ADR-041): a configure cog appears on
 						     EVERY grid widget while the page is in Buildiq edit mode,
@@ -721,6 +723,9 @@
 				:item="createPrefill"
 				:register="register"
 				:dialogTitle="title || undefined"
+				:excludeFields="excludeFields"
+				:includeFields="includeFields"
+				:fieldOverrides="fieldOverrides"
 				:size="formSize"
 				:columns="formColumns"
 				@confirm="onCreateFormConfirm"
@@ -742,6 +747,9 @@
 				:item="currentObject"
 				:register="register"
 				:dialogTitle="editActionLabel"
+				:excludeFields="excludeFields"
+				:includeFields="includeFields"
+				:fieldOverrides="fieldOverrides"
 				:size="formSize"
 				:columns="formColumns"
 				@confirm="onEditFormConfirm"
@@ -794,9 +802,12 @@ import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
+import { useObjectPresence } from '../../composables/useObjectPresence.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { useObjectStore } from '../../store/index.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import { compactLayoutRows } from '../../utils/dashboardPlacement.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { slotRenders } from '../../utils/slotContent.js'
@@ -815,6 +826,38 @@ import { CnIcon } from '../CnIcon/index.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 import '../CnWidgetGrid/registerDashboardWidgets.js'
+
+/**
+ * Responsive column table for a detail body, measured against the GRID element.
+ *
+ * ONE threshold, and deliberately no steps between. `moveScale` rescales the
+ * authored geometry into the new count, so an intermediate width turns a
+ * 12-column record into fractional positions nobody placed: a `gridWidth: 3`
+ * tile becomes 1 of 4, a `gridWidth: 9` panel becomes 3 of 4, and widgets land
+ * left, centre or right depending purely on how the division rounded. That reads
+ * as a broken page rather than a narrow one. A record is authored at 12 columns
+ * or it is a single stacked column; the sizes in between are not designs.
+ *
+ * 1000px is where the 12-column geometry stops working rather than merely
+ * tightening: it puts a `gridWidth: 3` side panel — Timeline, Flow runs — under
+ * 250px, which is below its own title.
+ *
+ * `breakpointForWindow` is FALSE, unlike `getDashboardColumnOpts()`: a page in a
+ * split pane sits in a narrow container on a wide window, so measuring the window
+ * is measuring the wrong box and the grid would never reflow.
+ *
+ * `columnMax` is set EXPLICITLY. Above the top breakpoint GridStack assigns
+ * `newColumn = columnOpts.columnMax`, and `column(undefined)` silently no-ops, so
+ * a grid that once narrowed would never widen again.
+ */
+const DEFAULT_DETAIL_COLUMN_OPTS = Object.freeze({
+	columnMax: 12,
+	breakpoints: [
+		{ w: 1000, c: 1 },
+	],
+	layout: 'moveScale',
+	breakpointForWindow: false,
+})
 
 /**
  * Event-bus channel a page-level refresh is announced on. The page's own
@@ -1001,6 +1044,31 @@ export default {
 			type: Number,
 			default: 1,
 			validator: (value) => value === 1 || value === 2,
+		},
+
+		/**
+		 * Fields the create and edit forms ask for, in this order. Null asks for
+		 * every property the schema declares.
+		 *
+		 * Same three keys as CnIndexPage, so one manifest describes the record's
+		 * form wherever it opens rather than the list page and the detail page
+		 * each having their own.
+		 */
+		includeFields: {
+			type: Array,
+			default: null,
+		},
+
+		/** Fields the create and edit forms never ask for. */
+		excludeFields: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** Per-field widget / label overrides for the create and edit forms. */
+		fieldOverrides: {
+			type: Object,
+			default: () => ({}),
 		},
 
 		/** Page description (shown below title) */
@@ -1230,6 +1298,20 @@ export default {
 		maxWidth: {
 			type: String,
 			default: '1800px',
+		},
+
+		/**
+		 * Responsive `columnOpts` for the body grid, measured against the GRID's own
+		 * width rather than the window's — so a page rendered in a narrow container
+		 * (a split pane beside a list) reflows even though the viewport is wide.
+		 * Defaults to a table that stacks to one column at or below 1000px. Pass
+		 * `null` for a fixed 12-column grid at every size.
+		 *
+		 * @type {object|null}
+		 */
+		columnOpts: {
+			type: Object,
+			default: () => ({ ...DEFAULT_DETAIL_COLUMN_OPTS }),
 		},
 
 		/**
@@ -1688,6 +1770,20 @@ export default {
 		// no integration widgets are configured.
 		const { resolveWidget, getById } = useIntegrationRegistry()
 		const registryExposed = { resolveRegistryWidget: resolveWidget, getRegistryProvider: getById }
+
+		// The host reads presence because only the host can act on it: the grid
+		// reserves the row before the widget renders. See `layoutItemCanDraw`.
+		// A getter, not a one-shot read: a page whose widgets arrive after mount
+		// would otherwise never subscribe, and `layoutItemCanDraw` would drop the
+		// presence row for good instead of until somebody arrives.
+		const presencePlaced = () => (props.widgets || []).some((w) => w && w.type === 'presence')
+		const { others: presentOthers } = useObjectPresence(
+			() => props.register || '',
+			() => props.schema || '',
+			() => String(props.objectId || ''),
+			{ enabled: presencePlaced },
+		)
+		registryExposed.presentOthers = presentOthers
 
 		// Object context for detail-page abstract widgets (ADR-041): a reactive
 		// `{ objectId, object, register, schema }` holder kept current by the
@@ -2504,10 +2600,10 @@ export default {
 			// eslint-disable-next-line @typescript-eslint/no-unused-expressions -- reading the flag IS the effect: the read registers the reactive dependency, and there is nothing to assign it to
 			this.editingBody
 			if (this.hasGridLayout) {
-				return this.layout
+				return this.closeDroppedRows(this.layout)
 			}
 			if (this.shouldRenderAutoBody) {
-				return this.autoBodyLayout || []
+				return this.closeDroppedRows(this.autoBodyLayout || [])
 			}
 			return []
 		},
@@ -3648,6 +3744,84 @@ export default {
 		 */
 		findWidget(item) {
 			return this.bodyGridWidgets.find((w) => w.id === item.widgetId)
+		},
+
+		/**
+		 * Drop the items that draw nothing, then close the rows they freed —
+		 * `float: true` leaves the item below pinned under a gap nobody owns.
+		 * Skipped when nothing was dropped, so an authored gap survives.
+		 *
+		 * @param {Array<object>} items The authored layout items.
+		 *
+		 * @return {Array<object>} What the grid should render.
+		 */
+		closeDroppedRows(items) {
+			const drawable = items.filter((item) => this.layoutItemCanDraw(item))
+			if (drawable.length === items.length) {
+				return drawable
+			}
+
+			return compactLayoutRows(drawable)
+		},
+
+		/**
+		 * Whether a layout item has anything to draw, so a grid cell is worth
+		 * spending on it.
+		 *
+		 * TWO widget types are judged, and no others.
+		 *
+		 * `integration`, in the case where nothing can ever appear: a leaf from
+		 * another app that is not registered, with no `requiredApp` to fall back
+		 * on. A cross-app feature is normally optional — humaniq's hours leaf on a
+		 * dossiq case — and without this the host still renders its wrapper, so the
+		 * absent app costs a bordered, full-height ghost card in the grid. An app
+		 * nobody installed should cost nothing.
+		 *
+		 * A widget that declares `requiredApp` is KEPT: the host answers a missing
+		 * app with a set-up state, which is content, and hiding it would turn an
+		 * actionable "install humaniq" into silence.
+		 *
+		 * `presence`, whenever nobody else is on the record. A runtime fact that
+		 * flips both ways, so the host holds the subscription (see setup) and the
+		 * row returns the moment somebody arrives.
+		 *
+		 * Deliberately NOT generalised to "anything that resolves to nothing".
+		 * A `custom` widget whose `#widget-<id>` slot is missing also draws an
+		 * empty host, but that is a WIRING FAULT rather than an absent optional
+		 * feature, and quietly dropping it would hide the bug instead of showing
+		 * it — CnPageRenderer's split pane forwards no slots, which is exactly
+		 * that fault and wants fixing, not concealing.
+		 *
+		 * @param {object} item A layout item.
+		 * @return {boolean} False only when the item provably draws nothing.
+		 */
+		layoutItemCanDraw(item) {
+			// In edit mode nothing is hidden: an author has to see the placement to
+			// move or delete it, and a widget that vanished from the editor while
+			// staying in the manifest would be unmanageable.
+			if (this.editingBody) {
+				return true
+			}
+			const widget = this.findWidget(item)
+			if (!widget) {
+				return true
+			}
+			// Presence is empty almost always, and no attribute can reclaim its
+			// row: GridStack floors `sizeToContent` at the item's `gs-min-h`.
+			if (widget.type === 'presence') {
+				return (this.presentOthers || []).length > 0
+			}
+			if (widget.type !== 'integration') {
+				return true
+			}
+			const requiredApp = widget.requiredApp || (widget.content || {}).requiredApp || ''
+			if (requiredApp !== '' && !isAppInstalled(requiredApp)) {
+				return true
+			}
+			if (typeof this.getRegistryProvider !== 'function') {
+				return true
+			}
+			return !!this.getRegistryProvider(widget.integrationId)
 		},
 
 		/**

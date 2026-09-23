@@ -101,7 +101,6 @@ const ALLOWED = new Map([
 	['src/components/CnSettingsPage/CnSettingsPage.vue:this.saveEndpoint', 'endpoint prop comes from the host app'],
 	['src/components/CnLogsPage/CnLogsPage.vue:this.source', 'log source URL comes from the page config'],
 	['src/components/CnMapWidget/CnMapWidget.vue:url', 'GeoJSON endpoint is a widget-config value (often absolute)'],
-	['src/components/CnNewsWidget/CnNewsWidget.vue:url', 'items endpoint is a widget-config value; the widget builds no URL of its own and fetches nothing without one'],
 	['src/components/CnMapWidget/CnMapWidget.vue:ds.url', 'GeoJSON endpoint is a widget-config value (often absolute)'],
 	['src/components/CnObjectGeoWidget/CnObjectGeoWidget.vue:url', 'Nominatim is an absolute third-party URL'],
 	['src/components/CnAiCompanion/CnAiChatPanel.vue:approval.resolveUrl', 'approval URL comes from the server payload'],

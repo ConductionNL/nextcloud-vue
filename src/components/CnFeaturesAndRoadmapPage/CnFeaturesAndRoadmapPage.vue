@@ -28,7 +28,8 @@
 		:openbuiltUrl="resolvedOpenbuiltUrl"
 		:llmSkillsUrl="resolvedLlmSkillsUrl"
 		:suggestUrl="resolvedSuggestUrl"
-		:documentationUrl="resolvedDocumentationUrl" />
+		:documentationUrl="resolvedDocumentationUrl"
+		:capabilityComparison="resolvedCapabilityComparison" />
 </template>
 
 <script>
@@ -170,6 +171,18 @@ export default {
 		},
 
 		/**
+		 * Optional capability comparison document, forwarded to the view.
+		 * Manifest config > initialState (`features_roadmap_capabilities`) >
+		 * null. When null the view renders its two stops as it always has.
+		 *
+		 * @type {object|null}
+		 */
+		capabilityComparison: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Override for the appId used to namespace loadState lookups.
 		 * Tests pass an explicit value; production reads it from the
 		 * `cnAiContext` inject populated by CnAppRoot.
@@ -267,6 +280,22 @@ export default {
 		resolvedDocumentationUrl() {
 			return this.documentationUrl
 				|| readInitialState(this.effectiveAppId, 'features_roadmap_documentation_url', '')
+		},
+
+		/**
+		 * Effective capability comparison. Manifest config > initialState >
+		 * null.
+		 *
+		 * `null` and not `{}`: an empty object would make the view believe a
+		 * comparison exists and grow a third toggle stop over zero rows.
+		 *
+		 * @return {object|null}
+		 */
+		resolvedCapabilityComparison() {
+			if (this.capabilityComparison !== null) {
+				return this.capabilityComparison
+			}
+			return readInitialState(this.effectiveAppId, 'features_roadmap_capabilities', null)
 		},
 	},
 }

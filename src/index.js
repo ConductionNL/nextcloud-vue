@@ -47,6 +47,7 @@ export {
 	CnBuildiqEditButton,
 	CnCalendarWidget,
 	CnCalendarWidgetForm,
+	CnCapabilityTable,
 	CnCard,
 	CnCardGrid,
 	CnCellRenderer,
@@ -178,8 +179,6 @@ export {
 	CnNcDashboardWidgetForm,
 	CnNcWidgetGridPicker,
 	CnNcWidgetWidget,
-	CnNewsWidget,
-	CnNewsWidgetForm,
 	CnNoteCard,
 	CnNotesCard,
 	CnNotificationMatrix,
@@ -536,7 +535,6 @@ export { dedupeCatalogue, fromFontAwesome, fromMdiJs, fromOpenGemeenten } from '
 export { mergeManifestDelta } from './utils/mergeManifestDelta.js'
 export { applyIntegrationsSection, applyMenuLayout, applyMenuRelocations, applyMenuRemovals, applySettingsSection, buildManifest, mergeMenuItems, mergePages } from './utils/buildManifest.js'
 export { buildManifestRoutes } from './utils/buildManifestRoutes.js'
-export { DEFAULT_PINNED_VIEW_CAP, DEFAULT_SAVED_VIEW_ROUTE_BASE, isPinnedView, LEGACY_VIEW_QUERY_KEY, pageHasSavedViewPlaces, pinnedViewNavChildren, PRESENTATION_VIEW_MODES, resolveViewPresentation, SAVED_VIEW_ROUTE_SUFFIX, savedViewRouteBase, savedViewRouteName, savedViewRoutePath, savedViewRouteTarget, togglePinnedBy, viewIdForRoute, withPinnedViewChildren } from './utils/savedViewPlaces.js'
 export { formatDateForDisplay } from './utils/dateDisplay.js'
 export { expandPageTemplates } from './utils/expandPageTemplates.js'
 export { diffManifest } from './utils/diffManifest.js'

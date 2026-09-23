@@ -27,7 +27,6 @@ Purely presentational: the parent owns fetching (`GET /apps/openregister/api/vie
 | `views` | `Array` | `[]` | View API objects from `GET /apps/openregister/api/views` (`{ id, name, owner, query, … }`). |
 | `loading` | `Boolean` | `false` | Shows a "Loading…" caption while the parent fetches. |
 | `currentUserId` | `String` | `''` | Signed-in NC user id — gates the per-view delete affordance (`view.owner === currentUserId`). |
-| `allowPinning` | `Boolean` | `false` | Whether a view can be pinned into the navigation from here. Only on a page whose views are places. |
 | `maxDepth` | `Number` | `3` | How deep the tree indents before it flattens. Mirrors `savedViewTree.maxDepth`. Flattening is about indentation only: a view past the bound still renders. |
 
 ## Events
@@ -37,7 +36,6 @@ Purely presentational: the parent owns fetching (`GET /apps/openregister/api/vie
 | `apply` | View object | A view entry was clicked; apply its stored state. |
 | `save-request` | — | "Save current view…" clicked; open the save dialog. |
 | `delete-request` | View object | A view's delete entry was clicked; confirm and delete. Not rendered for a seeded view: a view the product ships is one a user may copy and not remove. |
-| `pin-request` | View object | A view's pin entry was clicked; pin or unpin it. Only when `allowPinning`. |
 
 ## The tree and the labels
 
