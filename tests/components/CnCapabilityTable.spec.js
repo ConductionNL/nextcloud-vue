@@ -165,6 +165,20 @@ describe('CnCapabilityTable', () => {
 			expect(empty.props('description')).toBe('Clear the search box or try another word.')
 		})
 
+		/*
+		 * 🔴 `t()` escapes its placeholders by default, and this line is read
+		 * through `{{ }}`, which escapes nothing further — it just shows what it
+		 * was handed. So the reader got their own query back as `a &amp; b`.
+		 * The test above passes over it because `zzzz` has nothing to escape,
+		 * which is the shape of every such bug.
+		 */
+		it('gives the reader their query back as they typed it', async () => {
+			const wrapper = mountTable(fullDocument())
+			await search(wrapper, 'zaken & dossiers')
+			expect(wrapper.findComponent({ name: 'NcEmptyContent' }).props('name'))
+				.toBe('No capability matches zaken & dossiers')
+		})
+
 		it('brings every row back when the reader clears the box', async () => {
 			const wrapper = mountTable(fullDocument())
 			await search(wrapper, 'retention')
@@ -205,6 +219,25 @@ describe('CnCapabilityTable', () => {
 			const wrapper = mountTable(legacyDocument())
 			expect(wrapper.findAll('.cn-capability-table__group-button')).toHaveLength(0)
 			expect(wrapper.findAll('.cn-capability-table__group-title').map((h) => h.text())).toEqual(['Intake 2'])
+		})
+
+		it('hides the toggle for a groupBy that locks the grouping', () => {
+			const wrapper = mountTable(fullDocument(), { groupBy: 'area' })
+			expect(wrapper.findAll('.cn-capability-table__group-button')).toHaveLength(0)
+			expect(wrapper.vm.groupMode).toBe('area')
+		})
+
+		/*
+		 * 🔴 `groupingAvailable` tested the raw prop for emptiness while
+		 * `groupMode` tested it against the two names it accepts, so a value
+		 * neither recognises — a plural, a typo — took the toggle away and then
+		 * grouped by the default anyway. The reader lost the control and got no
+		 * sign that the prop was wrong.
+		 */
+		it('keeps the toggle for a groupBy naming neither grouping', () => {
+			const wrapper = mountTable(fullDocument(), { groupBy: 'areas' })
+			expect(wrapper.findAll('.cn-capability-table__group-button')).toHaveLength(2)
+			expect(wrapper.vm.groupMode).toBe('feature')
 		})
 
 		it('shows a row with no feature under a heading that says so', () => {
@@ -286,6 +319,66 @@ describe('CnCapabilityTable', () => {
 			expect(tables.at(0).find('caption').text()).toBe('Capabilities in Case types, rated per system.')
 			expect(tables.at(0).findAll('thead th[scope="col"]').length).toBe(5)
 			expect(tables.at(0).findAll('tbody th[scope="row"]').length).toBe(1)
+		})
+
+		/*
+		 * 🔴 The same escaping as the empty state, and worse placed: a caption
+		 * is what a screen reader reads out to say which table it has reached,
+		 * so an area called "Zaken & Documenten" was announced as "Zaken
+		 * ampersand-a-m-p semicolon Documenten".
+		 */
+		it('names a group in its caption the way the document spells it', () => {
+			const document = fullDocument()
+			document.features[0].name = 'Zaken & Documenten'
+			const wrapper = mountTable(document)
+			expect(wrapper.findAll('table').at(0).find('caption').text())
+				.toBe('Capabilities in Zaken & Documenten, rated per system.')
+		})
+
+		/*
+		 * Everything else about this table treats a malformed document as
+		 * something to render anyway; the row key was the one place that
+		 * assumed `id` is present and unique. Keying by position instead costs
+		 * nothing — the rows are never reordered in place, only refiltered.
+		 *
+		 * Both halves of this pass on the old key too: a duplicate key is a
+		 * patch hazard and a Vue warning, not a first-render failure, and
+		 * jsdom will not stage the mis-patch for us. It is here as the
+		 * contract, beside the other four the module states in prose.
+		 */
+		const malformed = () => {
+			const document = legacyDocument()
+			document.capabilities = [
+				{ id: '1.1', area: 'intake', name: 'Citizen web form', dossiq: 'partial' },
+				{ id: '1.1', area: 'intake', name: 'A second row wearing the same number', dossiq: 'no' },
+				{ area: 'intake', name: 'A row with no number at all', dossiq: 'yes' },
+			]
+			return document
+		}
+
+		it('renders every row of a document that repeats an id or omits one', () => {
+			const wrapper = mountTable(malformed())
+			expect(wrapper.findAll('tbody tr')).toHaveLength(3)
+			expect(wrapper.findAll('tbody th[scope="row"]').map((cell) => cell.text())).toEqual([
+				'Citizen web form',
+				'A second row wearing the same number',
+				'A row with no number at all',
+			])
+		})
+
+		it('brings all three back intact after a filter has narrowed them', async () => {
+			const wrapper = mountTable(malformed())
+			await search(wrapper, 'second')
+			expect(wrapper.findAll('tbody tr')).toHaveLength(1)
+
+			wrapper.findComponent({ name: 'NcTextField' }).vm.$emit('trailingButtonClick')
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.findAll('tbody th[scope="row"]').map((cell) => cell.text())).toEqual([
+				'Citizen web form',
+				'A second row wearing the same number',
+				'A row with no number at all',
+			])
 		})
 
 		it('is still a table with headers after a filter', async () => {

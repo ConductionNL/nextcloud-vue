@@ -176,6 +176,23 @@ describe('matchesQuery', () => {
 		expect(matchesQuery(document.capabilities[2], 'openregister', document)).toBe(true)
 	})
 
+	/*
+	 * 🔴 The row, the area and the feature all put both languages in the index.
+	 * The provider went through resolveProvider(), which resolves ONE label and
+	 * defaulted to English, so a Dutch reader searching the Dutch name their
+	 * own page was showing them found nothing.
+	 */
+	it('matches a provider in either language, as it does every other label', () => {
+		const bilingual = {
+			...document,
+			providers: [{ key: 'openregister', name: 'Open Register', name_nl: 'Open Registers', kind: 'app' }],
+		}
+		const row = bilingual.capabilities[2]
+
+		expect(matchesQuery(row, 'Open Register', bilingual)).toBe(true)
+		expect(matchesQuery(row, 'Open Registers', bilingual)).toBe(true)
+	})
+
 	it('narrows on every term rather than widening', () => {
 		expect(matchesQuery(document.capabilities[0], 'intake dossiq', document)).toBe(true)
 		expect(matchesQuery(document.capabilities[0], 'intake nextcloud', document)).toBe(false)

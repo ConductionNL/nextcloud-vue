@@ -113,7 +113,13 @@
 						</tr>
 					</thead>
 					<tbody>
-						<tr v-for="row in group.capabilities" :key="row.id">
+						<!-- Keyed by position and not by `row.id`: a document
+						     that repeats an id, or omits one, is exactly the
+						     shape this table promises to still render, and a
+						     duplicate key is where that promise would break. -->
+						<tr
+							v-for="(row, index) in group.capabilities"
+							:key="`${group.key}-${index}`">
 							<td class="cn-capability-table__num">
 								{{ row.id }}
 							</td>
@@ -296,14 +302,27 @@ export default {
 		},
 
 		/**
+		 * The grouping `groupBy` locks, or empty when it names neither.
+		 *
+		 * Read by both `groupMode` and `groupingAvailable`, because a value
+		 * neither of them recognises must be ignored by both: testing the raw
+		 * prop for emptiness let `groupBy="areas"` hide the toggle while the
+		 * mode fell back to auto, so a typo silently removed the control.
+		 *
+		 * @return {string} `feature`, `area`, or empty.
+		 */
+		forcedGroupMode() {
+			return this.groupBy === 'feature' || this.groupBy === 'area' ? this.groupBy : ''
+		},
+
+		/**
 		 * The grouping in force: the `groupBy` prop, else the reader's choice,
 		 * else what the document suggests.
 		 *
 		 * @return {'feature'|'area'} The mode.
 		 */
 		groupMode() {
-			const forced = this.groupBy === 'feature' || this.groupBy === 'area' ? this.groupBy : ''
-			return forced || this.chosenGroupMode || defaultGroupMode(this.comparison)
+			return this.forcedGroupMode || this.chosenGroupMode || defaultGroupMode(this.comparison)
 		},
 
 		/**
@@ -313,7 +332,7 @@ export default {
 		 * @return {boolean} Whether to render the grouping toggle.
 		 */
 		groupingAvailable() {
-			return !this.groupBy && defaultGroupMode(this.comparison) === 'feature'
+			return !this.forcedGroupMode && defaultGroupMode(this.comparison) === 'feature'
 		},
 
 		/**
@@ -400,7 +419,10 @@ export default {
 		},
 
 		emptyName() {
-			return t('nextcloud-vue', 'No capability matches {query}', { query: this.query })
+			// `escape: false` because the result is rendered through `{{ }}`,
+			// which escapes it already. Left on, t() turns a search for
+			// `a & b` into the literal "No capability matches a &amp; b".
+			return t('nextcloud-vue', 'No capability matches {query}', { query: this.query }, undefined, { escape: false })
 		},
 
 		emptyDescription() {
@@ -542,9 +564,11 @@ export default {
 		 * @return {string} Its table caption.
 		 */
 		captionFor(group) {
+			// See `emptyName`: an area called "Zaken & Documenten" would reach
+			// the caption, and a screen reader, as "Zaken &amp; Documenten".
 			return t('nextcloud-vue', 'Capabilities in {group}, rated per system.', {
 				group: group.label,
-			})
+			}, undefined, { escape: false })
 		},
 	},
 }
@@ -655,6 +679,10 @@ export default {
 	overflow: hidden;
 	clip-path: inset(50%);
 	white-space: nowrap;
+	/* Padding and border are part of the recipe, not decoration: either one
+	   inherited onto the 1px box grows it back into the layout. */
+	padding: 0;
+	border: 0;
 	margin: -1px;
 }
 

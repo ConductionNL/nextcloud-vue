@@ -514,6 +514,18 @@ export default {
 		},
 	},
 
+	watch: {
+		// A comparison that goes away leaves the reader on a stop that no
+		// longer exists: the panel's v-else-if still matches, so it renders an
+		// empty CnCapabilityTable under a "Capabilities" heading until the
+		// reader thinks to press the toggle.
+		availableViews(views) {
+			if (!views.includes(this.activeView)) {
+				this.activeView = views[0]
+			}
+		},
+	},
+
 	mounted() {
 		this.publishHoistedSidebar()
 	},
