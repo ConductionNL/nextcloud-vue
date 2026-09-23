@@ -53,8 +53,11 @@ describe('listContextFromRoute', () => {
 	})
 
 	it('drops a sort entry with no key, which would sort by undefined', () => {
+		// The surviving entry comes back with an explicit direction: the one
+		// `_order` parser normalises a missing/bogus `order` to `asc` rather
+		// than leaving each consumer to default it.
 		expect(listContextFromRoute({ query: { _from: 'cases', _order: '[{"order":"asc"},{"key":"id"}]' } }).sortKeys)
-			.toEqual([{ key: 'id' }])
+			.toEqual([{ key: 'id', order: 'asc' }])
 	})
 })
 

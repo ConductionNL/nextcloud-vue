@@ -124,7 +124,7 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 		await flush()
 		await wrapper.findAll('[data-testid="cn-saved-views-item"]').at(0).trigger('click')
 		expect(wrapper.vm.$router.replace).toHaveBeenCalledWith({
-			query: { status: 'open', _search: 'urgent', _sortKey: 'created', _sortOrder: 'desc' },
+			query: { status: 'open', _search: 'urgent', _order: '[{"key":"created","order":"desc"}]' },
 		})
 		expect(wrapper.emitted('apply-view')[0][0]).toEqual(ownView)
 	})
@@ -148,7 +148,7 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 		axios.post.mockResolvedValue({ data: { view: { ...ownView, id: 3, name: 'Saved' } } })
 		const wrapper = mountPage(
 			{ allowSavedViews: true },
-			{ status: 'open', _search: 'urgent', _sortKey: 'name', _sortOrder: 'asc', _page: '2' },
+			{ status: 'open', _search: 'urgent', _order: '[{"key":"name","order":"asc"}]', _page: '2' },
 		)
 		await flush()
 		await wrapper.find('[data-testid="cn-saved-views-save"]').trigger('click')
@@ -170,7 +170,7 @@ describe('CnIndexPage — saved views (saved-views-ui)', () => {
 			query: {
 				filters: { status: 'open' },
 				search: 'urgent',
-				sort: { key: 'name', order: 'asc' },
+				sort: [{ key: 'name', order: 'asc' }],
 				// The pages this view belongs to: every page over this register
 				// and schema, and no other.
 				scope: 'procest/case',

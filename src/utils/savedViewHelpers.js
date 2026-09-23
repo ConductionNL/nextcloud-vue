@@ -8,13 +8,17 @@
  * (`/apps/openregister/api/views`, ViewsController + ViewService); these
  * helpers translate between the three state shapes involved:
  *
- * 1. **Route query** — CnIndexPage's existing deep-link contract: every
- *    `$route.query` key NOT starting with `_` is a fetch filter
- *    (see `useSelfFetchList.resolveQueryFilters`); `_`-prefixed keys are
- *    reserved list params. This module adds `_search`, `_sortKey` and
- *    `_sortOrder` as reserved keys for view application.
+ * 1. **Route query** — CnIndexPage's deep-link contract: every `$route.query`
+ *    key NOT starting with `_` is a fetch filter (see
+ *    `useSelfFetchList.resolveQueryFilters`); `_`-prefixed keys are reserved
+ *    list params. Search is `_search` and sort is `_order`, the JSON-encoded
+ *    ordered array `[{ key, order }, …]` — the one spelling CnIndexPage,
+ *    listNavigation, CnPageRenderer and OpenRegister's object API all agree
+ *    on. This module writes NO spelling of its own.
  * 2. **View state** — the normalized internal object
- *    `{ filters, search, sortKey, sortOrder }`.
+ *    `{ filters, search, sortKeys, sortKey, sortOrder }`, where `sortKeys` is
+ *    the truth and the last two mirror its first entry, exactly as
+ *    `useListView` holds the same state.
  * 3. **OR View payload** — the `POST/PUT /api/views` body whose opaque
  *    `query` field round-trips through OpenRegister unchanged.
  *
@@ -24,9 +28,65 @@
  * @module utils/savedViewHelpers
  */
 
+import { parseSortKeys } from './routeFilters.js'
+
 /** The default (empty) view state. @return {object} A fresh empty state. */
 function emptyState() {
-	return { filters: {}, search: '', sortKey: null, sortOrder: 'asc' }
+	return { filters: {}, search: '', sortKeys: [], sortKey: null, sortOrder: 'asc' }
+}
+
+/**
+ * Coerce anything into an ordered sort-key list.
+ *
+ * The single defensive entry point, and the whole of the stored-shape
+ * compatibility: a view saved before sorts could be chained holds `sort` as one
+ * `{ key, order }` object, and that must keep opening exactly as it does today.
+ *
+ * @param {unknown} value An array, a single `{ key, order }`, or anything else.
+ * @return {Array<{key: string, order: 'asc'|'desc'}>} The normalized list.
+ */
+function normalizeSortKeys(value) {
+	const list = Array.isArray(value) ? value : [value]
+	const seen = new Set()
+	const keys = []
+	for (const entry of list) {
+		if (!entry || typeof entry !== 'object' || typeof entry.key !== 'string' || entry.key === '') {
+			continue
+		}
+		if (seen.has(entry.key)) {
+			continue
+		}
+		seen.add(entry.key)
+		keys.push({ key: entry.key, order: entry.order === 'desc' ? 'desc' : 'asc' })
+	}
+	return keys
+}
+
+/**
+ * Write a sort onto a state, keeping the single-key mirror in step.
+ *
+ * @param {object} state The state to write onto (mutated and returned).
+ * @param {Array<{key: string, order: 'asc'|'desc'}>} keys The normalized sort.
+ * @return {object} The same state.
+ */
+function withSort(state, keys) {
+	state.sortKeys = keys
+	state.sortKey = keys.length > 0 ? keys[0].key : null
+	state.sortOrder = keys.length > 0 ? keys[0].order : 'asc'
+	return state
+}
+
+/**
+ * The sort a caller handed in, whichever of the two shapes they hold.
+ *
+ * @param {object} src A view state, possibly carrying only `sortKey`/`sortOrder`.
+ * @return {Array<{key: string, order: 'asc'|'desc'}>} The normalized sort.
+ */
+function sortKeysOf(src) {
+	if (src.sortKeys !== undefined && src.sortKeys !== null) {
+		return normalizeSortKeys(src.sortKeys)
+	}
+	return src.sortKey ? normalizeSortKeys({ key: src.sortKey, order: src.sortOrder }) : []
 }
 
 /**
@@ -34,12 +94,12 @@ function emptyState() {
  *
  * Non-underscore-prefixed keys become `filters` entries (values passed
  * through as-is, including arrays from `?status[]=a&status[]=b` deep
- * links). Reserved keys map onto the dedicated state fields: `_search`,
- * `_sortKey`, `_sortOrder`. Other reserved keys (`_page`, `_limit`, …)
- * are ignored — pagination is never part of a saved view.
+ * links). Reserved keys map onto the dedicated state fields: `_search` and
+ * `_order`. Other reserved keys (`_page`, `_limit`, …) are ignored —
+ * pagination is never part of a saved view.
  *
  * @param {object|null|undefined} query The `$route.query` object.
- * @return {{ filters: object, search: string, sortKey: ?string, sortOrder: string }} The normalized view state.
+ * @return {{ filters: object, search: string, sortKeys: Array<{key: string, order: string}>, sortKey: ?string, sortOrder: string }} The normalized view state.
  */
 export function extractViewStateFromRouteQuery(query) {
 	const state = emptyState()
@@ -58,24 +118,20 @@ export function extractViewStateFromRouteQuery(query) {
 	if (typeof query._search === 'string' && query._search !== '') {
 		state.search = query._search
 	}
-	if (typeof query._sortKey === 'string' && query._sortKey !== '') {
-		state.sortKey = query._sortKey
-		state.sortOrder = query._sortOrder === 'desc' ? 'desc' : 'asc'
-	}
-	return state
+	return withSort(state, parseSortKeys(query._order))
 }
 
 /**
  * Build a fresh route-query object that APPLIES a view state.
  *
- * Spreads `state.filters` (skipping null/undefined/empty-string values),
- * then sets the reserved keys only when meaningful: `_search` for a
- * non-empty search term, `_sortKey`/`_sortOrder` for an active sort.
- * Deliberately omits `_page` — applying a view is a full state replace
- * that implicitly resets pagination (the caller `$router.replace`s the
- * whole query, dropping any existing `_page`).
+ * Spreads `state.filters` (skipping null/undefined/empty-string/empty-array
+ * values, matching what `CnIndexPage.persistViewStateToRoute` skips — the two
+ * write the same query and must agree on what an absent filter looks like),
+ * then sets the reserved keys only when meaningful: `_search` for a non-empty
+ * search term, `_order` for an active sort. Deliberately omits `_page` —
+ * applying a view is a full state replace that implicitly resets pagination.
  *
- * @param {{ filters?: object, search?: string, sortKey?: ?string, sortOrder?: string }} state The view state to serialize.
+ * @param {{ filters?: object, search?: string, sortKeys?: Array<{key: string, order: string}>, sortKey?: ?string, sortOrder?: string }} state The view state to serialize.
  * @return {object} A plain object suitable for `$router.replace({ query })`.
  */
 export function buildRouteQueryFromViewState(state) {
@@ -83,7 +139,7 @@ export function buildRouteQueryFromViewState(state) {
 	const src = (state && typeof state === 'object') ? state : {}
 	const filters = (src.filters && typeof src.filters === 'object' && !Array.isArray(src.filters)) ? src.filters : {}
 	for (const [key, value] of Object.entries(filters)) {
-		if (value === undefined || value === null || value === '') {
+		if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
 			continue
 		}
 		query[key] = value
@@ -91,9 +147,9 @@ export function buildRouteQueryFromViewState(state) {
 	if (typeof src.search === 'string' && src.search !== '') {
 		query._search = src.search
 	}
-	if (src.sortKey) {
-		query._sortKey = String(src.sortKey)
-		query._sortOrder = src.sortOrder === 'desc' ? 'desc' : 'asc'
+	const keys = sortKeysOf(src)
+	if (keys.length > 0) {
+		query._order = JSON.stringify(keys)
 	}
 	return query
 }
@@ -110,7 +166,7 @@ export function buildRouteQueryFromViewState(state) {
  * @param {string} [options.description] Optional description.
  * @param {boolean} [options.isPublic] Share the view with other users.
  * @param {boolean} [options.isDefault] Mark as the user's default view.
- * @param {{ filters?: object, search?: string, sortKey?: ?string, sortOrder?: string }} options.state The view state to persist.
+ * @param {{ filters?: object, search?: string, sortKeys?: Array<{key: string, order: string}>, sortKey?: ?string, sortOrder?: string }} options.state The view state to persist.
  * @param {string} [options.scope] The pages this view belongs to, from {@link savedViewScope}; omitted when empty.
  * @param {string} [options.register] The page's register, written as OpenRegister's own `registers` list.
  * @param {object|string} [options.schema] The page's schema (slug or object), written as OpenRegister's own `schemas` list.
@@ -118,12 +174,14 @@ export function buildRouteQueryFromViewState(state) {
  */
 export function buildViewCreatePayload({ name, description, isPublic, isDefault, state, scope, register, schema } = {}) {
 	const src = (state && typeof state === 'object') ? state : {}
+	const keys = sortKeysOf(src)
 	const query = {
 		filters: (src.filters && typeof src.filters === 'object' && !Array.isArray(src.filters)) ? src.filters : {},
 		search: (typeof src.search === 'string') ? src.search : '',
-		sort: src.sortKey
-			? { key: String(src.sortKey), order: src.sortOrder === 'desc' ? 'desc' : 'asc' }
-			: null,
+		// `null` rather than `[]` for no sort: every view stored before sorts
+		// could be chained says `null`, and one spelling for "no sort" is worth
+		// more than the symmetry.
+		sort: keys.length > 0 ? keys : null,
 	}
 	if (typeof scope === 'string' && scope !== '') {
 		query.scope = scope
@@ -229,7 +287,7 @@ export function viewMatchesScope(view, page = {}) {
  * malformed `sort` all yield the empty/default state — never throws.
  *
  * @param {object|null|undefined} view The View API object (or its raw `query` blob).
- * @return {{ filters: object, search: string, sortKey: ?string, sortOrder: string }} The normalized view state.
+ * @return {{ filters: object, search: string, sortKeys: Array<{key: string, order: string}>, sortKey: ?string, sortOrder: string }} The normalized view state.
  */
 export function extractViewState(view) {
 	const state = emptyState()
@@ -252,12 +310,7 @@ export function extractViewState(view) {
 	if (typeof query.search === 'string') {
 		state.search = query.search
 	}
-	const sort = query.sort
-	if (sort && typeof sort === 'object' && !Array.isArray(sort) && sort.key) {
-		state.sortKey = String(sort.key)
-		state.sortOrder = sort.order === 'desc' ? 'desc' : 'asc'
-	}
-	return state
+	return withSort(state, normalizeSortKeys(query.sort))
 }
 
 /**

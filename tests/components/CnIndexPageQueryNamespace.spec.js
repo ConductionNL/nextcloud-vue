@@ -174,4 +174,62 @@ describe('CnIndexPage — @-token deep links keep their spelling', () => {
 		expect(lastQuery(replace).status).toBe('closed')
 		wrapper.unmount()
 	})
+
+	it('writes a chained sort as one _order entry per key, in order', async () => {
+		const { wrapper, replace } = mountPage({})
+		await settle()
+
+		wrapper.vm.persistViewStateToRoute({
+			filters: {},
+			search: '',
+			sortKeys: [{ key: 'status', order: 'asc' }, { key: 'created', order: 'desc' }],
+		})
+
+		expect(lastQuery(replace)._order).toBe('[{"key":"status","order":"asc"},{"key":"created","order":"desc"}]')
+		wrapper.unmount()
+	})
+})
+
+describe('CnIndexPage — clearing after a saved view has been applied', () => {
+	// The reported bug, end to end. Applying a view used to leave the address
+	// in a state nothing on the page could undo: its filter keys were never
+	// recorded as the page's own, so a later clear had nothing to delete them
+	// by, and its sort was written in a spelling the clear had never heard of.
+	it('leaves nothing of the view in the address', async () => {
+		const { wrapper, replace } = mountPage({})
+		await settle()
+
+		wrapper.vm.onApplySavedView({
+			id: 7,
+			query: { filters: { status: 'open' }, search: 'dakkapel', sort: [{ key: 'title', order: 'desc' }] },
+		})
+		await settle()
+
+		expect(lastQuery(replace)).toEqual({
+			status: 'open',
+			_search: 'dakkapel',
+			_order: '[{"key":"title","order":"desc"}]',
+		})
+
+		wrapper.vm.onClearFilters()
+		await settle()
+
+		expect(lastQuery(replace)).toEqual({})
+		wrapper.unmount()
+	})
+
+	it('applies a stored single-object sort, so a view saved before chaining still sorts', async () => {
+		const { wrapper, replace } = mountPage({})
+		await settle()
+
+		wrapper.vm.onApplySavedView({
+			id: 8,
+			query: { filters: {}, search: '', sort: { key: 'created', order: 'desc' } },
+		})
+		await settle()
+
+		expect(lastQuery(replace)._order).toBe('[{"key":"created","order":"desc"}]')
+		expect(wrapper.vm.list.sortKeys.value).toEqual([{ key: 'created', order: 'desc' }])
+		wrapper.unmount()
+	})
 })

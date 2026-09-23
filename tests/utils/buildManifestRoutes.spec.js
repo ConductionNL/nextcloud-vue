@@ -32,14 +32,6 @@ const CASES = {
 const CASE_DETAIL = { id: 'case-detail', route: '/cases/:id', type: 'detail', title: 'Case' }
 const PLAIN_LIST = { id: 'tasks', route: '/tasks', type: 'index', title: 'Tasks' }
 
-const VIEWED_LIST = {
-	id: 'queue',
-	route: '/queue',
-	type: 'index',
-	title: 'Queue',
-	savedViewPlaces: { enabled: true, routeBase: 'views' },
-}
-
 const Renderer = { name: 'CnPageRenderer' }
 
 describe('buildManifestRoutes', () => {
@@ -53,30 +45,13 @@ describe('buildManifestRoutes', () => {
 		expect(routes.every((r) => r.component === Renderer)).toBe(true)
 	})
 
-	it('emits a view record for a page whose saved views are places, mounting the same page', () => {
-		const routes = buildManifestRoutes({ pages: [VIEWED_LIST, CASE_DETAIL] }, { component: Renderer })
-
-		expect(routes.map((r) => [r.name, r.path])).toEqual([
-			['queue', '/queue'],
-			['queue__view', '/queue/views/:viewId'],
-			['case-detail', '/cases/:id'],
-		])
-		// The property under test: the view route resolves to the SAME page.
-		// A record that navigated somewhere else would still render, and a
-		// test that only counted records could not tell the difference.
-		expect(routes[1].meta).toEqual({ cnPageId: 'queue', cnSavedViewOf: 'queue' })
-		expect(routes[1].component).toBe(Renderer)
-	})
-
-	it('emits no view record for a page that declared places and turned them off', () => {
-		const off = { ...VIEWED_LIST, savedViewPlaces: { enabled: false } }
-		expect(buildManifestRoutes({ pages: [off] }, { component: Renderer }).map((r) => r.name)).toEqual(['queue'])
-	})
-
-	it('emits both records for a page that is a split view AND a place for its views', () => {
-		const both = { ...CASES, savedViewPlaces: { enabled: true } }
-		expect(buildManifestRoutes({ pages: [both] }, { component: Renderer }).map((r) => r.path))
-			.toEqual(['/cases', '/cases/views/:viewId', '/cases/split/:id'])
+	// A saved view is applied onto the page's own address, so it gets no record
+	// of its own. A leftover `<route>/views/:viewId` would resolve, render an
+	// unfiltered list and look like the feature still working.
+	it('emits no record for a saved view', () => {
+		const declaring = { id: 'queue', route: '/queue', type: 'index', title: 'Queue', savedViewPlaces: { enabled: true, routeBase: 'views' } }
+		expect(buildManifestRoutes({ pages: [declaring] }, { component: Renderer }).map((r) => r.path))
+			.toEqual(['/queue'])
 	})
 
 	it('emits a second record for a page declaring splitView, directly after it', () => {
