@@ -21,7 +21,7 @@ function mountPage() {
 			layout: [{ id: 1, widgetId: 'kpi', gridX: 0, gridY: 0, gridWidth: 4 }],
 			widgets: [{ id: 'kpi', type: 'stat', title: 'Total value', content: { label: 'Total value' } }],
 		},
-		stubs: { CnStatWidget: true, CnWidgetWrapper: { name: 'CnWidgetWrapper', template: '<div class="stub-wrapper"><slot name="title-icon" /><slot /></div>' } },
+		stubs: { CnStatWidget: true, CnWidgetWrapper: { name: 'CnWidgetWrapper', props: ['showActions'], template: '<div class="stub-wrapper"><slot name="title-icon" /><slot /></div>' } },
 	})
 }
 
@@ -34,5 +34,10 @@ describe('CnDetailPage — card widget chrome', () => {
 	it('wraps the card widget in CnWidgetWrapper chrome (card-fit)', () => {
 		const w = mountPage()
 		expect(w.find('.cn-detail-page__card-fit').exists()).toBe(true)
+	})
+
+	it('draws no Actions menu on the tile card, so a narrow tile keeps its title', () => {
+		const w = mountPage()
+		expect(w.findComponent({ name: 'CnWidgetWrapper' }).props('showActions')).toBe(false)
 	})
 })
