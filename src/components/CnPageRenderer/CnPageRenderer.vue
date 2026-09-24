@@ -1134,7 +1134,7 @@ export default {
 			// merge. Unresolved sentinels become null (with a one-shot
 			// console.warn per pageId+sentinel).
 			const pageId = page?.id ?? '<unknown>'
-			const config = resolveRouteSentinels(rawConfig, params, pageId)
+			let config = resolveRouteSentinels(rawConfig, params, pageId)
 			// Schema v2 lifts a uniform set of page-level fields out of
 			// `config` so every page type can declare them without
 			// per-type schema branches. Forward those to the dispatched
@@ -1229,8 +1229,11 @@ export default {
 			if (isIndex) {
 				const hasRowRoute = typeof config.rowRoute === 'string' && config.rowRoute !== ''
 				const hasDetail = this.detailPageByRegisterSchema.has(`${config.register} ${config.schema}`)
-				if (hasRowRoute || hasDetail) {
+				if (hasRowRoute || hasDetail || pageHasSplitView(page)) {
 					topLevel.rowClickToView = true
+				} else if (config.rowClickToView === true) {
+					// Nowhere to open a row, so the click selects instead of doing nothing.
+					config = { ...config, rowClickToView: false }
 				}
 				// `editOpensDetail` is NOT derived from that signal. It used to be,
 				// on the reasoning that a record with a detail page is better edited

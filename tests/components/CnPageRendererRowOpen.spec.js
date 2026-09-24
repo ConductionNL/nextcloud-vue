@@ -77,6 +77,26 @@ describe('CnPageRenderer.onRowOpen', () => {
 		expect(wrapper.vm.resolvedProps.rowClickToView).toBeUndefined()
 	})
 
+	it('drops an explicit rowClickToView when there is nowhere to open a row, so the click selects', () => {
+		const noDetail = {
+			...manifest,
+			pages: manifest.pages
+				.filter((p) => p.type !== 'detail')
+				.map((p) => (p.id === 'Meetings' ? { ...p, config: { ...p.config, rowClickToView: true } } : p)),
+		}
+		const { wrapper } = mountAt('Meetings', noDetail)
+		expect(wrapper.vm.resolvedProps.rowClickToView).toBe(false)
+	})
+
+	it('keeps an explicit rowClickToView: false, so a page can still choose select over open', () => {
+		const pinned = {
+			...manifest,
+			pages: manifest.pages.map((p) => (p.id === 'Meetings' ? { ...p, config: { ...p.config, rowClickToView: false } } : p)),
+		}
+		const { wrapper } = mountAt('Meetings', pinned)
+		expect(wrapper.vm.resolvedProps.rowClickToView).toBe(false)
+	})
+
 	describe('the target route names its own id param', () => {
 		// A manifest is free to write `/applications/:objectId`. Pushing a
 		// hardcoded `{ id }` there makes vue-router discard the param and throw

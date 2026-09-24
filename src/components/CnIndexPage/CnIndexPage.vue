@@ -437,7 +437,7 @@
 					:sortOrder="effectiveSortOrder"
 					:sortKeys="effectiveSortKeys"
 					:selectable="selectable"
-					:rowClickToView="rowClickToView"
+					:rowClickToView="rowClickOpens"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
 					:emptyText="emptyText"
@@ -620,7 +620,7 @@
 					:objects="displayObjects"
 					:schema="effectiveSchema"
 					:selectable="selectable"
-					:clickToView="rowClickToView"
+					:clickToView="rowClickOpens"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
 					:emptyText="emptyText"
@@ -2735,6 +2735,26 @@ export default {
 		 */
 		resolvedCustomComponents() {
 			return this.effectiveCustomComponents
+		},
+
+		/**
+		 * Whether a row click opens the row rather than selecting it:
+		 * `rowClickToView` is set AND something can open it (a `row-click`
+		 * listener, or a named source that routes its own rows). Otherwise a
+		 * click on a selectable page selects, so it is never dead.
+		 *
+		 * @return {boolean}
+		 */
+		rowClickOpens() {
+			if (!this.rowClickToView) {
+				return false
+			}
+			if (this.isNamedSource && (this.rowRoute
+				|| typeof this.namedSource?.openRow === 'function'
+				|| this.namedSource?.detailRoute)) {
+				return true
+			}
+			return !!this.$.vnode.props?.onRowClick
 		},
 
 		/**
@@ -5507,7 +5527,7 @@ export default {
 		},
 
 		onRowClick(row) {
-			if (this.selectable && !this.rowClickToView) {
+			if (this.selectable && !this.rowClickOpens) {
 				this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
 				return
 			}
@@ -5536,7 +5556,7 @@ export default {
 				}
 			}
 			/**
-			 * @event row-click Emitted on a row/card click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox).
+			 * @event row-click Emitted on a row/card click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set and something can open the row (selection then happens via the checkbox).
 			 * @type {object} The clicked row object.
 			 */
 			this.$emit('row-click', row)
