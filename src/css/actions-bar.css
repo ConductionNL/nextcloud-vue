@@ -283,10 +283,9 @@
    placement from before this split.
    Under ~900px of bar width — where wrapping becomes a real possibility —
    both groups flatten (`display: contents`) into the bar's own flex row
-   so the controls wrap as individual items in that same role order, and
-   every control grows to fill its row: on a break the view toggle stays
-   with the search group and the act buttons drop to their own full-width
-   row — no ragged right-aligned staircase. The view-toggle segments also
+   so the controls wrap as individual items in that same role order,
+   keeping their own width, with the act buttons held at the end of their
+   row. The view-toggle segments also
    go icon-only (labels stay in the accessibility tree) to keep one row
    viable longer. */
 @container cn-actions-bar (max-width: 900px) {
@@ -309,19 +308,12 @@
 
 	.cn-actions-bar__actions > * {
 		order: 2;
-		flex: 1 1 auto;
 	}
 
-	/* On its own wrapped row the toggle may stretch (segments share the
-	   width); the base no-shrink rule keeps it intact while inline. */
-	.cn-actions-bar__view-toggle {
-		flex: 1 1 auto;
-	}
-
-	/* The sort control's select grows with its row (the 140px floor stays
-	   as the flex basis via min-width on the select itself). */
-	.cn-actions-bar__sort .cn-actions-bar__sort-select {
-		flex: 1 1 auto;
+	/* Controls keep their own width; the act cluster stays pushed to the
+	   end, on the first row or on a wrapped one. */
+	.cn-actions-bar__actions > :first-child {
+		margin-inline-start: auto;
 	}
 
 	/* Visually hidden, NOT display:none — the label remains each segment
