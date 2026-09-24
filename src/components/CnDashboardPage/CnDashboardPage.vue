@@ -3820,6 +3820,7 @@ export default {
 
 .cn-dashboard-page__header-actions {
 	display: flex;
+	align-items: center;
 	gap: 8px;
 	flex-wrap: wrap;
 	flex-shrink: 0;
