@@ -123,7 +123,7 @@ export default {
 | `store` | Object | `null` | Explicit Pinia objectStore instance; auto-detected via Pinia when omitted |
 | `overrides` | Object | `{}` | Per-property config: `{ key: { order, gridColumn, gridRow, hidden, editable, label, widget } }` |
 | `columns` | Number | `3` | Number of CSS grid columns in the widget |
-| `collapsedFields` (`collapsed-fields`) | Number | `4` | Number of fields shown while collapsed. With more fields, a "Show all N fields" button reveals the rest |
+| `collapsedFields` (`collapsed-fields`) | Number | `null` | Number of fields shown while collapsed, with a "Show all N fields" button for the rest. `null` fits the cell: the whole rows that fit stay, and the button only appears when the cell overflows |
 | `hideEmpty` | Boolean | `false` | Hide fields with no value instead of rendering an em dash. For discriminated supertypes (one `ticket` schema holding request/complaint/contactmoment), so the grid is type-aware without the schema enumerating which fields belong to which variant. Read grid only — the field being edited, a field with unsaved changes, and the Edit form stay visible; `false`/`0` are values and are never hidden. |
 | `exclude` | Array | `[]` | Property keys to hide |
 | `include` | Array | `null` | Property keys to show (whitelist; shows all when `null`) |

@@ -148,6 +148,8 @@ The detail body is, at its core, a real drag/resize grid powered by
   `include` (field whitelist) / `exclude` (blacklist), forwarded to
   `CnObjectDataWidget` — so one object can be presented as several purposeful
   data widgets ("Core case data" / "Process"), each sized to its field count.
+  `collapsedFields` pins how many fields show before "Show all N fields";
+  left out, the widget keeps the whole rows that fit its cell.
 - **Content-only catalog widgets get card chrome.** `object-list` / `table`
   cells render on `CnWidgetWrapper` with the widget def's `title` (they have no
   chrome of their own); self-chromed catalog widgets (stat / chart / …) render

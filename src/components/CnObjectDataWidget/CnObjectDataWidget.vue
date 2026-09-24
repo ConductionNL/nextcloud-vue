@@ -71,10 +71,10 @@
 			{{ emptyLabel }}
 		</div>
 
-		<!-- Collapsed, the grid shows the first `collapsedFields` fields;
-		     "Show all N fields" renders the rest. -->
+		<!-- Collapsed, the grid shows the fields that fit the cell (or the
+		     first `collapsedFields`); "Show all N fields" renders the rest. -->
 		<div v-else class="cn-object-data-widget__grid-wrap">
-			<div class="cn-object-data-widget__grid" :style="gridStyle">
+			<div ref="grid" class="cn-object-data-widget__grid" :style="gridStyle">
 				<div
 					v-for="field in visibleFields"
 					:key="field.key"
@@ -661,12 +661,13 @@ export default {
 		},
 
 		/**
-		 * Number of fields shown while collapsed. When there are more fields, a
-		 * "Show all N fields" button reveals the rest.
+		 * Number of fields shown while collapsed. `null` fits the cell: the
+		 * whole rows that fit stay, and only an overflowing cell gets the
+		 * "Show all N fields" button.
 		 */
 		collapsedFields: {
 			type: Number,
-			default: 4,
+			default: null,
 		},
 
 		/**
@@ -791,6 +792,8 @@ export default {
 			relationOptionsLoading: false,
 			/** Whether the user expanded the widget to see every field. */
 			expanded: false,
+			/** Fields that fit the cell while collapsed; null when all fit. */
+			fitCount: null,
 		}
 	},
 
@@ -954,9 +957,15 @@ export default {
 			}
 		},
 
+		/** Fields shown while collapsed; null shows all of them. */
+		collapsedCount() {
+			const count = this.collapsedFields ?? this.fitCount
+			return count === null || count === undefined ? null : Math.max(1, count)
+		},
+
 		/** Whether some fields are left out while collapsed. */
 		hasHiddenFields() {
-			return this.resolvedFields.length > Math.max(1, this.collapsedFields)
+			return this.collapsedCount !== null && this.resolvedFields.length > this.collapsedCount
 		},
 
 		/** The fields rendered: all of them when expanded, else the first few. */
@@ -964,7 +973,7 @@ export default {
 			if (this.expanded || !this.hasHiddenFields) {
 				return this.resolvedFields
 			}
-			return this.resolvedFields.slice(0, Math.max(1, this.collapsedFields))
+			return this.resolvedFields.slice(0, this.collapsedCount)
 		},
 
 		/** Pre-translated "Show all N fields" affordance label. */
@@ -979,6 +988,14 @@ export default {
 	},
 
 	watch: {
+		'resolvedFields.length'() {
+			this.scheduleFit()
+		},
+
+		collapsedFields() {
+			this.scheduleFit()
+		},
+
 		objectData: {
 			deep: true,
 			handler() {
@@ -1022,9 +1039,15 @@ export default {
 	mounted() {
 		this.resolveRelations()
 		this.publishPanelActions()
+		this.observeCell()
+		this.scheduleFit()
 	},
 
 	beforeUnmount() {
+		if (this._cellObserver) {
+			this._cellObserver.disconnect()
+		}
+		clearTimeout(this._fitTimer)
 		// Leave nothing behind in the strip's menu. A closed tab's panel can be
 		// torn down while the strip lives on, and an item whose widget is gone
 		// would open a dialog belonging to nothing.
@@ -1060,6 +1083,65 @@ export default {
 		/** Toggle between the first few fields and all of them. */
 		toggleExpanded() {
 			this.expanded = !this.expanded
+			if (!this.expanded) {
+				this.scheduleFit()
+			}
+		},
+
+		/**
+		 * The wrapper's content node: the cell whose height the fields fit into.
+		 *
+		 * @return {HTMLElement|null}
+		 */
+		cellContent() {
+			return this.$el?.querySelector?.('.cn-widget-wrapper__content')
+				|| this.$el?.closest?.('.cn-widget-wrapper__content')
+				|| null
+		},
+
+		/** Re-fit when the cell is resized. */
+		observeCell() {
+			const content = this.cellContent()
+			if (content && typeof ResizeObserver !== 'undefined') {
+				this._cellObserver = new ResizeObserver(() => this.scheduleFit())
+				this._cellObserver.observe(content)
+			}
+		},
+
+		/** Debounce fitFields so a data load's burst of changes fits once. */
+		scheduleFit() {
+			clearTimeout(this._fitTimer)
+			this._fitTimer = setTimeout(() => this.fitFields(), 30)
+		},
+
+		/**
+		 * In fit mode, render every field, then keep the whole rows that fit
+		 * the cell with room left for the toggle.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fitFields() {
+			if (this.collapsedFields !== null || this.expanded) {
+				return
+			}
+			this.fitCount = null
+			await this.$nextTick()
+			const content = this.cellContent()
+			const grid = this.$refs.grid
+			if (!content || !grid || !content.clientHeight || content.scrollHeight <= content.clientHeight + 1) {
+				return
+			}
+			const style = getComputedStyle(content)
+			const box = content.getBoundingClientRect()
+			const toggleReserve = 44
+			const limit = box.top + content.clientTop + content.clientHeight
+				- parseFloat(style.paddingBottom || 0) - toggleReserve - content.scrollTop
+			const cells = Array.from(grid.querySelectorAll('.cn-object-data-widget__cell'))
+				.map((el) => el.getBoundingClientRect())
+			const overflowing = cells.find((r) => r.bottom > limit)
+			// Drop the whole row the first overflowing field sits in.
+			const count = overflowing ? cells.filter((r) => r.top < overflowing.top - 1).length : cells.length
+			this.fitCount = count < cells.length ? Math.max(1, count) : null
 		},
 
 		/**

@@ -96,6 +96,7 @@
 			:exclude="content.exclude || []"
 			:hideEmpty="content.hideEmpty === true || hideEmpty"
 			:columns="content.columns || 3"
+			:collapsedFields="content.collapsedFields ?? null"
 			:editable="content.editable !== false" />
 
 		<!-- `type: 'related'` — resolves this object's relations and links into
