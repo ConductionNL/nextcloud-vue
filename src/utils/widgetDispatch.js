@@ -162,7 +162,8 @@ export function resolveRegistryRenderer(def, cnRegistry = {}) {
  * A title-owning type (registry `ownsTitle`, e.g. `related`) keeps its editable
  * title in `content.title`, and that MUST win over the chrome `def.title`.
  * Otherwise a non-empty seed title permanently shadows the user's edit and the
- * title can never be changed. Every other type reads `def.title` first.
+ * title can never be changed. Without a `content.title` it falls back to
+ * `def.title`. Every other type reads `def.title` first.
  *
  * @param {object} def The widget definition.
  * @return {string|undefined} The title, or undefined to let the widget default.
@@ -174,6 +175,10 @@ export function widgetTitleOf(def) {
 	const content = widgetContentOf(def)
 	const entry = getWidgetTypeEntry(def.type)
 	if (entry && entry.ownsTitle) {
+		// A manifest that never set content.title keeps its def.title.
+		if (typeof content.title !== 'string') {
+			return def.title || undefined
+		}
 		return content.title || undefined
 	}
 	return def.title || content.title || undefined

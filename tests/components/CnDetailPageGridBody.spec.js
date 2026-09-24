@@ -157,6 +157,15 @@ describe('CnDetailPage — adjustable body grid', () => {
 			wrapper.unmount()
 		})
 
+		it('falls back to the chrome title when a title-owning widget has no content.title', async () => {
+			const layout = [{ id: 1, widgetId: 'd1', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 4 }]
+			const widgets = [{ id: 'd1', type: 'data', title: 'Terms', content: { columns: 2 } }]
+			const wrapper = mount(CnDetailPage, { propsData: { layout, widgets } })
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.widgetDisplayTitle(layout[0])).toBe('Terms')
+			wrapper.unmount()
+		})
+
 		it('keeps the chrome title authoritative for non-title-owning types', async () => {
 			const layout = [{ id: 1, widgetId: 'w1', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 3 }]
 			const widgets = [{ id: 'w1', type: 'stat', title: 'KPI', content: { title: 'ignored' } }]
