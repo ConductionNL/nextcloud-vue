@@ -212,8 +212,10 @@ export function useSelfFetchList(props, instance, inject) {
 	// when the workspace/app-config bag content changes (e.g. the
 	// administration switcher writes a new `activeAdministrationId`) — a
 	// `@workspace.<key>`/`@config.<key>` token in `props.filter` must re-scope
-	// the list without a manual reload.
-	watch([activeQuickFilterIndex, selectedQuickFilterIndices, workspaceSignature, appConfigSignature], () => {
+	// the list without a manual reload. A change to `props.filter` itself (a
+	// host toggling a filter checkbox) re-fetches the same way.
+	const filterSignature = computed(() => JSON.stringify(props.filter ?? null))
+	watch([activeQuickFilterIndex, selectedQuickFilterIndices, workspaceSignature, appConfigSignature, filterSignature], () => {
 		if (list && typeof list.refresh === 'function') {
 			list.refresh(1)
 		}
