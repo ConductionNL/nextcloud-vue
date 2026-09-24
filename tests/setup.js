@@ -30,8 +30,16 @@ global.OC = {
 	webroot: '',
 	config: {
 		session_lifetime: 86400,
+		// A pretty-URL instance at the domain root, so @nextcloud/router's
+		// generateUrl() (and prefixUrl()) return bare `/apps/...` paths.
+		modRewriteWorking: true,
 	},
 }
+// Without it the router guesses the webroot from the test page's path.
+if (typeof window !== 'undefined') {
+	window._oc_webroot = ''
+}
+
 
 // Mock window.fetch if not available in jsdom
 if (!global.fetch) {

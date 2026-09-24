@@ -31,8 +31,12 @@ Returns the raw `Response`.
 
 ## What it does for you
 
-- **`prefixUrl`** — Nextcloud may be served with or without `/index.php`. An API
-  call must use the **same** prefix as the page, or the request is rejected.
+- **`prefixUrl`** — Nextcloud may be served with or without `/index.php`, and
+  from a subdirectory. The prefix comes from `@nextcloud/router`'s
+  `generateUrl()` (webroot, plus `/index.php` unless URL rewriting works), so a
+  bare `/apps/...` path does not 404 on an instance without pretty URLs.
+  `/ocs/` and `/remote.php` paths get the webroot only; absolute URLs and
+  already-prefixed paths pass through unchanged.
 - **`buildHeaders`** — the single blessed CSRF idiom
   (`requesttoken: OC.requestToken`), plus `Content-Type`, the OpenRegister
   organisation header and the translation-target header.
