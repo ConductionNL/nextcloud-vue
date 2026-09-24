@@ -123,7 +123,8 @@ export default {
 		// flags. The whole lib is compat-construct-free (v-model, no .sync/filters/
 		// $set/$listeners/Vue.extend); the compile sweep passes 332/332 with no
 		// compatConfig, so the published dist is plain Vue 3.
-		vue(),
+		// Template comments would otherwise ship as comment nodes in every consumer's DOM.
+		vue({ template: { compilerOptions: { comments: false } } }),
 		// DELTA 5 (openspec task 1.3): strip Vue Styleguidist <docs> custom blocks.
 		// @vitejs/plugin-vue emits them as modules whose raw prose isn't JS, which
 		// rollup can't parse. rollup-plugin-vue (Vue 2) silently ignored them.

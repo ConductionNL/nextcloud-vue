@@ -346,7 +346,8 @@ export default {
 				return (v3 !== resolved.id && fs.existsSync(v3)) ? { ...resolved, id: v3 } : resolved
 			},
 		},
-		vue({ css: false }),
+		// Template comments would otherwise ship as comment nodes in every consumer's DOM.
+		vue({ css: false, compilerOptions: { comments: false } }),
 		// MUST come after vue() — it rewrites that plugin's generated trailer.
 		anchorSfcDefaultExport(),
 		postcss({ extract: 'nextcloud-vue.css', plugins: [postcssImport(), unwrapVueDeep()] }),
