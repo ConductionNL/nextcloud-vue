@@ -883,14 +883,15 @@ export default {
 			if (this.colors.length > 0) {
 				return this.colors
 			}
-			// Nextcloud-themed color palette
+			// Element tokens stay bright in dark mode, where the plain status
+			// tokens are dark background tints. Each falls back for Nextcloud < 32.
 			return [
 				'var(--color-primary-element, #0082c9)',
-				'var(--color-success, #46ba61)',
-				'var(--color-warning, #e9a300)',
-				'var(--color-error, #e04224)',
-				'var(--color-primary-element-light, #aad2ed)',
+				'var(--color-element-success, var(--color-success, #46ba61))',
+				'var(--color-element-warning, var(--color-warning, #e9a300))',
+				'var(--color-element-error, var(--color-error, #e04224))',
 				'var(--color-text-maxcontrast, #767676)',
+				'var(--color-element-info, #0099e0)',
 			]
 		},
 
