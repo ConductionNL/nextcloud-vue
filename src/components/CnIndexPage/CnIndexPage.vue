@@ -1109,6 +1109,8 @@ export default {
 		 * the page shows a config cog in its actions bar (emits `configure`).
 		 */
 		cnEditingBody: { default: false },
+		/** Opens a registry modal, provided by CnAppRoot. Used by `createModal`. */
+		cnOpenModal: { default: null },
 		/**
 		 * Reactive holder provided by CnAppRoot for hoisting the
 		 * embedded CnIndexSidebar to NcContent level. The default
@@ -1767,6 +1769,15 @@ export default {
 		showFormDialog: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Registry key of a `kind: 'modal'` entry that Add (and `?action=create`)
+		 * opens instead of the built-in form dialog. Edits keep the form dialog.
+		 */
+		createModal: {
+			type: String,
+			default: '',
 		},
 
 		/** Use CnAdvancedFormDialog (properties table, JSON tab, optional metadata) instead of CnFormDialog for Add/Edit */
@@ -5758,7 +5769,7 @@ export default {
 			// keeps declared emits out of `$attrs`.
 			if (this.$.vnode.props?.onAdd) {
 				this.$emit('add')
-			} else if (this.showFormDialog) {
+			} else if (!this.openCreateModal() && this.showFormDialog) {
 				this.editItem = null
 				this.showFormDialogVisible = true
 			}
@@ -5780,10 +5791,12 @@ export default {
 			if (!this.$route || !this.$route.query || this.$route.query.action !== 'create') {
 				return
 			}
-			if (!this.showFormDialog) {
-				return
+			if (!this.openCreateModal()) {
+				if (!this.showFormDialog) {
+					return
+				}
+				this.openFormDialog(null)
 			}
-			this.openFormDialog(null)
 			// Clear the query param; guard against redundant navigation errors.
 			if (this.$router) {
 				const query = { ...this.$route.query }
@@ -6316,6 +6329,20 @@ export default {
 		openFormDialog(item = null) {
 			this.editItem = item
 			this.showFormDialogVisible = true
+		},
+
+		/**
+		 * Open the `createModal` registry modal, when one is set and a CnAppRoot
+		 * ancestor can mount it.
+		 *
+		 * @return {boolean} Whether the modal was opened.
+		 */
+		openCreateModal() {
+			if (!this.createModal || typeof this.cnOpenModal !== 'function') {
+				return false
+			}
+			this.cnOpenModal(this.createModal)
+			return true
 		},
 
 		/**
