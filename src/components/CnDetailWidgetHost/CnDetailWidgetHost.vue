@@ -17,10 +17,7 @@
 		     the panel keeps half a card.
 
 		     Chromeless does NOT mean no wrapper element. The wrapper's content
-		     node is what `CnObjectDataWidget` measures its overflow against and
-		     what the library's table and detail-page CSS key on; removing it
-		     would take the whole-row clip out silently, because a `closest()`
-		     that finds nothing reads as "nothing overflows".
+		     node is what the library's table and detail-page CSS key on.
 
 		     It used to keep the whole card here, because its Save button lives
 		     in CnWidgetWrapper's header and hiding the header hid Save with it.

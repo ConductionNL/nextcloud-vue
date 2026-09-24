@@ -2,18 +2,19 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * Tests for CnObjectDataWidget item-1 fix (ADR-062): when the field grid
- * overflows its cell it is clipped at a WHOLE-ROW boundary (never mid-text),
- * with a bottom fade + a "Show all N fields" toggle that expands in place.
+ * Tests for CnObjectDataWidget's collapsed field set: collapsed it renders the
+ * first `collapsedFields` fields, and "Show all N fields" renders the rest.
  */
 import { shallowMount } from '@vue/test-utils'
 import CnObjectDataWidget from '../../src/components/CnObjectDataWidget/CnObjectDataWidget.vue'
 
-const SCHEMA = { properties: { a: { type: 'string' }, b: { type: 'string' }, c: { type: 'string' } } }
+const KEYS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+const SCHEMA = { properties: Object.fromEntries(KEYS.map((k) => [k, { type: 'string' }])) }
+const DATA = Object.fromEntries(KEYS.map((k, i) => [k, String(i)]))
 
-function mountWidget() {
+function mountWidget(props = {}) {
 	return shallowMount(CnObjectDataWidget, {
-		propsData: { schema: SCHEMA, objectData: { a: '1', b: '2', c: '3' }, editable: false },
+		propsData: { schema: SCHEMA, objectData: DATA, editable: false, ...props },
 		stubs: {
 			CnWidgetWrapper: { template: '<div><slot /></div>' },
 			CnFormDialog: true,
@@ -23,59 +24,30 @@ function mountWidget() {
 	})
 }
 
-describe('CnObjectDataWidget — whole-row overflow clip', () => {
-	it('computeWholeRowClip picks the largest row-bottom within the budget', () => {
-		const w = mountWidget()
-		// Rows end at 40, 80, 120, 160; budget 130 → clip at 120 (whole rows only).
-		expect(w.vm.computeWholeRowClip([40, 80, 120, 160], 130)).toBe(120)
+const cellCount = (w) => w.findAll('.cn-object-data-widget__cell').length
+
+describe('CnObjectDataWidget — collapsed field set', () => {
+	it('shows the first 4 fields while collapsed by default', () => {
+		const w = mountWidget({ columns: 2 })
+		expect(cellCount(w)).toBe(4)
+		expect(w.find('.cn-object-data-widget__toggle').text()).toBe('Show all 8 fields')
 	})
 
-	it('computeWholeRowClip keeps the first row even when it exceeds the budget', () => {
-		const w = mountWidget()
-		// A single very tall row (200) with a 130 budget still shows — the fade
-		// covers the overflow, we never cut BEFORE the first row.
-		expect(w.vm.computeWholeRowClip([200, 400], 130)).toBe(200)
-	})
-
-	it('computeWholeRowClip returns the budget when there are no rows', () => {
-		const w = mountWidget()
-		expect(w.vm.computeWholeRowClip([], 130)).toBe(130)
-	})
-
-	it('cellRowBottoms groups cells into rows and reports each row bottom', () => {
-		const w = mountWidget()
-		const cell = (top, bottom) => ({ getBoundingClientRect: () => ({ top, bottom }) })
-		// gridTop=0. Two cells on row 1 (top 0) + one on row 2 (top 40).
-		const bottoms = w.vm.cellRowBottoms([cell(0, 38), cell(0, 40), cell(40, 78)], 0)
-		expect(bottoms).toEqual([40, 78])
-	})
-
-	it('toggle switches expanded state and the button label', async () => {
-		const w = mountWidget()
-		w.setData({ overflowing: true })
-		await w.vm.$nextTick()
-		expect(w.find('.cn-object-data-widget__toggle').text()).toBe('Show all 3 fields')
+	it('shows every field once expanded, and the first few again on collapse', async () => {
+		const w = mountWidget({ columns: 2 })
 		w.vm.toggleExpanded()
 		await w.vm.$nextTick()
-		expect(w.vm.expanded).toBe(true)
+		expect(cellCount(w)).toBe(8)
 		expect(w.find('.cn-object-data-widget__toggle').text()).toBe('Show less')
+
+		w.vm.toggleExpanded()
+		await w.vm.$nextTick()
+		expect(cellCount(w)).toBe(4)
 	})
 
-	it('collapsedGridStyle applies the whole-row max-height only when clipped', async () => {
-		const w = mountWidget()
-		expect(w.vm.collapsedGridStyle.maxHeight).toBeUndefined()
-		w.setData({ overflowing: true, collapsedMaxHeight: 120 })
-		await w.vm.$nextTick()
-		expect(w.vm.collapsedGridStyle.maxHeight).toBe('120px')
-		w.setData({ expanded: true })
-		await w.vm.$nextTick()
-		// Expanded → no clip.
-		expect(w.vm.collapsedGridStyle.maxHeight).toBeUndefined()
-	})
-
-	it('no toggle renders when the field set fits the cell (not overflowing)', () => {
-		const w = mountWidget()
-		expect(w.vm.overflowing).toBe(false)
+	it('renders no toggle when every field fits the collapsed count', () => {
+		const w = mountWidget({ collapsedFields: 8 })
+		expect(cellCount(w)).toBe(8)
 		expect(w.find('.cn-object-data-widget__toggle').exists()).toBe(false)
 	})
 })

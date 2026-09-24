@@ -29,6 +29,7 @@ Schema-driven editable data grid widget. Displays object properties in a CSS gri
 | `store` | `Object` | `null` | Optional objectStore instance. When provided, used directly for saving instead of auto-detecting via Pinia. |
 | `overrides` | `Object` | `{}` | Per-property configuration overrides (see below) |
 | `columns` | `Number` | `3` | Number of grid columns |
+| `collapsedFields` (`collapsed-fields`) | `Number` | `4` | Number of fields shown while collapsed. With more fields, a "Show all N fields" button reveals the rest |
 | `editable` | `Boolean` | `true` | Whether editing is enabled globally — gates both inline (click-to-edit) and the full-form **Edit** action item |
 | `edit-label` | `String` | `'Edit'` | Label for the Edit action item, which opens a schema-driven `CnFormDialog` pre-filled with the object (alongside inline editing) |
 | `hide-empty` | `Boolean` | `false` | Hide fields that have no value instead of rendering them with an em dash. Read grid only — a field being edited, a field with an unsaved change, and the full Edit form stay visible. |
