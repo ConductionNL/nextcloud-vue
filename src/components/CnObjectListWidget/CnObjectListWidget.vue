@@ -40,9 +40,12 @@
 			:compact="fitRows !== null && fitRows < 3"
 			class="cn-object-list-widget__empty">
 			<template v-if="allowCreate && !waitingForContext" #action>
-				<button type="button" class="cn-object-list-widget__add" @click="openCreate">
-					+ {{ addLabel }}
-				</button>
+				<NcButton @click="openCreate">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ addLabel }}
+				</NcButton>
 			</template>
 		</CnWidgetEmptyState>
 		<!-- The fetch came back with rows, but the active facet selection
@@ -220,13 +223,16 @@
 		     same openCreate() through the public method. Suppressed while the
 		     empty state is showing — that renders its own copy in its #action
 		     slot, and two Add buttons on one empty card read as a bug. -->
-		<button
+		<div
 			v-if="allowCreate && !waitingForContext && !showingEmptyState"
-			type="button"
-			class="cn-object-list-widget__add"
-			@click="openCreate">
-			+ {{ addLabel }}
-		</button>
+			class="cn-object-list-widget__add">
+			<NcButton variant="tertiary" wide @click="openCreate">
+				<template #icon>
+					<Plus :size="20" />
+				</template>
+				{{ addLabel }}
+			</NcButton>
+		</div>
 		<!-- Upload affordance. A `dropZone` action already accepts a dropped
 		     `File[]`; this is the click-to-pick equivalent of the same drop,
 		     for the reader who never drags a file. `content.upload: false`
@@ -266,6 +272,8 @@
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton } from '@nextcloud/vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
@@ -308,7 +316,7 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 export default {
 	name: 'CnObjectListWidget',
 
-	components: { CnDataTable, CnFormDialog, CnPagination, CnWidgetEmptyState, CnRowActions, CnFkResolveCell },
+	components: { CnDataTable, CnFormDialog, CnPagination, CnWidgetEmptyState, CnRowActions, CnFkResolveCell, NcButton, Plus },
 
 	inject: {
 		/**
@@ -1724,25 +1732,11 @@ export default {
    the card bottom. */
 .cn-object-list-widget__add {
 	align-self: stretch;
-	background: none;
-	border: none;
 	border-top: 1px solid var(--color-border);
-	color: var(--color-primary-element);
-	cursor: pointer;
-	font: inherit;
-	font-weight: 600;
 	/* Bleed through the host card's 16px content padding so the divider
-	   spans edge-to-edge, exactly like the integration leaves' footer.
-	   !important: Nextcloud server ships `#app-content button { margin:
-	   3px … }` — an id-selector rule no scoped class can outrank. */
-	margin: auto -16px -16px !important;
-	padding: 12px 8px;
-	text-align: center;
-}
-
-.cn-object-list-widget__add:hover,
-.cn-object-list-widget__add:focus-visible {
-	text-decoration: underline;
+	   spans edge-to-edge, exactly like the integration leaves' footer. */
+	margin: auto -16px -16px;
+	padding: 4px;
 }
 
 .cn-object-list-widget__error {
