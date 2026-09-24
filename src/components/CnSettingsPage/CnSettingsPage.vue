@@ -233,6 +233,7 @@ import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnSettingsCard } from '../CnSettingsCard/index.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
 import CnSettingsWidgetMount from './CnSettingsWidgetMount.js'
+import { prefixUrl } from '../../utils/headers.js'
 
 /**
  * Sentinel value used in the built-in widget registry to mark the
@@ -907,7 +908,7 @@ export default {
 			this.lastError = null
 			try {
 				if (this.saveEndpoint) {
-					await axios.put(this.saveEndpoint, this.formData)
+					await axios.put(prefixUrl(this.saveEndpoint), this.formData)
 				}
 				this.originalData = JSON.parse(JSON.stringify(this.formData))
 				this.$emit('save', this.formData)

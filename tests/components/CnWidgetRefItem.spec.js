@@ -86,7 +86,7 @@ describe('CnWidgetRefItem', () => {
 			// Let the created() async run.
 			await flushPromises()
 
-			expect(axios.get).toHaveBeenCalledWith('/index.php/apps/openregister/api/schemas/regulation/widgets/coverageGrid')
+			expect(axios.get).toHaveBeenCalledWith('/apps/openregister/api/schemas/regulation/widgets/coverageGrid')
 		})
 
 		it('renders the resolved component after API success', async () => {

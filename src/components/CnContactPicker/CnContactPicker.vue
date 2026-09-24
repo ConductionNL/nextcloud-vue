@@ -388,7 +388,7 @@ export default {
 			}
 			try {
 				const url = `${this.userSearchUrl}?format=json&itemType=file&shareType=0&perPage=25&search=${encodeURIComponent(term)}`
-				const response = await fetch(url, {
+				const response = await fetch(prefixUrl(url), {
 					headers: { ...buildHeaders(), 'OCS-APIRequest': 'true' },
 				})
 				if (!response.ok) {

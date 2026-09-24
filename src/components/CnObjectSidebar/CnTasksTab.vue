@@ -289,7 +289,7 @@ export default {
 				return
 			}
 			try {
-				const response = await fetch('/ocs/v2.php/cloud/users/details?format=json&limit=50', {
+				const response = await fetch(prefixUrl('/ocs/v2.php/cloud/users/details?format=json&limit=50'), {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {

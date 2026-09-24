@@ -131,6 +131,7 @@ import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import { buildFeatureRequestUrl } from '../../utils/forge.js'
 import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
+import { prefixUrl } from '../../utils/headers.js'
 
 /**
  * CnAdminSettingsShell — the canonical chrome for a Conduction app's Nextcloud
@@ -420,7 +421,7 @@ export default {
 
 		/** @return {string} Re-import endpoint. */
 		resolvedReimportUrl() {
-			return this.reimportUrl || generateUrl('/apps/{appId}/api/settings/load', { appId: this.appId })
+			return prefixUrl(this.reimportUrl) || generateUrl('/apps/{appId}/api/settings/load', { appId: this.appId })
 		},
 
 		/** @return {string} Re-import button label. */

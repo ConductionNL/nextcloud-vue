@@ -33,6 +33,8 @@
  *   no LLM provider configured), the AI icon simply does not render.
  */
 
+import { prefixUrl } from '../utils/headers.js'
+
 /**
  * Default chat/agent backend app id the AI Chat Companion targets.
  *
@@ -45,10 +47,10 @@ export const DEFAULT_CHAT_APP_ID = 'hermiq'
  *
  * @param {string} [appId] Backend app id. Falls back to {@link DEFAULT_CHAT_APP_ID}
  *   when empty/nullish so a mis-wired prop never produces `/apps//api`.
- * @return {string} e.g. `/index.php/apps/hermiq/api`
+ * @return {string} e.g. `/index.php/apps/hermiq/api` (or `/apps/hermiq/api` with pretty URLs)
  */
 export function chatApiBase(appId = DEFAULT_CHAT_APP_ID) {
-	return `/index.php/apps/${appId || DEFAULT_CHAT_APP_ID}/api`
+	return prefixUrl(`/apps/${appId || DEFAULT_CHAT_APP_ID}/api`)
 }
 
 /**

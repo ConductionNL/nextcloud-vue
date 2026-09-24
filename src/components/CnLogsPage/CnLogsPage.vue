@@ -182,6 +182,7 @@ import { CnDataTable } from '../CnDataTable/index.js'
 import { CnDetailGrid } from '../CnDetailGrid/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
+import { prefixUrl } from '../../utils/headers.js'
 
 /**
  * Legacy default columns. Retained ONLY for `source` mode and for a store
@@ -899,7 +900,7 @@ export default {
 				this.localLoading = true
 				this.localError = null
 				try {
-					const response = await axios.get(this.source)
+					const response = await axios.get(prefixUrl(this.source))
 					const body = response?.data
 					if (Array.isArray(body)) {
 						this.localRows = body

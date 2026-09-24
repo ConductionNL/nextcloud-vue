@@ -72,11 +72,9 @@ describe('CnRunNodeDialog', () => {
 		})
 		await flush()
 
-		// A path already starting with /apps is used as-is (matching
-		// CnFlowNodeEditModal's own optionsFrom convention) — only a
-		// BARE path (no /apps, no /index.php prefix) goes through
-		// generateUrl().
-		expect(axios.get).toHaveBeenCalledWith('/apps/dossiq/api/templates')
+		// An app-absolute path gets the instance prefix (prefixUrl, which
+		// takes it from generateUrl()), or the no-pretty-URL 404 comes back.
+		expect(axios.get).toHaveBeenCalledWith('/nc/apps/dossiq/api/templates')
 		expect(wrapper.vm.optionsFor({ key: 'templateSlug' })).toEqual([
 			{ id: 'a1', label: 'Alpha' },
 			{ id: 'b2', label: 'Beta' },

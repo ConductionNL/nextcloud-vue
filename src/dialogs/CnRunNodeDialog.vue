@@ -86,8 +86,8 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
+import { prefixUrl } from '../utils/headers.js'
 
 /**
  * The dialog `run-node` opens to collect a directly-invoked flow node's own
@@ -271,9 +271,7 @@ export default {
 			try {
 				const [{ default: axios }] = await Promise.all([import('@nextcloud/axios')])
 				const raw = String(field.optionsFrom)
-				const url = (raw.startsWith('/') && !raw.startsWith('/apps') && !raw.startsWith('/index.php'))
-					? generateUrl(raw)
-					: raw
+				const url = prefixUrl(raw)
 				const response = await axios.get(url)
 				const rows = Array.isArray(response.data) ? response.data : (response.data?.results || [])
 				const opts = rows.map((row) => {

@@ -74,6 +74,7 @@ import DOMPurify from 'dompurify'
 import { objectToGeoFeature } from '../../utils/geo.js'
 import { objectDisplayName } from '../../utils/objectName.js'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
+import { prefixUrl } from '../../utils/headers.js'
 
 // Leaflet's own stylesheet positions the map panes, tiles the tile
 // images, and places the zoom/attribution controls. The JS is lazy-loaded
@@ -722,7 +723,7 @@ export default {
 		 */
 		fetchAndAddGeoJson(url, opts) {
 			const L = this.L
-			fetch(url)
+			fetch(prefixUrl(url))
 				.then((r) => r.json())
 				.then((json) => {
 					if (!this.map) {
@@ -1131,7 +1132,7 @@ export default {
 			}
 			if (typeof ds.url === 'string' && ds.url.length > 0) {
 				try {
-					const response = await fetch(ds.url)
+					const response = await fetch(prefixUrl(ds.url))
 					const json = await response.json()
 					return this.normaliseFeatures(json)
 				} catch (err) {
