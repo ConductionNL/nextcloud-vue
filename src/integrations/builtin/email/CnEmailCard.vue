@@ -61,6 +61,7 @@
 </template>
 
 <script>
+import { markRaw } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcLoadingIcon } from '@nextcloud/vue'
 import Email from 'vue-material-design-icons/Email.vue'
@@ -136,7 +137,7 @@ export default {
 
 	data() {
 		return {
-			Email,
+			Email: markRaw(Email),
 			messages: [],
 			total: 0,
 			loading: false,

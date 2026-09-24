@@ -122,6 +122,7 @@
 </template>
 
 <script>
+import { markRaw } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
@@ -249,7 +250,7 @@ export default {
 
 	data() {
 		return {
-			FileCompare,
+			FileCompare: markRaw(FileCompare),
 			entries: [],
 			loading: false,
 			loadingMore: false,

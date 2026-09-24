@@ -87,6 +87,7 @@
 </template>
 
 <script>
+import { markRaw } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import CheckboxBlankOutline from 'vue-material-design-icons/CheckboxBlankOutline.vue'
@@ -185,7 +186,7 @@ export default {
 
 	data() {
 		return {
-			CheckboxMarkedOutline,
+			CheckboxMarkedOutline: markRaw(CheckboxMarkedOutline),
 			allTasks: [],
 			loading: false,
 		}

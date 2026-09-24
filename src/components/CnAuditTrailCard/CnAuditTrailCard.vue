@@ -43,6 +43,7 @@
 </template>
 
 <script>
+import { markRaw } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import History from 'vue-material-design-icons/History.vue'
@@ -101,7 +102,7 @@ export default {
 
 	data() {
 		return {
-			History,
+			History: markRaw(History),
 			entries: [],
 			loading: false,
 		}
