@@ -257,6 +257,17 @@ describe('CnObjectSidebar — open-enum tabs (custom branch)', () => {
 		expect(wrapper.findComponent(MyCustomWidget).exists()).toBe(true)
 	})
 
+	it('resolves a widget type from the injected v2 cnRegistry', () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const wrapper = mountSidebar(
+			{ tabs: [{ id: 't', label: 'T', widgets: [{ type: 'MyWidget' }] }] },
+			{ provide: { cnRegistry: { MyWidget: { kind: 'widget', component: MyCustomWidget } } } },
+		)
+		expect(wrapper.findComponent(MyCustomWidget).exists()).toBe(true)
+		expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('Unknown widget type'))
+		warn.mockRestore()
+	})
+
 	it('logs a console.warn when a widget type is unresolved', () => {
 		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		mountSidebar({

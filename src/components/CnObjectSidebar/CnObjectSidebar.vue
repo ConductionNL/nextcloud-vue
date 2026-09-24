@@ -952,8 +952,8 @@ export default {
 		/**
 		 * Resolve a widget type to a component. Built-in types (`data`,
 		 * `metadata`, `audit` / `audit-trail`, `object-table`) map to their
-		 * lib component; any other type falls back to the customComponents
-		 * registry. Logs a console.warn and returns null when nothing
+		 * lib component; any other type resolves against the v2 registry, then
+		 * the legacy customComponents map. Logs a console.warn and returns null when nothing
 		 * resolves.
 		 *
 		 * @param {string} type Widget type identifier
@@ -963,12 +963,16 @@ export default {
 			if (BUILTIN_WIDGETS[type]) {
 				return BUILTIN_WIDGETS[type]
 			}
+			const registryEntry = this.effectiveRegistry[type]
+			if (registryEntry && registryEntry.component) {
+				return registryEntry.component
+			}
 			const reg = this.effectiveCustomComponents
 			if (reg && reg[type]) {
 				return reg[type]
 			}
 			// eslint-disable-next-line no-console
-			console.warn(`[CnObjectSidebar] Unknown widget type "${type}" — not in built-ins (data, metadata, audit, audit-trail, object-table) and not in customComponents registry.`)
+			console.warn(`[CnObjectSidebar] Unknown widget type "${type}" — not in built-ins (data, metadata, audit, audit-trail, object-table), the registry or customComponents.`)
 			return null
 		},
 
