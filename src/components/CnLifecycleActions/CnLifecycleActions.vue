@@ -3,9 +3,9 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div v-if="visibleTransitions.length > 0 || error" class="cn-lifecycle-actions" data-testid="cn-lifecycle-actions">
+	<div v-if="(barTransitions.length > 0) || error || inputTransition" class="cn-lifecycle-actions" data-testid="cn-lifecycle-actions">
 		<NcButton
-			v-for="tr in visibleTransitions"
+			v-for="tr in barTransitions"
 			:key="tr.action"
 			class="cn-lifecycle-actions__button"
 			:variant="tr.variant || 'secondary'"
@@ -137,9 +137,23 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * Where the transitions are drawn. `buttons` (the default) renders one
+		 * NcButton each. `menu` renders none and emits `entries`, so the host
+		 * can put them in its Actions menu while this component keeps the
+		 * input dialog and the error.
+		 *
+		 * @type {'buttons'|'menu'}
+		 */
+		display: {
+			type: String,
+			default: 'buttons',
+			validator: (v) => ['buttons', 'menu'].includes(v),
+		},
 	},
 
-	emits: ['transitioned', 'reload'],
+	emits: ['transitioned', 'reload', 'entries'],
 
 	data() {
 		return {
@@ -223,9 +237,51 @@ export default {
 					...(Array.isArray(tr.inputs) && tr.inputs.length > 0 ? { inputs: tr.inputs } : {}),
 				}))
 		},
+
+		/**
+		 * The transitions this component draws as buttons itself. Empty in
+		 * `display: "menu"`, where the host draws them.
+		 *
+		 * @return {Array<object>}
+		 */
+		barTransitions() {
+			return this.display === 'menu' ? [] : this.visibleTransitions
+		},
+
+		/**
+		 * Menu-ready descriptors for a `display: "menu"` host, in the shape
+		 * CnActionButtons emits.
+		 *
+		 * @return {Array<object>}
+		 */
+		menuEntries() {
+			return this.visibleTransitions.map((tr) => ({
+				id: `cn-lifecycle-${tr.action}`,
+				label: tr.label,
+				// Generic, so a transition never renders as the lone iconless item.
+				iconName: 'PlayCircleOutline',
+				iconClass: null,
+				disabled: this.working,
+				pressed: null,
+				testid: `cn-lifecycle-action-${tr.action}`,
+				run: () => this.onTransition(tr),
+			}))
+		},
 	},
 
 	watch: {
+		menuEntries: {
+			immediate: true,
+			handler(entries) {
+				if (this.display === 'menu') {
+					/**
+					 * @event entries Emitted in `display: "menu"` only, whenever the transitions or the pending state change. Payload: one menu-ready descriptor per transition, carrying `id`, `label`, `disabled`, `pressed`, `testid` and a pre-bound `run()`.
+					 */
+					this.$emit('entries', entries)
+				}
+			},
+		},
+
 		objectId: {
 			immediate: true,
 			handler() {

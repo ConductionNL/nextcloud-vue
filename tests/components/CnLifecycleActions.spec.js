@@ -118,6 +118,32 @@ describe('CnLifecycleActions', () => {
 		})
 	})
 
+	describe('display: menu', () => {
+		it('draws no buttons and emits one menu entry per transition', async () => {
+			axios.get.mockResolvedValue({
+				data: { actions: [{ action: 'pickup', to: 'assigned', description: 'Pick up the task' }] },
+			})
+			axios.post.mockResolvedValue({ data: { id: 'task-1' } })
+			const wrapper = mount(CnLifecycleActions, {
+				propsData: { objectId: 'task-1', config: { field: 'status' }, display: 'menu' },
+				stubs,
+			})
+			await flush()
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.find('[data-testid="cn-lifecycle-actions"]').exists()).toBe(false)
+			const entries = wrapper.emitted('entries').at(-1)[0]
+			expect(entries).toHaveLength(1)
+			expect(entries[0]).toMatchObject({ label: 'Pick up the task', iconName: 'PlayCircleOutline', testid: 'cn-lifecycle-action-pickup', disabled: false })
+
+			await entries[0].run()
+			expect(axios.post).toHaveBeenCalledWith(
+				'/nc/apps/openregister/api/objects/task-1/transition',
+				{ action: 'pickup' },
+			)
+		})
+	})
+
 	describe('config-declared transitions', () => {
 		it('filters declared transitions by the object current status (no fetch)', async () => {
 			const wrapper = mount(CnLifecycleActions, {

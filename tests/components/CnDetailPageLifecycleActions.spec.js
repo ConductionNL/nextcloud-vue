@@ -13,7 +13,7 @@ import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
 const LifecycleStub = {
 	name: 'CnLifecycleActions',
-	props: ['objectId', 'object', 'config', 'schema'],
+	props: ['objectId', 'object', 'config', 'schema', 'display'],
 	template: '<div class="lifecycle-stub" data-testid="lifecycle-stub" />',
 }
 
@@ -52,6 +52,26 @@ describe('CnDetailPage — lifecycleActions', () => {
 		expect(child.props('objectId')).toBe('o1')
 		expect(child.props('config')).toEqual({ field: 'status' })
 		expect(child.props('object')).toEqual({ id: 'o1', status: 'open' })
+	})
+
+	it('puts the transitions in the Actions menu instead of the header', async () => {
+		const wrapper = mount(CnDetailPage, {
+			propsData: {
+				register: 'r',
+				schema: 's',
+				objectId: 'o1',
+				objectStore: makeFakeStore({ id: 'o1', status: 'open' }),
+				lifecycleActions: { field: 'status' },
+			},
+			stubs: { CnLifecycleActions: LifecycleStub },
+		})
+		const child = wrapper.findComponent(LifecycleStub)
+		expect(child.props('display')).toBe('menu')
+
+		const entry = { id: 'cn-lifecycle-close', label: 'Close', testid: 'cn-lifecycle-action-close', run: jest.fn() }
+		child.vm.$emit('entries', [entry])
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.headerMenuEntries[0]).toStrictEqual(entry)
 	})
 
 	it('forwards the fetched schema so transition inputs resolve their fields', () => {

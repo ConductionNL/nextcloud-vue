@@ -155,16 +155,19 @@
 					@click="$emit('primary-action', primaryAction)">
 					{{ primaryActionLabel }}
 				</NcButton>
-				<!-- Declarative lifecycle/transition buttons (manifest
+				<!-- Declarative lifecycle transitions (manifest
 				     `config.lifecycleActions`). Status-gated; driven by the
-				     object's x-openregister-lifecycle. Renders nothing when no
-				     transitions apply. -->
+				     object's x-openregister-lifecycle. They land in the Actions
+				     menu below, since a record with several transitions filled
+				     the header with buttons. -->
 				<CnLifecycleActions
-					v-if="lifecycleActions && (objectId || currentObject)"
+					v-if="showsLifecycleActions"
 					:objectId="objectId"
 					:object="currentObject"
 					:config="lifecycleActions"
 					:schema="currentSchema"
+					display="menu"
+					@entries="lifecycleMenuEntries = $event"
 					@transitioned="onTransitioned"
 					@reload="onLifecycleReload" />
 				<!-- Declarative header actions (#91 Wave 3): a manifest
@@ -253,8 +256,8 @@
 					testidBase="cn-detail-page"
 					@refresh="onHeaderRefresh"
 					@requestFeature="onHeaderRequestFeature">
-					<template v-if="menuHeaderActions.length" #primary-items>
-						<template v-for="entry in menuHeaderActions">
+					<template v-if="headerMenuEntries.length" #primary-items>
+						<template v-for="entry in headerMenuEntries">
 							<!-- An action that goes to a URL is a LINK. The browser
 							     then supplies middle-click, "open in new tab" and the
 							     semantics assistive tech announces, none of which a
@@ -1911,6 +1914,8 @@ export default {
 			 * menu dispatches without reaching back into that component.
 			 */
 			menuHeaderActions: [],
+			/** Lifecycle transitions CnLifecycleActions hands the Actions menu. */
+			lifecycleMenuEntries: [],
 			/** Whether the per-widget style/config editor modal is open. */
 			showWidgetConfig: false,
 			/** The widgetId currently being configured via the cog. */
@@ -2150,6 +2155,22 @@ export default {
 		 *
 		 * @return {boolean}
 		 */
+		/** Whether the lifecycle transitions are mounted. */
+		showsLifecycleActions() {
+			return Boolean(this.lifecycleActions && (this.objectId || this.currentObject))
+		},
+
+		/**
+		 * Everything the Actions menu lists above its built-in items: the
+		 * lifecycle transitions, then the declared header actions.
+		 *
+		 * @return {Array<object>} Menu-ready entries.
+		 */
+		headerMenuEntries() {
+			const lifecycle = this.showsLifecycleActions ? this.lifecycleMenuEntries : []
+			return [...lifecycle, ...this.menuHeaderActions]
+		},
+
 		/**
 		 * Whether Edit joins the CnActionButtons cluster instead of standing
 		 * on its own. Opted into by `inlineActions`.
