@@ -933,7 +933,7 @@ export default {
 }
 
 .cn-widget-object-table__error {
-	color: var(--color-error);
+	color: var(--color-text-error, var(--color-error-text));
 	font-size: 0.85em;
 	margin: 4px 8px 0;
 }

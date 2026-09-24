@@ -22,7 +22,7 @@ describe('CnDeltaWidget', () => {
 		await w.vm.$nextTick()
 		expect(w.vm.deltaPct).toBeCloseTo(20, 5)
 		expect(w.vm.formattedDelta).toBe('+20.0%')
-		expect(w.vm.deltaColor).toBe('var(--color-success)')
+		expect(w.vm.deltaColor).toBe('var(--color-text-success, var(--color-success-text))')
 		expect(w.vm.deltaIcon).toBe('TrendingUp')
 	})
 
@@ -31,7 +31,7 @@ describe('CnDeltaWidget', () => {
 		w.setData({ current: 80, previous: 100 })
 		await w.vm.$nextTick()
 		expect(w.vm.formattedDelta).toBe('-20.0%')
-		expect(w.vm.deltaColor).toBe('var(--color-error)')
+		expect(w.vm.deltaColor).toBe('var(--color-text-error, var(--color-error-text))')
 		expect(w.vm.deltaIcon).toBe('TrendingDown')
 	})
 
@@ -39,7 +39,7 @@ describe('CnDeltaWidget', () => {
 		const w = mount({ source: { goodDirection: 'down' } })
 		w.setData({ current: 80, previous: 100 })
 		await w.vm.$nextTick()
-		expect(w.vm.deltaColor).toBe('var(--color-success)')
+		expect(w.vm.deltaColor).toBe('var(--color-text-success, var(--color-success-text))')
 	})
 
 	it('returns null delta when previous is zero', async () => {

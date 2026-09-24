@@ -47,6 +47,7 @@
 </template>
 
 <script>
+import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
@@ -449,7 +450,7 @@ export default {
 				|| this.content.goodDirection || 'up'
 			const rising = this.deltaPct > 0
 			const isGood = good === 'up' ? rising : !rising
-			return isGood ? 'var(--color-success)' : 'var(--color-error)'
+			return isGood ? STATUS_TEXT_COLORS.success : STATUS_TEXT_COLORS.error
 		},
 
 		/** Stable signature so the watcher only refetches on real change. */

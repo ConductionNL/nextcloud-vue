@@ -66,7 +66,7 @@ describe('CnDeltaWidget — endpointSource (Wave 2)', () => {
 		expect(wrapper.vm.effectivePrevious).toBe(100)
 		expect(wrapper.vm.deltaPct).toBeCloseTo(20)
 		expect(wrapper.find('.cn-delta-widget__delta').text()).toContain('+20.0%')
-		expect(wrapper.vm.deltaColor).toBe('var(--color-success)')
+		expect(wrapper.vm.deltaColor).toBe('var(--color-text-success, var(--color-success-text))')
 	})
 
 	it('uses a server-computed deltaField directly and honours top-level goodDirection', async () => {
@@ -80,7 +80,7 @@ describe('CnDeltaWidget — endpointSource (Wave 2)', () => {
 		await flush()
 		expect(wrapper.vm.deltaPct).toBe(-10)
 		// Falling + goodDirection down = good = green.
-		expect(wrapper.vm.deltaColor).toBe('var(--color-success)')
+		expect(wrapper.vm.deltaColor).toBe('var(--color-text-success, var(--color-success-text))')
 	})
 
 	it('resolves @workspace params so the dashboard range drives the period', async () => {

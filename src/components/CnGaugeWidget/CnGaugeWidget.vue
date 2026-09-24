@@ -10,7 +10,7 @@
 		v-bind="linkAttrs">
 		<div class="cn-gauge-widget__head">
 			<span v-if="content.label" class="cn-gauge-widget__label">{{ resolvedLabel }}</span>
-			<span class="cn-gauge-widget__pct" :style="{ color: barColor }">
+			<span class="cn-gauge-widget__pct" :style="{ color: pctColor }">
 				<NcLoadingIcon v-if="loading" :size="16" />
 				<span v-else-if="error" :title="error">—</span>
 				<template v-else>{{ pctLabel }}</template>
@@ -31,6 +31,7 @@
 </template>
 
 <script>
+import { STATUS_TEXT_COLORS, STATUS_FILL_COLORS } from '../../utils/statusColors.js'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import widgetLink from '../../mixins/widgetLink.js'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
@@ -201,10 +202,25 @@ export default {
 			return Math.min(100, Math.max(0, this.ratio * 100)) + '%'
 		},
 
-		/** Bar colour from the threshold bands (invert flips good/bad). */
+		/** Bar colour from the threshold bands. */
 		barColor() {
+			return this.level ? STATUS_FILL_COLORS[this.level] : 'var(--color-primary-element)'
+		},
+
+		/** Percentage text colour, the readable text shade of the bar's band. */
+		pctColor() {
+			return this.level ? STATUS_TEXT_COLORS[this.level] : 'var(--color-primary-element)'
+		},
+
+		/**
+		 * The threshold band the value sits in (invert flips good/bad), or null
+		 * while there is no value.
+		 *
+		 * @return {'success'|'warning'|'error'|null}
+		 */
+		level() {
 			if (this.ratio === null) {
-				return 'var(--color-primary-element)'
+				return null
 			}
 			const th = this.content.thresholds || {}
 			const pct = this.ratio * 100
@@ -222,12 +238,12 @@ export default {
 				level = level === 'ok' ? 'danger' : level === 'danger' ? 'ok' : 'warn'
 			}
 			if (level === 'danger') {
-				return 'var(--color-error)'
+				return 'error'
 			}
 			if (level === 'warn') {
-				return 'var(--color-warning)'
+				return 'warning'
 			}
-			return 'var(--color-success)'
+			return 'success'
 		},
 
 		/** The value, number-formatted per content.format. */
