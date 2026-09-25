@@ -317,6 +317,7 @@
 		<!-- @binding {object} schema The effective JSON schema driving the form. -->
 		<!-- @binding {Function} confirm Persists the form data through the page's own save path (store / self-store / createOverride) and emits `create`/`edit`. Call this instead of saving in the replacement dialog, so a create or edit made there behaves exactly like one made in the built-in dialog. Takes the complete object to save. List refresh is automatic on the self-fetch and `createOverride` paths; with the `store` prop, refresh is driven by the consumer's `create`/`edit` handler as usual. -->
 		<!-- @binding {Function} close Closes the form dialog. -->
+		<!-- @binding {Function} refresh Re-reads the list. For a replacement dialog that saves through its own endpoint rather than `confirm`, so the list still shows what it saved. -->
 		<!--
 		     `confirm` is bound as a PROP, not left as an `@confirm` listener on
 		     the default child. A manifest-declared replacement is mounted by
@@ -331,7 +332,8 @@
 			:item="editItem"
 			:schema="effectiveSchema"
 			:confirm="onFormConfirm"
-			:close="closeFormDialog">
+			:close="closeFormDialog"
+			:refresh="onRefreshEvent">
 			<CnFormDialog
 				v-if="showFormDialogVisible && !useAdvancedFormDialog"
 				ref="formDialog"

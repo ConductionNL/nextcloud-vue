@@ -663,7 +663,7 @@ No new props are required on `CnIndexPage`.
 |------|-------|-------------|
 | `delete-dialog` | `{ show, item, confirm, close }` | Replace the single-item delete dialog |
 | `copy-dialog` | `{ show, item, confirm, close }` | Replace the single-item copy dialog |
-| `form-dialog` | `{ show, item, schema, confirm, close }` | Replace the create/edit form dialog |
+| `form-dialog` | `{ show, item, schema, confirm, close, refresh }` | Replace the create/edit form dialog |
 | `form-fields` | `{ fields, formData, errors, updateField }` | Replace form content inside the built-in `CnFormDialog` |
 | `import-fields` | `{ file }` | Extra fields in the import dialog |
 | `empty` | — | Custom empty state content |
