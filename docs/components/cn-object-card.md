@@ -36,7 +36,7 @@ The schema's `configuration` object controls card layout:
 |-----|-------------|
 | `objectNameField` | Field used as card title |
 | `objectDescriptionField` | Field used as description text |
-| `objectImageField` | Field containing image URL |
+| `objectImageField` | Field containing the image, resolved through [`resolveImageUrl`](../utilities/resolve-image-url.md) (an `app:<app>/<file>` reference or an `/apps/…` route becomes a real URL; an absolute URL is used as-is) |
 | `objectSummaryField` | Field used as summary |
 
 ## Events

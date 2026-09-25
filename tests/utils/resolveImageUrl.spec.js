@@ -6,6 +6,7 @@ import { resolveImageUrl } from '@/utils/resolveImageUrl.js'
 
 jest.mock('@nextcloud/router', () => ({
 	generateUrl: (path) => `/index.php${path}`,
+	imagePath: jest.fn(() => 'resolved-by-imagePath'),
 }))
 
 describe('resolveImageUrl', () => {
@@ -35,6 +36,19 @@ describe('resolveImageUrl', () => {
 			.toBe('/nextcloud/apps/launchpad/resource/x.gif')
 		expect(resolveImageUrl('apps/launchpad/resource/x.gif'))
 			.toBe('apps/launchpad/resource/x.gif')
+	})
+
+	// Where the app's img/ folder lives depends on the install, which is
+	// imagePath()'s business, so this only checks what it is asked for.
+	it('hands an app image reference to imagePath and returns its answer', () => {
+		const { imagePath } = jest.requireMock('@nextcloud/router')
+		expect(resolveImageUrl('app:pipelinq/marketing/hero.svg')).toBe('resolved-by-imagePath')
+		expect(imagePath).toHaveBeenCalledWith('pipelinq', 'marketing/hero.svg')
+	})
+
+	it('leaves a malformed app reference untouched', () => {
+		expect(resolveImageUrl('app:pipelinq')).toBe('app:pipelinq')
+		expect(resolveImageUrl('app:/hero.svg')).toBe('app:/hero.svg')
 	})
 
 	it('returns non-strings and empty values unchanged', () => {

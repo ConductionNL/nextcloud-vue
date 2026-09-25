@@ -19,7 +19,7 @@ Which object fields map to each part is resolved from the `config` prop first, t
 
 ## Config
 
-The `config` object accepts (all optional): `titleField`, `subtitleField`, `imageField`, `iconField`, `iconName`, `badgeField`, `badgeVariantField`, `badgeVariant`, `badgeColorMap`.
+The `config` object accepts (all optional): `titleField`, `subtitleField`, `imageField`, `iconField`, `iconName`, `badgeField`, `badgeVariantField`, `badgeVariant`, `badgeColorMap`. The image field's value is resolved through [`resolveImageUrl`](../utilities/resolve-image-url.md), so an `app:<app>/<file>` reference or an `/apps/…` route renders.
 
 ## Props
 
