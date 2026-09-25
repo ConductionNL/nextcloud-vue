@@ -1363,8 +1363,9 @@ export default {
 		// second forced fetch is a real duplicate request, not a no-op —
 		// `fetchSharedResponse()` DELETES the in-flight dedup entry when
 		// `force` is set, so two back-to-back forces cannot collapse into one.
-		this._onPageRefresh = () => {
-			this.refreshLocalSources()
+		this._onPageRefresh = (payload) => {
+			const done = this.refreshLocalSources()
+			payload?.waitUntil?.(done)
 		}
 		subscribe(PAGE_REFRESH_BUS_CHANNEL, this._onPageRefresh)
 
@@ -1473,15 +1474,15 @@ export default {
 		 * and refetches on its own event-bus subscriptions — see the
 		 * page-refresh handler in `mounted()`.
 		 *
-		 * @return {void}
+		 * @return {Promise<unknown[]>} Settles when every re-query has.
 		 */
 		refreshLocalSources() {
-			if (typeof this.dsRefetch === 'function') {
-				this.dsRefetch()
-			}
-			this.fetchGroupBy()
-			this.fetchTimeBucket()
-			this.fetchAggregateSource()
+			return Promise.all([
+				typeof this.dsRefetch === 'function' ? this.dsRefetch() : null,
+				this.fetchGroupBy(),
+				this.fetchTimeBucket(),
+				this.fetchAggregateSource(),
+			])
 		},
 
 		/**

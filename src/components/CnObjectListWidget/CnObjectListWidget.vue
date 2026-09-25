@@ -1046,11 +1046,12 @@ export default {
 		// action fires it more than once (or a dialog that emits alongside the
 		// page's own Refresh) must not turn one write into a queue of
 		// overlapping reads for one list.
-		this._onPageRefresh = () => {
+		this._onPageRefresh = (payload) => {
 			if (this.loading) {
 				return
 			}
-			this.fetchRows()
+			const done = this.fetchRows()
+			payload?.waitUntil?.(done)
 		}
 		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 		// Observe the host grid cell so the visible row count re-fits on

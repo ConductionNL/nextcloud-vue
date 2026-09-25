@@ -3038,7 +3038,7 @@ export default {
 		// channel itself, one write would become one read per widget. This
 		// component owns the object, so one write is one read however many
 		// widgets are bound to it.
-		this._onPageRefresh = () => this.onPageRefreshBus()
+		this._onPageRefresh = (payload) => this.onPageRefreshBus(payload)
 		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 	},
 
@@ -3195,8 +3195,10 @@ export default {
 				return
 			}
 			this.internalRefreshing = true
+			const done = this.fetchObjectIfNeeded()
+			event?.waitUntil?.(done)
 			try {
-				await this.fetchObjectIfNeeded()
+				await done
 			} finally {
 				this.internalRefreshing = false
 			}
@@ -3212,9 +3214,10 @@ export default {
 		 * sets the flag synchronously before awaiting its fetch — so without
 		 * this guard one click on Refresh would fetch the object twice.
 		 *
+		 * @param {{ waitUntil?: (promise: Promise<unknown>) => void }} [payload] Bus payload.
 		 * @return {void}
 		 */
-		onPageRefreshBus() {
+		onPageRefreshBus(payload) {
 			if (!this.hasSchemaDrivenFetch) {
 				return
 			}
@@ -3222,9 +3225,10 @@ export default {
 				return
 			}
 			this.internalRefreshing = true
-			Promise.resolve(this.fetchObjectIfNeeded()).finally(() => {
+			const done = Promise.resolve(this.fetchObjectIfNeeded()).finally(() => {
 				this.internalRefreshing = false
 			})
+			payload?.waitUntil?.(done)
 		},
 
 		/**

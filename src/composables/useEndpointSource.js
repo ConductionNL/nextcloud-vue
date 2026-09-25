@@ -227,18 +227,22 @@ export function invalidateEndpointSourceCache() {
  * identical requests and caching for {@link ENDPOINT_SOURCE_TTL_MS}. An
  * errored fetch drops its cache entry so the next call retries.
  *
+ * A forced call still joins a FORCED request that is in flight, so the widgets
+ * of one page refresh that share a request send it once.
+ *
  * @param {{url: string, method: string, params: object}} request The resolved request.
  * @param {{force?: boolean}} [opts] `force: true` bypasses (and replaces) the cache entry.
  * @return {Promise<unknown>} The raw response body (`res.data`).
  */
-async function fetchSharedResponse(request, opts) {
+export async function fetchSharedResponse(request, opts) {
 	const key = endpointCacheKey(request)
 	const now = Date.now()
-	if (opts && opts.force) {
-		responseCache.delete(key)
-	}
+	const force = Boolean(opts && opts.force)
 	const entry = responseCache.get(key)
-	if (entry && (now - entry.timestamp) < ENDPOINT_SOURCE_TTL_MS) {
+	if (entry && force && entry.forced && entry.pending) {
+		return entry.promise
+	}
+	if (entry && !force && (now - entry.timestamp) < ENDPOINT_SOURCE_TTL_MS) {
 		return entry.promise
 	}
 	const promise = (async () => {
@@ -254,10 +258,17 @@ async function fetchSharedResponse(request, opts) {
 			: await axios.get(url, { params: request.params || {} })
 		return res && res.data
 	})().catch((err) => {
-		responseCache.delete(key)
+		if (responseCache.get(key)?.promise === promise) {
+			responseCache.delete(key)
+		}
 		throw err
+	}).finally(() => {
+		const current = responseCache.get(key)
+		if (current?.promise === promise) {
+			current.pending = false
+		}
 	})
-	responseCache.set(key, { promise, timestamp: now })
+	responseCache.set(key, { promise, timestamp: now, forced: force, pending: true })
 	return promise
 }
 
@@ -438,8 +449,10 @@ export function useEndpointSource(source, options) {
 		})
 	}
 
-	const onPageRefresh = () => {
-		load(true)
+	// `waitUntil` lets the menu that sent the refresh spin until this fetch lands.
+	const onPageRefresh = (payload) => {
+		const done = load(true)
+		payload?.waitUntil?.(done)
 	}
 	const onWidgetRefresh = (payload) => {
 		const id = read(opts.widgetId)
@@ -449,7 +462,8 @@ export function useEndpointSource(source, options) {
 		if (!payload || payload.widgetId !== id) {
 			return
 		}
-		load(true)
+		const done = load(true)
+		payload.waitUntil?.(done)
 	}
 	subscribe(PAGE_REFRESH_CHANNEL, onPageRefresh)
 	subscribe(WIDGET_REFRESH_CHANNEL, onWidgetRefresh)

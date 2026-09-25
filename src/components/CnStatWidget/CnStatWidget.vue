@@ -103,7 +103,7 @@
 </template>
 
 <script>
-import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
@@ -111,13 +111,14 @@ import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
 import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
-import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
+import { fetchSharedResponse, getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import widgetLink from '../../mixins/widgetLink.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
 import { evaluateVisibleWhenLocal, readVisibleWhenPath } from '../../utils/visibleWhen.js'
 
 // The canonical KPI look lives in one shared stylesheet, imported by BOTH
@@ -128,6 +129,8 @@ import '../../css/kpi-card.css'
 // Badge mode renders CnStatusBadge, whose colours live in the global badge
 // stylesheet. Imported here for the same reason as kpi-card.css above.
 import '../../css/badge.css'
+
+const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /**
  * Variant → CSS colour token map for the `variantWhen` threshold rules.
@@ -1313,6 +1316,20 @@ export default {
 
 	mounted() {
 		this.fetchValue()
+		// The `endpointSource` path refreshes through useEndpointSource; this
+		// covers the `source` path, which otherwise never re-read on Refresh.
+		this._onPageRefresh = (payload) => {
+			if (this.endpointMode) {
+				return
+			}
+			const done = this.fetchValue(true)
+			payload?.waitUntil?.(done)
+		}
+		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
+	},
+
+	beforeUnmount() {
+		unsubscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 	},
 
 	methods: {
@@ -1556,9 +1573,10 @@ export default {
 		 * computed client-side over the fetched objects). Lazily imports
 		 * axios/router (same pattern as CnFilesWidget).
 		 *
+		 * @param {boolean} [force] Bypass the shared endpoint cache (page refresh).
 		 * @return {Promise<void>}
 		 */
-		async fetchValue() {
+		async fetchValue(force = false) {
 			// Endpoint-bound tiles are fetched by the shared useEndpointSource
 			// engine (see setup) — the OpenRegister paths below must not fire.
 			if (this.endpointMode) {
@@ -1588,7 +1606,7 @@ export default {
 				])
 
 				if (s.kind === 'endpoint') {
-					this.value = await this.fetchEndpoint(axios, generateUrl, s)
+					this.value = await this.fetchEndpoint(s, force)
 				} else if (s.kind === 'ratio') {
 					const num = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.numerator && s.numerator.filter) || {})
 					const den = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.denominator && s.denominator.filter) || {})
@@ -1702,22 +1720,23 @@ export default {
 		 * to a custom-aggregation endpoint (e.g. `/api/analytics/summary`) that
 		 * OpenRegister's per-schema aggregation can't express.
 		 *
-		 * @param {object} axios The axios instance.
-		 * @param {(url: string, params?: object) => string} generateUrl The router helper.
+		 * Goes through the shared endpoint fetch, so tiles reading the same
+		 * endpoint with the same params send one request between them.
+		 *
 		 * @param {object} s The endpoint source `{ url, path?, params?, method? }`.
+		 * @param {boolean} [force] Bypass the shared cache (page refresh).
 		 * @return {Promise<number|null>} The extracted value.
 		 */
-		async fetchEndpoint(axios, generateUrl, s) {
-			const rawUrl = this.interpolateTokens(s.url)
-			// Leave absolute URLs (http/https) untouched; route app-relative
-			// paths through generateUrl so they resolve under the NC base.
-			const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : generateUrl(rawUrl)
+		async fetchEndpoint(s, force = false) {
 			const params = {}
 			for (const [k, v] of Object.entries(s.params || {})) {
 				params[k] = typeof v === 'string' ? this.interpolateTokens(v) : v
 			}
-			const res = await axios.get(url, { params })
-			const extracted = this.getByPath(res && res.data, s.path)
+			const body = await fetchSharedResponse(
+				{ url: this.interpolateTokens(s.url), method: 'GET', params },
+				{ force },
+			)
+			const extracted = this.getByPath(body, s.path)
 			if (extracted === undefined || extracted === null) {
 				return null
 			}

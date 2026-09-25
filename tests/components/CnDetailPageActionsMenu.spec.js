@@ -94,7 +94,7 @@ describe('CnDetailPage — header Actions menu', () => {
 		const wrapper = mountPage({ pageId: 'cases', showRefresh: true })
 		await wrapper.find('[data-testid="cn-detail-page-action-refresh"]').trigger('click')
 		expect(wrapper.emitted('refresh')).toBeTruthy()
-		expect(emitOnBus).toHaveBeenCalledWith('cn:page:refresh', { widgetId: 'cases', title: 'Case 42' })
+		expect(emitOnBus).toHaveBeenCalledWith('cn:page:refresh', { widgetId: 'cases', title: 'Case 42', waitUntil: expect.any(Function) })
 	})
 
 	it('re-fetches the object on refresh in schema-driven (manifest) mode', async () => {

@@ -25,18 +25,21 @@
 			:forceMenu="true"
 			:forceName="true"
 			:menuName="actionsMenuLabel"
-			:data-testid="`${testidBase}-actions`">
+			:open="menuOpen"
+			:data-testid="`${testidBase}-actions`"
+			@update:open="menuOpen = $event">
 			<template #icon>
 				<DotsHorizontal :size="20" />
 			</template>
+			<!-- Stays open while refreshing; onRefreshClick closes the menu once the refresh settles. -->
 			<NcActionButton
 				v-if="showRefresh"
 				:data-testid="`${testidBase}-action-refresh`"
-				:disabled="refreshing"
-				:closeAfterClick="true"
+				:disabled="refreshBusy"
+				:closeAfterClick="false"
 				@click="onRefreshClick">
 				<template #icon>
-					<NcLoadingIcon v-if="refreshing" :size="20" />
+					<NcLoadingIcon v-if="refreshBusy" :size="20" />
 					<Refresh v-else :size="20" />
 				</template>
 				{{ refreshLabel }}
@@ -175,17 +178,25 @@ export function resolveDocsUrl(base, anchor) {
  * re-emitting `@refresh`), so a host listener on the outer component can
  * still suppress the default.
  *
- * @return {{defaultPrevented: boolean, preventDefault: () => void}}
+ * `waitUntil(promise)` lets a listener keep the Refresh item spinning, and the
+ * menu open, until that promise settles.
+ *
+ * @param {(promise: Promise<unknown>) => void} [waitUntil] Collector for refresh work.
+ * @return {{defaultPrevented: boolean, preventDefault: () => void, waitUntil: (promise: Promise<unknown>) => void}}
  */
-function createSyntheticEvent() {
+function createSyntheticEvent(waitUntil = () => {}) {
 	const ev = {
 		defaultPrevented: false,
 		preventDefault() {
 			this.defaultPrevented = true
 		},
+		waitUntil,
 	}
 	return ev
 }
+
+/** Shortest time the Refresh spinner shows, so a fast refresh is still visible. */
+const MIN_REFRESH_SPIN_MS = 400
 
 /**
  * CnActionsMenu — the shared built-in overflow Actions menu.
@@ -478,7 +489,23 @@ export default {
 
 	emits: ['refresh', 'request-feature'],
 
+	data() {
+		return {
+			/** Whether the overflow menu is open. */
+			menuOpen: false,
+			/** Whether a refresh this menu started is still settling. */
+			refreshPending: false,
+			/** Close the menu once the host's `refreshing` falls back to false. */
+			closeWhenIdle: false,
+		}
+	},
+
 	computed: {
+		/** Whether the Refresh item spins: the host's flag or our own pending refresh. */
+		refreshBusy() {
+			return this.refreshing || this.refreshPending
+		},
+
 		/**
 		 * Whether the overflow `…` menu renders at all. True when at least
 		 * one built-in item is visible OR the caller provided an
@@ -615,31 +642,64 @@ export default {
 		},
 	},
 
+	watch: {
+		refreshing(busy) {
+			if (!busy && this.closeWhenIdle) {
+				this.closeWhenIdle = false
+				this.menuOpen = false
+			}
+		},
+	},
+
 	methods: {
 		/**
 		 * Refresh click — emits `@refresh`, then runs the built-in default
 		 * (emit on `refreshChannel`) unless a host called
-		 * `event.preventDefault()` on the second handler arg.
+		 * `event.preventDefault()` on the second handler arg. The item spins
+		 * and the menu stays open until every promise handed to `waitUntil`
+		 * (on the event or the bus payload) settles and the host's
+		 * `refreshing` is false; then the menu closes.
 		 *
-		 * @return {void}
+		 * @return {Promise<void>}
 		 */
-		onRefreshClick() {
-			const ev = createSyntheticEvent()
+		async onRefreshClick() {
+			if (this.refreshBusy) {
+				return
+			}
+			const work = []
+			const waitUntil = (promise) => {
+				work.push(Promise.resolve(promise))
+			}
+			const ev = createSyntheticEvent(waitUntil)
+			this.refreshPending = true
+			const startedAt = Date.now()
 			/**
 			 * @event refresh User clicked the Refresh item. Payload:
 			 * `{ widgetId, title }`. Handlers may call the second arg's
 			 * `preventDefault()` to suppress the built-in default (event-bus
-			 * emit on `refreshChannel`).
+			 * emit on `refreshChannel`), and its `waitUntil(promise)` to keep
+			 * the item spinning until that work settles.
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('refresh', { widgetId: this.widgetId, title: this.title }, ev)
-			if (ev.defaultPrevented) {
-				return
+			if (!ev.defaultPrevented) {
+				emitOnBus(this.refreshChannel, {
+					widgetId: this.widgetId,
+					title: this.title,
+					waitUntil,
+				})
 			}
-			emitOnBus(this.refreshChannel, {
-				widgetId: this.widgetId,
-				title: this.title,
-			})
+			await Promise.allSettled(work)
+			const hold = MIN_REFRESH_SPIN_MS - (Date.now() - startedAt)
+			if (hold > 0) {
+				await new Promise((resolve) => setTimeout(resolve, hold))
+			}
+			this.refreshPending = false
+			if (this.refreshing) {
+				this.closeWhenIdle = true
+			} else {
+				this.menuOpen = false
+			}
 		},
 
 		/**

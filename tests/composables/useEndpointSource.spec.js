@@ -225,6 +225,26 @@ describe('fetchEndpointSource — caching + dedup', () => {
 		expect(axios.get).toHaveBeenCalledTimes(2)
 	})
 
+	it('shares one forced request between the widgets of one refresh', async () => {
+		axios.get.mockResolvedValue({ data: { v: 1 } })
+		await fetchEndpointSource({ url: '/api/x' })
+		await Promise.all(Array.from({ length: 5 }, () => fetchEndpointSource({ url: '/api/x' }, undefined, { force: true })))
+		expect(axios.get).toHaveBeenCalledTimes(2)
+
+		// The next refresh, after that one settled, reads fresh again.
+		await fetchEndpointSource({ url: '/api/x' }, undefined, { force: true })
+		expect(axios.get).toHaveBeenCalledTimes(3)
+	})
+
+	it('a forced call does not join a plain request still in flight', async () => {
+		axios.get.mockResolvedValue({ data: { v: 1 } })
+		await Promise.all([
+			fetchEndpointSource({ url: '/api/x' }),
+			fetchEndpointSource({ url: '/api/x' }, undefined, { force: true }),
+		])
+		expect(axios.get).toHaveBeenCalledTimes(2)
+	})
+
 	it('drops the cache entry on error so the next call retries', async () => {
 		axios.get.mockRejectedValueOnce(new Error('boom'))
 		await expect(fetchEndpointSource({ url: '/api/x' })).rejects.toThrow('boom')
