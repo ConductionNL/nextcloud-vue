@@ -42,6 +42,8 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `errorMessage` | String | `'An error occurred'` | Message shown in error state |
 | `onRetry` | Function | `null` | Callback for retry button in error state. If null, no retry button shown. |
 | `retryLabel` | String | `'Retry'` | Retry button text |
+| `notFoundRoute` | Object\|String | `null` | Router location of the not-found state's back button. `null` sends the user to `/`. CnPageRenderer fills it with the index page the record was opened from (`_from`), else the index page on the same register and schema. |
+| `notFoundRouteLabel` | String | `''` | Name of the `notFoundRoute` page, shown as "Back to {page}". Without it the button reads "Back to home". |
 | `empty` | Boolean | `false` | Empty state |
 | `emptyLabel` | String | `'No data available'` | Message shown in empty state |
 | `statsTitle` | String | `''` | Title above the statistics table |
@@ -115,6 +117,7 @@ The tabless address is corrected with `replace`, not `push`, so the back button 
 | `#translation-badge` | `{ object }` | Replace the default [`CnTranslatedBadge`](./cn-translated-badge.md) rendered between the title and description when the resolved object's `_translationMeta.translatedFrom` is set. The badge auto-hides on source-of-truth objects, so consumers don't need to gate the slot. Introduced by the `cn-detail-translation-aware-surfacing` change. |
 | `#error` | — | Custom error state content |
 | `#error-actions` | — | Extra buttons inside the default error state |
+| `#not-found` | `{ target }` | Replace the default not-found state. It shows instead of the header and body when the schema-driven fetch answers 404; `target` is the back button's router location. |
 | `#empty` | — | Custom empty state content |
 | `#empty-actions` | — | Extra buttons inside the default empty state |
 | `#stats-header` | — | Custom header above the stats table (replaces default h3) |

@@ -29,7 +29,7 @@
 		     that lands somewhere arbitrary is worse than none, because it is
 		     the one link a keyboard user is told to trust. -->
 		<a
-			v-if="primaryActionLabel"
+			v-if="primaryActionLabel && !objectNotFound"
 			:href="`#${primaryActionAnchorId}`"
 			class="cn-detail-page__skip-link"
 			data-testid="cn-detail-page-skip-link"
@@ -38,7 +38,7 @@
 		</a>
 
 		<!-- Header -->
-		<div class="cn-detail-page__header" data-testid="cn-detail-page-header">
+		<div v-if="!objectNotFound" class="cn-detail-page__header" data-testid="cn-detail-page-header">
 			<!-- Header (left block) — overridable via #header slot. Default
 			     renders the icon + title + description. The right-hand
 			     #actions slot remains separate so headerComponent and
@@ -322,8 +322,36 @@
 			{{ editLockRefusal }}
 		</p>
 
+		<!-- Not-found state: the record behind the address does not exist. -->
+		<div v-if="objectNotFound" class="cn-detail-page__not-found" data-testid="cn-detail-page-not-found">
+			<!--
+				@slot not-found
+				@description Replace the default not-found surface, shown instead of the
+				header and body when the schema-driven fetch answers 404.
+				@binding {object|string} target Router location of the back button.
+			-->
+			<slot name="not-found" :target="notFoundTarget">
+				<NcEmptyContent :name="notFoundLabels.name" :description="notFoundLabels.description">
+					<template #icon>
+						<FileQuestionOutline :size="48" />
+					</template>
+					<template v-if="$router" #action>
+						<NcButton
+							variant="primary"
+							data-testid="cn-detail-page-not-found-back"
+							@click="$router.push(notFoundTarget).catch(() => {})">
+							<template #icon>
+								<ArrowLeft :size="20" />
+							</template>
+							{{ notFoundButtonLabel }}
+						</NcButton>
+					</template>
+				</NcEmptyContent>
+			</slot>
+		</div>
+
 		<!-- Loading state -->
-		<div v-if="showLoadingState" class="cn-detail-page__loading">
+		<div v-else-if="showLoadingState" class="cn-detail-page__loading">
 			<NcLoadingIcon :size="32" />
 			<span>{{ loadingLabel }}</span>
 		</div>
@@ -783,9 +811,11 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { provide, ref, watch } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
+import FileQuestionOutline from 'vue-material-design-icons/FileQuestionOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -957,6 +987,8 @@ export default {
 		NcLoadingIcon,
 		CnIcon,
 		AlertCircleOutline,
+		ArrowLeft,
+		FileQuestionOutline,
 		InformationOutline,
 		Refresh,
 		CnActionsMenu,
@@ -1255,6 +1287,23 @@ export default {
 		retryLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Retry'),
+		},
+
+		/**
+		 * Router location the not-found state's button opens, shown when the
+		 * schema-driven fetch answers 404. Usually the record's list; null
+		 * sends the user to the app's root (`/`). CnPageRenderer fills it with
+		 * the index page the record was opened from.
+		 */
+		notFoundRoute: {
+			type: [Object, String],
+			default: null,
+		},
+
+		/** Name of the `notFoundRoute` page, used in the button's "Back to …" label. */
+		notFoundRouteLabel: {
+			type: String,
+			default: '',
 		},
 
 		/** Whether the page has no data to show */
@@ -1963,6 +2012,13 @@ export default {
 			 * the page. Set true the first time `loading` falls to false.
 			 */
 			hasLoadedOnce: false,
+			/**
+			 * Whether the schema-driven object fetch is in flight. Starts true
+			 * so the immediate sidebar sync at creation already waits for it.
+			 */
+			objectFetchPending: Boolean(this.register && this.schema && this.objectId),
+			/** Whether the schema-driven fetch answered 404 for `objectId`. */
+			objectNotFound: false,
 		}
 	},
 
@@ -2099,7 +2155,47 @@ export default {
 		 * @return {boolean}
 		 */
 		showLoadingState() {
-			return this.loading && !this.hasLoadedOnce
+			return (this.loading && !this.hasLoadedOnce) || this.awaitingObject
+		},
+
+		/**
+		 * Whether the page is still waiting for its first answer on the record.
+		 * The body, lifecycle menu and sidebar stay unmounted meanwhile, because
+		 * each of them requests endpoints scoped to the id and a missing record
+		 * would turn every one of those into a 404 or 500.
+		 *
+		 * @return {boolean}
+		 */
+		awaitingObject() {
+			return this.hasSchemaDrivenFetch
+				&& this.objectFetchPending
+				&& typeof this.effectiveObjectStore?.fetchObject === 'function'
+				&& !this.currentObject
+		},
+
+		/**
+		 * Where the not-found state's button goes: `notFoundRoute`, or the app's
+		 * root when the host names no list to return to.
+		 *
+		 * @return {object|string}
+		 */
+		notFoundTarget() {
+			return this.notFoundRoute || { path: '/' }
+		},
+
+		/** Heading and description of the not-found state. */
+		notFoundLabels() {
+			return {
+				name: t('nextcloud-vue', 'Not found'),
+				description: t('nextcloud-vue', 'This item does not exist or has been deleted.'),
+			}
+		},
+
+		/** Label of the not-found state's button. */
+		notFoundButtonLabel() {
+			return this.notFoundRoute && this.notFoundRouteLabel
+				? t('nextcloud-vue', 'Back to {page}', { page: this.notFoundRouteLabel })
+				: t('nextcloud-vue', 'Back to home')
 		},
 
 		/**
@@ -2157,6 +2253,9 @@ export default {
 		 */
 		/** Whether the lifecycle transitions are mounted. */
 		showsLifecycleActions() {
+			if (this.objectNotFound || this.awaitingObject) {
+				return false
+			}
 			return Boolean(this.lifecycleActions && (this.objectId || this.currentObject))
 		},
 
@@ -2785,6 +2884,14 @@ export default {
 			}
 		},
 
+		awaitingObject() {
+			this.syncSidebarState()
+		},
+
+		objectNotFound() {
+			this.syncSidebarState()
+		},
+
 		// Deep, like `sidebarTabs` / `sidebarProps` below: the manifest editors
 		// mutate `page.config.sidebar` IN PLACE, so the reference CnPageRenderer
 		// forwards never changes. A shallow watcher missed every such edit —
@@ -3252,6 +3359,7 @@ export default {
 			// Create archetype: no object to fetch, but the create form needs
 			// the schema — register the type and fetch its schema, then stop.
 			if (!this.hasSchemaDrivenFetch) {
+				this.objectFetchPending = false
 				if (this.isCreateMode) {
 					await this.fetchSchemaForCreate()
 				}
@@ -3259,6 +3367,7 @@ export default {
 			}
 			const store = this.effectiveObjectStore
 			if (!store) {
+				this.objectFetchPending = false
 				return
 			}
 			const type = this.resolvedObjectType
@@ -3282,10 +3391,16 @@ export default {
 					{ registerSlug: this.register, schemaSlug: this.schema },
 				)
 			}
+			const objectId = this.objectId
+			const fetchesObject = typeof store.fetchObject === 'function'
+			this.objectFetchPending = fetchesObject
+			if (fetchesObject) {
+				this.objectNotFound = false
+			}
 			try {
 				const tasks = []
-				if (typeof store.fetchObject === 'function') {
-					tasks.push(store.fetchObject(type, this.objectId))
+				if (fetchesObject) {
+					tasks.push(store.fetchObject(type, objectId))
 				}
 				if (typeof store.fetchSchema === 'function') {
 					tasks.push(store.fetchSchema(type))
@@ -3294,6 +3409,13 @@ export default {
 			} catch (err) {
 				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnDetailPage] schema-driven fetch failed:', err)
+			} finally {
+				// A newer fetch for another id owns the flags now.
+				if (fetchesObject && objectId === this.objectId) {
+					this.objectNotFound = !store.objects?.[type]?.[objectId]
+						&& store.getError?.(type)?.status === 404
+					this.objectFetchPending = false
+				}
 			}
 		},
 
@@ -4165,7 +4287,8 @@ export default {
 				return
 			}
 			const r = this.resolvedSidebar
-			if (this.sidebarActive && this.resolvedObjectType && this.objectId) {
+			const hasRecord = !this.objectNotFound && !this.awaitingObject
+			if (this.sidebarActive && hasRecord && this.resolvedObjectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
 				// Seed `open` only on the inactive→active edge (first activation
 				// of this object). Subsequent syncs must NOT clobber it, otherwise

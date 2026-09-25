@@ -9,7 +9,7 @@
  * `schema` / `hiddenTabs`.
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 // Arrays published into reactive state come back as Proxies in Vue 3, so the
 // identity assertions below unwrap them (see useRuntimeManifest.spec.js).
 import { toRaw } from 'vue'
@@ -144,13 +144,15 @@ describe('CnDetailPage — sidebarProps.tabs forwarding', () => {
 			}, state)
 		}
 
-		it('activates + publishes tabs when only sidebarTabs is set (no sidebar config)', () => {
+		it('activates + publishes tabs when only sidebarTabs is set (no sidebar config)', async () => {
 			const state = makeState()
 			const tabs = [
 				{ id: 'tasks', label: 'Tasks', component: 'CaseTasksTab' },
 				{ id: 'email', label: 'Email', component: 'CaseEmailTab' },
 			]
 			mountSchemaDriven({ sidebarTabs: tabs }, state)
+			// The sidebar activates once the record fetch has answered.
+			await flushPromises()
 			expect(state.active).toBe(true)
 			expect(state.objectType).toBe('procest-case')
 			expect(state.objectId).toBe('abc-123')

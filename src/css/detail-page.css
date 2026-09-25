@@ -114,8 +114,9 @@
 	padding-block: calc(8 * var(--default-grid-baseline));
 }
 
-/* Error state */
-.cn-detail-page__error {
+/* Error and not-found states */
+.cn-detail-page__error,
+.cn-detail-page__not-found {
 	padding: calc(8 * var(--default-grid-baseline)) calc(4 * var(--default-grid-baseline));
 }
 
