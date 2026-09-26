@@ -175,7 +175,12 @@ describe('CnStagesWidget: the stage list', () => {
 		await flush()
 
 		const url = decodeURIComponent(String(fetchSpy.mock.calls[0][0]))
-		expect(url).toContain('/objects/dossiq/statusType')
+		// REGRESSION (learniq round-1 defect 7, nextcloud-vue:slugify-ref-relation-resolver).
+		// `resolveObjectOpType()` now kebab-cases a PascalCase `stagesSource.schema`
+		// before it reaches the objects API — OpenRegister 404s on the raw title
+		// for a multi-word schema, exactly the config shape dossiq's own
+		// `stagesSource` uses here.
+		expect(url).toContain('/objects/dossiq/status-type')
 		expect(url).toContain('caseType=ct-1')
 		expect(labels(w)).toEqual(['Ontvangen', 'In behandeling', 'Afgehandeld'])
 	})

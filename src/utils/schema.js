@@ -6,6 +6,8 @@
  * @module utils/schema
  */
 
+import { schemaRefSlug } from './schemaRefSlug.js'
+
 /**
  * Default column widths per property type/format.
  */
@@ -323,13 +325,23 @@ function truncateString(str, maxLength) {
  * dropdown rendered but came back empty. Take the tail after the last `/`, which
  * is what the editor itself does when it resolves a $ref back to a schema.
  *
+ * A `$ref` is authored as the schema's PascalCase (or spaced) *title*, not
+ * its slug (`ReportPeriod`, not `report-period`); the objects API 404s on
+ * the title for any multi-word schema (defect 7, learniq round 1). Routing
+ * the tail through {@link schemaRefSlug} fixes that once here, for every
+ * consumer of `reference.schema` built below.
+ *
  * @param {unknown} ref A `$ref` value (`prop.$ref` or `prop.items.$ref`).
  * @return {string|number|null} The reference identifier, or null.
  */
 function normalizeRef(ref) {
 	if (typeof ref === 'string' && ref !== '') {
 		const tail = ref.includes('/') ? ref.substring(ref.lastIndexOf('/') + 1) : ref
-		return tail !== '' ? tail : null
+		if (tail === '') {
+			return null
+		}
+		const slug = schemaRefSlug(tail)
+		return slug !== '' ? slug : null
 	}
 	if (typeof ref === 'number' && !Number.isNaN(ref)) {
 		return ref
