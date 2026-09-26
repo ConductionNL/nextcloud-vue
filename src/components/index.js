@@ -349,3 +349,6 @@ export { CnTabsWidgetForm } from './CnTabsWidgetForm/index.js'
 export { CnStagesWidget } from './CnStagesWidget/index.js'
 export { CnStagesWidgetForm } from './CnStagesWidgetForm/index.js'
 export { CnDetailWidgetHost } from './CnDetailWidgetHost/index.js'
+
+// Guardian/parent portal surface pattern (nextcloud-vue:guardian-portal-surface-pattern).
+export { CnGuardianHome } from './CnGuardianHome/index.js'
