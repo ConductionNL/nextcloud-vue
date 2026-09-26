@@ -45,21 +45,20 @@ specifier and your bundler resolves them from your own `node_modules`:
 |---|---|---|
 | `@vueuse/core` | `^11.0.0 \|\| ^14.0.0` | yes — required peer |
 | `gridstack` | `^12.0.0 \|\| ^13.0.0` | yes — required peer |
-| `dexie` | `^4.0.8` | **no — optional peer** |
+| `dexie` | `^4.0.8` | yes — required peer |
 | `dompurify` | `^3.0.0` | **no — optional peer** |
 | `marked` | `^12.0.0` | **no — optional peer** |
 
-The two required peers are installed automatically by npm 7 and later. **The
-three optional ones are not** — npm installs nothing for an optional peer, so
-if your app renders markdown, sanitises HTML, or uses the offline data
-collection core, add them yourself:
+The three required peers are installed automatically by npm 7 and later. **The
+two optional ones are not**: npm installs nothing for an optional peer, so if
+your app renders markdown or sanitises HTML, add them yourself:
 
 ```bash
-npm install dexie dompurify marked
+npm install dompurify marked
 ```
 
 Leaving one out fails the build with an unresolved bare specifier
-(`Can't resolve 'dexie'`) pointing into `node_modules/@conduction/nextcloud-vue`,
+(`Can't resolve 'marked'`) pointing into `node_modules/@conduction/nextcloud-vue`,
 which gives no hint that the cause is a missing peer in your own manifest.
 
 Stay inside the ranges above. They are not advisory: a version outside them is
@@ -75,7 +74,10 @@ of one of these in a page is not a slightly larger bundle, it is a bug:
 - `dexie` refuses to initialise twice. It claims a page-global
   (`globalThis[Symbol.for("Dexie")]`) and throws before your app mounts —
   `Two different versions of Dexie loaded in the same app: 4.4.5 and 4.4.4` —
-  so the bundle loads and nothing renders.
+  so the bundle loads and nothing renders. The library loads Dexie only when
+  the offline database is first opened (`openDb()`), never at import time, so
+  a page that does not use offline collection never evaluates it and cannot
+  hit this. A page that does still needs every copy on it at one version.
 - `dompurify` is the XSS sanitizer. A second copy means the one you patched is
   not necessarily the one sanitising.
 - `@vueuse/core` composables stop sharing state across the copies: two
