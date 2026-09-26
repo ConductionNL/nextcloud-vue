@@ -21,26 +21,34 @@
  * so they stay importable in a Node environment with no IndexedDB. Tests for
  * THIS module inject a fake-indexeddb-backed Dexie via `__setDexie`.
  *
- * Dexie is a REQUIRED peer dependency, not an optional one. It reads as though
- * only apps using the offline core need it, but the import below is static and
- * this module is reachable from the package root: `src/index.js` exports
- * `offlineCollection`, which reaches `integrations/builtin/field-inspection`,
- * which reaches here. Every consumer therefore has to resolve `dexie` at BUILD
- * time whether or not it ever collects a field inspection. Declaring it
- * optional told npm not to install it and not to warn, which is the shape that
- * fails as a bare "Module not found" in someone else's build. Making the import
- * dynamic is what would earn the optional marker back.
+ * Dexie is loaded LAZILY, on the first call that needs the database
+ * (`openDb()`), and never at import time. This module is reachable from the
+ * package root: `src/index.js` exports `offlineCollection`, which reaches
+ * `integrations/builtin/field-inspection`, which reaches here. With a static
+ * import every consuming app evaluated Dexie on every page, and Dexie throws
+ * "Two different versions of Dexie loaded in the same app" at module init
+ * when a second copy at another version is already on the page. Nextcloud
+ * loads several apps' every-page bundles at once (openregister's
+ * integration-global among them), so one app a patch release ahead of
+ * another blanked whole apps that never touch the offline core. Loaded on
+ * demand, Dexie is evaluated only on a page that actually opens the offline
+ * database.
+ *
+ * Dexie stays a REQUIRED peer dependency. The consumer's bundler still
+ * resolves `import('dexie')` at BUILD time (it becomes a separate chunk), so
+ * an app without it installed fails its build with "Module not found". The
+ * dependency is required; loading it is not.
  *
  * @module integrations/offline/offlineDb
  */
 
-import Dexie from 'dexie'
 import { resolveConflictChoice } from './syncQueueEngine.js'
 
 const DB_NAME = 'conduction-offline-collection'
 
 let dbInstance = null
-let DexieCtor = Dexie
+// Null until `openDb()` loads Dexie, or a test injects it via `__setDexie`.
+let DexieCtor = null
 
 /**
  * Build the composite cache key for an object.
@@ -59,7 +67,7 @@ export function cacheKey(register, schema, collection, objectId) {
 /**
  * Set the Dexie constructor explicitly (test seam / SSR override).
  *
- * Production code never calls this — `getDb()` lazy-imports `dexie`. Tests pass
+ * Production code never calls this: `openDb()` lazy-imports `dexie`. Tests pass
  * a fake-indexeddb-backed Dexie so the store can be exercised in Node.
  *
  * @param {new (name: string) => object} ctor The Dexie class.
@@ -72,15 +80,39 @@ export function __setDexie(ctor) {
 }
 
 /**
- * Open (and memoise) the Dexie database.
+ * Load Dexie on first use, then open (and memoise) the database.
+ *
+ * Every function in the offline core goes through this, so Dexie is only
+ * evaluated on a page that actually uses the offline database. A Dexie
+ * injected with `__setDexie` is used as is and nothing is imported.
+ *
+ * @return {Promise<object>} The opened database handle.
+ */
+export async function openDb() {
+	if (DexieCtor === null) {
+		const mod = await import('dexie')
+		DexieCtor = mod.default ?? mod.Dexie
+	}
+	return getDb()
+}
+
+/**
+ * The memoised database handle, synchronously.
+ *
+ * Works once Dexie is loaded: after any `openDb()` call, or after a test
+ * injected it with `__setDexie`. Call `await openDb()` when neither is
+ * certain; that is what every function in this module does.
  *
  * @return {object} The opened database handle.
  *
- * @throws {Error} When Dexie is not available and was not injected.
+ * @throws {Error} When Dexie has not been loaded yet.
  */
 export function getDb() {
 	if (dbInstance !== null) {
 		return dbInstance
+	}
+	if (DexieCtor === null) {
+		throw new Error('The offline database is not open yet: call `await openDb()` first. Dexie loads on first use, so a page that never opens the offline database never evaluates it.')
 	}
 
 	const db = new DexieCtor(DB_NAME)
@@ -126,7 +158,7 @@ export async function storePlanning({
 	manifest = null,
 	ttlMs = 24 * 60 * 60 * 1000,
 }) {
-	const db = getDb()
+	const db = await openDb()
 	const planned = Array.isArray(items) ? items : []
 	const refs = Array.isArray(references) ? references : []
 	const refSchema = referenceSchema || schema
@@ -182,7 +214,7 @@ export async function storePlanning({
  * @return {Promise<Array>} The cached objects (unwrapped from the envelope).
  */
 export async function getPlannedItems(register, schema, collection = 'planning') {
-	const db = getDb()
+	const db = await openDb()
 	const rows = await db.objectCache
 		.where('collection').equals(collection)
 		.and((row) => row.register === register && row.schema === schema)
@@ -201,7 +233,7 @@ export async function getPlannedItems(register, schema, collection = 'planning')
  * @return {Promise<object|null>} The cached object, or null.
  */
 export async function getCachedObject(register, schema, collection, objectId) {
-	const db = getDb()
+	const db = await openDb()
 	const row = await db.objectCache.get(cacheKey(register, schema, collection, objectId))
 	return row ? row.object : null
 }
@@ -216,7 +248,7 @@ export async function getCachedObject(register, schema, collection, objectId) {
  * @return {Promise<object|null>} The planning meta row.
  */
 export async function getPlanningMeta(register, schema, collection = 'planning') {
-	const db = getDb()
+	const db = await openDb()
 	return (await db.meta.get(`planning::${register}::${schema}::${collection}`)) ?? null
 }
 
@@ -234,7 +266,7 @@ export async function getPlanningMeta(register, schema, collection = 'planning')
  * @return {Promise<string>} The queued operation id.
  */
 export async function enqueueMutation(operation) {
-	const db = getDb()
+	const db = await openDb()
 	const id = operation.id || `op-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 	await db.mutationQueue.put({
 		id,
@@ -259,7 +291,7 @@ export async function enqueueMutation(operation) {
  * @return {Promise<number>} The number of pending/conflict/syncing operations.
  */
 export async function countPending(deviceId) {
-	const db = getDb()
+	const db = await openDb()
 	let collection = db.mutationQueue.where('status').anyOf(['pending', 'conflict', 'syncing'])
 	if (typeof deviceId === 'string' && deviceId !== '') {
 		collection = collection.and((op) => op.deviceId === deviceId)
@@ -286,7 +318,7 @@ export async function countPending(deviceId) {
  * @return {Promise<object[]>} Every operation, oldest first.
  */
 export async function listQueue(deviceId) {
-	const db = getDb()
+	const db = await openDb()
 	let collection = db.mutationQueue.orderBy('queuedAt')
 	if (typeof deviceId === 'string' && deviceId !== '') {
 		collection = collection.and((op) => op.deviceId === deviceId)
@@ -308,7 +340,7 @@ export async function listQueue(deviceId) {
  * @return {Promise<number>} The number of failed operations.
  */
 export async function countStuck(deviceId) {
-	const db = getDb()
+	const db = await openDb()
 	let collection = db.mutationQueue.where('status').equals('failed')
 	if (typeof deviceId === 'string' && deviceId !== '') {
 		collection = collection.and((op) => op.deviceId === deviceId)
@@ -336,7 +368,7 @@ export async function countStuck(deviceId) {
  * @return {Promise<boolean>} True when it was re-queued.
  */
 export async function requeueOperation(operationId) {
-	const db = getDb()
+	const db = await openDb()
 	const operation = await db.mutationQueue.get(operationId)
 	if (!operation || operation.status !== 'failed') {
 		return false
@@ -401,7 +433,7 @@ export async function recordConflict({
 	register = '',
 	conflictSchema = '',
 }) {
-	const db = getDb()
+	const db = await openDb()
 
 	if (typeof conflictSchema !== 'string' || conflictSchema === '') {
 		await db.mutationQueue.update(operation.id, { conflictScope: 'local', conflictType })
@@ -522,7 +554,7 @@ export async function applyConflictResolution({
 	mergedPayload = null,
 	resolvedBy = '',
 }) {
-	const db = getDb()
+	const db = await openDb()
 	const operation = await db.mutationQueue.get(operationId)
 
 	if (operation === undefined || operation.status !== 'conflict') {

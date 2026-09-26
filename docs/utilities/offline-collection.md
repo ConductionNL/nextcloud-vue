@@ -25,7 +25,11 @@ share one database without colliding. Three tables: `objectCache`,
 `mutationQueue`, `meta`.
 
 - `cacheKey(register, schema, collection, objectId)` — composite cache key.
-- `getDb()` — open (and memoise) the Dexie database (lazy-imports `dexie`).
+- `openDb()`: load `dexie` on first use, then open (and memoise) the database.
+  Every function below calls it, so importing the offline core never evaluates
+  Dexie; only a page that opens the database does.
+- `getDb()`: the memoised handle, synchronously. Throws until `openDb()` has
+  run (or a test injected Dexie with `__setDexie`).
 - `storePlanning({ register, schema, items, references, referenceSchema, collection, manifest, ttlMs })`
   — atomically cache a downloaded planning payload + its reference objects.
 - `getPlannedItems(register, schema, collection?)` — read cached planned items.
@@ -51,8 +55,9 @@ share one database without colliding. Three tables: `objectCache`,
   the conflict object.
 - `resolveDeviceId(storage?)` — stable per-device id (IDOR scope) in localStorage.
 
-`dexie` is an **optional peer dependency**: only apps that use the offline core
-need it installed. The pure engine/helpers stay importable without it.
+`dexie` is a **required peer dependency**: the consumer's bundler resolves
+`import('dexie')` at build time, so it must be installed. It is not *loaded*
+until `openDb()` runs, and the pure engine/helpers stay importable without it.
 
 ### Pure sync-queue engine (`syncQueueEngine.js`)
 
