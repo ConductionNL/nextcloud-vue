@@ -398,6 +398,7 @@ import { useObjectStore } from '../../store/index.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
+import { schemaRefSlug } from '../../utils/schemaRefSlug.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
@@ -1343,14 +1344,18 @@ export default {
 			}
 			// Canonical OpenRegister shorthand: `$ref` on a uuid-string
 			// property (or its array items) references a schema in the SAME
-			// register. Authored as a slug ("caseType"), but the live schema
-			// API serves it REWRITTEN to the numeric schema id (e.g. 85) —
-			// accept both; the objects API resolves either in its path.
-			// Register comes from the detail-page object context (ADR-062:
-			// references display the target object's NAME, never a raw uuid).
+			// register. Authored as the schema's TITLE ("ReportPeriod"), not
+			// its slug — the live schema API may also rewrite it to the
+			// numeric schema id (e.g. 85); accept both, the objects API
+			// resolves either in its path, but a multi-word title 404s
+			// unless kebab-cased first (defect 7: `ReportPeriod` 404s,
+			// `report-period` 200). Register comes from the detail-page
+			// object context (ADR-062: references display the target
+			// object's NAME, never a raw uuid).
 			const rawRef = prop.$ref !== null && prop.$ref !== undefined ? prop.$ref : (prop.items ? prop.items.$ref : null)
 			if (rawRef !== null && rawRef !== undefined && (typeof rawRef === 'string' || typeof rawRef === 'number')) {
-				const slug = String(rawRef).split('/').pop().replace(/\.json$/, '')
+				const tail = String(rawRef).split('/').pop().replace(/\.json$/, '')
+				const slug = schemaRefSlug(tail)
 				const reg = this.contextRegisterOf()
 				if (slug && reg) {
 					return { target: `${reg}/${slug}` }
