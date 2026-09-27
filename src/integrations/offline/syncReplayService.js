@@ -19,7 +19,7 @@
 
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { getDb, recordConflict } from './offlineDb.js'
+import { openDb, recordConflict } from './offlineDb.js'
 import { nextState, orderForReplay } from './syncQueueEngine.js'
 
 /**
@@ -44,7 +44,7 @@ function objectsUrl(register, schema) {
  * @return {Promise<object>} The applied patch from the engine.
  */
 export async function replayOperation(operation, offlineConfig = {}) {
-	const db = getDb()
+	const db = await openDb()
 	let statusCode
 	let serverObject = null
 	let responseBody = null
@@ -130,7 +130,7 @@ export async function drainQueue(deviceId, offlineConfig = {}) {
 		return { processed: 0, synced: 0, conflicts: 0, failed: 0 }
 	}
 
-	const db = getDb()
+	const db = await openDb()
 	const rows = await db.mutationQueue.where('deviceId').equals(deviceId).toArray()
 	const ordered = orderForReplay(rows)
 
