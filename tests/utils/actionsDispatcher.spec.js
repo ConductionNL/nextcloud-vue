@@ -12,7 +12,7 @@
  * - absent router warns for open-page/navigate
  */
 
-const { dispatchAction, buildOnSuccessRoute, savedObjectId } = require('../../src/utils/actionsDispatcher.js')
+const { dispatchAction, buildOnSuccessRoute, savedObjectId, resolveObjectOpType } = require('../../src/utils/actionsDispatcher.js')
 
 describe('dispatchAction — handler type', () => {
 	it('calls the handler function with spread args', () => {
@@ -470,5 +470,51 @@ describe('buildOnSuccessRoute (#91)', () => {
 		expect(buildOnSuccessRoute('', { id: '1' })).toBeNull()
 		expect(buildOnSuccessRoute({}, { id: '1' })).toBeNull()
 		expect(buildOnSuccessRoute(null, { id: '1' })).toBeNull()
+	})
+})
+
+describe('resolveObjectOpType — schema-title-to-slug (defect 7)', () => {
+	function fakeStore(registry = {}) {
+		return {
+			objectTypeRegistry: registry,
+			registerObjectType: jest.fn(function(slug, schema, register) {
+				this.objectTypeRegistry[slug] = { schema, register }
+			}),
+		}
+	}
+
+	it('kebab-cases a PascalCase $ref schema title before registering/resolving', () => {
+		const store = fakeStore()
+		const type = resolveObjectOpType(store, { register: 'learniq', schema: 'ReportPeriod' })
+		expect(type).toBe('learniq/report-period')
+		expect(store.registerObjectType).toHaveBeenCalledWith('learniq/report-period', 'report-period', 'learniq')
+	})
+
+	it('leaves an already-kebab schema slug untouched', () => {
+		const store = fakeStore()
+		const type = resolveObjectOpType(store, { register: 'crm', schema: 'lead' })
+		expect(type).toBe('crm/lead')
+	})
+
+	it('matches an existing registration keyed by the raw register/schema pair', () => {
+		const store = fakeStore({ 'crm/lead': { register: 'crm', schema: 'lead' } })
+		const type = resolveObjectOpType(store, { register: 'crm', schema: 'lead' })
+		expect(type).toBe('crm/lead')
+		expect(store.registerObjectType).not.toHaveBeenCalled()
+	})
+
+	it('matches an existing registration via the canonical registerSlug/schemaSlug hint', () => {
+		const store = fakeStore({
+			'my-alias': { register: 99, schema: 42, registerSlug: 'learniq', schemaSlug: 'report-period' },
+		})
+		const type = resolveObjectOpType(store, { register: 'learniq', schema: 'ReportPeriod' })
+		expect(type).toBe('my-alias')
+		expect(store.registerObjectType).not.toHaveBeenCalled()
+	})
+
+	it('passes a numeric schema id through unchanged', () => {
+		const store = fakeStore()
+		const type = resolveObjectOpType(store, { register: 'learniq', schema: 85 })
+		expect(type).toBe('learniq/85')
 	})
 })
