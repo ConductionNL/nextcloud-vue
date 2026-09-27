@@ -35,6 +35,12 @@ Security rules from hydra ADR-005 and ADR-054.
   (`src/components/CnChatPage/CnChatPage.vue:188-190`). That fits Talk on
   its own origin. For a same-origin document it would let the frame lift
   its own sandbox. `CnCodeFrame` must not copy it.
+- `evalFormula` (`src/utils/evalFormula.js:1-12`) evaluates arithmetic
+  such as `A/B*100` over named numbers without `eval`, for the `computed`
+  source of `CnStatWidget` (`src/components/CnStatWidget/CnStatWidget.vue:1610`).
+  It has no dot paths, no strings and no conditions, so it cannot read
+  `row.aantal * row.prijs`. It is not the JavaScript buildiq's makers
+  write.
 - `useObjectStore.saveObject()` updates a record with a `PUT` under the
   session of the person using the page (`src/store/useObjectStore.js:801`).
 - The public entry exports site blocks only (`src/public/index.js`), and
@@ -246,8 +252,9 @@ the browser stops the script. The page cannot interrupt a script on its
 own thread. Browsers that isolate sandboxed frames in their own process
 are not affected.
 
-Rejected: evaluating expressions in the host page with a parser. A
-parser is a second language to secure, and it is not what the maker
+Rejected: evaluating expressions in the host page with a parser, or
+growing `evalFormula` into one. A parser that covers what makers write is
+a second JavaScript to secure, and anything less is not what the maker
 wrote.
 
 ## Files
