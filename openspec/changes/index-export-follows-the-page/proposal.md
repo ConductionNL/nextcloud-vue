@@ -15,7 +15,7 @@ Conduction index page it does not, in three ways:
    active quick filter and the search box live in component state, so a
    list filtered to "Active" exports every row.
 2. The same menu only appears when the schema carries a top-level
-   `exportable: true`. OpenRegister does not keep that field on a schema,
+   `exportable: true`. OpenRegister keeps that flag nowhere on a schema,
    so on a real instance the menu never appears.
 3. The mass-action Export, which is on by default, exports the whole
    schema with no filter at all.
@@ -69,8 +69,9 @@ Three sibling changes name the same library gap. Each is answered here.
 
 - The Export menu sends the same query the list sends: search, sort,
   facet filters, the page filter and the quick filter, without paging.
-- The menu reads the schema's export flag where OpenRegister keeps it
-  (`configuration.exportable`) as well as the top-level field.
+- The menu reads the schema's export flag under `configuration.exportable`
+  as well as the top-level field, so OpenRegister can keep it with a
+  one-word allowlist change instead of a new schema column.
 - The mass-action Export exports the selected rows when there is a
   selection, and the filtered list otherwise. It never silently exports
   the whole schema.
@@ -92,11 +93,19 @@ rows, which is the fix.
 
 ## Cross-project dependencies
 
-- OpenRegister keeps `configuration` on a schema and drops an unknown
-  top-level field (`lib/Db/Schema.php` hydrate, as stackiq's design D2
-  reads it). Reading `configuration.exportable` makes the flag work today;
-  serving a top-level `exportable` stays an open OpenRegister item and is
-  no longer blocking.
+- OpenRegister keeps neither place today. It drops an unknown top-level
+  field (`lib/Db/Schema.php` hydrate, as stackiq's design D2 reads it),
+  and it also drops an unknown `configuration` key: `setConfiguration()`
+  keeps only the keys `validateConfigurationEntry()` allowlists
+  (`lib/Db/Schema.php:2682-2697` and `:2856-2928` at `555af72`), and
+  `exportable` is not among them. Corrected on 2026-09-27: the first
+  version of this change, and stackiq's design D2, said the
+  `configuration` key survives; it does not. The OpenRegister half is to
+  add `exportable` to the boolean configuration keys (`$boolFields`,
+  `:2683`), or to serve a top-level field. Until one of them ships, the
+  Export menu does not appear on a real instance, and the filter
+  forwarding in D1 and the mass export in D3 are what users get. Listed
+  for the openregister lane.
 - OpenRegister's export leaf must accept the same filter parameters as the
   list endpoint. Its route is `objects#export`
   (`appinfo/routes.php:1175` at `555af72`).

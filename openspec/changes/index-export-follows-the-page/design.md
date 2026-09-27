@@ -30,11 +30,19 @@ Rejected: writing the page filter and the quick filter into the route so
 `$route.query` carries them. A route that repeats the manifest's fixed
 filter is a route that shows it to the user as if they had chosen it.
 
-### D2. The flag is read where OpenRegister keeps it
+### D2. The flag is read in both places OpenRegister could keep it
 
 `showExportMenu()` reads `effectiveSchema.exportable`, then
 `effectiveSchema.configuration.exportable`. Either true enables the menu.
 The top-level field wins when both are set.
+
+Neither survives an OpenRegister save today: `Schema::setConfiguration()`
+keeps only allowlisted configuration keys (`lib/Db/Schema.php:2856-2928`
+in openregister `555af72`), and a top-level field without a setter is
+dropped by `hydrate()`. Reading `configuration.exportable` lets
+OpenRegister fix it by adding one word to its `$boolFields` allowlist
+(`:2683`), which is the smaller of its two options. The proposal lists it
+for the openregister lane.
 
 Rejected: dropping the flag and trusting `allowExport` alone. The flag
 is how a schema owner says a register may leave the building; the page

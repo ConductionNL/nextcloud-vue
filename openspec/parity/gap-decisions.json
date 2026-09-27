@@ -16,6 +16,30 @@
   "decidedOn": "2026-09-27"
  },
  {
+  "row": "data-export-records",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Rated yes and built, so not a gap, recorded for the half buildiq names: the filtered allowExport menu needs a schema flag OpenRegister does not serve, and the mass export exports the whole schema. Both are answered by index-export-follows-the-page, PR #1269.",
+  "change": "index-export-follows-the-page",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "data-field-types",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq data-field-types-and-choice-lists for the file type: its design says a file field depends on the library's form file upload. The schema-driven dialog renders file properties with this change.",
+  "change": "form-file-and-camera-fields",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "data-saved-views",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "Library half named by buildiq data-index-grid-and-saved-views (sharing a view an app user saved). The public toggle ships (CnSaveViewDialog isPublic); sharing with a group is the open change saved-views-shared-by-role.",
+  "change": "saved-views-shared-by-role",
+  "decidedOn": "2026-09-27"
+ },
+ {
   "row": "data-user-column-settings",
   "matrix": "buildiq",
   "decision": "build",
@@ -24,11 +48,67 @@
   "decidedOn": "2026-09-27"
  },
  {
+  "row": "form-calculation",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq forms-live-values-and-checks (REQ-BQLV-002): a calculate hook the host provides, called when a field's inputs change.",
+  "change": "form-live-values",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-camera-capture",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "No and none. Three competitors rated yes (Appsmith, Mendix, Power Apps). Clustered with form-file-upload: both are the file field of the form renderer. Also covers humaniq's receipt photo half.",
+  "change": "form-file-and-camera-fields",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-conditional-values",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "No and none. Four competitors rated yes (NocoBase, Budibase, Mendix, Power Apps) and a feature request (NocoBase forum 9935). The form renderer sets no field from another field's answer; the change adds that with the calculate and default hooks buildiq's forms-live-values-and-checks names.",
+  "change": "form-live-values",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-eligibility-feedback",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq forms-live-values-and-checks (REQ-BQLV-003): a host-provided list of unmet conditions shown beside submit, optionally holding it.",
+  "change": "form-live-values",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-file-upload",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Partial and built, four competitors rated yes. CnFormPage takes one file inline as a data URL under 1 MB and CnFormDialog has no file field at all; the change adds the schema-driven file field, several files and larger files uploaded to the object.",
+  "change": "form-file-and-camera-fields",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-prefill",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq forms-live-values-and-checks (REQ-BQLV-001): token defaults resolved by the sentinel resolver, with @me.displayName and @me.email added.",
+  "change": "form-live-values",
+  "decidedOn": "2026-09-27"
+ },
+ {
   "row": "form-review-before-submit",
   "matrix": "buildiq",
   "decision": "existing",
   "reason": "Open change journey-runtime specifies a review step that shows every answer before submit, grouped by step, with a way back to each. A form that needs a review runs as a journey; authoring that journey is buildiq's half.",
   "change": "journey-runtime",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-subtable-children",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "No and none. A changelog row (NocoBase 2.0.0) and three competitors rated yes. The sub-objects widget of form-widgets-duration-and-subobject-table covers arrays embedded in one object and says outright it does not cover rows that are their own objects; this change does.",
+  "change": "form-child-records-table",
   "decidedOn": "2026-09-27"
  },
  {
@@ -88,6 +168,14 @@
   "decidedOn": "2026-09-27"
  },
  {
+  "row": "pg-record-comments",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Partial and built: notes on a record exist, not threaded replies. Two competitors rated yes (NocoBase with quote-reply, Power Apps). Clustered with three planninq rows on the same notes component.",
+  "change": "notes-replies-group-mentions-and-images",
+  "decidedOn": "2026-09-27"
+ },
+ {
   "row": "ux-wcag",
   "matrix": "buildiq",
   "decision": "defer",
@@ -128,11 +216,43 @@
   "decidedOn": "2026-09-27"
  },
  {
+  "row": "ess-mobile",
+  "matrix": "humaniq",
+  "decision": "build",
+  "reason": "Library half of humaniq self-service-mobile: the phone-width layout of CnDashboardPage, CnIndexPage and the form dialog. Its camera hint on the receipt field is honoured by form-file-and-camera-fields.",
+  "change": "layout-phone-width",
+  "decidedOn": "2026-09-27"
+ },
+ {
   "row": "rep-export",
   "matrix": "humaniq",
   "decision": "build",
-  "reason": "Partial and built, five competitors rated yes. The library half of the missing piece: the Export menu forwards only the route query, reads a schema flag OpenRegister does not keep, and the mass export ignores the filter. Also answers the stackiq, buildiq and larpinq sibling halves. Turning allowExport on is humaniq's own half.",
+  "reason": "Partial and built, five competitors rated yes. The library half of the missing piece: the Export menu forwards only the route query, reads a schema flag OpenRegister keeps nowhere (it drops the top-level field and any configuration key outside its allowlist), and the mass export ignores the filter. Also answers the stackiq, buildiq and larpinq sibling halves. Turning allowExport on is humaniq's own half.",
   "change": "index-export-follows-the-page",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "adm-mobile-app",
+  "matrix": "larpinq",
+  "decision": "build",
+  "reason": "Library half of larpinq admin-phone-friendly-pages (REQ-APF-001): library-rendered pages at 360 pixels without horizontal scroll, tables as stacked rows.",
+  "change": "layout-phone-width",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ins-export-csv",
+  "matrix": "larpinq",
+  "decision": "build",
+  "reason": "Library half of larpinq admin-import-export: allowExport depends on a schema flag OpenRegister keeps nowhere today. The library reads configuration.exportable as well as the top-level field, so OpenRegister can keep it by allowlisting one configuration key (its half), and the menu exports the filtered list. Specified in PR #1269, corrected in PR #1270.",
+  "change": "index-export-follows-the-page",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "wld-maps",
+  "matrix": "larpinq",
+  "decision": "build",
+  "reason": "Library half of larpinq worlds-maps (REQ-WMP-002): an image layer in flat pixel coordinates in CnMapWidget, markers by x and y, and clicks answered in pixels.",
+  "change": "map-image-layer",
   "decidedOn": "2026-09-27"
  },
  {
@@ -168,11 +288,35 @@
   "decidedOn": "2026-09-27"
  },
  {
+  "row": "plat-field-conditions",
+  "matrix": "pipelinq",
+  "decision": "build",
+  "reason": "No and none. A tender demand row (TenderNed 414529, CIBG) and two competitors rated yes (HubSpot, EspoCRM). The library form hides a field only from a manifest condition; the change derives show, hide, required and dependent options from schema annotations an administrator sets.",
+  "change": "form-conditions-from-schema",
+  "decidedOn": "2026-09-27"
+ },
+ {
   "row": "work-saved-view",
   "matrix": "pipelinq",
   "decision": "existing",
   "reason": "Saving a filtered list and sharing it publicly ships (CnSaveViewDialog public toggle); sharing with a group of colleagues is specified in open change saved-views-shared-by-role. The rest is pipelinq's own half: no pipelinq page sets allowSavedViews.",
   "change": "saved-views-shared-by-role",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "col-comment-images",
+  "matrix": "planninq",
+  "decision": "build",
+  "reason": "No. A feature request (nextcloud/deck#533) and two competitors rated yes (OpenProject, Plane). The notes composer has no paste or drop handler; the task description half is planninq's own edit form.",
+  "change": "notes-replies-group-mentions-and-images",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "col-group-mention",
+  "matrix": "planninq",
+  "decision": "build",
+  "reason": "No. A feature request (JRASERVER-28225) and one competitor rated yes (OpenProject group mentions). The notes composer suggests users only.",
+  "change": "notes-replies-group-mentions-and-images",
   "decidedOn": "2026-09-27"
  },
  {
@@ -184,6 +328,14 @@
   "decidedOn": "2026-09-27"
  },
  {
+  "row": "col-threaded-comments",
+  "matrix": "planninq",
+  "decision": "build",
+  "reason": "No. A feature request (JRASERVER-3406) and one competitor rated yes (Nextcloud Deck reply to a comment). Same notes component as pg-record-comments.",
+  "change": "notes-replies-group-mentions-and-images",
+  "decidedOn": "2026-09-27"
+ },
+ {
   "row": "tsk-mentions",
   "matrix": "planninq",
   "decision": "existing",
@@ -192,11 +344,51 @@
   "decidedOn": "2026-09-27"
  },
  {
+  "row": "cmp-int-conditional",
+  "matrix": "portaliq",
+  "decision": "build",
+  "reason": "Library half of portaliq intake-conditional-questions-and-drafts: evaluateVisibleWhenLocal exported from the package root, one predicate for both forms.",
+  "change": "form-conditions-from-schema",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "led-multi-admin",
+  "matrix": "shillinq",
+  "decision": "existing",
+  "reason": "Library half asked by shillinq ledger-multi-administration (an @context.<key> sentinel). No new token: @workspace.<key> already resolves against a cnWorkspaceContext the app provides at its root, on index, detail and custom pages (useSelfFetchList.js:106), as humaniq's App.vue does for its multi-administration. Shillinq provides the bag and writes @workspace.activeAdministrationId? in config.filter. On dashboards CnDashboardPage provides its own empty context that shadows the root one; reported as a defect for a live check, not specified in this pass.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "plt-required-fields",
+  "matrix": "shillinq",
+  "decision": "build",
+  "reason": "Library half of shillinq platform-required-fields (REQ-PRF-002): a host-provided requiredFields input the form marks and pre-checks, and rule refusals shown under the fields they name. Shillinq's listener stays the enforcement.",
+  "change": "form-conditions-from-schema",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ins-export-list",
+  "matrix": "stackiq",
+  "decision": "build",
+  "reason": "Library half of stackiq insight-exports-and-custom-reports (design D3): the Export menu forwards the page filter, the quick filter and the search, not only the route query. Specified in PR #1269.",
+  "change": "index-export-follows-the-page",
+  "decidedOn": "2026-09-27"
+ },
+ {
   "row": "land-copy-entry",
   "matrix": "stackiq",
   "decision": "build",
   "reason": "Partial and built: the library copy clones the object's own fields in the browser (cloneObjectForCopy) and never reads its links. A changelog demand row (GLPI 11.0.0) and two competitors rated yes (SAP LeanIX, GLPI), in stackiq's core landscape area. The change adds the links; the atomic copy endpoint is an OpenRegister half, named in the proposal.",
   "change": "index-copy-with-relations",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "land-dependent-fields",
+  "matrix": "stackiq",
+  "decision": "build",
+  "reason": "Library half of stackiq landscape-dependent-field-options (REQ-DFO-003, the form offers only the allowed options): CnFormDialog reads x-openregister-dependent-values the way it reads x-relation-filter. Stackiq's half is the schema annotation, OpenRegister already refuses a pair outside the table.",
+  "change": "form-conditions-from-schema",
   "decidedOn": "2026-09-27"
  }
 ]
