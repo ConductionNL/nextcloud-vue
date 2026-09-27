@@ -758,10 +758,10 @@ describe('fieldsFromSchema', () => {
 		expect(contactsField.widget).toBe('multiselect')
 	})
 
-	it('sets field.reference for a single $ref property', () => {
+	it('sets field.reference for a single $ref property, kebab-cased to the objects-API slug (defect 7)', () => {
 		const fields = fieldsFromSchema(refSchema)
 		const caseTypeField = fields.find((f) => f.key === 'caseType')
-		expect(caseTypeField.reference).toEqual({ schema: 'caseType', multiple: false })
+		expect(caseTypeField.reference).toEqual({ schema: 'case-type', multiple: false })
 	})
 
 	it('sets field.reference with multiple:true for an items.$ref property', () => {
@@ -777,9 +777,9 @@ describe('fieldsFromSchema', () => {
 		expect(fields.find((f) => f.key === 'emptyRef').widget).not.toBe('select')
 	})
 
-	it('records x-external-register as reference.register on a single cross-app $ref (ADR-066)', () => {
+	it('records x-external-register as reference.register on a single cross-app $ref (ADR-066), schema slugified (defect 7)', () => {
 		const fields = fieldsFromSchema(refSchema)
-		expect(fields.find((f) => f.key === 'decision').reference).toEqual({ schema: 'Decision', multiple: false, register: 'decidesk' })
+		expect(fields.find((f) => f.key === 'decision').reference).toEqual({ schema: 'decision', multiple: false, register: 'decidesk' })
 	})
 
 	it('records x-external-register on an items.$ref cross-app array reference (ADR-066)', () => {
@@ -1050,6 +1050,23 @@ describe('fieldsFromSchema — object references', () => {
 		})
 		expect(fields.find((f) => f.key === 'bySlug').reference.schema).toBe('cow')
 		expect(fields.find((f) => f.key === 'byId').reference.schema).toBe(4501)
+	})
+
+	// REGRESSION (learniq round-1 defect 7). A `$ref` is authored as the
+	// referenced schema's PascalCase TITLE ("ReportPeriod"), not its slug
+	// ("report-period"). OpenRegister's objects API 404s on the raw title
+	// for any multi-word schema — `field.reference.schema` must carry the
+	// slug the objects API actually resolves, or every consumer that fetches
+	// on it (CnFormDialog's picker included) 404s the same way.
+	it('kebab-cases a multi-word PascalCase $ref title into reference.schema', () => {
+		const fields = fieldsFromSchema({
+			properties: {
+				reportPeriodId: { type: 'object', $ref: 'ReportPeriod' },
+				learnerRef: { type: 'object', $ref: 'LearnerProfile' },
+			},
+		})
+		expect(fields.find((f) => f.key === 'reportPeriodId').reference.schema).toBe('report-period')
+		expect(fields.find((f) => f.key === 'learnerRef').reference.schema).toBe('learner-profile')
 	})
 })
 
