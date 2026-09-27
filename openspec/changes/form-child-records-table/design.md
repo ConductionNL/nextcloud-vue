@@ -13,8 +13,10 @@ Read at nextcloud-vue development `c8aa85863` and openregister development
   `object-list-create-with-initial-data` (open) prefills a new child with
   the parent. Neither is a form field.
 - OpenRegister: a property with `$ref` and `inversedBy` describes the
-  child side of a one-to-many relation. Nested creation through the
-  parent save is not implemented (`RelationCascadeHandler.php:678-688`).
+  child side of a one-to-many relation. A single save creates nested
+  children for such a property (`SaveObject::cascadeObjects()`,
+  `lib/Service/Object/SaveObject.php:2085`); the bulk save path does not
+  cascade (`lib/Service/Object/SaveObjects.php:2659`, a TODO).
   `POST /api/bulk/{register}/{schema}/save` saves many objects of one
   schema in one request (`appinfo/routes.php:1285`), and
   `POST /api/bulk/{register}/{schema}/delete` deletes many (`:1286`).
@@ -49,10 +51,13 @@ set to the parent's id, and every removed child in one `bulk delete`.
 The result phase lists children not saved, with the reason, and keeps
 the parent saved.
 
-Rejected: nested children in the parent payload. OpenRegister's cascade
-is a stub today, so they would be dropped without an error. When the
-cascade exists, this can become one request; the field's contract does
-not change.
+Rejected: nested children in the parent payload. A single save creates
+new nested children, but nothing establishes that it updates a changed
+child or removes one the user deleted, and a form that edits an existing
+order needs all three. Saving the children as their own objects needs no
+cascade. If OpenRegister specifies update and removal on the nested
+path, this can become one request; the field's contract does not
+change.
 
 Rejected: one request per row. A thirty-line invoice is thirty requests
 and thirty chances to stop half way.

@@ -1,10 +1,26 @@
 [
  {
+  "row": "ai-smart-paste",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq ai-smart-paste-into-forms (REQ-BQSP-003): config.smartPaste and the CnFormPage control. The fill endpoint the sibling expects does not exist in hermiq yet, so the change calls a host-registered handler and names no hermiq URL.",
+  "change": "form-smart-paste",
+  "decidedOn": "2026-09-27"
+ },
+ {
   "row": "data-bulk-edit",
   "matrix": "buildiq",
   "decision": "build",
   "reason": "Partial and built: bulk delete and copy exist, changing a field across a selection does not. Three competitors rated yes (NocoBase, Budibase, Power Apps) and the row is in buildiq's core data area. Clustered with pub-bulk.",
   "change": "index-bulk-edit-and-transitions",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "data-choice-lists",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq data-field-types-and-choice-lists (design Risks): a property bound to a concept scheme renders as a select fed by OpenRegister's GET /api/vocabulary/options. OpenRegister serves options by scheme uri while its modifier documents a slug; to confirm there.",
+  "change": "form-options-from-concept-scheme",
   "decidedOn": "2026-09-27"
  },
  {
@@ -32,6 +48,14 @@
   "decidedOn": "2026-09-27"
  },
  {
+  "row": "data-restore-record",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq data-restore-record-version: allowRestore on CnAuditTrailTab over OpenRegister revert (POST /api/objects/{register}/{schema}/{id}/revert), gated on @self.actions, with fixed 403 and 423 sentences.",
+  "change": "audit-trail-restore-version",
+  "decidedOn": "2026-09-27"
+ },
+ {
   "row": "data-saved-views",
   "matrix": "buildiq",
   "decision": "existing",
@@ -45,6 +69,22 @@
   "decision": "build",
   "reason": "Partial and built: users show and hide columns, but cannot reorder or pin them and the choice is not kept. A changelog demand row (NocoBase 1.9.0) says the missing half matters; three competitors are partial with the pieces between them. In buildiq's core data area.",
   "change": "index-column-order-and-pinning",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "data-user-field",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "Named with data-field-types-and-choice-lists: the user field already renders as a Nextcloud user picker (fieldsFromSchema userPicker in src/utils/schema.js).",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-audio-record",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq forms-signature-audio-and-location (REQ-BQSA-001): an audio form field that records a clip up to its limit and releases the microphone.",
+  "change": "form-signature-audio-location-fields",
   "decidedOn": "2026-09-27"
  },
  {
@@ -88,6 +128,14 @@
   "decidedOn": "2026-09-27"
  },
  {
+  "row": "form-multi-product-request",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq forms-multi-product-request (REQ-BQMP-003): the per-item review in CnJourney, depending on journey-runtime. The list field is the open change form-widgets-duration-and-subobject-table, which lacks a row limit and item columns on formField; recorded in the proposal.",
+  "change": "journey-repeating-item-review",
+  "decidedOn": "2026-09-27"
+ },
+ {
   "row": "form-prefill",
   "matrix": "buildiq",
   "decision": "build",
@@ -101,6 +149,14 @@
   "decision": "existing",
   "reason": "Open change journey-runtime specifies a review step that shows every answer before submit, grouped by step, with a way back to each. A form that needs a review runs as a journey; authoring that journey is buildiq's half.",
   "change": "journey-runtime",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-signature",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq forms-signature-audio-and-location (REQ-BQSA-001): a signature form field that wraps CnSignatureCapture and always sends a PNG, drawn or typed.",
+  "change": "form-signature-audio-location-fields",
   "decidedOn": "2026-09-27"
  },
  {
@@ -128,6 +184,30 @@
   "decidedOn": "2026-09-27"
  },
  {
+  "row": "lc-debug-log",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq operate-debug-log-and-monitoring: an optional diagnostics channel on CnAppRoot reporting requests, render errors and binding failures, with a no-op default.",
+  "change": "app-diagnostics-channel",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ops-api-docs",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq operate-api-docs: CnApiReference renders an OpenAPI document inside the page and loads nothing from outside the instance.",
+  "change": "openapi-reference-component",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ops-performance-monitor",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq operate-debug-log-and-monitoring: request timing reported through the same diagnostics channel; the store's raw fetch sites carry no timing today.",
+  "change": "app-diagnostics-channel",
+  "decidedOn": "2026-09-27"
+ },
+ {
   "row": "pg-calendar",
   "matrix": "buildiq",
   "decision": "build",
@@ -144,11 +224,35 @@
   "decidedOn": "2026-09-27"
  },
  {
+  "row": "pg-custom-code-component",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq pages-custom-code (REQ-BQCC-003, REQ-BQCC-004): CnCodeFrame with a fixed allow-scripts sandbox, a checked postMessage protocol and host-served documents.",
+  "change": "sandboxed-code-frame",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-custom-js",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq pages-custom-code: the sandboxed evaluator for column expressions, expression defaults and form visibility expressions.",
+  "change": "sandboxed-code-frame",
+  "decidedOn": "2026-09-27"
+ },
+ {
   "row": "pg-detail",
   "matrix": "buildiq",
   "decision": "existing",
   "reason": "The library half is built: CnDetailPage renders header and lifecycle actions, related collections, related-object widgets and files. The missing half is buildiq's DetailPageEditor, which has no fields for them. The row's built.owner should be ConductionNL/buildiq.",
   "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-device-location",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq forms-signature-audio-and-location (REQ-BQSA-001, REQ-BQSA-003): a location form field with a map fallback, and showUserLocation and centerOnUser on CnMapPage.",
+  "change": "form-signature-audio-location-fields",
   "decidedOn": "2026-09-27"
  },
  {
@@ -160,6 +264,14 @@
   "decidedOn": "2026-09-27"
  },
  {
+  "row": "pg-generate-code",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq pages-qr-and-barcodes (REQ-BQQR-003): the code widget that draws a QR code or barcode from a record field.",
+  "change": "scan-and-generate-codes",
+  "decidedOn": "2026-09-27"
+ },
+ {
   "row": "pg-kanban",
   "matrix": "buildiq",
   "decision": "existing",
@@ -168,11 +280,43 @@
   "decidedOn": "2026-09-27"
  },
  {
+  "row": "pg-native-mobile",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq pages-installable-offline-and-mobile for the installed app: a scoped clearTakeAlong and a drain filter so an app clears and replays only its own queue on a shared origin.",
+  "change": "manifest-offline-block",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-offline",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq pages-installable-offline-and-mobile: an offline block in the manifest schema; CnIndexPage and CnDetailPage read taken-along records from the offline cache and CnFormPage queues submissions, building on offline-capture-queue-and-conflicts.",
+  "change": "manifest-offline-block",
+  "decidedOn": "2026-09-27"
+ },
+ {
   "row": "pg-record-comments",
   "matrix": "buildiq",
   "decision": "build",
   "reason": "Partial and built: notes on a record exist, not threaded replies. Two competitors rated yes (NocoBase with quote-reply, Power Apps). Clustered with three planninq rows on the same notes component.",
   "change": "notes-replies-group-mentions-and-images",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-scan-code",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq pages-qr-and-barcodes (REQ-BQQR-001, REQ-BQQR-002): a camera scanner, the scan index action with lookup, and the scan form field.",
+  "change": "scan-and-generate-codes",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ux-multilingual-ui",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq experience-multilingual-apps: an i18n block in the manifest v2 schema, the label lookup in CnAppRoot, a language prop for the preview, and the components that show manifest labels untranslated, listed with file and line.",
+  "change": "manifest-i18n-labels",
   "decidedOn": "2026-09-27"
  },
  {
@@ -213,6 +357,46 @@
   "decision": "existing",
   "reason": "Open change files-browser-columns was opened from this row and shipped in #1219 (d1b315a37): CnFilesBrowser renders the columns its host declares. The remaining half is dossiq declaring the columns on its document list.",
   "change": "files-browser-columns",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "wk-notes",
+  "matrix": "filinq",
+  "decision": "build",
+  "reason": "Library half of filinq work-document-notes (REQ-WDN-001, design D2): CnNotesCard with a file as its source, over Nextcloud's comments DAV endpoint. Filinq's panels and its comment count are filinq's.",
+  "change": "notes-on-a-file",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ch-attach",
+  "matrix": "hermiq",
+  "decision": "build",
+  "reason": "Library half of hermiq chat-attachments-and-images: the companion shows the attachments of a sent message and offers Choose from Files beside upload (its design D2 leaves the picker to nextcloud-vue).",
+  "change": "ai-message-attachments",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ch-image-gen",
+  "matrix": "hermiq",
+  "decision": "build",
+  "reason": "Library half of hermiq chat-attachments-and-images: a generated image carried on the final frame renders as a thumbnail in the companion, linked to the file in Files.",
+  "change": "ai-message-attachments",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "dm-image-chat",
+  "matrix": "hermiq",
+  "decision": "build",
+  "reason": "Library half of hermiq chat-attachments-and-images: the companion keeps and renders the attachments and notices hermiq returns on the final frame (its proposal leaves CnAiMessageList rendering to nextcloud-vue).",
+  "change": "ai-message-attachments",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "dm-native-pdf",
+  "matrix": "hermiq",
+  "decision": "build",
+  "reason": "Library half of hermiq chat-attachments-and-images: the notice that a model could not read a PDF, carried as attachmentNotices on the final frame, is shown above the answer.",
+  "change": "ai-message-attachments",
   "decidedOn": "2026-09-27"
  },
  {
@@ -365,6 +549,14 @@
   "decision": "build",
   "reason": "Library half of shillinq platform-required-fields (REQ-PRF-002): a host-provided requiredFields input the form marks and pre-checks, and rule refusals shown under the fields they name. Shillinq's listener stays the enforcement.",
   "change": "form-conditions-from-schema",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "arch-ai-diagram",
+  "matrix": "stackiq",
+  "decision": "build",
+  "reason": "Library half of stackiq architecture-assistant-drafted-views (design, Risks: a deep import of flowGraphLayout.js): the layout helpers are exported from the package root and held there by a packaging test.",
+  "change": "flow-layout-helpers-from-root",
   "decidedOn": "2026-09-27"
  },
  {
