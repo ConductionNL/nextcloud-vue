@@ -32,6 +32,15 @@
   `POST /api/store/items/{slug}/install`; this component only calls it and
   renders what it reports.
 
+  WHO SEES INSTALL AND PUBLISH IS THE APP'S ANSWER, NOT THIS PAGE'S.
+  -----------------------------------------------------------------
+  `canInstall` and `canPublish` carry a boolean the app resolved (learniq reads
+  its ADR-023 action matrix). `null`, the default, falls back to administrators
+  only, which is what every store page did before the props existed. Publish
+  appears only when the app also names a `publishRoute`: publishing is the
+  app's own surface, like install. Both props hide a button and nothing more;
+  the app's endpoints enforce the same rule.
+
   A LOCAL-ONLY CARD GRID IS NOT A STORE (ADR-080 Decision 4). With no registry
   configured the engine answers `not_configured` WITHOUT a network call, and
   this page then renders `builtIn`. That fallback is the only reason a surface
@@ -40,9 +49,18 @@
 <template>
 	<div class="cn-store-page" data-testid="store-page">
 		<div class="cn-store-page__header">
-			<h2 class="cn-store-page__title">
-				{{ resolvedTitle }}
-			</h2>
+			<div class="cn-store-page__heading">
+				<h2 class="cn-store-page__title">
+					{{ resolvedTitle }}
+				</h2>
+				<NcButton
+					v-if="showPublish"
+					variant="secondary"
+					data-testid="store-publish"
+					@click="openPublish">
+					{{ t('nextcloud-vue', 'Publish') }}
+				</NcButton>
+			</div>
 			<p v-if="resolvedDescription" class="cn-store-page__intro">
 				{{ resolvedDescription }}
 			</p>
@@ -116,8 +134,9 @@
 						{{ card.version }}
 					</span>
 					<NcButton
-						v-if="canInstall"
+						v-if="showInstall"
 						variant="primary"
+						data-testid="store-install"
 						:disabled="installing === card.slug"
 						@click="install(card)">
 						{{
@@ -274,6 +293,48 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
+		/**
+		 * Whether the signed-in user sees Install, as the app resolved it
+		 * (learniq: its ADR-023 matrix). `true` shows it on every remote
+		 * card, `false` hides it from everyone, administrators included.
+		 * `null` (the default) keeps the rule from before this prop:
+		 * administrators only. Presentation only: the app's install endpoint
+		 * must enforce the same rule.
+		 *
+		 * @type {boolean|null}
+		 */
+		canInstall: {
+			type: Boolean,
+			default: null,
+		},
+
+		/**
+		 * Whether the signed-in user sees Publish, as the app resolved it.
+		 * `null` (the default) falls back to administrators only. Publish
+		 * renders only when `publishRoute` is set as well. Presentation
+		 * only: the app's publish endpoint must enforce the same rule.
+		 *
+		 * @type {boolean|null}
+		 */
+		canPublish: {
+			type: Boolean,
+			default: null,
+		},
+
+		/**
+		 * Where Publish takes the user: a route name (string) or a route
+		 * location (object). Publishing is the app's own surface, so this
+		 * page never sends anything to a registry itself. Empty means no
+		 * Publish button, whatever `canPublish` says, so an app that never
+		 * sets it renders what it rendered before.
+		 *
+		 * @type {string|object}
+		 */
+		publishRoute: {
+			type: [String, Object],
+			default: '',
+		},
 	},
 
 	data() {
@@ -348,15 +409,68 @@ export default {
 		},
 
 		/**
-		 * Only an administrator may install: the components written are the
-		 * shape of the work every handler then operates against. The server
-		 * enforces this too; hiding the button keeps a non-admin from
-		 * discovering it as a 403.
+		 * Whether the current user is an administrator: the fallback for both
+		 * actions when the app did not say.
 		 *
 		 * @return {boolean} True when the current user is an administrator.
 		 */
-		canInstall() {
+		isAdmin() {
 			return getCurrentUser()?.isAdmin === true
+		},
+
+		/**
+		 * Whether Install shows. The app's answer wins; without one only an
+		 * administrator installs, because what an install writes is the shape
+		 * of the work every handler then operates against. The server
+		 * enforces this too; hiding the button keeps a user from discovering
+		 * a refusal as a 403.
+		 *
+		 * @return {boolean} True when the Install buttons render.
+		 */
+		showInstall() {
+			if (typeof this.canInstall === 'boolean') {
+				return this.canInstall
+			}
+
+			return this.isAdmin
+		},
+
+		/**
+		 * Where Publish navigates, or null when the app named no destination.
+		 * A string is a route NAME, the way manifest menu entries name routes.
+		 *
+		 * @return {object|null} A vue-router location, or null.
+		 */
+		publishTarget() {
+			if (typeof this.publishRoute === 'string') {
+				return this.publishRoute === '' ? null : { name: this.publishRoute }
+			}
+
+			if (this.publishRoute !== null && typeof this.publishRoute === 'object') {
+				return this.publishRoute
+			}
+
+			return null
+		},
+
+		/**
+		 * Whether Publish shows: a destination is named AND the app allows it
+		 * (or, without an answer, the user is an administrator). No
+		 * destination means no button, because a button that goes nowhere
+		 * is worse than none.
+		 *
+		 * @return {boolean} True when the Publish button renders.
+		 */
+		showPublish() {
+			if (this.publishTarget === null) {
+				return false
+			}
+
+			if (typeof this.canPublish === 'boolean') {
+				return this.canPublish
+			}
+
+			return this.isAdmin
 		},
 
 		/**
@@ -586,6 +700,20 @@ export default {
 		},
 
 		/**
+		 * Go to the app's own publish surface. Without a router (a host that
+		 * renders this page outside one) nothing happens rather than an error.
+		 *
+		 * @return {void}
+		 */
+		openPublish() {
+			if (this.publishTarget === null || typeof this.$router?.push !== 'function') {
+				return
+			}
+
+			this.$router.push(this.publishTarget)
+		},
+
+		/**
 		 * Install one item, and report per component.
 		 *
 		 * A partial install is a real outcome rather than a failure: an item
@@ -652,8 +780,17 @@ export default {
 	max-width: 1200px;
 }
 
-.cn-store-page__title {
+.cn-store-page__heading {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
 	margin: 0 0 4px;
+}
+
+.cn-store-page__title {
+	margin: 0;
 }
 
 .cn-store-page__intro {
