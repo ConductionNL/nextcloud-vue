@@ -1,0 +1,202 @@
+[
+ {
+  "row": "data-bulk-edit",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Partial and built: bulk delete and copy exist, changing a field across a selection does not. Three competitors rated yes (NocoBase, Budibase, Power Apps) and the row is in buildiq's core data area. Clustered with pub-bulk.",
+  "change": "index-bulk-edit-and-transitions",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "data-drag-sort-rows",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "Open change case-page-and-list-as-a-place specifies a manual row order dragged by the user and held per user and per list, with keyboard moves. The order store ships since 2.55.1 (manualOrder, moveRowByHand, dropRowByHand); the table handle is its open task. NocoBase writes a sort field on the records instead; that change rules it out on purpose ('The order SHALL NOT be written onto the records').",
+  "change": "case-page-and-list-as-a-place",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "data-user-column-settings",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Partial and built: users show and hide columns, but cannot reorder or pin them and the choice is not kept. A changelog demand row (NocoBase 1.9.0) says the missing half matters; three competitors are partial with the pieces between them. In buildiq's core data area.",
+  "change": "index-column-order-and-pinning",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-review-before-submit",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "Open change journey-runtime specifies a review step that shows every answer before submit, grouped by step, with a way back to each. A form that needs a review runs as a journey; authoring that journey is buildiq's half.",
+  "change": "journey-runtime",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "int-calendar-contacts",
+  "matrix": "buildiq",
+  "decision": "defer",
+  "reason": "Partial, built, no demand, one competitor rated yes (Power Apps). The library shows calendar, contacts and Talk tabs in registry mode; the missing half is a useRegistry control in buildiq's DetailPageEditor.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "lc-app-dependencies",
+  "matrix": "buildiq",
+  "decision": "defer",
+  "reason": "Partial, built, no demand, one competitor rated yes (Power Apps). CnAppRoot honours manifest.dependencies and shows what is missing; the missing half is a picker in buildiq's builder.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-calendar",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "No and none. Three competitors rated yes (NocoBase, Budibase, Mendix). The library already has CnObjectCalendar, exported and mounted nowhere; the change makes it a view mode of CnIndexPage.",
+  "change": "index-calendar-view-mode",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-charts",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "The library half is built: CnChartWidget renders bar, line, pie and more from a record aggregation (dataSource bucket or groupBy), and CnChartWidgetForm is the in-app editor for chart type and breakdown. The missing half is buildiq's WidgetBuilder, which offers only id, title and type. The row's built.owner should be ConductionNL/buildiq.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-detail",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "The library half is built: CnDetailPage renders header and lifecycle actions, related collections, related-object widgets and files. The missing half is buildiq's DetailPageEditor, which has no fields for them. The row's built.owner should be ConductionNL/buildiq.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-gantt",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "Matrix read nextcloud-vue 2.55.1. The dateAxis view mode shipped in #1214 (628f1d57d, released in 2.56.0): records with a start and an end on a time scale, one lane per field value, read only. Offering it in the index page editor is buildiq's half.",
+  "change": "status-board-and-date-axis",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-kanban",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "Matrix read nextcloud-vue 2.55.1. The board view mode of CnIndexPage shipped in #1214 (628f1d57d, released in 2.56.0): columns from the status field, a drop runs a lifecycle transition. Offering it in the index page editor is buildiq's half.",
+  "change": "status-board-and-date-axis",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ux-wcag",
+  "matrix": "buildiq",
+  "decision": "defer",
+  "reason": "Partial, built, no demand, and every competitor is partial. The missing half is an accessibility check inside buildiq's builder (buildiq row ux-a11y-checker, deferred by the buildiq lane).",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "10.10",
+  "matrix": "dossiq",
+  "decision": "existing",
+  "reason": "Open change a-saved-view-drives-a-widget names this row (parity ledger row 10.10) and specifies the missing half: a dashboard widget bound to a saved view. The built half is dashboard-layout-per-user (#1209).",
+  "change": "a-saved-view-drives-a-widget",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "11.9",
+  "matrix": "dossiq",
+  "decision": "defer",
+  "reason": "Partial, built, no demand, one competitor rated yes (GZAC). Columns per case type shipped in index-columns-per-scope (#1213); the part GZAC has on top is an administrator's column editor.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "3.14",
+  "matrix": "dossiq",
+  "decision": "existing",
+  "reason": "Open change form-dialog-autosave was opened for this row (M1 3.14). Its CnFormDialog half shipped in #1207 (efdd77be8: allowDraft, draftField, useFormDraft); the CnFormPage half is still open, and dossiq has to set allowDraft on its task forms.",
+  "change": "form-dialog-autosave",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "4.8",
+  "matrix": "dossiq",
+  "decision": "existing",
+  "reason": "Open change files-browser-columns was opened from this row and shipped in #1219 (d1b315a37): CnFilesBrowser renders the columns its host declares. The remaining half is dossiq declaring the columns on its document list.",
+  "change": "files-browser-columns",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "rep-export",
+  "matrix": "humaniq",
+  "decision": "build",
+  "reason": "Partial and built, five competitors rated yes. The library half of the missing piece: the Export menu forwards only the route query, reads a schema flag OpenRegister does not keep, and the mass export ignores the filter. Also answers the stackiq, buildiq and larpinq sibling halves. Turning allowExport on is humaniq's own half.",
+  "change": "index-export-follows-the-page",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "d-notes",
+  "matrix": "launchpad",
+  "decision": "build",
+  "reason": "Partial and built: the text widget holds text but is edited in dashboard edit mode. A feature request (dashy#636) and one competitor rated yes (Homarr notebook), so a notepad typed into in place, kept per person.",
+  "change": "dashboard-notepad-widget",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ops-reports",
+  "matrix": "opencatalogi",
+  "decision": "defer",
+  "reason": "Partial, built, no demand, and no competitor rated yes. The note points at opencatalogi's own manifest: the report widgets query register 'opencatalogi' while the app ships register 'publication'. Not a library gap.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pub-bulk",
+  "matrix": "opencatalogi",
+  "decision": "build",
+  "reason": "Partial and built: bulk delete works, bulk publish and withdraw do not. Two competitors rated yes (CKAN bulk_process with Make public and Make private, DKAN bulk publish and archive), so the missing half is built: a lifecycle step run on a selection as one OpenRegister bulk job. Clustered with data-bulk-edit, same selection strip.",
+  "change": "index-bulk-edit-and-transitions",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pub-preview",
+  "matrix": "opencatalogi",
+  "decision": "build",
+  "reason": "Partial and built: the sidebar tab opens files in the Viewer, but the files integration widget (CnFilesCard) renders a bare link and nothing previews a data file. Two competitors rated yes (CKAN, xxllnc Publiceren), in opencatalogi's core publications area.",
+  "change": "files-preview-in-place",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "work-saved-view",
+  "matrix": "pipelinq",
+  "decision": "existing",
+  "reason": "Saving a filtered list and sharing it publicly ships (CnSaveViewDialog public toggle); sharing with a group of colleagues is specified in open change saved-views-shared-by-role. The rest is pipelinq's own half: no pipelinq page sets allowSavedViews.",
+  "change": "saved-views-shared-by-role",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "col-live-updates",
+  "matrix": "planninq",
+  "decision": "defer",
+  "reason": "Partial, built, no demand, and no competitor rated yes. The library's liveUpdatesPlugin works where it is subscribed; planninq's ProjectBoard.vue does not subscribe. That is planninq's half.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "tsk-mentions",
+  "matrix": "planninq",
+  "decision": "existing",
+  "reason": "The library half shipped with archived change notes-mentions-autocomplete: mention autocomplete, chips and a mention event on save. That spec decides nextcloud-vue does not dispatch notifications; the consuming app does. Planninq mounts CnObjectSidebar without a mention listener, so the missing half is planninq's. The row's built.owner should be ConductionNL/planninq.",
+  "change": "2026-07-13-notes-mentions-autocomplete",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "land-copy-entry",
+  "matrix": "stackiq",
+  "decision": "build",
+  "reason": "Partial and built: the library copy clones the object's own fields in the browser (cloneObjectForCopy) and never reads its links. A changelog demand row (GLPI 11.0.0) and two competitors rated yes (SAP LeanIX, GLPI), in stackiq's core landscape area. The change adds the links; the atomic copy endpoint is an OpenRegister half, named in the proposal.",
+  "change": "index-copy-with-relations",
+  "decidedOn": "2026-09-27"
+ }
+]
