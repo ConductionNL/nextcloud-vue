@@ -413,6 +413,8 @@ export default {
 		 * actions when the app did not say.
 		 *
 		 * @return {boolean} True when the current user is an administrator.
+		 *
+		 * @spec openspec/changes/store-page-action-visibility/specs/store-page/spec.md#requirement-req-stp-1-the-consuming-app-decides-who-sees-install
 		 */
 		isAdmin() {
 			return getCurrentUser()?.isAdmin === true
@@ -426,6 +428,8 @@ export default {
 		 * a refusal as a 403.
 		 *
 		 * @return {boolean} True when the Install buttons render.
+		 *
+		 * @spec openspec/changes/store-page-action-visibility/specs/store-page/spec.md#requirement-req-stp-1-the-consuming-app-decides-who-sees-install
 		 */
 		showInstall() {
 			if (typeof this.canInstall === 'boolean') {
@@ -440,6 +444,8 @@ export default {
 		 * A string is a route NAME, the way manifest menu entries name routes.
 		 *
 		 * @return {object|null} A vue-router location, or null.
+		 *
+		 * @spec openspec/changes/store-page-action-visibility/specs/store-page/spec.md#requirement-req-stp-2-the-consuming-app-decides-who-sees-publish-and-where-it-leads
 		 */
 		publishTarget() {
 			if (typeof this.publishRoute === 'string') {
@@ -460,6 +466,8 @@ export default {
 		 * is worse than none.
 		 *
 		 * @return {boolean} True when the Publish button renders.
+		 *
+		 * @spec openspec/changes/store-page-action-visibility/specs/store-page/spec.md#requirement-req-stp-2-the-consuming-app-decides-who-sees-publish-and-where-it-leads
 		 */
 		showPublish() {
 			if (this.publishTarget === null) {
@@ -704,6 +712,8 @@ export default {
 		 * renders this page outside one) nothing happens rather than an error.
 		 *
 		 * @return {void}
+		 *
+		 * @spec openspec/changes/store-page-action-visibility/specs/store-page/spec.md#requirement-req-stp-2-the-consuming-app-decides-who-sees-publish-and-where-it-leads
 		 */
 		openPublish() {
 			if (this.publishTarget === null || typeof this.$router?.push !== 'function') {
