@@ -227,7 +227,7 @@
   "row": "rep-export",
   "matrix": "humaniq",
   "decision": "build",
-  "reason": "Partial and built, five competitors rated yes. The library half of the missing piece: the Export menu forwards only the route query, reads a schema flag OpenRegister does not keep, and the mass export ignores the filter. Also answers the stackiq, buildiq and larpinq sibling halves. Turning allowExport on is humaniq's own half.",
+  "reason": "Partial and built, five competitors rated yes. The library half of the missing piece: the Export menu forwards only the route query, reads a schema flag OpenRegister keeps nowhere (it drops the top-level field and any configuration key outside its allowlist), and the mass export ignores the filter. Also answers the stackiq, buildiq and larpinq sibling halves. Turning allowExport on is humaniq's own half.",
   "change": "index-export-follows-the-page",
   "decidedOn": "2026-09-27"
  },
@@ -243,7 +243,7 @@
   "row": "ins-export-csv",
   "matrix": "larpinq",
   "decision": "build",
-  "reason": "Library half of larpinq admin-import-export: allowExport depends on a schema flag OpenRegister did not serve; the menu now reads configuration.exportable as well, and exports the filtered list. Specified in PR #1269.",
+  "reason": "Library half of larpinq admin-import-export: allowExport depends on a schema flag OpenRegister keeps nowhere today. The library reads configuration.exportable as well as the top-level field, so OpenRegister can keep it by allowlisting one configuration key (its half), and the menu exports the filtered list. Specified in PR #1269, corrected in PR #1270.",
   "change": "index-export-follows-the-page",
   "decidedOn": "2026-09-27"
  },
