@@ -46,4 +46,4 @@
 
 ## Cross-project
 
-- openregister: `RelationCascadeHandler::cascadeSingleObject()` is a stub that drops nested children silently. Reported for the openregister lane; this change does not depend on it.
+- openregister: none owed. This change saves children through the child schema's own endpoint and needs no cascade. (`RelationCascadeHandler::cascadeSingleObject()` is a dead stub; the real single-save cascade is `SaveObject::cascadeObjects()`, and the bulk path skips cascading by a TODO.)

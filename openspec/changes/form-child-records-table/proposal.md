@@ -78,11 +78,14 @@ A form with no such property is unchanged.
 
 ## Cross-project dependencies
 
-- OpenRegister's cascade for nested objects in a parent save is a stub:
-  `RelationCascadeHandler::cascadeSingleObject()` logs "Cascade object
-  creation not yet implemented in extracted handler" and returns null
-  (`lib/Service/Object/SaveObject/RelationCascadeHandler.php:678-688` at
-  `555af72`). So this change does not send children inside the parent's
-  payload; it saves them through the child schema's own endpoint (see
-  design D3). The stub is reported for the openregister lane: any client
-  that sends nested children today loses them without an error.
+- OpenRegister creates nested children on a single save:
+  `SaveObject::cascadeObjects()` (`lib/Service/Object/SaveObject.php:2085`,
+  called at `:5955` at `555af72`) cascades properties with `inversedBy`.
+  The bulk save path does not: `SaveObjects` leaves cascading as a TODO
+  (`lib/Service/Object/SaveObjects.php:2659`). The stub in
+  `RelationCascadeHandler::cascadeSingleObject()` is dead code, not the
+  save path. Corrected on 2026-09-27: the first version of this proposal
+  read the stub as the save path. Whether the single-save cascade also
+  updates and removes existing children is not established, so this
+  change saves children through the child schema's own endpoint (design
+  D3), which needs no cascade at all.
