@@ -58,6 +58,7 @@ import {
 	resolveDeepTokens,
 	resolveFilterTokens,
 } from './resolveFilterTokens.js'
+import { schemaRefSlug } from './schemaRefSlug.js'
 
 /** Event-bus channel the page-level Refresh signal broadcasts on (Wave 2). */
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
@@ -92,13 +93,19 @@ export function isExternalActionTarget(target) {
  * own caches stay coherent); otherwise registers a deterministic
  * `<register>/<schema>` slug on the fly.
  *
+ * `source.schema` is routed through {@link schemaRefSlug} before it ever
+ * reaches the store or the objects API: a caller that passes a `$ref`
+ * schema TITLE (`ReportPeriod`) rather than its slug (`report-period`)
+ * would otherwise register — and fetch — a 404 (defect 7, learniq round
+ * 1). Idempotent for a caller that already passes a correct slug.
+ *
  * @param {object} store The object store instance (useObjectStore shape).
  * @param {{register: (string|number), schema: (string|number)}} source The widget source.
  * @return {string} The type slug to use for store CRUD calls.
  */
 export function resolveObjectOpType(store, source) {
 	const register = String(source.register)
-	const schema = String(source.schema)
+	const schema = String(schemaRefSlug(source.schema))
 	const registry = store.objectTypeRegistry || {}
 	for (const [slug, config] of Object.entries(registry)) {
 		if (!config) {
