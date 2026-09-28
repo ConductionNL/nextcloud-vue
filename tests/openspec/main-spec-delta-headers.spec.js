@@ -14,7 +14,7 @@ import fs from 'fs'
 import path from 'path'
 
 const SPECS = path.resolve(__dirname, '../../openspec/specs')
-const DELTA_HEADER = /^## (ADDED|MODIFIED|REMOVED|RENAMED) Requirements\b/
+const DELTA_HEADER = /^##\s+(ADDED|MODIFIED|REMOVED|RENAMED)\s+Requirements\b/i
 
 /**
  * Every markdown file under openspec/specs, relative to that folder.
