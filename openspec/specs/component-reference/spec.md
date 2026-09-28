@@ -110,8 +110,8 @@ CI MUST fail any PR where regenerating `_generated/<name>.md` produces a diff ag
 #### Scenario: Stale partial fails CI
 
 - GIVEN a contributor adds a prop to `CnFormDialog.vue` but does not regenerate the partial
-- WHEN CI runs `npm run prebuild:docs && git diff --exit-code docs/components/_generated/`
-- THEN the job MUST fail with the missing prop visible in the diff
+- WHEN CI runs `npm run check:docs-fresh`
+- THEN the job MUST fail and name the stale or untracked partial
 
 ### Requirement: Events Documentation
 
@@ -337,7 +337,7 @@ Each component page MUST include a "Related Components" section linking to compo
 
 The library MUST guarantee that documentation tracks component source automatically. This depends on three CI-enforced guarantees working together:
 
-**G1 — Freshness:** the committed `docs/components/_generated/<name>.md` partial MUST match what `vue-docgen-cli` produces from current source. CI MUST run `npm run prebuild:docs && git diff --exit-code docs/components/_generated/` and fail any PR with a non-empty diff. This forces every prop / event / slot change to ship with its regenerated partial.
+**G1 — Freshness:** the committed `docs/components/_generated/<name>.md` partial MUST match what `vue-docgen-cli` produces from current source. CI MUST run `npm run check:docs-fresh`, which regenerates the partials and fails any PR that leaves a modified or untracked partial behind. This forces every prop / event / slot change to ship with its regenerated partial.
 
 **G2 — Completeness:** the JSDoc on each `Cn*` SFC MUST be rich enough that the generated partial is genuinely useful. A `scripts/check-jsdoc.js` CI step MUST score each component:
 
