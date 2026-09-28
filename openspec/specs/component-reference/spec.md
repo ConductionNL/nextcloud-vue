@@ -333,10 +333,6 @@ Each component page MUST include a "Related Components" section linking to compo
 - WHEN they scroll to the Related Components section
 - THEN they SHALL see links to CnDashboardGrid, CnWidgetWrapper, CnWidgetRenderer, CnTileWidget, CnChartWidget, and useDashboardView composable
 
-## MODIFIED Requirements
-
-_(none -- all new)_
-
 ### Requirement: JSDoc completeness ratchet — "components update → docs update automatically"
 
 The library MUST guarantee that documentation tracks component source automatically. This depends on three CI-enforced guarantees working together:
@@ -399,17 +395,13 @@ The hook MUST be opt-in friendly: a developer who runs `npm run prebuild:docs` m
 - THEN the pre-commit hook SHOULD run `prebuild:docs`, regenerate `docs/components/_generated/CnDataTable.md`, and stage it
 - AND the resulting commit SHOULD include both the SFC change and the regenerated partial
 
-## MODIFIED Requirements
+## Change history
 
 The following requirements were modified by the **unify-component-docs** change (archived 2026-05-09):
 
 - **Individual Component Pages** — Each page now has a hand-written narrative + auto-embedded `<Playground />` + auto-generated `## Reference (auto-generated)` partial structure, replacing the previous all-hand-written prop/event/slot tables.
 - **Props Documentation Accuracy** — Tables are now mechanically derived from SFC source via `vue-docgen-cli`; CI fails on any drift.
 - **Events Documentation** — Events come from JSDoc above `$emit` calls or `emits:` declarations; auto-generated.
-
-## REMOVED Requirements
-
-_(none)_
 
 ---
 

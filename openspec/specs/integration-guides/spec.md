@@ -353,14 +353,6 @@ The integration guides MUST include a `docs/integrations/migration.md` page for 
 - WHEN they follow the migration checklist
 - THEN they SHALL have a step-by-step list covering: install library, configure webpack, replace store, replace components, test, remove old code
 
-## MODIFIED Requirements
-
-_(none -- all new)_
-
-## REMOVED Requirements
-
-_(none -- all new)_
-
 ---
 
 ## Current Implementation Status
