@@ -216,3 +216,46 @@ describe('resolveFilterTokens', () => {
 		})
 	})
 })
+
+// CnStatWidget documented `@range.from` / `@range.to` / `@range.preset` and put
+// `range` in its endpoint context, but no resolver read it: the literal token
+// stayed in the params, hasUnresolvedTokens blocked the request, and a card
+// driven by its own period picker never loaded. Found by portaliq's KPI cards,
+// which had to work around it.
+describe('range-context tokens', () => {
+	const ctx = { range: { from: '2026-09-01', to: '2026-09-27', preset: '30' } }
+
+	it('resolves @range.from / @range.to / @range.preset from ctx.range', () => {
+		expect(resolveFilterValue('@range.from', ctx)).toBe('2026-09-01')
+		expect(resolveFilterValue('@range.to', ctx)).toBe('2026-09-27')
+		expect(resolveFilterValue('@range.preset', ctx)).toBe('30')
+	})
+
+	it('resolves the optional form @range.<key>? the same way when set', () => {
+		expect(resolveFilterValue('@range.preset?', ctx)).toBe('30')
+	})
+
+	it('passes an unset @range token through unchanged', () => {
+		expect(resolveFilterValue('@range.preset')).toBe('@range.preset')
+		expect(resolveFilterValue('@range.preset', { range: {} })).toBe('@range.preset')
+		expect(resolveFilterValue('@range.preset', { range: { preset: '' } })).toBe('@range.preset')
+	})
+
+	it('drops an unset optional @range token and does not block on it', () => {
+		const resolved = resolveFilterTokens({ portal: 'open-tilburg', days: '@range.preset?' }, { range: {} })
+		expect(isOptionalUnresolved(resolved.days)).toBe(true)
+		expect(dropOptionalUnresolved(resolved)).toEqual({ portal: 'open-tilburg' })
+		expect(hasUnresolvedTokens(dropOptionalUnresolved(resolved))).toBe(false)
+	})
+
+	it('still blocks on an unset REQUIRED @range token', () => {
+		const resolved = resolveFilterTokens({ days: '@range.preset' }, { range: {} })
+		expect(hasUnresolvedTokens(resolved)).toBe(true)
+	})
+
+	it('no longer blocks once the range is set', () => {
+		const resolved = resolveFilterTokens({ from: '@range.from', to: '@range.to', days: '@range.preset?' }, ctx)
+		expect(resolved).toEqual({ from: '2026-09-01', to: '2026-09-27', days: '30' })
+		expect(hasUnresolvedTokens(resolved)).toBe(false)
+	})
+})
