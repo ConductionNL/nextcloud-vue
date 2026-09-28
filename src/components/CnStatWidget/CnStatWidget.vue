@@ -435,8 +435,12 @@ export default {
 		 * `dateRange` opts the tile into the dashboard's period. Present and empty
 		 * (`{}`) = follow the ancestor `CnDashboardPage` range; add `presets`
 		 * (`[{ id, label?, from?, to? }]`) to render a per-tile picker that
-		 * overrides it. The active range is exposed to `endpointSource` as
-		 * `@range.from` / `@range.to` / `@range.preset` tokens. A tile that
+		 * overrides it. With presets and no page range, the tile starts on
+		 * `dateRange.default` (a preset id), else on the first preset, so the
+		 * picker never opens blank and the first request already carries a
+		 * range. The active range is exposed to `endpointSource` (and to the
+		 * tile's `route`) as `@range.from` / `@range.to` / `@range.preset`
+		 * tokens. A tile that
 		 * declares no `dateRange` is unaffected by the page range — that is
 		 * deliberate, so adding a range to a dashboard cannot silently change what
 		 * an existing tile requests.
@@ -466,7 +470,7 @@ export default {
 		 * counted between LOCAL CALENDAR DAYS, not as elapsed milliseconds, so
 		 * the time of day on a deadline never moves the answer.
 		 *
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string}>}}
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>, default?: string}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string}>}}
 		 */
 		content: {
 			type: Object,
@@ -506,7 +510,22 @@ export default {
 		// setup, not data(), because the ctx closure below must read it reactively
 		// — a data() property would be resolved once and never refetch.
 		const tileRange = ref(null)
-		const activeRange = () => (tileRange.value || unwrap(pageRangeRaw) || null)
+		// With its own presets and no page range, the tile starts on
+		// `dateRange.default`, else the first preset. Without this the picker
+		// opened blank (its value '' matched no option unless an app added a
+		// preset with id '') and the first request carried no range. Only a
+		// tile that declares presets gets a default: one that merely follows
+		// the dashboard (`dateRange: {}`) keeps following it.
+		const defaultRange = () => {
+			const dr = props.content && props.content.dateRange
+			const presets = (dr && Array.isArray(dr.presets)) ? dr.presets.filter(Boolean) : []
+			if (presets.length === 0) {
+				return null
+			}
+			const chosen = (dr.default !== undefined && presets.find((p) => p.id === dr.default)) || presets[0]
+			return { preset: chosen.id, from: chosen.from ?? null, to: chosen.to ?? null }
+		}
+		const activeRange = () => (tileRange.value || unwrap(pageRangeRaw) || defaultRange())
 
 		const { data, loading, error, refetch } = useEndpointSource(
 			() => (props.content && props.content.endpointSource) || null,
