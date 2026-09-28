@@ -436,3 +436,31 @@ describe('useEndpointSource — minimum visible loading on forced refetch', () =
 		expect(loading.value).toBe(false)
 	})
 })
+
+describe('@range tokens (CnStatWidget period picker)', () => {
+	it('interpolates @range.<key> in the url', () => {
+		const ctx = { range: { from: '2026-09-01', preset: '7' } }
+		expect(interpolateUrlTokens('/api/report/@range.preset/from/@range.from', ctx))
+			.toBe('/api/report/7/from/2026-09-01')
+	})
+
+	it('resolves @range params, so a card with its own period picker is not blocked', () => {
+		// The exact shape portaliq's KPI cards needed: the picked preset as a
+		// query parameter.
+		const req = resolveEndpointRequest(
+			{ url: '/apps/portaliq/api/traffic/summary', params: { portal: 'open-tilburg', days: '@range.preset' } },
+			{ range: { preset: '7' } },
+		)
+		expect(req.params).toEqual({ portal: 'open-tilburg', days: '7' })
+		expect(req.blocked).toBe(false)
+	})
+
+	it('drops an optional @range param until a range is picked', () => {
+		const req = resolveEndpointRequest(
+			{ url: '/api/x', params: { portal: 'open-tilburg', days: '@range.preset?' } },
+			{ range: {} },
+		)
+		expect(req.params).toEqual({ portal: 'open-tilburg' })
+		expect(req.blocked).toBe(false)
+	})
+})
