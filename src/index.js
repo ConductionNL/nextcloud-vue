@@ -134,6 +134,7 @@ export {
 	CnGaugeWidget,
 	CnGaugeWidgetForm,
 	CnGraphCanvas,
+	CnGuardianHome,
 	CnHeaderWidget,
 	CnHeaderWidgetForm,
 	CnIcon,

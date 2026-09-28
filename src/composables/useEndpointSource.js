@@ -117,7 +117,7 @@ export function getByPath(obj, path) {
  * string so a half-built URL never sends a literal `@page.period`.
  *
  * @param {string} str The raw URL (or any string) to interpolate.
- * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The token context.
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object, range?: object}} [ctx] The token context.
  * @return {string} The interpolated string.
  */
 export function interpolateUrlTokens(str, ctx) {
@@ -132,6 +132,9 @@ export function interpolateUrlTokens(str, ctx) {
 		return (v === undefined || v === null) ? '' : String(v)
 	}).replace(/@config\.([A-Za-z0-9_]+)/g, (_, key) => {
 		const v = config[key]
+		return (v === undefined || v === null) ? '' : String(v)
+	}).replace(/@range\.([A-Za-z0-9_]+)/g, (_, key) => {
+		const v = c.range && c.range[key]
 		return (v === undefined || v === null) ? '' : String(v)
 	}).replace(/@objectId/g, () => {
 		const id = c.objectId
@@ -151,7 +154,7 @@ export function interpolateUrlTokens(str, ctx) {
  * fetch instead of sending a literal `@workspace.…`).
  *
  * @param {{url: string, method?: string, params?: object}} config The endpointSource block.
- * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The token context.
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object, range?: object}} [ctx] The token context.
  * @return {{url: string, method: ('GET'|'POST'), params: object, blocked: boolean}} The resolved request.
  */
 export function resolveEndpointRequest(config, ctx) {
@@ -282,7 +285,7 @@ export async function fetchSharedResponse(request, opts) {
  * {@link useEndpointSource} for the fully reactive form.
  *
  * @param {{url: string, method?: string, params?: object, responsePath?: string}} config The endpointSource block.
- * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The token context.
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object, range?: object}} [ctx] The token context.
  * @param {{force?: boolean}} [opts] `force: true` bypasses the shared cache.
  * @return {Promise<unknown>} The plucked payload (or null).
  */
