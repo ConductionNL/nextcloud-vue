@@ -18,6 +18,10 @@
  *  - `@quarterStart`      → first day of the current quarter, `YYYY-MM-DD`
  *  - `@yearStart`         → first day of the current year, `YYYY-MM-DD`
  *  - `@currentFiscalYear` → the current calendar year as a number string, e.g. `2026`
+ *  - `@range.from` / `@range.to` / `@range.preset` → the active date range a
+ *                           widget passes in `ctx.range` (CnStatWidget: its own
+ *                           picker, else the dashboard's). A trailing `?` marks it
+ *                           optional, as for `@workspace.<key>?`.
  *  - `@objectId`          → the current detail-page object's id (needs `ctx`)
  *  - `@object.<field>`    → a field off the current detail-page object (needs `ctx`)
  *  - `@workspace.<key>`   → a value off the page-level workspace context (needs `ctx.workspace`)
@@ -69,7 +73,7 @@ function ymd(d) {
  * Resolve a single filter value if it is a dynamic `@`-token, else pass through.
  *
  * @param {unknown} v The candidate value.
- * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Optional
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object, range?: object}} [ctx] Optional
  *   context for `@objectId` / `@object.<field>` (detail page),
  *   `@workspace.<key>` (page-level workspace state), and `@config.<key>`
  *   (page-level app config) tokens.
@@ -113,6 +117,22 @@ export function resolveFilterValue(v, ctx) {
 		if (ctx && ctx.config && key && ctx.config[key] !== undefined
 			&& ctx.config[key] !== null && ctx.config[key] !== '') {
 			return ctx.config[key]
+		}
+		return v
+	}
+	if (v.startsWith('@range.')) {
+		// `@range.from` / `@range.to` / `@range.preset`: the active date range the
+		// caller put in `ctx.range`. CnStatWidget documented these tokens and put
+		// `range` in its endpoint context, but nothing resolved them, so the
+		// literal token stayed in the params, hasUnresolvedTokens blocked the
+		// request, and a card that used its own period picker never loaded. A
+		// trailing `?` marks the token OPTIONAL, the same convention as
+		// `@workspace.<key>?`: unset, the caller drops the key.
+		const raw = v.slice('@range.'.length)
+		const key = raw.endsWith('?') ? raw.slice(0, -1) : raw
+		if (ctx && ctx.range && key && ctx.range[key] !== undefined
+			&& ctx.range[key] !== null && ctx.range[key] !== '') {
+			return ctx.range[key]
 		}
 		return v
 	}
@@ -169,7 +189,7 @@ export function resolveFilterValue(v, ctx) {
  */
 export function isOptionalUnresolved(v) {
 	return typeof v === 'string'
-		&& (v.startsWith('@workspace.') || v.startsWith('@config.'))
+		&& (v.startsWith('@workspace.') || v.startsWith('@config.') || v.startsWith('@range.'))
 		&& v.endsWith('?')
 }
 
@@ -267,7 +287,7 @@ export function hasUnresolvedTokens(filter) {
  * tokens and literals (`{ assignee: ['@me', 'shared'] }`).
  *
  * @param {object} filter The filter map (`{ field: value | value[] | { op: value | value[] } }`).
- * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Optional
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object, range?: object}} [ctx] Optional
  *   context forwarded to {@link resolveFilterValue} for `@objectId` /
  *   `@object.<field>` / `@workspace.<key>` / `@config.<key>` tokens.
  * @return {object} A new filter map with tokens resolved.
@@ -305,7 +325,7 @@ export function resolveFilterTokens(filter, ctx) {
  * shallow filter-map resolver can't reach.
  *
  * @param {unknown} value The value to resolve — object / array / primitive.
- * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Optional
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object, range?: object}} [ctx] Optional
  *   context forwarded to {@link resolveFilterValue}.
  * @return {unknown} A new value with every string leaf token-resolved (structure preserved).
  */

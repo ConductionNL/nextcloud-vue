@@ -1,0 +1,586 @@
+[
+ {
+  "row": "ai-smart-paste",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq ai-smart-paste-into-forms (REQ-BQSP-003): config.smartPaste and the CnFormPage control. The fill endpoint the sibling expects does not exist in hermiq yet, so the change calls a host-registered handler and names no hermiq URL.",
+  "change": "form-smart-paste",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "data-bulk-edit",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Partial and built: bulk delete and copy exist, changing a field across a selection does not. Three competitors rated yes (NocoBase, Budibase, Power Apps) and the row is in buildiq's core data area. Clustered with pub-bulk.",
+  "change": "index-bulk-edit-and-transitions",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "data-choice-lists",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq data-field-types-and-choice-lists (design Risks): a property bound to a concept scheme renders as a select fed by OpenRegister's GET /api/vocabulary/options. OpenRegister serves options by scheme uri while its modifier documents a slug; to confirm there.",
+  "change": "form-options-from-concept-scheme",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "data-drag-sort-rows",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "Open change case-page-and-list-as-a-place specifies a manual row order dragged by the user and held per user and per list, with keyboard moves. The order store ships since 2.55.1 (manualOrder, moveRowByHand, dropRowByHand); the table handle is its open task. NocoBase writes a sort field on the records instead; that change rules it out on purpose ('The order SHALL NOT be written onto the records').",
+  "change": "case-page-and-list-as-a-place",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "data-export-records",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Rated yes and built, so not a gap, recorded for the half buildiq names: the filtered allowExport menu needs a schema flag OpenRegister does not serve, and the mass export exports the whole schema. Both are answered by index-export-follows-the-page, PR #1269.",
+  "change": "index-export-follows-the-page",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "data-field-types",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq data-field-types-and-choice-lists for the file type: its design says a file field depends on the library's form file upload. The schema-driven dialog renders file properties with this change.",
+  "change": "form-file-and-camera-fields",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "data-restore-record",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq data-restore-record-version: allowRestore on CnAuditTrailTab over OpenRegister revert (POST /api/objects/{register}/{schema}/{id}/revert), gated on @self.actions, with fixed 403 and 423 sentences.",
+  "change": "audit-trail-restore-version",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "data-saved-views",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "Library half named by buildiq data-index-grid-and-saved-views (sharing a view an app user saved). The public toggle ships (CnSaveViewDialog isPublic); sharing with a group is the open change saved-views-shared-by-role.",
+  "change": "saved-views-shared-by-role",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "data-user-column-settings",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Partial and built: users show and hide columns, but cannot reorder or pin them and the choice is not kept. A changelog demand row (NocoBase 1.9.0) says the missing half matters; three competitors are partial with the pieces between them. In buildiq's core data area.",
+  "change": "index-column-order-and-pinning",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "data-user-field",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "Named with data-field-types-and-choice-lists: the user field already renders as a Nextcloud user picker (fieldsFromSchema userPicker in src/utils/schema.js).",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-audio-record",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq forms-signature-audio-and-location (REQ-BQSA-001): an audio form field that records a clip up to its limit and releases the microphone.",
+  "change": "form-signature-audio-location-fields",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-calculation",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq forms-live-values-and-checks (REQ-BQLV-002): a calculate hook the host provides, called when a field's inputs change.",
+  "change": "form-live-values",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-camera-capture",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "No and none. Three competitors rated yes (Appsmith, Mendix, Power Apps). Clustered with form-file-upload: both are the file field of the form renderer. Also covers humaniq's receipt photo half.",
+  "change": "form-file-and-camera-fields",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-conditional-values",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "No and none. Four competitors rated yes (NocoBase, Budibase, Mendix, Power Apps) and a feature request (NocoBase forum 9935). The form renderer sets no field from another field's answer; the change adds that with the calculate and default hooks buildiq's forms-live-values-and-checks names.",
+  "change": "form-live-values",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-eligibility-feedback",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq forms-live-values-and-checks (REQ-BQLV-003): a host-provided list of unmet conditions shown beside submit, optionally holding it.",
+  "change": "form-live-values",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-file-upload",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Partial and built, four competitors rated yes. CnFormPage takes one file inline as a data URL under 1 MB and CnFormDialog has no file field at all; the change adds the schema-driven file field, several files and larger files uploaded to the object.",
+  "change": "form-file-and-camera-fields",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-multi-product-request",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq forms-multi-product-request (REQ-BQMP-003): the per-item review in CnJourney, depending on journey-runtime. The list field is the open change form-widgets-duration-and-subobject-table, which lacks a row limit and item columns on formField; recorded in the proposal.",
+  "change": "journey-repeating-item-review",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-prefill",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq forms-live-values-and-checks (REQ-BQLV-001): token defaults resolved by the sentinel resolver, with @me.displayName and @me.email added.",
+  "change": "form-live-values",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-review-before-submit",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "Open change journey-runtime specifies a review step that shows every answer before submit, grouped by step, with a way back to each. A form that needs a review runs as a journey; authoring that journey is buildiq's half.",
+  "change": "journey-runtime",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-signature",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq forms-signature-audio-and-location (REQ-BQSA-001): a signature form field that wraps CnSignatureCapture and always sends a PNG, drawn or typed.",
+  "change": "form-signature-audio-location-fields",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "form-subtable-children",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "No and none. A changelog row (NocoBase 2.0.0) and three competitors rated yes. The sub-objects widget of form-widgets-duration-and-subobject-table covers arrays embedded in one object and says outright it does not cover rows that are their own objects; this change does.",
+  "change": "form-child-records-table",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "int-calendar-contacts",
+  "matrix": "buildiq",
+  "decision": "defer",
+  "reason": "Partial, built, no demand, one competitor rated yes (Power Apps). The library shows calendar, contacts and Talk tabs in registry mode; the missing half is a useRegistry control in buildiq's DetailPageEditor.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "lc-app-dependencies",
+  "matrix": "buildiq",
+  "decision": "defer",
+  "reason": "Partial, built, no demand, one competitor rated yes (Power Apps). CnAppRoot honours manifest.dependencies and shows what is missing; the missing half is a picker in buildiq's builder.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "lc-debug-log",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq operate-debug-log-and-monitoring: an optional diagnostics channel on CnAppRoot reporting requests, render errors and binding failures, with a no-op default.",
+  "change": "app-diagnostics-channel",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ops-api-docs",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq operate-api-docs: CnApiReference renders an OpenAPI document inside the page and loads nothing from outside the instance.",
+  "change": "openapi-reference-component",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ops-performance-monitor",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq operate-debug-log-and-monitoring: request timing reported through the same diagnostics channel; the store's raw fetch sites carry no timing today.",
+  "change": "app-diagnostics-channel",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-calendar",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "No and none. Three competitors rated yes (NocoBase, Budibase, Mendix). The library already has CnObjectCalendar, exported and mounted nowhere; the change makes it a view mode of CnIndexPage.",
+  "change": "index-calendar-view-mode",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-charts",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "The library half is built: CnChartWidget renders bar, line, pie and more from a record aggregation (dataSource bucket or groupBy), and CnChartWidgetForm is the in-app editor for chart type and breakdown. The missing half is buildiq's WidgetBuilder, which offers only id, title and type. The row's built.owner should be ConductionNL/buildiq.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-custom-code-component",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq pages-custom-code (REQ-BQCC-003, REQ-BQCC-004): CnCodeFrame with a fixed allow-scripts sandbox, a checked postMessage protocol and host-served documents.",
+  "change": "sandboxed-code-frame",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-custom-js",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq pages-custom-code: the sandboxed evaluator for column expressions, expression defaults and form visibility expressions.",
+  "change": "sandboxed-code-frame",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-detail",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "The library half is built: CnDetailPage renders header and lifecycle actions, related collections, related-object widgets and files. The missing half is buildiq's DetailPageEditor, which has no fields for them. The row's built.owner should be ConductionNL/buildiq.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-device-location",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq forms-signature-audio-and-location (REQ-BQSA-001, REQ-BQSA-003): a location form field with a map fallback, and showUserLocation and centerOnUser on CnMapPage.",
+  "change": "form-signature-audio-location-fields",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-gantt",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "Matrix read nextcloud-vue 2.55.1. The dateAxis view mode shipped in #1214 (628f1d57d, released in 2.56.0): records with a start and an end on a time scale, one lane per field value, read only. Offering it in the index page editor is buildiq's half.",
+  "change": "status-board-and-date-axis",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-generate-code",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq pages-qr-and-barcodes (REQ-BQQR-003): the code widget that draws a QR code or barcode from a record field.",
+  "change": "scan-and-generate-codes",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-kanban",
+  "matrix": "buildiq",
+  "decision": "existing",
+  "reason": "Matrix read nextcloud-vue 2.55.1. The board view mode of CnIndexPage shipped in #1214 (628f1d57d, released in 2.56.0): columns from the status field, a drop runs a lifecycle transition. Offering it in the index page editor is buildiq's half.",
+  "change": "status-board-and-date-axis",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-native-mobile",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq pages-installable-offline-and-mobile for the installed app: a scoped clearTakeAlong and a drain filter so an app clears and replays only its own queue on a shared origin.",
+  "change": "manifest-offline-block",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-offline",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq pages-installable-offline-and-mobile: an offline block in the manifest schema; CnIndexPage and CnDetailPage read taken-along records from the offline cache and CnFormPage queues submissions, building on offline-capture-queue-and-conflicts.",
+  "change": "manifest-offline-block",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-record-comments",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Partial and built: notes on a record exist, not threaded replies. Two competitors rated yes (NocoBase with quote-reply, Power Apps). Clustered with three planninq rows on the same notes component.",
+  "change": "notes-replies-group-mentions-and-images",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pg-scan-code",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq pages-qr-and-barcodes (REQ-BQQR-001, REQ-BQQR-002): a camera scanner, the scan index action with lookup, and the scan form field.",
+  "change": "scan-and-generate-codes",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ux-multilingual-ui",
+  "matrix": "buildiq",
+  "decision": "build",
+  "reason": "Library half of buildiq experience-multilingual-apps: an i18n block in the manifest v2 schema, the label lookup in CnAppRoot, a language prop for the preview, and the components that show manifest labels untranslated, listed with file and line.",
+  "change": "manifest-i18n-labels",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ux-wcag",
+  "matrix": "buildiq",
+  "decision": "defer",
+  "reason": "Partial, built, no demand, and every competitor is partial. The missing half is an accessibility check inside buildiq's builder (buildiq row ux-a11y-checker, deferred by the buildiq lane).",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "10.10",
+  "matrix": "dossiq",
+  "decision": "existing",
+  "reason": "Open change a-saved-view-drives-a-widget names this row (parity ledger row 10.10) and specifies the missing half: a dashboard widget bound to a saved view. The built half is dashboard-layout-per-user (#1209).",
+  "change": "a-saved-view-drives-a-widget",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "11.9",
+  "matrix": "dossiq",
+  "decision": "defer",
+  "reason": "Partial, built, no demand, one competitor rated yes (GZAC). Columns per case type shipped in index-columns-per-scope (#1213); the part GZAC has on top is an administrator's column editor.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "3.14",
+  "matrix": "dossiq",
+  "decision": "existing",
+  "reason": "Open change form-dialog-autosave was opened for this row (M1 3.14). Its CnFormDialog half shipped in #1207 (efdd77be8: allowDraft, draftField, useFormDraft); the CnFormPage half is still open, and dossiq has to set allowDraft on its task forms.",
+  "change": "form-dialog-autosave",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "4.8",
+  "matrix": "dossiq",
+  "decision": "existing",
+  "reason": "Open change files-browser-columns was opened from this row and shipped in #1219 (d1b315a37): CnFilesBrowser renders the columns its host declares. The remaining half is dossiq declaring the columns on its document list.",
+  "change": "files-browser-columns",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "wk-notes",
+  "matrix": "filinq",
+  "decision": "build",
+  "reason": "Library half of filinq work-document-notes (REQ-WDN-001, design D2): CnNotesCard with a file as its source, over Nextcloud's comments DAV endpoint. Filinq's panels and its comment count are filinq's.",
+  "change": "notes-on-a-file",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ch-attach",
+  "matrix": "hermiq",
+  "decision": "build",
+  "reason": "Library half of hermiq chat-attachments-and-images: the companion shows the attachments of a sent message and offers Choose from Files beside upload (its design D2 leaves the picker to nextcloud-vue).",
+  "change": "ai-message-attachments",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ch-image-gen",
+  "matrix": "hermiq",
+  "decision": "build",
+  "reason": "Library half of hermiq chat-attachments-and-images: a generated image carried on the final frame renders as a thumbnail in the companion, linked to the file in Files.",
+  "change": "ai-message-attachments",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "dm-image-chat",
+  "matrix": "hermiq",
+  "decision": "build",
+  "reason": "Library half of hermiq chat-attachments-and-images: the companion keeps and renders the attachments and notices hermiq returns on the final frame (its proposal leaves CnAiMessageList rendering to nextcloud-vue).",
+  "change": "ai-message-attachments",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "dm-native-pdf",
+  "matrix": "hermiq",
+  "decision": "build",
+  "reason": "Library half of hermiq chat-attachments-and-images: the notice that a model could not read a PDF, carried as attachmentNotices on the final frame, is shown above the answer.",
+  "change": "ai-message-attachments",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ess-mobile",
+  "matrix": "humaniq",
+  "decision": "build",
+  "reason": "Library half of humaniq self-service-mobile: the phone-width layout of CnDashboardPage, CnIndexPage and the form dialog. Its camera hint on the receipt field is honoured by form-file-and-camera-fields.",
+  "change": "layout-phone-width",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "rep-export",
+  "matrix": "humaniq",
+  "decision": "build",
+  "reason": "Partial and built, five competitors rated yes. The library half of the missing piece: the Export menu forwards only the route query, reads a schema flag OpenRegister keeps nowhere (it drops the top-level field and any configuration key outside its allowlist), and the mass export ignores the filter. Also answers the stackiq, buildiq and larpinq sibling halves. Turning allowExport on is humaniq's own half.",
+  "change": "index-export-follows-the-page",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "adm-mobile-app",
+  "matrix": "larpinq",
+  "decision": "build",
+  "reason": "Library half of larpinq admin-phone-friendly-pages (REQ-APF-001): library-rendered pages at 360 pixels without horizontal scroll, tables as stacked rows.",
+  "change": "layout-phone-width",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ins-export-csv",
+  "matrix": "larpinq",
+  "decision": "build",
+  "reason": "Library half of larpinq admin-import-export: allowExport depends on a schema flag OpenRegister keeps nowhere today. The library reads configuration.exportable as well as the top-level field, so OpenRegister can keep it by allowlisting one configuration key (its half), and the menu exports the filtered list. Specified in PR #1269, corrected in PR #1270.",
+  "change": "index-export-follows-the-page",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "wld-maps",
+  "matrix": "larpinq",
+  "decision": "build",
+  "reason": "Library half of larpinq worlds-maps (REQ-WMP-002): an image layer in flat pixel coordinates in CnMapWidget, markers by x and y, and clicks answered in pixels.",
+  "change": "map-image-layer",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "d-notes",
+  "matrix": "launchpad",
+  "decision": "build",
+  "reason": "Partial and built: the text widget holds text but is edited in dashboard edit mode. A feature request (dashy#636) and one competitor rated yes (Homarr notebook), so a notepad typed into in place, kept per person.",
+  "change": "dashboard-notepad-widget",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ops-reports",
+  "matrix": "opencatalogi",
+  "decision": "defer",
+  "reason": "Partial, built, no demand, and no competitor rated yes. The note points at opencatalogi's own manifest: the report widgets query register 'opencatalogi' while the app ships register 'publication'. Not a library gap.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pub-bulk",
+  "matrix": "opencatalogi",
+  "decision": "build",
+  "reason": "Partial and built: bulk delete works, bulk publish and withdraw do not. Two competitors rated yes (CKAN bulk_process with Make public and Make private, DKAN bulk publish and archive), so the missing half is built: a lifecycle step run on a selection as one OpenRegister bulk job. Clustered with data-bulk-edit, same selection strip.",
+  "change": "index-bulk-edit-and-transitions",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "pub-preview",
+  "matrix": "opencatalogi",
+  "decision": "build",
+  "reason": "Partial and built: the sidebar tab opens files in the Viewer, but the files integration widget (CnFilesCard) renders a bare link and nothing previews a data file. Two competitors rated yes (CKAN, xxllnc Publiceren), in opencatalogi's core publications area.",
+  "change": "files-preview-in-place",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "plat-field-conditions",
+  "matrix": "pipelinq",
+  "decision": "build",
+  "reason": "No and none. A tender demand row (TenderNed 414529, CIBG) and two competitors rated yes (HubSpot, EspoCRM). The library form hides a field only from a manifest condition; the change derives show, hide, required and dependent options from schema annotations an administrator sets.",
+  "change": "form-conditions-from-schema",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "work-saved-view",
+  "matrix": "pipelinq",
+  "decision": "existing",
+  "reason": "Saving a filtered list and sharing it publicly ships (CnSaveViewDialog public toggle); sharing with a group of colleagues is specified in open change saved-views-shared-by-role. The rest is pipelinq's own half: no pipelinq page sets allowSavedViews.",
+  "change": "saved-views-shared-by-role",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "col-comment-images",
+  "matrix": "planninq",
+  "decision": "build",
+  "reason": "No. A feature request (nextcloud/deck#533) and two competitors rated yes (OpenProject, Plane). The notes composer has no paste or drop handler; the task description half is planninq's own edit form.",
+  "change": "notes-replies-group-mentions-and-images",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "col-group-mention",
+  "matrix": "planninq",
+  "decision": "build",
+  "reason": "No. A feature request (JRASERVER-28225) and one competitor rated yes (OpenProject group mentions). The notes composer suggests users only.",
+  "change": "notes-replies-group-mentions-and-images",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "col-live-updates",
+  "matrix": "planninq",
+  "decision": "defer",
+  "reason": "Partial, built, no demand, and no competitor rated yes. The library's liveUpdatesPlugin works where it is subscribed; planninq's ProjectBoard.vue does not subscribe. That is planninq's half.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "col-threaded-comments",
+  "matrix": "planninq",
+  "decision": "build",
+  "reason": "No. A feature request (JRASERVER-3406) and one competitor rated yes (Nextcloud Deck reply to a comment). Same notes component as pg-record-comments.",
+  "change": "notes-replies-group-mentions-and-images",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "tsk-mentions",
+  "matrix": "planninq",
+  "decision": "existing",
+  "reason": "The library half shipped with archived change notes-mentions-autocomplete: mention autocomplete, chips and a mention event on save. That spec decides nextcloud-vue does not dispatch notifications; the consuming app does. Planninq mounts CnObjectSidebar without a mention listener, so the missing half is planninq's. The row's built.owner should be ConductionNL/planninq.",
+  "change": "2026-07-13-notes-mentions-autocomplete",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "cmp-int-conditional",
+  "matrix": "portaliq",
+  "decision": "build",
+  "reason": "Library half of portaliq intake-conditional-questions-and-drafts: evaluateVisibleWhenLocal exported from the package root, one predicate for both forms.",
+  "change": "form-conditions-from-schema",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "led-multi-admin",
+  "matrix": "shillinq",
+  "decision": "existing",
+  "reason": "Library half asked by shillinq ledger-multi-administration (an @context.<key> sentinel). No new token: @workspace.<key> already resolves against a cnWorkspaceContext the app provides at its root, on index, detail and custom pages (useSelfFetchList.js:106), as humaniq's App.vue does for its multi-administration. Shillinq provides the bag and writes @workspace.activeAdministrationId? in config.filter. On dashboards CnDashboardPage provides its own empty context that shadows the root one; reported as a defect for a live check, not specified in this pass.",
+  "change": null,
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "plt-required-fields",
+  "matrix": "shillinq",
+  "decision": "build",
+  "reason": "Library half of shillinq platform-required-fields (REQ-PRF-002): a host-provided requiredFields input the form marks and pre-checks, and rule refusals shown under the fields they name. Shillinq's listener stays the enforcement.",
+  "change": "form-conditions-from-schema",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "arch-ai-diagram",
+  "matrix": "stackiq",
+  "decision": "build",
+  "reason": "Library half of stackiq architecture-assistant-drafted-views (design, Risks: a deep import of flowGraphLayout.js): the layout helpers are exported from the package root and held there by a packaging test.",
+  "change": "flow-layout-helpers-from-root",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "ins-export-list",
+  "matrix": "stackiq",
+  "decision": "build",
+  "reason": "Library half of stackiq insight-exports-and-custom-reports (design D3): the Export menu forwards the page filter, the quick filter and the search, not only the route query. Specified in PR #1269.",
+  "change": "index-export-follows-the-page",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "land-copy-entry",
+  "matrix": "stackiq",
+  "decision": "build",
+  "reason": "Partial and built: the library copy clones the object's own fields in the browser (cloneObjectForCopy) and never reads its links. A changelog demand row (GLPI 11.0.0) and two competitors rated yes (SAP LeanIX, GLPI), in stackiq's core landscape area. The change adds the links; the atomic copy endpoint is an OpenRegister half, named in the proposal.",
+  "change": "index-copy-with-relations",
+  "decidedOn": "2026-09-27"
+ },
+ {
+  "row": "land-dependent-fields",
+  "matrix": "stackiq",
+  "decision": "build",
+  "reason": "Library half of stackiq landscape-dependent-field-options (REQ-DFO-003, the form offers only the allowed options): CnFormDialog reads x-openregister-dependent-values the way it reads x-relation-filter. Stackiq's half is the schema annotation, OpenRegister already refuses a pair outside the table.",
+  "change": "form-conditions-from-schema",
+  "decidedOn": "2026-09-27"
+ }
+]
