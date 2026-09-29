@@ -109,12 +109,14 @@
 				@event add
 				@description User clicked the primary Add button. No payload.
 			-->
+			<!-- With `addHref` / `addTo` the button is a real link (middle-click, new tab), and still emits `add`. -->
 			<NcButton v-if="showAdd"
 				variant="primary"
 				:disabled="addDisabled"
+				:href="addLink ? addLink.href : undefined"
 				data-testid="cn-cta-primary"
 				data-walkthrough-id="index-add"
-				@click="$emit('add')">
+				@click="onAddClick">
 				<template #icon>
 					<CnIcon v-if="addIcon" :name="addIcon" :size="20" />
 					<Plus v-else :size="20" />
@@ -159,20 +161,35 @@
 					{{ documentationLabel }}
 				</NcActionLink>
 
-				<!-- Manifest-declared page-level header actions (overflow) -->
-				<NcActionButton
-					v-for="entry in headerActions"
-					:key="entry.id"
-					:disabled="Boolean(entry.disabled)"
-					@click="$emit('header-action', { action: entry.id, id: entry.id })">
-					<template #icon>
-						<CnIcon v-if="entry.icon && isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
-						<span v-else-if="entry.icon"
-							class="cn-actions-bar__header-action-icon"
-							:class="[entry.icon]" />
-					</template>
-					{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
-				</NcActionButton>
+				<!-- Manifest-declared page-level header actions (overflow); an entry with `href` / `to` is a real link. -->
+				<template v-for="{ entry, link } in renderedHeaderActions" :key="entry.id">
+					<NcActionLink
+						v-if="link"
+						:href="link.href"
+						:target="link.target"
+						closeAfterClick
+						@click="onHeaderLinkClick(entry, link, $event)">
+						<template #icon>
+							<CnIcon v-if="entry.icon && isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
+							<span v-else-if="entry.icon"
+								class="cn-actions-bar__header-action-icon"
+								:class="[entry.icon]" />
+						</template>
+						{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
+					</NcActionLink>
+					<NcActionButton
+						v-else
+						:disabled="Boolean(entry.disabled)"
+						@click="$emit('header-action', { action: entry.id, id: entry.id })">
+						<template #icon>
+							<CnIcon v-if="entry.icon && isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
+							<span v-else-if="entry.icon"
+								class="cn-actions-bar__header-action-icon"
+								:class="[entry.icon]" />
+						</template>
+						{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
+					</NcActionButton>
+				</template>
 
 				<!--
 					@slot action-items
@@ -354,6 +371,7 @@ import Tune from 'vue-material-design-icons/Tune.vue'
 import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
 import ViewListOutline from 'vue-material-design-icons/ViewListOutline.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -445,6 +463,30 @@ export default {
 		addIcon: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * URL the Add button links to. Makes the button a real link (middle-click,
+		 * open in new tab) that still emits `add` on click. `addTo` is ignored when set.
+		 *
+		 * @type {string|null}
+		 */
+		addHref: {
+			type: String,
+			default: null,
+		},
+
+		/**
+		 * vue-router location (path or `{ name, params }`) the Add button links to.
+		 * The button becomes a real link whose plain click routes in place and still
+		 * emits `add`; the host must then not navigate on `add` itself. Ignored when
+		 * the router cannot resolve it.
+		 *
+		 * @type {string|object|null}
+		 */
+		addTo: {
+			type: [String, Object],
+			default: null,
 		},
 
 		/** How many action buttons to show inline (rest go in overflow dropdown) */
@@ -646,9 +688,12 @@ export default {
 		 * dropdown between Refresh and the `#action-items` slot. Each
 		 * entry is `{ id, label, icon?, disabled? }`. The bar emits
 		 * `@header-action({ action: id, id })` on click; handler
-		 * resolution happens upstream (CnIndexPage).
+		 * resolution happens upstream (CnIndexPage). An entry with `href`
+		 * (URL) or `to` (vue-router location) renders as a real link, with
+		 * `linkTarget` as its `target`; it still emits `header-action`, so the
+		 * host must not navigate for it again.
 		 *
-		 * @type {Array<{ id: string, label: string, icon?: string, disabled?: boolean }>}
+		 * @type {Array<{ id: string, label: string, icon?: string, disabled?: boolean, href?: string, to?: string|object, linkTarget?: string }>}
 		 */
 		headerActions: {
 			type: Array,
@@ -740,6 +785,30 @@ export default {
 		 */
 		effectiveTranslate() {
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+		},
+
+		/**
+		 * The link the Add button renders as, or null for a plain button.
+		 *
+		 * @return {object|null}
+		 */
+		addLink() {
+			if (this.addDisabled) {
+				return null
+			}
+			return resolveItemActionLink({ href: this.addHref, to: this.addTo }, null, this.$router)
+		},
+
+		/**
+		 * Header actions paired with the link each renders as (null for a button).
+		 *
+		 * @return {Array<{entry: object, link: object|null}>}
+		 */
+		renderedHeaderActions() {
+			return (this.headerActions || []).map((entry) => ({
+				entry,
+				link: entry.disabled ? null : resolveItemActionLink(entry, null, this.$router),
+			}))
 		},
 
 		countText() {
@@ -850,6 +919,32 @@ export default {
 			 * @type {string} The chosen option's `value`.
 			 */
 			this.$emit('sort-change', value)
+		},
+
+		/**
+		 * Add button click: a plain click on an in-app link routes in place,
+		 * anything else on a link is the browser's. Emits `add` either way.
+		 *
+		 * @param {MouseEvent} event The click event.
+		 */
+		onAddClick(event) {
+			if (this.addLink) {
+				followItemActionLink(event, this.addLink, this.$router)
+			}
+			this.$emit('add')
+		},
+
+		/**
+		 * A header link entry was clicked: route a plain in-app click and emit
+		 * `header-action` as the button would.
+		 *
+		 * @param {object} entry The header action.
+		 * @param {object} link The resolved link.
+		 * @param {MouseEvent} event The click event.
+		 */
+		onHeaderLinkClick(entry, link, event) {
+			followItemActionLink(event, link, this.$router)
+			this.$emit('header-action', { action: entry.id, id: entry.id })
 		},
 
 		/**

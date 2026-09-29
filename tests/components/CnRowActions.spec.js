@@ -140,3 +140,69 @@ describe('CnRowActions icon rendering', () => {
 		expect(wrapper.findComponent(StubIcon).exists()).toBe(true)
 	})
 })
+
+describe('CnRowActions link actions', () => {
+	/**
+	 * @return {object} A router stub that resolves `{ name, params }` to a hash href.
+	 */
+	function makeRouter() {
+		return {
+			push: jest.fn(() => Promise.resolve()),
+			resolve: jest.fn((to) => ({ href: `#/${to.name}/${to.params?.id ?? ''}` })),
+		}
+	}
+
+	/**
+	 * @param {Array} actions The actions.
+	 * @param {object|null} router The router mock.
+	 * @return {object} The wrapper.
+	 */
+	function mountActions(actions, router = makeRouter()) {
+		return mount(CnRowActions, {
+			propsData: { actions, row: { id: 7, url: 'https://a.test/7' } },
+			mocks: { $router: router },
+		})
+	}
+
+	it('renders a `to` action as an NcActionLink to the router href', () => {
+		const wrapper = mountActions([{ label: 'View', to: (row) => ({ name: 'Dog', params: { id: row.id } }) }])
+		const link = wrapper.find('[data-testid="cn-action-item-view"]')
+		expect(link.classes()).toContain('NcActionLink')
+		expect(link.attributes('href')).toBe('#/Dog/7')
+	})
+
+	it('renders an `href` action with its linkTarget', () => {
+		const wrapper = mountActions([{ label: 'Site', href: (row) => row.url, linkTarget: '_blank' }])
+		const link = wrapper.find('[data-testid="cn-action-item-site"]')
+		expect(link.classes()).toContain('NcActionLink')
+		expect(link.attributes('href')).toBe('https://a.test/7')
+		expect(link.attributes('target')).toBe('_blank')
+	})
+
+	it('routes a plain click, emits action, and does not call the handler', async () => {
+		const router = makeRouter()
+		const handler = jest.fn()
+		const wrapper = mountActions([{ label: 'View', handler, to: { name: 'Dog', params: { id: 7 } } }], router)
+		await wrapper.find('[data-testid="cn-action-item-view"]').trigger('click')
+		expect(router.push).toHaveBeenCalledWith({ name: 'Dog', params: { id: 7 } })
+		expect(handler).not.toHaveBeenCalled()
+		expect(wrapper.emitted('action')).toEqual([[{ action: 'View', row: { id: 7, url: 'https://a.test/7' } }]])
+	})
+
+	it('leaves a ctrl-click to the browser but still emits action', async () => {
+		const router = makeRouter()
+		const wrapper = mountActions([{ label: 'View', to: { name: 'Dog', params: { id: 7 } } }], router)
+		await wrapper.find('[data-testid="cn-action-item-view"]').trigger('click', { ctrlKey: true })
+		expect(router.push).not.toHaveBeenCalled()
+		expect(wrapper.emitted('action')).toHaveLength(1)
+	})
+
+	it('keeps a disabled or unresolvable link action a button', () => {
+		const wrapper = mountActions([
+			{ label: 'Locked', disabled: true, to: { name: 'Dog', params: { id: 7 } } },
+			{ label: 'NoRouter', to: { name: 'Dog' } },
+		], null)
+		expect(wrapper.find('[data-testid="cn-action-item-locked"]').classes()).toContain('NcActionButton')
+		expect(wrapper.find('[data-testid="cn-action-item-norouter"]').classes()).toContain('NcActionButton')
+	})
+})

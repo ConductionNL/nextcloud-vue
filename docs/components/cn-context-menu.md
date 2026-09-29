@@ -6,14 +6,14 @@ sidebar_position: 6
 
 Right-click context menu component that wraps NcActions with cursor positioning. Supports an optional **panels API** for arbitrary custom content (grids, inputs, custom components) beyond the NcActions action-list allowlist. Pair with the [`useContextMenu`](../utilities/composables/use-context-menu.md) composable for state management.
 
-**Wraps**: NcActions, NcActionButton (from @nextcloud/vue)
+**Wraps**: NcActions, NcActionButton, NcActionLink (from @nextcloud/vue)
 
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `open` | Boolean | `false` | Whether the menu is open. Use with `.sync` modifier, bound to `useContextMenu().isOpen`. |
-| `actions` | Array | `[]` | Action definitions: `[{ label, icon?, handler?, disabled?, visible?, title?, destructive? }]`. Same format as CnRowActions. `visible` (boolean or `(targetItem) => boolean`) hides the entry when falsy; omitted means always shown. `title` (string or `(targetItem) => string`) renders as a native tooltip — useful for explaining why a `disabled` entry is disabled. |
+| `actions` | Array | `[]` | Action definitions: `[{ label, icon?, handler?, disabled?, visible?, title?, destructive?, href?, to?, linkTarget? }]`. Same format as CnRowActions. `visible` (boolean or `(targetItem) => boolean`) hides the entry when falsy; omitted means always shown. `title` (string or `(targetItem) => string`) renders as a native tooltip — useful for explaining why a `disabled` entry is disabled. `href` (URL) or `to` (vue-router location), each a value or a `(targetItem) => …` function, render the entry as a real link (`NcActionLink`, `linkTarget` as its `target`) that can be middle-clicked or opened in a new tab; a link emits `action` but does not call `handler`. |
 | `targetItem` | Object/String/Number | `null` | The right-clicked item. Passed to action `handler` and `disabled` callbacks, and forwarded to custom panel slots as the `targetItem` scope binding. Bind to `useContextMenu().targetItem`. |
 | `activePanel` | String | `null` | Name of the currently active custom panel, or `null` for the default action list. When set, the matching `#panel:<name>` slot is rendered in place of NcActions. Use with `.sync` so panel slots can call `back()` to clear it. Resets to `null` on close. |
 
