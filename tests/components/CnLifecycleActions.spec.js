@@ -78,8 +78,57 @@ describe('CnLifecycleActions', () => {
 			const buttons = wrapper.findAll('[data-testid^="cn-lifecycle-action-"]')
 			expect(buttons.length).toBe(2)
 			expect(wrapper.find('[data-testid="cn-lifecycle-action-close"]').text()).toBe('Close')
-			// description wins over derived label
-			expect(wrapper.find('[data-testid="cn-lifecycle-action-void"]').text()).toBe('Void shift')
+			// The action name labels the button; the description is its tooltip.
+			expect(wrapper.find('[data-testid="cn-lifecycle-action-void"]').text()).toBe('Void')
+			expect(wrapper.find('[data-testid="cn-lifecycle-action-void"]').attributes('title')).toBe('Void shift')
+		})
+
+		// learniq's EnrolmentDetail: the approve transition's description is a
+		// sentence for the person deciding, and it used to BE the button.
+		it('labels a button with its action, not its description, and keeps the description as tooltip and accessible description', async () => {
+			const description = 'A teacher, HR officer, team lead or the learner\'s manager approves a sign-up request from the catalogue.'
+			axios.get.mockResolvedValue({
+				data: { actions: [{ action: 'approve', to: 'active', requires: null, description }] },
+			})
+			const wrapper = mount(CnLifecycleActions, {
+				propsData: { objectId: 'enrolment-1', config: { field: 'lifecycle' } },
+				stubs,
+			})
+			await flush()
+			await wrapper.vm.$nextTick()
+
+			const button = wrapper.find('[data-testid="cn-lifecycle-action-approve"]')
+			expect(button.text()).toBe('Approve')
+			expect(button.attributes('title')).toBe(description)
+			expect(button.attributes('aria-description')).toBe(description)
+		})
+
+		it('uses a server-provided label when the action carries one', async () => {
+			axios.get.mockResolvedValue({
+				data: { actions: [{ action: 'approve', to: 'active', label: 'Approve sign-up', description: 'Long sentence.' }] },
+			})
+			const wrapper = mount(CnLifecycleActions, {
+				propsData: { objectId: 'enrolment-1', config: { field: 'lifecycle' } },
+				stubs,
+			})
+			await flush()
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.find('[data-testid="cn-lifecycle-action-approve"]').text()).toBe('Approve sign-up')
+		})
+
+		it('renders no tooltip for an action without a description', async () => {
+			axios.get.mockResolvedValue({
+				data: { actions: [{ action: 'close', to: 'closed', requires: null, description: null }] },
+			})
+			const wrapper = mount(CnLifecycleActions, {
+				propsData: { objectId: 'shift-1', config: { field: 'status' } },
+				stubs,
+			})
+			await flush()
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.find('[data-testid="cn-lifecycle-action-close"]').attributes('title')).toBeUndefined()
 		})
 
 		// CONFIRMED, NOT ASSUMED. `visibleTransitions` names the keys it maps,
@@ -102,7 +151,7 @@ describe('CnLifecycleActions', () => {
 			await flush()
 			await wrapper.vm.$nextTick()
 
-			expect(wrapper.find('[data-testid="cn-lifecycle-action-close"]').text()).toBe('Close shift')
+			expect(wrapper.find('[data-testid="cn-lifecycle-action-close"]').text()).toBe('Close')
 			expect(wrapper.vm.visibleTransitions[0].blocked).toBeUndefined()
 		})
 
@@ -139,6 +188,26 @@ describe('CnLifecycleActions', () => {
 			const buttons = wrapper.findAll('[data-testid^="cn-lifecycle-action-"]')
 			expect(buttons.length).toBe(1)
 			expect(wrapper.find('[data-testid="cn-lifecycle-action-close"]').text()).toBe('Close shift')
+		})
+
+		it('puts a declared description on the tooltip, never on the button', async () => {
+			const wrapper = mount(CnLifecycleActions, {
+				propsData: {
+					objectId: 's1',
+					object: { status: 'open' },
+					config: {
+						field: 'status',
+						transitions: [
+							{ from: 'open', to: 'closed', action: 'close', description: 'Closing ends sign-up for everyone.' },
+						],
+					},
+				},
+				stubs,
+			})
+			await wrapper.vm.$nextTick()
+			const button = wrapper.find('[data-testid="cn-lifecycle-action-close"]')
+			expect(button.text()).toBe('Close')
+			expect(button.attributes('title')).toBe('Closing ends sign-up for everyone.')
 		})
 
 		it('treats a missing `from` as "any state"', async () => {
