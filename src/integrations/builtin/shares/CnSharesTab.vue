@@ -47,7 +47,11 @@
 		<div v-else-if="shares.length === 0" class="cn-sidebar-tab__empty cn-shares-tab__empty">
 			<Share :size="32" class="cn-shares-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openFilesApp">
+			<NcButton
+				variant="primary"
+				:href="filesAppUrl"
+				target="_blank"
+				rel="noopener noreferrer">
 				<template #icon>
 					<FolderOutline :size="20" />
 				</template>
@@ -118,18 +122,26 @@
 								</template>
 								{{ revokeLabel }}
 							</NcActionButton>
-							<NcActionButton :closeAfterClick="true" @click="openFilesApp">
+							<NcActionLink
+								:closeAfterClick="true"
+								:href="filesAppUrl"
+								target="_blank"
+								rel="noopener noreferrer">
 								<template #icon>
 									<FolderOutline :size="20" />
 								</template>
 								{{ openFilesLabel }}
-							</NcActionButton>
+							</NcActionLink>
 						</template>
 					</NcListItem>
 				</ul>
 			</section>
 			<div class="cn-shares-tab__footer">
-				<NcButton variant="tertiary" @click="openFilesApp">
+				<NcButton
+					variant="tertiary"
+					:href="filesAppUrl"
+					target="_blank"
+					rel="noopener noreferrer">
 					<template #icon>
 						<FolderOutline :size="18" />
 					</template>
@@ -152,7 +164,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AccountGroupOutline from 'vue-material-design-icons/AccountGroupOutline.vue'
 import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -197,6 +209,7 @@ export default {
 
 	components: {
 		NcActionButton,
+		NcActionLink,
 		NcButton,
 		NcDateTime,
 		NcListItem,
@@ -455,12 +468,6 @@ export default {
 			// absent we default to true so the action stays usable; the
 			// backend rejects unauthorized revoke attempts.
 			return share.canRevoke !== false
-		},
-
-		openFilesApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.filesAppUrl, '_blank', 'noopener')
-			}
 		},
 
 		async fetchShares() {

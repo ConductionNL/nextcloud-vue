@@ -64,7 +64,11 @@
 		<div v-else-if="forms.length === 0" class="cn-sidebar-tab__empty cn-forms-tab__empty">
 			<ClipboardText :size="32" class="cn-forms-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openFormsApp">
+			<NcButton
+				variant="primary"
+				:href="formsAppUrl"
+				target="_blank"
+				rel="noopener noreferrer">
 				<template #icon>
 					<ClipboardText :size="20" />
 				</template>
@@ -111,12 +115,16 @@
 					</NcCounterBubble>
 				</template>
 				<template #actions>
-					<NcActionButton :closeAfterClick="true" @click="openForm(form)">
+					<NcActionLink
+						:closeAfterClick="true"
+						:href="formUrl(form)"
+						target="_blank"
+						rel="noopener noreferrer">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
 						{{ openInFormsLabel }}
-					</NcActionButton>
+					</NcActionLink>
 					<NcActionButton
 						class="cn-forms-tab__unlink"
 						:closeAfterClick="true"
@@ -150,7 +158,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcCounterBubble, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcButton, NcCounterBubble, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClipboardText from 'vue-material-design-icons/ClipboardText.vue'
 import Close from 'vue-material-design-icons/Close.vue'
@@ -176,6 +184,7 @@ export default {
 
 	components: {
 		NcActionButton,
+		NcActionLink,
 		NcButton,
 		NcCounterBubble,
 		NcDateTime,
@@ -412,18 +421,6 @@ export default {
 
 		responsesAriaLabel(form) {
 			return t('nextcloud-vue', '{n} submissions', { n: this.submissionCount(form) })
-		},
-
-		openForm(form) {
-			if (typeof window !== 'undefined') {
-				window.open(this.formUrl(form), '_blank', 'noopener')
-			}
-		},
-
-		openFormsApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.formsAppUrl, '_blank', 'noopener')
-			}
 		},
 
 		async fetchForms() {

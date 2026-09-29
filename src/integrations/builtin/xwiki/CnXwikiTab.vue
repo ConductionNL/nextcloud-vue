@@ -62,6 +62,9 @@
 				v-if="banner.ctaLabel"
 				variant="primary"
 				class="cn-xwiki-tab__banner-cta"
+				:href="banner.ctaHref || undefined"
+				:target="banner.ctaHref ? '_blank' : undefined"
+				:rel="banner.ctaHref ? 'noopener noreferrer' : undefined"
 				@click="banner.ctaHandler">
 				{{ banner.ctaLabel }}
 			</NcButton>
@@ -124,16 +127,18 @@
 					<span class="cn-xwiki-tab__excerpt">{{ excerpt(page) }}</span>
 				</template>
 				<template #actions>
-					<NcActionButton
+					<NcActionLink
 						v-if="pageHref(page)"
 						class="cn-xwiki-tab__open"
 						:closeAfterClick="true"
-						@click="openPage(page)">
+						:href="pageHref(page)"
+						target="_blank"
+						rel="noopener noreferrer">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
 						{{ t('nextcloud-vue', 'Open in XWiki') }}
-					</NcActionButton>
+					</NcActionLink>
 					<NcActionButton
 						class="cn-xwiki-tab__unlink"
 						:closeAfterClick="true"
@@ -166,7 +171,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import FileDocumentMultiple from 'vue-material-design-icons/FileDocumentMultiple.vue'
 import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.vue'
@@ -193,6 +198,7 @@ export default {
 
 	components: {
 		NcActionButton,
+		NcActionLink,
 		NcButton,
 		NcDateTime,
 		NcListItem,
@@ -245,7 +251,7 @@ export default {
 						title: t('nextcloud-vue', 'XWiki connection not configured'),
 						message: t('nextcloud-vue', 'Add an XWiki source in Integriq with the upstream URL and credentials so OpenRegister can link pages.'),
 						ctaLabel: t('nextcloud-vue', 'Configure XWiki connection'),
-						ctaHandler: this.openIntegriq,
+						ctaHref: this.openConnectorSourcesUrl,
 					}
 				case 'auth':
 					return {
@@ -253,7 +259,7 @@ export default {
 						title: t('nextcloud-vue', 'XWiki authentication failed'),
 						message: t('nextcloud-vue', 'XWiki returned 401 — check the Integriq source credentials.'),
 						ctaLabel: t('nextcloud-vue', 'Reconnect'),
-						ctaHandler: this.openIntegriq,
+						ctaHref: this.openConnectorSourcesUrl,
 					}
 				case 'upstream':
 					return {
@@ -307,20 +313,6 @@ export default {
 		 */
 		xwikiEndpoint() {
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/xwiki`
-		},
-
-		/**
-		 * Open the page on the external XWiki host in a new tab. Used by
-		 * the per-row "Open in XWiki" action (the row itself is also a
-		 * deep-link via NcListItem's `href`).
-		 *
-		 * @param {object} page Provider row.
-		 */
-		openPage(page) {
-			const href = this.pageHref(page)
-			if (href && typeof window !== 'undefined') {
-				window.open(href, '_blank', 'noopener')
-			}
 		},
 
 		openPicker() {
@@ -466,12 +458,6 @@ export default {
 			}
 			const parsed = Date.parse(String(v))
 			return Number.isNaN(parsed) === true ? null : parsed
-		},
-
-		openIntegriq() {
-			if (typeof window !== 'undefined') {
-				window.open(this.openConnectorSourcesUrl, '_blank', 'noopener')
-			}
 		},
 
 		/**

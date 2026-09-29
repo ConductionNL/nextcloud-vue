@@ -60,7 +60,11 @@
 		<div v-else-if="polls.length === 0" class="cn-sidebar-tab__empty cn-polls-tab__empty">
 			<Poll :size="32" class="cn-polls-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openPollsApp">
+			<NcButton
+				variant="primary"
+				:href="pollsAppUrl"
+				target="_blank"
+				rel="noopener noreferrer">
 				<template #icon>
 					<Poll :size="20" />
 				</template>
@@ -462,12 +466,6 @@ export default {
 
 		statusVariant(poll) {
 			return this.isClosed(poll) ? 'default' : 'success'
-		},
-
-		openPollsApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.pollsAppUrl, '_blank', 'noopener')
-			}
 		},
 
 		async fetchPolls() {

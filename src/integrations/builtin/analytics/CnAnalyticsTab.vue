@@ -79,7 +79,11 @@
 		<div v-else-if="reports.length === 0" class="cn-sidebar-tab__empty cn-analytics-tab__empty">
 			<ChartBar :size="32" class="cn-analytics-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openAnalyticsApp">
+			<NcButton
+				variant="primary"
+				:href="analyticsAppUrl"
+				target="_blank"
+				rel="noopener noreferrer">
 				<template #icon>
 					<ChartBar :size="20" />
 				</template>
@@ -124,12 +128,16 @@
 					</span>
 				</template>
 				<template #actions>
-					<NcActionButton :closeAfterClick="true" @click="openReport(report)">
+					<NcActionLink
+						:closeAfterClick="true"
+						:href="reportUrl(report)"
+						target="_blank"
+						rel="noopener noreferrer">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
 						{{ t('nextcloud-vue', 'Open in Analytics') }}
-					</NcActionButton>
+					</NcActionLink>
 					<NcActionButton :closeAfterClick="true" @click="unlinkReport(report)">
 						<template #icon>
 							<LinkOff :size="20" />
@@ -155,7 +163,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ChartBar from 'vue-material-design-icons/ChartBar.vue'
 import ChartLine from 'vue-material-design-icons/ChartLine.vue'
@@ -188,6 +196,7 @@ export default {
 
 	components: {
 		NcActionButton,
+		NcActionLink,
 		NcButton,
 		NcListItem,
 		NcLoadingIcon,
@@ -442,12 +451,6 @@ export default {
 			this.createOpen = true
 		},
 
-		openReport(report) {
-			if (typeof window !== 'undefined') {
-				window.open(this.reportUrl(report), '_blank', 'noopener')
-			}
-		},
-
 		async onLinkPick(payload) {
 			this.pickerOpen = false
 			try {
@@ -509,12 +512,6 @@ export default {
 				// eslint-disable-next-line no-console
 				console.error('[CnAnalyticsTab] unlink failed', err)
 				this.error = t('nextcloud-vue', 'Could not unlink report.')
-			}
-		},
-
-		openAnalyticsApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.analyticsAppUrl, '_blank', 'noopener')
 			}
 		},
 
