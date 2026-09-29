@@ -376,6 +376,7 @@ export default {
 | `useAdvancedFormDialog` | Boolean | `false` | Use `CnAdvancedFormDialog` instead of `CnFormDialog` for Add/Edit |
 | `createOverride` | Function | `null` | Opt-in async create hook. When set, a **create** confirmed from the built-in form dialog calls `await createOverride(formData, ctx)` instead of the store / self-store `saveObject` — the override owns persistence (e.g. a contact-aware endpoint that fills a required FK) and returns the created object. Create-only (edits fall through). `ctx` is `{ register, schema, objectType, effectiveSchema }`. Unchanged behaviour when absent. |
 | `showViewAction` | Boolean | `true` | Whether to add a View row action |
+| `viewTo` | Function | `null` | `(row) => location \| null`: where the View row action links to. A location makes View a real link (no `view` event); null keeps it a button. CnPageRenderer sets it to where a row click opens |
 | `showEditAction` | Boolean | `true` | Whether to add an Edit row action |
 | `editOpensDetail` | Boolean | `false` | Send the Edit row action to the record's detail page (emits `@edit-open`) instead of opening the edit modal. Opt-in per page; `CnPageRenderer` does not set it, since routing Edit makes it a repeat of the row click. |
 | `showCopyAction` | Boolean | `true` | Whether to add a Copy row action |
@@ -590,6 +591,7 @@ A source adapter may also declare, each one optional:
   then drive the source loader the same way. Single mode only.
 - `openRow(row)` — a row click handler that wins over `detailRoute`, for
   rows whose detail page lives outside the consuming app's router.
+- `rowTarget(row)` — the URL (or router location) a row opens, used to open it in a new tab on a ctrl/cmd/shift or middle click. A plain click still goes through `openRow` when the source has one; without `rowTarget`, a source with `openRow` has no new-tab target.
 - `showAdd: false` — suppresses the Add button. A source cannot force the
   button on; an explicit `:show-add="false"` prop always still wins.
 

@@ -306,6 +306,19 @@ function tasksSource() {
 			window.location.assign(taskDeepLink(String(uuid)))
 		},
 
+		/**
+		 * The URL a clicked row opens, so a ctrl/cmd/shift or middle click can
+		 * open it in a new tab.
+		 *
+		 * @param {object} row The clicked row.
+		 *
+		 * @return {string|null} The task's deep link, or null without an id.
+		 */
+		rowTarget: (row) => {
+			const uuid = row?.uuid || row?.id
+			return uuid ? taskDeepLink(String(uuid)) : null
+		},
+
 		// The sidebar fields this inbox can answer, and the argument each one
 		// becomes. Measured against `TaskController::index()` and
 		// `TaskInboxCriteria`, which take the same predicates for the page and

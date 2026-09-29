@@ -30,7 +30,8 @@
 					:key="task.uuid"
 					class="cn-tasks-widget__row"
 					:data-state="task.state"
-					@click="onRowClick(task)">
+					@click="onRowClick(task, $event)"
+					@auxclick="onRowAuxClick(task, $event)">
 					<span class="cn-tasks-widget__body">
 						<span class="cn-tasks-widget__name">{{ titleOf(task) }}</span>
 						<span class="cn-tasks-widget__meta">{{ metaLine(task) }}</span>
@@ -88,6 +89,8 @@ import { NcActionButton, NcActions, NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import { taskDeepLink, taskDueLabel } from '../../composables/indexSources.js'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { openRowTarget } from '../../utils/linkNavigation.js'
+import { isRowMiddleClick } from '../../utils/rowAuxClick.js'
 
 /**
  * The OpenRegister inbox read (openregister flow-task-entity). One endpoint
@@ -566,22 +569,37 @@ export default {
 
 		/**
 		 * Open the clicked task: the configured route with the uuid as `id`,
-		 * else the task's openregister deep link.
+		 * else the task's openregister deep link. A ctrl/cmd/shift or middle
+		 * click opens it in a new tab.
 		 *
 		 * @param {object} task The clicked task row.
+		 * @param {MouseEvent} [event] The originating click/auxclick event.
 		 * @return {void}
 		 */
-		onRowClick(task) {
+		onRowClick(task, event) {
 			const uuid = String(task.uuid || '')
 			if (uuid === '') {
 				return
 			}
 			const rowRoute = this.content.rowRoute
 			if (typeof rowRoute === 'string' && rowRoute !== '' && this.$router) {
-				this.$router.push({ name: rowRoute, params: { id: uuid } }).catch(() => {})
+				openRowTarget(event, { name: rowRoute, params: { id: uuid } }, this.$router)
 				return
 			}
-			window.location.assign(taskDeepLink(uuid))
+			openRowTarget(event, taskDeepLink(uuid))
+		},
+
+		/**
+		 * Middle click on a task row: open it in a new tab.
+		 *
+		 * @param {object} task The clicked task row.
+		 * @param {MouseEvent} event The auxclick event.
+		 * @return {void}
+		 */
+		onRowAuxClick(task, event) {
+			if (isRowMiddleClick(event)) {
+				this.onRowClick(task, event)
+			}
 		},
 	},
 }

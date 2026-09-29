@@ -15,10 +15,10 @@
 
 ### Events
 
-| Name     | Payload | Description                                                |
-| -------- | ------- | ---------------------------------------------------------- |
-| `click`  | —       | Emitted when a non-selectable row is clicked (navigation). |
-| `select` | —       | Emitted when the selected-id set changes.                  |
+| Name     | Payload     | Description                                                                                                                                                                                                                      |
+| -------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `click`  | `undefined` | Emitted when a non-selectable row is clicked or middle-clicked (navigation). Payload: `(object, event)` — the row's object and the native click/auxclick event, for opening it in a new tab on a ctrl/cmd/shift or middle click. |
+| `select` | —           | Emitted when the selected-id set changes.                                                                                                                                                                                        |
 
 ### Slots
 

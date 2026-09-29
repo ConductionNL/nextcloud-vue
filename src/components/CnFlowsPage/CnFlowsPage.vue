@@ -15,7 +15,7 @@
 		rowClickToView
 		@rowClick="openFlow">
 		<template #header-actions>
-			<NcButton variant="primary" @click="createFlow">
+			<NcButton variant="primary" :to="newFlowRoute">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
@@ -32,6 +32,8 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnIndexPage from '../CnIndexPage/CnIndexPage.vue'
 import { useFlowStore } from '../../composables/useFlowStore.js'
+import { openRowTarget } from '../../utils/linkNavigation.js'
+import { isNewTabClick } from '../../utils/rowAuxClick.js'
 
 /**
  * The app-scoped flow list — manifest page type `flows`.
@@ -134,6 +136,13 @@ export default {
 		},
 
 		/**
+		 * @return {string} Where "New flow" links to.
+		 */
+		newFlowRoute() {
+			return `${this.detailRoute}/new`
+		},
+
+		/**
 		 * @return {Array<object>} The row-action menu: Edit, and only Edit.
 		 */
 		rowActions() {
@@ -203,23 +212,24 @@ export default {
 		},
 
 		/**
+		 * Open a flow; a ctrl/cmd/shift or middle click opens it in a new tab.
+		 *
 		 * @param {object} flow The activated flow.
+		 * @param {MouseEvent} [event] The originating click/auxclick event.
 		 * @return {void}
 		 */
-		openFlow(flow) {
+		openFlow(flow, event) {
 			const id = flow?.id || flow?.uuid
 			if (!id) {
 				return
 			}
 
-			this.$router.push(`${this.detailRoute}/${id}`)
-		},
-
-		/**
-		 * @return {void}
-		 */
-		createFlow() {
-			this.$router.push(`${this.detailRoute}/new`)
+			const path = `${this.detailRoute}/${id}`
+			if (isNewTabClick(event)) {
+				openRowTarget(event, { path }, this.$router)
+				return
+			}
+			this.$router.push(path)
 		},
 	},
 }

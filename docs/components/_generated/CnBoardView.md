@@ -16,9 +16,9 @@
 
 ### Events
 
-| Name         | Payload | Description                                                                                                                             |
-| ------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `card-click` | —       | Emitted when a reader opens a card, by click or by Enter. Payload: the card row.                                                        |
-| `moved`      | —       | Emitted when the host's transition accepted the move and the card now sits in the new lane. Payload: `{ card, toKey }`.                 |
-| `refused`    | —       | Emitted when the guard turned the move down. Payload: `{ card, message }`, the message being the guard's own sentence when it gave one. |
-| `stale`      | —       | Emitted when somebody else moved the card first, so the board shows it where it is now. Payload: `{ card }`.                            |
+| Name         | Payload     | Description                                                                                                                                                                                                  |
+| ------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `card-click` | `undefined` | Emitted when a reader opens a card, by click, Enter or middle click. Payload: `(card, event)` — the card row and the native event, so the host can open it in a new tab on a ctrl/cmd/shift or middle click. |
+| `moved`      | —           | Emitted when the host's transition accepted the move and the card now sits in the new lane. Payload: `{ card, toKey }`.                                                                                      |
+| `refused`    | —           | Emitted when the guard turned the move down. Payload: `{ card, message }`, the message being the guard's own sentence when it gave one.                                                                      |
+| `stale`      | —           | Emitted when somebody else moved the card first, so the board shows it where it is now. Payload: `{ card }`.                                                                                                 |

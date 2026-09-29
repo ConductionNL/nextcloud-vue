@@ -203,6 +203,40 @@ describe('CnLogsPage — row detail', () => {
 		await flush()
 	})
 
+	it('opens rowRoute in a new tab on a ctrl-click or middle click, and re-emits (row, event)', async () => {
+		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+		const push = jest.fn().mockResolvedValue()
+		const resolve = jest.fn((loc) => ({ href: `/apps/oc/traces/${loc.params.id}` }))
+		mockStore.collections['openconnector-job_log'] = [ROW]
+		const wrapper = mount(CnLogsPage, {
+			propsData: { register: 'openconnector', schema: 'job_log', rowRoute: 'TraceDetail' },
+			stubs,
+			mocks: { $route: { query: {}, params: {} }, $router: { push, resolve } },
+		})
+		await flush()
+		try {
+			const table = wrapper.findComponent({ name: 'CnDataTable' })
+			const ctrl = new MouseEvent('click', { ctrlKey: true })
+			table.vm.$emit('row-click', ROW, ctrl)
+			table.vm.$emit('row-click', ROW, new MouseEvent('auxclick', { button: 1 }))
+			expect(openSpy).toHaveBeenCalledTimes(2)
+			expect(openSpy).toHaveBeenCalledWith(`/apps/oc/traces/${ROW.id}`, '_blank', 'noopener,noreferrer')
+			expect(push).not.toHaveBeenCalled()
+			expect(wrapper.emitted('row-click')[0]).toEqual([ROW, ctrl])
+		} finally {
+			openSpy.mockRestore()
+		}
+	})
+
+	it('does not open the dialog on a middle click', async () => {
+		const wrapper = mountPage({ rowDetail: true })
+		await flush()
+		wrapper.vm.onRowClick(ROW, new MouseEvent('auxclick', { button: 1 }))
+		expect(wrapper.vm.detailRow).toBeNull()
+		wrapper.vm.onRowClick(ROW, new MouseEvent('click'))
+		expect(wrapper.vm.detailRow).toEqual(ROW)
+	})
+
 	it('closeDetail dismisses the dialog', async () => {
 		const wrapper = mountPage({ rowDetail: true })
 		await flush()
