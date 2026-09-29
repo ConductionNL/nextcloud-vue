@@ -72,9 +72,9 @@
 import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
 import { objectToGeoFeature } from '../../utils/geo.js'
+import { prefixUrl } from '../../utils/headers.js'
 import { objectDisplayName } from '../../utils/objectName.js'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
-import { prefixUrl } from '../../utils/headers.js'
 
 // Leaflet's own stylesheet positions the map panes, tiles the tile
 // images, and places the zoom/attribution controls. The JS is lazy-loaded

@@ -1779,6 +1779,7 @@ export default {
 			walkthroughSeenResolved: !(this.manifest
 				&& this.manifest.walkthrough
 				&& this.manifest.walkthrough.completionConfigKey),
+
 			/**
 			 * Whether the setup status has finished loading at least once.
 			 * Stays `true` across later refreshes.

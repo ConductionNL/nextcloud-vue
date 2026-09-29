@@ -50,7 +50,9 @@ function layOut(w, cellHeight) {
 		const top = Math.floor(index / 2) * 50
 		return { top, bottom: top + 50 }
 	}
-	return () => { proto.getBoundingClientRect = original }
+	return () => {
+		proto.getBoundingClientRect = original
+	}
 }
 
 describe('CnObjectDataWidget — collapsed field set', () => {

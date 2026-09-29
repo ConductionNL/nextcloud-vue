@@ -989,7 +989,7 @@ export default {
 	},
 
 	watch: {
-		'resolvedFields.length'() {
+		'resolvedFields.length': function() {
 			this.scheduleFit()
 		},
 
