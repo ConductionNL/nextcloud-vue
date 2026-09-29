@@ -869,6 +869,7 @@
     "Task": "Task",
     "Entry": "Entry",
     "Client": "Client",
+    "Open \"{title}\"": "Open \"{title}\"",
     "No tracked time linked yet": "No tracked time linked yet",
     "Open TimeManager": "Open TimeManager",
     "NC TimeManager is currently unavailable.": "NC TimeManager is currently unavailable.",

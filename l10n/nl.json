@@ -861,6 +861,7 @@
     "Task": "Taak",
     "Entry": "Registratie",
     "Client": "Klant",
+    "Open \"{title}\"": "\"{title}\" openen",
     "No tracked time linked yet": "Nog geen tijdregistratie gekoppeld",
     "Open TimeManager": "TimeManager openen",
     "NC TimeManager is currently unavailable.": "NC TimeManager is momenteel niet beschikbaar.",

@@ -2,12 +2,13 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  */
-import { shallowMount } from '@vue/test-utils'
+import { flushPromises, shallowMount } from '@vue/test-utils'
 import { reactive } from 'vue'
 
 const mockStore = {
 	registerObjectType: jest.fn(),
 	saveObject: jest.fn(() => Promise.resolve({ id: 'cm-1', '@self': { id: 'cm-1' } })),
+	fetchSchema: jest.fn(() => Promise.resolve(null)),
 }
 
 jest.mock('../../src/store/index.js', () => ({
@@ -30,6 +31,51 @@ describe('CnInteractionFormWidget', () => {
 	beforeEach(() => {
 		mockStore.saveObject.mockClear()
 		mockStore.registerObjectType.mockClear()
+		mockStore.fetchSchema.mockReset()
+		mockStore.fetchSchema.mockImplementation(() => Promise.resolve(null))
+	})
+
+	it('offers the outcomes the schema allows, labelled and translated', async () => {
+		mockStore.fetchSchema.mockImplementation(() => Promise.resolve({
+			properties: {
+				outcome: {
+					enum: ['resolved', 'callbackRequest'],
+					'x-enum-labels': { resolved: 'Resolved', callbackRequest: 'Callback request' },
+				},
+			},
+		}))
+		const w = shallowMount(CnInteractionFormWidget, {
+			propsData: { content: { outcomes: [{ value: 'opgelost', label: 'Resolved' }] } },
+			provide: {
+				cnWorkspaceContext: { value: {} },
+				cnTranslate: (key) => ({ Resolved: 'Opgelost', 'Callback request': 'Terugbelverzoek' }[key] || key),
+			},
+		})
+		await flushPromises()
+
+		expect(mockStore.fetchSchema).toHaveBeenCalledWith('pipelinq-contactmoment')
+		expect(w.vm.outcomeOptions).toEqual([
+			{ value: 'resolved', label: 'Opgelost' },
+			{ value: 'callbackRequest', label: 'Terugbelverzoek' },
+		])
+	})
+
+	it('falls back to content.outcomes when the schema has no outcome enum', async () => {
+		const outcomes = [{ value: 'done', label: 'Done' }]
+		const { w } = mount({ outcomes })
+		await flushPromises()
+		expect(w.vm.outcomeOptions).toEqual(outcomes)
+	})
+
+	it('names what it creates on the submit button when content.submitLabel is set', () => {
+		const w = shallowMount(CnInteractionFormWidget, {
+			propsData: { content: { submitLabel: 'Save contact moment' } },
+			provide: {
+				cnWorkspaceContext: { value: {} },
+				cnTranslate: (key) => (key === 'Save contact moment' ? 'Contactmoment opslaan' : key),
+			},
+		})
+		expect(w.vm.registerLabel).toBe('Contactmoment opslaan')
 	})
 
 	it('defaults the channel to the first configured channel', () => {
@@ -68,13 +114,11 @@ describe('CnInteractionFormWidget', () => {
 		expect(w.vm.form.client).toBe('c-2')
 	})
 
-	it('streams the summary into the workspace context (activeSummary)', () => {
+	it('keeps the summary to the form, leaving the workspace context alone', () => {
 		const { w, holder } = mount()
-		// The summary edit now arrives through CnFormWidgetBase's `update:field`
-		// (one keyed handler replaced the per-control ones), so the test drives
-		// the same path the base does.
 		w.vm.onFieldUpdate({ key: 'summary', value: 'router keeps dropping' })
-		expect(holder.value.activeSummary).toBe('router keeps dropping')
+		expect(w.vm.form.summary).toBe('router keeps dropping')
+		expect(holder.value.activeSummary).toBeUndefined()
 	})
 
 	it('selects a newly-created client', () => {
@@ -107,9 +151,47 @@ describe('CnInteractionFormWidget', () => {
 		expect(payload.client).toBe('c-1')
 		expect(payload.summary).toBe('will call back')
 		expect(w.emitted().saved[0][0].id).toBe('cm-1')
-		// summary reset + workspace cleared
 		expect(w.vm.form.summary).toBe('')
-		expect(holder.value.activeSummary).toBe('')
+		expect(holder.value.activeSummary).toBeUndefined()
+	})
+
+	describe('after a save', () => {
+		const mountForSave = (content) => shallowMount(CnInteractionFormWidget, {
+			propsData: { content: { subjectField: 'title', ...content } },
+			provide: { cnWorkspaceContext: { value: {} } },
+			stubs: { CnFormWidgetBase: false },
+			global: {
+				mocks: {
+					$router: {
+						resolve: jest.fn(({ name, params }) => ({ href: `/apps/pipelinq/${name}/${params.id}` })),
+					},
+				},
+			},
+		})
+
+		it('puts an Open button beside submit that opens the saved object in a new tab', async () => {
+			const w = mountForSave({ detailRoute: 'TicketDetail' })
+			expect(w.find('[data-testid="cn-interaction-form-open"]').exists()).toBe(false)
+
+			w.vm.form.subject = 'Printer on fire'
+			await w.vm.onRegister()
+			await w.vm.$nextTick()
+
+			const open = w.find('.cn-form-widget__actions [data-testid="cn-interaction-form-open"]')
+			expect(open.exists()).toBe(true)
+			expect(open.attributes('href')).toBe('/apps/pipelinq/TicketDetail/cm-1')
+			expect(open.attributes('target')).toBe('_blank')
+			expect(w.vm.openLabel).toContain('Printer on fire')
+		})
+
+		it('shows no Open button when no detailRoute is set', async () => {
+			const w = mountForSave({})
+			w.vm.form.subject = 'Printer on fire'
+			await w.vm.onRegister()
+			await w.vm.$nextTick()
+
+			expect(w.find('[data-testid="cn-interaction-form-open"]').exists()).toBe(false)
+		})
 	})
 
 	it('honours custom field-name overrides in the payload', async () => {
@@ -144,10 +226,10 @@ describe('CnInteractionFormWidget', () => {
 			expect(bag.selectedClient).toBe('c-page')
 		})
 
-		it('streams activeSummary onto a plain workspace object', () => {
+		it('never writes activeSummary onto a plain workspace object', () => {
 			const { w, bag } = mountPlain()
 			w.vm.onFieldUpdate({ key: 'summary', value: 'reset password' })
-			expect(bag.activeSummary).toBe('reset password')
+			expect(bag.activeSummary).toBeUndefined()
 		})
 	})
 })

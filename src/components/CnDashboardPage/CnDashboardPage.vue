@@ -1446,9 +1446,8 @@ export default {
 
 		// Page-level WORKSPACE CONTEXT — a reactive bag of shared keys that
 		// widgets on this page both write (e.g. a page-level client picker sets
-		// `selectedClient`, an interaction form `activeSummary`) and read (a client-overview list
-		// filters on `@workspace.selectedClient`; a knowledge-base widget reacts
-		// to `activeSummary`). Provided ALWAYS — like cnDashboardDateRange — so
+		// `selectedClient`) and read (a client-overview list filters on
+		// `@workspace.selectedClient`). Provided ALWAYS — like cnDashboardDateRange — so
 		// descendants can `inject('cnWorkspaceContext')` without a fallback dance;
 		// the bag starts empty and stays inert for dashboards that don't use it.
 		const workspaceContext = ref({})
