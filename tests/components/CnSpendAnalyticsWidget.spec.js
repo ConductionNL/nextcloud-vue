@@ -52,6 +52,31 @@ describe('CnSpendAnalyticsWidget renderer', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.cn-spend-analytics-widget__card-value').exists()).toBe(true)
 	})
+
+	it('renders a top-category row as a real link to its deep link', async () => {
+		const dataSource = {
+			fetchSummary: jest.fn().mockResolvedValue({
+				available: true,
+				empty: false,
+				total: 1500,
+				currency: 'EUR',
+				byCategory: [{ category: 'IT', amount: 1000 }, { category: 'HR', amount: 500 }],
+				trend: [],
+			}),
+			resolveDeepLink: jest.fn((app, kind, id) => (id === 'IT' ? `/apps/${app}/${kind}/${id}` : '')),
+		}
+		const wrapper = mount(CnSpendAnalyticsWidget, { propsData: { content: { viewMode: 'top-categories' }, dataSource } })
+		await wrapper.vm.$nextTick()
+		await Promise.resolve()
+		await wrapper.vm.$nextTick()
+		const rows = wrapper.findAll('.cn-spend-analytics-widget__row')
+		expect(rows.length).toBe(2)
+		expect(rows[0].element.tagName).toBe('A')
+		expect(rows[0].attributes('href')).toBe('/apps/financeq/category/IT')
+		// An unresolved row is plain text, not an inert button.
+		expect(rows[1].element.tagName).toBe('DIV')
+		expect(rows[1].attributes('role')).toBeUndefined()
+	})
 })
 
 describe('spend-analytics registry registration', () => {

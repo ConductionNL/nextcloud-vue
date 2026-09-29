@@ -409,6 +409,8 @@ The page header's overflow menu carries Refresh plus the mandatory trio Request 
 
 `listNavigation`, `primaryAction` and `tabInAddress` make a record somewhere a handler stays. All three are off by default. See [the reference page](../../../docs/components/cn-detail-page.md#the-record-as-a-place).
 
+`previousTo` and `nextTo` (default `null`) take `useListNavigation`'s `previousRoute` / `nextRoute` and turn the previous and next controls into real links, so they can be opened in a new tab. The link navigates by itself; `previous-record` / `next-record` are still emitted, with `{ event, to }`, and `goPrevious` / `goNext` do not push again when they receive that payload.
+
 ## Not found
 
-When the schema-driven fetch answers 404 the page shows a not-found state whose back button goes to `notFoundRoute` (default `null`, which means the app root `/`). `notFoundRouteLabel` names that page in the button's "Back to …" label.
+When the schema-driven fetch answers 404 the page shows a not-found state whose back button is a router link to `notFoundRoute` (default `null`, which means the app root `/`). `notFoundRouteLabel` names that page in the button's "Back to …" label.

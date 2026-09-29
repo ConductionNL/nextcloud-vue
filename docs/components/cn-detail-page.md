@@ -66,28 +66,34 @@ These three are what make a record somewhere a handler stays, rather than somewh
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `listNavigation` | Object | `null` | Next and previous within the list this record was opened from, as returned by [`useListNavigation`](../utilities/composables/use-list-navigation.md). Shape: `{ available, isFirst, isLast, position, total }`. Omit it and neither control renders, which is what a record reached by a bare link must do. |
+| `previousTo` | Object \| String | `null` | Router location of the previous record, as `useListNavigation`'s `previousRoute`. When set, the previous control is a real link (middle-click and open in new tab work) and `previous-record` is emitted with `{ event, to }` after the link navigated. `null` keeps it a button that only emits. |
+| `nextTo` | Object \| String | `null` | Router location of the next record, as `useListNavigation`'s `nextRoute`. Same behaviour as `previousTo`. |
 | `primaryAction` | Object | `null` | The page's primary action, as declared on its manifest page. Renders as the header's primary button and is where the skip link lands. Shape: `{ id?, label, icon?, route?, href? }`. |
 | `tabInAddress` | Boolean | `false` | Puts the active tab in the address as `?_tab=<id>`, so a link points at a tab of this record rather than at the record. |
 
 Wire the navigation in the host, because the host owns the router:
 
 ```js
-const nav = useListNavigation({
+const nav = reactive(useListNavigation({
   route: useRoute(),
   router: useRouter(),
   currentId: toRef(props, 'objectId'),
   objectType: 'case',
-})
+}))
 ```
 
 ```vue
 <CnDetailPage
   :listNavigation="nav"
+  :previousTo="nav.previousRoute"
+  :nextTo="nav.nextRoute"
   :primaryAction="{ id: 'afhandelen', label: 'Zaak afhandelen' }"
   tabInAddress
   @next-record="nav.goNext"
   @previous-record="nav.goPrevious" />
 ```
+
+With `previousTo` and `nextTo` the two controls are links, so they can be opened in a new tab. The link navigates by itself; `goNext` and `goPrevious` see the `{ event, to }` payload and do not push a second time, so keeping the listeners is safe.
 
 Three refusals are deliberate. A record opened without list context offers no next and no previous, rather than inferring an order nobody chose. The first and the last record say so rather than wrapping. An address naming a tab that does not exist, or one this reader may not see, falls back to the first tab they can see and says so once.
 
@@ -103,8 +109,8 @@ The tabless address is corrected with `replace`, not `push`, so the back button 
 | `related-row-click` | `{ collection, row, index }` | A row in a `relatedCollections` section was clicked. |
 | `layout-change` | `Array` | A widget in the body grid was dragged or resized in edit mode. Payload is the updated layout array. The sibling `update:layout` event fires with the same payload so an explicit-layout page can use `:layout.sync`. |
 | `widget-config-change` | `object \| null` | A body-grid widget's config was saved via the cog editor (the widget def), or the widget was removed (`null`). |
-| `next-record` | | The reader asked for the next record of the list this one was opened from. |
-| `previous-record` | | The reader asked for the previous record of that same list. |
+| `next-record` | `{ event, to }` \| none | The reader asked for the next record of the list this one was opened from. With `nextTo` set the link has navigated already and the payload is `{ event, to }`; without it there is no payload and the host steps. |
+| `previous-record` | `{ event, to }` \| none | The reader asked for the previous record of that same list. Payload as `next-record`, keyed on `previousTo`. |
 | `primary-action` | `object` | The declared primary action was pressed. Payload is the declaration. |
 | `tab-change` | `string` | The active tab changed. Fires whether or not `tabInAddress` is set. |
 

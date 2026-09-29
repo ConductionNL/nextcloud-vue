@@ -165,6 +165,30 @@ describe('CnFilesWidget — dashboard mode (regression)', () => {
 		expect(axios.get.mock.calls[0][0]).toBe('/index.php/apps/files/api/widgets/files/5/contents')
 	})
 
+	it('renders file rows as new-tab links and folder rows as buttons', async () => {
+		axios.get.mockResolvedValue({
+			data: {
+				items: [
+					{ fileId: 7, name: 'Docs', isFolder: true },
+					{ fileId: 42, name: 'a.pdf', isFolder: false },
+				],
+			},
+		})
+		const wrapper = mount(CnFilesWidget, { propsData: { placement: { id: 5 } } })
+		await flush(wrapper)
+
+		const names = wrapper.findAll('.cn-files-widget__row-name')
+		expect(names[0].element.tagName).toBe('BUTTON')
+		expect(names[0].attributes('href')).toBeUndefined()
+		expect(names[1].element.tagName).toBe('A')
+		expect(names[1].attributes('href')).toBe('/index.php/f/42')
+		expect(names[1].attributes('target')).toBe('_blank')
+		expect(names[1].attributes('rel')).toBe('noopener noreferrer')
+
+		await names[0].trigger('click')
+		expect(wrapper.vm.currentSubPath).toBe('/Docs')
+	})
+
 	it('does not fetch when no placement and no object context', async () => {
 		const wrapper = mount(CnFilesWidget, { propsData: {} })
 		await flush(wrapper)

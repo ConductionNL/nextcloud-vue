@@ -42,7 +42,7 @@ const NcActionLinkStub = {
 	name: 'NcActionLink',
 	inheritAttrs: false,
 	props: ['href', 'target', 'rel'],
-	template: '<a :data-testid="$attrs[\'data-testid\']" :href="href" :target="target" :rel="rel"><slot /></a>',
+	template: '<a :data-testid="$attrs[\'data-testid\']" :href="href" :target="target" :rel="rel" @click="$emit(\'click\', $event)"><slot /></a>',
 }
 
 const baseStubs = {
@@ -225,25 +225,26 @@ describe('CnWidgetWrapper — default Request-a-feature handler (widget-wrapper-
 	// The in-product modal is gone (team decision 2026-09-04): the default
 	// opens the forge's feature-request issue FORM, exactly like Report a
 	// bug, with the widget surface as the English headline.
-	it('opens the feature-request issue form with the widget surface headline', async () => {
-		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+	it('links to the feature-request issue form with the widget surface headline', () => {
 		const wrapper = mountWrapper({ widgetId: 'outgoing-calls-daily', specRef: 'call-logs' })
-		await wrapper.find('[data-testid="cn-widget-wrapper-action-request-feature"]').trigger('click')
+		const item = wrapper.find('[data-testid="cn-widget-wrapper-action-request-feature"]')
 
-		expect(openSpy).toHaveBeenCalledTimes(1)
-		const u = new URL(openSpy.mock.calls[0][0])
+		expect(item.element.tagName).toBe('A')
+		const u = new URL(item.attributes('href'))
 		expect(u.origin + u.pathname).toBe('https://github.com/ConductionNL/pipelinq/issues/new')
 		expect(u.searchParams.get('template')).toBe('feature-request.yml')
 		expect(u.searchParams.get('title')).toBe('[FEATURE] widget:outgoing-calls-daily')
+		expect(item.attributes('target')).toBe('_blank')
 	})
 
-	it('host preventDefault suppresses the built-in navigation', async () => {
-		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+	it('host preventDefault cancels the link', async () => {
 		const onRequest = jest.fn((_payload, event) => event.preventDefault())
-		const wrapper = mountWrapper({ widgetId: 'outgoing-calls-daily' }, { listeners: { 'request-feature': onRequest } })
-		await wrapper.find('[data-testid="cn-widget-wrapper-action-request-feature"]').trigger('click')
+		const wrapper = mountWrapper({ widgetId: 'outgoing-calls-daily' }, { attrs: { onRequestFeature: onRequest } })
+		const click = new MouseEvent('click', { bubbles: true, cancelable: true })
+		wrapper.find('[data-testid="cn-widget-wrapper-action-request-feature"]').element.dispatchEvent(click)
+		await wrapper.vm.$nextTick()
 		expect(onRequest).toHaveBeenCalled()
-		expect(openSpy).not.toHaveBeenCalled()
+		expect(click.defaultPrevented).toBe(true)
 	})
 
 	it('warns and opens nothing when no cnFeatureRequestRepo inject', async () => {

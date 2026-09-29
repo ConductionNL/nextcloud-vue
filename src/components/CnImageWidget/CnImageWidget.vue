@@ -4,10 +4,14 @@
 -->
 
 <template>
-	<div
+	<component
+		:is="hasLink ? 'a' : 'div'"
 		class="cn-image-widget"
+		:class="{ 'cn-image-widget--link': hasLink }"
 		:style="wrapperStyle"
-		@click="onClick">
+		:href="hasLink ? safeHref(link) : null"
+		:target="hasLink ? '_blank' : null"
+		:rel="hasLink ? 'noopener noreferrer' : null">
 		<img
 			v-if="showImage"
 			class="cn-image-widget__img"
@@ -19,13 +23,14 @@
 			<CnIcon name="Camera" :size="48" />
 			<span class="cn-image-widget__placeholder-label">{{ placeholderLabel }}</span>
 		</div>
-	</div>
+	</component>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
+import { safeHref } from '../../utils/safeHref.js'
 
 const ALLOWED_FITS = ['cover', 'contain', 'fill', 'none']
 const DEFAULT_FIT = 'cover'
@@ -39,10 +44,9 @@ const DEFAULT_FIT = 'cover'
  * `object-fit: <fit>`; an empty `url` renders a camera placeholder; a failed
  * `<img>` load swaps to the placeholder with an "Image failed to load" label.
  *
- * Click-through: when `link` is non-empty the cell sets `cursor: pointer` and
- * a click opens the link via `window.open(link, '_blank',
- * 'noopener,noreferrer')`. An empty `link` keeps the default cursor and clicks
- * are no-ops.
+ * Click-through: when `link` is non-empty the cell is an `<a target="_blank"
+ * rel="noopener noreferrer">` to it, so it can also be middle-clicked or
+ * copied. An empty `link` renders a plain `<div>`.
  *
  * Registered as the `image` dashboard widget type via the renderer's
  * `index.js`.
@@ -202,6 +206,8 @@ export default {
 	},
 
 	methods: {
+		safeHref,
+
 		/**
 		 * Swap to the placeholder + "Image failed to load" annotation when
 		 * the `<img>` reports an error. The event is swallowed so no exception
@@ -212,20 +218,6 @@ export default {
 		onImageError() {
 			this.loadFailed = true
 		},
-
-		/**
-		 * Open `link` in a new tab on click when non-empty, no-op otherwise.
-		 * `noopener,noreferrer` prevents the opened page reaching back via
-		 * `window.opener`.
-		 *
-		 * @return {void}
-		 */
-		onClick() {
-			if (this.hasLink === false) {
-				return
-			}
-			window.open(this.link, '_blank', 'noopener,noreferrer')
-		},
 	},
 }
 </script>
@@ -235,6 +227,12 @@ export default {
 	width: 100%;
 	height: 100%;
 	overflow: hidden;
+}
+
+.cn-image-widget--link {
+	display: block;
+	color: inherit;
+	text-decoration: none;
 }
 
 .cn-image-widget__img {

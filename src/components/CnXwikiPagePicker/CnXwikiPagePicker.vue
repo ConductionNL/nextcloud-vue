@@ -43,7 +43,7 @@
 				<AlertCircleOutline :size="32" class="cn-xwiki-page-picker__unconfigured-icon" />
 				<strong>{{ unconfiguredTitle }}</strong>
 				<p>{{ unconfiguredMessage }}</p>
-				<NcButton variant="primary" @click="openIntegriq">
+				<NcButton variant="primary" :href="openConnectorSourcesUrl" target="_blank">
 					{{ t('nextcloud-vue', 'Configure XWiki connection') }}
 				</NcButton>
 			</div>
@@ -301,12 +301,6 @@ export default {
 				}
 			}
 			return String(page.space ?? '')
-		},
-
-		openIntegriq() {
-			if (typeof window !== 'undefined') {
-				window.open(this.openConnectorSourcesUrl, '_blank', 'noopener')
-			}
 		},
 
 		confirm() {

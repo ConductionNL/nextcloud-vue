@@ -112,7 +112,7 @@ function mountWidget({
 	mockRefetchCompleted.mockClear()
 	return mount(CnFlowRunsWidget, {
 		propsData: { content, translate: (k) => k },
-		mocks: router ? { $router: router } : {},
+		mocks: router ? { $router: { resolve: (loc) => ({ href: `/${loc.name}/${loc.params.id}` }), ...router } } : {},
 		stubs: { NcLoadingIcon: true },
 		provide,
 	})
@@ -258,7 +258,9 @@ describe('CnFlowRunsWidget subject mode', () => {
 				active: { results: [liveRun({ uuid: 'run-77' })], total: 1 },
 				router: { push },
 			})
-			w.find('.cn-flow-runs-widget__row').trigger('click')
+			const link = w.find('a.cn-flow-runs-widget__row-content')
+			expect(link.attributes('href')).toBe('/RunDetail/run-77')
+			link.trigger('click')
 			expect(push).toHaveBeenCalledWith({ name: 'RunDetail', params: { id: 'run-77' } })
 		})
 
@@ -269,7 +271,7 @@ describe('CnFlowRunsWidget subject mode', () => {
 				active: { results: [liveRun({ uuid: undefined, flowId: 'flow-9' })], total: 1 },
 				router: { push },
 			})
-			w.find('.cn-flow-runs-widget__row').trigger('click')
+			w.find('.cn-flow-runs-widget__row-content').trigger('click')
 			expect(push).toHaveBeenCalledWith({ name: 'GraphDetail', params: { id: 'flow-9' } })
 		})
 
@@ -280,7 +282,7 @@ describe('CnFlowRunsWidget subject mode', () => {
 				completed: { results: [doneRun({ uuid: 'run-done-9' })], total: 1 },
 				router: { push },
 			})
-			w.find('.cn-flow-runs-widget__row--terminal').trigger('click')
+			w.find('.cn-flow-runs-widget__row--terminal .cn-flow-runs-widget__row-content').trigger('click')
 			expect(push).toHaveBeenCalledWith({ name: 'RunDetail', params: { id: 'run-done-9' } })
 		})
 
@@ -291,7 +293,8 @@ describe('CnFlowRunsWidget subject mode', () => {
 				active: { results: [liveRun()], total: 1 },
 				router: { push },
 			})
-			w.find('.cn-flow-runs-widget__row').trigger('click')
+			expect(w.find('a.cn-flow-runs-widget__row-content').exists()).toBe(false)
+			w.find('.cn-flow-runs-widget__row-content').trigger('click')
 			expect(push).not.toHaveBeenCalled()
 		})
 	})

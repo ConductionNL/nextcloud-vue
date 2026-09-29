@@ -33,7 +33,7 @@ const NcActionLinkStub = {
 	name: 'NcActionLink',
 	inheritAttrs: false,
 	props: ['href', 'target', 'rel'],
-	template: '<a :data-testid="$attrs[\'data-testid\']" :href="href" :target="target" :rel="rel"><slot /></a>',
+	template: '<a :data-testid="$attrs[\'data-testid\']" :href="href" :target="target" :rel="rel" @click="$emit(\'click\', $event)"><slot /></a>',
 }
 const NcActionsStub = {
 	name: 'NcActions',
@@ -268,19 +268,22 @@ describe('CnActionsMenu — default Request-a-feature handler', () => {
 	// the default opens the forge's feature-request issue FORM in a new
 	// tab, exactly like Report a bug, so the whole conversation happens on
 	// the forge (in English).
-	it('opens the feature-request issue form on the forge, like Report a bug', async () => {
+	it('links to the feature-request issue form on the forge, like Report a bug', async () => {
 		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
 		const wrapper = mountMenu({ surface: 'detail:cases', specRef: 'cases' })
-		await wrapper.find('[data-testid="cn-actions-menu-action-request-feature"]').trigger('click')
+		const item = wrapper.find('[data-testid="cn-actions-menu-action-request-feature"]')
 
-		expect(openSpy).toHaveBeenCalledTimes(1)
-		const [url, target, features] = openSpy.mock.calls[0]
-		const u = new URL(url)
+		expect(item.element.tagName).toBe('A')
+		const u = new URL(item.attributes('href'))
 		expect(u.origin + u.pathname).toBe('https://github.com/ConductionNL/pipelinq/issues/new')
 		expect(u.searchParams.get('template')).toBe('feature-request.yml')
 		expect(u.searchParams.get('title')).toBe('[FEATURE] detail:cases')
-		expect(target).toBe('_blank')
-		expect(features).toBe('noopener,noreferrer')
+		expect(item.attributes('target')).toBe('_blank')
+		expect(item.attributes('rel')).toBe('noopener noreferrer')
+
+		// The browser follows the link; nothing opens a window by script.
+		await item.trigger('click')
+		expect(openSpy).not.toHaveBeenCalled()
 	})
 
 	it('warns and opens nothing when no repo inject', async () => {
@@ -292,13 +295,22 @@ describe('CnActionsMenu — default Request-a-feature handler', () => {
 		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Cannot open the feature-request form'))
 	})
 
-	it('host preventDefault suppresses the built-in navigation', async () => {
-		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+	it('host preventDefault cancels the link', async () => {
 		const onRequest = jest.fn((_p, ev) => ev.preventDefault())
-		const wrapper = mountMenu({}, { listeners: { 'request-feature': onRequest } })
-		await wrapper.find('[data-testid="cn-actions-menu-action-request-feature"]').trigger('click')
+		const wrapper = mountMenu({}, { attrs: { onRequestFeature: onRequest } })
+		const click = new MouseEvent('click', { bubbles: true, cancelable: true })
+		wrapper.find('[data-testid="cn-actions-menu-action-request-feature"]').element.dispatchEvent(click)
+		await wrapper.vm.$nextTick()
 		expect(onRequest).toHaveBeenCalled()
-		expect(openSpy).not.toHaveBeenCalled()
+		expect(click.defaultPrevented).toBe(true)
+	})
+
+	it('leaves the link alone when no host prevents it', async () => {
+		const wrapper = mountMenu()
+		const click = new MouseEvent('click', { bubbles: true, cancelable: true })
+		wrapper.find('[data-testid="cn-actions-menu-action-request-feature"]').element.dispatchEvent(click)
+		await wrapper.vm.$nextTick()
+		expect(click.defaultPrevented).toBe(false)
 	})
 })
 

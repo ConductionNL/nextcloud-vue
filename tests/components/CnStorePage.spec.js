@@ -13,6 +13,7 @@
 
 import { getCurrentUser } from '@nextcloud/auth'
 import { showSuccess } from '@nextcloud/dialogs'
+import { NcButton } from '@nextcloud/vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import CnStorePage from '../../src/components/CnStorePage/CnStorePage.vue'
 
@@ -344,6 +345,10 @@ describe('CnStorePage', () => {
 		 * @param {object} router The router double.
 		 * @return {object} The wrapper.
 		 */
+		function publishButton(w) {
+			return w.findAllComponents(NcButton).find((b) => b.attributes('data-testid') === 'store-publish')
+		}
+
 		function mountWithRouter(props, router = { push: jest.fn() }) {
 			return mount(CnStorePage, {
 				props: { app: 'learniq', ...props },
@@ -414,8 +419,8 @@ describe('CnStorePage', () => {
 			expect(button.exists()).toBe(true)
 			expect(button.text()).toBe('Publish')
 
-			await button.trigger('click')
-			expect(router.push).toHaveBeenCalledWith({ name: 'CoursePackageExport' })
+			// A real link: the button carries the location as `to`.
+			expect(publishButton(w).vm.$attrs.to).toEqual({ name: 'CoursePackageExport' })
 		})
 
 		it('passes a route location through unchanged', async () => {
@@ -425,9 +430,8 @@ describe('CnStorePage', () => {
 
 			const w = mountWithRouter({ canPublish: true, publishRoute: location }, router)
 			await flushPromises()
-			await w.find('[data-testid="store-publish"]').trigger('click')
 
-			expect(router.push).toHaveBeenCalledWith(location)
+			expect(publishButton(w).vm.$attrs.to).toEqual(location)
 		})
 
 		it('hides Publish when the app says no, administrators included', async () => {
@@ -475,13 +479,15 @@ describe('CnStorePage', () => {
 			expect(w.find('[data-testid="store-publish"]').exists()).toBe(false)
 		})
 
-		it('does nothing on Publish when no router is present', async () => {
+		it('renders Publish as a plain button when no router is present', async () => {
 			stubFetch({ outcome: 'ok', cards: [] })
 
 			const w = mount(CnStorePage, { props: { app: 'learniq', canPublish: true, publishRoute: 'X' } })
 			await flushPromises()
 
-			expect(() => w.vm.openPublish()).not.toThrow()
+			const publish = w.find('[data-testid="store-publish"]')
+			expect(publish.exists()).toBe(true)
+			await expect(publish.trigger('click')).resolves.not.toThrow()
 		})
 	})
 

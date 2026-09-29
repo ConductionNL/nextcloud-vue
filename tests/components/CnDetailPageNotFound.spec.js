@@ -46,6 +46,11 @@ function makeStore(record) {
 	return store
 }
 
+function backButton(wrapper) {
+	return wrapper.findAllComponents({ name: 'NcButton' })
+		.find((b) => b.attributes('data-testid') === 'cn-detail-page-not-found-back')
+}
+
 function mountPage(store, extra = {}) {
 	const push = jest.fn(() => Promise.resolve())
 	const state = makeState()
@@ -101,22 +106,23 @@ describe('CnDetailPage: record not found', () => {
 		store.settle()
 		await flushPromises()
 
-		const button = wrapper.find('[data-testid="cn-detail-page-not-found-back"]')
+		const button = backButton(wrapper)
 		expect(button.text()).toContain('Back to Contracts')
+		// A real link: the router location rides on `to`, nothing is pushed by hand.
+		expect(button.vm.$attrs.to).toEqual({ name: 'Contracts' })
 		await button.trigger('click')
-		expect(push).toHaveBeenCalledWith({ name: 'Contracts' })
+		expect(push).not.toHaveBeenCalled()
 	})
 
 	it('falls back to the app root without a notFoundRoute', async () => {
 		const store = makeStore(null)
-		const { wrapper, push } = mountPage(store)
+		const { wrapper } = mountPage(store)
 		store.settle()
 		await flushPromises()
 
-		const button = wrapper.find('[data-testid="cn-detail-page-not-found-back"]')
+		const button = backButton(wrapper)
 		expect(button.text()).toContain('Back to home')
-		await button.trigger('click')
-		expect(push).toHaveBeenCalledWith({ path: '/' })
+		expect(button.vm.$attrs.to).toEqual({ path: '/' })
 	})
 
 	it('renders the page normally once an existing record arrives', async () => {

@@ -170,10 +170,40 @@ describe('CnFlowRunsWidget', () => {
 	})
 
 	describe('row clicks', () => {
+		// Minimal router: resolve() mirrors the location into a readable href.
+		const makeRouter = (push) => ({
+			push,
+			resolve: (loc) => ({
+				href: `/${loc.name}/${loc.params.id}${loc.query ? `?run=${loc.query.run}` : ''}`,
+			}),
+		})
+
 		it('are inert without a configured route', () => {
 			const push = jest.fn()
-			const w = mountWidget({ payload: { results: [run()], total: 1 }, router: { push } })
-			w.find('.cn-flow-runs-widget__row').trigger('click')
+			const w = mountWidget({ payload: { results: [run()], total: 1 }, router: makeRouter(push) })
+			expect(w.find('a.cn-flow-runs-widget__row-content').exists()).toBe(false)
+			w.find('.cn-flow-runs-widget__row-content').trigger('click')
+			expect(push).not.toHaveBeenCalled()
+		})
+
+		it('render the row as a real link to the resolved route', () => {
+			const w = mountWidget({
+				payload: { results: [run({ flowId: 'flow-9', uuid: 'run-9' })], total: 1 },
+				content: { rowRoute: 'GraphDetail' },
+				router: makeRouter(jest.fn()),
+			})
+			const link = w.find('a.cn-flow-runs-widget__row-content')
+			expect(link.attributes('href')).toBe('/GraphDetail/flow-9?run=run-9')
+		})
+
+		it('leave a modified click to the browser', () => {
+			const push = jest.fn(() => Promise.resolve())
+			const w = mountWidget({
+				payload: { results: [run({ flowId: 'flow-9', uuid: 'run-9' })], total: 1 },
+				content: { rowRoute: 'GraphDetail' },
+				router: makeRouter(push),
+			})
+			w.find('a.cn-flow-runs-widget__row-content').trigger('click', { ctrlKey: true })
 			expect(push).not.toHaveBeenCalled()
 		})
 
@@ -182,9 +212,9 @@ describe('CnFlowRunsWidget', () => {
 			const w = mountWidget({
 				payload: { results: [run({ flowId: 'flow-9', uuid: 'run-9' })], total: 1 },
 				content: { rowRoute: 'GraphDetail' },
-				router: { push },
+				router: makeRouter(push),
 			})
-			w.find('.cn-flow-runs-widget__row').trigger('click')
+			w.find('a.cn-flow-runs-widget__row-content').trigger('click')
 			// The flow id alone opens the right flow and answers the wrong
 			// question: the reader clicked a RUN. The query is what turns the
 			// destination into the run view.
@@ -200,9 +230,9 @@ describe('CnFlowRunsWidget', () => {
 			const w = mountWidget({
 				payload: { results: [run({ flowId: 'flow-9', uuid: '' })], total: 1 },
 				content: { rowRoute: 'GraphDetail' },
-				router: { push },
+				router: makeRouter(push),
 			})
-			w.find('.cn-flow-runs-widget__row').trigger('click')
+			w.find('a.cn-flow-runs-widget__row-content').trigger('click')
 			// An empty `?run=` is not a deep link, it is a value the
 			// destination has to defend against. Absent means absent.
 			expect(push).toHaveBeenCalledWith({ name: 'GraphDetail', params: { id: 'flow-9' } })
@@ -213,9 +243,9 @@ describe('CnFlowRunsWidget', () => {
 			const w = mountWidget({
 				payload: { results: [run({ flowId: 'flow-9', uuid: 'run-9' })], total: 1 },
 				content: { rowRoute: 'GraphDetail', runRoute: 'RunDetail' },
-				router: { push },
+				router: makeRouter(push),
 			})
-			w.find('.cn-flow-runs-widget__row').trigger('click')
+			w.find('a.cn-flow-runs-widget__row-content').trigger('click')
 			expect(push).toHaveBeenCalledWith({ name: 'RunDetail', params: { id: 'run-9' } })
 		})
 	})

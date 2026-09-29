@@ -60,20 +60,33 @@
 				<section v-if="activeGroup" class="cn-related-objects-widget__panel" role="tabpanel">
 					<ul class="cn-related-objects-widget__list">
 						<li v-for="(item, i) in activeGroup.items"
-							:key="`item-${activeGroup.key}-${item.id || i}`"
-							class="cn-related-objects-widget__row"
-							:class="{ 'cn-related-objects-widget__row--expanded': isExpanded(activeGroup.key, item) }"
-							tabindex="0"
-							role="button"
-							@click="onSelectGroupItem(activeGroup, item)"
-							@keydown.enter="onSelectGroupItem(activeGroup, item)">
-							<CnIcon :name="activeGroup.icon" :size="20" class="cn-related-objects-widget__icon" />
-							<span class="cn-related-objects-widget__label">{{ item.label }}</span>
-							<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
-							<p v-if="item.detail && isExpanded(activeGroup.key, item)"
-								class="cn-related-objects-widget__detail">
-								{{ item.detail }}
-							</p>
+							:key="`item-${activeGroup.key}-${item.id || i}`">
+							<!-- A row with an owning-app page is a real link; the rest
+							     stay buttons that emit or expand. -->
+							<a v-if="activeGroupHrefs[i]"
+								class="cn-related-objects-widget__row"
+								:href="activeGroupHrefs[i]"
+								target="_blank"
+								rel="noopener noreferrer">
+								<CnIcon :name="activeGroup.icon" :size="20" class="cn-related-objects-widget__icon" />
+								<span class="cn-related-objects-widget__label">{{ item.label }}</span>
+								<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
+							</a>
+							<div v-else
+								class="cn-related-objects-widget__row"
+								:class="{ 'cn-related-objects-widget__row--expanded': isExpanded(activeGroup.key, item) }"
+								tabindex="0"
+								role="button"
+								@click="onSelectGroupItem(activeGroup, item)"
+								@keydown.enter="onSelectGroupItem(activeGroup, item)">
+								<CnIcon :name="activeGroup.icon" :size="20" class="cn-related-objects-widget__icon" />
+								<span class="cn-related-objects-widget__label">{{ item.label }}</span>
+								<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
+								<p v-if="item.detail && isExpanded(activeGroup.key, item)"
+									class="cn-related-objects-widget__detail">
+									{{ item.detail }}
+								</p>
+							</div>
 						</li>
 					</ul>
 				</section>
@@ -803,6 +816,21 @@ export default {
 			return this.visibleGroups.find((group) => group.key === this.activeKey) || this.visibleGroups[0]
 		},
 
+		/**
+		 * The owning-app link of each row in the active group, by index; ''
+		 * where the row routes through the host instead (related objects,
+		 * host-supplied sections, leaves without a page).
+		 *
+		 * @return {string[]}
+		 */
+		activeGroupHrefs() {
+			const group = this.activeGroup
+			if (!group || group.isExtra || group.key === 'objects') {
+				return []
+			}
+			return group.items.map((item) => this.resolveItemHref(group.key, item.raw || {}))
+		},
+
 		/** Leaf integrations that can carry related content (legacy list path). */
 		linkedApps() {
 			const omit = new Set([...CORE_TABS, ...this.excludeIntegrations])
@@ -1101,10 +1129,10 @@ export default {
 		},
 
 		/**
-		 * Handle a click in the tabbed path: deep-link to the item's owning
-		 * Nextcloud app when a link can be resolved, otherwise emit a
-		 * host-routed event. Related objects always route through the host
-		 * (their owning app's detail page).
+		 * Handle a click on a tabbed-path row that has no owning-app link
+		 * (rows with one render as a real `<a>`): emit a host-routed event.
+		 * Related objects always route through the host (their owning app's
+		 * detail page).
 		 *
 		 * @param {object} group - The active group descriptor.
 		 * @param {object} item - The clicked, normalised row (`item.raw` is the record).
@@ -1120,11 +1148,6 @@ export default {
 			}
 			if (group.key === 'objects') {
 				this.onSelectObject(item.raw)
-				return
-			}
-			const href = this.resolveItemHref(group.key, item.raw)
-			if (href) {
-				window.open(href, '_blank', 'noopener,noreferrer')
 				return
 			}
 			if (group.key === 'files') {
@@ -1719,6 +1742,8 @@ export default {
 	padding: calc(1.5 * var(--default-grid-baseline, 4px)) calc(2 * var(--default-grid-baseline, 4px));
 	cursor: pointer;
 	border-radius: var(--border-radius);
+	color: inherit;
+	text-decoration: none;
 }
 
 .cn-related-objects-widget__detail {

@@ -62,8 +62,24 @@
 			     `showRequestFeature` / `showReportBug` / `showDocumentation`
 			     exist only for the rare surface that must suppress one
 			     deliberately; they all default to true. -->
+			<!-- A real link whenever the form's URL is known, so it can be
+			     middle-clicked or copied; a button only for a host with no
+			     URL that handles @request-feature itself. -->
+			<NcActionLink
+				v-if="showRequestFeature && resolvedRequestFeatureUrl"
+				:href="resolvedRequestFeatureUrl"
+				target="_blank"
+				rel="noopener noreferrer"
+				:data-testid="`${testidBase}-action-request-feature`"
+				:closeAfterClick="true"
+				@click="onRequestFeatureClick">
+				<template #icon>
+					<LightbulbOutline :size="20" />
+				</template>
+				{{ requestFeatureLabel }}
+			</NcActionLink>
 			<NcActionButton
-				v-if="showRequestFeature"
+				v-else-if="showRequestFeature"
 				:data-testid="`${testidBase}-action-request-feature`"
 				:closeAfterClick="true"
 				@click="onRequestFeatureClick">
@@ -703,15 +719,16 @@ export default {
 		},
 
 		/**
-		 * Request-a-feature click — emits `@request-feature`, then runs the
-		 * built-in default (open the forge's feature-request issue form in a
-		 * new tab, exactly like Report a bug) unless a host called
-		 * `event.preventDefault()`. Warns and skips opening when no
-		 * `cnFeatureRequestRepo` inject can be resolved.
+		 * Request-a-feature click — emits `@request-feature`. The item is a
+		 * link to the forge's feature-request form, so the browser opens it
+		 * unless a host called `event.preventDefault()`, which then cancels
+		 * the link. With no `cnFeatureRequestRepo` the item is a button and
+		 * this only warns.
 		 *
+		 * @param {Event} [nativeEvent] The link's click event.
 		 * @return {void}
 		 */
-		onRequestFeatureClick() {
+		onRequestFeatureClick(nativeEvent) {
 			const ev = createSyntheticEvent()
 			/**
 			 * @event request-feature User clicked the Request a feature
@@ -722,14 +739,15 @@ export default {
 			 */
 			this.$emit('request-feature', { widgetId: this.widgetId, title: this.title }, ev)
 			if (ev.defaultPrevented) {
+				if (nativeEvent && typeof nativeEvent.preventDefault === 'function') {
+					nativeEvent.preventDefault()
+				}
 				return
 			}
 			if (!this.resolvedRequestFeatureUrl) {
 				// eslint-disable-next-line no-console
 				console.warn('[CnActionsMenu] Cannot open the feature-request form: missing cnFeatureRequestRepo inject (mount under CnAppRoot or bind a custom @request-feature listener).')
-				return
 			}
-			window.open(this.resolvedRequestFeatureUrl, '_blank', 'noopener,noreferrer')
 		},
 	},
 }

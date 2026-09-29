@@ -22,7 +22,7 @@
 
 ### Events
 
-| Name     | Payload | Description                                                                                                                                                             |
-| -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `close`  | —       | Emitted when the user dismisses the dialog (backdrop click, ESC, close icon). Pair with `useSupportDialog().hide` to also persist the dismissal.                        |
-| `action` | —       | Fired alongside the native `window.open` call on each CTA click. Useful for analytics or to short-circuit the default open-in-new-tab behaviour from a parent listener. |
+| Name     | Payload | Description                                                                                                                                                           |
+| -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `close`  | —       | Emitted when the user dismisses the dialog (backdrop click, ESC, close icon). Pair with `useSupportDialog().hide` to also persist the dismissal.                      |
+| `action` | —       | Fired on each CTA click, before the browser opens the link in a new tab. Useful for analytics; a listener that calls `event.preventDefault()` cancels the navigation. |
