@@ -62,6 +62,7 @@
 
 | Name                                        | Bindings                 | Description                                                                                                                                                                     |
 | ------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title-meta`                                | —                        | title-meta Content on the title's row, right of the title (e.g. a page-wide picker). Fill it from a manifest with `page.slots: { "title-meta": "&lt;RegistryName&gt;" }`.       |
 | `header-actions`                            | —                        | header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, launchpad, opencatalogi, pipelinq, procest). |
 | `actions`                                   | —                        | actions Back-compat alias for `#header-actions`. Prefer `#header-actions` in new code.                                                                                          |
 | `action-items`                              | —                        |                                                                                                                                                                                 |

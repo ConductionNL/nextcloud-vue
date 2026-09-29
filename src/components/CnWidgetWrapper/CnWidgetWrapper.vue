@@ -987,6 +987,15 @@ export default {
 	padding: 0;
 }
 
+/* A form or a search list keeps its padding, the reverse of the table rule
+   above. A dashboard renders every widget `flush`, and without this their
+   fields touch the card's edges. Borderless and chromeless cards, and the
+   Nextcloud dashboard variant, keep their own padding. */
+.cn-widget-wrapper--flush:not(.cn-widget-wrapper--borderless, .cn-widget-wrapper--nc-dashboard) > .cn-widget-wrapper__content:has(> .cn-form-widget),
+.cn-widget-wrapper--flush:not(.cn-widget-wrapper--borderless, .cn-widget-wrapper--nc-dashboard) > .cn-widget-wrapper__content:has(> .cn-kb-search-widget) {
+	padding: 16px;
+}
+
 /* `chromeless` — border and background are already gone through borderless,
    and the content padding through flush. What is left on the root is the
    corner radius, which still clips: with `overflow: hidden` above, a child

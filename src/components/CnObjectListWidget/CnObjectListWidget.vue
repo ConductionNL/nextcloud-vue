@@ -339,7 +339,7 @@ export default {
 		 * Host translate function provided by CnAppRoot as
 		 * `cnTranslate: this.translate` (bound to the host app's id). The
 		 * manifest-authored `content.emptyText` is run through it for this
-		 * component's OWN empty state. Defaults to an identity function so
+		 * component's OWN empty state, and so is `content.prompt`. Defaults to an identity function so
 		 * an untranslated key renders as itself.
 		 */
 		cnTranslate: { default: () => (key) => key },
@@ -534,7 +534,8 @@ export default {
 		 */
 		promptText() {
 			if (this.content.prompt) {
-				return this.content.prompt
+				const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+				return fn(this.content.prompt)
 			}
 			return this.objectCtx
 				? t('nextcloud-vue', 'Nothing here yet')

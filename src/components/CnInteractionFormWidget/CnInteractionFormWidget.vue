@@ -26,6 +26,7 @@
 				:labelField="clientLabelField"
 				:modelValue="form.client"
 				:inputLabel="clientLabel"
+				:preload="true"
 				@update:modelValue="onClientChange"
 				@create="onClientCreated" />
 		</template>
@@ -39,20 +40,21 @@ import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { useObjectStore } from '../../store/index.js'
 
 /**
- * CnInteractionFormWidget — the "active interaction" quick-log form that drives
- * the rest of a workspace page.
+ * CnInteractionFormWidget — the "active interaction" quick-log form of a
+ * workspace page.
  *
  * Persists a contactmoment (channel / client / subject / summary / outcome) to
- * OpenRegister via `useObjectStore().saveObject`, and — the reason it is a
- * workspace widget — WRITES two keys into the page-level workspace context:
- *  - `selectedClient` (the chosen/created client id), and
- *  - `activeSummary`  (the live summary text),
- * so sibling widgets react: a client-overview list filtered on
- * `@workspace.selectedClient` reveals that client's records, and a knowledge-base
- * widget bound to `activeSummary` searches the live conversation.
+ * OpenRegister via `useObjectStore().saveObject`. It takes part in the
+ * page-level workspace context in two ways:
+ *  - it WRITES `activeSummary` (the live summary text), so a knowledge-base
+ *    widget bound to it searches the live conversation, and
+ *  - it READS `selectedClient` (the page's client in focus, set by a page-level
+ *    picker) to pre-fill its Client field.
  *
- * The client picker is a `CnResourceSelect`, so typing a name that doesn't exist
- * yet offers "Create '<name>'" inline — no dead "no results" path.
+ * The Client field belongs to this submission only: changing it never changes
+ * the page's selected client, so the other widgets keep showing the client in
+ * focus. It is a `CnResourceSelect`, so typing a name that doesn't exist yet
+ * offers "Create '<name>'" inline — no dead "no results" path.
  *
  * Resolved by its registry type key `interaction-form`. All schema/field/enum
  * choices come from `content`, so the widget carries no app-specific vocabulary.
@@ -83,9 +85,8 @@ export default {
 	inject: {
 		/**
 		 * Page-level workspace context (reactive `ref({})`) from CnDashboardPage.
-		 * The widget writes `selectedClient` + `activeSummary` into it. Null on
-		 * pages that don't provide one (the form still saves; it just doesn't
-		 * drive sibling widgets).
+		 * The widget writes `activeSummary` into it and reads `selectedClient`
+		 * from it. Null on pages that don't provide one (the form still saves).
 		 */
 		cnWorkspaceContext: { default: null },
 	},
@@ -194,6 +195,12 @@ export default {
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
 
+		/** The page's client in focus, or an empty string. */
+		pageClient() {
+			const id = this.workspaceCtx && this.workspaceCtx.selectedClient
+			return id ? String(id) : ''
+		},
+
 		canRegister() {
 			return Boolean(this.form.subject && this.form.subject.trim() && this.form.channel)
 		},
@@ -227,6 +234,18 @@ export default {
 		},
 	},
 
+	watch: {
+		// A new page client pre-fills the field; the field stays editable.
+		pageClient: {
+			immediate: true,
+			handler(id) {
+				if (id) {
+					this.form.client = id
+				}
+			},
+		},
+	},
+
 	methods: {
 		/** The default channel value (first configured channel, else `telefoon`). */
 		firstChannel() {
@@ -252,20 +271,18 @@ export default {
 		},
 
 		/**
-		 * Selecting a client writes `selectedClient` into the workspace context so
-		 * client-bound sibling widgets reveal.
+		 * The submission's client. Deliberately not written to the workspace
+		 * context: the page's client in focus is chosen elsewhere.
 		 *
 		 * @param {string} id The selected client id.
 		 */
 		onClientChange(id) {
 			this.form.client = id || ''
-			this.writeWorkspace('selectedClient', this.form.client)
 		},
 
 		/**
-		 * A client created inline via "Create '<name>'" — select it (the
-		 * CnResourceSelect already emitted update:modelValue, but we also write
-		 * the workspace key here to be safe).
+		 * A client created inline via "Create '<name>'" — select it for this
+		 * submission.
 		 *
 		 * @param {object} client The created client object.
 		 */
@@ -273,7 +290,6 @@ export default {
 			const id = String((client && (client.id || (client['@self'] && client['@self'].id))) || '')
 			if (id) {
 				this.form.client = id
-				this.writeWorkspace('selectedClient', id)
 			}
 		},
 

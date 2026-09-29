@@ -14,9 +14,13 @@
 		<!-- Header -->
 		<div class="cn-dashboard-page__header" data-testid="cn-dashboard-page-header">
 			<div class="cn-dashboard-page__header-left">
-				<h2 v-if="title" class="cn-dashboard-page__title">
-					{{ resolvedTitle }}
-				</h2>
+				<div v-if="title || $slots['title-meta']" class="cn-dashboard-page__title-row">
+					<h2 v-if="title" class="cn-dashboard-page__title">
+						{{ resolvedTitle }}
+					</h2>
+					<!-- @slot title-meta Content on the title's row, right of the title (e.g. a page-wide picker). Fill it from a manifest with `page.slots: { "title-meta": "<RegistryName>" }`. -->
+					<slot name="title-meta" />
+				</div>
 				<p v-if="description" class="cn-dashboard-page__description">
 					{{ resolvedDescription }}
 				</p>
@@ -1441,8 +1445,8 @@ export default {
 		provide('cnDashboardDateRange', dashboardDateRange)
 
 		// Page-level WORKSPACE CONTEXT — a reactive bag of shared keys that
-		// widgets on this page both write (e.g. an interaction form sets
-		// `selectedClient` / `activeSummary`) and read (a client-overview list
+		// widgets on this page both write (e.g. a page-level client picker sets
+		// `selectedClient`, an interaction form `activeSummary`) and read (a client-overview list
 		// filters on `@workspace.selectedClient`; a knowledge-base widget reacts
 		// to `activeSummary`). Provided ALWAYS — like cnDashboardDateRange — so
 		// descendants can `inject('cnWorkspaceContext')` without a fallback dance;
@@ -3795,6 +3799,13 @@ export default {
 
 .cn-dashboard-page__header-left {
 	min-width: 0;
+}
+
+.cn-dashboard-page__title-row {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 12px;
 }
 
 .cn-dashboard-page__title {

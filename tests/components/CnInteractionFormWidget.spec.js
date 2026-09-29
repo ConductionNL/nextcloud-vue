@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: EUPL-1.2
  */
 import { shallowMount } from '@vue/test-utils'
+import { reactive } from 'vue'
 
 const mockStore = {
 	registerObjectType: jest.fn(),
@@ -36,11 +37,35 @@ describe('CnInteractionFormWidget', () => {
 		expect(w.vm.form.channel).toBe('email')
 	})
 
-	it('writes selectedClient into the workspace context on client change', () => {
-		const { w, holder } = mount()
+	it('lists clients in the picker before anything is typed', () => {
+		const w = shallowMount(CnInteractionFormWidget, {
+			propsData: { content: {} },
+			provide: { cnWorkspaceContext: { value: {} } },
+			stubs: { CnFormWidgetBase: false },
+		})
+		const picker = w.findComponent({ name: 'CnResourceSelect' })
+		expect(picker.exists()).toBe(true)
+		expect(picker.props('preload')).toBe(true)
+	})
+
+	it('keeps its client to the submission, leaving the page client alone', () => {
+		const { w, holder } = mount({}, { selectedClient: 'c-page' })
 		w.vm.onClientChange('c-7')
-		expect(holder.value.selectedClient).toBe('c-7')
 		expect(w.vm.form.client).toBe('c-7')
+		expect(holder.value.selectedClient).toBe('c-page')
+	})
+
+	it('pre-fills its client from the page client and follows it', async () => {
+		const holder = reactive({ value: { selectedClient: 'c-1' } })
+		const w = shallowMount(CnInteractionFormWidget, {
+			propsData: { content: {} },
+			provide: { cnWorkspaceContext: holder },
+		})
+		expect(w.vm.form.client).toBe('c-1')
+
+		holder.value = { selectedClient: 'c-2' }
+		await w.vm.$nextTick()
+		expect(w.vm.form.client).toBe('c-2')
 	})
 
 	it('streams the summary into the workspace context (activeSummary)', () => {
@@ -56,7 +81,7 @@ describe('CnInteractionFormWidget', () => {
 		const { w, holder } = mount()
 		w.vm.onClientCreated({ id: 'c-new', '@self': { id: 'c-new' } })
 		expect(w.vm.form.client).toBe('c-new')
-		expect(holder.value.selectedClient).toBe('c-new')
+		expect(holder.value.selectedClient).toBeUndefined()
 	})
 
 	it('requires a subject before saving', async () => {
@@ -112,10 +137,11 @@ describe('CnInteractionFormWidget', () => {
 			return { w, bag }
 		}
 
-		it('writes selectedClient onto a plain workspace object', () => {
-			const { w, bag } = mountPlain()
+		it('pre-fills from a plain workspace object and never writes selectedClient', () => {
+			const { w, bag } = mountPlain({ selectedClient: 'c-page' })
+			expect(w.vm.form.client).toBe('c-page')
 			w.vm.onClientChange('c-9')
-			expect(bag.selectedClient).toBe('c-9')
+			expect(bag.selectedClient).toBe('c-page')
 		})
 
 		it('streams activeSummary onto a plain workspace object', () => {
