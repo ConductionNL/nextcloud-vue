@@ -126,6 +126,30 @@ describe('CnDetailPage — bodyWidgets (in-body sections)', () => {
 		wrapper.unmount()
 	})
 
+	it('lets an injecting section show the object it saved through cnSectionContext.setObject', async () => {
+		let ctx = null
+		const Saver = {
+			name: 'Saver',
+			setup() {
+				ctx = inject('cnSectionContext', null)
+				return () => h('div', { class: 'saver' })
+			},
+		}
+		const store = makeFakeStore({ id: 'o1', name: 'Acme' })
+		const wrapper = mount(CnDetailPage, {
+			propsData: { register: 'r', schema: 's', objectId: 'o1', objectStore: store, bodyWidgets: [{ id: 's1', component: 'Saver' }] },
+			provide: { cnRegistry: { Saver: { kind: 'section', component: Saver } }, cnCustomComponents: {} },
+		})
+		await wrapper.vm.$nextTick()
+		store.fetchObject.mockClear()
+
+		ctx.value.setObject({ id: 'o1', name: 'Renamed' })
+
+		expect(store.objects['r-s'].o1).toEqual({ id: 'o1', name: 'Renamed' })
+		expect(store.fetchObject).not.toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
 	it('orders sections by placement (before-body → after-data → after-related → end)', () => {
 		const registry = {
 			A: { kind: 'section', component: { name: 'A', render: () => h('div', { class: 'sec-a' }) } },

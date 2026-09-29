@@ -2885,8 +2885,9 @@ export default {
 		 * (`@objectId` / `@object.<field>` / `@workspace.<key>`) AND provided on
 		 * `cnSectionContext` for host section components that inject. Mirrors the
 		 * `cnObjectContext` ref the abstract list/stat widgets already read.
+		 * `setObject(object)` shows an object a section saved without a re-fetch.
 		 *
-		 * @return {{objectId: (string|null), object: (object|null), register: string, schema: string}}
+		 * @return {{objectId: (string|null), object: (object|null), register: string, schema: string, setObject: function(object): void}}
 		 */
 		sectionContext() {
 			const resolved = this.resolvedSidebar || {}
@@ -2896,6 +2897,7 @@ export default {
 				register: resolved.register || this.register || this.sidebarProps?.register || '',
 				schema: resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || '',
 				config: this.cnAppConfigRef,
+				setObject: (object) => this.setCurrentObject(object),
 			}
 		},
 	},
@@ -3390,6 +3392,24 @@ export default {
 			 * @type {{ collection: object, row: object, index: number }}
 			 */
 			this.$emit('related-row-click', payload)
+		},
+
+		/**
+		 * Replace the page's object in the store cache, for a section that saved
+		 * it and holds the saved version.
+		 *
+		 * @param {object} object The saved object.
+		 */
+		setCurrentObject(object) {
+			const store = this.effectiveObjectStore
+			const type = this.resolvedObjectType
+			if (!store || !type || !this.objectId || !object) {
+				return
+			}
+			store.objects = {
+				...store.objects,
+				[type]: { ...(store.objects?.[type] || {}), [this.objectId]: object },
+			}
 		},
 
 		/**
