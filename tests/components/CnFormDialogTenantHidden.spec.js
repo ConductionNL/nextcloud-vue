@@ -8,7 +8,10 @@
  * a required "Tenant *" box, and the form refused to submit until a teacher
  * typed something into it. Tenant is set by the platform. The dialog now hides
  * the tenant property and fills it itself: the record's own value on edit,
- * else the active tenant context, else OpenRegister's active organisation.
+ * else the tenant context the app provides. Never OpenRegister's active
+ * organisation: learniq's tenant is the user's own `tenant_id` preference (or
+ * the instance id), and stamping the organisation UUID would make new records
+ * invisible next to the ones learniq wrote.
  */
 
 import { mount } from '@vue/test-utils'
@@ -17,7 +20,7 @@ import { defineComponent, h } from 'vue'
 jest.mock('@nextcloud/axios', () => ({
 	__esModule: true,
 	default: {
-		get: jest.fn(() => Promise.resolve({ data: { activeOrganisation: { uuid: 'org-active', name: 'Default Organisation' } } })),
+		get: jest.fn(() => Promise.resolve({ data: { activeOrganisation: { uuid: 'org-openregister', name: 'Default Organisation' } } })),
 		post: jest.fn(),
 	},
 }))
@@ -102,15 +105,22 @@ describe('CnFormDialog — tenant is never asked for', () => {
 		expect(axios.get).not.toHaveBeenCalled()
 	})
 
-	it('fills the tenant from OpenRegister\'s active organisation when the app provided no context', async () => {
+	it('leaves the tenant out when the app provided no context, and never asks OpenRegister for its active organisation', async () => {
 		const vm = mountDialog({ schema: workGroup, item: null })
 		await flushPromises()
-		expect(axios.get).toHaveBeenCalledWith('/apps/openregister/api/organisations/active')
-		expect(vm.buildSubmitPayload().tenant_id).toBe('org-active')
+		vm.updateField('name', 'Groep 3')
+		expect('tenant_id' in vm.buildSubmitPayload()).toBe(false)
+		expect(axios.get).not.toHaveBeenCalled()
 	})
 
-	it('does not write the looked-up tenant into the form, so no draft is saved for an untouched form', async () => {
-		const vm = mountDialog({ schema: workGroup, item: null })
+	it('also leaves it out when the provided context holds no tenant', async () => {
+		const vm = mountDialog({ schema: workGroup, item: null }, null)
+		await flushPromises()
+		expect('tenant_id' in vm.buildSubmitPayload()).toBe(false)
+	})
+
+	it('does not write the tenant into the form, so no draft is saved for an untouched form', async () => {
+		const vm = mountDialog({ schema: workGroup, item: null }, 'org-context')
 		await flushPromises()
 		expect(vm.formData.tenant_id === null || vm.formData.tenant_id === undefined).toBe(true)
 	})
@@ -122,22 +132,13 @@ describe('CnFormDialog — tenant is never asked for', () => {
 		expect(axios.get).not.toHaveBeenCalled()
 	})
 
-	it('leaves the tenant out of the payload, not blank, when nobody can say what it is', async () => {
-		axios.get.mockImplementationOnce(() => Promise.reject(new Error('404')))
-		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
-		const vm = mountDialog({ schema: workGroup, item: null })
-		await flushPromises()
-		expect('tenant_id' in vm.buildSubmitPayload()).toBe(false)
-		spy.mockRestore()
-	})
-
 	it('shows the tenant again when a fieldOverride says hidden: false', () => {
 		const vm = mountDialog({ schema: workGroup, item: null, fieldOverrides: { tenant_id: { hidden: false } } })
 		expect(vm.visibleFields.map((f) => f.key)).toContain('tenant_id')
 		expect(vm.tenantKeys).toEqual([])
 	})
 
-	it('never looks up a tenant for a schema without one', async () => {
+	it('makes no request for a schema without a tenant either', async () => {
 		mountDialog({ schema: { title: 'Note', properties: { title: { type: 'string' } } }, item: null })
 		await flushPromises()
 		expect(axios.get).not.toHaveBeenCalled()

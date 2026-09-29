@@ -523,13 +523,6 @@ const WIDE_WIDGETS = ['textarea', 'json', 'code']
 const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-implements'
 
 /**
- * OpenRegister's active-organisation endpoint: `{ activeOrganisation: { uuid, name, … } }`
- * for the signed-in user. CnFormDialog reads it to fill a hidden tenant
- * property when the app seeded no tenant context.
- */
-const ACTIVE_ORGANISATION_ENDPOINT = '/apps/openregister/api/organisations/active'
-
-/**
  * CnFormDialog — Create/edit dialog with auto-generated form from schema.
  *
  * When `item` is null, operates in create mode. When `item` is provided,
@@ -615,11 +608,12 @@ const ACTIVE_ORGANISATION_ENDPOINT = '/apps/openregister/api/organisations/activ
  * `fieldOverrides: { tenant_id: { hidden: false } }` shows it on one form.
  *
  * The hidden property is still sent. On edit it keeps the record's value. On
- * create it takes the active tenant from the shared tenant context, else the
- * organisation OpenRegister reports as active for the user
- * (`/api/organisations/active`, fetched once, only for a schema that has a
- * tenant property). When neither answers, the key is left out of the payload
- * rather than sent blank, so the server's own validation reports it.
+ * create it takes the active tenant from the tenant context the app provides
+ * (`CnAppRoot`'s `initialOrganisationUuid`, or `provideTenantContext`). There
+ * is no other source: an app's tenant is its own notion, not OpenRegister's
+ * active organisation. When the app provides none, the key is left out of the
+ * payload rather than sent blank, so the server's own default or validation
+ * handles it.
  *
  * ## JSON / code fields
  *
@@ -994,12 +988,6 @@ export default {
 			 * distinct URI, not per render.
 			 */
 			semanticResolutions: {},
-			/**
-			 * The organisation OpenRegister reported as active, fetched only
-			 * when the schema has a hidden tenant property and no tenant
-			 * context was provided. Applied in `buildSubmitPayload`.
-			 */
-			platformTenantUuid: null,
 			/** Field keys the user has actually edited this session (used to avoid re-validating untouched persisted server values) */
 			touchedFields: {},
 			/**
@@ -1312,8 +1300,7 @@ export default {
 		/**
 		 * The schema properties that hold the record's tenant, which the form
 		 * hides (see `isTenantProperty`) and fills itself: from the record
-		 * being edited, else the active tenant context, else OpenRegister's
-		 * active organisation. A key a `fieldOverrides[key].hidden === false`
+		 * being edited, else the tenant context the app provides. A key a `fieldOverrides[key].hidden === false`
 		 * brings back is a normal field again and is not listed here.
 		 *
 		 * @return {string[]} The hidden tenant property keys.
@@ -1850,7 +1837,6 @@ export default {
 			// already in `formData` at this point so the guard below
 			// is correct on both create and edit paths.
 			this._autofillTenant()
-			this._resolvePlatformTenant()
 			this.errors = {}
 			this.formError = null
 			this.jsonDrafts = {}
@@ -1955,59 +1941,21 @@ export default {
 
 		/**
 		 * The tenant a hidden tenant property (`tenantKeys`) takes when the
-		 * form holds no value for it: the active tenant from the shared tenant
-		 * context, else the organisation OpenRegister reported as active.
+		 * form holds no value for it: the active tenant from the tenant
+		 * context the app provides, and nothing else.
 		 *
-		 * @return {string|null} The tenant UUID, or null when nobody can say.
+		 * There is deliberately no fallback to OpenRegister's active
+		 * organisation. An app's tenant is its own notion (learniq resolves
+		 * it from the user's `tenant_id` preference, else the instance id),
+		 * and stamping another value would make new records invisible next
+		 * to the ones the app wrote itself.
+		 *
+		 * @return {string|null} The tenant UUID, or null when the app provided none.
 		 */
 		_platformTenant() {
 			const ctx = this._cnTenantContext
 			const fromContext = ctx && ctx.activeOrganisationUuid && ctx.activeOrganisationUuid.value
-			return fromContext || this.platformTenantUuid || null
-		},
-
-		/**
-		 * Look up the tenant for the hidden tenant properties, once per open.
-		 *
-		 * Only runs when the schema has a hidden tenant property that the form
-		 * holds no value for and the app seeded no tenant context. The answer
-		 * is kept aside and applied in `buildSubmitPayload`, NOT written into
-		 * `formData`: an asynchronous write there would look like typing and
-		 * save a draft of a form nobody touched.
-		 *
-		 * @return {Promise<void>}
-		 */
-		async _resolvePlatformTenant() {
-			const missing = this.tenantKeys.some((key) => this._isEmptyTenantValue(this.formData[key]))
-			if (!missing || this._platformTenant()) {
-				return
-			}
-			const uuid = await this._fetchActiveOrganisationUuid()
-			if (uuid) {
-				this.platformTenantUuid = uuid
-			}
-		},
-
-		/**
-		 * The UUID of the organisation OpenRegister reports as active for the
-		 * signed-in user, or null when it cannot say.
-		 *
-		 * @return {Promise<string|null>}
-		 */
-		async _fetchActiveOrganisationUuid() {
-			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
-				const res = await axios.get(generateUrl(ACTIVE_ORGANISATION_ENDPOINT))
-				const org = res && res.data && res.data.activeOrganisation
-				return (org && typeof org.uuid === 'string' && org.uuid !== '') ? org.uuid : null
-			} catch (err) {
-				// eslint-disable-next-line no-console
-				console.error('CnFormDialog: could not read the active organisation for the tenant field:', err)
-				return null
-			}
+			return fromContext || null
 		},
 
 		/**
