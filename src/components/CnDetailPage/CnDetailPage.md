@@ -408,3 +408,7 @@ The page header's overflow menu carries Refresh plus the mandatory trio Request 
 ## The record as a place
 
 `listNavigation`, `primaryAction` and `tabInAddress` make a record somewhere a handler stays. All three are off by default. See [the reference page](../../../docs/components/cn-detail-page.md#the-record-as-a-place).
+
+## Not found
+
+When the schema-driven fetch answers 404 the page shows a not-found state whose back button goes to `notFoundRoute` (default `null`, which means the app root `/`). `notFoundRouteLabel` names that page in the button's "Back to …" label.
