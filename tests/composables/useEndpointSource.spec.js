@@ -228,12 +228,43 @@ describe('fetchEndpointSource — caching + dedup', () => {
 	it('shares one forced request between the widgets of one refresh', async () => {
 		axios.get.mockResolvedValue({ data: { v: 1 } })
 		await fetchEndpointSource({ url: '/api/x' })
-		await Promise.all(Array.from({ length: 5 }, () => fetchEndpointSource({ url: '/api/x' }, undefined, { force: true })))
+		const refresh = {}
+		await Promise.all(Array.from({ length: 5 }, () => fetchEndpointSource({ url: '/api/x' }, undefined, { force: true, refresh })))
 		expect(axios.get).toHaveBeenCalledTimes(2)
 
 		// The next refresh, after that one settled, reads fresh again.
-		await fetchEndpointSource({ url: '/api/x' }, undefined, { force: true })
+		await fetchEndpointSource({ url: '/api/x' }, undefined, { force: true, refresh: {} })
 		expect(axios.get).toHaveBeenCalledTimes(3)
+	})
+
+	it('a later refresh does not join an earlier one still in flight', async () => {
+		axios.get.mockResolvedValue({ data: { v: 1 } })
+		await Promise.all([
+			fetchEndpointSource({ url: '/api/x' }, undefined, { force: true, refresh: {} }),
+			fetchEndpointSource({ url: '/api/x' }, undefined, { force: true, refresh: {} }),
+		])
+		expect(axios.get).toHaveBeenCalledTimes(2)
+	})
+
+	it('a fresh call joins an in-flight request but never a settled one', async () => {
+		axios.get.mockResolvedValue({ data: { v: 1 } })
+		await Promise.all([
+			fetchEndpointSource({ url: '/api/x' }, undefined, { fresh: true }),
+			fetchEndpointSource({ url: '/api/x' }, undefined, { fresh: true }),
+		])
+		expect(axios.get).toHaveBeenCalledTimes(1)
+
+		await fetchEndpointSource({ url: '/api/x' }, undefined, { fresh: true })
+		expect(axios.get).toHaveBeenCalledTimes(2)
+	})
+
+	it('a forced call without a refresh never joins an in-flight request', async () => {
+		axios.get.mockResolvedValue({ data: { v: 1 } })
+		await Promise.all([
+			fetchEndpointSource({ url: '/api/x' }, undefined, { force: true }),
+			fetchEndpointSource({ url: '/api/x' }, undefined, { force: true }),
+		])
+		expect(axios.get).toHaveBeenCalledTimes(2)
 	})
 
 	it('a forced call does not join a plain request still in flight', async () => {
