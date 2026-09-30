@@ -1359,10 +1359,9 @@ export default {
 		// bucket / group-by / aggregate REST paths) silently ignored it.
 		//
 		// It deliberately skips the endpoint half rather than calling refresh():
-		// the composable already force-refetches on this same channel, and a
-		// second forced fetch is a real duplicate request, not a no-op —
-		// `fetchSharedResponse()` DELETES the in-flight dedup entry when
-		// `force` is set, so two back-to-back forces cannot collapse into one.
+		// the composable already force-refetches on this same channel. A forced
+		// fetch joins an in-flight one only when both carry the same refresh
+		// payload, and refresh() carries none, so it would send a real duplicate.
 		this._onPageRefresh = (payload) => {
 			const done = this.refreshLocalSources()
 			payload?.waitUntil?.(done)

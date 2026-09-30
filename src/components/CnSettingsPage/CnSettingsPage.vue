@@ -229,11 +229,11 @@ import {
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import CnRegisterMapping from '../CnRegisterMapping/CnRegisterMapping.vue'
 import CnVersionInfoCard from '../CnVersionInfoCard/CnVersionInfoCard.vue'
+import { prefixUrl } from '../../utils/headers.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnSettingsCard } from '../CnSettingsCard/index.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
 import CnSettingsWidgetMount from './CnSettingsWidgetMount.js'
-import { prefixUrl } from '../../utils/headers.js'
 
 /**
  * Sentinel value used in the built-in widget registry to mark the

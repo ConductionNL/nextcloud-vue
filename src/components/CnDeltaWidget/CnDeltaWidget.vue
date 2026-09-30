@@ -47,7 +47,6 @@
 </template>
 
 <script>
-import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
@@ -60,6 +59,7 @@ import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
 
 // The canonical KPI card, shared with CnStatWidget and CnStatsBlock.
 // Imported here so the tile is styled even when the consuming app pulls in
