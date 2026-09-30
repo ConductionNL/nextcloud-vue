@@ -47,6 +47,12 @@ describe('CnEditPagesModal', () => {
 		expect(node.props('maxDepth')).toBe(1)
 	})
 
+	it('wires no navigate listener: page rows offer no "Go to page" control', () => {
+		const wrapper = mountModal({ pages: [{ id: 'a', route: '/a' }] })
+		const node = wrapper.findComponent(CnPageTreeNodeStub)
+		expect(node.vm.$attrs.onNavigate).toBeUndefined()
+	})
+
 	// "Done = save": the primary button persists via the injected editor before
 	// closing, so an in-app edit isn't silently left unsaved (manifestModalDoneMixin).
 	it('Done persists via the injected editor, then closes', async () => {

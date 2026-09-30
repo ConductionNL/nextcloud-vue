@@ -88,6 +88,7 @@
  * The Reports page: one surface listing an app's reports as cards.
  */
 import { translate as t } from '@nextcloud/l10n'
+import { followLinkClick } from '../../utils/linkNavigation.js'
 
 export default {
 	name: 'CnReportsPage',
@@ -416,19 +417,15 @@ export default {
 		},
 
 		/**
-		 * Navigate by route NAME.
+		 * Navigate by route NAME on a plain click; a modified or middle click
+		 * is left to the browser so it can open the card's href elsewhere.
 		 *
 		 * @param {object} card The card.
-		 * @param {Event} event The click.
+		 * @param {MouseEvent} event The click.
 		 * @return {void}
 		 */
 		open(card, event) {
-			if (!this.$router) {
-				return
-			}
-
-			event.preventDefault()
-			this.$router.push({ name: card.route })
+			followLinkClick(event, { name: card.route }, this.$router)
 		},
 	},
 }

@@ -20,7 +20,10 @@ import CnReportsPage from '../../src/components/CnReportsPage/CnReportsPage.vue'
  */
 function router(pushed) {
 	return {
-		push: (to) => pushed.push(to),
+		push: (to) => {
+			pushed.push(to)
+			return Promise.resolve()
+		},
 		resolve: ({ name }) => ({ href: `/resolved/${name}` }),
 	}
 }
@@ -98,6 +101,32 @@ describe('CnReportsPage', () => {
 		await wrapper.findAll('[data-testid="cn-report-card"]')[0].trigger('click')
 
 		expect(pushed).toEqual([{ name: 'Doorlooptijd' }])
+	})
+
+	it.each([
+		['ctrl', { ctrlKey: true }],
+		['cmd', { metaKey: true }],
+		['shift', { shiftKey: true }],
+	])('leaves a %s-click to the browser instead of routing in-app', async (_label, modifiers) => {
+		const pushed = []
+		const wrapper = mountPage(CARDS, pushed)
+		const card = wrapper.findAll('[data-testid="cn-report-card"]')[0]
+		const event = new MouseEvent('click', { bubbles: true, cancelable: true, ...modifiers })
+
+		card.element.dispatchEvent(event)
+
+		expect(pushed).toEqual([])
+		expect(event.defaultPrevented).toBe(false)
+	})
+
+	it('prevents the default navigation on a plain click it routes', () => {
+		const wrapper = mountPage(CARDS)
+		const card = wrapper.findAll('[data-testid="cn-report-card"]')[0]
+		const event = new MouseEvent('click', { bubbles: true, cancelable: true })
+
+		card.element.dispatchEvent(event)
+
+		expect(event.defaultPrevented).toBe(true)
 	})
 
 	it('renders each card as a real link', () => {
