@@ -13,7 +13,8 @@
 		:showEditAction="false"
 		:actions="rowActions"
 		rowClickToView
-		@rowClick="openFlow">
+		@rowClick="openFlow"
+		@rowAuxClick="openFlow">
 		<template #header-actions>
 			<NcButton variant="primary" :to="newFlowRoute">
 				<template #icon>

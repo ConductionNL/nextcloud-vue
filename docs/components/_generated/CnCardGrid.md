@@ -15,10 +15,11 @@
 
 ### Events
 
-| Name     | Payload     | Description |
-| -------- | ----------- | ----------- |
-| `click`  | `undefined` |             |
-| `select` | —           |             |
+| Name        | Payload     | Description                                                                                                                                                                        |
+| ----------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `click`     | `undefined` |                                                                                                                                                                                    |
+| `select`    | —           |                                                                                                                                                                                    |
+| `aux-click` | `undefined` | Emitted when a navigating card is middle-clicked, for opening it in a new tab (see `openRowTarget`). Payload: `(object, event)` — the card's object and the native auxclick event. |
 
 ### Slots
 

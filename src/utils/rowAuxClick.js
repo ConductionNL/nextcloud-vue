@@ -54,6 +54,21 @@ export function isRowMiddleClick(event) {
 }
 
 /**
+ * Cancel a middle-button press on a clickable row or card body, so the
+ * browser does not start autoscroll (Chrome/Edge on Windows) instead of the
+ * middle click opening the row. A press on a nested control, a link
+ * included, keeps its default.
+ *
+ * @param {MouseEvent} event The mousedown event.
+ * @return {void}
+ */
+export function preventMiddleClickAutoscroll(event) {
+	if (event && event.button === 1 && !isFromNestedControl(event) && typeof event.preventDefault === 'function') {
+		event.preventDefault()
+	}
+}
+
+/**
  * Whether `openRowTarget` would open this click in a new tab.
  *
  * @param {MouseEvent|KeyboardEvent|null|undefined} event The click event.

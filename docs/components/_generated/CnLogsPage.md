@@ -28,10 +28,11 @@
 
 ### Events
 
-| Name        | Payload     | Description                                                                                                                              |
-| ----------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `action`    | —           |                                                                                                                                          |
-| `row-click` | `undefined` | Emitted when a log row's body is clicked or middle-clicked. Payload: `(row, event)` — the log entry and the native click/auxclick event. |
+| Name            | Payload     | Description                                                                                                             |
+| --------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `action`        | —           |                                                                                                                         |
+| `row-click`     | `undefined` | Emitted when a log row's body is clicked. Payload: `(row, event)` — the log entry and the native click event.           |
+| `row-aux-click` | `undefined` | Emitted when a log row's body is middle-clicked. Payload: `(row, event)` — the log entry and the native auxclick event. |
 
 ### Slots
 

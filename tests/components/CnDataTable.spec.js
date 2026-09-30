@@ -242,12 +242,21 @@ describe('CnDataTable — a clickable row behaves like a link', () => {
 		expect($router.push).not.toHaveBeenCalled()
 	})
 
-	it('opens the row in a new tab on a middle click (auxclick) and emits row-click', async () => {
+	it('opens the row in a new tab on a middle click (auxclick) and emits row-aux-click, not row-click', async () => {
 		const { wrapper, $router } = mountLinked()
 		await wrapper.findAll('.cn-table-row').at(0).trigger('auxclick', { button: 1 })
 		expect(openSpy).toHaveBeenCalledWith('/apps/x/#/items/a', '_blank', 'noopener,noreferrer')
 		expect($router.push).not.toHaveBeenCalled()
-		expect(wrapper.emitted('row-click')[0][1].button).toBe(1)
+		expect(wrapper.emitted('row-aux-click')[0][1].button).toBe(1)
+		// A host whose row-click listener navigates must not hear a middle click.
+		expect(wrapper.emitted('row-click')).toBeFalsy()
+	})
+
+	it('cancels a middle press on a clickable row so the browser does not autoscroll', async () => {
+		const { wrapper } = mountLinked()
+		const event = new MouseEvent('mousedown', { button: 1, cancelable: true, bubbles: true })
+		wrapper.findAll('.cn-table-row').at(0).element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(true)
 	})
 
 	it('ignores a right-button auxclick and keeps the context menu', async () => {

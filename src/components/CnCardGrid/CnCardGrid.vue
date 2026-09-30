@@ -149,7 +149,7 @@ export default {
 		},
 	},
 
-	emits: ['click', 'select'],
+	emits: ['click', 'select', 'aux-click'],
 
 	computed: {
 		/**
@@ -184,6 +184,14 @@ export default {
 			const listeners = { select: () => this.toggleSelect(object) }
 			if (!this.selectable || this.clickToView) {
 				listeners.click = (_card, event) => this.$emit('click', object, event)
+				// A middle click, kept off `click` so a navigating listener stays put.
+				listeners['aux-click'] = (_card, event) => {
+					/**
+					 * @event aux-click Emitted when a navigating card is middle-clicked, for opening it in a new tab (see `openRowTarget`). Payload: `(object, event)` — the card's object and the native auxclick event.
+					 * @type {object} The card's object.
+					 */
+					this.$emit('aux-click', object, event)
+				}
 			}
 			return listeners
 		},

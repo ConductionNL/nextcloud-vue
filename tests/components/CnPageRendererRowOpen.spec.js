@@ -333,6 +333,15 @@ describe('CnPageRenderer.onRowOpen opens a new tab like a link', () => {
 		return { wrapper, push }
 	}
 
+	it('opens the detail page in a new tab when the index page emits row-aux-click', async () => {
+		const { wrapper, push } = mountResolving()
+		const event = new MouseEvent('auxclick', { button: 1, cancelable: true })
+		wrapper.findComponent({ name: 'StubPage' }).vm.$emit('row-aux-click', { id: 'abc-123' }, event)
+		await wrapper.vm.$nextTick()
+		expect(openSpy).toHaveBeenCalledWith('/apps/decidesk/meetings/abc-123', '_blank', 'noopener,noreferrer')
+		expect(push).not.toHaveBeenCalled()
+	})
+
 	it('opens the detail page in a new tab on a ctrl-click', () => {
 		const { wrapper, push } = mountResolving()
 		wrapper.vm.onRowOpen({ id: 'abc-123' }, new MouseEvent('click', { ctrlKey: true }))

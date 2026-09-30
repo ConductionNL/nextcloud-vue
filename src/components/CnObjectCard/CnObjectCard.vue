@@ -2,7 +2,7 @@
 	<div
 		class="cn-object-card"
 		:class="{ 'cn-object-card--selected': selected }"
-		@mousedown="onPointerDown"
+		@mousedown="onCardMouseDown"
 		@click="onCardClick($event)"
 		@auxclick="onCardAuxClick($event)">
 		<!-- Selection checkbox -->
@@ -76,7 +76,7 @@
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
-import { isRowMiddleClick } from '../../utils/rowAuxClick.js'
+import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { formatValue } from '../../utils/schema.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { CnLockIndicator } from '../CnLockIndicator/index.js'
@@ -161,7 +161,7 @@ export default {
 		},
 	},
 
-	emits: ['click', 'select'],
+	emits: ['click', 'select', 'aux-click'],
 
 	setup() {
 		// Tell a deliberate card click apart from a text-selection drag.
@@ -287,14 +287,28 @@ export default {
 				return
 			}
 			/**
-			 * @event click Emitted when a non-selectable (or `clickToView`) card is clicked or middle-clicked. Payload: `(object, event)` — the card's object and the native click/auxclick event, for opening it in a new tab on a ctrl/cmd/shift or middle click. Selectable cards emit `select`; they also emit `click` (deprecated) when a `click` listener is present, so migrate selectable consumers to `@select`.
+			 * @event click Emitted when a non-selectable (or `clickToView`) card is clicked. Payload: `(object, event)` — the card's object and the native click event, for opening it in a new tab on a ctrl/cmd/shift click. A middle click emits `aux-click` instead. Selectable cards emit `select`; they also emit `click` (deprecated) when a `click` listener is present, so migrate selectable consumers to `@select`.
 			 * @type {object} The card's object.
 			 */
 			this.$emit('click', this.object, event)
 		},
 
 		/**
-		 * Card-body middle click: emits `click` like a navigating click.
+		 * Card mousedown: record the press for the drag guard, and on a card a
+		 * middle click opens, keep the browser from starting autoscroll.
+		 *
+		 * @param {MouseEvent} event The mousedown event.
+		 */
+		onCardMouseDown(event) {
+			this.onPointerDown(event)
+			if (!this.selectable || this.clickToView) {
+				preventMiddleClickAutoscroll(event)
+			}
+		},
+
+		/**
+		 * Card-body middle click: emits `aux-click`, not `click`, so an existing
+		 * `click` listener that navigates never moves the current tab away.
 		 * Ignored on a select-on-click card, on nested controls and on drags.
 		 *
 		 * @param {MouseEvent} event The auxclick event.
@@ -306,7 +320,11 @@ export default {
 			if (this.selectable && !this.clickToView) {
 				return
 			}
-			this.$emit('click', this.object, event)
+			/**
+			 * @event aux-click Emitted when a non-selectable (or `clickToView`) card is middle-clicked, for opening it in a new tab (see `openRowTarget`). Payload: `(object, event)` — the card's object and the native auxclick event.
+			 * @type {object} The card's object.
+			 */
+			this.$emit('aux-click', this.object, event)
 		},
 	},
 }

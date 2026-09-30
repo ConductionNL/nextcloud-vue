@@ -141,7 +141,7 @@
 							isSelected(row) ? 'cn-table-row--selected' : '',
 							rowClass ? rowClass(row) : '',
 						]"
-						@mousedown="onPointerDown"
+						@mousedown="onRowMouseDown"
 						@click="onRowClick(row, $event)"
 						@auxclick="onRowAuxClick(row, $event)"
 						@contextmenu.prevent="onRowContextMenu(row, $event)">
@@ -276,7 +276,7 @@ import { NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
-import { isNewTabHandled, isRowMiddleClick, markNewTabHandled } from '../../utils/rowAuxClick.js'
+import { isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP, resolveRowIndicators } from '../../utils/rowIndicators.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
@@ -717,7 +717,7 @@ export default {
 		},
 	},
 
-	emits: ['row-click', 'row-context-menu', 'select', 'select-all', 'sort', 'view-all'],
+	emits: ['row-click', 'row-aux-click', 'row-context-menu', 'select', 'select-all', 'sort', 'view-all'],
 
 	setup() {
 		// Tell a deliberate row click apart from a text-selection drag.
@@ -1343,9 +1343,23 @@ export default {
 		},
 
 		/**
-		 * Row-body middle click: emits `row-click` like a click, so the host
-		 * (or `rowClickRoute`) can open the row in a new tab. Ignored for other
-		 * buttons, nested controls, drags and select-on-click tables.
+		 * Row mousedown: record the press for the drag guard, and on a row a
+		 * middle click opens, keep the browser from starting autoscroll.
+		 *
+		 * @param {MouseEvent} event The mousedown event.
+		 */
+		onRowMouseDown(event) {
+			this.onPointerDown(event)
+			if (!this.selectable || this.rowClickToView) {
+				preventMiddleClickAutoscroll(event)
+			}
+		},
+
+		/**
+		 * Row-body middle click: emits `row-aux-click`, not `row-click`, so an
+		 * existing `row-click` listener that navigates never moves the current
+		 * tab away; `rowClickRoute` still opens the row in a new tab. Ignored
+		 * for other buttons, nested controls, drags and select-on-click tables.
 		 *
 		 * @param {object} row The clicked row object
 		 * @param {MouseEvent} event The originating auxclick event.
@@ -1357,23 +1371,39 @@ export default {
 			if (this.selectable && !this.rowClickToView) {
 				return
 			}
-			this.emitRowClick(row, event)
+			/**
+			 * @event row-aux-click Emitted on a row-body middle click, under the same conditions as `row-click`, so a host can open the row in a new tab (see `openRowTarget`). Payload: `(row, event)` — the clicked row object and the native auxclick event.
+			 * @type {object} The clicked row object.
+			 */
+			this.$emit('row-aux-click', row, event)
+			this.followRowClickRoute(row, event)
 		},
 
 		/**
 		 * Emit `row-click` and follow `rowClickRoute` when set.
 		 *
 		 * @param {object} row The clicked row object
-		 * @param {MouseEvent} [event] The originating click or auxclick event.
+		 * @param {MouseEvent} [event] The originating click event.
 		 */
 		emitRowClick(row, event) {
 			/**
-			 * @event row-click Emitted on a row-body click for navigation, and on a middle click (auxclick). Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox column). Payload: `(row, event)` — the clicked row object and the native click/auxclick event, so a host can open the row in a new tab on a ctrl/cmd/shift or middle click (see `openRowTarget`).
+			 * @event row-click Emitted on a row-body click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox column). Payload: `(row, event)` — the clicked row object and the native click event, so a host can open the row in a new tab on a ctrl/cmd/shift click (see `openRowTarget`). A middle click emits `row-aux-click` instead.
 			 * @type {object} The clicked row object.
 			 */
 			this.$emit('row-click', row, event)
-			// A ctrl/cmd/shift or middle click opens the route in a new tab,
-			// unless a row-click listener already did.
+			this.followRowClickRoute(row, event)
+		},
+
+		/**
+		 * Follow `rowClickRoute` for a row click: in place, or in a new tab on
+		 * a ctrl/cmd/shift or middle click.
+		 *
+		 * @param {object} row The clicked row object
+		 * @param {MouseEvent} [event] The originating click or auxclick event.
+		 */
+		followRowClickRoute(row, event) {
+			// A new-tab click opens the route in a new tab, unless a listener
+			// already did.
 			if (this.rowClickRoute && this.$router && !isNewTabHandled(event)) {
 				const route = this.rowClickRoute(row)
 				if (route) {

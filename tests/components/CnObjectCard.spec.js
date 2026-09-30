@@ -97,12 +97,13 @@ describe('CnObjectCard — body click', () => {
 })
 
 describe('CnObjectCard — middle click', () => {
-	it('emits click with the auxclick event on a middle click', async () => {
+	it('emits aux-click with the auxclick event on a middle click, not click', async () => {
 		const wrapper = mountCard({ selectable: false })
 		await wrapper.find('.cn-object-card').trigger('auxclick', { button: 1 })
-		expect(wrapper.emitted('click')).toHaveLength(1)
-		expect(wrapper.emitted('click')[0][0]).toEqual(object)
-		expect(wrapper.emitted('click')[0][1].button).toBe(1)
+		expect(wrapper.emitted('aux-click')).toHaveLength(1)
+		expect(wrapper.emitted('aux-click')[0][0]).toEqual(object)
+		expect(wrapper.emitted('aux-click')[0][1].button).toBe(1)
+		expect(wrapper.emitted('click')).toBeFalsy()
 	})
 
 	it('ignores a right-button auxclick', async () => {

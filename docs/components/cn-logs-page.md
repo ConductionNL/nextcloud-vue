@@ -55,7 +55,8 @@ Mounted automatically by `CnPageRenderer` when a manifest page declares `type: "
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `row-click` | `(row, event)` | A log row's body was clicked or middle-clicked; the second argument is the native click/auxclick event. With `rowRoute`, a ctrl/cmd/shift or middle click opens the page in a new tab. Fires whether or not `rowDetail` opened the dialog, so a host can navigate instead of (or as well as) showing it |
+| `row-click` | `(row, event)` | A log row's body was clicked; the second argument is the native click event. With `rowRoute`, a ctrl/cmd/shift click opens the page in a new tab. Fires whether or not `rowDetail` opened the dialog, so a host can navigate instead of (or as well as) showing it. A middle click emits `row-aux-click` instead |
+| `row-aux-click` | `(row, event)` | A log row's body was middle-clicked; the second argument is the native auxclick event. With `rowRoute` the page opens in a new tab; the detail dialog never opens |
 | `action` | — | Declared for hosts dispatching row actions through the `#row-actions` slot. Never emitted by this component itself; kept in the surface because consumers may already listen for it |
 
 A `refresh()` method is also exposed for `actionsComponent` implementations to call.

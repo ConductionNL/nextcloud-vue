@@ -34,7 +34,8 @@ Responsive CSS grid layout for CnObjectCard instances. Auto-fills with `minmax(3
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `click` | `(object, event)` | Card clicked or middle-clicked. The second argument is the native click/auxclick event, for opening the card in a new tab on a ctrl/cmd/shift or middle click. |
+| `click` | `(object, event)` | Card clicked. The second argument is the native click event, for opening the card in a new tab on a ctrl/cmd/shift click. A middle click emits `aux-click` instead. |
+| `aux-click` | `(object, event)` | Card middle-clicked, under the same conditions as `click`. The second argument is the native auxclick event, for opening the card in a new tab. |
 | `select` | `ids[]` | Selection changed |
 
 ## Slots

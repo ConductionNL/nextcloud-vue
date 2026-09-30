@@ -31,6 +31,7 @@
 					class="cn-tasks-widget__row"
 					:data-state="task.state"
 					@click="onRowClick(task, $event)"
+					@mousedown="preventMiddleClickAutoscroll"
 					@auxclick="onRowAuxClick(task, $event)">
 					<span class="cn-tasks-widget__body">
 						<span class="cn-tasks-widget__name">{{ titleOf(task) }}</span>
@@ -90,7 +91,7 @@ import { inject, ref } from 'vue'
 import { taskDeepLink, taskDueLabel } from '../../composables/indexSources.js'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
-import { isRowMiddleClick } from '../../utils/rowAuxClick.js'
+import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 
 /**
  * The OpenRegister inbox read (openregister flow-task-entity). One endpoint
@@ -367,6 +368,8 @@ export default {
 	},
 
 	methods: {
+		preventMiddleClickAutoscroll,
+
 		/**
 		 * Start (or restart) the refetch interval, unless polling is off.
 		 *

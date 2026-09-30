@@ -43,7 +43,8 @@ The schema's `configuration` object controls card layout:
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `click` | `(object, event)` | Card clicked, or middle-clicked (`auxclick`). The second argument is the native event, for opening the card in a new tab on a ctrl/cmd/shift or middle click. When `selectable` is `false` this is the primary navigation event. When `selectable` is `true` a deliberate click emits `select` (a text-selection drag is not treated as a click); for backwards compatibility `click` is **also** emitted (with a `console.warn` deprecation notice) if a `@click` listener is present — migrate selectable consumers to `@select`. |
+| `aux-click` | `(object, event)` | Card middle-clicked (`auxclick`), under the same conditions as a navigating `click`. The second argument is the native event, for opening the card in a new tab. |
+| `click` | `(object, event)` | Card clicked. The second argument is the native event, for opening the card in a new tab on a ctrl/cmd/shift click; a middle click emits `aux-click` instead. When `selectable` is `false` this is the primary navigation event. When `selectable` is `true` a deliberate click emits `select` (a text-selection drag is not treated as a click); for backwards compatibility `click` is **also** emitted (with a `console.warn` deprecation notice) if a `@click` listener is present — migrate selectable consumers to `@select`. |
 | `select` | `object` | Selection toggled — emitted by the checkbox, and (when `selectable`) by a deliberate click anywhere on the card body. |
 
 ## Slots

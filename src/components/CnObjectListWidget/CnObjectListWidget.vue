@@ -152,6 +152,7 @@
 						:sortOrder="localSort.dir || 'asc'"
 						borderless
 						@rowClick="onRowClick"
+						@rowAuxClick="onRowAuxClick"
 						@select="onSelect"
 						@sort="onSort">
 						<template v-if="mappedRowActions.length > 0" #row-actions="{ row }">
@@ -172,6 +173,7 @@
 					:sortOrder="localSort.dir || 'asc'"
 					borderless
 					@rowClick="onRowClick"
+					@rowAuxClick="onRowAuxClick"
 					@select="onSelect"
 					@sort="onSort">
 					<!-- Declarative per-row actions (`content.rowActions`).
@@ -421,7 +423,7 @@ export default {
 		},
 	},
 
-	emits: ['created', 'row-click', 'view-all', 'files-dropped'],
+	emits: ['created', 'row-click', 'row-aux-click', 'view-all', 'files-dropped'],
 
 	data() {
 		return {
@@ -1414,27 +1416,58 @@ export default {
 
 		/**
 		 * Navigate to a configured detail route on row click (when `rowRoute`
-		 * is set and a router is available); a ctrl/cmd/shift or middle click
-		 * opens it in a new tab.
+		 * is set and a router is available); a ctrl/cmd/shift click opens it
+		 * in a new tab.
 		 *
 		 * @param {object} row The clicked object row.
-		 * @param {MouseEvent} [event] The originating click/auxclick event.
+		 * @param {MouseEvent} [event] The originating click event.
 		 * @return {void}
 		 */
 		onRowClick(row, event) {
+			this.openRowRoute(row, event)
+			/**
+			 * @event row-click Emitted with the clicked object (for hosts that
+			 * want to handle navigation themselves). Payload: `(row, event)`, the
+			 * second being the native click event. A middle click emits
+			 * `row-aux-click` instead.
+			 * @type {object}
+			 */
+			this.$emit('row-click', row, event)
+		},
+
+		/**
+		 * A row middle click: opens the configured detail route in a new tab
+		 * and emits `row-aux-click`, not `row-click`.
+		 *
+		 * @param {object} row The clicked object row.
+		 * @param {MouseEvent} event The originating auxclick event.
+		 * @return {void}
+		 */
+		onRowAuxClick(row, event) {
+			this.openRowRoute(row, event)
+			/**
+			 * @event row-aux-click Emitted with the middle-clicked object, for
+			 * opening it in a new tab. Payload: `(row, event)`, the second being
+			 * the native auxclick event.
+			 * @type {object}
+			 */
+			this.$emit('row-aux-click', row, event)
+		},
+
+		/**
+		 * Open `content.rowRoute` for a row: in place, or in a new tab on a
+		 * ctrl/cmd/shift or middle click.
+		 *
+		 * @param {object} row The clicked object row.
+		 * @param {MouseEvent} [event] The originating event.
+		 * @return {void}
+		 */
+		openRowRoute(row, event) {
 			const route = this.content.rowRoute
 			const id = row && (row.id || (row['@self'] && row['@self'].id))
 			if (route && id && this.$router) {
 				markNewTabHandled(event, openRowTarget(event, { name: route, params: { id } }, this.$router))
 			}
-			/**
-			 * @event row-click Emitted with the clicked object (for hosts that
-			 * want to handle navigation themselves), on a click or middle click.
-			 * Payload: `(row, event)`, the second being the native click/auxclick
-			 * event.
-			 * @type {object}
-			 */
-			this.$emit('row-click', row, event)
 		},
 
 		/**
