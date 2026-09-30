@@ -24,7 +24,11 @@
 				</template>
 				{{ linkExistingLabel }}
 			</NcButton>
-			<NcButton variant="primary" @click="openComposeInMail">
+			<NcButton
+				variant="primary"
+				:href="composeUrl"
+				target="_blank"
+				rel="noopener noreferrer">
 				<template #icon>
 					<EmailEditOutline :size="18" />
 				</template>
@@ -45,34 +49,38 @@
 			<li
 				v-for="row in rows"
 				:key="row.id"
-				class="cn-email-tab__row"
-				:class="{ 'cn-email-tab__row--unread': row.unread }"
-				@click="openInMail(row.message)">
-				<span class="cn-email-tab__unread-dot" :class="{ 'is-shown': row.unread }" />
-				<NcAvatar
-					class="cn-email-tab__avatar"
-					:size="36"
-					:displayName="row.avatarName"
-					:user="row.avatarUser"
-					:isNoUser="true" />
-				<div class="cn-email-tab__body">
-					<div class="cn-email-tab__line">
-						<span class="cn-email-tab__subject" :title="row.subject">{{ row.subject }}</span>
-						<span class="cn-email-tab__date">
-							<NcDateTime
-								v-if="row.dateValid"
-								:timestamp="row.dateMs"
-								relativeTime="short" />
-							<template v-else>{{ row.dateRaw }}</template>
-						</span>
+				class="cn-email-tab__item">
+				<component
+					:is="row.href ? 'a' : 'div'"
+					class="cn-email-tab__row"
+					:class="{ 'cn-email-tab__row--unread': row.unread }"
+					v-bind="row.href ? { href: row.href, target: '_blank', rel: 'noopener noreferrer' } : {}">
+					<span class="cn-email-tab__unread-dot" :class="{ 'is-shown': row.unread }" />
+					<NcAvatar
+						class="cn-email-tab__avatar"
+						:size="36"
+						:displayName="row.avatarName"
+						:user="row.avatarUser"
+						:isNoUser="true" />
+					<div class="cn-email-tab__body">
+						<div class="cn-email-tab__line">
+							<span class="cn-email-tab__subject" :title="row.subject">{{ row.subject }}</span>
+							<span class="cn-email-tab__date">
+								<NcDateTime
+									v-if="row.dateValid"
+									:timestamp="row.dateMs"
+									relativeTime="short" />
+								<template v-else>{{ row.dateRaw }}</template>
+							</span>
+						</div>
+						<div class="cn-email-tab__sender" :title="row.sender">
+							{{ row.sender }}
+						</div>
+						<div v-if="row.snippet" class="cn-email-tab__snippet" :title="row.snippet">
+							{{ row.snippet }}
+						</div>
 					</div>
-					<div class="cn-email-tab__sender" :title="row.sender">
-						{{ row.sender }}
-					</div>
-					<div v-if="row.snippet" class="cn-email-tab__snippet" :title="row.snippet">
-						{{ row.snippet }}
-					</div>
-				</div>
+				</component>
 			</li>
 		</ul>
 		<NcButton
@@ -214,8 +222,26 @@ export default {
 					dateRaw: String(dateRaw),
 					avatarName: sender,
 					avatarUser: this.senderEmail(message),
+					href: this.threadUrl(message),
 				}
 			})
+		},
+
+		/**
+		 * Deep-link into NC Mail's new-message composer.
+		 *
+		 * AD-2 (Mail owns compose / OR owns the link): we do NOT
+		 * implement an in-app composer. "Compose in Mail" opens NC Mail
+		 * in a new tab with the new-message view; once the user has
+		 * sent, they return to OR and link the sent message via the
+		 * picker.
+		 *
+		 * @return {string} The composer URL.
+		 */
+		composeUrl() {
+			return (typeof OC !== 'undefined' && typeof OC.generateUrl === 'function')
+				? OC.generateUrl('/apps/mail/box/draft')
+				: `${this.mailAppPath}/box/draft`
 		},
 	},
 
@@ -372,42 +398,20 @@ export default {
 			return raw
 		},
 
-		openInMail(message) {
+		// Thread deep-link into NC Mail; undefined when the row lacks ids.
+		threadUrl(message) {
 			const accountId = message.mailAccountId
 			const messageId = message.mailMessageId
 			if (accountId === undefined || accountId === null || messageId === undefined || messageId === null) {
-				return
+				return undefined
 			}
-			const base = (typeof OC !== 'undefined' && typeof OC.generateUrl === 'function')
+			return (typeof OC !== 'undefined' && typeof OC.generateUrl === 'function')
 				? OC.generateUrl(`/apps/mail/box/${accountId}/thread/${messageId}`)
 				: `/index.php/apps/mail/box/${accountId}/thread/${messageId}`
-			if (typeof window !== 'undefined' && window.location) {
-				window.open(base, '_blank', 'noopener')
-			}
 		},
 
 		openPicker() {
 			this.pickerOpen = true
-		},
-
-		/**
-		 * Deep-link into NC Mail's new-message composer.
-		 *
-		 * AD-2 (Mail owns compose / OR owns the link): we do NOT
-		 * implement an in-app composer. Clicking "Compose in Mail"
-		 * opens NC Mail in a new tab with the new-message view; once
-		 * the user has sent, they return to OR and link the sent
-		 * message via the picker.
-		 *
-		 * @return {void}
-		 */
-		openComposeInMail() {
-			const composeUrl = (typeof OC !== 'undefined' && typeof OC.generateUrl === 'function')
-				? OC.generateUrl('/apps/mail/box/draft')
-				: `${this.mailAppPath}/box/draft`
-			if (typeof window !== 'undefined') {
-				window.open(composeUrl, '_blank', 'noopener')
-			}
 		},
 
 		async onLinkPick(payload) {
@@ -491,6 +495,8 @@ export default {
 	gap: 10px;
 	padding: 8px 6px;
 	border-radius: var(--border-radius-large, 8px);
+	color: inherit;
+	text-decoration: none;
 	cursor: pointer;
 	position: relative;
 }

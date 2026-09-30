@@ -73,6 +73,25 @@ describe('CnBookmarksTab', () => {
 		// The URL subline drops the scheme + trailing slash, NC-Bookmarks style.
 		expect(wrapper.text()).toContain('alpha.test')
 		expect(wrapper.text()).toContain('first ref')
+		const openLink = rows.at(0).find('.stub.NcActionLink')
+		expect(openLink.attributes('href')).toBe('https://alpha.test/')
+		expect(openLink.attributes('target')).toBe('_blank')
+	})
+
+	it('neutralises unsafe bookmark URL schemes in the row and action hrefs', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			json: () => Promise.resolve({
+				results: [makeBookmark({ id: 1, url: 'javascript:alert(1)' })],
+			}),
+		})
+		const wrapper = mount(CnBookmarksTab, { propsData: { ...DEFAULT_PROPS } })
+		await flushPromises()
+		const row = wrapper.find('.cn-bookmarks-tab__row')
+		expect(row.attributes('href')).toBe('#')
+		expect(row.find('.stub.NcActionLink').attributes('href')).toBe('#')
+		wrapper.unmount()
 	})
 
 	it('renders Bookmarks-side tag chips and hides the OR marker tag', async () => {

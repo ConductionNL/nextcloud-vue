@@ -54,7 +54,11 @@
 		<div v-else-if="bookmarks.length === 0" class="cn-sidebar-tab__empty cn-bookmarks-tab__empty">
 			<Bookmark :size="32" class="cn-bookmarks-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openBookmarksApp">
+			<NcButton
+				variant="primary"
+				:href="bookmarksAppUrl"
+				target="_blank"
+				rel="noopener noreferrer">
 				<template #icon>
 					<Bookmark :size="20" />
 				</template>
@@ -87,7 +91,7 @@
 					class="cn-bookmarks-tab__row"
 					:name="bookmarkTitle(bookmark)"
 					:bold="true"
-					:href="bookmark.url"
+					:href="bookmarkHref(bookmark)"
 					target="_blank"
 					:forceDisplayActions="true">
 					<template #icon>
@@ -116,12 +120,16 @@
 						</span>
 					</template>
 					<template #actions>
-						<NcActionButton :closeAfterClick="true" @click="openBookmark(bookmark)">
+						<NcActionLink
+							:closeAfterClick="true"
+							:href="bookmarkHref(bookmark)"
+							target="_blank"
+							rel="noopener noreferrer">
 							<template #icon>
 								<OpenInNew :size="20" />
 							</template>
 							{{ t('nextcloud-vue', 'Open bookmark') }}
-						</NcActionButton>
+						</NcActionLink>
 						<NcActionButton :closeAfterClick="true" @click="unlinkBookmark(bookmark)">
 							<template #icon>
 								<LinkOff :size="20" />
@@ -148,7 +156,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Bookmark from 'vue-material-design-icons/Bookmark.vue'
 import LinkOff from 'vue-material-design-icons/LinkOff.vue'
@@ -159,6 +167,7 @@ import CnBookmarkCreate from '../../../components/CnBookmarkCreate/CnBookmarkCre
 import CnBookmarkPicker from '../../../components/CnBookmarkPicker/CnBookmarkPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { safeHref } from '../../../utils/safeHref.js'
 
 /**
  * CnBookmarksTab — bespoke URL preview list for the `bookmarks`
@@ -174,6 +183,7 @@ export default {
 
 	components: {
 		NcActionButton,
+		NcActionLink,
 		NcButton,
 		NcListItem,
 		NcLoadingIcon,
@@ -378,10 +388,9 @@ export default {
 			}
 		},
 
-		openBookmark(bookmark) {
-			if (typeof window !== 'undefined' && bookmark.url) {
-				window.open(bookmark.url, '_blank', 'noopener')
-			}
+		// Bookmark URLs are user data; block javascript:/data: schemes.
+		bookmarkHref(bookmark) {
+			return safeHref(bookmark.url)
 		},
 
 		bookmarkTags(bookmark) {
@@ -394,12 +403,6 @@ export default {
 
 		toggleTagFilter(tag) {
 			this.activeTag = this.activeTag === tag ? '' : tag
-		},
-
-		openBookmarksApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.bookmarksAppUrl, '_blank', 'noopener')
-			}
 		},
 
 		async fetchBookmarks() {
