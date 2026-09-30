@@ -65,6 +65,19 @@ describe('CnStatWidget — page refresh on the `source` path', () => {
 		tiles.forEach((tile) => tile.unmount())
 	})
 
+	it('reads the endpoint again on a remount instead of serving the cached value', async () => {
+		axios.get.mockResolvedValueOnce({ data: { total: 5 } }).mockResolvedValueOnce({ data: { total: 6 } })
+		const content = { source: { kind: 'endpoint', url: '/api/remount', path: 'total' } }
+		mountWidget(content).unmount()
+		await flush()
+
+		const again = mountWidget(content)
+		await flush()
+		expect(axios.get).toHaveBeenCalledTimes(2)
+		expect(again.text()).toContain('6')
+		again.unmount()
+	})
+
 	it('stops listening once unmounted', async () => {
 		axios.get.mockResolvedValue({ data: { total: 1 } })
 		const wrapper = mountWidget({ source: { kind: 'endpoint', url: '/api/x', path: 'total' } })

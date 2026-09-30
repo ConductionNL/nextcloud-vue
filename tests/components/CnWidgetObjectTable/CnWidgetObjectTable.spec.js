@@ -202,6 +202,15 @@ describe('CnWidgetObjectTable — declarative source self-fetch', () => {
 		expect(table.props('fetchParams')).toBeNull()
 	})
 
+	it('does not turn a top-level schema slug into an unscoped self-fetch', () => {
+		const wrapper = shallowMount(CnWidgetObjectTable, {
+			propsData: { register: 'pipelinq', schema: 'case', rows: [], columns: ['title'] },
+		})
+		const table = wrapper.findComponent({ name: 'CnDataTable' })
+		expect(table.props('schemaId')).toBeNull()
+		expect(table.props('schema')).not.toBe('case')
+	})
+
 	it('rows + columns without a source behave exactly as before (pure pass-through)', () => {
 		const rows = [{ id: '1', name: 'A' }, { id: '2', name: 'B' }]
 		const wrapper = shallowMount(CnWidgetObjectTable, {

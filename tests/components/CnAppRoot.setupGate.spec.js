@@ -372,7 +372,9 @@ describe('CnAppRoot support note waits for the setup status', () => {
 		axios.get.mockImplementation((url) => {
 			const u = String(url)
 			if (u.includes('/api/setup/status')) {
-				return new Promise((resolve) => { resolveStatus = (data) => resolve({ data }) })
+				return new Promise((resolve) => {
+					resolveStatus = (data) => resolve({ data })
+				})
 			}
 			if (u.includes('/api/preferences/support-dialog-seen')) {
 				return Promise.resolve({ data: { value: null } })
