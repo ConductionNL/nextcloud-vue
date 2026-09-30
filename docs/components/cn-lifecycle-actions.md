@@ -29,6 +29,13 @@ Two modes, picked automatically:
   labelling / confirm prompts. Set `autoFetch: true` to force the server path
   even with a `transitions` array present.
 
+**Button text.** A button reads its explicit `label` (config-declared, or a
+`label` on the server's action entry), else the action name title-cased
+(`approve` → "Approve"), else the target state. A transition's `description`
+is never the button text: schemas write it as a sentence for the person
+deciding, so it goes on the button's tooltip (`title`) and accessible
+description (`aria-description`) instead.
+
 On a successful transition the component POSTs
 `/apps/openregister/api/objects/{id}/transition` with `{ action }`, emits
 `transitioned` + `reload`, and (in server mode) re-fetches the action list.

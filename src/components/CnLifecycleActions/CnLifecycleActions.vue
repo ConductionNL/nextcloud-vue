@@ -11,6 +11,8 @@
 			:variant="tr.variant || 'secondary'"
 			:disabled="working"
 			:data-testid="`cn-lifecycle-action-${tr.action}`"
+			:title="tr.description || undefined"
+			:aria-description="tr.description || undefined"
 			@click="onTransition(tr)">
 			<template v-if="working && pendingAction === tr.action" #icon>
 				<NcLoadingIcon :size="18" />
@@ -213,14 +215,15 @@ export default {
 		 * declared `inputs` list is carried through on both paths so clicking
 		 * the button collects the fields before POSTing.
 		 *
-		 * @return {Array<{action: string, to: string, label: string, confirm?: string, variant?: string, inputs?: Array<{field: string, required?: boolean}>}>}
+		 * @return {Array<{action: string, to: string, label: string, description: string, confirm?: string, variant?: string, inputs?: Array<{field: string, required?: boolean}>}>}
 		 */
 		visibleTransitions() {
 			if (this.useServer) {
 				return this.serverActions.map((a) => ({
 					action: a.action,
 					to: a.to,
-					label: this.labelFor(a.action, a.to, a.description),
+					label: this.labelFor(a.action, a.to, a.label),
+					description: this.descriptionFor(a.description),
 					variant: 'secondary',
 					...(Array.isArray(a.inputs) && a.inputs.length > 0 ? { inputs: a.inputs } : {}),
 				}))
@@ -231,7 +234,8 @@ export default {
 				.map((tr) => ({
 					action: tr.action || tr.to,
 					to: tr.to,
-					label: tr.label || this.labelFor(tr.action || tr.to, tr.to),
+					label: this.labelFor(tr.action || tr.to, tr.to, tr.label),
+					description: this.descriptionFor(tr.description),
 					confirm: tr.confirm,
 					variant: tr.variant || 'secondary',
 					...(Array.isArray(tr.inputs) && tr.inputs.length > 0 ? { inputs: tr.inputs } : {}),
@@ -309,23 +313,39 @@ export default {
 		},
 
 		/**
-		 * Human label for a transition button. Prefers the action name (title-cased)
-		 * with a fallback to the description / target state.
+		 * Human label for a transition button: an explicit label when one is
+		 * given, else the action name (title-cased), else the target state.
+		 *
+		 * A transition's `description` is NOT a label. Schemas write it as a
+		 * sentence for the person deciding ("The coordinator approves the
+		 * enrolment; the learner gets access."), so using it as the button text
+		 * put a paragraph on the button. It goes on the button's tooltip and
+		 * accessible description instead (see `descriptionFor`).
 		 *
 		 * @param {string} action The transition action key.
 		 * @param {string} to The target state.
-		 * @param {string} [description] Optional schema-provided description.
+		 * @param {string} [label] An explicit label (config `label`, or a server `label`).
 		 * @return {string}
 		 */
-		labelFor(action, to, description) {
-			if (description) {
-				return description
+		labelFor(action, to, label) {
+			if (typeof label === 'string' && label.trim() !== '') {
+				return label
 			}
 			const src = action || to || ''
 			if (!src) {
 				return t('nextcloud-vue', 'Apply')
 			}
 			return src.charAt(0).toUpperCase() + src.slice(1).replace(/[_-]+/g, ' ')
+		},
+
+		/**
+		 * A transition's description as tooltip / accessible-description text.
+		 *
+		 * @param {unknown} description The schema- or config-provided description.
+		 * @return {string} The trimmed description, or '' when there is none.
+		 */
+		descriptionFor(description) {
+			return typeof description === 'string' ? description.trim() : ''
 		},
 
 		/**
