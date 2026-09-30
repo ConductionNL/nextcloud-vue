@@ -176,6 +176,7 @@ import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue
 import HistoryIcon from 'vue-material-design-icons/History.vue'
 import { useListView } from '../../composables/index.js'
 import { useObjectStore } from '../../store/index.js'
+import { prefixUrl } from '../../utils/headers.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
 import { CnDataTable } from '../CnDataTable/index.js'
@@ -899,7 +900,7 @@ export default {
 				this.localLoading = true
 				this.localError = null
 				try {
-					const response = await axios.get(this.source)
+					const response = await axios.get(prefixUrl(this.source))
 					const body = response?.data
 					if (Array.isArray(body)) {
 						this.localRows = body

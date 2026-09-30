@@ -103,7 +103,7 @@ the child receives `undefined` rather than a literal token string.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `sections` | `Array` | `[]` | Section descriptors: `{ id?, component, title?, props?, placement?, colSpan? }`. `component` is a registry name resolved from `cnRegistry` then `cnCustomComponents`. |
+| `sections` | `Array` | `[]` | Section descriptors: `{ id?, component, title?, props?, placement?, colSpan?, card? }`. `component` is a registry name resolved from `cnRegistry` then `cnCustomComponents`. `card: true` draws the section in the same bordered card as the grid's widgets, with the title as its header; leave it off for a component that draws its own card. |
 | `context` | `Object` | `{}` | Page/object context (`{ objectId?, object?, workspace?, register?, schema? }`) used to resolve `props` tokens and `provide`d on `cnSectionContext` for inject-based host components. |
 | `placement` | `String \| null` | `null` | When set, only sections whose `placement` matches render (CnDetailPage mounts one instance per placement). `null` renders all passed sections. |
 | `grid` | `Boolean` | `true` | Lay sections out on a 12-column responsive grid honouring each section's `colSpan`. Falls back to a vertical stack when no section sets a `colSpan`. |

@@ -883,14 +883,15 @@ export default {
 			if (this.colors.length > 0) {
 				return this.colors
 			}
-			// Nextcloud-themed color palette
+			// Element tokens stay bright in dark mode, where the plain status
+			// tokens are dark background tints. Each falls back for Nextcloud < 32.
 			return [
 				'var(--color-primary-element, #0082c9)',
-				'var(--color-success, #46ba61)',
-				'var(--color-warning, #e9a300)',
-				'var(--color-error, #e04224)',
-				'var(--color-primary-element-light, #aad2ed)',
+				'var(--color-element-success, var(--color-success, #46ba61))',
+				'var(--color-element-warning, var(--color-warning, #e9a300))',
+				'var(--color-element-error, var(--color-error, #e04224))',
 				'var(--color-text-maxcontrast, #767676)',
+				'var(--color-element-info, #0099e0)',
 			]
 		},
 
@@ -1358,12 +1359,12 @@ export default {
 		// bucket / group-by / aggregate REST paths) silently ignored it.
 		//
 		// It deliberately skips the endpoint half rather than calling refresh():
-		// the composable already force-refetches on this same channel, and a
-		// second forced fetch is a real duplicate request, not a no-op —
-		// `fetchSharedResponse()` DELETES the in-flight dedup entry when
-		// `force` is set, so two back-to-back forces cannot collapse into one.
-		this._onPageRefresh = () => {
-			this.refreshLocalSources()
+		// the composable already force-refetches on this same channel. A forced
+		// fetch joins an in-flight one only when both carry the same refresh
+		// payload, and refresh() carries none, so it would send a real duplicate.
+		this._onPageRefresh = (payload) => {
+			const done = this.refreshLocalSources()
+			payload?.waitUntil?.(done)
 		}
 		subscribe(PAGE_REFRESH_BUS_CHANNEL, this._onPageRefresh)
 
@@ -1472,15 +1473,15 @@ export default {
 		 * and refetches on its own event-bus subscriptions — see the
 		 * page-refresh handler in `mounted()`.
 		 *
-		 * @return {void}
+		 * @return {Promise<unknown[]>} Settles when every re-query has.
 		 */
 		refreshLocalSources() {
-			if (typeof this.dsRefetch === 'function') {
-				this.dsRefetch()
-			}
-			this.fetchGroupBy()
-			this.fetchTimeBucket()
-			this.fetchAggregateSource()
+			return Promise.all([
+				typeof this.dsRefetch === 'function' ? this.dsRefetch() : null,
+				this.fetchGroupBy(),
+				this.fetchTimeBucket(),
+				this.fetchAggregateSource(),
+			])
 		},
 
 		/**

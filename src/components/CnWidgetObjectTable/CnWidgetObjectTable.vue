@@ -619,13 +619,17 @@ export default {
 		 * @return {object}
 		 */
 		innerProps() {
-			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowClass, ...rest } = this.$props
+			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowClass, schema, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {
 				if (v !== undefined) {
 					inner[k] = v
 				}
 			}
+			// This widget's `schema` is a slug, while CnDataTable's `schema` is a
+			// schema object, so it is not forwarded. Nor is it mapped to `schemaId`:
+			// that would turn on CnDataTable's unscoped self-fetch whenever the
+			// widget's own rows are empty. Self-fetch comes from `source` alone.
 			// `rowClass` is consumed here (function or declarative rules[]) and
 			// forwarded to CnDataTable as a compiled `(row) => class` function.
 			if (this.compiledRowClass) {
@@ -928,7 +932,7 @@ export default {
 }
 
 .cn-widget-object-table__error {
-	color: var(--color-error);
+	color: var(--color-text-error, var(--color-error-text));
 	font-size: 0.85em;
 	margin: 4px 8px 0;
 }

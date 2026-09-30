@@ -169,6 +169,7 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | Slot | Scope | Description |
 |------|-------|-------------|
 | `header-actions` | — | Extra buttons in the page header (right side) |
+| `title-meta` | — | Content on the title's row, right of the title, such as a page-wide picker. A manifest fills it with `page.slots: { "title-meta": "<RegistryName>" }` |
 | `widget-{widgetId}` | `{ item, widget }` | Custom content for a specific widget |
 | `widget-{widgetId}-actions` | `{ item, widget }` | Header action buttons for a specific widget |
 | `widget-{widgetId}-title-icon` | `{ item, widget }` | Extra icon in the widget header; position and color controlled by `titleIconPosition` / `titleIconColor` on the widget definition |

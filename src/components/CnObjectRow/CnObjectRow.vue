@@ -60,6 +60,7 @@
 <script>
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
+import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
@@ -169,7 +170,7 @@ export default {
 		imageUrl() {
 			const field = this.config.imageField || this.schemaConfig.objectImageField
 			if (field && this.object[field]) {
-				return String(this.object[field])
+				return resolveImageUrl(String(this.object[field]))
 			}
 			return null
 		},

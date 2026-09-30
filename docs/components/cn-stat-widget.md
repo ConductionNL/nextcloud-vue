@@ -198,7 +198,7 @@ The day count is taken when the tile renders. A tile left open across midnight k
 - **A countdown reads calendar days, so the answer never depends on the time of day somebody typed.** The reasoning, and the UTC-midnight parse it avoids, are in the `calendarDay` docblock in `CnStatWidget.vue`.
 
 
-- `source` supports the OpenRegister-backed kinds (`metric: 'count' \| 'sum' \| 'avg' \| …`) and a legacy `{ kind: 'endpoint', url }` form for arbitrary endpoints (uncached; prefer `endpointSource`).
+- `source` supports the OpenRegister-backed kinds (`metric: 'count' \| 'sum' \| 'avg' \| …`) and a legacy `{ kind: 'endpoint', url }` form for arbitrary endpoints (never served from the cache, though tiles loading at once or refreshed together share one request; prefer `endpointSource`).
 - Self-contained card surface — rendered flush and centred (no inner scrollbar).
 - Filter tokens (`@page.*`, `@object.*`, `@workspace.*`, `@range.*`) are resolved from injected dashboard/detail context when present, in the `endpointSource` and in the tile's `route` alike, so a tile on a detail page can link to `{ name: 'Traffic', query: { portal: '@object.slug' } }`. A route token that stays unresolved is dropped from the URL.
 - The tile injects `cnDashboardDateRange` — the same ref `CnChartWidget` reads — so a tile and a chart on one dashboard always agree on the period.

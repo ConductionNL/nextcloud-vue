@@ -185,6 +185,7 @@ describe('CnWidgetWrapper — default Refresh handler (widget-wrapper-actions)',
 		expect(emitOnBus).toHaveBeenCalledWith('cn:widget:refresh', {
 			widgetId: 'outgoing-calls-daily',
 			title: 'Outgoing calls',
+			waitUntil: expect.any(Function),
 		})
 	})
 

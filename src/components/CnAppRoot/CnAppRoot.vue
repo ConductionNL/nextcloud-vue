@@ -452,8 +452,14 @@
 			  an object to override copy/URLs. Persistence is per-user
 			  (server preferences endpoint) with a localStorage fallback.
 			-->
+			<!--
+			  Waits for the setup status: until it loads the shell renders
+			  provisionally, and a required unmet step then swaps it for the
+			  wizard, unmounting the dialog mid-transition (NcModal's focus trap
+			  then throws on its missing mask).
+			-->
 			<CnSupportDialog
-				v-if="cnSupportVisible"
+				v-if="cnSupportVisible && setupStatusSettled"
 				:appName="cnSupportAppName"
 				:appSlug="appId"
 				:appStoreUrl="cnSupportAppStoreUrl"
@@ -1775,6 +1781,14 @@ export default {
 				&& this.manifest.walkthrough.completionConfigKey),
 
 			/**
+			 * Whether the setup status has finished loading at least once.
+			 * Stays `true` across later refreshes.
+			 *
+			 * @type {boolean}
+			 */
+			setupStatusSettled: false,
+
+			/**
 			 * Key of the currently active modal (opened via cnOpenModal).
 			 * null when no modal is open.
 			 *
@@ -2315,6 +2329,15 @@ export default {
 		},
 
 		/**
+		 * Whether the setup status is still loading. `false` when the manifest
+		 * declares no setup block.
+		 */
+		setupStatusLoading() {
+			const s = this.setupState
+			return !!s && s.loading.value !== false
+		},
+
+		/**
 		 * Whether the setup wizard should be OFFERED (non-gating) because
 		 * every required step is met but at least one ACTIONABLE optional step
 		 * isn't (REQ-SETUP-NV-012). Never true while the gating phase is active —
@@ -2786,6 +2809,15 @@ export default {
 				}
 				this.walkthroughSeenResolved = false
 				this.resolveWalkthroughSeenVersion()
+			},
+		},
+
+		setupStatusLoading: {
+			immediate: true,
+			handler(loading) {
+				if (!loading) {
+					this.setupStatusSettled = true
+				}
 			},
 		},
 	},

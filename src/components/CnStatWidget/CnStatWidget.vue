@@ -103,6 +103,7 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
@@ -110,13 +111,14 @@ import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
 import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
-import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
+import { fetchSharedResponse, getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import widgetLink from '../../mixins/widgetLink.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
 import { evaluateVisibleWhenLocal, readVisibleWhenPath } from '../../utils/visibleWhen.js'
 
 // The canonical KPI look lives in one shared stylesheet, imported by BOTH
@@ -128,6 +130,8 @@ import '../../css/kpi-card.css'
 // stylesheet. Imported here for the same reason as kpi-card.css above.
 import '../../css/badge.css'
 
+const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
+
 /**
  * Variant → CSS colour token map for the `variantWhen` threshold rules.
  * `danger` is accepted as an alias of `error` (the doriath KPI-card
@@ -135,27 +139,14 @@ import '../../css/badge.css'
  *
  * @type {Record<string, string>}
  */
-// THE `-text` TOKENS, NOT THE PLAIN ONES. These paint the NUMBER and the icon
-// tint, i.e. foreground. Nextcloud's `--color-success` / `--color-warning` /
-// `--color-error` are FILL colours meant to sit behind something; DefaultTheme
-// ships `--color-success-text` and friends for foreground use. Using a fill as
-// a text colour failed WCAG AA — axe measured #d8f3da on #f5f5f5, a contrast of
-// 1.08 against the required 3:1, serious, on filinq's dashboard (gate-33).
-//
-// kpi-card.css fixed exactly this for the CSS-class path; this inline map was
-// missed because nothing reached it — every `variant` in the fleet is on a
-// stats-block, which renders classes. The first manifest to put `variant` on a
-// `stat` or `delta` would have hit the old failure.
-//
-// Each keeps the plain token as a fallback, so a theme predating the `-text`
-// tokens degrades to the old colour rather than to none.
+// These paint the number, so they take the text-on-background tokens.
 const VARIANT_COLORS = {
 	default: '',
 	primary: 'var(--color-primary-element)',
-	success: 'var(--color-success-text, var(--color-success))',
-	warning: 'var(--color-warning-text, var(--color-warning))',
-	error: 'var(--color-error-text, var(--color-error))',
-	danger: 'var(--color-error-text, var(--color-error))',
+	success: STATUS_TEXT_COLORS.success,
+	warning: STATUS_TEXT_COLORS.warning,
+	error: STATUS_TEXT_COLORS.error,
+	danger: STATUS_TEXT_COLORS.error,
 }
 
 /**
@@ -1111,7 +1102,7 @@ export default {
 			const good = this.content.goodDirection || 'up'
 			const rising = this.trendPct > 0
 			const isGood = good === 'up' ? rising : !rising
-			return isGood ? 'var(--color-success)' : 'var(--color-error)'
+			return isGood ? STATUS_TEXT_COLORS.success : STATUS_TEXT_COLORS.error
 		},
 
 		/**
@@ -1344,6 +1335,20 @@ export default {
 
 	mounted() {
 		this.fetchValue()
+		// The `endpointSource` path refreshes through useEndpointSource; this
+		// covers the `source` path, which otherwise never re-read on Refresh.
+		this._onPageRefresh = (payload) => {
+			if (this.endpointMode) {
+				return
+			}
+			const done = this.fetchValue(payload)
+			payload?.waitUntil?.(done)
+		}
+		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
+	},
+
+	beforeUnmount() {
+		unsubscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 	},
 
 	methods: {
@@ -1587,9 +1592,10 @@ export default {
 		 * computed client-side over the fetched objects). Lazily imports
 		 * axios/router (same pattern as CnFilesWidget).
 		 *
+		 * @param {object} [refresh] The page refresh event's payload, when this is one.
 		 * @return {Promise<void>}
 		 */
-		async fetchValue() {
+		async fetchValue(refresh) {
 			// Endpoint-bound tiles are fetched by the shared useEndpointSource
 			// engine (see setup) — the OpenRegister paths below must not fire.
 			if (this.endpointMode) {
@@ -1619,7 +1625,7 @@ export default {
 				])
 
 				if (s.kind === 'endpoint') {
-					this.value = await this.fetchEndpoint(axios, generateUrl, s)
+					this.value = await this.fetchEndpoint(s, refresh)
 				} else if (s.kind === 'ratio') {
 					const num = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.numerator && s.numerator.filter) || {})
 					const den = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.denominator && s.denominator.filter) || {})
@@ -1733,22 +1739,24 @@ export default {
 		 * to a custom-aggregation endpoint (e.g. `/api/analytics/summary`) that
 		 * OpenRegister's per-schema aggregation can't express.
 		 *
-		 * @param {object} axios The axios instance.
-		 * @param {(url: string, params?: object) => string} generateUrl The router helper.
+		 * Never served from the settled shared cache, so a tile never shows a
+		 * count from before a write. Tiles loading at once, or reached by one
+		 * page refresh, share a single request per endpoint and params.
+		 *
 		 * @param {object} s The endpoint source `{ url, path?, params?, method? }`.
+		 * @param {object} [refresh] The page refresh event's payload, when this is one.
 		 * @return {Promise<number|null>} The extracted value.
 		 */
-		async fetchEndpoint(axios, generateUrl, s) {
-			const rawUrl = this.interpolateTokens(s.url)
-			// Leave absolute URLs (http/https) untouched; route app-relative
-			// paths through generateUrl so they resolve under the NC base.
-			const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : generateUrl(rawUrl)
+		async fetchEndpoint(s, refresh) {
 			const params = {}
 			for (const [k, v] of Object.entries(s.params || {})) {
 				params[k] = typeof v === 'string' ? this.interpolateTokens(v) : v
 			}
-			const res = await axios.get(url, { params })
-			const extracted = this.getByPath(res && res.data, s.path)
+			const body = await fetchSharedResponse(
+				{ url: this.interpolateTokens(s.url), method: 'GET', params },
+				refresh ? { force: true, refresh } : { fresh: true },
+			)
+			const extracted = this.getByPath(body, s.path)
 			if (extracted === undefined || extracted === null) {
 				return null
 			}

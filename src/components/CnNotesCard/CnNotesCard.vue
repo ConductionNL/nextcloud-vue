@@ -88,6 +88,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { markRaw } from 'vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import Send from 'vue-material-design-icons/Send.vue'
@@ -204,7 +205,7 @@ export default {
 
 	data() {
 		return {
-			CommentTextOutline,
+			CommentTextOutline: markRaw(CommentTextOutline),
 			allNotes: [],
 			loading: false,
 			newNoteText: '',

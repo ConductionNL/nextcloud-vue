@@ -63,6 +63,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcLoadingIcon } from '@nextcloud/vue'
+import { markRaw } from 'vue'
 import Email from 'vue-material-design-icons/Email.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
@@ -136,7 +137,7 @@ export default {
 
 	data() {
 		return {
-			Email,
+			Email: markRaw(Email),
 			messages: [],
 			total: 0,
 			loading: false,

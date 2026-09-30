@@ -93,7 +93,7 @@ describe('CnDashboardPage — page-level Actions menu', () => {
 		await wrapper.find('[data-testid="cn-dashboard-page-action-refresh"]').trigger('click')
 		expect(wrapper.emitted('refresh')).toBeTruthy()
 		expect(wrapper.emitted('widget-refresh')).toBeFalsy()
-		expect(emitOnBus).toHaveBeenCalledWith('cn:page:refresh', { widgetId: 'overview', title: 'Overview' })
+		expect(emitOnBus).toHaveBeenCalledWith('cn:page:refresh', { widgetId: 'overview', title: 'Overview', waitUntil: expect.any(Function) })
 	})
 
 	// The in-product modal is gone (team decision 2026-09-04): the surface

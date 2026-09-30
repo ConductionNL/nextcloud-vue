@@ -317,6 +317,7 @@
 		<!-- @binding {object} schema The effective JSON schema driving the form. -->
 		<!-- @binding {Function} confirm Persists the form data through the page's own save path (store / self-store / createOverride) and emits `create`/`edit`. Call this instead of saving in the replacement dialog, so a create or edit made there behaves exactly like one made in the built-in dialog. Takes the complete object to save. List refresh is automatic on the self-fetch and `createOverride` paths; with the `store` prop, refresh is driven by the consumer's `create`/`edit` handler as usual. -->
 		<!-- @binding {Function} close Closes the form dialog. -->
+		<!-- @binding {Function} refresh Re-reads the list. For a replacement dialog that saves through its own endpoint rather than `confirm`, so the list still shows what it saved. -->
 		<!--
 		     `confirm` is bound as a PROP, not left as an `@confirm` listener on
 		     the default child. A manifest-declared replacement is mounted by
@@ -331,7 +332,8 @@
 			:item="editItem"
 			:schema="effectiveSchema"
 			:confirm="onFormConfirm"
-			:close="closeFormDialog">
+			:close="closeFormDialog"
+			:refresh="onRefreshEvent">
 			<CnFormDialog
 				v-if="showFormDialogVisible && !useAdvancedFormDialog"
 				ref="formDialog"
@@ -437,7 +439,7 @@
 					:sortOrder="effectiveSortOrder"
 					:sortKeys="effectiveSortKeys"
 					:selectable="selectable"
-					:rowClickToView="rowClickToView"
+					:rowClickToView="rowClickOpens"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
 					:emptyText="emptyText"
@@ -620,7 +622,7 @@
 					:objects="displayObjects"
 					:schema="effectiveSchema"
 					:selectable="selectable"
-					:clickToView="rowClickToView"
+					:clickToView="rowClickOpens"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
 					:emptyText="emptyText"
@@ -1109,6 +1111,8 @@ export default {
 		 * the page shows a config cog in its actions bar (emits `configure`).
 		 */
 		cnEditingBody: { default: false },
+		/** Opens a registry modal, provided by CnAppRoot. Used by `createModal`. */
+		cnOpenModal: { default: null },
 		/**
 		 * Reactive holder provided by CnAppRoot for hoisting the
 		 * embedded CnIndexSidebar to NcContent level. The default
@@ -1767,6 +1771,15 @@ export default {
 		showFormDialog: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Registry key of a `kind: 'modal'` entry that Add (and `?action=create`)
+		 * opens instead of the built-in form dialog. Edits keep the form dialog.
+		 */
+		createModal: {
+			type: String,
+			default: '',
 		},
 
 		/** Use CnAdvancedFormDialog (properties table, JSON tab, optional metadata) instead of CnFormDialog for Add/Edit */
@@ -2724,6 +2737,29 @@ export default {
 		 */
 		resolvedCustomComponents() {
 			return this.effectiveCustomComponents
+		},
+
+		/**
+		 * Whether a row click opens the row rather than selecting it:
+		 * `rowClickToView` is set AND something can open it (a `row-click`
+		 * listener, or a named source that routes its own rows). Otherwise a
+		 * click on a selectable page selects, so it is never dead.
+		 *
+		 * `$.vnode.props` is not reactive, so a `row-click` listener attached
+		 * or removed after mount does not re-evaluate this.
+		 *
+		 * @return {boolean}
+		 */
+		rowClickOpens() {
+			if (!this.rowClickToView) {
+				return false
+			}
+			if (this.isNamedSource && (this.rowRoute
+				|| typeof this.namedSource?.openRow === 'function'
+				|| this.namedSource?.detailRoute)) {
+				return true
+			}
+			return !!this.$.vnode.props?.onRowClick
 		},
 
 		/**
@@ -5496,7 +5532,7 @@ export default {
 		},
 
 		onRowClick(row) {
-			if (this.selectable && !this.rowClickToView) {
+			if (this.selectable && !this.rowClickOpens) {
 				this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
 				return
 			}
@@ -5525,7 +5561,7 @@ export default {
 				}
 			}
 			/**
-			 * @event row-click Emitted on a row/card click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox).
+			 * @event row-click Emitted on a row/card click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set and something can open the row (selection then happens via the checkbox).
 			 * @type {object} The clicked row object.
 			 */
 			this.$emit('row-click', row)
@@ -5758,7 +5794,7 @@ export default {
 			// keeps declared emits out of `$attrs`.
 			if (this.$.vnode.props?.onAdd) {
 				this.$emit('add')
-			} else if (this.showFormDialog) {
+			} else if (!this.openCreateModal() && this.showFormDialog) {
 				this.editItem = null
 				this.showFormDialogVisible = true
 			}
@@ -5780,10 +5816,12 @@ export default {
 			if (!this.$route || !this.$route.query || this.$route.query.action !== 'create') {
 				return
 			}
-			if (!this.showFormDialog) {
-				return
+			if (!this.openCreateModal()) {
+				if (!this.showFormDialog) {
+					return
+				}
+				this.openFormDialog(null)
 			}
-			this.openFormDialog(null)
 			// Clear the query param; guard against redundant navigation errors.
 			if (this.$router) {
 				const query = { ...this.$route.query }
@@ -6316,6 +6354,20 @@ export default {
 		openFormDialog(item = null) {
 			this.editItem = item
 			this.showFormDialogVisible = true
+		},
+
+		/**
+		 * Open the `createModal` registry modal, when one is set and a CnAppRoot
+		 * ancestor can mount it.
+		 *
+		 * @return {boolean} Whether the modal was opened.
+		 */
+		openCreateModal() {
+			if (!this.createModal || typeof this.cnOpenModal !== 'function') {
+				return false
+			}
+			this.cnOpenModal(this.createModal)
+			return true
 		},
 
 		/**

@@ -76,9 +76,9 @@ import { BUILT_IN_KB_PROVIDERS, normaliseKbResults, resolveKbProvider } from '..
  *  1. The agent typing in the search box (debounced), and
  *  2. — the reason this is a WIDGET, not a plain box — a page-level workspace
  *     context key (`content.bindTo`, default `activeSummary`) that another
- *     widget writes. When an interaction form sets `activeSummary`, this widget
- *     debounces a search on that text automatically, so the knowledge base
- *     follows the live conversation. Manual typing overrides the bound text.
+ *     widget writes. When a widget sets that key, this widget debounces a
+ *     search on its text automatically. Manual typing overrides the bound
+ *     text. The interaction form does not write `activeSummary`.
  *
  * Degrades gracefully: a rejected provider search (503 / network error /
  * unavailable backend) renders the unavailable-fallback text (never throws),

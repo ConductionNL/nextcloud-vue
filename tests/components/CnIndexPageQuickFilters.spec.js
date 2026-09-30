@@ -274,3 +274,18 @@ describe('CnIndexPage — multi-select quick filters (quickFilterMultiple)', () 
 		expect(wrapper.find('.cn-quick-filter-bar--dropdown').exists()).toBe(true)
 	})
 })
+
+describe('CnIndexPage — base `filter` prop', () => {
+	it('re-fetches with the new filter when the prop changes', async () => {
+		const wrapper = mountPage({ title: 'Leads', register: 'app', schema: 'lead', filter: {} })
+		await flush()
+		mockStore.fetchCollection.mockClear()
+
+		await wrapper.setProps({ filter: { status: 'open' } })
+		await flush()
+
+		expect(mockStore.fetchCollection).toHaveBeenCalled()
+		const params = mockStore.fetchCollection.mock.calls.at(-1)[1] || {}
+		expect(params.status).toBe('open')
+	})
+})

@@ -292,7 +292,7 @@ import { useObjectStore } from '../../store/index.js'
 import { dispatchAction, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { pageHasSplitView, pageIdForRoute, splitIdForRoute, splitRouteName } from '../../utils/buildManifestRoutes.js'
-import { listContextToQuery } from '../../utils/listNavigation.js'
+import { listContextFromRoute, listContextToQuery } from '../../utils/listNavigation.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { parseSortKeys } from '../../utils/routeFilters.js'
 import { buildRouteParams, routePathFor } from '../../utils/routeParams.js'
@@ -1134,7 +1134,7 @@ export default {
 			// merge. Unresolved sentinels become null (with a one-shot
 			// console.warn per pageId+sentinel).
 			const pageId = page?.id ?? '<unknown>'
-			const config = resolveRouteSentinels(rawConfig, params, pageId)
+			let config = resolveRouteSentinels(rawConfig, params, pageId)
 			// Schema v2 lifts a uniform set of page-level fields out of
 			// `config` so every page type can declare them without
 			// per-type schema branches. Forward those to the dispatched
@@ -1229,8 +1229,11 @@ export default {
 			if (isIndex) {
 				const hasRowRoute = typeof config.rowRoute === 'string' && config.rowRoute !== ''
 				const hasDetail = this.detailPageByRegisterSchema.has(`${config.register} ${config.schema}`)
-				if (hasRowRoute || hasDetail) {
+				if (hasRowRoute || hasDetail || pageHasSplitView(page)) {
 					topLevel.rowClickToView = true
+				} else if (config.rowClickToView === true) {
+					// Nowhere to open a row, so the click selects instead of doing nothing.
+					config = { ...config, rowClickToView: false }
 				}
 				// `editOpensDetail` is NOT derived from that signal. It used to be,
 				// on the reasoning that a record with a detail page is better edited
@@ -1279,6 +1282,11 @@ export default {
 				}
 				if (params.objectId === undefined && typeof params.id === 'string' && params.id.length > 0) {
 					params.objectId = params.id
+				}
+				const listPage = this.listPageForDetail(normalizedConfig)
+				if (listPage) {
+					topLevel.notFoundRoute = { name: listPage.id }
+					topLevel.notFoundRouteLabel = this.tr(listPage.title || listPage.id)
 				}
 			}
 			// `config.readOnly:true` shorthand on type='index' (REQ-MIPFU-4):
@@ -1620,6 +1628,29 @@ export default {
 		tr(key) {
 			const fn = this.translate || this.cnTranslate
 			return typeof fn === 'function' ? fn(key) : key
+		},
+
+		/**
+		 * The index page a detail page returns to: the list named in the
+		 * address (`_from`), else the first index page on the same register and
+		 * schema.
+		 *
+		 * @param {object} config The detail page's normalized config.
+		 * @return {object|null} The manifest page, or null when there is none.
+		 */
+		listPageForDetail(config) {
+			const fromId = listContextFromRoute(this.$route)?.pageId
+			const from = fromId ? this.pageById.get(fromId) : null
+			if (from?.type === 'index') {
+				return from
+			}
+			const pages = this.effectiveManifest?.pages
+			if (!Array.isArray(pages) || !config.schema) {
+				return null
+			}
+			return pages.find((p) => p?.type === 'index'
+				&& p.config?.register === config.register
+				&& p.config?.schema === config.schema) ?? null
 		},
 
 		/**

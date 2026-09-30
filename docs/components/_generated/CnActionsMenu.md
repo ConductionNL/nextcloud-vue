@@ -26,10 +26,10 @@
 
 ### Events
 
-| Name              | Payload     | Description                                                                                                                                                                                                       |
-| ----------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `refresh`         | `undefined` | User clicked the Refresh item. Payload: `{ widgetId, title }`. Handlers may call the second arg's `preventDefault()` to suppress the built-in default (event-bus emit on `refreshChannel`).                       |
-| `request-feature` | `undefined` | User clicked the Request a feature item. Payload: `{ widgetId, title }`. Handlers may call the second arg's `preventDefault()` to suppress the built-in default (opening the forge's feature-request issue form). |
+| Name              | Payload     | Description                                                                                                                                                                                                                                                                 |
+| ----------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `refresh`         | `undefined` | User clicked the Refresh item. Payload: `{ widgetId, title }`. Handlers may call the second arg's `preventDefault()` to suppress the built-in default (event-bus emit on `refreshChannel`), and its `waitUntil(promise)` to keep the item spinning until that work settles. |
+| `request-feature` | `undefined` | User clicked the Request a feature item. Payload: `{ widgetId, title }`. Handlers may call the second arg's `preventDefault()` to suppress the built-in default (opening the forge's feature-request issue form).                                                           |
 
 ### Slots
 
