@@ -496,7 +496,7 @@ import {
 import { shouldShow } from '../../utils/fieldCondition.js'
 import { objectDisplayName } from '../../utils/objectName.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
-import { fieldsFromSchema } from '../../utils/schema.js'
+import { fieldsFromSchema, isTenantProperty } from '../../utils/schema.js'
 import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 
 /**
@@ -597,6 +597,23 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  * resolved to its display name so the current selection shows. Needs no
  * `register` prop. If the OCS call fails the picker fails soft (empty options;
  * the stored UID still shows).
+ *
+ * ## Tenant fields
+ *
+ * The platform sets the tenant a record belongs to, so the form never asks for
+ * it. A property counts as the tenant when it is named `tenant`, `tenant_id` /
+ * `tenantId` or `tenant_uuid`, or when it carries `x-openregister-tenant: true`,
+ * `x-platform-managed: true`, `x-managed-by: 'platform'`, `format: 'tenant'` or
+ * `referenceType: 'tenant'`. `x-openregister-tenant: false` opts a property out;
+ * `fieldOverrides: { tenant_id: { hidden: false } }` shows it on one form.
+ *
+ * The hidden property is still sent. On edit it keeps the record's value. On
+ * create it takes the active tenant from the tenant context the app provides
+ * (`CnAppRoot`'s `initialOrganisationUuid`, or `provideTenantContext`). There
+ * is no other source: an app's tenant is its own notion, not OpenRegister's
+ * active organisation. When the app provides none, the key is left out of the
+ * payload rather than sent blank, so the server's own default or validation
+ * handles it.
  *
  * ## JSON / code fields
  *
@@ -1246,6 +1263,7 @@ export default {
 						exclude: this.excludeFields,
 						include: this.includeFields,
 						overrides: this.fieldOverrides,
+						hideTenant: true,
 						translate: this.cnTranslate,
 					}).concat(this.dynamicFields)
 
@@ -1277,6 +1295,26 @@ export default {
 				.filter((field) => shouldShow(field, this.formData))
 				.map((field) => this.applySemanticResolution(field))
 				.map((field) => this.degradeUnresolvableReference(field))
+		},
+
+		/**
+		 * The schema properties that hold the record's tenant, which the form
+		 * hides (see `isTenantProperty`) and fills itself: from the record
+		 * being edited, else the tenant context the app provides. A key a `fieldOverrides[key].hidden === false`
+		 * brings back is a normal field again and is not listed here.
+		 *
+		 * @return {string[]} The hidden tenant property keys.
+		 */
+		tenantKeys() {
+			if (this.fields || !this.schema || !this.schema.properties) {
+				return []
+			}
+			return Object.entries(this.schema.properties)
+				.filter(([key, prop]) => {
+					const override = this.fieldOverrides && this.fieldOverrides[key]
+					return !(override && override.hidden === false) && isTenantProperty(key, prop)
+				})
+				.map(([key]) => key)
 		},
 	},
 
@@ -1889,6 +1927,35 @@ export default {
 				return
 			}
 			this.formData.organisation = uuid
+		},
+
+		/**
+		 * Whether a form value is empty for tenant-fill purposes.
+		 *
+		 * @param {unknown} value The value.
+		 * @return {boolean} True for null, undefined and ''.
+		 */
+		_isEmptyTenantValue(value) {
+			return value === null || value === undefined || value === ''
+		},
+
+		/**
+		 * The tenant a hidden tenant property (`tenantKeys`) takes when the
+		 * form holds no value for it: the active tenant from the tenant
+		 * context the app provides, and nothing else.
+		 *
+		 * There is deliberately no fallback to OpenRegister's active
+		 * organisation. An app's tenant is its own notion (learniq resolves
+		 * it from the user's `tenant_id` preference, else the instance id),
+		 * and stamping another value would make new records invisible next
+		 * to the ones the app wrote itself.
+		 *
+		 * @return {string|null} The tenant UUID, or null when the app provided none.
+		 */
+		_platformTenant() {
+			const ctx = this._cnTenantContext
+			const fromContext = ctx && ctx.activeOrganisationUuid && ctx.activeOrganisationUuid.value
+			return fromContext || null
 		},
 
 		/**
@@ -3254,6 +3321,20 @@ export default {
 		 */
 		buildSubmitPayload() {
 			const payload = { ...this.formData }
+			// Hidden tenant keys: an empty one takes the platform's tenant; one
+			// nobody can fill goes out absent rather than as '', so the
+			// server's own default or validation handles it.
+			const tenant = this._platformTenant()
+			for (const key of this.tenantKeys) {
+				if (!this._isEmptyTenantValue(payload[key])) {
+					continue
+				}
+				if (tenant) {
+					payload[key] = tenant
+				} else {
+					delete payload[key]
+				}
+			}
 			for (const field of this.resolvedFields) {
 				if (payload[field.key] !== '') {
 					continue

@@ -2763,6 +2763,9 @@ export default {
 		 * listener, or a named source that routes its own rows). Otherwise a
 		 * click on a selectable page selects, so it is never dead.
 		 *
+		 * `$.vnode.props` is not reactive, so a `row-click` listener attached
+		 * or removed after mount does not re-evaluate this.
+		 *
 		 * @return {boolean}
 		 */
 		rowClickOpens() {
