@@ -40,7 +40,6 @@ if (typeof window !== 'undefined') {
 	window._oc_webroot = ''
 }
 
-
 // Mock window.fetch if not available in jsdom
 if (!global.fetch) {
 	global.fetch = jest.fn()

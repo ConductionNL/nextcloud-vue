@@ -15,7 +15,7 @@ Most apps never instantiate `CnActionsMenu` directly — they configure it throu
 ## Behaviour
 
 - **Refresh** — emits `@refresh` with `{ widgetId, title }`. Unless a host listener calls `event.preventDefault()` on the second handler argument, it then emits on the `@nextcloud/event-bus` channel named by `refreshChannel` (`cn:widget:refresh` for widgets, `cn:page:refresh` for pages).
-  The menu stays open while the refresh runs, with the item disabled and spinning, and closes once it settles. Refresh work reports itself through `waitUntil(promise)`, which is on both the handler's event argument and the bus payload: the spinner lasts until every promise handed to it has settled (at least 400 ms) and the `refreshing` prop is false. A bus subscriber that refetches should pass its fetch in:
+  The menu stays open while the refresh runs, with the item disabled and spinning, and closes once it settles. Refresh work reports itself through `waitUntil(promise)`, which is on both the handler's event argument and the bus payload: the spinner lasts until every promise handed to it has settled (at least 400 ms, at most 15 s, so a hung request cannot lock the item) and the `refreshing` prop is false. A bus subscriber that refetches should pass its fetch in:
 
   ```js
   subscribe('cn:page:refresh', (payload) => {

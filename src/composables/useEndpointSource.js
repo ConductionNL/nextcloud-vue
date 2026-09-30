@@ -230,22 +230,32 @@ export function invalidateEndpointSourceCache() {
  * identical requests and caching for {@link ENDPOINT_SOURCE_TTL_MS}. An
  * errored fetch drops its cache entry so the next call retries.
  *
- * A forced call still joins a FORCED request that is in flight, so the widgets
- * of one page refresh that share a request send it once.
+ * A forced call that carries a `refresh` token joins an in-flight request of
+ * the same refresh, so the widgets of one page refresh that share a request
+ * send it once. A later refresh (say, one emitted after a save) never joins an
+ * earlier one's request, which may predate the write.
+ *
+ * A `fresh` call joins any request still in flight but never serves a settled
+ * cache entry: concurrent callers share one request, and none reads a stale one.
  *
  * @param {{url: string, method: string, params: object}} request The resolved request.
- * @param {{force?: boolean}} [opts] `force: true` bypasses (and replaces) the cache entry.
+ * @param {{force?: boolean, refresh?: object, fresh?: boolean}} [opts] `force: true` bypasses (and replaces) the cache entry; `refresh` is the refresh event's payload object, one per emit; `fresh: true` only joins in-flight requests.
  * @return {Promise<unknown>} The raw response body (`res.data`).
  */
 export async function fetchSharedResponse(request, opts) {
 	const key = endpointCacheKey(request)
 	const now = Date.now()
 	const force = Boolean(opts && opts.force)
+	const fresh = Boolean(opts && opts.fresh)
+	const refresh = (force && opts.refresh) || null
 	const entry = responseCache.get(key)
-	if (entry && force && entry.forced && entry.pending) {
+	if (entry && refresh && entry.refresh === refresh && entry.pending) {
 		return entry.promise
 	}
-	if (entry && !force && (now - entry.timestamp) < ENDPOINT_SOURCE_TTL_MS) {
+	if (entry && fresh && !force && entry.pending) {
+		return entry.promise
+	}
+	if (entry && !force && !fresh && (now - entry.timestamp) < ENDPOINT_SOURCE_TTL_MS) {
 		return entry.promise
 	}
 	const promise = (async () => {
@@ -269,9 +279,10 @@ export async function fetchSharedResponse(request, opts) {
 		const current = responseCache.get(key)
 		if (current?.promise === promise) {
 			current.pending = false
+			current.refresh = null
 		}
 	})
-	responseCache.set(key, { promise, timestamp: now, forced: force, pending: true })
+	responseCache.set(key, { promise, timestamp: now, refresh, pending: true })
 	return promise
 }
 
@@ -376,9 +387,10 @@ export function useEndpointSource(source, options) {
 	 * Run (or re-run) the fetch for the current config.
 	 *
 	 * @param {boolean} [force] Bypass the shared cache (refresh semantics).
+	 * @param {object} [refresh] The refresh event's payload, shared by its widgets.
 	 * @return {Promise<void>}
 	 */
-	async function load(force) {
+	async function load(force, refresh) {
 		const cfg = read(source)
 		const seq = ++fetchSeq
 		if (!cfg || !cfg.url) {
@@ -402,7 +414,7 @@ export function useEndpointSource(source, options) {
 		loading.value = true
 		error.value = ''
 		try {
-			const body = await fetchSharedResponse(request, { force: force === true })
+			const body = await fetchSharedResponse(request, { force: force === true, refresh })
 			if (seq !== fetchSeq) {
 				return
 			}
@@ -454,7 +466,7 @@ export function useEndpointSource(source, options) {
 
 	// `waitUntil` lets the menu that sent the refresh spin until this fetch lands.
 	const onPageRefresh = (payload) => {
-		const done = load(true)
+		const done = load(true, payload)
 		payload?.waitUntil?.(done)
 	}
 	const onWidgetRefresh = (payload) => {
@@ -465,7 +477,7 @@ export function useEndpointSource(source, options) {
 		if (!payload || payload.widgetId !== id) {
 			return
 		}
-		const done = load(true)
+		const done = load(true, payload)
 		payload.waitUntil?.(done)
 	}
 	subscribe(PAGE_REFRESH_CHANNEL, onPageRefresh)
