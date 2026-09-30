@@ -57,7 +57,7 @@
 					v-if="showPublish"
 					variant="secondary"
 					data-testid="store-publish"
-					@click="openPublish">
+					:to="publishTarget">
 					{{ t('nextcloud-vue', 'Publish') }}
 				</NcButton>
 			</div>
@@ -705,22 +705,6 @@ export default {
 			} finally {
 				this.loading = false
 			}
-		},
-
-		/**
-		 * Go to the app's own publish surface. Without a router (a host that
-		 * renders this page outside one) nothing happens rather than an error.
-		 *
-		 * @return {void}
-		 *
-		 * @spec openspec/changes/store-page-action-visibility/specs/store-page/spec.md#requirement-req-stp-2-the-consuming-app-decides-who-sees-publish-and-where-it-leads
-		 */
-		openPublish() {
-			if (this.publishTarget === null || typeof this.$router?.push !== 'function') {
-				return
-			}
-
-			this.$router.push(this.publishTarget)
 		},
 
 		/**

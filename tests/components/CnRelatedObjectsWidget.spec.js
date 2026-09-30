@@ -258,13 +258,16 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 			used: { results: [], total: 0 },
 			files: { results: [{ id: 4242, name: 'doc.pdf', size: 10 }], total: 1 },
 		})
-		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => {})
 		const wrapper = mountTabbed()
 		await flush()
 		// Files is the only non-empty group → its tab is active.
-		await wrapper.find('.cn-related-objects-widget__row').trigger('click')
-		expect(openSpy).toHaveBeenCalledWith('/f/4242', '_blank', 'noopener,noreferrer')
-		openSpy.mockRestore()
+		const row = wrapper.find('.cn-related-objects-widget__row')
+		expect(row.element.tagName).toBe('A')
+		expect(row.attributes('href')).toBe('/f/4242')
+		expect(row.attributes('target')).toBe('_blank')
+		expect(row.attributes('rel')).toBe('noopener noreferrer')
+		await row.trigger('click')
+		expect(wrapper.emitted('select-file')).toBeUndefined()
 	})
 
 	it('falls back to select-related for a leaf with no owning-app page (notes)', async () => {
@@ -274,13 +277,13 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 			used: { results: [], total: 0 },
 			files: { results: [], total: 0 },
 		})
-		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => {})
 		const wrapper = mountTabbed()
 		await flush()
-		await wrapper.find('.cn-related-objects-widget__row').trigger('click')
-		expect(openSpy).not.toHaveBeenCalled()
+		const row = wrapper.find('.cn-related-objects-widget__row')
+		expect(row.attributes('href')).toBeUndefined()
+		expect(row.attributes('role')).toBe('button')
+		await row.trigger('click')
 		expect(wrapper.emitted('select-related')[0][0]).toMatchObject({ group: 'notes' })
-		openSpy.mockRestore()
 	})
 
 	it('deep-links a deck card to its board/card route', async () => {
@@ -290,12 +293,9 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 			used: { results: [], total: 0 },
 			files: { results: [], total: 0 },
 		})
-		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => {})
 		const wrapper = mountTabbed()
 		await flush()
-		await wrapper.find('.cn-related-objects-widget__row').trigger('click')
-		expect(openSpy).toHaveBeenCalledWith('/apps/deck/board/3/card/9', '_blank', 'noopener,noreferrer')
-		openSpy.mockRestore()
+		expect(wrapper.find('.cn-related-objects-widget__row').attributes('href')).toBe('/apps/deck/board/3/card/9')
 	})
 
 	it('falls back to the deprecated store path and warns once when layout="list"', async () => {
@@ -570,21 +570,19 @@ describe('CnRelatedObjectsWidget — extraSections on the tabbed path', () => {
 
 	it('emits select-extra when one of its rows is clicked', async () => {
 		global.fetch = mockFetchBySuffix(EMPTY_SELF_FETCH)
-		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => {})
 		const wrapper = mountTabbed({ extraSections: PLANNED })
 		await flush()
 
-		await wrapper.find('.cn-related-objects-widget__row').trigger('click')
-
+		const row = wrapper.find('.cn-related-objects-widget__row')
 		// The host owns these rows, so the click must go back OUT rather than
 		// be routed by resolveItemHref against a leaf group it is not.
-		expect(openSpy).not.toHaveBeenCalled()
+		expect(row.attributes('href')).toBeUndefined()
+		await row.trigger('click')
 		expect(wrapper.emitted('select-extra')[0][0]).toMatchObject({
 			section: 'planned',
 			item: { id: 'p1' },
 		})
 		expect(wrapper.emitted('select-related')).toBeUndefined()
-		openSpy.mockRestore()
 	})
 
 	it('picks the section up when the host resolves its rows after mount', async () => {

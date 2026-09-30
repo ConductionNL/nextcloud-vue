@@ -23,8 +23,9 @@
 				<span aria-hidden="true">{{ expanded ? '▾' : '▸' }}</span>
 			</button>
 			<span v-else class="cn-menu-tree-node__caret-spacer" />
-			<button
-				type="button"
+			<component
+				:is="hasUrl ? 'a' : 'button'"
+				v-bind="labelAttrs"
 				class="cn-menu-tree-node__label-button"
 				@click="onLabelClick"
 				@keydown.right.prevent="onArrowRight"
@@ -33,7 +34,7 @@
 					<CnMenuItemIcon v-if="item.icon" :icon="item.icon" />
 				</span>
 				<span class="cn-menu-tree-node__label">{{ item.label }}</span>
-			</button>
+			</component>
 		</div>
 		<ul
 			v-if="hasChildren && expanded"
@@ -50,7 +51,7 @@
 				:activeLeafKey="activeLeafKey"
 				:currentKey="`${currentKey}.${idx}`"
 				:activeHighlight="activeHighlight"
-				@navigate="$emit('navigate', $event)" />
+				@navigate="(child, event) => $emit('navigate', child, event)" />
 		</ul>
 	</li>
 </template>
@@ -58,6 +59,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import CnMenuItemIcon from './CnMenuItemIcon.vue'
+import { menuLinkAttrs } from './menuActive.js'
 
 /**
  * CnMenuTreeNode — recursive tree-style row used by `CnMenuWidget` when
@@ -130,7 +132,8 @@ export default {
 
 	emits: [
 		/**
-		 * Fired when a leaf is activated; payload is the menu item.
+		 * Fired when a leaf is activated; payload is the menu item and the
+		 * native click event of its link.
 		 *
 		 * @type {object}
 		 */
@@ -151,6 +154,28 @@ export default {
 		 */
 		hasChildren() {
 			return Array.isArray(this.item?.children) && this.item.children.length > 0
+		},
+
+		/**
+		 * Whether the label is a link (the item has a URL).
+		 *
+		 * @return {boolean} true when `item.url` is a non-empty string.
+		 */
+		hasUrl() {
+			return typeof this.item?.url === 'string' && this.item.url !== ''
+		},
+
+		/**
+		 * Attributes of the label: an anchor for a URL (external ones open
+		 * in a new tab), else `type="button"`.
+		 *
+		 * @return {object} the element attributes.
+		 */
+		labelAttrs() {
+			if (!this.hasUrl) {
+				return { type: 'button' }
+			}
+			return menuLinkAttrs(this.item.url, this.$router)
 		},
 
 		/**
@@ -201,13 +226,15 @@ export default {
 		},
 
 		/**
-		 * Label click — navigate when the item has a URL, else toggle children.
+		 * Label click — hand a link click to the parent's navigation handler,
+		 * else toggle children.
 		 *
+		 * @param {MouseEvent} event the click event.
 		 * @return {void}
 		 */
-		onLabelClick() {
-			if (typeof this.item?.url === 'string' && this.item.url !== '') {
-				this.$emit('navigate', this.item)
+		onLabelClick(event) {
+			if (this.hasUrl) {
+				this.$emit('navigate', this.item, event)
 				return
 			}
 			if (this.hasChildren) {
@@ -286,6 +313,7 @@ export default {
 	color: inherit;
 	font-size: 14px;
 	text-align: left;
+	text-decoration: none;
 	padding: 2px 4px;
 	flex: 1;
 }

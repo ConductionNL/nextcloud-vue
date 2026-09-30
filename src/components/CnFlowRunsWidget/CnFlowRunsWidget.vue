@@ -35,17 +35,22 @@
 					:key="run.uuid"
 					class="cn-flow-runs-widget__row"
 					:class="{ 'cn-flow-runs-widget__row--linked': isLinked }"
-					:data-status="run.status"
-					@click="onRowClick(run)">
-					<span
-						class="cn-flow-runs-widget__dot"
-						:class="`cn-flow-runs-widget__dot--${run.status}`"
-						:title="statusLabel(run.status)" />
-					<span class="cn-flow-runs-widget__body">
-						<span class="cn-flow-runs-widget__name">{{ run.flowName }}</span>
-						<span class="cn-flow-runs-widget__meta">{{ metaLine(run) }}</span>
-					</span>
-					<span class="cn-flow-runs-widget__age">{{ ageLabel(run) }}</span>
+					:data-status="run.status">
+					<component
+						:is="runHrefs[run.uuid] ? 'a' : 'div'"
+						class="cn-flow-runs-widget__row-content"
+						:href="runHrefs[run.uuid] || undefined"
+						@click="onRowClick($event, run)">
+						<span
+							class="cn-flow-runs-widget__dot"
+							:class="`cn-flow-runs-widget__dot--${run.status}`"
+							:title="statusLabel(run.status)" />
+						<span class="cn-flow-runs-widget__body">
+							<span class="cn-flow-runs-widget__name">{{ run.flowName }}</span>
+							<span class="cn-flow-runs-widget__meta">{{ metaLine(run) }}</span>
+						</span>
+						<span class="cn-flow-runs-widget__age">{{ ageLabel(run) }}</span>
+					</component>
 				</li>
 			</ul>
 			<!-- The remainder is a count, never a scrollbar: the widget shows
@@ -69,17 +74,22 @@
 						:key="run.uuid"
 						class="cn-flow-runs-widget__row cn-flow-runs-widget__row--terminal"
 						:class="{ 'cn-flow-runs-widget__row--linked': isLinked }"
-						:data-status="run.status"
-						@click="onRowClick(run)">
-						<span
-							class="cn-flow-runs-widget__dot cn-flow-runs-widget__dot--terminal"
-							:class="`cn-flow-runs-widget__dot--${run.status}`"
-							:title="statusLabel(run.status)" />
-						<span class="cn-flow-runs-widget__body">
-							<span class="cn-flow-runs-widget__name">{{ run.flowName }}</span>
-							<span class="cn-flow-runs-widget__meta">{{ metaLine(run) }}</span>
-						</span>
-						<span class="cn-flow-runs-widget__age">{{ ageLabel(run) }}</span>
+						:data-status="run.status">
+						<component
+							:is="runHrefs[run.uuid] ? 'a' : 'div'"
+							class="cn-flow-runs-widget__row-content"
+							:href="runHrefs[run.uuid] || undefined"
+							@click="onRowClick($event, run)">
+							<span
+								class="cn-flow-runs-widget__dot cn-flow-runs-widget__dot--terminal"
+								:class="`cn-flow-runs-widget__dot--${run.status}`"
+								:title="statusLabel(run.status)" />
+							<span class="cn-flow-runs-widget__body">
+								<span class="cn-flow-runs-widget__name">{{ run.flowName }}</span>
+								<span class="cn-flow-runs-widget__meta">{{ metaLine(run) }}</span>
+							</span>
+							<span class="cn-flow-runs-widget__age">{{ ageLabel(run) }}</span>
+						</component>
 					</li>
 				</ul>
 				<p v-if="completedError === '' && completedHiddenCount > 0" class="cn-flow-runs-widget__more">
@@ -96,6 +106,7 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import { computed, inject, ref } from 'vue'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 
 /**
@@ -351,6 +362,19 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Each run's link href by uuid, resolved once per render.
+		 *
+		 * @return {{[uuid: string]: string}}
+		 */
+		runHrefs() {
+			const out = {}
+			for (const run of [...this.rows, ...this.completedRows]) {
+				out[run.uuid] = this.runHref(run)
+			}
+			return out
+		},
+
 		/**
 		 * Effective translate function: the explicit prop, then the injected
 		 * host one, then `@nextcloud/l10n` under the library's own app id.
@@ -658,53 +682,67 @@ export default {
 		},
 
 		/**
-		 * Open the configured route for a clicked run.
+		 * The route a run row links to, or null when it links nowhere.
 		 *
 		 * `runRoute` wins when the row carries a run uuid: on a case page a
 		 * click means "show me THIS run", and the run uuid is the deep link
 		 * the row contract carries. Without a `runRoute` (or on a row with no
-		 * uuid) the original behaviour holds unchanged: `rowRoute` receives
-		 * the FLOW id, the surface every flow-authoring app has.
+		 * uuid) `rowRoute` receives the FLOW id, the surface every
+		 * flow-authoring app has.
 		 *
-		 * 🔑 THE FLOW ID ALONE ANSWERS THE WRONG QUESTION. A click on a run
-		 * means "show me THIS run", and `rowRoute` used to push the flow id and
-		 * nothing else — so the reader landed on the flow's current graph with
-		 * no indication which of its runs they had just clicked, and had to find
-		 * the row again in the sidebar's run list. The run travels as `?run=`,
-		 * which is the address CnFlowDetail already documents its `run` prop as
-		 * reading, so a `rowRoute` click and a pasted run link open the same
-		 * screen. Apps that never wired a run detail page — which is all of them
-		 * — get the run view for free.
+		 * The flow id alone answers the wrong question, so the run travels as
+		 * `?run=`, the address CnFlowDetail documents its `run` prop as
+		 * reading: a `rowRoute` click and a pasted run link open the same
+		 * screen.
 		 *
-		 * @param {object} run The clicked run row.
-		 * @return {void}
+		 * @param {object} run The run row.
+		 * @return {object|null} A vue-router location, or null.
 		 */
-		onRowClick(run) {
+		runTarget(run) {
 			if (this.isLinked === false || !this.$router) {
-				return
+				return null
 			}
+			const hasUuid = run.uuid !== undefined && run.uuid !== null && run.uuid !== ''
 			const runRoute = this.content.runRoute
-			if (typeof runRoute === 'string' && runRoute !== ''
-				&& run.uuid !== undefined && run.uuid !== null && run.uuid !== '') {
-				this.$router.push({ name: runRoute, params: { id: String(run.uuid) } }).catch(() => {})
-				return
+			if (typeof runRoute === 'string' && runRoute !== '' && hasUuid) {
+				return { name: runRoute, params: { id: String(run.uuid) } }
 			}
 			if (typeof this.content.rowRoute !== 'string' || this.content.rowRoute === '') {
-				return
+				return null
 			}
 			const id = run.flowId
 			if (id === undefined || id === null || id === '') {
-				return
+				return null
 			}
 			const target = { name: this.content.rowRoute, params: { id: String(id) } }
-			// Only when the row actually carries one. An empty `?run=` is not a
-			// deep link, it is a query the destination has to defend against —
-			// and CnFlowDetail's `run` prop defaults to '' precisely so that
-			// "no run named" stays one value rather than two.
-			if (run.uuid !== undefined && run.uuid !== null && run.uuid !== '') {
+			// An empty `?run=` is not a deep link; CnFlowDetail's `run` prop
+			// defaults to '' so "no run named" stays one value.
+			if (hasUuid) {
 				target.query = { run: String(run.uuid) }
 			}
-			this.$router.push(target).catch(() => {})
+			return target
+		},
+
+		/**
+		 * The href of a run row's link, or '' when the row links nowhere.
+		 *
+		 * @param {object} run The run row.
+		 * @return {string} The resolved href.
+		 */
+		runHref(run) {
+			return resolveHref(this.runTarget(run), this.$router)
+		},
+
+		/**
+		 * Route a plain click on a run row's link in-app; modified clicks
+		 * are left to the browser.
+		 *
+		 * @param {MouseEvent} event The click event.
+		 * @param {object} run The clicked run row.
+		 * @return {void}
+		 */
+		onRowClick(event, run) {
+			followLinkClick(event, this.runTarget(run), this.$router)
 		},
 	},
 }
@@ -758,10 +796,6 @@ function normaliseLimit(raw) {
 }
 
 .cn-flow-runs-widget__row {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	padding: 6px 0;
 	border-bottom: 1px solid var(--color-border);
 	min-width: 0;
 }
@@ -770,7 +804,17 @@ function normaliseLimit(raw) {
 	border-bottom: none;
 }
 
-.cn-flow-runs-widget__row--linked {
+.cn-flow-runs-widget__row-content {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 0;
+	min-width: 0;
+	color: inherit;
+	text-decoration: none;
+}
+
+a.cn-flow-runs-widget__row-content {
 	cursor: pointer;
 }
 
@@ -842,7 +886,7 @@ function normaliseLimit(raw) {
    order because the cascade then depends on specificity rather than
    source order — the shape that quietly stops working when someone adds
    a competing rule. */
-.cn-flow-runs-widget__row--linked:hover .cn-flow-runs-widget__name {
+a.cn-flow-runs-widget__row-content:hover .cn-flow-runs-widget__name {
 	text-decoration: underline;
 }
 

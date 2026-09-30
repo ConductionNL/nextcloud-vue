@@ -118,13 +118,16 @@
 					v-if="listNavigation && listNavigation.available"
 					class="cn-detail-page__list-nav"
 					data-testid="cn-detail-page-list-nav">
+					<!-- With previousTo/nextTo the control is a link; a disabled
+					     end drops `to` so it renders as a disabled button. -->
 					<NcButton
 						variant="tertiary"
 						:disabled="listNavigation.isFirst"
+						:to="listNavigation.isFirst ? undefined : (previousTo || undefined)"
 						:aria-label="previousRecordLabel"
 						:title="previousRecordLabel"
 						data-testid="cn-detail-page-previous"
-						@click="$emit('previous-record')">
+						@click="onListStep('previous-record', previousTo, $event)">
 						<template #icon>
 							<ChevronLeft :size="20" />
 						</template>
@@ -135,10 +138,11 @@
 					<NcButton
 						variant="tertiary"
 						:disabled="listNavigation.isLast"
+						:to="listNavigation.isLast ? undefined : (nextTo || undefined)"
 						:aria-label="nextRecordLabel"
 						:title="nextRecordLabel"
 						data-testid="cn-detail-page-next"
-						@click="$emit('next-record')">
+						@click="onListStep('next-record', nextTo, $event)">
 						<template #icon>
 							<ChevronRight :size="20" />
 						</template>
@@ -339,7 +343,7 @@
 						<NcButton
 							variant="primary"
 							data-testid="cn-detail-page-not-found-back"
-							@click="$router.push(notFoundTarget).catch(() => {})">
+							:to="notFoundTarget">
 							<template #icon>
 								<ArrowLeft :size="20" />
 							</template>
@@ -1761,6 +1765,30 @@ export default {
 		},
 
 		/**
+		 * Router location of the previous record, as `useListNavigation`'s
+		 * `previousRoute`. When set, the previous control is a real link
+		 * (middle-click, open in new tab) and `previous-record` is emitted
+		 * with `{ event, to }` after it navigated. Null keeps it a button.
+		 *
+		 * @type {object|string|null}
+		 */
+		previousTo: {
+			type: [Object, String],
+			default: null,
+		},
+
+		/**
+		 * Router location of the next record, as `useListNavigation`'s
+		 * `nextRoute`. Same behaviour as `previousTo`.
+		 *
+		 * @type {object|string|null}
+		 */
+		nextTo: {
+			type: [Object, String],
+			default: null,
+		},
+
+		/**
 		 * The page's primary action, as declared on its manifest page. Renders
 		 * as the header's primary button and is the target the skip link
 		 * lands on. Omit it and neither renders.
@@ -1802,9 +1830,11 @@ export default {
 		/**
 		 * The reader asked for the next record of the list this one was
 		 * opened from. The host steps, because the host owns the router.
+		 * With `nextTo` set the link has navigated already and the payload
+		 * is `{ event, to }`.
 		 */
 		'next-record',
-		/** The reader asked for the previous record of that same list. */
+		/** The reader asked for the previous record of that same list. Payload as `next-record`. */
 		'previous-record',
 		/** The page's declared primary action was pressed. Payload is the declaration. */
 		'primary-action',
@@ -3070,6 +3100,23 @@ export default {
 		// Expose the shared grid helpers to the template (grid mode + auto-body).
 		cnGridCellStyle,
 		hasGridRow,
+
+		/**
+		 * Emit a list step. When the control is a link it has navigated
+		 * already, so the payload `{ event, to }` tells the host not to push
+		 * again (`useListNavigation`'s `goNext`/`goPrevious` honour it).
+		 *
+		 * @param {string} name `previous-record` or `next-record`.
+		 * @param {object|string|null} to The link target, or null.
+		 * @param {MouseEvent} event The click event.
+		 */
+		onListStep(name, to, event) {
+			if (to && this.$router) {
+				this.$emit(name, { event, to })
+			} else {
+				this.$emit(name)
+			}
+		},
 
 		/**
 		 * Move focus to the primary action when the skip link is followed.

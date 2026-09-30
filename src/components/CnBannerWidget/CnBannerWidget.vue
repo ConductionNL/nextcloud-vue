@@ -10,11 +10,9 @@
 				:is="clickable ? 'a' : 'span'"
 				class="cn-banner-widget__text"
 				:class="{ 'cn-banner-widget__text--clickable': clickable }"
-				:role="clickable ? 'button' : null"
-				:tabindex="clickable ? 0 : null"
+				:href="clickable ? routeHref : null"
 				data-testid="cn-banner-widget-text"
-				@click="onClick"
-				@keydown.enter="onClick">
+				@click="onClick">
 				{{ displayText }}
 			</component>
 		</NcNoteCard>
@@ -23,6 +21,7 @@
 
 <script>
 import { NcNoteCard } from '@nextcloud/vue'
+import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 
 /** Variants understood by NcNoteCard. */
@@ -102,8 +101,8 @@ export default {
 
 		/**
 		 * Optional click-through route: a vue-router route NAME (string) or
-		 * a full location object. When set, the banner text is an accessible
-		 * button that navigates on click / Enter. `null` renders static text.
+		 * a full location object. When set, the banner text is a link to that
+		 * route. `null` renders static text.
 		 *
 		 * @type {string|object|null}
 		 */
@@ -209,6 +208,17 @@ export default {
 		clickable() {
 			return !!this.resolvedRoute && !!this.$router
 		},
+
+		/** The click-through route as a router location (a string is a route name). */
+		routeLocation() {
+			const route = this.resolvedRoute
+			return typeof route === 'string' ? { name: route } : route
+		},
+
+		/** The href of the click-through link. */
+		routeHref() {
+			return resolveHref(this.routeLocation, this.$router)
+		},
 	},
 
 	watch: {
@@ -262,17 +272,17 @@ export default {
 		},
 
 		/**
-		 * Navigate the click-through route (string name or location object).
+		 * Route a plain click on the link; a modified click opens the href
+		 * in the browser.
 		 *
+		 * @param {MouseEvent} event The click event.
 		 * @return {void}
 		 */
-		onClick() {
+		onClick(event) {
 			if (!this.clickable) {
 				return
 			}
-			const route = this.resolvedRoute
-			const location = typeof route === 'string' ? { name: route } : route
-			this.$router.push(location).catch(() => {})
+			followLinkClick(event, this.routeLocation, this.$router)
 		},
 	},
 }

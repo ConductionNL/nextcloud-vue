@@ -6,18 +6,20 @@
 <template>
 	<div class="cn-link-button-widget" :class="rootClass">
 		<!-- Single-button mode. Default for legacy / button-mode placements. -->
-		<button
+		<!-- An external URL is a real link, except in edit mode or while busy,
+		     where it renders as a button so a click cannot navigate. -->
+		<component
+			:is="singleLinkAttrs ? 'a' : 'button'"
 			v-if="!isListMode"
-			type="button"
+			v-bind="singleLinkAttrs || { type: 'button', disabled: isExecuting }"
 			class="cn-link-button-widget__button"
 			:style="buttonStyle"
-			:disabled="isExecuting"
 			@click="onSingleClick">
 			<span v-if="hasIcon" class="cn-link-button-widget__icon">
 				<CnWidgetIcon :name="icon" :size="48" />
 			</span>
 			<span class="cn-link-button-widget__label">{{ displayLabel }}</span>
-		</button>
+		</component>
 
 		<!-- Vertical list mode. -->
 		<ul
@@ -29,18 +31,18 @@
 				v-for="(link, index) in renderableLinks"
 				:key="`link-${index}`"
 				class="cn-link-button-widget__list-item-wrap">
-				<button
-					type="button"
+				<component
+					:is="linkAttrsFor(link.actionType, link.url) ? 'a' : 'button'"
+					v-bind="linkAttrsFor(link.actionType, link.url) || { type: 'button', disabled: isExecuting }"
 					class="cn-link-button-widget__list-item"
 					:style="listItemStyle(link)"
-					:disabled="isExecuting"
 					:aria-label="link.label || ''"
 					@click="onListClick(link)">
 					<span v-if="link.icon" class="cn-link-button-widget__list-icon">
 						<CnWidgetIcon :name="link.icon" :size="24" />
 					</span>
 					<span class="cn-link-button-widget__list-label">{{ link.label || '' }}</span>
-				</button>
+				</component>
 			</li>
 		</ul>
 
@@ -55,18 +57,18 @@
 				:key="`link-${index}`"
 				role="listitem"
 				class="cn-link-button-widget__list-item-wrap cn-link-button-widget__list-item-wrap--horizontal">
-				<button
-					type="button"
+				<component
+					:is="linkAttrsFor(link.actionType, link.url) ? 'a' : 'button'"
+					v-bind="linkAttrsFor(link.actionType, link.url) || { type: 'button', disabled: isExecuting }"
 					class="cn-link-button-widget__list-item cn-link-button-widget__list-item--horizontal"
 					:style="listItemStyle(link)"
-					:disabled="isExecuting"
 					:aria-label="link.label || ''"
 					@click="onListClick(link)">
 					<span v-if="link.icon" class="cn-link-button-widget__list-icon">
 						<CnWidgetIcon :name="link.icon" :size="24" />
 					</span>
 					<span class="cn-link-button-widget__list-label">{{ link.label || '' }}</span>
-				</button>
+				</component>
 			</div>
 		</div>
 	</div>
@@ -75,6 +77,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
+import { safeHref } from '../../utils/safeHref.js'
 
 const ACTION_TYPES = Object.freeze({
 	EXTERNAL: 'external',
@@ -108,8 +111,8 @@ const GAP_REM = Object.freeze({
  * CnLinkButtonWidget — renders a styled clickable tile (or a list of tiles)
  * that dispatches one of three action types per entry:
  *
- *   - `external` → opens the configured `url` in a new tab via
- *     `window.open(url, '_blank', 'noopener,noreferrer')`.
+ *   - `external` → renders as an `<a target="_blank" rel="noopener
+ *     noreferrer">` to the configured `url` (a button in edit mode).
  *   - `internal` → emits an `internal-action` event with the action id so a
  *     host app can dispatch its own registered handler (the library ships no
  *     action registry). An empty/missing handler is a silent no-op.
@@ -257,6 +260,11 @@ export default {
 			return this.isAdmin === true && this.canEdit === true
 		},
 
+		/** Anchor attributes for the single button, or null when it stays a button. */
+		singleLinkAttrs() {
+			return this.linkAttrsFor(this.actionType, this.url)
+		},
+
 		/** Resolved display mode (legacy / unset falls back to `button`). */
 		displayMode() {
 			return this.content?.displayMode === DISPLAY_MODES.LIST
@@ -337,6 +345,22 @@ export default {
 
 	methods: {
 		/**
+		 * Anchor attributes for an entry that should be a real link: an
+		 * `external` action with a URL, outside edit mode and not busy.
+		 *
+		 * @param {string} actionType the entry's action type.
+		 * @param {string} url the entry's URL.
+		 * @return {object|null} `{ href, target, rel }`, or null for a button.
+		 */
+		linkAttrsFor(actionType, url) {
+			if (actionType !== ACTION_TYPES.EXTERNAL || typeof url !== 'string' || url === ''
+				|| this.isInEditMode || this.isExecuting) {
+				return null
+			}
+			return { href: safeHref(url), target: '_blank', rel: 'noopener noreferrer' }
+		},
+
+		/**
 		 * Per-link inline style, falling back to the widget-level colours.
 		 *
 		 * @param {object} link the normalised link entry.
@@ -361,7 +385,8 @@ export default {
 		 * @return {void}
 		 */
 		onSingleClick() {
-			if (this.isInEditMode || this.isExecuting) {
+			// A link navigates by itself.
+			if (this.isInEditMode || this.isExecuting || this.singleLinkAttrs) {
 				return
 			}
 			this.dispatchAction({
@@ -378,7 +403,7 @@ export default {
 		 * @return {void}
 		 */
 		onListClick(link) {
-			if (this.isInEditMode || this.isExecuting) {
+			if (this.isInEditMode || this.isExecuting || this.linkAttrsFor(link.actionType, link.url)) {
 				return
 			}
 			this.dispatchAction({
@@ -454,9 +479,11 @@ export default {
 	padding: 12px;
 	border: none;
 	border-radius: var(--border-radius-large, 8px);
+	box-sizing: border-box;
 	cursor: pointer;
 	font-size: 14px;
 	font-weight: 600;
+	text-decoration: none;
 	transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -517,10 +544,12 @@ export default {
 	padding: 8px 12px;
 	border: none;
 	border-radius: var(--border-radius, 6px);
+	box-sizing: border-box;
 	cursor: pointer;
 	font-size: 14px;
 	font-weight: 500;
 	text-align: left;
+	text-decoration: none;
 	transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 

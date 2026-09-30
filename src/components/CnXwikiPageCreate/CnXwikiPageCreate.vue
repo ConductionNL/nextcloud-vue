@@ -34,7 +34,7 @@
 			<AlertCircleOutline :size="32" class="cn-xwiki-page-create__unconfigured-icon" />
 			<strong>{{ t('nextcloud-vue', 'XWiki connection not configured') }}</strong>
 			<p>{{ t('nextcloud-vue', 'Add an XWiki source in Integriq before creating pages.') }}</p>
-			<NcButton variant="primary" @click="openIntegriq">
+			<NcButton variant="primary" :href="openConnectorSourcesUrl" target="_blank">
 				{{ t('nextcloud-vue', 'Configure XWiki connection') }}
 			</NcButton>
 		</div>
@@ -136,12 +136,6 @@ export default {
 			 * @event close Emitted when the dialog should be closed (cancel or close button).
 			 */
 			this.$emit('close')
-		},
-
-		openIntegriq() {
-			if (typeof window !== 'undefined') {
-				window.open(this.openConnectorSourcesUrl, '_blank', 'noopener')
-			}
 		},
 
 		submit() {

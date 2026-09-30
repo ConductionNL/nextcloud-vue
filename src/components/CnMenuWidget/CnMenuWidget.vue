@@ -38,7 +38,7 @@
 				:activeLeafKey="activeLeafKey"
 				:currentKey="`${idx}`"
 				:activeHighlight="activeItemHighlight"
-				@navigate="onNavigate" />
+				@navigate="onTreeNavigate" />
 		</ul>
 
 		<!-- Megamenu style -->
@@ -53,21 +53,22 @@
 					:key="`mega-top-${idx}`"
 					role="none"
 					class="cn-menu-widget__bar-item">
-					<button
+					<component
+						:is="isTopLink(item) ? 'a' : 'button'"
 						:ref="(el) => setTopRef(el, idx)"
-						type="button"
+						v-bind="isTopLink(item) ? linkAttrs(item) : { type: 'button' }"
 						role="menuitem"
 						class="cn-menu-widget__bar-button"
 						:class="topItemClass(`${idx}`)"
 						:aria-haspopup="hasChildren(item) ? 'menu' : null"
 						:aria-expanded="megaOpenIndex === idx ? 'true' : 'false'"
-						@click="onMegaTopClick(idx, item)"
+						@click="isTopLink(item) ? onLinkClick($event, item) : onMegaTopClick(idx, item)"
 						@keydown="onMegaTopKey($event, idx, item)">
 						<span v-if="showIcons" class="cn-menu-widget__icon" :class="{ 'cn-menu-widget__icon--hidden': !item.icon }">
 							<CnMenuItemIcon v-if="item.icon" :icon="item.icon" />
 						</span>
 						<span class="cn-menu-widget__label">{{ item.label }}</span>
-					</button>
+					</component>
 				</li>
 			</ul>
 			<div
@@ -79,17 +80,18 @@
 					v-for="(child, childIdx) in items[megaOpenIndex].children"
 					:key="`mega-group-${childIdx}`"
 					class="cn-menu-widget__mega-group">
-					<button
-						type="button"
+					<component
+						:is="isLink(child) ? 'a' : 'button'"
+						v-bind="itemAttrs(child)"
 						role="menuitem"
 						class="cn-menu-widget__mega-group-title"
 						:class="topItemClass(`${megaOpenIndex}.${childIdx}`)"
-						@click="onNavigate(child)">
+						@click="onLinkClick($event, child)">
 						<span v-if="showIcons" class="cn-menu-widget__icon" :class="{ 'cn-menu-widget__icon--hidden': !child.icon }">
 							<CnMenuItemIcon v-if="child.icon" :icon="child.icon" />
 						</span>
 						<span class="cn-menu-widget__label">{{ child.label }}</span>
-					</button>
+					</component>
 					<ul
 						v-if="hasChildren(child)"
 						class="cn-menu-widget__mega-leaves">
@@ -97,17 +99,18 @@
 							v-for="(leaf, leafIdx) in child.children"
 							:key="`mega-leaf-${leafIdx}`"
 							role="none">
-							<button
-								type="button"
+							<component
+								:is="isLink(leaf) ? 'a' : 'button'"
+								v-bind="itemAttrs(leaf)"
 								role="menuitem"
 								class="cn-menu-widget__mega-leaf"
 								:class="topItemClass(`${megaOpenIndex}.${childIdx}.${leafIdx}`)"
-								@click="onNavigate(leaf)">
+								@click="onLinkClick($event, leaf)">
 								<span v-if="showIcons" class="cn-menu-widget__icon" :class="{ 'cn-menu-widget__icon--hidden': !leaf.icon }">
 									<CnMenuItemIcon v-if="leaf.icon" :icon="leaf.icon" />
 								</span>
 								<span class="cn-menu-widget__label">{{ leaf.label }}</span>
-							</button>
+							</component>
 						</li>
 					</ul>
 				</div>
@@ -126,17 +129,18 @@
 				:ref="(el) => setBarItemRef(el, idx)"
 				role="none"
 				class="cn-menu-widget__bar-item">
-				<button
+				<component
+					:is="isTopLink(item) ? 'a' : 'button'"
 					:ref="(el) => setTopRef(el, idx)"
-					type="button"
+					v-bind="isTopLink(item) ? linkAttrs(item) : { type: 'button' }"
 					role="menuitem"
 					class="cn-menu-widget__bar-button"
 					:class="topItemClass(`${idx}`)"
 					:aria-haspopup="hasChildren(item) ? 'menu' : null"
 					:aria-expanded="dropOpenIndex === idx ? 'true' : 'false'"
-					@click="onDropdownTopClick(idx, item)"
+					@click="isTopLink(item) ? onLinkClick($event, item) : onDropdownTopClick(idx, item)"
 					@keydown.tab="closeAll"
-					@keydown.enter.prevent="onDropdownTopClick(idx, item)"
+					@keydown.enter="onDropdownTopEnter($event, idx, item)"
 					@keydown.space.prevent="onDropdownTopClick(idx, item)"
 					@keydown.down.prevent="openDropdown(idx)">
 					<span v-if="showIcons" class="cn-menu-widget__icon" :class="{ 'cn-menu-widget__icon--hidden': !item.icon }">
@@ -144,7 +148,7 @@
 					</span>
 					<span class="cn-menu-widget__label">{{ item.label }}</span>
 					<span v-if="hasChildren(item)" class="cn-menu-widget__caret" aria-hidden="true">▾</span>
-				</button>
+				</component>
 				<ul
 					v-if="dropOpenIndex === idx && hasChildren(item)"
 					class="cn-menu-widget__dropdown"
@@ -155,18 +159,19 @@
 						role="none"
 						class="cn-menu-widget__dropdown-item-wrap"
 						@mouseenter="hasChildren(child) && (flyoutOpenKey = `${idx}.${childIdx}`)">
-						<button
-							type="button"
+						<component
+							:is="isLink(child) ? 'a' : 'button'"
+							v-bind="itemAttrs(child)"
 							role="menuitem"
 							class="cn-menu-widget__dropdown-item"
 							:class="topItemClass(`${idx}.${childIdx}`)"
-							@click="onNavigate(child)">
+							@click="onLinkClick($event, child)">
 							<span v-if="showIcons" class="cn-menu-widget__icon" :class="{ 'cn-menu-widget__icon--hidden': !child.icon }">
 								<CnMenuItemIcon v-if="child.icon" :icon="child.icon" />
 							</span>
 							<span class="cn-menu-widget__label">{{ child.label }}</span>
 							<span v-if="hasChildren(child)" class="cn-menu-widget__caret cn-menu-widget__caret--right" aria-hidden="true">▸</span>
-						</button>
+						</component>
 						<ul
 							v-if="flyoutOpenKey === `${idx}.${childIdx}` && hasChildren(child)"
 							class="cn-menu-widget__flyout"
@@ -175,17 +180,18 @@
 								v-for="(leaf, leafIdx) in child.children"
 								:key="`drop-leaf-${leafIdx}`"
 								role="none">
-								<button
-									type="button"
+								<component
+									:is="isLink(leaf) ? 'a' : 'button'"
+									v-bind="itemAttrs(leaf)"
 									role="menuitem"
 									class="cn-menu-widget__dropdown-item"
 									:class="topItemClass(`${idx}.${childIdx}.${leafIdx}`)"
-									@click="onNavigate(leaf)">
+									@click="onLinkClick($event, leaf)">
 									<span v-if="showIcons" class="cn-menu-widget__icon" :class="{ 'cn-menu-widget__icon--hidden': !leaf.icon }">
 										<CnMenuItemIcon v-if="leaf.icon" :icon="leaf.icon" />
 									</span>
 									<span class="cn-menu-widget__label">{{ leaf.label }}</span>
-								</button>
+								</component>
 							</li>
 						</ul>
 					</li>
@@ -199,7 +205,8 @@
 import { translate as t } from '@nextcloud/l10n'
 import CnMenuItemIcon from './CnMenuItemIcon.vue'
 import CnMenuTreeNode from './CnMenuTreeNode.vue'
-import { computeActivePath, isActiveItem } from './menuActive.js'
+import { followLinkClick } from '../../utils/linkNavigation.js'
+import { computeActivePath, isActiveItem, isRouterPath, menuLinkAttrs } from './menuActive.js'
 
 const VALID_STYLES = ['dropdown', 'megamenu', 'tree']
 const VALID_ORIENTATIONS = ['horizontal', 'vertical']
@@ -549,6 +556,10 @@ export default {
 		 * @return {void}
 		 */
 		onMegaTopKey(event, idx, item) {
+			// Enter on a link clicks it natively.
+			if (event.key === 'Enter' && this.isTopLink(item)) {
+				return
+			}
 			if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
 				event.preventDefault()
 				this.onMegaTopClick(idx, item)
@@ -608,8 +619,102 @@ export default {
 		},
 
 		/**
+		 * Whether an item renders as a link (it has a URL).
+		 *
+		 * @param {object} item the menu item.
+		 * @return {boolean} true when the item carries a non-empty URL.
+		 */
+		isLink(item) {
+			return Boolean(item) && typeof item.url === 'string' && item.url !== ''
+		},
+
+		/**
+		 * Whether a top-level item renders as a link. One with children
+		 * stays a button, because its click toggles the panel.
+		 *
+		 * @param {object} item the menu item.
+		 * @return {boolean} true for a top-level leaf with a URL.
+		 */
+		isTopLink(item) {
+			return this.isLink(item) && !this.hasChildren(item)
+		},
+
+		/**
+		 * Anchor attributes for an item's URL: external URLs open in a new tab.
+		 *
+		 * @param {object} item the menu item.
+		 * @return {object} the `href` (plus `target` / `rel` for external URLs).
+		 */
+		linkAttrs(item) {
+			return menuLinkAttrs(item.url, this.$router)
+		},
+
+		/**
+		 * Attributes for a panel item: link attributes, or `type="button"`.
+		 *
+		 * @param {object} item the menu item.
+		 * @return {object} the element attributes.
+		 */
+		itemAttrs(item) {
+			return this.isLink(item) ? this.linkAttrs(item) : { type: 'button' }
+		},
+
+		/**
+		 * Click on an item link: close the menus, then let the browser open
+		 * an external URL or a modified click, and route a plain click on an
+		 * internal one. A no-op for an item without a URL.
+		 *
+		 * @param {MouseEvent} event the click event.
+		 * @param {object} item the menu item.
+		 * @return {void}
+		 */
+		onLinkClick(event, item) {
+			if (!this.isLink(item)) {
+				return
+			}
+			this.closeAll()
+			if (isRouterPath(item.url)) {
+				followLinkClick(event, item.url, this.$router)
+			}
+		},
+
+		/**
+		 * Enter on a dropdown top item: a link follows natively (Enter
+		 * clicks it); a button toggles or navigates.
+		 *
+		 * @param {KeyboardEvent} event the key event.
+		 * @param {number} idx the item index.
+		 * @param {object} item the menu item.
+		 * @return {void}
+		 */
+		onDropdownTopEnter(event, idx, item) {
+			if (this.isTopLink(item)) {
+				return
+			}
+			event.preventDefault()
+			this.onDropdownTopClick(idx, item)
+		},
+
+		/**
+		 * Navigation request from a tree node: a link click goes through the
+		 * link handler, a request without an event navigates directly.
+		 *
+		 * @param {object} item the menu item.
+		 * @param {MouseEvent} [event] the click event, when the node's link was clicked.
+		 * @return {void}
+		 */
+		onTreeNavigate(item, event) {
+			if (event) {
+				this.onLinkClick(event, item)
+				return
+			}
+			this.onNavigate(item)
+		},
+
+		/**
 		 * Navigate to an item's URL (router push for internal, new tab for
-		 * external), closing any open menus first.
+		 * external), closing any open menus first. Used where no link click
+		 * is involved (keyboard activation of a menu item).
 		 *
 		 * @param {object} item the menu item.
 		 * @return {void}
@@ -620,13 +725,14 @@ export default {
 			}
 			this.closeAll()
 			const url = item.url
+			const { href } = menuLinkAttrs(url, this.$router)
 			if (this.isExternal(url)) {
 				if (typeof window !== 'undefined' && typeof window.open === 'function') {
-					window.open(url, '_blank', 'noopener,noreferrer')
+					window.open(href, '_blank', 'noopener,noreferrer')
 				}
 				return
 			}
-			if (this.$router && typeof this.$router.push === 'function') {
+			if (isRouterPath(url) && this.$router && typeof this.$router.push === 'function') {
 				try {
 					this.$router.push(url)
 					return
@@ -634,8 +740,9 @@ export default {
 					// Fall through to location assignment.
 				}
 			}
-			if (typeof window !== 'undefined' && window.location) {
-				window.location.href = url
+			// href is safeHref-checked, so a javascript: URL never reaches location.
+			if (href !== '#' && typeof window !== 'undefined' && window.location) {
+				window.location.href = href
 			}
 		},
 
@@ -734,6 +841,8 @@ export default {
 	font-size: 14px;
 	cursor: pointer;
 	text-align: left;
+	text-decoration: none;
+	box-sizing: border-box;
 	width: 100%;
 }
 
