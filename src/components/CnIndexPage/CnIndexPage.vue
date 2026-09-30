@@ -2807,6 +2807,9 @@ export default {
 		 * that is what Add does (no host `@add` listener) and the router can
 		 * resolve it. The bar then renders Add as a real link; null otherwise.
 		 *
+		 * `$.vnode.props` is not reactive, so an `add` listener attached or
+		 * removed after mount does not re-evaluate this.
+		 *
 		 * @return {string|object|null}
 		 */
 		addLinkTo() {

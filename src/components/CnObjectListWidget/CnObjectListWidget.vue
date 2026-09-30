@@ -286,7 +286,7 @@ import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
-import { actionLink, dispatchAction } from '../../utils/actionsDispatcher.js'
+import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { objectFieldValue } from '../../utils/objectName.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -1465,8 +1465,7 @@ export default {
 		 * @return {object} `{ href, linkTarget }`, `{ to }`, or `{}`.
 		 */
 		rowActionLink(action) {
-			const target = typeof action.target === 'string' ? action.target : ''
-			if (/[@{]/.test(target)) {
+			if (hasActionTargetTokens(action.target)) {
 				return {}
 			}
 			const link = actionLink(action, { router: this.$router || null })
