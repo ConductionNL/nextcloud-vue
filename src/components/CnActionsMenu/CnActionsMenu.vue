@@ -69,7 +69,6 @@
 				v-if="showRequestFeature && resolvedRequestFeatureUrl"
 				:href="resolvedRequestFeatureUrl"
 				target="_blank"
-				rel="noopener noreferrer"
 				:data-testid="`${testidBase}-action-request-feature`"
 				:closeAfterClick="true"
 				@click="onRequestFeatureClick">

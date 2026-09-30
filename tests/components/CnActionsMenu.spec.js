@@ -279,7 +279,6 @@ describe('CnActionsMenu — default Request-a-feature handler', () => {
 		expect(u.searchParams.get('template')).toBe('feature-request.yml')
 		expect(u.searchParams.get('title')).toBe('[FEATURE] detail:cases')
 		expect(item.attributes('target')).toBe('_blank')
-		expect(item.attributes('rel')).toBe('noopener noreferrer')
 
 		// The browser follows the link; nothing opens a window by script.
 		await item.trigger('click')

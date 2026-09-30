@@ -31,15 +31,15 @@
 			</p>
 			<ul v-else class="cn-flow-runs-widget__list">
 				<li
-					v-for="run in rows"
-					:key="run.uuid"
+					v-for="(run, index) in rows"
+					:key="run.uuid || `row-${index}`"
 					class="cn-flow-runs-widget__row"
 					:class="{ 'cn-flow-runs-widget__row--linked': isLinked }"
 					:data-status="run.status">
 					<component
-						:is="runHrefs[run.uuid] ? 'a' : 'div'"
+						:is="runHref(run) ? 'a' : 'div'"
 						class="cn-flow-runs-widget__row-content"
-						:href="runHrefs[run.uuid] || undefined"
+						:href="runHref(run) || undefined"
 						@click="onRowClick($event, run)">
 						<span
 							class="cn-flow-runs-widget__dot"
@@ -70,15 +70,15 @@
 				</p>
 				<ul v-else class="cn-flow-runs-widget__list">
 					<li
-						v-for="run in completedRows"
-						:key="run.uuid"
+						v-for="(run, index) in completedRows"
+						:key="run.uuid || `completed-${index}`"
 						class="cn-flow-runs-widget__row cn-flow-runs-widget__row--terminal"
 						:class="{ 'cn-flow-runs-widget__row--linked': isLinked }"
 						:data-status="run.status">
 						<component
-							:is="runHrefs[run.uuid] ? 'a' : 'div'"
+							:is="runHref(run) ? 'a' : 'div'"
 							class="cn-flow-runs-widget__row-content"
-							:href="runHrefs[run.uuid] || undefined"
+							:href="runHref(run) || undefined"
 							@click="onRowClick($event, run)">
 							<span
 								class="cn-flow-runs-widget__dot cn-flow-runs-widget__dot--terminal"
@@ -362,19 +362,6 @@ export default {
 	},
 
 	computed: {
-		/**
-		 * Each run's link href by uuid, resolved once per render.
-		 *
-		 * @return {{[uuid: string]: string}}
-		 */
-		runHrefs() {
-			const out = {}
-			for (const run of [...this.rows, ...this.completedRows]) {
-				out[run.uuid] = this.runHref(run)
-			}
-			return out
-		},
-
 		/**
 		 * Effective translate function: the explicit prop, then the injected
 		 * host one, then `@nextcloud/l10n` under the library's own app id.
