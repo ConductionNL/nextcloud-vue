@@ -2221,10 +2221,10 @@ export default {
 			}
 		},
 
-		/** Label of the not-found state's button. */
+		/** Label of the not-found state's button, unescaped because `{{ }}` escapes. */
 		notFoundButtonLabel() {
 			return this.notFoundRoute && this.notFoundRouteLabel
-				? t('nextcloud-vue', 'Back to {page}', { page: this.notFoundRouteLabel })
+				? t('nextcloud-vue', 'Back to {page}', { page: this.notFoundRouteLabel }, undefined, { escape: false })
 				: t('nextcloud-vue', 'Back to home')
 		},
 

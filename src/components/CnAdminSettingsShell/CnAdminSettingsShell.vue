@@ -129,8 +129,8 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import { buildFeatureRequestUrl } from '../../utils/forge.js'
-import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
 import { prefixUrl } from '../../utils/headers.js'
+import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
 
 /**
  * CnAdminSettingsShell — the canonical chrome for a Conduction app's Nextcloud

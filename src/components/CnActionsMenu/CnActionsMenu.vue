@@ -211,6 +211,9 @@ function createSyntheticEvent(waitUntil = () => {}) {
 /** Shortest time the Refresh spinner shows, so a fast refresh is still visible. */
 const MIN_REFRESH_SPIN_MS = 400
 
+/** Longest the Refresh item waits on `waitUntil` work; axios has no default timeout. */
+const MAX_REFRESH_WAIT_MS = 15000
+
 /**
  * CnActionsMenu — the shared built-in overflow Actions menu.
  *
@@ -670,8 +673,8 @@ export default {
 		 * (emit on `refreshChannel`) unless a host called
 		 * `event.preventDefault()` on the second handler arg. The item spins
 		 * and the menu stays open until every promise handed to `waitUntil`
-		 * (on the event or the bus payload) settles and the host's
-		 * `refreshing` is false; then the menu closes.
+		 * (on the event or the bus payload) settles, or 15 s pass, and the
+		 * host's `refreshing` is false; then the menu closes.
 		 *
 		 * @return {Promise<void>}
 		 */
@@ -702,7 +705,14 @@ export default {
 					waitUntil,
 				})
 			}
-			await Promise.allSettled(work)
+			let ceiling
+			await Promise.race([
+				Promise.allSettled(work),
+				new Promise((resolve) => {
+					ceiling = setTimeout(resolve, MAX_REFRESH_WAIT_MS)
+				}),
+			])
+			clearTimeout(ceiling)
 			const hold = MIN_REFRESH_SPIN_MS - (Date.now() - startedAt)
 			if (hold > 0) {
 				await new Promise((resolve) => setTimeout(resolve, hold))

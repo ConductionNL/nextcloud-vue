@@ -63,8 +63,13 @@ import { useObjectStore } from '../../store/index.js'
  * Persists a contactmoment (channel / client / subject / summary / outcome) to
  * OpenRegister via `useObjectStore().saveObject`. It reads `selectedClient`
  * from the page-level workspace context (the page's client in focus, set by a
- * page-level picker) to pre-fill its Client field, and writes nothing back: it
- * is a submission form, and what is typed into it drives no other widget.
+ * page-level picker) to pre-fill its Client field.
+ *
+ * By default it also writes the chosen client to `selectedClient` and the live
+ * summary text to `activeSummary`, so sibling widgets react: a client list
+ * filtered on `@workspace.selectedClient`, or a `CnKbSearchWidget` bound to
+ * `activeSummary`. A page whose client in focus comes from its own picker sets
+ * `writeWorkspace: false`, which keeps the form's values to the submission.
  *
  * The Client field belongs to this submission only. It is a
  * `CnResourceSelect`, so typing a name that doesn't exist yet offers
@@ -107,8 +112,10 @@ export default {
 	inject: {
 		/**
 		 * Page-level workspace context (reactive `ref({})`) from CnDashboardPage.
-		 * The widget reads `selectedClient` from it. Null on pages that don't
-		 * provide one (the form still saves).
+		 * The widget reads `selectedClient` from it and, unless
+		 * `content.writeWorkspace` is false, writes `selectedClient` and
+		 * `activeSummary` back. Null on pages that don't provide one (the form
+		 * still saves).
 		 */
 		cnWorkspaceContext: { default: null },
 		/**
@@ -122,7 +129,7 @@ export default {
 		/**
 		 * Persisted configuration blob (see component description for the shape).
 		 *
-		 * @type {{register?: string, schema?: string, defaults?: object, clientSchema?: string, clientField?: string, clientLabelField?: string, subjectField?: string, summaryField?: string, channelField?: string, outcomeField?: string, channels?: Array, outcomes?: Array, submitLabel?: string, detailRoute?: string}}
+		 * @type {{register?: string, schema?: string, defaults?: object, clientSchema?: string, clientField?: string, clientLabelField?: string, subjectField?: string, summaryField?: string, channelField?: string, outcomeField?: string, channels?: Array, outcomes?: Array, submitLabel?: string, detailRoute?: string, writeWorkspace?: boolean}}
 		 */
 		content: {
 			type: Object,
@@ -301,8 +308,14 @@ export default {
 			}
 		},
 
+		// `escape: false` because the label renders through `{{ }}`, which escapes.
 		openLabel() {
-			return t('nextcloud-vue', 'Open "{title}"', { title: (this.saved && this.saved.title) || '' })
+			return t('nextcloud-vue', 'Open "{title}"', { title: (this.saved && this.saved.title) || '' }, undefined, { escape: false })
+		},
+
+		/** Whether the form writes its client and summary to the workspace context. */
+		writesWorkspace() {
+			return this.content.writeWorkspace !== false
 		},
 	},
 
@@ -335,13 +348,10 @@ export default {
 				return
 			}
 			try {
-				if (typeof store.registerObjectType === 'function') {
+				// Re-registering an existing type resets its cached objects and schema.
+				if (typeof store.registerObjectType === 'function' && !store.objectTypeRegistry?.[this.typeSlug]) {
 					store.registerObjectType(this.typeSlug, this.schema, this.register)
 				}
-			} catch {
-				// Already registered.
-			}
-			try {
 				this.schemaDef = await store.fetchSchema(this.typeSlug)
 			} catch {
 				this.schemaDef = null
@@ -355,29 +365,32 @@ export default {
 		},
 
 		/**
-		 * A field edit from CnFormWidgetBase. `client` never arrives here: its
-		 * control is the `#field-client` slot, which calls onClientChange.
+		 * A field edit from CnFormWidgetBase. `summary` also streams into the
+		 * workspace context. `client` never arrives here: its control is the
+		 * `#field-client` slot, which calls onClientChange.
 		 *
 		 * @param {{key: string, value: unknown}} payload The changed field.
 		 * @return {void}
 		 */
 		onFieldUpdate({ key, value }) {
 			this.form[key] = value
+			if (key === 'summary') {
+				this.writeWorkspace('activeSummary', value)
+			}
 		},
 
 		/**
-		 * The submission's client. Deliberately not written to the workspace
-		 * context: the page's client in focus is chosen elsewhere.
+		 * The submission's client, also written to the workspace context.
 		 *
 		 * @param {string} id The selected client id.
 		 */
 		onClientChange(id) {
 			this.form.client = id || ''
+			this.writeWorkspace('selectedClient', this.form.client)
 		},
 
 		/**
-		 * A client created inline via "Create '<name>'" — select it for this
-		 * submission.
+		 * A client created inline via "Create '<name>'" — select it.
 		 *
 		 * @param {object} client The created client object.
 		 */
@@ -385,7 +398,31 @@ export default {
 			const id = String((client && (client.id || (client['@self'] && client['@self'].id))) || '')
 			if (id) {
 				this.form.client = id
+				this.writeWorkspace('selectedClient', id)
 			}
+		},
+
+		/**
+		 * Write a key into the workspace context, unless `content.writeWorkspace`
+		 * is false.
+		 *
+		 * Vue 2.7's Options-API `inject` auto-unwraps the provided ref, so the
+		 * holder is usually the plain reactive object; the raw-ref shape
+		 * (`.value`) is supported for Composition-API consumers.
+		 *
+		 * @param {string} key The context key.
+		 * @param {unknown} value The value.
+		 */
+		writeWorkspace(key, value) {
+			const holder = this.cnWorkspaceContext
+			if (!this.writesWorkspace || !holder || typeof holder !== 'object') {
+				return
+			}
+			if ('value' in holder) {
+				holder.value = { ...(holder.value || {}), [key]: value }
+				return
+			}
+			holder[key] = value
 		},
 
 		/**
@@ -430,10 +467,8 @@ export default {
 			this.saving = true
 			this.saved = null
 			try {
-				if (typeof this.objectStore.registerObjectType === 'function') {
-					try {
-						this.objectStore.registerObjectType(this.typeSlug, this.schema, this.register)
-					} catch { /* idempotent */ }
+				if (typeof this.objectStore.registerObjectType === 'function' && !this.objectStore.objectTypeRegistry?.[this.typeSlug]) {
+					this.objectStore.registerObjectType(this.typeSlug, this.schema, this.register)
 				}
 				const result = await this.objectStore.saveObject(this.typeSlug, payload)
 				if (!result) {
@@ -453,6 +488,7 @@ export default {
 				this.form.subject = ''
 				this.form.summary = ''
 				this.form.outcome = ''
+				this.writeWorkspace('activeSummary', '')
 			} catch (e) {
 				this.errorMessage = (e && e.message) || t('nextcloud-vue', 'Failed to save interaction')
 			} finally {

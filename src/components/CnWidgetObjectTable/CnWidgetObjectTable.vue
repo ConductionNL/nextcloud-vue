@@ -627,10 +627,9 @@ export default {
 				}
 			}
 			// This widget's `schema` is a slug, while CnDataTable's `schema` is a
-			// schema object — the slug belongs on its `schemaId` self-fetch input.
-			if (schema) {
-				inner.schemaId = schema
-			}
+			// schema object, so it is not forwarded. Nor is it mapped to `schemaId`:
+			// that would turn on CnDataTable's unscoped self-fetch whenever the
+			// widget's own rows are empty. Self-fetch comes from `source` alone.
 			// `rowClass` is consumed here (function or declarative rules[]) and
 			// forwarded to CnDataTable as a compiled `(row) => class` function.
 			if (this.compiledRowClass) {

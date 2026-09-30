@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * CnInteractionFormWidget — self-registers the `interaction-form` dashboard
- * widget type (an active-interaction quick-log form that pre-fills its client
- * from the page workspace context's selectedClient) into the shared
+ * widget type (an active-interaction quick-log form that reads and writes
+ * selectedClient / activeSummary in the page workspace context) into the shared
  * dashboardWidgetRegistry at module load. Resolved by its type key via
  * CnDashboardPage's registryRenderer.
  */

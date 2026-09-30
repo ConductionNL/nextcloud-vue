@@ -1341,7 +1341,7 @@ export default {
 			if (this.endpointMode) {
 				return
 			}
-			const done = this.fetchValue(true)
+			const done = this.fetchValue(payload)
 			payload?.waitUntil?.(done)
 		}
 		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
@@ -1592,10 +1592,10 @@ export default {
 		 * computed client-side over the fetched objects). Lazily imports
 		 * axios/router (same pattern as CnFilesWidget).
 		 *
-		 * @param {boolean} [force] Bypass the shared endpoint cache (page refresh).
+		 * @param {object} [refresh] The page refresh event's payload, when this is one.
 		 * @return {Promise<void>}
 		 */
-		async fetchValue(force = false) {
+		async fetchValue(refresh) {
 			// Endpoint-bound tiles are fetched by the shared useEndpointSource
 			// engine (see setup) — the OpenRegister paths below must not fire.
 			if (this.endpointMode) {
@@ -1625,7 +1625,7 @@ export default {
 				])
 
 				if (s.kind === 'endpoint') {
-					this.value = await this.fetchEndpoint(s, force)
+					this.value = await this.fetchEndpoint(s, refresh)
 				} else if (s.kind === 'ratio') {
 					const num = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.numerator && s.numerator.filter) || {})
 					const den = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.denominator && s.denominator.filter) || {})
@@ -1739,21 +1739,22 @@ export default {
 		 * to a custom-aggregation endpoint (e.g. `/api/analytics/summary`) that
 		 * OpenRegister's per-schema aggregation can't express.
 		 *
-		 * Goes through the shared endpoint fetch, so tiles reading the same
-		 * endpoint with the same params send one request between them.
+		 * Never served from the settled shared cache, so a tile never shows a
+		 * count from before a write. Tiles loading at once, or reached by one
+		 * page refresh, share a single request per endpoint and params.
 		 *
 		 * @param {object} s The endpoint source `{ url, path?, params?, method? }`.
-		 * @param {boolean} [force] Bypass the shared cache (page refresh).
+		 * @param {object} [refresh] The page refresh event's payload, when this is one.
 		 * @return {Promise<number|null>} The extracted value.
 		 */
-		async fetchEndpoint(s, force = false) {
+		async fetchEndpoint(s, refresh) {
 			const params = {}
 			for (const [k, v] of Object.entries(s.params || {})) {
 				params[k] = typeof v === 'string' ? this.interpolateTokens(v) : v
 			}
 			const body = await fetchSharedResponse(
 				{ url: this.interpolateTokens(s.url), method: 'GET', params },
-				{ force },
+				refresh ? { force: true, refresh } : { fresh: true },
 			)
 			const extracted = this.getByPath(body, s.path)
 			if (extracted === undefined || extracted === null) {
