@@ -22,4 +22,4 @@ resolveHref({ name: 'LeadDetail', params: { id: 7 } }, this.$router)  // → '/i
 resolveHref({ path: '/leads/7' }, this.$router)                        // → '/index.php/apps/pipelinq/leads/7'
 ```
 
-Used by [`followLinkClick`](./follow-link-click.md) and [`openRowTarget`](./open-row-target.md).
+Used by [`openRowTarget`](./open-row-target.md). Pair it with [`followLinkClick`](./follow-link-click.md) using a location object: that helper takes a string as a router path, not a URL.

@@ -17,6 +17,7 @@ jest.mock('@nextcloud/axios', () => ({
 const { mount } = require('@vue/test-utils')
 const axios = jest.requireMock('@nextcloud/axios').default
 const CnDataTable = require('../../src/components/CnDataTable/CnDataTable.vue').default
+const { openRowTarget } = require('../../src/utils/linkNavigation.js')
 
 /**
  * Mount helper. Stubs CnCellRenderer so the test asserts the *value* the
@@ -280,9 +281,16 @@ describe('CnDataTable — a clickable row behaves like a link', () => {
 	})
 
 	it('does not open a second tab when a row-click listener already opened one', async () => {
+		const { wrapper } = mountLinked({ onRowClick: (_row, event) => openRowTarget(event, 'https://example.com/a') })
+		await wrapper.findAll('.cn-table-row').at(0).trigger('click', { ctrlKey: true })
+		expect(openSpy).toHaveBeenCalledTimes(1)
+		expect(openSpy).toHaveBeenCalledWith('https://example.com/a', '_blank', 'noopener,noreferrer')
+	})
+
+	it('still opens the tab when a row-click listener only prevented the default', async () => {
 		const { wrapper } = mountLinked({ onRowClick: (_row, event) => event.preventDefault() })
 		await wrapper.findAll('.cn-table-row').at(0).trigger('click', { ctrlKey: true })
-		expect(openSpy).not.toHaveBeenCalled()
+		expect(openSpy).toHaveBeenCalledWith('/apps/x/#/items/a', '_blank', 'noopener,noreferrer')
 	})
 })
 

@@ -8,6 +8,7 @@
 import { shallowMount } from '@vue/test-utils'
 
 const CnPageRenderer = require('../../src/components/CnPageRenderer/CnPageRenderer.vue').default
+const { markNewTabHandled } = require('../../src/utils/rowAuxClick.js')
 
 const manifest = {
 	$schema: 'https://conduction.nl/schemas/app-manifest-v2.schema.json',
@@ -356,9 +357,17 @@ describe('CnPageRenderer.onRowOpen opens a new tab like a link', () => {
 	it('does not open a second tab when the index page already opened one', () => {
 		const { wrapper, push } = mountResolving()
 		const event = new MouseEvent('click', { ctrlKey: true, cancelable: true })
-		event.preventDefault()
+		markNewTabHandled(event, true)
 		wrapper.vm.onRowOpen({ id: 'abc-123' }, event)
 		expect(openSpy).not.toHaveBeenCalled()
 		expect(push).not.toHaveBeenCalled()
+	})
+
+	it('opens the tab when an unrelated handler only prevented the default', () => {
+		const { wrapper } = mountResolving()
+		const event = new MouseEvent('click', { ctrlKey: true, cancelable: true })
+		event.preventDefault()
+		wrapper.vm.onRowOpen({ id: 'abc-123' }, event)
+		expect(openSpy).toHaveBeenCalledTimes(1)
 	})
 })

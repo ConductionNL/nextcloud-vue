@@ -87,4 +87,13 @@ describe('rowAuxClick', () => {
 		expect(plain.defaultPrevented).toBe(false)
 		expect(isNewTabHandled(plain)).toBe(false)
 	})
+
+	it('does not treat an unrelated preventDefault() as a handled new tab', () => {
+		const event = new MouseEvent('auxclick', { button: 1, cancelable: true })
+		event.preventDefault()
+		expect(isNewTabHandled(event)).toBe(false)
+
+		markNewTabHandled(event, true)
+		expect(isNewTabHandled(event)).toBe(true)
+	})
 })
