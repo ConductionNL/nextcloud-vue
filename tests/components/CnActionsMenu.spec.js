@@ -382,6 +382,24 @@ describe('CnActionsMenu — refresh spinner', () => {
 		expect(isOpen(wrapper)).toBe(false)
 	})
 
+	it('stops waiting on work that never settles after 15 seconds', async () => {
+		emitOnBus.mockImplementation((_channel, payload) => {
+			payload.waitUntil(new Promise(() => {}))
+		})
+		const wrapper = mountWithIcons()
+		await openMenu(wrapper)
+		const refreshBtn = wrapper.find('[data-testid="cn-actions-menu-action-refresh"]')
+		await refreshBtn.trigger('click')
+
+		await settle(wrapper, 14000)
+		expect(isSpinning(wrapper)).toBe(true)
+
+		await settle(wrapper, 1000)
+		expect(isSpinning(wrapper)).toBe(false)
+		expect(refreshBtn.attributes('disabled')).toBeUndefined()
+		expect(isOpen(wrapper)).toBe(false)
+	})
+
 	it('spins for at least the minimum time when nothing reports work', async () => {
 		const wrapper = mountWithIcons()
 		await openMenu(wrapper)

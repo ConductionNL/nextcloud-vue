@@ -94,8 +94,16 @@ describe('CnInteractionFormWidget', () => {
 		expect(picker.props('preload')).toBe(true)
 	})
 
-	it('keeps its client to the submission, leaving the page client alone', () => {
+	it('writes the chosen client and the live summary to the workspace by default', () => {
 		const { w, holder } = mount({}, { selectedClient: 'c-page' })
+		w.vm.onClientChange('c-7')
+		w.vm.onFieldUpdate({ key: 'summary', value: 'router keeps dropping' })
+		expect(holder.value.selectedClient).toBe('c-7')
+		expect(holder.value.activeSummary).toBe('router keeps dropping')
+	})
+
+	it('keeps its client to the submission with writeWorkspace: false', () => {
+		const { w, holder } = mount({ writeWorkspace: false }, { selectedClient: 'c-page' })
 		w.vm.onClientChange('c-7')
 		expect(w.vm.form.client).toBe('c-7')
 		expect(holder.value.selectedClient).toBe('c-page')
@@ -114,8 +122,8 @@ describe('CnInteractionFormWidget', () => {
 		expect(w.vm.form.client).toBe('c-2')
 	})
 
-	it('keeps the summary to the form, leaving the workspace context alone', () => {
-		const { w, holder } = mount()
+	it('keeps the summary to the form with writeWorkspace: false', () => {
+		const { w, holder } = mount({ writeWorkspace: false })
 		w.vm.onFieldUpdate({ key: 'summary', value: 'router keeps dropping' })
 		expect(w.vm.form.summary).toBe('router keeps dropping')
 		expect(holder.value.activeSummary).toBeUndefined()
@@ -125,7 +133,20 @@ describe('CnInteractionFormWidget', () => {
 		const { w, holder } = mount()
 		w.vm.onClientCreated({ id: 'c-new', '@self': { id: 'c-new' } })
 		expect(w.vm.form.client).toBe('c-new')
-		expect(holder.value.selectedClient).toBeUndefined()
+		expect(holder.value.selectedClient).toBe('c-new')
+	})
+
+	it('leaves an already-registered object type alone', async () => {
+		mockStore.objectTypeRegistry = { 'pipelinq-contactmoment': {} }
+		try {
+			const { w } = mount()
+			await flushPromises()
+			w.vm.form.subject = 'Hi'
+			await w.vm.onRegister()
+			expect(mockStore.registerObjectType).not.toHaveBeenCalled()
+		} finally {
+			delete mockStore.objectTypeRegistry
+		}
 	})
 
 	it('requires a subject before saving', async () => {
@@ -152,7 +173,7 @@ describe('CnInteractionFormWidget', () => {
 		expect(payload.summary).toBe('will call back')
 		expect(w.emitted().saved[0][0].id).toBe('cm-1')
 		expect(w.vm.form.summary).toBe('')
-		expect(holder.value.activeSummary).toBeUndefined()
+		expect(holder.value.activeSummary).toBe('')
 	})
 
 	describe('after a save', () => {
@@ -184,6 +205,14 @@ describe('CnInteractionFormWidget', () => {
 			expect(w.vm.openLabel).toContain('Printer on fire')
 		})
 
+		it('does not HTML-escape the saved title in the Open label', async () => {
+			const w = mountForSave({ detailRoute: 'TicketDetail' })
+			w.vm.form.subject = 'Q&A'
+			await w.vm.onRegister()
+			expect(w.vm.openLabel).toContain('Q&A')
+			expect(w.vm.openLabel).not.toContain('&amp;')
+		})
+
 		it('shows no Open button when no detailRoute is set', async () => {
 			const w = mountForSave({})
 			w.vm.form.subject = 'Printer on fire'
@@ -213,7 +242,7 @@ describe('CnInteractionFormWidget', () => {
 		const mountPlain = (workspace = {}) => {
 			const bag = workspace
 			const w = shallowMount(CnInteractionFormWidget, {
-				propsData: { content: {} },
+				propsData: { content: { writeWorkspace: false } },
 				provide: { cnWorkspaceContext: bag },
 			})
 			return { w, bag }
@@ -224,6 +253,16 @@ describe('CnInteractionFormWidget', () => {
 			expect(w.vm.form.client).toBe('c-page')
 			w.vm.onClientChange('c-9')
 			expect(bag.selectedClient).toBe('c-page')
+		})
+
+		it('writes selectedClient onto a plain workspace object by default', () => {
+			const bag = {}
+			const w = shallowMount(CnInteractionFormWidget, {
+				propsData: { content: {} },
+				provide: { cnWorkspaceContext: bag },
+			})
+			w.vm.onClientChange('c-9')
+			expect(bag.selectedClient).toBe('c-9')
 		})
 
 		it('never writes activeSummary onto a plain workspace object', () => {

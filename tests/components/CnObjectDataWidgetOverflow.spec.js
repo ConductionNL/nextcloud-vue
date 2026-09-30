@@ -98,6 +98,40 @@ describe('CnObjectDataWidget — collapsed field set', () => {
 		expect(cellCount(w)).toBe(2)
 	})
 
+	it('re-fits when the grid grows inside a cell that keeps its size', async () => {
+		const Original = globalThis.ResizeObserver
+		const observed = []
+		let notify = null
+		globalThis.ResizeObserver = class {
+			constructor(cb) {
+				notify = cb
+			}
+
+			observe(el) {
+				observed.push(el)
+			}
+
+			unobserve() {}
+
+			disconnect() {}
+		}
+		try {
+			const w = mountWidget({ columns: 2 })
+			const restore = layOut(w, 150)
+			await w.vm.fitFields()
+			restore()
+			const grid = w.find('.cn-object-data-widget__grid').element
+			expect(observed).toContain(w.find('.cn-widget-wrapper__content').element)
+			expect(observed).toContain(grid)
+
+			const fit = jest.spyOn(w.vm, 'scheduleFit')
+			notify([{ target: grid }])
+			expect(fit).toHaveBeenCalled()
+		} finally {
+			globalThis.ResizeObserver = Original
+		}
+	})
+
 	it('renders no toggle when every field fits the pinned count', () => {
 		const w = mountWidget({ collapsedFields: 8 })
 		expect(cellCount(w)).toBe(8)

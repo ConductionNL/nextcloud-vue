@@ -1102,11 +1102,34 @@ export default {
 
 		/** Re-fit when the cell is resized. */
 		observeCell() {
+			if (typeof ResizeObserver === 'undefined') {
+				return
+			}
+			this._cellObserver = new ResizeObserver(() => this.scheduleFit())
 			const content = this.cellContent()
-			if (content && typeof ResizeObserver !== 'undefined') {
-				this._cellObserver = new ResizeObserver(() => this.scheduleFit())
+			if (content) {
 				this._cellObserver.observe(content)
 			}
+		},
+
+		/**
+		 * Re-fit when the grid itself grows or shrinks: a fixed-height cell does
+		 * not resize when a relation label resolves or a field enters edit mode.
+		 * A re-fit of unchanged content lands on the same height, which the
+		 * observer does not report, so this settles after one extra pass.
+		 *
+		 * @param {HTMLElement} grid The grid element.
+		 * @return {void}
+		 */
+		observeGrid(grid) {
+			if (!this._cellObserver || grid === this._observedGrid) {
+				return
+			}
+			if (this._observedGrid) {
+				this._cellObserver.unobserve(this._observedGrid)
+			}
+			this._cellObserver.observe(grid)
+			this._observedGrid = grid
 		},
 
 		/** Debounce fitFields so a data load's burst of changes fits once. */
@@ -1129,6 +1152,9 @@ export default {
 			await this.$nextTick()
 			const content = this.cellContent()
 			const grid = this.$refs.grid
+			if (grid) {
+				this.observeGrid(grid)
+			}
 			if (!content || !grid || !content.clientHeight || content.scrollHeight <= content.clientHeight + 1) {
 				return
 			}
