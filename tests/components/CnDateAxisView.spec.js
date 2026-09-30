@@ -104,6 +104,28 @@ describe('a bar says what it is', () => {
 		expect(wrapper.emitted()['row-click'][0][0]).toEqual(row)
 		expect(row.from).toBe('2026-01-01')
 	})
+
+	it('passes the click event on, so the host can open a new tab', async () => {
+		const row = { id: 1, title: 'Een', from: '2026-01-01', to: '2026-01-05' }
+		const wrapper = mountAxis([row])
+
+		await wrapper.find('[data-testid="cn-date-axis-bar"]').trigger('click', { ctrlKey: true })
+
+		expect(wrapper.emitted()['row-click'][0][1].ctrlKey).toBe(true)
+	})
+
+	it('opens the row on a middle click, and not on a right-button auxclick', async () => {
+		const row = { id: 1, title: 'Een', from: '2026-01-01', to: '2026-01-05' }
+		const wrapper = mountAxis([row])
+		const bar = wrapper.find('[data-testid="cn-date-axis-bar"]')
+
+		await bar.trigger('auxclick', { button: 2 })
+		expect(wrapper.emitted()['row-click']).toBeUndefined()
+
+		await bar.trigger('auxclick', { button: 1 })
+		expect(wrapper.emitted()['row-click'][0][0]).toEqual(row)
+		expect(wrapper.emitted()['row-click'][0][1].button).toBe(1)
+	})
 })
 
 describe('the scale', () => {

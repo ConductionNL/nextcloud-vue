@@ -229,6 +229,13 @@ describe('a row opens the task deep link', () => {
 			assign.mockRestore()
 		}
 	})
+
+	it('exposes the same deep link as rowTarget, so a new tab can open it', () => {
+		const source = indexSources.tasks()
+		expect(source.rowTarget({ uuid: 't-9' })).toBe(taskDeepLink('t-9'))
+		expect(source.rowTarget({ id: 't-3' })).toBe(taskDeepLink('t-3'))
+		expect(source.rowTarget({})).toBeNull()
+	})
 })
 
 describe('named-source quick filters', () => {

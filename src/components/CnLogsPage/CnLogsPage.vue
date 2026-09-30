@@ -177,8 +177,10 @@ import HistoryIcon from 'vue-material-design-icons/History.vue'
 import { useListView } from '../../composables/index.js'
 import { useObjectStore } from '../../store/index.js'
 import { prefixUrl } from '../../utils/headers.js'
+import { openRowTarget } from '../../utils/linkNavigation.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
+import { markNewTabHandled } from '../../utils/rowAuxClick.js'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnDetailGrid } from '../CnDetailGrid/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
@@ -482,9 +484,11 @@ export default {
 		 */
 		'action',
 		/**
-		 * @event row-click Emitted when a log row's body is clicked, whether or
-		 * not `rowDetail` opened the detail dialog — so a host can navigate
-		 * instead of (or as well as) showing the dialog.
+		 * @event row-click Emitted when a log row's body is clicked or
+		 * middle-clicked, whether or not `rowDetail` opened the detail dialog —
+		 * so a host can navigate instead of (or as well as) showing the dialog.
+		 * Payload: `(row, event)`, the second being the native click/auxclick
+		 * event.
 		 * @type {object}
 		 */
 		'row-click',
@@ -990,26 +994,24 @@ export default {
 		/**
 		 * Handle a row-body click: navigate to `rowRoute` when one is declared,
 		 * else open the detail dialog when `rowDetail` is set. Always re-emits
-		 * so a host can do its own thing regardless.
+		 * so a host can do its own thing regardless. A ctrl/cmd/shift or middle
+		 * click opens `rowRoute` in a new tab; a middle click never opens the
+		 * dialog.
 		 *
 		 * @param {object} row The clicked log entry.
+		 * @param {MouseEvent} [event] The originating click/auxclick event.
 		 */
-		onRowClick(row) {
+		onRowClick(row, event) {
 			if (this.rowRoute) {
-				// `.catch` swallows vue-router's NavigationDuplicated when the
-				// row is already open — a rejected push is not an error here.
-				const push = this.$router?.push({ name: this.rowRoute, params: { id: row?.[this.rowKey] } })
-				if (push && typeof push.catch === 'function') {
-					push.catch(() => {})
-				}
-			} else if (this.rowDetail) {
+				markNewTabHandled(event, openRowTarget(event, { name: this.rowRoute, params: { id: row?.[this.rowKey] } }, this.$router))
+			} else if (this.rowDetail && !(event && event.button === 1)) {
 				this.detailRow = row
 			}
 			/**
-			 * @event row-click Emitted when a log row's body is clicked.
+			 * @event row-click Emitted when a log row's body is clicked or middle-clicked. Payload: `(row, event)` — the log entry and the native click/auxclick event.
 			 * @type {object}
 			 */
-			this.$emit('row-click', row)
+			this.$emit('row-click', row, event)
 		},
 
 		/** Close the row-detail dialog. */

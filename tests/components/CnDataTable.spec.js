@@ -185,6 +185,107 @@ describe('CnDataTable — row click selection', () => {
 	})
 })
 
+describe('CnDataTable — a clickable row behaves like a link', () => {
+	const cols = [{ key: 'name', label: 'Name' }]
+	let openSpy
+
+	beforeEach(() => {
+		openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+	})
+
+	afterEach(() => openSpy.mockRestore())
+
+	/**
+	 * Mount a navigating table with a router mock.
+	 *
+	 * @param {object} props Extra props.
+	 * @return {{ wrapper: object, $router: object }} The wrapper and router mock.
+	 */
+	function mountLinked(props = {}) {
+		const $router = {
+			resolve: jest.fn((loc) => ({ href: `/apps/x/#/items/${loc.params.id}` })),
+			push: jest.fn(() => Promise.resolve()),
+		}
+		const wrapper = mount(CnDataTable, {
+			propsData: {
+				rows,
+				columns: cols,
+				selectable: false,
+				rowClickRoute: (row) => ({ name: 'item', params: { id: row.id } }),
+				...props,
+			},
+			stubs: { CnCellRenderer: { props: ['value'], template: '<span class="cell">{{ value }}</span>' } },
+			mocks: { $router },
+		})
+		return { wrapper, $router }
+	}
+
+	it('navigates in place on a plain click and emits row-click with (row, event)', async () => {
+		const { wrapper, $router } = mountLinked()
+		await wrapper.findAll('.cn-table-row').at(0).trigger('click')
+		expect($router.push).toHaveBeenCalledWith({ name: 'item', params: { id: 'a' } })
+		expect(openSpy).not.toHaveBeenCalled()
+		const [row, event] = wrapper.emitted('row-click')[0]
+		expect(row).toEqual(rows[0])
+		expect(event).toBeInstanceOf(MouseEvent)
+	})
+
+	it.each([
+		['ctrl', { ctrlKey: true }],
+		['cmd', { metaKey: true }],
+		['shift', { shiftKey: true }],
+	])('opens the row in a new tab on a %s-click', async (_label, init) => {
+		const { wrapper, $router } = mountLinked()
+		await wrapper.findAll('.cn-table-row').at(0).trigger('click', init)
+		expect(openSpy).toHaveBeenCalledWith('/apps/x/#/items/a', '_blank', 'noopener,noreferrer')
+		expect($router.push).not.toHaveBeenCalled()
+	})
+
+	it('opens the row in a new tab on a middle click (auxclick) and emits row-click', async () => {
+		const { wrapper, $router } = mountLinked()
+		await wrapper.findAll('.cn-table-row').at(0).trigger('auxclick', { button: 1 })
+		expect(openSpy).toHaveBeenCalledWith('/apps/x/#/items/a', '_blank', 'noopener,noreferrer')
+		expect($router.push).not.toHaveBeenCalled()
+		expect(wrapper.emitted('row-click')[0][1].button).toBe(1)
+	})
+
+	it('ignores a right-button auxclick and keeps the context menu', async () => {
+		const { wrapper, $router } = mountLinked()
+		const row = wrapper.findAll('.cn-table-row').at(0)
+		await row.trigger('auxclick', { button: 2 })
+		await row.trigger('contextmenu')
+		expect(wrapper.emitted('row-click')).toBeFalsy()
+		expect(openSpy).not.toHaveBeenCalled()
+		expect($router.push).not.toHaveBeenCalled()
+		expect(wrapper.emitted('row-context-menu')).toHaveLength(1)
+	})
+
+	it('ignores a middle click on a nested control or the checkbox cell', async () => {
+		const { wrapper } = mountLinked({ rowClickToView: true, selectable: true })
+		const row = wrapper.findAll('.cn-table-row').at(0)
+		await row.find('.cn-table-col--checkbox').trigger('auxclick', { button: 1 })
+		const button = document.createElement('button')
+		row.find('.cell').element.appendChild(button)
+		button.dispatchEvent(new MouseEvent('auxclick', { button: 1, bubbles: true }))
+		expect(wrapper.emitted('row-click')).toBeFalsy()
+		expect(openSpy).not.toHaveBeenCalled()
+	})
+
+	it('ignores a middle click on a select-on-click table', async () => {
+		const { wrapper } = mountLinked({ selectable: true, selectedIds: [] })
+		await wrapper.findAll('.cn-table-row').at(0).trigger('auxclick', { button: 1 })
+		expect(wrapper.emitted('row-click')).toBeFalsy()
+		expect(wrapper.emitted('select')).toBeFalsy()
+		expect(openSpy).not.toHaveBeenCalled()
+	})
+
+	it('does not open a second tab when a row-click listener already opened one', async () => {
+		const { wrapper } = mountLinked({ onRowClick: (_row, event) => event.preventDefault() })
+		await wrapper.findAll('.cn-table-row').at(0).trigger('click', { ctrlKey: true })
+		expect(openSpy).not.toHaveBeenCalled()
+	})
+})
+
 // OpenRegister system/metadata fields live under the object's `@self` block.
 // Sidebar-enabled metadata columns (uri, size, owner, ...) use bare keys, so
 // the table must fall back to @self for them — without it they render blank.

@@ -179,7 +179,8 @@
 					:class="{ 'cn-files-browser__row--folder': isFolder(node) }"
 					data-testid="cn-files-browser-row"
 					:data-name="node.basename"
-					@click="open(node)">
+					@click="onRowClick(node, $event)"
+					@auxclick="onRowAuxClick(node, $event)">
 					<td class="cn-files-browser__col-icon">
 						<img
 							v-if="previewUrlFor(node)"
@@ -215,7 +216,7 @@
 							:widget="column.widget || null"
 							:row="node" />
 					</td>
-					<td class="cn-files-browser__col-actions" @click.stop>
+					<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
 						<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: node.basename })">
 							<NcActionButton
 								v-for="action in actionsFor(node)"
@@ -276,7 +277,8 @@
 					class="cn-files-browser__row cn-files-browser__row--linked"
 					data-testid="cn-files-browser-linked-row"
 					:data-name="item.name"
-					@click="openLinked(item)">
+					@click="openLinked(item)"
+					@auxclick="onLinkedAuxClick(item, $event)">
 					<td class="cn-files-browser__col-icon">
 						<img
 							v-if="mimeIconFor({ mime: item.mime })"
@@ -308,7 +310,7 @@
 						</template>
 						<NcDateTime v-else-if="column.key === 'modified' && item.mtime" :timestamp="item.mtime" :ignoreSeconds="true" />
 					</td>
-					<td class="cn-files-browser__col-actions" @click.stop>
+					<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
 						<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: item.name })">
 							<NcActionLink
 								v-if="item.href"
@@ -471,6 +473,7 @@ import CnCellRenderer from '../CnCellRenderer/CnCellRenderer.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import { readUserPreference, writeUserPreference } from '../../composables/useUserPreferences.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { isNewTabClick, isRowMiddleClick } from '../../utils/rowAuxClick.js'
 import { ACTIONS_NEEDING_THE_FILES_PAGE, crumbsFor, joinPath } from './filesBrowser.js'
 import {
 	attributePropertiesFor,
@@ -992,6 +995,47 @@ export default {
 				await this.run(view, node)
 				return
 			}
+			if (node.fileid) {
+				window.open(this.permalink(node), '_blank', 'noopener,noreferrer')
+			}
+		},
+
+		/**
+		 * Row click: a ctrl/cmd/shift click opens the node's permalink in a new
+		 * tab, like a link would; a plain click opens it in place (`open`).
+		 *
+		 * @param {object} node The node.
+		 * @param {MouseEvent} [event] The click event.
+		 * @return {void}
+		 */
+		onRowClick(node, event) {
+			if (isNewTabClick(event)) {
+				this.openInNewTab(node)
+				return
+			}
+			this.open(node)
+		},
+
+		/**
+		 * Row middle click: open the node's permalink in a new tab.
+		 *
+		 * @param {object} node The node.
+		 * @param {MouseEvent} event The auxclick event.
+		 * @return {void}
+		 */
+		onRowAuxClick(node, event) {
+			if (isRowMiddleClick(event)) {
+				this.openInNewTab(node)
+			}
+		},
+
+		/**
+		 * Open a node's permalink (a file or a folder in the Files app) in a new tab.
+		 *
+		 * @param {object} node The node.
+		 * @return {void}
+		 */
+		openInNewTab(node) {
 			if (node.fileid) {
 				window.open(this.permalink(node), '_blank', 'noopener,noreferrer')
 			}
@@ -1592,6 +1636,19 @@ export default {
 		openLinked(item) {
 			if (item.href && typeof window !== 'undefined') {
 				window.open(item.href, '_blank', 'noopener')
+			}
+		},
+
+		/**
+		 * A middle click on a linked row opens it like a click does.
+		 *
+		 * @param {object} item The linked item.
+		 * @param {MouseEvent} event The auxclick event.
+		 * @return {void}
+		 */
+		onLinkedAuxClick(item, event) {
+			if (isRowMiddleClick(event)) {
+				this.openLinked(item)
 			}
 		},
 

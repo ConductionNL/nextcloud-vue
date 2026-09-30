@@ -83,7 +83,7 @@ calls the suggestion `nested-interactive` when you try it.
 
 | Event | Payload | Description |
 |---|---|---|
-| `card-click` | row | A card was opened. |
+| `card-click` | `(row, event)` | A card was opened, by click, Enter or middle click. The second argument is the native event, for opening the card in a new tab on a ctrl/cmd/shift or middle click. |
 | `moved` | `{ card, toKey }` | A card moved through the transition. |
 | `refused` | `{ card, message }` | The transition refused, with the guard's words. |
 | `stale` | `{ card }` | The card had already moved; the payload is it as it now is. |

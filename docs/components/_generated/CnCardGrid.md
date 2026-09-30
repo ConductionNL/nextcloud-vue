@@ -15,10 +15,10 @@
 
 ### Events
 
-| Name     | Payload | Description |
-| -------- | ------- | ----------- |
-| `click`  | —       |             |
-| `select` | —       |             |
+| Name     | Payload     | Description |
+| -------- | ----------- | ----------- |
+| `click`  | `undefined` |             |
+| `select` | —           |             |
 
 ### Slots
 

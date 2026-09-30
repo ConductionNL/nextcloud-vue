@@ -85,4 +85,30 @@ describe('CnIndexPage row click', () => {
 		expect(onRowClick).not.toHaveBeenCalled()
 		expect(w.vm.internalSelectedIds).toEqual(['row-1'])
 	})
+
+	it('passes the native event on as the second row-click argument', () => {
+		const onRowClick = jest.fn()
+		const w = mountIndex({ selectable: false }, { onRowClick })
+		const event = new MouseEvent('auxclick', { button: 1 })
+
+		w.vm.onRowClick(ROW, event)
+
+		expect(onRowClick).toHaveBeenCalledWith(ROW, event)
+	})
+
+	it('does not toggle selection on a middle click', () => {
+		const w = mountIndex({})
+
+		w.vm.onRowClick(ROW, new MouseEvent('auxclick', { button: 1 }))
+
+		expect(w.vm.internalSelectedIds).toEqual([])
+	})
+
+	it('picks the native event out of a custom card component click', () => {
+		const w = mountIndex({})
+		const event = new MouseEvent('click')
+
+		expect([ROW, event].find(w.vm.isDomEvent)).toBe(event)
+		expect([ROW].find(w.vm.isDomEvent)).toBeUndefined()
+	})
 })

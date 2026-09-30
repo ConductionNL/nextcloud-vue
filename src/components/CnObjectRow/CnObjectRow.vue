@@ -3,9 +3,13 @@
 		class="cn-object-row"
 		:class="{ 'cn-object-row--selected': selected }"
 		@mousedown="onPointerDown"
-		@click="onRowClick($event)">
+		@click="onRowClick($event)"
+		@auxclick="onRowAuxClick($event)">
 		<!-- Selection checkbox -->
-		<div v-if="selectable" class="cn-object-row__checkbox" @click.stop>
+		<div v-if="selectable"
+			class="cn-object-row__checkbox"
+			@click.stop
+			@auxclick.stop>
 			<NcCheckboxRadioSwitch
 				:modelValue="selected"
 				@update:modelValue="$emit('select', object)" />
@@ -49,7 +53,10 @@
 		</span>
 
 		<!-- Trailing actions -->
-		<span v-if="$slots.actions" class="cn-object-row__actions" @click.stop>
+		<span v-if="$slots.actions"
+			class="cn-object-row__actions"
+			@click.stop
+			@auxclick.stop>
 			<!-- @slot actions Trailing actions (copy button, menu, …). -->
 			<!-- @binding {object} object The row's object. -->
 			<slot name="actions" :object="object" />
@@ -61,6 +68,7 @@
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
+import { isRowMiddleClick } from '../../utils/rowAuxClick.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
@@ -229,10 +237,23 @@ export default {
 				return
 			}
 			/**
-			 * @event click Emitted when a non-selectable row is clicked (navigation).
+			 * @event click Emitted when a non-selectable row is clicked or middle-clicked (navigation). Payload: `(object, event)` — the row's object and the native click/auxclick event, for opening it in a new tab on a ctrl/cmd/shift or middle click.
 			 * @type {object} The row's object.
 			 */
-			this.$emit('click', this.object)
+			this.$emit('click', this.object, event)
+		},
+
+		/**
+		 * Row-body middle click: emits `click` like a click on a
+		 * non-selectable row.
+		 *
+		 * @param {MouseEvent} event The auxclick event.
+		 */
+		onRowAuxClick(event) {
+			if (this.selectable || !isRowMiddleClick(event)) {
+				return
+			}
+			this.$emit('click', this.object, event)
 		},
 	},
 }

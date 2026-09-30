@@ -193,7 +193,7 @@ export default {
 		rowListeners(object) {
 			const listeners = { select: () => this.toggleSelect(object) }
 			if (!this.selectable) {
-				listeners.click = () => this.emitClick(object)
+				listeners.click = (_row, event) => this.emitClick(object, event)
 			}
 			return listeners
 		},
@@ -202,13 +202,14 @@ export default {
 		 * Emit `click` for a non-selectable row (navigation).
 		 *
 		 * @param {object} object The clicked row's object.
+		 * @param {MouseEvent} [event] The native click/auxclick event.
 		 */
-		emitClick(object) {
+		emitClick(object, event) {
 			/**
-			 * @event click Emitted when a non-selectable row is clicked (navigation).
+			 * @event click Emitted when a non-selectable row is clicked or middle-clicked (navigation). Payload: `(object, event)` — the row's object and the native click/auxclick event, for opening it in a new tab on a ctrl/cmd/shift or middle click.
 			 * @type {object} The clicked row's object.
 			 */
-			this.$emit('click', object)
+			this.$emit('click', object, event)
 		},
 
 		toggleSelect(object) {

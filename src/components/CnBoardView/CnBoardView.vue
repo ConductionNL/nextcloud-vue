@@ -107,7 +107,8 @@
 								data-testid="cn-board-card-open"
 								:data-card-id="cardKey(card)"
 								:aria-label="cardLabel(card, column)"
-								@click="openCard(card)">
+								@click="openCard(card, $event)"
+								@auxclick="onCardAuxClick(card, $event)">
 								{{ openLabel }}
 							</button>
 
@@ -160,6 +161,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { buildBoardColumns } from '../../utils/boardColumns.js'
 import { buildSwimlanes } from '../../utils/boardSwimlanes.js'
 import { DROP_OUTCOMES, runBoardDrop } from '../../utils/boardTransition.js'
+import { isRowMiddleClick } from '../../utils/rowAuxClick.js'
 
 /**
  * CnBoardView — the index page's rows as a board, one column per stage.
@@ -336,13 +338,27 @@ export default {
 		 * so a reader on Enter reaches the same record as a reader on click.
 		 *
 		 * @param {object} card The card the reader picked.
+		 * @param {MouseEvent|KeyboardEvent} [event] The originating event.
 		 * @return {void} Nothing.
 		 */
-		openCard(card) {
+		openCard(card, event) {
 			/**
-			 * @event card-click Emitted when a reader opens a card, by click or by Enter. Payload: the card row.
+			 * @event card-click Emitted when a reader opens a card, by click, Enter or middle click. Payload: `(card, event)` — the card row and the native event, so the host can open it in a new tab on a ctrl/cmd/shift or middle click.
 			 */
-			this.$emit('card-click', card)
+			this.$emit('card-click', card, event)
+		},
+
+		/**
+		 * Middle click on a card's open button: open it like a click would.
+		 *
+		 * @param {object} card The card the reader picked.
+		 * @param {MouseEvent} event The auxclick event.
+		 * @return {void} Nothing.
+		 */
+		onCardAuxClick(card, event) {
+			if (isRowMiddleClick(event)) {
+				this.openCard(card, event)
+			}
 		},
 
 		/**

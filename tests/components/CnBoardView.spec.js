@@ -220,7 +220,20 @@ describe('a card is a container, and its actions are controls', () => {
 
 		await open.trigger('click')
 
-		expect(wrapper.emitted('card-click')[0]).toEqual([ROWS[0]])
+		expect(wrapper.emitted('card-click')[0][0]).toEqual(ROWS[0])
+		expect(wrapper.emitted('card-click')[0][1]).toBeInstanceOf(MouseEvent)
+	})
+
+	it('opens a card on a middle click, passing the event, and ignores the right button', async () => {
+		const wrapper = mountBoard()
+		const open = wrapper.findAll('[data-testid="cn-board-card-open"]')[0]
+
+		await open.trigger('auxclick', { button: 2 })
+		expect(wrapper.emitted('card-click')).toBeFalsy()
+
+		await open.trigger('auxclick', { button: 1 })
+		expect(wrapper.emitted('card-click')[0][0]).toEqual(ROWS[0])
+		expect(wrapper.emitted('card-click')[0][1].button).toBe(1)
 	})
 
 	it('keeps the move control beside the opening button, never inside it', () => {

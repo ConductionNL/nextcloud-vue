@@ -207,8 +207,15 @@
 				:currentPageSize="pageSize"
 				:minItemsToShow="0"
 				@pageChanged="onPageChange" />
+			<a
+				v-if="hiddenCount > 0 && content.viewAllRoute && viewAllHref"
+				class="cn-object-list-widget__view-all"
+				:href="viewAllHref"
+				@click="onViewAll">
+				{{ viewAllLabel }}
+			</a>
 			<button
-				v-if="hiddenCount > 0 && content.viewAllRoute"
+				v-else-if="hiddenCount > 0 && content.viewAllRoute"
 				type="button"
 				class="cn-object-list-widget__view-all"
 				@click="onViewAll">
@@ -280,8 +287,10 @@ import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import { actionLink, dispatchAction } from '../../utils/actionsDispatcher.js'
+import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { objectFieldValue } from '../../utils/objectName.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { markNewTabHandled } from '../../utils/rowAuxClick.js'
 import { CnRowActions } from '../CnRowActions/index.js'
 
 /**
@@ -931,6 +940,30 @@ export default {
 			return t('nextcloud-vue', 'View all ({total})', { total: this.total || this.rows.length })
 		},
 
+		/**
+		 * The "View all (N)" router location: `viewAllRoute` with its
+		 * token-resolved `viewAllQuery`, or null without a route.
+		 *
+		 * @return {object|null}
+		 */
+		viewAllLocation() {
+			const route = this.content.viewAllRoute
+			if (!route) {
+				return null
+			}
+			return { name: route, query: resolveFilterTokens(this.content.viewAllQuery || {}, this.tokenCtx) }
+		},
+
+		/**
+		 * The href "View all (N)" links to, or '' when there is no router to
+		 * resolve it (the footer then renders as a button).
+		 *
+		 * @return {string}
+		 */
+		viewAllHref() {
+			return resolveHref(this.viewAllLocation, this.$router)
+		},
+
 		/** Pre-translated "+N more" footer label (no viewAllRoute configured). */
 		moreLabel() {
 			return t('nextcloud-vue', '+{count} more', { count: this.hiddenCount })
@@ -1341,14 +1374,6 @@ export default {
 		},
 
 		/**
-		 * "View all (N)" footer click: emits `view-all` and, when the content
-		 * blob names a `viewAllRoute`, navigates there with `viewAllQuery`
-		 * (its values token-resolved, so `{"case": "@objectId"}` carries the
-		 * current object scope into the target index page).
-		 *
-		 * @return {void}
-		 */
-		/**
 		 * Pager click — refetch that page from the server. Paging is never
 		 * client-side over an already-capped window: that would silently drop
 		 * every row past the cap while still displaying a total that counted
@@ -1366,38 +1391,50 @@ export default {
 			this.fetchRows()
 		},
 
-		onViewAll() {
+		/**
+		 * "View all (N)" footer click: emits `view-all` and, when the content
+		 * blob names a `viewAllRoute`, navigates there with `viewAllQuery`
+		 * (its values token-resolved, so `{"case": "@objectId"}` carries the
+		 * current object scope into the target index page). A modified click
+		 * on the link is left to the browser.
+		 *
+		 * @param {MouseEvent} [event] The click event.
+		 * @return {void}
+		 */
+		onViewAll(event) {
 			/**
 			 * @event view-all Emitted when the "View all (N)" footer is clicked.
 			 * @type {{ total: number }}
 			 */
 			this.$emit('view-all', { total: this.total })
-			const route = this.content.viewAllRoute
-			if (route && this.$router) {
-				const query = resolveFilterTokens(this.content.viewAllQuery || {}, this.tokenCtx)
-				this.$router.push({ name: route, query }).catch(() => {})
+			if (this.viewAllLocation) {
+				followLinkClick(event, this.viewAllLocation, this.$router)
 			}
 		},
 
 		/**
 		 * Navigate to a configured detail route on row click (when `rowRoute`
-		 * is set and a router is available).
+		 * is set and a router is available); a ctrl/cmd/shift or middle click
+		 * opens it in a new tab.
 		 *
 		 * @param {object} row The clicked object row.
+		 * @param {MouseEvent} [event] The originating click/auxclick event.
 		 * @return {void}
 		 */
-		onRowClick(row) {
+		onRowClick(row, event) {
 			const route = this.content.rowRoute
 			const id = row && (row.id || (row['@self'] && row['@self'].id))
 			if (route && id && this.$router) {
-				this.$router.push({ name: route, params: { id } }).catch(() => {})
+				markNewTabHandled(event, openRowTarget(event, { name: route, params: { id } }, this.$router))
 			}
 			/**
 			 * @event row-click Emitted with the clicked object (for hosts that
-			 * want to handle navigation themselves).
+			 * want to handle navigation themselves), on a click or middle click.
+			 * Payload: `(row, event)`, the second being the native click/auxclick
+			 * event.
 			 * @type {object}
 			 */
-			this.$emit('row-click', row)
+			this.$emit('row-click', row, event)
 		},
 
 		/**
@@ -1737,6 +1774,7 @@ export default {
 	font: inherit;
 	margin-top: 4px;
 	padding: 4px;
+	text-decoration: none;
 }
 
 .cn-object-list-widget__view-all:hover,

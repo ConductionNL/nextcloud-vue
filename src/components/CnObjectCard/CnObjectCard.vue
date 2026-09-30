@@ -3,9 +3,13 @@
 		class="cn-object-card"
 		:class="{ 'cn-object-card--selected': selected }"
 		@mousedown="onPointerDown"
-		@click="onCardClick($event)">
+		@click="onCardClick($event)"
+		@auxclick="onCardAuxClick($event)">
 		<!-- Selection checkbox -->
-		<div v-if="selectable" class="cn-object-card__checkbox" @click.stop>
+		<div v-if="selectable"
+			class="cn-object-card__checkbox"
+			@click.stop
+			@auxclick.stop>
 			<NcCheckboxRadioSwitch
 				:modelValue="selected"
 				@update:modelValue="$emit('select', object)" />
@@ -59,7 +63,10 @@
 		</div>
 
 		<!-- Actions slot -->
-		<div v-if="$slots.actions" class="cn-object-card__actions" @click.stop>
+		<div v-if="$slots.actions"
+			class="cn-object-card__actions"
+			@click.stop
+			@auxclick.stop>
 			<slot name="actions" :object="object" />
 		</div>
 	</div>
@@ -69,6 +76,7 @@
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
+import { isRowMiddleClick } from '../../utils/rowAuxClick.js'
 import { formatValue } from '../../utils/schema.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { CnLockIndicator } from '../CnLockIndicator/index.js'
@@ -279,10 +287,26 @@ export default {
 				return
 			}
 			/**
-			 * @event click Emitted when a non-selectable card is clicked. Selectable cards emit `select`; they also emit `click` (deprecated) when a `click` listener is present, so migrate selectable consumers to `@select`.
+			 * @event click Emitted when a non-selectable (or `clickToView`) card is clicked or middle-clicked. Payload: `(object, event)` — the card's object and the native click/auxclick event, for opening it in a new tab on a ctrl/cmd/shift or middle click. Selectable cards emit `select`; they also emit `click` (deprecated) when a `click` listener is present, so migrate selectable consumers to `@select`.
 			 * @type {object} The card's object.
 			 */
-			this.$emit('click', this.object)
+			this.$emit('click', this.object, event)
+		},
+
+		/**
+		 * Card-body middle click: emits `click` like a navigating click.
+		 * Ignored on a select-on-click card, on nested controls and on drags.
+		 *
+		 * @param {MouseEvent} event The auxclick event.
+		 */
+		onCardAuxClick(event) {
+			if (!isRowMiddleClick(event) || this.wasDrag(event)) {
+				return
+			}
+			if (this.selectable && !this.clickToView) {
+				return
+			}
+			this.$emit('click', this.object, event)
 		},
 	},
 }

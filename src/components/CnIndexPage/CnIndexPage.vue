@@ -595,7 +595,8 @@
 							:schema="effectiveSchema"
 							:register="register"
 							:selected="selected"
-							@click="onRowClick(object)"
+							@click="(...args) => onRowClick(object, args.find(isDomEvent))"
+							@auxclick="onCustomItemAuxClick(object, $event)"
 							@select="onSelect(toggleIdInArray(internalSelectedIds, object[rowKey]))" />
 					</template>
 					<!-- Per-part row slots (list view only): forwarded to CnObjectRow
@@ -647,7 +648,8 @@
 							:schema="effectiveSchema"
 							:register="register"
 							:selected="selected"
-							@click="onRowClick(object)"
+							@click="(...args) => onRowClick(object, args.find(isDomEvent))"
+							@auxclick="onCustomItemAuxClick(object, $event)"
 							@select="onSelect(toggleIdInArray(internalSelectedIds, object[rowKey]))" />
 					</template>
 					<template v-if="hasRowActions" #card-actions="{ object }">
@@ -773,11 +775,13 @@ import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { routeHref } from '../../utils/actionLink.js'
 import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions } from '../../utils/rowActionAvailability.js'
+import { isNewTabClick, isRowMiddleClick, markNewTabHandled } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema } from '../../utils/schema.js'
@@ -991,7 +995,7 @@ function namedFilterToQuery(values) {
  * @event {object} mass-export — Mass export confirmed. Payload: { ids, format }
  * @event {object} mass-import — Mass import confirmed. Payload: import data
  * @event {void} refresh — Refresh button clicked
- * @event {object} row-click — Table row or card clicked. Payload: row object
+ * @event {object} row-click — Table row or card clicked or middle-clicked. Payload: (row, event) — the row object and the native click/auxclick event
  * @event {{ key: string, order: string }} sort — Column sort changed
  * @event {number} page-changed — Pagination page changed
  * @event {number} page-size-changed — Pagination page size changed
@@ -1895,6 +1899,18 @@ export default {
 		showViewAction: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Where the View row action points, as `(row) => location | null`.
+		 * When it returns a location, View renders as a link to it (middle
+		 * click, copy link) and does not emit `view`; when it returns null,
+		 * View stays a button that emits `view`. CnPageRenderer sets it to
+		 * where a row click opens.
+		 */
+		viewTo: {
+			type: Function,
+			default: null,
 		},
 
 		/**
@@ -3920,6 +3936,7 @@ export default {
 				// The View action is always an eye — a universal "view" affordance,
 				// independent of the object's schema icon (which is the header icon).
 				viewIcon: Eye,
+				viewTo: this.viewTo,
 				handlers: {
 					onView: (row) => this.onView(row),
 					onEdit: (row) => {
@@ -5526,20 +5543,6 @@ export default {
 		},
 
 		/**
-		 * Row/card click: toggles selection when `selectable` (covers the custom
-		 * `cardComponent` path), otherwise emits `row-click` for navigation.
-		 *
-		 * The `@event` block below sits directly against its `$emit`, and must
-		 * stay there. vue-docgen binds an event's description to the emit it
-		 * IMMEDIATELY precedes; inserting the named-source branch between the two
-		 * silently emptied the event's description in
-		 * docs/components/_generated/CnIndexPage.md while the text sat in the
-		 * source looking maintained. Nothing failed at runtime - only the docs
-		 * freshness check, one commit later.
-		 *
-		 * @param {object} row The clicked row object
-		 */
-		/**
 		 * A card moved on the board.
 		 *
 		 * The list is refreshed rather than patched in place: the transition
@@ -5559,9 +5562,23 @@ export default {
 			await this.onRefreshEvent()
 		},
 
-		onRowClick(row) {
+		/**
+		 * Row/card click: toggles selection when `selectable` (covers the custom
+		 * `cardComponent` path), otherwise emits `row-click` for navigation. A
+		 * ctrl/cmd/shift or middle click opens a named source's row in a new tab.
+		 *
+		 * The `@event` block below sits directly against its `$emit`, and must
+		 * stay there. vue-docgen binds an event's description to the emit it
+		 * IMMEDIATELY precedes.
+		 *
+		 * @param {object} row The clicked row object
+		 * @param {MouseEvent|KeyboardEvent} [event] The originating click/auxclick event.
+		 */
+		onRowClick(row, event) {
 			if (this.selectable && !this.rowClickOpens) {
-				this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
+				if (!event || event.button === undefined || event.button === 0) {
+					this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
+				}
 				return
 			}
 			// A named source knows where its rows live. Emitting only would leave
@@ -5575,24 +5592,70 @@ export default {
 			// its own. This cannot be done by listening to `row-click`,
 			// because `openRow` calls `window.location.assign()` and the
 			// host's push never lands.
-			if (this.isNamedSource && this.rowRoute) {
-				const routeId = row?.id || row?.uuid
-				if (routeId) {
-					this.$router.push({ name: this.rowRoute, params: { id: String(routeId) } })
-				}
-			} else if (this.isNamedSource && this.namedSource && typeof this.namedSource.openRow === 'function') {
-				this.namedSource.openRow(row)
-			} else if (this.isNamedSource && this.namedSource && this.namedSource.detailRoute) {
+			//
+			// A ctrl/cmd/shift or middle click opens a new tab instead, from
+			// `rowRoute`, the source's `rowTarget(row)` or `detailRoute`. A source
+			// with only `openRow` opens the row in place on a ctrl/cmd/shift
+			// click and ignores a middle click. The event is marked so the host
+			// hearing `row-click` does not open a second tab.
+			if (this.isNamedSource) {
 				const id = row?.id || row?.uuid
-				if (id) {
-					this.$router.push(`${this.namedSource.detailRoute}/${id}`)
+				const source = this.namedSource
+				const newTab = isNewTabClick(event)
+				const openTarget = (target) => markNewTabHandled(event, openRowTarget(event, target, this.$router))
+				if (this.rowRoute) {
+					if (id && newTab) {
+						openTarget({ name: this.rowRoute, params: { id: String(id) } })
+					} else if (id) {
+						this.$router.push({ name: this.rowRoute, params: { id: String(id) } })
+					}
+				} else if (source && typeof source.openRow === 'function' && !newTab) {
+					source.openRow(row)
+				} else if (source && typeof source.rowTarget === 'function') {
+					openTarget(source.rowTarget(row))
+				} else if (source && typeof source.openRow === 'function') {
+					// No new-tab target: a modified click still opens the row in place.
+					if (event?.button !== 1) {
+						source.openRow(row)
+					}
+				} else if (source && source.detailRoute && id) {
+					if (newTab) {
+						openTarget({ path: `${source.detailRoute}/${id}` })
+					} else {
+						this.$router.push(`${source.detailRoute}/${id}`)
+					}
 				}
 			}
 			/**
-			 * @event row-click Emitted on a row/card click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set and something can open the row (selection then happens via the checkbox).
+			 * @event row-click Emitted on a row/card click (or middle click) for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set and something can open the row (selection then happens via the checkbox). Payload: `(row, event)` — the clicked row and the native click/auxclick event (absent for a keyboard shortcut or map marker), so a host can open the row in a new tab on a ctrl/cmd/shift or middle click with `openRowTarget`.
 			 * @type {object} The clicked row object.
 			 */
-			this.$emit('row-click', row)
+			this.$emit('row-click', ...(event ? [row, event] : [row]))
+		},
+
+		/**
+		 * Whether a value is a DOM event. A custom list/card component's
+		 * `click` may carry the item, the native event, or both.
+		 *
+		 * @param {unknown} value A `click` listener argument.
+		 * @return {boolean}
+		 */
+		isDomEvent(value) {
+			return typeof Event !== 'undefined' && value instanceof Event
+		},
+
+		/**
+		 * Middle click on a custom list/card component's root: open the row
+		 * like a click would.
+		 *
+		 * @param {object} row The component's row.
+		 * @param {MouseEvent} event The auxclick event.
+		 * @return {void}
+		 */
+		onCustomItemAuxClick(row, event) {
+			if (isRowMiddleClick(event)) {
+				this.onRowClick(row, event)
+			}
 		},
 
 		/**
