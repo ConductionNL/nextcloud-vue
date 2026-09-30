@@ -31,12 +31,12 @@
 </template>
 
 <script>
-import { STATUS_TEXT_COLORS, STATUS_FILL_COLORS } from '../../utils/statusColors.js'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import widgetLink from '../../mixins/widgetLink.js'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { STATUS_FILL_COLORS, STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
 
 /**
  * CnGaugeWidget — an abstract utilization / progress-to-target gauge.

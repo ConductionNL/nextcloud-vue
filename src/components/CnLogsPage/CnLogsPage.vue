@@ -176,13 +176,13 @@ import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue
 import HistoryIcon from 'vue-material-design-icons/History.vue'
 import { useListView } from '../../composables/index.js'
 import { useObjectStore } from '../../store/index.js'
+import { prefixUrl } from '../../utils/headers.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnDetailGrid } from '../CnDetailGrid/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
-import { prefixUrl } from '../../utils/headers.js'
 
 /**
  * Legacy default columns. Retained ONLY for `source` mode and for a store

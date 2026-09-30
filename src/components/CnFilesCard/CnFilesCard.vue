@@ -49,9 +49,9 @@
 </template>
 
 <script>
-import { markRaw } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
+import { markRaw } from 'vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
