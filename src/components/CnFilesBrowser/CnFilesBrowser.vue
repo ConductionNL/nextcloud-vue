@@ -258,7 +258,6 @@
 								v-if="node.fileid"
 								:href="permalink(node)"
 								target="_blank"
-								rel="noopener noreferrer"
 								:closeAfterClick="true">
 								<template #icon>
 									<OpenInNew :size="20" />
@@ -316,7 +315,6 @@
 								v-if="item.href"
 								:href="item.href"
 								target="_blank"
-								rel="noopener noreferrer"
 								:closeAfterClick="true"
 								data-testid="cn-files-browser-linked-open">
 								<template #icon>

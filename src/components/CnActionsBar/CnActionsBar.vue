@@ -153,8 +153,7 @@
 
 				<NcActionLink v-if="documentationUrl"
 					:href="documentationUrl"
-					target="_blank"
-					rel="noopener noreferrer">
+					target="_blank">
 					<template #icon>
 						<BookOpenVariantOutline :size="20" />
 					</template>

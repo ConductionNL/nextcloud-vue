@@ -29,8 +29,7 @@
 						v-if="resolvedSuggestUrl"
 						variant="primary"
 						:href="resolvedSuggestUrl"
-						target="_blank"
-						rel="noopener noreferrer">
+						target="_blank">
 						<template #icon>
 							<Plus :size="20" />
 						</template>

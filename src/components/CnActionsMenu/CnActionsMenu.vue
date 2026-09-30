@@ -91,7 +91,6 @@
 				v-if="showReportBug && resolvedReportBugUrl"
 				:href="resolvedReportBugUrl"
 				target="_blank"
-				rel="noopener noreferrer"
 				:data-testid="`${testidBase}-action-report-bug`"
 				:closeAfterClick="true">
 				<template #icon>
@@ -103,7 +102,6 @@
 				v-if="showDocumentation && resolvedDocumentationUrl"
 				:href="resolvedDocumentationUrl"
 				target="_blank"
-				rel="noopener noreferrer"
 				:data-testid="`${testidBase}-action-documentation`"
 				:closeAfterClick="true">
 				<template #icon>

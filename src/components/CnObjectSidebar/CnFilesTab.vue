@@ -153,7 +153,6 @@
 							v-if="file.id"
 							:href="showInFilesUrl(file)"
 							target="_blank"
-							rel="noopener noreferrer"
 							:closeAfterClick="true">
 							<template #icon>
 								<FolderOutline :size="20" />
