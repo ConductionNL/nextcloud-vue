@@ -69,7 +69,11 @@
 		<div v-else-if="albums.length === 0" class="cn-sidebar-tab__empty cn-photos-tab__empty">
 			<ImageIcon :size="32" class="cn-photos-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openPhotosApp">
+			<NcButton
+				variant="primary"
+				:href="photosAppUrl"
+				target="_blank"
+				rel="noopener noreferrer">
 				<template #icon>
 					<ImageIcon :size="20" />
 				</template>
@@ -389,12 +393,6 @@ export default {
 				// eslint-disable-next-line no-console
 				console.error('[CnPhotosTab] unlink failed', err)
 				this.error = t('nextcloud-vue', 'Could not unlink album.')
-			}
-		},
-
-		openPhotosApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.photosAppUrl, '_blank', 'noopener')
 			}
 		},
 

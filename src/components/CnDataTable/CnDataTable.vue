@@ -143,9 +143,13 @@
 						]"
 						@mousedown="onPointerDown"
 						@click="onRowClick(row, $event)"
+						@auxclick="onRowAuxClick(row, $event)"
 						@contextmenu.prevent="onRowContextMenu(row, $event)">
 						<!-- Checkbox -->
-						<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
+						<td v-if="selectable"
+							class="cn-table-col--checkbox"
+							@click.stop
+							@auxclick.stop>
 							<NcCheckboxRadioSwitch
 								:modelValue="isSelected(row)"
 								:aria-label="selectRowLabel"
@@ -219,7 +223,8 @@
 						<td v-if="$slots['row-actions']"
 							class="cn-table-col--actions"
 							:class="[cellClass ? cellClass(row, { key: 'actions' }) : '']"
-							@click.stop>
+							@click.stop
+							@auxclick.stop>
 							<!-- @slot Per-row actions menu (e.g. a CnRowActions), scoped with { row }. Supplying it adds the trailing actions column. -->
 							<slot name="row-actions" :row="row" />
 						</td>
@@ -269,7 +274,9 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
+import { openRowTarget } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
+import { isNewTabHandled, isRowMiddleClick, markNewTabHandled } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP, resolveRowIndicators } from '../../utils/rowIndicators.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
@@ -686,7 +693,8 @@ export default {
 		/**
 		 * Convenience navigation (folded from CnTableWidget): a function that
 		 * receives the clicked row and returns a vue-router route to push. When
-		 * set, a row click navigates there (the `row-click` event still fires).
+		 * set, a row click navigates there (the `row-click` event still fires);
+		 * a ctrl/cmd/shift or middle click opens it in a new tab.
 		 *
 		 * @type {((row: object) => object)|null}
 		 */
@@ -1331,17 +1339,45 @@ export default {
 				this.toggleSelect(row)
 				return
 			}
+			this.emitRowClick(row, event)
+		},
+
+		/**
+		 * Row-body middle click: emits `row-click` like a click, so the host
+		 * (or `rowClickRoute`) can open the row in a new tab. Ignored for other
+		 * buttons, nested controls, drags and select-on-click tables.
+		 *
+		 * @param {object} row The clicked row object
+		 * @param {MouseEvent} event The originating auxclick event.
+		 */
+		onRowAuxClick(row, event) {
+			if (!isRowMiddleClick(event) || this.wasDrag(event)) {
+				return
+			}
+			if (this.selectable && !this.rowClickToView) {
+				return
+			}
+			this.emitRowClick(row, event)
+		},
+
+		/**
+		 * Emit `row-click` and follow `rowClickRoute` when set.
+		 *
+		 * @param {object} row The clicked row object
+		 * @param {MouseEvent} [event] The originating click or auxclick event.
+		 */
+		emitRowClick(row, event) {
 			/**
-			 * @event row-click Emitted on a row-body click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox column).
+			 * @event row-click Emitted on a row-body click for navigation, and on a middle click (auxclick). Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox column). Payload: `(row, event)` — the clicked row object and the native click/auxclick event, so a host can open the row in a new tab on a ctrl/cmd/shift or middle click (see `openRowTarget`).
 			 * @type {object} The clicked row object.
 			 */
-			this.$emit('row-click', row)
-			// Convenience navigation folded from CnTableWidget: a rowClickRoute
-			// function maps the row to a route to push (the event still fires).
-			if (this.rowClickRoute && this.$router) {
+			this.$emit('row-click', row, event)
+			// A ctrl/cmd/shift or middle click opens the route in a new tab,
+			// unless a row-click listener already did.
+			if (this.rowClickRoute && this.$router && !isNewTabHandled(event)) {
 				const route = this.rowClickRoute(row)
 				if (route) {
-					this.$router.push(route).catch(() => {})
+					markNewTabHandled(event, openRowTarget(event, typeof route === 'string' ? { path: route } : route, this.$router))
 				}
 			}
 		},

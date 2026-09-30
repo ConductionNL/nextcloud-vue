@@ -48,7 +48,7 @@ Instead of an OpenRegister `source`, the tile can bind to an arbitrary app REST 
 - `clickRoute` — whole-tile click-through (alias of `route`; `route` wins when both are set).
 - `format` styles: `number`, `currency`, `percent`, `duration-hours` (`42.5h`), `decimal` (one fraction digit by default).
 - `limitField` / `limit` — render the tile as a **capacity pair** (`0 / 100`). `limitField` is a dot-path into the payload, so a server-configured quota is read live instead of duplicated in the manifest; `limit` is a static number. The limit is formatted with the value's own `format` minus `prefix`/`suffix` (a suffix belongs to the pair, not to each half, so `0 % / 100 %` is never produced). Reaching the limit tints the tile `warning` — unless a `variantWhen` rule already matched, which always wins.
-- `dateRange` — opts the tile into a period. Present and empty (`{}`) follows the ancestor `CnDashboardPage` range; add `presets` (`[{ id, label?, from?, to? }]`) to render a per-tile picker in the label row that overrides it. The active range is exposed to `endpointSource` as `@range.from` / `@range.to` / `@range.preset`.
+- `dateRange` — opts the tile into a period. Present and empty (`{}`) follows the ancestor `CnDashboardPage` range; add `presets` (`[{ id, label?, from?, to? }]`) to render a per-tile picker in the label row that overrides it. With presets and no page range the tile starts on `dateRange.default` (a preset id), else on the first preset, so the picker never opens blank and the first request already carries a range. The active range is exposed to `endpointSource` and to the tile's `route` as `@range.from` / `@range.to` / `@range.preset`.
 
   A tile that declares **no** `dateRange` is unaffected by the page range. That is deliberate: adding a range to an existing dashboard must not silently change what its tiles request.
 
@@ -198,7 +198,7 @@ The day count is taken when the tile renders. A tile left open across midnight k
 - **A countdown reads calendar days, so the answer never depends on the time of day somebody typed.** The reasoning, and the UTC-midnight parse it avoids, are in the `calendarDay` docblock in `CnStatWidget.vue`.
 
 
-- `source` supports the OpenRegister-backed kinds (`metric: 'count' \| 'sum' \| 'avg' \| …`) and a legacy `{ kind: 'endpoint', url }` form for arbitrary endpoints (uncached; prefer `endpointSource`).
+- `source` supports the OpenRegister-backed kinds (`metric: 'count' \| 'sum' \| 'avg' \| …`) and a legacy `{ kind: 'endpoint', url }` form for arbitrary endpoints (never served from the cache, though tiles loading at once or refreshed together share one request; prefer `endpointSource`).
 - Self-contained card surface — rendered flush and centred (no inner scrollbar).
-- Filter tokens (`@page.*`, `@object.*`, `@workspace.*`, `@range.*`) are resolved from injected dashboard/detail context when present.
+- Filter tokens (`@page.*`, `@object.*`, `@workspace.*`, `@range.*`) are resolved from injected dashboard/detail context when present, in the `endpointSource` and in the tile's `route` alike, so a tile on a detail page can link to `{ name: 'Traffic', query: { portal: '@object.slug' } }`. A route token that stays unresolved is dropped from the URL.
 - The tile injects `cnDashboardDateRange` — the same ref `CnChartWidget` reads — so a tile and a chart on one dashboard always agree on the period.

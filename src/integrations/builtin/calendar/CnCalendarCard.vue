@@ -101,6 +101,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcLoadingIcon } from '@nextcloud/vue'
+import { markRaw } from 'vue'
 import Calendar from 'vue-material-design-icons/Calendar.vue'
 import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
 import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
@@ -162,7 +163,7 @@ export default {
 
 	data() {
 		return {
-			Calendar,
+			Calendar: markRaw(Calendar),
 			allEvents: [],
 			loading: false,
 			error: '',

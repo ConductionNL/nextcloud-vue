@@ -26,33 +26,55 @@
 				:labelField="clientLabelField"
 				:modelValue="form.client"
 				:inputLabel="clientLabel"
+				:preload="true"
 				@update:modelValue="onClientChange"
 				@create="onClientCreated" />
+		</template>
+
+		<!-- Opens what was just saved in a new tab, beside the submit button. -->
+		<template #actions-start>
+			<NcButton
+				v-if="savedHref"
+				variant="tertiary"
+				:href="savedHref"
+				target="_blank"
+				rel="noopener noreferrer"
+				data-testid="cn-interaction-form-open">
+				<template #icon>
+					<OpenInNew :size="20" />
+				</template>
+				{{ openLabel }}
+			</NcButton>
 		</template>
 	</CnFormWidgetBase>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton } from '@nextcloud/vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import CnFormWidgetBase from '../CnFormWidgetBase/CnFormWidgetBase.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { useObjectStore } from '../../store/index.js'
 
 /**
- * CnInteractionFormWidget — the "active interaction" quick-log form that drives
- * the rest of a workspace page.
+ * CnInteractionFormWidget — the "active interaction" quick-log form of a
+ * workspace page.
  *
  * Persists a contactmoment (channel / client / subject / summary / outcome) to
- * OpenRegister via `useObjectStore().saveObject`, and — the reason it is a
- * workspace widget — WRITES two keys into the page-level workspace context:
- *  - `selectedClient` (the chosen/created client id), and
- *  - `activeSummary`  (the live summary text),
- * so sibling widgets react: a client-overview list filtered on
- * `@workspace.selectedClient` reveals that client's records, and a knowledge-base
- * widget bound to `activeSummary` searches the live conversation.
+ * OpenRegister via `useObjectStore().saveObject`. It reads `selectedClient`
+ * from the page-level workspace context (the page's client in focus, set by a
+ * page-level picker) to pre-fill its Client field.
  *
- * The client picker is a `CnResourceSelect`, so typing a name that doesn't exist
- * yet offers "Create '<name>'" inline — no dead "no results" path.
+ * By default it also writes the chosen client to `selectedClient` and the live
+ * summary text to `activeSummary`, so sibling widgets react: a client list
+ * filtered on `@workspace.selectedClient`, or a `CnKbSearchWidget` bound to
+ * `activeSummary`. A page whose client in focus comes from its own picker sets
+ * `writeWorkspace: false`, which keeps the form's values to the submission.
+ *
+ * The Client field belongs to this submission only. It is a
+ * `CnResourceSelect`, so typing a name that doesn't exist yet offers
+ * "Create '<name>'" inline — no dead "no results" path.
  *
  * Resolved by its registry type key `interaction-form`. All schema/field/enum
  * choices come from `content`, so the widget carries no app-specific vocabulary.
@@ -67,9 +89,17 @@ import { useObjectStore } from '../../store/index.js'
  *   clientField: 'client',
  *   summaryField: 'description',
  *   channels: [{ value: 'telefoon', label: 'Phone' }, …],
- *   outcomes: [{ value: 'opgelost', label: 'Resolved' }, …],
  * }
  * ```
+ *
+ * The outcome options are read from the target schema on load: the enum of
+ * its `outcomeField` property, labelled by that property's `x-enum-labels`.
+ * `outcomes: [{ value, label }]` is only a fallback for a schema that has no
+ * enum there.
+ *
+ * With `detailRoute` set (a route name taking `:id`, like an object list's
+ * `rowRoute`), a save puts an "Open" button left of the submit button that
+ * opens the saved object in a new tab.
  *
  * `defaults` covers the case where the target schema requires a value the form
  * has no input for — typically a discriminator on a supertype schema. It is
@@ -78,23 +108,29 @@ import { useObjectStore } from '../../store/index.js'
 export default {
 	name: 'CnInteractionFormWidget',
 
-	components: { CnFormWidgetBase, CnResourceSelect },
+	components: { CnFormWidgetBase, CnResourceSelect, NcButton, OpenInNew },
 
 	inject: {
 		/**
 		 * Page-level workspace context (reactive `ref({})`) from CnDashboardPage.
-		 * The widget writes `selectedClient` + `activeSummary` into it. Null on
-		 * pages that don't provide one (the form still saves; it just doesn't
-		 * drive sibling widgets).
+		 * The widget reads `selectedClient` from it and, unless
+		 * `content.writeWorkspace` is false, writes `selectedClient` and
+		 * `activeSummary` back. Null on pages that don't provide one (the form
+		 * still saves).
 		 */
 		cnWorkspaceContext: { default: null },
+		/**
+		 * Host translate function from CnAppRoot, bound to the host app's id.
+		 * Translates the schema's outcome labels.
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
 		/**
 		 * Persisted configuration blob (see component description for the shape).
 		 *
-		 * @type {{register?: string, schema?: string, defaults?: object, clientSchema?: string, clientField?: string, clientLabelField?: string, subjectField?: string, summaryField?: string, channelField?: string, outcomeField?: string, channels?: Array, outcomes?: Array}}
+		 * @type {{register?: string, schema?: string, defaults?: object, clientSchema?: string, clientField?: string, clientLabelField?: string, subjectField?: string, summaryField?: string, channelField?: string, outcomeField?: string, channels?: Array, outcomes?: Array, submitLabel?: string, detailRoute?: string, writeWorkspace?: boolean}}
 		 */
 		content: {
 			type: Object,
@@ -117,6 +153,10 @@ export default {
 			saving: false,
 			errorMessage: '',
 			subjectError: '',
+			// The target schema, fetched on load for its outcome enum.
+			schemaDef: null,
+			// The last saved object, `{ id, title }`, until the next save.
+			saved: null,
 		}
 	},
 
@@ -152,8 +192,22 @@ export default {
 					]
 		},
 
-		/** Outcome options `{ value, label }`. */
+		/**
+		 * Outcome options `{ value, label }`, from the target schema's enum so
+		 * the form can only offer values the schema accepts. Labels come from
+		 * the property's `x-enum-labels`, translated. `content.outcomes` is the
+		 * fallback for a schema without an enum on that property.
+		 *
+		 * @return {Array<{value: string, label: string}>}
+		 */
 		outcomeOptions() {
+			const properties = (this.schemaDef && this.schemaDef.properties) || {}
+			const prop = properties[this.content.outcomeField || 'outcome']
+			if (prop && Array.isArray(prop.enum) && prop.enum.length > 0) {
+				const labels = prop['x-enum-labels'] || prop.enumLabels || {}
+				const tr = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+				return prop.enum.map((value) => ({ value, label: tr(labels[value] || String(value)) }))
+			}
 			return Array.isArray(this.content.outcomes) ? this.content.outcomes : []
 		},
 
@@ -194,6 +248,12 @@ export default {
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
 
+		/** The page's client in focus, or an empty string. */
+		pageClient() {
+			const id = this.workspaceCtx && this.workspaceCtx.selectedClient
+			return id ? String(id) : ''
+		},
+
 		canRegister() {
 			return Boolean(this.form.subject && this.form.subject.trim() && this.form.channel)
 		},
@@ -218,16 +278,87 @@ export default {
 			return t('nextcloud-vue', 'Outcome')
 		},
 
+		// `content.submitLabel` names what the form creates, e.g. "Save contact moment".
 		registerLabel() {
+			if (this.content.submitLabel) {
+				const tr = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+				return tr(this.content.submitLabel)
+			}
 			return t('nextcloud-vue', 'Register')
 		},
 
 		savingLabel() {
 			return t('nextcloud-vue', 'Saving…')
 		},
+
+		/**
+		 * URL of the saved object's page, from `content.detailRoute`. Empty
+		 * without a route or router, and then no Open button is shown.
+		 *
+		 * @return {string}
+		 */
+		savedHref() {
+			const route = this.content.detailRoute
+			if (!this.saved || !this.saved.id || !route || !this.$router) {
+				return ''
+			}
+			try {
+				return this.$router.resolve({ name: route, params: { id: this.saved.id } }).href || ''
+			} catch {
+				return ''
+			}
+		},
+
+		// `escape: false` because the label renders through `{{ }}`, which escapes.
+		openLabel() {
+			return t('nextcloud-vue', 'Open "{title}"', { title: (this.saved && this.saved.title) || '' }, undefined, { escape: false })
+		},
+
+		/** Whether the form writes its client and summary to the workspace context. */
+		writesWorkspace() {
+			return this.content.writeWorkspace !== false
+		},
+	},
+
+	watch: {
+		// A new page client pre-fills the field; the field stays editable.
+		pageClient: {
+			immediate: true,
+			handler(id) {
+				if (id) {
+					this.form.client = id
+				}
+			},
+		},
+	},
+
+	created() {
+		this.loadSchema()
 	},
 
 	methods: {
+		/**
+		 * Fetch the target schema, which the outcome options derive from. A
+		 * failure leaves the `content.outcomes` fallback in place.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadSchema() {
+			const store = this.objectStore
+			if (!store || typeof store.fetchSchema !== 'function') {
+				return
+			}
+			try {
+				// Re-registering an existing type resets its cached objects and schema.
+				if (typeof store.registerObjectType === 'function' && !store.objectTypeRegistry?.[this.typeSlug]) {
+					store.registerObjectType(this.typeSlug, this.schema, this.register)
+				}
+				this.schemaDef = await store.fetchSchema(this.typeSlug)
+			} catch {
+				this.schemaDef = null
+			}
+		},
+
 		/** The default channel value (first configured channel, else `telefoon`). */
 		firstChannel() {
 			const ch = (this.content && this.content.channels) || []
@@ -235,11 +366,9 @@ export default {
 		},
 
 		/**
-		 * A field edit from CnFormWidgetBase. Stores the value, then runs
-		 * whatever that particular field also does — `summary` streams into
-		 * the workspace context so a bound knowledge-base widget can search
-		 * the live conversation. `client` never arrives here: its control is
-		 * the `#field-client` slot, which calls onClientChange directly.
+		 * A field edit from CnFormWidgetBase. `summary` also streams into the
+		 * workspace context. `client` never arrives here: its control is the
+		 * `#field-client` slot, which calls onClientChange.
 		 *
 		 * @param {{key: string, value: unknown}} payload The changed field.
 		 * @return {void}
@@ -252,8 +381,7 @@ export default {
 		},
 
 		/**
-		 * Selecting a client writes `selectedClient` into the workspace context so
-		 * client-bound sibling widgets reveal.
+		 * The submission's client, also written to the workspace context.
 		 *
 		 * @param {string} id The selected client id.
 		 */
@@ -263,9 +391,7 @@ export default {
 		},
 
 		/**
-		 * A client created inline via "Create '<name>'" — select it (the
-		 * CnResourceSelect already emitted update:modelValue, but we also write
-		 * the workspace key here to be safe).
+		 * A client created inline via "Create '<name>'" — select it.
 		 *
 		 * @param {object} client The created client object.
 		 */
@@ -278,21 +404,19 @@ export default {
 		},
 
 		/**
-		 * Write a key into the reactive workspace context bag.
+		 * Write a key into the workspace context, unless `content.writeWorkspace`
+		 * is false.
 		 *
-		 * The page provides a `ref({})`. Vue 2.7's Options-API `inject` AUTO-UNWRAPS
-		 * a provided ref, so `cnWorkspaceContext` is the plain reactive object here —
-		 * not a `{ value }` holder. We therefore replace the bag in place on the
-		 * unwrapped object (so injectors that read individual keys still react),
-		 * while also supporting the raw-ref shape (`.value`) for non-unwrapping
-		 * Composition-API consumers.
+		 * Vue 2.7's Options-API `inject` auto-unwraps the provided ref, so the
+		 * holder is usually the plain reactive object; the raw-ref shape
+		 * (`.value`) is supported for Composition-API consumers.
 		 *
 		 * @param {string} key The context key.
 		 * @param {unknown} value The value.
 		 */
 		writeWorkspace(key, value) {
 			const holder = this.cnWorkspaceContext
-			if (!holder || typeof holder !== 'object') {
+			if (!this.writesWorkspace || !holder || typeof holder !== 'object') {
 				return
 			}
 			if ('value' in holder) {
@@ -342,11 +466,10 @@ export default {
 			}
 
 			this.saving = true
+			this.saved = null
 			try {
-				if (typeof this.objectStore.registerObjectType === 'function') {
-					try {
-						this.objectStore.registerObjectType(this.typeSlug, this.schema, this.register)
-					} catch { /* idempotent */ }
+				if (typeof this.objectStore.registerObjectType === 'function' && !this.objectStore.objectTypeRegistry?.[this.typeSlug]) {
+					this.objectStore.registerObjectType(this.typeSlug, this.schema, this.register)
 				}
 				const result = await this.objectStore.saveObject(this.typeSlug, payload)
 				if (!result) {
@@ -358,6 +481,10 @@ export default {
 				 * @type {object} The saved object.
 				 */
 				this.$emit('saved', result)
+				this.saved = {
+					id: String(result.id || (result['@self'] && result['@self'].id) || ''),
+					title: payload[c.subjectField || 'subject'],
+				}
 				// Reset the per-interaction fields; keep the client for follow-ups.
 				this.form.subject = ''
 				this.form.summary = ''

@@ -23,7 +23,6 @@
 					:canAddChild="maxDepth > 0"
 					@addChild="addChild(node)"
 					@rename="(id) => renamePage(node.ref, id)"
-					@navigate="bubbleNavigate"
 					@remove="removeNode(node, null)" />
 
 				<!-- One level of children: a drop target on every top page so a
@@ -43,7 +42,6 @@
 							<CnPageTreeRow :page="child.ref"
 								:canAddChild="false"
 								@rename="(id) => renamePage(child.ref, id)"
-								@navigate="bubbleNavigate"
 								@remove="removeNode(child, node)" />
 						</li>
 					</template>
@@ -114,8 +112,6 @@ export default {
 		},
 	},
 
-	emits: ['navigate'],
-
 	data() {
 		return {
 			// Local nested mirror of `list` (real page refs) that vuedraggable
@@ -183,20 +179,6 @@ export default {
 				pageKeys.set(ref, key)
 			}
 			return key
-		},
-
-		/**
-		 * Bubble a row's "Go to page" request up to the modal, which navigates.
-		 *
-		 * @param {string} route The route path to open.
-		 * @return {void}
-		 */
-		bubbleNavigate(route) {
-			/**
-			 * @event navigate Emitted when a row's "Go to page" button is used.
-			 * @type {string} The route path to open.
-			 */
-			this.$emit('navigate', route)
 		},
 
 		/**

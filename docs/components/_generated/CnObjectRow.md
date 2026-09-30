@@ -12,10 +12,10 @@
 
 ### Events
 
-| Name     | Payload | Description                                                               |
-| -------- | ------- | ------------------------------------------------------------------------- |
-| `select` | —       | Emitted when a selectable row toggles selection (body or checkbox click). |
-| `click`  | —       | Emitted when a non-selectable row is clicked (navigation).                |
+| Name     | Payload     | Description                                                                                                                                                                                                                      |
+| -------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `select` | —           | Emitted when a selectable row toggles selection (body or checkbox click).                                                                                                                                                        |
+| `click`  | `undefined` | Emitted when a non-selectable row is clicked or middle-clicked (navigation). Payload: `(object, event)` — the row's object and the native click/auxclick event, for opening it in a new tab on a ctrl/cmd/shift or middle click. |
 
 ### Slots
 

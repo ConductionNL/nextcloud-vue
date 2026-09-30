@@ -17,6 +17,15 @@ const {
 	conversationMessagesUrl,
 } = require('../../src/composables/aiChatConfig.js')
 
+// The chat URLs are asserted in their `/index.php` form, so describe an
+// instance without pretty URLs.
+beforeEach(() => {
+	window.OC.config.modRewriteWorking = false
+})
+afterEach(() => {
+	window.OC.config.modRewriteWorking = true
+})
+
 describe('aiChatConfig', () => {
 	it('defaults the chat backend to hermiq (the agent engine home per ADR-034 Amendment 2026-07-05)', () => {
 		// Flipped from openregister by chat-appid-default-flip once both

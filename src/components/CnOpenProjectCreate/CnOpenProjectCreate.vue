@@ -40,7 +40,7 @@
 					<Briefcase :size="32" />
 				</template>
 				<template #action>
-					<NcButton variant="primary" @click="openOpenconnectorAdmin">
+					<NcButton variant="primary" :href="openconnectorUrl" target="_blank">
 						<template #icon>
 							<CogOutline :size="20" />
 						</template>
@@ -214,12 +214,6 @@ export default {
 				// eslint-disable-next-line no-console
 				console.error('[CnOpenProjectCreate] fetch projects failed', err)
 				this.error = t('nextcloud-vue', 'Could not load projects.')
-			}
-		},
-
-		openOpenconnectorAdmin() {
-			if (typeof window !== 'undefined' && this.openconnectorUrl) {
-				window.open(this.openconnectorUrl, '_blank', 'noopener')
 			}
 		},
 

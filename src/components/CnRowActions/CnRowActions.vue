@@ -3,26 +3,44 @@
 		:primary="primary"
 		:menuName="menuName"
 		data-testid="cn-row-actions">
-		<NcActionButton
-			v-for="action in visibleActions"
-			:key="action.label"
-			:title="getTitle(action)"
-			:disabled="isDisabled(action)"
-			:class="{ 'cn-row-action--destructive': action.destructive }"
-			:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
-			closeAfterClick
-			@click="onAction(action)">
-			<template v-if="action.icon" #icon>
-				<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
-				<component :is="action.icon" v-else :size="20" />
-			</template>
-			{{ action.label }}
-		</NcActionButton>
+		<template v-for="{ action, link } in renderedActions" :key="action.label">
+			<!-- A navigate-only action is a real link, so it can be middle-clicked, opened in a new tab or copied. -->
+			<NcActionLink
+				v-if="link"
+				:href="link.href"
+				:target="link.target"
+				:title="getTitle(action)"
+				:class="{ 'cn-row-action--destructive': action.destructive }"
+				:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
+				closeAfterClick
+				@click="onLinkAction(action, link, $event)">
+				<template v-if="action.icon" #icon>
+					<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+					<component :is="action.icon" v-else :size="20" />
+				</template>
+				{{ action.label }}
+			</NcActionLink>
+			<NcActionButton
+				v-else
+				:title="getTitle(action)"
+				:disabled="isDisabled(action)"
+				:class="{ 'cn-row-action--destructive': action.destructive }"
+				:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
+				closeAfterClick
+				@click="onAction(action)">
+				<template v-if="action.icon" #icon>
+					<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+					<component :is="action.icon" v-else :size="20" />
+				</template>
+				{{ action.label }}
+			</NcActionButton>
+		</template>
 	</NcActions>
 </template>
 
 <script>
-import { NcActionButton, NcActions } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcActions } from '@nextcloud/vue'
+import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
 import { evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
 import { CnIcon } from '../CnIcon/index.js'
 
@@ -40,6 +58,19 @@ import { CnIcon } from '../CnIcon/index.js'
  *   ]"
  *   :row="row" />
  * ```
+ *
+ * An action whose only job is to go somewhere carries `href` (a URL) or `to`
+ * (a vue-router location) instead of a navigating `handler`, and renders as a
+ * real link — middle-click, "open in new tab" and "copy link" all work:
+ *
+ * ```vue
+ * <CnRowActions
+ *   :actions="[
+ *     { label: 'View', icon: 'Eye', to: (row) => ({ name: 'LeadDetail', params: { id: row.id } }) },
+ *     { label: 'Website', icon: 'Web', href: (row) => row.url, linkTarget: '_blank' },
+ *   ]"
+ *   :row="row" />
+ * ```
  */
 export default {
 	name: 'CnRowActions',
@@ -47,6 +78,7 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
+		NcActionLink,
 		CnIcon,
 	},
 
@@ -66,8 +98,15 @@ export default {
 		 * - `visible` (boolean | (row) => boolean) — when `false`, hide the entry from the menu (default: shown)
 		 * - `title` (string | (row) => string) — native tooltip shown on hover (useful to explain why an entry is disabled)
 		 * - `destructive` (boolean) — apply error color styling
+		 * - `href` (string | (row) => string) — render the entry as a link to this URL
+		 * - `to` (string | object | (row) => string | object) — render the entry as a link to this
+		 *   vue-router location; a plain click routes in place. Ignored when the router cannot resolve it.
+		 * - `linkTarget` (string) — the link's `target`, e.g. `_blank`
 		 *
-		 * @type {Array<{label: string, icon: object | string, handler: (targetItem: object) => void, disabled: boolean | ((targetItem: object) => boolean), visible: boolean | ((targetItem: object) => boolean), title: string | ((targetItem: object) => string), destructive: boolean}>}
+		 * A link entry still emits `action`, but its `handler` is not called: the link is the
+		 * navigation. A disabled entry, or a `to` without a resolvable route, stays a button.
+		 *
+		 * @type {Array<{label: string, icon: object | string, handler: (targetItem: object) => void, disabled: boolean | ((targetItem: object) => boolean), visible: boolean | ((targetItem: object) => boolean), title: string | ((targetItem: object) => string), destructive: boolean, href: string | ((targetItem: object) => string), to: string | object | ((targetItem: object) => string | object), linkTarget: string}>}
 		 */
 		actions: {
 			type: Array,
@@ -123,6 +162,18 @@ export default {
 				return !!action.visible
 			})
 		},
+
+		/**
+		 * Visible actions paired with the link each renders as (null for a button).
+		 *
+		 * @return {Array<{action: object, link: object|null}>}
+		 */
+		renderedActions() {
+			return this.visibleActions.map((action) => ({
+				action,
+				link: this.isDisabled(action) ? null : resolveItemActionLink(action, this.row, this.$router),
+			}))
+		},
 	},
 
 	methods: {
@@ -158,6 +209,24 @@ export default {
 			if (action.handler && typeof action.handler === 'function') {
 				action.handler(this.row)
 			}
+			this.$emit('action', { action: action.label, row: this.row })
+		},
+
+		/**
+		 * A link entry was clicked: route a plain in-app click, leave the rest to
+		 * the browser, and emit `action` as a button would. The `handler` is not
+		 * called, since navigating is what the link already does.
+		 *
+		 * @param {object} action The action definition.
+		 * @param {object} link The resolved link.
+		 * @param {MouseEvent} event The click event.
+		 */
+		onLinkAction(action, link, event) {
+			followItemActionLink(event, link, this.$router)
+			/**
+			 * @event action User picked an entry. Payload: the action's label and the row. A button entry has already run its `handler`; a link entry navigates instead.
+			 * @type {{ action: string, row: object|null }}
+			 */
 			this.$emit('action', { action: action.label, row: this.row })
 		},
 

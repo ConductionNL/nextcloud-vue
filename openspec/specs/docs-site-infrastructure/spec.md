@@ -439,7 +439,7 @@ CI's `npm run build` MUST fail when any page contains an unescaped JSX-expressio
 - WHEN CI runs `npm run build`
 - THEN if the brackets are unwrapped, the build MUST fail with `Expected a closing tag for <String>`; if wrapped in inline code (`` `Array<String>` ``) or HTML-entity-encoded (`Array&lt;String&gt;`), the build MUST succeed
 
-## MODIFIED Requirements
+## Change history
 
 The following requirements were modified by the **unify-component-docs** change (archived 2026-05-09):
 
@@ -447,10 +447,6 @@ The following requirements were modified by the **unify-component-docs** change 
 - **Custom Homepage** — Get Started link is now root-relative (`/docs/getting-started`) so it resolves under both `baseUrl: '/'` production and local dev.
 - **GitHub Pages Deployment** — Single-workflow architecture replaced by three workflows (main / beta / development) with `keep_files: true` so root deploys preserve `/beta/styleguide/` and vice versa.
 - **Auto-Generated Sidebar** → **Sidebar Information Architecture** — Flat directory autogen replaced by intent-grouped explicit IA.
-
-## REMOVED Requirements
-
-_(none)_
 
 ---
 

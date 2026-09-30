@@ -94,7 +94,7 @@ describe('CnDetailPage — header Actions menu', () => {
 		const wrapper = mountPage({ pageId: 'cases', showRefresh: true })
 		await wrapper.find('[data-testid="cn-detail-page-action-refresh"]').trigger('click')
 		expect(wrapper.emitted('refresh')).toBeTruthy()
-		expect(emitOnBus).toHaveBeenCalledWith('cn:page:refresh', { widgetId: 'cases', title: 'Case 42' })
+		expect(emitOnBus).toHaveBeenCalledWith('cn:page:refresh', { widgetId: 'cases', title: 'Case 42', waitUntil: expect.any(Function) })
 	})
 
 	it('re-fetches the object on refresh in schema-driven (manifest) mode', async () => {
@@ -120,15 +120,11 @@ describe('CnDetailPage — header Actions menu', () => {
 
 	// The in-product modal is gone (team decision 2026-09-04): the surface
 	// slug now travels as the English headline of the forge issue-form link.
-	it('forwards the detail surface into the feature-request link', async () => {
-		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+	it('forwards the detail surface into the feature-request link', () => {
 		const wrapper = mountPage({ pageId: 'cases' })
-		await wrapper.find('[data-testid="cn-detail-page-action-request-feature"]').trigger('click')
-		expect(openSpy).toHaveBeenCalledTimes(1)
-		const u = new URL(openSpy.mock.calls[0][0])
+		const u = new URL(wrapper.find('[data-testid="cn-detail-page-action-request-feature"]').attributes('href'))
 		expect(u.searchParams.get('template')).toBe('feature-request.yml')
 		expect(u.searchParams.get('title')).toBe('[FEATURE] detail:cases')
-		openSpy.mockRestore()
 	})
 
 	it('can opt out of every built-in', () => {

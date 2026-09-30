@@ -109,6 +109,11 @@ describe('CnFilesPage', () => {
 		expect(wrapper.find('.cn-data-table-stub').exists()).toBe(false)
 	})
 
+	it('points the Open in Files link at the Files app for the folder', () => {
+		const wrapper = mount(CnFilesPage, { propsData: { folder: '/My Docs' }, stubs })
+		expect(wrapper.vm.openInFilesUrl).toBe('/index.php/apps/files/files?dir=%2FMy%20Docs')
+	})
+
 	it('refresh() calls onRefresh when supplied', () => {
 		const onRefresh = jest.fn()
 		const wrapper = mount(CnFilesPage, {

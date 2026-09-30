@@ -78,7 +78,11 @@
 		<div v-else-if="rows.length === 0" class="cn-sidebar-tab__empty cn-time-tracker-tab__empty">
 			<Clock :size="32" class="cn-time-tracker-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openTimeTrackerApp">
+			<NcButton
+				variant="primary"
+				:href="timeTrackerAppUrl"
+				target="_blank"
+				rel="noopener noreferrer">
 				<template #icon>
 					<Clock :size="20" />
 				</template>
@@ -464,12 +468,6 @@ export default {
 
 		isBillable(row) {
 			return row.billable === true || row.billable === 1 || row.billable === '1'
-		},
-
-		openTimeTrackerApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.timeTrackerAppUrl, '_blank', 'noopener')
-			}
 		},
 
 		openPicker() {

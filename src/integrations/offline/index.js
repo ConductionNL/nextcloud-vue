@@ -26,6 +26,7 @@ export {
 	getPlannedItems,
 	getPlanningMeta,
 	listQueue,
+	openDb,
 	recordConflict,
 	requeueOperation,
 	resolveDeviceId,

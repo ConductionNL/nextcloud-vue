@@ -138,10 +138,15 @@
 				:key="item.fileId"
 				class="cn-files-widget__row"
 				:class="{ 'cn-files-widget__row--folder': item.isFolder }">
-				<button
-					type="button"
+				<!-- Files are real links (new tab, copyable); folders browse in-widget. -->
+				<component
+					:is="item.isFolder ? 'button' : 'a'"
+					:type="item.isFolder ? 'button' : undefined"
+					:href="item.isFolder ? undefined : (fileUrl(item.fileId) || undefined)"
+					:target="item.isFolder ? undefined : '_blank'"
+					:rel="item.isFolder ? undefined : 'noopener noreferrer'"
 					class="cn-files-widget__row-name"
-					@click="onItemClick(item)">
+					@click="item.isFolder && onItemClick(item)">
 					<span aria-hidden="true" class="cn-files-widget__row-icon">
 						<img
 							v-if="showThumbnails && !item.isFolder && item.thumbnailUrl && !failedThumbs[item.fileId]"
@@ -153,7 +158,7 @@
 						<template v-else>{{ item.isFolder ? '📁' : '📄' }}</template>
 					</span>
 					<span class="cn-files-widget__row-label">{{ item.name }}</span>
-				</button>
+				</component>
 				<span class="cn-files-widget__row-modified">{{ item.modifiedAt }}</span>
 				<span class="cn-files-widget__row-size">{{ formatSize(item.size, item.isFolder) }}</span>
 				<button
@@ -781,17 +786,25 @@ export default {
 		 * @return {void}
 		 */
 		openFileInFilesApp(fileId) {
-			if (!fileId) {
-				return
+			const url = this.fileUrl(fileId)
+			if (url) {
+				window.open(url, '_blank', 'noopener,noreferrer')
 			}
-			// Canonical Nextcloud file permalink: `/f/{fileid}` resolves the id
-			// to its containing folder and opens the file. generateUrl adds the
-			// `index.php` prefix on instances without URL rewriting. The previous
-			// raw `/apps/files/?fileid=` both omitted that prefix (404 on those
-			// instances) and, on modern Nextcloud, only ever landed on the root
-			// folder instead of the file.
-			const url = generateUrl('/f/{fileid}', { fileid: fileId })
-			window.open(url, '_blank', 'noopener,noreferrer')
+		},
+
+		/**
+		 * The Files-app permalink for a file.
+		 *
+		 * @param {number|string} fileId the Nextcloud file id.
+		 * @return {string} the URL, or '' without a file id.
+		 */
+		fileUrl(fileId) {
+			if (!fileId) {
+				return ''
+			}
+			// Canonical permalink: `/f/{fileid}` resolves the id to its folder
+			// and opens the file; generateUrl adds `index.php` where needed.
+			return generateUrl('/f/{fileid}', { fileid: fileId })
 		},
 
 		/**
@@ -1179,6 +1192,7 @@ export default {
 	text-align: left;
 	color: var(--color-main-text);
 	font: inherit;
+	text-decoration: none;
 	min-width: 0;
 }
 

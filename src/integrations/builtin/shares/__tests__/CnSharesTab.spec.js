@@ -51,6 +51,9 @@ describe('CnSharesTab', () => {
 		await flushPromises()
 		expect(wrapper.text()).toContain('No shares on this object yet')
 		expect(wrapper.text()).toContain('Manage in Files')
+		const cta = wrapper.find('.cn-shares-tab__empty .stub.NcButton')
+		expect(cta.attributes('href')).toBe('/index.php/apps/files')
+		expect(cta.attributes('target')).toBe('_blank')
 		wrapper.unmount()
 	})
 
@@ -79,6 +82,13 @@ describe('CnSharesTab', () => {
 		expect(names).toContain('Editors')
 		// Public link rows fall back to the generic "Share link" label.
 		expect(names).toContain('Share link')
+		// Row action and footer "Manage in Files" controls are real links.
+		const rowLink = wrapper.find('.cn-shares-tab__row .stub.NcActionLink')
+		expect(rowLink.attributes('href')).toBe('/index.php/apps/files')
+		expect(rowLink.attributes('target')).toBe('_blank')
+		const footer = wrapper.find('.cn-shares-tab__footer .stub.NcButton')
+		expect(footer.attributes('href')).toBe('/index.php/apps/files')
+		expect(footer.attributes('target')).toBe('_blank')
 		wrapper.unmount()
 	})
 

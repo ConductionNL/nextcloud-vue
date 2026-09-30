@@ -40,9 +40,12 @@
 			:compact="fitRows !== null && fitRows < 3"
 			class="cn-object-list-widget__empty">
 			<template v-if="allowCreate && !waitingForContext" #action>
-				<button type="button" class="cn-object-list-widget__add" @click="openCreate">
-					+ {{ addLabel }}
-				</button>
+				<NcButton @click="openCreate">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ addLabel }}
+				</NcButton>
 			</template>
 		</CnWidgetEmptyState>
 		<!-- The fetch came back with rows, but the active facet selection
@@ -204,8 +207,15 @@
 				:currentPageSize="pageSize"
 				:minItemsToShow="0"
 				@pageChanged="onPageChange" />
+			<a
+				v-if="hiddenCount > 0 && content.viewAllRoute && viewAllHref"
+				class="cn-object-list-widget__view-all"
+				:href="viewAllHref"
+				@click="onViewAll">
+				{{ viewAllLabel }}
+			</a>
 			<button
-				v-if="hiddenCount > 0 && content.viewAllRoute"
+				v-else-if="hiddenCount > 0 && content.viewAllRoute"
 				type="button"
 				class="cn-object-list-widget__view-all"
 				@click="onViewAll">
@@ -220,13 +230,16 @@
 		     same openCreate() through the public method. Suppressed while the
 		     empty state is showing — that renders its own copy in its #action
 		     slot, and two Add buttons on one empty card read as a bug. -->
-		<button
+		<div
 			v-if="allowCreate && !waitingForContext && !showingEmptyState"
-			type="button"
-			class="cn-object-list-widget__add"
-			@click="openCreate">
-			+ {{ addLabel }}
-		</button>
+			class="cn-object-list-widget__add">
+			<NcButton variant="tertiary" wide @click="openCreate">
+				<template #icon>
+					<Plus :size="20" />
+				</template>
+				{{ addLabel }}
+			</NcButton>
+		</div>
 		<!-- Upload affordance. A `dropZone` action already accepts a dropped
 		     `File[]`; this is the click-to-pick equivalent of the same drop,
 		     for the reader who never drags a file. `content.upload: false`
@@ -266,14 +279,18 @@
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton } from '@nextcloud/vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
-import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { actionLink, dispatchAction } from '../../utils/actionsDispatcher.js'
+import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { objectFieldValue } from '../../utils/objectName.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { markNewTabHandled } from '../../utils/rowAuxClick.js'
 import { CnRowActions } from '../CnRowActions/index.js'
 
 /**
@@ -308,7 +325,7 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 export default {
 	name: 'CnObjectListWidget',
 
-	components: { CnDataTable, CnFormDialog, CnPagination, CnWidgetEmptyState, CnRowActions, CnFkResolveCell },
+	components: { CnDataTable, CnFormDialog, CnPagination, CnWidgetEmptyState, CnRowActions, CnFkResolveCell, NcButton, Plus },
 
 	inject: {
 		/**
@@ -331,7 +348,7 @@ export default {
 		 * Host translate function provided by CnAppRoot as
 		 * `cnTranslate: this.translate` (bound to the host app's id). The
 		 * manifest-authored `content.emptyText` is run through it for this
-		 * component's OWN empty state. Defaults to an identity function so
+		 * component's OWN empty state, and so is `content.prompt`. Defaults to an identity function so
 		 * an untranslated key renders as itself.
 		 */
 		cnTranslate: { default: () => (key) => key },
@@ -526,7 +543,8 @@ export default {
 		 */
 		promptText() {
 			if (this.content.prompt) {
-				return this.content.prompt
+				const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+				return fn(this.content.prompt)
 			}
 			return this.objectCtx
 				? t('nextcloud-vue', 'Nothing here yet')
@@ -638,6 +656,8 @@ export default {
 					label: action.label,
 					icon: action.icon,
 					destructive: action.destructive === true,
+					// CnRowActions renders a link when these are set and skips the handler.
+					...this.rowActionLink(action),
 					handler: (row) => this.runRowAction(action, row),
 				}))
 		},
@@ -920,6 +940,30 @@ export default {
 			return t('nextcloud-vue', 'View all ({total})', { total: this.total || this.rows.length })
 		},
 
+		/**
+		 * The "View all (N)" router location: `viewAllRoute` with its
+		 * token-resolved `viewAllQuery`, or null without a route.
+		 *
+		 * @return {object|null}
+		 */
+		viewAllLocation() {
+			const route = this.content.viewAllRoute
+			if (!route) {
+				return null
+			}
+			return { name: route, query: resolveFilterTokens(this.content.viewAllQuery || {}, this.tokenCtx) }
+		},
+
+		/**
+		 * The href "View all (N)" links to, or '' when there is no router to
+		 * resolve it (the footer then renders as a button).
+		 *
+		 * @return {string}
+		 */
+		viewAllHref() {
+			return resolveHref(this.viewAllLocation, this.$router)
+		},
+
 		/** Pre-translated "+N more" footer label (no viewAllRoute configured). */
 		moreLabel() {
 			return t('nextcloud-vue', '+{count} more', { count: this.hiddenCount })
@@ -1038,11 +1082,12 @@ export default {
 		// action fires it more than once (or a dialog that emits alongside the
 		// page's own Refresh) must not turn one write into a queue of
 		// overlapping reads for one list.
-		this._onPageRefresh = () => {
+		this._onPageRefresh = (payload) => {
 			if (this.loading) {
 				return
 			}
-			this.fetchRows()
+			const done = this.fetchRows()
+			payload?.waitUntil?.(done)
 		}
 		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 		// Observe the host grid cell so the visible row count re-fits on
@@ -1329,14 +1374,6 @@ export default {
 		},
 
 		/**
-		 * "View all (N)" footer click: emits `view-all` and, when the content
-		 * blob names a `viewAllRoute`, navigates there with `viewAllQuery`
-		 * (its values token-resolved, so `{"case": "@objectId"}` carries the
-		 * current object scope into the target index page).
-		 *
-		 * @return {void}
-		 */
-		/**
 		 * Pager click — refetch that page from the server. Paging is never
 		 * client-side over an already-capped window: that would silently drop
 		 * every row past the cap while still displaying a total that counted
@@ -1354,38 +1391,50 @@ export default {
 			this.fetchRows()
 		},
 
-		onViewAll() {
+		/**
+		 * "View all (N)" footer click: emits `view-all` and, when the content
+		 * blob names a `viewAllRoute`, navigates there with `viewAllQuery`
+		 * (its values token-resolved, so `{"case": "@objectId"}` carries the
+		 * current object scope into the target index page). A modified click
+		 * on the link is left to the browser.
+		 *
+		 * @param {MouseEvent} [event] The click event.
+		 * @return {void}
+		 */
+		onViewAll(event) {
 			/**
 			 * @event view-all Emitted when the "View all (N)" footer is clicked.
 			 * @type {{ total: number }}
 			 */
 			this.$emit('view-all', { total: this.total })
-			const route = this.content.viewAllRoute
-			if (route && this.$router) {
-				const query = resolveFilterTokens(this.content.viewAllQuery || {}, this.tokenCtx)
-				this.$router.push({ name: route, query }).catch(() => {})
+			if (this.viewAllLocation) {
+				followLinkClick(event, this.viewAllLocation, this.$router)
 			}
 		},
 
 		/**
 		 * Navigate to a configured detail route on row click (when `rowRoute`
-		 * is set and a router is available).
+		 * is set and a router is available); a ctrl/cmd/shift or middle click
+		 * opens it in a new tab.
 		 *
 		 * @param {object} row The clicked object row.
+		 * @param {MouseEvent} [event] The originating click/auxclick event.
 		 * @return {void}
 		 */
-		onRowClick(row) {
+		onRowClick(row, event) {
 			const route = this.content.rowRoute
 			const id = row && (row.id || (row['@self'] && row['@self'].id))
 			if (route && id && this.$router) {
-				this.$router.push({ name: route, params: { id } }).catch(() => {})
+				markNewTabHandled(event, openRowTarget(event, { name: route, params: { id } }, this.$router))
 			}
 			/**
 			 * @event row-click Emitted with the clicked object (for hosts that
-			 * want to handle navigation themselves).
+			 * want to handle navigation themselves), on a click or middle click.
+			 * Payload: `(row, event)`, the second being the native click/auxclick
+			 * event.
 			 * @type {object}
 			 */
-			this.$emit('row-click', row)
+			this.$emit('row-click', row, event)
 		},
 
 		/**
@@ -1405,6 +1454,26 @@ export default {
 		 */
 		runRowAction(action, row) {
 			this.dispatch(action, [row], { row })
+		},
+
+		/**
+		 * Link fields for a declared row action that only navigates, so
+		 * CnRowActions renders it as a link. A target with tokens is left to
+		 * dispatch, which resolves them against the page.
+		 *
+		 * @param {object} action The declared row action.
+		 * @return {object} `{ href, linkTarget }`, `{ to }`, or `{}`.
+		 */
+		rowActionLink(action) {
+			const target = typeof action.target === 'string' ? action.target : ''
+			if (/[@{]/.test(target)) {
+				return {}
+			}
+			const link = actionLink(action, { router: this.$router || null })
+			if (!link) {
+				return {}
+			}
+			return link.external ? { href: link.href, linkTarget: '_blank' } : { to: link.to }
 		},
 
 		/**
@@ -1705,6 +1774,7 @@ export default {
 	font: inherit;
 	margin-top: 4px;
 	padding: 4px;
+	text-decoration: none;
 }
 
 .cn-object-list-widget__view-all:hover,
@@ -1724,25 +1794,11 @@ export default {
    the card bottom. */
 .cn-object-list-widget__add {
 	align-self: stretch;
-	background: none;
-	border: none;
 	border-top: 1px solid var(--color-border);
-	color: var(--color-primary-element);
-	cursor: pointer;
-	font: inherit;
-	font-weight: 600;
 	/* Bleed through the host card's 16px content padding so the divider
-	   spans edge-to-edge, exactly like the integration leaves' footer.
-	   !important: Nextcloud server ships `#app-content button { margin:
-	   3px … }` — an id-selector rule no scoped class can outrank. */
-	margin: auto -16px -16px !important;
-	padding: 12px 8px;
-	text-align: center;
-}
-
-.cn-object-list-widget__add:hover,
-.cn-object-list-widget__add:focus-visible {
-	text-decoration: underline;
+	   spans edge-to-edge, exactly like the integration leaves' footer. */
+	margin: auto -16px -16px;
+	padding: 4px;
 }
 
 .cn-object-list-widget__error {

@@ -50,6 +50,7 @@ import { emit } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { parseDispositionFilename, triggerBlobDownload } from '../components/CnIndexPage/selfModeIO.js'
 import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
+import { routeHref } from './actionLink.js'
 import {
 	dropOptionalUnresolved,
 	dropOptionalUnresolvedDeep,
@@ -58,6 +59,7 @@ import {
 	resolveDeepTokens,
 	resolveFilterTokens,
 } from './resolveFilterTokens.js'
+import { schemaRefSlug } from './schemaRefSlug.js'
 
 /** Event-bus channel the page-level Refresh signal broadcasts on (Wave 2). */
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
@@ -92,13 +94,19 @@ export function isExternalActionTarget(target) {
  * own caches stay coherent); otherwise registers a deterministic
  * `<register>/<schema>` slug on the fly.
  *
+ * `source.schema` is routed through {@link schemaRefSlug} before it ever
+ * reaches the store or the objects API: a caller that passes a `$ref`
+ * schema TITLE (`ReportPeriod`) rather than its slug (`report-period`)
+ * would otherwise register — and fetch — a 404 (defect 7, learniq round
+ * 1). Idempotent for a caller that already passes a correct slug.
+ *
  * @param {object} store The object store instance (useObjectStore shape).
  * @param {{register: (string|number), schema: (string|number)}} source The widget source.
  * @return {string} The type slug to use for store CRUD calls.
  */
 export function resolveObjectOpType(store, source) {
 	const register = String(source.register)
-	const schema = String(source.schema)
+	const schema = String(schemaRefSlug(source.schema))
 	const registry = store.objectTypeRegistry || {}
 	for (const [slug, config] of Object.entries(registry)) {
 		if (!config) {
@@ -331,6 +339,45 @@ function interpolateActionString(str, ctx) {
  */
 export function interpolateActionTarget(target, ctx) {
 	return interpolateActionString(target || '', ctx || {})
+}
+
+/**
+ * The link an action renders as when its only job is to navigate to a target
+ * known at render time: `navigate` (token-interpolated like the dispatcher)
+ * and `open-page`. Anything else, a `confirm: true` action, or an in-app
+ * target the router cannot resolve answers null and keeps dispatching.
+ *
+ * `to` is what a plain click hands the router (null for an external URL,
+ * which the browser opens in a new tab like the dispatcher's `window.open`).
+ *
+ * @param {object} action The manifest action.
+ * @param {{router?: object, tokenCtx?: object}} [context] The dispatch context.
+ * @return {{href: string, to: (string|object|null), external: boolean}|null} The link, or null.
+ */
+export function actionLink(action, context = {}) {
+	if (!action || typeof action !== 'object' || action.confirm) {
+		return null
+	}
+	if (action.type === 'navigate') {
+		const target = interpolateActionString(action.target || '', context.tokenCtx || {})
+		if (!target) {
+			return null
+		}
+		if (isExternalActionTarget(target)) {
+			return { href: target, to: null, external: true }
+		}
+		const href = routeHref(target, context.router)
+		return href ? { href, to: target, external: false } : null
+	}
+	if (action.type === 'open-page') {
+		if (typeof action.target !== 'string' || action.target.length === 0) {
+			return null
+		}
+		const to = { name: action.target }
+		const href = routeHref(to, context.router)
+		return href ? { href, to, external: false } : null
+	}
+	return null
 }
 
 /**

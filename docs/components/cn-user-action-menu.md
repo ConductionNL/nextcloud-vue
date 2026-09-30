@@ -36,8 +36,8 @@ Inline popover that appears when a user's name is clicked. Shows the user's avat
 |--------|-----------|----------|
 | Send message | Nextcloud Talk installed | Opens a direct conversation, navigates to Talk |
 | Start chat | Nextcloud Talk installed | Opens a direct conversation in a new tab |
-| Send email | User has an email address | Opens Nextcloud Mail compose or `mailto:` fallback |
-| Plan meeting | Nextcloud Calendar installed | Opens Calendar new event with the user as attendee |
+| Send email | User has an email address | A link to Nextcloud Mail compose, or a `mailto:` fallback |
+| Plan meeting | Nextcloud Calendar installed | A link to a new Calendar event with the user as attendee |
 
 ### Props
 

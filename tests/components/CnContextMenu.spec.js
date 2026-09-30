@@ -390,3 +390,32 @@ describe('CnContextMenu cursor-position scoping', () => {
 		expect(rules).toContain('.cn-row-action--destructive')
 	})
 })
+
+describe('CnContextMenu link actions', () => {
+	it('renders a `to` action as a link, routes a plain click and emits action without calling the handler', async () => {
+		const router = {
+			push: jest.fn(() => Promise.resolve()),
+			resolve: jest.fn((to) => ({ href: `#/${to.name}/${to.params.id}` })),
+		}
+		const handler = jest.fn()
+		const wrapper = mount(CnContextMenu, {
+			propsData: {
+				actions: [
+					{ label: 'View', handler, to: (item) => ({ name: 'Dog', params: { id: item.id } }) },
+					{ label: 'Edit', handler: jest.fn() },
+				],
+				targetItem: { id: 4 },
+			},
+			mocks: { $router: router },
+		})
+		const link = wrapper.find('[data-testid="cn-action-item-view"]')
+		expect(link.classes()).toContain('NcActionLink')
+		expect(link.attributes('href')).toBe('#/Dog/4')
+		expect(wrapper.find('[data-testid="cn-action-item-edit"]').classes()).toContain('NcActionButton')
+
+		await link.trigger('click')
+		expect(router.push).toHaveBeenCalledWith({ name: 'Dog', params: { id: 4 } })
+		expect(handler).not.toHaveBeenCalled()
+		expect(wrapper.emitted('action')).toEqual([[{ action: 'View', row: { id: 4 } }]])
+	})
+})

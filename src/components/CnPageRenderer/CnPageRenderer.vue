@@ -292,10 +292,12 @@ import { useObjectStore } from '../../store/index.js'
 import { dispatchAction, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { pageHasSplitView, pageIdForRoute, splitIdForRoute, splitRouteName } from '../../utils/buildManifestRoutes.js'
-import { listContextToQuery } from '../../utils/listNavigation.js'
+import { openRowTarget } from '../../utils/linkNavigation.js'
+import { listContextFromRoute, listContextToQuery } from '../../utils/listNavigation.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { parseSortKeys } from '../../utils/routeFilters.js'
 import { buildRouteParams, routePathFor } from '../../utils/routeParams.js'
+import { isNewTabHandled } from '../../utils/rowAuxClick.js'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { defaultPageTypes } from './pageTypes.js'
 
@@ -1134,7 +1136,7 @@ export default {
 			// merge. Unresolved sentinels become null (with a one-shot
 			// console.warn per pageId+sentinel).
 			const pageId = page?.id ?? '<unknown>'
-			const config = resolveRouteSentinels(rawConfig, params, pageId)
+			let config = resolveRouteSentinels(rawConfig, params, pageId)
 			// Schema v2 lifts a uniform set of page-level fields out of
 			// `config` so every page type can declare them without
 			// per-type schema branches. Forward those to the dispatched
@@ -1229,8 +1231,13 @@ export default {
 			if (isIndex) {
 				const hasRowRoute = typeof config.rowRoute === 'string' && config.rowRoute !== ''
 				const hasDetail = this.detailPageByRegisterSchema.has(`${config.register} ${config.schema}`)
-				if (hasRowRoute || hasDetail) {
+				if (hasRowRoute || hasDetail || pageHasSplitView(page)) {
 					topLevel.rowClickToView = true
+					// The View row action links to where a row click opens.
+					topLevel.viewTo = (row) => this.rowOpenTarget(row)
+				} else if (config.rowClickToView === true) {
+					// Nowhere to open a row, so the click selects instead of doing nothing.
+					config = { ...config, rowClickToView: false }
 				}
 				// `editOpensDetail` is NOT derived from that signal. It used to be,
 				// on the reasoning that a record with a detail page is better edited
@@ -1279,6 +1286,11 @@ export default {
 				}
 				if (params.objectId === undefined && typeof params.id === 'string' && params.id.length > 0) {
 					params.objectId = params.id
+				}
+				const listPage = this.listPageForDetail(normalizedConfig)
+				if (listPage) {
+					topLevel.notFoundRoute = { name: listPage.id }
+					topLevel.notFoundRouteLabel = this.tr(listPage.title || listPage.id)
 				}
 			}
 			// `config.readOnly:true` shorthand on type='index' (REQ-MIPFU-4):
@@ -1623,6 +1635,29 @@ export default {
 		},
 
 		/**
+		 * The index page a detail page returns to: the list named in the
+		 * address (`_from`), else the first index page on the same register and
+		 * schema.
+		 *
+		 * @param {object} config The detail page's normalized config.
+		 * @return {object|null} The manifest page, or null when there is none.
+		 */
+		listPageForDetail(config) {
+			const fromId = listContextFromRoute(this.$route)?.pageId
+			const from = fromId ? this.pageById.get(fromId) : null
+			if (from?.type === 'index') {
+				return from
+			}
+			const pages = this.effectiveManifest?.pages
+			if (!Array.isArray(pages) || !config.schema) {
+				return null
+			}
+			return pages.find((p) => p?.type === 'index'
+				&& p.config?.register === config.register
+				&& p.config?.schema === config.schema) ?? null
+		},
+
+		/**
 		 * Route the export launcher's confirm payload (`{ format, entity? }`)
 		 * to the export action's `handler` (resolved against the manifest
 		 * actions map — the same registry `type:"handler"` actions use). The
@@ -1666,16 +1701,40 @@ export default {
 		 * current index page) and pushes to it with the row's id in whichever
 		 * param that page's route declares — `:id`, `:objectId`, anything.
 		 * No-ops when there is no detail page, no router, or no resolvable id.
+		 * A ctrl/cmd/shift or middle click opens the same address in a new tab.
 		 *
 		 * @param {object} row The clicked / viewed row object.
+		 * @param {MouseEvent} [event] The originating click/auxclick event, when there is one.
 		 * @return {void}
 		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
-		onRowOpen(row) {
+		onRowOpen(row, event) {
+			// Only a native event can ask for a new tab.
+			const nativeEvent = (typeof Event !== 'undefined' && event instanceof Event) ? event : undefined
+			// The index page already opened this row in a new tab.
+			if (isNewTabHandled(nativeEvent)) {
+				return
+			}
+			const target = this.rowOpenTarget(row, true)
+			if (target) {
+				openRowTarget(nativeEvent, target, this.$router)
+			}
+		},
+
+		/**
+		 * Where an index row opens: the split view beside the list, else
+		 * `config.rowRoute` or the matching detail page. Also the target of the
+		 * View row action's link.
+		 *
+		 * @param {object} row The row.
+		 * @param {boolean} [warn] Log a misconfigured route (on a click, not per render).
+		 * @return {object|null} The router location, or null when the row opens nowhere.
+		 */
+		rowOpenTarget(row, warn = false) {
 			const page = this.currentPage
 			const router = this.$router
 			if (!page || page.type !== 'index' || !router || !row || typeof row !== 'object') {
-				return
+				return null
 			}
 			const cfg = page.config || {}
 			const self0 = row['@self'] || {}
@@ -1689,16 +1748,17 @@ export default {
 			if (pageHasSplitView(page) && rowId !== undefined && rowId !== null && rowId !== '') {
 				const splitName = splitRouteName(page.id)
 				if (this.routeNameIsKnown(splitName) === false) {
-					// eslint-disable-next-line no-console
-					console.warn(`[CnPageRenderer] Index page "${page.id}" declares splitView, but the router has no "${splitName}" route. Build the routes with buildManifestRoutes() or the split view cannot open.`)
+					if (warn) {
+						// eslint-disable-next-line no-console
+						console.warn(`[CnPageRenderer] Index page "${page.id}" declares splitView, but the router has no "${splitName}" route. Build the routes with buildManifestRoutes() or the split view cannot open.`)
+					}
 				} else {
 					const splitPath = routePathFor(router, splitName)
-					router.push({
+					return {
 						name: splitName,
 						params: buildRouteParams(splitPath, rowId, this.$route?.params),
 						query: this.$route?.query || {},
-					}).catch(() => {})
-					return
+					}
 				}
 			}
 			// `config.rowRoute` names the target explicitly and WINS: it is the
@@ -1709,21 +1769,23 @@ export default {
 			const detail = this.detailPageByRegisterSchema.get(`${cfg.register} ${cfg.schema}`)
 			const target = rowRoute ?? detail?.id ?? null
 			if (!target) {
-				return
+				return null
 			}
 			const self = row['@self'] || {}
 			const id = row.id ?? self.id ?? self.uuid ?? row.uuid
 			if (id === undefined || id === null || id === '') {
-				return
+				return null
 			}
 			// A name the router does not have makes every row click a no-op that
 			// looks exactly like a broken table, so name the mistake instead of
 			// letting push() reject into a silent catch. Feature-detected: only
 			// some router versions can be asked.
 			if (this.routeNameIsKnown(target) === false) {
-				// eslint-disable-next-line no-console
-				console.warn(`[CnPageRenderer] Index page "${page.id}" opens rows on route "${target}", which the router does not have. Row clicks will do nothing.`)
-				return
+				if (warn) {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnPageRenderer] Index page "${page.id}" opens rows on route "${target}", which the router does not have. Row clicks will do nothing.`)
+				}
+				return null
 			}
 			// The param name comes from the TARGET'S OWN path, never a
 			// hardcoded `id`: a manifest is free to write
@@ -1738,7 +1800,7 @@ export default {
 			// sort the handler was looking at. Without this the detail page
 			// has an id and nothing else, and "next" could only ever mean
 			// next in some order nobody chose.
-			router.push({ name: target, params, query: this.rowOpenQuery() }).catch(() => {})
+			return { name: target, params, query: this.rowOpenQuery() }
 		},
 
 		/**

@@ -29,6 +29,13 @@ Two modes, picked automatically:
   labelling / confirm prompts. Set `autoFetch: true` to force the server path
   even with a `transitions` array present.
 
+**Button text.** A button reads its explicit `label` (config-declared, or a
+`label` on the server's action entry), else the action name title-cased
+(`approve` → "Approve"), else the target state. A transition's `description`
+is never the button text: schemas write it as a sentence for the person
+deciding, so it goes on the button's tooltip (`title`) and accessible
+description (`aria-description`) instead.
+
 On a successful transition the component POSTs
 `/apps/openregister/api/objects/{id}/transition` with `{ action }`, emits
 `transitioned` + `reload`, and (in server mode) re-fetches the action list.
@@ -85,6 +92,7 @@ field named after the raw field key.
 | `object` | `Object \| null` | `null` | The loaded object — read for the lifecycle field value and to filter a config-declared `transitions` list. |
 | `config` | `Object` | `{}` | The lifecycle config block: `{ field?, transitions?, autoFetch? }`. A declared transition may carry `inputs: [{ field, required }]`. |
 | `schema` | `Object \| null` | `null` | The object's JSON Schema (with `properties`), forwarded to `CnTransitionInputDialog` so declared inputs render resolved fields. |
+| `display` | `'buttons' \| 'menu'` | `'buttons'` | Where the transitions are drawn. `menu` renders no buttons and emits `entries`, so the host lists them in its Actions menu. `CnDetailPage` uses `menu`. |
 
 ## Events
 
@@ -92,6 +100,7 @@ field named after the raw field key.
 |-------|---------|-------------|
 | `transitioned` | `{ action, to, object }` | A transition succeeded. |
 | `reload` | — | Ask the host to re-fetch the object so the new state + freshly-allowed transitions render. |
+| `entries` | `Array<{ id, label, iconName, disabled, testid, run }>` | `display: 'menu'` only. The transitions as menu-ready entries, re-emitted whenever they or the pending state change. |
 
 ## Notes
 

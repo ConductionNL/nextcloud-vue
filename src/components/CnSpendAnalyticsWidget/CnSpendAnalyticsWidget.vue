@@ -69,16 +69,15 @@
 						{{ t('nextcloud-vue', 'Top categories') }}
 					</h3>
 					<ul class="cn-spend-analytics-widget__rows">
-						<li
-							v-for="row in finance.byCategory"
-							:key="row.category"
-							class="cn-spend-analytics-widget__row"
-							role="button"
-							tabindex="0"
-							@click="drillTo('financeq', 'category', row.category)"
-							@keyup.enter="drillTo('financeq', 'category', row.category)">
-							<span>{{ row.category }}</span>
-							<span>{{ formatAmount(row.amount) }}</span>
+						<li v-for="(row, i) in finance.byCategory" :key="row.category">
+							<a v-if="categoryLinks[i]" class="cn-spend-analytics-widget__row" :href="categoryLinks[i]">
+								<span>{{ row.category }}</span>
+								<span>{{ formatAmount(row.amount) }}</span>
+							</a>
+							<div v-else class="cn-spend-analytics-widget__row cn-spend-analytics-widget__row--static">
+								<span>{{ row.category }}</span>
+								<span>{{ formatAmount(row.amount) }}</span>
+							</div>
 						</li>
 					</ul>
 				</section>
@@ -94,16 +93,15 @@
 						{{ t('nextcloud-vue', 'No vendor commitments for the selected period') }}
 					</div>
 					<ul v-else class="cn-spend-analytics-widget__rows">
-						<li
-							v-for="row in vendor.topVendors"
-							:key="row.vendor"
-							class="cn-spend-analytics-widget__row"
-							role="button"
-							tabindex="0"
-							@click="drillTo('procest', 'vendor', row.vendor)"
-							@keyup.enter="drillTo('procest', 'vendor', row.vendor)">
-							<span>{{ row.vendor }}</span>
-							<span>{{ formatAmount(row.committed) }}</span>
+						<li v-for="(row, i) in vendor.topVendors" :key="row.vendor">
+							<a v-if="vendorLinks[i]" class="cn-spend-analytics-widget__row" :href="vendorLinks[i]">
+								<span>{{ row.vendor }}</span>
+								<span>{{ formatAmount(row.committed) }}</span>
+							</a>
+							<div v-else class="cn-spend-analytics-widget__row cn-spend-analytics-widget__row--static">
+								<span>{{ row.vendor }}</span>
+								<span>{{ formatAmount(row.committed) }}</span>
+							</div>
 						</li>
 					</ul>
 				</section>
@@ -225,6 +223,24 @@ export default {
 		 */
 		hasSource() {
 			return this.source !== null
+		},
+
+		/**
+		 * Deep link of each top-category row, by index ('' when unresolved).
+		 *
+		 * @return {string[]}
+		 */
+		categoryLinks() {
+			return (this.finance.byCategory || []).map((row) => this.deepLink('financeq', 'category', row.category))
+		},
+
+		/**
+		 * Deep link of each top-vendor row, by index ('' when unresolved).
+		 *
+		 * @return {string[]}
+		 */
+		vendorLinks() {
+			return (this.vendor.topVendors || []).map((row) => this.deepLink('procest', 'vendor', row.vendor))
 		},
 
 		/**
@@ -429,21 +445,22 @@ export default {
 		},
 
 		/**
-		 * Deep-link a row to the owning sibling app's detail surface. The
-		 * source may provide `resolveDeepLink`; absent that, the row is inert.
+		 * The owning sibling app's URL for a row. The source may provide
+		 * `resolveDeepLink`; absent that, the row renders as plain text.
 		 *
 		 * @param {string} app the owning app id.
 		 * @param {string} kind the entity kind.
 		 * @param {string} id the entity id.
-		 * @return {void}
+		 * @return {string} the URL, or '' when unresolved.
 		 */
-		drillTo(app, kind, id) {
+		deepLink(app, kind, id) {
 			if (this.source && typeof this.source.resolveDeepLink === 'function') {
 				const href = this.source.resolveDeepLink(app, kind, id)
 				if (typeof href === 'string' && href !== '') {
-					window.location.href = href
+					return href
 				}
 			}
+			return ''
 		},
 
 		/**
@@ -542,6 +559,8 @@ export default {
 	padding: 4px 8px;
 	border-radius: var(--border-radius);
 	cursor: pointer;
+	color: inherit;
+	text-decoration: none;
 }
 
 .cn-spend-analytics-widget__row--static {

@@ -9,7 +9,7 @@
  *    emit, none. These must keep working (back-compat).
  */
 
-import { dispatchAction, resolveActionHandler } from '../../src/components/CnIndexPage/manifestActionDispatch.js'
+import { dispatchAction, resolveActionHandler, resolveActionTarget } from '../../src/components/CnIndexPage/manifestActionDispatch.js'
 
 function ctx(overrides = {}) {
 	return {
@@ -134,5 +134,52 @@ describe('manifestActionDispatch — v1.3.0 handler dispatch (back-compat)', () 
 	it('a plain @action-emit action (no type, no handler) passes through unchanged', () => {
 		const action = { id: 'a', label: 'X' }
 		expect(dispatchAction(action, ctx())).toBe(action)
+	})
+})
+
+describe('manifestActionDispatch — link targets', () => {
+	it('resolveActionTarget mirrors the dispatch targets', () => {
+		const c = ctx()
+		const row = { id: 'r1', slug: 'dog' }
+		expect(resolveActionTarget({ type: 'navigate', target: 'https://a.test' }, row, c)).toEqual({ target: 'https://a.test', external: true })
+		expect(resolveActionTarget({ type: 'navigate', target: '/pets' }, row, c)).toEqual({ target: '/pets', external: false })
+		expect(resolveActionTarget({ type: 'open-page', target: 'PetDetail' }, row, c))
+			.toEqual({ target: { name: 'PetDetail', params: { id: 'r1' } }, external: false })
+		expect(resolveActionTarget({ handler: 'navigate', route: 'PetDetail', params: { slug: '{slug}', tab: 'x-{id}' } }, row, c))
+			.toEqual({ target: { name: 'PetDetail', params: { id: 'r1', slug: 'dog', tab: 'x-r1' } }, external: false })
+		expect(resolveActionTarget({ handler: 'doThing' }, row, c)).toBeNull()
+		expect(resolveActionTarget({ type: 'navigate' }, row, c)).toBeNull()
+	})
+
+	it('resolveActionTarget drops an unresolved token without warning by default', () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const target = resolveActionTarget({ id: 'a', handler: 'navigate', route: 'R', params: { other: '{missing}' } }, { id: 1 }, ctx())
+		expect(target.target.params).toEqual({ id: 1 })
+		expect(warn).not.toHaveBeenCalled()
+		warn.mockRestore()
+	})
+
+	it('dispatchAction gives an in-app navigating action a per-row `to`', () => {
+		const c = ctx()
+		const openPage = dispatchAction({ id: 'v', label: 'View', type: 'open-page', target: 'PetDetail' }, c)
+		expect(openPage.to({ id: 5 })).toEqual({ name: 'PetDetail', params: { id: 5 } })
+		const nav = dispatchAction({ id: 'e', label: 'Edit', handler: 'navigate', route: 'PetEdit' }, c)
+		expect(nav.to({ id: 6 })).toEqual({ name: 'PetEdit', params: { id: 6 } })
+		expect(typeof nav.handler).toBe('function')
+	})
+
+	it('dispatchAction gives an external navigate an href opening in a new tab', () => {
+		const out = dispatchAction({ id: 'd', label: 'Docs', type: 'navigate', target: 'https://a.test' }, ctx())
+		expect(out).toMatchObject({ href: 'https://a.test', linkTarget: '_blank' })
+		expect(out.to).toBeUndefined()
+	})
+
+	it('dispatchAction adds no link fields to a non-navigating or suppressed action', () => {
+		const c = ctx({ customComponents: { doThing: jest.fn() } })
+		const fn = dispatchAction({ id: 'a', label: 'A', handler: 'doThing' }, c)
+		expect(fn.to).toBeUndefined()
+		expect(fn.href).toBeUndefined()
+		const none = dispatchAction({ id: 'n', label: 'N', handler: 'none' }, c)
+		expect(none.to).toBeUndefined()
 	})
 })

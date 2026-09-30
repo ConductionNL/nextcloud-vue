@@ -158,6 +158,7 @@ Call `resetUserLayout()` to drop the arrangement; the page emits `user-layout-re
 | Slot | Scope | Description |
 |------|-------|-------------|
 | `header-actions` | — | Extra buttons shown in the page header (right side, before the edit toggle) |
+| `title-meta` | — | Content on the title's row, right of the title, such as a page-wide picker. A manifest fills it with `page.slots: { "title-meta": "<RegistryName>" }` |
 | `actions` | — | Back-compat alias for `header-actions`; prefer `header-actions` in new code |
 | `widget-{widgetId}` | `{ item, widget }` | Custom widget content for a widget with the given ID |
 | `empty` | — | Custom empty state when no widgets are in the layout |

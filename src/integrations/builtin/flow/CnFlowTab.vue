@@ -55,7 +55,11 @@
 		<div v-else-if="operations.length === 0" class="cn-sidebar-tab__empty cn-flow-tab__empty">
 			<SitemapOutline :size="32" class="cn-flow-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openFlowSettings">
+			<NcButton
+				variant="primary"
+				:href="flowSettingsUrl"
+				target="_blank"
+				rel="noopener noreferrer">
 				<template #icon>
 					<SitemapOutline :size="20" />
 				</template>
@@ -317,12 +321,6 @@ export default {
 
 		enabledAriaLabel(op) {
 			return this.enabledLabel(op)
-		},
-
-		openFlowSettings() {
-			if (typeof window !== 'undefined') {
-				window.open(this.flowSettingsUrl, '_blank', 'noopener')
-			}
 		},
 
 		openPicker() {

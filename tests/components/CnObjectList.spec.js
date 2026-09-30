@@ -34,6 +34,19 @@ describe('CnObjectList', () => {
 		expect(wrapper.emitted('select')[0]).toEqual([['a']])
 	})
 
+	it('forwards a row click and middle click with the native event', async () => {
+		const wrapper = mount(CnObjectList, { propsData: { objects } })
+		const row = wrapper.findAll('.cn-object-row').at(0)
+		await row.trigger('click', { shiftKey: true })
+		await row.trigger('auxclick', { button: 1 })
+		await row.trigger('auxclick', { button: 2 })
+		const clicks = wrapper.emitted('click')
+		expect(clicks).toHaveLength(2)
+		expect(clicks[0][0]).toEqual(objects[0])
+		expect(clicks[0][1].shiftKey).toBe(true)
+		expect(clicks[1][1].button).toBe(1)
+	})
+
 	it('uses the #list-item slot to fully override rows', () => {
 		const wrapper = mount(CnObjectList, {
 			propsData: { objects },

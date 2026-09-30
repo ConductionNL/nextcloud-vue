@@ -36,6 +36,19 @@ describe('CnDashboardPage — headerActions (#91 Wave 3)', () => {
 	})
 })
 
+describe('CnDashboardPage — title-meta slot', () => {
+	it('renders the slot on the title row, right of the title', () => {
+		const wrapper = shallowMount(CnDashboardPage, {
+			propsData: { title: 'Customer Support' },
+			slots: { 'title-meta': '<div class="picker-stub" />' },
+		})
+		const row = wrapper.find('.cn-dashboard-page__title-row')
+		expect(row.find('.cn-dashboard-page__title').exists()).toBe(true)
+		expect(row.find('.picker-stub').exists()).toBe(true)
+		expect(wrapper.find('.cn-dashboard-page__header-actions .picker-stub').exists()).toBe(false)
+	})
+})
+
 describe('CnDashboardPage — chart endpointSource forwarding (#91 Wave 2/3)', () => {
 	function mountChartDash(propsData) {
 		return shallowMount(CnDashboardPage, {

@@ -31,6 +31,7 @@ jest.mock('../../src/utils/actionsDispatcher.js', () => {
 		resolveObjectOpType: jest.fn(() => 'crm/lead'),
 		isExternalActionTarget: actual.isExternalActionTarget,
 		interpolateActionTarget: actual.interpolateActionTarget,
+		actionLink: actual.actionLink,
 		buildOnSuccessRoute: actual.buildOnSuccessRoute,
 		savedObjectId: actual.savedObjectId,
 		resolveCreateOverrideHandler: actual.resolveCreateOverrideHandler,
@@ -90,7 +91,7 @@ const stubs = {
 		// the parent's handler a SECOND time — one call from the DOM click, one
 		// from `$emit('click')`. Declaring it removes `onClick` from `$attrs`.
 		emits: ['click'],
-		template: '<component :is="href ? \'a\' : \'button\'" :disabled="disabled" :href="href" :target="target" v-bind="$attrs" @click="$emit(\'click\')"><slot name="icon" /><slot /></component>',
+		template: '<component :is="href ? \'a\' : \'button\'" :disabled="disabled" :href="href" :target="target" v-bind="$attrs" @click="$emit(\'click\', $event)"><slot name="icon" /><slot /></component>',
 	},
 	CnIcon: { name: 'CnIcon', template: '<span class="cn-icon" />' },
 	CnConfirmDialog: {
@@ -843,6 +844,81 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			const wrapper = mountBar([
 				{ id: 'dogs', label: 'Dogs', type: 'navigate', target: '/dogs' },
 			], { display: 'menu' })
+			await flush()
+			const [entries] = wrapper.emitted('entries').at(-1)
+			expect(entries[0]).toMatchObject({ href: '', linkTarget: '' })
+		})
+	})
+
+	describe('an in-app navigate / open-page action becomes a router link', () => {
+		/**
+		 * @return {object} A router stub that resolves and records pushes.
+		 */
+		function makeRouter() {
+			return {
+				push: jest.fn(() => Promise.resolve()),
+				resolve: jest.fn((to) => ({ href: '#' + (typeof to === 'string' ? to : '/' + to.name) })),
+			}
+		}
+
+		it('renders a navigate as an anchor to the router href and routes a plain click', async () => {
+			const router = makeRouter()
+			const wrapper = mount(CnActionButtons, {
+				propsData: { actions: [{ id: 'dogs', label: 'Dogs', type: 'navigate', target: '/dogs' }], router },
+				stubs,
+			})
+			await flush()
+			const el = wrapper.find('[data-testid="cn-action-dogs"]')
+			expect(el.element.tagName).toBe('A')
+			expect(el.attributes('href')).toBe('#/dogs')
+			expect(el.attributes('target')).toBeUndefined()
+
+			await el.trigger('click')
+			await flush()
+			expect(router.push).toHaveBeenCalledWith('/dogs')
+			expect(dispatchAction).not.toHaveBeenCalled()
+		})
+
+		it('leaves a ctrl-click to the browser', async () => {
+			const router = makeRouter()
+			const wrapper = mount(CnActionButtons, {
+				propsData: { actions: [{ id: 'dogs', label: 'Dogs', type: 'navigate', target: '/dogs' }], router },
+				stubs,
+			})
+			await flush()
+			await wrapper.find('[data-testid="cn-action-dogs"]').trigger('click', { ctrlKey: true })
+			expect(router.push).not.toHaveBeenCalled()
+		})
+
+		it('links an open-page to its named route', async () => {
+			const router = makeRouter()
+			const wrapper = mount(CnActionButtons, {
+				propsData: { actions: [{ id: 'cases', label: 'Cases', type: 'open-page', target: 'CaseIndex' }], router },
+				stubs,
+			})
+			await flush()
+			const el = wrapper.find('[data-testid="cn-action-cases"]')
+			expect(el.attributes('href')).toBe('#/CaseIndex')
+			await el.trigger('click')
+			expect(router.push).toHaveBeenCalledWith({ name: 'CaseIndex' })
+		})
+
+		it('keeps a confirm-gated navigate as a dispatched button', async () => {
+			const router = makeRouter()
+			const wrapper = mount(CnActionButtons, {
+				propsData: { actions: [{ id: 'dogs', label: 'Dogs', type: 'navigate', target: '/dogs', confirm: true }], router },
+				stubs,
+			})
+			await flush()
+			expect(wrapper.find('[data-testid="cn-action-dogs"]').element.tagName).toBe('BUTTON')
+		})
+
+		it('keeps an in-app link a run() entry for a display:"menu" host', async () => {
+			const router = makeRouter()
+			const wrapper = mount(CnActionButtons, {
+				propsData: { actions: [{ id: 'dogs', label: 'Dogs', type: 'navigate', target: '/dogs' }], router, display: 'menu' },
+				stubs,
+			})
 			await flush()
 			const [entries] = wrapper.emitted('entries').at(-1)
 			expect(entries[0]).toMatchObject({ href: '', linkTarget: '' })

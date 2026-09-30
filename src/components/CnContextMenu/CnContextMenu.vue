@@ -12,21 +12,38 @@
 			@close="onClose"
 			@closed="onClosed">
 			<!-- Dynamic actions from array prop -->
-			<NcActionButton
-				v-for="action in visibleActions"
-				:key="action.label"
-				:title="resolveTitle(action)"
-				:disabled="resolveDisabled(action)"
-				:class="{ 'cn-row-action--destructive': action.destructive }"
-				:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
-				closeAfterClick
-				@click="onAction(action)">
-				<template v-if="action.icon" #icon>
-					<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
-					<component :is="action.icon" v-else :size="20" />
-				</template>
-				{{ action.label }}
-			</NcActionButton>
+			<template v-for="{ action, link } in renderedActions" :key="action.label">
+				<!-- A navigate-only action is a real link, so it can be middle-clicked, opened in a new tab or copied. -->
+				<NcActionLink
+					v-if="link"
+					:href="link.href"
+					:target="link.target"
+					:title="resolveTitle(action)"
+					:class="{ 'cn-row-action--destructive': action.destructive }"
+					:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
+					closeAfterClick
+					@click="onLinkAction(action, link, $event)">
+					<template v-if="action.icon" #icon>
+						<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+						<component :is="action.icon" v-else :size="20" />
+					</template>
+					{{ action.label }}
+				</NcActionLink>
+				<NcActionButton
+					v-else
+					:title="resolveTitle(action)"
+					:disabled="resolveDisabled(action)"
+					:class="{ 'cn-row-action--destructive': action.destructive }"
+					:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
+					closeAfterClick
+					@click="onAction(action)">
+					<template v-if="action.icon" #icon>
+						<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+						<component :is="action.icon" v-else :size="20" />
+					</template>
+					{{ action.label }}
+				</NcActionButton>
+			</template>
 
 			<!--
 			@slot default
@@ -74,8 +91,9 @@
 </template>
 
 <script>
-import { NcActionButton, NcActions } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcActions } from '@nextcloud/vue'
 import { CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR } from '../../composables/useContextMenu.js'
+import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -118,6 +136,7 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
+		NcActionLink,
 		CnIcon,
 	},
 
@@ -141,10 +160,13 @@ export default {
 		 * `visible` (boolean | (targetItem) => boolean) hides the entry when falsy
 		 * (default: shown). `title` (string | (targetItem) => string) renders as
 		 * a native tooltip — useful for explaining why an entry is disabled.
-		 * When the entire array is empty (or all entries are filtered out), only
-		 * the default slot content is rendered.
+		 * `href` (URL) or `to` (vue-router location), each a value or a
+		 * `(targetItem) => …` function, render the entry as a real link, with
+		 * `linkTarget` as its `target`; a link emits `action` but does not call
+		 * `handler`. When the entire array is empty (or all entries are filtered
+		 * out), only the default slot content is rendered.
 		 *
-		 * @type {Array<{label: string, icon: object | string, handler: (targetItem: object) => void, disabled: boolean | ((targetItem: object) => boolean), visible: boolean | ((targetItem: object) => boolean), title: string | ((targetItem: object) => string), destructive: boolean}>}
+		 * @type {Array<{label: string, icon: object | string, handler: (targetItem: object) => void, disabled: boolean | ((targetItem: object) => boolean), visible: boolean | ((targetItem: object) => boolean), title: string | ((targetItem: object) => string), destructive: boolean, href: string | ((targetItem: object) => string), to: string | object | ((targetItem: object) => string | object), linkTarget: string}>}
 		 */
 		actions: {
 			type: Array,
@@ -201,6 +223,18 @@ export default {
 				}
 				return !!action.visible
 			})
+		},
+
+		/**
+		 * Visible actions paired with the link each renders as (null for a button).
+		 *
+		 * @return {Array<{action: object, link: object|null}>}
+		 */
+		renderedActions() {
+			return this.visibleActions.map((action) => ({
+				action,
+				link: this.resolveDisabled(action) ? null : resolveItemActionLink(action, this.targetItem, this.$router),
+			}))
 		},
 	},
 
@@ -453,6 +487,20 @@ export default {
 			 * @event action User picked an entry from the menu. The action's own `handler(targetItem)` (when present) ran synchronously before this event fires; the event lets parents observe / log the choice.
 			 * @type {{ action: string, row: object|null }}
 			 */
+			this.$emit('action', { action: action.label, row: this.targetItem })
+		},
+
+		/**
+		 * A link entry was clicked: route a plain in-app click, leave the rest to
+		 * the browser, and emit `action` as a button would. The `handler` is not
+		 * called, since navigating is what the link already does.
+		 *
+		 * @param {object} action The action descriptor.
+		 * @param {object} link The resolved link.
+		 * @param {MouseEvent} event The click event.
+		 */
+		onLinkAction(action, link, event) {
+			followItemActionLink(event, link, this.$router)
 			this.$emit('action', { action: action.label, row: this.targetItem })
 		},
 

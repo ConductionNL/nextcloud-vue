@@ -247,17 +247,17 @@ describe('CnAppNav', () => {
 			expect(wrapper.find('[data-testid="cn-nav-admin-settings-external"]').exists()).toBe(true)
 		})
 
-		it('action "admin-settings" opens the settings page in a new tab, not in place', () => {
+		it('action "admin-settings" is a real link to the absolute settings href, left to the browser', () => {
 			const item = { id: 'x', label: 'Admin', action: 'admin-settings' }
 			const wrapper = mountNav({ isAdmin: true, appId: 'openconnector' })
+			expect(wrapper.vm.itemHref(item)).toMatch(/^[a-z]+:\/\/.*\/settings\/admin\/openconnector$/i)
+			expect(wrapper.vm.itemTo(item)).toBeNull()
 			const originalOpen = window.open
 			window.open = jest.fn()
-			wrapper.vm.onItemClick(item, { preventDefault: jest.fn() })
-			expect(window.open).toHaveBeenCalledWith(
-				expect.stringContaining('/settings/admin/openconnector'),
-				'_blank',
-				'noopener',
-			)
+			const preventDefault = jest.fn()
+			wrapper.vm.onItemClick(item, { preventDefault })
+			expect(window.open).not.toHaveBeenCalled()
+			expect(preventDefault).not.toHaveBeenCalled()
 			window.open = originalOpen
 		})
 
@@ -1113,28 +1113,45 @@ describe('CnAppNav', () => {
 			expect(wrapper.find('[data-testid="cn-nav-primary-action"]').exists()).toBe(false)
 		})
 
-		it('emits primary-action-click and pushes the named route on click', () => {
+		it('renders a route action as a router link and still emits on click', async () => {
 			const push = jest.fn()
 			const wrapper = mount(CnAppNav, {
 				propsData: { manifest: withPrimary({ label: 'app.new', route: 'a' }), translate: (k) => k },
 				mocks: { $route: { name: 'b' }, $router: { push } },
 			})
-			wrapper.vm.onPrimaryActionClick()
+			const button = wrapper.find('[data-testid="cn-nav-primary-action"]').findComponent({ name: 'NcButton' })
+			expect(button.vm.$attrs.to).toEqual({ name: 'a' })
+			await button.trigger('click')
 			expect(wrapper.emitted('primary-action-click')).toBeTruthy()
-			expect(push).toHaveBeenCalledWith({ name: 'a' })
+			expect(wrapper.emitted('primary-action')).toBeTruthy()
+			// The link navigates; the component does not push by hand.
+			expect(push).not.toHaveBeenCalled()
 		})
 
-		it('opens an external href in a new tab and does not navigate', () => {
+		it('renders an href action as a new-tab link and does not window.open', async () => {
 			const push = jest.fn()
 			const open = jest.spyOn(window, 'open').mockImplementation(() => {})
 			const wrapper = mount(CnAppNav, {
 				propsData: { manifest: withPrimary({ label: 'app.docs', href: 'https://example.test' }), translate: (k) => k },
 				mocks: { $route: { name: 'a' }, $router: { push } },
 			})
-			wrapper.vm.onPrimaryActionClick()
-			expect(open).toHaveBeenCalledWith('https://example.test', '_blank', 'noopener,noreferrer')
+			const button = wrapper.find('[data-testid="cn-nav-primary-action"]').findComponent({ name: 'NcButton' })
+			expect(button.vm.$attrs.href).toBe('https://example.test')
+			expect(button.vm.$attrs.target).toBe('_blank')
+			await button.trigger('click')
+			expect(wrapper.emitted('primary-action-click')).toBeTruthy()
+			expect(open).not.toHaveBeenCalled()
 			expect(push).not.toHaveBeenCalled()
 			open.mockRestore()
+		})
+
+		it('keeps NcAppNavigationNew for an action with neither href nor route', () => {
+			const wrapper = mount(CnAppNav, {
+				propsData: { manifest: withPrimary({ id: 'create', label: 'app.new' }), translate: (k) => k },
+				mocks: { $route: { name: 'a' } },
+			})
+			expect(wrapper.findComponent({ name: 'NcAppNavigationNew' }).exists()).toBe(true)
+			expect(wrapper.vm.primaryActionLink).toBeNull()
 		})
 	})
 

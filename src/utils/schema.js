@@ -6,6 +6,8 @@
  * @module utils/schema
  */
 
+import { schemaRefSlug } from './schemaRefSlug.js'
+
 /**
  * Default column widths per property type/format.
  */
@@ -323,13 +325,23 @@ function truncateString(str, maxLength) {
  * dropdown rendered but came back empty. Take the tail after the last `/`, which
  * is what the editor itself does when it resolves a $ref back to a schema.
  *
+ * A `$ref` is authored as the schema's PascalCase (or spaced) *title*, not
+ * its slug (`ReportPeriod`, not `report-period`); the objects API 404s on
+ * the title for any multi-word schema (defect 7, learniq round 1). Routing
+ * the tail through {@link schemaRefSlug} fixes that once here, for every
+ * consumer of `reference.schema` built below.
+ *
  * @param {unknown} ref A `$ref` value (`prop.$ref` or `prop.items.$ref`).
  * @return {string|number|null} The reference identifier, or null.
  */
 function normalizeRef(ref) {
 	if (typeof ref === 'string' && ref !== '') {
 		const tail = ref.includes('/') ? ref.substring(ref.lastIndexOf('/') + 1) : ref
-		return tail !== '' ? tail : null
+		if (tail === '') {
+			return null
+		}
+		const slug = schemaRefSlug(tail)
+		return slug !== '' ? slug : null
 	}
 	if (typeof ref === 'number' && !Number.isNaN(ref)) {
 		return ref
@@ -511,6 +523,56 @@ export function splitDescription(text, max = DESCRIPTION_INLINE_MAX) {
 }
 
 /**
+ * Property names that carry the tenant a record belongs to, compared after
+ * lower-casing and dropping `_` / `-`, so `tenant_id`, `tenantId` and
+ * `tenant-id` all match.
+ *
+ * @type {Set<string>}
+ */
+const TENANT_PROPERTY_NAMES = new Set(['tenant', 'tenantid', 'tenantuuid'])
+
+/**
+ * Whether a schema property holds the tenant a record belongs to.
+ *
+ * Tenant is set by the platform, never by the person filling in a form, so
+ * a create form must not ask for it. OpenRegister marks no such property
+ * itself: learniq's work group ships `tenant_id` as a plain required string
+ * with no format, no `readOnly` and no flag, which is why the create dialog
+ * showed a required "Tenant *" box. So the test reads the property's
+ * semantics in this order:
+ *
+ * 1. An explicit opt-out, `x-openregister-tenant: false`, keeps it a normal field.
+ * 2. An explicit marker makes it a tenant field whatever it is called:
+ *    `x-openregister-tenant: true`, `x-platform-managed: true`,
+ *    `x-managed-by: 'platform'`, `format: 'tenant'` or `referenceType: 'tenant'`.
+ * 3. Otherwise its name decides: `tenant`, `tenant_id` / `tenantId` or `tenant_uuid`.
+ *
+ * `organisation` is deliberately NOT matched by name: plenty of schemas let a
+ * person pick an organisation (a contact's employer, a supplier), and hiding
+ * that would take a real question away. A schema whose `organisation`
+ * property is the tenant says so with one of the markers above.
+ *
+ * @param {string} key The property key.
+ * @param {object} prop The property definition.
+ * @return {boolean} True when the property is platform-managed tenancy.
+ */
+export function isTenantProperty(key, prop) {
+	const p = (prop && typeof prop === 'object') ? prop : {}
+	if (p['x-openregister-tenant'] === false) {
+		return false
+	}
+	if (p['x-openregister-tenant'] === true
+		|| p['x-platform-managed'] === true
+		|| p['x-managed-by'] === 'platform'
+		|| p.format === 'tenant'
+		|| p.referenceType === 'tenant') {
+		return true
+	}
+	const name = typeof key === 'string' ? key.toLowerCase().replace(/[-_]/g, '') : ''
+	return TENANT_PROPERTY_NAMES.has(name)
+}
+
+/**
  * Generate form field definitions from a schema's properties.
  *
  * Reads `schema.properties` and creates field descriptor objects suitable
@@ -523,11 +585,12 @@ export function splitDescription(text, max = DESCRIPTION_INLINE_MAX) {
  * @param {string[]} [options.include] Property keys to include (whitelist mode)
  * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. Recognised keys: `hidden` (true → drop the field), `order` (number → wins over the schema property's `order` for sorting), `readOnly` (false on a schema-readOnly key un-skips it), plus any field props to merge (`label`, `widget`, `enum`, …). A single overrides map therefore controls visibility, ordering and rendering on every surface that consumes this pipeline (data widget + form dialog).
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
+ * @param {boolean} [options.hideTenant] Drop properties that hold the record's tenant (see `isTenantProperty`). Off by default, so a detail page still shows the tenant; CnFormDialog turns it on because nobody should be asked for it. `overrides[key].hidden === false` keeps one visible.
  * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each field's `label` and `description`. Schema property titles/descriptions are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered field label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
  * @return {Array<{key: string, label: string, description: string, descriptionLong: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: unknown, enum: Array|null, enumLabels: object|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean}|null, userPicker: {multiple: boolean}|null, fillFrom: object|null, validation: object, order: number}>} `description` is the inline helper text (see `splitDescription`); `descriptionLong` carries the full text when it was too long to render inline, else ''. `enumLabels` maps each raw enum value to its English display label (from the property's `x-enum-labels`), or null.
  */
 export function fieldsFromSchema(schema, options = {}) {
-	const { exclude = [], include = null, overrides = {}, includeReadOnly = false, translate } = options
+	const { exclude = [], include = null, overrides = {}, includeReadOnly = false, hideTenant = false, translate } = options
 	const tr = typeof translate === 'function' ? translate : (text) => text
 
 	if (!schema || !schema.properties) {
@@ -546,6 +609,12 @@ export function fieldsFromSchema(schema, options = {}) {
 			// the field on every surface that consumes this pipeline (data widget
 			// + form dialog), so a single config map controls both.
 			if (overrides[key]?.hidden === true) {
+				return false
+			}
+			// Platform-managed tenancy (`tenant_id` and friends): nobody is
+			// asked for it on a form. An explicit `hidden: false` override
+			// brings it back for the rare surface that does need it.
+			if (hideTenant && overrides[key]?.hidden !== false && isTenantProperty(key, prop)) {
 				return false
 			}
 			// Skip readOnly properties by default — UNLESS a per-key override

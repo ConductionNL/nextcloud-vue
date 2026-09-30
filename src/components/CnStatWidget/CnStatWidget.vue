@@ -103,6 +103,7 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
@@ -110,13 +111,14 @@ import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
 import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
-import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
+import { fetchSharedResponse, getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import widgetLink from '../../mixins/widgetLink.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
 import { evaluateVisibleWhenLocal, readVisibleWhenPath } from '../../utils/visibleWhen.js'
 
 // The canonical KPI look lives in one shared stylesheet, imported by BOTH
@@ -128,6 +130,8 @@ import '../../css/kpi-card.css'
 // stylesheet. Imported here for the same reason as kpi-card.css above.
 import '../../css/badge.css'
 
+const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
+
 /**
  * Variant → CSS colour token map for the `variantWhen` threshold rules.
  * `danger` is accepted as an alias of `error` (the doriath KPI-card
@@ -135,27 +139,14 @@ import '../../css/badge.css'
  *
  * @type {Record<string, string>}
  */
-// THE `-text` TOKENS, NOT THE PLAIN ONES. These paint the NUMBER and the icon
-// tint, i.e. foreground. Nextcloud's `--color-success` / `--color-warning` /
-// `--color-error` are FILL colours meant to sit behind something; DefaultTheme
-// ships `--color-success-text` and friends for foreground use. Using a fill as
-// a text colour failed WCAG AA — axe measured #d8f3da on #f5f5f5, a contrast of
-// 1.08 against the required 3:1, serious, on filinq's dashboard (gate-33).
-//
-// kpi-card.css fixed exactly this for the CSS-class path; this inline map was
-// missed because nothing reached it — every `variant` in the fleet is on a
-// stats-block, which renders classes. The first manifest to put `variant` on a
-// `stat` or `delta` would have hit the old failure.
-//
-// Each keeps the plain token as a fallback, so a theme predating the `-text`
-// tokens degrades to the old colour rather than to none.
+// These paint the number, so they take the text-on-background tokens.
 const VARIANT_COLORS = {
 	default: '',
 	primary: 'var(--color-primary-element)',
-	success: 'var(--color-success-text, var(--color-success))',
-	warning: 'var(--color-warning-text, var(--color-warning))',
-	error: 'var(--color-error-text, var(--color-error))',
-	danger: 'var(--color-error-text, var(--color-error))',
+	success: STATUS_TEXT_COLORS.success,
+	warning: STATUS_TEXT_COLORS.warning,
+	error: STATUS_TEXT_COLORS.error,
+	danger: STATUS_TEXT_COLORS.error,
 }
 
 /**
@@ -435,8 +426,12 @@ export default {
 		 * `dateRange` opts the tile into the dashboard's period. Present and empty
 		 * (`{}`) = follow the ancestor `CnDashboardPage` range; add `presets`
 		 * (`[{ id, label?, from?, to? }]`) to render a per-tile picker that
-		 * overrides it. The active range is exposed to `endpointSource` as
-		 * `@range.from` / `@range.to` / `@range.preset` tokens. A tile that
+		 * overrides it. With presets and no page range, the tile starts on
+		 * `dateRange.default` (a preset id), else on the first preset, so the
+		 * picker never opens blank and the first request already carries a
+		 * range. The active range is exposed to `endpointSource` (and to the
+		 * tile's `route`) as `@range.from` / `@range.to` / `@range.preset`
+		 * tokens. A tile that
 		 * declares no `dateRange` is unaffected by the page range — that is
 		 * deliberate, so adding a range to a dashboard cannot silently change what
 		 * an existing tile requests.
@@ -466,7 +461,7 @@ export default {
 		 * counted between LOCAL CALENDAR DAYS, not as elapsed milliseconds, so
 		 * the time of day on a deadline never moves the answer.
 		 *
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string}>}}
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>, default?: string}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string}>}}
 		 */
 		content: {
 			type: Object,
@@ -506,7 +501,22 @@ export default {
 		// setup, not data(), because the ctx closure below must read it reactively
 		// — a data() property would be resolved once and never refetch.
 		const tileRange = ref(null)
-		const activeRange = () => (tileRange.value || unwrap(pageRangeRaw) || null)
+		// With its own presets and no page range, the tile starts on
+		// `dateRange.default`, else the first preset. Without this the picker
+		// opened blank (its value '' matched no option unless an app added a
+		// preset with id '') and the first request carried no range. Only a
+		// tile that declares presets gets a default: one that merely follows
+		// the dashboard (`dateRange: {}`) keeps following it.
+		const defaultRange = () => {
+			const dr = props.content && props.content.dateRange
+			const presets = (dr && Array.isArray(dr.presets)) ? dr.presets.filter(Boolean) : []
+			if (presets.length === 0) {
+				return null
+			}
+			const chosen = (dr.default !== undefined && presets.find((p) => p.id === dr.default)) || presets[0]
+			return { preset: chosen.id, from: chosen.from ?? null, to: chosen.to ?? null }
+		}
+		const activeRange = () => (tileRange.value || unwrap(pageRangeRaw) || defaultRange())
 
 		const { data, loading, error, refetch } = useEndpointSource(
 			() => (props.content && props.content.endpointSource) || null,
@@ -1092,7 +1102,7 @@ export default {
 			const good = this.content.goodDirection || 'up'
 			const rising = this.trendPct > 0
 			const isGood = good === 'up' ? rising : !rising
-			return isGood ? 'var(--color-success)' : 'var(--color-error)'
+			return isGood ? STATUS_TEXT_COLORS.success : STATUS_TEXT_COLORS.error
 		},
 
 		/**
@@ -1325,6 +1335,20 @@ export default {
 
 	mounted() {
 		this.fetchValue()
+		// The `endpointSource` path refreshes through useEndpointSource; this
+		// covers the `source` path, which otherwise never re-read on Refresh.
+		this._onPageRefresh = (payload) => {
+			if (this.endpointMode) {
+				return
+			}
+			const done = this.fetchValue(payload)
+			payload?.waitUntil?.(done)
+		}
+		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
+	},
+
+	beforeUnmount() {
+		unsubscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 	},
 
 	methods: {
@@ -1568,9 +1592,10 @@ export default {
 		 * computed client-side over the fetched objects). Lazily imports
 		 * axios/router (same pattern as CnFilesWidget).
 		 *
+		 * @param {object} [refresh] The page refresh event's payload, when this is one.
 		 * @return {Promise<void>}
 		 */
-		async fetchValue() {
+		async fetchValue(refresh) {
 			// Endpoint-bound tiles are fetched by the shared useEndpointSource
 			// engine (see setup) — the OpenRegister paths below must not fire.
 			if (this.endpointMode) {
@@ -1600,7 +1625,7 @@ export default {
 				])
 
 				if (s.kind === 'endpoint') {
-					this.value = await this.fetchEndpoint(axios, generateUrl, s)
+					this.value = await this.fetchEndpoint(s, refresh)
 				} else if (s.kind === 'ratio') {
 					const num = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.numerator && s.numerator.filter) || {})
 					const den = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.denominator && s.denominator.filter) || {})
@@ -1714,22 +1739,24 @@ export default {
 		 * to a custom-aggregation endpoint (e.g. `/api/analytics/summary`) that
 		 * OpenRegister's per-schema aggregation can't express.
 		 *
-		 * @param {object} axios The axios instance.
-		 * @param {(url: string, params?: object) => string} generateUrl The router helper.
+		 * Never served from the settled shared cache, so a tile never shows a
+		 * count from before a write. Tiles loading at once, or reached by one
+		 * page refresh, share a single request per endpoint and params.
+		 *
 		 * @param {object} s The endpoint source `{ url, path?, params?, method? }`.
+		 * @param {object} [refresh] The page refresh event's payload, when this is one.
 		 * @return {Promise<number|null>} The extracted value.
 		 */
-		async fetchEndpoint(axios, generateUrl, s) {
-			const rawUrl = this.interpolateTokens(s.url)
-			// Leave absolute URLs (http/https) untouched; route app-relative
-			// paths through generateUrl so they resolve under the NC base.
-			const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : generateUrl(rawUrl)
+		async fetchEndpoint(s, refresh) {
 			const params = {}
 			for (const [k, v] of Object.entries(s.params || {})) {
 				params[k] = typeof v === 'string' ? this.interpolateTokens(v) : v
 			}
-			const res = await axios.get(url, { params })
-			const extracted = this.getByPath(res && res.data, s.path)
+			const body = await fetchSharedResponse(
+				{ url: this.interpolateTokens(s.url), method: 'GET', params },
+				refresh ? { force: true, refresh } : { fresh: true },
+			)
+			const extracted = this.getByPath(body, s.path)
 			if (extracted === undefined || extracted === null) {
 				return null
 			}

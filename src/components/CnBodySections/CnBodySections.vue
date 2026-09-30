@@ -32,6 +32,7 @@
 			v-for="entry in resolvedSections"
 			:key="entry.id"
 			class="cn-body-sections__section"
+			:class="{ 'cn-body-sections__section--card': entry.card }"
 			:style="sectionStyle(entry)"
 			:data-section-id="entry.id"
 			data-testid="cn-body-section">
@@ -86,11 +87,13 @@ export default {
 	props: {
 		/**
 		 * Declarative in-body section descriptors. Each entry:
-		 * `{ id, component, title?, props?, placement?, colSpan? }`.
+		 * `{ id, component, title?, props?, placement?, colSpan?, card? }`.
+		 * `card: true` draws the section in the same card as the grid's
+		 * widgets, for a component that has no card of its own.
 		 * `component` is the registry name of a host-app component
 		 * (resolved from `cnRegistry` then `cnCustomComponents`).
 		 *
-		 * @type {Array<{id?: string, component: string, title?: string, props?: object, placement?: string, colSpan?: number}>}
+		 * @type {Array<{id?: string, component: string, title?: string, props?: object, placement?: string, colSpan?: number, card?: boolean}>}
 		 */
 		sections: {
 			type: Array,
@@ -199,6 +202,7 @@ export default {
 					id,
 					name,
 					title: (section && section.title) || '',
+					card: !!(section && section.card),
 					colSpan: section && section.colSpan,
 					placement: section && section.placement,
 					component: this.resolveSectionComponent(name),
@@ -303,6 +307,21 @@ export default {
 
 .cn-body-sections__section {
 	min-width: 0;
+}
+
+/* Same card as the grid's widgets, so a section reads as one of them. */
+.cn-body-sections__section--card {
+	padding: 12px 16px 16px;
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 8px);
+}
+
+.cn-body-sections__section--card > .cn-body-sections__title {
+	margin: 0 -16px 12px;
+	padding: 0 16px 12px;
+	font-size: 14px;
+	border-bottom: 1px solid var(--color-border);
 }
 
 .cn-body-sections__title {

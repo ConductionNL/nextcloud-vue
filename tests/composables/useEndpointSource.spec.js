@@ -225,6 +225,57 @@ describe('fetchEndpointSource — caching + dedup', () => {
 		expect(axios.get).toHaveBeenCalledTimes(2)
 	})
 
+	it('shares one forced request between the widgets of one refresh', async () => {
+		axios.get.mockResolvedValue({ data: { v: 1 } })
+		await fetchEndpointSource({ url: '/api/x' })
+		const refresh = {}
+		await Promise.all(Array.from({ length: 5 }, () => fetchEndpointSource({ url: '/api/x' }, undefined, { force: true, refresh })))
+		expect(axios.get).toHaveBeenCalledTimes(2)
+
+		// The next refresh, after that one settled, reads fresh again.
+		await fetchEndpointSource({ url: '/api/x' }, undefined, { force: true, refresh: {} })
+		expect(axios.get).toHaveBeenCalledTimes(3)
+	})
+
+	it('a later refresh does not join an earlier one still in flight', async () => {
+		axios.get.mockResolvedValue({ data: { v: 1 } })
+		await Promise.all([
+			fetchEndpointSource({ url: '/api/x' }, undefined, { force: true, refresh: {} }),
+			fetchEndpointSource({ url: '/api/x' }, undefined, { force: true, refresh: {} }),
+		])
+		expect(axios.get).toHaveBeenCalledTimes(2)
+	})
+
+	it('a fresh call joins an in-flight request but never a settled one', async () => {
+		axios.get.mockResolvedValue({ data: { v: 1 } })
+		await Promise.all([
+			fetchEndpointSource({ url: '/api/x' }, undefined, { fresh: true }),
+			fetchEndpointSource({ url: '/api/x' }, undefined, { fresh: true }),
+		])
+		expect(axios.get).toHaveBeenCalledTimes(1)
+
+		await fetchEndpointSource({ url: '/api/x' }, undefined, { fresh: true })
+		expect(axios.get).toHaveBeenCalledTimes(2)
+	})
+
+	it('a forced call without a refresh never joins an in-flight request', async () => {
+		axios.get.mockResolvedValue({ data: { v: 1 } })
+		await Promise.all([
+			fetchEndpointSource({ url: '/api/x' }, undefined, { force: true }),
+			fetchEndpointSource({ url: '/api/x' }, undefined, { force: true }),
+		])
+		expect(axios.get).toHaveBeenCalledTimes(2)
+	})
+
+	it('a forced call does not join a plain request still in flight', async () => {
+		axios.get.mockResolvedValue({ data: { v: 1 } })
+		await Promise.all([
+			fetchEndpointSource({ url: '/api/x' }),
+			fetchEndpointSource({ url: '/api/x' }, undefined, { force: true }),
+		])
+		expect(axios.get).toHaveBeenCalledTimes(2)
+	})
+
 	it('drops the cache entry on error so the next call retries', async () => {
 		axios.get.mockRejectedValueOnce(new Error('boom'))
 		await expect(fetchEndpointSource({ url: '/api/x' })).rejects.toThrow('boom')
@@ -434,5 +485,33 @@ describe('useEndpointSource — minimum visible loading on forced refetch', () =
 		const { loading } = useEndpointSource({ url: '/api/x' })
 		await jest.advanceTimersByTimeAsync(0)
 		expect(loading.value).toBe(false)
+	})
+})
+
+describe('@range tokens (CnStatWidget period picker)', () => {
+	it('interpolates @range.<key> in the url', () => {
+		const ctx = { range: { from: '2026-09-01', preset: '7' } }
+		expect(interpolateUrlTokens('/api/report/@range.preset/from/@range.from', ctx))
+			.toBe('/api/report/7/from/2026-09-01')
+	})
+
+	it('resolves @range params, so a card with its own period picker is not blocked', () => {
+		// The exact shape portaliq's KPI cards needed: the picked preset as a
+		// query parameter.
+		const req = resolveEndpointRequest(
+			{ url: '/apps/portaliq/api/traffic/summary', params: { portal: 'open-tilburg', days: '@range.preset' } },
+			{ range: { preset: '7' } },
+		)
+		expect(req.params).toEqual({ portal: 'open-tilburg', days: '7' })
+		expect(req.blocked).toBe(false)
+	})
+
+	it('drops an optional @range param until a range is picked', () => {
+		const req = resolveEndpointRequest(
+			{ url: '/api/x', params: { portal: 'open-tilburg', days: '@range.preset?' } },
+			{ range: {} },
+		)
+		expect(req.params).toEqual({ portal: 'open-tilburg' })
+		expect(req.blocked).toBe(false)
 	})
 })

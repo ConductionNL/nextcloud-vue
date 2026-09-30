@@ -9,7 +9,7 @@ import GeneratedRef from './_generated/CnRowActions.md'
 
 Per-row action menu for tables and cards. Renders as a `⋯` button that opens a dropdown with the configured actions. Automatically marks destructive actions (e.g., Delete) with a danger style.
 
-**Wraps**: NcActions, NcActionButton
+**Wraps**: NcActions, NcActionButton, NcActionLink
 
 ## Try it
 
@@ -83,6 +83,25 @@ function onAction({ action, row }) {
 | `visibleWhen` | Object | — | The JSON form of the same question, for a manifest, which cannot hold a function: `{ field, op, value }` against the row, or an `all` / `any` composition of those. Evaluated synchronously, so only LOCAL conditions decide anything — one naming an `endpoint` or a `source` cannot be answered here and leaves the action shown rather than silently dropping it. Applied alongside `visible`; both must pass. |
 | `title` | String\|Function | — | Native tooltip shown on hover. Accepts a string or a function `(row) => string`. Useful for explaining *why* a `disabled` entry is disabled. |
 | `destructive` | Boolean | — | When `true`, renders the action in danger color |
+| `href` | String\|Function | — | Renders the entry as a real link to this URL (`NcActionLink`). Accepts a string or a function `(row) => string`. |
+| `to` | String\|Object\|Function | — | Renders the entry as a real link to this vue-router location (a path or `{ name, params }`, or a function `(row) => location`). The href is resolved through the router; a plain click routes in place, a middle/ctrl click opens a new tab. When the router cannot resolve it, the entry stays a button. |
+| `linkTarget` | String | — | The link's `target`, e.g. `_blank`. |
+
+#### Link actions
+
+An action whose only job is to navigate should be a link, so the user can middle-click it, open it in a new tab or copy its address. Give it `to` (in-app) or `href` (URL) instead of a navigating `handler`:
+
+```vue
+<CnRowActions
+  :actions="[
+    { label: 'View', icon: 'Eye', to: (row) => ({ name: 'LeadDetail', params: { id: row.id } }) },
+    { label: 'Website', icon: 'Web', href: (row) => row.url, linkTarget: '_blank' },
+    { label: 'Delete', icon: 'Delete', handler: deleteRow, destructive: true },
+  ]"
+  :row="row" />
+```
+
+A link entry still emits `action`, so a host listening to it keeps working, but its `handler` is not called: the link does the navigating. A disabled entry always renders as a button. CnIndexPage fills `to` / `href` in automatically for manifest actions with `type: "navigate"`, `type: "open-page"` or `handler: "navigate"`.
 
 #### Conditional visibility example
 

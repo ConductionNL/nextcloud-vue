@@ -17,10 +17,7 @@
 		     the panel keeps half a card.
 
 		     Chromeless does NOT mean no wrapper element. The wrapper's content
-		     node is what `CnObjectDataWidget` measures its overflow against and
-		     what the library's table and detail-page CSS key on; removing it
-		     would take the whole-row clip out silently, because a `closest()`
-		     that finds nothing reads as "nothing overflows".
+		     node is what the library's table and detail-page CSS key on.
 
 		     It used to keep the whole card here, because its Save button lives
 		     in CnWidgetWrapper's header and hiding the header hid Save with it.
@@ -99,6 +96,7 @@
 			:exclude="content.exclude || []"
 			:hideEmpty="content.hideEmpty === true || hideEmpty"
 			:columns="content.columns || 3"
+			:collapsedFields="content.collapsedFields ?? null"
 			:editable="content.editable !== false" />
 
 		<!-- `type: 'related'` — resolves this object's relations and links into
@@ -191,13 +189,15 @@
 		     content, so on a card surface they need the same titled wrapper the
 		     dashboard gives them (ADR-062: a lone stat must not read as uncarded
 		     floating text). `card-fit` centres the tile and drops the inner
-		     scrollbar. -->
+		     scrollbar. No Actions menu: it would hold nothing here and squeezes
+		     the title of a narrow tile. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && isCard && !isBare"
 			:title="widget.title || content.title || ''"
 			:showTitle="effectiveShowCardTitle"
 			titleIconPosition="left"
 			flush
+			:showActions="false"
 			:showRefresh="false"
 			:showRequestFeature="false"
 			class="cn-detail-page__card-fit">

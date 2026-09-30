@@ -55,7 +55,11 @@
 		<div v-else-if="cards.length === 0" class="cn-sidebar-tab__empty cn-deck-tab__empty">
 			<ViewColumnOutline :size="32" class="cn-deck-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openDeckApp">
+			<NcButton
+				variant="primary"
+				:href="deckAppUrl"
+				target="_blank"
+				rel="noopener noreferrer">
 				<template #icon>
 					<ViewColumnOutline :size="20" />
 				</template>
@@ -530,12 +534,6 @@ export default {
 		assigneeKey(assignee) {
 			const p = this.assigneeParticipant(assignee)
 			return String(p.uid ?? p.id ?? p.displayname ?? p.displayName ?? Math.random())
-		},
-
-		openDeckApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.deckAppUrl, '_blank', 'noopener')
-			}
 		},
 
 		async fetchCards() {

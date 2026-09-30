@@ -155,22 +155,39 @@ export function useListNavigation(options = {}) {
 	}
 
 	/**
-	 * Open a record, keeping the list context so the next step still works.
+	 * The router location of a record, keeping the list context so the next
+	 * step still works.
+	 *
+	 * @param {string|null} id The record.
+	 * @return {object|null} The location, or null without an id or a route.
+	 */
+	function locationOf(id) {
+		const from = currentRoute.value
+		if (id === null || id === undefined || !from) {
+			return null
+		}
+		return {
+			name: from.name,
+			params: { ...from.params, id, ...(from.params?.objectId !== undefined ? { objectId: id } : {}) },
+			query: { ...from.query },
+		}
+	}
+
+	/**
+	 * Open a record. Skips the push when `linkStep` says a link already
+	 * navigated there (CnDetailPage's `{ event, to }` payload).
 	 *
 	 * @param {string|null} id The record to open.
+	 * @param {object} [linkStep] The step event payload, if any.
 	 * @return {string|null} The id opened, or null when there was none.
 	 */
-	function open(id) {
+	function open(id, linkStep) {
 		if (id === null || id === undefined) {
 			return null
 		}
-		const from = currentRoute.value
-		if (router && from) {
-			router.push({
-				name: from.name,
-				params: { ...from.params, id, ...(from.params?.objectId !== undefined ? { objectId: id } : {}) },
-				query: { ...from.query },
-			}).catch(() => {})
+		const location = locationOf(id)
+		if (router && location && !linkStep?.to) {
+			router.push(location).catch(() => {})
 		}
 		return String(id)
 	}
@@ -178,19 +195,21 @@ export function useListNavigation(options = {}) {
 	/**
 	 * Open the next record of the list. A no-op on the last one.
 	 *
+	 * @param {object} [linkStep] CnDetailPage's `next-record` payload; with a `to` the link navigated already.
 	 * @return {string|null} The id opened, or null at the end of the list.
 	 */
-	function goNext() {
-		return open(neighbours.value.nextId)
+	function goNext(linkStep) {
+		return open(neighbours.value.nextId, linkStep)
 	}
 
 	/**
 	 * Open the previous record of the list. A no-op on the first one.
 	 *
+	 * @param {object} [linkStep] CnDetailPage's `previous-record` payload; with a `to` the link navigated already.
 	 * @return {string|null} The id opened, or null at the start of the list.
 	 */
-	function goPrevious() {
-		return open(neighbours.value.previousId)
+	function goPrevious(linkStep) {
+		return open(neighbours.value.previousId, linkStep)
 	}
 
 	// Reload when the list the address names changes, never when only the
@@ -214,6 +233,8 @@ export function useListNavigation(options = {}) {
 		isLast: computed(() => neighbours.value.isLast),
 		hasNext: computed(() => neighbours.value.nextId !== null),
 		hasPrevious: computed(() => neighbours.value.previousId !== null),
+		nextRoute: computed(() => locationOf(neighbours.value.nextId)),
+		previousRoute: computed(() => locationOf(neighbours.value.previousId)),
 		goNext,
 		goPrevious,
 		refresh: load,

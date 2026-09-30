@@ -43,8 +43,9 @@
 				:key="entry.id"
 				:variant="entry.variant || 'secondary'"
 				:href="entry.href"
-				:target="entry.target || undefined"
-				:data-testid="`cn-action-${entry.id}`">
+				:target="linkTargetOf(entry)"
+				:data-testid="`cn-action-${entry.id}`"
+				@click="onLinkClick(entry, $event)">
 				<template v-if="entry.icon" #icon>
 					<CnIcon v-if="isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
 					<span v-else :class="entry.icon" />
@@ -90,8 +91,9 @@
 						v-if="child.href"
 						:key="`${child.id}-link`"
 						:href="child.href"
-						:target="child.target || undefined"
-						:data-testid="`cn-action-${child.id}`">
+						:target="linkTargetOf(child)"
+						:data-testid="`cn-action-${child.id}`"
+						@click="onLinkClick(child, $event)">
 						<template v-if="child.icon" #icon>
 							<CnIcon v-if="isMdiIconName(child.icon)" :name="child.icon" :size="20" />
 							<span v-else :class="child.icon" />
@@ -126,8 +128,9 @@
 					v-if="entry.href"
 					:key="`${entry.id}-link`"
 					:href="entry.href"
-					:target="entry.target || undefined"
-					:data-testid="`cn-action-${entry.id}`">
+					:target="linkTargetOf(entry)"
+					:data-testid="`cn-action-${entry.id}`"
+					@click="onLinkClick(entry, $event)">
 					<template v-if="entry.icon" #icon>
 						<CnIcon v-if="isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
 						<span v-else :class="entry.icon" />
@@ -213,9 +216,10 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnRunNodeDialog from '../../dialogs/CnRunNodeDialog.vue'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
-import { buildOnSuccessRoute, dispatchAction, interpolateActionTarget, isExternalActionTarget, postRunNode, resolveCreateOverrideHandler, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { actionLink, buildOnSuccessRoute, dispatchAction, interpolateActionTarget, isExternalActionTarget, postRunNode, resolveCreateOverrideHandler, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { usesArrayValues, valueArrayFor, valueRecordsFor } from '../../utils/dynamicProperties.js'
+import { followLinkClick } from '../../utils/linkNavigation.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
@@ -487,22 +491,14 @@ export default {
 		 * own query string with it. The action's `target` (the URL) is replaced
 		 * by the anchor's `target`, since the two fields share a name and the
 		 * URL now lives in `href`. An author's explicit `href` still wins.
+		 *
+		 * An in-app `navigate` or `open-page` becomes a link too (see
+		 * `toLinkEntry`), keeping its own `target` so a fallback dispatch works.
 		 */
 		visibleActions() {
 			return (this.actions || [])
 				.filter((a) => a && a.id && this.visibility[a.id] !== false)
-				.map((a) => {
-					if (a.href || a.type !== 'navigate') {
-						return a
-					}
-					// Interpolated BEFORE the external test and before it becomes an
-					// href, so the anchor carries the record's id rather than the token.
-					const target = interpolateActionTarget(a.target, this.tokenCtx)
-					if (isExternalActionTarget(target)) {
-						return { ...a, href: target, target: '_blank' }
-					}
-					return target === a.target ? a : { ...a, target }
-				})
+				.map((a) => this.toLinkEntry(a))
 		},
 
 		/**
@@ -587,9 +583,10 @@ export default {
 					testid: isToggle ? `cn-action-toggle-${entry.id}` : `cn-action-${entry.id}`,
 					// A link entry, for a host to render as an anchor rather
 					// than a button with a click handler. Named `linkTarget`
-					// because an action's own `target` is its destination.
-					href: entry.href || '',
-					linkTarget: entry.href ? (entry.target || '_blank') : '',
+					// because an action's own `target` is its destination. An in-app
+					// link (`linkTo`) is left to `run()`: a host anchor has no router.
+					href: (!entry.linkTo && entry.href) || '',
+					linkTarget: (!entry.linkTo && entry.href) ? (entry.target || '_blank') : '',
 					run: () => (isToggle ? this.onToggleClick(entry) : this.onActionClick(entry)),
 				}
 			})
@@ -761,7 +758,65 @@ export default {
 			if (!Array.isArray(entry?.children)) {
 				return []
 			}
-			return entry.children.filter((c) => c && c.id && this.visibility[c.id] !== false)
+			return entry.children
+				.filter((c) => c && c.id && this.visibility[c.id] !== false)
+				.map((c) => this.toLinkEntry(c))
+		},
+
+		/**
+		 * Give a navigating action the `href` it renders as. An external
+		 * `navigate` target becomes the href with a `_blank` anchor target. An
+		 * in-app `navigate` / `open-page` gets the router-resolved href plus
+		 * `linkTo`, the location a plain click routes to; one with `confirm`,
+		 * an `onSelect` function, or an unresolvable route stays a button.
+		 *
+		 * @param {object} a The action descriptor.
+		 * @return {object} The descriptor, possibly with `href` / `linkTo` added.
+		 */
+		toLinkEntry(a) {
+			if (a.href || (a.type !== 'navigate' && a.type !== 'open-page')) {
+				return a
+			}
+			let entry = a
+			if (a.type === 'navigate') {
+				// Interpolated BEFORE the external test and before it becomes an
+				// href, so the anchor carries the record's id rather than the token.
+				const target = interpolateActionTarget(a.target, this.tokenCtx)
+				if (isExternalActionTarget(target)) {
+					return { ...a, href: target, target: '_blank' }
+				}
+				entry = target === a.target ? a : { ...a, target }
+			}
+			if (typeof entry.onSelect === 'function') {
+				return entry
+			}
+			const link = actionLink(entry, { router: this.effectiveRouter })
+			return link ? { ...entry, href: link.href, linkTo: link.to } : entry
+		},
+
+		/**
+		 * The anchor `target` of a link entry. An in-app link opens in place;
+		 * its own `target` is the destination, not an anchor target.
+		 *
+		 * @param {object} entry The link entry.
+		 * @return {string|undefined} The anchor target.
+		 */
+		linkTargetOf(entry) {
+			return entry.linkTo ? undefined : (entry.target || undefined)
+		},
+
+		/**
+		 * Click on a link entry: a plain click on an in-app link routes in
+		 * place; a URL or a modified click is left to the browser.
+		 *
+		 * @param {object} entry The link entry.
+		 * @param {MouseEvent} event The click event.
+		 * @return {void}
+		 */
+		onLinkClick(entry, event) {
+			if (entry.linkTo) {
+				followLinkClick(event, entry.linkTo, this.effectiveRouter)
+			}
 		},
 
 		/**

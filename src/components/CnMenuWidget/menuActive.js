@@ -13,8 +13,13 @@
  * `{path, leafKey}` where `path` maps dotted-string keys (`'0'`, `'1.2'`) to
  * `'active'` (deepest leaf match) or `'in-path'` (ancestor of the active leaf).
  *
+ * `menuLinkAttrs` builds an item's anchor attributes.
+ *
  * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
  */
+
+import { routeHref } from '../../utils/actionLink.js'
+import { safeHref } from '../../utils/safeHref.js'
 
 /**
  * Whether a URL string should be considered external (http/https).
@@ -24,6 +29,37 @@
  */
 export function isExternalUrl(url) {
 	return typeof url === 'string' && /^https?:\/\//i.test(url)
+}
+
+/**
+ * Whether a menu URL is a path inside the app, to be routed: no scheme
+ * (`https:`, `mailto:`, `javascript:`) and not protocol-relative.
+ *
+ * @param {string} url the URL or path.
+ * @return {boolean} true for an in-app path.
+ */
+export function isRouterPath(url) {
+	return typeof url === 'string' && url !== ''
+		&& !url.startsWith('//') && !/^[a-z][a-z0-9+.-]*:/i.test(url)
+}
+
+/**
+ * Anchor attributes for a menu URL. An in-app path is resolved through the
+ * router, so its href carries the app's base; any other URL goes through
+ * safeHref, and an external one opens in a new tab.
+ *
+ * @param {string} url the item's URL.
+ * @param {object} [router] the app's router.
+ * @return {{href: string, target?: string, rel?: string}} the anchor attributes.
+ */
+export function menuLinkAttrs(url, router) {
+	if (isExternalUrl(url)) {
+		return { href: safeHref(url), target: '_blank', rel: 'noopener noreferrer' }
+	}
+	if (isRouterPath(url)) {
+		return { href: routeHref(url, router) || url }
+	}
+	return { href: safeHref(url) }
 }
 
 /**

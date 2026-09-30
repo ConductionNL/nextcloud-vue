@@ -18,7 +18,6 @@
 		:chromeless="chromeless"
 		:widgetId="widgetId || objectType"
 		:documentationUrl="documentationUrl"
-		:class="{ 'cn-object-data-widget--expanded': overflowing && expanded }"
 		:titleIconPosition="(iconComponent || iconName) ? 'left' : 'right'">
 		<template v-if="iconName" #title-icon>
 			<CnIcon :name="iconName" :size="20" />
@@ -72,23 +71,12 @@
 			{{ emptyLabel }}
 		</div>
 
-		<!-- Grid, wrapped so an overflowing field set is clipped at a WHOLE-ROW
-		     boundary (never mid-text) with a bottom fade + a "Show all N fields"
-		     affordance that expands the widget in place (ADR-062: the cell is
-		     the budget; content adapts, no inner scrollbars). -->
-		<div
-			v-else
-			class="cn-object-data-widget__grid-wrap"
-			:class="{
-				'cn-object-data-widget__grid-wrap--clipped': overflowing && !expanded,
-				'cn-object-data-widget__grid-wrap--expanded': overflowing && expanded,
-			}">
-			<div
-				ref="grid"
-				class="cn-object-data-widget__grid"
-				:style="collapsedGridStyle">
+		<!-- Collapsed, the grid shows the fields that fit the cell (or the
+		     first `collapsedFields`); "Show all N fields" renders the rest. -->
+		<div v-else class="cn-object-data-widget__grid-wrap">
+			<div ref="grid" class="cn-object-data-widget__grid" :style="gridStyle">
 				<div
-					v-for="field in resolvedFields"
+					v-for="field in visibleFields"
 					:key="field.key"
 					class="cn-object-data-widget__cell"
 					:style="cellStyle(field)">
@@ -343,20 +331,15 @@
 					</div>
 				</div>
 			</div>
-			<!-- Bottom fade over the clipped whole-row boundary. -->
-			<div
-				v-if="overflowing && !expanded"
-				class="cn-object-data-widget__fade"
-				aria-hidden="true" />
-			<!-- Expand / collapse affordance — only rendered when the field set
-			     actually overflows its cell. -->
-			<button
-				v-if="overflowing"
-				type="button"
+			<NcButton
+				v-if="hasHiddenFields"
+				variant="tertiary"
+				wide
 				class="cn-object-data-widget__toggle"
+				:aria-expanded="expanded ? 'true' : 'false'"
 				@click="toggleExpanded">
 				{{ expanded ? collapseFieldsLabel : showAllFieldsLabel }}
-			</button>
+			</NcButton>
 		</div>
 
 		<!-- Read-only @self metadata, surfaced on demand from the
@@ -398,6 +381,7 @@ import { useObjectStore } from '../../store/index.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
+import { schemaRefSlug } from '../../utils/schemaRefSlug.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
@@ -678,6 +662,16 @@ export default {
 		},
 
 		/**
+		 * Number of fields shown while collapsed. `null` fits the cell: the
+		 * whole rows that fit stay, and only an overflowing cell gets the
+		 * "Show all N fields" button.
+		 */
+		collapsedFields: {
+			type: Number,
+			default: null,
+		},
+
+		/**
 		 * Whether editing is enabled globally.
 		 * When false, no fields are editable regardless of per-field settings.
 		 */
@@ -797,16 +791,10 @@ export default {
 			relationOptions: {},
 			/** Whether relation picker options are being fetched. */
 			relationOptionsLoading: false,
-			/** Whether the field set overflows its cell (drives the clip + toggle). */
-			overflowing: false,
 			/** Whether the user expanded the widget to see every field. */
 			expanded: false,
-			/**
-			 * Pixel height to clip the collapsed grid at — chosen at a WHOLE-ROW
-			 * boundary so the last visible row is never cut mid-text. `null`
-			 * until measured / when not overflowing.
-			 */
-			collapsedMaxHeight: null,
+			/** Fields that fit the cell while collapsed; null when all fit. */
+			fitCount: null,
 		}
 	},
 
@@ -970,19 +958,23 @@ export default {
 			}
 		},
 
-		/**
-		 * The grid style plus, when collapsed and overflowing, a `max-height`
-		 * clip at the last WHOLE-ROW boundary (with overflow hidden via the
-		 * `--clipped` wrapper class) so no field row is cut mid-text (ADR-062).
-		 *
-		 * @return {object}
-		 */
-		collapsedGridStyle() {
-			const style = { ...this.gridStyle }
-			if (this.overflowing && !this.expanded && this.collapsedMaxHeight !== null && this.collapsedMaxHeight !== undefined) {
-				style.maxHeight = this.collapsedMaxHeight + 'px'
+		/** Fields shown while collapsed; null shows all of them. */
+		collapsedCount() {
+			const count = this.collapsedFields ?? this.fitCount
+			return count === null || count === undefined ? null : Math.max(1, count)
+		},
+
+		/** Whether some fields are left out while collapsed. */
+		hasHiddenFields() {
+			return this.collapsedCount !== null && this.resolvedFields.length > this.collapsedCount
+		},
+
+		/** The fields rendered: all of them when expanded, else the first few. */
+		visibleFields() {
+			if (this.expanded || !this.hasHiddenFields) {
+				return this.resolvedFields
 			}
-			return style
+			return this.resolvedFields.slice(0, this.collapsedCount)
 		},
 
 		/** Pre-translated "Show all N fields" affordance label. */
@@ -997,6 +989,14 @@ export default {
 	},
 
 	watch: {
+		'resolvedFields.length': function() {
+			this.scheduleFit()
+		},
+
+		collapsedFields() {
+			this.scheduleFit()
+		},
+
 		objectData: {
 			deep: true,
 			handler() {
@@ -1039,21 +1039,16 @@ export default {
 
 	mounted() {
 		this.resolveRelations()
-		this.scheduleOverflowMeasure()
 		this.publishPanelActions()
-	},
-
-	updated() {
-		this.scheduleOverflowMeasure()
+		this.observeCell()
+		this.scheduleFit()
 	},
 
 	beforeUnmount() {
-		if (this._overflowObserver) {
-			this._overflowObserver.disconnect()
+		if (this._cellObserver) {
+			this._cellObserver.disconnect()
 		}
-		if (this._overflowTimer) {
-			clearTimeout(this._overflowTimer)
-		}
+		clearTimeout(this._fitTimer)
 		// Leave nothing behind in the strip's menu. A closed tab's panel can be
 		// torn down while the strip lives on, and an item whose widget is gone
 		// would open a dialog belonging to nothing.
@@ -1086,118 +1081,94 @@ export default {
 		/** Pre-translated string helper exposed to the template. */
 		t,
 
-		/** Toggle the expand/collapse state and, on collapse, re-measure. */
+		/** Toggle between the first few fields and all of them. */
 		toggleExpanded() {
 			this.expanded = !this.expanded
 			if (!this.expanded) {
-				this.$nextTick(() => this.measureOverflow())
+				this.scheduleFit()
 			}
 		},
 
 		/**
-		 * Debounced overflow measurement — coalesces the many `updated` ticks
-		 * that a data load / relation resolution triggers into one measure, and
-		 * (once) attaches a ResizeObserver on the host cell so the clip re-fits
-		 * when the cell resizes.
+		 * The wrapper's content node: the cell whose height the fields fit into.
 		 *
-		 * @return {void}
+		 * @return {HTMLElement|null}
 		 */
-		scheduleOverflowMeasure() {
-			if (typeof window === 'undefined') {
+		cellContent() {
+			return this.$el?.querySelector?.('.cn-widget-wrapper__content')
+				|| this.$el?.closest?.('.cn-widget-wrapper__content')
+				|| null
+		},
+
+		/** Re-fit when the cell is resized. */
+		observeCell() {
+			if (typeof ResizeObserver === 'undefined') {
 				return
 			}
-			if (!this._overflowObserver && typeof ResizeObserver !== 'undefined' && this.$refs.grid) {
-				const content = this.$refs.grid.closest && this.$refs.grid.closest('.cn-widget-wrapper__content')
-				if (content) {
-					this._overflowObserver = new ResizeObserver(() => this.measureOverflow())
-					this._overflowObserver.observe(content)
-				}
+			this._cellObserver = new ResizeObserver(() => this.scheduleFit())
+			const content = this.cellContent()
+			if (content) {
+				this._cellObserver.observe(content)
 			}
-			clearTimeout(this._overflowTimer)
-			this._overflowTimer = setTimeout(() => this.measureOverflow(), 60)
 		},
 
 		/**
-		 * Measure whether the field grid overflows its cell and, if so, choose a
-		 * WHOLE-ROW clip height so the collapsed state never cuts a row mid-text
-		 * (ADR-062). No-op while expanded (the user opted to see everything) and
-		 * in non-layout environments (jsdom) where every rect is zero.
+		 * Re-fit when the grid itself grows or shrinks: a fixed-height cell does
+		 * not resize when a relation label resolves or a field enters edit mode.
+		 * A re-fit of unchanged content lands on the same height, which the
+		 * observer does not report, so this settles after one extra pass.
 		 *
+		 * @param {HTMLElement} grid The grid element.
 		 * @return {void}
 		 */
-		measureOverflow() {
-			if (this.expanded) {
+		observeGrid(grid) {
+			if (!this._cellObserver || grid === this._observedGrid) {
 				return
 			}
+			if (this._observedGrid) {
+				this._cellObserver.unobserve(this._observedGrid)
+			}
+			this._cellObserver.observe(grid)
+			this._observedGrid = grid
+		},
+
+		/** Debounce fitFields so a data load's burst of changes fits once. */
+		scheduleFit() {
+			clearTimeout(this._fitTimer)
+			this._fitTimer = setTimeout(() => this.fitFields(), 30)
+		},
+
+		/**
+		 * In fit mode, render every field, then keep the whole rows that fit
+		 * the cell with room left for the toggle.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fitFields() {
+			if (this.collapsedFields !== null || this.expanded) {
+				return
+			}
+			this.fitCount = null
+			await this.$nextTick()
+			const content = this.cellContent()
 			const grid = this.$refs.grid
-			const content = grid && grid.closest && grid.closest('.cn-widget-wrapper__content')
-			if (!grid || !content) {
-				this.overflowing = false
-				this.collapsedMaxHeight = null
+			if (grid) {
+				this.observeGrid(grid)
+			}
+			if (!content || !grid || !content.clientHeight || content.scrollHeight <= content.clientHeight + 1) {
 				return
 			}
-			const avail = content.clientHeight
-			// Natural (unclipped) grid height. `scrollHeight` ignores the
-			// max-height clip so it reflects the full field set.
-			const natural = grid.scrollHeight
-			if (!avail || natural <= avail + 2) {
-				this.overflowing = false
-				this.collapsedMaxHeight = null
-				return
-			}
-			// Reserve room for the fade + the "Show all" toggle button.
-			const reserve = 30
-			const budget = Math.max(avail - reserve, 0)
-			const gridTop = grid.getBoundingClientRect().top
+			const style = getComputedStyle(content)
+			const box = content.getBoundingClientRect()
+			const toggleReserve = 44
+			const limit = box.top + content.clientTop + content.clientHeight
+				- parseFloat(style.paddingBottom || 0) - toggleReserve - content.scrollTop
 			const cells = Array.from(grid.querySelectorAll('.cn-object-data-widget__cell'))
-			const clip = this.computeWholeRowClip(this.cellRowBottoms(cells, gridTop), budget)
-			this.overflowing = true
-			this.collapsedMaxHeight = clip
-		},
-
-		/**
-		 * Group cells into rows (by their top offset, bucketed) and return each
-		 * row's greatest bottom offset relative to the grid top — the candidate
-		 * whole-row clip boundaries.
-		 *
-		 * @param {Element[]} cells The grid cell elements.
-		 * @param {number} gridTop The grid's viewport top (getBoundingClientRect).
-		 * @return {number[]} Sorted ascending row-bottom offsets (px, grid-relative).
-		 */
-		cellRowBottoms(cells, gridTop) {
-			const rows = new Map()
-			for (const cell of cells) {
-				const r = cell.getBoundingClientRect()
-				const topKey = Math.round((r.top - gridTop) / 4) * 4
-				const bottom = r.bottom - gridTop
-				rows.set(topKey, Math.max(rows.get(topKey) || 0, bottom))
-			}
-			return Array.from(rows.values()).sort((a, b) => a - b)
-		},
-
-		/**
-		 * Pick the largest row-bottom that fits the budget — the whole-row clip
-		 * boundary. Always keeps at least the first row so a single very tall
-		 * row still shows (its overflow is the fade's job, not a mid-row cut).
-		 * Pure — unit-tested directly.
-		 *
-		 * @param {number[]} rowBottoms Ascending row-bottom offsets.
-		 * @param {number} budget The available height (px).
-		 * @return {number} The clip height (px).
-		 */
-		computeWholeRowClip(rowBottoms, budget) {
-			if (!rowBottoms.length) {
-				return budget
-			}
-			let clip = rowBottoms[0]
-			for (const b of rowBottoms) {
-				if (b <= budget) {
-					clip = b
-				} else {
-					break
-				}
-			}
-			return clip
+				.map((el) => el.getBoundingClientRect())
+			const overflowing = cells.find((r) => r.bottom > limit)
+			// Drop the whole row the first overflowing field sits in.
+			const count = overflowing ? cells.filter((r) => r.top < overflowing.top - 1).length : cells.length
+			this.fitCount = count < cells.length ? Math.max(1, count) : null
 		},
 
 		/**
@@ -1343,14 +1314,18 @@ export default {
 			}
 			// Canonical OpenRegister shorthand: `$ref` on a uuid-string
 			// property (or its array items) references a schema in the SAME
-			// register. Authored as a slug ("caseType"), but the live schema
-			// API serves it REWRITTEN to the numeric schema id (e.g. 85) —
-			// accept both; the objects API resolves either in its path.
-			// Register comes from the detail-page object context (ADR-062:
-			// references display the target object's NAME, never a raw uuid).
+			// register. Authored as the schema's TITLE ("ReportPeriod"), not
+			// its slug — the live schema API may also rewrite it to the
+			// numeric schema id (e.g. 85); accept both, the objects API
+			// resolves either in its path, but a multi-word title 404s
+			// unless kebab-cased first (defect 7: `ReportPeriod` 404s,
+			// `report-period` 200). Register comes from the detail-page
+			// object context (ADR-062: references display the target
+			// object's NAME, never a raw uuid).
 			const rawRef = prop.$ref !== null && prop.$ref !== undefined ? prop.$ref : (prop.items ? prop.items.$ref : null)
 			if (rawRef !== null && rawRef !== undefined && (typeof rawRef === 'string' || typeof rawRef === 'number')) {
-				const slug = String(rawRef).split('/').pop().replace(/\.json$/, '')
+				const tail = String(rawRef).split('/').pop().replace(/\.json$/, '')
+				const slug = schemaRefSlug(tail)
 				const reg = this.contextRegisterOf()
 				if (slug && reg) {
 					return { target: `${reg}/${slug}` }
@@ -1975,65 +1950,13 @@ export default {
 	.cn-object-data-widget__skeleton { animation: none; }
 }
 
-.cn-object-data-widget__grid-wrap {
-	position: relative;
-}
-
 .cn-object-data-widget__grid {
 	display: grid;
 	gap: calc(2 * var(--default-grid-baseline, 4px)) calc(4 * var(--default-grid-baseline, 4px));
 }
 
-/* Collapsed + overflowing: the grid is clipped at a whole-row boundary
-   (max-height set inline in collapsedGridStyle). No inner scrollbar. */
-.cn-object-data-widget__grid-wrap--clipped .cn-object-data-widget__grid {
-	overflow: hidden;
-}
-
-/* Bottom fade over the clipped boundary — signals more content. */
-.cn-object-data-widget__fade {
-	position: absolute;
-	left: 0;
-	right: 0;
-	bottom: 28px;
-	height: 28px;
-	pointer-events: none;
-	background: linear-gradient(to bottom, rgba(0, 0, 0, 0), var(--color-main-background));
-}
-
 .cn-object-data-widget__toggle {
-	display: block;
-	width: 100%;
 	margin-top: 4px;
-	padding: 4px;
-	background: none;
-	border: none;
-	color: var(--color-primary-element);
-	cursor: pointer;
-	font: inherit;
-	font-weight: 600;
-	text-align: center;
-}
-
-.cn-object-data-widget__toggle:hover,
-.cn-object-data-widget__toggle:focus-visible {
-	text-decoration: underline;
-}
-
-/* Expanded in place: the widget card lifts above its siblings and its content
-   area stops clipping, so every field is legible even when the grid cell
-   positions cards absolutely (ADR-062: expand as an anchored panel rather than
-   an inner scrollbar). */
-.cn-object-data-widget--expanded {
-	z-index: 20;
-}
-
-.cn-object-data-widget--expanded ::v-deep .cn-widget-wrapper__content {
-	overflow: visible;
-}
-
-.cn-object-data-widget__grid-wrap--expanded {
-	background: var(--color-main-background);
 }
 
 .cn-object-data-widget__cell {

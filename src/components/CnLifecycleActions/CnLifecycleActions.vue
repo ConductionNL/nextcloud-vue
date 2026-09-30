@@ -3,14 +3,16 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div v-if="visibleTransitions.length > 0 || error" class="cn-lifecycle-actions" data-testid="cn-lifecycle-actions">
+	<div v-if="(barTransitions.length > 0) || error || inputTransition" class="cn-lifecycle-actions" data-testid="cn-lifecycle-actions">
 		<NcButton
-			v-for="tr in visibleTransitions"
+			v-for="tr in barTransitions"
 			:key="tr.action"
 			class="cn-lifecycle-actions__button"
 			:variant="tr.variant || 'secondary'"
 			:disabled="working"
 			:data-testid="`cn-lifecycle-action-${tr.action}`"
+			:title="tr.description || undefined"
+			:aria-description="tr.description || undefined"
 			@click="onTransition(tr)">
 			<template v-if="working && pendingAction === tr.action" #icon>
 				<NcLoadingIcon :size="18" />
@@ -137,9 +139,23 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * Where the transitions are drawn. `buttons` (the default) renders one
+		 * NcButton each. `menu` renders none and emits `entries`, so the host
+		 * can put them in its Actions menu while this component keeps the
+		 * input dialog and the error.
+		 *
+		 * @type {'buttons'|'menu'}
+		 */
+		display: {
+			type: String,
+			default: 'buttons',
+			validator: (v) => ['buttons', 'menu'].includes(v),
+		},
 	},
 
-	emits: ['transitioned', 'reload'],
+	emits: ['transitioned', 'reload', 'entries'],
 
 	data() {
 		return {
@@ -199,14 +215,15 @@ export default {
 		 * declared `inputs` list is carried through on both paths so clicking
 		 * the button collects the fields before POSTing.
 		 *
-		 * @return {Array<{action: string, to: string, label: string, confirm?: string, variant?: string, inputs?: Array<{field: string, required?: boolean}>}>}
+		 * @return {Array<{action: string, to: string, label: string, description: string, confirm?: string, variant?: string, inputs?: Array<{field: string, required?: boolean}>}>}
 		 */
 		visibleTransitions() {
 			if (this.useServer) {
 				return this.serverActions.map((a) => ({
 					action: a.action,
 					to: a.to,
-					label: this.labelFor(a.action, a.to, a.description),
+					label: this.labelFor(a.action, a.to, a.label),
+					description: this.descriptionFor(a.description),
 					variant: 'secondary',
 					...(Array.isArray(a.inputs) && a.inputs.length > 0 ? { inputs: a.inputs } : {}),
 				}))
@@ -217,15 +234,58 @@ export default {
 				.map((tr) => ({
 					action: tr.action || tr.to,
 					to: tr.to,
-					label: tr.label || this.labelFor(tr.action || tr.to, tr.to),
+					label: this.labelFor(tr.action || tr.to, tr.to, tr.label),
+					description: this.descriptionFor(tr.description),
 					confirm: tr.confirm,
 					variant: tr.variant || 'secondary',
 					...(Array.isArray(tr.inputs) && tr.inputs.length > 0 ? { inputs: tr.inputs } : {}),
 				}))
 		},
+
+		/**
+		 * The transitions this component draws as buttons itself. Empty in
+		 * `display: "menu"`, where the host draws them.
+		 *
+		 * @return {Array<object>}
+		 */
+		barTransitions() {
+			return this.display === 'menu' ? [] : this.visibleTransitions
+		},
+
+		/**
+		 * Menu-ready descriptors for a `display: "menu"` host, in the shape
+		 * CnActionButtons emits.
+		 *
+		 * @return {Array<object>}
+		 */
+		menuEntries() {
+			return this.visibleTransitions.map((tr) => ({
+				id: `cn-lifecycle-${tr.action}`,
+				label: tr.label,
+				// Generic, so a transition never renders as the lone iconless item.
+				iconName: 'PlayCircleOutline',
+				iconClass: null,
+				disabled: this.working,
+				pressed: null,
+				testid: `cn-lifecycle-action-${tr.action}`,
+				run: () => this.onTransition(tr),
+			}))
+		},
 	},
 
 	watch: {
+		menuEntries: {
+			immediate: true,
+			handler(entries) {
+				if (this.display === 'menu') {
+					/**
+					 * @event entries Emitted in `display: "menu"` only, whenever the transitions or the pending state change. Payload: one menu-ready descriptor per transition, carrying `id`, `label`, `disabled`, `pressed`, `testid` and a pre-bound `run()`.
+					 */
+					this.$emit('entries', entries)
+				}
+			},
+		},
+
 		objectId: {
 			immediate: true,
 			handler() {
@@ -253,23 +313,39 @@ export default {
 		},
 
 		/**
-		 * Human label for a transition button. Prefers the action name (title-cased)
-		 * with a fallback to the description / target state.
+		 * Human label for a transition button: an explicit label when one is
+		 * given, else the action name (title-cased), else the target state.
+		 *
+		 * A transition's `description` is NOT a label. Schemas write it as a
+		 * sentence for the person deciding ("The coordinator approves the
+		 * enrolment; the learner gets access."), so using it as the button text
+		 * put a paragraph on the button. It goes on the button's tooltip and
+		 * accessible description instead (see `descriptionFor`).
 		 *
 		 * @param {string} action The transition action key.
 		 * @param {string} to The target state.
-		 * @param {string} [description] Optional schema-provided description.
+		 * @param {string} [label] An explicit label (config `label`, or a server `label`).
 		 * @return {string}
 		 */
-		labelFor(action, to, description) {
-			if (description) {
-				return description
+		labelFor(action, to, label) {
+			if (typeof label === 'string' && label.trim() !== '') {
+				return label
 			}
 			const src = action || to || ''
 			if (!src) {
 				return t('nextcloud-vue', 'Apply')
 			}
 			return src.charAt(0).toUpperCase() + src.slice(1).replace(/[_-]+/g, ' ')
+		},
+
+		/**
+		 * A transition's description as tooltip / accessible-description text.
+		 *
+		 * @param {unknown} description The schema- or config-provided description.
+		 * @return {string} The trimmed description, or '' when there is none.
+		 */
+		descriptionFor(description) {
+			return typeof description === 'string' ? description.trim() : ''
 		},
 
 		/**

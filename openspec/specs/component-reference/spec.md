@@ -110,8 +110,8 @@ CI MUST fail any PR where regenerating `_generated/<name>.md` produces a diff ag
 #### Scenario: Stale partial fails CI
 
 - GIVEN a contributor adds a prop to `CnFormDialog.vue` but does not regenerate the partial
-- WHEN CI runs `npm run prebuild:docs && git diff --exit-code docs/components/_generated/`
-- THEN the job MUST fail with the missing prop visible in the diff
+- WHEN CI runs `npm run check:docs-fresh`
+- THEN the job MUST fail and name the stale or untracked partial
 
 ### Requirement: Events Documentation
 
@@ -333,15 +333,11 @@ Each component page MUST include a "Related Components" section linking to compo
 - WHEN they scroll to the Related Components section
 - THEN they SHALL see links to CnDashboardGrid, CnWidgetWrapper, CnWidgetRenderer, CnTileWidget, CnChartWidget, and useDashboardView composable
 
-## MODIFIED Requirements
-
-_(none -- all new)_
-
 ### Requirement: JSDoc completeness ratchet — "components update → docs update automatically"
 
 The library MUST guarantee that documentation tracks component source automatically. This depends on three CI-enforced guarantees working together:
 
-**G1 — Freshness:** the committed `docs/components/_generated/<name>.md` partial MUST match what `vue-docgen-cli` produces from current source. CI MUST run `npm run prebuild:docs && git diff --exit-code docs/components/_generated/` and fail any PR with a non-empty diff. This forces every prop / event / slot change to ship with its regenerated partial.
+**G1 — Freshness:** the committed `docs/components/_generated/<name>.md` partial MUST match what `vue-docgen-cli` produces from current source. CI MUST run `npm run check:docs-fresh`, which regenerates the partials and fails any PR that leaves a modified or untracked partial behind. This forces every prop / event / slot change to ship with its regenerated partial.
 
 **G2 — Completeness:** the JSDoc on each `Cn*` SFC MUST be rich enough that the generated partial is genuinely useful. A `scripts/check-jsdoc.js` CI step MUST score each component:
 
@@ -399,17 +395,13 @@ The hook MUST be opt-in friendly: a developer who runs `npm run prebuild:docs` m
 - THEN the pre-commit hook SHOULD run `prebuild:docs`, regenerate `docs/components/_generated/CnDataTable.md`, and stage it
 - AND the resulting commit SHOULD include both the SFC change and the regenerated partial
 
-## MODIFIED Requirements
+## Change history
 
 The following requirements were modified by the **unify-component-docs** change (archived 2026-05-09):
 
 - **Individual Component Pages** — Each page now has a hand-written narrative + auto-embedded `<Playground />` + auto-generated `## Reference (auto-generated)` partial structure, replacing the previous all-hand-written prop/event/slot tables.
 - **Props Documentation Accuracy** — Tables are now mechanically derived from SFC source via `vue-docgen-cli`; CI fails on any drift.
 - **Events Documentation** — Events come from JSDoc above `$emit` calls or `emits:` declarations; auto-generated.
-
-## REMOVED Requirements
-
-_(none)_
 
 ---
 

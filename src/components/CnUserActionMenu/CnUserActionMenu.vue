@@ -66,25 +66,27 @@
 						{{ startChatLabel }}
 					</NcActionButton>
 
-					<NcActionButton
+					<NcActionLink
 						v-if="showEmailAction"
 						role="menuitem"
+						:href="emailHref"
 						@click="sendEmail">
 						<template #icon>
 							<EmailOutline :size="20" />
 						</template>
 						{{ sendEmailLabel }}
-					</NcActionButton>
+					</NcActionLink>
 
-					<NcActionButton
+					<NcActionLink
 						v-if="hasCalendar"
 						role="menuitem"
+						:href="meetingHref"
 						@click="planMeeting">
 						<template #icon>
 							<CalendarOutline :size="20" />
 						</template>
 						{{ planMeetingLabel }}
-					</NcActionButton>
+					</NcActionLink>
 
 					<div
 						v-if="!hasTalk && !showEmailAction && !hasCalendar"
@@ -99,12 +101,12 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcAvatar, NcPopover } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcAvatar, NcPopover } from '@nextcloud/vue'
 import CalendarOutline from 'vue-material-design-icons/CalendarOutline.vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
 import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
 import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 // Module-level capabilities cache (shared across all instances, fetched once per session)
 let _capabilitiesCache = null
@@ -129,6 +131,7 @@ export default {
 	components: {
 		NcPopover,
 		NcActionButton,
+		NcActionLink,
 		NcAvatar,
 		MessageTextOutline,
 		ChatOutline,
@@ -185,6 +188,18 @@ export default {
 	computed: {
 		showEmailAction() {
 			return !!this.userEmail
+		},
+
+		/** Nextcloud Mail compose when Mail is installed, else `mailto:`. */
+		emailHref() {
+			return this.hasMail
+				? prefixUrl(`/apps/mail/compose?to=${encodeURIComponent(this.userEmail)}`)
+				: `mailto:${this.userEmail}`
+		},
+
+		/** A new Calendar event with this user as attendee. */
+		meetingHref() {
+			return prefixUrl(`/apps/calendar/new?attendees=${encodeURIComponent(this.userId)}&title=Meeting`)
 		},
 	},
 
@@ -249,7 +264,7 @@ export default {
 
 		async fetchCapabilities() {
 			try {
-				const response = await fetch('/ocs/v2.php/cloud/capabilities?format=json', {
+				const response = await fetch(prefixUrl('/ocs/v2.php/cloud/capabilities?format=json'), {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {
@@ -273,7 +288,7 @@ export default {
 			this.emailResolved = true
 			try {
 				const response = await fetch(
-					`/ocs/v2.php/cloud/users/${encodeURIComponent(this.userId)}?format=json`,
+					prefixUrl(`/ocs/v2.php/cloud/users/${encodeURIComponent(this.userId)}?format=json`),
 					{
 						headers: {
 							...buildHeaders(),
@@ -294,7 +309,7 @@ export default {
 
 		async sendMessage() {
 			try {
-				const response = await fetch('/ocs/v2.php/apps/spreed/api/v4/room', {
+				const response = await fetch(prefixUrl('/ocs/v2.php/apps/spreed/api/v4/room'), {
 					method: 'POST',
 					headers: {
 						...buildHeaders(),
@@ -307,7 +322,7 @@ export default {
 					const data = await response.json()
 					const token = data?.ocs?.data?.token
 					if (token) {
-						window.location.href = `/apps/spreed/#/call/${token}`
+						window.location.href = prefixUrl(`/apps/spreed/#/call/${token}`)
 					}
 				} else {
 					this.showActionError('Failed to create conversation')
@@ -326,7 +341,7 @@ export default {
 
 		async startChat() {
 			try {
-				const response = await fetch('/ocs/v2.php/apps/spreed/api/v4/room', {
+				const response = await fetch(prefixUrl('/ocs/v2.php/apps/spreed/api/v4/room'), {
 					method: 'POST',
 					headers: {
 						...buildHeaders(),
@@ -339,7 +354,7 @@ export default {
 					const data = await response.json()
 					const token = data?.ocs?.data?.token
 					if (token) {
-						window.open(`/apps/spreed/#/call/${token}`, '_blank')
+						window.open(prefixUrl(`/apps/spreed/#/call/${token}`), '_blank')
 					}
 				} else {
 					this.showActionError('Failed to create conversation')
@@ -352,21 +367,14 @@ export default {
 			this.$emit('action', { type: 'chat', userId: this.userId })
 		},
 
+		// The link itself navigates (emailHref / meetingHref); these only
+		// close the menu and report the action.
 		sendEmail() {
-			if (!this.userEmail) {
-				return
-			}
-			if (this.hasMail) {
-				window.location.href = `/apps/mail/compose?to=${encodeURIComponent(this.userEmail)}`
-			} else {
-				window.location.href = `mailto:${this.userEmail}`
-			}
 			this.closeMenu()
 			this.$emit('action', { type: 'email', userId: this.userId })
 		},
 
 		planMeeting() {
-			window.location.href = `/apps/calendar/new?attendees=${encodeURIComponent(this.userId)}&title=Meeting`
 			this.closeMenu()
 			this.$emit('action', { type: 'meeting', userId: this.userId })
 		},

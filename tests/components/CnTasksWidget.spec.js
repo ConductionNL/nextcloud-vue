@@ -236,6 +236,59 @@ describe('CnTasksWidget', () => {
 				assign.mockRestore()
 			}
 		})
+
+		describe('like a link', () => {
+			let openSpy
+
+			beforeEach(() => {
+				openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+			})
+
+			afterEach(() => openSpy.mockRestore())
+
+			it('opens the deep link in a new tab on a ctrl-click, leaving the page', () => {
+				const assign = stubLocationMethod('assign')
+				try {
+					const w = mountWidget({ payload: { results: [task()], total: 1 } })
+					w.vm.onRowClick(task({ uuid: 'task-4' }), new MouseEvent('click', { ctrlKey: true }))
+					expect(openSpy.mock.calls[0][0]).toContain('/apps/openregister/flow-tasks/task-4')
+					expect(openSpy.mock.calls[0][1]).toBe('_blank')
+					expect(assign).not.toHaveBeenCalled()
+				} finally {
+					assign.mockRestore()
+				}
+			})
+
+			it('opens the configured route in a new tab on a middle click on the row', async () => {
+				const push = jest.fn(() => Promise.resolve())
+				const resolve = jest.fn((loc) => ({ href: `/apps/x/#/tasks/${loc.params.id}` }))
+				const w = mountWidget({
+					payload: { results: [task({ uuid: 'task-4' })], total: 1 },
+					content: { rowRoute: 'TaskDetail' },
+					router: { push, resolve },
+				})
+				await w.find('.cn-tasks-widget__row').trigger('auxclick', { button: 1 })
+				expect(openSpy).toHaveBeenCalledWith('/apps/x/#/tasks/task-4', '_blank', 'noopener,noreferrer')
+				expect(push).not.toHaveBeenCalled()
+			})
+
+			it('ignores a right-button auxclick and a middle click on a nested button', async () => {
+				const push = jest.fn(() => Promise.resolve())
+				const w = mountWidget({
+					payload: { results: [task({ uuid: 'task-4' })], total: 1 },
+					content: { rowRoute: 'TaskDetail' },
+					router: { push, resolve: () => ({ href: '/x' }) },
+				})
+				const row = w.find('.cn-tasks-widget__row')
+				await row.trigger('auxclick', { button: 2 })
+				// Stands in for the claim/complete menu trigger.
+				const button = document.createElement('button')
+				row.element.appendChild(button)
+				button.dispatchEvent(new MouseEvent('auxclick', { button: 1, bubbles: true }))
+				expect(openSpy).not.toHaveBeenCalled()
+				expect(push).not.toHaveBeenCalled()
+			})
+		})
 	})
 
 	describe('polling', () => {
