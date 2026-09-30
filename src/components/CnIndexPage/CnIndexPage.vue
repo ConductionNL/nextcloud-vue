@@ -62,6 +62,7 @@
 			:refreshing="effectiveRefreshing"
 			:refreshDisabled="refreshDisabled"
 			:addDisabled="addDisabled"
+			:addTo="addLinkTo"
 			:showAdd="effectiveShowAdd"
 			:showSidebarToggle="hasSidebar"
 			:sidebarOpen="sidebarOpen"
@@ -769,6 +770,7 @@ import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
+import { routeHref } from '../../utils/actionLink.js'
 import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab } from '../../utils/listLenses.js'
@@ -2788,6 +2790,25 @@ export default {
 		},
 
 		/**
+		 * Where the Add button links to: the named source's `addRoute`, when
+		 * that is what Add does (no host `@add` listener) and the router can
+		 * resolve it. The bar then renders Add as a real link; null otherwise.
+		 *
+		 * @return {string|object|null}
+		 */
+		addLinkTo() {
+			if (
+				this.$.vnode.props?.onAdd
+				|| !this.isNamedSource
+				|| !this.namedSource
+				|| !this.namedSource.addRoute
+			) {
+				return null
+			}
+			return routeHref(this.namedSource.addRoute, this.$router) ? this.namedSource.addRoute : null
+		},
+
+		/**
 		 * Declarative bulk actions, validated and normalised.
 		 *
 		 * `copy` and `delete` are reserved: the selection strip already ships
@@ -4688,10 +4709,17 @@ export default {
 				// Literal params let a header action navigate to a detail route
 				// with fixed params, e.g. a "New X" button → `{ id: "new" }`.
 				const params = (entry.params && typeof entry.params === 'object') ? entry.params : null
+				const location = params ? { name: route, params } : { name: route }
+				// A resolvable route renders as a real link in the bar, which does
+				// the navigating; the entry then carries no handler to push again.
+				if (routeHref(location, router)) {
+					const { handler: _ignored, ...rest } = entry
+					return { ...rest, to: location }
+				}
 				const out = { ...entry }
 				out.handler = () => {
 					if (router && typeof router.push === 'function') {
-						router.push(params ? { name: route, params } : { name: route })
+						router.push(location)
 					}
 				}
 				return out
@@ -5787,7 +5815,10 @@ export default {
 				&& this.namedSource
 				&& this.namedSource.addRoute
 			) {
-				this.$router.push(this.namedSource.addRoute)
+				// With `addLinkTo` set, Add is a link that already navigated.
+				if (!this.addLinkTo) {
+					this.$router.push(this.namedSource.addRoute)
+				}
 				return
 			}
 			// `$.vnode.props`, not `$attrs`: `add` is a declared emit, and Vue

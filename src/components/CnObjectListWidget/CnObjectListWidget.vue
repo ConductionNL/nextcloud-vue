@@ -279,7 +279,7 @@ import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
-import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { actionLink, dispatchAction } from '../../utils/actionsDispatcher.js'
 import { objectFieldValue } from '../../utils/objectName.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { CnRowActions } from '../CnRowActions/index.js'
@@ -647,6 +647,8 @@ export default {
 					label: action.label,
 					icon: action.icon,
 					destructive: action.destructive === true,
+					// CnRowActions renders a link when these are set and skips the handler.
+					...this.rowActionLink(action),
 					handler: (row) => this.runRowAction(action, row),
 				}))
 		},
@@ -1415,6 +1417,26 @@ export default {
 		 */
 		runRowAction(action, row) {
 			this.dispatch(action, [row], { row })
+		},
+
+		/**
+		 * Link fields for a declared row action that only navigates, so
+		 * CnRowActions renders it as a link. A target with tokens is left to
+		 * dispatch, which resolves them against the page.
+		 *
+		 * @param {object} action The declared row action.
+		 * @return {object} `{ href, linkTarget }`, `{ to }`, or `{}`.
+		 */
+		rowActionLink(action) {
+			const target = typeof action.target === 'string' ? action.target : ''
+			if (/[@{]/.test(target)) {
+				return {}
+			}
+			const link = actionLink(action, { router: this.$router || null })
+			if (!link) {
+				return {}
+			}
+			return link.external ? { href: link.href, linkTarget: '_blank' } : { to: link.to }
 		},
 
 		/**

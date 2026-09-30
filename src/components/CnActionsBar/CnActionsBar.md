@@ -142,6 +142,8 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | `inlineActionCount` | `Number` | `2` | How many custom `#action-items` buttons to show inline before moving them to the overflow dropdown |
 | `refreshDisabled` | `Boolean` | `false` | Disable the Refresh action (e.g. while a required selection is missing) |
 | `addDisabled` | `Boolean` | `false` | Disable the Add button (e.g. while a required selection is missing) |
+| `addHref` | `String` | `null` | URL the Add button links to. The button becomes a real link (middle-click, open in new tab) and still emits `add`. Wins over `addTo` |
+| `addTo` | `String \| Object` | `null` | vue-router location the Add button links to. Resolved through the router; a plain click routes in place and still emits `add`, so the host must not navigate on `add` itself. Ignored when the router cannot resolve it |
 | `showAdd` | `Boolean` | `true` | Whether to render the Add button at all |
 | `cardsLabel` | `String` | `''` | Label for the cards/grid view-toggle option (defaults to "Cards") |
 | `tableLabel` | `String` | `''` | Label for the table/list view-toggle option (defaults to "Table") |
@@ -153,7 +155,7 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | `showSearch` | `Boolean` | `false` | Whether to show the inline search field on the left of the bar |
 | `searchValue` | `String` | `''` | Current value of the inline search field (controlled) |
 | `searchPlaceholder` | `String` | `''` | Placeholder / accessible label for the inline search field |
-| `headerActions` | `Array` | `[]` | Manifest-declared page-level actions rendered inside the overflow dropdown between the built-in Refresh and the `#action-items` slot. Each entry is `{ id, label, icon?, disabled? }` — the bar emits `@header-action({ action: id, id })` on click and the parent (e.g. `CnIndexPage`) dispatches the resolved handler. The `icon` field accepts EITHER an MDI Vue component name (e.g. `'History'`) — rendered via `CnIcon` — OR a Nextcloud core CSS icon class (e.g. `'icon-history'`) — rendered as a `<span>` carrying that class. |
+| `headerActions` | `Array` | `[]` | Manifest-declared page-level actions rendered inside the overflow dropdown between the built-in Refresh and the `#action-items` slot. Each entry is `{ id, label, icon?, disabled? }` — the bar emits `@header-action({ action: id, id })` on click and the parent (e.g. `CnIndexPage`) dispatches the resolved handler. The `icon` field accepts EITHER an MDI Vue component name (e.g. `'History'`) — rendered via `CnIcon` — OR a Nextcloud core CSS icon class (e.g. `'icon-history'`) — rendered as a `<span>` carrying that class. An entry with `href` (URL) or `to` (vue-router location) renders as a real link, `linkTarget` as its `target`; it still emits `@header-action`, so the parent must not navigate for it again. |
 
 ## Manifest header actions example
 

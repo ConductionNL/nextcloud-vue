@@ -50,6 +50,7 @@ import { emit } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { parseDispositionFilename, triggerBlobDownload } from '../components/CnIndexPage/selfModeIO.js'
 import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
+import { routeHref } from './actionLink.js'
 import {
 	dropOptionalUnresolved,
 	dropOptionalUnresolvedDeep,
@@ -338,6 +339,45 @@ function interpolateActionString(str, ctx) {
  */
 export function interpolateActionTarget(target, ctx) {
 	return interpolateActionString(target || '', ctx || {})
+}
+
+/**
+ * The link an action renders as when its only job is to navigate to a target
+ * known at render time: `navigate` (token-interpolated like the dispatcher)
+ * and `open-page`. Anything else, a `confirm: true` action, or an in-app
+ * target the router cannot resolve answers null and keeps dispatching.
+ *
+ * `to` is what a plain click hands the router (null for an external URL,
+ * which the browser opens in a new tab like the dispatcher's `window.open`).
+ *
+ * @param {object} action The manifest action.
+ * @param {{router?: object, tokenCtx?: object}} [context] The dispatch context.
+ * @return {{href: string, to: (string|object|null), external: boolean}|null} The link, or null.
+ */
+export function actionLink(action, context = {}) {
+	if (!action || typeof action !== 'object' || action.confirm) {
+		return null
+	}
+	if (action.type === 'navigate') {
+		const target = interpolateActionString(action.target || '', context.tokenCtx || {})
+		if (!target) {
+			return null
+		}
+		if (isExternalActionTarget(target)) {
+			return { href: target, to: null, external: true }
+		}
+		const href = routeHref(target, context.router)
+		return href ? { href, to: target, external: false } : null
+	}
+	if (action.type === 'open-page') {
+		if (typeof action.target !== 'string' || action.target.length === 0) {
+			return null
+		}
+		const to = { name: action.target }
+		const href = routeHref(to, context.router)
+		return href ? { href, to, external: false } : null
+	}
+	return null
 }
 
 /**

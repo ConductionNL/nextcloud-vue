@@ -37,6 +37,71 @@ function resolveRowToken(value, row) {
 }
 
 /**
+ * The route params a `handler: "navigate"` action pushes for a row: the row id,
+ * overridden by the declared `params` after the `{field}` token grammar. A
+ * token naming a field the row lacks is dropped.
+ *
+ * @param {object} action Manifest action descriptor.
+ * @param {object} row The row.
+ * @param {string} rowKey The row's id field.
+ * @param {boolean} warn Whether to warn about a dropped param.
+ * @return {object} The params.
+ */
+function navigateParams(action, row, rowKey, warn) {
+	const declaredParams = (action.params && typeof action.params === 'object') ? action.params : null
+	const params = { id: row?.[rowKey] }
+	for (const [key, declared] of Object.entries(declaredParams || {})) {
+		const { resolved, value } = resolveRowToken(declared, row)
+		if (resolved) {
+			params[key] = value
+		} else if (warn) {
+			// eslint-disable-next-line no-console
+			console.warn(`[CnIndexPage] action "${action.id}" param "${key}" references `
+				+ `"${declared}" but the row carries no such field; dropping the param`
+				+ (key === 'id' ? ' ("id" falls back to the row id).' : '.'))
+		}
+	}
+	return params
+}
+
+/**
+ * Where a navigating manifest action goes for a row, or null when the action
+ * does not navigate (or is missing its target). Same resolution the
+ * dispatcher uses: `type: "navigate"` → `target` (external when it leaves the
+ * app), `type: "open-page"` → `{ name: target, params: { id } }`,
+ * `handler: "navigate"` → `{ name: route, params }`.
+ *
+ * @param {object} action Manifest action descriptor.
+ * @param {object} row The row.
+ * @param {{rowKey: string}} ctx Dispatch context.
+ * @param {boolean} [warn] Warn about params dropped for an unresolved token.
+ * @return {{target: (string|object), external: boolean}|null} The target, or null.
+ */
+export function resolveActionTarget(action, row, ctx, warn = false) {
+	if (!action || typeof action !== 'object') {
+		return null
+	}
+	const type = (typeof action.type === 'string' && action.type.length > 0) ? action.type : 'handler'
+	if (type === 'navigate' || type === 'open-page') {
+		const target = action.target
+		if (typeof target !== 'string' || target.length === 0) {
+			return null
+		}
+		if (type === 'open-page') {
+			return { target: { name: target, params: { id: row?.[ctx.rowKey] } }, external: false }
+		}
+		return { target, external: isExternalActionTarget(target) }
+	}
+	if (type === 'handler' && action.handler === 'navigate') {
+		if (typeof action.route !== 'string' || action.route.length === 0) {
+			return null
+		}
+		return { target: { name: action.route, params: navigateParams(action, row, ctx.rowKey, warn) }, external: false }
+	}
+	return null
+}
+
+/**
  * Resolve a manifest-declared action into a `(row) => void` function. Returns
  * null when the action should fall back to the page's `@action`-event-only path.
  *
@@ -93,7 +158,7 @@ export function resolveActionHandler(action, ctx) {
 				+ 'but target is missing; falling back to @action-only.')
 			return null
 		}
-		return (row) => ctx.router.push({ name: target, params: { id: row?.[ctx.rowKey] } })
+		return (row) => ctx.router.push(resolveActionTarget(action, row, ctx).target)
 	}
 
 	if (type === 'open-modal') {
@@ -121,21 +186,8 @@ export function resolveActionHandler(action, ctx) {
 		// with id:'new'" is expressible declaratively. String values run the
 		// `{field}` row-token grammar first — an unresolved token is dropped
 		// rather than pushed as a literal `%7Bid%7D` path segment.
-		const declaredParams = (action.params && typeof action.params === 'object') ? action.params : null
 		return (row) => {
-			const params = { id: row?.[ctx.rowKey] }
-			for (const [key, declared] of Object.entries(declaredParams || {})) {
-				const { resolved, value } = resolveRowToken(declared, row)
-				if (resolved) {
-					params[key] = value
-				} else {
-					// eslint-disable-next-line no-console
-					console.warn(`[CnIndexPage] action "${action.id}" param "${key}" references `
-						+ `"${declared}" but the row carries no such field; dropping the param`
-						+ (key === 'id' ? ' ("id" falls back to the row id).' : '.'))
-				}
-			}
-			ctx.router.push({ name: route, params })
+			ctx.router.push({ name: route, params: navigateParams(action, row, ctx.rowKey, true) })
 		}
 	}
 
@@ -157,6 +209,30 @@ export function resolveActionHandler(action, ctx) {
 			+ 'overrides; falling back to @action-only.')
 	}
 	return null
+}
+
+/**
+ * The CnRowActions link fields for a navigating action, so it renders as a
+ * real link: `href` + `linkTarget` for an external URL, a per-row `to` for an
+ * in-app target. Empty for anything else, or when the action already carries
+ * its own `href` / `to`.
+ *
+ * @param {object} action Manifest action descriptor.
+ * @param {{rowKey: string}} ctx Dispatch context.
+ * @return {object} The fields to merge onto the dispatched action.
+ */
+function linkFields(action, ctx) {
+	if (action.href || action.to) {
+		return {}
+	}
+	const probe = resolveActionTarget(action, null, ctx)
+	if (!probe) {
+		return {}
+	}
+	if (probe.external) {
+		return { href: probe.target, linkTarget: '_blank' }
+	}
+	return { to: (row) => resolveActionTarget(action, row, ctx)?.target ?? null }
 }
 
 /**
@@ -185,9 +261,10 @@ export function dispatchAction(action, ctx) {
 	const isNone = action.handler === 'none'
 	const resolved = resolveActionHandler(action, ctx)
 	if (resolved) {
-		return isNone
-			? { ...action, handler: resolved, _dispatchSuppress: true }
-			: { ...action, handler: resolved }
+		if (isNone) {
+			return { ...action, handler: resolved, _dispatchSuppress: true }
+		}
+		return { ...action, handler: resolved, ...linkFields(action, ctx) }
 	}
 	const { handler, ...rest } = action
 	return rest
