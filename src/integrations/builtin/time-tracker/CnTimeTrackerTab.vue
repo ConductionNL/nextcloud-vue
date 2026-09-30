@@ -81,8 +81,7 @@
 			<NcButton
 				variant="primary"
 				:href="timeTrackerAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<Clock :size="20" />
 				</template>

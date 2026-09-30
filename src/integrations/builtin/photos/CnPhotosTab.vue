@@ -72,8 +72,7 @@
 			<NcButton
 				variant="primary"
 				:href="photosAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<ImageIcon :size="20" />
 				</template>

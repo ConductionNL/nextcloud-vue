@@ -78,7 +78,7 @@ describe('CnBookmarksTab', () => {
 		expect(openLink.attributes('target')).toBe('_blank')
 	})
 
-	it('neutralises unsafe bookmark URL schemes in the row and action hrefs', async () => {
+	it('renders a bookmark with an unsafe URL as an inert row with no Open action', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({
 			ok: true,
 			status: 200,
@@ -90,7 +90,12 @@ describe('CnBookmarksTab', () => {
 		await flushPromises()
 		const row = wrapper.find('.cn-bookmarks-tab__row')
 		expect(row.attributes('href')).toBe('#')
-		expect(row.find('.stub.NcActionLink').attributes('href')).toBe('#')
+		expect(row.attributes('target')).toBeUndefined()
+		expect(row.find('.stub.NcActionLink').exists()).toBe(false)
+
+		const event = { preventDefault: jest.fn() }
+		wrapper.vm.onBookmarkClick(wrapper.vm.filteredBookmarks[0], event)
+		expect(event.preventDefault).toHaveBeenCalled()
 		wrapper.unmount()
 	})
 

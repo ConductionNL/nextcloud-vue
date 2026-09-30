@@ -58,8 +58,7 @@
 			<NcButton
 				variant="primary"
 				:href="deckAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<ViewColumnOutline :size="20" />
 				</template>

@@ -50,8 +50,7 @@
 			<NcButton
 				variant="primary"
 				:href="filesAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<FolderOutline :size="20" />
 				</template>
@@ -125,8 +124,7 @@
 							<NcActionLink
 								:closeAfterClick="true"
 								:href="filesAppUrl"
-								target="_blank"
-								rel="noopener noreferrer">
+								target="_blank">
 								<template #icon>
 									<FolderOutline :size="20" />
 								</template>
@@ -140,8 +138,7 @@
 				<NcButton
 					variant="tertiary"
 					:href="filesAppUrl"
-					target="_blank"
-					rel="noopener noreferrer">
+					target="_blank">
 					<template #icon>
 						<FolderOutline :size="18" />
 					</template>

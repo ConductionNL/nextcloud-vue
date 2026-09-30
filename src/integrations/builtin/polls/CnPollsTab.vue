@@ -63,8 +63,7 @@
 			<NcButton
 				variant="primary"
 				:href="pollsAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<Poll :size="20" />
 				</template>

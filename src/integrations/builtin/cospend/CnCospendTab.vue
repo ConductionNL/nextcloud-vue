@@ -75,8 +75,7 @@
 			<NcButton
 				variant="primary"
 				:href="cospendAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<CurrencyEur :size="20" />
 				</template>

@@ -58,8 +58,7 @@
 			<NcButton
 				variant="primary"
 				:href="flowSettingsUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<SitemapOutline :size="20" />
 				</template>

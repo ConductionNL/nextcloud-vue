@@ -85,8 +85,7 @@
 			<NcButton
 				variant="primary"
 				:href="openconnectorUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<CogOutline :size="20" />
 				</template>
@@ -104,8 +103,7 @@
 			<NcButton
 				variant="secondary"
 				:href="openprojectAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<OpenInNew :size="20" />
 				</template>
