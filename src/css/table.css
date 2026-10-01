@@ -334,6 +334,31 @@
 	background-color: var(--color-primary-light);
 }
 
+/* A row with a route is a real link (see CnDataTable's row link): the anchor
+   in its first cell is stretched over the whole row. The row's own controls
+   sit above it so they stay usable. */
+.cn-table-row--linked {
+	position: relative;
+}
+
+.cn-table-row__link {
+	position: absolute;
+	inset: 0;
+	cursor: pointer;
+}
+
+.cn-table-row__link:focus-visible {
+	outline: 2px solid var(--color-main-text);
+	outline-offset: -2px;
+}
+
+.cn-table-row--linked .cn-table-col--checkbox,
+.cn-table-row--linked .cn-table-col--actions,
+.cn-table-row--linked td :is(a, button, input, select, textarea, label, [role='button']):not(.cn-table-row__link) {
+	position: relative;
+	z-index: 1;
+}
+
 /* Column Types */
 .cn-table-col--checkbox {
 	width: 50px;

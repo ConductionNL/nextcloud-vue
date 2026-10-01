@@ -139,6 +139,7 @@
 						:data-testid-row-id="row[rowKey]"
 						:class="[
 							isSelected(row) ? 'cn-table-row--selected' : '',
+							rowLinks[String(row[rowKey])] ? 'cn-table-row--linked' : '',
 							rowClass ? rowClass(row) : '',
 						]"
 						@mousedown="onRowMouseDown"
@@ -168,6 +169,17 @@
 							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
 							:style="col.width ? { maxWidth: col.width } : {}"
 							@mouseenter="titleWhenClipped">
+							<!-- A row with a `rowClickRoute` is a real link: this anchor
+							     is stretched over the whole row by CSS, so hovering shows
+							     the URL, a middle or ctrl click opens a new tab natively,
+							     and the row is reachable with Tab. The row's own click
+							     handlers treat it as a nested control and leave it be. -->
+							<a v-if="colIndex === 0 && rowLinks[String(row[rowKey])]"
+								class="cn-table-row__link"
+								:href="rowLinks[String(row[rowKey])].href"
+								:aria-label="rowLinkLabel(row, col)"
+								data-testid="cn-row-link"
+								@click="onRowLinkClick(row, $event)" />
 							<!-- The padlock rides the FIRST data cell, beside whatever
 							     names the row. Deliberately OUTSIDE the #column-<key>
 							     slot: a consumer overriding that column's rendering is
@@ -274,7 +286,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
-import { openRowTarget } from '../../utils/linkNavigation.js'
+import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
 import { isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP, resolveRowIndicators } from '../../utils/rowIndicators.js'
@@ -692,9 +704,11 @@ export default {
 
 		/**
 		 * Convenience navigation (folded from CnTableWidget): a function that
-		 * receives the clicked row and returns a vue-router route to push. When
-		 * set, a row click navigates there (the `row-click` event still fires);
-		 * a ctrl/cmd/shift or middle click opens it in a new tab.
+		 * receives a row and returns the vue-router route it opens. When set,
+		 * each row renders as a real link to that route, stretched over the
+		 * row: a click navigates there (the `row-click` event still fires), and
+		 * a ctrl/cmd/shift or middle click opens it in a new tab. A table whose
+		 * row click selects (`selectable` without `rowClickToView`) gets no link.
 		 *
 		 * @type {((row: object) => object)|null}
 		 */
@@ -867,6 +881,32 @@ export default {
 		 *
 		 * @return {Array<{key: string, order: 'asc'|'desc'}>}
 		 */
+		/**
+		 * The link each row opens, keyed by row key: the `rowClickRoute`
+		 * location and its href. Empty when rows have no route, or when a row
+		 * click selects instead of navigating.
+		 *
+		 * @return {{[key: string]: {target: object, href: string}}}
+		 */
+		rowLinks() {
+			const links = {}
+			if (!this.rowClickRoute || !this.$router || (this.selectable && !this.rowClickToView)) {
+				return links
+			}
+			for (const row of this.effectiveRows) {
+				const route = this.rowClickRoute(row)
+				if (!route) {
+					continue
+				}
+				const target = typeof route === 'string' ? { path: route } : route
+				const href = resolveHref(target, this.$router)
+				if (href) {
+					links[String(row[this.rowKey])] = { target, href }
+				}
+			}
+			return links
+		},
+
 		effectiveSortKeys() {
 			if (this.sortKeys && this.sortKeys.length > 0) {
 				return this.sortKeys
@@ -1410,6 +1450,32 @@ export default {
 					markNewTabHandled(event, openRowTarget(event, typeof route === 'string' ? { path: route } : route, this.$router))
 				}
 			}
+		},
+
+		/**
+		 * A plain click on a row link routes in place; any other click is left
+		 * to the browser, which opens the href itself.
+		 *
+		 * @param {object} row The row the link belongs to.
+		 * @param {MouseEvent} event The click event.
+		 */
+		onRowLinkClick(row, event) {
+			const link = this.rowLinks[String(row[this.rowKey])]
+			if (link) {
+				followLinkClick(event, link.target, this.$router)
+			}
+		},
+
+		/**
+		 * The row link's accessible name: the row's first cell, which names it.
+		 *
+		 * @param {object} row The row.
+		 * @param {object} col The first data column.
+		 * @return {string}
+		 */
+		rowLinkLabel(row, col) {
+			const value = this.cellValue(row, col)
+			return value === null || value === undefined || value === '' ? String(row[this.rowKey]) : String(value)
 		},
 
 		/**

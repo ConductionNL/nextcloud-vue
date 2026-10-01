@@ -301,6 +301,43 @@ describe('CnDataTable — a clickable row behaves like a link', () => {
 		await wrapper.findAll('.cn-table-row').at(0).trigger('click', { ctrlKey: true })
 		expect(openSpy).toHaveBeenCalledWith('/apps/x/#/items/a', '_blank', 'noopener,noreferrer')
 	})
+
+	it('renders the row as a real link, named by its first cell', () => {
+		const { wrapper } = mountLinked()
+		const link = wrapper.findAll('[data-testid="cn-row-link"]').at(0)
+		expect(link.element.tagName).toBe('A')
+		expect(link.attributes('href')).toBe('/apps/x/#/items/a')
+		expect(link.attributes('aria-label')).toBe('Welcome flow')
+		expect(wrapper.findAll('.cn-table-row').at(0).classes()).toContain('cn-table-row--linked')
+	})
+
+	it('routes once on a plain click on the link', async () => {
+		const { wrapper, $router } = mountLinked()
+		const event = new MouseEvent('click', { button: 0, bubbles: true, cancelable: true })
+		wrapper.findAll('[data-testid="cn-row-link"]').at(0).element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(true)
+		expect($router.push).toHaveBeenCalledTimes(1)
+		expect($router.push).toHaveBeenCalledWith({ name: 'item', params: { id: 'a' } })
+		expect(openSpy).not.toHaveBeenCalled()
+	})
+
+	it('leaves a ctrl-click on the link to the browser', async () => {
+		const { wrapper, $router } = mountLinked()
+		const event = new MouseEvent('click', { button: 0, ctrlKey: true, bubbles: true, cancelable: true })
+		const link = wrapper.findAll('[data-testid="cn-row-link"]').at(0).element
+		// Stand in for the browser opening the href, which jsdom cannot do.
+		link.addEventListener('click', (e) => e.preventDefault())
+		link.dispatchEvent(event)
+		expect($router.push).not.toHaveBeenCalled()
+		expect(openSpy).not.toHaveBeenCalled()
+	})
+
+	it('renders no link where a row click selects, or where rows have no route', () => {
+		const selecting = mountLinked({ selectable: true, selectedIds: [] }).wrapper
+		expect(selecting.find('[data-testid="cn-row-link"]').exists()).toBe(false)
+		const unrouted = mountLinked({ rowClickRoute: null }).wrapper
+		expect(unrouted.find('[data-testid="cn-row-link"]').exists()).toBe(false)
+	})
 })
 
 // OpenRegister system/metadata fields live under the object's `@self` block.
