@@ -154,6 +154,18 @@ describe('CnAppRoot setup wizard', () => {
 			expect(wizardOf(wrapper).exists()).toBe(false)
 		})
 
+		it('ignores on-demand steps, which are never outstanding work', () => {
+			// An on-demand step (onDemand: true) runs only when the user asks, so
+			// a server that reports it not done must not auto-open the wizard.
+			mockSetupState = setupState([
+				{ ...CURRENCY, done: true },
+				{ id: 'wipe', type: 'run-action', onDemand: true, done: false },
+			])
+			const wrapper = mountRoot(manifestWith([CURRENCY, { id: 'wipe', type: 'run-action' }]))
+			expect(wrapper.vm.optionalSetupPending).toBe(false)
+			expect(wrapper.vm.setupWizardOpen).toBe(false)
+		})
+
 		it('passes the server-done step ids through so the wizard resumes', () => {
 			mockSetupState = setupState([
 				{ ...CURRENCY, done: true },
