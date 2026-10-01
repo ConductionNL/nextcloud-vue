@@ -171,6 +171,63 @@ describe('CnSetupWizard', () => {
 		})
 	})
 
+	// An app reports a destructive on-demand step (learniq's "Remove the
+	// example data") as done on purpose, so the auto-run never fires it. The
+	// summary then read that `done` as "this happened" and ticked a removal
+	// nobody ran. `onDemand: true` makes the tick mean "ran in this session".
+	describe('on-demand run-action steps (onDemand: true)', () => {
+		const onDemandSteps = [
+			{ id: 'welcome', type: 'info', title: 'Hi' },
+			{ id: 'seed', type: 'run-action', action: 'seed', title: 'Load the example data' },
+			{ id: 'wipe', type: 'run-action', action: 'wipe', title: 'Remove the example data', onDemand: true },
+			{ id: 'done', type: 'summary', title: 'All set' },
+		]
+		const mountWizard = (completedStepIds = []) => shallowMount(CnSetupWizard, {
+			propsData: { appId: 'learniq', steps: onDemandSteps, completedStepIds },
+		})
+		const recap = (wrapper, id) => wrapper.vm.summaryItems.find((i) => i.id === id)
+
+		it('is not ticked in the summary when the server reports it done but it did not run', () => {
+			const wrapper = mountWizard(['seed', 'wipe'])
+			expect(recap(wrapper, 'wipe').done).toBe(false)
+			expect(recap(wrapper, 'wipe').notRun).toBe(true)
+			expect(recap(wrapper, 'wipe').value).toBe('Not run')
+		})
+
+		it('is ticked in the summary once its action succeeded in this session', async () => {
+			axios.post.mockResolvedValue({ data: { success: true, message: 'Removed' } })
+			const wrapper = mountWizard(['seed', 'wipe'])
+			await wrapper.vm.runAction(onDemandSteps[2])
+			expect(recap(wrapper, 'wipe').done).toBe(true)
+			expect(recap(wrapper, 'wipe').notRun).toBe(false)
+		})
+
+		it('is not ticked after a failed run', async () => {
+			axios.post.mockRejectedValue({ response: { data: { message: 'Nope' } } })
+			const wrapper = mountWizard(['seed', 'wipe'])
+			await wrapper.vm.runAction(onDemandSteps[2])
+			expect(recap(wrapper, 'wipe').done).toBe(false)
+		})
+
+		it('never auto-runs, even when the server reports it not done', async () => {
+			const wrapper = mountWizard(['seed'])
+			await flushPromises()
+			wrapper.vm.onStepChange({ stepId: 'wipe', stepIndex: 2, direction: 'next' })
+			await flushPromises()
+			expect(axios.post).not.toHaveBeenCalled()
+		})
+
+		it('is never the step a resumed wizard opens on', () => {
+			expect(mountWizard(['seed']).vm.initialStepId).toBe('')
+		})
+
+		it('leaves steps without the flag as they were: a server-done step is ticked', () => {
+			const wrapper = mountWizard(['seed', 'wipe'])
+			expect(recap(wrapper, 'seed').done).toBe(true)
+			expect(recap(wrapper, 'seed').notRun).toBe(false)
+		})
+	})
+
 	describe('validateStep', () => {
 		it('blocks a required choice with nothing picked and nothing persisted', async () => {
 			const wrapper = shallowMount(CnSetupWizard, { propsData: { appId: 'procest', steps } })

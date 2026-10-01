@@ -54,6 +54,8 @@ Both instances receive `completedStepIds`, so a wizard mounted mid-way resumes a
 
 "Actionable" excludes `info` and `summary` steps. The server has nothing to persist for those, so they report `done: false` forever; counting them would auto-prompt every user on every version, including fully-configured ones.
 
+"Actionable" also excludes `run-action` steps marked `onDemand: true`: they run only when the user asks, so they never open the wizard. See [On-demand steps](./cn-setup-wizard.md#on-demand-steps).
+
 ### Dismissal
 
 The non-gating overlay records dismissal in `localStorage` under:
@@ -66,6 +68,10 @@ cn-setup-wizard-dismissed:{appId}:{manifest.setup.version}
 - Because the key includes `setup.version`, bumping it in the manifest (e.g. after adding a new optional step) re-prompts everyone exactly once.
 - Storage failures (private mode, disabled storage) are non-fatal: dismissal falls back to a session-only flag.
 - On `@complete` the overlay stays mounted so `CnSetupWizard`'s result phase ("Setup complete.") is visible; its **Close** button drives the unmount.
+
+### The walkthrough waits for setup
+
+When the manifest also declares a `walkthrough`, the tour is held back until the setup status has loaded and the non-gating wizard is closed, so on a first run the wizard comes first and the tour starts when the wizard is cancelled or finished. See [CnWalkthrough](./cn-walkthrough.md#when-cnapproot-starts-the-tour).
 
 ## Usage
 

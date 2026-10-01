@@ -15,6 +15,22 @@ params / object ids into a context bag interpolated into later steps via `{{var}
 [`CnAppRoot`](./cn-app-root.md) auto-mounts it over the live shell (non-gating) when
 the manifest declares an enabled `walkthrough`; you can also mount it standalone.
 
+### When CnAppRoot starts the tour
+
+A first-time user can qualify for several first-open surfaces at once. CnAppRoot
+shows them one at a time and holds the tour back while any of these is true:
+
+- the per-user completion preference is still loading (see below);
+- the support note is on screen;
+- the setup status is still loading, or the non-gating
+  [`CnSetupWizard`](./cn-setup-wizard.md) is open. While a required setup step is
+  unmet the wizard replaces the whole shell, tour included.
+
+Held back means not mounted, so nothing is recorded as seen in the meantime. In
+particular an ESC that closes the setup wizard no longer also dismisses the tour.
+When the last surface closes (the wizard is cancelled or finished, the note is
+dismissed) the tour mounts and a qualifying tour starts, or resumes where it was.
+
 ## Usage
 
 ```vue

@@ -133,7 +133,7 @@
 							v-for="item in summaryItems"
 							:key="item.id"
 							class="cn-setup-summary__item"
-							:class="{ 'cn-setup-summary__item--done': item.done }">
+							:class="{ 'cn-setup-summary__item--done': item.done, 'cn-setup-summary__item--not-run': item.notRun }">
 							<span class="cn-setup-summary__mark">{{ item.done ? '✓' : '○' }}</span>
 							<span class="cn-setup-summary__label">{{ item.title }}</span>
 							<span v-if="item.value" class="cn-setup-summary__value">{{ item.value }}</span>
@@ -380,7 +380,14 @@ export default {
 		 * a done marker (info steps always done; choice steps done when picked;
 		 * run-action steps done when the action succeeded).
 		 *
-		 * @return {Array<{ id: string, title: string, value: string, done: boolean }>}
+		 * An on-demand step (`onDemand: true`) is the exception: it is done
+		 * only when its action succeeded in THIS session. Apps report such a
+		 * step as `done` on purpose so it never auto-runs (learniq's "Remove
+		 * the example data"), and reading that flag here ticked a removal
+		 * nobody ran. When it did not run it gets `notRun: true` and the value
+		 * "Not run" instead.
+		 *
+		 * @return {Array<{ id: string, title: string, value: string, done: boolean, notRun: boolean }>}
 		 */
 		summaryItems() {
 			return this.setupSteps
@@ -399,6 +406,16 @@ export default {
 							.map((f) => `${f.label}: ${this.configModel[f.key] !== null && this.configModel[f.key] !== undefined ? this.configModel[f.key] : ''}`)
 							.join(', ')
 					}
+					if (this.isOnDemand(step)) {
+						const ran = this.ranThisSession(step.id)
+						return {
+							id: step.id,
+							title: this.stepTitle(step),
+							value: ran ? '' : t('nextcloud-vue', 'Not run'),
+							done: ran,
+							notRun: !ran,
+						}
+					}
 					let done
 					if (step.type === 'info') {
 						done = true
@@ -407,7 +424,7 @@ export default {
 					} else {
 						done = this.isStepDone(step.id)
 					}
-					return { id: step.id, title: this.stepTitle(step), value, done }
+					return { id: step.id, title: this.stepTitle(step), value, done, notRun: false }
 				})
 		},
 
@@ -427,7 +444,9 @@ export default {
 			if (this.completedStepIds.length === 0) {
 				return ''
 			}
-			const actionable = this.setupSteps.filter((s) => s.type !== 'info' && s.type !== 'summary')
+			// An on-demand step is never outstanding work, so it is never the
+			// step to resume on.
+			const actionable = this.setupSteps.filter((s) => s.type !== 'info' && s.type !== 'summary' && !this.isOnDemand(s))
 			const firstUnmetIndex = actionable.findIndex((s) => {
 				if (s.type === 'choice') {
 					return !(this.hasChoice(s) || this.isServerDone(s.id))
@@ -459,14 +478,16 @@ export default {
 		 * the step has nothing else for the user to decide by then (the
 		 * choice it acts on was already made on an earlier step), so
 		 * requiring a click before showing progress just adds a stall.
-		 * No-ops for any other step type, or one already run/running.
+		 * No-ops for any other step type, or one already run/running, and
+		 * never fires an on-demand step (`onDemand: true`): those run only
+		 * when the user clicks Run.
 		 *
 		 * @param {string} stepId The step id becoming current.
 		 * @return {void}
 		 */
 		maybeAutoRunStep(stepId) {
 			const step = this.setupSteps.find((s) => s.id === stepId)
-			if (step && step.type === 'run-action' && !this.isStepDone(step.id) && !this.running[step.id]) {
+			if (step && step.type === 'run-action' && !this.isOnDemand(step) && !this.isStepDone(step.id) && !this.running[step.id]) {
 				this.runAction(step)
 			}
 		},
@@ -847,6 +868,29 @@ export default {
 			}
 		},
 
+		/**
+		 * Whether a step is marked on-demand (`onDemand: true`): it runs only
+		 * when the user asks, never automatically, and the summary ticks it
+		 * only when it ran in this session.
+		 *
+		 * @param {object} step The manifest step.
+		 * @return {boolean}
+		 */
+		isOnDemand(step) {
+			return !!step && step.onDemand === true
+		},
+
+		/**
+		 * Whether a step's action succeeded in the CURRENT session, ignoring
+		 * whatever the server reports.
+		 *
+		 * @param {string} id Step id.
+		 * @return {boolean}
+		 */
+		ranThisSession(id) {
+			return !!(this.actionResult[id] && this.actionResult[id].success)
+		},
+
 		isStepDone(id) {
 			return this.isServerDone(id) || this.localDone[id] === true || (this.actionResult[id] && this.actionResult[id].success)
 		},
@@ -963,5 +1007,12 @@ export default {
 	margin-inline-start: auto;
 	font-weight: 600;
 	color: var(--color-main-text);
+}
+
+/* An on-demand step that did not run says so quietly: it is a choice the
+   user did not make, not a failure. */
+.cn-setup-summary__item--not-run .cn-setup-summary__value {
+	font-weight: normal;
+	color: var(--color-text-maxcontrast);
 }
 </style>
