@@ -15,8 +15,16 @@ Most apps never instantiate `CnActionsMenu` directly — they configure it throu
 ## Behaviour
 
 - **Refresh** — emits `@refresh` with `{ widgetId, title }`. Unless a host listener calls `event.preventDefault()` on the second handler argument, it then emits on the `@nextcloud/event-bus` channel named by `refreshChannel` (`cn:widget:refresh` for widgets, `cn:page:refresh` for pages).
+  The menu stays open while the refresh runs, with the item disabled and spinning, and closes once it settles. Refresh work reports itself through `waitUntil(promise)`, which is on both the handler's event argument and the bus payload: the spinner lasts until every promise handed to it has settled (at least 400 ms, at most 15 s, so a hung request cannot lock the item) and the `refreshing` prop is false. A bus subscriber that refetches should pass its fetch in:
+
+  ```js
+  subscribe('cn:page:refresh', (payload) => {
+  	const done = this.fetchData()
+  	payload?.waitUntil?.(done)
+  })
+  ```
 - **Documentation** — rendered as an `NcActionLink` only when `documentationUrl` is non-empty. Opens the link in a new tab (`target="_blank"` + `rel="noopener noreferrer"`); there is no JS handler.
-- **Request a feature** — emits `@request-feature` with `{ widgetId, title }`, then (unless suppressed) opens the forge's feature-request issue form in a new tab, built from the `cnFeatureRequestRepo` / `cnFeatureRequestForge` injects provided by `CnAppRoot` with an English headline (authored title, else the surface slug). Without a resolvable repo it logs a one-line `console.warn` and skips opening.
+- **Request a feature** — a link to the forge's feature-request issue form, opening in a new tab, built from the `cnFeatureRequestRepo` / `cnFeatureRequestForge` injects provided by `CnAppRoot` with an English headline (authored title, else the surface slug). Being a real link, it can be middle-clicked or copied. A click emits `@request-feature` with `{ widgetId, title }`; a handler that calls `preventDefault()` on the second argument cancels the link. Without a resolvable repo the item is a button that emits the event and logs a one-line `console.warn`.
 
 The overflow trigger hides itself entirely when no built-in item is visible and no `#action-items` slot content is supplied.
 

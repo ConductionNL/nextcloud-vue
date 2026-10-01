@@ -50,4 +50,16 @@ describe('CnCardGrid — clickToView', () => {
 		await wrapper.find('.cn-object-card').trigger('click')
 		expect(wrapper.emitted('click')).toBeFalsy()
 	})
+
+	it('forwards the click and middle-click events as the second argument', async () => {
+		const wrapper = mount(CnCardGrid, {
+			propsData: { objects, rowKey: 'id' },
+			stubs,
+		})
+		await wrapper.find('.cn-object-card').trigger('click', { ctrlKey: true })
+		await wrapper.find('.cn-object-card').trigger('auxclick', { button: 1 })
+		expect(wrapper.emitted('click')).toHaveLength(2)
+		expect(wrapper.emitted('click')[0][1].ctrlKey).toBe(true)
+		expect(wrapper.emitted('click')[1][1].button).toBe(1)
+	})
 })

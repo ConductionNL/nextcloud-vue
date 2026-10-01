@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.41.0",
+	"version": "2.42.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -98,6 +98,7 @@
 							"suggestMap": { "type": "object", "description": "choice: map of suggestFrom value → suggested option value. Used to auto-suggest a default (e.g. RGS template suggested from organisation type).", "additionalProperties": { "type": "string" } },
 							"multiple": { "type": "boolean", "default": false, "description": "choice: allow multi-select." },
 							"action": { "type": "string", "description": "run-action: actionId POSTed to /api/setup/action/{action}." },
+							"onDemand": { "type": "boolean", "default": false, "description": "run-action: the step runs only when the user clicks Run, never automatically, and is never outstanding work (it does not open the wizard or decide where a resumed wizard starts). The summary ticks it only when its action succeeded in the current session and shows it as not run otherwise, whatever the server reports. For destructive steps an app reports as done on purpose so they never auto-run, such as removing example data." },
 							"healthCheck": { "type": "boolean", "default": false, "description": "summary: render a health recap." },
 							"component": { "type": "string", "description": "component: app-registered component name (or use the #step-<id> slot)." }
 						}

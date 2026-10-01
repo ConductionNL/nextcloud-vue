@@ -183,7 +183,7 @@ export default {
 		cardListeners(object) {
 			const listeners = { select: () => this.toggleSelect(object) }
 			if (!this.selectable || this.clickToView) {
-				listeners.click = () => this.$emit('click', object)
+				listeners.click = (_card, event) => this.$emit('click', object, event)
 			}
 			return listeners
 		},

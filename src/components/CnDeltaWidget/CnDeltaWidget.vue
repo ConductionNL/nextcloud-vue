@@ -59,6 +59,7 @@ import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
 
 // The canonical KPI card, shared with CnStatWidget and CnStatsBlock.
 // Imported here so the tile is styled even when the consuming app pulls in
@@ -449,7 +450,7 @@ export default {
 				|| this.content.goodDirection || 'up'
 			const rising = this.deltaPct > 0
 			const isGood = good === 'up' ? rising : !rising
-			return isGood ? 'var(--color-success)' : 'var(--color-error)'
+			return isGood ? STATUS_TEXT_COLORS.success : STATUS_TEXT_COLORS.error
 		},
 
 		/** Stable signature so the watcher only refetches on real change. */

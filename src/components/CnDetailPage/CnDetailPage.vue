@@ -29,7 +29,7 @@
 		     that lands somewhere arbitrary is worse than none, because it is
 		     the one link a keyboard user is told to trust. -->
 		<a
-			v-if="primaryActionLabel"
+			v-if="primaryActionLabel && !objectNotFound"
 			:href="`#${primaryActionAnchorId}`"
 			class="cn-detail-page__skip-link"
 			data-testid="cn-detail-page-skip-link"
@@ -38,7 +38,7 @@
 		</a>
 
 		<!-- Header -->
-		<div class="cn-detail-page__header" data-testid="cn-detail-page-header">
+		<div v-if="!objectNotFound" class="cn-detail-page__header" data-testid="cn-detail-page-header">
 			<!-- Header (left block) — overridable via #header slot. Default
 			     renders the icon + title + description. The right-hand
 			     #actions slot remains separate so headerComponent and
@@ -118,13 +118,16 @@
 					v-if="listNavigation && listNavigation.available"
 					class="cn-detail-page__list-nav"
 					data-testid="cn-detail-page-list-nav">
+					<!-- With previousTo/nextTo the control is a link; a disabled
+					     end drops `to` so it renders as a disabled button. -->
 					<NcButton
 						variant="tertiary"
 						:disabled="listNavigation.isFirst"
+						:to="listNavigation.isFirst ? undefined : (previousTo || undefined)"
 						:aria-label="previousRecordLabel"
 						:title="previousRecordLabel"
 						data-testid="cn-detail-page-previous"
-						@click="$emit('previous-record')">
+						@click="onListStep('previous-record', previousTo, $event)">
 						<template #icon>
 							<ChevronLeft :size="20" />
 						</template>
@@ -135,10 +138,11 @@
 					<NcButton
 						variant="tertiary"
 						:disabled="listNavigation.isLast"
+						:to="listNavigation.isLast ? undefined : (nextTo || undefined)"
 						:aria-label="nextRecordLabel"
 						:title="nextRecordLabel"
 						data-testid="cn-detail-page-next"
-						@click="$emit('next-record')">
+						@click="onListStep('next-record', nextTo, $event)">
 						<template #icon>
 							<ChevronRight :size="20" />
 						</template>
@@ -155,16 +159,19 @@
 					@click="$emit('primary-action', primaryAction)">
 					{{ primaryActionLabel }}
 				</NcButton>
-				<!-- Declarative lifecycle/transition buttons (manifest
+				<!-- Declarative lifecycle transitions (manifest
 				     `config.lifecycleActions`). Status-gated; driven by the
-				     object's x-openregister-lifecycle. Renders nothing when no
-				     transitions apply. -->
+				     object's x-openregister-lifecycle. They land in the Actions
+				     menu below, since a record with several transitions filled
+				     the header with buttons. -->
 				<CnLifecycleActions
-					v-if="lifecycleActions && (objectId || currentObject)"
+					v-if="showsLifecycleActions"
 					:objectId="objectId"
 					:object="currentObject"
 					:config="lifecycleActions"
 					:schema="currentSchema"
+					display="menu"
+					@entries="lifecycleMenuEntries = $event"
 					@transitioned="onTransitioned"
 					@reload="onLifecycleReload" />
 				<!-- Declarative header actions (#91 Wave 3): a manifest
@@ -253,8 +260,8 @@
 					testidBase="cn-detail-page"
 					@refresh="onHeaderRefresh"
 					@requestFeature="onHeaderRequestFeature">
-					<template v-if="menuHeaderActions.length" #primary-items>
-						<template v-for="entry in menuHeaderActions">
+					<template v-if="headerMenuEntries.length" #primary-items>
+						<template v-for="entry in headerMenuEntries">
 							<!-- An action that goes to a URL is a LINK. The browser
 							     then supplies middle-click, "open in new tab" and the
 							     semantics assistive tech announces, none of which a
@@ -319,8 +326,36 @@
 			{{ editLockRefusal }}
 		</p>
 
+		<!-- Not-found state: the record behind the address does not exist. -->
+		<div v-if="objectNotFound" class="cn-detail-page__not-found" data-testid="cn-detail-page-not-found">
+			<!--
+				@slot not-found
+				@description Replace the default not-found surface, shown instead of the
+				header and body when the schema-driven fetch answers 404.
+				@binding {object|string} target Router location of the back button.
+			-->
+			<slot name="not-found" :target="notFoundTarget">
+				<NcEmptyContent :name="notFoundLabels.name" :description="notFoundLabels.description">
+					<template #icon>
+						<FileQuestionOutline :size="48" />
+					</template>
+					<template v-if="$router" #action>
+						<NcButton
+							variant="primary"
+							data-testid="cn-detail-page-not-found-back"
+							:to="notFoundTarget">
+							<template #icon>
+								<ArrowLeft :size="20" />
+							</template>
+							{{ notFoundButtonLabel }}
+						</NcButton>
+					</template>
+				</NcEmptyContent>
+			</slot>
+		</div>
+
 		<!-- Loading state -->
-		<div v-if="showLoadingState" class="cn-detail-page__loading">
+		<div v-else-if="showLoadingState" class="cn-detail-page__loading">
 			<NcLoadingIcon :size="32" />
 			<span>{{ loadingLabel }}</span>
 		</div>
@@ -780,9 +815,11 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { provide, ref, watch } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
+import FileQuestionOutline from 'vue-material-design-icons/FileQuestionOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -954,6 +991,8 @@ export default {
 		NcLoadingIcon,
 		CnIcon,
 		AlertCircleOutline,
+		ArrowLeft,
+		FileQuestionOutline,
 		InformationOutline,
 		Refresh,
 		CnActionsMenu,
@@ -1252,6 +1291,23 @@ export default {
 		retryLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Retry'),
+		},
+
+		/**
+		 * Router location the not-found state's button opens, shown when the
+		 * schema-driven fetch answers 404. Usually the record's list; null
+		 * sends the user to the app's root (`/`). CnPageRenderer fills it with
+		 * the index page the record was opened from.
+		 */
+		notFoundRoute: {
+			type: [Object, String],
+			default: null,
+		},
+
+		/** Name of the `notFoundRoute` page, used in the button's "Back to …" label. */
+		notFoundRouteLabel: {
+			type: String,
+			default: '',
 		},
 
 		/** Whether the page has no data to show */
@@ -1709,6 +1765,30 @@ export default {
 		},
 
 		/**
+		 * Router location of the previous record, as `useListNavigation`'s
+		 * `previousRoute`. When set, the previous control is a real link
+		 * (middle-click, open in new tab) and `previous-record` is emitted
+		 * with `{ event, to }` after it navigated. Null keeps it a button.
+		 *
+		 * @type {object|string|null}
+		 */
+		previousTo: {
+			type: [Object, String],
+			default: null,
+		},
+
+		/**
+		 * Router location of the next record, as `useListNavigation`'s
+		 * `nextRoute`. Same behaviour as `previousTo`.
+		 *
+		 * @type {object|string|null}
+		 */
+		nextTo: {
+			type: [Object, String],
+			default: null,
+		},
+
+		/**
 		 * The page's primary action, as declared on its manifest page. Renders
 		 * as the header's primary button and is the target the skip link
 		 * lands on. Omit it and neither renders.
@@ -1750,9 +1830,11 @@ export default {
 		/**
 		 * The reader asked for the next record of the list this one was
 		 * opened from. The host steps, because the host owns the router.
+		 * With `nextTo` set the link has navigated already and the payload
+		 * is `{ event, to }`.
 		 */
 		'next-record',
-		/** The reader asked for the previous record of that same list. */
+		/** The reader asked for the previous record of that same list. Payload as `next-record`. */
 		'previous-record',
 		/** The page's declared primary action was pressed. Payload is the declaration. */
 		'primary-action',
@@ -1911,6 +1993,8 @@ export default {
 			 * menu dispatches without reaching back into that component.
 			 */
 			menuHeaderActions: [],
+			/** Lifecycle transitions CnLifecycleActions hands the Actions menu. */
+			lifecycleMenuEntries: [],
 			/** Whether the per-widget style/config editor modal is open. */
 			showWidgetConfig: false,
 			/** The widgetId currently being configured via the cog. */
@@ -1958,6 +2042,13 @@ export default {
 			 * the page. Set true the first time `loading` falls to false.
 			 */
 			hasLoadedOnce: false,
+			/**
+			 * Whether the schema-driven object fetch is in flight. Starts true
+			 * so the immediate sidebar sync at creation already waits for it.
+			 */
+			objectFetchPending: Boolean(this.register && this.schema && this.objectId),
+			/** Whether the schema-driven fetch answered 404 for `objectId`. */
+			objectNotFound: false,
 		}
 	},
 
@@ -2094,7 +2185,47 @@ export default {
 		 * @return {boolean}
 		 */
 		showLoadingState() {
-			return this.loading && !this.hasLoadedOnce
+			return (this.loading && !this.hasLoadedOnce) || this.awaitingObject
+		},
+
+		/**
+		 * Whether the page is still waiting for its first answer on the record.
+		 * The body, lifecycle menu and sidebar stay unmounted meanwhile, because
+		 * each of them requests endpoints scoped to the id and a missing record
+		 * would turn every one of those into a 404 or 500.
+		 *
+		 * @return {boolean}
+		 */
+		awaitingObject() {
+			return this.hasSchemaDrivenFetch
+				&& this.objectFetchPending
+				&& typeof this.effectiveObjectStore?.fetchObject === 'function'
+				&& !this.currentObject
+		},
+
+		/**
+		 * Where the not-found state's button goes: `notFoundRoute`, or the app's
+		 * root when the host names no list to return to.
+		 *
+		 * @return {object|string}
+		 */
+		notFoundTarget() {
+			return this.notFoundRoute || { path: '/' }
+		},
+
+		/** Heading and description of the not-found state. */
+		notFoundLabels() {
+			return {
+				name: t('nextcloud-vue', 'Not found'),
+				description: t('nextcloud-vue', 'This item does not exist or has been deleted.'),
+			}
+		},
+
+		/** Label of the not-found state's button, unescaped because `{{ }}` escapes. */
+		notFoundButtonLabel() {
+			return this.notFoundRoute && this.notFoundRouteLabel
+				? t('nextcloud-vue', 'Back to {page}', { page: this.notFoundRouteLabel }, undefined, { escape: false })
+				: t('nextcloud-vue', 'Back to home')
 		},
 
 		/**
@@ -2150,6 +2281,25 @@ export default {
 		 *
 		 * @return {boolean}
 		 */
+		/** Whether the lifecycle transitions are mounted. */
+		showsLifecycleActions() {
+			if (this.objectNotFound || this.awaitingObject) {
+				return false
+			}
+			return Boolean(this.lifecycleActions && (this.objectId || this.currentObject))
+		},
+
+		/**
+		 * Everything the Actions menu lists above its built-in items: the
+		 * lifecycle transitions, then the declared header actions.
+		 *
+		 * @return {Array<object>} Menu-ready entries.
+		 */
+		headerMenuEntries() {
+			const lifecycle = this.showsLifecycleActions ? this.lifecycleMenuEntries : []
+			return [...lifecycle, ...this.menuHeaderActions]
+		},
+
 		/**
 		 * Whether Edit joins the CnActionButtons cluster instead of standing
 		 * on its own. Opted into by `inlineActions`.
@@ -2764,6 +2914,14 @@ export default {
 			}
 		},
 
+		awaitingObject() {
+			this.syncSidebarState()
+		},
+
+		objectNotFound() {
+			this.syncSidebarState()
+		},
+
 		// Deep, like `sidebarTabs` / `sidebarProps` below: the manifest editors
 		// mutate `page.config.sidebar` IN PLACE, so the reference CnPageRenderer
 		// forwards never changes. A shallow watcher missed every such edit —
@@ -2910,7 +3068,7 @@ export default {
 		// channel itself, one write would become one read per widget. This
 		// component owns the object, so one write is one read however many
 		// widgets are bound to it.
-		this._onPageRefresh = () => this.onPageRefreshBus()
+		this._onPageRefresh = (payload) => this.onPageRefreshBus(payload)
 		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 	},
 
@@ -2942,6 +3100,23 @@ export default {
 		// Expose the shared grid helpers to the template (grid mode + auto-body).
 		cnGridCellStyle,
 		hasGridRow,
+
+		/**
+		 * Emit a list step. When the control is a link it has navigated
+		 * already, so the payload `{ event, to }` tells the host not to push
+		 * again (`useListNavigation`'s `goNext`/`goPrevious` honour it).
+		 *
+		 * @param {string} name `previous-record` or `next-record`.
+		 * @param {object|string|null} to The link target, or null.
+		 * @param {MouseEvent} event The click event.
+		 */
+		onListStep(name, to, event) {
+			if (to && this.$router) {
+				this.$emit(name, { event, to })
+			} else {
+				this.$emit(name)
+			}
+		},
 
 		/**
 		 * Move focus to the primary action when the skip link is followed.
@@ -3067,8 +3242,10 @@ export default {
 				return
 			}
 			this.internalRefreshing = true
+			const done = this.fetchObjectIfNeeded()
+			event?.waitUntil?.(done)
 			try {
-				await this.fetchObjectIfNeeded()
+				await done
 			} finally {
 				this.internalRefreshing = false
 			}
@@ -3084,9 +3261,10 @@ export default {
 		 * sets the flag synchronously before awaiting its fetch — so without
 		 * this guard one click on Refresh would fetch the object twice.
 		 *
+		 * @param {{ waitUntil?: (promise: Promise<unknown>) => void }} [payload] Bus payload.
 		 * @return {void}
 		 */
-		onPageRefreshBus() {
+		onPageRefreshBus(payload) {
 			if (!this.hasSchemaDrivenFetch) {
 				return
 			}
@@ -3094,9 +3272,10 @@ export default {
 				return
 			}
 			this.internalRefreshing = true
-			Promise.resolve(this.fetchObjectIfNeeded()).finally(() => {
+			const done = Promise.resolve(this.fetchObjectIfNeeded()).finally(() => {
 				this.internalRefreshing = false
 			})
+			payload?.waitUntil?.(done)
 		},
 
 		/**
@@ -3231,6 +3410,7 @@ export default {
 			// Create archetype: no object to fetch, but the create form needs
 			// the schema — register the type and fetch its schema, then stop.
 			if (!this.hasSchemaDrivenFetch) {
+				this.objectFetchPending = false
 				if (this.isCreateMode) {
 					await this.fetchSchemaForCreate()
 				}
@@ -3238,6 +3418,7 @@ export default {
 			}
 			const store = this.effectiveObjectStore
 			if (!store) {
+				this.objectFetchPending = false
 				return
 			}
 			const type = this.resolvedObjectType
@@ -3261,10 +3442,16 @@ export default {
 					{ registerSlug: this.register, schemaSlug: this.schema },
 				)
 			}
+			const objectId = this.objectId
+			const fetchesObject = typeof store.fetchObject === 'function'
+			this.objectFetchPending = fetchesObject
+			if (fetchesObject) {
+				this.objectNotFound = false
+			}
 			try {
 				const tasks = []
-				if (typeof store.fetchObject === 'function') {
-					tasks.push(store.fetchObject(type, this.objectId))
+				if (fetchesObject) {
+					tasks.push(store.fetchObject(type, objectId))
 				}
 				if (typeof store.fetchSchema === 'function') {
 					tasks.push(store.fetchSchema(type))
@@ -3273,6 +3460,13 @@ export default {
 			} catch (err) {
 				// eslint-disable-next-line no-console -- the failure is already handled; the console is the only channel a host app can read the detail on
 				console.error('[CnDetailPage] schema-driven fetch failed:', err)
+			} finally {
+				// A newer fetch for another id owns the flags now.
+				if (fetchesObject && objectId === this.objectId) {
+					this.objectNotFound = !store.objects?.[type]?.[objectId]
+						&& store.getError?.(type)?.status === 404
+					this.objectFetchPending = false
+				}
 			}
 		},
 
@@ -4144,7 +4338,8 @@ export default {
 				return
 			}
 			const r = this.resolvedSidebar
-			if (this.sidebarActive && this.resolvedObjectType && this.objectId) {
+			const hasRecord = !this.objectNotFound && !this.awaitingObject
+			if (this.sidebarActive && hasRecord && this.resolvedObjectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
 				// Seed `open` only on the inactive→active edge (first activation
 				// of this object). Subsequent syncs must NOT clobber it, otherwise

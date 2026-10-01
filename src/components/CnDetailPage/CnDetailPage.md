@@ -389,7 +389,7 @@ CnDetailPage consumes the same `actions[].handler` contract as CnIndexPage. When
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `showRelatedObjects` | Boolean | `true` | Whether to render the Related section beneath the data widget. Set `false` on pages that surface relations elsewhere (e.g. the sidebar) to drop the section. |
-| `lifecycleActions` | Object \| null | `null` | Declarative status-gated transition buttons in the page header, driven by the object's `x-openregister-lifecycle`. `{ field: 'status' }` fetches allowed transitions from OpenRegister's `/available-actions`; an explicit `{ transitions: [...] }` is filtered client-side by current state. Emits `@transitioned`. See [CnLifecycleActions](../CnLifecycleActions/CnLifecycleActions.md) / docs `cn-lifecycle-actions.md`. |
+| `lifecycleActions` | Object \| null | `null` | Declarative status-gated transitions, listed in the header Actions menu and driven by the object's `x-openregister-lifecycle`. `{ field: 'status' }` fetches allowed transitions from OpenRegister's `/available-actions`; an explicit `{ transitions: [...] }` is filtered client-side by current state. Emits `@transitioned`. See [CnLifecycleActions](../CnLifecycleActions/CnLifecycleActions.md) / docs `cn-lifecycle-actions.md`. |
 | `inlineActions` | Number \| null | `null` | Set to fold this page's own Edit button in with the header actions, so it becomes an entry in the Actions menu rather than a button beside it. `null` keeps Edit standalone. The number caps nothing here — this page draws its header actions as Actions-menu entries (`display: "menu"`), where there are no buttons to cap; it is still `CnActionButtons`' `inline` count for a host mounting that component in `buttons` mode. |
 | `relatedCollections` | Array | `[]` | Declarative related-object list sections below the body; each `{ title?, register, schema, filter?, columns?, sort?, limit?, rowRoute? }` renders a `CnObjectListWidget` scoped to this object via `@objectId`. Emits `@related-row-click`. See docs `cn-related-collections.md`. |
 | `summaryAggregates` | Array | `[]` | Declarative cross-schema count/sum/avg chips in the header; each `{ label, register, schema, metric?, field?, filter?, format? }` scoped to this object. See docs `cn-summary-aggregates.md`. |
@@ -408,3 +408,9 @@ The page header's overflow menu carries Refresh plus the mandatory trio Request 
 ## The record as a place
 
 `listNavigation`, `primaryAction` and `tabInAddress` make a record somewhere a handler stays. All three are off by default. See [the reference page](../../../docs/components/cn-detail-page.md#the-record-as-a-place).
+
+`previousTo` and `nextTo` (default `null`) take `useListNavigation`'s `previousRoute` / `nextRoute` and turn the previous and next controls into real links, so they can be opened in a new tab. The link navigates by itself; `previous-record` / `next-record` are still emitted, with `{ event, to }`, and `goPrevious` / `goNext` do not push again when they receive that payload.
+
+## Not found
+
+When the schema-driven fetch answers 404 the page shows a not-found state whose back button is a router link to `notFoundRoute` (default `null`, which means the app root `/`). `notFoundRouteLabel` names that page in the button's "Back to …" label.

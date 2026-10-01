@@ -229,6 +229,7 @@ import {
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import CnRegisterMapping from '../CnRegisterMapping/CnRegisterMapping.vue'
 import CnVersionInfoCard from '../CnVersionInfoCard/CnVersionInfoCard.vue'
+import { prefixUrl } from '../../utils/headers.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnSettingsCard } from '../CnSettingsCard/index.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
@@ -907,7 +908,7 @@ export default {
 			this.lastError = null
 			try {
 				if (this.saveEndpoint) {
-					await axios.put(this.saveEndpoint, this.formData)
+					await axios.put(prefixUrl(this.saveEndpoint), this.formData)
 				}
 				this.originalData = JSON.parse(JSON.stringify(this.formData))
 				this.$emit('save', this.formData)

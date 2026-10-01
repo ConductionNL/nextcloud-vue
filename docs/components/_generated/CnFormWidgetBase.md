@@ -24,7 +24,8 @@
 
 ### Slots
 
-| Name                   | Bindings                           | Description                                                 |
-| ---------------------- | ---------------------------------- | ----------------------------------------------------------- |
-| `'field-' + field.key` | `name`, `field`, `value`, `update` | field-\{key\} Replace one field's control entirely, keeping |
-| `actions`              | —                                  | actions Replace the submit row entirely (e.g. to add a      |
+| Name                   | Bindings                           | Description                                                               |
+| ---------------------- | ---------------------------------- | ------------------------------------------------------------------------- |
+| `'field-' + field.key` | `name`, `field`, `value`, `update` | field-\{key\} Replace one field's control entirely, keeping               |
+| `actions-start`        | —                                  | actions-start Extra buttons in the action row, left of the submit button. |
+| `actions`              | —                                  | actions Replace the submit row entirely (e.g. to add a                    |

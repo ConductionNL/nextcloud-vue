@@ -459,8 +459,9 @@ export default {
 		// `fetchEntries` and the useDataSource GraphQL path, none of which
 		// subscribe on their own. No widgetId to match: a page refresh
 		// refreshes everything on the page.
-		this._onPageRefresh = () => {
-			this.refresh()
+		this._onPageRefresh = (payload) => {
+			const done = this.refresh()
+			payload?.waitUntil?.(done)
 		}
 		subscribe(PAGE_REFRESH_BUS_CHANNEL, this._onPageRefresh)
 	},
@@ -479,14 +480,14 @@ export default {
 		 * path. Exposed as a ref-callable method for parity with the other data
 		 * widgets, and invoked by the page-level Refresh subscription.
 		 *
-		 * @return {void}
+		 * @return {Promise<unknown[]>} Settles when every re-query has.
 		 */
 		refresh() {
-			if (typeof this.dsRefetch === 'function') {
-				this.dsRefetch()
-			}
-			this.fetchRest()
-			this.fetchEntries()
+			return Promise.all([
+				typeof this.dsRefetch === 'function' ? this.dsRefetch() : null,
+				this.fetchRest(),
+				this.fetchEntries(),
+			])
 		},
 
 		/**

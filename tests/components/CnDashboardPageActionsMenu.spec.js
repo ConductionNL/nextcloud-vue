@@ -93,20 +93,16 @@ describe('CnDashboardPage — page-level Actions menu', () => {
 		await wrapper.find('[data-testid="cn-dashboard-page-action-refresh"]').trigger('click')
 		expect(wrapper.emitted('refresh')).toBeTruthy()
 		expect(wrapper.emitted('widget-refresh')).toBeFalsy()
-		expect(emitOnBus).toHaveBeenCalledWith('cn:page:refresh', { widgetId: 'overview', title: 'Overview' })
+		expect(emitOnBus).toHaveBeenCalledWith('cn:page:refresh', { widgetId: 'overview', title: 'Overview', waitUntil: expect.any(Function) })
 	})
 
 	// The in-product modal is gone (team decision 2026-09-04): the surface
 	// slug now travels as the English headline of the forge issue-form link.
-	it('forwards the dashboard surface into the feature-request link', async () => {
-		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+	it('forwards the dashboard surface into the feature-request link', () => {
 		const wrapper = mountPage({ pageId: 'overview' })
-		await wrapper.find('[data-testid="cn-dashboard-page-action-request-feature"]').trigger('click')
-		expect(openSpy).toHaveBeenCalledTimes(1)
-		const u = new URL(openSpy.mock.calls[0][0])
+		const u = new URL(wrapper.find('[data-testid="cn-dashboard-page-action-request-feature"]').attributes('href'))
 		expect(u.searchParams.get('template')).toBe('feature-request.yml')
 		expect(u.searchParams.get('title')).toBe('[FEATURE] dashboard:overview')
-		openSpy.mockRestore()
 	})
 })
 

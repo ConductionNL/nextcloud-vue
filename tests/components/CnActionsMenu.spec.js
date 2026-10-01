@@ -10,7 +10,8 @@
  * Refresh handler (event-bus emit on the configured channel) with
  * preventDefault suppression, default Request-a-feature handler (forge
  * issue-form navigation / repo-missing warn), and the refresh spinner
- * (disabled + loading icon driven solely by `:refreshing`).
+ * (disabled + loading icon while `waitUntil` work or `:refreshing` is
+ * pending, closing the menu once it settles).
  */
 
 import { emit as emitOnBus } from '@nextcloud/event-bus'
@@ -32,7 +33,7 @@ const NcActionLinkStub = {
 	name: 'NcActionLink',
 	inheritAttrs: false,
 	props: ['href', 'target', 'rel'],
-	template: '<a :data-testid="$attrs[\'data-testid\']" :href="href" :target="target" :rel="rel"><slot /></a>',
+	template: '<a :data-testid="$attrs[\'data-testid\']" :href="href" :target="target" :rel="rel" @click="$emit(\'click\', $event)"><slot /></a>',
 }
 const NcActionsStub = {
 	name: 'NcActions',
@@ -240,7 +241,11 @@ describe('CnActionsMenu — default Refresh handler', () => {
 	it('emits on the configured refreshChannel when no host suppresses it', async () => {
 		const wrapper = mountMenu({ widgetId: 'w1', title: 'My widget', refreshChannel: 'cn:page:refresh' })
 		await wrapper.find('[data-testid="cn-actions-menu-action-refresh"]').trigger('click')
-		expect(emitOnBus).toHaveBeenCalledWith('cn:page:refresh', { widgetId: 'w1', title: 'My widget' })
+		expect(emitOnBus).toHaveBeenCalledWith('cn:page:refresh', {
+			widgetId: 'w1',
+			title: 'My widget',
+			waitUntil: expect.any(Function),
+		})
 	})
 
 	it('host listener can suppress the default via event.preventDefault()', async () => {
@@ -263,19 +268,22 @@ describe('CnActionsMenu — default Request-a-feature handler', () => {
 	// the default opens the forge's feature-request issue FORM in a new
 	// tab, exactly like Report a bug, so the whole conversation happens on
 	// the forge (in English).
-	it('opens the feature-request issue form on the forge, like Report a bug', async () => {
+	it('links to the feature-request issue form on the forge, like Report a bug', async () => {
 		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
 		const wrapper = mountMenu({ surface: 'detail:cases', specRef: 'cases' })
-		await wrapper.find('[data-testid="cn-actions-menu-action-request-feature"]').trigger('click')
+		const item = wrapper.find('[data-testid="cn-actions-menu-action-request-feature"]')
 
-		expect(openSpy).toHaveBeenCalledTimes(1)
-		const [url, target, features] = openSpy.mock.calls[0]
-		const u = new URL(url)
+		expect(item.element.tagName).toBe('A')
+		const u = new URL(item.attributes('href'))
 		expect(u.origin + u.pathname).toBe('https://github.com/ConductionNL/pipelinq/issues/new')
 		expect(u.searchParams.get('template')).toBe('feature-request.yml')
 		expect(u.searchParams.get('title')).toBe('[FEATURE] detail:cases')
-		expect(target).toBe('_blank')
-		expect(features).toBe('noopener,noreferrer')
+		expect(item.attributes('target')).toBe('_blank')
+		expect(item.attributes('rel')).toBe('noopener noreferrer')
+
+		// The browser follows the link; nothing opens a window by script.
+		await item.trigger('click')
+		expect(openSpy).not.toHaveBeenCalled()
 	})
 
 	it('warns and opens nothing when no repo inject', async () => {
@@ -287,22 +295,36 @@ describe('CnActionsMenu — default Request-a-feature handler', () => {
 		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Cannot open the feature-request form'))
 	})
 
-	it('host preventDefault suppresses the built-in navigation', async () => {
-		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+	it('host preventDefault cancels the link', async () => {
 		const onRequest = jest.fn((_p, ev) => ev.preventDefault())
-		const wrapper = mountMenu({}, { listeners: { 'request-feature': onRequest } })
-		await wrapper.find('[data-testid="cn-actions-menu-action-request-feature"]').trigger('click')
+		const wrapper = mountMenu({}, { attrs: { onRequestFeature: onRequest } })
+		const click = new MouseEvent('click', { bubbles: true, cancelable: true })
+		wrapper.find('[data-testid="cn-actions-menu-action-request-feature"]').element.dispatchEvent(click)
+		await wrapper.vm.$nextTick()
 		expect(onRequest).toHaveBeenCalled()
-		expect(openSpy).not.toHaveBeenCalled()
+		expect(click.defaultPrevented).toBe(true)
+	})
+
+	it('leaves the link alone when no host prevents it', async () => {
+		const wrapper = mountMenu()
+		const click = new MouseEvent('click', { bubbles: true, cancelable: true })
+		wrapper.find('[data-testid="cn-actions-menu-action-request-feature"]').element.dispatchEvent(click)
+		await wrapper.vm.$nextTick()
+		expect(click.defaultPrevented).toBe(false)
 	})
 })
 
 describe('CnActionsMenu — refresh spinner', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
+		emitOnBus.mockReset()
+		jest.useFakeTimers()
 		jest.spyOn(console, 'warn').mockImplementation(() => {})
 	})
-	afterEach(() => jest.restoreAllMocks())
+	afterEach(() => {
+		jest.useRealTimers()
+		jest.restoreAllMocks()
+	})
 
 	// Stubs that render the #icon slot and expose `disabled`, so we can
 	// assert the icon swap + disabled state the host can't see otherwise.
@@ -313,7 +335,13 @@ describe('CnActionsMenu — refresh spinner', () => {
 			props: ['disabled'],
 			template: '<button :data-testid="$attrs[\'data-testid\']" :disabled="disabled" @click="$emit(\'click\', $event)"><slot name="icon" /><slot /></button>',
 		}
-		return { ...baseStubs, NcActionButton: ActionButtonIconStub, Refresh: { name: 'Refresh', template: '<span class="refresh-icon-stub" />' }, NcLoadingIcon: { name: 'NcLoadingIcon', template: '<span class="loading-icon-stub" />' } }
+		const ActionsOpenStub = {
+			name: 'NcActions',
+			inheritAttrs: false,
+			props: ['open'],
+			template: '<div class="nc-actions-stub"><slot /></div>',
+		}
+		return { ...baseStubs, NcActions: ActionsOpenStub, NcActionButton: ActionButtonIconStub, Refresh: { name: 'Refresh', template: '<span class="refresh-icon-stub" />' }, NcLoadingIcon: { name: 'NcLoadingIcon', template: '<span class="loading-icon-stub" />' } }
 	}
 	const mountWithIcons = (propsData = {}) => mount(CnActionsMenu, {
 		propsData: { widgetId: 'w1', title: 'My widget', surface: 'widget:w1', ...propsData },
@@ -329,13 +357,106 @@ describe('CnActionsMenu — refresh spinner', () => {
 	// from "disabled" (truthy) to "" (falsy) with no behaviour change, silently
 	// inverting toBeTruthy/toBeFalsy. toBeDefined/toBeUndefined say what the
 	// spec means and are stricter: absent is `undefined`, present is `""`.
-	it('does NOT spin or disable on click alone — the spinner only follows :refreshing', async () => {
+	const openMenu = async (wrapper) => {
+		wrapper.findComponent({ name: 'NcActions' }).vm.$emit('update:open', true)
+		await wrapper.vm.$nextTick()
+	}
+
+	// Advance the fake clock, run the microtasks it unblocks, then re-render.
+	const settle = async (wrapper, ms = 0) => {
+		await jest.advanceTimersByTimeAsync(ms)
+		await wrapper.vm.$nextTick()
+	}
+	const isOpen = (wrapper) => wrapper.findComponent({ name: 'NcActions' }).props('open')
+	const isSpinning = (wrapper) => wrapper.findComponent({ name: 'NcLoadingIcon' }).exists()
+
+	it('spins with the menu open until the bus subscribers\' work settles, then closes', async () => {
+		let finish
+		emitOnBus.mockImplementation((_channel, payload) => {
+			payload.waitUntil(new Promise((resolve) => {
+				finish = resolve
+			}))
+		})
 		const wrapper = mountWithIcons()
+		await openMenu(wrapper)
 		const refreshBtn = wrapper.find('[data-testid="cn-actions-menu-action-refresh"]')
 		await refreshBtn.trigger('click')
+
+		await settle(wrapper, 1000)
+		expect(refreshBtn.attributes('disabled')).toBeDefined()
+		expect(isSpinning(wrapper)).toBe(true)
+		expect(isOpen(wrapper)).toBe(true)
+
+		finish()
+		await settle(wrapper)
 		expect(refreshBtn.attributes('disabled')).toBeUndefined()
-		expect(wrapper.findComponent({ name: 'NcLoadingIcon' }).exists()).toBe(false)
 		expect(wrapper.findComponent({ name: 'Refresh' }).exists()).toBe(true)
+		expect(isOpen(wrapper)).toBe(false)
+	})
+
+	it('stops waiting on work that never settles after 15 seconds', async () => {
+		emitOnBus.mockImplementation((_channel, payload) => {
+			payload.waitUntil(new Promise(() => {}))
+		})
+		const wrapper = mountWithIcons()
+		await openMenu(wrapper)
+		const refreshBtn = wrapper.find('[data-testid="cn-actions-menu-action-refresh"]')
+		await refreshBtn.trigger('click')
+
+		await settle(wrapper, 14000)
+		expect(isSpinning(wrapper)).toBe(true)
+
+		await settle(wrapper, 1000)
+		expect(isSpinning(wrapper)).toBe(false)
+		expect(refreshBtn.attributes('disabled')).toBeUndefined()
+		expect(isOpen(wrapper)).toBe(false)
+	})
+
+	it('spins for at least the minimum time when nothing reports work', async () => {
+		const wrapper = mountWithIcons()
+		await openMenu(wrapper)
+		await wrapper.find('[data-testid="cn-actions-menu-action-refresh"]').trigger('click')
+		await settle(wrapper, 300)
+		expect(isSpinning(wrapper)).toBe(true)
+
+		await settle(wrapper, 100)
+		expect(isSpinning(wrapper)).toBe(false)
+		expect(isOpen(wrapper)).toBe(false)
+	})
+
+	it('waits for work a host listener hands to event.waitUntil()', async () => {
+		let finish
+		const onRefresh = (_p, ev) => ev.waitUntil(new Promise((resolve) => {
+			finish = resolve
+		}))
+		const wrapper = mount(CnActionsMenu, {
+			propsData: { widgetId: 'w1', title: 'My widget', onRefresh },
+			stubs: iconStubs(),
+			mocks: { $route: { name: 'Dashboard' } },
+			provide: { cnAppId: 'pipelinq', cnFeatureRequestRepo: 'ConductionNL/pipelinq' },
+		})
+		await openMenu(wrapper)
+		await wrapper.find('[data-testid="cn-actions-menu-action-refresh"]').trigger('click')
+		await settle(wrapper, 1000)
+		expect(isSpinning(wrapper)).toBe(true)
+
+		finish()
+		await settle(wrapper)
+		expect(isSpinning(wrapper)).toBe(false)
+		expect(isOpen(wrapper)).toBe(false)
+	})
+
+	it('stays open until the host\'s :refreshing falls back to false', async () => {
+		const wrapper = mountWithIcons()
+		await openMenu(wrapper)
+		await wrapper.find('[data-testid="cn-actions-menu-action-refresh"]').trigger('click')
+		await wrapper.setProps({ refreshing: true })
+		await settle(wrapper, 400)
+		expect(isOpen(wrapper)).toBe(true)
+
+		await wrapper.setProps({ refreshing: false })
+		await settle(wrapper)
+		expect(isOpen(wrapper)).toBe(false)
 	})
 
 	it('while :refreshing the Refresh item is disabled and shows the loading spinner (not the static icon)', async () => {

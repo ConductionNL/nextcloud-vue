@@ -46,6 +46,10 @@ A field whose control the base has no type for — a resource picker, a date ran
 </template>
 ```
 
+## Extra buttons beside submit
+
+The `actions-start` slot adds buttons to the action row, left of the submit button, such as a link to open what was just saved. The `actions` slot replaces the submit button itself.
+
 ## Keeping an existing widget's class names
 
 `blockClass` mirrors a second BEM block onto every element (`cn-my-form-widget__field` alongside `cn-form-widget__field`). Pass it when moving an existing widget onto the base so app CSS written against the old names keeps matching.

@@ -34,7 +34,8 @@
 						:data-bar-id="barKey(bar)"
 						:style="barStyle(bar)"
 						:aria-label="barLabel(bar)"
-						@click="openRow(bar.row)">
+						@click="openRow(bar.row, $event)"
+						@auxclick="onAuxClick(bar.row, $event)">
 						{{ barText(bar) }}
 					</button>
 				</div>
@@ -59,7 +60,8 @@
 					data-testid="cn-date-axis-unplanned-row"
 					:data-row-id="rowKeyOf(row)"
 					:aria-label="unplannedLabelFor(row)"
-					@click="openRow(row)">
+					@click="openRow(row, $event)"
+					@auxclick="onAuxClick(row, $event)">
 					{{ nameOf(row) }}
 				</button>
 			</div>
@@ -70,6 +72,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { buildDateAxisLanes } from '../../utils/dateAxisLanes.js'
+import { isRowMiddleClick } from '../../utils/rowAuxClick.js'
 
 /**
  * CnDateAxisView — the index page's rows on a time scale.
@@ -178,13 +181,27 @@ export default {
 		 * undated row come through here, so the two paths cannot drift.
 		 *
 		 * @param {object} row The record the reader picked.
+		 * @param {MouseEvent} [event] The click or middle-click event.
 		 * @return {void} Nothing.
 		 */
-		openRow(row) {
+		openRow(row, event) {
 			/**
-			 * @event row-click Emitted when a reader opens a record, from its bar on the axis or from the label of an undated row. Payload: the row.
+			 * @event row-click Emitted when a reader opens a record, from its bar on the axis or from the label of an undated row, on a click or a middle click. Payload: `(row, event)` — the row and the native click/auxclick event, so the host can open it in a new tab on a ctrl/cmd/shift or middle click.
 			 */
-			this.$emit('row-click', row)
+			this.$emit('row-click', row, event)
+		},
+
+		/**
+		 * Middle click on a bar: open the record like a click would.
+		 *
+		 * @param {object} row The record the reader picked.
+		 * @param {MouseEvent} event The auxclick event.
+		 * @return {void} Nothing.
+		 */
+		onAuxClick(row, event) {
+			if (isRowMiddleClick(event)) {
+				this.openRow(row, event)
+			}
 		},
 
 		/**

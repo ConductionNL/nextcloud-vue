@@ -13,6 +13,6 @@
 
 ### Events
 
-| Name        | Payload | Description                                                                                                           |
-| ----------- | ------- | --------------------------------------------------------------------------------------------------------------------- |
-| `row-click` | —       | Emitted when a reader opens a record, from its bar on the axis or from the label of an undated row. Payload: the row. |
+| Name        | Payload     | Description                                                                                                                                                                                                                                                                        |
+| ----------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `row-click` | `undefined` | Emitted when a reader opens a record, from its bar on the axis or from the label of an undated row, on a click or a middle click. Payload: `(row, event)` — the row and the native click/auxclick event, so the host can open it in a new tab on a ctrl/cmd/shift or middle click. |

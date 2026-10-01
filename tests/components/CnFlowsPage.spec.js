@@ -94,10 +94,32 @@ describe('CnFlowsPage', () => {
 		expect(wrapper.vm.$router.push).not.toHaveBeenCalled()
 	})
 
-	it('honours a non-default detailRoute', () => {
+	it('makes "New flow" a router link, so it can open in a new tab', () => {
 		const wrapper = mountList({ detailRoute: '/automations' })
-		wrapper.vm.createFlow()
-		expect(wrapper.vm.$router.push).toHaveBeenCalledWith('/automations/new')
+		expect(wrapper.find('button').attributes('to')).toBe('/automations/new')
+	})
+
+	it.each([
+		['ctrl-click', { ctrlKey: true }],
+		['middle click', { button: 1 }],
+	])('opens a flow in a new tab on a %s', (_label, init) => {
+		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+		const wrapper = mount(CnFlowsPage, {
+			stubs: { CnIndexPage: IndexStub, NcButton: { template: '<button><slot /></button>' } },
+			mocks: {
+				$router: {
+					push: jest.fn(),
+					resolve: (loc) => ({ href: `/apps/dossiq${loc.path}` }),
+				},
+			},
+		})
+		try {
+			wrapper.vm.openFlow({ id: 'abc' }, new MouseEvent(init.button ? 'auxclick' : 'click', init))
+			expect(openSpy).toHaveBeenCalledWith('/apps/dossiq/flows/abc', '_blank', 'noopener,noreferrer')
+			expect(wrapper.vm.$router.push).not.toHaveBeenCalled()
+		} finally {
+			openSpy.mockRestore()
+		}
 	})
 
 	it('says an ownerless flow will not start', () => {

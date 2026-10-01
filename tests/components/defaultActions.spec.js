@@ -68,6 +68,16 @@ describe('buildDefaultActions', () => {
 		expect(actions.map((a) => a.label)).toEqual(['[nextcloud-vue] Edit'])
 	})
 
+	it('gives View a link target only when viewTo is given', () => {
+		const viewTo = (row) => ({ name: 'Detail', params: { id: row.id } })
+		const [linked] = buildDefaultActions({ flags: { view: true }, viewIcon: {}, viewTo, handlers: HANDLERS })
+		const [plain] = buildDefaultActions({ flags: { view: true }, viewIcon: {}, handlers: HANDLERS })
+
+		expect(linked.to).toBe(viewTo)
+		expect(linked.handler).toBe(HANDLERS.onView)
+		expect(plain.to).toBeUndefined()
+	})
+
 	// t() falls back to the SOURCE string on a missing key, which renders as
 	// English and looks exactly like this bug — so the catalog entries are
 	// asserted here. "View" had no entry at all, which is how it shipped.

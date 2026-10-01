@@ -300,6 +300,85 @@ describe('a named source supplies its create and navigation actions', () => {
 		expect(pushed).toEqual(['/flows/abc'])
 	})
 
+	describe('a modified or middle click opens the row in a new tab', () => {
+		let openSpy
+
+		beforeEach(() => {
+			openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+		})
+
+		afterEach(() => openSpy.mockRestore())
+
+		/**
+		 * Call onRowClick against a minimal named-source page.
+		 *
+		 * @param {object} source The named source.
+		 * @param {Event} event The click event.
+		 * @param {object} [extra] Extra instance fields.
+		 * @return {{ pushed: Array, emitted: Array }} Router pushes and emits.
+		 */
+		function clickRow(source, event, extra = {}) {
+			const pushed = []
+			const emitted = []
+			CnIndexPage().methods.onRowClick.call({
+				selectable: false,
+				isNamedSource: true,
+				namedSource: source,
+				rowRoute: '',
+				$router: {
+					push: (r) => pushed.push(r),
+					resolve: (loc) => ({ href: `/apps/x${loc.path || `/${loc.name}/${loc.params.id}`}` }),
+				},
+				$emit: (...args) => emitted.push(args),
+				...extra,
+			}, { id: 'abc' }, event)
+			return { pushed, emitted }
+		}
+
+		it('opens the source detailRoute in a new tab on a ctrl-click', () => {
+			const event = new MouseEvent('click', { ctrlKey: true, cancelable: true })
+			const { pushed, emitted } = clickRow(flows(), event)
+			expect(openSpy).toHaveBeenCalledWith('/apps/x/flows/abc', '_blank', 'noopener,noreferrer')
+			expect(pushed).toEqual([])
+			// Marked, so the host hearing row-click does not open a second tab.
+			expect(event.defaultPrevented).toBe(true)
+			expect(emitted).toEqual([['row-click', { id: 'abc' }, event]])
+		})
+
+		it('opens rowRoute in a new tab on a middle click', () => {
+			const event = new MouseEvent('auxclick', { button: 1, cancelable: true })
+			const { pushed } = clickRow(flows(), event, { rowRoute: 'FlowDetail' })
+			expect(openSpy).toHaveBeenCalledWith('/apps/x/FlowDetail/abc', '_blank', 'noopener,noreferrer')
+			expect(pushed).toEqual([])
+		})
+
+		it('uses the source rowTarget for a new tab, and openRow for a plain click', () => {
+			const openRow = jest.fn()
+			const source = { openRow, rowTarget: (row) => `https://example.test/tasks/${row.id}` }
+			clickRow(source, new MouseEvent('click', { metaKey: true }))
+			expect(openSpy).toHaveBeenCalledWith('https://example.test/tasks/abc', '_blank', 'noopener,noreferrer')
+			expect(openRow).not.toHaveBeenCalled()
+
+			clickRow(source, new MouseEvent('click'))
+			expect(openRow).toHaveBeenCalledWith({ id: 'abc' })
+			expect(openSpy).toHaveBeenCalledTimes(1)
+		})
+
+		it('opens the row in place on a modified click when the source can only openRow', () => {
+			const openRow = jest.fn()
+			clickRow({ openRow, detailRoute: '/flows' }, new MouseEvent('click', { ctrlKey: true }))
+			expect(openRow).toHaveBeenCalledWith({ id: 'abc' })
+			expect(openSpy).not.toHaveBeenCalled()
+		})
+
+		it('ignores a middle click when the source can only openRow', () => {
+			const openRow = jest.fn()
+			clickRow({ openRow }, new MouseEvent('auxclick', { button: 1 }))
+			expect(openRow).not.toHaveBeenCalled()
+			expect(openSpy).not.toHaveBeenCalled()
+		})
+	})
+
 	it('leaves an explicit @add listener in charge', () => {
 		const pushed = []
 		let emitted = null

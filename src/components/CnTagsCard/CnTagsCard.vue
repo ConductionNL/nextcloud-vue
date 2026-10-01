@@ -35,6 +35,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
+import { markRaw } from 'vue'
 import Tag from 'vue-material-design-icons/Tag.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
@@ -83,7 +84,7 @@ export default {
 
 	data() {
 		return {
-			Tag,
+			Tag: markRaw(Tag),
 			tags: [],
 			loading: false,
 		}

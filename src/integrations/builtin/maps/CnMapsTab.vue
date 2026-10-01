@@ -83,7 +83,11 @@
 			class="cn-sidebar-tab__empty cn-maps-tab__empty">
 			<MapMarker :size="32" class="cn-maps-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openMapsApp">
+			<NcButton
+				variant="primary"
+				:href="mapsAppUrl"
+				target="_blank"
+				rel="noopener noreferrer">
 				<template #icon>
 					<MapMarker :size="20" />
 				</template>
@@ -139,12 +143,16 @@
 					</span>
 				</template>
 				<template #actions>
-					<NcActionButton :closeAfterClick="true" @click="openPoint(point)">
+					<NcActionLink
+						:closeAfterClick="true"
+						:href="pointUrl(point)"
+						target="_blank"
+						rel="noopener noreferrer">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
 						{{ openOnMapLabel }}
-					</NcActionButton>
+					</NcActionLink>
 					<NcActionButton :closeAfterClick="true" @click="unlinkPoint(point)">
 						<template #icon>
 							<LinkOff :size="20" />
@@ -170,7 +178,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import LinkOff from 'vue-material-design-icons/LinkOff.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
@@ -197,6 +205,7 @@ export default {
 
 	components: {
 		NcActionButton,
+		NcActionLink,
 		NcButton,
 		NcListItem,
 		NcLoadingIcon,
@@ -349,19 +358,6 @@ export default {
 			return this.pointCategory(point)
 		},
 
-		/**
-		 * Open a single POI in NC Maps (row action).
-		 *
-		 * @param {object} point Provider row.
-		 *
-		 * @return {void}
-		 */
-		openPoint(point) {
-			if (typeof window !== 'undefined') {
-				window.open(this.pointUrl(point), '_blank', 'noopener')
-			}
-		},
-
 		coordOf(point, key) {
 			const d = this.dataOf(point)
 			const v = point[key] ?? d[key] ?? null
@@ -410,12 +406,6 @@ export default {
 				return this.mapsAppUrl
 			}
 			return `${this.mapsAppUrl}/?point=${lat},${lng}`
-		},
-
-		openMapsApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.mapsAppUrl, '_blank', 'noopener')
-			}
 		},
 
 		openPicker() {

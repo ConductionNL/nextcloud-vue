@@ -1,24 +1,26 @@
+import { generateUrl } from '@nextcloud/router'
+
 /**
- * Prepend `/index.php` to a URL path when the current page is served via index.php.
- * Unless the given path already contains `/index.php`.
+ * Prefix an app-absolute URL path the way `generateUrl()` would: the instance
+ * webroot, plus `/index.php` unless Nextcloud reports working URL rewriting.
  *
- * Nextcloud can be hosted with or without index.php in the URL. API calls must
- * use the same prefix as the page, otherwise the request is rejected. On an
- * instance WITHOUT pretty URLs (no `htaccess.RewriteBase`, no mod_rewrite) the
- * bare `/apps/<app>/api/...` form is not routed at all and answers 404 — which
- * is why every app-relative API path has to pass through here.
+ * On an instance without pretty URLs the bare `/apps/<app>/api/...` form is
+ * not routed at all and answers the web server's own 404, which is why every
+ * internal API path has to pass through here or through `generateUrl()`.
  *
- * The function is **idempotent** and **inert on anything that is not an
- * app-relative path**. That matters because this is a wrapper applied at
- * hundreds of call sites: a value that turns out to be an absolute URL
- * (`https://…`, `//host/…`), a protocol-ish string, or an already-prefixed
- * path must come back untouched rather than being mangled into
- * `/index.phphttps://…`. A path that does not start with `/` is likewise left
- * alone — it is relative to the current document, and prefixing it would
- * change what it resolves against.
+ * Only the PREFIX comes from `generateUrl()`: the path itself is appended
+ * untouched, because `generateUrl()` URL-encodes any `{placeholder}` it cannot
+ * fill, and callers pass templates filled later and JSON query values.
+ *
+ * Idempotent, and inert on anything that is not an app-absolute path, since it
+ * is wrapped around hundreds of call sites: an absolute or protocol-relative
+ * URL, a scheme (`data:`, `blob:`, `mailto:`), a document-relative path, or a
+ * path already carrying the webroot or `/index.php` comes back unchanged.
+ * `/ocs/`, `/remote.php` and `/public.php` get the webroot only, as they are
+ * never served behind `/index.php`.
  *
  * @param {string} path URL path (e.g. '/apps/openregister/api/objects')
- * @return {string} Path with optional /index.php prefix
+ * @return {string} The path as the instance routes it
  */
 export function prefixUrl(path) {
 	if (typeof path !== 'string' || path === '') {
@@ -32,13 +34,16 @@ export function prefixUrl(path) {
 	if (!path.startsWith('/')) {
 		return path
 	}
-	if (path.startsWith('/index.php')) {
+	// `generateUrl('/')` is `<webroot>[/index.php]/`; the webroot is that minus `/index.php`.
+	const prefix = generateUrl('/', {}).replace(/\/$/, '')
+	const root = prefix.replace(/\/index\.php$/, '')
+	if (path.startsWith('/index.php') || (root && (path === root || path.startsWith(root + '/')))) {
 		return path
 	}
-	if (typeof window !== 'undefined' && window.location.pathname.includes('/index.php')) {
-		return `/index.php${path}`
+	if (/^\/(ocs|remote\.php|public\.php)(\/|$)/.test(path)) {
+		return root + path
 	}
-	return path
+	return prefix + path
 }
 
 /**

@@ -69,7 +69,11 @@
 			class="cn-sidebar-tab__empty cn-collectives-tab__empty">
 			<BookOpenPageVariant :size="32" class="cn-collectives-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openCollectivesApp">
+			<NcButton
+				variant="primary"
+				:href="collectivesAppUrl"
+				target="_blank"
+				rel="noopener noreferrer">
 				<template #icon>
 					<BookOpenPageVariant :size="20" />
 				</template>
@@ -115,12 +119,16 @@
 								relativeTime="short" />
 						</template>
 						<template #actions>
-							<NcActionButton :closeAfterClick="true" @click="openPage(page)">
+							<NcActionLink
+								:closeAfterClick="true"
+								:href="pageUrl(page)"
+								target="_blank"
+								rel="noopener noreferrer">
 								<template #icon>
 									<OpenInNew :size="20" />
 								</template>
 								{{ t('nextcloud-vue', 'Open in Knowledge') }}
-							</NcActionButton>
+							</NcActionLink>
 							<NcActionButton :closeAfterClick="true" @click="unlinkPage(page)">
 								<template #icon>
 									<LinkOff :size="20" />
@@ -149,7 +157,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import BookOpenPageVariant from 'vue-material-design-icons/BookOpenPageVariant.vue'
 import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.vue'
@@ -180,6 +188,7 @@ export default {
 
 	components: {
 		NcActionButton,
+		NcActionLink,
 		NcButton,
 		NcDateTime,
 		NcListItem,
@@ -392,18 +401,6 @@ export default {
 		 */
 		sublineLabel(page) {
 			return this.collectiveLabel(page)
-		},
-
-		openPage(page) {
-			if (typeof window !== 'undefined') {
-				window.open(this.pageUrl(page), '_blank', 'noopener')
-			}
-		},
-
-		openCollectivesApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.collectivesAppUrl, '_blank', 'noopener')
-			}
 		},
 
 		openPicker() {

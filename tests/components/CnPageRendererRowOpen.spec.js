@@ -71,10 +71,44 @@ describe('CnPageRenderer.onRowOpen', () => {
 		expect(wrapper.vm.resolvedProps.rowClickToView).toBe(true)
 	})
 
+	it('resolvedProps gives the View action a link to where a row click opens', () => {
+		const { wrapper } = mountAt('Meetings')
+		const viewTo = wrapper.vm.resolvedProps.viewTo
+		expect(typeof viewTo).toBe('function')
+		expect(viewTo({ id: 'abc-123' })).toEqual(expect.objectContaining({ name: 'MeetingDetail', params: { id: 'abc-123' } }))
+		expect(viewTo({ title: 'no id here' })).toBeNull()
+	})
+
+	it('resolvedProps gives no View link when no matching detail page exists', () => {
+		const noDetail = { ...manifest, pages: manifest.pages.filter((p) => p.type !== 'detail') }
+		const { wrapper } = mountAt('Meetings', noDetail)
+		expect(wrapper.vm.resolvedProps.viewTo).toBeUndefined()
+	})
+
 	it('resolvedProps omits rowClickToView when no matching detail page exists', () => {
 		const noDetail = { ...manifest, pages: manifest.pages.filter((p) => p.type !== 'detail') }
 		const { wrapper } = mountAt('Meetings', noDetail)
 		expect(wrapper.vm.resolvedProps.rowClickToView).toBeUndefined()
+	})
+
+	it('drops an explicit rowClickToView when there is nowhere to open a row, so the click selects', () => {
+		const noDetail = {
+			...manifest,
+			pages: manifest.pages
+				.filter((p) => p.type !== 'detail')
+				.map((p) => (p.id === 'Meetings' ? { ...p, config: { ...p.config, rowClickToView: true } } : p)),
+		}
+		const { wrapper } = mountAt('Meetings', noDetail)
+		expect(wrapper.vm.resolvedProps.rowClickToView).toBe(false)
+	})
+
+	it('keeps an explicit rowClickToView: false, so a page can still choose select over open', () => {
+		const pinned = {
+			...manifest,
+			pages: manifest.pages.map((p) => (p.id === 'Meetings' ? { ...p, config: { ...p.config, rowClickToView: false } } : p)),
+		}
+		const { wrapper } = mountAt('Meetings', pinned)
+		expect(wrapper.vm.resolvedProps.rowClickToView).toBe(false)
 	})
 
 	describe('the target route names its own id param', () => {
@@ -271,5 +305,60 @@ describe('the record carries the list it was opened from', () => {
 		wrapper.vm.onRowOpen({ id: 'abc-123' })
 
 		expect(push.mock.calls[0][0].query).toEqual({ _from: 'Meetings' })
+	})
+})
+
+describe('CnPageRenderer.onRowOpen opens a new tab like a link', () => {
+	let openSpy
+
+	beforeEach(() => {
+		openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+	})
+
+	afterEach(() => openSpy.mockRestore())
+
+	/**
+	 * Mount on the Meetings index with a router that can resolve hrefs.
+	 *
+	 * @return {{ wrapper: object, push: Function }} The wrapper and push spy.
+	 */
+	function mountResolving() {
+		const push = jest.fn(() => Promise.resolve())
+		const resolve = jest.fn((loc) => ({ href: `/apps/decidesk/meetings/${loc.params.id}` }))
+		const wrapper = shallowMount(CnPageRenderer, {
+			propsData: { manifest, pageTypes },
+			mocks: { $route: { name: 'Meetings', params: {} }, $router: { push, resolve } },
+		})
+		return { wrapper, push }
+	}
+
+	it('opens the detail page in a new tab on a ctrl-click', () => {
+		const { wrapper, push } = mountResolving()
+		wrapper.vm.onRowOpen({ id: 'abc-123' }, new MouseEvent('click', { ctrlKey: true }))
+		expect(openSpy).toHaveBeenCalledWith('/apps/decidesk/meetings/abc-123', '_blank', 'noopener,noreferrer')
+		expect(push).not.toHaveBeenCalled()
+	})
+
+	it('opens the detail page in a new tab on a middle click', () => {
+		const { wrapper, push } = mountResolving()
+		wrapper.vm.onRowOpen({ id: 'abc-123' }, new MouseEvent('auxclick', { button: 1 }))
+		expect(openSpy).toHaveBeenCalledTimes(1)
+		expect(push).not.toHaveBeenCalled()
+	})
+
+	it('navigates in place on a plain click', () => {
+		const { wrapper, push } = mountResolving()
+		wrapper.vm.onRowOpen({ id: 'abc-123' }, new MouseEvent('click'))
+		expect(push).toHaveBeenCalledWith(expect.objectContaining({ name: 'MeetingDetail' }))
+		expect(openSpy).not.toHaveBeenCalled()
+	})
+
+	it('does not open a second tab when the index page already opened one', () => {
+		const { wrapper, push } = mountResolving()
+		const event = new MouseEvent('click', { ctrlKey: true, cancelable: true })
+		event.preventDefault()
+		wrapper.vm.onRowOpen({ id: 'abc-123' }, event)
+		expect(openSpy).not.toHaveBeenCalled()
+		expect(push).not.toHaveBeenCalled()
 	})
 })

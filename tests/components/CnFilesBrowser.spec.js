@@ -269,4 +269,71 @@ describe('CnFilesBrowser', () => {
 		expect(wrapper.text()).not.toContain('This folder is empty')
 		wrapper.unmount()
 	})
+
+	describe('a row behaves like a link', () => {
+		let openSpy
+
+		beforeEach(() => {
+			openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+		})
+
+		afterEach(() => openSpy.mockRestore())
+
+		const rowNamed = (wrapper, name) => wrapper.findAll('[data-testid="cn-files-browser-row"]').find((row) => row.attributes('data-name') === name)
+
+		it('opens a file in a new tab on a ctrl-click, without running its view action', async () => {
+			const exec = jest.fn(async () => true)
+			global.__cnFileActions = [{ id: 'view', order: 0, displayName: () => 'View', iconSvgInline: () => '<svg/>', exec }]
+			const wrapper = mountBrowser()
+			await flushPromises()
+			await rowNamed(wrapper, 'report.pdf').trigger('click', { ctrlKey: true })
+			expect(openSpy).toHaveBeenCalledWith(expect.stringContaining('/f/12'), '_blank', 'noopener,noreferrer')
+			expect(exec).not.toHaveBeenCalled()
+			wrapper.unmount()
+		})
+
+		it('opens a plain-clicked file in place through its view action', async () => {
+			const exec = jest.fn(async () => true)
+			global.__cnFileActions = [{ id: 'view', order: 0, displayName: () => 'View', iconSvgInline: () => '<svg/>', exec }]
+			const wrapper = mountBrowser()
+			await flushPromises()
+			await rowNamed(wrapper, 'report.pdf').trigger('click')
+			await flushPromises()
+			expect(exec).toHaveBeenCalled()
+			expect(openSpy).not.toHaveBeenCalled()
+			wrapper.unmount()
+		})
+
+		it('opens a folder in a new tab on a middle click instead of entering it', async () => {
+			const wrapper = mountBrowser()
+			await flushPromises()
+			const before = wrapper.vm.currentPath
+			await rowNamed(wrapper, 'Scans').trigger('auxclick', { button: 1 })
+			expect(openSpy).toHaveBeenCalledWith(expect.stringContaining('/f/11'), '_blank', 'noopener,noreferrer')
+			expect(wrapper.vm.currentPath).toBe(before)
+			wrapper.unmount()
+		})
+
+		it('ignores a right-button auxclick', async () => {
+			const wrapper = mountBrowser()
+			await flushPromises()
+			await rowNamed(wrapper, 'report.pdf').trigger('auxclick', { button: 2 })
+			expect(openSpy).not.toHaveBeenCalled()
+			wrapper.unmount()
+		})
+
+		it('opens a linked item on a middle click', async () => {
+			const wrapper = mount(CnFilesBrowser, {
+				propsData: { rootPath: '/Open Registers/Cases/abc', linkedItems: [{ id: 'io-1', name: 'besluit.pdf', href: '/f/900' }] },
+				global: { stubs: { NcDateTime: { template: '<time />' }, NcIconSvgWrapper: { template: '<i />' } } },
+			})
+			await flushPromises()
+			const linked = wrapper.find('[data-testid="cn-files-browser-linked-row"]')
+			await linked.trigger('auxclick', { button: 2 })
+			expect(openSpy).not.toHaveBeenCalled()
+			await linked.trigger('auxclick', { button: 1 })
+			expect(openSpy).toHaveBeenCalledWith('/f/900', '_blank', 'noopener')
+			wrapper.unmount()
+		})
+	})
 })

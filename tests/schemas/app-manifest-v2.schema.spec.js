@@ -1254,7 +1254,27 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.41.0', () => {
+	it('accepts `onDemand: true` on a run-action setup step', () => {
+		// A destructive step the user runs only when they ask (learniq's
+		// "Remove the example data"): never auto-run, ticked in the summary
+		// only when it ran in this session.
+		const result = validateManifestV2({
+			...MINIMAL_V2,
+			setup: { steps: [{ id: 'remove-example-set', type: 'run-action', action: 'remove-example-set', onDemand: true }] },
+		})
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('rejects a non-boolean `onDemand`', () => {
+		const result = validateManifestV2({
+			...MINIMAL_V2,
+			setup: { steps: [{ id: 'remove-example-set', type: 'run-action', action: 'remove-example-set', onDemand: 'yes' }] },
+		})
+		expect(result.valid).toBe(false)
+	})
+
+	it('the manifest schema version reads 2.42.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1262,9 +1282,10 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// is the only machine-readable signal a fleet app gets — the package
 		// version is not one, it reads 2.0.5 at every release tag — so a
 		// property that lands without one is invisible to the vendored-copy
-		// ratchet every consumer runs against it.
+		// ratchet every consumer runs against it. 2.42.0 adds the setup
+		// step's `onDemand` flag.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.41.0')
+		expect(schema.version).toBe('2.42.0')
 	})
 
 	it('accepts a declarative `store` block, and requires the remote schema', () => {

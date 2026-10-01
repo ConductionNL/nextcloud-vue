@@ -9,20 +9,24 @@ A handler working a queue of forty opens the fourth case, reads it, and wants th
 ```js
 import { useListNavigation } from '@conduction/nextcloud-vue'
 
-const nav = useListNavigation({
+const nav = reactive(useListNavigation({
   route: useRoute(),
   router: useRouter(),
   currentId: toRef(props, 'objectId'),
   objectType: 'case',
-})
+}))
 ```
 
 ```vue
 <CnDetailPage
   :listNavigation="nav"
+  :previousTo="nav.previousRoute"
+  :nextTo="nav.nextRoute"
   @next-record="nav.goNext"
   @previous-record="nav.goPrevious" />
 ```
+
+`previousRoute` and `nextRoute` make the two controls real links. The link navigates by itself and the page then emits its step event with `{ event, to }`; `goNext` and `goPrevious` recognise that payload and do not push again.
 
 `CnPageRenderer` puts the list context into the record's address for you when the row was opened from a manifest index page. Nothing to wire.
 
@@ -47,7 +51,8 @@ const nav = useListNavigation({
 | `position`, `total` | `ComputedRef<number>` | Where this record sits, and how long the list is. |
 | `isFirst`, `isLast` | `ComputedRef<boolean>` | Whether this is either end of the list. |
 | `hasNext`, `hasPrevious` | `ComputedRef<boolean>` | Whether there is a record to step to. |
-| `goNext`, `goPrevious` | `Function` | Open that record. Returns its id, or `null` at either end. |
+| `nextRoute`, `previousRoute` | `ComputedRef<object \| null>` | Router location of that record, keeping the list context; `null` at either end. For CnDetailPage's `nextTo` / `previousTo`. |
+| `goNext`, `goPrevious` | `Function` | Open that record. Returns its id, or `null` at either end. Given a payload with a `to` (a link already navigated), returns the id without pushing. |
 | `neighbours` | `ComputedRef<object>` | The full shape: `{ position, total, previousId, nextId, isFirst, isLast, known }`. |
 | `context` | `ComputedRef<object \| null>` | The list the address names, or `null`. |
 | `loading`, `failed` | `Ref<boolean>` | The load's state. |

@@ -125,6 +125,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { markRaw } from 'vue'
 import Compare from 'vue-material-design-icons/Compare.vue'
 import FileCompare from 'vue-material-design-icons/FileCompare.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
@@ -249,7 +250,7 @@ export default {
 
 	data() {
 		return {
-			FileCompare,
+			FileCompare: markRaw(FileCompare),
 			entries: [],
 			loading: false,
 			loadingMore: false,

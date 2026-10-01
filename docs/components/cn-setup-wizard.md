@@ -28,6 +28,28 @@ shell while a `required` step is unmet.
 | `summary` | a recap of step completion | — |
 | `component` | the parent's `#step-<id>` slot (escape hatch) | up to the slot |
 
+## On-demand steps
+
+Mark a `run-action` step `onDemand: true` when the user should run it only when
+they ask, typically a destructive one such as removing example data:
+
+```json
+{ "id": "remove-example-set", "type": "run-action", "action": "remove-example-set", "onDemand": true }
+```
+
+An on-demand step:
+
+- **never auto-runs**, whatever the server reports. It waits for the Run button.
+- **is never outstanding work.** It does not open the non-gating wizard in
+  `CnAppRoot`, and a resumed wizard never opens on it.
+- **is ticked in the summary only when its action succeeded in this session.**
+  Otherwise the summary shows it as "Not run". Apps often report such a step as
+  `done` on purpose so it never auto-runs; without the flag the summary reads
+  that flag as "this happened" and ticks a removal nobody ran.
+
+Steps without the flag behave as before: a server-done `run-action` step is
+ticked and never auto-runs.
+
 ## Try it
 
 ```vue
@@ -65,7 +87,7 @@ shell while a `required` step is unmet.
 `completedStepIds` only affects **resuming**:
 
 - **Fresh setup** (`completedStepIds` empty) — always opens at step one, so a leading `info` / welcome step is actually seen.
-- **Returning session** — opens at the first unmet **actionable** step, skipping `info` and `summary` steps (they have nothing to resume past).
+- **Returning session** — opens at the first unmet **actionable** step, skipping `info` and `summary` steps (they have nothing to resume past) and on-demand steps (they are never outstanding).
 - **Everything done** — opens at step one.
 
 A server-done `choice` step also stops blocking `Next` when the user back-navigates onto it. `choiceModel` is session-local, so a resumed-past step renders blank even though its value is already persisted; the wizard treats a server-done step as satisfied instead of demanding a re-pick, and skips the redundant POST.

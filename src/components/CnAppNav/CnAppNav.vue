@@ -91,8 +91,26 @@
 		     OR nav root). Omitted entirely when neither the slot nor any
 		     resolvable primaryAction is present. -->
 		<slot name="primary-action">
+			<!-- A primary action with an href or route is a real link.
+			     NcAppNavigationNew cannot render one, so this mirrors its
+			     wrapper and button. -->
+			<div
+				v-if="activePrimaryAction && primaryActionLink"
+				class="app-navigation-new cn-app-nav__primary-action"
+				data-testid="cn-nav-primary-action">
+				<NcButton
+					variant="primary"
+					wide
+					v-bind="primaryActionLink"
+					@click="onPrimaryActionClick">
+					<template #icon>
+						<component :is="primaryActionIconComponent" :size="20" />
+					</template>
+					{{ resolveLabel(activePrimaryAction) }}
+				</NcButton>
+			</div>
 			<NcAppNavigationNew
-				v-if="activePrimaryAction"
+				v-else-if="activePrimaryAction"
 				:text="resolveLabel(activePrimaryAction)"
 				data-testid="cn-nav-primary-action"
 				@click="onPrimaryActionClick">
@@ -300,7 +318,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcCounterBubble } from '@nextcloud/vue'
+import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcButton, NcCounterBubble } from '@nextcloud/vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 // ADR-077 rule 4: visible fallback for an unresolvable icon name.
@@ -358,6 +376,7 @@ export default {
 		NcAppNavigationList,
 		NcAppNavigationNew,
 		NcAppNavigationSettings,
+		NcButton,
 		NcCounterBubble,
 		CnMenuItemIcon,
 		Cog,
@@ -584,6 +603,27 @@ export default {
 		 */
 		primaryActionIconComponent() {
 			return this.mdiIconComponent(this.activePrimaryAction) ?? Plus
+		},
+
+		/**
+		 * Link props for the primary action's button: an `href` opens in a
+		 * new tab, a `route` is a router link. Null when the action is
+		 * neither (or there is no router), so it stays a plain button.
+		 *
+		 * @return {object|null}
+		 */
+		primaryActionLink() {
+			const action = this.activePrimaryAction
+			if (!action) {
+				return null
+			}
+			if (action.href) {
+				return { href: action.href, target: '_blank' }
+			}
+			if (action.route && this.$router) {
+				return { to: { name: action.route } }
+			}
+			return null
 		},
 
 		/**
@@ -1230,14 +1270,18 @@ export default {
 		 * cursor. `NcAppNavigationItem` adds `target="_blank"` itself for
 		 * external (`scheme://`) URLs, so those open in a new tab while
 		 * internal app paths (e.g. `/index.php/apps/foo/`) navigate in the
-		 * same tab — no `window.open` interception. Action items never
-		 * carry an href. Returns `null` for non-href items so the entry
-		 * stays a router-link / button.
+		 * same tab — no `window.open` interception. The `admin-settings`
+		 * action links to `adminSettingsHref` (absolute, so it opens in a
+		 * new tab); other action items carry no href. Returns `null` for
+		 * non-href items so the entry stays a router-link / button.
 		 *
 		 * @param {object} item Menu item being rendered.
 		 * @return {string|null} The destination URL, or null.
 		 */
 		itemHref(item) {
+			if (item.action === 'admin-settings') {
+				return this.adminSettingsHref || null
+			}
 			if (item.action) {
 				return null
 			}
@@ -1318,8 +1362,9 @@ export default {
 		 * Click handler. Dispatch order: action keyword → group
 		 * open/toggle. For `action: "user-settings"` invokes the injected
 		 * `cnOpenUserSettings` (provided by CnAppRoot) and prevents
-		 * default; for `action: "admin-settings"` opens
-		 * `/settings/admin/<appId>` in a new tab and prevents default; for `action:
+		 * default; `action: "admin-settings"` is a real link to
+		 * `/settings/admin/<appId>` (see `itemHref`) and is left to the
+		 * browser; for `action:
 		 * "replay-walkthrough"` invokes the injected
 		 * `cnReplayWalkthrough(item.tourId)` and prevents default. `href`
 		 * items with no children are NOT handled here — they render a real
@@ -1352,16 +1397,11 @@ export default {
 				return
 			}
 			if (item.action === 'admin-settings') {
-				if (event && typeof event.preventDefault === 'function') {
+				// ADR-079: a real link to Nextcloud's own settings (see
+				// itemHref), followed natively in a new tab. Without an app
+				// id there is no href, and the click does nothing.
+				if (!this.adminSettingsHref && event && typeof event.preventDefault === 'function') {
 					event.preventDefault()
-				}
-				// ADR-079: admin config lives in Nextcloud's settings
-				// framework, not in an in-app modal. A NEW tab (same as the
-				// auto-prepended entry) so the app — and any unsaved state in
-				// it — stays open. No-op when the app id is unresolvable —
-				// better than sending the user to a broken URL.
-				if (this.adminSettingsHref) {
-					window.open(this.adminSettingsHref, '_blank', 'noopener')
 				}
 				return
 			}
@@ -1402,16 +1442,15 @@ export default {
 		/**
 		 * Click handler for the manifest-declared primary action. Emits
 		 * `@primary-action` AND the back-compat `@primary-action-click`
-		 * event for host-side handling, then performs default navigation:
-		 * external `href` opens in a new tab; a `route` pushes the named
-		 * vue-router route. No-op when neither is set. Not invoked when
-		 * the host overrides the `#primary-action` slot (it provides its
-		 * own handler).
+		 * event for host-side handling. Navigation is the link's own: an
+		 * `href` or `route` action renders as a real link (see
+		 * `primaryActionLink`), so the browser or router follows it after
+		 * these events. Not invoked when the host overrides the
+		 * `#primary-action` slot (it provides its own handler).
 		 *
-		 * @param {Event} [event] Native click event.
 		 * @return {void}
 		 */
-		onPrimaryActionClick(event) {
+		onPrimaryActionClick() {
 			const action = this.activePrimaryAction
 			if (!action) {
 				return
@@ -1434,16 +1473,6 @@ export default {
 			 * @event primary-action-click Back-compat alias for `@primary-action`. Payload is the resolved primary action object as declared in the manifest.
 			 */
 			this.$emit('primary-action-click', action)
-			if (action.href) {
-				if (event && typeof event.preventDefault === 'function') {
-					event.preventDefault()
-				}
-				window.open(action.href, '_blank', 'noopener,noreferrer')
-				return
-			}
-			if (action.route && this.$router) {
-				this.$router.push({ name: action.route })
-			}
 		},
 	},
 }
@@ -1461,6 +1490,12 @@ export default {
  */
 .app-navigation-entry.active .app-navigation-entry-icon[class*="icon-"] {
 	filter: brightness(0) invert(1);
+}
+
+/* The link form of the primary action, matching NcAppNavigationNew's scoped layout. */
+.cn-app-nav__primary-action {
+	display: block;
+	padding: calc(var(--default-grid-baseline, 4px) * 2);
 }
 
 /*

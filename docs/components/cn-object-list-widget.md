@@ -36,8 +36,8 @@ On detail pages the widget is **cell-budgeted** (ADR-062): it renders as many ro
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `row-click` | `object` | The clicked object row. |
-| `view-all` | `{ total: number }` | The "View all (N)" footer was clicked. |
+| `row-click` | `(object, event)` | The clicked (or middle-clicked) object row and the native click/auxclick event. With `rowRoute`, a ctrl/cmd/shift or middle click opens the row in a new tab. |
+| `view-all` | `{ total: number }` | The "View all (N)" footer was clicked. The footer is a real link to `viewAllRoute`, so it can be opened in a new tab. |
 | `files-dropped` | `File[]` | Files were dropped on a widget declaring `dropZone`. |
 
 ## Notes

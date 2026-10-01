@@ -134,6 +134,7 @@ export {
 	CnGaugeWidget,
 	CnGaugeWidgetForm,
 	CnGraphCanvas,
+	CnGuardianHome,
 	CnHeaderWidget,
 	CnHeaderWidgetForm,
 	CnIcon,
@@ -508,7 +509,9 @@ export {
 } from './utils/resolveManifestTokens.js'
 export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, resetVisibilityCache } from './utils/index.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
-export { dispatchAction } from './utils/actionsDispatcher.js'
+export { followLinkClick, isModifiedClick, isNewTabHandled, isRowMiddleClick, openRowTarget, resolveHref } from './utils/index.js'
+export { resolveImageUrl } from './utils/index.js'
+export { actionLink, dispatchAction } from './utils/actionsDispatcher.js'
 // Nested-modal stacking. `CnAppRoot` installs this itself; apps that do not
 // mount `CnAppRoot` should call `installModalStack()` once from `main.js`, or
 // two open dialogs tie on z-index and the lower one intercepts the clicks.

@@ -90,7 +90,31 @@ describe('CnObjectCard — body click', () => {
 		const wrapper = mountCard({ selectable: false })
 		await wrapper.find('.cn-object-card').trigger('click')
 		expect(wrapper.emitted('click')).toBeTruthy()
-		expect(wrapper.emitted('click')[0]).toEqual([object])
+		expect(wrapper.emitted('click')[0][0]).toEqual(object)
+		expect(wrapper.emitted('click')[0][1]).toBeInstanceOf(MouseEvent)
+		expect(wrapper.emitted('select')).toBeFalsy()
+	})
+})
+
+describe('CnObjectCard — middle click', () => {
+	it('emits click with the auxclick event on a middle click', async () => {
+		const wrapper = mountCard({ selectable: false })
+		await wrapper.find('.cn-object-card').trigger('auxclick', { button: 1 })
+		expect(wrapper.emitted('click')).toHaveLength(1)
+		expect(wrapper.emitted('click')[0][0]).toEqual(object)
+		expect(wrapper.emitted('click')[0][1].button).toBe(1)
+	})
+
+	it('ignores a right-button auxclick', async () => {
+		const wrapper = mountCard({ selectable: false })
+		await wrapper.find('.cn-object-card').trigger('auxclick', { button: 2 })
+		expect(wrapper.emitted('click')).toBeFalsy()
+	})
+
+	it('ignores a middle click on a select-on-click card', async () => {
+		const wrapper = mountCard({ selectable: true })
+		await wrapper.find('.cn-object-card').trigger('auxclick', { button: 1 })
+		expect(wrapper.emitted('click')).toBeFalsy()
 		expect(wrapper.emitted('select')).toBeFalsy()
 	})
 })

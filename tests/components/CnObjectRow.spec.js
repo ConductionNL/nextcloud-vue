@@ -57,8 +57,18 @@ describe('CnObjectRow — body click', () => {
 	it('emits click for navigation when not selectable', async () => {
 		const wrapper = mountRow({})
 		await wrapper.find('.cn-object-row').trigger('click')
-		expect(wrapper.emitted('click')[0]).toEqual([object])
+		expect(wrapper.emitted('click')[0][0]).toEqual(object)
+		expect(wrapper.emitted('click')[0][1]).toBeInstanceOf(MouseEvent)
 		expect(wrapper.emitted('select')).toBeFalsy()
+	})
+
+	it('emits click on a middle click, but not on a right-button auxclick', async () => {
+		const wrapper = mountRow({})
+		await wrapper.find('.cn-object-row').trigger('auxclick', { button: 2 })
+		expect(wrapper.emitted('click')).toBeFalsy()
+		await wrapper.find('.cn-object-row').trigger('auxclick', { button: 1 })
+		expect(wrapper.emitted('click')).toHaveLength(1)
+		expect(wrapper.emitted('click')[0][1].button).toBe(1)
 	})
 
 	it('emits select (not click) when selectable', async () => {
