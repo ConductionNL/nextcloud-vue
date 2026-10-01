@@ -487,9 +487,18 @@
 			  dismissed the walkthrough remounts and the first-visit tour
 			  starts (or resumes) then. `!== true` keeps apps that opted out
 			  of the support note (`cnSupportVisible` undefined) unaffected.
+
+			  Withheld the same way while the setup status is still loading
+			  and while the non-gating setup wizard is open
+			  (`walkthroughHeldForSetup`). On a first run the wizard and the
+			  first-visit tour both qualify; the tour used to open behind the
+			  wizard, and its window-level ESC listener meant closing the
+			  wizard with ESC also dismissed the tour and recorded it as seen.
+			  Held back, the tour is never mounted, so nothing is recorded; it
+			  starts when the wizard is dismissed or finished.
 			-->
 			<!-- @slot walkthrough Override the gating-free walkthrough overlay. Scope: { manifest, seenVersion }. -->
-			<slot v-if="walkthroughEnabled && walkthroughSeenResolved && cnSupportVisible !== true"
+			<slot v-if="walkthroughEnabled && walkthroughSeenResolved && cnSupportVisible !== true && !walkthroughHeldForSetup"
 				name="walkthrough"
 				:manifest="manifest"
 				:seenVersion="walkthroughSeenVersion">
@@ -2376,6 +2385,10 @@ export default {
 		 * Neither guard subsumes the other — (1) is about steps the server never
 		 * reports, (2) about steps it can never mark done — so both are needed.
 		 *
+		 * 3. On-demand steps (`onDemand: true`) are excluded too: they run only
+		 *    when the user asks (learniq's "Remove the example data"), so they
+		 *    are never outstanding work.
+		 *
 		 * @return {boolean} True when an actionable optional step is genuinely outstanding.
 		 */
 		optionalSetupPending() {
@@ -2395,7 +2408,9 @@ export default {
 			const outstanding = s.completed.value === true
 				? (s.optionalUnmetReported ? s.optionalUnmetReported.value : [])
 				: s.optionalUnmet.value
-			return outstanding.some((st) => st.type !== 'info' && st.type !== 'summary')
+			// On-demand steps (`onDemand: true`) run only when the user asks,
+			// so they are never outstanding and never reason to open the wizard.
+			return outstanding.some((st) => st.type !== 'info' && st.type !== 'summary' && st.onDemand !== true)
 		},
 
 		/**
@@ -2476,6 +2491,20 @@ export default {
 		walkthroughConfigKey() {
 			const w = this.manifest && this.manifest.walkthrough
 			return (w && typeof w.completionConfigKey === 'string' && w.completionConfigKey) || ''
+		},
+
+		/**
+		 * Whether the setup flow holds the walkthrough back: the setup status
+		 * has not settled yet (an outstanding optional step may still open the
+		 * wizard), or the non-gating setup wizard is open. The gating setup
+		 * phase needs no check here, it replaces the shell (and the tour with
+		 * it) outright. Apps without a `setup` block settle immediately, so
+		 * this is `false` for them from the first render.
+		 *
+		 * @return {boolean} True while the tour must wait for setup.
+		 */
+		walkthroughHeldForSetup() {
+			return !this.setupStatusSettled || this.setupWizardOpen
 		},
 
 		/**
