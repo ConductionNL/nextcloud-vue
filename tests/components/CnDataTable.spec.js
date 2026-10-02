@@ -332,6 +332,36 @@ describe('CnDataTable — a clickable row behaves like a link', () => {
 		expect(openSpy).not.toHaveBeenCalled()
 	})
 
+	it('routes in place on an alt-click on the link, instead of leaving it to the browser download', async () => {
+		const { wrapper, $router } = mountLinked()
+		const event = new MouseEvent('click', { button: 0, altKey: true, bubbles: true, cancelable: true })
+		wrapper.findAll('[data-testid="cn-row-link"]').at(0).element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(true)
+		expect($router.push).toHaveBeenCalledTimes(1)
+		expect(openSpy).not.toHaveBeenCalled()
+	})
+
+	it('names the link generically when the first cell is empty or not plain text', () => {
+		const { wrapper } = mountLinked({ rows: [{ id: 'a', name: '' }, { id: 'b', name: ['x'] }, { id: 'c', name: { id: 1 } }] })
+		const labels = wrapper.findAll('[data-testid="cn-row-link"]').map((link) => link.attributes('aria-label'))
+		expect(labels).toEqual(['Open row', 'Open row', 'Open row'])
+	})
+
+	it('keeps the browser menu on a right-click on the link when no host renders one', () => {
+		const { wrapper } = mountLinked()
+		const event = new MouseEvent('contextmenu', { button: 2, bubbles: true, cancelable: true })
+		wrapper.findAll('[data-testid="cn-row-link"]').at(0).element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(false)
+		expect(wrapper.emitted('row-context-menu')).toHaveLength(1)
+	})
+
+	it('prevents the browser menu on a right-click on the link when a host listens for row-context-menu', () => {
+		const { wrapper } = mountLinked({ onRowContextMenu: jest.fn() })
+		const event = new MouseEvent('contextmenu', { button: 2, bubbles: true, cancelable: true })
+		wrapper.findAll('[data-testid="cn-row-link"]').at(0).element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(true)
+	})
+
 	it('renders no link where a row click selects, or where rows have no route', () => {
 		const selecting = mountLinked({ selectable: true, selectedIds: [] }).wrapper
 		expect(selecting.find('[data-testid="cn-row-link"]').exists()).toBe(false)

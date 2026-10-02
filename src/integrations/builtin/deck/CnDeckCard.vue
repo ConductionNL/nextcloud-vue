@@ -110,7 +110,7 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
@@ -276,7 +276,7 @@ export default {
 		},
 
 		cardUrl(card) {
-			if (card.url) {
+			if (card.url && safeHref(card.url) !== '#') {
 				return card.url
 			}
 			const boardId = card.boardId ?? card.board?.id ?? ''

@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: EUPL-1.2
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  */
-import { isFromNestedControl, isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled } from '../../src/utils/rowAuxClick.js'
+import { isFromNestedControl, isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../src/utils/rowAuxClick.js'
 
 /**
  * Dispatch an auxclick from `target` and capture it at `row`.
@@ -95,5 +95,20 @@ describe('rowAuxClick', () => {
 
 		markNewTabHandled(event, true)
 		expect(isNewTabHandled(event)).toBe(true)
+	})
+
+	it.each([
+		['a middle press on the row body', '.text', 1, true],
+		['a primary press on the row body', '.text', 0, false],
+		['a middle press on a nested link', 'a', 1, false],
+		['a middle press on a nested button', 'button', 1, false],
+	])('preventMiddleClickAutoscroll: %s', (_label, selector, button, prevented) => {
+		let seen = null
+		row.addEventListener('mousedown', (event) => {
+			preventMiddleClickAutoscroll(event)
+			seen = event
+		}, { once: true })
+		row.querySelector(selector).dispatchEvent(new MouseEvent('mousedown', { button, bubbles: true, cancelable: true }))
+		expect(seen.defaultPrevented).toBe(prevented)
 	})
 })

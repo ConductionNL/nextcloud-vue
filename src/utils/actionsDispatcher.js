@@ -342,7 +342,7 @@ export function interpolateActionTarget(target, ctx) {
 }
 
 // The tokens interpolateActionString resolves; a bare `@` or `{` is not one.
-const ACTION_TARGET_TOKEN = /@(?:objectId\b|object\.|page\.|workspace\.|config\.|range\.)|\{objectId\}/
+const ACTION_TARGET_TOKEN = /@(?:objectId|object\.|page\.|workspace\.|config\.|range\.)|\{objectId\}/
 
 /**
  * Whether an action target carries a token that interpolation would resolve,

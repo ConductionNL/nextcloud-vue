@@ -103,7 +103,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `select-all` | `isSelectAll` | Emitted when the select-all checkbox is toggled |
 | `row-aux-click` | `(row, event)` | Emitted on a row-body middle click (`auxclick`), under the same conditions as `row-click`, so a host can open the row in a new tab with [`openRowTarget`](../utilities/open-row-target.md). A middle click never reaches `row-click`, so a `row-click` listener that navigates keeps the current tab. |
 | `row-click` | `(row, event)` | Emitted when a data row is clicked (not the checkbox). The second argument is the native click event, so a host can open the row in a new tab on a ctrl/cmd/shift click with [`openRowTarget`](../utilities/open-row-target.md); listeners that take only the row keep working. A middle click emits `row-aux-click` instead. **Only fires when `selectable` is `false`** (or `rowClickToView` is set) — when `selectable` is `true`, a deliberate click anywhere on a row toggles its selection (emitting `select`) instead — a text-selection drag is not treated as a click. |
-| `row-context-menu` | `{ row, event }` | Emitted when a data row is right-clicked. The native `contextmenu` event is prevented. Used by CnIndexPage with the [`useContextMenu`](../utilities/composables/use-context-menu.md) composable to show a context menu at the cursor position. |
+| `row-context-menu` | `{ row, event }` | Emitted when a data row is right-clicked. The native `contextmenu` event is prevented, except on a row link (`rowClickRoute`) when nothing listens to this event, so the browser's link menu stays available. Used by CnIndexPage with the [`useContextMenu`](../utilities/composables/use-context-menu.md) composable to show a context menu at the cursor position. |
 | `view-all` | `viewAllRoute` | Emitted when the built-in "View all" footer control is activated (before the router push, when there is a router). Lets a host outside a vue-router context react to the button variant. |
 
 ### Slots
@@ -138,7 +138,7 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 - `fetchParams` — extra query params for the self-fetch (a resolved filter map,
   `_order[field]` ordering, `_limit`); changing it re-triggers the fetch. Used by
   `CnWidgetObjectTable`'s declarative `source`.
-- `rowClickRoute` — a function mapping a clicked row to a vue-router route to push; a ctrl/cmd/shift or middle click opens that route in a new tab.
+- `rowClickRoute` — a function mapping a row to a vue-router route. Each such row renders a real `<a href>` in its first cell, stretched over the row, so hovering shows the URL, a plain or alt click routes in place, a ctrl/cmd/shift or middle click opens a new tab, and the row is reachable with Tab. The link is named by the first cell's text ("Open row" when that is empty or not plain text). There is no link on a `selectable` table without `rowClickToView`, where a row click selects. `CnWidgetObjectTable` rows inherit it. Trade-offs: cell text cannot be selected by dragging on a linked row, and a right-click on it shows the browser's link menu only when no host listens to `row-context-menu`.
 - `hideHeader` — drop the column-label row for a compact list widget.
 - `#footer` slot (`{ total, shown }`) — supply a custom footer link (e.g. "+ New"
   or an always-shown "View all") with its own handler; works outside a

@@ -229,7 +229,7 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 - `fetchParams` — extra query params for the self-fetch (a resolved filter map,
   `_order[field]` ordering, `_limit`); changing it re-triggers the fetch. Used by
   `CnWidgetObjectTable`'s declarative `source`.
-- `rowClickRoute` — a function mapping a clicked row to a vue-router route to push.
+- `rowClickRoute` — a function mapping a row to a vue-router route. Each such row renders a real `<a href>` in its first cell, stretched over the row, so hovering shows the URL, a plain or alt click routes in place, a ctrl/cmd/shift or middle click opens a new tab, and the row is reachable with Tab. The link is named by the first cell's text ("Open row" when that is empty or not plain text). There is no link on a `selectable` table without `rowClickToView`, where a row click selects. `CnWidgetObjectTable` rows inherit it. Trade-offs: cell text cannot be selected by dragging on a linked row, and a right-click on it shows the browser's link menu only when no host listens to `row-context-menu`.
 - `hideHeader` — drop the column-label row for a compact list widget.
 - `#footer` slot — supply a custom footer link (e.g. "+ New" or an always-shown
   "View all") with its own handler; works outside a vue-router context.

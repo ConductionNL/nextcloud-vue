@@ -231,7 +231,7 @@ import StarFourPointsOutline from 'vue-material-design-icons/StarFourPointsOutli
 import CnOpenProjectCreate from '../../../components/CnOpenProjectCreate/CnOpenProjectCreate.vue'
 import CnOpenProjectPicker from '../../../components/CnOpenProjectPicker/CnOpenProjectPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 /**
  * CnOpenprojectTab — bespoke sidebar tab for the `openproject` integration.
@@ -547,7 +547,8 @@ export default {
 		},
 
 		wpUrl(wp) {
-			return wp.url ?? wp._links?.self?.href ?? this.openprojectAppUrl
+			const url = wp.url ?? wp._links?.self?.href
+			return url && safeHref(url) !== '#' ? url : this.openprojectAppUrl
 		},
 
 		wpStatus(wp) {

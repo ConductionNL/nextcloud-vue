@@ -336,7 +336,8 @@
 
 /* A row with a route is a real link (see CnDataTable's row link): the anchor
    in its first cell is stretched over the whole row. The row's own controls
-   sit above it so they stay usable. */
+   sit above it so they stay usable; keep the list in step with NESTED_CONTROL
+   in utils/rowAuxClick.js. */
 .cn-table-row--linked {
 	position: relative;
 }
@@ -354,7 +355,7 @@
 
 .cn-table-row--linked .cn-table-col--checkbox,
 .cn-table-row--linked .cn-table-col--actions,
-.cn-table-row--linked td :is(a, button, input, select, textarea, label, [role='button']):not(.cn-table-row__link) {
+.cn-table-row--linked td :is(a, button, input, select, textarea, label, summary, [role='button'], [role='checkbox'], [role='link'], [contenteditable='true']):not(.cn-table-row__link) {
 	position: relative;
 	z-index: 1;
 }

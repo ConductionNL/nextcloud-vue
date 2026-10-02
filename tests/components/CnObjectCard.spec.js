@@ -118,6 +118,16 @@ describe('CnObjectCard — middle click', () => {
 		expect(wrapper.emitted('click')).toBeFalsy()
 		expect(wrapper.emitted('select')).toBeFalsy()
 	})
+
+	it.each([
+		[false, true],
+		[true, false],
+	])('with selectable %s, cancels a middle press (autoscroll): %s', (selectable, prevented) => {
+		const wrapper = mountCard({ selectable })
+		const event = new MouseEvent('mousedown', { button: 1, bubbles: true, cancelable: true })
+		wrapper.find('.cn-object-card').element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(prevented)
+	})
 })
 
 // Metadata labels come from schema property titles, authored in English as the

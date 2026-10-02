@@ -3396,7 +3396,7 @@ export default {
 
 		/**
 		 * Replace the page's object in the store cache, for a section that saved
-		 * it and holds the saved version.
+		 * it and holds the saved version. An object with another id is ignored.
 		 *
 		 * @param {object} object The saved object.
 		 */
@@ -3404,6 +3404,14 @@ export default {
 			const store = this.effectiveObjectStore
 			const type = this.resolvedObjectType
 			if (!store || !type || !this.objectId || !object) {
+				// eslint-disable-next-line no-console -- tells the integrating section its save is not shown
+				console.warn('[CnDetailPage] setObject ignored: the page has no object store, type or id')
+				return
+			}
+			const id = object.id ?? object['@self']?.id
+			if (id !== undefined && id !== null && String(id) !== String(this.objectId)) {
+				// eslint-disable-next-line no-console -- tells the integrating section its save is not shown
+				console.warn(`[CnDetailPage] setObject ignored: object ${id} is not the page's object ${this.objectId}`)
 				return
 			}
 			store.objects = {

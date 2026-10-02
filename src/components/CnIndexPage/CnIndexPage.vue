@@ -1002,7 +1002,8 @@ function namedFilterToQuery(values) {
  * @event {object} mass-export — Mass export confirmed. Payload: { ids, format }
  * @event {object} mass-import — Mass import confirmed. Payload: import data
  * @event {void} refresh — Refresh button clicked
- * @event {object} row-click — Table row or card clicked or middle-clicked. Payload: (row, event) — the row object and the native click/auxclick event
+ * @event {object} row-click — Table row or card clicked. Payload: (row, event) — the row object and the native click event
+ * @event {object} row-aux-click — Table row or card middle-clicked. Payload: (row, event) — the row object and the native auxclick event
  * @event {{ key: string, order: string }} sort — Column sort changed
  * @event {number} page-changed — Pagination page changed
  * @event {number} page-size-changed — Pagination page size changed

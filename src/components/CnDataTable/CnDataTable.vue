@@ -145,7 +145,7 @@
 						@mousedown="onRowMouseDown"
 						@click="onRowClick(row, $event)"
 						@auxclick="onRowAuxClick(row, $event)"
-						@contextmenu.prevent="onRowContextMenu(row, $event)">
+						@contextmenu="onRowContextMenu(row, $event)">
 						<!-- Checkbox -->
 						<td v-if="selectable"
 							class="cn-table-col--checkbox"
@@ -178,6 +178,7 @@
 								class="cn-table-row__link"
 								:href="rowLinks[String(row[rowKey])].href"
 								:aria-label="rowLinkLabel(row, col)"
+								draggable="false"
 								data-testid="cn-row-link"
 								@click="onRowLinkClick(row, $event)" />
 							<!-- The padlock rides the FIRST data cell, beside whatever
@@ -288,7 +289,7 @@ import { NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
-import { isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
+import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP, resolveRowIndicators } from '../../utils/rowIndicators.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
@@ -1453,21 +1454,29 @@ export default {
 		},
 
 		/**
-		 * A plain click on a row link routes in place; any other click is left
-		 * to the browser, which opens the href itself.
+		 * A plain or alt click on a row link routes in place; a new-tab click
+		 * is left to the browser, which opens the href itself.
 		 *
 		 * @param {object} row The row the link belongs to.
 		 * @param {MouseEvent} event The click event.
 		 */
 		onRowLinkClick(row, event) {
 			const link = this.rowLinks[String(row[this.rowKey])]
-			if (link) {
-				followLinkClick(event, link.target, this.$router)
+			if (!link) {
+				return
 			}
+			// Alt-click on a link downloads it; a row opens like a plain click.
+			if (event.altKey && !isNewTabClick(event) && !event.defaultPrevented) {
+				event.preventDefault()
+				this.$router.push(link.target).catch(() => {})
+				return
+			}
+			followLinkClick(event, link.target, this.$router)
 		},
 
 		/**
-		 * The row link's accessible name: the row's first cell, which names it.
+		 * The row link's accessible name: the row's first cell when it holds
+		 * plain text, else a generic name.
 		 *
 		 * @param {object} row The row.
 		 * @param {object} col The first data column.
@@ -1475,17 +1484,26 @@ export default {
 		 */
 		rowLinkLabel(row, col) {
 			const value = this.cellValue(row, col)
-			return value === null || value === undefined || value === '' ? String(row[this.rowKey]) : String(value)
+			if (['string', 'number'].includes(typeof value) && String(value).trim() !== '') {
+				return String(value)
+			}
+			return t('nextcloud-vue', 'Open row')
 		},
 
 		/**
 		 * Row right-click: forward the row + originating event so a host can
-		 * open a context menu (the browser default is prevented).
+		 * open a context menu. The browser menu is prevented, except on a row
+		 * link when no host listens, so its link actions stay available.
 		 *
 		 * @param {object} row The right-clicked row object.
 		 * @param {MouseEvent} event The originating contextmenu event.
 		 */
 		onRowContextMenu(row, event) {
+			const fromRowLink = event.target?.closest?.('.cn-table-row__link')
+			// `$.vnode.props`, not `$attrs`: a declared emit is stripped from `$attrs`.
+			if (!fromRowLink || this.$.vnode.props?.onRowContextMenu) {
+				event.preventDefault()
+			}
 			/**
 			 * @event row-context-menu Emitted on a row right-click (contextmenu) for hosts that render a context menu.
 			 * @type {{ row: object, event: MouseEvent }}

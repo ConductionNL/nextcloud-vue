@@ -78,4 +78,14 @@ describe('CnObjectRow — body click', () => {
 		expect(wrapper.emitted('select')[0]).toEqual([object])
 		expect(wrapper.emitted('click')).toBeFalsy()
 	})
+
+	it.each([
+		[false, true],
+		[true, false],
+	])('with selectable %s, cancels a middle press (autoscroll): %s', (selectable, prevented) => {
+		const wrapper = mountRow({ selectable })
+		const event = new MouseEvent('mousedown', { button: 1, bubbles: true, cancelable: true })
+		wrapper.find('.cn-object-row').element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(prevented)
+	})
 })

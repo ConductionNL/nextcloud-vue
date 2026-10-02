@@ -129,7 +129,7 @@ import FormatListChecks from 'vue-material-design-icons/FormatListChecks.vue'
 import Poll from 'vue-material-design-icons/Poll.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -266,7 +266,7 @@ export default {
 		},
 
 		pollUrl(poll) {
-			if (poll.url) {
+			if (poll.url && safeHref(poll.url) !== '#') {
 				return poll.url
 			}
 			const id = poll.id ?? ''
