@@ -199,7 +199,7 @@
     "jest-transform-stub": "^2.0.0",
     "marked": "^18.0.13",
     "pinia": "^4.0.3",
-    "postcss-import": "^16.1.1",
+    "postcss-import": "^17.0.0",
     "rollup": "^3.29.0",
     "rollup-plugin-postcss": "^4.0.0",
     "rollup-plugin-vue": "^6.0.0",
