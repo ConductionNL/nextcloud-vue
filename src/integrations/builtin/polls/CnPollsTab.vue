@@ -63,8 +63,7 @@
 			<NcButton
 				variant="primary"
 				:href="pollsAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<Poll :size="20" />
 				</template>
@@ -179,7 +178,7 @@ import Poll from 'vue-material-design-icons/Poll.vue'
 import CnPollCreate from '../../../components/CnPollCreate/CnPollCreate.vue'
 import CnPollPicker from '../../../components/CnPollPicker/CnPollPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
 /**
@@ -365,7 +364,7 @@ export default {
 		},
 
 		pollUrl(poll) {
-			if (poll.url) {
+			if (poll.url && safeHref(poll.url) !== '#') {
 				return poll.url
 			}
 			const id = this.pollKey(poll)

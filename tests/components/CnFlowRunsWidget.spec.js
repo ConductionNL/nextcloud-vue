@@ -196,6 +196,16 @@ describe('CnFlowRunsWidget', () => {
 			expect(link.attributes('href')).toBe('/GraphDetail/flow-9?run=run-9')
 		})
 
+		it('give each run without a uuid a link to its own flow', () => {
+			const w = mountWidget({
+				payload: { results: [run({ flowId: 'flow-1', uuid: undefined }), run({ flowId: 'flow-2', uuid: undefined })], total: 2 },
+				content: { rowRoute: 'GraphDetail' },
+				router: makeRouter(jest.fn()),
+			})
+			const hrefs = w.findAll('a.cn-flow-runs-widget__row-content').map((a) => a.attributes('href'))
+			expect(hrefs).toEqual(['/GraphDetail/flow-1', '/GraphDetail/flow-2'])
+		})
+
 		it('leave a modified click to the browser', () => {
 			const push = jest.fn(() => Promise.resolve())
 			const w = mountWidget({

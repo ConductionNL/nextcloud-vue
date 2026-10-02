@@ -8,6 +8,7 @@
 import { shallowMount } from '@vue/test-utils'
 
 const CnPageRenderer = require('../../src/components/CnPageRenderer/CnPageRenderer.vue').default
+const { markNewTabHandled } = require('../../src/utils/rowAuxClick.js')
 
 const manifest = {
 	$schema: 'https://conduction.nl/schemas/app-manifest-v2.schema.json',
@@ -332,6 +333,15 @@ describe('CnPageRenderer.onRowOpen opens a new tab like a link', () => {
 		return { wrapper, push }
 	}
 
+	it('opens the detail page in a new tab when the index page emits row-aux-click', async () => {
+		const { wrapper, push } = mountResolving()
+		const event = new MouseEvent('auxclick', { button: 1, cancelable: true })
+		wrapper.findComponent({ name: 'StubPage' }).vm.$emit('row-aux-click', { id: 'abc-123' }, event)
+		await wrapper.vm.$nextTick()
+		expect(openSpy).toHaveBeenCalledWith('/apps/decidesk/meetings/abc-123', '_blank', 'noopener,noreferrer')
+		expect(push).not.toHaveBeenCalled()
+	})
+
 	it('opens the detail page in a new tab on a ctrl-click', () => {
 		const { wrapper, push } = mountResolving()
 		wrapper.vm.onRowOpen({ id: 'abc-123' }, new MouseEvent('click', { ctrlKey: true }))
@@ -356,9 +366,17 @@ describe('CnPageRenderer.onRowOpen opens a new tab like a link', () => {
 	it('does not open a second tab when the index page already opened one', () => {
 		const { wrapper, push } = mountResolving()
 		const event = new MouseEvent('click', { ctrlKey: true, cancelable: true })
-		event.preventDefault()
+		markNewTabHandled(event, true)
 		wrapper.vm.onRowOpen({ id: 'abc-123' }, event)
 		expect(openSpy).not.toHaveBeenCalled()
 		expect(push).not.toHaveBeenCalled()
+	})
+
+	it('opens the tab when an unrelated handler only prevented the default', () => {
+		const { wrapper } = mountResolving()
+		const event = new MouseEvent('click', { ctrlKey: true, cancelable: true })
+		event.preventDefault()
+		wrapper.vm.onRowOpen({ id: 'abc-123' }, event)
+		expect(openSpy).toHaveBeenCalledTimes(1)
 	})
 })

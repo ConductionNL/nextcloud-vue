@@ -86,8 +86,7 @@
 			<NcButton
 				variant="primary"
 				:href="mapsAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<MapMarker :size="20" />
 				</template>
@@ -146,8 +145,7 @@
 					<NcActionLink
 						:closeAfterClick="true"
 						:href="pointUrl(point)"
-						target="_blank"
-						rel="noopener noreferrer">
+						target="_blank">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
@@ -188,7 +186,7 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnMapPoiCreate from '../../../components/CnMapPoiCreate/CnMapPoiCreate.vue'
 import CnMapPoiPicker from '../../../components/CnMapPoiPicker/CnMapPoiPicker.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
 const COMMENT_MAX_CHARS = 160
@@ -389,8 +387,9 @@ export default {
 			return `${lat.toFixed(5)}, ${lng.toFixed(5)}`
 		},
 
+		// A provider URL is used only when it is a safe scheme; else the app link.
 		pointUrl(point) {
-			if (typeof point.url === 'string' && point.url !== '') {
+			if (typeof point.url === 'string' && point.url !== '' && safeHref(point.url) !== '#') {
 				return point.url
 			}
 			if (this.pointHasCoords(point)) {

@@ -15,10 +15,11 @@
 
 ### Events
 
-| Name     | Payload     | Description                                                                                                                                                                                                                      |
-| -------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `click`  | `undefined` | Emitted when a non-selectable row is clicked or middle-clicked (navigation). Payload: `(object, event)` — the row's object and the native click/auxclick event, for opening it in a new tab on a ctrl/cmd/shift or middle click. |
-| `select` | —           | Emitted when the selected-id set changes.                                                                                                                                                                                        |
+| Name        | Payload     | Description                                                                                                                                                                                                                           |
+| ----------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `click`     | `undefined` | Emitted when a non-selectable row is clicked (navigation). Payload: `(object, event)` — the row's object and the native click event, for opening it in a new tab on a ctrl/cmd/shift click. A middle click emits `aux-click` instead. |
+| `select`    | —           | Emitted when the selected-id set changes.                                                                                                                                                                                             |
+| `aux-click` | `undefined` | Emitted when a non-selectable row is middle-clicked, for opening it in a new tab (see `openRowTarget`). Payload: `(object, event)` — the row's object and the native auxclick event.                                                  |
 
 ### Slots
 

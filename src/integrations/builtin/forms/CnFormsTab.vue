@@ -67,8 +67,7 @@
 			<NcButton
 				variant="primary"
 				:href="formsAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<ClipboardText :size="20" />
 				</template>
@@ -118,8 +117,7 @@
 					<NcActionLink
 						:closeAfterClick="true"
 						:href="formUrl(form)"
-						target="_blank"
-						rel="noopener noreferrer">
+						target="_blank">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
@@ -168,7 +166,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnFormCreate from './CnFormCreate.vue'
 import CnFormPicker from './CnFormPicker.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 /**
  * CnFormsTab — bespoke linked-forms list for the Tier-2 `forms` leaf.
@@ -332,8 +330,9 @@ export default {
 			return form.description || ''
 		},
 
+		// A provider URL is used only when it is a safe scheme; else the app link.
 		formUrl(form) {
-			if (form.url) {
+			if (form.url && safeHref(form.url) !== '#') {
 				return form.url
 			}
 			if (form.hash) {

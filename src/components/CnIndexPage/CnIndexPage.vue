@@ -451,6 +451,7 @@
 					@sort="onSortEvent"
 					@select="onSelect"
 					@rowClick="onRowClick"
+					@rowAuxClick="onRowAuxClick"
 					@rowContextMenu="onRowContextMenu">
 					<!-- Pass through column slots -->
 					<template
@@ -548,6 +549,7 @@
 					:runTransition="runTransition"
 					:paged="isPaged"
 					@cardClick="onRowClick"
+					@cardAuxClick="onRowAuxClick"
 					@moved="onBoardMoved" />
 
 				<!--
@@ -563,7 +565,8 @@
 					:laneField="dateAxis.laneField || ''"
 					:labelField="dateAxis.labelField || ''"
 					:rowKey="rowKey"
-					@rowClick="onRowClick" />
+					@rowClick="onRowClick"
+					@rowAuxClick="onRowAuxClick" />
 
 				<!-- List view -->
 				<CnObjectList
@@ -576,6 +579,7 @@
 					:rowKey="rowKey"
 					:emptyText="emptyText"
 					@click="onRowClick"
+					@auxClick="onRowAuxClick"
 					@select="onSelect">
 					<!--
 						List-item slot resolution priority (highest first):
@@ -596,6 +600,7 @@
 							:register="register"
 							:selected="selected"
 							@click="(...args) => onRowClick(object, args.find(isDomEvent))"
+							@mousedown="onCustomItemMouseDown"
 							@auxclick="onCustomItemAuxClick(object, $event)"
 							@select="onSelect(toggleIdInArray(internalSelectedIds, object[rowKey]))" />
 					</template>
@@ -629,6 +634,7 @@
 					:rowKey="rowKey"
 					:emptyText="emptyText"
 					@click="onRowClick"
+					@auxClick="onRowAuxClick"
 					@select="onSelect">
 					<!--
 						Card slot resolution priority (highest first):
@@ -649,6 +655,7 @@
 							:register="register"
 							:selected="selected"
 							@click="(...args) => onRowClick(object, args.find(isDomEvent))"
+							@mousedown="onCustomItemMouseDown"
 							@auxclick="onCustomItemAuxClick(object, $event)"
 							@select="onSelect(toggleIdInArray(internalSelectedIds, object[rowKey]))" />
 					</template>
@@ -781,7 +788,7 @@ import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/li
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions } from '../../utils/rowActionAvailability.js'
-import { isNewTabClick, isRowMiddleClick, markNewTabHandled } from '../../utils/rowAuxClick.js'
+import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema } from '../../utils/schema.js'
@@ -995,7 +1002,8 @@ function namedFilterToQuery(values) {
  * @event {object} mass-export — Mass export confirmed. Payload: { ids, format }
  * @event {object} mass-import — Mass import confirmed. Payload: import data
  * @event {void} refresh — Refresh button clicked
- * @event {object} row-click — Table row or card clicked or middle-clicked. Payload: (row, event) — the row object and the native click/auxclick event
+ * @event {object} row-click — Table row or card clicked. Payload: (row, event) — the row object and the native click event
+ * @event {object} row-aux-click — Table row or card middle-clicked. Payload: (row, event) — the row object and the native auxclick event
  * @event {{ key: string, order: string }} sort — Column sort changed
  * @event {number} page-changed — Pagination page changed
  * @event {number} page-size-changed — Pagination page size changed
@@ -2568,6 +2576,7 @@ export default {
 		'quick-filter-change',
 		'refresh',
 		'row-click',
+		'row-aux-click',
 		'search',
 		'select',
 		'sort',
@@ -2809,6 +2818,9 @@ export default {
 		 * Where the Add button links to: the named source's `addRoute`, when
 		 * that is what Add does (no host `@add` listener) and the router can
 		 * resolve it. The bar then renders Add as a real link; null otherwise.
+		 *
+		 * `$.vnode.props` is not reactive, so an `add` listener attached or
+		 * removed after mount does not re-evaluate this.
 		 *
 		 * @return {string|object|null}
 		 */
@@ -5565,21 +5577,60 @@ export default {
 		/**
 		 * Row/card click: toggles selection when `selectable` (covers the custom
 		 * `cardComponent` path), otherwise emits `row-click` for navigation. A
-		 * ctrl/cmd/shift or middle click opens a named source's row in a new tab.
+		 * ctrl/cmd/shift click opens a named source's row in a new tab.
 		 *
 		 * The `@event` block below sits directly against its `$emit`, and must
 		 * stay there. vue-docgen binds an event's description to the emit it
 		 * IMMEDIATELY precedes.
 		 *
 		 * @param {object} row The clicked row object
-		 * @param {MouseEvent|KeyboardEvent} [event] The originating click/auxclick event.
+		 * @param {MouseEvent|KeyboardEvent} [event] The originating click event.
 		 */
 		onRowClick(row, event) {
+			if (!this.routeClickedRow(row, event)) {
+				return
+			}
+			/**
+			 * @event row-click Emitted on a row/card click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set and something can open the row (selection then happens via the checkbox). Payload: `(row, event)` — the clicked row and the native click event (absent for a keyboard shortcut or map marker), so a host can open the row in a new tab on a ctrl/cmd/shift click with `openRowTarget`. A middle click emits `row-aux-click` instead.
+			 * @type {object} The clicked row object.
+			 */
+			this.$emit('row-click', ...(event ? [row, event] : [row]))
+		},
+
+		/**
+		 * Row/card middle click: opens a named source's row in a new tab and
+		 * emits `row-aux-click`, not `row-click`, so a host whose `row-click`
+		 * listener navigates never moves the current tab away.
+		 *
+		 * @param {object} row The clicked row object
+		 * @param {MouseEvent} event The originating auxclick event.
+		 */
+		onRowAuxClick(row, event) {
+			if (!this.routeClickedRow(row, event)) {
+				return
+			}
+			/**
+			 * @event row-aux-click Emitted on a row/card middle click, under the same conditions as `row-click`, so a host can open the row in a new tab with `openRowTarget`. Payload: `(row, event)` — the clicked row and the native auxclick event.
+			 * @type {object} The clicked row object.
+			 */
+			this.$emit('row-aux-click', row, event)
+		},
+
+		/**
+		 * The shared part of a row click and a middle click: on a selectable
+		 * page a plain click toggles selection instead, and a named source opens
+		 * its own row.
+		 *
+		 * @param {object} row The clicked row object
+		 * @param {MouseEvent|KeyboardEvent} [event] The originating event.
+		 * @return {boolean} Whether the click navigates, so the caller emits.
+		 */
+		routeClickedRow(row, event) {
 			if (this.selectable && !this.rowClickOpens) {
 				if (!event || event.button === undefined || event.button === 0) {
 					this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
 				}
-				return
+				return false
 			}
 			// A named source knows where its rows live. Emitting only would leave
 			// the click inert on a manifest page, which has no listener to bind —
@@ -5626,11 +5677,7 @@ export default {
 					}
 				}
 			}
-			/**
-			 * @event row-click Emitted on a row/card click (or middle click) for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set and something can open the row (selection then happens via the checkbox). Payload: `(row, event)` — the clicked row and the native click/auxclick event (absent for a keyboard shortcut or map marker), so a host can open the row in a new tab on a ctrl/cmd/shift or middle click with `openRowTarget`.
-			 * @type {object} The clicked row object.
-			 */
-			this.$emit('row-click', ...(event ? [row, event] : [row]))
+			return true
 		},
 
 		/**
@@ -5645,16 +5692,30 @@ export default {
 		},
 
 		/**
+		 * Mousedown on a custom list/card component's root: when a middle click
+		 * opens the row, keep the browser from starting autoscroll.
+		 *
+		 * @param {MouseEvent} event The mousedown event.
+		 * @return {void}
+		 */
+		onCustomItemMouseDown(event) {
+			if (!this.selectable || this.rowClickOpens) {
+				preventMiddleClickAutoscroll(event)
+			}
+		},
+
+		/**
 		 * Middle click on a custom list/card component's root: open the row
-		 * like a click would.
+		 * like a middle click on a built-in card would. Skipped when something
+		 * inside the component already opened it in a new tab.
 		 *
 		 * @param {object} row The component's row.
 		 * @param {MouseEvent} event The auxclick event.
 		 * @return {void}
 		 */
 		onCustomItemAuxClick(row, event) {
-			if (isRowMiddleClick(event)) {
-				this.onRowClick(row, event)
+			if (isRowMiddleClick(event) && !isNewTabHandled(event)) {
+				this.onRowAuxClick(row, event)
 			}
 		},
 

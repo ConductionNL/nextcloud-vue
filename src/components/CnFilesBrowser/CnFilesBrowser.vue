@@ -180,6 +180,7 @@
 					data-testid="cn-files-browser-row"
 					:data-name="node.basename"
 					@click="onRowClick(node, $event)"
+					@mousedown="preventMiddleClickAutoscroll"
 					@auxclick="onRowAuxClick(node, $event)">
 					<td class="cn-files-browser__col-icon">
 						<img
@@ -258,7 +259,6 @@
 								v-if="node.fileid"
 								:href="permalink(node)"
 								target="_blank"
-								rel="noopener noreferrer"
 								:closeAfterClick="true">
 								<template #icon>
 									<OpenInNew :size="20" />
@@ -278,6 +278,7 @@
 					data-testid="cn-files-browser-linked-row"
 					:data-name="item.name"
 					@click="openLinked(item)"
+					@mousedown="preventMiddleClickAutoscroll"
 					@auxclick="onLinkedAuxClick(item, $event)">
 					<td class="cn-files-browser__col-icon">
 						<img
@@ -316,7 +317,6 @@
 								v-if="item.href"
 								:href="item.href"
 								target="_blank"
-								rel="noopener noreferrer"
 								:closeAfterClick="true"
 								data-testid="cn-files-browser-linked-open">
 								<template #icon>
@@ -473,7 +473,7 @@ import CnCellRenderer from '../CnCellRenderer/CnCellRenderer.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import { readUserPreference, writeUserPreference } from '../../composables/useUserPreferences.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
-import { isNewTabClick, isRowMiddleClick } from '../../utils/rowAuxClick.js'
+import { isNewTabClick, isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { ACTIONS_NEEDING_THE_FILES_PAGE, crumbsFor, joinPath } from './filesBrowser.js'
 import {
 	attributePropertiesFor,
@@ -897,6 +897,8 @@ export default {
 
 	methods: {
 		t,
+
+		preventMiddleClickAutoscroll,
 
 		/**
 		 * Hold the file input element from its function ref.

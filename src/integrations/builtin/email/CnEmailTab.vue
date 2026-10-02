@@ -27,8 +27,7 @@
 			<NcButton
 				variant="primary"
 				:href="composeUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<EmailEditOutline :size="18" />
 				</template>
@@ -497,11 +496,15 @@ export default {
 	border-radius: var(--border-radius-large, 8px);
 	color: inherit;
 	text-decoration: none;
-	cursor: pointer;
 	position: relative;
 }
 
-.cn-email-tab__row:hover {
+/* Only a row with Mail ids is a link; the rest must not look clickable. */
+a.cn-email-tab__row {
+	cursor: pointer;
+}
+
+a.cn-email-tab__row:hover {
 	background-color: var(--color-background-hover);
 }
 

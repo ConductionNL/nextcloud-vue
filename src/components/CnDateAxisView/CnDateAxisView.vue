@@ -35,6 +35,7 @@
 						:style="barStyle(bar)"
 						:aria-label="barLabel(bar)"
 						@click="openRow(bar.row, $event)"
+						@mousedown="preventMiddleClickAutoscroll"
 						@auxclick="onAuxClick(bar.row, $event)">
 						{{ barText(bar) }}
 					</button>
@@ -61,6 +62,7 @@
 					:data-row-id="rowKeyOf(row)"
 					:aria-label="unplannedLabelFor(row)"
 					@click="openRow(row, $event)"
+					@mousedown="preventMiddleClickAutoscroll"
 					@auxclick="onAuxClick(row, $event)">
 					{{ nameOf(row) }}
 				</button>
@@ -72,7 +74,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { buildDateAxisLanes } from '../../utils/dateAxisLanes.js'
-import { isRowMiddleClick } from '../../utils/rowAuxClick.js'
+import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 
 /**
  * CnDateAxisView — the index page's rows on a time scale.
@@ -133,7 +135,7 @@ export default {
 		},
 	},
 
-	emits: ['row-click'],
+	emits: ['row-click', 'row-aux-click'],
 
 	computed: {
 		/** @return {object} The layout. */
@@ -176,23 +178,27 @@ export default {
 	methods: {
 		t,
 
+		preventMiddleClickAutoscroll,
+
 		/**
 		 * Open one record. Both the bar on the axis and the label of an
 		 * undated row come through here, so the two paths cannot drift.
 		 *
 		 * @param {object} row The record the reader picked.
-		 * @param {MouseEvent} [event] The click or middle-click event.
+		 * @param {MouseEvent} [event] The click event.
 		 * @return {void} Nothing.
 		 */
 		openRow(row, event) {
 			/**
-			 * @event row-click Emitted when a reader opens a record, from its bar on the axis or from the label of an undated row, on a click or a middle click. Payload: `(row, event)` — the row and the native click/auxclick event, so the host can open it in a new tab on a ctrl/cmd/shift or middle click.
+			 * @event row-click Emitted when a reader opens a record, from its bar on the axis or from the label of an undated row. Payload: `(row, event)` — the row and the native click event, so the host can open it in a new tab on a ctrl/cmd/shift click. A middle click emits `row-aux-click` instead.
 			 */
 			this.$emit('row-click', row, event)
 		},
 
 		/**
-		 * Middle click on a bar: open the record like a click would.
+		 * Middle click on a bar or an undated row's label: emits
+		 * `row-aux-click`, not `row-click`, so an existing listener that
+		 * navigates never moves the current tab away.
 		 *
 		 * @param {object} row The record the reader picked.
 		 * @param {MouseEvent} event The auxclick event.
@@ -200,7 +206,10 @@ export default {
 		 */
 		onAuxClick(row, event) {
 			if (isRowMiddleClick(event)) {
-				this.openRow(row, event)
+				/**
+				 * @event row-aux-click Emitted when a reader middle-clicks a record's bar or undated-row label, for opening it in a new tab (see `openRowTarget`). Payload: `(row, event)` — the row and the native auxclick event.
+				 */
+				this.$emit('row-aux-click', row, event)
 			}
 		},
 

@@ -467,7 +467,11 @@ export default defineComponent({
 }
 
 /* A fade over the clipped edge, only on the side that hides tabs. Stops a
-   pixel above the bar's rule so the rule keeps its full colour. */
+   pixel above the bar's rule so the rule keeps its full colour.
+
+   z-index 2 so the fades outrank a lifted tab: CnTabsWidget puts the open tab
+   at 1, and a tie goes to DOM order, which would draw that tab over the start
+   fade (it precedes the tabs) while the end fade still covered it. */
 .cn-tabs__strip::before,
 .cn-tabs__strip::after {
 	content: '';
@@ -476,7 +480,7 @@ export default defineComponent({
 	pointer-events: none;
 	position: absolute;
 	width: 56px;
-	z-index: 1;
+	z-index: 2;
 }
 
 .cn-tabs__strip::before {
@@ -513,7 +517,7 @@ export default defineComponent({
 	padding: 0;
 	position: absolute;
 	width: 28px;
-	z-index: 2;
+	z-index: 3;
 }
 
 /* Nextcloud's `button:hover` rule would otherwise fill the chevron. */

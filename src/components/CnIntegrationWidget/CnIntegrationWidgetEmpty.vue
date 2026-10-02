@@ -25,8 +25,7 @@
 			<NcButton
 				variant="primary"
 				:href="docsUrl"
-				target="_blank"
-				rel="noopener">
+				target="_blank">
 				<template #icon>
 					<OpenInNew :size="18" />
 				</template>

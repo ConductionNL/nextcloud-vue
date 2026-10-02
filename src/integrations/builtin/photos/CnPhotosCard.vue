@@ -128,7 +128,7 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import ImageIcon from 'vue-material-design-icons/Image.vue'
 import ImageMultiple from 'vue-material-design-icons/ImageMultiple.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 const COMPACT_LIMIT = 4
@@ -265,7 +265,7 @@ export default {
 		},
 
 		albumUrl(album) {
-			if (album && album.url) {
+			if (album && album.url && safeHref(album.url) !== '#') {
 				return album.url
 			}
 			const name = this.albumName(album)

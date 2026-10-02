@@ -277,9 +277,23 @@ describe('a named source supplies its create and navigation actions', () => {
 		expect(pushed).toEqual(['/flows/new'])
 	})
 
+	/**
+	 * Call a row-click method against a stand-in `this` that also carries the
+	 * shared routeClickedRow it delegates to.
+	 *
+	 * @param {string} name The method name.
+	 * @param {object} self The stand-in instance fields.
+	 * @param {...unknown} args The method's arguments.
+	 * @return {unknown} What the method returns.
+	 */
+	function callRowMethod(name, self, ...args) {
+		const methods = CnIndexPage().methods
+		return methods[name].call({ routeClickedRow: methods.routeClickedRow, ...self }, ...args)
+	}
+
 	it('opens a clicked row in the source detail route', () => {
 		const pushed = []
-		CnIndexPage().methods.onRowClick.call({
+		callRowMethod('onRowClick', {
 			selectable: false,
 			rowClickToView: true,
 			isNamedSource: true,
@@ -289,7 +303,7 @@ describe('a named source supplies its create and navigation actions', () => {
 		})
 		expect(pushed).toEqual([])
 
-		CnIndexPage().methods.onRowClick.call({
+		callRowMethod('onRowClick', {
 			selectable: false,
 			rowClickToView: true,
 			isNamedSource: true,
@@ -310,17 +324,18 @@ describe('a named source supplies its create and navigation actions', () => {
 		afterEach(() => openSpy.mockRestore())
 
 		/**
-		 * Call onRowClick against a minimal named-source page.
+		 * Click a row on a minimal named-source page: onRowClick for a click,
+		 * onRowAuxClick for an auxclick, as the page's children wire them.
 		 *
 		 * @param {object} source The named source.
-		 * @param {Event} event The click event.
+		 * @param {Event} event The click or auxclick event.
 		 * @param {object} [extra] Extra instance fields.
 		 * @return {{ pushed: Array, emitted: Array }} Router pushes and emits.
 		 */
 		function clickRow(source, event, extra = {}) {
 			const pushed = []
 			const emitted = []
-			CnIndexPage().methods.onRowClick.call({
+			callRowMethod(event.type === 'auxclick' ? 'onRowAuxClick' : 'onRowClick', {
 				selectable: false,
 				isNamedSource: true,
 				namedSource: source,
@@ -345,11 +360,12 @@ describe('a named source supplies its create and navigation actions', () => {
 			expect(emitted).toEqual([['row-click', { id: 'abc' }, event]])
 		})
 
-		it('opens rowRoute in a new tab on a middle click', () => {
+		it('opens rowRoute in a new tab on a middle click, emitting row-aux-click', () => {
 			const event = new MouseEvent('auxclick', { button: 1, cancelable: true })
-			const { pushed } = clickRow(flows(), event, { rowRoute: 'FlowDetail' })
+			const { pushed, emitted } = clickRow(flows(), event, { rowRoute: 'FlowDetail' })
 			expect(openSpy).toHaveBeenCalledWith('/apps/x/FlowDetail/abc', '_blank', 'noopener,noreferrer')
 			expect(pushed).toEqual([])
+			expect(emitted).toEqual([['row-aux-click', { id: 'abc' }, event]])
 		})
 
 		it('uses the source rowTarget for a new tab, and openRow for a plain click', () => {

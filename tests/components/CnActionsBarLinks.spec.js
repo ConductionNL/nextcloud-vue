@@ -72,12 +72,12 @@ describe('CnActionsBar — Add as a link', () => {
 		expect(wrapper.emitted('add')).toHaveLength(1)
 	})
 
-	it('leaves a middle/ctrl click on addTo to the browser', async () => {
+	it('leaves a middle/ctrl click on addTo to the browser, without emitting add in this tab', async () => {
 		const router = makeRouter()
 		const wrapper = mountBar({ addTo: '/flows/new' }, router)
 		await wrapper.find('[data-testid="cn-cta-primary"]').trigger('click', { ctrlKey: true })
 		expect(router.push).not.toHaveBeenCalled()
-		expect(wrapper.emitted('add')).toHaveLength(1)
+		expect(wrapper.emitted('add')).toBeFalsy()
 	})
 
 	it('uses addHref as is and never routes it', async () => {
@@ -112,6 +112,15 @@ describe('CnActionsBar — header actions as links', () => {
 		await links[0].trigger('click')
 		expect(router.push).toHaveBeenCalledWith({ name: 'SourceLogs' })
 		expect(wrapper.emitted('header-action')).toEqual([[{ action: 'logs', id: 'logs' }]])
+	})
+
+	it('emits no header-action for a ctrl-click on a header link', async () => {
+		const router = makeRouter()
+		const wrapper = mountBar({ headerActions: [{ id: 'logs', label: 'Logs', to: { name: 'SourceLogs' } }] }, router)
+		const link = wrapper.findAll('.nc-action-link-stub').filter((l) => l.text() === 'Logs')[0]
+		await link.trigger('click', { ctrlKey: true })
+		expect(router.push).not.toHaveBeenCalled()
+		expect(wrapper.emitted('header-action')).toBeFalsy()
 	})
 
 	it('keeps a disabled or unresolvable `to` entry a button', () => {

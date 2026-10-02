@@ -19,6 +19,20 @@
  */
 
 /**
+ * Whether a URL is protocol-relative the way a browser reads it: leading
+ * control characters and spaces are dropped, tabs and newlines are ignored
+ * anywhere, and a backslash counts as `/`.
+ *
+ * @param {string} url The URL.
+ * @return {boolean}
+ */
+function isProtocolRelative(url) {
+	// eslint-disable-next-line no-control-regex
+	const normalized = url.replace(/[\t\n\r]/g, '').replace(/^[\u0000-\u0020]+/, '')
+	return /^[/\\]{2}/.test(normalized)
+}
+
+/**
  * Validate a URL and return it only if the scheme is safe for `:href`.
  *
  * Safe inputs:
@@ -30,7 +44,8 @@
  *   - `javascript:...`
  *   - `data:...`
  *   - `vbscript:...`
- *   - Protocol-relative `//attacker.com/...` (ambiguous origin)
+ *   - Protocol-relative `//attacker.com/...` (ambiguous origin), also as
+ *     `/\attacker.com` or with leading whitespace
  *   - Any other unrecognised scheme
  *   - `null`, `undefined`, empty string
  *
@@ -52,7 +67,7 @@ export function safeHref(url) {
 	}
 	// Reject protocol-relative URLs — `//attacker.com/x` looks like a relative
 	// path but resolves to an arbitrary origin, bypassing same-origin intent.
-	if (url.startsWith('//')) {
+	if (isProtocolRelative(url)) {
 		return '#'
 	}
 	// Allow root-relative paths (same-origin navigation)
@@ -97,7 +112,7 @@ export function safeImageSrc(url) {
 		return url
 	}
 	// Reject protocol-relative
-	if (url.startsWith('//')) {
+	if (isProtocolRelative(url)) {
 		return ''
 	}
 	try {

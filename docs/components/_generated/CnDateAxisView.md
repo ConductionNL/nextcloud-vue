@@ -13,6 +13,7 @@
 
 ### Events
 
-| Name        | Payload     | Description                                                                                                                                                                                                                                                                        |
-| ----------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `row-click` | `undefined` | Emitted when a reader opens a record, from its bar on the axis or from the label of an undated row, on a click or a middle click. Payload: `(row, event)` — the row and the native click/auxclick event, so the host can open it in a new tab on a ctrl/cmd/shift or middle click. |
+| Name            | Payload     | Description                                                                                                                                                                                                                                                                     |
+| --------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `row-click`     | `undefined` | Emitted when a reader opens a record, from its bar on the axis or from the label of an undated row. Payload: `(row, event)` — the row and the native click event, so the host can open it in a new tab on a ctrl/cmd/shift click. A middle click emits `row-aux-click` instead. |
+| `row-aux-click` | `undefined` | Emitted when a reader middle-clicks a record's bar or undated-row label, for opening it in a new tab (see `openRowTarget`). Payload: `(row, event)` — the row and the native auxclick event.                                                                                    |

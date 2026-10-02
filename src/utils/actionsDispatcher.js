@@ -341,6 +341,21 @@ export function interpolateActionTarget(target, ctx) {
 	return interpolateActionString(target || '', ctx || {})
 }
 
+// The tokens interpolateActionString resolves; a bare `@` or `{` is not one.
+const ACTION_TARGET_TOKEN = /@(?:objectId|object\.|page\.|workspace\.|config\.|range\.)|\{objectId\}/
+
+/**
+ * Whether an action target carries a token that interpolation would resolve,
+ * so it can only be known once the page context is. A `mailto:` address or a
+ * URL with an `@handle` in it has none.
+ *
+ * @param {string} target The action's raw `target`.
+ * @return {boolean}
+ */
+export function hasActionTargetTokens(target) {
+	return typeof target === 'string' && ACTION_TARGET_TOKEN.test(target)
+}
+
 /**
  * The link an action renders as when its only job is to navigate to a target
  * known at render time: `navigate` (token-interpolated like the dispatcher)

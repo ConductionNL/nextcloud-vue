@@ -189,12 +189,12 @@ describe('CnRowActions link actions', () => {
 		expect(wrapper.emitted('action')).toEqual([[{ action: 'View', row: { id: 7, url: 'https://a.test/7' } }]])
 	})
 
-	it('leaves a ctrl-click to the browser but still emits action', async () => {
+	it('leaves a ctrl-click to the browser without emitting action in this tab', async () => {
 		const router = makeRouter()
 		const wrapper = mountActions([{ label: 'View', to: { name: 'Dog', params: { id: 7 } } }], router)
 		await wrapper.find('[data-testid="cn-action-item-view"]').trigger('click', { ctrlKey: true })
 		expect(router.push).not.toHaveBeenCalled()
-		expect(wrapper.emitted('action')).toHaveLength(1)
+		expect(wrapper.emitted('action')).toBeFalsy()
 	})
 
 	it('keeps a disabled or unresolvable link action a button', () => {

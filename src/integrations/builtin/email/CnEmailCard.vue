@@ -321,7 +321,6 @@ export default {
 	background: none;
 	border: none;
 	padding: 6px 0;
-	cursor: pointer;
 	text-align: left;
 	color: inherit;
 	font: inherit;
@@ -329,7 +328,12 @@ export default {
 	box-sizing: border-box;
 }
 
-.cn-email-card__open:hover .cn-email-card__subject {
+/* Only a row with Mail ids is a link; the rest must not look clickable. */
+a.cn-email-card__open {
+	cursor: pointer;
+}
+
+a.cn-email-card__open:hover .cn-email-card__subject {
 	color: var(--color-primary-element);
 }
 

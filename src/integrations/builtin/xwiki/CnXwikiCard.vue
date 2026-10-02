@@ -138,7 +138,7 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import FileDocumentMultiple from 'vue-material-design-icons/FileDocumentMultiple.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 const PREVIEW_MAX_CHARS = 500
@@ -303,8 +303,10 @@ export default {
 			return String(page.title ?? page.page ?? page.reference ?? this.pageKey(page))
 		},
 
+		// An unsafe scheme is treated like a missing URL.
 		pageUrl(page) {
-			return page.url ?? ''
+			const url = page.url ?? ''
+			return url && safeHref(url) !== '#' ? url : ''
 		},
 
 		breadcrumbLabel(page) {

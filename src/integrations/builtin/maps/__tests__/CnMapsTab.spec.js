@@ -45,6 +45,15 @@ describe('CnMapsTab', () => {
 		delete global.fetch
 	})
 
+	it('links to the Maps app instead of a provider URL with an unsafe scheme', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		const wrapper = mount(CnMapsTab, { propsData: { ...DEFAULT_PROPS } })
+		await flushPromises()
+		expect(wrapper.vm.pointUrl({ url: 'javascript:alert(1)' })).toBe('/index.php/apps/maps')
+		expect(wrapper.vm.pointUrl({ url: 'https://maps.example/p/1' })).toBe('https://maps.example/p/1')
+		wrapper.unmount()
+	})
+
 	it('renders the empty state with an "Open Locations" CTA when no points', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnMapsTab, { propsData: { ...DEFAULT_PROPS } })
