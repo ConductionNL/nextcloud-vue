@@ -38,7 +38,6 @@
 				variant="tertiary"
 				:href="savedHref"
 				target="_blank"
-				rel="noopener noreferrer"
 				data-testid="cn-interaction-form-open">
 				<template #icon>
 					<OpenInNew :size="20" />

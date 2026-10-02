@@ -16,9 +16,10 @@
 
 ### Events
 
-| Name         | Payload     | Description                                                                                                                                                                                                  |
-| ------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `card-click` | `undefined` | Emitted when a reader opens a card, by click, Enter or middle click. Payload: `(card, event)` — the card row and the native event, so the host can open it in a new tab on a ctrl/cmd/shift or middle click. |
-| `moved`      | —           | Emitted when the host's transition accepted the move and the card now sits in the new lane. Payload: `{ card, toKey }`.                                                                                      |
-| `refused`    | —           | Emitted when the guard turned the move down. Payload: `{ card, message }`, the message being the guard's own sentence when it gave one.                                                                      |
-| `stale`      | —           | Emitted when somebody else moved the card first, so the board shows it where it is now. Payload: `{ card }`.                                                                                                 |
+| Name             | Payload     | Description                                                                                                                                                                                                                         |
+| ---------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `card-click`     | `undefined` | Emitted when a reader opens a card, by click or Enter. Payload: `(card, event)` — the card row and the native event, so the host can open it in a new tab on a ctrl/cmd/shift click. A middle click emits `card-aux-click` instead. |
+| `card-aux-click` | `undefined` | Emitted when a reader middle-clicks a card, for opening it in a new tab (see `openRowTarget`). Payload: `(card, event)` — the card row and the native auxclick event.                                                               |
+| `moved`          | —           | Emitted when the host's transition accepted the move and the card now sits in the new lane. Payload: `{ card, toKey }`.                                                                                                             |
+| `refused`        | —           | Emitted when the guard turned the move down. Payload: `{ card, message }`, the message being the guard's own sentence when it gave one.                                                                                             |
+| `stale`          | —           | Emitted when somebody else moved the card first, so the board shows it where it is now. Payload: `{ card }`.                                                                                                                        |

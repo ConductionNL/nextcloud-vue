@@ -55,6 +55,15 @@ describe('CnXwikiTab', () => {
 		delete global.fetch
 	})
 
+	it('gives a page with an unsafe URL no link', async () => {
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		const wrapper = mount(CnXwikiTab, { propsData: { ...DEFAULT_PROPS } })
+		await flushPromises()
+		expect(wrapper.vm.pageHref({ url: 'javascript:alert(1)' })).toBe('')
+		expect(wrapper.vm.pageHref({ url: 'https://wiki.example/p' })).toBe('https://wiki.example/p')
+		wrapper.unmount()
+	})
+
 	it('renders the empty state when no pages are linked', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnXwikiTab, { propsData: { ...DEFAULT_PROPS } })

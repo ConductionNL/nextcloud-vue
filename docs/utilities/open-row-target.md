@@ -4,7 +4,7 @@ Navigate from a surface that cannot be an `<a>`, such as a table row or a dragga
 
 Bind it to both `@click` and `@auxclick`: a middle click fires only `auxclick`.
 
-A click that comes from a control inside the row (a button, link, checkbox or input) is left to that control. When it opens a new tab it marks the event with `preventDefault()`, and it skips an event that is already marked (see [`isNewTabHandled`](./is-new-tab-handled.md)), so a host calling it from `@row-click` on a table that also navigates never opens a second tab.
+A click that comes from a control inside the row (a button, link, checkbox or input) is left to that control. When it opens a new tab it marks the event as handled (and prevents its default), and it skips an event that is already marked (see [`isNewTabHandled`](./is-new-tab-handled.md)), so a host calling it from `@row-click` on a table that also navigates never opens a second tab.
 
 A string target is a finished URL. Pass a router path as `{ path: '/leads/7' }` so its href gets the app's base.
 

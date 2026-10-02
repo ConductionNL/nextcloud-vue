@@ -420,10 +420,9 @@ export default {
 		 * @return {void}
 		 */
 		dispatchAction({ actionType, url, value }) {
+			// An `external` entry with a URL is a real link (see linkAttrsFor);
+			// one without a URL has nothing to open.
 			switch (actionType) {
-				case ACTION_TYPES.EXTERNAL:
-					this.handleExternal(url)
-					break
 				case ACTION_TYPES.INTERNAL:
 					this.$emit('internal-action', url)
 					break
@@ -433,20 +432,6 @@ export default {
 					this.$emit('create-file', value !== '' ? value : url)
 					break
 			}
-		},
-
-		/**
-		 * Open an external URL in a new tab; `noopener,noreferrer` prevents
-		 * the opened page reaching back via `window.opener`.
-		 *
-		 * @param {string} url the URL to open.
-		 * @return {void}
-		 */
-		handleExternal(url) {
-			if (typeof url !== 'string' || url === '') {
-				return
-			}
-			window.open(url, '_blank', 'noopener,noreferrer')
 		},
 	},
 }

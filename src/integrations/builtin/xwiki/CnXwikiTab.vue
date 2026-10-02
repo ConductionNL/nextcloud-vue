@@ -64,7 +64,6 @@
 				class="cn-xwiki-tab__banner-cta"
 				:href="banner.ctaHref || undefined"
 				:target="banner.ctaHref ? '_blank' : undefined"
-				:rel="banner.ctaHref ? 'noopener noreferrer' : undefined"
 				@click="banner.ctaHandler">
 				{{ banner.ctaLabel }}
 			</NcButton>
@@ -132,8 +131,7 @@
 						class="cn-xwiki-tab__open"
 						:closeAfterClick="true"
 						:href="pageHref(page)"
-						target="_blank"
-						rel="noopener noreferrer">
+						target="_blank">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
@@ -181,7 +179,7 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnXwikiPageCreate from '../../../components/CnXwikiPageCreate/CnXwikiPageCreate.vue'
 import CnXwikiPagePicker from '../../../components/CnXwikiPagePicker/CnXwikiPagePicker.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 const EXCERPT_MAX_CHARS = 140
 
@@ -386,15 +384,17 @@ export default {
 
 		/**
 		 * External XWiki deep-link for the page. Empty string when the
-		 * provider didn't surface a `url`, so the row renders as a plain
-		 * (non-anchored) NcListItem rather than a dead link.
+		 * provider didn't surface a `url`, or surfaced an unsafe scheme, so
+		 * the row renders as a plain (non-anchored) NcListItem rather than a
+		 * dead link.
 		 *
 		 * @param {object} page Provider row.
 		 *
 		 * @return {string} Absolute XWiki URL or ''.
 		 */
 		pageHref(page) {
-			return String(page.url ?? '')
+			const url = String(page.url ?? '')
+			return url && safeHref(url) !== '#' ? url : ''
 		},
 
 		breadcrumbLabel(page) {

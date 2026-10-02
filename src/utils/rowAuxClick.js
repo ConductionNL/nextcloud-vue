@@ -9,12 +9,16 @@
  * also fire `auxclick` for the right button, so a row that listens to it must
  * filter both out itself.
  *
- * Whoever opens a row in a new tab calls `preventDefault()` on the event, so a
- * second listener for the same click (a host behind a library default) can
+ * Whoever opens a row in a new tab marks the event with `markNewTabHandled`, so
+ * a second listener for the same click (a host behind a library default) can
  * check `isNewTabHandled` and not open a second tab.
  *
  * @module utils/rowAuxClick
  */
+
+// Events that opened a new tab. Not `defaultPrevented`, which any unrelated
+// handler can set on a modified or middle click.
+const newTabHandled = new WeakSet()
 
 const NESTED_CONTROL = 'a, button, input, select, textarea, label, summary, [role="button"], [role="checkbox"], [role="link"], [contenteditable="true"]'
 
@@ -50,6 +54,21 @@ export function isRowMiddleClick(event) {
 }
 
 /**
+ * Cancel a middle-button press on a clickable row or card body, so the
+ * browser does not start autoscroll (Chrome/Edge on Windows) instead of the
+ * middle click opening the row. A press on a nested control, a link
+ * included, keeps its default.
+ *
+ * @param {MouseEvent} event The mousedown event.
+ * @return {void}
+ */
+export function preventMiddleClickAutoscroll(event) {
+	if (event && event.button === 1 && !isFromNestedControl(event) && typeof event.preventDefault === 'function') {
+		event.preventDefault()
+	}
+}
+
+/**
  * Whether `openRowTarget` would open this click in a new tab.
  *
  * @param {MouseEvent|KeyboardEvent|null|undefined} event The click event.
@@ -66,18 +85,24 @@ export function isNewTabClick(event) {
  * @return {boolean}
  */
 export function isNewTabHandled(event) {
-	return Boolean(isNewTabClick(event) && event.defaultPrevented)
+	return Boolean(isNewTabClick(event) && newTabHandled.has(event))
 }
 
 /**
  * Mark a new-tab click as handled after opening it, see `isNewTabHandled`.
+ * Also prevents the event's default, so the browser does not act on the
+ * click as well.
  *
  * @param {MouseEvent|KeyboardEvent|null|undefined} event The click event.
  * @param {boolean} opened Whether the target was opened.
  * @return {void}
  */
 export function markNewTabHandled(event, opened) {
-	if (opened && isNewTabClick(event) && typeof event.preventDefault === 'function') {
+	if (!opened || !isNewTabClick(event)) {
+		return
+	}
+	newTabHandled.add(event)
+	if (typeof event.preventDefault === 'function') {
 		event.preventDefault()
 	}
 }

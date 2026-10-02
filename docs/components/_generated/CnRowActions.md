@@ -11,6 +11,6 @@
 
 ### Events
 
-| Name     | Payload | Description                                                                                                                                  |
-| -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `action` | —       | User picked an entry. Payload: the action's label and the row. A button entry has already run its `handler`; a link entry navigates instead. |
+| Name     | Payload | Description                                                                                                                                                                                          |
+| -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `action` | —       | User picked an entry. Payload: the action's label and the row. A button entry has already run its `handler`; a link entry navigates instead, and a modified (new-tab) click on a link emits nothing. |

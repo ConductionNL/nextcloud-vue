@@ -41,6 +41,7 @@
 <script>
 import { NcActionButton, NcActionLink, NcActions } from '@nextcloud/vue'
 import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
+import { isModifiedClick } from '../../utils/linkNavigation.js'
 import { evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
 import { CnIcon } from '../CnIcon/index.js'
 
@@ -215,16 +216,20 @@ export default {
 		/**
 		 * A link entry was clicked: route a plain in-app click, leave the rest to
 		 * the browser, and emit `action` as a button would. The `handler` is not
-		 * called, since navigating is what the link already does.
+		 * called, since navigating is what the link already does. A modified
+		 * click opens a new tab, so nothing is emitted in this one.
 		 *
 		 * @param {object} action The action definition.
 		 * @param {object} link The resolved link.
 		 * @param {MouseEvent} event The click event.
 		 */
 		onLinkAction(action, link, event) {
+			if (isModifiedClick(event)) {
+				return
+			}
 			followItemActionLink(event, link, this.$router)
 			/**
-			 * @event action User picked an entry. Payload: the action's label and the row. A button entry has already run its `handler`; a link entry navigates instead.
+			 * @event action User picked an entry. Payload: the action's label and the row. A button entry has already run its `handler`; a link entry navigates instead, and a modified (new-tab) click on a link emits nothing.
 			 * @type {{ action: string, row: object|null }}
 			 */
 			this.$emit('action', { action: action.label, row: this.row })

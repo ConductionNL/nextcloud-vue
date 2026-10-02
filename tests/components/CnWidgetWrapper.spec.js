@@ -316,7 +316,6 @@ describe('CnWidgetWrapper — Documentation action', () => {
 		expect(link.exists()).toBe(true)
 		expect(link.attributes('href')).toBe('https://docs.example.test/widget')
 		expect(link.attributes('target')).toBe('_blank')
-		expect(link.attributes('rel')).toBe('noopener noreferrer')
 	})
 
 	it('shows the overflow menu for documentation alone even when both built-ins are opted out', () => {

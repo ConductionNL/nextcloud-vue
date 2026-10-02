@@ -62,6 +62,11 @@ export function resolveItemActionLink(action, item, router) {
  * on an in-app link that opens in place goes through the router; a URL, a
  * new-tab target or a modified click is left to the browser.
  *
+ * Hand-rolled rather than `NcActionRouter` / `NcButton :to`: the menus and
+ * bars using it must still emit their own events on click, and without an
+ * installed router `NcButton :to` falls back to a button that goes nowhere,
+ * while an `<a href>` still navigates.
+ *
  * @param {MouseEvent} event The click event.
  * @param {{to: (string|object|null), target: (string|undefined)}} link The resolved link.
  * @param {object} [router] The app's router.

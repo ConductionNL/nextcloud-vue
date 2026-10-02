@@ -58,8 +58,7 @@
 			<NcButton
 				variant="primary"
 				:href="flowSettingsUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<SitemapOutline :size="20" />
 				</template>
@@ -139,7 +138,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import SitemapOutline from 'vue-material-design-icons/SitemapOutline.vue'
 import CnFlowOperationPicker from '../../../components/CnFlowOperationPicker/CnFlowOperationPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 /**
  * CnFlowTab — bespoke automation-rule list for the `flow` integration.
@@ -218,7 +217,7 @@ export default {
 		},
 
 		opUrl(op) {
-			return op.url || this.flowSettingsUrl
+			return op.url && safeHref(op.url) !== '#' ? op.url : this.flowSettingsUrl
 		},
 
 		shortClass(className) {

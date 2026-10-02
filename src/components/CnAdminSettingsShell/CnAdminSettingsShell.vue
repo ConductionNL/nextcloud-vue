@@ -47,8 +47,7 @@
 				<NcButton
 					v-if="showHelp && helpUrl"
 					:href="helpUrl"
-					target="_blank"
-					rel="noopener noreferrer">
+					target="_blank">
 					<template #icon>
 						<HelpCircleOutline :size="20" />
 					</template>

@@ -60,8 +60,7 @@
 			<NcButton
 				variant="primary"
 				:href="talkAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<ChatOutline :size="20" />
 				</template>
@@ -107,8 +106,7 @@
 					<NcActionLink
 						:closeAfterClick="true"
 						:href="roomUrl(room)"
-						target="_blank"
-						rel="noopener noreferrer">
+						target="_blank">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
@@ -149,7 +147,7 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnTalkRoomCreate from '../../../components/CnTalkRoomCreate/CnTalkRoomCreate.vue'
 import CnTalkRoomPicker from '../../../components/CnTalkRoomPicker/CnTalkRoomPicker.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
 /**
@@ -247,8 +245,9 @@ export default {
 			return stripMarker(raw) || String(this.roomKey(room))
 		},
 
+		// A provider URL is used only when it is a safe scheme; else the app link.
 		roomUrl(room) {
-			if (room.url) {
+			if (room.url && safeHref(room.url) !== '#') {
 				return room.url
 			}
 			const token = room.roomToken ?? room.token ?? room.id ?? ''

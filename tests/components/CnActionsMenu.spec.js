@@ -116,7 +116,6 @@ describe('CnActionsMenu — Documentation link', () => {
 		expect(link.exists()).toBe(true)
 		expect(link.attributes('href')).toBe('https://docs.example.test')
 		expect(link.attributes('target')).toBe('_blank')
-		expect(link.attributes('rel')).toBe('noopener noreferrer')
 	})
 
 	it('uses the documentationLabel prop for the link text', () => {
@@ -173,7 +172,6 @@ describe('CnActionsMenu — Report a bug', () => {
 		expect(u.origin + u.pathname).toBe('https://github.com/ConductionNL/pipelinq/issues/new')
 		expect(u.searchParams.get('title')).toBe('[BUG] widget:w1')
 		expect(link.attributes('target')).toBe('_blank')
-		expect(link.attributes('rel')).toBe('noopener noreferrer')
 	})
 
 	// A translated title in the headline made a report from a Russian or Greek
@@ -279,7 +277,6 @@ describe('CnActionsMenu — default Request-a-feature handler', () => {
 		expect(u.searchParams.get('template')).toBe('feature-request.yml')
 		expect(u.searchParams.get('title')).toBe('[FEATURE] detail:cases')
 		expect(item.attributes('target')).toBe('_blank')
-		expect(item.attributes('rel')).toBe('noopener noreferrer')
 
 		// The browser follows the link; nothing opens a window by script.
 		await item.trigger('click')

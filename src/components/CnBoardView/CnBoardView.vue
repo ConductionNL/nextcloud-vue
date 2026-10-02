@@ -108,6 +108,7 @@
 								:data-card-id="cardKey(card)"
 								:aria-label="cardLabel(card, column)"
 								@click="openCard(card, $event)"
+								@mousedown="preventMiddleClickAutoscroll"
 								@auxclick="onCardAuxClick(card, $event)">
 								{{ openLabel }}
 							</button>
@@ -161,7 +162,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { buildBoardColumns } from '../../utils/boardColumns.js'
 import { buildSwimlanes } from '../../utils/boardSwimlanes.js'
 import { DROP_OUTCOMES, runBoardDrop } from '../../utils/boardTransition.js'
-import { isRowMiddleClick } from '../../utils/rowAuxClick.js'
+import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 
 /**
  * CnBoardView — the index page's rows as a board, one column per stage.
@@ -253,7 +254,7 @@ export default {
 		},
 	},
 
-	emits: ['card-click', 'moved', 'refused', 'stale'],
+	emits: ['card-click', 'card-aux-click', 'moved', 'refused', 'stale'],
 
 	data() {
 		return {
@@ -333,6 +334,8 @@ export default {
 	methods: {
 		t,
 
+		preventMiddleClickAutoscroll,
+
 		/**
 		 * Open one card. The pointer and the keyboard both come through here,
 		 * so a reader on Enter reaches the same record as a reader on click.
@@ -343,13 +346,15 @@ export default {
 		 */
 		openCard(card, event) {
 			/**
-			 * @event card-click Emitted when a reader opens a card, by click, Enter or middle click. Payload: `(card, event)` — the card row and the native event, so the host can open it in a new tab on a ctrl/cmd/shift or middle click.
+			 * @event card-click Emitted when a reader opens a card, by click or Enter. Payload: `(card, event)` — the card row and the native event, so the host can open it in a new tab on a ctrl/cmd/shift click. A middle click emits `card-aux-click` instead.
 			 */
 			this.$emit('card-click', card, event)
 		},
 
 		/**
-		 * Middle click on a card's open button: open it like a click would.
+		 * Middle click on a card's open button: emits `card-aux-click`, not
+		 * `card-click`, so an existing listener that navigates never moves the
+		 * current tab away.
 		 *
 		 * @param {object} card The card the reader picked.
 		 * @param {MouseEvent} event The auxclick event.
@@ -357,7 +362,10 @@ export default {
 		 */
 		onCardAuxClick(card, event) {
 			if (isRowMiddleClick(event)) {
-				this.openCard(card, event)
+				/**
+				 * @event card-aux-click Emitted when a reader middle-clicks a card, for opening it in a new tab (see `openRowTarget`). Payload: `(card, event)` — the card row and the native auxclick event.
+				 */
+				this.$emit('card-aux-click', card, event)
 			}
 		},
 

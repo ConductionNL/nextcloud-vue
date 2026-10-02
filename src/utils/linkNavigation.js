@@ -69,8 +69,11 @@ export function resolveHref(target, router) {
  * click is routed through the router; a modified click, or one a handler
  * already prevented, is left to the browser.
  *
+ * Unlike `resolveHref`, a string target is a router path, so pair the two
+ * with a location object (or `{ path }`) for the href and click to agree.
+ *
  * @param {MouseEvent} event The click event.
- * @param {string|object} target The router location the link points at.
+ * @param {string|object} target The router location the link points at; a string is a router path.
  * @param {object} [router] The app's router.
  * @return {boolean} True when the app navigated.
  */
@@ -96,8 +99,8 @@ export function followLinkClick(event, target, router) {
  *
  * A click that came from a control inside the surface (a button, a link, a
  * checkbox) is left to that control. Opening a new tab marks the event with
- * `preventDefault()`, and an event already marked that way is skipped, so
- * two listeners on the same click never open two tabs.
+ * `markNewTabHandled`, and an event already marked is skipped, so two
+ * listeners on the same click never open two tabs.
  *
  * @param {MouseEvent|KeyboardEvent|null|undefined} event The click event.
  * @param {string|object} target A URL, or a vue-router location.

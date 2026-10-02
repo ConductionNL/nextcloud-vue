@@ -111,7 +111,7 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcCounterBubble, NcLoadingIcon } from '@nextcloud/vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -252,8 +252,9 @@ export default {
 			return stripMarker(raw) || String(this.roomKey(room))
 		},
 
+		// A provider URL is used only when it is a safe scheme; else the app link.
 		roomUrl(room) {
-			if (room.url) {
+			if (room.url && safeHref(room.url) !== '#') {
 				return room.url
 			}
 			const token = room.token ?? room.id ?? ''

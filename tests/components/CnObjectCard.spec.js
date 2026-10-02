@@ -97,12 +97,13 @@ describe('CnObjectCard — body click', () => {
 })
 
 describe('CnObjectCard — middle click', () => {
-	it('emits click with the auxclick event on a middle click', async () => {
+	it('emits aux-click with the auxclick event on a middle click, not click', async () => {
 		const wrapper = mountCard({ selectable: false })
 		await wrapper.find('.cn-object-card').trigger('auxclick', { button: 1 })
-		expect(wrapper.emitted('click')).toHaveLength(1)
-		expect(wrapper.emitted('click')[0][0]).toEqual(object)
-		expect(wrapper.emitted('click')[0][1].button).toBe(1)
+		expect(wrapper.emitted('aux-click')).toHaveLength(1)
+		expect(wrapper.emitted('aux-click')[0][0]).toEqual(object)
+		expect(wrapper.emitted('aux-click')[0][1].button).toBe(1)
+		expect(wrapper.emitted('click')).toBeFalsy()
 	})
 
 	it('ignores a right-button auxclick', async () => {
@@ -116,6 +117,16 @@ describe('CnObjectCard — middle click', () => {
 		await wrapper.find('.cn-object-card').trigger('auxclick', { button: 1 })
 		expect(wrapper.emitted('click')).toBeFalsy()
 		expect(wrapper.emitted('select')).toBeFalsy()
+	})
+
+	it.each([
+		[false, true],
+		[true, false],
+	])('with selectable %s, cancels a middle press (autoscroll): %s', (selectable, prevented) => {
+		const wrapper = mountCard({ selectable })
+		const event = new MouseEvent('mousedown', { button: 1, bubbles: true, cancelable: true })
+		wrapper.find('.cn-object-card').element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(prevented)
 	})
 })
 
