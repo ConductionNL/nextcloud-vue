@@ -32,6 +32,43 @@ Type-aware cell renderer for schema-driven tables. Automatically formats values 
 | `rowKey` | String | `'id'` | Row identifier field — used by the built-in `widget:"link"` when `widgetProps.params` is not declared (default param map is `{ id: row[rowKey] }`). |
 | `truncate` | Number | `100` | Max string length before truncation |
 
+## Avatar and date cells
+
+Two more built-in cell widgets, both set with `widget` on a column.
+
+**`"avatar"`** shows a person: a picture and the name beside it.
+
+```json
+{ "key": "handlerName", "label": "Handler", "widget": "avatar", "widgetProps": { "userField": "handler" } }
+```
+
+| `widgetProps` key | Description |
+|-------------------|-------------|
+| `userField` | Row field that holds the Nextcloud user id. The cell then shows that user's avatar. |
+| `user` | `true` when the cell value itself is the user id. |
+| `nameField` | Row field that holds the name to show. Defaults to the cell value. |
+| `size` | Picture size in pixels. Default 24. |
+
+Without a user id the cell shows the initials of the name, such as "PV" for "Pieter de Vries". The picture is decoration and hidden from screen readers. The name is the text.
+
+**`"date"`** shows a date whose colour follows rules on how far away it is.
+
+```json
+{
+  "key": "deadline",
+  "label": "Deadline",
+  "widget": "date",
+  "widgetProps": {
+    "variantWhen": [
+      { "op": "lt", "value": 0, "variant": "error" },
+      { "op": "lte", "value": 5, "variant": "warning" }
+    ]
+  }
+}
+```
+
+Each rule compares the number of days until the date: `0` is today, a negative number is overdue. The first rule that matches wins. `variant` is `success`, `warning`, `error` or `default`. A date that matched a rule is also set in a heavier weight, so the signal does not rest on colour alone. The same rules are available as [`resolveDateVariant`](../utilities/resolve-date-variant.md), for a board card or any other place a deadline shows.
+
 ## Type Rendering
 
 | Property Type | Rendering |

@@ -18,6 +18,22 @@
 			:placeholder="t('nextcloud-vue', 'Optional subtitle')"
 			@update:modelValue="updateField('subtitle', $event)" />
 
+		<NcCheckboxRadioSwitch
+			:modelValue="greeting"
+			@update:modelValue="updateField('greeting', $event)">
+			{{ t('nextcloud-vue', 'Greet the user by name instead of showing the title') }}
+		</NcCheckboxRadioSwitch>
+		<NcCheckboxRadioSwitch
+			:modelValue="showDate"
+			@update:modelValue="updateField('showDate', $event)">
+			{{ t('nextcloud-vue', 'Show the date of today above the heading') }}
+		</NcCheckboxRadioSwitch>
+		<NcCheckboxRadioSwitch
+			:modelValue="plain"
+			@update:modelValue="updateField('plain', $event)">
+			{{ t('nextcloud-vue', 'Plain header without a coloured background') }}
+		</NcCheckboxRadioSwitch>
+
 		<!-- Pick a background image. Selection does NOT upload — the file is held
 		     and only uploaded when the host modal calls commit() on submit, so
 		     re-picking or cancelling writes nothing. Uploads are the reliable
@@ -162,7 +178,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 import { embedAsDataUrl, extractTransportUrl, readFileAsDataUrl, warnUploadFnDeprecated } from '../../utils/widgetUpload.js'
 
@@ -206,6 +222,7 @@ export default {
 		NcTextField,
 		NcSelect,
 		NcButton,
+		NcCheckboxRadioSwitch,
 		CnColorPicker,
 	},
 
@@ -282,6 +299,11 @@ export default {
 		return {
 			title: typeof initial.title === 'string' ? initial.title : DEFAULT_CONTENT.title,
 			subtitle: typeof initial.subtitle === 'string' ? initial.subtitle : DEFAULT_CONTENT.subtitle,
+			greeting: initial.greeting === true || initial.greeting === 'full' || initial.greeting === 'first',
+			// `"full"` (whole display name) is a manifest choice; kept as written.
+			greetingMode: initial.greeting === 'full' ? 'full' : true,
+			showDate: initial.showDate === true,
+			plain: initial.plain === true,
 			backgroundImageUrl: typeof initial.backgroundImageUrl === 'string'
 				? initial.backgroundImageUrl
 				: DEFAULT_CONTENT.backgroundImageUrl,
@@ -394,9 +416,31 @@ export default {
 			}
 		},
 
+		/**
+		 * The greeting keys, written only when they are on, so a header that
+		 * never used them keeps the content blob it always had.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
+		greetingContent() {
+			const content = {}
+			if (this.greeting) {
+				content.greeting = this.greetingMode
+			}
+			if (this.showDate) {
+				content.showDate = true
+			}
+			if (this.plain) {
+				content.plain = true
+			}
+			return content
+		},
+
 		/** The full content blob assembled from the current field values. */
 		assembledContent() {
 			return {
+				...this.greetingContent,
 				title: this.title,
 				subtitle: this.subtitle,
 				backgroundImageUrl: this.backgroundImageUrl,
@@ -541,7 +585,8 @@ export default {
 		 */
 		validate() {
 			const errors = []
-			if (typeof this.title !== 'string' || this.title.trim() === '') {
+			// A greeting is the heading, so a greeting header needs no title.
+			if (!this.greeting && (typeof this.title !== 'string' || this.title.trim() === '')) {
 				errors.push(t('nextcloud-vue', 'Title is required'))
 			}
 			if (typeof this.backgroundImageUrl === 'string'

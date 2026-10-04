@@ -45,6 +45,7 @@ export default { components: { CnTabs, CnTab } }
 | `contentClass` | `String` | `''` | Extra class on the panel container. bootstrap-vue's `content-class`. |
 | `justified` | `Boolean` | `false` | Stretch the nav items to fill the strip. bootstrap-vue's `justified`. |
 | `card` | `Boolean` | `false` | Card-style chrome (border + padding) around the panel area. |
+| `variant` | `'line' \| 'segmented'` | `'line'` | How the strip is drawn. `segmented` is a compact pill switch for a view switch such as "My work / My team". Roles and keyboard behaviour stay the same. For a switch without panels, use [`CnSegmentedControl`](./cn-segmented-control.md). |
 | `ariaLabel` | `String` | `''` | Accessible name applied to the `role="tablist"` element. **Set this** — screen-reader users otherwise hear an unnamed tab list. |
 
 ## Slots

@@ -77,3 +77,39 @@ export async function fetchAggregateValue(source, ctx) {
 	const res = await axios.get(url, { params })
 	return (res && res.data && res.data.value !== undefined) ? res.data.value : null
 }
+
+/**
+ * Fetch the object count per distinct value of one field, in ONE request,
+ * from OpenRegister's `/grouped` aggregation endpoint.
+ *
+ * @param {object} source The grouped descriptor.
+ * @param {string} source.register The register slug.
+ * @param {string} source.schema The schema slug.
+ * @param {string} source.groupBy The field to group on.
+ * @param {object} [source.filter] The filter map.
+ * @param {{objectId?: (string|number), object?: object, workspace?: object}} [ctx] Optional
+ *   token-resolution context for the filter.
+ * @return {Promise<Array<{key: string, count: number}>>} One entry per group; [] when the source is incomplete.
+ * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-stacked-bar-widget
+ */
+export async function fetchGroupedCounts(source, ctx) {
+	const s = source || {}
+	if (!s.register || !s.schema || !s.groupBy) {
+		return []
+	}
+	const [{ default: axios }, { generateUrl }] = await Promise.all([
+		import('@nextcloud/axios'),
+		import('@nextcloud/router'),
+	])
+	const url = generateUrl(
+		'/apps/openregister/api/objects/aggregations/{register}/{schema}/grouped',
+		{ register: s.register, schema: s.schema },
+	)
+	const params = { groupBy: s.groupBy, metric: 'count' }
+	flattenAggFilter(params, s.filter || {}, ctx)
+	const res = await axios.get(url, { params })
+	const groups = (res && res.data && Array.isArray(res.data.groups)) ? res.data.groups : []
+	return groups
+		.filter((g) => g && g.key !== null && g.key !== undefined && g.key !== '')
+		.map((g) => ({ key: String(g.key), count: Number(g.value) || 0 }))
+}

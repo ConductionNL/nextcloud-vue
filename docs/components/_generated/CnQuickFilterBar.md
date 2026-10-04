@@ -13,6 +13,7 @@
 | `selectLabel`     | `string`   |          | `'Filter'` | Accessible label / placeholder for the dropdown control.                                                                                                                                                                                                                                                                          |
 | `placeholder`     | `string`   |          | `''`       | Placeholder text for the dropdown (falls back to `selectLabel`).                                                                                                                                                                                                                                                                  |
 | `maxVisible`      | `number`   |          | `0`        | Chips mode only: how many pills render inline before the rest move into an overflow menu. `0` (the default) renders every tab, which is the behaviour this component has always had. The visible set is the FIRST `maxVisible` tabs in declared order — reorder `tabs` to change which ones stay out. Ignored in `dropdown` mode. |
+| `counts`          | `union`    |          | `null`     | How many records each tab matches, keyed by tab index (an array in tab order works too). A tab with a number here shows it after its label; a tab without one shows no count. A tab can also carry its own `count`. `null` (the default) shows no counts at all.                                                                  |
 
 ### Events
 

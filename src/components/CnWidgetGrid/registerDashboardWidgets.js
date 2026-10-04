@@ -25,12 +25,16 @@ import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
 import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
+import CnStackedBarWidget from '../CnStackedBarWidget/CnStackedBarWidget.vue'
+import CnStackedBarWidgetForm from '../CnStackedBarWidgetForm/CnStackedBarWidgetForm.vue'
 import CnStagesWidget from '../CnStagesWidget/CnStagesWidget.vue'
 import CnStagesWidgetForm from '../CnStagesWidgetForm/CnStagesWidgetForm.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
 import CnStatsBlockWidgetForm from '../CnStatsBlockWidgetForm/CnStatsBlockWidgetForm.vue'
 import CnTabsWidget from '../CnTabsWidget/CnTabsWidget.vue'
 import CnTabsWidgetForm from '../CnTabsWidgetForm/CnTabsWidgetForm.vue'
+import CnWeekStripWidget from '../CnWeekStripWidget/CnWeekStripWidget.vue'
+import CnWeekStripWidgetForm from '../CnWeekStripWidgetForm/CnWeekStripWidgetForm.vue'
 // Typed widgets registered with an explicit renderer + config FORM. chart /
 // stats-block render through CnDashboardPage's own isChart()/isStatsBlock()
 // branches and `related` through CnDetailPage's isRelatedWidget() branch — the
@@ -256,6 +260,38 @@ registerDashboardWidget('tabs', {
 	// the group twice.
 	ownsTitle: true,
 	surfaces: ['detail-page'],
+})
+
+// The current week as day columns, with the dated items under each day.
+// Registered inline for the same tree-shaking reason as `map` above.
+registerDashboardWidget('week-strip', {
+	renderer: CnWeekStripWidget,
+	form: CnWeekStripWidgetForm,
+	defaultContent: {
+		source: { register: '', schema: '', filter: {} },
+		dateField: '',
+		titleField: '',
+		metaFields: [],
+		days: 5,
+		itemRoute: '',
+		emptyText: '',
+	},
+	displayName: 'Week strip',
+	icon: 'Calendar',
+})
+
+// One segmented bar with a legend that carries the numbers.
+registerDashboardWidget('stacked-bar', {
+	renderer: CnStackedBarWidget,
+	form: CnStackedBarWidgetForm,
+	defaultContent: {
+		source: { register: '', schema: '', groupBy: '', filter: {} },
+		order: [],
+		labels: {},
+		emptyText: '',
+	},
+	displayName: 'Stacked bar',
+	icon: 'ChartBar',
 })
 
 /**

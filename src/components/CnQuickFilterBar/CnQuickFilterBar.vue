@@ -44,6 +44,10 @@
 					:size="16"
 					class="cn-quick-filter-bar__icon" />
 				<span class="cn-quick-filter-bar__label">{{ entry.tab.label }}</span>
+				<span
+					v-if="countOf(entry) !== null"
+					class="cn-quick-filter-bar__count"
+					data-testid="cn-quick-filter-count">{{ countOf(entry) }}</span>
 			</button>
 		</div>
 		<!-- The overflow is a CHIP and not a toolbar button: it is one of the
@@ -96,6 +100,10 @@
 							:size="16"
 							class="cn-quick-filter-bar__icon" />
 						<span class="cn-quick-filter-bar__label">{{ entry.tab.label }}</span>
+						<span
+							v-if="countOf(entry) !== null"
+							class="cn-quick-filter-bar__count"
+							data-testid="cn-quick-filter-count">{{ countOf(entry) }}</span>
 					</button>
 				</div>
 			</div>
@@ -231,6 +239,19 @@ export default {
 			default: 0,
 			validator: (v) => Number.isFinite(v) && v >= 0,
 		},
+
+		/**
+		 * How many records each tab matches, keyed by tab index (an array in
+		 * tab order works too). A tab with a number here shows it after its
+		 * label; a tab without one shows no count. A tab can also carry its
+		 * own `count`. `null` (the default) shows no counts at all.
+		 *
+		 * @type {{[index: number]: number}|Array<number|null>|null}
+		 */
+		counts: {
+			type: [Object, Array],
+			default: null,
+		},
 	},
 
 	emits: ['update:active-index', 'update:selected-indices'],
@@ -327,7 +348,15 @@ export default {
 		 */
 		dropdownOptions() {
 			return this.tabs
-				.map((tab, index) => ({ label: tab.label, icon: tab.icon, index, _empty: this.isEmptyFilter(tab) }))
+				.map((tab, index) => {
+					const count = this.countOf({ tab, index })
+					return {
+						label: count === null ? tab.label : `${tab.label} (${count})`,
+						icon: tab.icon,
+						index,
+						_empty: this.isEmptyFilter(tab),
+					}
+				})
 				.filter((o) => !o._empty)
 		},
 
@@ -346,6 +375,20 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The count to show on a tab, or null for none: `counts[index]`
+		 * first, else the tab's own `count`.
+		 *
+		 * @param {{tab: object, index: number}} entry The tab and its index.
+		 * @return {number|null}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
+		 */
+		countOf(entry) {
+			const fromProp = this.counts ? this.counts[entry.index] : undefined
+			const value = (fromProp !== undefined && fromProp !== null) ? fromProp : entry.tab.count
+			return (typeof value === 'number' && Number.isFinite(value)) ? value : null
+		},
+
 		/**
 		 * Is tab `i` rendered active in chips mode (handles both single
 		 * `activeIndex` and `multiple` `selectedIndices`).
@@ -499,6 +542,19 @@ export default {
 
 .cn-quick-filter-bar__label {
 	line-height: 1;
+}
+
+/* Inherits the chip's own text colour, so it stays readable on the active
+   (primary) fill as well as on the resting one. */
+.cn-quick-filter-bar__count {
+	min-width: 1.5em;
+	padding: 2px 6px;
+	border: 1px solid currentColor;
+	border-radius: var(--border-radius-pill, 10px);
+	font-size: 0.85em;
+	font-weight: 600;
+	line-height: 1;
+	text-align: center;
 }
 
 /* NcPopover wraps its trigger in a plain `<div class="v-popper">`, which as a
