@@ -257,6 +257,7 @@ export default {
 		 *
 		 * @param {object} row The row from buildViewTree().
 		 * @return {string} The name.
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
 		 */
 		rowName(row) {
 			return `${'\u2007'.repeat(row.depth * 2)}${this.nameWithCount(row.view)}`
@@ -303,6 +304,7 @@ export default {
 		 *
 		 * @param {object} row The row from buildViewTree().
 		 * @return {string} The accessible label.
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
 		 */
 		rowLabel(row) {
 			const viewName = this.nameWithCount(row.view)

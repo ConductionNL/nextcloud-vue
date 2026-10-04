@@ -37,7 +37,7 @@ function dashboard(widgets) {
 	}
 }
 
-const errorsOf = (manifest) => {
+function errorsOf(manifest) {
 	const result = validateManifest(manifest)
 	return result.valid ? [] : result.errors
 }

@@ -4349,6 +4349,7 @@ export default {
 	watch: {
 		countRequestKey: {
 			immediate: true,
+			/** @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views */
 			handler() {
 				this.loadFilterCounts()
 			},

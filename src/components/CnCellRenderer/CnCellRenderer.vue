@@ -458,6 +458,7 @@ export default {
 		 * `avatar` widget: the picture size in pixels (`widgetProps.size`, default 24).
 		 *
 		 * @return {number}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
 		 */
 		avatarSize() {
 			const size = Number(this.widgetProps && this.widgetProps.size)

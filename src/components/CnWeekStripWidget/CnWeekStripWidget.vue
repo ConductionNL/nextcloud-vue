@@ -163,6 +163,7 @@ export default {
 		 * The translate function in use.
 		 *
 		 * @return {(key: string) => string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
 		 */
 		effectiveTranslate() {
 			return this.translate ?? this.cnTranslate
@@ -172,6 +173,7 @@ export default {
 		 * The reference moment.
 		 *
 		 * @return {Date}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
 		 */
 		reference() {
 			return this.now instanceof Date ? this.now : new Date()
@@ -181,6 +183,7 @@ export default {
 		 * How many day columns render: 7, or 5 for anything else.
 		 *
 		 * @return {number}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
 		 */
 		dayCount() {
 			return Number(this.content.days) === 7 ? 7 : 5
@@ -190,6 +193,7 @@ export default {
 		 * The days of the strip, Monday first.
 		 *
 		 * @return {Array<Date>}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
 		 */
 		weekDays() {
 			const ref = this.reference
@@ -206,6 +210,7 @@ export default {
 		 * The field the items are bucketed by.
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
 		 */
 		dateField() {
 			return typeof this.content.dateField === 'string' ? this.content.dateField : ''
@@ -215,6 +220,7 @@ export default {
 		 * Whether the items come from OpenRegister.
 		 *
 		 * @return {boolean}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
 		 */
 		hasSource() {
 			const s = this.content.source || {}
@@ -225,6 +231,7 @@ export default {
 		 * Every item, from the source rows or the static list, in one shape.
 		 *
 		 * @return {Array<{key: string, title: string, meta: string, date: (Date|null), late: boolean, href: string, target: (object|string|null)}>}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
 		 */
 		normalizedItems() {
 			if (this.hasSource) {
@@ -240,6 +247,7 @@ export default {
 		 * The columns: one per day, each with its items.
 		 *
 		 * @return {Array<{key: string, label: string, today: boolean, items: Array<object>}>}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
 		 */
 		dayColumns() {
 			const todayKey = dayKey(this.reference)
@@ -267,6 +275,7 @@ export default {
 		 * Formats a day as a short weekday and a day number ("Mon 5").
 		 *
 		 * @return {Intl.DateTimeFormat}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
 		 */
 		dayFormatter() {
 			let locale
@@ -286,6 +295,7 @@ export default {
 		 * The text of a day without items.
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
 		 */
 		emptyLabel() {
 			const text = this.content.emptyText
@@ -294,27 +304,47 @@ export default {
 				: t('nextcloud-vue', 'Nothing planned')
 		},
 
-		/** @return {string} The badge on today's column. */
+		/**
+		 * @return {string} The badge on today's column.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
+		 */
 		todayLabel() {
 			return t('nextcloud-vue', 'today')
 		},
 
-		/** @return {string} The marker on a late item. */
+		/**
+		 * @return {string} The marker on a late item.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
+		 */
 		lateLabel() {
 			return t('nextcloud-vue', 'Late')
 		},
 
-		/** @return {string} The accessible name of the scrolling region. */
+		/**
+		 * @return {string} The accessible name of the scrolling region.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
+		 */
 		regionLabel() {
 			return t('nextcloud-vue', 'This week, day by day')
 		},
 
-		/** @return {string} The loading text. */
+		/**
+		 * @return {string} The loading text.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
+		 */
 		loadingLabel() {
 			return t('nextcloud-vue', 'Loading…')
 		},
 
-		/** @return {string} The text shown when the items could not be loaded. */
+		/**
+		 * @return {string} The text shown when the items could not be loaded.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
+		 */
 		errorLabel() {
 			return t('nextcloud-vue', 'The items for this week could not be loaded.')
 		},
@@ -323,6 +353,7 @@ export default {
 		 * Changes whenever a new fetch is needed.
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
 		 */
 		sourceKey() {
 			return JSON.stringify({
@@ -334,6 +365,7 @@ export default {
 	},
 
 	watch: {
+		/** @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget */
 		sourceKey() {
 			this.fetchItems()
 		},

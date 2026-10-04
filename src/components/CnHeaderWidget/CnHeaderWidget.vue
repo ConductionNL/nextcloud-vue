@@ -192,6 +192,7 @@ export default {
 		 * The moment the greeting and date line are computed for.
 		 *
 		 * @return {Date}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
 		 */
 		reference() {
 			return this.now instanceof Date ? this.now : new Date()
@@ -290,6 +291,7 @@ export default {
 		 * text colour on a plain header.
 		 *
 		 * @return {object}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
 		 */
 		dateStyle() {
 			return {
@@ -327,7 +329,11 @@ export default {
 			return this.backgroundImageUrl !== '' && this.imageFailed === false
 		},
 
-		/** Resolved background colour (default theme primary). */
+		/**
+		 * Resolved background colour (default theme primary).
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
 		backgroundColor() {
 			const value = this.content && this.content.backgroundColor
 			if (typeof value === 'string' && value !== '') {
@@ -393,7 +399,11 @@ export default {
 			return HEIGHT_PIXELS[this.height]
 		},
 
-		/** Resolved text alignment (default `center`). */
+		/**
+		 * Resolved text alignment (default `center`).
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
 		textAlign() {
 			const declared = this.content && this.content.textAlign
 			if (typeof declared === 'string' && ALLOWED_TEXT_ALIGN.includes(declared)) {
@@ -411,7 +421,11 @@ export default {
 			return 'middle'
 		},
 
-		/** Resolved text colour with an auto-contrast fallback. */
+		/**
+		 * Resolved text colour with an auto-contrast fallback.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
 		textColor() {
 			const value = this.content && this.content.textColor
 			if (typeof value === 'string' && value !== '') {
@@ -467,7 +481,11 @@ export default {
 			}
 		},
 
-		/** Inline style for the content flex container. */
+		/**
+		 * Inline style for the content flex container.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
 		contentStyle() {
 			return {
 				position: 'relative',

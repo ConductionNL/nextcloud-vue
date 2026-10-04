@@ -7,8 +7,8 @@
  * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
  */
 
-import { mount } from '@vue/test-utils'
 import { getCurrentUser } from '@nextcloud/auth'
+import { mount } from '@vue/test-utils'
 import CnHeaderWidget from '../../src/components/CnHeaderWidget/CnHeaderWidget.vue'
 import CnHeaderWidgetForm from '../../src/components/CnHeaderWidgetForm/CnHeaderWidgetForm.vue'
 
@@ -66,7 +66,9 @@ describe('CnHeaderWidget greeting', () => {
 	})
 
 	it('greets without a name when reading the user throws', () => {
-		getCurrentUser.mockImplementation(() => { throw new Error('no session') })
+		getCurrentUser.mockImplementation(() => {
+			throw new Error('no session')
+		})
 		expect(mountHeader({ greeting: true }).find('h2').text()).toBe('Good afternoon')
 	})
 

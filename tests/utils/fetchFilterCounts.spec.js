@@ -84,7 +84,10 @@ describe('fetchFilterCounts', () => {
 		expect(fetchGroupedCounts).not.toHaveBeenCalled()
 		expect(fetchAggregateValue).toHaveBeenCalledTimes(2)
 		expect(fetchAggregateValue.mock.calls[0][0]).toEqual({
-			register: 'dossiq', schema: 'case', metric: 'count', filter: { type: 'woo', deadline: { lt: '2026-10-05' } },
+			register: 'dossiq',
+			schema: 'case',
+			metric: 'count',
+			filter: { type: 'woo', deadline: { lt: '2026-10-05' } },
 		})
 		expect(counts).toEqual({ late: 4, mine: 7 })
 	})

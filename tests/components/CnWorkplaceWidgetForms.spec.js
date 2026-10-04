@@ -16,7 +16,7 @@ jest.mock('../../src/utils/fetchSchemaProperties.js', () => ({
 	fetchSchemaProperties: jest.fn().mockResolvedValue([]),
 }))
 
-const last = (wrapper) => {
+function last(wrapper) {
 	const emitted = wrapper.emitted('update:content')
 	return emitted[emitted.length - 1][0]
 }

@@ -167,6 +167,7 @@ export default {
 		 * The translate function in use.
 		 *
 		 * @return {(key: string) => string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-stacked-bar-widget
 		 */
 		effectiveTranslate() {
 			return this.translate ?? this.cnTranslate
@@ -176,6 +177,7 @@ export default {
 		 * Whether the segments come from OpenRegister.
 		 *
 		 * @return {boolean}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-stacked-bar-widget
 		 */
 		hasSource() {
 			const s = this.content.source || {}
@@ -239,6 +241,7 @@ export default {
 		 * The segments that take up room in the bar.
 		 *
 		 * @return {Array<object>}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-stacked-bar-widget
 		 */
 		barSegments() {
 			return this.segments.filter((segment) => segment.count > 0)
@@ -248,6 +251,7 @@ export default {
 		 * The sum of all counts.
 		 *
 		 * @return {number}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-stacked-bar-widget
 		 */
 		total() {
 			return this.segments.reduce((sum, segment) => sum + segment.count, 0)
@@ -257,6 +261,7 @@ export default {
 		 * The text shown when there is nothing to count.
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-stacked-bar-widget
 		 */
 		emptyLabel() {
 			const text = this.content.emptyText
@@ -265,12 +270,20 @@ export default {
 				: t('nextcloud-vue', 'Nothing to show yet')
 		},
 
-		/** @return {string} The loading text. */
+		/**
+		 * @return {string} The loading text.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-stacked-bar-widget
+		 */
 		loadingLabel() {
 			return t('nextcloud-vue', 'Loading…')
 		},
 
-		/** @return {string} The text shown when the counts could not be loaded. */
+		/**
+		 * @return {string} The text shown when the counts could not be loaded.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-stacked-bar-widget
+		 */
 		errorLabel() {
 			return t('nextcloud-vue', 'The numbers could not be loaded.')
 		},
@@ -279,6 +292,7 @@ export default {
 		 * Changes whenever a new fetch is needed.
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-stacked-bar-widget
 		 */
 		sourceKey() {
 			return JSON.stringify(this.content.source || {})
@@ -286,6 +300,7 @@ export default {
 	},
 
 	watch: {
+		/** @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-stacked-bar-widget */
 		sourceKey() {
 			this.fetchGroups()
 		},

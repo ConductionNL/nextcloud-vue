@@ -29,10 +29,12 @@ const CARD = {
 	],
 }
 
-const router = () => ({
-	push: jest.fn().mockResolvedValue(),
-	resolve: (location) => ({ href: `/app/${location.name}` }),
-})
+function router() {
+	return {
+		push: jest.fn().mockResolvedValue(),
+		resolve: (location) => ({ href: `/app/${location.name}` }),
+	}
+}
 
 describe('CnBannerWidget attention card', () => {
 	afterEach(() => {
@@ -106,7 +108,7 @@ describe('CnBannerWidget attention card', () => {
 		const wrapper = mount(CnBannerWidget, {
 			propsData: {
 				...CARD,
-				// eslint-disable-next-line no-script-url
+
 				actions: [{ label: 'Docs', href: 'https://example.org/docs' }, { label: 'Bad', href: 'javascript:alert(1)' }],
 			},
 		})

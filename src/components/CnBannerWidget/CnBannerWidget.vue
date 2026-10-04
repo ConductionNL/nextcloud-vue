@@ -302,6 +302,8 @@ export default {
 		 * the text renders as written — a `{value}` placeholder only makes
 		 * sense on a conditional banner, which stays hidden until its
 		 * predicate (and therefore its value) resolves.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
 		 */
 		displayText() {
 			return this.fillValue(this.resolvedText)
@@ -399,7 +401,11 @@ export default {
 			})
 		},
 
-		/** Whether the banner renders: no condition = always; else the evaluated outcome. */
+		/**
+		 * Whether the banner renders: no condition = always; else the evaluated outcome.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
 		visible() {
 			const title = this.title || (this.content && this.content.title) || ''
 			if (this.resolvedText === '' && !(this.isAttention && title !== '')) {
@@ -548,7 +554,6 @@ export default {
 .cn-banner-widget--attention {
 	--cn-banner-accent: var(--color-primary-element);
 	--cn-banner-accent-text: var(--color-primary-element);
-
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;

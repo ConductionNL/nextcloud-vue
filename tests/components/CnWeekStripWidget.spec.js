@@ -8,10 +8,11 @@
  * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
  */
 
-import { mount } from '@vue/test-utils'
 import axios from '@nextcloud/axios'
+import { mount } from '@vue/test-utils'
 import CnWeekStripWidget from '../../src/components/CnWeekStripWidget/CnWeekStripWidget.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
 
 jest.mock('@nextcloud/router', () => ({
@@ -60,7 +61,11 @@ describe('CnWeekStripWidget', () => {
 		const wrapper = mountStrip(STATIC)
 		const days = wrapper.findAll('.cn-week-strip__day')
 		expect(days.map((day) => day.attributes('data-day'))).toEqual([
-			'2026-10-05', '2026-10-06', '2026-10-07', '2026-10-08', '2026-10-09',
+			'2026-10-05',
+			'2026-10-06',
+			'2026-10-07',
+			'2026-10-08',
+			'2026-10-09',
 		])
 		expect(wrapper.text()).not.toContain('Saturday item')
 	})
@@ -161,7 +166,6 @@ describe('CnWeekStripWidget', () => {
 	})
 
 	it('drops an unsafe href', () => {
-		// eslint-disable-next-line no-script-url
 		const wrapper = mountStrip({ items: [{ title: 'Bad', date: '2026-10-07', href: 'javascript:alert(1)' }] })
 		expect(wrapper.find('a').exists()).toBe(false)
 	})
@@ -234,7 +238,9 @@ describe('CnWeekStripWidget', () => {
 
 		it('shows a loading state while the request is out', async () => {
 			let resolve
-			jest.spyOn(axios, 'get').mockReturnValue(new Promise((r) => { resolve = r }))
+			jest.spyOn(axios, 'get').mockReturnValue(new Promise((r) => {
+				resolve = r
+			}))
 			const wrapper = mountStrip(SOURCE)
 			await flush()
 			expect(wrapper.find('[role="status"]').exists()).toBe(true)

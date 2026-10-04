@@ -16,7 +16,7 @@ const { mount } = require('@vue/test-utils')
 const CnCellRenderer = require('../../src/components/CnCellRenderer/CnCellRenderer.vue').default
 
 const DAY = 86400000
-const iso = (offsetDays) => {
+function iso(offsetDays) {
 	const date = new Date(Date.now() + offsetDays * DAY)
 	return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
 }

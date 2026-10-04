@@ -125,7 +125,11 @@ export default {
 			return ['info', 'warning', 'error']
 		},
 
-		/** Selectable layouts: the note card or the attention card. */
+		/**
+		 * Selectable layouts: the note card or the attention card.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
 		layoutOptions() {
 			return ['banner', 'attention']
 		},
@@ -176,6 +180,7 @@ export default {
 		 * Validate the form; an empty array means valid.
 		 *
 		 * @return {string[]} the validation errors.
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
 		 */
 		validate() {
 			if (this.layout === 'attention') {

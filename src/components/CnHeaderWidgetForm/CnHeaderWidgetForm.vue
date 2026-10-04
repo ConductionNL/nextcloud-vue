@@ -437,7 +437,11 @@ export default {
 			return content
 		},
 
-		/** The full content blob assembled from the current field values. */
+		/**
+		 * The full content blob assembled from the current field values.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
 		assembledContent() {
 			return {
 				...this.greetingContent,
@@ -582,6 +586,7 @@ export default {
 		 * when either CTA field is filled.
 		 *
 		 * @return {string[]} the validation errors.
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
 		 */
 		validate() {
 			const errors = []

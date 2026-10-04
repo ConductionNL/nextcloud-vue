@@ -345,6 +345,7 @@ export default {
 		 * omitted — an empty selection already means "all".
 		 *
 		 * @return {Array<{label: string, index: number, icon: string}>}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
 		 */
 		dropdownOptions() {
 			return this.tabs

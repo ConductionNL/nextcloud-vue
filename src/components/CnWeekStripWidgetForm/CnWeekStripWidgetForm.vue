@@ -123,7 +123,11 @@ export default {
 	},
 
 	computed: {
-		/** The day counts on offer: working days or the whole week. */
+		/**
+		 * The day counts on offer: working days or the whole week.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-week-strip-widget
+		 */
 		dayOptions() {
 			return [5, 7]
 		},

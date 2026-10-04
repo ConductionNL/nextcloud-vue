@@ -12,6 +12,7 @@ import { mount } from '@vue/test-utils'
 import CnStackedBarWidget, { rampColor } from '../../src/components/CnStackedBarWidget/CnStackedBarWidget.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { fetchGroupedCounts } from '../../src/utils/fetchAggregate.js'
+
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
 
 jest.mock('../../src/utils/fetchAggregate.js', () => ({
@@ -140,7 +141,9 @@ describe('CnStackedBarWidget', () => {
 
 		it('shows a loading state, then the result', async () => {
 			let resolve
-			fetchGroupedCounts.mockReturnValue(new Promise((r) => { resolve = r }))
+			fetchGroupedCounts.mockReturnValue(new Promise((r) => {
+				resolve = r
+			}))
 			const wrapper = mount(CnStackedBarWidget, { propsData: { content: SOURCE } })
 			await flush()
 			expect(wrapper.find('[role="status"]').exists()).toBe(true)
