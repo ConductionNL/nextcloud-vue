@@ -17,10 +17,13 @@
 
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnChartWidgetForm from '../CnChartWidgetForm/CnChartWidgetForm.vue'
+import CnConversationWidget from '../CnConversationThread/CnConversationWidget.vue'
 import CnCountdownWidget from '../CnCountdownWidget/CnCountdownWidget.vue'
 import CnCountdownWidgetForm from '../CnCountdownWidgetForm/CnCountdownWidgetForm.vue'
+import CnDocumentReviewWidget from '../CnDocumentReviewList/CnDocumentReviewWidget.vue'
 import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
 import CnMapWidgetForm from '../CnMapWidgetForm/CnMapWidgetForm.vue'
+import CnNextStepWidget from '../CnNextStepCard/CnNextStepWidget.vue'
 import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
 import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
@@ -215,6 +218,41 @@ registerDashboardWidget('countdown', {
 	card: true,
 	// It reads a date off the BOUND RECORD, which only a detail page has.
 	surfaces: ['detail-page'],
+})
+
+// The case surfaces (detail-action-model-and-case-surfaces). Each reads the
+// BOUND RECORD, which only a detail page has, and none has a config form yet,
+// so `form: null` keeps them out of the Add-widget picker: they are placed
+// from the manifest. Registered inline for the same tree-shaking reason as
+// `map` above.
+registerDashboardWidget('next-step', {
+	renderer: CnNextStepWidget,
+	form: null,
+	defaultContent: { field: 'status', stages: {} },
+	displayName: 'Next step',
+	icon: 'CheckCircleOutline',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
+registerDashboardWidget('document-review', {
+	renderer: CnDocumentReviewWidget,
+	form: null,
+	defaultContent: { field: 'documents', statusField: 'reviewStatus', statuses: [] },
+	displayName: 'Document review',
+	icon: 'FileDocumentCheckOutline',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
+registerDashboardWidget('conversation', {
+	renderer: CnConversationWidget,
+	form: null,
+	defaultContent: { field: 'messages', endpoint: '' },
+	displayName: 'Conversation',
+	icon: 'ForumOutline',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
 })
 
 // The record's stages, where clicking a stage moves the record there.
