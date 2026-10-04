@@ -616,3 +616,92 @@ describe('CnRelatedObjectsWidget — extraSections on the tabbed path', () => {
 			.toContain('Planned cases')
 	})
 })
+
+/**
+ * Object rows name the object, never a bare number.
+ *
+ * OpenRegister's `/uses` and `/used` answer `@self.schema` as the numeric
+ * schema id, and `@self.name` as the uuid when the schema configures no name
+ * field. The row fell back to that schema id, so a learniq conference slot's
+ * panel read "120", "43", "122" (lq-polish, 2026-10-03).
+ */
+describe('CnRelatedObjectsWidget — object rows name the object', () => {
+	beforeEach(() => {
+		integrations.__resetForTests()
+		jest.clearAllMocks()
+		global.OC = { requestToken: 'tok' }
+	})
+
+	afterEach(() => {
+		delete global.fetch
+		delete global.OC
+	})
+
+	const rowsOf = (wrapper) => wrapper.findAll('.cn-related-objects-widget__row').map((row) => ({
+		label: row.find('.cn-related-objects-widget__label').text(),
+		meta: row.find('.cn-related-objects-widget__meta').exists() ? row.find('.cn-related-objects-widget__meta').text() : '',
+	}))
+
+	it('shows the schema title, not its numeric id, for an object without a name', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: {},
+			uses: { results: [{ id: 'aaaaaaaa-0000-4000-8000-000000000001', '@self': { name: 'aaaaaaaa-0000-4000-8000-000000000001', schema: '9120' } }], total: 1 },
+			used: { results: [], total: 0 },
+			files: { results: [], total: 0 },
+			9120: { id: 9120, slug: 'conference-signup', title: 'Conference Signup' },
+		})
+		const wrapper = mount(CnRelatedObjectsWidget, { propsData: { objectData: SELF }, stubs })
+		await flush()
+		await flush()
+		expect(rowsOf(wrapper)).toEqual([{ label: 'Conference Signup', meta: '' }])
+	})
+
+	it('names a person by given and family name, with the schema title beside it', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: {},
+			uses: { results: [{ id: 'aaaaaaaa-0000-4000-8000-000000000002', givenName: 'Vera', familyName: 'Hulstkamp', '@self': { name: 'aaaaaaaa-0000-4000-8000-000000000002', schema: '9043' } }], total: 1 },
+			used: { results: [], total: 0 },
+			files: { results: [], total: 0 },
+			9043: { id: 9043, slug: 'learner-profile', title: 'Learner profile' },
+		})
+		const wrapper = mount(CnRelatedObjectsWidget, { propsData: { objectData: SELF }, stubs })
+		await flush()
+		await flush()
+		expect(rowsOf(wrapper)).toEqual([{ label: 'Vera Hulstkamp', meta: 'Learner profile' }])
+	})
+
+	it('translates the schema title through the host app catalogue', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: {},
+			uses: { results: [{ id: 'r1', name: 'Oudergesprekken groep 7', '@self': { schema: '9118' } }], total: 1 },
+			used: { results: [], total: 0 },
+			files: { results: [], total: 0 },
+			9118: { id: 9118, title: 'Conference Round' },
+		})
+		const wrapper = mount(CnRelatedObjectsWidget, {
+			propsData: { objectData: SELF },
+			stubs,
+			provide: { cnTranslate: (key) => (key === 'Conference Round' ? 'Gespreksronde' : key) },
+		})
+		await flush()
+		await flush()
+		expect(rowsOf(wrapper)).toEqual([{ label: 'Oudergesprekken groep 7', meta: 'Gespreksronde' }])
+	})
+
+	it('shows no number when the schema cannot be read', async () => {
+		global.fetch = jest.fn((url) => {
+			const suffix = String(url).split('/').pop()
+			if (suffix === '9999') {
+				return Promise.resolve({ ok: false, json: () => Promise.resolve({}) })
+			}
+			const bodies = {
+				uses: { results: [{ id: 'r2', title: 'A thing', '@self': { schema: '9999' } }], total: 1 },
+			}
+			return Promise.resolve({ ok: true, json: () => Promise.resolve(bodies[suffix] ?? {}) })
+		})
+		const wrapper = mount(CnRelatedObjectsWidget, { propsData: { objectData: SELF }, stubs })
+		await flush()
+		await flush()
+		expect(rowsOf(wrapper)).toEqual([{ label: 'A thing', meta: '' }])
+	})
+})
