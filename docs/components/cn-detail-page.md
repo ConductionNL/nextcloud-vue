@@ -59,6 +59,124 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `bodyWidgets` | Array | `[]` | **Declarative IN-BODY sections.** Each entry `{ id?, component, title?, props?, placement?, colSpan?, card? }` renders a REGISTERED host-app component as a titled section in the page **body** (not the sidebar), with the object/page context injected. `component` is a registry name resolved from the app's v2 `registry` (any kind exposing a `.component`, e.g. `kind:"section"` / `kind:"widget"`) or the legacy `customComponents` map — **no sidebar tab is required**. `props` values are token-resolved (`@objectId`, `@object.<field>`, `@workspace.<key>`, `@config.<key>`; unset optional `@…?` tokens are dropped). `placement` is `before-body` \| `after-data` \| `after-related` \| `end` (default `end`). `colSpan` (1–12) lays sections out on a grid when several share a placement. `card: true` draws the section in the same card as the grid's widgets. The loaded object + objectId are also `provide`d on `cnSectionContext` so a host component can inject them instead of taking props; its `setObject(object)` puts an object the section saved into the page, so the rest of the page shows it without a re-fetch. A section whose component can't be resolved, or that throws while rendering, degrades to an inline error and never breaks the page. See [CnBodySections](./cn-body-sections.md). |
 | `appConfig` | Object | `{}` | **Page-level app config** exposed to declarative widget / section config via the **`@config.<key>` token** and `provide`d on `cnAppConfig`. Lets a stat widget's `format: { style: 'currency', currency: '@config.currency' }` format with a configured value (e.g. the reporting currency a setup wizard captures) instead of a hard-coded `EUR`, and an endpoint KPI's URL / params + filter values interpolate `@config.<key>`. A manifest renderer typically seeds it from `loadState(appId, 'config', {})`. Backwards-compatible: a literal `"EUR"` still works, and an unset required `@config.<key>` falls back to the format default. |
 
+## The action model
+
+A record page can carry forty actions in one menu, and then nobody finds the one they need. These keys put the actions on four levels. Each is opt in, so a page that sets none of them renders as before.
+
+| Level | Where | Key |
+|-------|-------|-----|
+| 1. The next step | One primary button. Its label follows the record's stage. | `primaryActionByStage` |
+| 2. Quick actions | At most three buttons that are always visible. | `quickActions` |
+| 3. The rest | The overflow menu, in named groups. | `group` on a header action |
+| 4. Admin actions | The last group of that menu, for admins only. | `adminOnly` on a header action |
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `primaryActionByStage` | Object \| null | `null` | Map from a stage value to the page's primary action. A value is an action in the `headerActions` shape, or the id of a declared header action. A stage without an entry falls back to `primaryAction`. |
+| `stageField` | String | `'status'` | Dot-path to the field that holds the record's stage. Read by `primaryActionByStage` and `nextStep`. |
+| `quickActions` | Array | `[]` | Always visible header buttons. At most three render. An entry is an action object or the id of a declared header action, which then leaves the menu. |
+| `actionsMenu` | Object \| null | `null` | `{ showRefresh?, showHelpLinks?, label? }`. `showRefresh: false` removes Refresh. `showHelpLinks: false` removes Request a feature, Report a bug and Documentation. `label` names the menu. |
+| `nextStep` | Object \| null | `null` | The "what now" card above the body: `{ field?, stages: { <stage>: { title?, checklist, after? } } }`. See [CnNextStepCard](./cn-next-step-card.md). |
+| `typePill` | Object \| null | `null` | A pill above the title: `{ field, colorMap?, labels?, variant? }`, rendered through [CnStatusBadge](./cn-status-badge.md). |
+| `statusPill` | Object \| null | `null` | A second pill, same shape, for where the record stands. |
+| `sideColumn` | Array | `[]` | A column of cards beside the body. An entry is a widget definition or the id of a widget in `widgets`. |
+| `isAdmin` | Boolean \| null | `null` | Whether the viewer administers this instance, for `adminOnly` actions. `null` reads it from Nextcloud. |
+
+### The next step follows the stage
+
+```json
+"config": {
+  "stageField": "status",
+  "primaryActionByStage": {
+    "ontvangen": { "id": "take-on", "label": "Take on", "type": "api-call", "method": "POST", "url": "/apps/dossiq/api/cases/@objectId/claim", "refresh": true },
+    "in_behandeling": "continue-review",
+    "besluit": "record-decision"
+  }
+}
+```
+
+The button is dispatched the same way a header action is: the same dialogs, the same toast, the same `visibleWhen`. An action named by id leaves the menu while it is the button. The skip link at the top of the page lands on it. When the stage's action is hidden by its own `visibleWhen`, the page falls back to `primaryAction`.
+
+Stage keys are matched exactly first, then ignoring case.
+
+### Quick actions
+
+```json
+"quickActions": ["message", "document", "log-contact"]
+```
+
+Keep them the same on every record of a type, so a handler finds them without looking. A fourth entry is dropped, and the manifest schema refuses it.
+
+### Groups and admin actions in the menu
+
+```json
+"headerActions": [
+  { "id": "hand-over", "label": "Hand over to team", "type": "open-modal", "target": "HandOverDialog", "group": "Case" },
+  { "id": "extend-term", "label": "Extend term", "type": "open-modal", "target": "ExtendTermDialog", "group": "Case" },
+  { "id": "withdraw", "label": "Withdraw publication", "type": "api-call", "url": "/apps/dossiq/api/cases/@objectId/withdraw", "group": "Publication" },
+  { "id": "raw-data", "label": "Raw data", "type": "open-modal", "target": "RawDataDialog", "adminOnly": true }
+]
+```
+
+Ungrouped actions come first. Each group follows under a caption, in the order the groups first appear. `adminOnly` actions form the last group, titled "Administration", and only an instance admin sees them.
+
+`adminOnly` hides a control. It does not protect anything: the endpoint behind the action decides who may call it.
+
+### Help links out of the record
+
+```json
+"actionsMenu": { "showRefresh": false, "showHelpLinks": false, "label": "More" }
+```
+
+Use this when your app offers Request a feature, Report a bug and Documentation in its own help menu. The record's menu then holds the record's actions and nothing else. Leave a key out and that part stays as it is.
+
+### What now
+
+```json
+"nextStep": {
+  "stages": {
+    "in_behandeling": {
+      "title": "What now? Step 2: handling",
+      "after": "Then: step 3, decision",
+      "checklist": [
+        { "label": "Confirm receipt to the resident", "doneField": "receiptConfirmedAt" },
+        { "label": "Review the documents", "doneWhen": { "field": "openDocuments", "op": "eq", "value": 0 } },
+        { "label": "Draft the decision", "doneField": "decision" }
+      ]
+    }
+  }
+}
+```
+
+The card renders above the body and the side column. While it shows, the primary button sits inside it, next to the checklist that explains it, and not in the header as well. A stage without an entry shows no card and the button stays in the header.
+
+### Pills above the title
+
+```json
+"typePill": { "field": "caseTypeName", "variant": "error" },
+"statusPill": {
+  "field": "status",
+  "colorMap": { "ontvangen": "info", "in_behandeling": "primary", "afgehandeld": "success" },
+  "labels": { "ontvangen": "Received", "in_behandeling": "Handling", "afgehandeld": "Closed" }
+}
+```
+
+`colorMap` is keyed on the raw value. `labels` maps a raw value to the text to show, and goes through the translate function. A pill whose field is empty does not render.
+
+### Side column
+
+```json
+"sideColumn": [
+  "case-term",
+  { "type": "data", "title": "Handling", "content": { "include": ["assignee", "team", "startDate"], "columns": 1, "editable": false } },
+  "case-requester"
+]
+```
+
+The column sits to the right of the body and holds facts: the deadline, the requester, the handler, the links. A string names a widget declared in the page's `widgets`, which is how a `custom` widget gets there. An object is a widget definition of its own.
+
+The column drops under the body when the page is too narrow for both. That is decided by the room the page has, not by the viewport, so it also holds beside an open sidebar. A `layout` grid keeps working next to it.
+
 ## The record as a place
 
 These three are what make a record somewhere a handler stays, rather than somewhere they pass through. Each is off by default, so a page that declares none renders exactly as it does today.

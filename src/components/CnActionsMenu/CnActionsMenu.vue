@@ -491,6 +491,19 @@ export default {
 		},
 
 		/**
+		 * Tell the menu that `#primary-items` has content. Only needed by a
+		 * host that switches every built-in item off: the menu decides whether
+		 * to render at all in a computed, and a slot that fills in later (a
+		 * page's actions arrive after mount) is not something a computed
+		 * notices. With any built-in item showing, the menu renders anyway
+		 * and this changes nothing.
+		 */
+		hasPrimaryItems: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Prefix for the `data-testid`s emitted on the menu container and
 		 * its items: `<base>-actions` (container), `<base>-action-refresh`,
 		 * `<base>-action-request-feature`, `<base>-action-report-bug`,
@@ -542,7 +555,7 @@ export default {
 			if (this.showRequestFeature) {
 				return true
 			}
-			if (this.$slots['primary-items']) {
+			if (this.hasPrimaryItems || this.$slots['primary-items']) {
 				return true
 			}
 			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
