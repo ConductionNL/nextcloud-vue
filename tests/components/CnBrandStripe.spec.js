@@ -2,7 +2,8 @@
  * SPDX-License-Identifier: EUPL-1.2
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  *
- * CnBrandStripe: three decorative bands that read the theme's stripe tokens.
+ * CnBrandStripe: three decorative bands that read the library's own
+ * `--cn-brand-stripe-*` custom properties.
  *
  * jsdom loads no stylesheet, so the token contract is asserted on the SOURCE
  * of the component: a rendered-DOM assertion could not tell a stripe that
@@ -33,12 +34,16 @@ describe('CnBrandStripe', () => {
 	})
 
 	it.each([1, 2, 3])('reads colour and ratio token %i, each with a fallback', (n) => {
-		expect(STYLE).toContain(`var(--nldesign-brand-stripe-color-${n}, var(--color-primary-element))`)
-		expect(STYLE).toContain(`var(--nldesign-brand-stripe-ratio-${n}, 1)`)
+		expect(STYLE).toContain(`var(--cn-brand-stripe-color-${n}, var(--color-primary-element))`)
+		expect(STYLE).toContain(`var(--cn-brand-stripe-ratio-${n}, 1)`)
 	})
 
 	it('reads the height token with a fallback', () => {
-		expect(STYLE).toContain('var(--nldesign-brand-stripe-height, 4px)')
+		expect(STYLE).toContain('var(--cn-brand-stripe-height, 4px)')
+	})
+
+	it('reads no theme token: a theming app maps its tokens onto ours', () => {
+		expect(SOURCE).not.toContain('--nldesign-')
 	})
 
 	it('hard-codes no colour', () => {

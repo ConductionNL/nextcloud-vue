@@ -19,10 +19,11 @@
  * CnBrandStripe draws the organisation's brand stripe: up to three coloured
  * bands next to each other, for the top of a page, a card or a sidebar.
  *
- * The theme decides what it looks like. The thematiq app sets the tokens
- * `--nldesign-brand-stripe-color-1/2/3` (the colours, start to end),
- * `--nldesign-brand-stripe-ratio-1/2/3` (unitless shares, such as 6, 3 and 1)
- * and `--nldesign-brand-stripe-height` (such as 5px). Without a theme the
+ * The theme decides what it looks like, through the library's own custom
+ * properties: `--cn-brand-stripe-color-1/2/3` (the colours, start to end),
+ * `--cn-brand-stripe-ratio-1/2/3` (unitless shares, such as 6, 3 and 1)
+ * and `--cn-brand-stripe-height` (such as 5px). A theming app maps its own
+ * tokens onto these; the library never reads a theme's tokens. Without them the
  * stripe is one band in the Nextcloud primary colour, 4px high.
  *
  * The stripe is decoration: it carries no meaning and is hidden from
@@ -53,21 +54,20 @@ export default {
 </script>
 
 <!--
-  These are the ONE place the library reads `--nldesign-*` tokens directly. A
-  brand stripe has no Nextcloud variable to stand in for it, so the theme's own
-  tokens are the contract, each with a Nextcloud fallback.
+  The stripe reads the library's own `--cn-brand-stripe-*` properties, each
+  with a Nextcloud fallback. A theming app sets them from its own tokens.
 -->
 <style scoped>
 .cn-brand-stripe {
 	display: flex;
 	flex: none;
 	width: 100%;
-	height: var(--nldesign-brand-stripe-height, 4px);
+	height: var(--cn-brand-stripe-height, 4px);
 }
 
 .cn-brand-stripe--vertical {
 	flex-direction: column;
-	width: var(--nldesign-brand-stripe-height, 4px);
+	width: var(--cn-brand-stripe-height, 4px);
 	height: 100%;
 }
 
@@ -77,18 +77,18 @@ export default {
 }
 
 .cn-brand-stripe__band--1 {
-	flex-grow: var(--nldesign-brand-stripe-ratio-1, 1);
-	background-color: var(--nldesign-brand-stripe-color-1, var(--color-primary-element));
+	flex-grow: var(--cn-brand-stripe-ratio-1, 1);
+	background-color: var(--cn-brand-stripe-color-1, var(--color-primary-element));
 }
 
 .cn-brand-stripe__band--2 {
-	flex-grow: var(--nldesign-brand-stripe-ratio-2, 1);
-	background-color: var(--nldesign-brand-stripe-color-2, var(--color-primary-element));
+	flex-grow: var(--cn-brand-stripe-ratio-2, 1);
+	background-color: var(--cn-brand-stripe-color-2, var(--color-primary-element));
 }
 
 .cn-brand-stripe__band--3 {
-	flex-grow: var(--nldesign-brand-stripe-ratio-3, 1);
-	background-color: var(--nldesign-brand-stripe-color-3, var(--color-primary-element));
+	flex-grow: var(--cn-brand-stripe-ratio-3, 1);
+	background-color: var(--cn-brand-stripe-color-3, var(--color-primary-element));
 }
 
 @media print {

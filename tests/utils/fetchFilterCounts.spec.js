@@ -8,7 +8,7 @@
  */
 
 import { fetchAggregateValue, fetchGroupedCounts } from '../../src/utils/fetchAggregate.js'
-import { fetchFilterCounts, singleEqualityOf } from '../../src/utils/fetchFilterCounts.js'
+import { fetchFilterCounts, hasListValue, singleEqualityOf } from '../../src/utils/fetchFilterCounts.js'
 
 jest.mock('../../src/utils/fetchAggregate.js', () => ({
 	fetchAggregateValue: jest.fn(),
@@ -33,6 +33,14 @@ describe('singleEqualityOf', () => {
 		expect(singleEqualityOf({ assignee: '@me' })).toBeNull()
 		expect(singleEqualityOf({})).toBeNull()
 		expect(singleEqualityOf(null)).toBeNull()
+	})
+})
+
+describe('hasListValue', () => {
+	it('spots a list of values and nothing else', () => {
+		expect(hasListValue({ status: ['open', 'hold'] })).toBe(true)
+		expect(hasListValue({ status: 'open', deadline: { lt: '2026-10-05' } })).toBe(false)
+		expect(hasListValue(null)).toBe(false)
 	})
 })
 
@@ -119,6 +127,88 @@ describe('fetchFilterCounts', () => {
 			entries: [{ key: 'broken', filter: { a: { gt: 1 } } }, { key: 'fine', filter: { b: { gt: 1 } } }],
 		})
 		expect(counts).toEqual({ fine: 3 })
+	})
+
+	describe('a filter that holds a list of values', () => {
+		const okResponse = (total) => ({ ok: true, json: async () => ({ total, results: [] }) })
+
+		afterEach(() => {
+			delete global.fetch
+		})
+
+		it('is never sent to an aggregation endpoint: it is counted through the list endpoint', async () => {
+			global.fetch = jest.fn().mockResolvedValue(okResponse(9))
+
+			const counts = await fetchFilterCounts({
+				register: 'dossiq',
+				schema: 'case',
+				baseFilter: { caseType: 'woo' },
+				entries: [{ key: 'active', filter: { status: ['open', 'hold'], priority: { gte: 2 } } }],
+			})
+
+			expect(fetchGroupedCounts).not.toHaveBeenCalled()
+			expect(fetchAggregateValue).not.toHaveBeenCalled()
+			expect(global.fetch).toHaveBeenCalledTimes(1)
+			const url = new URL(global.fetch.mock.calls[0][0], 'http://localhost')
+			expect(url.pathname).toMatch(/\/apps\/openregister\/api\/objects\/dossiq\/case$/)
+			// The list as repeated `status[]=`, the way the list request sends it.
+			expect(url.searchParams.getAll('status[]')).toEqual(['open', 'hold'])
+			expect(url.searchParams.get('priority[gte]')).toBe('2')
+			expect(url.searchParams.get('caseType')).toBe('woo')
+			expect(url.searchParams.get('_limit')).toBe('1')
+			// Nothing in the aggregation spelling.
+			expect(Array.from(url.searchParams.keys()).some((key) => key.startsWith('filter['))).toBe(false)
+			expect(counts).toEqual({ active: 9 })
+		})
+
+		it('still groups the other entries in one request', async () => {
+			global.fetch = jest.fn().mockResolvedValue(okResponse(9))
+			fetchGroupedCounts.mockResolvedValue([{ key: 'open', count: 5 }, { key: 'closed', count: 2 }])
+
+			const counts = await fetchFilterCounts({
+				register: 'dossiq',
+				schema: 'case',
+				entries: [
+					{ key: 'open', filter: { status: 'open' } },
+					{ key: 'closed', filter: { status: 'closed' } },
+					{ key: 'active', filter: { status: ['open', 'hold'] } },
+				],
+			})
+
+			expect(fetchGroupedCounts).toHaveBeenCalledTimes(1)
+			expect(global.fetch).toHaveBeenCalledTimes(1)
+			expect(counts).toEqual({ open: 5, closed: 2, active: 9 })
+		})
+
+		it('counts every entry through the list endpoint when the base filter holds a list', async () => {
+			global.fetch = jest.fn().mockResolvedValue(okResponse(3))
+
+			const counts = await fetchFilterCounts({
+				register: 'dossiq',
+				schema: 'case',
+				baseFilter: { caseType: ['woo', 'objection'] },
+				entries: [{ key: 'open', filter: { status: 'open' } }, { key: 'closed', filter: { status: 'closed' } }],
+			})
+
+			expect(fetchGroupedCounts).not.toHaveBeenCalled()
+			expect(fetchAggregateValue).not.toHaveBeenCalled()
+			expect(global.fetch).toHaveBeenCalledTimes(2)
+			const url = new URL(global.fetch.mock.calls[0][0], 'http://localhost')
+			expect(url.searchParams.getAll('caseType[]')).toEqual(['woo', 'objection'])
+			expect(counts).toEqual({ open: 3, closed: 3 })
+		})
+
+		it('leaves the entry without a number when the list request fails or has no total', async () => {
+			global.fetch = jest.fn()
+				.mockResolvedValueOnce({ ok: false, status: 500 })
+				.mockResolvedValueOnce({ ok: true, json: async () => ({ results: [] }) })
+			const counts = await fetchFilterCounts({
+				register: 'r',
+				schema: 's',
+				entries: [{ key: 'a', filter: { x: ['1', '2'] } }, { key: 'b', filter: { y: ['1'] } }],
+			})
+			expect(counts).toEqual({})
+		})
 	})
 
 	it('makes no request without a register, a schema or entries', async () => {

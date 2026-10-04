@@ -9,12 +9,69 @@
  * `status: closed`, ...). Those are answered by one `/grouped` request on that
  * field. A filter that narrows on something else (two fields, an operator, a
  * list of values) cannot be read off a grouped result, so each of those costs
- * one `/value` count. Nothing is requested for an entry that did not ask.
+ * one `/value` count. A filter that holds a LIST of values is counted through
+ * the list endpoint, because the aggregation endpoints cannot express it.
+ * Nothing is requested for an entry that did not ask.
  *
  * @module utils/fetchFilterCounts
  */
 
 import { fetchAggregateValue, fetchGroupedCounts } from './fetchAggregate.js'
+import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
+import { resolveFilterTokens } from './resolveFilterTokens.js'
+
+/**
+ * Whether a filter holds a list of values (`{ status: ['open', 'hold'] }`).
+ *
+ * The aggregation endpoints have no spelling for "one of these values", so a
+ * filter like this is never sent to them. It is counted through the list
+ * endpoint instead, which is where the page's own request sends it.
+ *
+ * @param {object} filter A filter map.
+ * @return {boolean} True when any value is an array.
+ * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
+ */
+export function hasListValue(filter) {
+	if (!filter || typeof filter !== 'object') {
+		return false
+	}
+	return Object.values(filter).some((value) => Array.isArray(value))
+}
+
+/**
+ * Count the records a filter matches by asking the LIST endpoint for one
+ * record and reading its `total`. The filter is sent the way the list request
+ * sends it: a list of values as repeated `field[]=`, an operator as
+ * `field[op]=`.
+ *
+ * @param {string} register The register slug.
+ * @param {string} schema The schema slug.
+ * @param {object} filter The filter map.
+ * @param {object} [ctx] Token-resolution context for the filter.
+ * @return {Promise<number|null>} The total, or null when the response carries none.
+ * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
+ */
+export async function fetchListTotal(register, schema, filter, ctx) {
+	const resolved = resolveFilterTokens(filter || {}, ctx || {})
+	const params = {}
+	for (const [key, value] of Object.entries(resolved || {})) {
+		if (value && typeof value === 'object' && !Array.isArray(value)) {
+			for (const [op, operand] of Object.entries(value)) {
+				params[`${key}[${op}]`] = operand
+			}
+		} else {
+			params[key] = value
+		}
+	}
+	const qs = buildQueryString({ ...params, _limit: 1 })
+	const url = prefixUrl(`/apps/openregister/api/objects/${encodeURIComponent(register)}/${encodeURIComponent(schema)}${qs}`)
+	const response = await fetch(url, { headers: buildHeaders() })
+	if (!response.ok) {
+		throw new Error(`list returned ${response.status}`)
+	}
+	const data = await response.json()
+	return typeof data.total === 'number' ? data.total : null
+}
 
 /**
  * The single field a filter narrows on with a plain equality, or null when the
@@ -66,9 +123,17 @@ export async function fetchFilterCounts({ register, schema, entries, baseFilter,
 	// Entries that share one equality field go into one grouped request, but
 	// only when at least two do: a lone entry costs one request either way,
 	// and `/value` returns exactly its number.
+	// A list of values anywhere in a request rules the aggregation endpoints
+	// out for it. A base filter with one rules them out for every entry.
+	const baseHasList = hasListValue(base)
 	const byField = {}
 	const single = []
+	const viaList = []
 	for (const entry of entries) {
+		if (baseHasList || hasListValue(entry.filter)) {
+			viaList.push(entry)
+			continue
+		}
 		const eq = singleEqualityOf(entry.filter)
 		if (eq !== null && !(eq.field in base)) {
 			(byField[eq.field] = byField[eq.field] || []).push({ entry, value: eq.value })
@@ -99,6 +164,15 @@ export async function fetchFilterCounts({ register, schema, entries, baseFilter,
 			.then((value) => {
 				if (value !== null && Number.isFinite(Number(value))) {
 					counts[entry.key] = Number(value)
+				}
+			})
+			.catch(() => {}))
+	}
+	for (const entry of viaList) {
+		jobs.push(fetchListTotal(register, schema, { ...base, ...(entry.filter || {}) }, ctx)
+			.then((total) => {
+				if (total !== null) {
+					counts[entry.key] = total
 				}
 			})
 			.catch(() => {}))

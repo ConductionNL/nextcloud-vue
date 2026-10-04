@@ -15,19 +15,27 @@ The organisation's brand stripe: up to three coloured bands next to each other. 
 |------|------|---------|-------------|
 | `orientation` | `'horizontal' \| 'vertical'` | `'horizontal'` | A bar across the top, or a bar down the side. Vertical uses the height token as its width. |
 
-## Theme tokens
+## Custom properties
 
-The theme decides what the stripe looks like. The thematiq app sets these tokens:
+The stripe reads the library's own custom properties. Set them on `:root`, or on any element around the stripe.
 
-| Token | Meaning | Fallback |
-|-------|---------|----------|
-| `--nldesign-brand-stripe-color-1`, `-2`, `-3` | The colours, start to end. | `var(--color-primary-element)` |
-| `--nldesign-brand-stripe-ratio-1`, `-2`, `-3` | Unitless shares, such as 6, 3 and 1. | `1` |
-| `--nldesign-brand-stripe-height` | The thickness, such as `5px`. | `4px` |
+| Property | Meaning | Fallback |
+|----------|---------|----------|
+| `--cn-brand-stripe-color-1`, `-2`, `-3` | The colours, start to end. | `var(--color-primary-element)` |
+| `--cn-brand-stripe-ratio-1`, `-2`, `-3` | Unitless shares, such as 6, 3 and 1. | `1` |
+| `--cn-brand-stripe-height` | The thickness, such as `5px`. | `4px` |
 
-Without a theme the stripe is one band in the Nextcloud primary colour.
+Without them the stripe is one band in the Nextcloud primary colour.
 
-This is the one component that reads `--nldesign-*` tokens directly. A brand stripe has no Nextcloud variable that could stand in for it, so the theme tokens are the contract.
+A theming app maps its own tokens onto these properties. That is the theme's job: the library does not read a theme's tokens. For example:
+
+```css
+:root {
+  --cn-brand-stripe-color-1: var(--my-theme-stripe-color-1);
+  --cn-brand-stripe-ratio-1: 6;
+  --cn-brand-stripe-height: 5px;
+}
+```
 
 ## Accessibility
 

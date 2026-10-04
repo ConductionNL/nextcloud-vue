@@ -171,9 +171,9 @@ until that date). The rule evaluation SHALL live in a shared utility.
 ### Requirement: Brand stripe
 
 The library SHALL provide `CnBrandStripe`, a decorative stripe of up to three
-bands whose colours, ratios and height come from the thematiq tokens
-`--nldesign-brand-stripe-color-1/2/3`, `--nldesign-brand-stripe-ratio-1/2/3`
-and `--nldesign-brand-stripe-height`, with fallbacks to Nextcloud variables.
+bands whose colours, ratios and height come from the library's own custom properties
+`--cn-brand-stripe-color-1/2/3`, `--cn-brand-stripe-ratio-1/2/3`
+and `--cn-brand-stripe-height`, with fallbacks to Nextcloud variables.
 
 #### Scenario: Decorative
 - **GIVEN** a brand stripe
@@ -181,6 +181,6 @@ and `--nldesign-brand-stripe-height`, with fallbacks to Nextcloud variables.
 - **THEN** it is hidden from the accessibility tree
 
 #### Scenario: Works without the theme
-- **GIVEN** no thematiq tokens are set
+- **GIVEN** no `--cn-brand-stripe-*` property is set
 - **WHEN** it renders
 - **THEN** it draws a stripe in the Nextcloud primary colour

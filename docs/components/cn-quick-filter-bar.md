@@ -95,7 +95,7 @@ A tab can show how many records it matches. On a `CnIndexPage` you opt in per qu
 ]
 ```
 
-The page fetches the counts for you. Tabs that filter the same single field share one grouped request, so the three tabs above cost one request, not three. A tab with any other filter costs one count request. A tab without `showCount` costs nothing and shows no number.
+The page fetches the counts for you. Tabs that filter the same single field share one grouped request, so the three tabs above cost one request, not three. A tab with any other filter costs one count request. A tab without `showCount` costs nothing and shows no number. A filter that holds a list of values (`{ "status": ["open", "hold"] }`) is counted through the list endpoint, sent the same way the list request sends it, because the aggregation endpoints cannot express "one of these".
 
 Used on its own, the bar shows whatever you pass in `counts` (or as `count` on a tab) and fetches nothing. The count is part of the tab's text, so a screen reader reads "Open 12".
 
