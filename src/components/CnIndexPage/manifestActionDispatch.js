@@ -37,19 +37,39 @@ function resolveRowToken(value, row) {
 }
 
 /**
- * The route params a `handler: "navigate"` action pushes for a row: the row id,
- * overridden by the declared `params` after the `{field}` token grammar. A
- * token naming a field the row lacks is dropped.
+ * The implicit `{ id }` param for a row, only when the named route declares
+ * `:id`: vue-router warns about (and drops) a param its path does not take.
+ * Without a router to ask, or for a route it does not know, the id is kept.
+ *
+ * @param {object} [router] The app's router.
+ * @param {string} name The route name.
+ * @param {object} row The row.
+ * @param {string} rowKey The row's id field.
+ * @return {object} `{ id }`, or an empty object.
+ */
+function rowIdParam(router, name, row, rowKey) {
+	const routes = typeof router?.getRoutes === 'function' ? router.getRoutes() : null
+	const route = routes ? routes.find((r) => r.name === name) : null
+	if (route && !/:id\b/.test(route.path)) {
+		return {}
+	}
+	return { id: row?.[rowKey] }
+}
+
+/**
+ * The route params a `handler: "navigate"` action pushes for a row: the row id
+ * (when the route takes one), overridden by the declared `params` after the
+ * `{field}` token grammar. A token naming a field the row lacks is dropped.
  *
  * @param {object} action Manifest action descriptor.
  * @param {object} row The row.
- * @param {string} rowKey The row's id field.
+ * @param {object} ctx Dispatch context (`rowKey`, `router`).
  * @param {boolean} warn Whether to warn about a dropped param.
  * @return {object} The params.
  */
-function navigateParams(action, row, rowKey, warn) {
+function navigateParams(action, row, ctx, warn) {
 	const declaredParams = (action.params && typeof action.params === 'object') ? action.params : null
-	const params = { id: row?.[rowKey] }
+	const params = rowIdParam(ctx.router, action.route, row, ctx.rowKey)
 	for (const [key, declared] of Object.entries(declaredParams || {})) {
 		const { resolved, value } = resolveRowToken(declared, row)
 		if (resolved) {
@@ -88,7 +108,7 @@ export function resolveActionTarget(action, row, ctx, warn = false) {
 			return null
 		}
 		if (type === 'open-page') {
-			return { target: { name: target, params: { id: row?.[ctx.rowKey] } }, external: false }
+			return { target: { name: target, params: rowIdParam(ctx.router, target, row, ctx.rowKey) }, external: false }
 		}
 		return { target, external: isExternalActionTarget(target) }
 	}
@@ -96,7 +116,7 @@ export function resolveActionTarget(action, row, ctx, warn = false) {
 		if (typeof action.route !== 'string' || action.route.length === 0) {
 			return null
 		}
-		return { target: { name: action.route, params: navigateParams(action, row, ctx.rowKey, warn) }, external: false }
+		return { target: { name: action.route, params: navigateParams(action, row, ctx, warn) }, external: false }
 	}
 	return null
 }
@@ -115,8 +135,8 @@ export function resolveActionTarget(action, row, ctx, warn = false) {
  *   - `open-modal` → not wired for index actions; falls back to `@action`.
  *
  * Handler dispatch (`type: 'handler'`, the default) reads `action.handler`:
- *   - `navigate` → $router.push to `action.route` with `{ id: row[rowKey] }`,
- *     merged with the `action.params` map (declared params win — so a
+ *   - `navigate` → $router.push to `action.route` with `{ id: row[rowKey] }`
+ *     (when the route declares `:id`), merged with the `action.params` map (declared params win — so a
  *     "New X" action can navigate to a detail route with `{ id: "new" }`).
  *     Param strings run the `{field}` row-token grammar: `"{id}"` resolves to
  *     `row.id` (type preserved), `"item-{id}"` interpolates, and a brace-less
@@ -187,7 +207,7 @@ export function resolveActionHandler(action, ctx) {
 		// `{field}` row-token grammar first — an unresolved token is dropped
 		// rather than pushed as a literal `%7Bid%7D` path segment.
 		return (row) => {
-			ctx.router.push({ name: route, params: navigateParams(action, row, ctx.rowKey, true) })
+			ctx.router.push({ name: route, params: navigateParams(action, row, ctx, true) })
 		}
 	}
 

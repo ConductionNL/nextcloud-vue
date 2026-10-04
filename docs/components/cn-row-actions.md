@@ -101,7 +101,7 @@ An action whose only job is to navigate should be a link, so the user can middle
   :row="row" />
 ```
 
-A link entry still emits `action`, so a host listening to it keeps working, but its `handler` is not called: the link does the navigating. A disabled entry always renders as a button. CnIndexPage fills `to` / `href` in automatically for manifest actions with `type: "navigate"`, `type: "open-page"` or `handler: "navigate"`.
+A link entry still emits `action`, so a host listening to it keeps working, but its `handler` is not called: the link does the navigating. A ctrl/cmd/shift click on a link opens a new tab and emits nothing, so a host's side effects never run in the tab the user is leaving. A disabled entry always renders as a button. CnIndexPage fills `to` / `href` in automatically for manifest actions with `type: "navigate"`, `type: "open-page"` or `handler: "navigate"`.
 
 #### Conditional visibility example
 

@@ -58,8 +58,7 @@
 			<NcButton
 				variant="primary"
 				:href="deckAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<ViewColumnOutline :size="20" />
 				</template>
@@ -168,7 +167,7 @@ import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnDeckCardCreate from '../../../components/CnDeckCardCreate/CnDeckCardCreate.vue'
 import CnDeckCardPicker from '../../../components/CnDeckCardPicker/CnDeckCardPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 /** Maximum assignee avatars shown before collapsing the rest into a +N overflow badge. */
 const MAX_VISIBLE_ASSIGNEES = 3
@@ -353,7 +352,7 @@ export default {
 		},
 
 		cardUrl(card) {
-			if (card.url) {
+			if (card.url && safeHref(card.url) !== '#') {
 				return card.url
 			}
 			const boardId = card.boardId ?? card.board?.id ?? ''

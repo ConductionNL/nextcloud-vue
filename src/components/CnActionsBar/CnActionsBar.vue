@@ -109,7 +109,7 @@
 				@event add
 				@description User clicked the primary Add button. No payload.
 			-->
-			<!-- With `addHref` / `addTo` the button is a real link (middle-click, new tab), and still emits `add`. -->
+			<!-- With `addHref` / `addTo` the button is a real link (middle-click, new tab), and still emits `add`, except on a modified click, which opens a new tab. -->
 			<NcButton v-if="showAdd"
 				variant="primary"
 				:disabled="addDisabled"
@@ -153,8 +153,7 @@
 
 				<NcActionLink v-if="documentationUrl"
 					:href="documentationUrl"
-					target="_blank"
-					rel="noopener noreferrer">
+					target="_blank">
 					<template #icon>
 						<BookOpenVariantOutline :size="20" />
 					</template>
@@ -372,6 +371,7 @@ import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
 import ViewListOutline from 'vue-material-design-icons/ViewListOutline.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
+import { isModifiedClick } from '../../utils/linkNavigation.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -923,12 +923,17 @@ export default {
 
 		/**
 		 * Add button click: a plain click on an in-app link routes in place,
-		 * anything else on a link is the browser's. Emits `add` either way.
+		 * anything else on a link is the browser's. Emits `add`, except for a
+		 * modified click on a link, which opens in a new tab: a host `@add`
+		 * would otherwise run in the tab the user is leaving.
 		 *
 		 * @param {MouseEvent} event The click event.
 		 */
 		onAddClick(event) {
 			if (this.addLink) {
+				if (isModifiedClick(event)) {
+					return
+				}
 				followItemActionLink(event, this.addLink, this.$router)
 			}
 			this.$emit('add')
@@ -936,13 +941,17 @@ export default {
 
 		/**
 		 * A header link entry was clicked: route a plain in-app click and emit
-		 * `header-action` as the button would.
+		 * `header-action` as the button would. A modified click is the
+		 * browser's alone (a new tab), so nothing is emitted for it.
 		 *
 		 * @param {object} entry The header action.
 		 * @param {object} link The resolved link.
 		 * @param {MouseEvent} event The click event.
 		 */
 		onHeaderLinkClick(entry, link, event) {
+			if (isModifiedClick(event)) {
+				return
+			}
 			followItemActionLink(event, link, this.$router)
 			this.$emit('header-action', { action: entry.id, id: entry.id })
 		},

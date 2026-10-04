@@ -72,8 +72,7 @@
 			<NcButton
 				variant="primary"
 				:href="photosAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<ImageIcon :size="20" />
 				</template>
@@ -154,7 +153,7 @@ import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnPhotoAlbumCreate from '../../../components/CnPhotoAlbumCreate/CnPhotoAlbumCreate.vue'
 import CnPhotoAlbumPicker from '../../../components/CnPhotoAlbumPicker/CnPhotoAlbumPicker.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 /**
  * CnPhotosTab — bespoke album grid for the `photos` integration.
@@ -262,7 +261,7 @@ export default {
 		},
 
 		albumUrl(album) {
-			if (album && album.url) {
+			if (album && album.url && safeHref(album.url) !== '#') {
 				return album.url
 			}
 			const id = this.albumKey(album)

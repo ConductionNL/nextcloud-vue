@@ -104,7 +104,7 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import SitemapOutline from 'vue-material-design-icons/SitemapOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 const COMPACT_LIMIT = 5
@@ -239,7 +239,7 @@ export default {
 		},
 
 		opUrl(op) {
-			return op.url || this.flowSettingsUrl
+			return op.url && safeHref(op.url) !== '#' ? op.url : this.flowSettingsUrl
 		},
 
 		shortClass(className) {

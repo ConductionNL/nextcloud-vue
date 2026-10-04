@@ -8,9 +8,10 @@
 
 ### Events
 
-| Name            | Payload     | Description                                                                                                                                                                                   |
-| --------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `created`       | —           | Emitted after a successful create with the sent payload.                                                                                                                                      |
-| `row-click`     | `undefined` | Emitted with the clicked object (for hosts that want to handle navigation themselves), on a click or middle click. Payload: `(row, event)`, the second being the native click/auxclick event. |
-| `view-all`      | —           | Emitted when the "View all (N)" footer is clicked.                                                                                                                                            |
-| `files-dropped` | —           | Emitted with the dropped files, for a host that wants to handle the drop itself rather than declare an action.                                                                                |
+| Name            | Payload     | Description                                                                                                                                                                                            |
+| --------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `created`       | —           | Emitted after a successful create with the sent payload.                                                                                                                                               |
+| `row-click`     | `undefined` | Emitted with the clicked object (for hosts that want to handle navigation themselves). Payload: `(row, event)`, the second being the native click event. A middle click emits `row-aux-click` instead. |
+| `row-aux-click` | `undefined` | Emitted with the middle-clicked object, for opening it in a new tab. Payload: `(row, event)`, the second being the native auxclick event.                                                              |
+| `view-all`      | —           | Emitted when the "View all (N)" footer is clicked.                                                                                                                                                     |
+| `files-dropped` | —           | Emitted with the dropped files, for a host that wants to handle the drop itself rather than declare an action.                                                                                         |

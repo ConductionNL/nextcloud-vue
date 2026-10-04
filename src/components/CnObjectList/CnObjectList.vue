@@ -163,7 +163,7 @@ export default {
 		},
 	},
 
-	emits: ['click', 'select'],
+	emits: ['click', 'select', 'aux-click'],
 
 	computed: {
 		/**
@@ -194,6 +194,7 @@ export default {
 			const listeners = { select: () => this.toggleSelect(object) }
 			if (!this.selectable) {
 				listeners.click = (_row, event) => this.emitClick(object, event)
+				listeners['aux-click'] = (_row, event) => this.emitAuxClick(object, event)
 			}
 			return listeners
 		},
@@ -202,14 +203,29 @@ export default {
 		 * Emit `click` for a non-selectable row (navigation).
 		 *
 		 * @param {object} object The clicked row's object.
-		 * @param {MouseEvent} [event] The native click/auxclick event.
+		 * @param {MouseEvent} [event] The native click event.
 		 */
 		emitClick(object, event) {
 			/**
-			 * @event click Emitted when a non-selectable row is clicked or middle-clicked (navigation). Payload: `(object, event)` — the row's object and the native click/auxclick event, for opening it in a new tab on a ctrl/cmd/shift or middle click.
+			 * @event click Emitted when a non-selectable row is clicked (navigation). Payload: `(object, event)` — the row's object and the native click event, for opening it in a new tab on a ctrl/cmd/shift click. A middle click emits `aux-click` instead.
 			 * @type {object} The clicked row's object.
 			 */
 			this.$emit('click', object, event)
+		},
+
+		/**
+		 * Emit `aux-click` for a middle click on a non-selectable row, kept off
+		 * `click` so a navigating listener never moves the current tab away.
+		 *
+		 * @param {object} object The clicked row's object.
+		 * @param {MouseEvent} event The native auxclick event.
+		 */
+		emitAuxClick(object, event) {
+			/**
+			 * @event aux-click Emitted when a non-selectable row is middle-clicked, for opening it in a new tab (see `openRowTarget`). Payload: `(object, event)` — the row's object and the native auxclick event.
+			 * @type {object} The clicked row's object.
+			 */
+			this.$emit('aux-click', object, event)
 		},
 
 		toggleSelect(object) {

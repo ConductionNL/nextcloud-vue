@@ -145,7 +145,8 @@ const DEBOUNCE_MS = 200
  * Data origin (decoupling seam): all data flows through a consumer-supplied
  * `dataSource` prop OR the `cnSpendAnalyticsSource` injection — an object
  * exposing `fetchSummary(args)`, `fetchVendorCommitments(args)`,
- * `fetchNarrative(args)`, and optionally `resolveDeepLink(app, kind, id)`. The
+ * `fetchNarrative(args)`, and optionally `resolveDeepLink(app, kind, id)`
+ * (pure and synchronous: it runs for every row on every render). The
  * renderer imports NO financeq / procest / launchpad service module and never
  * calls axios itself; the consuming app (typically over GraphQL) owns the
  * transport. The `requires.graphql` hint lives only in the registry entry, not
@@ -182,8 +183,9 @@ export default {
 		 * Consumer-supplied data source overriding the
 		 * `cnSpendAnalyticsSource` injection. Must expose `fetchSummary`,
 		 * `fetchVendorCommitments`, and `fetchNarrative`; may expose
-		 * `resolveDeepLink`. When `null` the injection (then the empty state)
-		 * is used.
+		 * `resolveDeepLink`, which must be pure and synchronous, since it is
+		 * called for every row on every render. When `null` the injection
+		 * (then the empty state) is used.
 		 *
 		 * @type {object|null}
 		 */

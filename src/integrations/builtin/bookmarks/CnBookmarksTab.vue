@@ -57,8 +57,7 @@
 			<NcButton
 				variant="primary"
 				:href="bookmarksAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<Bookmark :size="20" />
 				</template>
@@ -92,8 +91,9 @@
 					:name="bookmarkTitle(bookmark)"
 					:bold="true"
 					:href="bookmarkHref(bookmark)"
-					target="_blank"
-					:forceDisplayActions="true">
+					:target="hasSafeUrl(bookmark) ? '_blank' : undefined"
+					:forceDisplayActions="true"
+					@click="onBookmarkClick(bookmark, $event)">
 					<template #icon>
 						<span class="cn-bookmarks-tab__row-icon">
 							<Bookmark :size="20" />
@@ -121,10 +121,10 @@
 					</template>
 					<template #actions>
 						<NcActionLink
+							v-if="hasSafeUrl(bookmark)"
 							:closeAfterClick="true"
 							:href="bookmarkHref(bookmark)"
-							target="_blank"
-							rel="noopener noreferrer">
+							target="_blank">
 							<template #icon>
 								<OpenInNew :size="20" />
 							</template>
@@ -391,6 +391,23 @@ export default {
 		// Bookmark URLs are user data; block javascript:/data: schemes.
 		bookmarkHref(bookmark) {
 			return safeHref(bookmark.url)
+		},
+
+		/**
+		 * Whether the bookmark's URL passed `safeHref`, so its row is a link.
+		 *
+		 * @param {object} bookmark The bookmark row.
+		 * @return {boolean}
+		 */
+		hasSafeUrl(bookmark) {
+			return this.bookmarkHref(bookmark) !== '#'
+		},
+
+		// NcListItem always renders an anchor; one without a safe URL must not follow `#`.
+		onBookmarkClick(bookmark, event) {
+			if (!this.hasSafeUrl(bookmark)) {
+				event?.preventDefault?.()
+			}
 		},
 
 		bookmarkTags(bookmark) {

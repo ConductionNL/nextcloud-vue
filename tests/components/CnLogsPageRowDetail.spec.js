@@ -228,11 +228,14 @@ describe('CnLogsPage — row detail', () => {
 		}
 	})
 
-	it('does not open the dialog on a middle click', async () => {
+	it('does not open the dialog on a middle click, and emits row-aux-click for it', async () => {
 		const wrapper = mountPage({ rowDetail: true })
 		await flush()
-		wrapper.vm.onRowClick(ROW, new MouseEvent('auxclick', { button: 1 }))
+		const middle = new MouseEvent('auxclick', { button: 1 })
+		wrapper.vm.onRowAuxClick(ROW, middle)
 		expect(wrapper.vm.detailRow).toBeNull()
+		expect(wrapper.emitted('row-aux-click')).toEqual([[ROW, middle]])
+		expect(wrapper.emitted('row-click')).toBeFalsy()
 		wrapper.vm.onRowClick(ROW, new MouseEvent('click'))
 		expect(wrapper.vm.detailRow).toEqual(ROW)
 	})

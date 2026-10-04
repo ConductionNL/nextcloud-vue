@@ -725,18 +725,14 @@ export default {
 		},
 
 		/**
-		 * Handle a row click — descend into folders, open files in the Files app.
+		 * Handle a folder row click by descending into it. A file row is a
+		 * real link to the Files app and never reaches this.
 		 *
-		 * @param {object} item the clicked item.
+		 * @param {object} item the clicked folder item.
 		 * @return {void}
 		 */
 		onItemClick(item) {
-			if (item.isFolder) {
-				const next = this.joinPath(this.currentSubPath, item.name)
-				this.navigateTo(next)
-			} else {
-				this.openFileInFilesApp(item.fileId)
-			}
+			this.navigateTo(this.joinPath(this.currentSubPath, item.name))
 		},
 
 		/**
@@ -777,19 +773,6 @@ export default {
 				return '/' + trimmedName
 			}
 			return `${trimmedBase}/${trimmedName}`
-		},
-
-		/**
-		 * Deep-link a file into the Nextcloud Files app in a new tab.
-		 *
-		 * @param {number|string} fileId the Nextcloud file id.
-		 * @return {void}
-		 */
-		openFileInFilesApp(fileId) {
-			const url = this.fileUrl(fileId)
-			if (url) {
-				window.open(url, '_blank', 'noopener,noreferrer')
-			}
 		},
 
 		/**

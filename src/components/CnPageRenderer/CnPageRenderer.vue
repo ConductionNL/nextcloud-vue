@@ -128,6 +128,7 @@
 				v-bind="{ ...$attrs, ...resolvedProps }"
 				@view="onRowOpen"
 				@rowClick="onRowOpen"
+				@rowAuxClick="onRowOpen"
 				@editOpen="onRowOpen"
 				@configure="showConfigModal = true">
 				<!-- This `<template v-for>` defines dynamic SLOTS, not a
@@ -203,6 +204,7 @@
 			v-bind="{ ...$attrs, ...resolvedProps }"
 			@view="onRowOpen"
 			@rowClick="onRowOpen"
+			@rowAuxClick="onRowOpen"
 			@editOpen="onRowOpen"
 			@configure="showConfigModal = true">
 			<!-- Dynamic slot definition, not a rendered list — see the note on

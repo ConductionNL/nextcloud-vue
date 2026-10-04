@@ -17,6 +17,7 @@ jest.mock('@nextcloud/axios', () => ({
 const { mount } = require('@vue/test-utils')
 const axios = jest.requireMock('@nextcloud/axios').default
 const CnDataTable = require('../../src/components/CnDataTable/CnDataTable.vue').default
+const { openRowTarget } = require('../../src/utils/linkNavigation.js')
 
 /**
  * Mount helper. Stubs CnCellRenderer so the test asserts the *value* the
@@ -241,12 +242,21 @@ describe('CnDataTable — a clickable row behaves like a link', () => {
 		expect($router.push).not.toHaveBeenCalled()
 	})
 
-	it('opens the row in a new tab on a middle click (auxclick) and emits row-click', async () => {
+	it('opens the row in a new tab on a middle click (auxclick) and emits row-aux-click, not row-click', async () => {
 		const { wrapper, $router } = mountLinked()
 		await wrapper.findAll('.cn-table-row').at(0).trigger('auxclick', { button: 1 })
 		expect(openSpy).toHaveBeenCalledWith('/apps/x/#/items/a', '_blank', 'noopener,noreferrer')
 		expect($router.push).not.toHaveBeenCalled()
-		expect(wrapper.emitted('row-click')[0][1].button).toBe(1)
+		expect(wrapper.emitted('row-aux-click')[0][1].button).toBe(1)
+		// A host whose row-click listener navigates must not hear a middle click.
+		expect(wrapper.emitted('row-click')).toBeFalsy()
+	})
+
+	it('cancels a middle press on a clickable row so the browser does not autoscroll', async () => {
+		const { wrapper } = mountLinked()
+		const event = new MouseEvent('mousedown', { button: 1, cancelable: true, bubbles: true })
+		wrapper.findAll('.cn-table-row').at(0).element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(true)
 	})
 
 	it('ignores a right-button auxclick and keeps the context menu', async () => {
@@ -280,9 +290,83 @@ describe('CnDataTable — a clickable row behaves like a link', () => {
 	})
 
 	it('does not open a second tab when a row-click listener already opened one', async () => {
+		const { wrapper } = mountLinked({ onRowClick: (_row, event) => openRowTarget(event, 'https://example.com/a') })
+		await wrapper.findAll('.cn-table-row').at(0).trigger('click', { ctrlKey: true })
+		expect(openSpy).toHaveBeenCalledTimes(1)
+		expect(openSpy).toHaveBeenCalledWith('https://example.com/a', '_blank', 'noopener,noreferrer')
+	})
+
+	it('still opens the tab when a row-click listener only prevented the default', async () => {
 		const { wrapper } = mountLinked({ onRowClick: (_row, event) => event.preventDefault() })
 		await wrapper.findAll('.cn-table-row').at(0).trigger('click', { ctrlKey: true })
+		expect(openSpy).toHaveBeenCalledWith('/apps/x/#/items/a', '_blank', 'noopener,noreferrer')
+	})
+
+	it('renders the row as a real link, named by its first cell', () => {
+		const { wrapper } = mountLinked()
+		const link = wrapper.findAll('[data-testid="cn-row-link"]').at(0)
+		expect(link.element.tagName).toBe('A')
+		expect(link.attributes('href')).toBe('/apps/x/#/items/a')
+		expect(link.attributes('aria-label')).toBe('Welcome flow')
+		expect(wrapper.findAll('.cn-table-row').at(0).classes()).toContain('cn-table-row--linked')
+	})
+
+	it('routes once on a plain click on the link', async () => {
+		const { wrapper, $router } = mountLinked()
+		const event = new MouseEvent('click', { button: 0, bubbles: true, cancelable: true })
+		wrapper.findAll('[data-testid="cn-row-link"]').at(0).element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(true)
+		expect($router.push).toHaveBeenCalledTimes(1)
+		expect($router.push).toHaveBeenCalledWith({ name: 'item', params: { id: 'a' } })
 		expect(openSpy).not.toHaveBeenCalled()
+	})
+
+	it('leaves a ctrl-click on the link to the browser', async () => {
+		const { wrapper, $router } = mountLinked()
+		const event = new MouseEvent('click', { button: 0, ctrlKey: true, bubbles: true, cancelable: true })
+		const link = wrapper.findAll('[data-testid="cn-row-link"]').at(0).element
+		// Stand in for the browser opening the href, which jsdom cannot do.
+		link.addEventListener('click', (e) => e.preventDefault())
+		link.dispatchEvent(event)
+		expect($router.push).not.toHaveBeenCalled()
+		expect(openSpy).not.toHaveBeenCalled()
+	})
+
+	it('routes in place on an alt-click on the link, instead of leaving it to the browser download', async () => {
+		const { wrapper, $router } = mountLinked()
+		const event = new MouseEvent('click', { button: 0, altKey: true, bubbles: true, cancelable: true })
+		wrapper.findAll('[data-testid="cn-row-link"]').at(0).element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(true)
+		expect($router.push).toHaveBeenCalledTimes(1)
+		expect(openSpy).not.toHaveBeenCalled()
+	})
+
+	it('names the link generically when the first cell is empty or not plain text', () => {
+		const { wrapper } = mountLinked({ rows: [{ id: 'a', name: '' }, { id: 'b', name: ['x'] }, { id: 'c', name: { id: 1 } }] })
+		const labels = wrapper.findAll('[data-testid="cn-row-link"]').map((link) => link.attributes('aria-label'))
+		expect(labels).toEqual(['Open row', 'Open row', 'Open row'])
+	})
+
+	it('keeps the browser menu on a right-click on the link when no host renders one', () => {
+		const { wrapper } = mountLinked()
+		const event = new MouseEvent('contextmenu', { button: 2, bubbles: true, cancelable: true })
+		wrapper.findAll('[data-testid="cn-row-link"]').at(0).element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(false)
+		expect(wrapper.emitted('row-context-menu')).toHaveLength(1)
+	})
+
+	it('prevents the browser menu on a right-click on the link when a host listens for row-context-menu', () => {
+		const { wrapper } = mountLinked({ onRowContextMenu: jest.fn() })
+		const event = new MouseEvent('contextmenu', { button: 2, bubbles: true, cancelable: true })
+		wrapper.findAll('[data-testid="cn-row-link"]').at(0).element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(true)
+	})
+
+	it('renders no link where a row click selects, or where rows have no route', () => {
+		const selecting = mountLinked({ selectable: true, selectedIds: [] }).wrapper
+		expect(selecting.find('[data-testid="cn-row-link"]').exists()).toBe(false)
+		const unrouted = mountLinked({ rowClickRoute: null }).wrapper
+		expect(unrouted.find('[data-testid="cn-row-link"]').exists()).toBe(false)
 	})
 })
 

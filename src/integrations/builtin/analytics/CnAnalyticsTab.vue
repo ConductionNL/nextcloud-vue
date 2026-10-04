@@ -82,8 +82,7 @@
 			<NcButton
 				variant="primary"
 				:href="analyticsAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<ChartBar :size="20" />
 				</template>
@@ -131,8 +130,7 @@
 					<NcActionLink
 						:closeAfterClick="true"
 						:href="reportUrl(report)"
-						target="_blank"
-						rel="noopener noreferrer">
+						target="_blank">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
@@ -178,7 +176,7 @@ import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
 import CnAnalyticsReportCreate from '../../../components/CnAnalyticsReportCreate/CnAnalyticsReportCreate.vue'
 import CnAnalyticsReportPicker from '../../../components/CnAnalyticsReportPicker/CnAnalyticsReportPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 /**
  * CnAnalyticsTab — bespoke dataset list for the `analytics` integration.
@@ -408,8 +406,9 @@ export default {
 			return t('nextcloud-vue', 'Latest value')
 		},
 
+		// A provider URL is used only when it is a safe scheme; else the app link.
 		reportUrl(report) {
-			if (report && report.url) {
+			if (report && report.url && safeHref(report.url) !== '#') {
 				return report.url
 			}
 			const id = this.reportKey(report)

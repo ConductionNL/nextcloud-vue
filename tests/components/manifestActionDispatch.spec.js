@@ -151,6 +151,27 @@ describe('manifestActionDispatch — link targets', () => {
 		expect(resolveActionTarget({ type: 'navigate' }, row, c)).toBeNull()
 	})
 
+	it('adds the row id only to a route that declares :id', () => {
+		const router = {
+			push: jest.fn(),
+			getRoutes: () => [
+				{ name: 'PetDetail', path: '/pets/:id' },
+				{ name: 'PetList', path: '/pets' },
+			],
+		}
+		const c = ctx({ router })
+		const row = { id: 'r1' }
+		expect(resolveActionTarget({ type: 'open-page', target: 'PetList' }, row, c).target)
+			.toEqual({ name: 'PetList', params: {} })
+		expect(resolveActionTarget({ type: 'open-page', target: 'PetDetail' }, row, c).target)
+			.toEqual({ name: 'PetDetail', params: { id: 'r1' } })
+		expect(resolveActionTarget({ handler: 'navigate', route: 'PetList', params: { tab: 'all' } }, row, c).target)
+			.toEqual({ name: 'PetList', params: { tab: 'all' } })
+		// A route the router does not know keeps the id.
+		expect(resolveActionTarget({ type: 'open-page', target: 'Unknown' }, row, c).target)
+			.toEqual({ name: 'Unknown', params: { id: 'r1' } })
+	})
+
 	it('resolveActionTarget drops an unresolved token without warning by default', () => {
 		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		const target = resolveActionTarget({ id: 'a', handler: 'navigate', route: 'R', params: { other: '{missing}' } }, { id: 1 }, ctx())

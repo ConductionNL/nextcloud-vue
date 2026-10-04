@@ -89,7 +89,8 @@
 					:sortKeys="effectiveSortKeys"
 					:emptyText="emptyText"
 					@sort="onSort"
-					@rowClick="onRowClick">
+					@rowClick="onRowClick"
+					@rowAuxClick="onRowAuxClick">
 					<template
 						v-for="col in slotColumns"
 						#[`column-${col}`]="{ row, value }">
@@ -484,14 +485,21 @@ export default {
 		 */
 		'action',
 		/**
-		 * @event row-click Emitted when a log row's body is clicked or
-		 * middle-clicked, whether or not `rowDetail` opened the detail dialog —
-		 * so a host can navigate instead of (or as well as) showing the dialog.
-		 * Payload: `(row, event)`, the second being the native click/auxclick
-		 * event.
+		 * @event row-click Emitted when a log row's body is clicked, whether or
+		 * not `rowDetail` opened the detail dialog — so a host can navigate
+		 * instead of (or as well as) showing the dialog. Payload: `(row, event)`,
+		 * the second being the native click event. A middle click emits
+		 * `row-aux-click` instead.
 		 * @type {object}
 		 */
 		'row-click',
+		/**
+		 * @event row-aux-click Emitted when a log row's body is middle-clicked,
+		 * for opening it in a new tab. Payload: `(row, event)`, the second being
+		 * the native auxclick event.
+		 * @type {object}
+		 */
+		'row-aux-click',
 	],
 
 	setup(props) {
@@ -994,24 +1002,41 @@ export default {
 		/**
 		 * Handle a row-body click: navigate to `rowRoute` when one is declared,
 		 * else open the detail dialog when `rowDetail` is set. Always re-emits
-		 * so a host can do its own thing regardless. A ctrl/cmd/shift or middle
-		 * click opens `rowRoute` in a new tab; a middle click never opens the
-		 * dialog.
+		 * so a host can do its own thing regardless. A ctrl/cmd/shift click
+		 * opens `rowRoute` in a new tab.
 		 *
 		 * @param {object} row The clicked log entry.
-		 * @param {MouseEvent} [event] The originating click/auxclick event.
+		 * @param {MouseEvent} [event] The originating click event.
 		 */
 		onRowClick(row, event) {
 			if (this.rowRoute) {
 				markNewTabHandled(event, openRowTarget(event, { name: this.rowRoute, params: { id: row?.[this.rowKey] } }, this.$router))
-			} else if (this.rowDetail && !(event && event.button === 1)) {
+			} else if (this.rowDetail) {
 				this.detailRow = row
 			}
 			/**
-			 * @event row-click Emitted when a log row's body is clicked or middle-clicked. Payload: `(row, event)` — the log entry and the native click/auxclick event.
+			 * @event row-click Emitted when a log row's body is clicked. Payload: `(row, event)` — the log entry and the native click event.
 			 * @type {object}
 			 */
 			this.$emit('row-click', row, event)
+		},
+
+		/**
+		 * Handle a row-body middle click: open `rowRoute` in a new tab, never
+		 * the detail dialog, and emit `row-aux-click` rather than `row-click`.
+		 *
+		 * @param {object} row The clicked log entry.
+		 * @param {MouseEvent} event The originating auxclick event.
+		 */
+		onRowAuxClick(row, event) {
+			if (this.rowRoute) {
+				markNewTabHandled(event, openRowTarget(event, { name: this.rowRoute, params: { id: row?.[this.rowKey] } }, this.$router))
+			}
+			/**
+			 * @event row-aux-click Emitted when a log row's body is middle-clicked. Payload: `(row, event)` — the log entry and the native auxclick event.
+			 * @type {object}
+			 */
+			this.$emit('row-aux-click', row, event)
 		},
 
 		/** Close the row-detail dialog. */

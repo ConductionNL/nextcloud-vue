@@ -139,12 +139,13 @@
 						:data-testid-row-id="row[rowKey]"
 						:class="[
 							isSelected(row) ? 'cn-table-row--selected' : '',
+							rowLinks[String(row[rowKey])] ? 'cn-table-row--linked' : '',
 							rowClass ? rowClass(row) : '',
 						]"
-						@mousedown="onPointerDown"
+						@mousedown="onRowMouseDown"
 						@click="onRowClick(row, $event)"
 						@auxclick="onRowAuxClick(row, $event)"
-						@contextmenu.prevent="onRowContextMenu(row, $event)">
+						@contextmenu="onRowContextMenu(row, $event)">
 						<!-- Checkbox -->
 						<td v-if="selectable"
 							class="cn-table-col--checkbox"
@@ -168,6 +169,18 @@
 							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
 							:style="col.width ? { maxWidth: col.width } : {}"
 							@mouseenter="titleWhenClipped">
+							<!-- A row with a `rowClickRoute` is a real link: this anchor
+							     is stretched over the whole row by CSS, so hovering shows
+							     the URL, a middle or ctrl click opens a new tab natively,
+							     and the row is reachable with Tab. The row's own click
+							     handlers treat it as a nested control and leave it be. -->
+							<a v-if="colIndex === 0 && rowLinks[String(row[rowKey])]"
+								class="cn-table-row__link"
+								:href="rowLinks[String(row[rowKey])].href"
+								:aria-label="rowLinkLabel(row, col)"
+								draggable="false"
+								data-testid="cn-row-link"
+								@click="onRowLinkClick(row, $event)" />
 							<!-- The padlock rides the FIRST data cell, beside whatever
 							     names the row. Deliberately OUTSIDE the #column-<key>
 							     slot: a consumer overriding that column's rendering is
@@ -274,9 +287,9 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
-import { openRowTarget } from '../../utils/linkNavigation.js'
+import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
-import { isNewTabHandled, isRowMiddleClick, markNewTabHandled } from '../../utils/rowAuxClick.js'
+import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP, resolveRowIndicators } from '../../utils/rowIndicators.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
@@ -692,9 +705,11 @@ export default {
 
 		/**
 		 * Convenience navigation (folded from CnTableWidget): a function that
-		 * receives the clicked row and returns a vue-router route to push. When
-		 * set, a row click navigates there (the `row-click` event still fires);
-		 * a ctrl/cmd/shift or middle click opens it in a new tab.
+		 * receives a row and returns the vue-router route it opens. When set,
+		 * each row renders as a real link to that route, stretched over the
+		 * row: a click navigates there (the `row-click` event still fires), and
+		 * a ctrl/cmd/shift or middle click opens it in a new tab. A table whose
+		 * row click selects (`selectable` without `rowClickToView`) gets no link.
 		 *
 		 * @type {((row: object) => object)|null}
 		 */
@@ -717,7 +732,7 @@ export default {
 		},
 	},
 
-	emits: ['row-click', 'row-context-menu', 'select', 'select-all', 'sort', 'view-all'],
+	emits: ['row-click', 'row-aux-click', 'row-context-menu', 'select', 'select-all', 'sort', 'view-all'],
 
 	setup() {
 		// Tell a deliberate row click apart from a text-selection drag.
@@ -867,6 +882,32 @@ export default {
 		 *
 		 * @return {Array<{key: string, order: 'asc'|'desc'}>}
 		 */
+		/**
+		 * The link each row opens, keyed by row key: the `rowClickRoute`
+		 * location and its href. Empty when rows have no route, or when a row
+		 * click selects instead of navigating.
+		 *
+		 * @return {{[key: string]: {target: object, href: string}}}
+		 */
+		rowLinks() {
+			const links = {}
+			if (!this.rowClickRoute || !this.$router || (this.selectable && !this.rowClickToView)) {
+				return links
+			}
+			for (const row of this.effectiveRows) {
+				const route = this.rowClickRoute(row)
+				if (!route) {
+					continue
+				}
+				const target = typeof route === 'string' ? { path: route } : route
+				const href = resolveHref(target, this.$router)
+				if (href) {
+					links[String(row[this.rowKey])] = { target, href }
+				}
+			}
+			return links
+		},
+
 		effectiveSortKeys() {
 			if (this.sortKeys && this.sortKeys.length > 0) {
 				return this.sortKeys
@@ -1343,9 +1384,23 @@ export default {
 		},
 
 		/**
-		 * Row-body middle click: emits `row-click` like a click, so the host
-		 * (or `rowClickRoute`) can open the row in a new tab. Ignored for other
-		 * buttons, nested controls, drags and select-on-click tables.
+		 * Row mousedown: record the press for the drag guard, and on a row a
+		 * middle click opens, keep the browser from starting autoscroll.
+		 *
+		 * @param {MouseEvent} event The mousedown event.
+		 */
+		onRowMouseDown(event) {
+			this.onPointerDown(event)
+			if (!this.selectable || this.rowClickToView) {
+				preventMiddleClickAutoscroll(event)
+			}
+		},
+
+		/**
+		 * Row-body middle click: emits `row-aux-click`, not `row-click`, so an
+		 * existing `row-click` listener that navigates never moves the current
+		 * tab away; `rowClickRoute` still opens the row in a new tab. Ignored
+		 * for other buttons, nested controls, drags and select-on-click tables.
 		 *
 		 * @param {object} row The clicked row object
 		 * @param {MouseEvent} event The originating auxclick event.
@@ -1357,23 +1412,39 @@ export default {
 			if (this.selectable && !this.rowClickToView) {
 				return
 			}
-			this.emitRowClick(row, event)
+			/**
+			 * @event row-aux-click Emitted on a row-body middle click, under the same conditions as `row-click`, so a host can open the row in a new tab (see `openRowTarget`). Payload: `(row, event)` — the clicked row object and the native auxclick event.
+			 * @type {object} The clicked row object.
+			 */
+			this.$emit('row-aux-click', row, event)
+			this.followRowClickRoute(row, event)
 		},
 
 		/**
 		 * Emit `row-click` and follow `rowClickRoute` when set.
 		 *
 		 * @param {object} row The clicked row object
-		 * @param {MouseEvent} [event] The originating click or auxclick event.
+		 * @param {MouseEvent} [event] The originating click event.
 		 */
 		emitRowClick(row, event) {
 			/**
-			 * @event row-click Emitted on a row-body click for navigation, and on a middle click (auxclick). Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox column). Payload: `(row, event)` — the clicked row object and the native click/auxclick event, so a host can open the row in a new tab on a ctrl/cmd/shift or middle click (see `openRowTarget`).
+			 * @event row-click Emitted on a row-body click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox column). Payload: `(row, event)` — the clicked row object and the native click event, so a host can open the row in a new tab on a ctrl/cmd/shift click (see `openRowTarget`). A middle click emits `row-aux-click` instead.
 			 * @type {object} The clicked row object.
 			 */
 			this.$emit('row-click', row, event)
-			// A ctrl/cmd/shift or middle click opens the route in a new tab,
-			// unless a row-click listener already did.
+			this.followRowClickRoute(row, event)
+		},
+
+		/**
+		 * Follow `rowClickRoute` for a row click: in place, or in a new tab on
+		 * a ctrl/cmd/shift or middle click.
+		 *
+		 * @param {object} row The clicked row object
+		 * @param {MouseEvent} [event] The originating click or auxclick event.
+		 */
+		followRowClickRoute(row, event) {
+			// A new-tab click opens the route in a new tab, unless a listener
+			// already did.
 			if (this.rowClickRoute && this.$router && !isNewTabHandled(event)) {
 				const route = this.rowClickRoute(row)
 				if (route) {
@@ -1383,13 +1454,56 @@ export default {
 		},
 
 		/**
+		 * A plain or alt click on a row link routes in place; a new-tab click
+		 * is left to the browser, which opens the href itself.
+		 *
+		 * @param {object} row The row the link belongs to.
+		 * @param {MouseEvent} event The click event.
+		 */
+		onRowLinkClick(row, event) {
+			const link = this.rowLinks[String(row[this.rowKey])]
+			if (!link) {
+				return
+			}
+			// Alt-click on a link downloads it; a row opens like a plain click.
+			if (event.altKey && !isNewTabClick(event) && !event.defaultPrevented) {
+				event.preventDefault()
+				this.$router.push(link.target).catch(() => {})
+				return
+			}
+			followLinkClick(event, link.target, this.$router)
+		},
+
+		/**
+		 * The row link's accessible name: the row's first cell when it holds
+		 * plain text, else a generic name.
+		 *
+		 * @param {object} row The row.
+		 * @param {object} col The first data column.
+		 * @return {string}
+		 */
+		rowLinkLabel(row, col) {
+			const value = this.cellValue(row, col)
+			if (['string', 'number'].includes(typeof value) && String(value).trim() !== '') {
+				return String(value)
+			}
+			return t('nextcloud-vue', 'Open row')
+		},
+
+		/**
 		 * Row right-click: forward the row + originating event so a host can
-		 * open a context menu (the browser default is prevented).
+		 * open a context menu. The browser menu is prevented, except on a row
+		 * link when no host listens, so its link actions stay available.
 		 *
 		 * @param {object} row The right-clicked row object.
 		 * @param {MouseEvent} event The originating contextmenu event.
 		 */
 		onRowContextMenu(row, event) {
+			const fromRowLink = event.target?.closest?.('.cn-table-row__link')
+			// `$.vnode.props`, not `$attrs`: a declared emit is stripped from `$attrs`.
+			if (!fromRowLink || this.$.vnode.props?.onRowContextMenu) {
+				event.preventDefault()
+			}
 			/**
 			 * @event row-context-menu Emitted on a row right-click (contextmenu) for hosts that render a context menu.
 			 * @type {{ row: object, event: MouseEvent }}

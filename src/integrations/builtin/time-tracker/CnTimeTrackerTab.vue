@@ -81,8 +81,7 @@
 			<NcButton
 				variant="primary"
 				:href="timeTrackerAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<Clock :size="20" />
 				</template>
@@ -185,7 +184,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import Timer from 'vue-material-design-icons/Timer.vue'
 import CnTimeTrackerCreate from '../../../components/CnTimeTrackerCreate/CnTimeTrackerCreate.vue'
 import CnTimeTrackerPicker from '../../../components/CnTimeTrackerPicker/CnTimeTrackerPicker.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 /**
  * CnTimeTrackerTab — bespoke sidebar tab for the `time-tracker`
@@ -361,7 +360,7 @@ export default {
 		},
 
 		rowUrl(row) {
-			if (row.url) {
+			if (row.url && safeHref(row.url) !== '#') {
 				return row.url
 			}
 			const kind = this.rowKind(row)

@@ -96,6 +96,43 @@ describe('CnIndexPage row click', () => {
 		expect(onRowClick).toHaveBeenCalledWith(ROW, event)
 	})
 
+	it('emits a middle click as row-aux-click, never as row-click', () => {
+		const onRowClick = jest.fn()
+		const onRowAuxClick = jest.fn()
+		const w = mountIndex({ selectable: false }, { onRowClick, onRowAuxClick })
+		const event = new MouseEvent('auxclick', { button: 1 })
+
+		w.vm.onRowAuxClick(ROW, event)
+
+		expect(onRowAuxClick).toHaveBeenCalledWith(ROW, event)
+		expect(onRowClick).not.toHaveBeenCalled()
+	})
+
+	it('re-emits a table middle click as row-aux-click', async () => {
+		const onRowAuxClick = jest.fn()
+		const w = mountIndex({ selectable: false }, { onRowAuxClick })
+		const event = new MouseEvent('auxclick', { button: 1 })
+
+		w.findComponent({ name: 'CnDataTable' }).vm.$emit('row-aux-click', ROW, event)
+		await w.vm.$nextTick()
+
+		expect(onRowAuxClick).toHaveBeenCalledWith(ROW, event)
+	})
+
+	it('skips a custom item middle click that something inside already opened', () => {
+		const { markNewTabHandled } = require('../../src/utils/rowAuxClick.js')
+		const onRowAuxClick = jest.fn()
+		const w = mountIndex({ selectable: false }, { onRowAuxClick })
+		const handled = new MouseEvent('auxclick', { button: 1, cancelable: true })
+		markNewTabHandled(handled, true)
+
+		w.vm.onCustomItemAuxClick(ROW, handled)
+		expect(onRowAuxClick).not.toHaveBeenCalled()
+
+		w.vm.onCustomItemAuxClick(ROW, new MouseEvent('auxclick', { button: 1 }))
+		expect(onRowAuxClick).toHaveBeenCalledTimes(1)
+	})
+
 	it('does not toggle selection on a middle click', () => {
 		const w = mountIndex({})
 

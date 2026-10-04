@@ -12,7 +12,7 @@
  * - absent router warns for open-page/navigate
  */
 
-const { dispatchAction, buildOnSuccessRoute, savedObjectId, resolveObjectOpType } = require('../../src/utils/actionsDispatcher.js')
+const { dispatchAction, buildOnSuccessRoute, hasActionTargetTokens, savedObjectId, resolveObjectOpType } = require('../../src/utils/actionsDispatcher.js')
 
 describe('dispatchAction — handler type', () => {
 	it('calls the handler function with spread args', () => {
@@ -411,6 +411,25 @@ describe('dispatchAction — export (export launcher, Wave 1)', () => {
 		}).not.toThrow()
 		expect(warnSpy).toHaveBeenCalled()
 		warnSpy.mockRestore()
+	})
+})
+
+describe('hasActionTargetTokens', () => {
+	it.each([
+		['/items/@objectId', true],
+		['/items/{objectId}', true],
+		['/p/@object.slug', true],
+		['/q?period=@workspace.period', true],
+		['/q?x=@page.x', true],
+		['/q?c=@config.key', true],
+		['/q?f=@range.from', true],
+		['mailto:info@example.nl', false],
+		['https://social.example/@handle', false],
+		['/docs/{section}', false],
+		['', false],
+		[undefined, false],
+	])('%s → %s', (target, expected) => {
+		expect(hasActionTargetTokens(target)).toBe(expected)
 	})
 })
 

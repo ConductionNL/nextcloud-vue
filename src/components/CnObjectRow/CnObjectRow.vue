@@ -2,7 +2,7 @@
 	<div
 		class="cn-object-row"
 		:class="{ 'cn-object-row--selected': selected }"
-		@mousedown="onPointerDown"
+		@mousedown="onRowMouseDown"
 		@click="onRowClick($event)"
 		@auxclick="onRowAuxClick($event)">
 		<!-- Selection checkbox -->
@@ -68,7 +68,7 @@
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
-import { isRowMiddleClick } from '../../utils/rowAuxClick.js'
+import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
@@ -146,7 +146,7 @@ export default {
 	// again from `$emit('click', object)` — twice per click, with different
 	// payloads. Declaring the names here removes them from `$attrs`, which is
 	// also what stops VTU v2 recording the native DOM event into `emitted()`.
-	emits: ['select', 'click'],
+	emits: ['select', 'click', 'aux-click'],
 
 	setup() {
 		// Tell a deliberate row click apart from a text-selection drag.
@@ -237,15 +237,29 @@ export default {
 				return
 			}
 			/**
-			 * @event click Emitted when a non-selectable row is clicked or middle-clicked (navigation). Payload: `(object, event)` — the row's object and the native click/auxclick event, for opening it in a new tab on a ctrl/cmd/shift or middle click.
+			 * @event click Emitted when a non-selectable row is clicked (navigation). Payload: `(object, event)` — the row's object and the native click event, for opening it in a new tab on a ctrl/cmd/shift click. A middle click emits `aux-click` instead.
 			 * @type {object} The row's object.
 			 */
 			this.$emit('click', this.object, event)
 		},
 
 		/**
-		 * Row-body middle click: emits `click` like a click on a
-		 * non-selectable row.
+		 * Row mousedown: record the press for the drag guard, and on a
+		 * non-selectable row keep a middle press from starting autoscroll.
+		 *
+		 * @param {MouseEvent} event The mousedown event.
+		 */
+		onRowMouseDown(event) {
+			this.onPointerDown(event)
+			if (!this.selectable) {
+				preventMiddleClickAutoscroll(event)
+			}
+		},
+
+		/**
+		 * Row-body middle click on a non-selectable row: emits `aux-click`, not
+		 * `click`, so an existing `click` listener that navigates never moves
+		 * the current tab away.
 		 *
 		 * @param {MouseEvent} event The auxclick event.
 		 */
@@ -253,7 +267,11 @@ export default {
 			if (this.selectable || !isRowMiddleClick(event)) {
 				return
 			}
-			this.$emit('click', this.object, event)
+			/**
+			 * @event aux-click Emitted when a non-selectable row is middle-clicked, for opening it in a new tab (see `openRowTarget`). Payload: `(object, event)` — the row's object and the native auxclick event.
+			 * @type {object} The row's object.
+			 */
+			this.$emit('aux-click', this.object, event)
 		},
 	},
 }

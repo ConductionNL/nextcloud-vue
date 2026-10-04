@@ -323,6 +323,26 @@ const CORE_TABS = ['files', 'notes', 'tags', 'tasks', 'auditTrail', 'shares']
 let legacyWarned = false
 
 /**
+ * Schema titles by numeric schema id, shared by every widget on the page so a
+ * schema is asked for once. OpenRegister's `/uses` and `/used` answer
+ * `@self.schema` as that id ("120"), which is not a word anyone can read.
+ *
+ * @type {Map<string, Promise<string>>}
+ */
+const schemaTitleCache = new Map()
+
+/**
+ * Whether a value is a bare number, the way OpenRegister names a schema by id.
+ *
+ * @param {string|number|undefined|null} value The value.
+ * @return {boolean}
+ */
+function isNumericId(value) {
+	return (typeof value === 'number' && Number.isFinite(value))
+		|| (typeof value === 'string' && /^\d+$/.test(value.trim()))
+}
+
+/**
  * Leaf groups surfaced by the aggregated `/relations` endpoint, in tab order.
  * `responseKey` is the key in the `/relations` payload; `integrationId` is the
  * sidebar tab the "open in sidebar" affordance deep-links to; `key` is this
@@ -402,6 +422,14 @@ export default {
 		NcActionInput,
 		NcButton,
 		NcEmptyContent,
+	},
+
+	inject: {
+		/**
+		 * The host app's translator (CnAppRoot provides it), so a schema title
+		 * reads in the app's language. Without it a title reads as stored.
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -667,6 +695,8 @@ export default {
 			 * @type {HTMLInputElement|null}
 			 */
 			fileInputEl: null,
+			/** Schema titles by numeric schema id, for object rows. */
+			schemaTitles: {},
 			/** Whether any section/tab is currently fetching. */
 			loading: false,
 			/** True once the first fetch has completed (gates the empty state). */
@@ -1359,9 +1389,74 @@ export default {
 				self.name,
 				raw.summary,
 				raw.description,
-			].find((v) => typeof v === 'string' && v.trim() && !isUuid(v)) || self.schema || String(id)
-			const meta = self.schema || raw.schema || ''
-			return { id, label, meta: typeof meta === 'string' ? meta : '', raw }
+			].find((v) => typeof v === 'string' && v.trim() && !isUuid(v))
+			|| [raw.givenName, raw.familyName].filter((v) => typeof v === 'string' && v.trim()).join(' ')
+			// OpenRegister names the schema by numeric id: show its title, never the number.
+			const schema = this.schemaName(self.schema || raw.schema)
+			const finalLabel = label || schema || String(id)
+			return { id, label: finalLabel, meta: schema === finalLabel ? '' : schema, raw }
+		},
+
+		/**
+		 * How a row names its schema: the translated title for a numeric id
+		 * (empty until it is read, or when it cannot be), a slug as it is.
+		 *
+		 * @param {string|number|undefined|null} schema - `@self.schema` of the related object.
+		 * @return {string}
+		 */
+		schemaName(schema) {
+			if (isNumericId(schema)) {
+				const title = this.schemaTitles[String(schema).trim()]
+				return title ? this.cnTranslate(title) : ''
+			}
+			return typeof schema === 'string' ? schema : ''
+		},
+
+		/**
+		 * Read the titles of the numeric schema ids in these envelopes once,
+		 * before the rows are built, so no row shows a number first.
+		 *
+		 * @param {Array<object|null>} envelopes - The `{ results }` payloads.
+		 * @return {Promise<void>}
+		 */
+		async resolveSchemaTitles(envelopes) {
+			const ids = new Set()
+			for (const envelope of envelopes) {
+				for (const raw of ((envelope && envelope.results) || [])) {
+					const schema = (raw && (raw['@self'] || {}).schema) ?? (raw && raw.schema)
+					if (isNumericId(schema)) {
+						ids.add(String(schema).trim())
+					}
+				}
+			}
+			const titles = { ...this.schemaTitles }
+			await Promise.all([...ids].filter((id) => !(id in titles)).map(async (id) => {
+				if (!schemaTitleCache.has(id)) {
+					schemaTitleCache.set(id, this.fetchSchemaTitle(id))
+				}
+				titles[id] = await schemaTitleCache.get(id)
+			}))
+			this.schemaTitles = titles
+		},
+
+		/**
+		 * GET one schema's title; '' when it cannot be read.
+		 *
+		 * @param {string} id - The numeric schema id.
+		 * @return {Promise<string>}
+		 */
+		async fetchSchemaTitle(id) {
+			try {
+				const response = await fetch(generateUrl('/apps/openregister/api/schemas/{id}', { id }), { method: 'GET', headers: buildHeaders() })
+				if (!response.ok) {
+					return ''
+				}
+				const schema = await response.json()
+				const title = schema && (schema.title || schema.slug)
+				return typeof title === 'string' ? title : ''
+			} catch {
+				return ''
+			}
 		},
 
 		/**
@@ -1465,6 +1560,7 @@ export default {
 				const groups = []
 
 				if (this.showObjects) {
+					await this.resolveSchemaTitles([uses, used, contracts])
 					const objectItems = this.mergeObjectResults([uses, used, contracts])
 					groups.push({ key: 'objects', label: this.objectsLabel, icon: 'FileTreeOutline', integrationId: '', items: objectItems, total: objectItems.length })
 				}
@@ -1590,6 +1686,7 @@ export default {
 						calls.push(store.fetchContracts(type, id))
 					}
 					const groups = await Promise.all(calls)
+					await this.resolveSchemaTitles(groups.map((results) => ({ results: results || [] })))
 					const seen = new Set()
 					const merged = []
 					for (const group of groups) {

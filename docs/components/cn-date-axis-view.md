@@ -52,7 +52,8 @@ width, because a one-day term is real and a bar of no width is invisible.
 
 | Event | Payload | Description |
 |---|---|---|
-| `row-click` | `(row, event)` | A bar or an unplanned row was opened, by a click or a middle click. The second argument is the native click/auxclick event, for opening the row in a new tab on a ctrl/cmd/shift or middle click. |
+| `row-click` | `(row, event)` | A bar or an unplanned row was opened by a click. The second argument is the native click event, for opening the row in a new tab on a ctrl/cmd/shift click. A middle click emits `row-aux-click` instead. |
+| `row-aux-click` | `(row, event)` | A bar or an unplanned row was middle-clicked. The second argument is the native auxclick event, for opening the row in a new tab. |
 
 ## See also
 

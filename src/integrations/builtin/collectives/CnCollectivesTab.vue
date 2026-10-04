@@ -72,8 +72,7 @@
 			<NcButton
 				variant="primary"
 				:href="collectivesAppUrl"
-				target="_blank"
-				rel="noopener noreferrer">
+				target="_blank">
 				<template #icon>
 					<BookOpenPageVariant :size="20" />
 				</template>
@@ -122,8 +121,7 @@
 							<NcActionLink
 								:closeAfterClick="true"
 								:href="pageUrl(page)"
-								target="_blank"
-								rel="noopener noreferrer">
+								target="_blank">
 								<template #icon>
 									<OpenInNew :size="20" />
 								</template>
@@ -168,7 +166,7 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnCollectivePageCreate from '../../../components/CnCollectivePageCreate/CnCollectivePageCreate.vue'
 import CnCollectivePagePicker from '../../../components/CnCollectivePagePicker/CnCollectivePagePicker.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
@@ -333,8 +331,9 @@ export default {
 			return text
 		},
 
+		// A provider URL is used only when it is a safe scheme; else the app link.
 		pageUrl(page) {
-			if (typeof page.url === 'string' && page.url !== '') {
+			if (typeof page.url === 'string' && page.url !== '' && safeHref(page.url) !== '#') {
 				return page.url
 			}
 			const d = this.dataOf(page)
