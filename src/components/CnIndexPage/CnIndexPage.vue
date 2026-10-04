@@ -545,6 +545,7 @@
 					:statusField="board.statusField || 'status'"
 					:cardFields="board.cardFields || []"
 					:swimlaneField="board.swimlaneField || ''"
+					:dueRule="board.dueRule || null"
 					:rowKey="rowKey"
 					:runTransition="runTransition"
 					:paged="isPaged"

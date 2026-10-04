@@ -83,11 +83,19 @@
 							v-for="card in column.cards"
 							:key="`card-${cardKey(card)}`"
 							class="cn-board-view__card"
+							:class="dueState(card) ? `cn-board-view__card--${dueState(card)}` : null"
 							role="listitem"
 							data-testid="cn-board-card"
 							:data-card-id="cardKey(card)"
 							:draggable="canMove"
 							@dragstart="onDragStart(card, column, $event)">
+							<span
+								v-if="dueLabel(card)"
+								class="cn-board-view__due"
+								:class="`cn-board-view__due--${dueState(card)}`"
+								data-testid="cn-board-due">
+								{{ dueLabel(card) }}
+							</span>
 							<span
 								v-for="field in cardFields"
 								:key="`f-${cardKey(card)}-${field}`"
@@ -162,6 +170,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { buildBoardColumns } from '../../utils/boardColumns.js'
 import { buildSwimlanes } from '../../utils/boardSwimlanes.js'
 import { DROP_OUTCOMES, runBoardDrop } from '../../utils/boardTransition.js'
+import { dueStateForRow } from '../../utils/dueRule.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 
 /**
@@ -252,6 +261,22 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * Marks late cards: `{ field, soonDays? }`. `field` is the dot-path to
+		 * a card's due date. A date before today gets an error edge and the
+		 * label "Overdue"; a date within `soonDays` (default 3) gets "Due
+		 * soon" in the warning colour. `null` (the default) marks nothing.
+		 *
+		 * The same rule shape the table's date cell uses, so a list and its
+		 * board agree on what late means.
+		 *
+		 * @type {{field: string, soonDays?: number}|null}
+		 */
+		dueRule: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: ['card-click', 'card-aux-click', 'moved', 'refused', 'stale'],
@@ -264,6 +289,8 @@ export default {
 			refusal: '',
 			/** The card being dragged, and where from. */
 			dragging: null,
+			/** The day late marking measures from. */
+			today: new Date(),
 		}
 	},
 
@@ -335,6 +362,33 @@ export default {
 		t,
 
 		preventMiddleClickAutoscroll,
+
+		/**
+		 * A card's due state under `dueRule`.
+		 *
+		 * @param {object} card The card's row.
+		 * @return {'overdue'|'soon'|'ok'|null} The state, or null when no rule applies.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-late-marking-on-board-cards
+		 */
+		dueState(card) {
+			return dueStateForRow(card, this.dueRule, this.today)
+		},
+
+		/**
+		 * The words a late card carries. Colour alone would not reach a reader
+		 * who cannot see it, or cannot tell red from amber.
+		 *
+		 * @param {object} card The card's row.
+		 * @return {string} "Overdue", "Due soon", or '' for a card that is fine.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-late-marking-on-board-cards
+		 */
+		dueLabel(card) {
+			const state = this.dueState(card)
+			if (state === 'overdue') {
+				return t('nextcloud-vue', 'Overdue')
+			}
+			return state === 'soon' ? t('nextcloud-vue', 'Due soon') : ''
+		},
 
 		/**
 		 * Open one card. The pointer and the keyboard both come through here,
@@ -559,6 +613,29 @@ export default {
 
 .cn-board-view__card-field {
 	display: block;
+}
+
+/* A late card: an edge in the error colour, drawn as an inset shadow so the
+   card keeps its size and its rounded corners. The label below carries the
+   meaning; the edge only helps a sighted reader find it. */
+.cn-board-view__card--overdue {
+	border-color: var(--color-error);
+	box-shadow: inset 3px 0 0 var(--color-error);
+}
+
+.cn-board-view__due {
+	display: block;
+	font-size: 0.85em;
+	font-weight: 700;
+}
+
+.cn-board-view__due--overdue {
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-board-view__due--soon {
+	color: var(--color-warning-text, var(--color-main-text));
+	font-weight: 600;
 }
 
 /*

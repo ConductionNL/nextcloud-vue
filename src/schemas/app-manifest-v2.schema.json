@@ -240,6 +240,29 @@
 					"$ref": "#/$defs/primaryAction",
 					"description": "App-wide default primary action rendered as an NcAppNavigationNew button above the main menu list. A page-scoped pages[].primaryAction for the current route wins over this default."
 				},
+				"brand": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "A brand block at the very top of the app navigation, above the primary action: a logo, a name and a caption. Rendered by CnAppNav. Omitted, nothing renders there.",
+					"properties": {
+						"logo": {
+							"type": "string",
+							"description": "URL of the logo image. Decorative when `name` is set."
+						},
+						"name": {
+							"type": "string",
+							"description": "i18n key / text for the app or organisation name."
+						},
+						"caption": {
+							"type": "string",
+							"description": "i18n key / text for the line under the name, for example the organisation."
+						},
+						"alt": {
+							"type": "string",
+							"description": "i18n key / alternative text for the logo. Used only when no `name` is set."
+						}
+					}
+				},
 				"featureRequestRepo": {
 					"type": "string",
 					"description": "`<owner>/<repo>` slug on the forge that the in-product feature-request deep-link targets (provided to descendants as `cnFeatureRequestRepo`). Falls back to `Conduction/<appId>` when omitted."
@@ -976,6 +999,29 @@
 				"swimlaneField": {
 					"type": "string",
 					"description": "A second field to group the board into rows by, while the columns stay the stages. Cards with no value for it land in one named row, last, rather than being dropped: grouping by handler and hiding the unassigned work turns a board into a picture of what is already somebody's problem."
+				},
+				"dueRule": {
+					"$ref": "#/$defs/dueRule",
+					"description": "Marks late cards. A card whose date is before today gets an error edge and the label 'Overdue'; one due within `soonDays` gets 'Due soon'. Omitted, no card is marked."
+				}
+			}
+		},
+		"dueRule": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["field"],
+			"description": "How a surface decides that a dated item is late. One shape for boards and lists, so a list and its board agree. A date before today is overdue. Days are whole calendar days in the reader's own timezone.",
+			"properties": {
+				"field": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Dot-path to the due date on the row."
+				},
+				"soonDays": {
+					"type": "integer",
+					"minimum": 0,
+					"default": 3,
+					"description": "How many days ahead still counts as due soon. 0 marks only today."
 				}
 			}
 		},

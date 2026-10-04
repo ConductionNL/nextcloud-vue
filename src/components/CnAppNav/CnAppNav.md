@@ -159,3 +159,29 @@ export default {
 }
 </script>
 ```
+
+A brand block at the top. The `brand` prop takes a logo, a name and a caption, and the manifest's `nav.brand` is the fallback. Use the `#brand` slot to draw the block yourself:
+
+```vue {static}
+<template>
+  <div style="height: 240px; width: 260px; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden;">
+    <CnAppNav
+      :manifest="manifest"
+      :brand="{ name: 'dossiq', caption: 'Gemeente Zuiddrecht' }"
+      :translate="(key) => key" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      manifest: {
+        menu: [
+          { id: 'cases', label: 'All cases', icon: 'icon-folder', route: 'cases', order: 1 },
+        ],
+      },
+    }
+  },
+}
+</script>
+```
