@@ -38,7 +38,9 @@
 							:style="{ backgroundColor: segment.color }" />
 						{{ segment.label }}
 					</span>
-					<strong class="cn-stacked-bar__count">{{ segment.count }}</strong>
+					<!-- The leading space keeps label and count two words for a
+					     screen reader; it is not drawn in this flex column. -->
+					<strong class="cn-stacked-bar__count">{{ ' ' + segment.count }}</strong>
 				</li>
 			</ul>
 		</template>

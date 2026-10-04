@@ -47,7 +47,7 @@
 				<span
 					v-if="countOf(entry) !== null"
 					class="cn-quick-filter-bar__count"
-					data-testid="cn-quick-filter-count">{{ countOf(entry) }}</span>
+					data-testid="cn-quick-filter-count">{{ ' ' + countOf(entry) }}</span>
 			</button>
 		</div>
 		<!-- The overflow is a CHIP and not a toolbar button: it is one of the
@@ -103,7 +103,7 @@
 						<span
 							v-if="countOf(entry) !== null"
 							class="cn-quick-filter-bar__count"
-							data-testid="cn-quick-filter-count">{{ countOf(entry) }}</span>
+							data-testid="cn-quick-filter-count">{{ ' ' + countOf(entry) }}</span>
 					</button>
 				</div>
 			</div>
@@ -545,7 +545,9 @@ export default {
 }
 
 /* Inherits the chip's own text colour, so it stays readable on the active
-   (primary) fill as well as on the resting one. */
+   (primary) fill as well as on the resting one. The count's text starts with
+   a space: the chip is a flex row, so the space is not drawn, but it keeps a
+   screen reader from reading label and count as one word. */
 .cn-quick-filter-bar__count {
 	min-width: 1.5em;
 	padding: 2px 6px;

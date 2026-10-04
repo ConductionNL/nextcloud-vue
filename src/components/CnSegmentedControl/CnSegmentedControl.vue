@@ -27,7 +27,9 @@
 			<!-- @binding {boolean} checked Whether this option is the chosen one. -->
 			<slot name="option" :option="option" :checked="isChecked(option)">
 				<span class="cn-segmented-control__label">{{ option.label }}</span>
-				<span v-if="option.count !== null" class="cn-segmented-control__count">{{ option.count }}</span>
+				<!-- The leading space is not drawn in this flex row; it keeps a
+				     screen reader from reading label and count as one word. -->
+				<span v-if="option.count !== null" class="cn-segmented-control__count">{{ ' ' + option.count }}</span>
 			</slot>
 		</button>
 	</div>
