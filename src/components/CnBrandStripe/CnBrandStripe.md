@@ -20,3 +20,19 @@ Down the side of a panel, with `orientation="vertical"`:
   <span>Content beside the stripe</span>
 </div>
 ```
+
+A theme whose motif is not three bands names an image. Here the canal of a school: a blue line, its bank and the water:
+
+```vue
+<div style="--cn-brand-stripe-image: linear-gradient(to bottom, #1f4fd8 0 4px, transparent 4px 7px, #1fb5a8 7px 9px); --cn-brand-stripe-height: 9px">
+  <CnBrandStripe />
+</div>
+```
+
+On a dark band, such as a footer, `variant="inverse"` draws the theme's `--cn-brand-stripe-image-inverse`, else the one image, else the bands:
+
+```vue
+<div style="background: #14338f; padding-bottom: 16px; --cn-brand-stripe-image: linear-gradient(to bottom, #1f4fd8 0 4px, transparent 4px 7px, #1fb5a8 7px 9px); --cn-brand-stripe-image-inverse: linear-gradient(to bottom, #1f4fd8 0 4px, #ffffff 4px 7px, #1fb5a8 7px 9px); --cn-brand-stripe-height: 9px">
+  <CnBrandStripe variant="inverse" />
+</div>
+```
