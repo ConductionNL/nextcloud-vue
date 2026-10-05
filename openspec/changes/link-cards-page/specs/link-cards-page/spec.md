@@ -91,6 +91,19 @@ query.
 - **WHEN** the address is the Cases route with `?assignee=me`
 - **THEN** only "My work" SHALL be active
 
+### Requirement: A filter operator is serialised in bracket form
+
+`buildQueryString` SHALL serialise a plain object under a filter key as
+`key[op]=value`, and an array operand as `key[op][]=value`. A key that starts
+with `_` SHALL keep its JSON form. A key already in bracket form SHALL pass
+through unchanged.
+
+#### Scenario: A count source with a date operator
+
+- **GIVEN** a `visibleWhen.source.filter` of `{ "slaDeadline": { "lt": "2026-10-06" } }`
+- **WHEN** the count is requested
+- **THEN** the URL SHALL carry `slaDeadline[lt]=2026-10-06` and no JSON
+
 ### Requirement: A long detail title wraps before it truncates
 
 The detail page title SHALL wrap to two lines and truncate after that. The

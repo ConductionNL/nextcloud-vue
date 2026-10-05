@@ -25,3 +25,9 @@
 - **files**: `src/components/CnAppNav/CnAppNav.vue`, `tests/components/CnAppNavActiveQuery.spec.js`
 - [x] Implement
 - [x] Test
+
+### Task 5: Filter operators in bracket form, plain header padding
+- **spec_ref**: `openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-a-filter-operator-is-serialised-in-bracket-form`
+- **files**: `src/utils/headers.js`, `src/components/CnBannerWidget/CnBannerWidget.vue`, `src/components/CnHeaderWidget/CnHeaderWidget.vue`
+- [x] Implement
+- [x] Test

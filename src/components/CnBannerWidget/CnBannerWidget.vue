@@ -512,7 +512,12 @@ export default {
 				const value = await readVisibleWhenValue(cond)
 				this.conditionValue = value
 				this.conditionMet = compareVisibleWhen(value, cond.op || 'eq', cond.value)
-			} catch {
+			} catch (error) {
+				// Still hidden: a banner that cannot tell whether it applies
+				// should not claim attention. But not silently, because a
+				// failed count and "nothing to report" look the same on screen.
+				// eslint-disable-next-line no-console
+				console.warn('[CnBannerWidget] visibleWhen could not be evaluated, banner hidden:', error?.message || error)
 				this.conditionMet = false
 				this.conditionValue = null
 			}
