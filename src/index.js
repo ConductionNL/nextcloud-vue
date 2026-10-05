@@ -311,6 +311,13 @@ export { CnOpenBuildEditButton } from './components/index.js'
 // control, and the brand stripe.
 export { CnBrandStripe, CnSegmentedControl, CnStackedBarWidget, CnStackedBarWidgetForm, CnWeekStripWidget, CnWeekStripWidgetForm } from './components/index.js'
 
+// Page components the page renderer mounts by `pages[].type` that were missing
+// from this entry. A component reachable from a manifest but not importable
+// here resolves to `undefined` in a host that mounts it by hand, and renders
+// nothing without an error. tests/packaging/page-types-are-exported.spec.js
+// keeps the two lists together.
+export { CnFormPage, CnLinkCardsPage, CnMapPage, CnReportsPage, CnStorePage, CnWikiPage } from './components/index.js'
+
 // AI Chat Companion component family
 export {
 	CnAiAgentPicker,
