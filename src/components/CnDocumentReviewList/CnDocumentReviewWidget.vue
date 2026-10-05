@@ -23,7 +23,7 @@
 
 <script>
 import CnDocumentReviewList from './CnDocumentReviewList.vue'
-import { readVisibleWhenPath } from '../../utils/visibleWhen.js'
+import { readPath } from '../../utils/readPath.js'
 
 /**
  * CnDocumentReviewWidget: the `document-review` detail widget type.
@@ -62,7 +62,7 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-document-review-list
 		 */
 		documents() {
-			const value = readVisibleWhenPath(this.objectData || {}, this.content.field || 'documents')
+			const value = readPath(this.objectData || {}, this.content.field || 'documents')
 			return Array.isArray(value) ? value : []
 		},
 
@@ -88,7 +88,7 @@ export default {
 		 */
 		onRowAction(document) {
 			const route = this.content.rowAction?.route
-			const id = readVisibleWhenPath(document, this.content.rowKey || 'id')
+			const id = readPath(document, this.content.rowKey || 'id')
 			if (typeof route !== 'string' || route === '' || !this.$router || id === undefined || id === null) {
 				return
 			}

@@ -20,7 +20,7 @@
 
 <script>
 import CnConversationThread from './CnConversationThread.vue'
-import { readVisibleWhenPath } from '../../utils/visibleWhen.js'
+import { readPath } from '../../utils/readPath.js'
 
 /**
  * CnConversationWidget: the `conversation` detail widget type.
@@ -74,16 +74,16 @@ export default {
 		 */
 		messages() {
 			const c = this.content
-			const value = readVisibleWhenPath(this.objectData || {}, c.field || 'messages')
+			const value = readPath(this.objectData || {}, c.field || 'messages')
 			const usValue = String(c.usValue === undefined ? 'us' : c.usValue)
 			const stored = (Array.isArray(value) ? value : [])
 				.filter((message) => message && typeof message === 'object')
 				.map((message) => ({
 					id: message.id,
-					author: readVisibleWhenPath(message, c.authorField || 'author'),
-					time: readVisibleWhenPath(message, c.timeField || 'time'),
-					text: readVisibleWhenPath(message, c.textField || 'text'),
-					side: String(readVisibleWhenPath(message, c.sideField || 'side')) === usValue ? 'us' : 'them',
+					author: readPath(message, c.authorField || 'author'),
+					time: readPath(message, c.timeField || 'time'),
+					text: readPath(message, c.textField || 'text'),
+					side: String(readPath(message, c.sideField || 'side')) === usValue ? 'us' : 'them',
 				}))
 			return [...stored, ...this.sentHere]
 		},

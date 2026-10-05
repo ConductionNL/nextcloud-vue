@@ -85,6 +85,7 @@
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
+import { prefixUrl } from '../../utils/headers.js'
 
 let conversationThreadUid = 0
 
@@ -325,7 +326,7 @@ export default {
 			}
 			this.sending = true
 			try {
-				const response = await axios.post(this.endpoint, { ...this.payload, message: text })
+				const response = await axios.post(prefixUrl(this.endpoint), { ...this.payload, message: text })
 				this.draft = ''
 				this.$emit('sent', response?.data)
 			} catch (error) {

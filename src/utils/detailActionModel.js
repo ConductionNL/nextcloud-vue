@@ -16,7 +16,8 @@
  * @module utils/detailActionModel
  */
 
-import { evaluateVisibleWhenLocal, readVisibleWhenPath } from './visibleWhen.js'
+import { readPath } from './readPath.js'
+import { evaluateVisibleWhenLocal } from './visibleWhen.js'
 
 /** The most quick actions a page shows. Later entries are dropped. */
 export const MAX_QUICK_ACTIONS = 3
@@ -33,7 +34,7 @@ export function stageOf(object, stageField = 'status') {
 	if (!object || typeof object !== 'object') {
 		return ''
 	}
-	const value = readVisibleWhenPath(object, stageField || 'status')
+	const value = readPath(object, stageField || 'status')
 	if (value === null || value === undefined || typeof value === 'object') {
 		return ''
 	}
@@ -155,7 +156,7 @@ export function isChecklistItemDone(item, object) {
 		return evaluateVisibleWhenLocal(item.doneWhen, data)
 	}
 	if (typeof item.doneField === 'string' && item.doneField !== '') {
-		const value = readVisibleWhenPath(data, item.doneField)
+		const value = readPath(data, item.doneField)
 		return Array.isArray(value) ? value.length > 0 : Boolean(value)
 	}
 	return false
@@ -243,7 +244,7 @@ export function resolveTabCount(tab, object) {
 	if (typeof tab.countField !== 'string' || tab.countField === '') {
 		return null
 	}
-	const value = readVisibleWhenPath(object && typeof object === 'object' ? object : {}, tab.countField)
+	const value = readPath(object && typeof object === 'object' ? object : {}, tab.countField)
 	if (Array.isArray(value)) {
 		return value.length
 	}

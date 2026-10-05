@@ -13,7 +13,7 @@
  * @module utils/dueRule
  */
 
-import { readVisibleWhenPath } from './visibleWhen.js'
+import { readPath } from './readPath.js'
 
 /** How many days ahead counts as "soon" when the rule does not say. */
 export const DEFAULT_SOON_DAYS = 3
@@ -100,5 +100,5 @@ export function dueStateForRow(row, rule, now = new Date()) {
 	if (!rule || typeof rule.field !== 'string' || rule.field === '' || !row) {
 		return null
 	}
-	return dueStateOf(readVisibleWhenPath(row, rule.field), rule, now)
+	return dueStateOf(readPath(row, rule.field), rule, now)
 }

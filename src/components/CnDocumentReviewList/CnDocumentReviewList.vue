@@ -72,7 +72,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.vue'
-import { readVisibleWhenPath } from '../../utils/visibleWhen.js'
+import { readPath } from '../../utils/readPath.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 let documentReviewListUid = 0
@@ -250,14 +250,14 @@ export default {
 			return (Array.isArray(this.documents) ? this.documents : [])
 				.filter((document) => document && typeof document === 'object')
 				.map((document, index) => {
-					const raw = readVisibleWhenPath(document, this.statusField)
+					const raw = readPath(document, this.statusField)
 					const wanted = raw === null || raw === undefined ? '' : String(raw).toLowerCase()
 					const status = this.effectiveStatuses.find((candidate) => candidate.value.toLowerCase() === wanted)
 						|| this.fallbackStatus
-					const name = readVisibleWhenPath(document, this.nameField) || document.title || document.filename || ''
-					const key = readVisibleWhenPath(document, this.rowKey)
-					const href = readVisibleWhenPath(document, this.hrefField)
-					const meta = readVisibleWhenPath(document, this.metaField)
+					const name = readPath(document, this.nameField) || document.title || document.filename || ''
+					const key = readPath(document, this.rowKey)
+					const href = readPath(document, this.hrefField)
+					const meta = readPath(document, this.metaField)
 					return {
 						key: key === undefined || key === null ? `row-${index}` : String(key),
 						name: String(name),
