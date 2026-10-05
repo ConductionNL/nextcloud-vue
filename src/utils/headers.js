@@ -130,9 +130,14 @@ export function capitalize(str) {
  *
  * Array values are serialized with PHP bracket notation (`key[]=a&key[]=b`)
  * so the Nextcloud/OpenRegister backend parses them as an array — a plain
- * repeated `key=a&key=b` collapses to the last value in PHP. Also handles
- * _order serialization (JSON.stringify for objects) and skips
+ * repeated `key=a&key=b` collapses to the last value in PHP. A plain object
+ * under a filter key is a set of operators and goes out in bracket form
+ * (`{ deadline: { lt: 'x' } }` becomes `deadline[lt]=x`); a key already
+ * written that way (`'deadline[lt]'`) passes through unchanged. Reserved keys
+ * that start with `_` keep their JSON form (`_order`). Skips
  * null/undefined/empty values.
+ *
+ * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-a-filter-operator-is-serialised-in-bracket-form
  *
  * @param {object} params Key-value pairs for query parameters
  * @return {string} Query string including leading '?' or empty string
@@ -157,6 +162,27 @@ export function buildQueryString(params = {}) {
 			for (const item of value) {
 				if (item !== undefined && item !== null && item !== '') {
 					queryParams.append(arrayKey, String(item))
+				}
+			}
+		} else if (typeof value === 'object' && !key.startsWith('_')) {
+			// A filter operator: `{ deadline: { lt: '2026-10-06' } }` goes out
+			// as `deadline[lt]=2026-10-06`, the form OpenRegister reads. As
+			// JSON it reached the database as the literal value and a date
+			// column answered 500. Reserved `_` keys (`_order`) keep JSON.
+			for (const [op, operand] of Object.entries(value)) {
+				if (operand === undefined || operand === null || operand === '') {
+					continue
+				}
+				if (Array.isArray(operand)) {
+					for (const item of operand) {
+						if (item !== undefined && item !== null && item !== '') {
+							queryParams.append(`${key}[${op}][]`, String(item))
+						}
+					}
+				} else if (typeof operand === 'object') {
+					queryParams.set(`${key}[${op}]`, JSON.stringify(operand))
+				} else {
+					queryParams.set(`${key}[${op}]`, String(operand))
 				}
 			}
 		} else if (typeof value === 'object') {

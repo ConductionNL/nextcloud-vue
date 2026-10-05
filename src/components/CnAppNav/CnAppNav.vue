@@ -1184,11 +1184,51 @@ export default {
 			return this.effectiveTranslate(item.label)
 		},
 
+		/**
+		 * Whether a menu entry is the page the reader is on.
+		 *
+		 * Two entries may share a route and differ only in `query` ("My
+		 * work" and "Queue" on one list). The route name alone lit both. An
+		 * entry with a `query` is active only when the address carries that
+		 * query; an entry without one steps back when a sibling's query
+		 * matches, so exactly one of them is marked.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {boolean} True when the entry is the current page.
+		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-menu-entries-that-differ-in-query
+		 */
 		isActive(item) {
 			if (item.href || !item.route) {
 				return false
 			}
-			return item.route === this.activeRouteName
+			if (item.route !== this.activeRouteName) {
+				return false
+			}
+			if (item.query && typeof item.query === 'object') {
+				return this.queryMatches(item)
+			}
+			const siblings = []
+			for (const entry of this.visibleItems) {
+				siblings.push(entry, ...this.visibleChildren(entry))
+			}
+			return !siblings.some((entry) => entry !== item
+				&& entry.route === item.route
+				&& entry.query && typeof entry.query === 'object'
+				&& this.queryMatches(entry))
+		},
+
+		/**
+		 * Whether the address carries every key of an entry's `query`.
+		 * Values are compared as strings, since an address has no numbers.
+		 *
+		 * @param {object} item Menu entry with a `query`.
+		 * @return {boolean} True when every declared key matches.
+		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-menu-entries-that-differ-in-query
+		 */
+		queryMatches(item) {
+			const current = this.$route?.query ?? {}
+			const keys = Object.keys(item.query)
+			return keys.length > 0 && keys.every((key) => String(current[key] ?? '') === String(item.query[key]))
 		},
 
 		/**
