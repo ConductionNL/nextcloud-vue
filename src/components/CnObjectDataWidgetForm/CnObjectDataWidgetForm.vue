@@ -268,6 +268,9 @@ export default {
 					gridColumn: Number.isFinite(o.gridColumn) ? o.gridColumn : 1,
 					widget: o.widget || 'auto',
 					editable: o.editable !== false,
+					// Not edited here, but carried through, so saving the
+					// cog editor does not drop a manifest-authored formatter.
+					formatter: typeof o.formatter === 'string' ? o.formatter : '',
 				}
 			})
 		},
@@ -385,6 +388,9 @@ export default {
 				}
 				if (row.editable === false) {
 					o.editable = false
+				}
+				if (row.formatter) {
+					o.formatter = row.formatter
 				}
 				if (Object.keys(o).length) {
 					out[row.key] = o
