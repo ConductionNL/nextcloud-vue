@@ -78,6 +78,19 @@ entry.
 - **WHEN** the import resolves
 - **THEN** it SHALL be the component, not undefined
 
+### Requirement: Menu entries that differ in query
+
+`CnAppNav` SHALL mark a menu entry with a `query` active only when the route
+matches and the address carries every key of that query. An entry without a
+`query` SHALL NOT be active while a sibling on the same route has a matching
+query.
+
+#### Scenario: Two entries on one route
+
+- **GIVEN** entries "My work" (`route: Cases`, `query: { assignee: "me" }`) and "All cases" (`route: Cases`)
+- **WHEN** the address is the Cases route with `?assignee=me`
+- **THEN** only "My work" SHALL be active
+
 ### Requirement: A long detail title wraps before it truncates
 
 The detail page title SHALL wrap to two lines and truncate after that. The

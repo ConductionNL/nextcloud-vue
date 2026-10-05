@@ -19,3 +19,9 @@
 - **files**: `src/css/detail-page.css`, `src/components/CnDetailPage/CnDetailPage.vue`
 - [x] Implement
 - [x] Test
+
+### Task 4: The nav active state respects query
+- **spec_ref**: `openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-menu-entries-that-differ-in-query`
+- **files**: `src/components/CnAppNav/CnAppNav.vue`, `tests/components/CnAppNavActiveQuery.spec.js`
+- [x] Implement
+- [x] Test
