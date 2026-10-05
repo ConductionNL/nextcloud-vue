@@ -119,6 +119,68 @@ describe('CnDataTable — numbered priority badges', () => {
 		expect(headerFor(wrapper, 'Created').find('.cn-table-sort-badge').text()).toBe('2')
 		expect(headerFor(wrapper, 'Status').find('.cn-table-sort-badge').exists()).toBe(false)
 	})
+
+	it('shows no badge for a single rendered key plus a key whose column is not rendered', () => {
+		const wrapper = mountTable({ sortKeys: [{ key: 'createdAt', order: 'desc' }, { key: '_uuid', order: 'asc' }] })
+		expect(wrapper.find('.cn-table-sort-badge').exists()).toBe(false)
+		expect(headerFor(wrapper, 'Created').find('.cn-table-sort-indicator').text()).toBe('▼')
+	})
+
+	it('shows no badge for a single rendered key in a one-entry sortKeys list', () => {
+		const wrapper = mountTable({ sortKeys: [{ key: 'name', order: 'asc' }] })
+		expect(wrapper.find('.cn-table-sort-badge').exists()).toBe(false)
+		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-indicator').text()).toBe('▲')
+	})
+
+	it('numbers rendered keys without a gap when a hidden key sits between them', () => {
+		const wrapper = mountTable({
+			sortKeys: [
+				{ key: 'name', order: 'asc' },
+				{ key: '_uuid', order: 'asc' },
+				{ key: 'status', order: 'desc' },
+			],
+		})
+		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-badge').text()).toBe('1')
+		expect(headerFor(wrapper, 'Status').find('.cn-table-sort-badge').text()).toBe('2')
+		expect(headerFor(wrapper, 'Created').find('.cn-table-sort-badge').exists()).toBe(false)
+		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-indicator').text()).toBe('▲')
+		expect(headerFor(wrapper, 'Status').find('.cn-table-sort-indicator').text()).toBe('▼')
+	})
+
+	it('drops and restores badges as a sorted column leaves and returns', async () => {
+		const wrapper = mountTable({ sortKeys: [{ key: 'name', order: 'asc' }, { key: 'createdAt', order: 'desc' }] })
+		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-badge').text()).toBe('1')
+		await wrapper.setProps({ columns: columns.filter((c) => c.key !== 'createdAt') })
+		expect(wrapper.find('.cn-table-sort-badge').exists()).toBe(false)
+		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-indicator').text()).toBe('▲')
+		await wrapper.setProps({ columns })
+		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-badge').text()).toBe('1')
+		expect(headerFor(wrapper, 'Created').find('.cn-table-sort-badge').text()).toBe('2')
+	})
+
+	it('does not count a sort key whose column is not sortable', () => {
+		const wrapper = mountTable({
+			columns: [columns[0], { key: 'createdAt', label: 'Created', sortable: false }, columns[2]],
+			sortKeys: [{ key: 'name', order: 'asc' }, { key: 'createdAt', order: 'desc' }],
+		})
+		expect(wrapper.find('.cn-table-sort-badge').exists()).toBe(false)
+		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-indicator').text()).toBe('▲')
+	})
+
+	it('counts a duplicated key once', () => {
+		const wrapper = mountTable({ sortKeys: [{ key: 'name', order: 'asc' }, { key: 'name', order: 'desc' }] })
+		expect(wrapper.find('.cn-table-sort-badge').exists()).toBe(false)
+	})
+
+	it('keeps a hidden key in the sort payload', async () => {
+		const wrapper = mountTable({ sortKeys: [{ key: 'createdAt', order: 'desc' }, { key: '_uuid', order: 'asc' }] })
+		await headerFor(wrapper, 'Name').trigger('click', { shiftKey: true })
+		expect(wrapper.emitted('sort')[0][0].keys).toEqual([
+			{ key: 'createdAt', order: 'desc' },
+			{ key: '_uuid', order: 'asc' },
+			{ key: 'name', order: 'asc' },
+		])
+	})
 })
 
 describe('CnDataTable — aria-sort', () => {

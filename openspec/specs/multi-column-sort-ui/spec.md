@@ -69,7 +69,7 @@ Shift+clicking a column that is already part of the active multi-sort SHALL cycl
 
 ### Requirement: Numbered priority badges render only for multi-key sort
 
-`CnDataTable` SHALL render a small numbered badge (1, 2, 3) next to a sortable header's arrow indicator only when more than one sort key is active. A single active sort key SHALL render exactly as before (arrow only, no badge).
+`CnDataTable` SHALL render a small numbered badge (1, 2, 3) next to a sortable header's arrow indicator only when two or more active sort keys have a column that is rendered and sortable. Each badge SHALL number its column by position among those keys, in priority order. A sort key whose column is not rendered, or not sortable, SHALL still sort and stay in the `sort` event's `keys`, but SHALL NOT be counted or numbered. A single counted key SHALL render exactly as before (arrow only, no badge).
 
 #### Scenario: No badge for single-key sort
 
@@ -80,6 +80,12 @@ Shift+clicking a column that is already part of the active multi-sort SHALL cycl
 
 - **GIVEN** an active 2-key sort `[{key:'name'},{key:'created'}]`
 - **THEN** "Name"'s header shows a "1" badge and "Created"'s header shows a "2" badge, each beside its own arrow
+
+#### Scenario: No badge for a rendered key plus a hidden tie-break
+
+- **GIVEN** an active sort `[{key:'created',order:'desc'},{key:'_uuid',order:'asc'}]` where `_uuid` is not a rendered column
+- **THEN** the "Created" header shows the sort arrow and no numbered badge
+- **AND** `_uuid` still takes part in sorting and in the `sort` event's `keys`
 
 @e2e include Mount CnDataTable with a 2-key and 3-key sort fixture; snapshot/assert badge text and positions.
 
