@@ -496,7 +496,9 @@ export default {
 				'flex-direction': 'column',
 				'align-items': this.flexAlignFromTextAlign,
 				'justify-content': VERTICAL_ALIGN_FLEX[this.verticalAlign],
-				padding: this.isPlain ? '0' : '16px 24px',
+				// Plain drops the coloured background, not the card padding:
+				// at 0 the greeting sat flush against the card's left edge.
+				padding: this.isPlain ? '16px' : '16px 24px',
 				'box-sizing': 'border-box',
 				gap: '8px',
 				'text-align': this.textAlign,

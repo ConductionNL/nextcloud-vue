@@ -93,6 +93,12 @@ describe('CnHeaderWidget greeting', () => {
 		expect(wrapper.find('h2').text()).toBe('Dashboard')
 	})
 
+	it('keeps the card padding when plain, so the text does not touch the card edge', () => {
+		const wrapper = mountHeader({ greeting: true, plain: true })
+		expect(wrapper.html()).toMatch(/padding: 16px;/)
+		expect(wrapper.html()).not.toMatch(/padding: 0(px)?;/)
+	})
+
 	it('drops the coloured background and aligns to the start when plain', () => {
 		const wrapper = mountHeader({ greeting: true, showDate: true, plain: true })
 		expect(wrapper.classes()).toContain('cn-header-widget--plain')

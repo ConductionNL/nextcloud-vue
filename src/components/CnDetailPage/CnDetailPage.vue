@@ -103,7 +103,10 @@
 							data-testid="cn-detail-page-type-eyebrow">
 							{{ typeEyebrow }}
 						</p>
-						<h2 v-if="displayTitle" class="cn-detail-page__title">
+						<h2
+							v-if="displayTitle"
+							class="cn-detail-page__title"
+							:title="displayTitle">
 							{{ displayTitle }}
 						</h2>
 						<!--
