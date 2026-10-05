@@ -104,9 +104,9 @@
 								{{ effectiveSortKeys[sortKeyIndex(col.key)].order === 'asc' ? '▲' : '▼' }}
 							</span>
 							<span
-								v-if="col.sortable && effectiveSortKeys.length > 1 && sortKeyIndex(col.key) !== -1"
+								v-if="col.sortable && sortBadgeFor(col.key) !== null"
 								class="cn-table-sort-badge">
-								{{ sortKeyIndex(col.key) + 1 }}
+								{{ sortBadgeFor(col.key) }}
 							</span>
 						</th>
 
@@ -309,15 +309,12 @@ import '../../css/table.css'
  * row selection, custom cell rendering via scoped slots, loading states,
  * and empty states.
  *
- * Sorting: a plain click on a sortable header is single-sort (cycle asc →
- * desc → cleared), unchanged from before. Shift+click (or Shift+Enter on a
- * focused header) appends the column as a secondary/tertiary sort key —
- * capped at 3 — with numbered priority badges (1, 2, 3) once more than one
- * key is active. Pass `sortKeys: [{key, order}, ...]` for multi-sort (falls
- * back to the legacy `sortKey`/`sortOrder` props when empty). The `sort`
- * event payload is extended, not replaced: `{key, order}` still mirrors the
- * primary key exactly as before; a new `keys` field carries the full
- * ordered list. See `src/utils/multiColumnSort.js` for the state machine.
+ * Sorting: a plain click on a sortable header is single-sort (cycle asc → desc → cleared), unchanged from before.
+ * Shift+click (or Shift+Enter on a focused header) appends the column as a secondary/tertiary sort key, capped at 3, with numbered priority badges (1, 2, 3) once two or more rendered, sortable columns are sorted.
+ * A sort key whose column is not rendered, or not sortable, still sorts, but is not counted or numbered.
+ * Pass `sortKeys: [{key, order}, ...]` for multi-sort (falls back to the legacy `sortKey`/`sortOrder` props when empty).
+ * The `sort` event payload is extended, not replaced: `{key, order}` still mirrors the primary key exactly as before; a new `keys` field carries the full ordered list.
+ * See `src/utils/multiColumnSort.js` for the state machine.
  *
  * When a `schema` prop is provided, columns are auto-generated from schema
  * properties and cells render through CnCellRenderer for type-aware formatting
@@ -918,6 +915,23 @@ export default {
 			return []
 		},
 
+		/**
+		 * The active sort keys whose column renders a sort indicator, in priority order and deduplicated by first occurrence. Only these are counted and numbered by the priority badge.
+		 *
+		 * @return {Array<{key: string, order: 'asc'|'desc'}>}
+		 */
+		renderedSortKeys() {
+			const shown = new Set(this.effectiveColumns.filter((c) => c && c.sortable).map((c) => c.key))
+			const seen = new Set()
+			return this.effectiveSortKeys.filter((k) => {
+				if (!k || !shown.has(k.key) || seen.has(k.key)) {
+					return false
+				}
+				seen.add(k.key)
+				return true
+			})
+		},
+
 		totalColumns() {
 			let count = this.effectiveColumns.length
 			if (this.selectable) {
@@ -1513,7 +1527,7 @@ export default {
 
 		/**
 		 * Index of `key` within `effectiveSortKeys`, or -1 when not active.
-		 * Used by the template for the arrow, the numbered badge, and aria-sort.
+		 * Used by the template for the arrow.
 		 *
 		 * @param {string} key Column key.
 		 * @return {number}
@@ -1523,11 +1537,22 @@ export default {
 		},
 
 		/**
-		 * `aria-sort` value for a column header: `'ascending'`/`'descending'`
-		 * for the PRIMARY (index 0) active sort key only — secondary/tertiary
-		 * keys carry the visible numbered badge instead, per WCAG guidance
-		 * that `aria-sort` describes single-column sort state. `null` omits
-		 * the attribute entirely (unsorted / not sortable).
+		 * The 1-based priority badge for `key` among the rendered sort keys, or null when fewer than two rendered columns are sorted or `key` is not one of them.
+		 *
+		 * @param {string} key Column key.
+		 * @return {number|null}
+		 */
+		sortBadgeFor(key) {
+			if (this.renderedSortKeys.length < 2) {
+				return null
+			}
+			const index = this.renderedSortKeys.findIndex((k) => k.key === key)
+			return index === -1 ? null : index + 1
+		},
+
+		/**
+		 * `aria-sort` value for a column header: `'ascending'`/`'descending'` for the PRIMARY (index 0) active sort key only, per WCAG guidance that `aria-sort` describes single-column sort state.
+		 * `null` omits the attribute entirely (unsorted, not sortable, or not the primary key).
 		 *
 		 * @param {object} col Column definition.
 		 * @return {string|null}
