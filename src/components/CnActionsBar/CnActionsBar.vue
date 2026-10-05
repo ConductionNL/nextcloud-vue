@@ -12,11 +12,17 @@
 					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search')"
 					@input="onSearchInput">
 			</div>
-			<span v-else-if="pagination && pagination.total > 0" class="cn-actions-bar__count">
+			<span v-else-if="hasTotal" class="cn-actions-bar__count">
 				{{ countText }}
 			</span>
 			<!-- @slot after-search Refinement controls rendered beside the search field on the LEFT side of the bar (e.g. a filter menu button). Convention: the left side groups the VISUAL controls — search, filters, view toggle — while the right cluster holds the ACT controls (add, overflow); the standalone sort select is a display control too but keeps its legacy right-side placement. -->
 			<slot name="after-search" />
+			<!-- Counter beside the search (`showCountWithSearch`): after the search and its #after-search controls, and live so a changed total is announced while it is shown. -->
+			<span v-if="showSearch && showCountWithSearch && hasTotal"
+				class="cn-actions-bar__count cn-actions-bar__count--beside-search"
+				aria-live="polite">
+				{{ countText }}
+			</span>
 
 			<!-- View mode toggle (Cards / Table / List) — segmented control with
 			     a sliding thumb that animates between the N segments. Lives in
@@ -644,6 +650,16 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * Keep the "Showing X of Y" counter visible beside the inline search field,
+		 * after any `#after-search` controls. By default the search field takes the
+		 * counter's place. No effect without `showSearch`.
+		 */
+		showCountWithSearch: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Whether the refresh action is currently in progress */
 		refreshing: {
 			type: Boolean,
@@ -809,6 +825,15 @@ export default {
 				entry,
 				link: entry.disabled ? null : resolveItemActionLink(entry, null, this.$router),
 			}))
+		},
+
+		/**
+		 * Whether there is a non-empty total for the "Showing X of Y" counter.
+		 *
+		 * @return {boolean}
+		 */
+		hasTotal() {
+			return Boolean(this.pagination && this.pagination.total > 0)
 		},
 
 		countText() {

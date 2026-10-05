@@ -35,6 +35,13 @@
 	color: var(--color-text-maxcontrast);
 }
 
+/* Beside the inline search (`showCountWithSearch`): the search field shrinks
+   first and the counter stays on one line. */
+.cn-actions-bar__count--beside-search {
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
 /* Inline search field */
 .cn-actions-bar__search {
 	position: relative;
@@ -294,8 +301,9 @@
 		display: contents;
 	}
 
-	/* #after-search filter buttons + the view toggle ride beside the
-	   search field (DOM order — search first via its own order). */
+	/* #after-search filter buttons, the beside-search counter and the view
+	   toggle ride beside the search field (DOM order — search first via its
+	   own order). */
 	.cn-actions-bar__info > * {
 		order: 1;
 	}

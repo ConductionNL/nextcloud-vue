@@ -94,6 +94,11 @@ export function useListView(objectTypeOrOptions, options) {
 	// field (a folder pane grouping by it, say) reads them here rather than
 	// deriving them from `objects`, which is only the current page.
 	const facets = computed(() => objectStore.facets[objectType] || {})
+	// Outcome of the latest `refresh()`: the store's error for it, or null once
+	// it succeeded. The store keeps the previous rows on a failed fetch, so this
+	// is how a consumer tells stale rows from current ones.
+	const error = ref(null)
+	let refreshSeq = 0
 
 	let searchTimeout = null
 
@@ -178,12 +183,30 @@ export function useListView(objectTypeOrOptions, options) {
 
 	/**
 	 * Fetch the collection using current state params and update sidebar facet data.
+	 * Only the most recently started refresh sets `error`, so an older response
+	 * settling late cannot override a newer one's outcome.
 	 *
 	 * @param {number} [page] Page to fetch
 	 * @return {Promise<void>}
 	 */
 	async function refresh(page = 1) {
-		await objectStore.fetchCollection(objectType, buildParams(page))
+		const seq = ++refreshSeq
+		// This call's own result. `errors[objectType]` is shared by every call
+		// for the type and is not cleared on success, so it cannot say which
+		// request failed; it is only the fallback for a store that ignores
+		// `options.outcome`.
+		const outcome = {}
+		try {
+			await objectStore.fetchCollection(objectType, buildParams(page), { outcome })
+		} catch (e) {
+			if (seq === refreshSeq) {
+				error.value = e
+			}
+			throw e
+		}
+		if (seq === refreshSeq) {
+			error.value = ('error' in outcome) ? outcome.error : (objectStore.errors?.[objectType] || null)
+		}
 	}
 
 	// ── Event handlers ───────────────────────────────────────────────────
@@ -323,6 +346,7 @@ export function useListView(objectTypeOrOptions, options) {
 		loading,
 		pagination,
 		facets,
+		error,
 		// Local state
 		searchTerm,
 		sortKey,

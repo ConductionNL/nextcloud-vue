@@ -54,7 +54,7 @@ Returns a `useObjectStore()` composable (Pinia `defineStore` result) with the fo
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `fetchCollection` | `(type, params?)` | Fetch paginated list for a type; results stored in state |
+| `fetchCollection` | `(type, params?, options?)` | Fetch paginated list for a type; results stored in state. A failure is recorded on `errors[type]`, which every call for the type shares: a call clears it when it starts and a success leaves it alone, so it does not say which request failed. Pass `options.outcome` (a plain object) to learn THIS call's result: the store sets `outcome.error` to the error it recorded, or `null` on success. Callers that join a deduplicated in-flight request (live updates) get that request's result. Without the option nothing changes |
 | `fetchCollectionForOptions` | `(type, params?)` | Fetch a collection WITHOUT writing `collections[type]`/`pagination[type]`/`loading[type]`/`errors[type]`. Use for reference-picker/search-option lookups on a type that may also be driving a mounted `CnIndexPage` (e.g. a self-referencing schema) — `fetchCollection` would otherwise overwrite that list's rows and count. |
 | `fetchObject` | `(type, id)` | Fetch single object by type and ID; cached in state |
 | `saveObject` | `(type, objectData)` | Create (no `id`) or update (with `id`) an object |

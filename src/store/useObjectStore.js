@@ -584,9 +584,12 @@ const baseActions = {
 	 *
 	 * @param {string} type The registered type slug
 	 * @param {object} [params] Query parameters (_limit, _page, _search, _order, filters)
+	 * @param {object} [options] Call options
+	 * @param {{error?: object|null}} [options.outcome] Opt-in sink for THIS call's own result: `error` is set to the error it records on `errors[type]`, or `null` on success. Unlike `errors[type]`, which every call for the type shares, a later call cannot overwrite it.
 	 * @return {Promise<Array>} The fetched collection (also stored in state)
 	 */
-	async fetchCollection(type, params = {}) {
+	async fetchCollection(type, params = {}, options = {}) {
+		const outcome = (options && typeof options.outcome === 'object' && options.outcome) || null
 		this.loading = { ...this.loading, [type]: true }
 		this.errors = { ...this.errors, [type]: null }
 
@@ -611,9 +614,13 @@ const baseActions = {
 			})
 
 			if (!response.ok) {
-				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
+				const failure = await parseResponseError(response, type)
+				this.errors = { ...this.errors, [type]: failure }
+				if (outcome) {
+					outcome.error = failure
+				}
 				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
-				console.error(`Error fetching ${type} collection:`, this.errors[type])
+				console.error(`Error fetching ${type} collection:`, failure)
 				return []
 			}
 
@@ -637,13 +644,17 @@ const baseActions = {
 				this.facets = { ...this.facets, [type]: transformed }
 			}
 
+			if (outcome) {
+				outcome.error = null
+			}
 			return results
 		} catch (error) {
-			this.errors = {
-				...this.errors,
-				[type]: error.name === 'TypeError'
-					? networkError(error)
-					: genericError(error),
+			const failure = error.name === 'TypeError'
+				? networkError(error)
+				: genericError(error)
+			this.errors = { ...this.errors, [type]: failure }
+			if (outcome) {
+				outcome.error = failure
 			}
 			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 			console.error(`Error fetching ${type} collection:`, error)

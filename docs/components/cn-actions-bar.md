@@ -66,9 +66,10 @@ Custom action items can be injected into the overflow menu:
 | `showMap` | Boolean | `false` | Whether to render the third "Map" toggle segment. Off by default, so existing two-segment consumers are unchanged |
 | `mapLabel` | String | `''` | Label for the map view-toggle option (defaults to "Map"). Only shown when `showMap` |
 | `mapIcon` | String | `''` | MDI icon name for the map option (defaults to the built-in map-marker icon); resolved via CnIcon |
-| `showSearch` | Boolean | `false` | Show an inline search field on the left of the bar; emits `search` on input |
+| `showSearch` | Boolean | `false` | Show an inline search field on the left of the bar; emits `search` on input. The field takes the place of the "Showing X of Y" counter unless `showCountWithSearch` is set |
 | `searchValue` | String | `''` | Current value of the inline search field (controlled) |
 | `searchPlaceholder` | String | `''` | Placeholder / accessible label for the inline search field |
+| `showCountWithSearch` | Boolean | `false` | Keep the "Showing X of Y" counter visible beside the inline search field: after the search and any `#after-search` controls, before the view toggle, on one line, moving to the next row on a narrow bar when there is no room. It is an `aria-live="polite"` region there, so a changed total is announced while the counter is shown; with a total of 0 the counter is not rendered and the empty state speaks instead. Like the counter without search, it only renders while `pagination.total` is above 0. No effect without `showSearch` |
 | `refreshing` | Boolean | `false` | Whether a refresh is currently in progress |
 | `refreshDisabled` | Boolean | `false` | Whether the Refresh action is disabled |
 | `showMassImport` | Boolean | `true` | Whether to show the Import action |

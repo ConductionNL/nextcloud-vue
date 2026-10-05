@@ -432,19 +432,29 @@ export function liveUpdatesPlugin(opts = {}) {
 			const collectionInFlight = new Map()
 
 			const originalFetchCollection = store.fetchCollection.bind(store)
-			store.fetchCollection = async function dedupedFetchCollection(type, params = {}) {
+			store.fetchCollection = async function dedupedFetchCollection(type, params = {}, options = {}) {
 				if (!store.__liveDedupActive) {
-					return originalFetchCollection(type, params)
+					return originalFetchCollection(type, params, options)
 				}
 				const key = collectionDedupKey(type, params)
-				if (collectionInFlight.has(key)) {
-					return collectionInFlight.get(key)
+				let entry = collectionInFlight.get(key)
+				if (!entry) {
+					// The shared request reports into its own sink, copied to
+					// each caller's `options.outcome` below, so a caller that
+					// joined it learns that request's result too.
+					const outcome = {}
+					const promise = originalFetchCollection(type, params, { ...options, outcome }).finally(() => {
+						collectionInFlight.delete(key)
+					})
+					entry = { promise, outcome }
+					collectionInFlight.set(key, entry)
 				}
-				const promise = originalFetchCollection(type, params).finally(() => {
-					collectionInFlight.delete(key)
-				})
-				collectionInFlight.set(key, promise)
-				return promise
+				const results = await entry.promise
+				const sink = options && options.outcome
+				if (sink && typeof sink === 'object' && 'error' in entry.outcome) {
+					sink.error = entry.outcome.error
+				}
+				return results
 			}
 		},
 	}
