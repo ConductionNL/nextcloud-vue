@@ -37,6 +37,8 @@ One panel inside a [`CnTabs`](./cn-tabs.md) strip. Its title is rendered by the 
 | `active` | `Boolean` | `false` | Select this tab. Honoured on mount **and** on every later change, so it can drive a controlled strip. |
 | `disabled` | `Boolean` | `false` | Render the nav button disabled, skip the tab in keyboard navigation, and never give it the initial selection. |
 | `lazy` | `Boolean` | `false` | Hold the panel body back until this tab is first activated, then keep it mounted. For strips whose panels are expensive to mount. |
+| `count` | `Number \| String` | `null` | A count shown after the title, for example the number of documents behind the tab. `null` shows none, `0` is shown. |
+| `overflow` | `Boolean` | `false` | List this tab under the strip's "More" menu. Picking it there selects it and shows it in the strip while it is selected. Give an overflow tab a `title`: the menu needs plain text. |
 
 ## Slots
 

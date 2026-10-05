@@ -89,6 +89,28 @@ export default defineComponent({
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * A count shown after the title, for example the number of documents
+		 * behind the tab. `null` (the default) shows none; `0` is shown.
+		 *
+		 * @type {number|string|null}
+		 */
+		count: {
+			type: [Number, String],
+			default: null,
+		},
+
+		/**
+		 * List this tab under the strip's "More" menu instead of in the strip.
+		 * Picking it there selects it, and while it is the selected tab it
+		 * shows in the strip. Give an overflow tab a `title`: the menu needs
+		 * plain text, and a `#title` slot is markup.
+		 */
+		overflow: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: [
@@ -124,6 +146,19 @@ export default defineComponent({
 
 			get disabled() {
 				return props.disabled
+			},
+
+			get count() {
+				return props.count
+			},
+
+			get overflow() {
+				return props.overflow
+			},
+
+			// Plain text for the "More" menu, where a `#title` slot cannot go.
+			get label() {
+				return props.title
 			},
 		}
 

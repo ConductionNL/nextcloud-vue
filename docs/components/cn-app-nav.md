@@ -18,6 +18,24 @@ An optional primary action renders above the main list as an `NcAppNavigationNew
 
 Nothing renders when neither is provided (backwards compatible). The `primaryAction` icon defaults to MDI `Plus` when `icon` is omitted (matches the `NcAppNavigationNew` default).
 
+### Brand
+
+A brand block can sit at the very top of the navigation, above the primary action: a logo, a name and a caption. Declare it in the manifest, or pass the `brand` prop, which wins:
+
+```json
+"nav": {
+  "brand": {
+    "logo": "/apps/thematiq/img/zuiddrecht-beeldmerk.svg",
+    "name": "dossiq",
+    "caption": "Gemeente Zuiddrecht"
+  }
+}
+```
+
+`name` and `caption` go through the translate function. The logo is decorative beside a name. A logo on its own takes `alt` as its alternative text. Use the `#brand` slot to draw the block yourself; it receives the resolved `brand`.
+
+Nothing renders there when no brand is declared.
+
 ### `nav` block
 
 Top-level manifest config for the navigation:
@@ -27,6 +45,7 @@ Top-level manifest config for the navigation:
 | `nav.includePersonalSettings` | Boolean | `true` | Auto-prepend the "Personal settings" entry in the foldout. Set `false` for apps with no per-user settings dialog. |
 | `nav.settingsLabel` | String | `'Settings'` | Override the foldout gear-button label. |
 | `nav.primaryAction` | Object | — | App-wide default primary-action button above the main list: `{ id?, label, icon?, route?, href?, payload? }`. Overridden by `pages[].primaryAction` for the active route, and overridden by the `#primary-action` slot. |
+| `nav.brand` | Object | none | Brand block at the top of the navigation: `{ logo?, name?, caption?, alt? }`. Overridden by the `brand` prop and by the `#brand` slot. |
 
 ### Page-scoped `primaryAction`
 
@@ -84,6 +103,7 @@ the name:
 | Slot | Description |
 |------|-------------|
 | `primary-action` | Replaces the manifest-driven primary-action button. Render an `NcAppNavigationNew` (or anything) with your own dynamic label and click handler. |
+| `brand` | Replaces the brand block at the top of the navigation. Scope: `{ brand }`, the resolved `{ logo, name, caption, alt }` or null. |
 | `search` | Forwarded into `NcAppNavigation`'s `#search` slot. Mount your `NcAppNavigationSearch` here; when unset no search input renders. |
 | `item-<id>-actions` | Per-item scoped slot whose content lands inside the `NcAppNavigationItem`'s `#actions` slot for the entry with that `id`. Scope: `{ item }`. Use it for inline `NcActions` menus (e.g. an item-level "Pin" button). |
 
@@ -229,6 +249,7 @@ The backend (OpenRegister) injects `manifest.runtime` when serving the manifest 
 | `isOwner` | `Boolean` | `false` | Whether the current user OWNS this app — computed by `CnAppRoot` from `currentUserGroups` ∩ `permissions.owners`, and/or a manifest `runtime.user` owner signal; deliberately NOT `OC.isUserAdmin()`. A DIFFERENT signal from `isAdmin` ("administers this instance"); since ADR-079 it no longer gates the Admin settings entry. |
 | `isAdmin` | `Boolean` | `false` | Whether the current user administers this Nextcloud instance — computed by `CnAppRoot` from `getCurrentUser()?.isAdmin` (`@nextcloud/auth`), never the legacy `OC.isUserAdmin()` global. Gates VISIBILITY of the auto-prepended "Admin settings" link to `/settings/admin/<appId>` (ADR-079). Presentation only — it is never an authorization decision; Nextcloud's settings framework refuses that page server-side for non-admins. Defaults to `false` so `CnAppNav` mounted standalone never shows the link. |
 | `appId` | `String` | `null` | App id used to build the Admin-settings link target `/settings/admin/<appId>`. Falls back to the `cnAppId` provided by `CnAppRoot`; with neither available the link is suppressed rather than pointing at a broken URL. |
+| `brand` | `Object \| null` | `null` | Brand block at the top of the navigation: `{ logo?, name?, caption?, alt? }`. Falls back to the manifest's `nav.brand`. With neither, nothing renders. |
 
 ## Behaviour
 

@@ -14,7 +14,7 @@
 					@wheel="onNavWheel"
 					@scroll="measureOverflow">
 					<button
-						v-for="tab in tabs"
+						v-for="tab in visibleTabs"
 						:id="tab.tabId"
 						:key="tab.uid"
 						ref="navButtons"
@@ -27,7 +27,14 @@
 						:tabindex="isActive(tab.uid) ? 0 : -1"
 						:disabled="tab.disabled || null"
 						@click="tab.onActivate()">
-						<component :is="tab.titleRender" />
+						<!-- The space before the count is load-bearing: it keeps
+						     the tab's accessible name "Documents 5" rather than
+						     "Documents5". The margin separates the two for the eye
+						     only, so keep both tags on one line. -->
+						<component :is="tab.titleRender" /> <span
+							v-if="hasCount(tab)"
+							class="cn-tabs__count"
+							data-testid="cn-tabs-count">{{ tab.count }}</span>
 					</button>
 				</div>
 				<!-- Mouse-only affordances: keyboard users already have the arrow
@@ -50,6 +57,36 @@
 					@click="scrollStrip(1)">
 					<ChevronRight :size="20" />
 				</button>
+			</div>
+			<!-- The tabs that did not make the strip. OUTSIDE the tablist, like
+			     `#nav-end`: a menu button nested in it would be announced as
+			     one more tab. A tab picked here joins the strip while it is
+			     selected, so the open panel always has a real tab to be
+			     labelled by. -->
+			<div v-if="overflowTabs.length > 0" class="cn-tabs__more">
+				<NcActions
+					:forceMenu="true"
+					:forceName="true"
+					:menuName="moreLabel"
+					:aria-label="moreAriaLabel"
+					variant="tertiary"
+					data-testid="cn-tabs-more">
+					<template #icon>
+						<ChevronDown :size="20" />
+					</template>
+					<NcActionButton
+						v-for="tab in overflowTabs"
+						:key="tab.uid"
+						:disabled="tab.disabled || null"
+						:closeAfterClick="true"
+						data-testid="cn-tabs-more-item"
+						@click="onOverflowPick(tab)">
+						<template #icon>
+							<span class="cn-tabs__more-spacer" />
+						</template>
+						{{ overflowLabel(tab) }}
+					</NcActionButton>
+				</NcActions>
 			</div>
 			<div v-if="$slots['nav-end']" class="cn-tabs__nav-end">
 				<!-- @slot nav-end Rendered at the right-hand end of the tab bar, deliberately OUTSIDE the `role="tablist"` element. A widget Actions menu belongs beside the strip, not inside it: anything nested in the tablist is announced as one of the tabs, so a screen-reader user counting six tabs would hear seven. -->
@@ -131,8 +168,27 @@
  * wiring, a roving `tabindex` (only the selected tab is in the tab order), and
  * Left/Right/Home/End keyboard navigation within the strip. Pass `aria-label`
  * (or `ariaLabel`) so screen-reader users hear what the strip is for.
+ *
+ * ## Counts and the "More" menu
+ *
+ * A `CnTab` with `count` shows that number after its title. A `CnTab` with
+ * `overflow` is listed under a "More" menu beside the strip instead of in it:
+ *
+ * ```vue
+ * <CnTabs aria-label="Case details">
+ *   <CnTab title="Documents" :count="5">…</CnTab>
+ *   <CnTab title="Archiving" overflow>…</CnTab>
+ * </CnTabs>
+ * ```
+ *
+ * Picking a tab from the menu selects it and shows it in the strip for as long
+ * as it is selected. With no overflow tab the menu does not render, and the
+ * strip is exactly what it was before these props existed.
  */
-import { computed, defineComponent, onBeforeUnmount, onMounted, onUpdated, provide, reactive, ref, watch } from 'vue'
+import { translate as t } from '@nextcloud/l10n'
+import { NcActionButton, NcActions } from '@nextcloud/vue'
+import { computed, defineComponent, nextTick, onBeforeUnmount, onMounted, onUpdated, provide, reactive, ref, watch } from 'vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import { CN_TABS_INJECTION_KEY } from './tabsKey.js'
@@ -141,8 +197,11 @@ export default defineComponent({
 	name: 'CnTabs',
 
 	components: {
+		ChevronDown,
 		ChevronLeft,
 		ChevronRight,
+		NcActionButton,
+		NcActions,
 	},
 
 	props: {
@@ -186,6 +245,12 @@ export default defineComponent({
 			type: String,
 			default: '',
 		},
+
+		/** Name of the menu that lists the `overflow` tabs. */
+		moreLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'More'),
+		},
 	},
 
 	emits: [
@@ -198,6 +263,10 @@ export default defineComponent({
 		const tabs = reactive([])
 		const activeUid = ref(null)
 		const navButtons = ref([])
+		const nav = ref(null)
+		// Whether the selection was chosen (a tab declared `active`, or the
+		// user picked one) rather than defaulted to the first tab registered.
+		let selectionChosen = false
 
 		/**
 		 * Register a child tab. The first child to register wins the initial
@@ -213,8 +282,23 @@ export default defineComponent({
 			if (tab.disabled) {
 				return
 			}
-			if (activeUid.value === null || tab.active) {
+			if (tab.active) {
 				activeUid.value = tab.uid
+				selectionChosen = true
+				return
+			}
+			if (activeUid.value === null) {
+				activeUid.value = tab.uid
+				return
+			}
+			// A tab under "More" only held the default selection because it
+			// registered first. The first tab that is actually in the strip
+			// takes it over, unless somebody chose.
+			if (!selectionChosen && !tab.overflow) {
+				const current = tabs.find((candidate) => candidate.uid === activeUid.value)
+				if (current && current.overflow) {
+					activeUid.value = tab.uid
+				}
 			}
 		}
 
@@ -246,6 +330,7 @@ export default defineComponent({
 		 * @return {void}
 		 */
 		function select(uid) {
+			selectionChosen = true
 			if (activeUid.value === uid) {
 				return
 			}
@@ -267,6 +352,67 @@ export default defineComponent({
 		const activeIndex = computed(() => tabs.findIndex((tab) => tab.uid === activeUid.value))
 
 		/**
+		 * The tabs drawn in the strip: every tab that is not `overflow`, plus
+		 * an overflow tab for as long as it is the selected one.
+		 *
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+		 */
+		const visibleTabs = computed(() => tabs.filter((tab) => !tab.overflow || tab.uid === activeUid.value))
+
+		/**
+		 * The tabs listed under "More": overflow tabs that are not selected.
+		 *
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+		 */
+		const overflowTabs = computed(() => tabs.filter((tab) => tab.overflow && tab.uid !== activeUid.value))
+
+		/**
+		 * Whether a tab declares a count. `0` is a count; null and '' are not.
+		 *
+		 * @param {object} tab Child descriptor.
+		 *
+		 * @return {boolean} True when the count renders.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+		 */
+		function hasCount(tab) {
+			return tab.count !== null && tab.count !== undefined && tab.count !== ''
+		}
+
+		/**
+		 * A "More" entry's text: the tab's title, and its count when it has one.
+		 *
+		 * @param {object} tab Child descriptor.
+		 *
+		 * @return {string} The menu label.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+		 */
+		function overflowLabel(tab) {
+			return hasCount(tab) ? `${tab.label} (${tab.count})` : tab.label
+		}
+
+		/**
+		 * Select a tab picked from "More" and move focus to it in the strip,
+		 * so a keyboard user lands on the tab they chose rather than on a menu
+		 * button that no longer lists it.
+		 *
+		 * @param {object} tab Child descriptor.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+		 */
+		function onOverflowPick(tab) {
+			tab.onActivate()
+			nextTick(() => {
+				const button = nav.value?.querySelector(`#${tab.tabId}`)
+				if (button && typeof button.focus === 'function') {
+					button.focus()
+				}
+			})
+		}
+
+		const moreAriaLabel = computed(() => t('nextcloud-vue', 'More tabs'))
+
+		/**
 		 * Move the selection and DOM focus to a tab by index, skipping disabled
 		 * ones. Focus has to move with the selection: in the WAI-ARIA tabs
 		 * pattern only the selected tab is in the tab order, so leaving focus on
@@ -277,14 +423,16 @@ export default defineComponent({
 		 * @return {void}
 		 */
 		function focusTab(index) {
-			const enabled = tabs.filter((tab) => !tab.disabled)
+			// The strip's own tabs only: the arrow keys walk what is drawn, and
+			// the "More" menu has its own keyboard handling.
+			const enabled = visibleTabs.value.filter((tab) => !tab.disabled)
 			if (enabled.length === 0) {
 				return
 			}
 			const wrapped = ((index % enabled.length) + enabled.length) % enabled.length
 			const target = enabled[wrapped]
+			const position = visibleTabs.value.indexOf(target)
 			select(target.uid)
-			const position = tabs.indexOf(target)
 			const button = navButtons.value?.[position]
 			if (button && typeof button.focus === 'function') {
 				button.focus()
@@ -299,7 +447,7 @@ export default defineComponent({
 		 * @return {void}
 		 */
 		function onNavKeydown(event) {
-			const enabled = tabs.filter((tab) => !tab.disabled)
+			const enabled = visibleTabs.value.filter((tab) => !tab.disabled)
 			const current = enabled.findIndex((tab) => tab.uid === activeUid.value)
 			let next = null
 
@@ -319,8 +467,6 @@ export default defineComponent({
 			event.preventDefault()
 			focusTab(next)
 		}
-
-		const nav = ref(null)
 
 		/**
 		 * Scroll the strip so the selected tab is wholly in view.
@@ -416,6 +562,12 @@ export default defineComponent({
 
 		return {
 			tabs,
+			visibleTabs,
+			overflowTabs,
+			hasCount,
+			overflowLabel,
+			onOverflowPick,
+			moreAriaLabel,
 			isActive,
 			activeIndex,
 			nav,
@@ -546,6 +698,34 @@ export default defineComponent({
 
 .cn-tabs__scroll--end {
 	inset-inline-end: 0;
+}
+
+/* The count behind a tab's title. Full-contrast text on the page background,
+   so it reads on the idle tab's darker fill and on the open tab alike. */
+.cn-tabs__count {
+	background-color: var(--color-main-background);
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-pill, 100px);
+	color: var(--color-main-text);
+	display: inline-block;
+	font-size: 0.85em;
+	line-height: 1.4;
+	margin-inline-start: 6px;
+	min-width: 1.4em;
+	padding: 0 6px;
+	text-align: center;
+}
+
+.cn-tabs__more {
+	align-items: center;
+	display: flex;
+	flex: 0 0 auto;
+}
+
+/* Keeps a "More" entry's text on the menu's text column without drawing an icon. */
+.cn-tabs__more-spacer {
+	display: inline-block;
+	width: 20px;
 }
 
 .cn-tabs__nav-end {

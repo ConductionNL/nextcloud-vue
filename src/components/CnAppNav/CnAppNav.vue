@@ -75,7 +75,34 @@
 -->
 <template>
 	<NcAppNavigation :aria-label="ariaLabel" data-testid="cn-nav">
-		<template v-if="$slots.search || $slots.search" #search>
+		<template v-if="$slots.search || $slots.brand || resolvedBrand" #search>
+			<!--
+				@slot brand
+				@description Replace the brand block at the very top of the
+				navigation. Default content: the logo, name and caption from
+				the `brand` prop or the manifest's `nav.brand`. Renders
+				nothing when neither is set.
+				@binding {object|null} brand The resolved brand (`{ logo, name, caption, alt }`), or null.
+			-->
+			<slot name="brand" :brand="resolvedBrand">
+				<div
+					v-if="resolvedBrand"
+					class="cn-app-nav__brand"
+					data-testid="cn-nav-brand">
+					<!-- Decorative beside a name: the name already says whose
+					     app this is, and an alt text would say it twice. A logo
+					     on its own carries the name as its alt text. -->
+					<img
+						v-if="resolvedBrand.logo"
+						class="cn-app-nav__brand-logo"
+						:src="resolvedBrand.logo"
+						:alt="resolvedBrand.name ? '' : resolvedBrand.alt">
+					<span v-if="resolvedBrand.name || resolvedBrand.caption" class="cn-app-nav__brand-text">
+						<strong v-if="resolvedBrand.name" class="cn-app-nav__brand-name">{{ resolvedBrand.name }}</strong>
+						<span v-if="resolvedBrand.caption" class="cn-app-nav__brand-caption">{{ resolvedBrand.caption }}</span>
+					</span>
+				</div>
+			</slot>
 			<!--
 				@slot search
 				@description Forwarded into NcAppNavigation's #search slot.
@@ -531,6 +558,20 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Main navigation'),
 		},
+
+		/**
+		 * The brand block at the top of the navigation:
+		 * `{ logo?, name?, caption?, alt? }`. `logo` is an image URL, `name`
+		 * the app or organisation name, `caption` a line under it. Falls back
+		 * to the manifest's `nav.brand`. `null` (the default) with no manifest
+		 * brand renders nothing.
+		 *
+		 * @type {{logo?: string, name?: string, caption?: string, alt?: string}|null}
+		 */
+		brand: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: ['primary-action', 'primary-action-click'],
@@ -558,6 +599,31 @@ export default {
 
 		effectiveTranslate() {
 			return this.translate ?? this.cnTranslate
+		},
+
+		/**
+		 * The brand to draw: the `brand` prop, else the manifest's
+		 * `nav.brand`. Name and caption go through the translate function,
+		 * like every other manifest label. Null when there is nothing to
+		 * show, which is what keeps the block out of a navigation that
+		 * declares no brand.
+		 *
+		 * @return {{logo: string, name: string, caption: string, alt: string}|null} The brand, or null.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-navigation-brand
+		 */
+		resolvedBrand() {
+			const declared = this.brand ?? this.effectiveManifest?.nav?.brand
+			if (!declared || typeof declared !== 'object') {
+				return null
+			}
+			const text = (value) => (typeof value === 'string' && value !== '' ? this.effectiveTranslate(value) : '')
+			const brand = {
+				logo: typeof declared.logo === 'string' ? declared.logo : '',
+				name: text(declared.name),
+				caption: text(declared.caption),
+				alt: text(declared.alt),
+			}
+			return (brand.logo || brand.name || brand.caption) ? brand : null
 		},
 
 		/**
@@ -1479,6 +1545,43 @@ export default {
 </script>
 
 <style>
+/* The brand block at the top of the navigation. */
+.cn-app-nav__brand {
+	align-items: center;
+	display: flex;
+	gap: calc(2.5 * var(--default-grid-baseline));
+	min-width: 0;
+	padding: calc(2 * var(--default-grid-baseline)) calc(2 * var(--default-grid-baseline)) calc(3 * var(--default-grid-baseline));
+}
+
+.cn-app-nav__brand-logo {
+	flex: none;
+	height: 34px;
+	max-width: 50%;
+	object-fit: contain;
+	width: auto;
+}
+
+.cn-app-nav__brand-text {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.15;
+	min-width: 0;
+}
+
+.cn-app-nav__brand-name {
+	color: var(--color-main-text);
+	font-size: 1.2em;
+	font-weight: 700;
+	overflow-wrap: anywhere;
+}
+
+.cn-app-nav__brand-caption {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85em;
+	overflow-wrap: anywhere;
+}
+
 /*
  * The legacy `icon-*` classes in Nextcloud render a background-image
  * with a hardcoded dark fill, so they stay grey when an entry becomes

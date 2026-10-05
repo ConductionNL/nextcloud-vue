@@ -78,6 +78,43 @@ calls the suggestion `nested-interactive` when you try it.
 | `runTransition` | `Function` | `null` | `({ card, toKey }) => Promise`. The only way the status changes. |
 | `reread` | `Function` | `null` | `(card) => Promise<object>`, to check the card has not moved under the dragger. |
 | `paged` | `Boolean` | `false` | Whether the counts are of one page. |
+| `dueRule` | `Object` | `null` | Marks late cards: `{ field, soonDays? }`. See below. |
+
+## Late cards
+
+Give the board a `dueRule` and it marks the cards that are late:
+
+```vue
+<CnBoardView
+  :rows="rows"
+  :status-field-schema="statusSchema"
+  :card-fields="['title']"
+  :due-rule="{ field: 'deadline', soonDays: 3 }" />
+```
+
+| The card's date | The card shows |
+|---|---|
+| before today | an edge in the error colour and the label "Overdue" |
+| today, or within `soonDays` (default 3) | the label "Due soon" in the warning colour |
+| later, or no date | nothing extra |
+
+The label is text inside the card. The edge helps a sighted reader find the card, and the words are what a screen reader and a colour-blind reader get.
+
+Days are whole calendar days in the reader's own timezone. A deadline of today is never overdue in the morning.
+
+From a manifest, put the rule in the page's `board` block:
+
+```json
+"board": {
+  "statusField": "status",
+  "cardFields": ["identifier", "title", "requester"],
+  "dueRule": { "field": "deadline", "soonDays": 3 }
+}
+```
+
+The deciding is shared with the table's date cell (`utils/dateVariant.js`). `soonDays: 3` is shorthand for `variantWhen: [{ op: 'lt', value: 0, variant: 'error' }, { op: 'lte', value: 3, variant: 'warning' }]`. A rule may carry its own `variantWhen` list instead: `error` marks the card overdue and `warning` due soon.
+
+Without a `dueRule` the cards render as before.
 
 ## Events
 
