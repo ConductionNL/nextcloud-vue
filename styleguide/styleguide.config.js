@@ -328,6 +328,8 @@ module.exports = {
 				`${ROOT}/src/components/CnCellRenderer/CnCellRenderer.vue`,
 				`${ROOT}/src/components/CnRowActions/CnRowActions.vue`,
 				`${ROOT}/src/components/CnContextMenu/CnContextMenu.vue`,
+				`${ROOT}/src/components/CnSegmentedControl/CnSegmentedControl.vue`,
+				`${ROOT}/src/components/CnBrandStripe/CnBrandStripe.vue`,
 			],
 		},
 		{
@@ -410,6 +412,8 @@ module.exports = {
 				`${ROOT}/src/components/CnTileWidget/CnTileWidget.vue`,
 				`${ROOT}/src/components/CnChartWidget/CnChartWidget.vue`,
 				`${ROOT}/src/components/CnWidgetRefItem/CnWidgetRefItem.vue`,
+				`${ROOT}/src/components/CnWeekStripWidget/CnWeekStripWidget.vue`,
+				`${ROOT}/src/components/CnStackedBarWidget/CnStackedBarWidget.vue`,
 			],
 		},
 		{
