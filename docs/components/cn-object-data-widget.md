@@ -103,9 +103,12 @@ The `overrides` prop accepts per-property configuration:
     label: 'Custom',   // Override the display label
     widget: 'textarea', // Override the widget type for editing
     enum: [...],       // Override enum values for select/multiselect
+    formatter: 'timeBlocks', // Display through a formatter registered on CnAppRoot
   }
 }
 ```
+
+`formatter` names a function in CnAppRoot's formatter registry (the library's built-ins plus the app's `formatters` prop), the same id a table column's `formatter` uses. It is called as `(value, object, property)`, and its result is the text the cell shows, so a structured value an app already formats in its list reads the same on the detail page. An id nobody registered, or a formatter that throws, keeps the default rendering. It changes the display only: inline editing still edits and writes the stored value. In a manifest the override sits on the data widget's `content.overrides`.
 
 ## Supported widget types
 
