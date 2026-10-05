@@ -262,6 +262,10 @@ The backend (OpenRegister) injects `manifest.runtime` when serving the manifest 
 - **A group with its OWN route or href opens (never toggles) on title click** — when a `children[]`-bearing item also carries a `route` or `href`, its title click is a real navigation: `preventDefault()` is never called, so the router-link (or anchor) navigates natively, and the click additionally forces the group open — it never closes an already-open group this way. A reader who clicks the group's own page lands on it with its children already visible, instead of having to find the collapse chevron separately. The chevron remains the only control that can collapse such a group again.
 - **Active icon colour** — `icon-*` background-image classes have a hardcoded dark fill, so the component injects `filter: brightness(0) invert(1)` to whiten them when active. `<template #icon>` MDI components inherit `currentColor` and don't need this.
 
+## Active entry and `query`
+
+Two entries may share a route and differ only in `query`, for example "My work" (`query: { "assignee": "me" }`) and "All cases" on the same list. An entry with a `query` is active only when the address carries every key of it. An entry without one is not active while a sibling's query matches. So one entry is marked, not two.
+
 ## Dynamic per-tenant menu entries
 
 The menu CnAppNav renders is whatever [`useAppManifest`](../utilities/composables/use-app-manifest.md) ultimately resolves to — including `menu[]` arrays (and nested `children[]`) supplied by the backend `/api/manifest` endpoint. Apps that need per-tenant menu fan-out (e.g. one entry per catalogue, organisation, or case type) populate the resolved entries in their backend; CnAppNav renders whatever the merged manifest contains. See [Overriding an app's manifest at runtime](../manifest-runtime-override.md) for the full feature — the endpoint contract, the `deepMerge` vs `delta` strategies, and how nested children merge by `id`.
