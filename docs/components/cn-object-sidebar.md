@@ -21,6 +21,12 @@ Right sidebar for entity detail pages. Provides standardized tabs — Files, Not
 | `tasks` | Tasks | Task list via `CnTasksTab` |
 | `auditTrail` | Audit Trail | Change history via `CnAuditTrailTab` |
 
+### Open in Office
+
+A file row in `CnFilesTab` offers **Open in Office** when Nextcloud Office (richdocuments) is there for the person and opens the file's type. The tab reads both from richdocuments' capabilities: it publishes them only to a person it lets use Office, and lists the mime types it opens by default. Without Office, or for any other type, the action is not shown.
+
+The action links, in a new tab, to OpenRegister's Office page `/apps/openregister/office/{register}/{schema}/{objectId}/{fileId}`. That page applies the object's own rule: a person who may update the object edits the document, a reader gets it read-only, and anyone else gets a 404. The tab does not decide this; the server does. Relabel it with `openInOfficeLabel`.
+
 ## Usage
 
 ```vue

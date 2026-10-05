@@ -130,6 +130,18 @@
 							</template>
 							{{ openLabel }}
 						</NcActionButton>
+						<!-- OpenRegister's Office page applies the object rule:
+						     update edits, read views, no read is a 404. -->
+						<NcActionLink
+							v-if="officeOpens(file)"
+							:href="officeUrlFor(file)"
+							target="_blank"
+							:closeAfterClick="true">
+							<template #icon>
+								<FileDocumentEditOutline :size="20" />
+							</template>
+							{{ openInOfficeLabel }}
+						</NcActionLink>
 						<NcActionLink
 							v-if="file.id"
 							:href="downloadUrlFor(file)"
@@ -194,6 +206,7 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
+import { getCapabilities } from '@nextcloud/capabilities'
 import { translate as t } from '@nextcloud/l10n'
 import { generateRemoteUrl, generateUrl } from '@nextcloud/router'
 import {
@@ -209,6 +222,7 @@ import {
 } from '@nextcloud/vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import Download from 'vue-material-design-icons/Download.vue'
+import FileDocumentEditOutline from 'vue-material-design-icons/FileDocumentEditOutline.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
@@ -220,6 +234,23 @@ import CnFilesBrowser from '../CnFilesBrowser/CnFilesBrowser.vue'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { resolveObjectFolder } from '../CnFilesBrowser/filesBrowser.js'
+
+/**
+ * The mime types Nextcloud Office opens by default for the current person.
+ *
+ * richdocuments publishes its capabilities only to a person it lets use
+ * Office, so an empty list means no Office here, or none for them.
+ *
+ * @return {Array<string>} The mime types, or an empty list.
+ */
+function readOfficeMimetypes() {
+	try {
+		const mimetypes = getCapabilities()?.richdocuments?.mimetypes
+		return Array.isArray(mimetypes) ? mimetypes.filter((mime) => typeof mime === 'string') : []
+	} catch {
+		return []
+	}
+}
 
 export default {
 	name: 'CnFilesTab',
@@ -237,6 +268,7 @@ export default {
 		NcLoadingIcon,
 		Delete,
 		Download,
+		FileDocumentEditOutline,
 		FileOutline,
 		FolderOutline,
 		InformationOutline,
@@ -261,6 +293,13 @@ export default {
 		noFilesLabel: { type: String, default: () => t('nextcloud-vue', 'No files attached') },
 		/** Label for the open/view file action */
 		openLabel: { type: String, default: () => t('nextcloud-vue', 'Open') },
+		/**
+		 * Label of the action that opens a document in Nextcloud Office through
+		 * OpenRegister's Office page. Shown only when Office is there for this
+		 * person and opens the file's type; the page opens it for editing or
+		 * read-only by the object's own rule.
+		 */
+		openInOfficeLabel: { type: String, default: () => t('nextcloud-vue', 'Open in Office') },
 		/** Label for the delete action */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 		/** What the files browser's root crumb reads; null shows the folder's own name, as the Files app does. */
@@ -346,6 +385,8 @@ export default {
 			 * @type {HTMLInputElement|null}
 			 */
 			fileInputEl: null,
+			/** The mime types Nextcloud Office opens for this person; empty without Office. */
+			officeMimetypes: readOfficeMimetypes(),
 		}
 	},
 
@@ -700,6 +741,30 @@ export default {
 		 */
 		downloadUrlFor(file) {
 			return `${this.apiBase}/files/${encodeURIComponent(String(file.id))}/download`
+		},
+
+		/**
+		 * Whether Nextcloud Office opens this file for this person.
+		 *
+		 * @param {object} file The file row.
+		 * @return {boolean} true when the Office action applies.
+		 */
+		officeOpens(file) {
+			const mime = file.type || file.mimetype || file.mimeType || ''
+			return Boolean(file.id) && mime !== '' && this.officeMimetypes.includes(mime)
+		},
+
+		/**
+		 * OpenRegister's Office page for a file of this object, which checks the
+		 * object rule and opens the document editable or read-only.
+		 *
+		 * @param {object} file The file row.
+		 * @return {string} The url.
+		 */
+		officeUrlFor(file) {
+			const appBase = /\/api\/?$/.test(this.apiBase) ? this.apiBase.replace(/\/api\/?$/, '') : '/apps/openregister'
+			const segments = [this.register, this.schema, this.objectId, String(file.id)].map((part) => encodeURIComponent(String(part)))
+			return prefixUrl(`${appBase}/office/${segments.join('/')}`)
 		},
 
 		/**
