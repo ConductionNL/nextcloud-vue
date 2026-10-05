@@ -577,6 +577,13 @@ export default {
 
 	emits: ['primary-action', 'primary-action-click'],
 
+	/**
+	 * The navigation's own state: which groups are open, and which entry
+	 * of a route the reader last used.
+	 *
+	 * @return {object} The state.
+	 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+	 */
 	data() {
 		return {
 			/**
@@ -1032,9 +1039,16 @@ export default {
 			this.pinGroupsEntered(this.activeRouteName)
 		},
 
-		// Remember which entry of a route the reader used, for `subRouteParent`.
 		entryActiveOnOwnRoute: {
 			immediate: true,
+			/**
+			 * Remember which entry of a route the reader used, for
+			 * `subRouteParent`.
+			 *
+			 * @param {object|null} entry The entry active on its own route.
+			 * @return {void}
+			 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+			 */
 			handler(entry) {
 				if (entry && entry.route) {
 					this.lastActiveEntryByRoute[entry.route] = this.entryKey(entry)

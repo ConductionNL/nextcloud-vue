@@ -22,6 +22,7 @@ const LEDGER_PATH = path.join(ROOT, 'tests/schemas/app-manifest-v2.schema.hashes
  *
  * @param {object} schema The parsed schema.
  * @return {string} `sha256:<hex>`.
+ * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-the-manifest-schema-version-moves-with-its-content
  */
 function hashSchema(schema) {
 	return 'sha256:' + crypto.createHash('sha256').update(JSON.stringify(schema)).digest('hex')
@@ -31,6 +32,7 @@ function hashSchema(schema) {
  * Read the ledger of recorded versions.
  *
  * @return {{versions: Record<string, string>}} The ledger.
+ * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-the-manifest-schema-version-moves-with-its-content
  */
 function readLedger() {
 	return JSON.parse(fs.readFileSync(LEDGER_PATH, 'utf8'))

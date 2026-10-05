@@ -278,6 +278,13 @@ export default {
 		'action',
 	],
 
+	/**
+	 * The banner's own state: the evaluated condition, the value it read,
+	 * and whether the request for it failed.
+	 *
+	 * @return {object} The state.
+	 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
+	 */
 	data() {
 		return {
 			/** Id that ties the attention card's region to its title. */
