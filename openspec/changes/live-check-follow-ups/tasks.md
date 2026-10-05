@@ -28,6 +28,6 @@
 
 ### Task 5: A page below a list marks one menu entry
 - **spec_ref**: `openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry`
-- **files**: `src/components/CnAppNav/CnAppNav.vue`, `tests/components/CnAppNavActiveQuery.spec.js`
-- [ ] Implement
-- [ ] Test
+- **files**: `src/components/CnAppNav/CnAppNav.vue`, `tests/components/CnAppNavActiveSubRoute.spec.js`
+- [x] Implement
+- [x] Test

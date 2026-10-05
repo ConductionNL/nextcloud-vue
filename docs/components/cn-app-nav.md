@@ -266,6 +266,15 @@ The backend (OpenRegister) injects `manifest.runtime` when serving the manifest 
 
 Two entries may share a route and differ only in `query`, for example "My work" (`query: { "assignee": "me" }`) and "All cases" on the same list. An entry with a `query` is active only when the address carries every key of it. An entry without one is not active while a sibling's query matches. So one entry is marked, not two.
 
+### On a page below a list
+
+On a detail page under a list (`/cases/123` under `/cases`) the menu marks the list's entry, found by the longest matching path. The address there carries the detail page's query, not the list's. So when every entry on that list has a `query`, the rule above marks none of them. The menu then marks exactly one:
+
+1. the entry the reader last had active on that list in this session, so "Queue" stays marked after opening a case from the queue;
+2. otherwise, for example after a reload or a shared link, the first of those entries in menu order.
+
+Use `order` to decide which entry that is. A list that has an entry without a `query` is not affected: that entry is marked below the list, as it was. On the list itself nothing changes either: an address no entry describes marks none.
+
 ## Dynamic per-tenant menu entries
 
 The menu CnAppNav renders is whatever [`useAppManifest`](../utilities/composables/use-app-manifest.md) ultimately resolves to — including `menu[]` arrays (and nested `children[]`) supplied by the backend `/api/manifest` endpoint. Apps that need per-tenant menu fan-out (e.g. one entry per catalogue, organisation, or case type) populate the resolved entries in their backend; CnAppNav renders whatever the merged manifest contains. See [Overriding an app's manifest at runtime](../manifest-runtime-override.md) for the full feature — the endpoint contract, the `deepMerge` vs `delta` strategies, and how nested children merge by `id`.
