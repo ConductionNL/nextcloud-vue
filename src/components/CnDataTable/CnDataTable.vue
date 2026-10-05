@@ -311,7 +311,7 @@ import '../../css/table.css'
  *
  * Sorting: a plain click on a sortable header is single-sort (cycle asc → desc → cleared), unchanged from before.
  * Shift+click (or Shift+Enter on a focused header) appends the column as a secondary/tertiary sort key, capped at 3, with numbered priority badges (1, 2, 3) once two or more rendered, sortable columns are sorted.
- * A sort key whose column is not rendered, or not sortable, still sorts, but is not counted or numbered.
+ * A sort key whose column is not rendered, or not sortable, still sorts, but is not counted or numbered, and `aria-sort` goes to the first sort key whose column is rendered and sortable.
  * Pass `sortKeys: [{key, order}, ...]` for multi-sort (falls back to the legacy `sortKey`/`sortOrder` props when empty).
  * The `sort` event payload is extended, not replaced: `{key, order}` still mirrors the primary key exactly as before; a new `keys` field carries the full ordered list.
  * See `src/utils/multiColumnSort.js` for the state machine.
@@ -1551,8 +1551,8 @@ export default {
 		},
 
 		/**
-		 * `aria-sort` value for a column header: `'ascending'`/`'descending'` for the PRIMARY (index 0) active sort key only, per WCAG guidance that `aria-sort` describes single-column sort state.
-		 * `null` omits the attribute entirely (unsorted, not sortable, or not the primary key).
+		 * `aria-sort` value for a column header: `'ascending'`/`'descending'` for the first rendered sort key only, per WCAG guidance that `aria-sort` describes single-column sort state.
+		 * `null` omits the attribute entirely (unsorted, not sortable, or not the first rendered sort key).
 		 *
 		 * @param {object} col Column definition.
 		 * @return {string|null}
@@ -1561,7 +1561,7 @@ export default {
 			if (!col.sortable) {
 				return null
 			}
-			const primary = this.effectiveSortKeys[0]
+			const primary = this.renderedSortKeys[0]
 			if (!primary || primary.key !== col.key) {
 				return null
 			}

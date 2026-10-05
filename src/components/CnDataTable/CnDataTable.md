@@ -186,7 +186,7 @@ export default {
 | `includeColumns` | Array | `null` | Column keys to include (whitelist) in schema mode |
 | `sortKey` | String | `null` | Currently active sort column key (controlled) |
 | `sortOrder` | String | `'asc'` | Current sort direction: `'asc'` or `'desc'` |
-| `sortKeys` | Array | `[]` | Ordered multi-column ("shift+click") sort key list, `[{ key, order }, …]` (0–3 entries); takes precedence over `sortKey`/`sortOrder` when non-empty. Priority badges show only when two or more rendered, sortable columns are sorted; a key whose column is not rendered or not sortable (such as a `_uuid` tie-break) still sorts, but is not counted or numbered |
+| `sortKeys` | Array | `[]` | Ordered multi-column ("shift+click") sort key list, `[{ key, order }, …]` (0–3 entries); takes precedence over `sortKey`/`sortOrder` when non-empty. Priority badges show only when two or more rendered, sortable columns are sorted; a key whose column is not rendered or not sortable (such as a `_uuid` tie-break) still sorts, but is not counted or numbered, and `aria-sort` goes to the first sort key whose column is rendered and sortable |
 | `selectedIds` | Array | `[]` | Array of selected row IDs (controlled) |
 | `rowClass` | Function | `null` | `(row) => string` — CSS class(es) applied to each `<tr>` |
 | `rowClickToView` | Boolean | `false` | Emit `row-click` on a row-body click even while `selectable` (selection then via the checkbox column only) |
