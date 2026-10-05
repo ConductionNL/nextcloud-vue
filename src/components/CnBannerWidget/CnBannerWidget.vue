@@ -36,6 +36,16 @@
 			</component>
 		</div>
 	</section>
+	<!-- The count could not be read. One quiet line, not the card and not an
+	     alarm: hidden would read as "nothing to report", which is not known. -->
+	<p
+		v-else-if="checkFailed"
+		class="cn-banner-widget cn-banner-widget--unchecked"
+		:title="failureTooltip"
+		data-testid="cn-banner-widget-unchecked">
+		<span class="cn-banner-widget__unchecked-text">{{ uncheckedText }}</span>
+		<span class="cn-banner-widget__unchecked-reason">{{ failureTooltip }}</span>
+	</p>
 	<div v-else-if="visible" class="cn-banner-widget">
 		<NcNoteCard :type="resolvedVariant" class="cn-banner-widget__card">
 			<component
@@ -52,6 +62,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcNoteCard } from '@nextcloud/vue'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { safeHref } from '../../utils/safeHref.js'
@@ -96,6 +107,12 @@ const MAX_ACTIONS = 2
  * Fail-safe: with a `visibleWhen`, the banner stays HIDDEN until the
  * condition evaluates true — a failed fetch never breaks (or spams) a
  * dashboard.
+ *
+ * An attention card (`layout: "attention"`) whose `visibleWhen` request
+ * FAILS renders one quiet line instead, "Could not check", with the reason as
+ * a tooltip. A hidden card reads as "nothing needs attention", and a failed
+ * count does not know that. A request that succeeds with a value that does
+ * not meet the condition still renders nothing.
  *
  * `layout: "attention"` turns the banner into an attention card: a card with
  * a coloured edge by severity, a `kicker` label, a `title`, a `reason` line
@@ -238,7 +255,9 @@ export default {
 		 * the banner renders from this verdict instead of fetching again —
 		 * no duplicate request and no hidden-until-self-evaluated flash —
 		 * and `value` feeds the `{value}` text placeholder. `null` (the
-		 * default) keeps the banner self-evaluating.
+		 * default) keeps the banner self-evaluating. A host whose request
+		 * failed passes `{ met: false, value: null, failed: true, reason }`,
+		 * and an attention card then says it could not check.
 		 *
 		 * @type {object|null}
 		 */
@@ -271,6 +290,10 @@ export default {
 			 * the text wherever it says `{value}`.
 			 */
 			conditionValue: null,
+			/** Whether the visibleWhen request itself failed (not: answered "no"). */
+			conditionFailed: false,
+			/** Why it failed, as the request reported it. */
+			conditionFailureReason: '',
 		}
 	},
 
@@ -419,6 +442,52 @@ export default {
 			return this.conditionMet === true
 		},
 
+		/**
+		 * Whether to say the check failed: an attention card, with words to
+		 * show, whose `visibleWhen` request failed. A plain banner stays
+		 * hidden on failure, as it always did.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
+		 */
+		checkFailed() {
+			const title = this.title || (this.content && this.content.title) || ''
+			return this.isAttention
+				&& !!this.resolvedVisibleWhen
+				&& this.conditionFailed
+				&& (title !== '' || this.resolvedText !== '')
+		},
+
+		/**
+		 * The one line shown when the check failed. It names the card by its
+		 * title, unless the title needs the value that could not be read.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
+		 */
+		uncheckedText() {
+			const title = this.title || (this.content && this.content.title) || this.resolvedText
+			if (!title || title.includes('{value}')) {
+				return t('nextcloud-vue', 'Could not check')
+			}
+			// `escape: false`: the result is rendered through `{{ }}`, which escapes.
+			return t('nextcloud-vue', 'Could not check: {subject}', { subject: title }, undefined, { escape: false })
+		},
+
+		/**
+		 * The reason the check failed, for the tooltip and for assistive
+		 * technology.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
+		 */
+		failureTooltip() {
+			if (!this.conditionFailureReason) {
+				return t('nextcloud-vue', 'The check failed.')
+			}
+			return t('nextcloud-vue', 'The check failed: {reason}', { reason: this.conditionFailureReason }, undefined, { escape: false })
+		},
+
 		/** Whether the banner navigates on click (route set + router present). */
 		clickable() {
 			return !!this.resolvedRoute && !!this.$router
@@ -493,27 +562,36 @@ export default {
 		 * modes — the Wave-1 banner shape is the canonical one, extracted to
 		 * `utils/visibleWhen.js` in Wave 3 so manifest actions reuse it),
 		 * keeping the read VALUE for the `{value}` text placeholder.
-		 * Fail-safe: any fetch/shape error leaves the banner hidden.
+		 * Fail-safe: any fetch/shape error leaves the banner hidden. The
+		 * failure is kept (`conditionFailed`, with its reason) so an
+		 * attention card can say it could not check.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
 		 */
 		async evaluateCondition() {
 			const outcome = this.resolvedConditionOutcome
 			if (outcome) {
 				this.conditionMet = outcome.met === true
 				this.conditionValue = outcome.value !== undefined ? outcome.value : null
+				this.conditionFailed = outcome.failed === true
+				this.conditionFailureReason = outcome.failed === true && typeof outcome.reason === 'string' ? outcome.reason : ''
 				return
 			}
 			const cond = this.resolvedVisibleWhen
 			if (!cond) {
 				this.conditionMet = null
 				this.conditionValue = null
+				this.conditionFailed = false
+				this.conditionFailureReason = ''
 				return
 			}
 			try {
 				const value = await readVisibleWhenValue(cond)
 				this.conditionValue = value
 				this.conditionMet = compareVisibleWhen(value, cond.op || 'eq', cond.value)
+				this.conditionFailed = false
+				this.conditionFailureReason = ''
 			} catch (error) {
 				// Still hidden: a banner that cannot tell whether it applies
 				// should not claim attention. But not silently, because a
@@ -522,6 +600,8 @@ export default {
 				console.warn('[CnBannerWidget] visibleWhen could not be evaluated, banner hidden:', error?.message || error)
 				this.conditionMet = false
 				this.conditionValue = null
+				this.conditionFailed = true
+				this.conditionFailureReason = typeof error?.message === 'string' ? error.message : String(error ?? '')
 			}
 		},
 
@@ -555,6 +635,30 @@ export default {
 	cursor: pointer;
 	text-decoration: underline;
 	color: inherit;
+}
+
+/* The check failed. Muted text, no fill, no severity colour: it is a note
+   that something is not known, not a warning. */
+.cn-banner-widget--unchecked {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 8px 12px;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+	cursor: help;
+}
+
+/* The reason, for assistive technology; sighted readers get the tooltip. */
+.cn-banner-widget__unchecked-reason {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
 }
 
 /* Attention card. The severity edge is an inset shadow, so it takes no width. */

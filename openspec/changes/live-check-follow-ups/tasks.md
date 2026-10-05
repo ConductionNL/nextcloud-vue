@@ -23,8 +23,8 @@
 ### Task 4: An attention card says when it could not check
 - **spec_ref**: `openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check`
 - **files**: `src/components/CnBannerWidget/CnBannerWidget.vue`, `src/components/CnDashboardPage/CnDashboardPage.vue`, `l10n/`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 5: A page below a list marks one menu entry
 - **spec_ref**: `openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry`
