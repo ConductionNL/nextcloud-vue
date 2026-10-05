@@ -93,10 +93,12 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'calendar',
 	'chart',
 	'container',
+	'conversation',
 	'countdown',
 	'data',
 	'delta',
 	'divider',
+	'document-review',
 	'files',
 	'flow-runs',
 	'gauge',
@@ -110,6 +112,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'map',
 	'menu',
 	'nc-widget',
+	'next-step',
 	// `news` was here until the widget moved to LaunchPad, which owns the feed
 	// fetching. An app that renders one now gets it from LaunchPad's registry.
 	'object-geo',
@@ -119,6 +122,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'quicklinks',
 	'related',
 	'spend-analytics',
+	'stacked-bar',
 	'stages',
 	'stat',
 	'stats-block',
@@ -128,6 +132,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'text',
 	'tile',
 	'video',
+	'week-strip',
 	'workspace-filter',
 ])
 

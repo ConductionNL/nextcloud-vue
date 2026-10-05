@@ -119,6 +119,7 @@
 					:views="viewsForControl"
 					:loading="savedViewsLoading"
 					:currentUserId="currentSavedViewsUserId"
+					:counts="savedViewCounts"
 					@apply="onApplySavedView"
 					@saveRequest="showSaveViewDialog = true"
 					@deleteRequest="onDeleteViewRequest" />
@@ -171,6 +172,7 @@
 					:multiple="quickFilterMultiple"
 					:activeIndex="activeQuickFilterIndex"
 					:selectedIndices="selectedQuickFilterIndices"
+					:counts="tabCounts"
 					@update:activeIndex="onQuickFilterChange"
 					@update:selectedIndices="onQuickFilterMultiChange" />
 			</template>
@@ -545,6 +547,7 @@
 					:statusField="board.statusField || 'status'"
 					:cardFields="board.cardFields || []"
 					:swimlaneField="board.swimlaneField || ''"
+					:dueRule="board.dueRule || null"
 					:rowKey="rowKey"
 					:runTransition="runTransition"
 					:paged="isPaged"
@@ -781,12 +784,14 @@ import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { routeHref } from '../../utils/actionLink.js'
 import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { fetchFilterCounts } from '../../utils/fetchFilterCounts.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
-import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab } from '../../utils/listLenses.js'
+import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { resolveFilterMap } from '../../utils/routeFilters.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions } from '../../utils/rowActionAvailability.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
@@ -1199,7 +1204,6 @@ export default {
 			default: null,
 		},
 
-		/* eslint-disable vue/no-unused-properties -- used in useSelfFetchList */
 		/**
 		 * Base filter for the self-fetch path. String values of the form
 		 * `"@route.<name>"` / `":<name>"` are interpolated from `$route.params`.
@@ -1208,7 +1212,6 @@ export default {
 			type: Object,
 			default: null,
 		},
-		/* eslint-enable vue/no-unused-properties */
 
 		/**
 		 * Self-fetch mode only — an array of clickable filter tabs rendered as
@@ -2212,6 +2215,19 @@ export default {
 		},
 
 		/**
+		 * Which saved views show how many records they match: `true` for all
+		 * of them (tabs and the entries in the views control), or a list of
+		 * view ids. Off by default, so no count request is made. A quick
+		 * filter opts in on its own entry with `showCount: true`.
+		 *
+		 * @type {boolean|string[]}
+		 */
+		viewCounts: {
+			type: [Boolean, Array],
+			default: false,
+		},
+
+		/**
 		 * The teams this person may claim. The instance decides this list; it
 		 * is the membership side of `claimedTeams`.
 		 *
@@ -2649,6 +2665,10 @@ export default {
 	data() {
 		return {
 			currentViewMode: this.viewMode,
+			/** Count per tab-strip index, for the entries that asked for one; null = none. */
+			tabCounts: null,
+			/** Count per saved-view id, for the views control; null = none. */
+			savedViewCounts: null,
 			/**
 			 * The non-`_` query keys this page owns, i.e. may clear on the next
 			 * persist. Seeded with what it adopted from the query on load, and
@@ -3239,6 +3259,55 @@ export default {
 		 */
 		viewsForControl() {
 			return this.splitSavedViews.control
+		},
+
+		/**
+		 * The filters whose record count this page shows: quick filters that
+		 * set `showCount`, and the saved views `viewCounts` names. Empty when
+		 * nothing opted in, which is what keeps the page from making a count
+		 * request nobody asked for.
+		 *
+		 * @return {Array<{key: string, filter: object}>} The filters to count.
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
+		 */
+		countEntries() {
+			const entries = []
+			const tabs = this.tabStripEntries || []
+			const lens = this.lensTabs.length > 0
+			tabs.forEach((tab, index) => {
+				const wants = lens ? this.viewWantsCount(tab.id) : (tab && tab.showCount === true)
+				if (wants && tab.narrowsToNothing !== true) {
+					entries.push({ key: `tab:${index}`, filter: tab.filter || {} })
+				}
+			})
+			for (const view of this.viewsForControl) {
+				const id = viewIdOf(view)
+				if (this.viewWantsCount(id)) {
+					entries.push({ key: `view:${id}`, filter: viewAsTab(view).filter })
+				}
+			}
+			return entries
+		},
+
+		/**
+		 * Changes whenever the counts have to be fetched again: another set
+		 * of filters, another register or schema, or a list whose total moved
+		 * (a record was added, removed, or left a filter).
+		 *
+		 * @return {string} The signature.
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
+		 */
+		countRequestKey() {
+			if (this.countEntries.length === 0) {
+				return ''
+			}
+			return JSON.stringify({
+				r: this.register,
+				s: this.exportSchemaSlug,
+				f: this.filter || null,
+				e: this.countEntries,
+				t: Number(this.effectivePagination?.total ?? 0),
+			})
 		},
 
 		/**
@@ -4279,6 +4348,14 @@ export default {
 	},
 
 	watch: {
+		countRequestKey: {
+			immediate: true,
+			/** @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views */
+			handler() {
+				this.loadFilterCounts()
+			},
+		},
+
 		// Remember the whole folder set whenever no folder narrows the query.
 		folderSidebarLiveFacetValues: {
 			immediate: true,
@@ -4488,6 +4565,61 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether a saved view shows its record count (`viewCounts`).
+		 *
+		 * @param {string} id The view id.
+		 * @return {boolean} True when the view opted in.
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
+		 */
+		viewWantsCount(id) {
+			if (this.viewCounts === true) {
+				return true
+			}
+			return Array.isArray(this.viewCounts) && this.viewCounts.map(String).includes(String(id))
+		},
+
+		/**
+		 * Fetch the record counts for the filters and views that asked for
+		 * one. Filters that narrow the same single field share one grouped
+		 * request. A failed count leaves that entry without a number.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
+		 */
+		async loadFilterCounts() {
+			const requestKey = this.countRequestKey
+			const schema = this.exportSchemaSlug
+			if (requestKey === '' || !this.register || !schema) {
+				this.tabCounts = null
+				this.savedViewCounts = null
+				return
+			}
+			const params = (this.$route && this.$route.params) || {}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const counts = await fetchFilterCounts({
+				register: this.register,
+				schema,
+				entries: this.countEntries.map((entry) => ({ key: entry.key, filter: resolveFilterMap(entry.filter, params, ctx) })),
+				baseFilter: resolveFilterMap(this.filter, params, ctx),
+				ctx,
+			})
+			if (requestKey !== this.countRequestKey) {
+				return
+			}
+			const tabCounts = {}
+			const viewCounts = {}
+			for (const [key, value] of Object.entries(counts)) {
+				if (key.startsWith('tab:')) {
+					tabCounts[Number(key.slice(4))] = value
+				} else {
+					viewCounts[key.slice(5)] = value
+				}
+			}
+			this.tabCounts = tabCounts
+			this.savedViewCounts = viewCounts
+		},
+
 		// ── Split view (case-page-and-list-as-a-place) ──────────────────
 
 		/**

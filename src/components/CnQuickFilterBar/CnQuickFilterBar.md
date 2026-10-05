@@ -45,6 +45,8 @@ In `manifest.json` (the usual entry-point — CnIndexPage mounts the bar for you
 | `filter` | Object | yes | Filter map merged into the fetch when this tab is active. Same value syntax as `config.filter`: literals pass through; `"@route.<name>"` / `":<name>"` resolve from `$route.params`. |
 | `default` | Boolean | no | Pre-selected on mount; first tab with `default:true` (else index 0) is active |
 | `icon` | String | no | Optional MDI icon name shown next to the label |
+| `showCount` | Boolean | no | On a CnIndexPage: show how many records this tab matches. Tabs that filter the same single field share one grouped request. |
+| `count` | Number | no | A count you supply yourself, shown after the label. |
 
 ## Props
 
@@ -57,6 +59,7 @@ In `manifest.json` (the usual entry-point — CnIndexPage mounts the bar for you
 - `selectLabel` (String, default `'Filter'`) — accessible label / placeholder for the dropdown control.
 - `placeholder` (String) — placeholder text for the dropdown (falls back to `selectLabel`).
 - `maxVisible` (Number, default `0`) — chips mode only: how many pills render inline before the rest move behind one more chip, a `⋯` pill that opens a small panel of the hidden lenses (also as chips). `0` renders every tab. The visible set is the first `maxVisible` entries of `tabs`, so their declared order decides what stays in the strip; an active hidden tab moves its label and fill onto that chip. Manifest: `config.quickFilterMaxVisible`.
+- `counts` (Object or Array, default `null`): how many records each tab matches, keyed by tab index. A tab with a number shows it after its label. CnIndexPage fills this for tabs that set `showCount`.
 
 ### Events
 

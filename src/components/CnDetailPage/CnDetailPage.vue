@@ -21,7 +21,11 @@
   - Content sections via slots
 -->
 <template>
-	<div class="cn-detail-page" data-testid="cn-detail-page" :style="{ maxWidth: maxWidth }">
+	<div
+		class="cn-detail-page"
+		:class="{ 'cn-detail-page--with-side': showsSideColumn }"
+		data-testid="cn-detail-page"
+		:style="{ maxWidth: maxWidth }">
 		<!-- Skip link to the page's primary action. Off screen until it takes
 		     focus, so it costs a sighted mouse user nothing and saves a
 		     keyboard user every widget on the page. Targets the action the
@@ -29,7 +33,7 @@
 		     that lands somewhere arbitrary is worse than none, because it is
 		     the one link a keyboard user is told to trust. -->
 		<a
-			v-if="primaryActionLabel && !objectNotFound"
+			v-if="effectivePrimaryLabel && !objectNotFound"
 			:href="`#${primaryActionAnchorId}`"
 			class="cn-detail-page__skip-link"
 			data-testid="cn-detail-page-skip-link"
@@ -72,6 +76,23 @@
 							class="cn-detail-page__icon" />
 					</slot>
 					<div class="cn-detail-page__header-text">
+						<!-- Type and status pills (manifest `config.typePill` /
+						     `config.statusPill`). What kind of record this is and
+						     where it stands, readable before the title. Nothing
+						     renders for a page that declares neither. -->
+						<div
+							v-if="headerPills.length > 0"
+							class="cn-detail-page__pills"
+							data-testid="cn-detail-page-pills">
+							<CnStatusBadge
+								v-for="pill in headerPills"
+								:key="pill.key"
+								:label="pill.label"
+								:colorKey="pill.colorKey"
+								:colorMap="pill.colorMap"
+								:variant="pill.variant"
+								:data-testid="`cn-detail-page-pill-${pill.key}`" />
+						</div>
 						<!-- Type name as a small eyebrow above the record name, so
 						     the header reads "the record" not "the kind of record"
 						     (ADR-062). Only shown once the object resolves to a
@@ -150,14 +171,38 @@
 				</div>
 				<!-- The action the page declares as its primary one, and the
 				     target the skip link above lands on. -->
+				<!-- With a "what now" card on the page the button lives in that
+				     card, next to the checklist that explains it, and not here
+				     as well: one primary button per page. -->
 				<NcButton
-					v-if="primaryActionLabel"
+					v-if="effectivePrimaryLabel && !showsNextStepCard"
 					:id="primaryActionAnchorId"
 					ref="primaryActionButton"
 					variant="primary"
+					:href="primaryActionHref || undefined"
+					:target="primaryActionHref ? primaryActionTarget : undefined"
+					:disabled="primaryActionDisabled"
 					data-testid="cn-detail-page-primary-action"
-					@click="$emit('primary-action', primaryAction)">
-					{{ primaryActionLabel }}
+					@click="onPrimaryActionClick">
+					{{ effectivePrimaryLabel }}
+				</NcButton>
+				<!-- Quick actions (manifest `config.quickActions`): the few
+				     actions a handler reaches for on every record, always
+				     visible. At most three, so the row cannot grow back into
+				     the button wall the Actions menu replaced. -->
+				<NcButton
+					v-for="entry in quickActionEntries"
+					:key="`quick-${entry.id}`"
+					variant="secondary"
+					:href="entry.href || undefined"
+					:target="entry.href ? (entry.linkTarget || undefined) : undefined"
+					:disabled="entry.disabled"
+					:data-testid="`cn-detail-page-quick-${entry.id}`"
+					@click="onPinnedActionClick(entry)">
+					<template v-if="entry.iconName" #icon>
+						<CnIcon :name="entry.iconName" :size="20" />
+					</template>
+					{{ entry.label }}
 				</NcButton>
 				<!-- Declarative lifecycle transitions (manifest
 				     `config.lifecycleActions`). Status-gated; driven by the
@@ -245,11 +290,13 @@
 				<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
 				<CnBuildiqEditButton />
 				<CnActionsMenu
-					:showRefresh="effectiveHeaderShowRefresh"
+					:showRefresh="menuShowsRefresh"
 					:refreshing="effectiveRefreshing"
-					:showRequestFeature="showRequestFeature"
-					:showReportBug="showReportBug"
-					:showDocumentation="showDocumentation"
+					:showRequestFeature="showRequestFeature && menuShowsHelpLinks"
+					:showReportBug="showReportBug && menuShowsHelpLinks"
+					:showDocumentation="showDocumentation && menuShowsHelpLinks"
+					:actionsMenuLabel="actionsMenuName"
+					:hasPrimaryItems="headerMenuGroups.length > 0"
 					:documentationUrl="documentationUrl"
 					:docsAnchor="resolvedPageId"
 					:documentationLabel="documentationLabel || undefined"
@@ -260,40 +307,56 @@
 					testidBase="cn-detail-page"
 					@refresh="onHeaderRefresh"
 					@requestFeature="onHeaderRequestFeature">
-					<template v-if="headerMenuEntries.length" #primary-items>
-						<template v-for="entry in headerMenuEntries">
-							<!-- An action that goes to a URL is a LINK. The browser
-							     then supplies middle-click, "open in new tab" and the
-							     semantics assistive tech announces, none of which a
-							     click handler can. -->
-							<NcActionLink
-								v-if="entry.href"
-								:key="`${entry.id}-link`"
-								:href="entry.href"
-								:target="entry.linkTarget || undefined"
-								:data-testid="entry.testid">
-								<template v-if="entry.iconName || entry.iconClass" #icon>
-									<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
-									<span v-else :class="entry.iconClass" />
-								</template>
-								{{ entry.label }}
-							</NcActionLink>
-							<NcActionButton
-								v-else
-								:key="entry.id"
-								:data-testid="entry.testid"
-								:disabled="entry.disabled"
-								:aria-pressed="entry.pressed === null ? null : String(entry.pressed)"
-								:closeAfterClick="true"
-								@click="entry.run()">
-								<template v-if="entry.iconName || entry.iconClass" #icon>
-									<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
-									<span v-else :class="entry.iconClass" />
-								</template>
-								{{ entry.label }}
-							</NcActionButton>
+					<template v-if="headerMenuGroups.length" #primary-items>
+						<!-- One block per group. A page that groups nothing has
+						     a single captionless group, and renders exactly the
+						     flat list it always did. -->
+						<template v-for="(group, groupIndex) in headerMenuGroups">
+							<NcActionSeparator
+								v-if="groupIndex > 0"
+								:key="`${group.key}-separator`" />
+							<NcActionCaption
+								v-if="group.label"
+								:key="`${group.key}-caption`"
+								:name="group.label"
+								:data-testid="`cn-detail-page-action-group-${group.key}`" />
+							<template v-for="entry in group.entries">
+								<!-- An action that goes to a URL is a LINK. The browser
+								     then supplies middle-click, "open in new tab" and the
+								     semantics assistive tech announces, none of which a
+								     click handler can. -->
+								<NcActionLink
+									v-if="entry.href"
+									:key="`${entry.id}-link`"
+									:href="entry.href"
+									:target="entry.linkTarget || undefined"
+									:data-testid="entry.testid">
+									<template v-if="entry.iconName || entry.iconClass" #icon>
+										<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
+										<span v-else :class="entry.iconClass" />
+									</template>
+									{{ entry.label }}
+								</NcActionLink>
+								<NcActionButton
+									v-else
+									:key="entry.id"
+									:data-testid="entry.testid"
+									:disabled="entry.disabled"
+									:aria-pressed="entry.pressed === null ? null : String(entry.pressed)"
+									:closeAfterClick="true"
+									@click="entry.run()">
+									<template v-if="entry.iconName || entry.iconClass" #icon>
+										<CnIcon v-if="entry.iconName" :name="entry.iconName" :size="20" />
+										<span v-else :class="entry.iconClass" />
+									</template>
+									{{ entry.label }}
+								</NcActionButton>
+							</template>
 						</template>
-						<NcActionSeparator />
+						<!-- Divides the page's own actions from the help links
+						     below. With the help links switched off there is
+						     nothing below to divide from. -->
+						<NcActionSeparator v-if="menuShowsHelpLinks" />
 					</template>
 				</CnActionsMenu>
 			</div>
@@ -325,6 +388,33 @@
 			data-testid="cn-detail-page-lock-refusal">
 			{{ editLockRefusal }}
 		</p>
+
+		<!-- The "what now" card (manifest `config.nextStep`): what this stage
+		     still needs, next to the button that takes the step. Above the
+		     body and the side column, at the full width of both. Hidden for a
+		     stage that declares no checklist. -->
+		<CnNextStepCard
+			v-if="showsNextStepCard"
+			class="cn-detail-page__next-step"
+			:title="nextStepCard.title"
+			titleTag="h3"
+			:items="nextStepCard.items"
+			:after="nextStepCard.after"
+			data-testid="cn-detail-page-next-step">
+			<template v-if="effectivePrimaryLabel" #action>
+				<NcButton
+					:id="primaryActionAnchorId"
+					ref="primaryActionButton"
+					variant="primary"
+					:href="primaryActionHref || undefined"
+					:target="primaryActionHref ? primaryActionTarget : undefined"
+					:disabled="primaryActionDisabled"
+					data-testid="cn-detail-page-primary-action"
+					@click="onPrimaryActionClick">
+					{{ effectivePrimaryLabel }}
+				</NcButton>
+			</template>
+		</CnNextStepCard>
 
 		<!-- Not-found state: the record behind the address does not exist. -->
 		<div v-if="objectNotFound" class="cn-detail-page__not-found" data-testid="cn-detail-page-not-found">
@@ -709,6 +799,68 @@
 			</div>
 		</div>
 
+		<!-- Side column (manifest `config.sideColumn`): the record's facts as
+		     a column of cards beside the body. A sibling of the body, after it
+		     in the document, so it reads after the body and stacks under it
+		     when the page is too narrow for both. -->
+		<aside
+			v-if="showsSideColumn"
+			class="cn-detail-page__side"
+			:aria-label="sideColumnLabel"
+			data-testid="cn-detail-page-side">
+			<div
+				v-for="widget in sideColumnWidgets"
+				:key="`side-${widget.id}`"
+				class="cn-detail-page__side-item"
+				:data-testid="`cn-detail-page-side-${widget.id}`">
+				<!--
+					@slot `widget-${widget.id}`
+					@description The same per-widget slot the body grid offers,
+					for a widget placed in the side column. Same name and same
+					bindings, so a custom widget placed here needs nothing it
+					would not need in the grid. Default content renders the
+					widget through `CnDetailWidgetHost` as a card.
+					@binding {object} item `{ id, widgetId }`, for parity with the grid slot.
+					@binding {object} widget The widget definition.
+					@binding {string|number} objectId This record's id.
+					@binding {object} object The loaded record, or null while it is still being fetched.
+					@binding {object} objectData Alias of `object`.
+					@binding {string} objectType Resolved object type slug.
+					@binding {string} register Register slug of this page.
+					@binding {string} schema Schema slug of this page.
+				-->
+				<slot
+					:name="`widget-${widget.id}`"
+					:item="{ id: widget.id, widgetId: widget.id }"
+					:widget="widget"
+					:objectId="objectId"
+					:object="resolvedObject"
+					:objectData="resolvedObject"
+					:objectType="resolvedObjectType"
+					:register="register"
+					:schema="schema">
+					<CnDetailWidgetHost
+						:widget="widget"
+						chrome="card"
+						:showCardTitle="true"
+						:objectId="objectId"
+						:object="currentObject"
+						:objectType="resolvedObjectType"
+						:schemaObject="currentSchema"
+						:register="register"
+						:schema="schema"
+						:store="effectiveObjectStore"
+						:surface="surface"
+						:integrationContext="effectiveIntegrationContext"
+						:hideEmpty="hideEmpty"
+						:cnRegistry="cnRegistry"
+						:availableWidgets="widgets"
+						@geoSaved="onGeoSaved"
+						@openIntegration="onAutoBodyOpenIntegration" />
+				</slot>
+			</div>
+		</aside>
+
 		<!-- Per-widget style/config editor (ADR-041). Opened by the per-widget
 		     configure cog while in Buildiq edit mode; the modal's own Delete
 		     button removes the widget from the grid. -->
@@ -810,9 +962,10 @@
 </template>
 
 <script>
+import { getCurrentUser } from '@nextcloud/auth'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { provide, ref, watch } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
@@ -834,6 +987,7 @@ import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
+import CnNextStepCard from '../CnNextStepCard/CnNextStepCard.vue'
 import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.vue'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
@@ -846,6 +1000,15 @@ import { useObjectStore } from '../../store/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { compactLayoutRows } from '../../utils/dashboardPlacement.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
+import {
+	groupMenuEntries,
+	MAX_QUICK_ACTIONS,
+	normalisePinnedAction,
+	resolveNextStep,
+	resolvePill,
+	stageEntry,
+	stageOf,
+} from '../../utils/detailActionModel.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { slotRenders } from '../../utils/slotContent.js'
 import {
@@ -860,6 +1023,7 @@ import {
 } from '../../utils/widgetDispatch.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnIcon } from '../CnIcon/index.js'
+import { CnStatusBadge } from '../CnStatusBadge/index.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 import '../CnWidgetGrid/registerDashboardWidgets.js'
@@ -984,6 +1148,7 @@ export default {
 		ChevronLeft,
 		ChevronRight,
 		NcActionButton,
+		NcActionCaption,
 		NcActionLink,
 		NcActionSeparator,
 		NcButton,
@@ -998,11 +1163,13 @@ export default {
 		CnActionsMenu,
 		CnBuildiqEditButton,
 		CnLockedBanner,
+		CnNextStepCard,
 		CnDetailWidgetHost,
 		CnFormDialog,
 		CnDashboardGrid,
 		CnLifecycleActions,
 		CnActionButtons,
+		CnStatusBadge,
 		CnSummaryAggregates,
 		CnRelatedCollections,
 		CnBodySections,
@@ -1811,6 +1978,130 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		// ── The action model (detail-action-model-and-case-surfaces) ────
+
+		/**
+		 * The primary action per stage (manifest `config.primaryActionByStage`):
+		 * a map from a stage value to an action. When the record's stage has
+		 * an entry, that action is the page's primary button, so the button
+		 * names the next step: "Take on" on a new case, "Publish" on a
+		 * decided one. An entry is an action object in the `headerActions`
+		 * shape, or the id of a declared header action. A stage without an
+		 * entry falls back to `primaryAction`.
+		 *
+		 * @type {Record<string, string|object>|null}
+		 */
+		primaryActionByStage: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Dot-path to the field that holds the record's stage. Read by
+		 * `primaryActionByStage` and `nextStep`.
+		 *
+		 * @type {string}
+		 */
+		stageField: {
+			type: String,
+			default: 'status',
+		},
+
+		/**
+		 * Always visible buttons in the header (manifest `config.quickActions`)
+		 * for the few actions a handler uses on every record. At most three
+		 * render; later entries are dropped. An entry is an action object in
+		 * the `headerActions` shape, or the id of a declared header action,
+		 * which then leaves the Actions menu.
+		 *
+		 * @type {Array<string|object>}
+		 */
+		quickActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * What the Actions menu itself shows (manifest `config.actionsMenu`):
+		 * `{ showRefresh?, showHelpLinks?, label? }`. `showRefresh: false`
+		 * removes Refresh. `showHelpLinks: false` removes Request a feature,
+		 * Report a bug and Documentation, for an app that offers them in its
+		 * own help menu. `label` names the menu, for example "More". `null`
+		 * (the default) changes nothing.
+		 *
+		 * @type {{showRefresh?: boolean, showHelpLinks?: boolean, label?: string}|null}
+		 */
+		actionsMenu: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * The "what now" card (manifest `config.nextStep`):
+		 * `{ field?, stages: { <stage>: { title?, checklist, after? } } }`.
+		 * Each checklist item is `{ label, doneField?, doneWhen?, hint? }`.
+		 * Rendered above the body for a stage that declares a checklist, with
+		 * the primary button inside it. See `CnNextStepCard`.
+		 *
+		 * @type {object|null}
+		 */
+		nextStep: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * A pill above the title saying what kind of record this is
+		 * (manifest `config.typePill`): `{ field, colorMap?, labels?, variant? }`.
+		 * Rendered through `CnStatusBadge`; `colorMap` is keyed on the field's
+		 * raw value, `labels` maps a raw value to the text to show.
+		 *
+		 * @type {{field: string, colorMap?: object, labels?: object, variant?: string}|null}
+		 */
+		typePill: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * A pill above the title saying where the record stands (manifest
+		 * `config.statusPill`). Same shape as `typePill`.
+		 *
+		 * @type {{field: string, colorMap?: object, labels?: object, variant?: string}|null}
+		 */
+		statusPill: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * A column of cards beside the body (manifest `config.sideColumn`),
+		 * for the record's facts: deadline, requester, handler, links. Each
+		 * entry is a widget definition (`{ id?, type, title?, content? }`) or
+		 * the id of a widget declared in `widgets`. The column stacks under
+		 * the body on a narrow page. Empty (the default) leaves the layout as
+		 * it is.
+		 *
+		 * @type {Array<string|object>}
+		 */
+		sideColumn: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Whether the current user administers this instance. Shows the
+		 * `adminOnly` header actions. `null` (the default) reads it from
+		 * `getCurrentUser()`. Visibility only, never an authorization
+		 * decision: the endpoint behind an action decides who may call it.
+		 *
+		 * @type {boolean|null}
+		 */
+		isAdmin: {
+			type: Boolean,
+			default: null,
+		},
 	},
 
 	emits: [
@@ -2078,7 +2369,7 @@ export default {
 		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		primaryActionAnchorId() {
-			const scope = this.primaryAction?.id || this.pageId || this.objectId || 'record'
+			const scope = this.stagePrimaryEntry?.id || this.primaryAction?.id || this.pageId || this.objectId || 'record'
 			return `cn-primary-action-${String(scope).replace(/[^A-Za-z0-9_-]/g, '-')}`
 		},
 
@@ -2093,7 +2384,291 @@ export default {
 		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		skipLinkLabel() {
-			return `${this.effectiveTranslate('Skip to')} ${this.primaryActionLabel}`
+			return `${this.effectiveTranslate('Skip to')} ${this.effectivePrimaryLabel}`
+		},
+
+		// ── The action model (detail-action-model-and-case-surfaces) ────
+
+		/**
+		 * The record's stage, as `primaryActionByStage` and `nextStep` key it.
+		 *
+		 * @return {string} The stage, or '' while the record has none.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
+		 */
+		recordStage() {
+			return stageOf(this.currentObject, this.stageField)
+		},
+
+		/**
+		 * The stage's primary action as an id, plus its definition when the
+		 * map carries one inline.
+		 *
+		 * @return {{id: string, inline: object|null}|null} The pinned action, or null when this stage declares none.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
+		 */
+		stagePrimary() {
+			return normalisePinnedAction(stageEntry(this.primaryActionByStage, this.recordStage), 'cn-stage-primary')
+		},
+
+		/**
+		 * The quick actions as ids, plus definitions for the inline ones.
+		 * Capped at three, and never the action that is already the primary
+		 * button.
+		 *
+		 * @return {Array<{id: string, inline: object|null}>} The pinned actions.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-quick-actions
+		 */
+		pinnedQuickActions() {
+			const primaryId = this.stagePrimary?.id
+			return (Array.isArray(this.quickActions) ? this.quickActions : [])
+				.map((entry, index) => normalisePinnedAction(entry, `cn-quick-${index}`))
+				.filter((pinned) => pinned && pinned.id !== primaryId)
+				.slice(0, MAX_QUICK_ACTIONS)
+		},
+
+		/**
+		 * The stage's primary action in dispatchable form: the menu entry
+		 * CnActionButtons built for it, with its `run()`. Null while the
+		 * action is hidden by its own `visibleWhen`, in which case the page
+		 * falls back to `primaryAction`.
+		 *
+		 * @return {object|null} The entry, or null.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
+		 */
+		stagePrimaryEntry() {
+			const id = this.stagePrimary?.id
+			return (id && this.menuHeaderActions.find((entry) => entry.id === id)) || null
+		},
+
+		/**
+		 * The quick actions in dispatchable form, in declaration order.
+		 *
+		 * @return {Array<object>} The entries that are visible.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-quick-actions
+		 */
+		quickActionEntries() {
+			return this.pinnedQuickActions
+				.map((pinned) => this.menuHeaderActions.find((entry) => entry.id === pinned.id))
+				.filter(Boolean)
+		},
+
+		/**
+		 * What the primary button says: the stage's action when the stage
+		 * declares one, the page's `primaryAction` otherwise. Empty gates
+		 * both the button and the skip link.
+		 *
+		 * @return {string} The label, or an empty string.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
+		 */
+		effectivePrimaryLabel() {
+			return this.stagePrimaryEntry ? this.stagePrimaryEntry.label : this.primaryActionLabel
+		},
+
+		/**
+		 * The URL the primary button links to, when its action is a link.
+		 *
+		 * @return {string} The href, or '' for an action that is dispatched.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
+		 */
+		primaryActionHref() {
+			return this.stagePrimaryEntry?.href || ''
+		},
+
+		/**
+		 * The link target that goes with `primaryActionHref`.
+		 *
+		 * @return {string|undefined} The target, or undefined.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
+		 */
+		primaryActionTarget() {
+			return this.stagePrimaryEntry?.linkTarget || undefined
+		},
+
+		/**
+		 * Whether the primary button waits for its own request.
+		 *
+		 * @return {boolean} True while the stage's action is in flight.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
+		 */
+		primaryActionDisabled() {
+			return Boolean(this.stagePrimaryEntry?.disabled)
+		},
+
+		/**
+		 * Whether the viewer administers this instance, for `adminOnly`
+		 * actions. The prop wins; otherwise Nextcloud says.
+		 *
+		 * @return {boolean} True for an instance admin.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-grouped-and-admin-only-menu-actions
+		 */
+		viewerIsAdmin() {
+			if (this.isAdmin !== null) {
+				return this.isAdmin
+			}
+			try {
+				return getCurrentUser()?.isAdmin === true
+			} catch {
+				return false
+			}
+		},
+
+		/**
+		 * The declared actions by id, for the `group` and `adminOnly` a menu
+		 * entry does not carry itself.
+		 *
+		 * @return {Record<string, object>} The lookup.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-grouped-and-admin-only-menu-actions
+		 */
+		headerActionsById() {
+			return Object.fromEntries(this.effectiveHeaderActions
+				.filter((action) => action && action.id)
+				.map((action) => [action.id, action]))
+		},
+
+		/**
+		 * The menu entries in the groups the menu draws: ungrouped first,
+		 * named groups in first appearance order, admin actions last and for
+		 * admins only. A page that groups nothing gets one captionless group.
+		 *
+		 * @return {Array<{key: string, label: string, entries: Array<object>}>} The groups.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-grouped-and-admin-only-menu-actions
+		 */
+		headerMenuGroups() {
+			const groups = groupMenuEntries(this.headerMenuEntries, this.headerActionsById, {
+				isAdmin: this.viewerIsAdmin,
+				adminLabel: t('nextcloud-vue', 'Administration'),
+			})
+			return groups.map((group) => ({ ...group, label: group.label ? this.effectiveTranslate(group.label) : '' }))
+		},
+
+		/**
+		 * Whether Refresh renders in the Actions menu.
+		 *
+		 * @return {boolean} The existing rule, unless `actionsMenu.showRefresh` is false.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-actions-menu-built-ins-are-optional
+		 */
+		menuShowsRefresh() {
+			return this.actionsMenu?.showRefresh === false ? false : this.effectiveHeaderShowRefresh
+		},
+
+		/**
+		 * Whether the help links render in the Actions menu.
+		 *
+		 * @return {boolean} True unless `actionsMenu.showHelpLinks` is false.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-actions-menu-built-ins-are-optional
+		 */
+		menuShowsHelpLinks() {
+			return this.actionsMenu?.showHelpLinks !== false
+		},
+
+		/**
+		 * The Actions menu's name.
+		 *
+		 * @return {string|undefined} `actionsMenu.label` translated, or undefined for the default "Actions".
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-actions-menu-built-ins-are-optional
+		 */
+		actionsMenuName() {
+			const label = this.actionsMenu?.label
+			return typeof label === 'string' && label !== '' ? this.effectiveTranslate(label) : undefined
+		},
+
+		/**
+		 * Whether the page is showing its body: not the not-found, loading,
+		 * error or empty state. The "what now" card and the side column are
+		 * siblings of the body and follow it.
+		 *
+		 * @return {boolean} True when the body renders.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
+		 */
+		showsBody() {
+			return !this.objectNotFound && !this.showLoadingState && !this.error && !this.empty
+		},
+
+		/**
+		 * The "what now" card for the record's stage, labels translated.
+		 *
+		 * @return {{stage: string, title: string, items: Array<object>, after: string}|null} The card, or null when the stage declares no checklist.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
+		 */
+		nextStepCard() {
+			const card = resolveNextStep(this.nextStep, this.currentObject, this.stageField)
+			if (!card) {
+				return null
+			}
+			const tr = (text) => (text ? this.effectiveTranslate(text) : '')
+			return {
+				...card,
+				title: tr(card.title),
+				after: tr(card.after),
+				items: card.items.map((item) => ({ ...item, label: tr(item.label), hint: tr(item.hint) })),
+			}
+		},
+
+		/**
+		 * Whether the "what now" card renders.
+		 *
+		 * @return {boolean} True when the stage has a checklist and the body is showing.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
+		 */
+		showsNextStepCard() {
+			return Boolean(this.nextStepCard) && this.showsBody
+		},
+
+		/**
+		 * The pills above the title: type first, then status.
+		 *
+		 * @return {Array<{key: string, label: string, colorKey: string, colorMap: object|null, variant: string}>} The pills whose field has a value.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-header-pills
+		 */
+		headerPills() {
+			return [['type', this.typePill], ['status', this.statusPill]]
+				.map(([key, config]) => {
+					const pill = resolvePill(config, this.resolvedObject)
+					return pill ? { ...pill, key, label: this.effectiveTranslate(pill.label) } : null
+				})
+				.filter(Boolean)
+		},
+
+		/**
+		 * The side column's widget definitions. A string names a widget
+		 * declared in `widgets`; an object is a definition of its own.
+		 *
+		 * @return {Array<object>} The definitions that resolve, each with an `id`.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-side-column
+		 */
+		sideColumnWidgets() {
+			const declared = Array.isArray(this.widgets) ? this.widgets : []
+			return (Array.isArray(this.sideColumn) ? this.sideColumn : [])
+				.map((entry, index) => {
+					if (typeof entry === 'string') {
+						return declared.find((widget) => widget && widget.id === entry) || null
+					}
+					if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+						return null
+					}
+					return entry.id ? entry : { ...entry, id: `cn-side-${index}` }
+				})
+				.filter(Boolean)
+		},
+
+		/**
+		 * Whether the side column renders.
+		 *
+		 * @return {boolean} True when it has widgets and the body is showing.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-side-column
+		 */
+		showsSideColumn() {
+			return this.sideColumnWidgets.length > 0 && this.showsBody
+		},
+
+		/**
+		 * Accessible name of the side column.
+		 *
+		 * @return {string} The label.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-side-column
+		 */
+		sideColumnLabel() {
+			return t('nextcloud-vue', 'Details')
 		},
 
 		/**
@@ -2297,7 +2872,16 @@ export default {
 		 */
 		headerMenuEntries() {
 			const lifecycle = this.showsLifecycleActions ? this.lifecycleMenuEntries : []
-			return [...lifecycle, ...this.menuHeaderActions]
+			// An action drawn as a button, the stage's primary one or a quick
+			// action, is not listed a second time in the menu.
+			const pinned = new Set([
+				...(this.stagePrimaryEntry ? [this.stagePrimaryEntry.id] : []),
+				...this.quickActionEntries.map((entry) => entry.id),
+			])
+			const inMenu = pinned.size > 0
+				? this.menuHeaderActions.filter((entry) => !pinned.has(entry.id))
+				: this.menuHeaderActions
+			return [...lifecycle, ...inMenu]
 		},
 
 		/**
@@ -2319,7 +2903,17 @@ export default {
 		 * @return {Array<object>} The action descriptors.
 		 */
 		effectiveHeaderActions() {
-			const declared = Array.isArray(this.headerActions) ? this.headerActions : []
+			const authored = Array.isArray(this.headerActions) ? this.headerActions : []
+			// Inline pinned actions (a stage's primary action, a quick action
+			// written out in place) join the list CnActionButtons dispatches,
+			// so they get the same dialogs, toasts and `visibleWhen` gating as
+			// any header action. An id that is already declared is not added
+			// twice. With nothing pinned inline this is `headerActions` itself.
+			const known = new Set(authored.map((action) => action && action.id))
+			const inline = [this.stagePrimary, ...this.pinnedQuickActions]
+				.filter((pinned) => pinned && pinned.inline && !known.has(pinned.id))
+				.map((pinned) => pinned.inline)
+			const declared = inline.length > 0 ? [...authored, ...inline] : authored
 			if (!(this.foldsEditIntoActions && this.canEditRecord)) {
 				return declared
 			}
@@ -3132,12 +3726,53 @@ export default {
 		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		onSkipToPrimaryAction(event) {
-			const target = this.$refs.primaryActionButton?.$el ?? this.$refs.primaryActionButton
+			// The ref covers the header button; the id also finds the button
+			// when it sits inside the "what now" card.
+			const target = this.$refs.primaryActionButton?.$el
+				?? this.$refs.primaryActionButton
+				?? this.$el?.querySelector?.(`[id="${this.primaryActionAnchorId}"]`)
 			const focusable = target?.matches?.('button, a') ? target : target?.querySelector?.('button, a')
 			if (focusable?.focus) {
 				event.preventDefault()
 				focusable.focus()
 			}
+		},
+
+		/**
+		 * The primary button was pressed.
+		 *
+		 * A stage's action is dispatched the way a header action is, through
+		 * the `run()` CnActionButtons bound for it, and announced to the host
+		 * with its declaration. A link action is left to the browser. Without
+		 * a stage action this is the page's `primaryAction`, announced as
+		 * before.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
+		 */
+		onPrimaryActionClick() {
+			const entry = this.stagePrimaryEntry
+			if (!entry) {
+				this.$emit('primary-action', this.primaryAction)
+				return
+			}
+			this.$emit('primary-action', this.headerActionsById[entry.id] || { id: entry.id, label: entry.label })
+			this.onPinnedActionClick(entry)
+		},
+
+		/**
+		 * A pinned action's button was pressed: run it, unless it is a link
+		 * the browser is already following.
+		 *
+		 * @param {object} entry The action's menu entry.
+		 * @return {void}
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-quick-actions
+		 */
+		onPinnedActionClick(entry) {
+			if (!entry || entry.href || typeof entry.run !== 'function') {
+				return
+			}
+			entry.run()
 		},
 
 		/**

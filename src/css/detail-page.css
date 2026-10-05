@@ -342,6 +342,53 @@
 	}
 }
 
+/* The action model and case surfaces (detail-action-model-and-case-surfaces) */
+
+/* Type and status pills above the title. */
+.cn-detail-page__pills {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: calc(2 * var(--default-grid-baseline));
+	margin-bottom: calc(1.5 * var(--default-grid-baseline));
+}
+
+.cn-detail-page__next-step {
+	margin-bottom: calc(5 * var(--default-grid-baseline));
+}
+
+/* Side column. The page becomes a wrapping flex row in which every child
+   takes a full line, except the body and the side column: those two share a
+   line while there is room for both (520px + 300px) and the column drops
+   under the body when there is not. No breakpoint, so it also holds inside a
+   split pane or beside an open sidebar, where the viewport says nothing about
+   the room the page has. Pages without a side column never get this class. */
+.cn-detail-page--with-side {
+	align-items: flex-start;
+	column-gap: calc(5 * var(--default-grid-baseline));
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.cn-detail-page--with-side > * {
+	flex: 1 1 100%;
+	min-width: 0;
+}
+
+.cn-detail-page--with-side > .cn-detail-page__body {
+	flex: 999 1 520px;
+}
+
+.cn-detail-page--with-side > .cn-detail-page__side {
+	flex: 1 1 300px;
+}
+
+.cn-detail-page__side {
+	display: flex;
+	flex-direction: column;
+	gap: calc(5 * var(--default-grid-baseline));
+}
+
 /* The record as a place (case-page-and-list-as-a-place) */
 
 /* A skip link that reaches the page's declared primary action. Off screen

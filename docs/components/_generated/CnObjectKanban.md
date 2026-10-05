@@ -2,18 +2,19 @@
 
 ### Props
 
-| Name             | Type            | Required | Default | Description                                                                  |
-| ---------------- | --------------- | -------- | ------- | ---------------------------------------------------------------------------- |
-| `objects`        | `Array<object>` |          | `[]`    | Flat objects to derive columns from (ignored when `columns` is set).         |
-| `columns`        | `union`         |          | `null`  | Pre-built columns, e.g. the response of `GET /api/views/{id}/kanban`.        |
-| `groupByField`   | `string`        | ✓        | —       | The schema property whose distinct values become columns.                    |
-| `columnOrder`    | `array`         |          | `null`  | Explicit column order. Takes precedence over the schema's enum order.        |
-| `cardFields`     | `array`         |          | `[]`    | Object fields rendered on each card (in order).                              |
-| `schema`         | `object`        |          | `null`  | Schema definition, used to resolve enum column order and card field types.   |
-| `loading`        | `boolean`       |          | `false` | Overall loading state (initial board fetch).                                 |
-| `loadingColumns` | `array`         |          | `[]`    | Column values currently loading more cards (drives the per-column spinner).  |
-| `pageSize`       | `number`        |          | `20`    | Cards shown per column before "load more", in local (`objects`-driven) mode. |
-| `rowKey`         | `string`        |          | `'id'`  | Object property used as each card's identity.                                |
+| Name             | Type                                           | Required | Default | Description                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------- | ---------------------------------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `objects`        | `Array<object>`                                |          | `[]`    | Flat objects to derive columns from (ignored when `columns` is set).                                                                                                                                                                                                                                                                                                      |
+| `columns`        | `union`                                        |          | `null`  | Pre-built columns, e.g. the response of `GET /api/views/{id}/kanban`.                                                                                                                                                                                                                                                                                                     |
+| `groupByField`   | `string`                                       | ✓        | —       | The schema property whose distinct values become columns.                                                                                                                                                                                                                                                                                                                 |
+| `columnOrder`    | `array`                                        |          | `null`  | Explicit column order. Takes precedence over the schema's enum order.                                                                                                                                                                                                                                                                                                     |
+| `cardFields`     | `array`                                        |          | `[]`    | Object fields rendered on each card (in order).                                                                                                                                                                                                                                                                                                                           |
+| `schema`         | `object`                                       |          | `null`  | Schema definition, used to resolve enum column order and card field types.                                                                                                                                                                                                                                                                                                |
+| `loading`        | `boolean`                                      |          | `false` | Overall loading state (initial board fetch).                                                                                                                                                                                                                                                                                                                              |
+| `loadingColumns` | `array`                                        |          | `[]`    | Column values currently loading more cards (drives the per-column spinner).                                                                                                                                                                                                                                                                                               |
+| `pageSize`       | `number`                                       |          | `20`    | Cards shown per column before "load more", in local (`objects`-driven) mode.                                                                                                                                                                                                                                                                                              |
+| `rowKey`         | `string`                                       |          | `'id'`  | Object property used as each card's identity.                                                                                                                                                                                                                                                                                                                             |
+| `dueRule`        | `{field: string, soonDays?: number}&#124;null` |          | `null`  | Marks late cards: `{ field, soonDays? }`. `field` is the dot-path to a card's due date. A date before today gets an error edge and the label "Overdue"; a date within `soonDays` (default 3) gets "Due soon" in the warning colour. `null` (the default) marks nothing. The same rule shape the table's date cell uses, so a list and its board agree on what late means. |
 
 ### Events
 
@@ -26,11 +27,11 @@
 
 ### Slots
 
-| Name            | Bindings           | Description                                                         |
-| --------------- | ------------------ | ------------------------------------------------------------------- |
-| `empty`         | —                  | empty Custom empty state shown when there are no columns to render. |
-| `column-header` | `column`           | column-header Override a column's header.                           |
-| `card`          | `object`, `column` | card Fully replace the default card rendering.                      |
+| Name            | Bindings                       | Description                                                         |
+| --------------- | ------------------------------ | ------------------------------------------------------------------- |
+| `empty`         | —                              | empty Custom empty state shown when there are no columns to render. |
+| `column-header` | `column`                       | column-header Override a column's header.                           |
+| `card`          | `object`, `column`, `dueState` | card Fully replace the default card rendering.                      |
 
 ### Methods
 

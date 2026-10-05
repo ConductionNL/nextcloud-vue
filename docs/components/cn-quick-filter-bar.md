@@ -48,6 +48,7 @@ In manifests:
 | `activeIndex` | Number | `null` | Zero-based index of the currently active tab, or `null` for none active. Pair it with `@update:active-index` (or `v-model:active-index`); the removed Vue-2 `model` option means a *bare* `v-model` binds nothing. |
 | `inline` | Boolean | `false` | Render bare (no padding / bottom border / background) for embedding inline inside another bar — e.g. the `#filters` slot of `CnActionsBar`, so the tabs sit beside the view toggle instead of as a separate row. |
 | `maxVisible` | Number | `0` | Chips mode only: how many pills render inline before the rest move behind an overflow chip. `0` renders every tab. |
+| `counts` | Object \| Array | `null` | How many records each tab matches, keyed by tab index. A tab with a number shows it after its label. A tab can also carry its own `count`. `null` shows no counts. |
 
 ## Events
 
@@ -81,6 +82,22 @@ A page with more than a handful of lenses wraps the strip onto a second line and
 The overflow is **a chip and not a toolbar button** — a button would break the strip's rhythm into "badge, badge, badge, control", and the thing it opens is a filter like the ones beside it. So it wears the same pill, sits at the end of the row as a bare `⋯` while nothing behind it is on, and opens a small panel of *more chips* rather than a menu of text rows.
 
 The visible set is the **first `maxVisible` entries in declared order**, so reorder `quickFilters` to change which lenses stay out — there is no per-entry pin. Picking a lens from the panel applies it exactly as clicking a pill does and closes the panel; in `multiple` mode the panel stays open so several can be toggled in one visit. An active hidden lens moves its label and its primary fill onto the chip (`2 filters` when more than one is on in `multiple` mode), so a narrowed list never presents itself as "All". `maxVisible` is ignored in `dropdown` mode, which already collapses every lens into one control.
+
+## Counts
+
+A tab can show how many records it matches. On a `CnIndexPage` you opt in per quick filter with `showCount: true`:
+
+```json
+"quickFilters": [
+  { "label": "Open", "filter": { "status": "open" }, "showCount": true, "default": true },
+  { "label": "On hold", "filter": { "status": "hold" }, "showCount": true },
+  { "label": "Closed", "filter": { "status": "closed" } }
+]
+```
+
+The page fetches the counts for you. Tabs that filter the same single field share one grouped request, so the three tabs above cost one request, not three. A tab with any other filter costs one count request. A tab without `showCount` costs nothing and shows no number. A filter that holds a list of values (`{ "status": ["open", "hold"] }`) is counted through the list endpoint, sent the same way the list request sends it, because the aggregation endpoints cannot express "one of these".
+
+Used on its own, the bar shows whatever you pass in `counts` (or as `count` on a tab) and fetches nothing. The count is part of the tab's text, so a screen reader reads "Open 12".
 
 ## See also
 

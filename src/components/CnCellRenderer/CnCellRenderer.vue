@@ -55,6 +55,43 @@
 			<span v-else :title="rawTitle">{{ formattedValue }}</span>
 		</template>
 
+		<!-- Built-in "avatar" widget: a person as an avatar with the name beside
+		     it. A user id (widgetProps.userField, or widgetProps.user for a cell
+		     that holds the id itself) gets the Nextcloud avatar; a free name
+		     gets its initials. The picture is decoration: the name is the text. -->
+		<template v-else-if="widget === 'avatar'">
+			<span v-if="avatarName || avatarUserId" class="cn-cell-renderer__avatar">
+				<span v-if="avatarUserId" class="cn-cell-renderer__avatar-picture" aria-hidden="true">
+					<NcAvatar
+						:user="avatarUserId"
+						:displayName="avatarName || avatarUserId"
+						:size="avatarSize"
+						:disableMenu="true"
+						:disableTooltip="true" />
+				</span>
+				<span
+					v-else
+					class="cn-cell-renderer__avatar-initials"
+					:style="{ width: avatarSize + 'px', height: avatarSize + 'px' }"
+					aria-hidden="true">{{ avatarInitials }}</span>
+				<span class="cn-cell-renderer__avatar-name" :title="avatarName || avatarUserId">{{ avatarName || avatarUserId }}</span>
+			</span>
+			<span v-else class="cn-cell-renderer__dash">—</span>
+		</template>
+
+		<!-- Built-in "date" widget: a date whose colour follows
+		     widgetProps.variantWhen, rules on the number of days until it
+		     (0 = today, negative = overdue). -->
+		<template v-else-if="widget === 'date'">
+			<time
+				v-if="dateTimestamp"
+				class="cn-cell-renderer__date"
+				:class="dateVariant ? 'cn-cell-renderer__date--' + dateVariant : null"
+				:datetime="dateTimestamp.toISOString()"
+				:title="rawTitle">{{ dateLabel }}</time>
+			<span v-else class="cn-cell-renderer__dash">—</span>
+		</template>
+
 		<!-- Explicit column formatter — overrides the type-aware paths below -->
 		<template v-else-if="hasFormatter">
 			<span :title="rawTitle">{{ formattedValue }}</span>
@@ -129,10 +166,13 @@
 </template>
 
 <script>
-import { NcDateTime } from '@nextcloud/vue'
+import { getCanonicalLocale } from '@nextcloud/l10n'
+import { NcAvatar, NcDateTime } from '@nextcloud/vue'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
+import { parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
 import { safeCurrencyCode } from '../../utils/formatMetric.js'
+import { objectFieldValue } from '../../utils/objectName.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { formatValue } from '../../utils/schema.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
@@ -162,6 +202,7 @@ export default {
 		CnStatusBadge,
 		CnFkResolveCell,
 		CheckBold,
+		NcAvatar,
 		NcDateTime,
 	},
 
@@ -232,6 +273,12 @@ export default {
 		 * the built-in id `"badge"` renders `CnStatusBadge` and the built-in
 		 * id `"fkResolve"` renders `CnFkResolveCell` (uuid → related object
 		 * label, config via `widgetProps { register, schema, labelField }`).
+		 * The built-in id `"avatar"` renders a person as an avatar with the
+		 * name beside it (`widgetProps { userField?, user?, nameField?, size? }`;
+		 * a free name gets its initials), and the built-in id `"date"` renders
+		 * a date whose colour follows `widgetProps.variantWhen`, rules on the
+		 * number of days until the date (`[{ op: "lt", value: 0, variant:
+		 * "error" }, { op: "lte", value: 5, variant: "warning" }]`).
 		 * Takes precedence over `formatter`/the type-aware rendering, but the
 		 * value handed to the widget is the formatter-shaped `formatted` when
 		 * `formatter` is also set.
@@ -348,6 +395,112 @@ export default {
 			}
 			const date = new Date(this.value)
 			return Number.isNaN(date.getTime()) ? null : date
+		},
+
+		/**
+		 * `avatar` widget: the Nextcloud user id whose avatar to show, or ''
+		 * for a free name. Read from the row field `widgetProps.userField`,
+		 * or from the cell value itself when `widgetProps.user` is true.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
+		 */
+		avatarUserId() {
+			const props = this.widgetProps || {}
+			let id = ''
+			if (typeof props.userField === 'string' && props.userField !== '') {
+				id = objectFieldValue(this.row, props.userField)
+			} else if (props.user === true) {
+				id = this.value
+			}
+			return (typeof id === 'string' || typeof id === 'number') ? String(id) : ''
+		},
+
+		/**
+		 * `avatar` widget: the name shown beside the picture. Read from the
+		 * row field `widgetProps.nameField` when set, else the cell value.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
+		 */
+		avatarName() {
+			const props = this.widgetProps || {}
+			if (typeof props.nameField === 'string' && props.nameField !== '') {
+				const name = objectFieldValue(this.row, props.nameField)
+				if (typeof name === 'string' && name !== '') {
+					return name
+				}
+			}
+			if (!this.hasValue || typeof this.value === 'object') {
+				return ''
+			}
+			return String(this.hasFormatter ? this.formattedValue : this.value)
+		},
+
+		/**
+		 * `avatar` widget: the initials of a free name, at most two letters
+		 * (first and last word).
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
+		 */
+		avatarInitials() {
+			const words = this.avatarName.trim().split(/\s+/).filter((word) => word !== '')
+			if (words.length === 0) {
+				return ''
+			}
+			const first = Array.from(words[0])[0] || ''
+			const last = words.length > 1 ? (Array.from(words[words.length - 1])[0] || '') : ''
+			return (first + last).toLocaleUpperCase()
+		},
+
+		/**
+		 * `avatar` widget: the picture size in pixels (`widgetProps.size`, default 24).
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
+		 */
+		avatarSize() {
+			const size = Number(this.widgetProps && this.widgetProps.size)
+			return Number.isFinite(size) && size > 0 ? size : 24
+		},
+
+		/**
+		 * `date` widget: the variant of the first `widgetProps.variantWhen`
+		 * rule the date matches, or '' for none.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
+		 */
+		dateVariant() {
+			const rules = this.widgetProps && this.widgetProps.variantWhen
+			const variant = resolveDateVariant(this.value, rules)
+			return variant === 'default' ? '' : variant
+		},
+
+		/**
+		 * `date` widget: the date written out in the user's locale.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
+		 */
+		dateLabel() {
+			const date = parseDateValue(this.value)
+			if (date === null) {
+				return ''
+			}
+			const options = { day: 'numeric', month: 'short', year: 'numeric' }
+			let locale
+			try {
+				locale = getCanonicalLocale()
+			} catch {
+				locale = undefined
+			}
+			try {
+				return new Intl.DateTimeFormat(locale || undefined, options).format(date)
+			} catch {
+				return new Intl.DateTimeFormat(undefined, options).format(date)
+			}
 		},
 
 		/** True when the property is a URI / URL (rendered as an external link). */
@@ -748,6 +901,59 @@ export default {
 
 .cn-cell-renderer__dash {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-cell-renderer__avatar {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	max-width: 100%;
+	vertical-align: middle;
+}
+
+.cn-cell-renderer__avatar-picture {
+	display: inline-flex;
+	flex: none;
+}
+
+.cn-cell-renderer__avatar-initials {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background-color: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-size: 0.75em;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.cn-cell-renderer__avatar-name {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* A date that matched a rule is also set in a heavier weight, so the signal
+   does not rest on colour alone. */
+.cn-cell-renderer__date--success,
+.cn-cell-renderer__date--warning,
+.cn-cell-renderer__date--error {
+	font-weight: 600;
+}
+
+.cn-cell-renderer__date--success {
+	color: var(--color-text-success, var(--color-success-text));
+}
+
+.cn-cell-renderer__date--warning {
+	color: var(--color-text-warning, var(--color-warning-text));
+}
+
+.cn-cell-renderer__date--error {
+	color: var(--color-text-error, var(--color-error-text));
 }
 
 .cn-cell-renderer__icon--success {

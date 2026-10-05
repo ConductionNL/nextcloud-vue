@@ -4,15 +4,22 @@
 -->
 
 <template>
-	<div class="cn-header-widget" :style="wrapperStyle">
+	<div class="cn-header-widget" :class="{ 'cn-header-widget--plain': isPlain }" :style="wrapperStyle">
 		<div
 			v-if="hasOverlay"
 			class="cn-header-widget__overlay"
 			:style="overlayStyle"
 			aria-hidden="true" />
 		<div class="cn-header-widget__content" :style="contentStyle">
+			<p
+				v-if="dateLine"
+				class="cn-header-widget__date"
+				:style="dateStyle"
+				data-testid="cn-header-widget-date">
+				{{ dateLine }}
+			</p>
 			<h2 v-if="hasTitle" class="cn-header-widget__title" :style="textStyle">
-				{{ title }}
+				{{ headingText }}
 			</h2>
 			<p v-if="hasSubtitle" class="cn-header-widget__subtitle" :style="textStyle">
 				{{ subtitle }}
@@ -38,7 +45,8 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import { getCurrentUser } from '@nextcloud/auth'
+import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 
 const ALLOWED_OVERLAY_MODES = ['none', 'tint', 'gradient-bottom']
@@ -75,6 +83,16 @@ const VERTICAL_ALIGN_FLEX = Object.freeze({
  * External CTA URLs (http/https) open in a new tab with
  * `rel="noopener noreferrer"`; relative / anchor URLs stay in the current tab.
  *
+ * Optional greeting: `greeting: true` makes the heading greet the signed-in
+ * user by time of day and first name ("Good afternoon, Pieter"; `"full"` uses
+ * the whole display name), and `showDate: true` adds a line with today's
+ * date above it. `plain: true` drops the coloured background and aligns the
+ * text to the start, which is how a greeting usually sits on a dashboard.
+ *
+ * ```json
+ * { "widgetKey": "header", "props": { "content": { "greeting": true, "showDate": true, "plain": true } } }
+ * ```
+ *
  * Registered as the `header` dashboard widget type via the renderer's
  * `index.js`.
  */
@@ -96,9 +114,10 @@ export default {
 		/**
 		 * Persisted widget content: `{title, subtitle, backgroundImageUrl,
 		 * backgroundImageFileId, backgroundColor, overlayMode, overlayColor,
-		 * overlayOpacity, textColor, textAlign, verticalAlign, height, cta}`.
-		 * All fields are optional except `title`; unknown enum values collapse
-		 * to documented defaults and the renderer never throws.
+		 * overlayOpacity, textColor, textAlign, verticalAlign, height, cta,
+		 * greeting, showDate, plain}`. All fields are optional except `title`
+		 * (or `greeting`); unknown enum values collapse to documented defaults
+		 * and the renderer never throws.
 		 *
 		 * @type {object}
 		 */
@@ -118,6 +137,17 @@ export default {
 			default: null,
 		},
 		/* eslint-enable vue/no-unused-properties */
+
+		/**
+		 * The moment the greeting and the date line are computed for. Leave
+		 * empty for the current time.
+		 *
+		 * @type {Date|null}
+		 */
+		now: {
+			type: Date,
+			default: null,
+		},
 	},
 
 	data() {
@@ -153,9 +183,121 @@ export default {
 			return typeof value === 'string' && value !== '' ? this.effectiveTranslate(value) : ''
 		},
 
-		/** Whether a non-empty title is set. */
+		/** Whether a heading renders: a non-empty title or a greeting. */
 		hasTitle() {
-			return this.title !== ''
+			return this.headingText !== ''
+		},
+
+		/**
+		 * The moment the greeting and date line are computed for.
+		 *
+		 * @return {Date}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
+		reference() {
+			return this.now instanceof Date ? this.now : new Date()
+		},
+
+		/**
+		 * Whether the plain presentation is on (no coloured background).
+		 *
+		 * @return {boolean}
+		 */
+		isPlain() {
+			return Boolean(this.content && this.content.plain === true)
+		},
+
+		/**
+		 * The name the greeting uses: the first word of the display name, or
+		 * the whole display name for `greeting: "full"`. '' when unknown.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
+		greetingName() {
+			let user
+			try {
+				user = getCurrentUser()
+			} catch {
+				user = null
+			}
+			const displayName = (user && typeof user.displayName === 'string') ? user.displayName.trim() : ''
+			if (displayName === '') {
+				return ''
+			}
+			return this.content.greeting === 'full' ? displayName : displayName.split(/\s+/)[0]
+		},
+
+		/**
+		 * The greeting for the time of day, with the user's name when known,
+		 * or '' when the greeting is off.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
+		greetingText() {
+			const greeting = this.content && this.content.greeting
+			if (greeting !== true && greeting !== 'full' && greeting !== 'first') {
+				return ''
+			}
+			const hour = this.reference.getHours()
+			const name = this.greetingName
+			if (hour < 12) {
+				return name ? t('nextcloud-vue', 'Good morning, {name}', { name }) : t('nextcloud-vue', 'Good morning')
+			}
+			if (hour < 18) {
+				return name ? t('nextcloud-vue', 'Good afternoon, {name}', { name }) : t('nextcloud-vue', 'Good afternoon')
+			}
+			return name ? t('nextcloud-vue', 'Good evening, {name}', { name }) : t('nextcloud-vue', 'Good evening')
+		},
+
+		/**
+		 * The heading: the greeting when it is on, else the title.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
+		headingText() {
+			return this.greetingText || this.title
+		},
+
+		/**
+		 * Today's date written out ("Monday 5 October 2026"), or '' when
+		 * `showDate` is off.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
+		dateLine() {
+			if (!this.content || this.content.showDate !== true) {
+				return ''
+			}
+			const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+			let locale
+			try {
+				locale = getCanonicalLocale()
+			} catch {
+				locale = undefined
+			}
+			try {
+				return new Intl.DateTimeFormat(locale || undefined, options).format(this.reference)
+			} catch {
+				return new Intl.DateTimeFormat(undefined, options).format(this.reference)
+			}
+		},
+
+		/**
+		 * Inline style of the date line: the heading's colour, or the muted
+		 * text colour on a plain header.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
+		dateStyle() {
+			return {
+				color: this.isPlain && !(this.content && this.content.textColor) ? 'var(--color-text-maxcontrast)' : this.textColor,
+				margin: 0,
+			}
 		},
 
 		/** Whether a non-empty subtitle is set. */
@@ -187,11 +329,18 @@ export default {
 			return this.backgroundImageUrl !== '' && this.imageFailed === false
 		},
 
-		/** Resolved background colour (default theme primary). */
+		/**
+		 * Resolved background colour (default theme primary).
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
 		backgroundColor() {
 			const value = this.content && this.content.backgroundColor
 			if (typeof value === 'string' && value !== '') {
 				return value
+			}
+			if (this.isPlain) {
+				return 'transparent'
 			}
 			return 'var(--color-primary, #0070c0)'
 		},
@@ -250,13 +399,17 @@ export default {
 			return HEIGHT_PIXELS[this.height]
 		},
 
-		/** Resolved text alignment (default `center`). */
+		/**
+		 * Resolved text alignment (default `center`).
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
 		textAlign() {
 			const declared = this.content && this.content.textAlign
 			if (typeof declared === 'string' && ALLOWED_TEXT_ALIGN.includes(declared)) {
 				return declared
 			}
-			return 'center'
+			return this.isPlain ? 'left' : 'center'
 		},
 
 		/** Resolved vertical alignment (default `middle`). */
@@ -268,7 +421,11 @@ export default {
 			return 'middle'
 		},
 
-		/** Resolved text colour with an auto-contrast fallback. */
+		/**
+		 * Resolved text colour with an auto-contrast fallback.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
 		textColor() {
 			const value = this.content && this.content.textColor
 			if (typeof value === 'string' && value !== '') {
@@ -276,6 +433,9 @@ export default {
 			}
 			if (this.hasBackgroundImage) {
 				return '#ffffff'
+			}
+			if (this.isPlain && !(this.content && this.content.backgroundColor)) {
+				return 'var(--color-main-text)'
 			}
 			return this.isLightColor(this.backgroundColor) ? '#000000' : '#ffffff'
 		},
@@ -321,7 +481,11 @@ export default {
 			}
 		},
 
-		/** Inline style for the content flex container. */
+		/**
+		 * Inline style for the content flex container.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
 		contentStyle() {
 			return {
 				position: 'relative',
@@ -332,7 +496,7 @@ export default {
 				'flex-direction': 'column',
 				'align-items': this.flexAlignFromTextAlign,
 				'justify-content': VERTICAL_ALIGN_FLEX[this.verticalAlign],
-				padding: '16px 24px',
+				padding: this.isPlain ? '0' : '16px 24px',
 				'box-sizing': 'border-box',
 				gap: '8px',
 				'text-align': this.textAlign,
@@ -482,6 +646,17 @@ export default {
 	min-height: 120px;
 	border-radius: var(--border-radius-large, 8px);
 	overflow: hidden;
+}
+
+.cn-header-widget--plain {
+	min-height: 0;
+	border-radius: 0;
+}
+
+.cn-header-widget__date {
+	font-size: 14px;
+	line-height: 1.4;
+	margin: 0;
 }
 
 .cn-header-widget__overlay {

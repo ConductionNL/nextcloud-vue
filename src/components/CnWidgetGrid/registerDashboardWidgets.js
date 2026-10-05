@@ -17,20 +17,27 @@
 
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnChartWidgetForm from '../CnChartWidgetForm/CnChartWidgetForm.vue'
+import CnConversationWidget from '../CnConversationThread/CnConversationWidget.vue'
 import CnCountdownWidget from '../CnCountdownWidget/CnCountdownWidget.vue'
 import CnCountdownWidgetForm from '../CnCountdownWidgetForm/CnCountdownWidgetForm.vue'
+import CnDocumentReviewWidget from '../CnDocumentReviewList/CnDocumentReviewWidget.vue'
 import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
 import CnMapWidgetForm from '../CnMapWidgetForm/CnMapWidgetForm.vue'
+import CnNextStepWidget from '../CnNextStepCard/CnNextStepWidget.vue'
 import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
 import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
+import CnStackedBarWidget from '../CnStackedBarWidget/CnStackedBarWidget.vue'
+import CnStackedBarWidgetForm from '../CnStackedBarWidgetForm/CnStackedBarWidgetForm.vue'
 import CnStagesWidget from '../CnStagesWidget/CnStagesWidget.vue'
 import CnStagesWidgetForm from '../CnStagesWidgetForm/CnStagesWidgetForm.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
 import CnStatsBlockWidgetForm from '../CnStatsBlockWidgetForm/CnStatsBlockWidgetForm.vue'
 import CnTabsWidget from '../CnTabsWidget/CnTabsWidget.vue'
 import CnTabsWidgetForm from '../CnTabsWidgetForm/CnTabsWidgetForm.vue'
+import CnWeekStripWidget from '../CnWeekStripWidget/CnWeekStripWidget.vue'
+import CnWeekStripWidgetForm from '../CnWeekStripWidgetForm/CnWeekStripWidgetForm.vue'
 // Typed widgets registered with an explicit renderer + config FORM. chart /
 // stats-block render through CnDashboardPage's own isChart()/isStatsBlock()
 // branches and `related` through CnDetailPage's isRelatedWidget() branch — the
@@ -217,6 +224,41 @@ registerDashboardWidget('countdown', {
 	surfaces: ['detail-page'],
 })
 
+// The case surfaces (detail-action-model-and-case-surfaces). Each reads the
+// BOUND RECORD, which only a detail page has, and none has a config form yet,
+// so `form: null` keeps them out of the Add-widget picker: they are placed
+// from the manifest. Registered inline for the same tree-shaking reason as
+// `map` above.
+registerDashboardWidget('next-step', {
+	renderer: CnNextStepWidget,
+	form: null,
+	defaultContent: { field: 'status', stages: {} },
+	displayName: 'Next step',
+	icon: 'CheckCircleOutline',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
+registerDashboardWidget('document-review', {
+	renderer: CnDocumentReviewWidget,
+	form: null,
+	defaultContent: { field: 'documents', statusField: 'reviewStatus', statuses: [] },
+	displayName: 'Document review',
+	icon: 'FileDocumentCheckOutline',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
+registerDashboardWidget('conversation', {
+	renderer: CnConversationWidget,
+	form: null,
+	defaultContent: { field: 'messages', endpoint: '' },
+	displayName: 'Conversation',
+	icon: 'ForumOutline',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
 // The record's stages, where clicking a stage moves the record there.
 // Registered inline for the same tree-shaking reason as `map` above.
 registerDashboardWidget('stages', {
@@ -256,6 +298,38 @@ registerDashboardWidget('tabs', {
 	// the group twice.
 	ownsTitle: true,
 	surfaces: ['detail-page'],
+})
+
+// The current week as day columns, with the dated items under each day.
+// Registered inline for the same tree-shaking reason as `map` above.
+registerDashboardWidget('week-strip', {
+	renderer: CnWeekStripWidget,
+	form: CnWeekStripWidgetForm,
+	defaultContent: {
+		source: { register: '', schema: '', filter: {} },
+		dateField: '',
+		titleField: '',
+		metaFields: [],
+		days: 5,
+		itemRoute: '',
+		emptyText: '',
+	},
+	displayName: 'Week strip',
+	icon: 'Calendar',
+})
+
+// One segmented bar with a legend that carries the numbers.
+registerDashboardWidget('stacked-bar', {
+	renderer: CnStackedBarWidget,
+	form: CnStackedBarWidgetForm,
+	defaultContent: {
+		source: { register: '', schema: '', groupBy: '', filter: {} },
+		order: [],
+		labels: {},
+		emptyText: '',
+	},
+	displayName: 'Stacked bar',
+	icon: 'ChartBar',
 })
 
 /**
