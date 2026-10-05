@@ -123,6 +123,10 @@ const OVERRIDES = {
 	// Warns that the bare store-action list path is deprecated and wants an
 	// object carrying `@self`.
 	CnRelatedObjectsWidget: { object: { '@self': { id: '1', register: 'smoke', schema: 'smoke' } } },
+	// `center` is REQUIRED and must be two finite numbers. The type-derived
+	// default is an empty array, which Leaflet reads `.lat` off as null. Swept
+	// since the component became a library export.
+	CnMapPage: { center: [52.1326, 5.2913], zoom: 7 },
 	// Reads `streamState.messages.length` and `.isStreaming` during render, so
 	// the bare `{}` a type-derived Object default gives it is not enough.
 	CnAiChatPanel: { streamState: { isStreaming: false, messages: [], currentText: '' } },
