@@ -65,6 +65,7 @@ export {
 	CnContainerWidget,
 	CnContainerWidgetForm,
 	CnContextMenu,
+	CnConversationThread,
 	CnCopyDialog,
 	CnCountdownWidget,
 	CnCountdownWidgetForm,
@@ -91,6 +92,7 @@ export {
 	CnDetailWidgetHost,
 	CnDividerWidget,
 	CnDividerWidgetForm,
+	CnDocumentReviewList,
 	CnEditActionsModal,
 	CnEditDataModal,
 	CnEditMenuModal,
@@ -180,6 +182,7 @@ export {
 	CnNcDashboardWidgetForm,
 	CnNcWidgetGridPicker,
 	CnNcWidgetWidget,
+	CnNextStepCard,
 	CnNoteCard,
 	CnNotesCard,
 	CnNotificationMatrix,
@@ -302,6 +305,11 @@ export {
 // docs/components/cn-buildiq-edit-button.md; no separate doc page.
 // @deprecated Use `CnBuildiqEditButton`.
 export { CnOpenBuildEditButton } from './components/index.js'
+
+// Workplace dashboard primitives (openspec: workplace-dashboard-primitives):
+// the week strip and stacked bar widgets with their forms, the segmented
+// control, and the brand stripe.
+export { CnBrandStripe, CnSegmentedControl, CnStackedBarWidget, CnStackedBarWidgetForm, CnWeekStripWidget, CnWeekStripWidgetForm } from './components/index.js'
 
 // AI Chat Companion component family
 export {
@@ -511,6 +519,7 @@ export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWi
 export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { followLinkClick, isModifiedClick, isNewTabHandled, isRowMiddleClick, openRowTarget, resolveHref } from './utils/index.js'
 export { resolveImageUrl } from './utils/index.js'
+export { resolveDateVariant } from './utils/index.js'
 export { actionLink, dispatchAction } from './utils/actionsDispatcher.js'
 // Nested-modal stacking. `CnAppRoot` installs this itself; apps that do not
 // mount `CnAppRoot` should call `installModalStack()` once from `main.js`, or

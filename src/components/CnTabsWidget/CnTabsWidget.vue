@@ -7,6 +7,7 @@
 	<div class="cn-tabs-widget">
 		<CnTabs
 			:aria-label="stripLabel"
+			:moreLabel="moreLabel"
 			class="cn-tabs-widget__tabs"
 			@update:activeIndex="onTabChange">
 			<!-- One Actions menu for the whole widget, bound to whichever child
@@ -55,6 +56,9 @@
 				v-for="(entry, index) in resolvedTabs"
 				:key="entry.key"
 				:active="index === activeIndex"
+				:title="entry.label"
+				:count="entry.count"
+				:overflow="entry.overflow"
 				lazy
 				@click="activeIndex = index">
 				<template #title>
@@ -97,6 +101,7 @@ import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTab from '../CnTabs/CnTab.vue'
 import CnTabs from '../CnTabs/CnTabs.vue'
+import { resolveTabCount } from '../../utils/detailActionModel.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { widgetTitleOf } from '../../utils/widgetDispatch.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
@@ -233,10 +238,17 @@ export default {
 		/**
 		 * The widget's config: `{ tabs, ariaLabel }`.
 		 *
-		 * `tabs[]` entries are `{ widgetId, label?, icon? }`. `label` and `icon`
-		 * fall back to the referenced widget's own title and icon.
+		 * `tabs[]` entries are `{ widgetId, label?, icon?, count?, countField?, overflow? }`.
+		 * `label` and `icon` fall back to the referenced widget's own title and
+		 * icon. `count` is a number shown after the label; `countField` reads
+		 * it off the record instead (a list counts its items). `overflow: true`
+		 * lists the tab under "More".
 		 *
-		 * @type {{ tabs?: Array<{widgetId: string, label?: string, icon?: string}>, ariaLabel?: string }}
+		 * `maxVisibleTabs` caps the strip: later tabs go under "More".
+		 * `hideEmpty: true` moves a tab whose count is 0 there too.
+		 * `moreLabel` names that menu.
+		 *
+		 * @type {{ tabs?: Array<{widgetId: string, label?: string, icon?: string, count?: number, countField?: string, overflow?: boolean}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string }}
 		 */
 		content: {
 			type: Object,
@@ -374,21 +386,54 @@ export default {
 		/**
 		 * The configured tabs, each paired with the widget definition it names.
 		 *
-		 * @return {object[]} `{ key, widgetId, label, icon, widget }` per tab.
+		 * A tab goes under the strip's "More" menu when it says `overflow`, when
+		 * `content.hideEmpty` is set and its count is 0, or when
+		 * `content.maxVisibleTabs` places are already taken. `count` is a
+		 * literal, or read off the record through `countField`.
+		 *
+		 * @return {object[]} `{ key, widgetId, label, icon, widget, count, overflow }` per tab.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
 		 */
 		resolvedTabs() {
 			const tabs = Array.isArray(this.content?.tabs) ? this.content.tabs : []
+			const max = Number(this.content?.maxVisibleTabs)
+			const hideEmpty = this.content?.hideEmpty === true
+			// How many tabs have taken a place in the strip so far. A tab that
+			// is already going under "More" does not use one up.
+			let placed = 0
 			return tabs.map((tab, index) => {
 				const widgetId = typeof tab === 'string' ? tab : tab?.widgetId
 				const widget = this.availableWidgets.find((w) => w && w.id === widgetId) || null
+				const count = resolveTabCount(typeof tab === 'object' ? tab : null, this.objectData)
+				let overflow = (tab && tab.overflow === true) || (hideEmpty && count === 0)
+				if (!overflow) {
+					if (Number.isFinite(max) && max > 0 && placed >= max) {
+						overflow = true
+					} else {
+						placed += 1
+					}
+				}
 				return {
 					key: `${widgetId || 'tab'}-${index}`,
 					widgetId,
 					label: (tab && tab.label) || widgetTitleOf(widget) || widgetId || '',
 					icon: (tab && tab.icon) || widget?.icon || '',
 					widget,
+					count,
+					overflow,
 				}
 			})
+		},
+
+		/**
+		 * Name of the menu that holds the tabs that are not in the strip.
+		 *
+		 * @return {string|undefined} The configured label, or undefined for the default.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+		 */
+		moreLabel() {
+			const label = this.content?.moreLabel
+			return typeof label === 'string' && label !== '' ? label : undefined
 		},
 
 		/**
@@ -427,6 +472,20 @@ export default {
 		stripLabel() {
 			return this.content?.ariaLabel || t('nextcloud-vue', 'Details')
 		},
+	},
+
+	/**
+	 * Open on the first tab that is in the strip. Tab 0 is the default, and
+	 * when tab 0 sits under "More" the strip would open on a tab the author
+	 * chose to tuck away.
+	 *
+	 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+	 */
+	created() {
+		const first = this.resolvedTabs.findIndex((tab) => !tab.overflow)
+		if (first > 0) {
+			this.activeIndex = first
+		}
 	},
 
 	methods: {

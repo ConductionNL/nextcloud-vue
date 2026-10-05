@@ -42,6 +42,20 @@ spinner); `pageSize` sets how many cards a locally-derived column shows
 before "load more"; `rowKey` is the object property used as each card's
 identity (defaults to `id`).
 
+`dueRule` marks late cards: `{ field, soonDays? }`, where `field` is the
+dot-path to a card's due date. A date before today gets an edge in the error
+colour and the label "Overdue". A date within `soonDays` (default 3) gets the
+label "Due soon". The label is text, so the state does not depend on colour.
+Same rule as [CnBoardView](./cn-board-view.md#late-cards). Without it, cards
+render as before.
+
+```vue
+<CnObjectKanban
+  :objects="objects"
+  group-by-field="status"
+  :due-rule="{ field: 'deadline', soonDays: 3 }" />
+```
+
 ## Drag-to-move contract
 
 Dragging a card to another column does not write anything by itself. The
@@ -88,6 +102,7 @@ onMoveRejected({ reason }) {
 
 - `#empty` — custom empty state when there are no columns.
 - `#column-header="{ column }"` — override a column's header.
-- `#card="{ object, column }"` — fully replace the default card rendering
+- `#card="{ object, column, dueState }"` — fully replace the default card rendering
   (the default renders a title plus each configured `cardFields` entry via
-  `CnCellRenderer`).
+  `CnCellRenderer`). `dueState` is `overdue`, `soon`, `ok`, or `null`
+  without a `dueRule`, so a custom card can mark lateness the same way.

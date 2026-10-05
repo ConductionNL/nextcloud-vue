@@ -130,6 +130,9 @@ export { CnLeafMountHost } from './CnLeafMountHost/index.js'
 export { CnDetailCard } from './CnDetailCard/index.js'
 export { CnCard } from './CnCard/index.js'
 export { CnChoiceCards } from './CnChoiceCards/index.js'
+export { CnNextStepCard } from './CnNextStepCard/index.js'
+export { CnDocumentReviewList } from './CnDocumentReviewList/index.js'
+export { CnConversationThread } from './CnConversationThread/index.js'
 export { CnStatsPanel } from './CnStatsPanel/index.js'
 export { CnJsonViewer } from './CnJsonViewer/index.js'
 export { CnColorPicker } from './CnColorPicker/index.js'
@@ -352,3 +355,11 @@ export { CnDetailWidgetHost } from './CnDetailWidgetHost/index.js'
 
 // Guardian/parent portal surface pattern (nextcloud-vue:guardian-portal-surface-pattern).
 export { CnGuardianHome } from './CnGuardianHome/index.js'
+
+// Workplace dashboard primitives (openspec: workplace-dashboard-primitives).
+export { CnWeekStripWidget } from './CnWeekStripWidget/index.js'
+export { CnWeekStripWidgetForm } from './CnWeekStripWidgetForm/index.js'
+export { CnStackedBarWidget } from './CnStackedBarWidget/index.js'
+export { CnStackedBarWidgetForm } from './CnStackedBarWidgetForm/index.js'
+export { CnSegmentedControl } from './CnSegmentedControl/index.js'
+export { CnBrandStripe } from './CnBrandStripe/index.js'

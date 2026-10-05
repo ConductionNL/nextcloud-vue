@@ -405,6 +405,22 @@ The page header's overflow menu carries Refresh plus the mandatory trio Request 
 | `showReportBug` | Boolean | `true` | Whether the Report-a-bug entry renders in the page-header menu. |
 | `showDocumentation` | Boolean | `true` | Whether the Documentation entry renders. Its target is resolved by the shared menu from the app-wide documentation base plus this page's id, so leaving it on costs the host nothing. |
 
+## The action model
+
+Four levels of action and the case surfaces around them. All opt in. See [the reference page](../../../docs/components/cn-detail-page.md#the-action-model) for manifest examples.
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `primaryActionByStage` | Object \| null | `null` | Map from a stage value to the primary action: an action object or the id of a header action. Falls back to `primaryAction`. |
+| `stageField` | String | `'status'` | Dot-path to the record's stage. |
+| `quickActions` | Array | `[]` | At most three always visible header buttons. |
+| `actionsMenu` | Object \| null | `null` | `{ showRefresh?, showHelpLinks?, label? }` for the overflow menu. |
+| `nextStep` | Object \| null | `null` | The "what now" card per stage, rendered by `CnNextStepCard`. |
+| `typePill` | Object \| null | `null` | `{ field, colorMap?, labels?, variant? }`, a pill above the title. |
+| `statusPill` | Object \| null | `null` | A second pill, same shape. |
+| `sideColumn` | Array | `[]` | Widget definitions or widget ids, rendered as a column of cards beside the body. |
+| `isAdmin` | Boolean \| null | `null` | Shows `adminOnly` header actions. `null` reads it from Nextcloud. |
+
 ## The record as a place
 
 `listNavigation`, `primaryAction` and `tabInAddress` make a record somewhere a handler stays. All three are off by default. See [the reference page](../../../docs/components/cn-detail-page.md#the-record-as-a-place).

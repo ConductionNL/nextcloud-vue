@@ -28,6 +28,7 @@ Purely presentational: the parent owns fetching (`GET /apps/openregister/api/vie
 | `loading` | `Boolean` | `false` | Shows a "Loading…" caption while the parent fetches. |
 | `currentUserId` | `String` | `''` | Signed-in NC user id — gates the per-view delete affordance (`view.owner === currentUserId`). |
 | `maxDepth` | `Number` | `3` | How deep the tree indents before it flattens. Mirrors `savedViewTree.maxDepth`. Flattening is about indentation only: a view past the bound still renders. |
+| `counts` | `Object` | `null` | How many records each view matches, keyed by view id (or slug). A view with a number shows it after its name, as "Name (12)". A view can also carry its own `count`. `null` shows no counts. On a `CnIndexPage`, set `viewCounts` and the page fetches them. |
 
 ## Events
 

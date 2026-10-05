@@ -48,6 +48,42 @@ Reference it from a manifest placement. `label` and `icon` are optional and fall
 }
 ```
 
+### Counts, and tabs under More
+
+A tab can show a count, and a strip can keep to a few tabs and put the rest under a "More" menu:
+
+```json
+{
+  "id": "case-panels",
+  "type": "tabs",
+  "content": {
+    "ariaLabel": "Case details",
+    "maxVisibleTabs": 5,
+    "hideEmpty": true,
+    "moreLabel": "More",
+    "tabs": [
+      { "widgetId": "case-overview", "label": "Overview" },
+      { "widgetId": "case-files", "label": "Documents", "countField": "documents" },
+      { "widgetId": "case-contact", "label": "Contact", "countField": "messages" },
+      { "widgetId": "case-tasks", "label": "Tasks", "count": 1 },
+      { "widgetId": "case-history", "label": "History" },
+      { "widgetId": "case-archiving", "label": "Archiving", "overflow": true }
+    ]
+  }
+}
+```
+
+| Key | On | What it does |
+| --- | --- | --- |
+| `count` | a tab | A number shown after the label. |
+| `countField` | a tab | Reads the count off the record. A list counts its items, a number is used as is, a missing field counts as 0. |
+| `overflow` | a tab | Lists the tab under "More". |
+| `maxVisibleTabs` | `content` | The most tabs the strip shows. Later tabs go under "More". A tab that is already there does not use up a place. |
+| `hideEmpty` | `content` | Moves a tab whose count is 0 under "More". A tab without a count is never moved. |
+| `moreLabel` | `content` | Names the menu. Defaults to "More". |
+
+The strip opens on the first tab that is in it. None of these keys is required, and a strip that sets none renders as before.
+
 Tab titles are separately configurable for a reason: "Files and attachments" reads fine on a card and is too long once six tabs share the width. [`CnTabsWidgetForm`](./cn-tabs-widget-form.md) edits them in Buildiq edit mode.
 
 ## Props

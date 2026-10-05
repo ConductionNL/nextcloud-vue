@@ -45,7 +45,28 @@ export default { components: { CnTabs, CnTab } }
 | `contentClass` | `String` | `''` | Extra class on the panel container. bootstrap-vue's `content-class`. |
 | `justified` | `Boolean` | `false` | Stretch the nav items to fill the strip. bootstrap-vue's `justified`. |
 | `card` | `Boolean` | `false` | Card-style chrome (border + padding) around the panel area. |
+| `variant` | `'line' \| 'segmented'` | `'line'` | How the strip is drawn. `segmented` is a compact pill switch for a view switch such as "My work / My team". Roles and keyboard behaviour stay the same. For a switch without panels, use [`CnSegmentedControl`](./cn-segmented-control.md). |
 | `ariaLabel` | `String` | `''` | Accessible name applied to the `role="tablist"` element. **Set this** — screen-reader users otherwise hear an unnamed tab list. |
+| `moreLabel` | `String` | `'More'` | Name of the menu that lists the tabs marked `overflow`. |
+
+## Counts and the More menu
+
+A [`CnTab`](./cn-tab.md) with `count` shows that number after its title. A `CnTab` with `overflow` is listed under a "More" menu beside the strip, not in it.
+
+```vue
+<CnTabs aria-label="Case details" more-label="More">
+  <CnTab title="Overview">…</CnTab>
+  <CnTab title="Documents" :count="5">…</CnTab>
+  <CnTab title="Archiving" overflow>…</CnTab>
+  <CnTab title="Fees" overflow :count="2">…</CnTab>
+</CnTabs>
+```
+
+Pick a tab from the menu and it is selected, shown in the strip and focused. It stays in the strip for as long as it is selected, then returns to the menu. The open panel is therefore always labelled by a tab that exists.
+
+The arrow keys walk the strip only. The menu is a normal menu button, reached with Tab and opened with Enter or Space. It sits outside the `role="tablist"` element for the same reason `nav-end` does.
+
+A strip with no overflow tab renders no menu and is unchanged.
 
 ## Slots
 

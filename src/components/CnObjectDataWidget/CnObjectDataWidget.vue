@@ -457,6 +457,13 @@ export default {
 		 */
 		cnTranslate: { default: () => (key) => key },
 		/**
+		 * Formatter registry, provided by CnAppRoot (`cnFormatters`: the
+		 * library's built-ins plus the app's `formatters`). A field override
+		 * `{ formatter: '<id>' }` renders the value through the same function a
+		 * table column with that `formatter` uses. Empty when used standalone.
+		 */
+		cnFormatters: { default: () => ({}) },
+		/**
 		 * The host surface's panel-action channel, when this widget is rendered
 		 * in a tab panel. Null everywhere else, which is every other surface.
 		 *
@@ -641,6 +648,11 @@ export default {
 		 * - `editable` (boolean) — Override editability (default: based on schema readOnly)
 		 * - `label` (string) — Override the display label
 		 * - `widget` (string) — Override the widget type for editing
+		 * - `formatter` (string) — Display the value through the formatter
+		 *   registered under this id on CnAppRoot (`cnFormatters`), called as
+		 *   `(value, object, property)` like a table cell's formatter. An id
+		 *   nobody registered, or a formatter that throws, keeps the default
+		 *   rendering. Editing still writes the stored value.
 		 *
 		 * Accepts an Array too: an empty overrides map (`{}`) round-trips through
 		 * PHP/JSON as an empty Array (`[]`), so a persisted manifest can deliver
@@ -918,11 +930,45 @@ export default {
 		},
 
 		/**
+		 * Display values of the fields whose override names a registered
+		 * formatter, keyed by field key. A field is left out when its formatter
+		 * id is not registered or the formatter throws, so it falls back to the
+		 * default rendering.
+		 *
+		 * @return {Record<string, string>}
+		 */
+		formatterDisplayValues() {
+			const values = {}
+			for (const field of this.resolvedFields) {
+				const fn = field.formatter && this.cnFormatters && this.cnFormatters[field.formatter]
+				if (typeof fn !== 'function') {
+					continue
+				}
+				const raw = field.key in this.dirtyFields
+					? this.dirtyFields[field.key]
+					: (this.objectData || {})[field.key]
+				const prop = (this.schema.properties && this.schema.properties[field.key]) || {}
+				try {
+					const formatted = fn(raw, this.objectData || {}, prop)
+					values[field.key] = (formatted === null || formatted === undefined || formatted === '') ? '—' : String(formatted)
+				} catch (e) {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnObjectDataWidget] formatter "${field.formatter}" threw; falling back`, e)
+				}
+			}
+			return values
+		},
+
+		/**
 		 * Formatted display values for each field.
 		 */
 		displayValues() {
 			const values = {}
 			for (const field of this.resolvedFields) {
+				if (field.key in this.formatterDisplayValues) {
+					values[field.key] = this.formatterDisplayValues[field.key]
+					continue
+				}
 				// Show pending edit value if dirty
 				const raw = field.key in this.dirtyFields
 					? this.dirtyFields[field.key]
@@ -1191,6 +1237,9 @@ export default {
 		 * @return {'object-array'|'scalar-array'|'object'|'scalar'} The value kind.
 		 */
 		fieldValueKind(field) {
+			if (field.key in this.formatterDisplayValues) {
+				return 'scalar'
+			}
 			const prop = ((this.schema && this.schema.properties) || {})[field.key]
 			if (this.isRelationField(prop)) {
 				return 'scalar'
