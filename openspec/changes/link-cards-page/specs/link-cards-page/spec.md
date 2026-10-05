@@ -104,6 +104,18 @@ through unchanged.
 - **WHEN** the count is requested
 - **THEN** the URL SHALL carry `slaDeadline[lt]=2026-10-06` and no JSON
 
+### Requirement: An attention card with a title keeps its cell
+
+`CnDashboardPage` SHALL treat an attention banner's `title` as its text when
+it declares no `text`, so the cell follows `visibleWhen` and nothing else. A
+card whose `text` equals its `title` SHALL show the words once.
+
+#### Scenario: Title and reason, no text
+
+- **GIVEN** a banner with `layout: "attention"`, a `title`, a `reason` and a met `visibleWhen`
+- **WHEN** the dashboard renders
+- **THEN** the card SHALL render in its cell
+
 ### Requirement: A long detail title wraps before it truncates
 
 The detail page title SHALL wrap to two lines and truncate after that. The

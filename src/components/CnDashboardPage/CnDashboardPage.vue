@@ -2748,16 +2748,24 @@ export default {
 		 * the registry branch forwards to CnBannerWidget), or in the legacy
 		 * manifest `props` blob (the fallback getStatsBlockProps and
 		 * getChartProps already honour for their own widget types). `text`
-		 * is only meaningful for banners.
+		 * is only meaningful for banners: it is what the banner would show,
+		 * which for an attention card is its `title` when it has no `text`.
 		 *
 		 * @param {object} def Widget definition.
+		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-an-attention-card-with-a-title-keeps-its-cell
 		 * @return {{ text: string, visibleWhen: (object|null) }}
 		 */
 		widgetDisplayConfig(def) {
 			const content = (def && typeof def.content === 'object' && def.content) || {}
 			const props = (def && typeof def.props === 'object' && def.props) || {}
+			// An attention card (`layout: "attention"`) is headed by `title`,
+			// and its title only FALLS BACK to `text`. Reading `text` alone
+			// called a card with a title and a reason empty, and gave its cell
+			// up before its `visibleWhen` was even looked at.
+			const layout = content.layout || props.layout || ''
+			const title = layout === 'attention' ? (content.title || props.title || '') : ''
 			return {
-				text: content.text || props.text || '',
+				text: content.text || props.text || title || '',
 				visibleWhen: (def && def.visibleWhen) || content.visibleWhen || props.visibleWhen || null,
 			}
 		},

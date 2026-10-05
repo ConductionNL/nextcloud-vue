@@ -359,7 +359,9 @@ export default {
 				return this.fillValue(reason)
 			}
 			const title = this.title || (this.content && this.content.title) || ''
-			return title ? this.displayText : ''
+			// A card that sets `text` to the same words as its `title` says
+			// them once.
+			return title && this.displayText !== this.displayTitle ? this.displayText : ''
 		},
 
 		/**

@@ -31,3 +31,9 @@
 - **files**: `src/utils/headers.js`, `src/components/CnBannerWidget/CnBannerWidget.vue`, `src/components/CnHeaderWidget/CnHeaderWidget.vue`
 - [x] Implement
 - [x] Test
+
+### Task 6: An attention card with a title keeps its cell
+- **spec_ref**: `openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-an-attention-card-with-a-title-keeps-its-cell`
+- **files**: `src/components/CnDashboardPage/CnDashboardPage.vue`, `src/components/CnBannerWidget/CnBannerWidget.vue`
+- [x] Implement
+- [x] Test
