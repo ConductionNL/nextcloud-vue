@@ -4,7 +4,39 @@
 -->
 
 <template>
-	<div v-if="visible" class="cn-banner-widget">
+	<section
+		v-if="visible && isAttention"
+		class="cn-banner-widget cn-banner-widget--attention"
+		:class="'cn-banner-widget--' + resolvedVariant"
+		:aria-labelledby="headingId"
+		data-testid="cn-banner-widget-attention">
+		<div class="cn-banner-widget__body">
+			<p v-if="resolvedKicker" class="cn-banner-widget__kicker">
+				{{ resolvedKicker }}
+			</p>
+			<h3 :id="headingId" class="cn-banner-widget__title">
+				{{ displayTitle }}
+			</h3>
+			<p v-if="displayReason" class="cn-banner-widget__reason">
+				{{ displayReason }}
+			</p>
+		</div>
+		<div v-if="resolvedActions.length > 0" class="cn-banner-widget__actions">
+			<component
+				:is="action.href ? 'a' : 'button'"
+				v-for="action in resolvedActions"
+				:key="action.key"
+				class="cn-banner-widget__action"
+				:class="action.primary ? 'cn-banner-widget__action--primary' : 'cn-banner-widget__action--secondary'"
+				:href="action.href || null"
+				:type="action.href ? null : 'button'"
+				data-testid="cn-banner-widget-action"
+				@click="onActionClick($event, action)">
+				{{ action.label }}
+			</component>
+		</div>
+	</section>
+	<div v-else-if="visible" class="cn-banner-widget">
 		<NcNoteCard :type="resolvedVariant" class="cn-banner-widget__card">
 			<component
 				:is="clickable ? 'a' : 'span'"
@@ -22,10 +54,18 @@
 <script>
 import { NcNoteCard } from '@nextcloud/vue'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
+import { safeHref } from '../../utils/safeHref.js'
+import { nextUid } from '../../utils/uid.js'
 import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 
 /** Variants understood by NcNoteCard. */
 const VARIANTS = ['info', 'warning', 'error', 'success']
+
+/** Layouts: the note card (default) or the attention card. */
+const LAYOUTS = ['banner', 'attention']
+
+/** An attention card offers a primary and a secondary action, no more. */
+const MAX_ACTIONS = 2
 
 /**
  * CnBannerWidget — declarative notice banner for dashboards and v2 pages
@@ -56,6 +96,29 @@ const VARIANTS = ['info', 'warning', 'error', 'success']
  * Fail-safe: with a `visibleWhen`, the banner stays HIDDEN until the
  * condition evaluates true — a failed fetch never breaks (or spams) a
  * dashboard.
+ *
+ * `layout: "attention"` turns the banner into an attention card: a card with
+ * a coloured edge by severity, a `kicker` label, a `title`, a `reason` line
+ * and up to two `actions` (the first is the primary one unless an action says
+ * `primary` itself). `visibleWhen` works the same way. Without `layout` the
+ * note card above renders, as it always did.
+ *
+ * ```json
+ * {
+ *   "widgetKey": "banner",
+ *   "props": {
+ *     "layout": "attention",
+ *     "variant": "error",
+ *     "kicker": "First today",
+ *     "title": "Parking permits city centre",
+ *     "reason": "The deadline ends today.",
+ *     "actions": [
+ *       { "label": "Open case", "route": { "name": "CaseDetail", "params": { "id": "2026-0061" } } },
+ *       { "label": "Suspend deadline", "route": "CaseSuspend" }
+ *     ]
+ *   }
+ * }
+ * ```
  */
 export default {
 	name: 'CnBannerWidget',
@@ -112,9 +175,56 @@ export default {
 		},
 
 		/**
+		 * How the banner renders: `banner` (the note card, default) or
+		 * `attention` (a card with a severity edge, kicker, title, reason and
+		 * up to two actions). Empty falls back to the `content` blob, then
+		 * `banner`.
+		 *
+		 * @type {''|'banner'|'attention'}
+		 */
+		layout: {
+			type: String,
+			default: '',
+			validator: (v) => v === '' || LAYOUTS.includes(v),
+		},
+
+		/** Attention card: the small label above the title ("First today"). */
+		kicker: {
+			type: String,
+			default: '',
+		},
+
+		/** Attention card: the title. Falls back to `text` when empty. */
+		title: {
+			type: String,
+			default: '',
+		},
+
+		/** Attention card: the line under the title that says why this needs attention. `{value}` is replaced like in `text`. */
+		reason: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Attention card: at most two actions. Each is `{ label, route?,
+		 * href?, primary?, id? }`: `route` is a route name or location,
+		 * `href` an URL. An action with neither renders a button that emits
+		 * `action`. The first action is the primary one unless one sets
+		 * `primary: true`.
+		 *
+		 * @type {Array<{label: string, route?: (string|object), href?: string, primary?: boolean, id?: string}>|null}
+		 */
+		actions: {
+			type: Array,
+			default: null,
+		},
+
+		/**
 		 * Stored content blob (CnDashboardPage registry branch) carrying the
-		 * same keys as the flat props: `{ variant, text, visibleWhen, route }`.
-		 * Explicit flat props win on collision.
+		 * same keys as the flat props: `{ variant, text, visibleWhen, route,
+		 * layout, kicker, title, reason, actions }`. Explicit flat props win
+		 * on collision.
 		 */
 		content: {
 			type: Object,
@@ -138,8 +248,21 @@ export default {
 		},
 	},
 
+	emits: [
+		/**
+		 * Emitted when an attention-card action without a `route` or `href`
+		 * is clicked, so the host can run it.
+		 *
+		 * @event action
+		 * @type {{id: (string|undefined), label: string, index: number}}
+		 */
+		'action',
+	],
+
 	data() {
 		return {
+			/** Id that ties the attention card's region to its title. */
+			headingId: `cn-banner-title-${nextUid()}`,
 			/** Evaluated visibleWhen outcome (null = not yet evaluated). */
 			conditionMet: null,
 			/**
@@ -179,13 +302,11 @@ export default {
 		 * the text renders as written — a `{value}` placeholder only makes
 		 * sense on a conditional banner, which stays hidden until its
 		 * predicate (and therefore its value) resolves.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
 		 */
 		displayText() {
-			const text = this.resolvedText
-			if (this.conditionValue === null || !text.includes('{value}')) {
-				return text
-			}
-			return text.replaceAll('{value}', String(this.conditionValue))
+			return this.fillValue(this.resolvedText)
 		},
 
 		/** The effective click-through route (prop → content → null). */
@@ -193,9 +314,101 @@ export default {
 			return this.route || (this.content && this.content.route) || null
 		},
 
-		/** Whether the banner renders: no condition = always; else the evaluated outcome. */
+		/**
+		 * Whether the attention card renders instead of the note card.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		isAttention() {
+			return (this.layout || (this.content && this.content.layout) || 'banner') === 'attention'
+		},
+
+		/**
+		 * The attention card's kicker (prop, else content).
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		resolvedKicker() {
+			const kicker = this.kicker || (this.content && this.content.kicker) || ''
+			return kicker
+		},
+
+		/**
+		 * The attention card's title: `title`, else `text`, with `{value}` filled in.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		displayTitle() {
+			const title = this.title || (this.content && this.content.title) || ''
+			return title ? this.fillValue(title) : this.displayText
+		},
+
+		/**
+		 * The attention card's reason line. When the title already used
+		 * `text`, the text is not repeated here.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		displayReason() {
+			const reason = this.reason || (this.content && this.content.reason) || ''
+			if (reason) {
+				return this.fillValue(reason)
+			}
+			const title = this.title || (this.content && this.content.title) || ''
+			return title ? this.displayText : ''
+		},
+
+		/**
+		 * The attention card's actions: the first two that have a label, each
+		 * with its href and whether it is the primary one.
+		 *
+		 * @return {Array<{key: string, id: (string|undefined), label: string, href: string, target: (object|null), primary: boolean, index: number}>}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		resolvedActions() {
+			const raw = this.actions || (this.content && this.content.actions) || []
+			if (!Array.isArray(raw)) {
+				return []
+			}
+			const usable = raw
+				.filter((action) => action && typeof action === 'object' && typeof action.label === 'string' && action.label !== '')
+				.slice(0, MAX_ACTIONS)
+			const declaredPrimary = usable.findIndex((action) => action.primary === true)
+			const primaryIndex = declaredPrimary === -1 ? 0 : declaredPrimary
+			return usable.map((action, index) => {
+				let target = null
+				let href = ''
+				if (action.route) {
+					target = typeof action.route === 'string' ? { name: action.route } : action.route
+					href = resolveHref(target, this.$router)
+				} else if (typeof action.href === 'string' && action.href !== '') {
+					const safe = safeHref(action.href)
+					href = safe === '#' ? '' : safe
+				}
+				return {
+					key: `${index}-${action.id || action.label}`,
+					id: action.id,
+					label: action.label,
+					href,
+					target,
+					primary: index === primaryIndex,
+					index,
+				}
+			})
+		},
+
+		/**
+		 * Whether the banner renders: no condition = always; else the evaluated outcome.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
 		visible() {
-			if (this.resolvedText === '') {
+			const title = this.title || (this.content && this.content.title) || ''
+			if (this.resolvedText === '' && !(this.isAttention && title !== '')) {
 				return false
 			}
 			if (!this.resolvedVisibleWhen) {
@@ -235,6 +448,40 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Replace `{value}` in a text by the value the predicate read, once
+		 * one is known.
+		 *
+		 * @param {string} text The text.
+		 * @return {string} The text with the value filled in.
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		fillValue(text) {
+			if (this.conditionValue === null || !text.includes('{value}')) {
+				return text
+			}
+			return text.replaceAll('{value}', String(this.conditionValue))
+		},
+
+		/**
+		 * Run an attention-card action: route an in-app link, leave an
+		 * external link to the browser, and emit `action` for a button.
+		 *
+		 * @param {MouseEvent} event The click.
+		 * @param {object} action The resolved action.
+		 * @return {void}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		onActionClick(event, action) {
+			if (action.target) {
+				followLinkClick(event, action.target, this.$router)
+				return
+			}
+			if (!action.href) {
+				this.$emit('action', { id: action.id, label: action.label, index: action.index })
+			}
+		},
+
 		/**
 		 * Resolve the `visibleWhen` verdict. A host-injected
 		 * `conditionOutcome` wins outright — the host already ran the
@@ -301,5 +548,113 @@ export default {
 	cursor: pointer;
 	text-decoration: underline;
 	color: inherit;
+}
+
+/* Attention card. The severity edge is an inset shadow, so it takes no width. */
+.cn-banner-widget--attention {
+	--cn-banner-accent: var(--color-primary-element);
+	--cn-banner-accent-text: var(--color-primary-element);
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px 24px;
+	box-sizing: border-box;
+	padding: 20px 24px 20px 28px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-container, var(--border-radius-large, 12px));
+	background: var(--color-main-background);
+	box-shadow: inset 4px 0 0 0 var(--cn-banner-accent);
+}
+
+.cn-banner-widget--attention.cn-banner-widget--warning {
+	--cn-banner-accent: var(--color-element-warning, var(--color-warning));
+	--cn-banner-accent-text: var(--color-text-warning, var(--color-warning-text, var(--color-main-text)));
+}
+
+.cn-banner-widget--attention.cn-banner-widget--error {
+	--cn-banner-accent: var(--color-element-error, var(--color-error));
+	--cn-banner-accent-text: var(--color-text-error, var(--color-error-text));
+}
+
+.cn-banner-widget--attention.cn-banner-widget--success {
+	--cn-banner-accent: var(--color-element-success, var(--color-success));
+	--cn-banner-accent-text: var(--color-text-success, var(--color-success-text));
+}
+
+.cn-banner-widget__body {
+	display: flex;
+	flex: 1 1 320px;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+}
+
+.cn-banner-widget__kicker {
+	margin: 0;
+	font-size: 0.85em;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--cn-banner-accent-text);
+}
+
+.cn-banner-widget__title {
+	margin: 0;
+	font-size: 1.3em;
+	font-weight: 700;
+	line-height: 1.3;
+	color: var(--color-main-text);
+}
+
+.cn-banner-widget__reason {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-banner-widget__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.cn-banner-widget__action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	min-height: var(--default-clickable-area, 40px);
+	margin: 0;
+	padding: 0 16px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: var(--border-radius-element, var(--border-radius-large, 8px));
+	font: inherit;
+	font-weight: 600;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.cn-banner-widget__action--secondary {
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+.cn-banner-widget__action--secondary:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-banner-widget__action--primary {
+	border-color: var(--color-primary-element);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+}
+
+.cn-banner-widget__action--primary:hover {
+	border-color: var(--color-primary-element-hover);
+	background: var(--color-primary-element-hover);
+}
+
+.cn-banner-widget__action:focus-visible {
+	outline: 2px solid var(--color-main-text);
+	outline-offset: 2px;
 }
 </style>

@@ -61,7 +61,48 @@ Multi-line rich-text / markdown widget with optional table mode (sanitised HTML)
 ![header banner widget with title text](/img/screenshots/widget-header.png)
 
 Banner / header widget with background image, overlay, title/subtitle and CTA button.
+It can also greet the user: `greeting: true` makes the heading read "Good afternoon,
+Pieter", `showDate: true` adds today's date above it, and `plain: true` drops the
+coloured background.
 → [`CnHeaderWidget`](./cn-header-widget.md) · [`CnHeaderWidgetForm`](./cn-header-widget-form.md)
+
+### Banner and attention card · `banner`
+
+A notice with a severity (`info`, `warning`, `error`, `success`), an optional
+click-through route and an optional `visibleWhen` condition. With
+`layout: "attention"` it becomes an attention card: a card with a severity edge, a
+`kicker` label, a `title`, a `reason` line and up to two `actions`. Without `layout`
+it renders the note card it always did.
+
+```json
+{
+  "widgetKey": "banner",
+  "props": {
+    "layout": "attention",
+    "variant": "error",
+    "kicker": "First today",
+    "title": "Parking permits city centre",
+    "reason": "The deadline ends today. {value} documents are still missing.",
+    "visibleWhen": { "source": { "register": "dossiq", "schema": "case", "filter": { "assignee": "@me", "deadline": "@today" } }, "op": "gt", "value": 0 },
+    "actions": [
+      { "label": "Open case", "route": { "name": "CaseDetail", "params": { "id": "2026-0061" } } },
+      { "label": "All deadlines", "route": "Deadlines" }
+    ]
+  }
+}
+```
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `layout` | `'banner' \| 'attention'` | `banner` (default) is the note card. `attention` is the card described here. |
+| `variant` | `'info' \| 'warning' \| 'error' \| 'success'` | The severity. It sets the colour of the edge and the kicker. |
+| `kicker` | `string` | The small label above the title. |
+| `title` | `string` | The title. Falls back to `text`. |
+| `reason` | `string` | The line that says why this needs attention. `{value}` is replaced by the value `visibleWhen` read. |
+| `actions` | `Array<{ label, route?, href?, primary?, id? }>` | At most two. The first is the primary one unless an action sets `primary: true`. An action with neither `route` nor `href` renders a button and emits `action`. |
+| `visibleWhen` | `object` | Same predicate as the banner. The card stays hidden until it holds. |
+
+The component is `CnBannerWidget`, resolved by its key and configured by `CnBannerWidgetForm`.
 
 ### Divider · `divider`
 
@@ -241,6 +282,20 @@ query. Which of them can be reached comes from Open Register's lifecycle
 contract `CnLifecycleActions` renders as buttons. **Detail-page surface only**: it
 reads and moves the bound record, which only a detail page has.
 → [`CnStagesWidget`](./cn-stages-widget.md) · [`CnStagesWidgetForm`](./cn-stages-widget-form.md) · [`CnLifecycleActions`](./cn-lifecycle-actions.md)
+
+### Week strip · `week-strip`
+
+The current week as day columns, with the dated items under each day. Today is
+highlighted, late items are marked and an empty day says so. Items come from an
+OpenRegister source (one request for the week) or from static `items`.
+→ [`CnWeekStripWidget`](./cn-week-strip-widget.md) · [`CnWeekStripWidgetForm`](./cn-week-strip-widget-form.md)
+
+### Stacked bar · `stacked-bar`
+
+One segmented bar with a legend that carries the label and count of every segment.
+Segments come from one grouped count request or from static values. The colours are
+steps of one ramp that differ in lightness.
+→ [`CnStackedBarWidget`](./cn-stacked-bar-widget.md) · [`CnStackedBarWidgetForm`](./cn-stacked-bar-widget-form.md)
 
 ---
 

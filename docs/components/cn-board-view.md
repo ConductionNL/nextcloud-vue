@@ -112,6 +112,8 @@ From a manifest, put the rule in the page's `board` block:
 }
 ```
 
+The deciding is shared with the table's date cell (`utils/dateVariant.js`). `soonDays: 3` is shorthand for `variantWhen: [{ op: 'lt', value: 0, variant: 'error' }, { op: 'lte', value: 3, variant: 'warning' }]`. A rule may carry its own `variantWhen` list instead: `error` marks the card overdue and `warning` due soon.
+
 Without a `dueRule` the cards render as before.
 
 ## Events

@@ -2,13 +2,14 @@
 
 ### Props
 
-| Name           | Type      | Required | Default                               | Description                                                                                                                         |
-| -------------- | --------- | -------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `contentClass` | `string`  |          | `''`                                  | Extra class applied to the panel container (bootstrap-vue's `content-class`).                                                       |
-| `justified`    | `boolean` |          | `false`                               | Stretch the nav items to fill the strip (bootstrap-vue's `justified`).                                                              |
-| `card`         | `boolean` |          | `false`                               | Card-style chrome (border + padding) around the panel area.                                                                         |
-| `ariaLabel`    | `string`  |          | `''`                                  | Accessible name for the tab strip, applied to the `role="tablist"` element. Screen readers announce it when focus enters the strip. |
-| `moreLabel`    | `string`  |          | `() =&gt; t('nextcloud-vue', 'More')` | Name of the menu that lists the `overflow` tabs.                                                                                    |
+| Name           | Type      | Required | Default                               | Description                                                                                                                                                                                                            |
+| -------------- | --------- | -------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `contentClass` | `string`  |          | `''`                                  | Extra class applied to the panel container (bootstrap-vue's `content-class`).                                                                                                                                          |
+| `justified`    | `boolean` |          | `false`                               | Stretch the nav items to fill the strip (bootstrap-vue's `justified`).                                                                                                                                                 |
+| `card`         | `boolean` |          | `false`                               | Card-style chrome (border + padding) around the panel area.                                                                                                                                                            |
+| `variant`      | `string`  |          | `'line'`                              | How the strip is drawn: `line` (the default: tabs joined to the panel below) or `segmented` (a compact pill switch, for a view switch such as "My work / My team"). Roles and keyboard behaviour are the same in both. |
+| `ariaLabel`    | `string`  |          | `''`                                  | Accessible name for the tab strip, applied to the `role="tablist"` element. Screen readers announce it when focus enters the strip.                                                                                    |
+| `moreLabel`    | `string`  |          | `() =&gt; t('nextcloud-vue', 'More')` | Name of the menu that lists the `overflow` tabs.                                                                                                                                                                       |
 
 ### Events
 

@@ -182,6 +182,18 @@ export default {
 			type: Number,
 			default: 3,
 		},
+
+		/**
+		 * How many records each view matches, keyed by view id (or slug). A
+		 * view with a number here shows it after its name; a view can also
+		 * carry its own `count`. `null` (the default) shows no counts.
+		 *
+		 * @type {{[viewId: string]: number}|null}
+		 */
+		counts: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: ['apply', 'delete-request', 'save-request'],
@@ -245,9 +257,42 @@ export default {
 		 *
 		 * @param {object} row The row from buildViewTree().
 		 * @return {string} The name.
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
 		 */
 		rowName(row) {
-			return `${'\u2007'.repeat(row.depth * 2)}${row.view.name}`
+			return `${'\u2007'.repeat(row.depth * 2)}${this.nameWithCount(row.view)}`
+		},
+
+		/**
+		 * The number of records a view matches, or null when none is known:
+		 * `counts[id]` (or `counts[slug]`) first, else the view's own `count`.
+		 *
+		 * @param {object} view The saved view.
+		 * @return {number|null}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
+		 */
+		countOf(view) {
+			const counts = this.counts || {}
+			let value = counts[view.id]
+			if (value === undefined || value === null) {
+				value = counts[view.slug]
+			}
+			if (value === undefined || value === null) {
+				value = view.count
+			}
+			return (typeof value === 'number' && Number.isFinite(value)) ? value : null
+		},
+
+		/**
+		 * A view's name, followed by its count when one is known.
+		 *
+		 * @param {object} view The saved view.
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
+		 */
+		nameWithCount(view) {
+			const count = this.countOf(view)
+			return count === null ? view.name : `${view.name} (${count})`
 		},
 
 		/**
@@ -259,11 +304,13 @@ export default {
 		 *
 		 * @param {object} row The row from buildViewTree().
 		 * @return {string} The accessible label.
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
 		 */
 		rowLabel(row) {
+			const viewName = this.nameWithCount(row.view)
 			const name = row.depth === 0
-				? row.view.name
-				: t('nextcloud-vue', '{name}, level {level}', { name: row.view.name, level: row.depth + 1 })
+				? viewName
+				: t('nextcloud-vue', '{name}, level {level}', { name: viewName, level: row.depth + 1 })
 
 			if (row.orphaned !== true) {
 				return name

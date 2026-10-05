@@ -342,7 +342,8 @@
 									"label": { "type": "string", "description": "i18n key or plain text rendered on the tab." },
 									"filter": { "type": "object", "additionalProperties": true, "description": "Filter map merged into the fetch when this tab is active." },
 									"default": { "type": "boolean", "default": false, "description": "Pre-selected on mount." },
-									"icon": { "type": "string", "description": "Optional MDI icon name displayed alongside the label." }
+									"icon": { "type": "string", "description": "Optional MDI icon name displayed alongside the label." },
+									"showCount": { "type": "boolean", "default": false, "description": "Show how many records this tab matches, after its label. Off by default: no count request is made for a tab that does not ask. Tabs that filter the same single field share one grouped request." }
 								}
 							}
 						},

@@ -14,3 +14,18 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 | ----------- | -------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `content`   | `object` |          | `\{\}`  | Persisted widget content: `{title, subtitle, backgroundImageUrl, backgroundImageFileId, backgroundColor, overlayMode, overlayColor, overlayOpacity, textColor, textAlign, verticalAlign, height, cta}`. All fields are optional except `title`; unknown enum values collapse to documented defaults and the renderer never throws. |
 | `placement` | `object` |          | `null`  | Placement entity — reserved to match the renderer contract.                                                                                                                                                                                                                                                                        |
+| `now` | `Date` | | `null` | The moment the greeting and the date line are computed for. Leave empty for the current time. |
+
+## Greeting and date
+
+Three optional `content` keys turn the header into a greeting. Without them the header renders as before.
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `greeting` | `true \| "full"` | The heading greets the signed-in user by time of day: "Good morning", "Good afternoon" or "Good evening", followed by the first name. `"full"` uses the whole display name. The greeting replaces `title`. |
+| `showDate` | `boolean` | Adds a line above the heading with today's date, written out in the user's locale. |
+| `plain` | `boolean` | No coloured background, text in the normal text colour, aligned to the start. This is how a greeting usually sits on a dashboard. |
+
+```json
+{ "widgetKey": "header", "props": { "content": { "greeting": true, "showDate": true, "plain": true } } }
+```

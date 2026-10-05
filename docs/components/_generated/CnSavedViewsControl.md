@@ -2,12 +2,13 @@
 
 ### Props
 
-| Name            | Type      | Required | Default | Description                                                                                                                                                                |
-| --------------- | --------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `views`         | `array`   |          | `[]`    | Views to list (View API objects from `GET /apps/openregister/api/views`).                                                                                                  |
-| `loading`       | `boolean` |          | `false` | True while the parent is fetching the view list.                                                                                                                           |
-| `currentUserId` | `string`  |          | `''`    | The signed-in NC user id — gates the per-view delete affordance.                                                                                                           |
-| `maxDepth`      | `number`  |          | `3`     | How deep the tree indents before it flattens. Mirrors `savedViewTree.maxDepth` in the manifest. Flattening is about indentation only: a view past the bound still renders. |
+| Name            | Type                                   | Required | Default | Description                                                                                                                                                                                     |
+| --------------- | -------------------------------------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `views`         | `array`                                |          | `[]`    | Views to list (View API objects from `GET /apps/openregister/api/views`).                                                                                                                       |
+| `loading`       | `boolean`                              |          | `false` | True while the parent is fetching the view list.                                                                                                                                                |
+| `currentUserId` | `string`                               |          | `''`    | The signed-in NC user id — gates the per-view delete affordance.                                                                                                                                |
+| `maxDepth`      | `number`                               |          | `3`     | How deep the tree indents before it flattens. Mirrors `savedViewTree.maxDepth` in the manifest. Flattening is about indentation only: a view past the bound still renders.                      |
+| `counts`        | `{[viewId: string]: number}&#124;null` |          | `null`  | How many records each view matches, keyed by view id (or slug). A view with a number here shows it after its name; a view can also carry its own `count`. `null` (the default) shows no counts. |
 
 ### Events
 

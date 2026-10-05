@@ -1,5 +1,5 @@
 <template>
-	<div class="cn-tabs" :class="{ 'cn-tabs--card': card }">
+	<div class="cn-tabs" :class="{ 'cn-tabs--card': card, 'cn-tabs--segmented': variant === 'segmented' }">
 		<div class="cn-tabs__bar">
 			<div
 				class="cn-tabs__strip"
@@ -221,6 +221,20 @@ export default defineComponent({
 		card: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * How the strip is drawn: `line` (the default: tabs joined to the
+		 * panel below) or `segmented` (a compact pill switch, for a view
+		 * switch such as "My work / My team"). Roles and keyboard behaviour
+		 * are the same in both.
+		 *
+		 * @type {'line'|'segmented'}
+		 */
+		variant: {
+			type: String,
+			default: 'line',
+			validator: (v) => ['line', 'segmented'].includes(v),
 		},
 
 		/**
@@ -824,5 +838,45 @@ export default defineComponent({
 	border: 1px solid var(--color-border);
 	border-top: none;
 	padding: 12px;
+}
+
+/* Segmented variant: the strip is a pill switch that stands on its own, so
+   the bar's rule and the tab-joins-panel treatment are both dropped. */
+.cn-tabs--segmented .cn-tabs__bar {
+	border-bottom: none;
+}
+
+.cn-tabs--segmented .cn-tabs__strip {
+	flex: 0 1 auto;
+}
+
+.cn-tabs--segmented .cn-tabs__nav {
+	gap: 4px;
+	margin-bottom: 0;
+	padding: 4px;
+	border-radius: var(--border-radius-container, var(--border-radius-large, 10px));
+	background-color: var(--color-background-dark);
+}
+
+.cn-tabs--segmented .cn-tabs__nav-item {
+	border: 1px solid transparent;
+	border-radius: var(--border-radius-element, var(--border-radius-large, 8px));
+	background-color: transparent;
+	font-weight: 600;
+	padding: 6px 16px;
+}
+
+.cn-tabs--segmented .cn-tabs__nav-item:hover {
+	background-color: var(--color-background-hover);
+}
+
+/* The open segment is the raised one. Its border survives forced-colours
+   mode, which drops the background and the shadow. */
+.cn-tabs--segmented .cn-tabs__nav-item--active {
+	border: 1px solid var(--color-border-dark);
+	background-color: var(--color-main-background);
+	box-shadow: 0 1px 2px var(--color-box-shadow);
+	font-weight: 600;
+	padding-top: 6px;
 }
 </style>

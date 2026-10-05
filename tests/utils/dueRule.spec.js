@@ -41,6 +41,13 @@ describe('dueRule', () => {
 		expect(dueStateOf('2026-10-05', { soonDays: 0 }, now)).toBe('soon')
 	})
 
+	it('takes a variantWhen list in the table date cell shape, and then ignores soonDays', () => {
+		const rule = { soonDays: 30, variantWhen: [{ op: 'lt', value: 0, variant: 'error' }, { op: 'lte', value: 1, variant: 'warning' }] }
+		expect(dueStateOf('2026-10-04', rule, now)).toBe('overdue')
+		expect(dueStateOf('2026-10-06', rule, now)).toBe('soon')
+		expect(dueStateOf('2026-10-08', rule, now)).toBe('ok')
+	})
+
 	it('reads the date off the row through the rule field, dot-paths included', () => {
 		expect(dueStateForRow({ deadline: '2026-10-01' }, { field: 'deadline' }, now)).toBe('overdue')
 		expect(dueStateForRow({ term: { end: '2026-12-01' } }, { field: 'term.end' }, now)).toBe('ok')
