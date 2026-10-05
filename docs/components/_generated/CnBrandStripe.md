@@ -5,3 +5,4 @@
 | Name          | Type     | Required | Default        | Description                                                                                                                                                   |
 | ------------- | -------- | -------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `orientation` | `string` |          | `'horizontal'` | The direction the stripe runs in: `horizontal` (the default, a bar across the top) or `vertical` (a bar down the side; the height token then sets its width). |
+| `variant`     | `string` |          | `'default'`    | The ground the stripe sits on: `default` (a light surface) or `inverse` (a dark band such as a footer), which draws the theme's `--cn-brand-stripe-image-inverse` when it names one. |
