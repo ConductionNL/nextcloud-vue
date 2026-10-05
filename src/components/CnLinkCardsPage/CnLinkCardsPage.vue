@@ -395,6 +395,13 @@ export default {
 	padding: calc(5 * var(--default-grid-baseline));
 }
 
+/* Clear the Nextcloud navigation toggle button (44px wide, absolutely
+   positioned at the left edge of .app-content) plus 12px breathing room, as
+   CnPageHeader does. Only the header shifts; the cards keep the full width. */
+.cn-link-cards-page__header {
+	padding-inline-start: 56px;
+}
+
 .cn-link-cards-page__title {
 	margin: 0 0 var(--default-grid-baseline);
 }
@@ -445,12 +452,32 @@ export default {
 	gap: calc(3 * var(--default-grid-baseline));
 	min-width: 0;
 	padding: calc(4 * var(--default-grid-baseline));
-	text-decoration: none;
+	transition: background-color var(--animation-quick, 100ms) ease, border-color var(--animation-quick, 100ms) ease, box-shadow var(--animation-quick, 100ms) ease;
 }
 
+/* A card is a link, and it must not look like a line of prose. A theme may
+   underline every link with `!important` (thematiq: `a { text-decoration:
+   underline !important }`, specificity 0,0,1). Among `!important` rules the
+   higher specificity wins, so this class rule has to carry it too; without it
+   the label and the description both rendered underlined on a live Nextcloud. */
+.cn-link-cards-page__card,
+.cn-link-cards-page__card:hover,
+.cn-link-cards-page__card:focus,
+.cn-link-cards-page__card:active {
+	text-decoration: none !important;
+}
+
+/* Hover moves the whole card: border, background and a soft lift. */
 .cn-link-cards-page__card:hover {
 	background: var(--color-background-hover);
 	border-color: var(--color-primary-element);
+	box-shadow: 0 2px 6px var(--color-box-shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-link-cards-page__card {
+		transition: none;
+	}
 }
 
 .cn-link-cards-page__card:focus-visible {
@@ -471,8 +498,14 @@ export default {
 	min-width: 0;
 }
 
+/* The label is the card's title. Its colour is set here, on the span, because
+   a theme may force its link colour on the `a` itself; an inherited link
+   colour made the title read as a hyperlink. */
 .cn-link-cards-page__label {
-	font-weight: 600;
+	color: var(--color-main-text);
+	font-size: 1.05em;
+	font-weight: 700;
+	line-height: 1.3;
 	overflow-wrap: anywhere;
 }
 

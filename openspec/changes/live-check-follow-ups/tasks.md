@@ -11,14 +11,14 @@
 ### Task 2: A link card looks like a card
 - **spec_ref**: `openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-link-card-looks-like-a-card`
 - **files**: `src/components/CnLinkCardsPage/CnLinkCardsPage.vue`, `e2e/`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Page headings clear the navigation toggle
 - **spec_ref**: `openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-heading-clears-the-navigation-toggle`
 - **files**: `src/components/CnLinkCardsPage/`, `src/components/CnReportsPage/`, `src/components/CnStorePage/`, `src/components/CnWikiPage/`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 4: An attention card says when it could not check
 - **spec_ref**: `openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check`

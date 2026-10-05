@@ -344,6 +344,21 @@
 		</template>
 
 		<!--
+			CnLinkCardsPage under a hostile theme (gated behind ?linkcards=1).
+			The spec injects the rule a Nextcloud theme ships
+			(`a { text-decoration: underline !important }`) and reads the
+			COMPUTED style, which jsdom cannot give: it applies no scoped SFC
+			styles and resolves no cascade between two `!important` rules.
+		-->
+		<template v-else-if="showLinkCards">
+			<CnLinkCardsPage
+				title="Modules and more"
+				description="Every page that is not in the daily menu."
+				:categories="{ sales: 'Sales' }"
+				:cards="linkCards" />
+		</template>
+
+		<!--
 			CnInteractionFormWidget rendered at a FIXED width (gated behind
 			?ifw=1) so a Playwright screenshot of it is a stable pixel
 			reference. This exists to prove the CnFormWidgetBase extraction
@@ -529,6 +544,7 @@ import CnIconBrowser from '../../src/components/CnIconBrowser/CnIconBrowser.vue'
 import CnIconPicker from '../../src/components/CnIconPicker/CnIconPicker.vue'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 import CnInteractionFormWidget from '../../src/components/CnInteractionFormWidget/CnInteractionFormWidget.vue'
+import CnLinkCardsPage from '../../src/components/CnLinkCardsPage/CnLinkCardsPage.vue'
 import CnMarkdownEditor from '../../src/components/CnMarkdownEditor/CnMarkdownEditor.vue'
 import CnNavCardGrid from '../../src/components/CnNavCardGrid/CnNavCardGrid.vue'
 import CnNcWidgetWidget from '../../src/components/CnNcWidgetWidget/CnNcWidgetWidget.vue'
@@ -561,7 +577,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, StagesHarness, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, StagesHarness, NcDialog, NcSelect },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -747,6 +763,13 @@ export default {
 					description: 'Opens an external resource in a new tab',
 					href: 'https://example.org/explore',
 				},
+			],
+
+			// CnLinkCardsPage under a theme that underlines links (?linkcards=1).
+			showLinkCards: (typeof window !== 'undefined' && window.location.search.includes('linkcards')),
+			linkCards: [
+				{ id: 'leads', label: 'Leads', description: 'Every deal you are working on.', category: 'sales', href: 'https://example.org/leads' },
+				{ id: 'quotes', label: 'Quotes', description: 'Offers that are out with a customer.', category: 'sales', href: 'https://example.org/quotes' },
 			],
 
 			// CnTasksWidget / tasks entity source harness (?tasksWidget=1 / ?tasksIndex=1).
