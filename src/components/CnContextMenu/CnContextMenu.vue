@@ -12,7 +12,7 @@
 			@close="onClose"
 			@closed="onClosed">
 			<!-- Dynamic actions from array prop -->
-			<template v-for="{ action, link } in renderedActions" :key="action.label">
+			<template v-for="{ action, link } in renderedActions" :key="actionKey(action)">
 				<!-- A navigate-only action is a real link, so it can be middle-clicked, opened in a new tab or copied. -->
 				<NcActionLink
 					v-if="link"
@@ -20,7 +20,7 @@
 					:target="link.target"
 					:title="resolveTitle(action)"
 					:class="{ 'cn-row-action--destructive': action.destructive }"
-					:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
+					:data-testid="actionTestId(action)"
 					closeAfterClick
 					@click="onLinkAction(action, link, $event)">
 					<template v-if="action.icon" #icon>
@@ -34,7 +34,7 @@
 					:title="resolveTitle(action)"
 					:disabled="resolveDisabled(action)"
 					:class="{ 'cn-row-action--destructive': action.destructive }"
-					:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
+					:data-testid="actionTestId(action)"
 					closeAfterClick
 					@click="onAction(action)">
 					<template v-if="action.icon" #icon>
@@ -95,6 +95,7 @@ import { NcActionButton, NcActionLink, NcActions } from '@nextcloud/vue'
 import { CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR } from '../../composables/useContextMenu.js'
 import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
 import { isModifiedClick } from '../../utils/linkNavigation.js'
+import { isRowActionVisible, rowActionKey, rowActionPayload, rowActionTestId, slugifyActionLabel } from '../../utils/rowActionItem.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -109,12 +110,13 @@ import { CnIcon } from '../CnIcon/index.js'
  * cursor positioning). The composable handles the DOM attributes; this component
  * handles the NcActions template boilerplate.
  *
- * Dynamic actions (CnIndexPage pattern)
+ * Dynamic actions (CnIndexPage pattern).
+ * CnIndexPage passes the same per-row list its row actions menu renders, so the two menus always match.
  * ```vue
  * <CnContextMenu
  *   v-model:open="contextMenuOpen"
- *   :actions="mergedActions"
- *   :target-item="contextMenuRow"
+ *   :actions="rowActionsFor(contextMenuShownRow)"
+ *   :target-item="contextMenuShownRow"
  *   @action="$emit('action', $event)"
  *   @close="closeContextMenu" />
  * ```
@@ -161,13 +163,15 @@ export default {
 		 * `visible` (boolean | (targetItem) => boolean) hides the entry when falsy
 		 * (default: shown). `title` (string | (targetItem) => string) renders as
 		 * a native tooltip — useful for explaining why an entry is disabled.
+		 * A locally decidable `visibleWhen` that is false for the target hides the entry too, as in CnRowActions.
+		 * `id` is passed in the `action` payload; `builtin` marks a CnIndexPage built-in, whose testid is `cn-action-item-<id>` in every locale.
 		 * `href` (URL) or `to` (vue-router location), each a value or a
 		 * `(targetItem) => …` function, render the entry as a real link, with
 		 * `linkTarget` as its `target`; a link emits `action` but does not call
 		 * `handler`. When the entire array is empty (or all entries are filtered
 		 * out), only the default slot content is rendered.
 		 *
-		 * @type {Array<{label: string, icon: object | string, handler: (targetItem: object) => void, disabled: boolean | ((targetItem: object) => boolean), visible: boolean | ((targetItem: object) => boolean), title: string | ((targetItem: object) => string), destructive: boolean, href: string | ((targetItem: object) => string), to: string | object | ((targetItem: object) => string | object), linkTarget: string}>}
+		 * @type {Array<{label: string, id: string, builtin: boolean, icon: object | string, handler: (targetItem: object) => void, disabled: boolean | ((targetItem: object) => boolean), visible: boolean | ((targetItem: object) => boolean), visibleWhen: object, title: string | ((targetItem: object) => string), destructive: boolean, href: string | ((targetItem: object) => string), to: string | object | ((targetItem: object) => string | object), linkTarget: string}>}
 		 */
 		actions: {
 			type: Array,
@@ -209,21 +213,13 @@ export default {
 
 	computed: {
 		/**
-		 * Filter actions by their `visible` predicate. Entries without
-		 * `visible` are always shown (backwards compatible).
+		 * Filter actions by their `visibleWhen` and `visible` gates, with the same rule CnRowActions uses.
+		 * Entries without either always show.
 		 *
 		 * @return {Array} Visible actions for the current targetItem.
 		 */
 		visibleActions() {
-			return this.actions.filter((action) => {
-				if (action.visible === undefined) {
-					return true
-				}
-				if (typeof action.visible === 'function') {
-					return !!action.visible(this.targetItem)
-				}
-				return !!action.visible
-			})
+			return this.actions.filter((action) => isRowActionVisible(action, this.targetItem))
 		},
 
 		/**
@@ -466,18 +462,33 @@ export default {
 
 		/**
 		 * Slugify an action label for use in stable `data-testid` selectors.
-		 * Lowercase, kebab-case, strip non-alphanumeric. Used solely by the
-		 * `:data-testid` binding on NcActionButton — does not affect runtime
-		 * behaviour or rendered text.
+		 * Lowercase, kebab-case, strip non-alphanumeric.
 		 *
 		 * @param {string} label The action's display label.
 		 * @return {string} kebab-case slug suitable for a testid suffix.
 		 */
 		slugifyLabel(label) {
-			return String(label || '')
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-+|-+$/g, '')
+			return slugifyActionLabel(label)
+		},
+
+		/**
+		 * The entry's `data-testid`: `cn-action-item-<id>` for a built-in, the label slug otherwise.
+		 *
+		 * @param {object} action The action descriptor.
+		 * @return {string} The testid.
+		 */
+		actionTestId(action) {
+			return rowActionTestId(action)
+		},
+
+		/**
+		 * The entry's render key: `builtin:<id>` for a built-in, the label otherwise.
+		 *
+		 * @param {object} action The action descriptor.
+		 * @return {string} The key.
+		 */
+		actionKey(action) {
+			return rowActionKey(action)
 		},
 
 		onAction(action) {
@@ -485,10 +496,10 @@ export default {
 				action.handler(this.targetItem)
 			}
 			/**
-			 * @event action User picked an entry from the menu. The action's own `handler(targetItem)` (when present) ran synchronously before this event fires; the event lets parents observe / log the choice.
-			 * @type {{ action: string, row: object|null }}
+			 * @event action User picked an entry from the menu. The action's own `handler(targetItem)` (when present) ran synchronously before this event fires; the event lets parents observe / log the choice. Payload: `action` (the label), the target as `row`, the action's `id` when it has one, and `builtin: true` for a CnIndexPage built-in.
+			 * @type {{ action: string, row: object|null, id?: string, builtin?: boolean }}
 			 */
-			this.$emit('action', { action: action.label, row: this.targetItem })
+			this.$emit('action', rowActionPayload(action, this.targetItem))
 		},
 
 		/**
@@ -506,7 +517,7 @@ export default {
 				return
 			}
 			followItemActionLink(event, link, this.$router)
-			this.$emit('action', { action: action.label, row: this.targetItem })
+			this.$emit('action', rowActionPayload(action, this.targetItem))
 		},
 
 		onClose() {

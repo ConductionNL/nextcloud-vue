@@ -17,7 +17,7 @@ The compiled file is gitignored and regenerated on every install cycle. If you s
 ```js
 import { validateManifestV2 } from '@conduction/nextcloud-vue'
 
-const { valid, errors } = validateManifestV2(manifest)
+const { valid, errors, warnings } = validateManifestV2(manifest)
 ```
 
 | Argument | Type | Description |
@@ -30,6 +30,7 @@ const { valid, errors } = validateManifestV2(manifest)
 |-----|------|-------------|
 | `valid` | `boolean` | `true` when `errors` is empty. |
 | `errors` | `string[]` | Bracket-path error messages matching the v1 validator's format, e.g. `'/pages/0/widgets/2: gridX + gridWidth (8 + 6 = 14) exceeds 12 for slot "body"'`. |
+| `warnings` | `string[]` | Non-fatal findings from the post-schema checks; they never affect `valid`. See "Post-schema warnings" below. |
 
 ## Rules enforced
 
@@ -54,6 +55,14 @@ const { valid, errors } = validateManifestV2(manifest)
 - Wave-2 endpoint binding (schema v2.14.0, `$defs/endpointSource`): exactly one data binding per widget — `stat`/`delta` `content.source` | `content.endpointSource` (an editor-seeded EMPTY source blob doesn't count), `chart` `dataSource` | `props.endpointSource`, `object-table` `props.source` | `props.endpointSource`. Enforced on BOTH the v2 `pages[].widgets[]` grid and the legacy `pages[].config.widgets[]` dashboard catalog. See [useEndpointSource](./composables/use-endpoint-source.md).
 - Wave-3 vocabulary (schema v2.15.0): the chart `dataSource.aggregate` OBJECT form (`{ groupBy, metric, sumField?, topN?, otherBucket?, labelResolve? }`) + sibling `drilldown` (`{ route, filterParam }`); four new `$defs/action` types (`open-form` requires `schema`, `api-call` requires `url`, `toggle` requires `writeUrl`, `refresh`) each guarded by an `if/then` required-field branch; the shared `$defs/visibleWhen` predicate (endpoint | source | local `field`, `op` enum, `value`) reusable on actions; and typed `props.content` for the `workspace-filter` and `kb-search` catalog widgets. Free-form keys still pass (`additionalProperties: true`); the new branches type + document the load-bearing ones.
 - `api-call` payload + download (schema v2.20.0): `payload` (JSON body, `@`-tokens resolve RECURSIVELY at any nesting depth — objects/arrays of objects, e.g. `{ dataRefs: [{ id: '@objectId' }] }`) alongside the legacy `params` (shallow, one level deep); `download` (boolean, request a blob response and trigger a browser file download) and `filename` (token-interpolated fallback filename). All three are additive/optional — existing `params`-only actions are unaffected. See [dispatchAction](./dispatch-action.md#api-call-wave-3-91).
+- Built-in row action placeholders (schema v2.43.0): on a `type: "index"` page, `config.actions` entries may be `"builtin:view"`, `"builtin:edit"`, `"builtin:copy"` or `"builtin:delete"`, each at most once. Any other string, an object whose `id` is not a string or starts with `builtin:`, and an object that sets a `builtin` key are errors, and placeholders are errors on every other page type. See [CnIndexPage: Placing built-in row actions](../components/cn-index-page.md#placing-built-in-row-actions).
+
+**Post-schema warnings (never affect `valid`):**
+
+- An index page's `config.actions` places a `"builtin:<id>"` whose built-in the manifest turns off, so it renders nothing. A toggle turned off at runtime (a permission check, say) is not visible here and is legitimate, so the page itself does not warn about it.
+- An index page's built-in Delete is enabled but not the last entry of its rendered row action order, counting the enabled built-ins the array does not place (appended after it).
+
+Both read the toggles as `CnPageRenderer` derives them: explicit `config.show*Action` over `config.actionToggles`, `config.readOnly` turning Edit, Copy and Delete off. Both are skipped on a `config.entitySource` page, whose built-ins depend on the source at runtime.
 
 ## Dispatch contract
 
