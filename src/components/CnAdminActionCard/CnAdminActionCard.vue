@@ -184,7 +184,7 @@ export default {
 			}
 			this.running = true
 			this.result = null
-			let data = null
+			let data
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
