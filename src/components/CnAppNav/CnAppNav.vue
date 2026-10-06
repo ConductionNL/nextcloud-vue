@@ -394,6 +394,29 @@ function byManifestOrder(a, b) {
 	return a.order - b.order
 }
 
+/** A `:name` page-path segment: name, optional `(regexp)`, optional modifier. */
+const PARAM_SEGMENT = /^:(\w+)(\([^)]*\))?([?*+])?$/
+
+/**
+ * Whether a `PARAM_SEGMENT` match may be left out (`?` or `*`).
+ *
+ * @param {Array<string>} param The match.
+ * @return {boolean} True for an optional segment.
+ */
+function isOptionalParam(param) {
+	return param[3] === '?' || param[3] === '*'
+}
+
+/**
+ * Whether a route param value fills its segment.
+ *
+ * @param {unknown} value The value.
+ * @return {boolean} False for undefined, null and the empty string.
+ */
+function isFilled(value) {
+	return value !== undefined && value !== null && value !== ''
+}
+
 /**
  * Decode one percent-encoded path segment, or keep it as is when it is not
  * valid percent-encoding.
@@ -1083,6 +1106,8 @@ export default {
 		// stays out of `data()`: a reactive Set mutated inside render would
 		// re-trigger the render effect.
 		this._autoCountWarned = new Set()
+		// Same latch, for warnUnfilledRouteParam() (`itemTo()` runs during render).
+		this._unfilledParamWarned = new Set()
 	},
 
 	methods: {
@@ -1421,19 +1446,52 @@ export default {
 			}
 			const segments = []
 			for (const part of pagePath.split('/').filter(Boolean)) {
-				const param = /^:(\w+)(\([^)]*\))?([?*+])?$/.exec(part)
+				const param = PARAM_SEGMENT.exec(part)
 				if (!param) {
 					segments.push(part)
 					continue
 				}
-				const value = item.params[param[1]]
-				if (value !== undefined && value !== null && value !== '') {
+				const value = item.params?.[param[1]]
+				if (isFilled(value)) {
 					segments.push(String(value))
-				} else if (param[3] !== '?' && param[3] !== '*') {
+				} else if (!isOptionalParam(param)) {
 					return null
 				}
 			}
 			return segments
+		},
+
+		/**
+		 * The required route param the router cannot fill when it resolves
+		 * an entry's link on its manifest page. vue-router fills a named
+		 * link's required params from the current route, then overlays every
+		 * key the entry declares, empty or null included. So a declared key
+		 * decides on its own value, and only an undeclared one falls back
+		 * to the current route. Null without a known page, or when every
+		 * required segment is filled. Reads `$route`, so it follows
+		 * navigation.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {string|null} The param name, or null.
+		 */
+		unfilledRouteParam(item) {
+			const pagePath = this.pageForItem(item)?.route
+			if (!pagePath) {
+				return null
+			}
+			const declared = item.params && typeof item.params === 'object' ? item.params : {}
+			const current = this.$route?.params ?? {}
+			for (const part of pagePath.split('/')) {
+				const param = PARAM_SEGMENT.exec(part)
+				if (!param || isOptionalParam(param)) {
+					continue
+				}
+				const value = param[1] in declared ? declared[param[1]] : current[param[1]]
+				if (!isFilled(value)) {
+					return param[1]
+				}
+			}
+			return null
 		},
 
 		/**
@@ -1591,6 +1649,27 @@ export default {
 		},
 
 		/**
+		 * One-shot `console.warn` per menu entry whose link cannot fill a
+		 * required route param. Keyed by `id`, else route and label, so
+		 * entries without an id each get their own warning.
+		 *
+		 * @param {{ id?: string, route: string, label?: string }} item Menu entry descriptor.
+		 * @param {string} param The unfilled param name.
+		 * @return {void}
+		 * @private
+		 */
+		warnUnfilledRouteParam(item, param) {
+			const key = item.id ?? `${item.route}|${item.label ?? ''}`
+			if (this._unfilledParamWarned.has(key)) {
+				return
+			}
+			this._unfilledParamWarned.add(key)
+			const name = item.id ?? item.label ?? item.route
+			// eslint-disable-next-line no-console
+			console.warn(`[CnAppNav] Menu entry "${name}" cannot fill the required route param "${param}" of page "${item.route}" from its params or the current route — the entry renders without a link.`)
+		},
+
+		/**
 		 * Look up an item's resolved page (`pages[]` entry whose `id`
 		 * matches the menu item's `route`) — used to decide whether the
 		 * NcAppNavigationItem should match its router-link `exact`.
@@ -1615,9 +1694,14 @@ export default {
 		 * anchor via `itemHref`. Route items return a named route that
 		 * carries the item's `params` and `query` when it declares them.
 		 *
+		 * An item whose manifest page has a required segment that neither
+		 * its `params` nor the current route fill also returns null, with a
+		 * one-time warning: the router throws resolving such a link, which
+		 * would take the whole navigation down rather than that one entry.
+		 *
 		 * @param {object} item Menu item being rendered.
 		 * @return {object|null} A `{ name, params?, query? }` route object,
-		 *   or null for action / href / route-less items.
+		 *   or null for action / href / route-less / unfillable items.
 		 */
 		itemTo(item) {
 			if (item.action) {
@@ -1627,6 +1711,11 @@ export default {
 				return null
 			}
 			if (!item.route) {
+				return null
+			}
+			const unfilled = this.unfilledRouteParam(item)
+			if (unfilled) {
+				this.warnUnfilledRouteParam(item, unfilled)
 				return null
 			}
 			const to = { name: item.route }
@@ -1790,6 +1879,11 @@ export default {
 				}
 				this.cnReplayWalkthrough(item.tourId)
 				return
+			}
+			// An entry left without a link (see itemTo) renders a `#` anchor;
+			// following it would change the address, so the click goes nowhere.
+			if (!item.href && this.unfilledRouteParam(item) && event && typeof event.preventDefault === 'function') {
+				event.preventDefault()
 			}
 			if (this.visibleChildren(item).length === 0) {
 				return
