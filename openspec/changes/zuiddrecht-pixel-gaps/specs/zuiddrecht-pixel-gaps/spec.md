@@ -254,3 +254,21 @@ dot strip SHALL render as before.
 - **GIVEN** `variant: "bars"` and three stages with the second current
 - **WHEN** the widget renders
 - **THEN** three list items carry the states done, current and todo, no description is drawn, and the current label carries the hidden text
+
+### Requirement: An app root can hide its menu
+
+CnAppRoot SHALL take a `hideMenu` prop (default `false`). When true, neither
+the default CnAppNav nor the `#menu` slot renders, so the content starts at
+the left edge. By default the navigation renders exactly as before.
+
+#### Scenario: Default
+
+- **GIVEN** a manifest with a menu and no `hideMenu`
+- **WHEN** the root renders its shell
+- **THEN** CnAppNav renders with the menu manifest
+
+#### Scenario: Hidden
+
+- **GIVEN** `hideMenu: true`
+- **WHEN** the root renders its shell
+- **THEN** no CnAppNav and no `#menu` slot content is in the DOM

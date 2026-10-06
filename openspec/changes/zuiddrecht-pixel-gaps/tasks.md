@@ -97,3 +97,9 @@
 - **files**: `src/components/CnStagesWidget/CnStagesWidget.vue`, `src/components/CnStagesWidget/stagesModel.js`
 - [x] Implement
 - [x] Test
+
+### Task 17: An app root can hide its menu
+- **spec_ref**: `openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-app-root-can-hide-its-menu`
+- **files**: `src/components/CnAppRoot/CnAppRoot.vue`
+- [x] Implement
+- [x] Test

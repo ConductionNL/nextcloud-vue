@@ -199,7 +199,13 @@
 			<!-- @binding {boolean} isOwner Whether the user owns this app (ADR-079 §3). -->
 			<!-- @binding {boolean} isAdmin Whether the user administers the instance; gates the Admin-settings link. -->
 			<!-- @binding {string} appId The app id used to build the Admin-settings target. -->
-			<slot name="menu"
+			<!-- `hideMenu` renders no navigation at all, so the content starts
+			     at the left edge. An EMPTY #menu override cannot do that: an
+			     empty slot falls back to the default CnAppNav (ensureValidVNode),
+			     which is why launchpad passed a hidden empty span. -->
+			<slot
+				v-if="!hideMenu"
+				name="menu"
 				:manifest="menuManifest"
 				:permissions="permissions"
 				:isOwner="isOwner"
@@ -1177,6 +1183,19 @@ export default {
 		appId: {
 			type: String,
 			required: true,
+		},
+
+		/**
+		 * Render no app navigation at all: neither the default CnAppNav nor
+		 * the `#menu` slot, so the content starts at the left edge (a start
+		 * page without a menu). Off by default; the navigation renders as it
+		 * always has.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-app-root-can-hide-its-menu
+		 */
+		hideMenu: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
