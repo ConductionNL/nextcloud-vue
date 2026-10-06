@@ -35,9 +35,14 @@
  * registers author the slug by hand for multi-word titles) folds to one
  * `-`, leading/trailing dashes trimmed.
  *
- * Idempotent: a value that is already a slug (`report-period`, `cohort`)
- * passes through unchanged, so it is always safe to route an already-correct
- * value through this function defensively.
+ * Idempotent: a value that is already a slug (`report-period`, `cohort`,
+ * `statusType`) passes through unchanged, so it is always safe to route an
+ * already-correct value through this function defensively. A slug is any
+ * value that starts with a lowercase letter or digit and holds only
+ * letters, digits and dashes; only a title (capital initial, or spaces and
+ * punctuation) is kebab-cased.
+ *
+ * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-plain-schema-slug-is-left-as-written
  *
  * A numeric schema id (OpenRegister accepts either the slug or the numeric
  * id in the objects-API path) is returned unchanged — slugifying a number
@@ -62,6 +67,17 @@ export function schemaRefSlug(ref) {
 	const tail = ref.includes('/') ? ref.substring(ref.lastIndexOf('/') + 1) : ref
 	if (tail === '') {
 		return ''
+	}
+	// A plain slug is left as written. OpenRegister matches a slug
+	// case-insensitively (`statusType`, `statustype` and `StatusType` all
+	// answer 200) but `status-type` is another slug and 404s, so a
+	// camelCase slug authored as a slug must not be kebab-cased. Only a
+	// `$ref` TITLE is: it starts with a capital (`ReportPeriod`) or carries
+	// spaces or punctuation (`Praktijkovereenkomst (POK)`). 2.62.0 kebab-cased
+	// everything and broke every camelCase slug (dossiq: statusType, caseType,
+	// caseObject, bezwaarDecision, bacAdviceRequest, wmsLayer, ...).
+	if (/^[a-z0-9][A-Za-z0-9-]*$/.test(tail)) {
+		return tail
 	}
 	const kebab = tail
 		// PascalCase / camelCase word boundaries: `ReportPeriod` -> `Report-Period`,

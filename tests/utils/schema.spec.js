@@ -758,10 +758,14 @@ describe('fieldsFromSchema', () => {
 		expect(contactsField.widget).toBe('multiselect')
 	})
 
-	it('sets field.reference for a single $ref property, kebab-cased to the objects-API slug (defect 7)', () => {
+	it('sets field.reference for a single $ref property, a slug left as written and a title kebab-cased (defect 7)', () => {
+		// `caseType` is a slug (lowercase initial) and OpenRegister 404s on
+		// `case-type`; `Decision` is a title and resolves to its slug.
 		const fields = fieldsFromSchema(refSchema)
 		const caseTypeField = fields.find((f) => f.key === 'caseType')
-		expect(caseTypeField.reference).toEqual({ schema: 'case-type', multiple: false })
+		expect(caseTypeField.reference).toEqual({ schema: 'caseType', multiple: false })
+		const decisionField = fields.find((f) => f.key === 'decision')
+		expect(decisionField.reference.schema).toBe('decision')
 	})
 
 	it('sets field.reference with multiple:true for an items.$ref property', () => {

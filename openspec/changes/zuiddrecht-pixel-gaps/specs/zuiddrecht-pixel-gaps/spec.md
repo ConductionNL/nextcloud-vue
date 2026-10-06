@@ -217,3 +217,23 @@ CnTabs.
 - **GIVEN** `content.variant: "segmented"`
 - **WHEN** the widget renders
 - **THEN** the strip carries `cn-tabs--segmented`
+
+### Requirement: A plain schema slug is left as written
+
+`schemaRefSlug` SHALL kebab-case only a `$ref` title: a value with a capital
+initial, or one carrying spaces or punctuation. A value that starts with a
+lowercase letter or digit and holds only letters, digits and dashes is a
+slug and SHALL be returned as written, so a camelCase slug such as
+`statusType` reaches OpenRegister unchanged.
+
+#### Scenario: camelCase slug
+
+- **GIVEN** `source.schema: "statusType"`
+- **WHEN** `resolveObjectOpType` resolves the type
+- **THEN** the schema segment is `statusType`, not `status-type`
+
+#### Scenario: Title
+
+- **GIVEN** a `$ref` of `ReportPeriod`
+- **WHEN** it is slugified
+- **THEN** the result is `report-period`

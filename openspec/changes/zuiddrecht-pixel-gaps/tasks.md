@@ -85,3 +85,9 @@
 - **files**: `src/components/CnTabsWidget/CnTabsWidget.vue`
 - [ ] Implement
 - [ ] Test
+
+### Task 15: A plain schema slug is left as written
+- **spec_ref**: `openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-plain-schema-slug-is-left-as-written`
+- **files**: `src/utils/schemaRefSlug.js`, `tests/utils/schemaRefSlug.spec.js`
+- [x] Implement
+- [x] Test
