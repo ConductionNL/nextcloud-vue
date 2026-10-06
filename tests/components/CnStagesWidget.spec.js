@@ -175,12 +175,12 @@ describe('CnStagesWidget: the stage list', () => {
 		await flush()
 
 		const url = decodeURIComponent(String(fetchSpy.mock.calls[0][0]))
-		// REGRESSION (learniq round-1 defect 7, nextcloud-vue:slugify-ref-relation-resolver).
-		// `resolveObjectOpType()` now kebab-cases a PascalCase `stagesSource.schema`
-		// before it reaches the objects API — OpenRegister 404s on the raw title
-		// for a multi-word schema, exactly the config shape dossiq's own
-		// `stagesSource` uses here.
-		expect(url).toContain('/objects/dossiq/status-type')
+		// `statusType` is a SLUG (lowercase initial), the one dossiq registers
+		// its schema under; OpenRegister matches it case-insensitively and
+		// 404s on `status-type`. 2.62.0 kebab-cased it and dossiq's stage list
+		// went dark (measured on :8097). Only a `$ref` title such as
+		// `StatusType` is kebab-cased (defect 7, learniq round 1).
+		expect(url).toContain('/objects/dossiq/statusType?')
 		expect(url).toContain('caseType=ct-1')
 		expect(labels(w)).toEqual(['Ontvangen', 'In behandeling', 'Afgehandeld'])
 	})

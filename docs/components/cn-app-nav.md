@@ -300,3 +300,53 @@ The menu CnAppNav renders is whatever [`useAppManifest`](../utilities/composable
 - [CnAppRoot](./cn-app-root.md) — Provides the `manifest` / `translate` / `permissions` values via inject.
 - [useAppManifest](../utilities/composables/use-app-manifest.md) — Loads, merges, and validates the manifest CnAppNav renders.
 - [migrating-to-manifest](../migrating-to-manifest.md) — Adoption guide.
+
+## Zuiddrecht additions (2.63.0, all opt-in)
+
+### A primary action that runs a page action, or is drawn solid
+
+`nav.primaryAction` and `pages[].primaryAction` take an `action` (the `$defs/action` shape). The button then renders through `CnActionButtons`, so an `open-form` action opens the schema-driven create dialog without a create page, `navigate` pushes a route and `api-call` calls an endpoint. It is drawn as one solid, full-width primary button; `solid: true` draws a plain or link action the same way. `permission` and `visibleIf` gate the action like a menu entry; a gated-out page-scoped action falls back to `nav.primaryAction`. After an `open-form` action saves, the nav emits `primary-action-created` with the created object.
+
+```json
+"nav": {
+  "primaryAction": {
+    "id": "new-case", "label": "New case", "icon": "Plus", "permission": "cases.create",
+    "action": { "type": "open-form", "register": "dossiq", "schema": "case" }
+  }
+}
+```
+
+### A filtered count on an entry
+
+`count` can be `{ register, schema, filter? }`: the total of that filtered list, fetched by `CnAppRoot` with the filter's tokens (`@me`, `@today`, ...) resolved and provided per entry id as `cnMenuItemCounts`, under its own request so the index page's whole-schema total stays what it was.
+
+```json
+{ "id": "mine", "label": "My work", "route": "Cases", "query": { "assignee": "me" },
+  "count": { "register": "dossiq", "schema": "case", "filter": { "assignee": "@me", "status": { "neq": "closed" } } } }
+```
+
+### A card and a help entry
+
+`nav.card` draws a card above the footer entries: a title, a line of text and one link (`route` + optional `params`, `href`, or an `action` id that emits `card-action`). The `#card` slot replaces it and receives the resolved `card`. `nav.help` adds a help entry with a help icon above the settings foldout (`route` or `href`, an href opens in a new tab).
+
+```json
+"nav": {
+  "card": { "title": "Close out your day", "text": "See what is left and set it up for tomorrow.", "link": { "label": "To the day close", "route": "DayClose" } },
+  "help": { "label": "Help and explanation", "href": "https://docs.example.org/dossiq" }
+}
+```
+
+Theme hooks: `--cn-nav-card-background`, `--cn-nav-card-radius`.
+
+### An emblem in the brand block
+
+`nav.brand.emblem` draws an emblem in place of `logo`: the municipality's mark beside the app name, distinct from the wordmark in the top bar. A URL, or `true` to draw the theme's emblem from `--nldesign-emblem-url`. Size: `--cn-nav-emblem-size` (34px).
+
+| Slot | Description |
+|------|-------------|
+| `card` | Replaces the card above the footer entries. Scope: `{ card }`, the resolved card or null. |
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `primary-action-created` | the created object | An `open-form` primary action saved. |
+| `card-action` | the action id | The nav card's link is an action button and was clicked. |

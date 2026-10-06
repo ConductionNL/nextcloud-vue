@@ -11,8 +11,14 @@
 -->
 <template>
 	<div class="cn-dashboard-page" data-testid="cn-dashboard-page">
-		<!-- Header -->
-		<div class="cn-dashboard-page__header" data-testid="cn-dashboard-page-header">
+		<!-- Header. `showHeader: false` drops the whole row (title, description,
+		     header actions, edit toggle) for a page that opens with its own
+		     heading, such as a greeting; the title then stays as a visually
+		     hidden heading so the main landmark keeps its name. -->
+		<h2 v-if="!showHeader && title" class="hidden-visually" data-testid="cn-dashboard-page-hidden-title">
+			{{ resolvedTitle }}
+		</h2>
+		<div v-if="showHeader" class="cn-dashboard-page__header" data-testid="cn-dashboard-page-header">
 			<div class="cn-dashboard-page__header-left">
 				<div v-if="title || $slots['title-meta']" class="cn-dashboard-page__title-row">
 					<h2 v-if="title" class="cn-dashboard-page__title">
@@ -320,6 +326,7 @@
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -400,6 +407,7 @@
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -478,6 +486,7 @@
 						:flush="item.flush !== false"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
@@ -502,6 +511,7 @@
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -537,6 +547,7 @@
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:showRefresh="getWidgetShowRefresh(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
@@ -566,6 +577,7 @@
 						:titleIconVariant="getWidgetTitleIconVariant(item)"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
@@ -919,6 +931,19 @@ export default {
 		description: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Whether the header row renders: title, description, header actions
+		 * and the edit toggle. `false` (manifest `config.showHeader: false`)
+		 * drops it for a page whose first widget is its heading; the title
+		 * then renders visually hidden so the page keeps an accessible name.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-dashboard-page-can-hide-its-header
+		 */
+		showHeader: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
@@ -3408,6 +3433,22 @@ export default {
 		getWidgetButtons(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			return def?.buttons || []
+		},
+
+		/**
+		 * The widget's header text link (`headerLink` on the layout entry,
+		 * else on the widget definition), forwarded to CnWidgetWrapper.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-widget-header-carries-a-text-link
+		 * @param {object} item Layout placement entry.
+		 * @return {object|null}
+		 */
+		getWidgetHeaderLink(item) {
+			if (item?.headerLink && typeof item.headerLink === 'object') {
+				return item.headerLink
+			}
+			const def = this.getWidgetDef(item.widgetId)
+			return (def?.headerLink && typeof def.headerLink === 'object') ? def.headerLink : null
 		},
 
 		/**

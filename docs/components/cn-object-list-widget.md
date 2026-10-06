@@ -124,3 +124,5 @@ list's resolved scalar filter values are merged in as defaults, so an
 FK-scoped list creates pre-linked children (a task added on a case detail
 already carries the case). Opt out with `content.allowCreate: false`; rename
 with `content.addLabel`. Emits `created` with the sent payload.
+
+`content.hideHeader: true` drops the table's column header row (CnDataTable's `hideHeader`), for a short list that reads as rows rather than as a table.

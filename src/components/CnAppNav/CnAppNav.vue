@@ -92,8 +92,23 @@
 					<!-- Decorative beside a name: the name already says whose
 					     app this is, and an alt text would say it twice. A logo
 					     on its own carries the name as its alt text. -->
+					<!-- An emblem (`nav.brand.emblem`) stands in for the logo:
+					     the municipality's mark beside the app name, distinct
+					     from the wordmark in the top bar. `true` draws the
+					     theme's emblem from --nldesign-emblem-url. -->
 					<img
-						v-if="resolvedBrand.logo"
+						v-if="typeof resolvedBrand.emblem === 'string' && resolvedBrand.emblem !== ''"
+						class="cn-app-nav__brand-emblem"
+						data-testid="cn-nav-brand-emblem"
+						:src="resolvedBrand.emblem"
+						:alt="resolvedBrand.name ? '' : resolvedBrand.alt">
+					<span
+						v-else-if="resolvedBrand.emblem === true"
+						class="cn-app-nav__brand-emblem cn-app-nav__brand-emblem--theme"
+						data-testid="cn-nav-brand-emblem"
+						aria-hidden="true" />
+					<img
+						v-else-if="resolvedBrand.logo"
 						class="cn-app-nav__brand-logo"
 						:src="resolvedBrand.logo"
 						:alt="resolvedBrand.name ? '' : resolvedBrand.alt">
@@ -118,17 +133,33 @@
 		     OR nav root). Omitted entirely when neither the slot nor any
 		     resolvable primaryAction is present. -->
 		<slot name="primary-action">
+			<!-- A primary action that carries an `action` runs a page action
+			     (open-form opens the create dialog, navigate pushes a route)
+			     through CnActionButtons, so "New case" can live in the
+			     navigation without a create page. Drawn as one solid,
+			     full-width primary button. -->
+			<div
+				v-if="activePrimaryAction && primaryDispatchEntry"
+				class="app-navigation-new cn-app-nav__primary-action cn-app-nav__primary-action--solid"
+				data-testid="cn-nav-primary-action">
+				<CnActionButtons
+					:actions="[primaryDispatchEntry]"
+					data-testid="cn-nav-primary-action-dispatch"
+					@created="onPrimaryActionCreated" />
+			</div>
 			<!-- A primary action with an href or route is a real link.
 			     NcAppNavigationNew cannot render one, so this mirrors its
-			     wrapper and button. -->
+			     wrapper and button. `solid: true` takes this same solid,
+			     full-width button for an action with neither. -->
 			<div
-				v-if="activePrimaryAction && primaryActionLink"
+				v-else-if="activePrimaryAction && (primaryActionLink || activePrimaryAction.solid === true)"
 				class="app-navigation-new cn-app-nav__primary-action"
+				:class="{ 'cn-app-nav__primary-action--solid': activePrimaryAction.solid === true }"
 				data-testid="cn-nav-primary-action">
 				<NcButton
 					variant="primary"
 					wide
-					v-bind="primaryActionLink"
+					v-bind="primaryActionLink || {}"
 					@click="onPrimaryActionClick">
 					<template #icon>
 						<component :is="primaryActionIconComponent" :size="20" />
@@ -215,7 +246,32 @@
 				</NcAppNavigationItem>
 			</template>
 		</template>
-		<template v-if="footerItems.length > 0 || showSettingsFoldout" #footer>
+		<template v-if="footerItems.length > 0 || showSettingsFoldout || resolvedCard || resolvedHelp" #footer>
+			<!--
+				@slot card
+				@description Replace the card above the footer entries
+				(`nav.card`). Default content: a title, a line of text and one
+				link. Renders nothing when neither the slot nor `nav.card` is set.
+				@binding {object|null} card The resolved card, or null.
+			-->
+			<slot name="card" :card="resolvedCard">
+				<div
+					v-if="resolvedCard"
+					class="cn-app-nav__card"
+					data-testid="cn-nav-card">
+					<strong class="cn-app-nav__card-title">{{ resolvedCard.title }}</strong>
+					<span v-if="resolvedCard.text" class="cn-app-nav__card-text">{{ resolvedCard.text }}</span>
+					<component
+						:is="resolvedCard.linkTag"
+						v-if="resolvedCard.linkTag"
+						class="cn-app-nav__card-link"
+						data-testid="cn-nav-card-link"
+						v-bind="resolvedCard.linkAttrs"
+						@click="onCardLinkClick">
+						{{ resolvedCard.linkLabel }}
+					</component>
+				</div>
+			</slot>
 			<!-- Footer-section entries (Documentation, Features & Roadmap,
 			     About) live in NcAppNavigation's #footer slot — OUTSIDE the
 			     scrollable list — so they stay visible above the settings
@@ -226,7 +282,20 @@
 			     hover highlight are scoped to itself, so they survive being
 			     slotted. The main list's inset comes from NcAppNavigation's
 			     scope, which slot content does not carry. -->
-			<NcAppNavigationList v-if="footerItems.length > 0" class="cn-app-nav__footer-list">
+			<NcAppNavigationList v-if="footerItems.length > 0 || resolvedHelp" class="cn-app-nav__footer-list">
+				<!-- The help entry (`nav.help`): a link to the app's own help
+				     with a help icon, above the footer entries. -->
+				<NcAppNavigationItem
+					v-if="resolvedHelp"
+					:name="resolvedHelp.label"
+					:to="resolvedHelp.to"
+					:href="resolvedHelp.href"
+					:target="resolvedHelp.href ? '_blank' : undefined"
+					data-testid="cn-nav-help">
+					<template #icon>
+						<HelpCircleOutline :size="20" />
+					</template>
+				</NcAppNavigationItem>
 				<NcAppNavigationItem
 					v-for="item in footerItems"
 					:key="item.id"
@@ -360,6 +429,7 @@ import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
+import { CnActionButtons } from '../CnActionButtons/index.js'
 // The legacy `icon-*` → MDI bridge lives beside CnIcon now, so the menu EDITOR
 // resolves a seeded `icon-comment` the same way this nav does. It used to be a
 // map local to this file, which is why the nav drew a proper glyph and the
@@ -444,6 +514,7 @@ export default {
 		NcAppNavigationSettings,
 		NcButton,
 		NcCounterBubble,
+		CnActionButtons,
 		CnMenuItemIcon,
 		Cog,
 		HelpCircleOutline,
@@ -490,6 +561,16 @@ export default {
 		 * @type {{ [register: string]: { [schema: string]: number } }}
 		 */
 		cnMenuCounts: { default: () => ({}) },
+		/**
+		 * Provided by CnAppRoot — reactive `{ [menuItemId]: number }` totals
+		 * for every menu entry whose `count` is an object
+		 * (`{ register, schema, filter? }`): the total of that filtered
+		 * list, fetched under the entry's own key so an index page's
+		 * whole-schema total is left alone. Empty outside a CnAppRoot.
+		 *
+		 * @type {{ [itemId: string]: number }}
+		 */
+		cnMenuItemCounts: { default: () => ({}) },
 	},
 
 	props: {
@@ -613,7 +694,7 @@ export default {
 		},
 	},
 
-	emits: ['primary-action', 'primary-action-click'],
+	emits: ['primary-action', 'primary-action-click', 'primary-action-created', 'card-action'],
 
 	/**
 	 * The navigation's own state: which groups are open, and which entry
@@ -674,11 +755,70 @@ export default {
 			const text = (value) => (typeof value === 'string' && value !== '' ? this.effectiveTranslate(value) : '')
 			const brand = {
 				logo: typeof declared.logo === 'string' ? declared.logo : '',
+				// A URL, or `true` for the theme's emblem (--nldesign-emblem-url).
+				emblem: declared.emblem === true ? true : (typeof declared.emblem === 'string' ? declared.emblem : ''),
 				name: text(declared.name),
 				caption: text(declared.caption),
 				alt: text(declared.alt),
 			}
-			return (brand.logo || brand.name || brand.caption) ? brand : null
+			return (brand.logo || brand.emblem || brand.name || brand.caption) ? brand : null
+		},
+
+		/**
+		 * The card above the footer entries (`nav.card`): `{ title, text?,
+		 * link?: { label, route?, params?, href?, action? } }`. Title, text
+		 * and link label go through the translate function. The link is a
+		 * router link for a `route` (with a router), an anchor for an
+		 * `href`, and a button emitting `card-action` with the `action` id
+		 * otherwise. Null without a title.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-the-navigation-carries-a-card-and-a-help-entry
+		 * @return {object|null}
+		 */
+		resolvedCard() {
+			const declared = this.effectiveManifest?.nav?.card
+			if (!declared || typeof declared !== 'object' || typeof declared.title !== 'string' || declared.title === '') {
+				return null
+			}
+			const text = (value) => (typeof value === 'string' && value !== '' ? this.effectiveTranslate(value) : '')
+			const card = { title: text(declared.title), text: text(declared.text), linkTag: '', linkAttrs: {}, linkLabel: '', action: '' }
+			const link = declared.link
+			if (link && typeof link === 'object' && typeof link.label === 'string' && link.label !== '') {
+				card.linkLabel = text(link.label)
+				if (link.route && this.$router) {
+					card.linkTag = 'router-link'
+					card.linkAttrs = { to: { name: link.route, ...(link.params && typeof link.params === 'object' ? { params: link.params } : {}) } }
+				} else if (typeof link.href === 'string' && link.href !== '') {
+					card.linkTag = 'a'
+					card.linkAttrs = { href: link.href }
+				} else if (typeof link.action === 'string' && link.action !== '') {
+					card.linkTag = 'button'
+					card.linkAttrs = { type: 'button' }
+					card.action = link.action
+				}
+			}
+			return card
+		},
+
+		/**
+		 * The help entry (`nav.help`): `{ label, route?, href? }` rendered as
+		 * a footer entry with a help icon. Null without a label or a target.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-the-navigation-carries-a-card-and-a-help-entry
+		 * @return {{label: string, to?: object, href?: string}|null}
+		 */
+		resolvedHelp() {
+			const declared = this.effectiveManifest?.nav?.help
+			if (!declared || typeof declared !== 'object' || typeof declared.label !== 'string' || declared.label === '') {
+				return null
+			}
+			if (declared.route && this.$router) {
+				return { label: this.effectiveTranslate(declared.label), to: { name: declared.route }, href: undefined }
+			}
+			if (typeof declared.href === 'string' && declared.href !== '') {
+				return { label: this.effectiveTranslate(declared.label), to: undefined, href: declared.href }
+			}
+			return null
 		},
 
 		/**
@@ -699,20 +839,30 @@ export default {
 		 *  2. `manifest.nav.primaryAction` as app-wide default
 		 *  3. `null` — no primary-action button renders
 		 *
-		 * Page-scoped declarations always win over the nav-root default.
+		 * Page-scoped declarations always win over the nav-root default. An
+		 * action declaring `permission` or `visibleIf` is gated like a menu
+		 * entry.
 		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-navigation-primary-action-runs-a-page-action
 		 * @return {object|null}
 		 */
 		activePrimaryAction() {
 			const pages = this.effectiveManifest?.pages ?? []
 			const routeName = this.$route?.name
+			// The same `permission` / `visibleIf` gate a menu entry has: an
+			// action the reader may not take, or that a condition hides, is
+			// not drawn. A gated-out page action falls back to the nav one.
+			const gated = (action) => (action && this.passesPermission(action) && this.passesVisibleIf(action) ? action : null)
 			if (routeName) {
 				const page = pages.find((p) => p.id === routeName)
 				if (page && page.primaryAction) {
-					return page.primaryAction
+					const pageAction = gated(page.primaryAction)
+					if (pageAction) {
+						return pageAction
+					}
 				}
 			}
-			return this.effectiveManifest?.nav?.primaryAction ?? null
+			return gated(this.effectiveManifest?.nav?.primaryAction ?? null)
 		},
 
 		/**
@@ -724,6 +874,31 @@ export default {
 		 */
 		primaryActionIconComponent() {
 			return this.mdiIconComponent(this.activePrimaryAction) ?? Plus
+		},
+
+		/**
+		 * The CnActionButtons entry for a primary action that carries an
+		 * `action` (`$defs/action`: open-form, navigate, api-call, ...):
+		 * the action with the primary action's `id`, `label` and `icon`
+		 * folded in and `variant: "primary"`. Null for a plain primary
+		 * action, which keeps its link or button.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-navigation-primary-action-runs-a-page-action
+		 * @return {object|null}
+		 */
+		primaryDispatchEntry() {
+			const action = this.activePrimaryAction
+			const inner = action && action.action
+			if (!inner || typeof inner !== 'object' || typeof inner.type !== 'string') {
+				return null
+			}
+			return {
+				icon: action.icon || 'Plus',
+				...inner,
+				id: inner.id || action.id || 'primary-action',
+				label: action.label,
+				variant: 'primary',
+			}
 		},
 
 		/**
@@ -1590,6 +1765,9 @@ export default {
 		 * `NcAppNavigationItem`).
 		 *
 		 *  - Literal positive integer in `item.count` → return as-is.
+		 *  - `item.count` is an object (`{ register, schema, filter? }`) →
+		 *    `cnMenuItemCounts[item.id] ?? null`, the filtered total CnAppRoot
+		 *    fetched for this entry.
 		 *  - `item.count === "auto"` → look up the entry's resolved page;
 		 *    when that page is `type: "index"` with a `register`/`schema`
 		 *    in its `config`, return
@@ -1612,6 +1790,11 @@ export default {
 			}
 			if (typeof raw === 'number') {
 				return raw > 0 ? raw : null
+			}
+			if (raw && typeof raw === 'object') {
+				// A filtered count: CnAppRoot fetched it per entry id.
+				const value = this.cnMenuItemCounts?.[item.id]
+				return (typeof value === 'number' && value > 0) ? value : null
 			}
 			if (raw !== 'auto') {
 				return null
@@ -1923,6 +2106,39 @@ export default {
 		 *
 		 * @return {void}
 		 */
+		/**
+		 * Re-emit the object an `open-form` primary action created, so the
+		 * host can refresh a list or open the record.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-navigation-primary-action-runs-a-page-action
+		 * @param {object} created The created object.
+		 * @return {void}
+		 */
+		onPrimaryActionCreated(created) {
+			/**
+			 * @event primary-action-created Emitted after an `open-form` primary action saves. Payload: the created object.
+			 */
+			this.$emit('primary-action-created', created)
+		},
+
+		/**
+		 * A card link that is a button (an `action` id) emits `card-action`
+		 * with that id for the host to run; links and anchors navigate on
+		 * their own.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-the-navigation-carries-a-card-and-a-help-entry
+		 * @return {void}
+		 */
+		onCardLinkClick() {
+			const card = this.resolvedCard
+			if (card && card.action) {
+				/**
+				 * @event card-action Emitted when the nav card's link is an action button. Payload: the action id.
+				 */
+				this.$emit('card-action', card.action)
+			}
+		},
+
 		onPrimaryActionClick() {
 			const action = this.activePrimaryAction
 			if (!action) {
@@ -1952,6 +2168,76 @@ export default {
 </script>
 
 <style>
+/* The emblem beside the app name (`nav.brand.emblem`). A theme sets
+   --nldesign-emblem-url for `emblem: true`, and --cn-nav-emblem-size for both. */
+.cn-app-nav__brand-emblem {
+	flex: none;
+	height: var(--cn-nav-emblem-size, 34px);
+	width: auto;
+	object-fit: contain;
+}
+
+.cn-app-nav__brand-emblem--theme {
+	display: inline-block;
+	width: var(--cn-nav-emblem-size, 34px);
+	background: var(--nldesign-emblem-url) center / contain no-repeat;
+}
+
+/* The solid primary action (`solid: true`, or an action that dispatches):
+   one full-width primary button, as the board draws "New case". */
+.cn-app-nav__primary-action--solid .cn-action-buttons,
+.cn-app-nav__primary-action--solid .cn-action-buttons .button-vue,
+.cn-app-nav__primary-action--solid .button-vue {
+	width: 100%;
+	justify-content: center;
+}
+
+/* The card above the footer entries (`nav.card`). Theme hooks:
+   --cn-nav-card-background and --cn-nav-card-radius. */
+.cn-app-nav__card {
+	display: flex;
+	flex-direction: column;
+	gap: calc(2 * var(--default-grid-baseline));
+	margin: calc(2 * var(--default-grid-baseline));
+	padding: calc(4 * var(--default-grid-baseline));
+	border-radius: var(--cn-nav-card-radius, var(--border-radius-large));
+	background: var(--cn-nav-card-background, var(--color-background-hover));
+}
+
+.cn-app-nav__card-title {
+	color: var(--color-main-text);
+	font-weight: 700;
+}
+
+.cn-app-nav__card-text {
+	color: var(--color-text-maxcontrast);
+	line-height: 1.4;
+}
+
+.cn-app-nav__card-link {
+	align-self: flex-start;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-primary-element);
+	font: inherit;
+	font-weight: 600;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.cn-app-nav__card-link:hover,
+.cn-app-nav__card-link:focus-visible {
+	text-decoration: underline;
+}
+
+.cn-app-nav__card-link:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+	border-radius: var(--border-radius-small, 4px);
+}
+
 /* The brand block at the top of the navigation. */
 .cn-app-nav__brand {
 	align-items: center;

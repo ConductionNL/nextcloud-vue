@@ -112,7 +112,7 @@ describe('CnFormDialog — a picker scoped by another field', () => {
 		})
 		await flushPromises()
 
-		const [, params] = callsFor('status-type')[0]
+		const [, params] = callsFor('statusType')[0]
 		expect(params.caseType).toBeUndefined()
 		expect(wrapper.vm.formData.caseType).toBeFalsy()
 	})
@@ -124,14 +124,14 @@ describe('CnFormDialog — a picker scoped by another field', () => {
 		})
 		await flushPromises()
 
-		const before = callsFor('status-type').length
+		const before = callsFor('statusType').length
 		expect(before).toBeGreaterThan(0)
 
 		wrapper.vm.updateField('caseType', 'case-type-a')
 		await wrapper.vm.$nextTick()
 		await flushPromises()
 
-		const after = callsFor('status-type')
+		const after = callsFor('statusType')
 		expect(after.length).toBeGreaterThan(before)
 		expect(after[after.length - 1][1].caseType).toBe('case-type-a')
 	})
@@ -150,7 +150,7 @@ describe('CnFormDialog — a picker scoped by another field', () => {
 		await wrapper.vm.$nextTick()
 		await flushPromises()
 
-		const calls = callsFor('status-type')
+		const calls = callsFor('statusType')
 		expect(calls[calls.length - 1][1].caseType).toBe('case-type-b')
 	})
 
@@ -181,12 +181,12 @@ describe('CnFormDialog — a picker scoped by another field', () => {
 		await flushPromises()
 
 		expect(wrapper.vm.relationFilterDecls).toEqual([])
-		const before = callsFor('status-type').length
+		const before = callsFor('statusType').length
 
 		wrapper.vm.updateField('caseType', 'case-type-a')
 		await wrapper.vm.$nextTick()
 		await flushPromises()
 
-		expect(callsFor('status-type').length).toBe(before)
+		expect(callsFor('statusType').length).toBe(before)
 	})
 })

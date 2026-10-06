@@ -45,6 +45,10 @@ Two more built-in cell widgets, both set with `widget` on a column.
 | `widgetProps` key | Description |
 |-------------------|-------------|
 | `userField` | Row field that holds the Nextcloud user id. The cell then shows that user's avatar. |
+
+The **`"date"`** widget takes two more `widgetProps` keys: `showTime: true` adds the time of day ("5 Oct 2026, 08:30") and `timeOnly: true` shows the time alone ("08:30"), for a timetable row. The default is the date alone.
+
+The monospace uuid style (`format: "uuid"`) applies only when the value is a uuid and nothing resolves it: a reference a formatter or a widget resolved to its name renders in the normal text style.
 | `user` | `true` when the cell value itself is the user id. |
 | `nameField` | Row field that holds the name to show. Defaults to the cell value. |
 | `size` | Picture size in pixels. Default 24. |

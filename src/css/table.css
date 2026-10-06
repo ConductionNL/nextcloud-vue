@@ -155,7 +155,7 @@
 .cn-data-table th,
 .cn-data-table td {
 	padding: calc(3 * var(--default-grid-baseline));
-	text-align: left;
+	text-align: start;
 	border-bottom: 1px solid var(--color-border);
 	vertical-align: middle;
 	max-width: var(--cn-table-cell-max-width, 22rem);
@@ -172,6 +172,18 @@
 	max-width: none;
 	overflow: visible;
 	white-space: normal;
+}
+
+/* The secondary line of a cell (`columns[].secondary`): muted, smaller, on its
+   own line under the value. Theme hooks: --cn-table-secondary-size and
+   --cn-table-secondary-color. */
+.cn-data-table .cn-table-cell__secondary {
+	display: block;
+	color: var(--cn-table-secondary-color, var(--color-text-maxcontrast));
+	font-size: var(--cn-table-secondary-size, 0.9em);
+	line-height: 1.35;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 /* Back to wrapping, for a column holding prose rather than a label:
@@ -235,7 +247,7 @@
 }
 
 .cn-data-table td.cn-cell--end {
-	text-align: right;
+	text-align: end;
 	white-space: nowrap;
 }
 
@@ -273,7 +285,7 @@
 }
 
 .cn-table-sort-indicator {
-	margin-left: var(--default-grid-baseline);
+	margin-inline-start: var(--default-grid-baseline);
 	opacity: 0.6;
 }
 
@@ -383,7 +395,7 @@
 	justify-content: center;
 	min-width: 14px;
 	height: 14px;
-	margin-left: 2px;
+	margin-inline-start: 2px;
 	padding: 0 3px;
 	border-radius: 7px;
 	background-color: var(--color-primary-element);
@@ -448,7 +460,7 @@
 
 .cn-table-col--icon {
 	width: 40px;
-	padding-right: 0;
+	padding-inline-end: 0;
 	text-align: center;
 	color: var(--color-text-maxcontrast);
 }
@@ -511,7 +523,7 @@
 
 .viewTable { width: 100%; border-collapse: collapse; background-color: var(--color-main-background); }
 
-.viewTable th, .viewTable td { padding: calc(3 * var(--default-grid-baseline)); text-align: left; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+.viewTable th, .viewTable td { padding: calc(3 * var(--default-grid-baseline)); text-align: start; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
 
 .viewTable th { background: var(--color-background-hover); font-weight: 500; color: var(--color-text-maxcontrast); background-color: var(--color-background-dark); }
 

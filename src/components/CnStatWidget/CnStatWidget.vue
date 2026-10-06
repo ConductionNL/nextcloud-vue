@@ -94,7 +94,11 @@
 						{{ formattedTrend }}
 					</span>
 				</template>
-				<span v-if="!displayLoading && !displayError && content.caption" class="cn-kpi-card__label cn-stat-widget__caption">
+				<span
+					v-if="!displayLoading && !displayError && resolvedCaption"
+					class="cn-kpi-card__label cn-stat-widget__caption"
+					:class="captionVariantClass"
+					data-testid="cn-stat-widget-caption">
 					{{ resolvedCaption }}
 				</span>
 			</div>
@@ -461,7 +465,7 @@ export default {
 		 * counted between LOCAL CALENDAR DAYS, not as elapsed milliseconds, so
 		 * the time of day on a deadline never moves the answer.
 		 *
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>, default?: string}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string}>}}
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>, default?: string}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, captionVariant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), captionVariantWhen?: Array<{op: string, value: unknown, variant: string}>, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string, caption?: string, captionVariant?: string}>}}
 		 */
 		content: {
 			type: Object,
@@ -605,7 +609,10 @@ export default {
 		 * @return {string}
 		 */
 		resolvedCaption() {
-			const caption = this.content.caption
+			const override = this.activeOverride
+			const caption = (override && typeof override.caption === 'string' && override.caption !== '')
+				? override.caption
+				: this.content.caption
 			if (!caption) {
 				return ''
 			}
@@ -615,9 +622,56 @@ export default {
 			}
 			const payload = this.endpointMode ? this.epData : null
 			return translated.replace(/\{([A-Za-z0-9_.]+)\}/g, (whole, path) => {
+				// `{value}` is the tile's own number, so a caption can read
+				// "{value} due today" on a register-counted tile that has no
+				// payload to read fields from.
+				if (path === 'value' && (payload === null || getByPath(payload, path) === undefined)) {
+					return this.formattedValue === undefined || this.formattedValue === null ? '' : String(this.formattedValue)
+				}
 				const v = getByPath(payload, path)
 				return (v === undefined || v === null) ? '' : String(v)
 			}).replace(/\s{2,}/g, ' ').trim()
+		},
+
+		/**
+		 * The first `content.captionVariantWhen` rule the tile's value
+		 * matches (`[{ op, value, variant }]`, the `variantWhen` shape), or
+		 * null. Colours the caption on the value without recolouring the
+		 * tile: "1 due today" turns red while the number stays ink.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-rule
+		 * @return {object|null}
+		 */
+		activeCaptionRule() {
+			const rules = this.content.captionVariantWhen
+			if (!Array.isArray(rules) || rules.length === 0) {
+				return null
+			}
+			const current = this.displayValue
+			if (current === null || current === undefined) {
+				return null
+			}
+			return rules.find((r) => r && this.matchesRule(current, r)) || null
+		},
+
+		/**
+		 * The caption's colour class: the matching override's
+		 * `captionVariant`, else `content.captionVariant`, as
+		 * `cn-kpi-card__label--<variant>`. '' for `default` or an unknown
+		 * variant, so an uncoloured caption is what it always was.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-rule
+		 * @return {string}
+		 */
+		captionVariantClass() {
+			const override = this.activeOverride
+			const variant = (override && override.captionVariant)
+				|| (this.activeCaptionRule && this.activeCaptionRule.variant)
+				|| this.content.captionVariant
+			if (!variant || variant === 'default' || !Object.hasOwn(VARIANT_COLORS, variant)) {
+				return ''
+			}
+			return `cn-kpi-card__label--${variant === 'danger' ? 'error' : variant}`
 		},
 
 		/**
