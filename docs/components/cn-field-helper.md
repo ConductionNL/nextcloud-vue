@@ -43,7 +43,7 @@ export default {
 | `more` | `String` | `''` | The full description, revealed in the popover. Empty means no ⓘ button is rendered. |
 | `error` | `String` | `''` | Validation error. Replaces the helper text, colours the line, and suppresses the popover. |
 
-Nothing renders at all when both `text` and `error` are empty.
+Nothing renders at all when `text`, `more` and `error` are all empty. With only `more` set (a schema `x-help` on a field without a description) the line holds just the ⓘ button.
 
 ## Where `more` comes from
 
