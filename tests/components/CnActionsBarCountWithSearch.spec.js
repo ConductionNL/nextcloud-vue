@@ -76,13 +76,30 @@ describe('CnActionsBar — counter beside the inline search', () => {
 		expect(filter.nextElementSibling).toBe(count)
 	})
 
-	it('keeps the counter hidden beside the search when the total is 0 or unknown', () => {
+	it('keeps an empty, visually hidden live region beside the search when the total is 0 or unknown', () => {
 		const empty = mountBar({ showSearch: true, showCountWithSearch: true, pagination: { ...pagination, total: 0 } })
 		expect(empty.find('.cn-actions-bar__search').exists()).toBe(true)
-		expect(empty.find('.cn-actions-bar__count').exists()).toBe(false)
+		const region = empty.find('.cn-actions-bar__count')
+		expect(region.exists()).toBe(true)
+		expect(region.text()).toBe('')
+		expect(region.attributes('aria-live')).toBe('polite')
+		expect(region.classes()).toContain('cn-actions-bar__count--empty')
 
 		const none = mountBar({ showSearch: true, showCountWithSearch: true, pagination: null })
-		expect(none.find('.cn-actions-bar__count').exists()).toBe(false)
+		expect(none.find('.cn-actions-bar__count').text()).toBe('')
+		expect(none.find('.cn-actions-bar__count').classes()).toContain('cn-actions-bar__count--empty')
+	})
+
+	it('fills the same live region when results come back after none', async () => {
+		const wrapper = mountBar({ showSearch: true, showCountWithSearch: true, pagination: { ...pagination, total: 0 } })
+		const before = wrapper.find('.cn-actions-bar__count').element
+
+		await wrapper.setProps({ pagination })
+
+		const region = wrapper.find('.cn-actions-bar__count')
+		expect(region.element).toBe(before)
+		expect(region.text()).toBe('Showing 3 of 10')
+		expect(region.classes()).not.toContain('cn-actions-bar__count--empty')
 	})
 
 	it('changes nothing without the search field', () => {

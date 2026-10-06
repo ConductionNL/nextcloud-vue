@@ -95,10 +95,12 @@ export function useListView(objectTypeOrOptions, options) {
 	// deriving them from `objects`, which is only the current page.
 	const facets = computed(() => objectStore.facets[objectType] || {})
 	// Outcome of the latest `refresh()`: the store's error for it, or null once
-	// it succeeded. The store keeps the previous rows on a failed fetch, so this
-	// is how a consumer tells stale rows from current ones.
+	// it succeeded or a later fetch stored new rows. The store keeps the previous
+	// rows on a failed fetch, so this is how a consumer tells stale rows from
+	// current ones.
 	const error = ref(null)
 	let refreshSeq = 0
+	let pendingRefreshes = 0
 
 	let searchTimeout = null
 
@@ -196,6 +198,7 @@ export function useListView(objectTypeOrOptions, options) {
 		// request failed; it is only the fallback for a store that ignores
 		// `options.outcome`.
 		const outcome = {}
+		pendingRefreshes++
 		try {
 			await objectStore.fetchCollection(objectType, buildParams(page), { outcome })
 		} catch (e) {
@@ -203,11 +206,26 @@ export function useListView(objectTypeOrOptions, options) {
 				error.value = e
 			}
 			throw e
+		} finally {
+			pendingRefreshes--
 		}
 		if (seq === refreshSeq) {
 			error.value = ('error' in outcome) ? outcome.error : (objectStore.errors?.[objectType] || null)
 		}
 	}
+
+	// A fetch outside `refresh()` (e.g. the live-updates refetch) that stores
+	// new rows recovers the list from an earlier failure. Rows written while
+	// a refresh is pending are left to that refresh, which decides `error`.
+	watch(
+		() => objectStore.collections[objectType],
+		() => {
+			if (pendingRefreshes === 0) {
+				error.value = null
+			}
+		},
+		{ flush: 'sync' },
+	)
 
 	// ── Event handlers ───────────────────────────────────────────────────
 

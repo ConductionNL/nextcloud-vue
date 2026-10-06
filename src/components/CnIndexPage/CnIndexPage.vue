@@ -423,7 +423,10 @@
 					class="cn-index-page__empty"
 					role="status"
 					data-testid="cn-index-page-fetch-error">
-					<NcEmptyContent :name="t('nextcloud-vue', 'An error occurred')">
+					<NcEmptyContent :name="t('nextcloud-vue', 'An error occurred')"
+						:description="effectiveSearchValue
+							? t('nextcloud-vue', 'Change the search or try again.')
+							: t('nextcloud-vue', 'Try again later.')">
 						<template #icon>
 							<AlertCircleOutline :size="64" />
 						</template>

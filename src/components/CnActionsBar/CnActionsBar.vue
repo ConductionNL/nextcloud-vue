@@ -17,12 +17,11 @@
 			</span>
 			<!-- @slot after-search Refinement controls rendered beside the search field on the LEFT side of the bar (e.g. a filter menu button). Convention: the left side groups the VISUAL controls — search, filters, view toggle — while the right cluster holds the ACT controls (add, overflow); the standalone sort select is a display control too but keeps its legacy right-side placement. -->
 			<slot name="after-search" />
-			<!-- Counter beside the search (`showCountWithSearch`): after the search and its #after-search controls, and live so a changed total is announced while it is shown. -->
-			<span v-if="showSearch && showCountWithSearch && hasTotal"
+			<!-- Counter beside the search (`showCountWithSearch`): after the search and its #after-search controls. The live region stays mounted while there is no total, so results coming back after none are announced too. -->
+			<span v-if="showSearch && showCountWithSearch"
 				class="cn-actions-bar__count cn-actions-bar__count--beside-search"
-				aria-live="polite">
-				{{ countText }}
-			</span>
+				:class="{ 'cn-actions-bar__count--empty': !hasTotal }"
+				aria-live="polite">{{ hasTotal ? countText : '' }}</span>
 
 			<!-- View mode toggle (Cards / Table / List) — segmented control with
 			     a sliding thumb that animates between the N segments. Lives in

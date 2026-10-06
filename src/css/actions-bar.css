@@ -42,6 +42,16 @@
 	white-space: nowrap;
 }
 
+/* Taken out of the flex row so it adds no gap, but kept in the accessibility
+   tree so the live region exists before a total appears. */
+.cn-actions-bar__count--empty {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+}
+
 /* Inline search field */
 .cn-actions-bar__search {
 	position: relative;

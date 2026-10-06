@@ -101,6 +101,44 @@ describe('useListView error', () => {
 		expect(w.vm.list.error.value).toBeNull()
 	})
 
+	it('is cleared when a fetch outside refresh() stores new rows', async () => {
+		const store = makeStore()
+		store.fetchCollection.mockImplementationOnce(async () => {
+			store.errors = { t: { status: 502 } }
+			return []
+		})
+		const w = mountList(store)
+		await flush()
+		expect(w.vm.list.error.value).not.toBeNull()
+
+		store.collections = { t: [{ id: 'new' }] }
+		expect(w.vm.list.error.value).toBeNull()
+	})
+
+	it('leaves rows stored while a refresh is pending to that refresh', async () => {
+		const store = makeStore()
+		const w = mountList(store)
+		await flush()
+
+		let settle
+		const failure = { status: 400 }
+		store.fetchCollection.mockImplementationOnce(() => new Promise((resolve) => {
+			settle = () => {
+				store.errors = { t: failure }
+				resolve([])
+			}
+		}))
+		const pending = w.vm.list.refresh(1)
+		store.collections = { t: [{ id: 'other' }] }
+		settle()
+		await pending
+		expect(w.vm.list.error.value).toEqual(failure)
+
+		// With nothing pending, the same write would have cleared it.
+		store.collections = { t: [{ id: 'later' }] }
+		expect(w.vm.list.error.value).toBeNull()
+	})
+
 	it('stays null for a store without an errors map', async () => {
 		const store = makeStore()
 		delete store.errors

@@ -261,6 +261,39 @@ describe('CnIndexPage — failed self-fetch', () => {
 		expect(wrapper.vm.effectiveObjects).toEqual([])
 	})
 
+	it('points at the search when a search term is set, and at trying later when none is', async () => {
+		mockServer.mockImplementationOnce(async (outcome) => fail(outcome))
+		const wrapper = mountPage()
+		await flush()
+		const description = () => wrapper.find('[data-testid="cn-index-page-fetch-error"]')
+			.findComponent({ name: 'NcEmptyContent' }).attributes('description')
+		expect(description()).toBe('Try again later.')
+
+		wrapper.vm.list.searchTerm.value = 'verzoek (2026'
+		mockServer.mockImplementationOnce(async (outcome) => fail(outcome))
+		await wrapper.vm.list.refresh(1)
+		await flush()
+		expect(description()).toBe('Change the search or try again.')
+	})
+
+	it('clears the error state when a live-update refetch succeeds, and keeps it when one fails', async () => {
+		mockServer.mockImplementationOnce(async (outcome) => fail(outcome))
+		const wrapper = mountPage()
+		await flush()
+		expect(hasErrorState(wrapper)).toBe(true)
+
+		// The live-updates plugin calls the store directly, outside refresh().
+		mockServer.mockImplementationOnce(async (outcome) => fail(outcome))
+		await mockStore.fetchCollection(TYPE, {})
+		await flush()
+		expect(hasErrorState(wrapper)).toBe(true)
+
+		await mockStore.fetchCollection(TYPE, {})
+		await flush()
+		expect(hasErrorState(wrapper)).toBe(false)
+		expect(wrapper.findComponent({ name: 'CnDataTable' }).props('rows')).toHaveLength(2)
+	})
+
 	it('leaves host-controlled mode unaffected', async () => {
 		mockStore.errors = { [TYPE]: { status: 400, message: 'Invalid search query' } }
 		const wrapper = mountPage({ objects: ROWS, pagination: { total: 2, page: 1, pages: 1, limit: 20 } })
