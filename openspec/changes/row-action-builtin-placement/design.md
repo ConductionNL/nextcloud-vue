@@ -88,7 +88,7 @@ Apps' `check:manifest` scripts run Ajv against the raw schema, which cannot prod
 
 `actionIdOf` already prefers `id`, so built-ins match by id once D-4 lands. There is no fallback to the translated label. Per the finding above, OpenRegister sends permission verbs, never labels, and never sends this block on list responses, so a label fallback could never fire for the fleet; it would only add a second, locale-dependent way to match.
 
-A side effect worth stating: matching is exact, so a row that does carry OpenRegister's block (an object fetched through `show()`) today hides all four built-ins, and after this change keeps Delete and hides View, Edit and Copy. Mapping verbs to built-ins is a non-goal here.
+A side effect worth stating: matching is exact, so a row that does carry OpenRegister's block (an object fetched through `show()`) today hides all four built-ins, and after this change keeps Delete and hides View, Edit and Copy. Mapping verbs to built-ins is a non-goal here, tracked in [#1328](https://github.com/ConductionNL/nextcloud-vue/issues/1328): if OpenRegister adds the block to list responses before that lands, every manifest index page keeps only Delete on every row.
 
 ### D-7: Schema and validator
 
@@ -135,7 +135,7 @@ The two components also filter by the same rule: a shared helper decides whether
 - [Placeholders copied into a detail page's `config.actions`] → Schema error on non-index pages (D-7).
 - [A named source's JavaScript `rowActions` repeat a placeholder or set `builtin` on an object, which no schema sees] → The resolver keeps the first placement, ignores the `builtin` key and warns in development.
 - [An app ships placeholders without raising its library range] → Its manifest fails validation on older installs and loses backend merge and sentinel resolution (D-9). The consumer docs make the range bump a required step.
-- [A row fetched via `show()` loses View, Edit and Copy] → Pre-existing behaviour (today all four vanish); documented in D-6, fixed only by a verb mapping.
+- [A row fetched via `show()` loses View, Edit and Copy] → Pre-existing behaviour (today all four vanish); documented in D-6, fixed only by a verb mapping ([#1328](https://github.com/ConductionNL/nextcloud-vue/issues/1328)).
 
 ## Migration Plan
 

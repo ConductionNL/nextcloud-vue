@@ -20,7 +20,7 @@ A manifest `type: "index"` page can turn the built-in row actions (View, Edit, C
 
 - Placeholders in `bulkActions` or `headerActions`. They get the same syntax in their own change.
 - Placeholders on `type: "detail"` pages, whose `config.actions` is a different dialect.
-- Mapping OpenRegister's permission verbs (`read`, `update`, `delete`) onto built-in ids for `@self.actions` filtering. See design D-6.
+- Mapping OpenRegister's permission verbs (`read`, `update`, `delete`) onto built-in ids for `@self.actions` filtering. See design D-6; tracked in [#1328](https://github.com/ConductionNL/nextcloud-vue/issues/1328).
 - Changing consumer apps' `check:manifest` scripts. The library returns the warnings and documents how to print them; each app adopts that in its own change.
 - Any migration of existing manifests. The syntax is opt-in and `actionToggles` stays the way to enable or disable a built-in.
 
