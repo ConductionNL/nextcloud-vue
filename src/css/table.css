@@ -295,8 +295,7 @@
 	outline-offset: -2px;
 }
 
-/* Multi-column sort priority badge (1, 2, 3) — only rendered once more than
-   one sort key is active; a single active sort shows the arrow alone. */
+/* Multi-column sort priority badge (1, 2, 3), rendered only when two or more rendered, sortable columns are sorted. */
 .cn-table-sort-badge {
 	display: inline-flex;
 	align-items: center;
