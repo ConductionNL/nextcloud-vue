@@ -80,3 +80,52 @@
 .cn-dashboard-list__item:hover {
 	background: var(--color-background-hover);
 }
+
+/* "Install <app>" placeholder in a widget whose app is missing.
+ *
+ * NcEmptyContent centres its content with `justify-content: center`. In a
+ * two-row dashboard tile (about 150px inside an `overflow: hidden` wrapper)
+ * the icon, name, description and button are taller than the tile, and plain
+ * `center` overflows on BOTH sides, so the top ran out of the widget and the
+ * name was cut off. `safe center` falls back to the start edge when the
+ * content does not fit, the spacing is compact, and what still does not fit
+ * scrolls instead of being clipped. Shared by CnDashboardPage and
+ * CnDetailWidgetHost (`cn-requires-app`). The class is doubled to outrank
+ * NcEmptyContent's own scoped rules (`.empty-content[data-v-…]`) whatever
+ * order the stylesheets load in. */
+.cn-requires-app.cn-requires-app.empty-content,
+.cn-requires-app.cn-requires-app .empty-content {
+	justify-content: safe center;
+	min-height: 0;
+	max-height: 100%;
+	overflow: auto;
+	margin: 0;
+	padding: calc(2 * var(--default-grid-baseline, 4px));
+	gap: var(--default-grid-baseline, 4px);
+	box-sizing: border-box;
+}
+
+.cn-requires-app.cn-requires-app .empty-content__icon {
+	width: auto;
+	height: auto;
+	min-height: 0;
+	margin: 0;
+	opacity: 0.7;
+}
+
+.cn-requires-app.cn-requires-app .empty-content__name {
+	margin: 0;
+	font-size: var(--default-font-size, 15px);
+	font-weight: 600;
+	text-align: center;
+}
+
+.cn-requires-app.cn-requires-app .empty-content__description {
+	margin: 0;
+	text-align: center;
+	font-size: 0.9em;
+}
+
+.cn-requires-app.cn-requires-app .empty-content__action {
+	margin-top: var(--default-grid-baseline, 4px);
+}
