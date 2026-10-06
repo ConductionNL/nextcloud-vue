@@ -8,6 +8,12 @@
 	position: relative;
 }
 
+/* The breadcrumb line above the header (`config.breadcrumb`). */
+.cn-detail-page__breadcrumbs {
+	margin-bottom: calc(2 * var(--default-grid-baseline));
+	color: var(--color-text-maxcontrast);
+}
+
 /* Header */
 .cn-detail-page__header {
 	display: flex;

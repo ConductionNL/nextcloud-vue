@@ -41,6 +41,13 @@
 			{{ skipLinkLabel }}
 		</a>
 
+		<!-- Breadcrumb line (manifest `config.breadcrumb`): the list the record
+		     belongs to, then the record itself as the current crumb. -->
+		<CnBreadcrumbs
+			v-if="breadcrumbCrumbs.length > 0 && !objectNotFound"
+			class="cn-detail-page__breadcrumbs"
+			:crumbs="breadcrumbCrumbs"
+			data-testid="cn-detail-page-breadcrumbs" />
 		<!-- Header -->
 		<div v-if="!objectNotFound" class="cn-detail-page__header" data-testid="cn-detail-page-header">
 			<!-- Header (left block) — overridable via #header slot. Default
@@ -98,7 +105,7 @@
 						     (ADR-062). Only shown once the object resolves to a
 						     display name that differs from the type label. -->
 						<p
-							v-if="typeEyebrow"
+							v-if="typeEyebrow && showTypeEyebrow"
 							class="cn-detail-page__type-eyebrow"
 							data-testid="cn-detail-page-type-eyebrow">
 							{{ typeEyebrow }}
@@ -1026,6 +1033,7 @@ import {
 } from '../../utils/widgetDispatch.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnIcon } from '../CnIcon/index.js'
+import { CnBreadcrumbs } from '../CnBreadcrumbs/index.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
@@ -1172,6 +1180,7 @@ export default {
 		CnDashboardGrid,
 		CnLifecycleActions,
 		CnActionButtons,
+		CnBreadcrumbs,
 		CnStatusBadge,
 		CnSummaryAggregates,
 		CnRelatedCollections,
@@ -2074,6 +2083,34 @@ export default {
 		 * @type {{field: string, colorMap?: object, labels?: object, variant?: string}|null}
 		 */
 		statusPill: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Whether the type eyebrow (the type label above the record name)
+		 * renders once the record resolves. `false` (manifest
+		 * `config.showTypeEyebrow: false`) drops it for a header that says
+		 * the type in a pill instead.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
+		 */
+		showTypeEyebrow: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * A breadcrumb line above the header (manifest `config.breadcrumb`):
+		 * `{ label, route?, params?, href? }` names the list the record
+		 * belongs to; the record's display name follows as the current
+		 * crumb. `label` goes through the host translate function. Null (the
+		 * default) draws no trail.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
+		 * @type {{label: string, route?: string, params?: object, href?: string}|null}
+		 */
+		breadcrumb: {
 			type: Object,
 			default: null,
 		},
@@ -3199,6 +3236,28 @@ export default {
 		 */
 		displayTitle() {
 			return this.objectDisplayName || this.resolvedTitle
+		},
+
+		/**
+		 * The breadcrumb trail: the declared crumb (a router target from
+		 * `route` + `params`, or an `href`), then the record's display name
+		 * as the current crumb. Empty without a `breadcrumb` label.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
+		 * @return {Array<{label: string, to?: object, href?: string}>}
+		 */
+		breadcrumbCrumbs() {
+			const crumb = this.breadcrumb
+			if (!crumb || typeof crumb.label !== 'string' || crumb.label === '') {
+				return []
+			}
+			const first = { label: this.effectiveTranslate(crumb.label) }
+			if (crumb.route) {
+				first.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}) }
+			} else if (crumb.href) {
+				first.href = crumb.href
+			}
+			return [first, { label: this.displayTitle }]
 		},
 
 		/**
