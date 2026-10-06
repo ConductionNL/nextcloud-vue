@@ -1,17 +1,6 @@
-# widget-renderer: titles, header height, install placeholder
+# widget-renderer: header height, install placeholder
 
 ## ADDED Requirements
-
-### Requirement: REQ-WR-POL-001 A manifest title survives an empty content title
-
-For a title-owning widget type, `widgetTitleOf` SHALL return the widget's top-level
-`title` when `content.title` is absent, empty or whitespace.
-
-#### Scenario: Deal widget
-
-- **GIVEN** a widget `{ type: 'data', title: 'Deal', content: { title: '' } }`
-- **WHEN** the detail page renders it
-- **THEN** its heading SHALL read "Deal", not "Data"
 
 ### Requirement: REQ-WR-POL-002 Header buttons share one height
 
