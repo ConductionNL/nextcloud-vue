@@ -1032,8 +1032,8 @@ import {
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
-import { CnIcon } from '../CnIcon/index.js'
 import { CnBreadcrumbs } from '../CnBreadcrumbs/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 

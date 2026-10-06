@@ -21,7 +21,10 @@ const stubs = {
 	NcActionButton: { name: 'NcActionButton', template: '<button><slot /></button>' },
 	NcActionLink: { name: 'NcActionLink', template: '<a><slot /></a>' },
 	RouterLink: { name: 'RouterLink', props: ['to'], template: '<a class="router-link-stub" :data-to="JSON.stringify(to)"><slot /></a>' },
-	DotsHorizontal: true, Refresh: true, LightbulbOutline: true, BookOpenVariant: true,
+	DotsHorizontal: true,
+	Refresh: true,
+	LightbulbOutline: true,
+	BookOpenVariant: true,
 }
 
 function mountWrapper(propsData = {}, mocks = {}) {
@@ -73,7 +76,8 @@ describe('CnDashboardPage — forwards headerLink', () => {
 		},
 		CnWidgetWrapper: { template: '<div class="wrapper-stub" :data-link="JSON.stringify(headerLink)"><slot /></div>', props: ['title', 'headerLink'] },
 		NcButton: { template: '<button><slot /></button>' },
-		NcEmptyContent: true, NcLoadingIcon: true,
+		NcEmptyContent: true,
+		NcLoadingIcon: true,
 	}
 
 	it('reads the link from the layout entry, else the widget definition', () => {

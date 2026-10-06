@@ -668,7 +668,7 @@ export default {
 			const variant = (override && override.captionVariant)
 				|| (this.activeCaptionRule && this.activeCaptionRule.variant)
 				|| this.content.captionVariant
-			if (!variant || variant === 'default' || !Object.prototype.hasOwnProperty.call(VARIANT_COLORS, variant)) {
+			if (!variant || variant === 'default' || !Object.hasOwn(VARIANT_COLORS, variant)) {
 				return ''
 			}
 			return `cn-kpi-card__label--${variant === 'danger' ? 'error' : variant}`

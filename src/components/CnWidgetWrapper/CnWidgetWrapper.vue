@@ -1221,10 +1221,12 @@ export default {
 	text-decoration: none;
 	white-space: nowrap;
 }
+
 .cn-widget-wrapper__header-link:hover,
 .cn-widget-wrapper__header-link:focus-visible {
 	text-decoration: underline;
 }
+
 .cn-widget-wrapper__header-link:focus-visible {
 	outline: 2px solid var(--color-primary-element);
 	outline-offset: 2px;

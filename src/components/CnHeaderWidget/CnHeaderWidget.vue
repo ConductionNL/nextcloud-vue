@@ -57,8 +57,8 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
-import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
+import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 
 const ALLOWED_OVERLAY_MODES = ['none', 'tint', 'gradient-bottom']
 const ALLOWED_HEIGHTS = ['small', 'medium', 'large', 'xlarge']
@@ -752,10 +752,12 @@ export default {
 	justify-content: space-between;
 	gap: calc(2 * var(--default-grid-baseline)) calc(4 * var(--default-grid-baseline));
 }
+
 .cn-header-widget--with-views .cn-header-widget__content {
 	flex: 1 1 320px;
 	width: auto;
 }
+
 .cn-header-widget__views {
 	position: relative;
 	z-index: 1;
@@ -834,7 +836,7 @@ export default {
 	height: 1px;
 	opacity: 0;
 	pointer-events: none;
-	left: -9999px;
+	inset-inline-start: -9999px;
 	top: -9999px;
 }
 

@@ -76,7 +76,9 @@ describe('CnStagesWidget — bars variant', () => {
 		expect(w.find('.cn-timeline-stages__stage').exists()).toBe(false)
 		const steps = list.findAll('.cn-stages-widget__bar-step')
 		expect(steps.map((s) => s.classes().find((c) => c.startsWith('cn-stages-widget__bar-step--')))).toEqual([
-			'cn-stages-widget__bar-step--done', 'cn-stages-widget__bar-step--current', 'cn-stages-widget__bar-step--todo',
+			'cn-stages-widget__bar-step--done',
+			'cn-stages-widget__bar-step--current',
+			'cn-stages-widget__bar-step--todo',
 		])
 		expect(steps[1].attributes('aria-current')).toBe('step')
 		expect(steps[1].find('.cn-stages-widget__sr-only').text()).toBe('(current step)')

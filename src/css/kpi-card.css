@@ -133,7 +133,7 @@
 	padding: var(--cn-kpi-padding-flat, 8px);
 	box-sizing: border-box;
 	overflow: hidden;
-	text-align: left;
+	text-align: start;
 	text-decoration: none;
 	color: inherit;
 	background: transparent;
@@ -255,14 +255,17 @@
 	color: var(--color-primary-element);
 	font-weight: 600;
 }
+
 .cn-kpi-card__label--success {
 	color: var(--color-text-success, var(--color-success-text));
 	font-weight: 600;
 }
+
 .cn-kpi-card__label--warning {
 	color: var(--color-element-warning, var(--color-warning-text));
 	font-weight: 600;
 }
+
 .cn-kpi-card__label--error {
 	color: var(--color-text-error, var(--color-error-text));
 	font-weight: 600;

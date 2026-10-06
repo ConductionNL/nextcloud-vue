@@ -163,3 +163,7 @@ Request a feature / Report a bug / Documentation render on every widget; the sha
 ## High contrast
 
 `high-contrast` declares that this widget wants a high contrast treatment. The flag reaches the theme; the component picks no colour. See [the reference page](../../../docs/components/cn-widget-wrapper.md#high-contrast).
+
+### A text link in the header (`headerLink`)
+
+`headerLink` (`{ label, route?, params?, query?, href? }`) draws one text link in the header before the overflow menu, such as "All deadlines".

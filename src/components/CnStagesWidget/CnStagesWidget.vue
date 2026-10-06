@@ -1483,7 +1483,7 @@ export default {
 	color: var(--color-text-maxcontrast);
 	font: inherit;
 	font-size: 14px;
-	text-align: left;
+	text-align: start;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;

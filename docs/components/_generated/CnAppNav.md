@@ -15,10 +15,12 @@
 
 ### Events
 
-| Name                   | Payload | Description                                                                                                                                                                                                 |
-| ---------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `primary-action`       | —       | Emitted when the resolved primary-action button is clicked. Payload includes the action descriptor (`{ id, label, icon, route, href, payload }`) plus the current `page` (route name) for host dispatchers. |
-| `primary-action-click` | —       | Back-compat alias for `@primary-action`. Payload is the resolved primary action object as declared in the manifest.                                                                                         |
+| Name                     | Payload | Description                                                                                                                                                                                                 |
+| ------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `primary-action`         | —       | Emitted when the resolved primary-action button is clicked. Payload includes the action descriptor (`{ id, label, icon, route, href, payload }`) plus the current `page` (route name) for host dispatchers. |
+| `primary-action-click`   | —       | Back-compat alias for `@primary-action`. Payload is the resolved primary action object as declared in the manifest.                                                                                         |
+| `primary-action-created` | —       | Emitted after an `open-form` primary action saves. Payload: the created object.                                                                                                                             |
+| `card-action`            | —       | Emitted when the nav card's link is an action button. Payload: the action id.                                                                                                                               |
 
 ### Slots
 
@@ -28,3 +30,4 @@
 | `search`                  | —              | search                                                    |
 | `primary-action`          | —              | primary-action Optional primary action rendered above the |
 | `item-${item.id}-actions` | `name`, `item` | `item-\${item.id}-actions`                                |
+| `card`                    | `card`         | card                                                      |

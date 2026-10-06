@@ -403,7 +403,7 @@ export default {
 		 * the row. Empty fields leave their placeholder blank; a line that
 		 * resolves to nothing is not drawn.
 		 *
-		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, secondary: (string|Function)}|string>}
+		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, secondary: (string|((row: object) => string))}|string>}
 		 */
 		columns: {
 			type: Array,

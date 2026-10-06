@@ -162,7 +162,7 @@
 
 .cn-detail-page__stats-table thead th {
 	padding: calc(1.5 * var(--default-grid-baseline)) calc(2 * var(--default-grid-baseline));
-	text-align: left;
+	text-align: start;
 	font-weight: 600;
 	font-size: 0.9em;
 	color: var(--color-text-maxcontrast);
@@ -187,7 +187,7 @@
 }
 
 .cn-detail-page__stats-cell--indented {
-	padding-left: calc(5 * var(--default-grid-baseline)) !important;
+	padding-inline-start: calc(5 * var(--default-grid-baseline)) !important;
 }
 
 .cn-detail-page__stats-cell--center {
@@ -195,7 +195,7 @@
 }
 
 .cn-detail-page__stats-cell--right {
-	text-align: right;
+	text-align: end;
 }
 
 /* Body & content */
@@ -329,7 +329,7 @@
 
 .cn-detail-page__sidebar-toggle {
 	position: fixed;
-	right: calc(5 * var(--default-grid-baseline));
+	inset-inline-end: calc(5 * var(--default-grid-baseline));
 	top: 80px;
 	z-index: 10;
 }

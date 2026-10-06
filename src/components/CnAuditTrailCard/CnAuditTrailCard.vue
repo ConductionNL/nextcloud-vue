@@ -89,6 +89,7 @@ export default {
 			default: 'object',
 			validator: (value) => ['object', 'app'].includes(value),
 		},
+
 		/** Rendering surface — passed for AD-19 surface fallback consumers. */
 		surface: {
 			type: String,
@@ -132,7 +133,7 @@ export default {
 		},
 
 		/**
-		 * The URL the card reads, or '' when it has nothing to read: the
+		 * The path the card reads (prefixed at fetch time), or '' when it has nothing to read: the
 		 * object's own trail, or the app-wide readable feed narrowed to the
 		 * register and schema when set.
 		 *
@@ -148,12 +149,12 @@ export default {
 				if (this.schema) {
 					params.set('schema', this.schema)
 				}
-				return prefixUrl(`${this.apiBase}/audit-trails/readable?${params.toString()}`)
+				return `${this.apiBase}/audit-trails/readable?${params.toString()}`
 			}
 			if (!this.register || !this.schema || !this.objectId) {
 				return ''
 			}
-			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trail?${params.toString()}`)
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trail?${params.toString()}`
 		},
 	},
 
@@ -183,7 +184,7 @@ export default {
 			}
 			this.loading = true
 			try {
-				const response = await fetch(url, { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(url), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const list = data.results || data.rows || data

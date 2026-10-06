@@ -2176,6 +2176,7 @@ export default {
 	width: auto;
 	object-fit: contain;
 }
+
 .cn-app-nav__brand-emblem--theme {
 	display: inline-block;
 	width: var(--cn-nav-emblem-size, 34px);
@@ -2202,14 +2203,17 @@ export default {
 	border-radius: var(--cn-nav-card-radius, var(--border-radius-large));
 	background: var(--cn-nav-card-background, var(--color-background-hover));
 }
+
 .cn-app-nav__card-title {
 	color: var(--color-main-text);
 	font-weight: 700;
 }
+
 .cn-app-nav__card-text {
 	color: var(--color-text-maxcontrast);
 	line-height: 1.4;
 }
+
 .cn-app-nav__card-link {
 	align-self: flex-start;
 	margin: 0;
@@ -2222,10 +2226,12 @@ export default {
 	text-decoration: none;
 	cursor: pointer;
 }
+
 .cn-app-nav__card-link:hover,
 .cn-app-nav__card-link:focus-visible {
 	text-decoration: underline;
 }
+
 .cn-app-nav__card-link:focus-visible {
 	outline: 2px solid var(--color-primary-element);
 	outline-offset: 2px;
