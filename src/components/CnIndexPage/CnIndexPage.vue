@@ -798,6 +798,7 @@ import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout } from '../../utils/scopeListLayout.js'
+import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnBoardView } from '../CnBoardView/index.js'
@@ -6460,8 +6461,7 @@ export default {
 			if (typeof window === 'undefined' || !created) {
 				return
 			}
-			const detail = { ...created, register: this.register, schema: this.exportSchemaSlug }
-			window.dispatchEvent(new CustomEvent('cn-walkthrough:object-created', { detail }))
+			dispatchObjectCreated({ register: this.register, schema: this.exportSchemaSlug, object: created })
 		},
 
 		/**

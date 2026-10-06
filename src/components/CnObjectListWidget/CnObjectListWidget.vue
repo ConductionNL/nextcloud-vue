@@ -296,6 +296,7 @@ import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNav
 import { objectFieldValue } from '../../utils/objectName.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
+import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnRowActions } from '../CnRowActions/index.js'
 
 /**
@@ -1394,7 +1395,8 @@ export default {
 					}
 				}
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
-				await axios.post(url, payload)
+				const response = await axios.post(url, payload)
+				dispatchObjectCreated({ register: c.register, schema: c.schema, object: (response && response.data) || payload })
 				if (this.$refs.createDialog) {
 					this.$refs.createDialog.setResult({ success: true })
 				}
