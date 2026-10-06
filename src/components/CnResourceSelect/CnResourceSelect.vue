@@ -13,6 +13,8 @@
 		:disabled="disabled"
 		:placeholder="placeholder"
 		:filterable="false"
+		:multiple="multiple"
+		:keepOpen="multiple"
 		label="label"
 		@search="onSearch"
 		@update:modelValue="onInput">
@@ -93,10 +95,19 @@ export default {
 			required: true,
 		},
 
-		/** Currently-selected object id (v-model). */
+		/** Currently-selected object id (v-model), or an array of ids when `multiple`. */
 		modelValue: {
-			type: [String, Number],
+			type: [String, Number, Array],
 			default: '',
+		},
+
+		/**
+		 * Pick several objects. `modelValue` is then an array of ids, and a
+		 * create adds the new object to the selection.
+		 */
+		multiple: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Object field used as the option label AND written on create. */
@@ -219,6 +230,9 @@ export default {
 			// The selected option object kept locally so the label shows even
 			// before/without a matching search result (e.g. a pre-set modelValue).
 			localSelected: null,
+			// Options seen so far, keyed by value, so a multiple selection
+			// keeps its labels when the search results move on.
+			known: {},
 		}
 	},
 
@@ -232,6 +246,19 @@ export default {
 			}
 		},
 
+		/**
+		 * The selected ids as strings (multiple mode).
+		 *
+		 * @return {string[]}
+		 */
+		selectedIds() {
+			const value = this.modelValue
+			if (Array.isArray(value)) {
+				return value.filter((v) => v !== null && v !== undefined && v !== '').map((v) => String(v))
+			}
+			return value ? [String(value)] : []
+		},
+
 		/** The `${register}-${schema}` object-type slug used by the store. */
 		typeSlug() {
 			return `${this.register}-${this.schema}`
@@ -239,6 +266,11 @@ export default {
 
 		/** The currently-selected option, for NcSelect's model-value. */
 		selectedOption() {
+			if (this.multiple) {
+				return this.selectedIds.map((id) => this.known[id]
+					|| this.options.find((o) => o.value === id)
+					|| { value: id, label: id })
+			}
 			if (this.localSelected && this.localSelected.value === this.modelValue) {
 				return this.localSelected
 			}
@@ -310,9 +342,9 @@ export default {
 			// The scope moved, so anything already selected may no longer be
 			// in it. Drop the stale options + selection, then re-seed.
 			this.options = []
-			if (this.modelValue) {
+			if (this.selectedIds.length > 0) {
 				this.localSelected = null
-				this.$emit('update:modelValue', '')
+				this.$emit('update:modelValue', this.multiple ? [] : '')
 			}
 			if (this.search.trim().length >= this.minChars) {
 				this.onSearch(this.search)
@@ -347,7 +379,7 @@ export default {
 				const items = Array.isArray(collection)
 					? collection
 					: (this.objectStore.collections[this.typeSlug] || [])
-				this.options = items.map((o) => this.toOption(o))
+				this.options = this.remember(items.map((o) => this.toOption(o)))
 			} catch {
 				this.options = []
 			} finally {
@@ -392,7 +424,7 @@ export default {
 				const items = Array.isArray(collection)
 					? collection
 					: (this.objectStore.collections[this.typeSlug] || [])
-				this.options = items.map((o) => this.toOption(o))
+				this.options = this.remember(items.map((o) => this.toOption(o)))
 			} catch {
 				this.options = []
 			} finally {
@@ -408,6 +440,10 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async onInput(option) {
+			if (this.multiple) {
+				await this.onMultipleInput(Array.isArray(option) ? option : (option ? [option] : []))
+				return
+			}
 			if (!option) {
 				this.localSelected = null
 				/**
@@ -426,18 +462,57 @@ export default {
 		},
 
 		/**
+		 * Handle a change of a multiple selection. A synthetic create option
+		 * creates the object and adds it; the rest emit their ids.
+		 *
+		 * @param {Array<object>} chosen The selected options.
+		 * @return {Promise<void>}
+		 */
+		async onMultipleInput(chosen) {
+			const createOption = chosen.find((o) => o && o.__create)
+			const ids = chosen.filter((o) => o && !o.__create).map((o) => String(o.value))
+			this.remember(chosen.filter((o) => o && !o.__create))
+			if (!createOption) {
+				this.$emit('update:modelValue', ids)
+				return
+			}
+			const created = await this.createFromTerm(createOption.label, ids)
+			if (!created) {
+				this.$emit('update:modelValue', ids)
+			}
+		},
+
+		/**
+		 * Cache options by value so their labels survive a new search.
+		 *
+		 * @param {Array<object>} options Options to remember.
+		 * @return {Array<object>} The same options.
+		 */
+		remember(options) {
+			const next = { ...this.known }
+			for (const o of options) {
+				if (o && o.value) {
+					next[o.value] = o
+				}
+			}
+			this.known = next
+			return options
+		},
+
+		/**
 		 * Create a new object from the typed term and select it.
 		 *
 		 * @param {string} term The term to write to `labelField`.
-		 * @return {Promise<void>}
+		 * @param {string[]} [keep] Multiple mode: the ids already selected, which the new id joins.
+		 * @return {Promise<object|null>} The created object, or null.
 		 */
-		async createFromTerm(term) {
+		async createFromTerm(term, keep = []) {
 			if (!this.objectStore && !this.createHandler) {
-				return
+				return null
 			}
 			const name = (term || '').trim()
 			if (!name) {
-				return
+				return null
 			}
 			this.loading = true
 			try {
@@ -456,20 +531,26 @@ export default {
 					created = await this.objectStore.saveObject(this.typeSlug, payload)
 				}
 				if (!created) {
-					return
+					return null
 				}
 				const option = this.toOption(created)
+				this.remember([option])
 				this.options = [option, ...this.options.filter((o) => o.value !== option.value)]
 				this.localSelected = option
-				this.$emit('update:modelValue', option.value)
+				this.search = ''
+				this.$emit('update:modelValue', this.multiple
+					? [...keep.filter((id) => id !== option.value), option.value]
+					: option.value)
 				/**
 				 * @event create A new object was created from the search term.
 				 * @type {object} The created OpenRegister object.
 				 */
 				this.$emit('create', created)
+				return created
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.warn('[CnResourceSelect] create failed', e)
+				return null
 			} finally {
 				this.loading = false
 			}
@@ -508,6 +589,10 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async ensureSelectedLoaded() {
+			if (this.multiple) {
+				await this.ensureManyLoaded()
+				return
+			}
 			if (!this.modelValue || this.selectedOption || !this.objectStore) {
 				return
 			}
@@ -522,6 +607,32 @@ export default {
 				}
 			} catch {
 				// Leave the id un-labelled rather than crash.
+			}
+		},
+
+		/**
+		 * Multiple mode: fetch each selected id whose label is not known yet.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async ensureManyLoaded() {
+			if (!this.objectStore || typeof this.objectStore.fetchObject !== 'function') {
+				return
+			}
+			const missing = this.selectedIds.filter((id) => !this.known[id] && !this.options.some((o) => o.value === id))
+			if (missing.length === 0) {
+				return
+			}
+			this.ensureRegistered()
+			for (const id of missing) {
+				try {
+					const obj = await this.objectStore.fetchObject(this.typeSlug, id)
+					if (obj) {
+						this.remember([this.toOption(obj)])
+					}
+				} catch {
+					// Leave the id un-labelled rather than crash.
+				}
 			}
 		},
 	},

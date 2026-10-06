@@ -5,6 +5,7 @@ import { genericError, networkError, parseResponseError } from '../utils/errors.
 import { normalizeFacets } from '../utils/facets.js'
 import { buildHeaders, buildQueryString, capitalize, prefixUrl } from '../utils/headers.js'
 import { extractId } from '../utils/id.js'
+import { dispatchObjectCreated } from '../utils/walkthroughSignals.js'
 import { mergePluginActions, mergePluginGetters, mergePluginState } from './pluginMerge.js'
 import { liveUpdatesPlugin } from './plugins/liveUpdates.js'
 
@@ -828,6 +829,13 @@ const baseActions = {
 			this.objects = {
 				...this.objects,
 				[type]: { ...(this.objects[type] || {}), [savedId]: data },
+			}
+
+			// Every create through the store lets an `advanceOn:
+			// object-created` walkthrough step advance, whichever form made it.
+			if (!isUpdate) {
+				const config = this.objectTypeRegistry[type] || {}
+				dispatchObjectCreated({ register: config.registerSlug || config.register, schema: config.schemaSlug || config.schema, object: data })
 			}
 
 			return data

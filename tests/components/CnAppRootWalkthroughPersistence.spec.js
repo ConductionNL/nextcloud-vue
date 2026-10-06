@@ -138,7 +138,9 @@ describe('CnAppRoot walkthrough completion persistence', () => {
 		w.unmount()
 	})
 
-	it('PUTs the app version when the tour is dismissed from the backdrop / ESC', async () => {
+	// ESC and a click on the dim PAUSE the tour; they no longer record it as
+	// seen. Pressing ESC to close a create dialog used to end the tour for good.
+	it('does not record the tour as seen when it is paused from the backdrop / ESC', async () => {
 		const w = mountRoot('wt-dismiss')
 		await settle()
 		const tour = w.findComponent(CnWalkthrough)
@@ -146,8 +148,20 @@ describe('CnAppRoot walkthrough completion persistence', () => {
 		tour.vm.onBackdrop()
 		await settle()
 
-		expect(axios.put).toHaveBeenCalledWith(
+		expect(axios.put).not.toHaveBeenCalledWith(
 			expect.stringContaining('/apps/wt-dismiss' + PREF_PATH),
+			{ value: '2.1.0' },
+		)
+		w.unmount()
+	})
+
+	it('PUTs the app version when the tour is skipped', async () => {
+		const w = mountRoot('wt-skip')
+		await settle()
+		w.findComponent(CnWalkthrough).vm.skip()
+		await settle()
+		expect(axios.put).toHaveBeenCalledWith(
+			expect.stringContaining('/apps/wt-skip' + PREF_PATH),
 			{ value: '2.1.0' },
 		)
 		w.unmount()

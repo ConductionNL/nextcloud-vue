@@ -19,3 +19,9 @@
 | ------------------------------------------------------------------------------- | ------- | ----------- |
 | `update:modelValue`                                                             | —       |             |
 | `update:modelValue The selected value, or the array of values when `multiple`.` | —       |             |
+
+### Slots
+
+| Name             | Bindings             | Description                                              |
+| ---------------- | -------------------- | -------------------------------------------------------- |
+| `option-actions` | `option`, `selected` | option-actions Content below one card, outside its label |

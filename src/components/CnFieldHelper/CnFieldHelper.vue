@@ -2,7 +2,7 @@
 	<!-- Keeps the legacy `cn-form-dialog__helper` class alongside its own so
 	     consumer stylesheets that target the old helper span still apply. -->
 	<span
-		v-if="error || text"
+		v-if="error || text || more"
 		class="cn-field-helper cn-form-dialog__helper"
 		:class="{ 'cn-field-helper--error': !!error, 'cn-form-dialog__helper--error': !!error }">
 		{{ error || text }}
@@ -42,7 +42,9 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
  * `fieldsFromSchema` splits it and puts the full text on the field's
  * `descriptionLong`; pass that as `more` and this renders an ⓘ button that
  * reveals it in a popover, so a paragraph-length schema description cannot
- * push the rest of the form off screen.
+ * push the rest of the form off screen. A schema property's `x-help` text
+ * also lands on `descriptionLong`, so the ⓘ shows even when the description
+ * is short or absent.
  *
  * `CnFormDialog` uses this for every auto-generated field. Use it directly when
  * rendering your own fields through the `#form-fields` or `#field-<key>` slots,

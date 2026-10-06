@@ -200,6 +200,162 @@ export function persistWalkthroughSeenVersion(appId, configKey, version, options
 }
 
 /**
+ * localStorage key prefix for the per-browser mirror of tour progress.
+ */
+export const WALKTHROUGH_PROGRESS_STORAGE_PREFIX = 'cn-walkthrough-progress:'
+
+/**
+ * The preference key that holds tour progress, next to the completion key.
+ *
+ * @param {string} configKey `manifest.walkthrough.completionConfigKey` (may be empty).
+ * @return {string} `<configKey>-progress`, or '' when no key is declared.
+ */
+export function walkthroughProgressKey(configKey) {
+	return configKey ? configKey + '-progress' : ''
+}
+
+/**
+ * Normalise stored progress (an object, or the JSON string a preference
+ * holds) into `{ tourId, stepId, index, version }`, or null.
+ *
+ * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+ * @param {unknown} value The stored value.
+ * @return {{tourId: string, stepId: string, index: number, version: string}|null} The progress.
+ */
+export function normaliseWalkthroughProgress(value) {
+	let data = value
+	if (typeof data === 'string') {
+		if (data === '') {
+			return null
+		}
+		try {
+			data = JSON.parse(data)
+		} catch {
+			return null
+		}
+	}
+	if (!isPlainObject(data) || typeof data.tourId !== 'string' || data.tourId === '') {
+		return null
+	}
+	return {
+		tourId: data.tourId,
+		stepId: typeof data.stepId === 'string' ? data.stepId : '',
+		index: Number.isInteger(data.index) && data.index >= 0 ? data.index : 0,
+		version: typeof data.version === 'string' ? data.version : '',
+	}
+}
+
+/**
+ * Read the per-browser mirror of the tour progress. Synchronous.
+ *
+ * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+ * @param {string} appId The Nextcloud app id.
+ * @param {Storage} [storage] Injectable storage backend.
+ * @return {object|null} The progress, or null.
+ */
+export function readLocalWalkthroughProgress(appId, storage) {
+	const s = resolveStorage(storage)
+	if (!s) {
+		return null
+	}
+	try {
+		return normaliseWalkthroughProgress(s.getItem(WALKTHROUGH_PROGRESS_STORAGE_PREFIX + appId))
+	} catch {
+		return null
+	}
+}
+
+/**
+ * Load the user's tour progress: the per-user preference
+ * `<completionConfigKey>-progress` when declared, else the local mirror.
+ *
+ * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+ * @param {string} appId The Nextcloud app id.
+ * @param {string} configKey `manifest.walkthrough.completionConfigKey` (may be empty).
+ * @param {object} [options] `{ http, storage }` injection points for tests.
+ * @return {Promise<object|null>} The progress, or null.
+ */
+export async function loadWalkthroughProgress(appId, configKey, options = {}) {
+	const local = readLocalWalkthroughProgress(appId, options.storage)
+	const key = walkthroughProgressKey(configKey)
+	if (!key) {
+		return local
+	}
+	const http = options.http || axios
+	try {
+		const { data } = await http.get(walkthroughPreferenceUrl(appId, key))
+		if (!isPlainObject(data) || !('value' in data)) {
+			return local
+		}
+		return normaliseWalkthroughProgress(data.value) || local
+	} catch {
+		return local
+	}
+}
+
+/**
+ * Persist the user's tour progress, or clear it with `null`. Writes the
+ * local mirror and, with a completion key, the per-user preference. Never
+ * throws.
+ *
+ * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+ * @param {string} appId The Nextcloud app id.
+ * @param {string} configKey `manifest.walkthrough.completionConfigKey` (may be empty).
+ * @param {object|null} progress `{ tourId, stepId, index, version }`, or null to clear.
+ * @param {object} [options] `{ http, storage }` injection points for tests.
+ * @return {Promise<boolean>} True when the server preference was written.
+ */
+export function persistWalkthroughProgress(appId, configKey, progress, options = {}) {
+	const value = progress ? normaliseWalkthroughProgress(progress) : null
+	const raw = value ? JSON.stringify(value) : ''
+	const s = resolveStorage(options.storage)
+	if (s) {
+		try {
+			if (raw) {
+				s.setItem(WALKTHROUGH_PROGRESS_STORAGE_PREFIX + appId, raw)
+			} else {
+				s.removeItem(WALKTHROUGH_PROGRESS_STORAGE_PREFIX + appId)
+			}
+		} catch {
+			/* quota / private mode: best-effort */
+		}
+	}
+	const key = walkthroughProgressKey(configKey)
+	if (!key) {
+		return Promise.resolve(false)
+	}
+	const http = options.http || axios
+	try {
+		return Promise.resolve(http.put(walkthroughPreferenceUrl(appId, key), { value: raw }))
+			.then(() => true)
+			.catch(() => false)
+	} catch {
+		return Promise.resolve(false)
+	}
+}
+
+/**
+ * Whether an `object-created` signal satisfies a step's `advanceOn`.
+ *
+ * The signal's own `register` / `schema` (the slugs the creating surface
+ * knows) are compared first; an object's `@self` values are numeric ids on
+ * OpenRegister and only match a step that also uses ids.
+ *
+ * @param {object} advanceOn The step's `advanceOn`.
+ * @param {object} signal `{ register?, schema?, object? }`.
+ * @return {boolean} True when it matches.
+ */
+function objectCreatedMatches(advanceOn, signal) {
+	const obj = signal.object || {}
+	const self = obj['@self'] || {}
+	const same = (want, candidates) => !want || candidates
+		.filter((c) => c !== null && c !== undefined && c !== '')
+		.some((c) => String(c).toLowerCase() === String(want).toLowerCase())
+	return same(advanceOn.register, [signal.register, obj.register, self.register])
+		&& same(advanceOn.schema, [signal.schema, obj.schema, self.schema])
+}
+
+/**
  * Compare two semver-ish strings. Missing / unparseable parts sort as 0.
  *
  * @param {string} a Left version.
@@ -276,6 +432,9 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		const currentIndex = ref(0)
 		const context = ref({})
 		const running = ref(false)
+		// True while the tour is hidden by ESC or a backdrop click. The tour
+		// and its step stay, so it continues where it was.
+		const paused = ref(false)
 		// True while a user-initiated replay is active (the "Restart tutorial"
 		// entry). A replay shows the FULL tour regardless of the persisted
 		// seen-version — otherwise a returning user, whose seenVersion already
@@ -479,6 +638,7 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		 */
 		function start(tourId, startIndex = 0) {
 			replaying.value = false
+			paused.value = false
 			activeTourId.value = tourId
 			currentIndex.value = startIndex
 			context.value = {}
@@ -503,8 +663,58 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		 */
 		function dismiss() {
 			running.value = false
+			paused.value = false
 			activeTourId.value = null
 			replaying.value = false
+		}
+		/**
+		 * Hide the active tour without ending it (ESC, a click on the dim).
+		 * The tour and step are kept, so `resumePaused()` continues there.
+		 *
+		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @return {void}
+		 */
+		function pause() {
+			if (!activeTourId.value) {
+				return
+			}
+			running.value = false
+			paused.value = true
+		}
+		/**
+		 * Show a paused tour again at the step it was on.
+		 *
+		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @return {boolean} True when there was a paused tour to show.
+		 */
+		function resumePaused() {
+			if (!paused.value || !activeTourId.value) {
+				return false
+			}
+			paused.value = false
+			running.value = true
+			return true
+		}
+		/**
+		 * Start a tour at a remembered step ("continue where you left off").
+		 * Runs in replay mode so a returning user sees the full tour, and
+		 * falls back to the first step when the step no longer exists.
+		 *
+		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @param {string} tourId The tour id.
+		 * @param {string} [stepId] The step to continue at.
+		 * @return {boolean} True when the tour exists and started.
+		 */
+		function resumeAt(tourId, stepId) {
+			const tour = tours.find((t) => t.id === tourId)
+			if (!tour) {
+				return false
+			}
+			replaying.value = true
+			const idx = composeSteps(tour).findIndex((s) => s.id === stepId)
+			start(tourId, Math.max(0, idx))
+			replaying.value = true
+			return true
 		}
 		/**
 		 * Mark the active tour complete: stop running and invoke the
@@ -515,6 +725,7 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		 */
 		function complete() {
 			running.value = false
+			paused.value = false
 			activeTourId.value = null
 			replaying.value = false
 			if (typeof options.onComplete === 'function') {
@@ -542,12 +753,9 @@ export function useWalkthrough(appId, manifest, options = {}) {
 					runCapture(step, { params: signal.params || {} })
 				}
 			} else if (signal.kind === 'object-created' && a.type === 'object-created') {
-				const obj = signal.object || {}
-				const reg = obj.register ?? obj['@self']?.register
-				const sch = obj.schema ?? obj['@self']?.schema
-				match = (!a.register || reg === a.register) && (!a.schema || sch === a.schema)
+				match = objectCreatedMatches(a, signal)
 				if (match) {
-					runCapture(step, { object: obj })
+					runCapture(step, { object: signal.object || {} })
 				}
 			} else if (signal.kind === 'element' && a.type === 'element-appears') {
 				match = true
@@ -575,9 +783,13 @@ export function useWalkthrough(appId, manifest, options = {}) {
 			isLast,
 			context,
 			running,
+			paused,
 			replaying,
 			start,
 			restart,
+			pause,
+			resumePaused,
+			resumeAt,
 			next,
 			back,
 			skip,

@@ -15,39 +15,51 @@
 		</NcNoteCard>
 
 		<div v-else class="cn-choice-cards__grid" :style="gridStyle">
-			<label
+			<!-- One cell per option: the card's label, and below it whatever the
+			     `#option-actions` slot adds. The slot sits OUTSIDE the label on
+			     purpose: a button inside a label is interactive content inside
+			     interactive content, and a click on it would toggle the radio. -->
+			<div
 				v-for="option in normalizedOptions"
 				:key="String(option.value)"
-				class="cn-choice-cards__option"
-				:class="{ 'cn-choice-cards__option--selected': isSelected(option) }">
-				<!-- A REAL, VISIBLE input, not a styled div with a click handler.
-				     It carries the checked state to assistive technology and to
-				     Windows high-contrast mode for free, and it keeps the
-				     selection perceivable without colour (WCAG 1.4.1) — the
-				     card's active border alone would not be. -->
-				<input
-					class="cn-choice-cards__input"
-					:type="multiple ? 'checkbox' : 'radio'"
-					:name="groupName"
-					:value="String(option.value)"
-					:checked="isSelected(option)"
-					:disabled="disabled"
-					@change="onToggle(option)">
-				<CnCard
-					class="cn-choice-cards__card"
-					:title="option.label"
-					titleTag="span"
-					:description="option.description"
-					:stats="option.stats || []"
-					:tags="option.tags || []"
-					:active="isSelected(option)"
-					activeVariant="primary"
-					:descriptionLines="descriptionLines">
-					<template v-if="option.icon" #icon>
-						<CnIcon :name="option.icon" :size="20" />
-					</template>
-				</CnCard>
-			</label>
+				class="cn-choice-cards__cell">
+				<label
+					class="cn-choice-cards__option"
+					:class="{ 'cn-choice-cards__option--selected': isSelected(option) }">
+					<!-- A REAL, VISIBLE input, not a styled div with a click handler.
+					     It carries the checked state to assistive technology and to
+					     Windows high-contrast mode for free, and it keeps the
+					     selection perceivable without colour (WCAG 1.4.1) — the
+					     card's active border alone would not be. -->
+					<input
+						class="cn-choice-cards__input"
+						:type="multiple ? 'checkbox' : 'radio'"
+						:name="groupName"
+						:value="String(option.value)"
+						:checked="isSelected(option)"
+						:disabled="disabled"
+						@change="onToggle(option)">
+					<CnCard
+						class="cn-choice-cards__card"
+						:title="option.label"
+						titleTag="span"
+						:description="option.description"
+						:stats="option.stats || []"
+						:tags="option.tags || []"
+						:active="isSelected(option)"
+						activeVariant="primary"
+						:descriptionLines="descriptionLines">
+						<template v-if="option.icon" #icon>
+							<CnIcon :name="option.icon" :size="20" />
+						</template>
+					</CnCard>
+				</label>
+				<div v-if="$slots['option-actions']" class="cn-choice-cards__actions">
+					<!-- @slot option-actions Content below one card, outside its label
+					     (e.g. a per-option Load button). Scope: `{ option, selected }`. -->
+					<slot name="option-actions" :option="option" :selected="isSelected(option)" />
+				</div>
+			</div>
 		</div>
 	</fieldset>
 </template>
@@ -296,6 +308,19 @@ export default {
 	   that container clips, which the setup wizard's dialog body does on the
 	   sides and the bottom. 12px clears the widest of those shadows. */
 	padding: 12px;
+}
+
+.cn-choice-cards__cell {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-inline-size: 0;
+}
+
+.cn-choice-cards__actions {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 }
 
 .cn-choice-cards__option {

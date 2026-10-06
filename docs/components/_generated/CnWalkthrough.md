@@ -19,13 +19,15 @@
 
 ### Events
 
-| Name          | Payload | Description                                                |
-| ------------- | ------- | ---------------------------------------------------------- |
-| `complete`    | —       | Emitted when the last step is passed.                      |
-| `dismiss`     | —       | Emitted when the user dismisses the tour (backdrop / ESC). |
-| `step-change` | —       | Emitted when the active step changes.                      |
-| `advance`     | —       | Emitted when the user advances the tour.                   |
-| `handoff`     | —       | Emitted just before navigating to a cross-app destination. |
+| Name          | Payload | Description                                                                         |
+| ------------- | ------- | ----------------------------------------------------------------------------------- |
+| `complete`    | —       | Emitted when the last step is passed.                                               |
+| `dismiss`     | —       | Emitted when the user skips (ends) the tour.                                        |
+| `pause`       | —       | Emitted when the user hides the tour (backdrop / ESC). The tour can continue later. |
+| `progress`    | —       | Emitted on every step change so the host can remember where the user is.            |
+| `step-change` | —       | Emitted when the active step changes.                                               |
+| `advance`     | —       | Emitted when the user advances the tour.                                            |
+| `handoff`     | —       | Emitted just before navigating to a cross-app destination.                          |
 
 ### Slots
 
