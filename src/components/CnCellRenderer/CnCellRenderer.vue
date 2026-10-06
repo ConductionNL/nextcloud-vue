@@ -177,6 +177,9 @@ import { safeHref } from '../../utils/safeHref.js'
 import { formatValue } from '../../utils/schema.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
+/** A uuid in any version, the shape OpenRegister ids take. */
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 /**
  * Module-level set of column keys already warned about for a
  * `widget:"link"` declaration with no resolvable target — guarantees
@@ -738,6 +741,27 @@ export default {
 			return undefined
 		},
 
+		/**
+		 * Whether the cell draws a uuid, and so takes the monospace uuid
+		 * style. The property's `format: "uuid"` alone used to decide this,
+		 * so a reference that a formatter or a widget had resolved to its
+		 * name was still drawn as code. Now the value has to be a uuid AND
+		 * nothing resolves it: a resolving widget or formatter, or a value
+		 * that is not a uuid, renders in the normal text style.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-resolved-reference-is-not-drawn-as-a-uuid
+		 * @return {boolean}
+		 */
+		showsUuid() {
+			if (this.property?.format !== 'uuid') {
+				return false
+			}
+			if (this.widgetComponent || this.widget || this.hasFormatter) {
+				return false
+			}
+			return typeof this.value === 'string' && UUID_PATTERN.test(this.value)
+		},
+
 		cellClass() {
 			const classes = []
 			if (this.propertyType === 'boolean') {
@@ -749,7 +773,7 @@ export default {
 			if (this.property?.format === 'date-time' || this.property?.format === 'date') {
 				classes.push('cn-cell-renderer--date')
 			}
-			if (this.property?.format === 'uuid') {
+			if (this.showsUuid) {
 				classes.push('cn-cell-renderer--uuid')
 			}
 			if (this.propertyType === 'integer' || this.propertyType === 'number') {
