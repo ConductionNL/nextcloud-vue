@@ -154,8 +154,11 @@ the name:
 |-------|------|-------------|
 | `id` | `string` | Unique identifier (used as Vue key) |
 | `label` | `string` | Translation key — passed through `translate(label)` |
+| `translateLabel` | `boolean` | Default `true`. `false` renders `label` as written instead of passing it through `translate()`, for a user-authored title (a catalog name, say) that may equal a translation key such as `Search`. Applies to the entry's text and tooltip, on entries, children, captions, footer and settings entries. The label is always rendered as text, never as HTML |
 | `icon` | `string` | CSS class (e.g. `icon-checkmark`); the active-state filter only applies to `class*="icon-"` |
 | `route` | `string` | Vue Router named route. Resolved against `manifest.pages` for `exact` matching |
+| `query` | `object` | Optional query merged into the link (`{ name: route, query }`), e.g. `{ "caseType": "<uuid>" }` to deep-link to a pre-filtered list. The entry is active only while the address carries every key, see [Active entry and `query`](#active-entry-and-query) |
+| `params` | `object` | Optional route params for a parameterised route, string or number values. The link becomes `{ name: route, params, query }`, e.g. `{ "slug": "news" }` for a page at `/catalogs/:slug`. The entry is active only while every declared param equals the current route's param, see [Active entry and `params`](#active-entry-and-params) |
 | `href` | `string` | Destination URL. Renders the entry as a real anchor (visible on hover, native link cursor) instead of a router link. External URLs (`scheme://`) open in a new tab (`NcAppNavigationItem` adds `target="_blank"`); internal app paths (e.g. `/index.php/apps/foo/`) navigate in the same tab. Mutually exclusive with `route` |
 | `action` | `'user-settings'` | Built-in action. `user-settings` invokes the injected `cnOpenUserSettings()` (provided by [`CnAppRoot`](./cn-app-root.md)) and opens the host `NcAppSettingsDialog`. Both `route` and `href` are ignored when `action` is set |
 | `order` | `number` | Sort order (ascending). Items without `order` render after items with `order` |
@@ -253,7 +256,7 @@ The backend (OpenRegister) injects `manifest.runtime` when serving the manifest 
 
 ## Behaviour
 
-- **Active state** — an item is active when `$route.name === item.route`. External (`href`) items never appear active.
+- **Active state** — an item is active when `$route.name === item.route`, narrowed by its `query` and `params` when it declares them (see below). On a page whose path sits below an item's page path, the item with the longest matching page path is active. External (`href`) items never appear active.
 - **Exact matching** — when the resolved page's `route === '/'`, `exact` is set on the underlying router-link. Without this, the root item would look permanently active for nested routes.
 - **External links** — `href` items return `null` for `:to` and render a real anchor, so middle-click and copy-link work. `NcAppNavigationItem` adds `target="_blank"` for external (`scheme://`) URLs.
 - **Admin settings action** — an item with `action: "admin-settings"` renders as a real anchor to the absolute `/settings/admin/<appId>` URL, which opens in a new tab. Without a resolvable app id it has no href and the click does nothing.
@@ -274,6 +277,19 @@ On a detail page under a list (`/cases/123` under `/cases`) the menu marks the l
 2. otherwise, for example after a reload or a shared link, the first of those entries in menu order.
 
 Use `order` to decide which entry that is. A list that has an entry without a `query` is not affected: that entry is marked below the list, as it was. On the list itself nothing changes either: an address no entry describes marks none.
+
+## Active entry and `params`
+
+Entries may share a parameterised route and differ in `params`, for example one entry per catalog, each routing to the same `/catalogs/:slug` page:
+
+```json
+{ "id": "catalog-news",  "label": "News",  "route": "Catalog", "params": { "slug": "news" },  "order": 10 },
+{ "id": "catalog-sport", "label": "Sport", "route": "Catalog", "params": { "slug": "sport" }, "order": 11 }
+```
+
+An entry with `params` is active only while every declared key equals the current route's param of the same name. Values are compared as strings, so `{ "year": 2026 }` matches `/reports/2026`. Keys the route carries but the entry does not declare are ignored. An entry that declares both `params` and `query` needs both to match. Like `query`, an entry without `params` on the same route is not active while a sibling's `params` match. Known limitation: an entry with only `params` does not step back for a sibling with the same `params` plus a matching `query`, so both are marked on that address.
+
+An entry is also active on related pages below its own: with its `params` filled into its page path, any route whose path starts with that path counts. Path segments are compared decoded, so a value the router percent-encodes (`a b` as `a%20b`) still matches. A detail page at `/catalogs/:slug/:id` therefore marks the `sport` entry on `/catalogs/sport/42`, because that route carries `slug: "sport"` too. To mark an entry active on a related page, declare that page's route below the entry's page path, preferably with the same param names. A page below that names the param differently (`/catalogs/:catalog/:id`) fails the params check, and the menu falls back to marking one entry below the route, as for `query`, but only among entries whose filled-in path the address sits below. A page path with a required `:name` the entry has no param for is never matched this way, and an entry is never marked for a param value it does not declare.
 
 ## Dynamic per-tenant menu entries
 
