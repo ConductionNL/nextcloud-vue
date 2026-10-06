@@ -276,6 +276,118 @@ describe('CnFormDialog: select or create a reference', () => {
 	})
 })
 
+describe('CnFormDialog: create from a picker the way the app creates (round two, R3)', () => {
+	const contact = {
+		title: 'Contact',
+		properties: {
+			client: { type: 'string', format: 'uuid', title: 'Client', $ref: 'client', 'x-allow-create': true },
+			tag: { type: 'string', format: 'uuid', title: 'Tag', $ref: 'tag', 'x-allow-create': true },
+		},
+	}
+	const clientSchema = {
+		title: 'Client',
+		properties: { name: { type: 'string', title: 'Name' } },
+	}
+	const page = (config) => ({ id: 'Clients', route: '/clients', type: 'index', config: { register: 'pipelinq', schema: 'client', ...config } })
+	const mountWith = ({ pages, registry, openModal = jest.fn() }) => mount(CnFormDialog, {
+		props: { schema: contact, item: null, register: 'pipelinq' },
+		global: {
+			stubs,
+			provide: { cnManifest: { pages }, cnRegistry: registry, cnCustomComponents: {}, cnOpenModal: openModal },
+		},
+	})
+	const nestedOf = (wrapper) => wrapper.findAllComponents({ name: 'CnFormDialog' }).find((c) => c.vm !== wrapper.vm)
+
+	it('saves through the page createOverride instead of a plain save', async () => {
+		mockStore.fetchSchema.mockResolvedValue(clientSchema)
+		const handler = jest.fn().mockResolvedValue({ id: 'c-1', name: 'Acme' })
+		const wrapper = mountWith({
+			pages: [page({ createOverride: 'createClientContactAware', createModal: 'ClientCreateDialog' })],
+			registry: {
+				createClientContactAware: { kind: 'create-override', handler },
+				ClientCreateDialog: { kind: 'modal', component: {} },
+			},
+		})
+		const pending = wrapper.vm.openNestedCreate(field(wrapper, 'client'), 'Acme')
+		await flushPromises()
+		expect(nestedOf(wrapper)).toBeTruthy()
+		await wrapper.vm.onNestedCreateConfirm({ name: 'Acme' })
+		await expect(pending).resolves.toEqual({ id: 'c-1', name: 'Acme' })
+		expect(handler).toHaveBeenCalledWith({ name: 'Acme' }, expect.objectContaining({ register: 'pipelinq', schema: 'client', objectType: 'pipelinq-client' }))
+		expect(mockStore.saveObject).not.toHaveBeenCalled()
+	})
+
+	it('keeps the nested form open with the server message when the override throws', async () => {
+		mockStore.fetchSchema.mockResolvedValue(clientSchema)
+		const handler = jest.fn().mockRejectedValue({ response: { data: { error: 'Email is already in use' } } })
+		const wrapper = mountWith({
+			pages: [page({ createOverride: 'createClientContactAware' })],
+			registry: { createClientContactAware: { kind: 'create-override', handler } },
+		})
+		wrapper.vm.openNestedCreate(field(wrapper, 'client'), 'Acme')
+		await flushPromises()
+		await wrapper.vm.onNestedCreateConfirm({ name: 'Acme' })
+		expect(wrapper.vm.nestedCreate).not.toBeNull()
+		expect(nestedOf(wrapper).vm.formError).toBe('Email is already in use')
+	})
+
+	it('opens the page createModal when the app has no override, and selects what it created', async () => {
+		mockStore.fetchObject.mockResolvedValue({ id: 'c-5', name: 'Acme' })
+		const openModal = jest.fn()
+		const wrapper = mountWith({
+			pages: [page({ createModal: 'ClientCreateDialog' })],
+			registry: { ClientCreateDialog: { kind: 'modal', component: {} } },
+			openModal,
+		})
+		const pending = wrapper.vm.openNestedCreate(field(wrapper, 'client'), 'Acme')
+		await flushPromises()
+		expect(openModal).toHaveBeenCalledWith('ClientCreateDialog', expect.objectContaining({ initialData: { name: 'Acme' } }))
+		expect(nestedOf(wrapper)).toBeFalsy()
+		const props = openModal.mock.calls[0][1]
+		const created = props.onCreated('c-5')
+		props.onClose()
+		await created
+		await expect(pending).resolves.toEqual({ id: 'c-5', name: 'Acme' })
+		expect(mockStore.fetchObject).toHaveBeenCalledWith('pipelinq-client', 'c-5')
+		expect(mockStore.fetchSchema).not.toHaveBeenCalled()
+	})
+
+	it('resolves null when the app dialog closes without creating', async () => {
+		const openModal = jest.fn()
+		const wrapper = mountWith({
+			pages: [page({ createModal: 'ClientCreateDialog' })],
+			registry: { ClientCreateDialog: { kind: 'modal', component: {} } },
+			openModal,
+		})
+		const pending = wrapper.vm.openNestedCreate(field(wrapper, 'client'), 'Acme')
+		await flushPromises()
+		openModal.mock.calls[0][1].onClose()
+		await expect(pending).resolves.toBeNull()
+	})
+
+	it('falls back to the generic form for a schema the app declares nothing for', async () => {
+		mockStore.fetchSchema.mockResolvedValue({ title: 'Tag', properties: { name: { type: 'string' } } })
+		mockStore.saveObject.mockResolvedValue({ id: 't-1', name: 'VIP' })
+		const handler = jest.fn()
+		const openModal = jest.fn()
+		const wrapper = mountWith({
+			pages: [page({ createOverride: 'createClientContactAware', createModal: 'ClientCreateDialog' })],
+			registry: {
+				createClientContactAware: { kind: 'create-override', handler },
+				ClientCreateDialog: { kind: 'modal', component: {} },
+			},
+			openModal,
+		})
+		const pending = wrapper.vm.openNestedCreate(field(wrapper, 'tag'), 'VIP')
+		await flushPromises()
+		await wrapper.vm.onNestedCreateConfirm({ name: 'VIP' })
+		await expect(pending).resolves.toEqual({ id: 't-1', name: 'VIP' })
+		expect(mockStore.saveObject).toHaveBeenCalledWith('pipelinq-tag', { name: 'VIP' })
+		expect(handler).not.toHaveBeenCalled()
+		expect(openModal).not.toHaveBeenCalled()
+	})
+})
+
 describe('CnFormDialog: help on a toggle', () => {
 	it('renders the (i) helper under a boolean field that declares x-help', () => {
 		const schema = {

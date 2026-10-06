@@ -9,8 +9,8 @@
 - [x] Test: `tests/components/CnFkResolveCell.spec.js` (fails on the old code with `pipelinq/product-category`).
 
 ## 3. App create dialog from a picker (R3)
-- [ ] Nested create uses the referenced schema's registered create dialog or override, else the generic form.
-- [ ] Tests for both paths.
+- [x] Nested create looks up the manifest page whose `config.schema` (and `config.register`) matches. Its `createOverride` saves the generic nested form through the app's handler; without one, its `createModal` opens the app's dialog (`created` event with the object or its id). Neither: the generic form as before.
+- [x] Tests: `tests/components/CnFormDialogPickers.spec.js` (override, override error, modal, modal closed, fallback; 4 fail on the old code).
 
 ## 4. Contains on text header filters (R4)
 - [ ] Switch to the OpenRegister contains operator once it is merged there.

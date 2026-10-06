@@ -46,11 +46,19 @@ When a select-or-create picker creates an object of a schema for which the app h
 registered a create dialog or create override, the picker SHALL open that instead of
 the generic form. Without one it SHALL open the generic form as before.
 
-#### Scenario: App dialog exists
+#### Scenario: App create override exists
 
-- **GIVEN** pipelinq's clients page declares `createModal: 'ClientCreateDialog'` for schema `client`
-- **WHEN** the user chooses Create in a contact's Client picker
-- **THEN** `ClientCreateDialog` SHALL open, and the client it creates SHALL be selected
+- **GIVEN** pipelinq's clients page declares `createOverride: 'createClientContactAware'` for schema `client`
+- **WHEN** the user chooses Create in a contact's Client picker and saves the form
+- **THEN** the form data SHALL be saved through that handler, not a plain object save
+- **AND** the client it returns SHALL be selected
+
+#### Scenario: Only an app dialog exists
+
+- **GIVEN** a page declares `createModal: 'ClientCreateDialog'` for schema `client` and no create override
+- **WHEN** the user chooses Create in a Client picker
+- **THEN** `ClientCreateDialog` SHALL open with the typed term as initial data
+- **AND** the client it reports with its `created` event SHALL be selected
 
 #### Scenario: No app dialog
 
