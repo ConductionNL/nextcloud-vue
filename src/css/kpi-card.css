@@ -248,6 +248,26 @@
 	white-space: nowrap;
 }
 
+/* A caption coloured by a rule (`captionVariant` / `overrides[].captionVariant`):
+   "1 due today" in the error colour. Foreground tokens, which stay readable in
+   dark mode. */
+.cn-kpi-card__label--primary {
+	color: var(--color-primary-element);
+	font-weight: 600;
+}
+.cn-kpi-card__label--success {
+	color: var(--color-text-success, var(--color-success-text));
+	font-weight: 600;
+}
+.cn-kpi-card__label--warning {
+	color: var(--color-element-warning, var(--color-warning-text));
+	font-weight: 600;
+}
+.cn-kpi-card__label--error {
+	color: var(--color-text-error, var(--color-error-text));
+	font-weight: 600;
+}
+
 /* Semantic variants. Each re-points the ONE accent token, so the icon tint
    and the number move together by construction — there is no second place to
    forget. The inline KPI below shares the same modifiers for the same reason:
