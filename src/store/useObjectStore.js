@@ -265,6 +265,27 @@ const baseActions = {
 	},
 
 	/**
+	 * Give a registered type a second schema path segment to try once when
+	 * its own answers 404 (see `_fetchWithSchemaFallback`). Set by
+	 * `resolveObjectOpType` for a schema title it kebab-cased, with the
+	 * title as written. A type that is not registered is left alone.
+	 *
+	 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-schema-title-falls-back-to-its-written-form
+	 * @param {string} slug The type slug
+	 * @param {string} schema The fallback schema path segment
+	 */
+	setSchemaFallback(slug, schema) {
+		const config = this.objectTypeRegistry[slug]
+		if (!config || typeof schema !== 'string' || schema === '') {
+			return
+		}
+		this.objectTypeRegistry = {
+			...this.objectTypeRegistry,
+			[slug]: { ...config, schemaFallback: schema },
+		}
+	},
+
+	/**
 	 * Unregister an object type and clean up all its state.
 	 *
 	 * @param {string} slug The type slug to unregister
@@ -433,11 +454,12 @@ const baseActions = {
 	 *
 	 * @param {string} type The type slug
 	 * @param {string|null} [id] Optional object ID
+	 * @param {string|null} [schema] Schema path segment to use instead of the type's own
 	 * @return {string} Full API URL path
 	 */
-	_buildUrl(type, id = null) {
+	_buildUrl(type, id = null, schema = null) {
 		const config = this._getTypeConfig(type)
-		let url = `${this._options.baseUrl}/${config.register}/${config.schema}`
+		let url = `${this._options.baseUrl}/${config.register}/${schema ?? config.schema}`
 		if (id) {
 			url += `/${id}`
 		}
@@ -458,11 +480,12 @@ const baseActions = {
 	 * @param {string} type The type slug
 	 * @param {object} [params] Extra query parameters
 	 * @param {string|null} [id] Optional object ID
+	 * @param {string|null} [schema] Schema path segment to use instead of the type's own
 	 * @return {string} Full API URL path including query string
 	 */
-	_buildUrlWithParams(type, params = {}, id = null) {
+	_buildUrlWithParams(type, params = {}, id = null, schema = null) {
 		const config = this._getTypeConfig(type)
-		let url = `${this._options.baseUrl}/${config.register}/${config.schema}`
+		let url = `${this._options.baseUrl}/${config.register}/${schema ?? config.schema}`
 		if (id) {
 			url += `/${id}`
 		}
@@ -470,6 +493,50 @@ const baseActions = {
 		const merged = lang ? { ...params, _lang: lang } : params
 		url += buildQueryString(merged)
 		return url
+	},
+
+	/**
+	 * Fetch for a type, retrying ONCE with its `schemaFallback` when the
+	 * schema path segment answers 404. A type without a fallback (every type
+	 * not registered by `resolveObjectOpType` for a kebab-cased title) makes
+	 * exactly the one request it always made. When the retry succeeds the
+	 * fallback becomes the type's schema, so later calls go straight to it;
+	 * when it does not, the first answer is returned and nothing changes.
+	 *
+	 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-schema-title-falls-back-to-its-written-form
+	 * @param {string} type The type slug
+	 * @param {function((string|null)): string} makeUrl Builds the URL; called with
+	 *   null for the type's own schema, or with the fallback segment.
+	 * @param {object} init The fetch options.
+	 * @return {Promise<Response>} The response to use.
+	 */
+	async _fetchWithSchemaFallback(type, makeUrl, init) {
+		const response = await fetch(makeUrl(null), init)
+		if (!response || response.status !== 404) {
+			return response
+		}
+		const config = this.objectTypeRegistry[type]
+		const fallback = config && config.schemaFallback
+		if (!fallback || String(fallback) === String(config.schema)) {
+			return response
+		}
+		let retry
+		try {
+			retry = await fetch(makeUrl(fallback), init)
+		} catch {
+			return response
+		}
+		if (!retry || !retry.ok) {
+			discardResponseBody(retry)
+			return response
+		}
+		discardResponseBody(response)
+		const { schemaFallback: _, ...rest } = config
+		this.objectTypeRegistry = {
+			...this.objectTypeRegistry,
+			[type]: { ...rest, schema: fallback },
+		}
+		return retry
 	},
 
 	/**
@@ -604,12 +671,14 @@ const baseActions = {
 				}
 			}
 
-			const url = this._buildUrlWithParams(type, fetchParams)
-
-			const response = await fetch(url, {
-				method: 'GET',
-				headers: this._buildHeaders(),
-			})
+			const response = await this._fetchWithSchemaFallback(
+				type,
+				(schema) => this._buildUrlWithParams(type, fetchParams, null, schema),
+				{
+					method: 'GET',
+					headers: this._buildHeaders(),
+				},
+			)
 
 			if (!response.ok) {
 				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
@@ -675,11 +744,14 @@ const baseActions = {
 	 */
 	async fetchCollectionForOptions(type, params = {}) {
 		try {
-			const url = this._buildUrlWithParams(type, params)
-			const response = await fetch(url, {
-				method: 'GET',
-				headers: this._buildHeaders(),
-			})
+			const response = await this._fetchWithSchemaFallback(
+				type,
+				(schema) => this._buildUrlWithParams(type, params, null, schema),
+				{
+					method: 'GET',
+					headers: this._buildHeaders(),
+				},
+			)
 
 			if (!response.ok) {
 				discardResponseBody(response)
@@ -734,10 +806,14 @@ const baseActions = {
 		this.errors = { ...this.errors, [type]: null }
 
 		try {
-			const response = await fetch(url, {
-				method: 'GET',
-				headers: this._buildHeaders(),
-			})
+			const response = await this._fetchWithSchemaFallback(
+				type,
+				(schema) => (schema === null ? url : this._buildUrl(type, id, schema)),
+				{
+					method: 'GET',
+					headers: this._buildHeaders(),
+				},
+			)
 
 			if (!response.ok) {
 				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
@@ -805,16 +881,19 @@ const baseActions = {
 
 		try {
 			const isUpdate = !!objectData.id
-			const url = isUpdate
-				? this._buildUrl(type, objectData.id)
-				: this._buildUrl(type)
 			const method = isUpdate ? 'PUT' : 'POST'
 
-			const response = await fetch(url, {
-				method,
-				headers: this._buildHeaders(),
-				body: JSON.stringify(objectData),
-			})
+			const response = await this._fetchWithSchemaFallback(
+				type,
+				(schema) => (isUpdate
+					? this._buildUrl(type, objectData.id, schema)
+					: this._buildUrl(type, null, schema)),
+				{
+					method,
+					headers: this._buildHeaders(),
+					body: JSON.stringify(objectData),
+				},
+			)
 
 			if (!response.ok) {
 				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
@@ -866,12 +945,14 @@ const baseActions = {
 		this.errors = { ...this.errors, [type]: null }
 
 		try {
-			const url = this._buildUrl(type, id)
-
-			const response = await fetch(url, {
-				method: 'DELETE',
-				headers: this._buildHeaders(),
-			})
+			const response = await this._fetchWithSchemaFallback(
+				type,
+				(schema) => this._buildUrl(type, id, schema),
+				{
+					method: 'DELETE',
+					headers: this._buildHeaders(),
+				},
+			)
 
 			if (!response.ok) {
 				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }

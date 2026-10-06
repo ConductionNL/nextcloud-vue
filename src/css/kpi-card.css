@@ -367,6 +367,53 @@
 	font-size: var(--cn-kpi-value-size-stacked, 2rem);
 }
 
+/* Stacked: the board's tile (`content.layout: 'stacked'`). A plain muted
+   label, the number at 34px/700 in the text colour, and the caption on a line
+   of its own; CnStatWidget draws no icon circle in this layout. The padding
+   adds up with a dashboard card-fit cell's 8px 14px to the board's 18px 20px.
+   Every value is a token so a theme can move it. */
+.cn-kpi-card--stacked {
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: center;
+	gap: 0;
+	padding: var(--cn-kpi-stacked-padding, 10px 6px);
+}
+
+.cn-kpi-card--stacked .cn-kpi-card__body {
+	gap: var(--cn-kpi-stacked-gap, 6px);
+}
+
+.cn-kpi-card--stacked .cn-kpi-card__title {
+	font-size: var(--cn-kpi-stacked-title-size, 14px);
+	font-weight: var(--cn-kpi-stacked-title-weight, 400);
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-kpi-card--stacked .cn-kpi-card__value {
+	font-size: var(--cn-kpi-stacked-value-size, 34px);
+	font-weight: var(--cn-kpi-value-weight, 700);
+	line-height: 1;
+	letter-spacing: -0.01em;
+	color: var(--cn-kpi-stacked-value-color, var(--color-main-text));
+}
+
+.cn-kpi-card--stacked .cn-kpi-card__caption-line {
+	flex: 0 0 auto;
+	max-width: 100%;
+	font-size: var(--cn-kpi-label-size, 13px);
+	font-weight: 500;
+}
+
+/* A linked stacked tile reads as a tile, not as underlined link text. The
+   NL Design theme underlines every `a` with `!important`, so the opt-out
+   needs it too; it only applies to this opt-in layout. */
+a.cn-kpi-card--stacked,
+a.cn-kpi-card--stacked:hover,
+a.cn-kpi-card--stacked:focus-visible {
+	text-decoration: none !important;
+}
+
 /* Filled: the card draws its own grey box, for a KPI that is NOT already
    inside a wrapper that draws one. Opt-in via `content.flat: false`. */
 .cn-kpi-card--filled {

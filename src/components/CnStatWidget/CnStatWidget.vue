@@ -25,7 +25,7 @@
 		]"
 		v-bind="linkAttrs">
 		<div
-			v-if="resolvedIcon"
+			v-if="resolvedIcon && !isStacked"
 			class="cn-kpi-card__icon cn-stat-widget__icon"
 			:style="iconCircleStyle">
 			<CnWidgetIcon :name="resolvedIcon" :size="24" />
@@ -95,13 +95,22 @@
 					</span>
 				</template>
 				<span
-					v-if="!displayLoading && !displayError && resolvedCaption"
+					v-if="!isStacked && !displayLoading && !displayError && resolvedCaption"
 					class="cn-kpi-card__label cn-stat-widget__caption"
 					:class="captionVariantClass"
 					data-testid="cn-stat-widget-caption">
 					{{ resolvedCaption }}
 				</span>
 			</div>
+			<!-- Stacked (`content.layout: "stacked"`): the caption is a line of
+			     its own under the number, as the board's "3 new this week". -->
+			<span
+				v-if="isStacked && !displayLoading && !displayError && resolvedCaption"
+				class="cn-kpi-card__label cn-stat-widget__caption cn-kpi-card__caption-line"
+				:class="captionVariantClass"
+				data-testid="cn-stat-widget-caption">
+				{{ resolvedCaption }}
+			</span>
 		</div>
 	</component>
 </template>
@@ -1242,12 +1251,31 @@ export default {
 		/**
 		 * Card orientation. Horizontal (icon beside the number) is the
 		 * canonical KPI card; `content.layout: 'vertical'` stacks the icon
-		 * above a centred number for a tile taller than it is wide.
+		 * above a centred number for a tile taller than it is wide;
+		 * `content.layout: 'stacked'` is the board look (see `isStacked`).
 		 *
-		 * @return {'horizontal'|'vertical'}
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-stat-tile-can-take-the-stacked-board-look
+		 * @return {'horizontal'|'vertical'|'stacked'}
 		 */
 		cardLayout() {
-			return (this.content || {}).layout === 'vertical' ? 'vertical' : 'horizontal'
+			const layout = (this.content || {}).layout
+			if (layout === 'vertical' || layout === 'stacked') {
+				return layout
+			}
+			return 'horizontal'
+		},
+
+		/**
+		 * Whether the tile takes the stacked board look (`content.layout:
+		 * "stacked"`): a plain muted label, the number at 34px in the text
+		 * colour, the caption on a line of its own, and no icon circle. Off by
+		 * default.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-stat-tile-can-take-the-stacked-board-look
+		 * @return {boolean}
+		 */
+		isStacked() {
+			return this.cardLayout === 'stacked'
 		},
 
 		/**

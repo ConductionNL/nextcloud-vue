@@ -404,6 +404,7 @@
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
+						:showActions="widgetShowActions(item)"
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
@@ -508,6 +509,7 @@
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
+						:showActions="widgetShowActions(item)"
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
@@ -546,6 +548,7 @@
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
+						:showActions="widgetShowActions(item)"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
@@ -942,6 +945,21 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-dashboard-page-can-hide-its-header
 		 */
 		showHeader: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Whether a widget draws its overflow Actions menu when neither its
+		 * placement nor its definition says (`showActions`). `false` (manifest
+		 * `config.showWidgetActions: false`) drops the menu from every such
+		 * widget, for a dashboard whose widgets carry a header link and
+		 * nothing else. A widget that sets `showActions: true` keeps its menu.
+		 * Card widgets have no menu either way.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-dashboard-can-drop-the-widget-actions-menu
+		 */
+		showWidgetActions: {
 			type: Boolean,
 			default: true,
 		},
@@ -3380,11 +3398,20 @@ export default {
 		 * exactly that reason; there is now one rule for every family, so a
 		 * custom slot and a registered widget cannot disagree about it.
 		 *
+		 * A greeting header that declares `content.ground: true` sits on the
+		 * page ground, so it asks for no card either: one key on the widget
+		 * instead of a second one on its placement.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-greeting-can-sit-on-the-page-ground
 		 * @param {object} item the layout placement.
 		 * @return {boolean}
 		 */
 		widgetBorderless(item) {
-			return item.borderless === true
+			if (item.borderless === true) {
+				return true
+			}
+			const def = this.getWidgetDef(item.widgetId)
+			return Boolean(def && def.type === 'header' && this.getWidgetContent(item).ground === true)
 		},
 
 		/**
@@ -3401,7 +3428,7 @@ export default {
 			const def = this.getWidgetDef(item.widgetId)
 			const value = item.showActions !== undefined ? item.showActions : def?.showActions
 			if (value === undefined || value === null) {
-				return !this.isCardWidget(item)
+				return this.showWidgetActions && !this.isCardWidget(item)
 			}
 			return value !== false
 		},

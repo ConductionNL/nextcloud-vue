@@ -1489,7 +1489,16 @@ export default {
 	white-space: nowrap;
 }
 
+/* A clickable label is a <button>, and Nextcloud's core stylesheet gives
+   every `button:not(.button-vue)` a min-height of the clickable area (34 to
+   44px) with the text centred in it. That pushed each reachable stage's label
+   about 12px below the current one, which is a <span>. Zeroed here so all
+   labels sit 8px under their bar, as the board draws them. The visually
+   hidden "(current step)" is absolutely positioned and takes no space. */
 button.cn-stages-widget__bar-label {
+	min-height: 0;
+	height: auto;
+	line-height: inherit;
 	cursor: pointer;
 }
 

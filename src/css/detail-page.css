@@ -39,6 +39,28 @@
 	min-width: 0;
 }
 
+/* A widget in the header (`config.headerWidget`) takes a row of its own under
+   the title and the actions. */
+.cn-detail-page__header--with-widget {
+	flex-wrap: wrap;
+	row-gap: var(--cn-detail-header-row-gap, 22px);
+}
+
+.cn-detail-page__header-widget {
+	flex: 1 0 100%;
+	min-width: 0;
+}
+
+/* The header as a card (`config.headerCard`): the board's case header, a
+   bordered box on the surface colour. The 56px inset that clears the
+   navigation toggle is not needed inside a card that starts below it. */
+.cn-detail-page__header--card {
+	padding: var(--cn-detail-header-card-padding, 22px 24px);
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-detail-header-card-radius, 12px);
+	background: var(--color-main-background);
+}
+
 .cn-detail-page__header-left {
 	display: flex;
 	align-items: center;

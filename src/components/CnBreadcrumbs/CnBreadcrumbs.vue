@@ -18,6 +18,7 @@
 	<NcBreadcrumbs
 		v-if="crumbs.length > 0"
 		:aria-label="ariaLabel"
+		:rootIcon="rootText ? '' : undefined"
 		data-testid="cn-breadcrumbs">
 		<!-- `name` falls back to '' because NcBreadcrumb declares it a REQUIRED
 		     String and warns per render on the label-less icon-only crumb. The
@@ -96,6 +97,19 @@ export default {
 		ariaLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Breadcrumbs'),
+		},
+
+		/**
+		 * Draw the FIRST crumb's label as text. NcBreadcrumbs gives the root
+		 * crumb a home icon and prints its `label` only as the accessible
+		 * name, so "All cases" read as a house. Off by default, which keeps
+		 * the home icon. A first crumb with its own `icon` keeps that icon.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-declared-breadcrumb-label-shows-as-text
+		 */
+		rootText: {
+			type: Boolean,
+			default: false,
 		},
 	},
 
