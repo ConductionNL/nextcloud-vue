@@ -1274,7 +1274,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.44.0', () => {
+	it('the manifest schema version reads 2.45.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1288,9 +1288,13 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// vendored copy in ConductionNL/.github could not see the schema had
 		// moved. app-manifest-v2.schema-version.spec.js now fails when the
 		// content changes and this number does not. 2.44.0 adds menu-entry
-		// `params`.
+		// `params`. 2.45.0 adds the Zuiddrecht pixel-gap keys: nav.card,
+		// nav.help, nav.brand.emblem, primaryAction action/solid/permission/
+		// visibleIf, the object form of menuItem.count, widgets[].headerLink
+		// and the page config keys showHeader, showTitle, countSubtitle,
+		// showTypeEyebrow and breadcrumb.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.44.0')
+		expect(schema.version).toBe('2.45.0')
 	})
 
 	it('accepts a declarative `store` block, and requires the remote schema', () => {
