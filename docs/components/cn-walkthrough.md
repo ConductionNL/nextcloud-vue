@@ -73,10 +73,24 @@ app version whose tour the user has seen. `CnAppRoot` owns the round trip:
 - on mount it `GET`s `/apps/{appId}/api/preferences/{completionConfigKey}` and holds
   the overlay back until the answer arrives, so a returning user never sees the tour
   flash open;
-- on completion **or dismissal** (✕, Skip, backdrop, ESC) it `PUT`s
+- on completion (✕ / Skip, or Finish on the last step) it `PUT`s
   `{ "value": "<manifest.version>" }` to that same URL, and mirrors it into
   `localStorage` (`cn-walkthrough-seen:{appId}`) so the next boot resolves
   synchronously.
+
+ESC and a click on the dim **pause** the tour: it hides and keeps its step. ESC while
+an app dialog is open belongs to that dialog and leaves the tour alone. While an app
+dialog is open the overlay drops its dim and docks the coachmark in a corner, so the
+dialog can be filled in, and an `object-created` step advances when it is saved.
+
+Progress is remembered too. On every step change `CnAppRoot` writes
+`{ tourId, stepId, index, version }` to the preference `<completionConfigKey>-progress`
+(and `localStorage` `cn-walkthrough-progress:{appId}`). The next visit resumes at that
+step, and the user settings offer "Continue where you left off" and "Start over".
+Finishing or skipping the tour clears it.
+
+A step whose target is an element (`index-add`, say) belongs to the page it was first
+found on. On another page the same element is not spotlighted.
 
 Only `null` / missing / `""` count as "never seen" — a recorded value that happens to
 be JS-falsy (`0`, `false`, `"0"`) still means the user has seen the tour.
@@ -108,7 +122,9 @@ The helpers are exported for hosts that mount `CnWalkthrough` standalone:
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `complete` | — | The last step was passed. |
-| `dismiss` | — | The user dismissed the tour (backdrop / ESC). |
+| `dismiss` | — | The user skipped (ended) the tour. Always followed by `complete`. |
+| `pause` | — | The user hid the tour (backdrop / ESC). It can continue later. |
+| `progress` | `{ tourId, stepId, index }` | The active step changed; the host remembers it. |
 | `step-change` | `{ stepId, index }` | The active step changed. |
 | `advance` | `{ stepId }` | The user advanced the tour. |
 | `handoff` | `{ app, url }` | A cross-app hand-off step (`handoff.url`) navigated to another app with a `cn_resume_tour`/`cn_resume_step` token. |
@@ -121,7 +137,7 @@ The helpers are exported for hosts that mount `CnWalkthrough` standalone:
 
 ## Accessibility
 
-Moves focus to the coachmark controls, dismisses on ESC, and announces each step via
+Moves focus to the coachmark controls (never out of an open app dialog), pauses on ESC, and announces each step via
 an `aria-live` region. Targets are scrolled into view before spotlighting.
 
 ## Target kinds

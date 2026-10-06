@@ -19,6 +19,36 @@
 			</span>
 		</div>
 
+		<!-- Active header filters, one removable chip each. -->
+		<ul
+			v-if="!isLoading && activeColumnFilterChips.length > 0"
+			class="cn-data-table__filter-chips"
+			:aria-label="activeFiltersLabel"
+			data-testid="cn-table-filter-chips">
+			<li v-for="chip in activeColumnFilterChips" :key="chip.key" class="cn-data-table__filter-chip">
+				<span>{{ chip.text }}</span>
+				<button
+					type="button"
+					class="cn-data-table__filter-chip-remove"
+					:aria-label="chip.removeLabel"
+					data-testid="cn-table-filter-chip-remove"
+					@click="clearColumnFilter(chip.col)">
+					×
+				</button>
+			</li>
+		</ul>
+
+		<CnColumnFilterPopover
+			v-if="openFilterColumn"
+			:key="openFilterKey"
+			:def="filterDefFor(openFilterColumn)"
+			:state="columnFilterStateFor(openFilterColumn)"
+			:label="translateLabel(openFilterColumn.label)"
+			:anchorRect="filterAnchorRect"
+			:register="filterRegister"
+			@apply="(state) => applyColumnFilter(openFilterColumn, state)"
+			@close="closeColumnFilter" />
+
 		<!-- Loading State -->
 		<div v-if="isLoading" class="cn-table-loading" data-testid="cn-object-list-loading">
 			<!-- Decorative: the adjacent <p> already carries the accessible
@@ -92,6 +122,7 @@
 							:style="col.width ? { width: col.width } : {}"
 							:tabindex="col.sortable ? 0 : null"
 							:aria-sort="ariaSortFor(col)"
+							:data-filtered="isColumnFiltered(col) ? 'true' : null"
 							:title="translateLabel(col.description) || null"
 							@click="col.sortable ? onHeaderClick(col.key, $event) : null"
 							@keydown.enter="col.sortable ? onHeaderKeydown(col.key, $event) : null">
@@ -108,6 +139,23 @@
 								class="cn-table-sort-badge">
 								{{ sortBadgeFor(col.key) }}
 							</span>
+							<!-- Header filter: a real button, so it is reachable with Tab
+							     and its click and Enter never also sort the column. -->
+							<button
+								v-if="filterDefFor(col)"
+								:ref="'filterButton-' + col.key"
+								type="button"
+								class="cn-table-header__filter"
+								:class="{ 'cn-table-header__filter--active': isColumnFiltered(col) }"
+								:aria-label="filterButtonLabel(col)"
+								aria-haspopup="dialog"
+								:aria-expanded="openFilterKey === col.key ? 'true' : 'false'"
+								data-testid="cn-table-header-filter"
+								@click.stop="toggleColumnFilter(col, $event)"
+								@keydown.enter.stop>
+								<FilterIcon v-if="isColumnFiltered(col)" :size="16" />
+								<FilterOutline v-else :size="16" />
+							</button>
 						</th>
 
 						<!-- Actions column -->
@@ -291,10 +339,14 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import FilterIcon from 'vue-material-design-icons/Filter.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
+import CnColumnFilterPopover from './CnColumnFilterPopover.vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
+import { clearedColumnFilterParams, columnFilterDef, columnFilterParams, columnFilterState, isColumnFilterActive, isColumnSortable } from '../../utils/columnFilters.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
@@ -365,8 +417,11 @@ export default {
 		NcLoadingIcon,
 		NcCheckboxRadioSwitch,
 		CnCellRenderer,
+		CnColumnFilterPopover,
 		CnIcon,
 		CnLockIndicator,
+		FilterIcon,
+		FilterOutline,
 	},
 
 	inject: {
@@ -741,9 +796,39 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * Show a filter button in every header whose column can filter (see
+		 * `columnFilterDef`): enum, boolean, text, number, date and reference
+		 * columns backed by a schema property. A column opts out with
+		 * `filterable: false`. Applying a filter emits `column-filter`; the
+		 * host owns the filter state and passes it back as `activeFilters`.
+		 *
+		 * @spec openspec/changes/table-header-sort-and-filter/specs/cn-data-table/spec.md#requirement-every-backed-column-filters-from-its-header
+		 */
+		filterable: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The active filter map, `{ paramKey: values[] }`: the same map the
+		 * facet sidebar writes, so a header filter and a sidebar filter on one
+		 * field show the same state.
+		 */
+		activeFilters: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/** Register slug a reference column's filter searches in when the column names none. */
+		filterRegister: {
+			type: String,
+			default: '',
+		},
 	},
 
-	emits: ['row-click', 'row-aux-click', 'row-context-menu', 'select', 'select-all', 'sort', 'view-all'],
+	emits: ['row-click', 'row-aux-click', 'row-context-menu', 'select', 'select-all', 'sort', 'view-all', 'column-filter'],
 
 	setup() {
 		// Tell a deliberate row click apart from a text-selection drag.
@@ -752,6 +837,10 @@ export default {
 
 	data() {
 		return {
+			/** Key of the column whose filter panel is open, or ''. */
+			openFilterKey: '',
+			/** The open filter button's bounding rect, to place the panel. */
+			filterAnchorRect: null,
 			/**
 			 * Resolved aggregate-column values, keyed by `String(row[rowKey])`
 			 * then by column key. Populated by `loadAggregates()` for columns
@@ -869,8 +958,12 @@ export default {
 						overrides: this.columnOverrides,
 					})
 				: this.columns
+			// Every column backed by a schema property sorts unless it says
+			// `sortable: false`; object columns from a manifest used to need an
+			// explicit flag and so could not sort at all.
+			const withSort = (c) => (c && typeof c === 'object' ? { ...c, sortable: isColumnSortable(c, this.schema) } : c)
 			if (!(cols || []).some((c) => typeof c === 'string')) {
-				return cols || []
+				return (cols || []).map(withSort)
 			}
 			const schemaCols = this.schema
 				? columnsFromSchema(this.schema, { overrides: this.columnOverrides })
@@ -878,7 +971,7 @@ export default {
 			const byKey = new Map(schemaCols.map((c) => [c.key, c]))
 			return (cols || []).map((c) => {
 				if (typeof c !== 'string') {
-					return c
+					return withSort(c)
 				}
 				return byKey.get(c) || { key: c, label: c, sortable: true }
 			})
@@ -917,6 +1010,40 @@ export default {
 				}
 			}
 			return links
+		},
+
+		/**
+		 * The column whose filter panel is open, or null.
+		 *
+		 * @return {object|null}
+		 */
+		openFilterColumn() {
+			if (!this.openFilterKey) {
+				return null
+			}
+			return this.effectiveColumns.find((c) => c && c.key === this.openFilterKey && this.filterDefFor(c)) || null
+		},
+
+		/**
+		 * One chip per column with an active header filter.
+		 *
+		 * @return {Array<{key: string, col: object, text: string, removeLabel: string}>}
+		 */
+		activeColumnFilterChips() {
+			if (!this.filterable) {
+				return []
+			}
+			return this.effectiveColumns
+				.filter((c) => c && this.isColumnFiltered(c))
+				.map((col) => {
+					const label = this.translateLabel(col.label)
+					const text = t('nextcloud-vue', '{column}: {value}', { column: label, value: this.columnFilterSummary(col) })
+					return { key: col.key, col, text, removeLabel: t('nextcloud-vue', 'Remove filter {column}', { column: label }) }
+				})
+		},
+
+		activeFiltersLabel() {
+			return t('nextcloud-vue', 'Active filters')
 		},
 
 		effectiveSortKeys() {
@@ -1620,6 +1747,135 @@ export default {
 		 * @param {string} key Column key.
 		 * @param {MouseEvent} [event] The originating click event.
 		 */
+		/**
+		 * The filter definition for a column, or null when it does not filter
+		 * (header filters off, `filterable: false`, or nothing to filter on).
+		 *
+		 * @param {object} col The column.
+		 * @return {object|null}
+		 */
+		filterDefFor(col) {
+			if (!this.filterable || !col) {
+				return null
+			}
+			return columnFilterDef(col, this.schema)
+		},
+
+		columnFilterStateFor(col) {
+			return columnFilterState(this.filterDefFor(col), this.activeFilters)
+		},
+
+		isColumnFiltered(col) {
+			const def = this.filterDefFor(col)
+			return !!def && isColumnFilterActive(def, this.activeFilters)
+		},
+
+		filterButtonLabel(col) {
+			const column = this.translateLabel(col.label)
+			return this.isColumnFiltered(col)
+				? t('nextcloud-vue', 'Filter {column}, active', { column })
+				: t('nextcloud-vue', 'Filter {column}', { column })
+		},
+
+		/**
+		 * Short text for an active filter: the picked labels, or the range.
+		 *
+		 * @param {object} col The column.
+		 * @return {string}
+		 */
+		columnFilterSummary(col) {
+			const def = this.filterDefFor(col)
+			const state = this.columnFilterStateFor(col)
+			if (!def) {
+				return ''
+			}
+			if (def.kind === 'enum') {
+				const labels = Object.fromEntries((def.options || []).map((o) => [o.value, o.label]))
+				return state.values.map((v) => this.translateLabel(labels[v] || v)).join(', ')
+			}
+			if (def.kind === 'reference') {
+				return n('nextcloud-vue', '{count} selected', '{count} selected', state.values.length, { count: state.values.length })
+			}
+			if (def.kind === 'number' || def.kind === 'date') {
+				if (state.from && state.to) {
+					return t('nextcloud-vue', '{from} to {to}', { from: state.from, to: state.to })
+				}
+				return state.from
+					? t('nextcloud-vue', 'from {value}', { value: state.from })
+					: t('nextcloud-vue', 'up to {value}', { value: state.to })
+			}
+			if (def.kind === 'boolean') {
+				return state.value === 'true' ? t('nextcloud-vue', 'Yes') : t('nextcloud-vue', 'No')
+			}
+			return state.value
+		},
+
+		/**
+		 * Open or close a column's filter panel under its button.
+		 *
+		 * @param {object} col The column.
+		 * @param {Event} event The click.
+		 * @return {void}
+		 */
+		toggleColumnFilter(col, event) {
+			if (this.openFilterKey === col.key) {
+				this.closeColumnFilter()
+				return
+			}
+			const target = event && event.currentTarget
+			this.filterAnchorRect = target && typeof target.getBoundingClientRect === 'function'
+				? target.getBoundingClientRect()
+				: null
+			this.openFilterKey = col.key
+		},
+
+		/**
+		 * Close the open panel and give focus back to its button.
+		 *
+		 * @return {void}
+		 */
+		closeColumnFilter() {
+			const key = this.openFilterKey
+			this.openFilterKey = ''
+			if (!key) {
+				return
+			}
+			this.$nextTick(() => {
+				const ref = this.$refs['filterButton-' + key]
+				const button = Array.isArray(ref) ? ref[0] : ref
+				if (button && typeof button.focus === 'function') {
+					button.focus()
+				}
+			})
+		},
+
+		/**
+		 * Apply a panel's state: emit the query parameters it stands for.
+		 *
+		 * @param {object} col The column.
+		 * @param {object} state The panel state.
+		 * @return {void}
+		 * @spec openspec/changes/table-header-sort-and-filter/specs/cn-data-table/spec.md#requirement-a-header-filter-speaks-the-sidebars-query-language
+		 */
+		applyColumnFilter(col, state) {
+			const def = this.filterDefFor(col)
+			if (def) {
+				/**
+				 * @event column-filter A header filter was applied or cleared.
+				 * @type {{ key: string, params: object }} `params` maps each query parameter the column owns to its values; an empty list clears it.
+				 */
+				this.$emit('column-filter', { key: col.key, params: columnFilterParams(def, state) })
+			}
+			this.closeColumnFilter()
+		},
+
+		clearColumnFilter(col) {
+			const def = this.filterDefFor(col)
+			if (def) {
+				this.$emit('column-filter', { key: col.key, params: clearedColumnFilterParams(def) })
+			}
+		},
+
 		onHeaderClick(key, event) {
 			this.applySort(key, !!(event && event.shiftKey))
 		},

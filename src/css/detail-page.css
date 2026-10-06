@@ -112,6 +112,25 @@
 	flex-shrink: 0;
 }
 
+/* Every control in the header sits on one line at one height. The lifecycle
+   bar carries `margin: 0 0 8px` for its place above a page body; in the
+   header that margin pushed its buttons up and made the row 8px taller, so
+   the Edit button beside it read as the bigger one. A consumer's actions
+   component can bring its own margins too, so they are reset here as well. */
+.cn-detail-page .cn-detail-page__header-actions .cn-lifecycle-actions {
+	margin: 0;
+	flex-wrap: nowrap;
+}
+
+.cn-detail-page .cn-detail-page__header-actions > * {
+	margin-block: 0;
+}
+
+.cn-detail-page .cn-detail-page__header-actions .button-vue {
+	min-height: var(--default-clickable-area);
+	block-size: var(--default-clickable-area);
+}
+
 /* The sentence a refused lock acquire left behind, under the locked banner. */
 .cn-detail-page__lock-refusal {
 	margin: 0 0 calc(3 * var(--default-grid-baseline));

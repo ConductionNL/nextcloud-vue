@@ -288,9 +288,9 @@
 					<NcEmptyContent
 						:name="installAppLabel(missingRequiredApp(item))"
 						:description="t('nextcloud-vue', 'This widget shows data from another app that isn\'t installed yet.')"
-						class="cn-dashboard-page__requires-app">
+						class="cn-dashboard-page__requires-app cn-requires-app">
 						<template #icon>
-							<Download :size="32" />
+							<Download :size="24" />
 						</template>
 						<template #action>
 							<NcButton

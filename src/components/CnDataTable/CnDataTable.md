@@ -201,6 +201,9 @@ export default {
 | `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`) — for compact dashboard list widgets that want a plain bordered-row list without column labels |
 | `fixedLayout` | Boolean | `false` | Switch to `table-layout: fixed` so each column's `width` is authoritative rather than a hint the browser may override from cell content. Long unbreakable values (a PHP FQCN, a UUID) then wrap inside their cell instead of widening the column or painting past it, and no single unsized column soaks up all remaining width. Size every column when using it — percentages summing to 100 are easiest to reason about |
 | `fillHeight` | Boolean | `false` | Fill the parent's height (a flex-column card / widget content area) so an optional `#footer` is pushed to the bottom instead of floating under a short list; the footer stays pinned via its sticky rule when the list overflows. No-op outside a height-constrained parent — opt-in |
+| `filterable` | Boolean | `false` | Show a filter button in every header whose column can filter: enum, boolean, text, number, date and reference columns backed by a schema property. A column opts out with `filterable: false`. Applying a filter emits `column-filter`; the host owns the state and passes it back as `activeFilters`. `CnIndexPage` turns it on by default. |
+| `activeFilters` | Object | `{}` | The active filter map, `{ paramKey: values[] }`: the same map the facet sidebar writes, so a header filter and a sidebar filter on one field show the same state. |
+| `filterRegister` | String | `''` | Register slug a reference column's filter searches in when the column names none. |
 
 ## Slots
 

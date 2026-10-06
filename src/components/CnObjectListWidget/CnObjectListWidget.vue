@@ -270,6 +270,9 @@
 			ref="createDialog"
 			:schema="createSchema"
 			:item="null"
+			:register="content.register || ''"
+			:initialData="createInitialData"
+			:lockedFields="createLockedFields"
 			:size="formSize"
 			:columns="formColumns"
 			:includeFields="formIncludeFields"
@@ -295,6 +298,7 @@ import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNav
 import { objectFieldValue } from '../../utils/objectName.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
+import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnRowActions } from '../CnRowActions/index.js'
 
 /**
@@ -1016,6 +1020,39 @@ export default {
 			return Array.isArray(c.formExcludeFields) ? c.formExcludeFields : []
 		},
 
+		/**
+		 * Create-form seed values: the list's scalar filter values (the parent
+		 * this list is scoped to, e.g. `{ lead: '<uuid>' }`), limited to keys
+		 * the schema declares, so the new row shows its parent already chosen.
+		 *
+		 * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
+		 * @return {object}
+		 */
+		createInitialData() {
+			const props = (this.createSchema && this.createSchema.properties) || {}
+			const out = {}
+			for (const [key, value] of Object.entries(this.resolvedFilter || {})) {
+				if (!(key in props) || value === null || value === undefined || value === '' || typeof value === 'object') {
+					continue
+				}
+				if (typeof value === 'string' && value.charAt(0) === '@') {
+					continue
+				}
+				out[key] = value
+			}
+			return out
+		},
+
+		/**
+		 * The seeded parent keys are locked: a row added to this list belongs
+		 * to the record the list is scoped to.
+		 *
+		 * @return {string[]}
+		 */
+		createLockedFields() {
+			return Object.keys(this.createInitialData)
+		},
+
 		/** Per-field overrides for the create dialog (`content.formFieldOverrides`). */
 		formFieldOverrides() {
 			const c = this.content || {}
@@ -1364,7 +1401,8 @@ export default {
 					}
 				}
 				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
-				await axios.post(url, payload)
+				const response = await axios.post(url, payload)
+				dispatchObjectCreated({ register: c.register, schema: c.schema, object: (response && response.data) || payload })
 				if (this.$refs.createDialog) {
 					this.$refs.createDialog.setResult({ success: true })
 				}

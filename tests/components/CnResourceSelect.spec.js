@@ -162,3 +162,53 @@ describe('CnResourceSelect', () => {
 		expect(spy).toHaveBeenCalledWith('Gamma')
 	})
 })
+
+describe('CnResourceSelect: multiple', () => {
+	const mount = (props = {}) => shallowMount(CnResourceSelect, {
+		propsData: { register: 'pipelinq', schema: 'product', multiple: true, modelValue: [], ...props },
+	})
+
+	beforeEach(() => {
+		mockStore.saveObject.mockClear()
+		mockStore.fetchObject.mockClear()
+	})
+
+	it('emits the array of chosen ids', async () => {
+		const w = mount()
+		await w.vm.onInput([{ value: 'p-1', label: 'Hosting' }, { value: 'p-2', label: 'SLA' }])
+		expect(w.emitted('update:modelValue').pop()).toEqual([['p-1', 'p-2']])
+	})
+
+	it('adds a created object to the selection', async () => {
+		const w = mount({ modelValue: ['p-1'] })
+		await w.vm.onInput([{ value: 'p-1', label: 'Hosting' }, { value: '__create__', label: 'Support', __create: true }])
+		expect(mockStore.saveObject).toHaveBeenCalledWith('pipelinq-product', { name: 'Support' })
+		expect(w.emitted('update:modelValue').pop()).toEqual([['p-1', 'new-1']])
+		expect(w.emitted('create')).toHaveLength(1)
+	})
+
+	it('keeps the labels of chosen options after the search moves on', async () => {
+		const w = mount({ modelValue: ['p-1'] })
+		await w.vm.onInput([{ value: 'p-1', label: 'Hosting' }])
+		await w.setProps({ modelValue: ['p-1'] })
+		w.setData({ options: [] })
+		expect(w.vm.selectedOption).toEqual([{ value: 'p-1', label: 'Hosting' }])
+	})
+
+	it('loads labels for preselected ids', async () => {
+		mockStore.fetchObject.mockResolvedValueOnce({ id: 'p-7', name: 'Implementation' })
+		const w = mount({ modelValue: ['p-7'] })
+		await flushPromises()
+		expect(mockStore.fetchObject).toHaveBeenCalledWith('pipelinq-product', 'p-7')
+		expect(w.vm.selectedOption).toEqual([{ value: 'p-7', label: 'Implementation' }])
+	})
+
+	it('hands the term to a createHandler and selects what it returns', async () => {
+		const createHandler = jest.fn().mockResolvedValue({ id: 'p-9', name: 'Training' })
+		const w = mount({ createHandler })
+		await w.vm.onInput([{ value: '__create__', label: 'Training', __create: true }])
+		expect(createHandler).toHaveBeenCalledWith('Training', { name: 'Training' })
+		expect(mockStore.saveObject).not.toHaveBeenCalled()
+		expect(w.emitted('update:modelValue').pop()).toEqual([['p-9']])
+	})
+})

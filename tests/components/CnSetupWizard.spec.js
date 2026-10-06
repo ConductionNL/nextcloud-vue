@@ -477,3 +477,182 @@ describe('CnSetupWizard — a choice offered as cards', () => {
 		expect(wrapper.find('.cn-choice-cards').exists()).toBe(true)
 	})
 })
+
+describe('CnSetupWizard — a dataset card loads itself (loadAction)', () => {
+	const loadStep = {
+		id: 'demo-data',
+		type: 'choice',
+		display: 'cards',
+		optionsSource: 'datasets',
+		configKey: 'demo_dataset',
+		loadAction: 'load-demo-data',
+		title: 'Load example data?',
+	}
+	const datasets = [
+		{ id: 'none', label: 'None, I will set this up myself' },
+		{ id: 'demo', label: 'Example data', description: 'A worked CRM.' },
+	]
+
+	beforeEach(() => {
+		__resetSetupStatusCacheForTests()
+		axios.get.mockReset()
+		axios.post.mockReset()
+		axios.get.mockResolvedValue({ data: { version: 1, completed: true, datasets, steps: {} } })
+	})
+
+	const mountWizard = async (step = loadStep) => {
+		const wrapper = mount(CnSetupWizard, { propsData: { appId: 'pipelinq', steps: [step] } })
+		await flushPromises()
+		await wrapper.vm.$nextTick()
+		return wrapper
+	}
+
+	it('gives every card except "none" its own Load button', async () => {
+		const wrapper = await mountWizard()
+		const cells = wrapper.findAll('.cn-choice-cards__cell')
+		expect(cells).toHaveLength(2)
+		expect(cells[0].find('[data-testid="cn-setup-load-dataset"]').exists()).toBe(false)
+		expect(cells[1].find('[data-testid="cn-setup-load-dataset"]').exists()).toBe(true)
+	})
+
+	it('renders no Load button for a cards step without loadAction', async () => {
+		const wrapper = await mountWizard({ ...loadStep, loadAction: undefined })
+		expect(wrapper.find('[data-testid="cn-setup-load-dataset"]').exists()).toBe(false)
+		expect(wrapper.find('.cn-choice-cards__actions').exists()).toBe(false)
+	})
+
+	it('posts the card\'s dataset, spins while it runs, then shows the result on that card', async () => {
+		let settle
+		axios.post.mockImplementation(() => new Promise((resolve) => {
+			settle = resolve
+		}))
+		const wrapper = await mountWizard()
+		const cell = () => wrapper.findAll('.cn-choice-cards__cell')[1]
+		await cell().find('[data-testid="cn-setup-load-dataset"]').trigger('click')
+		await flushPromises()
+
+		expect(axios.post).toHaveBeenCalledWith(
+			'/index.php/apps/pipelinq/api/setup/action/load-demo-data',
+			{ dataset: 'demo' },
+		)
+		expect(wrapper.vm.isDatasetLoading(loadStep, { value: 'demo' })).toBe(true)
+		expect(cell().find('[data-testid="cn-setup-load-dataset"]').attributes('disabled')).toBeDefined()
+
+		settle({ data: { success: true, message: 'Seeded 262 objects.' } })
+		await flushPromises()
+
+		expect(wrapper.vm.isDatasetLoading(loadStep, { value: 'demo' })).toBe(false)
+		expect(cell().find('[data-testid="cn-setup-load-result"]').text()).toBe('Seeded 262 objects.')
+		expect(wrapper.vm.scalarChoice(loadStep)).toBe('demo')
+		const evt = wrapper.emitted('action-result')[0][0]
+		expect(evt).toMatchObject({ stepId: 'demo-data', action: 'load-demo-data', dataset: 'demo', success: true })
+	})
+
+	it('shows a failed load as an error on the card and does not select it', async () => {
+		axios.post.mockRejectedValue({ response: { data: { message: 'No dataset is called "demo".' } } })
+		const wrapper = await mountWizard()
+		await wrapper.findAll('.cn-choice-cards__cell')[1].find('[data-testid="cn-setup-load-dataset"]').trigger('click')
+		await flushPromises()
+		const result = wrapper.findAll('.cn-choice-cards__cell')[1].find('[data-testid="cn-setup-load-result"]')
+		expect(result.text()).toBe('No dataset is called "demo".')
+		expect(result.classes()).toContain('cn-setup-load-result--error')
+		expect(wrapper.vm.hasChoice(loadStep)).toBe(false)
+	})
+
+	it('records "None" through the choice, never through the load action', async () => {
+		axios.post.mockResolvedValue({ data: {} })
+		const wrapper = await mountWizard()
+		await wrapper.findAll('.cn-choice-cards__input')[0].trigger('change')
+		expect(await wrapper.vm.validateStep('demo-data')).toBe(true)
+		expect(axios.post).toHaveBeenCalledTimes(1)
+		expect(axios.post).toHaveBeenCalledWith('/index.php/apps/pipelinq/api/setup/config', { demo_dataset: 'none' })
+	})
+
+	it('never loads the "none" card even when asked directly', async () => {
+		const wrapper = await mountWizard()
+		await wrapper.vm.loadDataset(loadStep, { value: 'none', label: 'None' })
+		expect(axios.post).not.toHaveBeenCalled()
+	})
+})
+
+describe('CnSetupWizard — dependencies are checked before any step', () => {
+	const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
+	const depSteps = [
+		{ id: 'welcome', type: 'info', title: 'Hi' },
+		{ id: 'seed', type: 'run-action', action: 'seed' },
+		{ id: 'invoices', type: 'run-action', action: 'link-invoices', requires: ['shillinq'], title: 'Link invoices' },
+		{ id: 'done', type: 'summary', title: 'Done' },
+	]
+
+	beforeEach(() => {
+		__resetAppStatusCacheForTests()
+		axios.post.mockReset()
+		axios.post.mockResolvedValue({ data: { success: true } })
+		global.OC = { appswebroots: { openregister: '/apps/openregister' } }
+	})
+
+	afterEach(() => {
+		delete global.OC
+	})
+
+	it('replaces the steps with the missing required app and disables Next', async () => {
+		global.OC = { appswebroots: {} }
+		const wrapper = mount(CnSetupWizard, {
+			propsData: { appId: 'pipelinq', steps: depSteps, dependencies: ['openregister'] },
+		})
+		await flushPromises()
+		expect(wrapper.vm.dependencyBlocked).toBe(true)
+		expect(wrapper.vm.wizardSteps.map((s) => s.id)).toEqual(['cn-setup-dependencies'])
+		expect(wrapper.find('[data-testid="cn-setup-dependencies"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-leaf-dependency-openregister"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-wizard-next"]').attributes('disabled')).toBeDefined()
+		// No step action runs behind the gate.
+		expect(axios.post).not.toHaveBeenCalled()
+	})
+
+	it('reads the dependencies from the injected manifest when no prop is passed', async () => {
+		global.OC = { appswebroots: {} }
+		const wrapper = mount(CnSetupWizard, {
+			propsData: { appId: 'pipelinq', steps: depSteps },
+			global: { provide: { cnManifest: { dependencies: ['openregister'] } } },
+		})
+		await flushPromises()
+		expect(wrapper.vm.dependencyBlocked).toBe(true)
+	})
+
+	it('shows the steps when every required app is there, and lists a missing optional one', async () => {
+		const wrapper = mount(CnSetupWizard, {
+			propsData: {
+				appId: 'pipelinq',
+				steps: depSteps,
+				dependencies: ['openregister', { id: 'forms', name: 'Forms', required: false }],
+			},
+		})
+		await flushPromises()
+		expect(wrapper.vm.dependencyBlocked).toBe(false)
+		expect(wrapper.vm.wizardSteps.map((s) => s.id)).toEqual(['welcome', 'seed', 'done'])
+		const note = wrapper.find('[data-testid="cn-setup-optional-dependencies"]')
+		expect(note.exists()).toBe(true)
+		expect(note.text()).toContain('Forms')
+		expect(wrapper.find('[data-testid="cn-wizard-next"]').attributes('disabled')).toBeUndefined()
+	})
+
+	it('skips a step whose required app is absent and says so in the summary', async () => {
+		const wrapper = mount(CnSetupWizard, {
+			propsData: { appId: 'pipelinq', steps: depSteps, dependencies: ['openregister'] },
+		})
+		await flushPromises()
+		expect(wrapper.vm.setupSteps.map((s) => s.id)).not.toContain('invoices')
+		const recap = wrapper.vm.summaryItems.find((i) => i.id === 'invoices')
+		expect(recap).toMatchObject({ done: false, notRun: true, value: 'Skipped, needs shillinq' })
+	})
+
+	it('offers that step once its app is present', async () => {
+		global.OC = { appswebroots: { openregister: '/a', shillinq: '/b' } }
+		const wrapper = mount(CnSetupWizard, {
+			propsData: { appId: 'pipelinq', steps: depSteps, dependencies: ['openregister'] },
+		})
+		await flushPromises()
+		expect(wrapper.vm.setupSteps.map((s) => s.id)).toContain('invoices')
+	})
+})
