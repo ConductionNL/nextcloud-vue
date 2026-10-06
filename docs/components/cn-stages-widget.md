@@ -118,7 +118,7 @@ A `kind` the widget does not know reads as read only, so a typo cannot silently 
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | The widget config: `currentField`, `stagesEndpoint` or `stagesSource`, `transition`, `unreachableReason`, `orientation`, `size` and `ariaLabel`. `ariaLabel` falls back to `label`, then to "Stages", so a titled placement names its own strip without repeating the title. |
+| `content` | `object` | `{}` | The widget config: `currentField`, `stagesEndpoint` or `stagesSource`, `transition`, `unreachableReason`, `orientation`, `size`, `ariaLabel` and `variant`. `variant: "bars"` draws a thin bar per step coloured by state (done: primary, current: accent, to do: border), the label under it (ellipsized, with a title), an optional date line from the source's `dateField`, and no description; the current step carries a visually hidden "(current step)". Theme hooks: `--cn-stages-bar-height`, `--cn-stages-bar-radius`, `--cn-stages-bar-done`, `--cn-stages-bar-current`, `--cn-stages-bar-todo`. `ariaLabel` falls back to `label`, then to "Stages", so a titled placement names its own strip without repeating the title. |
 | `objectData` | `object\|null` | `null` | The bound record, when the surface passes it. Falls back to the detail page's injected object context. |
 | `objectId` | `string\|number` | `''` | The bound record's id, when the surface passes it. Falls back to the injected object context. |
 | `objectType` | `string` | `''` | The object-store type slug of the bound record, used by the `field` transition. Falls back to the context, then to the register and schema of the page. |

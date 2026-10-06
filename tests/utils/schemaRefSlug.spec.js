@@ -56,4 +56,30 @@ describe('schemaRefSlug', () => {
 	it('collapses a run of separators to one dash instead of several', () => {
 		expect(schemaRefSlug('Foo   Bar')).toBe('foo-bar')
 	})
+
+	/**
+	 * 2.62.0 kebab-cased every value, so a camelCase slug authored as a slug
+	 * (`statusType`) became `status-type`, which OpenRegister 404s: it matches
+	 * slugs case-insensitively (statusType, statustype, StatusType all 200)
+	 * but `status-type` is another slug. Only a title is kebab-cased.
+	 *
+	 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-plain-schema-slug-is-left-as-written
+	 */
+	describe('a plain slug is left as written', () => {
+		it('keeps a camelCase slug', () => {
+			expect(schemaRefSlug('statusType')).toBe('statusType')
+			expect(schemaRefSlug('caseType')).toBe('caseType')
+			expect(schemaRefSlug('bacAdviceRequest')).toBe('bacAdviceRequest')
+			expect(schemaRefSlug('wmsLayer')).toBe('wmsLayer')
+		})
+
+		it('keeps a camelCase slug behind a JSON pointer', () => {
+			expect(schemaRefSlug('#/components/schemas/statusType')).toBe('statusType')
+		})
+
+		it('still kebab-cases a title', () => {
+			expect(schemaRefSlug('StatusType')).toBe('status-type')
+			expect(schemaRefSlug('Status Type')).toBe('status-type')
+		})
+	})
 })

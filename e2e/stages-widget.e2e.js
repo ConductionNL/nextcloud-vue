@@ -303,18 +303,18 @@ test.describe('the status badge tile', () => {
 	 *
 	 * The tile's `resolve.schema` is authored as `'statusType'` (see
 	 * StagesHarness.vue's `STATUS_CONTENT`, mirroring how a real manifest
-	 * declares it), but `resolveObjectOpType()` now kebab-cases that into
-	 * the slug OpenRegister's objects API actually resolves
-	 * (`status-type`) before building the request — the
-	 * slugify-ref-relation-resolver fix (learniq round-1 defect 7). Route
-	 * on the corrected path, or this stub silently stops matching and the
+	 * declares it). That is a SLUG, and it reaches the objects API as
+	 * written: OpenRegister matches slugs case-insensitively and 404s on
+	 * `status-type`, which 2.62.0 sent and this stub used to expect
+	 * (zuiddrecht-pixel-gaps, a plain schema slug is left as written).
+	 * Route on the real path, or this stub silently stops matching and the
 	 * badge never resolves.
 	 *
 	 * @param {import('@playwright/test').Page} page The page.
 	 * @return {Promise<void>}
 	 */
 	async function stubStatus(page) {
-		await page.route('**/api/objects/dossiq/status-type/st-work', (route) => route.fulfill({
+		await page.route('**/api/objects/dossiq/statusType/st-work', (route) => route.fulfill({
 			status: 200,
 			contentType: 'application/json',
 			body: JSON.stringify({ id: 'st-work', name: 'In behandeling', isFinal: false }),

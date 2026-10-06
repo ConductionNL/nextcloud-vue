@@ -29,3 +29,12 @@ Three optional `content` keys turn the header into a greeting. Without them the 
 ```json
 { "widgetKey": "header", "props": { "content": { "greeting": true, "showDate": true, "plain": true } } }
 ```
+
+## A view switch beside the greeting (`views`)
+
+`content.views` puts a [CnSegmentedControl](./cn-segmented-control.md) at the right of the heading: `{ ariaLabel?, options: [{ label, route, params? }] }`. The checked option is the one whose route is current (else the first); choosing another pushes its route. Without a router nothing renders. Labels and `ariaLabel` go through the host translate function.
+
+```json
+{ "widgetKey": "header", "props": { "content": { "greeting": true, "showDate": true, "plain": true,
+  "views": { "ariaLabel": "View", "options": [{ "label": "My work", "route": "Dashboard" }, { "label": "My team", "route": "TeamDashboard" }] } } } }
+```

@@ -570,3 +570,14 @@ widgets in one visual family.
 ## Header actions menu
 
 The page header's overflow menu carries Refresh plus the mandatory trio Request a feature / Report a bug / Documentation. `showReportBug` and `showDocumentation` (both `true` by default) exist for a surface that must suppress one deliberately; the shared menu resolves each target itself, so leaving them on costs nothing. The Documentation entry deep-links to this page's own section using the page id as its anchor.
+
+## Type eyebrow and breadcrumb
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showTypeEyebrow` | `Boolean` | `true` | `false` (manifest `config.showTypeEyebrow: false`) drops the type label above the record name once the record resolves, for a header that says the type in a pill instead. |
+| `breadcrumb` | `Object \| null` | `null` | A breadcrumb line above the header (manifest `config.breadcrumb`): `{ label, route?, params?, href? }` names the list the record belongs to; the record's display name follows as the current crumb. The label goes through the host translate function. |
+
+```json
+"config": { "showTypeEyebrow": false, "breadcrumb": { "label": "All cases", "route": "Cases" } }
+```

@@ -295,3 +295,11 @@ CnAppRoot's root `<NcContent>` always carries `data-nldesign-theme-scope="<appId
 They are off by default because they stacked: an app declaring four optional leaves showed four cards above its own content and pushed the page below the fold, on every load, for an audience who cannot act on them. Mount [`CnLeafDependencySettings`](./cn-leaf-dependency-settings.md) in the app's admin settings instead — it carries the same two states and the same install/enable action.
 
 `unresolvedSoftDependencies` is unchanged and still exposed, so an app rendering its own surface from it keeps working. The prop is a bridge for one release and is slated for removal.
+
+## Hiding the navigation (`hideMenu`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `hideMenu` | `Boolean` | `false` | Render no app navigation at all: neither the default `CnAppNav` nor the `#menu` slot, so the content starts at the left edge. An empty `#menu` override cannot do this (an empty slot falls back to the default `CnAppNav`), which is why launchpad passed a hidden empty span. |
+
+`CnAppRoot` also provides `cnMenuItemCounts`, the filtered totals for menu entries whose `count` is `{ register, schema, filter }` (see [CnAppNav](./cn-app-nav.md)).
