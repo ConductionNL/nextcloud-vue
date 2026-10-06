@@ -36,6 +36,15 @@ All four are optional and end up in one list.
 
 `order: "desc"` lists newest first; the default is oldest first.
 
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `object` | Object | `null` | The object whose events the widget shows. |
+| `title` | String | `''` | Card title override. |
+| `content` | Object | `{}` | Stored widget content: `{ title, fields, related, auditTrail, timeline, order }`. |
+| `apiBase` | String | `'/apps/openregister/api'` | OpenRegister API base the widget reads related objects, the audit trail and the timeline from. |
+
 ## Behaviour
 
 - Labels are authored in English and pass through the app's translation.
