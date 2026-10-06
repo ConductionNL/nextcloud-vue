@@ -13,12 +13,12 @@
 		<slot
 			name="header"
 			:title="title"
-			:description="description"
+			:description="headerDescription"
 			:icon="resolvedIcon"
 			:showTitle="showTitle">
 			<CnPageHeader
 				:title="title"
-				:description="description"
+				:description="headerDescription"
 				:icon="resolvedIcon"
 				:visuallyHidden="!showTitle" />
 		</slot>
@@ -1168,6 +1168,21 @@ export default {
 
 		/** Optional description shown below the title */
 		description: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A description that carries the collection's total: `{total}` in
+		 * the text is replaced by the current pagination total ("{total}
+		 * open cases" reads "48 open cases"). Rendered in place of
+		 * `description` once a total is known; before that, `description`
+		 * shows. Manifest key `config.countSubtitle`. Goes through the host
+		 * translate function.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-index-page-title-is-a-manifest-key
+		 */
+		countSubtitle: {
 			type: String,
 			default: '',
 		},
@@ -4208,6 +4223,21 @@ export default {
 				return null
 			}
 			return resolveDeepTokens(seed, {})
+		},
+
+		/**
+		 * The header's description line: `countSubtitle` with the total
+		 * filled in when one is known, else `description`.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-index-page-title-is-a-manifest-key
+		 * @return {string}
+		 */
+		headerDescription() {
+			const total = this.effectivePagination?.total
+			if (this.countSubtitle && typeof total === 'number' && total >= 0) {
+				return this.cnTranslate(this.countSubtitle).replace('{total}', String(total))
+			}
+			return this.description
 		},
 
 		/** Add button label — derived from schema.title if not explicitly set */
