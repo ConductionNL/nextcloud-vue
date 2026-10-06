@@ -450,6 +450,10 @@
 					:includeColumns="includeColumns"
 					:columnOverrides="columnOverrides"
 					:rowClass="rowClass"
+					:filterable="headerFilters && !!effectiveSchema"
+					:activeFilters="effectiveActiveFilters"
+					:filterRegister="typeof register === 'string' ? register : ''"
+					@columnFilter="onColumnFilterEvent"
 					@sort="onSortEvent"
 					@select="onSelect"
 					@rowClick="onRowClick"
@@ -2283,6 +2287,22 @@ export default {
 		listShortcuts: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Per-column filters in the table header: a filter button on every
+		 * column that can filter, opening a small panel that fits the column
+		 * (checkboxes, yes/no/any, from and to, a searchable reference list).
+		 * On by default; a column opts out with `filterable: false`, a page
+		 * with `pages[].config.headerFilters: false`. Filters write into the
+		 * same active-filter map as the facet sidebar, so they persist in the
+		 * route query and reach the same OpenRegister query parameters.
+		 *
+		 * @spec openspec/changes/table-header-sort-and-filter/specs/cn-data-table/spec.md#requirement-every-backed-column-filters-from-its-header
+		 */
+		headerFilters: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
@@ -5223,6 +5243,39 @@ export default {
 				this.setNamedFilter(payload.key, payload.values)
 			}
 			this.$emit('filter-change', payload)
+		},
+
+		/**
+		 * A header filter was applied or cleared. One column can own several
+		 * query parameters (a range is `key[gte]` and `key[lte]`), so they are
+		 * applied together: one fetch, one route update.
+		 *
+		 * @param {{key: string, params: object}} payload From CnDataTable's `column-filter`.
+		 * @return {void}
+		 * @spec openspec/changes/table-header-sort-and-filter/specs/cn-data-table/spec.md#requirement-a-header-filter-speaks-the-sidebars-query-language
+		 */
+		onColumnFilterEvent(payload) {
+			const params = (payload && payload.params) || {}
+			const entries = Object.entries(params).map(([key, values]) => [key, Array.isArray(values) ? values : []])
+			if (this.isSelfFetchMode) {
+				const next = { ...this.list.activeFilters.value }
+				for (const [key, values] of entries) {
+					if (values.length === 0) {
+						delete next[key]
+					} else {
+						next[key] = values
+					}
+				}
+				this.list.activeFilters.value = next
+				this.list.refresh(1)
+				this.persistViewStateToRoute(this.currentViewState())
+			}
+			for (const [key, values] of entries) {
+				if (this.isNamedSource) {
+					this.setNamedFilter(key, values)
+				}
+				this.$emit('filter-change', { key, values })
+			}
 		},
 
 		/**
