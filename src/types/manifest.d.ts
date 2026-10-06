@@ -352,6 +352,57 @@ export interface TManifestSchedule {
 }
 
 /**
+ * One standard an app provides or consumes, in the `discovery` block.
+ */
+export interface TManifestDiscoveryStandard {
+	/** Lower-case slug from the shared vocabulary (`zgw-zaken`, `ori`, `dcat-ap-nl`, …). */
+	id: string
+	/** Human-readable name of the standard. */
+	name: string
+	/** Version of the standard (not of the app). */
+	version?: string
+	/** `provides`: this app serves it. `consumes`: this app is a client of it. */
+	role: 'provides' | 'consumes'
+	/**
+	 * `public`: no credential. `token`: no Nextcloud login but a credential the
+	 * caller already holds. `authenticated` (default): Nextcloud login, and the
+	 * endpoint is NOT published.
+	 */
+	access?: 'public' | 'token' | 'authenticated'
+	/** Path on this instance, starting with `/`. Never a URL. */
+	endpoint?: string
+	/** https link to the standard's specification. */
+	specUrl?: string
+}
+
+/**
+ * An Open Cloud Mesh resource type the app accepts as federated shares.
+ */
+export interface TManifestOcmResourceType {
+	name: string
+	/** Share recipient types, e.g. `user`, `group`. */
+	shareTypes: string[]
+	/** Protocol name to the path that serves it. */
+	protocols: Record<string, string>
+}
+
+/**
+ * Public discovery of standards and federation entry points. Consumed by the
+ * OpenRegister AppHost, never by the Vue renderer: published to anonymous
+ * callers of `/ocs/v2.php/cloud/capabilities` under `<appId>.discovery`, and
+ * `ocmResourceTypes` are added to `/.well-known/ocm`. See the `discovery`
+ * property in the v2 schema (2.44.0).
+ */
+export interface TManifestDiscovery {
+	/** `false` keeps the app out of the public capability. Default true. */
+	public?: boolean
+	standards?: TManifestDiscoveryStandard[]
+	/** Named public entry points (slug to path on this instance). */
+	links?: Record<string, string>
+	ocmResourceTypes?: TManifestOcmResourceType[]
+}
+
+/**
  * MCP tool visibility/UX hints (ADR-063). Purely advisory: OpenRegister's
  * register (`x-openregister-mcp` dialect + `#[McpTool]` attributes) is the
  * single source of CRUD-tool truth and OpenRegister RBAC is the
@@ -397,6 +448,8 @@ export interface TManifest {
 	credentials?: TManifestCredential[]
 	/** Declarative scheduled tasks (apphost-scheduling) reconciled into Integriq jobs. */
 	schedules?: TManifestSchedule[]
+	/** Public discovery of standards and federation entry points (schema 2.44.0). */
+	discovery?: TManifestDiscovery
 	/**
 	 * Admin-only settings sections rendered by CnAppRoot's generic admin
 	 * NcAppSettingsDialog, gated on app-owner-group membership. See the

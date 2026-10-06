@@ -1,6 +1,7 @@
 {
 	"_note": "One content hash per schema version. Written by `npm run update:manifest-schema-hash`, checked by tests/schemas/app-manifest-v2.schema-version.spec.js. Never edit a recorded hash: bump the schema version instead. 2.42.0 and earlier are not recorded: 2.42.0 shipped with more than one content, which is the defect this ledger ends.",
 	"versions": {
-		"2.43.0": "sha256:313be1f688599a47daaee7ec6d5fa1968bfc46559db96deae521e420331f3153"
+		"2.43.0": "sha256:313be1f688599a47daaee7ec6d5fa1968bfc46559db96deae521e420331f3153",
+		"2.44.0": "sha256:4c5d375a63806d053290b9fe2eaf28b6d3e423ae7d5adc869f52a675ffaaed7e"
 	}
 }

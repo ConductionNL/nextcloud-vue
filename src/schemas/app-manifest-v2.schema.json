@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.43.0",
+	"version": "2.44.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -395,6 +395,128 @@
 			"type": "object",
 			"description": "Named, reusable field/column/sidebar sets referenced from templates via a `{{set:NAME}}` placeholder, so a repeated field/column/sidebar block is declared ONCE and shared across templates and pages instead of being re-listed. Each value is arbitrary JSON (typically an array of field/column defs or a sidebar object). Optional and additive.",
 			"additionalProperties": true
+		},
+		"discovery": {
+			"type": "object",
+			"title": "Public discovery of standards and federation entry points",
+			"description": "OPTIONAL. Declares which interoperability standards the app provides or consumes, its public entry points and the Open Cloud Mesh resource types it handles. Consumed by the OpenRegister AppHost (NOT by the Vue renderer): the `DiscoveryCapability` publishes it to ANONYMOUS callers of `/ocs/v2.php/cloud/capabilities` under `<appId>.discovery`, so another instance can tell from a hostname whether it can connect; `ocmResourceTypes` are added to `/.well-known/ocm`. The same block generates the app's Standards & federation docs page. Endpoints of `access: authenticated` entries (the default) are never published. See openregister docs/Technical/discovery-and-federation.md.",
+			"additionalProperties": false,
+			"properties": {
+				"public": {
+					"type": "boolean",
+					"default": true,
+					"description": "`false` keeps the app out of the public capability. Its OCM resource types are still announced."
+				},
+				"standards": {
+					"type": "array",
+					"description": "Standards the app actually implements (provides) or is a client of (consumes). Planned work does not belong here.",
+					"items": {
+						"type": "object",
+						"required": [
+							"id",
+							"name",
+							"role"
+						],
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string",
+								"pattern": "^[a-z0-9]+([.-][a-z0-9]+)*$",
+								"description": "Lower-case slug from the shared vocabulary (e.g. `zgw-zaken`, `ori`, `dcat-ap-nl`, `peppol`) so peers can match on it."
+							},
+							"name": {
+								"type": "string",
+								"minLength": 1,
+								"description": "Human-readable name of the standard."
+							},
+							"version": {
+								"type": "string",
+								"minLength": 1,
+								"description": "Version of the standard (not of the app)."
+							},
+							"role": {
+								"enum": [
+									"provides",
+									"consumes"
+								],
+								"description": "`provides`: this app serves it. `consumes`: this app is a client of it."
+							},
+							"access": {
+								"enum": [
+									"public",
+									"token",
+									"authenticated"
+								],
+								"default": "authenticated",
+								"description": "`public`: no credential. `token`: no Nextcloud login but a credential the caller already holds (ZGW JWT, share token, LTI launch). `authenticated`: Nextcloud login; published WITHOUT its endpoint."
+							},
+							"endpoint": {
+								"type": "string",
+								"pattern": "^/(?!/)(?!.*\\.\\.)(?!.*://)[^\\s\\\\]*$",
+								"description": "A path on this instance, starting with `/` (e.g. `/apps/decidiq/api/ori/v1`). Never a URL: an app must not make the instance advertise another host."
+							},
+							"specUrl": {
+								"type": "string",
+								"pattern": "^https://",
+								"description": "https link to the standard's specification."
+							}
+						}
+					}
+				},
+				"links": {
+					"type": "object",
+					"description": "Named public entry points (e.g. `directory`, `openapi`). Names are lower-case slugs, values are paths on this instance.",
+					"propertyNames": {
+						"pattern": "^[a-z0-9]+([.-][a-z0-9]+)*$"
+					},
+					"additionalProperties": {
+						"type": "string",
+						"pattern": "^/(?!/)(?!.*\\.\\.)(?!.*://)[^\\s\\\\]*$",
+						"description": "A path on this instance, starting with `/` (e.g. `/apps/decidiq/api/ori/v1`). Never a URL: an app must not make the instance advertise another host."
+					}
+				},
+				"ocmResourceTypes": {
+					"type": "array",
+					"description": "Open Cloud Mesh resource types this app accepts as federated shares. Only declare a type the app handles with an ICloudFederationProvider; a type without one is not announced.",
+					"items": {
+						"type": "object",
+						"required": [
+							"name",
+							"shareTypes",
+							"protocols"
+						],
+						"additionalProperties": false,
+						"properties": {
+							"name": {
+								"type": "string",
+								"pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+							},
+							"shareTypes": {
+								"type": "array",
+								"minItems": 1,
+								"items": {
+									"type": "string",
+									"pattern": "^[a-z]+$"
+								},
+								"description": "Share recipient types, e.g. `user`, `group`."
+							},
+							"protocols": {
+								"type": "object",
+								"minProperties": 1,
+								"propertyNames": {
+									"pattern": "^[a-z0-9]+([.-][a-z0-9]+)*$"
+								},
+								"additionalProperties": {
+									"type": "string",
+									"pattern": "^/(?!/)(?!.*\\.\\.)(?!.*://)[^\\s\\\\]*$",
+									"description": "A path on this instance, starting with `/` (e.g. `/apps/decidiq/api/ori/v1`). Never a URL: an app must not make the instance advertise another host."
+								},
+								"description": "Protocol name to the path that serves it, e.g. `{\"dossiq\": \"/apps/dossiq/api/federation\"}`."
+							}
+						}
+					}
+				}
+			}
 		},
 		"mcp": {
 			"type": "object",

@@ -1287,9 +1287,10 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// and the dashboard widget rules of 2.61.0 went out without; the
 		// vendored copy in ConductionNL/.github could not see the schema had
 		// moved. app-manifest-v2.schema-version.spec.js now fails when the
-		// content changes and this number does not.
+		// content changes and this number does not. 2.44.0 adds the top-level
+		// `discovery` block (standards, links, OCM resource types).
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.43.0')
+		expect(schema.version).toBe('2.44.0')
 	})
 
 	it('accepts a declarative `store` block, and requires the remote schema', () => {
