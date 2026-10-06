@@ -25,6 +25,7 @@ import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnTextWidget from '../CnTextWidget/CnTextWidget.vue'
+import CnTimelineWidget from '../CnTimelineWidget/CnTimelineWidget.vue'
 import CnWidgetCardGrid from '../CnWidgetCardGrid/CnWidgetCardGrid.vue'
 import CnWidgetFormRenderer from '../CnWidgetFormRenderer/CnWidgetFormRenderer.vue'
 import CnWidgetMapViewer from '../CnWidgetMapViewer/CnWidgetMapViewer.vue'
@@ -84,6 +85,7 @@ export const BUILT_IN_WIDGETS = {
 	integration: CnIntegrationWidget,
 	banner: CnBannerWidget,
 	'audit-trail': CnAuditTrailWidget,
+	timeline: CnTimelineWidget,
 	header: CnHeaderWidget,
 	text: CnTextWidget,
 	divider: CnDividerWidget,

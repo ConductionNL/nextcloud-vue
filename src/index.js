@@ -269,6 +269,7 @@ export {
 	CnTileWidget,
 	CnTimelineStages,
 	CnTimelineView,
+	CnTimelineWidget,
 	CnTranslatedBadge,
 	CnTreeView,
 	CnUserActionMenu,
