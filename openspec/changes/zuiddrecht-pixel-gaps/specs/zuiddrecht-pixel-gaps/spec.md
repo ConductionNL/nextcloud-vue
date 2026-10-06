@@ -272,3 +272,24 @@ the left edge. By default the navigation renders exactly as before.
 - **GIVEN** `hideMenu: true`
 - **WHEN** the root renders its shell
 - **THEN** no CnAppNav and no `#menu` slot content is in the DOM
+
+### Requirement: Small opt-ins from the decidiq and learniq lanes
+
+A primary action (`nav.primaryAction`, `pages[].primaryAction`) SHALL accept
+`permission` and `visibleIf` and be gated like a menu entry. The object list
+widget SHALL pass `content.hideHeader: true` to its table. The date cell
+widget SHALL accept `widgetProps.showTime: true` (date and time of day) and
+`widgetProps.timeOnly: true` (the time alone). Without these keys nothing
+changes.
+
+#### Scenario: Gated primary action
+
+- **GIVEN** `nav.primaryAction: { label: "New", permission: "cases.create" }` and a reader without that permission
+- **WHEN** the navigation renders
+- **THEN** no primary action renders
+
+#### Scenario: Time of day
+
+- **GIVEN** a `date` cell widget with `widgetProps: { timeOnly: true }` and the value 2026-10-05T08:30:00
+- **WHEN** it renders
+- **THEN** the label is the time alone

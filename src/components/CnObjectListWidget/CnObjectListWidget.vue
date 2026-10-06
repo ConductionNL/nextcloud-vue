@@ -151,6 +151,7 @@
 						:sortKey="localSort.field || null"
 						:sortOrder="localSort.dir || 'asc'"
 						borderless
+						:hideHeader="content.hideHeader === true"
 						@rowClick="onRowClick"
 						@rowAuxClick="onRowAuxClick"
 						@select="onSelect"
@@ -172,6 +173,7 @@
 					:sortKey="localSort.field || null"
 					:sortOrder="localSort.dir || 'asc'"
 					borderless
+					:hideHeader="content.hideHeader === true"
 					@rowClick="onRowClick"
 					@rowAuxClick="onRowAuxClick"
 					@select="onSelect"
@@ -415,7 +417,11 @@ export default {
 		 * those carrying a selected value. Client-side over the fetched page,
 		 * like the rest of this widget's row set.
 		 *
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object}}
+		 * `hideHeader: true` drops the table's column header row (CnDataTable's
+		 * `hideHeader`), for a short list that reads as rows, not as a table.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean}}
 		 */
 		content: {
 			type: Object,

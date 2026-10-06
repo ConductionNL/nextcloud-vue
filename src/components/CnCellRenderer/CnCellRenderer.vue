@@ -486,13 +486,20 @@ export default {
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
 		 */
 		dateLabel() {
 			const date = parseDateValue(this.value)
 			if (date === null) {
 				return ''
 			}
-			const options = { day: 'numeric', month: 'short', year: 'numeric' }
+			// `widgetProps.showTime: true` adds the time of day ("5 Oct 2026,
+			// 08:30"); `widgetProps.timeOnly: true` shows just the time
+			// ("08:30"), for a timetable row. Default: the date alone.
+			const props = this.widgetProps || {}
+			const options = props.timeOnly === true
+				? { hour: '2-digit', minute: '2-digit' }
+				: { day: 'numeric', month: 'short', year: 'numeric', ...(props.showTime === true ? { hour: '2-digit', minute: '2-digit' } : {}) }
 			let locale
 			try {
 				locale = getCanonicalLocale()

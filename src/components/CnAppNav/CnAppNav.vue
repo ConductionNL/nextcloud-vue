@@ -839,20 +839,30 @@ export default {
 		 *  2. `manifest.nav.primaryAction` as app-wide default
 		 *  3. `null` — no primary-action button renders
 		 *
-		 * Page-scoped declarations always win over the nav-root default.
+		 * Page-scoped declarations always win over the nav-root default. An
+		 * action declaring `permission` or `visibleIf` is gated like a menu
+		 * entry.
 		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-navigation-primary-action-runs-a-page-action
 		 * @return {object|null}
 		 */
 		activePrimaryAction() {
 			const pages = this.effectiveManifest?.pages ?? []
 			const routeName = this.$route?.name
+			// The same `permission` / `visibleIf` gate a menu entry has: an
+			// action the reader may not take, or that a condition hides, is
+			// not drawn. A gated-out page action falls back to the nav one.
+			const gated = (action) => (action && this.passesPermission(action) && this.passesVisibleIf(action) ? action : null)
 			if (routeName) {
 				const page = pages.find((p) => p.id === routeName)
 				if (page && page.primaryAction) {
-					return page.primaryAction
+					const pageAction = gated(page.primaryAction)
+					if (pageAction) {
+						return pageAction
+					}
 				}
 			}
-			return this.effectiveManifest?.nav?.primaryAction ?? null
+			return gated(this.effectiveManifest?.nav?.primaryAction ?? null)
 		},
 
 		/**

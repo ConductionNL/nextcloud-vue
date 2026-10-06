@@ -103,3 +103,9 @@
 - **files**: `src/components/CnAppRoot/CnAppRoot.vue`
 - [x] Implement
 - [x] Test
+
+### Task 18: Small opt-ins from the decidiq and learniq lanes
+- **spec_ref**: `openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes`
+- **files**: `src/components/CnAppNav/CnAppNav.vue`, `src/components/CnObjectListWidget/CnObjectListWidget.vue`, `src/components/CnCellRenderer/CnCellRenderer.vue`
+- [x] Implement
+- [x] Test
