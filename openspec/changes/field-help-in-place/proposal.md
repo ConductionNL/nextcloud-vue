@@ -1,3 +1,14 @@
+## Summary
+
+Let a schema property carry an explanation (`x-help`) that every form field opens in place through a toggletip, keyboard and screen reader operable, and still there when the field shows an error.
+
+- Rows: 13.18 "Each field on the officer form carries an explanation the officer can open in place" (not statutory).
+- Wave: 1.
+- Depends on: nothing. Consuming apps pick the change up on `^2` once a `2.x` minor is released.
+- Decision: no Ruben decision governs this row. The release is a minor; a major needs Ruben's permission.
+
+Build rules: openspec/woo-build-rules.md (its PHP checks do not apply to this JavaScript library; the npm checks in tasks.md do)
+
 ## Why
 
 Woo capability row 13.18, "Each field on the officer form carries an
