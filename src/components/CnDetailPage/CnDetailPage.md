@@ -430,3 +430,7 @@ Four levels of action and the case surfaces around them. All opt in. See [the re
 ## Not found
 
 When the schema-driven fetch answers 404 the page shows a not-found state whose back button is a router link to `notFoundRoute` (default `null`, which means the app root `/`). `notFoundRouteLabel` names that page in the button's "Back to …" label.
+
+### Type eyebrow and breadcrumb
+
+`showTypeEyebrow` (default `true`) can drop the type label above the record name. `breadcrumb` (`{ label, route?, params?, href? }`) draws a breadcrumb line above the header: that crumb, then the record's name as the current crumb.

@@ -199,7 +199,13 @@
 			<!-- @binding {boolean} isOwner Whether the user owns this app (ADR-079 §3). -->
 			<!-- @binding {boolean} isAdmin Whether the user administers the instance; gates the Admin-settings link. -->
 			<!-- @binding {string} appId The app id used to build the Admin-settings target. -->
-			<slot name="menu"
+			<!-- `hideMenu` renders no navigation at all, so the content starts
+			     at the left edge. An EMPTY #menu override cannot do that: an
+			     empty slot falls back to the default CnAppNav (ensureValidVNode),
+			     which is why launchpad passed a hidden empty span. -->
+			<slot
+				v-if="!hideMenu"
+				name="menu"
 				:manifest="menuManifest"
 				:permissions="permissions"
 				:isOwner="isOwner"
@@ -700,6 +706,7 @@ import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
 import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
 /**
@@ -1049,6 +1056,13 @@ export default {
 			 * the counts.
 			 */
 			cnMenuCounts: this.cnMenuCounts,
+			/**
+			 * Reactive `{ [menuItemId]: number }` totals for menu entries
+			 * whose `count` is an object (`{ register, schema, filter? }`),
+			 * populated by `_hydrateMenuItemCounts()`. Read by
+			 * `CnAppNav.resolveCount()`.
+			 */
+			cnMenuItemCounts: this.cnMenuItemCounts,
 		}
 	},
 
@@ -1190,6 +1204,19 @@ export default {
 		appId: {
 			type: String,
 			required: true,
+		},
+
+		/**
+		 * Render no app navigation at all: neither the default CnAppNav nor
+		 * the `#menu` slot, so the content starts at the left edge (a start
+		 * page without a menu). Off by default; the navigation renders as it
+		 * always has.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-app-root-can-hide-its-menu
+		 */
+		hideMenu: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -1707,6 +1734,13 @@ export default {
 			 * picked up by CnAppNav's reactive render.
 			 */
 			cnMenuCounts: reactive({}),
+			/**
+			 * Reactive `{ [menuItemId]: number }` map of filtered totals, one
+			 * per menu entry whose `count` is an object. Provided to
+			 * descendants as `cnMenuItemCounts`. Populated by
+			 * `_hydrateMenuItemCounts()` at mount.
+			 */
+			cnMenuItemCounts: reactive({}),
 			/**
 			 * Open state of the host NcAppSettingsDialog. Toggled
 			 * to `true` by the provided `cnOpenUserSettings()`
@@ -2925,6 +2959,7 @@ export default {
 			this._validateRegistry()
 			this._warnCustomComponentsDeprecation()
 			this._hydrateMenuCounts()
+			this._hydrateMenuItemCounts()
 			return
 		}
 
@@ -2953,6 +2988,7 @@ export default {
 		this._validateRegistry()
 		this._warnCustomComponentsDeprecation()
 		this._hydrateMenuCounts()
+		this._hydrateMenuItemCounts()
 	},
 
 	beforeUnmount() {
@@ -3607,6 +3643,63 @@ export default {
 			this._hydrateMenuCountsBatched(uniquePairs).catch(() => {
 				this._hydrateMenuCountsPerEntry(uniquePairs)
 			})
+		},
+
+		/**
+		 * Fetch the total of every menu entry (top level and children) whose
+		 * `count` is an object `{ register, schema, filter? }`: one
+		 * `GET /api/objects/{register}/{schema}?_limit=1` per entry with the
+		 * filter's tokens (`@me`, `@today`, ...) resolved at fetch time, the
+		 * response `total` written to `cnMenuItemCounts[item.id]`. The
+		 * request goes straight through axios rather than the object store,
+		 * so the index page's whole-schema total in the store is left alone.
+		 * Failures leave the badge unrendered.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-menu-entry-counts-a-filtered-list
+		 * @return {void}
+		 * @private
+		 */
+		_hydrateMenuItemCounts() {
+			const collect = (items) => {
+				const out = []
+				for (const item of items ?? []) {
+					const count = item?.count
+					if (count && typeof count === 'object' && typeof item.id === 'string' && count.register && count.schema) {
+						out.push(item)
+					}
+					if (Array.isArray(item?.children)) {
+						out.push(...collect(item.children))
+					}
+				}
+				return out
+			}
+			for (const item of collect(this.manifest?.menu)) {
+				this._fetchMenuItemCount(item)
+			}
+		},
+
+		/**
+		 * One filtered-count request for a menu entry; see
+		 * `_hydrateMenuItemCounts`.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-menu-entry-counts-a-filtered-list
+		 * @param {{ id: string, count: { register: string, schema: string, filter?: object } }} item The menu entry.
+		 * @return {Promise<void>}
+		 * @private
+		 */
+		async _fetchMenuItemCount(item) {
+			try {
+				const { register, schema, filter } = item.count
+				const resolved = resolveFilterTokens(filter && typeof filter === 'object' ? filter : {}, {})
+				const url = generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(register)}/${encodeURIComponent(schema)}`)
+				const { data } = await axios.get(url, { params: { _limit: 1, ...resolved } })
+				const total = data?.total
+				if (typeof total === 'number' && total >= 0) {
+					this.cnMenuItemCounts[item.id] = total
+				}
+			} catch {
+				// Non-fatal: the badge stays unrendered.
+			}
 		},
 
 		/**

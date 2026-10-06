@@ -8,6 +8,7 @@
 		<CnTabs
 			:aria-label="stripLabel"
 			:moreLabel="moreLabel"
+			:variant="stripVariant"
 			class="cn-tabs-widget__tabs"
 			@update:activeIndex="onTabChange">
 			<!-- One Actions menu for the whole widget, bound to whichever child
@@ -246,9 +247,10 @@ export default {
 		 *
 		 * `maxVisibleTabs` caps the strip: later tabs go under "More".
 		 * `hideEmpty: true` moves a tab whose count is 0 there too.
-		 * `moreLabel` names that menu.
+		 * `moreLabel` names that menu. `variant: "segmented"` draws the strip
+		 * as a pill switch (CnTabs' segmented variant); `line` is the default.
 		 *
-		 * @type {{ tabs?: Array<{widgetId: string, label?: string, icon?: string, count?: number, countField?: string, overflow?: boolean}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string }}
+		 * @type {{ tabs?: Array<{widgetId: string, label?: string, icon?: string, count?: number, countField?: string, overflow?: boolean}>, ariaLabel?: string, maxVisibleTabs?: number, hideEmpty?: boolean, moreLabel?: string, variant?: ('line'|'segmented') }}
 		 */
 		content: {
 			type: Object,
@@ -462,6 +464,17 @@ export default {
 		 */
 		activeTitle() {
 			return this.activeTab?.label || ''
+		},
+
+		/**
+		 * The strip's look: `segmented` when the content asks for it, else
+		 * CnTabs' default `line`. An unknown value falls back to `line`.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-tabs-widget-renders-a-segmented-strip
+		 * @return {('line'|'segmented')} The CnTabs variant.
+		 */
+		stripVariant() {
+			return this.content?.variant === 'segmented' ? 'segmented' : 'line'
 		},
 
 		/**

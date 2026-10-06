@@ -5,10 +5,11 @@
 
 <template>
 	<CnAuditTrailCard
-		v-if="resolvedRegister && resolvedSchema && resolvedObjectId"
+		v-if="resolvedScope === 'app' || (resolvedRegister && resolvedSchema && resolvedObjectId)"
 		:register="resolvedRegister"
 		:schema="resolvedSchema"
 		:objectId="resolvedObjectId"
+		:scope="resolvedScope"
 		:title="resolvedTitle"
 		:maxDisplay="resolvedMaxDisplay" />
 </template>
@@ -70,6 +71,15 @@ export default {
 		title: { type: String, default: '' },
 		/** Maximum audit rows to render (0 falls back to the card default). */
 		maxDisplay: { type: Number, default: 0 },
+		/**
+		 * `app` lists the app-wide feed (every object the caller may read,
+		 * narrowed to `register` / `schema` when set) and needs no object;
+		 * `object` (the default) is one object's trail. Also read from
+		 * `content.scope`.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-the-audit-trail-widget-reads-the-app-wide-feed
+		 */
+		scope: { type: String, default: '' },
 		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId? }`. */
 		content: { type: Object, default: () => ({}) },
 	},
@@ -113,6 +123,17 @@ export default {
 		resolvedSchema() {
 			const s = this.schema || this.ctx.schema || this.content.schema || ''
 			return typeof s === 'string' ? s : (s && (s.slug || s.name || s.id)) || ''
+		},
+
+		/**
+		 * The feed scope: explicit prop → content → `object`.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-the-audit-trail-widget-reads-the-app-wide-feed
+		 * @return {('object'|'app')}
+		 */
+		resolvedScope() {
+			const s = this.scope || this.content.scope
+			return s === 'app' ? 'app' : 'object'
 		},
 
 		/**
