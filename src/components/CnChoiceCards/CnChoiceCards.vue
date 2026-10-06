@@ -54,9 +54,9 @@
 						</template>
 					</CnCard>
 				</label>
-				<!-- @slot option-actions Content below one card, outside its label
-				     (e.g. a per-option Load button). Scope: `{ option, selected }`. -->
 				<div v-if="$slots['option-actions']" class="cn-choice-cards__actions">
+					<!-- @slot option-actions Content below one card, outside its label
+					     (e.g. a per-option Load button). Scope: `{ option, selected }`. -->
 					<slot name="option-actions" :option="option" :selected="isSelected(option)" />
 				</div>
 			</div>
