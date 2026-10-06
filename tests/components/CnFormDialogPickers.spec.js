@@ -115,6 +115,42 @@ describe('CnFormDialog: group picker', () => {
 	})
 })
 
+describe('CnFormDialog: pickers from fieldOverrides (round two, R1)', () => {
+	const schema = {
+		title: 'Client',
+		properties: {
+			team: { type: 'string', title: 'Team' },
+			language: { type: 'string', title: 'Language' },
+			timezone: { type: 'string', title: 'Time zone' },
+		},
+	}
+	const fieldOverrides = {
+		team: { widget: 'group' },
+		language: { widget: 'language', 'x-default': 'current-language' },
+		timezone: { widget: 'timezone', 'x-default': 'current-timezone' },
+	}
+
+	it('renders the override widgets as the same pickers the formats give', async () => {
+		globalThis._nc_l10n_language = 'nl'
+		const wrapper = mount(CnFormDialog, { props: { schema, item: null, fieldOverrides }, global: { stubs } })
+		await flushPromises()
+		expect(searchNextcloudGroups).toHaveBeenCalled()
+		wrapper.vm.onEffectiveSelectChange(field(wrapper, 'team'), { id: 'sales', label: 'Sales team' })
+		expect(wrapper.vm.formData.team).toBe('sales')
+		const lang = field(wrapper, 'language')
+		expect(lang.widget).toBe('select')
+		expect(wrapper.vm.getEnumOptions(lang).find((o) => o.id === 'de')).toEqual({ id: 'de', label: 'Duits' })
+		expect(field(wrapper, 'timezone').codePicker).toBe('timezone')
+	})
+
+	it('prefills a NEW object from the override x-default', () => {
+		globalThis._nc_l10n_language = 'nl'
+		const wrapper = mount(CnFormDialog, { props: { schema, item: null, fieldOverrides }, global: { stubs } })
+		expect(wrapper.vm.formData.language).toBe('nl')
+		expect(wrapper.vm.formData.timezone).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone)
+	})
+})
+
 describe('CnFormDialog: language and time zone pickers', () => {
 	const schema = {
 		title: 'Client',
