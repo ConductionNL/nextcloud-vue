@@ -326,6 +326,7 @@
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -406,6 +407,7 @@
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -484,6 +486,7 @@
 						:flush="item.flush !== false"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
@@ -508,6 +511,7 @@
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -543,6 +547,7 @@
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:showRefresh="getWidgetShowRefresh(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
@@ -572,6 +577,7 @@
 						:titleIconVariant="getWidgetTitleIconVariant(item)"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
@@ -3427,6 +3433,22 @@ export default {
 		getWidgetButtons(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			return def?.buttons || []
+		},
+
+		/**
+		 * The widget's header text link (`headerLink` on the layout entry,
+		 * else on the widget definition), forwarded to CnWidgetWrapper.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-widget-header-carries-a-text-link
+		 * @param {object} item Layout placement entry.
+		 * @return {object|null}
+		 */
+		getWidgetHeaderLink(item) {
+			if (item?.headerLink && typeof item.headerLink === 'object') {
+				return item.headerLink
+			}
+			const def = this.getWidgetDef(item.widgetId)
+			return (def?.headerLink && typeof def.headerLink === 'object') ? def.headerLink : null
 		},
 
 		/**
