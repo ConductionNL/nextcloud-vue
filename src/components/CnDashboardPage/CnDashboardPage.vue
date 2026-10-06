@@ -2752,8 +2752,12 @@ export default {
 		 * which for an attention card is its `title` when it has no `text`.
 		 *
 		 * @param {object} def Widget definition.
+		 * `layout` is returned so the page can tell an attention card from a
+		 * plain banner: only the former keeps its cell when its check fails.
+		 *
 		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-an-attention-card-with-a-title-keeps-its-cell
-		 * @return {{ text: string, visibleWhen: (object|null) }}
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
+		 * @return {{ text: string, visibleWhen: (object|null), layout: string }}
 		 */
 		widgetDisplayConfig(def) {
 			const content = (def && typeof def.content === 'object' && def.content) || {}
@@ -2767,6 +2771,7 @@ export default {
 			return {
 				text: content.text || props.text || title || '',
 				visibleWhen: (def && def.visibleWhen) || content.visibleWhen || props.visibleWhen || null,
+				layout,
 			}
 		},
 
@@ -2776,15 +2781,22 @@ export default {
 		 * text at all — and must therefore surrender its grid cell in live
 		 * mode instead of leaving an empty card behind.
 		 *
+		 * One exception: an attention card whose `visibleWhen` request FAILED
+		 * keeps its cell, so the card can say it could not check. A collapsed
+		 * cell reads as "nothing needs attention", which a failed count does
+		 * not know. A count that was read and does not meet the condition
+		 * still collapses.
+		 *
 		 * @param {object} item Layout item.
 		 * @return {boolean} true when the cell must collapse.
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
 		 */
 		isCollapsedWidget(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			if (!def || !def.type) {
 				return false
 			}
-			const { text, visibleWhen } = this.widgetDisplayConfig(def)
+			const { text, visibleWhen, layout } = this.widgetDisplayConfig(def)
 			if (this.isBannerDef(def) && text === '') {
 				return true
 			}
@@ -2792,6 +2804,9 @@ export default {
 				return false
 			}
 			const outcome = this.widgetConditionOutcome[item.widgetId]
+			if (outcome && outcome.failed === true && layout === 'attention' && this.isBannerDef(def)) {
+				return false
+			}
 			return !outcome || outcome.met !== true
 		},
 
@@ -2802,13 +2817,17 @@ export default {
 		 * Runs on created() and again whenever `widgets` changes (the
 		 * in-app editor mutates defs in place). Fail-safe like the banner
 		 * itself: any fetch/shape error counts as "not met", so a broken
-		 * predicate collapses the cell rather than breaking the page.
+		 * predicate collapses the cell rather than breaking the page. The
+		 * outcome of a failed read carries `failed: true` and the `reason`,
+		 * which `isCollapsedWidget` and CnBannerWidget use to show an
+		 * attention card's "Could not check" line instead of nothing.
 		 *
 		 * Flips `widgetConditionsSettled` when the initial round is done —
 		 * synchronously when there is nothing to evaluate, so a dashboard
 		 * without conditional widgets never waits.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
 		 */
 		async evaluateWidgetConditions() {
 			const conditional = (this.widgets || []).filter((def) => def && def.id && def.type
@@ -2830,12 +2849,17 @@ export default {
 			}
 			await Promise.all(conditional.map(async (def) => {
 				const cond = this.widgetDisplayConfig(def).visibleWhen
-				let outcome = { met: false, value: null }
+				let outcome
 				try {
 					const value = await readVisibleWhenValue(cond)
 					outcome = { met: compareVisibleWhen(value, cond.op || 'eq', cond.value), value }
-				} catch {
-					// fail-safe: hidden
+				} catch (error) {
+					// Fail-safe: not met. But the failure is kept, and said
+					// out loud: a failed count and "nothing to report" look
+					// the same on screen.
+					outcome = { met: false, value: null, failed: true, reason: typeof error?.message === 'string' ? error.message : String(error ?? '') }
+					// eslint-disable-next-line no-console
+					console.warn(`[CnDashboardPage] visibleWhen of widget "${def.id}" could not be evaluated:`, error?.message || error)
 				}
 				// A newer run owns the map now — a stale verdict (possibly for
 				// a def that no longer exists) must not overwrite its writes.

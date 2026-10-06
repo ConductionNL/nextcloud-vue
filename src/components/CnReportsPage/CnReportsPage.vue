@@ -436,6 +436,13 @@ export default {
 	padding: 16px;
 }
 
+/* Clear the Nextcloud navigation toggle button (44px wide, absolutely
+   positioned at the left edge of .app-content) plus 12px breathing room, as
+   CnPageHeader does. Only the header shifts; the body keeps the full width. */
+.cn-reports-page__header {
+	padding-inline-start: 56px;
+}
+
 .cn-reports-page__title {
 	margin: 0 0 4px;
 }

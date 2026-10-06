@@ -346,6 +346,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcButton, NcCounterBubble } from '@nextcloud/vue'
+import { toRaw } from 'vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 // ADR-077 rule 4: visible fallback for an unresolvable icon name.
@@ -576,6 +577,13 @@ export default {
 
 	emits: ['primary-action', 'primary-action-click'],
 
+	/**
+	 * The navigation's own state: which groups are open, and which entry
+	 * of a route the reader last used.
+	 *
+	 * @return {object} The state.
+	 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+	 */
 	data() {
 		return {
 			/**
@@ -589,6 +597,15 @@ export default {
 			 */
 			openState: {},
 
+			/**
+			 * Per route name, the key of the entry that was last active on
+			 * that route in this session. Read by `subRouteParent` to keep
+			 * "the list I came from" marked on a page below it. In memory
+			 * only: a reload starts empty and falls back to menu order.
+			 *
+			 * @type {Record<string, string>}
+			 */
+			lastActiveEntryByRoute: {},
 		}
 	},
 
@@ -946,6 +963,67 @@ export default {
 			}
 			return best ?? routeName ?? null
 		},
+
+		/**
+		 * Every visible entry and child, flat, in menu order.
+		 *
+		 * @return {Array<object>} The entries.
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
+		flatEntries() {
+			const flat = []
+			for (const item of this.visibleItems) {
+				flat.push(item, ...this.visibleChildren(item))
+			}
+			return flat
+		},
+
+		/**
+		 * The entry the query rule marks while the reader is on a menu
+		 * route itself (not on a page below it). Watched, so the nav can
+		 * remember which entry of a route the reader last used.
+		 *
+		 * @return {object|null} The entry, or null on a page below a route.
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
+		entryActiveOnOwnRoute() {
+			const routeName = this.$route?.name
+			if (!routeName || routeName !== this.activeRouteName) {
+				return null
+			}
+			return this.flatEntries.find((entry) => this.isActiveByRule(entry)) ?? null
+		},
+
+		/**
+		 * The one entry to mark on a page BELOW a menu route when the query
+		 * rule marks none.
+		 *
+		 * On a detail page (`/cases/123`) the active route is found by path
+		 * prefix, and the address carries the detail page's query, not the
+		 * list's. When every entry on that list has a `query` ("My work",
+		 * "Queue"), none of them matched and the menu showed no place at
+		 * all. Marking all of them is the defect the query rule ended, so
+		 * this picks exactly one: the entry the reader last had active on
+		 * that route, else the first in menu order.
+		 *
+		 * Null whenever the existing rule already marks an entry, so a list
+		 * with an entry without a `query` behaves as it did.
+		 *
+		 * @return {object|null} The entry to mark, or null.
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
+		subRouteParent() {
+			const active = this.activeRouteName
+			if (!active || this.$route?.name === active) {
+				return null
+			}
+			const entries = this.flatEntries.filter((entry) => !entry.href && entry.route === active)
+			if (entries.length === 0 || entries.some((entry) => this.isActiveByRule(entry))) {
+				return null
+			}
+			const remembered = this.lastActiveEntryByRoute[active]
+			return entries.find((entry) => this.entryKey(entry) === remembered) ?? entries[0]
+		},
 	},
 
 	watch: {
@@ -959,6 +1037,23 @@ export default {
 		// The manifest can arrive after the route did.
 		visibleItems() {
 			this.pinGroupsEntered(this.activeRouteName)
+		},
+
+		entryActiveOnOwnRoute: {
+			immediate: true,
+			/**
+			 * Remember which entry of a route the reader used, for
+			 * `subRouteParent`.
+			 *
+			 * @param {object|null} entry The entry active on its own route.
+			 * @return {void}
+			 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+			 */
+			handler(entry) {
+				if (entry && entry.route) {
+					this.lastActiveEntryByRoute[entry.route] = this.entryKey(entry)
+				}
+			},
 		},
 	},
 
@@ -1193,11 +1288,33 @@ export default {
 		 * query; an entry without one steps back when a sibling's query
 		 * matches, so exactly one of them is marked.
 		 *
+		 * On a page below a list where that rule marks nothing, the one
+		 * entry `subRouteParent` picks is active instead.
+		 *
 		 * @param {object} item Menu entry.
 		 * @return {boolean} True when the entry is the current page.
 		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-menu-entries-that-differ-in-query
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
 		 */
 		isActive(item) {
+			if (this.isActiveByRule(item)) {
+				return true
+			}
+			const parent = this.subRouteParent
+			return parent !== null && toRaw(parent) === toRaw(item)
+		},
+
+		/**
+		 * The route and query rule on its own, without the fallback for a
+		 * page below a list. `subRouteParent` asks this to see whether the
+		 * rule already marks an entry.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {boolean} True when the rule marks the entry.
+		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-menu-entries-that-differ-in-query
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
+		isActiveByRule(item) {
 			if (item.href || !item.route) {
 				return false
 			}
@@ -1215,6 +1332,17 @@ export default {
 				&& entry.route === item.route
 				&& entry.query && typeof entry.query === 'object'
 				&& this.queryMatches(entry))
+		},
+
+		/**
+		 * What an entry is remembered by: its `id`, else its label.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {string} The key.
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
+		entryKey(item) {
+			return String(item.id ?? item.label ?? '')
 		},
 
 		/**
