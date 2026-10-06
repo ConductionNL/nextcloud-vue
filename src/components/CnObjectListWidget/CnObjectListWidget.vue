@@ -268,6 +268,9 @@
 			ref="createDialog"
 			:schema="createSchema"
 			:item="null"
+			:register="content.register || ''"
+			:initialData="createInitialData"
+			:lockedFields="createLockedFields"
 			:size="formSize"
 			:columns="formColumns"
 			:includeFields="formIncludeFields"
@@ -1008,6 +1011,39 @@ export default {
 		formExcludeFields() {
 			const c = this.content || {}
 			return Array.isArray(c.formExcludeFields) ? c.formExcludeFields : []
+		},
+
+		/**
+		 * Create-form seed values: the list's scalar filter values (the parent
+		 * this list is scoped to, e.g. `{ lead: '<uuid>' }`), limited to keys
+		 * the schema declares, so the new row shows its parent already chosen.
+		 *
+		 * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
+		 * @return {object}
+		 */
+		createInitialData() {
+			const props = (this.createSchema && this.createSchema.properties) || {}
+			const out = {}
+			for (const [key, value] of Object.entries(this.resolvedFilter || {})) {
+				if (!(key in props) || value === null || value === undefined || value === '' || typeof value === 'object') {
+					continue
+				}
+				if (typeof value === 'string' && value.charAt(0) === '@') {
+					continue
+				}
+				out[key] = value
+			}
+			return out
+		},
+
+		/**
+		 * The seeded parent keys are locked: a row added to this list belongs
+		 * to the record the list is scoped to.
+		 *
+		 * @return {string[]}
+		 */
+		createLockedFields() {
+			return Object.keys(this.createInitialData)
 		},
 
 		/** Per-field overrides for the create dialog (`content.formFieldOverrides`). */
