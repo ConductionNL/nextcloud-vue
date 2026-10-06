@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<div class="cn-header-widget" :class="{ 'cn-header-widget--plain': isPlain }" :style="wrapperStyle">
+	<div class="cn-header-widget" :class="{ 'cn-header-widget--plain': isPlain, 'cn-header-widget--with-views': viewOptions.length > 0 }" :style="wrapperStyle">
 		<div
 			v-if="hasOverlay"
 			class="cn-header-widget__overlay"
@@ -34,6 +34,16 @@
 				{{ ctaLabel }}
 			</a>
 		</div>
+		<!-- A view switch at the right of the heading (`content.views`): "My
+		     work / My team" as a segmented control whose options are routes. -->
+		<div v-if="viewOptions.length > 0" class="cn-header-widget__views">
+			<CnSegmentedControl
+				:options="viewOptions"
+				:modelValue="activeView"
+				:ariaLabel="viewsLabel"
+				data-testid="cn-header-widget-views"
+				@update:modelValue="onViewChange" />
+		</div>
 		<img
 			v-if="hasBackgroundImage"
 			class="cn-header-widget__probe"
@@ -48,6 +58,7 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
+import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 
 const ALLOWED_OVERLAY_MODES = ['none', 'tint', 'gradient-bottom']
 const ALLOWED_HEIGHTS = ['small', 'medium', 'large', 'xlarge']
@@ -99,6 +110,8 @@ const VERTICAL_ALIGN_FLEX = Object.freeze({
 export default {
 	name: 'CnHeaderWidget',
 
+	components: { CnSegmentedControl },
+
 	inject: {
 		/**
 		 * Host translate function provided by CnAppRoot as
@@ -115,9 +128,12 @@ export default {
 		 * Persisted widget content: `{title, subtitle, backgroundImageUrl,
 		 * backgroundImageFileId, backgroundColor, overlayMode, overlayColor,
 		 * overlayOpacity, textColor, textAlign, verticalAlign, height, cta,
-		 * greeting, showDate, plain}`. All fields are optional except `title`
-		 * (or `greeting`); unknown enum values collapse to documented defaults
-		 * and the renderer never throws.
+		 * greeting, showDate, plain, views}`. All fields are optional except
+		 * `title` (or `greeting`); unknown enum values collapse to documented
+		 * defaults and the renderer never throws. `views` is
+		 * `{ ariaLabel?, options: [{ label, route, params? }] }`: a segmented
+		 * control at the right of the heading whose checked option is the
+		 * current route; choosing another pushes its route.
 		 *
 		 * @type {object}
 		 */
@@ -196,6 +212,55 @@ export default {
 		 */
 		reference() {
 			return this.now instanceof Date ? this.now : new Date()
+		},
+
+		/**
+		 * The view switch's options from `content.views.options`: each
+		 * `{ label, route, params? }` with a non-empty label and route becomes
+		 * a segmented-control option keyed on its route name (the label goes
+		 * through the host translate function). Empty without a router, so
+		 * the switch cannot offer routes it cannot follow.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-greeting-header-switches-views
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		viewOptions() {
+			const raw = this.content && this.content.views && this.content.views.options
+			if (!Array.isArray(raw) || !this.$router) {
+				return []
+			}
+			return raw
+				.filter((o) => o && typeof o.label === 'string' && o.label !== '' && typeof o.route === 'string' && o.route !== '')
+				.map((o) => ({ value: o.route, label: this.cnTranslate(o.label) }))
+		},
+
+		/**
+		 * The checked view: the option whose route is the current route, else
+		 * the first option (a switch always has one checked option).
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-greeting-header-switches-views
+		 * @return {string|null}
+		 */
+		activeView() {
+			const options = this.viewOptions
+			if (options.length === 0) {
+				return null
+			}
+			const current = this.$route && this.$route.name
+			const match = options.find((o) => o.value === current)
+			return match ? match.value : options[0].value
+		},
+
+		/**
+		 * Accessible name of the view switch: `content.views.ariaLabel`
+		 * through the host translate function, else "View".
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-greeting-header-switches-views
+		 * @return {string}
+		 */
+		viewsLabel() {
+			const label = this.content && this.content.views && this.content.views.ariaLabel
+			return label ? this.cnTranslate(label) : t('nextcloud-vue', 'View')
 		},
 
 		/**
@@ -490,7 +555,9 @@ export default {
 			return {
 				position: 'relative',
 				'z-index': 1,
-				width: '100%',
+				// Beside a view switch the content shares the row instead of
+				// taking the whole width (see .cn-header-widget--with-views).
+				width: this.viewOptions.length > 0 ? 'auto' : '100%',
 				height: '100%',
 				display: 'flex',
 				'flex-direction': 'column',
@@ -605,6 +672,26 @@ export default {
 
 	methods: {
 		/**
+		 * Follow the chosen view: push its route (with the option's `params`
+		 * when declared). Nothing happens for the route already shown.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-greeting-header-switches-views
+		 * @param {string} route The chosen option's route name.
+		 * @return {void}
+		 */
+		onViewChange(route) {
+			if (!this.$router || !route || route === (this.$route && this.$route.name)) {
+				return
+			}
+			const declared = (this.content.views.options || []).find((o) => o && o.route === route) || {}
+			const target = { name: route }
+			if (declared.params && typeof declared.params === 'object') {
+				target.params = declared.params
+			}
+			this.$router.push(target)
+		},
+
+		/**
 		 * Mark the background image as broken so the renderer falls back to
 		 * the solid colour.
 		 *
@@ -653,6 +740,27 @@ export default {
 .cn-header-widget--plain {
 	min-height: 0;
 	border-radius: 0;
+}
+
+/* With a view switch the heading and the switch share one row, the switch
+   at the right and bottom-aligned with the heading; on a narrow card the
+   switch wraps under it. */
+.cn-header-widget--with-views {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: calc(2 * var(--default-grid-baseline)) calc(4 * var(--default-grid-baseline));
+}
+.cn-header-widget--with-views .cn-header-widget__content {
+	flex: 1 1 320px;
+	width: auto;
+}
+.cn-header-widget__views {
+	position: relative;
+	z-index: 1;
+	flex: 0 0 auto;
+	padding: 16px;
 }
 
 .cn-header-widget__date {
