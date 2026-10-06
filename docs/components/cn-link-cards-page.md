@@ -78,6 +78,13 @@ A `route` is resolved through the router, so the link is right with and without 
 - The description is tied to its card with `aria-describedby`. The icon is decorative.
 - Focus shows as an outline in the primary colour. All colours are Nextcloud variables.
 
+## How a card looks
+
+- A card is a link, and it does not look like a line of prose. The label and the description are never underlined, also under a theme that underlines every link with `!important` (thematiq does). The component sets `text-decoration: none !important` on the card for that reason.
+- The label is the card's title: bold, in the main text colour, whatever link colour the theme sets. The description is in the muted text colour.
+- Hover changes the whole card: border in the primary colour, hover background and a soft shadow. Keyboard focus adds an outline.
+- The page heading keeps 56px free at its start, so the navigation toggle does not cover the first letters of the title. The cards use the full width.
+
 ## Related
 
 - [CnNavCardGrid](./cn-nav-card-grid.md) is the widget for a few link cards inside a dashboard.
