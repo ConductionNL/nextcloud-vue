@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.42.0",
+	"version": "2.44.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1173,6 +1173,11 @@
 					"type": "string",
 					"description": "i18n translation key resolved by the consuming app's t() function at render time."
 				},
+				"translateLabel": {
+					"type": "boolean",
+					"default": true,
+					"description": "Whether CnAppNav runs `label` through the translate function. Set false for a user-authored title (e.g. a catalog name) that must render as written even when it equals a translation key such as 'Search'. Rendered as text either way, never as HTML."
+				},
 				"icon": {
 					"type": "string",
 					"description": "CSS class for the icon (e.g. 'icon-checkmark') or MDI component name."
@@ -1185,6 +1190,11 @@
 					"type": "object",
 					"additionalProperties": { "type": ["string", "number", "boolean"] },
 					"description": "Optional vue-router query parameters merged into the target route link (e.g. a filter like { caseType: '<uuid>' }). Deep-links a nav entry to a pre-filtered index page."
+				},
+				"params": {
+					"type": "object",
+					"additionalProperties": { "type": ["string", "number"], "minLength": 1 },
+					"description": "Optional vue-router route params for a parameterised route (e.g. { catalogSlug: 'news' } for a page at '/catalogs/:catalogSlug'). String values must be non-empty. CnAppNav links to { name: route, params, query }. The entry is active only while every declared param equals the current route's param (compared as strings), so sibling entries on one route that differ in params are never marked together. On pages whose path sits below its page path with these params filled in, it is active too: by the same params check when those routes carry the same param names, otherwise as the one entry marked below its route."
 				},
 				"order": {
 					"type": "integer",
@@ -1259,12 +1269,22 @@
 			"properties": {
 				"id": { "type": "string" },
 				"label": { "type": "string" },
+				"translateLabel": {
+					"type": "boolean",
+					"default": true,
+					"description": "Same as menuItem.translateLabel: false renders `label` as written instead of translating it."
+				},
 				"icon": { "type": "string" },
 				"route": { "type": "string" },
 				"query": {
 					"type": "object",
 					"additionalProperties": { "type": ["string", "number", "boolean"] },
 					"description": "Optional vue-router query parameters merged into the target route link (e.g. a filter like { caseType: '<uuid>' }). Deep-links a nav entry to a pre-filtered index page."
+				},
+				"params": {
+					"type": "object",
+					"additionalProperties": { "type": ["string", "number"], "minLength": 1 },
+					"description": "Optional vue-router route params for a parameterised route; string values must be non-empty. Same contract as menuItem.params: part of the link, and the entry is active only while every declared param equals the current route's param."
 				},
 				"order": { "type": "integer" },
 				"permission": { "type": "string" },
