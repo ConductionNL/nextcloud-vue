@@ -1,3 +1,4 @@
+import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import {
 	cloneObjectForCopy,
 	runSelfExportRequest,
@@ -196,9 +197,8 @@ export function createSelfModeActions(ctx) {
 				// @self.register/@self.schema are numeric DB ids, not slugs, so
 				// override with this page's own slug props (self-fetch mode
 				// guarantees ctx.schema() is already a string).
-				if (isCreate && typeof window !== 'undefined') {
-					const detail = { ...saved, register: ctx.register(), schema: ctx.schema() }
-					window.dispatchEvent(new CustomEvent('cn-walkthrough:object-created', { detail }))
+				if (isCreate) {
+					dispatchObjectCreated({ register: ctx.register(), schema: ctx.schema(), object: saved })
 				}
 				refreshList(ctx)
 				if (isCreate && typeof ctx.afterCreateSuccess === 'function') {
