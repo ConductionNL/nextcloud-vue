@@ -12,7 +12,7 @@ Woo row 13.30. Wave 1. Every test named here fails on `development` today: no
 
 ## Verification
 
-The building agent follows `~/memcap-work/woo-build/LANE-RULES-BUILD.md` where it applies to a JavaScript library:
+The building agent follows `openspec/woo-build-rules.md` where it applies to a JavaScript library:
 
 - [ ] Own clone, `git checkout --no-track -b <branch> origin/development`, `TMPDIR` a sibling outside the clone.
 - [ ] Once before push: `npm run lint`, `npm run stylelint`, `npm test`, `npm run check:a11y`, `npm run check:public-safe`, `npm run check:docs`, `npm run check:docs-fresh`, `npm run check:vue3-compile`, `npm run build`. Read each exit code and the test summary.

@@ -1,3 +1,14 @@
+## Summary
+
+Show a label that cannot be dismissed on every app screen in development, test and acceptance, with a tab title prefix, read from the app's setting or the organisation's environment field, so acceptance is not mistaken for production.
+
+- Rows: 13.30 "Every screen says which environment it belongs to, so acceptance is not mistaken for production" (not statutory).
+- Wave: 1.
+- Depends on: nothing. Reads the `environment` field OpenRegister's `Organisation` already serves; consuming apps pick the change up on `^2` once a `2.x` minor is released.
+- Decision: no Ruben decision governs this row. The release is a minor; a major needs Ruben's permission.
+
+Build rules: openspec/woo-build-rules.md (its PHP checks do not apply to this JavaScript library; the npm checks in tasks.md do)
+
 ## Why
 
 Woo capability row 13.30, "Every screen says which environment it belongs to,
