@@ -55,6 +55,8 @@ const STAGES_CONTENT = {
 		finalField: 'isFinal',
 	},
 	transition: { kind: 'lifecycle' },
+	// `&variant=bars` draws the bars variant (zuiddrecht-pixel-gaps).
+	...(params.get('variant') === 'bars' ? { variant: 'bars' } : {}),
 }
 
 const STATUS_CONTENT = {
