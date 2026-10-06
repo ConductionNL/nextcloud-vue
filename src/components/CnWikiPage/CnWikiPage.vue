@@ -418,6 +418,13 @@ export default {
 	margin-bottom: 16px;
 }
 
+/* Without a sidebar the title starts at the left edge of the content, under
+   the Nextcloud navigation toggle button (44px wide). Clear it as CnPageHeader
+   does. With a sidebar the tree sits there instead and the title is clear. */
+.cn-wiki-page:not(.cn-wiki-page--has-sidebar) .cn-wiki-page__header {
+	padding-inline-start: 56px;
+}
+
 .cn-wiki-page__title {
 	font-size: 1.6em;
 	margin: 0;

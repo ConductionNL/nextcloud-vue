@@ -102,6 +102,8 @@ it renders the note card it always did.
 | `actions` | `Array<{ label, route?, href?, primary?, id? }>` | At most two. The first is the primary one unless an action sets `primary: true`. An action with neither `route` nor `href` renders a button and emits `action`. |
 | `visibleWhen` | `object` | Same predicate as the banner. The card stays hidden until it holds. |
 
+**When the check itself fails.** An attention card whose `visibleWhen` request fails (the endpoint or source answers an error, or the network is down) does not stay hidden. It renders one muted line, "Could not check:" followed by the card's title, with the reason as a tooltip, and on a dashboard it keeps its cell. A hidden card would read as "nothing needs attention", and a failed count does not know that. The line carries no severity colour, no alert role and no actions. When the title uses `{value}`, the line says only "Could not check". A request that succeeds with a value that does not meet the condition still renders nothing, and a plain banner (no `layout`) still stays hidden on failure.
+
 The component is `CnBannerWidget`, resolved by its key and configured by `CnBannerWidgetForm`.
 
 ### Divider · `divider`

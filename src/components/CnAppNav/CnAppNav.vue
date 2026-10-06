@@ -346,6 +346,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcButton, NcCounterBubble } from '@nextcloud/vue'
+import { toRaw } from 'vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 // ADR-077 rule 4: visible fallback for an unresolvable icon name.
@@ -391,6 +392,44 @@ function byManifestOrder(a, b) {
 		return 0
 	}
 	return a.order - b.order
+}
+
+/** A `:name` page-path segment: name, optional `(regexp)`, optional modifier. */
+const PARAM_SEGMENT = /^:(\w+)(\([^)]*\))?([?*+])?$/
+
+/**
+ * Whether a `PARAM_SEGMENT` match may be left out (`?` or `*`).
+ *
+ * @param {Array<string>} param The match.
+ * @return {boolean} True for an optional segment.
+ */
+function isOptionalParam(param) {
+	return param[3] === '?' || param[3] === '*'
+}
+
+/**
+ * Whether a route param value fills its segment.
+ *
+ * @param {unknown} value The value.
+ * @return {boolean} False for undefined, null and the empty string.
+ */
+function isFilled(value) {
+	return value !== undefined && value !== null && value !== ''
+}
+
+/**
+ * Decode one percent-encoded path segment, or keep it as is when it is not
+ * valid percent-encoding.
+ *
+ * @param {string} segment The segment.
+ * @return {string} The decoded segment.
+ */
+function decodeSegment(segment) {
+	try {
+		return decodeURIComponent(segment)
+	} catch {
+		return segment
+	}
 }
 
 export default {
@@ -576,6 +615,13 @@ export default {
 
 	emits: ['primary-action', 'primary-action-click'],
 
+	/**
+	 * The navigation's own state: which groups are open, and which entry
+	 * of a route the reader last used.
+	 *
+	 * @return {object} The state.
+	 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+	 */
 	data() {
 		return {
 			/**
@@ -589,6 +635,15 @@ export default {
 			 */
 			openState: {},
 
+			/**
+			 * Per route name, the key of the entry that was last active on
+			 * that route in this session. Read by `subRouteParent` to keep
+			 * "the list I came from" marked on a page below it. In memory
+			 * only: a reload starts empty and falls back to menu order.
+			 *
+			 * @type {Record<string, string>}
+			 */
+			lastActiveEntryByRoute: {},
 		}
 	},
 
@@ -907,7 +962,9 @@ export default {
 		 * `/expenses/:id`) light up — and auto-expand — their index entry
 		 * even though the detail route name is not in the menu. Longest
 		 * prefix disambiguates nested namespaces (e.g. `/pos` vs
-		 * `/pos/refunds`). Returns null when nothing matches.
+		 * `/pos/refunds`). An entry with `params` matches by its page path
+		 * with those params filled in (see `pageMatchDepth`). Returns null
+		 * when nothing matches.
 		 *
 		 * @return {string|null}
 		 */
@@ -928,23 +985,83 @@ export default {
 				return routeName ?? null
 			}
 			let best = null
-			let bestLen = -1
+			let bestDepth = 0
 			for (const it of flat) {
 				if (!it.route) {
 					continue
 				}
-				const pagePath = this.pageForItem(it)?.route
-				if (!pagePath || pagePath === '/' || pagePath.includes(':')) {
-					continue
-				}
-				if (path === pagePath || path.startsWith(pagePath + '/')) {
-					if (pagePath.length > bestLen) {
-						best = it.route
-						bestLen = pagePath.length
-					}
+				const depth = this.pageMatchDepth(it, path)
+				if (depth > bestDepth) {
+					best = it.route
+					bestDepth = depth
 				}
 			}
 			return best ?? routeName ?? null
+		},
+
+		/**
+		 * Every visible entry and child, flat, in menu order.
+		 *
+		 * @return {Array<object>} The entries.
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
+		flatEntries() {
+			const flat = []
+			for (const item of this.visibleItems) {
+				flat.push(item, ...this.visibleChildren(item))
+			}
+			return flat
+		},
+
+		/**
+		 * The entry the query rule marks while the reader is on a menu
+		 * route itself (not on a page below it). Watched, so the nav can
+		 * remember which entry of a route the reader last used.
+		 *
+		 * @return {object|null} The entry, or null on a page below a route.
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
+		entryActiveOnOwnRoute() {
+			const routeName = this.$route?.name
+			if (!routeName || routeName !== this.activeRouteName) {
+				return null
+			}
+			return this.flatEntries.find((entry) => this.isActiveByRule(entry)) ?? null
+		},
+
+		/**
+		 * The one entry to mark on a page BELOW a menu route when the query
+		 * rule marks none.
+		 *
+		 * On a detail page (`/cases/123`) the active route is found by path
+		 * prefix, and the address carries the detail page's query, not the
+		 * list's. When every entry on that list has a `query` ("My work",
+		 * "Queue"), none of them matched and the menu showed no place at
+		 * all. Marking all of them is the defect the query rule ended, so
+		 * this picks exactly one: the entry the reader last had active on
+		 * that route, else the first in menu order.
+		 *
+		 * Null whenever the existing rule already marks an entry, so a list
+		 * with an entry without a `query` behaves as it did. An entry with
+		 * `params` is a candidate only when the current path sits below its
+		 * own filled-in page path, so another param value is never marked.
+		 *
+		 * @return {object|null} The entry to mark, or null.
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
+		subRouteParent() {
+			const active = this.activeRouteName
+			if (!active || this.$route?.name === active) {
+				return null
+			}
+			const path = this.$route?.path
+			const entries = this.flatEntries.filter((entry) => !entry.href && entry.route === active
+				&& (!this.hasParams(entry) || this.pageMatchDepth(entry, path) > 0))
+			if (entries.length === 0 || entries.some((entry) => this.isActiveByRule(entry))) {
+				return null
+			}
+			const remembered = this.lastActiveEntryByRoute[active]
+			return entries.find((entry) => this.entryKey(entry) === remembered) ?? entries[0]
 		},
 	},
 
@@ -960,6 +1077,23 @@ export default {
 		visibleItems() {
 			this.pinGroupsEntered(this.activeRouteName)
 		},
+
+		entryActiveOnOwnRoute: {
+			immediate: true,
+			/**
+			 * Remember which entry of a route the reader used, for
+			 * `subRouteParent`.
+			 *
+			 * @param {object|null} entry The entry active on its own route.
+			 * @return {void}
+			 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+			 */
+			handler(entry) {
+				if (entry && entry.route) {
+					this.lastActiveEntryByRoute[entry.route] = this.entryKey(entry)
+				}
+			},
+		},
 	},
 
 	created() {
@@ -972,6 +1106,8 @@ export default {
 		// stays out of `data()`: a reactive Set mutated inside render would
 		// re-trigger the render effect.
 		this._autoCountWarned = new Set()
+		// Same latch, for warnUnfilledRouteParam() (`itemTo()` runs during render).
+		this._unfilledParamWarned = new Set()
 	},
 
 	methods: {
@@ -1180,7 +1316,19 @@ export default {
 				.sort(byManifestOrder)
 		},
 
+		/**
+		 * The label an entry shows: run through the translate function, or
+		 * as written when the entry sets `translateLabel: false` (a
+		 * user-authored title that may equal a translation key). Every
+		 * place the nav shows an entry's label reads it from here.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {string} The label to render as text.
+		 */
 		resolveLabel(item) {
+			if (item.translateLabel === false) {
+				return item.label
+			}
 			return this.effectiveTranslate(item.label)
 		},
 
@@ -1191,30 +1339,204 @@ export default {
 		 * work" and "Queue" on one list). The route name alone lit both. An
 		 * entry with a `query` is active only when the address carries that
 		 * query; an entry without one steps back when a sibling's query
-		 * matches, so exactly one of them is marked.
+		 * matches, so exactly one of them is marked. `params` work the
+		 * same way against the route's params, so of several entries on a
+		 * `/items/:slug` route only the one whose `slug` is in the address
+		 * is marked.
+		 *
+		 * On a page below a list where that rule marks nothing, the one
+		 * entry `subRouteParent` picks is active instead.
 		 *
 		 * @param {object} item Menu entry.
 		 * @return {boolean} True when the entry is the current page.
 		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-menu-entries-that-differ-in-query
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
 		 */
 		isActive(item) {
+			if (this.isActiveByRule(item)) {
+				return true
+			}
+			const parent = this.subRouteParent
+			return parent !== null && toRaw(parent) === toRaw(item)
+		},
+
+		/**
+		 * The route, query and params rule on its own, without the fallback
+		 * for a page below a list. `subRouteParent` asks this to see whether
+		 * the rule already marks an entry.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {boolean} True when the rule marks the entry.
+		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-menu-entries-that-differ-in-query
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
+		isActiveByRule(item) {
 			if (item.href || !item.route) {
 				return false
 			}
 			if (item.route !== this.activeRouteName) {
 				return false
 			}
-			if (item.query && typeof item.query === 'object') {
-				return this.queryMatches(item)
+			if (this.isNarrowed(item)) {
+				return this.narrowingMatches(item)
 			}
-			const siblings = []
-			for (const entry of this.visibleItems) {
-				siblings.push(entry, ...this.visibleChildren(entry))
-			}
-			return !siblings.some((entry) => entry !== item
+			return !this.flatEntries.some((entry) => entry !== item
 				&& entry.route === item.route
-				&& entry.query && typeof entry.query === 'object'
-				&& this.queryMatches(entry))
+				&& this.isNarrowed(entry)
+				&& this.narrowingMatches(entry))
+		},
+
+		/**
+		 * Whether an entry narrows its route with a `query` or `params`.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {boolean} True when the entry declares either.
+		 */
+		isNarrowed(item) {
+			return Boolean(item.query && typeof item.query === 'object') || this.hasParams(item)
+		},
+
+		/**
+		 * Whether the address carries every `query` key and every `params`
+		 * key the entry declares.
+		 *
+		 * @param {object} item Menu entry that narrows its route.
+		 * @return {boolean} True when everything it declares matches.
+		 */
+		narrowingMatches(item) {
+			const queryOk = !(item.query && typeof item.query === 'object') || this.queryMatches(item)
+			const paramsOk = !this.hasParams(item) || this.paramsMatch(item)
+			return queryOk && paramsOk
+		},
+
+		/**
+		 * Whether an entry declares a non-empty `params` object.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {boolean} True when it has route params.
+		 */
+		hasParams(item) {
+			return Boolean(item?.params) && typeof item.params === 'object' && Object.keys(item.params).length > 0
+		},
+
+		/**
+		 * Whether the route's params carry every key of an entry's
+		 * `params`. Values are compared as strings.
+		 *
+		 * @param {object} item Menu entry with `params`.
+		 * @return {boolean} True when every declared key matches.
+		 */
+		paramsMatch(item) {
+			const current = this.$route?.params ?? {}
+			return Object.keys(item.params).every((key) => String(current[key] ?? '') === String(item.params[key]))
+		},
+
+		/**
+		 * The segments of an entry's page path with its `params` filled in,
+		 * as plain values. A missing optional `:name?` segment is dropped;
+		 * null when a required one has no param, or without a page.
+		 *
+		 * @param {object} item Menu entry with `params`.
+		 * @return {Array<string>|null} The segments, or null.
+		 */
+		filledPageSegments(item) {
+			const pagePath = this.pageForItem(item)?.route
+			if (!pagePath) {
+				return null
+			}
+			const segments = []
+			for (const part of pagePath.split('/').filter(Boolean)) {
+				const param = PARAM_SEGMENT.exec(part)
+				if (!param) {
+					segments.push(part)
+					continue
+				}
+				const value = item.params?.[param[1]]
+				if (isFilled(value)) {
+					segments.push(String(value))
+				} else if (!isOptionalParam(param)) {
+					return null
+				}
+			}
+			return segments
+		},
+
+		/**
+		 * The required route param the router cannot fill when it resolves
+		 * an entry's link on its manifest page. vue-router fills a named
+		 * link's required params from the current route, then overlays every
+		 * key the entry declares, empty or null included. So a declared key
+		 * decides on its own value, and only an undeclared one falls back
+		 * to the current route. Null without a known page, or when every
+		 * required segment is filled. Reads `$route`, so it follows
+		 * navigation.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {string|null} The param name, or null.
+		 */
+		unfilledRouteParam(item) {
+			const pagePath = this.pageForItem(item)?.route
+			if (!pagePath) {
+				return null
+			}
+			const declared = item.params && typeof item.params === 'object' ? item.params : {}
+			const current = this.$route?.params ?? {}
+			for (const part of pagePath.split('/')) {
+				const param = PARAM_SEGMENT.exec(part)
+				if (!param || isOptionalParam(param)) {
+					continue
+				}
+				const value = param[1] in declared ? declared[param[1]] : current[param[1]]
+				if (!isFilled(value)) {
+					return param[1]
+				}
+			}
+			return null
+		},
+
+		/**
+		 * How deep a path sits on an entry's page path: the page path's
+		 * segment count when the path is that page or below it, else 0.
+		 * A `/` page path, or one with an unfilled `:name`, never matches.
+		 *
+		 * Without `params` the page path is compared as written. With
+		 * `params`, segments are compared decoded, because the router
+		 * percent-encodes param values in the path and the entry holds them
+		 * plain.
+		 *
+		 * @param {object} item Menu entry.
+		 * @param {string|undefined} path The path to test.
+		 * @return {number} The depth of the match, or 0.
+		 */
+		pageMatchDepth(item, path) {
+			if (!path) {
+				return 0
+			}
+			if (!this.hasParams(item)) {
+				const pagePath = this.pageForItem(item)?.route
+				if (!pagePath || pagePath === '/' || pagePath.includes(':')) {
+					return 0
+				}
+				const below = path === pagePath || path.startsWith(pagePath + '/')
+				return below ? pagePath.split('/').filter(Boolean).length : 0
+			}
+			const segments = this.filledPageSegments(item)
+			if (!segments || segments.length === 0) {
+				return 0
+			}
+			const current = path.split('/').filter(Boolean).map(decodeSegment)
+			return segments.every((segment, index) => current[index] === segment) ? segments.length : 0
+		},
+
+		/**
+		 * What an entry is remembered by: its `id`, else its label.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {string} The key.
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
+		entryKey(item) {
+			return String(item.id ?? item.label ?? '')
 		},
 
 		/**
@@ -1327,6 +1649,27 @@ export default {
 		},
 
 		/**
+		 * One-shot `console.warn` per menu entry whose link cannot fill a
+		 * required route param. Keyed by `id`, else route and label, so
+		 * entries without an id each get their own warning.
+		 *
+		 * @param {{ id?: string, route: string, label?: string }} item Menu entry descriptor.
+		 * @param {string} param The unfilled param name.
+		 * @return {void}
+		 * @private
+		 */
+		warnUnfilledRouteParam(item, param) {
+			const key = item.id ?? `${item.route}|${item.label ?? ''}`
+			if (this._unfilledParamWarned.has(key)) {
+				return
+			}
+			this._unfilledParamWarned.add(key)
+			const name = item.id ?? item.label ?? item.route
+			// eslint-disable-next-line no-console
+			console.warn(`[CnAppNav] Menu entry "${name}" cannot fill the required route param "${param}" of page "${item.route}" from its params or the current route — the entry renders without a link.`)
+		},
+
+		/**
 		 * Look up an item's resolved page (`pages[]` entry whose `id`
 		 * matches the menu item's `route`) — used to decide whether the
 		 * NcAppNavigationItem should match its router-link `exact`.
@@ -1348,11 +1691,17 @@ export default {
 		 * items (`action: "user-settings"`) and `href` items return
 		 * `null` so the entry is NOT a vue-router link: action items
 		 * fall through to the click handler, `href` items render a real
-		 * anchor via `itemHref`. Route items return a named route.
+		 * anchor via `itemHref`. Route items return a named route that
+		 * carries the item's `params` and `query` when it declares them.
+		 *
+		 * An item whose manifest page has a required segment that neither
+		 * its `params` nor the current route fill also returns null, with a
+		 * one-time warning: the router throws resolving such a link, which
+		 * would take the whole navigation down rather than that one entry.
 		 *
 		 * @param {object} item Menu item being rendered.
-		 * @return {object|null} A `{ name }` route object, or null for
-		 *   action / href / route-less items.
+		 * @return {object|null} A `{ name, params?, query? }` route object,
+		 *   or null for action / href / route-less / unfillable items.
 		 */
 		itemTo(item) {
 			if (item.action) {
@@ -1364,9 +1713,22 @@ export default {
 			if (!item.route) {
 				return null
 			}
-			// Carry optional query params so a nav entry can deep-link to a
-			// pre-filtered index page (e.g. one entry per case type → Cases?caseType=…).
-			return item.query ? { name: item.route, query: item.query } : { name: item.route }
+			const unfilled = this.unfilledRouteParam(item)
+			if (unfilled) {
+				this.warnUnfilledRouteParam(item, unfilled)
+				return null
+			}
+			const to = { name: item.route }
+			// Params fill a parameterised route (one entry per catalog →
+			// /catalogs/:slug); query deep-links to a pre-filtered index page
+			// (one entry per case type → Cases?caseType=…).
+			if (this.hasParams(item)) {
+				to.params = item.params
+			}
+			if (item.query) {
+				to.query = item.query
+			}
+			return to
 		},
 
 		/**
@@ -1517,6 +1879,11 @@ export default {
 				}
 				this.cnReplayWalkthrough(item.tourId)
 				return
+			}
+			// An entry left without a link (see itemTo) renders a `#` anchor;
+			// following it would change the address, so the click goes nowhere.
+			if (!item.href && this.unfilledRouteParam(item) && event && typeof event.preventDefault === 'function') {
+				event.preventDefault()
 			}
 			if (this.visibleChildren(item).length === 0) {
 				return
