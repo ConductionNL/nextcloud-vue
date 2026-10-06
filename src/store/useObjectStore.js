@@ -511,7 +511,10 @@ const baseActions = {
 	 * @return {Promise<Response>} The response to use.
 	 */
 	async _fetchWithSchemaFallback(type, makeUrl, init) {
-		const response = await fetch(makeUrl(null), init)
+		// `makeUrl` wraps `_buildUrl` / `_buildUrlWithParams`, so `url` is built
+		// from the prefixed `_options.baseUrl` like every other request here.
+		let url = makeUrl(null)
+		const response = await fetch(url, init)
 		if (!response || response.status !== 404) {
 			return response
 		}
@@ -522,7 +525,8 @@ const baseActions = {
 		}
 		let retry
 		try {
-			retry = await fetch(makeUrl(fallback), init)
+			url = makeUrl(fallback)
+			retry = await fetch(url, init)
 		} catch {
 			return response
 		}
