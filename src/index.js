@@ -35,6 +35,7 @@ export {
 	CnActionsBar,
 	CnActionsMenu,
 	CnAddWidgetModal,
+	CnAdminActionCard,
 	CnAdminSettingsShell,
 	CnAdvancedFormDialog,
 	CnAppLoading,
