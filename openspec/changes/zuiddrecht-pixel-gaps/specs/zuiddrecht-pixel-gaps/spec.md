@@ -237,3 +237,20 @@ slug and SHALL be returned as written, so a camelCase slug such as
 - **GIVEN** a `$ref` of `ReportPeriod`
 - **WHEN** it is slugified
 - **THEN** the result is `report-period`
+
+### Requirement: A stages widget draws bars
+
+CnStagesWidget SHALL accept `content.variant: "bars"`: an ordered list of
+equal columns, each step a thin bar coloured by state (done: primary,
+current: accent, to do: border, all from tokens), the label under it
+(current bold, done semi-bold, to do muted) ellipsized with a title
+attribute, an optional date line from the source's `dateField`, no
+description, and a visually hidden "(current step)" on the current one.
+Clicking a step moves the record as the dot strip does. Without the key the
+dot strip SHALL render as before.
+
+#### Scenario: Bars
+
+- **GIVEN** `variant: "bars"` and three stages with the second current
+- **WHEN** the widget renders
+- **THEN** three list items carry the states done, current and todo, no description is drawn, and the current label carries the hidden text

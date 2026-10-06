@@ -35,7 +35,45 @@
 			{{ tr('No stages to show') }}
 		</p>
 		<template v-else>
+			<!-- The bars variant (`variant: "bars"`): equal columns, a thin bar
+			     per step coloured by state, the label under it and an optional
+			     date line. No description: eight Woo steps with their
+			     descriptions crowded into five lines and clipped the first
+			     label. The current step says so for a screen reader. -->
+			<ol
+				v-if="isBars"
+				class="cn-stages-widget__bars"
+				:aria-label="ariaLabel"
+				data-testid="cn-stages-widget-bars">
+				<li
+					v-for="stage in barStages"
+					:key="stage.id"
+					class="cn-stages-widget__bar-step"
+					:class="`cn-stages-widget__bar-step--${stage.state}`"
+					:aria-current="stage.state === 'current' ? 'step' : null"
+					:data-testid="`cn-stages-widget-bar-${stage.id}`">
+					<span class="cn-stages-widget__bar" aria-hidden="true" />
+					<component
+						:is="stage.clickable ? 'button' : 'span'"
+						:type="stage.clickable ? 'button' : null"
+						class="cn-stages-widget__bar-label"
+						:title="stage.hint || stage.label"
+						:aria-disabled="stage.disabled && stage.clickable ? 'true' : null"
+						:data-testid="`cn-stages-widget-stage-${stage.id}`"
+						@click="onBarClick(stage)">
+						{{ stage.label }}<span v-if="stage.state === 'current'" class="cn-stages-widget__sr-only"> ({{ tr('current step') }})</span>
+					</component>
+					<span v-if="stage.date" class="cn-stages-widget__bar-date">{{ stage.date }}</span>
+					<span
+						v-if="stage.reason"
+						:class="stage.reasonVisible ? 'cn-stages-widget__reason' : 'cn-stages-widget__sr-only'"
+						:data-testid="`cn-stages-widget-reason-${stage.id}`">
+						{{ stage.reason }}
+					</span>
+				</li>
+			</ol>
 			<CnTimelineStages
+				v-else
 				:stages="timelineStages"
 				:currentStage="currentStageId"
 				:orientation="orientation"
@@ -310,13 +348,15 @@ export default {
 		 * `currentField`, `stagesEndpoint` or `stagesSource`, `transition`
 		 * (`{ kind: 'lifecycle' }` by default, or `{ kind: 'field' }`, or
 		 * absent for a read-only strip), `unreachableReason`, `orientation`,
-		 * `size`, `ariaLabel` and `label`.
+		 * `size`, `ariaLabel`, `label` and `variant` (`"bars"` draws a thin
+		 * coloured bar per step with the label under it and no description;
+		 * the source's `dateField` adds a date line).
 		 *
 		 * `ariaLabel` names the strip for a screen reader. It falls back to
 		 * `label`, the placement's own title, so a titled card does not have to
 		 * repeat itself, and then to "Stages".
 		 *
-		 * @type {{currentField?: string, stagesEndpoint?: object, stagesSource?: object, transition?: object, unreachableReason?: string, orientation?: ('horizontal'|'vertical'), size?: ('medium'|'small'), ariaLabel?: string, label?: string}}
+		 * @type {{currentField?: string, stagesEndpoint?: object, stagesSource?: object, transition?: object, unreachableReason?: string, orientation?: ('horizontal'|'vertical'), size?: ('medium'|'small'), ariaLabel?: string, label?: string, variant?: ('dots'|'bars')}}
 		 */
 		content: {
 			type: Object,
@@ -723,6 +763,45 @@ export default {
 			return label ? this.effectiveTranslate(label) : this.tr('Stages')
 		},
 
+		/**
+		 * Whether the bars variant is on (`content.variant: "bars"`). Off by
+		 * default: the dot strip renders as it always has.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stages-widget-draws-bars
+		 * @return {boolean}
+		 */
+		isBars() {
+			return this.content.variant === 'bars'
+		},
+
+		/**
+		 * The stages for the bars variant: each with its `state` (`done`
+		 * before the current stage, `current`, `todo` after it, every stage
+		 * `todo` when none is current), its `date`, and whether it is a
+		 * button (the strip is interactive and the stage is not the current
+		 * one).
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stages-widget-draws-bars
+		 * @return {Array<object>}
+		 */
+		barStages() {
+			const current = this.stages.findIndex((s) => s.id === this.currentStageId)
+			return this.timelineStages.map((stage, index) => {
+				let state = 'todo'
+				if (current >= 0 && index < current) {
+					state = 'done'
+				} else if (index === current) {
+					state = 'current'
+				}
+				return {
+					...stage,
+					date: this.stages[index]?.date || '',
+					state,
+					clickable: this.interactive && state !== 'current',
+				}
+			})
+		},
+
 		/** @return {'horizontal'|'vertical'} The layout direction. */
 		orientation() {
 			return this.content.orientation === 'vertical' ? 'vertical' : 'horizontal'
@@ -969,6 +1048,26 @@ export default {
 		 * @param {{stage: {id: string}}} payload The CnTimelineStages event.
 		 * @return {void}
 		 */
+		/**
+		 * A click on a bar-variant step: a disabled step reports why (as
+		 * CnTimelineStages does through `stage-blocked`), any other goes
+		 * through the shared move path.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stages-widget-draws-bars
+		 * @param {object} stage The bar step.
+		 * @return {void}
+		 */
+		onBarClick(stage) {
+			if (!stage.clickable) {
+				return
+			}
+			if (stage.disabled) {
+				this.onStageBlocked({ stage })
+				return
+			}
+			this.onStageClick({ stage })
+		},
+
 		onStageClick({ stage }) {
 			if (!this.canMove || !stage) {
 				return
@@ -1337,6 +1436,85 @@ export default {
 	margin-top: 2px;
 	font-size: 0.8em;
 	line-height: 1.3;
+	color: var(--color-text-maxcontrast);
+}
+
+/* The bars variant: equal columns, a thin bar per step. Theme hooks:
+   --cn-stages-bar-height, --cn-stages-bar-radius, --cn-stages-bar-done,
+   --cn-stages-bar-current, --cn-stages-bar-todo. */
+.cn-stages-widget__bars {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+	grid-auto-flow: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-stages-widget__bar-step {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+}
+
+.cn-stages-widget__bar {
+	display: block;
+	height: var(--cn-stages-bar-height, 6px);
+	border-radius: var(--cn-stages-bar-radius, 3px);
+	background: var(--cn-stages-bar-todo, var(--color-border));
+}
+
+.cn-stages-widget__bar-step--done .cn-stages-widget__bar {
+	background: var(--cn-stages-bar-done, var(--color-primary-element));
+}
+
+.cn-stages-widget__bar-step--current .cn-stages-widget__bar {
+	background: var(--cn-stages-bar-current, var(--color-error));
+}
+
+.cn-stages-widget__bar-label {
+	display: block;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-text-maxcontrast);
+	font: inherit;
+	font-size: 14px;
+	text-align: left;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+button.cn-stages-widget__bar-label {
+	cursor: pointer;
+}
+
+button.cn-stages-widget__bar-label[aria-disabled="true"] {
+	cursor: not-allowed;
+}
+
+button.cn-stages-widget__bar-label:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+	border-radius: var(--border-radius-small, 4px);
+}
+
+.cn-stages-widget__bar-step--done .cn-stages-widget__bar-label {
+	color: var(--color-main-text);
+	font-weight: 600;
+}
+
+.cn-stages-widget__bar-step--current .cn-stages-widget__bar-label {
+	color: var(--color-main-text);
+	font-weight: 700;
+}
+
+.cn-stages-widget__bar-date {
+	font-size: 12px;
 	color: var(--color-text-maxcontrast);
 }
 

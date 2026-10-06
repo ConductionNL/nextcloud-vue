@@ -91,3 +91,9 @@
 - **files**: `src/utils/schemaRefSlug.js`, `tests/utils/schemaRefSlug.spec.js`
 - [x] Implement
 - [x] Test
+
+### Task 16: Stages widget bars variant
+- **spec_ref**: `openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stages-widget-draws-bars`
+- **files**: `src/components/CnStagesWidget/CnStagesWidget.vue`, `src/components/CnStagesWidget/stagesModel.js`
+- [x] Implement
+- [x] Test
