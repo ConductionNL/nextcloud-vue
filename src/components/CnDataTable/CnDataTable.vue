@@ -230,6 +230,14 @@
 									:row="row"
 									:rowKey="rowKey" />
 							</slot>
+							<!-- A second, muted line under the value, from `col.secondary`:
+							     a field key, a "{field} · {other}" template, or a function
+							     of the row. Lets one column read "title" over "number ·
+							     requester" without a custom cell. -->
+							<span
+								v-if="secondaryValue(row, col)"
+								class="cn-table-cell__secondary"
+								data-testid="cn-cell-secondary">{{ secondaryValue(row, col) }}</span>
 						</td>
 
 						<!-- Row actions -->
@@ -389,7 +397,13 @@ export default {
 		 * reader is looking. `columnsFromSchema` fills it from the JSON Schema property
 		 * description automatically, so schema-driven tables get it for free.
 		 *
-		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string}|string>}
+		 * `secondary` draws a second, muted line under the cell's value: a field
+		 * key (`"number"`), a template with `{field}` placeholders
+		 * (`"{number} · {requester}"`, dotted paths allowed), or a function of
+		 * the row. Empty fields leave their placeholder blank; a line that
+		 * resolves to nothing is not drawn.
+		 *
+		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, secondary: (string|Function)}|string>}
 		 */
 		columns: {
 			type: Array,
@@ -1288,6 +1302,36 @@ export default {
 		 * @param {object} col The column definition.
 		 * @return {unknown} The value handed to the slot / CnCellRenderer.
 		 */
+		/**
+		 * The secondary line of a cell, from `col.secondary`: a function is
+		 * called with the row; a string with `{field}` placeholders is a
+		 * template filled from the row (dotted paths allowed); any other
+		 * string is a field key. Returns '' when there is nothing to draw.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-table-column-carries-a-secondary-line
+		 * @param {object} row The row.
+		 * @param {object} col The column definition.
+		 * @return {string} The secondary text, or ''.
+		 */
+		secondaryValue(row, col) {
+			const spec = col?.secondary
+			if (typeof spec === 'function') {
+				const out = spec(row)
+				return out === null || out === undefined ? '' : String(out)
+			}
+			if (typeof spec !== 'string' || spec === '') {
+				return ''
+			}
+			const asText = (v) => (v === null || v === undefined ? '' : String(v))
+			if (spec.includes('{')) {
+				const filled = spec.replace(/\{([^}]+)\}/g, (_, key) => asText(this.getCellValue(row, key.trim())))
+				// A template whose every field is empty leaves only separators:
+				// nothing worth a line.
+				return /[\p{L}\p{N}]/u.test(filled) ? filled.trim() : ''
+			}
+			return asText(this.getCellValue(row, spec))
+		},
+
 		cellValue(row, col) {
 			if (col && col.aggregate) {
 				const cached = this.aggregateValues[String(row[this.rowKey])]
