@@ -774,6 +774,13 @@ export default {
 	max-width: 1200px;
 }
 
+/* Clear the Nextcloud navigation toggle button (44px wide, absolutely
+   positioned at the left edge of .app-content) plus 12px breathing room, as
+   CnPageHeader does. Only the header shifts; the body keeps the full width. */
+.cn-store-page__header {
+	padding-inline-start: 56px;
+}
+
 .cn-store-page__heading {
 	display: flex;
 	flex-wrap: wrap;

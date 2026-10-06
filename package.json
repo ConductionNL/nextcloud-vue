@@ -94,7 +94,8 @@
     "test": "jest",
     "test:e2e": "playwright test",
     "test:types": "tsd",
-    "update:manifest-fixtures": "node scripts/update-fleet-manifest-fixtures.js"
+    "update:manifest-fixtures": "node scripts/update-fleet-manifest-fixtures.js",
+    "update:manifest-schema-hash": "node scripts/record-manifest-schema-hash.js"
   },
   "overrides": {
     "@vue/vue3-jest": {
