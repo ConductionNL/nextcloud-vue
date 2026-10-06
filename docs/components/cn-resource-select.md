@@ -47,7 +47,8 @@ Three opt-in props cover what a plain object picker cannot do:
 |------|------|---------|-------------|
 | `register` | String | — (required) | OpenRegister register slug to search/create in. |
 | `schema` | String | — (required) | OpenRegister schema slug to search/create in. |
-| `modelValue` | String \| Number | `''` | Currently-selected object id (v-model). |
+| `modelValue` | String \| Number \| Array | `''` | Currently-selected object id (v-model), or an array of ids when `multiple`. |
+| `multiple` | Boolean | `false` | Pick several objects. `modelValue` is then an array of ids, and a create adds the new object to the selection. |
 | `labelField` | String | `'name'` | Object field used as the option label AND written on create. |
 | `inputLabel` | String | `''` | Accessible input label for the underlying `NcSelect`. |
 | `inputId` | String | `''` | DOM id for the input (a11y association). |
@@ -65,5 +66,5 @@ Three opt-in props cover what a plain object picker cannot do:
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `update:modelValue` | `string` | The selected (or newly-created) object id. |
+| `update:modelValue` | `string` \| `string[]` | The selected (or newly-created) object id, or the array of ids when `multiple`. |
 | `create` | `object` | Emitted with the freshly-created OpenRegister object when the user chose "Create '&lt;term&gt;'". |

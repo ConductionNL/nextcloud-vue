@@ -23,10 +23,64 @@ shell while a `required` step is unmet.
 |--------|---------|--------------|
 | `info` | a note card (`title` + `body`) | — |
 | `config-fields` | fields from a JSON Schema (`fieldsFromSchema`) | `POST /api/setup/config` |
-| `choice` | an `NcSelect` bound to `configKey` (`options[]`, `multiple?`) | `POST /api/setup/config` |
+| `choice` | an `NcSelect` bound to `configKey` (`options[]`, `multiple?`), or cards with `display: "cards"` | `POST /api/setup/config` |
 | `run-action` | auto-starts `POST /api/setup/action/{action}` on entry (spinner), result + a "Run again" button | the action itself |
 | `summary` | a recap of step completion | — |
 | `component` | the parent's `#step-<id>` slot (escape hatch) | up to the slot |
+
+## Dataset cards that load themselves
+
+A cards `choice` step can declare `loadAction`. Every card then gets its own
+Load button, except the card whose value is `none`:
+
+```json
+{
+  "id": "demo-data",
+  "type": "choice",
+  "display": "cards",
+  "optionsSource": "datasets",
+  "configKey": "demo_dataset",
+  "loadAction": "load-demo-data",
+  "title": "Load example data?"
+}
+```
+
+- Load posts `{ "dataset": "<value>" }` to `/api/setup/action/{loadAction}`.
+- The button spins and is disabled while the request runs.
+- The server's `message` then shows on that card, as success or error.
+- A successful load also selects the card, so the summary names it.
+- Picking "None" and clicking Next stores the choice as before. Nothing loads.
+
+With `loadAction` you no longer need a separate `run-action` step after the
+cards. A manifest that keeps the old two-step layout still works unchanged.
+
+## Missing apps
+
+Before it shows a step, the wizard checks the app's dependencies: the
+`dependencies` prop, or the manifest's `dependencies` that `CnAppRoot`
+provides.
+
+- **A required app is missing or disabled.** The wizard shows the list of
+  apps instead of the steps, with install and enable buttons for an admin.
+  Next stays disabled and no step runs. Installing an app reloads the page.
+- **An optional app is missing.** The steps show as usual. The first step
+  lists the app as optional and not installed.
+
+A step can also name the apps it needs:
+
+```json
+{ "id": "link-invoices", "type": "run-action", "action": "link-invoices", "requires": ["shillinq"] }
+```
+
+When any of those apps is absent, the wizard skips the step. The summary
+shows it as skipped and names the missing apps. Do not mark such a step
+`required`: setup status would keep reporting it as unmet.
+
+## Maintenance belongs on the admin page
+
+Register repair and schema re-import are not setup. Put them on the admin
+page with [`CnAdminActionCard`](./cn-admin-action-card.md), never in the
+wizard.
 
 ## On-demand steps
 
@@ -80,6 +134,9 @@ ticked and never auto-runs.
 | `runningLabel` | `string` | `"Loading…"` | Label shown beside the spinner while a run-action step's action is in flight. |
 | `successText` | `string` | `"Setup complete."` | Result-phase success text. |
 | `cancellable` | `boolean` | `true` | Whether the wizard can be dismissed before finishing. Pass `false` when a REQUIRED step is unmet and the host is gating its shell behind this wizard — an offered-but-non-functional Cancel would be misleading. |
+| `dependencies` | `Array` | `[]` | The app's dependencies in the manifest's shape (app-id strings or `{ id, name?, required? }`). Falls back to the injected manifest's `dependencies`. See [Missing apps](#missing-apps). |
+| `loadLabel` | `string` | `"Load"` | Load button label on a dataset card. |
+| `reloadLabel` | `string` | `"Load again"` | Load button label once that dataset loaded in this session. |
 | `completedStepIds` | `Array<string>` | `[]` | Ids of steps the server already reports done (e.g. from `useSetupStatus(...).steps`). Lets a freshly (re)mounted wizard resume at the first actually-unmet step and show correct done-markers, instead of restarting from the top — this component's own local state only tracks the current session. |
 
 ## Resuming vs. starting fresh
@@ -97,7 +154,7 @@ A server-done `choice` step also stops blocking `Next` when the user back-naviga
 | Event | Payload | When |
 |-------|---------|------|
 | `complete` | — | The last step was submitted (setup finished). Note the wizard switches into its result phase here — the host should keep it mounted until `close`. |
-| `action-result` | `{ stepId, action, success, message }` | A `run-action` step finished. |
+| `action-result` | `{ stepId, action, success, message, dataset? }` | A `run-action` step finished, or a dataset card's Load finished (then `dataset` is the card's value). |
 | `step-change` | `{ stepId, stepIndex, direction }` | The active step changed. |
 | `close` | — | The dialog should close. |
 

@@ -164,7 +164,7 @@ The validator reads this field to choose the right validation path: v2 schema en
 
 ### The schema's own version
 
-The schema file carries a top-level `"version"` (2.43.0 at the time of writing). This is the version of the vocabulary, not of the npm package and not of your manifest. Tools that keep a copy of the schema, such as the fleet's manifest gates, compare this number to see whether their copy is behind.
+The schema file carries a top-level `"version"` (2.44.0 at the time of writing). This is the version of the vocabulary, not of the npm package and not of your manifest. Tools that keep a copy of the schema, such as the fleet's manifest gates, compare this number to see whether their copy is behind.
 
 So the number has to move whenever the content does. A test holds that: `tests/schemas/app-manifest-v2.schema.hashes.json` records one content hash per version, and `tests/schemas/app-manifest-v2.schema-version.spec.js` fails when the schema no longer hashes to the value recorded for its version. When you change the schema:
 

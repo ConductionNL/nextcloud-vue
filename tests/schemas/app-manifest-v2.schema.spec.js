@@ -1266,6 +1266,31 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.errors).toEqual([])
 	})
 
+	it('accepts `loadAction` on a cards choice and `requires` on any step', () => {
+		const result = validateManifestV2({
+			...MINIMAL_V2,
+			setup: {
+				steps: [
+					{ id: 'demo-data', type: 'choice', display: 'cards', optionsSource: 'datasets', configKey: 'demo_dataset', loadAction: 'load-demo-data' },
+					{ id: 'invoices', type: 'run-action', action: 'link-invoices', requires: ['shillinq'] },
+				],
+			},
+		})
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('rejects an empty `loadAction` and a non-array `requires`', () => {
+		expect(validateManifestV2({
+			...MINIMAL_V2,
+			setup: { steps: [{ id: 'demo-data', type: 'choice', loadAction: '' }] },
+		}).valid).toBe(false)
+		expect(validateManifestV2({
+			...MINIMAL_V2,
+			setup: { steps: [{ id: 'invoices', type: 'run-action', requires: 'shillinq' }] },
+		}).valid).toBe(false)
+	})
+
 	it('rejects a non-boolean `onDemand`', () => {
 		const result = validateManifestV2({
 			...MINIMAL_V2,
@@ -1274,7 +1299,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.43.0', () => {
+	it('the manifest schema version reads 2.45.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1287,9 +1312,10 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// and the dashboard widget rules of 2.61.0 went out without; the
 		// vendored copy in ConductionNL/.github could not see the schema had
 		// moved. app-manifest-v2.schema-version.spec.js now fails when the
-		// content changes and this number does not.
+		// content changes and this number does not. 2.44.0 adds menu-entry
+		// `params`. 2.45.0 adds the setup step's `loadAction` and `requires`.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.43.0')
+		expect(schema.version).toBe('2.45.0')
 	})
 
 	it('accepts a declarative `store` block, and requires the remote schema', () => {
@@ -1748,6 +1774,50 @@ describe('app-manifest-v2 — ncDashboard, publishing a placement to the Nextclo
 				id: 'annual-statement',
 				ncDashboard: { link },
 			})).valid).toBe(false)
+		}
+	})
+})
+
+describe('app-manifest-v2 — menu entry translateLabel', () => {
+	it('accepts a boolean on an entry and on a child, and refuses anything else', () => {
+		expect(validateManifestV2({
+			...MINIMAL_V2,
+			menu: [{
+				id: 'group',
+				label: 'Search',
+				translateLabel: false,
+				children: [{ id: 'child', label: 'Dashboard', route: 'Child', translateLabel: true }],
+			}],
+		}).valid).toBe(true)
+		expect(validateManifestV2({
+			...MINIMAL_V2,
+			menu: [{ id: 'top', label: 'Search', route: 'Top', translateLabel: 'no' }],
+		}).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2 — menu entry route params', () => {
+	it('accepts string and number params on an entry and on a child', () => {
+		const result = validateManifestV2({
+			...MINIMAL_V2,
+			menu: [
+				{ id: 'news', label: 'News', route: 'Items', params: { slug: 'news' } },
+				{
+					id: 'group',
+					label: 'Group',
+					children: [{ id: 'second', label: 'Second', route: 'Items', params: { slug: 2 }, query: { tab: 'open' } }],
+				},
+			],
+		})
+		expect(result.valid).toBe(true)
+	})
+
+	it('refuses a param value that is not a non-empty string or a number', () => {
+		for (const value of ['', true, null, { nested: 'x' }, ['a']]) {
+			expect(validateManifestV2({
+				...MINIMAL_V2,
+				menu: [{ id: 'news', label: 'News', route: 'Items', params: { slug: value } }],
+			}).valid).toBe(false)
 		}
 	})
 })

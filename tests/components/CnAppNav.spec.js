@@ -1610,6 +1610,39 @@ describe('CnAppNav', () => {
 			wrapper.unmount()
 		})
 	})
+
+	// A menu entry may carry route `params` for a parameterised route, e.g.
+	// one entry per catalog → /catalogs/:slug. itemTo() folds them in.
+	describe('menu-item route params', () => {
+		it('includes params in the router target when item.params is set', () => {
+			const wrapper = mountNav({})
+			expect(wrapper.vm.itemTo({ id: 'x', route: 'Items', params: { slug: 'news' } }))
+				.toEqual({ name: 'Items', params: { slug: 'news' } })
+			wrapper.unmount()
+		})
+
+		it('carries params and query together', () => {
+			const wrapper = mountNav({})
+			expect(wrapper.vm.itemTo({ id: 'x', route: 'Items', params: { slug: 'news' }, query: { tab: 'open' } }))
+				.toEqual({ name: 'Items', params: { slug: 'news' }, query: { tab: 'open' } })
+			wrapper.unmount()
+		})
+
+		it('omits params when absent or empty', () => {
+			const wrapper = mountNav({})
+			expect(wrapper.vm.itemTo({ id: 'x', route: 'Items' })).toEqual({ name: 'Items' })
+			expect(wrapper.vm.itemTo({ id: 'x', route: 'Items', params: {} })).toEqual({ name: 'Items' })
+			expect(wrapper.vm.itemTo({ id: 'x', route: 'Items', query: { a: 1 } })).toEqual({ name: 'Items', query: { a: 1 } })
+			wrapper.unmount()
+		})
+
+		it('returns null for action/href items regardless of params', () => {
+			const wrapper = mountNav({})
+			expect(wrapper.vm.itemTo({ id: 'x', href: '/foo', params: { slug: 'a' } })).toBeNull()
+			expect(wrapper.vm.itemTo({ id: 'x', action: 'user-settings', params: { slug: 'a' } })).toBeNull()
+			wrapper.unmount()
+		})
+	})
 })
 
 // ---------- Icon rendering (registry names) ----------

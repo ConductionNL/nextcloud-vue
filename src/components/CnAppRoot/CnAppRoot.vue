@@ -509,7 +509,7 @@
 					:resume="walkthroughResume"
 					:translate="translate"
 					@complete="onWalkthroughComplete"
-					@dismiss="onWalkthroughComplete" />
+					@progress="onWalkthroughProgress" />
 			</slot>
 			<!--
 			  User-settings modal. Always mounted so descendants can
@@ -554,12 +554,27 @@
 						<p class="cn-app-root__walkthrough-hint">
 							{{ restartWalkthroughHint }}
 						</p>
-						<NcButton variant="secondary" @click="restartWalkthroughFromSettings">
-							<template #icon>
-								<Restart :size="20" />
-							</template>
-							{{ restartWalkthroughLabel }}
-						</NcButton>
+						<div class="cn-app-root__walkthrough-actions">
+							<NcButton
+								v-if="walkthroughProgressValue"
+								variant="primary"
+								data-testid="cn-walkthrough-continue"
+								@click="continueWalkthroughFromSettings">
+								<template #icon>
+									<Play :size="20" />
+								</template>
+								{{ continueWalkthroughLabel }}
+							</NcButton>
+							<NcButton
+								variant="secondary"
+								data-testid="cn-walkthrough-restart"
+								@click="restartWalkthroughFromSettings">
+								<template #icon>
+									<Restart :size="20" />
+								</template>
+								{{ walkthroughProgressValue ? startOverWalkthroughLabel : restartWalkthroughLabel }}
+							</NcButton>
+						</div>
 					</NcAppSettingsSection>
 				</slot>
 				<!--
@@ -638,11 +653,13 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { loadState } from '@nextcloud/initial-state'
+import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { computed, reactive, shallowRef, watch } from 'vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import Play from 'vue-material-design-icons/Play.vue'
 import Restart from 'vue-material-design-icons/Restart.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
@@ -667,9 +684,12 @@ import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
 import { useUserPreferences } from '../../composables/useUserPreferences.js'
 import {
+	loadWalkthroughProgress,
 	loadWalkthroughSeenVersion,
 	normaliseSeenVersion,
+	persistWalkthroughProgress,
 	persistWalkthroughSeenVersion,
+	readLocalWalkthroughProgress,
 	readLocalWalkthroughSeenVersion,
 	useWalkthrough,
 } from '../../composables/useWalkthrough.js'
@@ -749,6 +769,7 @@ export default {
 		NcNoteCard,
 		DatabaseSearchOutline,
 		OpenInNew,
+		Play,
 		Restart,
 		CnAppNav,
 		CnAppLoading,
@@ -1777,6 +1798,15 @@ export default {
 			 */
 			walkthroughSeenVersionValue: readLocalWalkthroughSeenVersion(this.appId),
 			/**
+			 * Where the user is in an unfinished tour (`{ tourId, stepId,
+			 * index, version }`), or null. Seeded from the local mirror, then
+			 * replaced by the per-user `<completionConfigKey>-progress`
+			 * preference. The tour resumes at this step on the next visit.
+			 *
+			 * @type {object|null}
+			 */
+			walkthroughProgressValue: readLocalWalkthroughProgress(this.appId),
+			/**
 			 * Whether `walkthroughSeenVersionValue` is settled. Starts `true`
 			 * when the manifest declares no `completionConfigKey` (the local
 			 * read above is already the final answer) and `false` when it does,
@@ -2529,13 +2559,15 @@ export default {
 			try {
 				const p = new URLSearchParams(window.location.search)
 				const tourId = p.get('cn_resume_tour')
-				if (!tourId) {
-					return null
+				if (tourId) {
+					return { tourId, stepId: p.get('cn_resume_step') || '' }
 				}
-				return { tourId, stepId: p.get('cn_resume_step') || '' }
 			} catch {
-				return null
+				// No URL token; fall through to the remembered progress.
 			}
+			// An unfinished tour continues at the step the user reached.
+			const progress = this.walkthroughProgressValue
+			return progress ? { tourId: progress.tourId, stepId: progress.stepId } : null
 		},
 
 		phase() {
@@ -2776,6 +2808,24 @@ export default {
 		 */
 		restartWalkthroughLabel() {
 			return this.translate('Restart walkthrough')
+		},
+
+		/**
+		 * Label for continuing an unfinished tour at the remembered step.
+		 *
+		 * @return {string}
+		 */
+		continueWalkthroughLabel() {
+			return t('nextcloud-vue', 'Continue where you left off')
+		},
+
+		/**
+		 * Label for restarting an unfinished tour from the first step.
+		 *
+		 * @return {string}
+		 */
+		startOverWalkthroughLabel() {
+			return t('nextcloud-vue', 'Start over')
 		},
 
 		/**
@@ -3281,10 +3331,12 @@ export default {
 				return
 			}
 			try {
-				this.walkthroughSeenVersionValue = await loadWalkthroughSeenVersion(
-					this.appId,
-					this.walkthroughConfigKey,
-				)
+				const [seen, progress] = await Promise.all([
+					loadWalkthroughSeenVersion(this.appId, this.walkthroughConfigKey),
+					loadWalkthroughProgress(this.appId, this.walkthroughConfigKey),
+				])
+				this.walkthroughSeenVersionValue = seen
+				this.walkthroughProgressValue = progress
 			} finally {
 				this.walkthroughSeenResolved = true
 			}
@@ -3308,10 +3360,66 @@ export default {
 			// Fire-and-forget: the loader never rejects and the local mirror is
 			// already written, so a failed PUT must not surface as an error.
 			persistWalkthroughSeenVersion(this.appId, this.walkthroughConfigKey, v)
+			// A finished or skipped tour has nothing to continue.
+			if (this.walkthroughProgressValue) {
+				this.walkthroughProgressValue = null
+				persistWalkthroughProgress(this.appId, this.walkthroughConfigKey, null)
+			}
 			/**
 			 * @event walkthrough-complete Emitted when the walkthrough finishes or is dismissed.
 			 */
 			this.$emit('walkthrough-complete')
+		},
+
+		/**
+		 * Remember where the user is in the tour, so a reload or a restart
+		 * entry continues there (local mirror + per-user preference).
+		 *
+		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @param {object} progress `{ tourId, stepId, index }` from CnWalkthrough.
+		 * @return {void}
+		 */
+		onWalkthroughProgress(progress) {
+			if (!progress || !progress.tourId) {
+				return
+			}
+			// The first step of a fresh tour is where a restart lands anyway,
+			// so it costs no request.
+			if (progress.index === 0 && !this.walkthroughProgressValue) {
+				return
+			}
+			const value = {
+				tourId: progress.tourId,
+				stepId: progress.stepId || '',
+				index: progress.index || 0,
+				version: String((this.manifest && this.manifest.version) || ''),
+			}
+			this.walkthroughProgressValue = value
+			persistWalkthroughProgress(this.appId, this.walkthroughConfigKey, value)
+		},
+
+		/**
+		 * Continue an unfinished tour from the user-settings dialog: show a
+		 * paused tour again, or start the remembered tour at its step.
+		 *
+		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @return {void}
+		 */
+		continueWalkthroughFromSettings() {
+			this.userSettingsOpen = false
+			if (!this.walkthroughEnabled) {
+				return
+			}
+			setTimeout(() => {
+				const wt = useWalkthrough(this.appId, this.manifest)
+				if (wt.resumePaused()) {
+					return
+				}
+				const progress = this.walkthroughProgressValue
+				if (progress) {
+					wt.resumeAt(progress.tourId, progress.stepId)
+				}
+			}, 50)
 		},
 
 		/**
@@ -3644,6 +3752,12 @@ export default {
 .cn-app-root__walkthrough-hint {
 	margin-bottom: 12px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-app-root__walkthrough-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 .cn-app-root__integrations-hint {

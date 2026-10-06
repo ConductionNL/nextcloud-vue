@@ -64,6 +64,8 @@ Dossiq builds its shell client-side with `buildManifest(base, fragments, menuLay
 
 Because `children` is a keyed array, the merged `CasesGroup.children` becomes `["AllCases", "ct-bezwaar", "ct-beroep", "ct-subsidie"]` — the bundled "All cases" leaf is preserved and the case types are appended. Each child links to the shared `Cases` index route pre-filtered by `caseType`. Add a case type in the backoffice and it appears in the nav on next load; no rebuild.
 
+When the per-tenant entries point at a parameterised route instead (one entry per catalog on a page at `/catalogs/:slug`), give each entry `params` in place of `query`: `{ "id": "catalog-news", "label": "News", "route": "Catalog", "params": { "slug": "news" } }`. CnAppNav links each entry to its own param value and marks only the entry whose value the current route carries, see [Active entry and `params`](./components/cn-app-nav.md#active-entry-and-params).
+
 ## The backend contract
 
 - **Route**: `GET /index.php/apps/{appId}/api/manifest` (override with `options.endpoint`).
