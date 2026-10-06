@@ -29,7 +29,7 @@ pipelinq adopted the form pickers from `form-pickers-from-schema` and hit four g
    the slug a manifest names is used exactly as given.
 3. The nested create from a picker uses the referenced schema's registered create
    dialog or create override when the app has one, and falls back to the generic form.
-4. Text header filters: see tasks (depends on OpenRegister).
+4. Text header filters stay on equals until OpenRegister ships a contains operator.
 
 ## Impact
 
