@@ -3,7 +3,7 @@
 		:primary="primary"
 		:menuName="menuName"
 		data-testid="cn-row-actions">
-		<template v-for="{ action, link } in renderedActions" :key="action.label">
+		<template v-for="{ action, link } in renderedActions" :key="actionKey(action)">
 			<!-- A navigate-only action is a real link, so it can be middle-clicked, opened in a new tab or copied. -->
 			<NcActionLink
 				v-if="link"
@@ -11,7 +11,7 @@
 				:target="link.target"
 				:title="getTitle(action)"
 				:class="{ 'cn-row-action--destructive': action.destructive }"
-				:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
+				:data-testid="actionTestId(action)"
 				closeAfterClick
 				@click="onLinkAction(action, link, $event)">
 				<template v-if="action.icon" #icon>
@@ -25,7 +25,7 @@
 				:title="getTitle(action)"
 				:disabled="isDisabled(action)"
 				:class="{ 'cn-row-action--destructive': action.destructive }"
-				:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
+				:data-testid="actionTestId(action)"
 				closeAfterClick
 				@click="onAction(action)">
 				<template v-if="action.icon" #icon>
@@ -42,7 +42,7 @@
 import { NcActionButton, NcActionLink, NcActions } from '@nextcloud/vue'
 import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
 import { isModifiedClick } from '../../utils/linkNavigation.js'
-import { evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
+import { isRowActionVisible, rowActionKey, rowActionPayload, rowActionTestId, slugifyActionLabel } from '../../utils/rowActionItem.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -103,11 +103,13 @@ export default {
 		 * - `to` (string | object | (row) => string | object) — render the entry as a link to this
 		 *   vue-router location; a plain click routes in place. Ignored when the router cannot resolve it.
 		 * - `linkTarget` (string) — the link's `target`, e.g. `_blank`
+		 * - `id` (string) — the action's id, passed in the `action` payload
+		 * - `builtin` (boolean) — set by CnIndexPage on its built-in View / Edit / Copy / Delete; a built-in's testid is `cn-action-item-<id>` in every locale and its key `builtin:<id>`
 		 *
 		 * A link entry still emits `action`, but its `handler` is not called: the link is the
 		 * navigation. A disabled entry, or a `to` without a resolvable route, stays a button.
 		 *
-		 * @type {Array<{label: string, icon: object | string, handler: (targetItem: object) => void, disabled: boolean | ((targetItem: object) => boolean), visible: boolean | ((targetItem: object) => boolean), title: string | ((targetItem: object) => string), destructive: boolean, href: string | ((targetItem: object) => string), to: string | object | ((targetItem: object) => string | object), linkTarget: string}>}
+		 * @type {Array<{label: string, id: string, builtin: boolean, icon: object | string, handler: (targetItem: object) => void, disabled: boolean | ((targetItem: object) => boolean), visible: boolean | ((targetItem: object) => boolean), title: string | ((targetItem: object) => string), destructive: boolean, href: string | ((targetItem: object) => string), to: string | object | ((targetItem: object) => string | object), linkTarget: string}>}
 		 */
 		actions: {
 			type: Array,
@@ -137,31 +139,13 @@ export default {
 
 	computed: {
 		/**
-		 * Filter actions by their `visible` predicate. An action without a
-		 * `visible` field is always shown (backwards compatible).
+		 * Filter actions by their `visibleWhen` and `visible` gates, with the same rule CnContextMenu uses.
+		 * An action without either always shows.
 		 *
 		 * @return {Array} Visible actions for the current row.
 		 */
 		visibleActions() {
-			return this.actions.filter((action) => {
-				// A manifest is JSON and cannot hold a function, so `visibleWhen` is
-				// the only per-row gate an app configured from one can express. Only
-				// a locally decidable condition is gated on: an endpoint/source one is
-				// not this evaluator's question, and nothing gated a row action at all
-				// before, so answering `false` to it would delete the entry outright.
-				if (action.visibleWhen
-					&& isLocallyDecidableVisibleWhen(action.visibleWhen)
-					&& evaluateVisibleWhenLocal(action.visibleWhen, this.row) === false) {
-					return false
-				}
-				if (action.visible === undefined) {
-					return true
-				}
-				if (typeof action.visible === 'function') {
-					return !!action.visible(this.row)
-				}
-				return !!action.visible
-			})
+			return this.actions.filter((action) => isRowActionVisible(action, this.row))
 		},
 
 		/**
@@ -210,7 +194,7 @@ export default {
 			if (action.handler && typeof action.handler === 'function') {
 				action.handler(this.row)
 			}
-			this.$emit('action', { action: action.label, row: this.row })
+			this.$emit('action', rowActionPayload(action, this.row))
 		},
 
 		/**
@@ -229,26 +213,41 @@ export default {
 			}
 			followItemActionLink(event, link, this.$router)
 			/**
-			 * @event action User picked an entry. Payload: the action's label and the row. A button entry has already run its `handler`; a link entry navigates instead, and a modified (new-tab) click on a link emits nothing.
-			 * @type {{ action: string, row: object|null }}
+			 * @event action User picked an entry. Payload: `action` (the label), the row, the action's `id` when it has one, and `builtin: true` for a CnIndexPage built-in. A button entry has already run its `handler`; a link entry navigates instead, and a modified (new-tab) click on a link emits nothing.
+			 * @type {{ action: string, row: object|null, id?: string, builtin?: boolean }}
 			 */
-			this.$emit('action', { action: action.label, row: this.row })
+			this.$emit('action', rowActionPayload(action, this.row))
 		},
 
 		/**
 		 * Slugify an action label for use in stable `data-testid` selectors.
-		 * Lowercase, kebab-case, strip non-alphanumeric. Used solely by the
-		 * `:data-testid` binding on NcActionButton — does not affect runtime
-		 * behaviour or rendered text.
+		 * Lowercase, kebab-case, strip non-alphanumeric.
 		 *
 		 * @param {string} label - The action's display label
 		 * @return {string} kebab-case slug suitable for a testid suffix.
 		 */
 		slugifyLabel(label) {
-			return String(label || '')
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-+|-+$/g, '')
+			return slugifyActionLabel(label)
+		},
+
+		/**
+		 * The entry's `data-testid`: `cn-action-item-<id>` for a built-in, the label slug otherwise.
+		 *
+		 * @param {object} action The action definition.
+		 * @return {string} The testid.
+		 */
+		actionTestId(action) {
+			return rowActionTestId(action)
+		},
+
+		/**
+		 * The entry's render key: `builtin:<id>` for a built-in, the label otherwise.
+		 *
+		 * @param {object} action The action definition.
+		 * @return {string} The key.
+		 */
+		actionKey(action) {
+			return rowActionKey(action)
 		},
 	},
 }

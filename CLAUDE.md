@@ -115,7 +115,7 @@ Note: `NcModal`'s `name` prop does **not** render a visible title in our version
 - `buildQueryString(params)` — Build URL query string from params object
 - `parseResponseError(response)` — Extract error message from API response
 - `networkError()` / `genericError()` — Standard error message helpers
-- `validateManifest(manifest)` — Validate an app manifest against the JSON Schema. Returns `{ valid, errors }`. Use at build time or in test fixtures; the same validator runs at runtime inside `useAppManifest`.
+- `validateManifest(manifest)` — Validate an app manifest against the JSON Schema. Returns `{ valid, errors }`, plus a non-fatal `warnings` array for v2 manifests that never affects `valid`. Use at build time or in test fixtures; the same validator runs at runtime inside `useAppManifest`.
 
 ### Available Store
 - `useObjectStore` — Generic Pinia store for OpenRegister objects (CRUD, pagination, search, caching)

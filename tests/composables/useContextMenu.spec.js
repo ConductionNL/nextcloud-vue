@@ -115,6 +115,14 @@ describe('useContextMenu', () => {
 		expect(payload).toEqual({ action: 'Inspect', row: { id: 9 } })
 	})
 
+	it('triggerAction() returns the same payload CnRowActions emits, id and builtin marker included', () => {
+		const ctx = useContextMenu()
+		ctx.open({ item: { id: 9 }, event: { clientX: 0, clientY: 0 } })
+
+		expect(ctx.triggerAction({ id: 'edit', builtin: true, label: 'Bewerken' })).toEqual({ action: 'Bewerken', row: { id: 9 }, id: 'edit', builtin: true })
+		expect(ctx.triggerAction({ id: 'archive', label: 'Archive' })).toEqual({ action: 'Archive', row: { id: 9 }, id: 'archive' })
+	})
+
 	it('unmounting the host component clears the DOM position', () => {
 		let ctx
 		const Host = defineComponent({

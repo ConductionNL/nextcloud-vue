@@ -9,6 +9,8 @@
  * catalog entry to resolve against.
  */
 
+import { mount } from '@vue/test-utils'
+import CnRowActions from '../../src/components/CnRowActions/CnRowActions.vue'
 import en from '../../l10n/en.json'
 import nl from '../../l10n/nl.json'
 import { buildDefaultActions } from '../../src/components/CnIndexPage/defaultActions.js'
@@ -66,6 +68,34 @@ describe('buildDefaultActions', () => {
 		})
 
 		expect(actions.map((a) => a.label)).toEqual(['[nextcloud-vue] Edit'])
+	})
+
+	it('gives every built-in a stable id and the builtin marker', () => {
+		const actions = buildDefaultActions({
+			flags: ALL_FLAGS,
+			viewIcon: { name: 'EyeStub' },
+			handlers: HANDLERS,
+		})
+
+		expect(actions.map((a) => a.id)).toEqual(['view', 'edit', 'copy', 'delete'])
+		expect(actions.every((a) => a.builtin === true)).toBe(true)
+	})
+
+	it('derives the testid from the id, not the translated label', () => {
+		// The mocked t() turns "Edit" into "[nextcloud-vue] Edit", like a translation would: the testid must not follow it.
+		const actions = buildDefaultActions({
+			flags: ALL_FLAGS,
+			viewIcon: { name: 'EyeStub' },
+			handlers: HANDLERS,
+		})
+		const wrapper = mount(CnRowActions, { propsData: { actions, row: { id: 1 } } })
+
+		expect(wrapper.findAll('[data-testid^="cn-action-item-"]').map((w) => w.attributes('data-testid'))).toEqual([
+			'cn-action-item-view',
+			'cn-action-item-edit',
+			'cn-action-item-copy',
+			'cn-action-item-delete',
+		])
 	})
 
 	it('gives View a link target only when viewTo is given', () => {

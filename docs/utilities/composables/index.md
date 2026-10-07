@@ -183,7 +183,7 @@ const { isOpen, targetItem, open, close, isActionDisabled, triggerAction } = use
 | `open({ item, event })` | Function | Open menu at cursor; sets CSS vars + data attribute |
 | `close()` | Function | Close menu and clean up DOM |
 | `isActionDisabled(action)` | Function | Resolve `action.disabled` (boolean or function) |
-| `triggerAction(action)` | Function | Call `action.handler(targetItem)`, return `{ action, row }` |
+| `triggerAction(action)` | Function | Call `action.handler(targetItem)`, return `{ action, row, id?, builtin? }` |
 
 ## useSubResource
 

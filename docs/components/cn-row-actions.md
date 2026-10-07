@@ -75,7 +75,9 @@ function onAction({ action, row }) {
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `label` | String | ✓ | Display text for the action item. Also used as the `action` key in the emitted `action` event. |
+| `label` | String | ✓ | Display text for the action item. Also used as the `action` key in the emitted `action` event, and slugified into the entry's `data-testid` (`cn-action-item-<slug>`) and render key. |
+| `id` | String | — | The action's id, passed as `id` in the `action` event payload. |
+| `builtin` | Boolean | — | Set by CnIndexPage on its built-in View / Edit / Copy / Delete (ids `view`, `edit`, `copy`, `delete`). A built-in's `data-testid` is `cn-action-item-<id>` in every locale, its render key `builtin:<id>`, and its `action` payload carries `builtin: true`, so an app action with the same id stays a separate entry. Not for app actions. |
 | `icon` | Object\|String | — | The icon to render. A **component** (e.g. a vue-material-design-icons component) is rendered directly. A **string** is treated as a `CnIcon` registry name (PascalCase, e.g. `"Eye"`) and resolved via `registerIcons()`, falling back to the help-circle when unregistered — this lets manifest (JSON) actions declare icons by name. |
 | `handler` | Function | — | Called with the `row` value when the action is clicked: `(row) => void` |
 | `disabled` | Boolean\|Function | — | When `true`, or when a function returning `true` for the given row, the item is not clickable |
@@ -119,7 +121,9 @@ A link entry still emits `action`, so a host listening to it keeps working, but 
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `action` | `{ action, row }` | Emitted when an action item is clicked; `action` is the full action definition object, `row` is the value of the `row` prop |
+| `action` | `{ action, row, id?, builtin? }` | Emitted when an action item is clicked. `action` is the label, `row` the value of the `row` prop, `id` the action's id when it has one, and `builtin: true` marks a CnIndexPage built-in. |
+
+The visibility rule (`visible` and a local `visibleWhen`), the testid, the render key and the payload are shared with [CnContextMenu](./cn-context-menu.md), so a CnIndexPage row's actions menu and its right-click menu always list the same entries.
 
 ## Reference (auto-generated)
 
