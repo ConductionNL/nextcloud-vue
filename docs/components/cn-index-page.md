@@ -994,3 +994,14 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `countSubtitle` | `String` | `''` | A description with `{total}` replaced by the collection's total: `"{total} open cases"` reads "48 open cases". Shown in place of `description` once a total is known; before that `description` shows. Goes through the host translate function. Manifest: `config.countSubtitle`, beside `config.showTitle: true`. |
+
+## The board header: `showTitleIcon`, `showCount`, `headerButtons`
+
+- `showTitleIcon` (default `true`): `false` drops the icon before the title.
+- `showCount` (default `true`): `false` drops the actions bar's "Showing 20 of 258" line, for a page whose `countSubtitle` already gives the total.
+- `headerButtons` (default `[]`): buttons beside the title, each `{ label?, action, variant?, icon?, format?, id? }`. `action` is `add` (the Add flow; the label defaults to the Add label), `export` (the export leaf in `format`, `csv` by default, else the export dialog), `import`, `refresh`, or the id of a `headerActions` entry. `variant` is `primary` or `secondary` (default). They show only with `showTitle` and without a `#header` slot; when they show, the actions bar drops its Views and Actions menus, and its Add button and Export menu when a button takes that action.
+
+```json
+{ "showTitle": true, "showTitleIcon": false, "showCount": false, "countSubtitle": "{total} open cases",
+  "headerButtons": [{ "label": "Export", "action": "export" }, { "label": "New case", "action": "add", "variant": "primary" }] }
+```

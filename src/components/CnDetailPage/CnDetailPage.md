@@ -444,3 +444,5 @@ When the schema-driven fetch answers 404 the page shows a not-found state whose 
 ### Header card and header widget
 
 `headerCard` (default `false`) draws the header as a bordered card. `headerWidget` (default `''`) names a widget in `widgets` to render inside the header under the title, without a card of its own and out of the body grid: the stages bars of the board's case card.
+
+`showWidgetActions` (Boolean, default `true`): `false` (manifest `config.showWidgetActions: false`) drops the overflow Actions menu from the cards of the body grid and the side column, unless a widget definition sets `showActions: true`.

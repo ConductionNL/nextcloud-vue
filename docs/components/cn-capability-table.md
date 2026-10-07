@@ -120,3 +120,9 @@ override the reader's Nextcloud language when picking `name` or `name_nl`.
 
 - Implementation: [src/components/CnCapabilityTable/CnCapabilityTable.vue](../../src/components/CnCapabilityTable/CnCapabilityTable.vue)
 - Pure logic: [src/utils/capabilityComparison.js](../../src/utils/capabilityComparison.js)
+
+:::warning Deprecated
+
+The in-app capability comparison (`capabilityComparison` on CnFeaturesAndRoadmapView and CnFeaturesAndRoadmapPage, the `features_roadmap_capabilities` initial state key, and CnCapabilityTable) is deprecated. Publish the comparison on the app's docs site and link to it instead, as dossiq #3312 and pipelinq #2195 did. It still renders; removal waits for a major version. A development build warns once per page load when a comparison is given.
+
+:::

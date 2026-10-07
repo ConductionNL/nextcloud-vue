@@ -111,6 +111,15 @@
 				data-testid="cn-stat-widget-caption">
 				{{ resolvedCaption }}
 			</span>
+			<!-- A second caption line (`content.note`), as LpStart's "3
+			     deadlines this week" under the count. Static text for now. -->
+			<span
+				v-if="!displayLoading && !displayError && resolvedNote"
+				class="cn-kpi-card__label cn-stat-widget__note cn-kpi-card__caption-line"
+				:class="noteVariantClass"
+				data-testid="cn-stat-widget-note">
+				{{ resolvedNote }}
+			</span>
 		</div>
 	</component>
 </template>
@@ -661,6 +670,33 @@ export default {
 				return null
 			}
 			return rules.find((r) => r && this.matchesRule(current, r)) || null
+		},
+
+		/**
+		 * The second caption line: `content.note` through the host translate
+		 * function, or '' without it.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-stat-tile-can-carry-a-second-caption-line
+		 * @return {string}
+		 */
+		resolvedNote() {
+			const note = this.content && this.content.note
+			return typeof note === 'string' && note !== '' ? this.effectiveTranslate(note) : ''
+		},
+
+		/**
+		 * The colour class of the second caption line (`content.noteVariant`,
+		 * the same names as `captionVariant`), or '' for the muted default.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-stat-tile-can-carry-a-second-caption-line
+		 * @return {string}
+		 */
+		noteVariantClass() {
+			const variant = this.content && this.content.noteVariant
+			if (!variant || variant === 'default' || !Object.hasOwn(VARIANT_COLORS, variant)) {
+				return ''
+			}
+			return `cn-kpi-card__label--${variant === 'danger' ? 'error' : variant}`
 		},
 
 		/**

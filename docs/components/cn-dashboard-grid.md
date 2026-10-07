@@ -127,3 +127,7 @@ explicit event in new code:
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDashboardGrid.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDashboardGrid/CnDashboardGrid.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## `float`
+
+`float` (default `true`) is GridStack's own setting: every item stays on the row it was placed on. `false` packs items upward, so a size-to-content cell that shrinks, or a widget that is not shown, closes its gap instead of leaving a band (CnDashboardPage `gridFloat`, manifest `config.gridFloat`). A `sizeToContent` cell lets its content take its own height, so it can shrink to it.

@@ -188,8 +188,8 @@
 					v-else
 					:key="item.id"
 					:name="resolveLabel(item)"
-					:to="itemTo(item)"
-					:href="itemHref(item)"
+					:to="linkTo(item)"
+					:href="linkHref(item)"
 					:icon="cssIconClass(item)"
 					:active="isActive(item)"
 					:pinned="Boolean(item.pinned)"
@@ -224,8 +224,8 @@
 						v-for="child in visibleChildren(item)"
 						:key="child.id"
 						:name="resolveLabel(child)"
-						:to="itemTo(child)"
-						:href="itemHref(child)"
+						:to="linkTo(child)"
+						:href="linkHref(child)"
 						:icon="cssIconClass(child)"
 						:active="isActive(child)"
 						:pinned="Boolean(child.pinned)"
@@ -304,8 +304,8 @@
 					v-for="item in footerItems"
 					:key="item.id"
 					:name="resolveLabel(item)"
-					:to="itemTo(item)"
-					:href="itemHref(item)"
+					:to="linkTo(item)"
+					:href="linkHref(item)"
 					:icon="cssIconClass(item)"
 					:active="isActive(item)"
 					:data-testid="`cn-nav-entry-${item.id}`"
@@ -402,8 +402,8 @@
 							v-else
 							:key="item.id"
 							:name="resolveLabel(item)"
-							:to="itemTo(item)"
-							:href="itemHref(item)"
+							:to="linkTo(item)"
+							:href="linkHref(item)"
 							:icon="cssIconClass(item)"
 							:active="isActive(item)"
 							:data-cn-route="item.route"
@@ -2027,6 +2027,72 @@ export default {
 		},
 
 		/**
+		 * Whether another visible entry links to the same route, so the two
+		 * differ only in `query` or `params` ("All cases" and "Woo requests"
+		 * on one list).
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {boolean} True when the route is shared.
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-only-the-best-matching-menu-entry-is-active
+		 */
+		sharesRoute(item) {
+			if (!item || item.href || item.action || !item.route) {
+				return false
+			}
+			return this.flatEntries.some((entry) => entry !== item && !entry.href && !entry.action && entry.route === item.route)
+		},
+
+		/**
+		 * The app's router, or null when the nav is mounted without one. Read
+		 * from the app's global properties: `this.$router` warns during render
+		 * on an instance that has none.
+		 *
+		 * @return {object|null} The router.
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-only-the-best-matching-menu-entry-is-active
+		 */
+		appRouter() {
+			return this.$?.appContext?.config?.globalProperties?.$router ?? null
+		},
+
+		/**
+		 * The `:to` an entry renders with. An entry that shares its route
+		 * renders as a plain link instead (see `linkHref`): NcAppNavigationItem
+		 * marks a router link active whenever vue-router calls it active, and
+		 * vue-router ignores the query, so "Woo requests" lit up beside "All
+		 * cases" on the unfiltered list. As a plain link only `isActive`
+		 * decides, which marks the entry that matches best.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {object|null} The router target, or null.
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-only-the-best-matching-menu-entry-is-active
+		 */
+		linkTo(item) {
+			if (this.appRouter() && this.sharesRoute(item)) {
+				return null
+			}
+			return this.itemTo(item)
+		},
+
+		/**
+		 * The `:href` an entry renders with: `itemHref`, or for an entry that
+		 * shares its route the address vue-router resolves its target to (a
+		 * click on it is still routed in the app, see `onItemClick`).
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {string|null} The address, or null.
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-only-the-best-matching-menu-entry-is-active
+		 */
+		linkHref(item) {
+			const own = this.itemHref(item)
+			const router = this.appRouter()
+			if (own || !router || !this.sharesRoute(item)) {
+				return own
+			}
+			const to = this.itemTo(item)
+			return to ? router.resolve(to).href : null
+		},
+
+		/**
 		 * Build the `:href` value for an `NcAppNavigationItem`. Returns
 		 * the item's `href` so the entry renders as a real anchor whose
 		 * destination is visible on hover and which gets the native link
@@ -2174,6 +2240,17 @@ export default {
 				}
 				this.cnReplayWalkthrough(item.tourId)
 				return
+			}
+			// An entry that shares its route is a plain link (see linkTo); a
+			// plain click still navigates inside the app. A modified click
+			// (new tab, new window) is left to the browser.
+			if (this.appRouter() && this.sharesRoute(item) && event && !event.defaultPrevented
+				&& !(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) && event.button !== 1) {
+				const to = this.itemTo(item)
+				if (to) {
+					event.preventDefault()
+					this.appRouter().push(to).catch(() => {})
+				}
 			}
 			// An entry left without a link (see itemTo) renders a `#` anchor;
 			// following it would change the address, so the click goes nowhere.

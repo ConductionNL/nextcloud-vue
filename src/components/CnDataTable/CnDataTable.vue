@@ -362,6 +362,40 @@ import { CnLockIndicator } from '../CnLockIndicator/index.js'
 import '../../css/table.css'
 
 /**
+ * Fill a `secondary` template such as `"{identifier} · {requester}"`.
+ *
+ * A field without a value takes its separator with it: the text between two
+ * fields belongs to the field after it, so an empty requester leaves
+ * "2026-0002", not "2026-0002 ·", and an empty first field does not leave a
+ * leading separator either. Text before the first field and after the last
+ * one is kept as written. A template whose fields all have values fills
+ * exactly as before.
+ *
+ * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-empty-field-takes-its-separator-with-it
+ * @param {string} template The template, with `{field}` placeholders.
+ * @param {(key: string) => string} valueOf The text of a field ('' when empty).
+ * @return {string} The filled template.
+ */
+function fillSecondaryTemplate(template, valueOf) {
+	// split() with a capture group alternates literal, field, literal, …
+	const parts = template.split(/\{([^}]+)\}/)
+	const lead = parts[0]
+	const tail = parts[parts.length - 1]
+	let body = ''
+	for (let i = 1; i < parts.length; i += 2) {
+		const value = valueOf(parts[i].trim())
+		if (value === '') {
+			continue
+		}
+		// The literal before this field: the separator, unless nothing has
+		// been written yet (then there is nothing to separate from).
+		const separator = i === 1 ? '' : parts[i - 1]
+		body += (body === '' ? '' : separator) + value
+	}
+	return lead + body + tail
+}
+
+/**
  * CnDataTable — Generic sortable data table for list views.
  *
  * Replaces the copy-pasted `<table class="viewTable">` HTML pattern found in
@@ -1451,7 +1485,7 @@ export default {
 			}
 			const asText = (v) => (v === null || v === undefined ? '' : String(v))
 			if (spec.includes('{')) {
-				const filled = spec.replace(/\{([^}]+)\}/g, (_, key) => asText(this.getCellValue(row, key.trim())))
+				const filled = fillSecondaryTemplate(spec, (key) => asText(this.getCellValue(row, key)))
 				// A template whose every field is empty leaves only separators:
 				// nothing worth a line.
 				return /[\p{L}\p{N}]/u.test(filled) ? filled.trim() : ''

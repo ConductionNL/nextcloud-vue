@@ -559,3 +559,9 @@ The page needs an app id to store under: its `appId` prop, else the one `CnAppRo
 | `showWidgetActions` | `Boolean` | `true` | `false` (manifest `config.showWidgetActions: false`) drops the overflow Actions menu from every widget that does not set `showActions` itself, for a dashboard whose widget headers carry a `headerLink` and nothing else. A widget with `showActions: true` keeps its menu. |
 
 A `header` widget whose content sets `ground: true` is drawn without a card; see [CnHeaderWidget](./cn-header-widget.md).
+
+## `gridFloat`, `showButtons` and stacked stats blocks (zuiddrecht-pixel-gaps-3)
+
+- `gridFloat` (manifest `config.gridFloat`, default `true`): `false` packs widgets upward, so a size-to-content widget that shrinks closes the gap under it.
+- A placement or widget definition with `showButtons: false` renders without its footer links.
+- A `stats-block` definition with `content.layout: "stacked"` (or `props.layout`) renders its blocks in the stacked board look.

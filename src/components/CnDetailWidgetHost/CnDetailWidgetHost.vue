@@ -85,7 +85,7 @@
 			v-else-if="isData && schemaObject"
 			:title="resolvedTitle"
 			:chromeless="isBare"
-			:showActions="!isBare"
+			:showActions="!isBare && actionsShown"
 			:icon="widget.icon || null"
 			:schema="schemaObject"
 			:objectData="object"
@@ -165,6 +165,7 @@
 			v-else-if="renderer && isContentOnly && !isBare"
 			:title="widget.title || ''"
 			titleIconPosition="left"
+			:showActions="actionsShown || catalogAddEnabled"
 			:showRefresh="false"
 			:showRequestFeature="false"
 			class="cn-detail-page__catalog-card">
@@ -471,6 +472,21 @@ export default {
 		showCardTitle: {
 			type: Boolean,
 			default: null,
+		},
+
+		/**
+		 * Whether a widget on a card keeps its overflow Actions menu when its
+		 * definition does not say (`showActions`). `false` (CnDetailPage
+		 * `showWidgetActions: false`) drops it from the record's data cards; a
+		 * definition with `showActions: true` keeps it, one with
+		 * `showActions: false` drops it whatever this says. True by default,
+		 * which is the menu every card had.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-detail-page-can-drop-the-widget-actions-menu
+		 */
+		showActions: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
@@ -837,6 +853,19 @@ export default {
 				return false
 			}
 			return this.content.allowCreate !== false
+		},
+
+		/**
+		 * Whether the widget's overflow Actions menu renders: the definition's
+		 * own `showActions` when it is a boolean, else the surface's
+		 * `showActions`.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-detail-page-can-drop-the-widget-actions-menu
+		 * @return {boolean} true when the menu renders.
+		 */
+		actionsShown() {
+			const own = this.widget && this.widget.showActions
+			return typeof own === 'boolean' ? own : this.showActions
 		},
 
 		/**

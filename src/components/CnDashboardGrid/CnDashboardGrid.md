@@ -158,3 +158,5 @@ explicit event when you are writing new code:
   @item-activate="({ item, clientX, clientY }) => openMenu(item, clientX, clientY)"
   @layout-change="onLayoutChange" />
 ```
+
+`float` (Boolean, default `true`): GridStack's `float`. `false` packs items upward, so a size-to-content cell that shrinks, or a widget that is not shown, closes its gap.

@@ -638,3 +638,9 @@ With `config.userLayout: true` the header shows **Arrange view** next to the vie
 ```
 
 Blocks such as favourites, follow and attention are placed with the layout you already have: a `layout` entry's `gridY` puts one under the tabs, and `sideColumn` takes its widget id.
+
+## Breadcrumb current field and separator, widget actions (zuiddrecht-pixel-gaps-3)
+
+- `config.breadcrumb.currentField` (a dotted field path, e.g. `identifier`) makes the current crumb that field's value instead of the display name; an empty value falls back to the display name. `config.breadcrumb.separator` draws that text (e.g. `/`) between the crumbs instead of the chevron.
+- `showWidgetActions` (manifest `config.showWidgetActions`, default `true`): `false` drops the overflow Actions menu from the cards of the body grid and the side column, unless a widget definition sets `showActions: true`. A definition with `showActions: false` drops its menu either way. A catalog card that offers an Add action keeps the menu that holds it.
+- With `headerWidget` a long title now wraps beside the header actions instead of pushing them onto the next row.

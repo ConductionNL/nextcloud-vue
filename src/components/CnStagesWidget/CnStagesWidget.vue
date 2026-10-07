@@ -1502,6 +1502,25 @@ button.cn-stages-widget__bar-label {
 	cursor: pointer;
 }
 
+/* The same label under a theme that restyles every button with !important
+   (thematiq's nldesign sheet: `button:not(.action-button)` gets 8px 16px
+   padding, `min-width: max-content` and `overflow: visible`), and under core's
+   `margin: 3px 3px 3px 0`, which outranks the scoped base rule. Together they
+   put each clickable label about 10px below the current step's <span> and let
+   a long label run over its neighbours, so eight Woo steps overlapped instead
+   of ending in an ellipsis. Only !important beats !important; this selector is
+   the more specific of the two. Without such a theme nothing changes: these
+   are the values the base rule already sets. */
+button.cn-stages-widget__bar-label.cn-stages-widget__bar-label {
+	min-width: 0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border-width: 0 !important;
+	overflow: hidden !important;
+	text-overflow: ellipsis !important;
+	white-space: nowrap !important;
+}
+
 button.cn-stages-widget__bar-label[aria-disabled="true"] {
 	cursor: not-allowed;
 }
