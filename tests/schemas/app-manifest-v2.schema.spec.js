@@ -1299,7 +1299,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.46.0', () => {
+	it('the manifest schema version reads 2.47.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1318,9 +1318,19 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// nav.brand.emblem, primaryAction action/solid/permission/visibleIf,
 		// the object form of menuItem.count, widgets[].headerLink and the
 		// page config keys showHeader, showTitle, countSubtitle,
-		// showTypeEyebrow and breadcrumb.
+		// showTypeEyebrow and breadcrumb. 2.47.0 adds round two: nav.footer,
+		// breadcrumb.icon, and the page config keys showWidgetActions,
+		// headerCard and headerWidget.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.46.0')
+		expect(schema.version).toBe('2.47.0')
+	})
+
+	it('accepts the round-two Zuiddrecht keys and refuses a footer that is not a list of ids', () => {
+		const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'P', route: '/p', type: 'detail', title: 'P', config }] })
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { footer: ['settings', 'help'] } }).valid).toBe(true)
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { footer: 'settings' } }).valid).toBe(false)
+		expect(validateManifestV2(page({ register: 'r', schema: 's', headerCard: true, headerWidget: 'case-stages', breadcrumb: { label: 'All cases', route: 'Cases', icon: 'Home' } })).valid).toBe(true)
+		expect(validateManifestV2({ ...MINIMAL_V2, pages: [{ id: 'D', route: '/d', type: 'dashboard', title: 'D', config: { showWidgetActions: false } }] }).valid).toBe(true)
 	})
 
 	it('accepts a declarative `store` block, and requires the remote schema', () => {

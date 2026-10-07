@@ -213,3 +213,11 @@ The caption can be coloured without recolouring the tile: `captionVariant` sets 
 ```
 
 The caption then carries `cn-kpi-card__label--<variant>`; the colours come from the status text tokens.
+
+## The stacked tile (`layout: "stacked"`)
+
+`content.layout: "stacked"` is the board's KPI tile: no icon circle, the label as plain 14px muted text, the value at 34px/700 in the text colour, and the caption on a line of its own under the value. A linked stacked tile is not underlined. Theme hooks: `--cn-kpi-stacked-padding` (10px 6px, which adds up with a dashboard cell's 8px 14px to 18px 20px), `--cn-kpi-stacked-gap`, `--cn-kpi-stacked-title-size`, `--cn-kpi-stacked-title-weight`, `--cn-kpi-stacked-value-size`, `--cn-kpi-stacked-value-color`.
+
+```json
+{ "type": "stat", "content": { "label": "My open cases", "layout": "stacked", "caption": "3 new this week" } }
+```

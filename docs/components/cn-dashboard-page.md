@@ -489,3 +489,11 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | `showHeader` | `Boolean` | `true` | `false` (manifest `config.showHeader: false`) drops the header row: title, description, header actions and the edit toggle, for a page that opens with its own heading such as a greeting widget. The title stays as a visually hidden heading so the page keeps an accessible name. |
 
 A widget definition or layout entry can carry `headerLink` (`{ label, route?, params?, query?, href? }`); the page forwards it to [CnWidgetWrapper](./cn-widget-wrapper.md), which draws it as a text link in the widget header.
+
+## Dropping the widget menus (`showWidgetActions`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showWidgetActions` | `Boolean` | `true` | `false` (manifest `config.showWidgetActions: false`) drops the overflow Actions menu from every widget that does not set `showActions` itself, for a dashboard whose widget headers carry a `headerLink` and nothing else. A widget with `showActions: true` keeps its menu. |
+
+A `header` widget whose content sets `ground: true` is drawn without a card; see [CnHeaderWidget](./cn-header-widget.md).
