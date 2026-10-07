@@ -56,6 +56,8 @@ Both instances receive `completedStepIds`, so a wizard mounted mid-way resumes a
 
 "Actionable" also excludes `run-action` steps marked `onDemand: true`: they run only when the user asks, so they never open the wizard. See [On-demand steps](./cn-setup-wizard.md#on-demand-steps).
 
+A step whose `requires` names an app that is not installed and enabled is not applicable. The wizard skips it, so it neither opens the wizard nor, when `required`, gates the app. See [Missing apps](./cn-setup-wizard.md#missing-apps).
+
 ### Dismissal
 
 The non-gating overlay records dismissal in `localStorage` under:

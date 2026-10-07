@@ -647,6 +647,18 @@ describe('CnSetupWizard — dependencies are checked before any step', () => {
 		expect(recap).toMatchObject({ done: false, notRun: true, value: 'Skipped, needs shillinq' })
 	})
 
+	it('does not block on a REQUIRED step whose app is absent', async () => {
+		// The status side (useSetupStatus) counts this step as not applicable;
+		// the wizard must agree and neither offer it nor wait for it.
+		const steps = depSteps.map((s) => (s.id === 'invoices' ? { ...s, required: true } : s))
+		const wrapper = mount(CnSetupWizard, {
+			propsData: { appId: 'pipelinq', steps, dependencies: ['openregister'] },
+		})
+		await flushPromises()
+		expect(wrapper.vm.wizardSteps.map((s) => s.id)).toEqual(['welcome', 'seed', 'done'])
+		expect(wrapper.vm.summaryItems.find((i) => i.id === 'invoices')).toMatchObject({ notRun: true, value: 'Skipped, needs shillinq' })
+	})
+
 	it('offers that step once its app is present', async () => {
 		global.OC = { appswebroots: { openregister: '/a', shillinq: '/b' } }
 		const wrapper = mount(CnSetupWizard, {

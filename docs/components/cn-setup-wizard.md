@@ -73,8 +73,14 @@ A step can also name the apps it needs:
 ```
 
 When any of those apps is absent, the wizard skips the step. The summary
-shows it as skipped and names the missing apps. Do not mark such a step
-`required`: setup status would keep reporting it as unmet.
+shows it as skipped and names the missing apps.
+
+Setup status counts a skipped step as not applicable: neither done nor
+outstanding. It does not reopen the wizard in `CnAppRoot`, and a `required`
+step does not gate the app either. Once the app is installed and enabled, the
+step counts again. The wizard and [`useSetupStatus`](../utilities/composables/use-setup-status.md)
+check the apps the same way: the `dependency_statuses` initial state first,
+then the browser's own view of the enabled apps.
 
 ## Maintenance belongs on the admin page
 
