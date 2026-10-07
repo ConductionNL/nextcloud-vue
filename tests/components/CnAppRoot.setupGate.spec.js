@@ -411,3 +411,99 @@ describe('CnAppRoot support note waits for the setup status', () => {
 		expect(wrapper.find('.cn-support-dialog').exists()).toBe(true)
 	})
 })
+
+/**
+ * The fleet rollout of `requires` (#1326): an optional step that needs an app
+ * the instance does not have is skipped by the wizard, so it can never be
+ * done. Before the fix it still counted as outstanding and reopened the
+ * non-gating wizard over every page; a required one gated the app outright.
+ *
+ * @spec openspec/changes/optional-step-requires/specs/cn-setup-wizard/spec.md#requirement-a-step-whose-required-apps-are-absent-is-not-applicable
+ */
+describe('CnAppRoot setup state — a step whose required app is absent', () => {
+	const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
+	const requiresManifest = {
+		version: '1.0.0',
+		menu: [{ id: 'home', label: 'app.home', route: 'home' }],
+		pages: [{ id: 'home', route: '/', type: 'index', title: 'app.home' }],
+		dependencies: [],
+		setup: {
+			enabled: true,
+			version: 1,
+			steps: [
+				{ id: 'welcome', type: 'info' },
+				{ id: 'currency', type: 'choice', required: true },
+				{ id: 'link-invoices', type: 'run-action', requires: ['shillinq'] },
+				{ id: 'done', type: 'summary' },
+			],
+		},
+	}
+
+	beforeEach(() => {
+		__resetSetupStatusCacheForTests()
+		__resetAppStatusCacheForTests()
+		axios.get.mockReset()
+		window.localStorage.clear()
+	})
+
+	afterEach(() => {
+		delete global.OC
+	})
+
+	/**
+	 * Mount with a manifest whose optional step requires shillinq.
+	 *
+	 * @param {object} manifestOverride The manifest to mount with.
+	 * @return {object} The mounted wrapper.
+	 */
+	function mountRequires(manifestOverride = requiresManifest) {
+		return mount(CnAppRoot, {
+			propsData: { manifest: manifestOverride, appId: 'pipelinq', isLoading: false, translate: (k) => k, requiresApps: [] },
+			mocks: { $route: { name: 'home' } },
+			stubs: { 'router-view': { template: '<div class="router-view-stub" />' } },
+		})
+	}
+
+	it('does not reopen the wizard for an optional step whose app is absent', async () => {
+		global.OC = { appswebroots: {} }
+		serveStatus({ version: 1, completed: true, steps: { currency: { done: true }, 'link-invoices': { done: false } } })
+		const wrapper = mountRequires()
+		await flush(wrapper)
+
+		expect(wrapper.vm.optionalSetupPending).toBe(false)
+		expect(wrapper.vm.setupWizardOpen).toBe(false)
+		expect(wrapper.vm.phase).toBe('shell')
+	})
+
+	it('does not reopen it when the server also says setup is unfinished', async () => {
+		global.OC = { appswebroots: {} }
+		serveStatus({ version: 1, completed: false, steps: { currency: { done: true }, 'link-invoices': { done: false } } })
+		const wrapper = mountRequires()
+		await flush(wrapper)
+
+		expect(wrapper.vm.optionalSetupPending).toBe(false)
+		expect(wrapper.vm.setupWizardOpen).toBe(false)
+	})
+
+	it('POSITIVE CONTROL: opens the wizard for that step once the app is there', async () => {
+		global.OC = { appswebroots: { shillinq: '/apps/shillinq' } }
+		serveStatus({ version: 1, completed: true, steps: { currency: { done: true }, 'link-invoices': { done: false } } })
+		const wrapper = mountRequires()
+		await flush(wrapper)
+
+		expect(wrapper.vm.optionalSetupPending).toBe(true)
+		expect(wrapper.vm.setupWizardOpen).toBe(true)
+	})
+
+	it('does not gate the app on a required step whose app is absent', async () => {
+		global.OC = { appswebroots: {} }
+		const required = JSON.parse(JSON.stringify(requiresManifest))
+		required.setup.steps[2].required = true
+		serveStatus({ version: 1, completed: false, steps: { currency: { done: true }, 'link-invoices': { done: false } } })
+		const wrapper = mountRequires(required)
+		await flush(wrapper)
+
+		expect(wrapper.vm.setupGating).toBe(false)
+		expect(wrapper.vm.phase).toBe('shell')
+	})
+})

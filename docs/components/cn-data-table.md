@@ -115,6 +115,46 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `#actions-header` | - | Content for the header above the actions cell — typically a button |
 | `#empty` | — | Custom empty-state content shown when `rows` is empty |
 
+## Sorting and filtering from the header
+
+With a `schema`, every column backed by a stored property sorts, also an
+object-form column without a `sortable` flag (`{ key: 'title', label: 'Title' }`).
+Set `sortable: false` to switch one off. A computed column (`aggregate`) or a
+widget column without a property behind it does not sort, because the server
+cannot order on it. Without a schema, only `sortable: true` sorts.
+
+Set `filterable` to give every column that can filter a filter button in its
+header. `CnIndexPage` does this by default; turn it off for a page with
+`config.headerFilters: false`, or for one column with `filterable: false`.
+
+| Column | Panel | Query parameters |
+|--------|-------|------------------|
+| enum (with `x-enum-labels`), badge colour map | checkboxes | `key[]=a&key[]=b` |
+| boolean | yes, no, any | `key=true` |
+| number, date, date-time | from and to | `key[gte]`, `key[lte]` (date-time up to `T23:59:59`) |
+| `$ref` or `fkResolve` | searchable list of the referenced objects | `key[]=<uuid>` |
+| text | contains | `key[like]=term` |
+
+A text filter matches on contains, case-insensitive, through OpenRegister's
+`[like]` operator: "acme" finds "Acme B.V.". The term goes out as typed, URL
+encoded; OpenRegister escapes `%`, `_` and `\` itself, so the library adds no
+wildcards. The header filter owns `key[like]` only. An exact `key=value` from
+the facet sidebar or a fixed filter keeps its meaning, and the header neither
+shows nor clears it.
+
+The host owns the state. Pass the active-filter map as `activeFilters`
+(`{ paramKey: values[] }`, the map the facet sidebar writes) and handle
+`column-filter`, which carries `{ key, params }` with every parameter the
+column owns; an empty list clears one. `CnIndexPage` merges it into its
+filters, fetches once and writes it into the route query. A reference panel
+searches `/apps/openregister/api/objects/{register}/{schema}`, with the
+register from the column (`widgetProps.register`, `x-external-register`) or
+the `filterRegister` prop.
+
+Active filters show as a filled icon on the header and as removable chips
+above the table. The panel is a labelled dialog of native inputs; Escape
+closes it and focus returns to the filter button.
+
 ## Reference (auto-generated)
 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDataTable.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDataTable/CnDataTable.vue) and update automatically whenever the component changes.
@@ -143,3 +183,13 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 - `#footer` slot (`{ total, shown }`) — supply a custom footer link (e.g. "+ New"
   or an always-shown "View all") with its own handler; works outside a
   vue-router context.
+
+## A second line in a cell (`columns[].secondary`)
+
+`secondary` on a column draws a muted second line under the cell's value: a field key (`"number"`), a template with `{field}` placeholders (`"{number} · {requester.name}"`, dotted paths allowed), or a function of the row. A line that resolves to nothing is not drawn.
+
+```json
+{ "key": "title", "label": "Case", "secondary": "{number} · {requester.name}" }
+```
+
+Theme hooks: `--cn-table-secondary-size` (0.9em), `--cn-table-secondary-color`.

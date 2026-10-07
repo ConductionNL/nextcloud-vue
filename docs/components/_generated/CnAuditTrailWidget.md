@@ -2,11 +2,12 @@
 
 ### Props
 
-| Name         | Type     | Required | Default | Description                                                                                                             |
-| ------------ | -------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `register`   | `string` |          | `''`    | OpenRegister register slug/id — object context spread as props by CnWidgetGrid (slot path).                             |
-| `schema`     | `union`  |          | `''`    | OpenRegister schema — a slug string, or the schema OBJECT the detail-context merge supplies (its slug/name/id is used). |
-| `objectId`   | `string` |          | `''`    | The audited object's id — object context spread as props by CnWidgetGrid (slot path).                                   |
-| `title`      | `string` |          | `''`    | Optional card title override (defaults to the card's translated label).                                                 |
-| `maxDisplay` | `number` |          | `0`     | Maximum audit rows to render (0 falls back to the card default).                                                        |
-| `content`    | `object` |          | `\{\}`  | Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId? }`.   |
+| Name         | Type     | Required | Default | Description                                                                                                                                                                                                     |
+| ------------ | -------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `register`   | `string` |          | `''`    | OpenRegister register slug/id — object context spread as props by CnWidgetGrid (slot path).                                                                                                                     |
+| `schema`     | `union`  |          | `''`    | OpenRegister schema — a slug string, or the schema OBJECT the detail-context merge supplies (its slug/name/id is used).                                                                                         |
+| `objectId`   | `string` |          | `''`    | The audited object's id — object context spread as props by CnWidgetGrid (slot path).                                                                                                                           |
+| `title`      | `string` |          | `''`    | Optional card title override (defaults to the card's translated label).                                                                                                                                         |
+| `maxDisplay` | `number` |          | `0`     | Maximum audit rows to render (0 falls back to the card default).                                                                                                                                                |
+| `scope`      | `string` |          | `''`    | `app` lists the app-wide feed (every object the caller may read, narrowed to `register` / `schema` when set) and needs no object; `object` (the default) is one object's trail. Also read from `content.scope`. |
+| `content`    | `object` |          | `\{\}`  | Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId? }`.                                                                                           |

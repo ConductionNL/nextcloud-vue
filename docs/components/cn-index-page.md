@@ -581,7 +581,7 @@ A named `entitySource` may place built-ins in its own `rowActions` the same way;
 
 **Testids and the `action` event.** A built-in's `data-testid` is `cn-action-item-<id>` (`cn-action-item-edit`, and so on) in every locale; an app action keeps the slug of its label. The `action` event payload keeps `action` as the label and adds the action's `id`, plus `builtin: true` for a built-in, so an app action with `id: "edit"` and the built-in Edit stay distinguishable. A row's availability block (`rowActionField`, default `@self.actions`) matches a built-in by its id only, never by its label.
 
-**Library version.** The placeholders ship in the manifest schema `2.45.0`. An app that adopts them MUST raise its `@conduction/nextcloud-vue` range to the release that ships them in the same change: an older library rejects the manifest, and `useAppManifest` then falls back to the unresolved bundled manifest, losing the backend manifest merge and `@resolve:` sentinel resolution on every page, not just the row order.
+**Library version.** The placeholders ship in the manifest schema `2.49.0`. An app that adopts them MUST raise its `@conduction/nextcloud-vue` range to the release that ships them in the same change: an older library rejects the manifest, and `useAppManifest` then falls back to the unresolved bundled manifest, losing the backend manifest merge and `@resolve:` sentinel resolution on every page, not just the row order.
 
 ## Self-fetch mode
 
@@ -983,3 +983,9 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 }
 ```
 
+
+## A count in the subtitle (`countSubtitle`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `countSubtitle` | `String` | `''` | A description with `{total}` replaced by the collection's total: `"{total} open cases"` reads "48 open cases". Shown in place of `description` once a total is known; before that `description` shows. Goes through the host translate function. Manifest: `config.countSubtitle`, beside `config.showTitle: true`. |

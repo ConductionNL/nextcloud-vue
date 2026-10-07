@@ -202,3 +202,22 @@ The day count is taken when the tile renders. A tile left open across midnight k
 - Self-contained card surface — rendered flush and centred (no inner scrollbar).
 - Filter tokens (`@page.*`, `@object.*`, `@workspace.*`, `@range.*`) are resolved from injected dashboard/detail context when present, in the `endpointSource` and in the tile's `route` alike, so a tile on a detail page can link to `{ name: 'Traffic', query: { portal: '@object.slug' } }`. A route token that stays unresolved is dropped from the URL.
 - The tile injects `cnDashboardDateRange` — the same ref `CnChartWidget` reads — so a tile and a chart on one dashboard always agree on the period.
+
+## Colouring the caption (`captionVariant`, `captionVariantWhen`, overrides)
+
+The caption can be coloured without recolouring the tile: `captionVariant` sets it outright (`primary | success | warning | error`), `captionVariantWhen` is a list of `{ op, value, variant }` rules on the value (the `variantWhen` shape, first match wins), and a record override can carry `caption` and `captionVariant` to replace and colour it. `{value}` in a caption is the tile's own number, so a register-counted tile can read "1 due today".
+
+```json
+{ "label": "Deadline within 5 days", "caption": "{value} due today",
+  "captionVariantWhen": [{ "op": "gte", "value": 1, "variant": "error" }] }
+```
+
+The caption then carries `cn-kpi-card__label--<variant>`; the colours come from the status text tokens.
+
+## The stacked tile (`layout: "stacked"`)
+
+`content.layout: "stacked"` is the board's KPI tile: no icon circle, the label as plain 14px muted text, the value at 34px/700 in the text colour, and the caption on a line of its own under the value. A linked stacked tile is not underlined. Theme hooks: `--cn-kpi-stacked-padding` (10px 6px, which adds up with a dashboard cell's 8px 14px to 18px 20px), `--cn-kpi-stacked-gap`, `--cn-kpi-stacked-title-size`, `--cn-kpi-stacked-title-weight`, `--cn-kpi-stacked-value-size`, `--cn-kpi-stacked-value-color`.
+
+```json
+{ "type": "stat", "content": { "label": "My open cases", "layout": "stacked", "caption": "3 new this week" } }
+```

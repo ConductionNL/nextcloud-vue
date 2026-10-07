@@ -570,3 +570,63 @@ widgets in one visual family.
 ## Header actions menu
 
 The page header's overflow menu carries Refresh plus the mandatory trio Request a feature / Report a bug / Documentation. `showReportBug` and `showDocumentation` (both `true` by default) exist for a surface that must suppress one deliberately; the shared menu resolves each target itself, so leaving them on costs nothing. The Documentation entry deep-links to this page's own section using the page id as its anchor.
+
+## Type eyebrow and breadcrumb
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showTypeEyebrow` | `Boolean` | `true` | `false` (manifest `config.showTypeEyebrow: false`) drops the type label above the record name once the record resolves, for a header that says the type in a pill instead. |
+| `breadcrumb` | `Object \| null` | `null` | A breadcrumb line above the header (manifest `config.breadcrumb`): `{ label, route?, params?, href? }` names the list the record belongs to; the record's display name follows as the current crumb. The label goes through the host translate function. |
+
+```json
+"config": { "showTypeEyebrow": false, "breadcrumb": { "label": "All cases", "route": "Cases" } }
+```
+
+A breadcrumb's label shows as text. `breadcrumb.icon` (an MDI name such as `Home`) draws that icon as the first crumb instead, with the label as its accessible name.
+
+## Views behind a switch (`views`)
+
+A detail page can offer a few views of a record, each its own widget grid, behind a segmented control in the page header. The chosen view renders in a region below the body grid. The props are the same as on [CnDashboardPage](./cn-dashboard-page.md#views-behind-a-switch-views): `views`, `defaultView` and `viewsLabel`.
+
+- Each view is `{ id, label, icon?, emptyText?, widgets, layout }`. `widgets` and `layout` have the same shape as the page's own and render with the same grid.
+- The page's own `widgets` and `layout` stay above the region. Choosing a view swaps only the region.
+- The chosen view is in the address (`?view=<id>`, so a link opens it) and in the user's preferences (the app's preferences endpoint, mirrored in the browser). The address wins, then the stored choice, then `defaultView`, then the first view.
+- The switch is a radio group named by `viewsLabel` (default "View"). Every option carries `aria-controls` pointing at the region, a `region` landmark named after the chosen view. Arrow keys, Home and End move the choice and focus stays on the switch.
+- A view with nothing to draw shows its `emptyText`, else "This view has no widgets yet.", never a blank area.
+- On a detail page, views replace the automatic Data and Related body. Put a `data` widget in a view, or in the page's own `layout`, to keep it.
+- The stored choice is kept per page (its `pageId`, else its route name), not per record.
+
+```json
+{
+  "id": "CaseDetail", "type": "detail", "route": "/cases/:id",
+  "config": {
+    "register": "dossiq", "schema": "case",
+    "viewsLabel": "Case view",
+    "views": [
+      { "id": "overview", "label": "Overview",
+        "widgets": [{ "id": "case-data", "type": "data", "title": "Details" }],
+        "layout": [{ "id": "o1", "widgetId": "case-data", "gridX": 0, "gridY": 0, "gridWidth": 12, "gridHeight": 6 }] },
+      { "id": "documents", "label": "Documents",
+        "widgets": [{ "id": "case-files", "type": "files", "title": "Documents" }],
+        "layout": [{ "id": "d1", "widgetId": "case-files", "gridX": 0, "gridY": 0, "gridWidth": 12, "gridHeight": 6 }] }
+    ]
+  }
+}
+```
+
+## Header card and header widget
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `headerCard` | `Boolean` | `false` | Draws the header (pills, title, actions) as a bordered card on the surface colour (manifest `config.headerCard`), as the board's case header. Theme hooks: `--cn-detail-header-card-padding` (22px 24px), `--cn-detail-header-card-radius` (12px), `--cn-detail-header-row-gap` (22px). |
+| `headerWidget` | `String` | `''` | The id of a widget in `widgets` to render inside the header, on its own row under the title and the actions, without a card of its own (manifest `config.headerWidget`). The widget leaves the body grid and its row closes up. An id that names no widget renders nothing extra. |
+
+```json
+"config": {
+  "headerCard": true,
+  "headerWidget": "case-stages",
+  "breadcrumb": { "label": "All cases", "route": "Cases" }
+}
+```
+
+Blocks such as favourites, follow and attention are placed with the layout you already have: a `layout` entry's `gridY` puts one under the tabs, and `sideColumn` takes its widget id.

@@ -816,7 +816,7 @@ App row actions come first and the enabled built-ins (View, Edit, Copy, Delete) 
 
 The toggles still decide whether each built-in renders, and enabled built-ins you do not place are appended after everything else. See [CnIndexPage: Placing built-in row actions](./components/cn-index-page.md#placing-built-in-row-actions) for the full rules.
 
-**Required step: raise your library range.** The placeholders ship in manifest schema `2.45.0`. Raise your app's `@conduction/nextcloud-vue` range to the release that ships them in the same change that adds the first placeholder. An older library rejects the manifest; `useAppManifest` then keeps the unresolved bundled manifest, so the app loses its backend manifest merge and its `@resolve:` sentinel resolution on every page, not only the row order.
+**Required step: raise your library range.** The placeholders ship in manifest schema `2.49.0`. Raise your app's `@conduction/nextcloud-vue` range to the release that ships them in the same change that adds the first placeholder. An older library rejects the manifest; `useAppManifest` then keeps the unresolved bundled manifest, so the app loses its backend manifest merge and its `@resolve:` sentinel resolution on every page, not only the row order.
 
 ## Built-in cell formatters / widgets
 

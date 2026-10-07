@@ -25,7 +25,12 @@
 		     the greyed-out area reaches the app, which is the point. A centered
 		     step spotlights nothing, so its backdrop stays interactive and
 		     dismisses the tour. -->
-		<template v-if="isCentered || !rect">
+		<!-- Quiet: an app dialog is open, or the step's target belongs to
+		     another page. No dim and no cutout, so the overlay never sits on
+		     top of the dialog and never invites a click on the wrong page.
+		     Only the docked coachmark stays. -->
+		<template v-if="quiet" />
+		<template v-else-if="isCentered || !rect">
 			<div v-if="isCentered"
 				class="cn-walkthrough__dim cn-walkthrough__dim--full"
 				@click.self="onBackdrop" />
@@ -50,7 +55,7 @@
 		<!-- Coachmark card -->
 		<div ref="card"
 			class="cn-walkthrough__card"
-			:class="`cn-walkthrough__card--${cardPlacement}`"
+			:class="[`cn-walkthrough__card--${cardPlacement}`, { 'cn-walkthrough__card--docked': quiet }]"
 			:style="cardStyle">
 			<NcButton class="cn-walkthrough__close"
 				variant="tertiary"
@@ -183,7 +188,7 @@ export default {
 		translate: { type: Function, default: null },
 	},
 
-	emits: ['complete', 'dismiss', 'step-change', 'advance', 'handoff'],
+	emits: ['complete', 'dismiss', 'pause', 'progress', 'step-change', 'advance', 'handoff'],
 
 	setup(props) {
 		const wt = useWalkthrough(props.appId, props.manifest, {
@@ -200,6 +205,10 @@ export default {
 			cardPos: { top: 0, left: 0 },
 			cardPlacement: 'bottom',
 			targetEl: null,
+			// An app dialog (NcModal / NcDialog) is open over the page.
+			appModalOpen: false,
+			// The step's target was found on another page than the current one.
+			offPage: false,
 		}
 	},
 
@@ -226,6 +235,18 @@ export default {
 
 		isLast() {
 			return this.wt.isLast.value
+		},
+
+		/**
+		 * Whether the overlay steps back: no dim, no cutout, a docked card.
+		 * True while an app dialog is open or the step's target is on
+		 * another page.
+		 *
+		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @return {boolean}
+		 */
+		quiet() {
+			return this.appModalOpen || this.offPage
 		},
 
 		isCentered() {
@@ -321,6 +342,9 @@ export default {
 		},
 
 		cardStyle() {
+			if (this.quiet) {
+				return {}
+			}
 			if (this.isCentered || !this.rect) {
 				return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
 			}
@@ -339,6 +363,18 @@ export default {
 				 * @type {{ stepId: string, index: number }}
 				 */
 				this.$emit('step-change', { stepId: newStep.id, index: this.index })
+				/**
+				 * @event progress Emitted on every step change so the host can remember where the user is.
+				 * @type {{ tourId: string, stepId: string, index: number }}
+				 */
+				this.$emit('progress', {
+					tourId: (this.wt.activeTour.value && this.wt.activeTour.value.id) || '',
+					stepId: newStep.id,
+					index: this.index,
+				})
+				// A new step finds its own page again.
+				this._homeRoute = null
+				this.offPage = false
 				this.$nextTick(() => this.locateTarget())
 			}
 		},
@@ -377,6 +413,9 @@ export default {
 		// A qualifying auto-start tour whose first-step page is NOT the current
 		// route — held here until the user navigates to that page (see hookRouter).
 		this._pendingAutoTour = null
+		// The route the active step's target was first found on (see locateTarget).
+		this._homeRoute = null
+		this._modalObs = null
 	},
 
 	mounted() {
@@ -386,12 +425,27 @@ export default {
 		window.addEventListener('scroll', this._onScroll, true)
 		window.addEventListener('resize', this._onScroll)
 		this._onKey = (e) => {
-			if (e.key === 'Escape') {
-				this.onBackdrop()
+			if (e.key !== 'Escape' || !this.active) {
+				return
 			}
+			// ESC while an app dialog is open belongs to that dialog. It used
+			// to dismiss the tour too, so closing a create form ended it.
+			if (this.isAppModalOpen()) {
+				return
+			}
+			this.onBackdrop()
 		}
 		window.addEventListener('keydown', this._onKey)
-		this._onObjectCreated = (e) => this.wt.notify({ kind: 'object-created', object: (e && e.detail) || {} })
+		this._onObjectCreated = (e) => {
+			const d = (e && e.detail) || {}
+			this.wt.notify({
+				kind: 'object-created',
+				register: d.register,
+				schema: d.schema,
+				object: d.object && typeof d.object === 'object' ? d.object : d,
+			})
+		}
+		this.watchAppModals()
 		window.addEventListener('cn-walkthrough:object-created', this._onObjectCreated)
 		this.hookRouter()
 		if (this.active) {
@@ -404,6 +458,10 @@ export default {
 		window.removeEventListener('resize', this._onScroll)
 		window.removeEventListener('keydown', this._onKey)
 		window.removeEventListener('cn-walkthrough:object-created', this._onObjectCreated)
+		if (this._modalObs) {
+			this._modalObs.disconnect()
+			this._modalObs = null
+		}
 		if (typeof this._routeUnhook === 'function') {
 			this._routeUnhook()
 		}
@@ -411,6 +469,51 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether an app dialog (NcModal / NcDialog, or any other modal
+		 * dialog that is not this overlay) is open.
+		 *
+		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @return {boolean}
+		 */
+		isAppModalOpen() {
+			if (typeof document === 'undefined') {
+				return false
+			}
+			const own = this.$el
+			const nodes = document.querySelectorAll('.modal-mask, [role="dialog"][aria-modal="true"]')
+			for (const node of nodes) {
+				if (own && typeof own.contains === 'function' && (own === node || own.contains(node))) {
+					continue
+				}
+				return true
+			}
+			return false
+		},
+
+		/**
+		 * Follow app dialogs opening and closing, so the overlay steps back
+		 * while one is open and comes back after.
+		 *
+		 * @return {void}
+		 */
+		watchAppModals() {
+			const update = () => {
+				const open = this.isAppModalOpen()
+				if (open !== this.appModalOpen) {
+					this.appModalOpen = open
+					if (!open && this.active) {
+						this.$nextTick(() => this.locateTarget())
+					}
+				}
+			}
+			update()
+			if (typeof window !== 'undefined' && window.MutationObserver) {
+				this._modalObs = new MutationObserver(update)
+				this._modalObs.observe(document.body, { childList: true, subtree: true })
+			}
+		},
+
 		/**
 		 * Translate an i18n key/text via the `translate` prop when given.
 		 *
@@ -598,6 +701,23 @@ export default {
 				return
 			}
 			const el = this.resolveTarget(this.step)
+			// A step's target belongs to the page it was first found on. The
+			// same `index-add` button exists on every list page, and a step
+			// left half-done on Products used to spotlight the Clients page's
+			// button too, inviting a click that belonged to another step.
+			const kind = (this.step.target && this.step.target.kind) || ''
+			const routeName = this.$route ? this.$route.name : null
+			if (el && kind !== 'page' && kind !== 'nav-item' && routeName) {
+				if (this._homeRoute === null) {
+					this._homeRoute = routeName
+				} else if (this._homeRoute !== routeName) {
+					this.offPage = true
+					this.targetEl = null
+					this.rect = null
+					return
+				}
+			}
+			this.offPage = false
 			this.targetEl = el
 			if (!el) {
 				// Optional step whose target is absent → skip; else wait for it.
@@ -862,6 +982,10 @@ export default {
 		 * @return {void}
 		 */
 		focusCard() {
+			// Never take focus from an open app dialog.
+			if (this.appModalOpen) {
+				return
+			}
 			this.$nextTick(() => {
 				const btn = this.$refs.firstBtn && this.$refs.firstBtn.$el
 				if (btn && typeof btn.focus === 'function') {
@@ -1058,16 +1182,20 @@ export default {
 		},
 
 		/**
-		 * Dismiss the tour from a backdrop click or ESC.
+		 * Pause the tour from a backdrop click or ESC. The tour hides and
+		 * keeps its step; only Skip (the close button) and Finish end it.
+		 * Pressing ESC used to dismiss it, and the host recorded that as
+		 * "seen", so the tour never came back.
 		 *
+		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
 		 * @return {void}
 		 */
 		onBackdrop() {
-			this.wt.dismiss()
+			this.wt.pause()
 			/**
-			 * @event dismiss Emitted when the user dismisses the tour (backdrop / ESC).
+			 * @event pause Emitted when the user hides the tour (backdrop / ESC). The tour can continue later.
 			 */
-			this.$emit('dismiss')
+			this.$emit('pause')
 		},
 	},
 }
@@ -1124,6 +1252,11 @@ export default {
 	box-shadow: 0 2px 12px var(--color-box-shadow, rgba(0, 0, 0, 0.3));
 	padding: 16px;
 	pointer-events: auto;
+}
+
+.cn-walkthrough__card--docked {
+	inset-block-end: 16px;
+	inset-inline-start: 16px;
 }
 
 .cn-walkthrough__close {

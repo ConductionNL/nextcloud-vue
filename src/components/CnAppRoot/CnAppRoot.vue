@@ -199,7 +199,13 @@
 			<!-- @binding {boolean} isOwner Whether the user owns this app (ADR-079 §3). -->
 			<!-- @binding {boolean} isAdmin Whether the user administers the instance; gates the Admin-settings link. -->
 			<!-- @binding {string} appId The app id used to build the Admin-settings target. -->
-			<slot name="menu"
+			<!-- `hideMenu` renders no navigation at all, so the content starts
+			     at the left edge. An EMPTY #menu override cannot do that: an
+			     empty slot falls back to the default CnAppNav (ensureValidVNode),
+			     which is why launchpad passed a hidden empty span. -->
+			<slot
+				v-if="!hideMenu"
+				name="menu"
 				:manifest="menuManifest"
 				:permissions="permissions"
 				:isOwner="isOwner"
@@ -509,7 +515,7 @@
 					:resume="walkthroughResume"
 					:translate="translate"
 					@complete="onWalkthroughComplete"
-					@dismiss="onWalkthroughComplete" />
+					@progress="onWalkthroughProgress" />
 			</slot>
 			<!--
 			  User-settings modal. Always mounted so descendants can
@@ -554,12 +560,27 @@
 						<p class="cn-app-root__walkthrough-hint">
 							{{ restartWalkthroughHint }}
 						</p>
-						<NcButton variant="secondary" @click="restartWalkthroughFromSettings">
-							<template #icon>
-								<Restart :size="20" />
-							</template>
-							{{ restartWalkthroughLabel }}
-						</NcButton>
+						<div class="cn-app-root__walkthrough-actions">
+							<NcButton
+								v-if="walkthroughProgressValue"
+								variant="primary"
+								data-testid="cn-walkthrough-continue"
+								@click="continueWalkthroughFromSettings">
+								<template #icon>
+									<Play :size="20" />
+								</template>
+								{{ continueWalkthroughLabel }}
+							</NcButton>
+							<NcButton
+								variant="secondary"
+								data-testid="cn-walkthrough-restart"
+								@click="restartWalkthroughFromSettings">
+								<template #icon>
+									<Restart :size="20" />
+								</template>
+								{{ walkthroughProgressValue ? startOverWalkthroughLabel : restartWalkthroughLabel }}
+							</NcButton>
+						</div>
 					</NcAppSettingsSection>
 				</slot>
 				<!--
@@ -638,11 +659,13 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { loadState } from '@nextcloud/initial-state'
+import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { computed, reactive, shallowRef, watch } from 'vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import Play from 'vue-material-design-icons/Play.vue'
 import Restart from 'vue-material-design-icons/Restart.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
@@ -667,9 +690,12 @@ import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
 import { useUserPreferences } from '../../composables/useUserPreferences.js'
 import {
+	loadWalkthroughProgress,
 	loadWalkthroughSeenVersion,
 	normaliseSeenVersion,
+	persistWalkthroughProgress,
 	persistWalkthroughSeenVersion,
+	readLocalWalkthroughProgress,
 	readLocalWalkthroughSeenVersion,
 	useWalkthrough,
 } from '../../composables/useWalkthrough.js'
@@ -680,6 +706,7 @@ import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
 import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
 /**
@@ -749,6 +776,7 @@ export default {
 		NcNoteCard,
 		DatabaseSearchOutline,
 		OpenInNew,
+		Play,
 		Restart,
 		CnAppNav,
 		CnAppLoading,
@@ -1028,6 +1056,13 @@ export default {
 			 * the counts.
 			 */
 			cnMenuCounts: this.cnMenuCounts,
+			/**
+			 * Reactive `{ [menuItemId]: number }` totals for menu entries
+			 * whose `count` is an object (`{ register, schema, filter? }`),
+			 * populated by `_hydrateMenuItemCounts()`. Read by
+			 * `CnAppNav.resolveCount()`.
+			 */
+			cnMenuItemCounts: this.cnMenuItemCounts,
 		}
 	},
 
@@ -1169,6 +1204,19 @@ export default {
 		appId: {
 			type: String,
 			required: true,
+		},
+
+		/**
+		 * Render no app navigation at all: neither the default CnAppNav nor
+		 * the `#menu` slot, so the content starts at the left edge (a start
+		 * page without a menu). Off by default; the navigation renders as it
+		 * always has.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-app-root-can-hide-its-menu
+		 */
+		hideMenu: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -1687,6 +1735,13 @@ export default {
 			 */
 			cnMenuCounts: reactive({}),
 			/**
+			 * Reactive `{ [menuItemId]: number }` map of filtered totals, one
+			 * per menu entry whose `count` is an object. Provided to
+			 * descendants as `cnMenuItemCounts`. Populated by
+			 * `_hydrateMenuItemCounts()` at mount.
+			 */
+			cnMenuItemCounts: reactive({}),
+			/**
 			 * Open state of the host NcAppSettingsDialog. Toggled
 			 * to `true` by the provided `cnOpenUserSettings()`
 			 * method (CnAppNav binds this to manifest entries with
@@ -1776,6 +1831,15 @@ export default {
 			 * @type {string}
 			 */
 			walkthroughSeenVersionValue: readLocalWalkthroughSeenVersion(this.appId),
+			/**
+			 * Where the user is in an unfinished tour (`{ tourId, stepId,
+			 * index, version }`), or null. Seeded from the local mirror, then
+			 * replaced by the per-user `<completionConfigKey>-progress`
+			 * preference. The tour resumes at this step on the next visit.
+			 *
+			 * @type {object|null}
+			 */
+			walkthroughProgressValue: readLocalWalkthroughProgress(this.appId),
 			/**
 			 * Whether `walkthroughSeenVersionValue` is settled. Starts `true`
 			 * when the manifest declares no `completionConfigKey` (the local
@@ -2529,13 +2593,15 @@ export default {
 			try {
 				const p = new URLSearchParams(window.location.search)
 				const tourId = p.get('cn_resume_tour')
-				if (!tourId) {
-					return null
+				if (tourId) {
+					return { tourId, stepId: p.get('cn_resume_step') || '' }
 				}
-				return { tourId, stepId: p.get('cn_resume_step') || '' }
 			} catch {
-				return null
+				// No URL token; fall through to the remembered progress.
 			}
+			// An unfinished tour continues at the step the user reached.
+			const progress = this.walkthroughProgressValue
+			return progress ? { tourId: progress.tourId, stepId: progress.stepId } : null
 		},
 
 		phase() {
@@ -2779,6 +2845,24 @@ export default {
 		},
 
 		/**
+		 * Label for continuing an unfinished tour at the remembered step.
+		 *
+		 * @return {string}
+		 */
+		continueWalkthroughLabel() {
+			return t('nextcloud-vue', 'Continue where you left off')
+		},
+
+		/**
+		 * Label for restarting an unfinished tour from the first step.
+		 *
+		 * @return {string}
+		 */
+		startOverWalkthroughLabel() {
+			return t('nextcloud-vue', 'Start over')
+		},
+
+		/**
 		 * Resolve the active modal's Vue component from the registry.
 		 * Returns null when no modal is open or the key no longer resolves.
 		 *
@@ -2875,6 +2959,7 @@ export default {
 			this._validateRegistry()
 			this._warnCustomComponentsDeprecation()
 			this._hydrateMenuCounts()
+			this._hydrateMenuItemCounts()
 			return
 		}
 
@@ -2903,6 +2988,7 @@ export default {
 		this._validateRegistry()
 		this._warnCustomComponentsDeprecation()
 		this._hydrateMenuCounts()
+		this._hydrateMenuItemCounts()
 	},
 
 	beforeUnmount() {
@@ -3281,10 +3367,12 @@ export default {
 				return
 			}
 			try {
-				this.walkthroughSeenVersionValue = await loadWalkthroughSeenVersion(
-					this.appId,
-					this.walkthroughConfigKey,
-				)
+				const [seen, progress] = await Promise.all([
+					loadWalkthroughSeenVersion(this.appId, this.walkthroughConfigKey),
+					loadWalkthroughProgress(this.appId, this.walkthroughConfigKey),
+				])
+				this.walkthroughSeenVersionValue = seen
+				this.walkthroughProgressValue = progress
 			} finally {
 				this.walkthroughSeenResolved = true
 			}
@@ -3308,10 +3396,66 @@ export default {
 			// Fire-and-forget: the loader never rejects and the local mirror is
 			// already written, so a failed PUT must not surface as an error.
 			persistWalkthroughSeenVersion(this.appId, this.walkthroughConfigKey, v)
+			// A finished or skipped tour has nothing to continue.
+			if (this.walkthroughProgressValue) {
+				this.walkthroughProgressValue = null
+				persistWalkthroughProgress(this.appId, this.walkthroughConfigKey, null)
+			}
 			/**
 			 * @event walkthrough-complete Emitted when the walkthrough finishes or is dismissed.
 			 */
 			this.$emit('walkthrough-complete')
+		},
+
+		/**
+		 * Remember where the user is in the tour, so a reload or a restart
+		 * entry continues there (local mirror + per-user preference).
+		 *
+		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @param {object} progress `{ tourId, stepId, index }` from CnWalkthrough.
+		 * @return {void}
+		 */
+		onWalkthroughProgress(progress) {
+			if (!progress || !progress.tourId) {
+				return
+			}
+			// The first step of a fresh tour is where a restart lands anyway,
+			// so it costs no request.
+			if (progress.index === 0 && !this.walkthroughProgressValue) {
+				return
+			}
+			const value = {
+				tourId: progress.tourId,
+				stepId: progress.stepId || '',
+				index: progress.index || 0,
+				version: String((this.manifest && this.manifest.version) || ''),
+			}
+			this.walkthroughProgressValue = value
+			persistWalkthroughProgress(this.appId, this.walkthroughConfigKey, value)
+		},
+
+		/**
+		 * Continue an unfinished tour from the user-settings dialog: show a
+		 * paused tour again, or start the remembered tour at its step.
+		 *
+		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @return {void}
+		 */
+		continueWalkthroughFromSettings() {
+			this.userSettingsOpen = false
+			if (!this.walkthroughEnabled) {
+				return
+			}
+			setTimeout(() => {
+				const wt = useWalkthrough(this.appId, this.manifest)
+				if (wt.resumePaused()) {
+					return
+				}
+				const progress = this.walkthroughProgressValue
+				if (progress) {
+					wt.resumeAt(progress.tourId, progress.stepId)
+				}
+			}, 50)
 		},
 
 		/**
@@ -3502,6 +3646,63 @@ export default {
 		},
 
 		/**
+		 * Fetch the total of every menu entry (top level and children) whose
+		 * `count` is an object `{ register, schema, filter? }`: one
+		 * `GET /api/objects/{register}/{schema}?_limit=1` per entry with the
+		 * filter's tokens (`@me`, `@today`, ...) resolved at fetch time, the
+		 * response `total` written to `cnMenuItemCounts[item.id]`. The
+		 * request goes straight through axios rather than the object store,
+		 * so the index page's whole-schema total in the store is left alone.
+		 * Failures leave the badge unrendered.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-menu-entry-counts-a-filtered-list
+		 * @return {void}
+		 * @private
+		 */
+		_hydrateMenuItemCounts() {
+			const collect = (items) => {
+				const out = []
+				for (const item of items ?? []) {
+					const count = item?.count
+					if (count && typeof count === 'object' && typeof item.id === 'string' && count.register && count.schema) {
+						out.push(item)
+					}
+					if (Array.isArray(item?.children)) {
+						out.push(...collect(item.children))
+					}
+				}
+				return out
+			}
+			for (const item of collect(this.manifest?.menu)) {
+				this._fetchMenuItemCount(item)
+			}
+		},
+
+		/**
+		 * One filtered-count request for a menu entry; see
+		 * `_hydrateMenuItemCounts`.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-menu-entry-counts-a-filtered-list
+		 * @param {{ id: string, count: { register: string, schema: string, filter?: object } }} item The menu entry.
+		 * @return {Promise<void>}
+		 * @private
+		 */
+		async _fetchMenuItemCount(item) {
+			try {
+				const { register, schema, filter } = item.count
+				const resolved = resolveFilterTokens(filter && typeof filter === 'object' ? filter : {}, {})
+				const url = generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(register)}/${encodeURIComponent(schema)}`)
+				const { data } = await axios.get(url, { params: { _limit: 1, ...resolved } })
+				const total = data?.total
+				if (typeof total === 'number' && total >= 0) {
+					this.cnMenuItemCounts[item.id] = total
+				}
+			} catch {
+				// Non-fatal: the badge stays unrendered.
+			}
+		},
+
+		/**
 		 * Hydrate all menu counts with a single `POST /api/objects/counts`
 		 * (OpenRegister batched-counts endpoint). Distributes each returned
 		 * count into the reactive `cnMenuCounts` map. Rejects (so the caller
@@ -3644,6 +3845,12 @@ export default {
 .cn-app-root__walkthrough-hint {
 	margin-bottom: 12px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-app-root__walkthrough-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 .cn-app-root__integrations-hint {

@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<div class="cn-header-widget" :class="{ 'cn-header-widget--plain': isPlain }" :style="wrapperStyle">
+	<div class="cn-header-widget" :class="{ 'cn-header-widget--plain': isPlain, 'cn-header-widget--ground': isGround, 'cn-header-widget--with-views': viewOptions.length > 0 }" :style="wrapperStyle">
 		<div
 			v-if="hasOverlay"
 			class="cn-header-widget__overlay"
@@ -34,6 +34,19 @@
 				{{ ctaLabel }}
 			</a>
 		</div>
+		<!-- A view switch at the right of the heading (`content.views`): "My
+		     work / My team" as a segmented control whose options are routes,
+		     or views of the page the widget sits on (`option.view`); a view
+		     option controls the page's view region. -->
+		<div v-if="viewOptions.length > 0" class="cn-header-widget__views">
+			<CnSegmentedControl
+				:options="viewOptions"
+				:modelValue="activeView"
+				:ariaLabel="viewsLabel"
+				:controls="viewsRegionId"
+				data-testid="cn-header-widget-views"
+				@update:modelValue="onViewChange" />
+		</div>
 		<img
 			v-if="hasBackgroundImage"
 			class="cn-header-widget__probe"
@@ -47,6 +60,7 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
+import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 
 const ALLOWED_OVERLAY_MODES = ['none', 'tint', 'gradient-bottom']
@@ -54,6 +68,9 @@ const ALLOWED_HEIGHTS = ['small', 'medium', 'large', 'xlarge']
 const ALLOWED_TEXT_ALIGN = ['left', 'center', 'right']
 const ALLOWED_VERTICAL_ALIGN = ['top', 'middle', 'bottom']
 const ALLOWED_CTA_STYLES = ['primary', 'secondary', 'ghost']
+
+/** Marks a switch option that selects a page view rather than a route. */
+const VIEW_OPTION_PREFIX = 'view:'
 
 const HEIGHT_PIXELS = Object.freeze({
 	small: 120,
@@ -99,6 +116,8 @@ const VERTICAL_ALIGN_FLEX = Object.freeze({
 export default {
 	name: 'CnHeaderWidget',
 
+	components: { CnSegmentedControl },
+
 	inject: {
 		/**
 		 * Host translate function provided by CnAppRoot as
@@ -108,6 +127,12 @@ export default {
 		 * untranslated key renders as itself.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * The views of the page this widget sits on, provided by
+		 * CnDashboardPage / CnDetailPage (`views`). An option with a `view`
+		 * selects one of them. Null outside such a page.
+		 */
+		cnPageViews: { default: null },
 	},
 
 	props: {
@@ -115,9 +140,18 @@ export default {
 		 * Persisted widget content: `{title, subtitle, backgroundImageUrl,
 		 * backgroundImageFileId, backgroundColor, overlayMode, overlayColor,
 		 * overlayOpacity, textColor, textAlign, verticalAlign, height, cta,
-		 * greeting, showDate, plain}`. All fields are optional except `title`
-		 * (or `greeting`); unknown enum values collapse to documented defaults
-		 * and the renderer never throws.
+		 * greeting, showDate, plain, ground, views}`. All fields are optional except
+		 * `title` (or `greeting`); unknown enum values collapse to documented
+		 * defaults and the renderer never throws. `views` is
+		 * `{ ariaLabel?, options: [{ label, route, params? } | { label, view }] }`:
+		 * a segmented control at the right of the heading whose checked option
+		 * is the current route; choosing another pushes its route. An option
+		 * with `view` selects that view of the page the widget sits on (the
+		 * page's `views`) instead, and the page then draws no switch of its
+		 * own. `ground: true`
+		 * draws the greeting on the page ground: the plain look with no
+		 * padding, a 32px heading and the date line 6px above it (a dashboard
+		 * also drops the widget's card for it).
 		 *
 		 * @type {object}
 		 */
@@ -199,12 +233,112 @@ export default {
 		},
 
 		/**
+		 * The view switch's options from `content.views.options`: each
+		 * `{ label, route, params? }` with a non-empty label and route becomes
+		 * a segmented-control option keyed on its route name (the label goes
+		 * through the host translate function). Empty without a router, so
+		 * the switch cannot offer routes it cannot follow.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-greeting-header-switches-views
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		viewOptions() {
+			const raw = this.content && this.content.views && this.content.views.options
+			if (!Array.isArray(raw)) {
+				return []
+			}
+			const pageViewIds = this.pageViewIds
+			return raw
+				.filter((o) => o && typeof o.label === 'string' && o.label !== '')
+				.map((o) => {
+					if (typeof o.view === 'string' && o.view !== '') {
+						return pageViewIds.includes(o.view) ? { value: VIEW_OPTION_PREFIX + o.view, label: this.cnTranslate(o.label) } : null
+					}
+					if (typeof o.route === 'string' && o.route !== '' && this.$router) {
+						return { value: o.route, label: this.cnTranslate(o.label) }
+					}
+					return null
+				})
+				.filter(Boolean)
+		},
+
+		/**
+		 * The ids of the page's views, empty outside a page with views.
+		 *
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-greeting-header-can-switch-the-pages-views
+		 * @return {string[]}
+		 */
+		pageViewIds() {
+			const views = this.cnPageViews && Array.isArray(this.cnPageViews.views) ? this.cnPageViews.views : []
+			return views.map((view) => view.id)
+		},
+
+		/**
+		 * The id of the page's view region when an option selects a view,
+		 * for the options' `aria-controls`; '' otherwise.
+		 *
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-the-view-switch-is-accessible
+		 * @return {string}
+		 */
+		viewsRegionId() {
+			const hasViewOption = this.viewOptions.some((o) => o.value.startsWith(VIEW_OPTION_PREFIX))
+			return hasViewOption && this.cnPageViews ? (this.cnPageViews.regionId || '') : ''
+		},
+
+		/**
+		 * The checked view: the option whose route is the current route, else
+		 * the first option (a switch always has one checked option).
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-greeting-header-switches-views
+		 * @return {string|null}
+		 */
+		activeView() {
+			const options = this.viewOptions
+			if (options.length === 0) {
+				return null
+			}
+			const activeView = this.cnPageViews ? this.cnPageViews.activeId : null
+			const viewMatch = activeView ? options.find((o) => o.value === VIEW_OPTION_PREFIX + activeView) : null
+			if (viewMatch) {
+				return viewMatch.value
+			}
+			const current = this.$route && this.$route.name
+			const match = options.find((o) => o.value === current)
+			return match ? match.value : options[0].value
+		},
+
+		/**
+		 * Accessible name of the view switch: `content.views.ariaLabel`
+		 * through the host translate function, else "View".
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-greeting-header-switches-views
+		 * @return {string}
+		 */
+		viewsLabel() {
+			const label = this.content && this.content.views && this.content.views.ariaLabel
+			return label ? this.cnTranslate(label) : t('nextcloud-vue', 'Views')
+		},
+
+		/**
 		 * Whether the plain presentation is on (no coloured background).
 		 *
 		 * @return {boolean}
 		 */
 		isPlain() {
-			return Boolean(this.content && this.content.plain === true)
+			return Boolean(this.content && (this.content.plain === true || this.content.ground === true))
+		},
+
+		/**
+		 * Whether the greeting sits on the page ground (`content.ground`):
+		 * the plain look without the card padding, so the date line and the
+		 * heading align with the page edge as the board draws them. Off by
+		 * default.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-greeting-can-sit-on-the-page-ground
+		 * @return {boolean}
+		 */
+		isGround() {
+			return Boolean(this.content && this.content.ground === true)
 		},
 
 		/**
@@ -490,7 +624,9 @@ export default {
 			return {
 				position: 'relative',
 				'z-index': 1,
-				width: '100%',
+				// Beside a view switch the content shares the row instead of
+				// taking the whole width (see .cn-header-widget--with-views).
+				width: this.viewOptions.length > 0 ? 'auto' : '100%',
 				height: '100%',
 				display: 'flex',
 				'flex-direction': 'column',
@@ -498,9 +634,10 @@ export default {
 				'justify-content': VERTICAL_ALIGN_FLEX[this.verticalAlign],
 				// Plain drops the coloured background, not the card padding:
 				// at 0 the greeting sat flush against the card's left edge.
-				padding: this.isPlain ? '16px' : '16px 24px',
+				// Ground has no card, so it has no padding either.
+				padding: this.isGround ? '0' : (this.isPlain ? '16px' : '16px 24px'),
 				'box-sizing': 'border-box',
-				gap: '8px',
+				gap: this.isGround ? '6px' : '8px',
 				'text-align': this.textAlign,
 			}
 		},
@@ -605,6 +742,32 @@ export default {
 
 	methods: {
 		/**
+		 * Follow the chosen view: push its route (with the option's `params`
+		 * when declared). Nothing happens for the route already shown.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-greeting-header-switches-views
+		 * @param {string} route The chosen option's route name.
+		 * @return {void}
+		 */
+		onViewChange(route) {
+			if (typeof route === 'string' && route.startsWith(VIEW_OPTION_PREFIX)) {
+				if (this.cnPageViews && typeof this.cnPageViews.select === 'function') {
+					this.cnPageViews.select(route.slice(VIEW_OPTION_PREFIX.length))
+				}
+				return
+			}
+			if (!this.$router || !route || route === (this.$route && this.$route.name)) {
+				return
+			}
+			const declared = (this.content.views.options || []).find((o) => o && o.route === route) || {}
+			const target = { name: route }
+			if (declared.params && typeof declared.params === 'object') {
+				target.params = declared.params
+			}
+			this.$router.push(target)
+		},
+
+		/**
 		 * Mark the background image as broken so the renderer falls back to
 		 * the solid colour.
 		 *
@@ -653,6 +816,40 @@ export default {
 .cn-header-widget--plain {
 	min-height: 0;
 	border-radius: 0;
+}
+
+/* With a view switch the heading and the switch share one row, the switch
+   at the right and bottom-aligned with the heading; on a narrow card the
+   switch wraps under it. */
+.cn-header-widget--with-views {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: calc(2 * var(--default-grid-baseline)) calc(4 * var(--default-grid-baseline));
+}
+
+.cn-header-widget--with-views .cn-header-widget__content {
+	flex: 1 1 320px;
+	width: auto;
+}
+
+.cn-header-widget__views {
+	position: relative;
+	z-index: 1;
+	flex: 0 0 auto;
+	padding: 16px;
+}
+
+/* On the page ground (`content.ground`): no card, so no inset around the
+   view switch, and the heading at the board's 32px. */
+.cn-header-widget--ground .cn-header-widget__views {
+	padding: 0;
+}
+
+.cn-header-widget--ground .cn-header-widget__title {
+	font-size: var(--cn-header-ground-title-size, 32px);
+	letter-spacing: -0.01em;
 }
 
 .cn-header-widget__date {
@@ -726,7 +923,7 @@ export default {
 	height: 1px;
 	opacity: 0;
 	pointer-events: none;
-	left: -9999px;
+	inset-inline-start: -9999px;
 	top: -9999px;
 }
 

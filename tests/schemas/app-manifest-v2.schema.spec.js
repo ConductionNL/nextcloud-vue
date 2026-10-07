@@ -1266,6 +1266,31 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.errors).toEqual([])
 	})
 
+	it('accepts `loadAction` on a cards choice and `requires` on any step', () => {
+		const result = validateManifestV2({
+			...MINIMAL_V2,
+			setup: {
+				steps: [
+					{ id: 'demo-data', type: 'choice', display: 'cards', optionsSource: 'datasets', configKey: 'demo_dataset', loadAction: 'load-demo-data' },
+					{ id: 'invoices', type: 'run-action', action: 'link-invoices', requires: ['shillinq'] },
+				],
+			},
+		})
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('rejects an empty `loadAction` and a non-array `requires`', () => {
+		expect(validateManifestV2({
+			...MINIMAL_V2,
+			setup: { steps: [{ id: 'demo-data', type: 'choice', loadAction: '' }] },
+		}).valid).toBe(false)
+		expect(validateManifestV2({
+			...MINIMAL_V2,
+			setup: { steps: [{ id: 'invoices', type: 'run-action', requires: 'shillinq' }] },
+		}).valid).toBe(false)
+	})
+
 	it('rejects a non-boolean `onDemand`', () => {
 		const result = validateManifestV2({
 			...MINIMAL_V2,
@@ -1274,7 +1299,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.45.0', () => {
+	it('the manifest schema version reads 2.49.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1288,9 +1313,40 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// vendored copy in ConductionNL/.github could not see the schema had
 		// moved. app-manifest-v2.schema-version.spec.js now fails when the
 		// content changes and this number does not. 2.44.0 adds menu-entry
-		// `params`; 2.45.0 the `builtin:*` row action placeholders.
+		// `params`. 2.45.0 adds the setup step's `loadAction` and `requires`.
+		// 2.46.0 adds the Zuiddrecht pixel-gap keys: nav.card, nav.help,
+		// nav.brand.emblem, primaryAction action/solid/permission/visibleIf,
+		// the object form of menuItem.count, widgets[].headerLink and the
+		// page config keys showHeader, showTitle, countSubtitle,
+		// showTypeEyebrow and breadcrumb. 2.47.0 adds round two: nav.footer,
+		// breadcrumb.icon, and the page config keys showWidgetActions,
+		// headerCard and headerWidget. 2.48.0 adds page views: the page
+		// config keys views, defaultView and viewsLabel. 2.48.1 only rewords
+		// the setup step's `requires`: a skipped step is not applicable.
+		// 2.49.0 adds the `builtin:*` row action placeholders.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.45.0')
+		expect(schema.version).toBe('2.49.0')
+	})
+
+	it('accepts page views on a dashboard and a detail page, and refuses a view without an id or label', () => {
+		const views = [
+			{ id: 'mine', label: 'My work', widgets: [{ id: 'my-cases', type: 'object-table' }], layout: [{ id: '1', widgetId: 'my-cases', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 4 }] },
+			{ id: 'team', label: 'My team', emptyText: 'Nobody in your team has open cases.' },
+		]
+		const page = (type, config) => ({ ...MINIMAL_V2, pages: [{ id: 'P', route: '/p', type, title: 'P', config }] })
+		expect(validateManifestV2(page('dashboard', { views, defaultView: 'team', viewsLabel: 'Whose work' })).valid).toBe(true)
+		expect(validateManifestV2(page('detail', { register: 'r', schema: 's', views })).valid).toBe(true)
+		expect(validateManifestV2(page('dashboard', { views: [{ label: 'No id' }] })).valid).toBe(false)
+		expect(validateManifestV2(page('dashboard', { views: [{ id: 'x' }] })).valid).toBe(false)
+		expect(validateManifestV2(page('dashboard', { views: [{ id: 'has space', label: 'X' }] })).valid).toBe(false)
+	})
+
+	it('accepts the round-two Zuiddrecht keys and refuses a footer that is not a list of ids', () => {
+		const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'P', route: '/p', type: 'detail', title: 'P', config }] })
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { footer: ['settings', 'help'] } }).valid).toBe(true)
+		expect(validateManifestV2({ ...MINIMAL_V2, nav: { footer: 'settings' } }).valid).toBe(false)
+		expect(validateManifestV2(page({ register: 'r', schema: 's', headerCard: true, headerWidget: 'case-stages', breadcrumb: { label: 'All cases', route: 'Cases', icon: 'Home' } })).valid).toBe(true)
+		expect(validateManifestV2({ ...MINIMAL_V2, pages: [{ id: 'D', route: '/d', type: 'dashboard', title: 'D', config: { showWidgetActions: false } }] }).valid).toBe(true)
 	})
 
 	it('accepts a declarative `store` block, and requires the remote schema', () => {

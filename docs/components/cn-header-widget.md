@@ -29,3 +29,30 @@ Three optional `content` keys turn the header into a greeting. Without them the 
 ```json
 { "widgetKey": "header", "props": { "content": { "greeting": true, "showDate": true, "plain": true } } }
 ```
+
+## A view switch beside the greeting (`views`)
+
+`content.views` puts a [CnSegmentedControl](./cn-segmented-control.md) at the right of the heading: `{ ariaLabel?, options: [{ label, route, params? }] }`. The checked option is the one whose route is current (else the first); choosing another pushes its route. Without a router nothing renders. Labels and `ariaLabel` go through the host translate function.
+
+```json
+{ "widgetKey": "header", "props": { "content": { "greeting": true, "showDate": true, "plain": true,
+  "views": { "ariaLabel": "View", "options": [{ "label": "My work", "route": "Dashboard" }, { "label": "My team", "route": "TeamDashboard" }] } } } }
+```
+
+### Switching the page's views (`option.view`)
+
+An option can carry `view` instead of `route`: `{ "label": "My team", "view": "team" }`. It then selects that view of the page the widget sits on (the page's `views`, see [CnDashboardPage](./cn-dashboard-page.md#views-behind-a-switch-views)) instead of navigating, and every option points `aria-controls` at the page's view region. An option whose `view` names no view of the page is left out. Route and view options can be mixed: a route option still navigates. A view option works without a router.
+
+```json
+{ "id": "greeting", "type": "header", "content": { "greeting": true, "showDate": true, "ground": true,
+  "views": { "ariaLabel": "Whose work", "options": [{ "label": "My work", "view": "mine" }, { "label": "My team", "view": "team" }] } } }
+```
+
+## On the page ground (`ground`)
+
+`content.ground: true` draws the greeting on the page ground instead of in a card: the `plain` look with no padding, the date line 6px above the heading, and the heading at 32px (`--cn-header-ground-title-size`). On a dashboard the widget then has no card either.
+
+```json
+{ "type": "header", "content": { "greeting": true, "showDate": true, "ground": true,
+  "views": { "ariaLabel": "View", "options": [{ "label": "My work", "route": "Dashboard" }, { "label": "My team", "route": "TeamDashboard" }] } } }
+```
