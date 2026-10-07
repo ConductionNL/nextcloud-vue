@@ -203,3 +203,5 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | `sortOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
 | `sortValue` | String | `''` | Selected sort option value (controlled). |
 | `sortLabel` | String | *(i18n)* | Accessible label for the sort dropdown. |
+
+`showCount` (Boolean, default `true`): `false` drops the "Showing 20 of 258" line. `showActionsMenu` (Boolean, default `true`): `false` drops the overflow Actions menu, for a page that offers its actions as buttons elsewhere (CnIndexPage `headerButtons`).

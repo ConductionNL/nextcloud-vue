@@ -151,3 +151,5 @@ export default {
 | Slot | Scope | Description |
 |---|---|---|
 | `value` | `{ count, formatted }` | Override the prominently-displayed value — render a pre-formatted string (currency, percent, a "—" placeholder, …). `count` is the raw `count` prop; `formatted` is the locale-formatted string the default slot renders. Useful for currency / unit prefixes (e.g. `€{{ formatted }}`). |
+
+`layout` (String, default empty): `stacked` is the board's tile, as CnStatWidget `content.layout: "stacked"`: no icon circle, a 14px muted title, the number at 34px/700 and the unit on a muted line under it.
