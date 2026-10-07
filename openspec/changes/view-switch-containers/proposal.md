@@ -23,7 +23,7 @@ This change adds manifest-declared views to `type: "dashboard"` and
    `content.views.options[]` carry a `view` instead of a `route`. Route options
    keep working.
 3. The chosen view is in the address (`?view=<id>`) so it can be linked, and is
-   remembered per user and page in the browser. The address wins over the
+   remembered per user and page in their preferences. The address wins over the
    remembered view.
 4. The control is a radio group that controls the view region. Arrow keys move
    the choice and focus stays on the control.
@@ -50,7 +50,5 @@ empty area below the attention card where the grid should be.
 
 ## Out of scope
 
-- Storing the chosen view on the server. The browser store matches how the
-  dashboard keeps its date range; the address carries it across devices.
 - Per-user arrangement of a view's grid (`userLayout` applies to the page's
   own `layout` only).

@@ -35,4 +35,4 @@
 ### Task 6: Schema, docs and strings
 - **files**: `src/schemas/app-manifest-v2.schema.json`, `docs/components/cn-dashboard-page.md`, `docs/components/cn-detail-page.md`, `docs/components/cn-header-widget.md`, `l10n/en.json`, `l10n/nl.json`, `CHANGELOG.md`
 - [x] Implement
-- [ ] Test
+- [x] Test

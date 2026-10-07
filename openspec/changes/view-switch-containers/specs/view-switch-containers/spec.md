@@ -45,8 +45,9 @@ above the region.
 ### Requirement: The chosen view is linkable and remembered
 
 The page SHALL write the chosen view to the address as the `view` query
-parameter (replacing the history entry) and to the browser store under a key
-made of the page id. On load the page SHALL take the view from the address
+parameter (replacing the history entry) and to the user's preferences (the
+app's preferences endpoint, mirrored in the browser) under a key made of the
+page id, else the route name. On load the page SHALL take the view from the address
 first, then from the store, then `defaultView`, then the first view. An id
 that names no view SHALL be ignored.
 
