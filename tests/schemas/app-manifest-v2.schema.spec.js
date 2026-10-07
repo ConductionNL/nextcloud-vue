@@ -1321,8 +1321,9 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// showTypeEyebrow and breadcrumb. 2.47.0 adds round two: nav.footer,
 		// breadcrumb.icon, and the page config keys showWidgetActions,
 		// headerCard and headerWidget. 2.48.0 adds page views: the page
-		// config keys views, defaultView and viewsLabel. 2.49.0 describes
-		// nav.settingsLabel's new default, "Advanced".
+		// config keys views, defaultView and viewsLabel. 2.48.1 only rewords
+		// the setup step's `requires`: a skipped step is not applicable.
+		// 2.49.0 describes nav.settingsLabel's new default, "Advanced".
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
 		expect(schema.version).toBe('2.49.0')
 	})

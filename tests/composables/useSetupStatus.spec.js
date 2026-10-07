@@ -156,3 +156,103 @@ describe('useSetupStatus', () => {
 		expect(s.requiredUnmet.value.map((x) => x.id)).toEqual(['region'])
 	})
 })
+
+/**
+ * A step that declares `requires: [appId]` is skipped by CnSetupWizard while
+ * any of those apps is not installed and enabled (#1326). Setup status used to
+ * ignore `requires`, so such a step stayed "unmet" for ever: an optional one
+ * reopened the non-gating wizard over every page, and a required one gated the
+ * app behind a wizard that never showed the step. Found by the fleet rollout.
+ *
+ * @spec openspec/changes/optional-step-requires/specs/cn-setup-wizard/spec.md#requirement-a-step-whose-required-apps-are-absent-is-not-applicable
+ */
+describe('useSetupStatus — a step whose required apps are absent is not applicable', () => {
+	const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
+	const requiresManifest = {
+		setup: {
+			enabled: true,
+			version: 1,
+			steps: [
+				{ id: 'currency', type: 'choice', required: true },
+				{ id: 'link-invoices', type: 'run-action', requires: ['shillinq'] },
+				{ id: 'link-ledger', type: 'run-action', required: true, requires: ['shillinq'] },
+				{ id: 'seed', type: 'run-action' },
+			],
+		},
+	}
+	const allUndone = {
+		version: 1,
+		completed: false,
+		steps: { currency: { done: true }, 'link-invoices': { done: false }, 'link-ledger': { done: false }, seed: { done: false } },
+	}
+
+	/**
+	 * Inject the `dependency_statuses` initial state the way Nextcloud does.
+	 *
+	 * @param {string} appId The app the state belongs to.
+	 * @param {object} statuses Statuses keyed by app id.
+	 */
+	function injectStatuses(appId, statuses) {
+		const el = document.createElement('input')
+		el.type = 'hidden'
+		el.id = `initial-state-${appId}-dependency_statuses`
+		el.value = Buffer.from(JSON.stringify(statuses)).toString('base64')
+		document.body.appendChild(el)
+	}
+
+	beforeEach(() => {
+		__resetSetupStatusCacheForTests()
+		__resetAppStatusCacheForTests()
+		axios.get.mockReset()
+		axios.get.mockResolvedValue({ data: allUndone })
+	})
+
+	afterEach(() => {
+		delete global.OC
+		document.body.innerHTML = ''
+	})
+
+	it('counts neither an optional nor a required step as unmet while its app is absent', async () => {
+		global.OC = { appswebroots: {} }
+		const s = useSetupStatus('pipelinq', requiresManifest)
+		await s.refresh()
+		expect(s.requiredUnmet.value.map((x) => x.id)).toEqual([])
+		expect(s.optionalUnmet.value.map((x) => x.id)).toEqual(['seed'])
+		expect(s.optionalUnmetReported.value.map((x) => x.id)).toEqual(['seed'])
+		expect(s.notApplicable.value.map((x) => x.id)).toEqual(['link-invoices', 'link-ledger'])
+		const step = s.steps.value.find((x) => x.id === 'link-invoices')
+		expect(step.applicable).toBe(false)
+		expect(step.missingApps).toEqual(['shillinq'])
+	})
+
+	it('POSITIVE CONTROL: counts both steps as unmet once the app is installed and enabled', async () => {
+		global.OC = { appswebroots: { shillinq: '/apps/shillinq' } }
+		const s = useSetupStatus('pipelinq', requiresManifest)
+		await s.refresh()
+		expect(s.requiredUnmet.value.map((x) => x.id)).toEqual(['link-ledger'])
+		expect(s.optionalUnmet.value.map((x) => x.id)).toEqual(['link-invoices', 'seed'])
+		expect(s.notApplicable.value).toEqual([])
+	})
+
+	it('uses the server-reported dependency_statuses first, as the wizard does', async () => {
+		// The browser heuristic would say "present"; the server says installed
+		// but disabled. The server wins, exactly as in the wizard's gate.
+		global.OC = { appswebroots: { shillinq: '/apps/shillinq' } }
+		injectStatuses('pipelinq', { shillinq: { installed: true, enabled: false } })
+		const s = useSetupStatus('pipelinq', requiresManifest)
+		await s.refresh()
+		expect(s.requiredUnmet.value.map((x) => x.id)).toEqual([])
+		expect(s.optionalUnmet.value.map((x) => x.id)).toEqual(['seed'])
+	})
+
+	it('treats a step as not applicable when only one of several required apps is absent', async () => {
+		global.OC = { appswebroots: { shillinq: '/apps/shillinq' } }
+		const s = useSetupStatus('pipelinq', {
+			setup: { enabled: true, steps: [{ id: 'both', type: 'run-action', requires: ['shillinq', 'filinq'] }] },
+		})
+		axios.get.mockResolvedValue({ data: { version: 1, completed: true, steps: { both: { done: false } } } })
+		await s.refresh()
+		expect(s.optionalUnmet.value).toEqual([])
+		expect(s.steps.value[0].missingApps).toEqual(['filinq'])
+	})
+})

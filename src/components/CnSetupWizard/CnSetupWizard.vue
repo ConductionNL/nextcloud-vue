@@ -199,13 +199,12 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
-import { loadState } from '@nextcloud/initial-state'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnChoiceCards from '../CnChoiceCards/CnChoiceCards.vue'
 import CnLeafDependencySettings from '../CnLeafDependencySettings/CnLeafDependencySettings.vue'
 import CnWizardDialog from '../CnWizardDialog/CnWizardDialog.vue'
-import { checkDependencies, isDependencyResolved } from '../../composables/useDependencyCheck.js'
+import { checkDependencies, isDependencyResolved, missingRequiredApps, readServerAppStatuses } from '../../composables/useDependencyCheck.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
 
@@ -474,16 +473,15 @@ export default {
 		 *
 		 * @return {Array<{ step: object, missing: Array<string> }>}
 		 * @spec openspec/changes/setup-wizard-card-load-and-dependency-gate/specs/cn-setup-wizard/spec.md#requirement-the-wizard-checks-dependencies-before-any-step
+		 * @spec openspec/changes/optional-step-requires/specs/cn-setup-wizard/spec.md#requirement-a-step-whose-required-apps-are-absent-is-not-applicable
 		 */
 		skippedSteps() {
 			return this.declaredSteps
 				.filter((s) => Array.isArray(s.requires) && s.requires.length > 0)
 				.map((step) => {
 					const known = Object.fromEntries(this.dependencyRows.map((d) => [d.id, d]))
-					const missing = checkDependencies(step.requires, this.serverAppStatuses)
-						.map((row) => known[row.id] || row)
-						.filter((row) => !isDependencyResolved(row))
-						.map((row) => row.name || row.id)
+					const missing = missingRequiredApps(step.requires, this.serverAppStatuses)
+						.map((row) => (known[row.id] || row).name || row.id)
 					return { step, missing }
 				})
 				.filter((entry) => entry.missing.length > 0)
@@ -523,11 +521,7 @@ export default {
 		 * @return {object}
 		 */
 		serverAppStatuses() {
-			try {
-				return loadState(this.appId, 'dependency_statuses', {}) || {}
-			} catch {
-				return {}
-			}
+			return readServerAppStatuses(this.appId)
 		},
 
 		/**
