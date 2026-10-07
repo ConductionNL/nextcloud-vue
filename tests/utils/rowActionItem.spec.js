@@ -34,6 +34,9 @@ describe('rowActionItem', () => {
 	it('slugifies a label', () => {
 		expect(slugifyActionLabel('File list!')).toBe('file-list')
 		expect(slugifyActionLabel(undefined)).toBe('')
+		expect(slugifyActionLabel('--Edit  row--')).toBe('edit-row')
+		expect(slugifyActionLabel('-')).toBe('')
+		expect(slugifyActionLabel('-'.repeat(50000) + 'a')).toBe('a')
 	})
 
 	it('applies visible and a local visibleWhen', () => {
