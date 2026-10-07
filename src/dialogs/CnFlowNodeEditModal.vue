@@ -46,6 +46,7 @@
 				     short fixed vocabulary with no endpoint of its own. -->
 				<template v-else-if="widgetFor(key) === 'select'">
 					<NcSelect :modelValue="selectedOption(key)"
+						class="cn-flow-node-edit__select"
 						:options="selectOptions[key] || []"
 						:inputLabel="labelFor(key)"
 						:loading="selectLoading[key] === true"
@@ -937,8 +938,15 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
+/* Full width, like the text fields around it: at its natural width the
+   picker cut every option label in half. */
+.cn-flow-node-edit__select {
+	width: 100%;
+}
+
 .cn-flow-node-edit__field-help {
 	margin: 4px 0 0;
+	padding-inline-start: 8px;
 	font-size: 0.85em;
 	color: var(--color-text-maxcontrast);
 }
