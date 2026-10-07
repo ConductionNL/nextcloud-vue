@@ -67,3 +67,7 @@ The segments take their colour from one ramp built on the theme: a light tint of
 ## Accessibility
 
 The legend is a list that holds every label and count. The bar is a picture of that list, so it is `aria-hidden` and nothing is read twice.
+
+## `content.inset`
+
+`inset: true` draws the bar and legend inside the board's inset (16px above, 24px at the sides, 22px below; theme hook `--cn-widget-board-inset`) instead of from card edge to card edge. Off by default.

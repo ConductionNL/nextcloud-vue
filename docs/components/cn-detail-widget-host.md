@@ -96,3 +96,7 @@ Integration widgets (`type: "integration"`) already degrade this way through the
 - [`CnTabsWidget`](./cn-tabs-widget.md), the bare-mode surface
 
 <GeneratedRef />
+
+## `showActions`
+
+`showActions` (default `true`) is the surface's answer for the widget's overflow Actions menu when the definition does not say: a definition's own `showActions` boolean wins. CnDetailPage passes its `showWidgetActions`.

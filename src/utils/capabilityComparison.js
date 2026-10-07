@@ -22,6 +22,34 @@
  * @module utils/capabilityComparison
  */
 
+/*
+ * `process.env.NODE_ENV` is substituted by every consuming app's bundler at
+ * build time (webpack's DefinePlugin, rollup's replace); see NcSelectTags.js.
+ */
+/* global process */
+
+let deprecationWarned = false
+
+/**
+ * Warn once per page load, in a development build only, that the in-app
+ * capability comparison is deprecated. Called by CnFeaturesAndRoadmapPage,
+ * CnFeaturesAndRoadmapView and CnCapabilityTable when a comparison is
+ * actually given, so an app that passes none hears nothing.
+ *
+ * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-the-in-app-capability-comparison-is-deprecated
+ * @param {string} source What carried the comparison, for the message.
+ * @return {boolean} True when this call printed the warning.
+ */
+export function warnCapabilityComparisonDeprecated(source) {
+	if (deprecationWarned || process.env.NODE_ENV === 'production') {
+		return false
+	}
+	deprecationWarned = true
+	// eslint-disable-next-line no-console -- a deliberate deprecation notice to the developer integrating the component
+	console.warn(`[nextcloud-vue] ${source} is deprecated: the in-app capability comparison (capabilityComparison, the features_roadmap_capabilities initial state, CnCapabilityTable) will be removed in a future major version. Publish the comparison on the app's docs site and link to it instead.`)
+	return true
+}
+
 /**
  * Ratings in the order they are counted and rendered.
  *

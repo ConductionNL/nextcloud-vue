@@ -10,6 +10,18 @@
 	padding: calc(5 * var(--default-grid-baseline));
 }
 
+/* The board's header buttons (`headerButtons`) at the end of the title row,
+   centred on the title and its count line. They wrap under the title on a
+   narrow page. */
+.cn-index-page__header-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	align-self: center;
+	gap: calc(2 * var(--default-grid-baseline));
+	margin-inline-start: auto;
+}
+
 .cn-index-page__below-header {
     margin-bottom: calc(4 * var(--default-grid-baseline));
 }

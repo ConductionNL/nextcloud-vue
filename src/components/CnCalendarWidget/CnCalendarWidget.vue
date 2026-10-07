@@ -5,9 +5,13 @@
 
 <template>
 	<div class="cn-calendar-widget">
-		<header class="cn-calendar-widget__header">
-			<span class="cn-calendar-widget__title">{{ t('nextcloud-vue', 'Calendar') }}</span>
-			<div class="cn-calendar-widget__modes">
+		<!-- `content.showTitle: false` and `content.showViewModes: false` drop
+		     the sub-heading and the Month / Week / Agenda buttons, for an agenda
+		     placement whose card already names it; without both the header
+		     row goes. -->
+		<header v-if="showsTitle || showsViewModes" class="cn-calendar-widget__header">
+			<span v-if="showsTitle" class="cn-calendar-widget__title">{{ t('nextcloud-vue', 'Calendar') }}</span>
+			<div v-if="showsViewModes" class="cn-calendar-widget__modes">
 				<button
 					v-for="mode in viewModes"
 					:key="mode"
@@ -160,7 +164,10 @@ export default {
 
 	props: {
 		/**
-		 * Persisted widget content `{viewMode, daysAhead, colorByCalendar}`.
+		 * Persisted widget content `{viewMode, daysAhead, colorByCalendar,
+		 * showTitle, showViewModes}`. `showTitle: false` drops the "Calendar"
+		 * sub-heading and `showViewModes: false` the Month / Week / Agenda
+		 * buttons (both shown by default).
 		 *
 		 * @type {object}
 		 */
@@ -197,6 +204,27 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the "Calendar" sub-heading renders (`content.showTitle`).
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-agenda-placement-can-drop-the-calendar-chrome
+		 * @return {boolean}
+		 */
+		showsTitle() {
+			return !(this.content && this.content.showTitle === false)
+		},
+
+		/**
+		 * Whether the Month / Week / Agenda buttons render
+		 * (`content.showViewModes`).
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-agenda-placement-can-drop-the-calendar-chrome
+		 * @return {boolean}
+		 */
+		showsViewModes() {
+			return !(this.content && this.content.showViewModes === false)
+		},
+
 		/**
 		 * The available view modes.
 		 *
