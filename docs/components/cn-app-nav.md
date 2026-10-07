@@ -6,7 +6,7 @@ Items split into three groups by `section`:
 
 - `section: "main"` (default) — top of the navigation, scrollable.
 - `section: "footer"` — **regular** entries rendered flat in `NcAppNavigation`'s `#footer` slot, outside the scrollable list and directly above the settings foldout, so they stay visible regardless of menu length. For always-visible, non-settings links: Documentation, Features & Roadmap, About.
-- `section: "settings"` — rendered INSIDE an `NcAppNavigationSettings` foldout (the NC-native gear-icon button that slides a panel open). A **"Personal settings"** entry is auto-prepended at the top of the foldout (opens the host's `NcAppSettingsDialog` via `cnOpenUserSettings`); opt out with `nav.includePersonalSettings: false`. The foldout mounts whenever there are `settings` items **or** personal settings is enabled — so every app shows a Settings gear with at least Personal settings; it's only fully suppressed when there are no `settings` items **and** `nav.includePersonalSettings: false`.
+- `section: "settings"` — rendered INSIDE an `NcAppNavigationSettings` foldout (the NC-native gear-icon button that slides a panel open). A **"Personal settings"** entry is auto-prepended at the top of the foldout (opens the host's `NcAppSettingsDialog` via `cnOpenUserSettings`); opt out with `nav.includePersonalSettings: false`. The foldout mounts whenever there are `settings` items **or** personal settings is enabled — so every app shows the foldout with at least Personal settings; it's only fully suppressed when there are no `settings` items **and** `nav.includePersonalSettings: false`. The foldout is labelled **"Advanced"** ("Geavanceerd" in Dutch) by default; `nav.settingsLabel` overrides it. Generic pages such as Reports belong here too.
 
 ### Primary action
 
@@ -43,7 +43,7 @@ Top-level manifest config for the navigation:
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `nav.includePersonalSettings` | Boolean | `true` | Auto-prepend the "Personal settings" entry in the foldout. Set `false` for apps with no per-user settings dialog. |
-| `nav.settingsLabel` | String | `'Settings'` | Override the foldout gear-button label. |
+| `nav.settingsLabel` | String | `'Advanced'` | Override the foldout gear-button label. |
 | `nav.primaryAction` | Object | — | App-wide default primary-action button above the main list: `{ id?, label, icon?, route?, href?, payload? }`. Overridden by `pages[].primaryAction` for the active route, and overridden by the `#primary-action` slot. |
 | `nav.brand` | Object | none | Brand block at the top of the navigation: `{ logo?, name?, caption?, alt? }`. Overridden by the `brand` prop and by the `#brand` slot. |
 
