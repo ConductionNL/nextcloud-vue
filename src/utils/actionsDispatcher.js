@@ -100,6 +100,14 @@ export function isExternalActionTarget(target) {
  * would otherwise register — and fetch — a 404 (defect 7, learniq round
  * 1). Idempotent for a caller that already passes a correct slug.
  *
+ * A caller that already holds the schema SLUG (not a `$ref` title) passes
+ * `{ exactSchema: true }`: the slug is then used exactly as given. Kebab-casing
+ * a real camelCase slug (`productCategory` -> `product-category`) asks the
+ * objects API for a schema that does not exist and 404s (pipelinq review,
+ * round two).
+ *
+ * @spec openspec/changes/review-round-two/specs/schema-utilities/spec.md
+ *
  * A title is not always registered under its kebab form: learniq holds
  * `LearniqSettings` and `SubjectTeacherAssignment` as written. So a type
  * registered here for a value the kebab rule CHANGED also carries the value
@@ -110,11 +118,12 @@ export function isExternalActionTarget(target) {
  * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-schema-title-falls-back-to-its-written-form
  * @param {object} store The object store instance (useObjectStore shape).
  * @param {{register: (string|number), schema: (string|number)}} source The widget source.
+ * @param {{exactSchema: (boolean|undefined)}} [options] `exactSchema: true` skips the title-to-slug step.
  * @return {string} The type slug to use for store CRUD calls.
  */
-export function resolveObjectOpType(store, source) {
+export function resolveObjectOpType(store, source, options = {}) {
 	const register = String(source.register)
-	const schema = String(schemaRefSlug(source.schema))
+	const schema = options.exactSchema === true ? String(source.schema) : String(schemaRefSlug(source.schema))
 	const written = typeof source.schema === 'string'
 		? source.schema.substring(source.schema.lastIndexOf('/') + 1)
 		: ''

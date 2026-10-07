@@ -35,12 +35,15 @@
 			</a>
 		</div>
 		<!-- A view switch at the right of the heading (`content.views`): "My
-		     work / My team" as a segmented control whose options are routes. -->
+		     work / My team" as a segmented control whose options are routes,
+		     or views of the page the widget sits on (`option.view`); a view
+		     option controls the page's view region. -->
 		<div v-if="viewOptions.length > 0" class="cn-header-widget__views">
 			<CnSegmentedControl
 				:options="viewOptions"
 				:modelValue="activeView"
 				:ariaLabel="viewsLabel"
+				:controls="viewsRegionId"
 				data-testid="cn-header-widget-views"
 				@update:modelValue="onViewChange" />
 		</div>
@@ -65,6 +68,9 @@ const ALLOWED_HEIGHTS = ['small', 'medium', 'large', 'xlarge']
 const ALLOWED_TEXT_ALIGN = ['left', 'center', 'right']
 const ALLOWED_VERTICAL_ALIGN = ['top', 'middle', 'bottom']
 const ALLOWED_CTA_STYLES = ['primary', 'secondary', 'ghost']
+
+/** Marks a switch option that selects a page view rather than a route. */
+const VIEW_OPTION_PREFIX = 'view:'
 
 const HEIGHT_PIXELS = Object.freeze({
 	small: 120,
@@ -121,6 +127,12 @@ export default {
 		 * untranslated key renders as itself.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * The views of the page this widget sits on, provided by
+		 * CnDashboardPage / CnDetailPage (`views`). An option with a `view`
+		 * selects one of them. Null outside such a page.
+		 */
+		cnPageViews: { default: null },
 	},
 
 	props: {
@@ -131,9 +143,12 @@ export default {
 		 * greeting, showDate, plain, ground, views}`. All fields are optional except
 		 * `title` (or `greeting`); unknown enum values collapse to documented
 		 * defaults and the renderer never throws. `views` is
-		 * `{ ariaLabel?, options: [{ label, route, params? }] }`: a segmented
-		 * control at the right of the heading whose checked option is the
-		 * current route; choosing another pushes its route. `ground: true`
+		 * `{ ariaLabel?, options: [{ label, route, params? } | { label, view }] }`:
+		 * a segmented control at the right of the heading whose checked option
+		 * is the current route; choosing another pushes its route. An option
+		 * with `view` selects that view of the page the widget sits on (the
+		 * page's `views`) instead, and the page then draws no switch of its
+		 * own. `ground: true`
 		 * draws the greeting on the page ground: the plain look with no
 		 * padding, a 32px heading and the date line 6px above it (a dashboard
 		 * also drops the widget's card for it).
@@ -229,12 +244,45 @@ export default {
 		 */
 		viewOptions() {
 			const raw = this.content && this.content.views && this.content.views.options
-			if (!Array.isArray(raw) || !this.$router) {
+			if (!Array.isArray(raw)) {
 				return []
 			}
+			const pageViewIds = this.pageViewIds
 			return raw
-				.filter((o) => o && typeof o.label === 'string' && o.label !== '' && typeof o.route === 'string' && o.route !== '')
-				.map((o) => ({ value: o.route, label: this.cnTranslate(o.label) }))
+				.filter((o) => o && typeof o.label === 'string' && o.label !== '')
+				.map((o) => {
+					if (typeof o.view === 'string' && o.view !== '') {
+						return pageViewIds.includes(o.view) ? { value: VIEW_OPTION_PREFIX + o.view, label: this.cnTranslate(o.label) } : null
+					}
+					if (typeof o.route === 'string' && o.route !== '' && this.$router) {
+						return { value: o.route, label: this.cnTranslate(o.label) }
+					}
+					return null
+				})
+				.filter(Boolean)
+		},
+
+		/**
+		 * The ids of the page's views, empty outside a page with views.
+		 *
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-greeting-header-can-switch-the-pages-views
+		 * @return {string[]}
+		 */
+		pageViewIds() {
+			const views = this.cnPageViews && Array.isArray(this.cnPageViews.views) ? this.cnPageViews.views : []
+			return views.map((view) => view.id)
+		},
+
+		/**
+		 * The id of the page's view region when an option selects a view,
+		 * for the options' `aria-controls`; '' otherwise.
+		 *
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-the-view-switch-is-accessible
+		 * @return {string}
+		 */
+		viewsRegionId() {
+			const hasViewOption = this.viewOptions.some((o) => o.value.startsWith(VIEW_OPTION_PREFIX))
+			return hasViewOption && this.cnPageViews ? (this.cnPageViews.regionId || '') : ''
 		},
 
 		/**
@@ -248,6 +296,11 @@ export default {
 			const options = this.viewOptions
 			if (options.length === 0) {
 				return null
+			}
+			const activeView = this.cnPageViews ? this.cnPageViews.activeId : null
+			const viewMatch = activeView ? options.find((o) => o.value === VIEW_OPTION_PREFIX + activeView) : null
+			if (viewMatch) {
+				return viewMatch.value
 			}
 			const current = this.$route && this.$route.name
 			const match = options.find((o) => o.value === current)
@@ -263,7 +316,7 @@ export default {
 		 */
 		viewsLabel() {
 			const label = this.content && this.content.views && this.content.views.ariaLabel
-			return label ? this.cnTranslate(label) : t('nextcloud-vue', 'View')
+			return label ? this.cnTranslate(label) : t('nextcloud-vue', 'Views')
 		},
 
 		/**
@@ -697,6 +750,12 @@ export default {
 		 * @return {void}
 		 */
 		onViewChange(route) {
+			if (typeof route === 'string' && route.startsWith(VIEW_OPTION_PREFIX)) {
+				if (this.cnPageViews && typeof this.cnPageViews.select === 'function') {
+					this.cnPageViews.select(route.slice(VIEW_OPTION_PREFIX.length))
+				}
+				return
+			}
 			if (!this.$router || !route || route === (this.$route && this.$route.name)) {
 				return
 			}

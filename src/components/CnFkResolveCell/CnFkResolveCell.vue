@@ -135,7 +135,9 @@ export default {
 			if (!store) {
 				return
 			}
-			const type = resolveObjectOpType(store, { register: this.register, schema: this.schema })
+			// `schema` is a slug the manifest author wrote, not a `$ref` title:
+			// use it exactly as given (a camelCase slug must not be kebab-cased).
+			const type = resolveObjectOpType(store, { register: this.register, schema: this.schema }, { exactSchema: true })
 			await Promise.all(this.ids.map(async (id) => {
 				if (this.labels[id]) {
 					return
