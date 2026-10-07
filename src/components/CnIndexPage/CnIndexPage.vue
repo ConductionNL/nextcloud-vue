@@ -19,8 +19,28 @@
 			<CnPageHeader
 				:title="title"
 				:description="headerDescription"
-				:icon="resolvedIcon"
-				:visuallyHidden="!showTitle" />
+				:icon="showTitleIcon ? resolvedIcon : ''"
+				:visuallyHidden="!showTitle">
+				<!-- The board's header buttons (`headerButtons`), beside the
+				     title. Declaring them takes the Views and Actions menus
+				     (and the Add / Export controls a button takes over) out of
+				     the actions bar. -->
+				<template v-if="headerButtonsShown" #extra>
+					<div class="cn-index-page__header-buttons" data-testid="cn-index-header-buttons">
+						<NcButton
+							v-for="button in resolvedHeaderButtons"
+							:key="button.key"
+							:variant="button.variant"
+							:data-testid="`cn-index-header-button-${button.key}`"
+							@click="onHeaderButton(button)">
+							<template v-if="button.icon" #icon>
+								<CnIcon :name="button.icon" :size="20" />
+							</template>
+							{{ button.label }}
+						</NcButton>
+					</div>
+				</template>
+			</CnPageHeader>
 		</slot>
 
 		<!-- Optional content below header, above actions bar -->
@@ -63,7 +83,9 @@
 			:refreshDisabled="refreshDisabled"
 			:addDisabled="addDisabled"
 			:addTo="addLinkTo"
-			:showAdd="effectiveShowAdd"
+			:showAdd="effectiveShowAdd && !headerButtonTakes('add')"
+			:showCount="showCount"
+			:showActionsMenu="!headerButtonsShown"
 			:showSidebarToggle="hasSidebar"
 			:sidebarOpen="sidebarOpen"
 			:headerActions="mergedHeaderActions"
@@ -110,12 +132,12 @@
 			     views, export, page config — grouped together and kept apart from
 			     the app-specific buttons in `#actions`, with Add sitting between
 			     the two groups rather than before both (dossiq Cases/Queue). -->
-			<template v-if="isEditMode || showExportMenu || allowSavedViews" #actions-end>
+			<template v-if="isEditMode || barShowsExportMenu || barShowsSavedViews" #actions-end>
 				<!-- Saved views (opt-in via `allowSavedViews`): lists the user's
 				     OpenRegister saved-search views; applying one writes its stored
 				     filters/search/sort into the route query. -->
 				<CnSavedViewsControl
-					v-if="allowSavedViews"
+					v-if="barShowsSavedViews"
 					:views="viewsForControl"
 					:loading="savedViewsLoading"
 					:currentUserId="currentSavedViewsUserId"
@@ -127,7 +149,7 @@
 				     CSV/Excel entries navigate to OR's export-leaf URL, passing the
 				     current route's query params through as filters. -->
 				<NcActions
-					v-if="showExportMenu"
+					v-if="barShowsExportMenu"
 					:forceName="true"
 					:menuName="t('nextcloud-vue', 'Export')"
 					data-testid="cn-index-export-menu"
@@ -1203,6 +1225,51 @@ export default {
 		showTitle: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Whether the page header draws its icon before the title. `false`
+		 * (manifest `config.showTitleIcon: false`) drops it, for a title that
+		 * stands alone as the board draws it. True by default.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 */
+		showTitleIcon: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Whether the actions bar shows its "Showing 20 of 258" line.
+		 * `false` (manifest `config.showCount: false`) drops it, for a page
+		 * whose title line already gives the total (`countSubtitle`). True by
+		 * default.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 */
+		showCount: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Buttons beside the page title, as the board's "Export" and "New
+		 * case" (manifest `config.headerButtons`). Each is `{ label?, action,
+		 * variant?, icon?, format?, id? }`: `action` is `add` (the Add flow;
+		 * its label defaults to the Add label), `export` (the export leaf in
+		 * `format`, `csv` by default, else the export dialog), `import`,
+		 * `refresh`, or the id of a `headerActions` entry; `variant` is
+		 * `primary` or `secondary` (the default). Shown only with
+		 * `showTitle`. When they show, the actions bar drops its Views and
+		 * Actions menus, and the Add button and Export menu when a button
+		 * takes their action. Empty (the default) changes nothing.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 * @type {Array<{label?: string, action: string, variant?: ('primary'|'secondary'), icon?: string, format?: ('csv'|'excel'), id?: string}>}
+		 */
+		headerButtons: {
+			type: Array,
+			default: () => [],
 		},
 
 		/** Optional MDI icon name. Defaults to schema.icon when a schema is provided. */
@@ -4247,6 +4314,67 @@ export default {
 		},
 
 		/**
+		 * The declared header buttons with a label, translated, each with a
+		 * stable key and a variant.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, format: string}>}
+		 */
+		resolvedHeaderButtons() {
+			const declared = Array.isArray(this.headerButtons) ? this.headerButtons : []
+			return declared
+				.filter((button) => button && typeof button === 'object' && typeof button.action === 'string' && button.action !== '')
+				.map((button, index) => {
+					let label = typeof button.label === 'string' && button.label !== '' ? this.cnTranslate(button.label) : ''
+					if (label === '' && button.action === 'add') {
+						label = this.resolvedAddLabel
+					}
+					return {
+						key: String(button.id || button.action || index),
+						label,
+						action: button.action,
+						variant: button.variant === 'primary' ? 'primary' : 'secondary',
+						icon: typeof button.icon === 'string' ? button.icon : '',
+						format: button.format === 'excel' ? 'excel' : 'csv',
+					}
+				})
+				.filter((button) => button.label !== '')
+		},
+
+		/**
+		 * Whether the header buttons render: there are some, the title shows
+		 * (they sit beside it) and no `#header` slot replaces the header.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 * @return {boolean}
+		 */
+		headerButtonsShown() {
+			return this.showTitle && !this.$slots.header && this.resolvedHeaderButtons.length > 0
+		},
+
+		/**
+		 * Whether the actions bar shows the saved-views control: opted in
+		 * with `allowSavedViews` and not given up for header buttons.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 * @return {boolean}
+		 */
+		barShowsSavedViews() {
+			return Boolean(this.allowSavedViews) && !this.headerButtonsShown
+		},
+
+		/**
+		 * Whether the actions bar shows the Export menu: `showExportMenu`,
+		 * unless a header button took the export over.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 * @return {boolean}
+		 */
+		barShowsExportMenu() {
+			return this.showExportMenu && !this.headerButtonTakes('export')
+		},
+
+		/**
 		 * The header's description line: `countSubtitle` with the total
 		 * filled in when one is known, else `description`.
 		 *
@@ -5046,6 +5174,43 @@ export default {
 			 * @event open-modal A bulk action of type `open-modal` asks the host to open a registered modal. Payload: `{ target, props }`, where `props` carries `selectedIds` and `count` merged UNDER the action's own props.
 			 */
 			this.$emit('open-modal', { target, props: { selectedIds, count, ...own } })
+		},
+
+		/**
+		 * Whether a shown header button takes `action` over from the bar.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 * @param {string} action The action, e.g. `add`.
+		 * @return {boolean}
+		 */
+		headerButtonTakes(action) {
+			return this.headerButtonsShown && this.resolvedHeaderButtons.some((button) => button.action === action)
+		},
+
+		/**
+		 * A header button was clicked: run its built-in action, or dispatch
+		 * it as the `headerActions` entry with that id.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 * @param {{action: string, format: string}} button The resolved button.
+		 * @return {void}
+		 */
+		onHeaderButton(button) {
+			if (button.action === 'add') {
+				this.onAddClick()
+			} else if (button.action === 'export') {
+				if (this.register && this.exportSchemaSlug) {
+					this.onExportClick(button.format)
+				} else {
+					this.showExportDialog = true
+				}
+			} else if (button.action === 'import') {
+				this.showImportDialog = true
+			} else if (button.action === 'refresh') {
+				this.onRefreshEvent()
+			} else {
+				this.onHeaderAction({ action: button.action, id: button.action })
+			}
 		},
 
 		/**

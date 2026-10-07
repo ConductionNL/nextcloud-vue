@@ -241,6 +241,17 @@ export default {
 	text-transform: uppercase;
 }
 
+/* The title is a small kicker, not a section heading, but it is an <h3> (or
+   whatever `titleTag` says) for the outline, and a theme that sizes every
+   heading with !important (thematiq's nldesign sheet: `h3 { font-size:
+   var(--nldesign-component-heading-3-font-size) !important }`) blew it up to
+   an 18px uppercase heading. Only !important beats !important; the doubled
+   class makes this the more specific rule. Without such a theme the size is
+   the 0.85em above, unchanged. */
+.cn-next-step-card__title.cn-next-step-card__title {
+	font-size: 0.85em !important;
+}
+
 .cn-next-step-card__list {
 	display: grid;
 	gap: calc(2 * var(--default-grid-baseline));

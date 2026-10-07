@@ -47,3 +47,7 @@ Three optional `content` keys turn the header into a greeting. Without them the 
 { "type": "header", "content": { "greeting": true, "showDate": true, "ground": true,
   "views": { "ariaLabel": "View", "options": [{ "label": "My work", "route": "Dashboard" }, { "label": "My team", "route": "TeamDashboard" }] } } }
 ```
+
+## A ground greeting takes its own height
+
+With `content.ground: true` the widget takes its own height instead of its grid cell's, so a `content.views` switch sits on the heading's line (bottom-aligned with it) however tall the cell is, and a size-to-content cell can shrink to it. A banner without `ground` still fills its cell.

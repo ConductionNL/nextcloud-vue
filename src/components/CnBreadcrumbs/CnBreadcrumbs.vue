@@ -19,6 +19,8 @@
 		v-if="crumbs.length > 0"
 		:aria-label="ariaLabel"
 		:rootIcon="rootText ? '' : undefined"
+		:class="{ 'cn-breadcrumbs--text-separator': separator !== '' }"
+		:style="separatorStyle"
 		data-testid="cn-breadcrumbs">
 		<!-- `name` falls back to '' because NcBreadcrumb declares it a REQUIRED
 		     String and warns per render on the label-less icon-only crumb. The
@@ -111,6 +113,34 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * Draw this text between the crumbs (for example `/`) instead of
+		 * NcBreadcrumbs' chevron. Empty (the default) keeps the chevron. The
+		 * separator is decoration: it is not read out.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-breadcrumb-can-name-the-record-by-a-field-and-use-a-text-separator
+		 */
+		separator: {
+			type: String,
+			default: '',
+		},
+	},
+
+	computed: {
+		/**
+		 * The separator handed to the stylesheet as a CSS string, or nothing
+		 * without a `separator`.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-breadcrumb-can-name-the-record-by-a-field-and-use-a-text-separator
+		 * @return {object|undefined}
+		 */
+		separatorStyle() {
+			if (this.separator === '') {
+				return undefined
+			}
+			return { '--cn-breadcrumbs-separator': JSON.stringify(this.separator) }
+		},
 	},
 
 	methods: {
@@ -127,3 +157,18 @@ export default {
 	},
 }
 </script>
+
+<style scoped>
+/* `separator`: a text separator in place of the chevron. The chevron's own
+   element stays (it carries NcBreadcrumbs' spacing and its "no separator after
+   the last crumb" rule); only its icon gives way to the text. */
+.cn-breadcrumbs--text-separator :deep(.vue-crumb__separator svg) {
+	display: none;
+}
+
+.cn-breadcrumbs--text-separator :deep(.vue-crumb__separator)::before {
+	content: var(--cn-breadcrumbs-separator);
+	padding-inline: var(--cn-breadcrumbs-separator-gap, 0);
+	color: var(--color-text-maxcontrast);
+}
+</style>

@@ -128,7 +128,7 @@ export default {
 		 * Persisted widget content: `{title, subtitle, backgroundImageUrl,
 		 * backgroundImageFileId, backgroundColor, overlayMode, overlayColor,
 		 * overlayOpacity, textColor, textAlign, verticalAlign, height, cta,
-		 * greeting, showDate, plain, ground, views}`. All fields are optional except
+		 * greeting, showDate, kicker, plain, ground, views}`. All fields are optional except
 		 * `title` (or `greeting`); unknown enum values collapse to documented
 		 * defaults and the renderer never throws. `views` is
 		 * `{ ariaLabel?, options: [{ label, route, params? }] }`: a segmented
@@ -136,7 +136,10 @@ export default {
 		 * current route; choosing another pushes its route. `ground: true`
 		 * draws the greeting on the page ground: the plain look with no
 		 * padding, a 32px heading and the date line 6px above it (a dashboard
-		 * also drops the widget's card for it).
+		 * also drops the widget's card for it). A ground greeting takes its
+		 * own height rather than its grid cell's, so a view switch sits on
+		 * the heading's line. `kicker` (an i18n key) prefixes the date line, as
+		 * "Customer contact · Tuesday 6 October".
 		 *
 		 * @type {object}
 		 */
@@ -343,13 +346,30 @@ export default {
 		},
 
 		/**
-		 * Today's date written out ("Monday 5 October 2026"), or '' when
-		 * `showDate` is off.
+		 * The kicker line above the heading: `content.kicker` (through the
+		 * host translate function, e.g. "Customer contact") and today's date
+		 * written out ("Monday 5 October 2026") when `showDate` is on, joined
+		 * by " · ". '' when neither is set. Without `kicker` this is the date
+		 * line as before.
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
 		 */
 		dateLine() {
+			const kicker = this.content && typeof this.content.kicker === 'string' && this.content.kicker !== ''
+				? this.effectiveTranslate(this.content.kicker)
+				: ''
+			const date = this.dateText
+			return [kicker, date].filter((part) => part !== '').join(' · ')
+		},
+
+		/**
+		 * Today's date written out, or '' when `showDate` is off.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-greeting-kicker-can-carry-a-prefix
+		 * @return {string}
+		 */
+		dateText() {
 			if (!this.content || this.content.showDate !== true) {
 				return ''
 			}
@@ -521,7 +541,12 @@ export default {
 			return this.isLightColor(this.backgroundColor) ? '#000000' : '#ffffff'
 		},
 
-		/** Inline style for the banner wrapper. */
+		/**
+		 * Inline style for the banner wrapper.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-ground-greeting-lines-its-switch-up-with-the-heading
+		 * @return {object}
+		 */
 		wrapperStyle() {
 			const style = {
 				position: 'relative',
@@ -530,7 +555,11 @@ export default {
 				// widget. A fixed pixel height ignored the cell, which made the
 				// banner un-resizable and made it overflow/scroll inside a
 				// smaller cell. The grid controls the size now.
-				height: '100%',
+				// On the page ground there is no banner to fill the cell with:
+				// the greeting takes its own height, so the view switch lines
+				// up with the heading instead of the bottom of a taller cell,
+				// and a size-to-content cell can shrink to it.
+				height: this.isGround ? 'auto' : '100%',
 				overflow: 'hidden',
 				'background-color': this.backgroundColor,
 			}
@@ -566,6 +595,7 @@ export default {
 		 * Inline style for the content flex container.
 		 *
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-ground-greeting-lines-its-switch-up-with-the-heading
 		 */
 		contentStyle() {
 			return {
@@ -574,7 +604,7 @@ export default {
 				// Beside a view switch the content shares the row instead of
 				// taking the whole width (see .cn-header-widget--with-views).
 				width: this.viewOptions.length > 0 ? 'auto' : '100%',
-				height: '100%',
+				height: this.isGround ? 'auto' : '100%',
 				display: 'flex',
 				'flex-direction': 'column',
 				'align-items': this.flexAlignFromTextAlign,

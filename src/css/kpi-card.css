@@ -414,6 +414,21 @@ a.cn-kpi-card--stacked:focus-visible {
 	text-decoration: none !important;
 }
 
+/* A stacked stats block (CnStatsBlock `layout: "stacked"`): its unit
+   ("decisions") goes on a muted line of its own under the number, where the
+   stat tile puts its caption (zuiddrecht-pixel-gaps-3). */
+.cn-kpi-card--stacked .cn-stats-block__count {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--cn-kpi-stacked-gap, 6px);
+}
+
+.cn-kpi-card--stacked .cn-stats-block__count-label {
+	font-size: var(--cn-kpi-label-size, 13px);
+	font-weight: 500;
+	color: var(--color-text-maxcontrast);
+}
+
 /* Filled: the card draws its own grey box, for a KPI that is NOT already
    inside a wrapper that draws one. Opt-in via `content.flat: false`. */
 .cn-kpi-card--filled {

@@ -90,3 +90,9 @@ and the Suggest modal POSTs to the same endpoint. Full backend contract:
 | `supportUrl` | String | `''` | Support contact link. |
 | `founderName` | String | `''` | Founder name shown in the personal-touch copy. |
 | `founderTitle` | String | `''` | Founder title/role shown alongside the name. |
+
+:::warning Deprecated
+
+The in-app capability comparison (`capabilityComparison` on CnFeaturesAndRoadmapView and CnFeaturesAndRoadmapPage, the `features_roadmap_capabilities` initial state key, and CnCapabilityTable) is deprecated. Publish the comparison on the app's docs site and link to it instead, as dossiq #3312 and pipelinq #2195 did. It still renders; removal waits for a major version. A development build warns once per page load when a comparison is given.
+
+:::

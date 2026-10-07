@@ -3,7 +3,7 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-week-strip" data-testid="cn-week-strip">
+	<div class="cn-week-strip" :class="{ 'cn-week-strip--inset': inset }" data-testid="cn-week-strip">
 		<div v-if="loading" class="cn-week-strip__state" role="status">
 			<NcLoadingIcon :size="20" />
 			<span class="cn-week-strip__state-text">{{ loadingLabel }}</span>
@@ -118,9 +118,11 @@ export default {
 		 * today), `lateField` a boolean field that marks a record late.
 		 * `items` are static entries `{ title, meta?, date, route?, href?, late? }`.
 		 * `emptyText` is the text of a day without items. `weekOffset` moves
-		 * the strip whole weeks from the current one.
+		 * the strip whole weeks from the current one. `inset: true` draws the
+		 * strip inside the board's inset (16px above, 24px at the sides, 22px
+		 * below) instead of from card edge to card edge.
 		 *
-		 * @type {{days?: (5|7), source?: {register?: string, schema?: string, filter?: object, limit?: number}, dateField?: string, titleField?: string, metaFields?: Array<string>, itemRoute?: string, lateWhen?: {op?: string, value?: number}, lateField?: string, items?: Array<{title: string, meta?: string, date: string, route?: (string|object), href?: string, late?: boolean}>, emptyText?: string, weekOffset?: number}}
+		 * @type {{days?: (5|7), inset?: boolean, source?: {register?: string, schema?: string, filter?: object, limit?: number}, dateField?: string, titleField?: string, metaFields?: Array<string>, itemRoute?: string, lateWhen?: {op?: string, value?: number}, lateField?: string, items?: Array<{title: string, meta?: string, date: string, route?: (string|object), href?: string, late?: boolean}>, emptyText?: string, weekOffset?: number}}
 		 */
 		content: {
 			type: Object,
@@ -159,6 +161,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the widget draws the board's inset (`content.inset`). Off
+		 * by default, which keeps it edge to edge as before.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-strip-and-a-stacked-bar-can-take-the-board-inset
+		 * @return {boolean}
+		 */
+		inset() {
+			return Boolean(this.content && this.content.inset === true)
+		},
+
 		/**
 		 * The translate function in use.
 		 *
@@ -540,6 +553,14 @@ export default {
 <style scoped>
 .cn-week-strip {
 	width: 100%;
+}
+
+/* `content.inset: true`: the board's inset inside the card (zuiddrecht-pixel-
+   gaps-3). A dashboard renders its widgets flush, so without it the strip ran
+   from card edge to card edge. Theme hook: --cn-widget-board-inset. */
+.cn-week-strip--inset {
+	box-sizing: border-box;
+	padding: var(--cn-widget-board-inset, 16px 24px 22px);
 }
 
 .cn-week-strip__state {

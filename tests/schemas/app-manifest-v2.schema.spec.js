@@ -1299,7 +1299,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.47.0', () => {
+	it('the manifest schema version reads 2.48.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1320,9 +1320,13 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// page config keys showHeader, showTitle, countSubtitle,
 		// showTypeEyebrow and breadcrumb. 2.47.0 adds round two: nav.footer,
 		// breadcrumb.icon, and the page config keys showWidgetActions,
-		// headerCard and headerWidget.
+		// headerCard and headerWidget. 2.48.0 adds round three:
+		// breadcrumb.currentField and breadcrumb.separator, showWidgetActions
+		// on a detail page, the index keys showTitleIcon, showCount and
+		// headerButtons, the dashboard key gridFloat, and `inset` on the
+		// week-strip and stacked-bar content.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.47.0')
+		expect(schema.version).toBe('2.48.0')
 	})
 
 	it('accepts the round-two Zuiddrecht keys and refuses a footer that is not a list of ids', () => {

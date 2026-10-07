@@ -72,3 +72,7 @@ NcBreadcrumbs draws the root crumb as a home icon and uses its label only as the
 ```vue
 <CnBreadcrumbs root-text :crumbs="[{ label: 'All cases', to: { name: 'Cases' } }, { label: '2026-0082' }]" />
 ```
+
+## A text separator (`separator`)
+
+`separator` (default empty) draws that text between the crumbs, for example `/`, instead of the chevron. It is decoration and is not read out. `CnDetailPage` passes `config.breadcrumb.separator`. The gap around it follows `--cn-breadcrumbs-separator-gap` (0 by default).

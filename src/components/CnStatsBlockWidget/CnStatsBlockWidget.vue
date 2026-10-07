@@ -32,6 +32,7 @@
 				:showZeroCount="showZeroCount"
 				:horizontal="horizontal"
 				:vertical="vertical"
+				:layout="layout"
 				:filled="filled"
 				:clickable="!!view.route"
 				:route="view.route || null" />
@@ -48,6 +49,7 @@
 			:showZeroCount="showZeroCount"
 			:horizontal="horizontal"
 			:vertical="vertical"
+			:layout="layout"
 			:filled="filled"
 			:clickable="!!route"
 			:route="route" />
@@ -219,6 +221,17 @@ export default {
 		vertical: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * `stacked` gives every block the board look (see CnStatsBlock
+		 * `layout`). Empty (the default) keeps the KPI card.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-stats-block-can-take-the-stacked-board-look
+		 */
+		layout: {
+			type: String,
+			default: '',
 		},
 
 		/**

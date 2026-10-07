@@ -614,7 +614,10 @@ export default {
 					return { key: c, label: headingFor(c) }
 				}
 				const out = { key: c.key, label: c.label || headingFor(c.key) }
-				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable']) {
+				// `secondary` (a second, muted line under the cell) rides
+				// along too: the table draws it, and dropping it here took the
+				// list rows' second line away (zuiddrecht-pixel-gaps-3).
+				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable', 'secondary']) {
 					if (c[k] !== undefined) {
 						out[k] = c[k]
 					}

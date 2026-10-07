@@ -12,7 +12,7 @@
 					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search')"
 					@input="onSearchInput">
 			</div>
-			<span v-else-if="pagination && pagination.total > 0" class="cn-actions-bar__count">
+			<span v-else-if="showCount && pagination && pagination.total > 0" class="cn-actions-bar__count">
 				{{ countText }}
 			</span>
 			<!-- @slot after-search Refinement controls rendered beside the search field on the LEFT side of the bar (e.g. a filter menu button). Convention: the left side groups the VISUAL controls — search, filters, view toggle — while the right cluster holds the ACT controls (add, overflow); the standalone sort select is a display control too but keeps its legacy right-side placement. -->
@@ -135,6 +135,7 @@
 
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions
+				v-if="showActionsMenu"
 				:forceName="true"
 				:inline="inlineActionCount"
 				:menuName="actionsMenuName"
@@ -664,6 +665,31 @@ export default {
 
 		/** Whether to show the Add button */
 		showAdd: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Whether the "Showing 20 of 258" line renders where the search field
+		 * is not. `false` drops it, for a page whose title line already says
+		 * how many there are. True by default.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 */
+		showCount: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Whether the overflow Actions menu (Refresh, Import, Export, mass
+		 * actions, header actions) renders. `false` drops it, for a page that
+		 * offers its actions as buttons elsewhere (CnIndexPage
+		 * `headerButtons`). True by default.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
+		 */
+		showActionsMenu: {
 			type: Boolean,
 			default: true,
 		},
