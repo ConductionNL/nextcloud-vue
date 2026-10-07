@@ -581,3 +581,22 @@ The page header's overflow menu carries Refresh plus the mandatory trio Request 
 ```json
 "config": { "showTypeEyebrow": false, "breadcrumb": { "label": "All cases", "route": "Cases" } }
 ```
+
+A breadcrumb's label shows as text. `breadcrumb.icon` (an MDI name such as `Home`) draws that icon as the first crumb instead, with the label as its accessible name.
+
+## Header card and header widget
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `headerCard` | `Boolean` | `false` | Draws the header (pills, title, actions) as a bordered card on the surface colour (manifest `config.headerCard`), as the board's case header. Theme hooks: `--cn-detail-header-card-padding` (22px 24px), `--cn-detail-header-card-radius` (12px), `--cn-detail-header-row-gap` (22px). |
+| `headerWidget` | `String` | `''` | The id of a widget in `widgets` to render inside the header, on its own row under the title and the actions, without a card of its own (manifest `config.headerWidget`). The widget leaves the body grid and its row closes up. An id that names no widget renders nothing extra. |
+
+```json
+"config": {
+  "headerCard": true,
+  "headerWidget": "case-stages",
+  "breadcrumb": { "label": "All cases", "route": "Cases" }
+}
+```
+
+Blocks such as favourites, follow and attention are placed with the layout you already have: a `layout` entry's `gridY` puts one under the tabs, and `sideColumn` takes its widget id.

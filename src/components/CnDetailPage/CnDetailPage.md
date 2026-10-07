@@ -433,4 +433,8 @@ When the schema-driven fetch answers 404 the page shows a not-found state whose 
 
 ### Type eyebrow and breadcrumb
 
-`showTypeEyebrow` (default `true`) can drop the type label above the record name. `breadcrumb` (`{ label, route?, params?, href? }`) draws a breadcrumb line above the header: that crumb, then the record's name as the current crumb.
+`showTypeEyebrow` (default `true`) can drop the type label above the record name. `breadcrumb` (`{ label, route?, params?, href?, icon? }`) draws a breadcrumb line above the header: that crumb, then the record's name as the current crumb. The label shows as text; `icon` draws an icon instead.
+
+### Header card and header widget
+
+`headerCard` (default `false`) draws the header as a bordered card. `headerWidget` (default `''`) names a widget in `widgets` to render inside the header under the title, without a card of its own and out of the body grid: the stages bars of the board's case card.
