@@ -157,6 +157,40 @@ export function mergeUserLayout(manifestLayout, record) {
 }
 
 /**
+ * The three calls a user layout needs: from a store that carries the
+ * `dashboardLayoutsPlugin` actions, or straight over user preferences.
+ *
+ * Both paths write through `writeUserPreference`, so a record lands on the
+ * server and in the browser mirror whichever one a page uses. CnDashboardPage
+ * reads its own grid's record through this, and the page views mixin reads
+ * each view's record through it, so the two cannot disagree about where a
+ * user's arrangement lives.
+ *
+ * @param {object|null} [store] A store with `loadDashboardLayout`, `saveDashboardLayout` and `resetDashboardLayout`, or null.
+ * @return {{ load: (appId: string, pageId: string) => Promise<object|null>, save: (appId: string, pageId: string, layout: Array<object>) => Promise<boolean>, reset: (appId: string, pageId: string) => Promise<boolean> }} The api.
+ * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+ */
+export function resolveUserLayoutApi(store = null) {
+	if (store && typeof store.loadDashboardLayout === 'function') {
+		return {
+			load: (...a) => store.loadDashboardLayout(...a),
+			save: (...a) => store.saveDashboardLayout(...a),
+			reset: (...a) => store.resetDashboardLayout(...a),
+		}
+	}
+
+	return {
+		load: (appId, pageId) => readUserPreference(appId, dashboardLayoutKey(pageId), null),
+		save: (appId, pageId, layout) => writeUserPreference(
+			appId,
+			dashboardLayoutKey(pageId),
+			{ items: (Array.isArray(layout) ? layout : []).map(geometryOf).filter((entry) => entry.widgetId !== '') },
+		),
+		reset: (appId, pageId) => writeUserPreference(appId, dashboardLayoutKey(pageId), { items: [] }),
+	}
+}
+
+/**
  * Plugin definition.
  *
  * @param {object} [options] Options.

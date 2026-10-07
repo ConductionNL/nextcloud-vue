@@ -157,6 +157,31 @@
 					:controls="viewRegionId"
 					data-testid="cn-detail-page-view-switch"
 					@update:modelValue="selectView" />
+				<!-- With `userLayout`, the user arranges the chosen view for
+				     themselves: Arrange view makes its grid draggable, Done
+				     stores the arrangement, Reset view returns the view to the
+				     layout the app ships. -->
+				<NcButton
+					v-if="viewUserLayoutOn && !viewIsEmpty"
+					:variant="arrangingView ? 'primary' : 'secondary'"
+					data-testid="cn-detail-page-arrange-view"
+					@click="toggleArrangeView">
+					<template #icon>
+						<Check v-if="arrangingView" :size="20" />
+						<Pencil v-else :size="20" />
+					</template>
+					{{ arrangingView ? t('nextcloud-vue', 'Done') : t('nextcloud-vue', 'Arrange view') }}
+				</NcButton>
+				<NcButton
+					v-if="viewUserLayoutOn && arrangingView"
+					variant="tertiary"
+					data-testid="cn-detail-page-reset-view"
+					@click="resetViewUserLayout()">
+					<template #icon>
+						<Restore :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Reset view') }}
+				</NcButton>
 				<!-- Next and previous inside the list this record was opened
 				     from. Rendered only when the address names that list: a
 				     record reached by a bare link offers neither, rather than
@@ -626,10 +651,10 @@
 			     keyed on its view, so switching mounts the other view's grid. -->
 			<CnDashboardGrid
 				v-for="section in bodyGridSections"
-				:key="`cn-detail-grid-${section.key}-${editingBody ? 'editing' : 'live'}`"
+				:key="`cn-detail-grid-${section.key}-${section.editable ? 'editing' : 'live'}`"
 				v-bind="section.attrs"
 				:layout="section.layout"
-				:editable="editingBody"
+				:editable="section.editable"
 				:columns="12"
 				:columnOpts="columnOpts"
 				class="cn-detail-page__grid"
@@ -1060,6 +1085,7 @@ import { NcActionButton, NcActionCaption, NcActionLink, NcActionSeparator, NcBut
 import { provide, ref, watch } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
+import Check from 'vue-material-design-icons/Check.vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
@@ -1068,6 +1094,7 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import Restore from 'vue-material-design-icons/Restore.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import CnRelationLinkModal from '../../dialogs/CnRelationLinkModal.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
@@ -1274,9 +1301,11 @@ export default {
 		CnTranslatedBadge,
 		CnWidgetStyleEditorModal,
 		CnRelationLinkModal,
+		Check,
 		Cog,
 		Plus,
 		Pencil,
+		Restore,
 	},
 
 	mixins: [gridLayout, pageViews],
@@ -1767,6 +1796,20 @@ export default {
 		pageId: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Whether the user arranges each view (`views`) for themselves. On,
+		 * the header offers Arrange view next to the view switch; the
+		 * arrangement is stored per view and per user (the server, mirrored
+		 * in the browser) and a reset returns the view to its manifest
+		 * layout. Off (the default), a view renders as the manifest says.
+		 *
+		 * @type {boolean}
+		 */
+		userLayout: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -2419,6 +2462,8 @@ export default {
 
 	data() {
 		return {
+			/** Whether the user is arranging the chosen view (`userLayout`). */
+			arrangingView: false,
 			/** Whether the record edit form is open. */
 			editFormOpen: false,
 			/**
@@ -3589,7 +3634,7 @@ export default {
 		viewDisplayLayout() {
 			// eslint-disable-next-line @typescript-eslint/no-unused-expressions -- reading the flag IS the effect, as in bodyGridLayout
 			this.editingBody
-			return this.activeView ? this.closeDroppedRows(this.activeView.layout) : []
+			return this.activeView ? this.closeDroppedRows(this.activeViewLayout) : []
 		},
 
 		/**
@@ -3607,16 +3652,18 @@ export default {
 		 * chosen view's grid in the region the view switch controls (left out
 		 * when the view is empty; the empty state takes the region then).
 		 *
-		 * @return {Array<{key: string, view: boolean, layout: Array<object>, attrs: object}>}
+		 * @return {Array<{key: string, view: boolean, layout: Array<object>, editable: boolean, attrs: object}>}
 		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-page-declares-views-that-each-hold-a-widget-grid
 		 */
 		bodyGridSections() {
-			const sections = this.hasBodyGrid ? [{ key: 'body', view: false, layout: this.bodyGridLayout, attrs: {} }] : []
+			const sections = this.hasBodyGrid ? [{ key: 'body', view: false, layout: this.bodyGridLayout, editable: this.editingBody, attrs: {} }] : []
 			if (this.hasViews && !this.viewIsEmpty) {
 				sections.push({
 					key: `view-${this.activeViewId}`,
 					view: true,
 					layout: this.viewDisplayLayout,
+					// The user arranges the view while Arrange view is on.
+					editable: this.editingBody || this.arrangingView,
 					attrs: {
 						id: this.viewRegionId,
 						role: 'region',
@@ -3941,6 +3988,21 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Start or finish arranging the chosen view. Finishing stores the
+		 * arrangement of every view the user moved, once.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+		 */
+		toggleArrangeView() {
+			const leaving = this.arrangingView
+			this.arrangingView = !this.arrangingView
+			if (leaving) {
+				this.saveViewUserLayouts()
+			}
+		},
+
 		// Expose the shared grid helpers to the template (grid mode + auto-body).
 		cnGridCellStyle,
 		hasGridRow,

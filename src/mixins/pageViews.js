@@ -18,11 +18,19 @@
  * `layout` with its own grid, so a view looks exactly like the page's own
  * grid.
  *
+ * With `userLayout` on, a user arranges each view's grid for themselves, as
+ * they arrange the dashboard's own grid. The arrangement is stored per view,
+ * per page and per user, through the same user-preference record the
+ * dashboard uses (the server, mirrored in the browser). The manifest stays
+ * the base: it decides which widgets a view has, the user decides where they
+ * sit, and a reset returns the view to the manifest.
+ *
  * @mixin pageViews
  * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-page-declares-views-that-each-hold-a-widget-grid
  */
 import { translate as t } from '@nextcloud/l10n'
 import { readUserPreference, USER_PREFERENCE_STORAGE_PREFIX, writeUserPreference } from '../composables/useUserPreferences.js'
+import { dashboardLayoutKey, LAYOUT_GEOMETRY_FIELDS, mergeUserLayout, resolveUserLayoutApi } from '../store/plugins/dashboardLayouts.js'
 
 /** The query parameter that carries the chosen view. */
 export const PAGE_VIEW_QUERY_KEY = 'view'
@@ -30,18 +38,32 @@ export const PAGE_VIEW_QUERY_KEY = 'view'
 /** Prefix of the user-preference key; the page id follows it. */
 export const PAGE_VIEW_PREFERENCE_PREFIX = 'cn_page_view:'
 
+/**
+ * The page id one view's user layout is stored under: the page's own id,
+ * then `.view.`, then the view id. Spelled once, because a read and a write
+ * that disagree about the key read as an arrangement that never persists.
+ *
+ * @param {string} pageKey The page's id.
+ * @param {string} viewId The view id.
+ * @return {string} The page id handed to the layout store.
+ * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+ */
+export function pageViewLayoutId(pageKey, viewId) {
+	return `${String(pageKey || 'page')}.view.${String(viewId)}`
+}
+
 let regionSeq = 0
 
 /**
- * Read the browser mirror of a user preference synchronously, so the stored
- * view is on screen from the first frame. Errors read as nothing stored.
+ * Read the browser mirror of a user preference synchronously, so a stored
+ * value is on screen from the first frame. Errors read as nothing stored.
  *
  * @param {string} appId The app id.
  * @param {string} key The preference key.
- * @return {string|null} The stored id, or null.
- * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-the-chosen-view-is-linkable-and-remembered
+ * @return {object|string|number|boolean|Array|null} The stored value, or null.
+ * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
  */
-function readStoredViewMirror(appId, key) {
+function readPreferenceMirror(appId, key) {
 	try {
 		if (typeof localStorage === 'undefined') {
 			return null
@@ -50,11 +72,35 @@ function readStoredViewMirror(appId, key) {
 		if (raw === null || raw === undefined) {
 			return null
 		}
-		const value = JSON.parse(raw)
-		return typeof value === 'string' && value !== '' ? value : null
+		return JSON.parse(raw)
 	} catch {
 		return null
 	}
+}
+
+/**
+ * Read the browser mirror of the stored view synchronously, so the stored
+ * view is on screen from the first frame.
+ *
+ * @param {string} appId The app id.
+ * @param {string} key The preference key.
+ * @return {string|null} The stored id, or null.
+ * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-the-chosen-view-is-linkable-and-remembered
+ */
+function readStoredViewMirror(appId, key) {
+	const value = readPreferenceMirror(appId, key)
+	return typeof value === 'string' && value !== '' ? value : null
+}
+
+/**
+ * Whether a stored layout record holds an arrangement.
+ *
+ * @param {object|Array<object>|null} record The record, or its items.
+ * @return {boolean}
+ */
+function holdsArrangement(record) {
+	const items = Array.isArray(record) ? record : (record && Array.isArray(record.items) ? record.items : [])
+	return items.length > 0
 }
 
 export const pageViews = {
@@ -62,6 +108,8 @@ export const pageViews = {
 		/** The host app id, provided by CnAppRoot; keys the stored view. */
 		cnPageViewsAppId: { from: 'cnAppId', default: '' },
 	},
+
+	emits: ['view-layout-change', 'view-layout-reset'],
 
 	props: {
 		/**
@@ -110,6 +158,17 @@ export const pageViews = {
 			viewChosen: false,
 			/** Id of the view region, the target of the options' `aria-controls`. */
 			viewRegionId: `cn-page-view-region-${regionSeq}`,
+			/**
+			 * This user's arrangement of each view, by view id, when the page
+			 * keeps a user layout. A separate copy, never the view's `layout`:
+			 * that array is the manifest, and writing a user's drag into it
+			 * would rearrange the view for everybody.
+			 *
+			 * @type {Record<string, Array<object>>}
+			 */
+			viewUserLayouts: {},
+			/** The views whose arrangement changed since the last save, by id. */
+			viewUserLayoutsDirty: {},
 		}
 	},
 
@@ -208,6 +267,32 @@ export const pageViews = {
 		},
 
 		/**
+		 * Whether a user arranges the views for themselves (`userLayout`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+		 */
+		viewUserLayoutOn() {
+			return this.userLayout === true && this.hasViews
+		},
+
+		/**
+		 * The chosen view's layout: this user's arrangement when they have
+		 * one, the manifest's otherwise.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+		 */
+		activeViewLayout() {
+			const view = this.activeView
+			if (!view) {
+				return []
+			}
+			const arranged = this.viewUserLayoutOn ? this.viewUserLayouts[view.id] : null
+			return Array.isArray(arranged) ? arranged : view.layout
+		},
+
+		/**
 		 * The switch's options, for CnSegmentedControl.
 		 *
 		 * @return {Array<{value: string, label: string}>}
@@ -288,8 +373,21 @@ export const pageViews = {
 		},
 	},
 
+	watch: {
+		/**
+		 * Read the user's arrangement of a view the first time it is shown.
+		 *
+		 * @param {string|null} id The chosen view id.
+		 * @return {void}
+		 */
+		activeViewId(id) {
+			this.loadViewUserLayout(id)
+		},
+	},
+
 	created() {
 		this.loadStoredView()
+		this.loadViewUserLayout(this.activeViewId)
 	},
 
 	methods: {
@@ -361,16 +459,185 @@ export const pageViews = {
 		},
 
 		/**
-		 * Write a drag or resize in the chosen view's grid back onto its
-		 * layout items in place, as the page does for its own layout, so the
-		 * in-app manifest editor sees it.
+		 * The page id a view's arrangement is stored under.
+		 *
+		 * @param {string} viewId The view id.
+		 * @return {string}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+		 */
+		viewLayoutPageId(viewId) {
+			const pageKey = this.viewPreferenceKey.slice(PAGE_VIEW_PREFERENCE_PREFIX.length)
+			return pageViewLayoutId(pageKey, viewId)
+		},
+
+		/**
+		 * The layout store calls: the page's own (`userLayoutApi`, so an
+		 * injected `userLayoutStore` covers the views too), else the user
+		 * preferences.
+		 *
+		 * @return {{load: (appId: string, pageId: string) => Promise<object|null>, save: (appId: string, pageId: string, layout: Array<object>) => Promise<boolean>, reset: (appId: string, pageId: string) => Promise<boolean>}}
+		 */
+		viewLayoutApi() {
+			if (typeof this.userLayoutApi === 'function') {
+				return this.userLayoutApi()
+			}
+			return resolveUserLayoutApi(null)
+		},
+
+		/**
+		 * Read this user's arrangement of one view, once: the browser mirror
+		 * at once, then the server, which wins unless the user already moved
+		 * something in that view. A page without `userLayout` reads nothing.
+		 *
+		 * @param {string|null} viewId The view id.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+		 */
+		async loadViewUserLayout(viewId) {
+			if (!this.viewUserLayoutOn || viewId === null || viewId === undefined) {
+				return
+			}
+			const view = this.normalizedViews.find((candidate) => candidate.id === String(viewId))
+			if (!view || Array.isArray(this.viewUserLayouts[view.id])) {
+				return
+			}
+			const appId = this.viewPreferenceAppId
+			const pageId = this.viewLayoutPageId(view.id)
+			const mirror = readPreferenceMirror(appId, dashboardLayoutKey(pageId))
+			this.viewUserLayouts = { ...this.viewUserLayouts, [view.id]: mergeUserLayout(view.layout, holdsArrangement(mirror) ? mirror : null) }
+			if (!appId) {
+				return
+			}
+			let record
+			try {
+				record = await this.viewLayoutApi().load(appId, pageId)
+			} catch {
+				// The mirror, or the manifest, stands: a store that cannot
+				// answer leaves the view as the user last saw it.
+				return
+			}
+			if (this.viewUserLayoutsDirty[view.id] || !holdsArrangement(record)) {
+				return
+			}
+			this.viewUserLayouts = { ...this.viewUserLayouts, [view.id]: mergeUserLayout(view.layout, record) }
+		},
+
+		/**
+		 * Store the arrangement of every view the user changed since the last
+		 * save. The page calls it when the user leaves edit mode, so a drag
+		 * is not a write per pixel gesture.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+		 */
+		async saveViewUserLayouts() {
+			if (!this.viewUserLayoutOn) {
+				return
+			}
+			const ids = Object.keys(this.viewUserLayoutsDirty).filter((id) => this.viewUserLayoutsDirty[id])
+			this.viewUserLayoutsDirty = {}
+			const appId = this.viewPreferenceAppId
+			for (const id of ids) {
+				const pageId = this.viewLayoutPageId(id)
+				const items = this.viewUserLayouts[id] || []
+				try {
+					if (appId) {
+						await this.viewLayoutApi().save(appId, pageId, items)
+					} else {
+						// No app to address: keep it in this browser only, as
+						// the chosen view is kept.
+						await writeUserPreference('', dashboardLayoutKey(pageId), { items: items.map((item) => this.viewGeometry(item, true)) })
+					}
+				} catch {
+					// The arrangement stands for this session. A toast on a
+					// failed layout write is noise on an instance without the
+					// preference route.
+				}
+			}
+		},
+
+		/**
+		 * Drop this user's arrangement of one view and return it to the
+		 * manifest layout. Other views keep theirs.
+		 *
+		 * @param {string} [viewId] The view id; the chosen view when left out.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-resetting-a-view-restores-its-manifest-layout
+		 */
+		async resetViewUserLayout(viewId) {
+			const id = viewId === undefined || viewId === null ? this.activeViewId : String(viewId)
+			const view = this.normalizedViews.find((candidate) => candidate.id === id)
+			if (!this.viewUserLayoutOn || !view) {
+				return
+			}
+			const appId = this.viewPreferenceAppId
+			const pageId = this.viewLayoutPageId(view.id)
+			try {
+				if (appId) {
+					await this.viewLayoutApi().reset(appId, pageId)
+				} else {
+					await writeUserPreference('', dashboardLayoutKey(pageId), { items: [] })
+				}
+			} catch {
+				// The view returns to the manifest either way, which is what
+				// the user asked for.
+			}
+			const dirty = { ...this.viewUserLayoutsDirty }
+			delete dirty[view.id]
+			this.viewUserLayoutsDirty = dirty
+			this.viewUserLayouts = { ...this.viewUserLayouts, [view.id]: mergeUserLayout(view.layout, null) }
+			/**
+			 * Emitted when the user drops their arrangement of a view and it
+			 * returns to the manifest layout.
+			 *
+			 * @event view-layout-reset
+			 * @type {{view: string}}
+			 */
+			this.$emit('view-layout-reset', { view: view.id })
+		},
+
+		/**
+		 * The geometry fields of one layout item, and nothing else.
+		 *
+		 * @param {object} item A layout item, or a grid update.
+		 * @param {boolean} [withWidgetId] Whether to keep the widget id too.
+		 * @return {object}
+		 */
+		viewGeometry(item, withWidgetId = false) {
+			const geometry = withWidgetId ? { widgetId: String(item?.widgetId ?? '') } : {}
+			for (const field of LAYOUT_GEOMETRY_FIELDS) {
+				if (item?.[field] !== undefined) {
+					geometry[field] = item[field]
+				}
+			}
+			return geometry
+		},
+
+		/**
+		 * A drag or resize in the chosen view's grid. With `userLayout` it
+		 * moves this user's copy of the view and marks it for saving; the
+		 * view's manifest `layout` is not touched. Without it the geometry is
+		 * written back onto the layout items in place, as the page does for
+		 * its own layout, so the in-app manifest editor sees it.
 		 *
 		 * @param {Array<object>} updated The layout from the grid.
 		 * @return {void}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
 		 */
 		onViewLayoutChange(updated) {
 			const view = this.activeView
 			if (!view || !Array.isArray(updated)) {
+				return
+			}
+			if (this.viewUserLayoutOn) {
+				const current = Array.isArray(this.viewUserLayouts[view.id]) ? this.viewUserLayouts[view.id] : mergeUserLayout(view.layout, null)
+				const arranged = current.map((item) => {
+					const u = updated.find((candidate) => String(candidate.id) === String(item.id))
+					return u ? { ...item, ...this.viewGeometry(u) } : item
+				})
+				this.viewUserLayouts = { ...this.viewUserLayouts, [view.id]: arranged }
+				this.viewUserLayoutsDirty = { ...this.viewUserLayoutsDirty, [view.id]: true }
+				this.$emit('view-layout-change', { view: view.id, layout: arranged })
 				return
 			}
 			for (const u of updated) {
