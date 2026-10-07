@@ -133,10 +133,14 @@ header. `CnIndexPage` does this by default; turn it off for a page with
 | boolean | yes, no, any | `key=true` |
 | number, date, date-time | from and to | `key[gte]`, `key[lte]` (date-time up to `T23:59:59`) |
 | `$ref` or `fkResolve` | searchable list of the referenced objects | `key[]=<uuid>` |
-| text | equals | `key=value` |
+| text | contains | `key[like]=term` |
 
-Text filters on equality: OpenRegister has no contains operator on schema
-properties yet. Use the search box for a partial match.
+A text filter matches on contains, case-insensitive, through OpenRegister's
+`[like]` operator: "acme" finds "Acme B.V.". The term goes out as typed, URL
+encoded; OpenRegister escapes `%`, `_` and `\` itself, so the library adds no
+wildcards. The header filter owns `key[like]` only. An exact `key=value` from
+the facet sidebar or a fixed filter keeps its meaning, and the header neither
+shows nor clears it.
 
 The host owns the state. Pass the active-filter map as `activeFilters`
 (`{ paramKey: values[] }`, the map the facet sidebar writes) and handle

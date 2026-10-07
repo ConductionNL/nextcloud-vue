@@ -15,12 +15,18 @@
  * Parameter shapes, as OpenRegister reads them:
  * - equality and "any of": `key=value`, `key[]=a&key[]=b`
  * - ranges: `key[gte]=from`, `key[lte]=to`
+ * - contains (text): `key[like]=term`, case-insensitive (openregister#4430);
+ *   the server escapes `%`, `_` and `\`, so the raw term goes out as typed
  *
  * @module utils/columnFilters
  * @spec openspec/changes/table-header-sort-and-filter/specs/cn-data-table/spec.md
+ * @spec openspec/changes/header-filter-contains/specs/cn-data-table/spec.md#requirement-a-text-header-filter-matches-on-contains
  */
 
 import { schemaRefSlug } from './schemaRefSlug.js'
+
+/** OpenRegister's case-insensitive contains operator, used by the text filter. */
+export const CONTAINS_OPERATOR = 'like'
 
 /** Column keys that mark a value computed on the client, never stored. */
 const COMPUTED_MARKERS = ['aggregate', 'compute', 'computed', 'virtual']
@@ -160,7 +166,7 @@ function referenceTarget(column, prop) {
  *
  * Kinds: `enum` (checkbox list), `boolean` (yes, no, any), `reference`
  * (searchable list of the referenced objects), `number` and `date` (from and
- * to), and `string` (equals). `filterable: false` on the column turns it
+ * to), and `string` (contains, through OpenRegister's `[like]`). `filterable: false` on the column turns it
  * off. A column with no schema property behind it only filters when it
  * carries an enum hint (`enum`, or a badge widget's colour map), because the
  * server cannot filter on a value it does not store.
@@ -234,7 +240,23 @@ export function columnFilterParamKeys(def) {
 	if (def.kind === 'number' || def.kind === 'date') {
 		return [`${def.key}[gte]`, `${def.key}[lte]`]
 	}
+	if (def.kind === 'string') {
+		return [containsKey(def)]
+	}
 	return [def.key]
+}
+
+/**
+ * The parameter a text filter writes: `{key}[like]`. An exact `key=value`
+ * from the facet sidebar or a fixed filter is a different key, so the header
+ * neither shows nor clears it.
+ *
+ * @param {object} def A filter definition of kind `string`.
+ * @return {string} The parameter key.
+ * @spec openspec/changes/header-filter-contains/specs/cn-data-table/spec.md#requirement-a-text-header-filter-matches-on-contains
+ */
+function containsKey(def) {
+	return `${def.key}[${CONTAINS_OPERATOR}]`
 }
 
 /**
@@ -261,6 +283,9 @@ export function columnFilterState(def, activeFilters) {
 			from: def.kind === 'date' ? from.slice(0, 10) : from,
 			to: def.kind === 'date' ? to.slice(0, 10) : to,
 		}
+	}
+	if (def.kind === 'string') {
+		return { value: asList(filters[containsKey(def)])[0] || '' }
 	}
 	return { value: asList(filters[def.key])[0] || '' }
 }
@@ -309,8 +334,10 @@ export function columnFilterParams(def, state) {
 	if (def.kind === 'boolean') {
 		return { [def.key]: (s.value === 'true' || s.value === 'false') ? [s.value] : [] }
 	}
+	// Text: the raw term under `[like]`. No wildcards: OpenRegister wraps
+	// the term itself and escapes `%`, `_` and `\` in it.
 	const value = s.value === undefined || s.value === null ? '' : String(s.value).trim()
-	return { [def.key]: value === '' ? [] : [value] }
+	return { [containsKey(def)]: value === '' ? [] : [value] }
 }
 
 /**

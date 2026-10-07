@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- **A text column's header filter matches on contains.** It sent `key=value`, an exact match, because OpenRegister had no contains operator on schema properties; typing "acme" found nothing for "Acme B.V.". OpenRegister now has a case-insensitive `[like]` operator (openregister#4430), and the text filter sends `key[like]=term` with the term as typed (OpenRegister escapes `%`, `_` and `\`; the library adds no wildcards). The panel says "Contains". The header filter owns `key[like]` only, so an exact `key=value` from the facet sidebar or a fixed filter keeps its meaning and is no longer shown or cleared by the header. **Consumer impact:** needs an OpenRegister that carries #4430. A route query or saved view holding a header text filter as `key=value` now reads as a sidebar filter (still exact); re-apply it from the header to get contains.
+
 ### Fixed
 - **The navigation's primary action shows at full height.** NcAppNavigation puts it in a scrolling body that is a flex item with a minimum height of 0, beside a list of `height: 100%`, so once a card and footer entries made the column overflow, the body shrank and "New case" showed as a 10 to 24px sliver of its button. The body holding a primary action no longer shrinks. **Consumer impact:** an app with a primary action and a full navigation sees the whole button; a navigation without one lays out as before.
 - **A declared breadcrumb label shows as text.** NcBreadcrumbs draws its root crumb as a home icon and prints the label only as the accessible name, so the detail page's `config.breadcrumb` (2.64.0) read as a house, not "All cases". `CnBreadcrumbs` takes `rootText` to print the label, and `CnDetailPage` sets it; `breadcrumb.icon` draws an icon instead. **Consumer impact:** a page with `config.breadcrumb` shows its label; pages without one are unchanged.
