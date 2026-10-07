@@ -1299,7 +1299,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.48.0', () => {
+	it('the manifest schema version reads 2.49.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1321,9 +1321,11 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// showTypeEyebrow and breadcrumb. 2.47.0 adds round two: nav.footer,
 		// breadcrumb.icon, and the page config keys showWidgetActions,
 		// headerCard and headerWidget. 2.48.0 adds page views: the page
-		// config keys views, defaultView and viewsLabel.
+		// config keys views, defaultView and viewsLabel. 2.48.1 only rewords
+		// the setup step's `requires`: a skipped step is not applicable.
+		// 2.49.0 describes nav.settingsLabel's new default, "Advanced".
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.48.0')
+		expect(schema.version).toBe('2.49.0')
 	})
 
 	it('accepts page views on a dashboard and a detail page, and refuses a view without an id or label', () => {

@@ -152,9 +152,10 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | `showMap` | `Boolean` | `false` | Whether to render the third "Map" view-toggle segment. Off by default so existing two-segment consumers are unchanged |
 | `mapLabel` | `String` | `''` | Label for the map view-toggle option (defaults to "Map"). Only shown when `showMap` |
 | `mapIcon` | `String` | `''` | MDI icon name for the map option (defaults to the built-in map-marker icon). Resolved via `CnIcon` |
-| `showSearch` | `Boolean` | `false` | Whether to show the inline search field on the left of the bar |
+| `showSearch` | `Boolean` | `false` | Whether to show the inline search field on the left of the bar. The field takes the place of the "Showing X of Y" counter unless `showCountWithSearch` is set |
 | `searchValue` | `String` | `''` | Current value of the inline search field (controlled) |
 | `searchPlaceholder` | `String` | `''` | Placeholder / accessible label for the inline search field |
+| `showCountWithSearch` | `Boolean` | `false` | Keep the "Showing X of Y" counter visible beside the inline search field, after the search and any `#after-search` controls. No effect without `showSearch` |
 | `headerActions` | `Array` | `[]` | Manifest-declared page-level actions rendered inside the overflow dropdown between the built-in Refresh and the `#action-items` slot. Each entry is `{ id, label, icon?, disabled? }` — the bar emits `@header-action({ action: id, id })` on click and the parent (e.g. `CnIndexPage`) dispatches the resolved handler. The `icon` field accepts EITHER an MDI Vue component name (e.g. `'History'`) — rendered via `CnIcon` — OR a Nextcloud core CSS icon class (e.g. `'icon-history'`) — rendered as a `<span>` carrying that class. An entry with `href` (URL) or `to` (vue-router location) renders as a real link, `linkTarget` as its `target`; it still emits `@header-action`, so the parent must not navigate for it again. |
 
 ## Manifest header actions example

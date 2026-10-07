@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: EUPL-1.2
  */
 
+import { loadState } from '@nextcloud/initial-state'
 import { useAppStatus } from './useAppStatus.js'
 
 /**
@@ -58,4 +59,46 @@ export function checkDependencies(entries, serverStatuses = {}) {
  */
 export function isDependencyResolved(row) {
 	return !!row && row.installed === true && row.enabled === true
+}
+
+/**
+ * Read the `dependency_statuses` initial state an app may inject from PHP.
+ *
+ * Keyed by app id: `{ installed, enabled }`. Returns `{}` when the app injects
+ * none or the state cannot be read, so callers fall back to `useAppStatus`.
+ *
+ * @param {string} appId The app whose initial state to read.
+ * @return {object} Server-reported statuses keyed by app id.
+ *
+ * @spec openspec/changes/optional-step-requires/specs/cn-setup-wizard/spec.md#requirement-a-step-whose-required-apps-are-absent-is-not-applicable
+ */
+export function readServerAppStatuses(appId) {
+	try {
+		const statuses = loadState(appId, 'dependency_statuses', {})
+		return (statuses && typeof statuses === 'object') ? statuses : {}
+	} catch {
+		return {}
+	}
+}
+
+/**
+ * The apps in a setup step's `requires` list that are not installed and
+ * enabled.
+ *
+ * This is the one resolution every setup surface uses: `CnSetupWizard` skips a
+ * step when it is non-empty, and `useSetupStatus` then counts that step as not
+ * applicable rather than unmet. Keeping both on one function is what stops the
+ * wizard and the status from disagreeing about the same step.
+ *
+ * @param {Array<string>} requires The step's `requires` app ids.
+ * @param {object} [serverStatuses] Server-reported statuses keyed by app id.
+ * @return {Array<{id: string, name: string, required: boolean, installed: boolean, enabled: boolean}>} The missing apps.
+ *
+ * @spec openspec/changes/optional-step-requires/specs/cn-setup-wizard/spec.md#requirement-a-step-whose-required-apps-are-absent-is-not-applicable
+ */
+export function missingRequiredApps(requires, serverStatuses = {}) {
+	if (!Array.isArray(requires) || requires.length === 0) {
+		return []
+	}
+	return checkDependencies(requires, serverStatuses).filter((row) => !isDependencyResolved(row))
 }
