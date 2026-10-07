@@ -367,7 +367,7 @@ function isUserProp(prop) {
 	if (!prop || typeof prop !== 'object') {
 		return false
 	}
-	if (prop.referenceType === 'nextcloud-user') {
+	if (prop.referenceType === 'nextcloud-user' || prop.widget === 'user') {
 		return true
 	}
 	const format = prop.format || ''
@@ -389,7 +389,44 @@ function isGroupProp(prop) {
 	if (!prop || typeof prop !== 'object') {
 		return false
 	}
-	return prop.referenceType === 'nextcloud-group' || prop.format === 'nc-group'
+	return prop.referenceType === 'nextcloud-group' || prop.format === 'nc-group' || prop.widget === 'group'
+}
+
+/**
+ * Make a manifest field override that names a picker widget behave exactly
+ * like the schema format that triggers it.
+ *
+ * OpenRegister refuses formats it does not know (`nc-group`, `language`,
+ * `timezone`) at import, so an app cannot always put them in its schema. It
+ * declares `fieldOverrides.<key>.widget: 'group' | 'language' | 'timezone'`
+ * (or `'user'`) instead. The widget alone is not enough for the user and
+ * group pickers, which CnFormDialog recognises by `userPicker` /
+ * `groupPicker`, so set those here. An override may also carry its own
+ * `x-default` (`current-language`, `current-timezone`), which becomes the
+ * field's `defaultToken` just as the schema key does.
+ *
+ * Mutates `field` in place.
+ *
+ * @spec openspec/changes/review-round-two/specs/schema-utilities/spec.md
+ * @param {object} field The field descriptor, overrides already merged in.
+ * @param {object} override The raw override for this key.
+ * @return {void}
+ */
+function applyPickerOverride(field, override) {
+	if (!override || typeof override !== 'object') {
+		return
+	}
+	const widget = override.widget
+	if (widget === 'group' || widget === 'group-multiselect') {
+		field.groupPicker = { multiple: widget === 'group-multiselect' }
+		field.userPicker = null
+	} else if (widget === 'user' || widget === 'user-multiselect') {
+		field.userPicker = { multiple: widget === 'user-multiselect' }
+		field.groupPicker = null
+	}
+	if (typeof override['x-default'] === 'string' && override['x-default'] !== '') {
+		field.defaultToken = override['x-default']
+	}
 }
 
 /**
@@ -844,6 +881,7 @@ export function fieldsFromSchema(schema, options = {}) {
 		// Apply per-field overrides
 		if (overrides[key]) {
 			Object.assign(field, overrides[key])
+			applyPickerOverride(field, overrides[key])
 		}
 
 		return field

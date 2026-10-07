@@ -131,6 +131,8 @@ Escape hatch for anything the typed views don't cover. Config carries a `compone
 
 </div>
 
+A `dashboard` or `detail` page can also declare `config.views`: a few views of the page, each its own `widgets` and `layout`, behind one segmented control ("My work | My team"). `config.defaultView` names the view that opens first and `config.viewsLabel` names the switch. The chosen view is in the address as `?view=<id>`. See [CnDashboardPage](/docs/components/cn-dashboard-page#views-behind-a-switch-views) and [CnDetailPage](/docs/components/cn-detail-page#views-behind-a-switch-views).
+
 Each type has a known `config` shape — the `index` config takes `register` + `schema`, the `dashboard` config takes a widget array, the `settings` config takes a sections array. The manifest's `$schema` validates these at build time, so a typo surfaces with a clear error path before runtime.
 
 ## Configuring the atoms

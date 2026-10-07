@@ -491,3 +491,8 @@
 	font-size: 0.9em;
 	white-space: nowrap;
 }
+
+/* A page view the switch shows with nothing to draw (view-switch-containers). */
+.cn-detail-page .cn-page-view-region--empty {
+	padding: 40px 20px;
+}

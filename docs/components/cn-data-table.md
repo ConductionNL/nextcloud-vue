@@ -77,7 +77,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `loadingText` | String | `'Loading...'` | Accessible label for the loading spinner |
 | `sortKey` | String | `null` | Currently sorted column key; controls the ▲/▼ indicator. `null` means no column is actively sorted. |
 | `sortOrder` | String | `'asc'` | Current sort direction — `'asc'`, `'desc'`, or `null` (no sort) |
-| `sortKeys` | Array | `[]` | Ordered multi-column ("shift+click") sort key list, `[{ key, order }, …]` (0–3 entries). When non-empty it takes precedence over `sortKey`/`sortOrder`; a single-key list is single-sort's behavior unchanged. Shift+click a sortable header to append/cycle a secondary or tertiary key. A numbered priority badge marks each sorted column only when two or more rendered, sortable columns are sorted; a key whose column is not rendered or not sortable (such as a `_uuid` tie-break) still sorts, but is not counted or numbered. |
+| `sortKeys` | Array | `[]` | Ordered multi-column ("shift+click") sort key list, `[{ key, order }, …]` (0–3 entries). When non-empty it takes precedence over `sortKey`/`sortOrder`; a single-key list is single-sort's behavior unchanged. Shift+click a sortable header to append/cycle a secondary or tertiary key. A numbered priority badge marks each sorted column only when two or more rendered, sortable columns are sorted; a key whose column is not rendered or not sortable (such as a `_uuid` tie-break) still sorts, but is not counted or numbered, and `aria-sort` goes to the first sort key whose column is rendered and sortable. |
 | `selectable` | Boolean | `false` | Enables the checkbox column for multi-row selection |
 | `rowClickToView` | Boolean | `false` | When true, a row-body click emits `row-click` (for navigation) even while `selectable` — selection then happens only via the checkbox column ("click row = open, tick box = select") |
 | `selectedIds` | Array | `[]` | Array of currently selected row IDs (controlled) |
@@ -133,10 +133,14 @@ header. `CnIndexPage` does this by default; turn it off for a page with
 | boolean | yes, no, any | `key=true` |
 | number, date, date-time | from and to | `key[gte]`, `key[lte]` (date-time up to `T23:59:59`) |
 | `$ref` or `fkResolve` | searchable list of the referenced objects | `key[]=<uuid>` |
-| text | equals | `key=value` |
+| text | contains | `key[like]=term` |
 
-Text filters on equality: OpenRegister has no contains operator on schema
-properties yet. Use the search box for a partial match.
+A text filter matches on contains, case-insensitive, through OpenRegister's
+`[like]` operator: "acme" finds "Acme B.V.". The term goes out as typed, URL
+encoded; OpenRegister escapes `%`, `_` and `\` itself, so the library adds no
+wildcards. The header filter owns `key[like]` only. An exact `key=value` from
+the facet sidebar or a fixed filter keeps its meaning, and the header neither
+shows nor clears it.
 
 The host owns the state. Pass the active-filter map as `activeFilters`
 (`{ paramKey: values[] }`, the map the facet sidebar writes) and handle

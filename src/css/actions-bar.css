@@ -35,6 +35,23 @@
 	color: var(--color-text-maxcontrast);
 }
 
+/* Beside the inline search (`showCountWithSearch`): the search field shrinks
+   first and the counter stays on one line. */
+.cn-actions-bar__count--beside-search {
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+/* Taken out of the flex row so it adds no gap, but kept in the accessibility
+   tree so the live region exists before a total appears. */
+.cn-actions-bar__count--empty {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+}
+
 /* Inline search field */
 .cn-actions-bar__search {
 	position: relative;
@@ -294,8 +311,9 @@
 		display: contents;
 	}
 
-	/* #after-search filter buttons + the view toggle ride beside the
-	   search field (DOM order — search first via its own order). */
+	/* #after-search filter buttons, the beside-search counter and the view
+	   toggle ride beside the search field (DOM order — search first via its
+	   own order). */
 	.cn-actions-bar__info > * {
 		order: 1;
 	}

@@ -13,6 +13,7 @@ import {
 	isColumnFilterActive,
 	isColumnSortable,
 } from '../../src/utils/columnFilters.js'
+import { buildQueryString } from '../../src/utils/headers.js'
 
 const schema = {
 	properties: {
@@ -92,7 +93,7 @@ describe('state and parameters', () => {
 		expect(columnFilterParams(enumDef, { values: ['open', 'won'] })).toEqual({ status: ['open', 'won'] })
 		expect(columnFilterParams(range, { from: '10', to: '' })).toEqual({ 'value[gte]': ['10'], 'value[lte]': [] })
 		expect(columnFilterParams(columnFilterDef({ key: 'active' }, schema), { value: '' })).toEqual({ active: [] })
-		expect(columnFilterParams(columnFilterDef({ key: 'title' }, schema), { value: ' Acme ' })).toEqual({ title: ['Acme'] })
+		expect(columnFilterParams(columnFilterDef({ key: 'title' }, schema), { value: ' Acme ' })).toEqual({ 'title[like]': ['Acme'] })
 	})
 
 	it('queries a date-time column up to the end of the picked day, and shows the date back', () => {
@@ -110,5 +111,32 @@ describe('state and parameters', () => {
 
 	it('clears every key a column owns', () => {
 		expect(clearedColumnFilterParams(range)).toEqual({ 'value[gte]': [], 'value[lte]': [] })
+	})
+})
+
+/**
+ * @spec openspec/changes/header-filter-contains/specs/cn-data-table/spec.md#requirement-a-text-header-filter-matches-on-contains
+ */
+describe('text filter: contains through OpenRegister [like]', () => {
+	const text = columnFilterDef({ key: 'title' }, schema)
+
+	it('writes the trimmed term under title[like], and clears it when empty', () => {
+		expect(columnFilterParams(text, { value: ' acme ' })).toEqual({ 'title[like]': ['acme'] })
+		expect(columnFilterParams(text, { value: '   ' })).toEqual({ 'title[like]': [] })
+		expect(clearedColumnFilterParams(text)).toEqual({ 'title[like]': [] })
+	})
+
+	it('reads its state from title[like] only, so an exact sidebar filter is not the header\'s', () => {
+		expect(columnFilterState(text, { 'title[like]': ['acme'] })).toEqual({ value: 'acme' })
+		expect(isColumnFilterActive(text, { 'title[like]': 'acme' })).toBe(true)
+		expect(columnFilterState(text, { title: ['Acme'] })).toEqual({ value: '' })
+		expect(isColumnFilterActive(text, { title: ['Acme'] })).toBe(false)
+	})
+
+	it('goes out as OpenRegister reads it, the raw term encoded and no wildcard added', () => {
+		const params = columnFilterParams(text, { value: '50% off' })
+		// useListView unwraps a single value to a scalar before the request.
+		expect(buildQueryString({ 'title[like]': params['title[like]'][0] })).toBe('?title%5Blike%5D=50%25+off')
+		expect(buildQueryString({ 'title[like]': ['a', 'b'] })).toBe('?title%5Blike%5D%5B%5D=a&title%5Blike%5D%5B%5D=b')
 	})
 })

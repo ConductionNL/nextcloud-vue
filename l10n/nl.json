@@ -49,6 +49,7 @@
     "This integration is not available.": "Deze integratie is niet beschikbaar.",
     "Integrations": "Integraties",
     "View": "Weergave",
+    "Views": "Weergaven",
     "current step": "huidige stap",
     "{app} not available": "{app} niet beschikbaar",
     "{app} not configured": "{app} niet geconfigureerd",
@@ -408,6 +409,7 @@
     "Any": "Alle",
     "To": "Tot",
     "Equals": "Is gelijk aan",
+    "Contains": "Bevat",
     "Clear": "Wissen",
     "Apply": "Toepassen",
     "This column cannot list its objects.": "Deze kolom kan zijn objecten niet tonen.",
@@ -1132,6 +1134,7 @@
     "The actions of an attention card are declared in the manifest.": "De acties van een aandachtskaart staan in het manifest.",
     "An attention card needs a title": "Een aandachtskaart heeft een titel nodig",
     "Good morning, {name}": "Goedemorgen, {name}",
+    "This view has no widgets yet.": "Deze weergave heeft nog geen widgets.",
     "Good morning": "Goedemorgen",
     "Good afternoon, {name}": "Goedemiddag, {name}",
     "Good afternoon": "Goedemiddag",
@@ -1141,7 +1144,9 @@
     "Show the date of today above the heading": "Toon de datum van vandaag boven de kop",
     "Plain header without a coloured background": "Eenvoudige kop zonder gekleurde achtergrond",
     "Loading…": "Laden…",
-    "A register and schema are required": "Een register en schema zijn verplicht"
+    "A register and schema are required": "Een register en schema zijn verplicht",
+    "Change the search or try again.": "Pas de zoekopdracht aan of probeer het opnieuw.",
+    "Try again later.": "Probeer het later opnieuw."
   },
   "plurals": {
     "%n year": ["%n jaar", "%n jaar"],
