@@ -250,6 +250,17 @@
 									<!-- @binding {object} option The option being rendered (`{ id, label }`). -->
 									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
 								</template>
+								<!-- NcSelect's own option splits a label in two spans
+								     (NcEllipsisedOption, keeping its last characters
+								     visible), and in a narrow dropdown the halves broke
+								     onto two lines mid-word: "Agricu lture". A plain
+								     label wraps at spaces only. NcSelectUsers keeps its
+								     avatar rendering. -->
+								<template
+									v-else-if="!isUserField(field)"
+									#option="optionProps">
+									<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
+								</template>
 								<template
 									v-if="$slots['field-' + field.key + '-selected-option']"
 									#selected-option="optionProps">
@@ -284,10 +295,16 @@
 									#option="optionProps">
 									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
 								</template>
+								<template v-else #option="optionProps">
+									<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
+								</template>
 								<template
 									v-if="$slots['field-' + field.key + '-selected-option']"
 									#selected-option="optionProps">
 									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
+								</template>
+								<template v-else #selected-option="optionProps">
+									<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
 								</template>
 							</NcSelect>
 							<CnFieldHelper
@@ -318,10 +335,16 @@
 									#option="optionProps">
 									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
 								</template>
+								<template v-else #option="optionProps">
+									<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
+								</template>
 								<template
 									v-if="$slots['field-' + field.key + '-selected-option']"
 									#selected-option="optionProps">
 									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
+								</template>
+								<template v-else #selected-option="optionProps">
+									<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
 								</template>
 							</NcSelect>
 							<CnFieldHelper
@@ -2452,6 +2475,26 @@ export default {
 		 * @param {object} field The field definition
 		 * @return {boolean}
 		 */
+		/**
+		 * The text a select option shows: its label, else a display name, a
+		 * name or the id. A plain string option (a tag) is its own text.
+		 *
+		 * @spec openspec/changes/audit-round-lib-fixes/specs/schema-utilities/spec.md
+		 * @param {object|string} option The option (slot props).
+		 * @return {string} The text.
+		 */
+		optionText(option) {
+			if (option === null || option === undefined) {
+				return ''
+			}
+			if (typeof option !== 'object') {
+				return String(option)
+			}
+			const text = [option.label, option.displayName, option.name, option.id]
+				.find((v) => v !== undefined && v !== null && v !== '')
+			return text === undefined ? '' : String(text)
+		},
+
 		isUserField(field) {
 			return !!(field && field.userPicker && !field.userPicker.multiple)
 		},
@@ -3519,8 +3562,15 @@ export default {
 			if (this.isIdPickerField(field)) {
 				// Reference / user fields store the chosen id (UUID / UID),
 				// not the full option. Cache its label so the selection displays.
+				// A user option can carry only `displayName` (NcSelectUsers' own
+				// shape), and without that fallback the chip showed the uid.
 				if (option && option.id) {
-					this.referenceLabels = { ...this.referenceLabels, [option.id]: option.label || String(option.id) }
+					const name = option.label || option.displayName || this.referenceLabels[option.id]
+					if (name) {
+						this.referenceLabels = { ...this.referenceLabels, [option.id]: name }
+					} else if (this.isUserField(field)) {
+						this.resolveUserLabel(option.id)
+					}
 				}
 				this.updateField(field.key, option ? option.id : null)
 				// Reference options are label-only ({id,label}) — pass the id so
@@ -3587,7 +3637,7 @@ export default {
 				const labels = {}
 				for (const o of list) {
 					if (o && o.id) {
-						labels[o.id] = o.label || String(o.id)
+						labels[o.id] = o.label || o.displayName || this.referenceLabels[o.id] || String(o.id)
 					}
 				}
 				if (Object.keys(labels).length > 0) {
@@ -3861,6 +3911,16 @@ export default {
 </script>
 
 <style scoped>
+/* A select option breaks between words only, never inside one. */
+.cn-form-dialog__option {
+	display: block;
+	min-width: 0;
+	white-space: normal;
+	overflow-wrap: normal;
+	word-break: normal;
+	hyphens: manual;
+}
+
 .cn-form-dialog__draft-actions {
 	display: flex;
 	gap: 8px;

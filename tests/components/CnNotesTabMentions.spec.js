@@ -90,7 +90,7 @@ describe('CnNotesTab mentions', () => {
 			await typeInComposer(wrapper, 'hi @ja')
 			await flush(wrapper)
 
-			expect(searchNextcloudUsers).toHaveBeenCalledWith('ja')
+			expect(searchNextcloudUsers).toHaveBeenCalledWith('ja', { includeCurrentUser: false })
 			const items = wrapper.findAll('.tribute-item')
 			expect(items).toHaveLength(2)
 			expect(items.at(0).text()).toBe('Jan de Vries')
