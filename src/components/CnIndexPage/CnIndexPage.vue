@@ -59,6 +59,7 @@
 			:showSearch="inlineSearch"
 			:searchValue="effectiveSearchValue"
 			:searchPlaceholder="searchPlaceholder"
+			:showCountWithSearch="showCountWithSearch"
 			:refreshing="effectiveRefreshing"
 			:refreshDisabled="refreshDisabled"
 			:addDisabled="addDisabled"
@@ -415,6 +416,21 @@
 				<div v-if="showInitialLoader" class="cn-index-page__loading">
 					<!-- name gives NcLoadingIcon a non-empty aria-label (WCAG role-img-alt); empty name ships an unlabeled role="img" -->
 					<NcLoadingIcon :size="32" :name="loadingText" />
+				</div>
+
+				<!-- Error state: the latest self-fetch failed (e.g. a search term the server rejects) -->
+				<div v-else-if="selfFetchFailed"
+					class="cn-index-page__empty"
+					role="status"
+					data-testid="cn-index-page-fetch-error">
+					<NcEmptyContent :name="t('nextcloud-vue', 'An error occurred')"
+						:description="effectiveSearchValue
+							? t('nextcloud-vue', 'Change the search or try again.')
+							: t('nextcloud-vue', 'Try again later.')">
+						<template #icon>
+							<AlertCircleOutline :size="64" />
+						</template>
+					</NcEmptyContent>
 				</div>
 
 				<!-- Empty state -->
@@ -774,6 +790,7 @@ import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
+import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
@@ -1056,6 +1073,7 @@ export default {
 		NcActionCaption,
 		NcActionCheckbox,
 		NcButton,
+		AlertCircleOutline,
 		Close,
 		Cog,
 		DatabaseSearch,
@@ -2040,6 +2058,17 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Keep the "Showing X of Y" counter visible beside the inline search field,
+		 * after any `#after-search` controls (only relevant with `inlineSearch`,
+		 * which otherwise takes the counter's place). Fed from the manifest as
+		 * `pages[].config.showCountWithSearch`.
+		 */
+		showCountWithSearch: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Placeholder for the inline search field (manifest `config.searchPlaceholder`) */
 		searchPlaceholder: {
 			type: String,
@@ -2942,10 +2971,22 @@ export default {
 			return this.isSelfFetch && !!this.list
 		},
 
+		/**
+		 * Whether the latest self-fetch failed. The store keeps the previous
+		 * rows and pagination on a failed fetch, so while this holds the page
+		 * shows its error state instead of results for an earlier query.
+		 */
+		selfFetchFailed() {
+			return this.isSelfFetchMode && !!this.list.error?.value
+		},
+
 		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
 		effectiveObjects() {
 			if (this.isNamedSource) {
 				return this.namedRows
+			}
+			if (this.selfFetchFailed) {
+				return []
 			}
 			return this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects
 		},
@@ -3350,7 +3391,9 @@ export default {
 				s: this.exportSchemaSlug,
 				f: this.filter || null,
 				e: this.countEntries,
-				t: Number(this.effectivePagination?.total ?? 0),
+				// The store's total, not the error override in effectivePagination,
+				// so a failed fetch and its recovery do not refetch the counts.
+				t: Number((this.isSelfFetchMode ? this.list.pagination.value : this.effectivePagination)?.total ?? 0),
 			})
 		},
 
@@ -3756,6 +3799,9 @@ export default {
 
 		/** Pagination: store pagination in self-fetch mode, else the `pagination` prop. */
 		effectivePagination() {
+			if (this.selfFetchFailed) {
+				return { ...this.list.pagination.value, total: 0, page: 1, pages: 1 }
+			}
 			return this.isSelfFetchMode ? this.list.pagination.value : this.pagination
 		},
 

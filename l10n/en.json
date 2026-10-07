@@ -1,5 +1,6 @@
 {
   "translations": {
+    "Advanced": "Advanced",
     "The item could not be created.": "The item could not be created.",
     "Start over": "Start over",
     "Continue where you left off": "Continue where you left off",
@@ -1100,7 +1101,9 @@
     "Show the date of today above the heading": "Show the date of today above the heading",
     "Plain header without a coloured background": "Plain header without a coloured background",
     "Loading…": "Loading…",
-    "A register and schema are required": "A register and schema are required"
+    "A register and schema are required": "A register and schema are required",
+    "Change the search or try again.": "Change the search or try again.",
+    "Try again later.": "Try again later."
   },
   "plurals": {
     "%n year": ["%n year", "%n years"],

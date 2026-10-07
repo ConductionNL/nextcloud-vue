@@ -101,7 +101,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `refreshDisabled` | Boolean | `false` | Disable the refresh button (e.g. when required selections are missing) |
 | `subscribe` | Boolean | `true` | [Self-fetch mode](#self-fetch-mode) only — auto-subscribe to live collection updates for the page's register/schema scope and refetch (coalesced) on remote changes. Set `false` (manifest: `config.subscribe: false`) for static views. See [Live updates](#live-updates--collection-subscription). |
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
-| `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (manifest: `config.inlineSearch`) |
+| `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (manifest: `config.inlineSearch`). The field takes the place of the "Showing X of Y" counter unless `showCountWithSearch` is set |
+| `showCountWithSearch` | Boolean | `false` | Keep the "Showing X of Y" counter visible beside the inline search field, after the search and any `#after-search` controls; forwarded to `CnActionsBar` (manifest: `config.showCountWithSearch`). Only relevant with `inlineSearch` |
 | `filterMenu` | Boolean | `false` | Show a filter menu (funnel) in the table header listing each enum/badge column's values as toggleable facet filters (manifest: `config.filterMenu`) |
 | `columnMenu` | Boolean | `false` | Show a column menu (columns button) in the table header listing every governed column as a visibility checkbox — the in-table equivalent of the sidebar's Columns tab (manifest: `config.columnMenu`). See [Filter and columns: table header vs sidebar](#filter-and-columns-table-header-vs-sidebar). |
 | `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest: `config.searchPlaceholder`) |
@@ -581,7 +582,7 @@ A named `entitySource` may place built-ins in its own `rowActions` the same way;
 
 **Testids and the `action` event.** A built-in's `data-testid` is `cn-action-item-<id>` (`cn-action-item-edit`, and so on) in every locale; an app action keeps the slug of its label. The `action` event payload keeps `action` as the label and adds the action's `id`, plus `builtin: true` for a built-in, so an app action with `id: "edit"` and the built-in Edit stay distinguishable. A row's availability block (`rowActionField`, default `@self.actions`) matches a built-in by its id only, never by its label.
 
-**Library version.** The placeholders ship in the manifest schema `2.49.0`. An app that adopts them MUST raise its `@conduction/nextcloud-vue` range to the release that ships them in the same change: an older library rejects the manifest, and `useAppManifest` then falls back to the unresolved bundled manifest, losing the backend manifest merge and `@resolve:` sentinel resolution on every page, not just the row order.
+**Library version.** The placeholders ship in the manifest schema `2.50.0`. An app that adopts them MUST raise its `@conduction/nextcloud-vue` range to the release that ships them in the same change: an older library rejects the manifest, and `useAppManifest` then falls back to the unresolved bundled manifest, losing the backend manifest merge and `@resolve:` sentinel resolution on every page, not just the row order.
 
 ## Self-fetch mode
 
@@ -602,6 +603,10 @@ A manifest `type:"index"` page dispatches to `CnIndexPage` via `CnPageRenderer`,
 In this mode the page's rows, loading, pagination, schema, sort and search term all come from the `useListView` instance rather than from props; `@search` / `@sort` / `@page-changed` / `@filter-change` / `@refresh` route to its handlers (and still `$emit` for observers).
 
 Form save (create/edit), **mass export**, and **mass import** are also self-handled in this mode, because the manifest path has no parent listening for `@create` / `@edit` / `@mass-export` / `@mass-import`. Confirming the export dialog downloads the register/schema's objects in the chosen format from OpenRegister's `/api/objects/{register}/{schema}/export?type=` endpoint; confirming the import dialog uploads the file to `/api/registers/{register}/import` (multipart; the schema slug is added for CSV) and refreshes the list. Both resolve their dialog with no consumer handler required. In consumer-managed mode (`objects` supplied) `@mass-export` / `@mass-import` still just emit for the parent to handle.
+
+### A failed fetch
+
+When the latest fetch fails (OpenRegister answers a search term it cannot parse, such as an unbalanced bracket in `verzoek (2026`, with HTTP 400), the page shows an error state ("An error occurred") where the empty state would be, instead of the rows and "Showing X of Y" counter of the previous query, which the object store keeps on a failure. The server's own message is not shown; the state instead suggests changing the search or trying again when a search term is set, and trying again later when none is. The next successful fetch, for example after the search term is corrected, brings the results back, and so does a successful [live-update](#live-updates--collection-subscription) refetch, so a transient failure does not outlast the next background fetch. Only the most recently started fetch decides whether the error state shows, judged by that request's own response, so an older response that settles late cannot turn it on or off. That holds when an older failure lands while a newer request is still in flight, and for a refresh that joins an identical request already in flight. The `#empty` slot is not used for this state, and consumer-managed mode (`objects` supplied) is unaffected.
 
 ### Scoping a list to a parent — `config.filter`
 
