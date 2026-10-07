@@ -94,3 +94,52 @@ describe('fieldsFromSchema: picker keys', () => {
 		expect(f.descriptionLong).toBe('nl:Long help')
 	})
 })
+
+describe('fieldsFromSchema: picker widgets from a field override (round two, R1)', () => {
+	// OpenRegister refuses unknown formats at import, so pipelinq declares
+	// the pickers as manifest `fieldOverrides.<key>.widget` instead.
+	const withOverrides = (props, overrides, key) => fieldsFromSchema({ properties: props }, { overrides }).find((f) => f.key === key)
+
+	it('turns widget group on a plain string into a group picker', () => {
+		const f = withOverrides({ team: { type: 'string' } }, { team: { widget: 'group' } }, 'team')
+		expect(f.widget).toBe('group')
+		expect(f.groupPicker).toEqual({ multiple: false })
+		expect(f.userPicker).toBeNull()
+	})
+
+	it('turns widget group-multiselect on an array into a group multiselect', () => {
+		const f = withOverrides({ teams: { type: 'array', items: { type: 'string' } } }, { teams: { widget: 'group-multiselect' } }, 'teams')
+		expect(f.groupPicker).toEqual({ multiple: true })
+	})
+
+	it('turns widget language and timezone into the code pickers', () => {
+		expect(withOverrides({ lang: { type: 'string' } }, { lang: { widget: 'language' } }, 'lang').widget).toBe('language')
+		expect(withOverrides({ tz: { type: 'string' } }, { tz: { widget: 'timezone' } }, 'tz').widget).toBe('timezone')
+	})
+
+	it('reads x-default from the override', () => {
+		const f = withOverrides({ lang: { type: 'string' } }, { lang: { widget: 'language', 'x-default': 'current-language' } }, 'lang')
+		expect(f.defaultToken).toBe('current-language')
+	})
+
+	it('keeps the schema x-default when the override names only the widget', () => {
+		const f = withOverrides({ tz: { type: 'string', 'x-default': 'current-timezone' } }, { tz: { widget: 'timezone' } }, 'tz')
+		expect(f.defaultToken).toBe('current-timezone')
+	})
+
+	it('treats widget group in the schema itself like format nc-group', () => {
+		const f = field({ team: { type: 'string', widget: 'group' } }, 'team')
+		expect(f.groupPicker).toEqual({ multiple: false })
+	})
+
+	it('still renders format user as a user picker', () => {
+		const f = field({ owner: { type: 'string', format: 'user' } }, 'owner')
+		expect(f.widget).toBe('user')
+		expect(f.userPicker).toEqual({ multiple: false })
+	})
+
+	it('turns widget user from an override into a user picker', () => {
+		const f = withOverrides({ owner: { type: 'string' } }, { owner: { widget: 'user' } }, 'owner')
+		expect(f.userPicker).toEqual({ multiple: false })
+	})
+})
