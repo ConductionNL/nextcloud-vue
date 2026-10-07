@@ -53,12 +53,53 @@ per-entry presentation (`title`, `variant`, `countLabel`), an optional
 `route` deep link, and `hideWhenZero` (the entry is omitted from the
 card when its resolved count is `0`).
 
+## Money in its own currency (`format`, `currencyField`, `currency`)
+
+An entry shows its value formatted when it declares `format`, the same shape
+as a [`type: "stat"`](./cn-stat-widget.md) widget's `content.format`: a style
+name (`"number"`, `"currency"`, `"percent"`, `"decimal"`, `"duration-hours"`)
+or `{ style, currency, currencyField, decimals, prefix, suffix }`. Without
+one, the plain count shows, as before.
+
+A money value takes its currency, in order, from:
+
+1. `currencyField`: the field of the detail page's object that holds it, for
+   example a contract's own `currency` (dot-paths work).
+2. `currency`: a code such as `"USD"`, or a token such as `"@config.currency"`
+   or `"@object.currency"`.
+3. The app's reporting currency: `currency` in the page's app config.
+4. `EUR`.
+
+A step without a three-letter code is skipped. `currencyField` and `currency`
+may sit on the entry itself and then imply `format: "currency"`. The amount is
+formatted with Intl in the user's Nextcloud locale.
+
+```json
+{
+  "id": "contract-value",
+  "type": "stats-block",
+  "title": "Contract value",
+  "content": {
+    "entries": [
+      { "title": "Contract value", "register": "pipelinq", "schema": "salesContract",
+        "metric": "sum", "field": "value", "filter": { "id": "@objectId" },
+        "currencyField": "currency", "format": { "style": "currency", "decimals": 2 } }
+    ]
+  }
+}
+```
+
+Drop a `countLabel` that spelled the currency (`"EUR"`): the formatted value
+carries the symbol. The single-KPI mode takes the same shape as its `format`
+prop.
+
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `dataSource` | `object` | `null` | Manifest dataSource block (single-KPI mode). See [`useDataSource`](../utilities/composables/use-data-source.md). Exactly one of `dataSource` / `entries` must be provided. |
-| `entries` | `array` | `[]` | Multi-entry declarative sources — one KPI per entry: `{ title, register, schema, metric, field, filter, route, variant, countLabel, hideWhenZero }`. Mutually exclusive with `dataSource`. |
+| `entries` | `array` | `[]` | Multi-entry declarative sources — one KPI per entry: `{ title, register, schema, metric, field, filter, route, variant, countLabel, hideWhenZero, format, currency, currencyField }`. Mutually exclusive with `dataSource`. |
+| `format` | `string\|object\|null` | `null` | How the single-KPI value is shown: a style name or `{ style, currency, currencyField, decimals, prefix, suffix }`. See [Money in its own currency](#money-in-its-own-currency-format-currencyfield-currency). |
 | `title` | `string` | `''` | Block title (single-KPI mode). |
 | `countLabel` | `string` | `''` | Label next to the count (single-KPI mode). |
 | `variant` | `'default'\|'primary'\|'success'\|'warning'\|'error'` | `'default'` | Color variant (single-KPI mode). |
