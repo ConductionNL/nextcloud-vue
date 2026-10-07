@@ -145,6 +145,18 @@
 				</div>
 			</slot>
 			<div class="cn-detail-page__header-actions">
+				<!-- The page's view switch (`views`), unless a greeting header
+				     widget on the page draws it. Its options control the view
+				     region in the body. -->
+				<CnSegmentedControl
+					v-if="showsPageViewSwitch"
+					class="cn-page-view-switch"
+					:options="viewSwitchOptions"
+					:modelValue="activeViewId"
+					:ariaLabel="viewSwitchLabel"
+					:controls="viewRegionId"
+					data-testid="cn-detail-page-view-switch"
+					@update:modelValue="selectView" />
 				<!-- Next and previous inside the list this record was opened
 				     from. Rendered only when the address names that list: a
 				     record reached by a bare link offers neither, rather than
@@ -609,15 +621,19 @@
 			     subscribed to the layout/widgets arrays — in-place pushes
 			     (Add widget) keep the same array identity and can't re-render
 			     it. One remount per edit flip re-subscribes it. -->
+			<!-- One grid per section: the body grid, then the chosen view
+			     (`views`) in a region the view switch controls. A view grid is
+			     keyed on its view, so switching mounts the other view's grid. -->
 			<CnDashboardGrid
-				v-if="hasBodyGrid"
-				:key="`cn-detail-grid-${editingBody ? 'editing' : 'live'}`"
-				:layout="bodyGridLayout"
+				v-for="section in bodyGridSections"
+				:key="`cn-detail-grid-${section.key}-${editingBody ? 'editing' : 'live'}`"
+				v-bind="section.attrs"
+				:layout="section.layout"
 				:editable="editingBody"
 				:columns="12"
 				:columnOpts="columnOpts"
 				class="cn-detail-page__grid"
-				@layoutChange="onBodyLayoutChange">
+				@layoutChange="section.view ? onViewLayoutChange($event) : onBodyLayoutChange($event)">
 				<template #widget="{ item }">
 					<div
 						class="cn-detail-page__grid-item"
@@ -726,6 +742,22 @@
 					</div>
 				</template>
 			</CnDashboardGrid>
+
+			<!-- The chosen view has nothing to draw: say so in the region,
+			     never leave a blank area under the switch. -->
+			<div
+				v-if="viewIsEmpty"
+				:id="viewRegionId"
+				role="region"
+				:aria-label="activeView ? activeView.label : null"
+				class="cn-page-view-region cn-page-view-region--empty"
+				data-testid="cn-detail-page-view-empty">
+				<NcEmptyContent :description="viewEmptyText">
+					<template #icon>
+						<ViewDashboardOutline :size="48" />
+					</template>
+				</NcEmptyContent>
+			</div>
 
 			<!-- Statistics table -->
 			<div v-if="hasStats" class="cn-detail-page__stats">
@@ -1036,6 +1068,7 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import CnRelationLinkModal from '../../dialogs/CnRelationLinkModal.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
@@ -1048,6 +1081,7 @@ import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnNextStepCard from '../CnNextStepCard/CnNextStepCard.vue'
 import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.vue'
+import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
@@ -1055,6 +1089,7 @@ import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectPresence } from '../../composables/useObjectPresence.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
+import { pageViews } from '../../mixins/pageViews.js'
 import { useObjectStore } from '../../store/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { compactLayoutRows } from '../../utils/dashboardPlacement.js'
@@ -1227,6 +1262,8 @@ export default {
 		CnDetailWidgetHost,
 		CnFormDialog,
 		CnDashboardGrid,
+		CnSegmentedControl,
+		ViewDashboardOutline,
 		CnLifecycleActions,
 		CnActionButtons,
 		CnBreadcrumbs,
@@ -1242,7 +1279,7 @@ export default {
 		Pencil,
 	},
 
-	mixins: [gridLayout],
+	mixins: [gridLayout, pageViews],
 
 	inject: {
 		/**
@@ -3462,6 +3499,7 @@ export default {
 				&& this.currentObject
 				&& !this.hasDefaultSlotContent
 				&& !this.hasGridLayout
+				&& !this.hasViews
 		},
 
 		/**
@@ -3539,6 +3577,55 @@ export default {
 		 */
 		hasBodyGrid() {
 			return this.bodyGridLayout.length > 0
+		},
+
+		/**
+		 * The chosen view's layout as the grid draws it: items that draw
+		 * nothing leave and their rows close, as for the body grid.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-view-with-nothing-to-draw-says-so
+		 */
+		viewDisplayLayout() {
+			// eslint-disable-next-line @typescript-eslint/no-unused-expressions -- reading the flag IS the effect, as in bodyGridLayout
+			this.editingBody
+			return this.activeView ? this.closeDroppedRows(this.activeView.layout) : []
+		},
+
+		/**
+		 * Whether the chosen view has nothing to draw.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-view-with-nothing-to-draw-says-so
+		 */
+		viewIsEmpty() {
+			return this.hasViews && this.viewDisplayLayout.length === 0
+		},
+
+		/**
+		 * The grids the body draws: the body grid when it has items, then the
+		 * chosen view's grid in the region the view switch controls (left out
+		 * when the view is empty; the empty state takes the region then).
+		 *
+		 * @return {Array<{key: string, view: boolean, layout: Array<object>, attrs: object}>}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-page-declares-views-that-each-hold-a-widget-grid
+		 */
+		bodyGridSections() {
+			const sections = this.hasBodyGrid ? [{ key: 'body', view: false, layout: this.bodyGridLayout, attrs: {} }] : []
+			if (this.hasViews && !this.viewIsEmpty) {
+				sections.push({
+					key: `view-${this.activeViewId}`,
+					view: true,
+					layout: this.viewDisplayLayout,
+					attrs: {
+						id: this.viewRegionId,
+						role: 'region',
+						'aria-label': this.activeView.label,
+						'data-testid': 'cn-detail-page-view-region',
+					},
+				})
+			}
+			return sections
 		},
 
 		/**
@@ -4762,6 +4849,8 @@ export default {
 		 */
 		findWidget(item) {
 			return this.bodyGridWidgets.find((w) => w.id === item.widgetId)
+				|| this.findViewWidget(item.widgetId)
+				|| undefined
 		},
 
 		/**
