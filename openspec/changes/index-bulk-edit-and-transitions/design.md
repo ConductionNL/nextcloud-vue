@@ -106,6 +106,19 @@ On mount the page reads `GET /api/bulk-actions` once per session. An
 action whose id is not in the answer is not offered, even when the page
 declares it. The strip never shows a button that ends in a 400.
 
+### D7. Select all matching is a query selection (added 7 October 2026)
+
+OpenRegister's bulk job takes a selection as `{ids: [...]}` or
+`{query: {...}}` (`BulkJobService.php:577-610`, REQ-BAJ-001 "the query with
+its filters, together with the count at creation"), bounded by an instance
+ceiling. OpenRegister's change `tables-bulk-jobs-and-file-search` (PR #4452,
+design D-1) asks the library for the query half, because its Tables page and
+every leaf list need to act on more than the visible page. The strip offers
+it the way Gmail does: only after the whole page is selected, naming the
+count. The query sent is the list request minus paging, so what the user saw
+counted is what the job selects; OpenRegister reports a set that grew between
+preview and commit (REQ-BAJ-003), so the library does not re-count.
+
 ## Files
 
 - `src/components/CnIndexPage/CnIndexPage.vue`: `bulkEdit`, `bulkTransitions`

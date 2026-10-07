@@ -66,6 +66,17 @@
 - [ ] Implement
 - [ ] Test
 
+### Task 7: Select all matching as a query selection
+- **spec_ref**: `openspec/changes/index-bulk-edit-and-transitions/specs/index-page/spec.md#requirement-select-all-matching-hands-the-query-to-the-bulk-job`
+- **files**: `src/components/CnIndexPage/CnIndexPage.vue`, `src/components/CnActionsBar/CnActionsBar.vue`, `src/components/CnIndexPage/selfModeActions.js`, `tests/components/CnIndexPageSelectAllMatching.spec.js`
+- **acceptance_criteria**:
+  - Offer shown only when the page is fully selected and `total` exceeds it
+  - Job body `selection: {query}` built from the list request minus paging keys
+  - Ceiling refusal shown with ceiling and count; filter, search or quick filter change clears the selection
+  - Verify: jest; `npm run build`
+- [ ] Implement
+- [ ] Test
+
 ## Cross-project
 
 - openregister: register `set-field` and `transition` in `BulkActionRegistry`. Listed for the openregister lane; this change hides both actions until they exist.

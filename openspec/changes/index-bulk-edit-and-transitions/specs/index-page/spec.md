@@ -96,3 +96,43 @@ SHALL show as refused, not as skipped.
 - GIVEN a committed job in which one row was refused because the user may not write it
 - WHEN the outcome panel renders
 - THEN that row is listed as refused with the server's reason and a link to it
+
+### Requirement: Select all matching hands the query to the bulk job
+
+When every row of the visible page is selected and the list's total is
+larger than the page, `CnIndexPage` SHALL offer "Select all N matching" in
+the selection strip, N being the list's `total`. Choosing it SHALL turn the
+selection into a query selection: the strip SHALL read "All N matching
+selected" with a way back to the page selection, and every bulk job the
+strip creates SHALL send `selection: {query: <the page's current list query>}`
+instead of `selection: {ids: [...]}`. The query SHALL carry the page's
+filters, search, quick filter and sort exactly as the list request does, and
+no paging keys. A refusal naming the instance ceiling SHALL be shown in the
+dialog with the ceiling and the count. Changing a filter, the search or the
+quick filter SHALL drop back to an empty selection.
+
+#### Scenario: Export all 260 matching
+
+- **GIVEN** a filtered list with total 260 and a page size of 25, all 25 rows selected
+- **WHEN** the user chooses Select all 260 matching and runs a bulk action
+- **THEN** `POST /api/bulk-jobs` SHALL carry `selection.query` with the page's filters and no `limit`, `offset` or `page`
+- **AND** SHALL NOT carry `selection.ids`
+
+#### Scenario: Above the ceiling
+
+- **GIVEN** a query selection of 4,000 and an instance ceiling of 1,000
+- **WHEN** the job creation is refused naming the ceiling
+- **THEN** the dialog SHALL show the ceiling and the count, and nothing SHALL be written
+
+#### Scenario: A filter change resets the selection
+
+- **GIVEN** a query selection of all 260 matching
+- **WHEN** the user changes a filter
+- **THEN** the selection SHALL be empty and the strip SHALL be hidden
+
+#### Scenario: One page, no offer
+
+- **GIVEN** a list whose total fits on the visible page
+- **WHEN** the user selects every row
+- **THEN** no Select all matching offer SHALL appear
+
