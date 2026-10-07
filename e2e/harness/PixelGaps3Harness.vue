@@ -60,6 +60,20 @@
 				actionLabel="Next step" />
 		</div>
 
+		<!-- LpStart: the emblem beside the greeting, an agenda without the
+		     calendar's chrome, and a tile with a second caption line. -->
+		<div v-else-if="scenario === 'lpstart'" class="pixgaps3__lp" data-testid="pixgaps3-lpstart">
+			<CnHeaderWidget :content="lpGreeting" :now="now" />
+			<div class="pixgaps3__lp-row">
+				<div class="pixgaps3__lp-tile">
+					<CnStatWidget :content="lpTile" />
+				</div>
+				<div class="pixgaps3__lp-cal">
+					<CnCalendarWidget :content="lpCalendar" />
+				</div>
+			</div>
+		</div>
+
 		<!-- decidiq's counters as stacked stats blocks. -->
 		<div v-else-if="scenario === 'stats'" class="pixgaps3__stats" data-testid="pixgaps3-stats">
 			<CnStatsBlock
@@ -107,11 +121,13 @@
 <script>
 import CnAppNav from '../../src/components/CnAppNav/CnAppNav.vue'
 import CnBreadcrumbs from '../../src/components/CnBreadcrumbs/CnBreadcrumbs.vue'
+import CnCalendarWidget from '../../src/components/CnCalendarWidget/CnCalendarWidget.vue'
 import CnHeaderWidget from '../../src/components/CnHeaderWidget/CnHeaderWidget.vue'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 import CnNextStepCard from '../../src/components/CnNextStepCard/CnNextStepCard.vue'
 import CnStackedBarWidget from '../../src/components/CnStackedBarWidget/CnStackedBarWidget.vue'
 import CnStatsBlock from '../../src/components/CnStatsBlock/CnStatsBlock.vue'
+import CnStatWidget from '../../src/components/CnStatWidget/CnStatWidget.vue'
 import CnWidgetWrapper from '../../src/components/CnWidgetWrapper/CnWidgetWrapper.vue'
 
 import '../../src/css/actions-bar.css'
@@ -125,12 +141,15 @@ const params = typeof window !== 'undefined' ? new URLSearchParams(window.locati
 export default {
 	name: 'PixelGaps3Harness',
 
-	components: { CnAppNav, CnBreadcrumbs, CnIndexPage, CnHeaderWidget, CnNextStepCard, CnStackedBarWidget, CnStatsBlock, CnWidgetWrapper },
+	components: { CnAppNav, CnCalendarWidget, CnStatWidget, CnBreadcrumbs, CnIndexPage, CnHeaderWidget, CnNextStepCard, CnStackedBarWidget, CnStatsBlock, CnWidgetWrapper },
 
 	data() {
 		const plain = params.get('plain') === '1'
 		return {
 			plain,
+			lpGreeting: { greeting: true, showDate: true, ground: true, ...(plain ? {} : { emblem: true }) },
+			lpTile: { label: 'dossiq · Cases', value: 14, caption: 'open cases', layout: 'stacked', ...(plain ? {} : { note: '3 deadlines this week', noteVariant: 'danger' }) },
+			lpCalendar: { viewMode: 'agenda', ...(plain ? {} : { showTitle: false, showViewModes: false }) },
 			statTiles: [{ title: 'Proposals under way', count: 7 }, { title: 'Waiting for my initials', count: 2 }, { title: 'Meetings this week', count: 2 }],
 			indexSchema: { title: 'Case', icon: 'FolderAccountOutline', properties: { title: { type: 'string', title: 'Case' }, caseType: { type: 'string', title: 'Type' } } },
 			indexColumns: [{ key: 'title', label: 'Case', secondary: '{identifier} · {requester}' }, { key: 'caseType', label: 'Type' }],
@@ -193,6 +212,24 @@ export default {
 
 .pixgaps3__stages {
 	height: 40px;
+}
+
+.pixgaps3__lp {
+	--nldesign-emblem-url: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 52'%3E%3Cpath d='M2 2h36v30c0 10-9 16-18 18C11 48 2 42 2 32z' fill='%23c00'/%3E%3C/svg%3E");
+}
+
+.pixgaps3__lp-row {
+	display: flex;
+	gap: 16px;
+	margin-top: 28px;
+}
+
+.pixgaps3__lp-tile,
+.pixgaps3__lp-cal {
+	flex: 1;
+	padding: 20px;
+	border: 1px solid #e4e6ea;
+	border-radius: 12px;
 }
 
 .pixgaps3__stats {

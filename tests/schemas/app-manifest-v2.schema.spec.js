@@ -1323,8 +1323,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// headerCard and headerWidget. 2.48.0 adds round three:
 		// breadcrumb.currentField and breadcrumb.separator, showWidgetActions
 		// on a detail page, the index keys showTitleIcon, showCount and
-		// headerButtons, the dashboard key gridFloat, and `inset` on the
-		// week-strip and stacked-bar content.
+		// headerButtons, the dashboard key gridFloat, a widget placement's
+		// showButtons, and `inset` on the week-strip and stacked-bar content.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
 		expect(schema.version).toBe('2.48.0')
 	})

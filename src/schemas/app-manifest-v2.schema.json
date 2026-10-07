@@ -1569,6 +1569,11 @@
 						"href": { "type": "string" }
 					}
 				},
+				"showButtons": {
+					"type": "boolean",
+					"default": true,
+					"description": "`false` drops the widget's footer links (its definition's `buttons`, e.g. a calendar's \"More events\"), for a placement whose card says enough without them (zuiddrecht-pixel-gaps-3)."
+				},
 				"sizeToContent": {
 					"type": ["boolean", "integer"],
 					"minimum": 1,

@@ -239,3 +239,43 @@ Without `kicker` the line SHALL be the date as before.
 - **GIVEN** `content: { greeting: true, showDate: true, kicker: "Klantcontact" }`
 - **WHEN** it renders on 5 October 2026
 - **THEN** the line reads "Klantcontact · " followed by the date
+
+### Requirement: A greeting can carry the emblem
+
+CnHeaderWidget SHALL take `content.emblem`: a URL, or `true` for the theme's
+`--nldesign-emblem-url`, drawn 52px high (`--cn-header-emblem-size`) beside the
+date line and heading and centred on them, as LpStart draws it. Without the
+key nothing changes.
+
+#### Scenario: LpStart's emblem
+
+- **GIVEN** `content: { greeting: true, showDate: true, emblem: true }`
+- **WHEN** it renders
+- **THEN** an emblem element precedes the date line and heading on one row
+
+### Requirement: An agenda placement can drop the calendar chrome
+
+CnCalendarWidget SHALL take `content.showTitle: false` (no "Calendar"
+sub-heading) and `content.showViewModes: false` (no Month / Week / Agenda
+buttons); without both the header row SHALL NOT render. A dashboard widget
+placement or definition with `showButtons: false` SHALL render without its
+footer links ("More events"). Without the keys nothing changes.
+
+#### Scenario: Agenda today
+
+- **GIVEN** a calendar widget with `showTitle: false` and `showViewModes: false`
+- **WHEN** it renders
+- **THEN** no header row renders above the agenda
+
+### Requirement: A stat tile can carry a second caption line
+
+CnStatWidget SHALL take `content.note` (an i18n key) and `content.noteVariant`
+(the `captionVariant` names): a second caption line under the caption, as
+LpStart's "3 deadlines this week". The line is static text; a second count
+source is out of scope. Without the key nothing changes.
+
+#### Scenario: A note under the count
+
+- **GIVEN** a stat tile with `note: "3 deadlines this week"` and `noteVariant: "danger"`
+- **WHEN** it renders
+- **THEN** the line shows under the caption in the error colour

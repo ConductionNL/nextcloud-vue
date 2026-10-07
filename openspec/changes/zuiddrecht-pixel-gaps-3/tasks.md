@@ -97,3 +97,21 @@
 - **files**: `src/components/CnHeaderWidget/CnHeaderWidget.vue`
 - [x] Implement
 - [x] Test
+
+### Task 17: A greeting can carry the emblem
+- **spec_ref**: `openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-greeting-can-carry-the-emblem`
+- **files**: `src/components/CnHeaderWidget/CnHeaderWidget.vue`
+- [x] Implement
+- [x] Test
+
+### Task 18: An agenda placement can drop the calendar chrome
+- **spec_ref**: `openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-agenda-placement-can-drop-the-calendar-chrome`
+- **files**: `src/components/CnCalendarWidget/CnCalendarWidget.vue`, `src/components/CnDashboardPage/CnDashboardPage.vue`, `src/schemas/app-manifest-v2.schema.json`
+- [x] Implement
+- [x] Test
+
+### Task 19: A stat tile can carry a second caption line
+- **spec_ref**: `openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-stat-tile-can-carry-a-second-caption-line`
+- **files**: `src/components/CnStatWidget/CnStatWidget.vue`
+- [x] Implement
+- [x] Test

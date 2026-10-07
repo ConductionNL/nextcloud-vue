@@ -4,12 +4,25 @@
 -->
 
 <template>
-	<div class="cn-header-widget" :class="{ 'cn-header-widget--plain': isPlain, 'cn-header-widget--ground': isGround, 'cn-header-widget--with-views': viewOptions.length > 0 }" :style="wrapperStyle">
+	<div class="cn-header-widget" :class="{ 'cn-header-widget--plain': isPlain, 'cn-header-widget--ground': isGround, 'cn-header-widget--with-views': viewOptions.length > 0, 'cn-header-widget--with-emblem': emblem !== null }" :style="wrapperStyle">
 		<div
 			v-if="hasOverlay"
 			class="cn-header-widget__overlay"
 			:style="overlayStyle"
 			aria-hidden="true" />
+		<!-- The emblem beside the greeting (`content.emblem`): a URL, or
+		     `true` for the theme's emblem (--nldesign-emblem-url). Decoration. -->
+		<img
+			v-if="emblem && emblem !== true"
+			class="cn-header-widget__emblem"
+			:src="emblem"
+			alt=""
+			data-testid="cn-header-widget-emblem">
+		<span
+			v-else-if="emblem === true"
+			class="cn-header-widget__emblem cn-header-widget__emblem--theme"
+			aria-hidden="true"
+			data-testid="cn-header-widget-emblem" />
 		<div class="cn-header-widget__content" :style="contentStyle">
 			<p
 				v-if="dateLine"
@@ -128,7 +141,7 @@ export default {
 		 * Persisted widget content: `{title, subtitle, backgroundImageUrl,
 		 * backgroundImageFileId, backgroundColor, overlayMode, overlayColor,
 		 * overlayOpacity, textColor, textAlign, verticalAlign, height, cta,
-		 * greeting, showDate, kicker, plain, ground, views}`. All fields are optional except
+		 * greeting, showDate, kicker, emblem, plain, ground, views}`. All fields are optional except
 		 * `title` (or `greeting`); unknown enum values collapse to documented
 		 * defaults and the renderer never throws. `views` is
 		 * `{ ariaLabel?, options: [{ label, route, params? }] }`: a segmented
@@ -139,7 +152,9 @@ export default {
 		 * also drops the widget's card for it). A ground greeting takes its
 		 * own height rather than its grid cell's, so a view switch sits on
 		 * the heading's line. `kicker` (an i18n key) prefixes the date line, as
-		 * "Customer contact · Tuesday 6 October".
+		 * "Customer contact · Tuesday 6 October". `emblem` (a URL, or `true`
+		 * for the theme's `--nldesign-emblem-url`) draws the emblem beside the
+		 * date line and heading, 52px high (`--cn-header-emblem-size`).
 		 *
 		 * @type {object}
 		 */
@@ -399,6 +414,21 @@ export default {
 				color: this.isPlain && !(this.content && this.content.textColor) ? 'var(--color-text-maxcontrast)' : this.textColor,
 				margin: 0,
 			}
+		},
+
+		/**
+		 * The emblem beside the greeting: the URL `content.emblem` names,
+		 * `true` for the theme's emblem, or null without the key.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-greeting-can-carry-the-emblem
+		 * @return {string|true|null}
+		 */
+		emblem() {
+			const value = this.content && this.content.emblem
+			if (value === true) {
+				return true
+			}
+			return typeof value === 'string' && value !== '' ? resolveImageUrl(value) : null
 		},
 
 		/** Whether a non-empty subtitle is set. */
@@ -803,6 +833,33 @@ export default {
 .cn-header-widget--with-views .cn-header-widget__content {
 	flex: 1 1 320px;
 	width: auto;
+}
+
+/* The emblem beside the greeting (`content.emblem`): on one row with the
+   date line and heading, centred on them, as LpStart draws it. */
+.cn-header-widget--with-emblem {
+	display: flex;
+	column-gap: var(--cn-header-emblem-gap, 16px);
+}
+
+.cn-header-widget--with-emblem .cn-header-widget__content {
+	flex: 1 1 auto;
+	width: auto;
+	min-width: 0;
+}
+
+.cn-header-widget__emblem {
+	position: relative;
+	z-index: 1;
+	flex: none;
+	align-self: center;
+	height: var(--cn-header-emblem-size, 52px);
+	width: auto;
+}
+
+.cn-header-widget__emblem--theme {
+	width: var(--cn-header-emblem-size, 52px);
+	background: var(--nldesign-emblem-url) center / contain no-repeat;
 }
 
 .cn-header-widget__views {

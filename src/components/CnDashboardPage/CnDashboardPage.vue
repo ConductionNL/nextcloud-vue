@@ -3473,6 +3473,12 @@ export default {
 
 		getWidgetButtons(item) {
 			const def = this.getWidgetDef(item.widgetId)
+			// `showButtons: false` on the placement or the definition drops
+			// the footer links ("More events"), for a placement whose card
+			// says enough without them (zuiddrecht-pixel-gaps-3).
+			if (item?.showButtons === false || def?.showButtons === false) {
+				return []
+			}
 			return def?.buttons || []
 		},
 
