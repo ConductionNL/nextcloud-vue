@@ -88,6 +88,23 @@ if (typeof window !== 'undefined' && window.location.search.includes('runlink'))
 		],
 	}))
 }
+// A router for the round-3 pixel-gap scenarios too (?pixgaps3=nav|greeting):
+// the menu claim is about what vue-router calls active, and the greeting's
+// view switch only renders with a router to follow. Hash history, so a spec
+// sets the address with `#/cases?caseType=woo`.
+if (typeof window !== 'undefined' && /[?&]pixgaps3=(nav|greeting)/.test(window.location.search)) {
+	const { createRouter, createWebHashHistory } = await import('vue-router')
+	const page = { render: () => null }
+	app.use(createRouter({
+		history: createWebHashHistory(),
+		routes: [
+			{ path: '/', name: 'Dashboard', component: page },
+			{ path: '/queue', name: 'Queue', component: page },
+			{ path: '/cases', name: 'Cases', component: page },
+			{ path: '/board', name: 'Board', component: page },
+		],
+	}))
+}
 // Vue 3's replacement for Vue.prototype.
 app.config.globalProperties.t = t
 app.config.globalProperties.n = n

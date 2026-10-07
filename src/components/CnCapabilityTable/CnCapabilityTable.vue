@@ -187,6 +187,7 @@ import {
 	hasProviders,
 	RATINGS,
 	resolveProvider,
+	warnCapabilityComparisonDeprecated,
 } from '../../utils/capabilityComparison.js'
 
 /**
@@ -212,6 +213,13 @@ export default {
 		 * document without them renders the table this component's consumers
 		 * already had.
 		 *
+		 * Deprecated, with the whole component: publish the comparison on the
+		 * app's docs site and link to it (as dossiq #3312 and pipelinq #2195
+		 * did). Still rendered; removal waits for a major version. A
+		 * development build warns once when a comparison is given.
+		 *
+		 * @deprecated since 2.66.0, publish the comparison on the app's docs site and link to it.
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-the-in-app-capability-comparison-is-deprecated
 		 * @type {object}
 		 */
 		comparison: {
@@ -434,6 +442,12 @@ export default {
 		if (this.debounceHandle !== null) {
 			clearTimeout(this.debounceHandle)
 			this.debounceHandle = null
+		}
+	},
+
+	mounted() {
+		if (this.comparison) {
+			warnCapabilityComparisonDeprecated('CnCapabilityTable')
 		}
 	},
 

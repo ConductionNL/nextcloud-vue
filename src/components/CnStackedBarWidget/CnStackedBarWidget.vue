@@ -3,7 +3,7 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-stacked-bar" data-testid="cn-stacked-bar">
+	<div class="cn-stacked-bar" :class="{ 'cn-stacked-bar--inset': inset }" data-testid="cn-stacked-bar">
 		<div v-if="loading" class="cn-stacked-bar__state" role="status">
 			<NcLoadingIcon :size="20" />
 			<span>{{ loadingLabel }}</span>
@@ -11,9 +11,14 @@
 		<p v-else-if="error" class="cn-stacked-bar__state" role="status">
 			{{ errorLabel }}
 		</p>
-		<p v-else-if="total === 0" class="cn-stacked-bar__state" data-testid="cn-stacked-bar-empty">
-			{{ emptyLabel }}
-		</p>
+		<!-- The designed empty state the list widgets use, compact: a bare
+		     line of text read as a broken widget in an empty card. -->
+		<CnWidgetEmptyState
+			v-else-if="total === 0"
+			:name="emptyLabel"
+			compact
+			class="cn-stacked-bar__empty"
+			data-testid="cn-stacked-bar-empty" />
 		<template v-else>
 			<!-- The bar is a picture of the legend below it. The legend holds
 			     every label and number, so the bar itself is hidden from
@@ -50,6 +55,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
+import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 
 /** The lightest step keeps this share of the primary colour, so it still stands out from the page. */
@@ -114,7 +120,7 @@ export function rampColor(index, count) {
 export default {
 	name: 'CnStackedBarWidget',
 
-	components: { NcLoadingIcon },
+	components: { CnWidgetEmptyState, NcLoadingIcon },
 
 	inject: {
 		/**
@@ -133,9 +139,11 @@ export default {
 		 * group keys in the order they render; groups it does not list follow
 		 * in the order they arrive, and a listed key without records renders
 		 * with a count of 0. `labels` maps a group key to its label.
-		 * `emptyText` is shown when there is nothing to count.
+		 * `emptyText` is shown when there is nothing to count. `inset: true`
+		 * draws the bar and legend inside the board's inset (16px above, 24px
+		 * at the sides, 22px below) instead of from card edge to card edge.
 		 *
-		 * @type {{source?: {register?: string, schema?: string, groupBy?: string, filter?: object}, segments?: Array<{key?: string, label: string, value: number}>, order?: Array<string>, labels?: {[key: string]: string}, emptyText?: string}}
+		 * @type {{inset?: boolean, source?: {register?: string, schema?: string, groupBy?: string, filter?: object}, segments?: Array<{key?: string, label: string, value: number}>, order?: Array<string>, labels?: {[key: string]: string}, emptyText?: string}}
 		 */
 		content: {
 			type: Object,
@@ -163,6 +171,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the widget draws the board's inset (`content.inset`). Off
+		 * by default, which keeps it edge to edge as before.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-strip-and-a-stacked-bar-can-take-the-board-inset
+		 * @return {boolean}
+		 */
+		inset() {
+			return Boolean(this.content && this.content.inset === true)
+		},
+
 		/**
 		 * The translate function in use.
 		 *
@@ -351,6 +370,14 @@ export default {
 	flex-direction: column;
 	gap: 16px;
 	width: 100%;
+}
+
+/* `content.inset: true`: the board's inset inside the card (zuiddrecht-pixel-
+   gaps-3). A dashboard renders its widgets flush, so without it the strip ran
+   from card edge to card edge. Theme hook: --cn-widget-board-inset. */
+.cn-stacked-bar--inset {
+	box-sizing: border-box;
+	padding: var(--cn-widget-board-inset, 16px 24px 22px);
 }
 
 .cn-stacked-bar__state {

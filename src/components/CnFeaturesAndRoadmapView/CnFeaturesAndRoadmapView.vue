@@ -114,6 +114,7 @@ import CnFeaturesAndRoadmapSidebar from '../CnFeaturesAndRoadmapSidebar/CnFeatur
 import CnFeaturesTab from '../CnFeaturesTab/CnFeaturesTab.vue'
 import CnRoadmapTab from '../CnRoadmapTab/CnRoadmapTab.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
+import { warnCapabilityComparisonDeprecated } from '../../utils/capabilityComparison.js'
 import { buildFeatureRequestUrl, DEFAULT_FORGE } from '../../utils/forge.js'
 
 const DEFAULT_OPENBUILT_PATH = '/apps/openbuilt'
@@ -214,6 +215,11 @@ export default {
 		 * When null (default) the toggle keeps its two stops and the view
 		 * renders exactly as it does for every app that passes nothing.
 		 *
+		 * Deprecated: publish the comparison on the app's docs site and link to it (as dossiq #3312 and pipelinq #2195 did). Still rendered; removal waits for a major version.
+		 * A development build warns once when it is set.
+		 *
+		 * @deprecated since 2.66.0, publish the comparison on the app's docs site and link to it.
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-the-in-app-capability-comparison-is-deprecated
 		 * @type {object|null}
 		 */
 		capabilityComparison: {
@@ -527,6 +533,9 @@ export default {
 
 	mounted() {
 		this.publishHoistedSidebar()
+		if (this.capabilityComparison) {
+			warnCapabilityComparisonDeprecated('CnFeaturesAndRoadmapView `capabilityComparison`')
+		}
 	},
 
 	beforeUnmount() {

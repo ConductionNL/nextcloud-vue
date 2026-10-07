@@ -31,6 +31,7 @@
 				v-for="(item, index) in layout"
 				:key="resolveItemKey(item)"
 				class="grid-stack-item"
+				:class="{ 'cn-dashboard-grid__item--fit': sizeToContentAttr(item) !== undefined }"
 				role="group"
 				:aria-label="resolveItemLabel(item, index)"
 				:aria-describedby="itemDescribedBy"
@@ -255,6 +256,19 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
+		/**
+		 * GridStack's `float`. True (the default) keeps every item on the row
+		 * it was placed on, with empty rows above it if need be. False packs
+		 * items upward, so a size-to-content cell that shrinks, or a widget
+		 * that is not shown, closes its gap instead of leaving a band.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-dashboard-closes-the-gap-a-shrinking-or-hidden-widget-leaves
+		 */
+		float: {
+			type: Boolean,
+			default: true,
+		},
 	},
 
 	emits: [
@@ -278,6 +292,8 @@ export default {
 		return {
 			grid: null,
 			contentObserver: null,
+			/** True while the grid moves an item to where the layout put it. */
+			applyingLayout: false,
 			domId: `cn-dashboard-grid-${++domIdCounter}`,
 			/** Text currently held in the polite live region. */
 			announcement: '',
@@ -485,7 +501,7 @@ export default {
 				column: this.columns,
 				cellHeight: this.cellHeight,
 				margin: this.margin,
-				float: true,
+				float: this.float,
 				animate: true,
 				disableDrag: !this.editable,
 				disableResize: !this.editable,
@@ -557,6 +573,10 @@ export default {
 			// this is also where the handles are re-judged in both directions:
 			// switched off as the grid narrows, and back on as it widens.
 			this.syncInteractivity()
+
+			if (this.applyingLayout) {
+				return
+			}
 
 			// GridStack fires `change` for its own responsive rescale too, and at a
 			// 12 → 1 breakpoint every item reads `gridX: 0, gridWidth: 1`. Emitting
@@ -957,7 +977,29 @@ export default {
 					const node = this.grid.engine.nodes.find((n) => String(n.id) === String(item.id))
 					if (!node) {
 						this.grid.makeWidget(el)
-					} else if (node.el !== el) {
+					} else if (node.el === el) {
+						// The layout MOVED an item the grid already tracks: the
+						// page re-compacts its display layout when a widget's
+						// condition hides it, and the item below was given a new
+						// gridY that never reached GridStack, so a band stayed
+						// where the hidden widget had been. A drag reports the
+						// grid's own position back, which matches and does
+						// nothing here.
+						const x = item.gridX ?? node.x
+						const y = item.gridY ?? node.y
+						if (x !== node.x || y !== node.y) {
+							// The layout said where it goes; GridStack's `change`
+							// for it is not a user's arrangement and is not
+							// reported back (it would write the display-only
+							// compaction into the authored layout).
+							this.applyingLayout = true
+							try {
+								this.grid.update(el, { x, y })
+							} finally {
+								this.applyingLayout = false
+							}
+						}
+					} else {
 						// Drop the stale node without touching its detached DOM,
 						// then adopt the new element so GridStack sizes/places it.
 						this.grid.removeWidget(node.el, false, false)
@@ -1014,6 +1056,16 @@ export default {
 	outline: 2px solid var(--color-primary-element, #0082c9);
 	outline-offset: 2px;
 	border-radius: var(--border-radius-container-large, 16px);
+}
+
+/* A size-to-content cell (`sizeToContent`) is measured by GridStack from the
+   content's first child, and a widget wrapper there filled the cell
+   (`height: 100%`), so the measure returned the cell's own height and the
+   cell never shrank: "Waiting for me" stayed a tall card around one row. In
+   such a cell the child takes its own height. A cell without the key keeps
+   the filling child. */
+.cn-dashboard-grid__item--fit > :deep(.grid-stack-item-content > *) {
+	height: auto;
 }
 
 :deep(.grid-stack-item-content) {

@@ -305,6 +305,7 @@
 			:columns="columns"
 			:cellHeight="cellHeight"
 			:margin="gridMargin"
+			:float="gridFloat"
 			@layoutChange="section.view ? onViewLayoutChange($event) : onLayoutChange($event)">
 			<template #widget="{ item }">
 				<!-- In-app edit overlay (ADR-041): a single launchpad-style
@@ -1026,6 +1027,19 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-dashboard-can-drop-the-widget-actions-menu
 		 */
 		showWidgetActions: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * GridStack's `float` for this dashboard (manifest
+		 * `config.gridFloat`). True (the default) keeps every widget on its
+		 * row. False packs widgets upward, so a size-to-content widget that
+		 * shrinks closes the gap under it instead of leaving an empty band.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-dashboard-closes-the-gap-a-shrinking-or-hidden-widget-leaves
+		 */
+		gridFloat: {
 			type: Boolean,
 			default: true,
 		},
@@ -3602,6 +3616,12 @@ export default {
 
 		getWidgetButtons(item) {
 			const def = this.getWidgetDef(item.widgetId)
+			// `showButtons: false` on the placement or the definition drops
+			// the footer links ("More events"), for a placement whose card
+			// says enough without them (zuiddrecht-pixel-gaps-3).
+			if (item?.showButtons === false || def?.showButtons === false) {
+				return []
+			}
 			return def?.buttons || []
 		},
 
@@ -3905,10 +3925,15 @@ export default {
 			// library's own defaults, so a manifest need not set them — but a
 			// manifest that DOES set them must reach the component, or the
 			// declaration is a silent no-op that reads like configuration.
-			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'vertical', 'filled', 'route', 'iconClass', 'format']) {
+			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'vertical', 'filled', 'route', 'iconClass', 'format', 'layout']) {
 				if (props[key] !== undefined) {
 					out[key] = props[key]
 				}
+			}
+			// `content.layout: "stacked"`, the key a stat tile takes, works on
+			// a stats block too (zuiddrecht-pixel-gaps-3).
+			if (out.layout === undefined && typeof content.layout === 'string') {
+				out.layout = content.layout
 			}
 			// `countLabel` is the unit beside the number ("0 cases", "0 tasks").
 			// It is manifest-authored prose and was being forwarded raw, so a

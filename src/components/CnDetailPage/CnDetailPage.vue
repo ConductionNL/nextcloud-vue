@@ -48,6 +48,7 @@
 			class="cn-detail-page__breadcrumbs"
 			:crumbs="breadcrumbCrumbs"
 			:rootText="breadcrumbCrumbs[0].icon === undefined"
+			:separator="breadcrumbSeparator"
 			data-testid="cn-detail-page-breadcrumbs" />
 		<!-- Header -->
 		<div
@@ -749,6 +750,7 @@
 								:widget="findWidget(item)"
 								chrome="card"
 								:showCardTitle="showCardTitle(item)"
+								:showActions="showWidgetActions"
 								:objectId="objectId"
 								:object="currentObject"
 								:objectType="resolvedObjectType"
@@ -959,6 +961,7 @@
 						:widget="widget"
 						chrome="card"
 						:showCardTitle="true"
+						:showActions="showWidgetActions"
 						:objectId="objectId"
 						:object="currentObject"
 						:objectType="resolvedObjectType"
@@ -2235,16 +2238,36 @@ export default {
 		 * belongs to; the record's display name follows as the current
 		 * crumb. `label` goes through the host translate function and shows
 		 * as text; `icon` (an MDI name, e.g. `Home`) draws that icon instead,
-		 * with the label as its accessible name. Null (the default) draws no
+		 * with the label as its accessible name. `currentField` names a field
+		 * of the record (a dotted path, e.g. `identifier`) whose value is the
+		 * current crumb instead of the display name; an empty value falls back
+		 * to the display name. `separator` draws that text (e.g. `/`) between
+		 * the crumbs instead of the chevron. Null (the default) draws no
 		 * trail.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-declared-breadcrumb-label-shows-as-text
-		 * @type {{label: string, route?: string, params?: object, href?: string, icon?: string}|null}
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-breadcrumb-can-name-the-record-by-a-field-and-use-a-text-separator
+		 * @type {{label: string, route?: string, params?: object, href?: string, icon?: string, currentField?: string, separator?: string}|null}
 		 */
 		breadcrumb: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Whether the record's widget cards (the body grid and the side
+		 * column) keep their overflow Actions menu when their definition does
+		 * not say (`showActions`). `false` (manifest
+		 * `config.showWidgetActions: false`) drops it, as on a dashboard; a
+		 * widget with `showActions: true` keeps its menu. A card that offers
+		 * an Add action keeps the menu that holds it. True by default.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-detail-page-can-drop-the-widget-actions-menu
+		 */
+		showWidgetActions: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
@@ -3438,7 +3461,38 @@ export default {
 			} else if (crumb.href) {
 				first.href = crumb.href
 			}
-			return [first, { label: this.displayTitle }]
+			return [first, { label: this.breadcrumbCurrentLabel }]
+		},
+
+		/**
+		 * The current crumb: the record's `breadcrumb.currentField` value
+		 * (the case number on a case page) when declared and filled, else the
+		 * display name.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-breadcrumb-can-name-the-record-by-a-field-and-use-a-text-separator
+		 * @return {string}
+		 */
+		breadcrumbCurrentLabel() {
+			const field = this.breadcrumb && this.breadcrumb.currentField
+			if (typeof field === 'string' && field !== '') {
+				const value = stageOf(this.resolvedObject, field)
+				if (value !== '') {
+					return value
+				}
+			}
+			return this.displayTitle
+		},
+
+		/**
+		 * The text drawn between the crumbs (`breadcrumb.separator`), or ''
+		 * for the chevron.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-breadcrumb-can-name-the-record-by-a-field-and-use-a-text-separator
+		 * @return {string}
+		 */
+		breadcrumbSeparator() {
+			const separator = this.breadcrumb && this.breadcrumb.separator
+			return typeof separator === 'string' ? separator : ''
 		},
 
 		/**

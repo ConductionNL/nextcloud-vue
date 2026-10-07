@@ -46,6 +46,16 @@
 	row-gap: var(--cn-detail-header-row-gap, 22px);
 }
 
+/* That wrap must not take the actions off the title row. With `flex-basis:
+   auto` a long title claimed its whole text width, so the actions wrapped
+   under it. From a zero basis the title takes what the actions leave and
+   wraps (two lines, then an ellipsis) inside it; only on a page too narrow
+   for 16rem of title beside the actions do the actions drop a row. */
+.cn-detail-page__header--with-widget > :first-child {
+	flex: 1 1 0;
+	min-width: min(100%, 16rem);
+}
+
 .cn-detail-page__header-widget {
 	flex: 1 0 100%;
 	min-width: 0;

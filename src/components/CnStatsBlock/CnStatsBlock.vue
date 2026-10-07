@@ -19,7 +19,7 @@
 		v-bind="componentAttrs"
 		@click="onClick">
 		<!-- Icon -->
-		<div v-if="hasIcon" class="cn-kpi-card__icon cn-stats-block__icon" :class="iconClasses">
+		<div v-if="hasIcon && !isStacked" class="cn-kpi-card__icon cn-stats-block__icon" :class="iconClasses">
 			<slot name="icon">
 				<component :is="icon" v-if="icon" :size="iconSize" />
 			</slot>
@@ -250,6 +250,18 @@ export default {
 		},
 
 		/**
+		 * `stacked` is the board's tile, as CnStatWidget `content.layout:
+		 * "stacked"`: no icon circle, a 14px muted title, the number at
+		 * 34px/700 in the text colour. Empty (the default) keeps the KPI card.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-stats-block-can-take-the-stacked-board-look
+		 */
+		layout: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Lay the icon left of the content. No longer needed — this is the
 		 * canonical card's own layout — and kept so existing callers that pass
 		 * `horizontal` keep working. Pass `vertical` to stack instead.
@@ -366,13 +378,24 @@ export default {
 			return {}
 		},
 
+		/**
+		 * Whether the block takes the stacked board look (`layout`).
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-stats-block-can-take-the-stacked-board-look
+		 * @return {boolean}
+		 */
+		isStacked() {
+			return this.layout === 'stacked'
+		},
+
 		rootClasses() {
 			return {
 				// Canonical + legacy, in pairs: the canonical class carries the
 				// look, the legacy one keeps existing app CSS matching.
 				// The canonical card is already horizontal, so the legacy pair
 				// is emitted for app CSS but carries no look of its own.
-				'cn-kpi-card--horizontal': this.horizontal || !this.vertical,
+				'cn-kpi-card--horizontal': !this.isStacked && (this.horizontal || !this.vertical),
+				'cn-kpi-card--stacked': this.isStacked,
 				'cn-stats-block--horizontal': this.horizontal || !this.vertical,
 				'cn-kpi-card--vertical': this.vertical,
 				'cn-stats-block--vertical': this.vertical,

@@ -131,3 +131,7 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | `sortOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
 | `sortValue` | String | `''` | Selected sort option value (controlled). |
 | `sortLabel` | String | *(i18n)* | Accessible label for the sort dropdown. |
+
+## `showCount` and `showActionsMenu`
+
+`showCount` (default `true`): `false` drops the "Showing 20 of 258" line. `showActionsMenu` (default `true`): `false` drops the overflow Actions menu (Refresh, Import, Export, mass actions, header actions), for a page that offers its actions as buttons elsewhere (CnIndexPage `headerButtons`).

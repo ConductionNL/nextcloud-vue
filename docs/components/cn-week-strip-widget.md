@@ -77,3 +77,7 @@ With static items:
 - Each item with a route is a link, reachable with Tab.
 - A late item says "Late" in text. The coloured edge only adds emphasis.
 - The scroll area is a labelled region with `tabindex="0"`, so the arrow keys scroll it.
+
+## `content.inset`
+
+`inset: true` draws the strip inside the board's inset (16px above, 24px at the sides, 22px below; theme hook `--cn-widget-board-inset`) instead of from card edge to card edge. Off by default.

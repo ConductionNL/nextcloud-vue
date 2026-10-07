@@ -14,3 +14,7 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 | ------------ | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `content`    | `object` |          | `\{\}`  | Persisted widget content `{viewMode, daysAhead, colorByCalendar}`.                                                                                                                                                  |
 | `dataSource` | `union`  |          | `null`  | Consumer-supplied data source overriding the `cnCalendarSource` injection. Must expose `fetchEvents({from, to}) =&gt; Promise&lt;{events, failures}&gt;`. When `null` the injection (then the empty state) is used. |
+
+## Without its own chrome
+
+`content.showTitle: false` drops the "Calendar" sub-heading and `content.showViewModes: false` the Month / Week / Agenda buttons; with both the header row goes, for an agenda placement whose card already names it. A dashboard placement or widget definition with `showButtons: false` drops the footer links (its `buttons`, such as "More events").

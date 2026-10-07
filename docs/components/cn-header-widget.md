@@ -56,3 +56,11 @@ An option can carry `view` instead of `route`: `{ "label": "My team", "view": "t
 { "type": "header", "content": { "greeting": true, "showDate": true, "ground": true,
   "views": { "ariaLabel": "View", "options": [{ "label": "My work", "route": "Dashboard" }, { "label": "My team", "route": "TeamDashboard" }] } } }
 ```
+
+## A ground greeting takes its own height
+
+With `content.ground: true` the widget takes its own height instead of its grid cell's, so a `content.views` switch sits on the heading's line (bottom-aligned with it) however tall the cell is, and a size-to-content cell can shrink to it. A banner without `ground` still fills its cell.
+
+## Kicker prefix and emblem
+
+`content.kicker` (an i18n key) prefixes the date line: "Customer contact · Monday 5 October 2026". `content.emblem` draws an emblem beside the date line and heading, centred on them: a URL, or `true` for the theme's `--nldesign-emblem-url`. It is 52px high (`--cn-header-emblem-size`) with a 16px gap (`--cn-header-emblem-gap`), and it is decoration.

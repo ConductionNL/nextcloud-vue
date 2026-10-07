@@ -40,6 +40,7 @@
 // unconditionally.
 import { loadState } from '@nextcloud/initial-state'
 import CnFeaturesAndRoadmapView from '../CnFeaturesAndRoadmapView/CnFeaturesAndRoadmapView.vue'
+import { warnCapabilityComparisonDeprecated } from '../../utils/capabilityComparison.js'
 import { DEFAULT_FORGE } from '../../utils/forge.js'
 
 /**
@@ -175,6 +176,11 @@ export default {
 		 * Manifest config > initialState (`features_roadmap_capabilities`) >
 		 * null. When null the view renders its two stops as it always has.
 		 *
+		 * Deprecated: publish the comparison on the app's docs site and link to it (as dossiq #3312 and pipelinq #2195 did). Still rendered; removal waits for a major version. The same goes for the `features_roadmap_capabilities` initial
+		 * state key. A development build warns once when either is set.
+		 *
+		 * @deprecated since 2.66.0, publish the comparison on the app's docs site and link to it.
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-the-in-app-capability-comparison-is-deprecated
 		 * @type {object|null}
 		 */
 		capabilityComparison: {
@@ -297,6 +303,12 @@ export default {
 			}
 			return readInitialState(this.effectiveAppId, 'features_roadmap_capabilities', null)
 		},
+	},
+
+	mounted() {
+		if (this.resolvedCapabilityComparison) {
+			warnCapabilityComparisonDeprecated('CnFeaturesAndRoadmapPage `capabilityComparison` / the `features_roadmap_capabilities` initial state')
+		}
 	},
 }
 </script>
