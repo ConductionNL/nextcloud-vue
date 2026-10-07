@@ -224,6 +224,19 @@ export default {
 		 *   edges, its undo stack, its persistence — so nothing is removed here.
 		 */
 		'remove',
+
+		/**
+		 * @event activate Enter or Space on the focused node: open this step.
+		 *   Carries the node id. The pointer equivalent is a double-click.
+		 */
+		'activate',
+
+		/**
+		 * @event menu Shift+F10 or the menu key on the focused node: show this
+		 *   step's actions. Carries `{ id, clientX, clientY }`, a point at the
+		 *   node, so a host positions the menu as it would for a click.
+		 */
+		'menu',
 	],
 
 	setup() {
@@ -478,7 +491,8 @@ export default {
 		 * The keyboard contract.
 		 *
 		 * Arrow keys move; `c` arms an exit and, on a second node, completes the
-		 * connection; `Escape` cancels. Repeated `c` on the SAME node steps
+		 * connection; `Escape` cancels. Enter or Space opens the step, Shift+F10
+		 * or the menu key opens its actions. Repeated `c` on the SAME node steps
 		 * through its exits rather than re-arming the first — the behaviour a
 		 * mouse gets for free by pointing.
 		 *
@@ -525,6 +539,27 @@ export default {
 				event.preventDefault()
 				this.onConnectKey()
 				return
+			}
+
+			// Opening the step, and its menu, from the keyboard. Only for a key
+			// pressed ON the node: a port inside it is a control of its own.
+			if (event.target === event.currentTarget) {
+				if (event.key === 'Enter' || event.key === ' ') {
+					event.preventDefault()
+					this.$emit('activate', this.id)
+					return
+				}
+
+				if ((event.key === 'F10' && event.shiftKey === true) || event.key === 'ContextMenu') {
+					event.preventDefault()
+					const rect = event.currentTarget.getBoundingClientRect()
+					this.$emit('menu', {
+						id: this.id,
+						clientX: rect.left + rect.width / 2,
+						clientY: rect.bottom,
+					})
+					return
+				}
 			}
 
 			// Delete and Backspace both, because which one removes a thing is a

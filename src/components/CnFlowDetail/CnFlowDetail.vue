@@ -200,6 +200,8 @@
 			:maxZoom="maxZoom"
 			@zoomChange="zoom = $event"
 			@nodeSelect="onNodeSelect"
+			@nodeActivate="onNodeActivate"
+			@nodeMenu="onNodeMenu"
 			@edgeSelect="onEdgeSelect"
 			@edgeLabelClick="onEdgeLabelClick"
 			@edgeLabelContext="onEdgeLabelContext"
@@ -1711,6 +1713,31 @@ export default {
 			}
 
 			this.openNodeMenu({ item: id, event: mouse })
+		},
+
+		/**
+		 * Enter or Space on a step: open its editor, as a double-click does.
+		 *
+		 * @param {string} id The step id.
+		 * @return {void}
+		 */
+		onNodeActivate(id) {
+			this.store.selectedNodeId = id
+			this.store.editingNodeId = id
+		},
+
+		/**
+		 * Shift+F10 or the menu key on a step: its menu, at the step.
+		 *
+		 * @param {object} request          The node's request.
+		 * @param {string} request.id       The step id.
+		 * @param {number} request.clientX  Where to place the menu.
+		 * @param {number} request.clientY  Where to place the menu.
+		 * @return {void}
+		 */
+		onNodeMenu({ id, clientX, clientY }) {
+			this.store.selectedNodeId = id
+			this.openNodeMenu({ item: id, event: { clientX, clientY } })
 		},
 
 		/**

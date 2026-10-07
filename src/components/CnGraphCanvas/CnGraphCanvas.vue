@@ -37,7 +37,9 @@
 					v-bind="nodeProps"
 					:deletable="!readOnly"
 					@connect="onConnect"
-					@remove="onNodeRemove">
+					@remove="onNodeRemove"
+					@activate="onNodeActivate"
+					@menu="onNodeMenu">
 					<template #default="slotProps">
 						<!-- @slot node The body of a step, rendered inside the
 						     focusable node wrapper. Receives `{ node }` with the
@@ -266,6 +268,8 @@ export default {
 		'canvas-drop',
 
 		'node-remove',
+		'node-activate',
+		'node-menu',
 
 		/**
 		 * The canvas zoom changed, by any route — a control here, the host's own
@@ -413,6 +417,41 @@ export default {
 			const port = cut === -1 ? handleId : handleId.slice(0, cut)
 
 			return port === 'in' ? null : port
+		},
+
+		/**
+		 * Forward Enter or Space on a node: the keyboard double-click.
+		 *
+		 * @param {string} id The node id.
+		 * @return {void}
+		 */
+		onNodeActivate(id) {
+			if (this.readOnly === true) {
+				return
+			}
+
+			/**
+			 * @event node-activate Enter or Space on a node. Payload is the id.
+			 */
+			this.$emit('node-activate', id)
+		},
+
+		/**
+		 * Forward Shift+F10 or the menu key on a node: the keyboard click menu.
+		 *
+		 * @param {object} request `{ id, clientX, clientY }`, a point at the node.
+		 * @return {void}
+		 */
+		onNodeMenu(request) {
+			if (this.readOnly === true) {
+				return
+			}
+
+			/**
+			 * @event node-menu Shift+F10 or the menu key on a node. Payload is
+			 *   `{ id, clientX, clientY }`.
+			 */
+			this.$emit('node-menu', request)
 		},
 
 		/**
