@@ -490,6 +490,53 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 
 A widget definition or layout entry can carry `headerLink` (`{ label, route?, params?, query?, href? }`); the page forwards it to [CnWidgetWrapper](./cn-widget-wrapper.md), which draws it as a text link in the widget header.
 
+## Views behind a switch (`views`)
+
+A dashboard can offer a few views of its content, such as "My work | My team". Each view is its own widget grid. A segmented control picks one, and the chosen view renders in a region below the page's own grid.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `views` | `Array` | `[]` | The views. Empty draws no switch and no region. |
+| `defaultView` | `String` | `''` | The view that opens when the address and the stored choice name none. Empty opens the first. |
+| `viewsLabel` | `String` | `''` | The accessible name of the switch. Empty reads "View". |
+
+- Each view is `{ id, label, icon?, emptyText?, widgets, layout }`. `widgets` and `layout` have the same shape as the page's own and render with the same grid.
+- The page's own `widgets` and `layout` stay above the region. Choosing a view swaps only the region.
+- The chosen view is in the address (`?view=<id>`, so a link opens it) and in the user's preferences (the app's preferences endpoint, mirrored in the browser). The address wins, then the stored choice, then `defaultView`, then the first view.
+- The switch is a radio group named by `viewsLabel` (default "View"). Every option carries `aria-controls` pointing at the region, a `region` landmark named after the chosen view. Arrow keys, Home and End move the choice and focus stays on the switch.
+- A view with nothing to draw shows its `emptyText`, else "This view has no widgets yet.", never a blank area.
+
+The switch sits in the page header. With `showHeader: false` it gets a row of its own above the grids. When a greeting [header widget](./cn-header-widget.md) in the page's own `widgets` has options with `view`, the greeting draws the switch and the page draws none. This is the layout of the design board: greeting with the switch, an attention card, then the view.
+
+```json
+{
+  "id": "Dashboard", "type": "dashboard", "route": "/",
+  "config": {
+    "showHeader": false,
+    "widgets": [
+      { "id": "greeting", "type": "header", "content": { "greeting": true, "showDate": true, "ground": true,
+        "views": { "ariaLabel": "Whose work", "options": [{ "label": "My work", "view": "mine" }, { "label": "My team", "view": "team" }] } } },
+      { "id": "first-today", "type": "banner", "content": { "layout": "attention", "title": "Cases past their deadline" } }
+    ],
+    "layout": [
+      { "id": "1", "widgetId": "greeting", "gridX": 0, "gridY": 0, "gridWidth": 12, "gridHeight": 2 },
+      { "id": "2", "widgetId": "first-today", "gridX": 0, "gridY": 2, "gridWidth": 12, "gridHeight": 2 }
+    ],
+    "defaultView": "mine",
+    "views": [
+      { "id": "mine", "label": "My work",
+        "widgets": [{ "id": "my-open", "type": "stat", "title": "My open cases", "content": { "source": { "register": "dossiq", "schema": "case", "metric": "count", "filter": { "assignee": "@me" } } } }],
+        "layout": [{ "id": "m1", "widgetId": "my-open", "gridX": 0, "gridY": 0, "gridWidth": 3, "gridHeight": 2 }] },
+      { "id": "team", "label": "My team", "emptyText": "Your team has no open cases.",
+        "widgets": [{ "id": "team-open", "type": "stat", "title": "Team open cases", "content": { "source": { "register": "dossiq", "schema": "case", "metric": "count" } } }],
+        "layout": [{ "id": "t1", "widgetId": "team-open", "gridX": 0, "gridY": 0, "gridWidth": 3, "gridHeight": 2 }] }
+    ]
+  }
+}
+```
+
+A drag or resize in a view's grid while editing is written back into that view's `layout`, and the page emits `view-layout-change` with `{ view, layout }`. A user layout (`userLayout`) covers the page's own `layout` only.
+
 ## Dropping the widget menus (`showWidgetActions`)
 
 | Prop | Type | Default | Description |
