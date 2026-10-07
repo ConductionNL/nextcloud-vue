@@ -85,8 +85,9 @@ export function isTrue(value) {
  * the rows keep the order they arrived in.
  *
  * @param {Array<object>} rows The stage rows.
- * @param {{idField?: string, labelField?: string, descriptionField?: string, orderField?: string, finalField?: string}} [cfg] The field mapping.
- * @return {Array<{id: string, label: string, subtitle: string, final: boolean}>} The stages.
+ * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stages-widget-draws-bars
+ * @param {{idField?: string, labelField?: string, descriptionField?: string, dateField?: string, orderField?: string, finalField?: string}} [cfg] The field mapping.
+ * @return {Array<{id: string, label: string, subtitle: string, date: string, final: boolean}>} The stages.
  */
 export function normalizeStages(rows, cfg = {}) {
 	const list = Array.isArray(rows) ? rows.filter((r) => r && typeof r === 'object') : []
@@ -108,6 +109,8 @@ export function normalizeStages(rows, cfg = {}) {
 				id: rowId(row, cfg.idField),
 				label,
 				subtitle: cfg.descriptionField ? labelText(getByPath(row, cfg.descriptionField)) : '',
+				// An optional date line (`dateField`), drawn by the bars variant.
+				date: cfg.dateField ? labelText(getByPath(row, cfg.dateField)) : '',
 				final: cfg.finalField ? isTrue(getByPath(row, cfg.finalField)) : false,
 			}
 		})

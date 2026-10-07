@@ -20,6 +20,7 @@
 			:aria-checked="isChecked(option) ? 'true' : 'false'"
 			:tabindex="index === focusableIndex ? 0 : -1"
 			:disabled="option.disabled || null"
+			:aria-controls="controls || null"
 			:data-value="option.key"
 			@click="select(option)">
 			<!-- @slot option Replaces the content of one option. -->
@@ -91,6 +92,17 @@ export default {
 
 		/** Id of an element that names the group, as an alternative to `ariaLabel`. */
 		ariaLabelledby: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Id of the element the options switch, such as the region holding a
+		 * page view's widgets. Set as `aria-controls` on every option.
+		 *
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-the-view-switch-is-accessible
+		 */
+		controls: {
 			type: String,
 			default: '',
 		},

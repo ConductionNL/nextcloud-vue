@@ -297,10 +297,13 @@ function truncateString(str, maxLength) {
  *    surface (CnFormDialog) resolves the reference to a searchable dropdown
  *    of the referenced objects (label = human name, value = UUID).
  * 4. Nextcloud user reference: `referenceType: 'nextcloud-user'` (or
- *    `format: 'user'`/`'username'`) → `'user'`; an array of such
+ *    `format: 'user'`/`'username'`/`'nc-user'`) → `'user'`; an array of such
  *    properties → `'user-multiselect'`. CnFormDialog resolves these to a
  *    searchable dropdown of real Nextcloud users (label = display name,
- *    value = UID).
+ *    value = UID). A Nextcloud group (`referenceType: 'nextcloud-group'` or
+ *    `format: 'nc-group'`) → `'group'`, an array of groups →
+ *    `'group-multiselect'`. `format: 'language'` → `'language'` and
+ *    `format: 'timezone'` → `'timezone'` (both searchable code lists).
  * 5. Type-based: `boolean` → `'checkbox'`, `integer`/`number` → `'number'`,
  *    `array` + `items.enum` → `'multiselect'`, `array` → `'tags'`
  * 6. Format-based: `date-time` → `'datetime'`, `date` → `'date'`,
@@ -364,13 +367,73 @@ function isUserProp(prop) {
 	if (!prop || typeof prop !== 'object') {
 		return false
 	}
-	if (prop.referenceType === 'nextcloud-user') {
+	if (prop.referenceType === 'nextcloud-user' || prop.widget === 'user') {
 		return true
 	}
 	const format = prop.format || ''
-	return format === 'user' || format === 'username'
+	return format === 'user' || format === 'username' || format === 'nc-user'
 }
 
+/**
+ * Whether a (single-value) schema property represents a Nextcloud group.
+ *
+ * A property is a group field when it declares `referenceType: 'nextcloud-group'`
+ * or `format: 'nc-group'`. CnFormDialog renders it as a searchable dropdown of
+ * Nextcloud groups (label = display name, value = group id).
+ *
+ * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
+ * @param {object} prop A schema property definition (or `items` for an array).
+ * @return {boolean} True when the property marks a Nextcloud group.
+ */
+function isGroupProp(prop) {
+	if (!prop || typeof prop !== 'object') {
+		return false
+	}
+	return prop.referenceType === 'nextcloud-group' || prop.format === 'nc-group' || prop.widget === 'group'
+}
+
+/**
+ * Make a manifest field override that names a picker widget behave exactly
+ * like the schema format that triggers it.
+ *
+ * OpenRegister refuses formats it does not know (`nc-group`, `language`,
+ * `timezone`) at import, so an app cannot always put them in its schema. It
+ * declares `fieldOverrides.<key>.widget: 'group' | 'language' | 'timezone'`
+ * (or `'user'`) instead. The widget alone is not enough for the user and
+ * group pickers, which CnFormDialog recognises by `userPicker` /
+ * `groupPicker`, so set those here. An override may also carry its own
+ * `x-default` (`current-language`, `current-timezone`), which becomes the
+ * field's `defaultToken` just as the schema key does.
+ *
+ * Mutates `field` in place.
+ *
+ * @spec openspec/changes/review-round-two/specs/schema-utilities/spec.md
+ * @param {object} field The field descriptor, overrides already merged in.
+ * @param {object} override The raw override for this key.
+ * @return {void}
+ */
+function applyPickerOverride(field, override) {
+	if (!override || typeof override !== 'object') {
+		return
+	}
+	const widget = override.widget
+	if (widget === 'group' || widget === 'group-multiselect') {
+		field.groupPicker = { multiple: widget === 'group-multiselect' }
+		field.userPicker = null
+	} else if (widget === 'user' || widget === 'user-multiselect') {
+		field.userPicker = { multiple: widget === 'user-multiselect' }
+		field.groupPicker = null
+	}
+	if (typeof override['x-default'] === 'string' && override['x-default'] !== '') {
+		field.defaultToken = override['x-default']
+	}
+}
+
+/**
+ * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
+ * @param {object} prop The schema property definition.
+ * @return {string} The widget identifier (see the block above).
+ */
 function resolveWidget(prop) {
 	// Explicit widget hint takes priority
 	if (prop.widget) {
@@ -407,6 +470,24 @@ function resolveWidget(prop) {
 	}
 	if (type === 'array' && isUserProp(prop.items)) {
 		return 'user-multiselect'
+	}
+
+	// Nextcloud group (`format: 'nc-group'` / `referenceType: 'nextcloud-group'`):
+	// a searchable dropdown of groups storing the group id.
+	if (isGroupProp(prop)) {
+		return 'group'
+	}
+	if (type === 'array' && isGroupProp(prop.items)) {
+		return 'group-multiselect'
+	}
+
+	// Language and time zone codes: a searchable list instead of a free-text
+	// box, so a person picks "Dutch" and the record stores `nl`.
+	if (type === 'string' && format === 'language') {
+		return 'language'
+	}
+	if (type === 'string' && format === 'timezone') {
+		return 'timezone'
 	}
 
 	// Boolean → switch/checkbox
@@ -587,7 +668,8 @@ export function isTenantProperty(key, prop) {
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
  * @param {boolean} [options.hideTenant] Drop properties that hold the record's tenant (see `isTenantProperty`). Off by default, so a detail page still shows the tenant; CnFormDialog turns it on because nobody should be asked for it. `overrides[key].hidden === false` keeps one visible.
  * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each field's `label` and `description`. Schema property titles/descriptions are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered field label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
- * @return {Array<{key: string, label: string, description: string, descriptionLong: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: unknown, enum: Array|null, enumLabels: object|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean}|null, userPicker: {multiple: boolean}|null, fillFrom: object|null, validation: object, order: number}>} `description` is the inline helper text (see `splitDescription`); `descriptionLong` carries the full text when it was too long to render inline, else ''. `enumLabels` maps each raw enum value to its English display label (from the property's `x-enum-labels`), or null.
+ * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
+ * @return {Array<{key: string, label: string, description: string, descriptionLong: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: unknown, enum: Array|null, enumLabels: object|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean, register?: string, labelField?: string}|null, allowCreate: boolean, userPicker: {multiple: boolean}|null, groupPicker: {multiple: boolean}|null, defaultToken: string|null, fillFrom: object|null, validation: object, order: number}>} `description` is the inline helper text (see `splitDescription`); `descriptionLong` carries the property's `x-help` text when it declares one, else the full description when it was too long to render inline, else ''. `enumLabels` maps each raw enum value to its English display label (from the property's `x-enum-labels`), or null.
  */
 export function fieldsFromSchema(schema, options = {}) {
 	const { exclude = [], include = null, overrides = {}, includeReadOnly = false, hideTenant = false, translate } = options
@@ -663,11 +745,19 @@ export function fieldsFromSchema(schema, options = {}) {
 
 	return entries.map(([key, prop]) => {
 		const description = splitDescription(prop.description ? tr(prop.description) : '')
+		// `x-help` is the long explanation behind the (i) popover. It always
+		// shows the popover, while `description` stays the short helper line.
+		const help = typeof prop['x-help'] === 'string' && prop['x-help'].trim() !== ''
+			? tr(prop['x-help'].trim())
+			: ''
+		const labelField = prop['x-label-field']
+			|| (prop.items && prop.items['x-label-field'])
+			|| null
 		const field = {
 			key,
 			label: tr(prop.title || key),
 			description: description.short,
-			descriptionLong: description.long,
+			descriptionLong: help || description.long,
 			type: prop.type || 'string',
 			format: prop.format || null,
 			widget: resolveWidget(prop),
@@ -685,6 +775,10 @@ export function fieldsFromSchema(schema, options = {}) {
 			required: requiredKeys.includes(key),
 			readOnly: prop.readOnly || false,
 			default: prop.default !== undefined ? prop.default : null,
+			// A default that depends on who opens the form (`x-default:
+			// 'current-language'` / `'current-timezone'`). Resolved by the
+			// consuming form on a NEW object only; never on edit.
+			defaultToken: typeof prop['x-default'] === 'string' ? prop['x-default'] : null,
 			enum: prop.enum || null,
 			// Display labels for the enum CODES, keyed by raw value. An enum
 			// value is a stored contract value, not display text — several are
@@ -732,11 +826,23 @@ export function fieldsFromSchema(schema, options = {}) {
 			// form's own; absent, the reference stays same-register (the form's
 			// `register` prop is used). Consolidates the ad-hoc caseReference /
 			// approvalDecisionId / x-mirror-of variants onto one convention.
+			//
+			// `x-label-field` names the referenced object's property that labels
+			// an option and that an inline create writes the typed term to
+			// (`reference.labelField`, default `name` at the consumer).
 			reference: (normalizeRef(prop.$ref) !== null)
-				? { schema: normalizeRef(prop.$ref), multiple: false, ...(prop['x-external-register'] ? { register: prop['x-external-register'] } : {}) }
+				? { schema: normalizeRef(prop.$ref), multiple: false, ...(prop['x-external-register'] ? { register: prop['x-external-register'] } : {}), ...(labelField ? { labelField } : {}) }
 				: (prop.type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null)
-						? { schema: normalizeRef(prop.items.$ref), multiple: true, ...((prop.items['x-external-register'] || prop['x-external-register']) ? { register: prop.items['x-external-register'] || prop['x-external-register'] } : {}) }
+						? { schema: normalizeRef(prop.items.$ref), multiple: true, ...((prop.items['x-external-register'] || prop['x-external-register']) ? { register: prop.items['x-external-register'] || prop['x-external-register'] } : {}), ...(labelField ? { labelField } : {}) }
 						: null,
+			// Select OR create (`x-allow-create: true`, on the property or on
+			// its `items` for an array): the picker offers "Create" next to the
+			// existing objects. Only meaningful on a reference.
+			allowCreate: prop['x-allow-create'] === true
+				|| (prop.type === 'array' && !!prop.items && prop.items['x-allow-create'] === true),
+			// Template copy (`x-fill-from: { formKey: sourceKey }`): choosing a
+			// referenced object copies those of its values into this form.
+			fillFrom: (prop['x-fill-from'] && typeof prop['x-fill-from'] === 'object') ? prop['x-fill-from'] : null,
 			// Nextcloud user reference: when a property marks a NC user
 			// (`referenceType: 'nextcloud-user'`, or `format: 'user'`/
 			// `'username'`), tag it so CnFormDialog renders a searchable
@@ -747,6 +853,13 @@ export function fieldsFromSchema(schema, options = {}) {
 			userPicker: isUserProp(prop)
 				? { multiple: false }
 				: (prop.type === 'array' && isUserProp(prop.items))
+						? { multiple: true }
+						: null,
+			// Nextcloud group reference (`format: 'nc-group'` or
+			// `referenceType: 'nextcloud-group'`): the form stores the group id.
+			groupPicker: isGroupProp(prop)
+				? { multiple: false }
+				: (prop.type === 'array' && isGroupProp(prop.items))
 						? { multiple: true }
 						: null,
 			// Conditional immutability (AD: x-openregister-readonly-when): a
@@ -768,6 +881,7 @@ export function fieldsFromSchema(schema, options = {}) {
 		// Apply per-field overrides
 		if (overrides[key]) {
 			Object.assign(field, overrides[key])
+			applyPickerOverride(field, overrides[key])
 		}
 
 		return field

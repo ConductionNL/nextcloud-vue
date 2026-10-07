@@ -74,9 +74,9 @@
 			<template v-if="widget && widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
-			<NcEmptyContent :name="missingAppName" :description="missingAppDescription">
+			<NcEmptyContent class="cn-requires-app" :name="missingAppName" :description="missingAppDescription">
 				<template #icon>
-					<CnIcon :name="(widget && widget.icon) || 'PuzzleOutline'" :size="44" />
+					<CnIcon :name="(widget && widget.icon) || 'PuzzleOutline'" :size="32" />
 				</template>
 			</NcEmptyContent>
 		</CnWidgetWrapper>

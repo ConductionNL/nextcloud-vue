@@ -35,7 +35,7 @@ describe('normalizeStages', () => {
 			[{ uuid: 'u-1', title: { nl: 'Afgehandeld', en: 'Closed' }, info: 'The end', final: '1' }],
 			{ labelField: 'title', descriptionField: 'info', finalField: 'final' },
 		)
-		expect(stage).toEqual({ id: 'u-1', label: 'Afgehandeld', subtitle: 'The end', final: true })
+		expect(stage).toEqual({ id: 'u-1', label: 'Afgehandeld', subtitle: 'The end', date: '', final: true })
 	})
 
 	it('drops rows without an id', () => {

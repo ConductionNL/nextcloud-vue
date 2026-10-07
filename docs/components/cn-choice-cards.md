@@ -52,6 +52,12 @@ Options are tolerant about shape, so a list can be handed straight from a server
 |-------|---------|------|
 | `update:modelValue` | value, or an array of values | A card is picked, or unpicked when `multiple`. |
 
+### Slots
+
+| Slot | Scope | Description |
+|------|-------|-------------|
+| `option-actions` | `{ option, selected }` | Content below one card, such as a Load button. It renders outside the card's `<label>`, so a click on a button there never toggles the card. The setup wizard uses it for `loadAction`. |
+
 ## Accessibility
 
 - The grid is a `<fieldset>` with a `<legend>`, so a screen reader announces what the group is for before the first option.

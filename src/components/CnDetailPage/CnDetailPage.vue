@@ -41,8 +41,20 @@
 			{{ skipLinkLabel }}
 		</a>
 
+		<!-- Breadcrumb line (manifest `config.breadcrumb`): the list the record
+		     belongs to, then the record itself as the current crumb. -->
+		<CnBreadcrumbs
+			v-if="breadcrumbCrumbs.length > 0 && !objectNotFound"
+			class="cn-detail-page__breadcrumbs"
+			:crumbs="breadcrumbCrumbs"
+			:rootText="breadcrumbCrumbs[0].icon === undefined"
+			data-testid="cn-detail-page-breadcrumbs" />
 		<!-- Header -->
-		<div v-if="!objectNotFound" class="cn-detail-page__header" data-testid="cn-detail-page-header">
+		<div
+			v-if="!objectNotFound"
+			class="cn-detail-page__header"
+			:class="{ 'cn-detail-page__header--card': headerCard, 'cn-detail-page__header--with-widget': headerWidgetDef !== null }"
+			data-testid="cn-detail-page-header">
 			<!-- Header (left block) — overridable via #header slot. Default
 			     renders the icon + title + description. The right-hand
 			     #actions slot remains separate so headerComponent and
@@ -98,7 +110,7 @@
 						     (ADR-062). Only shown once the object resolves to a
 						     display name that differs from the type label. -->
 						<p
-							v-if="typeEyebrow"
+							v-if="typeEyebrow && showTypeEyebrow"
 							class="cn-detail-page__type-eyebrow"
 							data-testid="cn-detail-page-type-eyebrow">
 							{{ typeEyebrow }}
@@ -133,6 +145,18 @@
 				</div>
 			</slot>
 			<div class="cn-detail-page__header-actions">
+				<!-- The page's view switch (`views`), unless a greeting header
+				     widget on the page draws it. Its options control the view
+				     region in the body. -->
+				<CnSegmentedControl
+					v-if="showsPageViewSwitch"
+					class="cn-page-view-switch"
+					:options="viewSwitchOptions"
+					:modelValue="activeViewId"
+					:ariaLabel="viewSwitchLabel"
+					:controls="viewRegionId"
+					data-testid="cn-detail-page-view-switch"
+					@update:modelValue="selectView" />
 				<!-- Next and previous inside the list this record was opened
 				     from. Rendered only when the address names that list: a
 				     record reached by a bare link offers neither, rather than
@@ -363,6 +387,50 @@
 					</template>
 				</CnActionsMenu>
 			</div>
+			<!-- A widget inside the header (manifest `config.headerWidget`), on
+			     a row of its own under the title and the actions: the stages
+			     bars of the board's case card. Drawn without a card of its own,
+			     and taken out of the body grid. Nothing renders without the
+			     key. -->
+			<div
+				v-if="headerWidgetDef !== null"
+				class="cn-detail-page__header-widget"
+				data-testid="cn-detail-page-header-widget">
+				<!--
+					@slot `widget-${headerWidgetDef.id}`
+					@description The same per-widget slot the body grid and the side
+					column offer, for the widget placed in the header
+					(`headerWidget`). Same name and same bindings.
+				-->
+				<slot
+					:name="`widget-${headerWidgetDef.id}`"
+					:item="{ id: headerWidgetDef.id, widgetId: headerWidgetDef.id }"
+					:widget="headerWidgetDef"
+					:objectId="objectId"
+					:object="resolvedObject"
+					:objectData="resolvedObject"
+					:objectType="resolvedObjectType"
+					:register="register"
+					:schema="schema">
+					<CnDetailWidgetHost
+						:widget="headerWidgetDef"
+						chrome="bare"
+						:objectId="objectId"
+						:object="currentObject"
+						:objectType="resolvedObjectType"
+						:schemaObject="currentSchema"
+						:register="register"
+						:schema="schema"
+						:store="effectiveObjectStore"
+						:surface="surface"
+						:integrationContext="effectiveIntegrationContext"
+						:hideEmpty="hideEmpty"
+						:cnRegistry="cnRegistry"
+						:availableWidgets="widgets"
+						@geoSaved="onGeoSaved"
+						@openIntegration="onAutoBodyOpenIntegration" />
+				</slot>
+			</div>
 		</div>
 
 		<!-- The locked card, under the title, for ANY active lock — not only a
@@ -553,15 +621,19 @@
 			     subscribed to the layout/widgets arrays — in-place pushes
 			     (Add widget) keep the same array identity and can't re-render
 			     it. One remount per edit flip re-subscribes it. -->
+			<!-- One grid per section: the body grid, then the chosen view
+			     (`views`) in a region the view switch controls. A view grid is
+			     keyed on its view, so switching mounts the other view's grid. -->
 			<CnDashboardGrid
-				v-if="hasBodyGrid"
-				:key="`cn-detail-grid-${editingBody ? 'editing' : 'live'}`"
-				:layout="bodyGridLayout"
+				v-for="section in bodyGridSections"
+				:key="`cn-detail-grid-${section.key}-${editingBody ? 'editing' : 'live'}`"
+				v-bind="section.attrs"
+				:layout="section.layout"
 				:editable="editingBody"
 				:columns="12"
 				:columnOpts="columnOpts"
 				class="cn-detail-page__grid"
-				@layoutChange="onBodyLayoutChange">
+				@layoutChange="section.view ? onViewLayoutChange($event) : onBodyLayoutChange($event)">
 				<template #widget="{ item }">
 					<div
 						class="cn-detail-page__grid-item"
@@ -670,6 +742,22 @@
 					</div>
 				</template>
 			</CnDashboardGrid>
+
+			<!-- The chosen view has nothing to draw: say so in the region,
+			     never leave a blank area under the switch. -->
+			<div
+				v-if="viewIsEmpty"
+				:id="viewRegionId"
+				role="region"
+				:aria-label="activeView ? activeView.label : null"
+				class="cn-page-view-region cn-page-view-region--empty"
+				data-testid="cn-detail-page-view-empty">
+				<NcEmptyContent :description="viewEmptyText">
+					<template #icon>
+						<ViewDashboardOutline :size="48" />
+					</template>
+				</NcEmptyContent>
+			</div>
 
 			<!-- Statistics table -->
 			<div v-if="hasStats" class="cn-detail-page__stats">
@@ -980,6 +1068,7 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import CnRelationLinkModal from '../../dialogs/CnRelationLinkModal.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
@@ -992,6 +1081,7 @@ import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnNextStepCard from '../CnNextStepCard/CnNextStepCard.vue'
 import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.vue'
+import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
@@ -999,6 +1089,7 @@ import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectPresence } from '../../composables/useObjectPresence.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
+import { pageViews } from '../../mixins/pageViews.js'
 import { useObjectStore } from '../../store/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { compactLayoutRows } from '../../utils/dashboardPlacement.js'
@@ -1025,6 +1116,7 @@ import {
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
+import { CnBreadcrumbs } from '../CnBreadcrumbs/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
@@ -1170,8 +1262,11 @@ export default {
 		CnDetailWidgetHost,
 		CnFormDialog,
 		CnDashboardGrid,
+		CnSegmentedControl,
+		ViewDashboardOutline,
 		CnLifecycleActions,
 		CnActionButtons,
+		CnBreadcrumbs,
 		CnStatusBadge,
 		CnSummaryAggregates,
 		CnRelatedCollections,
@@ -1184,7 +1279,7 @@ export default {
 		Pencil,
 	},
 
-	mixins: [gridLayout],
+	mixins: [gridLayout, pageViews],
 
 	inject: {
 		/**
@@ -2079,6 +2174,37 @@ export default {
 		},
 
 		/**
+		 * Whether the type eyebrow (the type label above the record name)
+		 * renders once the record resolves. `false` (manifest
+		 * `config.showTypeEyebrow: false`) drops it for a header that says
+		 * the type in a pill instead.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
+		 */
+		showTypeEyebrow: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * A breadcrumb line above the header (manifest `config.breadcrumb`):
+		 * `{ label, route?, params?, href? }` names the list the record
+		 * belongs to; the record's display name follows as the current
+		 * crumb. `label` goes through the host translate function and shows
+		 * as text; `icon` (an MDI name, e.g. `Home`) draws that icon instead,
+		 * with the label as its accessible name. Null (the default) draws no
+		 * trail.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-declared-breadcrumb-label-shows-as-text
+		 * @type {{label: string, route?: string, params?: object, href?: string, icon?: string}|null}
+		 */
+		breadcrumb: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * A column of cards beside the body (manifest `config.sideColumn`),
 		 * for the record's facts: deadline, requester, handler, links. Each
 		 * entry is a widget definition (`{ id?, type, title?, content? }`) or
@@ -2091,6 +2217,33 @@ export default {
 		sideColumn: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Draw the header as a card (manifest `config.headerCard: true`): the
+		 * pills, the title and the actions on the page's surface colour inside
+		 * a bordered, rounded box, as the board's case header. Off by default,
+		 * which keeps the header on the page ground.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-detail-header-can-be-a-card-that-holds-a-widget
+		 */
+		headerCard: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The id of a widget declared in `widgets` to render inside the header,
+		 * on its own row under the title and the actions (manifest
+		 * `config.headerWidget`), e.g. the stages bars. It renders without a
+		 * card of its own and leaves the body grid. Empty (the default), or an
+		 * id that names no widget, renders nothing extra.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-detail-header-can-be-a-card-that-holds-a-widget
+		 */
+		headerWidget: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -2630,6 +2783,21 @@ export default {
 					return pill ? { ...pill, key, label: this.effectiveTranslate(pill.label) } : null
 				})
 				.filter(Boolean)
+		},
+
+		/**
+		 * The widget the header holds (`headerWidget`): the definition in
+		 * `widgets` with that id, or null without the key or a match.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-detail-header-can-be-a-card-that-holds-a-widget
+		 * @return {object|null} The widget definition, or null.
+		 */
+		headerWidgetDef() {
+			if (!this.headerWidget) {
+				return null
+			}
+			const declared = Array.isArray(this.widgets) ? this.widgets : []
+			return declared.find((widget) => widget && widget.id === this.headerWidget) || null
 		},
 
 		/**
@@ -3202,6 +3370,33 @@ export default {
 		},
 
 		/**
+		 * The breadcrumb trail: the declared crumb (a router target from
+		 * `route` + `params`, or an `href`), then the record's display name
+		 * as the current crumb. Empty without a `breadcrumb` label. The first
+		 * crumb carries `icon` only when the manifest declares one.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-declared-breadcrumb-label-shows-as-text
+		 * @return {Array<{label: string, to?: object, href?: string, icon?: string}>}
+		 */
+		breadcrumbCrumbs() {
+			const crumb = this.breadcrumb
+			if (!crumb || typeof crumb.label !== 'string' || crumb.label === '') {
+				return []
+			}
+			const first = { label: this.effectiveTranslate(crumb.label) }
+			if (typeof crumb.icon === 'string' && crumb.icon !== '') {
+				first.icon = crumb.icon
+			}
+			if (crumb.route) {
+				first.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}) }
+			} else if (crumb.href) {
+				first.href = crumb.href
+			}
+			return [first, { label: this.displayTitle }]
+		},
+
+		/**
 		 * Effective translate function: the injected `cnTranslate` (the host
 		 * app's bound `t()`), identity by default.
 		 *
@@ -3304,6 +3499,7 @@ export default {
 				&& this.currentObject
 				&& !this.hasDefaultSlotContent
 				&& !this.hasGridLayout
+				&& !this.hasViews
 		},
 
 		/**
@@ -3381,6 +3577,55 @@ export default {
 		 */
 		hasBodyGrid() {
 			return this.bodyGridLayout.length > 0
+		},
+
+		/**
+		 * The chosen view's layout as the grid draws it: items that draw
+		 * nothing leave and their rows close, as for the body grid.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-view-with-nothing-to-draw-says-so
+		 */
+		viewDisplayLayout() {
+			// eslint-disable-next-line @typescript-eslint/no-unused-expressions -- reading the flag IS the effect, as in bodyGridLayout
+			this.editingBody
+			return this.activeView ? this.closeDroppedRows(this.activeView.layout) : []
+		},
+
+		/**
+		 * Whether the chosen view has nothing to draw.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-view-with-nothing-to-draw-says-so
+		 */
+		viewIsEmpty() {
+			return this.hasViews && this.viewDisplayLayout.length === 0
+		},
+
+		/**
+		 * The grids the body draws: the body grid when it has items, then the
+		 * chosen view's grid in the region the view switch controls (left out
+		 * when the view is empty; the empty state takes the region then).
+		 *
+		 * @return {Array<{key: string, view: boolean, layout: Array<object>, attrs: object}>}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-page-declares-views-that-each-hold-a-widget-grid
+		 */
+		bodyGridSections() {
+			const sections = this.hasBodyGrid ? [{ key: 'body', view: false, layout: this.bodyGridLayout, attrs: {} }] : []
+			if (this.hasViews && !this.viewIsEmpty) {
+				sections.push({
+					key: `view-${this.activeViewId}`,
+					view: true,
+					layout: this.viewDisplayLayout,
+					attrs: {
+						id: this.viewRegionId,
+						role: 'region',
+						'aria-label': this.activeView.label,
+						'data-testid': 'cn-detail-page-view-region',
+					},
+				})
+			}
+			return sections
 		},
 
 		/**
@@ -4604,6 +4849,8 @@ export default {
 		 */
 		findWidget(item) {
 			return this.bodyGridWidgets.find((w) => w.id === item.widgetId)
+				|| this.findViewWidget(item.widgetId)
+				|| undefined
 		},
 
 		/**
@@ -4652,6 +4899,10 @@ export default {
 		 * it — CnPageRenderer's split pane forwards no slots, which is exactly
 		 * that fault and wants fixing, not concealing.
 		 *
+		 * The widget the header holds (`headerWidget`) draws nothing here
+		 * either: it is already drawn in the header.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-detail-header-can-be-a-card-that-holds-a-widget
 		 * @param {object} item A layout item.
 		 * @return {boolean} False only when the item provably draws nothing.
 		 */
@@ -4661,6 +4912,11 @@ export default {
 			// staying in the manifest would be unmanageable.
 			if (this.editingBody) {
 				return true
+			}
+			// The widget the header holds (`headerWidget`) is drawn there, so
+			// its grid cell would be the same widget twice.
+			if (this.headerWidgetDef !== null && item.widgetId === this.headerWidgetDef.id) {
+				return false
 			}
 			const widget = this.findWidget(item)
 			if (!widget) {

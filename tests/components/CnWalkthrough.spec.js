@@ -88,11 +88,13 @@ describe('CnWalkthrough', () => {
 		expect(w.vm.step.id).toBe('done')
 	})
 
-	it('emits dismiss + complete handler on backdrop/ESC', () => {
+	it('pauses (does not end) the tour on backdrop/ESC', () => {
 		const w = factory()
 		w.vm.onBackdrop()
-		expect(w.emitted('dismiss')).toBeTruthy()
+		expect(w.emitted('pause')).toBeTruthy()
+		expect(w.emitted('dismiss')).toBeFalsy()
 		expect(w.vm.wt.running.value).toBe(false)
+		expect(w.vm.wt.paused.value).toBe(true)
 	})
 
 	it('renders a corner close button that ends the tour for good (complete, not just dismiss)', async () => {

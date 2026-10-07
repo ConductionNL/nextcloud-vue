@@ -8,6 +8,12 @@
 	position: relative;
 }
 
+/* The breadcrumb line above the header (`config.breadcrumb`). */
+.cn-detail-page__breadcrumbs {
+	margin-bottom: calc(2 * var(--default-grid-baseline));
+	color: var(--color-text-maxcontrast);
+}
+
 /* Header */
 .cn-detail-page__header {
 	display: flex;
@@ -31,6 +37,28 @@
 .cn-detail-page__header > :first-child {
 	flex: 1 1 auto;
 	min-width: 0;
+}
+
+/* A widget in the header (`config.headerWidget`) takes a row of its own under
+   the title and the actions. */
+.cn-detail-page__header--with-widget {
+	flex-wrap: wrap;
+	row-gap: var(--cn-detail-header-row-gap, 22px);
+}
+
+.cn-detail-page__header-widget {
+	flex: 1 0 100%;
+	min-width: 0;
+}
+
+/* The header as a card (`config.headerCard`): the board's case header, a
+   bordered box on the surface colour. The 56px inset that clears the
+   navigation toggle is not needed inside a card that starts below it. */
+.cn-detail-page__header--card {
+	padding: var(--cn-detail-header-card-padding, 22px 24px);
+	border: 1px solid var(--color-border);
+	border-radius: var(--cn-detail-header-card-radius, 12px);
+	background: var(--color-main-background);
 }
 
 .cn-detail-page__header-left {
@@ -106,6 +134,25 @@
 	flex-shrink: 0;
 }
 
+/* Every control in the header sits on one line at one height. The lifecycle
+   bar carries `margin: 0 0 8px` for its place above a page body; in the
+   header that margin pushed its buttons up and made the row 8px taller, so
+   the Edit button beside it read as the bigger one. A consumer's actions
+   component can bring its own margins too, so they are reset here as well. */
+.cn-detail-page .cn-detail-page__header-actions .cn-lifecycle-actions {
+	margin: 0;
+	flex-wrap: nowrap;
+}
+
+.cn-detail-page .cn-detail-page__header-actions > * {
+	margin-block: 0;
+}
+
+.cn-detail-page .cn-detail-page__header-actions .button-vue {
+	min-height: var(--default-clickable-area);
+	block-size: var(--default-clickable-area);
+}
+
 /* The sentence a refused lock acquire left behind, under the locked banner. */
 .cn-detail-page__lock-refusal {
 	margin: 0 0 calc(3 * var(--default-grid-baseline));
@@ -156,7 +203,7 @@
 
 .cn-detail-page__stats-table thead th {
 	padding: calc(1.5 * var(--default-grid-baseline)) calc(2 * var(--default-grid-baseline));
-	text-align: left;
+	text-align: start;
 	font-weight: 600;
 	font-size: 0.9em;
 	color: var(--color-text-maxcontrast);
@@ -181,7 +228,7 @@
 }
 
 .cn-detail-page__stats-cell--indented {
-	padding-left: calc(5 * var(--default-grid-baseline)) !important;
+	padding-inline-start: calc(5 * var(--default-grid-baseline)) !important;
 }
 
 .cn-detail-page__stats-cell--center {
@@ -189,7 +236,7 @@
 }
 
 .cn-detail-page__stats-cell--right {
-	text-align: right;
+	text-align: end;
 }
 
 /* Body & content */
@@ -323,7 +370,7 @@
 
 .cn-detail-page__sidebar-toggle {
 	position: fixed;
-	right: calc(5 * var(--default-grid-baseline));
+	inset-inline-end: calc(5 * var(--default-grid-baseline));
 	top: 80px;
 	z-index: 10;
 }
@@ -433,4 +480,9 @@
 	color: var(--color-text-maxcontrast);
 	font-size: 0.9em;
 	white-space: nowrap;
+}
+
+/* A page view the switch shows with nothing to draw (view-switch-containers). */
+.cn-detail-page .cn-page-view-region--empty {
+	padding: 40px 20px;
 }

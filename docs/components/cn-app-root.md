@@ -56,6 +56,8 @@ Both instances receive `completedStepIds`, so a wizard mounted mid-way resumes a
 
 "Actionable" also excludes `run-action` steps marked `onDemand: true`: they run only when the user asks, so they never open the wizard. See [On-demand steps](./cn-setup-wizard.md#on-demand-steps).
 
+A step whose `requires` names an app that is not installed and enabled is not applicable. The wizard skips it, so it neither opens the wizard nor, when `required`, gates the app. See [Missing apps](./cn-setup-wizard.md#missing-apps).
+
 ### Dismissal
 
 The non-gating overlay records dismissal in `localStorage` under:
@@ -295,3 +297,11 @@ CnAppRoot's root `<NcContent>` always carries `data-nldesign-theme-scope="<appId
 They are off by default because they stacked: an app declaring four optional leaves showed four cards above its own content and pushed the page below the fold, on every load, for an audience who cannot act on them. Mount [`CnLeafDependencySettings`](./cn-leaf-dependency-settings.md) in the app's admin settings instead — it carries the same two states and the same install/enable action.
 
 `unresolvedSoftDependencies` is unchanged and still exposed, so an app rendering its own surface from it keeps working. The prop is a bridge for one release and is slated for removal.
+
+## Hiding the navigation (`hideMenu`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `hideMenu` | `Boolean` | `false` | Render no app navigation at all: neither the default `CnAppNav` nor the `#menu` slot, so the content starts at the left edge. An empty `#menu` override cannot do this (an empty slot falls back to the default `CnAppNav`), which is why launchpad passed a hidden empty span. |
+
+`CnAppRoot` also provides `cnMenuItemCounts`, the filtered totals for menu entries whose `count` is `{ register, schema, filter }` (see [CnAppNav](./cn-app-nav.md)).

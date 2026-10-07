@@ -61,6 +61,10 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `multiselect` | Multiple choices (static or async) |
 | `user` | Single Nextcloud user (`referenceType: 'nextcloud-user'` / `format: 'user'`) — a searchable dropdown of real users rendered by the shared select branch as NC's native `:user-select` picker (stores the UID string). See [Nextcloud user references](#nextcloud-user-references-referencetype-nextcloud-user) |
 | `user-multiselect` | Multiple Nextcloud users — searchable multi-select (stores an array of UIDs) |
+| `group` | Single Nextcloud group (`format: 'nc-group'` / `referenceType: 'nextcloud-group'`): a searchable dropdown of groups that stores the group id |
+| `group-multiselect` | Several Nextcloud groups: a searchable multi-select that stores an array of group ids |
+| `language` | `format: 'language'`: a searchable list of languages, labelled in the user's language, that stores the language code |
+| `timezone` | `format: 'timezone'`: a searchable list of IANA time zones that stores the id |
 | `tags` | Tag input (with optional async suggestions) |
 | `checkbox` | Boolean toggle |
 | `switch` | Toggle over a 2-value `enum` (off → first value, on → last value) |
@@ -256,18 +260,36 @@ const schema = {
 
 ### Inline create (`x-allow-create`)
 
-Add `x-allow-create: true` (or `allowCreate: true`) to a **single** `$ref` property and the field renders [`CnResourceSelect`](./cn-resource-select.md) instead of a read-only select — the user can pick an existing object **or** type a new term to create one inline (the term is written to the reference schema's label field, default `name`):
+Add `x-allow-create: true` to a `$ref` property (or to `items` of an array of references) and the field renders [`CnResourceSelect`](./cn-resource-select.md) instead of a read-only select. The user picks an existing object or types a name and chooses Create.
+
+Create opens the referenced schema's own form on top of this one, in the same register, with the typed term in the label field (`x-label-field`, default `name`). Saving it selects the new object. Closing it leaves the field as it was. When the referenced schema cannot be loaded, the term alone is saved.
 
 ```js
 // single reference the user can pick OR create
-ocName: { type: 'string', format: 'uuid', $ref: 'player', 'x-allow-create': true, title: 'Player' }
+client: { type: 'string', format: 'uuid', $ref: 'client', 'x-allow-create': true, 'x-label-field': 'name', title: 'Client' }
+// several
+products: { type: 'array', items: { $ref: 'product', 'x-allow-create': true }, title: 'Products' }
 ```
 
-The stored value is still the chosen (or freshly-created) object's UUID. Without the flag, a `$ref` stays a plain select of existing objects.
+The stored value is still the chosen (or freshly-created) object's UUID, or an array of them. Without the flag, a `$ref` stays a plain select of existing objects. `x-fill-from: { formKey: sourceKey }` copies values off the chosen object into this form.
+
+### Groups, languages and time zones
+
+```js
+team: { type: 'string', format: 'nc-group', title: 'Team' }
+correspondenceLanguage: { type: 'string', format: 'language', 'x-default': 'current-language', title: 'Correspondence language' }
+timezone: { type: 'string', format: 'timezone', 'x-default': 'current-timezone', title: 'Time zone' }
+```
+
+Groups come from the core autocomplete endpoint (display names, any signed-in user), with `cloud/groups` as fallback. `x-default: current-language` fills a new object with the user's Nextcloud language as a BCP 47 tag, cut to the primary subtag when the property's `pattern` only takes that. `x-default: current-timezone` fills the browser's time zone. Neither touches an existing object.
+
+### Help behind the (i)
+
+`x-help` on a property always shows the (i) popover with that text, while `description` stays the short line under the field. Checkbox and switch fields show their helper line and (i) too.
 
 ## Nextcloud-user picker (`format: "user"`, `widget: "user"`)
 
-A `{ type: 'string', format: 'user' }` property renders a user picker that async-searches Nextcloud users (via the core `autocomplete/get` OCS endpoint) and stores the selected **uid** string. In edit mode the stored uid is resolved to its display name for the label.
+A `{ type: 'string', format: 'user' }` property (also `format: 'nc-user'` or `'username'`) renders a user picker that async-searches Nextcloud users (via the core `autocomplete/get` OCS endpoint) and stores the selected **uid** string. In edit mode the stored uid is resolved to its display name for the label.
 
 ```js
 userUid: { type: 'string', format: 'user', title: 'Nextcloud user' }

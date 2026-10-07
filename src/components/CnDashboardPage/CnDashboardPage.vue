@@ -11,8 +11,14 @@
 -->
 <template>
 	<div class="cn-dashboard-page" data-testid="cn-dashboard-page">
-		<!-- Header -->
-		<div class="cn-dashboard-page__header" data-testid="cn-dashboard-page-header">
+		<!-- Header. `showHeader: false` drops the whole row (title, description,
+		     header actions, edit toggle) for a page that opens with its own
+		     heading, such as a greeting; the title then stays as a visually
+		     hidden heading so the main landmark keeps its name. -->
+		<h2 v-if="!showHeader && title" class="hidden-visually" data-testid="cn-dashboard-page-hidden-title">
+			{{ resolvedTitle }}
+		</h2>
+		<div v-if="showHeader" class="cn-dashboard-page__header" data-testid="cn-dashboard-page-header">
 			<div class="cn-dashboard-page__header-left">
 				<div v-if="title || $slots['title-meta']" class="cn-dashboard-page__title-row">
 					<h2 v-if="title" class="cn-dashboard-page__title">
@@ -26,6 +32,18 @@
 				</p>
 			</div>
 			<div class="cn-dashboard-page__header-actions">
+				<!-- The page's view switch (`views`), unless a greeting header
+				     widget on the page draws it. Its options control the view
+				     region below the grid. -->
+				<CnSegmentedControl
+					v-if="showsPageViewSwitch"
+					class="cn-page-view-switch"
+					:options="viewSwitchOptions"
+					:modelValue="activeViewId"
+					:ariaLabel="viewSwitchLabel"
+					:controls="viewRegionId"
+					data-testid="cn-dashboard-page-view-switch"
+					@update:modelValue="selectView" />
 				<!-- Declarative header actions (#91 Wave 3): a manifest
 				     `headerActions[]` renders as buttons (open-form / api-call /
 				     toggle / navigate / refresh) with visibleWhen gating,
@@ -212,7 +230,7 @@
 		     sections (before-grid / after-grid / end): a page can legitimately
 		     have no grid widgets yet still show bodyWidget content, so
 		     "No widgets configured" would be a false negative. -->
-		<div v-else-if="!hasWidgets && !hasBodyWidgets" class="cn-dashboard-page__empty">
+		<div v-else-if="!hasWidgets && !hasBodyWidgets && !hasViews" class="cn-dashboard-page__empty">
 			<!-- @slot empty Replaces the default empty state shown when the dashboard has no widgets. Defaults to an `NcEmptyContent` block. -->
 			<slot name="empty">
 				<NcEmptyContent :description="emptyLabel">
@@ -247,15 +265,34 @@
 		     to the layout/widgets arrays — in-place pushes (Add widget) keep
 		     the same array identity and can't re-render it. One remount per
 		     edit flip re-subscribes against the now-reactive graph. -->
+		<!-- The view switch for a page without a header row, when no greeting
+		     header widget draws it. -->
+		<div
+			v-if="gridSectionsShown && !showHeader && showsPageViewSwitch"
+			class="cn-dashboard-page__view-switch">
+			<CnSegmentedControl
+				class="cn-page-view-switch"
+				:options="viewSwitchOptions"
+				:modelValue="activeViewId"
+				:ariaLabel="viewSwitchLabel"
+				:controls="viewRegionId"
+				data-testid="cn-dashboard-page-view-switch"
+				@update:modelValue="selectView" />
+		</div>
+		<!-- One grid per section: the page's own layout, then the chosen
+		     view (`views`) in a region the view switch controls. Both are the
+		     same grid with the same widget rendering below. A view grid is
+		     keyed on its view, so switching mounts the other view's grid. -->
 		<CnDashboardGrid
-			v-else
-			:key="`cn-dashboard-grid-${gridEditable ? 'editing' : 'live'}`"
-			:layout="displayLayout"
-			:editable="gridEditable"
+			v-for="section in gridSections"
+			:key="`cn-dashboard-grid-${section.key}-${gridEditable ? 'editing' : 'live'}`"
+			v-bind="section.attrs"
+			:layout="section.layout"
+			:editable="section.editable"
 			:columns="columns"
 			:cellHeight="cellHeight"
 			:margin="gridMargin"
-			@layoutChange="onLayoutChange">
+			@layoutChange="section.view ? onViewLayoutChange($event) : onLayoutChange($event)">
 			<template #widget="{ item }">
 				<!-- In-app edit overlay (ADR-041): a single launchpad-style
 				     configure cog opens the per-widget style/config editor,
@@ -282,9 +319,9 @@
 					<NcEmptyContent
 						:name="installAppLabel(missingRequiredApp(item))"
 						:description="t('nextcloud-vue', 'This widget shows data from another app that isn\'t installed yet.')"
-						class="cn-dashboard-page__requires-app">
+						class="cn-dashboard-page__requires-app cn-requires-app">
 						<template #icon>
-							<Download :size="32" />
+							<Download :size="24" />
 						</template>
 						<template #action>
 							<NcButton
@@ -320,6 +357,7 @@
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -397,9 +435,11 @@
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
+						:showActions="widgetShowActions(item)"
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -478,6 +518,7 @@
 						:flush="item.flush !== false"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
@@ -499,9 +540,11 @@
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
+						:showActions="widgetShowActions(item)"
 						:borderless="widgetBorderless(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -536,7 +579,9 @@
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
+						:showActions="widgetShowActions(item)"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:showRefresh="getWidgetShowRefresh(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
@@ -566,6 +611,7 @@
 						:titleIconVariant="getWidgetTitleIconVariant(item)"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
+						:headerLink="getWidgetHeaderLink(item)"
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
@@ -640,6 +686,22 @@
 			</template>
 		</CnDashboardGrid>
 
+		<!-- The chosen view has nothing to draw: say so in the region, never
+		     leave a blank area under the switch. -->
+		<div
+			v-if="gridSectionsShown && viewIsEmpty"
+			:id="viewRegionId"
+			role="region"
+			:aria-label="activeView ? activeView.label : null"
+			class="cn-page-view-region cn-page-view-region--empty"
+			data-testid="cn-dashboard-page-view-empty">
+			<NcEmptyContent :description="viewEmptyText">
+				<template #icon>
+					<ViewDashboardOutline :size="48" />
+				</template>
+			</NcEmptyContent>
+		</div>
+
 		<!-- Declarative in-body sections, `placement: "after-grid"` — host-app
 		     section components rendered BELOW the widget grid. -->
 		<CnBodySections
@@ -699,6 +761,7 @@ import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
+import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
 import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
@@ -706,6 +769,7 @@ import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { readUserPreference, writeUserPreference } from '../../composables/useUserPreferences.js'
+import { pageViews } from '../../mixins/pageViews.js'
 import { dashboardLayoutKey, mergeUserLayout } from '../../store/plugins/dashboardLayouts.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
@@ -860,7 +924,10 @@ export default {
 		CnBuildiqEditButton,
 		CnWidgetStyleEditorModal,
 		CnLeafMountHost,
+		CnSegmentedControl,
 	},
+
+	mixins: [pageViews],
 
 	inject: {
 		/**
@@ -919,6 +986,34 @@ export default {
 		description: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Whether the header row renders: title, description, header actions
+		 * and the edit toggle. `false` (manifest `config.showHeader: false`)
+		 * drops it for a page whose first widget is its heading; the title
+		 * then renders visually hidden so the page keeps an accessible name.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-dashboard-page-can-hide-its-header
+		 */
+		showHeader: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Whether a widget draws its overflow Actions menu when neither its
+		 * placement nor its definition says (`showActions`). `false` (manifest
+		 * `config.showWidgetActions: false`) drops the menu from every such
+		 * widget, for a dashboard whose widgets carry a header link and
+		 * nothing else. A widget that sets `showActions: true` keeps its menu.
+		 * Card widgets have no menu either way.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-dashboard-can-drop-the-widget-actions-menu
+		 */
+		showWidgetActions: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
@@ -1837,6 +1932,89 @@ export default {
 		},
 
 		/**
+		 * Whether the grid sections render at all: not while loading, not
+		 * while the widget predicates settle, not on the empty page and not
+		 * on a widget-ref content page.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-page-declares-views-that-each-hold-a-widget-grid
+		 */
+		gridSectionsShown() {
+			if (this.loading || (!this.widgetConditionsSettled && !this.gridEditable)) {
+				return false
+			}
+			if (!this.hasWidgets && !this.hasBodyWidgets && !this.hasViews) {
+				return false
+			}
+			return this.widgetRefItems.length === 0
+		},
+
+		/**
+		 * The chosen view's layout as the grid draws it: in live mode the
+		 * widgets that would draw nothing leave and the rest close up, as
+		 * for the page's own layout.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-view-with-nothing-to-draw-says-so
+		 */
+		viewDisplayLayout() {
+			const items = this.activeView ? this.activeView.layout : []
+			if (this.gridEditable) {
+				return items
+			}
+			const visible = items.filter((item) => !this.isCollapsedWidget(item))
+			return visible.length === items.length ? items : this.compactDisplayLayout(visible)
+		},
+
+		/**
+		 * Whether the chosen view has nothing to draw.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-view-with-nothing-to-draw-says-so
+		 */
+		viewIsEmpty() {
+			return this.hasViews && this.viewDisplayLayout.length === 0
+		},
+
+		/**
+		 * The grids this page draws. Without views: the page's own layout,
+		 * as it always was. With views: the page's own layout when it has
+		 * items, then the chosen view's layout in the region the switch
+		 * controls (left out when the view is empty; the empty state takes
+		 * the region then).
+		 *
+		 * @return {Array<{key: string, view: boolean, layout: Array<object>, editable: boolean, attrs: object}>}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-page-declares-views-that-each-hold-a-widget-grid
+		 */
+		gridSections() {
+			if (!this.gridSectionsShown) {
+				return []
+			}
+			const page = { key: 'page', view: false, layout: this.displayLayout, editable: this.gridEditable, attrs: {} }
+			if (!this.hasViews) {
+				return [page]
+			}
+			const sections = this.displayLayout.length > 0 ? [page] : []
+			if (!this.viewIsEmpty) {
+				sections.push({
+					key: `view-${this.activeViewId}`,
+					view: true,
+					layout: this.viewDisplayLayout,
+					// A user arrangement covers the page's own layout only.
+					editable: this.gridEditable && !this.userLayout,
+					attrs: {
+						id: this.viewRegionId,
+						role: 'region',
+						'aria-label': this.activeView.label,
+						class: 'cn-page-view-region',
+						'data-testid': 'cn-dashboard-page-view-region',
+					},
+				})
+			}
+			return sections
+		},
+
+		/**
 		 * The widget settings object handed to CnWidgetStyleEditorModal,
 		 * built from the widget definition currently being configured
 		 * (`configWidgetId`). Carries the chrome fields the editor reads /
@@ -1961,6 +2139,14 @@ export default {
 		 * signal that a widget's `visibleWhen` was added or edited.
 		 */
 		widgets: {
+			deep: true,
+			handler() {
+				this.evaluateWidgetConditions()
+			},
+		},
+
+		/** A view's widgets carry predicates too. */
+		views: {
 			deep: true,
 			handler() {
 				this.evaluateWidgetConditions()
@@ -2830,7 +3016,8 @@ export default {
 		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
 		 */
 		async evaluateWidgetConditions() {
-			const conditional = (this.widgets || []).filter((def) => def && def.id && def.type
+			const defs = [...(this.widgets || []), ...this.normalizedViews.flatMap((view) => view.widgets)]
+			const conditional = defs.filter((def) => def && def.id && def.type
 				&& this.widgetDisplayConfig(def).visibleWhen)
 			// Skip when the CONDITIONAL SET is unchanged: the deep `widgets`
 			// watch fires on any def edit, but only an added/removed/edited
@@ -2964,7 +3151,7 @@ export default {
 		 */
 		getWidgetDef(widgetId) {
 			const list = Array.isArray(this.widgets) ? this.widgets : []
-			return list.find((w) => w && w.id === widgetId) || null
+			return list.find((w) => w && w.id === widgetId) || this.findViewWidget(widgetId)
 		},
 
 		/**
@@ -3355,11 +3542,20 @@ export default {
 		 * exactly that reason; there is now one rule for every family, so a
 		 * custom slot and a registered widget cannot disagree about it.
 		 *
+		 * A greeting header that declares `content.ground: true` sits on the
+		 * page ground, so it asks for no card either: one key on the widget
+		 * instead of a second one on its placement.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-greeting-can-sit-on-the-page-ground
 		 * @param {object} item the layout placement.
 		 * @return {boolean}
 		 */
 		widgetBorderless(item) {
-			return item.borderless === true
+			if (item.borderless === true) {
+				return true
+			}
+			const def = this.getWidgetDef(item.widgetId)
+			return Boolean(def && def.type === 'header' && this.getWidgetContent(item).ground === true)
 		},
 
 		/**
@@ -3376,7 +3572,7 @@ export default {
 			const def = this.getWidgetDef(item.widgetId)
 			const value = item.showActions !== undefined ? item.showActions : def?.showActions
 			if (value === undefined || value === null) {
-				return !this.isCardWidget(item)
+				return this.showWidgetActions && !this.isCardWidget(item)
 			}
 			return value !== false
 		},
@@ -3408,6 +3604,22 @@ export default {
 		getWidgetButtons(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			return def?.buttons || []
+		},
+
+		/**
+		 * The widget's header text link (`headerLink` on the layout entry,
+		 * else on the widget definition), forwarded to CnWidgetWrapper.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-widget-header-carries-a-text-link
+		 * @param {object} item Layout placement entry.
+		 * @return {object|null}
+		 */
+		getWidgetHeaderLink(item) {
+			if (item?.headerLink && typeof item.headerLink === 'object') {
+				return item.headerLink
+			}
+			const def = this.getWidgetDef(item.widgetId)
+			return (def?.headerLink && typeof def.headerLink === 'object') ? def.headerLink : null
 		},
 
 		/**
@@ -3951,6 +4163,19 @@ export default {
 
 .cn-dashboard-page__empty {
 	padding: 60px 20px;
+}
+
+/* The page's view switch on a page without a header row: at the end of its
+   own row, above the grids, where the header would have put it. */
+.cn-dashboard-page__view-switch {
+	display: flex;
+	justify-content: flex-end;
+	margin-bottom: 12px;
+}
+
+/* A view the switch shows with nothing to draw. */
+.cn-page-view-region--empty {
+	padding: 40px 20px;
 }
 
 .cn-dashboard-page__page-filters {

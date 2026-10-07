@@ -105,7 +105,7 @@
 				</NcButton>
 				<NcButton variant="primary"
 					data-testid="cn-wizard-next"
-					:disabled="loading"
+					:disabled="loading || nextDisabled"
 					@click="isLast ? submit() : next()">
 					<template #icon>
 						<NcLoadingIcon v-if="loading" :size="20" />
@@ -280,6 +280,19 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
+		/**
+		 * Disable the Next / Submit button, whatever the step's `validate`
+		 * would say. For a host that knows the wizard cannot go on yet, such as
+		 * `CnSetupWizard` while a required app is missing.
+		 *
+		 * @type {boolean}
+		 * @spec openspec/changes/setup-wizard-card-load-and-dependency-gate/specs/cn-setup-wizard/spec.md#requirement-the-wizard-checks-dependencies-before-any-step
+		 */
+		nextDisabled: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: ['close', 'step-change', 'submit'],
@@ -396,6 +409,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async next() {
+			if (this.nextDisabled) {
+				return
+			}
 			if (this.isLast) {
 				return this.submit()
 			}
@@ -467,6 +483,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async submit() {
+			if (this.nextDisabled) {
+				return
+			}
 			const ok = await this.runValidation()
 			if (!ok) {
 				return

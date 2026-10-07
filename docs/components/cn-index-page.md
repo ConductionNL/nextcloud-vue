@@ -954,3 +954,9 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 }
 ```
 
+
+## A count in the subtitle (`countSubtitle`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `countSubtitle` | `String` | `''` | A description with `{total}` replaced by the collection's total: `"{total} open cases"` reads "48 open cases". Shown in place of `description` once a total is known; before that `description` shows. Goes through the host translate function. Manifest: `config.countSubtitle`, beside `config.showTitle: true`. |

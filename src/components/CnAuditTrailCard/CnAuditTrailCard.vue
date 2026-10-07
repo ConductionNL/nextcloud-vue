@@ -69,12 +69,27 @@ export default {
 	components: { CnDetailCard, NcLoadingIcon },
 
 	props: {
-		/** OpenRegister register id (slug or uuid). */
-		register: { type: String, required: true },
-		/** OpenRegister schema id (slug or uuid). */
-		schema: { type: String, required: true },
-		/** Parent object id. */
-		objectId: { type: String, required: true },
+		/** OpenRegister register id (slug or uuid). Optional for `scope: "app"`. */
+		register: { type: String, default: '' },
+		/** OpenRegister schema id (slug or uuid). Optional for `scope: "app"`. */
+		schema: { type: String, default: '' },
+		/** Parent object id. Required for `scope: "object"` (the default); unused for `scope: "app"`. */
+		objectId: { type: String, default: '' },
+		/**
+		 * What the card lists. `object` (the default) is one object's trail
+		 * and needs `register`, `schema` and `objectId`. `app` is the
+		 * app-wide feed: the entries of every object the caller may read
+		 * (OpenRegister's `/audit-trails/readable`), narrowed to `register`
+		 * and `schema` when those are set.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-the-audit-trail-widget-reads-the-app-wide-feed
+		 */
+		scope: {
+			type: String,
+			default: 'object',
+			validator: (value) => ['object', 'app'].includes(value),
+		},
+
 		/** Rendering surface — passed for AD-19 surface fallback consumers. */
 		surface: {
 			type: String,
@@ -116,13 +131,38 @@ export default {
 		displayedEntries() {
 			return this.entries.slice(0, this.maxDisplay)
 		},
+
+		/**
+		 * The path the card reads (prefixed at fetch time), or '' when it has nothing to read: the
+		 * object's own trail, or the app-wide readable feed narrowed to the
+		 * register and schema when set.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-the-audit-trail-widget-reads-the-app-wide-feed
+		 * @return {string}
+		 */
+		fetchUrl() {
+			const params = new URLSearchParams({ limit: String(this.maxDisplay) })
+			if (this.scope === 'app') {
+				if (this.register) {
+					params.set('register', this.register)
+				}
+				if (this.schema) {
+					params.set('schema', this.schema)
+				}
+				return `${this.apiBase}/audit-trails/readable?${params.toString()}`
+			}
+			if (!this.register || !this.schema || !this.objectId) {
+				return ''
+			}
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trail?${params.toString()}`
+		},
 	},
 
 	watch: {
-		objectId: {
+		fetchUrl: {
 			immediate: true,
-			handler(id) {
-				if (id) {
+			handler(url) {
+				if (url) {
 					this.fetchEntries()
 				}
 			},
@@ -130,20 +170,25 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the entries from `fetchUrl`. The readable feed answers
+		 * `{ rows, nextCursor }`, the object trail `{ results }`.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-the-audit-trail-widget-reads-the-app-wide-feed
+		 * @return {Promise<void>}
+		 */
 		async fetchEntries() {
-			if (!this.register || !this.schema || !this.objectId) {
+			const url = this.fetchUrl
+			if (!url) {
 				return
 			}
 			this.loading = true
 			try {
-				const params = new URLSearchParams({ limit: String(this.maxDisplay) })
-				const response = await fetch(
-					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trail?${params.toString()}`),
-					{ headers: buildHeaders() },
-				)
+				const response = await fetch(prefixUrl(url), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
-					this.entries = data.results || data || []
+					const list = data.results || data.rows || data
+					this.entries = Array.isArray(list) ? list : []
 				} else {
 					this.entries = []
 				}

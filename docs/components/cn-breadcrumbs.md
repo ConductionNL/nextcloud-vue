@@ -64,3 +64,11 @@ A typical mount point is a page component's `below-header` area, e.g. CnIndexPag
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnBreadcrumbs.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnBreadcrumbs/CnBreadcrumbs.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## The root crumb as text (`rootText`)
+
+NcBreadcrumbs draws the root crumb as a home icon and uses its label only as the accessible name. `rootText` (default `false`) prints the label instead, for a trail whose first crumb is a named list ("All cases") rather than home. A first crumb with its own `icon` keeps that icon. `CnDetailPage` sets it for `config.breadcrumb`.
+
+```vue
+<CnBreadcrumbs root-text :crumbs="[{ label: 'All cases', to: { name: 'Cases' } }, { label: '2026-0082' }]" />
+```

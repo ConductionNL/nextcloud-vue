@@ -12,7 +12,8 @@
 		:successText="successText"
 		:validate="validateStep"
 		:cancellable="cancellable"
-		:initialStep="initialStepId"
+		:initialStep="dependencyBlocked ? '' : initialStepId"
+		:nextDisabled="dependencyBlocked"
 		@stepChange="onStepChange"
 		@submit="onSubmit"
 		@close="onClose">
@@ -21,9 +22,33 @@
 		     `<template>` (verified against the generated `createSlots` call)
 		     and honours it only on the child, so the rule's advice is inverted
 		     here — moving the key up would throw it away. -->
+		<!-- A required app is missing: this is the only step, and Next stays
+		     disabled until the app is there. -->
+		<template v-if="dependencyBlocked" #[dependencyStepSlot]>
+			<div class="cn-setup-step" data-step-type="dependencies" data-testid="cn-setup-dependencies">
+				<NcNoteCard type="warning">
+					{{ dependencyBlockedText }}
+				</NcNoteCard>
+				<CnLeafDependencySettings
+					:appId="appId"
+					:dependencies="dependencyEntries"
+					:isAdmin="isAdmin"
+					:sectionName="dependencySectionName"
+					sectionDescription=""
+					@installed="onDependencyInstalled" />
+			</div>
+		</template>
 		<!-- eslint-disable vue/no-v-for-template-key-on-child -->
 		<template v-for="step in setupSteps" #[stepSlot(step)]="scope">
 			<div :key="step.id" class="cn-setup-step" :data-step-type="step.type">
+				<!-- Optional apps that are missing never block, but the admin
+				     reads about them once, on the first step. -->
+				<NcNoteCard
+					v-if="step.id === firstStepId && missingOptional.length > 0"
+					type="info"
+					data-testid="cn-setup-optional-dependencies">
+					{{ optionalMissingText }}
+				</NcNoteCard>
 				<!-- @slot step-{id} Override a step's body (for `component` steps or
 				     any bespoke step). Scope: the CnWizardDialog step scope plus
 				     `{ step, runAction, saveConfig }`. -->
@@ -55,7 +80,33 @@
 						:disabled="isChoiceDisabled(step)"
 						:loading="isOptionsLoading(step)"
 						:modelValue="cardModel(step)"
-						@update:modelValue="(v) => onChoice(step, v)" />
+						@update:modelValue="(v) => onChoice(step, v)">
+						<!-- `loadAction`: every dataset card except "none" loads
+						     itself, so no separate run-action step is needed. -->
+						<template v-if="step.loadAction" #option-actions="{ option }">
+							<template v-if="isLoadableOption(step, option)">
+								<NcButton
+									variant="secondary"
+									:disabled="isDatasetLoading(step, option)"
+									:aria-label="loadAriaLabel(option)"
+									data-testid="cn-setup-load-dataset"
+									@click="loadDataset(step, option)">
+									<template v-if="isDatasetLoading(step, option)" #icon>
+										<NcLoadingIcon :size="20" />
+									</template>
+									{{ loadButtonLabel(step, option) }}
+								</NcButton>
+								<p
+									v-if="datasetResultFor(step, option)"
+									role="status"
+									class="cn-setup-load-result"
+									:class="datasetResultFor(step, option).success ? 'cn-setup-load-result--success' : 'cn-setup-load-result--error'"
+									data-testid="cn-setup-load-result">
+									{{ datasetResultFor(step, option).message }}
+								</p>
+							</template>
+						</template>
+					</CnChoiceCards>
 					<NcSelect
 						v-else
 						:inputLabel="stepTitle(step)"
@@ -147,12 +198,21 @@
 </template>
 
 <script>
+import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnChoiceCards from '../CnChoiceCards/CnChoiceCards.vue'
+import CnLeafDependencySettings from '../CnLeafDependencySettings/CnLeafDependencySettings.vue'
 import CnWizardDialog from '../CnWizardDialog/CnWizardDialog.vue'
+import { checkDependencies, isDependencyResolved, missingRequiredApps, readServerAppStatuses } from '../../composables/useDependencyCheck.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
+
+/** Id of the synthetic step shown while a required app is missing. */
+const DEPENDENCY_STEP_ID = 'cn-setup-dependencies'
+
+/** The dataset value that means "seed nothing"; it never gets a Load button. */
+const NONE_DATASET = 'none'
 
 /**
  * CnSetupWizard — abstract, manifest-driven first-time setup wizard (ADR-042).
@@ -183,6 +243,7 @@ export default {
 	components: {
 		CnWizardDialog,
 		CnChoiceCards,
+		CnLeafDependencySettings,
 		NcButton,
 		NcNoteCard,
 		NcSelect,
@@ -201,6 +262,11 @@ export default {
 		 * standalone (no CnAppRoot ancestor).
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * The app manifest, provided by CnAppRoot. Read only for its
+		 * `dependencies` when the `dependencies` prop is empty.
+		 */
+		cnManifest: { default: null },
 	},
 
 	props: {
@@ -310,6 +376,33 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
+		/**
+		 * The app's dependencies, in the manifest's own shape (app-id strings
+		 * or `{ id, name?, required? }`). Falls back to the injected manifest's
+		 * `dependencies`. A missing REQUIRED one replaces every step with the
+		 * dependency list and disables Next; a missing optional one is listed
+		 * on the first step and does not block.
+		 *
+		 * @type {Array<string|object>}
+		 * @spec openspec/changes/setup-wizard-card-load-and-dependency-gate/specs/cn-setup-wizard/spec.md#requirement-the-wizard-checks-dependencies-before-any-step
+		 */
+		dependencies: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** Load button label on a dataset card (`loadAction`). */
+		loadLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Load'),
+		},
+
+		/** Load button label once that dataset loaded in this session. */
+		reloadLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Load again'),
+		},
 	},
 
 	emits: ['complete', 'close', 'step-change', 'action-result'],
@@ -345,6 +438,9 @@ export default {
 			actionResult: {},
 			localDone: {},
 			userTouched: {},
+			// Per-card load state for `loadAction` steps, keyed by `loadKey()`.
+			datasetRunning: {},
+			datasetResult: {},
 		}
 	},
 
@@ -362,11 +458,145 @@ export default {
 				: this.dialogTitle
 		},
 
-		setupSteps() {
+		/**
+		 * Every well-formed step, before `requires` is applied.
+		 *
+		 * @return {Array<object>}
+		 */
+		declaredSteps() {
 			return (this.steps || []).filter((s) => s && s.id && s.type)
 		},
 
+		/**
+		 * Steps that declare `requires` on an app that is not installed and
+		 * enabled. They are not offered; the summary names them as skipped.
+		 *
+		 * @return {Array<{ step: object, missing: Array<string> }>}
+		 * @spec openspec/changes/setup-wizard-card-load-and-dependency-gate/specs/cn-setup-wizard/spec.md#requirement-the-wizard-checks-dependencies-before-any-step
+		 * @spec openspec/changes/optional-step-requires/specs/cn-setup-wizard/spec.md#requirement-a-step-whose-required-apps-are-absent-is-not-applicable
+		 */
+		skippedSteps() {
+			return this.declaredSteps
+				.filter((s) => Array.isArray(s.requires) && s.requires.length > 0)
+				.map((step) => {
+					const known = Object.fromEntries(this.dependencyRows.map((d) => [d.id, d]))
+					const missing = missingRequiredApps(step.requires, this.serverAppStatuses)
+						.map((row) => (known[row.id] || row).name || row.id)
+					return { step, missing }
+				})
+				.filter((entry) => entry.missing.length > 0)
+		},
+
+		setupSteps() {
+			const skipped = new Set(this.skippedSteps.map((entry) => entry.step.id))
+			return this.declaredSteps.filter((s) => !skipped.has(s.id))
+		},
+
+		/**
+		 * Id of the first offered step: where the optional-apps note shows.
+		 *
+		 * @return {string}
+		 */
+		firstStepId() {
+			return this.setupSteps.length > 0 ? this.setupSteps[0].id : ''
+		},
+
+		/**
+		 * The dependency declarations to check: the prop, else the manifest's.
+		 *
+		 * @return {Array<string|object>}
+		 */
+		dependencyEntries() {
+			if (Array.isArray(this.dependencies) && this.dependencies.length > 0) {
+				return this.dependencies
+			}
+			const fromManifest = this.cnManifest && this.cnManifest.dependencies
+			return Array.isArray(fromManifest) ? fromManifest : []
+		},
+
+		/**
+		 * The `dependency_statuses` initial state an app may inject from PHP.
+		 * Same source CnAppRoot reads; `{}` when the app injects none.
+		 *
+		 * @return {object}
+		 */
+		serverAppStatuses() {
+			return readServerAppStatuses(this.appId)
+		},
+
+		/**
+		 * The declared dependencies with their live status.
+		 *
+		 * @return {Array<object>}
+		 */
+		dependencyRows() {
+			return checkDependencies(this.dependencyEntries, this.serverAppStatuses)
+		},
+
+		/** @return {Array<object>} Required dependencies that are missing or disabled. */
+		missingRequired() {
+			return this.dependencyRows.filter((d) => d.required && !isDependencyResolved(d))
+		},
+
+		/** @return {Array<object>} Optional dependencies that are missing or disabled. */
+		missingOptional() {
+			return this.dependencyRows.filter((d) => !d.required && !isDependencyResolved(d))
+		},
+
+		/**
+		 * Whether a required app is missing, so the wizard shows the
+		 * dependency list instead of its steps and refuses to continue.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/setup-wizard-card-load-and-dependency-gate/specs/cn-setup-wizard/spec.md#requirement-the-wizard-checks-dependencies-before-any-step
+		 */
+		dependencyBlocked() {
+			return this.missingRequired.length > 0
+		},
+
+		dependencyStepSlot() {
+			return 'step-' + DEPENDENCY_STEP_ID
+		},
+
+		dependencySectionName() {
+			return t('nextcloud-vue', 'Apps this app needs')
+		},
+
+		dependencyBlockedText() {
+			return t('nextcloud-vue', 'Setup can start once these apps are installed and enabled: {apps}.', {
+				apps: this.missingRequired.map((d) => d.name).join(', '),
+			})
+		},
+
+		optionalMissingText() {
+			return t('nextcloud-vue', 'Optional, not installed: {apps}. You can add them later.', {
+				apps: this.missingOptional.map((d) => d.name).join(', '),
+			})
+		},
+
+		/**
+		 * Whether the current user is a Nextcloud admin; only admins get the
+		 * install and enable buttons.
+		 *
+		 * @return {boolean}
+		 */
+		isAdmin() {
+			try {
+				const user = getCurrentUser()
+				return !!(user && user.isAdmin)
+			} catch {
+				return false
+			}
+		},
+
 		wizardSteps() {
+			if (this.dependencyBlocked) {
+				return [{
+					id: DEPENDENCY_STEP_ID,
+					label: t('nextcloud-vue', 'Required apps'),
+					optional: false,
+				}]
+			}
 			return this.setupSteps.map((s) => ({
 				id: s.id,
 				label: this.stepTitle(s),
@@ -390,6 +620,15 @@ export default {
 		 * @return {Array<{ id: string, title: string, value: string, done: boolean, notRun: boolean }>}
 		 */
 		summaryItems() {
+			const skipped = this.skippedSteps
+				.filter((entry) => entry.step.type !== 'summary' && entry.step.type !== 'info')
+				.map((entry) => ({
+					id: entry.step.id,
+					title: this.stepTitle(entry.step),
+					value: t('nextcloud-vue', 'Skipped, needs {apps}', { apps: entry.missing.join(', ') }),
+					done: false,
+					notRun: true,
+				}))
 			return this.setupSteps
 				.filter((s) => s.type !== 'summary')
 				.map((step) => {
@@ -426,6 +665,7 @@ export default {
 					}
 					return { id: step.id, title: this.stepTitle(step), value, done, notRun: false }
 				})
+				.concat(skipped)
 		},
 
 		/**
@@ -486,6 +726,11 @@ export default {
 		 * @return {void}
 		 */
 		maybeAutoRunStep(stepId) {
+			// Nothing runs while a required app is missing: every action
+			// would fail with an error that does not name the app.
+			if (this.dependencyBlocked) {
+				return
+			}
 			const step = this.setupSteps.find((s) => s.id === stepId)
 			if (step && step.type === 'run-action' && !this.isOnDemand(step) && !this.isStepDone(step.id) && !this.running[step.id]) {
 				this.runAction(step)
@@ -869,6 +1114,131 @@ export default {
 		},
 
 		/**
+		 * Key for one card's load state.
+		 *
+		 * @param {object} step The choice step.
+		 * @param {object} option The card's option.
+		 * @return {string}
+		 */
+		loadKey(step, option) {
+			return step.id + '::' + String(option && option.value)
+		},
+
+		/**
+		 * Whether a card gets a Load button: the step declares `loadAction`
+		 * and the option is not the "seed nothing" answer.
+		 *
+		 * @param {object} step The choice step.
+		 * @param {object} option The card's option.
+		 * @return {boolean}
+		 * @spec openspec/changes/setup-wizard-card-load-and-dependency-gate/specs/cn-setup-wizard/spec.md#requirement-a-dataset-card-loads-itself
+		 */
+		isLoadableOption(step, option) {
+			return !!(step && step.loadAction) && !!option && String(option.value) !== NONE_DATASET
+		},
+
+		isDatasetLoading(step, option) {
+			return this.datasetRunning[this.loadKey(step, option)] === true
+		},
+
+		datasetResultFor(step, option) {
+			return this.datasetResult[this.loadKey(step, option)] || null
+		},
+
+		loadButtonLabel(step, option) {
+			if (this.isDatasetLoading(step, option)) {
+				return this.runningLabel
+			}
+			const result = this.datasetResultFor(step, option)
+			return (result && result.success) ? this.reloadLabel : this.loadLabel
+		},
+
+		loadAriaLabel(option) {
+			return t('nextcloud-vue', 'Load {name}', { name: option.label })
+		},
+
+		/**
+		 * Load one dataset from its card: POST `{ dataset }` to the step's
+		 * `loadAction`, spinner on the button while it runs, the result on the
+		 * card after. A successful load also selects the card, so the summary
+		 * and the stored choice name what was loaded.
+		 *
+		 * @param {object} step The choice step declaring `loadAction`.
+		 * @param {object} option The card's option.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/setup-wizard-card-load-and-dependency-gate/specs/cn-setup-wizard/spec.md#requirement-a-dataset-card-loads-itself
+		 */
+		async loadDataset(step, option) {
+			if (!this.isLoadableOption(step, option) || this.isDatasetLoading(step, option)) {
+				return
+			}
+			const key = this.loadKey(step, option)
+			this.datasetRunning[key] = true
+			this.datasetResult[key] = null
+			let result
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const { data } = await axios.post(
+					generateUrl(`/apps/${this.appId}/api/setup/action/${step.loadAction}`),
+					{ dataset: option.value },
+				)
+				result = {
+					success: !!data && data.success !== false,
+					message: (data && data.message) || t('nextcloud-vue', 'Loaded.'),
+				}
+			} catch (err) {
+				result = { success: false, message: this.errorMessage(err) }
+			} finally {
+				this.datasetRunning[key] = false
+			}
+			this.datasetResult[key] = result
+			if (result.success) {
+				this.selectLoadedOption(step, option)
+				this.localDone[step.id] = true
+			}
+			this.$emit('action-result', {
+				stepId: step.id,
+				action: step.loadAction,
+				dataset: option.value,
+				...result,
+			})
+		},
+
+		/**
+		 * Select a card that just loaded, adding to (never replacing) the
+		 * selection of a `multiple` step.
+		 *
+		 * @param {object} step The choice step.
+		 * @param {object} option The loaded option.
+		 * @return {void}
+		 */
+		selectLoadedOption(step, option) {
+			if (step.multiple === true) {
+				const current = this.cardModel(step)
+				if (current.some((v) => String(v) === String(option.value))) {
+					return
+				}
+				this.onChoice(step, current.concat([option.value]))
+				return
+			}
+			this.onChoice(step, option.value)
+		},
+
+		/**
+		 * A required app was installed from the dependency list. A new app's
+		 * scripts and its `OC.appswebroots` entry exist only after a full page
+		 * load, and `useAppStatus` caches per page, so reload.
+		 *
+		 * @return {void}
+		 */
+		onDependencyInstalled() {
+			window.location.reload()
+		},
+
+		/**
 		 * Whether a step is marked on-demand (`onDemand: true`): it runs only
 		 * when the user asks, never automatically, and the summary ticks it
 		 * only when it ran in this session.
@@ -969,6 +1339,19 @@ export default {
 	gap: 8px;
 	padding: 24px 0;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-setup-load-result {
+	margin: 0;
+	font-size: var(--font-size-small, 13px);
+}
+
+.cn-setup-load-result--success {
+	color: var(--color-success-text, var(--color-success));
+}
+
+.cn-setup-load-result--error {
+	color: var(--color-error-text, var(--color-error));
 }
 
 .cn-setup-field {
