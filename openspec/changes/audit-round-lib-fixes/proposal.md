@@ -24,7 +24,10 @@ The live audit of pipelinq on nextcloud-vue 2.69.0 found five library faults:
 
 1. `CnWalkthrough.close()` pauses (same as ESC and the dim). `cnReplayWalkthrough`
    continues a paused tour, else the saved step, else starts at step 1. "Start over"
-   in the user settings still begins at step 1.
+   in the user settings still begins at step 1. A pause (X, ESC or the dim) is stored
+   as `paused: true` with the step (`pause` now carries `{ tourId, stepId, index }`),
+   and a paused tour stays hidden across page loads (`CnWalkthrough` `autoStart`
+   prop, off while paused) until the user picks "Continue" (Ruben, 7 October 2026).
 2. `searchNextcloudUsers` puts the signed-in user first when they match the search
    (`includeCurrentUser`, default true; mentions pass false). `resolveNextcloudUser`
    resolves your own uid to your display name. `CnFormDialog` caches `label` or

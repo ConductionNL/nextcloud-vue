@@ -513,8 +513,10 @@
 					:manifest="manifest"
 					:seenVersion="walkthroughSeenVersion"
 					:resume="walkthroughResume"
+					:autoStart="!walkthroughPaused"
 					:translate="translate"
 					@complete="onWalkthroughComplete"
+					@pause="onWalkthroughPause"
 					@progress="onWalkthroughProgress" />
 			</slot>
 			<!--
@@ -952,6 +954,7 @@ export default {
 					return
 				}
 				const progress = this.walkthroughProgressValue
+				this.unpauseWalkthroughProgress()
 				if (wt.paused.value && wt.activeTour.value && wt.activeTour.value.id === id && wt.resumePaused()) {
 					return
 				}
@@ -2610,9 +2613,21 @@ export default {
 			} catch {
 				// No URL token; fall through to the remembered progress.
 			}
-			// An unfinished tour continues at the step the user reached.
+			// An unfinished tour continues at the step the user reached,
+			// unless the user paused it: then it waits for "Continue".
 			const progress = this.walkthroughProgressValue
-			return progress ? { tourId: progress.tourId, stepId: progress.stepId } : null
+			return progress && !progress.paused ? { tourId: progress.tourId, stepId: progress.stepId } : null
+		},
+
+		/**
+		 * Whether the user paused the tour (X, ESC or the dim). A paused tour
+		 * stays hidden across page loads until the user picks "Continue".
+		 *
+		 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
+		 * @return {boolean} True while the saved progress is paused.
+		 */
+		walkthroughPaused() {
+			return !!(this.walkthroughProgressValue && this.walkthroughProgressValue.paused)
 		},
 
 		phase() {
@@ -3446,6 +3461,49 @@ export default {
 		},
 
 		/**
+		 * Remember that the user paused the tour, at the step they were on,
+		 * so the next page load keeps it hidden until they pick "Continue".
+		 *
+		 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
+		 * @param {object} [where] `{ tourId, stepId, index }` from CnWalkthrough.
+		 * @return {void}
+		 */
+		onWalkthroughPause(where) {
+			const current = this.walkthroughProgressValue || {}
+			const tourId = (where && where.tourId) || current.tourId
+			if (!tourId) {
+				return
+			}
+			const value = {
+				tourId,
+				stepId: (where && where.tourId) ? (where.stepId || '') : (current.stepId || ''),
+				index: (where && where.tourId && Number.isInteger(where.index)) ? where.index : (current.index || 0),
+				version: String((this.manifest && this.manifest.version) || ''),
+				paused: true,
+			}
+			this.walkthroughProgressValue = value
+			persistWalkthroughProgress(this.appId, this.walkthroughConfigKey, value)
+		},
+
+		/**
+		 * Clear the paused mark when the user continues the tour. The step
+		 * stays; the next step change writes fresh progress anyway.
+		 *
+		 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
+		 * @return {void}
+		 */
+		unpauseWalkthroughProgress() {
+			const progress = this.walkthroughProgressValue
+			if (!progress || !progress.paused) {
+				return
+			}
+			const value = { ...progress }
+			delete value.paused
+			this.walkthroughProgressValue = value
+			persistWalkthroughProgress(this.appId, this.walkthroughConfigKey, value)
+		},
+
+		/**
 		 * Continue an unfinished tour from the user-settings dialog: show a
 		 * paused tour again, or start the remembered tour at its step.
 		 *
@@ -3459,10 +3517,11 @@ export default {
 			}
 			setTimeout(() => {
 				const wt = useWalkthrough(this.appId, this.manifest)
+				const progress = this.walkthroughProgressValue
+				this.unpauseWalkthroughProgress()
 				if (wt.resumePaused()) {
 					return
 				}
-				const progress = this.walkthroughProgressValue
 				if (progress) {
 					wt.resumeAt(progress.tourId, progress.stepId)
 				}
@@ -3489,6 +3548,7 @@ export default {
 			setTimeout(() => {
 				const id = this.manifest.walkthrough.tours[0] && this.manifest.walkthrough.tours[0].id
 				if (id) {
+					this.unpauseWalkthroughProgress()
 					useWalkthrough(this.appId, this.manifest).restart(id)
 				}
 			}, 50)

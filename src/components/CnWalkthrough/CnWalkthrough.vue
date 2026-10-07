@@ -172,6 +172,12 @@ export default {
 		tourId: { type: String, default: '' },
 		/** Optional resume token `{ tourId, stepId }` (refresh / cross-app hand-off). */
 		resume: { type: Object, default: null },
+		/**
+		 * Whether a first-visit tour may start on its own. The host turns it
+		 * off while the user's tour is paused, so a paused tour stays hidden
+		 * across page loads until the user picks "Continue".
+		 */
+		autoStart: { type: Boolean, default: true },
 		/** Stacking order of the overlay. */
 		zIndex: { type: Number, default: 10000 },
 		/** Next button label. */
@@ -569,6 +575,9 @@ export default {
 			}
 			if (this.tourId) {
 				this.wt.start(this.tourId)
+				return
+			}
+			if (!this.autoStart) {
 				return
 			}
 			const auto = this.wt.autoStartTour.value
@@ -1185,20 +1194,29 @@ export default {
 		},
 
 		/**
-		 * Pause the tour from a backdrop click or ESC. The tour hides and
-		 * keeps its step; only Skip (the close button) and Finish end it.
+		 * Pause the tour from the corner X, a backdrop click or ESC. The tour
+		 * hides and keeps its step; only Finish (or a host Skip) ends it.
 		 * Pressing ESC used to dismiss it, and the host recorded that as
-		 * "seen", so the tour never came back.
+		 * "seen", so the tour never came back. The `pause` event carries
+		 * where the user was, so the host can keep a paused tour hidden on
+		 * the next page load.
 		 *
 		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
 		 * @return {void}
 		 */
 		onBackdrop() {
+			const where = {
+				tourId: (this.wt.activeTour.value && this.wt.activeTour.value.id) || '',
+				stepId: (this.step && this.step.id) || '',
+				index: this.index,
+			}
 			this.wt.pause()
 			/**
-			 * @event pause Emitted when the user hides the tour (backdrop / ESC). The tour can continue later.
+			 * @event pause Emitted when the user hides the tour (X, backdrop, ESC). The tour can continue later.
+			 * @type {{ tourId: string, stepId: string, index: number }}
 			 */
-			this.$emit('pause')
+			this.$emit('pause', where)
 		},
 	},
 }

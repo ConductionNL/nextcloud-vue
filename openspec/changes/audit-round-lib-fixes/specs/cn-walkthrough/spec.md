@@ -26,3 +26,22 @@ begin at step 1.
 - **GIVEN** the user closed the tour with the X on step 3
 - **WHEN** the user chooses "Start over" in the user settings
 - **THEN** the tour SHALL begin at step 1
+
+### Requirement: REQ-WALK-AUD-002 A paused tour stays hidden until the user continues
+
+A tour paused with the X, ESC or the dim SHALL be stored as paused with its step. On
+the next page load it SHALL NOT show on its own. "Continue" (in the user settings or
+the app's tour entry) SHALL show it at the saved step and clear the paused mark.
+"Start over" SHALL begin at step 1.
+
+#### Scenario: Reload after pausing
+
+- **GIVEN** the user paused the tour on step 2
+- **WHEN** the user reloads the app
+- **THEN** the tour SHALL stay hidden
+
+#### Scenario: Continue after a reload
+
+- **GIVEN** the user paused the tour on step 2 and reloaded
+- **WHEN** the user picks "Continue where you left off"
+- **THEN** the tour SHALL show step 2

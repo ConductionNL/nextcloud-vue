@@ -1,6 +1,7 @@
 # Tasks: audit-round-lib-fixes
 
 - [x] C4: `close()` pauses; `cnReplayWalkthrough` continues a paused or saved tour
+- [x] C4: a paused tour stays hidden across page loads until Continue; Start over clears the pause
 - [x] D4: current user in `searchNextcloudUsers` / `resolveNextcloudUser`; mentions opt out
 - [x] D4: `CnFormDialog` keeps the display name after a clear and re-pick
 - [x] G2: schema-less filter definitions from column hints; `tableHeaderFilters` in `CnIndexPage`
