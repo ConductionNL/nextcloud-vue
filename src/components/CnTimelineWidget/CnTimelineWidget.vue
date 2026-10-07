@@ -53,7 +53,7 @@
 <script>
 import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
-import { auditEvents, fieldEvents, relatedEvents, sortEvents, timelineEntryEvents } from '../../utils/timelineEvents.js'
+import { auditEvents, fieldEvents, listEvents, relatedEvents, sortEvents, timelineEntryEvents } from '../../utils/timelineEvents.js'
 
 /**
  * CnTimelineWidget — an object's dated events in time order (`timeline`
@@ -193,6 +193,7 @@ export default {
 			const now = new Date()
 			const all = [
 				...fieldEvents(this.resolvedObject || {}, this.fieldsConfig, now),
+				...listEvents(this.resolvedObject || {}, this.content.lists, now),
 				...this.relatedConfig.flatMap((cfg, i) => relatedEvents(this.relatedRows[i] || [], cfg, now)),
 				...auditEvents(this.auditEntries, this.describeAudit, now),
 				...timelineEntryEvents(this.timelineEntries, t('nextcloud-vue', 'Note'), now),
@@ -347,7 +348,7 @@ export default {
 			})
 
 			if (this.content.auditTrail === true) {
-				jobs.push(axios.get(generateUrl(`${base}/audit-trail`), { params: { limit: this.content.auditLimit || 50 } })
+				jobs.push(axios.get(generateUrl(`${base}/audit-trails`), { params: { limit: this.content.auditLimit || 50 } })
 					.then((r) => {
 						const data = r && r.data
 						this.auditEntries = (data && (data.results || data)) || []

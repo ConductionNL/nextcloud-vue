@@ -714,11 +714,11 @@
 					</template>
 				</CnCardGrid>
 
-				<!-- Right-click context menu (positioned at cursor via CSS) -->
+				<!-- Right-click context menu (positioned at cursor via CSS). Same per-row list as the row actions menu, so the two never drift. -->
 				<CnContextMenu
 					v-model:open="contextMenuOpen"
-					:actions="mergedActions"
-					:targetItem="contextMenuRow"
+					:actions="rowActionsFor(contextMenuShownRow)"
+					:targetItem="contextMenuShownRow"
 					@action="onRowAction"
 					@close="closeContextMenu" />
 
@@ -834,8 +834,10 @@ import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab,
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
 import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { resolveFilterMap } from '../../utils/routeFilters.js'
 import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undeclaredRowActions } from '../../utils/rowActionAvailability.js'
+import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
@@ -1754,7 +1756,11 @@ export default {
 			default: () => ({}),
 		},
 
-		/** Row action definitions (app-provided, merged with built-in actions) */
+		/**
+		 * Row action definitions, merged with the built-in View / Edit / Copy / Delete.
+		 * Objects are app actions.
+		 * A `"builtin:view"`, `"builtin:edit"`, `"builtin:copy"` or `"builtin:delete"` string places that built-in at its position when its `show*Action` toggle is on; enabled built-ins not placed are appended in that order.
+		 */
 		actions: {
 			type: Array,
 			default: () => [],
@@ -2828,6 +2834,8 @@ export default {
 			folderRowLayouts: {},
 			/** The row the keyboard is on, or -1. */
 			focusedRowIndex: -1,
+			// The row the context menu shows: set on open, never cleared on close, so a closing menu keeps its entries and a late close cannot null a reopened one.
+			contextMenuShownRow: null,
 			/** The row a quick edit is open on, or null. */
 			quickEditRow: null,
 			/** The row as the server holds it, after a stale save. */
@@ -3540,7 +3548,7 @@ export default {
 			if (this.quickEditFields.length > 0) {
 				handlers['row-quick-edit'] = () => this.focusedRow && this.openQuickEdit(this.focusedRow)
 			}
-			if (this.focusedRow && this.rowActionsFor(this.focusedRow).length > 0) {
+			if (this.focusedRow && this.primaryRowActionFor(this.focusedRow)) {
 				handlers['row-primary'] = () => this.runPrimaryRowAction()
 			}
 			return handlers
@@ -4221,7 +4229,8 @@ export default {
 		},
 
 		/**
-		 * Merged actions: app-provided first, then built-in defaults.
+		 * Merged actions: the declared entries in order, each `"builtin:<id>"` placeholder replaced by that built-in when its toggle is on, then the enabled built-ins not placed.
+		 * See `resolveRowActions`.
 		 *
 		 * REQ-MAD-3 / REQ-MAD-4 / REQ-MAD-5 / REQ-MAD-6 / REQ-MAD-7
 		 * (manifest-actions-dispatch) — for any action whose `handler`
@@ -4237,58 +4246,41 @@ export default {
 				registry: this.effectiveRegistry,
 				customComponents: this.effectiveCustomComponents,
 			}
-			// Drop anything that is not an action OBJECT. A bare string — the
-			// shorthand `"edit"` an author reasonably expects to mean "show the
-			// built-in Edit" — has no `label` and no `icon`, so it rendered as a
-			// full-height NcActionButton with nothing in it: an invisible,
-			// clickable, inert row in the overflow menu. Observed on dossiq,
-			// where `config.actions: ["create", "edit", "delete", {…}]` put three
-			// blank rows above the real ones on four different index pages.
-			//
-			// Named, not silently swallowed: a dropped action is a capability the
-			// author asked for and did not get, and the manifest schema now
-			// rejects the shape at authoring time (`config.actions` is governed by
-			// the same `action` definition as `pages[].actions`). Built-ins are
-			// turned on with the `show*Action` toggles, not by naming them here.
 			// A named source may supply its own row actions, on the same
 			// precedence as its columns: what the manifest declares wins, and the
-			// source is the DEFAULT for a page that declares none. Without this
-			// the source's `rowActions` were declared and never read — the third
-			// field of the same adapter to be wired late, after `columns` and
-			// `addLabel`.
-			//
-			// Note what this still cannot do: these are MERGED with the built-ins
-			// below, so a source can add an action but cannot say "these and no
-			// others". Suppressing a built-in is the `show*Action` toggles' job.
+			// source is the DEFAULT for a page that declares none.
+			// Either list may place built-ins with `"builtin:<id>"`; turning one on or off stays the `show*Action` toggles' job.
 			const manifestDeclared = this.actions && this.actions.length > 0
 			const declaredActions = manifestDeclared
 				? this.actions
 				: ((this.isNamedSource && this.namedSource && this.namedSource.rowActions) || [])
 
-			const declared = []
-			for (const a of declaredActions) {
-				if (a && typeof a === 'object' && !Array.isArray(a)) {
+			const { actions, warnings } = resolveRowActions(declaredActions, this.defaultActions, {
+				prepare: (a) => {
 					// A SOURCE action may say `action: 'open'`: open this row the
 					// way a row click does — the source's own navigation
 					// (`openRow`/`detailRoute`), with `edit-open` emitted so a
 					// host that configured a row target (`config.rowRoute`) wins.
-					// Resolved here because a source is a composable with no
-					// router; the flows source declared exactly this action and
-					// it rendered as a dead menu entry, because `action` was a
-					// key nothing read (dispatch reads `handler` and `type`).
-					// Source-declared actions only: the manifest grammar for
-					// navigation is `type`/`handler`, and stays so.
+					// Resolved here because a source is a composable with no router.
+					// Source-declared actions only: the manifest grammar for navigation is `type`/`handler`, and stays so.
 					if (!manifestDeclared && a.action === 'open' && typeof a.handler !== 'function') {
-						declared.push({ ...a, handler: (row) => this.openSourceRow(row) })
-						continue
+						return { ...a, handler: (row) => this.openSourceRow(row) }
 					}
-					declared.push(dispatchAction(a, ctx))
+					return dispatchAction(a, ctx)
+				},
+			})
+			for (const warning of warnings) {
+				// A toggle turned off at runtime (permissions, readOnly) legitimately silences a placeholder; the validator flags a statically-off one.
+				if (warning.code === 'disabled-placeholder') {
 					continue
 				}
-				// eslint-disable-next-line no-console
-				console.warn(`[CnIndexPage] Ignoring action ${JSON.stringify(a)}: actions must be objects with an id and a label. To show a built-in action use the showViewAction / showEditAction / showCopyAction / showDeleteAction props.`)
+				// A dropped entry is always named; the placement hints are dev-only.
+				if (warning.code === 'invalid-entry' || process.env.NODE_ENV !== 'production') {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnIndexPage] "${this.title}": ${warning.message}`)
+				}
 			}
-			return [...declared, ...this.defaultActions]
+			return actions
 		},
 
 		hasRowActions() {
@@ -5632,9 +5624,20 @@ export default {
 		},
 
 		/**
-		 * Run the first action the focused row offers. "First" is the page's
-		 * order, narrowed by what the server allows on that record, so the
-		 * primary action is never one this caller may not run.
+		 * The first action a row's menu shows and enables: the page's order, narrowed by what the server allows, by `visible` / `visibleWhen`, and by `disabled`.
+		 * The keyboard therefore never runs what the menu hides or greys out.
+		 *
+		 * @param {object} row The row.
+		 * @return {(object|null)} The action, or null.
+		 * @spec openspec/changes/row-action-builtin-placement/specs/index-page/spec.md
+		 */
+		primaryRowActionFor(row) {
+			return this.rowActionsFor(row).find((action) => isRowActionVisible(action, row)
+				&& !(typeof action.disabled === 'function' ? action.disabled(row) : action.disabled)) || null
+		},
+
+		/**
+		 * Run the focused row's primary action (see `primaryRowActionFor`).
 		 *
 		 * @return {void}
 		 * @spec openspec/changes/working-list-row-actions/specs/index-page/spec.md
@@ -5644,14 +5647,14 @@ export default {
 			if (!row) {
 				return
 			}
-			const [first] = this.rowActionsFor(row)
+			const first = this.primaryRowActionFor(row)
 			if (!first) {
 				return
 			}
 			if (typeof first.handler === 'function') {
 				first.handler(row)
 			}
-			this.$emit('action', { action: first.label, row })
+			this.onRowAction(rowActionPayload(first, row))
 		},
 
 		/**
@@ -5968,16 +5971,22 @@ export default {
 		},
 
 		/**
-		 * Intercepts CnRowActions' bubbled `@action` so `handler: "none"`
-		 * actions are dropped before re-emit.
+		 * Intercepts CnRowActions' and CnContextMenu's bubbled `@action` so `handler: "none"` actions are dropped before re-emit.
+		 * A built-in is matched by its id, an app action by its label.
 		 *
-		 * @param {{action: string, row: object}} payload The bubbled action payload.
+		 * @param {{action: string, row: object, id?: string, builtin?: boolean}} payload The bubbled action payload.
 		 */
 		onRowAction(payload) {
-			const matched = this.mergedActions.find((a) => a.label === payload.action)
+			const matched = payload.builtin === true
+				? this.mergedActions.find((a) => a.builtin === true && a.id === payload.id)
+				: this.mergedActions.find((a) => a.builtin !== true && a.label === payload.action)
 			if (matched && matched._dispatchSuppress) {
 				return
 			}
+			/**
+			 * @event action A row action was chosen from a row's actions menu, its right-click menu or the keyboard primary action. Payload: `action` (the label), the row, the action's `id` when it has one, and `builtin: true` for a built-in View / Edit / Copy / Delete. Its handler has already run.
+			 * @type {{ action: string, row: object, id?: string, builtin?: boolean }}
+			 */
 			this.$emit('action', payload)
 		},
 
@@ -6923,6 +6932,7 @@ export default {
 		// --- Context menu handlers ---
 
 		onRowContextMenu({ row, event }) {
+			this.contextMenuShownRow = row
 			this.openContextMenu({ item: row, event })
 		},
 

@@ -59,7 +59,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `excludeColumns` | Array | `[]` | Schema columns to hide |
 | `includeColumns` | Array | `null` | Schema columns to show (whitelist) |
 | `columnOverrides` | Object | `\{\}` | Per-column overrides |
-| `actions` | Array | `[]` | Custom row action definitions. Each entry accepts the runtime `{label, icon, handler, …}` shape (function-typed `handler` fires directly) AND the manifest shape with a string `handler` resolved through the v2 `registry` first, then `customComponents` — see "Action handlers" below. |
+| `actions` | Array | `[]` | Custom row action definitions. Each entry accepts the runtime `{label, icon, handler, …}` shape (function-typed `handler` fires directly) AND the manifest shape with a string `handler` resolved through the v2 `registry` first, then `customComponents` — see "Action handlers" below. An entry may also be a `"builtin:view"` / `"builtin:edit"` / `"builtin:copy"` / `"builtin:delete"` placeholder that puts that built-in at its position — see [Placing built-in row actions](#placing-built-in-row-actions). |
 | `customComponents` | Object | `null` | Custom-component / handler registry. When set takes precedence over the injected `cnCustomComponents` from a CnAppRoot ancestor. Used to resolve `actions[].handler` registry names (manifest-actions-dispatch). Named handlers resolve out of the v2 `registry` (a `kind: "handler"` entry) FIRST and fall back to this map. |
 | `emptyText` | String | `'No items found'` | Empty state message |
 | `rowClass` | Function | `null` | CSS class provider for rows |
@@ -295,7 +295,7 @@ A manual order is stored against the person and the list, never onto the records
 | `page-changed` | `pageNum` | Pagination page changed |
 | `page-size-changed` | `size` | Page size changed |
 | `select` | `ids[]` | Selection changed |
-| `action` | `\{ action, row \}` | Custom row action triggered |
+| `action` | `\{ action, row, id?, builtin? \}` | A row action was chosen from a row's menu, its right-click menu or the keyboard primary action. `action` is the label, `id` the action's id when it has one, and `builtin: true` marks a built-in View / Edit / Copy / Delete. |
 | `search` | `term` | Search input changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
 | `columns-change` | `keys[]` | Visible columns changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
 | `filter-change` | `\{ key, values \}` | Facet filter changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
@@ -540,7 +540,7 @@ Manifest `type:'index'` pages can hide individual built-in actions without writi
 ```
 
 Known keys (each maps to the matching `CnIndexPage` prop):
-`showAdd`, `showFormDialog`, `showEditAction`, `showCopyAction`, `showDeleteAction`, `showMassImport`, `showMassExport`, `showMassCopy`, `showMassDelete`, `showViewToggle`, `selectable`. Unknown keys pass validation (forward-compat).
+`showAdd`, `showFormDialog`, `showViewAction`, `showEditAction`, `showCopyAction`, `showDeleteAction`, `showMassImport`, `showMassExport`, `showMassCopy`, `showMassDelete`, `showViewToggle`, `selectable`. Unknown keys pass validation (forward-compat).
 
 For a fully read-only page, prefer the all-or-nothing shortcut:
 
@@ -549,6 +549,40 @@ For a fully read-only page, prefer the all-or-nothing shortcut:
 ```
 
 This expands to nine `show*: false` defaults; explicit `config.showAdd: true` still re-enables a specific button.
+
+### Placing built-in row actions
+
+By default a row's menu lists the app actions from `actions` first and then the enabled built-ins in the order View, Edit, Copy, Delete. To put a built-in somewhere else, name it in `actions` with a placeholder string: `"builtin:view"`, `"builtin:edit"`, `"builtin:copy"` or `"builtin:delete"`. OpenCatalogi's Publications page uses this to read Edit, Copy, File list, Delete:
+
+```json
+"config": {
+  "register": "publication",
+  "schema": "publication",
+  "actionToggles": { "showViewAction": false },
+  "actions": [
+    "builtin:edit",
+    "builtin:copy",
+    { "id": "file-list", "label": "File list", "icon": "FormatListBulleted", "handler": "openPublicationFiles" },
+    "builtin:delete"
+  ]
+}
+```
+
+The rules:
+
+- **A placeholder only places.** Whether a built-in renders is still decided by `actionToggles` / the `show*Action` props. A placeholder for a built-in that is turned off renders nothing. `validateManifest()` warns when the manifest itself turns that built-in off; the page stays silent, because a toggle turned off at runtime (a permission check, `readOnly`) is legitimate.
+- **Unplaced built-ins are appended.** Every enabled built-in the array does not name goes after all other entries, in the default order. That is why the example turns View off: left on, View would be appended after Delete. A page without placeholders renders exactly as before.
+- **An object is always an app action**, whatever its `id`. `{ "id": "edit", "label": "Open editor" }` renders beside the built-in Edit, not instead of it. In a manifest an object's `id`, when present, must be a string.
+- **Each placeholder at most once.** A repeated placeholder, an unknown one such as `"builtin:archive"`, a bare string such as `"edit"`, an object whose `id` starts with `builtin:` and an object that sets a `builtin` key are all manifest schema errors. Placeholders are refused on every page type other than `index`.
+- **Delete last, by convention.** Placing `"builtin:delete"` before other entries is honoured, but `validateManifest()` returns a warning (not an error) when Delete is not the last entry of the rendered order, appended built-ins included. The page logs the same warning in development builds.
+
+A named `entitySource` may place built-ins in its own `rowActions` the same way; the manifest's `actions`, when declared, still wins over the source's.
+
+**What placement changes.** The order of the actions menu, and therefore the keyboard primary action (`p` with `listShortcuts`), which runs the first entry the menu shows and enables (a hidden or disabled entry is skipped): in the example it becomes Edit instead of File list. It does not change which entries show as inline icons: `CnRowActions` collapses into the overflow menu above three entries and renders an entry inline only when it is the only one. A future `inline` setting would show the first entries as icons, so placement would then decide those too.
+
+**Testids and the `action` event.** A built-in's `data-testid` is `cn-action-item-<id>` (`cn-action-item-edit`, and so on) in every locale; an app action keeps the slug of its label. The `action` event payload keeps `action` as the label and adds the action's `id`, plus `builtin: true` for a built-in, so an app action with `id: "edit"` and the built-in Edit stay distinguishable. A row's availability block (`rowActionField`, default `@self.actions`) matches a built-in by its id only, never by its label.
+
+**Library version.** The placeholders ship in the manifest schema `2.50.0`. An app that adopts them MUST raise its `@conduction/nextcloud-vue` range to the release that ships them in the same change: an older library rejects the manifest, and `useAppManifest` then falls back to the unresolved bundled manifest, losing the backend manifest merge and `@resolve:` sentinel resolution on every page, not just the row order.
 
 ## Self-fetch mode
 
@@ -659,7 +693,7 @@ Alongside `table` and `cards`, CnIndexPage offers an **opt-in `map` view mode** 
 
 ## Context Menu
 
-Right-clicking any table row opens a context menu at the cursor position with the same actions as the three-dot row action menu. The context menu renders the `mergedActions` computed (app-provided actions + built-in Edit/Copy/Delete), so it stays in sync automatically — no app-side changes needed.
+Right-clicking any table row opens a context menu at the cursor position. It is the same menu as that row's three-dot actions menu: CnIndexPage passes it `rowActionsFor(row)`, the same per-row list the table, list and card menus render, so it has the same entries in the same order, after the same `@self.actions` narrowing and the same `visible` / `visibleWhen` rules. Each entry carries the same key, testid and `action` payload in both menus. No app-side changes are needed.
 
 Powered by the [`CnContextMenu`](./cn-context-menu.md) component and [`useContextMenu`](../utilities/composables/use-context-menu.md) composable. The composable handles cursor positioning via CSS custom properties; the component renders the NcActions menu.
 

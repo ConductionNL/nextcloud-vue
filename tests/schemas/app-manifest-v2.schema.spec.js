@@ -837,7 +837,7 @@ describe('app-manifest-v2 — form logic: config.steps[] (REQ-MFL-1, manifest-fo
 			],
 		})
 		const result = validateManifestV2(manifest)
-		expect(result).toEqual({ valid: true, errors: [] })
+		expect(result).toEqual({ valid: true, errors: [], warnings: [] })
 	})
 
 	it('step missing title rejected', () => {
@@ -864,7 +864,7 @@ describe('app-manifest-v2 — form logic: config.steps[] (REQ-MFL-1, manifest-fo
 			submitHandler: 'onSubmit',
 		})
 		const result = validateManifestV2(manifest)
-		expect(result).toEqual({ valid: true, errors: [] })
+		expect(result).toEqual({ valid: true, errors: [], warnings: [] })
 	})
 
 	it('step referencing unknown field key rejected, naming the bad key', () => {
@@ -924,7 +924,7 @@ describe('app-manifest-v2 — form logic: fields[].visibleWhen (REQ-MFL-2, manif
 			],
 		})
 		const result = validateManifestV2(manifest)
-		expect(result).toEqual({ valid: true, errors: [] })
+		expect(result).toEqual({ valid: true, errors: [], warnings: [] })
 	})
 
 	it('data-source condition validates', () => {
@@ -939,7 +939,7 @@ describe('app-manifest-v2 — form logic: fields[].visibleWhen (REQ-MFL-2, manif
 			],
 		})
 		const result = validateManifestV2(manifest)
-		expect(result).toEqual({ valid: true, errors: [] })
+		expect(result).toEqual({ valid: true, errors: [], warnings: [] })
 	})
 
 	it('unknown operator rejected, naming the op enum', () => {
@@ -991,7 +991,7 @@ describe('app-manifest-v2 — form logic: fields[].validation (REQ-MFL-3, REQ-MF
 			],
 		})
 		const result = validateManifestV2(manifest)
-		expect(result).toEqual({ valid: true, errors: [] })
+		expect(result).toEqual({ valid: true, errors: [], warnings: [] })
 	})
 
 	it('unknown rule key rejected (closed shape)', () => {
@@ -1062,7 +1062,7 @@ describe('app-manifest-v2 — form logic: compiled validator regeneration (REQ-M
 			],
 		})
 		const result = validateManifestV2(manifest)
-		expect(result).toEqual({ valid: true, errors: [] })
+		expect(result).toEqual({ valid: true, errors: [], warnings: [] })
 	})
 })
 
@@ -1080,7 +1080,7 @@ describe('app-manifest-v2 — runtime.theme (scoped-theme-applier, REQ-STA-4)', 
 			},
 		}
 		const result = validateManifestV2(manifest)
-		expect(result).toEqual({ valid: true, errors: [] })
+		expect(result).toEqual({ valid: true, errors: [], warnings: [] })
 	})
 
 	it('an unknown source is rejected', () => {
@@ -1112,7 +1112,7 @@ describe('app-manifest-v2 — runtime.theme (scoped-theme-applier, REQ-STA-4)', 
 
 	it('a manifest with no runtime.theme still validates unchanged (regression)', () => {
 		const result = validateManifestV2({ ...MINIMAL_V2 })
-		expect(result).toEqual({ valid: true, errors: [] })
+		expect(result).toEqual({ valid: true, errors: [], warnings: [] })
 	})
 
 	it('a manifest with runtime.user but no theme still validates unchanged (regression)', () => {
@@ -1121,7 +1121,7 @@ describe('app-manifest-v2 — runtime.theme (scoped-theme-applier, REQ-STA-4)', 
 			runtime: { user: { isOwner: true } },
 		}
 		const result = validateManifestV2(manifest)
-		expect(result).toEqual({ valid: true, errors: [] })
+		expect(result).toEqual({ valid: true, errors: [], warnings: [] })
 	})
 })
 
@@ -1299,7 +1299,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.50.0', () => {
+	it('the manifest schema version reads 2.51.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1324,13 +1324,14 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// config keys views, defaultView and viewsLabel. 2.48.1 only rewords
 		// the setup step's `requires`: a skipped step is not applicable.
 		// 2.49.0 describes nav.settingsLabel's new default, "Advanced".
-		// 2.50.0 adds Zuiddrecht round three: breadcrumb.currentField and
+		// 2.50.0 adds the `builtin:*` row action placeholders.
+		// 2.51.0 adds Zuiddrecht round three: breadcrumb.currentField and
 		// breadcrumb.separator, showWidgetActions on a detail page, the index
 		// keys showTitleIcon, showCount and headerButtons, the dashboard key
 		// gridFloat, a widget placement's showButtons, and `inset` on the
 		// week-strip and stacked-bar content.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.50.0')
+		expect(schema.version).toBe('2.51.0')
 	})
 
 	it('accepts page views on a dashboard and a detail page, and refuses a view without an id or label', () => {

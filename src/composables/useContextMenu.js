@@ -1,4 +1,5 @@
 import { onBeforeUnmount, ref } from 'vue'
+import { rowActionPayload } from '../utils/rowActionItem.js'
 
 export const CTX_MENU_CSS_VAR_X = '--cn-ctx-menu-x'
 export const CTX_MENU_CSS_VAR_Y = '--cn-ctx-menu-y'
@@ -135,15 +136,16 @@ export function useContextMenu() {
 	 *
 	 * Calls `action.handler(targetItem)` if a handler exists, then returns a
 	 * payload object the caller can pass to `$emit('action', payload)`.
+	 * The payload is the one CnRowActions and CnContextMenu emit: the label as `action`, plus `id` and `builtin: true` when the action carries them.
 	 *
 	 * @param {object} action Action definition with `label` and optional `handler`
-	 * @return {{ action: string, row: object }}
+	 * @return {{ action: string, row: object, id?: string, builtin?: boolean }}
 	 */
 	function triggerAction(action) {
 		if (action.handler && typeof action.handler === 'function') {
 			action.handler(targetItem.value)
 		}
-		return { action: action.label, row: targetItem.value }
+		return rowActionPayload(action, targetItem.value)
 	}
 
 	// Clean up DOM if the consumer unmounts while the menu is open — nothing
