@@ -14,10 +14,12 @@
 
 ### Events
 
-| Name      | Payload | Description                                                                                                                                        |
-| --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `connect` | —       |                                                                                                                                                    |
-| `remove`  | —       | The focused node should be removed. Carries the node id. The host owns what removal means — edges, undo, persistence — so nothing is removed here. |
+| Name       | Payload | Description                                                                                                                                        |
+| ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `connect`  | —       |                                                                                                                                                    |
+| `remove`   | —       | The focused node should be removed. Carries the node id. The host owns what removal means — edges, undo, persistence — so nothing is removed here. |
+| `activate` | —       |                                                                                                                                                    |
+| `menu`     | —       |                                                                                                                                                    |
 
 ### Slots
 

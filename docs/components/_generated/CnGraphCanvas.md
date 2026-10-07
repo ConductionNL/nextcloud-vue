@@ -32,6 +32,8 @@
 | `canvas-click`       | —       | The empty pane was clicked — hosts use this to clear a selection.                                                                                                                                                                                             |
 | `canvas-drop`        | —       | An HTML5 drop landed on the canvas, with `position` already projected into canvas space and the native `event` alongside so the host can read `dataTransfer`. The canvas never creates the node itself.                                                       |
 | `node-remove`        | —       | The focused node should be removed, by id. Raised by Delete/Backspace on a node. The canvas removes nothing itself — the host owns `nodes` and `edges`, and a node dropped here would leave the edges pointing at it behind.                                  |
+| `node-activate`      | —       | Enter or Space on a node. Payload is the id.                                                                                                                                                                                                                  |
+| `node-menu`          | —       | Shift+F10 or the menu key on a node. Payload is `{ id, clientX, clientY }`.                                                                                                                                                                                   |
 | `zoom-change`        | —       | The canvas zoom changed, by any route — a control here, the host's own toolbar, the wheel, or a fit-view.                                                                                                                                                     |
 
 ### Slots
