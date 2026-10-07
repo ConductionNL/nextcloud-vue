@@ -1150,22 +1150,7 @@
     "Loading…": "Laden…",
     "A register and schema are required": "Een register en schema zijn verplicht",
     "Change the search or try again.": "Pas de zoekopdracht aan of probeer het opnieuw.",
-    "Try again later.": "Probeer het later opnieuw."
-  },
-  "plurals": {
-    "%n year": ["%n jaar", "%n jaar"],
-    "%n month": ["%n maand", "%n maanden"],
-    "%n day": ["%n dag", "%n dagen"],
-    "Released, %n earlier hold": ["Vrijgegeven, %n eerdere bewaring", "Vrijgegeven, %n eerdere bewaringen"],
-    "{count} photo": ["{count} foto", "{count} foto's"],
-    "{count} card": ["{count} kaart", "{count} kaarten"],
-    "across {count} stack": ["over {count} stapel", "over {count} stapels"],
-    "{count} conversation": ["{count} gesprek", "{count} gesprekken"],
-    "{count} unread message": ["{count} ongelezen bericht", "{count} ongelezen berichten"],
-    "across {count} conversation": ["in {count} gesprek", "in {count} gesprekken"],
-    "{count} work package": ["{count} werkpakket", "{count} werkpakketten"],
-    "{count} more message": ["nog {count} melding", "nog {count} meldingen"],
-    "You see {count} capability of {total}.": ["Je ziet {count} functionaliteit van {total}.", "Je ziet {count} functionaliteiten van {total}."],
+    "Try again later.": "Probeer het later opnieuw.",
     "Who this step reached": "Wie deze stap bereikte",
     "Each list shows its first entries only.": "Elke lijst toont alleen de eerste vermeldingen.",
     "Delivered": "Bezorgd",
@@ -1180,5 +1165,20 @@
     "external recipients are off": "externe ontvangers staan uit",
     "not on the item": "staat niet op het item",
     "not a valid address": "geen geldig adres"
+  },
+  "plurals": {
+    "%n year": ["%n jaar", "%n jaar"],
+    "%n month": ["%n maand", "%n maanden"],
+    "%n day": ["%n dag", "%n dagen"],
+    "Released, %n earlier hold": ["Vrijgegeven, %n eerdere bewaring", "Vrijgegeven, %n eerdere bewaringen"],
+    "{count} photo": ["{count} foto", "{count} foto's"],
+    "{count} card": ["{count} kaart", "{count} kaarten"],
+    "across {count} stack": ["over {count} stapel", "over {count} stapels"],
+    "{count} conversation": ["{count} gesprek", "{count} gesprekken"],
+    "{count} unread message": ["{count} ongelezen bericht", "{count} ongelezen berichten"],
+    "across {count} conversation": ["in {count} gesprek", "in {count} gesprekken"],
+    "{count} work package": ["{count} werkpakket", "{count} werkpakketten"],
+    "{count} more message": ["nog {count} melding", "nog {count} meldingen"],
+    "You see {count} capability of {total}.": ["Je ziet {count} functionaliteit van {total}.", "Je ziet {count} functionaliteiten van {total}."]
   }
 }

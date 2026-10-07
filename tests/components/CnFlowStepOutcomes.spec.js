@@ -94,3 +94,33 @@ describe('CnFlowStepOutcomes', () => {
 		expect(mountOutcomes({ report: { recipients: 0 } }).find('dl').exists()).toBe(false)
 	})
 })
+
+describe('CnFlowStepOutcomes translations', () => {
+	// Seen live: the labels were appended to the catalogue's `plurals` block,
+	// which t() never reads, so a Dutch reader got every label in English.
+	it('has every label in the en and nl `translations` block', () => {
+		const labels = [
+			'Who this step reached',
+			'Each list shows its first entries only.',
+			'Delivered',
+			'Opted out',
+			'Not sent, the opt-out check did not answer',
+			'Skipped by their notification settings',
+			'Skipped, sending is switched off',
+			'Held back by the send limit',
+			'Refused by the step’s address rule',
+			'Not a known user or group',
+			'Failed',
+			'external recipients are off',
+			'not on the item',
+			'not a valid address',
+		]
+		for (const lang of ['en', 'nl']) {
+			const catalogue = require(`../../l10n/${lang}.json`).translations
+			for (const label of labels) {
+				expect([lang, label, typeof catalogue[label]]).toEqual([lang, label, 'string'])
+			}
+		}
+		expect(require('../../l10n/nl.json').translations['Opted out']).toBe('Afgemeld')
+	})
+})

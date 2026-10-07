@@ -1106,22 +1106,7 @@
     "Loading…": "Loading…",
     "A register and schema are required": "A register and schema are required",
     "Change the search or try again.": "Change the search or try again.",
-    "Try again later.": "Try again later."
-  },
-  "plurals": {
-    "%n year": ["%n year", "%n years"],
-    "%n month": ["%n month", "%n months"],
-    "%n day": ["%n day", "%n days"],
-    "Released, %n earlier hold": ["Released, %n earlier hold", "Released, %n earlier holds"],
-    "{count} photo": ["{count} photo", "{count} photos"],
-    "{count} card": ["{count} card", "{count} cards"],
-    "across {count} stack": ["across {count} stack", "across {count} stacks"],
-    "{count} conversation": ["{count} conversation", "{count} conversations"],
-    "{count} unread message": ["{count} unread message", "{count} unread messages"],
-    "across {count} conversation": ["across {count} conversation", "across {count} conversations"],
-    "{count} work package": ["{count} work package", "{count} work packages"],
-    "{count} more message": ["{count} more message", "{count} more messages"],
-    "You see {count} capability of {total}.": ["You see {count} capability of {total}.", "You see {count} capabilities of {total}."],
+    "Try again later.": "Try again later.",
     "Who this step reached": "Who this step reached",
     "Each list shows its first entries only.": "Each list shows its first entries only.",
     "Delivered": "Delivered",
@@ -1136,5 +1121,20 @@
     "external recipients are off": "external recipients are off",
     "not on the item": "not on the item",
     "not a valid address": "not a valid address"
+  },
+  "plurals": {
+    "%n year": ["%n year", "%n years"],
+    "%n month": ["%n month", "%n months"],
+    "%n day": ["%n day", "%n days"],
+    "Released, %n earlier hold": ["Released, %n earlier hold", "Released, %n earlier holds"],
+    "{count} photo": ["{count} photo", "{count} photos"],
+    "{count} card": ["{count} card", "{count} cards"],
+    "across {count} stack": ["across {count} stack", "across {count} stacks"],
+    "{count} conversation": ["{count} conversation", "{count} conversations"],
+    "{count} unread message": ["{count} unread message", "{count} unread messages"],
+    "across {count} conversation": ["across {count} conversation", "across {count} conversations"],
+    "{count} work package": ["{count} work package", "{count} work packages"],
+    "{count} more message": ["{count} more message", "{count} more messages"],
+    "You see {count} capability of {total}.": ["You see {count} capability of {total}.", "You see {count} capabilities of {total}."]
   }
 }
