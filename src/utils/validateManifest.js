@@ -6,6 +6,8 @@
 // names exist.
 import { BUILT_IN_FILE_COLUMNS } from '../components/CnFilesBrowser/filesBrowserColumns.js'
 import { LIBRARY_WIDGET_KEYS } from './libraryWidgetKeys.js'
+// The same resolver CnIndexPage orders row actions with, so the placement warnings measure the order that actually renders.
+import { resolveRowActions } from './resolveRowActions.js'
 // Shared slot→columns resolution so the validator's grid bound matches the
 // renderer (CnWidgetGrid) exactly. A mismatch would let a manifest pass
 // validation yet clip at render time.
@@ -120,9 +122,14 @@ const CHART_VALUE_AXIS_BASELINES = ['auto', 'zero', 'fit']
  *    page's own `config.columns` does not declare (the page declares which
  *    columns it has; a scope only chooses among them)
  *
+ * It also returns non-fatal `warnings`, which never affect `valid` (index pages with an `entitySource` are skipped):
+ *  - A `"builtin:<id>"` placeholder whose built-in the manifest's toggles turn off
+ *  - The built-in Delete enabled but not the last entry of the rendered row action order
+ *
  * @spec openspec/changes/manifest-v2-schema/specs/manifest-v2-schema/spec.md
+ * @spec openspec/changes/row-action-builtin-placement/specs/index-page/spec.md
  * @param {object} manifest The v2 manifest object to validate.
- * @return {{ valid: boolean, errors: string[] }}
+ * @return {{ valid: boolean, errors: string[], warnings: string[] }}
  */
 export function validateManifestV2(manifest) {
 	// Clone so Ajv useDefaults mutations don't affect the caller's copy.
@@ -789,7 +796,57 @@ export function validateManifestV2(manifest) {
 		})
 	}
 
-	return { valid: errors.length === 0, errors }
+	// --- Post-schema warnings (never affect `valid`) ---
+	const warnings = []
+
+	// W1. Row action placement on an index page: a placeholder whose built-in the manifest turns off, and the built-in Delete placed before other row actions.
+	//     An entitySource page is skipped: its built-in defaults depend on the source at runtime.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			const config = page && page.type === 'index' && isPlainObject(page.config) ? page.config : null
+			if (!config || !Array.isArray(config.actions) || typeof config.entitySource === 'string') {
+				return
+			}
+			const resolved = resolveRowActions(config.actions, indexPageBuiltinStubs(config))
+			for (const warning of resolved.warnings) {
+				if (warning.code === 'disabled-placeholder') {
+					warnings.push(`pages[${pIndex}]/config/actions: ${warning.message}`)
+				}
+			}
+			if (resolved.deleteNotLast) {
+				warnings.push(`pages[${pIndex}]/config/actions: "builtin:delete" is not the last row action in the rendered order (enabled built-ins the array does not place are appended after it); Delete is normally last`)
+			}
+		})
+	}
+
+	return { valid: errors.length === 0, errors, warnings }
+}
+
+/**
+ * The built-in row actions an index page enables, as `{ id, builtin, label }` stubs in default order.
+ * They are read from its config the way CnPageRenderer derives the show*Action props: an explicit `config.show*Action` wins over `config.actionToggles`, and `config.readOnly: true` turns Edit, Copy and Delete off by default.
+ * A non-boolean value counts as the default.
+ *
+ * @param {object} config The page's config.
+ * @return {Array<{id: string, builtin: true, label: string}>} The enabled built-ins.
+ */
+function indexPageBuiltinStubs(config) {
+	const toggles = isPlainObject(config.actionToggles) ? config.actionToggles : {}
+	const flag = (key, readOnlyOff) => {
+		if (typeof config[key] === 'boolean') {
+			return config[key]
+		}
+		if (typeof toggles[key] === 'boolean') {
+			return toggles[key]
+		}
+		return !(readOnlyOff && config.readOnly === true)
+	}
+	return [
+		['view', flag('showViewAction', false)],
+		['edit', flag('showEditAction', true)],
+		['copy', flag('showCopyAction', true)],
+		['delete', flag('showDeleteAction', true)],
+	].filter(([, on]) => on).map(([id]) => ({ id, builtin: true, label: id }))
 }
 
 /**
@@ -853,7 +910,7 @@ function isSentinel(value) {
  *   `pageTypes` registry is known up-front. When omitted, any
  *   non-empty string is accepted; the runtime renderer logs a warning
  *   for unknown types.
- * @return {{ valid: boolean, errors: string[] }}
+ * @return {{ valid: boolean, errors: string[], warnings?: string[] }} A v2 manifest also gets `warnings`, which never affect `valid`.
  */
 export function validateManifest(manifest, options = {}) {
 	// Dispatch to v2 validator when the manifest declares a v2 $schema.

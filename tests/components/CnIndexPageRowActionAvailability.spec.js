@@ -17,6 +17,7 @@ function mountPage({ actions = ACTIONS, rowActionField } = {}) {
 		objects: [],
 		actions,
 		schema: { title: 'Case', properties: {} },
+		showViewAction: false,
 		showEditAction: false,
 		showCopyAction: false,
 		showDeleteAction: false,
@@ -60,6 +61,21 @@ describe('CnIndexPage — the actions a row offers', () => {
 		const wrapper = mountPage({ rowActionField: 'permissions.actions' })
 		const r = { id: 'case-1', permissions: { actions: ['close'] }, '@self': { actions: ['assign', 'reject'] } }
 		expect(wrapper.vm.rowActionsFor(r).map((a) => a.id)).toEqual(['close'])
+	})
+
+	it('matches built-ins by id', () => {
+		const wrapper = shallowMount(CnIndexPage, { propsData: { title: 'Cases', objects: [], schema: { title: 'Case', properties: {} } } })
+		expect(wrapper.vm.rowActionsFor(row(['edit', 'delete'])).map((a) => a.id)).toEqual(['edit', 'delete'])
+	})
+
+	it('never matches a built-in by its label', () => {
+		const wrapper = shallowMount(CnIndexPage, { propsData: { title: 'Cases', objects: [], schema: { title: 'Case', properties: {} } } })
+		expect(wrapper.vm.rowActionsFor(row(['Edit', 'View']))).toEqual([])
+	})
+
+	it('leaves the built-ins unfiltered on a row without the block', () => {
+		const wrapper = shallowMount(CnIndexPage, { propsData: { title: 'Cases', objects: [], schema: { title: 'Case', properties: {} } } })
+		expect(wrapper.vm.rowActionsFor({ id: 'case-1' }).map((a) => a.id)).toEqual(['view', 'edit', 'copy', 'delete'])
 	})
 
 	it('asks the row once per render, not once per action', () => {

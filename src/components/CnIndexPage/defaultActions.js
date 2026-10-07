@@ -14,9 +14,8 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
  *   without it, or when it returns null, View is a button.
  * @param {{ onView: (row: object) => void, onEdit: (row: object) => void, onCopy: (row: object) => void, onDelete: (row: object) => void }} opts.handlers
  *   Click handlers bound to each emitted action, in the same order as `flags`.
- * @return {Array<object>} The enabled actions in menu order (view, edit, copy,
- *   delete), each `{label, icon, handler}` — delete additionally `destructive`,
- *   view additionally `to` when `viewTo` is given.
+ * @return {Array<object>} The enabled actions in menu order (view, edit, copy, delete), each `{id, builtin: true, label, icon, handler}`.
+ *   The id is `view`, `edit`, `copy` or `delete`; delete additionally carries `destructive`, view additionally `to` when `viewTo` is given.
  */
 export function buildDefaultActions({ flags, viewIcon, viewTo = null, handlers }) {
 	// t() at BUILD-actions time, not module time: the labels were string
@@ -26,20 +25,20 @@ export function buildDefaultActions({ flags, viewIcon, viewTo = null, handlers }
 	// consuming app's language is already resolved.
 	const out = []
 	if (flags.view) {
-		const view = { label: t('nextcloud-vue', 'View'), icon: viewIcon, handler: handlers.onView }
+		const view = { id: 'view', builtin: true, label: t('nextcloud-vue', 'View'), icon: viewIcon, handler: handlers.onView }
 		if (typeof viewTo === 'function') {
 			view.to = viewTo
 		}
 		out.push(view)
 	}
 	if (flags.edit) {
-		out.push({ label: t('nextcloud-vue', 'Edit'), icon: Pencil, handler: handlers.onEdit })
+		out.push({ id: 'edit', builtin: true, label: t('nextcloud-vue', 'Edit'), icon: Pencil, handler: handlers.onEdit })
 	}
 	if (flags.copy) {
-		out.push({ label: t('nextcloud-vue', 'Copy'), icon: ContentCopy, handler: handlers.onCopy })
+		out.push({ id: 'copy', builtin: true, label: t('nextcloud-vue', 'Copy'), icon: ContentCopy, handler: handlers.onCopy })
 	}
 	if (flags.del) {
-		out.push({ label: t('nextcloud-vue', 'Delete'), icon: TrashCanOutline, destructive: true, handler: handlers.onDelete })
+		out.push({ id: 'delete', builtin: true, label: t('nextcloud-vue', 'Delete'), icon: TrashCanOutline, destructive: true, handler: handlers.onDelete })
 	}
 	return out
 }

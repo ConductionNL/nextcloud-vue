@@ -59,6 +59,44 @@ describe('CnContextMenu visible predicate', () => {
 	})
 })
 
+describe('CnContextMenu matches CnRowActions entry for entry', () => {
+	it('hides an action whose local visibleWhen the target fails, as CnRowActions does', () => {
+		const wrapper = mount(CnContextMenu, {
+			propsData: {
+				actions: [
+					{ label: 'Gated', visibleWhen: { field: 'status', op: 'eq', value: 'closed' } },
+					{ label: 'Remote', visibleWhen: { endpoint: '/apps/x/held', field: 'by', op: 'eq', value: 'nobody' } },
+					{ label: 'Plain' },
+				],
+				targetItem: { status: 'open' },
+			},
+		})
+		expect(wrapper.vm.visibleActions.map((a) => a.label)).toEqual(['Remote', 'Plain'])
+	})
+
+	it('gives a built-in its id testid and payload, apart from an app action with the same id', async () => {
+		const builtinHandler = jest.fn()
+		const appHandler = jest.fn()
+		const wrapper = mount(CnContextMenu, {
+			propsData: {
+				actions: [
+					{ id: 'edit', label: 'Open editor', handler: appHandler },
+					{ id: 'edit', builtin: true, label: 'Bewerken', handler: builtinHandler },
+				],
+				targetItem: { id: 3 },
+			},
+		})
+		await wrapper.find('[data-testid="cn-action-item-open-editor"]').trigger('click')
+		await wrapper.find('[data-testid="cn-action-item-edit"]').trigger('click')
+		expect(appHandler).toHaveBeenCalledTimes(1)
+		expect(builtinHandler).toHaveBeenCalledTimes(1)
+		expect(wrapper.emitted('action')).toEqual([
+			[{ action: 'Open editor', row: { id: 3 }, id: 'edit' }],
+			[{ action: 'Bewerken', row: { id: 3 }, id: 'edit', builtin: true }],
+		])
+	})
+})
+
 describe('CnContextMenu trigger accessibility', () => {
 	it('marks the offscreen NcActions trigger inert (not aria-hidden)', () => {
 		// The global @nextcloud/vue mock stubs NcActions without its trigger
