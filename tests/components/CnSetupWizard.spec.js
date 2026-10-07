@@ -42,6 +42,22 @@ describe('CnSetupWizard', () => {
 		expect(evt).toMatchObject({ stepId: 'seed', action: 'seed', success: true })
 	})
 
+	describe('the summary of a config-fields step', () => {
+		const orgSteps = [{ id: 'organisation', type: 'config-fields', configKeys: ['receipt_company_name', 'receipt_company_kvk', 'receipt_company_vat'] }]
+
+		it('lists only the fields that were filled in', () => {
+			const wrapper = shallowMount(CnSetupWizard, { propsData: { appId: 'pipelinq', steps: orgSteps } })
+			wrapper.vm.configModel = { receipt_company_name: 'Conduction', receipt_company_kvk: '', receipt_company_vat: null }
+			expect(wrapper.vm.summaryItems.find((i) => i.id === 'organisation').value).toBe('receipt_company_name: Conduction')
+		})
+
+		it('says "Not set" instead of a row of empty labels', () => {
+			const wrapper = shallowMount(CnSetupWizard, { propsData: { appId: 'pipelinq', steps: orgSteps } })
+			wrapper.vm.configModel = { receipt_company_name: '  ', receipt_company_kvk: '', receipt_company_vat: undefined }
+			expect(wrapper.vm.summaryItems.find((i) => i.id === 'organisation').value).toBe('Not set')
+		})
+	})
+
 	it('saveConfig POSTs the patch to /api/setup/config', async () => {
 		axios.post.mockResolvedValue({ data: {} })
 		const wrapper = shallowMount(CnSetupWizard, { propsData: { appId: 'procest', steps } })
