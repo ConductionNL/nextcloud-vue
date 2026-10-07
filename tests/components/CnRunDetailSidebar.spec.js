@@ -135,3 +135,34 @@ describe('a run replaces the flow’s sidebar', () => {
 		expect(wrapper.find('[data-testid="run-detail-sidebar"]').exists()).toBe(false)
 	})
 })
+
+describe('the Logs tab shows a send step’s outcome lists by name', () => {
+	it('renders the messaging report of a step under its own step', async () => {
+		const wrapper = await mountSidebar({
+			inspectedRunUuid: 'run-1',
+			steps: [
+				{ transition: 'start', status: 'completed' },
+				{
+					transition: 'mail',
+					type: 'openregister.send-email',
+					status: 'completed',
+					report: {
+						messaging: {
+							recipients: 2,
+							delivered: { count: 1, sample: ['piet@example.nl'] },
+							optedOut: { count: 1, sample: ['jan@example.nl'] },
+							truncated: false,
+						},
+					},
+				},
+			],
+		})
+		await wrapper.find('[data-testid="flow-run-tab-logs"]').trigger('click')
+		await wrapper.vm.$nextTick()
+
+		const lists = wrapper.findAll('[data-testid="flow-step-outcomes"]')
+		expect(lists).toHaveLength(1)
+		expect(lists[0].text()).toContain('Opted out')
+		expect(lists[0].text()).toContain('jan@example.nl')
+	})
+})

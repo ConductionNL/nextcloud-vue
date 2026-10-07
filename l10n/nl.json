@@ -1165,6 +1165,20 @@
     "across {count} conversation": ["in {count} gesprek", "in {count} gesprekken"],
     "{count} work package": ["{count} werkpakket", "{count} werkpakketten"],
     "{count} more message": ["nog {count} melding", "nog {count} meldingen"],
-    "You see {count} capability of {total}.": ["Je ziet {count} functionaliteit van {total}.", "Je ziet {count} functionaliteiten van {total}."]
+    "You see {count} capability of {total}.": ["Je ziet {count} functionaliteit van {total}.", "Je ziet {count} functionaliteiten van {total}."],
+    "Who this step reached": "Wie deze stap bereikte",
+    "Each list shows its first entries only.": "Elke lijst toont alleen de eerste vermeldingen.",
+    "Delivered": "Bezorgd",
+    "Opted out": "Afgemeld",
+    "Not sent, the opt-out check did not answer": "Niet verstuurd, de afmeldcontrole gaf geen antwoord",
+    "Skipped by their notification settings": "Overgeslagen door hun meldingsinstellingen",
+    "Skipped, sending is switched off": "Overgeslagen, verzenden staat uit",
+    "Held back by the send limit": "Tegengehouden door de verzendlimiet",
+    "Refused by the step’s address rule": "Geweigerd door de adresregel van de stap",
+    "Not a known user or group": "Geen bekende gebruiker of groep",
+    "Failed": "Mislukt",
+    "external recipients are off": "externe ontvangers staan uit",
+    "not on the item": "staat niet op het item",
+    "not a valid address": "geen geldig adres"
   }
 }

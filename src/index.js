@@ -128,6 +128,7 @@ export {
 	CnFlowRunsWidget,
 	CnFlowRunsWidgetForm,
 	CnFlowSidebar,
+	CnFlowStepOutcomes,
 	CnFlowsPage,
 	CnFolderSidebar,
 	CnFolderTree,
