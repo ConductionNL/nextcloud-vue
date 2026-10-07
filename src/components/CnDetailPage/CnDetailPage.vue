@@ -162,7 +162,7 @@
 				     stores the arrangement, Reset view returns the view to the
 				     layout the app ships. -->
 				<NcButton
-					v-if="viewUserLayoutOn && !viewIsEmpty"
+					v-if="userLayout && viewUserLayoutOn && !viewIsEmpty"
 					:variant="arrangingView ? 'primary' : 'secondary'"
 					data-testid="cn-detail-page-arrange-view"
 					@click="toggleArrangeView">
