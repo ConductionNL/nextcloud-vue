@@ -1312,7 +1312,7 @@ export default {
 		 * @return {string}
 		 */
 		formattedValue() {
-			return formatMetricValue(this.displayValue, this.content.format, this.configCtx)
+			return formatMetricValue(this.displayValue, this.content.format, this.configCtx, this.objectCtx?.object || null)
 		},
 
 		/**
@@ -1346,7 +1346,7 @@ export default {
 				return ''
 			}
 			const { prefix, suffix, ...rest } = (this.content.format || {})
-			return formatMetricValue(this.limitValue, rest, this.configCtx)
+			return formatMetricValue(this.limitValue, rest, this.configCtx, this.objectCtx?.object || null)
 		},
 
 		/**

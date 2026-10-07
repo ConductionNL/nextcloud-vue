@@ -211,6 +211,12 @@ export default {
 | `excludeFields` (`exclude-fields`) | Array | `[]` | Fields the create and edit forms never ask for. Applied after `includeFields`. |
 | `fieldOverrides` (`field-overrides`) | Object | `{}` | Per-field widget / label overrides for the create and edit forms, keyed by field name. Forwarded to `CnFormDialog`. |
 
+## Each view arranged per user
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `userLayout` | Boolean | `false` | Let the user arrange each of the page's `views` for themselves. The header shows **Arrange view** next to the view switch; **Done** stores the arrangement per view and user (a user preference, mirrored in the browser), **Reset view** returns the chosen view to its manifest layout. The manifest `layout` is never changed. See [the guide](../../../docs/components/cn-detail-page.md#each-view-arranged-per-user-userlayout). |
+
 ## Slots
 
 | Slot | Description |
