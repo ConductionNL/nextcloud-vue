@@ -798,6 +798,26 @@ If you want a few of the read-only defaults overridden, mix them in:
 }
 ```
 
+### Placing built-in row actions (`"builtin:<id>"` in `config.actions`)
+
+App row actions come first and the enabled built-ins (View, Edit, Copy, Delete) are appended. To place a built-in among your own actions, name it with `"builtin:view"`, `"builtin:edit"`, `"builtin:copy"` or `"builtin:delete"`:
+
+```jsonc
+"config": {
+  "actionToggles": { "showViewAction": false },
+  "actions": [
+    "builtin:edit",
+    "builtin:copy",
+    { "id": "file-list", "label": "File list", "handler": "openPublicationFiles" },
+    "builtin:delete"
+  ]
+}
+```
+
+The toggles still decide whether each built-in renders, and enabled built-ins you do not place are appended after everything else. See [CnIndexPage: Placing built-in row actions](./components/cn-index-page.md#placing-built-in-row-actions) for the full rules.
+
+**Required step: raise your library range.** The placeholders ship in manifest schema `2.50.0`. Raise your app's `@conduction/nextcloud-vue` range to the release that ships them in the same change that adds the first placeholder. An older library rejects the manifest; `useAppManifest` then keeps the unresolved bundled manifest, so the app loses its backend manifest merge and its `@resolve:` sentinel resolution on every page, not only the row order.
+
 ## Built-in cell formatters / widgets
 
 `CnAppRoot` ships a few built-in `cnFormatters` / `cnCellWidgets` so common manifest cell-rendering needs work without per-app boilerplate. Consumer-registered entries with the same id win on collision (override path).
@@ -1087,6 +1107,9 @@ This makes mechanical i18n key checking possible in CI — every translatable st
 import { validateManifest } from '@conduction/nextcloud-vue'
 
 const result = validateManifest(myManifest)
+for (const warning of result.warnings ?? []) {
+	console.warn('manifest warning:', warning)
+}
 if (!result.valid) {
 	console.error('manifest invalid:', result.errors)
 	process.exit(1)
@@ -1094,6 +1117,8 @@ if (!result.valid) {
 ```
 
 The same validator runs at runtime inside `useAppManifest` against any backend-merged result; failures fall back to the bundled manifest with a console.warn.
+
+`warnings` (v2 manifests only) never affect `valid`. Ajv against the raw schema cannot produce them, so an app whose `check:manifest` only runs Ajv should also call `validateManifest()` there and print `warnings`, as above, so they show in CI. A plain node script cannot load the package barrel (it throws `ERR_PACKAGE_PATH_NOT_EXPORTED`); import the built module instead with `await import('@conduction/nextcloud-vue/dist/esm/utils/validateManifest.js')`. See [validateManifest](./utilities/validate-manifest.md#printing-warnings-from-checkmanifest).
 
 ## Schema-validated config shapes
 

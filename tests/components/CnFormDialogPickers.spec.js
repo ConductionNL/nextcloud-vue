@@ -388,6 +388,150 @@ describe('CnFormDialog: create from a picker the way the app creates (round two,
 	})
 })
 
+describe('CnFormDialog: the nested create uses the page that lists the schema (nested-create-uses-page-config)', () => {
+	// Mirrors pipelinq as it runs: the stored contact schema references the
+	// client by schema ID (`$ref: 28`), the manifest page names it by slug,
+	// and the client's name is a read-only mirror the page makes editable.
+	const contact = {
+		title: 'Contact',
+		required: ['name'],
+		properties: {
+			name: { type: 'string', title: 'Name', readOnly: true },
+			client: { $ref: 28, type: 'string', format: 'uuid', title: 'Client', 'x-allow-create': true },
+		},
+	}
+	const clientSchema = {
+		id: 28,
+		uuid: '937543da-bee6-4e1d-b06a-43b3d84f77cd',
+		slug: 'client',
+		title: 'Client',
+		required: ['contactsUid', 'name', 'type'],
+		properties: {
+			name: { type: 'string', title: 'Name', readOnly: true, minLength: 1, 'x-pipelinq-denormalised': true },
+			type: { type: 'string', title: 'Client type', enum: ['person', 'organization'] },
+			industry: { type: 'string', title: 'Industry' },
+			email: { type: 'string', title: 'Email', readOnly: true },
+			correspondenceLanguage: { type: 'string', title: 'Correspondence language' },
+			timezone: { type: 'string', title: 'Timezone' },
+			contactsUid: { type: 'string', title: 'Contacts UID', readOnly: true },
+		},
+	}
+	const clientsPage = (extra = {}) => ({
+		id: 'Clients',
+		route: '/clients',
+		type: 'index',
+		config: {
+			register: 'pipelinq',
+			schema: 'client',
+			createModal: 'ClientCreateDialog',
+			createOverride: 'createClientContactAware',
+			fieldOverrides: {
+				name: { readOnly: false },
+				email: { readOnly: false },
+				phone: { readOnly: false },
+				correspondenceLanguage: { widget: 'language' },
+				timezone: { widget: 'timezone' },
+			},
+			...extra,
+		},
+	})
+	const registryWith = (handler) => ({
+		ClientCreateDialog: { kind: 'modal', component: {}, propsSchema: null },
+		createClientContactAware: { kind: 'create-override', handler },
+	})
+	const mountWith = ({ pages, registry, openModal = jest.fn() }) => mount(CnFormDialog, {
+		props: { schema: contact, item: null, register: 'pipelinq', fieldOverrides: { name: { readOnly: false } } },
+		global: {
+			stubs,
+			provide: { cnManifest: { pages }, cnRegistry: registry, cnCustomComponents: {}, cnOpenModal: openModal },
+		},
+	})
+	const nestedOf = (wrapper) => wrapper.findAllComponents({ name: 'CnFormDialog' }).find((c) => c.vm !== wrapper.vm)
+
+	it('saves through the page createOverride when the reference names the schema by id', async () => {
+		mockStore.fetchSchema.mockResolvedValue(clientSchema)
+		const handler = jest.fn().mockResolvedValue({ id: 'c-1', name: 'Lane BV' })
+		const wrapper = mountWith({ pages: [clientsPage()], registry: registryWith(handler) })
+		const pending = wrapper.vm.openNestedCreate(field(wrapper, 'client'), 'Lane BV')
+		await flushPromises()
+		expect(nestedOf(wrapper)).toBeTruthy()
+		await wrapper.vm.onNestedCreateConfirm({ name: 'Lane BV', type: 'organization' })
+		await expect(pending).resolves.toEqual({ id: 'c-1', name: 'Lane BV' })
+		expect(handler).toHaveBeenCalledWith(
+			{ name: 'Lane BV', type: 'organization' },
+			expect.objectContaining({ register: 'pipelinq', schema: '28', objectType: 'pipelinq-28' }),
+		)
+		expect(mockStore.saveObject).not.toHaveBeenCalled()
+	})
+
+	it('shows the page form: the name editable and prefilled, language and time zone as pickers', async () => {
+		mockStore.fetchSchema.mockResolvedValue(clientSchema)
+		const wrapper = mountWith({ pages: [clientsPage()], registry: registryWith(jest.fn()) })
+		wrapper.vm.openNestedCreate(field(wrapper, 'client'), 'Lane BV')
+		await flushPromises()
+		const nested = nestedOf(wrapper)
+		expect(nested.props('fieldOverrides')).toEqual(clientsPage().config.fieldOverrides)
+		const name = field(nested, 'name')
+		expect(name).toBeTruthy()
+		expect(name.readOnly).toBe(false)
+		expect(nested.vm.formData.name).toBe('Lane BV')
+		expect(field(nested, 'correspondenceLanguage').widget).toBe('select')
+		expect(field(nested, 'timezone').codePicker).toBe('timezone')
+		expect(field(nested, 'contactsUid')).toBeUndefined()
+	})
+
+	it('applies the page excludeFields, includeFields and form layout to the nested form', async () => {
+		mockStore.fetchSchema.mockResolvedValue(clientSchema)
+		const wrapper = mountWith({
+			pages: [clientsPage({ excludeFields: ['industry'], formSize: 'large', formColumns: 2 })],
+			registry: registryWith(jest.fn()),
+		})
+		wrapper.vm.openNestedCreate(field(wrapper, 'client'), 'Lane BV')
+		await flushPromises()
+		const nested = nestedOf(wrapper)
+		expect(field(nested, 'industry')).toBeUndefined()
+		expect(field(nested, 'type')).toBeTruthy()
+		expect(nested.props('size')).toBe('large')
+		expect(nested.props('columns')).toBe(2)
+
+		const only = mountWith({ pages: [clientsPage({ includeFields: ['name', 'type'] })], registry: registryWith(jest.fn()) })
+		only.vm.openNestedCreate(field(only, 'client'), 'Lane BV')
+		await flushPromises()
+		expect(nestedOf(only).vm.visibleFields.map((f) => f.key).sort()).toEqual(['name', 'type'])
+	})
+
+	it('opens the page createModal for a reference by id when the app has no override', async () => {
+		mockStore.fetchSchema.mockResolvedValue(clientSchema)
+		const openModal = jest.fn()
+		const { createOverride, ...modalOnly } = clientsPage().config
+		const wrapper = mountWith({
+			pages: [{ ...clientsPage(), config: modalOnly }],
+			registry: { ClientCreateDialog: { kind: 'modal', component: {} } },
+			openModal,
+		})
+		wrapper.vm.openNestedCreate(field(wrapper, 'client'), 'Lane BV')
+		await flushPromises()
+		expect(createOverride).toBe('createClientContactAware')
+		expect(openModal).toHaveBeenCalledWith('ClientCreateDialog', expect.objectContaining({ initialData: { name: 'Lane BV' } }))
+		expect(nestedOf(wrapper)).toBeFalsy()
+	})
+
+	it('keeps the generic form when no page lists the referenced schema', async () => {
+		mockStore.fetchSchema.mockResolvedValue(clientSchema)
+		mockStore.saveObject.mockResolvedValue({ id: 'c-2', name: 'Lane BV' })
+		const handler = jest.fn()
+		const wrapper = mountWith({ pages: [clientsPage({ schema: 'lead' })], registry: registryWith(handler) })
+		const pending = wrapper.vm.openNestedCreate(field(wrapper, 'client'), 'Lane BV')
+		await flushPromises()
+		const nested = nestedOf(wrapper)
+		expect(nested.props('fieldOverrides')).toEqual({})
+		expect(field(nested, 'name')).toBeUndefined()
+		await wrapper.vm.onNestedCreateConfirm({ type: 'organization' })
+		await expect(pending).resolves.toEqual({ id: 'c-2', name: 'Lane BV' })
+		expect(handler).not.toHaveBeenCalled()
+	})
+})
+
 describe('CnFormDialog: help on a toggle', () => {
 	it('renders the (i) helper under a boolean field that declares x-help', () => {
 		const schema = {

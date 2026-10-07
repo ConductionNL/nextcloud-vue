@@ -13,7 +13,7 @@ Right-click context menu component that wraps NcActions with cursor positioning.
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `open` | Boolean | `false` | Whether the menu is open. Use with `.sync` modifier, bound to `useContextMenu().isOpen`. |
-| `actions` | Array | `[]` | Action definitions: `[{ label, icon?, handler?, disabled?, visible?, title?, destructive?, href?, to?, linkTarget? }]`. Same format as CnRowActions. `visible` (boolean or `(targetItem) => boolean`) hides the entry when falsy; omitted means always shown. `title` (string or `(targetItem) => string`) renders as a native tooltip — useful for explaining why a `disabled` entry is disabled. `href` (URL) or `to` (vue-router location), each a value or a `(targetItem) => …` function, render the entry as a real link (`NcActionLink`, `linkTarget` as its `target`) that can be middle-clicked or opened in a new tab; a link emits `action` but does not call `handler`, and a ctrl/cmd/shift click on it (a new tab) emits nothing. |
+| `actions` | Array | `[]` | Action definitions: `[{ label, id?, builtin?, icon?, handler?, disabled?, visible?, visibleWhen?, title?, destructive?, href?, to?, linkTarget? }]`. Same format as CnRowActions, with the same visibility rule, testids, render keys and payload. `visible` (boolean or `(targetItem) => boolean`) hides the entry when falsy; omitted means always shown. A locally decidable `visibleWhen` that is false for the target hides it too. `title` (string or `(targetItem) => string`) renders as a native tooltip — useful for explaining why a `disabled` entry is disabled. `href` (URL) or `to` (vue-router location), each a value or a `(targetItem) => …` function, render the entry as a real link (`NcActionLink`, `linkTarget` as its `target`) that can be middle-clicked or opened in a new tab; a link emits `action` but does not call `handler`, and a ctrl/cmd/shift click on it (a new tab) emits nothing. |
 | `targetItem` | Object/String/Number | `null` | The right-clicked item. Passed to action `handler` and `disabled` callbacks, and forwarded to custom panel slots as the `targetItem` scope binding. Bind to `useContextMenu().targetItem`. |
 | `activePanel` | String | `null` | Name of the currently active custom panel, or `null` for the default action list. When set, the matching `#panel:<name>` slot is rendered in place of NcActions. Use with `.sync` so panel slots can call `back()` to clear it. Resets to `null` on close. |
 
@@ -23,7 +23,7 @@ Right-click context menu component that wraps NcActions with cursor positioning.
 |-------|---------|-------------|
 | `update:open` | `boolean` | Emitted when open state changes (for `.sync` binding) |
 | `update:activePanel` | `string \| null` | Emitted when the active panel changes (for `.sync` binding). Fired with `null` when a panel slot calls `back()` or when the menu closes. |
-| `action` | `{ action, row }` | Emitted when an action is clicked. `action` is the label string, `row` is the `targetItem`. |
+| `action` | `{ action, row, id?, builtin? }` | Emitted when an action is clicked. `action` is the label string, `row` is the `targetItem`, `id` the action's id when it has one, and `builtin: true` marks a CnIndexPage built-in. |
 | `close` | — | Emitted when the menu closes (click outside, action click, panel backdrop click, or Escape) |
 
 ## Slots
@@ -188,4 +188,4 @@ clicking the transparent backdrop behind the panel closes the menu.
 
 - [useContextMenu composable](../utilities/composables/use-context-menu.md) — State management (required)
 - [CnRowActions](./cn-row-actions.md) — Three-dot action menu for table rows (non-context-menu)
-- [CnIndexPage](./cn-index-page.md) — Uses CnContextMenu internally for table row right-click
+- [CnIndexPage](./cn-index-page.md) — Uses CnContextMenu internally for table row right-click, passing the same per-row list (`rowActionsFor(row)`) as the row's actions menu

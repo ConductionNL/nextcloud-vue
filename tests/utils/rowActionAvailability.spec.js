@@ -32,6 +32,23 @@ describe('actionIdOf', () => {
 	})
 })
 
+describe('built-in row actions', () => {
+	const BUILTINS = [
+		{ id: 'view', builtin: true, label: 'View' },
+		{ id: 'edit', builtin: true, label: 'Edit' },
+		{ id: 'copy', builtin: true, label: 'Copy' },
+		{ id: 'delete', builtin: true, label: 'Delete' },
+	]
+
+	it('match the availability block by id', () => {
+		expect(availableRowActions(BUILTINS, rowWith(['edit', 'delete'])).map((a) => a.id)).toEqual(['edit', 'delete'])
+	})
+
+	it('never match it by their label', () => {
+		expect(availableRowActions(BUILTINS, rowWith(['Edit', 'Delete']))).toEqual([])
+	})
+})
+
 describe('readRowAvailability', () => {
 	it('reads a list of ids', () => {
 		const { known, allowed } = readRowAvailability(rowWith(['assign', 'close']))

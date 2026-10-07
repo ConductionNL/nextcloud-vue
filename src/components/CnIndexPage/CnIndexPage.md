@@ -866,6 +866,27 @@ actions, and the page's declaration stands as before. Wire the field on one
 list first, then check `rowActionsNotDeclared` to see what the server is
 offering that you have not declared yet.
 
+The built-in View, Edit, Copy and Delete carry the ids `view`, `edit`, `copy` and `delete`, and match this block by id only, never by their label.
+The right-click menu reads the same per-row list as the actions menu, so it drops the same refused actions.
+
+## Placing built-in row actions
+
+A `"builtin:view"`, `"builtin:edit"`, `"builtin:copy"` or `"builtin:delete"` string in `actions` puts that built-in at its position; enabled built-ins the array does not place are appended in the default order, and the `show*Action` toggles still decide whether each renders.
+
+```json
+"actionToggles": { "showViewAction": false },
+"actions": [
+  "builtin:edit",
+  "builtin:copy",
+  { "id": "file-list", "label": "File list", "handler": "openPublicationFiles" },
+  "builtin:delete"
+]
+```
+
+This renders Edit, Copy, File list, Delete, and makes Edit the keyboard primary action.
+The keyboard primary action is the first entry the menu shows and enables, so a hidden or disabled entry is skipped.
+See the CnIndexPage docs page for the full rules.
+
 ## State indicators on a row
 
 Declare `rowIndicators` and a row carries the flags a handler triages on. Each

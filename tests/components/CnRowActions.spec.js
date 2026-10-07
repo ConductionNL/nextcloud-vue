@@ -117,6 +117,37 @@ describe('CnRowActions visibleWhen gate', () => {
 	})
 })
 
+describe('CnRowActions built-in ids', () => {
+	it('renders an app action and a built-in sharing an id as two entries, each running its own handler', async () => {
+		const builtinHandler = jest.fn()
+		const appHandler = jest.fn()
+		const row = { id: 5 }
+		const wrapper = mount(CnRowActions, {
+			propsData: {
+				actions: [
+					{ id: 'edit', label: 'Open editor', handler: appHandler },
+					{ id: 'edit', builtin: true, label: 'Bewerken', handler: builtinHandler },
+				],
+				row,
+			},
+		})
+		expect(wrapper.vm.renderedActions.map(({ action }) => wrapper.vm.actionKey(action))).toEqual(['Open editor', 'builtin:edit'])
+
+		await wrapper.find('[data-testid="cn-action-item-open-editor"]').trigger('click')
+		expect(appHandler).toHaveBeenCalledWith(row)
+		expect(builtinHandler).not.toHaveBeenCalled()
+
+		await wrapper.find('[data-testid="cn-action-item-edit"]').trigger('click')
+		expect(builtinHandler).toHaveBeenCalledWith(row)
+		expect(appHandler).toHaveBeenCalledTimes(1)
+
+		expect(wrapper.emitted('action')).toEqual([
+			[{ action: 'Open editor', row, id: 'edit' }],
+			[{ action: 'Bewerken', row, id: 'edit', builtin: true }],
+		])
+	})
+})
+
 describe('CnRowActions icon rendering', () => {
 	it('renders a string icon as a CnIcon registry lookup (manifest actions)', () => {
 		const wrapper = mount(CnRowActions, {
