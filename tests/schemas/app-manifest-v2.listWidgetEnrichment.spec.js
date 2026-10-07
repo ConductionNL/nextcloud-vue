@@ -165,3 +165,28 @@ describe('v2 schema — list-widget-enrichment additions (negative)', () => {
 		expect(result.errors.some((e) => e.includes('exactly one'))).toBe(true)
 	})
 })
+
+describe('v2 schema: a stats-block entry formats its value (stat-currency-from-object)', () => {
+	const withEntries = (entries) => {
+		const widget = JSON.parse(JSON.stringify(STATS_BLOCK_WIDGET))
+		widget.props.entries = entries
+		return validateManifestV2(manifestWith([widget]))
+	}
+	const base = { register: 'pipelinq', schema: 'salesContract', metric: 'sum', field: 'value' }
+
+	it('accepts format, currency and currencyField', () => {
+		const result = withEntries([
+			{ ...base, format: 'currency' },
+			{ ...base, currencyField: 'currency' },
+			{ ...base, currency: '@config.currency' },
+			{ ...base, format: { style: 'currency', currencyField: 'currency', decimals: 2 } },
+		])
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('refuses an unknown format style', () => {
+		expect(withEntries([{ ...base, format: 'money' }]).valid).toBe(false)
+		expect(withEntries([{ ...base, format: { style: 'currency', curency: 'USD' } }]).valid).toBe(false)
+	})
+})

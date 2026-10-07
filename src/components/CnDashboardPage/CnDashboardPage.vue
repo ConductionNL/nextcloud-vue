@@ -67,6 +67,19 @@
 					</template>
 					{{ isEditing ? doneLabel : editLabel }}
 				</NcButton>
+				<!-- With `userLayout`, edit mode offers a way back to the
+				     manifest: the page's own grid and the chosen view return
+				     to the layout the app ships. Other views keep theirs. -->
+				<NcButton
+					v-if="userLayout && isEditing"
+					variant="tertiary"
+					data-testid="cn-dashboard-page-reset-layout"
+					@click="resetLayout">
+					<template #icon>
+						<Restore :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Reset layout') }}
+				</NcButton>
 				<!-- In-app edit button (ADR-041). Renders only when Buildiq is
 				     reachable; self-wires from the cnManifestEditor / cnOpenBuildAvailable
 				     provided by CnAppRoot. Sits inline with the page's action buttons. -->
@@ -754,6 +767,7 @@ import Check from 'vue-material-design-icons/Check.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Download from 'vue-material-design-icons/Download.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Restore from 'vue-material-design-icons/Restore.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import CnBodySections from '../CnBodySections/CnBodySections.vue'
@@ -768,9 +782,8 @@ import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
-import { readUserPreference, writeUserPreference } from '../../composables/useUserPreferences.js'
 import { pageViews } from '../../mixins/pageViews.js'
-import { dashboardLayoutKey, mergeUserLayout } from '../../store/plugins/dashboardLayouts.js'
+import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashboardLayouts.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
@@ -905,6 +918,7 @@ export default {
 		NcLoadingIcon,
 		NcSelect,
 		Pencil,
+		Restore,
 		Check,
 		Cog,
 		CalendarRange,
@@ -1958,7 +1972,7 @@ export default {
 		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-view-with-nothing-to-draw-says-so
 		 */
 		viewDisplayLayout() {
-			const items = this.activeView ? this.activeView.layout : []
+			const items = this.activeViewLayout
 			if (this.gridEditable) {
 				return items
 			}
@@ -2000,8 +2014,9 @@ export default {
 					key: `view-${this.activeViewId}`,
 					view: true,
 					layout: this.viewDisplayLayout,
-					// A user arrangement covers the page's own layout only.
-					editable: this.gridEditable && !this.userLayout,
+					// With `userLayout` the user arranges the view too; the
+					// arrangement is kept per view (pageViews mixin).
+					editable: this.gridEditable,
 					attrs: {
 						id: this.viewRegionId,
 						role: 'region',
@@ -2721,6 +2736,7 @@ export default {
 			// the user's arrangement is finished when they say it is.
 			if (leaving) {
 				this.saveUserLayout()
+				this.saveViewUserLayouts()
 			}
 
 			/**
@@ -2781,6 +2797,17 @@ export default {
 		},
 
 		/**
+		 * The edit-mode reset: the page's own grid and the chosen view return
+		 * to the manifest layout. Other views keep this user's arrangement.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-resetting-a-view-restores-its-manifest-layout
+		 */
+		async resetLayout() {
+			await Promise.all([this.resetUserLayout(), this.resetViewUserLayout()])
+		},
+
+		/**
 		 * Drop this user's arrangement and return to the manifest.
 		 *
 		 * @return {Promise<void>}
@@ -2832,35 +2859,7 @@ export default {
 		 * @return {{ load: (appId: string, pageId: string) => Promise<object|null>, save: (appId: string, pageId: string, layout: Array<object>) => Promise<boolean>, reset: (appId: string, pageId: string) => Promise<boolean> }} The api.
 		 */
 		userLayoutApi() {
-			const store = this.userLayoutStore
-			if (store && typeof store.loadDashboardLayout === 'function') {
-				return {
-					load: (...a) => store.loadDashboardLayout(...a),
-					save: (...a) => store.saveDashboardLayout(...a),
-					reset: (...a) => store.resetDashboardLayout(...a),
-				}
-			}
-
-			return {
-				load: (appId, pageId) => readUserPreference(appId, dashboardLayoutKey(pageId), null),
-				save: (appId, pageId, layout) => writeUserPreference(
-					appId,
-					dashboardLayoutKey(pageId),
-					{ items: (layout || []).map((i) => ({
-						widgetId: i.widgetId,
-						gridX: i.gridX,
-						gridY: i.gridY,
-						gridWidth: i.gridWidth,
-						gridHeight: i.gridHeight,
-					})) },
-				),
-
-				reset: (appId, pageId) => writeUserPreference(
-					appId,
-					dashboardLayoutKey(pageId),
-					{ items: [] },
-				),
-			}
+			return resolveUserLayoutApi(this.userLayoutStore)
 		},
 
 		onLayoutChange(updated) {
@@ -3906,7 +3905,7 @@ export default {
 			// library's own defaults, so a manifest need not set them — but a
 			// manifest that DOES set them must reach the component, or the
 			// declaration is a silent no-op that reads like configuration.
-			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'vertical', 'filled', 'route', 'iconClass']) {
+			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'vertical', 'filled', 'route', 'iconClass', 'format']) {
 				if (props[key] !== undefined) {
 					out[key] = props[key]
 				}

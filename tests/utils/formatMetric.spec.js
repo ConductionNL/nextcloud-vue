@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  */
-import { formatMetricValue, resolveConfigFormat, safeCurrencyCode, unwrapAppConfig } from '../../src/utils/formatMetric.js'
+import { formatMetricValue, normalizeMetricFormat, resolveConfigFormat, resolveFormatCurrency, safeCurrencyCode, unwrapAppConfig } from '../../src/utils/formatMetric.js'
 
 describe('safeCurrencyCode', () => {
 	it('accepts valid three-letter codes and upper-cases them', () => {
@@ -99,5 +99,57 @@ describe('formatMetricValue', () => {
 	it('formats decimal with one fraction digit by default', () => {
 		expect(formatMetricValue(83.33, { style: 'decimal' }, {})).toMatch(/^83[.,]3$/)
 		expect(formatMetricValue(83.336, { style: 'decimal', decimals: 2 }, {})).toMatch(/^83[.,]34$/)
+	})
+})
+
+describe('resolveFormatCurrency', () => {
+	it('takes the object\'s own currency first', () => {
+		expect(resolveFormatCurrency({ currencyField: 'currency', currency: 'GBP' }, { currency: 'CHF' }, { currency: 'usd' })).toBe('USD')
+	})
+
+	it('reads a dot-path currencyField', () => {
+		expect(resolveFormatCurrency({ currencyField: 'price.currency' }, {}, { price: { currency: 'JPY' } })).toBe('JPY')
+	})
+
+	it('falls back to the declared currency, then the reporting currency, then EUR', () => {
+		expect(resolveFormatCurrency({ currencyField: 'currency', currency: 'GBP' }, { currency: 'CHF' }, { currency: '' })).toBe('GBP')
+		expect(resolveFormatCurrency({ currencyField: 'currency' }, { currency: 'CHF' }, {})).toBe('CHF')
+		expect(resolveFormatCurrency({ currency: '@config.currency' }, {}, null)).toBe('EUR')
+	})
+
+	it('resolves @object.<field> and @config.<key> tokens', () => {
+		expect(resolveFormatCurrency({ currency: '@object.currency' }, {}, { currency: 'SEK' })).toBe('SEK')
+		expect(resolveFormatCurrency({ currency: '@config.currency' }, { currency: 'NOK' }, null)).toBe('NOK')
+	})
+})
+
+describe('normalizeMetricFormat', () => {
+	it('answers null when the entry declares no format', () => {
+		expect(normalizeMetricFormat({ title: 'Open' })).toBeNull()
+	})
+
+	it('reads a style name and an object', () => {
+		expect(normalizeMetricFormat({ format: 'currency' })).toEqual({ style: 'currency' })
+		expect(normalizeMetricFormat({ format: { style: 'percent', decimals: 1 } })).toEqual({ style: 'percent', decimals: 1 })
+	})
+
+	it('lets currency or currencyField on the entry imply a currency format', () => {
+		expect(normalizeMetricFormat({ currencyField: 'currency' })).toEqual({ style: 'currency', currencyField: 'currency' })
+		expect(normalizeMetricFormat({ currency: '@config.currency' })).toEqual({ style: 'currency', currency: '@config.currency' })
+	})
+
+	it('keeps a currency the format object names over the entry\'s', () => {
+		expect(normalizeMetricFormat({ format: { style: 'currency', currency: 'USD' }, currency: 'GBP' })).toEqual({ style: 'currency', currency: 'USD' })
+	})
+})
+
+describe('formatMetricValue with an object', () => {
+	it('formats money in the object\'s currency', () => {
+		const out = formatMetricValue(1000, { style: 'currency', currencyField: 'currency' }, { currency: 'EUR' }, { currency: 'USD' })
+		expect(out).toContain('$')
+	})
+
+	it('falls back to the reporting currency when the format names none', () => {
+		expect(formatMetricValue(1000, { style: 'currency' }, { currency: 'GBP' })).toContain('£')
 	})
 })
