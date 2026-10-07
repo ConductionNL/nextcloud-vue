@@ -42,8 +42,11 @@ open tasks.
 With `source="flow-tasks"` the tab SHALL offer a form with title (required),
 assignee (a user or a group, from Nextcloud's sharee API), optional due date
 and optional description. Saving SHALL send `POST /apps/openregister/api/flow-tasks`
-with the record as anchor (`objectUuid`, `registerId`, `schemaId`), `assignee`
-for a user or `candidateGroups` for a group. On 201 the task SHALL be listed.
+with a flat body: `title`, `description` and `dueAt` when given, the record's
+`objectUuid`, `registerId` and `schemaId`, then either `assignee` (a uid) for
+a user or `performerType: "group"` with `candidateGroups: [<gid>]` for a
+group. The body SHALL NOT carry `requester` or `state`. On 201 the task SHALL
+be listed.
 On 404 the form SHALL say the user can no longer open this record. Any other
 refusal SHALL keep the form open with the server's message.
 
@@ -51,14 +54,15 @@ refusal SHALL keep the form open with the server's message.
 
 - **GIVEN** a caseworker on a record's Tasks tab
 - **WHEN** they add "Bel aanvrager terug" for user `jan`, due Friday
-- **THEN** the POST body SHALL carry the title, `assignee: "jan"`, the due date and the record's anchor
+- **THEN** the POST body SHALL carry the title, `assignee: "jan"`, the due date and the record's `objectUuid`, `registerId` and `schemaId`
+- **AND** it SHALL carry no `performerType`, `requester` or `state`
 - **AND** the task SHALL be listed on the tab
 
 #### Scenario: A task for a group
 
 - **GIVEN** the same form
 - **WHEN** the caseworker picks the group `backoffice`
-- **THEN** the POST body SHALL carry `candidateGroups: ["backoffice"]` and no `assignee`
+- **THEN** the POST body SHALL carry `performerType: "group"`, `candidateGroups: ["backoffice"]`, the record's anchor and no `assignee`
 
 #### Scenario: Access lost
 
@@ -68,26 +72,33 @@ refusal SHALL keep the form open with the server's message.
 
 ### Requirement: A row offers only the verbs the user can run
 
-Each open row SHALL offer Claim when it has no assignee; Unclaim and
-Complete when the assignee is the current user; Reassign and Cancel when the
-requester is the current user or the user is an administrator. No other verb
-SHALL be shown. A verb the server refuses SHALL show the server's message on
-the row and leave the row's state and assignee as they were.
+Each row SHALL offer exactly the verbs in its `can` list that the tab has a
+control for (Claim, Unclaim, Reassign, Complete, Cancel), and SHALL NOT
+derive verbs from state, assignee or requester. A row without a `can` key
+SHALL offer no verbs and keep its link to the task page. A verb the server
+refuses SHALL show the server's message on the row and leave the row's state
+and assignee as they were.
 
 #### Scenario: Someone else's task
 
-- **GIVEN** a task assigned to another user and requested by a third
-- **WHEN** the current user, not an admin, views the tab
+- **GIVEN** a task row with `can: []`
+- **WHEN** the current user views the tab
 - **THEN** the row SHALL offer no verb
 
 #### Scenario: A pool task
 
-- **GIVEN** an open task with `candidateGroups` and no assignee
+- **GIVEN** an open pool task whose row carries `can: ["claim"]`
 - **WHEN** the user views the tab
-- **THEN** the row SHALL offer Claim
+- **THEN** the row SHALL offer Claim and nothing else
+
+#### Scenario: The assignee completes
+
+- **GIVEN** a row with `can: ["unclaim", "delegate", "complete"]`
+- **WHEN** the assignee views the tab
+- **THEN** the row SHALL offer Unclaim and Complete, and no Cancel or Reassign
 
 #### Scenario: A refused claim
 
-- **GIVEN** a pool task the user is not a candidate for
+- **GIVEN** a row with `can: ["claim"]` whose pool membership changed since the list loaded
 - **WHEN** the user clicks Claim and the server answers 403 with a message
 - **THEN** the row SHALL show that message and still have no assignee

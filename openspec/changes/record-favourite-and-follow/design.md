@@ -29,12 +29,18 @@ is the signal: count shown, popover available, `GET .../watchers` fetched
 when the popover opens, never before. A 403 there closes the popover without
 a toast.
 
-Changing another user's subscription needs `manage`. `@self.can` reports
-`update` only today (`RenderObject.php:2696`). The picker shows when
-`@self.can.manage === true`; until OpenRegister adds that key the picker
-stays hidden, the safe side. This is a one-line OpenRegister follow-up,
-listed in the hand-back. Rejected: showing the picker to everyone with
-`update` and letting a 403 explain.
+Changing another user's subscription needs `manage`. OpenRegister adds
+`manage` to `@self.can` (openregister #4455, `record-star-follow-and-unread-on-screen`
+design D-6), decided by the same `ObjectScopeResolver` call the watchers
+endpoint makes, so the marker and the endpoint agree. `@self.can` is opt-in:
+OpenRegister returns it only when the read asks `_extend=@self.can`, and
+without it the response carries no `@self.can` at all. So `CnDetailPage`
+SHALL add `@self.can` to `_extend` on its detail read whenever it renders
+`CnFollowToggle`, merged with any `_extend` the page already asks for. Without
+that extend the picker would never show. The picker shows when
+`@self.can.manage === true`; a missing key or `false` keeps it hidden, the
+safe side. Rejected: showing the picker to everyone with `update` and letting
+a 403 explain.
 
 ## D4. Follow says what it does
 

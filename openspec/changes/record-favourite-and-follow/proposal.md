@@ -67,7 +67,8 @@ openregister development on 7 October 2026:
 - `nextcloud-vue`: two new components, `CnDetailPage`, `CnIndexPage`, the v2
   manifest schema, one store plugin.
 - `openregister`: places the components on its own record and Tables pages
-  (its change). One optional addition, `manage` in `@self.can`, see design D3.
+  (its change), and adds `manage` to `@self.can` (openregister #4455), returned
+  only when the read asks `_extend=@self.can`, see design D3.
 - Consumers: pipelinq, dossiq, decidiq and every app with a detail page.
 
 ## Backward compatibility

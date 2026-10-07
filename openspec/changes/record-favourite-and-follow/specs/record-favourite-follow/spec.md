@@ -109,7 +109,10 @@ list. Following or unfollowing SHALL move the shown count by one.
 
 ### Requirement: A manager adds and removes a colleague
 
-When the object carries `@self.can.manage === true`, the followers popover
+When `CnDetailPage` renders `CnFollowToggle` it SHALL request its detail read
+with `@self.can` in `_extend`, merged with any `_extend` the page already
+asks for, because OpenRegister returns `@self.can` only on request. When the
+object carries `@self.can.manage === true`, the followers popover
 SHALL offer an "Add a colleague" user picker (`NcSelect` with `inputLabel`)
 and a remove action on each follower. Adding SHALL send
 `PUT .../watchers/{userId}`; removing SHALL send `DELETE .../watchers/{userId}`.
@@ -128,6 +131,12 @@ the current user's own row.
 - **GIVEN** the same popover
 - **WHEN** the server answers 400 "Unknown user"
 - **THEN** the popover SHALL stay open and show "Unknown user" beside the picker
+
+#### Scenario: The detail read asks for the rights
+
+- **GIVEN** a detail page that renders the Follow toggle and already asks `_extend=@self.unreadCounts`
+- **WHEN** the page loads its object
+- **THEN** the read SHALL carry `_extend` with both `@self.unreadCounts` and `@self.can`
 
 #### Scenario: No manage, no picker
 

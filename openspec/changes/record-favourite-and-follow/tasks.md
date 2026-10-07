@@ -2,7 +2,8 @@
 
 > Star, Follow and the personal lenses over OpenRegister's interaction
 > markers (ADR-032 `kind: code`). Backend: `favourites-and-recent`,
-> `object-watchers`; optional `@self.can.manage` (design D3).
+> `object-watchers`; `manage` in `@self.can` (openregister #4455), returned
+> only for `_extend=@self.can` (design D3).
 
 ## Implementation tasks
 
@@ -32,6 +33,7 @@
 - **files**: `src/components/CnDetailPage/CnDetailPage.vue`, `src/components/CnIndexPage/CnIndexPage.vue`, `src/schemas/app-manifest-v2.schema.json`, `tests/components/CnDetailPageFavouriteFollow.spec.js`, `tests/components/CnIndexPagePersonalLenses.spec.js`, component reference docs
 - **acceptance_criteria**:
   - Detail header renders both toggles beside the title when the markers are present; `favourite`/`follow` false removes them
+  - The detail read adds `@self.can` to `_extend` (merged with the page's own) whenever the Follow toggle renders; test that the request carries it
   - `showFavouriteColumn` and `personalLenses` props with defaults; Recent disables sorting
   - Manifest schema accepts the four keys with their types
   - `npm test` and `npm run build` pass

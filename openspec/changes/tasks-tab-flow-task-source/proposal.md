@@ -24,7 +24,7 @@ lifecycle verbs. OpenRegister passes `source="flow-tasks"`. No local tab is
 built."
 
 What is there (openregister development, 7 October 2026): the task store
-with `assignee`, `candidateGroups`, `dueAt` and the anchor `objectUuid`,
+with `assignee`, `performerType`, `candidateGroups`, `dueAt` and the anchor `objectUuid`,
 `registerId`, `schemaId`; `GET /api/flow-tasks?objectUuid=`; `POST
 /api/flow-tasks`, refused with the object's own 404 when the creator may not
 read it; the verbs claim, unclaim, reassign, complete, cancel. In
@@ -40,9 +40,9 @@ already forwards `objectUuid` (`src/composables/useTaskInboxStore.js:44`).
   dates marked.
 - A create form: title, assignee (a user, or a group as a pool), optional due
   date and description, posting the record as anchor.
-- Per row, the verbs the user can run, derived from the task's state,
-  assignee and requester; a refused verb shows the server's message on the
-  row and leaves it unchanged.
+- Per row, exactly the verbs in the row's `can` list (openregister #4455); a
+  refused verb shows the server's message on the row and leaves it
+  unchanged.
 - The tab emits `count` with the number of open tasks, for its tab badge.
 
 ## Rows unblocked

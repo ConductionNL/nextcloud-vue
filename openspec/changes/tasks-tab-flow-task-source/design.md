@@ -15,36 +15,41 @@ absent, so the inbox page and the tab share one implementation.
 
 ## D2. What create sends
 
-The task entity's canonical keys, as `GET` returns them:
-`{title, description?, dueAt?, objectUuid, registerId, schemaId}` plus
-`assignee: <uid>` for a user or `candidateGroups: [<gid>]` for a group. A
-group task is a pool until someone claims it (`flow-tasks` main spec, "A
-group task has no assignee until someone claims it"). openregister's
-`record-tasks-tab` design D-2 sketches a nested shape
-(`assignee: {type, id}`, `object: {uuid, register, schema}`); the canonical
-keys are what the read returns and what `TaskService::create` stores, so the
-builder confirms against `TaskBuilder::fromData` and follows it if it reads
-the nested shape instead. The assignee picker searches users and groups
+A flat body with the task entity's own keys, the ones `TaskBuilder::fromData`
+reads (openregister `record-tasks-tab` design D-2, corrected in #4455):
+
+| Key | For a user | For a group |
+|---|---|---|
+| `title` | required | required |
+| `description` | optional | optional |
+| `dueAt` | optional, ISO 8601 | optional, ISO 8601 |
+| `objectUuid`, `registerId`, `schemaId` | the record's | the record's |
+| `assignee` | the user's uid | absent |
+| `performerType` | absent | `"group"` |
+| `candidateGroups` | absent | `["<gid>"]` |
+
+`fromData` defaults `performerType` to `user`, so a group task without
+`performerType: "group"` would be a user task with no assignee. A group task
+is a pool until someone claims it. The body never carries `requester` or
+`state`: OpenRegister pins the requester to the caller and refuses a
+terminal state. The assignee picker searches users and groups
 through Nextcloud's sharee API. A 404 says "You can no longer open this
 record".
 
-## D3. Which verbs a row offers
+## D3. Which verbs a row offers: the row's `can` list
 
-The task row carries no list of allowed verbs. The `flow-tasks` spec states
-the rules: claim needs pool membership; complete needs the assignee (or a
-delegate, or an admin); reassign and cancel need the requester (or a
-supervisor, or an admin); unclaim needs the current assignee. The tab offers:
-
-| Verb | Shown when |
-|---|---|
-| Claim | no assignee, task not terminal |
-| Unclaim, Complete | assignee is the current user |
-| Reassign, Cancel | requester is the current user, or the user is an admin |
-
-Pool membership, delegation and supervision are server knowledge, so a Claim
-can still be refused; the refusal shows on the row and the row stays as it
-was (openregister D-4). An OpenRegister follow-up could add a per-row `can`
-list, which the tab would then use instead; listed in the hand-back.
+Every row of `GET /api/flow-tasks` carries `can`, the verbs the caller may
+run on that task now (`claim`, `unclaim`, `assign`, `reassign`, `delegate`,
+`offer`, `resolve`, `complete`, `cancel`), computed by OpenRegister with the
+same authorization check each verb's endpoint runs plus the state rules
+(openregister #4455, `record-tasks-tab` D-4). The tab shows exactly the verbs
+in `can` that it has a control for (Claim, Unclaim, Reassign, Complete,
+Cancel), in that order, and derives nothing from state, assignee or
+requester. A row without a `can` key (an OpenRegister that predates it)
+offers no verbs and keeps the link to the task page, where the verbs are.
+`can` is advice for the screen, not a grant: a verb the server still refuses
+(a race, a membership that changed) shows the refusal on the row and leaves
+the row as it was.
 
 ## D4. Not VTODO
 

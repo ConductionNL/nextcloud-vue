@@ -10,7 +10,7 @@
 - **files**: `src/composables/useTaskInboxStore.js`, `tests/composables/useTaskInboxStore.create.spec.js`
 - **acceptance_criteria**:
   - `createTask(data)` and `runVerb(uuid, verb, body)` if absent; refusals returned with the server's message
-  - Create body per design D2, confirmed against OpenRegister's `TaskBuilder::fromData`
+  - Flat create body per design D2: `performerType: "group"` with `candidateGroups` for a group, `assignee` for a user; never `requester` or `state`
   - JSDoc on new actions
 - [ ] Implement
 - [ ] Test
@@ -29,7 +29,7 @@
 - **spec_ref**: `openspec/changes/tasks-tab-flow-task-source/specs/object-tasks-tab/spec.md#requirement-a-row-offers-only-the-verbs-the-user-can-run`
 - **files**: `src/components/CnObjectSidebar/CnTasksTab.vue`, `src/components/CnObjectSidebar/CnObjectSidebar.md`, `tests/components/CnTasksTabFlowTasks.spec.js`
 - **acceptance_criteria**:
-  - Verb table of design D3; refusal on the row, row unchanged
+  - Verbs exactly from the row's `can` list (design D3); none without `can`; refusal on the row, row unchanged
   - `npm test` and `npm run build` pass
 - [ ] Implement
 - [ ] Test
