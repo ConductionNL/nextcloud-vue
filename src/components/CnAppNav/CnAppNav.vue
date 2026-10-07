@@ -246,7 +246,7 @@
 				</NcAppNavigationItem>
 			</template>
 		</template>
-		<template v-if="footerItems.length > 0 || showSettingsFoldout || resolvedCard || resolvedHelp" #footer>
+		<template v-if="footerItems.length > 0 || showSettingsFoldout || resolvedCard || showsHelp" #footer>
 			<!--
 				@slot card
 				@description Replace the card above the footer entries
@@ -282,11 +282,15 @@
 			     hover highlight are scoped to itself, so they survive being
 			     slotted. The main list's inset comes from NcAppNavigation's
 			     scope, which slot content does not carry. -->
-			<NcAppNavigationList v-if="footerItems.length > 0 || resolvedHelp" class="cn-app-nav__footer-list">
+			<NcAppNavigationList
+				v-if="footerItems.length > 0 || showsHelp"
+				class="cn-app-nav__footer-list"
+				:class="{ 'cn-app-nav__footer-list--after-settings': settingsFirst }">
 				<!-- The help entry (`nav.help`): a link to the app's own help
-				     with a help icon, above the footer entries. -->
+				     with a help icon, above the footer entries (or after them,
+				     when a declared `nav.footer` names it last). -->
 				<NcAppNavigationItem
-					v-if="resolvedHelp"
+					v-if="showsHelp && !helpAfterItems"
 					:name="resolvedHelp.label"
 					:to="resolvedHelp.to"
 					:href="resolvedHelp.href"
@@ -318,6 +322,17 @@
 							:active="isActive(item)" />
 					</template>
 				</NcAppNavigationItem>
+				<NcAppNavigationItem
+					v-if="showsHelp && helpAfterItems"
+					:name="resolvedHelp.label"
+					:to="resolvedHelp.to"
+					:href="resolvedHelp.href"
+					:target="resolvedHelp.href ? '_blank' : undefined"
+					data-testid="cn-nav-help">
+					<template #icon>
+						<HelpCircleOutline :size="20" />
+					</template>
+				</NcAppNavigationItem>
 			</NcAppNavigationList>
 			<!-- Settings foldout (section: "settings" items). NC-native
 			     gear-icon button that slides open a panel; the first entry
@@ -326,6 +341,7 @@
 			<NcAppNavigationSettings
 				v-if="showSettingsFoldout"
 				:name="settingsFoldoutLabel"
+				:class="{ 'cn-app-nav__settings--first': settingsFirst }"
 				data-testid="cn-nav-settings">
 				<ul class="cn-app-nav__settings-list">
 					<NcAppNavigationItem
@@ -958,17 +974,113 @@ export default {
 		 * Documentation, Features & Roadmap, About.
 		 */
 		footerItems() {
-			return this.visibleItems.filter((item) => item.section === 'footer')
+			const footer = this.visibleItems.filter((item) => item.section === 'footer')
+			const declared = this.declaredFooter
+			if (declared === null) {
+				return footer
+			}
+			// A declared footer (`nav.footer`) keeps only the entries it names,
+			// in the order it names them.
+			return declared
+				.map((id) => footer.find((item) => item.id === id))
+				.filter(Boolean)
+		},
+
+		/**
+		 * The footer the manifest declares (`nav.footer`): an ordered list of
+		 * menu entry ids plus the reserved ids `help` (the `nav.help` entry)
+		 * and `settings` (the settings foldout). Null when the manifest
+		 * declares none, which keeps today's footer: the help entry, then
+		 * every `section: "footer"` entry, then the foldout.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-the-navigation-footer-can-be-declared
+		 * @return {Array<string>|null}
+		 */
+		declaredFooter() {
+			const declared = this.effectiveManifest?.nav?.footer
+			if (!Array.isArray(declared)) {
+				return null
+			}
+			return declared.filter((id) => typeof id === 'string' && id !== '')
+		},
+
+		/**
+		 * Footer-section entries a declared footer leaves out. They move into
+		 * the settings foldout rather than disappearing, so a page such as
+		 * Store or Reports stays reachable. Empty without `nav.footer`.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-the-navigation-footer-can-be-declared
+		 * @return {Array<object>}
+		 */
+		undeclaredFooterItems() {
+			const declared = this.declaredFooter
+			if (declared === null) {
+				return []
+			}
+			return this.visibleItems.filter((item) => item.section === 'footer' && !declared.includes(item.id))
+		},
+
+		/**
+		 * Whether the help entry renders: whenever it resolves, unless a
+		 * declared footer leaves `help` out.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-the-navigation-footer-can-be-declared
+		 * @return {boolean}
+		 */
+		showsHelp() {
+			if (!this.resolvedHelp) {
+				return false
+			}
+			return this.declaredFooter === null || this.declaredFooter.includes('help')
+		},
+
+		/**
+		 * Whether the help entry goes AFTER the footer entries. Only a declared
+		 * footer that names an entry before `help` puts it there; by default
+		 * it leads the list.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-the-navigation-footer-can-be-declared
+		 * @return {boolean}
+		 */
+		helpAfterItems() {
+			const declared = this.declaredFooter
+			if (declared === null) {
+				return false
+			}
+			const help = declared.indexOf('help')
+			return this.footerItems.some((item) => declared.indexOf(item.id) < help)
+		},
+
+		/**
+		 * Whether the settings foldout goes ABOVE the footer list: only when a
+		 * declared footer names `settings` before every other entry
+		 * (`["settings", "help"]`, the board's "Instellingen" then "Hulp en
+		 * uitleg"). Done with CSS `order` on the two siblings, so the markup
+		 * of both stays as it is.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-the-navigation-footer-can-be-declared
+		 * @return {boolean}
+		 */
+		settingsFirst() {
+			const declared = this.declaredFooter
+			return declared !== null && declared.indexOf('settings') === 0
 		},
 
 		/**
 		 * Items that render INSIDE the NcAppNavigationSettings foldout
 		 * (section: "settings"). The foldout is the NC-native gear-icon
 		 * button that slides a panel open; these entries are app-level
-		 * configuration pages (Forms, Pipelines, Automations, …).
+		 * configuration pages (Forms, Pipelines, Automations, …). A declared
+		 * footer (`nav.footer`) adds the footer entries it leaves out.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-the-navigation-footer-can-be-declared
+		 * @return {Array<object>}
 		 */
 		settingsItems() {
-			return this.visibleItems.filter((item) => item.section === 'settings')
+			return [
+				...this.visibleItems.filter((item) => item.section === 'settings'),
+				...this.undeclaredFooterItems,
+			]
 		},
 
 		/**
@@ -2295,6 +2407,21 @@ export default {
 }
 
 /*
+ * The primary action never shrinks out of sight. NcAppNavigation renders it in
+ * `.app-navigation__body`, a flex child with `overflow-y: scroll` (so its
+ * minimum height is 0) beside a list of `height: 100%` and the footer. With a
+ * card and footer entries below the list, the column overflows and the body
+ * gives up its share of the shrink: "New case" showed as a 24px sliver of a
+ * 42px button. All three forms carry `.app-navigation-new` (the solid and
+ * link wrappers mirror NcAppNavigationNew's class), and the rule is scoped to
+ * this component's navigation, so a navigation without a primary action lays
+ * out exactly as before.
+ */
+.app-navigation[data-testid="cn-nav"] .app-navigation__body:has(> .app-navigation-new) {
+	flex-shrink: 0;
+}
+
+/*
  * Footer-section items (section: "footer") render in NcAppNavigation's
  * #footer slot, outside the scroll container, so they stay visible above
  * the settings foldout regardless of menu length. (The interim
@@ -2315,6 +2442,20 @@ export default {
 	margin: 0;
 	flex-shrink: 0 !important;
 	overflow: visible !important;
+}
+
+/*
+ * A declared footer that names `settings` first (`nav.footer`) puts the
+ * foldout above the footer list. The two are siblings in NcAppNavigation's
+ * flex column, so `order` moves them without changing either's markup; the
+ * card above keeps order 0 and stays first.
+ */
+.cn-app-nav__settings--first {
+	order: 1;
+}
+
+.cn-app-nav__footer-list--after-settings {
+	order: 2;
 }
 
 /*

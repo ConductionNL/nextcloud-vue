@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<div class="cn-header-widget" :class="{ 'cn-header-widget--plain': isPlain, 'cn-header-widget--with-views': viewOptions.length > 0 }" :style="wrapperStyle">
+	<div class="cn-header-widget" :class="{ 'cn-header-widget--plain': isPlain, 'cn-header-widget--ground': isGround, 'cn-header-widget--with-views': viewOptions.length > 0 }" :style="wrapperStyle">
 		<div
 			v-if="hasOverlay"
 			class="cn-header-widget__overlay"
@@ -128,12 +128,15 @@ export default {
 		 * Persisted widget content: `{title, subtitle, backgroundImageUrl,
 		 * backgroundImageFileId, backgroundColor, overlayMode, overlayColor,
 		 * overlayOpacity, textColor, textAlign, verticalAlign, height, cta,
-		 * greeting, showDate, plain, views}`. All fields are optional except
+		 * greeting, showDate, plain, ground, views}`. All fields are optional except
 		 * `title` (or `greeting`); unknown enum values collapse to documented
 		 * defaults and the renderer never throws. `views` is
 		 * `{ ariaLabel?, options: [{ label, route, params? }] }`: a segmented
 		 * control at the right of the heading whose checked option is the
-		 * current route; choosing another pushes its route.
+		 * current route; choosing another pushes its route. `ground: true`
+		 * draws the greeting on the page ground: the plain look with no
+		 * padding, a 32px heading and the date line 6px above it (a dashboard
+		 * also drops the widget's card for it).
 		 *
 		 * @type {object}
 		 */
@@ -269,7 +272,20 @@ export default {
 		 * @return {boolean}
 		 */
 		isPlain() {
-			return Boolean(this.content && this.content.plain === true)
+			return Boolean(this.content && (this.content.plain === true || this.content.ground === true))
+		},
+
+		/**
+		 * Whether the greeting sits on the page ground (`content.ground`):
+		 * the plain look without the card padding, so the date line and the
+		 * heading align with the page edge as the board draws them. Off by
+		 * default.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-greeting-can-sit-on-the-page-ground
+		 * @return {boolean}
+		 */
+		isGround() {
+			return Boolean(this.content && this.content.ground === true)
 		},
 
 		/**
@@ -565,9 +581,10 @@ export default {
 				'justify-content': VERTICAL_ALIGN_FLEX[this.verticalAlign],
 				// Plain drops the coloured background, not the card padding:
 				// at 0 the greeting sat flush against the card's left edge.
-				padding: this.isPlain ? '16px' : '16px 24px',
+				// Ground has no card, so it has no padding either.
+				padding: this.isGround ? '0' : (this.isPlain ? '16px' : '16px 24px'),
 				'box-sizing': 'border-box',
-				gap: '8px',
+				gap: this.isGround ? '6px' : '8px',
 				'text-align': this.textAlign,
 			}
 		},
@@ -763,6 +780,17 @@ export default {
 	z-index: 1;
 	flex: 0 0 auto;
 	padding: 16px;
+}
+
+/* On the page ground (`content.ground`): no card, so no inset around the
+   view switch, and the heading at the board's 32px. */
+.cn-header-widget--ground .cn-header-widget__views {
+	padding: 0;
+}
+
+.cn-header-widget--ground .cn-header-widget__title {
+	font-size: var(--cn-header-ground-title-size, 32px);
+	letter-spacing: -0.01em;
 }
 
 .cn-header-widget__date {

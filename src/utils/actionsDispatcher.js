@@ -100,6 +100,14 @@ export function isExternalActionTarget(target) {
  * would otherwise register — and fetch — a 404 (defect 7, learniq round
  * 1). Idempotent for a caller that already passes a correct slug.
  *
+ * A title is not always registered under its kebab form: learniq holds
+ * `LearniqSettings` and `SubjectTeacherAssignment` as written. So a type
+ * registered here for a value the kebab rule CHANGED also carries the value
+ * as written as its `schemaFallback`, and the store retries with it once
+ * when the kebab form answers 404 (keeping it from then on). The kebab form
+ * is still tried first, so a schema registered under it costs nothing.
+ *
+ * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-schema-title-falls-back-to-its-written-form
  * @param {object} store The object store instance (useObjectStore shape).
  * @param {{register: (string|number), schema: (string|number)}} source The widget source.
  * @return {string} The type slug to use for store CRUD calls.
@@ -107,6 +115,9 @@ export function isExternalActionTarget(target) {
 export function resolveObjectOpType(store, source) {
 	const register = String(source.register)
 	const schema = String(schemaRefSlug(source.schema))
+	const written = typeof source.schema === 'string'
+		? source.schema.substring(source.schema.lastIndexOf('/') + 1)
+		: ''
 	const registry = store.objectTypeRegistry || {}
 	for (const [slug, config] of Object.entries(registry)) {
 		if (!config) {
@@ -120,6 +131,9 @@ export function resolveObjectOpType(store, source) {
 	const slug = `${register}/${schema}`
 	if (!registry[slug]) {
 		store.registerObjectType(slug, schema, register)
+		if (written !== '' && written !== schema && typeof store.setSchemaFallback === 'function') {
+			store.setSchemaFallback(slug, written)
+		}
 	}
 	return slug
 }

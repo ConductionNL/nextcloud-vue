@@ -350,3 +350,19 @@ Theme hooks: `--cn-nav-card-background`, `--cn-nav-card-radius`.
 |-------|---------|-------------|
 | `primary-action-created` | the created object | An `open-form` primary action saved. |
 | `card-action` | the action id | The nav card's link is an action button and was clicked. |
+
+## Zuiddrecht additions, round two (opt-in)
+
+### A declared footer (`nav.footer`)
+
+`nav.footer` is an ordered list of `section: "footer"` entry ids plus two reserved ids: `help` (the `nav.help` entry) and `settings` (the settings foldout). Only the named footer entries render in the footer, in that order. Footer entries left out move into the settings foldout, so a page such as Store or Reports stays reachable. `settings` first puts the foldout above the footer list, as the board draws "Instellingen" above "Hulp en uitleg". Without the key the footer renders as before: the help entry, every footer entry, then the foldout.
+
+```json
+"nav": {
+  "settingsLabel": "Instellingen",
+  "help": { "label": "Hulp en uitleg", "href": "https://dossiq.conduction.nl" },
+  "footer": ["settings", "help"]
+}
+```
+
+The primary action is never clipped: the navigation body that holds it keeps its height when a card and footer entries make the column overflow.

@@ -38,3 +38,12 @@ Three optional `content` keys turn the header into a greeting. Without them the 
 { "widgetKey": "header", "props": { "content": { "greeting": true, "showDate": true, "plain": true,
   "views": { "ariaLabel": "View", "options": [{ "label": "My work", "route": "Dashboard" }, { "label": "My team", "route": "TeamDashboard" }] } } } }
 ```
+
+## On the page ground (`ground`)
+
+`content.ground: true` draws the greeting on the page ground instead of in a card: the `plain` look with no padding, the date line 6px above the heading, and the heading at 32px (`--cn-header-ground-title-size`). On a dashboard the widget then has no card either.
+
+```json
+{ "type": "header", "content": { "greeting": true, "showDate": true, "ground": true,
+  "views": { "ariaLabel": "View", "options": [{ "label": "My work", "route": "Dashboard" }, { "label": "My team", "route": "TeamDashboard" }] } } }
+```
