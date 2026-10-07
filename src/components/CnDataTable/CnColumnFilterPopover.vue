@@ -91,9 +91,9 @@
 				</label>
 			</div>
 
-			<!-- string: equals -->
+			<!-- string: contains (OpenRegister `[like]`, case-insensitive) -->
 			<label v-else class="cn-column-filter__field">
-				<span class="cn-column-filter__label">{{ equalsLabel }}</span>
+				<span class="cn-column-filter__label">{{ containsLabel }}</span>
 				<input
 					v-model="draft.value"
 					class="cn-column-filter__input"
@@ -131,7 +131,7 @@ let popoverSeq = 0
  *
  * Renders the control that fits the column: a checkbox list for an enum, yes,
  * no or any for a boolean, from and to for a number or a date, a searchable
- * list of referenced objects for a reference, and an equals box for text.
+ * list of referenced objects for a reference, and a contains box for text.
  * Real inputs throughout, so every control works from the keyboard. Escape
  * closes it and the host returns focus to the filter button.
  *
@@ -265,8 +265,14 @@ export default {
 			return t('nextcloud-vue', 'To')
 		},
 
-		equalsLabel() {
-			return t('nextcloud-vue', 'Equals')
+		/**
+		 * Label of the text box: the text filter matches on contains.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/header-filter-contains/specs/cn-data-table/spec.md#requirement-a-text-header-filter-matches-on-contains
+		 */
+		containsLabel() {
+			return t('nextcloud-vue', 'Contains')
 		},
 
 		clearLabel() {

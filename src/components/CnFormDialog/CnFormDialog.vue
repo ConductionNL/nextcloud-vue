@@ -513,6 +513,7 @@ import { draftKey, formDraftMixin, readDraft } from '../../composables/useFormDr
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
+import { resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import {
 	definitionQueryParams,
 	DYNAMIC_KEY_PREFIX,
@@ -757,6 +758,18 @@ export default {
 		 * identity when used standalone (no CnAppRoot ancestor).
 		 */
 		cnTranslate: { default: () => (key) => key },
+
+		/**
+		 * The app manifest, the v2 registry, the legacy customComponents map and
+		 * the registry-modal opener, all provided by CnAppRoot. A select-or-create
+		 * picker reads them to create an object the way the app's own index page
+		 * does (`config.createOverride` / `config.createModal`). Standalone (no
+		 * CnAppRoot) they are absent and the generic nested form is used.
+		 */
+		cnManifest: { default: null },
+		cnRegistry: { default: null },
+		cnCustomComponents: { default: null },
+		cnOpenModal: { default: null },
 	},
 
 	props: {
@@ -2649,6 +2662,16 @@ export default {
 				store.registerObjectType(slug, schemaRef, register)
 			}
 			const labelField = this.referenceLabelField(field)
+			// The app may own how this schema is created (pipelinq's client and
+			// contact need a contact-first endpoint; a plain save 400s). A
+			// create override keeps this form and saves through the app's
+			// handler; a create modal (only when no override exists) opens the
+			// app's own dialog instead of the generic form.
+			const appCreate = this.appCreateFor(register, schemaRef)
+			if (!appCreate.override && appCreate.modal) {
+				return this.openAppCreateModal(appCreate.modal, store, slug, labelField, term)
+			}
+			const override = appCreate.override
 			let schema = null
 			try {
 				schema = await store.fetchSchema(slug)
@@ -2656,14 +2679,113 @@ export default {
 				schema = null
 			}
 			if (!schema || !schema.properties) {
-				return store.saveObject(slug, { [labelField]: term })
+				const payload = { [labelField]: term }
+				return override
+					? override(payload, { register, schema: schemaRef, objectType: slug, effectiveSchema: null })
+					: store.saveObject(slug, payload)
 			}
 			const initialData = {}
 			if (term && schema.properties[labelField]) {
 				initialData[labelField] = term
 			}
 			return new Promise((resolve) => {
-				this.nestedCreate = { field, schema, register, slug, initialData, resolve }
+				this.nestedCreate = { field, schema, register, slug, schemaRef, initialData, override, resolve }
+			})
+		},
+
+		/**
+		 * How the app creates objects of a schema, read off the manifest page
+		 * that lists them: the index page whose `config.schema` (and, when it
+		 * names one, `config.register`) matches. Its `config.createOverride` is
+		 * resolved to the registered handler; its `config.createModal` is the
+		 * registry key of a `kind: 'modal'` dialog.
+		 *
+		 * @spec openspec/changes/review-round-two/specs/schema-utilities/spec.md
+		 * @param {string} register The reference's register.
+		 * @param {string} schemaRef The reference's schema slug or id.
+		 * @return {{override: (((formData: object, ctx: object) => Promise<object>)|null), modal: (string|null)}} What the app declared.
+		 */
+		appCreateFor(register, schemaRef) {
+			const none = { override: null, modal: null }
+			const pages = this.cnManifest && Array.isArray(this.cnManifest.pages) ? this.cnManifest.pages : []
+			const wanted = String(schemaRef).toLowerCase()
+			const page = pages.find((p) => {
+				const config = p && p.config
+				if (!config || config.schema === undefined || config.schema === null) {
+					return false
+				}
+				if (String(config.schema).toLowerCase() !== wanted) {
+					return false
+				}
+				return !config.register || String(config.register) === String(register)
+			})
+			if (!page) {
+				return none
+			}
+			const config = page.config
+			const override = typeof config.createOverride === 'function'
+				? config.createOverride
+				: resolveCreateOverrideHandler(config.createOverride, this.cnRegistry, this.cnCustomComponents)
+			const modalEntry = typeof config.createModal === 'string' && config.createModal !== ''
+				? (this.cnRegistry || {})[config.createModal]
+				: null
+			const modal = modalEntry && modalEntry.kind === 'modal' && typeof this.cnOpenModal === 'function'
+				? config.createModal
+				: null
+			return { override: override || null, modal }
+		},
+
+		/**
+		 * Open the app's own create dialog (a registry modal) for a picker and
+		 * wait for it. The dialog reports the new object (or its id) with a
+		 * `created` event; `close` without one resolves null so the field stays
+		 * as it was. A reported id is fetched so the picker can label it.
+		 *
+		 * @spec openspec/changes/review-round-two/specs/schema-utilities/spec.md
+		 * @param {string} key The registry key of the modal.
+		 * @param {object} store The object store.
+		 * @param {string} slug The object type slug.
+		 * @param {string} labelField The property the typed term belongs in.
+		 * @param {string} term The typed search term.
+		 * @return {Promise<object|null>} The created object, or null.
+		 */
+		openAppCreateModal(key, store, slug, labelField, term) {
+			return new Promise((resolve) => {
+				let settled = false
+				let reported = false
+				const settle = (value) => {
+					if (!settled) {
+						settled = true
+						resolve(value)
+					}
+				}
+				this.cnOpenModal(key, {
+					initialData: term ? { [labelField]: term } : {},
+					onCreated: async (created) => {
+						if (created && typeof created === 'object') {
+							settle(created)
+							return
+						}
+						if (typeof created !== 'string' && typeof created !== 'number') {
+							return
+						}
+						reported = true
+						let obj
+						try {
+							obj = await store.fetchObject(slug, String(created))
+						} catch {
+							obj = null
+						}
+						settle(obj || { id: String(created), [labelField]: term })
+					},
+					onClose: () => {
+						// A dialog often emits `close` right after `created`,
+						// while the id is still being fetched: that fetch settles.
+						if (!reported) {
+							settle(null)
+						}
+					},
+				})
 			})
 		},
 
@@ -2682,10 +2804,28 @@ export default {
 				return
 			}
 			const store = this.getObjectStore()
-			const created = store ? await store.saveObject(pending.slug, formData) : null
+			let created = null
+			let thrown = null
+			if (pending.override) {
+				// The app's create override owns persistence (same contract as
+				// CnIndexPage's `createOverride`).
+				try {
+					created = await pending.override(formData, {
+						register: pending.register,
+						schema: pending.schemaRef,
+						objectType: pending.slug,
+						effectiveSchema: pending.schema,
+					})
+				} catch (err) {
+					thrown = (err && err.response && err.response.data && err.response.data.error) || (err && err.message) || null
+				}
+			} else {
+				created = store ? await store.saveObject(pending.slug, formData) : null
+			}
 			if (!created) {
 				const error = store && store.errors ? store.errors[pending.slug] : null
-				const message = (error && error.message)
+				const message = thrown
+					|| (!pending.override && error && error.message)
 					|| t('nextcloud-vue', 'The item could not be created.')
 				const dialog = this.$refs.nestedCreateDialog
 				if (dialog && typeof dialog.setValidationErrors === 'function') {

@@ -33,6 +33,7 @@ export default {
 | `modelValue` | `string \| number \| boolean` | `null` | The value of the chosen option (v-model). |
 | `ariaLabel` | `string` | `''` | Accessible name of the group. |
 | `ariaLabelledby` | `string` | `''` | Id of an element that names the group, as an alternative to `ariaLabel`. |
+| `controls` | `string` | `''` | Id of the element the options switch, such as a page view region. Set as `aria-controls` on every option. |
 | `stretch` | `boolean` | `false` | Stretch to the full width, with options of equal width. |
 
 ## Events

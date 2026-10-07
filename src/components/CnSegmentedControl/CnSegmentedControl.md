@@ -43,4 +43,4 @@ export default {
 </script>
 ```
 
-Props: `options` lists the choices, `modelValue` is the chosen value (use `v-model`), `aria-label` names the group (or point `aria-labelledby` at a visible heading), and `stretch` fills the width.
+Props: `options` lists the choices, `modelValue` is the chosen value (use `v-model`), `aria-label` names the group (or point `aria-labelledby` at a visible heading), `controls` names the id of the element the options switch (set as `aria-controls` on every option), and `stretch` fills the width.

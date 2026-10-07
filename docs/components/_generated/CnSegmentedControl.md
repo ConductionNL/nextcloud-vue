@@ -8,6 +8,7 @@
 | `modelValue`     | `union`   |          | `null`  | The value of the chosen option (v-model).                                                                                                                   |
 | `ariaLabel`      | `string`  |          | `''`    | Accessible name of the group, read out when focus enters it.                                                                                                |
 | `ariaLabelledby` | `string`  |          | `''`    | Id of an element that names the group, as an alternative to `ariaLabel`.                                                                                    |
+| `controls`       | `string`  |          | `''`    | Id of the element the options switch, such as the region holding a page view's widgets. Set as `aria-controls` on every option.                             |
 | `stretch`        | `boolean` |          | `false` | Stretch the control to the full width, with options of equal width.                                                                                         |
 
 ### Events
