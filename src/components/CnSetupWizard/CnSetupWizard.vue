@@ -123,6 +123,13 @@
 
 				<!-- config-fields -->
 				<template v-else-if="step.type === 'config-fields'">
+					<!-- The step's intro, drawn like choice and run-action steps.
+					     It was left out here, so pipelinq's organisation step
+					     ("Your organisation details…") showed fields with no
+					     word about what they were for. -->
+					<NcNoteCard v-if="step.body" type="info" data-testid="cn-setup-step-intro">
+						{{ stepBody(step) }}
+					</NcNoteCard>
 					<div
 						v-for="field in fieldsFor(step)"
 						:key="field.key"

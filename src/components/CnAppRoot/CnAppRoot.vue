@@ -1542,7 +1542,7 @@ export default {
 		},
 	},
 
-	emits: ['setup-complete', 'walkthrough-complete'],
+	emits: ['setup-complete', 'setup-wizard-dismissed', 'walkthrough-complete'],
 
 	/**
 	 * Component-instance state for the capabilities guard.
@@ -3307,7 +3307,7 @@ export default {
 			// the server keeps reporting it unmet — so without this the wizard
 			// auto-opens again on every visit. Cancel must not be the only way to
 			// get peace.
-			this.persistSetupWizardDismissal()
+			this.persistSetupWizardDismissal(true)
 			if (this.setupState && typeof this.setupState.refresh === 'function') {
 				this.setupState.refresh()
 			}
@@ -3328,7 +3328,7 @@ export default {
 		 * @return {void}
 		 */
 		dismissSetupWizard() {
-			this.persistSetupWizardDismissal()
+			this.persistSetupWizardDismissal(false)
 			this.setupWizardOpen = false
 		},
 
@@ -3351,7 +3351,7 @@ export default {
 		 * @return {boolean}
 		 */
 		isSetupWizardDismissed() {
-			if (this.setupWizardDismissed) {
+			if (this.setupWizardDismissed || this.isSetupWizardDismissedOnServer()) {
 				return true
 			}
 			try {
@@ -3362,18 +3362,87 @@ export default {
 		},
 
 		/**
-		 * Record the non-gating setup wizard as dismissed for this manifest
-		 * `setup.version` so it doesn't auto-open again.
+		 * Whether the app's setup status says the wizard was closed, so it
+		 * stays closed in every browser and on every device. The status
+		 * (`GET /api/setup/status`) may carry `dismissed: true`, or the
+		 * `setup.version` it was closed at (`dismissed: 2`), which re-opens the
+		 * wizard after a version bump. An app whose status carries neither
+		 * keeps today's per-browser behaviour. An app may also answer the
+		 * outstanding steps itself when it records the close (OpenRegister's
+		 * `dismiss-setup`), which needs nothing here.
 		 *
+		 * @spec openspec/changes/setup-wizard-close-on-server/specs/cn-setup-wizard/spec.md
+		 * @return {boolean} True when the server recorded the close for this version.
+		 */
+		isSetupWizardDismissedOnServer() {
+			const s = this.setupState
+			const status = s && s.status && s.status.value
+			const dismissed = status && typeof status === 'object' ? status.dismissed : undefined
+			if (dismissed === true) {
+				return true
+			}
+			if (typeof dismissed === 'number' && Number.isFinite(dismissed)) {
+				const version = (this.manifest && this.manifest.setup && this.manifest.setup.version) || 0
+				return dismissed >= version
+			}
+			return false
+		},
+
+		/**
+		 * The setup action that records a closed wizard on the server, from
+		 * `manifest.setup.dismissAction`, or '' when the app declares none.
+		 *
+		 * @spec openspec/changes/setup-wizard-close-on-server/specs/cn-setup-wizard/spec.md
+		 * @return {string} The action id.
+		 */
+		setupDismissAction() {
+			const action = this.manifest && this.manifest.setup && this.manifest.setup.dismissAction
+			return typeof action === 'string' && /^[a-z0-9][a-z0-9-]*$/.test(action) ? action : ''
+		},
+
+		/**
+		 * Record the setup wizard as closed for this manifest `setup.version`
+		 * so it doesn't auto-open again: in this browser (localStorage) and,
+		 * when the manifest declares `setup.dismissAction`, on the server
+		 * through the app's own setup action endpoint
+		 * (`POST /apps/{appId}/api/setup/action/{dismissAction}`, admin-only
+		 * like every setup endpoint, so the record is per instance). Then
+		 * emits `setup-wizard-dismissed`. Once per page load: finishing
+		 * records it, and the result screen's Close that follows does not
+		 * post again.
+		 *
+		 * @spec openspec/changes/setup-wizard-close-on-server/specs/cn-setup-wizard/spec.md
+		 * @param {boolean} [finished] True when the user finished the wizard, false when they closed it.
 		 * @return {void}
 		 */
-		persistSetupWizardDismissal() {
+		persistSetupWizardDismissal(finished = false) {
 			try {
 				window.localStorage.setItem(this.setupWizardDismissKey(), '1')
 			} catch {
 				// Best-effort persistence (private mode / no storage).
 			}
+			if (this.setupWizardDismissed) {
+				return
+			}
 			this.setupWizardDismissed = true
+			const action = this.setupDismissAction()
+			if (action) {
+				try {
+					Promise.resolve(axios.post(generateUrl(`/apps/${this.appId}/api/setup/action/${action}`), { finished: finished === true }))
+						.catch(() => { /* the local record still holds in this browser */ })
+				} catch {
+					// Never let a failed record break the close.
+				}
+			}
+			/**
+			 * @event setup-wizard-dismissed Emitted once when the user closes or finishes the setup wizard.
+			 * @type {{ appId: string, version: number, finished: boolean }}
+			 */
+			this.$emit('setup-wizard-dismissed', {
+				appId: this.appId,
+				version: (this.manifest && this.manifest.setup && this.manifest.setup.version) || 0,
+				finished: finished === true,
+			})
 		},
 
 		/**
