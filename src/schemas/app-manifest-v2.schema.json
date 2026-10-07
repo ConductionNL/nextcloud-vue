@@ -236,7 +236,7 @@
 				},
 				"settingsLabel": {
 					"type": "string",
-					"description": "Override label for the settings foldout's gear button. Defaults to 'Settings'."
+					"description": "Override label for the settings foldout's gear button. Defaults to 'Advanced'."
 				},
 				"card": {
 					"type": "object",

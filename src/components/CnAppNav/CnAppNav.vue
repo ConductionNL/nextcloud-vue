@@ -1113,7 +1113,7 @@ export default {
 
 		/**
 		 * Label for the foldout's gear button. Manifest override:
-		 * `nav.settingsLabel`; defaults to "Settings".
+		 * `nav.settingsLabel`; defaults to "Advanced".
 		 *
 		 * @return {string}
 		 */
@@ -1122,7 +1122,7 @@ export default {
 			if (typeof custom === 'string' && custom.length > 0) {
 				return this.effectiveTranslate(custom)
 			}
-			return t('nextcloud-vue', 'Settings')
+			return t('nextcloud-vue', 'Advanced')
 		},
 
 		/**

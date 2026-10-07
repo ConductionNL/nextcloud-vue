@@ -1065,6 +1065,11 @@ describe('CnAppNav', () => {
 			expect(wrapper.find('[data-testid="cn-nav-personal-settings"]').exists()).toBe(false)
 		})
 
+		it('labels the foldout "Advanced" when no nav.settingsLabel is set', () => {
+			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
+			expect(wrapper.vm.settingsFoldoutLabel).toBe('Advanced')
+		})
+
 		it('uses nav.settingsLabel override for the foldout label', () => {
 			const m = { ...sectionManifest, nav: { settingsLabel: 'Beheer' } }
 			const wrapper = mountNav({ manifest: m, routeName: 'home', translate: (k) => k })

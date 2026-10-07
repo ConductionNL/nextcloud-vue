@@ -1323,6 +1323,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// headerCard and headerWidget. 2.48.0 adds page views: the page
 		// config keys views, defaultView and viewsLabel. 2.48.1 only rewords
 		// the setup step's `requires`: a skipped step is not applicable.
+		// 2.49.0 describes nav.settingsLabel's new default, "Advanced".
 		// 2.50.0 adds Zuiddrecht round three: breadcrumb.currentField and
 		// breadcrumb.separator, showWidgetActions on a detail page, the index
 		// keys showTitleIcon, showCount and headerButtons, the dashboard key
