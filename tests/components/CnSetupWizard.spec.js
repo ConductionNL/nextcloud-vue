@@ -684,3 +684,38 @@ describe('CnSetupWizard — dependencies are checked before any step', () => {
 		expect(wrapper.vm.setupSteps.map((s) => s.id)).toContain('invoices')
 	})
 })
+
+// Live audit, 7 October 2026: a config-fields step drew no intro, while info,
+// choice and run-action steps do. pipelinq's organisation step said nothing
+// about what its fields were for.
+describe('the intro of a config-fields step', () => {
+	const orgStep = {
+		id: 'organisation',
+		type: 'config-fields',
+		title: 'Organisation',
+		body: 'Your organisation details appear on receipts and quotes.',
+		configKeys: ['receipt_company_name'],
+	}
+
+	beforeEach(() => {
+		__resetSetupStatusCacheForTests()
+		axios.get.mockReset()
+		axios.get.mockResolvedValue({ data: { steps: {} } })
+	})
+
+	it('draws the step body above the fields', async () => {
+		const wrapper = mount(CnSetupWizard, { propsData: { appId: 'pipelinq', steps: [orgStep] } })
+		await flushPromises()
+		const intro = wrapper.find('[data-testid="cn-setup-step-intro"]')
+		expect(intro.exists()).toBe(true)
+		expect(intro.text()).toContain('Your organisation details appear on receipts and quotes.')
+	})
+
+	it('draws no empty note when the step has no body', async () => {
+		const { body, ...noBody } = orgStep
+		expect(body).toBeTruthy()
+		const wrapper = mount(CnSetupWizard, { propsData: { appId: 'pipelinq', steps: [noBody] } })
+		await flushPromises()
+		expect(wrapper.find('[data-testid="cn-setup-step-intro"]').exists()).toBe(false)
+	})
+})
