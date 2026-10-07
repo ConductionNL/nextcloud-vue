@@ -12,3 +12,26 @@
  *
  * Add nextcloud-vue-specific tweaks below as needed.
  */
+
+/* Reliance table on the component overview */
+.reliance-table__controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+	margin-bottom: 0.75rem;
+}
+
+.reliance-table__controls input[type='search'] {
+	margin-left: auto;
+	padding: 0.35rem 0.6rem;
+	border: 1px solid var(--ifm-color-emphasis-300);
+	border-radius: var(--ifm-global-radius);
+	background: var(--ifm-background-surface-color);
+	color: inherit;
+}
+
+.reliance-table__help {
+	color: var(--ifm-color-emphasis-700);
+	font-size: 0.9rem;
+}
