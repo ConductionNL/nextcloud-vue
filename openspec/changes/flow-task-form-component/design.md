@@ -74,9 +74,22 @@ the external Forms path beyond showing its unavailable state. Both are task
 surfaces of their own; this change is the field form that buildiq and 5.2
 ask for.
 
+## D6. Flagging a step where steps are listed
+
+OpenRegister refuses a broken form when the step is saved, but a schema can
+change afterwards, and OpenRegister has no read that reports a drifted step
+(git grep on development, 7 October 2026). The flow editor is where steps are
+listed, and it can tell on its own: the three rules (absent, `readOnly`, not
+visible) are the same the server applies at save time. The check runs when
+the flow opens and after each step edit, against the trigger's schema, and
+reports through `CnFlowCanvasMessages` as a standing condition, which is what
+that area exists for. If OpenRegister later adds a drift read, the editor
+switches to it and drops the local rule.
+
 ## Files
 
 - `src/components/CnTaskFormDialog/CnTaskFormDialog.vue`, `index.js`, `CnTaskFormDialog.md`
 - `src/components/index.js` (export)
 - no change to `CnFormDialog`: the `#before-fields` slot exists
 - `tests/components/CnTaskFormDialog.spec.js`
+- `src/components/CnFlowDetail/CnFlowDetail.vue`, `src/utils/taskFormDrift.js` and their tests

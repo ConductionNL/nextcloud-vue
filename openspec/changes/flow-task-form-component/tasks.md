@@ -35,3 +35,13 @@
   - `npm test` and `npm run build` pass
 - [ ] Implement
 - [ ] Test
+
+### Task 4: Flag drifted steps in the flow editor
+- **spec_ref**: `openspec/changes/flow-task-form-component/specs/flow-task-form/spec.md#requirement-a-step-whose-form-drifted-is-flagged-in-the-flow-editor`
+- **files**: `src/components/CnFlowDetail/CnFlowDetail.vue`, `src/utils/taskFormDrift.js`, `tests/utils/taskFormDrift.spec.js`, `tests/components/CnFlowDetailTaskFormDrift.spec.js`
+- **acceptance_criteria**:
+  - `taskFormDrift(schema, fields)` returns `[{field, reason}]` for absent, read-only and invisible fields
+  - Node warning mark and one standing canvas message per flagged step, cleared when the drift ends
+  - No flag without a subject schema on the trigger
+- [ ] Implement
+- [ ] Test

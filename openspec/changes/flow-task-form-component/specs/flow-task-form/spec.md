@@ -116,3 +116,34 @@ parent SHALL report back through `setResult()`.
 - **GIVEN** the dialog with `submit: false`
 - **WHEN** the user confirms
 - **THEN** no request SHALL be sent and `confirm` SHALL be emitted with `{outcome, comment, data}`
+
+### Requirement: A step whose form drifted is flagged in the flow editor
+
+`CnFlowDetail` SHALL check every user-task step that declares a native form
+(`config.form.fields`) against the flow's subject schema, when the flow's
+trigger names one, and SHALL flag a step when a declared field is absent
+from that schema, marked `readOnly`, or marked not visible. A flagged step
+SHALL carry a warning mark on its node card and SHALL add a standing message
+to `CnFlowCanvasMessages` naming the step and each field with its reason.
+The message SHALL disappear when the step or the schema no longer drifts. A
+flow whose trigger names no schema SHALL show no flag; the server's
+save-time validation stays the authority.
+
+#### Scenario: A field dropped from the schema after the step was saved
+
+- **GIVEN** a flow triggered on schema `permit` with a user-task step declaring `riskScore`, and `permit` no longer has `riskScore`
+- **WHEN** the author opens the flow
+- **THEN** the step's node SHALL carry a warning mark
+- **AND** the canvas messages SHALL name the step and say `riskScore` is no longer in the schema
+
+#### Scenario: Fixing the step clears the flag
+
+- **GIVEN** the flagged step above
+- **WHEN** the author removes `riskScore` from the step's form
+- **THEN** the warning mark and the message SHALL disappear
+
+#### Scenario: No subject schema, no guess
+
+- **GIVEN** a flow whose trigger names no schema
+- **WHEN** the author opens it
+- **THEN** no step SHALL be flagged for its form

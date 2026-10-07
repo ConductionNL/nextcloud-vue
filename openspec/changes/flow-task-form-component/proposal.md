@@ -43,6 +43,8 @@ component" from "My approvals" and is blocked on it.
   enabled only when no broken field is required.
 - State `unresolvable`, or `kind: "external"` with state `unavailable`: the
   dialog shows the server's `error` and no form; Confirm is disabled.
+- `CnFlowDetail` flags a user-task step whose declared form names a field the
+  subject schema dropped or hid, on the node and in the canvas messages.
 - Confirm posts `{outcome, comment, data}` to `.../complete`. On 200 the
   dialog emits `completed` with the task row and closes. On a 400 with
   `fields` it stays open with every typed value intact and marks each named
@@ -51,7 +53,7 @@ component" from "My approvals" and is blocked on it.
 ## Rows unblocked
 
 - buildiq `logic-human-task-form` (T04 of `logic-approval-task-form`).
-- OpenRegister `flow-task-forms` task 5.2, first half.
+- OpenRegister `flow-task-forms` task 5.2, first half: the disabled row and the step flagged where steps are listed (the flow editor).
 - dossiq `3.4` (user tasks with a form) gets the broken-field rendering it
   lacks today.
 
