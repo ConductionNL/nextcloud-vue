@@ -191,6 +191,29 @@ describe('CnDataTable — aria-sort', () => {
 		expect(headerFor(wrapper, 'Status').attributes('aria-sort')).toBeUndefined()
 	})
 
+	it('sets aria-sort on the first rendered key when the primary key is not rendered', () => {
+		const wrapper = mountTable({ sortKeys: [{ key: '_uuid' }, { key: 'createdAt', order: 'desc' }] })
+		expect(wrapper.find('.cn-table-sort-badge').exists()).toBe(false)
+		expect(headerFor(wrapper, 'Created').find('.cn-table-sort-indicator').text()).toBe('▼')
+		expect(headerFor(wrapper, 'Created').attributes('aria-sort')).toBe('descending')
+		expect(wrapper.findAll('th[aria-sort]').length).toBe(1)
+	})
+
+	it('sets aria-sort on the first rendered key and numbers the rendered keys after a hidden primary', () => {
+		const wrapper = mountTable({
+			sortKeys: [
+				{ key: '_uuid', order: 'asc' },
+				{ key: 'status', order: 'asc' },
+				{ key: 'name', order: 'desc' },
+			],
+		})
+		expect(headerFor(wrapper, 'Status').attributes('aria-sort')).toBe('ascending')
+		expect(wrapper.findAll('th[aria-sort]').length).toBe(1)
+		expect(headerFor(wrapper, 'Status').find('.cn-table-sort-badge').text()).toBe('1')
+		expect(headerFor(wrapper, 'Name').find('.cn-table-sort-badge').text()).toBe('2')
+		expect(headerFor(wrapper, 'Created').find('.cn-table-sort-badge').exists()).toBe(false)
+	})
+
 	it('omits aria-sort entirely when no sort is active', () => {
 		const wrapper = mountTable({})
 		expect(headerFor(wrapper, 'Name').attributes('aria-sort')).toBeUndefined()
