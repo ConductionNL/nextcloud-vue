@@ -89,7 +89,7 @@ describe('CnTimelineWidget', () => {
 			if (url.endsWith('/payment')) {
 				return Promise.resolve({ data: { results: [{ '@self': { id: 'p1', created: '2026-09-02T12:00:00Z' }, title: 'EUR 250' }] } })
 			}
-			if (url.endsWith('/audit-trail')) {
+			if (url.endsWith('/audit-trails')) {
 				return Promise.resolve({ data: { results: [{ id: 1, action: 'update', actorDisplayName: 'Ruben', created: '2026-09-04T00:00:00Z' }] } })
 			}
 			return Promise.reject(new Error('unexpected ' + url))
@@ -102,6 +102,32 @@ describe('CnTimelineWidget', () => {
 		await flushPromises()
 		expect(axios.get).toHaveBeenCalledWith('/index.php/apps/openregister/api/objects/pipelinq/payment', { params: { booking: 'b1', _limit: 50 } })
 		expect(labels(wrapper)).toEqual(['Booking created', 'Payment received', 'Deposit cleared', 'Updated by Ruben'])
+	})
+
+	it('asks OpenRegister for the audit trail at its real route, audit-trails', async () => {
+		axios.get.mockResolvedValue({ data: { results: [] } })
+		mountWidget({ auditTrail: true }, { object: booking })
+		await flushPromises()
+		const urls = axios.get.mock.calls.map((c) => c[0])
+		expect(urls.some((u) => u.endsWith('/objects/pipelinq/booking/b1/audit-trails'))).toBe(true)
+		expect(urls.some((u) => u.endsWith('/audit-trail'))).toBe(false)
+	})
+
+	it('turns a list on the object, such as a status history, into dated events', async () => {
+		const withHistory = {
+			...booking,
+			statusHistory: [
+				{ status: 'Awaiting deposit', changedAt: '2026-09-01T09:14:00Z', reason: 'Booking created' },
+				{ status: 'Confirmed', changedAt: '2026-09-01T09:17:00Z', reason: 'Deposit cleared' },
+				{ status: 'Ignored', reason: 'no date, so no event' },
+			],
+		}
+		const wrapper = mountWidget({
+			lists: [{ field: 'statusHistory', dateField: 'changedAt', labelField: 'status', detailField: 'reason' }],
+		}, { object: withHistory })
+		await flushPromises()
+		expect(labels(wrapper)).toEqual(['Awaiting deposit', 'Confirmed'])
+		expect(wrapper.text()).toContain('Deposit cleared')
 	})
 
 	it('says which part failed instead of showing a shorter history as complete', async () => {
