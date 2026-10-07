@@ -200,12 +200,15 @@ export default {
 	padding: 0;
 }
 
+/* Stacked, name over value: the run sidebar is narrow, and a side-by-side
+   row wrapped mid-list. The host's dt/dd margins and alignment are reset. */
 .cn-flow-step-outcomes__row {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0 8px;
+	display: block;
+	margin-block: 4px;
+	padding-block: 2px;
 	padding-inline-start: 8px;
 	border-inline-start: 3px solid var(--color-border);
+	text-align: start;
 }
 
 .cn-flow-step-outcomes__row--success {
@@ -221,11 +224,21 @@ export default {
 }
 
 .cn-flow-step-outcomes__name {
+	display: block;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	margin: 0;
+	padding: 0;
 	font-weight: bold;
+	text-align: start;
 }
 
 .cn-flow-step-outcomes__value {
+	display: block;
+	white-space: normal;
 	margin: 0;
+	padding: 0;
+	text-align: start;
 	color: var(--color-main-text);
 	overflow-wrap: anywhere;
 }
