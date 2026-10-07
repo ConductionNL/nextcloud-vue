@@ -316,7 +316,7 @@ export default {
 		 */
 		viewsLabel() {
 			const label = this.content && this.content.views && this.content.views.ariaLabel
-			return label ? this.cnTranslate(label) : t('nextcloud-vue', 'View')
+			return label ? this.cnTranslate(label) : t('nextcloud-vue', 'Views')
 		},
 
 		/**

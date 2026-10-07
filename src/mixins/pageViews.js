@@ -224,7 +224,7 @@ export const pageViews = {
 		 */
 		viewSwitchLabel() {
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
-			return this.viewsLabel ? translate(this.viewsLabel) : t('nextcloud-vue', 'View')
+			return this.viewsLabel ? translate(this.viewsLabel) : t('nextcloud-vue', 'Views')
 		},
 
 		/**
