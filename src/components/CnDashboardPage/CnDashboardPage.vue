@@ -3906,7 +3906,7 @@ export default {
 			// library's own defaults, so a manifest need not set them — but a
 			// manifest that DOES set them must reach the component, or the
 			// declaration is a silent no-op that reads like configuration.
-			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'vertical', 'filled', 'route', 'iconClass']) {
+			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'vertical', 'filled', 'route', 'iconClass', 'format']) {
 				if (props[key] !== undefined) {
 					out[key] = props[key]
 				}
