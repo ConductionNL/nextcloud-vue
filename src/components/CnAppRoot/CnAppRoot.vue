@@ -513,8 +513,10 @@
 					:manifest="manifest"
 					:seenVersion="walkthroughSeenVersion"
 					:resume="walkthroughResume"
+					:autoStart="!walkthroughPaused"
 					:translate="translate"
 					@complete="onWalkthroughComplete"
+					@pause="onWalkthroughPause"
 					@progress="onWalkthroughProgress" />
 			</slot>
 			<!--
@@ -934,8 +936,11 @@ export default {
 			 * Restart entry for the product walkthrough (ADR-043). Descendants
 			 * (a menu/settings "Replay walkthrough" entry, or a manifest menu
 			 * `action: "replay-walkthrough"`) call this to re-run a tour. With no
-			 * `tourId` the first declared tour is used.
+			 * `tourId` the first declared tour is used. An unfinished tour
+			 * continues where the user was (a paused tour, else the saved
+			 * step); "Start over" in the user settings goes back to step 1.
 			 *
+			 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
 			 * @param {string} [tourId] The tour to restart.
 			 * @return {void}
 			 */
@@ -945,9 +950,18 @@ export default {
 				}
 				const wt = useWalkthrough(this.appId, this.manifest)
 				const id = tourId || (this.manifest.walkthrough.tours[0] && this.manifest.walkthrough.tours[0].id)
-				if (id) {
-					wt.restart(id)
+				if (!id) {
+					return
 				}
+				const progress = this.walkthroughProgressValue
+				this.unpauseWalkthroughProgress()
+				if (wt.paused.value && wt.activeTour.value && wt.activeTour.value.id === id && wt.resumePaused()) {
+					return
+				}
+				if (progress && progress.tourId === id && wt.resumeAt(id, progress.stepId)) {
+					return
+				}
+				wt.restart(id)
 			},
 
 			/**
@@ -1528,7 +1542,7 @@ export default {
 		},
 	},
 
-	emits: ['setup-complete', 'walkthrough-complete'],
+	emits: ['setup-complete', 'setup-wizard-dismissed', 'walkthrough-complete'],
 
 	/**
 	 * Component-instance state for the capabilities guard.
@@ -2599,9 +2613,21 @@ export default {
 			} catch {
 				// No URL token; fall through to the remembered progress.
 			}
-			// An unfinished tour continues at the step the user reached.
+			// An unfinished tour continues at the step the user reached,
+			// unless the user paused it: then it waits for "Continue".
 			const progress = this.walkthroughProgressValue
-			return progress ? { tourId: progress.tourId, stepId: progress.stepId } : null
+			return progress && !progress.paused ? { tourId: progress.tourId, stepId: progress.stepId } : null
+		},
+
+		/**
+		 * Whether the user paused the tour (X, ESC or the dim). A paused tour
+		 * stays hidden across page loads until the user picks "Continue".
+		 *
+		 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
+		 * @return {boolean} True while the saved progress is paused.
+		 */
+		walkthroughPaused() {
+			return !!(this.walkthroughProgressValue && this.walkthroughProgressValue.paused)
 		},
 
 		phase() {
@@ -3281,7 +3307,7 @@ export default {
 			// the server keeps reporting it unmet — so without this the wizard
 			// auto-opens again on every visit. Cancel must not be the only way to
 			// get peace.
-			this.persistSetupWizardDismissal()
+			this.persistSetupWizardDismissal(true)
 			if (this.setupState && typeof this.setupState.refresh === 'function') {
 				this.setupState.refresh()
 			}
@@ -3302,7 +3328,7 @@ export default {
 		 * @return {void}
 		 */
 		dismissSetupWizard() {
-			this.persistSetupWizardDismissal()
+			this.persistSetupWizardDismissal(false)
 			this.setupWizardOpen = false
 		},
 
@@ -3325,7 +3351,7 @@ export default {
 		 * @return {boolean}
 		 */
 		isSetupWizardDismissed() {
-			if (this.setupWizardDismissed) {
+			if (this.setupWizardDismissed || this.isSetupWizardDismissedOnServer()) {
 				return true
 			}
 			try {
@@ -3336,18 +3362,87 @@ export default {
 		},
 
 		/**
-		 * Record the non-gating setup wizard as dismissed for this manifest
-		 * `setup.version` so it doesn't auto-open again.
+		 * Whether the app's setup status says the wizard was closed, so it
+		 * stays closed in every browser and on every device. The status
+		 * (`GET /api/setup/status`) may carry `dismissed: true`, or the
+		 * `setup.version` it was closed at (`dismissed: 2`), which re-opens the
+		 * wizard after a version bump. An app whose status carries neither
+		 * keeps today's per-browser behaviour. An app may also answer the
+		 * outstanding steps itself when it records the close (OpenRegister's
+		 * `dismiss-setup`), which needs nothing here.
 		 *
+		 * @spec openspec/changes/setup-wizard-close-on-server/specs/cn-setup-wizard/spec.md
+		 * @return {boolean} True when the server recorded the close for this version.
+		 */
+		isSetupWizardDismissedOnServer() {
+			const s = this.setupState
+			const status = s && s.status && s.status.value
+			const dismissed = status && typeof status === 'object' ? status.dismissed : undefined
+			if (dismissed === true) {
+				return true
+			}
+			if (typeof dismissed === 'number' && Number.isFinite(dismissed)) {
+				const version = (this.manifest && this.manifest.setup && this.manifest.setup.version) || 0
+				return dismissed >= version
+			}
+			return false
+		},
+
+		/**
+		 * The setup action that records a closed wizard on the server, from
+		 * `manifest.setup.dismissAction`, or '' when the app declares none.
+		 *
+		 * @spec openspec/changes/setup-wizard-close-on-server/specs/cn-setup-wizard/spec.md
+		 * @return {string} The action id.
+		 */
+		setupDismissAction() {
+			const action = this.manifest && this.manifest.setup && this.manifest.setup.dismissAction
+			return typeof action === 'string' && /^[a-z0-9][a-z0-9-]*$/.test(action) ? action : ''
+		},
+
+		/**
+		 * Record the setup wizard as closed for this manifest `setup.version`
+		 * so it doesn't auto-open again: in this browser (localStorage) and,
+		 * when the manifest declares `setup.dismissAction`, on the server
+		 * through the app's own setup action endpoint
+		 * (`POST /apps/{appId}/api/setup/action/{dismissAction}`, admin-only
+		 * like every setup endpoint, so the record is per instance). Then
+		 * emits `setup-wizard-dismissed`. Once per page load: finishing
+		 * records it, and the result screen's Close that follows does not
+		 * post again.
+		 *
+		 * @spec openspec/changes/setup-wizard-close-on-server/specs/cn-setup-wizard/spec.md
+		 * @param {boolean} [finished] True when the user finished the wizard, false when they closed it.
 		 * @return {void}
 		 */
-		persistSetupWizardDismissal() {
+		persistSetupWizardDismissal(finished = false) {
 			try {
 				window.localStorage.setItem(this.setupWizardDismissKey(), '1')
 			} catch {
 				// Best-effort persistence (private mode / no storage).
 			}
+			if (this.setupWizardDismissed) {
+				return
+			}
 			this.setupWizardDismissed = true
+			const action = this.setupDismissAction()
+			if (action) {
+				try {
+					Promise.resolve(axios.post(generateUrl(`/apps/${this.appId}/api/setup/action/${action}`), { finished: finished === true }))
+						.catch(() => { /* the local record still holds in this browser */ })
+				} catch {
+					// Never let a failed record break the close.
+				}
+			}
+			/**
+			 * @event setup-wizard-dismissed Emitted once when the user closes or finishes the setup wizard.
+			 * @type {{ appId: string, version: number, finished: boolean }}
+			 */
+			this.$emit('setup-wizard-dismissed', {
+				appId: this.appId,
+				version: (this.manifest && this.manifest.setup && this.manifest.setup.version) || 0,
+				finished: finished === true,
+			})
 		},
 
 		/**
@@ -3435,6 +3530,49 @@ export default {
 		},
 
 		/**
+		 * Remember that the user paused the tour, at the step they were on,
+		 * so the next page load keeps it hidden until they pick "Continue".
+		 *
+		 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
+		 * @param {object} [where] `{ tourId, stepId, index }` from CnWalkthrough.
+		 * @return {void}
+		 */
+		onWalkthroughPause(where) {
+			const current = this.walkthroughProgressValue || {}
+			const tourId = (where && where.tourId) || current.tourId
+			if (!tourId) {
+				return
+			}
+			const value = {
+				tourId,
+				stepId: (where && where.tourId) ? (where.stepId || '') : (current.stepId || ''),
+				index: (where && where.tourId && Number.isInteger(where.index)) ? where.index : (current.index || 0),
+				version: String((this.manifest && this.manifest.version) || ''),
+				paused: true,
+			}
+			this.walkthroughProgressValue = value
+			persistWalkthroughProgress(this.appId, this.walkthroughConfigKey, value)
+		},
+
+		/**
+		 * Clear the paused mark when the user continues the tour. The step
+		 * stays; the next step change writes fresh progress anyway.
+		 *
+		 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
+		 * @return {void}
+		 */
+		unpauseWalkthroughProgress() {
+			const progress = this.walkthroughProgressValue
+			if (!progress || !progress.paused) {
+				return
+			}
+			const value = { ...progress }
+			delete value.paused
+			this.walkthroughProgressValue = value
+			persistWalkthroughProgress(this.appId, this.walkthroughConfigKey, value)
+		},
+
+		/**
 		 * Continue an unfinished tour from the user-settings dialog: show a
 		 * paused tour again, or start the remembered tour at its step.
 		 *
@@ -3448,10 +3586,11 @@ export default {
 			}
 			setTimeout(() => {
 				const wt = useWalkthrough(this.appId, this.manifest)
+				const progress = this.walkthroughProgressValue
+				this.unpauseWalkthroughProgress()
 				if (wt.resumePaused()) {
 					return
 				}
-				const progress = this.walkthroughProgressValue
 				if (progress) {
 					wt.resumeAt(progress.tourId, progress.stepId)
 				}
@@ -3478,6 +3617,7 @@ export default {
 			setTimeout(() => {
 				const id = this.manifest.walkthrough.tours[0] && this.manifest.walkthrough.tours[0].id
 				if (id) {
+					this.unpauseWalkthroughProgress()
 					useWalkthrough(this.appId, this.manifest).restart(id)
 				}
 			}, 50)

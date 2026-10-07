@@ -216,11 +216,13 @@ export function walkthroughProgressKey(configKey) {
 
 /**
  * Normalise stored progress (an object, or the JSON string a preference
- * holds) into `{ tourId, stepId, index, version }`, or null.
+ * holds) into `{ tourId, stepId, index, version }`, plus `paused: true`
+ * when the user paused the tour, or null.
  *
  * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+ * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
  * @param {unknown} value The stored value.
- * @return {{tourId: string, stepId: string, index: number, version: string}|null} The progress.
+ * @return {{tourId: string, stepId: string, index: number, version: string, paused: (boolean|undefined)}|null} The progress.
  */
 export function normaliseWalkthroughProgress(value) {
 	let data = value
@@ -237,12 +239,18 @@ export function normaliseWalkthroughProgress(value) {
 	if (!isPlainObject(data) || typeof data.tourId !== 'string' || data.tourId === '') {
 		return null
 	}
-	return {
+	const progress = {
 		tourId: data.tourId,
 		stepId: typeof data.stepId === 'string' ? data.stepId : '',
 		index: Number.isInteger(data.index) && data.index >= 0 ? data.index : 0,
 		version: typeof data.version === 'string' ? data.version : '',
 	}
+	// A paused tour stays hidden on the next visit until the user picks
+	// "Continue". Only written when true, so older values read unchanged.
+	if (data.paused === true) {
+		progress.paused = true
+	}
+	return progress
 }
 
 /**

@@ -97,14 +97,22 @@ describe('CnWalkthrough', () => {
 		expect(w.vm.wt.paused.value).toBe(true)
 	})
 
-	it('renders a corner close button that ends the tour for good (complete, not just dismiss)', async () => {
+	// Ruben, 7 October 2026: the corner X pauses and keeps the step; only
+	// finishing the last step completes the tour.
+	it('renders a corner close button that pauses the tour and keeps its step', async () => {
 		const w = factory()
 		await w.vm.$nextTick()
 		const closeBtn = w.find('.cn-walkthrough__close')
 		expect(closeBtn.exists()).toBe(true)
-		w.vm.close()
-		expect(w.emitted('complete')).toBeTruthy()
+		w.vm.advance()
+		const stepId = w.vm.step.id
+		await closeBtn.trigger('click')
+		expect(w.emitted('complete')).toBeFalsy()
+		expect(w.emitted('pause')).toBeTruthy()
 		expect(w.vm.wt.running.value).toBe(false)
+		expect(w.vm.wt.paused.value).toBe(true)
+		expect(w.vm.wt.resumePaused()).toBe(true)
+		expect(w.vm.step.id).toBe(stepId)
 	})
 
 	it('exposes an aria-live step announcement', async () => {

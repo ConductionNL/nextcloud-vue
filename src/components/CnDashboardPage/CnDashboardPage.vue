@@ -330,24 +330,26 @@
 					v-if="missingRequiredApp(item)"
 					:title="getWidgetTitle(item)"
 					:showTitle="widgetShowTitle(item)">
-					<NcEmptyContent
-						:name="installAppLabel(missingRequiredApp(item))"
-						:description="t('nextcloud-vue', 'This widget shows data from another app that isn\'t installed yet.')"
-						class="cn-dashboard-page__requires-app cn-requires-app">
-						<template #icon>
-							<Download :size="24" />
-						</template>
-						<template #action>
-							<NcButton
-								variant="primary"
-								:href="appInstallUrl(missingRequiredApp(item))">
-								<template #icon>
-									<Download :size="18" />
-								</template>
-								{{ installAppLabel(missingRequiredApp(item)) }}
-							</NcButton>
-						</template>
-					</NcEmptyContent>
+					<!-- Compact on purpose: a two-row tile is about 150px, less
+					     a title row. NcEmptyContent's 64px icon, 20px name,
+					     description and button did not fit, so the icon ran out
+					     at the top and the button at the bottom. The button
+					     already says "Install {app}", so there is no separate
+					     name, and the text keeps to two lines. -->
+					<div class="cn-dashboard-page__requires-app cn-requires-app cn-requires-app--compact"
+						data-testid="cn-requires-app">
+						<p class="cn-requires-app__description">
+							{{ t('nextcloud-vue', 'This widget shows data from another app that isn\'t installed yet.') }}
+						</p>
+						<NcButton
+							variant="primary"
+							:href="appInstallUrl(missingRequiredApp(item))">
+							<template #icon>
+								<Download :size="18" />
+							</template>
+							{{ installAppLabel(missingRequiredApp(item)) }}
+						</NcButton>
+					</div>
 				</CnWidgetWrapper>
 
 				<!-- Tile widget -->
