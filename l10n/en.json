@@ -408,6 +408,7 @@
     "Any": "Any",
     "To": "To",
     "Equals": "Equals",
+    "Contains": "Contains",
     "Clear": "Clear",
     "Apply": "Apply",
     "This column cannot list its objects.": "This column cannot list its objects.",
