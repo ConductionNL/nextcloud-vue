@@ -153,6 +153,8 @@ Three behaviours are worth knowing because each is load-bearing:
 
 Call `resetUserLayout()` to drop the arrangement; the page emits `user-layout-reset` and returns to the manifest.
 
+The same `userLayout` covers the page's [views](../../../docs/components/cn-dashboard-page.md#each-view-arranged-per-user-userlayout): each view's grid is draggable in edit mode and is stored per view, under the page id with `.view.<view id>` appended. Edit mode shows **Reset layout**, which returns the page's own grid and the chosen view to the manifest (`user-layout-reset`, `view-layout-reset`). `resetViewUserLayout(viewId)` resets one view.
+
 ## Slots
 
 | Slot | Scope | Description |
