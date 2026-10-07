@@ -226,6 +226,10 @@
 					<strong>{{ step.transition }}</strong>
 					<span class="cn-run-sidebar__hint"> · {{ step.status }}</span>
 					<span v-if="step.error" class="cn-run-sidebar__error"> · {{ step.error }}</span>
+					<!-- A send step's outcome lists, by name: who got it, who
+					     opted out, who the opt-out check could not answer for. -->
+					<CnFlowStepOutcomes v-if="step.report && step.report.messaging"
+						:report="step.report.messaging" />
 				</li>
 			</ol>
 		</component>
@@ -241,6 +245,7 @@ import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutli
 import DatabaseOutline from 'vue-material-design-icons/DatabaseOutline.vue'
 import FormatListBulleted from 'vue-material-design-icons/FormatListBulleted.vue'
 import Replay from 'vue-material-design-icons/Replay.vue'
+import CnFlowStepOutcomes from '../CnFlowStepOutcomes/CnFlowStepOutcomes.vue'
 import { FLOW_RUN_ACTIVE_STATUSES, useFlowStore } from '../../composables/useFlowStore.js'
 
 export default {
@@ -249,6 +254,7 @@ export default {
 	components: {
 		ArrowLeft,
 		CheckboxMarkedOutline,
+		CnFlowStepOutcomes,
 		DatabaseOutline,
 		FormatListBulleted,
 		NcAppSidebarTab,

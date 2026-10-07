@@ -1106,7 +1106,21 @@
     "Loading…": "Loading…",
     "A register and schema are required": "A register and schema are required",
     "Change the search or try again.": "Change the search or try again.",
-    "Try again later.": "Try again later."
+    "Try again later.": "Try again later.",
+    "Who this step reached": "Who this step reached",
+    "Each list shows its first entries only.": "Each list shows its first entries only.",
+    "Delivered": "Delivered",
+    "Opted out": "Opted out",
+    "Not sent, the opt-out check did not answer": "Not sent, the opt-out check did not answer",
+    "Skipped by their notification settings": "Skipped by their notification settings",
+    "Skipped, sending is switched off": "Skipped, sending is switched off",
+    "Held back by the send limit": "Held back by the send limit",
+    "Refused by the step’s address rule": "Refused by the step’s address rule",
+    "Not a known user or group": "Not a known user or group",
+    "Failed": "Failed",
+    "external recipients are off": "external recipients are off",
+    "not on the item": "not on the item",
+    "not a valid address": "not a valid address"
   },
   "plurals": {
     "%n year": ["%n year", "%n years"],

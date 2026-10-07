@@ -40,16 +40,27 @@
 					:placeholder="t('nextcloud-vue', 'GET')"
 					@update:modelValue="setKey(key, $event)" />
 
-				<!-- A `select` field with `optionsFrom` renders as a picker fed
-				     by the URL the OWNING APP declared — never a bare uuid
-				     text box. -->
-				<NcSelect v-else-if="widgetFor(key) === 'select'"
-					:modelValue="selectedOption(key)"
-					:options="selectOptions[key] || []"
-					:inputLabel="labelFor(key)"
-					:loading="selectLoading[key] === true"
-					:placeholder="t('nextcloud-vue', 'Pick one…')"
-					@update:modelValue="setKey(key, $event ? $event.id : '')" />
+				<!-- A `select` field renders as a picker, never a bare text box.
+				     Its choices come from the URL the OWNING APP declared
+				     (`optionsFrom`) or from the form itself (`options`), for a
+				     short fixed vocabulary with no endpoint of its own. -->
+				<template v-else-if="widgetFor(key) === 'select'">
+					<NcSelect :modelValue="selectedOption(key)"
+						class="cn-flow-node-edit__select"
+						:options="selectOptions[key] || []"
+						:inputLabel="labelFor(key)"
+						:loading="selectLoading[key] === true"
+						:placeholder="t('nextcloud-vue', 'Pick one…')"
+						@update:modelValue="setKey(key, $event ? $event.id : '')" />
+					<!-- NcSelect has no helper text of its own, so the help
+					     follows the control, the next thing a screen reader
+					     reads after it. -->
+					<p v-if="hintFor(key)"
+						class="cn-flow-node-edit__field-help"
+						:data-testid="`flow-node-help-${key}`">
+						{{ hintFor(key) }}
+					</p>
+				</template>
 
 				<NcTextArea v-else-if="widgetFor(key) === 'textarea'"
 					:modelValue="String(draft.config[key] ?? '')"
@@ -170,6 +181,7 @@ import {
 } from '@nextcloud/vue'
 import CnCronField from '../components/CnCronField/CnCronField.vue'
 import { useFlowStore } from '../composables/useFlowStore.js'
+import { hasStaticOptions, normaliseSelectOptions } from '../utils/selectOptions.js'
 
 /** The verbs an HTTP-shaped `method` option can take. */
 /**
@@ -287,7 +299,7 @@ export default {
 
 		/**
 		 * The node's per-field declarations from the catalogue's `configForm`
-		 * ({key, label, type, help, required, optionsFrom}), keyed by config
+		 * ({key, label, type, help, required, optionsFrom, options}), keyed by config
 		 * key. `configKeys` is the degraded form. Either way the node's OWNER
 		 * declares the vocabulary — this dialog never invents fields.
 		 *
@@ -398,7 +410,9 @@ export default {
 	created() {
 		// Select fields need their options; everything else is local.
 		for (const [key, spec] of Object.entries(this.fieldSpecs)) {
-			if (spec?.type === 'select' && spec?.optionsFrom) {
+			if (hasStaticOptions(spec)) {
+				this.selectOptions = { ...this.selectOptions, [key]: normaliseSelectOptions(spec.options) }
+			} else if (spec?.type === 'select' && spec?.optionsFrom) {
 				this.loadSelectOptions(key, spec)
 			}
 		}
@@ -634,7 +648,7 @@ export default {
 		 */
 		widgetFor(key) {
 			const spec = this.fieldSpecs[key]
-			if (spec?.type === 'select' && spec?.optionsFrom) {
+			if (spec?.type === 'select' && (spec?.optionsFrom || hasStaticOptions(spec))) {
 				return 'select'
 			}
 			if (spec?.type === 'boolean') {
@@ -730,13 +744,7 @@ export default {
 					? generateUrl(url)
 					: url)
 				const rows = Array.isArray(response.data) ? response.data : (response.data?.results || [])
-				const options = rows.map((row) => {
-					const id = row.id ?? row.value ?? row['@self']?.uuid ?? row.uuid
-					return {
-						id,
-						label: row.label || row.name || row.title || String(id),
-					}
-				}).filter((o) => o.id !== undefined && o.id !== null && o.id !== '')
+				const options = normaliseSelectOptions(rows)
 				this.selectOptions = { ...this.selectOptions, [key]: options }
 			} catch (error) {
 				// A picker that could not load degrades to showing the stored
@@ -926,6 +934,19 @@ export default {
 
 .cn-flow-node-edit__id,
 .cn-flow-node-edit__hint {
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
+}
+
+/* Full width, like the text fields around it: at its natural width the
+   picker cut every option label in half. */
+.cn-flow-node-edit__select {
+	width: 100%;
+}
+
+.cn-flow-node-edit__field-help {
+	margin: 4px 0 0;
+	padding-inline-start: 8px;
 	font-size: 0.85em;
 	color: var(--color-text-maxcontrast);
 }
