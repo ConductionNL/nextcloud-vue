@@ -1144,7 +1144,9 @@
     "Show the date of today above the heading": "Toon de datum van vandaag boven de kop",
     "Plain header without a coloured background": "Eenvoudige kop zonder gekleurde achtergrond",
     "Loading…": "Laden…",
-    "A register and schema are required": "Een register en schema zijn verplicht"
+    "A register and schema are required": "Een register en schema zijn verplicht",
+    "Change the search or try again.": "Pas de zoekopdracht aan of probeer het opnieuw.",
+    "Try again later.": "Probeer het later opnieuw."
   },
   "plurals": {
     "%n year": ["%n jaar", "%n jaar"],

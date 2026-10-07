@@ -105,13 +105,19 @@ Sortable table headers SHALL be focusable (`tabindex="0"`, `role="columnheader"`
 
 ### Requirement: aria-sort is maintained on the primary key only
 
-Only the header for the primary (first) active sort key SHALL carry `aria-sort` (`ascending` / `descending`); secondary/tertiary sorted headers SHALL NOT carry `aria-sort` (they carry the visible numbered badge instead, per WCAG guidance that `aria-sort` describes single-column table sort state).
+Only the header for the primary sort key SHALL carry `aria-sort` (`ascending` / `descending`); secondary/tertiary sorted headers SHALL NOT carry `aria-sort` (they carry the visible numbered badge instead, per WCAG guidance that `aria-sort` describes single-column table sort state). The primary sort key is the first active sort key whose column is rendered and sortable, the same keys the priority badge counts; a key before it whose column is not rendered or not sortable SHALL NOT take `aria-sort` away from it. At most one header SHALL carry `aria-sort` at a time.
 
 #### Scenario: aria-sort follows the primary key only
 
 - **GIVEN** an active sort `[{key:'name',order:'desc'},{key:'created',order:'asc'}]`
 - **THEN** the "Name" header has `aria-sort="descending"`
 - **AND** the "Created" header has no `aria-sort` attribute
+
+#### Scenario: aria-sort skips a hidden first key
+
+- **GIVEN** an active sort `[{key:'_uuid'},{key:'created',order:'desc'}]` where `_uuid` is not a rendered column
+- **THEN** the "Created" header has `aria-sort="descending"` and shows the descending arrow with no numbered badge
+- **AND** no other header has an `aria-sort` attribute
 
 @e2e include Mount CnDataTable with a 2-key sort; assert `aria-sort` presence/value per header.
 

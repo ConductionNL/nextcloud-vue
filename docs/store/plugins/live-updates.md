@@ -109,7 +109,7 @@ export default {
 
 ## In-flight dedup
 
-The plugin coalesces concurrent `fetchObject(type, id)` and `fetchCollection(type, params)` calls for the same key into a single HTTP request. The dedup maps live as plain (non-reactive) `Map`s on the store instance to avoid Vue 2 reactivity overhead — they are an internal implementation detail and not part of the public API.
+The plugin coalesces concurrent `fetchObject(type, id)` and `fetchCollection(type, params)` calls for the same key into a single HTTP request. The dedup maps live as plain (non-reactive) `Map`s on the store instance to avoid Vue 2 reactivity overhead — they are an internal implementation detail and not part of the public API. A caller that joins an in-flight `fetchCollection` and passes `options.outcome` still gets that shared request's result in it.
 
 Dedup activates on the **first `subscribe()` call**. Before that, `fetchObject` / `fetchCollection` pass straight through to the base implementations, so a store that never subscribes has zero behaviour change from the (default-installed) plugin.
 
