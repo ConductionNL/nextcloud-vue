@@ -97,6 +97,49 @@ export function fieldEvents(object, fields, now = new Date()) {
  * @param {Date} [now] The reference moment.
  * @return {Array<object>} The events.
  */
+/**
+ * The text at a path of a list entry, or '' when the path is unset or empty.
+ *
+ * @param {object} row The list entry.
+ * @param {string|undefined} path The path to read.
+ * @return {string} The text.
+ */
+function textAt(row, path) {
+	if (!path) {
+		return ''
+	}
+	const value = readPath(row, path)
+	return value === null || value === undefined ? '' : String(value)
+}
+
+/**
+ * Events from a list held on the object itself, such as a status history:
+ * `[{ field, dateField, labelField?, label?, detailField? }]`. Each entry of the
+ * list at `field` becomes one event, dated by `dateField`, labelled by its
+ * `labelField` value (else `label`), with `detailField` as the line under it.
+ *
+ * @param {object} object The object.
+ * @param {Array<object>} lists The list configs.
+ * @param {Date} now The moment that separates past from upcoming.
+ * @return {Array<object>} The events.
+ * @spec openspec/changes/timeline-audit-trails-url/specs/timeline-widget/spec.md#requirement-a-list-on-the-object-becomes-dated-events
+ */
+export function listEvents(object, lists, now = new Date()) {
+	return (Array.isArray(lists) ? lists : [])
+		.filter((l) => l && typeof l.field === 'string' && typeof l.dateField === 'string')
+		.flatMap((l) => {
+			const rows = readPath(object, l.field)
+			return (Array.isArray(rows) ? rows : []).map((row, i) => makeEvent({
+				id: `list:${l.field}:${i}`,
+				raw: readPath(row, l.dateField),
+				label: textAt(row, l.labelField) || l.label || l.field,
+				detail: textAt(row, l.detailField),
+				source: 'list',
+			}, now))
+		})
+		.filter(Boolean)
+}
+
 export function relatedEvents(rows, config, now = new Date()) {
 	const cfg = config || {}
 	const dateField = cfg.dateField || '@self.created'
