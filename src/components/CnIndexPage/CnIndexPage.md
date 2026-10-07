@@ -866,7 +866,12 @@ actions, and the page's declaration stands as before. Wire the field on one
 list first, then check `rowActionsNotDeclared` to see what the server is
 offering that you have not declared yet.
 
-The built-in View, Edit, Copy and Delete carry the ids `view`, `edit`, `copy` and `delete`, and match this block by id only, never by their label.
+The built-in View, Edit, Copy and Delete carry the ids `view`, `edit`, `copy` and `delete`, and match this block by id, never by their label.
+They also match OpenRegister's permission verbs, which is what OpenRegister writes in `@self.actions`: `read` permits View and Copy, `update` permits Edit, and `delete` permits Delete.
+A built-in shows when the block allows its id or its verb, and a verb a declared built-in uses is not reported by `rowActionsNotDeclared`.
+When the block refuses the verb with a reason, `rowActionRefusal` returns it for the built-in; a reason on the built-in's own id wins over the verb's.
+`rowActionRefusal` maps the verb only when handed the built-in action itself, such as the action from the `action` event payload or `{ id: 'edit', builtin: true }`; a plain `{ id: 'edit' }` matches by its id only.
+An app action that shares a built-in id, such as `{ "id": "edit", "label": "Open editor" }`, matches by its id only.
 The right-click menu reads the same per-row list as the actions menu, so it drops the same refused actions.
 
 ## Placing built-in row actions
