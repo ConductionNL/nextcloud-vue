@@ -1299,7 +1299,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(result.valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.48.0', () => {
+	it('the manifest schema version reads 2.49.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1320,10 +1320,24 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// page config keys showHeader, showTitle, countSubtitle,
 		// showTypeEyebrow and breadcrumb. 2.47.0 adds round two: nav.footer,
 		// breadcrumb.icon, and the page config keys showWidgetActions,
-		// headerCard and headerWidget. 2.48.0 describes nav.settingsLabel's
-		// new default, "Advanced".
+		// headerCard and headerWidget. 2.48.0 adds page views: the page
+		// config keys views, defaultView and viewsLabel. 2.49.0 describes
+		// nav.settingsLabel's new default, "Advanced".
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.48.0')
+		expect(schema.version).toBe('2.49.0')
+	})
+
+	it('accepts page views on a dashboard and a detail page, and refuses a view without an id or label', () => {
+		const views = [
+			{ id: 'mine', label: 'My work', widgets: [{ id: 'my-cases', type: 'object-table' }], layout: [{ id: '1', widgetId: 'my-cases', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 4 }] },
+			{ id: 'team', label: 'My team', emptyText: 'Nobody in your team has open cases.' },
+		]
+		const page = (type, config) => ({ ...MINIMAL_V2, pages: [{ id: 'P', route: '/p', type, title: 'P', config }] })
+		expect(validateManifestV2(page('dashboard', { views, defaultView: 'team', viewsLabel: 'Whose work' })).valid).toBe(true)
+		expect(validateManifestV2(page('detail', { register: 'r', schema: 's', views })).valid).toBe(true)
+		expect(validateManifestV2(page('dashboard', { views: [{ label: 'No id' }] })).valid).toBe(false)
+		expect(validateManifestV2(page('dashboard', { views: [{ id: 'x' }] })).valid).toBe(false)
+		expect(validateManifestV2(page('dashboard', { views: [{ id: 'has space', label: 'X' }] })).valid).toBe(false)
 	})
 
 	it('accepts the round-two Zuiddrecht keys and refuses a footer that is not a list of ids', () => {

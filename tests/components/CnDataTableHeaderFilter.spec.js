@@ -98,6 +98,27 @@ describe('CnDataTable header filters', () => {
 		wrapper.unmount()
 	})
 
+	// @spec openspec/changes/header-filter-contains/specs/cn-data-table/spec.md#requirement-a-text-header-filter-matches-on-contains
+	it('a text filter says Contains and applies as title[like]', async () => {
+		const wrapper = mountTable()
+		await headerFor(wrapper, 'Title').find('[data-testid="cn-table-header-filter"]').trigger('click')
+		const input = document.querySelector('[data-testid="cn-column-filter-text"]')
+		expect(input.closest('label').textContent).toContain('Contains')
+		input.value = ' acme '
+		input.dispatchEvent(new Event('input'))
+		document.querySelector('[data-testid="cn-column-filter-apply"]').click()
+		await flushPromises()
+		expect(wrapper.emitted('column-filter')[0][0]).toEqual({ key: 'title', params: { 'title[like]': ['acme'] } })
+		wrapper.unmount()
+	})
+
+	it('does not show an exact sidebar filter as the text header filter', () => {
+		const wrapper = mountTable({ activeFilters: { title: ['Acme'] } })
+		const button = headerFor(wrapper, 'Title').find('[data-testid="cn-table-header-filter"]')
+		expect(button.attributes('aria-label')).toBe('Filter Title')
+		wrapper.unmount()
+	})
+
 	it('Escape closes the panel without applying and returns focus to the button', async () => {
 		const wrapper = mountTable()
 		const button = headerFor(wrapper, 'Status').find('[data-testid="cn-table-header-filter"]')
