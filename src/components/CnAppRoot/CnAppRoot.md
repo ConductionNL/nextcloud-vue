@@ -203,3 +203,7 @@ Static-manifest apps use `useAppManifest('myapp', bundledManifest)`, which fetch
 | `softDependencyNotices` | Boolean | `false` | **Deprecated.** Restores the in-shell orange notices, one per unresolved optional dependency. Off by default: they stacked one per optional leaf and pushed the app's own content below the fold, for an audience who cannot act on them. Mount `CnLeafDependencySettings` in admin settings instead. Slated for removal. |
 
 `unresolvedSoftDependencies` is unchanged and still exposed, so an app rendering its own surface from it keeps working.
+
+### Without a navigation (`hideMenu`)
+
+`hideMenu` (default `false`) renders neither the default CnAppNav nor the `#menu` slot, so the content starts at the left edge.

@@ -570,3 +570,33 @@ widgets in one visual family.
 ## Header actions menu
 
 The page header's overflow menu carries Refresh plus the mandatory trio Request a feature / Report a bug / Documentation. `showReportBug` and `showDocumentation` (both `true` by default) exist for a surface that must suppress one deliberately; the shared menu resolves each target itself, so leaving them on costs nothing. The Documentation entry deep-links to this page's own section using the page id as its anchor.
+
+## Type eyebrow and breadcrumb
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showTypeEyebrow` | `Boolean` | `true` | `false` (manifest `config.showTypeEyebrow: false`) drops the type label above the record name once the record resolves, for a header that says the type in a pill instead. |
+| `breadcrumb` | `Object \| null` | `null` | A breadcrumb line above the header (manifest `config.breadcrumb`): `{ label, route?, params?, href? }` names the list the record belongs to; the record's display name follows as the current crumb. The label goes through the host translate function. |
+
+```json
+"config": { "showTypeEyebrow": false, "breadcrumb": { "label": "All cases", "route": "Cases" } }
+```
+
+A breadcrumb's label shows as text. `breadcrumb.icon` (an MDI name such as `Home`) draws that icon as the first crumb instead, with the label as its accessible name.
+
+## Header card and header widget
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `headerCard` | `Boolean` | `false` | Draws the header (pills, title, actions) as a bordered card on the surface colour (manifest `config.headerCard`), as the board's case header. Theme hooks: `--cn-detail-header-card-padding` (22px 24px), `--cn-detail-header-card-radius` (12px), `--cn-detail-header-row-gap` (22px). |
+| `headerWidget` | `String` | `''` | The id of a widget in `widgets` to render inside the header, on its own row under the title and the actions, without a card of its own (manifest `config.headerWidget`). The widget leaves the body grid and its row closes up. An id that names no widget renders nothing extra. |
+
+```json
+"config": {
+  "headerCard": true,
+  "headerWidget": "case-stages",
+  "breadcrumb": { "label": "All cases", "route": "Cases" }
+}
+```
+
+Blocks such as favourites, follow and attention are placed with the layout you already have: a `layout` entry's `gridY` puts one under the tabs, and `sideColumn` takes its widget id.

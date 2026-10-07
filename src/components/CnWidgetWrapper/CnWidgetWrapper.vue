@@ -69,6 +69,17 @@
 			     It used to gate both, so a caller who switched the menu off
 			     also lost the Save button for an inline edit, silently. -->
 			<div v-if="actionsAreVisible()" class="cn-widget-wrapper__actions">
+				<!-- One text link in the header (`headerLink`): "All deadlines",
+				     "To the board". A route is a router link, an href a plain
+				     anchor. Sits before the slot and the overflow menu. -->
+				<component
+					:is="headerLinkTag"
+					v-if="headerLinkTag"
+					class="cn-widget-wrapper__header-link"
+					data-testid="cn-widget-wrapper-header-link"
+					v-bind="headerLinkAttrs">
+					{{ headerLinkLabel }}
+				</component>
 				<!-- @slot actions Custom action buttons rendered before the
 				     built-in overflow menu. -->
 				<slot name="actions" />
@@ -349,6 +360,22 @@ export default {
 		buttons: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * One text link in the header's actions group, before the overflow
+		 * menu: `{ label, route?, params?, query?, href? }`. A `route` is a
+		 * named router link (needs a router), an `href` a plain anchor. The
+		 * label goes through the host translate function. Null (the
+		 * default) draws nothing. Manifest: `headerLink` on the widget
+		 * definition or its layout entry.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-widget-header-carries-a-text-link
+		 * @type {{label: string, route?: string, params?: object, query?: object, href?: string}|null}
+		 */
+		headerLink: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -635,6 +662,62 @@ export default {
 		},
 
 		/**
+		 * The header link's tag: `router-link` for a route (when a router is
+		 * mounted), `a` for an href, '' when there is no usable link.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-widget-header-carries-a-text-link
+		 * @return {string}
+		 */
+		headerLinkTag() {
+			const link = this.headerLink
+			if (!link || typeof link.label !== 'string' || link.label === '') {
+				return ''
+			}
+			if (link.route && this.$router) {
+				return 'router-link'
+			}
+			if (typeof link.href === 'string' && link.href !== '') {
+				return 'a'
+			}
+			return ''
+		},
+
+		/**
+		 * The header link's attributes for its tag.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-widget-header-carries-a-text-link
+		 * @return {object}
+		 */
+		headerLinkAttrs() {
+			const link = this.headerLink || {}
+			if (this.headerLinkTag === 'router-link') {
+				const to = { name: link.route }
+				if (link.params && typeof link.params === 'object') {
+					to.params = link.params
+				}
+				if (link.query && typeof link.query === 'object') {
+					to.query = link.query
+				}
+				return { to }
+			}
+			if (this.headerLinkTag === 'a') {
+				return { href: link.href }
+			}
+			return {}
+		},
+
+		/**
+		 * The header link's text, through the host translate function.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-widget-header-carries-a-text-link
+		 * @return {string}
+		 */
+		headerLinkLabel() {
+			const label = this.headerLink && this.headerLink.label
+			return label ? this.effectiveTranslate(label) : ''
+		},
+
+		/**
 		 * The RENDERED widget title — `displayTitle` run through the host
 		 * translate function. Kept separate from `displayTitle` on purpose:
 		 * `resolvedWidgetId` slugifies the raw title, so identifiers (DOM
@@ -877,7 +960,7 @@ export default {
 		 * @return {boolean} True when the group would hold a visible control.
 		 */
 		actionsAreVisible() {
-			return this.showActions || this.actionsSlotRenders()
+			return this.showActions || this.actionsSlotRenders() || Boolean(this.headerLinkTag)
 		},
 
 		/**
@@ -1125,6 +1208,29 @@ export default {
 	display: flex;
 	gap: 4px;
 	flex-shrink: 0;
+}
+
+/* The header's text link (`headerLink`). Theme hooks: --cn-widget-header-link-size
+   and --cn-widget-header-link-weight. */
+.cn-widget-wrapper__header-link {
+	align-self: center;
+	padding: 0 calc(1 * var(--default-grid-baseline));
+	color: var(--color-primary-element);
+	font-size: var(--cn-widget-header-link-size, 14px);
+	font-weight: var(--cn-widget-header-link-weight, 600);
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.cn-widget-wrapper__header-link:hover,
+.cn-widget-wrapper__header-link:focus-visible {
+	text-decoration: underline;
+}
+
+.cn-widget-wrapper__header-link:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+	border-radius: var(--border-radius-small, 4px);
 }
 
 /* Every widget's header icon is coloured — `--cn-widget-icon-color` is set on

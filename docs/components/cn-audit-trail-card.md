@@ -46,3 +46,11 @@ Pass pre-translated labels when your app handles i18n:
 ## Reference
 
 <GeneratedRef />
+
+## The app-wide feed (`scope: "app"`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `scope` | `String` | `'object'` | `object` lists one object's trail and needs `register`, `schema` and `objectId`. `app` lists the reader's whole feed: the entries of every object the caller may read (OpenRegister's `/audit-trails/readable`), narrowed to `register` and `schema` when set, with no object. |
+
+The built-in `audit-trail` widget (`CnAuditTrailWidget`) takes the same `scope` as a prop or as `content.scope`, so a dashboard can declare `{ "widgetKey": "audit-trail", "props": { "content": { "scope": "app", "title": "Recent activity", "register": "dossiq" } } }`.

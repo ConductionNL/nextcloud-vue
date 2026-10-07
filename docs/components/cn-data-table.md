@@ -179,3 +179,13 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 - `#footer` slot (`{ total, shown }`) — supply a custom footer link (e.g. "+ New"
   or an always-shown "View all") with its own handler; works outside a
   vue-router context.
+
+## A second line in a cell (`columns[].secondary`)
+
+`secondary` on a column draws a muted second line under the cell's value: a field key (`"number"`), a template with `{field}` placeholders (`"{number} · {requester.name}"`, dotted paths allowed), or a function of the row. A line that resolves to nothing is not drawn.
+
+```json
+{ "key": "title", "label": "Case", "secondary": "{number} · {requester.name}" }
+```
+
+Theme hooks: `--cn-table-secondary-size` (0.9em), `--cn-table-secondary-color`.

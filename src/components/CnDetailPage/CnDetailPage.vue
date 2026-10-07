@@ -41,8 +41,20 @@
 			{{ skipLinkLabel }}
 		</a>
 
+		<!-- Breadcrumb line (manifest `config.breadcrumb`): the list the record
+		     belongs to, then the record itself as the current crumb. -->
+		<CnBreadcrumbs
+			v-if="breadcrumbCrumbs.length > 0 && !objectNotFound"
+			class="cn-detail-page__breadcrumbs"
+			:crumbs="breadcrumbCrumbs"
+			:rootText="breadcrumbCrumbs[0].icon === undefined"
+			data-testid="cn-detail-page-breadcrumbs" />
 		<!-- Header -->
-		<div v-if="!objectNotFound" class="cn-detail-page__header" data-testid="cn-detail-page-header">
+		<div
+			v-if="!objectNotFound"
+			class="cn-detail-page__header"
+			:class="{ 'cn-detail-page__header--card': headerCard, 'cn-detail-page__header--with-widget': headerWidgetDef !== null }"
+			data-testid="cn-detail-page-header">
 			<!-- Header (left block) — overridable via #header slot. Default
 			     renders the icon + title + description. The right-hand
 			     #actions slot remains separate so headerComponent and
@@ -98,7 +110,7 @@
 						     (ADR-062). Only shown once the object resolves to a
 						     display name that differs from the type label. -->
 						<p
-							v-if="typeEyebrow"
+							v-if="typeEyebrow && showTypeEyebrow"
 							class="cn-detail-page__type-eyebrow"
 							data-testid="cn-detail-page-type-eyebrow">
 							{{ typeEyebrow }}
@@ -362,6 +374,50 @@
 						<NcActionSeparator v-if="menuShowsHelpLinks" />
 					</template>
 				</CnActionsMenu>
+			</div>
+			<!-- A widget inside the header (manifest `config.headerWidget`), on
+			     a row of its own under the title and the actions: the stages
+			     bars of the board's case card. Drawn without a card of its own,
+			     and taken out of the body grid. Nothing renders without the
+			     key. -->
+			<div
+				v-if="headerWidgetDef !== null"
+				class="cn-detail-page__header-widget"
+				data-testid="cn-detail-page-header-widget">
+				<!--
+					@slot `widget-${headerWidgetDef.id}`
+					@description The same per-widget slot the body grid and the side
+					column offer, for the widget placed in the header
+					(`headerWidget`). Same name and same bindings.
+				-->
+				<slot
+					:name="`widget-${headerWidgetDef.id}`"
+					:item="{ id: headerWidgetDef.id, widgetId: headerWidgetDef.id }"
+					:widget="headerWidgetDef"
+					:objectId="objectId"
+					:object="resolvedObject"
+					:objectData="resolvedObject"
+					:objectType="resolvedObjectType"
+					:register="register"
+					:schema="schema">
+					<CnDetailWidgetHost
+						:widget="headerWidgetDef"
+						chrome="bare"
+						:objectId="objectId"
+						:object="currentObject"
+						:objectType="resolvedObjectType"
+						:schemaObject="currentSchema"
+						:register="register"
+						:schema="schema"
+						:store="effectiveObjectStore"
+						:surface="surface"
+						:integrationContext="effectiveIntegrationContext"
+						:hideEmpty="hideEmpty"
+						:cnRegistry="cnRegistry"
+						:availableWidgets="widgets"
+						@geoSaved="onGeoSaved"
+						@openIntegration="onAutoBodyOpenIntegration" />
+				</slot>
 			</div>
 		</div>
 
@@ -1025,6 +1081,7 @@ import {
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
+import { CnBreadcrumbs } from '../CnBreadcrumbs/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
@@ -1172,6 +1229,7 @@ export default {
 		CnDashboardGrid,
 		CnLifecycleActions,
 		CnActionButtons,
+		CnBreadcrumbs,
 		CnStatusBadge,
 		CnSummaryAggregates,
 		CnRelatedCollections,
@@ -2079,6 +2137,37 @@ export default {
 		},
 
 		/**
+		 * Whether the type eyebrow (the type label above the record name)
+		 * renders once the record resolves. `false` (manifest
+		 * `config.showTypeEyebrow: false`) drops it for a header that says
+		 * the type in a pill instead.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
+		 */
+		showTypeEyebrow: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * A breadcrumb line above the header (manifest `config.breadcrumb`):
+		 * `{ label, route?, params?, href? }` names the list the record
+		 * belongs to; the record's display name follows as the current
+		 * crumb. `label` goes through the host translate function and shows
+		 * as text; `icon` (an MDI name, e.g. `Home`) draws that icon instead,
+		 * with the label as its accessible name. Null (the default) draws no
+		 * trail.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-declared-breadcrumb-label-shows-as-text
+		 * @type {{label: string, route?: string, params?: object, href?: string, icon?: string}|null}
+		 */
+		breadcrumb: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * A column of cards beside the body (manifest `config.sideColumn`),
 		 * for the record's facts: deadline, requester, handler, links. Each
 		 * entry is a widget definition (`{ id?, type, title?, content? }`) or
@@ -2091,6 +2180,33 @@ export default {
 		sideColumn: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Draw the header as a card (manifest `config.headerCard: true`): the
+		 * pills, the title and the actions on the page's surface colour inside
+		 * a bordered, rounded box, as the board's case header. Off by default,
+		 * which keeps the header on the page ground.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-detail-header-can-be-a-card-that-holds-a-widget
+		 */
+		headerCard: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The id of a widget declared in `widgets` to render inside the header,
+		 * on its own row under the title and the actions (manifest
+		 * `config.headerWidget`), e.g. the stages bars. It renders without a
+		 * card of its own and leaves the body grid. Empty (the default), or an
+		 * id that names no widget, renders nothing extra.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-detail-header-can-be-a-card-that-holds-a-widget
+		 */
+		headerWidget: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -2630,6 +2746,21 @@ export default {
 					return pill ? { ...pill, key, label: this.effectiveTranslate(pill.label) } : null
 				})
 				.filter(Boolean)
+		},
+
+		/**
+		 * The widget the header holds (`headerWidget`): the definition in
+		 * `widgets` with that id, or null without the key or a match.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-detail-header-can-be-a-card-that-holds-a-widget
+		 * @return {object|null} The widget definition, or null.
+		 */
+		headerWidgetDef() {
+			if (!this.headerWidget) {
+				return null
+			}
+			const declared = Array.isArray(this.widgets) ? this.widgets : []
+			return declared.find((widget) => widget && widget.id === this.headerWidget) || null
 		},
 
 		/**
@@ -3199,6 +3330,33 @@ export default {
 		 */
 		displayTitle() {
 			return this.objectDisplayName || this.resolvedTitle
+		},
+
+		/**
+		 * The breadcrumb trail: the declared crumb (a router target from
+		 * `route` + `params`, or an `href`), then the record's display name
+		 * as the current crumb. Empty without a `breadcrumb` label. The first
+		 * crumb carries `icon` only when the manifest declares one.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-declared-breadcrumb-label-shows-as-text
+		 * @return {Array<{label: string, to?: object, href?: string, icon?: string}>}
+		 */
+		breadcrumbCrumbs() {
+			const crumb = this.breadcrumb
+			if (!crumb || typeof crumb.label !== 'string' || crumb.label === '') {
+				return []
+			}
+			const first = { label: this.effectiveTranslate(crumb.label) }
+			if (typeof crumb.icon === 'string' && crumb.icon !== '') {
+				first.icon = crumb.icon
+			}
+			if (crumb.route) {
+				first.to = { name: crumb.route, ...(crumb.params ? { params: crumb.params } : {}) }
+			} else if (crumb.href) {
+				first.href = crumb.href
+			}
+			return [first, { label: this.displayTitle }]
 		},
 
 		/**
@@ -4652,6 +4810,10 @@ export default {
 		 * it — CnPageRenderer's split pane forwards no slots, which is exactly
 		 * that fault and wants fixing, not concealing.
 		 *
+		 * The widget the header holds (`headerWidget`) draws nothing here
+		 * either: it is already drawn in the header.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-detail-header-can-be-a-card-that-holds-a-widget
 		 * @param {object} item A layout item.
 		 * @return {boolean} False only when the item provably draws nothing.
 		 */
@@ -4661,6 +4823,11 @@ export default {
 			// staying in the manifest would be unmanageable.
 			if (this.editingBody) {
 				return true
+			}
+			// The widget the header holds (`headerWidget`) is drawn there, so
+			// its grid cell would be the same widget twice.
+			if (this.headerWidgetDef !== null && item.widgetId === this.headerWidgetDef.id) {
+				return false
 			}
 			const widget = this.findWidget(item)
 			if (!widget) {
