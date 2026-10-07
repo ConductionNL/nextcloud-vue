@@ -162,14 +162,64 @@ function referenceTarget(column, prop) {
 }
 
 /**
+ * Whether a schema lists its properties. Without that the table knows its
+ * columns but not what backs them.
+ *
+ * @param {object|null} schema The table's schema.
+ * @return {boolean} True when the schema has a properties map.
+ */
+function hasProperties(schema) {
+	return !!(schema && typeof schema === 'object' && schema.properties && typeof schema.properties === 'object')
+}
+
+/**
+ * A filter for a column when the table has no schema to read (a manifest
+ * page whose schema did not resolve, a host-fed table). The column's own
+ * hints decide the kind: an `fkResolve` widget gives a reference filter, a
+ * `type` or `format` on the column gives number, date or yes/no, and every
+ * other plain stored key gets a text filter on contains (`[like]`). A key
+ * that is a path (`a.b`) or a metadata field (`@self`, `_id`) gets none,
+ * because OpenRegister does not filter those by that name.
+ *
+ * @spec openspec/changes/audit-round-lib-fixes/specs/cn-data-table/spec.md
+ * @param {object} column The column definition.
+ * @param {object} base The shared part of the definition.
+ * @return {object|null} The filter definition.
+ */
+function columnHintFilterDef(column, base) {
+	const key = column.key
+	if (key.includes('.') || key.charAt(0) === '@' || key.charAt(0) === '_') {
+		return null
+	}
+	const reference = referenceTarget(column, null)
+	if (reference) {
+		return { ...base, kind: 'reference', reference }
+	}
+	const type = String(column.type || '').toLowerCase()
+	const format = String(column.format || '').toLowerCase()
+	if (type === 'boolean') {
+		return { ...base, kind: 'boolean' }
+	}
+	if (type === 'number' || type === 'integer') {
+		return { ...base, kind: 'number' }
+	}
+	if (type === 'date' || type === 'date-time' || format === 'date' || format === 'date-time') {
+		return { ...base, kind: 'date', dateTime: type === 'date-time' || format === 'date-time' }
+	}
+	return { ...base, kind: 'string' }
+}
+
+/**
  * How a column filters, or null when it does not.
  *
  * Kinds: `enum` (checkbox list), `boolean` (yes, no, any), `reference`
  * (searchable list of the referenced objects), `number` and `date` (from and
  * to), and `string` (contains, through OpenRegister's `[like]`). `filterable: false` on the column turns it
- * off. A column with no schema property behind it only filters when it
- * carries an enum hint (`enum`, or a badge widget's colour map), because the
- * server cannot filter on a value it does not store.
+ * off. When the schema lists its properties, a column with no property
+ * behind it only filters when it carries an enum hint (`enum`, or a badge
+ * widget's colour map), because the server cannot filter on a value it does
+ * not store. When there is no schema to read, the column's own hints decide
+ * (see `columnHintFilterDef`), falling back to a text filter on contains.
  *
  * @param {object} column The column definition.
  * @param {object|null} schema The table's schema.
@@ -191,7 +241,7 @@ export function columnFilterDef(column, schema) {
 		return { ...base, kind: 'enum', options }
 	}
 	if (!prop) {
-		return null
+		return hasProperties(schema) ? null : columnHintFilterDef(column, base)
 	}
 	const reference = referenceTarget(column, prop)
 	if (reference) {

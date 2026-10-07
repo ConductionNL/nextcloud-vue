@@ -140,3 +140,38 @@ describe('text filter: contains through OpenRegister [like]', () => {
 		expect(buildQueryString({ 'title[like]': ['a', 'b'] })).toBe('?title%5Blike%5D%5B%5D=a&title%5Blike%5D%5B%5D=b')
 	})
 })
+
+// Audit G2 (7 October 2026): manifest index pages whose schema did not
+// resolve had sorting but no header filters. Without a schema the column's
+// own hints decide, and a plain key falls back to a text filter on contains.
+describe('a table without a schema', () => {
+	it('gives a plain column a text filter on contains', () => {
+		const def = columnFilterDef({ key: 'name', label: 'Name' }, null)
+		expect(def).toMatchObject({ kind: 'string', label: 'Name' })
+		expect(columnFilterParams(def, { value: 'acme' })).toEqual({ 'name[like]': ['acme'] })
+	})
+
+	it('reads the column type and format when the column carries them', () => {
+		expect(columnFilterDef({ key: 'unitPrice', type: 'number' }, null).kind).toBe('number')
+		expect(columnFilterDef({ key: 'active', type: 'boolean' }, null).kind).toBe('boolean')
+		expect(columnFilterDef({ key: 'created', format: 'date-time' }, null)).toMatchObject({ kind: 'date', dateTime: true })
+		expect(columnFilterDef({ key: 'due', type: 'date' }, undefined)).toMatchObject({ kind: 'date', dateTime: false })
+	})
+
+	it('filters an fkResolve column as a reference', () => {
+		const def = columnFilterDef({ key: 'category', widget: 'fkResolve', widgetProps: { register: 'pipelinq', schema: 'productCategory', labelField: 'name' } }, null)
+		expect(def).toMatchObject({ kind: 'reference', reference: { register: 'pipelinq', schema: 'productCategory' } })
+	})
+
+	it('treats a schema without properties as no schema', () => {
+		expect(columnFilterDef({ key: 'name' }, { title: 'Product' }).kind).toBe('string')
+	})
+
+	it('gives no filter to a path, a metadata field, a computed column or an opt-out', () => {
+		expect(columnFilterDef({ key: 'client.name' }, null)).toBeNull()
+		expect(columnFilterDef({ key: '@self.created' }, null)).toBeNull()
+		expect(columnFilterDef({ key: '_id' }, null)).toBeNull()
+		expect(columnFilterDef({ key: 'openDeals', aggregate: {} }, null)).toBeNull()
+		expect(columnFilterDef({ key: 'name', filterable: false }, null)).toBeNull()
+	})
+})

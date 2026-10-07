@@ -1171,14 +1171,17 @@ export default {
 		},
 
 		/**
-		 * End the tour for good from the corner close button: mark it complete so
-		 * the seen-version is persisted and it does not auto-show again.
+		 * The corner close button PAUSES the tour, like ESC and the dim. It
+		 * used to complete it, and the host then wiped the saved step, so a
+		 * restart began at step 1 again. Only Finish on the last step (and a
+		 * host-supplied Skip) completes the tour; "Start over" in the user
+		 * settings stays the way back to step 1.
 		 *
+		 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
 		 * @return {void}
 		 */
 		close() {
-			this.wt.complete()
-			this.$emit('complete')
+			this.onBackdrop()
 		},
 
 		/**

@@ -279,7 +279,7 @@ export default {
 		 * @param {(suggestions: Array<object>) => void} callback Receives the suggestion array.
 		 */
 		async fetchMentionSuggestions(search, callback) {
-			const users = await searchNextcloudUsers(search)
+			const users = await searchNextcloudUsers(search, { includeCurrentUser: false })
 			callback(users.map((user) => ({
 				id: user.id,
 				label: user.label,

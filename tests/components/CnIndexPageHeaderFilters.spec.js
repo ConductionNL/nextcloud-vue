@@ -56,4 +56,36 @@ describe('CnIndexPage header filters', () => {
 		expect(wrapper.vm.effectiveActiveFilters).toEqual({ state: ['done'] })
 		expect(wrapper.emitted('filter-change')[0][0]).toEqual({ key: 'state', values: ['done'] })
 	})
+
+	// Audit G2: the table only got header filters when a schema object had
+	// resolved, so manifest pages without one had sort but no filters.
+	describe('when the table shows header filters', () => {
+		const show = (ctx) => CnIndexPage.computed.tableHeaderFilters.call({ headerFilters: true, effectiveSchema: null, isSelfFetchMode: false, $: { vnode: { props: {} } }, ...ctx })
+
+		it('a self-fetching page shows them without a resolved schema', () => {
+			expect(show({ isSelfFetchMode: true })).toBe(true)
+		})
+
+		it('a page with a schema shows them, as before', () => {
+			expect(show({ effectiveSchema: { properties: {} } })).toBe(true)
+		})
+
+		it('a host-fed table without a schema shows them when the host listens for filter-change', () => {
+			expect(show({ $: { vnode: { props: { onFilterChange: () => {} } } } })).toBe(true)
+			expect(show({})).toBe(false)
+		})
+
+		it('headerFilters: false still turns them off', () => {
+			expect(show({ headerFilters: false, isSelfFetchMode: true })).toBe(false)
+		})
+
+		it('renders the filter on a manifest column when no schema resolved', async () => {
+			const wrapper = mount(CnIndexPage, {
+				props: { title: 'Products', objects: [{ id: '1', name: 'Widget' }], columns: [{ key: 'name', label: 'Name' }], viewMode: 'table', onFilterChange: () => {} },
+				global: { mocks: { $route: { query: {}, params: {}, path: '/products' }, $router: { replace: jest.fn() } } },
+			})
+			await wrapper.vm.$nextTick()
+			expect(wrapper.find('[data-testid="cn-table-header-filter"]').exists()).toBe(true)
+		})
+	})
 })

@@ -488,7 +488,7 @@
 					:includeColumns="includeColumns"
 					:columnOverrides="columnOverrides"
 					:rowClass="rowClass"
-					:filterable="headerFilters && !!effectiveSchema"
+					:filterable="tableHeaderFilters"
 					:activeFilters="effectiveActiveFilters"
 					:filterRegister="typeof register === 'string' ? register : ''"
 					@columnFilter="onColumnFilterEvent"
@@ -3873,6 +3873,28 @@ export default {
 		},
 
 		/** Resolved schema OBJECT (for column generation / icons / labels). */
+		/**
+		 * Whether the table shows its header filters. A self-fetching page
+		 * applies them itself, with or without a resolved schema (the columns
+		 * then say how each one filters, else a text filter on contains). A
+		 * host-fed table shows them when a schema came along, as before, or
+		 * when the host listens for `filter-change`; a filter nobody applies
+		 * would be a control that does nothing.
+		 *
+		 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-data-table/spec.md
+		 * @return {boolean} True when header filters show.
+		 */
+		tableHeaderFilters() {
+			if (!this.headerFilters) {
+				return false
+			}
+			if (this.effectiveSchema || this.isSelfFetchMode) {
+				return true
+			}
+			const vnodeProps = (this.$ && this.$.vnode && this.$.vnode.props) || {}
+			return typeof vnodeProps.onFilterChange === 'function' || Array.isArray(vnodeProps.onFilterChange)
+		},
+
 		effectiveSchema() {
 			if (this.isSelfFetchMode) {
 				return this.list.schema.value

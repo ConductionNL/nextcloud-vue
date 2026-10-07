@@ -934,8 +934,11 @@ export default {
 			 * Restart entry for the product walkthrough (ADR-043). Descendants
 			 * (a menu/settings "Replay walkthrough" entry, or a manifest menu
 			 * `action: "replay-walkthrough"`) call this to re-run a tour. With no
-			 * `tourId` the first declared tour is used.
+			 * `tourId` the first declared tour is used. An unfinished tour
+			 * continues where the user was (a paused tour, else the saved
+			 * step); "Start over" in the user settings goes back to step 1.
 			 *
+			 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
 			 * @param {string} [tourId] The tour to restart.
 			 * @return {void}
 			 */
@@ -945,9 +948,17 @@ export default {
 				}
 				const wt = useWalkthrough(this.appId, this.manifest)
 				const id = tourId || (this.manifest.walkthrough.tours[0] && this.manifest.walkthrough.tours[0].id)
-				if (id) {
-					wt.restart(id)
+				if (!id) {
+					return
 				}
+				const progress = this.walkthroughProgressValue
+				if (wt.paused.value && wt.activeTour.value && wt.activeTour.value.id === id && wt.resumePaused()) {
+					return
+				}
+				if (progress && progress.tourId === id && wt.resumeAt(id, progress.stepId)) {
+					return
+				}
+				wt.restart(id)
 			},
 
 			/**

@@ -12,8 +12,49 @@
  * @module utils/userAutocomplete
  */
 
+import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
+
+/**
+ * The signed-in user as a picker option, or null when nobody is signed in.
+ *
+ * Core autocomplete never returns the person who searches (it is built for
+ * sharing, and you do not share with yourself), so a picker backed by it
+ * alone cannot assign a task to yourself.
+ *
+ * @spec openspec/changes/audit-round-lib-fixes/specs/schema-utilities/spec.md
+ * @return {{id: string, label: string, displayName: string, subline: string}|null} The option.
+ */
+function currentUserOption() {
+	let user
+	try {
+		user = getCurrentUser()
+	} catch {
+		return null
+	}
+	if (!user || !user.uid) {
+		return null
+	}
+	const name = user.displayName || String(user.uid)
+	return { id: String(user.uid), label: name, displayName: name, subline: '' }
+}
+
+/**
+ * Whether the current-user option matches a search term (uid or display
+ * name contains the term, ignoring case). An empty term matches.
+ *
+ * @param {object} option The current-user option.
+ * @param {string} query The search term.
+ * @return {boolean} True when it matches.
+ */
+function matchesQuery(option, query) {
+	const q = String(query || '').trim().toLowerCase()
+	if (q === '') {
+		return true
+	}
+	return option.id.toLowerCase().includes(q) || option.label.toLowerCase().includes(q)
+}
 
 /**
  * Map one autocomplete suggestion to a picker option, keeping only user
@@ -59,10 +100,11 @@ function toUserOption(suggestion) {
  * @param {string} [query] The search term (empty loads an initial page).
  * @param {object} [options] Tuning options.
  * @param {number} [options.limit] Max results (default 25).
+ * @param {boolean} [options.includeCurrentUser] Add the signed-in user when they match (default true; a mention list passes false).
  * @return {Promise<Array<{id: string, label: string, subline: string}>>} Picker options.
  */
 export async function searchNextcloudUsers(query = '', options = {}) {
-	const { limit = 25 } = options
+	const { limit = 25, includeCurrentUser = true } = options
 	try {
 		const url = generateOcsUrl('core/autocomplete/get')
 		const response = await axios.get(url, {
@@ -86,12 +128,30 @@ export async function searchNextcloudUsers(query = '', options = {}) {
 		const list = Array.isArray(data)
 			? data
 			: (Array.isArray(response && response.data) ? response.data : [])
-		return list
+		const found = list
 			.map(toUserOption)
 			.filter((opt) => opt !== null)
+		return includeCurrentUser ? withCurrentUser(found, query) : found
 	} catch {
 		return []
 	}
+}
+
+/**
+ * Put the signed-in user first in a result list when they match the search
+ * and the server left them out.
+ *
+ * @spec openspec/changes/audit-round-lib-fixes/specs/schema-utilities/spec.md
+ * @param {Array<object>} options The server's options.
+ * @param {string} query The search term.
+ * @return {Array<object>} The options, the current user included when they match.
+ */
+function withCurrentUser(options, query) {
+	const me = currentUserOption()
+	if (!me || !matchesQuery(me, query) || options.some((opt) => opt.id === me.id)) {
+		return options
+	}
+	return [me, ...options]
 }
 
 /**
@@ -107,6 +167,12 @@ export async function resolveNextcloudUser(uid) {
 	const fallback = { id: String(uid), label: String(uid) }
 	if (uid === undefined || uid === null || uid === '') {
 		return fallback
+	}
+	// The server never returns the signed-in user, so their own uid would
+	// otherwise fall back to the bare uid.
+	const me = currentUserOption()
+	if (me && me.id === String(uid)) {
+		return me
 	}
 	const results = await searchNextcloudUsers(String(uid))
 	const match = results.find((opt) => opt.id === String(uid))

@@ -129,3 +129,47 @@
 .cn-requires-app.cn-requires-app .empty-content__action {
 	margin-top: var(--default-grid-baseline, 4px);
 }
+
+/* NcEmptyContent forces its icon's svg to 64px with !important while the
+ * rule above lets the icon box shrink, so the svg spilled out of its box and
+ * over the name. Hold the svg to the size the caller asked for. */
+.cn-requires-app.cn-requires-app .empty-content__icon svg {
+	width: 32px !important;
+	height: 32px !important;
+	max-width: 32px !important;
+	max-height: 32px !important;
+}
+
+/* The dashboard's compact "Install <app>" placeholder: two lines of text and
+ * the button, nothing else, so it fits a two-row tile even under a title row.
+ * `safe center` keeps the top in view when a tile is smaller still, and the
+ * body scrolls rather than clipping the button. */
+.cn-requires-app--compact {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: safe center;
+	gap: calc(2 * var(--default-grid-baseline, 4px));
+	box-sizing: border-box;
+	height: 100%;
+	min-height: 0;
+	overflow: auto;
+	padding: calc(2 * var(--default-grid-baseline, 4px));
+	text-align: center;
+}
+
+.cn-requires-app--compact .cn-requires-app__description {
+	display: -webkit-box;
+	margin: 0;
+	overflow: hidden;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+	line-height: 1.4;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+}
+
+.cn-requires-app--compact .button-vue {
+	flex-shrink: 0;
+}

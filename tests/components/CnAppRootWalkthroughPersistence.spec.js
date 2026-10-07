@@ -120,13 +120,13 @@ describe('CnAppRoot walkthrough completion persistence', () => {
 		w.unmount()
 	})
 
-	it('PUTs the app version to the same preference key when the tour is closed', async () => {
+	it('PUTs the app version to the same preference key when the tour is skipped', async () => {
 		const w = mountRoot('wt-close')
 		await settle()
 		const tour = w.findComponent(CnWalkthrough)
 		expect(tour.exists()).toBe(true)
 
-		tour.vm.close()
+		tour.vm.skip()
 		await settle()
 
 		expect(axios.put).toHaveBeenCalledWith(
@@ -216,7 +216,7 @@ describe('CnAppRoot walkthrough completion persistence', () => {
 	it('still mirrors the version to localStorage so the next boot is synchronous', async () => {
 		const w = mountRoot('wt-mirror')
 		await settle()
-		w.findComponent(CnWalkthrough).vm.close()
+		w.findComponent(CnWalkthrough).vm.skip()
 		await settle()
 		expect(window.localStorage.getItem(WALKTHROUGH_SEEN_STORAGE_PREFIX + 'wt-mirror')).toBe('2.1.0')
 		w.unmount()
@@ -231,7 +231,7 @@ describe('CnAppRoot walkthrough completion persistence', () => {
 		await settle()
 		expect(axios.get).not.toHaveBeenCalledWith(expect.stringContaining(PREF_PATH))
 
-		w.findComponent(CnWalkthrough).vm.close()
+		w.findComponent(CnWalkthrough).vm.skip()
 		await settle()
 		expect(axios.put).not.toHaveBeenCalled()
 		expect(window.localStorage.getItem(WALKTHROUGH_SEEN_STORAGE_PREFIX + 'wt-nokey')).toBe('2.1.0')
@@ -242,7 +242,7 @@ describe('CnAppRoot walkthrough completion persistence', () => {
 		axios.put.mockRejectedValue(new Error('403'))
 		const w = mountRoot('wt-writefail')
 		await settle()
-		expect(() => w.findComponent(CnWalkthrough).vm.close()).not.toThrow()
+		expect(() => w.findComponent(CnWalkthrough).vm.skip()).not.toThrow()
 		await settle()
 		expect(w.emitted('walkthrough-complete')).toBeTruthy()
 		w.unmount()
