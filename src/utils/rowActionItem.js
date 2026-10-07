@@ -49,10 +49,15 @@ export function isRowActionVisible(action, item) {
  * @return {string} The slug.
  */
 export function slugifyActionLabel(label) {
-	return String(label || '')
+	// One pass collapses every run of other characters to a single '-', so at
+	// most one '-' can sit at either end; trimming it by index keeps this
+	// linear. `/^-+|-+$/g` here was a ReDoS on long runs of '-' (CodeQL).
+	const slug = String(label || '')
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-+|-+$/g, '')
+	const start = slug.startsWith('-') ? 1 : 0
+	const end = slug.length > start && slug.endsWith('-') ? slug.length - 1 : slug.length
+	return slug.slice(start, end)
 }
 
 /**

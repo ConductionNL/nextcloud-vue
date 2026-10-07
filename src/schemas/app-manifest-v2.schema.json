@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.51.0",
+	"version": "2.52.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -2910,7 +2910,7 @@
 			"type": "object",
 			"required": ["register", "schema"],
 			"additionalProperties": false,
-			"description": "One KPI entry inside a multi-entry stats-block widget (CnStatsBlockWidget `entries[]`). Carries the same source contract as a type:'stat' widget: register + schema + metric + token-resolved filter (@today / @me / @workspace.* and ?-optional clauses), plus per-entry presentation (title, variant, countLabel), an optional route deep link, and hideWhenZero.",
+			"description": "One KPI entry inside a multi-entry stats-block widget (CnStatsBlockWidget `entries[]`). Carries the same source contract as a type:'stat' widget: register + schema + metric + token-resolved filter (@today / @me / @workspace.* and ?-optional clauses), plus per-entry presentation (title, variant, countLabel, format), an optional route deep link, and hideWhenZero. A money value names its currency with currencyField (the page object's field) or currency.",
 			"properties": {
 				"title": {
 					"type": "string",
@@ -2959,6 +2959,32 @@
 					"type": "boolean",
 					"default": false,
 					"description": "When true, the entry is omitted from the card when its resolved count is 0."
+				},
+				"format": {
+					"description": "How the value is shown, as a type:'stat' widget's content.format: a style name, or { style, currency, currencyField, decimals, prefix, suffix }. Omitted, the plain localized count is shown. Numbers are formatted with Intl in the user's locale.",
+					"oneOf": [
+						{ "type": "string", "enum": ["number", "currency", "percent", "decimal", "duration-hours"] },
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"style": { "type": "string", "enum": ["number", "currency", "percent", "decimal", "duration-hours"] },
+								"currency": { "type": "string", "description": "ISO-4217 code, or a token such as @config.currency or @object.currency." },
+								"currencyField": { "type": "string", "description": "Field of the detail page's object that holds the currency (dot-path allowed)." },
+								"decimals": { "type": "integer", "minimum": 0, "description": "Fraction digits." },
+								"prefix": { "type": "string" },
+								"suffix": { "type": "string" }
+							}
+						}
+					]
+				},
+				"currency": {
+					"type": "string",
+					"description": "Shorthand for format.currency: an ISO-4217 code, or a token such as @config.currency. Implies format 'currency'."
+				},
+				"currencyField": {
+					"type": "string",
+					"description": "Shorthand for format.currencyField: the field of the detail page's object that holds the currency, e.g. 'currency'. Implies format 'currency'. The currency is taken from the object, then currency, then the app's reporting currency (config currency), then EUR."
 				}
 			}
 		},

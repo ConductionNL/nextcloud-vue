@@ -61,6 +61,10 @@ Production code passes neither. A host that swaps one in production is reaching 
 
 Through [`writeUserPreference`](../../utilities/write-user-preference.md), not a second HTTP client. That helper already addresses the app's preference route, mirrors to the browser so a layout survives an instance without the endpoint, and refuses an SPA shell answering `200` with HTML. Records are keyed per page by [`dashboardLayoutKey`](../../utilities/dashboard-layout-key.md), so two dashboards in one app never overwrite each other.
 
+## Page views
+
+A page with [views](../../components/cn-dashboard-page.md#each-view-arranged-per-user-userlayout) and `userLayout` keeps one record per view, through the same three calls. The page id passed in is the page's own id with `.view.<view id>` appended, so the key reads `dashboard-layout.<page>.view.<view>`. `resolveUserLayoutApi(store)` answers the three calls from a store with this plugin, or straight over user preferences when there is none, so the page's own grid and its views always agree on where a record lives.
+
 ## Why only geometry is stored
 
 A record that carried the whole layout item would carry the widget's title, its style and its config too. The next manifest change would then be silently overridden by a copy the user never edited, and the admin's edit would appear not to have worked.

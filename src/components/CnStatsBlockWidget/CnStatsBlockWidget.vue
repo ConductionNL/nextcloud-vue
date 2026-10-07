@@ -35,7 +35,13 @@
 				:layout="layout"
 				:filled="filled"
 				:clickable="!!view.route"
-				:route="view.route || null" />
+				:route="view.route || null">
+				<!-- An entry with a `format` (or `currency` / `currencyField`)
+				     shows its value formatted, money in its own currency. -->
+				<template v-if="view.formatted !== null" #value>
+					{{ view.formatted }}
+				</template>
+			</CnStatsBlock>
 		</template>
 
 		<!-- Single-source mode (pre-existing interface, unchanged). -->
@@ -52,7 +58,11 @@
 			:layout="layout"
 			:filled="filled"
 			:clickable="!!route"
-			:route="route" />
+			:route="route">
+			<template v-if="formattedSingle !== null" #value>
+				{{ formattedSingle }}
+			</template>
+		</CnStatsBlock>
 	</div>
 </template>
 
@@ -60,6 +70,7 @@
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
 import { useDataSource } from '../../composables/useDataSource.js'
+import { formatMetricValue, normalizeMetricFormat, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 // The canonical KPI scale (`--cn-kpi-*`) lives in one stylesheet. Imported
@@ -87,6 +98,15 @@ const PAGE_REFRESH_BUS_CHANNEL = 'cn:page:refresh'
  * `field`, token-resolved `filter`) plus per-entry presentation
  * (`title`, `variant`, `countLabel`), an optional `route` deep link, and
  * `hideWhenZero` (the entry is omitted when its resolved count is 0).
+ *
+ * An entry formats its value with `format` (a style name such as
+ * `"currency"`, or `{ style, currency, currencyField, decimals, prefix,
+ * suffix }`), as a `type:"stat"` widget's `content.format` does. A money
+ * value takes the currency from `currencyField` (a field of the detail
+ * page's object, e.g. a contract's own `currency`), then `currency` (a code
+ * or `@config.currency`), then the app's reporting currency, then EUR, and
+ * is formatted in the user's locale. `currency` / `currencyField` may sit on
+ * the entry itself and imply `format: "currency"`.
  * Exactly one of `dataSource` / `entries` must be provided — when
  * `entries` is absent, the single-`dataSource` path renders exactly as
  * before.
@@ -142,6 +162,11 @@ export default {
 		 * `filter`. Null on pages that don't provide it.
 		 */
 		cnWorkspaceContext: { default: null },
+		/**
+		 * Page-level app config provided by the page — the reporting
+		 * currency (`currency`) and `@config.<key>` tokens in `format`.
+		 */
+		cnAppConfig: { default: () => ({}) },
 	},
 
 	props: {
@@ -179,6 +204,20 @@ export default {
 		entries: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * How the single-source value is shown: a style name (`'currency'`,
+		 * `'number'`, `'percent'`, `'decimal'`, `'duration-hours'`) or
+		 * `{ style, currency, currencyField, decimals, prefix, suffix }`.
+		 * Empty (the default) shows the plain localized count. Entries carry
+		 * their own `format`.
+		 *
+		 * @type {string|object|null}
+		 */
+		format: {
+			type: [String, Object],
+			default: null,
 		},
 
 		/** Block title (manifest `widgetDef.title`). */
@@ -343,6 +382,41 @@ export default {
 		},
 
 		/**
+		 * The page-level app config map (reporting currency, `@config` keys).
+		 *
+		 * @return {object}
+		 */
+		configCtx() {
+			return unwrapAppConfig(this.cnAppConfig)
+		},
+
+		/**
+		 * The detail page's object, or null on a dashboard. Its fields feed
+		 * an entry's `currencyField`.
+		 *
+		 * @return {object|null}
+		 */
+		pageObject() {
+			const object = this.objectCtx && this.objectCtx.object
+			return object && typeof object === 'object' ? object : null
+		},
+
+		/**
+		 * The single-source value formatted per `format`, or null to keep
+		 * the plain count.
+		 *
+		 * @return {string|null}
+		 * @spec openspec/changes/stat-currency-from-object/specs/dashboard-page/spec.md#requirement-a-stats-block-entry-formats-its-value
+		 */
+		formattedSingle() {
+			const fmt = normalizeMetricFormat({ format: this.format })
+			if (!fmt || this.loading) {
+				return null
+			}
+			return formatMetricValue(this.resolvedCount, fmt, this.configCtx, this.pageObject)
+		},
+
+		/**
 		 * Token-resolution context for entry filters, merged from the
 		 * detail-page object context and the page-level workspace bag.
 		 *
@@ -359,14 +433,19 @@ export default {
 		 * its fetched count and loading flag, with `hideWhenZero` entries
 		 * whose resolved count is 0 omitted.
 		 *
-		 * @return {Array<{entry: object, key: string, count: number, loading: boolean}>}
+		 * @return {Array<{entry: object, key: string, count: number, loading: boolean, formatted: (string|null)}>}
+		 * @spec openspec/changes/stat-currency-from-object/specs/dashboard-page/spec.md#requirement-a-stats-block-entry-formats-its-value
 		 */
 		entryViews() {
 			return (this.entries || [])
 				.map((entry, i) => {
 					const raw = this.entryCounts[i]
 					const resolved = typeof raw === 'number'
+					const fmt = normalizeMetricFormat(entry)
 					return {
+						// The value as the entry's `format` says, money in the
+						// currency the entry names; null keeps the plain count.
+						formatted: fmt && resolved ? formatMetricValue(raw, fmt, this.configCtx, this.pageObject) : null,
 						entry: entry || {},
 						key: `${(entry && entry.register) || ''}/${(entry && entry.schema) || ''}/${i}`,
 						count: resolved ? raw : 0,

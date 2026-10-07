@@ -462,6 +462,11 @@
 			:register="nestedCreate.register"
 			:item="null"
 			:initialData="nestedCreate.initialData"
+			:excludeFields="nestedCreate.form.excludeFields"
+			:includeFields="nestedCreate.form.includeFields"
+			:fieldOverrides="nestedCreate.form.fieldOverrides"
+			:size="nestedCreate.form.size"
+			:columns="nestedCreate.form.columns"
 			:recoverDraft="false"
 			data-testid="cn-form-dialog-nested-create"
 			@confirm="onNestedCreateConfirm"
@@ -2645,7 +2650,12 @@ export default {
 		 * the new object. When the referenced schema cannot be loaded, the
 		 * term alone is saved as before, so the field never dead-ends.
 		 *
+		 * The form is the one the schema's index page shows for its own Add
+		 * button: that page's `createOverride` saves it and its form settings
+		 * shape it, with the typed term in the name.
+		 *
 		 * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
+		 * @spec openspec/changes/nested-create-uses-page-config/specs/schema-utilities/spec.md
 		 * @param {object} field The reference field descriptor.
 		 * @param {string} term The typed search term.
 		 * @return {Promise<object|null>} The created object, or null.
@@ -2662,21 +2672,37 @@ export default {
 				store.registerObjectType(slug, schemaRef, register)
 			}
 			const labelField = this.referenceLabelField(field)
+			const loadSchema = async () => {
+				try {
+					return await store.fetchSchema(slug)
+				} catch {
+					return null
+				}
+			}
 			// The app may own how this schema is created (pipelinq's client and
 			// contact need a contact-first endpoint; a plain save 400s). A
 			// create override keeps this form and saves through the app's
 			// handler; a create modal (only when no override exists) opens the
 			// app's own dialog instead of the generic form.
-			const appCreate = this.appCreateFor(register, schemaRef)
+			//
+			// A stored schema usually names its reference by id (`$ref: 28`)
+			// while the manifest page names it by slug (`schema: 'client'`), so
+			// when the reference itself matches no page, the referenced schema
+			// is loaded and its slug, id and uuid are tried too.
+			let schema
+			let appCreate = this.appCreateFor(register, [schemaRef])
+			if (!appCreate.page) {
+				schema = await loadSchema()
+				if (schema) {
+					appCreate = this.appCreateFor(register, [schemaRef, schema.slug, schema.id, schema.uuid])
+				}
+			}
 			if (!appCreate.override && appCreate.modal) {
 				return this.openAppCreateModal(appCreate.modal, store, slug, labelField, term)
 			}
 			const override = appCreate.override
-			let schema = null
-			try {
-				schema = await store.fetchSchema(slug)
-			} catch {
-				schema = null
+			if (schema === undefined) {
+				schema = await loadSchema()
 			}
 			if (!schema || !schema.properties) {
 				const payload = { [labelField]: term }
@@ -2685,12 +2711,53 @@ export default {
 					: store.saveObject(slug, payload)
 			}
 			const initialData = {}
-			if (term && schema.properties[labelField]) {
-				initialData[labelField] = term
+			const prefillKey = this.nestedPrefillKey(schema, labelField)
+			if (term && prefillKey) {
+				initialData[prefillKey] = term
 			}
+			const form = appCreate.form || this.nestedFormConfig(null)
 			return new Promise((resolve) => {
-				this.nestedCreate = { field, schema, register, slug, schemaRef, initialData, override, resolve }
+				this.nestedCreate = { field, schema, register, slug, schemaRef, initialData, override, form, resolve }
 			})
+		},
+
+		/**
+		 * The property of the referenced schema the typed term belongs in: the
+		 * reference's label field when the schema has it, else its name, title
+		 * or label. Visibility is decided by the form (a page `fieldOverrides`
+		 * entry can make a read-only name editable), not here.
+		 *
+		 * @spec openspec/changes/nested-create-uses-page-config/specs/schema-utilities/spec.md
+		 * @param {object} schema The referenced schema.
+		 * @param {string} labelField The reference's label field.
+		 * @return {string|null} The property key, or null when none fits.
+		 */
+		nestedPrefillKey(schema, labelField) {
+			const properties = (schema && schema.properties) || {}
+			return [labelField, 'name', 'title', 'label'].find((key) => properties[key]) || null
+		},
+
+		/**
+		 * The create-form settings of the index page that lists a schema, in
+		 * the shape the nested CnFormDialog binds: the same `excludeFields`,
+		 * `includeFields`, `fieldOverrides`, `formSize` and `formColumns`
+		 * CnIndexPage hands its own Add form, so creating from a picker shows
+		 * the form the page shows. Without a page, the form's defaults.
+		 *
+		 * @spec openspec/changes/nested-create-uses-page-config/specs/schema-utilities/spec.md
+		 * @param {object|null} config The page's `config`, or null.
+		 * @return {{excludeFields: string[], includeFields: (string[]|null), fieldOverrides: object, size: string, columns: number}} The form settings.
+		 */
+		nestedFormConfig(config) {
+			const c = config || {}
+			const isMap = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+			return {
+				excludeFields: Array.isArray(c.excludeFields) ? c.excludeFields : [],
+				includeFields: Array.isArray(c.includeFields) ? c.includeFields : null,
+				fieldOverrides: isMap(c.fieldOverrides) ? c.fieldOverrides : {},
+				size: typeof c.formSize === 'string' && c.formSize !== '' ? c.formSize : 'normal',
+				columns: c.formColumns === 2 ? 2 : 1,
+			}
 		},
 
 		/**
@@ -2698,23 +2765,30 @@ export default {
 		 * that lists them: the index page whose `config.schema` (and, when it
 		 * names one, `config.register`) matches. Its `config.createOverride` is
 		 * resolved to the registered handler; its `config.createModal` is the
-		 * registry key of a `kind: 'modal'` dialog.
+		 * registry key of a `kind: 'modal'` dialog; its form settings
+		 * (`fieldOverrides` and friends) shape the nested form.
 		 *
-		 * @spec openspec/changes/review-round-two/specs/schema-utilities/spec.md
+		 * The schema is matched on any of the given references, so a caller
+		 * holding the referenced schema can pass its slug, id and uuid: the
+		 * manifest names a schema by slug, a stored `$ref` often by id.
+		 *
+		 * @spec openspec/changes/nested-create-uses-page-config/specs/schema-utilities/spec.md
 		 * @param {string} register The reference's register.
-		 * @param {string} schemaRef The reference's schema slug or id.
-		 * @return {{override: (((formData: object, ctx: object) => Promise<object>)|null), modal: (string|null)}} What the app declared.
+		 * @param {string|Array<string|number>} schemaRefs The schema's slug, id or uuid, one or several.
+		 * @return {{page: (object|null), override: (((formData: object, ctx: object) => Promise<object>)|null), modal: (string|null), form: (object|null)}} What the app declared.
 		 */
-		appCreateFor(register, schemaRef) {
-			const none = { override: null, modal: null }
+		appCreateFor(register, schemaRefs) {
+			const none = { page: null, override: null, modal: null, form: null }
 			const pages = this.cnManifest && Array.isArray(this.cnManifest.pages) ? this.cnManifest.pages : []
-			const wanted = String(schemaRef).toLowerCase()
+			const wanted = (Array.isArray(schemaRefs) ? schemaRefs : [schemaRefs])
+				.filter((ref) => ref !== undefined && ref !== null && ref !== '')
+				.map((ref) => String(ref).toLowerCase())
 			const page = pages.find((p) => {
 				const config = p && p.config
 				if (!config || config.schema === undefined || config.schema === null) {
 					return false
 				}
-				if (String(config.schema).toLowerCase() !== wanted) {
+				if (!wanted.includes(String(config.schema).toLowerCase())) {
 					return false
 				}
 				return !config.register || String(config.register) === String(register)
@@ -2732,7 +2806,7 @@ export default {
 			const modal = modalEntry && modalEntry.kind === 'modal' && typeof this.cnOpenModal === 'function'
 				? config.createModal
 				: null
-			return { override: override || null, modal }
+			return { page, override: override || null, modal, form: this.nestedFormConfig(config) }
 		},
 
 		/**

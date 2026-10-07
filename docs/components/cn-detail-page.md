@@ -614,6 +614,14 @@ A detail page can offer a few views of a record, each its own widget grid, behin
 }
 ```
 
+### Each view arranged per user (`userLayout`)
+
+With `config.userLayout: true` the header shows **Arrange view** next to the view switch. While it is on, the chosen view's grid is draggable. **Done** stores the arrangement for that view and user (a user preference under `dashboard-layout.<page>.view.<view>`, on the server and mirrored in the browser), and the next visit opens with it. **Reset view** returns the chosen view to its manifest layout and emits `view-layout-reset` with `{ view }`; other views keep theirs. The manifest `layout` is never changed by a user, and the page's own body grid is not affected.
+
+```json
+"config": { "register": "dossiq", "schema": "case", "userLayout": true, "views": [ ... ] }
+```
+
 ## Header card and header widget
 
 | Prop | Type | Default | Description |

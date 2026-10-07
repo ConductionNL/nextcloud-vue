@@ -535,7 +535,22 @@ The switch sits in the page header. With `showHeader: false` it gets a row of it
 }
 ```
 
-A drag or resize in a view's grid while editing is written back into that view's `layout`, and the page emits `view-layout-change` with `{ view, layout }`. A user layout (`userLayout`) covers the page's own `layout` only.
+A drag or resize in a view's grid while editing is written back into that view's `layout`, and the page emits `view-layout-change` with `{ view, layout }`.
+
+### Each view arranged per user (`userLayout`)
+
+With `config.userLayout: true` a user arranges each view for themselves, exactly as they arrange the page's own grid:
+
+- In edit mode the view grid is draggable too. A drag moves the user's copy of the view, never the manifest `layout`.
+- Leaving edit mode stores every view the user moved, once, as a user preference under `dashboard-layout.<page>.view.<view>` (the server, mirrored in the browser, through the same [`dashboardLayoutsPlugin`](../store/plugins/dashboard-layouts.md) calls as the page's own grid). The next visit opens with it.
+- The manifest decides which widgets a view has; the record only moves them.
+- Edit mode shows **Reset layout**. It returns the page's own grid and the chosen view to the manifest and emits `user-layout-reset` and `view-layout-reset` with `{ view }`. Other views keep the user's arrangement.
+
+```json
+{ "id": "Dashboard", "type": "dashboard", "config": { "userLayout": true, "views": [ ... ] } }
+```
+
+The page needs an app id to store under: its `appId` prop, else the one `CnAppRoot` provides.
 
 ## Dropping the widget menus (`showWidgetActions`)
 
