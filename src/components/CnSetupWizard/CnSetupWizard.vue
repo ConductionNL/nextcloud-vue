@@ -641,9 +641,15 @@ export default {
 							value = this.choiceLabel(step, raw)
 						}
 					} else if (step.type === 'config-fields') {
+						// Only the fields the reader filled in: a row of empty
+						// "Name: , KvK: ," reads as broken, not as "not set".
 						value = this.fieldsFor(step)
-							.map((f) => `${f.label}: ${this.configModel[f.key] !== null && this.configModel[f.key] !== undefined ? this.configModel[f.key] : ''}`)
-							.join(', ')
+							.filter((f) => {
+								const v = this.configModel[f.key]
+								return v !== null && v !== undefined && String(v).trim() !== ''
+							})
+							.map((f) => `${f.label}: ${this.configModel[f.key]}`)
+							.join(', ') || t('nextcloud-vue', 'Not set')
 					}
 					if (this.isOnDemand(step)) {
 						const ran = this.ranThisSession(step.id)
