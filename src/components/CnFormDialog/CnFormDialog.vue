@@ -632,6 +632,7 @@ import { describeRowProblem, useChildRecords } from '../../composables/useChildR
 import { draftIndicatorText, draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
+import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import {
@@ -1106,6 +1107,16 @@ export default {
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
 		/** Label for the close button */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/**
+		 * Report the write with a toast: "Saved {title}" after a successful
+		 * save, the server's message after a failed one. `false` suppresses
+		 * the toasts and changes nothing else.
+		 */
+		feedback: {
+			type: Boolean,
+			default: true,
+		},
+
 		/** Confirm button label. Defaults to "Create" or "Save". */
 		confirmLabel: {
 			type: String,
@@ -4285,12 +4296,34 @@ export default {
 		},
 
 		/**
+		 * Toast the outcome of the write, unless `feedback` is off: success
+		 * names the object's title (or the schema's), a failure carries the
+		 * server's message.
+		 *
+		 * @param {{ success?: boolean, error?: string }} resultData The result being shown.
+		 */
+		reportWrite(resultData) {
+			if (!this.feedback || !resultData) {
+				return
+			}
+			const feedback = useWriteFeedback()
+			if (resultData.success) {
+				const title = objectDisplayName(this.formData || {}) || String((this.schema && this.schema.title) || '').toLowerCase()
+				feedback.success(title !== '' ? t('nextcloud-vue', 'Saved {title}', { title }) : t('nextcloud-vue', 'Saved'))
+			}
+			if (resultData.error) {
+				feedback.error(resultData.error)
+			}
+		},
+
+		/**
 		 * Show a result and, on success, auto-close.
 		 *
 		 * @param {{ success?: boolean, error?: string }} resultData The result to show.
 		 */
 		applyResult(resultData) {
 			this.result = resultData
+			this.reportWrite(resultData)
 			if (resultData.success) {
 				// The values are on the server now, so the local copy has
 				// nothing left to protect. Cleared only on SUCCESS: a failed
@@ -4357,6 +4390,9 @@ export default {
 			this.result = null
 			this.errors = { ...this.errors, ...fieldErrors }
 			this.formError = message
+			if (this.feedback && message) {
+				useWriteFeedback().error(message)
+			}
 		},
 	},
 }

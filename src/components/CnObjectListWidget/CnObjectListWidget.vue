@@ -293,9 +293,10 @@ import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
+import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
-import { objectFieldValue } from '../../utils/objectName.js'
+import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
@@ -1562,7 +1563,54 @@ export default {
 		 * @return {void}
 		 */
 		runRowAction(action, row) {
-			this.dispatch(action, [row], { row })
+			const pending = this.dispatch(action, [row], { row })
+			if (action && action.type === 'object-op' && action.op === 'delete') {
+				this.reportDelete(row, pending)
+			}
+		},
+
+		/**
+		 * Toast a row delete, with an Undo for ten seconds that restores the row
+		 * from the OpenRegister trash and refreshes the list. `feedback: false` in
+		 * the widget `content` suppresses it. A create needs nothing here: the
+		 * create dialog already toasts, so the widget stays quiet to give one.
+		 *
+		 * @param {object} row The deleted row.
+		 * @param {Promise<unknown>|unknown} pending What the dispatcher returned.
+		 * @return {Promise<void>}
+		 */
+		async reportDelete(row, pending) {
+			if ((this.content || {}).feedback === false) {
+				return
+			}
+			const feedback = useWriteFeedback()
+			let outcome
+			try {
+				outcome = await pending
+			} catch (e) {
+				feedback.error((e && e.message) || t('nextcloud-vue', 'The delete failed'))
+				return
+			}
+			if (outcome === false) {
+				feedback.error(t('nextcloud-vue', 'The delete failed'))
+				return
+			}
+			const id = row && (row.id || (row['@self'] && row['@self'].id))
+			const title = objectDisplayName(row || {})
+			const message = title !== '' ? t('nextcloud-vue', 'Deleted {title}', { title }) : t('nextcloud-vue', 'Deleted')
+			feedback.success(message, id
+				? {
+						undo: async () => {
+							try {
+								const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+								await axios.post(generateUrl('/apps/openregister/api/deleted/{id}/restore', { id }))
+								this.fetchRows()
+							} catch (e) {
+								feedback.error((e && e.message) || t('nextcloud-vue', 'The row could not be restored'))
+							}
+						},
+					}
+				: {})
 		},
 
 		/**
@@ -1597,11 +1645,11 @@ export default {
 		 * @param {object} action The declared action.
 		 * @param {Array} extraArgs Arguments appended for a `handler` action.
 		 * @param {object} extraProps Props merged for an `open-modal` action.
-		 * @return {void}
+		 * @return {unknown} Whatever the dispatcher returns (a promise for a write).
 		 */
 		dispatch(action, extraArgs = [], extraProps = {}) {
 			if (!action || typeof action !== 'object') {
-				return
+				return undefined
 			}
 			const type = action.type || 'handler'
 			let wrapped = action
@@ -1611,10 +1659,9 @@ export default {
 				wrapped = { ...action, props: { ...(action.props || {}), ...extraProps } }
 			}
 			if (typeof this.cnDispatchAction === 'function') {
-				this.cnDispatchAction(wrapped)
-			} else {
-				dispatchAction(wrapped, { router: this.$router || null })
+				return this.cnDispatchAction(wrapped)
 			}
+			return dispatchAction(wrapped, { router: this.$router || null })
 		},
 
 		/**

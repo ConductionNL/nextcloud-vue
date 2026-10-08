@@ -128,3 +128,7 @@ with `content.addLabel`. Emits `created` with the sent payload.
 The form opens in the list's context: it receives the list's `register` (so a `$ref` field is a picker, not a text box) and `initialData` derived from the resolved filter. Only scalar filter keys the schema declares are used, after `@objectId`, `@me` and `@workspace.*` tokens resolve; operator keys such as `deadline[lt]` and unknown keys are dropped. Those prefilled parent fields render read-only with their label unless `content.lockFilterFields` is `false` (default `true`). `content.createDefaults` (an object of schema keys) merges over the filter-derived data for values a filter cannot express, for example `{ "direction": "outbound" }`; defaults are never locked.
 
 `content.hideHeader: true` drops the table's column header row (CnDataTable's `hideHeader`), for a short list that reads as rows rather than as a table.
+
+## Write feedback
+
+A row action of type `object-op` with `op: "delete"` toasts "Deleted {title}" with an Undo for ten seconds; Undo restores the row from the OpenRegister trash (`POST /apps/openregister/api/deleted/{id}/restore`) and refreshes the list, and a failed delete toasts an error. A create through the widget shows one toast, the create dialog's, never a second from the widget. `feedback: false` in the widget `content` suppresses the delete toasts.
