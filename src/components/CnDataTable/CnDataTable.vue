@@ -286,6 +286,13 @@
 								v-if="secondaryValue(row, col)"
 								class="cn-table-cell__secondary"
 								data-testid="cn-cell-secondary">{{ secondaryValue(row, col) }}</span>
+							<!-- A row that entered a file-content search through an attached
+							     file names it (OpenRegister `@self.matchedFile`): plain text,
+							     file name only, under the first cell. -->
+							<span
+								v-if="colIndex === 0 && matchedFileOf(row)"
+								class="cn-table-cell__secondary cn-table-cell__matched-file"
+								data-testid="cn-row-matched-file">{{ matchedFileLabel(row) }}</span>
 						</td>
 
 						<!-- Row actions -->
@@ -1195,6 +1202,27 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The attached file a row was found through in a file-content search.
+		 *
+		 * @param {object} row The row.
+		 * @return {string} The file name, or '' when the row matched on a field.
+		 */
+		matchedFileOf(row) {
+			const name = row && row['@self'] && row['@self'].matchedFile
+			return typeof name === 'string' ? name : ''
+		},
+
+		/**
+		 * The "Found in {file}" line for a row found through an attached file.
+		 *
+		 * @param {object} row The row.
+		 * @return {string} The translated line.
+		 */
+		matchedFileLabel(row) {
+			return t('nextcloud-vue', 'Found in {file}', { file: this.matchedFileOf(row) })
+		},
+
 		/**
 		 * The declared indicators that apply to one row, split into the ones
 		 * that fit on the row and the ones that go to the row menu.

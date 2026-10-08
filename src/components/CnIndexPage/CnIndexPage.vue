@@ -112,7 +112,16 @@
 			<template v-if="$slots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$slots['after-search']" #after-search>
+			<template v-if="$slots['after-search'] || searchInFiles" #after-search>
+				<NcCheckboxRadioSwitch
+					v-if="searchInFiles"
+					:modelValue="contentSearch"
+					type="switch"
+					class="cn-index-page__content-search"
+					data-testid="cn-index-content-search"
+					@update:modelValue="onContentSearchToggle">
+					{{ t('nextcloud-vue', 'Also search inside files') }}
+				</NcCheckboxRadioSwitch>
 				<slot name="after-search" />
 			</template>
 			<template
@@ -722,6 +731,13 @@
 					@action="onRowAction"
 					@close="closeContextMenu" />
 
+				<p
+					v-if="searchInFiles && contentSearch"
+					class="cn-index-page__content-search-note"
+					data-testid="cn-index-content-search-note">
+					{{ t('nextcloud-vue', 'File matches are limited to the best 50.') }}
+				</p>
+
 				<!-- Pagination -->
 				<CnPagination
 					v-if="effectivePagination && effectivePagination.pages > 1"
@@ -810,7 +826,7 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
@@ -1102,6 +1118,7 @@ export default {
 		Export,
 		FilterOutline,
 		ViewColumnOutline,
+		NcCheckboxRadioSwitch,
 		CnPageHeader,
 		CnQuickFilterBar,
 		CnActionsBar,
@@ -1394,6 +1411,17 @@ export default {
 		extend: { // eslint-disable-line vue/no-unused-properties -- read by useSelfFetchList.js off the props object, which this rule does not follow.
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Offer an "Also search inside files" switch beside the search box. On,
+		 * a search also matches words inside attached files (OpenRegister
+		 * `_content_search`), and a row found that way says which file matched.
+		 * Manifest: `config.searchInFiles`.
+		 */
+		searchInFiles: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Object/row data array */
@@ -2712,6 +2740,7 @@ export default {
 		'columns-change',
 		'quick-edit-save',
 		'configure',
+		'content-search',
 		'copy',
 		'create',
 		'delete',
@@ -2757,6 +2786,7 @@ export default {
 			selfObjectType,
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
+			contentSearch,
 			selfFetchTokenCtx,
 			initialQueryFilterKeys,
 		} = useSelfFetchList(props, getCurrentInstance(), inject)
@@ -2795,6 +2825,7 @@ export default {
 			selfObjectType,
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
+			contentSearch,
 			selfFetchTokenCtx,
 			initialQueryFilterKeys,
 		}
@@ -5396,6 +5427,26 @@ export default {
 		},
 
 		/**
+		 * The "Also search inside files" switch was toggled: refetch (via the
+		 * watcher in self-fetch mode), keep the state in the route, and tell a
+		 * consumer-managed host.
+		 *
+		 * @param {boolean} value The switch's new state.
+		 * @return {void}
+		 */
+		onContentSearchToggle(value) {
+			this.contentSearch = !!value
+			/**
+			 * @event content-search Emitted when the "Also search inside files" switch changes, so a consumer-managed page can add `_content_search` to its own query.
+			 * @type {boolean}
+			 */
+			this.$emit('content-search', this.contentSearch)
+			if (this.isSelfFetchMode) {
+				this.persistViewStateToRoute(this.currentViewState())
+			}
+		},
+
+		/**
 		 * Persist filters + search + sort into `$route.query` in one replace,
 		 * so a reload or a shared/bookmarked link reproduces the exact same
 		 * view. Self-fetch mode only. The page's own filter keys are cleared and
@@ -5428,6 +5479,11 @@ export default {
 				query._search = state.search
 			} else {
 				delete query._search
+			}
+			if (this.searchInFiles && this.contentSearch) {
+				query.contentSearch = '1'
+			} else {
+				delete query.contentSearch
 			}
 			const sortKeys = Array.isArray(state.sortKeys) && state.sortKeys.length
 				? state.sortKeys

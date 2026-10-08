@@ -72,6 +72,11 @@ export function useSelfFetchList(props, instance, inject) {
 	// mistake, because the request succeeds and nothing says the two disagree.
 	const isSelfFetch = !!(props.register && props.schema) && !objectsProvided && !props.entitySource
 
+	// "Also search inside files" switch, seeded from `?contentSearch=1` so a
+	// shared link reproduces the list. Only meaningful when `searchInFiles` is on.
+	const routeAtSetup = instance && instance.proxy && instance.proxy.$route
+	const contentSearch = ref(props.searchInFiles === true && String(routeAtSetup?.query?.contentSearch) === '1')
+
 	const activeQuickFilterIndex = ref(resolveInitialQuickFilterIndex(props.quickFilters))
 	const selectedQuickFilterIndices = ref([])
 	const isMultiQuickFilter = props.quickFilterMultiple === true
@@ -84,6 +89,7 @@ export function useSelfFetchList(props, instance, inject) {
 			selfObjectType: '',
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
+			contentSearch,
 			selfFetchTokenCtx: null,
 			initialQueryFilterKeys: [],
 		}
@@ -162,6 +168,8 @@ export function useSelfFetchList(props, instance, inject) {
 	const initialActiveFilters = resolveQueryFilters(initialRoute && initialRoute.query, tokenCtx())
 	const initialSearchTerm = (initialRoute && typeof initialRoute.query?._search === 'string') ? initialRoute.query._search : ''
 
+	// Set right after useListView returns; the fixed-filters getter reads it lazily.
+	let listHandle = null
 	const list = useListView(objectType, {
 		objectStore,
 		sidebarState,
@@ -187,7 +195,10 @@ export function useSelfFetchList(props, instance, inject) {
 			// component's own state rather than a prop — and read through the
 			// one fixed-filter getter rather than a second search path.
 			const scopeSearchFields = (instance && instance.proxy && instance.proxy.activeScopeSearchFields) || []
-			const scope = scopeSearchFields.length > 0 ? { _searchFields: scopeSearchFields } : {}
+			const scopeBase = scopeSearchFields.length > 0 ? { _searchFields: scopeSearchFields } : {}
+			// File-content search widens a text search, so it rides only with a term.
+			const widen = props.searchInFiles === true && contentSearch.value && !!(listHandle && listHandle.searchTerm.value)
+			const scope = widen ? { ...scopeBase, _content_search: 'true' } : scopeBase
 			const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
 			if (!tabs) {
 				return { ...queryFilters, ...scope, ...base }
@@ -208,6 +219,8 @@ export function useSelfFetchList(props, instance, inject) {
 		},
 	})
 
+	listHandle = list
+
 	// Re-fetch when the quick-filter selection changes (pre-existing), OR
 	// when the workspace/app-config bag content changes (e.g. the
 	// administration switcher writes a new `activeAdministrationId`) — a
@@ -215,7 +228,7 @@ export function useSelfFetchList(props, instance, inject) {
 	// the list without a manual reload. A change to `props.filter` itself (a
 	// host toggling a filter checkbox) re-fetches the same way.
 	const filterSignature = computed(() => JSON.stringify(props.filter ?? null))
-	watch([activeQuickFilterIndex, selectedQuickFilterIndices, workspaceSignature, appConfigSignature, filterSignature], () => {
+	watch([activeQuickFilterIndex, selectedQuickFilterIndices, contentSearch, workspaceSignature, appConfigSignature, filterSignature], () => {
 		if (list && typeof list.refresh === 'function') {
 			list.refresh(1)
 		}
@@ -243,6 +256,7 @@ export function useSelfFetchList(props, instance, inject) {
 		selfObjectType: objectType,
 		activeQuickFilterIndex,
 		selectedQuickFilterIndices,
+		contentSearch,
 		// The page persists the view state back into the query, and needs both
 		// to do it without trampling the rest of it: the keys it adopted from
 		// the query on load (the only non-`_` ones it may clear), and the ctx

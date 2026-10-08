@@ -388,6 +388,7 @@ export default {
 | `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table view toggle |
 | `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (in addition to / instead of the sidebar search). Fed from the manifest as `pages[].config.inlineSearch`. The field takes the place of the "Showing X of Y" counter unless `showCountWithSearch` is set. |
 | `showCountWithSearch` | Boolean | `false` | Keep the "Showing X of Y" counter visible beside the inline search field, after the search and any `#after-search` controls (only relevant with `inlineSearch`, which otherwise takes the counter's place). Fed from the manifest as `pages[].config.showCountWithSearch`. |
+| `searchInFiles` | Boolean | `false` | "Also search inside files" switch beside the search box (manifest `config.searchInFiles`). On, a search with a term sends `_content_search=true`; rows found through a file show "Found in {file}" (`@self.matchedFile`). State kept in the route as `contentSearch=1`. Emits `content-search`. |
 | `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest `config.searchPlaceholder`). |
 | `cardsLabel` | String | `''` | Label for the cards view-toggle option (manifest `config.cardsLabel`, e.g. "Tiles"). |
 | `tableLabel` | String | `''` | Label for the table view-toggle option (manifest `config.tableLabel`, e.g. "List"). |

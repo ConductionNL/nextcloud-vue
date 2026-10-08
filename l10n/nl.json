@@ -1,5 +1,8 @@
 {
   "translations": {
+    "Also search inside files": "Zoek ook in bestanden",
+    "File matches are limited to the best 50.": "Bestandstreffers zijn beperkt tot de beste 50.",
+    "Found in {file}": "Gevonden in {file}",
     "Advanced": "Geavanceerd",
     "The item could not be created.": "Het item kon niet worden aangemaakt.",
     "Start over": "Opnieuw beginnen",

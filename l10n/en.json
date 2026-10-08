@@ -1,5 +1,8 @@
 {
   "translations": {
+    "Also search inside files": "Also search inside files",
+    "File matches are limited to the best 50.": "File matches are limited to the best 50.",
+    "Found in {file}": "Found in {file}",
     "Advanced": "Advanced",
     "The item could not be created.": "The item could not be created.",
     "Start over": "Start over",
