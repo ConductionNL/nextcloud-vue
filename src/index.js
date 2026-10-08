@@ -207,6 +207,8 @@ export {
 	CnObjectKanban,
 	CnObjectList,
 	CnApiReference,
+	CnMarkdownWidget,
+	CnMarkdownWidgetForm,
 	CnObjectListWidget,
 	CnObjectListWidgetForm,
 	CnObjectMetadataModal,

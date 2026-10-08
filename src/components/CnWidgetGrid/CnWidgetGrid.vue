@@ -99,6 +99,12 @@ export default {
 		 * having to author per-widget props. `null` outside a detail page.
 		 */
 		cnDetailObjectContext: { default: null },
+		/**
+		 * The host the page renders under: `nextcloud` (default, authenticated)
+		 * or `public` (an anonymous visitor at a public origin). Published by
+		 * the host app; the `host` prop wins.
+		 */
+		cnHost: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -132,6 +138,20 @@ export default {
 		registry: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * The host this grid renders under: `nextcloud` or `public`. Empty falls
+		 * back to the injected `cnHost`. Under `public` only a catalog entry
+		 * registered `public: true` mounts; any other key, known or not, renders
+		 * the inert placeholder and its component code never runs.
+		 *
+		 * @type {''|'nextcloud'|'public'}
+		 */
+		host: {
+			type: String,
+			default: '',
+			validator: (v) => ['', 'nextcloud', 'public'].includes(v),
 		},
 
 		/**
@@ -233,6 +253,15 @@ export default {
 			return this.gridColumns > 1
 		},
 
+		/**
+		 * Whether this grid renders for a public host (anonymous visitors).
+		 *
+		 * @return {boolean}
+		 */
+		isPublicHost() {
+			return (this.host || this.cnHost) === 'public'
+		},
+
 		resolvedWidgets() {
 			const columns = this.gridColumns
 			const result = []
@@ -244,28 +273,38 @@ export default {
 				// then fall back to built-in registry.
 				// Per spec REQ-MVR-005: "Custom widget overrides built-in"
 				let component = null
-
-				if (this.effectiveRegistry[key]) {
-					const entry = this.effectiveRegistry[key]
-					component = entry.component ?? entry
-				}
-
-				// `table` and `object-table` (and `map` / `map-viewer`) are the
-				// same component registered under two names in two registries.
-				// Canonicalising here means either spelling resolves, whichever
-				// registry happens to hold it — see utils/widgetTypeAliases.js.
 				const canonical = canonicalWidgetType(key)
 
-				if (!component) {
-					component = BUILT_IN_WIDGETS[key] ?? BUILT_IN_WIDGETS[canonical] ?? null
-				}
-
-				if (!component) {
-					// Dashboard widget catalog (cn-widget-library): the 21 migrated
-					// widgets self-register here. Resolved after cnRegistry + built-ins
-					// so a consumer override still wins.
+				if (this.isPublicHost) {
+					// ONE decision, which is also the lookup: under the public host a
+					// component can only come from a catalog entry that says
+					// `public: true`. The consumer registry and the built-ins are not
+					// consulted at all, so there is no second condition to disagree
+					// with this one and nothing to flip without the page changing.
 					const entry = getWidgetTypeEntry(key) || getWidgetTypeEntry(canonical)
-					component = (entry && entry.renderer) ?? null
+					component = entry && entry.public === true ? (entry.renderer ?? null) : null
+				} else {
+					if (this.effectiveRegistry[key]) {
+						const entry = this.effectiveRegistry[key]
+						component = entry.component ?? entry
+					}
+
+					// `table` and `object-table` (and `map` / `map-viewer`) are the
+					// same component registered under two names in two registries.
+					// Canonicalising here means either spelling resolves, whichever
+					// registry happens to hold it — see utils/widgetTypeAliases.js.
+
+					if (!component) {
+						component = BUILT_IN_WIDGETS[key] ?? BUILT_IN_WIDGETS[canonical] ?? null
+					}
+
+					if (!component) {
+						// Dashboard widget catalog (cn-widget-library): the 21 migrated
+						// widgets self-register here. Resolved after cnRegistry + built-ins
+						// so a consumer override still wins.
+						const entry = getWidgetTypeEntry(key) || getWidgetTypeEntry(canonical)
+						component = (entry && entry.renderer) ?? null
+					}
 				}
 
 				if (!component) {
@@ -281,14 +320,17 @@ export default {
 					// so a deep import happened to work by accident.
 					const catalogEmpty = Object.keys(dashboardWidgetRegistry).length === 0
 					// eslint-disable-next-line no-console
-					console.warn(catalogEmpty
-						? `[CnWidgetGrid] The dashboard widget catalog is EMPTY, so widgetKey "${key}" `
-						+ `in slot "${this.slotName}" cannot resolve — this is not a bad key. `
-						+ 'Import the package root (`@conduction/nextcloud-vue`) or, if you '
-						+ 'cherry-pick modules, `components/CnWidgetGrid/registerDashboardWidgets.js`. '
-						+ 'Importing a widget\'s own module gives you the component but registers no type.'
-						: `[CnWidgetGrid] Unknown widgetKey "${key}" in slot "${this.slotName}". `
-							+ 'Register it in the built-in registry or pass it via the CnAppRoot registry prop.')
+					console.warn(this.isPublicHost
+						? `[CnWidgetGrid] widgetKey "${key}" in slot "${this.slotName}" is not a public widget `
+						+ '(unknown, or registered without `public: true`); rendering an inert placeholder.'
+						: catalogEmpty
+							? `[CnWidgetGrid] The dashboard widget catalog is EMPTY, so widgetKey "${key}" `
+							+ `in slot "${this.slotName}" cannot resolve — this is not a bad key. `
+							+ 'Import the package root (`@conduction/nextcloud-vue`) or, if you '
+							+ 'cherry-pick modules, `components/CnWidgetGrid/registerDashboardWidgets.js`. '
+							+ 'Importing a widget\'s own module gives you the component but registers no type.'
+							: `[CnWidgetGrid] Unknown widgetKey "${key}" in slot "${this.slotName}". `
+								+ 'Register it in the built-in registry or pass it via the CnAppRoot registry prop.')
 					// Render a visible, designed placeholder instead of silently
 					// skipping — a page whose widgets ALL fail to resolve must not
 					// leave a blank pane (2026-07-06 audit: petstore dashboard).

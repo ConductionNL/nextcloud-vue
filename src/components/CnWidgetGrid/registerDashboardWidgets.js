@@ -23,6 +23,8 @@ import CnCountdownWidgetForm from '../CnCountdownWidgetForm/CnCountdownWidgetFor
 import CnDocumentReviewWidget from '../CnDocumentReviewList/CnDocumentReviewWidget.vue'
 import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
 import CnMapWidgetForm from '../CnMapWidgetForm/CnMapWidgetForm.vue'
+import CnMarkdownWidget2 from '../CnMarkdownWidget/CnMarkdownWidget.vue'
+import CnMarkdownWidgetForm2 from '../CnMarkdownWidgetForm/CnMarkdownWidgetForm.vue'
 import CnNextStepWidget from '../CnNextStepCard/CnNextStepWidget.vue'
 import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
 import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
@@ -171,6 +173,19 @@ registerDashboardWidget('saved-view', {
 	displayName: 'Saved view',
 	icon: 'ClipboardList',
 	userAddable: true,
+})
+
+// `markdown`: prose inside a grid page, through the one shared renderer. The
+// only catalog widget a PUBLIC host may mount so far: every other entry is
+// `public: false` until its author opts in deliberately.
+// @spec openspec/changes/widget-registry-public-flag/tasks.md#task-4
+registerDashboardWidget('markdown', {
+	renderer: CnMarkdownWidget2,
+	form: CnMarkdownWidgetForm2,
+	defaultContent: { markdown: '' },
+	displayName: 'Markdown',
+	icon: 'FormatTitle',
+	public: true,
 })
 
 registerDashboardWidget('related', {

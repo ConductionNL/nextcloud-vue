@@ -1,0 +1,1 @@
+{ "pages": [{ "id": "home", "type": "dashboard", "widgets": [{ "widgetKey": "markdown", "slot": "body" }] }] }
