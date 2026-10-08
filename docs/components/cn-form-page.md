@@ -43,6 +43,7 @@ Use `type: "form"` when the entire route is "render this list of fields, send th
 | `submitMethod` | String | `'POST'` | HTTP method for endpoint mode. Must be `POST | PUT | PATCH` |
 | `mode` | String | `'public'` | `edit | create | public`. `public` shows the success banner and hides the form on submit |
 | `submitLabel` | String | `'Submit'` | Submit button label (i18n key) |
+| `smartPaste` | Object | `null` | Fill the form from pasted text: `{ enabled, fields, hint?, handler }`. See [Paste to fill](#paste-to-fill). |
 | `successMessage` | String | `'Thank you!'` | Success banner copy (i18n key) |
 | `initialValue` | Object | `{}` | Pre-filled form state. Used by `mode: "edit"` |
 | `title` | String | `''` | Page title forwarded to `CnPageHeader` |
@@ -237,6 +238,18 @@ The field never holds a path or a URL. It cannot choose where the file ends up: 
 - A value that is not a `data:` URL, such as a file the object already holds in `mode: "edit"`, shows by its title and is sent back untouched until the user replaces or removes it. Remove file sets the value to `null`.
 
 `type: "file"` is rejected on `type: "settings"` pages: those save to app config, which has no place for file content.
+
+## Paste to fill
+
+A signed-in user can fill a form from pasted text, for example an email signature. The maker declares it in the page config:
+
+```json
+"smartPaste": { "enabled": true, "fields": ["naam", "adres", "telefoon"], "hint": "Paste the customer's email.", "handler": "fillCustomer" }
+```
+
+`handler` names an entry in the `customComponents` registry: a function `(text, fields) => Promise<{ values }>`, or `{ fill, available }` where `available()` resolves true when the service can be used. `fields` holds the allowed fields only, each as `{ key, label, type, options }` (`options` lists an enum's allowed values). No value already in the form is ever passed, and the form does not store the pasted text. The library calls no model; whatever the handler calls is governed where it lives.
+
+The "Paste to fill" button shows only when `enabled` is true, `mode` is not `public`, the handler resolves and `available()` (when given) resolves true; a missing, throwing or unavailable handler hides it and warns once. In the dialog the user pastes the text and clicks Fill. Returned values land only in allowed, visible fields that are empty (or in all allowed visible fields when the user ticks "Replace what I typed"), and only when the value fits the field's type (`string`, `number`, `boolean`, `enum`; other types are never filled) and passes the field's `validation`. A skipped proposal is counted in the notice ("3 fields filled, 1 skipped"). Each filled field carries a "Suggested" tag with an Accept button; editing the field, Accept or Accept all clears it. Nothing is submitted automatically. The validator rejects an undeclared field key, `enabled` without a `handler`, and `enabled` on a public form.
 
 ## Why `type: "form"` is its own page type
 

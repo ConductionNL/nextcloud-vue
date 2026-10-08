@@ -116,6 +116,27 @@
 			v-if="!submitted || mode !== 'public'"
 			class="cn-form-page__form"
 			@submit.prevent="submit">
+			<!-- Paste to fill: only where it may be used (see smartPasteAvailable). -->
+			<div v-if="smartPasteAvailable" class="cn-form-page__smart-paste">
+				<NcButton type="button" data-testid="cn-form-page-smart-paste" @click="smartPasteOpen = true">
+					{{ t('nextcloud-vue', 'Paste to fill') }}
+				</NcButton>
+				<NcButton
+					v-if="hasSuggestions"
+					type="button"
+					variant="tertiary"
+					data-testid="cn-form-page-accept-all"
+					@click="acceptAllSuggestions">
+					{{ t('nextcloud-vue', 'Accept all') }}
+				</NcButton>
+			</div>
+			<p
+				class="cn-form-page__smart-paste-notice"
+				aria-live="polite"
+				data-testid="cn-form-page-smart-paste-notice">
+				{{ smartPasteNotice }}
+			</p>
+
 			<!-- Step indicator — only rendered when `steps` is non-empty. -->
 			<nav
 				v-if="hasSteps"
@@ -178,6 +199,16 @@
 					role="alert">
 					{{ fieldErrors[field.key] }}
 				</p>
+				<span v-if="suggestions[field.key]" class="cn-form-page__suggested" data-testid="cn-form-page-suggested">
+					<span class="cn-form-page__suggested-tag">{{ t('nextcloud-vue', 'Suggested') }}</span>
+					<NcButton
+						type="button"
+						variant="tertiary"
+						:aria-label="t('nextcloud-vue', 'Accept suggestion for {field}', { field: resolveLabel(field.label) || field.key })"
+						@click="acceptSuggestion(field.key)">
+						{{ t('nextcloud-vue', 'Accept') }}
+					</NcButton>
+				</span>
 				<small
 					v-if="field.help"
 					class="cn-form-page__field-help">
@@ -252,6 +283,13 @@
 				{{ draftIndicatorLabel }}
 			</p>
 		</form>
+		<CnSmartPasteDialog
+			v-if="smartPasteOpen"
+			:hint="smartPaste && smartPaste.hint ? resolveLabel(smartPaste.hint) : ''"
+			:busy="smartPasteBusy"
+			:error="smartPasteError"
+			@fill="onSmartPasteFill"
+			@close="smartPasteOpen = false" />
 	</div>
 </template>
 
@@ -260,6 +298,7 @@ import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Send from 'vue-material-design-icons/Send.vue'
+import CnSmartPasteDialog from '../../dialogs/CnSmartPasteDialog.vue'
 import { cnRenderFormField } from '../../composables/cnFormFieldRenderer.js'
 import { draftIndicatorText, draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
 import { validateFieldValue } from '../../utils/formValidation.js'
@@ -305,6 +344,7 @@ export default {
 
 	components: {
 		CnPageHeader,
+		CnSmartPasteDialog,
 		NcButton,
 		NcLoadingIcon,
 		NcNoteCard,
@@ -410,6 +450,20 @@ export default {
 			validator: (v) => ['edit', 'create', 'public'].includes(v),
 		},
 
+		/**
+		 * "Fill from pasted text": `{ enabled, fields, hint?, handler }`. The
+		 * handler is a registry entry (a function, or `{ fill, available }`)
+		 * that proposes values for the allowed `fields`. Never shown in
+		 * `public` mode, when the handler is missing, or when it reports
+		 * unavailable.
+		 *
+		 * @type {{enabled: boolean, fields: string[], hint?: string, handler: string}|null}
+		 */
+		smartPaste: {
+			type: Object,
+			default: null,
+		},
+
 		/** i18n key for the submit button label. */
 		submitLabel: {
 			type: String,
@@ -487,6 +541,14 @@ export default {
 	data() {
 		return {
 			formData: this.cloneInitial(),
+			/** Smart paste: the handler said it is available (resolved at mount). */
+			smartPasteAvailable: false,
+			smartPasteOpen: false,
+			smartPasteBusy: false,
+			smartPasteError: '',
+			smartPasteNotice: '',
+			/** Keys of fields filled by smart paste and not yet accepted or edited. */
+			suggestions: {},
 			submitting: false,
 			submitted: false,
 			lastError: null,
@@ -518,6 +580,11 @@ export default {
 		 */
 		effectiveCustomComponents() {
 			return this.customComponents ?? this.cnCustomComponents ?? {}
+		},
+
+		/** Whether any field still carries a smart-paste suggestion mark. */
+		hasSuggestions() {
+			return Object.keys(this.suggestions).length > 0
 		},
 
 		/** Whether `steps` declares at least one entry. */
@@ -686,10 +753,194 @@ export default {
 
 	mounted() {
 		this.resolveRemoteVisibility()
+		this.resolveSmartPaste()
 	},
 
 	methods: {
 		t,
+
+		/**
+		 * The registered smart-paste handler as `{ fill, available }`, or null.
+		 * A bare function is a `fill` with no availability check.
+		 *
+		 * @return {{fill: Function, available: Function|null}|null} The handler.
+		 */
+		smartPasteHandler() {
+			const name = this.smartPaste && this.smartPaste.handler
+			const entry = name ? this.effectiveCustomComponents[name] : null
+			if (typeof entry === 'function') {
+				return { fill: entry, available: null }
+			}
+			if (entry && typeof entry.fill === 'function') {
+				return { fill: entry.fill, available: typeof entry.available === 'function' ? entry.available : null }
+			}
+			return null
+		},
+
+		/**
+		 * Decide once, at mount, whether "Paste to fill" shows: enabled, not a
+		 * public form, a handler that resolves and does not report unavailable.
+		 * Anything else leaves the form exactly as before.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async resolveSmartPaste() {
+			this.smartPasteAvailable = false
+			if (!this.smartPaste || this.smartPaste.enabled !== true || this.mode === 'public') {
+				return
+			}
+			const handler = this.smartPasteHandler()
+			if (!handler) {
+				// eslint-disable-next-line no-console
+				console.warn(`[CnFormPage] smartPaste handler "${this.smartPaste.handler}" is not registered; hiding "Paste to fill".`)
+				return
+			}
+			try {
+				this.smartPasteAvailable = handler.available ? (await handler.available()) === true : true
+			} catch {
+				// eslint-disable-next-line no-console
+				console.warn('[CnFormPage] smartPaste availability check failed; hiding "Paste to fill".')
+				this.smartPasteAvailable = false
+			}
+		},
+
+		/**
+		 * The allowed fields as the handler sees them: key, label, type and
+		 * allowed options. Never a value.
+		 *
+		 * @return {Array<{key: string, label: string, type: string, options: string[]|null}>} The descriptors.
+		 */
+		smartPasteFields() {
+			const allowed = new Set(Array.isArray(this.smartPaste?.fields) ? this.smartPaste.fields : [])
+			return this.fields
+				.filter((f) => f && allowed.has(f.key))
+				.map((f) => ({
+					key: f.key,
+					label: this.resolveLabel(f.label) || f.key,
+					type: f.type || 'string',
+					options: f.type === 'enum' ? this.enumValues(f) : null,
+				}))
+		},
+
+		/**
+		 * The allowed values of an enum field.
+		 *
+		 * @param {object} field The field.
+		 * @return {string[]} The values.
+		 */
+		enumValues(field) {
+			const raw = Array.isArray(field.enum) ? field.enum : (Array.isArray(field.options) ? field.options : [])
+			return raw.map((o) => (o && typeof o === 'object' ? o.value : o)).filter((v) => v !== undefined && v !== null).map(String)
+		},
+
+		/**
+		 * Coerce a proposed value to the field's type.
+		 *
+		 * @param {object} field The field.
+		 * @param {unknown} value The proposed value.
+		 * @return {{ok: boolean, value?: unknown}} The coerced value, or not ok.
+		 */
+		coerceProposal(field, value) {
+			switch (field.type || 'string') {
+				case 'number': {
+					const n = typeof value === 'number' ? value : (typeof value === 'string' && value.trim() !== '' ? Number(value) : NaN)
+					return Number.isFinite(n) ? { ok: true, value: n } : { ok: false }
+				}
+				case 'boolean':
+					if (value === true || value === 'true') {
+						return { ok: true, value: true }
+					}
+					if (value === false || value === 'false') {
+						return { ok: true, value: false }
+					}
+					return { ok: false }
+				case 'enum':
+					return this.enumValues(field).includes(String(value)) ? { ok: true, value: String(value) } : { ok: false }
+				case 'string':
+					return typeof value === 'string' || typeof value === 'number' ? { ok: true, value: String(value) } : { ok: false }
+				default:
+					return { ok: false }
+			}
+		},
+
+		/**
+		 * Whether a field holds nothing the user typed.
+		 *
+		 * @param {unknown} value The field value.
+		 * @return {boolean} True when empty.
+		 */
+		isEmptyField(value) {
+			return value === undefined || value === null || value === '' || value === false || (Array.isArray(value) && value.length === 0)
+		},
+
+		/**
+		 * Run the handler on the pasted text and land its proposals: only
+		 * allowed, visible fields that are empty (or all of them when
+		 * "Replace what I typed" is ticked), only values that fit the type and
+		 * pass the field's validation. Each landed field is marked as a
+		 * suggestion. Nothing is submitted.
+		 *
+		 * @param {{text: string, replace: boolean}} request The dialog's request.
+		 * @return {Promise<void>}
+		 */
+		async onSmartPasteFill({ text, replace }) {
+			const handler = this.smartPasteHandler()
+			if (!handler) {
+				return
+			}
+			this.smartPasteBusy = true
+			this.smartPasteError = ''
+			let values
+			try {
+				const answer = await handler.fill(text, this.smartPasteFields())
+				values = answer && typeof answer.values === 'object' && answer.values !== null ? answer.values : {}
+			} catch (err) {
+				this.smartPasteError = (err && err.message) || t('nextcloud-vue', 'The text could not be read.')
+				this.smartPasteBusy = false
+				return
+			}
+			const allowed = new Set(Array.isArray(this.smartPaste?.fields) ? this.smartPaste.fields : [])
+			let filled = 0
+			let skipped = 0
+			const marks = { ...this.suggestions }
+			for (const [key, proposed] of Object.entries(values)) {
+				const field = this.fields.find((f) => f && f.key === key)
+				if (!field || !allowed.has(key) || !this.isFieldVisible(key)) {
+					continue
+				}
+				if (!replace && !this.isEmptyField(this.formData[key])) {
+					continue
+				}
+				const coerced = this.coerceProposal(field, proposed)
+				if (!coerced.ok || validateFieldValue(field, coerced.value, this.resolveLabel) !== null) {
+					skipped += 1
+					continue
+				}
+				this.updateField(key, coerced.value)
+				marks[key] = true
+				filled += 1
+			}
+			this.suggestions = { ...this.suggestions, ...marks }
+			this.smartPasteNotice = skipped > 0
+				? t('nextcloud-vue', '{filled} fields filled, {skipped} skipped', { filled, skipped })
+				: t('nextcloud-vue', '{filled} fields filled', { filled })
+			this.smartPasteBusy = false
+			this.smartPasteOpen = false
+		},
+
+		/**
+		 * Accept one suggestion (clears its mark, keeps the value).
+		 *
+		 * @param {string} key The field key.
+		 */
+		acceptSuggestion(key) {
+			this.suggestions = Object.fromEntries(Object.entries(this.suggestions).filter(([k]) => k !== key))
+		},
+
+		/** Accept every suggestion. */
+		acceptAllSuggestions() {
+			this.suggestions = {}
+		},
 
 		/**
 		 * Take the offered local draft into the form.
@@ -943,6 +1194,10 @@ export default {
 		updateField(key, value) {
 			this.formData[key] = value
 			delete this.fieldErrors[key]
+			// Editing a suggested field accepts it.
+			if (this.suggestions[key]) {
+				this.suggestions = Object.fromEntries(Object.entries(this.suggestions).filter(([k]) => k !== key))
+			}
 			/**
 			 * Field-level update event.
 			 *
@@ -1156,5 +1411,35 @@ export default {
 	justify-content: flex-start;
 	gap: 0.5rem;
 	margin-top: 0.5rem;
+}
+
+.cn-form-page__smart-paste {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.cn-form-page__smart-paste-notice {
+	margin: 0 0 8px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-form-page__smart-paste-notice:empty {
+	display: none;
+}
+
+.cn-form-page__suggested {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	margin-top: 4px;
+}
+
+.cn-form-page__suggested-tag {
+	padding: 2px 8px;
+	border-radius: var(--border-radius-pill, 999px);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-size: 12px;
 }
 </style>

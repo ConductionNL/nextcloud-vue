@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.59.0",
+	"version": "2.60.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -3026,6 +3026,18 @@
 				}
 			}
 		},
+		"formSmartPaste": {
+			"type": "object",
+			"required": ["enabled", "fields"],
+			"additionalProperties": false,
+			"description": "Fill from pasted text on a form page (form-smart-paste). `fields` lists the config.fields[] keys the fill may write; `handler` names a customComponents entry (a function, or { fill, available }) that proposes the values; `hint` is shown above the paste box. Never offered on a public form. Cross-field rules (each field key is declared, handler present when enabled, mode not public) are checked by validateManifestV2().",
+			"properties": {
+				"enabled": { "type": "boolean" },
+				"fields": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+				"hint": { "type": "string" },
+				"handler": { "type": "string", "minLength": 1 }
+			}
+		},
 		"page": {
 			"type": "object",
 			"required": ["id", "route", "type", "title"],
@@ -4005,6 +4017,11 @@
 				}
 			},
 			"allOf": [
+				{
+					"description": "form-smart-paste: config.smartPaste on a form page is typed by formSmartPaste.",
+					"if": { "properties": { "type": { "const": "form" } }, "required": ["type"] },
+					"then": { "properties": { "config": { "properties": { "smartPaste": { "$ref": "#/$defs/formSmartPaste" } } } } }
+				},
 				{
 					"description": "splitView, manualOrder, savedViewTree, board and dateAxis are index-page mechanics. splitView emits a second route beside an index route and mounts the detail pane inside CnIndexPage; manualOrder holds a per-user row order for a list. Declared on a detail, dashboard or custom page they would validate and then do nothing, which is the failure this branch refuses out loud (case-page-and-list-as-a-place).",
 					"if": {

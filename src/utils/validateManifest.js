@@ -634,6 +634,8 @@ export function validateManifestV2(manifest) {
 			}
 			const pathBase = `/pages/${pIndex}/config`
 
+			validateSmartPaste(config, pathBase, errors)
+
 			const fieldList = Array.isArray(config.fields) ? config.fields : []
 			const declaredKeys = new Set(fieldList
 				.filter((f) => f && typeof f.key === 'string')
@@ -1335,6 +1337,7 @@ function validateTypeConfig(page, index, errors) {
 			}
 
 			validateConfigMode(cfg, pathSlash, pathBracket, errors)
+			validateSmartPaste(cfg, pathSlash, errors)
 			break
 		}
 		case 'map': {
@@ -1776,6 +1779,46 @@ function validateConfigMode(cfg, pathSlash, pathBracket, errors) {
  * the schema's `pattern` on the `handler` property.
  */
 const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
+
+/**
+ * Validate `config.smartPaste` on a form page (form-smart-paste).
+ *
+ * Every `fields` entry must name a declared `config.fields[].key`; `enabled`
+ * needs a non-empty `handler` and a page that is not `public` (an unset
+ * `mode` is `public`, as `CnFormPage` defaults it).
+ *
+ * @param {object} cfg The page's `config` block.
+ * @param {string} pathSlash JSON-pointer-style path prefix of the config.
+ * @param {string[]} errors Accumulator.
+ */
+function validateSmartPaste(cfg, pathSlash, errors) {
+	const sp = cfg && cfg.smartPaste
+	if (sp === undefined) {
+		return
+	}
+	if (!isPlainObject(sp)) {
+		errors.push(`${pathSlash}/smartPaste: must be an object`)
+		return
+	}
+	const declared = new Set((Array.isArray(cfg.fields) ? cfg.fields : []).filter((f) => f && typeof f.key === 'string').map((f) => f.key))
+	if (!Array.isArray(sp.fields) || sp.fields.length === 0) {
+		errors.push(`${pathSlash}/smartPaste/fields: must list at least one field key`)
+	} else {
+		sp.fields.forEach((key, index) => {
+			if (typeof key !== 'string' || !declared.has(key)) {
+				errors.push(`${pathSlash}/smartPaste/fields[${index}]: "${key}" does not match any declared config.fields[].key`)
+			}
+		})
+	}
+	if (sp.enabled === true) {
+		if (typeof sp.handler !== 'string' || sp.handler.length === 0) {
+			errors.push(`${pathSlash}/smartPaste/handler: required, must be a non-empty string when enabled is true`)
+		}
+		if (cfg.mode === undefined || cfg.mode === 'public') {
+			errors.push(`${pathSlash}/smartPaste/enabled: smart paste cannot be enabled on a public form; set mode to "edit" or "create"`)
+		}
+	}
+}
 
 /**
  * Validate `config.actions[]` for index page type
