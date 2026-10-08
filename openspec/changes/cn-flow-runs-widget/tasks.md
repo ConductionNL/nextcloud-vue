@@ -15,9 +15,9 @@
 - [x] `config.rowRoute` honoured on `type:"index"` pages in `CnPageRenderer` —
       enables `rowClickToView`, wins over the detail-page lookup, and reports an
       unregistered route name instead of swallowing the rejection.
-- [ ] Unit tests for the widget's poll/visibility behaviour and the renderer's
+- [x] Unit tests for the widget's poll/visibility behaviour and the renderer's
       rowRoute precedence — the widget is live-verified on hermiq's Dashboard;
       the jsdom tests are not yet written.
 - [ ] Vue-2 (`beta`) backport — the widget is authored on the Vue-3 line, which
       is what the manifest-driven fleet consumes. Apps still on the Vue-2 line
-      do not get it until this is ported.
+      do not get it until this is ported. — not run: needs the Vue-2 (beta) branch
