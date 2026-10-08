@@ -59,7 +59,16 @@ Pass pre-translated labels when your app handles i18n:
 | `publicSwitchLabel` | String | | `'Public (visible to the customer)'` | Label of the add-note switch. |
 | `makePublicLabel` | String | | `'Make public'` | Label of the toggle on an internal note. |
 | `makeInternalLabel` | String | | `'Make internal'` | Label of the toggle on a public note. |
+| `replyLabel` | String | | `'Reply'` | Label of the Reply button, shown only when the backend supports replies |
 | `deleteLabel` | String | | `'Delete note'` | Accessible label for the delete button |
+
+### Replies, group mentions and images
+
+The add-note form is the shared [CnNoteComposer](./cn-note-composer.md) and each note's text is rendered by [CnNoteBody](./cn-note-body.md), the same as in the sidebar Notes tab.
+
+- **Replies.** When the notes response carries a `parentId` key on its notes (null or not), each note offers **Reply** (its accessible name says whom it answers). The reply is created with the note's id as `parentId` and shows under its top-level note, one level deep, oldest first. A reply to a reply attaches to the same top-level note, and a reply many places below its parent carries a one-line quote of it. Without the `parentId` key (an OpenRegister that does not store parents yet) no Reply is shown, because it would be saved as a loose note. Not offered for a file source.
+- **Group mentions.** `@` suggests groups beside users; a group is stored as `@"group/<gid>"` and shown as a group chip.
+- **Images.** An image pasted or dropped into the form is uploaded to the record's files and shown in the note. Only files of the same record render as images; any other image URL renders as a link.
 
 ### A file as the source
 
@@ -80,6 +89,7 @@ To show only a count (for a list row), use [`useFileComments`](../utilities/comp
 | `note-added` | — | Emitted after a note has been successfully created |
 | `note-deleted` | — | Emitted after a note has been successfully deleted |
 | `show-all` | — | Emitted when the "Show all" footer link is clicked |
+| `mention` | `{ objectId, register, schema, noteId, mentionedUserIds, mentionedGroupIds? }` | After a note that mentions someone was added. `mentionedGroupIds` is present only when a group (`@"group/<gid>"`) is mentioned. nc-vue notifies nobody; the listener does, and expands a group to its members. |
 | `visibility-changed` | `{ id, visibility }` | After a note's visibility was changed |
 
 ## Reference (auto-generated)

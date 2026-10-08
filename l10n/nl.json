@@ -1318,7 +1318,13 @@
     "Files {count}": "Bestanden {count}",
     "Objects that use each entry": "Objecten die elk item gebruiken",
     "Connections of each entry": "Verbindingen van elk item",
-    "Files of each entry": "Bestanden van elk item"
+    "Files of each entry": "Bestanden van elk item",
+    "Uploading image…": "Afbeelding uploaden…",
+    "The image could not be added.": "De afbeelding kon niet worden toegevoegd.",
+    "Group {name}": "Groep {name}",
+    "Replying to {author}": "Antwoord aan {author}",
+    "Note by {author} and its replies": "Notitie van {author} en de reacties erop",
+    "Reply to {author}": "Reageren op {author}"
   },
   "plurals": {
     "%n year": [

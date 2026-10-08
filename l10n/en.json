@@ -1267,7 +1267,13 @@
     "Files {count}": "Files {count}",
     "Objects that use each entry": "Objects that use each entry",
     "Connections of each entry": "Connections of each entry",
-    "Files of each entry": "Files of each entry"
+    "Files of each entry": "Files of each entry",
+    "Uploading image…": "Uploading image…",
+    "The image could not be added.": "The image could not be added.",
+    "Group {name}": "Group {name}",
+    "Replying to {author}": "Replying to {author}",
+    "Note by {author} and its replies": "Note by {author} and its replies",
+    "Reply to {author}": "Reply to {author}"
   },
   "plurals": {
     "%n year": [
