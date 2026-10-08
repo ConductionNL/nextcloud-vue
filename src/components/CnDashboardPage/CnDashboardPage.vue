@@ -246,11 +246,11 @@
 		<div v-else-if="!hasWidgets && !hasBodyWidgets && !hasViews" class="cn-dashboard-page__empty">
 			<!-- @slot empty Replaces the default empty state shown when the dashboard has no widgets. Defaults to an `NcEmptyContent` block. -->
 			<slot name="empty">
-				<NcEmptyContent :description="emptyLabel">
+				<CnEmptyContent :description="emptyLabel">
 					<template #icon>
 						<ViewDashboardOutline :size="48" />
 					</template>
-				</NcEmptyContent>
+				</CnEmptyContent>
 			</slot>
 		</div>
 
@@ -711,11 +711,11 @@
 			:aria-label="activeView ? activeView.label : null"
 			class="cn-page-view-region cn-page-view-region--empty"
 			data-testid="cn-dashboard-page-view-empty">
-			<NcEmptyContent :description="viewEmptyText">
+			<CnEmptyContent :description="viewEmptyText">
 				<template #icon>
 					<ViewDashboardOutline :size="48" />
 				</template>
-			</NcEmptyContent>
+			</CnEmptyContent>
 		</div>
 
 		<!-- Declarative in-body sections, `placement: "after-grid"` — host-app
@@ -754,16 +754,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import {
-	NcActionButton,
-	NcActionInput,
-	NcActions,
-	NcActionSeparator,
-	NcButton,
-	NcEmptyContent,
-	NcLoadingIcon,
-	NcSelect,
-} from '@nextcloud/vue'
+import { NcActionButton, NcActionInput, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { provide, ref, watch } from 'vue'
 import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
 import Check from 'vue-material-design-icons/Check.vue'
@@ -778,6 +769,7 @@ import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
@@ -921,7 +913,7 @@ export default {
 		NcActionInput,
 		NcActionSeparator,
 		NcButton,
-		NcEmptyContent,
+		CnEmptyContent,
 		NcLoadingIcon,
 		NcSelect,
 		Pencil,

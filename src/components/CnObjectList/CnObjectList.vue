@@ -9,11 +9,11 @@
 		<div v-else-if="objects.length === 0" class="cn-object-list__empty">
 			<!-- @slot empty Custom empty state shown when there are no objects. -->
 			<slot name="empty">
-				<NcEmptyContent :name="resolvedEmptyText">
+				<CnEmptyContent :name="resolvedEmptyText">
 					<template #icon>
 						<FormatListBulletedSquare :size="64" />
 					</template>
-				</NcEmptyContent>
+				</CnEmptyContent>
 			</slot>
 		</div>
 
@@ -65,8 +65,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcLoadingIcon } from '@nextcloud/vue'
 import FormatListBulletedSquare from 'vue-material-design-icons/FormatListBulletedSquare.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import { CnObjectRow } from '../CnObjectRow/index.js'
 
 /**
@@ -94,7 +95,7 @@ export default {
 
 	components: {
 		NcLoadingIcon,
-		NcEmptyContent,
+		CnEmptyContent,
 		FormatListBulletedSquare,
 		CnObjectRow,
 	},

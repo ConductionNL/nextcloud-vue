@@ -12,11 +12,11 @@
 		<div v-else-if="localColumns.length === 0" class="cn-object-kanban__empty">
 			<!-- @slot empty Custom empty state shown when there are no columns to render. -->
 			<slot name="empty">
-				<NcEmptyContent :name="emptyText">
+				<CnEmptyContent :name="emptyText">
 					<template #icon>
 						<ViewColumn :size="64" />
 					</template>
-				</NcEmptyContent>
+				</CnEmptyContent>
 			</slot>
 		</div>
 
@@ -105,9 +105,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import draggable from 'vuedraggable'
 import ViewColumn from 'vue-material-design-icons/ViewColumn.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import { dueStateForRow } from '../../utils/dueRule.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 
@@ -169,7 +170,7 @@ export default {
 		Draggable: draggable,
 		NcButton,
 		NcLoadingIcon,
-		NcEmptyContent,
+		CnEmptyContent,
 		ViewColumn,
 		CnCellRenderer,
 	},

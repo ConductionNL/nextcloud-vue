@@ -96,7 +96,7 @@
 					@geoSaved="onGeoSaved"
 					@openIntegration="onOpenIntegration"
 					@selectObject="onSelectObject" />
-				<NcEmptyContent v-else :name="missingLabel(entry)" />
+				<CnEmptyContent v-else :name="missingLabel(entry)" />
 			</CnTab>
 		</CnTabs>
 	</div>
@@ -105,8 +105,9 @@
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnTab from '../CnTabs/CnTab.vue'
 import CnTabs from '../CnTabs/CnTabs.vue'
@@ -176,7 +177,7 @@ export default {
 		CnTab,
 		CnTabs,
 		NcActionButton,
-		NcEmptyContent,
+		CnEmptyContent,
 		NcLoadingIcon,
 	},
 

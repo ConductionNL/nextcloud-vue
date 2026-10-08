@@ -813,6 +813,10 @@ export default {
 			// — the working copy while editing, the live manifest otherwise. A
 			// getter so it stays reactive despite provide() running once; when
 			// not editing it returns the live manifest, identical to before.
+			get cnLook() {
+				return (self.look || self.manifest?.look) === 'board' ? 'board' : 'nextcloud'
+			},
+
 			get cnManifest() {
 				return self.manifestEditor ? self.manifestEditor.source.value : self.manifest
 			},
@@ -1486,6 +1490,18 @@ export default {
 		requiresApps: {
 			type: Array,
 			default: () => ['openregister'],
+		},
+
+		/**
+		 * The look the app is drawn in: `board` or `nextcloud`. Empty falls back
+		 * to the manifest's top-level `look`, then `nextcloud`. Provided to
+		 * descendants as `cnLook`.
+		 *
+		 * @type {''|'board'|'nextcloud'}
+		 */
+		look: {
+			type: String,
+			default: '',
 		},
 
 		/**

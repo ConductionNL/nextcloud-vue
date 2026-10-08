@@ -465,25 +465,26 @@
 					class="cn-index-page__empty"
 					role="status"
 					data-testid="cn-index-page-fetch-error">
-					<NcEmptyContent :name="t('nextcloud-vue', 'An error occurred')"
+					<CnEmptyContent error
+						:name="t('nextcloud-vue', 'An error occurred')"
 						:description="effectiveSearchValue
 							? t('nextcloud-vue', 'Change the search or try again.')
 							: t('nextcloud-vue', 'Try again later.')">
 						<template #icon>
 							<AlertCircleOutline :size="64" />
 						</template>
-					</NcEmptyContent>
+					</CnEmptyContent>
 				</div>
 
 				<!-- Empty state -->
 				<div v-else-if="effectiveObjects.length === 0" class="cn-index-page__empty">
 					<slot name="empty">
-						<NcEmptyContent :name="resolvedEmptyText">
+						<CnEmptyContent :name="resolvedEmptyText">
 							<template #icon>
 								<CnIcon v-if="resolvedIcon" :name="resolvedIcon" :size="64" />
 								<DatabaseSearch v-else :size="64" />
 							</template>
-						</NcEmptyContent>
+						</CnEmptyContent>
 					</slot>
 				</div>
 
@@ -847,7 +848,7 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActions, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
@@ -859,6 +860,7 @@ import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFavouriteToggle from '../CnFavouriteToggle/CnFavouriteToggle.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { createRefLabelResolver } from '../../composables/useRefLabels.js'
@@ -1135,7 +1137,7 @@ export default {
 	components: {
 		CnFavouriteToggle,
 		NcLoadingIcon,
-		NcEmptyContent,
+		CnEmptyContent,
 		NcActions,
 		NcActionButton,
 		NcActionCaption,

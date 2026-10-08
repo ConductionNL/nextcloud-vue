@@ -61,6 +61,7 @@ const NcEmptyContentStub = {
 }
 const listStubs = {
 	NcEmptyContent: NcEmptyContentStub,
+	CnEmptyContent: NcEmptyContentStub,
 	NcLoadingIcon: { template: '<div />' },
 }
 
