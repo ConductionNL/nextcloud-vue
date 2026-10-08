@@ -299,6 +299,7 @@
 					:objectId="objectId"
 					:object="currentObject"
 					:config="lifecycleActions"
+					:register="register"
 					:schema="currentSchema"
 					display="menu"
 					@entries="lifecycleMenuEntries = $event"

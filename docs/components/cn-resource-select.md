@@ -57,6 +57,8 @@ Three opt-in props cover what a plain object picker cannot do:
 | `allowCreate` | Boolean | `true` | Offer the inline "Create '&lt;term&gt;'" option when the search yields no exact match. Off → behaves like a plain async object select. |
 | `createDefaults` | Object | `{}` | Extra fields merged into the payload when creating a new object (e.g. a fixed `type`). `labelField` is always set to the term. |
 | `filters` | Object | `{}` | Field filters merged into the search query, scoping the options to a parent selection (the cascading-select case). Changing the scope reloads the options and clears a selection that no longer belongs to it. Empty values are dropped rather than sent as `field=`. |
+| `filter` | Object | `{}` | Field values the candidates must match (`{ lifecycle: 'active' }`), merged into the list query like `filters` (and winning on a clash). Use it for a fixed narrowing; `filters` is for a scope that follows another field. |
+| `exclude` | Array | `[]` | Ids to leave out of the options, for example the record a transition runs on when it must not be picked as its own target. |
 | `preload` | Boolean | `false` | Fetch a first page of options on mount (and on every `filters` change) so the field can be browsed without typing. Off by default so existing consumers issue no extra request. |
 | `disabled` | Boolean | `false` | Disable the input — e.g. a dependent select still waiting on its parent. |
 | `placeholder` | String | `''` | Placeholder text for the underlying `NcSelect`. |

@@ -1577,9 +1577,11 @@
 		},
 		"CnLifecycleActions": {
 			"direct": 0,
-			"transitive": 2,
-			"tier": "light",
-			"via": [],
+			"transitive": 10,
+			"tier": "medium",
+			"via": [
+				"CnResourceSelect"
+			],
 			"page": "cn-lifecycle-actions"
 		},
 		"CnLinkButtonWidget": {
@@ -2735,10 +2737,11 @@
 		},
 		"CnStagesWidget": {
 			"direct": 2,
-			"transitive": 7,
-			"tier": "medium",
+			"transitive": 13,
+			"tier": "heavy",
 			"via": [
-				"CnIndexPage"
+				"CnIndexPage",
+				"CnResourceSelect"
 			],
 			"page": "cn-stages-widget"
 		},

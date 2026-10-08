@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.58.0",
+	"version": "2.59.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -3163,6 +3163,35 @@
 						"markRead": {
 							"type": "boolean",
 							"description": "Detail pages: send PUT .../read-state once after the object has rendered, when it carries @self.unread, so opening a record marks it read. Default true; false keeps the page from marking anything read."
+						},
+						"lifecycleActions": {
+							"description": "Detail pages: status-gated lifecycle transition buttons (CnLifecycleActions). `inputs` gives the transition dialog hints for server-declared transitions: a map of action name to a list of { field, picker?, fields? }, merged onto the server's declared input with the same `field`. `picker` { filter, excludeSelf, labelField } narrows the records a reference input offers; `fields` names the sub-properties an object input asks for. A hint for a field the server does not declare is ignored with a console warning and never adds an input.",
+							"if": { "type": "object" },
+							"then": { "properties": {
+								"inputs": {
+									"type": "object",
+									"additionalProperties": {
+										"type": "array",
+										"items": {
+											"type": "object",
+											"required": ["field"],
+											"properties": {
+												"field": { "type": "string", "minLength": 1 },
+												"picker": {
+													"type": "object",
+													"additionalProperties": false,
+													"properties": {
+														"filter": { "type": "object" },
+														"excludeSelf": { "type": "boolean" },
+														"labelField": { "type": "string" }
+													}
+												},
+												"fields": { "type": "array", "items": { "type": "string" } }
+											}
+										}
+									}
+								}
+							} }
 						},
 						"headerFields": {
 							"type": "array",

@@ -28,6 +28,8 @@
 			v-if="inputTransition"
 			:transition="inputTransition"
 			:schema="schema"
+			:currentObject="object"
+			:register="register"
 			:error="inputError"
 			:fieldErrors="inputFieldErrors"
 			:busy="working"
@@ -120,7 +122,7 @@ export default {
 		 * The lifecycle config block. A declared transition may carry
 		 * `inputs: [{ field, required }]` to collect data before it is applied.
 		 *
-		 * @type {{field?: string, transitions?: Array<{from?: (string|Array<string>), to?: string, action?: string, label?: string, confirm?: string, variant?: string, inputs?: Array<{field: string, required?: boolean}>}>, autoFetch?: boolean}}
+		 * @type {{field?: string, inputs?: Object<string, Array<{field: string, picker?: object, fields?: string[]}>>, transitions?: Array<{from?: (string|Array<string>), to?: string, action?: string, label?: string, confirm?: string, variant?: string, inputs?: Array<{field: string, required?: boolean}>}>, autoFetch?: boolean}}
 		 */
 		config: {
 			type: Object,
@@ -138,6 +140,17 @@ export default {
 		schema: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Register slug the dialog's reference pickers look in when the schema
+		 * property names none of its own.
+		 *
+		 * @type {string}
+		 */
+		register: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -219,14 +232,17 @@ export default {
 		 */
 		visibleTransitions() {
 			if (this.useServer) {
-				return this.serverActions.map((a) => ({
-					action: a.action,
-					to: a.to,
-					label: this.labelFor(a.action, a.to, a.label),
-					description: this.descriptionFor(a.description),
-					variant: 'secondary',
-					...(Array.isArray(a.inputs) && a.inputs.length > 0 ? { inputs: a.inputs } : {}),
-				}))
+				return this.serverActions.map((a) => {
+					const inputs = this.withInputHints(a.action, a.inputs)
+					return {
+						action: a.action,
+						to: a.to,
+						label: this.labelFor(a.action, a.to, a.label),
+						description: this.descriptionFor(a.description),
+						variant: 'secondary',
+						...(inputs.length > 0 ? { inputs } : {}),
+					}
+				})
 			}
 			const declared = Array.isArray(this.config.transitions) ? this.config.transitions : []
 			return declared
@@ -238,7 +254,7 @@ export default {
 					description: this.descriptionFor(tr.description),
 					confirm: tr.confirm,
 					variant: tr.variant || 'secondary',
-					...(Array.isArray(tr.inputs) && tr.inputs.length > 0 ? { inputs: tr.inputs } : {}),
+					...(this.withInputHints(tr.action || tr.to, tr.inputs).length > 0 ? { inputs: this.withInputHints(tr.action || tr.to, tr.inputs) } : {}),
 				}))
 		},
 
@@ -297,6 +313,49 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Merge the manifest's input hints (`config.inputs[<action>]`, a list of
+		 * `{ field, picker?, fields? }`) onto a transition's declared inputs by
+		 * `field`. A hint for a field the transition does not declare is ignored
+		 * with one console warning; hints never add an input.
+		 *
+		 * @param {string} action The transition's action name.
+		 * @param {Array<object>|undefined} declared The inputs the transition declares.
+		 * @return {Array<object>} The inputs, with hints applied.
+		 * @spec openspec/changes/transition-input-reference-and-subfields/tasks.md#task-3
+		 */
+		withInputHints(action, declared) {
+			const inputs = Array.isArray(declared) ? declared : []
+			const hints = this.config && this.config.inputs && Array.isArray(this.config.inputs[action]) ? this.config.inputs[action] : []
+			if (hints.length === 0) {
+				return inputs
+			}
+			for (const hint of hints) {
+				if (hint && typeof hint.field === 'string' && !inputs.some((i) => i && i.field === hint.field)) {
+					const key = `${action}:${hint.field}`
+					if (!this._warnedHints) {
+						this._warnedHints = new Set()
+					}
+					if (!this._warnedHints.has(key)) {
+						this._warnedHints.add(key)
+						// eslint-disable-next-line no-console
+						console.warn(`[CnLifecycleActions] The input hint for "${hint.field}" on "${action}" is ignored: the transition does not declare that input.`)
+					}
+				}
+			}
+			return inputs.map((input) => {
+				const hint = hints.find((h) => h && input && h.field === input.field)
+				if (!hint) {
+					return input
+				}
+				return {
+					...input,
+					...(hint.picker && typeof hint.picker === 'object' ? { picker: hint.picker } : {}),
+					...(Array.isArray(hint.fields) ? { fields: hint.fields } : {}),
+				}
+			})
+		},
+
 		/**
 		 * Whether a config-declared transition's `from` includes the object's
 		 * current state. Missing `from` means "any state".

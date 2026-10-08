@@ -108,3 +108,11 @@ field named after the raw field key.
   state — safe to leave declared on every detail page.
 - A `confirm` string on a config-declared transition prompts via `window.confirm`
   before POSTing.
+
+## Input hints
+
+`config.inputs` (on the page's `lifecycleActions`) is a map of action name to a list of `{ field, picker?, fields? }`. Each entry is merged onto the transition's declared input with the same `field`, so a server-declared transition (from `/available-actions`) gets a record picker (`picker`) or a narrowed object input (`fields`) without the server knowing about the screen. A hint for a field the transition does not declare is ignored with one console warning and never adds an input. A config-declared transition can carry `picker` and `fields` on its own input entry. The `register` prop is handed to the dialog for its reference pickers (`CnDetailPage` passes its own).
+
+```json
+{ "lifecycleActions": { "field": "status", "inputs": { "recordMunicipalityFeedback": [{ "field": "municipalityFeedback", "fields": ["masRoute", "note"] }] } } }
+```
