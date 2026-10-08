@@ -1346,7 +1346,7 @@ function validateTypeConfig(page, index, errors) {
 		// entries MUST have a closed-enum `type` and (except inline
 		// geojson) a non-empty `url`; `markers.dataSource` MUST
 		// declare exactly one of `url` OR `register + schema`.
-			const allowedLayerTypes = ['tile', 'wms', 'wfs', 'geojson']
+			const allowedLayerTypes = ['tile', 'wms', 'wfs', 'geojson', 'image']
 			const center = cfg && cfg.center
 			const validCenter = Array.isArray(center)
 				&& center.length === 2
@@ -1368,7 +1368,15 @@ function validateTypeConfig(page, index, errors) {
 							return
 						}
 						if (!allowedLayerTypes.includes(layer.type)) {
-							errors.push(`${lPath}/type: must be one of tile | wms | wfs | geojson`)
+							errors.push(`${lPath}/type: must be one of tile | wms | wfs | geojson | image`)
+						}
+						if (layer.type === 'image') {
+							// map-image-layer: a picture needs its pixel size.
+							for (const dim of ['width', 'height']) {
+								if (typeof layer[dim] !== 'number' || !(layer[dim] > 0)) {
+									errors.push(`${lPath}/${dim}: an image layer needs a ${dim} in pixels (a positive number)`)
+								}
+							}
 						}
 						const hasUrl = typeof layer.url === 'string' && layer.url.length > 0
 						const hasInlineGeojson = layer.type === 'geojson'
