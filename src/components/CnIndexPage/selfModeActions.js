@@ -1,3 +1,4 @@
+import { useObjectCopy } from '../../composables/useObjectCopy.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import {
 	cloneObjectForCopy,
@@ -12,6 +13,34 @@ function resolveNameField(ctx) {
 
 function findSource(ctx, id) {
 	return ctx.effectiveObjects().find((o) => o.id === id || o['@self']?.id === id)
+}
+
+/**
+ * The source's address for the copy endpoint, or null when the register or
+ * schema is not known as a slug.
+ *
+ * @param {object} ctx Accessor closures.
+ * @param {object} source The object being copied.
+ * @return {{register: string, schema: string, id: string}|null} The address.
+ */
+function copyAddress(ctx, source) {
+	const self = source['@self'] || {}
+	const reg = ctx.register()
+	const sch = ctx.schema()
+	const register = (typeof reg === 'string' && reg) || self.register
+	const schema = (typeof sch === 'string' && sch) || (sch && (sch.slug || sch.id)) || self.schema || ctx.effectiveSchema()?.slug
+	return register && schema ? { register: String(register), schema: String(schema), id: String(source.id || self.id) } : null
+}
+
+/**
+ * Whether an error says the server has no copy endpoint (404 or 405).
+ *
+ * @param {unknown} error The error.
+ * @return {boolean} True when the endpoint is missing.
+ */
+function copyEndpointMissing(error) {
+	const status = error && error.response && error.response.status
+	return status === 404 || status === 405
 }
 
 function selfModeReady(ctx) {
@@ -94,6 +123,24 @@ export function createSelfModeActions(ctx) {
 			return true
 		}
 		try {
+			// Links the person left ticked: one request to the server's copy endpoint.
+			// A server without it (404 or 405) falls through to the fields-only copy below.
+			const include = Array.isArray(payload && payload.include) ? payload.include : []
+			const address = include.length > 0 ? copyAddress(ctx, source) : null
+			if (address) {
+				try {
+					const copied = await useObjectCopy().copy(address, newName, include, { [resolveNameField(ctx)]: newName })
+					ctx.setResults.singleCopy({ success: true, object: copied.object, links: copied.links })
+					ctx.emit('copy', payload)
+					refreshList(ctx)
+					return true
+				} catch (copyError) {
+					if (!copyEndpointMissing(copyError)) {
+						ctx.setResults.singleCopy({ error: (copyError && copyError.message) || 'Copy failed' })
+						return true
+					}
+				}
+			}
 			const clone = cloneObjectForCopy(source, newName, resolveNameField(ctx))
 			const saved = await ctx.selfObjectStore().saveObject(ctx.selfObjectType(), clone)
 			if (saved) {
@@ -118,11 +165,29 @@ export function createSelfModeActions(ctx) {
 		const getName = (payload && payload.getName) || ((item) => item[ctx.massActionNameField()])
 		const successfulIds = []
 		const failedIds = []
+		const links = []
+		let serverCopy = Array.isArray(payload && payload.include) && payload.include.length > 0
 		for (const id of ids) {
 			const source = findSource(ctx, id)
 			if (!source) {
 				failedIds.push(id)
 				continue
+			}
+			// One copy request per row with the ticked kinds; a server without the endpoint falls back to fields only.
+			const address = serverCopy ? copyAddress(ctx, source) : null
+			if (address) {
+				try {
+					const copied = await useObjectCopy().copy(address, getName(source), payload.include, { [nameField]: getName(source) })
+					links.push(...copied.links.map((l) => ({ ...l, source: id })))
+					successfulIds.push(id)
+					continue
+				} catch (copyError) {
+					if (!copyEndpointMissing(copyError)) {
+						failedIds.push(id)
+						continue
+					}
+					serverCopy = false
+				}
 			}
 			const clone = cloneObjectForCopy(source, getName(source), nameField)
 			try {
@@ -137,12 +202,13 @@ export function createSelfModeActions(ctx) {
 			}
 		}
 		if (failedIds.length === 0) {
-			ctx.setResults.massCopy({ success: true, successfulIds })
+			ctx.setResults.massCopy({ success: true, successfulIds, ...(links.length > 0 ? { links } : {}) })
 		} else {
 			ctx.setResults.massCopy({
 				error: storeErrorMessage(ctx, `Failed to copy ${failedIds.length} item(s)`),
 				successfulIds,
 				failedIds,
+				...(links.length > 0 ? { links } : {}),
 			})
 		}
 		refreshList(ctx)

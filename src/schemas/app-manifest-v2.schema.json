@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.64.0",
+	"version": "2.65.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -3083,6 +3083,18 @@
 				}
 			}
 		},
+		"copySettings": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "index-copy-with-relations: what a copy on this index page may take along. `include` lists the link kinds: relationRows (the source's relation rows are re-created on the copy), incoming (the copy is added next to the source in every array-valued reference that points at it; a single-valued reference is never moved) and files (the attached files). The copy dialogs list the included kinds, ticked, and the copy is one request to OpenRegister's copy endpoint. Without `include` a copy carries the fields only.",
+			"properties": {
+				"include": {
+					"type": "array",
+					"uniqueItems": true,
+					"items": { "enum": ["relationRows", "incoming", "files"] }
+				}
+			}
+		},
 		"page": {
 			"type": "object",
 			"required": ["id", "route", "type", "title"],
@@ -4097,6 +4109,11 @@
 					"description": "index-calendar-view-mode: config.calendar on an index page is typed by calendarView.",
 					"if": { "properties": { "type": { "const": "index" } }, "required": ["type"] },
 					"then": { "properties": { "config": { "properties": { "calendar": { "$ref": "#/$defs/calendarView" } } } } }
+				},
+				{
+					"description": "index-copy-with-relations: config.copy on an index page is typed by copySettings.",
+					"if": { "properties": { "type": { "const": "index" } }, "required": ["type"] },
+					"then": { "properties": { "config": { "properties": { "copy": { "$ref": "#/$defs/copySettings" } } } } }
 				},
 				{
 					"description": "index-column-order-and-pinning: config.personalColumns on an index page lets people order and pin columns and keeps the layout per user; false keeps show and hide only.",

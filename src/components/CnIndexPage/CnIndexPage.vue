@@ -263,6 +263,9 @@
 			:items="selectedObjects"
 			:nameField="massActionNameField"
 			:nameFormatter="nameFormatter"
+			:include="copyIncludeKinds"
+			:register="copyRegisterSlug"
+			:schema="copySchemaSlug"
 			@confirm="onMassCopyConfirm"
 			@close="showMassCopyDialog = false" />
 
@@ -365,6 +368,9 @@
 				:item="actionTargetItem"
 				:nameField="massActionNameField"
 				:nameFormatter="nameFormatter"
+				:include="copyIncludeKinds"
+				:register="copyRegisterSlug"
+				:schema="copySchemaSlug"
 				@confirm="onSingleCopyConfirm"
 				@close="closeSingleCopy" />
 		</slot>
@@ -899,6 +905,7 @@ import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFavouriteToggle from '../CnFavouriteToggle/CnFavouriteToggle.vue'
 import { useContextMenu } from '../../composables/index.js'
+import { copyKindsOf } from '../../composables/useObjectCopy.js'
 import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
@@ -1969,6 +1976,20 @@ export default {
 		showMassExport: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Copy settings from the manifest's `config.copy`. `include` lists the link
+		 * kinds a copy may take along (`relationRows`, `incoming`, `files`); the copy
+		 * dialogs then list them, ticked, and the copy is one request to
+		 * OpenRegister's copy endpoint. Without it a copy carries the fields only,
+		 * as before. A server without the endpoint shows the list read-only.
+		 *
+		 * @type {{include?: Array<'relationRows'|'incoming'|'files'>}|null}
+		 */
+		copy: {
+			type: Object,
+			default: null,
 		},
 
 		/** Whether to show the built-in mass Copy button */
@@ -4412,6 +4433,24 @@ export default {
 				}
 			}
 			return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns
+		},
+
+		/** @return {string[]} The link kinds a copy may take along (`copy.include`, known kinds only). */
+		copyIncludeKinds() {
+			return copyKindsOf(this.copy && this.copy.include)
+		},
+
+		/** @return {string} The register as a slug, for the copy endpoint. */
+		copyRegisterSlug() {
+			return typeof this.register === 'string' ? this.register : ''
+		},
+
+		/** @return {string} The schema as a slug, for the copy endpoint. */
+		copySchemaSlug() {
+			if (typeof this.schema === 'string') {
+				return this.schema
+			}
+			return (this.effectiveSchema && this.effectiveSchema.slug) || ''
 		},
 
 		/** @return {number} How many leading columns the person pinned (0 while a saved view's columns are applied). */

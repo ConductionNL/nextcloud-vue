@@ -1306,7 +1306,19 @@
     "Order and pin": "Volgorde en vastzetten",
     "Pin {column}": "{column} vastzetten",
     "Unpin {column}": "{column} losmaken",
-    "Reset columns": "Kolommen herstellen"
+    "Reset columns": "Kolommen herstellen",
+    "Open the copy": "De kopie openen",
+    "{title} was not linked: {reason}": "{title} is niet gekoppeld: {reason}",
+    "no reason given": "geen reden opgegeven",
+    "Links to take along": "Koppelingen meenemen",
+    "Links are not copied yet. Only the fields are copied.": "Koppelingen worden nog niet gekopieerd. Alleen de velden worden gekopieerd.",
+    "and {count} more": "en nog {count}",
+    "Used by {count}": "Gebruikt door {count}",
+    "Connections {count}": "Verbindingen {count}",
+    "Files {count}": "Bestanden {count}",
+    "Objects that use each entry": "Objecten die elk item gebruiken",
+    "Connections of each entry": "Verbindingen van elk item",
+    "Files of each entry": "Bestanden van elk item"
   },
   "plurals": {
     "%n year": [

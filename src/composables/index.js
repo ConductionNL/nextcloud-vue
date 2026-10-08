@@ -34,6 +34,7 @@ export {
 export { useAppManifest } from './useAppManifest.js'
 export { useAppStatus } from './useAppStatus.js'
 export { useChildRecords } from './useChildRecords.js'
+export { COPY_LINK_KINDS, copyKindsOf, useObjectCopy } from './useObjectCopy.js'
 export { useFileComments } from './useFileComments.js'
 export { useFileOpener } from './useFileOpener.js'
 export { useRefLabels } from './useRefLabels.js'

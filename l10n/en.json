@@ -1255,7 +1255,19 @@
     "Order and pin": "Order and pin",
     "Pin {column}": "Pin {column}",
     "Unpin {column}": "Unpin {column}",
-    "Reset columns": "Reset columns"
+    "Reset columns": "Reset columns",
+    "Open the copy": "Open the copy",
+    "{title} was not linked: {reason}": "{title} was not linked: {reason}",
+    "no reason given": "no reason given",
+    "Links to take along": "Links to take along",
+    "Links are not copied yet. Only the fields are copied.": "Links are not copied yet. Only the fields are copied.",
+    "and {count} more": "and {count} more",
+    "Used by {count}": "Used by {count}",
+    "Connections {count}": "Connections {count}",
+    "Files {count}": "Files {count}",
+    "Objects that use each entry": "Objects that use each entry",
+    "Connections of each entry": "Connections of each entry",
+    "Files of each entry": "Files of each entry"
   },
   "plurals": {
     "%n year": [

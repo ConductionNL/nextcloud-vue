@@ -195,6 +195,8 @@ With admin-only filter control:
 |------|------|---------|-------------|
 | `icon` | String | `''` | MDI icon name or emoji shown in the sidebar header. Falls back to `schema.icon` |
 | `visibleColumns` | Array | `null` | Currently visible column keys; `null` means all visible |
+| `personalColumns` | Boolean | `true` | Show the Order and pin list and Reset columns in the Columns tab |
+| `pinnedCount` | Number | `0` | How many of the first visible columns are pinned to the start of the table |
 | `facetData` | Object | `{}` | Live facet data from the API: `{ fieldName: { values: [{ value, count }] } }` |
 | `columnGroups` | Array | `[]` | Extra column groups beyond schema properties and built-in Metadata. Each: `{ id, label, columns: [{ key, label }], expanded? }` |
 | `showMetadata` | Boolean | `true` | Whether to include the built-in Metadata column group |
