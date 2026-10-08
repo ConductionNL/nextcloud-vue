@@ -43,7 +43,7 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `onRetry` | Function | `null` | Callback for retry button in error state. If null, no retry button shown. |
 | `retryLabel` | String | `'Retry'` | Retry button text |
 | `notFoundRoute` | Object\|String | `null` | Router location of the not-found state's back button. `null` sends the user to `/`. CnPageRenderer fills it with the index page the record was opened from (`_from`), else the index page on the same register and schema. |
-| `notFoundRouteLabel` | String | `''` | Name of the `notFoundRoute` page, shown as "Back to {page}". Without it the button reads "Back to home". |
+| `notFoundRouteLabel` | String | `''` | Name of the `notFoundRoute` page, shown as "Back to \{page\}". Without it the button reads "Back to home". |
 | `empty` | Boolean | `false` | Empty state |
 | `emptyLabel` | String | `'No data available'` | Message shown in empty state |
 | `statsTitle` | String | `''` | Title above the statistics table |

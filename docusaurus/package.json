@@ -9,7 +9,7 @@
     "clear": "docusaurus clear",
     "deploy": "docusaurus deploy",
     "docusaurus": "docusaurus",
-    "prebuild:docs": "vue-docgen --configFile docgen.config.js",
+    "prebuild:docs": "node ../scripts/openregister-reliance.js && vue-docgen --configFile docgen.config.js",
     "serve": "docusaurus serve",
     "prestart": "npm run prebuild:docs",
     "start": "docusaurus start",
