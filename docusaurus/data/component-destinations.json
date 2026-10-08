@@ -1239,7 +1239,7 @@
    "verdict": "rewrite",
    "destination": "tables",
    "week": "46",
-   "screenshot": "captured",
+   "screenshot": "example does not render",
    "note": "the list state, saved views, facets, mass actions and import and export call OpenRegister; table, cards, board and timeline rendering do not"
   },
   "CnLogsPage": {

@@ -83,6 +83,7 @@ export default function RelianceTable() {
 					<option value="captured">captured</option>
 					<option value="needs an example">needs an example</option>
 					<option value="not needed">not needed</option>
+					<option value="example does not render">example does not render</option>
 				</select>
 				<input
 					type="search"
