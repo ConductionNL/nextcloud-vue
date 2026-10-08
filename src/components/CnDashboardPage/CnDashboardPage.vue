@@ -993,6 +993,8 @@ export default {
 	provide() {
 		return {
 			cnWidgetTitleSource: (widgetId) => this.getWidgetTitleSource(widgetId),
+			// The page id, for widgets that key per-person state by dashboard (notepad).
+			cnDashboardPageId: () => this.resolvedPageId,
 		}
 	},
 

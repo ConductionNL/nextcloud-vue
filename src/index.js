@@ -186,6 +186,8 @@ export {
 	CnNcWidgetWidget,
 	CnNextStepCard,
 	CnNoteCard,
+	CnNotepadWidget,
+	CnNotepadWidgetForm,
 	CnNotesCard,
 	CnNotificationMatrix,
 	CnNotificationPreferences,

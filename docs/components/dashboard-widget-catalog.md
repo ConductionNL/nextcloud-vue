@@ -49,6 +49,11 @@ Static, configuration-only widgets — no data source required.
 Single-line styled text label (font size, colour, weight, alignment) for dashboard grids.
 → [`CnLabelWidget`](./cn-label-widget.md) · [`CnLabelWidgetForm`](./cn-label-widget-form.md)
 
+### Notepad · `notepad`
+
+A personal note typed into in place, saved to the reader's own preferences rather than the layout. User-addable: a reader can add it to their own dashboard with no configuration.
+→ [`CnNotepadWidget`](./cn-notepad-widget.md) · [`CnNotepadWidgetForm`](./cn-notepad-widget-form.md)
+
 ### Text · `text`
 
 ![text widget rendering a markdown heading and body](/img/screenshots/widget-text.png)

@@ -146,6 +146,8 @@ export { CnChartWidget } from './CnChartWidget/index.js'
 // cn*Source injection or *Endpoint builder so they stay app-agnostic.
 export { CnLabelWidget } from './CnLabelWidget/index.js'
 export { CnLabelWidgetForm } from './CnLabelWidgetForm/index.js'
+export { CnNotepadWidget } from './CnNotepadWidget/index.js'
+export { CnNotepadWidgetForm } from './CnNotepadWidgetForm/index.js'
 export { CnTextWidget } from './CnTextWidget/index.js'
 export { CnTextWidgetForm } from './CnTextWidgetForm/index.js'
 export { CnImageWidget } from './CnImageWidget/index.js'
