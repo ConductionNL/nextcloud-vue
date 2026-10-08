@@ -66,6 +66,8 @@ const URL_HELPERS = [
 	'speechCapabilitiesUrl',
 	// Module-local builders that wrap `generateUrl()` themselves.
 	'objectsUrl',
+	// useObjectCopy's object address, built by `generateUrl()`.
+	'objectUrl',
 	// useObjectPresence's beat/depart/list URL, built by `generateUrl()`.
 	'presenceUrl',
 ]
