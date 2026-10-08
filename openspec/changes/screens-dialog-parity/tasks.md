@@ -2,11 +2,11 @@
 
 ## Implementation Tasks
 
-### Task 1: An app chooses the board look once
-- **spec_ref**: `openspec/changes/screens-dialog-parity/specs/dialog-system/spec.md#requirement-an-app-chooses-the-board-look-once`
-- **files**: `src/components/CnAppRoot/CnAppRoot.vue`, `src/composables/useLook.js` (new), `src/schemas/app-manifest-v2.schema.json`, `tests/composables/useLook.spec.js`
-- [ ] Implement: `look` prop and manifest key on CnAppRoot, provide `cnLook`, a `useLook(props)` helper every dialog uses (prop, else inject, else `nextcloud`); schema minor bump
-- [ ] Test: unset, manifest key, prop override
+### Task 1: Dialogs follow the app's board look
+- **spec_ref**: `openspec/changes/screens-dialog-parity/specs/dialog-system/spec.md#requirement-dialogs-follow-the-apps-board-look`
+- **files**: `src/components/CnAppRoot/CnAppRoot.vue`, `src/components/CnPageRenderer/CnPageRenderer.vue`, `src/composables/useLook.js` (new), `tests/composables/useLook.spec.js`
+- [ ] Implement: provide `cnLook` from the root `look` (schema key from `screens-chrome-parity`), re-provide on a page with `config.look`, a `useLook(props)` helper (prop, else inject, else `nextcloud`), `cn-look-board` on the teleported container
+- [ ] Test: unset, manifest key, page override, prop override; the class on the container under `document.body`
 
 ### Task 2: A dialog takes one of three widths
 - **spec_ref**: `openspec/changes/screens-dialog-parity/specs/dialog-system/spec.md#requirement-a-dialog-takes-one-of-three-widths`

@@ -41,6 +41,9 @@ renders as today.
 5. A KPI row above the grid (`config.kpiRow`), and `columns: "auto"` on
    CnKpiGrid.
 
+The switch is `look: "board"` from `screens-chrome-parity` (#1391); this
+PR's `screens-dialog-parity` makes it readable in code as `cnLook`.
+
 ## Reference screens
 
 - `opencatalogi/OcDashboard` (header order, KPI row with link icons):
@@ -58,6 +61,8 @@ Canon: sections 2 (dashboard header) and 7 of `UNIFORM-canon.md`.
 
 ## Builds on
 
+- `screens-chrome-parity` (#1391): the `look: "board"` switch, the
+  `cn-look-board` class and `src/css/look-board.css`.
 - `openspec/specs/dashboard-page` ("page header rendering", "date-range
   pills control", "card-fit registry widgets") and
   `openspec/specs/dashboard-grid`.

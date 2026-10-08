@@ -13,15 +13,16 @@ when an app opts in, without changing any app that does not.
 
 ## ADDED Requirements
 
-### Requirement: An app chooses the board look once
+### Requirement: Dialogs follow the app's board look
 
-`CnAppRoot` SHALL take a `look` prop (`"nextcloud"` or `"board"`, default
-`"nextcloud"`) and SHALL read the manifest's optional top-level `look` key
-when the prop is unset. It SHALL provide the value as `cnLook`. Every `Cn*`
-dialog SHALL take a `look` prop; when the prop is unset the dialog SHALL use
-the injected `cnLook`, and when nothing is injected it SHALL render the
-Nextcloud look. The manifest schema SHALL accept `look` with exactly these
-two values.
+`CnAppRoot` SHALL provide the resolved board-look value (`"nextcloud"` or
+`"board"`, from the manifest's `look` key defined by
+`screens-chrome-parity`) as `cnLook`, and a page whose `config.look` differs
+SHALL provide its own value to its descendants. Every `Cn*` dialog SHALL take
+a `look` prop; when the prop is unset the dialog SHALL use the injected
+`cnLook`, and when nothing is injected it SHALL render the Nextcloud look. A
+dialog in the board look SHALL put the class `cn-look-board` on its own
+container, because the container is teleported out of CnAppRoot.
 
 #### Scenario: Nothing set keeps the Nextcloud dialog
 
@@ -33,7 +34,7 @@ two values.
 
 - **GIVEN** a manifest with `look: "board"`
 - **WHEN** app code opens CnFormDialog without a `look` prop
-- **THEN** the dialog renders the board header, width and footer
+- **THEN** the dialog container carries `cn-look-board` and renders the board header, width and footer
 
 #### Scenario: The prop wins over the app
 

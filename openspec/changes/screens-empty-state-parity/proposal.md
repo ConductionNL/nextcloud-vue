@@ -37,6 +37,9 @@ already in a card keeps it inside that card. Behind the board look
    winning.
 3. A drop zone is the only dashed empty block.
 
+The switch is `look: "board"` from `screens-chrome-parity` (#1391); this
+PR's `screens-dialog-parity` makes it readable in code as `cnLook`.
+
 ## Reference screens
 
 - `learniq/LqRapportvergadering` (empty card with a primary action):
@@ -57,6 +60,8 @@ described") of `UNIFORM-canon.md`.
 
 ## Builds on
 
+- `screens-chrome-parity` (#1391): the `look: "board"` switch, the
+  `cn-look-board` class and `src/css/look-board.css`.
 - `openspec/specs/dashboard-page` ("empty state") and the widget empty
   state of `cn-dashboard-widget-refinements`.
 - `form-file-and-camera-fields` and CnFileField for the drop zone.

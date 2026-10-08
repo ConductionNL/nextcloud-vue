@@ -40,6 +40,9 @@ input with `aria-describedby` and `aria-invalid`.
 5. Half-width fields (`width: "half"`) that pair up on wide screens.
 6. The citizen sentence on public form pages.
 
+The switch is `look: "board"` from `screens-chrome-parity` (#1391); this
+PR's `screens-dialog-parity` makes it readable in code as `cnLook`.
+
 ## Reference screens
 
 - `decidiq/DcNieuwBesluit` (staff form in a dialog, "(niet verplicht)",
@@ -65,6 +68,8 @@ sets.
 
 ## Builds on
 
+- `screens-chrome-parity` (#1391): the `look: "board"` switch, the
+  `cn-look-board` class and `src/css/look-board.css`.
 - `openspec/specs/dialog-system` REQ-DG-006 (client-side validation) and
   REQ-DG-014 (labels via props).
 - `openspec/specs/manifest-form-logic` (`visibleWhen`, `validation`) and

@@ -49,6 +49,9 @@ transition contract and the two gestures stay exactly as
 5. A column cut (`config.board.columnLimit`) with a dashed "Show N more".
 6. The board's primary action sits in the page header, not in a column.
 
+The switch is `look: "board"` from `screens-chrome-parity` (#1391); this
+PR's `screens-dialog-parity` makes it readable in code as `cnLook`.
+
 ## Reference screens
 
 - `dossiq/DqWerkbord` (four columns, late card, move menu):
@@ -71,6 +74,8 @@ are out of scope.
 
 ## Builds on
 
+- `screens-chrome-parity` (#1391): the `look: "board"` switch, the
+  `cn-look-board` class and `src/css/look-board.css`.
 - `status-board-and-date-axis` (the board view mode, columns from the
   status field, swimlanes, the transition on move).
 - `board-card-role-and-keyboard` (the card is a container, actions are

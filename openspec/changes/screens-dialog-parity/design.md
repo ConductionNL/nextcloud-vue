@@ -14,28 +14,29 @@ in-app editor modals (`CnEdit*Modal`, `CnFlow*Modal`) are buildiq tooling and
 out of scope. `CnAppRoot` provides the look. New
 shared stylesheet `src/css/dialog.css`.
 
-## D1. One app-wide opt-in, not a key per dialog
+## D1. The switch is #1391's `look`; dialogs need it as a value, not a class
 
-Rounds one to three of the Zuiddrecht pixel match added one opt-in per page
-or widget (`content.layout: "stacked"`, `config.showWidgetActions`). That
-does not work for dialogs: most of them are opened from app code, not from a
-manifest page, so there is no page config to read. The board look is a
-property of the app, not of one dialog.
+`screens-chrome-parity` (PR #1391, the sibling of this PR) adds the one
+switch for the whole board look: `look: "board"` at the manifest root,
+`config.look` per page, and the class `cn-look-board` on CnAppRoot's root
+(or on a page root that overrides it). Every board rule there is scoped under
+that class. This change reuses that switch and adds nothing to the schema.
 
-So `CnAppRoot` takes `look` (`"nextcloud"` default, or `"board"`), read from
-a new optional top-level manifest key `look`, and provides it as `cnLook`.
+A class is not enough for dialogs, for two reasons:
+
+1. `NcDialog` teleports its container to `document.body`, outside CnAppRoot,
+   so no rule scoped under `.cn-look-board` reaches it.
+2. The width role, the footer order, the eyebrow and the type-to-confirm
+   field change markup, not only style, and a class cannot reorder buttons.
+
+So CnAppRoot provides the resolved value as `cnLook` (a reactive getter, like
+`cnManifest`), and a page whose `config.look` differs re-provides its own.
 Every `Cn*` dialog takes a `look` prop with no default of its own: when the
 prop is unset it injects `cnLook`, and when nothing is provided it renders
-the Nextcloud look. The other `screens-*` changes in this PR read the same
-`cnLook`, so an app opts in once.
-
-```json
-{ "version": "2.54.0", "look": "board", "menu": [ ... ] }
-```
-
-Rejected: a CSS-only switch (a class on the app root). The width, the footer
-order, the eyebrow and the type-to-confirm field change markup, not only
-style, and a class cannot reorder buttons.
+the Nextcloud look. In the board look the dialog puts `cn-look-board` on its
+own container, so the board stylesheet reaches it after the teleport. The
+other `screens-*` changes in this PR read the same `cnLook` wherever the
+board look changes markup.
 
 ## D2. Width by role, not by pixel
 

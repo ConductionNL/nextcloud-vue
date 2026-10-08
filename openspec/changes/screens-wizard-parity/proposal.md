@@ -39,6 +39,9 @@ through CnWizardDialog and follows without changes of its own.
 5. CnFormPage with steps uses the same stepper, and ends in a hairline
    footer inside a white card: Cancel or Previous left, the primary right.
 
+The switch is `look: "board"` from `screens-chrome-parity` (#1391); this
+PR's `screens-dialog-parity` makes it readable in code as `cnLook`.
+
 ## Reference screens
 
 - `pipelinq/PqNieuwsbriefWizard` (six steps, finishing verb):
@@ -56,6 +59,8 @@ Canon: section 6 of `UNIFORM-canon.md`.
 
 ## Builds on
 
+- `screens-chrome-parity` (#1391): the `look: "board"` switch, the
+  `cn-look-board` class and `src/css/look-board.css`.
 - `openspec/changes/cn-wizard-dialog` (the component, its steps API and
   slots) and `openspec/specs/cn-setup-wizard` (REQ-SETUP-NV-010..013).
 - `openspec/specs/manifest-form-logic` and the form page type

@@ -20,9 +20,10 @@ body instead of a sentence plus a note.
 This change adds the board look to the `Cn*` dialogs as an opt-in. An app
 that sets nothing renders exactly as today.
 
-1. An app chooses the board look once (`look: "board"` in the manifest, or a
-   `look` prop on CnAppRoot) and every `Cn*` dialog below it follows. A
-   dialog's own `look` prop wins.
+1. Every `Cn*` dialog follows the app's board look (`look: "board"`, the
+   switch `screens-chrome-parity` adds in #1391). CnAppRoot provides it as
+   `cnLook` because a dialog is teleported out of the app root, where the
+   `cn-look-board` class cannot reach it. A dialog's own `look` prop wins.
 2. A dialog takes one of three widths by role: `confirm` (560), `form` (640),
    `wizard` (720). Each `Cn*` dialog has a default role.
 3. A dialog can carry an eyebrow (context line) above its title and a
@@ -63,6 +64,8 @@ width.
 
 - `openspec/specs/dialog-system` (REQ-DG-001 to REQ-DG-015): the two-phase
   pattern, `setResult`, the label props and the focus trap stay as they are.
+- `screens-chrome-parity` (#1391): the `look` key, `config.look`, the
+  `cn-look-board` class and `src/css/look-board.css`.
 - `zuiddrecht-pixel-gaps`, `-2`, `-3` and the #1348 opt-ins: the same rule,
   an opt-in key whose default is today's look.
 - `screens-form-parity` (this PR) for the field anatomy inside a form dialog.
@@ -75,8 +78,8 @@ app that opens a `Cn*` dialog. None changes until it opts in.
 
 ## Backward compatibility
 
-Additive. New props default to today's behaviour; the manifest key is
-optional (schema minor bump). The existing `size` prop keeps accepting the
+Additive. New props default to today's behaviour; no schema change here
+(the `look` key comes with #1391). The existing `size` prop keeps accepting the
 `NcDialog` values.
 
 ## Theming
