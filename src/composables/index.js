@@ -74,4 +74,14 @@ export {
 export { useManifestEditHistory } from './useManifestEditHistory.js'
 export { useScopedTheme } from './useScopedTheme.js'
 export { useFlowStore } from './useFlowStore.js'
+export {
+	FLOW_LAYOUT_COLUMN_WIDTH,
+	FLOW_LAYOUT_MARGIN,
+	FLOW_LAYOUT_ROW_HEIGHT,
+	FLOW_LAYOUT_TOP,
+	layoutFlowNodes,
+	needsFullLayout,
+	placeLooseNodes,
+	readNodePoint,
+} from './flowGraphLayout.js'
 export { NOTIFICATION_PREFERENCES_URL, NOTIFICATION_TEST_SEND_URL, useNotificationPreferencesStore } from './useNotificationPreferencesStore.js'

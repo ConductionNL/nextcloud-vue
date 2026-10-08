@@ -455,6 +455,16 @@ export { registerOfflineWorker, unregisterOfflineWorker } from './offline/regist
 // Composables — Features & roadmap menu (add-features-roadmap-menu)
 export { useSpecRef } from './composables/useSpecRef.js'
 export { useFlowStore } from './composables/useFlowStore.js'
+export {
+	FLOW_LAYOUT_COLUMN_WIDTH,
+	FLOW_LAYOUT_MARGIN,
+	FLOW_LAYOUT_ROW_HEIGHT,
+	FLOW_LAYOUT_TOP,
+	layoutFlowNodes,
+	needsFullLayout,
+	placeLooseNodes,
+	readNodePoint,
+} from './composables/flowGraphLayout.js'
 export { registerFlowNodeEditor, resolveFlowNodeEditor, unregisterFlowNodeEditor } from './composables/useFlowNodeEditors.js'
 export { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from './composables/useFlowEdgeStyles.js'
 export { useSuggestFeatureAction } from './composables/useSuggestFeatureAction.js'
