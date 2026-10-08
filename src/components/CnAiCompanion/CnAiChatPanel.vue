@@ -356,7 +356,6 @@ import CnDashboardIcon from '../CnIconPicker/CnDashboardIcon.vue'
 import CnAiHistoryList from './CnAiHistoryList.vue'
 import CnAiInput from './CnAiInput.vue'
 import CnAiMessageList from './CnAiMessageList.vue'
-import { getAssistantMark } from '../../utils/assistantMark.js'
 import {
 	agentsUrl,
 	conversationsUrl,
@@ -372,6 +371,7 @@ import {
 	SPEECH_LOCAL,
 	SPEECH_OFF,
 } from '../../composables/aiSpeechPolicy.js'
+import { getAssistantMark } from '../../utils/assistantMark.js'
 
 /**
  * Shown when an agent has no `icon` set, which is most of them. Matches the

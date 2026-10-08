@@ -51,3 +51,7 @@ The assistant bubble container has `aria-live="polite"` for screen-reader stream
   </template>
 </CnAiMessageList>
 ```
+
+## Attachments and notices
+
+A message may carry `attachments` (`{ name, fileId?, mimeType?, size? }[]`) and an assistant message may carry `attachmentNotices` (`string[]`). Attachments on a question show as chips under it. On an answer, an `image/*` attachment with a `fileId` shows as a Nextcloud preview thumbnail linked to the file in Files (opens in a new tab); other attachments show as chips (linked when they have a `fileId`). Each notice shows as one line above the answer. Messages without these fields render as before. `useAiChatStream` fills both from the `final` frame.
