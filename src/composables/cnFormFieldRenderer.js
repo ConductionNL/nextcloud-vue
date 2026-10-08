@@ -264,6 +264,8 @@ export function cnRenderFormField({ field, value, onInput, t, error, componentMa
 				modelValue: value ?? null,
 				accept: typeof field.accept === 'string' ? field.accept : '',
 				...(Number.isFinite(maxSize) && maxSize > 0 ? { maxSize } : {}),
+				...(field.multiple === true ? { multiple: true } : {}),
+				...(field.capture === 'environment' || field.capture === 'user' ? { capture: field.capture } : {}),
 			},
 			listeners: {
 				'update:modelValue': (next) => onInput(next),

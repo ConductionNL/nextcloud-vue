@@ -1285,7 +1285,21 @@
     "No files yet. Drop a file here to add it.": "Nog geen bestanden. Sleep een bestand hierheen om het toe te voegen.",
     "Delete {name}": "{name} verwijderen",
     "The files could not be updated. Try again.": "De bestanden konden niet worden bijgewerkt. Probeer het opnieuw.",
-    "Upload file": "Bestand uploaden"
+    "Upload file": "Bestand uploaden",
+    "Take photo": "Foto maken",
+    "Capture": "Opnemen",
+    "Retake": "Opnieuw",
+    "Use photo": "Foto gebruiken",
+    "Camera preview. The camera is on.": "Voorbeeld van de camera. De camera staat aan.",
+    "The photo you took": "De foto die je hebt gemaakt",
+    "This device has no camera the browser can use.": "Dit apparaat heeft geen camera die de browser kan gebruiken.",
+    "The camera could not be started. Check that you allowed it.": "De camera kon niet starten. Controleer of je toestemming hebt gegeven.",
+    "Add files": "Bestanden toevoegen",
+    "Or drop files here.": "Of sleep bestanden hierheen.",
+    "Uploads when saved": "Wordt geüpload bij opslaan",
+    "Remove {name}": "{name} verwijderen",
+    "Saved, but some files were not uploaded: {files}": "Opgeslagen, maar niet alle bestanden zijn geüpload: {files}",
+    "Uploading {file}": "{file} wordt geüpload"
   },
   "plurals": {
     "%n year": [

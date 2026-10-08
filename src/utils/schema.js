@@ -480,6 +480,37 @@ function codedBindingOf(prop) {
 }
 
 /**
+ * Whether a schema property holds a file (`type: "file"`) or several
+ * (an array whose items are files).
+ *
+ * @param {object} prop The schema property definition.
+ * @return {boolean} True for a file or array-of-files property.
+ */
+function isFileProperty(prop) {
+	return prop.type === 'file' || (prop.type === 'array' && !!prop.items && prop.items.type === 'file')
+}
+
+/**
+ * The file field's own settings, from the property (or its items): the
+ * accepted types, the size limit and whether it takes several.
+ *
+ * @param {object} prop The schema property definition.
+ * @return {{accept: string, maxSize: number|undefined, multiple: boolean, capture: string}} The settings.
+ */
+function fileSettings(prop) {
+	const source = prop.type === 'array' && prop.items ? prop.items : prop
+	const allowed = prop.allowedTypes || source.allowedTypes
+	const accept = Array.isArray(allowed) ? allowed.join(',') : (typeof prop.accept === 'string' ? prop.accept : '')
+	const maxSize = Number(prop.maxSize ?? source.maxSize)
+	return {
+		accept,
+		maxSize: Number.isFinite(maxSize) && maxSize > 0 ? maxSize : undefined,
+		multiple: prop.type === 'array',
+		capture: prop.capture === 'environment' || prop.capture === 'user' ? prop.capture : '',
+	}
+}
+
+/**
  * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
  * @param {object} prop The schema property definition.
  * @return {string} The widget identifier (see the block above).
@@ -488,6 +519,11 @@ function resolveWidget(prop) {
 	// Explicit widget hint takes priority
 	if (prop.widget) {
 		return prop.widget
+	}
+
+	// A file property, or an array of files, is the file field.
+	if (isFileProperty(prop)) {
+		return 'file'
 	}
 
 	// Registry-backed property (x-openregister-property-source) → type-ahead
@@ -841,6 +877,8 @@ export function fieldsFromSchema(schema, options = {}) {
 			type: prop.type || 'string',
 			format: prop.format || null,
 			widget: resolveWidget(prop),
+			// File field settings (widget `file`): accepted types, size limit, several files, camera.
+			...(isFileProperty(prop) ? { file: fileSettings(prop) } : {}),
 			// Icon picker (`widget: 'icon'`) config forwarded to CnIconBrowser via
 			// CnFormDialog: which sources to offer (`iconSources`), consumer icon
 			// catalogues (JSON entries — FontAwesome/OpenGemeenten data is usually

@@ -50,6 +50,7 @@ export {
 	CnCalendarWidgetForm,
 	CnCapabilityTable,
 	CnCard,
+	CnCameraCapture,
 	CnCardGrid,
 	CnCellRenderer,
 	CnChartWidget,

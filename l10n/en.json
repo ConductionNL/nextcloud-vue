@@ -1234,7 +1234,21 @@
     "No files yet. Drop a file here to add it.": "No files yet. Drop a file here to add it.",
     "Delete {name}": "Delete {name}",
     "The files could not be updated. Try again.": "The files could not be updated. Try again.",
-    "Upload file": "Upload file"
+    "Upload file": "Upload file",
+    "Take photo": "Take photo",
+    "Capture": "Capture",
+    "Retake": "Retake",
+    "Use photo": "Use photo",
+    "Camera preview. The camera is on.": "Camera preview. The camera is on.",
+    "The photo you took": "The photo you took",
+    "This device has no camera the browser can use.": "This device has no camera the browser can use.",
+    "The camera could not be started. Check that you allowed it.": "The camera could not be started. Check that you allowed it.",
+    "Add files": "Add files",
+    "Or drop files here.": "Or drop files here.",
+    "Uploads when saved": "Uploads when saved",
+    "Remove {name}": "Remove {name}",
+    "Saved, but some files were not uploaded: {files}": "Saved, but some files were not uploaded: {files}",
+    "Uploading {file}": "Uploading {file}"
   },
   "plurals": {
     "%n year": [

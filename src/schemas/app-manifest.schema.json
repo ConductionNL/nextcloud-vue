@@ -928,7 +928,17 @@
 				"maxSize": {
 					"type": "integer",
 					"minimum": 1,
-					"description": "type='file' only. Largest file the field reads, in bytes. Defaults to 1048576 (1 MB), the library's cap for a file carried inline in a payload."
+					"description": "type='file' only. Largest file the field takes, in bytes. Defaults to 1048576 (1 MB), the library's cap for a file carried inline in a payload; a bigger limit lets larger files be held and uploaded to the saved object's files."
+				},
+				"multiple": {
+					"type": "boolean",
+					"default": false,
+					"description": "type='file' only. When true the field takes several files (dropped or picked), listed with a remove button each, and its value is an array."
+				},
+				"capture": {
+					"type": "string",
+					"enum": ["environment", "user"],
+					"description": "type='file' only. Opens the device camera on a phone (rear camera for \"environment\", front for \"user\") and offers Take photo on a device with a webcam. Accepts images unless `accept` narrows it."
 				}
 			}
 		},

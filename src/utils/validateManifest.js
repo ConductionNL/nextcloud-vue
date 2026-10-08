@@ -2370,5 +2370,13 @@ function validateFieldsArray(fields, fieldsPath, errors, allowedTypes = FORM_FIE
 		} else if (!allowedTypes.includes(field.type)) {
 			errors.push(`${fieldPath}/type: must be one of ${allowedTypes.join(', ')}`)
 		}
+		if (field.type === 'file') {
+			if (field.multiple !== undefined && typeof field.multiple !== 'boolean') {
+				errors.push(`${fieldPath}/multiple: must be a boolean`)
+			}
+			if (field.capture !== undefined && field.capture !== 'environment' && field.capture !== 'user') {
+				errors.push(`${fieldPath}/capture: must be one of environment, user`)
+			}
+		}
 	})
 }

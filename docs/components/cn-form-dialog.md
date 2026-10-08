@@ -550,3 +550,9 @@ A property that names an OpenRegister concept scheme, as `conceptScheme: "woo-ca
 - If the request fails or returns nothing, the field falls back to a text input with a line saying the list could not be loaded. OpenRegister still refuses a value outside the scheme on save.
 - A held value the scheme no longer offers is resolved through the concept route and shown by its label with "no longer offered". It stays until the user changes it.
 - With `contextProperty`, the current value of that field is sent as `context` and the options are requested again when it changes; a chosen value that is no longer offered is kept and marked, not cleared.
+
+## File properties
+
+A schema property of `type: "file"` renders as a [CnFileField](./cn-file-field.md), and an array whose items are files renders one that takes several. The accepted types come from the property's `allowedTypes` and the size limit from its `maxSize`, so the form refuses early what the server would refuse late. `capture: "environment"` or `"user"` on the property opens the device camera.
+
+A file under 1 MB travels inline in the saved payload. When `maxSize` is above 1 MB, bigger files are held and uploaded to the saved object's files after the save (`POST .../{id}/filesMultipart`), with progress, and their references are written onto the property. If an upload fails the object stays saved, the dialog names the file and offers Retry.

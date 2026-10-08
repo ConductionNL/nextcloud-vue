@@ -16,7 +16,22 @@
 			<NcNoteCard v-if="result.error" type="error">
 				{{ result.error }}
 			</NcNoteCard>
+			<NcButton
+				v-if="uploadFailedNames.length > 0 && Object.keys(heldFiles).length > 0"
+				:disabled="loading"
+				data-testid="cn-form-dialog-retry-uploads"
+				@click="retryUploads">
+				{{ t('nextcloud-vue', 'Retry') }}
+			</NcButton>
 		</div>
+		<!-- Progress of a file uploading after the save. -->
+		<p v-if="uploadProgress"
+			class="cn-form-dialog__upload-progress"
+			role="status"
+			data-testid="cn-form-dialog-upload-progress">
+			{{ t('nextcloud-vue', 'Uploading {file}', { file: uploadProgress.file }) }}
+			<progress v-if="uploadProgress.total > 0" :max="uploadProgress.total" :value="uploadProgress.loaded" />
+		</p>
 
 		<!-- Form phase -->
 		<div v-else
@@ -436,6 +451,23 @@
 								:error="errors[field.key]" />
 						</div>
 
+						<!-- File (widget: 'file'): one file or several, small ones inline, big ones uploaded after save, optional camera. -->
+						<div v-else-if="field.widget === 'file'" class="cn-form-dialog__file-wrapper">
+							<CnFileField
+								:modelValue="formData[field.key]"
+								:label="field.label + (field.required ? ' *' : '')"
+								:accept="field.file ? field.file.accept : ''"
+								:multiple="!!(field.file && field.file.multiple)"
+								:capture="field.file ? field.file.capture : ''"
+								v-bind="fileLimits(field)"
+								:disabled="field.readOnly"
+								:helperText="errors[field.key] || ''"
+								@update:modelValue="value => updateField(field.key, value)" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong" />
+						</div>
+
 						<!-- Duration (widget: 'duration'): number + unit over an ISO 8601 string. -->
 						<div v-else-if="field.widget === 'duration'" class="cn-form-dialog__duration-wrapper">
 							<CnDurationField
@@ -623,6 +655,7 @@ import CnReplaceValuesDialog from '../../dialogs/CnReplaceValuesDialog.vue'
 import CnChildRecordsField from '../CnChildRecordsField/CnChildRecordsField.vue'
 import CnDurationField from '../CnDurationField/CnDurationField.vue'
 import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
+import CnFileField from '../CnFileField/CnFileField.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnPropertySourceField from '../CnPropertySourceField/CnPropertySourceField.vue'
@@ -630,6 +663,7 @@ import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import CnSubObjectsField from '../CnSubObjectsField/CnSubObjectsField.vue'
 import { describeRowProblem, useChildRecords } from '../../composables/useChildRecords.js'
 import { draftIndicatorText, draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
+import { heldFromFailures, splitHeldFiles, uploadHeldFiles } from '../../composables/useHeldFileUpload.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
@@ -665,6 +699,9 @@ import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAuto
  * @type {string[]}
  */
 const WIDE_WIDGETS = ['textarea', 'json', 'code']
+
+/** Largest file carried inline in the saved payload; bigger ones upload after save. */
+const INLINE_FILE_CAP = 1024 * 1024
 
 /**
  * OpenRegister semantic-type discovery endpoint (ADR-048). Resolves a
@@ -847,6 +884,7 @@ export default {
 	name: 'CnFormDialog',
 
 	components: {
+		CnFileField,
 		CnDurationField,
 		CnPropertySourceField,
 		CnReplaceValuesDialog,
@@ -1148,6 +1186,16 @@ export default {
 		return {
 			formData: {},
 			errors: {},
+			/** Files over the inline cap, by property key, uploaded once the object is saved. */
+			heldFiles: {},
+			/** Entries a list file property keeps while its held files upload. */
+			heldKept: {},
+			/** Names of files that did not upload (the dialog offers Retry). */
+			uploadFailedNames: [],
+			/** The save result the uploads belong to. */
+			pendingResult: null,
+			/** The file uploading now: `{ file, loaded, total }`, or null. */
+			uploadProgress: null,
 			/** Fill-over-typed-values question awaiting an answer: `{ changes, resolve }`, or null. */
 			pendingReplace: null,
 			loading: false,
@@ -2059,6 +2107,8 @@ export default {
 						data[field.key] = []
 					} else if (field.widget === 'code') {
 						data[field.key] = ''
+					} else if (field.widget === 'file' && field.file && field.file.multiple) {
+						data[field.key] = []
 					} else {
 						data[field.key] = null
 					}
@@ -4277,7 +4327,67 @@ export default {
 					payload[field.key] = null
 				}
 			}
-			return payload
+			// Files over the inline cap upload after the object is saved.
+			const split = splitHeldFiles(payload, this.resolvedFields.filter((f) => f.widget === 'file').map((f) => f.key))
+			this.heldFiles = split.held
+			this.heldKept = split.kept
+			return split.payload
+		},
+
+		/**
+		 * Size options for a file field: the property's limit, and the inline cap when the limit is above it.
+		 *
+		 * @param {object} field The resolved field.
+		 * @return {object} Props for CnFileField.
+		 */
+		fileLimits(field) {
+			const max = field.file && field.file.maxSize
+			if (!max) {
+				return {}
+			}
+			return max > INLINE_FILE_CAP ? { maxSize: max, inlineMax: INLINE_FILE_CAP } : { maxSize: max }
+		},
+
+		/**
+		 * Upload the held files of the saved object and report any that failed.
+		 *
+		 * @param {{id?: string, object?: object}} resultData The parent's result; its id is the saved object's id.
+		 * @return {Promise<object>} The result, with an `error` naming files that were not uploaded.
+		 */
+		async uploadHeld(resultData) {
+			const objectId = resultData.id || resultData.object?.id || resultData.object?.uuid || this.item?.id || this.item?.uuid
+			const schemaId = (this.schema && (this.schema.slug || this.schema.id)) || ''
+			if (!objectId || !schemaId || Object.keys(this.heldFiles).length === 0) {
+				return resultData
+			}
+			this.uploadProgress = { loaded: 0, total: 0, file: '' }
+			const outcome = await uploadHeldFiles({
+				register: this.register,
+				schema: String(schemaId),
+				objectId,
+				held: this.heldFiles,
+				kept: this.heldKept,
+				onProgress: (p) => {
+					this.uploadProgress = p
+				},
+			})
+			this.uploadProgress = null
+			this.heldKept = { ...this.heldKept, ...Object.fromEntries(Object.entries(outcome.attached).filter(([, v]) => Array.isArray(v))) }
+			this.heldFiles = heldFromFailures(outcome.failed)
+			this.uploadFailedNames = outcome.failed.map((f) => f.file.name)
+			this.pendingResult = resultData
+			if (outcome.failed.length === 0) {
+				return resultData
+			}
+			return { ...resultData, error: [resultData.error, t('nextcloud-vue', 'Saved, but some files were not uploaded: {files}', { files: this.uploadFailedNames.join(', ') })].filter(Boolean).join(' ') }
+		},
+
+		/** Try the files that did not upload again. */
+		async retryUploads() {
+			this.loading = true
+			const merged = await this.uploadHeld(this.pendingResult || { success: true })
+			this.loading = false
+			this.applyResult(merged)
 		},
 
 		/**
@@ -4289,6 +4399,10 @@ export default {
 		 */
 		setResult(resultData) {
 			this.loading = false
+			if (resultData && resultData.success && Object.keys(this.heldFiles).length > 0) {
+				const rows = this.resolvedFields.some((f) => f.widget === 'child-records') ? this.saveChildRecords(resultData) : Promise.resolve(resultData)
+				return rows.then((merged) => this.uploadHeld(merged)).then((merged) => this.applyResult(merged))
+			}
 			if (resultData && resultData.success && this.resolvedFields.some((f) => f.widget === 'child-records')) {
 				return this.saveChildRecords(resultData).then((merged) => this.applyResult(merged))
 			}
@@ -4324,7 +4438,8 @@ export default {
 		applyResult(resultData) {
 			this.result = resultData
 			this.reportWrite(resultData)
-			if (resultData.success) {
+			// A file that did not upload keeps the dialog open for Retry.
+			if (resultData.success && Object.keys(this.heldFiles).length === 0) {
 				// The values are on the server now, so the local copy has
 				// nothing left to protect. Cleared only on SUCCESS: a failed
 				// save is exactly when somebody needs their typing back.
