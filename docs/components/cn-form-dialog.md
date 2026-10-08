@@ -556,3 +556,7 @@ A property that names an OpenRegister concept scheme, as `conceptScheme: "woo-ca
 A schema property of `type: "file"` renders as a [CnFileField](./cn-file-field.md), and an array whose items are files renders one that takes several. The accepted types come from the property's `allowedTypes` and the size limit from its `maxSize`, so the form refuses early what the server would refuse late. `capture: "environment"` or `"user"` on the property opens the device camera.
 
 A file under 1 MB travels inline in the saved payload. When `maxSize` is above 1 MB, bigger files are held and uploaded to the saved object's files after the save (`POST .../{id}/filesMultipart`), with progress, and their references are written onto the property. If an upload fails the object stays saved, the dialog names the file and offers Retry.
+
+## Live values
+
+A field can carry `assign` rules (for example through `fieldOverrides`): `[{ when, value }]`, where `when` is a local `visibleWhen` condition and `value` a literal, `@answer.<field>` or a sentinel token. The first matching rule sets the field when an answer it reads changes; once the person edits the field by hand its rules stop. A new record also opens with the rules and defaults applied to empty fields. A schema property's `default` may be a token: `@me`, `@me.displayName`, `@me.email`, `@today`, `@now` or `@object.<field>` (from `initialData`), resolved when a new record opens; editing never replaces stored data with a default. See [CnFormPage](./cn-form-page.md#live-values) for an example of each.

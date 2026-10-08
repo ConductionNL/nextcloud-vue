@@ -46,6 +46,9 @@ Use `type: "form"` when the entire route is "render this list of fields, send th
 | `smartPaste` | Object | `null` | Fill the form from pasted text: `{ enabled, fields, hint?, handler }`. See [Paste to fill](#paste-to-fill). |
 | `successMessage` | String | `'Thank you!'` | Success banner copy (i18n key) |
 | `initialValue` | Object | `{}` | Pre-filled form state. Used by `mode: "edit"` |
+| `calculate` | Function | `null` | Host function `(fieldKey, answers) => Promise<value>` for fields declaring `calculate.inputs`. See [Live values](#live-values). |
+| `unmetConditions` | Array | `[]` | Conditions the host reports as unmet, `[{ message }]`, shown above the submit button. |
+| `blockSubmit` | Boolean | `false` | Disable submit while `unmetConditions` is not empty; the first message is the reason. |
 | `title` | String | `''` | Page title forwarded to `CnPageHeader` |
 | `description` | String | `''` | Page description forwarded to `CnPageHeader` |
 | `translate` | Function | `null` | Optional translator applied to field labels and i18n keys |
@@ -238,6 +241,34 @@ The field never holds a path or a URL. It cannot choose where the file ends up: 
 - A value that is not a `data:` URL, such as a file the object already holds in `mode: "edit"`, shows by its title and is sent back untouched until the user replaces or removes it. Remove file sets the value to `null`.
 
 `type: "file"` is rejected on `type: "settings"` pages: those save to app config, which has no place for file content.
+
+## Live values
+
+A form can fill in what it can work out. All of it is additive: a field without these keys behaves as before.
+
+**`assign`.** A field lists `{ when, value }` rules. When an answer a rule reads changes, the first rule whose `when` holds (the same local condition `visibleWhen` takes) sets the field. `value` is a literal, `@answer.<field>` (another answer) or a sentinel token. Once the person edits the field by hand its rules stop until the form is reset (a new `initialValue`). A rule never reads its own output, so it cannot loop. The field says "Filled in from Country" so a screen reader learns why it changed.
+
+```json
+{ "key": "currency", "label": "Currency", "type": "string",
+  "assign": [
+    { "when": { "field": "country", "op": "eq", "value": "NL" }, "value": "EUR" },
+    { "when": { "field": "country", "op": "eq", "value": "US" }, "value": "USD" }
+  ] }
+```
+
+**Token defaults.** `default` accepts `@me`, `@me.displayName`, `@me.email`, `@today`, `@now` and `@object.<field>` (from `initialValue`), resolved once when the form opens. The e-mail comes from the user's profile and arrives a moment after open. A value in `initialValue` always wins, so an edit form never overwrites stored data.
+
+```json
+{ "key": "email", "label": "E-mail", "type": "string", "default": "@me.email" }
+```
+
+**`calculate`.** A field with `calculate.inputs` is the host's to compute. When one of those answers changes, `CnFormPage` calls the `calculate` prop after 400 ms of quiet and writes the result into the field, which renders read-only. A rejection keeps the last value and shows "Could not calculate". The library has no formula language: what `calculate` does (for buildiq, its rule engine in preview mode) belongs to the host.
+
+```json
+{ "key": "fee", "label": "Fee", "type": "string", "calculate": { "inputs": ["size", "type"] } }
+```
+
+**Unmet conditions.** `unmetConditions` lists what the host says is not yet satisfied, above the submit button. With `blockSubmit`, submit is disabled while the list is not empty and its title is the first message. The host decides what is unmet; the page only shows it.
 
 ## Paste to fill
 

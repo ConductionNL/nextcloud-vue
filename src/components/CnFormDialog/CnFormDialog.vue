@@ -566,6 +566,13 @@
 								:more="field.descriptionLong"
 								:error="errors[field.key]" />
 						</template>
+						<small
+							v-if="assignedFrom[field.key]"
+							class="cn-form-dialog__assigned"
+							aria-live="polite"
+							data-testid="cn-form-dialog-assigned">
+							{{ t('nextcloud-vue', 'Filled in from {field}', { field: assignedFrom[field.key] }) }}
+						</small>
 					</template>
 				</div>
 
@@ -669,6 +676,7 @@ import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
+import { loadCurrentUserProfile } from '../../utils/currentUserProfile.js'
 import {
 	definitionQueryParams,
 	DYNAMIC_KEY_PREFIX,
@@ -679,11 +687,13 @@ import {
 	splitDynamicFormData,
 } from '../../utils/dynamicProperties.js'
 import { shouldShow } from '../../utils/fieldCondition.js'
+import { computeAssignments } from '../../utils/formAssign.js'
 import { resolveNextcloudGroup, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
 import { durationSeconds } from '../../utils/isoDuration.js'
 import { objectDisplayName } from '../../utils/objectName.js'
 import { languageOptions, resolveDefaultToken, timezoneOptions } from '../../utils/pickerOptions.js'
 import { getDotted, planPropertySourceFill } from '../../utils/propertySourceFill.js'
+import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { fieldsFromSchema, isTenantProperty } from '../../utils/schema.js'
 import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
@@ -1186,6 +1196,10 @@ export default {
 		return {
 			formData: {},
 			errors: {},
+			/** Field key -> label of the answer a rule filled it in from (`assign`). */
+			assignedFrom: {},
+			/** The signed-in user's profile for `@me.*` defaults. */
+			meProfile: {},
 			/** Files over the inline cap, by property key, uploaded once the object is saved. */
 			heldFiles: {},
 			/** Entries a list file property keeps while its held files upload. */
@@ -2096,7 +2110,9 @@ export default {
 				for (const field of this.resolvedFields) {
 					const tokenDefault = field.defaultToken ? resolveDefaultToken(field.defaultToken, field) : null
 					if (field.default !== null && field.default !== undefined) {
-						data[field.key] = field.default
+						const resolved = resolveFilterValue(field.default, { object: this.initialData || {}, me: this.meProfile })
+						// A token that cannot resolve yet (the e-mail, until the profile loads) is not a value.
+						data[field.key] = typeof resolved === 'string' && resolved === field.default && resolved.startsWith('@') ? null : resolved
 					} else if (tokenDefault !== null) {
 						// `x-default: current-language` / `current-timezone`:
 						// a NEW object starts with the user's own value.
@@ -2134,9 +2150,36 @@ export default {
 			this.jsonDrafts = {}
 			this.jsonErrors = {}
 			this.touchedFields = {}
+			this.assignedFrom = {}
 			this.referenceLabels = {}
 			this.initAsyncFields()
 			this.resolveInitialReferenceLabels()
+			// A new record opens with what the rules and defaults already know.
+			if (!this.item) {
+				this.runAssignments(null)
+				this.loadProfileDefaults()
+			}
+		},
+
+		/**
+		 * Fill in `@me.displayName` / `@me.email` defaults the sync resolver could
+		 * not (the e-mail is on the profile). Asked for once, and only when a default needs it.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadProfileDefaults() {
+			const needs = this.resolvedFields.filter((f) => typeof f.default === 'string' && /^@me\.(email|displayName)$/.test(f.default))
+			if (needs.length === 0) {
+				return
+			}
+			this.meProfile = await loadCurrentUserProfile()
+			for (const field of needs) {
+				const current = this.formData[field.key]
+				const value = resolveFilterValue(field.default, { me: this.meProfile })
+				if ((current === null || current === undefined || current === '') && !this.touchedFields[field.key] && value !== field.default) {
+					this.formData[field.key] = value
+				}
+			}
 		},
 
 		/**
@@ -2440,6 +2483,33 @@ export default {
 			// Drop the form-data of any field that just became hidden so a
 			// stale value isn't submitted (#327).
 			this.pruneHiddenFields()
+			// A hand edit ends this field's own rules; other fields may follow it.
+			delete this.assignedFrom[key]
+			this.runAssignments([key])
+		},
+
+		/**
+		 * Fill in fields from other answers (`assign` rules on the field, for
+		 * example through `fieldOverrides`). `changed` names the answers that just
+		 * changed; `null` is the pass when the form opens, over empty fields. A
+		 * field the person edited by hand is left alone.
+		 *
+		 * @param {string[]|null} changed Keys that changed.
+		 */
+		runAssignments(changed) {
+			const { values, from } = computeAssignments({
+				fields: this.resolvedFields,
+				answers: this.formData,
+				changed,
+				edited: Object.keys(this.touchedFields).filter((k) => this.touchedFields[k]),
+				ctx: { me: this.meProfile, object: this.formData },
+			})
+			for (const key of Object.keys(values)) {
+				this.formData[key] = values[key]
+				delete this.errors[key]
+				const source = this.resolvedFields.find((f) => f.key === from[key])
+				this.assignedFrom[key] = source ? source.label : from[key]
+			}
 		},
 
 		/**

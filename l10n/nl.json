@@ -1299,7 +1299,10 @@
     "Uploads when saved": "Wordt geüpload bij opslaan",
     "Remove {name}": "{name} verwijderen",
     "Saved, but some files were not uploaded: {files}": "Opgeslagen, maar niet alle bestanden zijn geüpload: {files}",
-    "Uploading {file}": "{file} wordt geüpload"
+    "Uploading {file}": "{file} wordt geüpload",
+    "Filled in from {field}": "Ingevuld vanuit {field}",
+    "Calculating": "Berekenen",
+    "Could not calculate": "Kon niet berekenen"
   },
   "plurals": {
     "%n year": [

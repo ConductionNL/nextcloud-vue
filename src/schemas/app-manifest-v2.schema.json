@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.62.0",
+	"version": "2.63.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -735,8 +735,8 @@
 		},
 		"sentinelFilterToken": {
 			"type": "string",
-			"pattern": "^@(?:me|now|today|monthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$",
-			"description": "Filter-value context: relative fetch-time tokens resolved by resolveFilterTokens (@me, @now, @today, @today±Nd, @monthStart, @quarterStart, @yearStart). Mirrors SENTINEL_TOKEN_PATTERNS.filter in src/utils/sentinelTokens.js (byte-equality enforced by a unit test)."
+			"pattern": "^@(?:me(?:\\.(?:displayName|email))?|now|today|monthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$",
+			"description": "Filter-value context: relative fetch-time tokens resolved by resolveFilterTokens (@me, @me.displayName, @me.email, @now, @today, @today±Nd, @monthStart, @quarterStart, @yearStart). Mirrors SENTINEL_TOKEN_PATTERNS.filter in src/utils/sentinelTokens.js (byte-equality enforced by a unit test)."
 		},
 		"sentinelConfigToken": {
 			"type": "string",
@@ -773,6 +773,11 @@
 			"pattern": "^@total$",
 			"description": "manifest-form-logic: the shared visibleWhen predicate's source-mode collection-total marker, resolved client-side by evaluateVisibleWhen (utils/visibleWhen.js) — NOT one of the four IAppConfig/OpenRegister resolvers, but a pre-existing convention (already documented on $defs.visibleWhen and the banner widget) reachable through the sentinelGuardedValue-guarded pages[].config subtree for the first time via config.fields[].visibleWhen. Mirrors SENTINEL_TOKEN_PATTERNS.visibleWhen."
 		},
+		"sentinelAnswerToken": {
+			"type": "string",
+			"pattern": "^@answer\\.[A-Za-z][A-Za-z0-9_]*$",
+			"description": "form-live-values: another answer in the same form (@answer.<field>), read by a form field's assign rule and resolved client-side by CnFormPage / CnFormDialog. Mirrors SENTINEL_TOKEN_PATTERNS.answer."
+		},
 		"sentinelTokenAny": {
 			"$comment": "Union of every canonical context plus the deprecated-during-window overlay. Single source the shared resolver + gate import.",
 			"anyOf": [
@@ -783,6 +788,7 @@
 				{ "$ref": "#/$defs/sentinelRouteToken" },
 				{ "$ref": "#/$defs/sentinelDeclarativeToken" },
 				{ "$ref": "#/$defs/sentinelVisibleWhenToken" },
+				{ "$ref": "#/$defs/sentinelAnswerToken" },
 				{ "$ref": "#/$defs/sentinelDeprecatedToken" }
 			]
 		},
@@ -3049,6 +3055,34 @@
 				"handler": { "type": "string", "minLength": 1 }
 			}
 		},
+		"formFieldLiveValues": {
+			"type": "object",
+			"description": "form-live-values: the live-value keys a form field may carry on top of its type, label and key. `assign` is a list of { when, value } rules: the first whose visibleWhen-style `when` holds sets the field when an answer it reads changes (value: a literal, @answer.<field> or a sentinel token); once the user edits the field by hand its rules stop. `default` may be a sentinel token (@me, @me.displayName, @me.email, @today, @now, @object.<field>) resolved once when the form opens; an initial value wins. `calculate.inputs` names the answers a host `calculate` function reads for this read-only field. Other field keys are unchanged.",
+			"properties": {
+				"assign": {
+					"type": "array",
+					"minItems": 1,
+					"items": {
+						"type": "object",
+						"required": ["value"],
+						"additionalProperties": false,
+						"properties": {
+							"when": { "$ref": "#/$defs/visibleWhen" },
+							"value": {}
+						}
+					}
+				},
+				"default": {},
+				"calculate": {
+					"type": "object",
+					"required": ["inputs"],
+					"additionalProperties": false,
+					"properties": {
+						"inputs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+					}
+				}
+			}
+		},
 		"page": {
 			"type": "object",
 			"required": ["id", "route", "type", "title"],
@@ -4063,6 +4097,11 @@
 					"description": "index-calendar-view-mode: config.calendar on an index page is typed by calendarView.",
 					"if": { "properties": { "type": { "const": "index" } }, "required": ["type"] },
 					"then": { "properties": { "config": { "properties": { "calendar": { "$ref": "#/$defs/calendarView" } } } } }
+				},
+				{
+					"description": "form-live-values: config.fields[] on a form page may carry assign, a token default and calculate.",
+					"if": { "properties": { "type": { "const": "form" } }, "required": ["type"] },
+					"then": { "properties": { "config": { "properties": { "fields": { "type": "array", "items": { "$ref": "#/$defs/formFieldLiveValues" } } } } } }
 				},
 				{
 					"description": "form-smart-paste: config.smartPaste on a form page is typed by formSmartPaste.",

@@ -214,12 +214,46 @@
 					class="cn-form-page__field-help">
 					{{ resolveLabel(field.help) }}
 				</small>
+				<small
+					v-if="assignedFrom[field.key]"
+					class="cn-form-page__field-assigned"
+					aria-live="polite"
+					data-testid="cn-form-page-assigned">
+					{{ t('nextcloud-vue', 'Filled in from {field}', { field: assignedFrom[field.key] }) }}
+				</small>
+				<small
+					v-if="calculating[field.key]"
+					class="cn-form-page__field-calculating"
+					role="status"
+					data-testid="cn-form-page-calculating">
+					{{ t('nextcloud-vue', 'Calculating') }}
+				</small>
+				<small
+					v-if="calcErrors[field.key]"
+					class="cn-form-page__field-error"
+					role="alert"
+					data-testid="cn-form-page-calc-error">
+					{{ calcErrors[field.key] }}
+				</small>
 			</div>
 
 			<!-- Error -->
 			<p v-if="lastError" class="cn-form-page__error">
 				{{ lastError }}
 			</p>
+
+			<!-- Conditions the host reports as unmet; with blockSubmit they hold the submit. -->
+			<NcNoteCard
+				v-if="unmetConditions.length > 0"
+				type="warning"
+				class="cn-form-page__unmet"
+				data-testid="cn-form-page-unmet">
+				<ul id="cn-form-page-unmet-list">
+					<li v-for="(condition, index) in unmetConditions" :key="index">
+						{{ condition.message }}
+					</li>
+				</ul>
+			</NcNoteCard>
 
 			<div class="cn-form-page__submit">
 				<NcButton
@@ -265,7 +299,9 @@
 					<NcButton
 						variant="primary"
 						type="submit"
-						:disabled="submitting">
+						:disabled="submitting || submitBlocked"
+						:title="blockedReason || null"
+						:aria-describedby="submitBlocked ? 'cn-form-page-unmet-list' : null">
 						<template #icon>
 							<NcLoadingIcon v-if="submitting" :size="20" />
 							<Send v-else :size="20" />
@@ -301,6 +337,8 @@ import Send from 'vue-material-design-icons/Send.vue'
 import CnSmartPasteDialog from '../../dialogs/CnSmartPasteDialog.vue'
 import { cnRenderFormField } from '../../composables/cnFormFieldRenderer.js'
 import { draftIndicatorText, draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
+import { loadCurrentUserProfile } from '../../utils/currentUserProfile.js'
+import { computeAssignments, resolveFieldDefaults } from '../../utils/formAssign.js'
 import { validateFieldValue } from '../../utils/formValidation.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 import { evaluateVisibleWhen, evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
@@ -391,6 +429,36 @@ export default {
 		draftScope: {
 			type: String,
 			default: 'form',
+		},
+
+		/**
+		 * Host function that calculates a field: `(fieldKey, answers) => Promise<value>`.
+		 * Called for a field declaring `calculate.inputs` when one of those answers
+		 * changes, after 400 ms of quiet; the field is read-only. A rejection keeps
+		 * the last value and says it could not be calculated. The library knows no
+		 * rule language: calculation belongs to the host.
+		 *
+		 * @type {((fieldKey: string, answers: object) => Promise<unknown>)|null}
+		 */
+		calculate: {
+			type: Function,
+			default: null,
+		},
+
+		/**
+		 * Conditions the host reports as unmet, shown above the submit button.
+		 *
+		 * @type {Array<{message: string}>}
+		 */
+		unmetConditions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** Disable submit while `unmetConditions` is not empty; the first message is the reason. */
+		blockSubmit: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Form fields. Each MUST conform to the `formField` $def. */
@@ -540,7 +608,19 @@ export default {
 
 	data() {
 		return {
-			formData: this.cloneInitial(),
+			formData: this.initialWithDefaults(),
+			/** The values the form opened with (initial values plus defaults), to tell a changed form from a fresh one. */
+			baseline: JSON.stringify(this.initialWithDefaults()),
+			/** Fields the user edited by hand: their `assign` rules stop until reset. */
+			handEdited: {},
+			/** Field key -> label of the answer a rule filled it in from. */
+			assignedFrom: {},
+			/** Field keys being calculated now. */
+			calculating: {},
+			/** Field key -> sentence when the last calculation failed. */
+			calcErrors: {},
+			/** The signed-in user's profile (`displayName`, `email`) for `@me.*` defaults. */
+			meProfile: {},
 			/** Smart paste: the handler said it is available (resolved at mount). */
 			smartPasteAvailable: false,
 			smartPasteOpen: false,
@@ -567,9 +647,19 @@ export default {
 	},
 
 	computed: {
+		/** Whether the host's unmet conditions hold the submit. */
+		submitBlocked() {
+			return this.blockSubmit === true && this.unmetConditions.length > 0
+		},
+
+		/** The reason shown for a held submit: the first unmet message. */
+		blockedReason() {
+			return this.submitBlocked ? String(this.unmetConditions[0].message || '') : ''
+		},
+
 		/** Whether any field has changed since mount. */
 		dirty() {
-			return JSON.stringify(this.formData) !== JSON.stringify(this.cloneInitial())
+			return JSON.stringify(this.formData) !== this.baseline
 		},
 
 		/**
@@ -738,12 +828,19 @@ export default {
 		initialValue: {
 			deep: true,
 			handler() {
-				this.formData = this.cloneInitial()
+				// A reset: the rules may fill in again.
+				this.formData = this.initialWithDefaults()
+				this.baseline = JSON.stringify(this.formData)
+				this.handEdited = {}
+				this.assignedFrom = {}
+				this.runAssignments(null)
 			},
 		},
 	},
 
 	created() {
+		// Pending calculation timers, per field (not reactive).
+		this.calcTimers = {}
 		// Offered, never applied: a form that fills itself is indistinguishable
 		// from one the server prefilled.
 		if (this.formDraftKey) {
@@ -754,6 +851,12 @@ export default {
 	mounted() {
 		this.resolveRemoteVisibility()
 		this.resolveSmartPaste()
+		this.runAssignments(null)
+		this.loadProfileDefaults()
+	},
+
+	beforeUnmount() {
+		Object.values(this.calcTimers).forEach((timer) => clearTimeout(timer))
 	},
 
 	methods: {
@@ -990,13 +1093,18 @@ export default {
 		 * @return {object|null}
 		 */
 		resolveFieldRender(field) {
-			return cnRenderFormField({
+			const rendered = cnRenderFormField({
 				field,
 				value: this.formData[field.key],
 				onInput: (next) => this.updateField(field.key, next),
 				t: typeof this.translate === 'function' ? this.translate : null,
 				error: this.fieldErrors[field.key] || null,
 			})
+			// A calculated field is the host's to set: shown, not editable.
+			if (rendered && field.calculate && Array.isArray(field.calculate.inputs)) {
+				rendered.props = { ...rendered.props, readonly: true, disabled: rendered.kind === 'enum' || rendered.kind === 'boolean' }
+			}
+			return rendered
 		},
 
 		/**
@@ -1193,6 +1301,9 @@ export default {
 
 		updateField(key, value) {
 			this.formData[key] = value
+			// A hand edit: this field's rules stop until the form is reset.
+			this.handEdited[key] = true
+			delete this.assignedFrom[key]
 			delete this.fieldErrors[key]
 			// Editing a suggested field accepts it.
 			if (this.suggestions[key]) {
@@ -1205,6 +1316,112 @@ export default {
 			 * @type {{key: string, value: unknown}}
 			 */
 			this.$emit('input', { key, value })
+			this.runAssignments([key])
+		},
+
+		/**
+		 * The initial values with the fields' defaults filled in underneath
+		 * (a default never replaces an initial value). Tokens resolve once, here.
+		 *
+		 * @return {object} The values the form opens with.
+		 */
+		initialWithDefaults() {
+			const initial = this.cloneInitial()
+			return { ...resolveFieldDefaults(this.fields, initial, { me: this.meProfile || {} }), ...initial }
+		},
+
+		/**
+		 * Fill in fields from other answers (`assign` rules). `changed` names the
+		 * answers that just changed; `null` is the pass at open, over empty fields.
+		 *
+		 * @param {string[]|null} changed Keys that changed.
+		 */
+		runAssignments(changed) {
+			const { values, from } = computeAssignments({
+				fields: this.fields,
+				answers: this.formData,
+				changed,
+				edited: Object.keys(this.handEdited),
+				ctx: { me: this.meProfile, object: this.formData },
+			})
+			const keys = Object.keys(values)
+			for (const key of keys) {
+				this.formData[key] = values[key]
+				delete this.fieldErrors[key]
+				const source = this.fieldsByKey[from[key]]
+				this.assignedFrom[key] = source ? this.resolveLabel(source.label || source.key) : from[key]
+				this.$emit('input', { key, value: values[key] })
+			}
+			if (changed === null && keys.length > 0) {
+				// Filled in on open: not something the person changed.
+				this.baseline = JSON.stringify(this.formData)
+			}
+			this.scheduleCalculations([...(changed || []), ...keys])
+		},
+
+		/**
+		 * Ask the host to recalculate the fields that read the changed answers,
+		 * once the person has stopped typing for 400 ms.
+		 *
+		 * @param {string[]} changed Keys that changed.
+		 */
+		scheduleCalculations(changed) {
+			if (typeof this.calculate !== 'function' || changed.length === 0) {
+				return
+			}
+			for (const field of this.fields) {
+				const inputs = field && field.calculate && Array.isArray(field.calculate.inputs) ? field.calculate.inputs : []
+				if (!inputs.some((k) => changed.includes(k))) {
+					continue
+				}
+				clearTimeout(this.calcTimers[field.key])
+				this.calcTimers[field.key] = setTimeout(() => this.runCalculation(field.key), 400)
+			}
+		},
+
+		/**
+		 * Run the host's calculation for one field and write the answer.
+		 *
+		 * @param {string} key The field to calculate.
+		 * @return {Promise<void>}
+		 */
+		async runCalculation(key) {
+			this.calculating[key] = true
+			delete this.calcErrors[key]
+			try {
+				const value = await this.calculate(key, { ...this.formData })
+				this.formData[key] = value
+				this.$emit('input', { key, value })
+			} catch {
+				this.calcErrors[key] = t('nextcloud-vue', 'Could not calculate')
+			} finally {
+				delete this.calculating[key]
+			}
+		},
+
+		/**
+		 * Fill in `@me.*` defaults the sync resolver could not: the e-mail comes
+		 * from the user's profile, asked for once and only when a default needs it.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadProfileDefaults() {
+			const needs = this.fields.filter((f) => f && typeof f.default === 'string' && /^@me\.(email|displayName)$/.test(f.default) && (this.formData[f.key] === undefined || this.formData[f.key] === null || this.formData[f.key] === ''))
+			if (needs.length === 0) {
+				return
+			}
+			this.meProfile = await loadCurrentUserProfile()
+			if (!this.meProfile.email && !this.meProfile.displayName) {
+				return
+			}
+			const have = this.formData
+			const filled = resolveFieldDefaults(needs, have, { me: this.meProfile })
+			for (const [key, value] of Object.entries(filled)) {
+				if (!this.handEdited[key]) {
+					this.formData[key] = value
+				}
+			}
+			this.baseline = JSON.stringify(this.formData)
 		},
 
 		/**
@@ -1223,6 +1440,9 @@ export default {
 		async submit() {
 			if (this.hasSteps && !this.isLastStep) {
 				this.next()
+				return
+			}
+			if (this.submitBlocked) {
 				return
 			}
 

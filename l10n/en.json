@@ -1248,7 +1248,10 @@
     "Uploads when saved": "Uploads when saved",
     "Remove {name}": "Remove {name}",
     "Saved, but some files were not uploaded: {files}": "Saved, but some files were not uploaded: {files}",
-    "Uploading {file}": "Uploading {file}"
+    "Uploading {file}": "Uploading {file}",
+    "Filled in from {field}": "Filled in from {field}",
+    "Calculating": "Calculating",
+    "Could not calculate": "Could not calculate"
   },
   "plurals": {
     "%n year": [

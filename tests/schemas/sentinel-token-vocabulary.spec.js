@@ -25,6 +25,7 @@ const DEF_FOR_CONTEXT = {
 	route: 'sentinelRouteToken',
 	declarative: 'sentinelDeclarativeToken',
 	visibleWhen: 'sentinelVisibleWhenToken',
+	answer: 'sentinelAnswerToken',
 	deprecated: 'sentinelDeprecatedToken',
 }
 
