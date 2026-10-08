@@ -1,5 +1,10 @@
 {
   "translations": {
+    "Saving": "Opslaan",
+    "Saved just now": "Zojuist opgeslagen",
+    "Saved {time}": "Opgeslagen {time}",
+    "Saved": "Opgeslagen",
+    "Edit {title} (draft)": "{title} bewerken (concept)",
     "Also search inside files": "Zoek ook in bestanden",
     "File matches are limited to the best 50.": "Bestandstreffers zijn beperkt tot de beste 50.",
     "Found in {file}": "Gevonden in {file}",

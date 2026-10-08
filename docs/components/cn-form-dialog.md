@@ -48,6 +48,8 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `draftAppId` (`draft-app-id`) | String | `''` | The app the draft belongs to. Part of the key the recovered draft is stored under. |
 | `draftUserId` (`draft-user-id`) | String | `''` | Who is typing. Also part of the draft key, and that matters: a shared browser profile at a service desk is ordinary in a municipality, and a draft keyed without the user hands the next person at the counter what the last one typed. A host that passes nothing gets `anonymous`, which is right for a single-user context and wrong for a counter. |
 
+When `allowDraft` is on and the schema declares `draftField`, a stored draft record (its marker set) opens with "(draft)" in the title and a **Publish** button in place of Save. Publish runs the full validation and sends the record with the marker cleared; **Save draft** stays available and skips validation. The footer indicator reads **Saving** while a local write is pending and **Saved just now** (or a relative time) once it lands, in an `aria-live="polite"` region.
+
 ## Widget Types
 
 | Widget | Used For |

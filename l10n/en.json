@@ -1,5 +1,11 @@
 {
   "translations": {
+    "Saving": "Saving",
+    "Saved just now": "Saved just now",
+    "Saved {time}": "Saved {time}",
+    "Saved": "Saved",
+    "Publish": "Publish",
+    "Edit {title} (draft)": "Edit {title} (draft)",
     "Also search inside files": "Also search inside files",
     "File matches are limited to the best 50.": "File matches are limited to the best 50.",
     "Found in {file}": "Found in {file}",

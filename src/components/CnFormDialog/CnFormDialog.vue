@@ -537,7 +537,7 @@ import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
-import { draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
+import { draftIndicatorText, draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
@@ -1150,15 +1150,7 @@ export default {
 		 * @return {string} The text.
 		 */
 		draftIndicatorLabel() {
-			if (this.draftState === 'saving') {
-				return t('nextcloud-vue', 'Saving draft')
-			}
-
-			if (this.draftState === 'saved') {
-				return t('nextcloud-vue', 'Draft saved')
-			}
-
-			return ''
+			return draftIndicatorText(this.draftState, this.draftSavedAt)
 		},
 
 		isCreateMode() {
@@ -1175,9 +1167,23 @@ export default {
 			return t('nextcloud-vue', 'Item')
 		},
 
+		/**
+		 * Whether the record being edited is a stored draft: drafts are on, the
+		 * schema declares the marker, and the record has it set. Such a record
+		 * shows "(draft)" in the title and is published, not merely saved.
+		 *
+		 * @return {boolean} True for a draft record.
+		 */
+		isDraftRecord() {
+			return this.canSaveDraft && !!this.item && this.item[this.draftField] === true
+		},
+
 		resolvedTitle() {
 			if (this.dialogTitle) {
 				return this.cnTranslate(this.dialogTitle)
+			}
+			if (this.isDraftRecord) {
+				return t('nextcloud-vue', 'Edit {title} (draft)', { title: this.schemaTitle })
 			}
 			return this.isCreateMode
 				? t('nextcloud-vue', 'Create {title}', { title: this.schemaTitle })
@@ -1187,6 +1193,9 @@ export default {
 		resolvedConfirmLabel() {
 			if (this.confirmLabel) {
 				return this.confirmLabel
+			}
+			if (this.isDraftRecord) {
+				return t('nextcloud-vue', 'Publish')
 			}
 			return this.isCreateMode ? t('nextcloud-vue', 'Create') : t('nextcloud-vue', 'Save')
 		},
@@ -3761,7 +3770,12 @@ export default {
 			// silently — a 200, an object back, and the answer gone. A host
 			// that ignores the second argument therefore still posts a clean
 			// payload rather than losing declared fields to undeclared ones.
-			const { base, answers: raw } = splitDynamicFormData(this.buildSubmitPayload())
+			// Publishing a draft runs the full validation above and clears the marker.
+			const submit = this.buildSubmitPayload()
+			if (this.isDraftRecord) {
+				submit[this.draftField] = false
+			}
+			const { base, answers: raw } = splitDynamicFormData(submit)
 			const answers = raw.map((answer) => ({
 				...answer,
 				declarationKey: this.dynamicOwners[DYNAMIC_KEY_PREFIX + answer.definitionId] || '',

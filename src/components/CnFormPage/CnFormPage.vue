@@ -95,6 +95,22 @@
 			{{ resolveLabel(successMessage) }}
 		</div>
 
+		<!-- A draft this form was left in: offered, never applied. -->
+		<NcNoteCard
+			v-if="draftOffer !== null"
+			type="info"
+			data-testid="cn-form-page-draft-offer">
+			{{ t('nextcloud-vue', 'You have unsaved changes from an earlier visit.') }}
+			<div class="cn-form-page__draft-actions">
+				<NcButton data-testid="cn-form-page-draft-restore" @click="restoreDraft">
+					{{ t('nextcloud-vue', 'Restore') }}
+				</NcButton>
+				<NcButton data-testid="cn-form-page-draft-discard" @click="discardDraft">
+					{{ t('nextcloud-vue', 'Discard') }}
+				</NcButton>
+			</div>
+		</NcNoteCard>
+
 		<!-- Form body -->
 		<form
 			v-if="!submitted || mode !== 'public'"
@@ -227,6 +243,14 @@
 					</NcButton>
 				</slot>
 			</div>
+			<!-- Local draft indicator: Saving, then Saved; one polite announcement per change. -->
+			<p
+				v-if="recoverDraft"
+				class="cn-form-page__draft-state"
+				aria-live="polite"
+				data-testid="cn-form-page-draft-state">
+				{{ draftIndicatorLabel }}
+			</p>
 		</form>
 	</div>
 </template>
@@ -234,9 +258,10 @@
 <script>
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Send from 'vue-material-design-icons/Send.vue'
 import { cnRenderFormField } from '../../composables/cnFormFieldRenderer.js'
+import { draftIndicatorText, draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
 import { validateFieldValue } from '../../utils/formValidation.js'
 import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 import { evaluateVisibleWhen, evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
@@ -282,8 +307,11 @@ export default {
 		CnPageHeader,
 		NcButton,
 		NcLoadingIcon,
+		NcNoteCard,
 		Send,
 	},
+
+	mixins: [formDraftMixin()],
 
 	inject: {
 		/**
@@ -297,6 +325,34 @@ export default {
 	},
 
 	props: {
+		/**
+		 * Keep what the user typed in the browser and offer it back when the
+		 * form reopens (local only; nothing reaches the server). Off by default:
+		 * a public form can run on a shared kiosk, so a host opts in.
+		 */
+		recoverDraft: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The app the draft belongs to; part of the draft's storage key. */
+		draftAppId: {
+			type: String,
+			default: '',
+		},
+
+		/** Who is typing; part of the draft's storage key so a shared browser profile never leaks a draft between users. */
+		draftUserId: {
+			type: String,
+			default: '',
+		},
+
+		/** Names this form in the draft's storage key (for example the form id), so two forms never share a draft. */
+		draftScope: {
+			type: String,
+			default: 'form',
+		},
+
 		/** Form fields. Each MUST conform to the `formField` $def. */
 		fields: {
 			type: Array,
@@ -575,9 +631,43 @@ export default {
 			})
 			return payload
 		},
+
+		/**
+		 * Where this form's local draft lives, or '' when recovery is off.
+		 *
+		 * @return {string} The storage key.
+		 */
+		formDraftKey() {
+			if (this.recoverDraft !== true) {
+				return ''
+			}
+			return draftKey({ appId: this.draftAppId, schema: this.draftScope, objectId: 'new', userId: this.draftUserId })
+		},
+
+		/**
+		 * What the draft indicator announces: Saving, then Saved with a relative time.
+		 *
+		 * @return {string} The text, or '' before anything is typed.
+		 */
+		draftIndicatorLabel() {
+			return draftIndicatorText(this.draftState, this.draftSavedAt)
+		},
 	},
 
 	watch: {
+		// Keep the local draft in step with what is typed. Only a form that differs
+		// from its initial values counts as typed-in, and nothing is written while
+		// an earlier draft is being offered (the user has not chosen yet).
+		formData: {
+			deep: true,
+			handler(values) {
+				if (!this.formDraftKey || this.draftOffer !== null || !this.dirty) {
+					return
+				}
+				this.scheduleDraftWrite(this.formDraftKey, values)
+			},
+		},
+
 		initialValue: {
 			deep: true,
 			handler() {
@@ -586,11 +676,43 @@ export default {
 		},
 	},
 
+	created() {
+		// Offered, never applied: a form that fills itself is indistinguishable
+		// from one the server prefilled.
+		if (this.formDraftKey) {
+			this.draftOffer = readDraft(this.formDraftKey)
+		}
+	},
+
 	mounted() {
 		this.resolveRemoteVisibility()
 	},
 
 	methods: {
+		t,
+
+		/**
+		 * Take the offered local draft into the form.
+		 *
+		 * @return {void}
+		 */
+		restoreDraft() {
+			if (this.draftOffer === null) {
+				return
+			}
+			this.formData = { ...this.formData, ...this.draftOffer.values }
+			this.draftOffer = null
+		},
+
+		/**
+		 * Decline the offered local draft and forget it.
+		 *
+		 * @return {void}
+		 */
+		discardDraft() {
+			this.forgetDraft(this.formDraftKey)
+		},
+
 		cloneInitial() {
 			try {
 				return JSON.parse(JSON.stringify(this.initialValue || {}))
@@ -875,6 +997,8 @@ export default {
 					throw new Error('CnFormPage: no submit destination configured (set submitHandler or submitEndpoint)')
 				}
 				this.submitted = true
+				// Once it is on the server, the local copy protects nothing.
+				this.forgetDraft(this.formDraftKey)
 				/**
 				 * Successful submit event. Payload is the effective payload
 				 * (visible fields only).
@@ -1006,6 +1130,19 @@ export default {
 	padding: 1rem;
 	border-radius: var(--border-radius);
 	text-align: center;
+}
+
+.cn-form-page__draft-state {
+	margin: 8px 0 0;
+	min-height: 1.2em;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85em;
+}
+
+.cn-form-page__draft-actions {
+	display: flex;
+	gap: 8px;
+	margin-top: 8px;
 }
 
 .cn-form-page__actions {

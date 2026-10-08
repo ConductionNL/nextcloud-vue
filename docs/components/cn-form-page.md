@@ -32,6 +32,10 @@ Use `type: "form"` when the entire route is "render this list of fields, send th
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
+| `recoverDraft` | Boolean | `false` | Keep what the user typed in the browser and offer it back when the form reopens (local only; nothing reaches the server). Off by default because a public form can run on a shared kiosk. A footer indicator (`aria-live="polite"`) reads Saving, then Saved just now. The draft is cleared after a successful submit. |
+| `draftAppId` | String | `''` | The app the draft belongs to; part of the draft's storage key. |
+| `draftUserId` | String | `''` | Who is typing; part of the storage key so a shared browser profile never leaks a draft between users. |
+| `draftScope` | String | `'form'` | Names this form in the draft's storage key (for example the form id), so two forms never share a draft. |
 | `fields` | Array | `[]` | Form fields. Each MUST conform to the `formField` `$def`; optionally carries `visibleWhen` and `validation` (see below) |
 | `steps` | Array | `[]` | Multi-step wizard groups: `{ id, title, description?, fields: string[] }[]`. `fields[]` entries are KEY REFERENCES into the `fields` prop. Empty (the default) renders today's single-step form unchanged — no step indicator, no Next/Back |
 | `submitHandler` | String | `''` | Registered handler name resolved against the customComponents registry |
