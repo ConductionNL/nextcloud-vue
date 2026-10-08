@@ -17,14 +17,15 @@ Competitor row B07 of the dossiq round 2 analysis.
 ### Requirement: Shared views listed beside own views
 
 When `allowSavedViews` is `true`, `CnSavedViewsControl` SHALL render two groups
-in its dropdown: the caller's own views and the views shared with one of the
-caller's groups. A view whose `sharedWith` is empty or absent SHALL list only
-under own views. Applying a shared view SHALL write its query, sort and columns
+in its dropdown: the caller's own views (`@self.access` `owner`) and the views
+shared with the caller (`@self.access` `write` or `read`, or a public view
+owned by someone else). A view without `@self.access` SHALL count as own when
+its `owner` is the current user. Applying a shared view SHALL write its query, sort and columns
 to the route exactly as applying an own view does.
 
 #### Scenario: Two groups from one response
 
-- **GIVEN** the views API returns one own view and one view with `sharedWith: [{ group: "desk", mode: "read" }]`
+- **GIVEN** the views API returns one view with `@self.access: "owner"` and one with `@self.access: "read"` and `sharedWith: [{ group: "desk", mode: "read" }]`
 - **WHEN** the dropdown opens
 - **THEN** "My views" lists the own view and "Shared with me" lists the shared view with a "desk" chip
 
@@ -36,7 +37,7 @@ to the route exactly as applying an own view does.
 
 #### Scenario: No sharing data, no change
 
-- **GIVEN** a views API response where no view has `sharedWith`
+- **GIVEN** a views API response where every view has `@self.access: "owner"`
 - **WHEN** the dropdown opens
 - **THEN** only "My views" renders and no request other than the existing views listing is made
 
@@ -44,16 +45,26 @@ to the route exactly as applying an own view does.
 
 ### Requirement: Share a view with a group
 
-The save and edit form of an own view SHALL offer a group multiselect and a
-read or write mode per selected group. The saved payload SHALL carry
-`sharedWith: [{ group, mode }]`. The section SHALL be absent when the API
-returns no groups for the caller.
+`CnSaveViewDialog` and the edit form of an own view in `CnSavedViewsControl`
+SHALL offer a group multiselect (`NcSelect` with `inputLabel`, searching
+Nextcloud's sharee API for groups) and a read or write mode per selected
+group. `CnSaveViewDialog` SHALL emit `confirm({ name, isPublic, sharedWith })`
+with `sharedWith` `[]` when no group is picked. The saved payload SHALL carry
+`sharedWith: [{ group, mode }]`. The section SHALL be absent when the sharee
+API answers no groups for the caller.
 
-#### Scenario: Share read-only with a department
+#### Scenario: Share read-only with a department from the save dialog
 
-- **GIVEN** the save form of an own view and the API lists the group "desk"
-- **WHEN** the user selects "desk" with mode read and saves
-- **THEN** the request body carries `sharedWith: [{ group: "desk", mode: "read" }]`
+- **GIVEN** a dossiq case list, `CnSaveViewDialog` open, and the sharee API listing the group "desk"
+- **WHEN** the user names the view, selects "desk" with mode read and saves
+- **THEN** `confirm` is emitted with `sharedWith: [{ group: "desk", mode: "read" }]`
+- **AND** the request body the page sends carries that `sharedWith`
+
+#### Scenario: An existing consumer keeps working
+
+- **GIVEN** a consumer that reads only `name` and `isPublic` from `confirm`
+- **WHEN** the user saves without picking a group
+- **THEN** `confirm` carries `sharedWith: []` and the consumer's save is unchanged
 
 #### Scenario: Server refuses the share
 
@@ -63,29 +74,31 @@ returns no groups for the caller.
 
 #### Scenario: No groups, no section
 
-- **GIVEN** the API returns no groups for the caller
-- **WHEN** the save form opens
+- **GIVEN** the sharee API answers no groups for the caller
+- **WHEN** the save dialog opens
 - **THEN** no sharing fields render
 
 @e2e include Open the save form of an own view; select a group; save; assert the PUT body carries `sharedWith`; reopen and assert the chip.
 
 ### Requirement: A received view follows its mode
 
-A view received with `mode: read` SHALL hide edit and delete and SHALL offer
-"Save as my view", which stores a personal copy. A view received with
-`mode: write` SHALL allow saving changes and SHALL keep its owner and
-`sharedWith` unchanged.
+A view with `@self.access: read` SHALL hide edit and delete and SHALL offer
+"Save as my view", which stores a personal copy. A view with
+`@self.access: write` SHALL allow saving changes to its query, sort, columns
+and presentation, SHALL hide delete, and its save body SHALL NOT carry
+`sharedWith` or `owner`.
 
 #### Scenario: Read-only view copied
 
-- **GIVEN** a shared view with `mode: read`
+- **GIVEN** a shared view with `@self.access: "read"`
 - **WHEN** the user chooses "Save as my view"
 - **THEN** a new personal view with the same query, sort, columns and name is created and the original is untouched
 
 #### Scenario: Editable view saved
 
-- **GIVEN** a shared view with `mode: write` and the user changes its sort
+- **GIVEN** a shared view with `@self.access: "write"` and the user changes its sort
 - **WHEN** the user saves
-- **THEN** the PUT body carries the new sort, the original owner and the original `sharedWith`
+- **THEN** the PUT body carries the new sort and no `sharedWith` or `owner` key
+- **AND** the view's audience is unchanged when read back
 
 @e2e include Apply a read-only shared view; assert edit and delete absent; choose Save as my view; assert a new own view appears.

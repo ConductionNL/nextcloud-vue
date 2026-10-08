@@ -84,6 +84,14 @@ competitors rated yes.
   nextcloud-vue half ("one progress and outcome component for every list
   in the fleet, over the same envelope").
 
+### Added 7 October 2026: select all matching
+
+The strip offers "Select all N matching" once the whole page is selected,
+and a job then carries the page's query as its selection instead of an id
+list. Asked by OpenRegister's `tables-bulk-jobs-and-file-search` (row
+`rec-bulk`, PR #4452); OpenRegister's bulk jobs already accept a query
+selection. Rows unblocked: openregister `rec-bulk` (with Tasks 1 to 6).
+
 ## Affected projects
 
 - `nextcloud-vue`: `CnIndexPage`, `CnActionsBar`, a new
