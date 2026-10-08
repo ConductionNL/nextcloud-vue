@@ -204,6 +204,7 @@ export {
 	CnObjectGeoWidget,
 	CnObjectKanban,
 	CnObjectList,
+	CnApiReference,
 	CnObjectListWidget,
 	CnObjectListWidgetForm,
 	CnObjectMetadataModal,
