@@ -532,3 +532,7 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 ## Registry-backed fields (`x-openregister-property-source`)
 
 A property that declares `x-openregister-property-source` (`provider`, `mode`, `config`) gets the `property-source` widget: [`CnPropertySourceField`](./cn-property-source-field.md), a type-ahead over integriq's registries. The descriptor carries `propertySource: { provider, mode, config }`. With `mode: "default"` and `config.fill`, a pick fills empty sibling fields and asks once before replacing values the user typed. A `fieldOverrides.<key>.widget` wins over the declaration.
+
+## Duration and sub-objects widgets
+
+`format: duration` selects the `duration` widget ([`CnDurationField`](./cn-duration-field.md)). An array of objects keeps its current widget unless the property declares `x-widget: sub-objects` or a field override names it; then [`CnSubObjectsField`](./cn-sub-objects-field.md) renders the rows as a table and `validate()` checks each row against `items.required`. `CnFormPage` does not render these two widgets yet.

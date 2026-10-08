@@ -464,6 +464,16 @@ function resolveWidget(prop) {
 		return 'property-source'
 	}
 
+	// Array of objects edited as a table (opt-in; the default is unchanged)
+	if (prop['x-widget'] === 'sub-objects' && prop.type === 'array' && prop.items && prop.items.type === 'object') {
+		return 'sub-objects'
+	}
+
+	// ISO 8601 duration → number and unit
+	if ((prop.type || 'string') === 'string' && prop.format === 'duration' && !prop.enum) {
+		return 'duration'
+	}
+
 	// Enum → select
 	if (prop.enum) {
 		return 'select'

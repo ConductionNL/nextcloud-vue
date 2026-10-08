@@ -3,7 +3,7 @@
 	"components": {
 		"CnActionButtons": {
 			"direct": 4,
-			"transitive": 97,
+			"transitive": 99,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -16,6 +16,7 @@
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
+				"CnDataTable",
 				"CnDeckCardCreate",
 				"CnDeckCardPicker",
 				"CnEmailPicker",
@@ -117,7 +118,7 @@
 		},
 		"CnAppNav": {
 			"direct": 0,
-			"transitive": 98,
+			"transitive": 100,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -131,6 +132,7 @@
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
+				"CnDataTable",
 				"CnDeckCardCreate",
 				"CnDeckCardPicker",
 				"CnEmailPicker",
@@ -911,6 +913,13 @@
 			"via": [],
 			"page": "cn-document-review-list"
 		},
+		"CnDurationField": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-duration-field"
+		},
 		"CnEmailPicker": {
 			"direct": 1,
 			"transitive": 6,
@@ -1181,7 +1190,7 @@
 		},
 		"CnFormDialog": {
 			"direct": 3,
-			"transitive": 96,
+			"transitive": 98,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -1194,6 +1203,7 @@
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
+				"CnDataTable",
 				"CnDeckCardCreate",
 				"CnDeckCardPicker",
 				"CnEmailPicker",
@@ -1856,7 +1866,7 @@
 		},
 		"CnObjectDataWidget": {
 			"direct": 9,
-			"transitive": 101,
+			"transitive": 103,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1870,6 +1880,7 @@
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
+				"CnDataTable",
 				"CnDeckCardCreate",
 				"CnDeckCardPicker",
 				"CnEmailPicker",
@@ -2724,6 +2735,49 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-structured-doc-review"
+		},
+		"CnSubObjectsField": {
+			"direct": 0,
+			"transitive": 99,
+			"tier": "heavy",
+			"via": [
+				"CnAnalyticsReportPicker",
+				"CnAuditTrailCard",
+				"CnBookmarkPicker",
+				"CnCalendarEventCreate",
+				"CnCalendarEventPicker",
+				"CnCollectivePageCreate",
+				"CnCollectivePagePicker",
+				"CnContactPicker",
+				"CnCospendCreate",
+				"CnCospendPicker",
+				"CnDataTable",
+				"CnDeckCardCreate",
+				"CnDeckCardPicker",
+				"CnEmailPicker",
+				"CnFilesCard",
+				"CnFkResolveCell",
+				"CnFlowOperationPicker",
+				"CnFormDialog",
+				"CnIndexPage",
+				"CnMapPoiPicker",
+				"CnNotesCard",
+				"CnObjectSidebar",
+				"CnOpenProjectCreate",
+				"CnOpenProjectPicker",
+				"CnPhotoAlbumPicker",
+				"CnPollPicker",
+				"CnResourceSelect",
+				"CnTagsCard",
+				"CnTalkRoomPicker",
+				"CnTasksCard",
+				"CnTimeTrackerCreate",
+				"CnTimeTrackerPicker",
+				"CnVersionHistory",
+				"CnXwikiPageCreate",
+				"CnXwikiPagePicker"
+			],
+			"page": "cn-sub-objects-field"
 		},
 		"CnSummaryAggregates": {
 			"direct": 0,

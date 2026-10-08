@@ -423,6 +423,34 @@
 								:error="errors[field.key]" />
 						</div>
 
+						<!-- Duration (widget: 'duration'): number + unit over an ISO 8601 string. -->
+						<div v-else-if="field.widget === 'duration'" class="cn-form-dialog__duration-wrapper">
+							<CnDurationField
+								:modelValue="formData[field.key] != null ? String(formData[field.key]) : null"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:disabled="field.readOnly"
+								:error="!!errors[field.key]"
+								@update:modelValue="value => updateField(field.key, value)" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
+						</div>
+
+						<!-- Sub-objects (widget: 'sub-objects'): an array of objects as an editable table. -->
+						<div v-else-if="field.widget === 'sub-objects' && field.items" class="cn-form-dialog__sub-objects-wrapper">
+							<CnSubObjectsField
+								:modelValue="Array.isArray(formData[field.key]) ? formData[field.key] : []"
+								:items="field.items"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:disabled="field.readOnly"
+								:error="errors[field.key] || ''"
+								@update:modelValue="value => updateField(field.key, value)" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong" />
+						</div>
+
 						<!-- Registry type-ahead (widget: 'property-source'): CnPropertySourceField;
 						     a pick can fill empty sibling fields from config.fill. -->
 						<div v-else-if="field.widget === 'property-source' && field.propertySource" class="cn-form-dialog__property-source-wrapper">
@@ -559,11 +587,13 @@ import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcDialog, NcLo
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnReplaceValuesDialog from '../../dialogs/CnReplaceValuesDialog.vue'
+import CnDurationField from '../CnDurationField/CnDurationField.vue'
 import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnPropertySourceField from '../CnPropertySourceField/CnPropertySourceField.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
+import CnSubObjectsField from '../CnSubObjectsField/CnSubObjectsField.vue'
 import { draftIndicatorText, draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
@@ -580,6 +610,7 @@ import {
 } from '../../utils/dynamicProperties.js'
 import { shouldShow } from '../../utils/fieldCondition.js'
 import { resolveNextcloudGroup, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
+import { durationSeconds } from '../../utils/isoDuration.js'
 import { objectDisplayName } from '../../utils/objectName.js'
 import { languageOptions, resolveDefaultToken, timezoneOptions } from '../../utils/pickerOptions.js'
 import { getDotted, planPropertySourceFill } from '../../utils/propertySourceFill.js'
@@ -780,8 +811,10 @@ export default {
 	name: 'CnFormDialog',
 
 	components: {
+		CnDurationField,
 		CnPropertySourceField,
 		CnReplaceValuesDialog,
+		CnSubObjectsField,
 		NcDialog,
 		NcButton,
 		NcNoteCard,
@@ -3819,6 +3852,35 @@ export default {
 				// Skip further validation if empty and not required
 				if (value === null || value === undefined || value === '') {
 					continue
+				}
+
+				// Sub-objects: every row must carry the row schema's required values.
+				if (field.widget === 'sub-objects' && Array.isArray(value) && field.items && Array.isArray(field.items.required)) {
+					for (let i = 0; i < value.length; i++) {
+						const missing = field.items.required.find((k) => {
+							const cell = value[i] ? value[i][k] : undefined
+							return cell === undefined || cell === null || cell === ''
+						})
+						if (missing !== undefined) {
+							newErrors[field.key] = t('nextcloud-vue', 'Row {n}: {field} is required.', { n: i + 1, field: missing })
+							break
+						}
+					}
+					continue
+				}
+
+				// Duration: schema minimum / maximum given as ISO strings compare in seconds.
+				if (field.widget === 'duration' && typeof value === 'string') {
+					const v0 = field.validation || {}
+					const secs = durationSeconds(value)
+					if (secs !== null && typeof v0.minimum === 'string' && durationSeconds(v0.minimum) !== null && secs < durationSeconds(v0.minimum)) {
+						newErrors[field.key] = t('nextcloud-vue', 'Minimum duration is {min}.', { min: v0.minimum })
+						continue
+					}
+					if (secs !== null && typeof v0.maximum === 'string' && durationSeconds(v0.maximum) !== null && secs > durationSeconds(v0.maximum)) {
+						newErrors[field.key] = t('nextcloud-vue', 'Maximum duration is {max}.', { max: v0.maximum })
+						continue
+					}
 				}
 
 				const v = field.validation || {}
