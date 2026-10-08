@@ -510,7 +510,7 @@ export { registerTranslations } from './l10n/index.js'
 
 // Utilities
 export { buildHeaders, buildQueryString, genericError, networkError, parseAxiosError, parseResponseError } from './utils/index.js'
-export { cnFetch, cnFetchJson, CnHttpError } from './utils/cnFetch.js'
+export { cnFetch, cnFetchJson, CnHttpError, configureCnFetch } from './utils/cnFetch.js'
 // The one reading of "is this record locked, and by whom" — shared by
 // CnLockIndicator, CnObjectCard and CnDataTable, and available to apps that
 // need the same answer without rendering a padlock.

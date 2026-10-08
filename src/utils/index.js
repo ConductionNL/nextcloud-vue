@@ -1,5 +1,5 @@
 export { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
-export { cnFetch, cnFetchJson, CnHttpError } from './cnFetch.js'
+export { cnFetch, cnFetchJson, CnHttpError, configureCnFetch } from './cnFetch.js'
 export { genericError, networkError, parseAxiosError, parseResponseError } from './errors.js'
 export { findRepeatingWrite, journeyItemTargets } from './journeyRepeatingWrite.js'
 export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, formatValue, validateValue } from './schema.js'
