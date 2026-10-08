@@ -123,6 +123,7 @@ export const DASHBOARD_CATALOG_WIDGET_KEYS = Object.freeze([
 	'people',
 	'quicklinks',
 	'related',
+	'saved-view',
 	'spend-analytics',
 	'stacked-bar',
 	'stages',

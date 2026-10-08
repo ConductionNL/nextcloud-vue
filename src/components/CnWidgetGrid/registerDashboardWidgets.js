@@ -28,6 +28,8 @@ import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
 import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
+import CnSavedViewWidget2 from '../CnSavedViewWidget/CnSavedViewWidget.vue'
+import CnSavedViewWidgetForm2 from '../CnSavedViewWidgetForm/CnSavedViewWidgetForm.vue'
 import CnStackedBarWidget from '../CnStackedBarWidget/CnStackedBarWidget.vue'
 import CnStackedBarWidgetForm from '../CnStackedBarWidgetForm/CnStackedBarWidgetForm.vue'
 import CnStagesWidget from '../CnStagesWidget/CnStagesWidget.vue'
@@ -155,6 +157,20 @@ registerDashboardWidget('object-list', {
 	displayName: 'Object list',
 	icon: 'ClipboardList',
 	surfaces: ['legacy'],
+})
+
+// `saved-view`: a list driven by one of the reader's saved views. The only data
+// widget a user may add themselves, because the view carries the register and
+// schema a user would otherwise have to name. Registered inline for the same
+// tree-shaking reason as `object-list` above.
+// @spec openspec/changes/a-saved-view-drives-a-widget/tasks.md#task-1.1
+registerDashboardWidget('saved-view', {
+	renderer: CnSavedViewWidget2,
+	form: CnSavedViewWidgetForm2,
+	defaultContent: { viewId: '', limit: 10 },
+	displayName: 'Saved view',
+	icon: 'ClipboardList',
+	userAddable: true,
 })
 
 registerDashboardWidget('related', {

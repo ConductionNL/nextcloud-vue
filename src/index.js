@@ -202,6 +202,8 @@ export {
 	CnObjectList,
 	CnObjectListWidget,
 	CnObjectListWidgetForm,
+	CnSavedViewWidget,
+	CnSavedViewWidgetForm,
 	CnObjectMetadataModal,
 	CnObjectMetadataWidget,
 	CnObjectPresenceWidget,

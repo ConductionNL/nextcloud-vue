@@ -248,6 +248,16 @@ Gauge / utilization card. Resolves a value and a target from OpenRegister and re
 a radial gauge of value-against-target, coloured by warn/danger thresholds.
 → [`CnGaugeWidget`](./cn-gauge-widget.md) · [`CnGaugeWidgetForm`](./cn-gauge-widget-form.md)
 
+### Saved view · `saved-view`
+
+A list driven by one of the reader's saved views. The configuration is a view id and a
+row limit and nothing else: the register, schema, filter and order are read from the
+view on every load, so the card follows the view when it is edited on the index page.
+A view that was deleted or is no longer shared renders a named refusal, not an empty
+list. It is the one data widget a user may add (`userAddable`), because the view
+carries the register and schema.
+→ [`CnSavedViewWidget`](./cn-saved-view-widget.md) · [`CnSavedViewWidgetForm`](./cn-saved-view-widget-form.md)
+
 ### Statistic card · `stats-block`
 
 ![stats-block widget rendering a labelled count card](/img/screenshots/widget-stats-block.png)
