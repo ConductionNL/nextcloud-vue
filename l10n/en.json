@@ -1280,7 +1280,10 @@
     "Changes": "Changes",
     "Mail": "Mail",
     "Activity": "Activity",
-    "Could not export activity.": "Could not export activity."
+    "Could not export activity.": "Could not export activity.",
+    "Development environment": "Development environment",
+    "Test environment": "Test environment",
+    "Acceptance environment": "Acceptance environment"
   },
   "plurals": {
     "%n year": [

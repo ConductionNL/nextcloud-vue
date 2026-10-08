@@ -133,6 +133,7 @@ export { CnSavedViewPresentationDialog } from './CnSavedViewPresentationDialog/i
 export { CnSavedViewShareDialog } from './CnSavedViewShareDialog/index.js'
 export { CnSavedViewShareFields } from './CnSavedViewShareFields/index.js'
 export { CnCameraCapture } from './CnCameraCapture/index.js'
+export { CnEnvironmentBanner } from './CnEnvironmentBanner/index.js'
 export { CnNoteBody } from './CnNoteBody/index.js'
 export { CnNoteComposer } from './CnNoteComposer/index.js'
 export { CnObjectFilesWidget } from './CnObjectFilesWidget/index.js'

@@ -57,7 +57,16 @@
   and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
 -->
 <template>
-	<NcContent :appName="appDisplayName || (manifest && manifest.name) || appId" :data-nldesign-theme-scope="appId" data-testid="cn-app-root">
+	<NcContent
+		:appName="appDisplayName || (manifest && manifest.name) || appId"
+		:data-nldesign-theme-scope="appId"
+		:class="{ 'cn-app-root--with-environment': environmentName }"
+		data-testid="cn-app-root">
+		<!-- Names a development, test or acceptance environment on every screen; cannot be dismissed. Production shows nothing. -->
+		<CnEnvironmentBanner
+			v-if="environmentName"
+			class="cn-app-root__environment"
+			:environment="environmentName" />
 		<!-- Phase 0a: capabilities check in flight -->
 		<template v-if="capabilitiesLoading">
 			<div class="cn-app-root__capabilities-loading" data-testid="cn-app-root-capabilities-loading">
@@ -675,6 +684,7 @@ import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnCommandPalette from '../CnCommandPalette/CnCommandPalette.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
+import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
@@ -685,6 +695,7 @@ import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useBuildiqEditAvailability } from '../../composables/useBuildiqEditAvailability.js'
+import { useEnvironment } from '../../composables/useEnvironment.js'
 import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useScopedTheme } from '../../composables/useScopedTheme.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
@@ -785,6 +796,7 @@ export default {
 		CnAppNav,
 		CnAppLoading,
 		CnDependencyMissing,
+		CnEnvironmentBanner,
 		CnSetupWizard,
 		CnWalkthrough,
 		CnAiCompanion,
@@ -1419,6 +1431,21 @@ export default {
 		},
 
 		/**
+		 * The environment this instance is: `development`, `test`, `acceptance` or
+		 * `production`. An app fills it from its own instance setting when it has
+		 * one; it wins over the active organisation's `environment` field. A
+		 * non-production environment is named in a banner on every screen that
+		 * cannot be dismissed, and the tab title gets a prefix (`[DEV]`, `[TEST]`,
+		 * `[ACC]`). Production, an unknown value or no value shows nothing.
+		 *
+		 * @type {string}
+		 */
+		environment: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * The language labels are shown in. Defaults to the user's Nextcloud
 		 * language; buildiq's preview passes the maker's pick so the preview can
 		 * read another language than the designer around it. The label lookup tries
@@ -1699,8 +1726,12 @@ export default {
 			{ deep: true, immediate: true },
 		)
 
+		// The environment this instance is: the app's own setting, else the active organisation's.
+		const { environment: environmentName } = useEnvironment({ environment: () => props.environment, tenant: tenantContext })
+
 		return {
 			...supportPair,
+			environmentName,
 			cnTenantContext: tenantContext,
 			manifestEditor,
 			buildiqAvailable: buildiqEditable,
@@ -4041,6 +4072,20 @@ export default {
 </script>
 
 <style>
+/* The environment banner runs along the top of the shell and cannot scroll away; the shell makes room for it. */
+.cn-app-root--with-environment {
+	position: relative;
+	padding-top: 28px;
+	box-sizing: border-box;
+}
+
+.cn-app-root__environment {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline: 0;
+	z-index: 9999;
+}
+
 .cn-app-root__capabilities-loading {
 	display: flex;
 	align-items: center;

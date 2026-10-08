@@ -1,5 +1,8 @@
 <template>
 	<div class="cn-admin-settings-shell">
+		<!-- Names a development, test or acceptance environment; cannot be dismissed. Production shows nothing. -->
+		<CnEnvironmentBanner v-if="environmentName" :environment="environmentName" />
+
 		<!-- Page title header — the uniform "<App> Settings / Configure your <App> installation" block.
 		     Uses NcSettingsSection directly (not CnSettingsSection) so the description subtitle and
 		     doc-url icon render — CnSettingsSection repurposes those props and does not forward them. -->
@@ -127,7 +130,9 @@ import AutoFix from 'vue-material-design-icons/AutoFix.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
+import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
+import { useEnvironment } from '../../composables/useEnvironment.js'
 import { buildFeatureRequestUrl } from '../../utils/forge.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
@@ -169,6 +174,7 @@ export default {
 	name: 'CnAdminSettingsShell',
 
 	components: {
+		CnEnvironmentBanner,
 		NcSettingsSection,
 		CnCredentials,
 		CnVersionInfoCard,
@@ -181,6 +187,19 @@ export default {
 	},
 
 	props: {
+		/**
+		 * The environment this instance is: `development`, `test`, `acceptance` or
+		 * `production`. Wins over the active organisation's `environment` field.
+		 * A non-production environment is named in a banner at the top and the tab
+		 * title gets a prefix. Production, an unknown value or no value shows nothing.
+		 *
+		 * @type {string}
+		 */
+		environment: {
+			type: String,
+			default: '',
+		},
+
 		/**
 		 * Render the organisation credential broker on this admin page
 		 * (ADR-079 Step 2). Opt-in: only an app that actually brokers org-wide
@@ -358,6 +377,12 @@ export default {
 	},
 
 	emits: ['update', 'reimported', 'reimport-error'],
+
+	setup(props) {
+		// The app's own `environment` setting, else the active organisation's.
+		const { environment: environmentName } = useEnvironment({ environment: () => props.environment })
+		return { environmentName }
+	},
 
 	data() {
 		return {

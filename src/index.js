@@ -108,6 +108,7 @@ export {
 	CnEditWalkthroughModal,
 	CnEmailCard,
 	CnEmailTab,
+	CnEnvironmentBanner,
 	CnExportWizard,
 	CnFacetSidebar,
 	CnFavouriteToggle,

@@ -1331,7 +1331,10 @@
     "Changes": "Wijzigingen",
     "Mail": "E-mail",
     "Activity": "Activiteit",
-    "Could not export activity.": "Activiteit kon niet worden geëxporteerd."
+    "Could not export activity.": "Activiteit kon niet worden geëxporteerd.",
+    "Development environment": "Ontwikkelomgeving",
+    "Test environment": "Testomgeving",
+    "Acceptance environment": "Acceptatieomgeving"
   },
   "plurals": {
     "%n year": [
