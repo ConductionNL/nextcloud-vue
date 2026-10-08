@@ -12,7 +12,7 @@
 		:chromeless="chromeless">
 		<div class="cn-notes-card">
 			<!-- Add note input -->
-			<div class="cn-notes-card__add-form">
+			<div v-if="!unavailable" class="cn-notes-card__add-form">
 				<textarea
 					v-model="newNoteText"
 					class="cn-notes-card__textarea"
@@ -35,6 +35,9 @@
 			<NcLoadingIcon v-if="loading" />
 
 			<!-- Empty state -->
+			<div v-else-if="unavailable" class="cn-notes-card__empty" data-testid="cn-notes-card-unavailable">
+				{{ unavailableLabel }}
+			</div>
 			<div v-else-if="allNotes.length === 0" class="cn-notes-card__empty">
 				{{ noNotesLabel }}
 			</div>
@@ -94,6 +97,7 @@ import Delete from 'vue-material-design-icons/Delete.vue'
 import Send from 'vue-material-design-icons/Send.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import CnUserActionMenu from '../CnUserActionMenu/CnUserActionMenu.vue'
+import { useFileComments } from '../../composables/useFileComments.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 
 /**
@@ -141,19 +145,30 @@ export default {
 		/** OpenRegister register ID */
 		registerId: {
 			type: String,
-			required: true,
+			default: '',
 		},
 
 		/** OpenRegister schema ID */
 		schemaId: {
 			type: String,
-			required: true,
+			default: '',
 		},
 
 		/** Object UUID */
 		objectId: {
 			type: String,
-			required: true,
+			default: '',
+		},
+
+		/**
+		 * Show the notes of a plain Nextcloud file instead of an OpenRegister
+		 * object: the file's id. Used when no `objectId` is given; the notes
+		 * are the file's comments (`/remote.php/dav/comments/files/{fileId}`),
+		 * the same ones the Files sidebar shows.
+		 */
+		fileId: {
+			type: [String, Number],
+			default: null,
 		},
 
 		/** Base API URL for OpenRegister */
@@ -197,6 +212,8 @@ export default {
 		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
 		/** Label for the "Show all" button rendered when the note list is truncated. */
 		showAllLabel: { type: String, default: () => t('nextcloud-vue', 'Show all') },
+		/** Text shown instead of the notes when Nextcloud refuses a file's comments (no access). */
+		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'Notes are not available for this file') },
 		/** Aria label for the per-note delete icon button. */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete note') },
 	},
@@ -211,10 +228,17 @@ export default {
 			newNoteText: '',
 			noteSaving: false,
 			deleteConfirmId: null,
+			/** The file source answered 403 or 404: no notes and no add field. */
+			unavailable: false,
 		}
 	},
 
 	computed: {
+		/** The file source applies: a file id and no object. */
+		isFileSource() {
+			return this.fileId !== null && this.fileId !== undefined && this.fileId !== '' && !this.objectId
+		},
+
 		displayedNotes() {
 			// Reverse chronological, limited to maxDisplay
 			const sorted = [...this.allNotes].sort((a, b) => {
@@ -227,6 +251,15 @@ export default {
 	},
 
 	watch: {
+		fileId: {
+			immediate: true,
+			handler() {
+				if (this.isFileSource) {
+					this.fetchNotes()
+				}
+			},
+		},
+
 		objectId: {
 			immediate: true,
 			handler(newId) {
@@ -256,7 +289,28 @@ export default {
 			return this.isCurrentUser(note)
 		},
 
+		fileComments() {
+			return useFileComments(this.fileId)
+		},
+
 		async fetchNotes() {
+			if (this.isFileSource) {
+				this.loading = true
+				this.unavailable = false
+				try {
+					this.allNotes = await this.fileComments().list()
+				} catch (err) {
+					this.allNotes = []
+					this.unavailable = err && (err.status === 403 || err.status === 404)
+					if (!this.unavailable) {
+						// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
+						console.error('CnNotesCard: Failed to fetch file comments', err)
+					}
+				} finally {
+					this.loading = false
+				}
+				return
+			}
 			if (!this.registerId || !this.schemaId || !this.objectId) {
 				return
 			}
@@ -281,6 +335,21 @@ export default {
 				return
 			}
 			this.noteSaving = true
+			if (this.isFileSource) {
+				try {
+					await this.fileComments().add(this.newNoteText.trim())
+					this.newNoteText = ''
+					await this.fetchNotes()
+					this.$emit('note-added')
+				} catch (err) {
+					// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
+					console.error('CnNotesCard: Failed to add file comment', err)
+					this.showError('Failed to add note')
+				} finally {
+					this.noteSaving = false
+				}
+				return
+			}
 			try {
 				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes`
 				const response = await fetch(prefixUrl(url), {
@@ -306,6 +375,17 @@ export default {
 
 		async confirmDelete(note) {
 			// Simple inline confirmation — delete directly
+			if (this.isFileSource) {
+				try {
+					await this.fileComments().remove(note.id)
+					this.allNotes = this.allNotes.filter((n) => n.id !== note.id)
+					this.$emit('note-deleted')
+				} catch (err) {
+					// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
+					console.error('CnNotesCard: Failed to delete file comment', err)
+				}
+				return
+			}
 			try {
 				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes/${note.id}`
 				const response = await fetch(prefixUrl(url), {
