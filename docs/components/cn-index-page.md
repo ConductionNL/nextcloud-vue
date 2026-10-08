@@ -47,7 +47,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `mapConfig` | Object | `\{\}` | Marker geometry mapping for the opt-in [map view mode](#map-view-mode), mirroring manifest `config.map` 1:1: `\{ latField, lngField, geoField?, popupField?, center? \}`. When non-empty (and not excluded by `viewModes`), a third "Map" toggle segment appears. `latField`/`lngField` are object (or `@self`) property paths (dotted paths supported); `geoField` is an alternative GeoJSON Point property that wins over lat/lng; `center` is a `[lat, lng]` fallback for an empty set. |
 | `mapLabel` | String | `''` | Label for the map view-toggle segment (defaults to "Map"). Fed from `pages[].config.mapLabel`. |
 | `mapIcon` | String | `''` | MDI icon name for the map view-toggle segment (defaults to the built-in map-marker icon). |
-| `viewModes` | Array | `null` | Explicit whitelist of toggle segments to offer, e.g. `['table', 'cards', 'map']`. Fed from `pages[].config.viewModes`. When set it takes precedence over inferred availability (map otherwise appears iff `mapConfig` is non-empty). |
+| `calendar` | Object | `\{\}` | The opt-in [calendar view mode](#calendar-view-mode), mirroring manifest `config.calendar`: `\{ dateField, endDateField?, titleField? \}`. The segment appears only when `viewModes` lists `calendar` and `dateField` is named. |
+| `viewModes` | Array | `null` | Explicit whitelist of toggle segments to offer, e.g. `['table', 'cards', 'map', 'calendar']`. Fed from `pages[].config.viewModes`. When set it takes precedence over inferred availability (map otherwise appears iff `mapConfig` is non-empty). |
 | `sortKey` | String | `null` | Current sort column key. `null` means no column is actively sorted. |
 | `sortOrder` | String | `'asc'` | `'asc'`, `'desc'`, or `null` (no sort) |
 | `sortKeys` | Array | `[]` | External/host-controlled multi-column sort key list, `[{ key, order }, …]`; mirrors `sortKey`/`sortOrder` for shift+click multi-sort. In self-fetch mode the active multi-sort is instead persisted to and restored from `$route.query._order`. |
@@ -118,6 +119,19 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `register` | String | `''` | Effective register slug for the page. Forwarded as a prop to the resolved `cardComponent` so bespoke card UIs can match the schema → register pair. Manifest-driven path: `pages[].config.register` flows in via `CnPageRenderer`. |
 | `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the v2 `registry` — any kind carrying a `component` — or in the legacy `customComponents` map on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log a `console.warn` once and fall back to the default so a misconfigured manifest never blanks the grid. See [Bespoke card-grid](#bespoke-card-grid-via-cardcomponent) below. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
+
+## Calendar view mode
+
+`viewMode` also accepts `calendar`: the current filtered rows on a month calendar by a date field ([`CnObjectCalendar`](./cn-object-calendar.md)). Opt in through `config.viewModes` and name the fields:
+
+```json
+{
+  "viewModes": ["table", "calendar"],
+  "calendar": { "dateField": "inspectionDate", "endDateField": "inspectionEnd", "titleField": "address" }
+}
+```
+
+With `endDateField` an entry spans every day from the start to the end. In calendar mode the page adds the visible month to the list query (`dateField[gte]` and `[lte]`, or with an end field the overlap `dateField[lte]` and `endDateField[gte]`), asks again when the month changes, and fetches one page sized to the month; leaving calendar mode removes the range and restores the page size, so the table is never narrowed. A click on an entry opens the record as a row click does. A busy day's "+N" button switches to the table filtered to that day. Nothing here reschedules a record: dragging an entry to another day is not offered. Applying a saved view only changes the list filters, so the same month query is used; the `/api/views/{id}/calendar` endpoint is not called.
 
 ## Board and date axis: two more ways to look at the same list
 

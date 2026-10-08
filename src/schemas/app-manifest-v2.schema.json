@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.60.0",
+	"version": "2.61.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -3026,6 +3026,17 @@
 				}
 			}
 		},
+		"calendarView": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["dateField"],
+			"description": "The calendar view of this list: the current filtered rows on a month by a date field (config.calendar). Index pages only, and only offered when config.viewModes also lists `calendar`. Only the visible month is fetched. It reads and reschedules nothing: dragging an entry to another day is not offered.",
+			"properties": {
+				"dateField": { "type": "string", "minLength": 1, "description": "The date property a row is placed on." },
+				"endDateField": { "type": "string", "minLength": 1, "description": "Optional end date; a row then spans every day from dateField to endDateField." },
+				"titleField": { "type": "string", "minLength": 1, "description": "The property shown on the entry; falls back to title, name or the row key." }
+			}
+		},
 		"formSmartPaste": {
 			"type": "object",
 			"required": ["enabled", "fields"],
@@ -4017,6 +4028,11 @@
 				}
 			},
 			"allOf": [
+				{
+					"description": "index-calendar-view-mode: config.calendar on an index page is typed by calendarView.",
+					"if": { "properties": { "type": { "const": "index" } }, "required": ["type"] },
+					"then": { "properties": { "config": { "properties": { "calendar": { "$ref": "#/$defs/calendarView" } } } } }
+				},
 				{
 					"description": "form-smart-paste: config.smartPaste on a form page is typed by formSmartPaste.",
 					"if": { "properties": { "type": { "const": "form" } }, "required": ["type"] },

@@ -655,6 +655,24 @@
 					@rowClick="onRowClick"
 					@rowAuxClick="onRowAuxClick" />
 
+				<!--
+					Calendar. The current filtered rows on a month by their date
+					field. The month is added to the list query (see
+					calendarRangeFilter), so only that month is fetched. Reads
+					only: nothing here reschedules a record.
+				-->
+				<CnObjectCalendar
+					v-else-if="currentViewMode === 'calendar'"
+					:objects="displayObjects"
+					:dateField="calendar.dateField || ''"
+					:endDateField="calendar.endDateField || null"
+					:titleField="calendar.titleField || null"
+					:rowKey="rowKey"
+					:loading="effectiveLoading"
+					@rangeChange="onCalendarRange"
+					@objectClick="onRowClick"
+					@daySelect="onCalendarDaySelect" />
+
 				<!-- List view -->
 				<CnObjectList
 					v-else-if="currentViewMode === 'list'"
@@ -916,6 +934,7 @@ import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
 import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { CnMassImportDialog } from '../CnMassImportDialog/index.js'
+import { CnObjectCalendar } from '../CnObjectCalendar/index.js'
 import { CnObjectList } from '../CnObjectList/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
@@ -933,6 +952,9 @@ import { createSelfModeActions } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { useNamedSource } from './useNamedSource.js'
 import { useSelfFetchList } from './useSelfFetchList.js'
+
+/** Rows fetched for one month in calendar mode. */
+const CALENDAR_PAGE_SIZE = 200
 
 /**
  * The separator a date-range filter uses in the URL: `2026-09-21..2026-09-25`.
@@ -1171,6 +1193,7 @@ export default {
 		CnCardGrid,
 		CnBoardView,
 		CnDateAxisView,
+		CnObjectCalendar,
 		CnMapWidget,
 		CnObjectList,
 		CnFolderSidebar,
@@ -1668,7 +1691,7 @@ export default {
 		},
 
 		/**
-		 * View mode: 'table', 'cards', 'list', 'map', 'board' or 'dateAxis'.
+		 * View mode: 'table', 'cards', 'list', 'map', 'board', 'dateAxis' or 'calendar'.
 		 * Default 'table'. List is opted in via `availableViewModes`; map via
 		 * `mapConfig` / `config.viewModes`; board and dateAxis via
 		 * `config.viewModes` and their own config blocks.
@@ -1676,7 +1699,7 @@ export default {
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'list', 'map', 'board', 'dateAxis'].includes(v),
+			validator: (v) => ['table', 'cards', 'list', 'map', 'board', 'dateAxis', 'calendar'].includes(v),
 		},
 
 		/**
@@ -1721,7 +1744,7 @@ export default {
 		 * inferred availability (map otherwise appears iff `mapConfig` is
 		 * non-empty). Cards/table always render regardless of this list.
 		 *
-		 * @type {Array<'table' | 'cards' | 'list' | 'map' | 'board' | 'dateAxis'>}
+		 * @type {Array<'table' | 'cards' | 'list' | 'map' | 'board' | 'dateAxis' | 'calendar'>}
 		 */
 		viewModes: {
 			type: Array,
@@ -1755,6 +1778,19 @@ export default {
 		},
 
 		/**
+		 * The calendar's configuration, mirroring the manifest
+		 * `config.calendar` block: `{ dateField, endDateField?, titleField? }`.
+		 * Offered only when `dateField` is named and `viewModes` lists
+		 * `calendar`. Only the visible month is fetched.
+		 *
+		 * @type {{dateField?: string, endDateField?: string, titleField?: string}}
+		 */
+		calendar: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
 		 * The host's transition, handed to the board. Absent, the board is
 		 * read-only: it never writes the status field itself, so with no
 		 * transition there is nothing it can do.
@@ -1772,12 +1808,12 @@ export default {
 		 * list view. Fed from the manifest as `pages[].config.availableViewModes`.
 		 * Map is added separately via `mapConfig` / `viewModes`.
 		 *
-		 * @type {Array<'cards' | 'table' | 'list' | 'map' | 'board' | 'dateAxis'>}
+		 * @type {Array<'cards' | 'table' | 'list' | 'map' | 'board' | 'dateAxis' | 'calendar'>}
 		 */
 		availableViewModes: {
 			type: Array,
 			default: () => ['cards', 'table'],
-			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'map', 'board', 'dateAxis'].includes(m)),
+			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'map', 'board', 'dateAxis', 'calendar'].includes(m)),
 		},
 
 		/** Current sort key */
@@ -2922,6 +2958,10 @@ export default {
 	data() {
 		return {
 			currentViewMode: this.viewMode,
+			/** The visible calendar window `{ rangeStart, rangeEnd }` (ISO dates), or null outside calendar mode. */
+			calendarRange: null,
+			/** The page size to restore when leaving calendar mode. */
+			calendarPrevPageSize: null,
 			/** Resolved labels of reference columns: `{ [columnKey]: { [id]: label|null } }`. */
 			refLabels: {},
 			/** Count per tab-strip index, for the entries that asked for one; null = none. */
@@ -3184,6 +3224,27 @@ export default {
 		},
 
 		/**
+		 * The month window as list-query conditions, only in calendar mode.
+		 * With an end field an entry counts when it overlaps the window;
+		 * without one, when its date falls inside it. Read by
+		 * `useSelfFetchList`'s fixed-filter getter, and empty outside calendar
+		 * mode so the table is never narrowed after leaving.
+		 *
+		 * @return {object} The filter conditions, or an empty object.
+		 */
+		calendarRangeFilter() {
+			const cal = this.calendar || {}
+			if (this.currentViewMode !== 'calendar' || !cal.dateField || !this.calendarRange) {
+				return {}
+			}
+			const { rangeStart, rangeEnd } = this.calendarRange
+			if (cal.endDateField) {
+				return { [`${cal.dateField}[lte]`]: rangeEnd, [`${cal.endDateField}[gte]`]: rangeStart }
+			}
+			return { [`${cal.dateField}[gte]`]: rangeStart, [`${cal.dateField}[lte]`]: rangeEnd }
+		},
+
+		/**
 		 * Rows handed to the table / card grid — `effectiveObjects` re-sorted by
 		 * the declarative `defaultSort` spec whenever no explicit user column
 		 * sort is active. A live `sortKey` (user clicked a header, or one was
@@ -3356,6 +3417,9 @@ export default {
 				}
 				if (mode === 'dateAxis') {
 					return Boolean(this.dateAxis?.startField) && Boolean(this.dateAxis?.endField)
+				}
+				if (mode === 'calendar') {
+					return Boolean(this.calendar?.dateField)
 				}
 				return true
 			})
@@ -4900,6 +4964,28 @@ export default {
 
 		viewMode(val) {
 			this.currentViewMode = val
+		},
+
+		// Entering calendar mode fetches one page sized to the month; leaving
+		// removes the month range and restores the page size, so the table is
+		// never left narrowed.
+		currentViewMode(mode, previous) {
+			if (!this.isSelfFetchMode) {
+				return
+			}
+			if (mode === 'calendar') {
+				this.calendarPrevPageSize = this.list.pageSize.value
+				if (typeof this.list.onPageSizeChange === 'function') {
+					this.list.onPageSizeChange(CALENDAR_PAGE_SIZE)
+				}
+			} else if (previous === 'calendar') {
+				this.calendarRange = null
+				const restore = this.calendarPrevPageSize || 20
+				this.calendarPrevPageSize = null
+				if (typeof this.list.onPageSizeChange === 'function') {
+					this.list.onPageSizeChange(restore)
+				}
+			}
 		},
 
 		selectedIds(val) {
@@ -6857,6 +6943,39 @@ export default {
 					nav.catch(() => {})
 				}
 			}
+		},
+
+		/**
+		 * The calendar moved to another month: ask for that window.
+		 *
+		 * @param {{rangeStart: string, rangeEnd: string}} range The visible grid window as ISO dates.
+		 */
+		onCalendarRange(range) {
+			this.calendarRange = range
+			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') {
+				this.list.refresh(1)
+			}
+		},
+
+		/**
+		 * "+N" on a busy day: show that day's records in the table.
+		 *
+		 * @param {string} iso The day, `YYYY-MM-DD`.
+		 */
+		onCalendarDaySelect(iso) {
+			const cal = this.calendar || {}
+			if (this.isSelfFetchMode && cal.dateField) {
+				const next = { ...this.list.activeFilters.value }
+				if (cal.endDateField) {
+					next[`${cal.dateField}[lte]`] = [iso]
+					next[`${cal.endDateField}[gte]`] = [iso]
+				} else {
+					next[`${cal.dateField}[gte]`] = [iso]
+					next[`${cal.dateField}[lte]`] = [iso]
+				}
+				this.list.activeFilters.value = next
+			}
+			this.onViewModeChange('table')
 		},
 
 		/**

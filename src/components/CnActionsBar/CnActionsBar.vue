@@ -361,6 +361,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
+import CalendarMonthOutline from 'vue-material-design-icons/CalendarMonthOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Export from 'vue-material-design-icons/Export.vue'
@@ -419,6 +420,7 @@ export default {
 		Tune,
 		ViewGridOutline,
 		FormatListBulletedSquare,
+		CalendarMonthOutline,
 		MapMarkerOutline,
 	},
 
@@ -529,19 +531,19 @@ export default {
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'list', 'map'].includes(v),
+			validator: (v) => ['table', 'cards', 'list', 'map', 'calendar'].includes(v),
 		},
 
 		/**
 		 * Which view-mode segments to render, in order. Defaults to the
 		 * historical two-segment control; add `'list'` to expose the list view.
 		 *
-		 * @type {Array<'cards' | 'table' | 'list'>}
+		 * @type {Array<'cards' | 'table' | 'list' | 'calendar'>}
 		 */
 		availableViewModes: {
 			type: Array,
 			default: () => ['cards', 'table'],
-			validator: (modes) => modes.every((m) => ['cards', 'table', 'list'].includes(m)),
+			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'calendar'].includes(m)),
 		},
 
 		/** Whether to show the view-mode toggle */
@@ -880,6 +882,7 @@ export default {
 				table: { label: this.tableLabel || t('nextcloud-vue', 'Table'), icon: this.tableIcon, fallback: FormatListBulletedSquare },
 				list: { label: this.listLabel || t('nextcloud-vue', 'List'), icon: this.listIcon, fallback: ViewListOutline },
 				map: { label: this.mapLabel || t('nextcloud-vue', 'Map'), icon: this.mapIcon, fallback: MapMarkerOutline },
+				calendar: { label: t('nextcloud-vue', 'Calendar'), icon: '', fallback: CalendarMonthOutline },
 			}
 			const modes = [...this.availableViewModes]
 			if (this.showMap && !modes.includes('map')) {

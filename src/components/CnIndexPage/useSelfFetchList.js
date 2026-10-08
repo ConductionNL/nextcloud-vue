@@ -212,7 +212,9 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 			const scopeBase = scopeSearchFields.length > 0 ? { _searchFields: scopeSearchFields } : {}
 			// File-content search widens a text search, so it rides only with a term.
 			const widen = props.searchInFiles === true && contentSearch.value && !!(listHandle && listHandle.searchTerm.value)
-			const scope = widen ? { ...scopeBase, _content_search: 'true' } : scopeBase
+			// The visible calendar month, only while the page is in calendar mode.
+			const month = (instance && instance.proxy && instance.proxy.calendarRangeFilter) || {}
+			const scope = { ...(widen ? { ...scopeBase, _content_search: 'true' } : scopeBase), ...month }
 			const lensed = withPersonalLenses(props.quickFilters, props.personalLenses)
 			const tabs = Array.isArray(lensed) ? lensed : null
 			if (!tabs) {
