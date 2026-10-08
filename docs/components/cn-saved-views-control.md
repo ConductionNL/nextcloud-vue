@@ -67,6 +67,7 @@ When any view is shared with the user, the list is split under two captions, **M
 | Access | Row actions | Event |
 |--------|-------------|-------|
 | `owner` | Share, Delete | `share-request(view)`, `delete-request(view)` |
+| `owner`, `write` | Presentation: how the view shows (table, board, calendar) | `presentation-request(view)` |
 | `write` | Save the current view to it (no delete, no share) | `update-request(view)` |
 | `read` | Save as my view (no edit, no delete) | `copy-request(view)` |
 

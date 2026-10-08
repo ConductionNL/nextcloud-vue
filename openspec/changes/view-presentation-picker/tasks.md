@@ -11,8 +11,8 @@
 - **acceptance_criteria**:
   - Group, card and date candidates per design D1, with a reason when a role has none
   - JSDoc on the export
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: CnViewPresentationPicker
 - **spec_ref**: `openspec/changes/view-presentation-picker/specs/saved-views-ui/spec.md#requirement-a-views-presentation-is-picked-when-it-is-saved`
@@ -21,8 +21,8 @@
   - Props `schema`, `value` with defaults; emits `input` in OpenRegister's shape only
   - Disabled types carry their reason; card fields capped at four; column order as a drag list
   - Every `NcSelect` has an `inputLabel`; `cn-` classes
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Save dialog and edit form
 - **spec_ref**: `openspec/changes/view-presentation-picker/specs/saved-views-ui/spec.md#requirement-the-save-dialog-and-the-edit-form-carry-the-picker`
@@ -32,5 +32,7 @@
   - Picker in the edit form for `owner` and `write`
   - Refusals naming the three paths land under their picker
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
+
+> The control had no edit form, so the picker sits in the new `CnSavedViewPresentationDialog`, opened from a Presentation row action for `owner` and `write`. Column order is Move up / Move down buttons (keyboard reachable), not drag. `npm run build` is not run here.

@@ -2,15 +2,16 @@
 
 ### OpenRegister reliance
 
-**none**: this component does not touch OpenRegister, directly or through anything it imports. 0 direct references, 0 files reached through imports.
+**light**: this component touches OpenRegister lightly. 0 direct references, 1 file reached through imports.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name          | Type     | Required | Default                                            | Description                                |
-| ------------- | -------- | -------- | -------------------------------------------------- | ------------------------------------------ |
-| `dialogTitle` | `string` |          | `() =&gt; t('nextcloud-vue', 'Save current view')` | Dialog title shown in the NcDialog header. |
+| Name          | Type     | Required | Default                                            | Description                                                                                                                                                                                 |
+| ------------- | -------- | -------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dialogTitle` | `string` |          | `() =&gt; t('nextcloud-vue', 'Save current view')` | Dialog title shown in the NcDialog header.                                                                                                                                                  |
+| `schema`      | `object` |          | `null`                                             | The view's JSON Schema. With it the dialog shows the presentation picker (table, board, calendar) and emits `presentation` in `confirm`; without it the dialog renders and emits as before. |
 
 ### Events
 

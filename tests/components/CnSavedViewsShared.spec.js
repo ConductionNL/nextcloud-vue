@@ -166,3 +166,53 @@ describe('CnSavedViewsControl sections and gating', () => {
 		expect(w.emitted('apply')[0][0].id).toBe(2)
 	})
 })
+
+describe('presentation (view-presentation-picker)', () => {
+	const SCHEMA = { properties: { status: { type: 'string', enum: ['a', 'b'] }, due: { type: 'string', format: 'date' } } }
+
+	it('CnSaveViewDialog without a schema renders no picker and emits no presentation', async () => {
+		const w = mount(CnSaveViewDialog)
+		await w.setData({ name: 'x' })
+		w.vm.onConfirm()
+		expect(w.find('[data-testid="cn-view-presentation-picker"]').exists()).toBe(false)
+		expect(w.emitted('confirm')[0][0]).not.toHaveProperty('presentation')
+	})
+
+	it('with a schema it shows the picker and emits the chosen board', async () => {
+		const w = mount(CnSaveViewDialog, { props: { schema: SCHEMA } })
+		await flushPromises()
+		expect(w.find('[data-testid="cn-view-presentation-picker"]').exists()).toBe(true)
+		await w.setData({ name: 'Board', presentation: { viewType: 'kanban', kanban: { groupByField: 'status' } } })
+		w.vm.onConfirm()
+		expect(w.emitted('confirm')[0][0].presentation).toEqual({ viewType: 'kanban', kanban: { groupByField: 'status' } })
+	})
+
+	it('blocks Save while a board has no group field', async () => {
+		const w = mount(CnSaveViewDialog, { props: { schema: SCHEMA } })
+		await w.setData({ name: 'x', presentation: { viewType: 'kanban', kanban: {} } })
+		expect(w.vm.presentationComplete).toBe(false)
+	})
+
+	it('routes a refusal naming a presentation path under its picker, other messages to the top', async () => {
+		const w = mount(CnSaveViewDialog, { props: { schema: SCHEMA } })
+		w.vm.setError('calendar.dateField: not a property of the schema')
+		expect(w.vm.pathErrors).toEqual({ 'calendar.dateField': 'calendar.dateField: not a property of the schema' })
+		expect(w.vm.error).toBe('')
+		w.vm.setError('Something else')
+		expect(w.vm.error).toBe('Something else')
+	})
+
+	it('the control offers Presentation to owner and write, not read', () => {
+		const owner = view(1, { '@self': { access: 'owner' } })
+		const writer = view(2, { owner: 'bob', '@self': { access: 'write' } })
+		const reader = view(3, { owner: 'bob', '@self': { access: 'read' } })
+		expect(testids(mountControl([owner]), 'cn-saved-views-presentation')).toHaveLength(1)
+		expect(testids(mountControl([writer]), 'cn-saved-views-presentation')).toHaveLength(1)
+		expect(testids(mountControl([reader]), 'cn-saved-views-presentation')).toHaveLength(0)
+	})
+
+	it('buildViewCreatePayload carries a board or calendar and omits a table', () => {
+		expect(buildViewCreatePayload({ name: 'x', state: {}, presentation: { viewType: 'kanban', kanban: { groupByField: 's' } } }).presentation).toEqual({ viewType: 'kanban', kanban: { groupByField: 's' } })
+		expect('presentation' in buildViewCreatePayload({ name: 'x', state: {}, presentation: { viewType: 'table' } })).toBe(false)
+	})
+})

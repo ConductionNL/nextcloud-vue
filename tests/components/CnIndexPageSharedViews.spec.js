@@ -120,3 +120,28 @@ describe('CnIndexPage shared saved views', () => {
 		expect(dialog.vm.error).toBe('Unknown group')
 	})
 })
+
+describe('CnIndexPage presentation of a saved view', () => {
+	it('saves a presentation with a PATCH of presentation only', async () => {
+		axios.patch.mockResolvedValue({ data: { view: { ...writable, presentation: { viewType: 'calendar', calendar: { dateField: 'due' } } } } })
+		const w = mountPage()
+		await flushPromises()
+		w.vm.onPresentationViewRequest(writable)
+		await flushPromises()
+		await w.vm.onPresentationViewConfirm({ viewType: 'calendar', calendar: { dateField: 'due' } })
+		expect(axios.patch).toHaveBeenCalledWith('/apps/openregister/api/views/7', { presentation: { viewType: 'calendar', calendar: { dateField: 'due' } } })
+		expect(w.vm.viewPendingPresentation).toBeNull()
+	})
+
+	it('keeps the dialog open with the message under the picker when the save is refused', async () => {
+		axios.patch.mockRejectedValue({ response: { data: { error: 'calendar.dateField is not a property of the schema' } } })
+		const w = mountPage()
+		await flushPromises()
+		w.vm.onPresentationViewRequest(own)
+		await flushPromises()
+		const dialog = w.findComponent({ name: 'CnSavedViewPresentationDialog' })
+		await w.vm.onPresentationViewConfirm({ viewType: 'calendar', calendar: { dateField: 'gone' } })
+		expect(w.vm.viewPendingPresentation).not.toBeNull()
+		expect(dialog.vm.pathErrors['calendar.dateField']).toContain('not a property')
+	})
+})

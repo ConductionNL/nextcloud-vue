@@ -155,6 +155,7 @@
 					@apply="onApplySavedView"
 					@saveRequest="showSaveViewDialog = true"
 					@shareRequest="onShareViewRequest"
+					@presentationRequest="onPresentationViewRequest"
 					@updateRequest="onUpdateViewRequest"
 					@copyRequest="onCopyViewRequest"
 					@deleteRequest="onDeleteViewRequest" />
@@ -289,8 +290,18 @@
 		<CnSaveViewDialog
 			v-if="showSaveViewDialog"
 			ref="saveViewDialog"
+			:schema="viewPresentationSchema"
 			@confirm="onSaveViewConfirm"
 			@close="showSaveViewDialog = false" />
+
+		<!-- How-a-saved-view-shows dialog (view-presentation-picker) -->
+		<CnSavedViewPresentationDialog
+			v-if="viewPendingPresentation"
+			ref="presentationViewDialog"
+			:view="viewPendingPresentation"
+			:schema="viewPresentationSchema"
+			@confirm="onPresentationViewConfirm"
+			@close="viewPendingPresentation = null" />
 
 		<!-- Share-a-saved-view dialog (saved-views-shared-by-role) -->
 		<CnSavedViewShareDialog
@@ -910,6 +921,7 @@ import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
 import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
 import { CnRowActions } from '../CnRowActions/index.js'
+import { CnSavedViewPresentationDialog } from '../CnSavedViewPresentationDialog/index.js'
 import { CnSavedViewsControl } from '../CnSavedViewsControl/index.js'
 import { CnSavedViewShareDialog } from '../CnSavedViewShareDialog/index.js'
 import { CnSaveViewDialog } from '../CnSaveViewDialog/index.js'
@@ -1175,6 +1187,7 @@ export default {
 		CnContextMenu,
 		CnIndexSidebar,
 		CnSavedViewsControl,
+		CnSavedViewPresentationDialog,
 		CnSavedViewShareDialog,
 		CnSaveViewDialog,
 		CnConfirmDialog,
@@ -2978,6 +2991,8 @@ export default {
 			viewPendingDelete: null,
 			/** The own view whose audience is being changed (CnSavedViewShareDialog), or null. */
 			viewPendingShare: null,
+			/** The view whose presentation is being changed (CnSavedViewPresentationDialog), or null. */
+			viewPendingPresentation: null,
 			// Split view (case-page-and-list-as-a-place). `splitRowPatches` holds
 			// records saved in the pane, keyed by row id, so a save lands on the
 			// row without refetching the page and losing the scroll position.
@@ -3761,6 +3776,17 @@ export default {
 		 */
 		storeFacets() {
 			return this.isSelfFetchMode ? (this.list.facets?.value || null) : null
+		},
+
+		/**
+		 * The schema the presentation picker reads: the page's schema object
+		 * once it has properties, else null (no picker).
+		 *
+		 * @return {object|null}
+		 */
+		viewPresentationSchema() {
+			const schema = this.effectiveSchema
+			return schema && typeof schema === 'object' && schema.properties && Object.keys(schema.properties).length > 0 ? schema : null
 		},
 
 		/**
@@ -6987,7 +7013,7 @@ export default {
 			}
 		},
 
-		async onSaveViewConfirm({ name, isPublic, sharedWith }) {
+		async onSaveViewConfirm({ name, isPublic, sharedWith, presentation }) {
 			const state = this.isSelfFetchMode
 				? this.currentViewState()
 				: extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
@@ -7001,6 +7027,7 @@ export default {
 				register: this.register,
 				schema: this.schema,
 				sharedWith,
+				presentation,
 			})
 			try {
 				const view = await useSavedViewsApi().createView(payload)
@@ -7024,6 +7051,41 @@ export default {
 				// as one that has not been submitted yet.
 				this.$refs.saveViewDialog?.setError(error?.response?.data?.error || error?.message)
 				this.toastSavedView('error', t('nextcloud-vue', 'Could not save the view "{name}"', { name }))
+			}
+		},
+
+		/**
+		 * Open the presentation dialog for a view the user may edit
+		 * (CnSavedViewsControl `@presentation-request`).
+		 *
+		 * @param {object} view The View API object.
+		 * @spec openspec/changes/view-presentation-picker/tasks.md#task-3
+		 */
+		onPresentationViewRequest(view) {
+			this.viewPendingPresentation = view
+		},
+
+		/**
+		 * Save a changed presentation (CnSavedViewPresentationDialog `@confirm`).
+		 * The body carries `presentation` only, so a writer never sends
+		 * `sharedWith` or `owner`. A refusal keeps the dialog open.
+		 *
+		 * @param {object} presentation The presentation in OpenRegister's shape.
+		 * @spec openspec/changes/view-presentation-picker/tasks.md#task-3
+		 */
+		async onPresentationViewConfirm(presentation) {
+			const view = this.viewPendingPresentation
+			if (!view) {
+				return
+			}
+			try {
+				const saved = await useSavedViewsApi().patchView(view.id, { presentation })
+				this.savedViews = this.savedViews.map((v) => (v.id === view.id ? { ...v, ...(saved || { presentation }) } : v))
+				this.viewPendingPresentation = null
+				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" updated', { name: view.name }))
+			} catch (error) {
+				const data = error?.response?.data
+				this.$refs.presentationViewDialog?.setError((data && (data.error || data.message)) || error?.message)
 			}
 		},
 

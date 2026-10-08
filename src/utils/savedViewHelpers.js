@@ -171,9 +171,10 @@ export function buildRouteQueryFromViewState(state) {
  * @param {string} [options.register] The page's register, written as OpenRegister's own `registers` list.
  * @param {object|string} [options.schema] The page's schema (slug or object), written as OpenRegister's own `schemas` list.
  * @param {Array<{group: string, mode: string}>} [options.sharedWith] Groups to share with; omitted from the body when empty.
+ * @param {object} [options.presentation] How the view shows (OpenRegister's shape); omitted from the body for a table, which is the default.
  * @return {object} The request body for the OR views API.
  */
-export function buildViewCreatePayload({ name, description, isPublic, isDefault, state, scope, register, schema, sharedWith } = {}) {
+export function buildViewCreatePayload({ name, description, isPublic, isDefault, state, scope, register, schema, sharedWith, presentation } = {}) {
 	const src = (state && typeof state === 'object') ? state : {}
 	const keys = sortKeysOf(src)
 	const query = {
@@ -200,6 +201,9 @@ export function buildViewCreatePayload({ name, description, isPublic, isDefault,
 		isPublic: !!isPublic,
 		isDefault: !!isDefault,
 		query,
+	}
+	if (presentation && typeof presentation === 'object' && (presentation.viewType === 'kanban' || presentation.viewType === 'calendar')) {
+		body.presentation = presentation
 	}
 	const audience = normalizeSharedWith(sharedWith)
 	if (audience.length > 0) {

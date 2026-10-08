@@ -31,6 +31,14 @@
 				{{ t('nextcloud-vue', 'Share with other users (public)') }}
 			</NcCheckboxRadioSwitch>
 
+			<!-- How the view shows (table, board, calendar). Only with a schema. -->
+			<CnViewPresentationPicker
+				v-if="schema"
+				:schema="schema"
+				:value="presentation"
+				:errors="pathErrors"
+				@input="(v) => presentation = v" />
+
 			<!-- Share with groups, read or write. Absent when the sharee API
 			     answers no groups for this user. -->
 			<CnSavedViewShareFields v-model="sharedWith" />
@@ -42,7 +50,7 @@
 			</NcButton>
 			<NcButton
 				variant="primary"
-				:disabled="loading || !name.trim()"
+				:disabled="loading || !name.trim() || !presentationComplete"
 				data-testid="cn-save-view-confirm"
 				@click="onConfirm">
 				<template #icon>
@@ -60,13 +68,16 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import CnSavedViewShareFields from '../CnSavedViewShareFields/CnSavedViewShareFields.vue'
+import CnViewPresentationPicker from '../CnViewPresentationPicker/CnViewPresentationPicker.vue'
+import { isPresentationComplete, presentationErrorPath } from '../../utils/presentationCandidates.js'
 
 /**
  * CnSaveViewDialog — small "Save current view…" dialog (saved-views-ui).
  *
  * Single-phase: collects a view name (+ optional public toggle and the groups
  * to share with) and emits `@confirm({ name, isPublic, sharedWith })`, where
- * `sharedWith` is `[]` when no group is picked. The PARENT owns persistence (POST to
+ * `sharedWith` is `[]` when no group is picked. With a `schema` it also shows
+ * the presentation picker and emits `presentation`. The PARENT owns persistence (POST to
  * OpenRegister's views API): on success it closes the dialog; on failure
  * it calls `setError(message)` on this dialog's ref so the user can retry
  * without losing their input.
@@ -76,7 +87,7 @@ import CnSavedViewShareFields from '../CnSavedViewShareFields/CnSavedViewShareFi
  * wiring is a recurring footgun and a dialog gives room for the public
  * toggle.
  *
- * @event {{ name: string, isPublic: boolean, sharedWith: Array<{group: string, mode: string}> }} confirm — Save clicked with a non-empty name.
+ * @event {{ name: string, isPublic: boolean, sharedWith: Array<{group: string, mode: string}>, presentation?: object }} confirm — Save clicked with a non-empty name.
  * @event {void} close — Dialog dismissed.
  */
 export default {
@@ -90,6 +101,7 @@ export default {
 		NcTextField,
 		NcCheckboxRadioSwitch,
 		CnSavedViewShareFields,
+		CnViewPresentationPicker,
 		ContentSaveOutline,
 	},
 
@@ -98,6 +110,16 @@ export default {
 		dialogTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Save current view'),
+		},
+
+		/**
+		 * The view's JSON Schema. With it the dialog shows the presentation
+		 * picker (table, board, calendar) and emits `presentation` in
+		 * `confirm`; without it the dialog renders and emits as before.
+		 */
+		schema: {
+			type: Object,
+			default: null,
 		},
 	},
 
@@ -111,11 +133,21 @@ export default {
 			isPublic: false,
 			/** Groups the view is shared with, `[{ group, mode }]`. */
 			sharedWith: [],
+			/** How the view shows, in OpenRegister's shape (only used with a `schema`). */
+			presentation: { viewType: 'table' },
+			/** A refusal per presentation path, shown under its picker. */
+			pathErrors: {},
 			/** True between confirm and the parent's close/setError. */
 			loading: false,
 			/** Error message from the parent's failed save, shown in a note card. */
 			error: '',
 		}
+	},
+
+	computed: {
+		presentationComplete() {
+			return !this.schema || isPresentationComplete(this.presentation)
+		},
 	},
 
 	methods: {
@@ -131,11 +163,17 @@ export default {
 			}
 			this.loading = true
 			this.error = ''
+			this.pathErrors = {}
 			/**
 			 * @event confirm Save clicked with a non-empty (trimmed) name.
 			 * @type {object}
 			 */
-			this.$emit('confirm', { name: this.name.trim(), isPublic: this.isPublic, sharedWith: this.sharedWith })
+			this.$emit('confirm', {
+				name: this.name.trim(),
+				isPublic: this.isPublic,
+				sharedWith: this.sharedWith,
+				...(this.schema ? { presentation: this.presentation } : {}),
+			})
 		},
 
 		/**
@@ -157,7 +195,15 @@ export default {
 		 */
 		setError(message) {
 			this.loading = false
-			this.error = message || t('nextcloud-vue', 'Failed to save view')
+			const text = message || t('nextcloud-vue', 'Failed to save view')
+			// A message naming a presentation path goes under that picker.
+			const path = this.schema ? presentationErrorPath(text) : ''
+			if (path) {
+				this.pathErrors = { [path]: text }
+				this.error = ''
+				return
+			}
+			this.error = text
 		},
 	},
 }

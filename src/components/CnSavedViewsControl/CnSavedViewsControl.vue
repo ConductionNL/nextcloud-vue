@@ -96,6 +96,17 @@
 						</template>
 					</NcActionButton>
 					<NcActionButton
+						v-if="(accessOf(row) === 'owner' || accessOf(row) === 'write') && row.group !== SEEDED_GROUP"
+						:key="`presentation-${row.view.id || row.view.slug}`"
+						data-testid="cn-saved-views-presentation"
+						:data-view-id="row.view.id || row.view.slug"
+						:aria-label="presentationLabel(row.view)"
+						@click="onPresentationRequest(row.view)">
+						<template #icon>
+							<ViewDashboardOutline :size="20" />
+						</template>
+					</NcActionButton>
+					<NcActionButton
 						v-if="accessOf(row) === 'write'"
 						:key="`update-${row.view.id || row.view.slug}`"
 						data-testid="cn-saved-views-update"
@@ -156,6 +167,7 @@ import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'
 import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import { buildViewTree, labelsInUse, VIEW_GROUPS } from '../../utils/buildViewTree.js'
 import { isOwnView, viewAccess } from '../../utils/savedViewHelpers.js'
 
@@ -178,6 +190,8 @@ import { isOwnView, viewAccess } from '../../utils/savedViewHelpers.js'
  * - `@share-request(view)` — Share on an own view; parent opens the share dialog.
  * - `@update-request(view)` — Save on a view shared with write access; parent
  *   saves the current state to it (never sending `sharedWith` or `owner`).
+ * - `@presentation-request(view)` — Presentation on a view the user may edit
+ *   (`owner` or `write`); parent opens the presentation dialog (table, board, calendar).
  * - `@copy-request(view)` — "Save as my view" on a view shared read-only.
  *
  * Views shared with the user (`@self.access` `write` or `read`) list under
@@ -189,6 +203,7 @@ import { isOwnView, viewAccess } from '../../utils/savedViewHelpers.js'
  * @event {object} delete-request — Confirm-delete the clicked view. Payload: the View API object.
  * @event {object} share-request — Share the clicked own view. Payload: the View API object.
  * @event {object} update-request — Save the current state to the clicked writable shared view. Payload: the View API object.
+ * @event {object} presentation-request — Change how the clicked view shows. Payload: the View API object.
  * @event {object} copy-request — Copy the clicked read-only shared view into a personal one. Payload: the View API object.
  */
 export default {
@@ -207,6 +222,7 @@ export default {
 		ShareVariantOutline,
 		TagOutline,
 		TrashCanOutline,
+		ViewDashboardOutline,
 	},
 
 	props: {
@@ -251,7 +267,7 @@ export default {
 		},
 	},
 
-	emits: ['apply', 'copy-request', 'delete-request', 'save-request', 'share-request', 'update-request'],
+	emits: ['apply', 'copy-request', 'delete-request', 'presentation-request', 'save-request', 'share-request', 'update-request'],
 
 	data() {
 		return {
@@ -376,6 +392,18 @@ export default {
 
 		copyLabel(view) {
 			return t('nextcloud-vue', 'Save "{name}" as my view', { name: view.name })
+		},
+
+		presentationLabel(view) {
+			return t('nextcloud-vue', 'Change how "{name}" shows', { name: view.name })
+		},
+
+		onPresentationRequest(view) {
+			/**
+			 * @event presentation-request Presentation on an editable view; open the presentation dialog.
+			 * @type {object}
+			 */
+			this.$emit('presentation-request', view)
 		},
 
 		onShareRequest(view) {

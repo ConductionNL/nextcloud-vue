@@ -18,11 +18,12 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name             | Payload | Description                                                          |
-| ---------------- | ------- | -------------------------------------------------------------------- |
-| `apply`          | —       | A view entry was clicked; apply its stored state.                    |
-| `copy-request`   | —       | "Save as my view" on a read-only shared view; store a personal copy. |
-| `delete-request` | —       | A view's delete entry was clicked; confirm and delete.               |
-| `save-request`   | —       | "Save current view…" clicked; open the save dialog.                  |
-| `share-request`  | —       | Share on an own view; open the share dialog.                         |
-| `update-request` | —       | Save on a writable shared view; save the current state to it.        |
+| Name                   | Payload | Description                                                          |
+| ---------------------- | ------- | -------------------------------------------------------------------- |
+| `apply`                | —       | A view entry was clicked; apply its stored state.                    |
+| `copy-request`         | —       | "Save as my view" on a read-only shared view; store a personal copy. |
+| `delete-request`       | —       | A view's delete entry was clicked; confirm and delete.               |
+| `presentation-request` | —       | Presentation on an editable view; open the presentation dialog.      |
+| `save-request`         | —       | "Save current view…" clicked; open the save dialog.                  |
+| `share-request`        | —       | Share on an own view; open the share dialog.                         |
+| `update-request`       | —       | Save on a writable shared view; save the current state to it.        |
