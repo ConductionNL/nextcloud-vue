@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.55.0",
+	"version": "2.58.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -1913,6 +1913,43 @@
 					}
 				},
 				{
+					"description": "tabs built-in widget (CnTabsWidget): `props.content.tabs[]` entries are a widget id or an object { id?, widgetId, label?, icon?, count?, countField?, unreadKey?, overflow?, visibleWhen? }. `visibleWhen` reuses the shared predicate: a tab whose condition is false is absent from the strip, not empty. LOCAL form reads a field of the page object; the `source` form counts related rows (`@total`) once on mount and after a reported write, and shows the tab disabled while it is pending. A tab without the key always renders.",
+					"if": {
+						"properties": { "widgetKey": { "const": "tabs" } },
+						"required": ["widgetKey"]
+					},
+					"then": {
+						"properties": {
+							"props": {
+								"type": "object",
+								"properties": {
+									"content": {
+										"type": "object",
+										"additionalProperties": true,
+										"properties": {
+											"tabs": {
+												"type": "array",
+												"items": {
+													"oneOf": [
+														{ "type": "string" },
+														{
+															"type": "object",
+															"additionalProperties": true,
+															"properties": {
+																"visibleWhen": { "$ref": "#/$defs/visibleWhen" }
+															}
+														}
+													]
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				{
 					"description": "header / text / divider on the v2 grid (Wave 1): the dashboard catalog's content-only presentation widgets reused as built-ins. Each takes a single `props.content` object with the same shape as its dashboard `content` blob.",
 					"if": {
 						"properties": { "widgetKey": { "enum": ["header", "text", "divider"] } },
@@ -3105,6 +3142,28 @@
 					"additionalProperties": true,
 					"allOf": [{ "$ref": "#/$defs/sentinelGuardedValue" }],
 					"properties": {
+						"favourite": {
+							"type": "boolean",
+							"description": "Detail pages: the star beside the title. Omitted means automatic: it shows when the object carries @self.favourite. false removes it."
+						},
+						"follow": {
+							"type": "boolean",
+							"description": "Detail pages: the Follow toggle beside the title, with the follower count for a user who may update the record. Omitted means automatic: it shows when the object carries @self.watching. false removes it, and the object read then no longer asks for @self.can."
+						},
+						"showFavouriteColumn": {
+							"type": "boolean",
+							"description": "Index pages: add a first column with a star per row, bound to each row's @self.favourite. Clicking it does not open the row. Default false."
+						},
+						"personalLenses": {
+							"type": "array",
+							"description": "Index pages: personal lenses added to the quick filters, in order. favourite lists the user's favourites, recent the records the user opened last (it owns the order, so column sorting is off), watching the records the user follows, unread the records changed since the user last looked. They combine with every other filter. Default none.",
+							"items": { "enum": ["favourite", "recent", "watching", "unread"] },
+							"uniqueItems": true
+						},
+						"markRead": {
+							"type": "boolean",
+							"description": "Detail pages: send PUT .../read-state once after the object has rendered, when it carries @self.unread, so opening a record marks it read. Default true; false keeps the page from marking anything read."
+						},
 						"headerFields": {
 							"type": "array",
 							"description": "Detail pages: fields shown as chips under the title (number, status, assignee, deadline). Each entry is a property key, or an object { key, format, labelField, colorField, warnWhenPast }. `format` is text (default), mono, badge, user or date. A `$ref` value shows `labelField` of the referenced object and falls back to the raw id in mono. An empty value shows no chip; a page without the key shows no row.",

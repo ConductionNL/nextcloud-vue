@@ -139,7 +139,8 @@
 						:objectId="objectId"
 						:register="register"
 						:schema="schema"
-						:apiBase="apiBase" />
+						:apiBase="apiBase"
+						:source="tasksSource" />
 				</slot>
 			</NcAppSidebarTab>
 
@@ -487,6 +488,14 @@ export default {
 		tagsLabel: { type: String, default: () => t('nextcloud-vue', 'Tags') },
 		/** Label for the Tasks tab */
 		tasksLabel: { type: String, default: () => t('nextcloud-vue', 'Tasks') },
+		/**
+		 * Source of the Tasks tab: `vtodo` (default, the record's linked Nextcloud
+		 * tasks) or `flow-tasks` (the OpenRegister flow tasks anchored on the
+		 * record, with create and per-row verbs). Passed to `CnTasksTab`.
+		 *
+		 * @type {'vtodo'|'flow-tasks'}
+		 */
+		tasksSource: { type: String, default: 'vtodo', validator: (v) => ['vtodo', 'flow-tasks'].includes(v) },
 		/** Label for the Audit Trail tab */
 		auditTrailLabel: { type: String, default: () => t('nextcloud-vue', 'Audit trail') },
 

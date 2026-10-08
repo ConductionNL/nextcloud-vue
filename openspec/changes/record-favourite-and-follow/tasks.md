@@ -14,8 +14,8 @@
   - `favourite`, `unfavourite`, `watch`, `unwatch`, `fetchWatchers`, `addWatcher`, `removeWatcher`
   - Each writes the server's answer into the stored object's `@self`
   - JSDoc on every action
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: CnFavouriteToggle and CnFollowToggle
 - **spec_ref**: `openspec/changes/record-favourite-and-follow/specs/record-favourite-follow/spec.md#requirement-a-manager-adds-and-removes-a-colleague`
@@ -25,8 +25,8 @@
   - Count only from `@self.watcherCount`; watchers fetched on popover open only
   - Picker (`NcSelect` with `inputLabel`) only with `@self.can.manage`; own-row remove otherwise
   - `notifies` prop (default `true`) and its tooltip; `cn-` classes, Nextcloud variables
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Place them on CnDetailPage and CnIndexPage
 - **spec_ref**: `openspec/changes/record-favourite-and-follow/specs/record-favourite-follow/spec.md#requirement-index-pages-offer-a-star-column-and-personal-lenses`
@@ -37,5 +37,7 @@
   - `showFavouriteColumn` and `personalLenses` props with defaults; Recent disables sorting
   - Manifest schema accepts the four keys with their types
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
+
+> Built with the interaction calls in `src/utils/recordInteractions.js`, shared by the store plugin and the toggles, so a toggle works without the plugin installed. The manifest schema is at 2.56.0. `npm run build` is not run here.

@@ -5,6 +5,7 @@ import { useObjectStore } from '../../store/index.js'
 // Both filter resolvers live in `utils/routeFilters.js` so CnLogsPage applies
 // the same two grammars (route-param interpolation + `?key=value` deep links)
 // without pulling in this composable's index-only sidebar/subscription wiring.
+import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
 
 function resolveInitialQuickFilterIndex(quickFilters) {
@@ -78,7 +79,7 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 	const routeAtSetup = instance && instance.proxy && instance.proxy.$route
 	const contentSearch = ref(props.searchInFiles === true && String(routeAtSetup?.query?.contentSearch) === '1')
 
-	const activeQuickFilterIndex = ref(resolveInitialQuickFilterIndex(props.quickFilters))
+	const activeQuickFilterIndex = ref(resolveInitialQuickFilterIndex(withPersonalLenses(props.quickFilters, props.personalLenses)))
 	const selectedQuickFilterIndices = ref([])
 	const isMultiQuickFilter = props.quickFilterMultiple === true
 
@@ -212,7 +213,8 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 			// File-content search widens a text search, so it rides only with a term.
 			const widen = props.searchInFiles === true && contentSearch.value && !!(listHandle && listHandle.searchTerm.value)
 			const scope = widen ? { ...scopeBase, _content_search: 'true' } : scopeBase
-			const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
+			const lensed = withPersonalLenses(props.quickFilters, props.personalLenses)
+			const tabs = Array.isArray(lensed) ? lensed : null
 			if (!tabs) {
 				return { ...queryFilters, ...scope, ...base }
 			}

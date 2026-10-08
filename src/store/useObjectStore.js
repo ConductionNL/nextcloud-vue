@@ -785,20 +785,25 @@ const baseActions = {
 	 *
 	 * @param {string} type The registered type slug
 	 * @param {string} id The object ID or UUID
+	 * @param {object} [options] Read options
+	 * @param {string[]} [options.extend] Values for `_extend[]` (e.g. `['@self.can']`), for markers OpenRegister returns only on request
 	 * @return {Promise<object|null>} The fetched object (also cached in state)
 	 */
-	async fetchObject(type, id) {
-		const url = this._buildUrl(type, id)
+	async fetchObject(type, id, options = {}) {
+		const extend = Array.isArray(options && options.extend) ? options.extend.filter((e) => typeof e === 'string' && e !== '') : []
+		const url = extend.length > 0
+			? this._buildUrlWithParams(type, { _extend: extend }, id)
+			: this._buildUrl(type, id)
 		// Share a single in-flight request across concurrent callers asking
 		// for the same object on this store, instead of firing a duplicate
 		// network call. Scoped to (store, type, id) so it never starves a
 		// different store's cache — see `_inflightObjectFetches` above.
-		const key = `${this.$id}::${type}::${id}`
+		const key = `${this.$id}::${type}::${id}${extend.length > 0 ? '::' + extend.join(',') : ''}`
 		const existing = _inflightObjectFetches.get(key)
 		if (existing) {
 			return existing
 		}
-		const request = this._requestObject(type, id, url)
+		const request = this._requestObject(type, id, url, extend)
 		_inflightObjectFetches.set(key, request)
 		try {
 			return await request
@@ -814,16 +819,19 @@ const baseActions = {
 	 * @param {string} type The registered type slug
 	 * @param {string} id The object id
 	 * @param {string} url The pre-built request URL
+	 * @param {string[]} [extend] The `_extend[]` values the URL carries (kept on a schema-fallback retry)
 	 * @return {Promise<object|null>} The object or null on error
 	 */
-	async _requestObject(type, id, url) {
+	async _requestObject(type, id, url, extend = []) {
 		this.loading = { ...this.loading, [type]: true }
 		this.errors = { ...this.errors, [type]: null }
 
 		try {
 			const response = await this._fetchWithSchemaFallback(
 				type,
-				(schema) => (schema === null ? url : this._buildUrl(type, id, schema)),
+				(schema) => (schema === null
+					? url
+					: (extend.length > 0 ? this._buildUrlWithParams(type, { _extend: extend }, id, schema) : this._buildUrl(type, id, schema))),
 				{
 					method: 'GET',
 					headers: this._buildHeaders(),

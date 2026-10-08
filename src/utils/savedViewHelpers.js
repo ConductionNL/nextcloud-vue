@@ -170,9 +170,10 @@ export function buildRouteQueryFromViewState(state) {
  * @param {string} [options.scope] The pages this view belongs to, from {@link savedViewScope}; omitted when empty.
  * @param {string} [options.register] The page's register, written as OpenRegister's own `registers` list.
  * @param {object|string} [options.schema] The page's schema (slug or object), written as OpenRegister's own `schemas` list.
+ * @param {Array<{group: string, mode: string}>} [options.sharedWith] Groups to share with; omitted from the body when empty.
  * @return {object} The request body for the OR views API.
  */
-export function buildViewCreatePayload({ name, description, isPublic, isDefault, state, scope, register, schema } = {}) {
+export function buildViewCreatePayload({ name, description, isPublic, isDefault, state, scope, register, schema, sharedWith } = {}) {
 	const src = (state && typeof state === 'object') ? state : {}
 	const keys = sortKeysOf(src)
 	const query = {
@@ -193,13 +194,58 @@ export function buildViewCreatePayload({ name, description, isPublic, isDefault,
 	if (slug !== '') {
 		query.schemas = [slug]
 	}
-	return {
+	const body = {
 		name,
 		description: description || '',
 		isPublic: !!isPublic,
 		isDefault: !!isDefault,
 		query,
 	}
+	const audience = normalizeSharedWith(sharedWith)
+	if (audience.length > 0) {
+		body.sharedWith = audience
+	}
+	return body
+}
+
+/**
+ * Clean an audience list: keep `{ group, mode }` entries with a group id, and
+ * coerce any mode but `write` to `read`.
+ *
+ * @param {unknown} sharedWith The audience as given.
+ * @return {Array<{group: string, mode: 'read'|'write'}>} The cleaned list.
+ */
+export function normalizeSharedWith(sharedWith) {
+	const seen = new Set()
+	const out = []
+	for (const entry of Array.isArray(sharedWith) ? sharedWith : []) {
+		const group = entry && typeof entry.group === 'string' ? entry.group : ''
+		if (group === '' || seen.has(group)) {
+			continue
+		}
+		seen.add(group)
+		out.push({ group, mode: entry.mode === 'write' ? 'write' : 'read' })
+	}
+	return out
+}
+
+/**
+ * What the current user may do with a view: `owner`, `write` or `read`.
+ *
+ * The server decides: `@self.access` wins. A view without it (an older
+ * OpenRegister) counts as `owner` when its `owner` is the current user and as
+ * `read` otherwise.
+ *
+ * @param {object|null|undefined} view The View API object.
+ * @param {string|null|undefined} currentUserId The signed-in NC user id.
+ * @return {'owner'|'write'|'read'} The access.
+ */
+export function viewAccess(view, currentUserId) {
+	const access = view && view['@self'] && view['@self'].access
+	if (access === 'owner' || access === 'write' || access === 'read') {
+		return access
+	}
+	return isOwnView(view, currentUserId) ? 'owner' : 'read'
 }
 
 /**

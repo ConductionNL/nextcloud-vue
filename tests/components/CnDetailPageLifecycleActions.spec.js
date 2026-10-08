@@ -106,7 +106,7 @@ describe('CnDetailPage — lifecycleActions', () => {
 		wrapper.findComponent(LifecycleStub).vm.$emit('reload')
 		await Promise.resolve()
 		expect(store.fetchObject.mock.calls.length).toBe(callsBefore + 1)
-		expect(store.fetchObject).toHaveBeenLastCalledWith('r-s', 'o1')
+		expect(store.fetchObject).toHaveBeenLastCalledWith('r-s', 'o1', { extend: ['@self.can'] })
 	})
 
 	it('re-emits transitioned to the host', () => {

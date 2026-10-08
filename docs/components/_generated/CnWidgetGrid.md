@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 0 direct references, 148 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 149 files reached through imports.
 
 Through: `CnActionsMenu`, `CnAnalyticsReportPicker`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnChartWidget`, `CnChartWidgetForm`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnDeltaWidgetForm`, `CnDetailWidgetHost`, `CnEmailPicker`, `CnFilesCard`, `CnFilesWidget`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFlowRunsWidget`, `CnFlowRunsWidgetForm`, `CnFormDialog`, `CnGaugeWidgetForm`, `CnIndexPage`, `CnIntegrationWidget`, `CnInteractionFormWidget`, `CnKbSearchWidget`, `CnMapPoiPicker`, `CnMapWidget`, `CnMapWidgetForm`, `CnNavCardGrid`, `CnNotesCard`, `CnObjectDataWidget`, `CnObjectGeoWidget`, `CnObjectListWidget`, `CnObjectListWidgetForm`, `CnObjectMetadataWidget`, `CnObjectSidebar`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnRegisterSchemaSelect`, `CnRelatedObjectsWidget`, `CnResourceSelect`, `CnStackedBarWidgetForm`, `CnStagesWidget`, `CnStagesWidgetForm`, `CnStatWidget`, `CnStatWidgetForm`, `CnStatsBlockWidget`, `CnStatsBlockWidgetForm`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTasksWidget`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnTimelineWidget`, `CnTranslatedBadge`, `CnVersionHistory`, `CnWeekStripWidget`, `CnWeekStripWidgetForm`, `CnWidgetObjectTable`, `CnWorkspaceFilterWidget`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
 

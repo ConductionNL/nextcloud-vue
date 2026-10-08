@@ -188,6 +188,7 @@
 						:class="[
 							isSelected(row) ? 'cn-table-row--selected' : '',
 							rowLinks[String(row[rowKey])] ? 'cn-table-row--linked' : '',
+							isUnreadRow(row) ? 'cn-table-row--unread' : '',
 							rowClass ? rowClass(row) : '',
 						]"
 						@mousedown="onRowMouseDown"
@@ -235,6 +236,8 @@
 							     customising their own data, not opting out of being told
 							     the record is locked. It renders nothing when unlocked,
 							     so an unlocked table is byte-for-byte what it was. -->
+							<CnUnreadMarker
+								v-if="colIndex === 0 && isUnreadRow(row)" />
 							<CnLockIndicator
 								v-if="colIndex === 0"
 								:object="row"
@@ -362,6 +365,7 @@ import { columnsFromSchema } from '../../utils/schema.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLockIndicator } from '../CnLockIndicator/index.js'
+import { CnUnreadMarker } from '../CnUnreadMarker/index.js'
 
 // CnDataTable has no scoped styles of its own — its entire look lives in the
 // shared table stylesheet. Import it here so the table is styled even when the
@@ -461,6 +465,7 @@ export default {
 		CnColumnFilterPopover,
 		CnIcon,
 		CnLockIndicator,
+		CnUnreadMarker,
 		FilterIcon,
 		FilterOutline,
 	},
@@ -1202,6 +1207,17 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether a row's record changed since the user last looked
+		 * (`@self.unread`). A row without the marker renders as it always did.
+		 *
+		 * @param {object} row The row.
+		 * @return {boolean} True when the row is unread.
+		 */
+		isUnreadRow(row) {
+			return !!(row && row['@self'] && row['@self'].unread === true)
+		},
+
 		/**
 		 * The attached file a row was found through in a file-content search.
 		 *

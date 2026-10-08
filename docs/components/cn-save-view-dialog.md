@@ -39,7 +39,7 @@ async onSaveViewConfirm({ name, isPublic }) {
 
 | Event | Payload | Description |
 |---|---|---|
-| `confirm` | `{ name: string, isPublic: boolean }` | Save clicked with a non-empty (trimmed) name. |
+| `confirm` | `{ name: string, isPublic: boolean, sharedWith: Array<{ group, mode }> }` | Save clicked with a non-empty (trimmed) name. `sharedWith` is `[]` when no group is picked, so a consumer that reads only `name` and `isPublic` keeps working. |
 | `close` | — | Dialog dismissed. |
 
 ## Methods (via ref)
@@ -52,3 +52,7 @@ async onSaveViewConfirm({ name, isPublic }) {
 
 - The Save button is disabled while the name is empty/whitespace or a save is in flight.
 - Single-phase by design: success closes the dialog from the parent (no result phase); failure re-enables the form via `setError`.
+
+## Sharing with groups
+
+Under the public switch the dialog shows [`CnSavedViewShareFields`](./cn-saved-view-share-fields.md): a group picker over Nextcloud's sharee API and a "May edit" switch per group. The section is absent when the sharee API answers no groups for the user. Pass `sharedWith` on to `buildViewCreatePayload({ ..., sharedWith })`, which writes `sharedWith: [{ group, mode }]` into the body and omits it when empty. A refused save (403 and the like) goes back through `setError(message)`: the form stays open and shows the server's message.

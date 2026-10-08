@@ -12,8 +12,8 @@
   - A tab entry accepts `visibleWhen` as a `$ref` to `#/$defs/visibleWhen`
   - A local-mode predicate naming a field absent from the page schema fails validation naming the tab id
   - The compiled validator is regenerated
-- [ ] Implement
-- [ ] Test
+- [ ] Implement — partial: the manifest schema (2.58.0) types `visibleWhen` on a `tabs` widget tab entry as the shared predicate; the check that a local field exists on the page schema is not run: the manifest does not carry the object schema, so the validator cannot see it
+- [ ] Test — `tests/schemas/app-manifest-v2.tabsVisibleWhen.spec.js` covers the schema half
 
 ### Task 2: Evaluate and hide
 - **spec_ref**: `openspec/changes/tabs-widget-visible-if/specs/tabs-widget/spec.md#requirement-a-hidden-tab-is-absent-not-empty`
@@ -22,8 +22,8 @@
   - Local mode re-evaluates on object change; source mode counts once per mount and after a reported write
   - A pending source condition renders the tab disabled, not absent
   - JSDoc and the component reference doc describe the key
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Active tab and deep links stay valid
 - **spec_ref**: `openspec/changes/tabs-widget-visible-if/specs/tabs-widget/spec.md#requirement-the-active-tab-is-always-a-visible-tab`
@@ -32,5 +32,7 @@
   - Hiding the active tab activates the first visible tab and updates the hash
   - A hash naming a hidden tab falls back without an error
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
+
+> Built in `CnTabsWidget` (`tabVisibility`, `refreshSourceVisibility`). The write signal is the `cn:page:refresh` / `cn:widget:refresh` broadcast; there is no separate workspace-context write event in the library. `npm run build` is not run here.

@@ -54,6 +54,11 @@ Pass pre-translated labels when your app handles i18n:
 | `noNotesLabel` | String | | `'No notes yet'` | Empty state text |
 | `showAllLabel` | String | | `'Show all'` | Footer link label |
 | `unavailableLabel` | String | | `'Notes are not available for this file'` | Text shown instead of the notes when Nextcloud refuses a file's comments (no access). |
+| `showVisibility` | Boolean | | `false` | Show a chip on every note reading Internal or Public. A note without a value reads as internal (OpenRegister's own read-time fallback). Not used for a file source. |
+| `canSetVisibility` | Boolean | | `false` | Whether the caller may set visibility on this object: the answer the server gives for `update` on it. The host passes it; the card never infers it from the current user. When true the add-note form offers a Public switch (default internal) and each note a Make public / Make internal toggle. |
+| `publicSwitchLabel` | String | | `'Public (visible to the customer)'` | Label of the add-note switch. |
+| `makePublicLabel` | String | | `'Make public'` | Label of the toggle on an internal note. |
+| `makeInternalLabel` | String | | `'Make internal'` | Label of the toggle on a public note. |
 | `deleteLabel` | String | | `'Delete note'` | Accessible label for the delete button |
 
 ### A file as the source
@@ -75,9 +80,14 @@ To show only a count (for a list row), use [`useFileComments`](../utilities/comp
 | `note-added` | — | Emitted after a note has been successfully created |
 | `note-deleted` | — | Emitted after a note has been successfully deleted |
 | `show-all` | — | Emitted when the "Show all" footer link is clicked |
+| `visibility-changed` | `{ id, visibility }` | After a note's visibility was changed |
 
 ## Reference (auto-generated)
 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnNotesCard.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnNotesCard/CnNotesCard.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+### Internal or public
+
+With `showVisibility` every note carries a chip, and the label (not the colour) says which side of the counter it is on. With `canSetVisibility` the add-note form carries the choice before the note is written (default internal) and a note can be flipped afterwards. Creating a note and changing its visibility both go out through one method (`writeNote`): `POST .../notes` with `{ message, visibility }` and `PATCH .../notes/{id}` with `{ visibility }`. A host that passes neither prop renders the card as before and sends `{ message }` only. The server still decides: a refused write shows an error and leaves the note as it was.

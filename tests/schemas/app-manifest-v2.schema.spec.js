@@ -1305,7 +1305,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.55.0', () => {
+	it('the manifest schema version reads 2.58.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1337,8 +1337,11 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// keys showTitleIcon, showCount and headerButtons, the dashboard key
 		// gridFloat, a widget placement's showButtons, and `inset` on the
 		// week-strip and stacked-bar content. 2.53.0 adds `setup.dismissAction`; 2.54.0 adds the index key `searchInFiles`; 2.55.0 adds the detail key `headerFields`.
+		// 2.56.0 adds the detail keys favourite and follow and the index keys showFavouriteColumn and personalLenses.
+		// 2.57.0 adds the detail key markRead and the personalLenses value unread.
+		// 2.58.0 types visibleWhen on a tab entry of the tabs widget.
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
-		expect(schema.version).toBe('2.55.0')
+		expect(schema.version).toBe('2.58.0')
 	})
 
 	it('accepts page views on a dashboard and a detail page, and refuses a view without an id or label', () => {

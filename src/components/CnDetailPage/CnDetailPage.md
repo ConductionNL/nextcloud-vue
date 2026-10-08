@@ -447,3 +447,11 @@ When the schema-driven fetch answers 404 the page shows a not-found state whose 
 `headerCard` (default `false`) draws the header as a bordered card. `headerWidget` (default `''`) names a widget in `widgets` to render inside the header under the title, without a card of its own and out of the body grid: the stages bars of the board's case card.
 
 `showWidgetActions` (Boolean, default `true`): `false` (manifest `config.showWidgetActions: false`) drops the overflow Actions menu from the cards of the body grid and the side column, unless a widget definition sets `showActions: true`.
+
+### Favourite and follow
+
+`favourite` and `follow` (Boolean, default `null` = automatic): the star and the Follow toggle beside the title render when the object carries `@self.favourite` / `@self.watching`; `false` (manifest `config.favourite: false` / `config.follow: false`) removes them. `followNotifies` (Boolean, default `true`): `false` when the register sends no change notifications, so the Follow tooltip says so. `extend` (Array, default `[]`): extra `_extend[]` values for the object read; `@self.can` is added while the Follow toggle can render.
+
+### Read state
+
+`markRead` (Boolean, default `true`): send `PUT .../read-state` once after an unread object has rendered; `false` (manifest `config.markRead: false`) sends nothing. `markUnreadNavigatesBack` (Boolean, default `false`): go back after Mark as unread. Event `marked-unread` after the Actions-menu entry Mark as unread.

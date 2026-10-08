@@ -91,6 +91,7 @@ const ALLOWED = new Map([
 	['src/components/CnAdminSettingsShell/CnAdminSettingsShell.vue:this.resolvedReimportUrl', 'falls back to generateUrl(); an explicit reimportUrl prop wins'],
 	['src/offline/serviceWorker.js:request', "the worker re-issues the browser's own intercepted Request, whose URL the browser already resolved to an absolute one"],
 	['src/composables/useAppManifest.js:url', 'the fetcher receives a caller-resolved endpoint'],
+	['src/utils/cnFetch.js:`${target}${qs}`', 'public host mode: the URL is built from the configured base, there is no Nextcloud webroot to prefix'],
 	['src/composables/useRuntimeManifest.js:u', 'the fetcher receives a caller-resolved endpoint'],
 
 	// ── Built from a store base that is prefixed once, at store creation:

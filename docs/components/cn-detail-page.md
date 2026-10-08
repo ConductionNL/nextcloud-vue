@@ -646,3 +646,31 @@ Blocks such as favourites, follow and attention are placed with the layout you a
 - `config.breadcrumb.currentField` (a dotted field path, e.g. `identifier`) makes the current crumb that field's value instead of the display name; an empty value falls back to the display name. `config.breadcrumb.separator` draws that text (e.g. `/`) between the crumbs instead of the chevron.
 - `showWidgetActions` (manifest `config.showWidgetActions`, default `true`): `false` drops the overflow Actions menu from the cards of the body grid and the side column, unless a widget definition sets `showActions: true`. A definition with `showActions: false` drops its menu either way. A catalog card that offers an Add action keeps the menu that holds it.
 - With `headerWidget` a long title now wraps beside the header actions instead of pushing them onto the next row.
+
+## Favourite and follow beside the title
+
+When the loaded object carries `@self.favourite` or `@self.watching` (OpenRegister's interaction markers), the header shows a star ([`CnFavouriteToggle`](./cn-favourite-toggle.md)) and a Follow toggle ([`CnFollowToggle`](./cn-follow-toggle.md)) beside the title. Nothing renders without the markers.
+
+| Prop (manifest `config.*`) | Type | Default | Description |
+|------|------|---------|-------------|
+| `favourite` | Boolean | `null` | Automatic when unset. `false` removes the star. |
+| `follow` | Boolean | `null` | Automatic when unset. `false` removes the Follow toggle, and the object read then no longer asks for `@self.can`. |
+| `followNotifies` | Boolean | `true` | `false` when the register sends no change notifications to followers; the Follow tooltip then says so. |
+| `extend` | Array | `[]` | Extra `_extend[]` values for the object read. `@self.can` is added while the Follow toggle can render, because OpenRegister returns the rights (and so `manage`) only on request. |
+
+## Read state: opening a record marks it read
+
+When the loaded object carries `@self.unread: true` (OpenRegister `object-read-state`), the page sends `PUT /apps/openregister/api/objects/{register}/{schema}/{id}/read-state` once per page load, after the object has rendered. Nothing is sent when the object failed to load, does not carry the marker, or `markRead` is `false`.
+
+When the object carries `@self.unread` (true or false), the Actions menu offers **Mark as unread**, which sends `DELETE .../read-state` and emits `marked-unread`. The page stays open, unless `markUnreadNavigatesBack` is set.
+
+| Prop (manifest `config.*`) | Type | Default | Description |
+|------|------|---------|-------------|
+| `markRead` | Boolean | `true` | `false` keeps the page from marking anything read. |
+| `markUnreadNavigatesBack` | Boolean | `false` | After Mark as unread, go back one step in the router history. |
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `marked-unread` | — | After the record was marked unread. |
+
+Tabs of a `tabs` widget show what is new on them: see [`CnTabsWidget`](./cn-tabs-widget.md#what-is-new-on-a-tab).

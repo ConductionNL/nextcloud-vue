@@ -1038,3 +1038,16 @@ A column object over a `$ref` property can name the field of the referenced obje
 - A facet over the same column lists the labels in the sidebar; the filter value stays the id.
 - The column needs the `$ref` on the page schema and a register: the schema's `x-external-register`, or the page's `register`. A column that already sets `widget` is left alone.
 - The labels are refetched after `setFormResult({ success: true })`.
+
+## Personal lenses and the star column
+
+| Prop (manifest `config.*`) | Type | Default | Description |
+|------|------|---------|-------------|
+| `personalLenses` | Array | `[]` | Any of `favourite`, `recent`, `watching`: quick filters Favourites (`_favourite`), Recent (`_recent`) and Following (`_watching`), appended after the page's own quick filters. They combine with every other filter. While Recent is active column sorting is off, because the lens owns the order. A page with no quick filters of its own gets an "All" tab first. |
+| `showFavouriteColumn` | Boolean | `false` | Adds a first column with a [`CnFavouriteToggle`](./cn-favourite-toggle.md) per row, bound to the row's `@self.favourite`. Clicking it does not open the row. |
+
+The `personalLenses` value `unread` adds the quick filter Unread (`_unread=true`). Rows whose `@self.unread` is true show a [`CnUnreadMarker`](./cn-unread-marker.md) in the first cell and read in bold, with no prop needed.
+
+## Shared saved views
+
+With `allowSavedViews`, views shared with the user list under "Shared with me" in the saved-views control. Saving a view can share it with groups (read or write); an own view has a Share entry; a view shared with write access can be saved to with the current state (the body never carries `sharedWith` or `owner`); a view shared read-only can be copied with "Save as my view". See [`CnSavedViewsControl`](./cn-saved-views-control.md#views-shared-with-the-user).

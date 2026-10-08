@@ -75,7 +75,7 @@ export function useFileComments(fileId) {
 			const limit = Number.isFinite(options.limit) ? options.limit : DEFAULT_LIMIT
 			const offset = Number.isFinite(options.offset) ? options.offset : 0
 			const body = `<?xml version="1.0"?>\n<oc:filter-comments xmlns:d="DAV:" xmlns:oc="${NS_OC}"><oc:limit>${limit}</oc:limit><oc:offset>${offset}</oc:offset></oc:filter-comments>`
-			const response = await fetch(base(), {
+			const response = await fetch(prefixUrl(base()), {
 				method: 'REPORT',
 				headers: buildHeaders({ contentType: 'application/xml; charset=utf-8' }),
 				body,
@@ -93,7 +93,7 @@ export function useFileComments(fileId) {
 		 * @return {Promise<void>}
 		 */
 		async add(message) {
-			const response = await fetch(base(), {
+			const response = await fetch(prefixUrl(base()), {
 				method: 'POST',
 				headers: buildHeaders(),
 				body: JSON.stringify({ actorType: 'users', verb: 'comment', message }),
@@ -110,7 +110,7 @@ export function useFileComments(fileId) {
 		 * @return {Promise<void>}
 		 */
 		async remove(commentId) {
-			const response = await fetch(`${base()}/${encodeURIComponent(String(commentId))}`, {
+			const response = await fetch(prefixUrl(`${base()}/${encodeURIComponent(String(commentId))}`), {
 				method: 'DELETE',
 				headers: buildHeaders(),
 			})

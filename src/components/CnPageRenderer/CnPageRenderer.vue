@@ -2191,7 +2191,14 @@ export default {
 				tasks.push(Promise.resolve(null))
 			}
 			if (typeof store.fetchObject === 'function') {
-				tasks.push(store.fetchObject(ctx.slug, ctx.objectId).catch(() => null))
+				// The same read CnDetailPage makes: it asks for `@self.can` while the
+				// Follow toggle can render, and a plain read landing later would
+				// overwrite the object without it.
+				const extend = [...(Array.isArray(this.currentPage?.config?.extend) ? this.currentPage.config.extend : [])]
+				if (this.currentPage?.config?.follow !== false && !extend.includes('@self.can')) {
+					extend.push('@self.can')
+				}
+				tasks.push(store.fetchObject(ctx.slug, ctx.objectId, { extend }).catch(() => null))
 			} else {
 				tasks.push(Promise.resolve(null))
 			}

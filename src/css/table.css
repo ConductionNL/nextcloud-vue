@@ -628,3 +628,8 @@
 	white-space: nowrap;
 	border: 0;
 }
+
+/* An unread record (`@self.unread`): the row reads in bold, with the dot in the first cell. */
+.cn-table-row--unread td {
+	font-weight: bold;
+}

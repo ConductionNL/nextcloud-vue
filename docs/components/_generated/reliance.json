@@ -3,7 +3,7 @@
 	"components": {
 		"CnActionButtons": {
 			"direct": 4,
-			"transitive": 99,
+			"transitive": 103,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -118,7 +118,7 @@
 		},
 		"CnAppNav": {
 			"direct": 0,
-			"transitive": 100,
+			"transitive": 104,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -162,7 +162,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 110,
+			"transitive": 114,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -547,7 +547,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 158,
+			"transitive": 159,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -716,7 +716,7 @@
 		},
 		"CnDetailGrid": {
 			"direct": 0,
-			"transitive": 92,
+			"transitive": 95,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -757,7 +757,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 10,
-			"transitive": 160,
+			"transitive": 162,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -840,7 +840,7 @@
 		},
 		"CnDetailWidgetHost": {
 			"direct": 2,
-			"transitive": 112,
+			"transitive": 116,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -940,6 +940,13 @@
 			"tier": "light",
 			"via": [],
 			"page": "cn-facet-sidebar"
+		},
+		"CnFavouriteToggle": {
+			"direct": 0,
+			"transitive": 4,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-favourite-toggle"
 		},
 		"CnFeaturesAndRoadmapLink": {
 			"direct": 0,
@@ -1121,7 +1128,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 0,
-			"transitive": 125,
+			"transitive": 127,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -1181,6 +1188,13 @@
 			"via": [],
 			"page": "cn-folder-tree"
 		},
+		"CnFollowToggle": {
+			"direct": 0,
+			"transitive": 4,
+			"tier": "medium",
+			"via": [],
+			"page": "cn-follow-toggle"
+		},
 		"CnFormBuilder": {
 			"direct": 0,
 			"transitive": 0,
@@ -1190,7 +1204,7 @@
 		},
 		"CnFormDialog": {
 			"direct": 3,
-			"transitive": 98,
+			"transitive": 102,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -1335,7 +1349,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 8,
-			"transitive": 122,
+			"transitive": 124,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -1410,7 +1424,7 @@
 		},
 		"CnIntegrationWidget": {
 			"direct": 8,
-			"transitive": 92,
+			"transitive": 95,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1451,7 +1465,7 @@
 		},
 		"CnIntegrationWidgetGrid": {
 			"direct": 1,
-			"transitive": 91,
+			"transitive": 94,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -1491,7 +1505,7 @@
 		},
 		"CnInteractionFormWidget": {
 			"direct": 2,
-			"transitive": 7,
+			"transitive": 8,
 			"tier": "medium",
 			"via": [
 				"CnResourceSelect"
@@ -1619,7 +1633,7 @@
 		},
 		"CnLogsPage": {
 			"direct": 4,
-			"transitive": 107,
+			"transitive": 110,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -1873,7 +1887,7 @@
 		},
 		"CnObjectDataWidget": {
 			"direct": 9,
-			"transitive": 103,
+			"transitive": 107,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -1960,7 +1974,7 @@
 		},
 		"CnObjectListWidget": {
 			"direct": 3,
-			"transitive": 99,
+			"transitive": 103,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2012,7 +2026,7 @@
 		},
 		"CnObjectMetadataModal": {
 			"direct": 0,
-			"transitive": 93,
+			"transitive": 96,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2054,7 +2068,7 @@
 		},
 		"CnObjectMetadataWidget": {
 			"direct": 1,
-			"transitive": 92,
+			"transitive": 95,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2108,8 +2122,8 @@
 			"page": "cn-object-row"
 		},
 		"CnObjectSidebar": {
-			"direct": 12,
-			"transitive": 99,
+			"direct": 13,
+			"transitive": 103,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -2184,7 +2198,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 180,
+			"transitive": 182,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2395,7 +2409,7 @@
 		},
 		"CnRelatedCollections": {
 			"direct": 0,
-			"transitive": 100,
+			"transitive": 104,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2446,7 +2460,7 @@
 		},
 		"CnRelatedObjectsWidget": {
 			"direct": 7,
-			"transitive": 96,
+			"transitive": 100,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -2508,7 +2522,7 @@
 		},
 		"CnResourceSelect": {
 			"direct": 2,
-			"transitive": 6,
+			"transitive": 7,
 			"tier": "medium",
 			"via": [],
 			"page": "cn-resource-select"
@@ -2547,6 +2561,20 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-save-view-dialog"
+		},
+		"CnSavedViewShareDialog": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-saved-view-share-dialog"
+		},
+		"CnSavedViewShareFields": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-saved-view-share-fields"
 		},
 		"CnSavedViewsControl": {
 			"direct": 0,
@@ -2745,7 +2773,7 @@
 		},
 		"CnSubObjectsField": {
 			"direct": 0,
-			"transitive": 99,
+			"transitive": 103,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2827,7 +2855,7 @@
 		},
 		"CnTabsWidget": {
 			"direct": 0,
-			"transitive": 113,
+			"transitive": 117,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",
@@ -3020,6 +3048,13 @@
 			"via": [],
 			"page": "cn-tree-view"
 		},
+		"CnUnreadMarker": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-unread-marker"
+		},
 		"CnUserActionMenu": {
 			"direct": 0,
 			"transitive": 6,
@@ -3054,6 +3089,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-video-widget-form"
+		},
+		"CnVisibilityChip": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": null
 		},
 		"CnWalkthrough": {
 			"direct": 0,
@@ -3114,7 +3156,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 148,
+			"transitive": 149,
 			"tier": "heavy",
 			"via": [
 				"CnActionsMenu",

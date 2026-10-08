@@ -206,3 +206,7 @@ The locked-banner UX lives on [`CnDetailPage`](./cn-detail-page.md) for v1 — s
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnObjectSidebar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnObjectSidebar/CnObjectSidebar.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Tasks from OpenRegister flow tasks (`tasksSource`)
+
+`tasksSource` (String, default `'vtodo'`) is passed to the Tasks tab as its `source`. With `'flow-tasks'` the tab lists the OpenRegister flow tasks anchored on the record (`GET /apps/openregister/api/flow-tasks?objectUuid=<id>`): open ones first by due date with overdue marked in words, finished ones folded under "Done". A form creates a task on the record (title, assignee as a user or a group pool, optional due date and description), and each row offers exactly the verbs in its `can` list that the tab has a control for (Claim, Unclaim, Reassign, Complete, Cancel). A verb the server refuses shows its message on the row and leaves the row as it was. A row without a `can` key offers no verb and links to the task page. The tab emits `count` with the number of open tasks. With the default `'vtodo'` nothing changes.

@@ -154,6 +154,9 @@
 					:counts="savedViewCounts"
 					@apply="onApplySavedView"
 					@saveRequest="showSaveViewDialog = true"
+					@shareRequest="onShareViewRequest"
+					@updateRequest="onUpdateViewRequest"
+					@copyRequest="onCopyViewRequest"
 					@deleteRequest="onDeleteViewRequest" />
 				<!-- Native Export menu (opt-in via `allowExport` + schema.exportable):
 				     CSV/Excel entries navigate to OR's export-leaf URL, passing the
@@ -288,6 +291,14 @@
 			ref="saveViewDialog"
 			@confirm="onSaveViewConfirm"
 			@close="showSaveViewDialog = false" />
+
+		<!-- Share-a-saved-view dialog (saved-views-shared-by-role) -->
+		<CnSavedViewShareDialog
+			v-if="viewPendingShare"
+			ref="shareViewDialog"
+			:view="viewPendingShare"
+			@confirm="onShareViewConfirm"
+			@close="viewPendingShare = null" />
 
 		<!-- Delete-saved-view confirm (saved-views-ui) -->
 		<CnConfirmDialog
@@ -506,6 +517,16 @@
 					@rowClick="onRowClick"
 					@rowAuxClick="onRowAuxClick"
 					@rowContextMenu="onRowContextMenu">
+					<!-- Star column (showFavouriteColumn) -->
+					<template v-if="showFavouriteColumn" #column-__favourite="{ row }">
+						<CnFavouriteToggle
+							v-if="row && row['@self'] && typeof row['@self'].favourite === 'boolean'"
+							:register="typeof register === 'string' ? register : ''"
+							:schema="favouriteSchemaSlug"
+							:objectId="String(row['@self'].id || row.id || '')"
+							:favourite="row['@self'].favourite === true" />
+					</template>
+
 					<!-- Pass through column slots -->
 					<template
 						v-for="col in slotColumns"
@@ -838,6 +859,7 @@ import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
+import CnFavouriteToggle from '../CnFavouriteToggle/CnFavouriteToggle.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
@@ -851,6 +873,7 @@ import { openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
 import { LIST_SHORTCUTS, listPaletteCommands, shortcutFor } from '../../utils/listShortcuts.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
+import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { resolveFilterMap } from '../../utils/routeFilters.js'
@@ -858,7 +881,7 @@ import { availableRowActions, DEFAULT_ROW_ACTION_FIELD, refusalReasonFor, undecl
 import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
-import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, normalizeSharedWith, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
 import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout } from '../../utils/scopeListLayout.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
@@ -886,6 +909,7 @@ import { CnPagination } from '../CnPagination/index.js'
 import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
 import { CnRowActions } from '../CnRowActions/index.js'
 import { CnSavedViewsControl } from '../CnSavedViewsControl/index.js'
+import { CnSavedViewShareDialog } from '../CnSavedViewShareDialog/index.js'
 import { CnSaveViewDialog } from '../CnSaveViewDialog/index.js'
 import { applyAiContext } from './aiContext.js'
 import { buildDefaultActions } from './defaultActions.js'
@@ -906,6 +930,9 @@ import { useSelfFetchList } from './useSelfFetchList.js'
  * @type {string}
  */
 const RANGE_SEPARATOR = '..'
+
+/** Key of the synthetic star column (`showFavouriteColumn`). */
+const FAVOURITE_COLUMN_KEY = '__favourite'
 
 /**
  * Whether a schema property wants a from/to pair rather than a value list.
@@ -1106,6 +1133,7 @@ export default {
 	name: 'CnIndexPage',
 
 	components: {
+		CnFavouriteToggle,
 		NcLoadingIcon,
 		NcEmptyContent,
 		NcActions,
@@ -1145,6 +1173,7 @@ export default {
 		CnContextMenu,
 		CnIndexSidebar,
 		CnSavedViewsControl,
+		CnSavedViewShareDialog,
 		CnSaveViewDialog,
 		CnConfirmDialog,
 		CnQuickEditDialog,
@@ -1359,6 +1388,31 @@ export default {
 		quickFilters: {
 			type: Array,
 			default: null,
+		},
+
+		/**
+		 * Personal lenses appended to the quick filters: any of `favourite`
+		 * (`_favourite`), `recent` (`_recent`), `watching` (`_watching`) and
+		 * `unread` (`_unread`).
+		 * They combine with every other filter. While Recent is active column
+		 * sorting is off, because the lens owns the order. Manifest
+		 * `config.personalLenses`.
+		 *
+		 * @type {Array<'favourite'|'recent'|'watching'|'unread'>}
+		 */
+		personalLenses: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Add a first column with a star per row (`CnFavouriteToggle`), bound to
+		 * each row's `@self.favourite`. Clicking it does not open the row.
+		 * Manifest `config.showFavouriteColumn`.
+		 */
+		showFavouriteColumn: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -2920,6 +2974,8 @@ export default {
 			savedViewsLoading: false,
 			showSaveViewDialog: false,
 			viewPendingDelete: null,
+			/** The own view whose audience is being changed (CnSavedViewShareDialog), or null. */
+			viewPendingShare: null,
 			// Split view (case-page-and-list-as-a-place). `splitRowPatches` holds
 			// records saved in the pane, keyed by row id, so a save lands on the
 			// row without refetching the page and losing the scroll position.
@@ -3749,22 +3805,56 @@ export default {
 		 * @spec openspec/changes/index-ref-column-labels/tasks.md#task-2
 		 */
 		renderedColumns() {
-			if (this.refLabelSpecs.length === 0) {
-				return this.tableColumns
+			let cols = this.tableColumns
+			if (this.refLabelSpecs.length > 0) {
+				const byKey = new Map(this.refLabelSpecs.map((s) => [s.key, s]))
+				cols = cols.map((col) => {
+					const spec = col && typeof col === 'object' ? byKey.get(col.key) : null
+					if (!spec) {
+						return col
+					}
+					return {
+						...col,
+						widget: 'refLabel',
+						widgetProps: { ...(col.widgetProps || {}), labels: this.refLabels[spec.key] || {}, route: spec.route },
+						sortable: spec.sortByLabel,
+					}
+				})
 			}
-			const byKey = new Map(this.refLabelSpecs.map((s) => [s.key, s]))
-			return this.tableColumns.map((col) => {
-				const spec = col && typeof col === 'object' ? byKey.get(col.key) : null
-				if (!spec) {
-					return col
-				}
-				return {
-					...col,
-					widget: 'refLabel',
-					widgetProps: { ...(col.widgetProps || {}), labels: this.refLabels[spec.key] || {}, route: spec.route },
-					sortable: spec.sortByLabel,
-				}
-			})
+			// The Recent lens owns the order: no column sorts while it is on.
+			if (this.recentLensActive) {
+				cols = cols.map((col) => (col && typeof col === 'object' ? { ...col, sortable: false } : col))
+			}
+			if (this.showFavouriteColumn && this.favouriteSchemaSlug !== '') {
+				cols = [{ key: FAVOURITE_COLUMN_KEY, label: '', sortable: false, width: '48px' }, ...cols]
+			}
+			return cols
+		},
+
+		/**
+		 * Whether the active quick filter is the Recent lens.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-favourite-and-follow/tasks.md#task-3
+		 */
+		recentLensActive() {
+			const tabs = this.effectiveQuickFilters || []
+			const index = this.activeQuickFilterIndex
+			const active = (index !== null && index !== undefined) ? tabs[index] : null
+			return !!(active && active.filter && active.filter._recent)
+		},
+
+		/**
+		 * Schema slug the star column calls with: the page's own slug in self-fetch
+		 * mode, else the schema object's `slug`. Empty when neither is known.
+		 *
+		 * @return {string}
+		 */
+		favouriteSchemaSlug() {
+			if (typeof this.schema === 'string') {
+				return this.schema
+			}
+			return (this.effectiveSchema && typeof this.effectiveSchema.slug === 'string') ? this.effectiveSchema.slug : ''
 		},
 
 		/**
@@ -4482,8 +4572,9 @@ export default {
 		 * @return {Array<object>|null} The tabs, or null when there are none.
 		 */
 		effectiveQuickFilters() {
-			if (this.quickFilters && this.quickFilters.length > 0) {
-				return this.quickFilters
+			const own = withPersonalLenses(this.quickFilters, this.personalLenses)
+			if (own && own.length > 0) {
+				return own
 			}
 			return (this.isNamedSource && this.namedQuickFilters) || null
 		},
@@ -6894,7 +6985,7 @@ export default {
 			}
 		},
 
-		async onSaveViewConfirm({ name, isPublic }) {
+		async onSaveViewConfirm({ name, isPublic, sharedWith }) {
 			const state = this.isSelfFetchMode
 				? this.currentViewState()
 				: extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
@@ -6907,6 +6998,7 @@ export default {
 				scope: savedViewScope(this.savedViewsPage),
 				register: this.register,
 				schema: this.schema,
+				sharedWith,
 			})
 			try {
 				const view = await useSavedViewsApi().createView(payload)
@@ -6930,6 +7022,101 @@ export default {
 				// as one that has not been submitted yet.
 				this.$refs.saveViewDialog?.setError(error?.response?.data?.error || error?.message)
 				this.toastSavedView('error', t('nextcloud-vue', 'Could not save the view "{name}"', { name }))
+			}
+		},
+
+		/**
+		 * Open the share dialog for an own view (CnSavedViewsControl `@share-request`).
+		 *
+		 * @param {object} view The View API object to share.
+		 * @spec openspec/changes/saved-views-shared-by-role/tasks.md#task-2
+		 */
+		onShareViewRequest(view) {
+			this.viewPendingShare = view
+		},
+
+		/**
+		 * Save a changed audience (CnSavedViewShareDialog `@confirm`). A failure
+		 * keeps the dialog open with the server's message.
+		 *
+		 * @param {Array<{group: string, mode: string}>} sharedWith The audience, `[]` to stop sharing.
+		 * @spec openspec/changes/saved-views-shared-by-role/tasks.md#task-2
+		 */
+		async onShareViewConfirm(sharedWith) {
+			const view = this.viewPendingShare
+			if (!view) {
+				return
+			}
+			try {
+				const saved = await useSavedViewsApi().patchView(view.id, { sharedWith: normalizeSharedWith(sharedWith) })
+				const next = saved || { ...view, sharedWith: normalizeSharedWith(sharedWith) }
+				this.savedViews = this.savedViews.map((v) => (v.id === view.id ? { ...v, ...next } : v))
+				this.viewPendingShare = null
+				this.toastSavedView('success', t('nextcloud-vue', 'Sharing of "{name}" saved', { name: view.name }))
+			} catch (error) {
+				this.$refs.shareViewDialog?.setError(error?.response?.data?.error || error?.response?.data?.message || error?.message)
+			}
+		},
+
+		/**
+		 * Save the current state to a view shared with write access
+		 * (CnSavedViewsControl `@update-request`). The body carries the query
+		 * and presentation only: never `sharedWith` or `owner`, so the
+		 * audience cannot be changed from here.
+		 *
+		 * @param {object} view The shared View API object.
+		 * @spec openspec/changes/saved-views-shared-by-role/tasks.md#task-3
+		 */
+		async onUpdateViewRequest(view) {
+			const state = this.isSelfFetchMode
+				? this.currentViewState()
+				: extractViewStateFromRouteQuery((this.$route && this.$route.query) || {})
+			const payload = buildViewCreatePayload({
+				name: view.name,
+				description: view.description || '',
+				isPublic: view.isPublic === true,
+				isDefault: false,
+				state,
+				scope: savedViewScope(this.savedViewsPage),
+				register: this.register,
+				schema: this.schema,
+			})
+			try {
+				const saved = await useSavedViewsApi().updateView(view.id, payload)
+				if (saved) {
+					this.savedViews = this.savedViews.map((v) => (v.id === view.id ? saved : v))
+				}
+				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" updated', { name: view.name }))
+			} catch (error) {
+				this.toastSavedView('error', error?.response?.data?.error || error?.response?.data?.message || t('nextcloud-vue', 'Could not update the view "{name}"', { name: view.name }))
+			}
+		},
+
+		/**
+		 * "Save as my view" on a read-only shared view
+		 * (CnSavedViewsControl `@copy-request`): a personal copy with the same
+		 * name and query. The original stays untouched.
+		 *
+		 * @param {object} view The shared View API object.
+		 * @spec openspec/changes/saved-views-shared-by-role/tasks.md#task-3
+		 */
+		async onCopyViewRequest(view) {
+			const payload = {
+				name: view.name,
+				description: view.description || '',
+				isPublic: false,
+				isDefault: false,
+				query: view.query && typeof view.query === 'object' ? view.query : {},
+			}
+			try {
+				const copy = await useSavedViewsApi().createView(payload)
+				if (!copy) {
+					throw new Error(t('nextcloud-vue', 'The server did not return the saved view'))
+				}
+				this.savedViews = [...this.savedViews, copy]
+				this.toastSavedView('success', t('nextcloud-vue', 'View "{name}" saved', { name: view.name }))
+			} catch (error) {
+				this.toastSavedView('error', error?.response?.data?.error || error?.message || t('nextcloud-vue', 'Could not save the view "{name}"', { name: view.name }))
 			}
 		},
 

@@ -58,6 +58,26 @@
 					</select>
 				</label>
 			</div>
+			<!-- Visibility filter (showVisibility): all, internal, public. A caller served the
+			     public view sees it fixed at public, with the reason. -->
+			<div v-if="showVisibility" class="cn-activity-tab__visibility" data-testid="cn-activity-visibility">
+				<p v-if="publicViewOnly" class="cn-activity-tab__visibility-fixed" data-testid="cn-activity-visibility-fixed">
+					<CnVisibilityChip visibility="public" />
+					{{ publicOnlyLabel }}
+				</p>
+				<label v-else class="cn-activity-tab__filter">
+					<span class="cn-activity-tab__filter-label">{{ visibilityLabel }}</span>
+					<select
+						v-model="selectedVisibility"
+						class="cn-activity-tab__select"
+						data-testid="cn-activity-visibility-select"
+						@change="resetAndFetch">
+						<option value="">{{ allVisibilityLabel }}</option>
+						<option value="internal">{{ internalLabel }}</option>
+						<option value="public">{{ publicLabel }}</option>
+					</select>
+				</label>
+			</div>
 			<div class="cn-activity-tab__range" role="group" :aria-label="rangeGroupLabel">
 				<button
 					v-for="range in ranges"
@@ -118,6 +138,7 @@
 						<template #subname>
 							<span class="cn-activity-tab__subname">
 								<span class="cn-activity-tab__actor">{{ actorFor(entry) }}</span>
+								<CnVisibilityChip v-if="showVisibility" :visibility="entry.visibility" />
 							</span>
 						</template>
 						<template v-if="timestampMillis(entry)" #details>
@@ -160,6 +181,7 @@ import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import Timeline from 'vue-material-design-icons/Timeline.vue'
+import CnVisibilityChip from '../../../components/CnVisibilityChip/CnVisibilityChip.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 
 const DEFAULT_PAGE_SIZE = 25
@@ -178,6 +200,7 @@ export default {
 	name: 'CnActivityTab',
 
 	components: {
+		CnVisibilityChip,
 		NcAvatar,
 		NcButton,
 		NcDateTime,
@@ -209,6 +232,18 @@ export default {
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Number of entries per fetch. */
 		pageSize: { type: Number, default: DEFAULT_PAGE_SIZE },
+		/**
+		 * Show a visibility chip on each row and a visibility filter (all,
+		 * internal, public) that sends `visibility` on the fetch. Off by default,
+		 * so a host that passes nothing renders the feed as before.
+		 */
+		showVisibility: { type: Boolean, default: false },
+		/**
+		 * The server serves this caller the public view only (no `update` on the
+		 * object): the filter is then fixed at public and says why, instead of
+		 * offering options that change nothing. The host passes it.
+		 */
+		publicViewOnly: { type: Boolean, default: false },
 		/** Pre-translated empty-state label. */
 		emptyLabel: { type: String, default: () => t('nextcloud-vue', 'No activity yet for this object') },
 		/** Pre-translated unavailable banner. */
@@ -224,6 +259,7 @@ export default {
 			actors: [],
 			selectedType: '',
 			selectedActor: '',
+			selectedVisibility: '',
 			selectedRange: 'all',
 			cursor: null,
 			loading: false,
@@ -231,6 +267,11 @@ export default {
 			total: 0,
 			error: '',
 			degraded: '',
+			visibilityLabel: t('nextcloud-vue', 'Visibility'),
+			allVisibilityLabel: t('nextcloud-vue', 'All entries'),
+			internalLabel: t('nextcloud-vue', 'Internal'),
+			publicLabel: t('nextcloud-vue', 'Public'),
+			publicOnlyLabel: t('nextcloud-vue', 'You see the public entries only.'),
 			typeLabel: t('nextcloud-vue', 'Type'),
 			actorLabel: t('nextcloud-vue', 'Actor'),
 			allTypesLabel: t('nextcloud-vue', 'All types'),
@@ -315,6 +356,12 @@ export default {
 			}
 			if (this.selectedActor) {
 				params.set('actor', this.selectedActor)
+			}
+			if (this.showVisibility) {
+				const visibility = this.publicViewOnly ? 'public' : this.selectedVisibility
+				if (visibility) {
+					params.set('visibility', visibility)
+				}
 			}
 			if (this.afterTimestamp !== null) {
 				params.set('after', String(this.afterTimestamp))
