@@ -94,6 +94,7 @@ export {
 	CnDividerWidget,
 	CnDividerWidgetForm,
 	CnDocumentReviewList,
+	CnDurationField,
 	CnEditActionsModal,
 	CnEditDataModal,
 	CnEditMenuModal,
@@ -214,6 +215,7 @@ export {
 	CnPresenceAvatars,
 	CnProgressBar,
 	CnPropertiesTab,
+	CnPropertySourceField,
 	CnPropertyValueCell,
 	CnQuickFilterBar,
 	CnQuicklinksWidget,
@@ -226,9 +228,6 @@ export {
 	CnRelatedObjectsWidget,
 	CnRelationLinkModal,
 	CnRelationshipGraph,
-	CnDurationField,
-	CnPropertySourceField,
-	CnSubObjectsField,
 	CnResourceSelect,
 	CnRichSubmitDialog,
 	CnRoadmapItem,
@@ -255,6 +254,7 @@ export {
 	CnStatWidget,
 	CnStatWidgetForm,
 	CnStructuredDocReview,
+	CnSubObjectsField,
 	CnSummaryAggregates,
 	CnSupportDialog,
 	CnTab,
@@ -376,7 +376,7 @@ export {
 export { useAiChatStream, useAiContext } from './composables/index.js'
 // AI Chat Companion backend config (single point for the chat backend app id)
 export { chatApiBase, chatHealthUrl, chatSendUrl, chatStreamUrl, conversationMessagesUrl, conversationsUrl, DEFAULT_CHAT_APP_ID } from './composables/index.js'
-export { buildBucketQuery, buildCountQuery, clearContextMenuPositionDom, cnRenderMarkdown, createTenantContext, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, fetchEndpointSource, invalidateEndpointSourceCache, loadWalkthroughSeenVersion, LockConflictError, PermissionError, persistWalkthroughSeenVersion, provideTenantContext, selectByPath, TENANT_CONTEXT_KEY, useAppInstaller, useAppManifest, useAppStatus, useBrokeredCall, useBuildiqEditAvailability, useClickDragGuard, useCommandPalette, useContextMenu, useDashboardView, useDataSource, useDetailView, useEndpointSource, useGraphQL, useIntegrationRegistry, useListNavigation, useListView, useManifestEditHistory, useManifestEditor, useNotificationPreferencesStore, useObjectLock, useObjectPresence, useObjectSubscription, useRuntimeManifest, useScopedTheme, useSetupStatus, useSubResource, useSupportDialog, useTenantContext, useUserPreferences, useWalkthrough } from './composables/index.js'
+export { buildBucketQuery, buildCountQuery, clearContextMenuPositionDom, cnRenderMarkdown, createTenantContext, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, fetchEndpointSource, invalidateEndpointSourceCache, loadWalkthroughSeenVersion, LockConflictError, PermissionError, persistWalkthroughSeenVersion, provideTenantContext, selectByPath, TENANT_CONTEXT_KEY, useAppInstaller, useAppManifest, useAppStatus, useBrokeredCall, useBuildiqEditAvailability, useClickDragGuard, useCommandPalette, useContextMenu, useDashboardView, useDataSource, useDetailView, useEndpointSource, useGraphQL, useIntegrationRegistry, useListNavigation, useListView, useManifestEditHistory, useManifestEditor, useNotificationPreferencesStore, useObjectLock, useObjectPresence, useObjectSubscription, useRefLabels, useRuntimeManifest, useScopedTheme, useSetupStatus, useSubResource, useSupportDialog, useTenantContext, useUserPreferences, useWalkthrough } from './composables/index.js'
 // Deprecated alias kept for consumers: OpenBuild was renamed to Buildiq in the
 // fleet-wide rename of 2026-08-21. `useBuildiqEditAvailability` above is the
 // canonical name; this alias keeps the ~18 consuming apps that still call

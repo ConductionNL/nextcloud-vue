@@ -1121,7 +1121,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 0,
-			"transitive": 124,
+			"transitive": 125,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -1334,8 +1334,8 @@
 			"page": "cn-image-widget-form"
 		},
 		"CnIndexPage": {
-			"direct": 6,
-			"transitive": 121,
+			"direct": 8,
+			"transitive": 122,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -1612,7 +1612,7 @@
 		},
 		"CnLogsPage": {
 			"direct": 4,
-			"transitive": 106,
+			"transitive": 107,
 			"tier": "heavy",
 			"via": [
 				"CnAnalyticsReportPicker",
@@ -2177,7 +2177,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 179,
+			"transitive": 180,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",

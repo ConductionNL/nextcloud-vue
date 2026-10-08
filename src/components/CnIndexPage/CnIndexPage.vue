@@ -480,7 +480,7 @@
 				<CnDataTable
 					v-else-if="currentViewMode === 'table'"
 					:schema="effectiveSchema"
-					:columns="tableColumns"
+					:columns="renderedColumns"
 					:rowIcon="rowIcon"
 					:rowIndicators="rowIndicators"
 					:rowIndicatorCap="rowIndicatorCap"
@@ -839,8 +839,10 @@ import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import { useContextMenu } from '../../composables/index.js'
+import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
+import { useObjectStore } from '../../store/useObjectStore.js'
 import { routeHref } from '../../utils/actionLink.js'
 import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
 import { fetchFilterCounts } from '../../utils/fetchFilterCounts.js'
@@ -857,7 +859,7 @@ import { isRowActionVisible, rowActionPayload } from '../../utils/rowActionItem.
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { DEFAULT_ROW_INDICATOR_CAP } from '../../utils/rowIndicators.js'
 import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, extractViewStateFromRouteQuery, savedViewScope, viewMatchesScope } from '../../utils/savedViewHelpers.js'
-import { columnsFromSchema } from '../../utils/schema.js'
+import { columnsFromSchema, fieldsFromSchema } from '../../utils/schema.js'
 import { resolveScopeLayout } from '../../utils/scopeListLayout.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -1163,6 +1165,11 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/**
+		 * The app manifest, provided by CnAppRoot. A column with `labelField`
+		 * and `link: true` finds the referenced schema's detail page here.
+		 */
+		cnManifest: { default: null },
 		/**
 		 * The v2 component registry, provided by CnAppRoot. Named handlers
 		 * (`actions[].handler`, `bulkActions[].handler`,
@@ -2846,6 +2853,8 @@ export default {
 	data() {
 		return {
 			currentViewMode: this.viewMode,
+			/** Resolved labels of reference columns: `{ [columnKey]: { [id]: label|null } }`. */
+			refLabels: {},
 			/** Count per tab-strip index, for the entries that asked for one; null = none. */
 			tabCounts: null,
 			/** Count per saved-view id, for the views control; null = none. */
@@ -3697,6 +3706,98 @@ export default {
 		},
 
 		/**
+		 * Reference columns that ask for a label (`labelField`), with the
+		 * referenced register and schema read off the page schema's `$ref`.
+		 *
+		 * @return {Array<{key: string, labelField: string, register: string, schema: string, route: (string|null), sortByLabel: boolean}>}
+		 * @spec openspec/changes/index-ref-column-labels/tasks.md#task-2
+		 */
+		refLabelSpecs() {
+			const cols = this.tableColumns.filter((c) => c && typeof c === 'object' && typeof c.labelField === 'string' && c.labelField !== '' && !c.widget)
+			if (cols.length === 0 || !this.effectiveSchema) {
+				return []
+			}
+			const fields = fieldsFromSchema(this.effectiveSchema, { includeReadOnly: true })
+			const specs = []
+			for (const col of cols) {
+				const field = fields.find((f) => f.key === col.key)
+				const ref = field && field.reference
+				if (!ref || ref.schema === undefined || ref.schema === null) {
+					continue
+				}
+				const register = ref.register || (typeof this.register === 'string' ? this.register : '')
+				const schema = String(ref.schema)
+				specs.push({
+					key: col.key,
+					labelField: col.labelField,
+					register,
+					schema,
+					route: typeof col.route === 'string' && col.route !== '' ? col.route : (col.link === true ? this.detailRouteFor(schema) : null),
+					sortByLabel: col.sortByLabel === true,
+				})
+			}
+			return specs
+		},
+
+		/**
+		 * Columns handed to CnDataTable: `tableColumns`, with each reference
+		 * column that has a `labelField` rendered through the `refLabel` cell
+		 * widget. Such a column is sortable only with `sortByLabel: true`
+		 * (sorting by the key would sort by id, not by what the cell shows).
+		 *
+		 * @return {Array} The columns to render.
+		 * @spec openspec/changes/index-ref-column-labels/tasks.md#task-2
+		 */
+		renderedColumns() {
+			if (this.refLabelSpecs.length === 0) {
+				return this.tableColumns
+			}
+			const byKey = new Map(this.refLabelSpecs.map((s) => [s.key, s]))
+			return this.tableColumns.map((col) => {
+				const spec = col && typeof col === 'object' ? byKey.get(col.key) : null
+				if (!spec) {
+					return col
+				}
+				return {
+					...col,
+					widget: 'refLabel',
+					widgetProps: { ...(col.widgetProps || {}), labels: this.refLabels[spec.key] || {}, route: spec.route },
+					sortable: spec.sortByLabel,
+				}
+			})
+		},
+
+		/**
+		 * The ids each reference label column needs, from the rows and the facet buckets.
+		 *
+		 * @return {Object<string, string[]>} Distinct ids per column key.
+		 */
+		refLabelIds() {
+			const out = {}
+			const facets = this.storeFacets || this.resolvedSidebar.facets || {}
+			for (const spec of this.refLabelSpecs) {
+				const ids = new Set()
+				for (const row of this.displayObjects) {
+					const v = row ? row[spec.key] : undefined
+					;(Array.isArray(v) ? v : [v]).forEach((id) => {
+						if (id !== null && id !== undefined && id !== '' && typeof id !== 'object') {
+							ids.add(String(id))
+						}
+					})
+				}
+				const values = facets[spec.key] && Array.isArray(facets[spec.key].values) ? facets[spec.key].values : []
+				values.forEach((fv) => {
+					const id = fv && typeof fv === 'object' ? fv.value : fv
+					if (id !== null && id !== undefined && id !== '') {
+						ids.add(String(id))
+					}
+				})
+				out[spec.key] = [...ids].sort()
+			}
+			return out
+		},
+
+		/**
 		 * Facet data for the index sidebar.
 		 *
 		 * The `sidebar.facets` key is a DATA channel, not a declaration of
@@ -3721,7 +3822,28 @@ export default {
 		 * @return {object} `{ fieldName: { values: [...] } }`, possibly empty.
 		 */
 		effectiveFacetData() {
-			return this.storeFacets || this.resolvedSidebar.facets || {}
+			const data = this.storeFacets || this.resolvedSidebar.facets || {}
+			if (this.refLabelSpecs.length === 0) {
+				return data
+			}
+			// A facet over a reference column lists labels; the value stays the id.
+			const out = { ...data }
+			for (const spec of this.refLabelSpecs) {
+				const facet = data[spec.key]
+				const labels = this.refLabels[spec.key] || {}
+				if (facet && Array.isArray(facet.values)) {
+					out[spec.key] = {
+						...facet,
+						values: facet.values.map((fv) => {
+							const id = fv && typeof fv === 'object' ? fv.value : fv
+							const label = labels[String(id)]
+							const base = fv && typeof fv === 'object' ? fv : { value: fv }
+							return label ? { ...base, label } : base
+						}),
+					}
+				}
+			}
+			return out
 		},
 
 		/**
@@ -4630,6 +4752,15 @@ export default {
 	},
 
 	watch: {
+		// Resolve the labels of reference columns in one batch per schema.
+		refLabelIds: {
+			immediate: true,
+			deep: true,
+			handler() {
+				this.loadRefLabels()
+			},
+		},
+
 		countRequestKey: {
 			immediate: true,
 			/** @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views */
@@ -4847,6 +4978,51 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The manifest page that shows one object of a schema, for a linked
+		 * label. Null without a manifest or a matching detail page.
+		 *
+		 * @param {string} schema Schema slug of the referenced objects.
+		 * @return {string|null} The page id.
+		 */
+		detailRouteFor(schema) {
+			const pages = this.cnManifest && Array.isArray(this.cnManifest.pages) ? this.cnManifest.pages : []
+			const page = pages.find((p) => p && p.type === 'detail' && p.config && String(p.config.schema) === String(schema))
+			return page ? page.id : null
+		},
+
+		/**
+		 * Fetch the labels the reference columns need: one request per
+		 * referenced schema, for the rows on screen. A failure leaves ids as is.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/index-ref-column-labels/tasks.md#task-2
+		 */
+		async loadRefLabels() {
+			const specs = this.refLabelSpecs
+			if (specs.length === 0) {
+				return
+			}
+			if (!this._refLabelResolver) {
+				this._refLabelResolver = createRefLabelResolver(() => {
+					try {
+						return (this.list && this.list.objectStore) || useObjectStore()
+					} catch {
+						return null
+					}
+				})
+			}
+			await Promise.all(specs.map(async (spec) => {
+				const known = this.refLabels[spec.key] || {}
+				const ids = (this.refLabelIds[spec.key] || []).filter((id) => !Object.hasOwn(known, id))
+				if (ids.length === 0) {
+					return
+				}
+				const found = await this._refLabelResolver.resolve(spec.register, spec.schema, ids, spec.labelField)
+				this.refLabels = { ...this.refLabels, [spec.key]: { ...(this.refLabels[spec.key] || {}), ...found } }
+			}))
+		},
+
 		/**
 		 * Whether a saved view shows its record count (`viewCounts`).
 		 *
@@ -7051,6 +7227,12 @@ export default {
 		 */
 		setFormResult(resultData) {
 			this._setResult('formDialog', resultData)
+			// A saved write may change a label a reference column shows.
+			if (resultData && resultData.success && this._refLabelResolver) {
+				this._refLabelResolver.invalidate()
+				this.refLabels = {}
+				this.loadRefLabels()
+			}
 		},
 
 		/**

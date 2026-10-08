@@ -33,6 +33,7 @@ export {
 } from './useContextMenu.js'
 export { useAppManifest } from './useAppManifest.js'
 export { useAppStatus } from './useAppStatus.js'
+export { useRefLabels } from './useRefLabels.js'
 export { useAppInstaller } from './useAppInstaller.js'
 export { useSetupStatus } from './useSetupStatus.js'
 export { compareSemver, interpolateTokens, loadWalkthroughSeenVersion, normaliseSeenVersion, persistWalkthroughSeenVersion, readLocalWalkthroughSeenVersion, useWalkthrough, WALKTHROUGH_SEEN_STORAGE_PREFIX, walkthroughPreferenceUrl } from './useWalkthrough.js'

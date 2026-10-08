@@ -1022,3 +1022,19 @@ Sources: `register` (fetch the folder list from an OpenRegister `register`/`sche
 { "showTitle": true, "showTitleIcon": false, "showCount": false, "countSubtitle": "{total} open cases",
   "headerButtons": [{ "label": "Export", "action": "export" }, { "label": "New case", "action": "add", "variant": "primary" }] }
 ```
+
+## Reference columns that show a label (`labelField`)
+
+A column object over a `$ref` property can name the field of the referenced object to show instead of its uuid:
+
+```json
+{ "key": "case", "labelField": "title", "link": true }
+```
+
+- The page collects the distinct ids of the rows on screen and asks for them in one request per referenced schema (`useRefLabels`). Rows render first; labels fill in place.
+- The label is `labelField` (dotted paths such as `person.displayName` work), then `title`, `name` or `@self.name`. An id that cannot be resolved (a deleted object) shows the id in mono.
+- `link: true` links the label to the detail page the manifest declares for the referenced schema (`type: "detail"`, `config.schema`); `route` names the page id explicitly.
+- Sorting by the key would sort by id, so such a column is not sortable unless it sets `sortByLabel: true` (use it when the store can sort the extended field).
+- A facet over the same column lists the labels in the sidebar; the filter value stays the id.
+- The column needs the `$ref` on the page schema and a register: the schema's `x-external-register`, or the page's `register`. A column that already sets `widget` is left alone.
+- The labels are refetched after `setFormResult({ success: true })`.

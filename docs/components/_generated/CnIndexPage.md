@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 6 direct references, 121 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 8 direct references, 122 files reached through imports.
 
 Through: `CnAnalyticsReportPicker`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnBuildiqEditButton`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowDetail`, `CnFlowOperationPicker`, `CnFormDialog`, `CnGraphCanvas`, `CnIndexSidebar`, `CnMapPoiPicker`, `CnMapWidget`, `CnNotesCard`, `CnObjectSidebar`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnVersionHistory`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
 
