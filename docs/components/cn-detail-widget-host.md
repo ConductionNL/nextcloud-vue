@@ -82,6 +82,7 @@ Integration widgets (`type: "integration"`) already degrade this way through the
 | --- | --- | --- |
 | `geo-saved` | `object` | The geo widget saved a geometry. |
 | `open-integration` | `string` | The related widget asked to open an integration. |
+| `select-object` | `object` | A related object was clicked in the related widget, or in a registry widget that nests a host of its own (a Tabs widget's Related tab); payload is the raw object (`@self` carries its register and schema). |
 
 ## Notes
 

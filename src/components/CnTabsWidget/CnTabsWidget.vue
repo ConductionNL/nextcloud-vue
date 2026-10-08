@@ -88,7 +88,8 @@
 					:integrationContext="integrationContext"
 					:cnRegistry="cnRegistry"
 					@geoSaved="onGeoSaved"
-					@openIntegration="onOpenIntegration" />
+					@openIntegration="onOpenIntegration"
+					@selectObject="onSelectObject" />
 				<NcEmptyContent v-else :name="missingLabel(entry)" />
 			</CnTab>
 		</CnTabs>
@@ -357,7 +358,7 @@ export default {
 		},
 	},
 
-	emits: ['geo-saved', 'open-integration'],
+	emits: ['geo-saved', 'open-integration', 'select-object'],
 
 	data() {
 		return {
@@ -528,6 +529,20 @@ export default {
 			 * @type {string}
 			 */
 			this.$emit('open-integration', integrationId)
+		},
+
+		/**
+		 * Re-emit a related child's object click; the page opens the object.
+		 *
+		 * @param {object} raw The clicked object.
+		 * @return {void}
+		 */
+		onSelectObject(raw) {
+			/**
+			 * @event select-object Re-emitted from a related child whose object row was clicked. Payload is the raw object.
+			 * @type {object}
+			 */
+			this.$emit('select-object', raw)
 		},
 
 		/**
