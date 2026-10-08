@@ -1028,10 +1028,34 @@ export default {
 		 * this list is scoped to, e.g. `{ lead: '<uuid>' }`), limited to keys
 		 * the schema declares, so the new row shows its parent already chosen.
 		 *
+		 * `content.createDefaults` merges over it for values a filter cannot express.
+		 *
 		 * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
+		 * @spec openspec/changes/object-list-create-with-initial-data/tasks.md#task-1
 		 * @return {object}
 		 */
 		createInitialData() {
+			const props = (this.createSchema && this.createSchema.properties) || {}
+			const out = { ...this.filterSeed }
+			const defaults = this.content && this.content.createDefaults
+			if (defaults && typeof defaults === 'object' && !Array.isArray(defaults)) {
+				for (const [key, value] of Object.entries(defaults)) {
+					if (key in props && value !== undefined) {
+						out[key] = value
+					}
+				}
+			}
+			return out
+		},
+
+		/**
+		 * The scalar, schema-declared values of the resolved filter: the parent
+		 * this list is scoped to. Operator keys (`deadline[lt]`), keys the schema
+		 * does not declare and unresolved `@`-tokens are dropped.
+		 *
+		 * @return {object}
+		 */
+		filterSeed() {
 			const props = (this.createSchema && this.createSchema.properties) || {}
 			const out = {}
 			for (const [key, value] of Object.entries(this.resolvedFilter || {})) {
@@ -1047,13 +1071,18 @@ export default {
 		},
 
 		/**
-		 * The seeded parent keys are locked: a row added to this list belongs
-		 * to the record the list is scoped to.
+		 * The parent keys seeded from the filter are locked (read-only with
+		 * their label): a row added to this list belongs to the record the list
+		 * is scoped to. `content.lockFilterFields: false` leaves them editable.
+		 * `createDefaults` values are never locked.
 		 *
 		 * @return {string[]}
 		 */
 		createLockedFields() {
-			return Object.keys(this.createInitialData)
+			if (this.content && this.content.lockFilterFields === false) {
+				return []
+			}
+			return Object.keys(this.filterSeed)
 		},
 
 		/** Per-field overrides for the create dialog (`content.formFieldOverrides`). */
