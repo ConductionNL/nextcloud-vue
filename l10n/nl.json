@@ -1302,7 +1302,11 @@
     "Uploading {file}": "{file} wordt geüpload",
     "Filled in from {field}": "Ingevuld vanuit {field}",
     "Calculating": "Berekenen",
-    "Could not calculate": "Kon niet berekenen"
+    "Could not calculate": "Kon niet berekenen",
+    "Order and pin": "Volgorde en vastzetten",
+    "Pin {column}": "{column} vastzetten",
+    "Unpin {column}": "{column} losmaken",
+    "Reset columns": "Kolommen herstellen"
   },
   "plurals": {
     "%n year": [

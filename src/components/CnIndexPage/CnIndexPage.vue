@@ -505,6 +505,7 @@
 					v-else-if="currentViewMode === 'table'"
 					:schema="effectiveSchema"
 					:columns="renderedColumns"
+					:pinnedCount="pinnedColumnCount"
 					:rowIcon="rowIcon"
 					:rowIndicators="rowIndicators"
 					:rowIndicatorCap="rowIndicatorCap"
@@ -866,10 +867,15 @@
 			:filterFields="resolvedSidebar.fields || null"
 			:facetData="effectiveFacetData"
 			:showMetadata="resolvedSidebar.showMetadata !== false"
+			:personalColumns="personalColumns"
+			:pinnedCount="pinnedColumnCount"
 			v-bind="sidebarSearchProps"
 			@update:open="sidebarOpen = $event"
 			@search="onSearchEvent"
 			@columnsChange="onColumnsEvent"
+			@columnsReorder="onColumnsReorder"
+			@pinChange="onPinChange"
+			@columnsReset="onColumnsReset"
 			@filterChange="onFilterEvent"
 			@clearFilters="onClearFilters" />
 	</div>
@@ -950,6 +956,7 @@ import { applyAiContext } from './aiContext.js'
 import { buildDefaultActions } from './defaultActions.js'
 import { dispatchAction } from './manifestActionDispatch.js'
 import { applyManualOrder, dropInOrder, manualOrderKey, moveInOrder, visibleIdsOf } from './manualOrder.js'
+import { orderColumns, personalColumnsKey, reconcilePersonalColumns } from './personalColumns.js'
 import { createSelfModeActions } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { useNamedSource } from './useNamedSource.js'
@@ -1659,6 +1666,20 @@ export default {
 		splitCloseLabel: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Lets this person order and pin the table columns from the sidebar's
+		 * Columns tab, and keeps the visible columns, their order and the pinned
+		 * count per user and per list in their Nextcloud preferences. `false`
+		 * keeps show and hide only, stored nowhere (for a page whose column set is
+		 * a contract, such as an export preview).
+		 *
+		 * @type {boolean}
+		 */
+		personalColumns: {
+			type: Boolean,
+			default: true,
 		},
 
 		/**
@@ -3050,6 +3071,10 @@ export default {
 			// Manual order: the row ids this person dragged into an order, read
 			// from and written to their own preferences. Never on the records.
 			manualOrderIds: [],
+			// Personal column layout: `{ columns, pinned }` read from preferences
+			// or set by the sidebar, and the columns of an applied saved view.
+			personalLayout: null,
+			appliedViewColumns: null,
 		}
 	},
 
@@ -4374,7 +4399,27 @@ export default {
 		},
 
 		effectiveVisibleColumns() {
+			// A saved view that carries columns wins while applied, then the person's
+			// own layout, then the page's columns.
+			if (Array.isArray(this.appliedViewColumns)) {
+				return this.appliedViewColumns
+			}
+			if (this.personalColumns && this.personalLayout && Array.isArray(this.personalLayout.columns)) {
+				const known = [...this.governedColumns.map((c) => c.key), ...this.declaredColumns.map((c) => (typeof c === 'string' ? c : c.key))]
+				const layout = reconcilePersonalColumns(this.personalLayout, known)
+				if (layout) {
+					return layout.columns
+				}
+			}
 			return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns
+		},
+
+		/** @return {number} How many leading columns the person pinned (0 while a saved view's columns are applied). */
+		pinnedColumnCount() {
+			if (!this.personalColumns || Array.isArray(this.appliedViewColumns) || !this.personalLayout) {
+				return 0
+			}
+			return Math.max(0, Math.min(Number(this.personalLayout.pinned) || 0, this.tableColumns.length))
 		},
 
 		effectiveActiveFilters() {
@@ -4528,6 +4573,10 @@ export default {
 					present.add(key)
 				}
 			})
+			// The person's order (or an applied view's) reads the table left to right.
+			if (this.personalColumns && (this.personalLayout || Array.isArray(this.appliedViewColumns))) {
+				cols = orderColumns(cols, visible)
+			}
 			return cols
 		},
 
@@ -4923,6 +4972,8 @@ export default {
 				filterFields: this.resolvedSidebar.fields || null,
 				facetData: this.effectiveFacetData,
 				showMetadata: this.resolvedSidebar.showMetadata !== false,
+				personalColumns: this.personalColumns,
+				pinnedCount: this.pinnedColumnCount,
 				...this.sidebarSearchProps,
 			}
 		},
@@ -5165,6 +5216,7 @@ export default {
 			window.addEventListener('resize', this.measureSplitViewport)
 		}
 		this.loadManualOrder()
+		this.loadPersonalColumns()
 		this.publishHoistedSidebar()
 		this.pushAiContext()
 		this.maybeOpenCreateFromQuery()
@@ -5949,6 +6001,8 @@ export default {
 		 * @return {void}
 		 */
 		onClearFilters() {
+			// Clearing the view brings the person's own columns back.
+			this.appliedViewColumns = null
 			if (!this.isSelfFetchMode) {
 				this.$emit('clear-filters')
 				return
@@ -6486,7 +6540,124 @@ export default {
 			if (this.isSelfFetchMode && this.list.visibleColumns) {
 				this.list.visibleColumns.value = columns
 			}
+			this.keepPersonalColumns(columns, this.pinnedColumnCount)
 			this.$emit('columns-change', columns)
+		},
+
+		/**
+		 * The preference key this list's column layout is held under. The list id
+		 * is the manual-order id, else the page's route name (the manifest page id),
+		 * else the object type or schema.
+		 *
+		 * @return {string} The key, `columns.<list id>`.
+		 */
+		personalColumnsPreferenceKey() {
+			const route = this.$route && typeof this.$route.name === 'string' ? this.$route.name : ''
+			return personalColumnsKey(this.manualOrderId || route || this.objectType || this.schema || 'default')
+		},
+
+		/**
+		 * Keep the person's column layout: held while a view's columns are applied
+		 * (the view is a lens, not a preference), otherwise stored in their preferences.
+		 *
+		 * @param {string[]} columns The visible columns in their order.
+		 * @param {number} pinned How many leading columns are pinned.
+		 * @return {void}
+		 * @spec openspec/changes/index-column-order-and-pinning/tasks.md#task-4
+		 */
+		keepPersonalColumns(columns, pinned) {
+			if (!this.personalColumns || !Array.isArray(columns)) {
+				return
+			}
+			if (Array.isArray(this.appliedViewColumns)) {
+				this.appliedViewColumns = columns
+				return
+			}
+			this.personalLayout = { columns, pinned }
+			this.persistPersonalColumns()
+		},
+
+		/**
+		 * The person moved a column in the sidebar's Order and pin list.
+		 *
+		 * @param {string[]} columns The visible columns in their new order.
+		 * @return {void}
+		 */
+		onColumnsReorder(columns) {
+			this.onColumnsEvent(columns)
+		},
+
+		/**
+		 * The person pinned or unpinned a column.
+		 *
+		 * @param {number} count How many leading columns are pinned now.
+		 * @return {void}
+		 */
+		onPinChange(count) {
+			if (!this.personalColumns || Array.isArray(this.appliedViewColumns)) {
+				return
+			}
+			const columns = this.personalLayout ? this.personalLayout.columns : (Array.isArray(this.effectiveVisibleColumns) ? this.effectiveVisibleColumns : this.tableColumns.map((c) => (typeof c === 'string' ? c : c.key)))
+			this.keepPersonalColumns(columns, count)
+		},
+
+		/**
+		 * Reset columns: forget the person's layout and show the page's own columns.
+		 *
+		 * @return {void}
+		 */
+		onColumnsReset() {
+			this.personalLayout = null
+			this.appliedViewColumns = null
+			if (this.isSelfFetchMode && this.list.visibleColumns) {
+				this.list.visibleColumns.value = null
+			}
+			const write = this.cnUserPreferences?.write
+			if (this.personalColumns && typeof write === 'function') {
+				Promise.resolve(write(this.personalColumnsPreferenceKey(), null)).catch(() => {})
+			}
+			this.$emit('columns-change', null)
+		},
+
+		/**
+		 * Write the layout to the person's preferences. A failed write leaves the
+		 * layout in place for this session and says nothing.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async persistPersonalColumns() {
+			const write = this.cnUserPreferences?.write
+			if (typeof write !== 'function' || !this.personalLayout) {
+				return
+			}
+			try {
+				await write(this.personalColumnsPreferenceKey(), {
+					columns: this.personalLayout.columns,
+					pinned: this.personalLayout.pinned,
+				})
+			} catch {
+				// Not stored; the layout still stands until the page reloads.
+			}
+		},
+
+		/**
+		 * Read the person's column layout for this list on mount.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadPersonalColumns() {
+			const read = this.cnUserPreferences?.read
+			if (!this.personalColumns || typeof read !== 'function') {
+				return
+			}
+			try {
+				const stored = await read(this.personalColumnsPreferenceKey(), null)
+				if (stored && Array.isArray(stored.columns) && !this.personalLayout) {
+					this.personalLayout = { columns: stored.columns.map(String), pinned: Number(stored.pinned) || 0 }
+				}
+			} catch {
+				// An unreadable preference leaves the page's own columns.
+			}
 		},
 
 		/** @return {Promise<void>} */
@@ -6529,6 +6700,9 @@ export default {
 
 					search: (event) => this.onSearchEvent(event),
 					'columns-change': (event) => this.onColumnsEvent(event),
+					'columns-reorder': (event) => this.onColumnsReorder(event),
+					'pin-change': (event) => this.onPinChange(event),
+					'columns-reset': () => this.onColumnsReset(),
 					'filter-change': (event) => this.onFilterEvent(event),
 					'clear-filters': () => this.onClearFilters(),
 				},
@@ -7118,6 +7292,9 @@ export default {
 		 */
 		onApplySavedView(view) {
 			const state = extractViewState(view)
+			// A view that carries columns wins while it is applied; one without leaves the person's own layout.
+			const viewColumns = view && view.query && Array.isArray(view.query.columns) ? view.query.columns.map(String) : []
+			this.appliedViewColumns = viewColumns.length > 0 ? viewColumns : null
 			if (this.isSelfFetchMode) {
 				// Set state directly (not via onFilterEvent/onSearchEvent per key)
 				// so applying a view is one fetch + one route replace, not one

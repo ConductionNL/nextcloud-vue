@@ -124,6 +124,67 @@
 						{{ columnsDescription }}
 					</p>
 
+					<!-- Order and pin the visible columns. Drag and the Move buttons
+					     call the same method (moveColumn); the table header is not a drag target. -->
+					<div
+						v-if="personalColumns && orderedVisible.length > 0"
+						class="cn-sidebar-columns__order"
+						data-testid="cn-sidebar-columns-order">
+						<h4>{{ t('nextcloud-vue', 'Order and pin') }}</h4>
+						<ol class="cn-sidebar-columns__order-list">
+							<li
+								v-for="(item, index) in orderedVisible"
+								:key="item.key"
+								class="cn-sidebar-columns__order-item"
+								:class="{ 'cn-sidebar-columns__order-item--pinned': index < pinnedCount }"
+								draggable="true"
+								data-testid="cn-sidebar-columns-order-item"
+								@dragstart="dragFrom = index"
+								@dragover.prevent
+								@drop.prevent="onDropColumn(index)">
+								<DragVertical :size="18" class="cn-sidebar-columns__handle" aria-hidden="true" />
+								<span class="cn-sidebar-columns__order-label">{{ item.label }}</span>
+								<NcButton
+									variant="tertiary"
+									:disabled="index === 0 || index === pinnedCount"
+									:aria-label="t('nextcloud-vue', 'Move {column} up', { column: item.label })"
+									data-testid="cn-sidebar-columns-up"
+									@click="moveColumn(index, index - 1)">
+									<template #icon>
+										<ChevronUp :size="18" />
+									</template>
+								</NcButton>
+								<NcButton
+									variant="tertiary"
+									:disabled="index === orderedVisible.length - 1 || index === pinnedCount - 1"
+									:aria-label="t('nextcloud-vue', 'Move {column} down', { column: item.label })"
+									data-testid="cn-sidebar-columns-down"
+									@click="moveColumn(index, index + 1)">
+									<template #icon>
+										<ChevronDown :size="18" />
+									</template>
+								</NcButton>
+								<NcButton
+									variant="tertiary"
+									:aria-pressed="String(index < pinnedCount)"
+									:aria-label="index < pinnedCount ? t('nextcloud-vue', 'Unpin {column}', { column: item.label }) : t('nextcloud-vue', 'Pin {column}', { column: item.label })"
+									data-testid="cn-sidebar-columns-pin"
+									@click="togglePin(index)">
+									<template #icon>
+										<Pin v-if="index < pinnedCount" :size="18" />
+										<PinOutline v-else :size="18" />
+									</template>
+								</NcButton>
+							</li>
+						</ol>
+						<NcButton
+							variant="tertiary"
+							data-testid="cn-sidebar-columns-reset"
+							@click="$emit('columns-reset')">
+							{{ t('nextcloud-vue', 'Reset columns') }}
+						</NcButton>
+					</div>
+
 					<template v-if="allColumns.length > 0 || allGroups.length > 0">
 						<!-- Schema properties group (collapsible) -->
 						<div v-if="allColumns.length > 0" class="cn-sidebar-columns__group cn-sidebar-columns__group--collapsible">
@@ -198,9 +259,13 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcAppSidebar, NcAppSidebarTab, NcButton, NcCheckboxRadioSwitch, NcPopover, NcSelect, NcTextField } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
+import DragVertical from 'vue-material-design-icons/DragVertical.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import FilterRemoveOutline from 'vue-material-design-icons/FilterRemoveOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+import Pin from 'vue-material-design-icons/Pin.vue'
+import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { facetOptionLabel } from '../../utils/facets.js'
@@ -239,6 +304,10 @@ export default {
 		ViewColumnOutline,
 		ChevronDown,
 		ChevronRight,
+		ChevronUp,
+		DragVertical,
+		Pin,
+		PinOutline,
 		InformationOutline,
 	},
 
@@ -277,6 +346,21 @@ export default {
 		visibleColumns: {
 			type: Array,
 			default: null,
+		},
+
+		/**
+		 * Show the Order and pin controls in the Columns tab, and Reset columns.
+		 * Off keeps show and hide only.
+		 */
+		personalColumns: {
+			type: Boolean,
+			default: true,
+		},
+
+		/** How many of the first visible columns are pinned to the start of the table. */
+		pinnedCount: {
+			type: Number,
+			default: 0,
 		},
 
 		/** Current search term */
@@ -421,12 +505,14 @@ export default {
 		},
 	},
 
-	emits: ['clear-filters', 'columns-change', 'filter-change', 'search', 'tab-change', 'update:open'],
+	emits: ['clear-filters', 'columns-change', 'columns-reorder', 'columns-reset', 'pin-change', 'filter-change', 'search', 'tab-change', 'update:open'],
 
 	data() {
 		return {
 			internalOpen: this.open,
 			internalActiveTab: this.defaultTab,
+			/** Index of the column being dragged in the Order and pin list, or -1. */
+			dragFrom: -1,
 			propertiesExpanded: true,
 			expandedGroups: {},
 			/**
@@ -518,6 +604,24 @@ export default {
 				})
 			}
 			return [...groups, ...this.columnGroups]
+		},
+
+		/** Label of each column key, from the schema properties and the groups. */
+		columnLabels() {
+			const map = {}
+			this.allColumns.forEach((c) => {
+				map[c.key] = c.label
+			})
+			this.allGroups.forEach((g) => g.columns.forEach((c) => {
+				map[c.key] = c.label
+			}))
+			return map
+		},
+
+		/** The visible columns in their order, with labels (all columns when none were chosen). */
+		orderedVisible() {
+			const keys = this.visibleColumns === null ? this.allColumnKeys : this.visibleColumns
+			return keys.filter((k) => this.columnLabels[k] !== undefined).map((key) => ({ key, label: this.columnLabels[key] }))
 		},
 
 		/** All column keys across schema properties and all groups */
@@ -656,6 +760,72 @@ export default {
 				newVisible = [...current]
 			}
 			this.$emit('columns-change', newVisible)
+		},
+
+		/**
+		 * Move a visible column to another place in the order. The drag and the
+		 * Move buttons both call this. A column stays inside its block: pinned
+		 * columns move among the pinned, the rest among the rest.
+		 *
+		 * @param {number} from Current index.
+		 * @param {number} to Target index.
+		 * @return {void}
+		 */
+		moveColumn(from, to) {
+			const list = this.orderedVisible.map((c) => c.key)
+			const lo = from < this.pinnedCount ? 0 : this.pinnedCount
+			const hi = from < this.pinnedCount ? this.pinnedCount - 1 : list.length - 1
+			const target = Math.min(hi, Math.max(lo, to))
+			if (from < 0 || from >= list.length || target === from) {
+				return
+			}
+			const [moved] = list.splice(from, 1)
+			list.splice(target, 0, moved)
+			/**
+			 * @event columns-reorder Emitted when the user moves a column. Payload: the visible column keys in their new order.
+			 * @type {string[]}
+			 */
+			this.$emit('columns-reorder', list)
+		},
+
+		/**
+		 * Dropping a dragged column on another row.
+		 *
+		 * @param {number} index Index of the row it was dropped on.
+		 * @return {void}
+		 */
+		onDropColumn(index) {
+			const from = this.dragFrom
+			this.dragFrom = -1
+			if (from >= 0) {
+				this.moveColumn(from, index)
+			}
+		},
+
+		/**
+		 * Pin a column (it joins the pinned block at the start) or unpin it (it
+		 * leaves that block, to the first place after it).
+		 *
+		 * @param {number} index Index of the column.
+		 * @return {void}
+		 */
+		togglePin(index) {
+			const list = this.orderedVisible.map((c) => c.key)
+			const [moved] = list.splice(index, 1)
+			let count = this.pinnedCount
+			if (index < count) {
+				count -= 1
+				list.splice(count, 0, moved)
+			} else {
+				list.splice(count, 0, moved)
+				count += 1
+			}
+			this.$emit('columns-reorder', list)
+			/**
+			 * @event pin-change Emitted when a column is pinned or unpinned. Payload: the new number of pinned columns.
+			 * @type {number}
+			 */
+			this.$emit('pin-change', count)
 		},
 
 		/**

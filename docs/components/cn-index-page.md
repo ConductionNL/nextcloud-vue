@@ -259,6 +259,7 @@ A page declaring `splitView` opens a row beside the list rather than instead of 
 | `splitCloseLabel` | String | `''` | Accessible name and tooltip for that button. Defaults to `Close`. |
 | `manualOrder` | Boolean | `false` | Lets this person drag the rows into an order of their own, held per user and per list. |
 | `manualOrderId` | String | `''` | Stable id the order is held under. Defaults to the object type or the schema. |
+| `personalColumns` | Boolean | `true` | Lets this person order and pin the table columns from the sidebar's Columns tab, and keeps the visible columns, their order and the pinned count per user and per list in their Nextcloud preferences (`columns.<list id>`; the list id is `manualOrderId`, else the page id). `false` keeps show and hide only, stored nowhere. |
 
 Declare it on the manifest page and build the routes with [`buildManifestRoutes`](../utilities/build-manifest-routes.md), which emits the second route the pane needs:
 

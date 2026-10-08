@@ -83,6 +83,8 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 | `activeFilters` | Object | `{}` | Currently active filter values: `{ fieldName: [selectedValues] }` |
 | `facetData` | Object | `{}` | Live facet counts from the backend: `{ fieldName: { values: [{ value, count }] } }` — shows counts next to each filter option |
 | `visibleColumns` | Array | `null` | Array of column keys currently shown in the table; controls the Columns tab checkboxes |
+| `personalColumns` | Boolean | `true` | Show the Order and pin list and Reset columns in the Columns tab. |
+| `pinnedCount` | Number | `0` | How many of the first visible columns are pinned to the start of the table. |
 | `columnGroups` | Array | `[]` | Additional custom column groups to add to the Columns tab |
 | `showMetadata` | Boolean | `true` | When `true`, includes a built-in "Metadata" group with `created`, `updated`, `uuid` columns |
 | `propertiesGroupLabel` | String | `''` | Override the label for the auto-generated properties column group |
@@ -106,6 +108,9 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 | `search` | `searchTerm` | Emitted when the search input changes |
 | `filter-change` | `{ key, values }` | Emitted when a filter selection changes; `values` is the updated array of selected values for that key |
 | `columns-change` | `visibleKeys[]` | Emitted when the user toggles a column; payload is the full updated array of visible column keys |
+| `columns-reorder` | `visibleKeys[]` | The user moved or pinned a column; payload is the visible column keys in their new order |
+| `pin-change` | `count` | The user pinned or unpinned a column; payload is the new number of pinned columns |
+| `columns-reset` | none | The user chose Reset columns |
 | `update:open` | `isOpen` | Emitted when the close button is clicked; use with `v-model:open` |
 | `tab-change` | `tabId` | Emitted when the user switches tabs; payload is the new tab's `id` string |
 | `clear-filters` | — | Emitted when "Clear all" is clicked; the host resets the search term and every active filter |
@@ -118,6 +123,12 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 | `#search-extra` | Content rendered at the bottom of the Search tab, below the search field and filters |
 | `#columns-extra` | Additional content rendered at the bottom of the Columns tab |
 | `#tabs` | Inject one or more additional `NcAppSidebarTab` components after the built-in Search and Columns tabs |
+
+## Order and pin the columns
+
+The Columns tab opens with an **Order and pin** list of the visible columns. Each row has a drag handle, **Move up**, **Move down** and **Pin**. The drag and the buttons call the same method (`moveColumn`), so the keyboard path and the mouse path cannot disagree. The buttons are labelled with the column ("Move Supplier up"); Pin is a toggle with `aria-pressed`. A pinned column moves into the pinned block at the start, and a column stays inside its block (pinned columns move among the pinned). The table header is not a drag target. **Reset columns** returns the list to the page's own columns.
+
+The sidebar only reports: `columns-reorder` carries the visible keys in their new order, `pin-change` the number pinned, and `columns-reset` the reset. `CnIndexPage` keeps the layout per user and per list (see its `personalColumns` prop) and applies this precedence: a saved view that carries columns while it is applied, then the person's own layout, then the page's `config.columns`. A column the schema no longer has drops out of a stored layout silently, and a new schema column appears hidden at the end. Pinned columns are made sticky by [CnDataTable](./cn-data-table.md)'s `pinnedCount`.
 
 ## Icon Resolution
 
