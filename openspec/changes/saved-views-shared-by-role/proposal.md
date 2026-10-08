@@ -31,12 +31,37 @@ handling desk cannot hand it to the desk. Two of three competitors can:
 The dossiq baseline: `_round2/dossiq-baseline/pages/Cases.md` and
 `Tasks.md`, personal views only.
 
+## Update, 7 October 2026: the backend is built
+
+OpenRegister archived `view-group-share` on 2026-09-30 (main spec
+`saved-search-views`, "A view can be shared with groups in read or write
+mode"). Read on openregister development:
+
+- A View carries `sharedWith: [{group, mode}]`, `mode` `read` or `write`,
+  editable by the owner or an administrator. Sharing with a group that does
+  not exist is refused.
+- `GET /api/views` returns the caller's own views, public views and views
+  shared with one of the caller's groups, each with `@self.access` `owner`,
+  `write` or `read`.
+- A member with `write` may change `query`, `presentation` and `alert`, and
+  gets a 403 for a changed `sharedWith`, `owner` or a delete.
+
+dossiq row `9.4` (re-read the same day) names the remaining gap: the dialog a
+dossiq user saves a view in is `CnSaveViewDialog`, which offers only a public
+switch (`CnSaveViewDialog.vue:28-31`), so the group picker belongs there as
+well as in the edit form of `CnSavedViewsControl`. This update aligns the
+change with that contract: the dropdown groups by `@self.access`, the share
+fields sit in `CnSaveViewDialog`, and a writer's save never sends
+`sharedWith`.
+
+## Rows unblocked
+
+- dossiq `9.4` "Shared saved searches with department or role permissions".
+
 ## Affected projects
 
-- `nextcloud-vue`: `CnSavedViewsControl` and the `saved-views-ui` capability.
-- `openregister`: the views API must persist `sharedWith` and scope the listing.
-  That half is proposed in the OpenRegister repo; this change assumes the
-  response shape below and degrades when it is absent.
+- `nextcloud-vue`: `CnSaveViewDialog`, `CnSavedViewsControl` and the `saved-views-ui` capability.
+- `openregister`: none. `view-group-share` is built (see above).
 - Consumers: dossiq (Cases, Queue, Tasks), opencatalogi, pipelinq, any
   `CnIndexPage` with `allowSavedViews`.
 
