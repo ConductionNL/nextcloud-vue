@@ -796,6 +796,10 @@ import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import { BUILT_IN_WIDGETS } from '../CnWidgetGrid/builtInWidgets.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+// Registers the dashboard widget catalog (stat, delta, gauge, ...) whenever this
+// page's chunk loads, so a fresh dashboard does not depend on the app's main.js.
+import '../CnWidgetGrid/registerDashboardWidgets.js'
+
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 

@@ -335,8 +335,9 @@ registerDashboardWidget('stacked-bar', {
 
 /**
  * Explicit no-op that guarantees this module (and therefore every widget's
- * self-registration side effect) is evaluated. Call it once at app bootstrap if
- * a bundler tree-shakes bare side-effect imports.
+ * self-registration side effect) is evaluated. Now optional: `CnDashboardPage`
+ * and `CnDetailPage` import this module themselves, and a second call changes
+ * nothing because the module body runs once.
  *
  * @return {void}
  */

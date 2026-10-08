@@ -10,10 +10,10 @@
 - **files**: `src/components/CnDashboardPage/CnDashboardPage.vue`, `src/components/CnWidgetGrid/registerDashboardWidgets.js`, `src/components/CnPageRenderer/CnPageRenderer.vue`, `package.json`, `src/components/__tests__/CnDashboardPageCatalog.spec.js`
 - **acceptance_criteria**:
   - A fresh module registry that mounts only `CnDashboardPage` renders a `stat` item as `CnStatWidget`
-  - The catalog modules are listed in `sideEffects` and survive a production consumer build, asserted on a built fixture
+  - The catalog modules are listed in `sideEffects` and survive a production consumer build, asserted on a built fixture  (sideEffects entries already present in package.json; built-fixture assertion not run: needs a consumer build)
   - JSDoc on `registerBuiltinDashboardWidgets` says it is now optional
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Registration is idempotent
 - **spec_ref**: `openspec/changes/dashboard-widget-catalog-at-boot/specs/dashboard-page/spec.md#requirement-registration-runs-once`
@@ -22,5 +22,5 @@
   - A second call changes nothing, asserted on the registry size and entries
   - No warning is logged on the second call
   - `npm test` and `npm run build` pass; the getting-started doc drops the mandatory call
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
