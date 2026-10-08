@@ -146,6 +146,8 @@ The canvas never mutates `nodes`. Moves arrive on `@nodes-change` as Vue Flow's 
 | `edge-label-context` | `{ id, event }` | A connection's label was right-clicked. Hosts open the same menu they open for the line. |
 | `canvas-click` | The pointer event | Empty pane was clicked. Consumers usually clear selection. |
 | `node-remove` | `id` | Delete or Backspace was pressed on a focused node. The canvas removes **nothing** — you own `nodes` and `edges`, and a node dropped without its edges leaves lines pointing at something that is gone. Not raised on a read-only canvas. |
+| `node-activate` | `id` | Enter or Space was pressed on a focused node. Open the step, as you would on a double-click. Not raised on a read-only canvas. |
+| `node-menu` | `{ id, clientX, clientY }` | Shift+F10 or the menu key was pressed on a focused node. The point is at the node, so a menu placed by click coordinates lands on it. Not raised on a read-only canvas. |
 
 ## Slots
 
@@ -184,6 +186,7 @@ A drag-only canvas is not keyboard-operable — it fails WCAG 2.1 AA 2.1.1, and 
 - **`r` toggles resize mode** on a resizable node, so the same arrow keys serve both. The pointer affordance is `@vue-flow/node-resizer`'s, which has no keyboard path of its own.
 - **`c` connects without a mouse**: press it on a focused node to arm an exit, `c` on another node to complete, `Escape` to cancel. Pressing `c` again on the *same* node steps through its remaining exits — a mouse picks a branch by pointing at it, and without stepping every branch but the first would be mouse-only. The armed port is **ringed** and marked `aria-pressed`; colour alone is not a state.
 - **Delete and Backspace** both remove a focused node, because which one deletes is a platform habit rather than a preference.
+- **Enter or Space** on a focused node raises `node-activate`, the keyboard double-click. **Shift+F10 or the menu key** raises `node-menu` with a point at the node, the keyboard click. Both only for a key pressed on the node itself: a port inside it keeps its own keys.
 - A connection's label is a real `<button>`, and **left/right arrows slide it** along its line.
 - `aria-label` comes from the node's `data.label`, falling back to its `id`.
 - The zoom/fit controls are **ours**, not `@vue-flow/controls` — the library's are bare buttons with an icon and no accessible name, which axe reports at *serious* impact.
