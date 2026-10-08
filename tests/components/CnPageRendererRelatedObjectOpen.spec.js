@@ -114,12 +114,24 @@ describe('CnPageRenderer.onRelatedObjectOpen', () => {
 		expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('opens nowhere'))
 	})
 
-	it('does nothing when the object carries no register, schema or id', async () => {
+	it('does nothing, silently, when the object carries no register, schema or id', async () => {
 		const { wrapper, push } = mountAt('ModuleDetail')
 		await wrapper.vm.onRelatedObjectOpen({ name: 'no self block' })
 		await wrapper.vm.onRelatedObjectOpen({ '@self': { register: '20', schema: 'organization' } })
 		expect(push).not.toHaveBeenCalled()
 		expect(mockGet).not.toHaveBeenCalled()
+		expect(console.warn).not.toHaveBeenCalled()
+	})
+
+	it('warns and does nothing when the router lacks the detail page route', async () => {
+		const push = jest.fn(() => Promise.resolve())
+		const wrapper = shallowMount(CnPageRenderer, {
+			propsData: { manifest, pageTypes },
+			mocks: { $route: { name: 'ModuleDetail', params: { id: 'app-1' } }, $router: { push, hasRoute: () => false } },
+		})
+		await wrapper.vm.onRelatedObjectOpen({ '@self': { id: 'org-9', register: '20', schema: 'organization' } })
+		expect(push).not.toHaveBeenCalled()
+		expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('not a route the router has'))
 	})
 
 	it('retries a describe that failed instead of pinning the click to nowhere', async () => {

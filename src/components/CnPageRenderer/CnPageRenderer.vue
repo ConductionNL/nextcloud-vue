@@ -175,17 +175,20 @@
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('header-actions')"
 				:widgets="widgetsBySlot.get('header-actions')"
-				slotName="header-actions" />
+				slotName="header-actions"
+				@selectObject="onRelatedObjectOpen" />
 			<!-- footer slot -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('footer')"
 				:widgets="widgetsBySlot.get('footer')"
-				slotName="footer" />
+				slotName="footer"
+				@selectObject="onRelatedObjectOpen" />
 			<!-- modal slot -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('modal')"
 				:widgets="widgetsBySlot.get('modal')"
-				slotName="modal" />
+				slotName="modal"
+				@selectObject="onRelatedObjectOpen" />
 			<!-- sidebar slot (gated by cnPageSidebarVisible) -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('sidebar') && pageSidebarVisibleValue"
@@ -196,7 +199,8 @@
 			<template v-for="dynamicSlot in dynamicSlotKeys" :key="dynamicSlot">
 				<CnWidgetGrid
 					:widgets="widgetsBySlot.get(dynamicSlot)"
-					:slotName="dynamicSlot" />
+					:slotName="dynamicSlot"
+					@selectObject="onRelatedObjectOpen" />
 			</template>
 		</template>
 

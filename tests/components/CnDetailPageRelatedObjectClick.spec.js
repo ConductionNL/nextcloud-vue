@@ -128,6 +128,28 @@ describe('related-object click forwarding through the templates', () => {
 		expect(push).toHaveBeenCalledWith(expect.objectContaining({ name: 'OrganisatieDetail', params: expect.objectContaining({ id: 'org-9' }) }))
 	})
 
+	it('CnPageRenderer opens the object from a v2 page grid in a tab slot too', async () => {
+		const manifest = {
+			$schema: 'https://conduction.nl/schemas/app-manifest-v2.schema.json',
+			version: '1.0.0',
+			pages: [
+				{ id: 'ModuleDetail', route: '/modules/:id', type: 'detail', title: 'Application', config: { register: '20', schema: 'module' }, widgets: [{ widgetKey: 'related', slot: 'tab:links', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 2 }] },
+				{ id: 'OrganisatieDetail', route: '/organisaties/:id', type: 'detail', title: 'Organisation', config: { register: '20', schema: '33' } },
+			],
+		}
+		const push = jest.fn(() => Promise.resolve())
+		const wrapper = shallowMount(CnPageRenderer, {
+			propsData: { manifest, pageTypes: { detail: { name: 'DetailStub', render: () => h('div') } } },
+			mocks: { $route: { name: 'ModuleDetail', params: { id: 'app-1' } }, $router: { push } },
+		})
+		const grids = wrapper.findAllComponents({ name: 'CnWidgetGrid' })
+		const tabGrid = grids.filter((g) => g.props('slotName') === 'tab:links')
+		expect(tabGrid.length).toBe(1)
+		tabGrid[0].vm.$emit('select-object', raw)
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(push).toHaveBeenCalledWith(expect.objectContaining({ name: 'OrganisatieDetail', params: expect.objectContaining({ id: 'org-9' }) }))
+	})
+
 	it('CnPageRenderer opens the object when the detail page emits related-object-click', async () => {
 		const manifest = {
 			$schema: 'https://conduction.nl/schemas/app-manifest-v2.schema.json',

@@ -282,8 +282,9 @@ same contract as a dead row click on an index page. The click also travels
 up from a Related tab inside a [CnTabsWidget](./cn-tabs-widget.md) (the Tabs
 widget and [CnDetailWidgetHost](./cn-detail-widget-host.md) both re-emit
 `select-object`) and from a v2 widget-grid page, where
-[CnWidgetGrid](./cn-widget-grid.md) re-emits it for its body and sidebar
-slots.
+[CnWidgetGrid](./cn-widget-grid.md) re-emits it from every slot the renderer
+mounts (body, sidebar, header-actions, footer, modal and the `tab:*` /
+`section:*` slots).
 
 ## Live updates on manifest pages
 
