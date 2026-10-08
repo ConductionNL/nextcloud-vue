@@ -156,6 +156,7 @@ export {
 	CnIntegrationWidget,
 	CnIntegrationWidgetGrid,
 	CnItemCard,
+	CnJourneyReviewList,
 	CnJsonViewer,
 	CnKpiGrid,
 	CnLabelWidget,
@@ -514,7 +515,7 @@ export { cnFetch, cnFetchJson, CnHttpError } from './utils/cnFetch.js'
 // CnLockIndicator, CnObjectCard and CnDataTable, and available to apps that
 // need the same answer without rendering a padlock.
 export { isLockedByCurrentUser, isObjectLocked, lockHolder, readLockPayload, resolveObjectLock } from './utils/objectLock.js'
-export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, formatValue, validateValue } from './utils/index.js'
+export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, findRepeatingWrite, formatValue, journeyItemTargets, validateValue } from './utils/index.js'
 export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, PREFILL_KEY, splitDynamicFormData, usesArrayValues, valueArrayFor, valueRecordsFor } from './utils/index.js'
 // The OpenRegister schema API contract — shared so Buildiq and OpenRegister cannot
 // drift on what a 409 means (breaking change / schema still has objects).

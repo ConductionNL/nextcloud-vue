@@ -1505,6 +1505,13 @@
 			"via": [],
 			"page": "cn-item-card"
 		},
+		"CnJourneyReviewList": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-journey-review-list"
+		},
 		"CnJsonViewer": {
 			"direct": 0,
 			"transitive": 0,

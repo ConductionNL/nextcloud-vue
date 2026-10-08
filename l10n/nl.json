@@ -1,5 +1,13 @@
 {
   "translations": {
+    "Nothing chosen.": "Niets gekozen.",
+    "Filed as {type}": "Ingediend als {type}",
+    "This product cannot be filed.": "Dit product kan niet worden ingediend.",
+    "Change {name}": "{name} wijzigen",
+    "Change": "Wijzigen",
+    "product": "product",
+    "products": "producten",
+    "Each {noun} becomes its own request.": "Elk {noun} wordt een eigen aanvraag.",
     "Unit": "Eenheid",
     "minutes": "minuten",
     "hours": "uren",

@@ -1,5 +1,13 @@
 {
   "translations": {
+    "Nothing chosen.": "Nothing chosen.",
+    "Filed as {type}": "Filed as {type}",
+    "This product cannot be filed.": "This product cannot be filed.",
+    "Change {name}": "Change {name}",
+    "Change": "Change",
+    "product": "product",
+    "products": "products",
+    "Each {noun} becomes its own request.": "Each {noun} becomes its own request.",
     "Unit": "Unit",
     "minutes": "minutes",
     "hours": "hours",
