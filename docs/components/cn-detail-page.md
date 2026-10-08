@@ -225,6 +225,7 @@ The tabless address is corrected with `replace`, not `push`, so the back button 
 | `transitioned` | `{ action, to, object }` | A declarative lifecycle transition (from `lifecycleActions`) succeeded on this page's object. |
 | `relation-linked` | `object` | A `relationLinks` action patched a foreign key on this page's object; payload is the updated object. |
 | `related-row-click` | `{ collection, row, index }` | A row in a `relatedCollections` section was clicked. |
+| `related-object-click` | `object` | An object in the Related widget was clicked. Payload is the raw object; `@self` carries its register, schema and id. On a manifest page [CnPageRenderer](./cn-page-renderer.md) opens the matching detail page. |
 | `layout-change` | `Array` | A widget in the body grid was dragged or resized in edit mode. Payload is the updated layout array. The sibling `update:layout` event fires with the same payload so an explicit-layout page can use `:layout.sync`. |
 | `widget-config-change` | `object \| null` | A body-grid widget's config was saved via the cog editor (the widget def), or the widget was removed (`null`). |
 | `next-record` | `{ event, to }` \| none | The reader asked for the next record of the list this one was opened from. With `nextTo` set the link has navigated already and the payload is `{ event, to }`; without it there is no payload and the host steps. |

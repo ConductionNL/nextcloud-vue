@@ -53,6 +53,7 @@ the number of columns is determined by the slot name:
 | Event | Payload | Description |
 | --- | --- | --- |
 | `layout-change` | `Array` | Emitted in editable body mode after a drag/resize, with the updated widget entries. |
+| `select-object` | `object` | An object row in a related widget of this grid was clicked; payload is the raw object. On a manifest page [CnPageRenderer](./cn-page-renderer.md) opens its detail page. |
 
 ## Widget key resolution
 

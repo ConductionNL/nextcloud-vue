@@ -32,7 +32,7 @@
 							:modelValue="entry.enabled"
 							:disabled="entry.saving"
 							@update:modelValue="onToggle(entry, $event)">
-							{{ notificationLabel(entry.notification) }}
+							{{ notificationLabel(entry) }}
 						</NcCheckboxRadioSwitch>
 						<NcButton v-if="entry.source === 'user-override'"
 							variant="tertiary"
@@ -49,7 +49,7 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { translate as t } from '@nextcloud/l10n'
+import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 /**
  * CnNotificationPreferences
@@ -82,6 +82,7 @@ import { generateUrl } from '@nextcloud/router'
 import { NcAppSettingsSection, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import BellOffOutline from 'vue-material-design-icons/BellOffOutline.vue'
 import BellOutline from 'vue-material-design-icons/BellOutline.vue'
+import { notificationRuleLabel } from '../../utils/notificationRuleLabel.js'
 
 const PREFS_PATH = '/apps/openregister/api/notification-preferences'
 
@@ -106,6 +107,28 @@ export default {
 		 * than an always-empty pane.
 		 */
 		cnAppId: { default: () => '' },
+		/**
+		 * App-supplied labels for its notification rules, provided by the
+		 * CnAppRoot ancestor from its `notificationLabels` prop. Keyed
+		 * `<schema>.<key>` or `<key>`.
+		 */
+		cnNotificationLabels: { default: () => ({}) },
+	},
+
+	props: {
+		/**
+		 * Labels for the notification rules, keyed `<schema>.<key>` or
+		 * `<key>`; values are strings or per-locale maps (`{ nl, en }`).
+		 * Optional: inside CnAppRoot the app's `notificationLabels` arrive by
+		 * inject, and a rule without a label still reads as words, never as
+		 * its raw key. A prop given here wins over the injected map.
+		 *
+		 * @spec openspec/changes/notification-rule-labels-and-runtime-version/specs/notification-preferences/spec.md
+		 */
+		labels: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	data() {
@@ -231,18 +254,43 @@ export default {
 		},
 
 		/**
-		 * Human-readable label for a notification key, falling back to the key.
+		 * Human-readable label for a notification rule. Never the raw key: the
+		 * rule's own label, then the app's, then the library's wording for the
+		 * generic keys, then the key split into words.
 		 *
-		 * @param {string} key The notification annotation key.
+		 * @param {object} entry The preference row.
 		 * @return {string} A display label.
+		 *
+		 * @spec openspec/changes/notification-rule-labels-and-runtime-version/specs/notification-preferences/spec.md
 		 */
-		notificationLabel(key) {
+		notificationLabel(entry) {
 			const known = {
 				object_created: t('nextcloud-vue', 'When an item is created'),
 				object_updated: t('nextcloud-vue', 'When an item is updated'),
 				object_transitioned: t('nextcloud-vue', 'When an item is assigned or changes status'),
 			}
-			return known[key] || key
+			const language = this.currentLanguage()
+			const injected = typeof this.cnNotificationLabels === 'function'
+				? this.cnNotificationLabels()
+				: this.cnNotificationLabels
+			return notificationRuleLabel(entry, {
+				labels: { ...(injected || {}), ...(this.labels || {}) },
+				known,
+				language,
+			})
+		},
+
+		/**
+		 * The person's language, `en` when it cannot be read.
+		 *
+		 * @return {string} The language code.
+		 */
+		currentLanguage() {
+			try {
+				return (typeof getLanguage === 'function' && getLanguage()) || 'en'
+			} catch {
+				return 'en'
+			}
 		},
 
 		/**

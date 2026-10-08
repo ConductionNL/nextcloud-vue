@@ -454,7 +454,8 @@
 						:cnRegistry="cnRegistry"
 						:availableWidgets="widgets"
 						@geoSaved="onGeoSaved"
-						@openIntegration="onAutoBodyOpenIntegration" />
+						@openIntegration="onAutoBodyOpenIntegration"
+						@selectObject="onRelatedObjectSelect" />
 				</slot>
 			</div>
 		</div>
@@ -764,7 +765,8 @@
 								:cnRegistry="cnRegistry"
 								:availableWidgets="bodyGridWidgets"
 								@geoSaved="onGeoSaved"
-								@openIntegration="onAutoBodyOpenIntegration" />
+								@openIntegration="onAutoBodyOpenIntegration"
+								@selectObject="onRelatedObjectSelect" />
 						</slot>
 					</div>
 				</template>
@@ -975,7 +977,8 @@
 						:cnRegistry="cnRegistry"
 						:availableWidgets="widgets"
 						@geoSaved="onGeoSaved"
-						@openIntegration="onAutoBodyOpenIntegration" />
+						@openIntegration="onAutoBodyOpenIntegration"
+						@selectObject="onRelatedObjectSelect" />
 				</slot>
 			</div>
 		</aside>
@@ -2334,6 +2337,7 @@ export default {
 		'layout-change',
 		'open-integration',
 		'refresh',
+		'related-object-click',
 		'related-row-click',
 		'relation-linked',
 		'request-feature',
@@ -4313,6 +4317,23 @@ export default {
 			 * @type {string}
 			 */
 			this.$emit('open-integration', integrationId)
+		},
+
+		/**
+		 * Re-emit a click on an object in the Related widget. The page does not
+		 * know the routes; the host (CnPageRenderer on a manifest page) opens
+		 * the object's own detail page.
+		 *
+		 * @param {object} raw The clicked object; `@self` names its register and schema.
+		 */
+		onRelatedObjectSelect(raw) {
+			/**
+			 * @event related-object-click An object in the Related widget was
+			 * clicked. Payload is the raw object; `@self` carries its register,
+			 * schema and id.
+			 * @type {object}
+			 */
+			this.$emit('related-object-click', raw)
 		},
 
 		/**
