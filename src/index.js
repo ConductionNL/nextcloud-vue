@@ -273,6 +273,7 @@ export {
 	CnTabsWidget,
 	CnTabsWidgetForm,
 	CnTagsCard,
+	CnTaskFormDialog,
 	CnTasksCard,
 	CnTasksWidget,
 	CnTasksWidgetForm,

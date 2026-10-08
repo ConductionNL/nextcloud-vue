@@ -70,7 +70,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { fileContentUrl, previewKindOf } from '../../composables/useFileOpener.js'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { parseDelimited } from '../../utils/parseDelimited.js'
 
 /**
@@ -231,7 +231,7 @@ export default {
 				return
 			}
 			try {
-				const response = await fetch(url, {
+				const response = await fetch(prefixUrl(url), {
 					headers: { ...buildHeaders(null), Range: `bytes=0-${this.maxBytes - 1}` },
 					credentials: 'same-origin',
 				})

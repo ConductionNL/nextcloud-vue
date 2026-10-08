@@ -15,4 +15,13 @@ You rarely mount it yourself: [`CnFilesTab`](./cn-object-sidebar.md), [`CnFilesC
 
 The file needs a content URL (`accessUrl`, `downloadUrl` or `url`, validated by `safeHref`). `id` enables Open in Files; `size` lets the row count say "about N rows" for a long file.
 
+## Props
+
+| Prop | Default | Description |
+|------|---------|-------------|
+| `file` | required | The file row. |
+| `maxRows` (`max-rows`) | `100` | Rows shown for a CSV or TSV, the header excluded. |
+| `maxBytes` (`max-bytes`) | `1048576` | Bytes fetched at most. |
+| `dialog` | `true` | Wrap the preview in a dialog; `false` embeds it. |
+
 <GeneratedRef />

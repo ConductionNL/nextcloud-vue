@@ -568,7 +568,7 @@
 			<NcButton
 				v-if="result === null"
 				variant="primary"
-				:disabled="loading || !requiredFieldsFilled || !jsonFieldsValid"
+				:disabled="loading || confirmDisabled || !requiredFieldsFilled || !jsonFieldsValid"
 				@click="executeConfirm">
 				<template #icon>
 					<NcLoadingIcon v-if="loading" :size="20" />
@@ -1074,6 +1074,12 @@ export default {
 		confirmLabel: {
 			type: String,
 			default: '',
+		},
+
+		/** Keep the Confirm button disabled regardless of the form state, for a host that knows the form cannot be completed. */
+		confirmDisabled: {
+			type: Boolean,
+			default: false,
 		},
 	},
 

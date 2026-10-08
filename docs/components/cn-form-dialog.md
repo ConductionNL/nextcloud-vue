@@ -41,6 +41,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `cancelLabel` | String | | |
 | `closeLabel` | String | | |
 | `confirmLabel` | String | | |
+| `confirmDisabled` | Boolean | `false` | Keep the Confirm button disabled regardless of the form state, for a host that knows the form cannot be completed (used by `CnTaskFormDialog` when a required declared field is broken). |
 | `referenceContext` (`reference-context`) | Object \| null | `null` | Object context `{ register, schema, objectId }` forwarded to the integration single-entity widget rendered for fields that declare a `referenceType` (AD-18). Optional. |
 | `recoverDraft` (`recover-draft`) | Boolean | `true` | Keep what the user typed and offer it back when this form reopens. Local only: nothing reaches the server until they save. On by default, because it changes nothing they did not type and the case it solves is a closed tab. |
 | `allowDraft` (`allow-draft`) | Boolean | `false` | Offer a "Save draft" button that stores the record with a draft marker instead of validating it. Inert unless the schema declares `draftField`: a button writing a property the schema does not declare would have OpenRegister drop it in silence, and the record would come back looking published. |
