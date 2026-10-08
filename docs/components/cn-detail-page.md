@@ -79,6 +79,7 @@ A record page can carry forty actions in one menu, and then nobody finds the one
 | `nextStep` | Object \| null | `null` | The "what now" card above the body: `{ field?, stages: { <stage>: { title?, checklist, after? } } }`. See [CnNextStepCard](./cn-next-step-card.md). |
 | `typePill` | Object \| null | `null` | A pill above the title: `{ field, colorMap?, labels?, variant? }`, rendered through [CnStatusBadge](./cn-status-badge.md). |
 | `statusPill` | Object \| null | `null` | A second pill, same shape, for where the record stands. |
+| `headerFields` | Array | `[]` | Fields shown as chips under the title (manifest `config.headerFields`). Each entry is a property key, or `{ key, format, labelField, colorField, warnWhenPast }`; `format` is `text` (default), `mono`, `badge`, `user` or `date`. A `$ref` value shows `labelField` of the referenced object and falls back to the raw id in mono; a badge maps `colorField` (`success`, `warning`, `error`, `info`, `neutral`) to a variant; `warnWhenPast` gives a past date the error variant. An empty value shows no chip, a page without the key shows no row. Each chip reads "Title: value" to a screen reader, and the row prints as plain text. |
 | `sideColumn` | Array | `[]` | A column of cards beside the body. An entry is a widget definition or the id of a widget in `widgets`. |
 | `isAdmin` | Boolean \| null | `null` | Whether the viewer administers this instance, for `adminOnly` actions. `null` reads it from Nextcloud. |
 

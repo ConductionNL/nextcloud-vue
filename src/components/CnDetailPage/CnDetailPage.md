@@ -424,6 +424,7 @@ Four levels of action and the case surfaces around them. All opt in. See [the re
 | `nextStep` | Object \| null | `null` | The "what now" card per stage, rendered by `CnNextStepCard`. |
 | `typePill` | Object \| null | `null` | `{ field, colorMap?, labels?, variant? }`, a pill above the title. |
 | `statusPill` | Object \| null | `null` | A second pill, same shape. |
+| `headerFields` | Array | `[]` | Fields shown as chips under the title (manifest `config.headerFields`). Each entry is a property key, or `{ key, format, labelField, colorField, warnWhenPast }`; `format` is `text` (default), `mono`, `badge`, `user` or `date`. A `$ref` value shows `labelField` of the referenced object and falls back to the raw id in mono; a badge maps `colorField` (`success`, `warning`, `error`, `info`, `neutral`) to a variant; `warnWhenPast` gives a past date the error variant. An empty value shows no chip, a page without the key shows no row. Each chip reads "Title: value" to a screen reader, and the row prints as plain text. |
 | `sideColumn` | Array | `[]` | Widget definitions or widget ids, rendered as a column of cards beside the body. |
 | `isAdmin` | Boolean \| null | `null` | Shows `adminOnly` header actions. `null` reads it from Nextcloud. |
 

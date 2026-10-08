@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.54.0",
+	"version": "2.55.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -3105,6 +3105,27 @@
 					"additionalProperties": true,
 					"allOf": [{ "$ref": "#/$defs/sentinelGuardedValue" }],
 					"properties": {
+						"headerFields": {
+							"type": "array",
+							"description": "Detail pages: fields shown as chips under the title (number, status, assignee, deadline). Each entry is a property key, or an object { key, format, labelField, colorField, warnWhenPast }. `format` is text (default), mono, badge, user or date. A `$ref` value shows `labelField` of the referenced object and falls back to the raw id in mono. An empty value shows no chip; a page without the key shows no row.",
+							"items": {
+								"oneOf": [
+									{ "type": "string", "minLength": 1 },
+									{
+										"type": "object",
+										"required": ["key"],
+										"additionalProperties": false,
+										"properties": {
+											"key": { "type": "string", "minLength": 1 },
+											"format": { "enum": ["text", "mono", "badge", "user", "date"] },
+											"labelField": { "type": "string" },
+											"colorField": { "type": "string" },
+											"warnWhenPast": { "type": "boolean" }
+										}
+									}
+								]
+							}
+						},
 						"searchInFiles": {
 							"type": "boolean",
 							"description": "Index pages: show an \"Also search inside files\" switch beside the search box. On, the list query carries `_content_search=true` with a search term, and a row found through an attached file shows \"Found in {file}\". Default false."

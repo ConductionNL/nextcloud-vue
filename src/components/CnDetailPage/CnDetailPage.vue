@@ -136,6 +136,14 @@
 						<p v-if="description" class="cn-detail-page__description">
 							{{ resolvedDescription }}
 						</p>
+						<!-- Identifying field chips (manifest `config.headerFields`):
+						     number, status, assignee, deadline. Absent without the key. -->
+						<CnDetailHeaderChips
+							v-if="headerFields.length > 0"
+							:fields="headerFields"
+							:object="resolvedObject"
+							:schema="currentSchema"
+							:register="register" />
 						<!-- Declarative cross-schema summary chips (manifest
 						     `config.summaryAggregates`). Count/sum/avg over a
 						     related schema scoped to this object via @objectId. -->
@@ -1117,6 +1125,7 @@ import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.v
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
+import CnDetailHeaderChips from './CnDetailHeaderChips.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectPresence } from '../../composables/useObjectPresence.js'
@@ -1302,6 +1311,7 @@ export default {
 		CnBreadcrumbs,
 		CnStatusBadge,
 		CnSummaryAggregates,
+		CnDetailHeaderChips,
 		CnRelatedCollections,
 		CnBodySections,
 		CnTranslatedBadge,
@@ -2220,6 +2230,19 @@ export default {
 		statusPill: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Fields shown as chips under the title (manifest `config.headerFields`):
+		 * each entry a property key, or `{ key, format, labelField, colorField,
+		 * warnWhenPast }`. `format` is `text` (default), `mono`, `badge`, `user`
+		 * or `date`. An empty value shows no chip; no row without chips.
+		 *
+		 * @type {Array<string|{key: string, format?: string, labelField?: string, colorField?: string, warnWhenPast?: boolean}>}
+		 */
+		headerFields: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
