@@ -214,6 +214,7 @@ export {
 	CnObjectMetadataModal,
 	CnObjectMetadataWidget,
 	CnObjectPresenceWidget,
+	CnObjectFilesWidget,
 	CnObjectRow,
 	CnObjectSidebar,
 	CnOfflineQueue,

@@ -1229,7 +1229,12 @@
     "Back": "Back",
     "Some items cannot be filed. Change them to continue.": "Some items cannot be filed. Change them to continue.",
     "Submitting failed. Try again.": "Submitting failed. Try again.",
-    "Journey": "Journey"
+    "Journey": "Journey",
+    "Save this record to add files.": "Save this record to add files.",
+    "No files yet. Drop a file here to add it.": "No files yet. Drop a file here to add it.",
+    "Delete {name}": "Delete {name}",
+    "The files could not be updated. Try again.": "The files could not be updated. Try again.",
+    "Upload file": "Upload file"
   },
   "plurals": {
     "%n year": [

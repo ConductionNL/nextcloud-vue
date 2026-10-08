@@ -1280,7 +1280,12 @@
     "Back": "Terug",
     "Some items cannot be filed. Change them to continue.": "Een of meer onderdelen kunnen niet worden ingediend. Wijzig ze om verder te gaan.",
     "Submitting failed. Try again.": "Versturen is mislukt. Probeer het opnieuw.",
-    "Journey": "Reis"
+    "Journey": "Reis",
+    "Save this record to add files.": "Sla dit record op om bestanden toe te voegen.",
+    "No files yet. Drop a file here to add it.": "Nog geen bestanden. Sleep een bestand hierheen om het toe te voegen.",
+    "Delete {name}": "{name} verwijderen",
+    "The files could not be updated. Try again.": "De bestanden konden niet worden bijgewerkt. Probeer het opnieuw.",
+    "Upload file": "Bestand uploaden"
   },
   "plurals": {
     "%n year": [

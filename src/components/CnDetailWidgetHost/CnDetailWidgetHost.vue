@@ -240,6 +240,7 @@ import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnLeafMountHost from '../CnLeafMountHost/CnLeafMountHost.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
+import CnObjectFilesWidget from '../CnObjectFilesWidget/CnObjectFilesWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
@@ -664,6 +665,12 @@ export default {
 		 * @return {object|null} The component, or null.
 		 */
 		renderer() {
+			// A `files` widget on a detail page belongs to THIS object's folder; the
+			// placement-folder CnFilesWidget stays the dashboard widget. A consumer
+			// registry entry for `files` still wins.
+			if (this.widget && this.widget.type === 'files' && !(this.cnRegistry && this.cnRegistry.files) && this.register && this.schema) {
+				return CnObjectFilesWidget
+			}
 			return resolveRegistryRenderer(this.widget, this.cnRegistry)
 		},
 
