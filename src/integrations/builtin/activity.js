@@ -51,6 +51,8 @@ export const activityIntegration = {
 	referenceType: 'activity',
 	tab: CnActivityTab,
 	widget: CnActivityCard,
+	// The detail page and a manifest grid get the full merged feed (kind chips, reads toggle, range, export) as a widget, so the page can drop its separate audit and version tabs.
+	widgetExpanded: CnActivityTab,
 	defaultSize: { w: 3, h: 3 },
 }
 

@@ -1273,7 +1273,14 @@
     "Group {name}": "Group {name}",
     "Replying to {author}": "Replying to {author}",
     "Note by {author} and its replies": "Note by {author} and its replies",
-    "Reply to {author}": "Reply to {author}"
+    "Reply to {author}": "Reply to {author}",
+    "Kinds of activity": "Kinds of activity",
+    "Show reads": "Show reads",
+    "Until": "Until",
+    "Changes": "Changes",
+    "Mail": "Mail",
+    "Activity": "Activity",
+    "Could not export activity.": "Could not export activity."
   },
   "plurals": {
     "%n year": [

@@ -1324,7 +1324,14 @@
     "Group {name}": "Groep {name}",
     "Replying to {author}": "Antwoord aan {author}",
     "Note by {author} and its replies": "Notitie van {author} en de reacties erop",
-    "Reply to {author}": "Reageren op {author}"
+    "Reply to {author}": "Reageren op {author}",
+    "Kinds of activity": "Soorten activiteit",
+    "Show reads": "Lezen tonen",
+    "Until": "Tot",
+    "Changes": "Wijzigingen",
+    "Mail": "E-mail",
+    "Activity": "Activiteit",
+    "Could not export activity.": "Activiteit kon niet worden geëxporteerd."
   },
   "plurals": {
     "%n year": [

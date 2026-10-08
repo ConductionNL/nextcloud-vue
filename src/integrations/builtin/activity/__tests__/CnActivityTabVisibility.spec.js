@@ -7,7 +7,7 @@
 const { flushPromises, mount } = require('@vue/test-utils')
 const CnActivityTab = require('../CnActivityTab.vue').default
 
-const PROPS = { objectId: 'o1', register: 'reg', schema: 'sch' }
+const PROPS = { objectId: 'o1', register: 'reg', schema: 'sch', legacyFeed: true }
 const entry = (id, extra = {}) => ({ id, type: 'comment', subject: `Entry ${id}`, actor_id: 'alice', timestamp: Math.floor(Date.now() / 1000), ...extra })
 const ok = (body) => ({ ok: true, status: 200, json: () => Promise.resolve(body) })
 

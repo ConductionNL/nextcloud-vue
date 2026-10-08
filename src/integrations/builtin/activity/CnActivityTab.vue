@@ -1,7 +1,15 @@
 <!--
   CnActivityTab — bespoke sidebar tab for the `activity` integration.
 
-  Renders a chronological timeline of NC Activity events grouped by day,
+  Reads OpenRegister's MERGED activity feed (audit trail, NC Activity, files,
+  notes, mail) for the object, paged on the feed's time cursor, with a chip
+  per kind (a kind with no rows still shows, reading 0), reads off by default
+  (the reader's choice is remembered per user), a from/until date range and
+  an export of what is on screen. The wire names are in `activityFeedWire.js`.
+  A server without the merged feed (404/405/501) makes the tab fall back to
+  the single-source mode described below, which `legacyFeed` also selects.
+
+  Single-source mode: renders a chronological timeline of NC Activity events grouped by day,
   with a type icon + actor + subject text + relative timestamp per row.
 
   Tier-2 surface (read-only — NC Activity entries are core-generated):
@@ -36,8 +44,28 @@
 		</div>
 
 		<div v-if="!degraded" class="cn-activity-tab__filters">
+			<!-- Merged feed: one chip per kind. A kind with no rows keeps its chip, reading 0: gone would say the kind does not exist on this object. -->
+			<div
+				v-if="!legacy"
+				class="cn-activity-tab__kinds"
+				role="group"
+				:aria-label="kindsGroupLabel"
+				data-testid="cn-activity-kinds">
+				<button
+					v-for="kind in feedKinds"
+					:key="kind"
+					type="button"
+					class="cn-activity-tab__kind"
+					:class="{ 'cn-activity-tab__kind--active': selectedKinds.includes(kind) }"
+					:aria-pressed="String(selectedKinds.includes(kind))"
+					:data-testid="`cn-activity-kind-${kind}`"
+					@click="toggleKind(kind)">
+					{{ kindLabel(kind) }}
+					<span class="cn-activity-tab__kind-count" :data-testid="`cn-activity-kind-count-${kind}`">{{ kindCount(kind) }}</span>
+				</button>
+			</div>
 			<div class="cn-activity-tab__filter-row">
-				<label class="cn-activity-tab__filter">
+				<label v-if="legacy" class="cn-activity-tab__filter">
 					<span class="cn-activity-tab__filter-label">{{ typeLabel }}</span>
 					<select
 						v-model="selectedType"
@@ -78,6 +106,14 @@
 					</select>
 				</label>
 			</div>
+			<label v-if="!legacy" class="cn-activity-tab__reads">
+				<input
+					type="checkbox"
+					:checked="showReads"
+					data-testid="cn-activity-reads"
+					@change="setShowReads($event.target.checked)">
+				{{ showReadsLabel }}
+			</label>
 			<div class="cn-activity-tab__range" role="group" :aria-label="rangeGroupLabel">
 				<button
 					v-for="range in ranges"
@@ -89,13 +125,43 @@
 					{{ range.label }}
 				</button>
 			</div>
+			<!-- The range kept as a range: from and until, which is what the feed takes. -->
+			<div v-if="!legacy" class="cn-activity-tab__dates">
+				<label class="cn-activity-tab__filter">
+					<span class="cn-activity-tab__filter-label">{{ fromLabel }}</span>
+					<input
+						type="date"
+						class="cn-activity-tab__select"
+						:value="fromDate"
+						data-testid="cn-activity-from"
+						@change="setDate('fromDate', $event.target.value)">
+				</label>
+				<label class="cn-activity-tab__filter">
+					<span class="cn-activity-tab__filter-label">{{ untilLabel }}</span>
+					<input
+						type="date"
+						class="cn-activity-tab__select"
+						:value="untilDate"
+						data-testid="cn-activity-until"
+						@change="setDate('untilDate', $event.target.value)">
+				</label>
+			</div>
+			<!-- The export is what is on screen: these rows and these filters, nothing re-queried. -->
+			<NcButton
+				v-if="!legacy"
+				variant="tertiary"
+				:disabled="visibleEntries.length === 0 || exporting"
+				data-testid="cn-activity-export"
+				@click="exportFeed">
+				{{ exportLabel }}
+			</NcButton>
 		</div>
 
 		<NcLoadingIcon v-if="loading && entries.length === 0" />
 		<div v-else-if="error" class="cn-activity-tab__error" role="alert">
 			{{ error }}
 		</div>
-		<div v-else-if="entries.length === 0" class="cn-sidebar-tab__empty cn-activity-tab__empty">
+		<div v-else-if="visibleEntries.length === 0" class="cn-sidebar-tab__empty cn-activity-tab__empty">
 			<Timeline :size="32" class="cn-activity-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
 		</div>
@@ -177,19 +243,27 @@ import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue
 import CalendarClockOutline from 'vue-material-design-icons/CalendarClockOutline.vue'
 import CalendarOutline from 'vue-material-design-icons/CalendarOutline.vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
+import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import Timeline from 'vue-material-design-icons/Timeline.vue'
 import CnVisibilityChip from '../../../components/CnVisibilityChip/CnVisibilityChip.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { ACTIVITY_FEED_KINDS, exportBody, feedPath, feedQuery, isReadRow, parseFeed } from './activityFeedWire.js'
 
 const DEFAULT_PAGE_SIZE = 25
+const READS_PREFERENCE_KEY = 'activity.showReads'
 const SECONDS_PER_DAY = 86400
 
 /**
  * CnActivityTab — bespoke chronological timeline for the `activity`
- * integration with type/actor/date filters + cursor pagination.
+ * integration. Reads the merged feed (audit trail, NC Activity, files, notes,
+ * mail) with a chip per kind, a reads toggle that is remembered per user, a
+ * from/until range, an export of what is on screen, and cursor pagination on
+ * the feed's time cursor. In `legacyFeed` mode (or against a server without
+ * the merged feed) it reads the single-source Activity endpoint with type,
+ * actor and date filters, as it did before.
  *
  * Renders activity entries grouped by day (today / yesterday / older
  * dates), with type icons, actor name, and a relative timestamp. Reads
@@ -208,6 +282,7 @@ export default {
 		NcLoadingIcon,
 		AlertCircleOutline,
 		CalendarOutline,
+		EmailOutline,
 		Timeline,
 		FileOutline,
 		AccountOutline,
@@ -217,11 +292,16 @@ export default {
 		CalendarClockOutline,
 	},
 
+	inject: {
+		/** The per-user preference group from CnAppRoot, so "show reads" is remembered. */
+		cnUserPreferences: { default: null },
+	},
+
 	props: {
-		/* eslint-disable vue/no-unused-properties -- the integration dispatch binds integrationId on every integration component (see CnIntegrationWidgetGrid), so declaring it keeps it out of $attrs */
+
 		/** Stable integration id (forwarded from the registry — always `'activity'`). */
 		integrationId: { type: String, default: 'activity' },
-		/* eslint-enable vue/no-unused-properties */
+
 		/** Parent object id. */
 		objectId: { type: String, required: true },
 		/** OpenRegister register id (slug or uuid). */
@@ -232,6 +312,12 @@ export default {
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Number of entries per fetch. */
 		pageSize: { type: Number, default: DEFAULT_PAGE_SIZE },
+		/**
+		 * Read the single-source NC Activity endpoint (type, actor, date-range
+		 * filters, no kinds, reads toggle or export) instead of the merged feed.
+		 * The tab also falls back to it by itself when the server has no merged feed.
+		 */
+		legacyFeed: { type: Boolean, default: false },
 		/**
 		 * Show a visibility chip on each row and a visibility filter (all,
 		 * internal, public) that sends `visibility` on the fetch. Off by default,
@@ -252,6 +338,8 @@ export default {
 		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
 	},
 
+	emits: ['exported'],
+
 	data() {
 		return {
 			entries: [],
@@ -261,6 +349,18 @@ export default {
 			selectedActor: '',
 			selectedVisibility: '',
 			selectedRange: 'all',
+			/** The single-source endpoint is in use: chosen by `legacyFeed`, or after the server had no merged feed. */
+			legacy: this.legacyFeed,
+			feedKinds: ACTIVITY_FEED_KINDS,
+			/** Kinds the reader narrowed to; empty = all. */
+			selectedKinds: [],
+			/** Count per kind, as the feed returned it. */
+			kindCounts: {},
+			/** Read entries are shown. Off by default; the reader's choice is remembered per user. */
+			showReads: false,
+			fromDate: '',
+			untilDate: '',
+			exporting: false,
 			cursor: null,
 			loading: false,
 			loadingMore: false,
@@ -277,6 +377,11 @@ export default {
 			allTypesLabel: t('nextcloud-vue', 'All types'),
 			allActorsLabel: t('nextcloud-vue', 'All actors'),
 			rangeGroupLabel: t('nextcloud-vue', 'Date range'),
+			kindsGroupLabel: t('nextcloud-vue', 'Kinds of activity'),
+			showReadsLabel: t('nextcloud-vue', 'Show reads'),
+			fromLabel: t('nextcloud-vue', 'From'),
+			untilLabel: t('nextcloud-vue', 'Until'),
+			exportLabel: t('nextcloud-vue', 'Export'),
 			ranges: [
 				{ key: '24h', label: t('nextcloud-vue', '24h') },
 				{ key: '7d', label: t('nextcloud-vue', '7d') },
@@ -305,9 +410,22 @@ export default {
 			return Math.floor(Date.now() / 1000) - (days * SECONDS_PER_DAY)
 		},
 
+		/**
+		 * The rows on screen: reads are left out unless the reader turned them on.
+		 * Only an audit row can be a read.
+		 *
+		 * @return {object[]} The rows.
+		 */
+		visibleEntries() {
+			if (this.legacy || this.showReads) {
+				return this.entries
+			}
+			return this.entries.filter((entry) => !isReadRow(entry))
+		},
+
 		groupedByDay() {
 			const groups = new Map()
-			for (const entry of this.entries) {
+			for (const entry of this.visibleEntries) {
 				const ts = this.timestampFor(entry)
 				const key = this.dayKey(ts)
 				if (groups.has(key) === false) {
@@ -340,7 +458,27 @@ export default {
 
 	methods: {
 		baseUrl() {
+			if (!this.legacy) {
+				return prefixUrl(feedPath(this.objectAddress()))
+			}
 			return prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/activity`)
+		},
+
+		objectAddress() {
+			return { apiBase: this.apiBase, register: this.register, schema: this.schema, objectId: this.objectId }
+		},
+
+		/** @return {object} The filters the tab is showing, in the feed's terms. */
+		feedFilters() {
+			return {
+				kinds: this.selectedKinds,
+				from: this.fromDate ? new Date(`${this.fromDate}T00:00:00`).toISOString() : '',
+				until: this.untilDate ? new Date(`${this.untilDate}T23:59:59.999`).toISOString() : '',
+				reads: this.showReads,
+				actor: this.selectedActor,
+				visibility: this.showVisibility ? (this.publicViewOnly ? 'public' : this.selectedVisibility) : '',
+				limit: this.pageSize,
+			}
 		},
 
 		dropdownUrl(kind) {
@@ -349,6 +487,9 @@ export default {
 		},
 
 		buildQuery() {
+			if (!this.legacy) {
+				return feedQuery({ ...this.feedFilters(), cursor: this.cursor })
+			}
 			const params = new URLSearchParams()
 			params.set('limit', String(this.pageSize))
 			if (this.selectedType) {
@@ -377,7 +518,7 @@ export default {
 		},
 
 		timestampFor(entry) {
-			const raw = entry.timestamp ?? entry.datetime ?? entry.created ?? entry.creationDateTime ?? null
+			const raw = entry.timestamp ?? entry.datetime ?? entry.time ?? entry.at ?? entry.created ?? entry.creationDateTime ?? null
 			if (raw === null || raw === undefined || raw === '') {
 				return null
 			}
@@ -442,11 +583,11 @@ export default {
 		},
 
 		subjectFor(entry) {
-			return entry.subject_rich ?? entry.subjectRich ?? entry.subject ?? entry.title ?? ''
+			return entry.subject_rich ?? entry.subjectRich ?? entry.subject ?? entry.summary ?? entry.title ?? ''
 		},
 
 		actorFor(entry) {
-			return entry.actor_id ?? entry.actorDisplayName ?? entry.user ?? entry.affecteduser ?? t('nextcloud-vue', 'System')
+			return entry.actor_id ?? entry.actorDisplayName ?? entry.actor ?? entry.user ?? entry.affecteduser ?? t('nextcloud-vue', 'System')
 		},
 
 		/**
@@ -458,7 +599,7 @@ export default {
 		 * @return {string} NC user id, or ''.
 		 */
 		avatarUser(entry) {
-			const id = entry.actor_id ?? entry.user ?? entry.affecteduser ?? ''
+			const id = entry.actor_id ?? entry.actor ?? entry.user ?? entry.affecteduser ?? ''
 			return typeof id === 'string' ? id : ''
 		},
 
@@ -485,6 +626,10 @@ export default {
 		},
 
 		iconFor(entry) {
+			const byKind = { file: 'FileOutline', note: 'CommentTextOutline', mail: 'EmailOutline', audit: 'Timeline', activity: 'Timeline' }[entry.kind]
+			if (byKind) {
+				return byKind
+			}
 			const type = String(entry.type ?? '').toLowerCase()
 			if (type.includes('file') || type.includes('upload') || type.includes('change')) {
 				return 'FileOutline'
@@ -512,7 +657,144 @@ export default {
 				return
 			}
 			this.selectedRange = key
+			if (!this.legacy) {
+				// A preset is a from date; until stays open.
+				const days = { '24h': 1, '7d': 7, '30d': 30 }[key]
+				this.fromDate = days ? this.localDate(new Date(Date.now() - (days * SECONDS_PER_DAY * 1000))) : ''
+				this.untilDate = ''
+			}
 			this.resetAndFetch()
+		},
+
+		/**
+		 * @param {Date} date A date.
+		 * @return {string} `YYYY-MM-DD` in local time.
+		 */
+		localDate(date) {
+			const pad = (n) => String(n).padStart(2, '0')
+			return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+		},
+
+		/**
+		 * @param {'fromDate'|'untilDate'} field Which end of the range.
+		 * @param {string} value `YYYY-MM-DD`, or '' to leave it open.
+		 * @return {void}
+		 */
+		setDate(field, value) {
+			this[field] = value
+			this.selectedRange = 'custom'
+			this.resetAndFetch()
+		},
+
+		/**
+		 * @param {string} kind A feed kind.
+		 * @return {string} Its label.
+		 */
+		kindLabel(kind) {
+			return {
+				audit: t('nextcloud-vue', 'Changes'),
+				activity: t('nextcloud-vue', 'Activity'),
+				file: t('nextcloud-vue', 'Files'),
+				note: t('nextcloud-vue', 'Notes'),
+				mail: t('nextcloud-vue', 'Mail'),
+			}[kind] || kind
+		},
+
+		/**
+		 * The count the feed returned for a kind. A kind with no rows reads 0
+		 * and keeps its chip.
+		 *
+		 * @param {string} kind A feed kind.
+		 * @return {number} The count.
+		 */
+		kindCount(kind) {
+			return this.kindCounts[kind] ?? 0
+		},
+
+		toggleKind(kind) {
+			this.selectedKinds = this.selectedKinds.includes(kind)
+				? this.selectedKinds.filter((k) => k !== kind)
+				: [...this.selectedKinds, kind]
+			this.resetAndFetch()
+		},
+
+		/**
+		 * Turn read entries on or off, and remember the choice for this user.
+		 *
+		 * @param {boolean} on Whether reads are shown.
+		 * @return {Promise<void>}
+		 */
+		async setShowReads(on) {
+			this.showReads = !!on
+			const write = this.cnUserPreferences && this.cnUserPreferences.write
+			try {
+				if (typeof write === 'function') {
+					await write(READS_PREFERENCE_KEY, this.showReads)
+				} else if (typeof localStorage !== 'undefined') {
+					localStorage.setItem(`cn-pref:${READS_PREFERENCE_KEY}`, JSON.stringify(this.showReads))
+				}
+			} catch {
+				// Not remembered; the toggle still works for this session.
+			}
+			this.resetAndFetch()
+		},
+
+		/**
+		 * Read the reader's remembered choice for the reads toggle.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadShowReads() {
+			try {
+				const read = this.cnUserPreferences && this.cnUserPreferences.read
+				if (typeof read === 'function') {
+					this.showReads = (await read(READS_PREFERENCE_KEY, false)) === true
+				} else if (typeof localStorage !== 'undefined') {
+					this.showReads = JSON.parse(localStorage.getItem(`cn-pref:${READS_PREFERENCE_KEY}`) || 'false') === true
+				}
+			} catch {
+				this.showReads = false
+			}
+		},
+
+		/**
+		 * Export what is on screen: the rows shown and the filters that produced
+		 * them are sent to the feed's export; nothing is re-queried.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async exportFeed() {
+			this.exporting = true
+			try {
+				const response = await fetch(`${this.baseUrl()}/export`, {
+					method: 'POST',
+					headers: buildHeaders(),
+					body: JSON.stringify(exportBody(this.visibleEntries, this.feedFilters())),
+				})
+				if (!response.ok) {
+					throw new Error(`export failed (${response.status})`)
+				}
+				const blob = new Blob([await response.text()], { type: 'text/csv;charset=utf-8' })
+				const url = URL.createObjectURL(blob)
+				const link = document.createElement('a')
+				link.href = url
+				link.download = `activity-${this.objectId}.csv`
+				document.body.appendChild(link)
+				link.click()
+				link.remove()
+				URL.revokeObjectURL(url)
+				/**
+				 * @event exported Emitted after the feed on screen was exported. Payload: the number of rows.
+				 * @type {number}
+				 */
+				this.$emit('exported', this.visibleEntries.length)
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnActivityTab] export failed', err)
+				this.error = t('nextcloud-vue', 'Could not export activity.')
+			} finally {
+				this.exporting = false
+			}
 		},
 
 		/**
@@ -526,6 +808,10 @@ export default {
 				return
 			}
 			this.fetchDropdowns()
+			if (!this.legacy) {
+				this.loadShowReads().then(() => this.resetAndFetch())
+				return
+			}
 			this.resetAndFetch()
 		},
 
@@ -534,6 +820,15 @@ export default {
 			this.cursor = null
 			this.total = 0
 			this.fetchEntries()
+		},
+
+		/** The server has no merged feed: read the single-source endpoint, as before. */
+		fallBackToLegacy() {
+			this.legacy = true
+			this.selectedRange = 'all'
+			this.fromDate = ''
+			this.untilDate = ''
+			this.resetAndFetch()
 		},
 
 		async fetchDropdowns() {
@@ -569,9 +864,19 @@ export default {
 			}
 			this.error = ''
 			this.degraded = ''
+			let noFeed = false
 			try {
 				const response = await fetch(`${this.baseUrl()}?${this.buildQuery()}`, { headers: buildHeaders() })
-				if (response.ok) {
+				if (!this.legacy && [404, 405, 501].includes(response.status)) {
+					// No merged feed on this server: read the single-source endpoint instead.
+					noFeed = true
+				} else if (response.ok && !this.legacy) {
+					const feed = parseFeed(await response.json())
+					this.entries = isFirstPage ? feed.rows : [...this.entries, ...feed.rows]
+					this.kindCounts = feed.counts
+					this.total = this.entries.length
+					this.cursor = feed.cursor
+				} else if (response.ok) {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []
 					this.entries = isFirstPage ? rows : [...this.entries, ...rows]
@@ -602,6 +907,9 @@ export default {
 			} finally {
 				this.loading = false
 				this.loadingMore = false
+			}
+			if (noFeed) {
+				this.fallBackToLegacy()
 			}
 		},
 
