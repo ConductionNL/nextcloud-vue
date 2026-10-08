@@ -60,7 +60,7 @@
 		<div
 			v-if="visible"
 			class="cn-ai-chat-window"
-			:class="`cn-ai-chat-window--${position}`"
+			:class="[`cn-ai-chat-window--${position}`, { 'cn-ai-chat-window--has-mark': assistantMark }]"
 			role="dialog"
 			:aria-label="agentLabel"
 			data-testid="cn-ai-panel"
@@ -319,6 +319,24 @@
 					@select="onConversationSelect"
 					@renamed="onConversationRenamed" />
 			</div>
+
+			<!--
+			  The organisation's approved-assistant mark (thematiq). Rendered
+			  only when thematiq reports it on; the label arrives translated
+			  and is shown as received. Present in the chat and history views.
+			-->
+			<div
+				v-if="assistantMark"
+				class="cn-ai-chat-window__mark"
+				role="note"
+				data-testid="cn-ai-panel-mark">
+				<img
+					v-if="assistantMark.logo"
+					class="cn-ai-chat-window__mark-logo"
+					:src="assistantMark.logo.url"
+					:alt="assistantMark.logo.alt">
+				<span class="cn-ai-chat-window__mark-label">{{ assistantMark.label }}</span>
+			</div>
 		</div>
 	</transition>
 </template>
@@ -338,6 +356,7 @@ import CnDashboardIcon from '../CnIconPicker/CnDashboardIcon.vue'
 import CnAiHistoryList from './CnAiHistoryList.vue'
 import CnAiInput from './CnAiInput.vue'
 import CnAiMessageList from './CnAiMessageList.vue'
+import { getAssistantMark } from '../../utils/assistantMark.js'
 import {
 	agentsUrl,
 	conversationsUrl,
@@ -466,6 +485,8 @@ export default {
 
 	data() {
 		return {
+			/** The approved-assistant mark from thematiq, or null when there is none. */
+			assistantMark: null,
 			activeView: 'chat',
 			activeConversationUuid: null,
 			/**
@@ -771,6 +792,7 @@ export default {
 		this.fetchConversations()
 		this.restoreSpeakPreference()
 		this.probeLocalSpeech()
+		this.loadAssistantMark()
 	},
 
 	beforeUnmount() {
@@ -779,6 +801,15 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Load the approved-assistant mark; stays null when there is none.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadAssistantMark() {
+			this.assistantMark = await getAssistantMark()
+		},
+
 		/**
 		 * Read the remembered read-aloud preference.
 		 *
@@ -1433,6 +1464,29 @@ export default {
 	/* Mirrors the titlebar: clips its own bottom corners. */
 	border-radius: 0 0 11px 11px;
 	background: var(--color-main-background, #ffffff);
+}
+
+/* The approved-assistant mark: same colour pair as the panel body. */
+.cn-ai-chat-window--has-mark .cn-ai-chat-window__input {
+	border-radius: 0;
+}
+
+.cn-ai-chat-window__mark {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 12px;
+	border-top: 1px solid var(--color-border, #d0d0d0);
+	border-radius: 0 0 11px 11px;
+	background: var(--color-main-background, #ffffff);
+	color: var(--color-main-text, #222222);
+	font-size: 0.85em;
+}
+
+.cn-ai-chat-window__mark-logo {
+	max-height: 24px;
+	width: auto;
 }
 
 /* ── The pop animation ──────────────────────────────────────────────────────

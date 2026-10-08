@@ -6,6 +6,7 @@ export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, PREFILL_KEY, splitDynamicFormData
 export { deleteSchema, describeSchemaChange, saveSchema, SchemaBreakingChangeError, SchemaHasObjectsError } from './schemaApi.js'
 export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, resetVisibilityCache } from './widgetVisibility.js'
 export { isAppInstalled } from './appInstalled.js'
+export { getAssistantMark } from './assistantMark.js'
 export { passesContextPredicates } from './visibleIfContext.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './safeHref.js'
 export { followLinkClick, isModifiedClick, openRowTarget, resolveHref } from './linkNavigation.js'
