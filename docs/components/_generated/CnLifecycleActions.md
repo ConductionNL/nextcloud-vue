@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 10 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 11 files reached through imports.
 
 Through: `CnResourceSelect`.
 

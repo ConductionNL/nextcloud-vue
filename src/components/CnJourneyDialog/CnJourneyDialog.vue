@@ -80,7 +80,16 @@ export default {
 		},
 	},
 
-	emits: ['close', 'run-started', 'step', 'submitted'],
+	emits: [
+		/** Emitted when the dialog closes. */
+		'close',
+		/** Emitted when a new journey run starts; payload is the run id. */
+		'run-started',
+		/** Emitted when the journey moves to another step; payload is { from, to }. */
+		'step',
+		/** Emitted when the journey is submitted. */
+		'submitted',
+	],
 
 	data() {
 		return {

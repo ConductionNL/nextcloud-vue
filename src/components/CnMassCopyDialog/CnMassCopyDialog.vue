@@ -373,6 +373,10 @@ export default {
 			if (include.length > 0) {
 				payload.include = include
 			}
+			/**
+			 * @event confirm Emitted when the user confirms copying. Payload: { ids, getName, include? } where getName(item) returns the new name and include lists the ticked link kinds.
+			 * @type {{ ids: Array<string>, getName: Function, include?: Array<string> }}
+			 */
 			this.$emit('confirm', payload)
 		},
 
@@ -388,6 +392,9 @@ export default {
 			this.result = resultData
 			if (resultData.success) {
 				this.closeTimeout = setTimeout(() => {
+					/**
+					 * @event close Emitted when the dialog should close (cancel, close button, or auto-close after success).
+					 */
 					this.$emit('close')
 				}, 2000)
 			}

@@ -1,3 +1,4 @@
+const barrel = require('../../src/composables/index.js')
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -6,7 +7,6 @@
  * barrel, so consumers (stackiq, hermiq, buildiq) never need a deep source path.
  */
 const root = require('../../src/index.js')
-const barrel = require('../../src/composables/index.js')
 
 const FUNCTIONS = ['layoutFlowNodes', 'needsFullLayout', 'placeLooseNodes', 'readNodePoint']
 const NUMBERS = ['FLOW_LAYOUT_COLUMN_WIDTH', 'FLOW_LAYOUT_ROW_HEIGHT', 'FLOW_LAYOUT_MARGIN', 'FLOW_LAYOUT_TOP']

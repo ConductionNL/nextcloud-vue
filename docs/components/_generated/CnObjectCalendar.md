@@ -23,6 +23,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 | Name                 | Payload | Description                                                                                            |
 | -------------------- | ------- | ------------------------------------------------------------------------------------------------------ |
+| `day-select`         | —       | The "+N" button of a busy day was activated. Payload: the day as `YYYY-MM-DD`.                         |
 | `object-click`       | —       | Emitted when a plotted object is clicked.                                                              |
 | `range-change`       | —       | Emitted on mount and after every month navigation so the host can re-fetch objects for the new window. |
 | `update:visibleDate` | —       | Emitted on month navigation, for `v-model:visible-date` binding.                                       |

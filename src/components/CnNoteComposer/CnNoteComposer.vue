@@ -101,7 +101,14 @@ export default {
 		},
 	},
 
-	emits: ['update:modelValue', 'submit', 'uploaded'],
+	emits: [
+		/** Emitted when the note text changes; payload is the new text (v-model). */
+		'update:modelValue',
+		/** Emitted when the user submits the note (button or Ctrl/Cmd+Enter). */
+		'submit',
+		/** Emitted when an image upload finishes; payload is the uploaded file. */
+		'uploaded',
+	],
 
 	data() {
 		return { uploading: false, error: '', dragging: false }

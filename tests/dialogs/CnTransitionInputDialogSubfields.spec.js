@@ -29,7 +29,6 @@ function mountDialog(input, extra = {}) {
 		props: { transition: { action: 'recordMunicipalityFeedback', label: 'Record answer', inputs: [input] }, schema: SCHEMA, currentObject: CURRENT, ...extra },
 	})
 }
-const box = (w, sub) => w.get(`[data-testid="cn-transition-input-municipalityFeedback-${sub}"]`)
 
 describe('object inputs', () => {
 	it('asks only for the named sub-fields', () => {

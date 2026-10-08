@@ -2,7 +2,9 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 1 direct reference, 6 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 1 direct reference, 7 files reached through imports.
+
+Through: `CnNoteComposer`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
@@ -29,6 +31,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `publicSwitchLabel`  | `string`             |          | `() =&gt; t('nextcloud-vue', 'Public (visible to the customer)')`      | Label of the add-note switch that makes the note public.                                                                                                                                                                                                              |
 | `makePublicLabel`    | `string`             |          | `() =&gt; t('nextcloud-vue', 'Make public')`                           | Label of the per-note action that makes an internal note public.                                                                                                                                                                                                      |
 | `makeInternalLabel`  | `string`             |          | `() =&gt; t('nextcloud-vue', 'Make internal')`                         | Label of the per-note action that makes a public note internal.                                                                                                                                                                                                       |
+| `replyLabel`         | `string`             |          | `() =&gt; t('nextcloud-vue', 'Reply')`                                 | Label of the Reply button (shown only when the backend supports replies).                                                                                                                                                                                             |
 | `deleteLabel`        | `string`             |          | `() =&gt; t('nextcloud-vue', 'Delete note')`                           | Aria label for the per-note delete icon button.                                                                                                                                                                                                                       |
 
 ### Events
@@ -36,6 +39,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | Name                 | Payload | Description                                                                   |
 | -------------------- | ------- | ----------------------------------------------------------------------------- |
 | `show-all`           | —       |                                                                               |
+| `mention`            | —       |                                                                               |
 | `note-added`         | —       |                                                                               |
 | `note-deleted`       | —       |                                                                               |
 | `visibility-changed` | —       | Emitted after a note's visibility was changed. Payload: `{ id, visibility }`. |

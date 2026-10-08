@@ -14,11 +14,14 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `label`      | `string`  |          | `''`                 | Visible label. It also names the group the buttons sit in.                                                                                                                                           |
 | `accept`     | `string`  |          | `''`                 | File types the picker offers, in the syntax of the HTML `accept` attribute: extensions (`.pdf`), MIME types (`application/pdf`) and wildcards (`image/*`), comma-separated. Empty accepts any type.  |
 | `maxSize`    | `number`  |          | `FALLBACK_MAX_BYTES` | Largest file the field reads, in bytes. A bigger file is refused with a message and the value is left as it was.                                                                                     |
+| `multiple`   | `boolean` |          | `false`              | Whether the field takes several files. The value is then an array.                                                                                                                                   |
+| `capture`    | `string`  |          | `''`                 | Opens the device camera: `environment` (rear) or `user` (front). The picker then accepts images unless `accept` narrows it.                                                                          |
+| `inlineMax`  | `number`  |          | `0`                  | Largest file carried inline, in bytes. 0 (default) means every file up to `maxSize` is inline. Above it, up to `maxSize`, the file is held as a `File` for the form to upload after save.            |
 | `disabled`   | `boolean` |          | `false`              | Whether the field is read-only.                                                                                                                                                                      |
 | `helperText` | `string`  |          | `''`                 | Error message from the surrounding form, for example a failed `required` rule. Shown in the same alert as the field's own errors.                                                                    |
 
 ### Events
 
-| Name                | Payload | Description                                                                   |
-| ------------------- | ------- | ----------------------------------------------------------------------------- |
-| `update:modelValue` | —       | The new value: the picked file as a `data:` URL, or `null` after Remove file. |
+| Name                | Payload | Description                                                                                                                                            |
+| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `update:modelValue` | —       | The new value: the picked file as a `data:` URL (or a `File` held for upload after save), a list of them with `multiple`, or `null` after Remove file. |

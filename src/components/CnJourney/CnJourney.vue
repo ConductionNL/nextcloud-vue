@@ -337,6 +337,10 @@ export default {
 			const hadRun = this.runStore.state.runId !== null
 			await this.runStore.save(step.id, payload, next ? next.id : step.id)
 			if (!hadRun) {
+				/**
+				 * @event run-started Emitted when a new journey run starts. Payload: the run id.
+				 * @type {string}
+				 */
 				this.$emit('run-started', this.runStore.state.runId)
 			}
 			this.history.push(step.id)
@@ -367,6 +371,10 @@ export default {
 			/**
 			 * @event step Emitted when the journey moves to another step.
 			 * @type {{from: string, to: string}}
+			 */
+			/**
+			 * @event step Emitted when the journey moves to another step.
+			 * @type {{ from: string|null, to: string }}
 			 */
 			this.$emit('step', { from, to: id })
 			this.$nextTick(() => this.focusAfterMove(focus))

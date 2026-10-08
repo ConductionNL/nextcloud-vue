@@ -6,19 +6,21 @@
  */
 const { validateManifestV2 } = require('../../src/utils/validateManifest.js')
 
-const manifest = (tabs) => ({
-	$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
-	version: '1.0.0',
-	menu: [],
-	pages: [{
-		id: 'case',
-		route: '/cases/:id',
-		type: 'detail',
-		title: 'Case',
-		config: { register: 'r', schema: 'case' },
-		widgets: [{ widgetKey: 'tabs', slot: 'body', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 4, id: 'panels', props: { content: { tabs } } }],
-	}],
-})
+function manifest(tabs) {
+	return {
+		$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json',
+		version: '1.0.0',
+		menu: [],
+		pages: [{
+			id: 'case',
+			route: '/cases/:id',
+			type: 'detail',
+			title: 'Case',
+			config: { register: 'r', schema: 'case' },
+			widgets: [{ widgetKey: 'tabs', slot: 'body', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 4, id: 'panels', props: { content: { tabs } } }],
+		}],
+	}
+}
 
 describe('tabs widget: visibleWhen on a tab entry', () => {
 	it('accepts a source-mode condition', () => {

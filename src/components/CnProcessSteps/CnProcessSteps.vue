@@ -97,7 +97,10 @@ export default {
 		},
 	},
 
-	emits: ['select'],
+	emits: [
+		/** Emitted when the user picks a step; payload is the step id. */
+		'select',
+	],
 
 	computed: {
 		order() {
