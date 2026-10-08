@@ -14,6 +14,8 @@ Every component page below embeds a live demo via `<Playground />` — that's th
 
 Every component is scored on how much it relies on OpenRegister: the references in its own source, plus the files it reaches through its imports. The tier **none** is the shortlist of components that can move to another host first. The numbers are generated on every docs build by `scripts/openregister-reliance.js`; each component page repeats its own line under its reference.
 
+The last three columns come from the buildiq parity project on Tables. **Destination** says where a component goes: `tables` is the Tables app, `nc-vue` is a proposal to Nextcloud's own Vue library, `none` means it is dropped. **Week** is the ISO week we bring it there. **Screenshot** says whether the styleguide renders it today; a component that needs an example has a props page but nothing to show yet. The source is `docs/project/14-component-destinations.md` in the Tables fork; a component without values there is not part of that project.
+
 import RelianceTable from '@site/src/components/RelianceTable'
 
 <RelianceTable />

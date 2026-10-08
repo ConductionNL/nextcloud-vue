@@ -2,8 +2,11 @@
 
 ## Component and surface
 
-`CnSavedViewsControl` (`src/components/CnSavedViewsControl/`) gains a sharing
-section in its save and edit form and a second group in its dropdown.
+`CnSaveViewDialog` (`src/components/CnSaveViewDialog/`) gains a sharing
+section, and `CnSavedViewsControl` (`src/components/CnSavedViewsControl/`)
+uses the same section in its edit form and a second group in its dropdown.
+The section is one component, `CnSavedViewShareFields`, so both places offer
+the same choice.
 
 Kind: code. No manifest change; the consuming page still only sets
 `allowSavedViews: true`.
@@ -17,9 +20,26 @@ A view carries an optional `sharedWith` array:
 ```
 
 `mode` is `read` or `write`. The array is empty or absent for a personal view.
-The views API (`GET /apps/openregister/api/views`) already returns own plus
-public views scoped server-side; it adds views shared with one of the caller's
-groups. Group membership stays server-side, the control never resolves it.
+The views API (`GET /apps/openregister/api/views`) returns own, public and
+group-shared views scoped server-side, each with `@self.access` (`owner`,
+`write`, `read`). The control groups and gates on `@self.access`, never on
+its own reading of `sharedWith` or group membership. A view without
+`@self.access` (an older OpenRegister) counts as `owner` when its `owner` is
+the current user and as `read` otherwise.
+
+## Which groups are offered
+
+The group picker searches Nextcloud's sharee API
+(`/ocs/v2.php/apps/files_sharing/api/v1/sharees?itemType=file&shareType[]=1&search=`),
+the same source the Files share dialog uses, so a user can pick exactly the
+groups the instance lets them share with. When the sharee API is unavailable
+(sharing disabled) the section does not render.
+
+## Save dialog
+
+`CnSaveViewDialog` renders the share section under the public switch and
+emits `confirm({ name, isPublic, sharedWith })`. `sharedWith` is `[]` when no
+group is picked, so an existing consumer that ignores the key keeps working.
 
 ## Dropdown
 
@@ -32,9 +52,11 @@ view's query, sort and columns to the route, as the existing
 
 - Own view: the form shows a group multiselect (`NcSelect` with
   `inputLabel`) and a per-group read or write toggle.
-- Shared view with `mode: write`: the current user may save changes to it. The
-  save keeps `sharedWith` and the owner as they were.
-- Shared view with `mode: read`: edit and delete are hidden. "Save as my
+- Shared view with `@self.access: write`: the current user may save changes to
+  query, sort, columns and presentation. The save body does not carry
+  `sharedWith` or `owner` at all, so OpenRegister's 403 on a changed audience
+  cannot be triggered by the control. Delete is hidden.
+- Shared view with `@self.access: read`: edit and delete are hidden. "Save as my
   view" copies it into a personal view.
 
 ## Columns and label travel with the view
@@ -46,8 +68,8 @@ receiving user.
 
 ## Degradation
 
-If a listed view has no `sharedWith` and the API answers no `groups` for the
-caller, the sharing section does not render. A 4xx on save with `sharedWith`
+If the sharee API answers nothing for the caller, the sharing section does not
+render. A 4xx on save with `sharedWith`
 surfaces the server message inline and keeps the form open.
 
 ## Alternatives considered
