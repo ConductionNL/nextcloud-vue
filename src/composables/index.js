@@ -34,6 +34,7 @@ export {
 export { useAppManifest } from './useAppManifest.js'
 export { useAppStatus } from './useAppStatus.js'
 export { useFileComments } from './useFileComments.js'
+export { useFileOpener } from './useFileOpener.js'
 export { useRefLabels } from './useRefLabels.js'
 export { useRestoreVersion } from './useRestoreVersion.js'
 export { useAppInstaller } from './useAppInstaller.js'
