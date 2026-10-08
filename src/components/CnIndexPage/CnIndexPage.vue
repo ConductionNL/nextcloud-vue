@@ -731,7 +731,7 @@
 					:currentPageSize="effectivePagination.limit || 20"
 					class="cn-index-page__pagination"
 					@pageChanged="onPageEvent"
-					@pageSizeChanged="$emit('page-size-changed', $event)" />
+					@pageSizeChanged="onPageSizeEvent" />
 			</div>
 
 			<!-- The open record, beside the list on a wide screen and instead
@@ -1057,7 +1057,7 @@ function namedFilterToQuery(values) {
  * @event {object} row-aux-click — Table row or card middle-clicked. Payload: (row, event) — the row object and the native auxclick event
  * @event {{ key: string, order: string }} sort — Column sort changed
  * @event {number} page-changed — Pagination page changed
- * @event {number} page-size-changed — Pagination page size changed
+ * @event {number} page-size-changed — Pagination page size changed. In self-fetch mode the list refetches page 1 at the new size first.
  * @event {string[]} select — Selection changed. Payload: array of selected IDs
  * @event {object} action — Row action triggered. Payload: { action, row }
  * @event {{ action: string, id: string, selectedIds: Array, count: number }} bulk-action — A declarative bulk action was triggered from the selection strip. The SELECTION travels with it: an action that has to go and find out what was selected is one re-render away from acting on a different set than the user saw highlighted.
@@ -5480,6 +5480,21 @@ export default {
 				this.list.onPageChange(page)
 			}
 			this.$emit('page-changed', page)
+		},
+
+		/**
+		 * Page-size pick from CnPagination. In self-fetch mode the list refetches
+		 * page 1 at the new size — the event alone left the select changing and
+		 * the table not, since a manifest page has no host listening.
+		 *
+		 * @param {number} size Requested page size.
+		 * @return {void}
+		 */
+		onPageSizeEvent(size) {
+			if (this.isSelfFetchMode && typeof this.list.onPageSizeChange === 'function') {
+				this.list.onPageSizeChange(size)
+			}
+			this.$emit('page-size-changed', size)
 		},
 
 		/**

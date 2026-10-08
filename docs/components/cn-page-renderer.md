@@ -265,6 +265,20 @@ register/schema/objectId triple changes.
 }
 ```
 
+## Related objects open their detail page
+
+On a `type:"detail"` page the Related widget lists the objects linked to the
+one on screen. A click on one of them reaches the renderer as
+`related-object-click` (re-emitted by [CnDetailPage](./cn-detail-page.md)),
+and the renderer opens the first `type:"detail"` page bound to that object's
+register and schema, with the id in whichever param that page's route
+declares. The object's `@self` names its register and schema by id; a
+manifest may name them by slug, so a miss on the literal pair describes both
+through `/apps/openregister/api/registers/{id}` and `/schemas/{id}` (once per
+id, cached for the page lifetime) and matches again. Without a matching page,
+or with a page the router does not know, the click warns in the console and
+does nothing — the same contract as a dead row click on an index page.
+
 ## Live updates on manifest pages
 
 Manifest-rendered pages inherit **notify_push live updates with zero
