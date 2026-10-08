@@ -705,6 +705,7 @@ import { RegistryKindError } from '../../errors/RegistryKindError.js'
 import { useObjectStore } from '../../store/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
+import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
 import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
 import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
@@ -879,6 +880,7 @@ export default {
 
 			cnCustomComponents: this.customComponents,
 			cnTranslate: this.translate,
+			cnDiagnostics: (report) => reportDiagnostic(report),
 			cnPageTypes: this.pageTypes,
 			cnFormatters: { ...BUILT_IN_FORMATTERS, ...this.formatters },
 			cnCellWidgets: this.cellWidgets,
@@ -1413,6 +1415,20 @@ export default {
 		translate: {
 			type: Function,
 			default: (key) => key,
+		},
+
+		/**
+		 * Listener for diagnostics: called with one report per request, render
+		 * error, unknown component and binding problem (`{ kind, at, pageId, ... }`).
+		 * Also provided as `cnDiagnostics`. Reports never hold a body, header, query
+		 * value or user id; the library sends nothing itself. Without it no report
+		 * is built and no timing is taken.
+		 *
+		 * @type {(report: object) => void}
+		 */
+		diagnostics: {
+			type: Function,
+			default: null,
 		},
 
 		/**
@@ -2967,6 +2983,14 @@ export default {
 			},
 		},
 
+		diagnostics() {
+			this.syncDiagnostics()
+		},
+
+		'$route.name': function() {
+			clearReportedDiagnostics()
+		},
+
 		setupStatusLoading: {
 			immediate: true,
 			handler(loading) {
@@ -2975,6 +2999,10 @@ export default {
 				}
 			},
 		},
+	},
+
+	created() {
+		this.syncDiagnostics()
 	},
 
 	mounted() {
@@ -3034,6 +3062,10 @@ export default {
 	},
 
 	beforeUnmount() {
+		if (this.removeDiagnostics) {
+			this.removeDiagnostics()
+			this.removeDiagnostics = null
+		}
 		window.removeEventListener('beforeunload', this.onBeforeUnload)
 		this.cnScopedTheme.teardown(this.appId)
 		// Scope the side effect to the shell's lifetime. Layers already written
@@ -3043,6 +3075,20 @@ export default {
 	},
 
 	methods: {
+		/** Listen for the host's `diagnostics` function while it is set; adds this root's page id. */
+		syncDiagnostics() {
+			if (this.removeDiagnostics) {
+				this.removeDiagnostics()
+				this.removeDiagnostics = null
+			}
+			if (typeof this.diagnostics === 'function') {
+				this.removeDiagnostics = addDiagnosticsListener((report) => {
+					const name = this.$route ? this.$route.name : null
+					this.diagnostics({ ...report, pageId: name === undefined || name === null ? null : String(name) })
+				})
+			}
+		},
+
 		/**
 		 * Permission gate for an Integrations entry — deliberately identical
 		 * to `CnAppNav.passesPermission`, including the "no permissions prop

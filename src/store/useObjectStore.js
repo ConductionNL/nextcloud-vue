@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { toRaw } from 'vue'
+import { reportDiagnosticOnce, trackedFetch } from '../utils/diagnostics.js'
 import { discardResponseBody } from '../utils/discardResponseBody.js'
 import { genericError, networkError, parseResponseError } from '../utils/errors.js'
 import { normalizeFacets } from '../utils/facets.js'
@@ -514,7 +515,7 @@ const baseActions = {
 		// `makeUrl` wraps `_buildUrl` / `_buildUrlWithParams`, so `url` is built
 		// from the prefixed `_options.baseUrl` like every other request here.
 		let url = makeUrl(null)
-		const response = await fetch(url, init)
+		const response = await trackedFetch(url, init)
 		if (!response || response.status !== 404) {
 			return response
 		}
@@ -526,7 +527,7 @@ const baseActions = {
 		let retry
 		try {
 			url = makeUrl(fallback)
-			retry = await fetch(url, init)
+			retry = await trackedFetch(url, init)
 		} catch {
 			return response
 		}
@@ -595,7 +596,7 @@ const baseActions = {
 			const registerScope = config.register
 				? `?register=${encodeURIComponent(config.register)}`
 				: ''
-			const response = await fetch(
+			const response = await trackedFetch(
 				prefixUrl(`/apps/openregister/api/schemas/${config.schema}${registerScope}`),
 				{ method: 'GET', headers: this._buildHeaders() },
 			)
@@ -606,6 +607,9 @@ const baseActions = {
 				// body leaves the request in flight for the life of the page and
 				// `networkidle` never arrives.
 				discardResponseBody(response)
+				if (response.status === 404) {
+					reportDiagnosticOnce(`binding|missing-schema|${type}`, { kind: 'binding', problem: 'missing-schema', register: String(config.register || ''), schema: String(config.schema || ''), property: null, where: null })
+				}
 				return null
 			}
 
@@ -632,7 +636,7 @@ const baseActions = {
 		}
 
 		try {
-			const response = await fetch(
+			const response = await trackedFetch(
 				prefixUrl(`/apps/openregister/api/registers/${config.register}`),
 				{ method: 'GET', headers: this._buildHeaders() },
 			)
@@ -640,6 +644,9 @@ const baseActions = {
 			if (!response.ok) {
 				// Same leak as fetchSchema above (#573) — same shape, same fix.
 				discardResponseBody(response)
+				if (response.status === 404) {
+					reportDiagnosticOnce(`binding|missing-register|${type}`, { kind: 'binding', problem: 'missing-register', register: String(config.register || ''), schema: String(config.schema || ''), property: null, where: null })
+				}
 				return null
 			}
 
@@ -1036,7 +1043,7 @@ const baseActions = {
 			const runOne = async (id) => {
 				try {
 					const url = this._buildUrl(type, id)
-					const response = await fetch(url, {
+					const response = await trackedFetch(url, {
 						method: 'DELETE',
 						headers: this._buildHeaders(),
 					})
@@ -1123,7 +1130,7 @@ const baseActions = {
 			const fetches = toFetch.map(async (id) => {
 				try {
 					const url = this._buildUrl(type, id)
-					const response = await fetch(url, {
+					const response = await trackedFetch(url, {
 						method: 'GET',
 						headers: this._buildHeaders(),
 					})

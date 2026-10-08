@@ -1186,6 +1186,7 @@ import {
 	stageEntry,
 	stageOf,
 } from '../../utils/detailActionModel.js'
+import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
@@ -4122,6 +4123,7 @@ export default {
 		// hoisted sidebar's `data` tab widget gets its `schema` prop.
 		currentSchema(schema) {
 			this.syncSidebarState()
+			reportBindingProblems(schema, { register: this.register, includeFields: this.includeFields })
 
 			// Put the Data widget back if the body materialized before the
 			// schema arrived. See materializeAutoBody(): fetchObject and

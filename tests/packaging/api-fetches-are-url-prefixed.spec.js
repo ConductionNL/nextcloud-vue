@@ -91,6 +91,7 @@ const ALLOWED = new Map([
 	['src/components/CnAdminSettingsShell/CnAdminSettingsShell.vue:this.resolvedReimportUrl', 'falls back to generateUrl(); an explicit reimportUrl prop wins'],
 	['src/offline/serviceWorker.js:request', "the worker re-issues the browser's own intercepted Request, whose URL the browser already resolved to an absolute one"],
 	['src/composables/useAppManifest.js:url', 'the fetcher receives a caller-resolved endpoint'],
+	['src/utils/diagnostics.js:url', 'trackedFetch wraps the caller\'s URL, which the caller already prefixed'],
 	['src/utils/cnFetch.js:`${target}${qs}`', 'public host mode: the URL is built from the configured base, there is no Nextcloud webroot to prefix'],
 	['src/composables/useRuntimeManifest.js:u', 'the fetcher receives a caller-resolved endpoint'],
 
@@ -469,7 +470,7 @@ function unprefixedCallSites() {
 	for (const file of sourceFiles(SRC)) {
 		const relative = path.relative(ROOT, file).split(path.sep).join('/')
 		const source = blankComments(scriptRegion(fs.readFileSync(file, 'utf8'), file))
-		const calls = /(?<![.\w$])(fetch|axios\.(?:get|post|put|patch|delete|request))\s*\(/g
+		const calls = /(?<![.\w$])(trackedFetch|fetch|axios\.(?:get|post|put|patch|delete|request))\s*\(/g
 		let match
 		while ((match = calls.exec(source)) !== null) {
 			const start = match.index + match[0].length

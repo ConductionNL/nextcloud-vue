@@ -899,6 +899,7 @@ import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { routeHref } from '../../utils/actionLink.js'
 import { buildOnSuccessRoute, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchFilterCounts } from '../../utils/fetchFilterCounts.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
@@ -4971,6 +4972,14 @@ export default {
 	},
 
 	watch: {
+		// A column or form field bound to a property the schema lacks is told to the host once.
+		effectiveSchema: {
+			immediate: true,
+			handler(schema) {
+				reportBindingProblems(schema, { register: this.register, columns: this.declaredColumns, includeFields: this.includeFields })
+			},
+		},
+
 		// Resolve the labels of reference columns in one batch per schema.
 		refLabelIds: {
 			immediate: true,

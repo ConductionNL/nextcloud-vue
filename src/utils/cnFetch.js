@@ -29,6 +29,7 @@
  * @module utils/cnFetch
  */
 
+import { trackedFetch } from './diagnostics.js'
 import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
 
 /** The hosts the runtime can boot under. */
@@ -150,10 +151,10 @@ export async function cnFetch(url, options = {}) {
 		const credential = currentCredential()
 		const publicHeaders = { ...base, ...(credential ? { Authorization: `Bearer ${credential}` } : {}), ...(headers || {}) }
 		const target = /^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `${transport.baseUrl}${url}`
-		return fetch(`${target}${qs}`, { ...rest, headers: publicHeaders })
+		return trackedFetch(`${target}${qs}`, { ...rest, headers: publicHeaders }, 'cnFetch')
 	}
 	const merged = { ...buildHeaders(headerOptions), ...(headers || {}) }
-	return fetch(prefixUrl(`${url}${qs}`), { ...rest, headers: merged })
+	return trackedFetch(prefixUrl(`${url}${qs}`), { ...rest, headers: merged }, 'cnFetch')
 }
 
 /**

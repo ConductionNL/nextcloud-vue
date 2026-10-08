@@ -68,6 +68,7 @@
 
 <script>
 import CnUnknownWidget from './CnUnknownWidget.vue'
+import { reportDiagnosticOnce } from '../../utils/diagnostics.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { initGridStack, readGridGeometry } from '../../utils/gridStack.js'
 import { resolveSlotColumns } from '../../utils/resolveSlotColumns.js'
@@ -331,6 +332,7 @@ export default {
 							+ 'Importing a widget\'s own module gives you the component but registers no type.'
 							: `[CnWidgetGrid] Unknown widgetKey "${key}" in slot "${this.slotName}". `
 								+ 'Register it in the built-in registry or pass it via the CnAppRoot registry prop.')
+					reportDiagnosticOnce(`unknown-component|widget|${key}`, { kind: 'unknown-component', name: String(key), where: 'widget' })
 					// Render a visible, designed placeholder instead of silently
 					// skipping — a page whose widgets ALL fail to resolve must not
 					// leave a blank pane (2026-07-06 audit: petstore dashboard).
