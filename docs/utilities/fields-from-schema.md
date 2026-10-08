@@ -112,3 +112,7 @@ Same as the other schema helpers: `prop.order` ascending, alphabetical tie-break
 
 - [CnFormDialog](../components/cn-form-dialog.md) — Primary consumer.
 - [columnsFromSchema](./columns-from-schema.md), [filtersFromSchema](./filters-from-schema.md)
+
+## Concept-scheme bindings
+
+A property with `conceptScheme` or `x-openregister-concepts` (or an array whose `items` carry one) gets widget `select` (`multiselect` for an array) and a `codeList` tag: `{ property, multiple, store, contextProperty }`. The function fetches nothing; `CnFormDialog` asks OpenRegister for the options. A property without a binding is derived as before.

@@ -541,3 +541,11 @@ A property that declares `x-openregister-property-source` (`provider`, `mode`, `
 ## Child records
 
 A property that is an array of references with `inversedBy` (or one naming `widget: "child-records"`) renders a [`CnChildRecordsField`](./cn-child-records-field.md): an editable table of the child schema's records. The children are kept out of the `confirm` payload; call `setResult({ success: true, id })` with the saved parent's id and the dialog saves them in one bulk save and one bulk delete, naming any row that was refused. A failing row blocks the submit and names the row and field.
+
+## Choices bound to a concept scheme
+
+A property that names an OpenRegister concept scheme, as `conceptScheme: "woo-categorieen"` or `x-openregister-concepts: { scheme, store, contextProperty }` (alone, or on the `items` of an array), renders as a select (a multiselect for an array). The options are not on the schema: the dialog asks `GET /apps/openregister/api/vocabulary/options` with the schema, the property key and the user's language, offers the options in OpenRegister's order with their labels, and stores the option's `value` (the concept uri, or its notation when `store` is `notation`) as a string, or an array of strings.
+
+- If the request fails or returns nothing, the field falls back to a text input with a line saying the list could not be loaded. OpenRegister still refuses a value outside the scheme on save.
+- A held value the scheme no longer offers is resolved through the concept route and shown by its label with "no longer offered". It stays until the user changes it.
+- With `contextProperty`, the current value of that field is sent as `context` and the options are requested again when it changes; a chosen value that is no longer offered is kept and marked, not cleared.

@@ -118,6 +118,19 @@
 							:placeholder="field.description" />
 					</div>
 
+					<!-- Concept-scheme choice whose options could not be loaded: the
+					     plain text input it had before, with a line saying so. -->
+					<div
+						v-else-if="field.codeList && codedFailed[field.key]"
+						class="cn-form-dialog__coded-fallback">
+						<NcTextField
+							:label="field.label + (field.required ? ' *' : '')"
+							:modelValue="codedFallbackText(field)"
+							:disabled="field.readOnly"
+							:helperText="t('nextcloud-vue', 'The list of choices could not be loaded. Enter the value by hand.')"
+							@update:modelValue="onCodedFallbackInput(field, $event)" />
+					</div>
+
 					<!-- Auto-generated field -->
 					<template v-else>
 						<!-- Text / Email / URL. The helper line lives outside the
@@ -600,7 +613,9 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import axios from '@nextcloud/axios'
+import { getLanguage, translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect, NcSelectUsers, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -1147,6 +1162,10 @@ export default {
 			 * itself always remains the UUID — this is display-only.
 			 */
 			referenceLabels: {},
+			/** Concept-scheme fields whose options request failed or came back empty. */
+			codedFailed: {},
+			/** Scheme of each coded field, as OpenRegister reported it (for the notation route). */
+			codedSchemes: {},
 			/**
 			 * Cross-app semantic-reference resolutions (ADR-048), keyed by the
 			 * semantic-type URI: `{ [uri]: { status, resolved, registerSlug,
@@ -1410,6 +1429,18 @@ export default {
 		},
 
 		/**
+		 * A signature of the values concept-scheme fields take as their context.
+		 *
+		 * @return {string} A change means some coded field's options are stale.
+		 */
+		codedContextToken() {
+			return this.resolvedFields
+				.filter((f) => f.codeList && f.codeList.contextProperty)
+				.map((f) => `${f.key}:${String(this.formData[f.codeList.contextProperty] ?? '')}`)
+				.join('&')
+		},
+
+		/**
 		 * A stable signature of every value a relation filter depends on.
 		 *
 		 * @return {string} The signature; a change means some picker's options are stale.
@@ -1632,6 +1663,16 @@ export default {
 		 * `relationFilterDecls`, and the values themselves are resolved from
 		 * `formData` by `fetchReferenceOptions`.
 		 */
+		codedContextToken() {
+			// Ask again for the options that follow another field. The chosen
+			// value is kept and marked, never cleared behind the user's back.
+			for (const field of this.resolvedFields) {
+				if (field.codeList && field.codeList.contextProperty && this.asyncState[field.key]) {
+					this.loadAsyncOptions(field, '')
+				}
+			}
+		},
+
 		relationFilterToken() {
 			const stale = new Set(this.relationFilterDecls.map(({ key }) => key))
 			if (stale.size === 0) {
@@ -2078,6 +2119,110 @@ export default {
 						}
 					}
 				}
+			}
+		},
+
+		/**
+		 * Request the options of a concept-scheme field from OpenRegister and
+		 * cache their labels. A failed or empty answer flips the field to the
+		 * text fallback; a held value the options no longer offer is resolved
+		 * through the concept route and marked.
+		 *
+		 * @param {object} field The coded field.
+		 * @return {Promise<Array<{id: string, label: string}>>} The options in OpenRegister's order.
+		 */
+		async fetchCodedOptions(field) {
+			const code = field.codeList
+			const params = { schema: String((this.schema && (this.schema.id ?? this.schema.slug)) ?? ''), property: code.property, language: getLanguage() }
+			if (code.contextProperty) {
+				const ctx = this.formData[code.contextProperty]
+				if (ctx !== undefined && ctx !== null && ctx !== '') {
+					params.context = String(ctx)
+				}
+			}
+			let options = []
+			try {
+				const response = await axios.get(generateUrl('/apps/openregister/api/vocabulary/options'), { params })
+				const data = response && response.data ? response.data : {}
+				if (data.scheme) {
+					this.codedSchemes = { ...this.codedSchemes, [field.key]: data.scheme }
+				}
+				options = (Array.isArray(data.results) ? data.results : [])
+					.filter((o) => o && o.value !== undefined && o.value !== null)
+					.map((o) => ({ id: String(o.value), label: o.label || o.notation || String(o.value) }))
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error(`CnFormDialog: vocabulary options failed for field "${field.key}":`, err)
+			}
+			this.codedFailed = { ...this.codedFailed, [field.key]: options.length === 0 }
+			const labels = {}
+			for (const o of options) {
+				labels[o.id] = o.label
+			}
+			this.referenceLabels = { ...this.referenceLabels, ...labels }
+			const offered = new Set(options.map((o) => o.id))
+			const held = this.formData[field.key]
+			for (const value of (Array.isArray(held) ? held : [held])) {
+				if (value !== undefined && value !== null && value !== '' && !offered.has(String(value))) {
+					this.resolveRetiredCode(field, String(value))
+				}
+			}
+			return options
+		},
+
+		/**
+		 * Show a held value the scheme no longer offers by its label, marked
+		 * "no longer offered", resolved through OpenRegister's concept route.
+		 *
+		 * @param {object} field The coded field.
+		 * @param {string} value The stored value (uri, or notation per `store`).
+		 * @return {Promise<void>}
+		 */
+		async resolveRetiredCode(field, value) {
+			const marker = t('nextcloud-vue', 'no longer offered')
+			let label = value
+			try {
+				const url = field.codeList.store === 'notation'
+					? generateUrl('/apps/openregister/api/vocabulary/concept/notation')
+					: generateUrl('/apps/openregister/api/vocabulary/concept')
+				const params = field.codeList.store === 'notation'
+					? { scheme: this.codedSchemes[field.key] || '', notation: value }
+					: { uri: value }
+				const response = await axios.get(url, { params, headers: { 'Accept-Language': getLanguage() } })
+				const d = response && response.data ? response.data : {}
+				const concept = d.concept || d
+				label = concept.label || concept.prefLabel || concept.notation || value
+			} catch {
+				// Unresolvable: the raw value is the best label left.
+			}
+			this.referenceLabels = { ...this.referenceLabels, [value]: `${label} (${marker})` }
+		},
+
+		/**
+		 * The text shown in the fallback input of a coded field.
+		 *
+		 * @param {object} field The coded field.
+		 * @return {string} The held value as text; several values are comma-separated.
+		 */
+		codedFallbackText(field) {
+			const v = this.formData[field.key]
+			if (Array.isArray(v)) {
+				return v.join(', ')
+			}
+			return v === undefined || v === null ? '' : String(v)
+		},
+
+		/**
+		 * Write the fallback input back: a string, or an array for several choices.
+		 *
+		 * @param {object} field The coded field.
+		 * @param {string} text The typed text.
+		 */
+		onCodedFallbackInput(field, text) {
+			if (field.codeList.multiple) {
+				this.updateField(field.key, text.split(',').map((x) => x.trim()).filter(Boolean))
+			} else {
+				this.updateField(field.key, text)
 			}
 		},
 
@@ -2646,7 +2791,27 @@ export default {
 		 * @return {boolean}
 		 */
 		isIdPickerField(field) {
-			return this.isReferenceField(field) || this.isUserField(field) || this.isGroupField(field)
+			return this.isReferenceField(field) || this.isUserField(field) || this.isGroupField(field) || this.isCodedField(field)
+		},
+
+		/**
+		 * A single choice bound to an OpenRegister concept scheme.
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 */
+		isCodedField(field) {
+			return !!(field.codeList && !field.codeList.multiple)
+		},
+
+		/**
+		 * Several choices bound to an OpenRegister concept scheme.
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 */
+		isCodedArrayField(field) {
+			return !!(field.codeList && field.codeList.multiple)
 		},
 
 		/**
@@ -2656,7 +2821,7 @@ export default {
 		 * @return {boolean}
 		 */
 		isIdPickerArrayField(field) {
-			return this.isReferenceArrayField(field) || this.isUserArrayField(field) || this.isGroupArrayField(field)
+			return this.isReferenceArrayField(field) || this.isUserArrayField(field) || this.isGroupArrayField(field) || this.isCodedArrayField(field)
 		},
 
 		/**
@@ -3628,7 +3793,11 @@ export default {
 
 			try {
 				let results
-				if (this.isReferenceField(field) || this.isReferenceArrayField(field)) {
+				if (this.isCodedField(field) || this.isCodedArrayField(field)) {
+					// Options OpenRegister serves for the bound scheme: its order,
+					// its validity window, its labels in the user's language.
+					results = await this.fetchCodedOptions(field)
+				} else if (this.isReferenceField(field) || this.isReferenceArrayField(field)) {
 					// OpenRegister object reference — fetch the referenced objects.
 					results = await this.fetchReferenceOptions(field, query)
 				} else if (this.isUserField(field) || this.isUserArrayField(field)) {

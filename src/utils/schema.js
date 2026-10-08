@@ -449,6 +449,37 @@ function propertySourceOf(prop) {
 }
 
 /**
+ * The concept-scheme binding of a property, alone or as the items of an array.
+ *
+ * Two spellings, read by OpenRegister alike: `conceptScheme` (a string) and
+ * `x-openregister-concepts` (an object with `scheme`, `store`, `contextProperty`).
+ *
+ * @param {object} prop The schema property definition.
+ * @return {{multiple: boolean, store: string, contextProperty: string|null}|null} The binding, or null when the property is not bound.
+ */
+function codedBindingOf(prop) {
+	const read = (p) => {
+		if (!p || typeof p !== 'object') {
+			return null
+		}
+		const ann = p['x-openregister-concepts']
+		if (ann && typeof ann === 'object' && ann.scheme) {
+			return { store: typeof ann.store === 'string' && ann.store !== '' ? ann.store : 'uri', contextProperty: typeof ann.contextProperty === 'string' && ann.contextProperty !== '' ? ann.contextProperty : null }
+		}
+		if (typeof p.conceptScheme === 'string' && p.conceptScheme !== '') {
+			return { store: 'uri', contextProperty: null }
+		}
+		return null
+	}
+	if (prop && prop.type === 'array') {
+		const binding = read(prop.items) || read(prop)
+		return binding ? { ...binding, multiple: true } : null
+	}
+	const binding = read(prop)
+	return binding ? { ...binding, multiple: false } : null
+}
+
+/**
  * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
  * @param {object} prop The schema property definition.
  * @return {string} The widget identifier (see the block above).
@@ -467,6 +498,15 @@ function resolveWidget(prop) {
 	// Array of objects edited as a table (opt-in; the default is unchanged)
 	if (prop['x-widget'] === 'sub-objects' && prop.type === 'array' && prop.items && prop.items.type === 'object') {
 		return 'sub-objects'
+	}
+
+	// Bound to an OpenRegister concept scheme: a select over the options
+	// OpenRegister serves (a multiselect for an array).
+	{
+		const coded = codedBindingOf(prop)
+		if (coded) {
+			return coded.multiple ? 'multiselect' : 'select'
+		}
 	}
 
 	// Editable table of another schema's records: an array of references whose
@@ -875,6 +915,12 @@ export function fieldsFromSchema(schema, options = {}) {
 				: (prop.type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null)
 						? { schema: normalizeRef(prop.items.$ref), multiple: true, ...((prop.items['x-external-register'] || prop['x-external-register']) ? { register: prop.items['x-external-register'] || prop['x-external-register'] } : {}), ...(labelField ? { labelField } : {}) }
 						: null,
+			// Concept-scheme binding: what the form needs to ask OpenRegister
+			// for the options (it fetches nothing here).
+			codeList: (() => {
+				const coded = codedBindingOf(prop)
+				return coded ? { property: key, multiple: coded.multiple, store: coded.store, contextProperty: coded.contextProperty } : null
+			})(),
 			// Child-records table (widget `child-records`): the child schema,
 			// the child property that points back, and the columns shown. From
 			// `items.$ref` + `inversedBy`, or named on the property.
