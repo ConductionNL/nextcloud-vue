@@ -226,6 +226,7 @@ export {
 	CnRelatedObjectsWidget,
 	CnRelationLinkModal,
 	CnRelationshipGraph,
+	CnPropertySourceField,
 	CnResourceSelect,
 	CnRichSubmitDialog,
 	CnRoadmapItem,

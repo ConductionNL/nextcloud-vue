@@ -430,6 +430,25 @@ function applyPickerOverride(field, override) {
 }
 
 /**
+ * Read a property's `x-openregister-property-source` declaration.
+ *
+ * @spec openspec/changes/form-field-property-source/tasks.md#task-1
+ * @param {object} prop The schema property definition.
+ * @return {{provider: string, mode: string, config: object}|null} The declaration, or null when absent or without a provider.
+ */
+function propertySourceOf(prop) {
+	const decl = prop && prop['x-openregister-property-source']
+	if (!decl || typeof decl !== 'object' || typeof decl.provider !== 'string' || decl.provider === '') {
+		return null
+	}
+	return {
+		provider: decl.provider,
+		mode: decl.mode === 'default' ? 'default' : 'live',
+		config: (decl.config && typeof decl.config === 'object') ? decl.config : {},
+	}
+}
+
+/**
  * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
  * @param {object} prop The schema property definition.
  * @return {string} The widget identifier (see the block above).
@@ -438,6 +457,11 @@ function resolveWidget(prop) {
 	// Explicit widget hint takes priority
 	if (prop.widget) {
 		return prop.widget
+	}
+
+	// Registry-backed property (x-openregister-property-source) → type-ahead
+	if (propertySourceOf(prop)) {
+		return 'property-source'
 	}
 
 	// Enum → select
@@ -669,7 +693,7 @@ export function isTenantProperty(key, prop) {
  * @param {boolean} [options.hideTenant] Drop properties that hold the record's tenant (see `isTenantProperty`). Off by default, so a detail page still shows the tenant; CnFormDialog turns it on because nobody should be asked for it. `overrides[key].hidden === false` keeps one visible.
  * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each field's `label` and `description`. Schema property titles/descriptions are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered field label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
  * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
- * @return {Array<{key: string, label: string, description: string, descriptionLong: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: unknown, enum: Array|null, enumLabels: object|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean, register?: string, labelField?: string}|null, allowCreate: boolean, userPicker: {multiple: boolean}|null, groupPicker: {multiple: boolean}|null, defaultToken: string|null, fillFrom: object|null, validation: object, order: number}>} `description` is the inline helper text (see `splitDescription`); `descriptionLong` carries the property's `x-help` text when it declares one, else the full description when it was too long to render inline, else ''. `enumLabels` maps each raw enum value to its English display label (from the property's `x-enum-labels`), or null.
+ * @return {Array<{key: string, label: string, description: string, descriptionLong: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: unknown, enum: Array|null, enumLabels: object|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean, register?: string, labelField?: string}|null, allowCreate: boolean, userPicker: {multiple: boolean}|null, groupPicker: {multiple: boolean}|null, defaultToken: string|null, propertySource: {provider: string, mode: string, config: object}|null, fillFrom: object|null, validation: object, order: number}>} `description` is the inline helper text (see `splitDescription`); `descriptionLong` carries the property's `x-help` text when it declares one, else the full description when it was too long to render inline, else ''. `enumLabels` maps each raw enum value to its English display label (from the property's `x-enum-labels`), or null.
  */
 export function fieldsFromSchema(schema, options = {}) {
 	const { exclude = [], include = null, overrides = {}, includeReadOnly = false, hideTenant = false, translate } = options
@@ -842,6 +866,8 @@ export function fieldsFromSchema(schema, options = {}) {
 				|| (prop.type === 'array' && !!prop.items && prop.items['x-allow-create'] === true),
 			// Template copy (`x-fill-from: { formKey: sourceKey }`): choosing a
 			// referenced object copies those of its values into this form.
+			// Registry-backed lookup (`x-openregister-property-source`).
+			propertySource: propertySourceOf(prop),
 			fillFrom: (prop['x-fill-from'] && typeof prop['x-fill-from'] === 'object') ? prop['x-fill-from'] : null,
 			// Nextcloud user reference: when a property marks a NC user
 			// (`referenceType: 'nextcloud-user'`, or `format: 'user'`/

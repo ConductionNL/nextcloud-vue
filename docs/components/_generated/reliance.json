@@ -545,7 +545,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 127,
+			"transitive": 158,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -557,6 +557,7 @@
 				"CnCalendarEventCreate",
 				"CnCalendarEventPicker",
 				"CnChartWidget",
+				"CnChartWidgetForm",
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
 				"CnContactPicker",
@@ -565,40 +566,62 @@
 				"CnDataTable",
 				"CnDeckCardCreate",
 				"CnDeckCardPicker",
+				"CnDeltaWidgetForm",
+				"CnDetailWidgetHost",
 				"CnEmailPicker",
 				"CnFilesCard",
+				"CnFilesWidget",
 				"CnFkResolveCell",
 				"CnFlowDetail",
 				"CnFlowOperationPicker",
+				"CnFlowRunsWidget",
+				"CnFlowRunsWidgetForm",
 				"CnFormDialog",
+				"CnGaugeWidgetForm",
 				"CnGraphCanvas",
 				"CnIndexPage",
 				"CnIntegrationWidget",
+				"CnInteractionFormWidget",
+				"CnKbSearchWidget",
 				"CnMapPoiPicker",
 				"CnMapWidget",
+				"CnMapWidgetForm",
 				"CnNavCardGrid",
 				"CnNotesCard",
 				"CnObjectDataWidget",
 				"CnObjectGeoWidget",
+				"CnObjectListWidget",
+				"CnObjectListWidgetForm",
 				"CnObjectMetadataWidget",
 				"CnObjectSidebar",
 				"CnOpenProjectCreate",
 				"CnOpenProjectPicker",
 				"CnPhotoAlbumPicker",
 				"CnPollPicker",
+				"CnRegisterSchemaSelect",
 				"CnRelatedObjectsWidget",
 				"CnResourceSelect",
+				"CnStackedBarWidgetForm",
+				"CnStagesWidget",
+				"CnStagesWidgetForm",
+				"CnStatWidget",
+				"CnStatWidgetForm",
 				"CnStatsBlockWidget",
+				"CnStatsBlockWidgetForm",
 				"CnTagsCard",
 				"CnTalkRoomPicker",
 				"CnTasksCard",
+				"CnTasksWidget",
 				"CnTimeTrackerCreate",
 				"CnTimeTrackerPicker",
 				"CnTimelineWidget",
 				"CnTranslatedBadge",
 				"CnVersionHistory",
+				"CnWeekStripWidget",
+				"CnWeekStripWidgetForm",
 				"CnWidgetObjectTable",
 				"CnWidgetRefItem",
+				"CnWorkspaceFilterWidget",
 				"CnXwikiPageCreate",
 				"CnXwikiPagePicker"
 			],
@@ -612,7 +635,7 @@
 			"page": "cn-data-matrix"
 		},
 		"CnDataTable": {
-			"direct": 4,
+			"direct": 5,
 			"transitive": 8,
 			"tier": "heavy",
 			"via": [
@@ -731,7 +754,7 @@
 			"page": "cn-detail-grid"
 		},
 		"CnDetailPage": {
-			"direct": 8,
+			"direct": 10,
 			"transitive": 160,
 			"tier": "heavy",
 			"via": [
@@ -1772,6 +1795,20 @@
 			"via": [],
 			"page": "cn-note-card"
 		},
+		"CnNotepadWidget": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-notepad-widget"
+		},
+		"CnNotepadWidgetForm": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-notepad-widget-form"
+		},
 		"CnNotesCard": {
 			"direct": 1,
 			"transitive": 6,
@@ -2129,7 +2166,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 5,
-			"transitive": 178,
+			"transitive": 179,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2288,6 +2325,13 @@
 			"tier": "none",
 			"via": [],
 			"page": "cn-progress-bar"
+		},
+		"CnPropertySourceField": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-property-source-field"
 		},
 		"CnQuickFilterBar": {
 			"direct": 0,

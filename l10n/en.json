@@ -1,5 +1,16 @@
 {
   "translations": {
+    "Registry lookup is not available on this server.": "Registry lookup is not available on this server.",
+    "From {provider}, read {time}": "From {provider}, read {time}",
+    "From {provider}": "From {provider}",
+    "Source unreachable.": "Source unreachable.",
+    "From cache.": "From cache.",
+    "The registry \"{provider}\" is not available.": "The registry \"{provider}\" is not available.",
+    "You cannot look this up.": "You cannot look this up.",
+    "The source did not answer; type the value.": "The source did not answer; type the value.",
+    "Replace these values?": "Replace these values?",
+    "Keep mine": "Keep mine",
+    "Replace": "Replace",
     "Saving": "Saving",
     "Saved just now": "Saved just now",
     "Saved {time}": "Saved {time}",
@@ -159,7 +170,6 @@
     "Binary": "Binary",
     "Boolean": "Boolean",
     "Byte": "Byte",
-    "Cancel": "Cancel",
     "Cannot delete: objects are still attached": "Cannot delete: objects are still attached",
     "Cards": "Cards",
     "Cascade delete": "Cascade delete",
@@ -234,9 +244,7 @@
     "Drop files here or click to browse": "Drop files here or click to browse",
     "Duration": "Duration",
     "Edit": "Edit",
-    "View": "View",
     "Edit {title}": "Edit {title}",
-    "Email": "Email",
     "Enter a custom value": "Enter a custom value",
     "Enumeration ({count})": "Enumeration ({count})",
     "Errors": "Errors",
@@ -404,7 +412,7 @@
     "Setup can start once these apps are installed and enabled: {apps}.": "Setup can start once these apps are installed and enabled: {apps}.",
     "Optional, not installed: {apps}. You can add them later.": "Optional, not installed: {apps}. You can add them later.",
     "Skipped, needs {apps}": "Skipped, needs {apps}",
-    "Running\u2026": "Running…",
+    "Running…": "Running…",
     "This action is not configured.": "This action is not configured.",
     "Done.": "Done.",
     "Something went wrong.": "Something went wrong.",
@@ -448,8 +456,6 @@
     "Object summary field": "Object summary field",
     "Objects": "Objects",
     "objects": "objects",
-    "No objects to delete": "No objects to delete",
-    "No objects to publish": "No objects to publish",
     "oneOf - Exactly one schema must match": "oneOf - Exactly one schema must match",
     "oneOf - Mutually exclusive": "oneOf - Mutually exclusive",
     "One of": "One of",
@@ -592,13 +598,7 @@
     "{name} (Copy)": "{name} (Copy)",
     "{name} - Copy": "{name} - Copy",
     "{title} saved successfully.": "{title} saved successfully.",
-    "Grant access based on object property values evaluated at runtime. Multiple rules per action are OR'd — any matching rule grants access.": "Grant access based on object property values evaluated at runtime. Multiple rules per action are OR'd — any matching rule grants access.",
-    "Group": "Group",
-    "Group permissions": "Group permissions",
-    "If no groups are specified for an operation, all users can perform it": "If no groups are specified for an operation, all users can perform it",
     "Inherits schema permissions": "Inherits schema permissions",
-    "Maximum items": "Maximum items",
-    "Minimum items": "Minimum items",
     "A short summary of what you would like built.": "A short summary of what you would like built.",
     "Ask your administrator to add a GitHub Personal Access Token in the OpenRegister settings to enable the roadmap.": "Ask your administrator to add a GitHub Personal Access Token in the OpenRegister settings to enable the roadmap.",
     "Body must be at least 10 characters.": "Body must be at least 10 characters.",
@@ -662,11 +662,9 @@
     "When the maintainers label issues \"enhancement\" or \"feature\" on GitHub they will appear here.": "When the maintainers label issues \"enhancement\" or \"feature\" on GitHub they will appear here.",
     "Open AI chat": "Open AI chat",
     "AI assistant": "AI assistant",
-    "Send message": "Send message",
     "Message input": "Message input",
     "Start new chat": "Start new chat",
     "History": "History",
-    "Close": "Close",
     "No conversations yet": "No conversations yet",
     "Connecting...": "Connecting...",
     "Loading conversations...": "Loading conversations...",
@@ -749,7 +747,6 @@
     "Assigned to {name}": "Assigned to {name}",
     "Priority: {priority}": "Priority: {priority}",
     "Projects": "Projects",
-    "Unknown": "Unknown",
     "Search albums": "Search albums",
     "No albums available": "No albums available",
     "Create an album in NC Photos first, or use the create dialog.": "Create an album in NC Photos first, or use the create dialog.",
@@ -847,7 +844,6 @@
     "No projects available": "No projects available",
     "Create a project in NC Costs first, or use the create dialog.": "Create a project in NC Costs first, or use the create dialog.",
     "NC Costs is not installed.": "NC Costs is not installed.",
-    "Could not load projects.": "Could not load projects.",
     "Link project": "Link project",
     "Link an existing project": "Link an existing project",
     "Project name": "Project name",
@@ -1132,18 +1128,57 @@
     "not a valid address": "not a valid address"
   },
   "plurals": {
-    "%n year": ["%n year", "%n years"],
-    "%n month": ["%n month", "%n months"],
-    "%n day": ["%n day", "%n days"],
-    "Released, %n earlier hold": ["Released, %n earlier hold", "Released, %n earlier holds"],
-    "{count} photo": ["{count} photo", "{count} photos"],
-    "{count} card": ["{count} card", "{count} cards"],
-    "across {count} stack": ["across {count} stack", "across {count} stacks"],
-    "{count} conversation": ["{count} conversation", "{count} conversations"],
-    "{count} unread message": ["{count} unread message", "{count} unread messages"],
-    "across {count} conversation": ["across {count} conversation", "across {count} conversations"],
-    "{count} work package": ["{count} work package", "{count} work packages"],
-    "{count} more message": ["{count} more message", "{count} more messages"],
-    "You see {count} capability of {total}.": ["You see {count} capability of {total}.", "You see {count} capabilities of {total}."]
+    "%n year": [
+      "%n year",
+      "%n years"
+    ],
+    "%n month": [
+      "%n month",
+      "%n months"
+    ],
+    "%n day": [
+      "%n day",
+      "%n days"
+    ],
+    "Released, %n earlier hold": [
+      "Released, %n earlier hold",
+      "Released, %n earlier holds"
+    ],
+    "{count} photo": [
+      "{count} photo",
+      "{count} photos"
+    ],
+    "{count} card": [
+      "{count} card",
+      "{count} cards"
+    ],
+    "across {count} stack": [
+      "across {count} stack",
+      "across {count} stacks"
+    ],
+    "{count} conversation": [
+      "{count} conversation",
+      "{count} conversations"
+    ],
+    "{count} unread message": [
+      "{count} unread message",
+      "{count} unread messages"
+    ],
+    "across {count} conversation": [
+      "across {count} conversation",
+      "across {count} conversations"
+    ],
+    "{count} work package": [
+      "{count} work package",
+      "{count} work packages"
+    ],
+    "{count} more message": [
+      "{count} more message",
+      "{count} more messages"
+    ],
+    "You see {count} capability of {total}.": [
+      "You see {count} capability of {total}.",
+      "You see {count} capabilities of {total}."
+    ]
   }
 }

@@ -123,6 +123,7 @@ export { default as CnContactsTab } from '../integrations/builtin/contacts/CnCon
 export { CnContactPicker } from './CnContactPicker/index.js'
 export { CnContactCreate } from './CnContactCreate/index.js'
 export { CnResourceSelect } from './CnResourceSelect/index.js'
+export { CnPropertySourceField } from './CnPropertySourceField/index.js'
 export { CnIntegrationTab } from './CnIntegrationTab/index.js'
 export { CnObjectAccessTab } from './CnObjectAccessTab/index.js'
 export { CnIntegrationCard } from './CnIntegrationCard/index.js'

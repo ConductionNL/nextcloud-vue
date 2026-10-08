@@ -423,6 +423,25 @@
 								:error="errors[field.key]" />
 						</div>
 
+						<!-- Registry type-ahead (widget: 'property-source'): CnPropertySourceField;
+						     a pick can fill empty sibling fields from config.fill. -->
+						<div v-else-if="field.widget === 'property-source' && field.propertySource" class="cn-form-dialog__property-source-wrapper">
+							<CnPropertySourceField
+								:provider="field.propertySource.provider"
+								:mode="field.propertySource.mode"
+								:inputId="'cn-form-' + field.key"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:disabled="field.readOnly"
+								:error="!!errors[field.key]"
+								@update:modelValue="value => updateField(field.key, value)"
+								@resolved="payload => onPropertySourceResolved(field, payload)" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong"
+								:error="errors[field.key]" />
+						</div>
+
 						<!-- Icon (widget: 'icon'): renders CnIconBrowser, forwarding the field's icon config.
 						     `searchable` is gone — the browser always searches. -->
 						<div v-else-if="field.widget === 'icon'" class="cn-form-dialog__icon-wrapper">
@@ -495,6 +514,12 @@
 			@confirm="onNestedCreateConfirm"
 			@close="onNestedCreateClose" />
 
+		<CnReplaceValuesDialog
+			v-if="pendingReplace !== null"
+			:changes="pendingReplace.changes"
+			@accept="resolveReplace(true)"
+			@decline="resolveReplace(false)" />
+
 		<template #actions>
 			<!-- One announcement per state change, so a screen reader hears
 			     "Draft saved" once rather than on every keystroke. -->
@@ -533,9 +558,11 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect, NcSelectUsers, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import CnReplaceValuesDialog from '../../dialogs/CnReplaceValuesDialog.vue'
 import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
+import CnPropertySourceField from '../CnPropertySourceField/CnPropertySourceField.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { draftIndicatorText, draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
@@ -555,6 +582,7 @@ import { shouldShow } from '../../utils/fieldCondition.js'
 import { resolveNextcloudGroup, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
 import { objectDisplayName } from '../../utils/objectName.js'
 import { languageOptions, resolveDefaultToken, timezoneOptions } from '../../utils/pickerOptions.js'
+import { getDotted, planPropertySourceFill } from '../../utils/propertySourceFill.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { fieldsFromSchema, isTenantProperty } from '../../utils/schema.js'
 import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
@@ -752,6 +780,8 @@ export default {
 	name: 'CnFormDialog',
 
 	components: {
+		CnPropertySourceField,
+		CnReplaceValuesDialog,
 		NcDialog,
 		NcButton,
 		NcNoteCard,
@@ -1032,6 +1062,8 @@ export default {
 		return {
 			formData: {},
 			errors: {},
+			/** Fill-over-typed-values question awaiting an answer: `{ changes, resolve }`, or null. */
+			pendingReplace: null,
 			loading: false,
 			result: null,
 			/** Form-level error message (e.g. a server validation failure) shown above the fields without leaving the form phase. */
@@ -2974,6 +3006,84 @@ export default {
 			this.nestedCreate = null
 			if (pending) {
 				pending.resolve(null)
+			}
+		},
+
+		/**
+		 * Write a value at a plain or dotted key; a dotted key reaches a field
+		 * of an object property.
+		 *
+		 * @param {string} key   Field key, or `parent.child`.
+		 * @param {*}      value The value to write.
+		 */
+		writeDotted(key, value) {
+			if (Object.hasOwn(this.formData, key) || !key.includes('.')) {
+				this.updateField(key, value)
+				return
+			}
+			const [head, ...rest] = key.split('.')
+			const clone = JSON.parse(JSON.stringify(this.formData[head] ?? {}))
+			let cur = clone
+			rest.slice(0, -1).forEach((k) => {
+				if (cur[k] === null || typeof cur[k] !== 'object') {
+					cur[k] = {}
+				}
+				cur = cur[k]
+			})
+			cur[rest[rest.length - 1]] = value
+			this.updateField(head, clone)
+		},
+
+		/**
+		 * After a registry pick resolved, fill empty sibling fields from the
+		 * declaration's `config.fill` map and ask once before replacing typed
+		 * values. Mode `live` fills nothing.
+		 *
+		 * @param {object} field   The property-source field.
+		 * @param {{value: *}} payload The resolved answer.
+		 * @return {Promise<void>}
+		 */
+		async onPropertySourceResolved(field, payload) {
+			const source = field.propertySource
+			if (!source || source.mode !== 'default' || !source.config || !source.config.fill) {
+				return
+			}
+			const known = new Set(this.resolvedFields.map((f) => f.key))
+			const { apply, conflicts } = planPropertySourceFill(
+				source.config.fill,
+				payload.value,
+				this.formData,
+				(key) => known.has(key) || known.has(String(key).split('.')[0]),
+			)
+			apply.forEach(({ key, value }) => this.writeDotted(key, value))
+			if (conflicts.length === 0) {
+				return
+			}
+			const labelOf = (key) => {
+				const f = this.resolvedFields.find((x) => x.key === key)
+				return f ? f.label : key
+			}
+			const replace = await new Promise((resolve) => {
+				this.pendingReplace = {
+					changes: conflicts.map((c) => ({ ...c, label: labelOf(c.key), oldValue: getDotted(this.formData, c.key) })),
+					resolve,
+				}
+			})
+			if (replace) {
+				conflicts.forEach(({ key, newValue }) => this.writeDotted(key, newValue))
+			}
+		},
+
+		/**
+		 * Answer the pending replace question.
+		 *
+		 * @param {boolean} replace True to overwrite the typed values.
+		 */
+		resolveReplace(replace) {
+			const pending = this.pendingReplace
+			this.pendingReplace = null
+			if (pending) {
+				pending.resolve(replace)
 			}
 		},
 

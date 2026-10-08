@@ -1,5 +1,16 @@
 {
   "translations": {
+    "Registry lookup is not available on this server.": "Opzoeken in het register is niet beschikbaar op deze server.",
+    "From {provider}, read {time}": "Van {provider}, gelezen {time}",
+    "From {provider}": "Van {provider}",
+    "Source unreachable.": "Bron niet bereikbaar.",
+    "From cache.": "Uit de cache.",
+    "The registry \"{provider}\" is not available.": "Het register \"{provider}\" is niet beschikbaar.",
+    "You cannot look this up.": "U mag dit niet opzoeken.",
+    "The source did not answer; type the value.": "De bron antwoordde niet; typ de waarde zelf.",
+    "Replace these values?": "Deze waarden vervangen?",
+    "Keep mine": "Mijn waarden houden",
+    "Replace": "Vervangen",
     "Saving": "Opslaan",
     "Saved just now": "Zojuist opgeslagen",
     "Saved {time}": "Opgeslagen {time}",
@@ -57,7 +68,7 @@
     "No integrations available yet.": "Nog geen integraties beschikbaar.",
     "This integration is not available.": "Deze integratie is niet beschikbaar.",
     "Integrations": "Integraties",
-    "View": "Weergave",
+    "View": "Bekijken",
     "Views": "Weergaven",
     "current step": "huidige stap",
     "{app} not available": "{app} niet beschikbaar",
@@ -78,7 +89,7 @@
     "Cancel": "Annuleren",
     "Display name": "Weergavenaam",
     "Required — shown in the contact list.": "Verplicht — getoond in de contactenlijst.",
-    "Email": "E-mailadres",
+    "Email": "E-mail",
     "Optional. Used for outgoing mail and reverse lookup.": "Optioneel. Wordt gebruikt voor uitgaande mail en omgekeerde lookup.",
     "Phone": "Telefoon",
     "Organisation": "Organisatie",
@@ -158,7 +169,6 @@
     "Binary": "Binair",
     "Boolean": "Boolean",
     "Byte": "Byte",
-    "Cancel": "Annuleren",
     "Cannot delete: objects are still attached": "Kan niet verwijderen: er zijn nog objecten gekoppeld",
     "Cards": "Kaarten",
     "Cascade delete": "Trapsgewijs verwijderen",
@@ -233,9 +243,7 @@
     "Drop files here or click to browse": "Sleep bestanden hier of klik om te bladeren",
     "Duration": "Duur",
     "Edit": "Bewerken",
-    "View": "Bekijken",
     "Edit {title}": "{title} bewerken",
-    "Email": "E-mail",
     "Enter a custom value": "Voer een aangepaste waarde in",
     "Enumeration ({count})": "Opsomming ({count})",
     "Errors": "Fouten",
@@ -403,7 +411,7 @@
     "Setup can start once these apps are installed and enabled: {apps}.": "De installatie kan beginnen zodra deze apps geïnstalleerd en ingeschakeld zijn: {apps}.",
     "Optional, not installed: {apps}. You can add them later.": "Optioneel, niet geïnstalleerd: {apps}. Je kunt ze later toevoegen.",
     "Skipped, needs {apps}": "Overgeslagen, vereist {apps}",
-    "Running\u2026": "Bezig…",
+    "Running…": "Bezig…",
     "This action is not configured.": "Deze actie is niet ingesteld.",
     "Done.": "Klaar.",
     "Something went wrong.": "Er ging iets mis.",
@@ -531,7 +539,7 @@
     "Select which columns to display in the table": "Selecteer welke kolommen in de tabel worden weergegeven",
     "Semantic version": "Semantische versie",
     "Send email": "E-mail verzenden",
-    "Send message": "Bericht verzenden",
+    "Send message": "Bericht versturen",
     "Share URL": "Deel-URL",
     "Sheet": "Blad",
     "Show all": "Alles weergeven",
@@ -653,11 +661,9 @@
     "When the maintainers label issues \"enhancement\" or \"feature\" on GitHub they will appear here.": "Wanneer de onderhouders issues op GitHub labelen met \"enhancement\" of \"feature\" verschijnen ze hier.",
     "Open AI chat": "AI-chat openen",
     "AI assistant": "AI-assistent",
-    "Send message": "Bericht versturen",
     "Message input": "Berichtinvoer",
     "Start new chat": "Nieuwe chat starten",
     "History": "Geschiedenis",
-    "Close": "Sluiten",
     "No conversations yet": "Nog geen gesprekken",
     "Connecting...": "Verbinden...",
     "Loading conversations...": "Gesprekken laden...",
@@ -732,7 +738,7 @@
     "Subject": "Onderwerp",
     "Type (optional)": "Type (optioneel)",
     "e.g. Task, Bug, Feature": "bijv. Taak, Bug, Functie",
-    "Could not load projects.": "Kan projecten niet laden.",
+    "Could not load projects.": "Kon projecten niet laden.",
     "This work package is already linked.": "Dit werkpakket is al gekoppeld.",
     "Could not link work package.": "Kan werkpakket niet koppelen.",
     "Could not create work package.": "Kan werkpakket niet aanmaken.",
@@ -740,7 +746,6 @@
     "Assigned to {name}": "Toegewezen aan {name}",
     "Priority: {priority}": "Prioriteit: {priority}",
     "Projects": "Projecten",
-    "Unknown": "Onbekend",
     "Search albums": "Albums zoeken",
     "No albums available": "Geen albums beschikbaar",
     "Create an album in NC Photos first, or use the create dialog.": "Maak eerst een album aan in NC Foto's, of gebruik het aanmaakvenster.",
@@ -838,7 +843,6 @@
     "No projects available": "Geen projecten beschikbaar",
     "Create a project in NC Costs first, or use the create dialog.": "Maak eerst een project aan in NC Kosten, of gebruik het aanmaakvenster.",
     "NC Costs is not installed.": "NC Kosten is niet geïnstalleerd.",
-    "Could not load projects.": "Kon projecten niet laden.",
     "Link project": "Project koppelen",
     "Link an existing project": "Een bestaand project koppelen",
     "Project name": "Projectnaam",
@@ -1175,18 +1179,57 @@
     "not a valid address": "geen geldig adres"
   },
   "plurals": {
-    "%n year": ["%n jaar", "%n jaar"],
-    "%n month": ["%n maand", "%n maanden"],
-    "%n day": ["%n dag", "%n dagen"],
-    "Released, %n earlier hold": ["Vrijgegeven, %n eerdere bewaring", "Vrijgegeven, %n eerdere bewaringen"],
-    "{count} photo": ["{count} foto", "{count} foto's"],
-    "{count} card": ["{count} kaart", "{count} kaarten"],
-    "across {count} stack": ["over {count} stapel", "over {count} stapels"],
-    "{count} conversation": ["{count} gesprek", "{count} gesprekken"],
-    "{count} unread message": ["{count} ongelezen bericht", "{count} ongelezen berichten"],
-    "across {count} conversation": ["in {count} gesprek", "in {count} gesprekken"],
-    "{count} work package": ["{count} werkpakket", "{count} werkpakketten"],
-    "{count} more message": ["nog {count} melding", "nog {count} meldingen"],
-    "You see {count} capability of {total}.": ["Je ziet {count} functionaliteit van {total}.", "Je ziet {count} functionaliteiten van {total}."]
+    "%n year": [
+      "%n jaar",
+      "%n jaar"
+    ],
+    "%n month": [
+      "%n maand",
+      "%n maanden"
+    ],
+    "%n day": [
+      "%n dag",
+      "%n dagen"
+    ],
+    "Released, %n earlier hold": [
+      "Vrijgegeven, %n eerdere bewaring",
+      "Vrijgegeven, %n eerdere bewaringen"
+    ],
+    "{count} photo": [
+      "{count} foto",
+      "{count} foto's"
+    ],
+    "{count} card": [
+      "{count} kaart",
+      "{count} kaarten"
+    ],
+    "across {count} stack": [
+      "over {count} stapel",
+      "over {count} stapels"
+    ],
+    "{count} conversation": [
+      "{count} gesprek",
+      "{count} gesprekken"
+    ],
+    "{count} unread message": [
+      "{count} ongelezen bericht",
+      "{count} ongelezen berichten"
+    ],
+    "across {count} conversation": [
+      "in {count} gesprek",
+      "in {count} gesprekken"
+    ],
+    "{count} work package": [
+      "{count} werkpakket",
+      "{count} werkpakketten"
+    ],
+    "{count} more message": [
+      "nog {count} melding",
+      "nog {count} meldingen"
+    ],
+    "You see {count} capability of {total}.": [
+      "Je ziet {count} functionaliteit van {total}.",
+      "Je ziet {count} functionaliteiten van {total}."
+    ]
   }
 }
