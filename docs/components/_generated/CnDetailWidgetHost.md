@@ -31,7 +31,8 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name               | Payload | Description                                                  |
-| ------------------ | ------- | ------------------------------------------------------------ |
-| `geo-saved`        | —       | Emitted when the geo widget saved a geometry.                |
-| `open-integration` | —       | Emitted when the related widget asks to open an integration. |
+| Name               | Payload | Description                                                                                                               |
+| ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `geo-saved`        | —       | Emitted when the geo widget saved a geometry.                                                                             |
+| `open-integration` | —       | Emitted when the related widget asks to open an integration.                                                              |
+| `select-object`    | —       | A related object was clicked in the related widget. Payload is the raw object; its `@self` names the register and schema. |

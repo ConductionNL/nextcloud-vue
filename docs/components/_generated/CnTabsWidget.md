@@ -31,7 +31,8 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name               | Payload | Description                                                    |
-| ------------------ | ------- | -------------------------------------------------------------- |
-| `geo-saved`        | —       | Re-emitted from a geo child that saved a geometry.             |
-| `open-integration` | —       | Re-emitted from a related child asking to open an integration. |
+| Name               | Payload | Description                                                                              |
+| ------------------ | ------- | ---------------------------------------------------------------------------------------- |
+| `geo-saved`        | —       | Re-emitted from a geo child that saved a geometry.                                       |
+| `open-integration` | —       | Re-emitted from a related child asking to open an integration.                           |
+| `select-object`    | —       | Re-emitted from a related child whose object row was clicked. Payload is the raw object. |

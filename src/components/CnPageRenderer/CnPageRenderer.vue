@@ -120,7 +120,8 @@
 				v-if="widgetsBySlot.has('body')"
 				:widgets="widgetsBySlot.get('body')"
 				:editable="bodyEditable"
-				slotName="body" />
+				slotName="body"
+				@selectObject="onRelatedObjectOpen" />
 			<component
 				:is="resolvedComponent"
 				v-else-if="resolvedComponent"
@@ -130,6 +131,7 @@
 				@rowClick="onRowOpen"
 				@rowAuxClick="onRowOpen"
 				@editOpen="onRowOpen"
+				@relatedObjectClick="onRelatedObjectOpen"
 				@configure="showConfigModal = true">
 				<!-- This `<template v-for>` defines dynamic SLOTS, not a
 				     rendered list, so the rule's advice is inverted here:
@@ -173,27 +175,32 @@
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('header-actions')"
 				:widgets="widgetsBySlot.get('header-actions')"
-				slotName="header-actions" />
+				slotName="header-actions"
+				@selectObject="onRelatedObjectOpen" />
 			<!-- footer slot -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('footer')"
 				:widgets="widgetsBySlot.get('footer')"
-				slotName="footer" />
+				slotName="footer"
+				@selectObject="onRelatedObjectOpen" />
 			<!-- modal slot -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('modal')"
 				:widgets="widgetsBySlot.get('modal')"
-				slotName="modal" />
+				slotName="modal"
+				@selectObject="onRelatedObjectOpen" />
 			<!-- sidebar slot (gated by cnPageSidebarVisible) -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('sidebar') && pageSidebarVisibleValue"
 				:widgets="widgetsBySlot.get('sidebar')"
-				slotName="sidebar" />
+				slotName="sidebar"
+				@selectObject="onRelatedObjectOpen" />
 			<!-- dynamic tab:* and section:* slots -->
 			<template v-for="dynamicSlot in dynamicSlotKeys" :key="dynamicSlot">
 				<CnWidgetGrid
 					:widgets="widgetsBySlot.get(dynamicSlot)"
-					:slotName="dynamicSlot" />
+					:slotName="dynamicSlot"
+					@selectObject="onRelatedObjectOpen" />
 			</template>
 		</template>
 
@@ -206,6 +213,7 @@
 			@rowClick="onRowOpen"
 			@rowAuxClick="onRowOpen"
 			@editOpen="onRowOpen"
+			@relatedObjectClick="onRelatedObjectOpen"
 			@configure="showConfigModal = true">
 			<!-- Dynamic slot definition, not a rendered list — see the note on
 			     the identical block above. -->
@@ -300,6 +308,53 @@ import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { parseSortKeys } from '../../utils/routeFilters.js'
 import { buildRouteParams, routePathFor } from '../../utils/routeParams.js'
 import { isNewTabHandled } from '../../utils/rowAuxClick.js'
+
+/**
+ * OpenRegister registers and schemas already described by id, so a click on
+ * a related object costs at most one request per register or schema for as
+ * long as this module stays loaded (the SPA's lifetime, across page
+ * changes). Keyed by `${kind}:${id}`; a failed lookup is dropped again so the
+ * next click retries it.
+ *
+ * @type {Map<string, Promise<{ id: string, slug: string }>>}
+ */
+const entityDescriptorCache = new Map()
+
+/**
+ * Describe an OpenRegister register or schema (`{ id, slug }`) by its id or
+ * slug, or null when it cannot be fetched. An object's `@self` names its
+ * register and schema by id while a manifest may name them by slug; this is
+ * the bridge. Lazy-imports axios and the router helper like the widgets do.
+ *
+ * @param {'registers'|'schemas'} kind The collection to ask.
+ * @param {string|number} idOrSlug The id (or slug) to describe.
+ * @return {Promise<{ id: string, slug: string }|null>} The descriptor.
+ */
+function describeOpenRegisterEntity(kind, idOrSlug) {
+	const key = `${kind}:${idOrSlug}`
+	if (!entityDescriptorCache.has(key)) {
+		entityDescriptorCache.set(key, (async () => {
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl('/apps/openregister/api/{kind}/{id}', { kind, id: String(idOrSlug) })
+				const res = await axios.get(url)
+				const data = res && res.data
+				if (!data || typeof data !== 'object') {
+					throw new Error(`no descriptor for ${key}`)
+				}
+				return { id: String(data.id ?? idOrSlug), slug: String(data.slug ?? '') }
+			} catch (error) {
+				// One failed request must not pin every later click to nowhere.
+				entityDescriptorCache.delete(key)
+				throw error
+			}
+		})())
+	}
+	return entityDescriptorCache.get(key).catch(() => null)
+}
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { defaultPageTypes } from './pageTypes.js'
 
@@ -1828,6 +1883,92 @@ export default {
 				sortKeys: parseSortKeys(query._order),
 				filters: query,
 			})
+		},
+
+		/**
+		 * Open the detail page of an object clicked in a Related widget —
+		 * reaching here as `CnDetailPage`'s `related-object-click`, or as
+		 * `CnWidgetGrid`'s `select-object` on a v2 widget-grid page. Nothing
+		 * listened to either, so the rows looked like links and went nowhere.
+		 *
+		 * @param {object} raw The clicked object as the Related widget holds it.
+		 * @return {Promise<void>}
+		 */
+		async onRelatedObjectOpen(raw) {
+			const target = await this.relatedObjectTarget(raw)
+			if (target) {
+				this.$router.push(target).catch(() => {})
+			}
+		},
+
+		/**
+		 * Where a related object opens: the first `type: 'detail'` page bound
+		 * to the object's register and schema, with the id in whichever param
+		 * that page's route declares. The object's `@self` names register and
+		 * schema by id and a manifest may name them by slug, so a miss on the
+		 * literal pair describes both (one request each, cached) and matches
+		 * again. Null, silently, when there is no router or the object carries
+		 * no register, schema or id (nothing to open); null with a warning,
+		 * like a dead row click, when no detail page matches or the router
+		 * lacks the route.
+		 *
+		 * @param {object} raw The clicked object.
+		 * @return {Promise<object|null>} The router location, or null.
+		 */
+		async relatedObjectTarget(raw) {
+			const router = this.$router
+			if (!router || !raw || typeof raw !== 'object') {
+				return null
+			}
+			const self = raw['@self'] || {}
+			const id = raw.id ?? self.id ?? self.uuid ?? raw.uuid
+			const register = self.register ?? raw.register
+			const schema = self.schema ?? raw.schema
+			const missing = (v) => v === undefined || v === null || v === ''
+			if (missing(id) || missing(register) || missing(schema)) {
+				return null
+			}
+			let page = this.detailPageFor([String(register)], [String(schema)])
+			if (!page) {
+				const [reg, sch] = await Promise.all([
+					describeOpenRegisterEntity('registers', register),
+					describeOpenRegisterEntity('schemas', schema),
+				])
+				page = this.detailPageFor(
+					[String(register), reg?.id, reg?.slug].filter(Boolean),
+					[String(schema), sch?.id, sch?.slug].filter(Boolean),
+				)
+			}
+			if (!page) {
+				// eslint-disable-next-line no-console
+				console.warn(`[CnPageRenderer] No detail page is bound to register "${register}" and schema "${schema}", so related object "${id}" opens nowhere.`)
+				return null
+			}
+			if (this.routeNameIsKnown(page.id) === false) {
+				// eslint-disable-next-line no-console
+				console.warn(`[CnPageRenderer] Detail page "${page.id}" is not a route the router has, so related object "${id}" opens nowhere.`)
+				return null
+			}
+			const path = page.route ?? routePathFor(router, page.id)
+			return { name: page.id, params: buildRouteParams(path, id, this.$route?.params) }
+		},
+
+		/**
+		 * The first `type: 'detail'` page whose register and schema are both
+		 * among the given names (ids or slugs, compared as strings).
+		 *
+		 * @param {Array<string>} registerNames Names the register goes by.
+		 * @param {Array<string>} schemaNames Names the schema goes by.
+		 * @return {object|null} The page, or null.
+		 */
+		detailPageFor(registerNames, schemaNames) {
+			for (const page of this.detailPageByRegisterSchema.values()) {
+				const cfg = page.config || {}
+				if (registerNames.includes(String(cfg.register)) && schemaNames.includes(String(cfg.schema))) {
+					return page
+				}
+			}
+			return null
 		},
 
 		/**

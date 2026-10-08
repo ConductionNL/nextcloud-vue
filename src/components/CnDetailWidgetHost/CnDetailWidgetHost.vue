@@ -114,7 +114,8 @@
 			:includeGroups="content.groups || []"
 			:hideSingleTabTitle="content.hideSingleTabTitle !== false"
 			:showTotalCount="content.showTotalCount !== false"
-			@openIntegration="onOpenIntegration" />
+			@openIntegration="onOpenIntegration"
+			@selectObject="onSelectObject" />
 
 		<!-- `type: 'object-geo'` — view/edit the object's `@self.geo` on a map. -->
 		<CnObjectGeoWidget
@@ -183,7 +184,8 @@
 			<component
 				:is="renderer"
 				ref="renderer"
-				v-bind="rendererProps" />
+				v-bind="rendererProps"
+				@selectObject="onSelectObject" />
 		</CnWidgetWrapper>
 
 		<!-- Registry "card" widgets (stat / gauge / delta) render bare tile
@@ -218,7 +220,8 @@
 			:is="renderer"
 			v-else-if="renderer"
 			ref="renderer"
-			v-bind="rendererProps" />
+			v-bind="rendererProps"
+			@selectObject="onSelectObject" />
 
 		<!-- No renderer resolves: render nothing, which is what CnDetailPage has
 		     always done here. Surfacing an "unknown widget" box instead would be
@@ -501,7 +504,7 @@ export default {
 		},
 	},
 
-	emits: ['geo-saved', 'open-integration'],
+	emits: ['geo-saved', 'open-integration', 'select-object'],
 
 	setup() {
 		// Every integration component this host renders goes through the
@@ -1004,6 +1007,21 @@ export default {
 			 * @type {string}
 			 */
 			this.$emit('open-integration', integrationId)
+		},
+
+		/**
+		 * Pass a related-object click up; the page decides where it opens. Heard
+		 * from the Related widget itself and from a registry widget that nests a
+		 * host of its own (a Tabs widget with a Related tab).
+		 *
+		 * @param {object} raw The clicked object as the related widget holds it.
+		 */
+		onSelectObject(raw) {
+			/**
+			 * @event select-object A related object was clicked in the related widget. Payload is the raw object; its `@self` names the register and schema.
+			 * @type {object}
+			 */
+			this.$emit('select-object', raw)
 		},
 
 		/**

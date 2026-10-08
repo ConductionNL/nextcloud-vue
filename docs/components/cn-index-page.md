@@ -293,7 +293,7 @@ A manual order is stored against the person and the list, never onto the records
 | `view` | `row` | Built-in View row action triggered. Conceptually "open the detail view of this row". For a non-selectable list bind alongside `row-click` (same handler) for click-to-view; for a **selectable** list, plain clicks toggle selection, so use `@view` (the eye action) as the open-detail affordance. |
 | `sort` | `\{ key, order \}` | Sort changed. Cycles through `asc → desc → null` (disabled). When cleared, both `key` and `order` are `null`. |
 | `page-changed` | `pageNum` | Pagination page changed |
-| `page-size-changed` | `size` | Page size changed |
+| `page-size-changed` | `size` | Page size changed. In self-fetch mode the list has already refetched page 1 at the new size. |
 | `select` | `ids[]` | Selection changed |
 | `action` | `\{ action, row, id?, builtin? \}` | A row action was chosen from a row's menu, its right-click menu or the keyboard primary action. `action` is the label, `id` the action's id when it has one, and `builtin: true` marks a built-in View / Edit / Copy / Delete. |
 | `search` | `term` | Search input changed in the embedded sidebar (only emitted when `sidebar.enabled`). |

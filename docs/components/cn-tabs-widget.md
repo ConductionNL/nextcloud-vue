@@ -113,6 +113,7 @@ Tab titles are separately configurable for a reason: "Files and attachments" rea
 | --- | --- | --- |
 | `geo-saved` | `object` | Re-emitted from a geo child that saved a geometry. |
 | `open-integration` | `string` | Re-emitted from a related child asking to open an integration. |
+| `select-object` | `object` | Re-emitted from a related child whose object row was clicked; payload is the raw object. |
 
 ## Notes
 

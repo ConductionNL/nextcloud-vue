@@ -2128,7 +2128,7 @@
 			"page": "cn-page-header"
 		},
 		"CnPageRenderer": {
-			"direct": 4,
+			"direct": 5,
 			"transitive": 178,
 			"tier": "heavy",
 			"via": [
