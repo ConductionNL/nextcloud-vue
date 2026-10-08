@@ -10,6 +10,14 @@ All components exported by `@conduction/nextcloud-vue`, organized by category.
 Every component page below embeds a live demo via `<Playground />` — that's the canonical way to preview a component. If you want the full Vue Styleguidist UI on its own (no narrative, just the interactive sandbox), it's mounted by the gh-pages deploy at <a href="/styleguide/"><strong>/styleguide/</strong></a> — same component set, deep-link via <code>/styleguide/#!/CnDataTable</code>.
 :::
 
+## OpenRegister reliance
+
+Every component is scored on how much it relies on OpenRegister: the references in its own source, plus the files it reaches through its imports. The tier **none** is the shortlist of components that can move to another host first. The numbers are generated on every docs build by `scripts/openregister-reliance.js`; each component page repeats its own line under its reference.
+
+import RelianceTable from '@site/src/components/RelianceTable'
+
+<RelianceTable />
+
 ## Page Layout
 
 | Component | Description |
