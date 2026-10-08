@@ -72,10 +72,11 @@ Every app with a manifest detail page. The look changes only where
 - The presence line ("Anouk Bakker is also looking at this case"):
   `CnPresenceAvatars`, unchanged here.
 - Dialogs opened from the header (second screen-parity pull request).
-- Canon 4 says "the last breadcrumb equals the h1", while DqZaak ends the
-  trail in the case number (`breadcrumb.currentField`). The spec keeps both
-  possible and does not choose; the canon and the board need one answer
-  from the design owner.
+## Decided by the design owner (8 Oct)
+
+- The last breadcrumb is the object's kenmerk (case number, ticket number)
+  where the object has one, read from `breadcrumb.currentField`; otherwise it
+  is the title. The h1 always carries the title. Canon 4 is read this way.
 
 ## Impact
 

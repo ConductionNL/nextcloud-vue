@@ -56,7 +56,7 @@ floated. A section with `wide: true` SHALL span the whole grid row.
 A settings page SHALL accept `config.saveMode`: `"section"` or `"page"`.
 With `"section"` each section that has fields SHALL end in a footer row,
 separated by a 1px `--cn-board-hairline` rule, holding its own primary Save
-button aligned to the end, and the page SHALL render no page save bar. With
+button at the bottom right of the card (the end of the row), and the page SHALL render no page save bar. With
 `"page"` the page header SHALL render one primary Save as its last button and
 a "Changes" card SHALL list the changed fields of every section until they
 are saved; no section SHALL render a save button. A personal settings page

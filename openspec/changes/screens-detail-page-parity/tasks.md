@@ -12,6 +12,7 @@
 - **spec_ref**: `openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-is-two-rows-on-the-ground`
 - **files**: `src/components/CnDetailPage/CnDetailPage.vue`, `src/css/detail-page.css`, `src/css/look-board.css`, `src/schemas/app-manifest-v2.schema.json`, `tests/components/CnDetailPageBoardHeader.spec.js`
 - **acceptance_criteria**:
+  - Last breadcrumb is the kenmerk (`breadcrumb.currentField`) when set, the title otherwise; the h1 is always the title
   - h1 28px on row 1; pills, breadcrumb, middle dot and meta on row 2; no breadcrumb above
   - `headerMeta` validates and fills from the object; no dot without meta
   - Header field chips render on row 2 when declared

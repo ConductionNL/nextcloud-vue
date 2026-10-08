@@ -12,7 +12,7 @@
 - **spec_ref**: `openspec/changes/screens-card-parity/specs/card-board-look/spec.md#requirement-the-card-grid-takes-the-board-track`
 - **files**: `src/components/CnCardGrid/CnCardGrid.vue`, `src/components/CnStorePage/CnStorePage.vue`, `src/css/look-board.css`, `tests/components/CnCardGridBoardLook.spec.js`
 - **acceptance_criteria**:
-  - `minmax(var(--cn-card-grid-min, 260px), 1fr)` and `var(--cn-card-grid-gap, 16px)` under the look; 320px without it
+  - 260px minimum as the theme token: `minmax(var(--cn-card-grid-min, 260px), 1fr)` and `var(--cn-card-grid-gap, 16px)` under the look; 320px without it
 - [ ] Implement
 - [ ] Test
 

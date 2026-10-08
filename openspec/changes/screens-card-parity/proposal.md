@@ -58,10 +58,12 @@ Every app with a cards view or a store page. The look changes only where
 - The citizen case card in Mijn (the Den Haag folder card): it is drawn by
   portaliq's site components, not by this library.
 - Kanban cards: the second screen-parity pull request.
-- `pipelinq/LijstKaarten` draws its grid at `minmax(280px, 1fr)`, 14px gap,
-  inside a white card with 18px padding, while canon section 10 says
-  `minmax(260px, 1fr)`. The spec follows the canon; the board is listed as
-  a board to correct, and the grid minimum is a theme hook either way.
+## Decided by the design owner (8 Oct)
+
+- Card grids are 260px minimum, exposed as the theme token
+  `--cn-card-grid-min` (default 260px). The `pipelinq/LijstKaarten` board
+  (280px, 14px gap, white card) is being corrected to match; the spec does not
+  change.
 
 ## Impact
 

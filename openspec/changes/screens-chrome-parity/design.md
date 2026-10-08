@@ -65,8 +65,9 @@ The canon allows two placements and forbids both at once. Rather than infer
 the placement from the fields, the page declares it: `config.saveMode` is
 `"section"` or `"page"`. Without the key the page keeps today's save bar
 under the last section. `pipelinq/PqBeheer` draws the section save at the
-bottom left of its card while canon section 9 says bottom right; the spec
-follows the canon and the board is listed as a board to correct.
+bottom left of its card; decided by the design owner (8 Oct): the section
+save sits bottom right, and the PqBeheer board is being corrected, not the
+spec.
 
 ## Risks
 

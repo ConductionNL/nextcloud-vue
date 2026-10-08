@@ -25,13 +25,23 @@ the breadcrumb (`CnBreadcrumbs` in `--color-text-maxcontrast`, separator
 `"/"` unless the manifest sets one), a middle dot, and the meta line built
 from `config.headerMeta` (a field template such as `"via {channel}"`) and the
 header field chips of `detail-header-field-chips` when declared. The
-breadcrumb SHALL NOT render above the header under the board look.
+breadcrumb SHALL NOT render above the header under the board look. The last
+breadcrumb entry SHALL be the object's kenmerk (the value of
+`breadcrumb.currentField`, such as a case or ticket number) when the object
+has one, and the object's title otherwise; the h1 SHALL always carry the
+title.
 
 #### Scenario: The DqZaak header
 
 - **GIVEN** a case with type pill "Woo request", status pill "In progress", `breadcrumb: { label: "All cases", currentField: "identifier" }` and `headerMeta: "via {channel}"`
 - **WHEN** the page renders under the board look
 - **THEN** row 1 is an h1 of 28px with the buttons at its end, and row 2 reads the two pills, "All cases / 2026-0082", a middle dot and "via Mijn Zuiddrecht"
+
+#### Scenario: An object without a kenmerk
+
+- **GIVEN** a decision with no value in `breadcrumb.currentField` and the title "Budget 2027"
+- **WHEN** the page renders under the board look
+- **THEN** the h1 reads "Budget 2027" and the last breadcrumb entry reads "Budget 2027"
 
 #### Scenario: Without meta
 
