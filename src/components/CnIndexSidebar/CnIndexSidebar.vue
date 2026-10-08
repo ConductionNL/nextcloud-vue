@@ -219,7 +219,9 @@
 							<div class="cn-sidebar-columns__group-header" @click="toggleGroup(group.id)">
 								<ChevronDown v-if="expandedGroups[group.id]" :size="20" />
 								<ChevronRight v-else :size="20" />
-								<h4>{{ group.label }}</h4>
+								<h4 :lang="langOf(group.label)">
+									{{ shown(group.label) }}
+								</h4>
 								<NcCheckboxRadioSwitch
 									:modelValue="isGroupAllVisible(group.columns)"
 									class="cn-sidebar-columns__select-all"
@@ -234,7 +236,7 @@
 									:key="col.key"
 									:modelValue="isColumnVisible(col.key)"
 									@update:modelValue="toggleColumn(col.key)">
-									{{ col.label }}
+									{{ shown(col.label) }}
 								</NcCheckboxRadioSwitch>
 							</div>
 						</div>
@@ -269,6 +271,7 @@ import PinOutline from 'vue-material-design-icons/PinOutline.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { facetOptionLabel } from '../../utils/facets.js'
+import { labelLang } from '../../utils/manifestTranslate.js'
 import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
 import { CnDateRangePicker, DEFAULT_DATE_RANGE_PRESETS } from '../CnDateRangePicker/index.js'
 import { CnIcon } from '../CnIcon/index.js'
@@ -540,7 +543,7 @@ export default {
 		/** Sidebar name — schema title, shown as the h2 header */
 		resolvedName() {
 			if (this.title) {
-				return this.title
+				return this.shown(this.title)
 			}
 			return this.schema?.title || 'Search'
 		},
@@ -689,6 +692,27 @@ export default {
 	},
 
 	methods: {
+
+		/**
+		 * A manifest label through the injected lookup, or as written.
+		 *
+		 * @param {string} text The label as written.
+		 * @return {string} The label in the user's language.
+		 */
+		shown(text) {
+			return typeof this.cnTranslate === 'function' && typeof text === 'string' && text !== '' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * The `lang` of a label that fell back to its written text in another language.
+		 *
+		 * @param {string} text The label as written.
+		 * @return {string|undefined} The source language, or undefined.
+		 */
+		langOf(text) {
+			return labelLang(this.cnTranslate, text) || undefined
+		},
+
 		/**
 		 * Handle tab change from NcAppSidebar
 		 *

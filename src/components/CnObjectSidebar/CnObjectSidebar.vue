@@ -179,7 +179,8 @@
 				v-for="(tab, idx) in tabs"
 				:id="tab.id"
 				:key="tab.id"
-				:name="tab.label"
+				:name="shown(tab.label)"
+				:lang="langOf(tab.label)"
 				:order="tab.order != null ? tab.order : idx + 1"
 				:data-testid="`cn-object-sidebar-tab-${tab.id}`">
 				<template v-if="tab.icon" #icon>
@@ -228,6 +229,7 @@ import CnTagsTab from './CnTagsTab.vue'
 import CnTasksTab from './CnTasksTab.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import { labelLang } from '../../utils/manifestTranslate.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import { CnObjectDataWidget } from '../CnObjectDataWidget/index.js'
@@ -324,6 +326,8 @@ export default {
 		// the registry (e.g. as `kind: 'page'`) still render. Empty default
 		// keeps the legacy `customComponents`-only path unchanged.
 		cnRegistry: { default: () => ({}) },
+		// The label lookup from CnAppRoot, so tab labels and the title show in the user's language.
+		cnTranslate: { default: null },
 	},
 
 	props: {
@@ -661,7 +665,7 @@ export default {
 
 	computed: {
 		sidebarTitle() {
-			return this.title || this.objectType || 'Details'
+			return this.shown(this.title) || this.objectType || 'Details'
 		},
 
 		sidebarSubtitle() {
@@ -810,6 +814,27 @@ export default {
 	},
 
 	methods: {
+
+		/**
+		 * A manifest label through the injected lookup, or as written.
+		 *
+		 * @param {string} text The label as written.
+		 * @return {string} The label in the user's language.
+		 */
+		shown(text) {
+			return typeof this.cnTranslate === 'function' && typeof text === 'string' && text !== '' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * The `lang` of a label that fell back to its written text in another language.
+		 *
+		 * @param {string} text The label as written.
+		 * @return {string|undefined} The source language, or undefined.
+		 */
+		langOf(text) {
+			return labelLang(this.cnTranslate, text) || undefined
+		},
+
 		isTabHidden(tabId) {
 			return this.hiddenTabs.includes(tabId)
 		},

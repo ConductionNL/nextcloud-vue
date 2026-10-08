@@ -514,7 +514,7 @@
 					:seenVersion="walkthroughSeenVersion"
 					:resume="walkthroughResume"
 					:autoStart="!walkthroughPaused"
-					:translate="translate"
+					:translate="manifestTranslate"
 					@complete="onWalkthroughComplete"
 					@pause="onWalkthroughPause"
 					@progress="onWalkthroughProgress" />
@@ -661,7 +661,7 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { loadState } from '@nextcloud/initial-state'
-import { translate as t } from '@nextcloud/l10n'
+import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { computed, reactive, shallowRef, watch } from 'vue'
@@ -708,6 +708,7 @@ import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
 import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
+import { createManifestTranslate } from '../../utils/manifestTranslate.js'
 import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
@@ -879,7 +880,7 @@ export default {
 			},
 
 			cnCustomComponents: this.customComponents,
-			cnTranslate: this.translate,
+			cnTranslate: this.manifestTranslate,
 			cnDiagnostics: (report) => reportDiagnostic(report),
 			cnPageTypes: this.pageTypes,
 			cnFormatters: { ...BUILT_IN_FORMATTERS, ...this.formatters },
@@ -1415,6 +1416,20 @@ export default {
 		translate: {
 			type: Function,
 			default: (key) => key,
+		},
+
+		/**
+		 * The language labels are shown in. Defaults to the user's Nextcloud
+		 * language; buildiq's preview passes the maker's pick so the preview can
+		 * read another language than the designer around it. The label lookup tries
+		 * `manifest.i18n.labels[language]` (then its base, `en_GB` to `en`), then the
+		 * host `translate`, then the text as written.
+		 *
+		 * @type {string}
+		 */
+		language: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -1976,6 +1991,22 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The label lookup provided as `cnTranslate`: the manifest's own
+		 * translations for the language first, then the host `translate`, then the
+		 * text as written. It reads the live manifest (the editor's working copy
+		 * while editing) and the language on every call.
+		 *
+		 * @return {Function} `(text, vars) => string`
+		 */
+		manifestTranslate() {
+			return createManifestTranslate({
+				getManifest: () => (this.manifestEditor ? this.manifestEditor.source.value : this.manifest),
+				getLanguage: () => this.language || getLanguage(),
+				translate: (text, vars) => this.translate(text, vars),
+			})
+		},
+
 		/**
 		 * The per-user preference reader and writer for this app, built from
 		 * the manifest's `personalisation` block.

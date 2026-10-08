@@ -400,6 +400,15 @@ export default {
 		 * @type {object}
 		 */
 		cnCustomComponents: { default: () => ({}) },
+
+		/**
+		 * The label lookup from CnAppRoot (the manifest's own translations, then
+		 * the host's translate). Used when no `translate` prop is given, so a
+		 * manifest form page speaks the user's language.
+		 *
+		 * @type {Function|null}
+		 */
+		cnTranslate: { default: null },
 	},
 
 	props: {
@@ -670,6 +679,14 @@ export default {
 		 */
 		effectiveCustomComponents() {
 			return this.customComponents ?? this.cnCustomComponents ?? {}
+		},
+
+		/** The translator for manifest labels: the `translate` prop, else the injected `cnTranslate`, else identity. */
+		labelTranslator() {
+			if (typeof this.translate === 'function') {
+				return this.translate
+			}
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
 		},
 
 		/** Whether any field still carries a smart-paste suggestion mark. */
@@ -1079,8 +1096,7 @@ export default {
 			if (!key) {
 				return ''
 			}
-			const fn = typeof this.translate === 'function' ? this.translate : (k) => k
-			return fn(key)
+			return this.labelTranslator(key)
 		},
 
 		/**
@@ -1097,7 +1113,7 @@ export default {
 				field,
 				value: this.formData[field.key],
 				onInput: (next) => this.updateField(field.key, next),
-				t: typeof this.translate === 'function' ? this.translate : null,
+				t: this.labelTranslator,
 				error: this.fieldErrors[field.key] || null,
 			})
 			// A calculated field is the host's to set: shown, not editable.

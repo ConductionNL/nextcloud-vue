@@ -146,6 +146,20 @@ export function validateManifestV2(manifest) {
 
 	// --- Post-schema checks ---
 
+	// 0. i18n (manifest-i18n-labels): labels only for declared languages, and the
+	//    source language is not one of the languages translated into.
+	if (clone.i18n && typeof clone.i18n === 'object' && Array.isArray(clone.i18n.languages)) {
+		const declared = new Set(clone.i18n.languages)
+		if (declared.has(clone.i18n.sourceLanguage)) {
+			errors.push(`i18n/sourceLanguage: "${clone.i18n.sourceLanguage}" is the source language and must not also be in languages`)
+		}
+		for (const lang of Object.keys(clone.i18n.labels || {})) {
+			if (!declared.has(lang)) {
+				errors.push(`i18n/labels/${lang}: language "${lang}" is not declared in i18n.languages`)
+			}
+		}
+	}
+
 	// 1. pages[].id uniqueness
 	if (Array.isArray(clone.pages)) {
 		const seenIds = new Set()

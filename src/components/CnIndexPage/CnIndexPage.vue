@@ -4739,6 +4739,8 @@ export default {
 				rowKey: this.rowKey,
 				registry: this.effectiveRegistry,
 				customComponents: this.effectiveCustomComponents,
+				// So a row action's toasts translate like the labels around it.
+				translate: this.cnTranslate,
 			}
 			// A named source may supply its own row actions, on the same
 			// precedence as its columns: what the manifest declares wins, and the

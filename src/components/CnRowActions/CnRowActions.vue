@@ -10,6 +10,7 @@
 				:href="link.href"
 				:target="link.target"
 				:title="getTitle(action)"
+				:lang="langOf(action) || undefined"
 				:class="{ 'cn-row-action--destructive': action.destructive }"
 				:data-testid="actionTestId(action)"
 				closeAfterClick
@@ -18,12 +19,13 @@
 					<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
 					<component :is="action.icon" v-else :size="20" />
 				</template>
-				{{ action.label }}
+				{{ shownLabel(action) }}
 			</NcActionLink>
 			<NcActionButton
 				v-else
 				:title="getTitle(action)"
 				:disabled="isDisabled(action)"
+				:lang="langOf(action) || undefined"
 				:class="{ 'cn-row-action--destructive': action.destructive }"
 				:data-testid="actionTestId(action)"
 				closeAfterClick
@@ -32,7 +34,7 @@
 					<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
 					<component :is="action.icon" v-else :size="20" />
 				</template>
-				{{ action.label }}
+				{{ shownLabel(action) }}
 			</NcActionButton>
 		</template>
 	</NcActions>
@@ -42,6 +44,7 @@
 import { NcActionButton, NcActionLink, NcActions } from '@nextcloud/vue'
 import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
 import { isModifiedClick } from '../../utils/linkNavigation.js'
+import { labelLang } from '../../utils/manifestTranslate.js'
 import { isRowActionVisible, rowActionKey, rowActionPayload, rowActionTestId, slugifyActionLabel } from '../../utils/rowActionItem.js'
 import { CnIcon } from '../CnIcon/index.js'
 
@@ -81,6 +84,11 @@ export default {
 		NcActionButton,
 		NcActionLink,
 		CnIcon,
+	},
+
+	inject: {
+		/** The label lookup from CnAppRoot, so manifest action labels show in the user's language. */
+		cnTranslate: { default: null },
 	},
 
 	props: {
@@ -187,7 +195,34 @@ export default {
 			if (typeof action.title === 'function') {
 				return action.title(this.row) || undefined
 			}
-			return action.title || undefined
+			return action.title ? this.shownText(action.title) : undefined
+		},
+
+		/**
+		 * A manifest label through the injected lookup. The written label stays
+		 * the action's identity (its test id and the emitted payload).
+		 *
+		 * @param {string} text The text as written.
+		 * @return {string} The text in the user's language, or as written.
+		 */
+		shownText(text) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * @param {object} action The action definition.
+		 * @return {string|null} The source language when the label fell back to its written text in another language.
+		 */
+		langOf(action) {
+			return labelLang(this.cnTranslate, action.label)
+		},
+
+		/**
+		 * @param {object} action The action definition.
+		 * @return {string} Its label for display.
+		 */
+		shownLabel(action) {
+			return typeof action.label === 'string' ? this.shownText(action.label) : action.label
 		},
 
 		onAction(action) {

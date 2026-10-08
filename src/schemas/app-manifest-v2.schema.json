@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.65.0",
+	"version": "2.66.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -29,6 +29,20 @@
 			"type": "string",
 			"pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
 			"description": "Semver of the manifest content. Bump when the manifest changes meaningfully. Used for cache busting and app-builder migration tracking. Distinct from the schema's own version."
+		},
+		"i18n": {
+			"type": "object",
+			"required": ["sourceLanguage", "languages", "labels"],
+			"additionalProperties": false,
+			"description": "manifest-i18n-labels: translations of the app's labels. Labels are written once, in `sourceLanguage`, and `labels` maps a language to a map of the text as written to its translation. CnAppRoot looks a label up here for the user's language (then its base language, `en_GB` falls back to `en`), then in the host's translate, then shows the text as written; the fallback is per label. `languages` lists the languages translated into (not the source language); every key of `labels` must be one of them. Language codes are Nextcloud language codes (nl, en_GB, pt_BR).",
+			"properties": {
+				"sourceLanguage": { "type": "string", "minLength": 2 },
+				"languages": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 2 } },
+				"labels": {
+					"type": "object",
+					"additionalProperties": { "type": "object", "additionalProperties": { "type": "string" } }
+				}
+			}
 		},
 		"openbuildEditable": {
 			"type": "boolean",

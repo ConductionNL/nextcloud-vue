@@ -326,8 +326,9 @@
 				variant="secondary"
 				:disabled="entry.disabled === true"
 				:data-testid="`cn-bulk-action-${entry.id}`"
+				:lang="bulkLang(entry)"
 				@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">
-				{{ entry.label }}
+				{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
 			</NcButton>
 			<!--
 				@slot selection-actions The host app's bulk-action buttons (NcButton family), rendered inside the contextual selection strip that appears while a selection is active. This strip is the primary bulk-actions surface; #mass-actions remains available for hosts that ALSO want the actions listed in the overflow menu (optional — strip-only is fine).
@@ -379,6 +380,7 @@ import ViewListOutline from 'vue-material-design-icons/ViewListOutline.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
 import { isModifiedClick } from '../../utils/linkNavigation.js'
+import { labelLang } from '../../utils/manifestTranslate.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -945,6 +947,16 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The `lang` of a bulk action label that fell back to its written text in another language.
+		 *
+		 * @param {object} entry The bulk action.
+		 * @return {string|undefined} The source language, or undefined.
+		 */
+		bulkLang(entry) {
+			return labelLang(this.cnTranslate, entry.label) || undefined
+		},
+
 		t,
 		/**
 		 * Forward the inline search field's input to the host.
