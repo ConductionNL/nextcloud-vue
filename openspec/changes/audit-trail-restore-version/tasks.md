@@ -14,8 +14,8 @@
   - Posts `{ auditTrailId }` to the revert URL built with `generateUrl` and `buildHeaders()`
   - Maps 200, 403, 423, 404, other and network failure to the spec's sentences; never returns the body's `error`
   - Verify: jest with a stubbed `fetch`; mutation check: returning the server message reddens the 403 test
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: The button and who sees it
 - **spec_ref**: `openspec/changes/audit-trail-restore-version/specs/audit-trail-restore/spec.md#requirement-the-audit-trail-tab-offers-a-restore-only-when-asked`
@@ -24,8 +24,8 @@
   - Off by default; on, only `create` and `update` entries show the button
   - Hidden when `@self.actions` lacks `update`; shown when the key is missing; disabled with the holder when locked by someone else
   - Verify: jest
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Confirm, call and reload
 - **spec_ref**: `openspec/changes/audit-trail-restore-version/specs/audit-trail-restore/spec.md#requirement-a-confirmed-restore-calls-the-revert-route-with-the-entry-id`
@@ -34,8 +34,8 @@
   - The dialog shows the entry's date and user; confirm sends the entry id; success reloads page one, emits `restored` and `cn:page:refresh`
   - A 423 reloads the record and names the holder through `lockHolder()`
   - Verify: jest with a stubbed event bus; `npm run check:a11y`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 4: Docs and an end-to-end check
 - **spec_ref**: `openspec/changes/audit-trail-restore-version/specs/audit-trail-restore/spec.md#requirement-a-confirmed-restore-calls-the-revert-route-with-the-entry-id`
@@ -44,5 +44,5 @@
   - Docs show `allowRestore` on a sidebar `audit` widget and the refusal sentences
   - A harness detail page restores a record to an earlier entry and shows the restored value and the new top entry
   - Verify: `npm run check:docs`, `npm run check:docs-fresh`, `npm run test:e2e -- audit-trail-restore`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [ ] Test — not run: needs a live harness and `npm run test:e2e`

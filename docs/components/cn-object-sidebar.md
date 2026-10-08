@@ -210,3 +210,22 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 ## Tasks from OpenRegister flow tasks (`tasksSource`)
 
 `tasksSource` (String, default `'vtodo'`) is passed to the Tasks tab as its `source`. With `'flow-tasks'` the tab lists the OpenRegister flow tasks anchored on the record (`GET /apps/openregister/api/flow-tasks?objectUuid=<id>`): open ones first by due date with overdue marked in words, finished ones folded under "Done". A form creates a task on the record (title, assignee as a user or a group pool, optional due date and description), and each row offers exactly the verbs in its `can` list that the tab has a control for (Claim, Unclaim, Reassign, Complete, Cancel). A verb the server refuses shows its message on the row and leaves the row as it was. A row without a `can` key offers no verb and links to the task page. The tab emits `count` with the number of open tasks. With the default `'vtodo'` nothing changes.
+
+## Restoring a version
+
+`CnAuditTrailTab` (the built-in Audit Trail tab and the sidebar `audit` widget) takes two props for restoring a record from its history:
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `allowRestore` | Boolean | `false` | Show "Restore this version" on an expanded `create` or `update` entry. |
+| `objectData` | Object | `null` | The record as the page holds it. The button is hidden when `@self.actions` is an array without `update`, and disabled (naming the holder) when someone else holds the lock. |
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `restored` | the restored record | Emitted after a confirmed restore; the tab also reloads its list from page one and emits `cn:page:refresh` so the detail page re-reads the record. |
+
+Choosing the button opens a `CnConfirmDialog` with the entry's date and user, saying the restore is a new version that removes nothing. Refusals show a fixed sentence (see [`useRestoreVersion`](../utilities/composables/use-restore-version.md)); the server's own message is never shown.
+
+```json
+{ "type": "audit", "props": { "allowRestore": true } }
+```
