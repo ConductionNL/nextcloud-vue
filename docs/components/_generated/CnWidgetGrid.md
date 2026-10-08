@@ -20,6 +20,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name            | Payload | Description                                                  |
-| --------------- | ------- | ------------------------------------------------------------ |
-| `layout-change` | —       | Emitted after a drag/resize with the updated widget entries. |
+| Name            | Payload | Description                                                                            |
+| --------------- | ------- | -------------------------------------------------------------------------------------- |
+| `layout-change` | —       | Emitted after a drag/resize with the updated widget entries.                           |
+| `select-object` | —       | An object row in a related widget of this grid was clicked. Payload is the raw object. |

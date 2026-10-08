@@ -39,7 +39,8 @@
 				<div class="grid-stack-item-content">
 					<component
 						:is="widget.component"
-						v-bind="widget.props" />
+						v-bind="widget.props"
+						@selectObject="onSelectObject" />
 				</div>
 			</div>
 		</div>
@@ -58,7 +59,8 @@
 				:style="cnGridCellStyle(widget, gridColumns)">
 				<component
 					:is="widget.component"
-					v-bind="widget.props" />
+					v-bind="widget.props"
+					@selectObject="onSelectObject" />
 			</div>
 		</template>
 	</div>
@@ -161,7 +163,7 @@ export default {
 		},
 	},
 
-	emits: ['layout-change'],
+	emits: ['layout-change', 'select-object'],
 
 	data() {
 		return {
@@ -371,6 +373,20 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Pass a related widget's object click up; the page opens the object.
+		 *
+		 * @param {object} raw The clicked object.
+		 * @return {void}
+		 */
+		onSelectObject(raw) {
+			/**
+			 * @event select-object An object row in a related widget of this grid was clicked. Payload is the raw object.
+			 * @type {object}
+			 */
+			this.$emit('select-object', raw)
+		},
+
 		// Expose the shared grid helpers to the template.
 		cnGridCellStyle,
 		hasGridRow,
