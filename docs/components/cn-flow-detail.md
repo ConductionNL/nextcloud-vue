@@ -32,6 +32,10 @@ Pair it with [`CnFlowSidebar`](./cn-flow-sidebar.md), which holds the palette, s
 
 Save is enabled once the flow has a name; Run once it has been stored (the engine runs the **stored** flow, not the unsaved canvas). **Check** posts the canvas to `POST /api/flow/validate` — the engine's own preflight, without saving — and renders the verdict as a note card on the canvas; a refusal still carries the preflight's report and is shown as the verdict it is, never as a transport error. **Arrange** (`autoSort`) re-lays the nodes left-to-right by how the flow actually runs, changing coordinates and nothing else. Zoom steps the same factor the mouse wheel drives. **Undo** steps the graph back one edit, and `Ctrl+Z` / `Cmd+Z` does the same from anywhere in the editor. It stands down for editable text and while a step's dialog is open: reverting the whole graph because someone undid a typo would be worse than having no undo. There is a button as well as the shortcut — a shortcut nobody is told about is a feature only its author has. When the sidebar is closed, a **Show the flow controls** button appears here — the way back cannot live in the sidebar itself.
 
+## Opening a step from the keyboard
+
+Enter or Space on a focused step opens its editor, as a double-click does. Shift+F10 or the menu key opens its menu (Edit, Copy, Delete) at the step, as a click does. The menu is a real menu: the arrow keys move between its items, Enter picks one, Escape closes it.
+
 ## Removing a step
 
 `Delete` or `Backspace` on a focused step removes it — both keys, because which one deletes is a platform habit rather than a preference, and a Mac user does not think of Backspace as the alternative. The edges pointing at that step go with it: a graph that kept them would carry lines to a step that no longer exists, and the engine would refuse the document at run time.
