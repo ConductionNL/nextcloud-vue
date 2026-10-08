@@ -537,3 +537,7 @@ A property that declares `x-openregister-property-source` (`provider`, `mode`, `
 ## Duration and sub-objects widgets
 
 `format: duration` selects the `duration` widget ([`CnDurationField`](./cn-duration-field.md)). An array of objects keeps its current widget unless the property declares `x-widget: sub-objects` or a field override names it; then [`CnSubObjectsField`](./cn-sub-objects-field.md) renders the rows as a table and `validate()` checks each row against `items.required`. `CnFormPage` does not render these two widgets yet.
+
+## Child records
+
+A property that is an array of references with `inversedBy` (or one naming `widget: "child-records"`) renders a [`CnChildRecordsField`](./cn-child-records-field.md): an editable table of the child schema's records. The children are kept out of the `confirm` payload; call `setResult({ success: true, id })` with the saved parent's id and the dialog saves them in one bulk save and one bulk delete, naming any row that was refused. A failing row blocks the submit and names the row and field.

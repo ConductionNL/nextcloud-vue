@@ -437,6 +437,24 @@
 								:error="errors[field.key]" />
 						</div>
 
+						<!-- Child records (widget: 'child-records'): another schema's records as an editable table, saved after the parent. -->
+						<div v-else-if="field.widget === 'child-records' && field.childRecords" class="cn-form-dialog__child-records-wrapper">
+							<CnChildRecordsField
+								:modelValue="Array.isArray(formData[field.key]) ? formData[field.key] : []"
+								:config="field.childRecords"
+								:register="register"
+								:parentId="item ? (item.id || item.uuid || '') : ''"
+								:inputLabel="field.label + (field.required ? ' *' : '')"
+								:disabled="field.readOnly"
+								:error="errors[field.key] || ''"
+								@update:modelValue="value => updateField(field.key, value)"
+								@loaded="rows => { childOriginals[field.key] = rows }"
+								@validity="problems => { childProblems[field.key] = problems }" />
+							<CnFieldHelper
+								:text="field.description"
+								:more="field.descriptionLong" />
+						</div>
+
 						<!-- Sub-objects (widget: 'sub-objects'): an array of objects as an editable table. -->
 						<div v-else-if="field.widget === 'sub-objects' && field.items" class="cn-form-dialog__sub-objects-wrapper">
 							<CnSubObjectsField
@@ -587,6 +605,7 @@ import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcDialog, NcLo
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnReplaceValuesDialog from '../../dialogs/CnReplaceValuesDialog.vue'
+import CnChildRecordsField from '../CnChildRecordsField/CnChildRecordsField.vue'
 import CnDurationField from '../CnDurationField/CnDurationField.vue'
 import CnFieldHelper from '../CnFieldHelper/CnFieldHelper.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
@@ -594,6 +613,7 @@ import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnPropertySourceField from '../CnPropertySourceField/CnPropertySourceField.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import CnSubObjectsField from '../CnSubObjectsField/CnSubObjectsField.vue'
+import { describeRowProblem, useChildRecords } from '../../composables/useChildRecords.js'
 import { draftIndicatorText, draftKey, formDraftMixin, readDraft } from '../../composables/useFormDraft.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
@@ -815,6 +835,7 @@ export default {
 		CnPropertySourceField,
 		CnReplaceValuesDialog,
 		CnSubObjectsField,
+		CnChildRecordsField,
 		NcDialog,
 		NcButton,
 		NcNoteCard,
@@ -1114,6 +1135,10 @@ export default {
 			jsonDrafts: {},
 			/** Per-field parse-error messages for `json` widgets (blocks confirm) */
 			jsonErrors: {},
+			/** Child rows as loaded, per child-records field, to diff against on save. */
+			childOriginals: {},
+			/** Row problems reported by each child-records field. */
+			childProblems: {},
 			/**
 			 * Resolved labels for `$ref` object-reference values, keyed by UUID:
 			 * `{ [uuid]: '<human label>' }`. Populated as reference options load
@@ -3843,6 +3868,15 @@ export default {
 			for (const field of this.visibleFields) {
 				const value = this.formData[field.key]
 
+				// Child rows: a failing row blocks the submit and names row and field.
+				if (field.widget === 'child-records') {
+					const problems = this.childProblems[field.key]
+					if (Array.isArray(problems) && problems.length > 0) {
+						newErrors[field.key] = describeRowProblem(problems)
+					}
+					continue
+				}
+
 				// Required check
 				if (field.required) {
 					if (value === null || value === undefined || value === '') {
@@ -4045,6 +4079,13 @@ export default {
 					delete payload[key]
 				}
 			}
+			// Child records are saved as their own objects after the parent,
+			// never nested in the parent's payload.
+			for (const field of this.resolvedFields) {
+				if (field.widget === 'child-records') {
+					delete payload[field.key]
+				}
+			}
 			for (const field of this.resolvedFields) {
 				if (payload[field.key] !== '') {
 					continue
@@ -4068,6 +4109,18 @@ export default {
 		 */
 		setResult(resultData) {
 			this.loading = false
+			if (resultData && resultData.success && this.resolvedFields.some((f) => f.widget === 'child-records')) {
+				return this.saveChildRecords(resultData).then((merged) => this.applyResult(merged))
+			}
+			return this.applyResult(resultData)
+		},
+
+		/**
+		 * Show a result and, on success, auto-close.
+		 *
+		 * @param {{ success?: boolean, error?: string }} resultData The result to show.
+		 */
+		applyResult(resultData) {
 			this.result = resultData
 			if (resultData.success) {
 				// The values are on the server now, so the local copy has
@@ -4081,6 +4134,44 @@ export default {
 					this.$emit('close')
 				}, 2000)
 			}
+		},
+
+		/**
+		 * Save the child-records tables after the parent: one bulk save and one
+		 * bulk delete per field. A refused row is named in the result and the
+		 * parent stays saved.
+		 *
+		 * @param {{success?: boolean, error?: string, id?: string, object?: object}} resultData The parent's result; its id (or `object.id`) is the parent id.
+		 * @return {Promise<object>} The result, with an `error` listing rows that were not saved.
+		 */
+		async saveChildRecords(resultData) {
+			const fields = this.resolvedFields.filter((f) => f.widget === 'child-records' && f.childRecords)
+			if (fields.length === 0) {
+				return resultData
+			}
+			const parentId = resultData.id || resultData.object?.id || resultData.object?.uuid || this.item?.id || this.item?.uuid
+			if (!parentId) {
+				return resultData
+			}
+			const { save } = useChildRecords()
+			const lines = []
+			for (const field of fields) {
+				const outcome = await save({
+					register: this.register,
+					schema: field.childRecords.schema,
+					parentField: field.childRecords.parentField,
+					parentId,
+					original: this.childOriginals[field.key] || [],
+					rows: Array.isArray(this.formData[field.key]) ? this.formData[field.key] : [],
+				})
+				for (const failure of outcome.failed) {
+					lines.push(`${field.label}: ${failure.reason}`)
+				}
+			}
+			if (lines.length === 0) {
+				return resultData
+			}
+			return { ...resultData, error: [resultData.error, t('nextcloud-vue', 'Saved, but some rows were not saved: {rows}', { rows: lines.join('; ') })].filter(Boolean).join(' ') }
 		},
 
 		/**

@@ -469,6 +469,12 @@ function resolveWidget(prop) {
 		return 'sub-objects'
 	}
 
+	// Editable table of another schema's records: an array of references whose
+	// property carries `inversedBy` (the child's property pointing back).
+	if (prop.type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null && typeof prop.inversedBy === 'string' && prop.inversedBy !== '') {
+		return 'child-records'
+	}
+
 	// ISO 8601 duration → number and unit
 	if ((prop.type || 'string') === 'string' && prop.format === 'duration' && !prop.enum) {
 		return 'duration'
@@ -869,6 +875,16 @@ export function fieldsFromSchema(schema, options = {}) {
 				: (prop.type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null)
 						? { schema: normalizeRef(prop.items.$ref), multiple: true, ...((prop.items['x-external-register'] || prop['x-external-register']) ? { register: prop.items['x-external-register'] || prop['x-external-register'] } : {}), ...(labelField ? { labelField } : {}) }
 						: null,
+			// Child-records table (widget `child-records`): the child schema,
+			// the child property that points back, and the columns shown. From
+			// `items.$ref` + `inversedBy`, or named on the property.
+			childRecords: resolveWidget(prop) === 'child-records'
+				? {
+						schema: typeof prop.schema === 'string' && prop.schema !== '' ? prop.schema : (normalizeRef(prop.items && prop.items.$ref) ?? ''),
+						parentField: prop.parentField || prop.inversedBy || '',
+						columns: Array.isArray(prop.columns) ? prop.columns : [],
+					}
+				: null,
 			// Select OR create (`x-allow-create: true`, on the property or on
 			// its `items` for an array): the picker offers "Create" next to the
 			// existing objects. Only meaningful on a reference.
