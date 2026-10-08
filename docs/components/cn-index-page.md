@@ -980,6 +980,21 @@ The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override 
 
 Set the `folderSidebar` config to render a folder navigation pane left of the list. Selecting a folder filters the list by the config's `filterField` (via the self-fetch filter); "All" clears it. Emits `@folder-change` with the selected id (and `@folder-create` when the opt-in New-folder button is used). While a folder is selected the pane keeps showing the whole set of folders it saw before the selection, so switching from one folder to another is one click; the live facet of the narrowed query would otherwise list the selected folder alone.
 
+#### A folder that carries its own schema
+
+A folder entry may declare `schema` (and optionally `register`, which defaults to the page's own). While that folder is selected, the page lists that register and schema instead of its own: columns, fetch, pagination, facets and the live-update subscription all follow it. "All", or a folder without `schema`, restores the page's own register and schema. Switching clears the row selection and closes any open form, delete or copy dialog, since a row of the old schema means nothing under the new one. A folder without `schema` filters the page's schema by `filterField` exactly as before.
+
+```json
+"folderSidebar": {
+  "source": "custom",
+  "folders": [
+    { "id": "people", "name": "People" },
+    { "id": "orgs", "name": "Organisations", "schema": "kvkCompany" }
+  ]
+}
+```
+
+
 Sources: `register` (fetch the folder list from an OpenRegister `register`/`schema`, mapping `idField`/`nameField`), `field` (distinct values of the current rows' `field`), `custom` (explicit `folders`), or `files` (Nextcloud folders). Example — case types as folders that filter cases:
 
 ```json

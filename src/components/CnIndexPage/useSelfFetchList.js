@@ -59,9 +59,10 @@ function unionFilterMaps(filterMaps) {
  * @param {object} props CnIndexPage props.
  * @param {import('vue').ComponentInternalInstance|null} instance Pass `getCurrentInstance()`.
  * @param {typeof import('vue').inject} inject Pass Vue's `inject`.
+ * @param {{activeFolderSchema?: import('vue').Ref<?{schema: string, register?: string}>}} [extras] `activeFolderSchema`: a ref the page sets to the selected folder's `{ schema, register? }`, switching the loaded object type while it is non-null.
  * @return {object} { isSelfFetch, list, selfObjectStore, selfObjectType, activeQuickFilterIndex }
  */
-export function useSelfFetchList(props, instance, inject) {
+export function useSelfFetchList(props, instance, inject, extras = {}) {
 	const objectsProvided = !!(
 		instance && instance.proxy && instance.proxy.$options && instance.proxy.$options.propsData
 		&& Object.hasOwn(instance.proxy.$options.propsData, 'objects')
@@ -95,7 +96,18 @@ export function useSelfFetchList(props, instance, inject) {
 		}
 	}
 
-	const objectType = `${props.register}-${props.schema}`
+	// The object type follows the selected folder's own schema when it declares
+	// one; otherwise the page's register and schema.
+	const activeFolderSchema = extras.activeFolderSchema || null
+	const resolvedTarget = computed(() => {
+		const folder = activeFolderSchema && activeFolderSchema.value
+		if (folder && folder.schema) {
+			const register = folder.register || props.register
+			return { register, schema: folder.schema, type: `${register}-${folder.schema}` }
+		}
+		return { register: props.register, schema: props.schema, type: `${props.register}-${props.schema}` }
+	})
+	const objectType = computed(() => resolvedTarget.value.type)
 	const sidebarState = inject('sidebarState', null) ?? inject('objectSidebarState', null)
 	const objectStore = useObjectStore()
 
@@ -140,14 +152,15 @@ export function useSelfFetchList(props, instance, inject) {
 
 	// Pass register/schema in their positional id slots (not as a {register, schema} object as
 	// second arg) — that previously made fetch URLs go to `/api/objects/undefined/[object Object]`.
-	if (typeof objectStore.registerObjectType === 'function') {
-		objectStore.registerObjectType(
-			objectType,
-			props.schema,
-			props.register,
-			{ registerSlug: props.register, schemaSlug: props.schema },
-		)
+	// Runs (sync, ahead of the list's own watcher) again whenever the type switches.
+	function registerTarget() {
+		const { register, schema, type } = resolvedTarget.value
+		if (typeof objectStore.registerObjectType === 'function') {
+			objectStore.registerObjectType(type, schema, register, { registerSlug: register, schemaSlug: schema })
+		}
 	}
+	registerTarget()
+	watch(objectType, registerTarget, { flush: 'sync' })
 
 	// Seed the visible-column set from the configured columns so the sidebar's
 	// Columns tab reflects the curated default; null when none are configured
@@ -170,7 +183,7 @@ export function useSelfFetchList(props, instance, inject) {
 
 	// Set right after useListView returns; the fixed-filters getter reads it lazily.
 	let listHandle = null
-	const list = useListView(objectType, {
+	const list = useListView(() => objectType.value, {
 		objectStore,
 		sidebarState,
 		defaultSort: props.sortKey ? { key: props.sortKey, order: props.sortOrder || 'asc' } : undefined,
@@ -245,7 +258,7 @@ export function useSelfFetchList(props, instance, inject) {
 	// a reactive getter so a runtime flip attaches/detaches accordingly.
 	// Stores without live-updates support (no `subscribe` action) are a
 	// silent no-op inside the composable, keeping this fully inert.
-	useObjectSubscription(objectStore, objectType, null, {
+	useObjectSubscription(objectStore, () => objectType.value, null, {
 		enabled: () => props.subscribe !== false,
 	})
 

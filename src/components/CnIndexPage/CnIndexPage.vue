@@ -2269,6 +2269,13 @@ export default {
 		 * keys off each row's `x-index` block, which the folder entry's own
 		 * value wins over, key by key.
 		 *
+		 * A folder entry may also carry `schema` (and optionally `register`,
+		 * defaulting to the page's own). While it is selected the page loads that
+		 * register and schema instead of its own, with that schema's columns,
+		 * fetch and live updates; "All", or a folder without `schema`, restores
+		 * the page's own. Switching clears the row selection and closes open
+		 * dialogs. A folder without `schema` filters the page's schema as before.
+		 *
 		 * @type {object}
 		 */
 		folderSidebar: {
@@ -2779,6 +2786,10 @@ export default {
 			close: closeContextMenu,
 		} = useContextMenu()
 
+		// The selected folder's own `{ schema, register? }`, or null. Written by
+		// onFolderSelect(); useSelfFetchList turns it into the loaded object type.
+		const activeFolderSchema = ref(null)
+
 		const {
 			isSelfFetch,
 			list,
@@ -2789,7 +2800,7 @@ export default {
 			contentSearch,
 			selfFetchTokenCtx,
 			initialQueryFilterKeys,
-		} = useSelfFetchList(props, getCurrentInstance(), inject)
+		} = useSelfFetchList(props, getCurrentInstance(), inject, { activeFolderSchema })
 
 		// The sidebar's chosen values on a NAMED-SOURCE page. Self-fetch keeps
 		// its own in `useSelfFetchList`; a named source had nowhere to put
@@ -2826,6 +2837,7 @@ export default {
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
 			contentSearch,
+			activeFolderSchema,
 			selfFetchTokenCtx,
 			initialQueryFilterKeys,
 		}
@@ -5869,7 +5881,25 @@ export default {
 		onFolderSelect(folderId) {
 			this.selectedFolderId = folderId
 			const key = (this.folderSidebar && (this.folderSidebar.filterField || this.folderSidebar.field)) || ''
-			if (key) {
+			const folder = this.activeScope
+			const target = (folder && typeof folder.schema === 'string' && folder.schema !== '')
+				? { schema: folder.schema, register: (typeof folder.register === 'string' && folder.register !== '') ? folder.register : '' }
+				: null
+			const previous = this.activeFolderSchema
+			const switched = (target ? `${target.register}|${target.schema}` : '') !== (previous ? `${previous.register}|${previous.schema}` : '')
+			if (switched) {
+				// A row or dialog from the old schema means nothing under the new one.
+				this.resetSelectionAndDialogs()
+			}
+			this.activeFolderSchema = target
+			if (target) {
+				// The folder picks a schema, not a value of the page's own field; the
+				// object-type change refetches, so only drop a leftover folder filter.
+				if (key && this.list && this.list.activeFilters.value[key] !== undefined) {
+					const { [key]: _dropped, ...rest } = this.list.activeFilters.value
+					this.list.activeFilters.value = rest
+				}
+			} else if (key) {
 				this.onFilterEvent({ key, values: (folderId === null || folderId === undefined) ? [] : [folderId] })
 			}
 			this.applyScopeSort()
@@ -5878,6 +5908,21 @@ export default {
 			 * @type {(string|number|null)} The selected folder id (null = All).
 			 */
 			this.$emit('folder-change', folderId)
+		},
+
+		/**
+		 * Clear the row selection and close any form, delete or copy dialog.
+		 * Used when the loaded schema changes under them.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/cnindexpage-folder-schema/tasks.md#task-3
+		 */
+		resetSelectionAndDialogs() {
+			this.onSelect([])
+			this.showSingleDeleteDialog = false
+			this.showSingleCopyDialog = false
+			this.showFormDialogVisible = false
+			this.actionTargetItem = null
 		},
 
 		/**
