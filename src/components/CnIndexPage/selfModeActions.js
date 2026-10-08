@@ -154,10 +154,16 @@ export function createSelfModeActions(ctx) {
 			return false
 		}
 		try {
+			// The selected rows when there are any, else the rows the list
+			// matches: never the whole schema by surprise.
+			const ids = typeof ctx.selectedIds === 'function' ? ctx.selectedIds() : []
+			const list = ctx.list()
 			await runSelfExportRequest({
 				register: ctx.register(),
 				schema: ctx.schema(),
 				format: payload && payload.format,
+				ids: ids.length > 0 ? ids : undefined,
+				query: list && typeof list.buildParams === 'function' ? list.buildParams(1) : undefined,
 			})
 			ctx.setResults.massExport({ success: true })
 		} catch (err) {

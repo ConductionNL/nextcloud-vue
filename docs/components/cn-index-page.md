@@ -120,6 +120,14 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the v2 `registry` — any kind carrying a `component` — or in the legacy `customComponents` map on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log a `console.warn` once and fall back to the default so a misconfigured manifest never blanks the grid. See [Bespoke card-grid](#bespoke-card-grid-via-cardcomponent) below. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 
+## Export follows the list
+
+The Export menu (`allowExport`) and the mass-action Export export the rows the list is showing, not the whole schema.
+
+- **The menu** sends the query the list itself sends: search, sort, facet filters, the page's fixed `filter` and the active quick filter, without paging (`_limit` and `_page` are dropped). A host-managed list (`objects` passed in) has no such query and keeps forwarding the route's.
+- **The flag** that enables the menu is read from the schema's top-level `exportable`, then from `configuration.exportable`. The top-level field wins when both are set; a schema flagged in neither place keeps the menu hidden. (OpenRegister has to keep one of the two; until it does, the menu does not appear on a real instance.)
+- **The mass export** exports the selected rows (as `ids[]`) when rows are selected, and the rows matching the list's query otherwise. The dialog says which, with the count, before the user confirms ([`CnMassExportDialog`](./cn-mass-export-dialog.md) `scopeText`).
+
 ## Calendar view mode
 
 `viewMode` also accepts `calendar`: the current filtered rows on a month calendar by a date field ([`CnObjectCalendar`](./cn-object-calendar.md)). Opt in through `config.viewModes` and name the fields:

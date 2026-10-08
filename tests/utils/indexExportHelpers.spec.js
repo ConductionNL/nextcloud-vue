@@ -50,3 +50,19 @@ describe('buildExportUrl', () => {
 		expect(url).toMatch(/^\/apps\/openregister\/api\/objects\/myregister\/myschema\/export/)
 	})
 })
+
+describe('buildExportUrl follows the list', () => {
+	it('drops the paging parameters', () => {
+		const url = buildExportUrl('procest', 'case', { status: 'open', _limit: 20, _page: 3 }, 'csv')
+		expect(url).toContain('status=open')
+		expect(url).not.toContain('_limit')
+		expect(url).not.toContain('_page')
+	})
+
+	it('carries search, filters and sort from the list query', () => {
+		const url = buildExportUrl('procest', 'case', { _search: 'gemeente', status: ['Draft', 'Active'], _order: { name: 'asc' } }, 'excel')
+		expect(url).toContain('_search=gemeente')
+		expect(url).toContain('status%5B%5D=Draft')
+		expect(url).toContain('_order=')
+	})
+})

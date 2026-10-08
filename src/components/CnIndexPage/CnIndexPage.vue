@@ -271,6 +271,7 @@
 			v-if="showExportDialog"
 			ref="exportDialog"
 			:formats="exportFormats"
+			:scopeText="massExportScopeText"
 			@confirm="onMassExportConfirm"
 			@close="showExportDialog = false" />
 
@@ -4267,7 +4268,42 @@ export default {
 		 * Default-safe — false unless both hold.
 		 */
 		showExportMenu() {
-			return Boolean(this.allowExport) && Boolean(this.effectiveSchema?.exportable) && Boolean(this.register) && Boolean(this.exportSchemaSlug)
+			return Boolean(this.allowExport) && this.schemaExportable && Boolean(this.register) && Boolean(this.exportSchemaSlug)
+		},
+
+		/**
+		 * Whether the schema is flagged exportable, in either place
+		 * OpenRegister could keep the flag: the top-level `exportable`, or
+		 * `configuration.exportable`. The top-level field wins when both are
+		 * set.
+		 *
+		 * @return {boolean}
+		 */
+		schemaExportable() {
+			const schema = this.effectiveSchema
+			if (schema && schema.exportable !== undefined && schema.exportable !== null) {
+				return Boolean(schema.exportable)
+			}
+			return Boolean(schema && schema.configuration && schema.configuration.exportable)
+		},
+
+		/**
+		 * The sentence the mass-export dialog opens with: which rows it will
+		 * export, and how many.
+		 *
+		 * @return {string}
+		 */
+		massExportScopeText() {
+			const selected = this.internalSelectedIds.length
+			if (selected > 0) {
+				return selected === 1
+					? t('nextcloud-vue', 'Export 1 selected row')
+					: t('nextcloud-vue', 'Export {count} selected rows', { count: selected })
+			}
+			const total = this.effectivePagination && this.effectivePagination.total
+			return typeof total === 'number'
+				? t('nextcloud-vue', 'Export {count} rows matching the current filter', { count: total })
+				: t('nextcloud-vue', 'Export the rows matching the current filter')
 		},
 
 		/**
@@ -5144,6 +5180,7 @@ export default {
 			selfObjectStore: () => this.selfObjectStore,
 			selfObjectType: () => this.selfObjectType,
 			list: () => this.list,
+			selectedIds: () => this.internalSelectedIds,
 			register: () => this.register,
 			schema: () => this.schema,
 			effectiveObjects: () => this.effectiveObjects,
@@ -7025,14 +7062,19 @@ export default {
 		/**
 		 * Native Export menu entry click (`allowExport` + `schema.exportable`).
 		 * Navigates the browser to OpenRegister's export leaf, passing the
-		 * current route's query params through so a filtered index exports
-		 * only the visible rows.
+		 * list's own query (without paging) so the file holds the rows the
+		 * table is filtered to.
 		 *
 		 * @param {'csv'|'excel'} format The requested export format.
 		 */
 		onExportClick(format) {
-			const routeQuery = (this.$route && this.$route.query) || {}
-			const url = buildExportUrl(this.register, this.exportSchemaSlug, routeQuery, format)
+			// The query the list itself sends, so the file follows the table:
+			// search, sort, facet filters, the page filter and the quick filter.
+			// A host-managed list has no such query, so it keeps the route's.
+			const query = this.isSelfFetchMode && typeof this.list.buildParams === 'function'
+				? this.list.buildParams(1)
+				: ((this.$route && this.$route.query) || {})
+			const url = buildExportUrl(this.register, this.exportSchemaSlug, query, format)
 			window.location.assign(url)
 		},
 

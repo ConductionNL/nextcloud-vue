@@ -398,6 +398,9 @@ export function useListView(objectTypeOrOptions, options) {
 		onPageSizeChange,
 		// Explicit fetch
 		refresh,
+		// The query the list sends (search, sort, facet filters, fixed filters),
+		// built from the current state, for an export that must follow the list.
+		buildParams,
 	}
 }
 
