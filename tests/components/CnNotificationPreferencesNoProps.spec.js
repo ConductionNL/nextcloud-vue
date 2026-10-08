@@ -107,7 +107,7 @@ describe('mounted with no props at all', () => {
 
 		const switches = wrapper.findAll('.switch')
 		expect(switches.length).toBe(2)
-		expect(wrapper.text()).toContain('caseAssigned')
+		expect(wrapper.text()).toContain('Case assigned')
 	})
 
 	it('shows what each one is set to, rather than defaulting everything off', async () => {

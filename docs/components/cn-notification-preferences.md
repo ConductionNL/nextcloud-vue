@@ -35,9 +35,13 @@ heading) and renders one switch per notification. It degrades gracefully:
 
 ## Props, events, slots
 
-This component is fully self-contained: it takes **no props**, emits **no
+This component is self-contained: it needs **no props**, emits **no
 events**, and exposes **no named slots** — it fetches and persists its own
-state. Drop it in wherever an app-settings section is rendered (most commonly
+state.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `labels` | `Object` | `null` | Optional labels for the notification rules, keyed `<schema>.<key>` or `<key>`; values are strings or per-locale maps. Wins over the `cnNotificationLabels` map a `CnAppRoot` ancestor provides from its `notificationLabels` prop. See [`notificationRuleLabel`](../utilities/notification-rule-label.md) for the full order. | Drop it in wherever an app-settings section is rendered (most commonly
 via `CnAppRoot`'s `#user-settings` slot, which mounts it by default).
 
 ## Usage

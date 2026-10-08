@@ -28,3 +28,19 @@ export interface CnPublicPathOptions {
  * @param options Where the public path is read from at runtime.
  */
 export function withPublicPath<T extends object | object[]>(config: T, options?: CnPublicPathOptions): T
+
+export interface CnAppVersionDefineOptions {
+	/** The initial-state key the app's page provides its version under. Defaults to `version`. */
+	key?: string
+}
+
+/**
+ * A `webpack.DefinePlugin` expression for `appVersion` that reads the
+ * installed app version from the page's initial state at runtime, falling
+ * back to `fallback` (the build-time version) when the state is absent.
+ *
+ * @param appId The app id.
+ * @param fallback The build-time version.
+ * @param options Which initial-state key to read.
+ */
+export function appVersionDefine(appId: string, fallback?: string, options?: CnAppVersionDefineOptions): string
