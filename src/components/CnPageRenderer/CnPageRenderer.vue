@@ -120,7 +120,8 @@
 				v-if="widgetsBySlot.has('body')"
 				:widgets="widgetsBySlot.get('body')"
 				:editable="bodyEditable"
-				slotName="body" />
+				slotName="body"
+				@selectObject="onRelatedObjectOpen" />
 			<component
 				:is="resolvedComponent"
 				v-else-if="resolvedComponent"
@@ -189,7 +190,8 @@
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('sidebar') && pageSidebarVisibleValue"
 				:widgets="widgetsBySlot.get('sidebar')"
-				slotName="sidebar" />
+				slotName="sidebar"
+				@selectObject="onRelatedObjectOpen" />
 			<!-- dynamic tab:* and section:* slots -->
 			<template v-for="dynamicSlot in dynamicSlotKeys" :key="dynamicSlot">
 				<CnWidgetGrid
@@ -305,10 +307,12 @@ import { isNewTabHandled } from '../../utils/rowAuxClick.js'
 
 /**
  * OpenRegister registers and schemas already described by id, so a click on
- * a related object costs at most one request per register or schema for the
- * page lifetime. Keyed by `${kind}:${id}`.
+ * a related object costs at most one request per register or schema for as
+ * long as this module stays loaded (the SPA's lifetime, across page
+ * changes). Keyed by `${kind}:${id}`; a failed lookup is dropped again so the
+ * next click retries it.
  *
- * @type {Map<string, Promise<{ id: string, slug: string }|null>>}
+ * @type {Map<string, Promise<{ id: string, slug: string }>>}
  */
 const entityDescriptorCache = new Map()
 
@@ -335,15 +339,17 @@ function describeOpenRegisterEntity(kind, idOrSlug) {
 				const res = await axios.get(url)
 				const data = res && res.data
 				if (!data || typeof data !== 'object') {
-					return null
+					throw new Error(`no descriptor for ${key}`)
 				}
 				return { id: String(data.id ?? idOrSlug), slug: String(data.slug ?? '') }
-			} catch {
-				return null
+			} catch (error) {
+				// One failed request must not pin every later click to nowhere.
+				entityDescriptorCache.delete(key)
+				throw error
 			}
 		})())
 	}
-	return entityDescriptorCache.get(key)
+	return entityDescriptorCache.get(key).catch(() => null)
 }
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { defaultPageTypes } from './pageTypes.js'
@@ -1876,10 +1882,10 @@ export default {
 		},
 
 		/**
-		 * Open the detail page of an object clicked in a detail page's Related
-		 * widget. `CnDetailPage` only emits `related-object-click`; on a
-		 * manifest page nothing listened, so the rows looked like links and
-		 * went nowhere.
+		 * Open the detail page of an object clicked in a Related widget —
+		 * reaching here as `CnDetailPage`'s `related-object-click`, or as
+		 * `CnWidgetGrid`'s `select-object` on a v2 widget-grid page. Nothing
+		 * listened to either, so the rows looked like links and went nowhere.
 		 *
 		 * @param {object} raw The clicked object as the Related widget holds it.
 		 * @return {Promise<void>}
@@ -1897,9 +1903,10 @@ export default {
 		 * that page's route declares. The object's `@self` names register and
 		 * schema by id and a manifest may name them by slug, so a miss on the
 		 * literal pair describes both (one request each, cached) and matches
-		 * again. Null — with a warning, like a dead row click — when the
-		 * object carries no register, schema or id, no detail page matches, or
-		 * the router lacks the route.
+		 * again. Null, silently, when there is no router or the object carries
+		 * no register, schema or id (nothing to open); null with a warning,
+		 * like a dead row click, when no detail page matches or the router
+		 * lacks the route.
 		 *
 		 * @param {object} raw The clicked object.
 		 * @return {Promise<object|null>} The router location, or null.

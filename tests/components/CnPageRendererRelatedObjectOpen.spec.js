@@ -122,6 +122,37 @@ describe('CnPageRenderer.onRelatedObjectOpen', () => {
 		expect(mockGet).not.toHaveBeenCalled()
 	})
 
+	it('retries a describe that failed instead of pinning the click to nowhere', async () => {
+		const bySlug = {
+			...manifest,
+			pages: manifest.pages.map((p) => ({ ...p, config: { ...p.config, register: 'stackiq' } })),
+		}
+		const { wrapper, push } = mountAt('ModuleDetail', bySlug)
+		// Ids no earlier test described, so the module-level cache is cold.
+		const self = { id: 'org-1', register: '21', schema: '34' }
+		// First click: the API is down — no navigation.
+		mockGet.mockRejectedValue(new Error('503'))
+		await wrapper.vm.onRelatedObjectOpen({ '@self': self })
+		await settle()
+		expect(push).not.toHaveBeenCalled()
+		const failedCalls = mockGet.mock.calls.length
+		// Second click: the API answers — the lookup is made again and navigates.
+		mockGet.mockImplementation((url) => Promise.resolve({ data: url.endsWith('/registers/21') ? { id: 21, slug: 'stackiq' } : { id: 34, slug: 'organization' } }))
+		await wrapper.vm.onRelatedObjectOpen({ '@self': self })
+		await settle()
+		expect(mockGet.mock.calls.length).toBeGreaterThan(failedCalls)
+		expect(push).toHaveBeenCalledWith(expect.objectContaining({ name: 'OrganisatieDetail' }))
+	})
+
+	it('does nothing, without a warning, when there is no router', async () => {
+		const wrapper = shallowMount(CnPageRenderer, {
+			propsData: { manifest, pageTypes },
+			mocks: { $route: { name: 'ModuleDetail', params: { id: 'app-1' } } },
+		})
+		await wrapper.vm.onRelatedObjectOpen({ '@self': { id: 'org-9', register: '20', schema: 'organization' } })
+		expect(console.warn).not.toHaveBeenCalled()
+	})
+
 	it('resolvedProps still carries nothing new — the click is a listener, not a prop', () => {
 		const { wrapper } = mountAt('ModuleDetail')
 		expect(wrapper.vm.resolvedProps).not.toHaveProperty('onRelatedObjectClick')

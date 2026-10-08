@@ -184,7 +184,8 @@
 			<component
 				:is="renderer"
 				ref="renderer"
-				v-bind="rendererProps" />
+				v-bind="rendererProps"
+				@selectObject="onSelectObject" />
 		</CnWidgetWrapper>
 
 		<!-- Registry "card" widgets (stat / gauge / delta) render bare tile
@@ -219,7 +220,8 @@
 			:is="renderer"
 			v-else-if="renderer"
 			ref="renderer"
-			v-bind="rendererProps" />
+			v-bind="rendererProps"
+			@selectObject="onSelectObject" />
 
 		<!-- No renderer resolves: render nothing, which is what CnDetailPage has
 		     always done here. Surfacing an "unknown widget" box instead would be
@@ -1008,7 +1010,9 @@ export default {
 		},
 
 		/**
-		 * Pass a related-object click up; the page decides where it opens.
+		 * Pass a related-object click up; the page decides where it opens. Heard
+		 * from the Related widget itself and from a registry widget that nests a
+		 * host of its own (a Tabs widget with a Related tab).
 		 *
 		 * @param {object} raw The clicked object as the related widget holds it.
 		 */
