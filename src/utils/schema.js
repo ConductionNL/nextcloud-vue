@@ -769,6 +769,39 @@ export function isTenantProperty(key, prop) {
 	return TENANT_PROPERTY_NAMES.has(name)
 }
 
+const warnedHelp = new Set()
+
+/**
+ * Read a property's `x-help`: a string, or a map of language codes to strings.
+ * Anything else is ignored with one warning naming the property.
+ *
+ * @param {string} key The property key (named in the warning).
+ * @param {unknown} value The raw `x-help` value.
+ * @param {string} language The user's language, e.g. `nl` or `en_GB`.
+ * @param {(text: string) => string} tr Display-layer translation, applied to a plain string only.
+ * @return {string} The explanation, or ''.
+ */
+function readHelp(key, value, language, tr) {
+	if (value === undefined || value === null) {
+		return ''
+	}
+	if (typeof value === 'string') {
+		return value.trim() !== '' ? tr(value.trim()) : ''
+	}
+	if (typeof value === 'object' && !Array.isArray(value)) {
+		const usable = Object.entries(value).filter(([, text]) => typeof text === 'string' && text.trim() !== '')
+		const byCode = new Map(usable.map(([code, text]) => [code.toLowerCase().replace('_', '-'), text.trim()]))
+		const wanted = String(language || '').toLowerCase().replace('_', '-')
+		return byCode.get(wanted) || byCode.get(wanted.split('-')[0]) || byCode.get('en') || (usable[0] ? usable[0][1].trim() : '')
+	}
+	if (!warnedHelp.has(key)) {
+		warnedHelp.add(key)
+		// eslint-disable-next-line no-console
+		console.warn(`[fieldsFromSchema] "x-help" on "${key}" must be a string or a map of language codes to strings; ignored.`)
+	}
+	return ''
+}
+
 /**
  * Generate form field definitions from a schema's properties.
  *
@@ -783,12 +816,13 @@ export function isTenantProperty(key, prop) {
  * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. Recognised keys: `hidden` (true → drop the field), `order` (number → wins over the schema property's `order` for sorting), `readOnly` (false on a schema-readOnly key un-skips it), plus any field props to merge (`label`, `widget`, `enum`, …). A single overrides map therefore controls visibility, ordering and rendering on every surface that consumes this pipeline (data widget + form dialog).
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
  * @param {boolean} [options.hideTenant] Drop properties that hold the record's tenant (see `isTenantProperty`). Off by default, so a detail page still shows the tenant; CnFormDialog turns it on because nobody should be asked for it. `overrides[key].hidden === false` keeps one visible.
+ * @param {string} [options.language] The user's language (e.g. `nl`, `en_GB`) used to pick from a language map in `x-help`; falls back to the base language, `en`, then the first entry.
  * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each field's `label` and `description`. Schema property titles/descriptions are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered field label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
  * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
- * @return {Array<{key: string, label: string, description: string, descriptionLong: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: unknown, enum: Array|null, enumLabels: object|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean, register?: string, labelField?: string}|null, allowCreate: boolean, userPicker: {multiple: boolean}|null, groupPicker: {multiple: boolean}|null, defaultToken: string|null, propertySource: {provider: string, mode: string, config: object}|null, fillFrom: object|null, validation: object, order: number}>} `description` is the inline helper text (see `splitDescription`); `descriptionLong` carries the property's `x-help` text when it declares one, else the full description when it was too long to render inline, else ''. `enumLabels` maps each raw enum value to its English display label (from the property's `x-enum-labels`), or null.
+ * @return {Array<{key: string, label: string, description: string, descriptionLong: string, help: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: unknown, enum: Array|null, enumLabels: object|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean, register?: string, labelField?: string}|null, allowCreate: boolean, userPicker: {multiple: boolean}|null, groupPicker: {multiple: boolean}|null, defaultToken: string|null, propertySource: {provider: string, mode: string, config: object}|null, fillFrom: object|null, validation: object, order: number}>} `description` is the inline helper text (see `splitDescription`); `help` is the property's `x-help` explanation in the user's language ('' when absent or malformed); `descriptionLong` carries it too when present, else the full description when it was too long to render inline, else ''. `enumLabels` maps each raw enum value to its English display label (from the property's `x-enum-labels`), or null.
  */
 export function fieldsFromSchema(schema, options = {}) {
-	const { exclude = [], include = null, overrides = {}, includeReadOnly = false, hideTenant = false, translate } = options
+	const { exclude = [], include = null, overrides = {}, includeReadOnly = false, hideTenant = false, translate, language = '' } = options
 	const tr = typeof translate === 'function' ? translate : (text) => text
 
 	if (!schema || !schema.properties) {
@@ -861,11 +895,8 @@ export function fieldsFromSchema(schema, options = {}) {
 
 	return entries.map(([key, prop]) => {
 		const description = splitDescription(prop.description ? tr(prop.description) : '')
-		// `x-help` is the long explanation behind the (i) popover. It always
-		// shows the popover, while `description` stays the short helper line.
-		const help = typeof prop['x-help'] === 'string' && prop['x-help'].trim() !== ''
-			? tr(prop['x-help'].trim())
-			: ''
+		// `x-help` is the long explanation behind the toggletip; `description` stays the short helper line.
+		const help = readHelp(key, prop['x-help'], language, tr)
 		const labelField = prop['x-label-field']
 			|| (prop.items && prop.items['x-label-field'])
 			|| null
@@ -874,6 +905,7 @@ export function fieldsFromSchema(schema, options = {}) {
 			label: tr(prop.title || key),
 			description: description.short,
 			descriptionLong: help || description.long,
+			help,
 			type: prop.type || 'string',
 			format: prop.format || null,
 			widget: resolveWidget(prop),

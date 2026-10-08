@@ -2,30 +2,35 @@
 	<!-- Keeps the legacy `cn-form-dialog__helper` class alongside its own so
 	     consumer stylesheets that target the old helper span still apply. -->
 	<span
-		v-if="error || text || more"
+		v-if="error || text || hasFull"
 		class="cn-field-helper cn-form-dialog__helper"
 		:class="{ 'cn-field-helper--error': !!error, 'cn-form-dialog__helper--error': !!error }">
 		{{ error || text }}
-		<NcPopover
-			v-if="!error && more"
-			v-model:shown="open"
-			:triggers="[]"
-			popupRole="dialog"
-			popoverBaseClass="cn-field-helper__popper">
-			<template #trigger>
-				<button
-					type="button"
-					class="cn-field-helper__trigger"
-					:aria-label="t('nextcloud-vue', 'Show the full description')"
-					:aria-expanded="open"
-					@click="open = !open">
-					<InformationOutline :size="16" />
-				</button>
-			</template>
-			<div class="cn-field-helper__full">
-				{{ more }}
-			</div>
-		</NcPopover>
+		<template v-if="hasFull">
+			<NcPopover
+				v-model:shown="open"
+				:triggers="[]"
+				popupRole="dialog"
+				popoverBaseClass="cn-field-helper__popper">
+				<template #trigger>
+					<button
+						ref="trigger"
+						type="button"
+						class="cn-field-helper__trigger"
+						:aria-label="triggerLabel"
+						:aria-expanded="open"
+						@keydown.esc="close"
+						@click="open = !open">
+						<InformationOutline :size="16" />
+					</button>
+				</template>
+				<div class="cn-field-helper__full" @keydown.esc="close">
+					{{ full }}
+				</div>
+			</NcPopover>
+			<!-- The opened text is also announced politely, since a popover alone is not read out. -->
+			<span class="cn-field-helper__live" role="status" aria-live="polite">{{ open ? full : '' }}</span>
+		</template>
 	</span>
 </template>
 
@@ -43,8 +48,12 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
  * `descriptionLong`; pass that as `more` and this renders an ⓘ button that
  * reveals it in a popover, so a paragraph-length schema description cannot
  * push the rest of the form off screen. A schema property's `x-help` text
- * also lands on `descriptionLong`, so the ⓘ shows even when the description
- * is short or absent.
+ * is passed as `help` (it also lands on `descriptionLong`), so the ⓘ shows
+ * even when the description is short or absent. The button is a toggletip:
+ * named "About {label}" (pass `label`), `aria-expanded`, toggled by Enter,
+ * Space and click, closed by Escape with focus back on the button, and the
+ * opened text is announced through a polite live region. It stays available
+ * while the field shows an error. The text is rendered as text, never HTML.
  *
  * `CnFormDialog` uses this for every auto-generated field. Use it directly when
  * rendering your own fields through the `#form-fields` or `#field-<key>` slots,
@@ -54,6 +63,8 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
  * <CnFieldHelper
  *   :text="field.description"
  *   :more="field.descriptionLong"
+ *   :help="field.help"
+ *   :label="field.label"
  *   :error="errors[field.key]" />
  * ```
  */
@@ -68,9 +79,13 @@ export default {
 	props: {
 		/** Inline helper text (a field's short description). */
 		text: { type: String, default: '' },
-		/** Full description, shown in the popover. Empty → no info button. */
+		/** Full description, shown in the popover. Empty and no `help` → no info button. */
 		more: { type: String, default: '' },
-		/** Validation error; replaces the helper text and hides the popover. */
+		/** A schema property's `x-help` explanation, opened in place by the info button; shown before `more` unless they are the same text. */
+		help: { type: String, default: '' },
+		/** The field's label; names the button "About {label}" for screen readers. */
+		label: { type: String, default: '' },
+		/** Validation error; replaces the helper text. The info button stays available beside it. */
 		error: { type: String, default: '' },
 	},
 
@@ -80,8 +95,40 @@ export default {
 		}
 	},
 
+	computed: {
+		/** @return {string} The text the info button opens: `help`, then `more` when it differs. */
+		full() {
+			return [this.help, this.more].filter((part, index, all) => part && all.indexOf(part) === index).join('\n\n')
+		},
+
+		/** @return {boolean} Whether there is anything to open. */
+		hasFull() {
+			return this.full !== ''
+		},
+
+		/** @return {string} The accessible name of the info button. */
+		triggerLabel() {
+			return this.label
+				? t('nextcloud-vue', 'About {label}', { label: this.label })
+				: t('nextcloud-vue', 'Show the full description')
+		},
+	},
+
 	methods: {
 		t,
+
+		/** Close the explanation and put focus back on the button. */
+		close() {
+			if (!this.open) {
+				return
+			}
+			this.open = false
+			this.$nextTick(() => {
+				if (this.$refs.trigger && this.$refs.trigger.focus) {
+					this.$refs.trigger.focus()
+				}
+			})
+		},
 	},
 }
 </script>
@@ -141,6 +188,16 @@ export default {
 .cn-field-helper__trigger:hover,
 .cn-field-helper__trigger:focus-visible {
 	color: var(--color-main-text);
+}
+
+/* Visually hidden, still read out by screen readers. */
+.cn-field-helper__live {
+	position: absolute;
+	inline-size: 1px;
+	block-size: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
 }
 
 .cn-field-helper__full {

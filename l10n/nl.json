@@ -1334,7 +1334,8 @@
     "Could not export activity.": "Activiteit kon niet worden geëxporteerd.",
     "Development environment": "Ontwikkelomgeving",
     "Test environment": "Testomgeving",
-    "Acceptance environment": "Acceptatieomgeving"
+    "Acceptance environment": "Acceptatieomgeving",
+    "About {label}": "Over {label}"
   },
   "plurals": {
     "%n year": [

@@ -163,6 +163,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</template>
 
@@ -179,6 +181,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</template>
 
@@ -198,6 +202,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -226,6 +232,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -242,6 +250,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -300,6 +310,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -338,6 +350,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -378,6 +392,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -393,6 +409,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -415,6 +433,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -432,6 +452,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -448,6 +470,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -465,7 +489,9 @@
 								@update:modelValue="value => updateField(field.key, value)" />
 							<CnFieldHelper
 								:text="field.description"
-								:more="field.descriptionLong" />
+								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label" />
 						</div>
 
 						<!-- Duration (widget: 'duration'): number + unit over an ISO 8601 string. -->
@@ -479,6 +505,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -497,7 +525,9 @@
 								@validity="problems => { childProblems[field.key] = problems }" />
 							<CnFieldHelper
 								:text="field.description"
-								:more="field.descriptionLong" />
+								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label" />
 						</div>
 
 						<!-- Sub-objects (widget: 'sub-objects'): an array of objects as an editable table. -->
@@ -511,7 +541,9 @@
 								@update:modelValue="value => updateField(field.key, value)" />
 							<CnFieldHelper
 								:text="field.description"
-								:more="field.descriptionLong" />
+								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label" />
 						</div>
 
 						<!-- Registry type-ahead (widget: 'property-source'): CnPropertySourceField;
@@ -530,6 +562,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -549,6 +583,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</div>
 
@@ -564,6 +600,8 @@
 							<CnFieldHelper
 								:text="field.description"
 								:more="field.descriptionLong"
+								:help="field.help"
+								:label="field.label"
 								:error="errors[field.key]" />
 						</template>
 						<small
@@ -1553,6 +1591,7 @@ export default {
 						overrides: this.fieldOverrides,
 						hideTenant: true,
 						translate: this.cnTranslate,
+						language: getLanguage(),
 					}).concat(this.dynamicFields)
 
 			// Render locked fields (parent references seeded via initialData) as
