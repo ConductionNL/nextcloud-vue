@@ -1219,7 +1219,17 @@
     "Failed": "Failed",
     "external recipients are off": "external recipients are off",
     "not on the item": "not on the item",
-    "not a valid address": "not a valid address"
+    "not a valid address": "not a valid address",
+    "Progress": "Progress",
+    "(current step)": "(current step)",
+    "(completed)": "(completed)",
+    "(upcoming)": "(upcoming)",
+    "This journey cannot be shown: step {id}. {message}": "This journey cannot be shown: step {id}. {message}",
+    "Thank you!": "Thank you!",
+    "Back": "Back",
+    "Some items cannot be filed. Change them to continue.": "Some items cannot be filed. Change them to continue.",
+    "Submitting failed. Try again.": "Submitting failed. Try again.",
+    "Journey": "Journey"
   },
   "plurals": {
     "%n year": [

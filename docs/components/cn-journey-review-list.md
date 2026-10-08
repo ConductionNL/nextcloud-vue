@@ -2,7 +2,7 @@
 
 The review step's view of a list answer in a journey. An answer that is an array of objects (for example the products a resident asked for) shows as a counted, ordered list with one block per item: the item's main value as a heading, then each other field as a label and a value. When the journey repeats a write over the list, the review also says each item becomes its own request and shows what each one will be filed as.
 
-`CnJourney` itself (change `journey-runtime`) is not built yet. This component is the review half, ready for it: the host passes the list answer, the columns from the list field's `items.properties` and the repeating write, and handles `change` and `unfileable`.
+`CnJourney` (change `journey-runtime`) uses this component for the review step. A host using it directly passes the list answer, the columns from the list field's `items.properties` and the repeating write, and handles `change` and `unfileable`.
 
 ## Usage
 

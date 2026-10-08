@@ -1270,7 +1270,17 @@
     "Failed": "Mislukt",
     "external recipients are off": "externe ontvangers staan uit",
     "not on the item": "staat niet op het item",
-    "not a valid address": "geen geldig adres"
+    "not a valid address": "geen geldig adres",
+    "Progress": "Voortgang",
+    "(current step)": "(huidige stap)",
+    "(completed)": "(afgerond)",
+    "(upcoming)": "(volgt nog)",
+    "This journey cannot be shown: step {id}. {message}": "Deze reis kan niet getoond worden: stap {id}. {message}",
+    "Thank you!": "Bedankt!",
+    "Back": "Terug",
+    "Some items cannot be filed. Change them to continue.": "Een of meer onderdelen kunnen niet worden ingediend. Wijzig ze om verder te gaan.",
+    "Submitting failed. Try again.": "Versturen is mislukt. Probeer het opnieuw.",
+    "Journey": "Reis"
   },
   "plurals": {
     "%n year": [
