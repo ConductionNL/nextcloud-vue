@@ -56,6 +56,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `rowKey` | String | `'id'` | Unique row identifier field |
 | `rowIcon` | String \| Function | `null` | Optional leading icon for every table row — a static MDI icon name or `(row) => iconName`. Forwarded to `CnDataTable`. Fed from the manifest as `pages[].config.rowIcon`. |
 | `activeOrganisation` | Object \| null | `null` | Optional multi-tenant binding from a tenant-switcher higher in the tree. When the bound organisation changes, CnIndexPage calls `store.setActiveTenantOrganisation(uuid)` so the next `fetchCollection()` stamps the new `X-OpenRegister-Organisation` header and the in-memory list caches are cleared. Leave `null` for single-tenant pages. See [Multi-tenancy guide](../multi-tenancy.md). |
+| `collectionUrl` | String | `''` | Self-fetch only. List from this endpoint instead of `/api/objects/{register}/{schema}`, for a list that mixes several register/schema pairs. See [Mixed-schema collections](#mixed-schema-collections-collectionurl). |
 | `columns` | Array | `[]` | Manual column definitions (overrides schema) |
 | `excludeColumns` | Array | `[]` | Schema columns to hide |
 | `includeColumns` | Array | `null` | Schema columns to show (whitelist) |
@@ -423,6 +424,10 @@ appear until the user reloads, because the built-in refresh never runs. (Live
 delivered, so do not rely on them.) Saving through `confirm` also keeps writes in the same
 store the list reads from, rather than a second cache of the same objects.
 
+A write that cannot go through `confirm`, such as an app modal that uploads files, can call
+[`dispatchObjectsChanged({ register, schema })`](../utilities/dispatch-objects-changed.md)
+instead. Every mounted index page for that register and schema then refreshes its list.
+
 `confirm` is async — await it, then `close()`:
 
 ```vue
@@ -670,6 +675,27 @@ Opt out per page with the `subscribe` prop (default `true`):
 ### Consumer-managed mode is unchanged
 
 When the `objects` prop **is** supplied (every current consumer), nothing changes — no `useObjectStore` / `useListView` call, no `registerObjectType` / `fetchCollection`, no live-updates subscription; `objects` and the other props are used as today and `filter` has no effect. The switch is purely "did the caller pass `objects`?".
+
+### Mixed-schema collections (`collectionUrl`)
+
+Set `collectionUrl` to list from an endpoint that searches several register/schema pairs at once, such as an app's catalog API. The endpoint takes `_page`, `_limit`, `_search` and `_order[key]=dir`, and answers `{ results, total, page, pages }`.
+
+```vue
+<CnIndexPage
+  title="Publications"
+  register="19"
+  schema="24"
+  :collection-url="generateUrl('/apps/opencatalogi/api/{slug}', { slug })" />
+```
+
+`register` and `schema` remain the page's own pair. They drive the columns, the Add button, export and import.
+
+A row whose `@self.register` / `@self.schema` names another pair behaves as a row of that pair:
+
+- Edit opens the form with that pair's schema. The page's `includeFields`, `excludeFields` and `fieldOverrides` are not applied to it.
+- Save, delete, mass delete and copy go to that pair's own URL.
+
+Keep the columns to ones every pair has, such as `@self.name`, `@self.updated` and shared properties. Live updates follow the page's own pair only. In this mode, any `dispatchObjectsChanged` signal refreshes the list.
 
 ## Map view mode
 

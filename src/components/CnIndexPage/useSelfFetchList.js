@@ -106,7 +106,11 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 			const register = folder.register || props.register
 			return { register, schema: folder.schema, type: `${register}-${folder.schema}` }
 		}
-		return { register: props.register, schema: props.schema, type: `${props.register}-${props.schema}` }
+		// A collection endpoint gets its own type key, so a plain registration of
+		// the same pair elsewhere never resets it.
+		const collectionUrl = props.collectionUrl || ''
+		const type = `${props.register}-${props.schema}` + (collectionUrl ? `@${collectionUrl}` : '')
+		return { register: props.register, schema: props.schema, type, collectionUrl }
 	})
 	const objectType = computed(() => resolvedTarget.value.type)
 	const sidebarState = inject('sidebarState', null) ?? inject('objectSidebarState', null)
@@ -155,9 +159,13 @@ export function useSelfFetchList(props, instance, inject, extras = {}) {
 	// second arg) — that previously made fetch URLs go to `/api/objects/undefined/[object Object]`.
 	// Runs (sync, ahead of the list's own watcher) again whenever the type switches.
 	function registerTarget() {
-		const { register, schema, type } = resolvedTarget.value
+		const { register, schema, type, collectionUrl } = resolvedTarget.value
 		if (typeof objectStore.registerObjectType === 'function') {
-			objectStore.registerObjectType(type, schema, register, { registerSlug: register, schemaSlug: schema })
+			objectStore.registerObjectType(type, schema, register, {
+				registerSlug: register,
+				schemaSlug: schema,
+				...(collectionUrl ? { collectionUrl } : {}),
+			})
 		}
 	}
 	registerTarget()

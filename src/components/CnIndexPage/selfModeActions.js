@@ -16,6 +16,56 @@ function findSource(ctx, id) {
 }
 
 /**
+ * The register/schema of a row that belongs to another pair than the page's,
+ * in a list fetched from a `collectionUrl`. Registers a store type for that
+ * pair on first use. Returns null for rows of the page's own pair, and always
+ * without a `collectionUrl`.
+ *
+ * @param {object} opts Page context.
+ * @param {string} opts.collectionUrl The page's collection endpoint, or ''.
+ * @param {string} opts.register The page's register.
+ * @param {string} opts.schema The page's schema.
+ * @param {object|null} opts.primarySchema The page's resolved schema.
+ * @param {object|null} opts.store The object store.
+ * @param {object} row The row.
+ * @return {{register: string, schema: string, type: string}|null} The row's own pair.
+ */
+export function resolveRowTarget({ collectionUrl, register, schema, primarySchema, store }, row) {
+	if (!collectionUrl || !row || !store) {
+		return null
+	}
+	const self = row['@self'] || {}
+	const reg = self.register !== undefined && self.register !== null ? String(self.register) : ''
+	const sch = self.schema !== undefined && self.schema !== null ? String(self.schema) : ''
+	if (!reg || !sch) {
+		return null
+	}
+	const schemaIds = [schema, primarySchema && primarySchema.id, primarySchema && primarySchema.slug]
+		.filter((v) => v !== undefined && v !== null && v !== '')
+		.map(String)
+	if (schemaIds.includes(sch) && String(register) === reg) {
+		return null
+	}
+	const type = `${reg}-${sch}`
+	if (!store.objectTypeRegistry?.[type]) {
+		store.registerObjectType(type, sch, reg, { registerSlug: reg, schemaSlug: sch })
+	}
+	return { register: reg, schema: sch, type }
+}
+
+/**
+ * The store type a row is written through: its own pair's, or the page's.
+ *
+ * @param {object} ctx Accessor closures.
+ * @param {object} [row] The row.
+ * @return {string} The type slug.
+ */
+function typeFor(ctx, row) {
+	const target = row && typeof ctx.rowTarget === 'function' ? ctx.rowTarget(row) : null
+	return target ? target.type : ctx.selfObjectType()
+}
+
+/**
  * The source's address for the copy endpoint, or null when the register or
  * schema is not known as a slug.
  *
@@ -25,6 +75,10 @@ function findSource(ctx, id) {
  */
 function copyAddress(ctx, source) {
 	const self = source['@self'] || {}
+	const target = typeof ctx.rowTarget === 'function' ? ctx.rowTarget(source) : null
+	if (target) {
+		return { register: target.register, schema: target.schema, id: String(source.id || self.id) }
+	}
 	const reg = ctx.register()
 	const sch = ctx.schema()
 	const register = (typeof reg === 'string' && reg) || self.register
@@ -54,12 +108,12 @@ function refreshList(ctx) {
 	}
 }
 
-function storeError(ctx) {
-	return ctx.selfObjectStore()?.getError?.(ctx.selfObjectType())
+function storeError(ctx, type = ctx.selfObjectType()) {
+	return ctx.selfObjectStore()?.getError?.(type)
 }
 
-function storeErrorMessage(ctx, fallback) {
-	const err = storeError(ctx)
+function storeErrorMessage(ctx, fallback, type) {
+	const err = storeError(ctx, type)
 	return (err && err.message) || fallback
 }
 
@@ -76,13 +130,14 @@ export function createSelfModeActions(ctx) {
 			return false
 		}
 		try {
-			const ok = await ctx.selfObjectStore().deleteObject(ctx.selfObjectType(), id)
+			const type = typeFor(ctx, findSource(ctx, id))
+			const ok = await ctx.selfObjectStore().deleteObject(type, id)
 			if (ok) {
 				ctx.setResults.singleDelete({ success: true })
 				ctx.emit('delete', id)
 				refreshList(ctx)
 			} else {
-				ctx.setResults.singleDelete({ error: storeErrorMessage(ctx, 'Delete failed') })
+				ctx.setResults.singleDelete({ error: storeErrorMessage(ctx, 'Delete failed', type) })
 			}
 		} catch (err) {
 			ctx.setResults.singleDelete({ error: (err && err.message) || 'Delete failed' })
@@ -95,12 +150,28 @@ export function createSelfModeActions(ctx) {
 			return false
 		}
 		try {
-			const { successfulIds, failedIds } = await ctx.selfObjectStore().deleteObjects(ctx.selfObjectType(), ids)
+			// One request per pair: a mixed list holds rows of several types.
+			const idsByType = new Map()
+			for (const id of ids) {
+				const type = typeFor(ctx, findSource(ctx, id))
+				idsByType.set(type, [...(idsByType.get(type) || []), id])
+			}
+			const successfulIds = []
+			const failedIds = []
+			let failedType = null
+			for (const [type, typeIds] of idsByType) {
+				const outcome = await ctx.selfObjectStore().deleteObjects(type, typeIds)
+				successfulIds.push(...outcome.successfulIds)
+				failedIds.push(...outcome.failedIds)
+				if (outcome.failedIds.length > 0 && failedType === null) {
+					failedType = type
+				}
+			}
 			if (failedIds.length === 0) {
 				ctx.setResults.massDelete({ success: true, successfulIds })
 			} else {
 				ctx.setResults.massDelete({
-					error: storeErrorMessage(ctx, `Failed to delete ${failedIds.length} item(s)`),
+					error: storeErrorMessage(ctx, `Failed to delete ${failedIds.length} item(s)`, failedType),
 					successfulIds,
 					failedIds,
 				})
@@ -142,13 +213,14 @@ export function createSelfModeActions(ctx) {
 				}
 			}
 			const clone = cloneObjectForCopy(source, newName, resolveNameField(ctx))
-			const saved = await ctx.selfObjectStore().saveObject(ctx.selfObjectType(), clone)
+			const type = typeFor(ctx, source)
+			const saved = await ctx.selfObjectStore().saveObject(type, clone)
 			if (saved) {
 				ctx.setResults.singleCopy({ success: true })
 				ctx.emit('copy', payload)
 				refreshList(ctx)
 			} else {
-				ctx.setResults.singleCopy({ error: storeErrorMessage(ctx, 'Copy failed') })
+				ctx.setResults.singleCopy({ error: storeErrorMessage(ctx, 'Copy failed', type) })
 			}
 		} catch (err) {
 			ctx.setResults.singleCopy({ error: (err && err.message) || 'Copy failed' })
@@ -191,7 +263,7 @@ export function createSelfModeActions(ctx) {
 			}
 			const clone = cloneObjectForCopy(source, getName(source), nameField)
 			try {
-				const saved = await ctx.selfObjectStore().saveObject(ctx.selfObjectType(), clone)
+				const saved = await ctx.selfObjectStore().saveObject(typeFor(ctx, source), clone)
 				if (saved) {
 					successfulIds.push(id)
 				} else {
@@ -261,7 +333,9 @@ export function createSelfModeActions(ctx) {
 			return false
 		}
 		try {
-			const saved = await ctx.selfObjectStore().saveObject(ctx.selfObjectType(), formData)
+			const item = ctx.editItem()
+			const type = item ? typeFor(ctx, item) : ctx.selfObjectType()
+			const saved = await ctx.selfObjectStore().saveObject(type, formData)
 			if (saved) {
 				ctx.setResults.form({ success: true })
 				const isCreate = !ctx.editItem()
@@ -277,7 +351,7 @@ export function createSelfModeActions(ctx) {
 					ctx.afterCreateSuccess(saved)
 				}
 			} else {
-				const err = storeError(ctx)
+				const err = storeError(ctx, type)
 				if (err && err.isValidation) {
 					// Keep the form visible so the user can fix the invalid data.
 					ctx.setResults.formValidation(err.fields, err.message || 'Validation failed')
