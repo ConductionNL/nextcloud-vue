@@ -1,8 +1,15 @@
 <template>
-	<NcActions :forceMenu="visibleActions.length > 3"
+	<NcActions :forceMenu="isBoardLook || visibleActions.length > 3"
 		:primary="primary"
+		:variant="isBoardLook ? 'secondary' : undefined"
+		:class="{ 'cn-row-actions--board': isBoardLook }"
 		:menuName="menuName"
+		:ariaLabel="isBoardLook ? boardMenuLabel : undefined"
 		data-testid="cn-row-actions">
+		<!-- Board look: one 34px menu button per row, three dots, named after the row. -->
+		<template v-if="isBoardLook" #icon>
+			<DotsHorizontal :size="18" />
+		</template>
 		<template v-for="{ action, link } in renderedActions" :key="actionKey(action)">
 			<!-- A navigate-only action is a real link, so it can be middle-clicked, opened in a new tab or copied. -->
 			<NcActionLink
@@ -41,7 +48,10 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions } from '@nextcloud/vue'
+import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
 import { isModifiedClick } from '../../utils/linkNavigation.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
@@ -84,9 +94,12 @@ export default {
 		NcActionButton,
 		NcActionLink,
 		CnIcon,
+		DotsHorizontal,
 	},
 
 	inject: {
+		/** The look CnAppRoot provides; `board` draws one menu button per row. */
+		cnLook: { default: 'nextcloud' },
 		/** The label lookup from CnAppRoot, so manifest action labels show in the user's language. */
 		cnTranslate: { default: null },
 	},
@@ -136,6 +149,25 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * The row's own name, for the board look's menu button: "Actions for
+		 * <name>". Without it the button is named "Actions".
+		 */
+		rowLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The board look's menu button name, whole ("More actions for Sanne")
+		 * and already translated. Wins over the "Actions for <rowLabel>" the
+		 * button is named after otherwise.
+		 */
+		triggerLabel: {
+			type: String,
+			default: '',
+		},
+
 		/** Label shown on the action menu trigger button */
 		menuName: {
 			type: String,
@@ -146,6 +178,29 @@ export default {
 	emits: ['action'],
 
 	computed: {
+		/**
+		 * Whether the row menu is the board look's single menu button.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * The board look's menu button name.
+		 *
+		 * @return {string}
+		 */
+		boardMenuLabel() {
+			if (this.triggerLabel) {
+				return this.triggerLabel
+			}
+			return this.rowLabel
+				? t('nextcloud-vue', 'Actions for {name}', { name: this.rowLabel })
+				: t('nextcloud-vue', 'Actions')
+		},
+
 		/**
 		 * Filter actions by their `visibleWhen` and `visible` gates, with the same rule CnContextMenu uses.
 		 * An action without either always shows.

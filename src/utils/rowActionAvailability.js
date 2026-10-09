@@ -234,3 +234,23 @@ export function undeclaredRowActions(actions, row, field = DEFAULT_ROW_ACTION_FI
 	}
 	return [...allowed].filter((id) => !declared.has(id)).sort()
 }
+
+/**
+ * Drop the built-in View from a row's menu when the row itself opens the
+ * record's detail page: viewing is what a click on the row already does, so
+ * the menu offers Edit instead and not a second way to view.
+ *
+ * Only the built-in View goes (`builtin: true`, id `view`). An action the page
+ * declared itself ("Open case", a link to somewhere else) is the page's
+ * decision and stays. A row with no detail page keeps View.
+ *
+ * @param {Array<object>} actions The row's actions, in order.
+ * @param {boolean} rowOpensDetail Whether a click on THIS row navigates to its detail page.
+ * @return {Array<object>} The actions without the built-in View, or the same list.
+ */
+export function withoutViewWhenRowOpensDetail(actions, rowOpensDetail) {
+	if (!rowOpensDetail || !Array.isArray(actions)) {
+		return actions
+	}
+	return actions.filter((action) => !(action && action.builtin === true && action.id === 'view'))
+}

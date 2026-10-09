@@ -145,3 +145,12 @@ export default {
 | `metadata` | `{ object, fields }` | Override the metadata section. `fields` is the array of `{ key, label, value, property }` objects (already filtered and limited by `maxMetadata`) |
 | `badges` | `{ object }` | Content rendered below the title/description area (e.g. status badges) |
 | `actions` | `{ object }` | Action buttons rendered on the right side of the card; click events on this area do not bubble to the card's `@click` handler |
+
+## Board look props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `status` | String, Object | `null` | Status pill at the end of the head row: a label or `{ label, variant }` |
+| `leading` | Object | `null` | Leading element: `{ initials }` in a circle or `{ icon }` on a tint |
+| `footerAction` | Object | `null` | `{ label, meta?, ariaLabel? }`, one footer action; emits `footer-action` |
+| `cardFields` | Array | `null` | Property keys of the facts list, in order |

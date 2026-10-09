@@ -103,3 +103,7 @@ Used on its own, the bar shows whatever you pass in `counts` (or as `count` on a
 
 - [CnIndexPage](./cn-index-page.md) — the host that reads `config.quickFilters` and mounts this bar
 - [`migrating-to-manifest.md` § Quick-filter tabs](../migrating-to-manifest.md) — manifest authoring guide
+
+## Board look
+
+Under the board look the tabs are chips, pressed buttons (`aria-pressed`) in a group, 38px high with a count badge, the selected one filled with the main text colour.
