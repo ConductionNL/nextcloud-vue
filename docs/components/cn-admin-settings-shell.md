@@ -99,3 +99,7 @@ Two optional actions surface the [`CnSetupWizard`](./cn-setup-wizard.md) and the
 | `actions` | Extra action buttons next to the update / re-import buttons |
 | `footer` | Replaces the default support / SLA footer |
 | `version-items` | Extra key/value rows inside the version card details |
+
+## Board look
+
+Under the board look the title is an h1 of 28px with the description under it, a labelled "Documentation" button (when `docUrl` is set) sits before the buildiq square, no documentation icon is drawn, and the sections lay out as cards in a two-column grid up to 1240px wide. The `look` prop overrides the `cnLook` that `CnAppRoot` provides.
